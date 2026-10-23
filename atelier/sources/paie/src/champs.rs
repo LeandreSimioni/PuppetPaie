@@ -26,8 +26,9 @@ use crate::retours::Echec;
 
 type R<T> = Result<T, Echec>;
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
 /// `FORMES` : le libelle de chaque forme de champ.
@@ -67,6 +68,8 @@ pub struct Champ {
     pub si: Value,
     pub si_etablissements: bool,
     pub si_entreprise: Value,
+    /// Quand la compagnie DOIT le remplir (`exige_si`, meme forme que `si`) : `Champ::exige`.
+    pub exige_si: Value,
     pub booleen_defaut: bool,
     pub ecran: bool,
 }
@@ -97,6 +100,7 @@ impl Champ {
             si: v.get("si").cloned().unwrap_or(Value::Null),
             si_etablissements: drapeau("si_etablissements", false),
             si_entreprise: v.get("si_entreprise").cloned().unwrap_or(Value::Null),
+            exige_si: v.get("exige_si").cloned().unwrap_or(Value::Null),
             booleen_defaut: drapeau("booleen_defaut", true),
             ecran: drapeau("ecran", true),
         }
@@ -118,6 +122,7 @@ impl Champ {
             "si_permanents": self.si_permanents, "si": self.si,
             "si_etablissements": self.si_etablissements,
             "si_entreprise": self.si_entreprise,
+            "exige_si": self.exige_si,
             "booleen_defaut": self.booleen_defaut, "ecran": self.ecran,
         })
     }
@@ -441,7 +446,7 @@ pub fn normaliser(c: &Champ, valeur: &Value) -> R<Value> {
 
 /// `PERSONNES` : le signataire et le contact DSN, avec les cles declarees qui
 /// ont une forme lisible `<cle>_affichage`.
-const PERSONNES: [(&str, &[&str]); 2] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &[])];
+const PERSONNES: [(&str, &[&str]); 3] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &[]), ("contact_sante_travail", &[])];
 
 fn faux_ou_absent(d: &Map<String, Value>, k: &str) -> bool {
     d.get(k).map_or(true, |v| !vrai(v))
@@ -467,7 +472,7 @@ pub fn combler_affichage(nom: &str, donnees: &Map<String, Value>) -> R<Map<Strin
         for (cle, officiels) in PERSONNES {
             let Some(Value::Object(p)) = sortie.get(cle) else { continue };
             let mut p = p.clone();
-            if cle == "declarant_dsn" && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
+            if (cle == "declarant_dsn" || cle == "contact_sante_travail") && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
                 // << NOM PRENOM >> en un seul champ : le premier mot fait le nom,
                 // le reste le prenom.
                 let np = p.get("nom_prenom").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
@@ -504,6 +509,60 @@ pub fn apercu_derive(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
 }
 
 /// `description(nom_fiche)` : la description en dictionnaires.
+
+// ------------------------------------------------- quand un champ se montre
+
+/// La valeur d'une cle de fiche comme la page la compare (`fiche.js`, `conditionRemplie` : `String(v ?? "").trim()`).
+fn comme_la_page(v: Option<&Value>) -> String {
+    match v {
+        None | Some(Value::Null) => String::new(),
+        Some(Value::String(s)) => s.trim().to_string(),
+        Some(Value::Bool(b)) => b.to_string(),
+        Some(Value::Number(n)) => n.to_string(),
+        Some(autre) => autre.to_string(),
+    }
+}
+
+/// UNE CONDITION DE `champs-base.json` (`si`, `exige_si`) remplie par la fiche `donnees` : chaque cle de la condition
+/// vaut l'une des valeurs listees ; `"*"` admet toute valeur non vide (et pas `false`). LA MEME REGLE que la page applique
+/// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
+/// jugent sur ce que l'ecran montre (#236, « aucun manque ne pointe vers un champ masque »). Une condition absente est
+/// remplie.
+pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
+    let Some(o) = si.as_object() else { return true };
+    o.iter().all(|(k, vals)| {
+        let v = comme_la_page(donnees.get(k));
+        let vals = vals.as_array().map(Vec::as_slice).unwrap_or(&[]);
+        vals.iter().any(|x| x.as_str() == Some(v.as_str())) || (vals.iter().any(|x| x == "*") && !v.is_empty() && v != "false")
+    })
+}
+
+impl Champ {
+    /// Le champ de la fiche entreprise `donnees` est-il A L'ECRAN ? Ce que la page decide pour la fiche entreprise
+    /// (`fiche.js`, `champHtml`) : sa condition `si`, la case des permanents (`si_permanents`) et la liste des
+    /// etablissements (`si_etablissements`).
+    pub fn montre(&self, donnees: &Value, permanents: bool, etablissements: bool) -> bool {
+        self.ecran
+            && !self.calcule()
+            && condition_remplie(&self.si, donnees)
+            && !(self.si_permanents && !permanents)
+            && !(self.si_etablissements && !etablissements)
+    }
+
+    /// Le champ est-il EXIGE de la compagnie `donnees` ? Sa condition `exige_si` de `champs-base.json`, la seule : la
+    /// fiche (« Pour demarrer », `demarrage::manques`) et la declaration qui le lit (la DSN, pour la licence) la lisent
+    /// toutes deux. Un champ sans `exige_si` n'est exige de personne par cette voie. Un champ exige est toujours montre
+    /// (`tests/routes/demarrage.rs` le verifie sur toutes les conventions).
+    pub fn exige(&self, donnees: &Value) -> bool {
+        !self.exige_si.is_null() && condition_remplie(&self.exige_si, donnees) && condition_remplie(&self.si, donnees)
+    }
+}
+
+/// Le champ `cle` de la fiche `nom`, s'il existe.
+pub fn champ(nom: &str, cle: &str) -> R<Option<Champ>> {
+    Ok(fiche(nom)?.into_iter().find(|c| c.cle == cle))
+}
+
 pub fn description(nom: &str) -> R<Value> {
     Ok(Value::Array(fiche(nom)?.iter().map(Champ::description).collect()))
 }
@@ -1089,6 +1148,15 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         }
     }
     anomalies.extend(controles_croises(nom, &donnees)?);
+    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS (#236). Une regle de forme peut se tromper et la valeur
+    // etre juste : son erreur se passe outre a l'ecran (`forcable`). Une valeur obligatoire absente, non : le metier d'un
+    // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
+    // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se
+    // remplit en plusieurs fois (« Pour demarrer » dit ce qui manque) : ses manques restent forcables.
+    for a in anomalies.iter_mut() {
+        let manque = a["gravite"] == "erreur" && a["message"] == "obligatoire" && nom != "entreprise";
+        a["forcable"] = json!(!manque);
+    }
     // Une fiche mise de cote ne doit pas crier. Ses manques restent visibles --
     // et redeviennent bloquants a la reactivation, ce que le message dit.
     if donnees.get("actif") == Some(&Value::Bool(false)) {

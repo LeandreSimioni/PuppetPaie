@@ -371,6 +371,8 @@ fn etat_importation(racine: &Path) -> R<Value> {
         "reprises": reprises_faites(racine, m, &engagements),
         "editeur": editeur,
         "attend_editeur": attend,
+        // Les contrats repris dont la nature reste a dire, par salarie (#236, `importation_nature`).
+        "a_dire": crate::importation_nature::a_dire(racine),
     }))
 }
 

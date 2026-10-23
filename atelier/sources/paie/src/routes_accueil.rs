@@ -34,8 +34,9 @@ use crate::routes_mois::{mois_saisis, Moteur};
 
 type R<T> = Result<T, Echec>;
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (rien ici).

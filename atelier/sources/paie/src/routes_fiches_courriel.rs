@@ -331,7 +331,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
                 d
             }
         };
-        let f = crate::routes_ecritures::ecrire_fiche(ctx, "salarie", existante.clone(), &Value::Object(donnees.clone()), true, &Value::Null, &Value::Null)?;
+        let f = crate::routes_ecritures::ecrire_fiche(ctx, "salarie", existante.clone(), &Value::Object(donnees.clone()), crate::routes_ecritures::Forcer::Tout, &Value::Null, &Value::Null)?;
         let texte_de = |cle: &str| donnees.get(cle).map(py_str).unwrap_or_default();
         let nom = format!("{} {}", texte_de("prenom_affichage"), texte_de("nom_affichage"));
         let erreurs = f.anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).count();

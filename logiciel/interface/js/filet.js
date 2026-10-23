@@ -22,10 +22,12 @@ async function dessinerDiagnostic(rang) {
             arrivent — ou qu'ils arrivent à d'autres compagnies. Il ne saura plus
             non plus combien de paies PuppetPaie fait chez vous : le logiciel est
             gratuit, c'est sa seule façon de savoir s'il sert.</p>
-          <p class="note">Ce qui part : les dysfonctionnements (des codes et des
-            messages qui nomment un champ), et une fois par an, à partir du
-            16 janvier, le nombre de paies faites l'année précédente. Rien d'autre :
-            ni nom, ni NIR, ni montant. Les incidents resteront notés sur cet
+          <p class="note">Ce qui part : chaque dysfonctionnement avec de quoi le
+            reproduire (ce que le logiciel faisait, ses données, les 3 minutes
+            d'avant, cet ordinateur), et une fois par an, à partir du 16 janvier,
+            le nombre de paies faites l'année précédente. Les noms, NIR, adresses,
+            IBAN et coordonnées de vos salariés n'en partent pas : ils sont
+            remplacés par leur forme. Les incidents resteront notés sur cet
             ordinateur, et vous pourrez réactiver l'envoi à tout moment.</p>
           <p>Voulez-vous vraiment continuer ?</p>
           <div class="actions">
@@ -71,8 +73,12 @@ function boiteDiagnostic(d, rang, signales = []) {
       de l'éditeur, pour qu'il le corrige. Une fois par an, à partir du 16 janvier, il
       envoie aussi le nombre de paies faites l'année précédente : le logiciel est
       gratuit, c'est la seule façon pour l'éditeur de savoir s'il sert. Ce qui part est
-      affiché ici tel quel :
-      ni nom, ni NIR, ni montant ; le poste est désigné par un numéro tiré au hasard.
+      affiché ici tel quel : ce que le logiciel faisait et ses données (montants, dates,
+      codes, spectacles, lieux), ce que vous et le logiciel avez fait les 3 minutes d'avant,
+      et cet ordinateur (système, version, mémoire, disque, écran). Les noms, NIR, adresses,
+      IBAN, naissances, courriels et téléphones des salariés sont remplacés par leur forme
+      (« salarié n°2 », « NIR présent, clé valide ») ; la compagnie n'est pas nommée et le
+      poste est désigné par un numéro tiré au hasard.
       ${d.serveur ? `Serveur : <b>${echapper(d.serveur)}</b>.` : "<b>Aucun serveur connu : rien ne part.</b>"}</p>
     ${!d.groupes.length ? `<p>Rien n'a été noté.</p>` : `<div class="liste-choix">
       ${d.groupes.map((g, i) => `
@@ -146,6 +152,8 @@ function boiteSignalement() {
       && !document.getElementById("voile").classList.contains("cachee")) return;
   const ecran = ecranCourant();
   const captures = [];                      // { type, donnees (data URL), octets }
+  const enCours = new Set();                // les captures d'écran qui se dessinent encore (promesses)
+  chargerHtml2canvas().catch(() => {});     // l'outil de capture se charge dès l'ouverture, pas au clic (#253)
   // La boîte déjà ouverte (une DPAE, un dépôt) attend dessous, et revient
   // quand celle-ci se ferme ou se réduit.
   let dessous = mettreDeCote();
@@ -161,6 +169,11 @@ function boiteSignalement() {
       <button type="button" class="lien" id="sg-capturer"
         title="Photographier l'écran de PuppetPaie tel qu'il est derrière cette boîte">capturez
         l'écran</button>.</p>
+    <p class="note" id="sg-ce-qui-part">Pour qu'on trouve la panne sans vous redemander, partent avec votre
+      message : cet ordinateur (système, version, mémoire, disque, écran), tout ce que vous et PuppetPaie
+      avez fait ces 3 dernières minutes, et les derniers dysfonctionnements notés. Les noms, NIR, adresses,
+      IBAN, naissances, courriels et téléphones de vos salariés y sont remplacés par leur forme
+      (« salarié n°2 ») et la compagnie n'est pas nommée ; montants, dates et codes restent tels quels.</p>
     <p class="encart erreur" id="sg-erreur" hidden></p>
     <p id="sg-resultat" hidden></p>
     <div class="actions">
@@ -189,32 +202,36 @@ function boiteSignalement() {
   const dessinerVignettes = () => {
     $("sg-vignettes").innerHTML = captures.map((c, i) => `
       <span class="sg-vignette"><img src="${c.donnees}" alt="Capture ${i + 1}">
-        <button type="button" class="sg-retirer" data-i="${i}" title="Retirer cette capture">×</button></span>`).join("");
+        <button type="button" class="sg-retirer" data-i="${i}" title="Retirer cette capture">×</button></span>`).join("")
+      + `<span class="sg-vignette sg-en-cours">capture…</span>`.repeat(enCours.size);
     $("sg-vignettes").querySelectorAll(".sg-retirer").forEach((b) => {
       b.onclick = () => { captures.splice(+b.dataset.i, 1); dessinerVignettes(); };
     });
-    $("sg-ajout").hidden = captures.length >= CAPTURES_MAX;
+    $("sg-ajout").hidden = captures.length + enCours.size >= CAPTURES_MAX;
     changement();
   };
-  const poser = (fichier) => {
+  /** Pose une image parmi les captures ; rend une promesse tenue quand elle y est (ou refusée). */
+  const poser = (fichier) => new Promise((fini) => {
     montrerErreur("");
     if (captures.length >= CAPTURES_MAX) {
-      return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+      return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
     }
     if (!/^image\/(png|jpeg)$/.test(fichier.type)) {
-      return montrerErreur("Une capture doit être une image PNG ou JPEG.");
+      return fini(montrerErreur("Une capture doit être une image PNG ou JPEG."));
     }
     if (fichier.size > CAPTURE_MAX) {
-      return montrerErreur("Une capture dépasse 1,5 Mo : réduisez-la, ou découpez-la.");
+      return fini(montrerErreur("Une capture dépasse 1,5 Mo : réduisez-la, ou découpez-la."));
     }
     const lecteur = new FileReader();
     lecteur.onload = () => {
-      if (captures.length >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+      if (captures.length >= CAPTURES_MAX) return fini(montrerErreur(`${CAPTURES_MAX} captures au plus.`));
       captures.push({ type: fichier.type, donnees: lecteur.result, octets: fichier.size });
       dessinerVignettes();
+      fini();
     };
+    lecteur.onerror = () => fini();
     lecteur.readAsDataURL(fichier);
-  };
+  });
   $("sg-fichier").onchange = () => {
     [...$("sg-fichier").files].forEach(poser);
     $("sg-fichier").value = "";
@@ -254,28 +271,28 @@ function boiteSignalement() {
   $("sg-fermer").onclick = () => fermerBoite();
 
   // CAPTURER L'ÉCRAN, PAR LE LOGICIEL (ticket #102, 02/10/2026 : « un bouton,
-  // capturer l'écran actuel, une espèce d'imprime-écran »). La boîte s'efface
-  // le temps de la photo -- et la fenêtre qu'elle recouvrait (une DPAE, un
-  // dépôt) revient pour y figurer --, puis tout se remet en place. La photo
-  // est celle de la PAGE, dessinée par html2canvas : ce qui est hors de
-  // PuppetPaie (une autre fenêtre, le bureau) n'y est pas.
-  $("sg-capturer").onclick = async () => {
+  // capturer l'écran actuel, une espèce d'imprime-écran »). La photo est la
+  // page SANS cette boîte -- et avec la fenêtre qu'elle recouvrait (une DPAE,
+  // un dépôt) --, celle de la PAGE, dessinée par html2canvas : ce qui est hors
+  // de PuppetPaie (une autre fenêtre, le bureau) n'y est pas.
+  //
+  // LA BOÎTE NE BOUGE PLUS (#253, 23/10/2026 : « quand j'ai cliqué sur
+  // capturer l'écran ça a pris 1,5 seconde alors que ça devrait être
+  // instantané, en arrière-plan discret »). Elle s'effaçait de l'écran le temps
+  // de la photo, puis revenait. Elle reste : c'est dans la COPIE de la page que
+  // html2canvas dessine qu'on la retire et qu'on remet la fenêtre d'en dessous
+  // (`photographierLaPage`). Une place « capture… » tient celle de l'image
+  // pendant le dessin ; Envoyer attend qu'elle soit posée. L'image est la même
+  // qu'avant : la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
+  $("sg-capturer").onclick = () => {
     montrerErreur("");
-    if (captures.length >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
-    boite.remove();
-    const d = dessous;
-    dessous = null;
-    if (d) d(); else document.getElementById("voile").classList.add("cachee");
-    let fichier = null, erreur = "";
-    try {
-      fichier = await photographierLaPage();
-    } catch (e) { erreur = "La capture n'a pas pu se faire : " + e.message; }
-    dessous = mettreDeCote();
-    ouvrirBoite("");
-    document.getElementById("boite").appendChild(boite);
-    surCetteBoite();
-    if (erreur) montrerErreur(erreur);
-    else if (fichier) poser(fichier);
+    if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
+    // La place « capture… » d'abord : elle se peint avant que la copie de la page ne prenne la main.
+    const tour = photographierLaPage(dessous && dessous.noeuds)
+      .then(poser, (e) => montrerErreur("La capture n'a pas pu se faire : " + e.message))
+      .finally(() => { enCours.delete(tour); dessinerVignettes(); });
+    enCours.add(tour);
+    dessinerVignettes();
   };
   $("sg-reduire").onclick = () => {
     const pastille = document.createElement("button");
@@ -304,6 +321,7 @@ function boiteSignalement() {
     if (!$("sg-pre").hidden) { $("sg-pre").hidden = true; return; }
     montrerErreur("");
     try {
+      await Promise.all([...enCours]);      // une capture qui se dessine encore part avec le reste
       const a = await api("signalement-apercu", charge());
       $("sg-pre").textContent = JSON.stringify(a.corps, null, 2);
       $("sg-pre").hidden = false;
@@ -317,6 +335,7 @@ function boiteSignalement() {
     montrerErreur("");
     const rendre = occupe(envoyer, "Envoi en cours…");
     try {
+      await Promise.all([...enCours]);      // une capture qui se dessine encore part avec le reste
       const r = await api("signalement-envoyer", charge());
       $("sg-pre").hidden = true;
       $("sg-resultat").hidden = false;
@@ -353,27 +372,62 @@ function chargerHtml2canvas() {
   return HTML2CANVAS;
 }
 
-/** La page telle qu'on la voit (la partie affichée), en JPEG sous 1,5 Mo. */
-async function photographierLaPage() {
+/** La page telle qu'on la voit (la partie affichée), SANS la boîte du message, en JPEG sous 1,5 Mo. `dessous` : les
+ *  nœuds de la boîte qu'elle recouvre (`mettreDeCote`), qui figurent sur la photo à sa place ; sans eux, le voile part.
+ *  L'écran, lui, ne change pas (#253) : tout se fait dans la copie de la page que html2canvas dessine (`onclone`).
+ *
+ *  UN SEUL DESSIN (#253) : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
+ *  (mêmes échelles et qualités qu'avant), au lieu de redessiner la page. */
+async function photographierLaPage(dessous) {
   const h2c = await chargerHtml2canvas();
   await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+  const toile = await h2c(document.body, {
+    scale: 1, logging: false, backgroundColor: "#ffffff",
+    x: window.scrollX, y: window.scrollY,
+    width: window.innerWidth, height: window.innerHeight,
+    windowWidth: document.documentElement.clientWidth,
+    ignoreElements: (el) => el.id === "signaler-voile"
+      || (el.classList && el.classList.contains("sg-pastille")),
+    onclone: (copie) => {
+      const nid = copie.getElementById("boite");
+      if (!nid) return;
+      nid.innerHTML = "";
+      if (dessous && dessous.length) dessous.forEach((n) => nid.appendChild(copieAvecSaisie(n, copie)));
+      else copie.getElementById("voile").classList.add("cachee");
+    },
+  });
   const essais = [[1, 0.85], [1, 0.6], [0.75, 0.6], [0.5, 0.6]];
   for (const [echelle, qualite] of essais) {
-    const toile = await h2c(document.body, {
-      scale: echelle, logging: false, backgroundColor: "#ffffff",
-      x: window.scrollX, y: window.scrollY,
-      width: window.innerWidth, height: window.innerHeight,
-      windowWidth: document.documentElement.clientWidth,
-      ignoreElements: (el) => el.id === "signaler-voile"
-        || (el.classList && el.classList.contains("sg-pastille")),
-    });
-    const blob = await new Promise((ok) => toile.toBlob(ok, "image/jpeg", qualite));
+    let t = toile;
+    if (echelle !== 1) {
+      t = document.createElement("canvas");
+      t.width = Math.round(toile.width * echelle);
+      t.height = Math.round(toile.height * echelle);
+      t.getContext("2d").drawImage(toile, 0, 0, t.width, t.height);
+    }
+    const blob = await new Promise((ok) => t.toBlob(ok, "image/jpeg", qualite));
     if (blob && blob.size <= CAPTURE_MAX) {
       const quand = new Date().toTimeString().slice(0, 8).replace(/:/g, "");
       return new File([blob], `ecran-${quand}.jpg`, { type: "image/jpeg" });
     }
   }
   throw new Error("l'image dépasse 1,5 Mo même réduite");
+}
+
+/** `noeud` copié dans le document `doc`, avec ce qu'on y a tapé ou coché : une copie de nœud reprend les attributs,
+ *  pas la valeur courante d'un champ (une case cochée à la main, un texte tapé). */
+function copieAvecSaisie(noeud, doc) {
+  const copie = doc.importNode(noeud, true);
+  if (noeud.nodeType !== 1) return copie;
+  const champs = (n) => [n, ...n.querySelectorAll("input, textarea, select")].filter((c) => /^(INPUT|TEXTAREA|SELECT)$/.test(c.tagName));
+  const de = champs(noeud), vers = champs(copie);
+  de.forEach((c, i) => {
+    const v = vers[i];
+    if (!v) return;
+    if (c.type === "checkbox" || c.type === "radio") v.checked = c.checked;
+    else v.value = c.value;
+  });
+  return copie;
 }
 
 /* LES RÉPONSES DE L'ÉDITEUR (01/10/2026 : « chaque ticket a le droit à une

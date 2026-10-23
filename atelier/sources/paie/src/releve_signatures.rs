@@ -220,6 +220,7 @@ fn texte_ou(x: &Value, cle: &str, defaut: &str) -> String {
     x.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| defaut.to_string())
 }
 
+#[track_caller]
 fn os(m: String) -> Echec {
     erreur("OSError", m)
 }

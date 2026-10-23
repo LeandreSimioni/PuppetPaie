@@ -51,10 +51,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 // ------------------------------------------------------------------ outils
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
+#[track_caller]
 fn cle_manquante(cle: &str) -> Echec {
     erreur("KeyError", crate::fichiers::absent(cle))
 }
@@ -77,6 +79,7 @@ fn comparer(a: &Value, b: &Value) -> R<Ordering> {
     }
 }
 
+#[track_caller]
 fn pas_comparable(a: &Value, b: &Value) -> Echec {
     erreur("TypeError", crate::fichiers::incomparables(nom_type(a), nom_type(b)))
 }
@@ -215,23 +218,11 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
 
 // ------------------------------------------------------------ les fichiers de mois
 
-/// Les mois dont un fichier de saisie existe (`operations_paies.mois_connus`,
-/// ceux qui ont une `saisie`) : le radical de chaque `paies/*.json`, comme
-/// `Path.stem` -- `2026-09.calcul.json` y est le mois « 2026-09.calcul ». Dans
-/// l'ordre croissant.
+/// Les mois dont un fichier de saisie existe, dans l'ordre croissant : `routes_mois::mois_saisis`, les `paies/AAAA-MM.json`
+/// seulement. Un cache (`2024-12.etat.json`, `2026-09.calcul.json`), qu'une lecture ecrit en fond, n'est pas un mois
+/// (#236 : le rejeu d'un banc, qui ne refait pas les lectures, ne doit pas voir une autre compagnie).
 pub(crate) fn mois_saisis(ctx: &Contexte) -> Vec<String> {
-    let mut mois: Vec<String> = match std::fs::read_dir(ctx.racine.join("paies")) {
-        Ok(l) => l
-            .filter_map(|e| e.ok())
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.ends_with(".json"))
-            .map(|n| if n.len() > 5 { n[..n.len() - 5].to_string() } else { n })
-            .collect(),
-        Err(_) => Vec::new(),
-    };
-    mois.sort();
-    mois.dedup();
-    mois
+    crate::routes_mois::mois_saisis(&ctx.racine)
 }
 
 /// `operations_paies._engagements_du_mois` : les engagements bruts d'un fichier
@@ -419,6 +410,44 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 mensuel,
             });
         }
+    }
+    // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL (#236) : aucun fichier de saisie ne le porte, l'historique
+    // si (`importation_nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
+    // comme les autres, avec sa nature, son debut, son numero, son salaire mensuel et sa duree du travail.
+    // Ensuite, il se recopie d'un mois a l'autre comme tout contrat paye au mois.
+    for r in crate::importation_nature::repris_en_cours(&ctx.racine, texte_mois) {
+        let ident = vec![json!(r.salarie), json!(r.debut), json!(r.numero)];
+        if vus.contient(&ident)? {
+            continue;
+        }
+        vus.poser(ident, ())?;
+        let Ok(sal) = ctx.salarie(&r.salarie) else { continue };
+        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+        let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+        let mut mensuel = Map::new();
+        mensuel.insert("nature".into(), json!(r.nature));
+        if let Some(s) = &r.salaire_mensuel {
+            mensuel.insert("salaire_mensuel".into(), s.clone());
+        }
+        if let Some(q) = &r.quotite {
+            mensuel.insert("quotite_contrat".into(), q.clone());
+        }
+        out.push(EnCours {
+            salarie: r.salarie.clone(),
+            nom: format!("{} {}", t("nom"), prenom),
+            spectacle: Value::Null,
+            debut: r.debut,
+            fin: r.fin,
+            numero: json!(r.numero),
+            depuis: r.depuis,
+            metier: Value::Null,
+            cadre: Value::Null,
+            taux_cachet: Value::Null,
+            lieu: json!(""),
+            deja_repris: false,
+            lignes: Vec::new(),
+            mensuel: Some(mensuel),
+        });
     }
     let en_cours: Vec<Option<jumeaux::Ident>> = out.iter().map(|c| Some((c.salarie.clone(), c.debut.clone(), jumeaux::numero_du_champ(Some(&c.numero))))).collect();
     for (c, repris) in out.iter_mut().zip(jumeaux::apparier(&en_cours, &deja)) {

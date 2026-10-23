@@ -36,6 +36,14 @@ fn banc() -> (&'static Banc, MutexGuard<'static, ()>) {
         let origine = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/interface");
         copier(&origine, &logiciel.join("interface"));
         std::fs::create_dir_all(logiciel.join("donnees")).unwrap();
+        // Le « + » derive la raison sociale de la fiche neuve par la regle des champs (#236, lot A), qui lit les
+        // referentiels livres avec toute installation (champs, norme DSN) : ceux du dossier `donnees/`, tels quels.
+        for e in std::fs::read_dir(origine.join("../donnees")).unwrap() {
+            let p = e.unwrap().path();
+            if p.extension().is_some_and(|x| x == "json") {
+                std::fs::copy(&p, logiciel.join("donnees").join(p.file_name().unwrap())).unwrap();
+            }
+        }
         std::fs::write(logiciel.join("VERSION"), "2026.10.09\n").unwrap();
         // Hors d'`interface/` : ce qu'un chemin qui sort ne doit jamais atteindre.
         std::fs::write(logiciel.join("donnees").join("hors.js"), "hors de la page").unwrap();

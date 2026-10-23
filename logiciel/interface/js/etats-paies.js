@@ -458,7 +458,10 @@ async function dessinerEtatsDesPaies(mois) {
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
     // rien à peindre, et rien d'alarmant à dire. La saisie, elle, marche.
-    ETATS_PAIES = {};
+    // On ne sait rien des paies : les cartes restent comme elles sont (#253).
+    // Un état vide les ouvrait TOUTES en formulaire, validées comprises, et le
+    // refus du moteur (dit dans « Les étapes ») se lisait « tout s'est ouvert ».
+    ETATS_PAIES = null;
   }
   peindreEtats();
 }
@@ -746,7 +749,8 @@ async function boiteDpae(mois) {
   try {
     r = await api("etat-par-paie", { mois });
   } catch (e) {
-    dire("Rien d'enregistré pour " + moisEnClair(mois) + " : saisir une paie d'abord.");
+    // Un mois sans paie rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel (#253).
+    dire(e.message, "erreur");
     return;
   }
   const lignes = r.paies || [];
@@ -794,7 +798,7 @@ async function boiteDpae(mois) {
     </div>
     <p class="note">Heure d'embauche déclarée : 08h00. Toutes les embauches
       cochées partent ensemble, dans un seul dépôt. D'abord le test, qui ne
-      déclare rien ; une fois le test revenu conforme, l'envoi réel.</p>
+      déclare rien ; une fois le test revenu conforme, ${enFictive() ? "l'envoi, simulé" : "l'envoi réel"}.</p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       <button class="primaire" id="d-ecrire">Envoyer le test…</button>

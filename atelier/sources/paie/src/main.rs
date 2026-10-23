@@ -76,6 +76,11 @@ fn main() -> std::process::ExitCode {
         // Les scenarios du banc d'essai (#236) : rejouer, verifier un banc, elaguer. L'atelier seulement.
         #[cfg(feature = "atelier")]
         Some("scenario") => return std::process::ExitCode::from(paie::scenario::commande(&args[1..]).clamp(0, 255) as u8),
+        // Les bulletins fictifs d'un logiciel precedent, pour une compagnie qui s'importe (#236). L'atelier seulement.
+        #[cfg(feature = "atelier")]
+        Some("fabriquer-bulletins") => {
+            return std::process::ExitCode::from(paie::atelier::fabriquer_bulletins::commande(&args[1..]).clamp(0, 255) as u8)
+        }
         Some("interface") => return std::process::ExitCode::from(paie::interface::commande(&args[1..]).clamp(0, 255) as u8),
         // Les commandes que le Python appelle avec du JSON : `paie interne NOM`.
         Some("interne") => return interne(&args[1..]),

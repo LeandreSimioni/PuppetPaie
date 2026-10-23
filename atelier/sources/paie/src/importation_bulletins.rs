@@ -530,7 +530,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             continue;
         }
         let donnees = fiche_salarie(nir, &siens)?;
-        let anomalies = crate::champs::verifier_fiche("salarie", &donnees)?;
+        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
         let libelle = format!("{} {}", donnees.get("nom").map_or(String::new(), py_str), ri::titre_de(donnees.get("prenom")));
         let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
         ap.a_creer.push(ACreer { nom: "salarie", rang: Some(liste.len()), donnees: donnees.clone() });
@@ -557,7 +557,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             completer_a_creer(&mut ap.a_creer, &mut reponse, "entreprise", None, &proposees)?;
         } else if reponse.get("entreprise").is_none_or(Value::is_null) {
             let e = fiche_entreprise(&lus, dernier)?;
-            let anomalies = crate::champs::verifier_fiche("entreprise", &e)?;
+            let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), py_str);
             ap.a_creer.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             reponse.insert("entreprise".into(), ri::fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e)));
@@ -632,7 +632,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             if let Some(x) = &analytique {
                 a.donnees.entry("code_analytique").or_insert_with(|| json!(x));
             }
-            let anomalies = crate::champs::verifier_fiche("spectacle", &a.donnees)?;
+            let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("spectacle", &a.donnees)?;
             liste[rang]["donnees"] = ri::brut(&Value::Object(a.donnees.clone()));
             liste[rang]["anomalies"] = ri::brut(&Value::Array(anomalies));
             continue;
@@ -648,10 +648,10 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(dernier >= seuil));
         donnees.insert("_vu_dans".into(), json!(format!("bulletins de {} a {} ({} bulletin(s))", premier, dernier, rangs.len())));
-        let anomalies = crate::champs::verifier_fiche("spectacle", &donnees)?;
+        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         let libelle = match &titre {
             Some(t) => format!("{} ({})", t, numero),
-            None => format!("objet {} ({} a {})", numero, premier, dernier),
+            None => format!("numéro d'objet {}, sans titre (bulletins de {} à {})", numero, premier, dernier),
         };
         ap.a_creer.push(ACreer { nom: "spectacle", rang: Some(liste.len()), donnees: donnees.clone() });
         liste.push(ri::fiche_importee("spectacle", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(donnees)));
@@ -1065,7 +1065,7 @@ fn completer_a_creer(a_creer: &mut [ACreer], reponse: &mut Map<String, Value>, n
         return Ok(());
     }
     a.donnees.extend(champs);
-    let anomalies = crate::champs::verifier_fiche(nom, &a.donnees)?;
+    let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture(nom, &a.donnees)?;
     let entree = match (nom, a.rang) {
         ("entreprise", _) => reponse.get_mut("entreprise"),
         (_, Some(i)) => reponse.get_mut("salaries").and_then(|l| l.get_mut(i)),
@@ -1174,6 +1174,25 @@ fn ecarts_entreprise(fiche: &Value, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
     Value::Object(out)
 }
 
+/// CE QUE LE BULLETIN IMPRIME EN MINUSCULES EST DEJA LA FORME LISIBLE (#236) : « La Fanfare des Toits », « 3 quai de
+/// la Fosse » vont tels quels dans la case qu'on lit (`<cle>_affichage`), la forme declaree s'en derive a l'ecriture.
+/// Un texte tout en capitales (CoolPaie imprime ainsi noms et adresses) n'en dit pas la casse : sa forme lisible se
+/// fait comme ailleurs (`champs::combler_affichage`). Sans cela, « La Fanfare des Toits » devenait « La Fanfare Des
+/// Toits ».
+fn lisibles_de_la_piece(nom: &str, f: &mut Map<String, Value>) -> R<()> {
+    for c in crate::champs::fiche(nom)? {
+        let Some(source) = c.derive_de.as_deref().filter(|d| !d.is_empty()) else { continue };
+        if f.get(source).is_some_and(vrai) {
+            continue;
+        }
+        let Some(Value::String(v)) = f.get(&c.cle).cloned() else { continue };
+        if v.chars().any(char::is_lowercase) {
+            f.insert(source.to_string(), json!(v));
+        }
+    }
+    Ok(())
+}
+
 /// La fiche d'un salarie qu'aucune fiche ni aucune DSN ne porte : ce que ses bulletins impriment, champ par champ le
 /// plus recent (`ls` dans l'ordre du temps).
 fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
@@ -1191,13 +1210,42 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
     f.insert("nir".into(), json!(nir));
     let cle = ls.iter().rev().find_map(|l| l.cle_nir.clone()).or_else(|| crate::champs::cle_nir(nir)).unwrap_or_default();
     f.insert("nir_cle".into(), json!(cle));
-    // Artiste ou technicien : seulement quand le bulletin le dit en toutes lettres (« non cadre » ne le dit pas).
-    if ls.iter().rev().find_map(|l| l.b.salarie.statut.as_deref()).is_some_and(|x| compare(x) == "artiste") {
-        f.insert("statut".into(), json!("artiste"));
+    // CE QUE LE STATUT IMPRIME DIT, EN TOUTES LETTRES (#236), et rien de plus : « Artiste » ou « Technicien » font
+    // la case « Artiste ou technicien » ; « Cadre » ou « Non cadre », la case « Cadre ou non cadre » (S21.G00.40.003 :
+    // 01 cadre, 04 non cadre, cahier technique 2026.1 p. 183). « Non cadre » ne dit pas artiste ou technicien : cette
+    // case-la reste a remplir, et l'apercu le dit.
+    match ls.iter().rev().find_map(|l| l.b.salarie.statut.as_deref()).map(compare).as_deref() {
+        Some(s @ ("artiste" | "technicien")) => {
+            f.insert("statut".into(), json!(s));
+        }
+        Some("cadre") => {
+            f.insert("statut_categoriel_rc".into(), json!("01"));
+        }
+        Some("noncadre") => {
+            f.insert("statut_categoriel_rc".into(), json!("04"));
+        }
+        _ => {}
+    }
+    // L'EMPLOI IMPRIME, QUAND IL NOMME UN METIER DU CATALOGUE ET UN SEUL (#236) : « MUSICIEN » est le metier MUS010 ;
+    // la fiche prend alors ce que le choix de ce metier donne dans la fiche (`emplois::resoudre` : le code PCS-ESE, le
+    // code France Travail, le statut conventionnel), comme si on l'avait choisi dans la liste. Le statut et la qualite
+    // de cadre imprimes priment sur ceux du catalogue. Un intitule qui ne nomme aucun metier, ou plusieurs, reste tel
+    // quel : le metier se choisit dans la fiche apres l'import, et l'apercu le dit.
+    let intitule = f.get("emploi").map(py_str).unwrap_or_default();
+    if let Some((code, feminin)) = crate::emplois::par_intitule(&intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
+        let cadre = f.get("statut_categoriel_rc").map(py_str).map(|s| s == "01");
+        let r = crate::emplois::resoudre(&code, cadre, feminin).map_err(|m| erreur("ErreurOperation", m))?;
+        for (k, v) in r.as_object().into_iter().flatten() {
+            if v.is_null() || (k == "statut" && f.contains_key("statut")) {
+                continue;
+            }
+            f.insert(k.clone(), v.clone());
+        }
     }
     if let Some(premier) = ls.iter().map(|l| l.b.debut).min() {
         f.insert("date_anciennete".into(), json!(premier.iso()));
     }
+    lisibles_de_la_piece("salarie", &mut f)?;
     let mut f = crate::champs::combler_affichage("salarie", &f)?;
     f.insert("actif".into(), json!(true));
     Ok(f)
@@ -1243,6 +1291,7 @@ fn fiche_entreprise(lus: &[Lu], l: &Lu) -> R<Map<String, Value>> {
         let l: Vec<Value> = licences.iter().map(|(m, n)| json!({"depuis": format!("{}-01", m), "numero": n})).collect();
         f.insert("licence_spectacle".into(), Value::Array(l));
     }
+    lisibles_de_la_piece("entreprise", &mut f)?;
     let mut f = crate::champs::combler_affichage("entreprise", &f)?;
     if f.get("raison_sociale").is_some_and(vrai) && !f.get("nom_affichage").is_some_and(vrai) {
         let t = ri::titre_de(f.get("raison_sociale"));
@@ -1343,12 +1392,33 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
         m.insert("heures_enseignement".into(), json!(enseignement));
     }
     m.insert("atteste_par".into(), json!("bulletin"));
+    // LA NATURE DU CONTRAT (#236) : aucun gabarit connu ne l'imprime (`bulletins-gabarits-base.json`), et rien sur la
+    // page ne la fixe a coup sur. Deux marques disent un engagement du spectacle : la cotisation Congés Spectacles
+    // (due pour l'artiste ou le technicien qui n'est pas employe douze mois de suite, D. 7121-41 du code du travail,
+    // `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md`) et le numero d'objet (interdit hors des
+    // natures 02 et 10, CCH-11 : regle 6). Avec l'une d'elles, le contrat reste muet : un engagement muet est un
+    // CDDU (regle 6), comme partout ailleurs. Sans aucune, c'est le contrat d'un permanent -- CDI ou CDD de droit
+    // commun, que le bulletin ne dit pas et qu'on ne devine pas : il est marque « a dire », se demande apres l'import
+    // (`importation_nature`), et ne se lit pas en CDDU en attendant.
+    if !marque_d_intermittent(&l.b) {
+        m.insert(crate::importation_nature::A_DIRE.into(), json!(true));
+    }
     if let Some(n) = &l.b.numero {
         m.insert("numero_bulletin".into(), json!(n));
     }
     m.insert("fichier".into(), json!(chemin));
     m.insert("page".into(), json!(l.page));
     Ok((cle, Value::Object(m)))
+}
+
+/// Le bulletin porte-t-il une marque d'engagement du spectacle : un numero d'objet, ou une cotisation Congés
+/// Spectacles (sous sa famille, ou une ligne qui la nomme : CoolPaie la range sous les autres contributions) ?
+fn marque_d_intermittent(b: &BulletinLu) -> bool {
+    b.numero_objet.as_deref().is_some_and(|o| !o.trim().is_empty())
+        || b.cotisations.iter().any(|c| {
+            (c.famille.as_deref() == Some("conges_spectacles") || compare(&c.libelle).contains("congesspectacles"))
+                && c.montant_employeur.is_some_and(|m| !m.is_zero())
+        })
 }
 
 /// Le nom d'un champ de paie dans une phrase du compte rendu.

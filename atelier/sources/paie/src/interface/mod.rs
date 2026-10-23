@@ -867,6 +867,13 @@ impl Fenetre {
                 // LE JOURNAL DE L'INTERFACE note chaque route et sa duree (ticket #244 : mesurer l'ouverture sur le poste) :
                 // l'heure, le nom, les millisecondes, et la classe d'un refus. Jamais la charge : elle peut porter un mot
                 // de passe.
+                // CE QUE LA PAGE A FAIT depuis sa derniere demande (`X-Gestes`, js/tuyau.js : clics, champs, boites, console),
+                // note dans le fil AVANT la route qu'il a declenchee (`diagnostic::noter_gestes`, qui le met en forme).
+                if let Some(g) = r.entete("x-gestes").filter(|g| !g.is_empty()) {
+                    if let Ok(lot) = serde_json::from_str::<Value>(&http::decoder_pourcent(g)) {
+                        crate::diagnostic::noter_gestes(&racine, &lot);
+                    }
+                }
                 let debut = Instant::now();
                 let rendu = api::repondre(&racine, nom, &charge, Some(&veille), Some(&etats));
                 self.ecrire(&ligne_de_route(nom, debut.elapsed(), &rendu));
@@ -1096,6 +1103,8 @@ pub fn demarrer_sur(minutes_veille: u64, port: u16) -> std::io::Result<(Arc<Fene
 }
 
 fn servir_sur(minutes_veille: u64, ecouteur: TcpListener, port: u16) -> std::io::Result<(Arc<Fenetre>, u16)> {
+    // L'heure du lancement et les paniques notees (`diagnostic`) : ce qu'un retour et un incident disent de la fenetre.
+    crate::diagnostic::installer();
     let f = Fenetre::nouvelle(minutes_veille, instance::dossier_local(&compagnies::base(), port), port);
     let servie = f.clone();
     std::thread::spawn(move || http::servir(ecouteur, Arc::new(move |r| servie.traiter(r))));

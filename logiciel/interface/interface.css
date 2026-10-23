@@ -42,6 +42,14 @@
 
 * { box-sizing: border-box; }
 
+/* UN DÉPLIANT FERMÉ NE MONTRE QUE SON TITRE, partout (#253, 23/10/2026). Le
+   navigateur de la fenêtre sous Windows (WebView2) peignait le contenu d'un
+   <details> fermé par-dessus la carte : la liste à cocher des salariés restait
+   ouverte sur chaque carte, et le motif de rupture du contrat replié passait
+   sous « Retirer cet engagement ». On ne s'en remet plus à la façon dont un
+   navigateur cache ce qu'un <details> fermé contient : on le retire de la page. */
+details:not([open]) > :not(summary) { display: none !important; }
+
 body {
   margin: 0;
   font: 14px/1.5 Arial, Helvetica, sans-serif;
@@ -399,6 +407,7 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 .fiche-conseils { margin: 6px 0 14px; }
 .fiche-conseils h3 { margin: 0; font-size: 14px; }
 .encart b { display: block; margin-bottom: 3px; }
+.encart .anomalie b { display: inline; margin: 0; }
 /* L'AVENANT (30/09/2026) : l'ancien texte du contrat et le nouveau, cites. */
 .modif-avenant { margin: 10px 0; }
 .modif-avenant .citation { margin: 2px 0 6px 12px; font-style: italic; font-size: 13px; }
@@ -1592,6 +1601,9 @@ button.signaler:hover { color: var(--texte); }
 .sg-vignette { position: relative; }
 .sg-vignette img { display: block; max-width: 140px; max-height: 90px;
                    border: 1px solid var(--discret); border-radius: 3px; }
+/* La place d'une capture qui se dessine encore (#253) : la boîte revient tout de suite, l'image suit. */
+.sg-vignette.sg-en-cours { display: flex; align-items: center; justify-content: center; width: 140px; height: 90px;
+                           border: 1px dashed var(--discret); border-radius: 3px; font-size: 12px; color: var(--discret); }
 .sg-retirer { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px;
               padding: 0; border: none; border-radius: 50%; line-height: 20px;
               background: var(--texte); color: var(--carte); cursor: pointer; font-size: 13px; }
@@ -1698,3 +1710,9 @@ details.pourquoi p, details.pourquoi ul { margin: 4px 0; }
 .fiche-imprevus-tete { display: flex; align-items: baseline; gap: 14px; }
 .fiche-imprevus-tete h3 { margin: 0; font-size: 14px; }
 .fiche-imprevus-tete .lien { font-size: 12px; color: var(--discret); }
+
+/* L'INDICATEUR DE LA MISE À JOUR, DANS LA PAGE D'UNE COMPAGNIE (#253) : à sa
+   place, sous ce qui défile (`main`), et plus par-dessus — « Logiciel à jour »
+   recouvrait le net d'une carte. Toujours en bas à gauche (#210) ; l'accueil
+   des compagnies, qui ne lit pas cette feuille, le garde flottant. */
+body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 4px 12px; padding: 2px 8px; background: none; }

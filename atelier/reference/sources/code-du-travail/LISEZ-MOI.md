@@ -237,3 +237,30 @@ d'annule-et-remplace en DPAE ; un doublon est rejeté (code 98).
 
 **Où le moteur s'en sert** : `atelier/sources/paie/src/routes_mois.rs` (`etat_par_paie`, `embauches_a_declarer`, l'étape
 DPAE de `bilan_du_mois`) et `routes_regularisation::debut_declare_avant`. Tests : `tests/routes/modifier_apres_echeance.rs`.
+
+## L'entrepreneur de spectacles vivants et sa licence (relevé du 23/10/2026, #236)
+
+Ajoutés à `TEXTES` (`licence_spectacles`, `paie/src/releve_codes/textes.rs`) et relevés par `paie releve-codes moissonner`
+(2 livraisons nouvelles sur 472, « manquants : aucun ») puis `rapport travail` : **L7122-1** à **L7122-6**, **L7122-22**,
+**L7122-23** (`articles-20261023.md`, section « L'entrepreneur de spectacles vivants et sa declaration » ; `xml/`).
+
+- **L7122-2** : « Est entrepreneur de spectacles vivants toute personne qui exerce une activité d'exploitation de lieux de
+  spectacles, de production ou de diffusion de spectacles [...] quel que soit le mode de gestion, public ou privé, à but
+  lucratif ou non ».
+- **L7122-3** : il exerce « sous réserve de [...] déclarer son activité » ; la déclaration « donne lieu à la délivrance d'un
+  récépissé de déclaration d'entrepreneur de spectacles vivants, valant licence ».
+- **L7122-22** et **L7122-23** : celui qui n'a pas pour activité principale l'exploitation de lieux, la production ou la
+  diffusion de spectacles déclare ses artistes et techniciens auprès d'un organisme habilité (le guichet unique), pas en DSN.
+
+La norme DSN (S21.G00.40.049, `../../norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 1418-1426) y renvoie (« L.7122-3 et
+suivants ») et demande, à défaut de licence, la référence du récépissé.
+
+**Où le moteur s'en sert** : `demarrage::licence_exigee` (qui doit la licence : la convention dont c'est le champ, 3090 et
+1285, `exige_si` du champ `licence_spectacle` de `logiciel/donnees/champs-base.json` ; en 1790 et 3252, dès qu'un spectacle
+est configuré, ou, dans la DSN, pour un contrat de spectacle), lu par « Pour démarrer » et par `dsn::licence_du_contrat`.
+Tests : `tests/routes/demarrage.rs` (`aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention`) et
+`tests/dsn/licence.rs`.
+
+**Inférence** : qu'un spectacle configuré (ou un contrat de spectacle, CDDU portant un objet spectacle) fasse de la
+compagnie un entrepreneur de spectacles qui déclare en DSN : par L7122-1 (« s'assurent la présence physique d'au moins un
+artiste du spectacle percevant une rémunération ») et L7122-22/23 (l'organisateur occasionnel ne déclare pas en DSN).

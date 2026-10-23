@@ -180,22 +180,58 @@ fn ce_qui_n_est_pas_une_entree_ne_recalcule_pas() {
     assert!(entrees.as_object().unwrap().keys().all(|k| !k.contains("casc-svp-base.json")), "{}", entrees);
 }
 
+/// Le taux AT/MP de la surcouche de la compagnie porte a `valeur` : une entree du calcul qui n'est pas la saisie, et qui
+/// change le cout employeur.
+fn changer_le_taux_atmp(c: &Compagnie, valeur: f64) {
+    modifier(&c.racine.join("config/baremes/2026.json"), |v| v["taux_atmp"]["valeur"] = json!(valeur));
+}
+
+/// UN MOIS PARTI GARDE SES CHIFFRES, PAS UNE AUTRE SAISIE (#253). Ce qui bouge autour de la saisie (un taux, une fiche) ne
+/// change rien a un mois dont la DSN est partie ; sa saisie, elle, se modifie depuis le 21/10/2026 (annule-et-remplace,
+/// correction le mois suivant), et le calcul garde ne vaut plus pour elle : il se refait et se reecrit.
 #[test]
-fn un_mois_parti_garde_ses_chiffres() {
+fn un_mois_parti_garde_ses_chiffres_tant_que_sa_saisie_est_la_meme() {
     let c = compagnie("parti");
     c.du_mois(false);
     let ancien = c.direct();
-    modifier(&c.fichier(MOIS), |v| v["engagements"][0]["salaire_mensuel"] = json!(4000.0));
-    let nouveau = c.direct();
-    assert_ne!(ancien, nouveau);
+    changer_le_taux_atmp(&c, 2.5);
+    assert_ne!(ancien, c.direct(), "le taux AT/MP pese dans le calcul");
     let (rendu, ecrit) = c.reecrit(true);
     assert!(!ecrit);
-    assert_eq!(rendu, ancien, "parti : les chiffres stockes, meme si l'empreinte a change");
+    assert_eq!(rendu, ancien, "parti : les chiffres stockes, meme si une entree autre que la saisie a change");
+    // La saisie change : le calcul garde n'est plus le sien.
+    modifier(&c.fichier(MOIS), |v| v["engagements"][0]["salaire_mensuel"] = json!(4000.0));
+    let (rendu, ecrit) = c.reecrit(true);
+    assert!(ecrit, "une autre saisie : recalculee, et ce calcul remplace l'ancien");
+    assert_eq!(rendu, c.direct());
+    let (rendu, ecrit) = c.reecrit(true);
+    assert!(!ecrit, "puis relu tant qu'elle ne change pas");
+    assert_eq!(rendu, c.direct());
     let (rendu, ecrit) = c.reecrit(false);
-    assert!(ecrit);
-    assert_eq!(rendu, nouveau);
+    assert!(!ecrit);
+    assert_eq!(rendu, c.direct());
 }
 
+/// LE CAS DU TICKET #253 : un engagement ajoute a un mois dont la DSN est partie. Le calcul garde d'avant l'ajout
+/// passait pour celui de la saisie d'apres : une paie de moins que d'engagements, et l'ecran du mois refusait.
+#[test]
+fn un_engagement_ajoute_a_un_mois_parti_a_sa_paie() {
+    let c = compagnie("parti-ajout");
+    c.du_mois(false);
+    depot_dsn(&c, MOIS, "reel", true);
+    modifier(&c.fichier(MOIS), |v| {
+        let engagements = v["engagements"].as_array_mut().unwrap();
+        // Un cachet de plus, au spectacle, sans lieu (ce mois-la, la saisie de la fictive n'a que ses permanents).
+        engagements.push(json!({"salarie": "JACQUET", "spectacle": "la-double-inconstance",
+                                "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 136, "lieu": "", "dates": ["2026-08-28"]}]}));
+    });
+    let engagements = lire(&c.fichier(MOIS))["engagements"].as_array().unwrap().len();
+    for _ in 0..2 {
+        let rendu = c.du_mois(false);
+        assert_eq!(rendu["paies"].as_array().unwrap().len(), engagements, "une paie par engagement");
+        assert_eq!(rendu, c.direct());
+    }
+}
 /// Une ligne du journal des depots : une DSN de ce mois-la, dans ce mode.
 fn depot_dsn(c: &Compagnie, mois: &str, mode: &str, accepte: bool) {
     std::fs::create_dir_all(c.racine.join("journal")).unwrap();
@@ -220,10 +256,10 @@ fn le_mois_est_parti_quand_le_journal_porte_une_dsn_reelle_acceptee() {
         assert_eq!(rendu, c.direct());
     }
     // Une DSN reelle acceptee : le mois est parti, sans que la demande le dise ;
-    // les chiffres stockes ne bougent plus, meme si la saisie change.
+    // les chiffres stockes ne bougent plus, meme si une autre entree que la saisie change (#253).
     depot_dsn(&c, MOIS, "reel", true);
     let figes = c.direct();
-    modifier(&c.fichier(MOIS), |v| v["engagements"][0]["salaire_mensuel"] = json!(salaire + 100.0));
+    changer_le_taux_atmp(&c, 2.5);
     assert_ne!(figes, c.direct());
     let stocke = std::fs::read(c.calcul(MOIS)).unwrap();
     let (rendu, ecrit) = c.reecrit(false);
@@ -284,7 +320,15 @@ fn une_saisie_sauvee_s_ecrit_avec_le_calcul_qui_l_a_validee() {
     // Le calcul de la saisie en main, avec ses entrees ; la saisie est ecrite telle quelle (ici elle l'est deja), puis le
     // calcul.
     let (resultat, entrees) = calculer_suivi(&c.options(DATE), &json!({ "saisie": saisie })).unwrap();
-    assert!(ecrire_calcul(&c.options(DATE), MOIS, &resultat, entrees));
+    // UNE AUTRE ECRITURE PASSEE ENTRE-TEMPS (#253) : le fichier ne dit plus la saisie calculee, rien ne s'ecrit -- sinon ce
+    // calcul se noterait sous l'empreinte de l'autre saisie, et passerait pour le sien.
+    let mut autre = saisie.clone();
+    autre["engagements"].as_array_mut().unwrap().pop();
+    ecrire(&c.fichier(MOIS), &autre);
+    assert!(!ecrire_calcul(&c.options(DATE), MOIS, &resultat, entrees.clone(), &saisie));
+    assert!(!c.calcul(MOIS).exists());
+    ecrire(&c.fichier(MOIS), &saisie);
+    assert!(ecrire_calcul(&c.options(DATE), MOIS, &resultat, entrees, &saisie));
     let ecrit = std::fs::read(c.calcul(MOIS)).unwrap();
     // Meme octets qu'un calcul fait sur le fichier, et relu sans recalcul.
     let (rendu, reecrit) = c.reecrit(false);

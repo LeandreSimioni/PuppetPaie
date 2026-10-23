@@ -447,7 +447,108 @@ function vueEtatImportation(e) {
         : x.parti ? `<span class="pastille alerte">attend l'éditeur</span>`
         : `<span class="pastille">pas encore parti</span>`}</div>
     </div>`).join("");
-  return repris + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+  return repris + vueNaturesADire(e.a_dire) + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+}
+
+/* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT (#236,
+   `importation_nature`). Les bulletins d'un permanent ne disent pas s'il
+   est en CDI ou en CDD : le moteur les nomme (`a_dire`), la page le
+   demande, une fois par salarié, sans rien choisir d'avance. */
+function vueNaturesADire(liste) {
+  if (!liste || !liste.length) return "";
+  // Ce que chaque nature demande avec elle (`demande`, du moteur) : pour un
+  // contrat qui court encore, son début, sa fin s'il a un terme, son numéro.
+  const CASES = {
+    debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
+    fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
+    numero: (x) => `<label title="rubrique S21.G00.40.009 de la DSN">Numéro du contrat
+        <input type="text" data-nature-champ="numero" placeholder="sur la DSN de ${echapper(moisEnClair(String(x.au).slice(0, 7)))}"></label>`,
+    salaire: (x) => `<label>Salaire mensuel brut <input type="number" step="0.01" min="0" data-nature-champ="salaire"
+        placeholder="celui du contrat signé"></label>`,
+    quotite: (x) => `<label title="rubrique S21.G00.40.013 de la DSN">Durée du travail (heures par mois)
+        <input type="number" step="0.01" min="0" data-nature-champ="quotite" placeholder="celle du contrat signé"></label>`,
+  };
+  const lignes = liste.map((x) => `<div class="rang" data-nature-rang="${echapper(x.salarie)}">
+      <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
+        ${x.contrats} contrat${x.contrats > 1 ? "s" : ""} repris${x.du ? `, du ${echapper(jjmmaaaa(x.du))}
+          au ${echapper(jjmmaaaa(x.au))}` : ""} — ses bulletins n'ont pas de Congés Spectacles ni de
+        numéro d'objet : c'est un contrat de permanent.
+        ${x.en_cours ? `<div class="note">Payé jusqu'en ${echapper(moisEnClair(String(x.au).slice(0, 7)))} : son contrat
+          continue en ${echapper(moisEnClair(x.suite))}, et sa DSN le déclare avec la date de début et le
+          numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur
+          le bulletin.</div>` : ""}
+        <div class="e-contrat-champs" data-nature-cases hidden>${["debut", "fin", "numero", "salaire", "quotite"].map((c) =>
+          `<span data-nature-case="${c}" hidden>${CASES[c](x)}</span>`).join("")}</div></div>
+      <div class="rang-etat" style="display:flex;gap:6px;align-items:center">
+        <select data-nature-choix aria-label="Nature du contrat de ${echapper(x.nom)}">
+          <option value="">— choisir —</option>
+          ${(x.natures || []).map((n) => `<option value="${echapper(n.cle)}"
+             data-demande="${echapper((n.demande || []).join(" "))}">${echapper(n.libelle)}</option>`).join("")}
+        </select>
+        <button type="button" class="petit" data-nature-salarie="${echapper(x.salarie)}">Enregistrer</button>
+      </div>
+    </div>`).join("");
+  return `<h3>La nature de ces contrats</h3>
+    <p class="note">Un bulletin de paie ne dit pas si le contrat est un CDI ou un CDD. Dites-le pour chacun :
+      la DSN et les documents de fin de contrat en dépendent.</p>${lignes}`;
+}
+
+/* La nature choisie montre les cases qu'elle demande, et elles seules. */
+document.addEventListener("change", (ev) => {
+  const sel = ev.target.closest && ev.target.closest("[data-nature-choix]");
+  if (!sel) return;
+  const rang = sel.closest("[data-nature-rang]");
+  const opt = sel.selectedOptions[0];
+  const demande = ((opt && opt.dataset.demande) || "").split(" ").filter((x) => x);
+  rang.querySelectorAll("[data-nature-case]").forEach((c) => { c.hidden = !demande.includes(c.dataset.natureCase); });
+  rang.querySelector("[data-nature-cases]").hidden = !demande.length;
+});
+
+document.addEventListener("click", async (ev) => {
+  const ouvrir = ev.target.closest && ev.target.closest("[data-ouvrir-fiche]");
+  if (ouvrir) {
+    ev.preventDefault();
+    ouvrirFicheImportee(ouvrir.dataset.ouvrirFiche, ouvrir.dataset.ouvrirCle);
+    return;
+  }
+  const b = ev.target.closest && ev.target.closest("[data-nature-salarie]");
+  if (!b) return;
+  ev.preventDefault();
+  const rang = b.closest("[data-nature-rang]");
+  const nature = rang ? rang.querySelector("[data-nature-choix]").value : "";
+  // Une nature vide part telle quelle : c'est le moteur qui la refuse (règle 2).
+  b.disabled = true;
+  try {
+    const charge = { salarie: b.dataset.natureSalarie, nature };
+    rang.querySelectorAll("[data-nature-case]:not([hidden]) [data-nature-champ]").forEach((c) => {
+      charge[c.dataset.natureChamp] = c.value;
+    });
+    const r = await api("importation-nature", charge);
+    dire(`Nature enregistrée sur ${r.ecrits} contrat${r.ecrits > 1 ? "s" : ""} repris.${r.permanents_declares
+      ? " La compagnie emploie donc des salariés au mois : Configuration › Entreprise dit ce que cela demande encore." : ""}`, "ok");
+    // Les natures au mois s'ouvrent alors dans la saisie (`etat.natures`).
+    ETAT = await api("etat");
+    rafraichirReferentiels();
+    rafraichirEtatImportation();
+  } catch (err) {
+    dire(err.message, "erreur");
+    b.disabled = false;
+  }
+});
+
+/* Ouvrir, dans Configuration, la fiche que l'import vient de créer. */
+async function ouvrirFicheImportee(nom, cle) {
+  if (!(await quitterLaFiche())) return;
+  document.querySelectorAll(".sous-onglets button").forEach((x) => x.classList.toggle("actif", x.dataset.fiche === nom));
+  FICHE_ACTIVE = nom;
+  CLE_ACTIVE = nom === "entreprise" ? null : cle;
+  FICHE_NEUVE = false;
+  dessinerConfig();
+  if (nom !== "entreprise") {
+    const f = fichesDe(nom).find((x) => x.cle === cle);
+    if (f) dessinerFormulaire(f);
+  }
+  document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
 }
 
 /* D'où vient une valeur : la DSN d'un mois, ou un bulletin (fichier, page). */
@@ -476,7 +577,7 @@ function fichesImportees(fiches, titre) {
     const etat = f.etat === "completee" ? `<span class="pastille bien">complétée</span>`
       : f.etat === "existante" && aCompleter ? `<span class="pastille alerte">à compléter</span>`
       : f.etat === "existante" ? `<span class="pastille bien">existe déjà</span>`
-      : f.etat === "creee" ? `<span class="pastille bien">créée (${echapper(f.cle)})</span>`
+      : f.etat === "creee" ? `<span class="pastille bien">créée</span>`
       : `<span class="pastille alerte">à créer</span>`;
     const completes = Object.entries(f.completer || {}).map(([champ, e]) =>
       `<div class="acte-dernier"><b>${echapper(champ)}</b> ${f.etat === "completee" ? "a reçu" : "recevra"}
@@ -489,12 +590,25 @@ function fichesImportees(fiches, titre) {
       return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
          la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;
     }).join("");
-    const erreurs = (f.anomalies || []).filter((a) => a.gravite === "erreur").map((a) =>
-      `<div class="acte-dernier faute">${echapper(a.champ)} : ${echapper(a.message)}</div>`).join("");
+    // CE QUE LES PIÈCES NE DONNENT PAS (#236) : les cases que la fiche
+    // demande et qu'aucun bulletin ni aucune DSN n'imprime (le moteur les
+    // nomme par leur libellé). Une case vide se dit « à remplir », pas
+    // « erreur » : rien n'est faux, il reste à la remplir dans la fiche, que
+    // le bouton ouvre une fois la fiche créée.
+    const anomalies = (f.anomalies || []).filter((a) => a.gravite === "erreur");
+    const manques = anomalies.filter((a) => a.message === "obligatoire").map((a) => a.libelle || a.champ);
+    const fautes = anomalies.filter((a) => a.message !== "obligatoire").map((a) =>
+      `<div class="acte-dernier faute">${echapper(a.libelle || a.champ)} : ${echapper(a.message)}</div>`).join("");
+    const ouvrable = f.etat === "creee" && f.cle && f.nom;
+    const reste = manques.length || fautes ? `<div class="acte-dernier">${manques.length
+        ? `${f.etat === "creee" ? "Reste à remplir dans la fiche" : "À remplir dans la fiche après la reprise"} :
+           <b>${manques.map((m) => echapper(m)).join("</b>, <b>")}</b>` : ""}
+        ${ouvrable ? ` <button type="button" class="petit" data-ouvrir-fiche="${echapper(f.nom)}"
+            data-ouvrir-cle="${echapper(f.cle)}">Compléter la fiche</button>` : ""}</div>${fautes}` : "";
     return `<div class="rang import">
       <span class="rang-nom">${echapper(f.libelle)}</span>
       ${etat}
-      <span class="rang-infos">${completes}${ecarts}${erreurs}</span></div>`;
+      <span class="rang-infos">${completes}${ecarts}${reste}</span></div>`;
   });
   if (!lignes.length) return "";
   return `<h3>${titre}</h3>${lignes.join("")}`;
@@ -532,7 +646,7 @@ function bulletinsImportes(b, ecrit) {
     b.paies_nouvelles ? `${b.paies_nouvelles} paie${b.paies_nouvelles > 1 ? "s" : ""} qu'aucune DSN ne déclare` : "",
     b.paies_completees ? `${b.paies_completees} paie${b.paies_completees > 1 ? "s" : ""} déclarée${b.paies_completees > 1 ? "s" : ""} complétée${b.paies_completees > 1 ? "s" : ""} (cotisations, coût employeur, lignes)` : "",
     b.contrats_nouveaux ? `${b.contrats_nouveaux} contrat${b.contrats_nouveaux > 1 ? "s" : ""} attesté${b.contrats_nouveaux > 1 ? "s" : ""}` : "",
-    b.fiches_a_creer ? `${b.fiches_a_creer} fiche${b.fiches_a_creer > 1 ? "s" : ""} à créer` : "",
+    b.fiches_a_creer ? `${b.fiches_a_creer} fiche${b.fiches_a_creer > 1 ? "s" : ""}${ecrit ? (b.fiches_a_creer > 1 ? " créées" : " créée") : " à créer"}` : "",
   ].filter((x) => x);
   return `<div class="encart"><b>Bulletins de paie</b>
       ${b.lus} bulletin${b.lus > 1 ? "s" : ""} lu${b.lus > 1 ? "s" : ""} sur ${b.pages} page${b.pages > 1 ? "s" : ""}${
@@ -709,7 +823,10 @@ async function ecrireImportation() {
     // dans les déroulants de la saisie, sans recharger la page.
     ETAT = await api("etat");
     rafraichirReferentiels();
-    rafraichirEtatImportation();
+    // CE QUI RESTE À DIRE (#236) : la nature des contrats repris se demande en tête de la page ; on y va.
+    await rafraichirEtatImportation();
+    const aDire = document.querySelector("[data-nature-rang]");
+    if (aDire) aDire.scrollIntoView({ block: "center" });
     const b = r.bulletins || {};
     dire(`Repris : ${(r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0)} contrat(s), ${
       (b.paies_nouvelles || 0) + (b.paies_completees || 0)} bulletin(s), ${
@@ -782,7 +899,10 @@ const SECTIONS_FICHE = {
      ["urssaf_compte", "congesspectacles_adherent",
       "affiliation_france_travail",
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
-    ["Qui signe, qui répond", ["signataire", "declarant_dsn"]],
+    // Le contact de la médecine du travail interne ne se montre que si le code du
+    // service de santé au travail vaut MT01 (`si` de champs-base.json) ; la DSN
+    // l'écrit alors en S20.G00.07 de type 17 (#236).
+    ["Qui signe, qui répond", ["signataire", "declarant_dsn", "contact_sante_travail"]],
     ["Paiement des cotisations", ["banque"]],
     // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
     // déclare chaque année si la compagnie la doit (bloc S21.G00.44), et ne
@@ -941,6 +1061,12 @@ const SOUS_CHAMPS = {
   declarant_dsn: { champs: [
     ["civilite", "Civilité", "Celle de la personne que les organismes contactent : elle s'écrit dans chaque DSN.",
      { choix: { "": "—", "02": "Madame", "01": "Monsieur" } }],
+    ["prenom_affichage", "Prénom", ""],
+    ["nom_affichage", "Nom", ""],
+    ["tel", "Téléphone", ""],
+    ["email", "Courriel", ""],
+  ] },
+  contact_sante_travail: { champs: [
     ["prenom_affichage", "Prénom", ""],
     ["nom_affichage", "Nom", ""],
     ["tel", "Téléphone", ""],
@@ -1265,6 +1391,8 @@ function METIER_HTML(fiche) {
   return `<div class="champ" id="config-metier">
     <label>Métier <span class="obligatoire">*</span>
       <select id="config-metier-choix">${optionsMetiers(code, "— choisir —")}</select></label>
+    <div class="note">C'est du métier que viennent le statut, la catégorie et les codes que la DPAE et la DSN
+      déclarent ; l'intitulé du contrat s'en remplit, et se retouche ensuite.</div>
     <div class="discret petit">Un métier manque ? L'ajouter dans
       <button type="button" class="lien" id="aller-metiers">Configuration › Métiers</button>.</div>
   </div>`;

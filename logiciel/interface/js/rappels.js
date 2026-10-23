@@ -93,7 +93,13 @@ function htmlDemarrage(manques) {
  *  (`ATMP_HTML`) ; les organismes ont leur onglet. */
 function allerAuManque(champ, ou) {
   if (!document.getElementById("voile").classList.contains("cachee")) fermerBoite();
-  document.querySelector('.onglets button[data-vue="configuration"]').click();
+  // Déjà dans la configuration : on n'y retourne pas. Recliquer l'onglet
+  // redessinait la fiche et, sur une fiche en cours de saisie, ouvrait « Vous
+  // avez modifié cette fiche » — suivre un manque après l'autre sans
+  // enregistrer entre deux ne doit rien demander (#236).
+  if (document.getElementById("vue-configuration").classList.contains("cachee")) {
+    document.querySelector('.onglets button[data-vue="configuration"]').click();
+  }
   const fiche = /Organismes/.test(ou) ? "organismes" : "entreprise";
   const sous = document.querySelector(`.sous-onglets button[data-fiche="${fiche}"]`);
   if (sous && !sous.classList.contains("actif")) sous.click();
@@ -197,7 +203,13 @@ function boiteRappels(liste, ech, manques = []) {
     <div class="boite-rappels"></div>${html}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">${liste.length ? "Plus tard" : "Fermer"}</button>
-    </div>`);
+    </div>`, () => {
+    // FERMÉE, ELLE SORT DE LA PAGE (#236) : cachée sous le voile, elle gardait
+    // ses boutons `[data-manque-champ]`, périmés dès que la fiche change, et
+    // qu'on retrouvait en cherchant ceux de « Pour démarrer ».
+    const boite = document.getElementById("boite");
+    if (boite.querySelector(".boite-rappels")) boite.innerHTML = "";
+  });
   liste.forEach((r, i) => {
     const b = document.getElementById("rappel-" + i);
     if (b) b.onclick = () => agirSurRappel(r);

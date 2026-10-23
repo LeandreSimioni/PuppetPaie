@@ -27,20 +27,28 @@ pub struct Echec {
     pub message: String,
 }
 
+// L'endroit ou un echec se construit se note (`diagnostic::noter_echec`) : la trace d'un refus de route le retrouve.
 impl From<String> for Echec {
+    #[track_caller]
     fn from(message: String) -> Self {
+        crate::diagnostic::noter_echec(None, &message);
         Echec { classe: None, message }
     }
 }
 
 impl From<&str> for Echec {
+    #[track_caller]
     fn from(m: &str) -> Self {
+        crate::diagnostic::noter_echec(None, m);
         Echec { classe: None, message: m.to_string() }
     }
 }
 
+#[track_caller]
 fn echec(classe: &'static str, message: impl Into<String>) -> Echec {
-    Echec { classe: Some(classe), message: message.into() }
+    let message = message.into();
+    crate::diagnostic::noter_echec(Some(classe), &message);
+    Echec { classe: Some(classe), message }
 }
 
 // ---------------------------------------------------------------- les tables

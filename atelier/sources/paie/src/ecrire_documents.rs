@@ -25,6 +25,7 @@ use crate::retours::Echec;
 use crate::routes_dossier_salarie::{avec, certificats_dus, charger, cle_de, ecrire_pdf, etiquette, premier_ce};
 use crate::verrou::Verrou;
 
+#[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }

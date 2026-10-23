@@ -97,6 +97,25 @@ fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
     assert!(!est_fictive(&reelle.racine) && refus_d_envoi(&reelle.racine).is_none());
 }
 
+/// LA FICHE NEE DU « + » EST DANS LA FORME QUE LE MOTEUR RELIT (#236) : la raison sociale (S10.G00.01.003) en
+/// majuscules sans accents, deduite du nom comme a chaque enregistrement. `to_uppercase` gardait les accents : une
+/// compagnie neuve naissait avec « 1 erreur de configuration » qu'aucune case ne montrait. Il ne lui manque que ce qui
+/// est a saisir (« obligatoire »), aucune valeur n'y est fausse.
+#[test]
+fn le_plus_ecrit_la_raison_sociale_dans_sa_forme_declaree() {
+    let inst = dossier_de_test("fictive_ajoutee", "raison-sociale");
+    let c = ajouter_dans(&inst, "Les Tréteaux de l'Été").unwrap();
+    let ent = lire(&c.racine, "config/entreprise.json");
+    assert_eq!(ent["nom_affichage"], json!("Les Tréteaux de l'Été"));
+    assert_eq!(ent["raison_sociale"], json!("LES TRETEAUX DE L'ETE"));
+    let fautes: Vec<Value> = paie::champs::verifier_fiche("entreprise", ent.as_object().unwrap())
+        .unwrap()
+        .into_iter()
+        .filter(|a| a["gravite"] == json!("erreur") && a["message"] != json!("obligatoire"))
+        .collect();
+    assert!(fautes.is_empty(), "{:?}", fautes);
+}
+
 /// LA GRILLE : chaque geste qui ferait partir quelque chose, test et reel, organismes et courriels, refuse depuis une
 /// fictive ajoutee avec la phrase, sans une ligne au journal des depots ; depuis une fictive livree, le meme geste n'est
 /// jamais ce refus, et les depots de test, les documents, la signature et la CASC-SVP y sont joues et notes.

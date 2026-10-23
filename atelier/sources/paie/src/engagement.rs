@@ -1208,14 +1208,18 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
         let cle = fiche.get("_cle").and_then(|c| c.as_str()).unwrap_or("").to_string();
         let premier = engagement_du_premier_mois(ctx, eng, &cle)?;
         let mois_du_contrat = eng.mois_du_contrat()?;
-        let numero = premier.as_ref().and_then(|p| p.get("numero")).filter(|n| vrai(n));
+        // Un contrat repris d'un autre logiciel (#236) : aucun mois saisi ne le porte, l'historique dit son numero tel
+        // que la DSN d'avant l'a declare (`importation_nature::numero_repris`).
+        let repris = premier.is_none().then(|| crate::importation_nature::numero_repris(&ctx.racine, &cle, &eng.debut.iso())).flatten().map(Value::String);
+        let numero = premier.as_ref().and_then(|p| p.get("numero")).filter(|n| vrai(n)).cloned().or(repris);
         let Some(numero) = numero else {
             return Err(format!(
                 "{}, {} depuis le {} : son numero de contrat n'est pas connu \
                  -- le mois {} n'a pas ete produit, ou son fichier ne porte \
                  pas ce contrat. Le numero identifie le contrat en DSN \
                  (S21.G00.40.009) et il ne se regenere pas : produire {} \
-                 d'abord, ou recopier le numero dans la saisie.",
+                 d'abord ; un contrat repris d'un autre logiciel dit le sien, \
+                 lu sur sa DSN, dans Configuration > Reprendre l'historique.",
                 qui,
                 libelle,
                 depuis,
@@ -1223,7 +1227,7 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
                 libelle_mois(&mois_du_contrat[0])
             ));
         };
-        eng.numero = Some(en_texte(numero));
+        eng.numero = Some(en_texte(&numero));
     }
     if eng.dernier_mois()? {
         let fin = eng.fin.ok_or("fin")?;

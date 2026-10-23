@@ -32,13 +32,16 @@ function mettreDeCote() {
   const fermeture = FERMETURE_BOITE, clic = CLIC_DEHORS;
   noeuds.forEach((n) => n.remove());
   FERMETURE_BOITE = null;
-  return () => {
+  const rendre = () => {
     document.getElementById("boite").innerHTML = "";
     document.getElementById("boite").append(...noeuds);
     voile.classList.remove("cachee");
     FERMETURE_BOITE = fermeture;
     CLIC_DEHORS = clic;
   };
+  // Ce qui attend, pour la capture d'écran du message, qui le photographie à sa place sans le remettre (#253).
+  rendre.noeuds = noeuds;
+  return rendre;
 }
 
 /* TOUT COCHER, D'UN CLIC (l'éditeur, 30/09/2026 : « quand on clique sur

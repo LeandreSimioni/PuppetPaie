@@ -377,7 +377,7 @@ pub(crate) fn apercu_lu(
     if !lecture.entreprise.is_empty() {
         let e = fiche_entreprise(&lecture)?;
         if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !py_str(s).trim().is_empty()) {
-            let anomalies = crate::champs::verifier_fiche("entreprise", &e)?;
+            let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), py_str);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             entreprise = fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e));
@@ -419,7 +419,7 @@ pub(crate) fn apercu_lu(
             continue;
         }
         let donnees = fiche_salarie(decl)?;
-        let anomalies = crate::champs::verifier_fiche("salarie", &donnees)?;
+        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
         a_creer_liste.push(ACreer { nom: "salarie", rang: Some(salaries.len()), donnees: donnees.clone() });
         salaries.push(fiche_importee("salarie", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(donnees)));
         cles_a_venir.insert(decl.nir.clone());
@@ -487,12 +487,12 @@ pub(crate) fn apercu_lu(
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(o.dernier >= seuil));
         donnees.insert("_vu_dans".into(), json!(format!("{} de {} a {} ({} contrat(s))", source, o.premier, o.dernier, o.contrats)));
-        let anomalies = crate::champs::verifier_fiche("spectacle", &donnees)?;
+        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         a_creer_liste.push(ACreer { nom: "spectacle", rang: Some(spectacles.len()), donnees: donnees.clone() });
         spectacles.push(fiche_importee(
             "spectacle",
             None,
-            &format!("objet {} ({} a {})", o.numero, o.premier, o.dernier),
+            &format!("numéro d'objet {}, sans titre (déclarations de {} à {})", o.numero, o.premier, o.dernier),
             "a_creer",
             json!({}),
             anomalies,

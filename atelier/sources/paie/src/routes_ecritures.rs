@@ -26,7 +26,7 @@ use crate::engagement;
 use crate::etats::{eq_py, erreur, py_str, R};
 use crate::fichiers::vrai;
 use crate::journal;
-use crate::jumeaux::{apparier, numero_pose, Ident};
+use crate::jumeaux::{apparier_meme_numero, numero_pose, Ident};
 use crate::num::{dec, Decimal};
 use crate::retours::Echec;
 use crate::routes_accueil;
@@ -65,14 +65,17 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 // ------------------------------------------------------------------ outils
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
+#[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
 
+#[track_caller]
 fn en_os(m: String) -> Echec {
     erreur("OSError", m)
 }
@@ -189,6 +192,7 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
 const IDENTITES: [&str; 3] = ["signature", "cachet", "logo"];
 const OCTETS_MAX: usize = 2 * 1024 * 1024;
 
+#[track_caller]
 fn identite_inconnue(quoi: &str) -> Echec {
     refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", crate::fichiers::repr(quoi)))
 }
@@ -477,6 +481,40 @@ fn dater(historique: Option<&Value>, changements: &[Value], depuis: &Value, note
     Ok(hist)
 }
 
+/// CE QUE L'ENREGISTREMENT D'UNE FICHE PASSE OUTRE.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Forcer {
+    /// Rien : une erreur refuse la fiche.
+    Rien,
+    /// Ce que l'ecran peut forcer (« Enregistrer quand meme ») : une erreur de forme (`forcable`), jamais une valeur
+    /// obligatoire absente d'un salarie ou d'un spectacle, sans laquelle la DPAE et la DSN ne se font pas (#236,
+    /// `champs::verifier_fiche`).
+    Forme,
+    /// Tout : l'import et le questionnaire du salarie posent une fiche a completer, qui le dit (« A COMPLETER »).
+    Tout,
+}
+
+impl Forcer {
+    /// La charge `forcer` de la route `enregistrer-fiche` : l'ecran ne force que la forme.
+    pub(crate) fn depuis_l_ecran(forcer: bool) -> Forcer {
+        if forcer {
+            Forcer::Forme
+        } else {
+            Forcer::Rien
+        }
+    }
+
+    /// Ces anomalies refusent-elles la fiche ?
+    fn refuse(self, anomalies: &[Value]) -> bool {
+        let erreurs = || anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur"));
+        match self {
+            Forcer::Rien => erreurs().next().is_some(),
+            Forcer::Forme => erreurs().any(|a| a.get("forcable") == Some(&Value::Bool(false))),
+            Forcer::Tout => false,
+        }
+    }
+}
+
 /// Ce que `echoue` dit : la fiche porte au moins une erreur, elle n'a pas ete ecrite.
 fn fiche_refusee(anomalies: &[Value]) -> Echec {
     let erreurs: Vec<&Value> = anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).collect();
@@ -508,7 +546,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     let forcer = charge.get("forcer").is_some_and(vrai);
     let depuis = charge.get("depuis").unwrap_or(&Value::Null);
     let note = charge.get("note").unwrap_or(&Value::Null);
-    let e = ecrire_fiche(ctx, nom, cle, donnees, forcer, depuis, note)?;
+    let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), depuis, note)?;
     let fiche = routes_accueil::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
@@ -516,7 +554,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
 
 /// `operations_fiches.enregistrer_fiche` : verifie, date ce qui change, sauvegarde l'ancien fichier et
 /// ecrit. Rend ce qui a ete ecrit, sans la page : l'import s'en sert fiche par fiche.
-pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: bool, depuis: &Value, note: &Value) -> R<FicheEcrite> {
+pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: Forcer, depuis: &Value, note: &Value) -> R<FicheEcrite> {
     let mut cle = cle;
     let Some(fichier) = fichier_de(nom) else {
         return Err(refus(format!("Fiche inconnue : {}", crate::fichiers::repr(nom))));
@@ -594,7 +632,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     let derives = routes_fiches::deriver(nom, &mut donnees, true)?;
 
     let anomalies = routes_fiches::verifier(nom, &donnees)?;
-    if !forcer && anomalies.iter().any(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")) {
+    if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(&anomalies));
     }
 
@@ -711,6 +749,15 @@ pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
 
 /// `refuser_si_hors_delai` : la DSN du mois etait due ; seul `forcer` passe outre.
 pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) -> R<()> {
+    // Un mois d'avant la premiere embauche n'a pas de DSN due : il ne se rouvre pas « en retard », pas meme sous `forcer`.
+    if let Some(embauche) = crate::routes_saisie::avant_la_premiere_embauche(ctx, mois)? {
+        return Err(refus(format!(
+            "{} precede la premiere embauche de la compagnie ({}) : aucune DSN n'y est due, rien ne s'y saisit. Si la \
+             compagnie employait deja, corriger la date de premiere embauche (Configuration › Entreprise). Rien n'est ecrit.",
+            mois,
+            Jour::lire(&embauche).map(|j| j.jj_mm_aaaa()).unwrap_or(embauche)
+        )));
+    }
     // Le calcul de la limite se fait meme sous `forcer` : un mois impossible (2026-13) se refuse.
     if let Some(limite) = crate::routes_saisie::mois_hors_delai(ctx, mois)?.filter(|_| !forcer) {
         return Err(refus(format!(
@@ -768,8 +815,23 @@ pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &
 /// `CLASSE_A_CONFIRMER`, avec l'avertissement que la page montre ; rien n'est ecrit. Avec, elle s'ecrit -- la limite de
 /// depot (`refuser_si_hors_delai`) ne la retient pas : le mois n'est pas en retard, il est declare -- et la saisie telle
 /// que declaree est gardee d'abord (`garder_la_saisie_declaree`) : « Corriger ce mois » en part.
+///
+/// UNE SAISIE S'ECRIT A LA FOIS (#253, 23/10/2026). La fenetre sert ses routes en parallele, et la page enregistre une
+/// seconde apres la derniere frappe, meme si l'enregistrement d'avant n'a pas fini (un mois long se calcule en plus d'une
+/// seconde) : deux ecritures du meme mois se croisaient -- l'une fusionnait avec un fichier que l'autre remplacait. Elles
+/// passent l'une apres l'autre, dans ce processus (`SAISIE_EN_COURS`).
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn ecrire_saisie_confirmee(
+    o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool, fusionner_ancien: bool,
+) -> R<PathBuf> {
+    static SAISIE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _une_a_la_fois = SAISIE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
+    ecrire_saisie_seule(o, ctx, mois, brute, forcer, confirme, fusionner_ancien)
+}
+
+/// `ecrire_saisie_confirmee`, la seule ecriture en cours.
+#[allow(clippy::too_many_arguments)]
+fn ecrire_saisie_seule(
     o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool, fusionner_ancien: bool,
 ) -> R<PathBuf> {
     let mut donnees = brute.clone();
@@ -869,7 +931,7 @@ pub(crate) fn ecrire_saisie_confirmee(
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     // Le calcul qui vient de valider la saisie est celui du fichier quand la fusion n'y a rien change.
     if eq_py(&donnees, &calculee) {
-        crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees);
+        crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees, &donnees);
     }
     Ok(p)
 }
@@ -882,6 +944,12 @@ pub(crate) fn ecrire_saisie_confirmee(
 /// LE CONTRAT, PAS LE SALARIE DU JOUR : chaque engagement de l'ecran retrouve le sien dans le fichier par
 /// `jumeaux::apparier` (le numero, sinon le rang parmi ceux du meme salarie et du meme jour) ; le jumeau d'un contrat
 /// valide ne devient pas sa copie, et chacun garde son numero.
+///
+/// LE MEME CONTRAT A D'AUTRES DATES GARDE SA REOUVERTURE (#253, 23/10/2026 ; banc Le Petit Castelet) : un jour ajoute
+/// AVANT le premier jour d'une paie rouverte change son premier jour, et l'appariement par (salarie, debut) ne la
+/// retrouvait plus : la reouverture tombait au premier enregistrement, et, le mois etant depose, la paie modifiee se
+/// relisait « validee » au jour du depot, avec les chiffres d'avant. Le numero de contrat pose la designe, quel que soit
+/// son premier jour (`jumeaux::apparier_meme_numero`, regle 4).
 fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident], nouveaux: &[Ident]) {
     if let Some(origine) = ancien.get("_origine") {
         if !donnees.contains_key("_origine") {
@@ -900,7 +968,7 @@ fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident]
     }
     let engagements_anciens = ancien.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let en_option = |l: &[Ident]| l.iter().cloned().map(Some).collect::<Vec<_>>();
-    let paires = apparier(&en_option(nouveaux), &en_option(anciens));
+    let paires = apparier_meme_numero(&en_option(nouveaux), &en_option(anciens));
     for (i, paire) in paires.iter().enumerate() {
         let Some(e) = (*paire).and_then(|j| engagements_anciens.get(j)).filter(|e| e.is_object()) else { continue };
         let Some(Value::Object(eng)) = engagements.get_mut(i) else { continue };

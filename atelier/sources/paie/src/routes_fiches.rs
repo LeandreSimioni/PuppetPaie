@@ -300,8 +300,13 @@ fn capitales(v: &Value) -> String {
 /// rend `{cle: [avant, apres]}` pour les structures modifiees.
 fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<String, Value> {
     let mut faits = Map::new();
-    let personnes: [(&str, &[&str], Option<(&str, [&str; 2])>); 2] =
-        [("signataire", &["nom", "prenom"], None), ("declarant_dsn", &[], Some(("nom_prenom", ["nom", "prenom"])))];
+    // Le contact de la medecine du travail interne (S20.G00.07 de type 17, `dsn::contact_sante_travail`) s'ecrit comme
+    // celui de la DSN : « NOM PRENOM ».
+    let personnes: [(&str, &[&str], Option<(&str, [&str; 2])>); 3] = [
+        ("signataire", &["nom", "prenom"], None),
+        ("declarant_dsn", &[], Some(("nom_prenom", ["nom", "prenom"]))),
+        ("contact_sante_travail", &[], Some(("nom_prenom", ["nom", "prenom"]))),
+    ];
     for (cle, officiels, compose) in personnes {
         let Some(Value::Object(p)) = donnees.get(cle) else { continue };
         let mut neuf = p.clone();
@@ -471,6 +476,41 @@ pub(crate) fn verifier(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>>
     let mut copie = donnees.clone();
     deriver(nom, &mut copie, false)?;
     champs::verifier_fiche(nom, &copie)
+}
+
+/// LES ANOMALIES QUE L'ECRITURE TROUVERA (#236) : celles d'une fiche que l'import cree, derivee comme `ecrire_fiche` la
+/// derive avant d'ecrire (`deriver` force : la forme declaree se refait de la forme lisible), puis verifiee. L'apercu
+/// de l'import les montre telles : avant, il verifiait la fiche avant derivation, et chaque champ que le bulletin ou
+/// la DSN imprime en minuscules (« 3 quai de la Fosse ») criait « doit etre en MAJUSCULES » sous sa forme lisible,
+/// alors que l'ecriture le declare bien en majuscules.
+///
+/// Le matricule d'un salarie neuf que la piece ne donne pas, l'ecriture le pose (le suivant, `ecrire_fiche`) : son
+/// absence n'est pas une anomalie a montrer. Chaque anomalie porte le libelle de sa case (`libelle`), celui que la
+/// fiche montre : la page le dit a l'utilisateur, pas la cle.
+pub(crate) fn verifier_comme_a_l_ecriture(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> {
+    let mut copie = donnees.clone();
+    if nom == "salarie" && copie.get("code_salarie").is_none_or(|v| !vrai(v)) {
+        copie.insert("code_salarie".into(), json!("1"));
+    }
+    deriver(nom, &mut copie, true)?;
+    let mut anomalies = champs::verifier_fiche(nom, &copie)?;
+    avec_libelles(nom, &mut anomalies)?;
+    Ok(anomalies)
+}
+
+/// Pose sur chaque anomalie le libelle de sa case (`libelle`), celui que la fiche montre.
+pub(crate) fn avec_libelles(nom: &str, anomalies: &mut [Value]) -> R<()> {
+    let champs = champs::fiche(nom)?;
+    for a in anomalies.iter_mut() {
+        let cle = a.get("champ").and_then(Value::as_str).unwrap_or("").to_string();
+        // Le code PCS-ESE ne se tape pas : la fiche le remplit du metier choisi (`emplois.rs`).
+        if cle == "pcs_ese" {
+            a["libelle"] = json!("Métier (il donne le code PCS-ESE)");
+        } else if let Some(c) = champs.iter().find(|c| c.cle == cle) {
+            a["libelle"] = json!(c.libelle);
+        }
+    }
+    Ok(())
 }
 
 /// `verifier-fiche` : les anomalies de la fiche telle qu'elle SERAIT derivee, ce qui

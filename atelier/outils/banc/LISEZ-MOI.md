@@ -104,6 +104,87 @@ paie-atelier scenario elaguer  <scénario> <scénario sans lectures>            
 cd atelier/sources/paie && CARGO_TARGET_DIR=<cible> cargo run --profile essais --example vie_fictive -- rejouer <scénario> <dossier neuf>
 ```
 
+## Une compagnie qui vient d'un logiciel précédent
+
+Une compagnie qui entre par « D'un logiciel précédent » importe, par la page, les bulletins de son ancien logiciel. Ces
+bulletins sont **fictifs** : l'orchestrateur les fabrique d'une description JSON, au gabarit CoolPaie ou sPAIEctacle
+que l'import sait lire, un PDF par bulletin (`paie/src/atelier/fabriquer_bulletins.rs`, la fabrique même des tests) :
+
+```bash
+paie-atelier fabriquer-bulletins description.json /tmp/banc-<nom>/bulletins --gabarit spaiectacle
+```
+
+Puis le joueur les dépose dans le dossier que la page désigne (`import/` de la compagnie, ou le champ du dossier), comme
+tout fichier (règle 7 ci-dessus). L'outil calcule ce qu'un ancien logiciel aurait imprimé : le brut (quantité × taux),
+des cotisations **vraisemblables** (taux d'un faux bulletin, ni relevés ni recalculés : l'import ne recalcule rien, le
+bulletin fait foi) mais **cohérentes** (brut − cotisations salariales + non soumis = net avant impôt ; − PAS = net à
+payer), le net imposable, le PAS au taux donné, et les cumuls de l'année par salarié. Il refuse, avec sa raison, ce que
+l'import ne reprendrait pas entier : un libellé de ligne que le gabarit ne connaît pas ou sans rubrique sûre (pas de
+contrat), une ligne non soumise sur CoolPaie, un NIR ou un Siret à clé fausse, des dates hors de la période.
+
+Une description minimale (identité inventée, règle 9 a : Siret de la famille `123456…` à clé de Luhn juste, NIR de la
+commune 999 à clé juste ; rien de réel) :
+
+```json
+{
+  "gabarit": "coolpaie",
+  "entreprise": {
+    "raison_sociale": "La Fanfare des Toits", "adresse": "7 rue des Gouttières", "code_postal": "44000", "commune": "Nantes",
+    "siret": "12345678200010", "naf": "9001Z", "urssaf": "527000000001", "licence": "PLATESV-R-2020-000123",
+    "convention": {"idcc": "3252", "libelle": "Spectacle vivant, création et événement"}
+  },
+  "salaries": [
+    {"code": "1", "nom": "Scaramouche", "prenom": "Tiberio", "nir": "185079999912388", "naissance": "1985-07-14",
+     "adresse": "3 quai de la Fosse", "code_postal": "44000", "commune": "Nantes", "conges_spectacles": "Z1234567"},
+    {"code": "2", "nom": "Colombine", "prenom": "Isabella", "nir": "290039999900145", "naissance": "1990-03-02",
+     "adresse": "12 rue Kervégan", "code_postal": "44000", "commune": "Nantes"}
+  ],
+  "bulletins": [
+    {"salarie": "1", "emploi": "MUSICIEN", "statut": "artiste", "debut": "2025-03-10", "fin": "2025-03-14",
+     "dates": [["2025-03-10", "2025-03-11"], ["2025-03-14", "2025-03-14"]],
+     "objet": {"numero": "256Z00920031", "titre": "Les Toits en Fanfare"},
+     "lignes": [{"libelle": "Cachets isolés", "quantite": 3, "taux": 146}], "taux_pas": 2.5},
+    {"salarie": "2", "emploi": "CHARGEE DE DIFFUSION", "statut": "non cadre", "regime": "permanent",
+     "debut": "2025-03-01", "fin": "2025-03-31", "lignes": [{"libelle": "Heures", "quantite": 86.67, "taux": 14.5}]}
+  ]
+}
+```
+
+| clé d'un bulletin | |
+|---|---|
+| `salarie` | le `code` d'un salarié de la liste |
+| `emploi`, `statut` | imprimés tels quels ; `statut` « artiste » fait une fiche d'artiste à l'import |
+| `regime` | `intermittent` (défaut : chômage des annexes 8 et 10, Congés Spectacles) ou `permanent` |
+| `debut`, `fin` | la période ; le mois du bulletin est celui de `fin` |
+| `dates` | les jours travaillés, en paires [début, fin] (défaut : toute la période) ; ils font les jours du contrat |
+| `objet` | `{"numero", "titre"}` : le spectacle (numéro d'objet), pour un CDDU |
+| `lignes` | `{"libelle", "quantite", "taux"}` ; libellés du gabarit : `Cachets isolés`, `Cachets groupés`, `Heures`, `Service(s) répét. 4h (contrat<5j)` et `Masterclass / Action Culturelle` (CoolPaie), `Service de répétition 4 heures` (sPAIEctacle) |
+| `non_soumis` | sPAIEctacle seulement : `Défraiement non soumis`, `Prime de panier non soumise`, `Acompte` |
+| `taux_pas`, `regle_le`, `numero`, `analytique` | facultatifs : le taux du PAS (0), le jour du règlement (`fin`), le numéro CoolPaie (`k/année`), le code analytique sPAIEctacle |
+
+Le gabarit se donne dans la description ou par `--gabarit` (qui l'emporte). Le « plafond Urssaf » imprimé se calcule
+par la règle du moteur (`plafond.rs`), sur le plafond de la Sécurité sociale de l'année lu dans le barème livré
+(`logiciel/donnees/baremes/<année>.json`), sinon dans la table des paramètres du BOSS déposée
+(`atelier/reference/boss-table-parametres-2026.csv`, de 2021 à 2026) ; une année que ni l'un ni l'autre ne porte se
+refuse.
+
+Ce que l'import lit d'un bulletin, et ce qu'il demande après :
+
+- `statut` « artiste » ou « technicien » remplit la case « Artiste ou technicien » ; « cadre » ou « non cadre », la case
+  « Cadre ou non cadre » ;
+- `emploi` qui nomme un métier du catalogue (`logiciel/donnees/emplois-base.json`, libellé, féminin ou forme déclarée,
+  sans casse ni accents), et un seul, donne le métier entier (son code PCS-ESE compris) ; un autre intitulé reste à
+  choisir dans la fiche ;
+- **la nature du contrat** : aucun gabarit ne l'imprime. Un bulletin avec un numéro d'objet ou une cotisation Congés
+  Spectacles (le régime `intermittent`) fait un contrat muet, un CDDU (règle 6) ; un bulletin sans aucun des deux (le
+  régime `permanent`, sans `objet`) fait un contrat dont la nature (CDI ou CDD) se demande après l'import, dans
+  Configuration, « Reprendre l'historique ». Un permanent payé le dernier mois repris a un contrat qui continue : la
+  page demande aussi sa date de début et son numéro (ceux de la DSN de l'ancien logiciel, S21.G00.40.001 et .009 ;
+  un joueur les invente, par exemple `00001`), son salaire mensuel brut et sa durée du travail, et le mois suivant le
+  reprend tout seul (« Contrat en cours repris ») ;
+- ce qu'aucun bulletin n'imprime (lieu de naissance, métier non reconnu…) s'affiche, après l'import, sous chaque fiche
+  créée (« Reste à remplir dans la fiche »), avec le bouton qui l'ouvre.
+
 ## Ce que contient un banc
 
 ```
@@ -114,12 +195,19 @@ cd atelier/sources/paie && CARGO_TARGET_DIR=<cible> cargo run --profile essais -
   local/, cle/         le dossier de la fenêtre et la clé du poste, propres au banc
 ```
 
-## Ce qui bloque (relevé en jouant le modèle, 23/10/2026)
+## Ce qui bloque
 
-- La qualité du déclarant DSN n'est pas dans la fiche Entreprise (elle « vaut 04 » et reste dans la fiche), mais une
-  compagnie neuve ne l'a pas, et « Pour démarrer » l'exige : contournement par la route `enregistrer-fiche` (`exemple.js`).
-- « Code du service de santé au travail » bloque la DPAE, mais il est replié sous « Avancé — cas particuliers ».
-- Le métier d'un salarié se choisit dans la liste `#config-metier-choix` ; le champ libre « Emploi » ne suffit pas.
+Rien, sur le chemin d'une compagnie neuve, du « + » à la DSN de son premier mois : `exemple.js` le fait par la seule
+page, sans `api(...)` (rejoué le 23/10/2026, lot A du #236). Ce que le modèle y montre :
+
+- « Pour démarrer » (en tête de Configuration › Entreprise) dit ce qui manque encore ; chaque ligne mène à sa case,
+  visible et le curseur dedans (le code du service de santé au travail, la taxe sur les salaires…), sans quitter la
+  fiche en cours de saisie.
+- La qualité du contact DSN ne se demande pas : le moteur écrit le type 04 (`dsn::type_du_contact`).
+- Une fiche salarié s'ouvre sur « Métier » ; l'intitulé d'emploi apparaît, prérempli, quand le métier est choisi, et
+  un enregistrement sans métier refuse en disant « Métier : à choisir dans la liste ».
+
+Un obstacle relevé en jouant s'écrit ici, avec le geste qui le contourne, jusqu'à ce qu'il soit levé.
 
 ## Pour le rejeu en test
 

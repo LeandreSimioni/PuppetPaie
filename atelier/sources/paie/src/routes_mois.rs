@@ -70,8 +70,9 @@ fn dupliquer(e: &Echec) -> Echec {
     Echec { classe: e.classe, message: e.message.clone() }
 }
 
+#[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    Echec { classe: None, message: m.into() }
+    crate::etats::noter_et(None, m)
 }
 
 /// `un if k == 1 else des` : le pluriel de `_pluriel`, qui compte zero au pluriel.
@@ -227,26 +228,46 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
     v
 }
 
-/// `Path.suffix`.
 /// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers-deposables`), le meme partout (#236) : plus jamais la date de
 /// modification du fichier, que deux machines -- ou deux rejeux -- ne donnent pas pareille.
 /// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
-///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent ; une
-///   mensuelle reecrite (annule et remplace) garde son nom. PUIS LES SIGNALEMENTS (arret, fin de contrat, amorcage...),
-///   dans l'ordre de leur numero d'ordre (S20.G00.05.004) : unique et jamais remis a zero, il dit l'ordre ou le moteur les
-///   a produits (`ordre_signalements`, cahier technique DSN 2026.1 p. 136), et chacun part a son tour.
+///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent. D'un meme
+///   etablissement, LA DERNIERE ECRITE D'ABORD (#253, 23/10/2026) : un annule-et-remplace s'ecrit a cote de la DSN deja
+///   partie, sous `DSN_<Mois>_AR<ordre>.dsn` (`produire_mois`), et c'est lui qui part ; il se reconnait a son numero
+///   d'ordre (S20.G00.05.004, ou `_AR<n>` du nom), le plus grand d'abord. Rangees par le seul nom, la DSN deja deposee
+///   (`DSN_Janvier2025.dsn`) passait avant son annule-et-remplace (`DSN_Janvier2025_AR2.dsn`) : la boite « Deposer » et
+///   l'etape DSN montraient, testaient et auraient redepose l'ancienne. PUIS LES SIGNALEMENTS (arret, fin de contrat,
+///   amorcage...), dans l'ordre de leur numero d'ordre (S20.G00.05.004) : unique et jamais remis a zero, il dit l'ordre ou
+///   le moteur les a produits (`ordre_signalements`, cahier technique DSN 2026.1 p. 136), et chacun part a son tour.
 /// - Les DPAE : la plus recemment produite d'abord, lue dans son nom (`DPAE_<Mois>_<AAAAMMJJ-HHMM>.txt` apres
 ///   `DPAE_<Mois>.txt` : l'ordre inverse des noms).
-pub(crate) fn ordre_de_depot(nom: &str, chemin: &Path) -> (u8, i64, std::cmp::Reverse<String>, String) {
+pub(crate) fn ordre_de_depot(nom: &str, chemin: &Path) -> (u8, i64, String, std::cmp::Reverse<String>) {
     if suffixe(nom).to_lowercase() == ".dsn" {
         let apercu = std::fs::read(chemin).map(|o| crate::depot::lire(&o)).ok();
         let signalement = apercu.as_ref().is_some_and(|a| a.est_signalement());
-        let ordre = apercu.as_ref().filter(|_| signalement).and_then(|a| a.champ("ordre").trim().parse::<i64>().ok()).unwrap_or(0);
-        return (u8::from(signalement), ordre, std::cmp::Reverse(String::new()), nom.to_string());
+        let lu = apercu.as_ref().and_then(|a| a.champ("ordre").trim().parse::<i64>().ok());
+        if signalement {
+            return (1, lu.unwrap_or(0), nom.to_string(), std::cmp::Reverse(String::new()));
+        }
+        let (etablissement, du_nom) = sans_annule_et_remplace(nom);
+        return (0, 0, etablissement, std::cmp::Reverse(format!("{:020}", lu.or(du_nom).unwrap_or(1).max(0))));
     }
-    (0, 0, std::cmp::Reverse(nom.to_string()), String::new())
+    (0, 0, String::new(), std::cmp::Reverse(nom.to_string()))
 }
 
+/// `DSN_<Mois>[_<NIC>]_AR<n>.dsn` -> (`DSN_<Mois>[_<NIC>].dsn`, Some(n)) ; un autre nom reste tel quel.
+fn sans_annule_et_remplace(nom: &str) -> (String, Option<i64>) {
+    if let Some(corps) = nom.strip_suffix(".dsn").or_else(|| nom.strip_suffix(".DSN")) {
+        if let Some(i) = corps.rfind("_AR") {
+            if let Ok(n) = corps[i + 3..].parse::<i64>() {
+                return (format!("{}.dsn", &corps[..i]), Some(n));
+            }
+        }
+    }
+    (nom.to_string(), None)
+}
+
+/// `Path.suffix`.
 fn suffixe(nom: &str) -> &str {
     match nom.rfind('.') {
         Some(i) if i > 0 && i + 1 < nom.len() => &nom[i..],
@@ -338,6 +359,21 @@ impl<'a> Moteur<'a> {
     pub(crate) fn dsn_du_mois(&mut self, mois: &str) -> R<Value> {
         let lignes = self.lignes()?;
         etats::dsn_du_mois(&lignes, &self.ctx.entreprise, mois)
+    }
+
+    /// Les numeros de contrat (S21.G00.40.009) que declare la DSN partie du mois (`dsn_du_mois`), lus dans son fichier,
+    /// reste dans `sorties/<mois>/` tel qu'il est parti ; `None` s'il ne se lit plus.
+    fn contrats_declares(&self, mois: &str, dsn_partie: &Value) -> Option<HashSet<String>> {
+        let nom = dsn_partie.get("fichier").and_then(Value::as_str).filter(|n| !n.is_empty())?;
+        let nom = Path::new(nom).file_name()?;
+        let octets = std::fs::read(self.racine().join("sorties").join(mois).join(nom)).ok()?;
+        Some(
+            String::from_utf8_lossy(&octets)
+                .lines()
+                .filter_map(|l| l.strip_prefix("S21.G00.40.009,"))
+                .map(|v| v.trim().trim_matches('\'').to_string())
+                .collect(),
+        )
     }
 
     // ------------------------------------------------------ la saisie du mois
@@ -569,9 +605,12 @@ impl<'a> Moteur<'a> {
         let contrats_saisis = Self::cles_de_contrat(&s, &rangs);
         let validees = Self::validees(&s, &contrats_saisis);
         // UN MOIS DONT LA DSN REELLE EST PARTIE EST UN MOIS FERME : ses paies se
-        // lisent validees au jour du depot -- sauf celles qu'on a rouvertes.
+        // lisent validees au jour du depot -- sauf celles qu'on a rouvertes, et celles que cette DSN ne declare pas
+        // (#253, 23/10/2026) : un engagement ajoute apres le depot n'est pas parti avec elle, il se valide a la main. Ce
+        // qu'elle declare se lit dans le fichier parti (`contrats_declares`).
         let dsn_partie = self.dsn_du_mois(mois)?;
         let rouvertes = if vrai(&dsn_partie) { Self::rouvertes(&s, &contrats_saisis) } else { HashSet::new() };
+        let declares = if vrai(&dsn_partie) { self.contrats_declares(mois, &dsn_partie) } else { None };
         let g = self.globales()?;
         // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur empreinte et leur numero.
         let uniques: Vec<Paire> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
@@ -606,7 +645,14 @@ impl<'a> Moteur<'a> {
             let contrat = &contrats_saisis[i];
             let valide = match validees.get(contrat) {
                 Some(v) => v.clone(),
-                None if vrai(&dsn_partie) && !rouvertes.contains(contrat) => get(&dsn_partie, "quand")?.clone(),
+                None if vrai(&dsn_partie) && !rouvertes.contains(contrat) && {
+                    // Le numero ecrit dans la saisie, et la DSN partie qui le declare (sans fichier lisible : le numero suffit).
+                    let numero = saisis.get(&uniques[i]).and_then(Value::as_str);
+                    match &declares {
+                        Some(d) => numero.is_some_and(|n| d.contains(n)),
+                        None => numero.is_some(),
+                    }
+                } => get(&dsn_partie, "quand")?.clone(),
                 None => Value::Null,
             };
             // Un CDI n'a pas de fin : `null`, comme `Engagement::canon`, et non le texte « None » du Python.
@@ -622,7 +668,19 @@ impl<'a> Moteur<'a> {
             ligne.insert("emploi".into(), sal.get("emploi").cloned().unwrap_or(Value::Null));
             ligne.insert("statut".into(), sal.get("statut").cloned().unwrap_or(Value::Null));
             if let Some(b) = &bruts {
-                ligne.insert("brut".into(), Value::String(b.get(i).cloned().ok_or_else(|| plain("calcul du mois : une paie de moins que la saisie"))?));
+                // Le calcul du mois rend une paie par engagement de la saisie : il ne peut en manquer une que si un calcul
+                // garde passait pour celui d'une autre saisie (#253, `calcul_du_mois::calcul_et_entrees`). Ce n'est
+                // jamais la saisie de l'utilisateur, et la phrase le lui dit.
+                let brut = b.get(i).cloned().ok_or_else(|| Echec {
+                    classe: Some("DefautDuLogiciel"),
+                    message: format!(
+                        "Le montant de la paie de {} {} ne se lit pas : le calcul de {} ne correspond pas à la saisie \
+                         enregistrée. Ce n'est pas votre saisie qui est en cause : c'est un défaut du logiciel, \
+                         noté dans ses incidents.",
+                        nom_famille, prenom, mois
+                    ),
+                })?;
+                ligne.insert("brut".into(), Value::String(brut));
             }
             ligne.insert("valide".into(), valide);
             ligne.insert(
