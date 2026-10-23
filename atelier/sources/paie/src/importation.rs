@@ -53,7 +53,7 @@ pub(crate) const EMPLOI: [(&str, &str); 5] = [
 /// l'entreprise : celle de l'emetteur (S10.G00.01.003) n'est reprise que si l'emetteur EST l'entreprise (meme Siren en
 /// S10.G00.01.001 et en S21.G00.06.001) -- une inference : la norme ne dit pas que l'entreprise qui depose elle-meme y met
 /// son nom, mais l'emetteur « ayant elabore le present envoi » est alors elle.
-const ENTREPRISE: [(&str, &str); 9] = [
+const ENTREPRISE: [(&str, &str); 8] = [
     ("S21.G00.06.001", "siren"),
     ("S21.G00.11.001", "nic"),
     ("S21.G00.11.003", "adresse"),
@@ -62,7 +62,6 @@ const ENTREPRISE: [(&str, &str); 9] = [
     ("S21.G00.06.003", "naf"),
     ("S21.G00.11.022", "code_convention_dsn"),
     ("S21.G00.40.017", "idcc"),
-    ("S21.G00.40.022", "congesspectacles_affiliation"),
 ];
 
 /// Ce qui ne se reprend qu'a defaut (le siege, l'APET) ou sous condition (l'emetteur) : voir `ENTREPRISE`.
@@ -176,6 +175,12 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
             depot = jjmmaaaa(v);
         } else if let Some(champ) = table(&ENTREPRISE, k) {
             entreprise.entry(champ.to_string()).or_insert_with(|| texte(v));
+        } else if k == "S21.G00.40.022" {
+            // La DSN declare « 97 puis le numero d'adherent » (`conges_spectacles::code_dsn`) : la fiche ne garde que le
+            // numero d'adherent, et seulement s'il a la forme que dit la fiche d'Audiens. Autre chose ne se reprend pas.
+            if let Some(n) = v.strip_prefix("97").filter(|n| crate::conges_spectacles::faute_adherent(n).is_none()) {
+                entreprise.entry(crate::conges_spectacles::CLE_ADHERENT.to_string()).or_insert_with(|| texte(n));
+            }
         } else if k == "S21.G00.40.049" {
             entreprise.entry("licence".to_string()).or_insert_with(|| texte(v));
         } else if k == "S21.G00.30.001" {

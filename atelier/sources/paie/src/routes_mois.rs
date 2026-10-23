@@ -948,16 +948,9 @@ impl<'a> Moteur<'a> {
             }
             return Ok(None);
         }
-        // Seulement la DSN MENSUELLE : un signalement ne declare pas la paie du mois.
-        if !est_une_dsn_mensuelle(&nom) {
-            return Ok(None);
-        }
-        let saisie = self.racine().join("paies").join(format!("{}.json", mois));
-        if let (Ok(f), Ok(s)) = (std::fs::metadata(fichier), std::fs::metadata(&saisie)) {
-            if crate::paris::mtime(&s) > crate::paris::mtime(&f) + 60.0 {
-                return Ok(Some("la paie a ete enregistree depuis que ce fichier a ete ecrit".to_string()));
-            }
-        }
+        // SANS EMPREINTE NOTEE, LE MOTEUR NE SAIT PAS (#236) : il ne compare plus les dates des fichiers. Une fictive
+        // livree, decompressee chez un visiteur, a des dates de fichier qui ne disent rien de l'ordre ou elle a ete ecrite,
+        // et chacun de ses mois se disait « paie changee ».
         Ok(None)
     }
 
@@ -965,6 +958,11 @@ impl<'a> Moteur<'a> {
 
     /// `_etape_de_depot` : pose sur `bilan` ou en est le fichier a deposer.
     fn etape_de_depot(&mut self, mois: &str, quoi: &str, bilan: &mut Map<String, Value>) -> R<()> {
+        // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`produire_mois::mois_ecrit`,
+        // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`.
+        if quoi == DSN && !crate::produire_mois::mois_ecrit(self.racine(), mois) {
+            return Ok(());
+        }
         let fichiers = self.fichiers_deposables(mois)?;
         let Some(premier) = fichiers.get(quoi).and_then(Value::as_array).and_then(|l| l.first()).cloned() else {
             return Ok(());

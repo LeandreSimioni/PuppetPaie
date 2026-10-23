@@ -93,27 +93,38 @@ fn une_ligne_de_paie_neuve_part_d_une_rubrique_de_salaire() {
     assert_eq!(etat(&racine), json!({"activite": "heure", "mensuelle": "mois"}));
 }
 
-/// LE CODE CONGES SPECTACLES DE LA DSN SE SAISIT TEL QU'IL SE DECLARE (#236) : S21.G00.40.022 porte « "97", le numero
-/// d'affiliation et la cle » pour la Caisse des Conges Spectacles, et ses deux premiers caracteres sont un code de la
-/// table CPCP (CRE-11 ; `atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt`, l. 921-933 ; 97 = « Caisse de conges
-/// spectacles », `atelier/reference/sources/dsn-nomenclatures/`). Le moteur n'y ajoute rien : un numero sans 97 refuse et
-/// rien n'est ecrit ; le numero d'adherent des certificats se demande a part, aucun texte depose ne l'egalant a lui.
+/// UN SEUL NUMERO CONGES SPECTACLES (#236) : la compagnie ne saisit que son numero d'adherent, « 10 chiffres + 1 lettre »,
+/// dont la DSN tire S21.G00.40.022 (« 97 puis le numero d'adherent », Audiens, fiche de specificites, `atelier/reference/
+/// sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81 ; la deduction est prouvee
+/// dans `tests/calcul/caisse_conges_affiliation.rs`). Un numero mal forme refuse et rien n'est ecrit ; « Pour demarrer »
+/// d'une compagnie qui a des spectacles ne demande que ce numero.
 #[test]
-fn le_code_conges_spectacles_se_saisit_tel_qu_il_se_declare() {
+fn le_seul_numero_conges_spectacles_saisi_est_le_numero_d_adherent() {
     let racine = neuve("conges-spectacles");
-    let poser = |affiliation: &str, forcer: bool| {
-        let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "congesspectacles_affiliation": affiliation});
-        route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": forcer}), JOUR)
+    ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": {"titre": "Le Banc", "actif": true}}));
+    let m = manques(&racine);
+    assert_eq!(par_champ(&m, "congesspectacles_adherent").len(), 1, "{:?}", m);
+    assert!(m.iter().all(|x| !x.to_string().contains("congesspectacles_affiliation")), "un seul numero demande : {:?}", m);
+
+    let poser = |adherent: &str| {
+        let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "congesspectacles_adherent": adherent});
+        route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": false}), JOUR)
     };
-    let fautif = |r: &Value| r["anomalies"].as_array().unwrap().iter().any(|a| a["champ"] == json!("congesspectacles_affiliation"));
-    // Une fiche neuve a d'autres manques : elle refuse ; ce qui compte, c'est ce que le moteur reproche a ce numero.
-    let r = poser("0123450001F", false);
-    assert_eq!(r["ok"], json!(false));
-    assert!(fautif(&r), "sans 97, le numero est fautif : {}", r);
-    assert!(lire(&racine, "config/entreprise.json").get("congesspectacles_affiliation").is_none(), "rien n'est ecrit");
-    assert!(!fautif(&poser("970123450001F", false)), "97 suivi du numero et de sa cle : rien a redire");
-    reussi(&poser("970123450001F", true));
+    let fautif = |r: &Value| r["anomalies"].as_array().unwrap().iter().any(|a| a["champ"] == json!("congesspectacles_adherent"));
+    for mal_forme in ["970123450001F", "0123450001", "01234500011F", "A123450001F", "0123450001É"] {
+        let r = poser(mal_forme);
+        assert_eq!(r["ok"], json!(false));
+        assert!(fautif(&r), "{} : pas dix chiffres et une lettre : {}", mal_forme, r);
+        assert!(lire(&racine, "config/entreprise.json").get("congesspectacles_adherent").is_none(), "rien n'est ecrit");
+    }
+    assert!(!fautif(&poser("0123450001F")), "dix chiffres et une lettre : rien a redire");
+    // La meme valeur ecrite avec des blancs, un tiret ou la lettre en minuscule : le moteur l'ecrit dans sa forme
+    // (`conges_spectacles::forme_adherent`), sans rien reprocher.
+    assert!(!fautif(&poser("0123 450001-f")), "la meme valeur : rien a redire");
+    let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "congesspectacles_adherent": "0123 450001-f"});
+    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true}), JOUR));
     let ent = lire(&racine, "config/entreprise.json");
-    assert_eq!(ent["congesspectacles_affiliation"], json!("970123450001F"), "tel quel");
-    assert!(ent.get("congesspectacles_adherent").map_or(true, |v| v.as_str().unwrap_or("").is_empty()), "rien ne se deduit : {}", ent);
+    assert_eq!(ent["congesspectacles_adherent"], json!("0123450001F"));
+    assert!(ent.get("congesspectacles_affiliation").is_none(), "rien d'autre ne s'ecrit : {}", ent);
+    assert!(par_champ(&manques(&racine), "congesspectacles_adherent").is_empty());
 }

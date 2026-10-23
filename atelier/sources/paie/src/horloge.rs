@@ -565,26 +565,6 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
 
 // ------------------------------------------------------------------ l'annee
 
-/// `_export_compta_a_jour` : l'export existe et il est plus recent que la derniere saisie de l'annee. Un export fait en
-/// septembre ne dit rien d'octobre : en janvier, on le redemande.
-fn export_compta_a_jour(ctx: &Contexte, annee: i32) -> bool {
-    let p = ctx.racine.join("sorties").join("exercices").join(format!("Compta_{}.csv", annee));
-    let Ok(export) = std::fs::metadata(&p) else { return false };
-    let prefixe = format!("{}-", annee);
-    let derniere = std::fs::read_dir(ctx.racine.join("paies"))
-        .map(|rd| {
-            rd.flatten()
-                .filter(|e| {
-                    let nom = e.file_name().to_string_lossy().into_owned();
-                    nom.starts_with(&prefixe) && nom.ends_with(".json")
-                })
-                .filter_map(|e| std::fs::metadata(e.path()).ok().map(|m| crate::paris::mtime(&m)))
-                .fold(0.0_f64, f64::max)
-        })
-        .unwrap_or(0.0);
-    crate::paris::mtime(&export) >= derniere
-}
-
 /// `_l_annee` : fin janvier, l'annee precedente se clot et s'exporte ; les echeances qu'on coche se cochent a la fin de
 /// leur fenetre (la revue des spectacles comprise : tous continuent).
 fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jour) -> R<Vec<String>> {
@@ -609,7 +589,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
             Ok(true)
         }));
         fait.extend(pas(d, &format!("exercice {} exporté pour la comptabilité", precedente), &format!("{}T11:00:00", fin_janvier.iso()), |ctx| {
-            if !Moteur::nouveau(o, ctx).exercice_clos(&precedente.to_string())? || export_compta_a_jour(ctx, precedente) {
+            if !Moteur::nouveau(o, ctx).exercice_clos(&precedente.to_string())? || crate::exercice_ecrit::export_compta_a_jour(&ctx.racine, &precedente.to_string()) {
                 return Ok(false);
             }
             crate::exercice_ecrit::export_compta_route(ctx, &json!({"annee": precedente.to_string()}))?;

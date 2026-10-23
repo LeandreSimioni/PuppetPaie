@@ -480,9 +480,10 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
-        // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit :
-        // c'est la DSN sur le disque qui dit « a deposer ».
-        let etat = etat.unwrap_or(if sortes.contains(&"DSN") { "a_deposer" } else { "a_ecrire" });
+        // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit : le mois est ecrit quand le moteur a note
+        // sa DSN mensuelle (`produire_mois::mois_ecrit`, le critere de l'horloge et des rappels), et il dit alors
+        // « a deposer ».
+        let etat = etat.unwrap_or(if crate::produire_mois::mois_ecrit(&ctx.racine, nom) { "a_deposer" } else { "a_ecrire" });
         // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a ecrire, a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.

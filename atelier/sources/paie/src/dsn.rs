@@ -1647,7 +1647,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     // des Conges Spectacles (`caisse_conges::affilie`), et aucun autre -- ni un CDI, ni un contrat de douze mois ou plus.
     let caisse_conges = nat.ecrit("S21.G00.40.022") && crate::caisse_conges::de_la_paie(p)?;
     if caisse_conges {
-        f.add_v("S21.G00.40.022", req(ent, "congesspectacles_affiliation")?)?;
+        f.add("S21.G00.40.022", crate::conges_spectacles::code_dsn(ent)?);
     }
     // La deduction forfaitaire specifique que la fiche exerce (`calcul::deduction_forfaitaire`) : « Taux de deduction
     // forfaitaire specifique pour frais professionnels - S21.G00.40.023 », « Abattement pour frais professionnels applique

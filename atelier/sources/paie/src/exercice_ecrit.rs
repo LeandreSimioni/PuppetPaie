@@ -479,10 +479,53 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         let nom = if (du, au) == (1, 12) { format!("Compta_{}.csv", annee) } else { format!("Compta_{}_{:02}-{:02}.csv", annee, du, au) };
         let f = dossier.join(nom);
         std::fs::write(&f, csv_compta(&ecritures)).map_err(|e| en_os(&e, &f))?;
-        crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&f), None)?;
+        // L'export de l'annee entiere note les saisies qu'il a lues (`export_compta_a_jour`).
+        let lues = ((du, au) == (1, 12)).then(|| empreintes_des_saisies(&ctx.racine, &annee.to_string()));
+        crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&f), lues)?;
         fichier = Some(f);
     }
     Ok(ExportCompta { annee: annee.to_string(), du, au, mois, ecritures, total_debit, total_credit, fichier, plan: origine.to_string(), avertissements: avert })
+}
+
+/// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE (#236) : `{"AAAA-MM": empreinte}` pour chaque `paies/AAAA-MM.json` de
+/// l'annee (`routes_mois::empreinte_de`, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut `null`. L'export
+/// compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
+pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
+    let mut m = Map::new();
+    let Ok(rd) = std::fs::read_dir(racine.join("paies")) else { return Value::Object(m) };
+    let mut noms: Vec<String> = rd.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    noms.sort();
+    for nom in noms {
+        let Some(mois) = nom.strip_suffix(".json") else { continue };
+        let b = mois.as_bytes();
+        if !(b.len() == 7 && mois.starts_with(annee) && b[4] == b'-' && b[5].is_ascii_digit() && b[6].is_ascii_digit()) {
+            continue;
+        }
+        let e = std::fs::read(racine.join("paies").join(&nom))
+            .ok()
+            .and_then(|o| serde_json::from_slice::<Value>(&o).ok())
+            .map_or(Value::Null, |v| json!(crate::routes_mois::empreinte_de(&v)));
+        m.insert(mois.to_string(), e);
+    }
+    Value::Object(m)
+}
+
+/// L'EXPORT COMPTA DE L'ANNEE EST-IL A JOUR ? (#236) Un seul critere, celui des rappels (`routes_ouverture`) et de
+/// l'horloge d'une fictive (`horloge::l_annee`) : `Compta_<annee>.csv` existe, et les saisies de l'annee sont celles
+/// qu'il a lues -- les empreintes notees au journal des ecritures en l'ecrivant (`empreintes_des_saisies`). Jamais la
+/// date des fichiers : une fictive decompressee chez un visiteur a des dates qui ne disent rien. Un export dont le
+/// journal ne dit pas ce qu'il a lu (ecrit avant cette note, ou livre avec une fictive) : le moteur ne sait pas que les
+/// saisies ont change depuis, il ne le redemande pas.
+pub(crate) fn export_compta_a_jour(racine: &Path, annee: &str) -> bool {
+    let nom = format!("Compta_{}.csv", annee);
+    if !racine.join("sorties").join("exercices").join(&nom).is_file() {
+        return false;
+    }
+    let journal = crate::produire_mois::journal_des_ecritures(racine);
+    match journal.get(&format!("exercices/{}", nom)).and_then(|n| n.get("empreinte_saisie")) {
+        Some(lues) if lues.is_object() => *lues == empreintes_des_saisies(racine, annee),
+        _ => true,
+    }
 }
 
 /// La route `export-compta` : `{"annee", "du"?, "au"?, "apercu"?}`.

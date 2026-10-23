@@ -38,6 +38,11 @@ Audiens est un organisme privé : les pages telles que servies (HTML) sont dans 
 
 ## Où le moteur s'en sert
 
+- `atelier/sources/paie/src/conges_spectacles.rs` : `code_dsn` écrit S21.G00.40.022 = `97` + le numéro d'adhérent
+  (`congesspectacles_adherent`, le seul numéro Congés Spectacles de la fiche ; `dsn.rs` l'appelle), `faute_adherent`
+  contrôle sa forme (dix chiffres et une lettre) à la saisie (`champs::verifier_champ`) comme à l'écriture de la DSN ;
+  `importation.rs` reprend d'une DSN le numéro d'adhérent qui suit le `97`.
+
 - `logiciel/donnees/organismes-base.json` : le nom de chaque organisme (`nom`), ce que couvre son versement (`objet`)
   et, pour les trois identifiants d'Audiens, `jour_de_paiement` = 25.
 - `atelier/sources/paie/src/dsn.rs` : la date de paiement (S21.G00.20.011) du versement à P0983 est le 25 du mois qui

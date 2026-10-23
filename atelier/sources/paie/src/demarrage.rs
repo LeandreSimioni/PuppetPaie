@@ -26,7 +26,7 @@ const ENTREPRISE: &str = "Configuration › Entreprise";
 /// (chemin dans la fiche entreprise, ce que son absence bloque). Le SIRET avant le SIREN et le NIC : ils s'en deduisent
 /// (`routes_fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est plus : le moteur
 /// l'ecrit seul (`dsn::type_du_contact`, #236).
-const FICHE: [(&str, &str); 20] = [
+const FICHE: [(&str, &str); 19] = [
     ("raison_sociale", "la DSN"),
     ("siret", "la DSN et la DPAE"),
     ("siren", "la DSN"),
@@ -45,10 +45,9 @@ const FICHE: [(&str, &str); 20] = [
     ("declarant_dsn.email", "la DSN"),
     ("banque.iban", "la DSN (le paiement des cotisations)"),
     ("banque.bic", "la DSN (le paiement des cotisations)"),
-    ("congesspectacles_affiliation", "la DSN des intermittents"),
-    // Le numero d'adherent est celui de la case COMPTE des certificats (`conges_spectacles::description_numerotee`) : aucun
-    // texte depose ne dit qu'il est le numero d'affiliation que la DSN declare, il se demande a part (#236).
-    ("congesspectacles_adherent", "les certificats Congés Spectacles"),
+    // Le SEUL numero Conges Spectacles demande : la DSN le declare precede de 97 (`conges_spectacles::code_dsn`, fiche de
+    // specificites d'Audiens, l. 80-81), les certificats l'impriment dans leur case COMPTE (#236).
+    ("congesspectacles_adherent", "la DSN des intermittents et les certificats Congés Spectacles"),
 ];
 
 /// LE CHAMP QUE L'ECRAN MONTRE pour une valeur de la fiche (#236 : « chaque chose demandee se remplit la ou elle
@@ -137,7 +136,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // Un champ a plusieurs cases (le declarant : civilite, nom, telephone, courriel) fait UNE ligne, qui nomme ce qui manque.
     let mut vus: Vec<String> = Vec::new();
     for (cle, bloque) in FICHE {
-        if (cle == "congesspectacles_affiliation" || cle == "congesspectacles_adherent") && !intermittents {
+        if cle == crate::conges_spectacles::CLE_ADHERENT && !intermittents {
             continue;
         }
         if valeur(ent, cle).is_some_and(vrai) {

@@ -372,6 +372,16 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         donnees.insert(c.cle.clone(), attendu);
     }
     if nom == "entreprise" {
+        // Le numero d'adherent Conges Spectacles s'ecrit dans sa forme (`conges_spectacles::forme_adherent`), avant d'etre
+        // controle et enregistre : « 0123 450001-f » est la meme valeur que « 0123450001F ».
+        let cle = crate::conges_spectacles::CLE_ADHERENT;
+        if let Some(Value::String(brut)) = donnees.get(cle).cloned() {
+            let forme = crate::conges_spectacles::forme_adherent(&brut);
+            if forme != brut {
+                faits.insert(cle.into(), json!([brut, forme.clone()]));
+                donnees.insert(cle.into(), Value::String(forme));
+            }
+        }
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
