@@ -191,10 +191,16 @@ fn poser_les_pieces(scenario: &Path, racine: &Path, travail: &Path, geste: &Valu
 pub fn rejouer(scenario: &Path, inst: &Path, options: &OptionsRejeu) -> Result<Rejeu, String> {
     let gestes = lire(scenario)?;
     std::fs::create_dir_all(inst).map_err(|e| format!("{} : {}", inst.display(), e))?;
+    // L'INSTALLATION DU REJEU, BRIDEE EN TOUTES LETTRES (le geste de l'accueil, `bridage.rs`) : comme celle du banc, et le
+    // moteur ne lit qu'elle (`compagnies::base`) -- rien du depot ni du poste ou l'on rejoue.
+    crate::ecriture::ecrire_json(&inst.join(".edition.json"), &json!({"edition": crate::bridage::BRIDE}), 2)?;
+    let inst = std::fs::canonicalize(inst).map_err(|e| format!("{} : {}", inst.display(), e))?;
     let travail = inst.join("pieces-deposees");
     crate::temps::liberer();
     crate::temps::aleas_fixes();
-    let rendu = rejouer_les_gestes(scenario, inst, &travail, &gestes, options);
+    crate::interface::compagnies::poser_l_installation_du_rejeu(Some(inst.clone()));
+    let rendu = rejouer_les_gestes(scenario, &inst, &travail, &gestes, options);
+    crate::interface::compagnies::poser_l_installation_du_rejeu(None);
     crate::temps::liberer();
     rendu
 }
@@ -270,6 +276,180 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
         }
     }
     Ok(r)
+}
+
+// ------------------------------------------------------------------ elaguer, verifier, la ligne de commande
+
+/// ELAGUER un scenario pour le figer (phase 4) : `vers` recoit les memes gestes sans les routes qui n'ont rien ecrit (le
+/// rejeu les ecarte deja), et les seules pieces que les gestes gardes nomment. Rend (gestes gardes, lectures otees).
+pub fn elaguer(scenario: &Path, vers: &Path) -> Result<(usize, usize), String> {
+    let gestes = lire(scenario)?;
+    std::fs::create_dir_all(vers.join(PIECES)).map_err(|e| format!("{} : {}", vers.display(), e))?;
+    let (mut gardes, mut otees) = (Vec::new(), 0);
+    for g in gestes {
+        if g.get("route").is_some() && g.get("ecrit") != Some(&Value::Bool(true)) {
+            otees += 1;
+            continue;
+        }
+        for p in g.get("pieces").and_then(Value::as_object).into_iter().flat_map(|m| m.values()) {
+            for sha in p.get("fichiers").and_then(Value::as_object).into_iter().flat_map(|f| f.values()).filter_map(Value::as_str) {
+                std::fs::copy(scenario.join(PIECES).join(sha), vers.join(PIECES).join(sha)).map_err(|e| format!("piece {} : {}", sha, e))?;
+            }
+        }
+        gardes.push(g.to_string());
+    }
+    let n = gardes.len();
+    std::fs::write(vers.join(GESTES), gardes.join("\n") + "\n").map_err(|e| format!("{} : {}", vers.display(), e))?;
+    Ok((n, otees))
+}
+
+/// Ce qu'une comparaison de deux compagnies ne regarde pas : les caches que la fenetre refait en fond, son journal, l'etape
+/// en cours d'un passage de la veille.
+fn hors_comparaison(rel: &str) -> bool {
+    rel == "journal/interface.log" || rel.ends_with(".etat.json") || rel.ends_with(".calcul.json") || rel.ends_with(crate::ouverture::ETAPE)
+}
+
+/// Les fichiers d'une compagnie, relatifs (barres droites), hors caches.
+fn fichiers_compares(racine: &Path) -> BTreeMap<String, PathBuf> {
+    fn parcourir(base: &Path, d: &Path, out: &mut BTreeMap<String, PathBuf>) {
+        for e in std::fs::read_dir(d).into_iter().flatten().flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                parcourir(base, &p, out);
+            } else if let Ok(r) = p.strip_prefix(base) {
+                let r = r.to_string_lossy().replace('\\', "/");
+                if !hors_comparaison(&r) {
+                    out.insert(r, p.clone());
+                }
+            }
+        }
+    }
+    let mut out = BTreeMap::new();
+    parcourir(racine, racine, &mut out);
+    out
+}
+
+/// Le contenu d'un fichier, le chemin de sa compagnie remplace par `<racine>` (un journal note des chemins).
+fn contenu(p: &Path, racine: &Path) -> Vec<u8> {
+    let o = std::fs::read(p).unwrap_or_default();
+    match String::from_utf8(o) {
+        Ok(t) => t.replace(&racine.to_string_lossy().into_owned(), "<racine>").into_bytes(),
+        Err(e) => e.into_bytes(),
+    }
+}
+
+/// VERIFIER UN BANC (#236) : rejoue son scenario dans `travail` (vide d'abord) et compare, fichier par fichier, chaque
+/// compagnie que le scenario a ajoutee a celle du banc (`inst`). Le banc tire les memes aleas que le rejeu
+/// (`temps::aleas`) : toute difference est un geste qui a ecrit sans etre enregistre (un fichier touche hors de la page, une
+/// ecriture de fond), ou un ecart du rejeu. Rend les differences, en phrases (vide : le scenario suffit).
+pub fn verifier(scenario: &Path, inst: &Path, travail: &Path) -> Result<Vec<String>, String> {
+    let _ = std::fs::remove_dir_all(travail);
+    let r = rejouer(scenario, travail, &OptionsRejeu::default())?;
+    let mut ecarts: Vec<String> = r.ecarts.iter().map(|e| format!("au rejeu, {}", e)).collect();
+    for (rel, rejouee) in &r.compagnies {
+        let banc = inst.join(rel);
+        let (a, b) = (fichiers_compares(&banc), fichiers_compares(rejouee));
+        for (f, p) in &a {
+            match b.get(f) {
+                None => ecarts.push(format!("{}/{} : au banc, pas au rejeu (ecrit sans etre enregistre ?)", rel, f)),
+                Some(q) if contenu(p, &banc) != contenu(q, rejouee) => {
+                    let (x, y) = (contenu(p, &banc), contenu(q, rejouee));
+                    let ligne = String::from_utf8_lossy(&x).lines().zip(String::from_utf8_lossy(&y).lines()).position(|(u, v)| u != v);
+                    ecarts.push(format!(
+                        "{}/{} : differe du rejeu{}",
+                        rel,
+                        f,
+                        ligne.map(|l| format!(" (des la ligne {})", l + 1)).unwrap_or_default()
+                    ));
+                }
+                Some(_) => {}
+            }
+        }
+        for f in b.keys().filter(|f| !a.contains_key(*f)) {
+            ecarts.push(format!("{}/{} : au rejeu, pas au banc", rel, f));
+        }
+    }
+    Ok(ecarts)
+}
+
+const USAGE: &str = "scenario rejouer <scenario> <installation neuve> [--lectures]\n\
+                     scenario verifier <scenario> <installation du banc> <dossier de travail>\n\
+                     scenario elaguer <scenario> <scenario sans lectures>";
+
+/// LA LIGNE DE COMMANDE DES SCENARIOS : `paie-atelier scenario ...` (le banc) et l'exemple `vie_fictive` (sans le binaire
+/// de l'atelier). `rejouer`, `verifier`, `elaguer`. Rend le code de sortie : 1 a la moindre difference.
+pub fn commande(args: &[String]) -> i32 {
+    let lectures = args.iter().any(|a| a == "--lectures");
+    let a: Vec<&str> = args.iter().map(String::as_str).filter(|a| *a != "--lectures").collect();
+    // Rien ne sort de la machine (`garde_reseau`) : lancee a la main, la commande pose la variable, avant tout fil.
+    if std::env::var_os(crate::garde_reseau::VARIABLE).is_none() {
+        std::env::set_var(crate::garde_reseau::VARIABLE, "1");
+    }
+    let debut = std::time::Instant::now();
+    match a.as_slice() {
+        ["rejouer", sc, inst] => {
+            let inst = Path::new(inst);
+            if std::fs::read_dir(inst).is_ok_and(|mut d| d.next().is_some()) {
+                eprintln!("{} n'est pas vide : le rejeu part d'une installation neuve.", inst.display());
+                return 2;
+            }
+            match rejouer(Path::new(sc), inst, &OptionsRejeu { lectures, ..Default::default() }) {
+                Ok(r) => {
+                    for p in &r.horloge {
+                        println!("      {}", p);
+                    }
+                    for (nom, racine) in &r.compagnies {
+                        println!("{} -> {}", nom, racine.display());
+                    }
+                    println!(
+                        "{} route(s) rejouee(s), {} lecture(s) ecartee(s), {} geste(s) sur une autre compagnie, en {:.1} s.",
+                        r.routes_rejouees,
+                        r.lectures_ecartees,
+                        r.autres_compagnies,
+                        debut.elapsed().as_secs_f64()
+                    );
+                    for e in &r.ecarts {
+                        println!("ECART  {}", e);
+                    }
+                    i32::from(!r.ecarts.is_empty())
+                }
+                Err(m) => {
+                    eprintln!("{}", m);
+                    1
+                }
+            }
+        }
+        ["verifier", sc, inst, travail] => match verifier(Path::new(sc), Path::new(inst), Path::new(travail)) {
+            Ok(e) if e.is_empty() => {
+                println!("Le rejeu refait la compagnie du banc, fichier pour fichier ({:.1} s).", debut.elapsed().as_secs_f64());
+                0
+            }
+            Ok(e) => {
+                for x in &e {
+                    println!("DIFFERENCE  {}", x);
+                }
+                1
+            }
+            Err(m) => {
+                eprintln!("{}", m);
+                1
+            }
+        },
+        ["elaguer", sc, vers] => match elaguer(Path::new(sc), Path::new(vers)) {
+            Ok((n, o)) => {
+                println!("{} geste(s) garde(s), {} lecture(s) otee(s) : {}", n, o, vers);
+                0
+            }
+            Err(m) => {
+                eprintln!("{}", m);
+                1
+            }
+        },
+        _ => {
+            eprintln!("{}", USAGE);
+            2
+        }
+    }
 }
 
 // ------------------------------------------------------------------ l'enregistreur (l'atelier seulement)
@@ -507,6 +687,7 @@ mod atelier {
         std::fs::create_dir_all(ailleurs.join("sous")).unwrap();
         std::fs::write(ailleurs.join("sous/note.txt"), "une piece deposee\n").unwrap();
         crate::temps::couler_depuis(crate::temps::instant_de(crate::date::Jour::nouveau(2026, 11, 2).unwrap(), 9));
+        crate::temps::aleas_fixes();
         let e = Enregistreur::nouveau(&sc, &inst).unwrap();
         let c = e
             .geste("ajouter", || {
@@ -542,6 +723,12 @@ mod atelier {
         assert_eq!(lire_fiche(&inst2), lire_fiche(&inst));
         assert_eq!(std::fs::read_to_string(inst2.join("pieces-deposees/4/dossier/sous/note.txt")).unwrap(), "une piece deposee\n");
         assert!(!crate::temps::simule(), "le rejeu rend le temps a la montre");
+
+        // VERIFIER LE BANC : son rejeu refait la compagnie ; un fichier ecrit sans passer par la fenetre se nomme.
+        assert_eq!(verifier(&sc, &inst, &d.join("verification")).unwrap(), Vec::<String>::new());
+        std::fs::write(c.racine.join("config/a-la-main.json"), "{}").unwrap();
+        let e = verifier(&sc, &inst, &d.join("verification")).unwrap();
+        assert!(e.len() == 1 && e[0].contains("config/a-la-main.json"), "{:?}", e);
         let _ = std::fs::remove_dir_all(&d);
     }
 }

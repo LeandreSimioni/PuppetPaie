@@ -10,8 +10,8 @@ parle par `/atelier/<geste>` (`paie/src/interface/mod.rs`, `Fenetre::atelier`).
 **0. Le programme** (une fois, par l'orchestrateur ; plusieurs bancs le partagent) :
 
 ```bash
-cd atelier/sources/paie && CARGO_TARGET_DIR=<cible> cargo build --profile essais --features atelier --bin paie-atelier
-export PUPPETPAIE_ATELIER=<cible>/essais/paie-atelier
+cd atelier/sources/paie && CARGO_TARGET_DIR=<cible>-atelier cargo build --profile essais --features atelier --bin paie-atelier
+export PUPPETPAIE_ATELIER=<cible>-atelier/essais/paie-atelier
 ```
 
 **1. Lancer** une installation neuve au jour où la compagnie commence (un dossier hors du dépôt, à toi seul) :
@@ -68,6 +68,7 @@ dit (une ligne par geste joué, « — non joué (…) » quand elle a refusé :
 | `node banc.js etat <banc>` | le jour et l'heure simulés, le scénario, la compagnie ouverte, ses envois simulés ou non |
 | `node banc.js capture <banc> <fichier.png>` | une capture de ce que la fenêtre montre (pour un écran précis : `banc.capture(page, …)` dans ton script) |
 | `node banc.js arreter <banc>` | arrête la fenêtre ; installation et scénario restent |
+| `node banc.js verifier <banc>` | le rejeu du scénario refait-il la compagnie du banc ? (voir 8) |
 | `node banc.js lancer <banc>` (sans `--jour`) | relance un banc arrêté : le scénario reprend une minute après son dernier geste |
 
 **7. Les règles** :
@@ -81,15 +82,27 @@ dit (une ligne par geste joué, « — non joué (…) » quand elle a refusé :
 - Le calendrier n'avance que vers demain ; on ne retouche pas l'heure de la machine.
 - Ce qu'on fait dans une fictive livrée (Les Deux Rives…) s'enregistre mais ne se rejoue pas : seule la compagnie créée
   par « + » est rejouée.
-- `arreter` à la fin, toujours : aucune fenêtre ne reste derrière soi.
+- À la fin : `verifier`, puis `arreter`, toujours : aucune fenêtre ne reste derrière soi.
 
-**8. Rejouer** ce qu'on a joué, sans navigateur, dans un dossier neuf (la preuve que le scénario suffit) :
+**8. Vérifier, à la fin de la partie** (la preuve que le scénario suffit) :
 
 ```bash
-cd atelier/sources/paie && CARGO_TARGET_DIR=<cible> cargo run --profile essais --example vie_fictive -- /tmp/banc-<nom>/scenario /tmp/rejeu-<nom>
+node atelier/outils/banc/banc.js verifier /tmp/banc-<nom>
 ```
 
-Il dit ce que l'horloge a joué, le temps du rejeu, et `ECART` pour toute route qui ne se passe pas comme au banc.
+Le scénario se rejoue sans navigateur dans `/tmp/banc-<nom>/verification/`, et la compagnie qui en sort se compare,
+fichier par fichier, à celle du banc (le banc tire les mêmes aléas que le rejeu). « Le rejeu refait la compagnie du
+banc » : c'est bon. Une ligne `DIFFERENCE` nomme un fichier : quelque chose a écrit sans passer par la fenêtre, ou le
+rejeu s'écarte — à mettre dans la passation, tel quel.
+
+Les mêmes commandes, sans le banc (`paie-atelier scenario …`, ou l'exemple `vie_fictive` du moteur ordinaire) :
+
+```bash
+paie-atelier scenario rejouer  <scénario> <installation neuve> [--lectures]   # dit ce que l'horloge a joué, ECART sinon
+paie-atelier scenario verifier <scénario> <installation du banc> <dossier de travail>
+paie-atelier scenario elaguer  <scénario> <scénario sans lectures>            # pour le figer (phase 4)
+cd atelier/sources/paie && CARGO_TARGET_DIR=<cible> cargo run --profile essais --example vie_fictive -- rejouer <scénario> <dossier neuf>
+```
 
 ## Ce que contient un banc
 
@@ -110,6 +123,7 @@ Il dit ce que l'horloge a joué, le temps du rejeu, et `ECART` pour toute route 
 
 ## Pour le rejeu en test
 
-Un scénario qu'on fige devient un test (`paie/tests/rejeu.rs`, `tests/outils/rejeu.rs`) : copier `scenario/` dans
-`paie/tests/donnees/scenarios/<nom>/`, ajouter le test sur le modèle des Tréteaux du Banc, l'oracle s'écrit par
+Un scénario qu'on fige devient un test (`paie/tests/rejeu.rs`, `tests/outils/rejeu.rs`) : `scenario elaguer` l'écrit
+sans ses lectures (le rejeu les écarte déjà ; le test `un_scenario_elague_se_rejoue_a_l_identique` le prouve) dans
+`paie/tests/donnees/scenarios/<nom>/`, puis on ajoute le test sur le modèle des Tréteaux du Banc ; l'oracle s'écrit par
 `PUPPETPAIE_REECRIRE_ORACLES=1`.

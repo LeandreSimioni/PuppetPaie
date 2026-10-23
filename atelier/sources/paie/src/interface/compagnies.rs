@@ -28,9 +28,24 @@ pub fn logiciel() -> PathBuf {
     code.parent().map(Path::to_path_buf).unwrap_or_default()
 }
 
-/// Ce qui est a cote du logiciel : `prive/`, `fictives/`, `compagnies/`, `maj/`.
+/// Ce qui est a cote du logiciel : `prive/`, `fictives/`, `compagnies/`, `maj/`. Le temps d'un rejeu de scenario
+/// (`scenario::rejouer`), l'installation que le rejeu a montee, et elle seule.
 pub fn base() -> PathBuf {
+    if let Some(b) = BASE_DU_REJEU.read().ok().and_then(|b| b.clone()) {
+        return b;
+    }
     logiciel().parent().map(Path::to_path_buf).unwrap_or_default()
+}
+
+/// L'INSTALLATION DU REJEU (#236) : un rejeu de scenario monte sa propre installation, bridee en toutes lettres
+/// (`.edition.json`), et le moteur n'en lit pas d'autre -- ni le `.edition.json` du depot, ni le paquet soude d'a cote du
+/// code. Pose et retiree par `scenario::rejouer` seulement ; un poste n'en a jamais.
+static BASE_DU_REJEU: std::sync::RwLock<Option<PathBuf>> = std::sync::RwLock::new(None);
+
+pub fn poser_l_installation_du_rejeu(inst: Option<PathBuf>) {
+    if let Ok(mut b) = BASE_DU_REJEU.write() {
+        *b = inst;
+    }
 }
 
 fn lire(p: &Path) -> Option<Value> {
@@ -331,6 +346,15 @@ pub(crate) fn nom_de_dossier(nom: &str) -> String {
     }
 }
 
+/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE (#236) : `config/creation.json`, ecrit par `ajouter_dans` et nulle part
+/// ailleurs ; il suit la compagnie quand elle change de dossier. Une compagnie d'avant (une fictive livree, la vraie
+/// compagnie d'une installation) n'en a pas : `None`.
+pub const FICHIER_CREATION: &str = "creation.json";
+
+pub fn cree_le(racine: &Path) -> Option<crate::date::Jour> {
+    lire(&racine.join("config").join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| crate::date::Jour::lire(j).ok())
+}
+
 /// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
 ///
 /// LOGICIEL BRIDE (ticket #236) : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
@@ -362,6 +386,10 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     ecrire(&cfg.join("entreprise.json"), &json!({"nom_affichage": nom, "raison_sociale": nom.to_uppercase()}))?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
+    ecrire(
+        &cfg.join(FICHIER_CREATION),
+        &json!({"le": crate::temps::jour_de_paris().iso(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant)."}),
+    )?;
     if !bride {
         return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));
     }
