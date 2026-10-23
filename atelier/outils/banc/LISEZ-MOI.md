@@ -114,12 +114,19 @@ cd atelier/sources/paie && CARGO_TARGET_DIR=<cible> cargo run --profile essais -
   local/, cle/         le dossier de la fenêtre et la clé du poste, propres au banc
 ```
 
-## Ce qui bloque (relevé en jouant le modèle, 23/10/2026)
+## Ce qui bloque
 
-- La qualité du déclarant DSN n'est pas dans la fiche Entreprise (elle « vaut 04 » et reste dans la fiche), mais une
-  compagnie neuve ne l'a pas, et « Pour démarrer » l'exige : contournement par la route `enregistrer-fiche` (`exemple.js`).
-- « Code du service de santé au travail » bloque la DPAE, mais il est replié sous « Avancé — cas particuliers ».
-- Le métier d'un salarié se choisit dans la liste `#config-metier-choix` ; le champ libre « Emploi » ne suffit pas.
+Rien, sur le chemin d'une compagnie neuve, du « + » à la DSN de son premier mois : `exemple.js` le fait par la seule
+page, sans `api(...)` (rejoué le 23/10/2026, lot A du #236). Ce que le modèle y montre :
+
+- « Pour démarrer » (en tête de Configuration › Entreprise) dit ce qui manque encore ; chaque ligne mène à sa case,
+  visible et le curseur dedans (le code du service de santé au travail, la taxe sur les salaires…), sans quitter la
+  fiche en cours de saisie.
+- La qualité du contact DSN ne se demande pas : le moteur écrit le type 04 (`dsn::type_du_contact`).
+- Une fiche salarié s'ouvre sur « Métier » ; l'intitulé d'emploi apparaît, prérempli, quand le métier est choisi, et
+  un enregistrement sans métier refuse en disant « Métier : à choisir dans la liste ».
+
+Un obstacle relevé en jouant s'écrit ici, avec le geste qui le contourne, jusqu'à ce qu'il soit levé.
 
 ## Pour le rejeu en test
 
