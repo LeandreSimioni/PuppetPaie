@@ -460,7 +460,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
     let mut ecrits: BTreeSet<String> = BTreeSet::new();
     let mut restent_a_creer = 0usize;
     for a in &imp.a_creer {
-        let e = crate::routes_ecritures::ecrire_fiche(ctx, a.nom, None, &Value::Object(a.donnees.clone()), true, &Value::Null, note)?;
+        let e = crate::routes_ecritures::ecrire_fiche(ctx, a.nom, None, &Value::Object(a.donnees.clone()), crate::routes_ecritures::Forcer::Tout, &Value::Null, note)?;
         let emplacement: &mut Value = match (a.nom, a.rang) {
             ("entreprise", _) => &mut reponse["entreprise"],
             ("salarie", Some(i)) => &mut reponse["salaries"][i],

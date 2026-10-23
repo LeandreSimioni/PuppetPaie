@@ -186,3 +186,26 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
         }
     }
 }
+
+/// LA MEDECINE DU TRAVAIL INTERNE APPELLE SON CONTACT (#236). Norme DSN 2027 (cahier technique 2027.1.1,
+/// `atelier/reference/norme-dsn/texte-2027/bloc-S20.G00.07.txt` l. 46-65 et 81, CCH-11 de S20.G00.07.004) : quand le
+/// service de sante au travail vaut « MT01 - MEDECINE INTERNE ETABLISSEMENT », un contact de type 17 doit etre present.
+/// « Pour demarrer » ne le demande qu'alors, par sa case (montree seulement alors) ; la DSN l'ecrit
+/// (`tests/dsn/contact_sante_travail.rs`).
+#[test]
+fn la_medecine_interne_et_seulement_elle_demande_son_contact() {
+    let racine = neuve("medecine-interne");
+    let fiche = paie::champs::fiche("entreprise").unwrap();
+    let contact = fiche.iter().find(|c| c.cle == "contact_sante_travail").unwrap();
+    let mut ent = lire(&racine, "config/entreprise.json");
+    for (code, demande) in [("MT42", false), ("MT01", true)] {
+        ent["medecine_travail"] = json!(code);
+        ecrire(&racine, "config/entreprise.json", &ent);
+        let m = manques(&racine);
+        assert_eq!(par_champ(&m, "contact_sante_travail").len() == 1, demande, "{} : {:?}", code, m);
+        assert_eq!(contact.montre(&ent, false, false), demande, "{} : la case se montre si et seulement si elle est demandee", code);
+    }
+    ent["contact_sante_travail"] = json!({"nom_prenom": "VIGNE ROSE", "tel": "0102030405", "email": "medecin@exemple.invalid"});
+    ecrire(&racine, "config/entreprise.json", &ent);
+    assert!(par_champ(&manques(&racine), "contact_sante_travail").is_empty());
+}

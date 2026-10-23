@@ -477,6 +477,40 @@ fn dater(historique: Option<&Value>, changements: &[Value], depuis: &Value, note
     Ok(hist)
 }
 
+/// CE QUE L'ENREGISTREMENT D'UNE FICHE PASSE OUTRE.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Forcer {
+    /// Rien : une erreur refuse la fiche.
+    Rien,
+    /// Ce que l'ecran peut forcer (« Enregistrer quand meme ») : une erreur de forme (`forcable`), jamais une valeur
+    /// obligatoire absente d'un salarie ou d'un spectacle, sans laquelle la DPAE et la DSN ne se font pas (#236,
+    /// `champs::verifier_fiche`).
+    Forme,
+    /// Tout : l'import et le questionnaire du salarie posent une fiche a completer, qui le dit (« A COMPLETER »).
+    Tout,
+}
+
+impl Forcer {
+    /// La charge `forcer` de la route `enregistrer-fiche` : l'ecran ne force que la forme.
+    pub(crate) fn depuis_l_ecran(forcer: bool) -> Forcer {
+        if forcer {
+            Forcer::Forme
+        } else {
+            Forcer::Rien
+        }
+    }
+
+    /// Ces anomalies refusent-elles la fiche ?
+    fn refuse(self, anomalies: &[Value]) -> bool {
+        let erreurs = || anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur"));
+        match self {
+            Forcer::Rien => erreurs().next().is_some(),
+            Forcer::Forme => erreurs().any(|a| a.get("forcable") == Some(&Value::Bool(false))),
+            Forcer::Tout => false,
+        }
+    }
+}
+
 /// Ce que `echoue` dit : la fiche porte au moins une erreur, elle n'a pas ete ecrite.
 fn fiche_refusee(anomalies: &[Value]) -> Echec {
     let erreurs: Vec<&Value> = anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).collect();
@@ -508,7 +542,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     let forcer = charge.get("forcer").is_some_and(vrai);
     let depuis = charge.get("depuis").unwrap_or(&Value::Null);
     let note = charge.get("note").unwrap_or(&Value::Null);
-    let e = ecrire_fiche(ctx, nom, cle, donnees, forcer, depuis, note)?;
+    let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), depuis, note)?;
     let fiche = routes_accueil::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
@@ -516,7 +550,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
 
 /// `operations_fiches.enregistrer_fiche` : verifie, date ce qui change, sauvegarde l'ancien fichier et
 /// ecrit. Rend ce qui a ete ecrit, sans la page : l'import s'en sert fiche par fiche.
-pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: bool, depuis: &Value, note: &Value) -> R<FicheEcrite> {
+pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: Forcer, depuis: &Value, note: &Value) -> R<FicheEcrite> {
     let mut cle = cle;
     let Some(fichier) = fichier_de(nom) else {
         return Err(refus(format!("Fiche inconnue : {}", crate::fichiers::repr(nom))));
@@ -594,7 +628,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     let derives = routes_fiches::deriver(nom, &mut donnees, true)?;
 
     let anomalies = routes_fiches::verifier(nom, &donnees)?;
-    if !forcer && anomalies.iter().any(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")) {
+    if forcer.refuse(&anomalies) {
         return Err(fiche_refusee(&anomalies));
     }
 
@@ -711,6 +745,15 @@ pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
 
 /// `refuser_si_hors_delai` : la DSN du mois etait due ; seul `forcer` passe outre.
 pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) -> R<()> {
+    // Un mois d'avant la premiere embauche n'a pas de DSN due : il ne se rouvre pas « en retard », pas meme sous `forcer`.
+    if let Some(embauche) = crate::routes_saisie::avant_la_premiere_embauche(ctx, mois)? {
+        return Err(refus(format!(
+            "{} precede la premiere embauche de la compagnie ({}) : aucune DSN n'y est due, rien ne s'y saisit. Si la \
+             compagnie employait deja, corriger la date de premiere embauche (Configuration › Entreprise). Rien n'est ecrit.",
+            mois,
+            Jour::lire(&embauche).map(|j| j.jj_mm_aaaa()).unwrap_or(embauche)
+        )));
+    }
     // Le calcul de la limite se fait meme sous `forcer` : un mois impossible (2026-13) se refuse.
     if let Some(limite) = crate::routes_saisie::mois_hors_delai(ctx, mois)?.filter(|_| !forcer) {
         return Err(refus(format!(

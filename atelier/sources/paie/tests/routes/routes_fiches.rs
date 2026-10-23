@@ -307,3 +307,35 @@ fn les_plafonds_de_la_franchise_viennent_du_bareme_qui_cite_le_texte_depose() {
     assert_eq!(resultat(c, "taxe-sur-les-salaires-regime", json!({}))["franchise"]["annee"], json!(2026));
     assert!(refuse(c, "taxe-sur-les-salaires-regime", json!({"annee": "l'an dernier"})));
 }
+
+// ------------------------------------------------------------ enregistrer-fiche, forcer
+
+/// CE QUI REND UNE DECLARATION IMPOSSIBLE NE SE FORCE PAS (#236). Un salarie sans metier (ses codes emploi, PCS-ESE,
+/// statut) ne se declare ni en DPAE ni en DSN, et rien ne se devine (regle 1) : « Enregistrer quand meme » (`forcer`)
+/// refuse, et rien n'est ecrit ; l'anomalie le dit (`forcable: false`). Une erreur de forme, que la regle peut se tromper
+/// a juger, reste forcable : un SIRET qui ne passe pas la cle de Luhn dans la fiche entreprise s'enregistre force.
+#[test]
+fn un_salarie_sans_metier_ne_s_enregistre_pas_meme_force() {
+    let c = &compagnie("sans-metier");
+    let mut f = fiche_salarie();
+    for k in ["emploi", "emploi_affichage", "pcs_ese", "code_emploi_ft", "statut"] {
+        f.as_object_mut().unwrap().remove(k);
+    }
+    f["nir"] = json!("");
+    f["nom_affichage"] = json!("Sansmetier");
+    let avant = std::fs::read(c.join("config/salaries.json")).unwrap();
+    for forcer in [false, true] {
+        let r = route(c, "enregistrer-fiche", json!({"nom": "salarie", "cle": null, "donnees": f, "forcer": forcer}), "2026-10-03");
+        assert_eq!(r["classe"], json!("FicheRefusee"), "{}", r);
+        let anomalies = r["anomalies"].as_array().unwrap();
+        assert!(anomalies.iter().any(|a| a["champ"] == json!("pcs_ese") && a["forcable"] == json!(false)), "{}", r);
+        assert_eq!(std::fs::read(c.join("config/salaries.json")).unwrap(), avant, "rien n'est ecrit");
+    }
+    let mut ent = lire(c, "config/entreprise.json");
+    ent["siret"] = json!("12345678900011");
+    ent.as_object_mut().unwrap().remove("siren");
+    ent.as_object_mut().unwrap().remove("nic");
+    let r = route(c, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": ent}), "2026-10-03");
+    assert!(r["anomalies"].as_array().unwrap().iter().any(|a| a["champ"] == json!("siret") && a["forcable"] == json!(true)), "{}", r);
+    reussi(&route(c, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": ent, "forcer": true}), "2026-10-03"));
+}

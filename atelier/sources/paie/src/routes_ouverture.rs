@@ -520,8 +520,9 @@ pub(crate) fn premier_mois_declarable(st: &Etat) -> Option<String> {
     if !embauche.is_empty() {
         return Some(embauche);
     }
-    let paies = st.racine().join("paies");
-    if paies.is_dir() && entrees(&paies).iter().any(|(n, _)| n.ends_with(".json")) {
+    // Une saisie, pas un cache qu'une lecture a laisse (`AAAA-MM.etat.json`) : le rejeu d'un banc ne refait pas les
+    // lectures (#236).
+    if !crate::routes_mois::mois_saisis(st.racine()).is_empty() {
         return None;
     }
     // DES FICHES NE SONT PAS UN PASSE (09/10/2026) : une compagnie neuve remplit ses salaries avant sa premiere paie ;

@@ -103,11 +103,12 @@ pub fn texte_du_pdf(chemin: &Path) -> Resultat<String> {
     // LE TEXTE GARDE SUR LE DISQUE (Leandre, 08/10/2026 : « quand je vais en avant et en arriere, ca met autant de
     // temps »). Chaque route est un processus neuf : la memoire ci-dessus ne survit pas a la requete, et la pastille de
     // chaque contrat relisait son PDF (un quart de seconde chacun) a chaque changement de mois, deux fois. Le texte se
-    // range a cote du PDF, dans `.textes/`, sous un nom qui porte sa date et sa taille : un PDF refait n'est plus lu
-    // sous l'ancien texte. Une ecriture impossible ne change rien au resultat.
-    let taille = std::fs::metadata(chemin).map(|m| m.len()).unwrap_or(0);
+    // range a cote du PDF, dans `.textes/`, sous un nom qui porte l'empreinte de son CONTENU : un PDF refait n'est plus
+    // lu sous l'ancien texte, et la meme compagnie refaite (le rejeu d'un banc, #236) a les memes fichiers -- la date du
+    // fichier, a la nanoseconde, n'est celle d'aucun rejeu. Une ecriture impossible ne change rien au resultat.
+    let empreinte = crate::journal::empreinte_fichier(chemin).unwrap_or_default();
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let range = chemin.parent().map(|d| d.join(".textes").join(format!("{}.{}.{}.txt", nom, mtime, taille)));
+    let range = chemin.parent().map(|d| d.join(".textes").join(format!("{}.{}.txt", nom, empreinte)));
     if let Some(t) = range.as_ref().and_then(|r| std::fs::read_to_string(r).ok()) {
         textes().lock().map_err(|e| e.to_string())?.insert(cle, t.clone());
         return Ok(t);

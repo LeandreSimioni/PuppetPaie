@@ -159,6 +159,56 @@ pub fn type_du_contact(decl: &Value) -> Value {
     }
 }
 
+/// LA MEDECINE DU TRAVAIL INTERNE DE L'ETABLISSEMENT, dans l'identifiant de son service de prevention et de sante au travail
+/// (S21.G00.11.025 : « Cette rubrique doit etre renseignee par l'identifiant du service de prevention et de sante au travail
+/// (SPST) », `X [1,14]`, conditionnelle en mensuelle ; cahier 2026.1, `norme-dsn/texte/bloc-S21.G00.12.txt` l. 33-37, et
+/// 2027.1.1, `texte-2027/bloc-S21.G00.11.txt` l. 232-237). La norme 2027 y nomme les SPST autonomes : « MT01 - MEDECINE
+/// INTERNE ETABLISSEMENT » (note differentielle 2026.1.2 -> 2027.1.2, § 13,
+/// `norme-dsn/dsn-note-differentielle-ct-2026.1.2-vers-2027.1.2-20251224.txt` l. 3497-3503), et en fait la condition du
+/// contact de type 17 (`contact_sante_travail`) ; la norme 2026 n'a ni l'une ni l'autre. La fiche garde ce code pour la
+/// DPAE (`medecine_travail`, « le code de votre service de prevention et de sante au travail »).
+///
+/// Rend `MT01` quand la fiche le dit et que la version du fichier est 2027 ou apres ; sinon rien. L'identifiant d'un
+/// service EXTERNE ne s'ecrit pas encore : sa definition est « precisee dans la fiche consigne dediee », qui n'est pas
+/// deposee, et que le code de la DPAE soit cet identifiant serait une inference (la rubrique est conditionnelle).
+fn spst_ecrit(f: &Fichier, ent_e: &Value) -> Resultat<Option<String>> {
+    let spst = txt(g(ent_e, "medecine_travail")).trim().to_string();
+    if spst != "MT01" || f.norme()?.version.as_str() < "P27V01" || !usage_admet(f, "S21.G00.11.025", "01")? {
+        return Ok(None);
+    }
+    Ok(Some(spst))
+}
+
+/// LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE (S20.G00.07 de type 17). Norme 2027 (cahier technique 2027.1.1,
+/// `norme-dsn/texte-2027/bloc-S20.G00.07.txt` l. 46-65 et 81, CCH-11 de S20.G00.07.004) : « Si et seulement si la
+/// declaration contient un bloc Etablissement - S21.G00.11 avec la rubrique Identifiant du SPST - S21.G00.11.025 renseignee
+/// avec la valeur MT01 - MEDECINE INTERNE ETABLISSEMENT [...], alors un bloc Contact chez le declare - S20.G00.07 de type 17
+/// [...] doit obligatoirement etre present. Dans le cas contraire, il est interdit. » ; c'est « le medecin du travail ou
+/// un interlocuteur place sous sa responsabilite, pour la transmission des arrets de travail ». Il vient de la fiche
+/// (`contact_sante_travail`, montre et demande quand le code vaut MT01, `champs-base.json`) ; sans lui, la DSN refuse.
+fn contact_sante_travail(f: &mut Fichier, ent_e: &Value) -> Resultat<()> {
+    if spst_ecrit(f, ent_e)?.as_deref() != Some("MT01") {
+        return Ok(());
+    }
+    let c = g(ent_e, "contact_sante_travail");
+    let manque: Vec<&str> = [("nom_prenom", "nom et prénom"), ("tel", "téléphone"), ("email", "courriel")]
+        .into_iter()
+        .filter(|(k, _)| txt(g(c, k)).trim().is_empty())
+        .map(|(_, l)| l)
+        .collect();
+    if !manque.is_empty() {
+        return Err(format!(
+            "La médecine du travail de la compagnie est interne (code MT01) : la DSN déclare qui y répond, le médecin du travail ou une personne sous sa responsabilité (S20.G00.07, type 17). Manque : {}. Le saisir dans Configuration › Entreprise, « Qui répond pour la médecine du travail interne ». Rien n'est écrit.",
+            manque.join(", ")
+        ));
+    }
+    f.add_v("S20.G00.07.001", g(c, "nom_prenom"))?;
+    f.add_v("S20.G00.07.002", g(c, "tel"))?;
+    f.add_v("S20.G00.07.003", g(c, "email"))?;
+    f.add("S20.G00.07.004", "17");
+    Ok(())
+}
+
 /// `str(v or "")`.
 pub(crate) fn txt(v: &Value) -> String {
     if vrai(v) {
@@ -4313,6 +4363,7 @@ certificat de conformite du depot precedent.",
     f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
     f.add_v("S20.G00.07.003", req(decl, "email")?)?;
     f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
+    contact_sante_travail(&mut f, &ent_e)?;
     if sans_individu {
         for code in liste(req(req(&orgs, "sans_individu")?, "absence_de_rattachement")?) {
             f.add_v("S20.G00.08.001", code)?;
@@ -4349,6 +4400,9 @@ certificat de conformite du depot precedent.",
             continue;
         }
         f.add_v(k.0, req(&ent_e, k.1)?)?;
+    }
+    if let Some(spst) = spst_ecrit(&f, &ent_e)? {
+        f.add("S21.G00.11.025", spst);
     }
     let annee_mois: i64 = an as i64;
     let mut couvertes: HashSet<String> = HashSet::new();

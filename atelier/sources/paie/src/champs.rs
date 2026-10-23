@@ -445,7 +445,7 @@ pub fn normaliser(c: &Champ, valeur: &Value) -> R<Value> {
 
 /// `PERSONNES` : le signataire et le contact DSN, avec les cles declarees qui
 /// ont une forme lisible `<cle>_affichage`.
-const PERSONNES: [(&str, &[&str]); 2] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &[])];
+const PERSONNES: [(&str, &[&str]); 3] = [("signataire", &["nom", "prenom"]), ("declarant_dsn", &[]), ("contact_sante_travail", &[])];
 
 fn faux_ou_absent(d: &Map<String, Value>, k: &str) -> bool {
     d.get(k).map_or(true, |v| !vrai(v))
@@ -471,7 +471,7 @@ pub fn combler_affichage(nom: &str, donnees: &Map<String, Value>) -> R<Map<Strin
         for (cle, officiels) in PERSONNES {
             let Some(Value::Object(p)) = sortie.get(cle) else { continue };
             let mut p = p.clone();
-            if cle == "declarant_dsn" && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
+            if (cle == "declarant_dsn" || cle == "contact_sante_travail") && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
                 // << NOM PRENOM >> en un seul champ : le premier mot fait le nom,
                 // le reste le prenom.
                 let np = p.get("nom_prenom").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
@@ -1147,6 +1147,15 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         }
     }
     anomalies.extend(controles_croises(nom, &donnees)?);
+    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS (#236). Une regle de forme peut se tromper et la valeur
+    // etre juste : son erreur se passe outre a l'ecran (`forcable`). Une valeur obligatoire absente, non : le metier d'un
+    // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
+    // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se
+    // remplit en plusieurs fois (« Pour demarrer » dit ce qui manque) : ses manques restent forcables.
+    for a in anomalies.iter_mut() {
+        let manque = a["gravite"] == "erreur" && a["message"] == "obligatoire" && nom != "entreprise";
+        a["forcable"] = json!(!manque);
+    }
     // Une fiche mise de cote ne doit pas crier. Ses manques restent visibles --
     // et redeviennent bloquants a la reactivation, ce que le message dit.
     if donnees.get("actif") == Some(&Value::Bool(false)) {

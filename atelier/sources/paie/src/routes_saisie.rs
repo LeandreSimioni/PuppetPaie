@@ -85,6 +85,23 @@ pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
     Ok(if ctx.aujourdhui > limite { Some(limite) } else { None })
 }
 
+/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE N'A PAS DE DSN DUE (#236, banc du Petit Castelet : ajoutee le 06/01/2025, premiere
+/// embauche le 25/01, la compagnie voyait decembre 2024 « Rouvrir ce mois (DSN en retard) — sa DSN était due le
+/// 15/01/2025 »). La DSN est due par l'employeur pour les salaries qu'il emploie (`routes_ouverture::premier_mois_declarable`,
+/// la borne que l'echeancier et les rappels lisent deja) : un mois passe, sans saisie, ni tenu avant ce logiciel, qui
+/// precede le mois de la premiere embauche (`premiere_embauche` de la fiche Entreprise) n'est pas en retard, il n'a rien
+/// a declarer. Rend la premiere embauche (`AAAA-MM-JJ`), ou `None`.
+pub(crate) fn avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<Option<String>> {
+    let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
+    if embauche.len() < 7 || mois >= &embauche[..7] || ctx.racine.join("paies").join(format!("{}.json", mois)).exists() {
+        return Ok(None);
+    }
+    if crate::mois_importe::importe(&ctx.racine, mois)? || mois_hors_delai(ctx, mois)?.is_none() {
+        return Ok(None);
+    }
+    Ok(Some(embauche))
+}
+
 /// `operations_paies.squelette(mois, ctx)` : un mois neuf s'ouvre VIDE, avec le
 /// dernier taux saisi -- `null` quand le dossier n'a encore aucun cachet (R12 :
 /// aucun texte ne fixe un taux de cachet, la compagnie le saisit).
@@ -430,7 +447,8 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
     // confirmant a la premiere modification (`routes_regularisation::modification_de_la_paie`) -- il n'est pas en retard.
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let dsn_deposee = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
-    let limite = if dsn_deposee.get("confirmer").is_some_and(vrai) { None } else { mois_hors_delai(ctx, &mois)? };
+    let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
+    let limite = if dsn_deposee.get("confirmer").is_some_and(vrai) || avant_embauche.is_some() { None } else { mois_hors_delai(ctx, &mois)? };
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
     // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : pas de fichier ici, mais l'historique importe le porte -- ses paies,
@@ -444,6 +462,8 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
         // Passe le 15 du mois suivant, le mois est ferme : la page le montre en
         // lecture seule (le serveur refuserait de toute facon).
         "hors_delai": limite.map(|j| j.iso()),
+        // Un mois passe d'avant la premiere embauche : rien n'y est du, il se lit (`avant_la_premiere_embauche`).
+        "avant_premiere_embauche": avant_embauche,
         // La DSN reelle du mois est deposee : ce qu'il faut savoir avant d'en modifier la paie (`null` sinon).
         "dsn_deposee": dsn_deposee,
         "saisie": resoudre_noms(ctx, &saisie)?,

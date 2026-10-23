@@ -3,8 +3,8 @@
 //!
 //! ECRIT, NON PROUVE, NON BRANCHE. « Que l'horloge avance automatiquement a la date limite » (l'editeur, 27/09/2026) :
 //! a chaque ouverture, la COMPAGNIE FICTIVE joue ce qu'une compagnie bien tenue aurait fait AVANT aujourd'hui,
-//! a sa date. Le 1er du mois, le mois s'ecrit (contrats, DPAE du mois, bulletins, certificats, DSN) ; le jour de chaque
-//! embauche, a 7 h, sa DPAE part (test puis reel) et son contrat revient signe a 8 h ; a l'echeance de la DSN, la DSN
+//! a sa date. Le 1er du mois suivant, le mois s'ecrit (contrats, bulletins, certificats, DSN) ; le jour de chaque
+//! embauche, son contrat part a la signature a 6 h, sa DPAE a 7 h (test puis reel), et le contrat revient signe a 8 h ; a l'echeance de la DSN, la DSN
 //! part (test puis reel) et les documents aux salaries ; fin janvier, l'annee passee se clot et s'exporte pour la
 //! comptabilite ; les echeances annuelles qu'on coche se cochent a la fin de leur fenetre. Ce qui vient apres aujourd'hui
 //! reste au visiteur. Ce qu'il a deja fait lui-meme n'est pas refait : chaque pas regarde d'abord le journal.
@@ -360,7 +360,16 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         if clos.contains(mois) {
             continue;
         }
-        fait.extend(le_premier_du_mois(&d, &o, mois, &mut saisies, jour)?);
+        // PENDANT LE MOIS, ses embauches : la DPAE et le contrat, chacun a sa date.
+        fait.extend(les_embauches_du_mois(&d, &o, mois, jour)?);
+        // LE MOIS S'ECRIT LE 1ER DU MOIS SUIVANT, jamais avant (#236, banc du Petit Castelet : le 20/01, « Le 01/01/2025 :
+        // Janvier 2025 écrit », et une DSN « constituee le 20012025 » qui portait les cachets des 25 et 26/01). Un mois
+        // en cours n'a ni bulletins ni DSN.
+        let suivant = crate::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+        if jour < suivant {
+            continue;
+        }
+        fait.extend(le_mois_s_ecrit(&d, &o, mois, &mut saisies, suivant, jour)?);
         // Le jour ou la DSN est due (`echeance_dsn`, reporte au jour ouvre) : elle part ce matin-la, avant midi.
         let echeance = {
             let ctx = d.contexte()?;
@@ -405,54 +414,103 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     Ok(fait)
 }
 
-// ------------------------------------------------------------------ le premier du mois
+// ------------------------------------------------------------------ le mois et ses embauches
 
-/// `_le_premier_du_mois` : le 1er, le mois s'ecrit ; le jour de chaque embauche, a sa date limite, sa DPAE part (test
-/// puis reel) et son contrat revient signe.
-fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, saisies: &mut Map<String, Value>, jour: Jour) -> R<Vec<String>> {
-    let mut fait: Vec<String> = Vec::new();
-    let quand = format!("{}-01T09:00:00", mois);
-
-    // LE MOIS S'ECRIT, OU SE REECRIT. Une saisie qui a change depuis que le mois a ete ecrit -- un contrat ajoute ou retire
-    // par le visiteur -- fait reecrire le mois, tant que sa DSN n'est pas partie : la DSN, les contrats et les DPAE qui
-    // suivent sont alors les bons.
-    let mut reecrit = false;
-    let faits = pas(d, &format!("{} écrit — contrats, bulletins, DSN", crate::routes_envois::capitaliser(&mois_fr(mois))), &quand, |ctx| {
-        let saisie = ctx.racine.join("paies").join(format!("{}.json", mois));
-        if !saisie.exists() {
-            return Ok(false);
+/// LE MOIS S'ECRIT, OU SE REECRIT, le 1er du mois suivant (`suivant`) ou plus tard. Ecrit, il l'est a la vraie date ou
+/// une compagnie bien tenue l'aurait ecrit : le 1er du mois suivant, ou le jour ou la compagnie a ete ajoutee s'il est
+/// plus tard (#236 : « Le 01/11/2026 : Novembre 2026 écrit » pour une compagnie ajoutee le 02/11). Une saisie qui a
+/// change depuis que le mois a ete ecrit -- un contrat ajoute ou retire par le visiteur -- fait reecrire le mois tant que
+/// sa DSN n'est pas partie, AUJOURD'HUI : la DSN, les contrats et les DPAE qui suivent sont alors les bons.
+fn le_mois_s_ecrit(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, saisies: &mut Map<String, Value>, suivant: Jour, jour: Jour) -> R<Vec<String>> {
+    let ecrit_le = match crate::interface::compagnies::cree_le(d.racine) {
+        Some(c) if c > suivant => c.min(jour),
+        _ => suivant,
+    };
+    let saisie = d.racine.join("paies").join(format!("{}.json", mois));
+    if !saisie.exists() {
+        return Ok(Vec::new());
+    }
+    // ECRIT, C'EST CE QUE LE MOTEUR A CONSIGNE (#236) : la DSN du mois notee au journal des ecritures
+    // (`produire_mois::mois_ecrit`). Une DPAE ou un contrat dans `sorties/<mois>/` ne l'ecrivent pas : le mois d'une
+    // compagnie ajoutee, ses DPAE envoyees, ne s'ecrivait jamais.
+    let reecrit = if crate::produire_mois::mois_ecrit(d.racine, mois) {
+        // Le mois est deja ecrit : sa DSN partie, ou une saisie inchangee, le laissent tel quel.
+        let partie = d.contexte().and_then(|ctx| dsn_partie(o, &ctx, mois)).unwrap_or(false);
+        if partie {
+            return Ok(Vec::new());
         }
-        // ECRIT, C'EST CE QUE LE MOTEUR A CONSIGNE (#236) : la DSN du mois notee au journal des ecritures
-        // (`produire_mois::mois_ecrit`). Une DPAE ou un contrat dans `sorties/<mois>/` ne l'ecrivent pas : le mois d'une
-        // compagnie ajoutee, ses DPAE envoyees, ne s'ecrivait jamais.
-        if crate::produire_mois::mois_ecrit(&ctx.racine, mois) {
-            // Le mois est deja ecrit : sa DSN partie, ou une saisie inchangee, le laissent tel quel.
-            if dsn_partie(o, ctx, mois)? {
-                return Ok(false);
+        let maintenant = empreinte_saisie(&saisie);
+        match saisies.get(mois) {
+            None => {
+                saisies.insert(mois.to_string(), json!(maintenant));
+                return Ok(Vec::new());
             }
-            let maintenant = empreinte_saisie(&saisie);
-            match saisies.get(mois) {
-                None => {
-                    saisies.insert(mois.to_string(), json!(maintenant));
-                    return Ok(false);
-                }
-                Some(connue) if *connue == json!(maintenant) => return Ok(false),
-                Some(_) => reecrit = true,
-            }
+            Some(connue) if *connue == json!(maintenant) => return Ok(Vec::new()),
+            Some(_) => true,
         }
+    } else {
+        false
+    };
+    let (quoi, quand) = if reecrit {
+        (format!("{} réécrit, la saisie ayant changé — contrats, bulletins, DSN", crate::routes_envois::capitaliser(&mois_fr(mois))), format!("{}T09:00:00", jour.iso()))
+    } else {
+        (format!("{} écrit — contrats, bulletins, DSN", crate::routes_envois::capitaliser(&mois_fr(mois))), format!("{}T09:00:00", ecrit_le.iso()))
+    };
+    Ok(pas(d, &quoi, &quand, |_ctx| {
         let fin = crate::date::dernier_du_mois(mois).map_err(Echec::from)?;
         let ctx_fin = d.contexte_a(fin)?;
         crate::produire_mois::produire_pour_l_horloge(o, &ctx_fin, mois, QUI_HORLOGE)?;
         saisies.insert(mois.to_string(), json!(empreinte_saisie(&saisie)));
         Ok(true)
-    });
-    fait.extend(faits.into_iter().map(|f| if reecrit { f.replace("écrit — ", "réécrit, la saisie ayant changé — ") } else { f }));
+    }))
+}
 
-    // CHAQUE GESTE A SA DATE LIMITE (l'editeur, 27/09/2026) : « s'il arrive deux jours avant, il peut faire la DPAE ; des
-    // qu'on passe la date, c'est vert et deja fait par le moteur de demo » (la compagnie fictive). La DPAE est due avant la premiere heure de
-    // travail : l'horloge la fait le jour de l'embauche, a 7 h, et le contrat revient signe le meme matin. D'ici la,
-    // c'est au visiteur.
+/// LES EMBAUCHES DU MOIS, chacune a sa date limite (l'editeur, 27/09/2026) : « s'il arrive deux jours avant, il peut faire
+/// la DPAE ; des qu'on passe la date, c'est vert et deja fait par le moteur de demo » (la compagnie fictive). Le jour de
+/// l'embauche, son contrat part a la signature a 6 h s'il n'est pas parti (une compagnie bien tenue l'envoie avant la
+/// premiere heure de travail), sa DPAE part a 7 h (test puis reel), le contrat revient signe a 8 h. D'ici la, c'est au
+/// visiteur. Le mois n'a pas a etre ecrit : la DPAE et le contrat se font depuis la saisie, comme dans la page.
+fn les_embauches_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, jour: Jour) -> R<Vec<String>> {
+    let mut fait: Vec<String> = Vec::new();
     let jour_iso = jour.iso();
+
+    // Les contrats de spectacle du mois qui ne sont pas revenus signes : (salarie, debut, numero, demande).
+    let signables = |ctx: &Contexte| -> R<Vec<(String, String, String, bool)>> {
+        let a = crate::routes_documents::signature_apercu_avec(o, ctx, &json!({"mois": mois}), false)?;
+        Ok(a["contrats"]
+            .as_array()
+            .map(|c| {
+                c.iter()
+                    .filter(|x| !x.get("recu_le").is_some_and(vrai))
+                    .map(|x| {
+                        (py_str(&x["salarie"]), py_str(&x["debut"]), py_str(&crate::etats::numero_de_cle(&x["numero"])), x.get("demande_le").is_some_and(vrai))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default())
+    };
+    let a_signer: BTreeSet<String> = match d.contexte().and_then(|ctx| signables(&ctx)) {
+        Ok(v) => v.into_iter().map(|(_, debut, _, _)| debut).filter(|debut| **debut <= *jour_iso).collect(),
+        Err(_) => BTreeSet::new(),
+    };
+    for debut in &a_signer {
+        let faits = pas(d, &format!("contrats de l'embauche du {} envoyés à la signature", le(debut)), &format!("{}T06:00:00", debut), |ctx| {
+            let a_demander: Vec<Value> = signables(ctx)?
+                .into_iter()
+                .filter(|(_, db, _, demande)| db == debut && !demande)
+                .map(|(salarie, db, numero, _)| json!({"salarie": salarie, "debut": db, "numero": if numero.is_empty() { Value::Null } else { json!(numero) }}))
+                .collect();
+            if a_demander.is_empty() {
+                return Ok(false);
+            }
+            // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
+            let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
+            crate::envois_signature::demander_signature(o, ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
+            Ok(true)
+        });
+        fait.extend(faits);
+    }
+
     let jours: BTreeSet<String> = {
         let ctx = d.contexte()?;
         let a_declarer = Moteur::nouveau(o, &ctx).embauches_a_declarer(Some(mois))?;
@@ -487,30 +545,14 @@ fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &st
         fait.extend(faits);
     }
 
-    // Les contrats revenus signes : un mois qui n'a pas pu s'ecrire n'a rien a signer.
-    let signables = |ctx: &Contexte| -> R<Vec<(String, String, String)>> {
-        let a = crate::routes_documents::signature_apercu_avec(o, ctx, &json!({"mois": mois}), false)?;
-        Ok(a["contrats"]
-            .as_array()
-            .map(|c| {
-                c.iter()
-                    .filter(|x| !x.get("recu_le").is_some_and(vrai))
-                    .map(|x| (py_str(&x["salarie"]), py_str(&x["debut"]), py_str(&crate::etats::numero_de_cle(&x["numero"]))))
-                    .collect()
-            })
-            .unwrap_or_default())
-    };
-    let a_signer: BTreeSet<String> = match d.contexte().and_then(|ctx| signables(&ctx)) {
-        Ok(v) => v.into_iter().map(|(_, debut, _)| debut).filter(|debut| **debut <= *jour_iso).collect(),
-        Err(_) => BTreeSet::new(),
-    };
+    // Les contrats revenus signes (celui qui n'a pas pu partir par courriel a ete remis en main propre).
     for debut in &a_signer {
         let faits = pas(d, &format!("contrats de l'embauche du {} revenus signés", le(debut)), &format!("{}T08:00:00", debut), |ctx| {
-            let manquent: Vec<(String, String, String)> = signables(ctx)?.into_iter().filter(|(_, db, _)| db == debut).collect();
+            let manquent: Vec<(String, String, String, bool)> = signables(ctx)?.into_iter().filter(|(_, db, _, _)| db == debut).collect();
             if manquent.is_empty() {
                 return Ok(false);
             }
-            for (salarie, db, numero) in &manquent {
+            for (salarie, db, numero, _) in &manquent {
                 crate::routes_ecritures_g4::contrat_recu_par(o, ctx, mois, salarie, db, Some(numero.as_str()), true, QUI_HORLOGE)?;
             }
             Ok(true)
@@ -574,14 +616,10 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
     let fin_janvier = Jour::nouveau(annee, 1, 31).ok_or_else(|| erreur("ValueError", "date impossible"))?;
     if jour >= fin_janvier {
         fait.extend(pas(d, &format!("exercice {} clos", precedente), &format!("{}T10:00:00", fin_janvier.iso()), |ctx| {
-            let a_des_paies = std::fs::read_dir(ctx.racine.join("paies"))
-                .map(|rd| {
-                    rd.flatten().any(|e| {
-                        let nom = e.file_name().to_string_lossy().into_owned();
-                        nom.starts_with(&format!("{}-", precedente)) && nom.ends_with(".json")
-                    })
-                })
-                .unwrap_or(false);
+            // UNE SAISIE, PAS UN CACHE (#236, banc du Petit Castelet) : `paies/2024-12.etat.json`, ecrit en fond quand on
+            // regarde decembre, faisait clore au banc un exercice vide que le rejeu, qui ne refait pas les lectures, ne
+            // clot pas. Les mois saisis sont ceux de `routes_mois::mois_saisis`.
+            let a_des_paies = crate::routes_mois::mois_saisis(&ctx.racine).iter().any(|m| m.starts_with(&format!("{}-", precedente)));
             if Moteur::nouveau(o, ctx).exercice_clos(&precedente.to_string())? || !a_des_paies {
                 return Ok(false);
             }

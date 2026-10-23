@@ -143,6 +143,14 @@ fn sans_clients(racine: &Path, o: &Options) -> Ouverture {
     jouer(racine, o, Clients::default())
 }
 
+/// LES CONTRATS D'OCTOBRE PARTIS A LA SIGNATURE, comme une compagnie qui les envoie avant ses embauches : la route de la
+/// page (`demander-signature`), jouee dans la fictive. L'horloge ne les envoie que le jour de chaque embauche, et le mois
+/// ne s'ecrit que le 1er novembre (#236) : sans ce geste, le filet n'a aucune embauche a venir dont le contrat est parti.
+fn contrats_d_octobre_partis(racine: &Path) {
+    let r = outils::route(racine, "demander-signature", json!({"mois": "2026-10"}), AUJOURDHUI);
+    assert_eq!(r["ok"], json!(true), "{}", r);
+}
+
 /// L'horloge de la compagnie fictive remise a une date (ce qui etait du depuis se rejoue d'un coup).
 fn reculer_l_horloge(racine: &Path, le: &str) {
     let mut h = lire(racine, "config/horloge.json");
@@ -383,7 +391,14 @@ fn la_fictive_joue_l_horloge_les_retours_et_ne_fait_rien_d_autre() {
     let _t = tour();
     let c = compagnie("fictive-horloge", "fictive-3090-petite", false);
     reculer_l_horloge(&c, "2026-08-15");
+    // Septembre saisi et pas ecrit : le 08/10, l'horloge l'ecrit (a sa date, le 01/10 ; octobre, en cours, attend le
+    // 1er novembre).
+    let mut ecrites = lire(&c, "journal/dsn-ecrites.json");
+    ecrites.as_object_mut().unwrap().remove("2026-09/DSN_Septembre2026.dsn");
+    ecrire(&c, "journal/dsn-ecrites.json", &ecrites);
     let r = sans_clients(&c, &Options { filet: false, ..opt() });
+    assert!(r.horloge.iter().any(|p| p.starts_with("Le 01/10/2026 : Septembre 2026 écrit")), "{:?}", r.horloge);
+    assert!(!r.horloge.iter().any(|p| p.contains("Octobre 2026 écrit")), "{:?}", r.horloge);
     assert!(!r.horloge.is_empty(), "l'horloge a rejoue ce qui etait du avant aujourd'hui");
     let releve = r.releve.as_ref().expect("les retours des depots joues sont rattaches");
     assert!(releve.trouves.is_empty() && releve.archives.is_empty(), "un releve qui ne porte que `rattaches`");
@@ -693,6 +708,7 @@ fn le_test_automatique_de_la_dpae_du_filet_depose_chez_le_faux_urssaf_une_seule_
     let c = compagnie("filet", "fictive-1285-petite", false);
     // La compagnie fictive joue d'abord son passe (jusqu'a aujourd'hui) ; puis c'est une compagnie ordinaire.
     sans_clients(&c, &Options { filet: false, ..opt() });
+    contrats_d_octobre_partis(&c);
     cie::ordinaire(&c);
     let o = Options { retours: false, signatures: false, sauvegarder: false, ..opt() };
     // Sans mot de passe ni client : rien ne part.
@@ -719,6 +735,7 @@ fn un_refus_de_l_urssaf_au_test_du_filet_devient_un_incident() {
     let _t = tour();
     let c = compagnie("filet-refus", "fictive-1285-petite", false);
     sans_clients(&c, &Options { filet: false, ..opt() });
+    contrats_d_octobre_partis(&c);
     cie::ordinaire(&c);
     let (base, _, _) = organismes(vec![], Pannes { depot: Some(500), ..Pannes::default() });
     let o = Options { retours: false, signatures: false, sauvegarder: false, ..opt() };
