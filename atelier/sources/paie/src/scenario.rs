@@ -29,10 +29,9 @@
 //! rejoue aussi.
 
 use std::collections::BTreeMap;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 /// Le fichier des gestes, dans le dossier du scenario.
 pub const GESTES: &str = "gestes.jsonl";
@@ -43,9 +42,11 @@ pub const FORMAT: u64 = 1;
 
 /// Les cles d'une charge qui nomment un dossier ou un fichier que la route LIT (une boite aux lettres d'import, un export
 /// d'un autre logiciel) : ce qu'il contient entre dans le scenario.
+#[cfg(feature = "atelier")]
 const CLES_DE_DEPOT: [&str; 4] = ["dossier", "export", "fichier", "chemin"];
 
 /// Les routes dont la cle `dossier` vide (ou absente) veut dire `import/` de la compagnie (`routes_importation::dossier_import`).
+#[cfg(feature = "atelier")]
 fn lit_la_boite_aux_lettres(route: &str) -> bool {
     route.starts_with("importation") || route == "importer"
 }
@@ -83,6 +84,7 @@ fn heure(t: f64) -> String {
 }
 
 /// Les fichiers d'un dossier, relatifs a lui (barres droites), dans l'ordre des noms.
+#[cfg(feature = "atelier")]
 fn fichiers_de(dossier: &Path) -> Vec<(String, PathBuf)> {
     fn parcourir(base: &Path, d: &Path, out: &mut Vec<(String, PathBuf)>) {
         let Ok(it) = std::fs::read_dir(d) else { return };
@@ -278,6 +280,8 @@ pub use enregistreur::Enregistreur;
 #[cfg(feature = "atelier")]
 mod enregistreur {
     use super::*;
+    use serde_json::Map;
+    use std::io::Write;
     use std::sync::{Mutex, OnceLock};
 
     /// L'enregistreur de la fenetre de l'atelier : un seul par processus, pose au lancement (`demarrer`).
@@ -295,6 +299,20 @@ mod enregistreur {
     /// L'enregistreur de ce processus, s'il y en a un.
     pub fn actif() -> Option<&'static Enregistreur> {
         ENREGISTREUR.get()
+    }
+
+    /// UN MOT DE PASSE TAPE N'ENTRE JAMAIS DANS UN SCENARIO : la valeur de toute cle `motdepasse` d'une charge est
+    /// retiree. Au rejeu, une fictive aux envois simules n'en a pas besoin (`depot_acte::verifier_preuve`).
+    pub(super) fn sans_mot_de_passe(v: &Value) -> Value {
+        match v {
+            Value::Object(o) => Value::Object(
+                o.iter()
+                    .map(|(k, x)| (k.clone(), if k.starts_with("motdepasse") && x.is_string() { json!("") } else { sans_mot_de_passe(x) }))
+                    .collect(),
+            ),
+            Value::Array(a) => Value::Array(a.iter().map(sans_mot_de_passe).collect()),
+            x => x.clone(),
+        }
     }
 
     /// Ce qu'une empreinte de la compagnie ne regarde pas : les caches que la fenetre refait en fond, et son journal.
@@ -387,7 +405,7 @@ mod enregistreur {
             let mut ligne = Map::new();
             ligne.insert("route".into(), json!(nom));
             ligne.insert("compagnie".into(), json!(self.compagnie(racine)));
-            ligne.insert("charge".into(), charge.clone());
+            ligne.insert("charge".into(), sans_mot_de_passe(charge));
             if !pieces.is_empty() {
                 ligne.insert("pieces".into(), Value::Object(pieces));
             }
@@ -471,6 +489,7 @@ pub use enregistreur::actif as enregistreur_actif;
 #[cfg(all(test, feature = "atelier"))]
 mod atelier {
     use super::*;
+    use serde_json::Map;
 
     fn route(e: &Enregistreur, racine: &Path, nom: &str, charge: Value) -> Value {
         let mut o = std::collections::HashMap::new();
@@ -500,7 +519,7 @@ mod atelier {
             .unwrap();
         let fiche = json!({"nom": "spectacle", "cle": null, "donnees": {"titre": "Le Rejeu", "numero_objet": "266Z00952011"}});
         assert_eq!(route(&e, &c.racine, "enregistrer-fiche", fiche)["ok"], json!(true));
-        route(&e, &c.racine, "etat", json!({}));
+        route(&e, &c.racine, "etat", json!({"motdepasse": "pas-dans-le-scenario"}));
         route(&e, &c.racine, "importation-apercu", json!({"dossier": ailleurs.to_string_lossy()}));
         crate::temps::liberer();
 
@@ -510,6 +529,7 @@ mod atelier {
         assert_eq!(gestes[0]["compagnie"], json!("fictives/ajoutee-essai-du-rejeu"));
         assert_eq!(de("enregistrer-fiche")["ecrit"], json!(true));
         assert_eq!(de("etat")["ecrit"], json!(false), "une lecture n'ecrit rien");
+        assert!(!std::fs::read_to_string(sc.join(GESTES)).unwrap().contains("pas-dans-le-scenario"), "un mot de passe tape n'entre pas dans le scenario");
         let sha = de("importation-apercu")["pieces"]["dossier"]["fichiers"]["sous/note.txt"].as_str().unwrap().to_string();
         assert!(sc.join(PIECES).join(&sha).is_file(), "la piece deposee est recopiee dans le scenario");
 

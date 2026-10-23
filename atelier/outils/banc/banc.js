@@ -186,6 +186,9 @@ function arreter(banc) {
   const e = lireEtat(path.resolve(banc));
   if (vivant(e.pid)) {
     try { process.kill(-e.pid, "SIGTERM"); } catch (x) { process.kill(e.pid, "SIGTERM"); }
+    // On rend la main quand la fenêtre est partie (cinq secondes au plus) : un `lancer` qui suit trouve la place libre.
+    const attente = new Int32Array(new SharedArrayBuffer(4));
+    for (let i = 0; i < 50 && vivant(e.pid); i++) Atomics.wait(attente, 0, 0, 100);
   }
   fs.rmSync(fichierEtat(path.resolve(banc)), { force: true });
 }

@@ -128,10 +128,10 @@ function etape(t) { console.log(`\n== ${t}`); }
   t = await texte(page);
   console.log(t.slice(t.indexOf("NET À VIRER"), t.indexOf("NET À VIRER") + 120));
 
-  etape("DPAE refusée tant que la compagnie est une fictive ajoutée");
+  etape("la boîte « Envoyer les DPAE » de la fictive ajoutée (rien n'y part)");
   await page.click("text=Envoyer les DPAE…").catch(() => {});
   await page.waitForTimeout(1500);
-  await banc.capture(page, C + "p07-envoi-refuse-ajoutee.png");
+  await banc.capture(page, C + "p07-envoyer-les-dpae.png");
   await fermer();
 
   etape("geste d'atelier : la compagnie devient une fictive aux envois simulés");

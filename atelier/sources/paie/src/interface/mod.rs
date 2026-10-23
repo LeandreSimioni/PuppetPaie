@@ -1109,6 +1109,7 @@ fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
             let mut m = serde_json::Map::new();
             m.insert("jour".into(), json!(crate::temps::jour_de_paris().iso()));
             m.insert("logiciel".into(), json!(version()));
+            m.insert("format".into(), json!(crate::scenario::FORMAT));
             Ok(((), m))
         })?;
     }
