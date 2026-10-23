@@ -115,7 +115,7 @@ pub const EXEMPLES_DES_TEXTES: [(&str, &str); 7] = [
 const GENERIQUES: [&str; 3] = ["NIR", "IBAN", "BIC"];
 
 /// Ce que la compagnie déclare d'elle-même, dans `prive/config/entreprise.json`.
-const CLES_ENTREPRISE: [&str; 5] = ["siret", "siren", "urssaf_compte", "congesspectacles_affiliation", "affiliation_france_travail"];
+const CLES_ENTREPRISE: [&str; 5] = ["siret", "siren", "urssaf_compte", "congesspectacles_adherent", "affiliation_france_travail"];
 /// Ce qui désigne un salarié, dans chaque fiche de `prive/config/salaries.json`.
 const CLES_SALARIE: [&str; 4] = ["nir", "num_conges_spectacles", "email", "adresse"];
 

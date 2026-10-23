@@ -246,3 +246,29 @@ fn le_bulletin_d_un_cdd_declare_a_la_caisse_n_a_pas_le_compteur_de_conges_de_l_e
     assert!(compteur(au_mois("cdi", "DE6.26.09", None)), "le CDI garde son compteur");
     assert!(!compteur(au_mois("cdd", "DE5.26.09", Some("2026-11-30"))), "le CDD declare a la caisse n'en a pas");
 }
+
+/// LE CODE CONGES SPECTACLES DE LA DSN SE DEDUIT DU NUMERO D'ADHERENT (#236) : « 97 puis le numero d'adherent a la caisse
+/// Conges spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent etre accoles, sans espaces, ni tiret, etc… EX :
+/// 970000000001A » (Audiens, fiche de specificites, `atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-
+/// conges-spectacles-20261023.txt`, l. 80-81). La fiche ne porte que le numero d'adherent ; une ancienne cle
+/// `congesspectacles_affiliation` qui dirait autre chose n'est pas lue. Un numero d'adherent mal forme : la DSN refuse.
+#[test]
+fn le_code_de_la_caisse_en_dsn_est_97_suivi_du_numero_d_adherent() {
+    let copie = copie(true);
+    let r = &copie.0;
+    let mut ent = lire(r, "config/entreprise.json");
+    ent["congesspectacles_adherent"] = json!("0123450001F");
+    ent["congesspectacles_affiliation"] = json!("979999999999Z");
+    ecrire(r, "config/entreprise.json", &ent);
+    let ctx = copie.contexte("2026-10-28");
+    let s = saisie(&ctx, json!([cddu("DE3.26.10", "2026-10-20", "2026-10-20")])).unwrap();
+    let dsn = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap();
+    assert_eq!(valeur(&contrat(&dsn, "DE3.26.10"), "S21.G00.40.022").as_deref(), Some("970123450001F"));
+
+    for mal_forme in ["", "0123450001", "0123450001f", "0123 450001F", "97012345000F"] {
+        ent["congesspectacles_adherent"] = json!(mal_forme);
+        ecrire(r, "config/entreprise.json", &ent);
+        let ctx = copie.contexte("2026-10-28");
+        assert!(generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).is_err(), "{:?} : rien ne se devine", mal_forme);
+    }
+}

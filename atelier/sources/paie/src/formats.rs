@@ -48,7 +48,7 @@ const SAISIES: [(&str, &str, &str); 32] = [
     ("S21.G00.40.006", "salarie", "emploi"),
     ("S21.G00.40.017", "entreprise", "idcc"),
     ("S21.G00.40.019", "entreprise", "siret"),
-    ("S21.G00.40.022", "entreprise", "congesspectacles_affiliation"),
+    ("S21.G00.40.022", "entreprise", "congesspectacles_adherent"),
     ("S21.G00.40.050", "spectacle", "numero_objet"),
     ("S21.G00.40.072", "salarie", "statut_boeth"),
 ];

@@ -965,6 +965,11 @@ impl<'a> Moteur<'a> {
 
     /// `_etape_de_depot` : pose sur `bilan` ou en est le fichier a deposer.
     fn etape_de_depot(&mut self, mois: &str, quoi: &str, bilan: &mut Map<String, Value>) -> R<()> {
+        // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`produire_mois::mois_ecrit`,
+        // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`.
+        if quoi == DSN && !crate::produire_mois::mois_ecrit(self.racine(), mois) {
+            return Ok(());
+        }
         let fichiers = self.fichiers_deposables(mois)?;
         let Some(premier) = fichiers.get(quoi).and_then(Value::as_array).and_then(|l| l.first()).cloned() else {
             return Ok(());

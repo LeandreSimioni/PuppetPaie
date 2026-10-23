@@ -471,26 +471,6 @@
    "ecran": true
   },
   {
-   "_note": "DEMANDE TEL QU'IL EST DECLARE (#236, 23/10/2026). La norme dit ce que S21.G00.40.022 porte pour la Caisse des Conges Spectacles : « Indiquer \"97\", le numero d'affiliation et la cle » (atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt, l. 921-933 ; 97 = « Caisse de conges spectacles » de la table CPCP, atelier/reference/sources/dsn-nomenclatures/, et fiche net-entreprises 862). Aucun texte depose ne dit que le numero d'adherent des certificats (`congesspectacles_adherent`) est ce numero d'affiliation : l'ecran ne le deduit plus, il demande les deux. Le moteur controle la forme (`champs::verifier_champ` : X [2,20], et les deux premiers caracteres 97, CRE-11).",
-   "cle": "congesspectacles_affiliation",
-   "libelle": "Congés Spectacles, code déclaré en DSN",
-   "forme": "texte",
-   "aide": "Ce que la DSN déclare pour chaque contrat d'intermittent (rubrique S21.G00.40.022) : « 97 », le code de la Caisse des Congés Spectacles, suivi de votre numéro d'affiliation et de sa clé, tels qu'ils figurent sur les documents de la Caisse (Audiens). Toute compagnie qui emploie des intermittents doit être affiliée.",
-   "obligatoire": false,
-   "longueur": null,
-   "exemple": "970123450001F",
-   "choix": [],
-   "declare": true,
-   "derive_de": null,
-   "rubrique": "S21.G00.40.022",
-   "si_permanents": false,
-   "si": null,
-   "si_etablissements": false,
-   "si_entreprise": null,
-   "booleen_defaut": true,
-   "ecran": true
-  },
-  {
    "_note": "CE N'ETAIT PAS UN NUMERO CONGES SPECTACLES (24/09/2026). Venu de\nCoolPaie sous le nom `congesspectacles_compte`, il « ne correspondait a\nrien » sur l'extranet d'Audiens -- normal : c'est le dossier de\nrecouvrement de France Travail, celui qui part en S21.G00.20.002 a cote\ndu SIRET 13000548100010 dans chaque DSN, et que l'acces employeurs du\ncinema spectacle de France Travail demande a la premiere connexion.\n`dsn.reference_versement` le prend pour le versement France Travail.",
    "cle": "france_travail_dossier_recouvrement",
    "libelle": "Dossier de recouvrement France Travail",
@@ -511,10 +491,11 @@
    "ecran": true
   },
   {
+   "_note": "UN SEUL NUMERO CONGES SPECTACLES (#236, 23/10/2026). « 97 puis le numero d'adherent a la caisse Conges spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent etre accoles, sans espaces, ni tiret, etc... EX : 970000000001A » (Audiens, fiche de specificites, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 80-81). La compagnie ne saisit que ce numero ; le moteur ecrit S21.G00.40.022 = 97 + ce numero (`conges_spectacles::code_dsn`) et controle sa forme (`conges_spectacles::faute_adherent`). L'ancienne cle `congesspectacles_affiliation` n'est plus lue.",
    "cle": "congesspectacles_adherent",
    "libelle": "Numéro d'adhérent Congés Spectacles",
    "forme": "texte",
-   "aide": "Il figure sur les courriers et dans l'espace employeur d'Audiens (Congés Spectacles). Il s'imprime sur les certificats d'emploi.",
+   "aide": "Dix chiffres suivis d'une lettre, accolés. Il figure sur les courriers et dans l'espace employeur d'Audiens (Congés Spectacles). Il s'imprime sur les certificats d'emploi, et la DSN le déclare pour chaque contrat d'intermittent, précédé de 97.",
    "obligatoire": false,
    "longueur": null,
    "exemple": "0123450001F",

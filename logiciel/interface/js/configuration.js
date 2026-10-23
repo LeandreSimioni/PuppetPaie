@@ -780,7 +780,6 @@ const SECTIONS_FICHE = {
     // « Pour démarrer » le demande. Un champ exigé est visible là où on l'exige.
     ["Vos numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
-      "congesspectacles_affiliation",
       "affiliation_france_travail",
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
     ["Qui signe, qui répond", ["signataire", "declarant_dsn"]],

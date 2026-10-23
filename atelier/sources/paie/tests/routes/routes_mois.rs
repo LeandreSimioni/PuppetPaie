@@ -215,6 +215,8 @@ fn le_chemin_d_un_depot_se_lit_dans_le_bilan() {
     let c = &compagnie("etapes");
     let dsn = dossier_sorties(c, MOIS).join("DSN_Aout2026.dsn");
     std::fs::write(&dsn, "S10.G00.00.005,'02'\nS20.G00.05.001,'01'\nS20.G00.05.002,'01'\nS20.G00.05.004,'1'\n").unwrap();
+    // Ecrite, c'est notee au journal des ecritures (`produire_mois::mois_ecrit`) : le moteur la note en l'ecrivant.
+    std::fs::write(c.join("journal/dsn-ecrites.json"), json!({"2026-08/DSN_Aout2026.dsn": {"quand": "2026-10-01T09:00:00"}}).to_string()).unwrap();
     let empreinte = paie::journal::empreinte_fichier(&dsn).unwrap();
     let essai = |retours: Value, accepte: bool| {
         let mut l = ligne("dsn", MOIS, "test", retours, json!({"type": "01", "ordre": "1"}));

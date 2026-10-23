@@ -367,14 +367,18 @@ pub(crate) fn journal_des_ecritures(racine: &Path) -> Map<String, Value> {
         .unwrap_or_default()
 }
 
-/// LE MOIS EST-IL ECRIT ? (#236) Un seul critere, ce que le moteur a consigne en le produisant : la DSN mensuelle du
-/// mois notee au journal des ecritures. Ni une DPAE ni un contrat dans `sorties/<mois>/` ne l'ecrivent : l'horloge
-/// d'une fictive tenait le mois pour ecrit des que sa DPAE y etait, et ne l'ecrivait jamais.
+/// LE MOIS EST-IL ECRIT ? (#236) Un seul critere, ce que le moteur a consigne en le produisant : une DSN mensuelle du
+/// mois notee au journal des ecritures, et toujours la ou il l'a ecrite (`sorties/<mois>/`). Ni une DPAE ni un contrat
+/// dans `sorties/<mois>/` ne l'ecrivent : l'horloge d'une fictive tenait le mois pour ecrit des que sa DPAE y etait, et ne
+/// l'ecrivait jamais. Un fichier DSN que le moteur n'a pas note (pose a la main) n'ecrit pas le mois non plus. C'est le
+/// critere de l'horloge (`horloge.rs`), de l'accueil (`routes_accueil::bilan_des_mois` : « a deposer » ou « a ecrire »)
+/// et des rappels (`routes_ouverture::dsn_deposable`).
 pub(crate) fn mois_ecrit(racine: &Path, mois: &str) -> bool {
     let prefixe = format!("{}/", mois);
+    let sorties = racine.join("sorties");
     journal_des_ecritures(racine)
         .keys()
-        .any(|k| k.strip_prefix(&prefixe).is_some_and(crate::routes_mois::est_une_dsn_mensuelle))
+        .any(|k| k.strip_prefix(&prefixe).is_some_and(crate::routes_mois::est_une_dsn_mensuelle) && sorties.join(k).is_file())
 }
 
 /// QUAND LE MOTEUR A ECRIT CETTE PIECE (`AAAA-MM-JJTHH:MM`), lu au journal des ecritures (`noter_piece_ecrite`) ; `null`

@@ -101,8 +101,8 @@
           "quoi": "Code emplois multiples : 02 si le salarié tient plusieurs emplois chez la compagnie dans le même mois (cahier technique DSN 2026.1, p. 199 : « plusieurs emplois chez un même employeur au cours d'une même période de paie »), 01 sinon. Un emploi, c'est ce que le bloc 40 en dit : PCS-ESE, code emploi, libellé. Une comédienne aussi metteuse en scène le même mois est en 02 sur chacun de ses contrats ; trois contrats du même emploi restent en 01. CoolPaie écrivait exactement cela."
         },
         "S21.G00.40.022": {
-          "source": "entreprise.congesspectacles_affiliation",
-          "quoi": "Code caisse professionnelle de congés payés : « 97 », le numéro d'affiliation et la clé. La rubrique ne s'écrit que « dans le cas où les indemnités ne sont pas versées par l'employeur » — c'est exactement l'intermittent, dont les congés sont payés par la caisse des Congés Spectacles.",
+          "source": "97 + entreprise.congesspectacles_adherent (conges_spectacles::code_dsn ; fiche de spécificités Congés Spectacles d'Audiens, atelier/reference/sources/audiens-dsn/)",
+          "quoi": "Code caisse professionnelle de congés payés : « 97 puis le numéro d'adhérent à la caisse Congés spectacles (10 chiffres + 1 lettre) ». La rubrique ne s'écrit que « dans le cas où les indemnités ne sont pas versées par l'employeur » — c'est exactement l'intermittent, dont les congés sont payés par la caisse des Congés Spectacles.",
           "si": "caisse_conges::affilie : un CDDU de douze mois ou plus (du début au terme signés) n'est pas déclaré à la caisse (code du travail D. 7121-41 ; CCN 3090, art. 10.1.1 ; fiche Audiens « CDD de moins de 12 mois ») et ne l'écrit pas. Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
         },
         "S21.G00.40.040": {
@@ -403,7 +403,7 @@
         "S21.G00.40.043": {"source": "bareme.taux_atmp.valeur", "quoi": "Taux de cotisation accident du travail."},
         "S21.G00.40.049": {"source": "entreprise.licence_spectacle", "quoi": "Numéro de licence d'entrepreneur de spectacles."},
         "S21.G00.40.022": {
-          "source": "entreprise.congesspectacles_affiliation",
+          "source": "97 + entreprise.congesspectacles_adherent (conges_spectacles::code_dsn ; fiche de spécificités Congés Spectacles d'Audiens, atelier/reference/sources/audiens-dsn/)",
           "si": "caisse_conges::affilie",
           "quoi": "Code caisse professionnelle de congés payés, « dans le cas où les indemnités ne sont pas versées par l'employeur » (p. 195) : un CDD ordinaire de MOINS DE DOUZE MOIS d'un artiste (son métier est un emploi de l'annexe 10 de la nomenclature des emplois du spectacle) est déclaré à la caisse des Congés Spectacles « quelle que soit […] la nature du contrat de travail (CDD de droit commun, CDD d'usage, etc) » (fiche Audiens ; code du travail D. 7121-40, D. 7121-41). Les autres prennent leurs congés — ou une indemnité compensatrice — chez leur employeur, et la rubrique ne s'écrit pas. Le technicien en CDD ordinaire reste parmi eux tant que n'est pas décidé quel technicien la caisse attend (l'annexe 8 range aussi l'attaché de production parmi les techniciens). Lot V2f, atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md."
         }
