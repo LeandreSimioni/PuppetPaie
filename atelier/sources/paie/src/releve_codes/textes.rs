@@ -177,6 +177,10 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "conge_parental", titre: "Le conge parental d'education", numeros: &["L1225-47", "L1225-48", "L1225-49", "L1225-50", "L1225-51", "L1225-52", "L1225-53", "L1225-54", "L1225-55", "L1225-56", "L1225-57", "L1225-58", "L1225-59"] },
             Domaine { cle: "conge_sabbatique", titre: "Le conge sabbatique et le conge pour creation d'entreprise", numeros: &["L3142-28", "L3142-29", "L3142-30", "L3142-31", "L3142-32", "L3142-33", "L3142-34", "L3142-105", "L3142-106", "L3142-107", "L3142-108", "L3142-109"] },
             Domaine { cle: "mensualisation", titre: "La mensualisation et les retenues sur salaire", numeros: &["L3242-1", "L3242-2", "L3242-3", "L3251-1"] },
+            // LA LICENCE D'ENTREPRENEUR DE SPECTACLES (#236, 23/10/2026) : de qui elle est exigee (S21.G00.40.049 de la
+            // DSN, `demarrage::licence_exigee`, `dsn::licence_du_contrat`) ; la norme DSN y renvoie (« L.7122-3 et
+            // suivants »). L7122-22 et L7122-23 : l'organisateur occasionnel, qui passe par le guichet unique.
+            Domaine { cle: "licence_spectacles", titre: "L'entrepreneur de spectacles vivants et sa declaration", numeros: &["L7122-1", "L7122-2", "L7122-3", "L7122-4", "L7122-5", "L7122-6", "L7122-22", "L7122-23"] },
         ],
     },
     // ------------------------------------------------------------------

@@ -144,12 +144,17 @@ function playwright() {
 
 function chromium() {
   const pw = playwright();
-  const options = { headless: true };
+  // UN POSTE FRANÇAIS. La `locale` du contexte (plus bas) règle `navigator.language` et `Intl`, pas l'affichage d'un
+  // champ date : Chromium le prend de sa langue d'interface (`--lang`) et de celle du processus (`LANG`, `LANGUAGE`).
+  // Sans elles, « première embauche » saisie au 05/01/2026 s'affichait « 01/05/2026 » sur les captures.
+  const options = { headless: true, args: ["--lang=fr-FR"],
+    env: { ...process.env, LANG: "fr_FR.UTF-8", LANGUAGE: "fr_FR:fr" } };
   const racine = "/opt/pw-browsers";
   if (fs.existsSync(racine)) {
     const d = fs.readdirSync(racine).filter((n) => n.startsWith("chromium_headless_shell")).sort().pop();
-    const exe = d && path.join(racine, d, "chrome-linux", "headless_shell");
-    if (exe && fs.existsSync(exe)) options.executablePath = exe;
+    const exe = d && [path.join(racine, d, "chrome-linux", "headless_shell"),
+      path.join(racine, d, "chrome-headless-shell-linux64", "chrome-headless-shell")].find((x) => fs.existsSync(x));
+    if (exe) options.executablePath = exe;
   }
   return pw.chromium.launch(options);
 }

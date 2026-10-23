@@ -1265,6 +1265,8 @@ function METIER_HTML(fiche) {
   return `<div class="champ" id="config-metier">
     <label>Métier <span class="obligatoire">*</span>
       <select id="config-metier-choix">${optionsMetiers(code, "— choisir —")}</select></label>
+    <div class="note">C'est du métier que viennent le statut, la catégorie et les codes que la DPAE et la DSN
+      déclarent ; l'intitulé du contrat s'en remplit, et se retouche ensuite.</div>
     <div class="discret petit">Un métier manque ? L'ajouter dans
       <button type="button" class="lien" id="aller-metiers">Configuration › Métiers</button>.</div>
   </div>`;
