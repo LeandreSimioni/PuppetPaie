@@ -67,6 +67,8 @@ pub struct Champ {
     pub si: Value,
     pub si_etablissements: bool,
     pub si_entreprise: Value,
+    /// Quand la compagnie DOIT le remplir (`exige_si`, meme forme que `si`) : `Champ::exige`.
+    pub exige_si: Value,
     pub booleen_defaut: bool,
     pub ecran: bool,
 }
@@ -97,6 +99,7 @@ impl Champ {
             si: v.get("si").cloned().unwrap_or(Value::Null),
             si_etablissements: drapeau("si_etablissements", false),
             si_entreprise: v.get("si_entreprise").cloned().unwrap_or(Value::Null),
+            exige_si: v.get("exige_si").cloned().unwrap_or(Value::Null),
             booleen_defaut: drapeau("booleen_defaut", true),
             ecran: drapeau("ecran", true),
         }
@@ -118,6 +121,7 @@ impl Champ {
             "si_permanents": self.si_permanents, "si": self.si,
             "si_etablissements": self.si_etablissements,
             "si_entreprise": self.si_entreprise,
+            "exige_si": self.exige_si,
             "booleen_defaut": self.booleen_defaut, "ecran": self.ecran,
         })
     }
@@ -504,6 +508,60 @@ pub fn apercu_derive(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
 }
 
 /// `description(nom_fiche)` : la description en dictionnaires.
+
+// ------------------------------------------------- quand un champ se montre
+
+/// La valeur d'une cle de fiche comme la page la compare (`fiche.js`, `conditionRemplie` : `String(v ?? "").trim()`).
+fn comme_la_page(v: Option<&Value>) -> String {
+    match v {
+        None | Some(Value::Null) => String::new(),
+        Some(Value::String(s)) => s.trim().to_string(),
+        Some(Value::Bool(b)) => b.to_string(),
+        Some(Value::Number(n)) => n.to_string(),
+        Some(autre) => autre.to_string(),
+    }
+}
+
+/// UNE CONDITION DE `champs-base.json` (`si`, `exige_si`) remplie par la fiche `donnees` : chaque cle de la condition
+/// vaut l'une des valeurs listees ; `"*"` admet toute valeur non vide (et pas `false`). LA MEME REGLE que la page applique
+/// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
+/// jugent sur ce que l'ecran montre (#236, « aucun manque ne pointe vers un champ masque »). Une condition absente est
+/// remplie.
+pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
+    let Some(o) = si.as_object() else { return true };
+    o.iter().all(|(k, vals)| {
+        let v = comme_la_page(donnees.get(k));
+        let vals = vals.as_array().map(Vec::as_slice).unwrap_or(&[]);
+        vals.iter().any(|x| x.as_str() == Some(v.as_str())) || (vals.iter().any(|x| x == "*") && !v.is_empty() && v != "false")
+    })
+}
+
+impl Champ {
+    /// Le champ de la fiche entreprise `donnees` est-il A L'ECRAN ? Ce que la page decide pour la fiche entreprise
+    /// (`fiche.js`, `champHtml`) : sa condition `si`, la case des permanents (`si_permanents`) et la liste des
+    /// etablissements (`si_etablissements`).
+    pub fn montre(&self, donnees: &Value, permanents: bool, etablissements: bool) -> bool {
+        self.ecran
+            && !self.calcule()
+            && condition_remplie(&self.si, donnees)
+            && !(self.si_permanents && !permanents)
+            && !(self.si_etablissements && !etablissements)
+    }
+
+    /// Le champ est-il EXIGE de la compagnie `donnees` ? Sa condition `exige_si` de `champs-base.json`, la seule : la
+    /// fiche (« Pour demarrer », `demarrage::manques`) et la declaration qui le lit (la DSN, pour la licence) la lisent
+    /// toutes deux. Un champ sans `exige_si` n'est exige de personne par cette voie. Un champ exige est toujours montre
+    /// (`tests/routes/demarrage.rs` le verifie sur toutes les conventions).
+    pub fn exige(&self, donnees: &Value) -> bool {
+        !self.exige_si.is_null() && condition_remplie(&self.exige_si, donnees) && condition_remplie(&self.si, donnees)
+    }
+}
+
+/// Le champ `cle` de la fiche `nom`, s'il existe.
+pub fn champ(nom: &str, cle: &str) -> R<Option<Champ>> {
+    Ok(fiche(nom)?.into_iter().find(|c| c.cle == cle))
+}
+
 pub fn description(nom: &str) -> R<Value> {
     Ok(Value::Array(fiche(nom)?.iter().map(Champ::description).collect()))
 }
