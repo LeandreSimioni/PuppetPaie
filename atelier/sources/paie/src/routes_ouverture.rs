@@ -586,8 +586,8 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
     Ok(out)
 }
 
-/// `operations_declarations.fichiers_deposables(ctx, mois)["dsn"][0]` : `(nom,
-/// chemin)` de la DSN la plus recemment ecrite du dossier du mois.
+/// `fichiers_deposables(ctx, mois)["dsn"]` : `(nom,
+/// chemin)` de la DSN mensuelle du dossier du mois, dans l'ordre de `routes_mois::ordre_de_depot`.
 fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
     let dossier = st.racine().join("sorties").join(mois);
     if !dossier.is_dir() {
@@ -600,7 +600,7 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
         // le meme dossier, devenait « la DSN a deposer » du rappel.
         .filter(|(_, c)| std::fs::read(c).map(|o| !crate::depot::lire(&o).est_signalement()).unwrap_or(false))
         .collect();
-    fichiers.sort_by(|a, b| mtime(&b.1).partial_cmp(&mtime(&a.1)).unwrap_or(std::cmp::Ordering::Equal));
+    fichiers.sort_by_cached_key(|(nom, c)| crate::routes_mois::ordre_de_depot(nom, c));
     fichiers.into_iter().next().map(|(nom, c)| (nom, c.to_string_lossy().into_owned()))
 }
 

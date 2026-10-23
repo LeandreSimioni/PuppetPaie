@@ -228,6 +228,25 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
 }
 
 /// `Path.suffix`.
+/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers-deposables`), le meme partout (#236) : plus jamais la date de
+/// modification du fichier, que deux machines -- ou deux rejeux -- ne donnent pas pareille.
+/// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
+///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent ; une
+///   mensuelle reecrite (annule et remplace) garde son nom. PUIS LES SIGNALEMENTS (arret, fin de contrat, amorcage...),
+///   dans l'ordre de leur numero d'ordre (S20.G00.05.004) : unique et jamais remis a zero, il dit l'ordre ou le moteur les
+///   a produits (`ordre_signalements`, cahier technique DSN 2026.1 p. 136), et chacun part a son tour.
+/// - Les DPAE : la plus recemment produite d'abord, lue dans son nom (`DPAE_<Mois>_<AAAAMMJJ-HHMM>.txt` apres
+///   `DPAE_<Mois>.txt` : l'ordre inverse des noms).
+pub(crate) fn ordre_de_depot(nom: &str, chemin: &Path) -> (u8, i64, std::cmp::Reverse<String>, String) {
+    if suffixe(nom).to_lowercase() == ".dsn" {
+        let apercu = std::fs::read(chemin).map(|o| crate::depot::lire(&o)).ok();
+        let signalement = apercu.as_ref().is_some_and(|a| a.est_signalement());
+        let ordre = apercu.as_ref().filter(|_| signalement).and_then(|a| a.champ("ordre").trim().parse::<i64>().ok()).unwrap_or(0);
+        return (u8::from(signalement), ordre, std::cmp::Reverse(String::new()), nom.to_string());
+    }
+    (0, 0, std::cmp::Reverse(nom.to_string()), String::new())
+}
+
 fn suffixe(nom: &str) -> &str {
     match nom.rfind('.') {
         Some(i) if i > 0 && i + 1 < nom.len() => &nom[i..],
@@ -611,6 +630,20 @@ impl<'a> Moteur<'a> {
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
+            // CE QUE CE SALARIE RECOIT POUR CETTE PAIE (#236) : le bulletin s'il y a une paie, le certificat Conges Spectacles
+            // du contrat d'usage qui finit (`routes_dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
+            // (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
+            let mut pieces: Vec<&str> = Vec::new();
+            if !p.engagement.sans_paie() {
+                pieces.push("bulletin");
+            }
+            if !nat.mensuelle() && dernier_mois && crate::caisse_conges::de_la_paie(p).map_err(plain)? {
+                pieces.push("certificat_cs");
+            }
+            if crate::aer::due(&p.engagement).map_err(plain)? {
+                pieces.push("aer");
+            }
+            ligne.insert("pieces".into(), json!(pieces));
             let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
             // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : la DPAE de l'ancienne date vaut-elle
             // (`routes_regularisation::dpae_d_une_date_changee`) ?
@@ -699,8 +732,10 @@ impl<'a> Moteur<'a> {
                     tous.push((e.file_name().to_string_lossy().into_owned(), chemin, crate::paris::mtime(&m), m.len()));
                 }
             }
+            // L'ORDRE NE DEPEND PAS DE L'HEURE D'UN FICHIER (#236 : deux rejeux, deux machines, le meme ordre) : il se lit
+            // dans ce que le moteur sait de chacun (`ordre_de_depot`).
             let ranger = |mut v: Vec<&(String, PathBuf, f64, u64)>| -> Value {
-                v.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+                v.sort_by_cached_key(|f| ordre_de_depot(&f.0, &f.1));
                 Value::Array(
                     v.into_iter()
                         .map(|(nom, chemin, t, octets)| {
@@ -1123,6 +1158,18 @@ impl<'a> Moteur<'a> {
             json!({"couleur": "", "phrase": format!(
                 "Documents pas encore envoyés — {} salarié{}", salaries.len(), plur(salaries.len(), "", "s"))})
         };
+        // CE QUI PART CE MOIS-CI, NOMME PAR LE MOTEUR (#236) : les pieces des paies du mois (`pieces`), dans l'ordre de
+        // l'envoi, et seulement celles qui existent pour ce mois.
+        let mut documents = documents;
+        let noms_pieces = [("bulletin", "bulletin"), ("certificat_cs", "certificat Congés Spectacles"), ("aer", "AER")];
+        let presentes: Vec<&str> = noms_pieces
+            .iter()
+            .filter(|(c, _)| paies.iter().any(|p| p["pieces"].as_array().is_some_and(|a| a.iter().any(|x| x == c))))
+            .map(|(_, n)| *n)
+            .collect();
+        if let Some(o) = documents.as_object_mut().filter(|_| !presentes.is_empty()) {
+            o.insert("detail".into(), json!(presentes.join(", ")));
+        }
         out.insert(DOCUMENTS.into(), documents);
 
         // --- DSN : le mois entier.

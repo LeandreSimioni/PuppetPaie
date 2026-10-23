@@ -9,9 +9,11 @@
 //! livre ne le fait) :
 //! - LE BANC D'ESSAI (`paie-atelier interface --jour J`, `scenario::banc`) : le temps COULE depuis le jour J a 9 h (Paris), au
 //!   pas de la montre ; « avancer au jour J' » le repose. Pendant chaque route servie, il est FIGE a l'instant ou elle a
-//!   commence (`figer`) : la route lit une seule heure du debut a la fin, comme au rejeu.
+//!   commence (`figer`) : la route lit une seule heure du debut a la fin, comme au rejeu. Les aleas y suivent la meme suite
+//!   fixe qu'au rejeu (le banc n'est jamais un poste) : `scenario::verifier` compare la compagnie du banc a son rejeu.
 //! - LE REJEU d'un scenario (`scenario::rejouer`) : chaque geste rejoue a l'instant ou il a ete enregistre, fige ; et les
-//!   aleas (`aleas`) deviennent une suite fixe, tiree d'un compteur : deux rejeux ecrivent les memes octets.
+//!   aleas (`aleas`) deviennent une suite fixe, tiree de l'instant du geste et d'un compteur remis a zero a chaque geste :
+//!   deux rejeux ecrivent les memes octets, et le banc ecrit ceux de son rejeu.
 //!
 //! Ce qui MESURE une duree (une attente, l'age d'un verrou, la veille qui repasse, les caches tenus par la date d'un
 //! fichier) garde la montre de la machine : ce n'est pas une heure qu'on ecrit.
@@ -71,7 +73,14 @@ pub fn couler_depuis(instant: f64) {
 pub fn figer(instant: f64) {
     let mut e = etat();
     match e.as_mut() {
-        Some(s) => s.fige = Some(instant),
+        Some(s) => {
+            s.fige = Some(instant);
+            // LES ALEAS DE CHAQUE GESTE repartent de zero a son instant : un geste tire la meme suite au banc et au rejeu,
+            // quelles que soient les lectures (que le rejeu ecarte) tirees avant lui.
+            if s.tirages.is_some() {
+                s.tirages = Some(0);
+            }
+        }
         None => *e = Some(Simule { coule: None, fige: Some(instant), tirages: None }),
     }
 }
@@ -124,22 +133,22 @@ pub fn instant_de(jour: Jour, heure: i64) -> f64 {
 /// systeme, ou, au rejeu, la suite fixe (SHA-256 du rang du tirage). Jamais pour un secret : le coffre, la cle d'une
 /// mise a jour, l'autorisation Google tirent les leurs du systeme, toujours.
 pub fn aleas(o: &mut [u8]) -> Result<(), String> {
-    let rang = {
+    let tirage = {
         let mut e = etat();
-        match e.as_mut().and_then(|s| s.tirages.as_mut()) {
-            Some(n) => {
+        match e.as_mut() {
+            Some(Simule { tirages: Some(n), fige, .. }) => {
                 *n += 1;
-                Some(*n)
+                Some((*n, fige.map_or(0, f64::to_bits)))
             }
-            None => None,
+            _ => None,
         }
     };
-    let Some(rang) = rang else {
+    let Some((rang, graine)) = tirage else {
         return getrandom::fill(o).map_err(|e| e.to_string());
     };
     let mut bloc = 0u64;
     for morceau in o.chunks_mut(32) {
-        let h = Sha256::digest(format!("puppetpaie-rejeu-{}-{}", rang, bloc).as_bytes());
+        let h = Sha256::digest(format!("puppetpaie-rejeu-{}-{}-{}", graine, rang, bloc).as_bytes());
         morceau.copy_from_slice(&h[..morceau.len()]);
         bloc += 1;
     }

@@ -362,7 +362,9 @@ fn noter(
     detail: &Value,
 ) -> R<Value> {
     let fichier = fichier.to_string_lossy().into_owned();
-    let trace = trace.map(|t| t.to_string_lossy().into_owned());
+    // LA TRACE, RELATIVE A LA COMPAGNIE (#236 : une compagnie change de dossier -- gardee de `fictives/` a `compagnies/`
+    // --, et un chemin absolu ne mene plus nulle part) ; `journal::trace_de` la relit, et lit tel quel un absolu d'avant.
+    let trace = trace.map(|t| t.strip_prefix(&ctx.racine).unwrap_or(t).to_string_lossy().replace('\\', "/"));
     let n = crate::journal::Note {
         quoi,
         mois: Some(mois),

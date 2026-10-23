@@ -18,7 +18,7 @@
 //! RIEN N'Y EST ECARTE POUR CAUSE DE HASARD : le rejeu est deterministe (le temps du moteur est fige a l'instant de
 //! chaque geste et les aleas suivent une suite fixe, `paie/src/temps.rs`), deux rejeux ecrivent les memes octets. Ce
 //! qui est ecarte, et pourquoi :
-//! - le chemin du dossier de test (un journal note des chemins absolus) : remplace par `<racine>` ;
+//! - le chemin du dossier de test, s'il apparait (un texte qui cite un chemin) : remplace par `<racine>` ;
 //! - les caches que la fenetre refait (`*.etat.json`, `*.calcul.json`) et les fichiers caches (`.ouverture.json`, la
 //!   trace du dernier passage de la veille, `.origine/`) : ce ne sont pas des sorties ;
 //! - les copies d'avant une ecriture (`avant/`) : seulement leur nom.
@@ -39,8 +39,14 @@ pub fn scenario(nom: &str) -> PathBuf {
 /// Rejoue le scenario `nom` dans `dossier` (une installation neuve) ; rend le compte rendu et la racine de la compagnie
 /// qu'il a ajoutee (la premiere). Un ecart avec l'enregistrement fait echouer le test.
 pub fn rejouer(nom: &str, dossier: &Path) -> (paie::scenario::Rejeu, PathBuf) {
+    rejouer_dossier(&scenario(nom), dossier)
+}
+
+/// `rejouer`, pour un scenario pris ailleurs que dans `tests/donnees/scenarios/` (un scenario elague par le test).
+pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (paie::scenario::Rejeu, PathBuf) {
     let _un = UN_A_LA_FOIS.lock().unwrap_or_else(|p| p.into_inner());
-    let r = paie::scenario::rejouer(&scenario(nom), &dossier.join("installation"), &paie::scenario::OptionsRejeu::default())
+    let nom = sc.display();
+    let r = paie::scenario::rejouer(sc, &dossier.join("installation"), &paie::scenario::OptionsRejeu::default())
         .unwrap_or_else(|m| panic!("le scenario {} ne se rejoue pas : {}", nom, m));
     assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
     let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));

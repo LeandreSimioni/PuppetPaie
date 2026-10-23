@@ -34,6 +34,23 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     for doc in ["sorties/2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf", "sorties/2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf"] {
         assert!(f.get(doc).is_some(), "{} manque", doc);
     }
+    // Ajoutee le 02/11/2026, la compagnie ne coche aucune echeance de 2026 fermee avant (#236, ticket 8 du banc).
+    let cochees = f["config/echeancier.json"]["fait"].as_object().map(|m| m.keys().cloned().collect::<Vec<_>>()).unwrap_or_default();
+    assert!(cochees.is_empty(), "echeances cochees : {:?}", cochees);
+    // L'AER CINEMA SPECTACLE (`aer::due`, `aer_fictive`) : la DSN mensuelle de novembre, qui porte la fin du contrat de la
+    // comedienne, recoit son retour 46 et l'AER signee part avec ses documents ; le signalement d'amorcage (nature 08) n'en
+    // recoit aucun -- France Travail n'edite l'AER que depuis la mensuelle.
+    let natures = |fichier: &str| -> Vec<Value> {
+        depots
+            .iter()
+            .filter(|l| l["quoi"] == json!("dsn") && l["mode"] == json!("reel") && l["fichier"] == json!(fichier))
+            .flat_map(|l| l["retours"].as_array().cloned().unwrap_or_default())
+            .map(|r| r["nature"].clone())
+            .collect()
+    };
+    assert!(natures("DSN_Novembre2026.dsn").contains(&json!("46")), "{:?}", natures("DSN_Novembre2026.dsn"));
+    assert!(!natures("Amorcage01_FULLER_20261120.dsn").contains(&json!("46")), "{:?}", natures("Amorcage01_FULLER_20261120.dsn"));
+    assert!(f.get("sorties/2026-11/envoi/AER_FULLER_Novembre2026.pdf").is_some(), "l'AER de novembre manque");
     // Deux cachets de 150 € : 300 € de brut.
     let paie = &releve["paies"]["2026-11"]["paies"][0];
     assert_eq!(paie["brut"], json!("300"), "{}", paie);
@@ -43,4 +60,32 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     let jour = paie::paris::iso_secondes(r2.fin.unwrap())[..10].to_string();
     let second: Value = outils::rejeu::sorties(&racine2, &jour);
     assert!(second == releve, "deux rejeux du meme scenario ne rendent pas les memes sorties");
+}
+
+/// LE SCENARIO FIGE SANS SES LECTURES (`scenario::elaguer`, phase 4) : les routes qui n'ont rien ecrit s'otent, et le rejeu
+/// rend exactement le meme releve que le scenario entier.
+#[test]
+fn un_scenario_elague_se_rejoue_a_l_identique() {
+    let d = outils::dossier_de_test("rejeu", "elague");
+    let (gardes, otees) = paie::scenario::elaguer(&outils::rejeu::scenario("treteaux-du-banc"), &d.join("scenario")).unwrap();
+    assert!(otees > 0 && gardes > 0, "{} gardes, {} otees", gardes, otees);
+    let texte = std::fs::read_to_string(d.join("scenario").join(paie::scenario::GESTES)).unwrap();
+    assert!(texte.lines().all(|l| !l.contains("\"ecrit\":false")), "une lecture est restee");
+    let (r, racine) = outils::rejeu::rejouer_dossier(&d.join("scenario"), &d.join("rejeu"));
+    let jour = paie::paris::iso_secondes(r.fin.unwrap())[..10].to_string();
+    assert!(outils::rejeu::sorties(&racine, &jour) == outils::lire_oracle("scenarios/treteaux-du-banc/sorties.json"));
+}
+
+/// #236, ticket 9 du banc : la demo Les Faisceaux telle qu'elle etait ecrite, sans la civilite du contact DSN. Le mois
+/// de janvier ne s'ecrit pas (sa DSN est refusee) ; l'horloge n'envoie donc pas ses documents aux salaries -- ils suivent
+/// la DSN du mois, jamais avant.
+#[test]
+fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
+    let d = outils::dossier_de_test("rejeu", "faisceaux-sans-civilite");
+    let (r, racine) = outils::rejeu::rejouer("faisceaux-sans-civilite", &d);
+    assert!(r.horloge.iter().any(|p| p.contains("Janvier 2026 écrit") && p.contains("non joué")), "{:?}", r.horloge);
+    let depots: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("journal/depots.json")).unwrap()).unwrap();
+    let documents = depots.as_array().unwrap().iter().filter(|l| l["quoi"] == json!("documents")).count();
+    assert_eq!(documents, 0, "des documents sont partis pour un mois sans DSN : {}", depots);
+    assert!(!r.horloge.iter().any(|p| p.contains("documents")), "{:?}", r.horloge);
 }

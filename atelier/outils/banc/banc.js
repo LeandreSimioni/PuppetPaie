@@ -9,6 +9,7 @@
  *   node banc.js etat     <banc>
  *   node banc.js capture  <banc> <fichier.png>
  *   node banc.js arreter  <banc>
+ *   node banc.js verifier <banc>     (le rejeu refait-il la compagnie du banc ?)
  *
  * Module, pour un script Playwright :
  *   const banc = require("<dépôt>/atelier/outils/banc/banc.js");
@@ -193,7 +194,23 @@ function arreter(banc) {
   fs.rmSync(fichierEtat(path.resolve(banc)), { force: true });
 }
 
-module.exports = { lancer, jour, simuler, etat, ouvrir, capture, arreter, appeler, lireEtat };
+/* VÉRIFIER UN BANC, à la fin d'une partie : son scénario se rejoue dans `<banc>/verification/` et la compagnie qui en sort
+ * se compare, fichier par fichier, à celle du banc (`paie-atelier scenario verifier`, `scenario::verifier`). Le banc tire
+ * les mêmes aléas que le rejeu : une différence est un geste qui a écrit sans être enregistré, et elle nomme le fichier.
+ * Rend { ok, sortie }. */
+function verifier(banc, { paie } = {}) {
+  banc = path.resolve(banc);
+  const binaire = paie || (() => { try { return lireEtat(banc).binaire; } catch (e) { return null; } })() || PAIE_PAR_DEFAUT.find((p) => fs.existsSync(p));
+  if (!binaire) throw new Error("paie-atelier introuvable : --paie <chemin>, ou PUPPETPAIE_ATELIER.");
+  const env = { ...process.env, PUPPETPAIE_ESSAIS_HORS_RESEAU: "1" };
+  for (const v of RETIREES) delete env[v];
+  const r = require("child_process").spawnSync(binaire,
+    ["scenario", "verifier", path.join(banc, "scenario"), path.join(banc, "installation"), path.join(banc, "verification")],
+    { env, encoding: "utf8" });
+  return { ok: r.status === 0, sortie: (r.stdout || "") + (r.stderr || "") };
+}
+
+module.exports = { verifier, lancer, jour, simuler, etat, ouvrir, capture, arreter, appeler, lireEtat };
 
 /* ------------------------------------------------------------------ la ligne de commande */
 
@@ -209,7 +226,7 @@ async function principal() {
   const args = process.argv.slice(2);
   const commande = args.shift();
   const banc = args.shift();
-  if (!commande || !banc) mourir("node banc.js lancer|jour|simuler|etat|capture|arreter <banc> ... (voir LISEZ-MOI.md)");
+  if (!commande || !banc) mourir("node banc.js lancer|jour|simuler|etat|capture|arreter|verifier <banc> ... (voir LISEZ-MOI.md)");
   switch (commande) {
     case "lancer": {
       const r = await lancer(banc, { jour: option(args, "--jour"), paie: option(args, "--paie"), depot: option(args, "--depot") });
@@ -235,6 +252,12 @@ async function principal() {
       break;
     }
     case "arreter": arreter(banc); dire("Banc arrêté."); break;
+    case "verifier": {
+      const r = verifier(banc, { paie: option(args, "--paie") });
+      dire(r.sortie.trim());
+      if (!r.ok) process.exit(1);
+      break;
+    }
     default: mourir(`Commande inconnue : ${commande}`);
   }
 }
