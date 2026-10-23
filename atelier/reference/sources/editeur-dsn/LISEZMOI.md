@@ -54,6 +54,10 @@ d'envoyer le logiciel aux compagnies amies.** Prérequis : la régularisation
 après échéance (`journal/REGULARISATION-APRES-ECHEANCE.md`), et une page
 « ce que le logiciel ne couvre pas » lisible par une entreprise.
 
+**Décision de Léandre, 23/10/2026 : signer fin octobre ou début novembre 2026**, et non plus en décembre. Les prérequis
+sont devenus des tickets du privé : #250 (régularisation sur exercice antérieur), #251 (export « changer de logiciel »),
+#252 (la page « ce que le logiciel ne couvre pas »). La charte, relue le 23/10/2026, est inchangée (même SHA-256).
+
 ## Ce que dit le guide Urssaf sur la régularisation (lu le 17/09/2026)
 
 Chapitres 3 (régularisation), 5 (néant), 6 (paiement), 7 (entité
