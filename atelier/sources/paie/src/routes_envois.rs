@@ -396,7 +396,7 @@ pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: 
             expediteur, signataire
         ));
     }
-    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, client, preparation_ms: debut.elapsed().as_millis() })
+    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, client, preparation_ms: crate::temps::duree(debut).as_millis() })
 }
 
 /// Ce qui suit la preparation : la PREUVE (le mot de passe du logiciel), l'envoi, le journal. `qui` : la ligne du journal.
@@ -406,7 +406,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
     // LA DUREE DE CHAQUE ETAPE (08/10/2026 : un envoi de deux courriels a pris quatre minutes, sans qu'on sache ou).
     let t_preuve = std::time::Instant::now();
     verifier_preuve(ctx, Some(preuve), mois, "envoi des documents du mois aux salaries", &a_qui)?;
-    let preuve_ms = t_preuve.elapsed().as_millis();
+    let preuve_ms = crate::temps::duree(t_preuve).as_millis();
     let t_envoi = std::time::Instant::now();
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client.as_mut(), None, None) {
         Ok(p) => p,
@@ -415,7 +415,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
             return Err(echec_d_envoi(e.message));
         }
     };
-    let envoi_ms = t_envoi.elapsed().as_millis();
+    let envoi_ms = crate::temps::duree(t_envoi).as_millis();
     let detail = json!({
         // Ce que chaque salarie a recu : ses pieces, l'empreinte de sa paie et son resume (ticket #240 : ce qui dira, si sa
         // paie change, que ses documents sont a renvoyer, et ce qui a change), et si c'etait un renvoi.

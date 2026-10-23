@@ -65,7 +65,7 @@ fn booleen(charge: &Value, cle: &str, defaut: bool) -> bool {
 
 /// `datetime.now().isoformat(timespec="seconds")`, a l'heure de Paris.
 fn maintenant() -> String {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let t = crate::temps::secondes();
     crate::paris::iso_secondes(t)
 }
 

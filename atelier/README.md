@@ -1763,6 +1763,30 @@ Ses dépôts de test partent sur net-entreprises et à l'Urssaf ; tout dépôt r
 y est refusé. Les clés, la suite des commandes et ce qui reste à confirmer :
 `docs/COMPAGNIE-D-ESSAI.md`.
 
+### Le banc d'essai daté, le scénario et son rejeu (#236)
+
+Pour faire **vivre** une compagnie fictive dans l'interface, comme un testeur,
+mois après mois : `node outils/banc/banc.js lancer <banc> --jour AAAA-MM-JJ`
+pose une installation bridée neuve hors du dépôt et y lance la fenêtre de
+l'atelier (`paie-atelier interface --enregistrer … --jour …`) ; on joue dans la
+page avec Playwright (Node), on crée sa compagnie par « + », `simuler` en fait
+une fictive aux envois simulés, `jour <banc> AAAA-MM-JJ` avance le calendrier
+et l'horloge de la fictive joue ce qui était dû. La notice entière, celle
+qu'un agent suit : `outils/banc/LISEZ-MOI.md` ; le modèle d'une partie :
+`outils/banc/exemple.js`.
+
+Pendant ce temps, **l'enregistreur** (`paie/src/scenario.rs`, dans le seul
+binaire de l'atelier) consigne chaque route que la fenêtre sert, avec sa
+charge, son instant et ce qu'on avait déposé (`gestes.jsonl`, `pieces/`).
+Le scénario se **rejoue** sans navigateur, depuis un dossier vide :
+`cargo run --profile essais --example vie_fictive -- <scénario> <dossier neuf>`
+(`outils/demos/les-faisceaux/` en est un, écrit à la main). Au rejeu, le temps du
+moteur est figé à l'instant de chaque geste et les aléas suivent une suite fixe
+(`paie/src/temps.rs`) : deux rejeux écrivent les mêmes octets. Un scénario figé
+dans `paie/tests/donnees/scenarios/<nom>/` devient un test (`paie/tests/rejeu.rs`) :
+il compare les paies, les DSN, la DPAE, le texte des bulletins et des
+certificats CS et les journaux à un oracle (`PUPPETPAIE_REECRIRE_ORACLES=1`).
+
 ## Ce que le moteur ne fait pas
 
 - **Régularisations annuelles** (bloc DSN `S21.G00.82`, vu en avril 2026).
@@ -1818,7 +1842,8 @@ atelier/                  ← ce dossier : tout le reste
   docs/                   ARCHITECTURE.md, RUBRIQUES.md, PORTAGE-RUST.md,
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
-  outils/                 les outils d'atelier : `demos/` (une description de
+  outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
+                          Node : LISEZ-MOI.md), `demos/` (un scénario de
                           démonstration). Plus un fichier Python depuis le
                           15/10/2026 : le garde avant commit, le guet, les tables
                           Unicode, les relevés des référentiels, des codes et des

@@ -315,7 +315,7 @@ fn modifier<T>(racine: &Path, f: impl FnOnce(&mut Vec<Value>) -> R<(T, bool)>) -
 /// Un identifiant de message, propre au poste : l'heure et six octets tires au hasard. Il nomme son fichier d'attente.
 fn nouvel_id() -> R<String> {
     let mut alea = [0u8; 6];
-    getrandom::fill(&mut alea).map_err(|e| erreur("OSError", e.to_string()))?;
+    crate::temps::aleas(&mut alea).map_err(|e| erreur("OSError", e))?;
     let heure: String = incidents::maintenant().chars().filter(char::is_ascii_alphanumeric).collect();
     Ok(format!("{}-{}", heure, alea.iter().map(|o| format!("{:02x}", o)).collect::<String>()))
 }
