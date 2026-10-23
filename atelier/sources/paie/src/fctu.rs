@@ -591,7 +591,7 @@ ou un annule."
     f.add_v("S20.G00.07.001", req(decl, "nom_prenom")?)?;
     f.add_v("S20.G00.07.002", req(decl, "tel")?)?;
     f.add_v("S20.G00.07.003", req(decl, "email")?)?;
-    f.add_v("S20.G00.07.004", req(decl, "qualite")?)?;
+    f.add_v("S20.G00.07.004", &crate::dsn::type_du_contact(decl))?;
 
     // ------------------------------------------------------------ S21 entreprise
     f.add_v("S21.G00.06.001", ent("siren")?)?;

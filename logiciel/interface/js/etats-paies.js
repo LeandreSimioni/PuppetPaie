@@ -785,7 +785,7 @@ async function boiteDpae(mois) {
         return `<label class="choix ${embauche(l) ? "" : "grise"}">
           <input type="checkbox" class="d-qui" data-i="${i}" ${aFaire(l) ? "checked" : ""}
                  ${embauche(l) ? "" : "disabled"}>
-          <span><b>${echapper(l.nom)}</b> — ${echapper(l.spectacle)}, embauche le
+          <span><b>${echapper(l.nom)}</b> — ${l.spectacle ? `${echapper(l.spectacle)}, ` : ""}embauche le
             ${echapper(jjmmaaaa(l.debut))}${l.numero
               ? ` <span class="discret">(contrat n° ${echapper(l.numero)})</span>` : ""}
             ${etat}

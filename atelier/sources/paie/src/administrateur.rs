@@ -436,7 +436,7 @@ fn etape_du_fichier(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value
 fn marche_du_fichier(etape: &str) -> &'static str {
     match etape {
         "a_tester" => "Écrite : prête pour le dépôt de test.",
-        "en_test" => "Partie en test : le compte rendu arrive, le dépôt réel s'ouvrira ensuite.",
+        "en_test" => "Partie en test, compte rendu attendu : le dépôt réel se fait une fois le test revenu conforme.",
         "testee" => "Testée, conforme : prête à envoyer pour de vrai.",
         "test_refuse" => "Le test a été refusé : à corriger dans la compagnie, puis à retester.",
         "paie_changee" => "La paie a changé depuis l'écriture : réécrire le mois, le tester, puis l'envoyer.",
@@ -777,7 +777,7 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
                 sortie["phrase"] = json!(if reel {
                     "Partie pour de vrai : son bilan arrive avec les retours."
                 } else {
-                    "Partie en test : son compte rendu arrive, le dépôt réel s'ouvrira ensuite."
+                    "Partie en test, compte rendu attendu : le dépôt réel se fait une fois le test revenu conforme."
                 });
             }
             Ok(v) => {

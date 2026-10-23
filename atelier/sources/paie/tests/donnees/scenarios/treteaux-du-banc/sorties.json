@@ -1239,8 +1239,17 @@
       }
     ],
     "journal/dsn-ecrites.json": {
+      "2026-11/DPAE_Novembre2026.txt": {
+        "quand": "2026-11-20T09:00:00"
+      },
       "2026-11/DSN_Novembre2026.dsn": {
         "empreinte_saisie": "c639e2f1e7b4503a",
+        "quand": "2026-11-20T09:00:00"
+      },
+      "2026-11/DPAE_Novembre2026_20261120-0900.txt": {
+        "quand": "2026-11-20T09:00:00"
+      },
+      "2026-11/Amorcage01_FULLER_20261120.dsn": {
         "quand": "2026-11-20T09:00:00"
       }
     },

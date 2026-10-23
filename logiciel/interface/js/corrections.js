@@ -293,7 +293,7 @@ function vueApercuCorrection(a) {
  *  retard, et en le sachant. Le moteur exige alors qu'on le redise
  *  (`forcer_delai`) ; ici, c'est cette boîte qui le fait dire. Elle ne
  *  rouvre que le mois affiché, et seulement jusqu'au prochain chargement. */
-function boiteRouvrirMois(mois, limite) {
+function boiteRouvrirMois(mois, limite, ensuite) {
   ouvrirBoite(`
     <h3>Rouvrir ${echapper(moisEnClair(mois))}</h3>
     <div class="encart attention">
@@ -315,6 +315,9 @@ function boiteRouvrirMois(mois, limite) {
     fermerBoite();
     if (MOIS_AFFICHE === mois) majFermeture(mois, true);
     dire("Mois rouvert — ce qui part d'ici part en retard.");
+    // Venu de « Fermer le mois » (le rappel de la DSN en retard, #236) : on y
+    // retourne, le mois rouvert.
+    if (ensuite) ensuite();
   };
 }
 

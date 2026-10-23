@@ -510,7 +510,8 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     let note = charge.get("note").unwrap_or(&Value::Null);
     let e = ecrire_fiche(ctx, nom, cle, donnees, forcer, depuis, note)?;
     let fiche = routes_accueil::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
-    Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?}))
+    // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
+    Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
 }
 
 /// `operations_fiches.enregistrer_fiche` : verifie, date ce qui change, sauvegarde l'ancien fichier et
@@ -749,7 +750,8 @@ fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Valu
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`routes_regularisation::modification_de_la_paie`).
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let dsn = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
-    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn}))
+    // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
+    Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
 }
 
 /// `operations_paies.enregistrer_saisie` : verifie la saisie en la calculant, puis l'ecrit. `fusionner` a faux

@@ -869,7 +869,11 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .collect::<R<Vec<Value>>>()?;
 
     // Le catalogue qui paie, deja dans l'ordre ou le proposer.
-    let rubriques: Vec<Value> = catalogue::catalogue(&ctx.racine).map_err(plain)?.iter().map(rubrique_json).collect();
+    let cat = catalogue::catalogue(&ctx.racine).map_err(plain)?;
+    let rubriques: Vec<Value> = cat.iter().map(rubrique_json).collect();
+    // La rubrique d'une ligne neuve, par forme de paie : le moteur la choisit (`catalogue::par_defaut`), la page la pose.
+    let par_defaut = |forme: &str| catalogue::par_defaut(&cat, forme).map_or(Value::Null, |r| json!(r.code));
+    let rubrique_par_defaut = json!({"activite": par_defaut("activite"), "mensuelle": par_defaut("mensuelle")});
 
     // LA FIN D'UN CONTRAT, telle qu'elle se saisit. Les types de preavis
     // SAISISSABLES seulement.
@@ -911,6 +915,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         "salaries": salaries,
         "spectacles": spectacles,
         "rubriques": rubriques,
+        "rubrique_par_defaut": rubrique_par_defaut,
         // Le catalogue des metiers, deja dans l'ordre des familles.
         "emplois": metiers(ctx)?,
         "familles_emplois": emplois::familles().map_err(plain)?,

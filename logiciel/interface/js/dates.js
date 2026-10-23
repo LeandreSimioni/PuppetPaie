@@ -17,10 +17,18 @@ const MOIS_COURTS = ["janv.", "févr.", "mars", "avril", "mai", "juin", "juil.",
    du lundi au dimanche. */
 const JOURS_SEMAINE = ["L", "M", "M", "J", "V", "S", "D"];
 
-function moisCourant() {
-  const d = new Date();
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
-}
+/* LE JOUR QU'ON EST, CELUI DU MOTEUR (#236, 23/10/2026). La page préremplissait
+   des dates avec l'horloge du navigateur ; le jour vient du moteur (règle 2) —
+   au banc d'essai, il a son temps simulé. L'ouverture le dit (`aujourdhui`,
+   `etat_garde::FileDesEtats::ouverture`) et chaque ouverture fraîche le
+   repose (`js/demarrage.js`). AAAA-MM-JJ ; vide tant qu'il n'est pas arrivé. */
+let AUJOURDHUI = "";
+
+/** Le jour du moteur, AAAA-MM-JJ. */
+function aujourdhuiIso() { return AUJOURDHUI; }
+/** L'année du moteur (un nombre), ou null avant l'ouverture. */
+function anneeDuJour() { return AUJOURDHUI ? +AUJOURDHUI.slice(0, 4) : null; }
+
 
 const moisEnTexte = (a, m) => `${a}-${String(m).padStart(2, "0")}`;
 function moisLu(v) {

@@ -294,40 +294,59 @@ fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
     Ok(gab)
 }
 
-/// Ce que la DPAE dirait de l'employeur de cette fiche, sans rien ecrire : `Err` avec la phrase du refus (le code du
-/// centre de medecine du travail qui manque, par exemple). La liste « Pour demarrer » s'en sert : la meme regle que le
-/// depot, au meme endroit.
-pub fn employeur_pret(ent: &Value, gabarits: &Path) -> Resultat<()> {
+/// Ce que la DPAE refuserait de l'employeur de cette fiche, sans rien ecrire : `(champ de la fiche, phrase du refus)`,
+/// TOUS d'un coup (un SIRET faux n'empeche pas de dire que le code de medecine du travail manque aussi). La liste « Pour
+/// demarrer » s'en sert, champ par champ : la meme regle que le depot (`employeur`), au meme endroit.
+pub fn employeur_manques(ent: &Value, gabarits: &Path) -> Resultat<Vec<(&'static str, String)>> {
     let chemins = Chemins { defaut: dossier_du_code().join("modeles").join(NOM_GABARIT), poste: gabarits.to_path_buf() };
-    employeur(ent, &gabarit_lu(Some(ent), &chemins)?).map(|_| ())
+    let gabarit = gabarit_lu(Some(ent), &chemins)?;
+    let mut out = Vec::new();
+    if let Err(m) = siret_de(ent) {
+        out.push(("siret", m));
+    }
+    if let Err(m) = medecine_de(ent, &gabarit) {
+        out.push(("medecine_travail", m));
+    }
+    Ok(out)
 }
 
-// -------------------------------------------------------- l'employeur
-
-/// Les zones employeur de la DPAE, lues dans la fiche `ent`.
-///
-/// Le code du centre de medecine du travail (C_MT_DCL, obligatoire hors
-/// travail temporaire) se lit dans `medecine_travail` ; faute de lui, il
-/// n'est repris du gabarit QUE si le gabarit est un enregistrement de la meme
-/// compagnie (meme SIRET) -- jamais celui d'une autre.
-pub fn employeur(ent: &Value, gabarit: &[char]) -> Resultat<Vec<(&'static str, String)>> {
-    let (a, b) = zone_employeur("siret");
+/// Le SIRET de la fiche, 14 chiffres, ou le refus de la DPAE.
+fn siret_de(ent: &Value) -> Resultat<String> {
     let siret = chaine(ent.get("siret"));
     let siret = strip(&siret).to_string();
     if siret.chars().count() != 14 || !tout_chiffres(&siret) {
         return Err(format!("DPAE : le SIRET de la fiche entreprise ({}) ne fait pas 14 chiffres.", repr(&siret)));
     }
+    Ok(siret)
+}
+
+/// Le code du centre de medecine du travail (C_MT_DCL, obligatoire hors travail temporaire) : `medecine_travail` ; faute
+/// de lui, il n'est repris du gabarit QUE si le gabarit est un enregistrement de la meme compagnie (meme SIRET) -- jamais
+/// celui d'une autre.
+fn medecine_de(ent: &Value, gabarit: &[char]) -> Resultat<String> {
     let mt = chaine(ent.get("medecine_travail"));
-    let mut mt = strip(&mt).to_string();
-    if mt.is_empty() {
-        let (ma, mb) = zone_employeur("medecine_travail");
-        let du_gabarit: String = gabarit[a..b].iter().collect();
-        if du_gabarit != siret {
-            return Err("DPAE : la fiche entreprise ne dit pas le code du centre de medecine du travail (`medecine_travail`, C_MT_DCL, obligatoire). Il se lit sur l'adhesion au service de sante au travail ; il ne se devine pas, et celui du gabarit est celui d'une autre compagnie.".to_string());
-        }
-        let du_gabarit: String = gabarit[ma..mb].iter().collect();
-        mt = strip(&du_gabarit).to_string();
+    let mt = strip(&mt).to_string();
+    if !mt.is_empty() {
+        return Ok(mt);
     }
+    let (a, b) = zone_employeur("siret");
+    let du_gabarit: String = gabarit[a..b].iter().collect();
+    let siret = strip(&chaine(ent.get("siret"))).to_string();
+    if du_gabarit != siret || siret.is_empty() {
+        return Err("DPAE : la fiche entreprise ne dit pas le code du centre de medecine du travail (`medecine_travail`, C_MT_DCL, obligatoire). Il se lit sur l'adhesion au service de sante au travail ; il ne se devine pas, et celui du gabarit est celui d'une autre compagnie.".to_string());
+    }
+    let (ma, mb) = zone_employeur("medecine_travail");
+    let du_gabarit: String = gabarit[ma..mb].iter().collect();
+    Ok(strip(&du_gabarit).to_string())
+}
+
+// -------------------------------------------------------- l'employeur
+
+/// Les zones employeur de la DPAE, lues dans la fiche `ent` (le SIRET : `siret_de` ; la medecine du travail :
+/// `medecine_de`).
+pub fn employeur(ent: &Value, gabarit: &[char]) -> Resultat<Vec<(&'static str, String)>> {
+    let siret = siret_de(ent)?;
+    let mt = medecine_de(ent, gabarit)?;
     // `(ent.get("declarant_dsn") or {}).get("tel") or ent.get("tel") or
     // (ent.get("signataire") or {}).get("tel") or ""`
     let tel_de = |k: &str| -> Option<&Value> { ent.get(k).filter(|v| vrai(v)).and_then(|v| v.get("tel")).filter(|v| vrai(v)) };

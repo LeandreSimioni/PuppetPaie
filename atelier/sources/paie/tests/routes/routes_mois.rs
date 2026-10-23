@@ -257,7 +257,8 @@ fn le_chemin_d_un_depot_se_lit_dans_le_bilan() {
 /// L'ORDRE DES FICHIERS DEPOSABLES (#236, `routes_mois::ordre_de_depot`) ne depend plus de la date d'un fichier : les
 /// mensuelles d'abord, par leur nom ; puis les signalements, dans l'ordre de leur numero d'ordre (S20.G00.05.004, cahier
 /// technique DSN 2026.1 p. 136 : unique, jamais remis a zero) ; les DPAE, la plus recente d'abord par son nom. `ecrit`
-/// dit encore l'heure du fichier, a Paris.
+/// dit QUAND LE MOTEUR L'A ECRIT, tel que son journal des ecritures le consigne (`journal/dsn-ecrites.json`), et jamais
+/// la date du fichier : une fictive decompressee chez le visiteur dirait le jour de l'installation (#236).
 #[test]
 fn les_fichiers_deposables_dans_l_ordre_de_ce_qu_ils_declarent() {
     let c = &compagnie("fichiers");
@@ -278,12 +279,13 @@ fn les_fichiers_deposables_dans_l_ordre_de_ce_qu_ils_declarent() {
     poser("DPAE_Aout2026_recapitulatif.txt", "x", 1_784_111_400);
     poser("DPAE_Aout2026.txt.zip", "x", 1_784_111_400);
     poser("Bulletins_Aout2026.pdf", "x", 1_784_111_400);
+    ecrire(c, "journal/dsn-ecrites.json", &json!({format!("{}/DSN_Aout2026.dsn", MOIS): {"quand": "2026-09-01T10:15:42", "empreinte_saisie": null}}));
     let r = rendu(c, "fichiers-deposables", json!({"mois": MOIS}), "2026-10-03");
     let noms = |k: &str| r[k].as_array().unwrap().iter().map(|f| f["nom"].as_str().unwrap().to_string()).collect::<Vec<_>>();
     assert_eq!(noms("dsn"), ["DSN_Aout2026.dsn", "DSN_Aout2026_AR2.dsn", "autre.DSN", "Fin_Y.dsn", "Amorcage01_X.dsn"]);
     assert_eq!(noms("dpae"), ["DPAE_Aout2026_20260815-0900.txt", "DPAE_Aout2026.txt"]);
-    assert_eq!(r["dsn"][0]["ecrit"], "2026-07-15T12:30");
-    assert_eq!(r["dsn"][1]["ecrit"], "2026-01-15T11:30");
+    assert_eq!(r["dsn"][0]["ecrit"], "2026-09-01T10:15", "la date consignee, pas celle du fichier");
+    assert_eq!(r["dsn"][1]["ecrit"], Value::Null, "rien de consigne : rien a dire, meme si le fichier a une date");
     assert_eq!(r["dsn"][1]["octets"], "DSN_Aout2026_AR2.dsn".len());
     assert_eq!(r["dsn"][1]["chemin"], d.join("DSN_Aout2026_AR2.dsn").to_str().unwrap());
     // Un mois sans dossier de sorties : rien.

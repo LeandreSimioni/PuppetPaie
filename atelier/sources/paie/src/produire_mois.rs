@@ -25,7 +25,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
@@ -325,20 +325,67 @@ fn remplacee_versait_pas_de(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Va
 /// `noter_dsn_ecrite` : la paie que ce fichier declare, numeros figes (`journal/dsn-ecrites.json`). L'ecran dira si
 /// elle change avant l'envoi.
 fn noter_dsn_ecrite(m: &Moteur, ctx: &Contexte, mois: &str, fichier: &Path) -> R<()> {
-    let p = ctx.racine.join("journal").join("dsn-ecrites.json");
-    let mut d: Value = if p.exists() {
-        let t = std::fs::read_to_string(&p).map_err(|e| os(&p, e))?;
-        serde_json::from_str(&t).ok().filter(Value::is_object).unwrap_or_else(|| json!({}))
-    } else {
-        json!({})
-    };
     let nom = fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let empreinte = m.empreinte_saisie(mois)?;
-    d[format!("{}/{}", mois, nom)] = json!({"empreinte_saisie": empreinte, "quand": crate::incidents::maintenant()});
+    noter_piece_ecrite(&ctx.racine, &format!("{}/{}", mois, nom), Some(json!(empreinte)))
+}
+
+/// LE JOURNAL DES PIECES ECRITES (`journal/dsn-ecrites.json`, #236) : chaque piece que le moteur ecrit -- une DSN, une
+/// DPAE, un export compta -- y note QUAND, au temps du moteur (`temps.rs`, par `incidents::maintenant`). C'est ce que
+/// l'ecran dit (« ecrit le ... ») : la date d'un fichier n'est pas celle de son ecriture (une fictive livree est
+/// decompressee chez le visiteur, un banc simule le temps). `cle` : `<mois>/<fichier>`, ou `exercices/<fichier>` ;
+/// `empreinte_saisie` : la paie que la piece declare, pour une DSN seulement.
+pub(crate) fn noter_piece_ecrite(racine: &Path, cle: &str, empreinte_saisie: Option<Value>) -> R<()> {
+    let p = racine.join("journal").join("dsn-ecrites.json");
+    let mut d = Value::Object(journal_des_ecritures(racine));
+    let mut note = json!({"quand": crate::incidents::maintenant()});
+    if let Some(e) = empreinte_saisie {
+        note["empreinte_saisie"] = e;
+    }
+    d[cle] = note;
     if let Some(parent) = p.parent() {
         std::fs::create_dir_all(parent).map_err(|e| os(parent, e))?;
     }
     ecrire_json(&p, &d, 2).map_err(|m| erreur("OSError", m))
+}
+
+
+/// La cle d'une piece au journal des ecritures : `<son dossier>/<son nom>` (`2026-11/DPAE_Novembre2026.txt`,
+/// `exercices/Compta_2026.csv`).
+pub(crate) fn cle_de_piece(fichier: &Path) -> String {
+    let nom = |p: Option<&Path>| p.and_then(Path::file_name).map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    format!("{}/{}", nom(fichier.parent()), nom(Some(fichier)))
+}
+
+/// Le journal des pieces ecrites (`journal/dsn-ecrites.json`, `noter_dsn_ecrite`) : `{"<mois>/<fichier>": {"quand",
+/// "empreinte_saisie"}}`. Un journal absent ou illisible est vide.
+pub(crate) fn journal_des_ecritures(racine: &Path) -> Map<String, Value> {
+    std::fs::read(racine.join("journal").join("dsn-ecrites.json"))
+        .ok()
+        .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+        .and_then(|v| v.as_object().cloned())
+        .unwrap_or_default()
+}
+
+/// LE MOIS EST-IL ECRIT ? (#236) Un seul critere, ce que le moteur a consigne en le produisant : la DSN mensuelle du
+/// mois notee au journal des ecritures. Ni une DPAE ni un contrat dans `sorties/<mois>/` ne l'ecrivent : l'horloge
+/// d'une fictive tenait le mois pour ecrit des que sa DPAE y etait, et ne l'ecrivait jamais.
+pub(crate) fn mois_ecrit(racine: &Path, mois: &str) -> bool {
+    let prefixe = format!("{}/", mois);
+    journal_des_ecritures(racine)
+        .keys()
+        .any(|k| k.strip_prefix(&prefixe).is_some_and(crate::routes_mois::est_une_dsn_mensuelle))
+}
+
+/// QUAND LE MOTEUR A ECRIT CETTE PIECE (`AAAA-MM-JJTHH:MM`), lu au journal des ecritures (`noter_piece_ecrite`) ; `null`
+/// s'il ne le dit pas. Jamais la date du fichier (#236) : une fictive decompressee chez le visiteur dirait le jour de
+/// l'installation, un banc le jour reel.
+pub(crate) fn ecrit_le(racine: &Path, fichier: &Path) -> Value {
+    journal_des_ecritures(racine)
+        .get(&cle_de_piece(fichier))
+        .and_then(|n| n.get("quand"))
+        .and_then(Value::as_str)
+        .map_or(Value::Null, |q| json!(q.chars().take(16).collect::<String>()))
 }
 
 // ------------------------------------------------------------- figer les numeros

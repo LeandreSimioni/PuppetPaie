@@ -47,7 +47,7 @@ pub(crate) use crate::etats::Cle3;
 /// `ETAPES_DEPOT` : le chemin d'un depot, dans l'ordre ou il se fait.
 const ETAPES_DEPOT: [(&str, &str, &str); 5] = [
     ("ecrite", "écrite — à tester", "Le fichier est écrit : le dépôt de test vient d'abord."),
-    ("en_test", "en test — compte rendu attendu", "Déposée en test : le compte rendu arrive, le dépôt réel s'ouvrira ensuite."),
+    ("en_test", "en test — compte rendu attendu", "Déposée en test, compte rendu attendu : le dépôt réel se fait une fois le test revenu conforme."),
     ("testee", "testée — prête à envoyer", "Testée, conforme : il ne reste qu'à l'envoyer pour de vrai."),
     ("test_refuse", "test refusé — à corriger", "Le test a été refusé : le même refus attendrait le dépôt réel."),
     (
@@ -723,23 +723,25 @@ impl<'a> Moteur<'a> {
         let rendu = if !dossier.is_dir() {
             json!({"dsn": [], "dpae": []})
         } else {
-            let mut tous: Vec<(String, PathBuf, f64, u64)> = Vec::new();
+            let mut tous: Vec<(String, PathBuf, u64)> = Vec::new();
             let rd = std::fs::read_dir(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
             for e in rd.flatten() {
                 let chemin = e.path();
                 let Ok(m) = std::fs::metadata(&chemin) else { continue };
                 if m.is_file() {
-                    tous.push((e.file_name().to_string_lossy().into_owned(), chemin, crate::paris::mtime(&m), m.len()));
+                    tous.push((e.file_name().to_string_lossy().into_owned(), chemin, m.len()));
                 }
             }
             // L'ORDRE NE DEPEND PAS DE L'HEURE D'UN FICHIER (#236 : deux rejeux, deux machines, le meme ordre) : il se lit
             // dans ce que le moteur sait de chacun (`ordre_de_depot`).
-            let ranger = |mut v: Vec<&(String, PathBuf, f64, u64)>| -> Value {
+            let racine = self.racine().to_path_buf();
+            let ranger = |mut v: Vec<&(String, PathBuf, u64)>| -> Value {
                 v.sort_by_cached_key(|f| ordre_de_depot(&f.0, &f.1));
                 Value::Array(
                     v.into_iter()
-                        .map(|(nom, chemin, t, octets)| {
-                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::paris::iso_minutes(*t)})
+                        .map(|(nom, chemin, octets)| {
+                            // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier (#236).
+                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::produire_mois::ecrit_le(&racine, chemin)})
                         })
                         .collect(),
                 )
@@ -1420,7 +1422,7 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 }
 
 /// `DSN_[^\W\d_]+\d{4}(_AR\d+)?\.dsn` : le nom d'une DSN mensuelle.
-fn est_une_dsn_mensuelle(nom: &str) -> bool {
+pub(crate) fn est_une_dsn_mensuelle(nom: &str) -> bool {
     let Some(reste) = nom.strip_prefix("DSN_") else { return false };
     let Some(reste) = reste.strip_suffix(".dsn") else { return false };
     let c: Vec<char> = reste.chars().collect();

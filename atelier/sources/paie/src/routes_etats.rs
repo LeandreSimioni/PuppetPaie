@@ -165,10 +165,9 @@ fn etat_exercices(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         }
         let export_json = match &export {
             Some(p) => {
-                let st = std::fs::metadata(p).map_err(|e| erreur_io(&e, p))?;
                 json!({
                     "fichier": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                    "ecrit": crate::paris::iso_minutes(crate::paris::mtime(&st)),
+                    "ecrit": crate::produire_mois::ecrit_le(&ctx.racine, p),
                 })
             }
             None => Value::Null,

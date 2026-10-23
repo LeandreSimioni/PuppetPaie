@@ -787,11 +787,11 @@ la Securite sociale), et pas plus de 100.",
                 "{} : la complementaire sante d'un permanent est OBLIGATOIRE \
 (art. L911-7 du code de la Securite sociale) et son niveau ne se \
 devine pas.\n  \
-A poser sur la fiche du salarie : \"sante_svp\": {{\"niveau\": \
-\"1\" | \"2\" | \"3\", \"conjoint\": false, \"enfants\": 0}}.\n  \
-Les trois niveaux et leurs taux sont dans le bareme \
-(par_nature.permanent, rubrique `mutuelle`, `_releve_svp_sante`) ; \
-le niveau souscrit se lit sur le bulletin d'adhesion.",
+A choisir sur sa fiche : Configuration › Salariés, bloc « Salarié au \
+mois », Complémentaire santé (le niveau du contrat souscrit, sur son \
+bulletin d'adhésion ; ou sa dispense, s'il en a une). Les trois niveaux \
+et leurs taux sont dans le bareme (par_nature.permanent, rubrique \
+`mutuelle`, `_releve_svp_sante`).",
                 nom_du_salarie(sal, "ce salarie")
             ))
         }
@@ -2028,8 +2028,8 @@ donnees/prevoyance-conventionnelle-base.json.",
             "{} : la prevoyance d'un non cadre permanent s'ouvre apres {} mois \
 d'anciennete DANS LA BRANCHE, pas dans l'entreprise -- et il n'y a \
 que {} ici.\n  \
-A poser sur sa fiche : \"prevoyance_branche_depuis\": \
-\"AAAA-MM-JJ\", la date a laquelle il est entre dans la branche. \
+A dire sur sa fiche : Configuration › Salariés, bloc « Salarié au \
+mois », « Dans la branche depuis » : la date a laquelle il est entre dans la branche. \
 S'il n'y travaillait pas avant, c'est sa date d'embauche chez nous.\n  \
 Le moteur ne le devine pas : le supposer venu de la branche ferait \
 cotiser pour rien, le supposer nouveau laisserait un salarie \

@@ -327,6 +327,26 @@ fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<Stri
     faits
 }
 
+/// LE SIREN ET LE NIC SE DEDUISENT DU SIRET (#236 ; la page les posait elle-meme, `brancherDeduits`, regle 2) : le SIRET
+/// est le SIREN (9 chiffres) suivi du NIC (5 chiffres) -- c'est sa definition (INSEE), aucune valeur ne se devine. Un
+/// SIRET qui n'a pas 14 chiffres ne deduit rien : sa case le dit (`champs::verifier_fiche`). Rend `{cle: [avant, apres]}`.
+fn deriver_siren_nic(donnees: &mut Map<String, Value>) -> Map<String, Value> {
+    let mut faits = Map::new();
+    let siret = texte_ou_vide(donnees.get("siret")).trim().to_string();
+    if siret.chars().count() != 14 || !siret.chars().all(|c| c.is_ascii_digit()) {
+        return faits;
+    }
+    for (cle, valeur) in [("siren", &siret[..9]), ("nic", &siret[9..])] {
+        let attendu = Value::String(valeur.to_string());
+        let actuel = donnees.get(cle).cloned();
+        if actuel.as_ref() != Some(&attendu) {
+            faits.insert(cle.into(), json!([actuel.unwrap_or(Value::Null), attendu.clone()]));
+            donnees.insert(cle.into(), attendu);
+        }
+    }
+    faits
+}
+
 /// `champs.deriver` : fabrique les formes declarees depuis les formes lisibles.
 /// Sans `forcer`, on ne remplit que ce qui est vide ou indeclarable. Rend
 /// `{cle: [avant, apres]}` : ce que le programme a fabrique tout seul.
@@ -353,6 +373,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
     }
     if nom == "entreprise" {
         faits.extend(deriver_personnes(donnees, forcer));
+        faits.extend(deriver_siren_nic(donnees));
     }
     if nom == "salarie" && champs::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
         let lettres: String = texte_ou_vide(donnees.get("nom")).chars().filter(|c| c.is_ascii_uppercase()).collect();
