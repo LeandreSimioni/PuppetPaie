@@ -46,7 +46,7 @@ fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
 
 /// `Path.glob("<prefixe>*<suffixe>")` sur un dossier : y a-t-il un nom qui s'y accorde ? Un dossier
 /// qui n'en est pas un, ou qu'on ne peut lire, ne rend rien.
-fn un_nom_commence_et_finit(dossier: &Path, prefixe: &str, suffixe: &str) -> bool {
+pub(crate) fn un_nom_commence_et_finit(dossier: &Path, prefixe: &str, suffixe: &str) -> bool {
     let Ok(lecture) = std::fs::read_dir(dossier) else { return false };
     lecture.flatten().any(|e| {
         let n = e.file_name().to_string_lossy().into_owned();

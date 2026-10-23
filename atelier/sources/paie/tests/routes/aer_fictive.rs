@@ -183,3 +183,36 @@ fn la_fin_d_un_cdd_le_dit_sans_annoncer_d_aer_cinema_spectacle() {
         assert_eq!(m.corps.contains(paie::envoi::NOTE_SANS_ATTESTATION_FCTU), m.cle == "AUDINOT", "{}", m.cle);
     }
 }
+
+/// CE QUE L'ECRAN NOMME (#236) : l'etape « Documents » d'un mois ne cite que les pieces qui existent pour ce mois (le
+/// moteur les nomme, `etat_par_paie` / `bilan-du-mois`), et l'Historique cite les AER du mois quand il y en a.
+#[test]
+fn l_ecran_ne_nomme_que_les_pieces_du_mois_et_l_historique_cite_l_aer() {
+    let r = copie("ecran");
+    let detail = |mois: &str| crate::outils::reussi(&crate::outils::route(&r, "bilan-du-mois", json!({"mois": mois}), JOUR))["documents"]["detail"].clone();
+    // Aout 2026 : deux permanents seuls ; septembre : quatre intermittents qui finissent leur contrat.
+    assert_eq!(detail("2026-08"), json!("bulletin"));
+    assert_eq!(detail(MOIS), json!("bulletin, certificat Congés Spectacles, AER"));
+    let sortes = |r: &Path| {
+        let e = crate::outils::reussi(&crate::outils::route(r, "etat", json!({}), JOUR)).clone();
+        e["historique"].as_array().unwrap().iter().find(|x| x["mois"] == json!(MOIS)).unwrap()["sortes"].clone()
+    };
+    assert!(!sortes(&r).as_array().unwrap().contains(&json!("attestations AER")));
+    paie::releve_retours::rattacher_simulation_detail(&contexte(&r), 6).unwrap();
+    assert!(sortes(&r).as_array().unwrap().contains(&json!("attestations AER")), "{}", sortes(&r));
+}
+
+/// UNE DSN QUI ANNULE ET REMPLACE (type 03, S20.G00.05.002) : l'attestation que France Travail reedite le dit en tete,
+/// avec l'ordre de la declaration -- la fausse AER aussi.
+#[test]
+fn apres_une_dsn_qui_annule_et_remplace_l_aer_le_dit() {
+    let r = copie("remplace");
+    let f = r.join("sorties").join(MOIS).join("DSN_Septembre2026.dsn");
+    let texte = String::from_utf8_lossy(&std::fs::read(&f).unwrap()).into_owned();
+    let texte = texte.replace("S20.G00.05.002,'01'", "S20.G00.05.002,'03'").replace("S20.G00.05.004,'1'", "S20.G00.05.004,'2'");
+    std::fs::write(&f, texte).unwrap();
+    paie::releve_retours::rattacher_simulation_detail(&contexte(&r), 6).unwrap();
+    let champs = paie::aer::champs(&std::fs::read(aer_de(&r, "TURLUPIN")).unwrap()).unwrap();
+    let entete = champs["ENTETE_PROVENANCE"]["valeur"].as_str().unwrap().to_string();
+    assert!(entete.contains("annule et remplace") && entete.contains("N° d'ordre 2"), "{}", entete);
+}

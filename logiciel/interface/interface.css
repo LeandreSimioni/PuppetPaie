@@ -676,6 +676,24 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   box-shadow: 0 12px 40px rgba(0,0,0,.25);
 }
 .boite h3 { margin: 0 0 10px; font-size: 16px; }
+/* L'envoi des documents (#236) : un tableau de quatre colonnes, dont les noms des pièces ; la boîte s'élargit pour
+   lui, et aucune colonne ne déborde : les longs noms passent à la ligne, une pièce par ligne. */
+.boite:has(.table-envoi) { width: 860px; }
+.table-envoi { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; }
+.table-envoi th, .table-envoi td { overflow-wrap: anywhere; vertical-align: top; text-align: left; padding: 6px 6px; }
+.table-envoi td.num, .table-envoi th:last-child { text-align: right; }
+.table-envoi .c-salarie { width: 20%; } .table-envoi .c-adresse { width: 32%; }
+.table-envoi .c-pieces { width: 38%; } .table-envoi .c-taille { width: 10%; }
+.table-envoi td.pieces div + div { margin-top: 2px; }
+/* Sur un écran étroit, une carte par salarié : son nom, son adresse, ses pièces, la taille, l'un sous l'autre. */
+@media (max-width: 640px) {
+  .table-envoi, .table-envoi tbody, .table-envoi tr, .table-envoi td { display: block; width: auto; }
+  .table-envoi tr:has(th), .table-envoi colgroup { display: none; }
+  .table-envoi tr { padding: 8px 0; border-bottom: 1px solid var(--bord, #e0e0e0); }
+  .table-envoi td { padding: 1px 0; border: 0; }
+  .table-envoi td:first-child { font-weight: 600; }
+  .table-envoi td.num { text-align: left; color: var(--discret); }
+}
 /* Le popup du mot de passe passe au-dessus de la boite courante. */
 #voile-mdp { z-index: 55; }
 /* L'envoi refuse d'une fictive ajoutee (ticket #236) : au-dessus de la boite du geste. */

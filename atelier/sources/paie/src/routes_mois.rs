@@ -611,6 +611,20 @@ impl<'a> Moteur<'a> {
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
+            // CE QUE CE SALARIE RECOIT POUR CETTE PAIE (#236) : le bulletin s'il y a une paie, le certificat Conges Spectacles
+            // du contrat d'usage qui finit (`routes_dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
+            // (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
+            let mut pieces: Vec<&str> = Vec::new();
+            if !p.engagement.sans_paie() {
+                pieces.push("bulletin");
+            }
+            if !nat.mensuelle() && dernier_mois && crate::caisse_conges::de_la_paie(p).map_err(plain)? {
+                pieces.push("certificat_cs");
+            }
+            if crate::aer::due(&p.engagement).map_err(plain)? {
+                pieces.push("aer");
+            }
+            ligne.insert("pieces".into(), json!(pieces));
             let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
             // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : la DPAE de l'ancienne date vaut-elle
             // (`routes_regularisation::dpae_d_une_date_changee`) ?
@@ -1123,6 +1137,18 @@ impl<'a> Moteur<'a> {
             json!({"couleur": "", "phrase": format!(
                 "Documents pas encore envoyés — {} salarié{}", salaries.len(), plur(salaries.len(), "", "s"))})
         };
+        // CE QUI PART CE MOIS-CI, NOMME PAR LE MOTEUR (#236) : les pieces des paies du mois (`pieces`), dans l'ordre de
+        // l'envoi, et seulement celles qui existent pour ce mois.
+        let mut documents = documents;
+        let noms_pieces = [("bulletin", "bulletin"), ("certificat_cs", "certificat Congés Spectacles"), ("aer", "AER")];
+        let presentes: Vec<&str> = noms_pieces
+            .iter()
+            .filter(|(c, _)| paies.iter().any(|p| p["pieces"].as_array().is_some_and(|a| a.iter().any(|x| x == c))))
+            .map(|(_, n)| *n)
+            .collect();
+        if let Some(o) = documents.as_object_mut().filter(|_| !presentes.is_empty()) {
+            o.insert("detail".into(), json!(presentes.join(", ")));
+        }
         out.insert(DOCUMENTS.into(), documents);
 
         // --- DSN : le mois entier.

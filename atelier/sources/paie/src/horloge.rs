@@ -252,11 +252,11 @@ fn deposer_dpae_joue(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Cont
     Ok(())
 }
 
-/// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite.
-fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<()> {
+/// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
+/// des AER jouees laisse a faire (`releve_retours::rattacher_simulation_detail`), comme les autres chemins de la releve.
+fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
     d.reverifier()?;
-    crate::releve_retours::rattacher_simulation(ctx, 0)?;
-    Ok(())
+    Ok(crate::releve_retours::rattacher_simulation_detail(ctx, 0)?.1)
 }
 
 // ------------------------------------------------------------------ dernier_rattrapage
@@ -485,6 +485,7 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
     let mut fait = Vec::new();
     let jour = echeance.iso();
 
+    let mut a_faire: Vec<String> = Vec::new();
     fait.extend(pas(d, &format!("DSN de {} déposée", mois_fr(mois)), &format!("{}T10:00:00", jour), |ctx| {
         if dsn_partie(o, ctx, mois)? {
             return Ok(false);
@@ -494,9 +495,11 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
         for reel in [false, true] {
             deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
         }
-        rattacher(d, ctx)?;
+        a_faire = rattacher(d, ctx)?;
         Ok(true)
     }));
+    // Ce que le rangement de l'AER jouee laisse a faire se dit, a la date du depot, comme le dit la releve.
+    fait.extend(a_faire.into_iter().map(|p| format!("Le {} : {}", le(&format!("{}T10:00:00", jour)), p)));
 
     fait.extend(pas(d, &format!("documents de {} envoyés aux salariés", mois_fr(mois)), &format!("{}T11:00:00", jour), |ctx| {
         let lignes = Moteur::nouveau(o, ctx).lignes()?;

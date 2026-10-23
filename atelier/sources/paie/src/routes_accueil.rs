@@ -473,7 +473,13 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         } else {
             None
         };
-        let sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
+        let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
+        // LES AER DE FRANCE TRAVAIL (#236) : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
+        // racine du mois ; elles se nomment avec les autres sortes.
+        if crate::routes_documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
+            let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
+            sortes.insert(rang, "attestations AER");
+        }
         // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit :
         // c'est la DSN sur le disque qui dit « a deposer ».
         let etat = etat.unwrap_or(if sortes.contains(&"DSN") { "a_deposer" } else { "a_ecrire" });

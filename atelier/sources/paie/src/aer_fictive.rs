@@ -255,7 +255,7 @@ fn entier(d: Decimal) -> String {
 
 /// Le PDF d'une attestation : le salarie `ind` (et ce que la DSN dit de plus, `plus`), ses periodes (cinq au plus),
 /// l'emploi et le motif de rupture de son contrat, l'employeur `ent`, edite le `edite_le`.
-fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Periode], emploi: &str, motif: &str, idcc: &str, edite_le: Jour) -> Resultat<Vec<u8>> {
+fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Periode], emploi: &str, motif: &str, idcc: &str, edite_le: Jour, remplace: Option<&str>) -> Resultat<Vec<u8>> {
     if periodes.is_empty() || periodes.len() > COLONNES {
         return Err(format!("une attestation porte de 1 a {} periodes ({} donnees)", COLONNES, periodes.len()));
     }
@@ -266,7 +266,12 @@ fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Peri
     let (mut p1, mut p2, mut p3): (Vec<Value>, Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new(), Vec::new());
 
     // L'en-tete de chaque page : la provenance, le salarie, le logiciel.
-    let provenance = format!("Attestation éditée pour la démonstration (compagnie fictive) le {} — imitation : France Travail n'a rien édité", edite_le.jj_mm_aaaa());
+    // UNE DSN QUI ANNULE ET REMPLACE (type 03 ou 05, S20.G00.05.002) : France Travail reedite, et l'en-tete le dit, avec
+    // l'ordre de la declaration (comme la vraie : « Attestation annule et remplace éditée … N° d'ordre … »).
+    let provenance = match remplace {
+        Some(ordre) => format!("Attestation annule et remplace éditée pour la démonstration (compagnie fictive) le {}. N° d'ordre {} — imitation : France Travail n'a rien édité", edite_le.jj_mm_aaaa(), ordre),
+        None => format!("Attestation éditée pour la démonstration (compagnie fictive) le {} — imitation : France Travail n'a rien édité", edite_le.jj_mm_aaaa()),
+    };
     let qui = format!("{}, {} {}", ind.nir, ind.nom, ind.prenoms);
     f.imprime(1, "ENTETE_PROVENANCE", [7.0, 5.0, 588.0, 16.0], &provenance, 6.5, "centre");
     f.imprime(1, "ENTETE_SALARIE", [88.0, 16.0, 571.0, 26.0], &qui, 6.5, "centre");
@@ -529,6 +534,16 @@ fn nom_dans_l_archive(siret: &str, mois: &str, edite_le: Jour, ind: &Individu, r
 pub(crate) fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Resultat<Option<Vec<u8>>> {
     let individus = lire_recap(dsn)?;
     let plus = complements(dsn);
+    // Le type et l'ordre de la declaration (S20.G00.05.002 et .004) : 03 et 05 annulent et remplacent.
+    let texte = crate::apercu_dsn::texte_latin1(dsn);
+    let rubrique = |r: &str| {
+        crate::apercu_dsn::lignes_py(&texte)
+            .into_iter()
+            .find_map(|l| l.strip_prefix(r).and_then(|v| v.strip_prefix(',')).map(|v| v.trim().trim_matches('\'').to_string()))
+            .unwrap_or_default()
+    };
+    let ordre = rubrique("S20.G00.05.004");
+    let remplace = matches!(rubrique("S20.G00.05.002").as_str(), "03" | "05").then_some(ordre.as_str());
     let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
     let ent = &ctx.entreprise;
     let siret = ent.get("siret").map(en_texte).unwrap_or_default();
@@ -550,7 +565,7 @@ pub(crate) fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) ->
         let motif = finis.last().map(|c| c.motif_fin.clone()).unwrap_or_default();
         let refs: Vec<&Periode> = toutes.iter().collect();
         for (rang, lot) in refs.chunks(COLONNES).enumerate() {
-            let pdf = attestation(ent, ind, &complement, lot, &emploi, &motif, &idcc, edite_le)?;
+            let pdf = attestation(ent, ind, &complement, lot, &emploi, &motif, &idcc, edite_le, remplace)?;
             let id = 900_001 + pdfs.len();
             pdfs.push((nom_dans_l_archive(&siret, mois, edite_le, ind, rang + 1, id), pdf));
         }
