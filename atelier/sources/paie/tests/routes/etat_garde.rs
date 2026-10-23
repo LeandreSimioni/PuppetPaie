@@ -217,3 +217,19 @@ fn une_ecriture_perime_l_ouverture_et_la_file_la_refait() {
     }
     f.arreter();
 }
+
+/// LE JOUR DU MOTEUR (#236) : l'ouverture dit quel jour on est, et c'est celui du moteur -- son temps simule au banc
+/// d'essai (`temps`), jamais l'horloge du navigateur. La page le prend pour tout ce qu'elle date ou presente au jour.
+#[test]
+fn l_ouverture_dit_le_jour_du_moteur() {
+    let racine = compagnie("ouverture-jour");
+    let jour = paie::date::Jour::lire("2026-10-05").unwrap();
+    paie::temps::figer(paie::temps::instant_de(jour, 9));
+    let f = FileDesEtats::nouvelle(&racine, Some(JOUR));
+    let o = ouvrir(&f, 120_000, false);
+    assert_eq!(o["pret"], json!(true));
+    assert_eq!(o["aujourdhui"], json!("2026-10-05"));
+    assert_eq!(ouvrir(&f, 0, true)["aujourdhui"], json!("2026-10-05"), "l'ouverture fraiche aussi");
+    f.arreter();
+    paie::temps::liberer();
+}

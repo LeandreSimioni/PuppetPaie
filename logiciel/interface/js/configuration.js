@@ -774,11 +774,15 @@ const SECTIONS_FICHE = {
     // une option qui parle de vos salariés, elle se pose avec eux.
     ["Vos salariés", ["emploie_des_permanents", "conseils"]],
     // Le taux AT/MP se pose en tête de ce bloc (`ATMP_HTML`).
+    // LE CODE DU SERVICE DE SANTÉ AU TRAVAIL SORT DE L'« AVANCÉ » (#236,
+    // 23/10/2026) : il n'était dans aucune section, donc dans la dernière (le
+    // tiroir replié), alors que chaque DPAE l'exige (`dpae::medecine_de`) et que
+    // « Pour démarrer » le demande. Un champ exigé est visible là où on l'exige.
     ["Vos numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
       "congesspectacles_affiliation",
       "affiliation_france_travail", "code_employeur_france_travail",
-      "france_travail_dossier_recouvrement"], { atmp: true }],
+      "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
     ["Qui signe, qui répond", ["signataire", "declarant_dsn"]],
     ["Paiement des cotisations", ["banque"]],
     // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
@@ -884,8 +888,9 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET ; `convention_collective`,
- *    `code_convention_dsn` : l'IDCC (`brancherDeduits`, `brancherConvention`) ;
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes_fiches::deriver`, #236) ;
+ *    `convention_collective`,
+ *    `code_convention_dsn` : l'IDCC (`brancherConvention`) ;
  *  - `congesspectacles_affiliation` : le numero d'adherent precede de 97,
  *    `code_employeur_france_travail` : l'affiliation sans sa cle ;
  *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
@@ -915,7 +920,7 @@ const SOUS_CHAMPS = {
   // Le solde de congés d'un salarié au mois arrivé d'un autre logiciel
   // (§111) : ce que son dernier bulletin disait.
   conges_reprise: { champs: [
-    ["date", "PuppetPaie compte à partir du", "AAAA-MM-JJ : le premier jour du premier mois produit par PuppetPaie"],
+    ["date", "PuppetPaie compte à partir du", "Le premier jour du premier mois produit par PuppetPaie", { date: true }],
     ["report", "Reste N-1 (jours)", "Les jours de l'année de référence précédente qui restent à prendre"],
     ["acquis_report", "Acquis N-1 en tout (jours)", "Souvent 30 : il sert à payer un jour au dixième"],
     ["remuneration_report", "Brut de la période N-1 (€)", "L'assiette du dixième des jours N-1"],
@@ -1210,6 +1215,11 @@ function caseSousChamp(parent, k, val, genre) {
     return `<input type="number" step="0.01" min="0" ${attrs} data-sous-type="nombre"
       value="${echapper(val ?? "")}">`;
   }
+  // Une date se choisit dans un calendrier, comme partout (#236) ; la valeur
+  // reste AAAA-MM-JJ. Une valeur ancienne d'une autre forme reste un texte.
+  if (genre.date && /^(\d{4}-\d{2}-\d{2})?$/.test(String(val ?? ""))) {
+    return `<input type="date" ${attrs} value="${echapper(val ?? "")}">`;
+  }
   return `<input ${attrs} value="${echapper(val ?? "")}">`;
 }
 
@@ -1281,7 +1291,7 @@ function oublierCouts() { Object.keys(COUTS).forEach((k) => delete COUTS[k]); }
 async function peindreCoutAnnee() {
   const el = document.querySelector("#config-formulaire .cout-annee");
   if (!el) return;
-  const an = new Date().getFullYear();
+  const an = anneeDuJour();
   const ligne = (r, annee) => {
     const d = r && (r[el.dataset.cote] || {})[el.dataset.cle];
     if (!d || (!d.bulletins && !Number(d.prevu))) return "";
@@ -1424,7 +1434,7 @@ async function dessinerOrganismes(cible) {
  * sortie de la case, et ne marque pas la fiche « modifiée ». Sans lui, le
  * premier mois d'une compagnie neuve ne se calculait pas. */
 function ATMP_HTML() {
-  const an = new Date().getFullYear();
+  const an = anneeDuJour();
   return `<div class="encart" id="config-atmp" data-annee="${an}">
     <div class="ligne-champs">
       <label>Taux accident du travail (AT/MP) ${an}

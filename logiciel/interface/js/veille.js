@@ -54,8 +54,9 @@ function heureDuPassage(q) {
     || String(q || "").match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2})/);
   if (!m) return q ? `le ${q}` : "";
   const [an, mo, jo] = m[1].length === 4 ? [m[1], m[2], m[3]] : [m[3], m[2], m[1]];
-  const auj = new Date();
-  const memeJour = +an === auj.getFullYear() && +mo === auj.getMonth() + 1 && +jo === auj.getDate();
+  // Le jour du moteur (#236), pas celui du navigateur.
+  const [ja, jm, jj] = aujourdhuiIso().split("-").map(Number);
+  const memeJour = +an === ja && +mo === jm && +jo === jj;
   return memeJour ? `à ${m[4]}` : `le ${jo}/${mo} à ${m[4]}`;
 }
 

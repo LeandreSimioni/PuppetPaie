@@ -21,6 +21,7 @@ mod avenant;
 mod calcul_du_mois;
 mod carte_figee;
 mod conseils;
+mod demarrage;
 mod echeance_dsn;
 mod historique_mois;
 mod modifier_apres_echeance;

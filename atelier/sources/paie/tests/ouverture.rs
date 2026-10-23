@@ -436,6 +436,25 @@ fn la_copie_de_developpement_ne_sauvegarde_pas_et_ne_releve_pas_les_signatures_m
     assert_eq!(r.releve.as_ref().unwrap().trouves.len(), 1, "les retours se relevent");
 }
 
+// ============================================================================ la fictive ajoutee (#236)
+
+/// UNE FICTIVE AJOUTEE (le « + » d'un logiciel bride) : rien n'en part (`bridage::refus_d_envoi`), donc rien n'y revient.
+/// La veille ne releve ni retours ni signatures, et ne demande pas les mots de passe net-entreprises et Urssaf qui ne
+/// serviraient qu'a les relever : le bandeau ne presente pas comme une panne ce qui est voulu.
+#[test]
+fn la_fictive_ajoutee_ne_demande_pas_les_mots_de_passe_des_retours() {
+    let _t = tour();
+    let c = compagnie("fictive-ajoutee", "fictive-3090-petite", true);
+    let inst = dossier_de_test("ouverture", "fictive-ajoutee-marque");
+    let marque = paie::interface::compagnies::ajouter_dans(&inst, "Marque").unwrap();
+    std::fs::copy(marque.racine.join("COPIE-DE-DEVELOPPEMENT.json"), c.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
+    assert!(paie::bridage::refus_d_envoi(&c).is_some());
+    let r = sans_clients(&c, &Options { filet: false, ..opt() });
+    assert!(!r.a_poser.iter().any(|s| s == "net-entreprises" || s == "urssaf"), "{:?}", r.a_poser);
+    assert!(r.releve.is_none() && r.releve_dpae.is_none() && r.signatures.is_none());
+    assert!(r.manquants.iter().all(|m| !m.contains("Mot de passe")), "{:?}", r.manquants);
+}
+
 // ============================================================================ le coffre : vide, partiel, client donne
 
 #[test]

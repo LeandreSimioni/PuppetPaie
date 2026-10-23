@@ -192,6 +192,28 @@ fn un_cdd_paye_au_mois_se_reprend_avec_sa_nature_sans_spectacle_ni_cachet() {
 }
 
 #[test]
+fn un_cdi_sans_terme_se_reprend_chaque_mois_suivant() {
+    // #236 : un CDI embauche le 16 novembre ne dit pas de fin. Il court en decembre comme en janvier, et se reprend avec
+    // ce qui le definit ; sa fin vide n'est pas « avant le mois ».
+    let c = &compagnie("cdi-sans-terme");
+    ecrire_mois(c,
+        "2026-09",
+        json!([{
+            "salarie": "SERAPHIN", "nature": "cdi", "debut": "2026-09-16", "numero": "SE.26.02", "metier": "COM010",
+            "salaire_mensuel": 2100.0, "quotite_contrat": 151.67, "date_paiement": "2026-09-30",
+        }]),
+    );
+    for mois in ["2026-10", "2026-11"] {
+        let r = resultat(c, "contrats-en-cours", json!({"mois": mois}));
+        let l = r["contrats"].as_array().unwrap();
+        assert_eq!(l.len(), 1, "{} : {}", mois, r);
+        assert_eq!(l[0]["engagement"]["nature"], json!("cdi"));
+        assert_eq!(l[0]["engagement"]["debut"], json!("2026-09-16"));
+        assert_eq!(l[0]["engagement"]["salaire_mensuel"], json!(2100.0));
+    }
+}
+
+#[test]
 fn un_contrat_d_usage_sans_spectacle_prend_celui_du_mois_et_rien_ne_se_devine() {
     let c = &compagnie("sans-spectacle");
     let mut e = contrat_a_cheval();

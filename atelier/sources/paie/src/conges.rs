@@ -840,7 +840,17 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
 
     let debut_mois = premier_du_mois(mois)?;
     let fin_mois = fin_mois_de(mois)?;
-    let debut = d(requis(e, "debut")?)?.max(debut_mois);
+    // La date de debut d'un contrat paye au mois : la meme phrase que `engagement::Engagement` (#236 : une saisie neuve
+    // refusait sur « champ 'debut' absent », et la page disait « choisir les jours travailles »).
+    let Some(debut) = e.get("debut").filter(|x| vrai(x)) else {
+        return Err(format!(
+            "Contrat {} ({}) : la date de debut du contrat n'est pas dite. Elle part en DSN (S21.G00.40.001) et identifie \
+             le contrat : elle ne se deduit de rien.",
+            numero(e),
+            nat.libelle
+        ));
+    };
+    let debut = d(debut)?.max(debut_mois);
     let fin = match e.get("fin").filter(|x| vrai(x)) {
         Some(f) => d(f)?.min(fin_mois),
         None => fin_mois,

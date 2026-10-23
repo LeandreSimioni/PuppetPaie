@@ -470,6 +470,18 @@ pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
     Ok(c)
 }
 
+/// LA RUBRIQUE D'UNE LIGNE DE PAIE NEUVE, par forme de paie (`"activite"` ou `"mensuelle"`, celles de
+/// [`Rubrique::reservee_a`]) : #236, une ligne neuve s'ouvrait sur la premiere rubrique du deroulant -- « Absence », dans
+/// une compagnie neuve, ou rien n'est coche et ou le catalogue se trie par libelle. Une ligne neuve paie un travail : la
+/// premiere rubrique de salaire (nature `salaire`) que la forme propose, dans l'ordre du catalogue (les cochees d'abord,
+/// la plus utilisee en tete) ; au mois, le salaire de base (`salaire_de_base`) passe devant. `None` : aucune.
+pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str) -> Option<&'a Rubrique> {
+    let proposee = |r: &&Rubrique| r.reservee_a().map_or(true, |f| f == forme);
+    let salaire = |r: &&Rubrique| r.nature == "salaire";
+    let base = if forme == "mensuelle" { cat.iter().filter(proposee).find(|r| r.salaire_de_base) } else { None };
+    base.or_else(|| cat.iter().filter(proposee).find(salaire))
+}
+
 /// Une rubrique par son code. Refuse un code inconnu : mieux vaut s'arreter
 /// que payer une ligne dont on ignore le regime.
 pub fn rubrique(racine: &Path, code: &str) -> Resultat<Rubrique> {

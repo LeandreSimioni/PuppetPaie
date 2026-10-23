@@ -272,9 +272,11 @@ function dessinerFormulaire(fiche) {
       : structure
       ? `<textarea rows="4" data-cle="${c.cle}" data-structure="1">${echapper(JSON.stringify(v ?? null, null, 1))}</textarea>`
       : `<input data-cle="${c.cle}" data-forme="${c.forme}" value="${echapper(v ?? "")}"${
-            // Une date de la fiche salarie se choisit dans un calendrier
-            // (23/09/2026) ; la valeur reste AAAA-MM-JJ, celle du moteur.
-            FICHE_ACTIVE === "salarie" && c.forme === "date"
+            // Une date se choisit dans un calendrier (23/09/2026 pour la fiche
+            // salarié ; #236, 23/10/2026, pour toutes : « Date de la première
+            // embauche » était un texte qui refusait 16/11/2026) ; la valeur reste
+            // AAAA-MM-JJ, celle du moteur.
+            c.forme === "date"
               && /^(\d{4}-\d{2}-\d{2})?$/.test(String(v ?? "")) ? ' type="date"' : ""}${
             c.exemple ? ` placeholder="ex. ${echapper(c.exemple)}"` : ""}
             class="${a ? (a.gravite === "erreur" ? "faute" : "suspect") : ""}">`;
@@ -354,7 +356,15 @@ function dessinerFormulaire(fiche) {
       // pour qui n'a jamais eu de contrat au mois — sauf s'il y a déjà une
       // valeur : rien de saisi ne devient invisible.
       if (opt.sante && avecPermanents && FICHE_ACTIVE === "salarie") {
-        const auMois = ((ETAT.configuration || {}).salaries_au_mois || []).includes(fiche.cle);
+        // Au mois : le moteur le dit (`salaries_au_mois`) — ou la saisie en cours
+        // l'engage déjà au mois, pas encore enregistrée parce que sa santé manque
+        // (#236 : le refus envoyait sur un tiroir replié).
+        let enCours = false;
+        try {
+          enCours = (saisieCourante().engagements || []).some((x) => x.salarie === fiche.cle
+            && natureDe(x.nature).mensuelle);
+        } catch (e) { enCours = false; }
+        const auMois = ((ETAT.configuration || {}).salaries_au_mois || []).includes(fiche.cle) || enCours;
         const rempli = dedans.some((c) => {
           const v = fiche.donnees[c.cle];
           return v !== null && v !== undefined && v !== "";
@@ -422,7 +432,21 @@ function dessinerFormulaire(fiche) {
   const choixMetier = document.getElementById("config-metier-choix");
   if (choixMetier) {
     choixMetier.value = (fiche.donnees || {}).code_emploi_ft || "";
-    choixMetier.onchange = async () => { await remplirDepuisMetier(choixMetier.value); marquerModifie(); };
+    // L'INTITULÉ SUIT LE MÉTIER (#236, 23/10/2026). Le champ libre « Emploi »
+    // côtoyait la liste « Métier » : on tapait l'emploi, on ne choisissait pas
+    // le métier, et l'enregistrement refusait sur des codes cachés (PCS-ESE,
+    // statut). L'intitulé n'apparaît qu'une fois le métier choisi — prérempli
+    // par le moteur (route « emploi »), à retoucher au besoin — ou s'il a déjà
+    // une valeur : rien de saisi ne devient invisible.
+    const emploi = document.querySelector('#config-formulaire [data-cle="emploi_affichage"]');
+    const caseEmploi = emploi && emploi.closest(".champ");
+    const montrerEmploi = () => {
+      if (caseEmploi) caseEmploi.hidden = !choixMetier.value && !String(emploi.value || "").trim();
+    };
+    montrerEmploi();
+    choixMetier.onchange = async () => {
+      await remplirDepuisMetier(choixMetier.value); montrerEmploi(); marquerModifie();
+    };
   }
   const allerMetiers = document.getElementById("aller-metiers");
   if (allerMetiers) allerMetiers.onclick = () =>
@@ -431,7 +455,6 @@ function dessinerFormulaire(fiche) {
   brancherAtmp();
   peindreCoutAnnee();
   brancherListes(fiche);
-  brancherDeduits();
   brancherNationalite();
   brancherConvention();
   brancherUrssaf();
@@ -593,29 +616,6 @@ function brancherListes(fiche) {
   });
 }
 
-/*  LE SIREN ET LE NIC NE SE TAPENT PAS (22/09/2026)
- *
- *  Ils SONT le SIRET : ses neuf premiers chiffres et ses cinq derniers. La
- *  page en demandait trois saisies, dont deux qui ne peuvent que se
- *  contredire. Elles restent dans le formulaire — le moteur les lit, et le
- *  NIC dit quel etablissement on declare —, mais en cases cachees, remplies
- *  d'ici. Tant que le SIRET n'a pas ses quatorze chiffres, on ne touche a
- *  rien : une saisie en cours n'a pas a effacer ce que la fiche portait.
- */
-function brancherDeduits() {
-  const siret = document.querySelector('#config-formulaire [data-cle="siret"]');
-  const siren = document.querySelector('#config-formulaire [data-cle="siren"]');
-  const nic = document.querySelector('#config-formulaire [data-cle="nic"]');
-  if (!siret || !siren || !nic) return;
-  const poser = () => {
-    const v = (siret.value || "").replace(/\D/g, "");
-    if (v.length !== 14) return;
-    siren.value = v.slice(0, 9);
-    nic.value = v.slice(9);
-  };
-  siret.addEventListener("input", poser);
-  poser();
-}
 
 /*  LA NATIONALITE DSN SE DEDUIT DU PAYS (10/10/2026, vague 1k)
  *
@@ -1341,6 +1341,16 @@ async function verifierFormulaire() {
     note.className = `anomalie ${a.gravite}`;
     note.textContent = a.message;
   });
+  // UNE VALEUR FAUSSE SE VOIT (#236) : le tiroir « Avancé » qui en tient une
+  // s'ouvre de lui-même — rien à corriger ne reste replié hors de la vue. Une
+  // case seulement vide n'ouvre rien : celles du tiroir se remplissent seules
+  // (le matricule et l'ancienneté à l'enregistrement, les codes par le métier,
+  // qui se dit sur sa liste : `enregistrerFiche`).
+  document.querySelectorAll("#config-formulaire details.avance:not([open])").forEach((d) => {
+    const fautif = [...d.querySelectorAll("[data-cle]")].some((c) => c.type !== "hidden"
+      && anomalies.some((x) => x.champ === c.dataset.cle && x.gravite === "erreur" && !aRemplir(x)));
+    if (fautif) d.open = true;
+  });
   appliquerSuggestions(r.suggestions || {});
   return anomalies;
 }
@@ -1435,7 +1445,7 @@ function valeurHistorique(champ, avant, apres) {
 const CHAMPS_DU_METIER = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft", "statut"];
 
 function demanderDateDEffet(changements) {
-  const aujourdHui = new Date().toISOString().slice(0, 10);
+  const aujourdHui = aujourdhuiIso();   // le jour du moteur (#236)
   const metier = changements.filter((c) => CHAMPS_DU_METIER.includes(c.champ));
   const autres = changements.filter((c) => !CHAMPS_DU_METIER.includes(c.champ));
   const lisible = (c, cote) => valeurLisible(c[cote + "_lisible"] ?? c[cote]);
@@ -1537,8 +1547,11 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       let erreurs = e.detail.anomalies.filter((a) => a.gravite === "erreur");
       // Les codes d'un métier qu'on n'a pas choisi manquent tous ensemble :
       // une ligne, « Métier : à choisir », plutôt que quatre codes.
+      // Sans métier choisi, un seul code qui manque se dit aussi « Métier » :
+      // ces codes ne se tapent pas, ils viennent du métier (#236).
+      const sansMetier = !(document.getElementById("config-metier-choix") || {}).value;
       const duMetier = erreurs.filter((a) => CHAMPS_DU_METIER.includes(a.champ) && aRemplir(a));
-      if (duMetier.length > 1) {
+      if (duMetier.length > 1 || (duMetier.length && sansMetier)) {
         erreurs = erreurs.filter((a) => !duMetier.includes(a));
         erreurs.unshift({ champ: "Métier", message: "à choisir dans la liste" });
       }

@@ -571,6 +571,13 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         sauvegarder = false;
         signatures = false;
     }
+    // UNE FICTIVE AJOUTEE (#236) : rien n'en part (`bridage::refus_d_envoi`), donc rien n'y revient -- ni retour de DSN ou de
+    // DPAE, ni contrat signe. La veille ne les releve pas, et ne demande pas les mots de passe qui serviraient a les relever :
+    // le bandeau ne presente pas comme une panne ce qui est voulu. Le coffre, lui, s'y pose comme ailleurs (Configuration).
+    if crate::bridage::refus_d_envoi(&ctx.racine).is_some() {
+        retours = false;
+        signatures = false;
+    }
 
     // LA COMPAGNIE FICTIVE : les retours des depots joues et les signatures demandees arrivent d'ici, sans coffre ni reseau --
     // et rien ne manque au coffre, puisqu'il n'y a rien a y poser.
