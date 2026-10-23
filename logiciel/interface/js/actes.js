@@ -412,8 +412,8 @@ function corpsDsn(a) {
  *  plus tôt huit jours avant l'embauche). L'Urssaf l'enregistre quand même
  *  (test du 02/10/2026) : on prévient, on ne bloque pas. */
 function dpaeTropTot(a) {
-  const ici = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
-  return !!(a && a.pas_avant && a.pas_avant > ici.toISOString().slice(0, 10));
+  // Le jour du moteur (#236), pas l'horloge du navigateur.
+  return !!(a && a.pas_avant && aujourdhuiIso() && a.pas_avant > aujourdhuiIso());
 }
 
 function corpsDpae(a) {

@@ -228,7 +228,7 @@ fn un_permanent_affilie_a_la_sante_svp_sans_niveau_refuse() {
         Ok(_) => panic!("un permanent sans `sante_svp` se paie"),
         Err(e) => e,
     };
-    assert!(e.contains("sante_svp"), "{}", e);
+    assert!(e.contains("Complémentaire santé"), "le refus dit la case de la fiche : {}", e);
 
     let s = saisie(&ctx, "2026-10", json!([cdi("Deburau", "DE5.26.09", "2026-09-01")])).unwrap();
     let mut p = s.paies[0].clone();
@@ -336,7 +336,7 @@ fn une_prevoyance_ouverte_sans_date_d_entree_dans_la_branche_refuse_quand_elle_a
     let ctx = copie.contexte("2026-10-28");
     let s = saisie(&ctx, "2026-10", json!([cdi("Deburau", "DE5.25.09", "2025-09-01")])).unwrap();
     let e = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap_err();
-    assert!(e.contains("prevoyance_branche_depuis") && e.contains("S21.G00.70.014"), "{}", e);
+    assert!(e.contains("Dans la branche depuis") && e.contains("S21.G00.70.014"), "{}", e);
 
     // Dans l'entreprise depuis plus d'un an AVANT ce contrat : l'affiliation commence avec lui, rien a dater.
     let copie = copie_de("fictive-3090-grande", |sal, _| {

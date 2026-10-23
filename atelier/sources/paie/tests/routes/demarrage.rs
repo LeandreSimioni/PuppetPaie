@@ -5,6 +5,7 @@
 //!   forme lisible : `demarrage::a_l_ecran`) ; la qualite du contact DSN ne se demande plus (le moteur l'ecrit :
 //!   `dsn::type_du_contact`, prouve dans `tests/dsn/contact_declare.rs`) ; le code du service de sante au travail se
 //!   demande par sa case des que la DPAE l'exigerait (`dpae::employeur_manques`), meme quand le SIRET manque aussi.
+//!   La reponse sur la TVA (la taxe sur les salaires de la DSN de decembre) se demande d'avance.
 //! - Le SIREN et le NIC se deduisent du SIRET a l'enregistrement de la fiche (`routes_fiches::deriver`) : un SIRET est un
 //!   SIREN de 9 chiffres suivi d'un NIC de 5.
 //! - La rubrique d'une ligne de paie neuve (`etat.rubrique_par_defaut`, `catalogue::par_defaut`) : une rubrique de
@@ -57,18 +58,22 @@ fn chaque_chose_que_demande_une_compagnie_neuve_se_remplit_dans_un_champ_montre(
     let mt = par_champ(&m, "medecine_travail");
     assert_eq!(mt.len(), 1, "le code du service de sante au travail, par sa case, meme sans SIRET : {:?}", m);
     assert_eq!(mt[0]["bloque"], json!("la DPAE"));
+    // La DSN de decembre declare la taxe sur les salaires (bloc S21.G00.44) et ne se fait pas sans reponse : demandee
+    // d'avance, par sa case (`assujettissement::regime_taxe_sur_les_salaires`).
+    assert_eq!(par_champ(&m, "taxe_sur_les_salaires").len(), 1, "{:?}", m);
 }
 
 #[test]
 fn le_siret_enregistre_donne_le_siren_et_le_nic_et_la_dpae_demande_encore_sa_medecine() {
     let racine = neuve("siret");
-    let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "siret": "32520440200011"});
+    let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "siret": "32520440200011", "taxe_sur_les_salaires": {"tva": "exoneree", "sous_franchise": true}});
     reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true}), JOUR));
     let ent = lire(&racine, "config/entreprise.json");
     assert_eq!((ent["siren"].as_str(), ent["nic"].as_str()), (Some("325204402"), Some("00011")));
     let m = manques(&racine);
     assert!(par_champ(&m, "siret").is_empty(), "{:?}", m);
     assert_eq!(par_champ(&m, "medecine_travail").len(), 1);
+    assert!(par_champ(&m, "taxe_sur_les_salaires").is_empty(), "exoneree de TVA et sous les plafonds : la reponse est donnee");
     // Le SIRET change : le SIREN et le NIC le suivent.
     let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "siret": "32520440200029"});
     reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true}), JOUR));

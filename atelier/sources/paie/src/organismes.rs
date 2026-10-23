@@ -225,7 +225,9 @@ pub fn composer(ctx: &Contexte, saisies: &Map<String, Value>) -> R<Value> {
         };
         let quoi = txt(g(&spec, "quoi"));
         if libelle.is_empty() {
-            if vrai(g(&spec, "si_permanents")) {
+            // Un contrat des permanents vide ne se reclame qu'a une compagnie qui en emploie (#236 : elle enregistrait
+            // sans un mot, et le mois de son permanent se refusait ensuite, « affiliations_par_nature.permanent »).
+            if vrai(g(&spec, "si_permanents")) && !ctx.emploie_des_permanents() {
                 continue;
             }
             return Err(refus(format!(
