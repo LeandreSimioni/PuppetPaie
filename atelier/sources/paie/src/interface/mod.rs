@@ -1181,6 +1181,9 @@ fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
         crate::temps::couler_depuis(t);
     }
     if let Some(e) = enr {
+        // LES ALEAS DU BANC sont ceux du rejeu (`temps::aleas`) : la compagnie du banc et son rejeu s'ecrivent pareil, et
+        // `scenario::verifier` le controle. Le banc n'est jamais un poste.
+        crate::temps::aleas_fixes();
         e.geste("debut", || {
             let mut m = serde_json::Map::new();
             m.insert("jour".into(), json!(crate::temps::jour_de_paris().iso()));

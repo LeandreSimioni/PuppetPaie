@@ -1778,14 +1778,19 @@ qu'un agent suit : `outils/banc/LISEZ-MOI.md` ; le modèle d'une partie :
 Pendant ce temps, **l'enregistreur** (`paie/src/scenario.rs`, dans le seul
 binaire de l'atelier) consigne chaque route que la fenêtre sert, avec sa
 charge, son instant et ce qu'on avait déposé (`gestes.jsonl`, `pieces/`).
-Le scénario se **rejoue** sans navigateur, depuis un dossier vide :
-`cargo run --profile essais --example vie_fictive -- <scénario> <dossier neuf>`
-(`outils/demos/les-faisceaux/` en est un, écrit à la main). Au rejeu, le temps du
-moteur est figé à l'instant de chaque geste et les aléas suivent une suite fixe
-(`paie/src/temps.rs`) : deux rejeux écrivent les mêmes octets. Un scénario figé
-dans `paie/tests/donnees/scenarios/<nom>/` devient un test (`paie/tests/rejeu.rs`) :
-il compare les paies, les DSN, la DPAE, le texte des bulletins et des
-certificats CS et les journaux à un oracle (`PUPPETPAIE_REECRIRE_ORACLES=1`).
+Le scénario se **rejoue** sans navigateur, depuis un dossier vide, dans une
+installation que le rejeu monte lui-même, bridée en toutes lettres :
+`paie-atelier scenario rejouer <scénario> <dossier neuf>` (ou, sans le binaire
+de l'atelier, `cargo run --profile essais --example vie_fictive -- rejouer …`) ;
+`outils/demos/les-faisceaux/` en est un, écrit à la main. Au rejeu comme au banc,
+le temps du moteur est figé à l'instant de chaque geste et les aléas suivent une
+suite fixe (`paie/src/temps.rs`) : deux rejeux écrivent les mêmes octets, et
+`banc.js verifier` (`scenario verifier`) contrôle, fichier par fichier, que le
+rejeu refait la compagnie du banc. `scenario elaguer` ôte les lectures d'un
+scénario pour le figer dans `paie/tests/donnees/scenarios/<nom>/`, où il devient
+un test (`paie/tests/rejeu.rs`) : il compare les paies, les DSN, la DPAE, le
+texte des bulletins et des certificats CS et les journaux à un oracle
+(`PUPPETPAIE_REECRIRE_ORACLES=1`).
 
 ## Ce que le moteur ne fait pas
 

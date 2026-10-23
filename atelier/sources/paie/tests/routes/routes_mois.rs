@@ -254,34 +254,38 @@ fn le_chemin_d_un_depot_se_lit_dans_le_bilan() {
     assert_eq!(b["dsn"]["courte"], "la paie a changé — à réécrire et tester");
 }
 
+/// L'ORDRE DES FICHIERS DEPOSABLES (#236, `routes_mois::ordre_de_depot`) ne depend plus de la date d'un fichier : les
+/// mensuelles d'abord, par leur nom ; puis les signalements, dans l'ordre de leur numero d'ordre (S20.G00.05.004, cahier
+/// technique DSN 2026.1 p. 136 : unique, jamais remis a zero) ; les DPAE, la plus recente d'abord par son nom. `ecrit`
+/// dit encore l'heure du fichier, a Paris.
 #[test]
-fn les_fichiers_deposables_le_dernier_ecrit_en_tete_a_l_heure_de_paris() {
+fn les_fichiers_deposables_dans_l_ordre_de_ce_qu_ils_declarent() {
     let c = &compagnie("fichiers");
     let d = dossier_sorties(c, MOIS);
-    let poser = |nom: &str, secondes: u64| {
-        let f = std::fs::File::create(d.join(nom)).unwrap();
-        f.set_modified(UNIX_EPOCH + Duration::from_secs(secondes)).unwrap();
-        std::fs::write(d.join(nom), nom).unwrap();
+    let poser = |nom: &str, contenu: &str, secondes: u64| {
+        std::fs::write(d.join(nom), contenu).unwrap();
         let f = std::fs::OpenOptions::new().write(true).open(d.join(nom)).unwrap();
         f.set_modified(UNIX_EPOCH + Duration::from_secs(secondes)).unwrap();
     };
-    // 15/07/2026 10:30 UTC (ete : 12:30 a Paris), 15/01/2026 10:30 UTC (hiver : 11:30).
-    poser("DSN_Aout2026.dsn", 1_784_111_400);
-    poser("DSN_Aout2026_AR2.dsn", 1_768_473_000);
-    poser("autre.DSN", 1_784_111_460);
-    poser("DPAE_Aout2026.txt", 1_768_473_000);
-    poser("DPAE_Aout2026_recapitulatif.txt", 1_784_111_400);
-    poser("DPAE_Aout2026.txt.zip", 1_784_111_400);
-    poser("Bulletins_Aout2026.pdf", 1_784_111_400);
+    // 15/07/2026 10:30 UTC (ete : 12:30 a Paris), 15/01/2026 10:30 UTC (hiver : 11:30). Les dates ne decident plus rien.
+    poser("DSN_Aout2026.dsn", "DSN_Aout2026.dsn", 1_784_111_400);
+    poser("DSN_Aout2026_AR2.dsn", "DSN_Aout2026_AR2.dsn", 1_768_473_000);
+    poser("autre.DSN", "autre.DSN", 1_784_111_460);
+    poser("Amorcage01_X.dsn", "S20.G00.05.001,'08'\nS20.G00.05.004,'2'\n", 1_768_473_000);
+    poser("Fin_Y.dsn", "S20.G00.05.001,'04'\nS20.G00.05.004,'1'\n", 1_784_111_460);
+    poser("DPAE_Aout2026.txt", "x", 1_784_111_400);
+    poser("DPAE_Aout2026_20260815-0900.txt", "x", 1_768_473_000);
+    poser("DPAE_Aout2026_recapitulatif.txt", "x", 1_784_111_400);
+    poser("DPAE_Aout2026.txt.zip", "x", 1_784_111_400);
+    poser("Bulletins_Aout2026.pdf", "x", 1_784_111_400);
     let r = rendu(c, "fichiers-deposables", json!({"mois": MOIS}), "2026-10-03");
     let noms = |k: &str| r[k].as_array().unwrap().iter().map(|f| f["nom"].as_str().unwrap().to_string()).collect::<Vec<_>>();
-    assert_eq!(noms("dsn"), ["autre.DSN", "DSN_Aout2026.dsn", "DSN_Aout2026_AR2.dsn"]);
-    assert_eq!(noms("dpae"), ["DPAE_Aout2026.txt"]);
-    assert_eq!(r["dsn"][0]["ecrit"], "2026-07-15T12:31");
-    assert_eq!(r["dsn"][1]["ecrit"], "2026-07-15T12:30");
-    assert_eq!(r["dsn"][2]["ecrit"], "2026-01-15T11:30");
-    assert_eq!(r["dsn"][2]["octets"], "DSN_Aout2026_AR2.dsn".len());
-    assert_eq!(r["dsn"][2]["chemin"], d.join("DSN_Aout2026_AR2.dsn").to_str().unwrap());
+    assert_eq!(noms("dsn"), ["DSN_Aout2026.dsn", "DSN_Aout2026_AR2.dsn", "autre.DSN", "Fin_Y.dsn", "Amorcage01_X.dsn"]);
+    assert_eq!(noms("dpae"), ["DPAE_Aout2026_20260815-0900.txt", "DPAE_Aout2026.txt"]);
+    assert_eq!(r["dsn"][0]["ecrit"], "2026-07-15T12:30");
+    assert_eq!(r["dsn"][1]["ecrit"], "2026-01-15T11:30");
+    assert_eq!(r["dsn"][1]["octets"], "DSN_Aout2026_AR2.dsn".len());
+    assert_eq!(r["dsn"][1]["chemin"], d.join("DSN_Aout2026_AR2.dsn").to_str().unwrap());
     // Un mois sans dossier de sorties : rien.
     assert_eq!(rendu(c, "fichiers-deposables", json!({"mois": "2031-01"}), "2026-10-03"), json!({"dsn": [], "dpae": []}));
 }

@@ -252,6 +252,41 @@ fn deposer_dpae_joue(d: &HorlogeFictive, o: &HashMap<String, String>, ctx: &Cont
     Ok(())
 }
 
+/// LES DSN DU MOIS QUI NE SONT PAS PARTIES et que `garder` retient (sur ce que le fichier declare), deposees chacune en
+/// test puis en reel -- le bilan du test lu avant le reel (tickets #221, #222 : `depot_acte::exiger_repetition`) --, dans
+/// l'ordre de `routes_mois::ordre_de_depot`. Rend vrai si l'une est partie ; `a_faire` recoit ce que le rangement des AER
+/// jouees laisse a faire (`rattacher`).
+fn deposer_les_dsn(
+    d: &HorlogeFictive,
+    o: &HashMap<String, String>,
+    ctx: &Contexte,
+    mois: &str,
+    garder: impl Fn(&crate::depot::Apercu) -> bool,
+    a_faire: &mut Vec<String>,
+) -> R<bool> {
+    let f = Moteur::nouveau(o, ctx).fichiers_deposables(mois)?;
+    let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| py_str(&x["chemin"])).collect()).unwrap_or_default();
+    let parties: BTreeSet<String> = etats::charger(&ctx.racine)?
+        .iter()
+        .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("mode").and_then(Value::as_str) == Some("reel"))
+        .filter(|l| l.get("accepte").is_some_and(vrai))
+        .filter_map(|l| l.get("fichier").and_then(Value::as_str).map(String::from))
+        .collect();
+    let mut fait = false;
+    for chemin in chemins {
+        let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if parties.contains(&nom) || !std::fs::read(&chemin).is_ok_and(|o| garder(&crate::depot::lire(&o))) {
+            continue;
+        }
+        for reel in [false, true] {
+            deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
+            a_faire.extend(rattacher(d, ctx)?);
+        }
+        fait = true;
+    }
+    Ok(fait)
+}
+
 /// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
 /// des AER jouees laisse a faire (`releve_retours::rattacher_simulation_detail`), comme les autres chemins de la releve.
 fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
@@ -441,6 +476,11 @@ fn le_premier_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &st
                 // LE BILAN DU TEST AVANT LE REEL (tickets #221, #222, `depot_acte::exiger_repetition`) ; puis celui du reel.
                 rattacher(d, ctx)?;
             }
+            // LE SIGNALEMENT D'AMORCAGE (nature 08, motif 01 « embauche effective ») part AVEC LA DPAE, dans le meme
+            // geste (atelier/README.md, « Demander un taux » ; `routes_actes_h1::dpae` produit les deux) : pas a
+            // l'echeance de la DSN.
+            // Un signalement ne recoit pas d'AER : son rangement n'a rien a dire.
+            deposer_les_dsn(d, o, ctx, mois, |a| a.champ("nature") == "08", &mut Vec::new())?;
             Ok(true)
         });
         fait.extend(faits);
@@ -491,33 +531,10 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
         if dsn_partie(o, ctx, mois)? {
             return Ok(false);
         }
-        // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES, la plus ancienne d'abord (#236, trouve au banc d'essai) : la
-        // mensuelle, et a cote d'elle un signalement d'amorcage (une embauche sans taux de PAS connu). L'horloge ne prenait
-        // que la plus recente -- l'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
-        let f = Moteur::nouveau(o, ctx).fichiers_deposables(mois)?;
-        let mut chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| py_str(&x["chemin"])).collect()).unwrap_or_default();
-        chemins.reverse();
-        let parties: BTreeSet<String> = etats::charger(&ctx.racine)?
-            .iter()
-            .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("mode").and_then(Value::as_str) == Some("reel"))
-            .filter(|l| l.get("accepte").is_some_and(vrai))
-            .filter_map(|l| l.get("fichier").and_then(Value::as_str).map(String::from))
-            .collect();
-        let mut fait = false;
-        for chemin in chemins {
-            let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            if parties.contains(&nom) {
-                continue;
-            }
-            for reel in [false, true] {
-                deposer_dsn_joue(d, o, ctx, &chemin, reel)?;
-                // LE BILAN DU TEST AVANT LE REEL (tickets #221, #222 : un reel ne part que sur le bilan lu de son test,
-                // `depot_acte::exiger_repetition`) ; puis celui du reel.
-                a_faire.extend(rattacher(d, ctx)?);
-            }
-            fait = true;
-        }
-        Ok(fait)
+        // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES (#236, trouve au banc d'essai), dans l'ordre de
+        // `routes_mois::ordre_de_depot` : la mensuelle, puis les signalements. L'horloge ne prenait que la plus recente --
+        // un signalement d'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
+        deposer_les_dsn(d, o, ctx, mois, |_| true, &mut a_faire)
     }));
     // Ce que le rangement de l'AER jouee laisse a faire se dit, a la date du depot, comme le dit la releve.
     fait.extend(a_faire.into_iter().map(|p| format!("Le {} : {}", le(&format!("{}T10:00:00", jour)), p)));
@@ -526,6 +543,11 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
         let lignes = Moteur::nouveau(o, ctx).lignes()?;
         let envoyes = etats::documents_envoyes(&lignes, mois)?;
         if envoyes.as_array().is_some_and(|a| !a.is_empty()) {
+            return Ok(false);
+        }
+        // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas (#236, trouve sur la demo Les Faisceaux : un mois que
+        // l'horloge n'avait pas pu ecrire voyait « ses documents envoyes ») : ils suivent sa DSN, jamais avant.
+        if !dsn_partie(o, ctx, mois)? {
             return Ok(false);
         }
         // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
@@ -612,6 +634,11 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
             .and_then(|v| v.get("fait").and_then(Value::as_object).cloned())
             .unwrap_or_default();
         if jour < fin || deja.contains_key(&cle) {
+            continue;
+        }
+        // UNE ECHEANCE D'AVANT LA COMPAGNIE ne la regarde pas (#236, trouve au banc : une compagnie ajoutee en novembre
+        // cochait « Les spectacles de 2026 » au 31/03/2026) : le jour ou elle a ete ajoutee (`compagnies::cree_le`).
+        if crate::interface::compagnies::cree_le(racine).is_some_and(|c| fin < c) {
             continue;
         }
         let titre = py_str(&e["titre"])
@@ -836,6 +863,26 @@ mod tests {
         crate::routes_ecrites::marquer_echeance(&ctx, "at-mp:2026", true, "interface").unwrap();
         let e: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join("echeancier.json")).unwrap()).unwrap();
         assert_eq!(e["fait"]["at-mp:2026"]["le"], "2026-10-07");
+    }
+
+    /// #236 : une echeance dont la fenetre s'est fermee AVANT que la compagnie soit ajoutee (`config/creation.json`) ne se
+    /// coche pas ; ajoutee avant, elle se coche. Sans date d'ajout (une fictive livree), rien ne change.
+    #[test]
+    fn une_echeance_d_avant_l_ajout_de_la_compagnie_ne_se_coche_pas() {
+        let cochees = |cree: Option<&str>| {
+            let r = racine_d_essai(true);
+            std::fs::write(r.join("config/entreprise.json"), r#"{"idcc": "3090"}"#).unwrap();
+            if let Some(c) = cree {
+                std::fs::write(r.join("config").join(crate::interface::compagnies::FICHIER_CREATION), format!(r#"{{"le": "{}"}}"#, c)).unwrap();
+            }
+            let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-01-05"));
+            l_annee(&d, &options(&r), 2026, jour("2027-01-05")).unwrap().into_iter().filter(|p| p.contains("coché")).count()
+        };
+        let toutes = cochees(None);
+        assert!(toutes > 0, "une fictive livree coche les echeances de son annee");
+        assert_eq!(cochees(Some("2026-01-01")), toutes);
+        assert!(cochees(Some("2026-11-02")) < toutes, "ajoutee en novembre, elle ne coche pas ce qui fermait avant");
+        assert_eq!(cochees(Some("2027-01-01")), 0, "ajoutee apres l'annee, rien de 2026 ne la regarde");
     }
 
     // ---------------------------------------------------------------- la boite muette
