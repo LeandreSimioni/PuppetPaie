@@ -16,6 +16,7 @@ pub mod compagnies;
 pub mod http;
 pub mod instance;
 pub mod navigateur;
+pub mod suppression;
 pub mod veille;
 
 use std::collections::HashMap;
@@ -40,6 +41,7 @@ const CRAYON: &str = include_str!("pages/crayon.html");
 const ZERO: &str = include_str!("pages/zero.html");
 const TUILE_AJOUTER: &str = include_str!("pages/tuile_ajouter.html");
 const AVIS_AJOUTER: &str = include_str!("pages/avis_ajouter.html");
+const GARDER: &str = include_str!("pages/garder.html");
 
 /// Les appels `window.pywebview.api.<nom>(...)` de l'accueil, postes au serveur. Une reponse qui dit `recharger`
 /// fait revenir la fenetre sur `/` : c'est le serveur qui sait quelle page montrer ensuite.
@@ -74,12 +76,12 @@ const CALE: &str = r#"<script>
 /// liste, la cale ne le definissait pas et le bouton levait sans rien faire (capture de Leandre, version 20.10.2026).
 /// L'administrateur (ticket #244) : `rattacher_nouvelle` (la question « meme administrateur ? » d'une compagnie neuve),
 /// `tableau`, `tableau_rafraichir` et `deposer_groupe` (le tableau de bord de l'accueil).
-const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
+const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "garder", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
 /// Dans la page du logiciel : revenir aux compagnies (ticket #113) ; et, comme a l'accueil, lire ou en est la mise a
 /// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`). L'administrateur, dans la Configuration
 /// (ticket #244, `js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
 /// de passe.
-const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
+const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "supprimer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
 
 #[derive(Clone)]
 enum Phase {
@@ -290,6 +292,17 @@ fn page_accueil() -> String {
         }
         g
     };
+    // AU DEBLOCAGE (ticket #236) : tant qu'il reste des compagnies creees en demo, la question se pose a chaque accueil.
+    let a_garder = suppression::a_garder(&compagnies::base());
+    let grille = if a_garder.is_empty() {
+        grille
+    } else {
+        let liste: String = a_garder
+            .iter()
+            .map(|c| format!("<li><label><input type=\"checkbox\" value=\"{}\" checked> {}</label></li>", echapper(&c.id), echapper(&c.nom)))
+            .collect();
+        format!("{}{}", grille, GARDER.replace("{{LISTE}}", &liste))
+    };
     // La version, sous le nom, comme dans la page d'une compagnie (ticket #211) ; les tuiles en dernier : un nom de
     // compagnie n'est jamais lu comme une marque a remplacer.
     ACCUEIL
@@ -451,6 +464,31 @@ impl Fenetre {
         Ok(())
     }
 
+    /// LA FENETRE LACHE LA COMPAGNIE `racine`, qui va etre supprimee ou deplacee (`suppression.rs`) : ouverte, sa veille
+    /// s'arrete (le tour en cours se finit) et l'on revient a l'accueil, son journal n'est plus celui de la fenetre ; sa
+    /// file quitte le fil des calculs (le calcul en cours se finit). Ensuite rien de la fenetre n'ecrit plus dans son
+    /// dossier, et rien ne la refait apparaitre.
+    fn lacher(&self, racine: &Path) {
+        let cle = std::fs::canonicalize(racine).unwrap_or_else(|_| racine.to_path_buf());
+        if let Phase::Ouverte { racine: r, veille, .. } = self.phase() {
+            if std::fs::canonicalize(&r).unwrap_or(r) == cle {
+                veille.arreter_et_attendre();
+                self.poser_phase(Phase::Accueil);
+            }
+        }
+        // Le journal de la fenetre est celui de la derniere compagnie ouverte, meme revenu a l'accueil : il ne doit plus
+        // recreer son dossier.
+        let mut journal = self.journal.lock().unwrap_or_else(|e| e.into_inner());
+        if journal.as_ref().is_some_and(|j| j.starts_with(racine) || j.starts_with(&cle)) {
+            *journal = None;
+        }
+        drop(journal);
+        let file = self.files.lock().unwrap_or_else(|e| e.into_inner()).remove(&cle);
+        if let Some(f) = file {
+            f.quitter();
+        }
+    }
+
     /// Le mot de passe de l'administrateur, tape dans cette fenetre, ouvre-t-il `racine`, compagnie rattachee ?
     fn administrateur_ouvre(&self, racine: &Path) -> bool {
         let inst = compagnies::base();
@@ -604,6 +642,38 @@ impl Fenetre {
                 Ok(()) => ok(true),
                 Err(m) => refus(m),
             },
+            // AU DEBLOCAGE (ticket #236) : les fictives ajoutees gardees deviennent reelles, les autres sont supprimees
+            // (`suppression::repondre`). `garder` et `ne_pas_garder` : des identifiants de tuile.
+            ("garder", Phase::Accueil) => {
+                let ids = |i: usize| -> Vec<String> {
+                    args.get(i).and_then(Value::as_array).map(|v| v.iter().filter_map(Value::as_str).map(String::from).collect()).unwrap_or_default()
+                };
+                let poste = crate::administrateur::Poste::de_ce_poste();
+                match suppression::repondre(&compagnies::base(), &ids(0), &ids(1), &poste, &|r| self.lacher(r)) {
+                    Ok(v) => {
+                        self.ecrire(&format!("Au deblocage : {}\n", v));
+                        json!({"ok": true, "recharger": true, "reponse": v})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
+            // SUPPRIMER LA COMPAGNIE OUVERTE (ticket #236) : tout se decide dans `suppression::supprimer` (la preuve d'une
+            // compagnie reelle : le mot de passe du logiciel, tape dans le popup de la page). Un passage de la veille en
+            // cours ecrit dans son dossier : on attend qu'il finisse.
+            ("supprimer", Phase::Ouverte { racine, veille, .. }) => {
+                if veille.occupee() {
+                    return refus("Un relevé ou une sauvegarde de cette compagnie est en cours : attendez qu'il se termine, puis recommencez. Rien n'a été supprimé.".into());
+                }
+                let mdp = a(0);
+                let poste = crate::administrateur::Poste::de_ce_poste();
+                match suppression::supprimer(&compagnies::base(), &racine, Some(mdp.as_str()), &poste, &|r| self.lacher(r)) {
+                    Ok(nom) => {
+                        self.ecrire(&format!("Compagnie supprimee : {} ({}).\n", nom, racine.display()));
+                        json!({"ok": true, "recharger": true, "nom": nom})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
             ("verifier", Phase::MotDePasse { racine, .. }) => match crate::coffre::Coffre::du_poste(&racine, "").verifier_ouverture(&a(0)) {
                 Ok(true) => {
                     self.retenir_administrateur(&racine, &a(0));
@@ -861,6 +931,12 @@ pub fn preparer_l_installation() {
     // Une livraison de compagnies fictives prete (`maj::preparer_les_fictives`) remplace celles du poste, avant toute fenetre.
     if let Some(t) = crate::maj::poser_les_fictives_pretes(&inst) {
         crate::maj::noter(&inst, &t);
+    }
+    // Une compagnie supprimee dont un fichier resistait (`suppression::effacer`) : son reste cache part maintenant.
+    let restes = suppression::effacer_les_restes(&inst);
+    if !restes.is_empty() {
+        let noms: Vec<String> = restes.iter().map(|p| p.display().to_string()).collect();
+        crate::maj::noter(&inst, &format!("Restes de compagnies supprimees effaces : {}.", noms.join(", ")));
     }
     let effaces = effacer_les_restes(&navigateur::dossier_utilisateur(), &crate::coffre::Coffre::dossier_cle_du_poste());
     if !effaces.is_empty() {

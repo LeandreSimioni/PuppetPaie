@@ -887,6 +887,24 @@ impl FileDesEtats {
         self.fil.reveil.notify_all();
     }
 
+    /// LA COMPAGNIE S'EN VA (supprimee, ou deplacee quand on la garde au deblocage : `interface::suppression`) : sa file
+    /// quitte le fil, qui continue de servir les autres -- meme s'il n'en reste aucune, la fenetre lui en donnera d'autres --,
+    /// et l'on attend la fin du calcul qui tourne pour elle : rien ne s'ecrit plus dans son dossier ensuite.
+    pub fn quitter(&self) {
+        self.fermer();
+        {
+            let mut g = self.fil.verrou();
+            g.files.retain(|f| !std::ptr::eq(Arc::as_ptr(f), self));
+            if g.devant.as_ref().is_some_and(|d| std::ptr::eq(Arc::as_ptr(d), self)) {
+                g.devant = None;
+            }
+        }
+        let mut e = self.verrou();
+        while e.en_cours.is_some() {
+            e = self.signal.wait(e).unwrap_or_else(|p| p.into_inner());
+        }
+    }
+
     fn fermer(&self) {
         self.verrou().arretee = true;
         self.signal.notify_all();

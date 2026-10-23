@@ -440,7 +440,7 @@ pub fn compagnies_de(inst: &Path) -> Vec<PathBuf> {
             v.extend(autres);
         }
     }
-    v.retain(|r| r.join("config").join("entreprise.json").is_file() && (!crate::interface::compagnies::est_copie(r) || crate::interface::compagnies::est_fictive(r)));
+    v.retain(|r| !crate::interface::compagnies::est_cache(r) && r.join("config").join("entreprise.json").is_file() && (!crate::interface::compagnies::est_copie(r) || crate::interface::compagnies::est_fictive(r)));
     v
 }
 

@@ -144,6 +144,18 @@ pub fn rattachees(inst: &Path) -> Vec<PathBuf> {
     out
 }
 
+/// UNE COMPAGNIE SUPPRIMEE (`interface::suppression`, ticket #236) sort du registre : une compagnie creee plus tard sous
+/// le meme dossier n'en herite pas. Rien a faire si elle n'y est pas.
+pub fn oublier(inst: &Path, racine: &Path) -> Result<(), String> {
+    let Some(rel) = relatif(inst, racine) else { return Ok(()) };
+    let avant = lire_registre(inst);
+    let apres: Vec<Value> = avant.iter().filter(|e| e.get("dossier").and_then(Value::as_str) != Some(rel.as_str())).cloned().collect();
+    if apres.len() == avant.len() {
+        return Ok(());
+    }
+    ecrire_registre(inst, &apres)
+}
+
 /// La compagnie `racine` est-elle rattachee a l'administrateur de son installation ?
 pub fn est_rattachee(inst: &Path, racine: &Path) -> bool {
     let Some(rel) = relatif(inst, racine) else { return false };

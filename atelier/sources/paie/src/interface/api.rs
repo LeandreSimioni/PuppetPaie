@@ -317,6 +317,11 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             Some(v) => Ok(v.tour(false, false)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
         },
+        // LA SAUVEGARDE AVANT DE SUPPRIMER (ticket #236) : un passage complet de la veille, sauvegarde comprise.
+        "sauvegarde-maintenant" => match veille {
+            Some(v) => Ok(v.tour(false, true)),
+            None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
+        },
         "google-autoriser" => google_autoriser(racine, charge),
         "choisir-dossier" => choisir_dossier(charge),
         "ouvrir-import" => ouvrir_import(racine, charge),
