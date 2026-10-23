@@ -456,15 +456,30 @@ function vueEtatImportation(e) {
    demande, une fois par salarié, sans rien choisir d'avance. */
 function vueNaturesADire(liste) {
   if (!liste || !liste.length) return "";
+  // Ce que chaque nature demande avec elle (`demande`, du moteur) : pour un
+  // contrat qui court encore, son début, sa fin s'il a un terme, son numéro.
+  const CASES = {
+    debut: (x) => `<label>Début du contrat <input type="date" data-nature-champ="debut"></label>`,
+    fin: (x) => `<label>Fin prévue <input type="date" data-nature-champ="fin"></label>`,
+    numero: (x) => `<label title="rubrique S21.G00.40.009 de la DSN">Numéro du contrat
+        <input type="text" data-nature-champ="numero" placeholder="sur la DSN de ${echapper(moisEnClair(String(x.au).slice(0, 7)))}"></label>`,
+  };
   const lignes = liste.map((x) => `<div class="rang" data-nature-rang="${echapper(x.salarie)}">
       <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
         ${x.contrats} contrat${x.contrats > 1 ? "s" : ""} repris${x.du ? `, du ${echapper(jjmmaaaa(x.du))}
           au ${echapper(jjmmaaaa(x.au))}` : ""} — ses bulletins n'ont pas de Congés Spectacles ni de
-        numéro d'objet : c'est un contrat de permanent.</div>
+        numéro d'objet : c'est un contrat de permanent.
+        ${x.en_cours ? `<div class="note">Payé jusqu'en ${echapper(moisEnClair(String(x.au).slice(0, 7)))} : son contrat
+          continue en ${echapper(moisEnClair(x.suite))}, et sa DSN le déclare avec la date de début et le
+          numéro que votre ancien logiciel lui a donnés. Ils sont sur sa dernière DSN (bloc Contrat), pas sur
+          le bulletin.</div>` : ""}
+        <div class="e-contrat-champs" data-nature-cases hidden>${["debut", "fin", "numero"].map((c) =>
+          `<span data-nature-case="${c}" hidden>${CASES[c](x)}</span>`).join("")}</div></div>
       <div class="rang-etat" style="display:flex;gap:6px;align-items:center">
         <select data-nature-choix aria-label="Nature du contrat de ${echapper(x.nom)}">
           <option value="">— choisir —</option>
-          ${(x.natures || []).map((n) => `<option value="${echapper(n.cle)}">${echapper(n.libelle)}</option>`).join("")}
+          ${(x.natures || []).map((n) => `<option value="${echapper(n.cle)}"
+             data-demande="${echapper((n.demande || []).join(" "))}">${echapper(n.libelle)}</option>`).join("")}
         </select>
         <button type="button" class="petit" data-nature-salarie="${echapper(x.salarie)}">Enregistrer</button>
       </div>
@@ -473,6 +488,17 @@ function vueNaturesADire(liste) {
     <p class="note">Un bulletin de paie ne dit pas si le contrat est un CDI ou un CDD. Dites-le pour chacun :
       la DSN et les documents de fin de contrat en dépendent.</p>${lignes}`;
 }
+
+/* La nature choisie montre les cases qu'elle demande, et elles seules. */
+document.addEventListener("change", (ev) => {
+  const sel = ev.target.closest && ev.target.closest("[data-nature-choix]");
+  if (!sel) return;
+  const rang = sel.closest("[data-nature-rang]");
+  const opt = sel.selectedOptions[0];
+  const demande = ((opt && opt.dataset.demande) || "").split(" ").filter((x) => x);
+  rang.querySelectorAll("[data-nature-case]").forEach((c) => { c.hidden = !demande.includes(c.dataset.natureCase); });
+  rang.querySelector("[data-nature-cases]").hidden = !demande.length;
+});
 
 document.addEventListener("click", async (ev) => {
   const ouvrir = ev.target.closest && ev.target.closest("[data-ouvrir-fiche]");
@@ -486,11 +512,19 @@ document.addEventListener("click", async (ev) => {
   ev.preventDefault();
   const rang = b.closest("[data-nature-rang]");
   const nature = rang ? rang.querySelector("[data-nature-choix]").value : "";
-  if (!nature) { dire("Choisissez d'abord la nature du contrat dans la liste.", "erreur"); return; }
+  // Une nature vide part telle quelle : c'est le moteur qui la refuse (règle 2).
   b.disabled = true;
   try {
-    const r = await api("importation-nature", { salarie: b.dataset.natureSalarie, nature });
-    dire(`Nature enregistrée sur ${r.ecrits} contrat${r.ecrits > 1 ? "s" : ""} repris.`, "ok");
+    const charge = { salarie: b.dataset.natureSalarie, nature };
+    rang.querySelectorAll("[data-nature-case]:not([hidden]) [data-nature-champ]").forEach((c) => {
+      charge[c.dataset.natureChamp] = c.value;
+    });
+    const r = await api("importation-nature", charge);
+    dire(`Nature enregistrée sur ${r.ecrits} contrat${r.ecrits > 1 ? "s" : ""} repris.${r.permanents_declares
+      ? " La compagnie emploie donc des salariés au mois : Configuration › Entreprise dit ce que cela demande encore." : ""}`, "ok");
+    // Les natures au mois s'ouvrent alors dans la saisie (`etat.natures`).
+    ETAT = await api("etat");
+    rafraichirReferentiels();
     rafraichirEtatImportation();
   } catch (err) {
     dire(err.message, "erreur");

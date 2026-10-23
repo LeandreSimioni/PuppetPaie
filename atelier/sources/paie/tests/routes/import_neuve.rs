@@ -138,8 +138,11 @@ fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
     assert_eq!(route(&racine, "importation-nature", json!({"salarie": artiste, "nature": "cdi"}))["ok"], json!(false));
     assert_eq!(std::fs::read(racine.join("historique/engagements.json")).unwrap(), avant);
 
+    // Dire la nature d'un permanent, c'est dire que la compagnie emploie des salaries au mois : la case s'en coche.
+    assert_ne!(lire(&racine, "config/entreprise.json")["emploie_des_permanents"], json!(true));
     let r = reussi(&route(&racine, "importation-nature", json!({"salarie": permanent, "nature": "cdi"}))).clone();
     assert!(r["ecrits"].as_u64().unwrap() >= 1, "{}", r);
+    assert_eq!(lire(&racine, "config/entreprise.json")["emploie_des_permanents"], json!(true));
     assert_eq!(r["a_dire"], json!([]));
     for e in engagements() {
         if e["salarie"] == json!(permanent) {
@@ -147,4 +150,45 @@ fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
         }
     }
     assert_eq!(reussi(&route(&racine, "importation-etat", json!({})))["a_dire"], json!([]));
+}
+
+/// Le contrat d'un permanent paye le dernier mois repris continue : sa nature se dit avec la date de debut et le numero
+/// que la DSN de l'ancien logiciel lui a donnes (S21.G00.40.001 et .009, `norme-dsn/texte/bloc-S21.G00.40.txt` ; un
+/// numero ne se recalcule pas, regle 4). Sans eux, ou avec un debut que les bulletins dementent : refus, rien n'est
+/// ecrit. Dits, le contrat se reprend au mois suivant, avec sa nature, son debut et son numero.
+#[test]
+fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
+    let racine = neuve("continue");
+    let import = racine.join("import");
+    std::fs::create_dir_all(&import).unwrap();
+    pdf(vec![page_a(&permanent())], &import.join("permanent.pdf"));
+    reussi(&route(&racine, "importer", json!({"dossier": ""})));
+    let etat = reussi(&route(&racine, "importation-etat", json!({}))).clone();
+    let x = &etat["a_dire"][0];
+    let cle = x["salarie"].as_str().unwrap().to_string();
+    assert_eq!((x["en_cours"].clone(), x["suite"].clone()), (json!(true), json!("2025-06")), "{}", x);
+    let demande = |n: &str| x["natures"].as_array().unwrap().iter().find(|v| v["cle"] == json!(n)).unwrap()["demande"].clone();
+    assert_eq!(demande("cdi"), json!(["debut", "numero"]));
+    assert_eq!(demande("cdd"), json!(["debut", "fin", "numero"]));
+
+    let avant = std::fs::read(racine.join("historique/engagements.json")).unwrap();
+    for charge in [
+        json!({"salarie": cle, "nature": "cdi"}),
+        json!({"salarie": cle, "nature": "cdi", "debut": "2024-01-15"}),
+        json!({"salarie": cle, "nature": "cdi", "debut": "2025-05-20", "numero": "00042"}),
+        json!({"salarie": cle, "nature": "cdd", "debut": "2024-01-15", "numero": "00042"}),
+        json!({"salarie": cle, "nature": "cdd", "debut": "2024-01-15", "fin": "2025-05-01", "numero": "00042"}),
+    ] {
+        assert_eq!(route(&racine, "importation-nature", charge.clone())["ok"], json!(false), "{}", charge);
+    }
+    assert_eq!(std::fs::read(racine.join("historique/engagements.json")).unwrap(), avant);
+    assert!(!racine.join("config/entreprise.json").exists() || lire(&racine, "config/entreprise.json")["emploie_des_permanents"] != json!(true));
+
+    reussi(&route(&racine, "importation-nature", json!({"salarie": cle, "nature": "cdi", "debut": "15/01/2024", "numero": "00042"})));
+    let r = reussi(&route(&racine, "contrats-en-cours", json!({"mois": "2025-06"}))).clone();
+    let c = r["contrats"].as_array().unwrap().iter().find(|c| c["salarie"] == json!(cle)).unwrap_or_else(|| panic!("{}", r)).clone();
+    assert_eq!((c["debut"].clone(), c["numero"].clone(), c["engagement"]["nature"].clone()), (json!("2024-01-15"), json!("00042"), json!("cdi")), "{}", c);
+    // Le mois repris lui-meme ne le reprend pas : il est dans l'historique.
+    let mai = reussi(&route(&racine, "contrats-en-cours", json!({"mois": "2025-05"}))).clone();
+    assert!(mai["contrats"].as_array().unwrap().iter().all(|c| c["salarie"] != json!(cle)), "{}", mai);
 }

@@ -420,6 +420,38 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             });
         }
     }
+    // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL (#236) : aucun fichier de saisie ne le porte, l'historique
+    // si (`importation_nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
+    // comme les autres, avec sa nature, son debut et son numero ; ce qui le definit encore (le salaire, la quotite)
+    // se saisit au premier mois, puis se recopie d'un mois a l'autre.
+    for r in crate::importation_nature::repris_en_cours(&ctx.racine, texte_mois) {
+        let ident = vec![json!(r.salarie), json!(r.debut), json!(r.numero)];
+        if vus.contient(&ident)? {
+            continue;
+        }
+        vus.poser(ident, ())?;
+        let Ok(sal) = ctx.salarie(&r.salarie) else { continue };
+        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+        let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
+        let mut mensuel = Map::new();
+        mensuel.insert("nature".into(), json!(r.nature));
+        out.push(EnCours {
+            salarie: r.salarie.clone(),
+            nom: format!("{} {}", t("nom"), prenom),
+            spectacle: Value::Null,
+            debut: r.debut,
+            fin: r.fin,
+            numero: json!(r.numero),
+            depuis: r.depuis,
+            metier: Value::Null,
+            cadre: Value::Null,
+            taux_cachet: Value::Null,
+            lieu: json!(""),
+            deja_repris: false,
+            lignes: Vec::new(),
+            mensuel: Some(mensuel),
+        });
+    }
     let en_cours: Vec<Option<jumeaux::Ident>> = out.iter().map(|c| Some((c.salarie.clone(), c.debut.clone(), jumeaux::numero_du_champ(Some(&c.numero))))).collect();
     for (c, repris) in out.iter_mut().zip(jumeaux::apparier(&en_cours, &deja)) {
         c.deja_repris = repris.is_some();
