@@ -578,6 +578,98 @@ impl Fenetre {
         }
     }
 
+    /// « Ajouter une compagnie » (le « + » de l'accueil). Au banc d'essai de l'atelier, le geste entre dans le scenario :
+    /// c'est le decor de depart que le rejeu refait (`scenario::rejouer`).
+    fn ajouter(&self, nom: &str) -> Result<compagnies::Compagnie, String> {
+        #[cfg(feature = "atelier")]
+        if let Some(e) = crate::scenario::enregistreur_actif() {
+            return e.geste("ajouter", || {
+                let c = compagnies::ajouter(nom)?;
+                let mut m = serde_json::Map::new();
+                m.insert("nom".into(), json!(nom));
+                m.insert("compagnie".into(), json!(e.compagnie(&c.racine)));
+                Ok((c, m))
+            });
+        }
+        compagnies::ajouter(nom)
+    }
+
+    /// LES GESTES DU BANC D'ESSAI (l'atelier seulement, #236 ; `atelier/outils/banc/`) : `/atelier/<geste>`, avec le jeton.
+    /// - `etat` : le jour simule, le scenario, la compagnie ouverte ;
+    /// - `jour` `{"jour": "AAAA-MM-JJ"}` : le calendrier avance jusqu'a ce jour, 9 h (Paris) ; puis, si une compagnie est
+    ///   ouverte, un passage de la veille, comme a l'ouverture : l'horloge d'une fictive aux envois simules joue ce qui
+    ///   etait du, les retours des depots joues reviennent. Rend ce que la veille a fait ;
+    /// - `simuler` : la compagnie ouverte, une fictive ajoutee par le « + », devient une fictive aux envois simules
+    ///   (`scenario::rendre_simulee`).
+    #[cfg(feature = "atelier")]
+    fn atelier(&self, geste: &str, charge: &Value) -> Value {
+        let refus = |m: String| json!({"ok": false, "erreur": m});
+        let phase = self.phase();
+        let ouverte = match &phase {
+            Phase::Ouverte { racine, .. } => Some(racine.clone()),
+            _ => None,
+        };
+        let enr = crate::scenario::enregistreur_actif();
+        match geste {
+            "etat" => json!({"ok": true,
+                "simule": crate::temps::simule(),
+                "jour": crate::temps::jour_de_paris().iso(),
+                "heure": crate::paris::iso_secondes(crate::temps::secondes()),
+                "secondes": crate::temps::secondes(),
+                "scenario": enr.map(|e| e.dossier().display().to_string()),
+                "compagnie": ouverte.as_ref().map(|r| r.display().to_string()),
+                "simulee": ouverte.as_ref().is_some_and(|r| crate::routes_accueil::simulation_active(r)),
+                "ajoutee": ouverte.as_ref().is_some_and(|r| compagnies::est_ajoutee(r))}),
+            "jour" => {
+                if !crate::temps::simule() {
+                    return refus("Le temps n'est pas simule : lancer l'interface avec --jour.".into());
+                }
+                let Some(jour) = charge.get("jour").and_then(Value::as_str).and_then(|j| crate::date::Jour::lire(j).ok()) else {
+                    return refus("Il faut {\"jour\": \"AAAA-MM-JJ\"}.".into());
+                };
+                let instant = crate::temps::instant_de(jour, 9);
+                if instant <= crate::temps::secondes() {
+                    return refus(format!("Le {} n'est pas apres l'instant simule ({}) : le calendrier n'avance que vers demain.", jour.iso(), crate::paris::iso_secondes(crate::temps::secondes())));
+                }
+                crate::temps::couler_depuis(instant);
+                if let Some(e) = enr {
+                    let _ = e.geste("jour", || {
+                        let mut m = serde_json::Map::new();
+                        m.insert("jour".into(), json!(jour.iso()));
+                        Ok(((), m))
+                    });
+                }
+                self.ecrire(&format!("Banc d'essai : le calendrier avance au {}.\n", jour.iso()));
+                match phase {
+                    Phase::Ouverte { veille, etats, .. } => {
+                        let v = veille.tour(false, false);
+                        etats.tout_verifier();
+                        json!({"ok": true, "jour": jour.iso(), "veille": v})
+                    }
+                    _ => json!({"ok": true, "jour": jour.iso()}),
+                }
+            }
+            "simuler" => {
+                let Some(racine) = ouverte else { return refus("Aucune compagnie n'est ouverte.".into()) };
+                let faire = || crate::scenario::rendre_simulee(&racine).map(|()| {
+                    let mut m = serde_json::Map::new();
+                    if let Some(e) = enr {
+                        m.insert("compagnie".into(), json!(e.compagnie(&racine)));
+                    }
+                    ((), m)
+                });
+                match enr.map_or_else(|| faire().map(|_| ()), |e| e.geste("simuler", faire)) {
+                    Ok(()) => {
+                        self.ecrire("Banc d'essai : la compagnie devient une fictive aux envois simules.\n");
+                        json!({"ok": true})
+                    }
+                    Err(m) => refus(m),
+                }
+            }
+            _ => refus(format!("Geste d'atelier inconnu : {}.", geste)),
+        }
+    }
+
     /// Les gestes de l'accueil (`window.pywebview.api.<nom>(...)`).
     fn lanceur(&self, nom: &str, args: &[Value]) -> Value {
         let a = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
@@ -600,7 +692,7 @@ impl Fenetre {
                 Ok((n, deja)) => json!({"ok": true, "message": format!("{} est {}.", n, if deja { "déjà dans son état d'origine" } else { "revenue à son état d'origine" })}),
                 Err(m) => refus(m),
             },
-            ("ajouter", Phase::Accueil) => match compagnies::ajouter(&a(0)).and_then(|c| self.prendre(c.racine)) {
+            ("ajouter", Phase::Accueil) => match self.ajouter(&a(0)).and_then(|c| self.prendre(c.racine)) {
                 Ok(()) => ok(true),
                 Err(m) => refus(m),
             },
@@ -693,6 +785,10 @@ impl Fenetre {
             if let Some(nom) = r.chemin.strip_prefix("/lanceur/") {
                 let args = charge.as_array().cloned().unwrap_or_default();
                 return Reponse::json(200, &self.lanceur(nom, &args));
+            }
+            #[cfg(feature = "atelier")]
+            if let Some(nom) = r.chemin.strip_prefix("/atelier/") {
+                return Reponse::json(200, &self.atelier(nom, &charge));
             }
             if let Some(nom) = r.chemin.strip_prefix("/api/") {
                 let Phase::Ouverte { racine, veille, etats } = self.phase() else {
@@ -967,9 +1063,69 @@ pub fn lire_options(args: &[String]) -> Result<Options, String> {
     Ok(o)
 }
 
+/// LE BANC D'ESSAI (l'atelier seulement, #236 ; `atelier/outils/banc/`) : `paie-atelier interface ... [--enregistrer
+/// DOSSIER] [--jour AAAA-MM-JJ]`. `--jour` : le temps du moteur coule depuis ce jour, 9 h a Paris (`temps`) ;
+/// `--enregistrer` : chaque geste entre dans le scenario `DOSSIER` (`scenario::Enregistreur`). Un scenario deja
+/// commence se poursuit : sans `--jour`, le temps reprend une minute apres son dernier geste ; un `--jour` avant lui est
+/// refuse. Rend les autres options, pour `lire_options`.
+#[cfg(feature = "atelier")]
+fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
+    let (mut reste, mut dossier, mut jour) = (Vec::new(), None, None);
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--enregistrer" if i + 1 < args.len() => {
+                dossier = Some(PathBuf::from(&args[i + 1]));
+                i += 2;
+            }
+            "--jour" if i + 1 < args.len() => {
+                jour = Some(crate::date::Jour::lire(&args[i + 1]).map_err(|_| format!("Jour illisible : {} (AAAA-MM-JJ).", args[i + 1]))?);
+                i += 2;
+            }
+            a => {
+                reste.push(a.to_string());
+                i += 1;
+            }
+        }
+    }
+    let enr = match &dossier {
+        Some(d) => Some(crate::scenario::Enregistreur::demarrer(d, &compagnies::base())?),
+        None => None,
+    };
+    let dernier = enr.and_then(|e| e.dernier_instant());
+    let depart = match (jour, dernier) {
+        (Some(j), Some(t)) if crate::temps::instant_de(j, 9) <= t => {
+            return Err(format!("Le scenario va deja jusqu'au {} : --jour {} le ferait reculer.", crate::paris::iso_secondes(t), j.iso()))
+        }
+        (Some(j), _) => Some(crate::temps::instant_de(j, 9)),
+        (None, Some(t)) => Some(t + 60.0),
+        (None, None) => None,
+    };
+    if let Some(t) = depart {
+        crate::temps::couler_depuis(t);
+    }
+    if let Some(e) = enr {
+        e.geste("debut", || {
+            let mut m = serde_json::Map::new();
+            m.insert("jour".into(), json!(crate::temps::jour_de_paris().iso()));
+            m.insert("logiciel".into(), json!(version()));
+            Ok(((), m))
+        })?;
+    }
+    Ok(reste)
+}
+
 /// `paie interface [--port N] [--sans-navigateur] [--veille MINUTES]` : la fenetre dans le navigateur du poste.
 pub fn commande(args: &[String]) -> i32 {
     crate::commandes::compagnie::fixer_le_code();
+    #[cfg(feature = "atelier")]
+    let args = &match poser_le_banc(args) {
+        Ok(reste) => reste,
+        Err(e) => {
+            eprintln!("{}", e);
+            return 2;
+        }
+    };
     let options = match lire_options(args) {
         Ok(o) => o,
         Err(e) => {

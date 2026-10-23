@@ -1,93 +1,63 @@
-//! LA VIE D'UNE COMPAGNIE FICTIVE, JOUEE PAR LES GESTES DE L'ECRAN (Leandre, 08/10/2026 : « une vie de demo neuve
-//! et bien ecrite », « une technique d'ecriture fiable »).
+//! LA VIE D'UNE COMPAGNIE FICTIVE, REJOUEE SANS NAVIGATEUR (#236, phase 2).
 //!
-//! L'atelier seulement, jamais livre. Un scenario (`logiciel/outils/demos/*.json`) est une suite DATEE de gestes : chacun
-//! est une route du moteur, appelee comme la fenetre l'appelle (`paie route --racine R`, la demande sur l'entree
-//! standard), le jour du geste pose dans `PUPPETPAIE_AUJOURDHUI`. Rien ne s'ecrit a cote : la compagnie n'a que ce que
-//! le moteur a ecrit. Entre deux gestes, l'horloge de la compagnie fictive (`horloge-rattraper`) joue ce qu'une compagnie
-//! bien tenue aurait fait entre-temps (DPAE, contrats signes, bulletins, DSN, documents).
+//! L'atelier seulement, jamais livre. Un SCENARIO (`paie/src/scenario.rs`) est ce que l'enregistreur du banc d'essai a
+//! consigne pendant qu'on jouait dans l'interface (`atelier/outils/banc/`) : le « + » de l'accueil, chaque route que la
+//! page a appelee avec sa charge et son instant, le geste qui rend les envois simules, les jours ou le calendrier a
+//! avance. Ce programme le rejoue dans une installation neuve (`scenario::rejouer`), dans son processus : le decor du
+//! « + », chaque geste a son instant fige, et la compagnie qui en sort est celle du banc.
 //!
-//! Seul le DECOR de depart s'ecrit ici, comme « Ajouter une compagnie » l'ecrit (`interface::compagnies::ajouter` : les
-//! trois fiches vides), plus le marqueur qui fait de ce dossier une compagnie fictive (rien ne part en reel).
+//!     cargo run --profile essais --example vie_fictive -- <dossier du scenario> <installation neuve> [--lectures]
 //!
-//!     cargo run --release --example vie_fictive -- <scenario.json> <dossier de la compagnie> [paie]
-//!
-//! Un geste refuse arrete tout, sauf s'il porte `"refus_attendu": true` (on montre alors le refus). Chaque geste et sa
-//! reponse sont notes dans `<dossier>/VIE.log`.
+//! `--lectures` rejoue aussi les routes qui n'avaient rien ecrit. Rend 1 si un geste ne s'est pas passe comme a
+//! l'enregistrement (une route reussie qui refuse, ou l'inverse), et le dit.
 
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-
-use serde_json::{json, Value};
-
-fn ecrire(p: &Path, v: &Value) {
-    std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-    std::fs::write(p, serde_json::to_string_pretty(v).unwrap() + "\n").unwrap();
-}
-
-/// Une route, comme la fenetre l'appelle.
-fn route(paie: &Path, racine: &Path, jour: &str, nom: &str, charge: &Value) -> Value {
-    let mut c = Command::new(paie);
-    c.arg("route").arg("--racine").arg(racine).env("PUPPETPAIE_AUJOURDHUI", jour);
-    c.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut p = c.spawn().expect("paie ne se lance pas");
-    p.stdin.take().unwrap().write_all(json!({"route": nom, "charge": charge}).to_string().as_bytes()).unwrap();
-    let sortie = p.wait_with_output().unwrap();
-    serde_json::from_slice(&sortie.stdout).unwrap_or_else(|_| {
-        json!({"ok": false, "erreur": format!("{}{}", String::from_utf8_lossy(&sortie.stdout), String::from_utf8_lossy(&sortie.stderr))})
-    })
-}
+use std::path::PathBuf;
 
 fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.len() < 2 {
-        eprintln!("vie_fictive <scenario.json> <dossier> [paie]");
+    let mut args: Vec<String> = std::env::args().skip(1).collect();
+    let lectures = args.iter().any(|a| a == "--lectures");
+    args.retain(|a| a != "--lectures");
+    if args.len() != 2 {
+        eprintln!("vie_fictive <dossier du scenario> <installation neuve> [--lectures]");
         std::process::exit(2);
     }
-    let scenario: Value = serde_json::from_str(&std::fs::read_to_string(&args[0]).expect("scenario illisible")).expect("scenario : JSON");
-    let racine = PathBuf::from(&args[1]);
-    let paie = args.get(2).map(PathBuf::from).unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/release/paie"));
-    let paie = std::fs::canonicalize(&paie).expect("paie introuvable : cargo build --release");
-
-    // Le decor : ce qu'« Ajouter une compagnie » ecrit, et le marqueur de la compagnie fictive.
-    if racine.exists() {
-        std::fs::remove_dir_all(&racine).unwrap();
+    // Rien ne sort de la machine (`garde_reseau`) : `cargo run` la pose deja ; lance a la main, l'exemple la pose lui-meme,
+    // avant tout fil.
+    if std::env::var_os(paie::garde_reseau::VARIABLE).is_none() {
+        std::env::set_var(paie::garde_reseau::VARIABLE, "1");
     }
-    let nom = scenario["nom"].as_str().expect("scenario : il faut `nom`");
-    ecrire(&racine.join("config/entreprise.json"), &json!({"nom_affichage": nom, "raison_sociale": nom.to_uppercase()}));
-    ecrire(&racine.join("config/salaries.json"), &json!({}));
-    ecrire(&racine.join("config/spectacles.json"), &json!({}));
-    ecrire(
-        &racine.join("COPIE-DE-DEVELOPPEMENT.json"),
-        &json!({"copie_de": format!("compagnie fictive {}", nom),
-                "_quoi": "Compagnie FICTIVE (paie/examples/vie_fictive.rs). Ce marqueur fait refuser tout acte reel. Ne pas le retirer."}),
-    );
-    let racine = std::fs::canonicalize(&racine).unwrap();
-    let mut log = std::fs::File::create(racine.join("VIE.log")).unwrap();
-
-    for (i, geste) in scenario["gestes"].as_array().expect("scenario : il faut `gestes`").iter().enumerate() {
-        let jour = geste["jour"].as_str().expect("un geste sans `jour`");
-        let (nom, charge) = match geste.get("horloge") {
-            // Jusqu'a ce jour, l'horloge joue ce qui etait du.
-            Some(_) => ("horloge-rattraper", json!({"aujourdhui": jour, "retenir": false})),
-            None => (geste["route"].as_str().expect("un geste sans `route`"), geste.get("charge").cloned().unwrap_or(json!({}))),
-        };
-        let r = route(&paie, &racine, jour, nom, &charge);
-        let ok = r["ok"] == json!(true);
-        let quoi = geste.get("quoi").and_then(Value::as_str).unwrap_or(nom);
-        writeln!(log, "{} {} — {}\n{}\n", jour, quoi, if ok { "ok" } else { "REFUS" }, serde_json::to_string_pretty(&r).unwrap()).unwrap();
-        if nom == "horloge-rattraper" && ok {
-            for phrase in r["resultat"].as_array().into_iter().flatten() {
-                println!("      {}", phrase.as_str().unwrap_or(""));
+    let (scenario, inst) = (PathBuf::from(&args[0]), PathBuf::from(&args[1]));
+    if inst.exists() && std::fs::read_dir(&inst).map(|mut d| d.next().is_some()).unwrap_or(false) {
+        eprintln!("{} n'est pas vide : le rejeu part d'une installation neuve.", inst.display());
+        std::process::exit(2);
+    }
+    let debut = std::time::Instant::now();
+    let options = paie::scenario::OptionsRejeu { lectures, ..Default::default() };
+    match paie::scenario::rejouer(&scenario, &inst, &options) {
+        Ok(r) => {
+            for p in &r.horloge {
+                println!("      {}", p);
             }
-        }
-        println!("{:>3}  {}  {}  {}", i + 1, jour, if ok { "ok   " } else { "REFUS" }, quoi);
-        if !ok {
-            println!("       {}", r["erreur"].as_str().unwrap_or("").replace('\n', "\n       "));
-            if geste.get("refus_attendu") != Some(&json!(true)) {
+            for (nom, racine) in &r.compagnies {
+                println!("{} -> {}", nom, racine.display());
+            }
+            println!(
+                "{} route(s) rejouee(s), {} lecture(s) ecartee(s), {} geste(s) sur une autre compagnie, en {:.1} s.",
+                r.routes_rejouees,
+                r.lectures_ecartees,
+                r.autres_compagnies,
+                debut.elapsed().as_secs_f64()
+            );
+            for e in &r.ecarts {
+                println!("ECART  {}", e);
+            }
+            if !r.ecarts.is_empty() {
                 std::process::exit(1);
             }
+        }
+        Err(m) => {
+            eprintln!("{}", m);
+            std::process::exit(1);
         }
     }
 }

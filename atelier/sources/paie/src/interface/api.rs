@@ -56,6 +56,12 @@ impl Refus {
 pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
     let mut o = std::collections::HashMap::new();
     o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
+    // LE BANC D'ESSAI (l'atelier seulement, #236) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
+    // entre dans le scenario, avec sa charge et son instant (`scenario::Enregistreur`).
+    #[cfg(feature = "atelier")]
+    if let Some(e) = crate::scenario::enregistreur_actif() {
+        return depuis_reponse(e.route(racine, nom, charge, || crate::routes::dans_la_fenetre(&o, nom, charge)));
+    }
     depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge))
 }
 

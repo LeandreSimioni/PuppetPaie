@@ -905,7 +905,7 @@ pub(crate) fn sauver_avant(chemin: &Path) -> R<()> {
     let dossier = parent.join("avant");
     std::fs::create_dir_all(&dossier).map_err(io)?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64());
+    let maintenant = crate::temps::secondes();
     let horodatage = crate::paris::iso_secondes(maintenant).replace(['-', ':'], "").replace('T', "-");
     std::fs::copy(chemin, dossier.join(format!("{}.{}", nom, horodatage))).map_err(io)?;
     let prefixe = format!("{}.", nom);
