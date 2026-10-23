@@ -473,10 +473,10 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
       <button class="primaire" id="d-test">Envoyer le test</button>
       <button class="secondaire" id="d-reel" disabled>
-        Envoyer le réel — ${echapper(a.mois)}</button>
+        ${enFictive() ? `Envoyer — simulé (${echapper(a.mois)})` : `Envoyer le réel — ${echapper(a.mois)}`}</button>
     </div>
     ${a.reel ? `<p class="discret"><button type="button" class="lien" id="d-sans-test">envoyer
-      en réel sans attendre le test…</button></p>` : ""}
+      ${enFictive() ? "sans attendre le test — simulé…" : "en réel sans attendre le test…"}</button></p>` : ""}
     ${a.reel ? "" : `<p class="note">Le fichier est codé <b>envoi de test</b> :
       déposé « pour de vrai », il ne déclarerait rien et rien ne serait
       conservé. Reproduire le mois sans l'option d'envoi de test pour pouvoir
@@ -704,13 +704,13 @@ function encartRepetition(r, quoi, a) {
     return `<div class="encart bien">
       <b>${cette} est testée — conforme. Voulez-vous l'envoyer ?</b>
       Testée le ${echapper(quand(r.conforme.quand))} : le même contenu est
-      passé au bac à sable sans anomalie. Le dépôt réel est le bouton « Envoyer le réel ».
+      passé au bac à sable sans anomalie. ${enFictive() ? "L'envoi, simulé, est le bouton « Envoyer — simulé »." : "Le dépôt réel est le bouton « Envoyer le réel »."}
       ${certificatParPersonne(r.conforme)}</div>`;
   }
   if (r.conforme) {
     return `<div class="encart">
       <b>${cette} est en test — son compte rendu est attendu</b>
-      Envoyée en test le ${echapper(quand(r.conforme.quand))}. Le dépôt réel se
+      Envoyée en test le ${echapper(quand(r.conforme.quand))}. ${enFictive() ? "L'envoi simulé se" : "Le dépôt réel se"}
       fait ici, une fois ce compte rendu revenu conforme.</div>`;
   }
   // Jamais essayé : ce n'est pas une mise en garde, c'est l'étape suivante
@@ -718,7 +718,7 @@ function encartRepetition(r, quoi, a) {
   const rate = (r.ratees || []).length || (r.perimees || []).length;
   return `<div class="encart ${rate ? "attention" : ""}">
     <b>${rate ? "Pas de test valable pour ce contenu" : "D'abord, le dépôt de test"}</b>
-    ${echapper(situationRepetition(r))} Le dépôt réel se fait une fois le
+    ${echapper(situationRepetition(r))} ${enFictive() ? "L'envoi simulé se fait une fois le" : "Le dépôt réel se fait une fois le"}
     test revenu conforme.</div>`;
 }
 
@@ -766,7 +766,7 @@ function boiteRepetition(etat, quoi, repeter, quandMeme) {
         au journal des dépôts.</p>
       <textarea id="r-raison" rows="2" placeholder="le service de test de net-entreprises répond 503 depuis ce matin"></textarea>
       <div class="actions">
-        <button class="secondaire" id="r-quand-meme">Déposer sans répétition</button>
+        <button class="secondaire" id="r-quand-meme">${enFictive() ? "Déposer sans répétition — simulé" : "Déposer sans répétition"}</button>
       </div>
     </div>`);
   document.getElementById("r-tester").onclick = () => { fermerBoite(); repeter(); };
@@ -806,7 +806,7 @@ function boiteRenvoiDsn(etat, renvoyer) {
       exemple — et jamais parce qu'on n'a pas encore vu le retour.</p>
     <div class="actions">
       <button class="primaire" onclick="fermerBoite()">Ne pas renvoyer</button>
-      <button class="secondaire" id="d-renvoyer">Renvoyer quand même</button>
+      <button class="secondaire" id="d-renvoyer">${enFictive() ? "Renvoyer quand même — simulé" : "Renvoyer quand même"}</button>
     </div>`);
   document.getElementById("d-renvoyer").onclick = () => { fermerBoite(); renvoyer(); };
 }
@@ -875,7 +875,7 @@ async function boiteEnvoi(mois) {
           : `<button class="secondaire" id="e-ecrire">Écrire le mois…</button>`}
       <button class="primaire" id="e-envoyer" ${peut ? "" : "disabled"}
               title="${peut ? "" : echapper((a.empechements || []).concat(
-                a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">${echapper(a.bouton)}</button>
+                a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">${echapper(a.bouton)}${enFictive() ? " — simulé" : ""}</button>
     </div>`);
 
   const dossier = document.getElementById("e-dossier");
@@ -1008,7 +1008,7 @@ async function boiteSignature(mois, seulement) {
       ${a.produit ? `<button class="secondaire" id="s-dossier">Ouvrir le dossier des contrats</button>`
                   : `<button class="secondaire" id="s-ecrire">Écrire le mois…</button>`}
       <button class="primaire" id="s-envoyer" ${a.boite_liee ? "" : "disabled"}
-              title="${a.boite_liee ? "" : "Aucune boîte courriel."}">Envoyer à la signature</button>
+              title="${a.boite_liee ? "" : "Aucune boîte courriel."}">${enFictive() ? "Envoyer à la signature — simulé" : "Envoyer à la signature"}</button>
     </div>`);
 
   const dossierS = document.getElementById("s-dossier");
@@ -1131,8 +1131,8 @@ async function boiteAvenant(mois, salarie, debut, numero) {
     <p class="discret"><a href="#" id="av-pieces">Voir ce qui est parti (contrat envoyé, signé, preuve)</a></p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${mods.length && a.remplacable ? `<button class="secondaire" id="av-remplace">Contrat qui annule et remplace…</button>` : ""}
-      ${mods.length ? `<button class="primaire" id="av-envoyer">Envoyer l'avenant à la signature…</button>` : ""}
+      ${mods.length && a.remplacable ? `<button class="secondaire" id="av-remplace">${enFictive() ? "Contrat qui annule et remplace — simulé…" : "Contrat qui annule et remplace…"}</button>` : ""}
+      ${mods.length ? `<button class="primaire" id="av-envoyer">${enFictive() ? "Envoyer l'avenant à la signature — simulé…" : "Envoyer l'avenant à la signature…"}</button>` : ""}
     </div>`);
   document.getElementById("av-pieces").onclick = (ev) => {
     ev.preventDefault();
