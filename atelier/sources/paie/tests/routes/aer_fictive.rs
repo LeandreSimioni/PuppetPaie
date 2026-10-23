@@ -113,7 +113,7 @@ fn la_dsn_jouee_d_une_fictive_livree_recoit_son_aer_signee_dans_l_envoi_de_l_int
         assert_eq!(champs["EMPLOYEUR_NOM"]["valeur"], ent["signataire"]["nom"], "{} : cadre 5 non signe", cle_);
         let p = toutes.iter().find(|p| cle(p) == cle_).unwrap();
         let e = &p.engagement;
-        let paie_aer = [paie::aer::PaieAer { debut: e.debut, fin: e.fin.unwrap(), cachets: e.cachets as i128, heures: e.heures.unwrap_or(0.0) as i128 }];
+        let paie_aer = [paie::aer::PaieAer::du_mois(e).unwrap()];
         assert_eq!(paie::aer::verifier(&pdf, &paie_aer).unwrap(), Vec::<String>::new(), "{}", cle_);
         assert_eq!(paie::aer::lire_quantites(&champs).unwrap().len(), 1, "{} : une periode, celle du contrat", cle_);
     }

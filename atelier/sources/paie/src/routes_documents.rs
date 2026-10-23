@@ -514,30 +514,61 @@ fn aer_manquantes(ctx: &Contexte, mois: &str) -> R<Vec<String>> {
     Ok(out)
 }
 
-/// `charger(ctx, "paies/<periode>.json").paies`, sans rien dire de ce qui le fait echouer.
-/// `sans_cache` : la releve des retours (`releve_retours`) range les AER sans toucher a `AAAA-MM.calcul.json`,
-/// que le Python n'ecrivait pas la ; l'apercu d'envoi, lui, passe par le calcul du mois et son cache.
+/// Les paies de `periode`, sous les numeros de contrat que la DSN a DECLARES (regle 4 : un numero se lit --
+/// `apercu_dsn::paies_aux_numeros_declares`), sans rien dire de ce qui les fait echouer (vide). `sans_cache` : la releve
+/// des retours (`releve_retours`) range les AER sans toucher a `AAAA-MM.calcul.json` ; l'apercu d'envoi, lui, passe par
+/// le calcul du mois et son cache.
 fn paies_de_la_periode(o: &HashMap<String, String>, ctx: &Contexte, periode: &str, sans_cache: bool) -> Vec<crate::calcul::Paie> {
-    let essai = || -> Result<Vec<crate::calcul::Paie>, crate::routes_ouverture::Refus> {
-        let chemin = ctx.racine.join("paies").join(format!("{}.json", periode));
-        let data = crate::engagement::lire_saisie(&chemin)?;
-        let rep = if sans_cache {
-            crate::service::calculer_avec(ctx, &json!({ "saisie": data })).map_err(|m| crate::routes_ouverture::refus_du_calcul(ctx, &data, m))?
-        } else {
-            crate::routes_ouverture::paie_du_mois(o, ctx, &data)?
-        };
-        let engs = crate::routes_ouverture::engagements_calcules(ctx, &data, &rep)?;
-        let paies_json = rep.get("paies").and_then(Value::as_array).ok_or("reponse du calcul illisible : `paies`")?;
-        let mut paies = Vec::new();
-        for (e, v) in engs.into_iter().zip(paies_json) {
-            paies.push(crate::routes_ouverture::paie_de_json(ctx, e, v)?);
-        }
-        let mois = data.get("mois").map(crate::date::en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
-        let annee: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| "annee illisible")?;
-        crate::routes_ouverture::numeroter(ctx, &mut paies, annee)?;
-        Ok(paies)
+    crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, periode, None, !sans_cache).map(|t| t.2).unwrap_or_default()
+}
+
+/// `mois_suivant("2026-12")` = `"2027-01"`.
+fn mois_suivant(m: &str) -> String {
+    let (a, mo): (i32, u32) = (m.get(..4).and_then(|x| x.parse().ok()).unwrap_or(0), m.get(5..7).and_then(|x| x.parse().ok()).unwrap_or(12));
+    if mo >= 12 {
+        format!("{:04}-01", a + 1)
+    } else {
+        format!("{:04}-{:02}", a, mo + 1)
+    }
+}
+
+/// Toutes les periodes que l'AER de `cle` pour `periode` doit porter (`aer::ecarts`) : chaque contrat dont l'AER est due
+/// ce mois-ci (`aer::due`), mois par mois depuis son debut, chacun lu dans la paie de son mois. `None` : la saisie de la
+/// periode n'est pas dans le logiciel (un mois d'avant lui) -- rien a quoi comparer.
+fn periodes_attendues(
+    o: &HashMap<String, String>,
+    ctx: &Contexte,
+    par_mois: &mut HashMap<String, Vec<crate::calcul::Paie>>,
+    periode: &str,
+    cle: &str,
+    sans_cache: bool,
+) -> R<Option<Vec<crate::aer::PaieAer>>> {
+    if !ctx.racine.join("paies").join(format!("{}.json", periode)).exists() {
+        return Ok(None);
+    }
+    let mut du_mois = |m: &str| -> Vec<crate::calcul::Paie> {
+        par_mois.entry(m.to_string()).or_insert_with(|| paies_de_la_periode(o, ctx, m, sans_cache)).clone()
     };
-    essai().unwrap_or_default()
+    let de_lui = |p: &crate::calcul::Paie| p.salarie.get("_cle").map(py_str).as_deref() == Some(cle);
+    let mut out = Vec::new();
+    for p in du_mois(periode).iter().filter(|p| de_lui(p)) {
+        let e = &p.engagement;
+        if !crate::aer::due(e).map_err(Echec::from)? {
+            continue;
+        }
+        let numero = e.numero.clone().unwrap_or_default();
+        let mut m = e.debut.iso()[..7].to_string();
+        while m.as_str() < periode {
+            for q in du_mois(&m).iter().filter(|q| de_lui(q) && q.engagement.numero.as_deref() == Some(numero.as_str()) && !q.engagement.sans_paie()) {
+                out.push(crate::aer::PaieAer::du_mois(&q.engagement).map_err(Echec::from)?);
+            }
+            m = mois_suivant(&m);
+        }
+        if !e.sans_paie() {
+            out.push(crate::aer::PaieAer::du_mois(e).map_err(Echec::from)?);
+        }
+    }
+    Ok(Some(out))
 }
 
 /// Un dossier temporaire, retire quand on a fini.
@@ -604,14 +635,9 @@ pub(crate) fn ranger_aer(o: &HashMap<String, String>, ctx: &Contexte, mois: Opti
 
 /// `ranger_aer` du Python, structure : le rangement et ce qu'il a laisse. `forcer` : signer malgre un ecart (`aer --forcer`).
 pub(crate) fn ranger_aer_detail(o: &HashMap<String, String>, ctx: &Contexte, mois: Option<&str>, fichiers: Option<&[std::path::PathBuf]>, sans_cache: bool, forcer: bool) -> R<RangementAer> {
-    use crate::aer::{authentifier, Authentification, Echec as AerEchec, PaieAer};
+    use crate::aer::{authentifier, Authentification, Echec as AerEchec};
     let vues = attestations_archivees(ctx, mois, fichiers)?;
-    let mut par_periode: HashMap<String, Vec<crate::calcul::Paie>> = HashMap::new();
-    for (periode, _) in vues.keys() {
-        if !periode.is_empty() && !par_periode.contains_key(periode) {
-            par_periode.insert(periode.clone(), paies_de_la_periode(o, ctx, periode, sans_cache));
-        }
-    }
+    let mut par_mois: HashMap<String, Vec<crate::calcul::Paie>> = HashMap::new();
     let mut cles: Vec<&(String, String)> = vues.keys().collect();
     cles.sort();
     // `RangementAer.a_faire()` : d'abord les attestations sans salarie, puis les refusees (la paie ne les confirme pas).
@@ -631,41 +657,43 @@ pub(crate) fn ranger_aer_detail(o: &HashMap<String, String>, ctx: &Contexte, moi
             }
             continue;
         };
-        let mut paies: Vec<PaieAer> = Vec::new();
-        for p in par_periode.get(periode).map(Vec::as_slice).unwrap_or(&[]) {
-            if !est(get_requis(&p.salarie, "_cle")?, &cle) {
-                continue;
-            }
-            let e = &p.engagement;
-            paies.push(PaieAer {
-                debut: e.debut,
-                fin: e.fin.ok_or_else(|| Echec::from("contrat sans fin"))?,
-                cachets: i128::from(e.cachets),
-                heures: e.heures.unwrap_or(0.0) as i128,
-            });
+        // LA VERIFICATION SE FAIT SUR TOUTES LES ATTESTATIONS DU SALARIE A LA FOIS : au-dela de cinq periodes, France
+        // Travail en edite plusieurs, et chacune ne porte qu'une partie des periodes attendues.
+        let mut imprime: Vec<crate::aer::Ligne> = Vec::new();
+        for att in groupe {
+            let champs = crate::aer::champs(&att.donnees).map_err(|e| match e {
+                AerEchec::Fabrique(m) | AerEchec::Autre(m) => Echec::from(m),
+                AerEchec::Ecarts(e) => Echec::from(e.join("; ")),
+            })?;
+            imprime.extend(crate::aer::lire_quantites(&champs).map_err(Echec::from)?);
+        }
+        let ecarts = match periodes_attendues(o, ctx, &mut par_mois, periode, &cle, sans_cache)? {
+            Some(attendues) => crate::aer::ecarts(&imprime, &attendues),
+            None => Vec::new(),
+        };
+        if !ecarts.is_empty() && !forcer {
+            // Une seule fausse et rien ne part.
+            fait.refusees.push((cle, periode.clone(), ecarts));
+            continue;
         }
         let signature = crate::bulletin::identite_de(&ctx.entreprise_et_gabarits(), "signature").map(|f| f.to_string_lossy().into_owned());
         let cachet = cachet_pose(&ctx.entreprise_et_gabarits());
-        let (mut signees, mut ecarts): (Vec<Vec<u8>>, Vec<String>) = (Vec::new(), Vec::new());
+        let mut signees: Vec<Vec<u8>> = Vec::new();
         for att in groupe {
             let a = Authentification {
                 ent: &ctx.entreprise,
                 aujourdhui: ctx.aujourdhui,
                 signature: signature.as_deref(),
-                paies: if paies.is_empty() { None } else { Some(&paies) },
+                // Deja verifiee ci-dessus, sur l'ensemble des attestations du salarie.
+                paies: None,
                 forcer,
                 cachet_fichier: cachet.as_deref(),
             };
             match authentifier(&att.donnees, &a) {
                 Ok(octets) => signees.push(octets),
-                Err(AerEchec::Ecarts(e)) => ecarts.extend(e),
+                Err(AerEchec::Ecarts(e)) => return Err(Echec::from(e.join("; "))),
                 Err(AerEchec::Fabrique(m)) | Err(AerEchec::Autre(m)) => return Err(Echec::from(m)),
             }
-        }
-        if !ecarts.is_empty() {
-            // Une seule fausse et rien ne part.
-            fait.refusees.push((cle, periode.clone(), ecarts));
-            continue;
         }
         let donnees = if signees.len() == 1 { signees.remove(0) } else { assembler(&signees)? };
         let cible = ctx.racine.join("sorties").join(periode).join("envoi");
