@@ -137,9 +137,9 @@ impl Echeance {
         // « Le 15/11/2026 (dimanche) », « Le 05/04/2026 (dimanche), le 06/04/2026 (Lundi de Pâques, fête légale) ».
         let jours: Vec<String> = self.sautes.iter().map(|(j, p)| format!("le {} ({})", j.jj_mm_aaaa(), p)).collect();
         Some(format!(
-            "L{} n'{} pas ouvré{} : l'échéance du {} est reportée au {} (CSS R. 133-14, I).",
+            "L{} {} pas ouvré{} : l'échéance du {} est reportée au {} (CSS R. 133-14, I).",
             &jours.join(", ")[1..],
-            if jours.len() > 1 { "sont" } else { "est" },
+            if jours.len() > 1 { "ne sont" } else { "n'est" },
             if jours.len() > 1 { "s" } else { "" },
             self.nominale.jj_mm_aaaa(),
             lisible(&self.jour)
