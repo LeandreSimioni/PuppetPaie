@@ -36,6 +36,27 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
    2026) : pas de compatibilité avec l'ancien, pas de circuit provisoire ; on fait directement la version définitive, quitte à
    tout casser. L'ancien marche pour les paies si le logiciel est indisponible deux jours.
 
+## L'architecture s'impose, elle ne se raconte pas (Léandre, 24/10/2026)
+
+- **Le code dit ce qui est, jamais comment on y est arrivé.** Un commentaire donne le *pourquoi* d'une règle (le texte
+  déposé qui la fonde, la contrainte de la norme) ; il ne donne jamais l'*historique* d'une décision : pas de « avant, on
+  faisait… », « comme le Python », « depuis le #253 », « Léandre a demandé », pas de justification d'un changement
+  d'architecture. L'architecture est celle-ci, on l'assume. L'histoire va au journal du privé, nulle part ailleurs ; un
+  commentaire d'histoire croisé en passant s'efface.
+- **Les mots** : l'**engagement** est au centre et porte ses calculs ; le **contrat** est le document qu'il fait signer ; la
+  **paie** est ce qui part avec le bulletin. « Paie » ne nomme jamais l'engagement (#259). Tout document (contrat, DPAE,
+  DSN, bulletin, AER, paiements) se fabrique depuis l'engagement validé ; aucun ne recalcule.
+- **L'écran commande, le moteur obéit.** Ce que l'utilisateur voit (l'engagement et ses cases, les étapes du #257) dit ce
+  que le moteur doit fournir ; la complexité du droit vit dans le calcul et les barèmes datés, jamais dans le parcours
+  (pas d'état, de bouton ni de refus de plus pour une règle).
+- **Reconstruire, c'est renommer et rebrancher, partie par partie** : on reprend les fonctions existantes, on les renomme,
+  on les branche du bon côté, on vérifie **une fois, à la main**, sur une compagnie fictive, que le résultat est juste, puis
+  on supprime l'ancien branchement et ses tests dans le même geste. **Aucun test ne vérifie que le nouveau ressemble à
+  l'ancien.**
+- **Le nombre de tests ne monte pas.** Une fonctionnalité n'apporte pas de tests d'office. Ne s'écrivent que : un test par
+  règle tirée d'un texte déposé, un test par bug réel qui a échappé, quelques parcours de bout en bout sur les fictives.
+  Un test de l'ancien parcours meurt avec lui.
+
 ## Une séance, par tickets
 
 - **Un ticket** : lire ce qu'il dit, le reproduire (dans la fenêtre, sur une compagnie fictive, ou par `paie route`), corriger
