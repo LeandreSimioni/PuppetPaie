@@ -21,7 +21,7 @@
 //! (`demande` : `debut`, `numero`, le salaire mensuel et la duree du travail du contrat, `fin` s'il a un terme),
 //! s'ecrivent sur ses contrats repris (`contrat_debut`, `contrat_fin`, `numero`, `contrat_salaire_mensuel`,
 //! `contrat_quotite`), et le contrat se reprend au mois suivant (`repris_en_cours`, lu par
-//! `routes_contrats::contrats_en_cours`) avec son numero (`numero_repris`, lu par `engagement::suivre_permanent`).
+//! `routes_contrats::contrats_en_cours`) avec son numero, que l'engagement relit (`engagement::suivre_permanent`).
 //!
 //! Un salarie, une reponse : les bulletins d'un permanent attestent un contrat par mois, tous du meme contrat.
 
@@ -297,15 +297,6 @@ pub(crate) fn repris_en_cours(racine: &Path, mois: &str) -> Vec<Repris> {
         .filter(|r| r.depuis.as_str() < mois && r.debut.as_str() < premier.as_str() && (r.fin.is_empty() || r.fin >= premier))
         .filter(|r| droit::natures::nature(Some(&r.nature)).is_ok_and(|n| n.mensuelle() && (n.duree_indeterminee || !r.fin.is_empty())))
         .collect()
-}
-
-/// Le numero d'un contrat repris de `salarie` qui commence le `debut` (`AAAA-MM-JJ`), tel que la DSN de l'ancien
-/// logiciel l'a declare.
-pub(crate) fn numero_repris(racine: &Path, salarie: &str, debut: &str) -> Option<String> {
-    engagements(racine)
-        .iter()
-        .find(|e| texte(e, "salarie") == salarie && texte(e, "contrat_debut") == debut && !texte(e, "numero").is_empty())
-        .map(|e| texte(e, "numero"))
 }
 
 /// La nature d'un contrat repris, pour qui la montre (le livre de paie d'un mois d'avant) : la sienne, « a dire » s'il

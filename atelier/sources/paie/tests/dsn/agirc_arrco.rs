@@ -8,11 +8,11 @@
 //! Le rejeu des mois deposes des compagnies fictives : `compagnies fictives.rs`.
 
 use crate::outils::{self, compagnie, dec, fictive, paires as lignes, versement};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::Decimal;
 use serde_json::{json, Value};
 
@@ -287,7 +287,7 @@ fn sig_18_n_exige_le_142_que_sous_une_base_datee_dans_le_mois_principal() {
     assert!(refuse.is_err());
 }
 
-fn ligne<'a>(p: &'a Paie, id: &str) -> &'a paie::calcul::LigneCotisation {
+fn ligne<'a>(p: &'a Paie, id: &str) -> &'a engagement::calcul::LigneCotisation {
     p.lignes.iter().find(|l| l.id == id).unwrap_or_else(|| panic!("pas de ligne {} au bulletin", id))
 }
 
@@ -394,7 +394,7 @@ fn un_cadre_permanent_declare_142_sous_la_tranche_1_et_146_sous_la_tranche_2_et_
     let a: Vec<&L81> = l.iter().filter(|x| ["131", "142", "146", "132"].contains(&x.code.as_str())).collect();
     let vu: Vec<(&str, Option<String>, Decimal, Option<String>)> =
         a.iter().map(|x| (x.code.as_str(), x.assiette.clone(), x.montant, x.taux.clone())).collect();
-    let s3 = |l: &paie::calcul::LigneCotisation| (Some(paie::dsn::mt(l.base)), l.montant_pat, Some(taux3(l.taux_pat.unwrap())));
+    let s3 = |l: &engagement::calcul::LigneCotisation| (Some(paie::dsn::mt(l.base)), l.montant_pat, Some(taux3(l.taux_pat.unwrap())));
     let (b1, m1, x1) = s3(t1);
     let (bc, mc, xc) = s3(cet);
     let (b2, m2, x2) = s3(t2);

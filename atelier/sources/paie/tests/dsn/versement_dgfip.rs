@@ -13,7 +13,7 @@ use crate::outils::{self, compagnie, dec, fictive, paires as lignes};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use socle::num::Decimal;
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
@@ -55,7 +55,7 @@ fn a_l_euro(x: Decimal) -> Decimal {
 }
 
 /// Tous les salaries du mois a un taux DGFiP nul.
-fn pas_nul(paies: &[paie::calcul::Paie]) -> Options {
+fn pas_nul(paies: &[engagement::calcul::Paie]) -> Options {
     let mut o = Options::default();
     for p in paies {
         o.pas_par_salarie.insert(p.salarie["_cle"].as_str().unwrap().to_string(), Some((json!("0.00"), json!("01"), json!("891000000"))));

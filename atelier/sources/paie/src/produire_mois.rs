@@ -27,12 +27,12 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
 use droit::contexte::Contexte;
 use crate::depot_acte::avec_donnee;
 use socle::ecriture::{ecrire_json, json_indente};
-use crate::engagement::{self, Avis};
+use engagement::{self, Avis};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -813,7 +813,7 @@ fn produire_mois(
     }
     // LES SUSPENSIONS (bloc 65) : chacune se declare entiere dans la DSN de chaque mois qu'elle traverse, tiree du magasin
     // des imprevus sous son contrat (`imprevus::suspensions_du_mois`) ; dit ici, comme l'arret.
-    for s in crate::imprevus::du_mois(&ctx.racine, &mois, Some(crate::imprevus::SUSPENSION)).map_err(crate::routes_listes::refus_magasin)? {
+    for s in engagement::imprevus::du_mois(&ctx.racine, &mois, Some(engagement::imprevus::SUSPENSION)).map_err(crate::routes_listes::refus_magasin)? {
         let jour = |v: &Value| -> R<String> { Ok(crate::bulletin::jj_mm_aaaa(v).map_err(valeur)?) };
         avertissements.push(info(format!(
             "Suspension declaree dans la DSN : {}, motif {}, du {} au {}.",
@@ -992,7 +992,7 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
     crate::routes_ecritures::refuser_si_hors_delai(ctx, &mois, forcer)?;
     let chemin = crate::routes_ecritures::ecrire_saisie(o, ctx, &mois, brute, forcer, true)?;
     // Puis tout part du FICHIER : le calcul, les manques, le controle du calcul stocke, la production et ses numeros.
-    let mut data = crate::engagement::lire_saisie(&chemin).map_err(Echec::from)?;
+    let mut data = engagement::lire_saisie(&chemin).map_err(Echec::from)?;
     if let Value::Object(d) = &mut data {
         d.insert("mois".into(), Value::String(mois.clone()));
     }
@@ -1028,7 +1028,7 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
 /// numeros, comme le Python qui n'a pas ici le controle de `fermer_mois`.
 pub(crate) fn produire_pour_l_horloge(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, qui: &str) -> R<()> {
     let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let mut data = crate::engagement::lire_saisie(&chemin).map_err(Echec::from)?;
+    let mut data = engagement::lire_saisie(&chemin).map_err(Echec::from)?;
     if let Value::Object(m) = &mut data {
         if !m.contains_key("mois") {
             m.insert("mois".into(), Value::String(mois.to_string()));

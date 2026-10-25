@@ -12,12 +12,12 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`) ; saisies et compagnie retouchee dans le dossier des tests.
 
 use paie::bulletin::{fmt_eur, jeux_et_description};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::catalogue::{catalogue, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::collections::HashMap;

@@ -7,7 +7,7 @@
 use crate::outils::{self, compagnie};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use paie::engagement::charger;
+use engagement::charger;
 use paie::fctu::{self, Echec};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -80,7 +80,7 @@ fn le_code_032_n_accompagne_qu_une_inaptitude() {
 
 /// Le contrat `numero` de la copie, sa paie de juin 2026 (le solde de tout compte), et le signalement de sa fin pour
 /// `motif` avec le type de preavis `type_preavis` (du 01/06 au 30/06, notifie le 29/05).
-fn paie_et_fctu(racine: &PathBuf, numero: &str, motif: &str, type_preavis: &str) -> (paie::calcul::Paie, Result<String, Echec>) {
+fn paie_et_fctu(racine: &PathBuf, numero: &str, motif: &str, type_preavis: &str) -> (engagement::calcul::Paie, Result<String, Echec>) {
     let ctx = Contexte::nouveau(racine, Some(Jour::lire(JOUR).unwrap())).unwrap();
     let s = charger(&ctx, &racine.join("paies/2026-06.json")).unwrap_or_else(|m| panic!("{}", m));
     let paie = s.paies.into_iter().find(|p| p.engagement.numero.as_deref() == Some(numero)).unwrap();
@@ -106,7 +106,7 @@ fn cdi_preavis_non_effectue(test: &str, motif: &str, type_preavis: &str) -> Path
     )
 }
 
-fn avis(paie: &paie::calcul::Paie) -> String {
+fn avis(paie: &engagement::calcul::Paie) -> String {
     paie.avertissements.iter().map(|a| a.texte.clone()).collect::<Vec<_>>().join("\n")
 }
 

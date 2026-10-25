@@ -22,7 +22,6 @@ use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::ecriture::ecrire_json;
 use droit::emplois;
-use crate::engagement;
 use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -778,7 +777,7 @@ pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) ->
 /// Le contrat de chaque engagement : (cle du salarie, premier jour, numero POSE dans la saisie) -- l'identite de
 /// `jumeaux` : deux contrats du meme salarie qui commencent le meme jour ne se confondent pas.
 pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, String> {
-    let lignes: engagement::LignesPermanent = &crate::conges::lignes_du_mois;
+    let lignes: engagement::LignesPermanent = &engagement::conges::lignes_du_mois;
     let (engs, _) = engagement::engagements(ctx, data, lignes)?;
     let bruts = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     let mut out = Vec::new();

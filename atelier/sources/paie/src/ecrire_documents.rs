@@ -14,11 +14,10 @@ use std::path::Path;
 
 use serde_json::{json, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
 use droit::contexte::Contexte;
 use socle::ecriture::json_indente;
-use crate::engagement;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::lire_json;

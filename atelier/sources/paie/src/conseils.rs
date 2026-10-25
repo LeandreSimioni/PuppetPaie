@@ -29,13 +29,13 @@ use std::sync::Arc;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use crate::cumul::{self, Constantes, Engagement as Declare, Fenetre};
+use engagement::cumul::{self, Constantes, Engagement as Declare, Fenetre};
 use socle::date::{en_texte, Jour};
 use droit::emplois;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::minima::{self, Par};
+use engagement::minima::{self, Par};
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
@@ -726,7 +726,7 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
         if !socle::fichiers::existe(&chemin) {
             continue;
         }
-        let Ok(saisie) = crate::engagement::charger(ctx, &chemin) else { continue };
+        let Ok(saisie) = engagement::charger(ctx, &chemin) else { continue };
         for p in &saisie.paies {
             let e = &p.engagement;
             if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {

@@ -12,7 +12,7 @@ use serde_json::{json, Map, Value};
 
 use crate::avenant::valeurs_de_la_paie;
 use crate::bulletin::{identite_de, FORMAT, LOGO_LARGEUR, LOGO_MARGE_DROITE, LOGO_MARGE_HAUT};
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::conges_spectacles::chemin_texte;
 use droit::contexte::Contexte;
 use crate::routes_ouverture::Refus;

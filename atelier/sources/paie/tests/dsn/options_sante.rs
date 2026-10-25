@@ -22,7 +22,7 @@
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{bloc_contrat, generer, Fichier, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use crate::outils::{chemin_unique, contrat, dec, ecrire, lire, paires, valeur, versement, Copie};
 use serde_json::{json, Value};
 

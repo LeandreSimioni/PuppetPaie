@@ -13,7 +13,7 @@ use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::etats::{self, get};
 use socle::valeur::valeur_en_texte;
@@ -215,13 +215,13 @@ pub(crate) fn paies_de_en(o: &HashMap<String, String>, ctx: &Contexte, data: &Va
 pub(crate) fn saisie_d_origine(ctx: &Contexte, mois: &str) -> R<Value> {
     let declaree = chemin_saisie_declaree(ctx, mois);
     if declaree.exists() {
-        return Ok(crate::engagement::lire_saisie(&declaree)?);
+        return Ok(engagement::lire_saisie(&declaree)?);
     }
     let p = ctx.racine.join("paies").join(format!("{}.json", mois));
     if !p.exists() {
         return Err(non_regularisable(format!("La saisie de {} (paies/{}.json) n'est pas sur le disque : rien a corriger.", mois, mois)));
     }
-    Ok(crate::engagement::lire_saisie(&p)?)
+    Ok(engagement::lire_saisie(&p)?)
 }
 
 /// `lire_corrections`, reduit a ce que l'apercu lit : l'engagement que la derniere correction PORTEE a
@@ -701,7 +701,7 @@ pub(crate) fn propager_les_bornes(ctx: &Contexte, mois: &str, ancienne: &Value, 
             continue;
         }
         let chemin = ctx.racine.join("paies").join(format!("{}.json", autre));
-        let Ok(mut saisie) = crate::engagement::lire_saisie(&chemin) else { continue };
+        let Ok(mut saisie) = engagement::lire_saisie(&chemin) else { continue };
         let Some(ids) = identifies(ctx, &saisie) else { continue };
         let Some(bornes_ici) = bornes_saisies(ctx, &saisie) else { continue };
         let mut touche = false;
@@ -759,8 +759,8 @@ pub(crate) fn ce_qui_a_change(o: &HashMap<String, String>, ctx: &Contexte, mois:
     if !copie.exists() || !saisie.exists() {
         return Ok(None);
     }
-    let declaree = crate::engagement::lire_saisie(&copie)?;
-    let actuelle = crate::engagement::lire_saisie(&saisie)?;
+    let declaree = engagement::lire_saisie(&copie)?;
+    let actuelle = engagement::lire_saisie(&saisie)?;
     let (Ok(p_avant), Ok(p_apres)) = (paies_de_en(o, ctx, &declaree, true), paies_de_en(o, ctx, &actuelle, true)) else {
         return Ok(None);
     };
@@ -828,7 +828,7 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
 pub(crate) fn debut_declare_avant(ctx: &Contexte, cle: &str, numero: &str, debut: &str) -> Option<String> {
     crate::routes_mois::mois_saisis(&ctx.racine).into_iter().find_map(|m| {
         let copie = chemin_saisie_declaree(ctx, &m);
-        let declaree = crate::engagement::lire_saisie(&copie).ok()?;
+        let declaree = engagement::lire_saisie(&copie).ok()?;
         let ids = crate::routes_ecritures::identifiants(ctx, &declaree).ok()?;
         ids.into_iter().find(|(s, d, n)| s == cle && n.as_deref() == Some(numero) && d != debut).map(|(_, d, _)| d)
     })
@@ -870,8 +870,8 @@ pub(crate) fn dpae_d_une_date_changee(avant: &str, apres: &str) -> (bool, String
 
 /// Les bornes de chaque engagement d'une saisie, telles que le moteur les lit ; `None` si elle ne se lit pas.
 fn bornes_saisies(ctx: &Contexte, d: &Value) -> Option<Vec<Bornes>> {
-    let lignes: crate::engagement::LignesPermanent = &crate::conges::lignes_du_mois;
-    let (engs, _) = crate::engagement::engagements(ctx, d, lignes).ok()?;
+    let lignes: engagement::LignesPermanent = &engagement::conges::lignes_du_mois;
+    let (engs, _) = engagement::engagements(ctx, d, lignes).ok()?;
     Some(engs.iter().map(|e| (e.debut.iso(), e.fin.map(|f| f.iso()))).collect())
 }
 
@@ -998,7 +998,7 @@ fn apercu_d_un_ajout(
 /// ecrite, et pose dans la saisie du mois.
 pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> R<String> {
     let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let mut data = crate::engagement::lire_saisie(&chemin)?;
+    let mut data = engagement::lire_saisie(&chemin)?;
     let ids = crate::routes_ecritures::identifiants(ctx, &data).map_err(|e| erreur("ValueError", e))?;
     let rang = ids
         .iter()

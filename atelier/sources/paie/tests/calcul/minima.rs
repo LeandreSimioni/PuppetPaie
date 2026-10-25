@@ -4,11 +4,11 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{fictive, fnv, lire_oracle, oracle, reecrire_oracles, tire};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use paie::engagement::{charger, Avis};
-use paie::minima;
+use engagement::{charger, Avis};
+use engagement::minima;
 use socle::num::Decimal;
 use serde_json::{json, Map, Value};
 use std::str::FromStr;

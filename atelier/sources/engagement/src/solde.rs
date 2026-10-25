@@ -13,7 +13,7 @@ use crate::conges::{
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::Nature;
 use socle::date::{d, en_texte, premier_du_mois, repr_flottant};
-use crate::engagement::Avis;
+use crate::Avis;
 use socle::fichiers::vrai;
 use socle::num::{add, dec, dec_avec_echelle, div, eur2, flottant, mul, zero2, Decimal, Resultat};
 use droit::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
@@ -407,7 +407,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
     // --- le type de preavis que le signalement declarera (S21.G00.63.001) et ce que ce solde verse (lot P2) : le
     // signalement refuse un desaccord (`fctu::generer`) ; le solde le dit des la saisie.
     if let Some(type_preavis) = e.get("preavis").and_then(|p| p.get("type")).filter(|t| vrai(t)).map(t) {
-        let codes = crate::fctu::codes_52_de_l_indemnite_de_preavis()?;
+        let codes = droit::preavis::codes_52_de_l_indemnite_de_preavis()?;
         let mut versees = Vec::new();
         for l in &stc.lignes {
             let r = rubrique(&ctx.racine, &t(cle(l, "rubrique")?))?;
@@ -415,7 +415,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
                 versees.push((c, r.libelle));
             }
         }
-        if let Some(pourquoi) = crate::fctu::desaccord_du_preavis(&type_preavis, &versees)? {
+        if let Some(pourquoi) = droit::preavis::desaccord_du_preavis(&type_preavis, &versees)? {
             stc.avertissements.push(avertir(format!(
                 "{} : {} Le signalement de fin de contrat le refusera tel quel.",
                 numero, pourquoi

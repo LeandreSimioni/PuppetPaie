@@ -7,7 +7,7 @@
 use crate::outils::{copier, fictive, dossier_de_test, lire_oracle, oracle};
 use droit::contexte::Contexte;
 use socle::date::{d, Jour};
-use paie::engagement::{engagements, engagements_du_fichier, suivre_contrat, Avis, Engagement};
+use engagement::{engagements, engagements_du_fichier, suivre_contrat, Avis, Engagement};
 use serde_json::{json, Map, Value};
 use std::cell::Cell;
 use std::path::Path;
@@ -201,17 +201,17 @@ fn le_mois_suivant_d_un_jumeau_recopie_son_premier_mois_et_pas_celui_de_l_autre(
 
 /// Un mois de permanent de la fictive (inventee), lu par `engagements` avec les
 /// vraies lignes du mois, puis calcule.
-fn mois_permanent(e: Value) -> (Engagement, paie::calcul::Paie) {
+fn mois_permanent(e: Value) -> (Engagement, engagement::calcul::Paie) {
     let ctx = contexte(&fictive("fictive-1285-grande"));
     let data = json!({"mois": "2026-03", "date_paiement": "2026-03-31", "engagements": [e]});
-    let (engs, _) = engagements(&ctx, &data, &paie::conges::lignes_du_mois).unwrap();
+    let (engs, _) = engagements(&ctx, &data, &engagement::conges::lignes_du_mois).unwrap();
     let eng = engs.into_iter().next().unwrap();
-    let p = paie::calcul::calculer(&ctx, &eng).unwrap();
+    let p = engagement::calcul::calculer(&ctx, &eng).unwrap();
     (eng, p)
 }
 
 /// Les blocs S21.G00.53 sous la remuneration 002 : (type, valeur, unite).
-fn activites_dsn(p: &paie::calcul::Paie) -> Vec<(String, String, String)> {
+fn activites_dsn(p: &engagement::calcul::Paie) -> Vec<(String, String, String)> {
     let mut f = paie::dsn::Fichier::nouveau();
     let (debut, fin) = (Jour::lire("2026-03-01").unwrap(), Jour::lire("2026-03-31").unwrap());
     paie::dsn::remunerations(&mut f, p, &debut, &fin, 1).unwrap();
@@ -250,7 +250,7 @@ fn une_absence_ne_se_saisit_plus_dans_le_mois() {
         "salaire_mensuel": 2200.0, "quotite_contrat": 151.67,
         "absences": [{"motif": "maladie", "debut": "2026-03-16", "fin": "2026-03-18", "heures": 20}]
     }]});
-    let refus = engagements(&ctx, &data, &paie::conges::lignes_du_mois).err().expect("des absences dans le mois");
+    let refus = engagements(&ctx, &data, &engagement::conges::lignes_du_mois).err().expect("des absences dans le mois");
     assert!(refus.contains("absences") && refus.contains("imprevu"), "{}", refus);
 }
 
@@ -263,10 +263,10 @@ fn une_absence_ne_se_saisit_plus_dans_le_mois() {
 fn un_numero_de_contrat_porte_par_deux_salaries_se_refuse() {
     let ctx = contexte(&fictive("fictive-3090-petite"));
     let mut data = crate::outils::lire(&fictive("fictive-3090-petite"), "paies/2026-08.json");
-    assert!(paie::engagement::charger_donnees(&ctx, &data).is_ok());
+    assert!(engagement::charger_donnees(&ctx, &data).is_ok());
     let numero = data["engagements"][0]["numero"].clone();
     data["engagements"][1]["numero"] = numero.clone();
-    let refus = paie::engagement::charger_donnees(&ctx, &data).err().expect("un numero sur deux salaries");
+    let refus = engagement::charger_donnees(&ctx, &data).err().expect("un numero sur deux salaries");
     let (a, b) = (data["engagements"][0]["salarie"].as_str().unwrap(), data["engagements"][1]["salarie"].as_str().unwrap());
     let bas = refus.to_lowercase();
     assert!(refus.contains(numero.as_str().unwrap()) && bas.contains(&a.to_lowercase()) && bas.contains(&b.to_lowercase()), "{}", refus);
@@ -322,7 +322,7 @@ fn une_ligne_qui_demande_ses_heures_ne_passe_pas_sans_elles() {
         data["engagements"][0]["debut"] = json!("2026-08-19");
         data["engagements"][0]["fin"] = json!("2026-08-20");
         data["engagements"][0]["lignes"] = json!([ligne]);
-        engagements(&ctx, &data, &paie::conges::lignes_du_mois)
+        engagements(&ctx, &data, &engagement::conges::lignes_du_mois)
     };
     let dates = json!(["2026-08-19", "2026-08-20"]);
     for (rubrique, heures) in [("repetition", None), ("repetition", Some(json!(0))), ("journee", None), ("journee", Some(Value::Null))] {
@@ -332,7 +332,7 @@ fn une_ligne_qui_demande_ses_heures_ne_passe_pas_sans_elles() {
         }
         let refus = avec(ligne).err().unwrap_or_else(|| panic!("{} sans heures ({:?}) passe", rubrique, heures));
         assert!(refus.starts_with("L'engagement 1 de 2026-08 : sa ligne 1 ") && refus.contains("ne dit pas ses heures"), "{}", refus);
-        assert!(paie::engagement::saisie_incomplete(&refus), "{}", refus);
+        assert!(engagement::saisie_incomplete(&refus), "{}", refus);
     }
     // Une ligne de quantite nulle ne paie rien et ne compte rien : elle n'a pas d'heures a dire.
     let (engs, _) = avec(json!({"rubrique": "repetition", "quantite": 0, "taux": 120.0, "dates": dates})).unwrap();
@@ -340,6 +340,6 @@ fn une_ligne_qui_demande_ses_heures_ne_passe_pas_sans_elles() {
     // Avec ses heures, la ligne passe et la paie les compte.
     let (engs, _) = avec(json!({"rubrique": "repetition", "quantite": 2, "taux": 120.0, "heures": 4, "dates": dates})).unwrap();
     assert_eq!(engs[0].heures, Some(8.0));
-    let p = paie::calcul::calculer(&ctx, &engs[0]).unwrap();
+    let p = engagement::calcul::calculer(&ctx, &engs[0]).unwrap();
     assert_eq!(p.heures, crate::outils::dec("8"));
 }

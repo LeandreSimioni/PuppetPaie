@@ -296,7 +296,7 @@ impl Choix {
 }
 
 /// Le choix, pour le mois `mois`, sur sa saisie `data` et ses paies calculees (`charger_le_mois_avec`).
-pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::calcul::Paie]) -> R<Choix> {
+pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[engagement::calcul::Paie]) -> R<Choix> {
     let lignes = crate::etats::charger(&ctx.racine)?;
     let partis = crate::etats::documents_partis(&lignes, mois)?;
     let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).collect();
@@ -307,7 +307,7 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
         if resumes.contains_key(cle) {
             continue;
         }
-        let siennes: Vec<&crate::calcul::Paie> = paies.iter().zip(&cles).filter(|(_, c)| *c == cle).map(|(p, _)| p).collect();
+        let siennes: Vec<&engagement::calcul::Paie> = paies.iter().zip(&cles).filter(|(_, c)| *c == cle).map(|(p, _)| p).collect();
         resumes.insert(cle.clone(), envoi::resume_de(&siennes).map_err(Echec::from)?);
     }
     let mut choix = Choix { empreintes, resumes, ..Choix::default() };

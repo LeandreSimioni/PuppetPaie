@@ -49,7 +49,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::cachet;
+use engagement::cachet;
 use socle::date::{en_texte, Jour};
 use socle::fichiers::vrai;
 use socle::num::Resultat;
@@ -99,7 +99,7 @@ const NUM_CONTRAT: &str = "CON_NUMERO_";
 /// « Ce qu'on en conclut », point 1). Un permanent (CDI, CDD de droit commun) n'en a pas : sa fin de contrat est un
 /// signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et l'attestation de droit commun qui en
 /// revient n'est pas celle-ci.
-pub fn due(e: &crate::engagement::Engagement) -> Resultat<bool> {
+pub fn due(e: &engagement::Engagement) -> Resultat<bool> {
     if e.nat()?.mensuelle() {
         return Ok(false);
     }
@@ -116,7 +116,7 @@ pub fn due(e: &crate::engagement::Engagement) -> Resultat<bool> {
 /// `net-entreprises-base-connaissances/net-entreprises-fiche3037-attestation-employeur-aed-fctu-20250323.txt`). Le moteur
 /// ne la range pas pour l'envoi : la forme de ce PDF (ses champs, son cadre d'authentification) n'est relevee sur
 /// aucune piece deposee. Le courriel des documents le dit (`envoi::NOTE_SANS_ATTESTATION_FCTU`), sans rien promettre.
-pub fn attestation_fctu(e: &crate::engagement::Engagement) -> Resultat<bool> {
+pub fn attestation_fctu(e: &engagement::Engagement) -> Resultat<bool> {
     let nat = e.nat()?;
     if !nat.signalement_fctu(e.motif_rupture.as_deref().filter(|m| !m.is_empty())) {
         return Ok(false);
@@ -300,7 +300,7 @@ pub struct PaieAer {
 
 impl PaieAer {
     /// La periode d'une paie : son contrat (`e.debut`, `e.fin`) borne au mois de la paie.
-    pub fn du_mois(e: &crate::engagement::Engagement) -> Resultat<PaieAer> {
+    pub fn du_mois(e: &engagement::Engagement) -> Resultat<PaieAer> {
         let (d, f) = (e.debut_mois()?, e.fin_mois()?);
         let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.clone().unwrap_or_default()))?;
         Ok(PaieAer {

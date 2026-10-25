@@ -10,8 +10,8 @@
 //! cadre, 3 010 EUR ; DORVAL depuis le 01/04/2025, technicienne non cadre, 2 200 EUR ; toutes les DSN deposees jusqu'a
 //! aout 2026), copiee dans le dossier temporaire des tests avant d'y retoucher les fiches et les saisies.
 
-use paie::engagement::Saisie;
-use paie::calcul::Paie;
+use engagement::Saisie;
+use engagement::calcul::Paie;
 use socle::num::Decimal;
 use serde_json::json;
 use crate::outils::permanents::{bloc, blocs_41, contexte, deposer, dorval_cadre_au, dsn, retoucher_saisie, saisie};

@@ -9,11 +9,11 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : les
 //! saisies s'ecrivent dans le dossier temporaire des tests.
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::{eur, pct, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};

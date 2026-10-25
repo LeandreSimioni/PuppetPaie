@@ -21,9 +21,9 @@
 //! Chaminade (regisseur lumiere) un technicien, Montansier une cadre ; Deburau a un contrat en mars 2026. La reduction
 //! generale sous DFS : arrete du 4 decembre 2019, art. 1er (`dfs/arrete-2019-reduction-generale/`).
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::Decimal;
 use serde_json::{json, Value};
 use crate::outils::{chemin_unique, copier, dec, fictive, ecrire, lire, Copie};

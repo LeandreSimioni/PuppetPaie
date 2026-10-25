@@ -22,11 +22,11 @@
 //! AUDINOT en CDD (motif 02, accroissement temporaire d'activite, technicienne : non declaree a la caisse) et MONTANSIER
 //! en CDI ; en octobre 2026, Deburau, comedien, en CDD de droit commun de trois mois (declare a la caisse).
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use socle::num::{pct, Decimal};
 use rust_decimal::RoundingStrategy;
 use crate::outils::{base81, chemin_unique, ctp, dec, fictive, ecrire, lire, versement, Copie};

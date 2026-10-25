@@ -20,10 +20,9 @@ use std::str::FromStr;
 use serde_json::{json, Map, Value};
 
 use crate::bulletin::FORMAT;
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
-use crate::engagement;
 use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};

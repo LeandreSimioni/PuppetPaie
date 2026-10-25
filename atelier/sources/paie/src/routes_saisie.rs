@@ -24,10 +24,10 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::amorcage;
-use crate::calcul::lignes_brut;
+use engagement::calcul::lignes_brut;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, jours_du_mois, Jour};
-use crate::engagement::{self, Engagement};
+use engagement::{self, Engagement};
 use crate::etats;
 use socle::valeur::nom_type;
 use socle::echec::R;
@@ -216,9 +216,9 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
 /// contrat qui deborde, plus les lignes de remuneration de chaque engagement
 /// paye au cachet (elles ne dependent que de l'engagement). `None` quand le
 /// Python aurait refuse la saisie (la page la montre alors telle quelle).
-fn charger_sans_calcul(ctx: &Contexte, data: &Value) -> Option<Vec<crate::calcul::Paie>> {
-    let _derivation = crate::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, data, &crate::conges::lignes_du_mois).ok()?;
+fn charger_sans_calcul(ctx: &Contexte, data: &Value) -> Option<Vec<engagement::calcul::Paie>> {
+    let _derivation = engagement::conges::Derivation::ouvrir();
+    let (engs, _) = engagement::engagements(ctx, data, &engagement::conges::lignes_du_mois).ok()?;
     let mut paies = Vec::new();
     for e in &engs {
         paies.push(amorcage::embauche(ctx, e).ok()?);
@@ -285,7 +285,7 @@ const CHAMPS_DE_LIGNE_GARDES: [&str; 4] = ["heures", "genre", "base", "taux_majo
 
 /// `web._lignes_affichees` : les lignes de paie telles que le MOTEUR les a comprises.
 /// `remuneration` suit les lignes du fichier une a une (`calcul::lignes_brut`).
-fn lignes_affichees(ctx: &Contexte, p: &crate::calcul::Paie, brutes: &[Value]) -> R<Vec<Value>> {
+fn lignes_affichees(ctx: &Contexte, p: &engagement::calcul::Paie, brutes: &[Value]) -> R<Vec<Value>> {
     let lignes: Vec<Map<String, Value>> = p
         .remuneration
         .iter()

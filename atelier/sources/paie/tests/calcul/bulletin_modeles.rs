@@ -15,10 +15,10 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`), lue sans y rien ecrire.
 
 use paie::bulletin::{fmt_eur, fmt_taux, jeux_et_description};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::{dec_f64, Decimal};
 use serde_json::{json, Value};
 use std::collections::HashMap;

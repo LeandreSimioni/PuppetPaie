@@ -11,7 +11,7 @@ use serde_json::{Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use crate::engagement::{charger, charger_donnees, Saisie};
+use engagement::{charger, charger_donnees, Saisie};
 use socle::fichiers::dossier_du_code;
 use socle::num::Resultat;
 
@@ -89,7 +89,7 @@ fn jour(j: Option<Jour>) -> Value {
     j.map_or(Value::Null, |j| Value::String(j.iso()))
 }
 
-fn avis(v: &[crate::engagement::Avis]) -> Value {
+fn avis(v: &[engagement::Avis]) -> Value {
     Value::Array(v.iter().map(|a| {
         let mut m = Map::new();
         m.insert("texte".into(), Value::String(a.texte.clone()));
@@ -102,7 +102,7 @@ fn avis(v: &[crate::engagement::Avis]) -> Value {
 /// `{"mois", "aujourdhui"}` -> `{"constantes", "positions": [{"cle",
 /// "anniversaire", "position", "colonnes"}]}`, les salaries dans l'ordre.
 pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
-    use crate::cumul::{anniversaire_configure, lire_engagements, position_droits, tableau_cumul, Constantes};
+    use engagement::cumul::{anniversaire_configure, lire_engagements, position_droits, tableau_cumul, Constantes};
     let d = demande(entree)?;
     let ctx = contexte(o)?;
     let (mois, aujourdhui) = (texte(&d, "mois")?, Jour::lire(texte(&d, "aujourdhui")?)?);
@@ -138,15 +138,15 @@ pub(crate) struct Provision {
     pub acquis: socle::num::Decimal,
     pub pris: socle::num::Decimal,
     pub solde: socle::num::Decimal,
-    pub avertissements: Vec<crate::engagement::Avis>,
-    pub indemnite: Option<crate::conges::IndemniteDesJours>,
+    pub avertissements: Vec<engagement::Avis>,
+    pub indemnite: Option<engagement::conges::IndemniteDesJours>,
 }
 
 /// Le calcul de `provision-conges`, pour un contexte deja lu : le compteur d'un permanent a la fin de `mois`, et
 /// l'indemnite de son solde (le dixieme ou le maintien, L3141-24) quand il est positif. `salaire_mensuel` : la
 /// valeur de l'engagement (`None` ou fausse = 0).
 pub(crate) fn provision_conges_de(ctx: &Contexte, salarie: &str, mois: &str, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
-    use crate::conges::{compteur_conges, indemnite_des_jours, jours_ouvrables};
+    use engagement::conges::{compteur_conges, indemnite_des_jours, jours_ouvrables};
     use socle::num::{dec, div, eur, mul, Decimal};
     let fin = socle::date::dernier_du_mois(mois)?;
     let cpt = compteur_conges(ctx, salarie, &fin, Some(&fin.mois_suivant()))?;

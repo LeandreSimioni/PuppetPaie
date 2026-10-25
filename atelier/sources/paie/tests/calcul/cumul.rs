@@ -5,7 +5,7 @@
 use crate::outils;
 use droit::bareme::canon;
 use droit::contexte::Contexte;
-use paie::cumul::{
+use engagement::cumul::{
     fenetre_annee_civile, fenetre_anniversaire, fenetre_douze_mois, plafond_enseignement, position, Constantes,
     Engagement, Fenetre,
 };
@@ -109,5 +109,5 @@ fn une_ligne_moins_d_enseignement_retire_ses_heures() {
     outils::ecrire(&racine, "config/rubriques-compagnie.json", &json!({"rubriques": {"enseignement_annule": retrait}}));
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-10-11").unwrap())).unwrap();
     let lignes = vec![json!({"rubrique": "enseignement", "quantite": 10, "taux": 50.0}), json!({"rubrique": "enseignement_annule", "quantite": 4, "taux": 50.0})];
-    assert_eq!(paie::cumul::heures_enseignement(&ctx, &lignes).unwrap(), 6);
+    assert_eq!(engagement::cumul::heures_enseignement(&ctx, &lignes).unwrap(), 6);
 }

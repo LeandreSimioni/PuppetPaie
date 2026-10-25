@@ -25,7 +25,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::imprevus::{self, ARRET, SUSPENSION};
+use engagement::imprevus::{self, ARRET, SUSPENSION};
 use socle::echec::Echec;
 use crate::routes_listes::refus_magasin;
 
@@ -394,7 +394,7 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
         match valeur {
             Some(v) if v < socle::num::Decimal::ZERO => return Err(refus("Un maintien de salaire ne se verse pas en negatif.")),
             Some(v) if v > socle::num::Decimal::ZERO => {
-                table.insert(mois, json!(crate::conges::flot(socle::num::eur2(v))));
+                table.insert(mois, json!(engagement::conges::flot(socle::num::eur2(v))));
             }
             _ => {
                 table.remove(&mois);
@@ -527,7 +527,7 @@ l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche n
                 avertissements.push(json!(format!(
                     "La DSN de {} est déjà partie avec l'ancienne fin (le {}) : la paie de ce mois, où les jours ajoutés \
 tombent, est à corriger.",
-                    crate::engagement::libelle_mois(&m),
+                    engagement::libelle_mois(&m),
                     fin_avant.jj_mm_aaaa()
                 )));
             }

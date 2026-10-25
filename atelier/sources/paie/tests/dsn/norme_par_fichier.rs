@@ -15,11 +15,11 @@
 //! se prouvent dans `src/usages.rs` et `src/formats.rs`.
 
 use paie::amorcage;
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use paie::fctu::{self, Echec};
 use serde_json::{json, Value};
 use crate::outils::{self, compagnie, fictive, ecrire, lire, porte};

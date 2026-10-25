@@ -28,11 +28,11 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::conges_spectacles::{self, ContratCs, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use crate::engagement::{self, Engagement};
+use engagement::{self, Engagement};
 use crate::etats::{items};
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -568,7 +568,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
     for p in paies {
         // Un permanent n'a pas de certificat Conges Spectacles ; un CDDU de douze mois ou plus non plus : il n'est pas
         // declare a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41).
-        if p.engagement.nat()?.mensuelle() || !crate::calcul::declaree_a_la_caisse_des_conges(p)? {
+        if p.engagement.nat()?.mensuelle() || !engagement::calcul::declaree_a_la_caisse_des_conges(p)? {
             continue;
         }
         let (cle, debut) = (cle_de(p), p.engagement.debut.iso());

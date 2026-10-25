@@ -15,10 +15,10 @@ fn le_solde_d_un_cdd_rompu_avant_son_terme_ne_paie_pas_le_preavis_du_licenciemen
     let ctx = droit::contexte::Contexte::nouveau(&crate::outils::fictive("fictive-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
     let e = |motif: &str| json!({"salarie": "LEMERCIER", "nature": "cdd", "debut": "2019-03-04", "fin": "2026-08-20", "motif_rupture": motif});
     let anciennete = p::anciennete_mois(&Jour::lire("2019-03-04").unwrap(), &Jour::lire("2026-08-20").unwrap());
-    let faute = paie::solde::duree_du_preavis(&ctx, &e("095"), anciennete, Some("095")).unwrap();
+    let faute = engagement::solde::duree_du_preavis(&ctx, &e("095"), anciennete, Some("095")).unwrap();
     assert_eq!(faute.mois, Some(Decimal::ZERO));
     assert_eq!(faute.legal, Some(Decimal::ZERO));
-    let cdi = paie::solde::duree_du_preavis(&ctx, &e("037"), anciennete, Some("037")).unwrap();
+    let cdi = engagement::solde::duree_du_preavis(&ctx, &e("037"), anciennete, Some("037")).unwrap();
     assert_eq!((cdi.mois, cdi.legal, cdi.convention), (None, None, None));
     assert!(cdi.pourquoi.as_deref().is_some_and(|t| t.contains("L1243-2") && t.contains("preavis_mois")), "{:?}", cdi.pourquoi);
     // Le meme motif de force majeure sur un CDI ne lit pas la regle du CDD.
@@ -36,7 +36,7 @@ fn solde_sans_preavis_effectue(nature: &str, motif: &str) -> (Vec<Value>, String
     let ctx = droit::contexte::Contexte::nouveau(&crate::outils::fictive("fictive-3090-petite"), Some(Jour::lire("2026-08-31").unwrap())).unwrap();
     let e = json!({"salarie": "LEMERCIER", "numero": "P1", "nature": nature, "debut": "2019-03-04", "fin": "2026-08-20",
                    "motif_rupture": motif, "salaire_mensuel": 2000, "preavis_non_effectue": true, "preavis_mois": 3});
-    let (lignes, avis) = paie::solde::solde_de_tout_compte(&ctx, &e, "2026-08", &[]).unwrap();
+    let (lignes, avis) = engagement::solde::solde_de_tout_compte(&ctx, &e, "2026-08", &[]).unwrap();
     (lignes, avis.iter().map(|a| a.texte.clone()).collect::<Vec<_>>().join("\n"))
 }
 
@@ -98,7 +98,7 @@ fn solde_d_une_fin_d_essai(nature: &str, motif: &str, debut: &str, notification:
     for (k, v) in champs.as_object().unwrap() {
         e[k] = v.clone();
     }
-    let (lignes, avis) = paie::solde::solde_de_tout_compte(&ctx, &e, "2026-08", &[])?;
+    let (lignes, avis) = engagement::solde::solde_de_tout_compte(&ctx, &e, "2026-08", &[])?;
     Ok((lignes, avis.iter().map(|a| a.texte.clone()).collect::<Vec<_>>().join("\n")))
 }
 

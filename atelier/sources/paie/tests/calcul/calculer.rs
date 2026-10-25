@@ -3,10 +3,10 @@
 //! ne sont pas ceux de ces bulletins : les totaux patronaux, le cout et le coefficient de la RGDU ne s'y comparent pas,
 //! le reste (assiettes, salarie, net, SMIC retenu) si.
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::d;
-use paie::engagement::charger;
+use engagement::charger;
 use serde_json::{json, Value};
 use crate::outils::{dec, fictive};
 

@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 /// Ce que la marque couvre : les sources des trois crates, et le verrou commun.
-const DOSSIERS: [&str; 3] = ["../socle/src", "../droit/src", "src"];
+const DOSSIERS: [&str; 4] = ["../socle/src", "../droit/src", "../engagement/src", "src"];
 const VERROU: &str = "../Cargo.lock";
 
 fn fichiers(dossier: &Path, out: &mut Vec<PathBuf>) {

@@ -59,7 +59,7 @@ fn cle_du_nir(ctx: &Contexte, nir: &str) -> Option<String> {
 /// declare (`imprevus::du_mois`).
 pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
-    crate::imprevus::du_mois(&ctx.racine, mois, Some(crate::imprevus::ARRET)).map_err(crate::routes_listes::refus_magasin)
+    engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::ARRET)).map_err(crate::routes_listes::refus_magasin)
 }
 
 /// `operations_arrets._mois_de` : le mois ou l'arret commence.
@@ -112,9 +112,9 @@ pub(crate) fn marquer_envoye_depuis(
 /// (un envoi de nature 01) : un imprevu declare ne s'oublie plus.
 pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand: &str) -> R<()> {
     socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
-    for a in crate::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
-        let genre = crate::imprevus::genre(&a).to_string();
-        let rangement = crate::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
+    for a in engagement::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
+        let genre = engagement::imprevus::genre(&a).to_string();
+        let rangement = engagement::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
         let Some((i, mut liste)) = crate::routes_imprevus::trouver(ctx, &genre, &valeur_en_texte(&a["salarie"]), &rangement)? else {
             return Err(erreur("ErreurOperation", format!("Aucun imprevu ({}) de {} au {}.", genre, valeur_en_texte(&a["salarie"]), rangement.jj_mm_aaaa())));
         };

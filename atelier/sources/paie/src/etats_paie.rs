@@ -16,10 +16,9 @@ use std::rc::Rc;
 use rust_xlsxwriter::{Format, FormatAlign, Workbook};
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::en_texte;
-use crate::engagement;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;

@@ -13,7 +13,7 @@ use crate::outils::{fictive, paires as lignes};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 
 /// Le bloc 20 de l'organisme `id` : ses rubriques jusqu'au bloc suivant.
 fn bloc(dsn: &str, id: &str) -> Vec<(String, String)> {

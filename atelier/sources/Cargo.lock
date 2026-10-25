@@ -498,6 +498,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "engagement"
+version = "0.1.0"
+dependencies = [
+ "droit",
+ "rust_decimal",
+ "serde_json",
+ "sha2",
+ "socle",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1130,6 +1141,7 @@ dependencies = [
  "aes-gcm",
  "droit",
  "ed25519-dalek",
+ "engagement",
  "fabrique-pdf",
  "flate2",
  "getrandom 0.3.4",

@@ -243,7 +243,7 @@ pub fn retoucher_fiches(racine: &Path, retouches: &[(&str, Value)]) {
 /// La DSN mensuelle de `mois` (`paies/<mois>.json`), produite au `jour`, sans rien écrire.
 pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, String> {
     let ctx = droit::contexte::Contexte::nouveau(racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
-    let s = paie::engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
+    let s = engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
     paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
 }
 
@@ -254,7 +254,7 @@ pub mod permanents {
     use super::*;
     use droit::contexte::Contexte;
     use socle::date::Jour;
-    use paie::engagement::{charger, Saisie};
+    use engagement::{charger, Saisie};
 
     /// Pose des champs sur l'engagement de `salarie` dans la saisie du mois.
     pub fn retoucher_saisie(racine: &Path, mois: &str, salarie: &str, champs: Value) {

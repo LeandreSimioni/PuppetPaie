@@ -36,7 +36,7 @@ use serde_json::{json, Value};
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, reduction_au_coefficient, reduction_generale, LigneCotisation, Paie, ReductionGenerale};
 use droit::contexte::{telle_qu_au, Contexte};
 use socle::date::{en_texte, Jour};
-use crate::engagement::{Avis, Engagement};
+use crate::{Avis, Engagement};
 use socle::fichiers::vrai;
 use socle::num::{dec, div, eur2, Decimal, Resultat};
 

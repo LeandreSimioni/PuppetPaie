@@ -25,7 +25,7 @@ use serde_json::{json, Map, Value};
 use crate::conges::{avertir, flot, info};
 use droit::contexte::Contexte;
 use socle::date::{d, en_texte, Jour};
-use crate::engagement::Avis;
+use crate::Avis;
 use socle::fichiers::{repr, vrai};
 use socle::num::{dec_avec_echelle, div, eur2, mul, Decimal, Resultat};
 
@@ -272,11 +272,15 @@ pub fn dernier_jour(imp: &Value) -> Resultat<Jour> {
     }
 }
 
-/// Une periode commune avec [debut, fin] : ce qui fait reporter l'imprevu dans la DSN de ce mois. Pour un arret, la
-/// regle du bloc 60 telle que la DSN l'applique (`dsn::Arret::couvre`).
+/// Une periode commune avec [debut, fin] : ce qui fait reporter l'imprevu dans la DSN de ce mois. « En cas de suspension
+/// supra-mensuelle, la suspension doit etre declaree dans toutes les DSN mensuelles dont le Mois Principal declare
+/// presente une periode commune avec la suspension » (bloc S21.G00.60, cahier technique DSN 2026.1, p. 265). Un arret
+/// court de son dernier jour travaille (S21.G00.60.002) a son dernier jour d'absence (`dernier_jour`) : la veille de la
+/// reprise, qui est le « premier jour travaille et paye suite a l'arret de travail » (S21.G00.60.010, p. 269), sinon la
+/// fin previsionnelle (S21.G00.60.003, p. 267). Un arret repris le 1er du mois n'a donc aucun jour commun avec ce mois.
 pub fn croise(imp: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
     if est_un_arret(imp) {
-        return crate::dsn::Arret { v: imp.clone() }.couvre(debut, fin);
+        return Ok(d(g(imp, "dernier_jour_travaille"))? <= *fin && dernier_jour(imp)? >= *debut);
     }
     Ok(premier_jour(imp)? <= *fin && dernier_jour(imp)? >= *debut)
 }
@@ -741,7 +745,7 @@ deduction des indemnites journalieres (L1226-1, D1226-1 a D1226-3).",
 complement du est le brut ci-dessus moins les indemnites journalieres et la prevoyance, que la caisse communique : le \
 porter sur l'arret, maintien du mois.",
             numero,
-            crate::engagement::libelle_mois(mois)
+            crate::libelle_mois(mois)
         )));
     }
     dit.extend(sur_l_anciennete);
@@ -777,7 +781,7 @@ pub fn cachets_dans(ctx: &Contexte, imp: &Value) -> Resultat<Vec<Value>> {
         if !p.exists() {
             continue;
         }
-        let data = crate::engagement::lire_saisie(&p)?;
+        let data = crate::lire_saisie(&p)?;
         out.extend(cachets_de_la_saisie(ctx, &data, &mois, &cle, &premier, &dernier)?);
     }
     Ok(out)
@@ -786,7 +790,7 @@ pub fn cachets_dans(ctx: &Contexte, imp: &Value) -> Resultat<Vec<Value>> {
 fn cachets_de_la_saisie(ctx: &Contexte, data: &Value, mois: &str, cle: &str, premier: &Jour, dernier: &Jour) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
     for (i, e) in data.get("engagements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]).iter().enumerate() {
-        if crate::engagement::cle_de_l_engagement(ctx, e).as_deref() != Some(cle) {
+        if crate::cle_de_l_engagement(ctx, e).as_deref() != Some(cle) {
             continue;
         }
         for (j, l) in e.get("lignes").and_then(Value::as_array).map_or(&[][..], |a| &a[..]).iter().enumerate() {

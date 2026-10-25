@@ -16,7 +16,7 @@
 use crate::outils::{fictive, ecrire, lire, Copie};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use paie::engagement::charger;
+use engagement::charger;
 use serde_json::json;
 
 /// La config de la fictive et sa saisie de juillet 2026, la surcouche portant la formation des permanents a 1 % (ce que

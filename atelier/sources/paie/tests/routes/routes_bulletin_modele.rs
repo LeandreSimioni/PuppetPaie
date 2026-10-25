@@ -6,7 +6,7 @@ use crate::outils::{compagnie, dossier_de_test, ecrire, lire, route_en_processus
 use paie::bulletin::{jeux_et_description, Modele};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use paie::engagement::charger;
+use engagement::charger;
 use paie::routes_bulletin_modele::{apercu_description, apercu_pdf, dossier_apercu};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -124,7 +124,7 @@ fn la_page_lit_les_modeles_et_la_compagnie_choisit_pour_tous() {
     let s = charger(&ctx, &racine.join("paies/2026-10.json")).unwrap();
     let ent = ctx.entreprise_du_mois("2026-10").unwrap();
     let mut p = s.paies.iter().find(|p| !p.engagement.sans_paie()).unwrap().clone();
-    let documents = |p: &paie::calcul::Paie| jeux_et_description(&ctx, std::slice::from_ref(p), &ent, "2026-10", None, false, &HashMap::new()).unwrap()["documents"].as_array().unwrap().len();
+    let documents = |p: &engagement::calcul::Paie| jeux_et_description(&ctx, std::slice::from_ref(p), &ent, "2026-10", None, false, &HashMap::new()).unwrap()["documents"].as_array().unwrap().len();
     assert_eq!(documents(&p), 2, "le choix de la compagnie vaut pour tous : le bulletin et son annexe");
     p.salarie["modele_bulletin"] = json!("simplifié");
     assert_eq!(documents(&p), 1, "la case du salarie l'emporte");

@@ -23,7 +23,6 @@ use sha2::{Digest, Sha256};
 
 use droit::catalogue::{self, HorsAssiette};
 use droit::contexte::Contexte;
-use crate::engagement;
 use crate::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;

@@ -100,7 +100,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     for a in &prep.avertissements {
         dire!("Note : {}\n", a);
     }
-    let libelle = crate::routes_envois::capitaliser(&crate::engagement::libelle_mois(&prep.mois_saisie));
+    let libelle = crate::routes_envois::capitaliser(&engagement::libelle_mois(&prep.mois_saisie));
     dire!("\n{} - {} message(s)\n{}", libelle, prep.messages.len(), "-".repeat(62));
     for m in &prep.messages {
         dire!("  {:<22} {:<30} {} piece(s), {} ko", m.nom, m.destinataire, m.pieces.len(), m.taille() / 1024);

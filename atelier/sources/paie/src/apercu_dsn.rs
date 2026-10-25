@@ -26,10 +26,9 @@ use std::str::FromStr;
 
 use serde_json::{json, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::depot::{self, Apercu};
-use crate::engagement;
 use crate::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};

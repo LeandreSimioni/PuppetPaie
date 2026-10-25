@@ -1,11 +1,19 @@
-//! L'engagement : un salarie, un spectacle, des lignes de paie datees, dans
-//! un mois (`calcul.Engagement`), et sa construction depuis
-//! un fichier de mois (`operations_paies._saisie_lue`, et la reprise du
-//! contrat qui deborde du mois dans `charger`).
+//! L'engagement : un salarie, un spectacle (ou un contrat paye au mois), des lignes de paie datees. Il est au centre :
+//! il porte la saisie, ses paies se calculent ici (`calcul`), une par mois qu'il couvre, et c'est d'elles que tout
+//! document se fabrique. Le droit (`droit`) juge ce qu'on lui passe ; l'engagement l'appelle, jamais l'inverse.
 //!
-//! Hors de ce module : les numeros de bulletin, les minima, et la deduction
-//! des lignes d'un permanent (`operations_permanents.lignes_du_mois`), que
-//! l'appelant fournit.
+//! Ce module lit un engagement tel que la saisie d'un mois le montre (`Engagement::nouveau`, `engagements`) et calcule
+//! les paies de ce mois (`charger_donnees`) ; les minima, le SMIC, les imprevus et la suite d'un contrat qui deborde du
+//! mois y portent leurs avertissements.
+
+pub mod cachet;
+pub mod calcul;
+pub mod conges;
+pub mod cumul;
+pub mod imprevus;
+pub mod minima;
+pub mod periodes;
+pub mod solde;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -1112,14 +1120,14 @@ pub fn libelle_mois(mois: &str) -> String {
 
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
 /// (sans tenir compte de la casse ni des accents), comme le fait le calcul de sa paie. `None` s'il ne nomme aucune fiche.
-pub(crate) fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
+pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
     let nom = e.get("salarie").and_then(Value::as_str)?;
     ctx.salarie(nom).ok()?.get("_cle").and_then(Value::as_str).map(str::to_string)
 }
 
 /// `_engagements_du_mois` : les engagements bruts d'un fichier de mois, avec
 /// la cle du salarie ; vide si le mois n'est pas sur le disque.
-pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<(String, Value)>> {
+pub fn engagements_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<(String, Value)>> {
     let p = ctx.racine.join("paies").join(format!("{}.json", mois));
     if !socle::fichiers::existe(&p) {
         return Ok(Vec::new());
@@ -1135,7 +1143,7 @@ pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<(S
 }
 
 /// `_bornes_brutes(e)[0]` : le debut d'un engagement brut, comme `Engagement` le deduirait.
-pub(crate) fn debut_brut(e: &Value) -> String {
+pub fn debut_brut(e: &Value) -> String {
     let cle = |j: &Value| match j {
         Value::Object(m) => m.get("jour").map_or(String::new(), en_texte),
         autre => en_texte(autre),
@@ -1194,7 +1202,7 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
         let mois_du_contrat = eng.mois_du_contrat()?;
         // Un contrat repris d'un autre logiciel (#236) : aucun mois saisi ne le porte, l'historique dit son numero tel
         // que la DSN d'avant l'a declare (`importation_nature::numero_repris`).
-        let repris = premier.is_none().then(|| crate::importation_nature::numero_repris(&ctx.racine, &cle, &eng.debut.iso())).flatten().map(Value::String);
+        let repris = premier.is_none().then(|| numero_repris(&ctx.racine, &cle, &eng.debut.iso())).flatten().map(Value::String);
         let numero = premier.as_ref().and_then(|p| p.get("numero")).filter(|n| vrai(n)).cloned().or(repris);
         let Some(numero) = numero else {
             return Err(format!(
@@ -1431,4 +1439,17 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
         p.avertissements.extend(avis);
     }
     Ok(Saisie { mois, paies })
+}
+
+/// Le numero d'un contrat repris d'un autre logiciel, tel que l'historique importe le dit
+/// (`historique/engagements.json` : le salarie, le debut du contrat, le numero que la DSN d'avant a declare).
+fn numero_repris(racine: &Path, salarie: &str, debut: &str) -> Option<String> {
+    let chemin = racine.join("historique").join("engagements.json");
+    let h = if socle::fichiers::existe(&chemin) { lire_json(&chemin).ok()? } else { return None };
+    let texte = |e: &Value, k: &str| e.get(k).filter(|v| vrai(v)).map(en_texte).unwrap_or_default();
+    h.get("engagements")?
+        .as_array()?
+        .iter()
+        .find(|e| texte(e, "salarie") == salarie && texte(e, "contrat_debut") == debut && !texte(e, "numero").is_empty())
+        .map(|e| texte(e, "numero"))
 }

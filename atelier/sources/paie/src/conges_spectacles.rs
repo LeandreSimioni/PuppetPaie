@@ -9,9 +9,9 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 
 use crate::bulletin::{identite_de, FORMAT};
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use socle::date::{repr_flottant, Jour};
-use crate::engagement::Engagement;
+use engagement::Engagement;
 use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, Decimal};

@@ -14,11 +14,11 @@
 //! Sur des copies des compagnies fictives (compagnies inventees) : la fiche, l'effectif et la surcouche du bareme y changent.
 
 use crate::outils::{self, compagnie, dec, ecrire, lire, paires as lignes};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;

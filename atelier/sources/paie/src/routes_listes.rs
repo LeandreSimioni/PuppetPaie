@@ -147,7 +147,7 @@ pub(crate) fn refus_magasin(m: String) -> Echec {
 /// Les arrets de travail du magasin des imprevus (`imprevus/AAAA-MM.json`, genre `arret`), dans l'ordre des mois du
 /// magasin, chacun complet.
 pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
-    Ok(crate::imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(crate::imprevus::est_un_arret).collect())
+    Ok(engagement::imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(engagement::imprevus::est_un_arret).collect())
 }
 
 /// `signalement.nomenclatures()`.
@@ -349,7 +349,7 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
         // Ce que dit la convention, a cote, par le moteur (le calcul de `paie preavis`) ; pas pour un motif sans preavis
         // ni pour la rupture d'un CDD par le salarie (L1243-2), que la convention du licenciement ne regle pas.
         if duree != Some(Decimal::ZERO) && regle.is_none() {
-            let tout = crate::solde::duree_du_preavis(ctx, e, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
+            let tout = engagement::solde::duree_du_preavis(ctx, e, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
             if let (Some(conv), true) = (tout.convention, tout.qui != "la loi (L1234-1)") {
                 dit.push_str(&format!(" {} en donne {} : c'est elle qui s'applique.", tout.qui, conv));
             } else if tout.mois.is_none() {

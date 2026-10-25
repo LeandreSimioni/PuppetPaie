@@ -12,7 +12,7 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
@@ -185,9 +185,9 @@ pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Result<Option<Vec<Paie>>, St
     if !chemin.exists() {
         return Ok(None);
     }
-    let data = crate::engagement::lire_saisie(&chemin)?;
-    let _derivation = crate::conges::Derivation::ouvrir();
-    let (engs, _) = crate::engagement::engagements(ctx, &data, &crate::conges::lignes_du_mois)?;
+    let data = engagement::lire_saisie(&chemin)?;
+    let _derivation = engagement::conges::Derivation::ouvrir();
+    let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois)?;
     let paies = engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<Vec<_>, _>>()?;
     Ok(Some(paies))
 }

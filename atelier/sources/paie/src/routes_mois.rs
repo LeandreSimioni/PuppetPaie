@@ -29,10 +29,10 @@ use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
-use crate::engagement::{self, LignesPermanent};
+use engagement::{self, LignesPermanent};
 use crate::etats::{self, est, get, getd, joindre, objet_vide, ou, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -385,8 +385,8 @@ impl<'a> Moteur<'a> {
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
         let chemin = self.racine().join("paies").join(format!("{}.json", mois));
         let data = engagement::lire_saisie(&chemin).map_err(classer_saisie)?;
-        let _derivation = crate::conges::Derivation::ouvrir();
-        let lignes: LignesPermanent = &crate::conges::lignes_du_mois;
+        let _derivation = engagement::conges::Derivation::ouvrir();
+        let lignes: LignesPermanent = &engagement::conges::lignes_du_mois;
         let (engs, _) = engagement::engagements(self.ctx, &data, lignes).map_err(classer_saisie)?;
         let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
         // Le salarie, son emploi et son spectacle d'abord, pour tous les
@@ -698,7 +698,7 @@ impl<'a> Moteur<'a> {
             if !p.engagement.sans_paie() {
                 pieces.push("bulletin");
             }
-            if !nat.mensuelle() && dernier_mois && crate::calcul::declaree_a_la_caisse_des_conges(p).map_err(plain)? {
+            if !nat.mensuelle() && dernier_mois && engagement::calcul::declaree_a_la_caisse_des_conges(p).map_err(plain)? {
                 pieces.push("certificat_cs");
             }
             if crate::aer::due(&p.engagement).map_err(plain)? {
@@ -1341,7 +1341,7 @@ impl<'a> Moteur<'a> {
         // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
         // permanent y relisent les paies des mois d'avant (`conges::paies_du_mois_memorisees`) ; sans elle, chaque mois les
         // recalculait toutes. Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
-        let _derivation = crate::conges::Derivation::ouvrir();
+        let _derivation = engagement::conges::Derivation::ouvrir();
         let courant = self.ctx.aujourdhui.mois_iso();
         for m in mois_saisis(self.racine()) {
             if m >= courant || self.exercice_clos(&m)? {
@@ -1361,7 +1361,7 @@ impl<'a> Moteur<'a> {
         // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
         // permanent y relisent les paies des mois d'avant (`conges::paies_du_mois_memorisees`) ; sans elle, chaque mois les
         // recalculait toutes. Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
-        let _derivation = crate::conges::Derivation::ouvrir();
+        let _derivation = engagement::conges::Derivation::ouvrir();
         let lignes = self.lignes()?;
         let faites = cles_en_ensemble(etats::embauches_par_depot(&lignes)?.cles());
         let mois: Vec<String> = match mois.filter(|m| !m.is_empty()) {

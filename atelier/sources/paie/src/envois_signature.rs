@@ -19,7 +19,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::depot_acte::verifier_preuve;
 use crate::envoi::{self, Message};
@@ -560,7 +560,7 @@ pub(crate) fn reserver_numeros_envoyes(
     // Les compteurs ne bougent que par ce qui est ecrit sur un contrat parti : `reserves` ne recoit que
     // `enregistrer` (le Python reservait aussi ce que `charger` propose, bulletin compris : defaut non reproduit).
     let mut reserves = crate::produire_mois::Reserves::default();
-    let mut data = crate::engagement::lire_saisie(&chemin).map_err(|m| erreur("ValueError", m))?;
+    let mut data = engagement::lire_saisie(&chemin).map_err(|m| erreur("ValueError", m))?;
     let rep = calculer(o, ctx, &data)?;
     let paies = charger(ctx, &data, &rep, None)?;
     let rangs: Vec<Paire> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso())).collect();

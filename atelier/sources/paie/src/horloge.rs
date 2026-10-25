@@ -640,7 +640,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
 
     // Les echeances qu'on coche, a la fin de leur fenetre (echeancier-base), si la convention de la compagnie les porte et
     // qu'elles ne le sont pas.
-    let base = crate::engagement::lire_saisie(&dossier_du_code().join("echeancier-base.json")).map_err(Echec::from)?;
+    let base = engagement::lire_saisie(&dossier_du_code().join("echeancier-base.json")).map_err(Echec::from)?;
     let ctx = d.contexte()?;
     for e in crate::routes_saisie::annuelles_de(&base, ctx.entreprise.get("idcc"))? {
         if e.get("fait_par").and_then(Value::as_str) != Some("coche") {

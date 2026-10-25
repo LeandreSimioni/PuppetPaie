@@ -3,7 +3,7 @@
 
 use serde_json::Value;
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::natures::contrat_court;
 use droit::pas::{du_versement, plancher, taux_dgfip, ErreurPas, Triplet, Versement, ZONE_DEFAUT};

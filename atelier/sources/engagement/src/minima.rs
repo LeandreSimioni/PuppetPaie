@@ -18,7 +18,7 @@ use droit::contexte::Contexte;
 use socle::texte::sigle;
 use socle::date::{en_texte, repr_texte, Jour};
 use droit::emplois;
-use crate::engagement::{Avis, Engagement};
+use crate::{Avis, Engagement};
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::num::{add, dec, dec_f64, div, mul, sub, Decimal, Resultat};
 

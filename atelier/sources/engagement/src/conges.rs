@@ -20,7 +20,7 @@ use droit::clauses;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use socle::date::{d, dernier_du_mois, en_texte, jours_du_mois, premier_du_mois, forme_ecrite, Jour};
-use crate::engagement::{charger, Avis};
+use crate::{charger, Avis};
 use socle::feries;
 use socle::fichiers::{repr, vrai};
 use socle::num::{add, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
@@ -33,29 +33,29 @@ fn requis<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
 }
 
 /// `e.get("numero") or "?"`.
-pub(crate) fn numero(e: &Value) -> String {
+pub fn numero(e: &Value) -> String {
     e.get("numero").filter(|x| vrai(x)).map_or_else(|| "?".to_string(), en_texte)
 }
 
 /// `float(Decimal)` : l'arrondi correct de CPython, par le texte.
-pub(crate) fn flot(x: Decimal) -> f64 {
+pub fn flot(x: Decimal) -> f64 {
     x.to_string().parse().unwrap_or(0.0)
 }
 
-pub(crate) fn info(texte: String) -> Avis {
+pub fn info(texte: String) -> Avis {
     Avis { info: true, texte }
 }
 
-pub(crate) fn avertir(texte: String) -> Avis {
+pub fn avertir(texte: String) -> Avis {
     Avis { info: false, texte }
 }
 
-pub(crate) fn sub(a: Decimal, b: Decimal) -> Decimal {
+pub fn sub(a: Decimal, b: Decimal) -> Decimal {
     add(a, -b)
 }
 
 /// `Decimal(str(x))` d'une valeur ou, si elle est fausse, de `defaut`.
-pub(crate) fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
+pub fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
     match v {
         Some(x) if vrai(x) => dec_avec_echelle(x),
         _ => Ok(defaut),
@@ -63,7 +63,7 @@ pub(crate) fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
 }
 
 /// `int(x)` d'une valeur JSON.
-pub(crate) fn entier(v: &Value) -> Resultat<i64> {
+pub fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n
             .as_i64()
@@ -78,7 +78,7 @@ pub(crate) fn entier(v: &Value) -> Resultat<i64> {
     }
 }
 
-pub(crate) fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
+pub fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
     let cle = match v {
         None | Some(Value::Null) => None,
         Some(x) => Some(en_texte(x)),
@@ -128,7 +128,7 @@ pub fn heures_par_jour_oeuvre(quotite: Decimal) -> Decimal {
     div(eur2(div(mul(quotite, Decimal::from(12)), Decimal::from(52))), Decimal::from(5))
 }
 
-pub(crate) fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
+pub fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
     jours_ouvrables(&d(requis(c, "debut")?)?, &d(requis(c, "fin")?)?, Some(ent))
 }
 
@@ -219,10 +219,10 @@ thread_local! {
 }
 
 /// Une derivation ouverte : le memo se vide quand la derniere se ferme.
-pub(crate) struct Derivation;
+pub struct Derivation;
 
 impl Derivation {
-    pub(crate) fn ouvrir() -> Derivation {
+    pub fn ouvrir() -> Derivation {
         MEMO.with(|m| m.borrow_mut().0 += 1);
         Derivation
     }
@@ -249,7 +249,7 @@ fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
 
 /// Le brut des paies d'un mois deja charge, pose dans le memo de la derivation
 /// ouverte : `remuneration_du_mois` ne le recalcule pas.
-pub(crate) fn memoriser_mois(ctx: &Contexte, mois: &str, paies: &[Paie]) {
+pub fn memoriser_mois(ctx: &Contexte, mois: &str, paies: &[Paie]) {
     let reference = cle_du_memo(ctx, mois);
     MEMO.with(|m| {
         let mut m = m.borrow_mut();
@@ -654,7 +654,7 @@ fn cle_de_fiche(ctx: &Contexte, cle: &str) -> String {
 
 /// Le brut d'un salarie sur un mois deja produit -- l'assiette du dixieme.
 /// On recalcule plutot que de lire un total ecrit.
-pub(crate) fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
+pub fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
     let paies = match paies_du_mois_memorisees(ctx, mois) {
         Ok(p) => p,
         // Ce qui n'est pas porte n'est pas un mois sans brut.
@@ -669,7 +669,7 @@ pub(crate) fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Res
 /// strictement avant `mois` (AAAA-MM), chacun recalcule depuis sa saisie (`calcul::dfs_deja_deduite` ; arrete du
 /// 4 septembre 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>). Un mois ou le salarie a un engagement et
 /// qui ne se calcule pas refuse : le cumul de l'annee ne se devine pas.
-pub(crate) fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
+pub fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
     // Chaque mois anterieur se calcule en demandant les siens : sans le memo d'une derivation, un salarie present tous
     // les mois ferait recalculer 2^n mois. Avec lui, chaque mois se calcule une fois.
     let _derivation = Derivation::ouvrir();

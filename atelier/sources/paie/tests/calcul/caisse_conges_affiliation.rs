@@ -13,10 +13,10 @@
 //! anciennete dans la branche), et son config/organismes.json le CTP 332 des permanents tel que le recompose
 //! `donnees/organismes-base.json`. Rien n'est ecrit dans `tests/donnees/fictives/`.
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::Decimal;
 use serde_json::{json, Value};
 use crate::outils::{base81, chemin_unique, contrat, ctp, dec, ecrire, lire, valeur, versement, Copie};

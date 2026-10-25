@@ -144,12 +144,12 @@ fn a_des_spectacles(ctx: &Contexte) -> bool {
 /// Une suspension saisie (un imprevu du bloc 65) dont le motif n'est pas remunere. Un magasin illisible ne dit rien ici :
 /// la paie le refusera elle-meme.
 fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
-    crate::imprevus::tous(&ctx.racine).unwrap_or_default().iter().any(|imp| {
-        crate::imprevus::est_une_suspension(imp)
+    engagement::imprevus::tous(&ctx.racine).unwrap_or_default().iter().any(|imp| {
+        engagement::imprevus::est_une_suspension(imp)
             && imp
                 .get("motif")
                 .map(socle::date::en_texte)
-                .and_then(|m| crate::imprevus::motif_de_suspension(&m).ok().flatten())
+                .and_then(|m| engagement::imprevus::motif_de_suspension(&m).ok().flatten())
                 .is_some_and(|m| !m.get("remunere").is_some_and(vrai))
     })
 }

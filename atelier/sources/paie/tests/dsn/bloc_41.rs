@@ -18,7 +18,7 @@
 use crate::outils::permanents::{bloc, blocs_41, contexte, deposer, dorval_cadre_au, dsn, retoucher_saisie, saisie};
 use crate::outils::{self, compagnie, individu};
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 

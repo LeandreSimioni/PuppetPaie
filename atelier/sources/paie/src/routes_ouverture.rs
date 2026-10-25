@@ -31,11 +31,11 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::calcul::{DeductionForfaitaire, LigneBrut, LigneCotisation, Paie, ReductionGenerale};
+use engagement::calcul::{DeductionForfaitaire, LigneBrut, LigneCotisation, Paie, ReductionGenerale};
 use droit::contexte::{archivee, telle_qu_au, Contexte};
 use socle::date::{en_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
-use crate::engagement::{self, Avis, Engagement};
+use engagement::{self, Avis, Engagement};
 use crate::etats;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::{dec, flottant, Decimal, Resultat};
@@ -604,8 +604,8 @@ fn paies_validees(ctx: &Contexte, mois: &str) -> i64 {
         return 0;
     }
     let Ok(data) = lire_json(&chemin) else { return 0 };
-    let _derivation = crate::conges::Derivation::ouvrir();
-    let Ok((engs, _)) = engagement::engagements(ctx, &data, &crate::conges::lignes_du_mois) else { return 0 };
+    let _derivation = engagement::conges::Derivation::ouvrir();
+    let Ok((engs, _)) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois) else { return 0 };
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut cles = BTreeSet::new();
     for (i, e) in engs.iter().enumerate() {
@@ -909,8 +909,8 @@ pub(crate) fn embauches_suivies(st: &Etat) -> R<Vec<(Embauche, bool)>> {
         });
         // Une saisie en cours d'ecriture : le passage suivant.
         let Ok(data) = lire_json(&saisie) else { continue };
-        let _derivation = crate::conges::Derivation::ouvrir();
-        let Ok((engs, _)) = engagement::engagements(st.ctx, &data, &crate::conges::lignes_du_mois) else { continue };
+        let _derivation = engagement::conges::Derivation::ouvrir();
+        let Ok((engs, _)) = engagement::engagements(st.ctx, &data, &engagement::conges::lignes_du_mois) else { continue };
         let mut du_mois = Vec::new();
         let mut illisible = false;
         for e in &engs {
@@ -1104,7 +1104,7 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
     if engagement::saisie_incomplete(&message) {
         return avec_classe("SaisieIncomplete", message);
     }
-    let vide: crate::engagement::LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new()));
+    let vide: engagement::LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new()));
     if let Err(m) = engagement::engagements(ctx, data, vide) {
         if engagement::saisie_incomplete(&m) {
             return avec_classe("SaisieIncomplete", m);
@@ -1625,8 +1625,8 @@ fn annee_de(mois: &str) -> R<i32> {
 /// Les paies d'une saisie SANS CALCUL : le salarie, l'engagement et son contrat suivi, numerotes comme l'apercu les
 /// numerote (`numeroter`). Ce que l'apercu d'un mois tout valide lit a cote de ses cartes figees.
 fn paies_sans_calcul(ctx: &Contexte, data: &Value, mois: &str) -> R<Vec<Paie>> {
-    let _derivation = crate::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, data, &crate::conges::lignes_du_mois)?;
+    let _derivation = engagement::conges::Derivation::ouvrir();
+    let (engs, _) = engagement::engagements(ctx, data, &engagement::conges::lignes_du_mois)?;
     let mut paies = Vec::new();
     for e in &engs {
         let mut p = crate::amorcage::embauche(ctx, e)?;

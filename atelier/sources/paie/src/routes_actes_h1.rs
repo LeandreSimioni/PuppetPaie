@@ -17,11 +17,10 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, repr_texte, Jour};
 use crate::dpae::{Chemins, Embauche, Parametres};
-use crate::engagement;
 use crate::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -372,7 +371,7 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
     // Les arrets du contrat qui croisent la periode du signalement : le FCTU les reporte (bloc 60), comme la mensuelle,
     // tires du magasin des imprevus ; ses suspensions (bloc 65) en viennent deja (`imprevus::suspensions_du_mois`).
     let (debut_p, fin_p) = (paie.engagement.debut_periode().map_err(plain)?, paie.engagement.fin_periode().map_err(plain)?);
-    let arrets: Vec<crate::dsn::Arret> = crate::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
+    let arrets: Vec<crate::dsn::Arret> = engagement::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
         .map_err(crate::routes_listes::refus_magasin)?
         .into_iter()
         .map(|v| crate::dsn::Arret { v })
@@ -398,7 +397,7 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
     let cle = cle.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
     if vrai(dernier_jour) {
         let jour = crate::routes_imprevus::jour(dernier_jour)?;
-        if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &cle, &jour)? {
+        if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, engagement::imprevus::ARRET, &cle, &jour)? {
             return Ok(liste[i].clone());
         }
     }
@@ -639,8 +638,8 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     }
     let data = engagement::lire_saisie(&chemin).map_err(plain)?;
     let paies: Vec<Paie> = {
-        let _derivation = crate::conges::Derivation::ouvrir();
-        let (engs, _) = engagement::engagements(ctx, &data, &crate::conges::lignes_du_mois).map_err(plain)?;
+        let _derivation = engagement::conges::Derivation::ouvrir();
+        let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois).map_err(plain)?;
         engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;

@@ -1,15 +1,17 @@
 # L'espace Cargo du moteur : une crate par partie, chaque flèche descend.
 #
-#     paie   la ligne de commande `paie` et les parties du dessus (engagement, documents, déclarations, envois,
-#            interface, compagnie, import, atelier)
-#     droit  barèmes datés, conventions, natures de contrat, règles ; lit tout à une date ; ne connaît pas l'engagement
-#     socle  dates, heure de Paris, temps simulé, nombres, texte, fichiers, échecs, garde-fou réseau
+#     paie        la ligne de commande `paie` et les parties du dessus (documents, déclarations, envois, interface,
+#                 compagnie, import, atelier)
+#     engagement  la saisie, le calcul de ses paies, la validation, le recalcul ; lit ce qui est parti ; ne fabrique
+#                 aucun document
+#     droit       barèmes datés, conventions, natures de contrat, règles ; lit tout à une date ; ne connaît pas l'engagement
+#     socle       dates, heure de Paris, temps simulé, nombres, texte, fichiers, échecs, garde-fou réseau
 #
 # La fenêtre (`fenetre/`) et la fabrique de PDF (`fabrique-pdf/`) gardent chacune leur verrou et leurs profils : elles ne
 # sont pas de l'espace (la fenêtre prend `paie` par son chemin).
 
 [workspace]
-members = ["socle", "droit", "paie"]
+members = ["socle", "droit", "engagement", "paie"]
 exclude = ["fenetre", "fabrique-pdf"]
 resolver = "2"
 

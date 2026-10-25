@@ -243,7 +243,7 @@ pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, 
     let mut out = Vec::new();
     for e in parcourir(get(&data, "engagements")?.into())? {
         let Some(m) = e.as_object() else { continue };
-        let Some(cle) = crate::engagement::cle_de_l_engagement(ctx, &e) else { continue };
+        let Some(cle) = engagement::cle_de_l_engagement(ctx, &e) else { continue };
         out.push((cle, m.clone()));
     }
     Ok(out)

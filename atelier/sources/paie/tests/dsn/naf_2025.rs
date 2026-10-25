@@ -9,11 +9,11 @@
 //! en NAF 2025 part sans code APE : `norme_par_fichier.rs`.
 
 use crate::outils::{self, compagnie, ecrire, lire};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 

@@ -16,12 +16,12 @@
 //! compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : la compagnie retouchee et les
 //! saisies s'ecrivent dans le dossier temporaire des tests.
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::outils::{self, base78, blocs_58, compagnie, dec, ecrire, lire, porte, versement};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use socle::num::{Decimal, Resultat};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};

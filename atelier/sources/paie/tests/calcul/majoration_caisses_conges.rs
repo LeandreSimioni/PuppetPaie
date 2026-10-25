@@ -12,11 +12,11 @@
 //! Sur une copie de la compagnie fictive figee `fictive-3090-grande` (compagnie inventee), dans le dossier temporaire des
 //! tests : sa surcouche y recoit un versement mobilite fictif, et rien n'est ecrit dans `tests/donnees/fictives/`.
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::{eur, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};

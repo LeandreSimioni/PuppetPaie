@@ -15,13 +15,13 @@ use droit::catalogue::{rubrique, HorsAssiette, Rubrique, AVANTAGES_EN_NATURE};
 use droit::contexte::{telle_qu_au, Contexte};
 use socle::date::{en_texte, repr_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
-use crate::engagement::{Avis, Engagement};
+use crate::{Avis, Engagement};
 use socle::num::nombre;
 use socle::fichiers::vrai;
 use socle::num::{add, dec, dec_f64, div, eur, flottant, mul, pct, round3, sub, Decimal, Resultat};
 use droit::plafond::{plafond_permanent, pour_paie, EngagementPlafond};
 
-pub use crate::engagement::ligne_en_pourcentage;
+pub use crate::ligne_en_pourcentage;
 
 /// `d.get(cle)` ; un `KeyError` Python se lit par son message : le repr de la cle.
 fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {
@@ -497,7 +497,7 @@ fn repartir_la_reduction(
 }
 
 /// La ligne du bulletin qui porte la reduction generale `rg` d'un brut `brut`.
-pub(crate) fn ligne_de_reduction(rg: &ReductionGenerale, brut: Decimal) -> LigneCotisation {
+pub fn ligne_de_reduction(rg: &ReductionGenerale, brut: Decimal) -> LigneCotisation {
     LigneCotisation {
         id: "reduction_generale".into(),
         famille: FAMILLE_ALLEGEMENTS.into(),
@@ -917,14 +917,14 @@ fn tuple(j: &Jour) -> (i32, u32, u32) {
 }
 
 /// Une liste de taux, `None` si absente ou vide (le faux Python).
-pub(crate) fn taux_liste(v: Option<&Value>) -> Resultat<Option<Vec<f64>>> {
+pub fn taux_liste(v: Option<&Value>) -> Resultat<Option<Vec<f64>>> {
     match v {
         Some(Value::Array(a)) if !a.is_empty() => Ok(Some(a.iter().map(flottant).collect::<Resultat<_>>()?)),
         _ => Ok(None),
     }
 }
 
-pub(crate) fn somme_pct(a: Decimal, taux: &[f64]) -> Resultat<Decimal> {
+pub fn somme_pct(a: Decimal, taux: &[f64]) -> Resultat<Decimal> {
     let mut m = Decimal::new(0, 2);
     for t in taux {
         m += pct(a, dec_f64(*t)?);
@@ -1006,11 +1006,11 @@ pub fn calculer_apres(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) ->
 }
 
 /// La pile de bareme sur laquelle se calcule la paie `p` (celle de `calculer_periode`, du meme cache).
-pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Value>> {
+pub fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Value>> {
     let eng = &p.engagement;
     let nat = eng.nat()?;
     let caisse = droit::caisse_conges::affilie(&nat, &p.salarie, &eng.debut, eng.fin.as_ref())?;
-    let cpf_cdd = crate::assujettissement::contrat_ouvre_cpf_cdd(
+    let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
         eng.motif_recours.as_deref(),
         &format!("Contrat {} de {}", eng.numero.as_deref().unwrap_or("sans numero"), eng.salarie),
@@ -1039,7 +1039,7 @@ fn date_de_la_fiche(fiche: &Value, cle: &str) -> Resultat<Option<Jour>> {
 /// La periode payee entiere dans la dispense : dispense ; entiere dehors : affilie. Une borne en cours de periode
 /// (une dispense qui commence avec le contrat n'en est pas une) refuse : le partage de la cotisation du mois entre
 /// dispense et affiliation n'est dit par aucun texte depose (regle 1).
-pub(crate) fn dispense_de_la_periode(mut fiche: Value, debut: &Jour, fin: &Jour) -> Resultat<Value> {
+pub fn dispense_de_la_periode(mut fiche: Value, debut: &Jour, fin: &Jour) -> Resultat<Value> {
     if !fiche.get("sante_dispense").is_some_and(vrai) {
         return Ok(fiche);
     }
@@ -1102,7 +1102,7 @@ fn sante_de_la_suspension(ctx: &Contexte, eng: &Engagement, mut fiche: Value) ->
     let Some(premiere) = suspensions.first() else { return Ok(fiche) };
     let motifs: Vec<String> = suspensions.iter().map(|s| s.get("motif").map(en_texte).unwrap_or_default()).collect();
     let bar = ctx.bareme(&fin)?;
-    let ent = crate::dsn::entreprise_du(&bar, &ctx.entreprise);
+    let ent = droit::bareme::entreprise_du(&bar, &ctx.entreprise);
     let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();
     let pourquoi = if idcc == "3090" {
         format!(
@@ -1169,8 +1169,8 @@ pub fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) 
     // douze mois, un CDD de droit commun de moins de douze mois d'un artiste.)
     let caisse = droit::caisse_conges::affilie(&nat, &sal, &eng.debut, eng.fin.as_ref())?;
     // Le contrat ouvre-t-il la contribution CPF-CDD (C. trav. L. 6331-6 ; lot R2) ? Un CDD de droit commun, ni saisonnier,
-    // ni contrat aide (`assujettissement::contrat_ouvre_cpf_cdd`, la regle du bloc 44).
-    let cpf_cdd = crate::assujettissement::contrat_ouvre_cpf_cdd(
+    // ni contrat aide (`droit::cpf_cdd`, la regle du bloc 44).
+    let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
         eng.motif_recours.as_deref(),
         &format!("Contrat {} de {}", eng.numero.as_deref().unwrap_or("sans numero"), eng.salarie),

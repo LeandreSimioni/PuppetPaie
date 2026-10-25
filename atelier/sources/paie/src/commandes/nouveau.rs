@@ -102,7 +102,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
                 champ(c, "debut"),
                 champ(c, "fin"),
                 numero,
-                crate::engagement::libelle_mois(&champ(c, "depuis")),
+                engagement::libelle_mois(&champ(c, "depuis")),
                 if reprendre { "  -- ecrit dans le fichier, poser les jours" } else { "" }
             );
         }
