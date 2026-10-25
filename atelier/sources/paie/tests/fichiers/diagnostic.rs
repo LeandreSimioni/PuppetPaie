@@ -182,7 +182,7 @@ fn la_trace_d_un_refus_dit_l_endroit_du_code() {
     socle::echec::noter_echec(Some("KeyError"), "cle absente : taux");
     socle::echec::noter_echec(Some("ErreurOperation"), "le mois de Brioche ne se calcule pas");
     let trace = diagnostic::trace_du_refus(&racine, "le mois de Brioche ne se calcule pas", debut).unwrap();
-    let ici = format!("tests/fichiers/diagnostic.rs:{}", line!() - 2);
+    let ici = format!("{}:{}", file!(), line!() - 2);
     assert!(trace.starts_with(&format!("endroit : {} (ErreurOperation)", ici)), "{}", trace);
     assert!(trace.contains("KeyError") && trace.contains("[salarié n°1]") && !trace.contains("Brioche"), "{}", trace);
 }

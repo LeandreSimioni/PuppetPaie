@@ -1,7 +1,6 @@
-//! L'arithmetique de `decimal` telle que Python la fait : 28 chiffres
-//! significatifs, au pair sur le demi, apres chaque operation, et un
-//! exposant qui peut depasser 28 decimales (`0.08333333333333333333333333334`),
-//! ce que `rust_decimal` ne sait pas porter.
+//! L'arithmetique decimale a 28 chiffres significatifs, au pair sur le demi, apres chaque operation, avec un exposant
+//! qui peut depasser 28 decimales (`0.08333333333333333333333333334`), ce que `rust_decimal` ne sait pas porter : celle
+//! de toute la paie (`num::add`, `sub`, `mul`, `div` passent par elle) et des clauses des conventions (`droit::clauses`).
 
 use rust_decimal::Decimal;
 use std::cmp::Ordering;

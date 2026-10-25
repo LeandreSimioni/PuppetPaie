@@ -651,7 +651,7 @@ fn produire_mois(
     let sortie = ctx.racine.join("sorties").join(&mois);
     std::fs::create_dir_all(&sortie).map_err(|e| os(&sortie, e))?;
     // Licence resolue une fois pour toutes sur le mois produit : bulletins et DSN doivent porter le meme numero.
-    let ent = crate::oracle::entreprise_du_mois(ctx, &mois).map_err(valeur)?;
+    let ent = ctx.entreprise_du_mois(&mois).map_err(valeur)?;
     let a_imprimer = paies_a_imprimer(ctx, data, &paies)?;
 
     // UN CONTRAT QUI DEBORDE DU MOIS n'a son certificat Conges Spectacles qu'au DERNIER mois, pour le contrat

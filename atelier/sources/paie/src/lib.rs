@@ -1,13 +1,10 @@
-//! Le moteur de PuppetPaie en Rust (docs/PORTAGE-RUST.md).
+//! Le moteur de PuppetPaie au-dessus du socle et du droit (`socle`, `droit`).
 //!
-//! Le chemin, de bout en bout : un fichier de mois (`paies/AAAA-MM.json`) ->
-//! `engagement` (les contrats, et leurs refus) -> `calcul` (la paie, au
-//! centime) -> `bulletin` (la description) -> la fabrique (`fabrique-pdf`,
-//! le PDF). Le Python est l'oracle : `paie oracle ...` et `python -m moteur
-//! oracle ...` ecrivent le meme JSON, octet pour octet.
+//! Le chemin, de bout en bout : un fichier de mois (`paies/AAAA-MM.json`) -> `engagement` (les contrats, et leurs
+//! refus) -> `calcul` (la paie, au centime) -> `bulletin` (la description) -> la fabrique (`fabrique-pdf`, le PDF) ;
+//! et, depuis les paies, la DSN, la DPAE, les envois.
 //!
-//! Les fichiers de donnees se lisent en `serde_json::Value`, comme le Python
-//! lit des dictionnaires : rien a migrer, et une cle inconnue survit.
+//! Les fichiers de donnees se lisent en `serde_json::Value` : une cle inconnue survit, rien a migrer.
 
 pub mod administrateur;
 pub mod aer;
@@ -81,7 +78,6 @@ pub mod obligations;
 pub mod oeth;
 pub mod ordres_paiement;
 pub mod organismes;
-pub mod oracle;
 pub mod ordre_signalements;
 pub mod periodes;
 pub mod prelevement;

@@ -119,7 +119,7 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
         .collect::<String>()
         .parse()
         .map_err(|_| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois))))?;
-    let ent = crate::oracle::entreprise_du_mois(ctx, mois).map_err(Echec::from)?;
+    let ent = ctx.entreprise_du_mois(mois).map_err(Echec::from)?;
 
     // UN CONTRAT AJOUTE APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (21/10/2026) n'est pas dans le fichier archive : il n'a
     // ni numero de bulletin ni page a redecouper. Son bulletin est celui de sa correction, ecrit avec la DSN qui le

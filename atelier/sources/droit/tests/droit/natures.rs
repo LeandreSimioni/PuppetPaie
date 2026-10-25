@@ -1,4 +1,4 @@
-//! Les natures de contrat (`contrats-base.json`) contre `contrats.json` : chaque attribut et chaque code des natures,
+//! Les natures de contrat (`contrats-base.json`) contre `natures.json` : chaque attribut et chaque code des natures,
 //! la nature par defaut, l'inconnue refusee, `contrat_court`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{egal, lire_oracle, oracle_selon};
@@ -12,7 +12,7 @@ fn jour(s: &str) -> Jour {
 
 #[test]
 fn les_natures_et_contrat_court() {
-    let mut rel = lire_oracle("contrats.json");
+    let mut rel = lire_oracle("natures.json");
     rel["defaut"] = json!(defaut().unwrap());
     rel["inconnue"] = json!(nature(Some("zzz")).unwrap_err());
     // Un engagement muet (sans nature, ou nature vide) est de la nature par defaut (regle 6 : un CDDU).
@@ -46,5 +46,5 @@ fn les_natures_et_contrat_court() {
         c[4] = json!(contrat_court(&n, jour(c[1].as_str().unwrap()), c[2].as_str().map(jour), jour(c[3].as_str().unwrap())));
     }
     assert!(rel["court"].as_array().unwrap().len() >= 39);
-    oracle_selon("contrats.json", "", &rel, egal);
+    oracle_selon("natures.json", "", &rel, egal);
 }

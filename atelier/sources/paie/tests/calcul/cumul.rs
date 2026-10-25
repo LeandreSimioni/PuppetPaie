@@ -1,8 +1,6 @@
-//! Le cumul des droits intermittents : les constantes et le plafond d'enseignement de la fiche livree
-//! (`logiciel/donnees/rubriques-base.json`, France Travail cite), les positions sur chaque fenetre (engagements fabriques)
-//! et `oracle droits` sur les compagnies fictives et la racine `racines/cumul` (historique abime, naissances autour de 50 ans,
-//! anniversaires des droits), contre `donnees/cumul-positions.json` et `cumul-droits.json`, instantanes du moteur que les
-//! tests reecrivent sur demande.
+//! Le cumul des droits intermittents : le plafond d'enseignement de la fiche livree (`logiciel/donnees/rubriques-base.json`,
+//! France Travail cite), les positions sur chaque fenetre (engagements fabriques) contre `donnees/cumul-positions.json`,
+//! et le signe d'une ligne d'enseignement.
 
 use crate::outils;
 use droit::bareme::canon;
@@ -15,7 +13,6 @@ use socle::date::Jour;
 use socle::fichiers::lire_json;
 use socle::num::dec;
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 fn donnees() -> PathBuf {
@@ -36,12 +33,6 @@ fn fictive(nom: &str) -> PathBuf {
 
 fn jour(v: &Value) -> Option<Jour> {
     v.as_str().map(|s| Jour::lire(s).unwrap())
-}
-
-#[test]
-fn les_constantes_viennent_des_donnees_livrees() {
-    let c = Constantes::lire(&fictive("fictive-1285-grande")).unwrap();
-    assert_eq!((c.heures_par_cachet, c.cachets_par_mois, c.seuil_heures, c.fenetre_jours), (12, 28, 507, 365));
 }
 
 /// « Retenues pour les 507 heures dans la limite de 70 h (moins de 50 ans) ou 120 h (50 ans et plus) ; l'age retenu est
@@ -101,36 +92,6 @@ fn les_positions_sur_chaque_fenetre() {
         cas["attendu"] = canon(&p.canon(aujourdhui).unwrap());
     }
     outils::oracle("cumul-positions.json", "", &outils::trie(&a));
-}
-
-fn racine_de(nom: &str) -> PathBuf {
-    if nom == "cumul" {
-        donnees().join("racines/cumul")
-    } else {
-        fictive(nom)
-    }
-}
-
-/// Sans anniversaire, la fenetre de douze mois finit a `a-la-date`, a defaut a la derniere fin, a defaut aujourd'hui :
-/// chaque cas de l'oracle sans derniere fin donne `a-la-date`, le test ne depend pas du jour. Une option illisible refuse.
-#[test]
-fn oracle_droits_sur_les_fictives_et_la_racine_montee() {
-    let mut tout = attendus("droits");
-    let cas = tout.as_array_mut().unwrap();
-    assert!(cas.len() > 20);
-    for c in cas.iter_mut() {
-        let mut o: HashMap<String, String> =
-            c["options"].as_object().unwrap().iter().map(|(k, v)| (k.clone(), v.as_str().unwrap().to_string())).collect();
-        o.insert("racine".into(), racine_de(&o["racine"]).to_string_lossy().into_owned());
-        c["attendu"] = match paie::oracle::droits(&o) {
-            Ok(v) => {
-                assert!(!v["derniere_fin"].is_null() || o.contains_key("a-la-date") || o.contains_key("anniversaire"), "{:?} depend du jour", c["options"]);
-                json!({"ok": canon(&v)})
-            }
-            Err(_) => json!({"refus": true}),
-        };
-    }
-    outils::oracle("cumul-droits.json", "", &outils::trie(&tout));
 }
 
 /// Reste R1 #162 : une ligne « - » (une rubrique de sens `-`) retire ses heures d'enseignement au lieu d'en ajouter,

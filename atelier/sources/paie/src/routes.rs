@@ -1,12 +1,9 @@
 //! `paie route` : les routes de l'interface. La fenetre les sert dans son processus (`dans_la_fenetre`, ticket #244) ;
 //! `paie route`, une par processus, reste pour la ligne de commande et les tests.
 //!
-//! Demande sur l'entree standard : `{"route": "...", "charge": {...}}`, avec
-//! `--racine` et `--date` comme `paie interne`. Reponse : `{"ok": true,
-//! "resultat": ...}`, le JSON que la route Python rendait ; un refus rend
-//! `{"ok": false, "erreur": "...", "classe": "..."}` avec la classe
-//! d'exception que Python levait (`ErreurOperation`, `FileNotFoundError`,
-//! `KeyError`...), que `paie_rust.route` releve sous le meme nom.
+//! Demande sur l'entree standard : `{"route": "...", "charge": {...}}`, avec `--racine` et `--date`. Reponse :
+//! `{"ok": true, "resultat": ...}` ; un refus rend `{"ok": false, "erreur": "...", "classe": "..."}` avec sa classe
+//! (`ErreurOperation`, `FileNotFoundError`, `KeyError`...), que la page releve.
 //!
 //! L'aiguillage ne fait rien d'autre : chaque lot de routes vit dans son
 //! module et s'ajoute ici d'une ligne. Les routes de l'ouverture

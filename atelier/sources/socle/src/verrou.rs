@@ -1,7 +1,5 @@
-//! `operations_socle.verrou_compteurs` : le fichier `config/.compteurs.verrou`
-//! qui exclut deux attributions de numeros simultanees. Meme fichier, meme
-//! contenu (`QUI pid N JJ/MM/AAAA HH:MM:SS`) que le Python : les deux se
-//! voient et se respectent pendant la transition.
+//! Le verrou des compteurs : le fichier `config/.compteurs.verrou` qui exclut deux attributions de numeros
+//! simultanees ; son contenu dit qui le tient (`QUI pid N JJ/MM/AAAA HH:MM:SS`).
 //!
 //! Un verrou est un fichier cree en exclusif ; passe `delai` secondes le
 //! detenteur est tenu pour mort et on reprend la main ; le sortant ne retire
@@ -11,8 +9,6 @@ use std::fs::OpenOptions;
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
-
-use serde_json::{json, Value};
 
 use crate::num::Resultat;
 
@@ -116,26 +112,3 @@ impl Drop for Verrou {
     }
 }
 
-/// `paie verrou` : `{"operation": "prendre"|"rendre", "chemin", "marque",
-/// "delai"?}`. `prendre` rend `{"ok": true}` ou, si un autre le tient,
-/// `{"ok": true, "tenu": true, "detenteur", "age", "message"}`.
-pub fn commande(entree: &str) -> Resultat<Value> {
-    let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
-    let texte = |c: &str| d.get(c).and_then(Value::as_str).ok_or(format!("demande illisible : il faut `{}`", c));
-    let chemin = PathBuf::from(texte("chemin")?);
-    let marque = texte("marque")?;
-    match texte("operation")? {
-        "prendre" => {
-            let delai = d.get("delai").and_then(Value::as_i64).unwrap_or(DELAI_VERROU);
-            Ok(match prendre(&chemin, marque, delai)? {
-                Ok(()) => json!({ "ok": true }),
-                Err(v) => json!({ "ok": true, "tenu": true, "detenteur": v.detenteur, "age": v.age, "message": v.message() }),
-            })
-        }
-        "rendre" => {
-            rendre(&chemin, marque);
-            Ok(json!({ "ok": true }))
-        }
-        autre => Err(format!("operation inconnue : {}", autre)),
-    }
-}

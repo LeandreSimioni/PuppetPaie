@@ -1,0 +1,33 @@
+//! Les aides des tests du droit : les oracles (communs aux trois crates), la copie figee des compagnies fictives, les
+//! donnees livrees.
+
+#![allow(dead_code)]
+
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+
+use rust_decimal::Decimal;
+use serde_json::Value;
+
+#[path = "../../../socle/tests/outils/oracles.rs"]
+mod oracles;
+pub use oracles::*;
+
+/// La copie figee d'une compagnie fictive, celle de toutes les crates (`paie/tests/donnees/fictives/<nom>`), qu'aucun
+/// test n'ecrit.
+pub fn fictive(nom: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../paie/tests/donnees/fictives").join(nom)
+}
+
+/// Les donnees livrees (`logiciel/donnees`).
+pub fn code_livre() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees")
+}
+
+pub fn lire(racine: &Path, rel: &str) -> Value {
+    serde_json::from_slice(&std::fs::read(racine.join(rel)).unwrap()).unwrap_or_else(|e| panic!("{} illisible : {}", rel, e))
+}
+
+pub fn dec(s: &str) -> Decimal {
+    Decimal::from_str(s).unwrap_or_else(|_| panic!("montant illisible : {:?}", s))
+}

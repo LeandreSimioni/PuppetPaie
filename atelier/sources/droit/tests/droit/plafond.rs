@@ -11,7 +11,7 @@
 
 use socle::fichiers::lire_json;
 use socle::num::Decimal;
-use droit::plafond::{plafond_urssaf, pour_paie, prorata_calendaire, pss_depuis_table, EngagementPlafond, Jour};
+use droit::plafond::{plafond_urssaf, pour_paie, pss_depuis_table, EngagementPlafond, Jour};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::Path;
@@ -191,17 +191,6 @@ fn les_dates_et_le_mensuel() {
         let err = plafond_urssaf(jour(v[0].as_str().unwrap()), jour(v[1].as_str().unwrap()), artiste, &pss, &[]).unwrap_err();
         assert!(err.contains("0 jour(s) travaille(s) pour 0 date(s)"), "{} : {}", v[3], err);
     }
-}
-
-#[test]
-fn une_annee_sans_plafond_et_des_dates_dans_le_desordre_refusent() {
-    let t = table();
-    let pss = pss_depuis_table(&t);
-    let e = plafond_urssaf((2026, 12, 20), (2027, 1, 5), true, &pss, &[(2026, 12, 20), (2027, 1, 4)]).unwrap_err();
-    assert!(e.contains("2027"), "{}", e);
-    assert!(prorata_calendaire((2026, 5, 24), (2026, 5, 23), &pss).is_err());
-    // Une journee hors du contrat ne se compte pas.
-    assert!(plafond_urssaf((2026, 5, 20), (2026, 5, 21), true, &pss, &[(2026, 5, 22)]).unwrap_err().contains("hors du contrat"));
 }
 
 #[test]

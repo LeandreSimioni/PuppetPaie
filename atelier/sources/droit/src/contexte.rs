@@ -1364,6 +1364,18 @@ PSS_H_METROP).",
         }
     }
 
+    /// La fiche entreprise d'un mois `AAAA-MM` telle que les documents la lisent : la licence resolue au premier du
+    /// mois (`licence`), et les gabarits de cette compagnie (`_gabarits`).
+    pub fn entreprise_du_mois(&self, mois: &str) -> Resultat<Value> {
+        let licence = self.licence(&socle::date::premier_du_mois(mois)?)?;
+        let mut ent = self.entreprise.clone();
+        if let Value::Object(m) = &mut ent {
+            m.insert("licence_spectacle".into(), Value::String(licence));
+            m.insert("_gabarits".into(), Value::String(self.gabarits().to_string_lossy().into_owned()));
+        }
+        Ok(ent)
+    }
+
     /// `Contexte.licence` : le numero de licence applicable a la date, relu dans
     /// la fiche entreprise `telle_qu_au` ce jour-la. Une ancienne liste datee
     /// `{depuis, numero}` reste acceptee.

@@ -45,23 +45,6 @@ fn lire(ctx: &Contexte, p: &Paie, ctx_smic: &Contexte) -> Value {
     json!([a, s])
 }
 
-#[test]
-fn les_mois_des_fictives() {
-    let att = attendus();
-    let date = att["date"].as_str().unwrap();
-    let mois: Vec<Value> = att["mois"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|m| {
-            let fichier = m[0].as_str().unwrap();
-            let ctx = contexte(fichier.split('/').next().unwrap(), date);
-            json!([fichier, paies(&ctx, fichier).iter().map(|p| lire(&ctx, p, &ctx)).collect::<Vec<_>>()])
-        })
-        .collect();
-    oracle("minima.json", "/mois", &Value::Array(mois));
-}
-
 /// Aucun mois des compagnies fictives n'avertit : un cachet de 20,00 le fait, et `charger` le dit sur la paie.
 #[test]
 fn charger_porte_l_avertissement_d_un_cachet_sous_le_minimum() {

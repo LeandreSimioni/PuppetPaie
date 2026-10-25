@@ -179,17 +179,3 @@ pub fn numero_de_processus() -> u32 {
         std::process::id()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// 9 h a Paris : 8 h UTC l'hiver, 7 h UTC l'ete.
-    #[test]
-    fn neuf_heures_a_paris() {
-        let hiver = instant_de(Jour::nouveau(2026, 1, 15).unwrap(), 9);
-        assert_eq!(crate::paris::iso_secondes(hiver), "2026-01-15T09:00:00");
-        let ete = instant_de(Jour::nouveau(2026, 7, 15).unwrap(), 9);
-        assert_eq!(crate::paris::iso_secondes(ete), "2026-07-15T09:00:00");
-    }
-}

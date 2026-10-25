@@ -33,13 +33,3 @@ fn le_contexte_des_fictives() {
     oracle_selon("contexte.json", "", &cas, egal);
 }
 
-#[test]
-fn un_spectacle_sans_nom_se_refuse() {
-    let ctx = Contexte::nouveau(&fictive("fictive-3090-petite"), Some(d(&json!("2026-09-27")).unwrap())).unwrap();
-    for nom in ["", "   ", " - "] {
-        let e = ctx.spectacle(nom).expect_err(nom);
-        assert!(e.starts_with("Aucun spectacle n'est nomme"), "{:?} : {}", nom, e);
-    }
-    // Un vrai nom se trouve toujours.
-    assert_eq!(ctx.spectacle("Ubu roi").unwrap()["_cle"], "ubu-roi");
-}

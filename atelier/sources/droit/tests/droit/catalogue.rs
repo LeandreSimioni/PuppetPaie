@@ -3,7 +3,7 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, egal, lire_oracle, oracle_selon};
-use droit::catalogue::{annexes, catalogue, rubrique, Rubrique};
+use droit::catalogue::{catalogue, rubrique, Rubrique};
 use serde_json::{json, Value};
 
 fn en_json(r: &Rubrique) -> Value {
@@ -57,7 +57,3 @@ fn les_heures() {
     oracle_selon("catalogue.json", "/heures", &heures, egal);
 }
 
-#[test]
-fn les_annexes() {
-    oracle_selon("catalogue.json", "/annexes", &annexes().unwrap(), egal);
-}

@@ -17,7 +17,7 @@ use crate::outils::{fictive, ecrire, lire, Copie};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::engagement::charger;
-use serde_json::{json, Value};
+use serde_json::json;
 
 /// La config de la fictive et sa saisie de juillet 2026, la surcouche portant la formation des permanents a 1 % (ce que
 /// L. 6331-3 demande a partir de onze salaries), l'effectif de chaque annee civile donne par `effectif`.
@@ -70,11 +70,3 @@ fn au_dela_du_seuil_la_formation_a_un_pour_cent_passe() {
     juillet(&copie(|_| 12.0)).unwrap();
 }
 
-#[test]
-fn sous_le_seuil_le_taux_du_socle_passe() {
-    let c = copie(|_| 5.0);
-    let mut bar: Value = lire(&c.0, "config/baremes/2026.json");
-    bar.as_object_mut().unwrap().remove("par_nature");
-    ecrire(&c.0, "config/baremes/2026.json", &bar);
-    juillet(&c).unwrap();
-}

@@ -518,7 +518,7 @@ pub(crate) fn ecrire_rectificatifs(
                 numero_bulletin
             ));
         }
-        let ent = crate::oracle::entreprise_du_mois(ctx, &r.mois).map_err(Echec::from)?;
+        let ent = ctx.entreprise_du_mois(&r.mois).map_err(Echec::from)?;
         let cle = py_str(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let etiq = crate::envoi::etiquette(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_c{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.numero));

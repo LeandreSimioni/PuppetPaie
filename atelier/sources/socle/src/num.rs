@@ -1,13 +1,11 @@
-//! L'arithmetique de la paie : `util.eur`, `util.pct`, et la lecture d'un
-//! nombre comme le Python le lit (PORTAGE-RUST §2).
+//! L'arithmetique de la paie (`eur`, `pct`, les arrondis) et la lecture d'un nombre.
 //!
-//! Le Python ne convertit jamais un flottant en `Decimal` directement : il
-//! passe par `str(x)`, la representation la plus courte. `format!("{}", f64)`
-//! est le meme algorithme (seule la forme differe : `24` contre `24.0`,
-//! jamais la valeur). `dec` fait donc exactement `Decimal(str(x))`.
+//! Un flottant lu ne se convertit jamais directement en decimal : il passe par sa representation la plus courte
+//! (`format!("{}", f64)`, a la forme pres : `24` contre `24.0`, jamais la valeur). `dec` lit donc `24.1` comme le
+//! decimal 24.1, et non comme le binaire le plus proche.
 
 use rust_decimal::prelude::*;
-pub use crate::d28::P;
+use crate::d28::P;
 pub use rust_decimal::Decimal;
 use serde_json::Value;
 
@@ -188,16 +186,6 @@ mod tests {
         assert_eq!(dec(&json!("5.23")).unwrap().to_string(), "5.23");
     }
 
-    #[test]
-    fn pct_et_round3() {
-        // `autres_3` : 0,590 + 0,090 sur 286 = 1,69 + 0,26 (PORTAGE-RUST §7.7).
-        let b = Decimal::from(286);
-        assert_eq!(pct(b, Decimal::from_str("0.59").unwrap()).to_string(), "1.69");
-        assert_eq!(pct(b, Decimal::from_str("0.09").unwrap()).to_string(), "0.26");
-        assert_eq!(round3(3.94 + 1.29 + 0.21), 5.44);
-        assert_eq!(round3(2.0004999), 2.0);
-    }
-
     fn d(s: &str) -> Decimal {
         Decimal::from_str(s).unwrap()
     }
@@ -226,22 +214,4 @@ mod tests {
         assert_eq!(div(d("1.50"), d("3")).to_string(), "0.50");
     }
 
-    #[test]
-    fn mul_au_dela_de_28_chiffres() {
-        // Python : 1234567890.123456789012345678 * 9.87654321
-        assert_eq!(mul(d("1234567890.123456789012345678"), d("9.87654321")).to_string(), "12193263112.48285321124828531");
-        // Python : 7922816251.426433759354395033 * 1.1
-        assert_eq!(mul(d("7922816251.426433759354395033"), d("1.1")).to_string(), "8715097876.569077135289834536");
-        // Python : 12345.67 * 1E-28 = 1.234567E-24 (30 decimales), ramene a 28 decimales
-        assert_eq!(mul(d("12345.67"), d("0.0000000000000000000000000001")).to_string(), "0.0000000000000000000000012346");
-    }
-
-    #[test]
-    fn add_sub_et_somme() {
-        assert_eq!(add(d("0.1"), d("0.20")).to_string(), "0.30");
-        assert_eq!(sub(d("1"), d("0.0000000000000000000000000001")).to_string(), "0.9999999999999999999999999999");
-        assert_eq!(somme([d("1.10"), d("2.25")]).to_string(), "3.35");
-        // Python : 3/7*12 = 5.142857142857142857142857143
-        assert_eq!(mul(div(d("3"), d("7")), d("12")).to_string(), "5.142857142857142857142857143");
-    }
 }

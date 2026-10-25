@@ -1,9 +1,4 @@
-//! La ligne de commande du produit, `paie COMMANDE ...` : ce qu'un humain (ou un agent) tape. Lot J2a : la
-//! CONSULTATION. Les commandes qui agissent (J2b) et celles de l'atelier (K) viennent apres.
-//!
-//! Les commandes INTERNES -- celles que le Python appelle avec du JSON sur l'entree standard (`moteur/paie_rust.py`) --
-//! vivent sous `paie interne NOM` (`main.rs`) : les noms `retours`, `coffre`, `journal`, `droits` reviennent aux
-//! commandes du produit.
+//! La ligne de commande du produit, `paie COMMANDE ...` : ce qu'un humain (ou un agent) tape.
 //!
 //! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie. Chacune reprend la
 //! commande Python du meme nom (`moteur/cli.py`, `moteur/commandes_*.py`) : memes options, meme sortie -- texte et

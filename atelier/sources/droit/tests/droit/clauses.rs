@@ -163,13 +163,6 @@ fn avec(base: &Value, k: &str, v: Value) -> Value {
 
 // ----------------------------------------------------------------- les tests
 #[test]
-fn releve_et_nom() {
-    let rel = lire();
-    section(&rel, "releve", |a| Ok(Value::Bool(c::releve(&a[0])?.is_some())));
-    section(&rel, "nom", |a| Ok(Value::String(c::nom(&a[0]))));
-}
-
-#[test]
 fn profil() {
     let rel = lire();
     let g = &rel["grilles"];

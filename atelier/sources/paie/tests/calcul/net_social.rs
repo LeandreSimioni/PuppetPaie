@@ -19,7 +19,6 @@ use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::{charger, Saisie};
 use socle::num::Decimal;
-use paie::oracle::entreprise_du_mois;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use crate::outils::{dec, fictive, versement};
@@ -88,7 +87,7 @@ fn somme(p: &Paie, id: &str, patronale: bool) -> Decimal {
 }
 
 fn bulletin(ctx: &Contexte, p: &Paie, mois: &str) -> Value {
-    let ent = entreprise_du_mois(ctx, mois).unwrap();
+    let ent = ctx.entreprise_du_mois(mois).unwrap();
     jeux_et_description(ctx, std::slice::from_ref(p), &ent, mois, None, false, &HashMap::new()).unwrap()
 }
 

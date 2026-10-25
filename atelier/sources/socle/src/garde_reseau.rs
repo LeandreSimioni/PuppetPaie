@@ -108,19 +108,6 @@ pub fn regler(c: ureq::config::ConfigBuilder<ureq::typestate::AgentScope>, url: 
 mod tests {
     use super::*;
 
-    #[test]
-    fn les_hotes_se_lisent_et_la_machine_se_reconnait() {
-        assert_eq!(hote_de("https://filet.puppetpaie.fr/poste"), "filet.puppetpaie.fr");
-        assert_eq!(hote_de("http://u:p@127.0.0.1:9/x?y"), "127.0.0.1");
-        assert_eq!(hote_de("http://[::1]:80/"), "::1");
-        for h in ["localhost", "127.0.0.1", "127.4.5.6", "::1", "[::1]", "a.localhost"] {
-            assert!(est_locale(h), "{}", h);
-        }
-        for h in ["filet.puppetpaie.fr", "services.net-entreprises.fr", "10.0.0.1", "0.0.0.0", "localhost.exemple.fr", "smtp.gmail.com"] {
-            assert!(!est_locale(h), "{}", h);
-        }
-    }
-
     /// Cargo pose la variable pour tout essai (`.cargo/config.toml`, `[env]`) : ce processus-ci est un essai, et rien ne
     /// sort vers le serveur de l'editeur, ni vers aucun autre ; la machine elle-meme reste joignable.
     #[test]

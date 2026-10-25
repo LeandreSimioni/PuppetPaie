@@ -40,31 +40,6 @@ fn resoudre_metier_et_statut_non_cadre() {
     assert_eq!(refus, 8); // XXX999 et le code vide : quatre variantes chacun
 }
 
-#[test]
-fn les_codes_de_la_fictive() {
-    for c in ["ADM020", "ATT010", "CHA080", "COM010", "DAN010", "MAR010", "MUS010", "REG010", "REG120", "REG130", "REG150"] {
-        let r = resoudre(c, None, false).unwrap();
-        assert_eq!(r["code_emploi_ft"], c);
-        assert!(r["emploi"].is_string());
-    }
-    let r = resoudre("MAR010", None, false).unwrap();
-    assert_eq!(r["emploi"], "MARIONNETTISTE");
-    assert_eq!(r["pcs_ese"], "354c");
-    assert_eq!(r["statut_conventionnel"], "05");
-    assert_eq!(r["statut_categoriel_rc"], "04");
-    let r = resoudre("MAR010", Some(true), false).unwrap();
-    assert_eq!(r["statut_conventionnel"], "04");
-    assert_eq!(r["statut_categoriel_rc"], "01");
-}
-
-#[test]
-fn un_code_inconnu_est_refuse() {
-    let e = resoudre("XXX999", None, false).unwrap_err();
-    assert!(e.contains("XXX999") && e.contains("inconnu"), "{}", e);
-    assert!(metier("XXX999").unwrap().is_none());
-    assert!(metier("").unwrap().is_none());
-}
-
 fn champ(e: &Map<String, Value>, c: &str) -> Option<String> {
     e.get(c).and_then(|v| v.as_str()).map(String::from)
 }

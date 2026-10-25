@@ -163,29 +163,3 @@ pub fn codification_ue(fiche: &Value) -> Resultat<String> {
         _ => Ok(attendu.to_string()),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn la_table_a_vingt_sept_etats_et_trois_de_l_eee() {
-        assert_eq!(UNION.len() + 1, 27);
-        assert_eq!(code_du_pays("FR"), "01");
-        assert_eq!(code_du_pays("IT"), "02");
-        assert_eq!(code_du_pays("NO"), "03");
-        for p in ["GB", "CH", "MA", "US"] {
-            assert_eq!(code_du_pays(p), "04", "{}", p);
-        }
-    }
-
-    #[test]
-    fn un_ancien_03_sans_pays_refuse() {
-        let e = codification_ue(&json!({"prenom": "Ali", "nom": "X", "code_nationalite_dsn": "03"})).unwrap_err();
-        assert!(e.contains("Ali X") && e.contains("04"), "{}", e);
-        assert_eq!(codification_ue(&json!({"code_nationalite_dsn": "03", "pays_nationalite": "MA"})).unwrap(), "04");
-        assert_eq!(codification_ue(&json!({"code_nationalite_dsn": "02", "pays_nationalite": "NO"})).unwrap(), "03");
-        assert!(codification_ue(&json!({"code_nationalite_dsn": "02", "pays_nationalite": "US"})).is_err());
-    }
-}

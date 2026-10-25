@@ -173,3 +173,24 @@ pub fn chomes_entre(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Res
 pub fn rien_n_est_dit(entreprise: Option<&Value>) -> bool {
     matches!(entreprise.and_then(|e| e.get("jours_feries_chomes")), None | Some(Value::Null))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Les onze fetes legales de C. trav. L3133-1 (`atelier/reference/sources/code-du-travail/articles-20261021.md`,
+    /// l. 92-105), Paques au comput gregorien ; le 1er mai seul chome de droit (L3133-4).
+    #[test]
+    fn les_feries_de_l_annee() {
+        for (an, m, j) in [(2024, 3, 31), (2025, 4, 20), (2026, 4, 5), (2027, 3, 28)] {
+            assert_eq!(paques(an).unwrap(), Jour::nouveau(an, m, j).unwrap());
+        }
+        let jours: Vec<String> = feries(2026).unwrap().into_iter().map(|(j, _)| j.iso()).collect();
+        assert_eq!(
+            jours,
+            ["2026-01-01", "2026-04-06", "2026-05-01", "2026-05-08", "2026-05-14", "2026-05-25", "2026-07-14", "2026-08-15", "2026-11-01", "2026-11-11", "2026-12-25"]
+        );
+        let chomes: Vec<String> = chomes_de_droit(2026).unwrap().into_iter().map(|(j, _)| j.iso()).collect();
+        assert_eq!(chomes, ["2026-05-01"]);
+    }
+}

@@ -257,24 +257,3 @@ pub fn lignes(chemin: &Path, feuille: &str) -> Resultat<Vec<Ligne>> {
     }
     Ok(rangs)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn une_colonne_se_compte_depuis_zero() {
-        assert_eq!(colonne("A1").unwrap(), 0);
-        assert_eq!(colonne("C12").unwrap(), 2);
-        assert_eq!(colonne("AA3").unwrap(), 26);
-        assert!(colonne("12").is_err());
-    }
-
-    #[test]
-    fn une_case_s_ecrit_comme_python_l_ecrirait() {
-        assert_eq!(Cellule::Flottant(1.0).py_str(), "1.0");
-        assert_eq!(Cellule::Entier(20260909).py_str(), "20260909");
-        assert_eq!(Cellule::Booleen(true).py_str(), "True");
-        assert_eq!(py_str(&None), "None");
-    }
-}

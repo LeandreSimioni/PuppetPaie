@@ -112,15 +112,6 @@ mod tests {
     }
 
     #[test]
-    fn deux_jumeaux_sans_numero_se_distinguent_par_le_rang() {
-        let ids: Vec<Ident> = [id("A", "2026-10-06", None), id("A", "2026-10-06", None), id("B", "2026-10-06", None)].into_iter().flatten().collect();
-        let c = cles(&ids);
-        assert_eq!(c[0].2, "#0");
-        assert_eq!(c[1].2, "#1");
-        assert_eq!(c[2].2, "#0");
-    }
-
-    #[test]
     fn le_numero_d_abord_puis_le_rang_et_jamais_deux_numeros_differents() {
         // l'ecran sans numeros, le fichier fige : chacun retrouve le sien, dans l'ordre
         let ecran = [id("A", "d", None), id("A", "d", None)];

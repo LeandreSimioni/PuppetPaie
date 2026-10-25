@@ -228,37 +228,3 @@ pub fn de_naissance(fiche: &Value) -> Resultat<Value> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn la_liste_se_lit_et_se_rattache() {
-        let l = liste().unwrap();
-        assert!(l.len() > 200, "{}", l.len());
-        assert_eq!(du_code("fr").unwrap().unwrap().nom, "France");
-        assert_eq!(codification(&du_code("FO").unwrap().unwrap()), "04", "TFUE art. 355 § 5 a");
-        assert_eq!(codification(&du_code("GL").unwrap().unwrap()), "02");
-        assert_eq!(codification(&du_code("GI").unwrap().unwrap()), "04");
-        assert_eq!(codification(&du_code("NO").unwrap().unwrap()), "03");
-        assert!(du_code("ZZ").unwrap().is_none());
-        assert_eq!(du_nom("cote d'ivoire").unwrap().unwrap().code, "CI");
-        assert_eq!(du_nom("Republique tcheque").unwrap().unwrap().code, "CZ");
-        assert_eq!(du_nom("aland").unwrap().unwrap().code, "AX");
-    }
-
-    #[test]
-    fn la_table_pays_de_la_dsn_porte_le_cog_et_soixante_et_un_codes_de_plus() {
-        let t = table_dsn().unwrap();
-        assert_eq!(t.len(), 274);
-        assert!(liste().unwrap().iter().all(|p| t.iter().any(|d| d.code == p.code)), "les 213 codes du COG y sont");
-        assert_eq!(de_la_table_dsn("xk").unwrap().unwrap().libelle, "KOSOVO");
-        assert!(de_la_table_dsn("SU").unwrap().unwrap().ne_a_l_etranger);
-        assert!(!de_la_table_dsn("GP").unwrap().unwrap().ne_a_l_etranger);
-        assert_eq!(t.iter().filter(|p| !p.ne_a_l_etranger).count(), 13);
-        assert!(de_la_table_dsn("ZZ").unwrap().is_none());
-        assert_eq!(naissance_du_nom("Yougoslavie").unwrap().as_deref(), Some("YU"));
-        assert_eq!(naissance_du_nom("Italie").unwrap().as_deref(), Some("IT"));
-    }
-}

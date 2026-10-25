@@ -1,18 +1,12 @@
-//! Le transport vers net-entreprises et l'Urssaf (`paie transport`) : ce que
-//! faisaient `netentreprises.py` (le client HTTP, l'authentification, les
-//! consultations, l'archivage des retours et leur journal) et l'envoi du corps
-//! d'un depot (`dsn_api._appel_depot`, `dpae_api.ClientDpae._appel_depot`).
+//! Le transport vers net-entreprises et l'Urssaf : le client HTTP, l'authentification, les consultations, l'archivage
+//! des retours et leur journal, et l'envoi du corps d'un depot (DSN, DPAE).
 //!
-//! CE MODULE NE CHERCHE JAMAIS UN SECRET : le mot de passe arrive dans la
-//! demande (entree standard, jamais la ligne de commande), sert le temps de
-//! l'authentification et n'est ecrit nulle part ; il n'ouvre pas le coffre et
-//! n'en parle pas. Le jeton, lui, vaut une session : le moteur est appele par
-//! processus, c'est l'appelant qui le garde en memoire et le repasse.
+//! CE MODULE NE CHERCHE JAMAIS UN SECRET : le mot de passe arrive de l'appelant, sert le temps de l'authentification
+//! et n'est ecrit nulle part ; il n'ouvre pas le coffre et n'en parle pas. Le jeton, lui, vaut une session : c'est
+//! l'appelant qui le garde en memoire et le repasse.
 //!
-//! Les pannes gardent leur forme d'avant : `ErreurApi` (message et `code`),
-//! et, la ou urllib laissait passer une exception brute (delai de lecture,
-//! reponse coupee, connexion rompue, gzip illisible), la `classe` que
-//! l'appelant releve sous le meme nom.
+//! Les pannes : `ErreurApi` (message et `code`) ; un delai de lecture, une reponse coupee, une connexion rompue, un gzip
+//! illisible portent chacun leur `classe`, que l'appelant releve.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -987,19 +981,3 @@ pub fn operation(d: &Value) -> Resultat {
     }
 }
 
-/// `paie transport` : la demande JSON sur l'entree standard, la reponse sur la
-/// sortie. Rien d'autre n'est ecrit nulle part.
-pub fn commande_ligne() -> i32 {
-    let mut entree = String::new();
-    let reponse = match std::io::stdin().read_to_string(&mut entree) {
-        Err(e) => echec("OSError", format!("lecture de l'entree standard impossible : {}", e), None),
-        Ok(_) => match serde_json::from_str::<Value>(entree.trim_start_matches('\u{feff}')) {
-            Err(e) => echec("ValueError", format!("demande illisible : {}", e), None),
-            Ok(d) => match operation(&d) {
-                Ok(v) | Err(v) => v,
-            },
-        },
-    };
-    println!("{}", reponse);
-    0
-}

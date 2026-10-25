@@ -1339,7 +1339,7 @@ pub struct Saisie {
     pub paies: Vec<crate::calcul::Paie>,
 }
 
-/// `operations_paies.charger(..., sans_numeros=True)` ; `minima::sans_minima` coupe les minima.
+/// Une saisie de mois lue et calculee, sans numeroter les contrats ; les minima et le SMIC y portent leurs avertissements.
 pub fn charger(ctx: &Contexte, chemin: &Path) -> Resultat<Saisie> {
     let p: PathBuf = if socle::fichiers::existe(chemin) || chemin.is_absolute() {
         chemin.to_path_buf()
@@ -1400,13 +1400,11 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
         p.engagement.suspensions = crate::imprevus::suspensions_du_mois(ctx, p, &mois)?;
     }
     // Les minima conventionnels, puis le SMIC : des avertissements, jamais un refus.
-    if crate::minima::actif() {
-        for p in paies.iter_mut() {
-            let avis = crate::minima::avertissements(ctx, p)?;
-            p.avertissements.extend(avis);
-            let avis = crate::minima::sous_le_smic(ctx, p)?;
-            p.avertissements.extend(avis);
-        }
+    for p in paies.iter_mut() {
+        let avis = crate::minima::avertissements(ctx, p)?;
+        p.avertissements.extend(avis);
+        let avis = crate::minima::sous_le_smic(ctx, p)?;
+        p.avertissements.extend(avis);
     }
     // La case cadre decochee sur un metier habituellement cadre : on le dit.
     let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| socle::fichiers::absent("engagements"))?;

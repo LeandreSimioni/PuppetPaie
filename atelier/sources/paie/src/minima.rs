@@ -7,7 +7,6 @@
 //! basse : un avertissement qui crie a tort ne se lit plus.
 
 use std::collections::BTreeSet;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use rust_decimal::RoundingStrategy;
@@ -24,16 +23,6 @@ use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::num::{add, dec, dec_f64, div, mul, sub, Decimal, Resultat};
 
 static NUL: Value = Value::Null;
-static SANS: AtomicBool = AtomicBool::new(false);
-
-/// Coupe les minima de `charger` (le `--sans-minima` de l'oracle).
-pub fn sans_minima(oui: bool) {
-    SANS.store(oui, Ordering::SeqCst);
-}
-
-pub fn actif() -> bool {
-    !SANS.load(Ordering::SeqCst)
-}
 
 fn cachet(c: &str) -> bool {
     c == "cachet"

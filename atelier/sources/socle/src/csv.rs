@@ -1,4 +1,5 @@
-//! `csv.writer(..., delimiter=d)` de Python : QUOTE_MINIMAL, guillemets doubles, fin de ligne CRLF.
+//! Une ligne CSV : un champ entre guillemets s'il porte le delimiteur, un guillemet ou un saut de ligne, les guillemets
+//! doubles, la fin de ligne CRLF.
 
 /// Un champ : entre guillemets s'il porte le delimiteur, un guillemet ou un saut de ligne.
 pub fn champ(t: &str, delim: char) -> String {

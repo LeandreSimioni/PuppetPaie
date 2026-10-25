@@ -20,7 +20,6 @@ use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::engagement::{charger, Saisie};
 use socle::num::{dec_f64, Decimal};
-use paie::oracle::entreprise_du_mois;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use crate::outils::fictive;
@@ -69,7 +68,7 @@ fn technicien() -> (Contexte, Paie, &'static str) {
 
 /// La fiche entreprise du mois, la case `modele_bulletin` posee a `modele` (`None` : retiree).
 fn entreprise(ctx: &Contexte, mois: &str, modele: Option<&str>) -> Value {
-    let mut ent = entreprise_du_mois(ctx, mois).unwrap();
+    let mut ent = ctx.entreprise_du_mois(mois).unwrap();
     let o = ent.as_object_mut().unwrap();
     o.remove("modele_bulletin");
     if let Some(m) = modele {
@@ -109,7 +108,7 @@ fn rangs(desc: &Value) -> Vec<Vec<String>> {
 
 /// Le bulletin du mois, sous le modele que la fiche entreprise du mois choisit.
 fn du_mois(ctx: &Contexte, p: &Paie, mois: &str) -> Value {
-    bulletin(ctx, p, mois, &entreprise_du_mois(ctx, mois).unwrap()).unwrap()
+    bulletin(ctx, p, mois, &ctx.entreprise_du_mois(mois).unwrap()).unwrap()
 }
 
 fn position(r: &[Vec<String>], libelle: &str) -> usize {

@@ -11,7 +11,6 @@ use paie::conges::CompteurConges;
 use socle::date::Jour;
 use paie::engagement::charger;
 use socle::num::{dec, Decimal};
-use paie::oracle::entreprise_du_mois;
 use droit::pas::Versement;
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -90,7 +89,7 @@ fn ce_que_jeux_et_description_passe_a_la_fabrique() {
         let o = &c["options"];
         let ctx = Contexte::nouveau(&racine_de(o["racine"].as_str().unwrap()), Some(jour("2026-09-27"))).unwrap();
         let mut s = charger(&ctx, &fichier_de(o)).unwrap();
-        let mut ent = entreprise_du_mois(&ctx, &s.mois).unwrap();
+        let mut ent = ctx.entreprise_du_mois(&s.mois).unwrap();
         if o["licence"] == "liste" {
             ent["licence_spectacle"] = json!([{"depuis": "2026-01-01", "numero": "L-R-26-1"}]);
         }
@@ -166,7 +165,7 @@ fn la_description_de_jeux_fabriques() {
         let o = &c["options"].clone();
         let ctx = Contexte::nouveau(&racine_de(o["racine"].as_str().unwrap()), Some(jour("2026-09-27"))).unwrap();
         let s = charger(&ctx, &fichier_de(o)).unwrap();
-        let mut ent = entreprise_du_mois(&ctx, &s.mois).unwrap();
+        let mut ent = ctx.entreprise_du_mois(&s.mois).unwrap();
         if let Some(g) = o["gabarits"].as_str() {
             ent["_gabarits"] = json!(chemin_oracle("racines/bulletin").join(g).to_str().unwrap());
         }

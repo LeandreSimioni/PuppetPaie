@@ -189,55 +189,6 @@ fn presente(e: Option<&Value>) -> Option<&Value> {
     e.filter(|v| vrai(v))
 }
 
-/// Taux de PAS courant d'un salarie, avec sa fin de validite. Refuse
-/// (`PasInconnu`) plutot que de renvoyer une valeur par defaut. Un taux
-/// perime est rendu, marque `perime`.
-pub fn etat(ctx: &Contexte, cle: &str, le: Option<Jour>) -> R<Value> {
-    let le = le_jour(ctx, le);
-    let magasin = charger(ctx)?;
-    let Some(e) = presente(entree(&magasin, cle)) else {
-        if sans_nir(ctx, cle) {
-            return Err(ErreurPas::Inconnu(format!(
-                "{} n'a pas de NIR : la DGFiP ne peut pas lui transmettre de \
-                 taux de prelevement a la source, et aucun compte-rendu \
-                 metier n'en portera.\n\
-                 C'est la grille de l'article 204 H du code general des \
-                 impots -- le taux par defaut, type 13 -- qui s'applique dans \
-                 ce cas, et la DSN la calcule (`pas.rubriques_par_defaut`). \
-                 Il n'y a donc rien a attendre ici, et rien a demander : le \
-                 signalement d'amorcage exige un NIR.\n\
-                 Des que la caisse notifie le NIR, le saisir dans la fiche : \
-                 le CRM suivra, et le taux du salarie remplacera la grille.",
-                cle
-            )));
-        }
-        return Err(ErreurPas::Inconnu(format!(
-            "Aucun taux de prelevement a la source connu pour {}.\n\
-             Il vient du compte-rendu metier DGFiP (retour de nature 94), pas\n\
-             d'un calcul. Le recuperer avec :\n\
-             \x20   paie retours\n\
-             ou, a defaut, amorcer le magasin depuis les DSN deja deposees :\n\
-             \x20   paie pas --amorcer\n\
-             En attendant, la DSN ne s'arrete pas : elle declare la grille de\n\
-             l'article 204 H, qui preleve le plus souvent PLUS que le taux du\n\
-             salarie.",
-            cle
-        )));
-    };
-    Ok(avec_validite(e, le))
-}
-
-/// `(taux, type, identifiant)` prets pour S21.G00.50.006/.007/.008.
-pub fn rubriques(ctx: &Contexte, cle: &str) -> R<Triplet> {
-    let e = etat(ctx, cle, None)?;
-    let champ = |c: &str| e.get(c).cloned().ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent(c)));
-    Ok((champ("taux")?, champ("type")?, champ("identifiant")?))
-}
-
-pub fn connu(ctx: &Contexte, cle: &str) -> Resultat<bool> {
-    Ok(entree(&charger(ctx)?, cle).is_some())
-}
-
 // ------------------------------------------ la grille de l'article 204 H du CGI
 
 pub const ZONE_DEFAUT: &str = "metropole";
@@ -522,11 +473,6 @@ pub fn situation(ctx: &Contexte, cle: &str, le: Option<Jour>) -> Resultat<Value>
         magasin.get("demandes").and_then(|d| d.get(cle)).cloned().unwrap_or(Value::Null),
     );
     Ok(Value::Object(m))
-}
-
-/// La demande en cours pour ce salarie, ou `None`.
-pub fn demande(ctx: &Contexte, cle: &str) -> Resultat<Option<Value>> {
-    Ok(charger(ctx)?.get("demandes").and_then(|d| d.get(cle)).cloned())
 }
 
 fn archive(ctx: &Contexte, cle: &str) -> bool {

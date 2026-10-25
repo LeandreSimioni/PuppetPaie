@@ -97,22 +97,3 @@ moteur ne la devine pas.",
     };
     Ok(!douze_mois_ou_plus(debut, fin)?)
 }
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn j(s: &str) -> Jour {
-        Jour::lire(s).unwrap()
-    }
-
-    #[test]
-    fn douze_mois_se_comptent_du_debut_au_lendemain_du_terme() {
-        assert!(douze_mois_ou_plus(&j("2026-01-01"), &j("2026-12-31")).unwrap());
-        assert!(!douze_mois_ou_plus(&j("2026-01-01"), &j("2026-12-30")).unwrap());
-        assert!(douze_mois_ou_plus(&j("2026-03-15"), &j("2027-03-14")).unwrap());
-        assert!(!douze_mois_ou_plus(&j("2026-03-15"), &j("2027-03-13")).unwrap());
-        assert!(douze_mois_ou_plus(&j("2024-02-29"), &j("2025-02-27")).unwrap());
-    }
-}

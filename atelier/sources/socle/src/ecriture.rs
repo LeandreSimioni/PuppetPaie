@@ -1,14 +1,10 @@
-//! `util.ecrire_json` : un fichier de donnees JSON, avec les memes octets que
-//! le Python (`json.dumps(donnees, ensure_ascii=False, indent=2) + "\n"`, en
-//! LF, sur toute machine). C'est ce qui permet de comparer les fichiers a
-//! l'octet dans le Drive et dans git.
+//! Un fichier de donnees JSON s'ecrit toujours aux memes octets, sur toute machine : c'est ce qui permet de comparer
+//! les fichiers a l'octet dans le Drive et dans git, et ceux deja ecrits ne changent pas.
 //!
-//! `serde_json` ecrit autrement que Python sur trois points, refaits ici :
-//! l'indentation (`", "`, `": "`, `[]` et `{}` vides), les flottants (`repr` de
-//! Python : `1e+16`, `1e-05`, `100.0`, quand `serde_json` ecrit `1e16`, `1e-5`),
-//! et rien d'autre (les chaines s'echappent pareil). Un entier lu hors de
-//! 64 bits devient un flottant a la lecture (pas d'`arbitrary_precision`) : il
-//! s'ecrit alors comme le flottant qu'il est devenu.
+//! La forme : une indentation de 2 (`", "`, `": "`, `[]` et `{}` vides), du texte non echappe hors ASCII, une fin de
+//! ligne LF ; les flottants sous leur forme la plus courte qui revient au meme nombre, l'exposant signe sur deux
+//! chiffres (`1e+16`, `1e-05`) et la decimale gardee (`100.0`). Un entier lu hors de 64 bits devient un flottant a la
+//! lecture (pas d'`arbitrary_precision`) : il s'ecrit alors comme le flottant qu'il est devenu.
 
 use std::path::Path;
 
@@ -223,12 +219,3 @@ pub fn provisoire(chemin: &Path) -> std::path::PathBuf {
     chemin.with_file_name(format!("{}.{}-{}.tmp", nom, std::process::id(), n))
 }
 
-/// `paie ecrire-json` : `{"chemin", "donnees", "indent"?}` (2 par defaut).
-pub fn commande(entree: &str) -> Resultat<Value> {
-    let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
-    let chemin = d.get("chemin").and_then(Value::as_str).ok_or("demande illisible : il faut `chemin`")?;
-    let donnees = d.get("donnees").ok_or("demande illisible : il faut `donnees`")?;
-    let indent = d.get("indent").and_then(Value::as_u64).unwrap_or(2) as usize;
-    ecrire_json(Path::new(chemin), donnees, indent)?;
-    Ok(serde_json::json!({ "ok": true }))
-}

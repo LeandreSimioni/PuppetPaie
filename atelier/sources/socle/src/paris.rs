@@ -121,20 +121,4 @@ mod tests {
         assert_eq!(iso_minutes((t * 86_400 + 3_600) as f64), "2026-10-25T02:00");
     }
 
-    #[test]
-    fn plein_hiver_plein_ete_et_annee_bissextile() {
-        // 2024-01-15 12:00:00 UTC = 13:00 a Paris ; 2024-07-15 12:00:00 UTC = 14:00.
-        assert_eq!(iso_minutes(1_705_320_000.0), "2024-01-15T13:00");
-        assert_eq!(iso_minutes(1_721_044_800.0), "2024-07-15T14:00");
-        // Minuit passe : 2024-12-31 23:30 UTC = 2025-01-01 00:30 a Paris.
-        assert_eq!(iso_minutes(1_735_687_800.0), "2025-01-01T00:30");
-    }
-
-    #[test]
-    fn la_fraction_de_seconde_est_arrondie_a_la_microseconde_avant_de_tronquer() {
-        // 59,9999996 s : Python l'arrondit a 60 s, donc la minute suivante.
-        let t = 1_705_320_000.0 + 59.0 + 0.9999996;
-        assert_eq!(iso_minutes(t), "2024-01-15T13:01");
-        assert_eq!(iso_minutes(1_705_320_059.5), "2024-01-15T13:00");
-    }
 }

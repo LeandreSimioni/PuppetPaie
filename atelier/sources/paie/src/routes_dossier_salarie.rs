@@ -619,7 +619,7 @@ fn mois_puppetpaie(
     if siennes.is_empty() {
         return Ok(pages);
     }
-    let ent = crate::oracle::entreprise_du_mois(ctx, mois)?;
+    let ent = ctx.entreprise_du_mois(mois)?;
     let lib = engagement::libelle_mois(mois);
 
     let mut lus: HashMap<usize, crate::apercu_dsn::Lu> = HashMap::new();
