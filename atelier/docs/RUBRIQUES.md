@@ -59,7 +59,7 @@ pour la même notion. Le détail est dans
 ## 2. La méthode : sept questions, dans cet ordre
 
 Chaque question a un champ, une source, et un coût si on se trompe. Les
-champs sont ceux de `Rubrique` (`paie/src/catalogue.rs`, les vingt-huit de
+champs sont ceux de `Rubrique` (`droit/src/catalogue.rs`, les vingt-huit de
 `CHAMPS_CONNUS` : un champ inconnu est refusé). La liste de qui les applique,
 `catalogue.CHAMPS` du Python, et son test sont partis avec le Python sans être
 portés (`catalogue.rs`, en tête).
@@ -299,7 +299,7 @@ mois plus tard par un organisme — ou jamais.
 L'audit confrontait le tableau au code **dans les deux sens** et échouait si
 l'un des deux bougeait sans l'autre, sous un test ; et `rubriques --detail`
 disait, rubrique par rubrique, ce qu'elle promettait en vain. Rien de cela
-n'est porté (`paie/src/catalogue.rs`, en tête) : le moteur Rust refuse un
+n'est porté (`droit/src/catalogue.rs`, en tête) : le moteur Rust refuse un
 champ inconnu, mais plus rien ne confronte un champ à son lecteur.
 
 Aucun des quatre n'est bloquant aujourd'hui : nos intermittents sont payés

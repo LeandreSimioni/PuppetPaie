@@ -1,4 +1,4 @@
-//! Les pieces de `calculer` (PORTAGE-RUST §6.4, §7.2, §7.9, §7.10) : les
+//! Les pieces de `calculer` : les
 //! lignes de remuneration et leur designation, les structs de sortie
 //! (`LigneCotisation`, `Paie`), la reduction generale, le seuil de SMIC et la
 //! deduction forfaitaire, puis `calculer` lui-meme (§7).

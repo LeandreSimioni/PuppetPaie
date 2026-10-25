@@ -17,7 +17,7 @@ PuppetPaie/  (ce dépôt, public)
 └── atelier/            tout le reste :
     ├── sources/        paie/ (le moteur ; exécutables dans paie/bin/<système>/), fenetre/ (Tauri), fabrique-pdf/
     ├── reference/      les textes qui fondent chaque règle (un LISEZ-MOI par dossier)
-    ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIES-FICTIVES, COMPAGNIE-D-ESSAI, PORTAGE-RUST
+    ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIES-FICTIVES, COMPAGNIE-D-ESSAI
     ├── outils/         les outils d'atelier (relevés, extracteurs, garde-fou de publication)
     ├── depot/, installeur/, site/, maquettes/
     └── README.md       comment chaque commande s'utilise

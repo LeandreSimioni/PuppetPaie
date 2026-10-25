@@ -1,5 +1,5 @@
 //! L'engagement : un salarie, un spectacle, des lignes de paie datees, dans
-//! un mois (`calcul.Engagement`, PORTAGE-RUST §5), et sa construction depuis
+//! un mois (`calcul.Engagement`), et sa construction depuis
 //! un fichier de mois (`operations_paies._saisie_lue`, et la reprise du
 //! contrat qui deborde du mois dans `charger`).
 //!

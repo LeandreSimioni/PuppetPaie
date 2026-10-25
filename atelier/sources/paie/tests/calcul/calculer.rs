@@ -1,4 +1,4 @@
-//! `calculer` contre des valeurs payees (§7.11 de PORTAGE-RUST) : des bulletins reels, rejoues sur une compagnie de
+//! `calculer` contre des valeurs payees : des bulletins reels, rejoues sur une compagnie de
 //! fictive ; un attendu independant du moteur. Le taux AT/MP et le parametrage de la reduction generale de la fictive
 //! ne sont pas ceux de ces bulletins : les totaux patronaux, le cout et le coefficient de la RGDU ne s'y comparent pas,
 //! le reste (assiettes, salarie, net, SMIC retenu) si.

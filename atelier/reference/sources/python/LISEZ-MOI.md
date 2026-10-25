@@ -1,6 +1,6 @@
 # Python : ce que le moteur imite de l'interpréteur (propriétés Unicode des chaînes, encodages de `pyexpat`)
 
-Le moteur Rust a été porté depuis le Python (`atelier/docs/PORTAGE-RUST.md`) et garde, à l'octet, des comportements de
+Le moteur garde, à l'octet, des comportements de
 l'interpréteur : `str.isdigit`, `str.isalnum`, `\d` des expressions régulières, et ce que `pyexpat` (ElementTree) fait d'un
 encodage déclaré dans un XML. Ces textes disent quelle propriété Unicode chaque fonction traduit ; les propriétés
 elles-mêmes se lisent dans `unicode/`. `paie generer-tables` (`src/generer_tables.rs`) écrit les tables.

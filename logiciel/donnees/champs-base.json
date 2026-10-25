@@ -1489,7 +1489,7 @@
    "ecran": true
   },
   {
-   "_note": "UN PAYS HORS DE LA LISTE (vague 2h, 10/10/2026) : le Kosovo et quelques territoires n'ont pas de code ISO dans le COG de l'INSEE. Le pays s'ecrit ici, en texte, et la nationalite DSN (S21.G00.30.013) se choisit : elle ne se deduit pas. La DSN ne declare pas le pays de nationalite. Regle : `paie/src/codification_ue.rs`.",
+   "_note": "UN PAYS HORS DE LA LISTE (vague 2h, 10/10/2026) : le Kosovo et quelques territoires n'ont pas de code ISO dans le COG de l'INSEE. Le pays s'ecrit ici, en texte, et la nationalite DSN (S21.G00.30.013) se choisit : elle ne se deduit pas. La DSN ne declare pas le pays de nationalite. Regle : `socle/src/codification_ue.rs`.",
    "cle": "pays_nationalite_hors_liste",
    "libelle": "Pays de nationalité absent de la liste",
    "forme": "texte",

@@ -1,5 +1,5 @@
-//! Cumuls : ce qui s'accumule d'un bulletin a l'autre (`cumul.py`,
-//! PORTAGE-RUST §10). Les heures et cachets declares, par fenetre (mois,
+//! Cumuls : ce qui s'accumule d'un bulletin a l'autre (`cumul.py`).
+//! Les heures et cachets declares, par fenetre (mois,
 //! annee civile, 12 mois des annexes 8 et 10), et ce qui manque aux 507
 //! heures. Hors de ce module : `lire_aem`, l'import d'un dossier d'AEM.
 

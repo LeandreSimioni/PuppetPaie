@@ -27,7 +27,7 @@ Claude sert à parler à ce moteur en français, pas à calculer la paie.
 
 Ce rapport est celui du calcul Python, retiré le 02/10/2026 : le moteur Rust
 (`atelier/sources/paie/`), qui calcule depuis, en reproduisait les sorties à l'octet sur tous
-les mois des compagnies fictives et de la compagnie (`docs/PORTAGE-RUST.md` §14).
+les mois des compagnies fictives et de la compagnie.
 
 ## L'arrivée d'une compagnie
 
@@ -1844,7 +1844,7 @@ atelier/                  ← ce dossier : tout le reste
                           BOSS…), leur transcription et un LISEZ-MOI.md par
                           dossier (15/10/2026 ; d'un organisme privé, seule la
                           transcription) ; `paie sources` y vérifie les copies
-  docs/                   ARCHITECTURE.md, RUBRIQUES.md, PORTAGE-RUST.md,
+  docs/                   ARCHITECTURE.md, RUBRIQUES.md,
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en

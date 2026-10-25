@@ -22,7 +22,7 @@ donc exactement tel que l'administration l'a déjà accepté.
 **Rien n'est réputé juste sans rejeu.** Le moteur a été calé en reconstruisant
 chaque DSN et chaque AEM du dossier `export/` à partir de leurs propres données
 et en les comparant à l'original (`calibrer`, du temps du Python ; retiré avec
-lui et non porté, `docs/PORTAGE-RUST.md`). Ce qui en tient lieu : les attendus
+lui et non porté). Ce qui en tient lieu : les attendus
 transcrits dans les tests (`atelier/sources/paie/tests/`) et le dépôt de test,
 seul validateur (règle de fond 10).
 
@@ -90,7 +90,7 @@ Ce que ça impose au moteur :
   refusé par `charger`, qui dit ce qu'il a vu et ce qu'une saisie porte.
   Plus aucune saisie n'est à l'ancienne écriture : l'outil de conversion
   (Python) est retiré le 15/10/2026.
-- `date::d` (`paie/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
+- `date::d` (`socle/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
 - La construction d'un `Engagement` (`paie/src/engagement.rs`) réunit les deux écritures et n'en
@@ -232,7 +232,7 @@ Les taux de vieillesse et de famille sont les taux de droit commun réduits de
 **Le plafond de Sécurité sociale est dans le barème** (`plafond_securite_sociale`
 : `{"mensuel": 4005, "horaire": 30}`, source BOSS), depuis le 16/09/2026 —
 c'était la seule valeur réglementaire qui vivait dans le code. Le module
-(`paie/src/plafond.rs`) ne porte plus que la règle, et
+(`droit/src/plafond.rs`) ne porte plus que la règle, et
 `calcul::plafond_de_l_engagement` en est la seule source : le bas du bulletin,
 les bases du calcul, la DSN et le bordereau la suivent. La règle, telle que
 le module la dit avec ses textes (`atelier/reference/sources/`) :
@@ -285,7 +285,7 @@ cotisation prévoyance `059` de la DSN (0,420 + 0,810 ; « Cotisation individuel
 
 **Tous les arrondis sont au demi supérieur.** `round()` de Python arrondissait au
 pair le plus proche et se trompait donc d'un centime régulièrement ; `eur`
-(`paie/src/num.rs`) arrondit un `Decimal` au demi qui s'éloigne de zéro
+(`socle/src/num.rs`) arrondit un `Decimal` au demi qui s'éloigne de zéro
 (`MidpointAwayFromZero`, le `ROUND_HALF_UP` d'avant).
 
 ## Le SMIC déclaré en DSN (composant 01 de la base 03)
@@ -671,7 +671,7 @@ livre**. L'état exact est aux §38 à §45 de `prive/journal/ETAT.md`.
 ### Le taux d'une branche n'est pas une donnée de compagnie
 
 `logiciel/donnees/prevoyance-conventionnelle-base.json` porte la prévoyance des
-permanents telle que la fixe la convention collective, et `paie/src/bareme.rs` (module `prevoyance`)
+permanents telle que la fixe la convention collective, et `droit/src/bareme.rs` (module `prevoyance`)
 la lit. 1,20 % de la tranche A est vrai pour **toutes** les entreprises de
 l'IDCC 3090 : le mettre dans le barème d'une compagnie, c'est le ranger là où
 aucune autre ne le trouvera. La ligne de partage, et elle vaut pour la suite :
@@ -753,7 +753,7 @@ prévoyance, elle, vient de la convention.
 contrat, par nature — ce qui était, jusque-là, écrit dans `dsn.py`. Trois
 natures : `cddu_spectacle` (l'intermittent, et le défaut d'un engagement qui
 ne dit rien), `cdi`, `cdd`. Chaque code y porte sa valeur, sa phrase et sa
-source ; `paie/src/contrats.rs` les lit et ne décide rien.
+source ; `droit/src/natures.rs` les lit et ne décide rien.
 
 Ce qui sépare un permanent d'un intermittent, en une page :
 
@@ -882,7 +882,7 @@ Venu de `CLAUDE.md` (règle 8) le 04/10/2026, tel quel pour l'essentiel.
 section `seuils_effectif` du socle dit, chemin par chemin, où vit chaque valeur
 qui dépend de l'effectif et ce que le socle y porte (formation des permanents à
 onze salariés ; FNAL, `tdelta` et échéance de la DSN à cinquante).
-`paie/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
+`droit/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
 le 23/09/2026 il ne se saisit plus : il arrive en CRM de nature 118,
 `paie/src/releve_retours.rs` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
 un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — et
@@ -903,7 +903,7 @@ un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — e
 - Le même module refuse une **adhésion à une organisation patronale** dont la
   couche n'est pas relevée (`par_organisation_patronale`) et un **second
   établissement** incomplet (adresse, taux AT/MP) ; complet, il a sa propre DSN
-  depuis le 25/09/2026 (`paie/src/contexte.rs`, `paie/src/dsn.rs`). Le contrôle est appelé dans
+  depuis le 25/09/2026 (`droit/src/contexte.rs`, `paie/src/dsn.rs`). Le contrôle est appelé dans
   `Contexte._bareme_brut`, seul endroit que les deux fronts traversent.
 
 ### Le barème a deux axes, pas un
@@ -982,7 +982,7 @@ permanents, un seul CTP 992.
 ### Ce que la loi doit à un permanent
 
 `logiciel/donnees/permanents-base.json` porte les nombres, chacun avec son article ;
-`paie/src/permanents.rs` porte la règle ; les routes portées d'`operations_permanents.py`
+`droit/src/permanents.rs` porte la règle ; les routes portées d'`operations_permanents.py`
 (`paie/src/routes_actes_h1.rs`, `routes_listes.rs`)
 décident. Les articles sont relevés et datés dans
 `atelier/reference/sources/code-du-travail/`.
@@ -1092,7 +1092,7 @@ décident. Les articles sont relevés et datés dans
   dépendent de Pâques — le seul calcul du logiciel qui remplace un relevé,
   aucune table officielle ne publiant cette date. Mais **férié n'est pas
   chômé** : la loi n'impose que le 1er mai (L3133-4), les dix autres relèvent
-  de la convention ou de l'usage. `paie/src/feries.rs` ne retire donc du
+  de la convention ou de l'usage. `socle/src/feries.rs` ne retire donc du
   décompte des jours ouvrables que ce que `config/entreprise.json` déclare
   chômer (`jours_feries_chomes`), et **dit** ce qu'il a compté comme
   ouvrable. À noter : L3133-3 exclut nommément les **intermittents** du

@@ -1,6 +1,6 @@
 //! `operations_permanents.py` : d'une saisie de permanent aux lignes d'un
 //! bulletin (`lignes_du_mois`), et le compteur de conges payes qu'elle
-//! derive des mois produits (PORTAGE-RUST §14).
+//! derive des mois produits.
 //!
 //! Rien n'est stocke : le compteur se derive des fichiers de paie, et le
 //! brut d'un mois passe se recalcule par `engagement::charger`, qui redemande
