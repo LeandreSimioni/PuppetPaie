@@ -980,22 +980,23 @@ fn regrouper_par_base(lignes: Vec<Cotisation>) -> Vec<Cotisation> {
 
 // ------------------------------------------------ adhesions et affiliations
 
-fn adhesion_en_vigueur(orgs: &Value, reference: &str, annee: i64) -> bool {
-    let a = liste(g(orgs, "adhesions_prevoyance")).iter().find(|a| en_texte(g(a, "reference")) == reference);
-    let depuis = a.map(|a| txt(g(a, "depuis"))).unwrap_or_default();
-    depuis.is_empty() || depuis.get(..4).and_then(|s| s.parse::<i64>().ok()).map_or(true, |d| d <= annee)
-}
-
-fn annee_de(v: &Value) -> Option<i64> {
-    match v {
-        Value::Null => None,
-        Value::Number(n) => n.as_i64(),
-        autre => en_texte(autre).trim().parse().ok(),
+/// L'adhesion `reference` du fichier des organismes vaut-elle pour la periode `debut`..=`fin` (`droit::adhesions`) ?
+/// Une reference que le fichier ne porte pas (une contribution de branche du bareme) n'a pas de date.
+pub(crate) fn adhesion_en_vigueur(orgs: &Value, reference: &str, debut: &Jour, fin: &Jour) -> Resultat<bool> {
+    match liste(g(orgs, "adhesions_prevoyance")).iter().find(|a| en_texte(g(a, "reference")) == reference) {
+        Some(a) => droit::adhesions::en_vigueur(a, debut, fin),
+        None => Ok(true),
     }
 }
 
-/// `_affiliations` : les references d'adhesion auxquelles cette nature rattache.
-pub(crate) fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, annee: Option<i64>) -> Resultat<Vec<String>> {
+/// Le premier et le dernier jour du mois `AAAA-MM`.
+fn bornes_du_mois(mois: &str) -> Resultat<(Jour, Jour)> {
+    Ok((socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?))
+}
+
+/// `_affiliations` : les references d'adhesion auxquelles cette nature rattache, parmi celles qui valent pour la
+/// periode `debut`..=`fin`.
+pub(crate) fn affiliations(orgs: &Value, nat: &Nature, contribs: &Value, (debut, fin): (Jour, Jour)) -> Resultat<Vec<String>> {
     let cle = nat.bareme.clone().unwrap_or_else(|| "intermittent".into());
     let sec = g(g(orgs, "affiliations_par_nature"), &cle);
     if !vrai(sec) {
@@ -1015,9 +1016,11 @@ d'une autre population -- ce que la plate-forme accepte sans rien dire.",
             nat.libelle, cle, cle, pourquoi
         ));
     }
-    let mut out: Vec<String> = liste(refs).iter().map(en_texte).collect();
-    if let Some(an) = annee.filter(|a| *a != 0) {
-        out.retain(|r| adhesion_en_vigueur(orgs, r, an));
+    let mut out: Vec<String> = Vec::new();
+    for r in liste(refs).iter().map(en_texte) {
+        if adhesion_en_vigueur(orgs, &r, &debut, &fin)? {
+            out.push(r);
+        }
     }
     for c in liste(contribs) {
         if g(c, "natures").get(&cle).is_some() {
@@ -1164,17 +1167,6 @@ travaillait pas avant, sa date d'embauche chez nous). Rien n'est declare.",
         let adhesion = liste(g(orgs, "adhesions_prevoyance")).iter().find(|a| en_texte(g(a, "reference")) == reference);
         if let Some(depuis) = adhesion.map(|a| txt(g(a, "depuis"))).filter(|d| !d.is_empty()) {
             let d = Jour::lire(&depuis)?;
-            if d > fin {
-                return Err(format!(
-                    "{} : l'adhesion {} ({}) ne vaut que depuis le {}, apres la periode declaree (fin le {}). Une \
-affiliation ne se date pas dans le futur (cahier technique, 4.4.12) ; rien n'est declare.",
-                    qui_contrat(p),
-                    reference,
-                    adhesion.map(|a| txt(g(a, "libelle"))).unwrap_or_default(),
-                    d.jj_mm_aaaa(),
-                    fin.jj_mm_aaaa()
-                ));
-            }
             if debut.map_or(true, |x| d > x) {
                 debut = Some(d);
             }
@@ -1258,14 +1250,20 @@ pub fn places_par_contrat(bar: &Value) -> i64 {
     3.max(2 + liste(g(bar, "contributions_dsn")).len() as i64)
 }
 
-/// Les references de chaque nature (hors `ref`), en vigueur l'annee du mois.
-fn refs_de_l_annee(orgs: &Value, sec: &Value, mois: &str) -> Option<Vec<String>> {
+/// Les references de chaque nature (hors `ref`), en vigueur pendant le mois.
+fn refs_du_mois(orgs: &Value, sec: &Value, mois: &str) -> Resultat<Option<Vec<String>>> {
     let refs: Vec<String> = if sec.is_object() { liste(g(sec, "references")).iter().map(en_texte).collect() } else { vec![] };
     if refs.is_empty() {
-        return None;
+        return Ok(None);
     }
-    let an: i64 = mois[..4].parse().unwrap_or(0);
-    Some(refs.into_iter().filter(|r| adhesion_en_vigueur(orgs, r, an)).collect())
+    let (debut, fin) = bornes_du_mois(mois)?;
+    let mut out = Vec::new();
+    for r in refs {
+        if adhesion_en_vigueur(orgs, &r, &debut, &fin)? {
+            out.push(r);
+        }
+    }
+    Ok(Some(out))
 }
 
 /// `casc_svp` : la CASC-SVP de ce mois, ou `None`.
@@ -1302,7 +1300,7 @@ devine pas. Rien n'est ecrit.",
             if tous.is_empty() || tous.contains(&reference) {
                 continue;
             }
-            let refs = refs_de_l_annee(orgs, s, mois).unwrap_or_default();
+            let refs = refs_du_mois(orgs, s, mois)?.unwrap_or_default();
             if refs.len() >= 3 {
                 return Err(format!(
                     "Contrat '{}' : {} adhesions deja, plus de place pour la CASC-SVP (trois identifiants \
@@ -1365,7 +1363,7 @@ son \"libelle\" tels que la fiche de parametrage Audiens les donne). Elle ne se 
                 if tous.is_empty() || tous.contains(&reference) {
                     continue;
                 }
-                let refs = refs_de_l_annee(orgs, sec, mois).unwrap_or_default();
+                let refs = refs_du_mois(orgs, sec, mois)?.unwrap_or_default();
                 let place = refs.len() as i64 + deja.get(n).copied().unwrap_or(0);
                 if place >= places {
                     return Err(format!(
@@ -1776,7 +1774,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
         f.add("S21.G00.65.003", jj(req(s, "fin")?)?);
     }
     let places = places_par_contrat(bar);
-    let refs = affiliations(orgs, &nat, g(bar, "_contributions_du_mois"), annee_de(g(bar, "annee")))?;
+    let refs = affiliations(orgs, &nat, g(bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
     for a in rattachements(p, orgs, entreprise_du(bar, ent), refs)? {
         if let Some(o) = a.option {
             si_admise(f, nature_dsn, "S21.G00.70.004", Some(o))?;
@@ -4404,23 +4402,22 @@ certificat de conformite du depot precedent.",
     if let Some(spst) = spst_ecrit(&f, &ent_e)? {
         f.add("S21.G00.11.025", spst);
     }
-    let annee_mois: i64 = an as i64;
+    let (premier_du_mois, dernier_du_mois) = bornes_du_mois(mois)?;
     let mut couvertes: HashSet<String> = HashSet::new();
     // Les adhesions qu'au moins une affiliation du fichier reference : celles des salaries affilies ce mois-la
     // (`rattachements`), pas toutes celles de leur nature (CCH-13 et CCH-14 de 15.004, p. 151).
     for p in paies {
-        let refs = affiliations(&orgs, &*p.engagement.nat()?, &contribs, Some(annee_mois))?;
+        let refs = affiliations(&orgs, &*p.engagement.nat()?, &contribs, (p.engagement.debut_periode()?, p.engagement.fin_periode()?))?;
         couvertes.extend(rattachements(p, &orgs, entreprise_du(&bar, &ent_e), refs)?.into_iter().map(|a| a.reference));
     }
     for r in regs {
         let b = bar_de(&r.mois)?;
-        let an_r: i64 = r.mois[..4].parse().unwrap_or(0);
-        let refs = affiliations(&orgs, &*r.apres.engagement.nat()?, g(&b, "_contributions_du_mois"), Some(an_r))?;
+        let refs = affiliations(&orgs, &*r.apres.engagement.nat()?, g(&b, "_contributions_du_mois"), (r.apres.engagement.debut_periode()?, r.apres.engagement.fin_periode()?))?;
         couvertes.extend(rattachements(&r.apres, &orgs, entreprise_du(&b, &ent_e), refs)?.into_iter().map(|a| a.reference));
     }
     for a in liste(req(&orgs, "adhesions_prevoyance")?) {
         let reference = en_texte(req(a, "reference")?);
-        if !adhesion_en_vigueur(&orgs, &reference, annee_mois) {
+        if !couvertes.contains(&reference) && !adhesion_en_vigueur(&orgs, &reference, &premier_du_mois, &dernier_du_mois)? {
             continue;
         }
         f.add_v("S21.G00.15.001", req(a, "libelle")?)?;
@@ -4947,16 +4944,6 @@ mod tests {
         let e = reference_versement(&ft, &json!({"france_travail_dossier_recouvrement": "CS00000002"})).unwrap_err();
         assert!(e.contains("CS00000002") && e.contains("CS00012345"), "{}", e);
         assert_eq!(SIRET_FRANCE_TRAVAIL, "13000548100010");
-    }
-
-    #[test]
-    fn une_adhesion_n_existe_qu_a_partir_de_son_debut() {
-        let orgs = json!({"adhesions_prevoyance": [
-            {"reference": "102", "libelle": "INTERBRANCHE"},
-            {"reference": "103", "libelle": "TSINTERMITTENTS", "depuis": "2026-01-01"}]});
-        assert!(adhesion_en_vigueur(&orgs, "102", 2025));
-        assert!(!adhesion_en_vigueur(&orgs, "103", 2025));
-        assert!(adhesion_en_vigueur(&orgs, "103", 2026));
     }
 
     #[test]

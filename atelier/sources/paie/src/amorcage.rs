@@ -246,7 +246,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
     } else {
         // Celles auxquelles le salarie est affilie a l'embauche (`dsn::rattachements`) : un bloc 15 que nul bloc 70 ne
         // cite n'aurait personne de couvert.
-        let refs = affiliations(&orgs, &*e.nat()?, &Value::Null, None)?;
+        let refs = affiliations(&orgs, &*e.nat()?, &Value::Null, (e.debut_periode()?, e.fin_periode()?))?;
         crate::dsn::rattachements(paie, &orgs, ent, refs)?.into_iter().map(|a| a.reference).collect()
     };
     for a in liste(req(&orgs, "adhesions_prevoyance")?) {

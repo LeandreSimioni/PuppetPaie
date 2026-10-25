@@ -106,7 +106,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
         crate::demarrage::ROUTE => crate::demarrage::route(&ctx),
         // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
-        crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx),
+        crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx, &charge),
         crate::organismes::ROUTE_ECRIRE => crate::organismes::enregistrer(&ctx, &charge),
         // L'etat d'un mois : l'etat garde, ecrit apres chaque ecriture, lu tel quel (`etat_garde`).
         r if crate::etat_garde::ROUTES.contains(&r) => crate::etat_garde::route(o, &ctx, route, &charge),

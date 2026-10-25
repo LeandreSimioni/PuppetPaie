@@ -4,6 +4,7 @@
 //! Le droit ne connait pas l'engagement : il recoit ce qu'il juge (une fiche, une nature, une date), il ne va pas le
 //! chercher.
 
+pub mod adhesions;
 pub mod apprentissage;
 pub mod bareme;
 pub mod caisse_conges;

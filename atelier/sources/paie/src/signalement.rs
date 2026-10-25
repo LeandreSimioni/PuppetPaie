@@ -432,8 +432,13 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.11.004", req(&etab, "code_postal")?)?;
     f.add_v("S21.G00.11.005", req(&etab, "commune")?)?;
 
+    // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let jour = jours(a, "dernier_jour_travaille")?;
     for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
+        if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {
+            continue;
+        }
         f.add_v("S21.G00.15.001", req(ad, "libelle")?)?;
         f.add_v("S21.G00.15.002", req(ad, "delegataire")?)?;
         f.add_v("S21.G00.15.005", req(ad, "reference")?)?;

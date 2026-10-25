@@ -17,7 +17,7 @@
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use socle::date::en_texte;
+use socle::date::{en_texte, Jour};
 use socle::ecriture::ecrire_json;
 use socle::fichiers::{dossier_du_code, lire_json, vrai};
 use socle::echec::Echec;
@@ -170,6 +170,7 @@ fn ligne(spec: &Value, fichier: &Value) -> Value {
         "organisme_fixe": organisme_fixe,
         "si_permanents": vrai(g(spec, "si_permanents")),
         "depuis": txt(g(spec, "depuis")),
+        "jusqu_a": txt(g(spec, "jusqu_a")),
         "declare": place.is_some(),
         "note": txt(g(spec, "_organisme")),
     })
@@ -194,12 +195,34 @@ fn se_montre(ctx: &Contexte, spec: &Value) -> bool {
     txt(g(spec, "role")).is_empty() || ctx.emploie_des_permanents()
 }
 
-/// `organismes-contrats` : une ligne par contrat attendu qui vaut pour la compagnie (`se_montre`).
-pub fn lire(ctx: &Contexte) -> R<Value> {
+/// La periode que l'ecran regarde : le mois `mois` de la charge (celui de l'onglet Paie), sinon celui du jour.
+fn periode(ctx: &Contexte, charge: &Value) -> R<(Jour, Jour)> {
+    let mois = match txt(g(charge, "mois")) {
+        m if m.is_empty() => ctx.aujourdhui.iso()[..7].to_string(),
+        m => m,
+    };
+    let premier = socle::date::premier_du_mois(&mois).map_err(plain)?;
+    let dernier = socle::date::dernier_du_mois(&mois).map_err(plain)?;
+    Ok((premier, dernier))
+}
+
+/// Le contrat vaut-il pour la periode (`droit::adhesions::en_vigueur`) ? La Configuration ne propose que ceux-la.
+fn couvre(spec: &Value, (debut, fin): &(Jour, Jour)) -> R<bool> {
+    droit::adhesions::en_vigueur(spec, debut, fin).map_err(plain)
+}
+
+/// `organismes-contrats` : une ligne par contrat attendu qui vaut pour la compagnie (`se_montre`) et pour la periode
+/// regardee (`couvre`).
+pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     let base = base()?;
     let fichier = fichier_en_place(ctx)?;
-    let lignes: Vec<Value> =
-        attendus(ctx, &base)?.iter().filter(|s| se_montre(ctx, s)).map(|s| ligne(s, &fichier)).collect();
+    let periode = periode(ctx, charge)?;
+    let mut lignes: Vec<Value> = Vec::new();
+    for s in attendus(ctx, &base)? {
+        if se_montre(ctx, &s) && couvre(&s, &periode)? {
+            lignes.push(ligne(&s, &fichier));
+        }
+    }
     Ok(json!({
         "idcc": txt(g(&ctx.entreprise, "idcc")),
         "compose": chemin(ctx).is_file(),
@@ -208,8 +231,10 @@ pub fn lire(ctx: &Contexte) -> R<Value> {
 }
 
 /// Compose `config/organismes.json` depuis la base, les contrats attendus et ce que la compagnie a saisi
-/// (`saisies` : cle -> {libelle, organisme}).
-pub fn composer(ctx: &Contexte, saisies: &Map<String, Value>) -> R<Value> {
+/// (`saisies` : cle -> {libelle, organisme}). Chaque contrat garde ses dates (`depuis`, `jusqu_a`) : la DSN de chaque
+/// mois ne lit que ceux qui le couvrent. Un contrat a saisir que la periode regardee ne couvre pas ne se reclame pas :
+/// l'ecran ne l'a pas propose.
+pub fn composer(ctx: &Contexte, saisies: &Map<String, Value>, periode: &(Jour, Jour)) -> R<Value> {
     let base = base()?;
     let fichier = fichier_en_place(ctx)?;
     let mut prises: Vec<u32> = Vec::new();
@@ -227,9 +252,9 @@ pub fn composer(ctx: &Contexte, saisies: &Map<String, Value>) -> R<Value> {
         };
         let quoi = txt(g(&spec, "quoi"));
         if libelle.is_empty() {
-            // Un contrat des permanents vide ne se reclame qu'a une compagnie qui en emploie (#236 : elle enregistrait
-            // sans un mot, et le mois de son permanent se refusait ensuite, « affiliations_par_nature.permanent »).
-            if vrai(g(&spec, "si_permanents")) && !ctx.emploie_des_permanents() {
+            // Un contrat vide ne se reclame pas quand l'ecran ne l'a pas propose : un contrat des permanents a une
+            // compagnie qui n'en emploie pas, un contrat que la periode regardee ne couvre pas.
+            if (vrai(g(&spec, "si_permanents")) && !ctx.emploie_des_permanents()) || !couvre(&spec, periode)? {
                 continue;
             }
             return Err(refus(format!(
@@ -262,7 +287,7 @@ sur le certificat d'adhésion et la fiche de paramétrage DSN.",
         a.insert("delegataire".into(), json!(organisme));
         a.insert("type".into(), json!(txt(g(&spec, "type"))));
         a.insert("reference".into(), json!(reference));
-        for k in ["contribution", "depuis"] {
+        for k in ["contribution", "depuis", "jusqu_a"] {
             if vrai(g(&spec, k)) {
                 a.insert(k.into(), json!(txt(g(&spec, k))));
             }
@@ -322,15 +347,16 @@ contrats saisis. Ne pas modifier a la main : un nouvel enregistrement le recompo
     Ok(Value::Object(out))
 }
 
-/// `organismes-enregistrer` : `{"contrats": {cle: {libelle, organisme}}}` ; compose, ecrit, et rend la lecture.
+/// `organismes-enregistrer` : `{"contrats": {cle: {libelle, organisme}}, "mois": "AAAA-MM"}` ; compose, ecrit, et rend
+/// la lecture.
 pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let saisies = g(charge, "contrats").as_object().cloned().unwrap_or_default();
-    let compose = composer(ctx, &saisies)?;
+    let compose = composer(ctx, &saisies, &periode(ctx, charge)?)?;
     let p = chemin(ctx);
     if let Some(parent) = p.parent() {
         std::fs::create_dir_all(parent).map_err(|e| plain(e.to_string()))?;
     }
     crate::routes_contrats::sauver_avant(&p)?;
     ecrire_json(&p, &compose, 2).map_err(plain)?;
-    lire(ctx)
+    lire(ctx, charge)
 }

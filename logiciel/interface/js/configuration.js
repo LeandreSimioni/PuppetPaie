@@ -1509,7 +1509,9 @@ async function dessinerMetiers(cible) {
  * décide rien. */
 async function dessinerOrganismes(cible) {
   let r;
-  try { r = await api("organismes-contrats"); }
+  // Les contrats de la periode regardee : le mois de l'onglet Paie, sinon le moteur prend celui du jour.
+  const mois = typeof MOIS_AFFICHE === "string" && MOIS_AFFICHE ? { mois: MOIS_AFFICHE } : {};
+  try { r = await api("organismes-contrats", mois); }
   catch (e) { cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`; return; }
   const champ = (c, k, fixe, place) => fixe
     ? `<span>${echapper(c[k]) || "—"}</span>`
@@ -1519,6 +1521,7 @@ async function dessinerOrganismes(cible) {
     <tr>
       <td><b>${echapper(c.quoi)}</b>
         ${c.depuis ? `<div class="note">Depuis le ${echapper(jjmmaaaa(String(c.depuis || "").slice(0, 10)))}.</div>` : ""}
+        ${c.jusqu_a ? `<div class="note">Jusqu'au ${echapper(jjmmaaaa(String(c.jusqu_a || "").slice(0, 10)))}.</div>` : ""}
         ${c.note ? `<div class="note">${echapper(c.note)}</div>` : ""}</td>
       <td>${echapper(c.beneficiaires)}</td>
       <td>${champ(c, "organisme", c.organisme_fixe, "P0983")}</td>
@@ -1545,7 +1548,7 @@ async function dessinerOrganismes(cible) {
       (contrats[i.dataset.contrat] ||= {})[i.dataset.champ] = i.value.trim();
     });
     try {
-      await api("organismes-enregistrer", { contrats });
+      await api("organismes-enregistrer", { contrats, ...mois });
       dire("Organismes et contrats enregistrés.");
       dessinerOrganismes(cible);
     } catch (e) { dire(e.message, "erreur"); }
