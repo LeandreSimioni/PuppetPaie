@@ -2,7 +2,7 @@
 //! `paie/src/scenario.rs`) se rejoue sans navigateur et reproduit la compagnie, octet pour octet d'un rejeu a l'autre ;
 //! ses sorties (paies, DSN, DPAE, bulletins, certificats Conges Spectacles, journaux) se comparent a un oracle.
 //!
-//! SEUL DANS `tests/` : le rejeu simule le temps du moteur, qui est celui du processus (`paie/src/temps.rs`), comme un
+//! SEUL DANS `tests/` : le rejeu simule le temps du moteur, qui est celui du processus (`socle/src/temps.rs`), comme un
 //! fichier qui pose une variable d'environnement.
 //!
 //! Chaque fictive de la phase 4 aura son test ici, sur ce modele : `outils::rejeu::rejouer_et_comparer("<nom>", ...)`.

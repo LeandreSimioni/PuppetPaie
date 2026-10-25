@@ -1784,7 +1784,7 @@ installation que le rejeu monte lui-même, bridée en toutes lettres :
 de l'atelier, `cargo run --profile essais --example vie_fictive -- rejouer …`) ;
 `outils/demos/les-faisceaux/` en est un, écrit à la main. Au rejeu comme au banc,
 le temps du moteur est figé à l'instant de chaque geste et les aléas suivent une
-suite fixe (`paie/src/temps.rs`) : deux rejeux écrivent les mêmes octets, et
+suite fixe (`socle/src/temps.rs`) : deux rejeux écrivent les mêmes octets, et
 `banc.js verifier` (`scenario verifier`) contrôle, fichier par fichier, que le
 rejeu refait la compagnie du banc. `scenario elaguer` ôte les lectures d'un
 scénario pour le figer dans `paie/tests/donnees/scenarios/<nom>/`, où il devient

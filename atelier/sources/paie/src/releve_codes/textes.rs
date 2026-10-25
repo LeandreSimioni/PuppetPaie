@@ -247,7 +247,7 @@ pub static TEXTES: &[Texte] = &[
             // dernier alinea du I de R242-2 met en oeuvre (l'employeur << est
             // en droit de corriger le plafond >>) ; L242-10, qu'il cite, en
             // exclut les emplois a taux ou assiette specifiques et le plafond
-            // fractionne entre plusieurs employeurs. `paie/src/plafond.rs`.
+            // fractionne entre plusieurs employeurs. `droit/src/plafond.rs`.
             Domaine { cle: "plafond_temps_partiel", titre: "Le plafond d'un salarie a temps partiel (l'abattement d'assiette)", numeros: &["L242-8", "L242-10"] },
             // LA DISPENSE D'UN TEMPS PARTIEL DE LA SANTE (13/10/2026, lot D1).
             // R242-1-6, 2°, c : un salarie a temps partiel peut se dispenser
@@ -330,7 +330,7 @@ pub static TEXTES: &[Texte] = &[
     // JORFTEXT000000310494/article/...`) : le meme filtre les attrape.
     // C'est lui qui fixe le plafond d'un artiste engage moins de cinq
     // jours continus : douze fois le plafond horaire par journee de
-    // travail (`paie/src/plafond.rs`).
+    // travail (`droit/src/plafond.rs`).
     Texte {
         cle: "artistes-1975",
         legitext: "JORFTEXT000000310494",

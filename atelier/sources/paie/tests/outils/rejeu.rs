@@ -16,7 +16,7 @@
 //! - de tout autre fichier (une archive), son empreinte.
 //!
 //! RIEN N'Y EST ECARTE POUR CAUSE DE HASARD : le rejeu est deterministe (le temps du moteur est fige a l'instant de
-//! chaque geste et les aleas suivent une suite fixe, `paie/src/temps.rs`), deux rejeux ecrivent les memes octets. Ce
+//! chaque geste et les aleas suivent une suite fixe, `socle/src/temps.rs`), deux rejeux ecrivent les memes octets. Ce
 //! qui est ecarte, et pourquoi :
 //! - le chemin du dossier de test, s'il apparait (un texte qui cite un chemin) : remplace par `<racine>` ;
 //! - les caches que la fenetre refait (`*.etat.json`, `*.calcul.json`) et les fichiers caches (`.ouverture.json`, la
