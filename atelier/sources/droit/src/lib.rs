@@ -13,5 +13,6 @@ pub mod contexte;
 pub mod emplois;
 pub mod jumeaux;
 pub mod natures;
+pub mod pas;
 pub mod permanents;
 pub mod plafond;

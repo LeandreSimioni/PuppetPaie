@@ -78,7 +78,7 @@ fn ecrire(ctx: &Contexte, data: &Value) -> Result<(), Echec> {
 /// `pas.enregistrer` : applique des releves de CRM ; rend les changements lisibles. Un releve :
 /// `{"salarie", "taux", "type", "identifiant", "periode", "mis_a_disposition"}`.
 pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
-    let mut data = crate::pas::charger(ctx).map_err(ko)?;
+    let mut data = droit::pas::charger(ctx).map_err(ko)?;
     let mut changements = Vec::new();
     let mut soldees = false;
     let horodatage = maintenant_court();
@@ -225,7 +225,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(0);
     }
 
-    let etat = crate::pas::charger(ctx).map_err(ko)?;
+    let etat = droit::pas::charger(ctx).map_err(ko)?;
     let salaries: Map<String, Value> = etat.get("salaries").and_then(Value::as_object).cloned().unwrap_or_default();
     if salaries.is_empty() {
         dire!("Magasin vide. `paie pas --amorcer` pour partir de l'historique, ou `paie retours` pour lire un CRM.");
@@ -233,7 +233,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     dire!("Taux de prelevement a la source connus\n{}", "-".repeat(62));
     for (cle, e) in &salaries {
-        let s = crate::pas::situation(ctx, cle, None).map_err(ko)?;
+        let s = droit::pas::situation(ctx, cle, None).map_err(ko)?;
         dire!("  {:<12} taux {:<6} type {} ({})", cle, champ(e, "taux"), champ(e, "type"), libelle_type(&champ(e, "type")));
         dire!("  {:<12} identifiant {}", "", champ(e, "identifiant"));
         let jusqu = match s.get("valable_jusqu_a") {
@@ -247,7 +247,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
     // CE QU'IL FAUDRAIT DEMANDER. Un taux perime n'est plus le taux du salarie : deux mois apres sa mise a disposition,
     // c'est la grille de l'article 204 H qui s'applique, et le moteur ne sait pas encore la calculer.
-    let diag = crate::pas::diagnostic(ctx, None, None).map_err(ko)?;
+    let diag = droit::pas::diagnostic(ctx, None, None).map_err(ko)?;
     let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(socle::fichiers::vrai)).collect();
     if !a_demander.is_empty() {
         dire!("A demander a la DGFiP (signalement d'amorcage, nature 08)\n{}", "-".repeat(62));
@@ -264,7 +264,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
         dire!("\nPour ecrire les signalements (un fichier par individu) :\n    paie pas --demander\nReponse de la DGFiP sous cinq jours ouvres, par un CRM de nature 94 que\n`paie retours` ramassera comme les autres.\n");
     }
-    for s in diag.iter().filter(|s| s.get("situation").and_then(Value::as_str) == Some(crate::pas::SANS_NIR)) {
+    for s in diag.iter().filter(|s| s.get("situation").and_then(Value::as_str) == Some(droit::pas::SANS_NIR)) {
         dire!("  {:<12} {} -- rien a demander, c'est le bareme.", champ(s, "salarie"), champ(s, "libelle"));
     }
     dire!("S21.G00.50.006/.007/.008 sortent d'ici. Aucune n'est calculee : elles\nviennent du compte-rendu metier DGFiP de nature 94.");

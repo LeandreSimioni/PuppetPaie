@@ -84,7 +84,7 @@ pub mod organismes;
 pub mod oracle;
 pub mod ordre_signalements;
 pub mod periodes;
-pub mod pas;
+pub mod prelevement;
 pub mod problemes;
 pub mod retours;
 pub mod routes;

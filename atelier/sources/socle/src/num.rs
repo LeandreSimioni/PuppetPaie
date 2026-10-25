@@ -150,6 +150,23 @@ pub fn sub(a: Decimal, b: Decimal) -> Decimal {
     en_decimal(P::depuis(a).sub(P::depuis(b)))
 }
 
+thread_local! {
+    /// Pose : `nombre` garde l'echelle du nombre (`48.0`, `0.3230`), comme l'ecrivent les valeurs d'un contrat et le
+    /// calcul que sert `service::calculer_avec` ; sinon il l'ecrit sous sa forme la plus courte.
+    pub static FIDELE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Un montant en texte : sa forme la plus courte (`48`, `0.323`), ou son echelle quand `FIDELE` est pose ; « -0 »
+/// s'ecrit « 0 ».
+pub fn nombre(x: Decimal) -> String {
+    let s = if FIDELE.with(|f| f.get()) { x.to_string() } else { x.normalize().to_string() };
+    if s == "-0" {
+        "0".into()
+    } else {
+        s
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

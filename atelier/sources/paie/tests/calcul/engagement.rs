@@ -38,7 +38,7 @@ fn releve(e: &Engagement) -> Value {
     };
     let nombre = |o: Option<f64>| match o {
         None => Ok(Value::Null),
-        Some(x) => socle::num::dec_f64(x).map(|v| Value::String(paie::engagement::nombre(v))),
+        Some(x) => socle::num::dec_f64(x).map(|v| Value::String(socle::num::nombre(v))),
     };
     let mut extras = Map::new();
     extras.insert("dates_du_contrat".into(), essai(Ok(iso(&jours))));

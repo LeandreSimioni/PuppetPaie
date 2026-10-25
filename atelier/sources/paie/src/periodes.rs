@@ -351,7 +351,7 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
                 d.jj_mm_aaaa(),
                 f.jj_mm_aaaa(),
                 cadre,
-                p.engagement.quotite().map(crate::engagement::nombre).unwrap_or_default(),
+                p.engagement.quotite().map(socle::num::nombre).unwrap_or_default(),
                 p.brut
             )
         })

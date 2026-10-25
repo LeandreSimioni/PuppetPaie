@@ -226,7 +226,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
 
     // 6. Les taux de PAS.
     let cles: Vec<String> = fiches.iter().map(|(k, _)| (*k).clone()).collect();
-    let diag = if fiches.is_empty() { Vec::new() } else { crate::pas::diagnostic(ctx, Some(&cles), None).map_err(ko)? };
+    let diag = if fiches.is_empty() { Vec::new() } else { droit::pas::diagnostic(ctx, Some(&cles), None).map_err(ko)? };
     let manquants: Vec<&Value> = diag.iter().filter(|d| matches!(d.get("situation").and_then(Value::as_str), Some("inconnu" | "perime"))).collect();
     let mut cmds = Vec::new();
     if !manquants.is_empty() {

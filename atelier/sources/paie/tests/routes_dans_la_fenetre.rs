@@ -116,7 +116,7 @@ fn une_route_qui_tombe_rend_un_refus_et_la_suivante_est_servie() {
     assert_eq!(classe, "DefautDuLogiciel", "{}", message);
     // Le fil est propre : la route tombee avait retenu un mot de passe et rendu les nombres « fideles ».
     assert!(!paie::coffre::mot_de_passe_retenu(), "le mot de passe tape a survecu a la route tombee");
-    assert!(!paie::engagement::FIDELE.with(|f| f.get()), "les nombres sont restes fideles apres la route tombee");
+    assert!(!socle::num::FIDELE.with(|f| f.get()), "les nombres sont restes fideles apres la route tombee");
     // La suivante, sur le meme fil, est servie, et rend ce que rend paie route.
     assert_eq!(dans_la_fenetre(&racine, "etat", &json!({})), en_processus(&racine, "etat", &json!({})));
 }

@@ -19,7 +19,7 @@ use droit::natures::{self, Nature};
 use socle::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, repr_py, Jour};
 use droit::emplois;
 use socle::fichiers::{lire_json, vrai};
-use socle::num::{dec, dec_f64, dec_py, div, flottant, Decimal, Resultat};
+use socle::num::{dec, dec_f64, dec_py, div, flottant, nombre, Decimal, Resultat};
 
 #[derive(Debug, Clone)]
 pub struct Engagement {
@@ -766,22 +766,6 @@ impl Engagement {
             Value::Array(self.mois_du_contrat()?.into_iter().map(Value::String).collect()),
         );
         Ok(Value::Object(m))
-    }
-}
-
-/// `format(Decimal(str(x)).normalize(), "f")`, "-0" ecrit "0".
-thread_local! {
-    // `paie calculer` : les nombres gardent leur echelle (`48.0`, `0.3230`),
-    // comme les `Decimal` du Python qui les relit.
-    pub static FIDELE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-}
-
-pub fn nombre(x: Decimal) -> String {
-    let s = if FIDELE.with(|f| f.get()) { x.to_string() } else { x.normalize().to_string() };
-    if s == "-0" {
-        "0".into()
-    } else {
-        s
     }
 }
 

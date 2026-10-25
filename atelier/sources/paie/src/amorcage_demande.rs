@@ -75,7 +75,7 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
     let mut lignes = Vec::new();
     for (cle, i) in &par_salarie {
         let p = &paies[*i];
-        let s = crate::pas::situation(ctx, cle, None)?;
+        let s = droit::pas::situation(ctx, cle, None)?;
         if !s.get("a_demander").is_some_and(vrai) {
             continue;
         }

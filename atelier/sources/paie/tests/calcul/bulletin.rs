@@ -12,7 +12,7 @@ use socle::date::Jour;
 use paie::engagement::charger;
 use socle::num::{dec, Decimal};
 use paie::oracle::entreprise_du_mois;
-use paie::pas::Versement;
+use droit::pas::Versement;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

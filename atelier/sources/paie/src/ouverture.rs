@@ -623,7 +623,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     // LE PAS, AU MEME PASSAGE QUE LES RETOURS, et juste apres eux : c'est un retour qui pose les taux, donc c'est ici qu'ils
     // sont les plus frais. Cela se fait hors ligne aussi (une lecture de config/pas.json), parce qu'un taux perime le reste
     // que le reseau soit la ou non.
-    match crate::pas::avertissements(ctx, None, None) {
+    match droit::pas::avertissements(ctx, None, None) {
         Ok(l) => r.taux_pas = l,
         Err(m) => r.incidents.push(format!("Taux de PAS : {}", m)),
     }

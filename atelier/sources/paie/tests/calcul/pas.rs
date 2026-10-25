@@ -7,7 +7,7 @@ use droit::bareme::canon;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::num::dec;
-use paie::pas::{abattement, du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
+use droit::pas::{abattement, du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -82,7 +82,7 @@ fn l_abattement_suit_la_date() {
     let mut cas = attendus()["grille"]["abattement"].clone();
     for (cle, v) in cas.as_object_mut().unwrap() {
         let p: Vec<&str> = cle.split('|').collect();
-        *v = Value::String(abattement(&b[p[0]], jour(p[1])).map_or_else(erreur, paie::engagement::nombre));
+        *v = Value::String(abattement(&b[p[0]], jour(p[1])).map_or_else(erreur, socle::num::nombre));
     }
     assert!(cas.as_object().unwrap().len() > 50);
     oracle("pas.json", "/grille/abattement", &cas);
@@ -186,7 +186,7 @@ fn changer_les_taux(racine: &std::path::Path) {
 fn pas_des_paies(racine: &std::path::Path, mois: &str) -> Vec<(String, String, String)> {
     let ctx = Contexte::nouveau(racine, Some(Jour::lire("2027-02-15").unwrap())).unwrap();
     let s = paie::engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois))).unwrap();
-    let v = paie::pas::des_paies(&ctx, &s.paies).unwrap();
+    let v = paie::prelevement::des_paies(&ctx, &s.paies).unwrap();
     s.paies
         .iter()
         .zip(v)

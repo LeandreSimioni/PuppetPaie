@@ -167,7 +167,7 @@ pub(crate) fn enregistrer_demande(ctx: &Contexte, cles: &[String], motif: &str, 
         None => ctx.date,
     };
     let avant = jours_ouvres_apres(jour, 5)?;
-    let mut data = crate::pas::charger(ctx).map_err(|m| erreur("OSError", m))?;
+    let mut data = droit::pas::charger(ctx).map_err(|m| erreur("OSError", m))?;
     for cle in cles {
         data["demandes"][cle.as_str()] = json!({
             "quand": jour.iso(), "motif": motif, "reponse_attendue_avant": avant.iso(), "flux": flux,

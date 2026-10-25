@@ -467,7 +467,7 @@ pub static TEXTES: &[Texte] = &[
             // 1671, 1 et 2 -- la retenue est « effectuee par le debiteur
             // lors du paiement », au taux transmis « au plus tard le
             // deuxieme mois suivant sa transmission » ; ce qui a ete
-            // retenu ne se recalcule pas (`pas::des_paies`).
+            // retenu ne se recalcule pas (`prelevement::des_paies`).
             Domaine { cle: "pas", titre: "La retenue a la source : quand, et a quel taux", numeros: &["1671"] },
             // L'ASSIETTE DU PRELEVEMENT A LA SOURCE ET LA SANTE PATRONALE REINTEGREE (15/10/2026 ;
             // `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-general-des-impots-20261015.md`) : 83,

@@ -23,7 +23,7 @@ use paie::oracle::entreprise_du_mois;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use crate::outils::{dec, fictive, versement};
-use paie::pas::{du_versement, ZONE_DEFAUT};
+use droit::pas::{du_versement, ZONE_DEFAUT};
 use std::path::PathBuf;
 
 /// Ecrit une saisie dans le dossier temporaire des tests (jamais dans la copie figee).

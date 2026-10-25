@@ -20,7 +20,7 @@ use droit::natures::{contrat_court, Nature};
 use socle::date::{en_texte, Jour};
 use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, vrai};
 use socle::num::{add, dec, dec_py, div, eur, mul, pct, sub, Decimal, Resultat};
-use crate::pas::{self, Triplet, ZONE_DEFAUT};
+use droit::pas::{self, Triplet, ZONE_DEFAUT};
 
 pub const LOGICIEL: &str = "PUPPETPAIE";
 pub const VERSION: &str = "1.0.0";

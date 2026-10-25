@@ -13,7 +13,8 @@ use crate::calcul::Paie;
 use droit::catalogue::{annexes, rubrique};
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{d, Jour};
-use crate::engagement::{charger, nombre};
+use crate::engagement::charger;
+use socle::num::nombre;
 use socle::fichiers::{lire_json, repr};
 use socle::num::{add, dec_py, flottant, Decimal, Resultat};
 

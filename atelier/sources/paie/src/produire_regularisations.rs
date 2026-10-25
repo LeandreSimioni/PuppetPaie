@@ -27,7 +27,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::{dec_py, pct, Decimal};
-use crate::pas::{self, ErreurPas, ZONE_DEFAUT};
+use droit::pas::{self, ErreurPas, ZONE_DEFAUT};
 use socle::echec::Echec;
 use crate::routes_mois::Moteur;
 use crate::routes_regularisation as regul;

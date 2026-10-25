@@ -191,14 +191,14 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let mut frais_par_spectacle: BTreeMap<String, Decimal> = BTreeMap::new();
     let mut charge: BTreeMap<(String, String), Decimal> = BTreeMap::new();
     let mut tiers: BTreeMap<String, Decimal> = BTreeMap::new();
-    // LE PRELEVEMENT A LA SOURCE : celui du bulletin (`pas::des_paies`, le meme calcul, la meme position), retenu sur
+    // LE PRELEVEMENT A LA SOURCE : celui du bulletin (`prelevement::des_paies`, le meme calcul, la meme position), retenu sur
     // le net et du a la DGFiP (compte 4421 « Prelevements a la source (Impot sur le revenu) » du plan
     // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md). Une paie dont le prelevement
     // ne se calcule pas (bareme sans grille) n'en a pas : le bulletin imprime 0,00 et paie le net entier. Le PAS d'un
     // mois DEPOSE est celui que sa DSN a declare (S21.G00.50.009), lu et non recalcule au taux du jour (lot D2 ; CGI
-    // art. 1671 : `pas::des_paies`) ; jusque-la (limite du lot R3), il s'en ecartait quand la DGFiP avait transmis un
+    // art. 1671 : `prelevement::des_paies`) ; jusque-la (limite du lot R3), il s'en ecartait quand la DGFiP avait transmis un
     // autre taux depuis.
-    let pas_des_paies = crate::pas::des_paies(ctx, &saisie.paies).map_err(refus)?;
+    let pas_des_paies = crate::prelevement::des_paies(ctx, &saisie.paies).map_err(refus)?;
     let mut pas_du_mois = zero;
     // LES RETENUES (une ligne hors assiette de nature `retenue` : acompte, avance, saisie) ne sont pas une charge : un
     // acompte solde une avance deja versee (425 « Personnel - Avances et acomptes et autres comptes debiteurs »), une

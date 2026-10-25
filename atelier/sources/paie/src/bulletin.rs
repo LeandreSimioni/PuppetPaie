@@ -15,7 +15,7 @@ use socle::date::{d, dernier_du_mois, en_texte, repr_py, Jour};
 use droit::emplois;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
-use crate::pas::{self, Versement};
+use droit::pas::Versement;
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
@@ -1226,7 +1226,7 @@ pub fn jeux_et_description(
             ));
         }
     }
-    let pas_par_paie = pas::des_paies(ctx, paies)?;
+    let pas_par_paie = crate::prelevement::des_paies(ctx, paies)?;
     let mut colonnes_par_salarie: HashMap<String, Vec<Colonne>> = HashMap::new();
     let mut conges_par_paie: HashMap<usize, CompteurConges> = HashMap::new();
     if !mois.is_empty() {

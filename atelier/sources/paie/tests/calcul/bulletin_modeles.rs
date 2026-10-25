@@ -440,7 +440,7 @@ fn la_ligne_du_prelevement_dit_son_assiette_son_taux_et_son_montant() {
     assert_eq!(pas.len(), 3);
     let (assiette, taux, montant) = (&pas[0], &pas[1], &pas[2]);
     let lu = |t: &str| t.replace([' ', '\u{a0}'], "").replace(',', ".").parse::<f64>().unwrap();
-    // Le mois est depose : l'assiette, le taux et le montant sont ceux que sa DSN a declares (lot D2, `pas::des_paies`),
+    // Le mois est depose : l'assiette, le taux et le montant sont ceux que sa DSN a declares (lot D2, `prelevement::des_paies`),
     // pas recalcules ; l'assiette n'est donc pas comparee au net imposable que le moteur du jour recalcule.
     assert!(lu(assiette) > 0.0, "l'assiette : {}", assiette);
     assert!(((lu(assiette) * lu(taux) / 100.0) - lu(montant)).abs() < 0.011, "{} x {} % = {}", assiette, taux, montant);

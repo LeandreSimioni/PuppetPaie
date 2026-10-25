@@ -584,7 +584,7 @@ impl<'a> Recapitulatifs<'a> {
     /// `_lignes_du_mois` : les bulletins d'un mois saisi, recalcules.
     fn lignes_du_mois(&mut self, mois: &str) -> R<Vec<LigneLivre>> {
         let paies = self.paies(mois)?;
-        let pas = crate::pas::des_paies(self.ctx, &paies).map_err(Refus::from)?;
+        let pas = crate::prelevement::des_paies(self.ctx, &paies).map_err(Refus::from)?;
         let mut out = Vec::new();
         for (p, r) in paies.iter().zip(pas) {
             if p.engagement.sans_paie() {

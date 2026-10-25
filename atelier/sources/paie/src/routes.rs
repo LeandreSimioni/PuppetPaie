@@ -42,7 +42,7 @@ pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
 /// de mot de passe tape, les nombres a leur ecriture normale, aucun registre de lectures ouvert.
 pub(crate) fn remettre_le_fil() {
     crate::coffre::oublier_mot_de_passe_tape();
-    crate::engagement::FIDELE.with(|f| f.set(false));
+    socle::num::FIDELE.with(|f| f.set(false));
     let _ = socle::fichiers::rendre();
 }
 
@@ -50,7 +50,7 @@ pub(crate) fn remettre_le_fil() {
 /// processus (`interface::api::route`, la file des etats), et le fil d'une connexion en sert d'autres ensuite. Cette
 /// fonction fait la route (`commande`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel` et le
 /// fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` : il ne
-/// survit jamais a sa route), les nombres a leur ecriture normale (`engagement::FIDELE`), le registre des lectures
+/// survit jamais a sa route), les nombres a leur ecriture normale (`num::FIDELE`), le registre des lectures
 /// qu'un calcul aurait laisse ouvert en tombant ferme (`fichiers::suivre`).
 ///
 /// `paie route` et la ligne de commande (`commandes::Cadre`) appellent `commande` directement : le processus meurt avec
@@ -89,7 +89,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes_dans_la_fenetre.rs`). Le fil est laisse sale
     // expres, comme un calcul qui tombe le laisserait.
     if route == ROUTE_QUI_TOMBE && socle::garde_reseau::en_essai() {
-        crate::engagement::FIDELE.with(|f| f.set(true));
+        socle::num::FIDELE.with(|f| f.set(true));
         panic!("la route d'essai tombe expres");
     }
     if let Some(r) = crate::routes_ouverture::traiter(o, route, &charge) {

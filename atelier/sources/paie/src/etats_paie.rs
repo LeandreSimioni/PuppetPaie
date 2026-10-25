@@ -5,7 +5,7 @@
 //! heures et cachets, le cout par spectacle.
 //!
 //! LES MEMES REGLES POUR TOUS (docstring de `operations_etats`) : un export LIT -- les saisies sont
-//! RECALCULEES par le meme calcul que le bulletin (`engagement::charger_donnees`), le PAS par `pas::des_paies`,
+//! RECALCULEES par le meme calcul que le bulletin (`engagement::charger_donnees`), le PAS par `prelevement::des_paies`,
 //! aucun numero n'est consomme ; chaque ligne dit d'ou elle vient (`saisie`, `DSN déposée`, `AEM attestée`) ;
 //! un montant que la source ne dit pas est VIDE, pas zero, et le total ne le compte pas.
 
@@ -24,7 +24,7 @@ use socle::valeur::py_str;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::{eur2, zero2, Decimal};
-use crate::pas::Versement;
+use droit::pas::Versement;
 use crate::routes_ouverture::refus_du_calcul;
 use crate::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, montant, nom_compagnie, qui, refus, sections_de, totaliser, Ligne,
@@ -279,7 +279,7 @@ impl<'a> Lecture<'a> {
     pub(crate) fn pas(&mut self, mois: &str) -> R<Rc<Vec<Option<Versement>>>> {
         if !self.pas.contains_key(mois) {
             let paies = self.paies(mois)?;
-            let v = crate::pas::des_paies(self.ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
+            let v = crate::prelevement::des_paies(self.ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
             self.pas.insert(mois.to_string(), Rc::new(v));
         }
         Ok(Rc::clone(&self.pas[mois]))
@@ -467,7 +467,7 @@ fn regroupement_lisible(r: &str) -> &'static str {
 fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
     let (data, toutes) = charger_mois(ctx, mois)?;
     let paies: Vec<Paie> = toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect();
-    let pas = crate::pas::des_paies(ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
+    let pas = crate::prelevement::des_paies(ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
     let (mut lignes, mut sans_pas) = (Vec::new(), Vec::new());
     for (p, r) in paies.iter().zip(pas.iter()) {
         if r.is_none() {

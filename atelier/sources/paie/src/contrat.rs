@@ -115,12 +115,12 @@ pub(crate) fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value 
 /// `contrat.marqueurs(p, ent)` : les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
 /// Python les ecrit (`FIDELE`).
 pub(crate) fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeurs> {
-    crate::engagement::FIDELE.with(|f| f.set(true));
+    socle::num::FIDELE.with(|f| f.set(true));
     let r = (|| -> R<Valeurs> {
         let canon = p.canon(ctx)?;
         Ok(valeurs_de_la_paie(ctx, ent, &canon, None)?)
     })();
-    crate::engagement::FIDELE.with(|f| f.set(false));
+    socle::num::FIDELE.with(|f| f.set(false));
     r
 }
 

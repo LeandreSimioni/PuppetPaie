@@ -7,10 +7,11 @@ use droit::natures::nature;
 use crate::cumul::{anniversaire_configure, derniere_fin, lire_engagements, naissance, position_droits, tableau_cumul, Constantes};
 use socle::date::Jour;
 use droit::emplois::{emploi_de, EmploiEngagement};
-use crate::engagement::{charger, nombre};
+use crate::engagement::charger;
+use socle::num::nombre;
 use socle::fichiers::dossier_du_code;
 use socle::num::Resultat;
-use crate::pas::{self, ErreurPas};
+use droit::pas::{self, ErreurPas};
 use droit::plafond::plafond_urssaf;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -176,7 +177,7 @@ pub fn droits(o: &HashMap<String, String>) -> Resultat<Value> {
 pub fn pas_cmd(o: &HashMap<String, String>, fichier: &str) -> Resultat<Value> {
     let ctx = Contexte::nouveau(&racine(o), jour_facultatif(o, "date")?)?;
     let s = charger(&ctx, std::path::Path::new(fichier))?;
-    let table = pas::des_paies(&ctx, &s.paies)?;
+    let table = crate::prelevement::des_paies(&ctx, &s.paies)?;
     let mut cles: std::collections::BTreeSet<String> = ctx.salaries.keys().cloned().collect();
     if let Some(m) = pas::charger(&ctx)?.get("salaries").and_then(Value::as_object) {
         cles.extend(m.keys().cloned());

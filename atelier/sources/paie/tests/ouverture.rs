@@ -664,7 +664,7 @@ fn les_taux_de_pas_sont_ceux_du_module_pas() {
     let _t = tour();
     let c = compagnie("pas", "fictive-3090-petite", true);
     let r = sans_clients(&c, &seule_la_trace());
-    let attendu = paie::pas::avertissements(&contexte(&c), None, None).unwrap();
+    let attendu = droit::pas::avertissements(&contexte(&c), None, None).unwrap();
     assert_eq!(r.taux_pas, attendu);
     assert_eq!(trace(&c)["taux_pas"], json!(attendu));
 }
