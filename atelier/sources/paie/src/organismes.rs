@@ -226,6 +226,7 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({
         "idcc": txt(g(&ctx.entreprise, "idcc")),
         "compose": chemin(ctx).is_file(),
+        "mois": periode.0.mois_iso(),
         "contrats": lignes,
     }))
 }
