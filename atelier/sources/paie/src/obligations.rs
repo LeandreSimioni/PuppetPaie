@@ -39,10 +39,11 @@ use std::sync::Arc;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::{en_texte, Jour};
-use crate::etats::{erreur, R};
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use droit::contexte::Contexte;
+use socle::date::{en_texte, Jour};
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 
 /// Les routes qui ecrivent ce que la compagnie dit d'une obligation.
 pub const ROUTES: [&str; 3] = ["arret-connaissance", "accident-declare", "attestation-declare"];
@@ -157,7 +158,7 @@ impl<'a> Calendrier<'a> {
 
     fn chome(&mut self, j: Jour) -> R<bool> {
         if !self.chomes.contains_key(&j.an) {
-            let f = crate::feries::chomes(j.an, self.entreprise).map_err(|m| erreur("ValueError", m))?;
+            let f = socle::feries::chomes(j.an, self.entreprise).map_err(|m| erreur("ValueError", m))?;
             self.chomes.insert(j.an, f.into_iter().map(|(d, _)| d).collect());
         }
         Ok(self.chomes[&j.an].contains(&j))
@@ -165,7 +166,7 @@ impl<'a> Calendrier<'a> {
 
     fn ferie(&mut self, j: Jour) -> R<bool> {
         if !self.legaux.contains_key(&j.an) {
-            let f = crate::feries::feries(j.an).map_err(|m| erreur("ValueError", m))?;
+            let f = socle::feries::feries(j.an).map_err(|m| erreur("ValueError", m))?;
             self.legaux.insert(j.an, f.into_iter().map(|(d, _)| d).collect());
         }
         Ok(self.legaux[&j.an].contains(&j))
@@ -295,7 +296,7 @@ impl Suivi {
             "_quoi": "Ce que la compagnie a dit des obligations de ses arrets de travail : le jour ou elle a connu l'arret ou l'accident, la declaration d'accident du travail faite et l'attestation de salaire faite (hors DSN, le deuil d'enfant). Ecrit par les routes `arret-connaissance`, `accident-declare` et `attestation-declare` (`atelier/sources/paie/src/obligations.rs`) ; les arrets eux-memes sont dans `AAAA-MM.json`.",
             "arrets": self.fiches,
         });
-        crate::ecriture::ecrire_json(&chemin(ctx), &doc, 2).map_err(|m| erreur("OSError", m))
+        socle::ecriture::ecrire_json(&chemin(ctx), &doc, 2).map_err(|m| erreur("OSError", m))
     }
 }
 
@@ -730,7 +731,7 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     }
 }
 
-fn refus(m: impl Into<String>) -> crate::retours::Echec {
+fn refus(m: impl Into<String>) -> socle::echec::Echec {
     erreur("ErreurOperation", m)
 }
 
@@ -743,7 +744,7 @@ fn l_arret(ctx: &Contexte, charge: &Value) -> R<(String, Value)> {
     let nom = en_texte(requis(charge, "salarie")?);
     let dernier = en_texte(requis(charge, "dernier_jour")?);
     let fiche = ctx.salarie(&nom).map_err(|m| erreur("KeyError", m))?;
-    let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?;
+    let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
     for a in crate::routes_listes::tous_les_arrets(ctx)? {
         if texte(&a, "salarie") == cle && texte(&a, "dernier_jour_travaille") == dernier {
             return Ok((cle, a));

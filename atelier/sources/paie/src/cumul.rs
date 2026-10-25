@@ -8,14 +8,14 @@ use std::path::Path;
 
 use serde_json::{Map, Value};
 
-use crate::bareme::canon;
+use droit::bareme::canon;
 use crate::calcul::Paie;
-use crate::catalogue::{annexes, rubrique};
-use crate::contexte::{aujourdhui, Contexte};
-use crate::date::{d, Jour};
+use droit::catalogue::{annexes, rubrique};
+use droit::contexte::{aujourdhui, Contexte};
+use socle::date::{d, Jour};
 use crate::engagement::{charger, nombre};
-use crate::fichiers::{lire_json, repr};
-use crate::num::{add, dec_py, flottant, Decimal, Resultat};
+use socle::fichiers::{lire_json, repr};
+use socle::num::{add, dec_py, flottant, Decimal, Resultat};
 
 /// Les constantes du decompte, lues dans les donnees livrees (catalogue et
 /// `annexes`), comme les constantes de module du Python.
@@ -56,7 +56,7 @@ impl Constantes {
 /// donnee ; sans date de naissance, le plafond bas.
 pub fn plafond_enseignement(racine: &Path, date_naissance: Option<Jour>, a_la_date: Jour) -> Resultat<i64> {
     let r = rubrique(racine, "enseignement")?;
-    let p = r.plafond_annuel_heures.filter(|p| crate::fichiers::vrai(p)).unwrap_or(Value::Object(Map::new()));
+    let p = r.plafond_annuel_heures.filter(|p| socle::fichiers::vrai(p)).unwrap_or(Value::Object(Map::new()));
     let bas = p.get("moins_de_50_ans").map_or(0, entier_de);
     let haut = p.get("50_ans_et_plus").map_or(bas, entier_de);
     let Some(n) = date_naissance else { return Ok(bas) };
@@ -304,7 +304,7 @@ fn ligne_historique(e: &Value) -> Resultat<Option<Engagement>> {
 /// Vide tant qu'on n'a rien importe.
 pub fn lire_historique(ctx: &Contexte) -> Resultat<Vec<Engagement>> {
     let p = ctx.racine.join("historique").join("engagements.json");
-    if !crate::fichiers::existe(&p) {
+    if !socle::fichiers::existe(&p) {
         return Ok(Vec::new());
     }
     let data = lire_json(&p)?;
@@ -324,16 +324,16 @@ pub fn lire_historique(ctx: &Contexte) -> Resultat<Vec<Engagement>> {
 pub fn heures_enseignement(ctx: &Contexte, lignes: &[Value]) -> Resultat<i64> {
     let mut heures = 0.0;
     for l in lignes {
-        let code = l.get("rubrique").ok_or_else(|| crate::fichiers::absent("rubrique"))?;
+        let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
         let code = match code {
             Value::String(s) => s.clone(),
-            autre => crate::date::en_texte(autre),
+            autre => socle::date::en_texte(autre),
         };
         let r = rubrique(&ctx.racine, &code)?;
         if r.compte_pour != "ouverture_des_droits" {
             continue;
         }
-        let q = flottant(l.get("quantite").ok_or_else(|| crate::fichiers::absent("quantite"))?)?;
+        let q = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
         let saisies = match l.get("heures") {
             None | Some(Value::Null) => None,
             Some(x) => Some(flottant(x)?),
@@ -352,9 +352,9 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Engagement>> 
         return Ok(None);
     }
     let heures = e.heures.unwrap_or(0.0).round_ties_even() as i64;
-    let cle = p.salarie.get("_cle").ok_or_else(|| crate::fichiers::absent("_cle"))?;
+    let cle = p.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?;
     Ok(Some(Engagement {
-        salarie: crate::date::en_texte(cle),
+        salarie: socle::date::en_texte(cle),
         debut: e.debut_periode()?,
         fin: e.fin_periode()?,
         numero_objet: p.spectacle.get("numero_objet").cloned().unwrap_or_else(|| Value::String(String::new())),
@@ -392,7 +392,7 @@ pub fn engagements_des_paies(
     }
     let dossier = ctx.racine.join("paies");
     let mut fichiers: Vec<(String, std::path::PathBuf)> = Vec::new();
-    if let Some(rd) = crate::fichiers::lister(&dossier) {
+    if let Some(rd) = socle::fichiers::lister(&dossier) {
         for f in rd {
             let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
             if let Some(stem) = nom.strip_suffix(".json") {
@@ -485,7 +485,7 @@ pub fn position(
 /// Date de naissance du salarie, ou `None`.
 pub fn naissance(ctx: &Contexte, salarie: &str) -> Resultat<Option<Jour>> {
     match ctx.salaries.get(salarie).and_then(|f| f.get("date_naissance")) {
-        Some(v) if crate::fichiers::vrai(v) => d(v).map(Some),
+        Some(v) if socle::fichiers::vrai(v) => d(v).map(Some),
         _ => Ok(None),
     }
 }
@@ -589,10 +589,10 @@ pub fn tableau_cumul(
     let annee = entier_du_mois(&tranche(0, 4))?;
     let mo = entier_du_mois(&tranche(5, 7))?;
     if !(1..=9999).contains(&annee) {
-        return Err(crate::date::annee_impossible(annee));
+        return Err(socle::date::annee_impossible(annee));
     }
     if !(1..=12).contains(&mo) {
-        return Err(crate::date::mois_impossible(mo));
+        return Err(socle::date::mois_impossible(mo));
     }
     let mo = mo as u32;
     let debut_mois = Jour { an: annee, mois: mo, jour: 1 };
@@ -631,7 +631,7 @@ pub fn tableau_cumul(
 /// (`anniversaire_droits`) ; absente tant que France Travail ne l'a pas notifiee.
 pub fn anniversaire_configure(ctx: &Contexte, salarie: &str) -> Resultat<Option<Jour>> {
     match ctx.salaries.get(salarie).and_then(|f| f.get("anniversaire_droits")) {
-        Some(v) if crate::fichiers::vrai(v) => d(v).map(Some),
+        Some(v) if socle::fichiers::vrai(v) => d(v).map(Some),
         _ => Ok(None),
     }
 }

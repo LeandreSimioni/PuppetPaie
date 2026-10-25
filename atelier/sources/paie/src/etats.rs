@@ -18,13 +18,13 @@ use std::sync::OnceLock;
 
 use serde_json::{json, Map, Value};
 
-use crate::ecriture::{ecrire_json, repr_flottant};
-use crate::fichiers::{repr, vrai};
+use socle::ecriture::ecrire_json;
+use socle::fichiers::vrai;
 use crate::journal::{chemin, ACTES, REEL};
-use crate::retours::{self, Echec};
+use crate::retours;
+use socle::echec::{erreur, Echec, R};
+use socle::valeur::{eq_py, nom_type, nombre, py_repr, py_str};
 use crate::tables_journal::ALNUM;
-
-pub(crate) type R<T> = Result<T, Echec>;
 
 pub(crate) const DSN: &str = "dsn";
 pub(crate) const DPAE: &str = "dpae";
@@ -43,36 +43,6 @@ pub const NATURES_DPAE: [(&str, &str); 4] = [
     ("20", "bilan d'identification des salaries"),
     ("41", "certificat de conformite des DPAE"),
 ];
-
-// ------------------------------------------------------ les erreurs de Python
-
-/// L'endroit ou l'echec est construit se note (`diagnostic::noter_echec`) : la trace d'un refus de route le retrouve.
-#[track_caller]
-pub(crate) fn erreur(classe: &'static str, message: impl Into<String>) -> Echec {
-    let message = message.into();
-    crate::diagnostic::noter_echec(Some(classe), &message);
-    Echec { classe: Some(classe), message }
-}
-
-/// Un echec de classe quelconque (`None` : un refus ordinaire), son endroit note comme pour `erreur`.
-#[track_caller]
-pub(crate) fn noter_et(classe: Option<&'static str>, message: impl Into<String>) -> Echec {
-    let message = message.into();
-    crate::diagnostic::noter_echec(classe, &message);
-    Echec { classe, message }
-}
-
-pub(crate) fn nom_type(v: &Value) -> &'static str {
-    match v {
-        Value::Null => "NoneType",
-        Value::Bool(_) => "bool",
-        Value::Number(n) if n.is_f64() => "float",
-        Value::Number(_) => "int",
-        Value::String(_) => "str",
-        Value::Array(_) => "list",
-        Value::Object(_) => "dict",
-    }
-}
 
 static NUL: Value = Value::Null;
 pub(crate) static LISTE_VIDE: Value = Value::Array(Vec::new());
@@ -96,7 +66,7 @@ pub(crate) fn get<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
 pub(crate) fn getd<'a>(v: &'a Value, k: &str, defaut: &'a Value) -> R<&'a Value> {
     match v {
         Value::Object(o) => Ok(o.get(k).unwrap_or(defaut)),
-        _ => Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v)))),
+        _ => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v)))),
     }
 }
 
@@ -119,57 +89,7 @@ pub(crate) fn items(v: &Value) -> R<Vec<Cow<'_, Value>>> {
         Value::Array(a) => Ok(a.iter().map(Cow::Borrowed).collect()),
         Value::Object(o) => Ok(o.keys().map(|k| Cow::Owned(Value::String(k.clone()))).collect()),
         Value::String(s) => Ok(s.chars().map(|c| Cow::Owned(Value::String(c.to_string()))).collect()),
-        _ => Err(erreur("TypeError", crate::fichiers::attendu("une liste", nom_type(v)))),
-    }
-}
-
-pub(crate) fn nombre(v: &Value) -> Option<f64> {
-    match v {
-        Value::Number(n) => n.as_f64(),
-        Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
-        _ => None,
-    }
-}
-
-/// `a == b` de Python : `1 == 1.0 == True`, listes et dictionnaires en profondeur.
-pub(crate) fn eq_py(a: &Value, b: &Value) -> bool {
-    match (a, b) {
-        (Value::Array(x), Value::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(u, v)| eq_py(u, v)),
-        (Value::Object(x), Value::Object(y)) => {
-            x.len() == y.len() && x.iter().all(|(k, v)| y.get(k).is_some_and(|w| eq_py(v, w)))
-        }
-        _ => match (nombre(a), nombre(b)) {
-            (Some(x), Some(y)) => x == y,
-            _ => a == b,
-        },
-    }
-}
-
-/// `repr(v)` de Python.
-pub(crate) fn py_repr(v: &Value) -> String {
-    match v {
-        Value::Null => "None".into(),
-        Value::Bool(true) => "True".into(),
-        Value::Bool(false) => "False".into(),
-        Value::Number(n) => match (n.as_i64(), n.as_u64()) {
-            (Some(i), _) => i.to_string(),
-            (_, Some(u)) => u.to_string(),
-            _ => repr_flottant(n.as_f64().unwrap_or(0.0)),
-        },
-        Value::String(s) => repr(s),
-        Value::Array(a) => format!("[{}]", a.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
-        Value::Object(o) => format!(
-            "{{{}}}",
-            o.iter().map(|(k, v)| format!("{}: {}", repr(k), py_repr(v))).collect::<Vec<_>>().join(", ")
-        ),
-    }
-}
-
-/// `str(v)` de Python.
-pub(crate) fn py_str(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        autre => py_repr(autre),
+        _ => Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(v)))),
     }
 }
 
@@ -185,8 +105,8 @@ fn cle_py(v: &Value) -> R<String> {
     match v {
         Value::Null => Ok("N".into()),
         Value::String(t) => Ok(format!("s{}:{}", t.len(), t)),
-        Value::Array(_) => Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+        Value::Array(_) => Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+        Value::Object(_) => Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
         autre => {
             let x = nombre(autre).unwrap_or(0.0);
             Ok(format!("n{:?}", if x == 0.0 { 0.0 } else { x }))
@@ -401,7 +321,7 @@ pub(crate) fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
     static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
     let cache = CACHE.get_or_init(Default::default);
     let p = chemin(racine);
-    let sig = crate::fichiers::signature(&p);
+    let sig = socle::fichiers::signature(&p);
     if let Some((s, l)) = sig.and_then(|_| cache.lock().unwrap_or_else(|e| e.into_inner()).get(&p).cloned()) {
         if s == sig {
             return Ok(l);
@@ -409,7 +329,7 @@ pub(crate) fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
     }
     let l = std::sync::Arc::new(charger_du_disque(&p)?);
     if sig.is_some() {
-        crate::fichiers::ranger(cache, p, (sig, l.clone()));
+        socle::fichiers::ranger(cache, p, (sig, l.clone()));
     }
     Ok(l)
 }
@@ -561,7 +481,7 @@ fn meme_nom(cle: &Value, nom: &Value) -> R<bool> {
         let t = match v {
             Value::String(t) => t.as_str(),
             autre if !vrai(autre) => "",
-            autre => return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", nom_type(autre)))),
+            autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
         };
         Ok(t.to_uppercase().chars().filter(|&c| alnum_py(c)).collect())
     }
@@ -1101,7 +1021,7 @@ pub(crate) fn joindre(sep: &str, v: &[Value]) -> R<String> {
         match x {
             Value::String(t) => out.push(t.as_str()),
             autre => {
-                return Err(erreur("TypeError", crate::fichiers::element(i, &crate::fichiers::attendu("un texte", nom_type(autre)))))
+                return Err(erreur("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre)))))
             }
         }
     }
@@ -1122,7 +1042,7 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
         let debut = match rep {
             Value::String(t) => t.chars().take(120).collect::<String>(),
             Value::Array(a) => py_repr(&Value::Array(a.iter().take(120).cloned().collect())),
-            autre => return Err(erreur("TypeError", format!("'reponse' : {}", crate::fichiers::attendu("un texte", nom_type(autre))))),
+            autre => return Err(erreur("TypeError", format!("'reponse' : {}", socle::fichiers::attendu("un texte", nom_type(autre))))),
         };
         return Ok(format!("envoi du {} refusé au dépôt — {}", quand, debut));
     }
@@ -1223,7 +1143,7 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
             if vrai(get(l, "deja_existante")?) {
                 match l.get("nom") {
                     Some(n) => existantes.push(n.clone()),
-                    None => return Err(erreur("KeyError", crate::fichiers::absent("nom"))),
+                    None => return Err(erreur("KeyError", socle::fichiers::absent("nom"))),
                 }
             }
         }
@@ -1347,7 +1267,7 @@ fn mot(c: &[char], mut j: usize, mot: &str) -> Option<usize> {
 }
 
 fn blancs(c: &[char], mut j: usize) -> usize {
-    while j < c.len() && retours::blanc_py(c[j]) {
+    while j < c.len() && socle::texte::blanc(c[j]) {
         j += 1;
     }
     j
@@ -1366,7 +1286,7 @@ fn flux_xml(c: &[char]) -> Option<String> {
         }
         let d = blancs(c, j + 1);
         let mut f = d;
-        while f < c.len() && c[f] != '<' && !retours::blanc_py(c[f]) {
+        while f < c.len() && c[f] != '<' && !socle::texte::blanc(c[f]) {
             f += 1;
         }
         if f == d {
@@ -1420,7 +1340,7 @@ pub(crate) fn flux_de(reponse: &str) -> String {
     if let Some(m) = flux_json(&c) {
         return m;
     }
-    let nu = reponse.trim_matches(retours::blanc_py);
+    let nu = reponse.trim_matches(socle::texte::blanc);
     let n = nu.chars().count();
     if (8..=64).contains(&n) && nu.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-') {
         nu.to_string()
@@ -1543,7 +1463,7 @@ fn archive_du_retour(racine: &Path, r: &Value, quoi: &Value) -> R<Option<PathBuf
     let sans_flux = s("sansflux");
     let flux = match ou(get(r, "flux")?, &sans_flux) {
         Value::String(t) => t.chars().take(24).collect::<String>(),
-        autre => return Err(erreur("TypeError", format!("'flux' : {}", crate::fichiers::attendu("un texte", nom_type(autre))))),
+        autre => return Err(erreur("TypeError", format!("'flux' : {}", socle::fichiers::attendu("un texte", nom_type(autre))))),
     };
     let motif: Vec<char> = format!("*_nature{}_{}*", py_str(get(r, "nature")?), flux).chars().collect();
     let motif = jetons(&motif.iter().collect::<String>());
@@ -1689,7 +1609,7 @@ fn incident(racine: &Path, ligne: &Value, r: &Value, verdict: &Value, contenus: 
             let bloquant = !est(get(&a, "categorie")?, "bloquant");
             let code = match getd(&a, "code", texte_vide())? {
                 Value::String(t) => t.clone(),
-                autre => return Err(erreur("TypeError", format!("'code' : {}", crate::fichiers::incomparables(nom_type(autre), "str")))),
+                autre => return Err(erreur("TypeError", format!("'code' : {}", socle::fichiers::incomparables(nom_type(autre), "str")))),
             };
             cles.push((bloquant, code, a));
         }

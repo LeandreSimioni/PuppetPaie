@@ -32,7 +32,7 @@ use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
 use crate::depot::{self, Apercu};
 use crate::depot_acte::{self, DepotFait, Preuve};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "depot-dsn",
@@ -100,13 +100,13 @@ fn afficher_apercu(chemin: &str, a: &Apercu, essai: bool) {
 /// Ce qui a ouvert le depot reel : le test qui en repond, ou le motif (`dire_repetition`). Un contournement se LIT au moment ou
 /// il sert.
 pub(crate) fn dire_repetition(r: &Value) {
-    if !crate::fichiers::vrai(r) {
+    if !socle::fichiers::vrai(r) {
         return;
     }
-    if r.get("contournement").is_some_and(crate::fichiers::vrai) {
+    if r.get("contournement").is_some_and(socle::fichiers::vrai) {
         dire!("\nDEPOSE SANS REPETITION -- motif inscrit au journal :\n  {}", super::rendu::champ(r, "contournement"));
     } else {
-        let test = r.get("test").filter(|x| crate::fichiers::vrai(x)).map(quand_a).filter(|t| !t.is_empty()).unwrap_or_else(|| "?".into());
+        let test = r.get("test").filter(|x| socle::fichiers::vrai(x)).map(quand_a).filter(|t| !t.is_empty()).unwrap_or_else(|| "?".into());
         dire!("\nRepetition : depot de test du {}, compte rendu {}.", test, super::rendu::champ_ou(r, "compte_rendu", "?"));
     }
 }
@@ -230,7 +230,7 @@ fn refus_du_depot(e: &Echec) -> i32 {
 }
 
 fn dire_la_suite(fait: &DepotFait, reel: bool, apercu: &Apercu) {
-    if crate::fichiers::vrai(&fait.deja) {
+    if socle::fichiers::vrai(&fait.deja) {
         dire!("\nA SAVOIR : ce fichier exact avait deja ete depose le {}.", super::rendu::champ_ou(&fait.deja, "quand", "?"));
     }
     dire_repetition(&fait.repetition);

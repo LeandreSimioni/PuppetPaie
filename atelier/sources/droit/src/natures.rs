@@ -5,8 +5,8 @@
 //! qu'il se tient, et rend des valeurs. Les refus gardent les messages du
 //! Python. Non porte : `TYPES_CONTRAT_DPAE` hors du controle de lecture.
 
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, signature, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, signature, vrai};
+use socle::num::Resultat;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -348,14 +348,14 @@ pub fn natures() -> Resultat<Natures> {
     if let Some(s) = sig {
         if let Some((vue, n)) = cache.lock().unwrap().get(&cle) {
             if *vue == s {
-                crate::fichiers::noter_si_besoin(&chemin);
+                socle::fichiers::noter_si_besoin(&chemin);
                 return Ok(n.clone());
             }
         }
     }
     let f = fichier()?;
     let mut out = Vec::new();
-    let brutes = f.get("natures").and_then(|n| n.as_object()).ok_or_else(|| crate::fichiers::absent("natures"))?;
+    let brutes = f.get("natures").and_then(|n| n.as_object()).ok_or_else(|| socle::fichiers::absent("natures"))?;
     for (c, d) in brutes {
         let d = d.as_object().cloned().unwrap_or_default();
         out.push(Arc::new(construire(c, &d)?));

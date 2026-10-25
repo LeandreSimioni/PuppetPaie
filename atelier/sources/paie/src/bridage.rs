@@ -115,7 +115,7 @@ pub fn basculer_de(inst: &Path) -> Result<(), String> {
         return Ok(());
     }
     let nouveau = if est_bride_de(inst) { DEBLOQUE } else { BRIDE };
-    crate::ecriture::ecrire_json(
+    socle::ecriture::ecrire_json(
         &inst.join(FICHIER_GESTE),
         &json!({"edition": nouveau, "_quoi": "Le bridage de PuppetPaie sur ce poste : bride (l'accueil ne propose que les compagnies fictives) ou debloque. Change par le geste de l'accueil."}),
         2,

@@ -7,8 +7,8 @@
 //! De l'interface (l'accueil, `routes_accueil.rs`) : `catalogue`, `familles`,
 //! `noms_des_conventions` et `controler_fiche`.
 
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use socle::num::Resultat;
 use serde_json::{Map, Value};
 
 /// Les champs de la fiche qu'un historique peut dater (`calcul.CHAMPS_EMPLOI`).
@@ -56,8 +56,8 @@ pub fn metier(code: &str) -> Resultat<Option<Value>> {
     let nomenclature = json_en_cache(&ici.join("nomenclature-emplois-ft.json"))?;
     if let Some(n) = nomenclature.get("emplois").and_then(|e| e.get(&code)) {
         if vrai(n) {
-            let libelle = n.get("libelle").and_then(|l| l.as_str()).ok_or_else(|| crate::fichiers::absent("libelle"))?;
-            let annexe = n.get("annexe").ok_or_else(|| crate::fichiers::absent("annexe"))?;
+            let libelle = n.get("libelle").and_then(|l| l.as_str()).ok_or_else(|| socle::fichiers::absent("libelle"))?;
+            let annexe = n.get("annexe").ok_or_else(|| socle::fichiers::absent("annexe"))?;
             let cap = Value::String(capitaliser(libelle));
             let mut m = Map::new();
             m.insert("code".into(), Value::String(code));
@@ -88,22 +88,22 @@ pub fn resoudre(code: &str, cadre: Option<bool>, feminin: bool) -> Resultat<Valu
             repr(code))
     })?;
     let est_cadre = match cadre {
-        None => vrai(m.get("cadre_par_defaut").ok_or_else(|| crate::fichiers::absent("cadre_par_defaut"))?),
+        None => vrai(m.get("cadre_par_defaut").ok_or_else(|| socle::fichiers::absent("cadre_par_defaut"))?),
         Some(c) => c,
     };
     let texte = |c: &str| m.get(c).filter(|v| vrai(v)).cloned();
     let choisi = if feminin { texte("feminin") } else { texte("libelle") };
     let libelle = match choisi {
         Some(l) => l,
-        None => m.get("libelle").cloned().ok_or_else(|| crate::fichiers::absent("libelle"))?,
+        None => m.get("libelle").cloned().ok_or_else(|| socle::fichiers::absent("libelle"))?,
     };
     let valeur = |c: &str| m.get(c).cloned().unwrap_or(Value::Null);
     let mut out = Map::new();
-    out.insert("emploi".into(), m.get("emploi").cloned().ok_or_else(|| crate::fichiers::absent("emploi"))?);
+    out.insert("emploi".into(), m.get("emploi").cloned().ok_or_else(|| socle::fichiers::absent("emploi"))?);
     out.insert("emploi_affichage".into(), libelle);
     out.insert("pcs_ese".into(), valeur("pcs_ese"));
     out.insert("code_emploi_ft".into(), valeur("code"));
-    out.insert("statut".into(), m.get("statut").cloned().ok_or_else(|| crate::fichiers::absent("statut"))?);
+    out.insert("statut".into(), m.get("statut").cloned().ok_or_else(|| socle::fichiers::absent("statut"))?);
     out.insert(
         "statut_conventionnel".into(),
         if est_cadre {
@@ -233,7 +233,7 @@ const UNE_VALEUR_PAR_MOIS: [&str; 5] = ["statut_categoriel_rc", "statut_conventi
 /// ici, sur ses bornes : le refus ne garde que l'appel sur une periode qui n'aurait pas ete coupee. Le statut BOETH, qui
 /// ne change pas la paie, peut changer en cours de mois.
 pub fn emploi_du_mois(sal: &Value, brute: Option<&Value>, debut: &str, fin: &str, telle_qu_au: TelleQuAu) -> Resultat<Value> {
-    use crate::date::Jour;
+    use socle::date::Jour;
     let base = fiche_ecrite(sal, brute)?;
     let au_debut = emploi_a_la_date(&base, Some(debut), telle_qu_au)?;
     let mut a_la_fin = emploi_a_la_date(&base, Some(fin), telle_qu_au)?;
@@ -325,8 +325,8 @@ fn fiche_ecrite(sal: &Value, brute: Option<&Value>) -> Resultat<Value> {
 /// fiche d'avant et celle d'apres different sur l'une de ces valeurs. C'est la que la paie du mois se decoupe en periodes
 /// elementaires (`periodes::bornes`, lot R10 ; norme DSN 2026.1, § 2.1.3.2, p. 28 : « passage de non cadre a cadre en
 /// cours de periode de paie »). Vide : le mois se paie d'un seul tenant.
-pub fn jours_de_changement(sal: &Value, brute: Option<&Value>, debut: &str, fin: &str, telle_qu_au: TelleQuAu) -> Resultat<Vec<crate::date::Jour>> {
-    use crate::date::Jour;
+pub fn jours_de_changement(sal: &Value, brute: Option<&Value>, debut: &str, fin: &str, telle_qu_au: TelleQuAu) -> Resultat<Vec<socle::date::Jour>> {
+    use socle::date::Jour;
     let base = fiche_ecrite(sal, brute)?;
     let mut jours: Vec<Jour> = Vec::new();
     for e in base.get("historique").and_then(Value::as_array).into_iter().flatten() {
@@ -418,10 +418,10 @@ pub fn emploi_de(
 /// deroulant, dans l'ordre du fichier.
 pub fn catalogue() -> Resultat<Vec<Value>> {
     let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
-    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| crate::fichiers::absent("emplois"))?;
+    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| socle::fichiers::absent("emplois"))?;
     let mut out = Vec::new();
     for (code, m) in emplois {
-        let champ = |k: &str| m.get(k).cloned().ok_or_else(|| crate::fichiers::absent(k));
+        let champ = |k: &str| m.get(k).cloned().ok_or_else(|| socle::fichiers::absent(k));
         let niveau = m.get("classification_3090").filter(|v| vrai(v)).and_then(|c| c.get("niveau")).cloned().unwrap_or(Value::Null);
         let conventions = m.get("conventions").filter(|v| vrai(v)).cloned().unwrap_or_else(|| Value::Array(vec![]));
         let mut e = Map::new();
@@ -450,7 +450,7 @@ pub fn par_intitule(intitule: &str, norme: impl Fn(&str) -> String) -> Resultat<
         return Ok(None);
     }
     let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
-    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| crate::fichiers::absent("emplois"))?;
+    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| socle::fichiers::absent("emplois"))?;
     let mut trouves: Vec<(String, bool)> = Vec::new();
     for (code, m) in emplois {
         let t = |k: &str| m.get(k).and_then(Value::as_str).map(&norme).unwrap_or_default();
@@ -477,10 +477,10 @@ pub fn familles() -> Resultat<Vec<String>> {
         "Décor et construction", "Costume, coiffure, maquillage", "Production et administration", "Audiovisuel dans le spectacle",
     ];
     let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
-    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| crate::fichiers::absent("emplois"))?;
+    let emplois = base.get("emplois").and_then(Value::as_object).ok_or_else(|| socle::fichiers::absent("emplois"))?;
     let mut vues = std::collections::BTreeSet::new();
     for m in emplois.values() {
-        vues.insert(m.get("famille").and_then(Value::as_str).ok_or_else(|| crate::fichiers::absent("famille"))?.to_string());
+        vues.insert(m.get("famille").and_then(Value::as_str).ok_or_else(|| socle::fichiers::absent("famille"))?.to_string());
     }
     let mut out: Vec<String> = ORDRE.iter().filter(|f| vues.contains(**f)).map(|f| f.to_string()).collect();
     out.extend(vues.iter().filter(|f| !ORDRE.contains(&f.as_str())).cloned());
@@ -490,12 +490,15 @@ pub fn familles() -> Resultat<Vec<String>> {
 /// `emplois.controler_fiche` : ce qu'une fiche salarie declare, confronte au
 /// catalogue. Des phrases d'avertissement, jamais d'erreur : la fiche peut
 /// avoir raison contre le catalogue.
-pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, crate::retours::Echec> {
-    use crate::etats::{eq_py, erreur, nom_type, py_repr};
+pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, socle::echec::Echec> {
+    use socle::valeur::eq_py;
+    use socle::valeur::py_repr;
+    use socle::valeur::nom_type;
+    use socle::echec::erreur;
     let mut avis = Vec::new();
     let code = match d.get("code_emploi_ft") {
         Some(Value::String(s)) => s.trim().to_uppercase(),
-        Some(v) if vrai(v) => return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", nom_type(v)))),
+        Some(v) if vrai(v) => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(v)))),
         _ => String::new(),
     };
     if code.is_empty() {
@@ -505,7 +508,7 @@ pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, crate::ret
         avis.push(format!("Code emploi France Travail {} inconnu de la nomenclature (S21.G00.40.005).", repr(&code)));
         return Ok(avis);
     };
-    let texte = |v: Option<&Value>| v.map(crate::etats::py_str).unwrap_or_default();
+    let texte = |v: Option<&Value>| v.map(socle::valeur::py_str).unwrap_or_default();
     let libelle = texte(m.get("libelle"));
     if let Some(statut) = d.get("statut").filter(|v| vrai(v)) {
         if !m.get("statut").map_or(false, |x| eq_py(statut, x)) {
@@ -520,7 +523,7 @@ pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, crate::ret
     let saisi = d.get("pcs_ese").filter(|v| vrai(v));
     if let (Some(attendu), Some(saisi)) = (attendu, saisi) {
         let Value::String(_) = saisi else {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", nom_type(saisi))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(saisi))));
         };
         let (a, s) = (texte(Some(attendu)), texte(Some(saisi)));
         if s.to_lowercase() != a.to_lowercase() {

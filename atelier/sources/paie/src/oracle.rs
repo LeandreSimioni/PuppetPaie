@@ -1,17 +1,17 @@
 //! `paie oracle` : la preuve du portage. Ecrit le meme JSON que
 //! `python -m moteur oracle`, octet pour octet (docs/PORTAGE-RUST.md §11, §13.3).
 
-use crate::bareme::{bareme_applique, canon};
-use crate::contexte::{telle_qu_au, Contexte};
-use crate::contrats::nature;
+use droit::bareme::{bareme_applique, canon};
+use droit::contexte::{telle_qu_au, Contexte};
+use droit::natures::nature;
 use crate::cumul::{anniversaire_configure, derniere_fin, lire_engagements, naissance, position_droits, tableau_cumul, Constantes};
-use crate::date::Jour;
-use crate::emplois::{emploi_de, EmploiEngagement};
+use socle::date::Jour;
+use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::engagement::{charger, nombre};
-use crate::fichiers::dossier_du_code;
-use crate::num::Resultat;
+use socle::fichiers::dossier_du_code;
+use socle::num::Resultat;
 use crate::pas::{self, ErreurPas};
-use crate::plafond::plafond_urssaf;
+use droit::plafond::plafond_urssaf;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -215,7 +215,7 @@ pub fn pas_cmd(o: &HashMap<String, String>, fichier: &str) -> Resultat<Value> {
 /// L'`ent` de `operations_paies.produire_mois` : la fiche entreprise, la licence
 /// resolue au premier du mois, et les gabarits de CETTE compagnie.
 pub fn entreprise_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
-    let licence = ctx.licence(&crate::date::premier_du_mois(mois)?)?;
+    let licence = ctx.licence(&socle::date::premier_du_mois(mois)?)?;
     let mut ent = ctx.entreprise.clone();
     if let Value::Object(m) = &mut ent {
         m.insert("licence_spectacle".into(), Value::String(licence));
@@ -242,7 +242,7 @@ pub fn bulletin_cmd(o: &HashMap<String, String>, fichier: &str) -> Resultat<Valu
                 .parse::<usize>()
                 .ok()
                 .and_then(|n| s.paies.get(n))
-                .ok_or_else(|| crate::fichiers::trop_courte(&format!("la paie n° {}", n)))?;
+                .ok_or_else(|| socle::fichiers::trop_courte(&format!("la paie n° {}", n)))?;
             crate::bulletin::jeux_et_description(&ctx, std::slice::from_ref(p), &ent, &s.mois, Some(&s.paies), false, &aucun)?
         }
     };

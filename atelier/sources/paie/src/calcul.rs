@@ -9,22 +9,22 @@ use std::sync::{Arc, Mutex, OnceLock};
 use rust_decimal::prelude::*;
 use serde_json::{Map, Value};
 
-use crate::bareme::bareme_applique_au_contrat;
-use crate::contrats::Nature;
-use crate::catalogue::{rubrique, HorsAssiette, Rubrique, AVANTAGES_EN_NATURE};
-use crate::contexte::{telle_qu_au, Contexte};
-use crate::date::{en_texte, repr_texte, Jour};
-use crate::emplois::{emploi_de, EmploiEngagement};
+use droit::bareme::{bareme_applique_au_contrat, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
+use droit::natures::Nature;
+use droit::catalogue::{rubrique, HorsAssiette, Rubrique, AVANTAGES_EN_NATURE};
+use droit::contexte::{telle_qu_au, Contexte};
+use socle::date::{en_texte, repr_texte, Jour};
+use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::engagement::{nombre, Avis, Engagement};
-use crate::fichiers::vrai;
-use crate::num::{add, dec, dec_f64, div, eur, flottant, mul, pct, round3, sub, Decimal, Resultat};
-use crate::plafond::{plafond_permanent, pour_paie, EngagementPlafond};
+use socle::fichiers::vrai;
+use socle::num::{add, dec, dec_f64, div, eur, flottant, mul, pct, round3, sub, Decimal, Resultat};
+use droit::plafond::{plafond_permanent, pour_paie, EngagementPlafond};
 
 pub use crate::engagement::ligne_en_pourcentage;
 
 /// `d.get(cle)` ; un `KeyError` Python se lit par son message : le repr de la cle.
 fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    o.get(cle).ok_or_else(|| crate::fichiers::absent(cle))
+    o.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 /// `Decimal(str(x))` d'une valeur facultative, `defaut` si la cle manque.
@@ -441,9 +441,9 @@ pub fn reduction_generale(
             let t = en_texte(b);
             let parts: Vec<&str> = t.split('/').collect();
             if parts.len() != 2 {
-                return Err(format!("fraction illisible : {}", crate::fichiers::repr(&t)));
+                return Err(format!("fraction illisible : {}", socle::fichiers::repr(&t)));
             }
-            let lire = |s: &str| Decimal::from_str(s).map_err(|_| crate::num::illisible(s));
+            let lire = |s: &str| Decimal::from_str(s).map_err(|_| socle::num::illisible(s));
             let (num, den) = (lire(parts[0])?, lire(parts[1])?);
             coefficient = quantifier4(diviser(mul(coefficient, num), den)?);
         }
@@ -526,7 +526,7 @@ pub fn reduction_generale_sous_dfs(
     if apres.montant <= limite {
         return Ok(Some(apres));
     }
-    let rg = bar.get("reduction_generale").ok_or_else(|| crate::fichiers::absent("reduction_generale"))?;
+    let rg = bar.get("reduction_generale").ok_or_else(|| socle::fichiers::absent("reduction_generale"))?;
     Ok(Some(repartir_la_reduction(rg, apres.coefficient, limite, apres.smic_reference, apres.heures)?))
 }
 
@@ -944,7 +944,7 @@ fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, cais
         return Ok(v.clone());
     }
     let bar = Arc::new(bareme_applique_au_contrat(ctx.bareme(fin)?, sal, nat, Some(fin), caisse, cpf_cdd)?);
-    crate::fichiers::ranger(cache, cle, bar.clone());
+    socle::fichiers::ranger(cache, cle, bar.clone());
     Ok(bar)
 }
 
@@ -972,7 +972,7 @@ pub fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resultat<Value
         // (norme DSN 2026.1, § 2.1.2.4, p. 22) ; un mois d'un seul tenant, la periode de paie entiere. La dispense de
         // sante se lit sur ces memes bornes (`dispense_de_la_periode`, lot R7).
         let (debut, fin) = *crate::periodes::bornes(ctx, eng)?.last().ok_or("aucune periode de paie")?;
-        let du_mois = crate::emplois::emploi_du_mois(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
+        let du_mois = droit::emplois::emploi_du_mois(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
         let fiche = dispense_de_la_periode(emploi_de(&du_mois, None, &emploi, &tqa)?, &debut, &fin)?;
         sante_de_la_suspension(ctx, eng, fiche)
     } else {
@@ -1008,7 +1008,7 @@ pub fn calculer_apres(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) ->
 pub(crate) fn pile_de_la_paie(ctx: &Contexte, p: &Paie) -> Resultat<Arc<Value>> {
     let eng = &p.engagement;
     let nat = eng.nat()?;
-    let caisse = crate::caisse_conges::affilie(&nat, &p.salarie, &eng.debut, eng.fin.as_ref())?;
+    let caisse = droit::caisse_conges::affilie(&nat, &p.salarie, &eng.debut, eng.fin.as_ref())?;
     let cpf_cdd = crate::assujettissement::contrat_ouvre_cpf_cdd(
         &nat,
         eng.motif_recours.as_deref(),
@@ -1070,18 +1070,6 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
     }
     Ok(fiche)
 }
-
-/// La marque que la fiche lue par la paie porte quand les garanties de sante sont suspendues tout le mois
-/// (`sante_de_la_suspension`) : le bareme pose alors la paie sans mutuelle (`bareme::bareme_sante`), et la DSN ne
-/// rattache pas le salarie a l'adhesion sante ce mois-la (`dsn::affiliations_du_permanent`), comme pour une dispense.
-pub const SANTE_SUSPENDUE: &str = "_sante_suspendue";
-
-/// Le champ de la fiche entreprise qui dit ce que le contrat de sante de la compagnie fait d'un mois entierement suspendu
-/// sans indemnisation, hors de la 3090 (`logiciel/donnees/champs-base.json`, `atelier/docs/ARCHITECTURE.md`) : « suspendue » (les
-/// garanties sont suspendues, rien sur la paie), « maintenue » (garanties et cotisations maintenues sur la paie).
-pub const SANTE_SUSPENSION: &str = "sante_suspension_non_indemnisee";
-pub const SANTE_SUSPENSION_SUSPENDUE: &str = "suspendue";
-pub const SANTE_SUSPENSION_MAINTENUE: &str = "maintenue";
 
 /// LA COMPLEMENTAIRE SANTE D'UN MOIS ENTIEREMENT SUSPENDU SANS INDEMNISATION (15/10/2026). Un permanent dont toute la
 /// periode payee est couverte par des suspensions non remunerees (conge parental 632, sabbatique 639, sans solde 501... :
@@ -1158,10 +1146,11 @@ si le contrat suspend les garanties (rien sur la paie), « {} » s'il les mainti
     Ok(fiche)
 }
 
-/// La garantie sante est-elle sans objet ce mois-la pour la fiche `sal` que la paie lit : une dispense
-/// (`sante_dispense`), ou un mois entierement suspendu sans indemnisation (`SANTE_SUSPENDUE`).
-pub fn sans_sante(sal: &Value) -> bool {
-    sal.get("sante_dispense").is_some_and(vrai) || sal.get(SANTE_SUSPENDUE).is_some_and(vrai)
+/// Le contrat de cette paie est-il declare a la caisse des Conges Spectacles (`caisse_conges::affilie`, D. 7121-41) :
+/// son contrat et la fiche qu'elle a lue.
+pub fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
+    let e = &p.engagement;
+    droit::caisse_conges::affilie(&*e.nat()?, &p.salarie, &e.debut, e.fin.as_ref())
 }
 
 /// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7.
@@ -1173,11 +1162,11 @@ pub fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) 
     let spec = if nat.mensuelle() {
         Value::Null
     } else {
-        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| crate::fichiers::absent("spectacle"))?)?
+        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
     };
     // Le contrat est-il declare a la caisse des Conges Spectacles ? (`caisse_conges::affilie` : un CDDU de moins de
     // douze mois, un CDD de droit commun de moins de douze mois d'un artiste.)
-    let caisse = crate::caisse_conges::affilie(&nat, &sal, &eng.debut, eng.fin.as_ref())?;
+    let caisse = droit::caisse_conges::affilie(&nat, &sal, &eng.debut, eng.fin.as_ref())?;
     // Le contrat ouvre-t-il la contribution CPF-CDD (C. trav. L. 6331-6 ; lot R2) ? Un CDD de droit commun, ni saisonnier,
     // ni contrat aide (`assujettissement::contrat_ouvre_cpf_cdd`, la regle du bloc 44).
     let cpf_cdd = crate::assujettissement::contrat_ouvre_cpf_cdd(
@@ -1452,13 +1441,13 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
                 }
             }
         }
-        let base = *bases.get(&cle_base).ok_or_else(|| crate::fichiers::absent(&cle_base))?;
+        let base = *bases.get(&cle_base).ok_or_else(|| socle::fichiers::absent(&cle_base))?;
         let assiettes_r: Vec<Decimal> = if GLOBALES.contains(&cle_base.as_str()) {
             vec![base]
         } else {
             par_rubrique
                 .iter()
-                .map(|b| b.lire(&cle_base).ok_or_else(|| crate::fichiers::absent(&cle_base)))
+                .map(|b| b.lire(&cle_base).ok_or_else(|| socle::fichiers::absent(&cle_base)))
                 .collect::<Resultat<_>>()?
         };
         let (mut m_pat, mut m_sal) = (zero, zero);

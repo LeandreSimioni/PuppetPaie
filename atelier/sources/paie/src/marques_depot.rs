@@ -10,10 +10,12 @@ use std::path::Path;
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 
 /// `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
 fn maintenant() -> String {
@@ -56,7 +58,7 @@ fn cle_du_nir(ctx: &Contexte, nir: &str) -> Option<String> {
 /// Les arrets que la DSN de `mois` doit reporter -- ceux du magasin des imprevus dont la periode croise le mois principal
 /// declare (`imprevus::du_mois`).
 pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    crate::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
     crate::imprevus::du_mois(&ctx.racine, mois, Some(crate::imprevus::ARRET)).map_err(crate::routes_listes::refus_magasin)
 }
 
@@ -109,7 +111,7 @@ pub(crate) fn marquer_envoye_depuis(
 /// Note, sur chaque imprevu (arret ou suspension) que la DSN mensuelle REELLE de `mois` a declare, qu'elle l'a reporte
 /// (un envoi de nature 01) : un imprevu declare ne s'oublie plus.
 pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand: &str) -> R<()> {
-    crate::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
     for a in crate::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
         let genre = crate::imprevus::genre(&a).to_string();
         let rangement = crate::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
@@ -146,7 +148,7 @@ fn jours_ouvres_apres(depart: Jour, combien: i64) -> R<Jour> {
             continue;
         }
         if !cache.contains_key(&jour.an) {
-            let f = crate::feries::feries(jour.an).map_err(|m| erreur("ValueError", m))?;
+            let f = socle::feries::feries(jour.an).map_err(|m| erreur("ValueError", m))?;
             cache.insert(jour.an, f.into_iter().map(|(j, _)| j).collect());
         }
         if cache[&jour.an].contains(&jour) {
@@ -173,7 +175,7 @@ pub(crate) fn enregistrer_demande(ctx: &Contexte, cles: &[String], motif: &str, 
     }
     if !cles.is_empty() {
         let chemin = ctx.racine.join("config").join("pas.json");
-        std::fs::write(&chemin, crate::ecriture::json_py(&data, 2)).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        std::fs::write(&chemin, socle::ecriture::json_py(&data, 2)).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     }
     Ok(())
 }

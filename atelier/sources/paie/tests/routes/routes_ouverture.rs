@@ -3,7 +3,7 @@
 //! ecrire). Sur la configuration de `fictive-3090-petite` sans compteurs, et les mois de chaque test.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route};
-use paie::date::Jour;
+use socle::date::Jour;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 

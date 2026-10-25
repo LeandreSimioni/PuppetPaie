@@ -16,14 +16,15 @@ use serde_json::{json, Value};
 
 use crate::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
-use crate::contexte::Contexte;
-use crate::ecriture::json_py;
+use droit::contexte::Contexte;
+use socle::ecriture::json_py;
 use crate::engagement;
-use crate::etats::{erreur, R};
-use crate::fichiers::lire_json;
-use crate::retours::Echec;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::lire_json;
+use socle::echec::Echec;
 use crate::routes_dossier_salarie::{avec, certificats_dus, charger, cle_de, ecrire_pdf, etiquette, premier_ce};
-use crate::verrou::Verrou;
+use socle::verrou::Verrou;
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
@@ -51,7 +52,7 @@ pub(crate) fn prochain_continu(ctx: &Contexte, cle: &str, defaut: i64) -> R<i64>
                         Value::Bool(b) => Some(*b as i64),
                         _ => None,
                     }
-                    .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr_valeur(v))))?;
+                    .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr_valeur(v))))?;
                     vu = vu.max(n);
                 }
             }
@@ -66,8 +67,8 @@ fn ecrire_compteur(ctx: &Contexte, cle: &str, annee: i32, valeur: i64) -> R<()> 
     let p = ctx.racine.join("config").join("compteurs.json");
     let mut c = if p.exists() { lire_json(&p).map_err(Echec::from)? } else { json!({}) };
     let an = annee.to_string();
-    let lu = crate::etats::nom_type(&c);
-    let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", crate::fichiers::attendu("un objet", lu))))?;
+    let lu = socle::valeur::nom_type(&c);
+    let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", socle::fichiers::attendu("un objet", lu))))?;
     let annee_obj = racine.entry(an).or_insert_with(|| json!({}));
     let annee_obj = annee_obj.as_object_mut().ok_or_else(|| erreur("AttributeError", "l'annee des compteurs n'est pas un dictionnaire"))?;
     annee_obj.insert(cle.to_string(), json!(valeur));
@@ -76,10 +77,10 @@ fn ecrire_compteur(ctx: &Contexte, cle: &str, annee: i32, valeur: i64) -> R<()> 
 
 /// `verrou_compteurs(ctx, qui=...)` : refuse si un autre tient les compteurs.
 pub(crate) fn prendre_le_verrou(ctx: &Contexte, qui: &str) -> R<Verrou> {
-    let chemin = crate::verrou::chemin_compteurs(&ctx.racine);
+    let chemin = socle::verrou::chemin_compteurs(&ctx.racine);
     let maintenant = crate::incidents::maintenant().replace('T', " ");
-    let marque = crate::verrou::marque(qui, std::process::id(), &maintenant);
-    match Verrou::prendre(&chemin, &marque, crate::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
+    let marque = socle::verrou::marque(qui, std::process::id(), &maintenant);
+    match Verrou::prendre(&chemin, &marque, socle::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
         Ok(v) => Ok(v),
         Err(v) => Err(erreur("CompteursVerrouilles", v.message())),
     }
@@ -117,7 +118,7 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
         .take(4)
         .collect::<String>()
         .parse()
-        .map_err(|_| avec("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(mois))))?;
+        .map_err(|_| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois))))?;
     let ent = crate::oracle::entreprise_du_mois(ctx, mois).map_err(Echec::from)?;
 
     // UN CONTRAT AJOUTE APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (21/10/2026) n'est pas dans le fichier archive : il n'a
@@ -128,7 +129,7 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
         .unwrap_or_default();
     if !ajoutes.is_empty() {
         paies.retain(|p| {
-            let cle = p.salarie.get("_cle").map(crate::etats::py_str).unwrap_or_default();
+            let cle = p.salarie.get("_cle").map(socle::valeur::py_str).unwrap_or_default();
             !ajoutes.contains(&(cle, p.engagement.debut.iso()))
         });
         avertissements.push(format!(

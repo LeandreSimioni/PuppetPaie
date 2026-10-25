@@ -15,10 +15,11 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, nom_type};
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::valeur::nom_type;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 use crate::transport::{envoyer, Panne, Requete};
 
 type R<T> = Result<T, Echec>;
@@ -81,7 +82,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 /// `AttributeError` de `x.get(...)` sur ce qui n'est pas un dict.
 #[track_caller]
 fn sans_get(v: &Value) -> Echec {
-    erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v)))
+    erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v)))
 }
 
 /// `google.identifiants` : (client_id, client_secret, origine).
@@ -108,7 +109,7 @@ pub(crate) fn identifiants(racine: &Path) -> R<(Value, Value, String)> {
         }
         return Ok((d["client_id"].clone(), d["client_secret"].clone(), p.display().to_string()));
     }
-    let livre = crate::fichiers::dossier_du_code().join(FICHIER_APPLICATION);
+    let livre = socle::fichiers::dossier_du_code().join(FICHIER_APPLICATION);
     let application = std::fs::read(&livre)
         .ok()
         .and_then(|o| serde_json::from_slice::<Value>(&o).ok())
@@ -182,7 +183,7 @@ fn courtes<'a>(ps: impl IntoIterator<Item = &'a Value>) -> R<Vec<Value>> {
     ps.into_iter()
         .map(|p| match p {
             Value::String(s) => Ok(json!(s.rsplit('/').next().unwrap_or(s))),
-            autre => Err(erreur("AttributeError", crate::fichiers::attendu("un texte", nom_type(autre)))),
+            autre => Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
         })
         .collect()
 }
@@ -193,7 +194,7 @@ fn liste(v: &Value) -> R<Vec<Value>> {
         Value::Array(a) => Ok(a.clone()),
         Value::String(s) => Ok(s.chars().map(|c| json!(c.to_string())).collect()),
         Value::Object(o) => Ok(o.keys().map(|k| json!(k)).collect()),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("une liste", nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
     }
 }
 
@@ -215,7 +216,7 @@ pub(crate) fn encoder(champs: &[(&str, String)]) -> String {
 pub(crate) fn en_texte(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
-        autre => crate::etats::py_str(autre),
+        autre => socle::valeur::py_str(autre),
     }
 }
 

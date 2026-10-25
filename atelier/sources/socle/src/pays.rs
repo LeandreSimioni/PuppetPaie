@@ -188,7 +188,7 @@ pub fn naissance_du_nom(texte: &str) -> Resultat<Option<String>> {
 
 /// Le nom qui sert a trier et a reconnaitre : sans accents, en minuscules, l'apostrophe typographique droite.
 pub fn cle_de_nom(nom: &str) -> String {
-    crate::contexte::sans_accent(&nom.replace('\u{2019}', "'")).to_lowercase().trim().to_string()
+    crate::texte::sans_accent(&nom.replace('\u{2019}', "'")).to_lowercase().trim().to_string()
 }
 
 /// Le pays dont le nom (celui du COG, ou le nom officiel) est `texte`, accents et casse ignores.

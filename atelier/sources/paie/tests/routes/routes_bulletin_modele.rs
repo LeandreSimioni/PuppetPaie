@@ -4,8 +4,8 @@
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, route_en_processus};
 use paie::bulletin::{jeux_et_description, Modele};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::engagement::charger;
 use paie::oracle::entreprise_du_mois;
 use paie::routes_bulletin_modele::{apercu_description, apercu_pdf, dossier_apercu};

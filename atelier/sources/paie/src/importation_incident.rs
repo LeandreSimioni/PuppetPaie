@@ -33,9 +33,10 @@ use serde_json::{json, Map, Value};
 
 use crate::bulletin_lu::{Entreprise, Salarie};
 use crate::caviardage::{self, Caviarde, Connus};
-use crate::contexte::Contexte;
-use crate::etats::{py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::fichiers::vrai;
 use crate::importation_bulletins::{self as ib, DossierLu};
 use crate::importation_tri::Sorte;
 use crate::incidents;

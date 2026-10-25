@@ -32,14 +32,14 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use crate::calcul::{DeductionForfaitaire, LigneBrut, LigneCotisation, Paie, ReductionGenerale};
-use crate::contexte::{archivee, telle_qu_au, Contexte};
-use crate::date::{en_texte, Jour};
-use crate::emplois::{emploi_de, EmploiEngagement};
+use droit::contexte::{archivee, telle_qu_au, Contexte};
+use socle::date::{en_texte, Jour};
+use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::engagement::{self, Avis, Engagement};
 use crate::etats;
-use crate::fichiers::{lire_json, vrai};
-use crate::num::{dec, flottant, Decimal, Resultat};
-use crate::retours::Echec;
+use socle::fichiers::{lire_json, vrai};
+use socle::num::{dec, flottant, Decimal, Resultat};
+use socle::echec::Echec;
 
 // ------------------------------------------------------------------ les refus
 
@@ -420,13 +420,13 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
 /// `operations_socle.exercice_clos` : la cloture de l'annee (ou `None`).
 pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
     let p = ctx.racine.join("config").join("exercices.json");
-    if !crate::fichiers::existe(&p) {
+    if !socle::fichiers::existe(&p) {
         return Ok(None);
     }
     // Lu une fois tant qu'il ne change pas (ticket #244), le refus d'un fichier illisible inchange (`lire_json`).
-    match &*crate::fichiers::json_en_cache_ou(&p, lire_json)? {
+    match &*socle::fichiers::json_en_cache_ou(&p, lire_json)? {
         Value::Object(o) => Ok(o.iter().find(|(k, _)| !k.starts_with('_') && k.as_str() == &annee[..4.min(annee.len())]).map(|(_, v)| v.clone())),
-        autre => Err(avec_classe("AttributeError", format!("config/exercices.json : {}", crate::fichiers::attendu("un objet", crate::etats::nom_type(&autre))))),
+        autre => Err(avec_classe("AttributeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
     }
 }
 
@@ -618,7 +618,7 @@ fn paies_validees(ctx: &Contexte, mois: &str) -> i64 {
 }
 
 fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
-    let lib = crate::date::libelle_du_mois(mois, crate::date::Graphie::Minuscule).map_err(Refus::from)?;
+    let lib = socle::date::libelle_du_mois(mois, socle::date::Graphie::Minuscule).map_err(Refus::from)?;
     let mut r = Rappel::nouveau(
         DSN,
         format!("dsn:{}", mois),
@@ -844,17 +844,17 @@ fn empreinte_de_l_embauche(e: &Engagement, sal: &Value) -> String {
     use sha2::{Digest, Sha256};
     let ident: Vec<String> = ["nir", "nom", "prenom", "date_naissance", "lieu_naissance", "departement_naissance", "sexe", "nationalite"]
         .iter()
-        .map(|k| crate::fichiers::repr(&texte_ou_vide(sal, k)))
+        .map(|k| socle::fichiers::repr(&texte_ou_vide(sal, k)))
         .collect();
     let fin = e.fin.map_or("None".to_string(), |f| f.iso());
     let spectacle = e.spectacle.clone().unwrap_or_else(|| "None".to_string());
     let brut = format!(
         "({}, {}, {}, ({}), {})",
-        crate::fichiers::repr(&e.debut.iso()),
-        crate::fichiers::repr(&fin),
-        crate::fichiers::repr(&spectacle),
+        socle::fichiers::repr(&e.debut.iso()),
+        socle::fichiers::repr(&fin),
+        socle::fichiers::repr(&spectacle),
         ident.join(", "),
-        crate::fichiers::repr(e.nature.as_deref().unwrap_or(""))
+        socle::fichiers::repr(e.nature.as_deref().unwrap_or(""))
     );
     let h = Sha256::digest(brut.as_bytes());
     h.iter().map(|o| format!("{:02x}", o)).collect::<String>()[..16].to_string()
@@ -1116,7 +1116,7 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
 /// Une saisie recue : un dictionnaire (l'ecran), ou le chemin d'un fichier de mois.
 fn saisie_recue(ctx: &Contexte, charge: &Value) -> R<Value> {
     match charge.get("saisie") {
-        None => Err(avec_classe("KeyError", crate::fichiers::absent("saisie"))),
+        None => Err(avec_classe("KeyError", socle::fichiers::absent("saisie"))),
         Some(d) if d.is_object() => Ok(d.clone()),
         Some(Value::String(s)) => {
             let direct = PathBuf::from(s);
@@ -1169,12 +1169,12 @@ fn entier_de(v: &Value) -> Option<i64> {
 /// premier mois, jours du contrat, suspensions).
 pub(crate) fn engagements_calcules(ctx: &Contexte, data: &Value, rep: &Value) -> R<Vec<Engagement>> {
     let paies = rep.get("paies").and_then(Value::as_array).ok_or("reponse du calcul illisible : `paies`")?;
-    let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| crate::fichiers::absent("engagements"))?;
+    let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| socle::fichiers::absent("engagements"))?;
     // Les lignes d'un permanent sont celles que le moteur a deduites.
     let mensuels: Vec<usize> = tous
         .iter()
         .enumerate()
-        .filter(|(_, e)| crate::contrats::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle()))
+        .filter(|(_, e)| droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle()))
         .map(|(i, _)| i)
         .collect();
     let appel = Cell::new(0usize);
@@ -1223,7 +1223,7 @@ pub(crate) fn paie_de_json(ctx: &Contexte, eng: Engagement, v: &Value) -> R<Paie
     let spectacle = if nat.mensuelle() {
         Value::Null
     } else {
-        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| crate::fichiers::absent("spectacle"))?)?
+        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
     };
     let smic = flottant(v.get("smic").ok_or("reponse du calcul illisible : `smic`")?)?;
     let mut p = Paie::nouveau(eng, sal, spectacle, decimal_de(v, "brut")?, decimal_de(v, "base_csg")?, decimal_de(v, "plafond")?, smic, decimal_de(v, "heures")?);
@@ -1346,7 +1346,7 @@ pub(crate) fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i3
     };
     let mut n_bull = prochain(attente, "bulletin");
     let mut seqs: Vec<(String, i64)> = Vec::new();
-    let manque = |s: &Value, k: &str| s.get(k).map(en_texte).ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent(k)));
+    let manque = |s: &Value, k: &str| s.get(k).map(en_texte).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(k)));
     for p in paies.iter_mut() {
         let sal = p.salarie.clone();
         let sans_paie = p.engagement.sans_paie();
@@ -1399,7 +1399,7 @@ fn nombre_f(x: f64) -> Value {
 fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
     let rubrique = l.get("rubrique");
     let infos = || -> Option<(String, String, f64)> {
-        let r = crate::catalogue::rubrique(&ctx.racine, l.get("rubrique")?.as_str()?).ok()?;
+        let r = droit::catalogue::rubrique(&ctx.racine, l.get("rubrique")?.as_str()?).ok()?;
         let quantite = match l.get("quantite") {
             None | Some(Value::Null) => 0.0,
             Some(q) if !vrai(q) => 0.0,
@@ -1441,7 +1441,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
     let nat = e.nat()?;
     let iso = |j: &Jour| Value::String(j.iso());
     let s = &p.salarie;
-    let requis = |v: &Value, k: &str| v.get(k).cloned().ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent(k)));
+    let requis = |v: &Value, k: &str| v.get(k).cloned().ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(k)));
     let sal_vue = json!({
         "cle": s.get("_cle").cloned().unwrap_or(Value::Null),
         "nom": requis(s, "nom")?,
@@ -1459,9 +1459,9 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
     let premier_cachet = e
         .lignes
         .iter()
-        .find(|l| l.get("rubrique").and_then(Value::as_str).and_then(|c| crate::catalogue::rubrique(&ctx.racine, c).ok()).map_or(false, |r| r.unite == "cachet"));
+        .find(|l| l.get("rubrique").and_then(Value::as_str).and_then(|c| droit::catalogue::rubrique(&ctx.racine, c).ok()).map_or(false, |r| r.unite == "cachet"));
     let taux_cachet = match premier_cachet {
-        Some(l) => nombre_f(flottant(l.get("taux").ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent("taux")))?)?),
+        Some(l) => nombre_f(flottant(l.get("taux").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("taux")))?)?),
         None => brut.get("taux_cachet").or_else(|| data.get("taux_cachet")).cloned().unwrap_or(Value::Null),
     };
     let jours = match brut.get("jours") {
@@ -1483,8 +1483,8 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
         "contrat": {
             "premier_mois": e.premier_mois()?, "dernier_mois": e.dernier_mois()?, "a_cheval": e.a_cheval()?,
             "sans_paie": e.sans_paie(),
-            "depuis": mois_du_contrat.first().cloned().ok_or_else(|| crate::fichiers::trop_courte("les mois du contrat"))?,
-            "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| crate::fichiers::trop_courte("les mois du contrat"))?,
+            "depuis": mois_du_contrat.first().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
+            "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
             "periode": { "debut": iso(&e.debut_periode()?), "fin": iso(&e.fin_periode()?) },
         },
         "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
@@ -1537,10 +1537,10 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for p in paies {
         if archivee(&p.salarie) {
-            let nom = p.salarie.get("nom").ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent("nom")))?;
+            let nom = p.salarie.get("nom").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("nom")))?;
             let prenom = match p.salarie.get("prenom_affichage") {
                 Some(x) if vrai(x) => x.clone(),
-                _ => p.salarie.get("prenom").cloned().ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent("prenom")))?,
+                _ => p.salarie.get("prenom").cloned().ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("prenom")))?,
             };
             out.push(format!(
                 "{} {} : sa fiche est archivee. Pour refaire une paie passee, rien a faire ; pour une nouvelle embauche, la \
@@ -1552,7 +1552,7 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
         // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
         // (CCH-11) -- donc rien a verifier de ce cote.
         if vrai(&p.spectacle) && archivee(&p.spectacle) {
-            let titre = p.spectacle.get("titre").ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent("titre")))?;
+            let titre = p.spectacle.get("titre").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("titre")))?;
             out.push(format!(
                 "Le spectacle « {} » (objet {}) est archive : pour le jouer a nouveau, le reactiver (Configuration › Spectacles).",
                 en_texte(titre),
@@ -1568,11 +1568,11 @@ pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
 pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> R<(Value, Vec<String>)> {
     // Le bordereau montre est celui du PRINCIPAL quand la compagnie a plusieurs
     // etablissements ; chacun des autres a le sien, dans sa DSN.
-    let principal = crate::bareme::nic_principal(&ctx.entreprise);
-    let plusieurs = !crate::bareme::secondaires(&ctx.entreprise).is_empty();
+    let principal = droit::bareme::nic_principal(&ctx.entreprise);
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
     let mut paies_p: Vec<Paie> = Vec::new();
     for p in paies {
-        if !plusieurs || crate::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie).map_err(|m| avec_classe("ValueError", m))? == principal {
+        if !plusieurs || droit::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie).map_err(|m| avec_classe("ValueError", m))? == principal {
             paies_p.push(p.clone());
         }
     }
@@ -1608,7 +1608,7 @@ pub(crate) fn vues_du_calcul(ctx: &Contexte, data: &Value, rep: &Value, avec_lig
     for (e, v) in engs.into_iter().zip(paies_json) {
         paies.push(paie_de_json(ctx, e, v)?);
     }
-    let mois = rep.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
+    let mois = rep.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
     numeroter(ctx, &mut paies, annee_de(&mois)?)?;
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut vues = Vec::new();
@@ -1619,7 +1619,7 @@ pub(crate) fn vues_du_calcul(ctx: &Contexte, data: &Value, rep: &Value, avec_lig
 }
 
 fn annee_de(mois: &str) -> R<i32> {
-    Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", crate::fichiers::repr(mois)))?)
+    Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", socle::fichiers::repr(mois)))?)
 }
 
 /// Les paies d'une saisie SANS CALCUL : le salarie, l'engagement et son contrat suivi, numerotes comme l'apercu les
@@ -1653,7 +1653,7 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
     let cartes = crate::calcul_du_mois::cartes(o, &ctx, &data);
     let toutes_tiennent = !cartes.is_empty() && cartes.iter().all(|c| matches!(c, Some((_, true))));
     let (mois, paies, vues) = if toutes_tiennent && !avec_lignes && !avec_urssaf {
-        let mois = data.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
+        let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
         let paies = paies_sans_calcul(&ctx, &data, &mois)?;
         let vues = paies
             .iter()
@@ -1668,7 +1668,7 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
         (mois, paies, vues)
     } else {
         let rep = paie_du_mois(o, &ctx, &data)?;
-        let mois = rep.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
+        let mois = rep.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
         let (paies, mut vues) = vues_du_calcul(&ctx, &data, &rep, avec_lignes)?;
         // LES CONSEILS DE SAISIE (ticket 224) : au plus un par carte, quand l'option de la compagnie est cochee. Ils ne
         // vivent qu'ici, dans la vue de l'ecran : ni dans les avertissements de la paie, ni au bulletin, ni a `produire`.
@@ -1695,7 +1695,7 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
     let somme = |cle: &str| -> R<Decimal> {
         let mut t = Decimal::new(0, 2);
         for v in &vues {
-            t += dec(v.get(cle).ok_or_else(|| crate::fichiers::absent(cle))?)?;
+            t += dec(v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
         }
         Ok(q2(t))
     };
@@ -1708,10 +1708,10 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
         a_regarder.extend(textes("avertissements").iter().map(en_texte));
         informations.extend(textes("informations").iter().map(en_texte));
     }
-    let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", crate::fichiers::repr(&mois)))?;
+    let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", socle::fichiers::repr(&mois)))?;
     Ok(json!({
         "mois": mois,
-        "libelle": format!("{} {}", crate::date::nom_du_mois(n as i64, crate::date::Graphie::Titre)?, annee),
+        "libelle": format!("{} {}", socle::date::nom_du_mois(n as i64, socle::date::Graphie::Titre)?, annee),
         "paies": vues,
         "total_brut": total_brut.to_string(), "total_cout": total_cout.to_string(),
         "urssaf": urssaf,

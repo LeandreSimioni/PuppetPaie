@@ -18,14 +18,17 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::{en_texte, repr_texte, Jour};
+use droit::contexte::Contexte;
+use socle::date::{en_texte, repr_texte, Jour};
 use crate::dpae::{Chemins, Embauche, Parametres};
 use crate::engagement;
-use crate::etats::{self, erreur, py_str, R};
-use crate::fichiers::{dossier_du_code, vrai};
-use crate::num::eur2;
-use crate::retours::Echec;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, vrai};
+use socle::num::eur2;
+use socle::echec::Echec;
 use crate::routes_ouverture::Refus;
 
 /// Les routes que ce module sert.
@@ -55,7 +58,7 @@ fn en_echec(r: Refus) -> Echec {
 
 #[track_caller]
 fn plain(m: String) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 /// `charge["cle"]` : un texte requis.
@@ -79,12 +82,12 @@ fn jour_le(charge: &Value) -> R<Option<Jour>> {
 
 /// Les secondes unix de l'horloge.
 fn maintenant() -> f64 {
-    crate::temps::secondes()
+    socle::temps::secondes()
 }
 
 /// `datetime.now()` a l'heure de Paris, en `AAAA-MM-JJTHH:MM:SS`.
 fn maintenant_iso() -> String {
-    crate::paris::iso_secondes(maintenant())
+    socle::paris::iso_secondes(maintenant())
 }
 
 /// `"%-14s" % texte` : le texte, completé d'espaces a droite jusqu'a `n` caracteres.
@@ -99,7 +102,7 @@ fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
         .get(5..7)
         .and_then(|m| m.parse().ok())
         .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(mois.get(5..7).unwrap_or("")))))?;
-    let nom = crate::date::nom_du_mois(rang as i64, crate::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))?;
+    let nom = socle::date::nom_du_mois(rang as i64, socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))?;
     let annee: i64 = an.parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr_texte(an))))?;
     Ok((format!("{}{}", nom, annee), format!("{} {}", nom, annee)))
 }
@@ -126,7 +129,7 @@ fn mois_dit(mois: &str) -> String {
 /// prenom, le NIR ne comptent pas). Un nom qui ne designe personne se refuse avec la phrase de `Contexte::salarie`.
 fn cle_du_salarie(ctx: &Contexte, nom: &str) -> R<String> {
     let fiche = crate::routes_dossiers::salarie(ctx, &json!(nom))?;
-    fiche.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))
+    fiche.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
 }
 
 /// L'engagement de ce salarie (sa cle) qui se termine ce mois, et son rang dans la saisie. Un engagement se rattache a
@@ -153,7 +156,7 @@ fn paie_de_l_engagement(ctx: &Contexte, chemin: &Path, rang: usize, cle: &str, n
         .get("mois")
         .map(py_str)
         .and_then(|m| m.chars().take(4).collect::<String>().parse::<i32>().ok())
-        .ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+        .ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     crate::routes_ouverture::numeroter(ctx, &mut paies, annee).map_err(en_echec)?;
     paies
         .into_iter()
@@ -175,9 +178,9 @@ fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
 fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>> {
     let s = &p.salarie;
     let e = &p.engagement;
-    let req = |v: &Value, k: &str| -> R<String> { v.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k))) };
+    let req = |v: &Value, k: &str| -> R<String> { v.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
     let ou_vide = |v: &Value, k: &str| -> String { v.get(k).map(en_texte).unwrap_or_default() };
-    let sig = ent.get("signataire").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("signataire")))?;
+    let sig = ent.get("signataire").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("signataire")))?;
     let aujourdhui = date.jj_mm_aaaa();
     let mut m = Map::new();
     let mut poser = |k: &str, v: String| {
@@ -194,7 +197,7 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>
     poser("salarie.nom_complet", format!("{} {}", req(s, "prenom")?, req(s, "nom")?));
     poser(
         "salarie.date_naissance",
-        crate::bulletin::jj_mm_aaaa(s.get("date_naissance").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("date_naissance")))?).map_err(|m| erreur("ValueError", m))?,
+        crate::bulletin::jj_mm_aaaa(s.get("date_naissance").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("date_naissance")))?).map_err(|m| erreur("ValueError", m))?,
     );
     poser("salarie.lieu_naissance", ou_vide(s, "lieu_naissance"));
     poser("salarie.adresse", req(s, "adresse")?);
@@ -218,7 +221,7 @@ fn inventaire(p: &Paie) -> String {
     }
     for l in &p.lignes {
         let m = eur2(l.montant_sal);
-        if m != crate::num::Decimal::ZERO {
+        if m != socle::num::Decimal::ZERO {
             lignes.push(format!("{} : -{}", l.libelle, crate::bulletin::fmt_eur(m)));
         }
     }
@@ -307,9 +310,9 @@ fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<crate::fc
     }
     let preavis = e.get("preavis").filter(|p| vrai(p)).cloned().unwrap_or_else(|| json!({}));
     let cle = |k: &str| e.get(k).cloned().unwrap_or(Value::Null);
-    let fin = e.get("fin").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("fin")))?.clone();
-    let motif = e.get("motif_rupture").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("motif_rupture")))?.clone();
-    let type_preavis = preavis.get("type").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("type")))?.clone();
+    let fin = e.get("fin").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("fin")))?.clone();
+    let motif = e.get("motif_rupture").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("motif_rupture")))?.clone();
+    let type_preavis = preavis.get("type").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("type")))?.clone();
     let v = json!({
         "fin": fin, "motif": motif, "mois_rattachement": mois,
         "type_preavis": type_preavis,
@@ -392,7 +395,7 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
 /// L'arret de ce salarie dont c'est le dernier jour travaille, dans le magasin des imprevus.
 fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value> {
     let cle = ctx.salarie(salarie).map_err(|m| erreur("KeyError", m))?;
-    let cle = cle.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?;
+    let cle = cle.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
     if vrai(dernier_jour) {
         let jour = crate::routes_imprevus::jour(dernier_jour)?;
         if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &cle, &jour)? {
@@ -626,13 +629,13 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let selection: Option<&Vec<Value>> = match charge.get("paies") {
         None | Some(Value::Null) => None,
         Some(Value::Array(a)) => Some(a),
-        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("une liste", etats::nom_type(autre)))),
+        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     };
 
     // `charger_engagements` : la saisie vue comme des embauches, sans calculer la paie.
     let chemin = ctx.racine.join("paies").join(format!("{}.json", mois_demande));
     if !chemin.exists() {
-        return Err(erreur("FileNotFoundError", crate::fichiers::introuvable(&chemin)));
+        return Err(erreur("FileNotFoundError", socle::fichiers::introuvable(&chemin)));
     }
     let data = engagement::lire_saisie(&chemin).map_err(plain)?;
     let paies: Vec<Paie> = {
@@ -640,7 +643,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         let (engs, _) = engagement::engagements(ctx, &data, &crate::conges::lignes_du_mois).map_err(plain)?;
         engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
-    let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+    let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let aujourdhui = ctx.aujourdhui;
@@ -663,13 +666,13 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         for x in sel {
             match x {
                 Value::Object(_) => {
-                    let g = |k: &str| x.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
+                    let g = |k: &str| x.get(k).map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
                     voulues.insert((g("salarie")?, g("debut")?));
                 }
                 Value::Array(a) if a.len() == 2 => {
                     voulues.insert((en_texte(&a[0]), en_texte(&a[1])));
                 }
-                autre => return Err(erreur("TypeError", crate::fichiers::attendu("une liste", etats::nom_type(autre)))),
+                autre => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
             }
         }
         retenues = paies.iter().filter(|p| voulues.contains(&cle_de(p))).collect();
@@ -832,8 +835,8 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         } else {
             ("ok", format!("dans {} jour(s) - delai tenu", reste))
         };
-        let nom = p.salarie.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?;
-        let prenom = p.salarie.get("prenom_affichage").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("prenom_affichage")))?;
+        let nom = p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
+        let prenom = p.salarie.get("prenom_affichage").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom_affichage")))?;
         lignes.push(json!({
             "salarie": format!("{} {}", py_str(nom), py_str(prenom)),
             "debut": p.engagement.debut.iso(),

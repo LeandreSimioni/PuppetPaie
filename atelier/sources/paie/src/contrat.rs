@@ -14,7 +14,7 @@ use crate::avenant::valeurs_de_la_paie;
 use crate::bulletin::{identite_de, FORMAT, LOGO_LARGEUR, LOGO_MARGE_DROITE, LOGO_MARGE_HAUT};
 use crate::calcul::Paie;
 use crate::conges_spectacles::chemin_texte;
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::routes_ouverture::Refus;
 use fabrique_pdf::modele::Valeurs;
 
@@ -42,7 +42,7 @@ pub(crate) fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
 pub(crate) fn lire_modele_texte(chemin: &Path) -> R<String> {
     let octets = std::fs::read(chemin).map_err(|e| {
         let classe = if e.kind() == std::io::ErrorKind::NotFound { "FileNotFoundError" } else { "OSError" };
-        Refus { classe: Some(classe), message: crate::fichiers::panne_fichier(&e, chemin) }
+        Refus { classe: Some(classe), message: socle::fichiers::panne_fichier(&e, chemin) }
     })?;
     String::from_utf8(octets).map_err(|e| Refus {
         classe: Some("UnicodeDecodeError"),
@@ -143,7 +143,7 @@ pub(crate) fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacem
         let mut un = Map::new();
         un.insert("valeurs".into(), valeurs_en_ordre(&v, &[]));
         let cle = (
-            p.salarie.get("_cle").map(crate::etats::py_str).unwrap_or_default(),
+            p.salarie.get("_cle").map(socle::valeur::py_str).unwrap_or_default(),
             p.engagement.debut.iso(),
             p.engagement.numero.clone().unwrap_or_default(),
         );

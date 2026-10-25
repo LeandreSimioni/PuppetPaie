@@ -29,8 +29,8 @@ use serde_json::Value;
 
 use super::bulletins_fictifs::{page_a, page_b, pdf_octets, Identite, RangA, RangB, A, B};
 use crate::bulletin_lu::{jetons, Table};
-use crate::date::Jour;
-use crate::num::{eur2, Decimal, Resultat};
+use socle::date::Jour;
+use socle::num::{eur2, Decimal, Resultat};
 
 pub const USAGE: &str = "usage : paie-atelier fabriquer-bulletins <description.json> <dossier> [--gabarit coolpaie|spaiectacle]";
 
@@ -118,12 +118,12 @@ fn table_boss() -> std::path::PathBuf {
 /// source), sinon la table des parametres du BOSS deposee (`table_boss`), sinon refus -- l'annee manque, on ne
 /// l'invente pas.
 fn pss(annee: i32) -> Resultat<(Decimal, Decimal)> {
-    let bareme = crate::fichiers::dossier_du_code().join("baremes").join(format!("{}.json", annee));
+    let bareme = socle::fichiers::dossier_du_code().join("baremes").join(format!("{}.json", annee));
     if let Ok(t) = std::fs::read_to_string(&bareme) {
         let v: Value = serde_json::from_str(&t).map_err(|e| format!("{} illisible ({})", bareme.display(), e))?;
         let p = &v["plafond_securite_sociale"];
         if let (Some(m), Some(h)) = (p.get("mensuel"), p.get("horaire")) {
-            return Ok((crate::num::dec(m)?, crate::num::dec(h)?));
+            return Ok((socle::num::dec(m)?, socle::num::dec(h)?));
         }
     }
     let chemin = table_boss();
@@ -208,7 +208,7 @@ fn jour(v: &Value, cle: &str, ou: &str) -> Resultat<Jour> {
 
 fn nombre(v: &Value, cle: &str, ou: &str) -> Resultat<Decimal> {
     let x = v.get(cle).ok_or_else(|| format!("{} : `{}` manque", ou, cle))?;
-    crate::num::dec(x).map_err(|m| format!("{} : `{}` : {}", ou, cle, m))
+    socle::num::dec(x).map_err(|m| format!("{} : `{}` : {}", ou, cle, m))
 }
 
 fn verifier_nir(nir: &str, ou: &str) -> Resultat<()> {
@@ -285,7 +285,7 @@ fn dmy_court(j: &Jour) -> String {
 }
 
 fn pct(base: Decimal, taux: &str) -> Option<Decimal> {
-    (!taux.is_empty()).then(|| crate::num::pct(base, taux.parse::<Decimal>().unwrap_or_default()))
+    (!taux.is_empty()).then(|| socle::num::pct(base, taux.parse::<Decimal>().unwrap_or_default()))
 }
 
 // --------------------------------------------------------------------------------------------- le calcul du faux bulletin
@@ -338,10 +338,10 @@ fn calculer(b: &Bulletin, avant: &Cumuls) -> Resultat<Calcule> {
     let t = |j: &Jour| (j.an, j.mois, j.jour);
     let resoudre = |annee: i32| pss(annee);
     let plafond = if b.permanent {
-        crate::plafond::plafond_permanent(t(&b.debut), t(&b.fin), None, &resoudre)
+        droit::plafond::plafond_permanent(t(&b.debut), t(&b.fin), None, &resoudre)
     } else {
         let dates: Vec<_> = jours_travailles.iter().map(t).collect();
-        crate::plafond::plafond_urssaf(t(&b.debut), t(&b.fin), jetons(&b.statut).concat() == "artiste", &resoudre, &dates)
+        droit::plafond::plafond_urssaf(t(&b.debut), t(&b.fin), jetons(&b.statut).concat() == "artiste", &resoudre, &dates)
     }
     .map_err(|m| format!("bulletin {} : {}", b.rang, m))?;
     let assiette_csg = eur2(brut * ASSIETTE_CSG.parse::<Decimal>().unwrap_or_default());
@@ -369,7 +369,7 @@ fn calculer(b: &Bulletin, avant: &Cumuls) -> Resultat<Calcule> {
     let net_social = brut - total_s;
     let net_avant_impot = net_social + non_soumis;
     let net_imposable = net_social + csg_non_deductible;
-    let pas = crate::num::pct(net_imposable, b.taux_pas);
+    let pas = socle::num::pct(net_imposable, b.taux_pas);
     let cout = brut + total_e + non_soumis;
     let cachets: Decimal = b.lignes.iter().map(|l| l.cachets).sum();
     let heures: Decimal = b.lignes.iter().map(|l| l.heures).sum();
@@ -471,7 +471,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         let code = connu.rubrique.clone().ok_or_else(|| {
             format!("{} : « {} » n'a pas de rubrique sûre dans la table : la page se lirait sans contrat", ou, connu.libelle)
         })?;
-        let r = crate::catalogue::rubrique(racine_catalogue, &code)?;
+        let r = droit::catalogue::rubrique(racine_catalogue, &code)?;
         if r.soumis != soumise {
             return Err(format!(
                 "{} : « {} » ({}) est une ligne {} : mettez-la dans `{}`",
@@ -487,7 +487,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         let (mut cachets, mut heures) = (Decimal::ZERO, Decimal::ZERO);
         if r.unite == "cachet" {
             cachets = q;
-        } else if let Some(u) = r.heures_forfait.map(crate::num::dec_f64).transpose()?.or(connu.heures).or_else(|| (r.unite == "heure").then_some(Decimal::ONE)) {
+        } else if let Some(u) = r.heures_forfait.map(socle::num::dec_f64).transpose()?.or(connu.heures).or_else(|| (r.unite == "heure").then_some(Decimal::ONE)) {
             heures = q * u;
         }
         Ok(Ligne { libelle: connu.libelle.clone(), quantite: q, taux, montant: eur2(q * taux), cachets, heures })
@@ -550,7 +550,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
             analytique: texte_ou(b, "analytique").unwrap_or_default(),
             lignes,
             non_soumis,
-            taux_pas: b.get("taux_pas").map(crate::num::dec).transpose().map_err(|m| format!("{} : `taux_pas` : {}", ou, m))?.unwrap_or_default(),
+            taux_pas: b.get("taux_pas").map(socle::num::dec).transpose().map_err(|m| format!("{} : `taux_pas` : {}", ou, m))?.unwrap_or_default(),
             regle_le: if b.get("regle_le").is_some() { jour(b, "regle_le", &ou)? } else { fin },
             numero: texte_ou(b, "numero"),
         });

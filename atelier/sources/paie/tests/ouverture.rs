@@ -22,10 +22,10 @@ use std::io::Write;
 use std::sync::{Arc, Mutex, MutexGuard, Once, OnceLock};
 
 use faux_drive::{FauxDrive, Panne};
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use outils::{compagnie as cie, dossier_de_test, dossier_du_processus, ecrire, lire, port_ferme, serveur, http, http_json, FauxCourriel, Requete};
 use paie::courriel::Courriel;
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::drive::{Depose, Distant, Drive, ErreurGoogle};
 use paie::ouverture::{derniere_ouverture, ouverture, Clients, Options, Ouverture};
 use paie::releve_retours::{maintenant_naif, Adresses, Client};
@@ -1215,7 +1215,7 @@ fn route(racine: &Path, nom: &str, charge: Value) -> Value {
     let mut p = Command::new(env!("CARGO_BIN_EXE_paie"))
         .args(["route", "--racine", racine.to_str().unwrap(), "--date", AUJOURDHUI])
         .env_clear()
-        .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
+        .env(socle::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .env("HOME", base.join("home"))
         .env("TZ", "Europe/Paris")

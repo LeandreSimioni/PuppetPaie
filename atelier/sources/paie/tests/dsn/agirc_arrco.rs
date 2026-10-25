@@ -9,11 +9,11 @@
 
 use crate::outils::{self, compagnie, dec, fictive, paires as lignes, versement};
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::{charger, Saisie};
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 
 pub(crate) const AUDIENS_RETRAITE: &str = "44832375800038";
@@ -180,10 +180,10 @@ fn le_taux_d_une_organisation_patronale_se_pose_sur_le_131() {
     // `bareme::poser_t1` remplace le taux de la retraite T1 d'un intermittent non cadre quand l'organisation patronale
     // de la compagnie l'impose (SYNDEAC : 10,16 % pour un artiste) : sur la ligne du bulletin ET sur la cotisation DSN de
     // meme assiette, qui s'ecrit desormais en 131.
-    use paie::bareme::bareme_applique;
-    use paie::contexte::telle_qu_au;
-    use paie::contrats::nature;
-    use paie::emplois::{emploi_de, EmploiEngagement};
+    use droit::bareme::bareme_applique;
+    use droit::contexte::telle_qu_au;
+    use droit::natures::nature;
+    use droit::emplois::{emploi_de, EmploiEngagement};
     let jour = Jour::lire("2026-07-15").unwrap();
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(jour)).unwrap();
     let mut bar = ctx.bareme(&jour).unwrap();

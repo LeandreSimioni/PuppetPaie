@@ -73,7 +73,7 @@ pub fn du_poste(racine: &Path) -> Result<Option<Signature>, String> {
     if !p.exists() {
         return Ok(None);
     }
-    let ent = crate::fichiers::lire_json(&p)?;
+    let ent = socle::fichiers::lire_json(&p)?;
     de_la_fiche(&ent)
 }
 

@@ -11,7 +11,7 @@ use super::retours::{fenetre, jour_de, ko};
 use super::rendu::texte;
 use super::Cadre;
 use crate::releve_retours::{Client, Panne};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "depots",

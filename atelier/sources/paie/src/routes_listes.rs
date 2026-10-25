@@ -25,12 +25,17 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::{d, Jour};
-use crate::etats::{erreur, get, getd, items, nom_type, objet_vide, ou, py_repr, py_str, LISTE_VIDE, R};
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
-use crate::num::Decimal;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::{d, Jour};
+use crate::etats::{get, getd, items, objet_vide, ou, LISTE_VIDE};
+use socle::valeur::py_repr;
+use socle::valeur::py_str;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::num::Decimal;
+use socle::echec::Echec;
 use crate::routes_mois::Moteur;
 
 /// Les routes que ce module sert.
@@ -50,7 +55,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 /// Un refus du coffre, sous la classe que Python levait : une `OSError` se
@@ -79,7 +84,7 @@ pub(crate) fn lire_texte(p: &Path) -> R<String> {
                 _ => "OSError",
             }
         };
-        erreur(classe, crate::fichiers::panne_fichier(&e, p))
+        erreur(classe, socle::fichiers::panne_fichier(&e, p))
     })?;
     String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
 }
@@ -153,8 +158,8 @@ pub(crate) fn nomenclatures(ctx: &Contexte) -> R<std::sync::Arc<Value>> {
 
 /// Les codes de `nomenclatures()[quoi]["codes"]`.
 fn codes(n: &Value, quoi: &str) -> R<Vec<Value>> {
-    let section = n.get(quoi).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(quoi)))?;
-    let liste = section.get("codes").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("codes")))?;
+    let section = n.get(quoi).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(quoi)))?;
+    let liste = section.get("codes").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("codes")))?;
     Ok(items(liste)?.into_iter().map(|c| c.into_owned()).collect())
 }
 
@@ -172,7 +177,7 @@ pub(crate) fn saisissables(n: &Value, quoi: &str) -> R<Vec<Value>> {
 /// `Arret.libelle_motif` : `_codes("motifs_arret").get(motif, {}).get("libelle", "?")`.
 fn libelle_motif(n: &Value, motif: &Value) -> R<Value> {
     if matches!(motif, Value::Array(_) | Value::Object(_)) {
-        return Err(erreur("TypeError", crate::fichiers::pas_une_cle(nom_type(motif))));
+        return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(motif))));
     }
     let Some(m) = motif.as_str() else { return Ok(json!("?")) };
     let mut trouve: Option<Value> = None;
@@ -218,7 +223,7 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
     let signale = !signalements.is_empty();
     // UN SIGNALEMENT EST-IL DU ? Pas pour un motif que la DSN ne couvre pas (le deuil d'enfant : `obligations-base.json`,
     // `signalement_arret.sauf_motifs`) ; son obligation est alors l'attestation de salaire hors DSN.
-    let signalement_du = crate::obligations::signalement_du(&crate::date::en_texte(&motif))?;
+    let signalement_du = crate::obligations::signalement_du(&socle::date::en_texte(&motif))?;
     Ok(json!({
         "salarie": champ(a, "salarie", Value::Null),
         "contrat": champ(a, "contrat_numero", Value::Null),
@@ -260,13 +265,13 @@ fn arrets(ctx: &Contexte) -> R<Value> {
         }
         resumes.push(r);
     }
-    let subrogation = n.get("subrogation").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("subrogation")))?;
+    let subrogation = n.get("subrogation").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("subrogation")))?;
     Ok(json!({
         "arrets": resumes,
         "a_signaler": a_signaler,
         "motifs": saisissables(&n, "motifs_arret")?,
         "motifs_reprise": saisissables(&n, "motifs_reprise")?,
-        "subrogation": subrogation.get("codes").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("codes")))?,
+        "subrogation": subrogation.get("codes").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("codes")))?,
     }))
 }
 
@@ -277,31 +282,31 @@ fn fin_du_mois(mois: &str) -> R<Jour> {
     let an = entier(&mois.chars().take(4).collect::<String>())?;
     let mo = entier(&mois.chars().skip(5).take(2).collect::<String>())?;
     if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", crate::date::mois_impossible(mo)));
+        return Err(erreur("ValueError", socle::date::mois_impossible(mo)));
     }
     if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", crate::date::annee_impossible(an)));
+        return Err(erreur("ValueError", socle::date::annee_impossible(an)));
     }
-    let dernier = crate::date::jours_du_mois(an as i32, mo as u32);
-    Jour::nouveau(an as i32, mo as u32, dernier).ok_or_else(|| erreur("ValueError", crate::date::jour_impossible(an as i64, mo as i64, dernier)))
+    let dernier = socle::date::jours_du_mois(an as i32, mo as u32);
+    Jour::nouveau(an as i32, mo as u32, dernier).ok_or_else(|| erreur("ValueError", socle::date::jour_impossible(an as i64, mo as i64, dernier)))
 }
 
 /// `contrats.nature(cle)` : `KeyError` quand elle est inconnue.
-fn nature_de(cle: &Value) -> R<std::sync::Arc<crate::contrats::Nature>> {
+fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
     let texte = match cle {
         Value::String(s) => Some(s.clone()),
         v if !vrai(v) => None,
         Value::Array(_) | Value::Object(_) => {
-            return Err(erreur("TypeError", crate::fichiers::pas_une_cle(nom_type(cle))));
+            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(cle))));
         }
         autre => {
             // Une cle qui n'est pas un texte ne peut etre aucune nature.
-            let mut connues: Vec<String> = crate::contrats::natures().map_err(plain)?.iter().map(|n| n.cle.clone()).collect();
+            let mut connues: Vec<String> = droit::natures::natures().map_err(plain)?.iter().map(|n| n.cle.clone()).collect();
             connues.sort();
             return Err(erreur("KeyError", format!("Nature de contrat inconnue : {}. Connues : {}.", py_repr(autre), connues.join(", "))));
         }
     };
-    crate::contrats::nature(texte.as_deref()).map_err(|m| erreur("KeyError", m))
+    droit::natures::nature(texte.as_deref()).map_err(|m| erreur("KeyError", m))
 }
 
 /// `_ce_qui_manque_au_signalement` : ce qu'un signalement exige et que la
@@ -325,18 +330,18 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
     }
     let preavis = ou(get(e, "preavis")?, objet_vide());
     if !vrai(get(preavis, "type")?) {
-        let requis = |k: &str| e.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
+        let requis = |k: &str| e.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
         let (debut, fin) = (d(requis("debut")?).map_err(|m| erreur("ValueError", m))?, d(requis("fin")?).map_err(|m| erreur("ValueError", m))?);
-        let anciennete = crate::permanents::anciennete_mois(&debut, &fin);
+        let anciennete = droit::permanents::anciennete_mois(&debut, &fin);
         let motif_texte = if vrai(motif) { Some(py_str(motif)) } else { None };
         let cdd = !nature_de(get(e, "nature")?)?.duree_indeterminee;
-        let duree = crate::permanents::preavis_mois(anciennete, motif_texte.as_deref(), cdd).map_err(plain)?;
-        let regle = crate::permanents::regle_du_preavis(motif_texte.as_deref(), cdd).map_err(plain)?;
+        let duree = droit::permanents::preavis_mois(anciennete, motif_texte.as_deref(), cdd).map_err(plain)?;
+        let regle = droit::permanents::regle_du_preavis(motif_texte.as_deref(), cdd).map_err(plain)?;
         let mut dit = match (duree, &regle) {
             (Some(m), _) if m != Decimal::ZERO => format!("La loi en donne {} mois (L1234-1).", m),
             (Some(_), _) => format!(
                 "La loi ne donne aucun preavis pour ce motif : {}",
-                crate::permanents::raison_sans_preavis(motif_texte.as_deref(), cdd).map_err(plain)?.unwrap_or_default()
+                droit::permanents::raison_sans_preavis(motif_texte.as_deref(), cdd).map_err(plain)?.unwrap_or_default()
             ),
             (None, Some(r)) => format!("La loi en donne un que le moteur ne compte pas : {}", r),
             (None, None) => "Sous six mois d'anciennete, la loi renvoie a la convention ou aux usages (L1234-1) : elle ne dit pas de duree.".to_string(),
@@ -396,7 +401,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         if !(debut_du_mois <= fin && fin <= fin_mois) {
             continue;
         }
-        let salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("salarie")))?;
+        let salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("salarie")))?;
         // La cle de la fiche : celle que porte le nom du fichier du signalement (`fin-contrat-signaler`).
         let cle = ctx.salarie(&py_str(salarie)).ok().and_then(|f| f.get("_cle").map(py_str));
         out.push(json!({
@@ -416,7 +421,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
 
 /// La route `fins-de-contrat`.
 fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+    let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let fins = fins_a_signaler(ctx, &py_str(brut), ctx.aujourdhui)?;
     Ok(json!({"mois": brut, "fins": fins}))
 }
@@ -475,7 +480,7 @@ fn avant(a: &Value, b: &Value) -> R<bool> {
         (Value::String(x), Value::String(y)) => Ok(x < y),
         (x, y) => match (nombre_py(x), nombre_py(y)) {
             (Some(x), Some(y)) => Ok(x < y),
-            _ => Err(erreur("TypeError", crate::fichiers::incomparables(nom_python(a), nom_python(b)))),
+            _ => Err(erreur("TypeError", socle::fichiers::incomparables(nom_python(a), nom_python(b)))),
         },
     }
 }
@@ -542,7 +547,7 @@ fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
     for c in toutes {
         let mois = c["mois"].clone();
         if matches!(mois, Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", crate::fichiers::pas_une_cle(nom_type(&mois))));
+            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&mois))));
         }
         match groupes.iter_mut().find(|(m, _)| memes_cles(m, &mois)) {
             Some((_, cs)) => cs.push(c),

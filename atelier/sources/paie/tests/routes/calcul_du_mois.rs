@@ -86,7 +86,7 @@ fn fausser(c: &Compagnie, cle: &str, valeur: &str) {
         for (k, x) in v["entrees"].as_object().unwrap() {
             t.push_str(&format!("{}\t{}\n", k, x.as_str().unwrap()));
         }
-        v["empreinte"] = json!(paie::fichiers::sha256_hex(t.as_bytes()));
+        v["empreinte"] = json!(socle::fichiers::sha256_hex(t.as_bytes()));
     });
 }
 
@@ -150,7 +150,7 @@ fn les_fichiers_du_code_lus_sont_des_entrees() {
         let c = compagnie("code");
         c.du_mois(false);
         let cle = format!("fichier code:{}", rel);
-        let lue = paie::fichiers::empreinte_fichier(&paie::fichiers::dossier_du_code().join(rel));
+        let lue = socle::fichiers::empreinte_fichier(&socle::fichiers::dossier_du_code().join(rel));
         assert_eq!(lire(&c.calcul(MOIS))["entrees"][&cle], json!(lue), "{} : une entree du calcul", rel);
         fausser(&c, &cle, &"0".repeat(64));
         let (rendu, ecrit) = c.reecrit(false);

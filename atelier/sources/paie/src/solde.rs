@@ -4,19 +4,19 @@
 
 use serde_json::{json, Value};
 
-use crate::catalogue::rubrique;
-use crate::clauses;
+use droit::catalogue::rubrique;
+use droit::clauses;
 use crate::conges::{
     avertir, compteur_conges, dec_ou, indemnite_des_jours, info, jours_ouvrables, jours_ouvrables_de, nature_de,
     numero, flot, remuneration_du_mois, sub,
 };
-use crate::contexte::{aujourdhui, Contexte};
-use crate::contrats::Nature;
-use crate::date::{d, en_texte, premier_du_mois, repr_flottant};
+use droit::contexte::{aujourdhui, Contexte};
+use droit::natures::Nature;
+use socle::date::{d, en_texte, premier_du_mois, repr_flottant};
 use crate::engagement::Avis;
-use crate::fichiers::vrai;
-use crate::num::{add, dec, dec_py, div, eur2, flottant, mul, zero2, Decimal, Resultat};
-use crate::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
+use socle::fichiers::vrai;
+use socle::num::{add, dec, dec_py, div, eur2, flottant, mul, zero2, Decimal, Resultat};
+use droit::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
 
 static NUL: Value = Value::Null;
 
@@ -33,7 +33,7 @@ fn get<'a>(v: &'a Value, k: &str) -> &'a Value {
 
 /// `v[k]` : une cle absente est un `KeyError`.
 fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 fn t(v: &Value) -> String {
@@ -439,7 +439,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
 /// jusqu'a l'expiration du delai (`preavis.delai_de_prevenance`, ses lectures dans `_lecture`). La ligne : la part du
 /// delai apres la fin du contrat, chaque jour au prorata de son mois, au salaire mensuel ; DSN 52 « 017 ».
 fn delai_de_prevenance(
-    e: &Value, fin: &crate::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, numero: &str, stc: &mut Solde,
+    e: &Value, fin: &socle::date::Jour, salaire: Decimal, motif: Option<&str>, nat: &Nature, numero: &str, stc: &mut Solde,
 ) -> Resultat<()> {
     let Some(regle) = permanents::regle_du_delai_de_prevenance(motif)? else {
         return Ok(());
@@ -1118,7 +1118,7 @@ fn bruts_precedents(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Deci
             a -= 1;
         }
         let nom = format!("{:04}-{:02}", a, m);
-        if !crate::fichiers::existe(&ctx.racine.join("paies").join(format!("{}.json", nom))) {
+        if !socle::fichiers::existe(&ctx.racine.join("paies").join(format!("{}.json", nom))) {
             continue;
         }
         bruts.push(remuneration_du_mois(ctx, &nom, &salarie)?);
@@ -1158,7 +1158,7 @@ fn remuneration_du_contrat(ctx: &Contexte, e: &Value, mois: &str, ce_mois: Decim
         if m.as_str() > mois {
             break;
         }
-        if crate::fichiers::existe(&ctx.racine.join("paies").join(format!("{}.json", m))) && m != mois {
+        if socle::fichiers::existe(&ctx.racine.join("paies").join(format!("{}.json", m))) && m != mois {
             total = add(total, remuneration_du_mois(ctx, &m, &salarie)?);
         }
         (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };

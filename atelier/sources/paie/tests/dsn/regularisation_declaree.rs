@@ -600,7 +600,7 @@ fn versements_20(toutes: &[(String, String)], debut: &str) -> BTreeMap<String, i
 
 /// `outils::par_contrat_de_prevoyance`, en centimes.
 fn par_contrat_de_prevoyance(toutes: &[(String, String)]) -> BTreeMap<String, i64> {
-    outils::par_contrat_de_prevoyance(toutes).into_iter().map(|(c, m)| (c, i64::try_from(m * paie::num::Decimal::ONE_HUNDRED).unwrap())).collect()
+    outils::par_contrat_de_prevoyance(toutes).into_iter().map(|(c, m)| (c, i64::try_from(m * socle::num::Decimal::ONE_HUNDRED).unwrap())).collect()
 }
 
 /// La ligne 23 de la reduction generale d'un mois corrige, pour une difference `d` (en centimes, positive quand la

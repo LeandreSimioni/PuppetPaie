@@ -10,11 +10,11 @@ use serde_json::{json, Map, Value};
 
 use crate::bulletin::{identite_de, FORMAT};
 use crate::calcul::Paie;
-use crate::date::{repr_flottant, Jour};
+use socle::date::{repr_flottant, Jour};
 use crate::engagement::Engagement;
-use crate::etats::py_str;
-use crate::fichiers::vrai;
-use crate::num::{dec, dec_f64, Decimal};
+use socle::valeur::py_str;
+use socle::fichiers::vrai;
+use socle::num::{dec, dec_f64, Decimal};
 use crate::routes_ouverture::Refus;
 
 type R<T> = Result<T, Refus>;
@@ -402,7 +402,7 @@ pub(crate) fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certifica
 }
 
 fn cle_absente(k: &str) -> Refus {
-    Refus { classe: Some("KeyError"), message: crate::fichiers::absent(k) }
+    Refus { classe: Some("KeyError"), message: socle::fichiers::absent(k) }
 }
 
 // --------------------------------------------------------------------- rendu
@@ -453,7 +453,7 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<(&'static str, Stri
     out.push(("num_ce", c.numero.to_string()));
     out.push((
         "nir",
-        format!("{} {}", ou_vide(s, "nir"), ou_vide(s, "nir_cle")).trim_matches(crate::retours::blanc_py).to_string(),
+        format!("{} {}", ou_vide(s, "nir"), ou_vide(s, "nir_cle")).trim_matches(socle::texte::blanc).to_string(),
     ));
     out.push(("raison_sociale", py_str(requis(ent, "raison_sociale")?)));
     out.push(("nom_naissance", py_str(requis(s, "nom")?)));

@@ -37,9 +37,9 @@
 //! « [(17-15) x 100] / 15 ») ; l'effectif qui « excède deux mille » suit, comme celui des 250, la regle de
 //! franchissement de L. 130-1, II (L. 6242-1, V, le dit des deux seuils).
 
-use crate::contexte::Contexte;
-use crate::fichiers::lire_json;
-use crate::num::{add, div, mul, Decimal, Resultat};
+use droit::contexte::Contexte;
+use socle::fichiers::lire_json;
+use socle::num::{add, div, mul, Decimal, Resultat};
 use serde_json::Value;
 
 const MOIS_DE_DECLARATION: &str = "03";
@@ -126,7 +126,7 @@ pub fn taux(quotient: Decimal, plus_de_deux_mille: bool) -> Option<Decimal> {
 fn effectif_du_118(effectifs: &Value, annee: i32, code: &str) -> Resultat<Option<Decimal>> {
     match effectifs.get("annees").and_then(|a| a.get(annee.to_string())).and_then(|a| a.get(code)).and_then(|c| c.get("valeur")) {
         None | Some(Value::Null) => Ok(None),
-        Some(v) => Ok(Some(crate::num::dec_py(v)?)),
+        Some(v) => Ok(Some(socle::num::dec_py(v)?)),
     }
 }
 
@@ -163,7 +163,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
     }
     let n: i32 = mois[..4].parse::<i32>().map_err(|_| format!("mois illisible : {}", mois))? - 1;
     // Redevable de la taxe d'apprentissage (L. 6242-1, I) : le motif de non-assujettissement de la fiche (lot R2).
-    if crate::assujettissement::taxe_apprentissage_non_due(&ctx.entreprise, n)? {
+    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, n)? {
         return Ok(None);
     }
     // Au moins 250 salaries : l'effectif de l'annee N, la regle des cinq ans (L. 6242-1, V), comme au bloc 44 de decembre.
@@ -174,7 +174,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
         return Ok(None);
     }
     let chemin = ctx.racine.join("config").join("effectifs.json");
-    let effectifs = if crate::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
+    let effectifs = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let (alternants, denominateur) =
         (effectif_du_118(&effectifs, n, CODE_ALTERNANTS)?, effectif_du_118(&effectifs, n, CODE_DENOMINATEUR)?);
     let (Some(alternants), Some(denominateur)) = (alternants, denominateur) else {

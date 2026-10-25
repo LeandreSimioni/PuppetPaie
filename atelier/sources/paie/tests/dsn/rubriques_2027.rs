@@ -18,11 +18,11 @@
 
 use paie::calcul::Paie;
 use crate::outils::{self, base78, blocs_58, compagnie, dec, ecrire, lire, porte, versement};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
-use paie::num::{Decimal, Resultat};
+use socle::num::{Decimal, Resultat};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 

@@ -14,13 +14,14 @@ use rust_decimal::RoundingStrategy;
 use serde_json::Value;
 
 use crate::calcul::{LigneBrut, Paie};
-use crate::catalogue::rubrique;
-use crate::contexte::{sigle, Contexte};
-use crate::date::{en_texte, repr_texte, Jour};
-use crate::emplois;
+use droit::catalogue::rubrique;
+use droit::contexte::Contexte;
+use socle::texte::sigle;
+use socle::date::{en_texte, repr_texte, Jour};
+use droit::emplois;
 use crate::engagement::{Avis, Engagement};
-use crate::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::num::{add, dec, dec_f64, div, mul, sub, Decimal, Resultat};
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use socle::num::{add, dec, dec_f64, div, mul, sub, Decimal, Resultat};
 
 static NUL: Value = Value::Null;
 static SANS: AtomicBool = AtomicBool::new(false);
@@ -60,7 +61,7 @@ fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
 
 /// `x[k]` : un `KeyError` si absent.
 fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// `str(x or "")`.
@@ -426,7 +427,7 @@ impl<'a> Cx<'a> {
         let (echelon, d_ou) = self.echelon_ccneac();
         let mensuel = cle(g(grille, "groupes"), &groupe)?
             .get(echelon - 1)
-            .ok_or_else(|| crate::fichiers::trop_courte(&format!("l'échelon {} du groupe {}", echelon, groupe)))?
+            .ok_or_else(|| socle::fichiers::trop_courte(&format!("l'échelon {} du groupe {}", echelon, groupe)))?
             .as_f64()
             .ok_or("nombre attendu")?;
         let heures = cle(grille, "heures_mensuelles")?.as_f64().ok_or("nombre attendu")?;
@@ -872,9 +873,9 @@ impl<'a> Cx<'a> {
             let valeurs = valeurs.as_array().ok_or("liste attendue")?;
             let (echelon, mut d_ou) = self.echelon_3090()?;
             if valeurs.is_empty() {
-                return Err(crate::fichiers::trop_courte(&format!("les échelons du niveau {}", niveau)));
+                return Err(socle::fichiers::trop_courte(&format!("les échelons du niveau {}", niveau)));
             }
-            let montant = valeurs.get(echelon.min(valeurs.len()) - 1).ok_or_else(|| crate::fichiers::trop_courte(&format!("l'échelon {} du niveau {}", echelon, niveau)))?.as_f64().ok_or("nombre attendu")?;
+            let montant = valeurs.get(echelon.min(valeurs.len()) - 1).ok_or_else(|| socle::fichiers::trop_courte(&format!("l'échelon {} du niveau {}", echelon, niveau)))?.as_f64().ok_or("nombre attendu")?;
             if valeurs.len() == 1 {
                 d_ou = "sans echelon".into();
             }

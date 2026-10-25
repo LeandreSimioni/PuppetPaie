@@ -303,7 +303,7 @@ pub fn veiller(dossier: &Path, suivis: &[Suivi], depuis: &str, relever: bool, te
 
     std::fs::create_dir_all(dossier).map_err(|e| format!("{} : {}", dossier.display(), e))?;
     let cache = Value::Object(cache);
-    crate::ecriture::ecrire_json(&cache_p, &cache, 1)?;
+    socle::ecriture::ecrire_json(&cache_p, &cache, 1)?;
 
     let mut evenements = Map::new();
     for suivi in suivis {

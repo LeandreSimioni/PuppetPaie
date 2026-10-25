@@ -15,10 +15,15 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::champs;
-use crate::contexte::Contexte;
-use crate::etats::{eq_py, erreur, nom_type, py_repr, py_str, R};
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::valeur::eq_py;
+use socle::valeur::py_repr;
+use socle::valeur::py_str;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::echec::Echec;
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -40,8 +45,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 /// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case (ticket #214).
 fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let oui = match charge.get("entreprise") {
-        Some(e @ Value::Object(_)) => crate::contexte::emploie_des_permanents(e),
-        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+        Some(e @ Value::Object(_)) => droit::contexte::emploie_des_permanents(e),
+        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         None => ctx.emploie_des_permanents(),
     };
     Ok(json!({ "permanents": oui }))
@@ -57,7 +62,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = crate::assujettissement::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.get(cle) {
         Some(v @ (Value::Object(_) | Value::Null)) => json!({ cle: v }),
-        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         None => ctx.entreprise.clone(),
     };
     // LES PLAFONDS DE LA FRANCHISE, CHIFFRES (ticket #239) : ceux du bareme de l'annee des salaires -- `annee` dans la
@@ -66,10 +71,10 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         None | Some(Value::Null) => ctx.aujourdhui.an,
         Some(v) => match v.as_i64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
             Some(a) if (1900..=2999).contains(&a) => a as i32,
-            _ => return Err(erreur("ValueError", crate::date::annee_impossible(py_repr(v)))),
+            _ => return Err(erreur("ValueError", socle::date::annee_impossible(py_repr(v)))),
         },
     };
-    let bar = crate::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
+    let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
     let q = crate::assujettissement::question_franchise(bar.as_ref(), annee);
     // La conclusion nomme les deux plafonds (ticket #245).
     let r = crate::assujettissement::regime_taxe_sur_les_salaires(&ent, q.plafonds);
@@ -96,8 +101,8 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `charge["cle"]`.
 pub(crate) fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
     match charge {
-        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
     }
 }
 
@@ -106,8 +111,8 @@ pub(crate) fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 pub(crate) fn nom_de_fiche(v: &Value) -> R<&str> {
     match v {
         Value::String(s) if matches!(s.as_str(), "entreprise" | "salarie" | "spectacle") => Ok(s),
-        Value::Array(_) => Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+        Value::Array(_) => Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+        Value::Object(_) => Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
         autre => Err(erreur("KeyError", format!("fiche inconnue : {}", autre))),
     }
 }
@@ -168,7 +173,7 @@ pub(crate) fn entier(v: &Value) -> R<i64> {
         }
         autre => Err(erreur(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", nom_type(autre)),
         )),
     }
 }
@@ -209,7 +214,7 @@ fn taux_atmp(ctx: &Contexte, charge: &Value) -> R<Value> {
             _ => Value::Null,
         },
         Some(autre) => {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&autre))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre))));
         }
     };
     Ok(json!({"annee": an, "taux": taux}))
@@ -224,7 +229,7 @@ pub(crate) fn copie_en_objet(v: &Value) -> R<Map<String, Value>> {
         Value::Object(o) => return Ok(o.clone()),
         Value::Array(a) => a.clone(),
         Value::String(s) => s.chars().map(|c| Value::String(c.to_string())).collect(),
-        autre => return Err(erreur("TypeError", crate::fichiers::attendu("une liste", nom_type(autre)))),
+        autre => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
     };
     let mut sortie = Map::new();
     for (i, p) in paires.iter().enumerate() {
@@ -232,17 +237,17 @@ pub(crate) fn copie_en_objet(v: &Value) -> R<Map<String, Value>> {
             Value::Array(a) => a.clone(),
             Value::String(s) => s.chars().map(|c| Value::String(c.to_string())).collect(),
             Value::Object(o) => o.keys().map(|k| Value::String(k.clone())).collect(),
-            _ => return Err(erreur("TypeError", crate::fichiers::pas_une_paire(i, nom_type(p)))),
+            _ => return Err(erreur("TypeError", socle::fichiers::pas_une_paire(i, nom_type(p)))),
         };
         if couple.len() != 2 {
-            return Err(erreur("ValueError", crate::fichiers::paire_attendue(i, couple.len())));
+            return Err(erreur("ValueError", socle::fichiers::paire_attendue(i, couple.len())));
         }
         match &couple[0] {
             Value::String(k) => {
                 sortie.insert(k.clone(), couple[1].clone());
             }
-            Value::Array(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-            Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+            Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+            Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
             _ => {}
         }
     }
@@ -276,7 +281,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
         let n = match actuel {
             Value::Array(a) => a.len() as i64,
             Value::Object(o) => o.len() as i64,
-            autre => return Err(erreur("TypeError", crate::fichiers::attendu("un texte ou une liste", nom_type(autre)))),
+            autre => return Err(erreur("TypeError", socle::fichiers::attendu("un texte ou une liste", nom_type(autre)))),
         };
         let (mini, maxi) = (lon[0].as_i64().unwrap_or(0), lon[1].as_i64().unwrap_or(0));
         faute = !(mini <= n && n <= maxi);
@@ -403,8 +408,8 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
     // case), la case reste ce qu'elle est.
     if nom == "salarie" {
         if let Some(Value::String(code)) = donnees.get("pays_nationalite").filter(|v| vrai(v)).cloned() {
-            if let Some(p) = crate::pays::du_code(&code).map_err(Echec::from)? {
-                let attendu = Value::String(crate::pays::codification(&p).to_string());
+            if let Some(p) = socle::pays::du_code(&code).map_err(Echec::from)? {
+                let attendu = Value::String(socle::pays::codification(&p).to_string());
                 let actuel = donnees.get("code_nationalite_dsn").cloned();
                 if actuel.as_ref() != Some(&attendu) {
                     faits.insert("code_nationalite_dsn".into(), json!([actuel.unwrap_or(Value::Null), attendu.clone()]));
@@ -526,14 +531,14 @@ fn verifier_fiche(charge: &Value) -> R<Value> {
     let declare = match objet {
         Some(o) => champs::apercu_derive(nom, o)?,
         None if champs::fiche(nom)?.iter().any(champs::Champ::calcule) => {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(donnees))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(donnees))));
         }
         None => json!({}),
     };
     let propose = match objet {
         Some(o) => suggestions(nom, o)?,
         None if nom == "spectacle" => json!({}),
-        None => return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(donnees)))),
+        None => return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(donnees)))),
     };
     Ok(json!({"anomalies": anomalies, "declare": declare, "suggestions": propose}))
 }
@@ -661,8 +666,8 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = charge.get("cle").unwrap_or(&Value::Null);
     let donnees = exiger(charge, "donnees")?;
     let nom = match nom_brut {
-        Value::Array(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+        Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+        Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
         Value::String(s) if matches!(s.as_str(), "entreprise" | "salarie" | "spectacle") => s.as_str(),
         autre => return Err(erreur("ErreurOperation", format!("Fiche inconnue : {}", py_repr(autre)))),
     };
@@ -673,8 +678,8 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
         let magasin = if nom == "salarie" { &ctx.salaries } else { &ctx.spectacles };
         match cle {
             Value::String(k) => magasin.get(k).unwrap_or(&vide),
-            Value::Array(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-            Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+            Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+            Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
             _ => &vide,
         }
     };
@@ -687,7 +692,7 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
 pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>) -> R<Vec<Value>> {
     let Value::Object(mut donnees) = garder_notes_internes(ancienne, &Value::Object(copie)) else { unreachable!() };
     deriver(nom, &mut donnees, true)?;
-    let sans_get = || erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(ancienne)));
+    let sans_get = || erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(ancienne)));
     let mut sortie = Vec::new();
     let champs_fiche = champs::fiche(nom)?;
     for c in &champs_fiche {

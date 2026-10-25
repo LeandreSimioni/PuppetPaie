@@ -18,17 +18,20 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::champs;
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::ecriture::ecrire_json;
-use crate::emplois;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::ecriture::ecrire_json;
+use droit::emplois;
 use crate::engagement;
-use crate::etats::{eq_py, erreur, py_str, R};
-use crate::fichiers::vrai;
+use socle::valeur::eq_py;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::journal;
-use crate::jumeaux::{apparier_meme_numero, numero_pose, Ident};
-use crate::num::{dec, Decimal};
-use crate::retours::Echec;
+use droit::jumeaux::{apparier_meme_numero, numero_pose, Ident};
+use socle::num::{dec, Decimal};
+use socle::echec::Echec;
 use crate::routes_accueil;
 use crate::routes_contrats::sauver_avant;
 use crate::routes_fiches::{self, entier, exiger};
@@ -67,7 +70,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 #[track_caller]
@@ -111,8 +114,8 @@ pub(crate) fn configuration(o: &HashMap<String, String>, ctx: &Contexte) -> R<Va
 
 /// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
 fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_secondes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_secondes(t)
 }
 
 /// Aujourd'hui, a Paris (`date.today()`).
@@ -136,7 +139,7 @@ fn fichier_de(nom: &str) -> Option<&'static str> {
 pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -> R<()> {
     let fichier = match nom {
         "salarie" | "spectacle" => fichier_de(nom).unwrap(),
-        _ => return Err(refus(format!("Seuls un salarie ou un spectacle s'activent : {}.", crate::fichiers::repr(nom)))),
+        _ => return Err(refus(format!("Seuls un salarie ou un spectacle s'activent : {}.", socle::fichiers::repr(nom)))),
     };
     let chemin = ctx.racine.join("config").join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
@@ -194,7 +197,7 @@ const OCTETS_MAX: usize = 2 * 1024 * 1024;
 
 #[track_caller]
 fn identite_inconnue(quoi: &str) -> Echec {
-    refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", crate::fichiers::repr(quoi)))
+    refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", socle::fichiers::repr(quoi)))
 }
 
 fn dossier_identite(ctx: &Contexte) -> PathBuf {
@@ -470,7 +473,7 @@ fn dater(historique: Option<&Value>, changements: &[Value], depuis: &Value, note
     if changements.is_empty() {
         return Ok(hist);
     }
-    let jour = if vrai(depuis) { crate::date::d(depuis).map_err(|m| erreur("ValueError", m))? } else { aujourd_hui() };
+    let jour = if vrai(depuis) { socle::date::d(depuis).map_err(|m| erreur("ValueError", m))? } else { aujourd_hui() };
     let veille = jour.plus_jours(-1).map_err(|m| erreur("ValueError", m))?.iso();
     let note = if vrai(note) { py_str(note) } else { String::new() };
     for c in changements {
@@ -557,7 +560,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
 pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: Forcer, depuis: &Value, note: &Value) -> R<FicheEcrite> {
     let mut cle = cle;
     let Some(fichier) = fichier_de(nom) else {
-        return Err(refus(format!("Fiche inconnue : {}", crate::fichiers::repr(nom))));
+        return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
     if !donnees.is_object() {
         return Err(erreur("TypeError", "`donnees` : un objet est attendu"));
@@ -669,7 +672,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
 /// fichier est sauvegarde comme pour une fiche de l'ecran. Rend les champs ecrits.
 pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, champs: &Map<String, Value>) -> R<Map<String, Value>> {
     let Some(fichier) = fichier_de(nom) else {
-        return Err(refus(format!("Fiche inconnue : {}", crate::fichiers::repr(nom))));
+        return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
     let chemin = ctx.racine.join("config").join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
@@ -1010,16 +1013,16 @@ fn rempli(v: Option<&Value>) -> bool {
 
 /// `valeur in (None, "", 0)`.
 fn absent_ou_zero(v: Option<&Value>) -> bool {
-    !rempli(v) || v.is_some_and(|x| crate::etats::nombre(x) == Some(0.0))
+    !rempli(v) || v.is_some_and(|x| socle::valeur::nombre(x) == Some(0.0))
 }
 
-fn rubrique_de(ctx: &Contexte, ligne: &Value) -> Option<crate::catalogue::Rubrique> {
+fn rubrique_de(ctx: &Contexte, ligne: &Value) -> Option<droit::catalogue::Rubrique> {
     let code = match ligne.get("rubrique") {
         None => "cachet",
         Some(Value::String(s)) => s.as_str(),
         Some(_) => return None,
     };
-    crate::catalogue::rubrique(&ctx.racine, code).ok()
+    droit::catalogue::rubrique(&ctx.racine, code).ok()
 }
 
 /// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.
@@ -1161,7 +1164,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
         "net" => "net_a_payer",
         "brut" => "brut",
         "cout" => "cout_employeur",
-        _ => return Err(refus(format!("Cible inconnue : {}. Les trois qui se visent sont brut, cout, net.", crate::fichiers::repr(cible)))),
+        _ => return Err(refus(format!("Cible inconnue : {}. Les trois qui se visent sont brut, cout, net.", socle::fichiers::repr(cible)))),
     };
     let vise = centimes(dec(montant).map_err(|m| erreur("InvalidOperation", m))?);
     if vise <= Decimal::ZERO {

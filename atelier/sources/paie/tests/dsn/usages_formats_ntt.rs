@@ -4,7 +4,7 @@
 //! reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, lire_oracle, oracle};
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::dsn::Fichier;
 use paie::formats::{self, Regex};
 use paie::{ntt, usages};
@@ -80,7 +80,7 @@ fn toutes_les_expressions_de_la_table_se_compilent() {
     // Les tables de toutes les versions livrees (`norme-dsn-base.json`) : celle de 2027 porte des expressions que celle
     // de 2026 n'avait pas (S89.G00.88.008, entiere en 2027).
     for norme in paie::norme::versions().unwrap() {
-        let t = paie::fichiers::lire_json(&paie::fichiers::dossier_du_code().join(norme.table_formats().unwrap())).unwrap();
+        let t = socle::fichiers::lire_json(&socle::fichiers::dossier_du_code().join(norme.table_formats().unwrap())).unwrap();
         let mut n = 0;
         for (_, f) in t["formats"].as_object().unwrap() {
             for c in f.get("csl").and_then(|c| c.as_array()).into_iter().flatten() {

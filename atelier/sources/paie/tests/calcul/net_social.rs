@@ -13,12 +13,12 @@
 
 use paie::bulletin::{fmt_eur, jeux_et_description};
 use paie::calcul::Paie;
-use paie::catalogue::{catalogue, HorsAssiette};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::catalogue::{catalogue, HorsAssiette};
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::{charger, Saisie};
-use paie::num::Decimal;
+use socle::num::Decimal;
 use paie::oracle::entreprise_du_mois;
 use serde_json::{json, Value};
 use std::collections::HashMap;

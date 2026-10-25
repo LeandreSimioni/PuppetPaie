@@ -9,9 +9,9 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::ecriture::ecrire_json;
-use crate::fichiers::{lire_json, repr, vrai};
-use crate::num::Resultat;
+use socle::ecriture::ecrire_json;
+use socle::fichiers::{lire_json, repr, vrai};
+use socle::num::Resultat;
 
 /// Les actes que l'on note ; un autre est refuse.
 pub const ACTES: [&str; 10] = [

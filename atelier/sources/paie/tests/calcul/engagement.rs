@@ -5,8 +5,8 @@
 //! `conges::lignes_du_mois`.
 
 use crate::outils::{copier, fictive, dossier_de_test, lire_oracle, oracle};
-use paie::contexte::Contexte;
-use paie::date::{d, Jour};
+use droit::contexte::Contexte;
+use socle::date::{d, Jour};
 use paie::engagement::{engagements, engagements_du_fichier, suivre_contrat, Avis, Engagement};
 use serde_json::{json, Map, Value};
 use std::cell::Cell;
@@ -38,7 +38,7 @@ fn releve(e: &Engagement) -> Value {
     };
     let nombre = |o: Option<f64>| match o {
         None => Ok(Value::Null),
-        Some(x) => paie::num::dec_f64(x).map(|v| Value::String(paie::engagement::nombre(v))),
+        Some(x) => socle::num::dec_f64(x).map(|v| Value::String(paie::engagement::nombre(v))),
     };
     let mut extras = Map::new();
     extras.insert("dates_du_contrat".into(), essai(Ok(iso(&jours))));

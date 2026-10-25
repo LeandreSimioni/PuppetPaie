@@ -1,9 +1,9 @@
 //! Ce que la DSN lit de `moteur/operations_casc.py` : la base de la CASC-SVP,
 //! les mois regularises hors DSN, et le fichier de la DSN deposee d'un mois.
 
-use crate::contexte::Contexte;
-use crate::fichiers::{dossier_du_code, lire_json, vrai};
-use crate::num::Resultat;
+use droit::contexte::Contexte;
+use socle::fichiers::{dossier_du_code, lire_json, vrai};
+use socle::num::Resultat;
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -21,7 +21,7 @@ pub fn mois_regularises(ctx: &Contexte) -> Resultat<Vec<String>> {
     let mut mois: Vec<String> = vec![];
     for reg in d.get("regularisations").and_then(Value::as_array).into_iter().flatten() {
         for m in reg.get("mois").and_then(Value::as_array).into_iter().flatten() {
-            let m = crate::date::en_texte(m);
+            let m = socle::date::en_texte(m);
             if !mois.contains(&m) {
                 mois.push(m);
             }
@@ -33,7 +33,7 @@ pub fn mois_regularises(ctx: &Contexte) -> Resultat<Vec<String>> {
 
 fn texte(v: Option<&Value>) -> String {
     match v {
-        Some(x) if vrai(x) => crate::date::en_texte(x),
+        Some(x) if vrai(x) => socle::date::en_texte(x),
         _ => String::new(),
     }
 }
@@ -104,7 +104,7 @@ fichier d'abord.",
         .collect();
     let Some(nom) = noms.last() else { return Ok(None) };
     let source = match decl.get("source") {
-        Some(v) if vrai(v) => PathBuf::from(crate::date::en_texte(v)),
+        Some(v) if vrai(v) => PathBuf::from(socle::date::en_texte(v)),
         _ => ctx.racine.clone(),
     };
     let copie = ctx.racine.join("historique").join("coolpaie");

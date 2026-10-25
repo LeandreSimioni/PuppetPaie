@@ -15,11 +15,11 @@
 
 use crate::outils::{self, compagnie, dec, ecrire, lire, paires as lignes};
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::PathBuf;

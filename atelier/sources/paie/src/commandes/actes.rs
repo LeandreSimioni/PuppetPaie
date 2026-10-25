@@ -9,7 +9,7 @@
 use serde_json::Value;
 
 use super::rendu::{erreur, rendre};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Les classes que le Python attrape comme `ErreurOperation` : elle-meme et ses filles (`operations_*.py`).
 const OPERATION: [&str; 28] = [
@@ -42,7 +42,7 @@ pub fn reponse_metier(commande: &str, json: bool, e: &Echec, extra: &[(&str, Val
 }
 
 /// `datetime.date.fromisoformat` : `AAAA-MM-JJ`, un jour qui existe. Les autres formes ne sont pas portees.
-pub fn jour_iso(t: &str) -> Option<crate::date::Jour> {
+pub fn jour_iso(t: &str) -> Option<socle::date::Jour> {
     let t = t.trim();
     if t.len() != 10 {
         return None;
@@ -51,7 +51,7 @@ pub fn jour_iso(t: &str) -> Option<crate::date::Jour> {
     if b[4] != b'-' || b[7] != b'-' || !b[..4].iter().chain(&b[5..7]).chain(&b[8..]).all(u8::is_ascii_digit) {
         return None;
     }
-    crate::date::Jour::lire(t).ok()
+    socle::date::Jour::lire(t).ok()
 }
 
 /// `JJ/MM/AAAA` d'un `AAAA-MM-JJ` (`util.jj_mm_aaaa`) ; le texte tel quel s'il ne se lit pas.
@@ -70,7 +70,7 @@ pub fn mois_valide(t: &str) -> bool {
 
 /// `util.fmt_eur` d'un montant que le JSON porte en chaine (`"1234.50"`) : `1 234,50`.
 pub fn fmt_eur_texte(v: &Value) -> String {
-    match crate::num::dec(v) {
+    match socle::num::dec(v) {
         Ok(d) => crate::bulletin::fmt_eur(d),
         Err(_) => super::rendu::texte(v),
     }
@@ -81,7 +81,7 @@ pub fn afficher_etapes(etapes: &[Value], titre: &str) {
     dire!("\n{}", titre);
     for (i, e) in etapes.iter().enumerate() {
         dire!("  {}. {:<9} {}", i + 1, super::rendu::champ(e, "titre"), super::rendu::champ(e, "detail"));
-        if e.get("commande").is_some_and(crate::fichiers::vrai) {
+        if e.get("commande").is_some_and(socle::fichiers::vrai) {
             dire!("     {}", super::rendu::champ(e, "commande"));
         }
     }
@@ -108,10 +108,10 @@ pub fn est_refus(classe: Option<&str>) -> bool {
 
 /// `--le AAAA-MM-JJ` : le jour tel que la route le lit (`datetime.date.fromisoformat`), ou le refus d'une phrase (le Python
 /// laissait une trace d'appels sur une date illisible).
-pub fn jour_option(nom: &str, texte: &str) -> Result<crate::date::Jour, Echec> {
+pub fn jour_option(nom: &str, texte: &str) -> Result<socle::date::Jour, Echec> {
     jour_iso(texte).ok_or_else(|| Echec {
         classe: Some("ErreurOperation"),
-        message: format!("--{} attend une date AAAA-MM-JJ, recu {}.", nom, crate::fichiers::repr(texte)),
+        message: format!("--{} attend une date AAAA-MM-JJ, recu {}.", nom, socle::fichiers::repr(texte)),
     })
 }
 
@@ -265,6 +265,6 @@ pub fn services_connus() -> Vec<&'static str> {
 
 /// `datetime.now().isoformat(timespec="minutes")` a l'heure de Paris : ce que le coffre note comme date de pose.
 pub fn maintenant_minutes() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_minutes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_minutes(t)
 }

@@ -4,9 +4,9 @@
 //! Biancolelli, CDDU du 02 au 25/07/2026), dont le test ecrit le magasin `imprevus/`.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire};
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::num::{div, eur2, mul, Decimal};
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::num::{div, eur2, mul, Decimal};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -38,7 +38,7 @@ fn lignes_de(p: &paie::calcul::Paie, rubrique: &str) -> Vec<Value> {
 }
 
 fn d(v: &Value) -> Decimal {
-    paie::num::dec(v).unwrap()
+    socle::num::dec(v).unwrap()
 }
 
 /// Les heures que retire une absence du `debut` au `fin` d'un temps plein de 151,67 h (35 h par semaine) : au reel,

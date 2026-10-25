@@ -242,7 +242,7 @@ pub fn retoucher_fiches(racine: &Path, retouches: &[(&str, Value)]) {
 
 /// La DSN mensuelle de `mois` (`paies/<mois>.json`), produite au `jour`, sans rien écrire.
 pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, String> {
-    let ctx = paie::contexte::Contexte::nouveau(racine, Some(paie::date::Jour::lire(jour).unwrap())).unwrap();
+    let ctx = droit::contexte::Contexte::nouveau(racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     let s = paie::engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
     paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
 }
@@ -252,8 +252,8 @@ pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, Stri
 /// `tests/calcul/periodes.rs`.
 pub mod permanents {
     use super::*;
-    use paie::contexte::Contexte;
-    use paie::date::Jour;
+    use droit::contexte::Contexte;
+    use socle::date::Jour;
     use paie::engagement::{charger, Saisie};
 
     /// Pose des champs sur l'engagement de `salarie` dans la saisie du mois.
@@ -401,8 +401,8 @@ impl Copie {
         Copie(d)
     }
 
-    pub fn contexte(&self, jour: &str) -> paie::contexte::Contexte {
-        paie::contexte::Contexte::nouveau(&self.0, Some(paie::date::Jour::lire(jour).unwrap())).unwrap()
+    pub fn contexte(&self, jour: &str) -> droit::contexte::Contexte {
+        droit::contexte::Contexte::nouveau(&self.0, Some(socle::date::Jour::lire(jour).unwrap())).unwrap()
     }
 }
 
@@ -790,7 +790,7 @@ pub fn port_ferme() -> String {
     u
 }
 
-/// Un faux mandataire, que l'essai nomme comme seule porte du garde-fou reseau (`paie::garde_reseau::VARIABLE`) : il
+/// Un faux mandataire, que l'essai nomme comme seule porte du garde-fou reseau (`socle::garde_reseau::VARIABLE`) : il
 /// note la première ligne de chaque demande (`CONNECT hote:port HTTP/1.1`) et refuse ; rien ne sort de la machine.
 pub fn mandataire() -> (String, Arc<Mutex<Vec<String>>>) {
     let ecoute = TcpListener::bind("127.0.0.1:0").unwrap();

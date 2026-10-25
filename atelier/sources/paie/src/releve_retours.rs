@@ -19,30 +19,33 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
-use crate::retours::{base64_ecrire, base64_lire, Echec};
+use droit::contexte::Contexte;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use crate::retours::{base64_ecrire, base64_lire};
+use socle::echec::Echec;
 
 // ------------------------------------------------------------ l'horloge locale
 
 /// Les secondes unix de l'horloge.
 fn secondes_unix() -> i64 {
-    crate::temps::secondes().floor() as i64
+    socle::temps::secondes().floor() as i64
 }
 
 /// `datetime.now()` a l'heure de Paris, en secondes d'une epoque « naive » (l'heure locale lue comme si
 /// c'etait de l'UTC) : de quoi additionner des jours et comparer deux heures locales.
 pub fn maintenant_naif() -> i64 {
     let t = secondes_unix();
-    t + crate::paris::decalage(t)
+    t + socle::paris::decalage(t)
 }
 
 /// `AAAA-MM-JJTHH:MM:SS` d'une heure locale naive.
 pub fn iso_de_naif(local: i64) -> String {
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = crate::date::Jour::depuis_jours_unix(jours).unwrap_or(crate::date::Jour { an: 1970, mois: 1, jour: 1 });
+    let j = socle::date::Jour::depuis_jours_unix(jours).unwrap_or(socle::date::Jour { an: 1970, mois: 1, jour: 1 });
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60, reste % 60)
 }
 
@@ -53,7 +56,7 @@ pub fn naif_de_iso(iso: &str) -> Option<i64> {
         let t: String = c.get(a..b)?.iter().collect();
         t.chars().all(|x| x.is_ascii_digit()).then(|| t.parse().ok()).flatten()
     };
-    let jour = crate::date::Jour::nouveau(n(0, 4)? as i32, n(5, 7)? as u32, n(8, 10)? as u32)?;
+    let jour = socle::date::Jour::nouveau(n(0, 4)? as i32, n(5, 7)? as u32, n(8, 10)? as u32)?;
     let jours = jour.ordinal() - 719_163;
     let (h, m, s) = if c.len() >= 16 { (n(11, 13)?, n(14, 16)?, if c.len() >= 19 { n(17, 19)? } else { 0 }) } else { (0, 0, 0) };
     Some(jours * 86_400 + h * 3_600 + m * 60 + s)
@@ -338,7 +341,7 @@ impl Client {
         let corps = gzip(contenu)?;
         let rep = transport(json!({"operation": "depot", "url": url, "jeton": self.jeton, "forme": forme, "corps": base64_ecrire(&corps)}))?;
         let brut = base64_lire(rep.get("corps").and_then(Value::as_str).unwrap_or("")).map_err(|m| Panne { classe: "ValueError".into(), message: m, code: 0 })?;
-        let texte = String::from_utf8_lossy(&brut).trim_matches(crate::retours::blanc_py).to_string();
+        let texte = String::from_utf8_lossy(&brut).trim_matches(socle::texte::blanc).to_string();
         let ctype = rep.get("entetes").and_then(|e| e.get("Content-Type")).and_then(Value::as_str).unwrap_or("").to_string();
         Ok((texte, ctype))
     }
@@ -429,7 +432,7 @@ fn deja_vus(ctx: &Contexte, canal: &str) -> Result<Vec<[Value; 3]>, Panne> {
 }
 
 fn egal_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
-    a.iter().zip(b).all(|(x, y)| crate::etats::eq_py(x, y))
+    a.iter().zip(b).all(|(x, y)| socle::valeur::eq_py(x, y))
 }
 
 /// La liste est-elle deja vue ? Les trois champs, comme `(flux, nature, publication) in connus`.
@@ -539,7 +542,7 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
         }
     }
     if faits > 0 {
-        crate::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
     }
     // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement, qui signe le cadre 5 et la pose dans
     // `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
@@ -813,7 +816,7 @@ pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
     }
     let donnees = Value::Object(donnees);
     if existant != donnees {
-        crate::ecriture::ecrire_json(&chemin, &donnees, 2).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&chemin, &donnees, 2).map_err(|m| erreur("OSError", m))?;
     }
     Ok(())
 }

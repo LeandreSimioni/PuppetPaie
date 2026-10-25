@@ -3,7 +3,7 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, egal, lire_oracle, oracle_selon};
-use paie::catalogue::{annexes, catalogue, rubrique, Rubrique};
+use droit::catalogue::{annexes, catalogue, rubrique, Rubrique};
 use serde_json::{json, Value};
 
 fn en_json(r: &Rubrique) -> Value {

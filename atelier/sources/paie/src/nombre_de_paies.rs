@@ -36,10 +36,10 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::etats::R;
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::echec::R;
+use socle::fichiers::vrai;
 use crate::incidents::{self, Canal};
 
 /// La cle de `config/diagnostic.json` qui retient les annees parties.
@@ -86,7 +86,7 @@ fn retenir(racine: &Path, annee: i32, paies: usize, poste: &str) -> Result<(), S
     let mut annees = d.get(CLE).and_then(Value::as_object).cloned().unwrap_or_default();
     annees.insert(annee.to_string(), json!({"paies": paies, "poste": poste, "parti_le": incidents::maintenant()}));
     d.insert(CLE.into(), Value::Object(annees));
-    crate::ecriture::ecrire_json(&p, &Value::Object(d), 2)
+    socle::ecriture::ecrire_json(&p, &Value::Object(d), 2)
 }
 
 /// Pourquoi rien ne part de cette compagnie, ou `None` si elle peut envoyer.

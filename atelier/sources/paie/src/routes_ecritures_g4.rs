@@ -17,12 +17,14 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::ecriture::ecrire_json;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::ecriture::ecrire_json;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::journal::{self, Note};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_ouverture::Refus;
 
 /// Les routes que ce module sert.
@@ -66,8 +68,8 @@ fn booleen(charge: &Value, cle: &str, defaut: bool) -> bool {
 
 /// `datetime.now().isoformat(timespec="seconds")`, a l'heure de Paris.
 fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_secondes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_secondes(t)
 }
 
 // ------------------------------------------------------------------ valider-paie

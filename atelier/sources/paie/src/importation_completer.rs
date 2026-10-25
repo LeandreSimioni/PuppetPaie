@@ -12,7 +12,7 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::etats::R;
+use socle::echec::R;
 
 /// Le titre que l'import donne a un spectacle dont il ne connait que le numero d'objet.
 pub(crate) const A_COMPLETER: &str = "A COMPLETER";

@@ -21,22 +21,24 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::catalogue::{self, Rubrique};
+use droit::catalogue::{self, Rubrique};
 use crate::champs;
-use crate::contexte::Contexte;
-use crate::contrats::{self, Nature};
-use crate::emplois;
-use crate::etats::{erreur, nom_type, py_str};
-use crate::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::permanents;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use droit::natures::{self, Nature};
+use droit::emplois;
+use socle::valeur::py_str;
+use socle::valeur::nom_type;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use droit::permanents;
+use socle::echec::Echec;
 use crate::routes_mois::{mois_saisis, Moteur};
 
 type R<T> = Result<T, Echec>;
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (rien ici).
@@ -76,7 +78,7 @@ fn nombre(x: f64) -> Value {
 
 /// `v.get(...)` : un dictionnaire, sinon `AttributeError`.
 fn objet<'a>(v: &'a Value, _qui: &str) -> R<&'a Map<String, Value>> {
-    v.as_object().ok_or_else(|| erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v))))
+    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
 }
 
 /// `json.loads(p.read_text(encoding="utf-8"))` : un refus garde la classe que
@@ -159,7 +161,7 @@ fn compteurs(racine: &Path) -> R<Value> {
 /// mois. Lu dans les saisies : la nature se dit sur l'engagement, pas sur la
 /// fiche. L'ecran n'ouvre le bloc « Salarie au mois » qu'a eux.
 fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
-    let mensuelles: BTreeSet<String> = contrats::natures().map_err(plain)?.iter().filter(|n| n.mensuelle()).map(|n| n.cle.clone()).collect();
+    let mensuelles: BTreeSet<String> = natures::natures().map_err(plain)?.iter().filter(|n| n.mensuelle()).map(|n| n.cle.clone()).collect();
     let mut noms_de_fichiers: Vec<PathBuf> = Vec::new();
     if let Ok(rd) = std::fs::read_dir(ctx.racine.join("paies")) {
         for e in rd.flatten() {
@@ -173,7 +175,7 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
     for f in noms_de_fichiers {
         // Un fichier illisible ou qui n'est pas une saisie est ignore.
         // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
-        let Ok(v) = crate::fichiers::json_en_cache(&f) else { continue };
+        let Ok(v) = socle::fichiers::json_en_cache(&f) else { continue };
         let Some(d) = v.as_object() else { continue };
         let engs = d.get("engagements").filter(|x| vrai(x)).cloned().unwrap_or(Value::Array(vec![]));
         let Value::Array(engs) = engs else { continue };
@@ -273,7 +275,7 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
                 e.insert("automatique".into(), json!(auto));
                 e.insert("octets".into(), json!(st.len()));
                 e.insert("format".into(), json!(f.extension().map(|x| x.to_string_lossy().into_owned()).unwrap_or_default()));
-                e.insert("quand".into(), json!(crate::paris::iso_secondes(crate::paris::mtime(&st))));
+                e.insert("quand".into(), json!(socle::paris::iso_secondes(socle::paris::mtime(&st))));
                 e.insert("fichier".into(), json!(f.display().to_string()));
             }
         }
@@ -669,7 +671,7 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     let sans_indemnite = matches!(permanents::indemnite_de_preavis(Some(&m)).map_err(plain)?, permanents::IndemniteDePreavis::Aucune(_));
     if n.duree_indeterminee && !sans_indemnite {
         let regles = permanents::regles().map_err(plain)?;
-        let preavis = regles.get("preavis").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("preavis")))?;
+        let preavis = regles.get("preavis").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("preavis")))?;
         let sans = ou_vide(preavis.get("motifs_sans_preavis"));
         let dedans = match sans {
             Value::Object(o) => o.contains_key(&m),
@@ -709,12 +711,12 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
 /// Tout vient de `contrats-base.json`. SAUF LES NATURES PAYEES AU MOIS : elles
 /// ne descendent que si la fiche entreprise dit employer des permanents.
 fn natures(ctx: &Contexte) -> R<Value> {
-    let toutes = contrats::natures().map_err(plain)?;
-    let defaut = contrats::defaut().map_err(plain)?;
+    let toutes = natures::natures().map_err(plain)?;
+    let defaut = natures::defaut().map_err(plain)?;
     let permanents = ctx.emploie_des_permanents();
     let gardees: Vec<&std::sync::Arc<Nature>> = toutes.iter().filter(|n| permanents || !n.mensuelle() || n.cle == defaut).collect();
     // L'ordre est celui du fichier, le defaut en tete.
-    let premier = gardees.iter().find(|n| n.cle == defaut).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(&defaut)))?;
+    let premier = gardees.iter().find(|n| n.cle == defaut).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(&defaut)))?;
     let mut ordre: Vec<&Nature> = vec![premier];
     ordre.extend(gardees.iter().filter(|n| n.cle != defaut).map(|n| &***n));
     let mut sortie = Vec::new();
@@ -722,7 +724,7 @@ fn natures(ctx: &Contexte) -> R<Value> {
         let motifs = n.motifs_rupture();
         let (mut faits, mut signales) = (Map::new(), Map::new());
         for m in &motifs {
-            let code = m.get("code").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("code")))?;
+            let code = m.get("code").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
             faits.insert(py_str(&code), json!(faits_de_rupture(n, &code)?));
             signales.insert(py_str(&code), json!(n.signalement_fctu(Some(&py_str(&code)))));
         }
@@ -756,7 +758,7 @@ fn niveaux_sante(ctx: &Contexte) -> R<Value> {
     let ajoutees = sec.get("rubriques_ajoutees").and_then(Value::as_array).cloned().unwrap_or_default();
     let releve = ajoutees.iter().find(|r| r.get("id").and_then(Value::as_str) == Some("mutuelle")).and_then(|r| r.get("_releve_svp_sante"));
     let Some(releve) = releve.filter(|v| vrai(v)) else { return Ok(json!([])) };
-    let niveaux = releve.get("niveaux").and_then(Value::as_object).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("niveaux")))?;
+    let niveaux = releve.get("niveaux").and_then(Value::as_object).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("niveaux")))?;
     let mut tries: Vec<(&String, &Value)> = niveaux.iter().collect();
     tries.sort_by(|a, b| a.0.cmp(b.0));
     Ok(Value::Array(
@@ -794,7 +796,7 @@ fn conventions(ctx: &Contexte) -> R<Value> {
     let mut par = Map::new();
     for f in candidats {
         // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
-        let Ok(v) = crate::fichiers::json_en_cache(&f) else { continue };
+        let Ok(v) = socle::fichiers::json_en_cache(&f) else { continue };
         let Some(d) = v.as_object() else { continue };
         if let Some(Value::Object(p)) = d.get("par_convention").filter(|x| vrai(x)) {
             par = p.clone();
@@ -852,10 +854,10 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .into_iter()
         .map(|k| {
             let v = &ctx.salaries[k];
-            let nom = v.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?;
+            let nom = v.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
             let prenom = match v.get("prenom_affichage").filter(|p| vrai(p)) {
                 Some(p) => p,
-                None => v.get("prenom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("prenom")))?,
+                None => v.get("prenom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?,
             };
             Ok(json!({"cle": k, "libelle": format!("{} {}", py_str(nom), py_str(prenom))}))
         })
@@ -865,7 +867,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .into_iter()
         .map(|k| {
             let v = &ctx.spectacles[k];
-            let titre = v.get("titre").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("titre")))?;
+            let titre = v.get("titre").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
             Ok(json!({"cle": k, "titre": titre, "numero_objet": v.get("numero_objet").cloned().unwrap_or(Value::Null)}))
         })
         .collect::<R<Vec<Value>>>()?;
@@ -881,7 +883,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     // SAISISSABLES seulement.
     let fctu = json_en_cache(&dossier_du_code().join("fctu-base.json")).map_err(plain)?;
     let codes = |quoi: &str| -> R<Vec<Value>> {
-        let n = fctu.get(quoi).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(quoi)))?;
+        let n = fctu.get(quoi).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(quoi)))?;
         Ok(n.get("codes").and_then(Value::as_array).cloned().unwrap_or_default())
     };
     let types_preavis: Vec<Value> = codes("types_preavis")?.into_iter().filter(|c| c.get("saisissable").is_some_and(vrai)).collect();
@@ -894,7 +896,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let organismes: Vec<Value> = urssaf
         .get("organismes")
         .and_then(Value::as_array)
-        .ok_or_else(|| erreur("KeyError", crate::fichiers::absent("organismes")))?
+        .ok_or_else(|| erreur("KeyError", socle::fichiers::absent("organismes")))?
         .iter()
         .map(|x| json!({"code": x.get("code").cloned().unwrap_or(Value::Null), "nom": x.get("nom").cloned().unwrap_or(Value::Null)}))
         .collect();
@@ -927,7 +929,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         // LES NATURES DE CONTRAT. Un engagement qui ne dit rien est un CDDU du
         // spectacle : c'est le defaut que l'ecran garde.
         "natures": natures(ctx)?,
-        "nature_defaut": contrats::defaut().map_err(plain)?,
+        "nature_defaut": natures::defaut().map_err(plain)?,
         "types_preavis": types_preavis,
         "transaction": transaction,
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
@@ -938,8 +940,8 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         "urssaf_deduit": if deduit.is_empty() { "117".to_string() } else { deduit },
         // LES PAYS (vague 1k) : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
         // deduit. Le pays de naissance et le pays de nationalite s'y choisissent.
-        "pays": crate::pays::servir().map_err(plain)?,
+        "pays": socle::pays::servir().map_err(plain)?,
         // Le pays de naissance (lot R2) : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
-        "pays_naissance": crate::pays::servir_naissance().map_err(plain)?,
+        "pays_naissance": socle::pays::servir_naissance().map_err(plain)?,
     }))
 }

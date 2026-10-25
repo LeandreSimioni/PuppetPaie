@@ -13,11 +13,11 @@
 //! tests : sa surcouche y recoit un versement mobilite fictif, et rien n'est ecrit dans `tests/donnees/fictives/`.
 
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::{charger, Saisie};
-use paie::num::{eur, Decimal};
+use socle::num::{eur, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
 use crate::outils::{base78, chemin_unique, ctp, dec, fictive, ecrire, lire, versement, Copie};

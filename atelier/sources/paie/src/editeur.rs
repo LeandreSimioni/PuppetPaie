@@ -24,7 +24,7 @@
 
 use serde_json::Value;
 
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::transport::{envoyer, Panne, Requete};
 
 /// `editeur.ACTIONS_DEMO` du Python : ce que le paquet soude (bride pour toujours) peut poster.
@@ -176,7 +176,7 @@ fn ecrire(v: &Value, s: &mut String) {
         Value::Number(n) => match (n.as_i64(), n.as_u64()) {
             (Some(i), _) => s.push_str(&i.to_string()),
             (_, Some(u)) => s.push_str(&u.to_string()),
-            _ => s.push_str(&crate::ecriture::repr_flottant(n.as_f64().unwrap_or(0.0))),
+            _ => s.push_str(&socle::ecriture::repr_flottant(n.as_f64().unwrap_or(0.0))),
         },
         Value::String(t) => chaine(t, s),
         Value::Array(a) => {
@@ -267,13 +267,13 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
             let lu = corps.ok().filter(|c| !c.is_empty()).unwrap_or_else(|| b"{}".to_vec());
             let msg = match std::str::from_utf8(&lu).ok().and_then(|t| serde_json::from_str::<Value>(t.trim_start_matches('\u{feff}')).ok()) {
                 Some(Value::Object(o)) => match o.get("erreur") {
-                    Some(e) if crate::fichiers::vrai(e) => crate::etats::py_str(e),
+                    Some(e) if socle::fichiers::vrai(e) => socle::valeur::py_str(e),
                     _ => propre,
                 },
                 Some(autre) => {
                     return Err(ErreurFilet::autre(
                         "AttributeError",
-                        crate::fichiers::attendu("un objet", crate::etats::nom_type(&autre)),
+                        socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre)),
                     ))
                 }
                 None => propre,

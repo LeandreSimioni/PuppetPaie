@@ -2,7 +2,7 @@
 //! la nature par defaut, l'inconnue refusee, `contrat_court`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{egal, lire_oracle, oracle_selon};
-use paie::contrats::{contrat_court, defaut, nature, natures, Jour};
+use droit::natures::{contrat_court, defaut, nature, natures, Jour};
 use serde_json::{json, Value};
 
 fn jour(s: &str) -> Jour {

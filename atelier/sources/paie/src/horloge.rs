@@ -30,13 +30,16 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::courriel::{Courriel, ErreurCourriel};
-use crate::date::{jours_du_mois, Jour};
+use socle::date::{jours_du_mois, Jour};
 use crate::depot_acte::{self, Preuve};
-use crate::etats::{self, erreur, py_str, R};
-use crate::fichiers::{dossier_du_code, vrai};
-use crate::retours::Echec;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, vrai};
+use socle::echec::Echec;
 use crate::routes_mois::Moteur;
 
 /// Qui signe, au journal, ce que l'horloge joue.
@@ -65,7 +68,7 @@ pub struct HorlogeFictive<'a> {
 impl<'a> HorlogeFictive<'a> {
     /// `simulation.active(ctx)` : `None` si les envois de cette racine ne sont pas joues.
     pub fn verifier(racine: &'a Path) -> Option<HorlogeFictive<'a>> {
-        crate::routes_accueil::simulation_active(racine).then(|| HorlogeFictive { racine, jour: crate::contexte::jour_reel() })
+        crate::routes_accueil::simulation_active(racine).then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
     }
 
     /// Le jour que cette compagnie fictive joue.
@@ -137,7 +140,7 @@ fn options(racine: &Path) -> HashMap<String, String> {
 /// `_mois_fr` : « octobre 2026 ».
 fn mois_fr(mois: &str) -> String {
     // Une ligne du recit ne se refuse pas pour son mois : un mois hors 01-12 s'ecrit tel quel, jamais janvier.
-    crate::date::libelle_du_mois_ou_tel_quel(mois, crate::date::Graphie::Accentuee)
+    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
 }
 
 /// `_le` : `JJ/MM/AAAA` d'un `AAAA-MM-JJ...`.
@@ -169,7 +172,7 @@ fn dater(racine: &Path, depuis: usize, quand: &str) {
             o.insert("origine".into(), json!(ORIGINE));
         }
     }
-    let _ = crate::ecriture::ecrire_json(&p, &Value::Array(lignes), 2);
+    let _ = socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2);
 }
 
 /// `_empreinte_saisie` : le CONTENU d'une saisie, pas ses octets (sha256 du JSON trie, 16 caracteres) : un
@@ -178,7 +181,7 @@ fn empreinte_saisie(chemin: &Path) -> String {
     let Some(v) = std::fs::read_to_string(chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
         return String::new();
     };
-    crate::journal::empreinte(crate::ecriture::json_py_trie(&v).as_bytes())
+    crate::journal::empreinte(socle::ecriture::json_py_trie(&v).as_bytes())
 }
 
 /// Les refus que Python rangeait sous `ErreurOperation`.
@@ -301,7 +304,7 @@ fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
 pub fn dernier_rattrapage(racine: &Path, aujourdhui: Option<Jour>) -> R<Vec<String>> {
     let jour = match aujourdhui {
         Some(j) => j,
-        None => crate::contexte::aujourdhui().map_err(Echec::from)?,
+        None => droit::contexte::aujourdhui().map_err(Echec::from)?,
     }
     .iso();
     let Some(Value::Object(m)) = std::fs::read_to_string(racine.join("config").join(FICHIER_HORLOGE)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok())
@@ -329,7 +332,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     };
     let jour = match aujourdhui {
         Some(j) => j,
-        None => crate::contexte::aujourdhui().map_err(Echec::from)?,
+        None => droit::contexte::aujourdhui().map_err(Echec::from)?,
     };
     let d = d.au_jour(jour);
     // SA MEMOIRE (config/horloge.json) : le dernier jour joue, et les mois dont tout est fait. La veille repasse toutes
@@ -353,7 +356,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
 
     let saisis = crate::routes_mois::mois_saisis(racine);
     for mois in &saisis {
-        let premier = crate::date::premier_du_mois(mois).map_err(Echec::from)?;
+        let premier = socle::date::premier_du_mois(mois).map_err(Echec::from)?;
         if jour < premier {
             break;
         }
@@ -365,7 +368,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         // LE MOIS S'ECRIT LE 1ER DU MOIS SUIVANT, jamais avant (#236, banc du Petit Castelet : le 20/01, « Le 01/01/2025 :
         // Janvier 2025 écrit », et une DSN « constituee le 20012025 » qui portait les cachets des 25 et 26/01). Un mois
         // en cours n'a ni bulletins ni DSN.
-        let suivant = crate::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
+        let suivant = socle::date::dernier_du_mois(mois).map_err(Echec::from)?.plus_jours(1).map_err(Echec::from)?;
         if jour < suivant {
             continue;
         }
@@ -410,7 +413,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
     sortie.insert("annees_faites".into(), json!(annees_faites.iter().collect::<Vec<_>>()));
     sortie.insert("dernier".into(), dernier);
     sortie.insert("saisies".into(), Value::Object(saisies.into_iter().filter(|(k, _)| !clos.contains(k)).collect()));
-    crate::ecriture::ecrire_json(&memoire_f, &Value::Object(sortie), 2).map_err(|m| erreur("OSError", m))?;
+    socle::ecriture::ecrire_json(&memoire_f, &Value::Object(sortie), 2).map_err(|m| erreur("OSError", m))?;
     Ok(fait)
 }
 
@@ -457,7 +460,7 @@ fn le_mois_s_ecrit(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, 
         (format!("{} écrit — contrats, bulletins, DSN", crate::routes_envois::capitaliser(&mois_fr(mois))), format!("{}T09:00:00", ecrit_le.iso()))
     };
     Ok(pas(d, &quoi, &quand, |_ctx| {
-        let fin = crate::date::dernier_du_mois(mois).map_err(Echec::from)?;
+        let fin = socle::date::dernier_du_mois(mois).map_err(Echec::from)?;
         let ctx_fin = d.contexte_a(fin)?;
         crate::produire_mois::produire_pour_l_horloge(o, &ctx_fin, mois, QUI_HORLOGE)?;
         saisies.insert(mois.to_string(), json!(empreinte_saisie(&saisie)));
@@ -860,8 +863,8 @@ mod tests {
         // Hors de l'horloge le contexte porte la date reelle : le comportement de l'interface ne change pas.
         let r = racine_d_essai(true);
         let mut ctx = Contexte::nouveau(&r, None).unwrap();
-        ctx.aujourdhui = crate::contexte::jour_reel();
-        let an = crate::contexte::jour_reel().an.to_string();
+        ctx.aujourdhui = droit::contexte::jour_reel();
+        let an = droit::contexte::jour_reel().an.to_string();
         let e = crate::exercice_ecrit::cloturer(&ctx, &an, false, "interface").unwrap_err();
         assert!(e.message.contains("n'est pas fini"), "{}", e.message);
     }

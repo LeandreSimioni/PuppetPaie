@@ -53,8 +53,8 @@ use serde_json::Value;
 use crate::bulletin::{fmt_eur, fmt_heures};
 use crate::calcul::Paie;
 use crate::courriel::Courriel;
-use crate::date::{en_texte, repr_flottant};
-use crate::fichiers::vrai;
+use socle::date::{en_texte, repr_flottant};
+use socle::fichiers::vrai;
 
 /// Un courriel, sans le piece jointe lue : `pieces` sont des chemins.
 #[derive(Debug, Clone, Default)]
@@ -180,7 +180,7 @@ pub(crate) fn formater(modele: &str, champs: &[(&str, String)]) -> String {
 }
 
 fn cle_absente(cle: &str) -> String {
-    crate::fichiers::absent(cle)
+    socle::fichiers::absent(cle)
 }
 
 /// L'annee et le mois d'un « AAAA-MM » (`int(mois[:4]), int(mois[5:7])`).
@@ -241,7 +241,7 @@ pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Res
         return Ok(String::new());
     }
     let (an, mo) = an_mois(mois)?;
-    let nom_mois = crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Accentuee)?;
+    let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
     Ok(format!(
         "Pour ton actualisation France Travail {} {}, employeur {} :\n{}\nCe sont les chiffres de ton bulletin ; \
          vérifie que ce que France Travail pré-remplit est identique.\n",
@@ -261,7 +261,7 @@ fn heures_en_decimal(h: f64) -> Result<Decimal, String> {
 /// « Aout2026 » a partir de « 2026-08 » : l'etiquette des noms de fichier, sans accent.
 pub fn etiquette(mois: &str) -> Result<String, String> {
     let (an, mo) = an_mois(mois)?;
-    let nom = crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Titre)?;
+    let nom = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Titre)?;
     Ok(format!("{}{}", nom, an))
 }
 
@@ -495,7 +495,7 @@ pub fn preparer_avec(
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
     let etiq = etiquette(mois)?;
-    let nom_mois = crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Accentuee)?;
+    let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
     let mut salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
@@ -1130,7 +1130,7 @@ fn frontiere_libre(base: String, texte: &[u8]) -> String {
 fn frontiere_au_hasard() -> String {
     let mut o = [0u8; 8];
     // Sans alea du systeme, le temps : la frontiere n'a pas besoin d'etre imprevisible, seulement absente du texte.
-    if crate::temps::aleas(&mut o).is_err() {
+    if socle::temps::aleas(&mut o).is_err() {
         o = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(1).to_le_bytes();
     }
     let jeton = u64::from_le_bytes(o) >> 1;
@@ -1139,16 +1139,16 @@ fn frontiere_au_hasard() -> String {
 
 /// `utils.make_msgid(domain=...)`.
 pub(crate) fn nouveau_message_id(domaine: &str) -> String {
-    let maintenant = std::time::Duration::from_secs_f64(crate::temps::secondes());
+    let maintenant = std::time::Duration::from_secs_f64(socle::temps::secondes());
     let centiemes = maintenant.as_millis() / 10;
     let mut o = [0u8; 8];
-    let _ = crate::temps::aleas(&mut o);
-    format!("<{}.{}.{}@{}>", centiemes, crate::temps::numero_de_processus(), u64::from_le_bytes(o), domaine)
+    let _ = socle::temps::aleas(&mut o);
+    format!("<{}.{}.{}@{}>", centiemes, socle::temps::numero_de_processus(), u64::from_le_bytes(o), domaine)
 }
 
 /// `utils.formatdate(localtime=True)`, a l'heure de Paris.
 fn date_locale() -> String {
-    let t = crate::temps::secondes().floor() as i64;
+    let t = socle::temps::secondes().floor() as i64;
     date_de(t)
 }
 
@@ -1156,11 +1156,11 @@ fn date_locale() -> String {
 pub fn date_de(t: i64) -> String {
     const JOURS: [&str; 7] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const MOIS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    let decalage = crate::paris::decalage(t);
+    let decalage = socle::paris::decalage(t);
     let local = t + decalage;
     let jours = local.div_euclid(86_400);
     let secondes = local.rem_euclid(86_400);
-    let j = crate::date::Jour::depuis_jours_unix(jours).unwrap_or(crate::date::Jour { an: 1970, mois: 1, jour: 1 });
+    let j = socle::date::Jour::depuis_jours_unix(jours).unwrap_or(socle::date::Jour { an: 1970, mois: 1, jour: 1 });
     // Le 01/01/1970 etait un jeudi.
     let semaine = (jours + 3).rem_euclid(7) as usize;
     format!(
@@ -1538,7 +1538,7 @@ fn est_blanc(c: char) -> bool {
     c == ' ' || c == '\t'
 }
 
-use crate::retours::blanc_py as est_espace_unicode;
+use socle::texte::blanc as est_espace_unicode;
 
 /// `get_unstructured`, sans mots codes : des blancs et des mots. Un blanc COMMENCE par un espace ou une tabulation
 /// et `get_fws` (`value.lstrip()`) l'etend a tous les blancs d'Unicode qui suivent, l'espace insecable compris ;
@@ -1851,7 +1851,7 @@ mod tests {
 
     #[test]
     fn de_s_elide_devant_avril_aout_et_octobre_seulement() {
-        let d: Vec<String> = (1..=12).map(|i| de_mois(crate::date::nom_du_mois(i, crate::date::Graphie::Accentuee).unwrap())).collect();
+        let d: Vec<String> = (1..=12).map(|i| de_mois(socle::date::nom_du_mois(i, socle::date::Graphie::Accentuee).unwrap())).collect();
         assert_eq!(d.iter().filter(|x| x.starts_with("d'")).count(), 3, "{:?}", d);
         for (i, attendu) in [(3, "d'avril"), (7, "d'août"), (9, "d'octobre"), (0, "de janvier"), (1, "de février"), (11, "de décembre")] {
             assert_eq!(d[i], attendu);
@@ -1863,8 +1863,8 @@ mod tests {
         // Le mois d'une saisie va de 01 a 12 : ni la date du premier jour (`date::premier_du_mois`) ni celle du dernier
         // (`date::dernier_du_mois`) ne lisent « 00 », et `envois_signature::an_et_mois` le refuse aussi. Seul le Python le
         // lisait decembre, par l'indice -1 d'une liste : un accident, pas une regle.
-        assert!(crate::date::premier_du_mois("2026-00").is_err() && crate::date::dernier_du_mois("2026-00").is_err());
-        assert_eq!(etiquette("2026-00").unwrap_err(), crate::date::mois_impossible(0));
+        assert!(socle::date::premier_du_mois("2026-00").is_err() && socle::date::dernier_du_mois("2026-00").is_err());
+        assert_eq!(etiquette("2026-00").unwrap_err(), socle::date::mois_impossible(0));
         assert_eq!(etiquette("2026-12").unwrap(), "Decembre2026");
     }
 }

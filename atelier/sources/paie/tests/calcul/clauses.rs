@@ -5,9 +5,9 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{egal, fnv, oracle, oracle_selon, reecrire_oracles, tire};
-use paie::clauses::{self as c, P};
-use paie::date::Jour;
-use paie::num::{Decimal, Resultat};
+use droit::clauses::{self as c, P};
+use socle::date::Jour;
+use socle::num::{Decimal, Resultat};
 use serde_json::{json, Map, Value};
 use std::str::FromStr;
 

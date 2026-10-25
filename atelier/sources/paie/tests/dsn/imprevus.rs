@@ -10,8 +10,8 @@
 
 use crate::outils::{self, compagnie, ecrire};
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Arret, Options};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};

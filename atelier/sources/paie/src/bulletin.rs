@@ -9,12 +9,12 @@
 
 use crate::calcul::Paie;
 use crate::conges::{compteur_au_bulletin, CompteurConges};
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::cumul::{lire_engagements, tableau_cumul, Colonne};
-use crate::date::{d, dernier_du_mois, en_texte, repr_py, Jour};
-use crate::emplois;
-use crate::fichiers::vrai;
-use crate::num::{dec, dec_f64, div, sub, Decimal, Resultat};
+use socle::date::{d, dernier_du_mois, en_texte, repr_py, Jour};
+use droit::emplois;
+use socle::fichiers::vrai;
+use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
 use crate::pas::{self, Versement};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
@@ -103,7 +103,7 @@ fn num(x: f64) -> Value {
 }
 
 fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    o.get(cle).ok_or_else(|| crate::fichiers::absent(cle))
+    o.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 /// `str(o[cle])`.
@@ -1194,7 +1194,7 @@ pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
 pub fn remboursements(ctx: &Contexte, p: &Paie) -> Resultat<Vec<usize>> {
     let mut out = Vec::new();
     for (i, l) in p.remuneration.iter().enumerate() {
-        if !l.soumis && crate::catalogue::rubrique(&ctx.racine, &l.code)?.hors_assiette()? != crate::catalogue::HorsAssiette::Revenu {
+        if !l.soumis && droit::catalogue::rubrique(&ctx.racine, &l.code)?.hors_assiette()? != droit::catalogue::HorsAssiette::Revenu {
             out.push(i);
         }
     }
@@ -1241,10 +1241,10 @@ pub fn jeux_et_description(
         for (i, pa) in paies.iter().enumerate() {
             let cle = texte(&pa.salarie, "_cle")?;
             // Le compteur de conges est par contrat, le cumul des 507 h par salarie. Un contrat paye au mois et
-            // declare a la caisse des Conges Spectacles (`caisse_conges::de_la_paie`, D. 7121-41) n'a pas de compteur
+            // declare a la caisse des Conges Spectacles (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'a pas de compteur
             // de l'employeur : c'est la caisse qui lui paie ses conges (#132).
             if pa.engagement.nat()?.mensuelle() {
-                if !crate::caisse_conges::de_la_paie(pa)? {
+                if !crate::calcul::declaree_a_la_caisse_des_conges(pa)? {
                     conges_par_paie.insert(i, compteur_au_bulletin(ctx, pa, mois)?);
                 }
             } else if !colonnes_par_salarie.contains_key(&cle) {

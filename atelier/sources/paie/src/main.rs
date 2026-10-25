@@ -9,7 +9,7 @@ fn usage() -> ! {
          \x20       paie oracle ... | paie fabrique DESCRIPTION.json SORTIE.pdf   (outils d'atelier)\n\
          \x20       paie guet [--seuil N] [--commits] [--transcript F]   (outil d'atelier : la veille du contexte d'un sous-agent)\n\
          \x20       paie verifier-avant-commit [--indexes]   (le garde avant commit : rien de reel dans ce que git emporterait)\n\
-         \x20       paie generer-tables SOURCES SRC   (les tables Unicode du moteur, depuis atelier/reference/sources)\n\
+         \x20       paie generer-tables SOURCES ESPACE   (les tables Unicode du moteur, depuis atelier/reference/sources, dans atelier/sources)\n\
          \x20       paie extraire naf|usages|formats|urssaf SOURCES... SORTIE.json [--remplacer]   (releves de l'atelier : paie extraire --aide)\n\
          \x20       paie releve-codes ... | paie releve-conventions ...   (les textes LEGI et KALI de la DILA, outils d'atelier : --aide)"
     );

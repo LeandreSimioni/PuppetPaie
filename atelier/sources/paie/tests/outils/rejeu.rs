@@ -108,7 +108,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
             // Les fichiers a largeur fixe sont en latin-1 : un octet, un caractere.
             "dsn" | "txt" | "csv" | "eml" => lignes(&octets.iter().map(|&o| o as char).collect::<String>(), &r),
             "pdf" => lignes(&paie::avenant::texte_du_pdf(&p).unwrap_or_else(|m| panic!("{} : {}", rel, m)), &r),
-            _ => json!({"empreinte": paie::fichiers::sha256_hex(&octets)}),
+            _ => json!({"empreinte": socle::fichiers::sha256_hex(&octets)}),
         };
         par_fichier.insert(rel, v);
     }
@@ -132,7 +132,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
 /// sorties, et les compare a l'oracle `scenarios/<nom>/sorties.json`. Rend le releve.
 pub fn rejouer_et_comparer(nom: &str, dossier: &Path) -> Value {
     let (r, racine) = rejouer(nom, dossier);
-    let jour = paie::paris::iso_secondes(r.fin.expect("un scenario sans geste"))[..10].to_string();
+    let jour = socle::paris::iso_secondes(r.fin.expect("un scenario sans geste"))[..10].to_string();
     let releve = sorties(&racine, &jour);
     super::oracle(&format!("scenarios/{}/sorties.json", nom), "", &releve);
     releve

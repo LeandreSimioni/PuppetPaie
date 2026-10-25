@@ -11,12 +11,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Map, Value};
 
-use crate::contexte::{archivee, Contexte};
-use crate::etats::{erreur, py_str};
+use droit::contexte::{archivee, Contexte};
+use socle::valeur::py_str;
+use socle::echec::erreur;
 use crate::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode, SAISIE};
 use crate::exercice_ecrit::{ecritures_du_mois, Ecriture};
-use crate::fichiers::vrai;
-use crate::num::{add, div, dec_py, eur, eur2, mul, sub, zero2, Decimal};
+use socle::fichiers::vrai;
+use socle::num::{add, div, dec_py, eur, eur2, mul, sub, zero2, Decimal};
 use crate::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, nom_compagnie, refus, totaliser, Ligne, Section, Tableau, Val,
     FORMATS_TABLEAU, R, TOTAL_GENERAL,
@@ -171,7 +172,7 @@ fn libelle_compte(plan: &Map<String, Value>, compte: &str) -> R<String> {
         let x = plan.get(k).unwrap_or(&vide);
         let c = x.get("compte").map(py_str).unwrap_or_else(|| "None".to_string());
         if c == compte {
-            let l = x.get("libelle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("libelle")))?;
+            let l = x.get("libelle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("libelle")))?;
             return Ok(py_str(l));
         }
     }
@@ -298,7 +299,7 @@ fn codes_des_fiches(spectacles: &Map<String, Value>) -> BTreeMap<String, String>
 
 /// `codes_sections` : le code de chaque spectacle -- celui de sa fiche, sinon celui du plan, sinon tire du titre.
 fn codes_sections(plan: &Map<String, Value>, ecritures: &[Ecriture], largeur: usize, fiches: &BTreeMap<String, String>) -> R<BTreeMap<String, String>> {
-    let brut = plan.get("brut").and_then(|b| b.get("compte")).map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("brut")))?;
+    let brut = plan.get("brut").and_then(|b| b.get("compte")).map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("brut")))?;
     let mut propres: BTreeMap<String, String> = BTreeMap::new();
     if let Some(Value::Object(s)) = plan.get("sections") {
         for (k, v) in s {
@@ -467,7 +468,7 @@ fn limites(format: &str) -> Option<(String, usize, usize)> {
 
 /// `_borne` : le compte et le journal tiennent dans leurs zones, ou on refuse.
 fn borne(format: &str, compte: &str, journal: &str) -> R<()> {
-    let (nom, lc, lj) = limites(format).ok_or_else(|| erreur("KeyError", format!("format inconnu : {}", crate::fichiers::repr(format))))?;
+    let (nom, lc, lj) = limites(format).ok_or_else(|| erreur("KeyError", format!("format inconnu : {}", socle::fichiers::repr(format))))?;
     if compte.chars().count() > lc || journal.chars().count() > lj {
         return Err(refus(format!("{} : le compte « {} » ou le journal « {} » dépasse sa zone ({} et {} caractères).", nom, compte, journal, lc, lj)));
     }
@@ -1086,7 +1087,7 @@ fn taux_patronal(lignes: &[crate::etats_paie::LigneLivre], cle: &str, jusqu_a: &
 /// `provision_conges` : la dette de conges payes des salaries au mois a la fin de la periode -- ce que la compagnie
 /// devrait s'ils partaient ce jour-la. Un salarie, une ligne ; les intermittents n'y sont pas.
 pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
-    use crate::permanents::arrondir_jours;
+    use droit::permanents::arrondir_jours;
     if d.toutes {
         return Err(refus("La provision de congés se calcule à UNE date : demander un mois (la fin du mois) ou une année (la fin du dernier mois produit)."));
     }
@@ -1095,7 +1096,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let Some(m) = saisis.last().cloned() else {
         return Err(refus(format!("Aucun mois saisi dans PuppetPaie sur la période ({}) : la provision se calcule sur les paies du logiciel.", p.libelle)));
     };
-    let fin = crate::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
+    let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
     let mut avert: Vec<String> = Vec::new();
     let saisie = crate::engagement::lire_saisie(&ctx.racine.join("paies").join(format!("{}.json", m))).map_err(|x| refus(x))?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
@@ -1106,18 +1107,18 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let vide = Vec::new();
     let engagements = saisie.get("engagements").and_then(Value::as_array).unwrap_or(&vide);
     for e in engagements {
-        let nat = crate::contrats::nature(e.get("nature").and_then(Value::as_str)).map_err(|x| refus(x))?;
+        let nat = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_err(|x| refus(x))?;
         if !nat.mensuelle() {
             continue;
         }
         if e.get("fin").is_some_and(vrai) {
-            let jour_fin = crate::date::d(&e["fin"]).map_err(|x| erreur("ValueError", x))?;
+            let jour_fin = socle::date::d(&e["fin"]).map_err(|x| erreur("ValueError", x))?;
             if jour_fin <= fin {
                 // Un contrat fini ce mois-ci a eu son solde de tout compte : les conges non pris y sont payes, il n'y a plus de dette.
                 continue;
             }
         }
-        let nom_salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("salarie")))?;
+        let nom_salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("salarie")))?;
         let nom_txt = py_str(nom_salarie);
         let cle = match ctx.salarie(&nom_txt) {
             Ok(f) => f.get("_cle").map(py_str).unwrap_or_else(|| nom_txt.clone()),
@@ -1127,7 +1128,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             continue;
         }
         // Le compteur lit les saisies, qui nomment le salarie comme l'ecran l'a ecrit : il recoit ce nom-la.
-        let cpt = crate::service::provision_conges_de(ctx, &nom_txt, &m, e.get("salaire_mensuel")).map_err(crate::retours::Echec::from)?;
+        let cpt = crate::service::provision_conges_de(ctx, &nom_txt, &m, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)?;
         for a in &cpt.avertissements {
             avert.push(format!("{} : {}", cle, a.texte));
         }
@@ -1173,8 +1174,8 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let charges = lignes.iter().fold(zero, |a, l| add(a, l.decimal("charges").filter(|c| !c.is_zero()).unwrap_or(zero)));
     if !pc.as_object().is_none_or(|o| o.is_empty()) {
         let cle = |a: &str, b: &str| -> R<String> {
-            let x = pc.get(a).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(a)))?;
-            Ok(py_str(x.get(b).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(b)))?))
+            let x = pc.get(a).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(a)))?;
+            Ok(py_str(x.get(b).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(b)))?))
         };
         avert.push(format!(
             "Écriture au {} (journal OD) : {} {} au débit, {} {} au crédit, {} € ; {} {} au débit, {} {} au crédit, {} €. À extourner le premier jour de l'exercice suivant — la dette se paie au fil des congés pris, ou au solde de tout compte.",
@@ -1240,7 +1241,7 @@ fn dec_du_bareme(v: &Value) -> R<Decimal> {
 
 /// `ts[cle]` : `KeyError` s'il manque.
 fn du_bareme<'a>(ts: &'a Value, cle: &str) -> R<&'a Value> {
-    ts.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    ts.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// `taxe_sur_les_salaires` : la taxe sur les salaires d'une annee (CGI art. 231), salarie par salarie, et ce qui
@@ -1251,7 +1252,7 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     };
     // Qui doit la taxe, et sur quelle part : le meme regime que la DSN de decembre (`assujettissement`, CGI art. 231, 1).
     // NE PAS SAVOIR N'EST PAS UNE ERREUR : l'etat le dit, et dit quoi repondre.
-    let jour = crate::date::Jour::lire(&format!("{}-01-01", annee)).map_err(|x| erreur("ValueError", x))?;
+    let jour = socle::date::Jour::lire(&format!("{}-01-01", annee)).map_err(|x| erreur("ValueError", x))?;
     // Les plafonds de la franchise, que la conclusion nomme (ticket #245) : ceux du bareme de l'annee.
     let plafonds = crate::assujettissement::plafonds_franchise(ctx.bareme(&jour).ok().as_ref());
     let regime = crate::assujettissement::regime_taxe_sur_les_salaires(&ctx.entreprise, plafonds);
@@ -1267,7 +1268,7 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if regime.decision == Ok(None) {
         avert.push(format!("{} Rien à calculer.", regime.consequence));
     }
-    let bar = ctx.bareme(&jour).map_err(crate::retours::Echec::from)?;
+    let bar = ctx.bareme(&jour).map_err(socle::echec::Echec::from)?;
     let ts = match bar.get("taxe_sur_les_salaires").filter(|v| vrai(v)) {
         Some(t) => t.clone(),
         None => {
@@ -1298,7 +1299,7 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             if pa.engagement.sans_paie() {
                 continue;
             }
-            let cle = pa.salarie.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?;
+            let cle = pa.salarie.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
             if !par.contains_key(&cle) {
                 ordre.push(cle.clone());
                 par.insert(cle.clone(), (crate::tableaux_export::qui_souple(&pa.salarie), zero, zero, BTreeSet::new()));

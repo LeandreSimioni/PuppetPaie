@@ -11,7 +11,7 @@
 
 use paie::aer::{self, Authentification, Echec, PaieAer};
 use paie::cachet;
-use paie::date::Jour;
+use socle::date::Jour;
 use serde_json::{json, Value};
 
 const HAUTEUR: f64 = 842.0;

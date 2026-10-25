@@ -13,25 +13,25 @@
 
 use serde_json::Value;
 
-use crate::etats::py_str;
-use crate::fichiers::vrai;
+use socle::valeur::py_str;
+use socle::fichiers::vrai;
 
 /// Un engagement tel qu'il s'identifie : (cle du salarie, premier jour ISO, numero de contrat s'il est pose).
-pub(crate) type Ident = (String, String, Option<String>);
+pub type Ident = (String, String, Option<String>);
 
 /// Le numero de contrat POSE sur un engagement brut (`"numero"` non vide), et lui seul.
-pub(crate) fn numero_pose(e: &Value) -> Option<String> {
+pub fn numero_pose(e: &Value) -> Option<String> {
     numero_du_champ(e.get("numero"))
 }
 
 /// Le meme, depuis le champ `"numero"` lui-meme (un engagement deja deplie en dictionnaire).
-pub(crate) fn numero_du_champ(n: Option<&Value>) -> Option<String> {
+pub fn numero_du_champ(n: Option<&Value>) -> Option<String> {
     n.filter(|n| vrai(n)).map(py_str)
 }
 
 /// La cle unique de chaque engagement d'une liste : `(salarie, debut, numero)` quand le numero est pose, sinon
 /// `(salarie, debut, "#rang")`, le rang (0, 1...) etant celui de l'engagement parmi ceux de meme (salarie, debut).
-pub(crate) fn cles(ids: &[Ident]) -> Vec<(String, String, String)> {
+pub fn cles(ids: &[Ident]) -> Vec<(String, String, String)> {
     ids.iter()
         .enumerate()
         .map(|(i, (s, d, n))| {
@@ -52,7 +52,7 @@ pub(crate) fn cles(ids: &[Ident]) -> Vec<(String, String, String)> {
 /// 2. les restants se suivent dans l'ordre de leur liste (le rang), un a un -- c'est ce qui relie un engagement
 ///    encore sans numero a celui qui en a recu un depuis (le fichier fige apres production, le contrat parti a la
 ///    signature) ; deux numeros poses et differents ne s'apparient jamais.
-pub(crate) fn apparier(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> {
+pub fn apparier(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> {
     let mut sortie: Vec<Option<usize>> = vec![None; a.len()];
     let mut pris = vec![false; b.len()];
     let meme_jour = |x: &Ident, y: &Ident| x.0 == y.0 && x.1 == y.1;
@@ -86,7 +86,7 @@ pub(crate) fn apparier(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<u
 /// fiche net-entreprises 1952, `atelier/reference/sources/net-entreprises-base-connaissances/`). Seulement pour comparer
 /// une saisie declaree a sa modification (`routes_regularisation`), et pour ce qu'une saisie reprend du fichier d'avant
 /// (`routes_ecritures::fusionner`, #253) : ailleurs, l'identite reste (salarie, debut, numero).
-pub(crate) fn apparier_meme_numero(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> {
+pub fn apparier_meme_numero(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> {
     let mut sortie = apparier(a, b);
     let mut pris = vec![false; b.len()];
     for j in sortie.iter().flatten() {

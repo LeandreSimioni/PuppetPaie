@@ -28,14 +28,15 @@ use fabrique_pdf::modele::{self, Modele, Valeurs};
 use serde_json::{json, Value};
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
-use crate::contexte::{telle_qu_au, Contexte};
-use crate::date::{d, en_texte, Jour};
-use crate::emplois::{emploi_de, EmploiEngagement};
-use crate::etats::{accepte, est, get, getd, items, objet_vide, ou, py_str, CONTRAT_RECU, LISTE_VIDE, SIGNATURE};
-use crate::retours::Echec;
-use crate::fichiers::vrai;
-use crate::nfkc::nfkc;
-use crate::num::{dec, Resultat};
+use droit::contexte::{telle_qu_au, Contexte};
+use socle::date::{d, en_texte, Jour};
+use droit::emplois::{emploi_de, EmploiEngagement};
+use crate::etats::{accepte, est, get, getd, items, objet_vide, ou, CONTRAT_RECU, LISTE_VIDE, SIGNATURE};
+use socle::valeur::py_str;
+use socle::echec::Echec;
+use socle::fichiers::vrai;
+use socle::nfkc::nfkc;
+use socle::num::{dec, Resultat};
 
 /// `contrat.MODELE.name`.
 const MODELE: &str = "contrat-cddu.modele";
@@ -46,7 +47,7 @@ const INVALIDE: &str = "\u{0}\u{0}VALEUR-SANS-TEXTE\u{0}\u{0}";
 
 // ------------------------------------------------------ le texte d'un PDF
 
-use crate::retours::blanc_py as est_blanc;
+use socle::texte::blanc as est_blanc;
 
 /// `avenant._normaliser` : ce qui se compare. Ligatures defaites (NFKC : « ﬀ » -> « ff », espaces
 /// insecables -> espaces), une coupure apres un trait d'union recollee, les blancs ramenes a un seul.
@@ -461,7 +462,7 @@ fn remuneration_detaillee(remuneration: &[Value], e: &Eng) -> Resultat<String> {
     }
     let mut phrase = et(&morceaux);
     if !e.dernier_mois {
-        let nom = crate::date::nom_du_mois(mois_de(&e.mois)? as i64, crate::date::Graphie::Accentuee)?;
+        let nom = socle::date::nom_du_mois(mois_de(&e.mois)? as i64, socle::date::Graphie::Accentuee)?;
         let quand = format!("{} {}", nom, an_de(&e.mois)?);
         if !e.planning.is_empty() {
             let n = e.planning.len();
@@ -486,7 +487,7 @@ fn remuneration_detaillee(remuneration: &[Value], e: &Eng) -> Resultat<String> {
 fn remuneration_hors_brut(remuneration: &[Value]) -> Resultat<String> {
     let mut morceaux = Vec::new();
     for l in remuneration.iter().filter(|l| !fait_le_brut(l)) {
-        if dec(requis(l, "montant")?)? > crate::num::Decimal::ZERO {
+        if dec(requis(l, "montant")?)? > socle::num::Decimal::ZERO {
             morceaux.push(ligne_citee(l)?);
         }
     }
@@ -495,7 +496,7 @@ fn remuneration_hors_brut(remuneration: &[Value]) -> Resultat<String> {
 
 /// Le numero du mois, de 1 a 12 : « 00 » se refuse (`date::numero_du_mois`, lot F1 ; il se lisait janvier).
 fn mois_de(mois: &str) -> Resultat<usize> {
-    crate::date::numero_du_mois(mois).map(|n| n as usize)
+    socle::date::numero_du_mois(mois).map(|n| n as usize)
 }
 
 fn an_de(mois: &str) -> Resultat<i32> {
@@ -507,7 +508,7 @@ fn periode_remuneration(e: &Eng) -> Resultat<String> {
     if e.dernier_mois {
         return Ok(String::new());
     }
-    let nom = crate::date::nom_du_mois(mois_de(&e.mois)? as i64, crate::date::Graphie::Accentuee)?;
+    let nom = socle::date::nom_du_mois(mois_de(&e.mois)? as i64, socle::date::Graphie::Accentuee)?;
     let de = if nom.chars().next().map_or(false, |c| "aeiouyâàéèêîôû".contains(c)) { "d'" } else { "de " };
     Ok(format!(" pour le mois {}{} {}", de, nom, an_de(&e.mois)?))
 }
@@ -1071,8 +1072,8 @@ mod tests_mois {
     /// comme `envoi::etiquette` (il se lisait janvier).
     #[test]
     fn le_mois_00_d_un_contrat_qui_se_poursuit_se_refuse() {
-        assert_eq!(periode_remuneration(&eng("2026-00")).unwrap_err(), crate::date::mois_impossible(0));
-        assert_eq!(remuneration_detaillee(&[], &eng("2026-00")).unwrap_err(), crate::date::mois_impossible(0));
+        assert_eq!(periode_remuneration(&eng("2026-00")).unwrap_err(), socle::date::mois_impossible(0));
+        assert_eq!(remuneration_detaillee(&[], &eng("2026-00")).unwrap_err(), socle::date::mois_impossible(0));
         assert_eq!(periode_remuneration(&eng("2026-10")).unwrap(), " pour le mois d'octobre 2026");
     }
 }

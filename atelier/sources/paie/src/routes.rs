@@ -18,8 +18,8 @@ use std::collections::HashMap;
 
 use serde_json::{json, Value};
 
-use crate::num::Resultat;
-use crate::retours::Echec;
+use socle::num::Resultat;
+use socle::echec::Echec;
 use crate::service::contexte;
 
 /// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `paie route` sous Linux (un
@@ -43,7 +43,7 @@ pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
 pub(crate) fn remettre_le_fil() {
     crate::coffre::oublier_mot_de_passe_tape();
     crate::engagement::FIDELE.with(|f| f.set(false));
-    let _ = crate::fichiers::rendre();
+    let _ = socle::fichiers::rendre();
 }
 
 /// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL (ticket #244). La fenetre sert ses routes dans son
@@ -76,7 +76,7 @@ pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value)
 /// `paie route [--racine R] [--date D]`.
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
-    let _code = crate::fichiers::code_fige();
+    let _code = socle::fichiers::code_fige();
     let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
     let route = d.get("route").and_then(Value::as_str).ok_or("demande illisible : il faut `route`")?;
     let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
@@ -88,7 +88,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // UNE ROUTE QUI TOMBE, pour les essais seulement (`garde_reseau::en_essai`, que Cargo pose) : la fenetre doit rendre
     // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes_dans_la_fenetre.rs`). Le fil est laisse sale
     // expres, comme un calcul qui tombe le laisserait.
-    if route == ROUTE_QUI_TOMBE && crate::garde_reseau::en_essai() {
+    if route == ROUTE_QUI_TOMBE && socle::garde_reseau::en_essai() {
         crate::engagement::FIDELE.with(|f| f.set(true));
         panic!("la route d'essai tombe expres");
     }

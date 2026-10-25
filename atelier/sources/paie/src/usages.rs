@@ -4,14 +4,14 @@
 //! `usages-dsn-p27v01-base.json` pour P27V01), choisi d'apres
 //! `S10.G00.00.006` du fichier controle (`norme::du_fichier`).
 
-use crate::fichiers::{dossier_du_code, json_en_cache};
+use socle::fichiers::{dossier_du_code, json_en_cache};
 use crate::norme::Norme;
-use crate::num::Resultat;
+use socle::num::Resultat;
 use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-pub(crate) use crate::retours::blanc_py as espace;
+pub(crate) use socle::texte::blanc as espace;
 
 /// `str.strip()` de Python.
 pub(crate) fn strip(s: &str) -> &str {
@@ -72,7 +72,7 @@ pub(crate) fn est_rubrique(r: &str) -> bool {
 }
 
 fn entree<'a>(t: &'a Value, rubrique: &str) -> Option<&'a Value> {
-    t["usages"].get(rubrique).filter(|v| crate::fichiers::vrai(v))
+    t["usages"].get(rubrique).filter(|v| socle::fichiers::vrai(v))
 }
 
 /// 'O', 'C', 'I', 'N' -- ou "" si la rubrique est inconnue du tableau de cette version.
@@ -121,7 +121,7 @@ pub fn verifier(texte: &str, nature: &str, norme: &Norme) -> Resultat<()> {
             };
             let lib = entree(&t, r)
                 .and_then(|e| e.get("libelle"))
-                .filter(|v| crate::fichiers::vrai(v))
+                .filter(|v| socle::fichiers::vrai(v))
                 .and_then(|v| v.as_str());
             match lib {
                 Some(l) => format!("    {} : {} ({})", r, quoi, l),

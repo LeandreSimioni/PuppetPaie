@@ -204,7 +204,7 @@ fn avant_la_limite_la_modification_ne_demande_rien_et_l_annule_et_remplace_se_di
     let s = route(&racine, "saisie", json!({"mois": MOIS}), "2026-09-10");
     let d = reussi(&s)["dsn_deposee"].clone();
     assert_eq!(d["confirmer"], json!(false), "{}", s);
-    let limite = paie::date::Jour::lire(d["limite"].as_str().unwrap()).unwrap();
+    let limite = socle::date::Jour::lire(d["limite"].as_str().unwrap()).unwrap();
     assert!(limite.iso().as_str() >= "2026-09-10", "{}", d);
     assert_eq!(
         d["phrase"],

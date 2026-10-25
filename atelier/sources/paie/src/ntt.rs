@@ -4,11 +4,11 @@
 //! Il se fabrique (sexe + SIREN + matricule), il ne se saisit pas. Les
 //! regles de forme CSL-11, CSL-12, CCH-13 et la longueur [11,40] sont ici.
 
-use crate::date::{en_texte, Jour};
+use socle::date::{en_texte, Jour};
 use crate::dsn::Fichier;
-use crate::fichiers::{repr, vrai};
+use socle::fichiers::{repr, vrai};
 use crate::formats;
-use crate::num::Resultat;
+use socle::num::Resultat;
 use crate::usages::{lignes, rubrique_valeur, strip};
 use serde_json::Value;
 
@@ -125,8 +125,8 @@ pub fn depuis_quand_le_nir(salarie: &Value) -> Resultat<Option<Jour>> {
     if let Some(h) = salarie.get("historique").and_then(|h| h.as_array()) {
         for e in h {
             if e.get("champ").and_then(|c| c.as_str()) == Some("nir") && strip(&chaine(e, "valeur")).is_empty() {
-                let j = e.get("jusqu_au").ok_or_else(|| crate::fichiers::absent("jusqu_au"))?;
-                return Ok(Some(crate::date::d(j)?.plus_jours(1)?));
+                let j = e.get("jusqu_au").ok_or_else(|| socle::fichiers::absent("jusqu_au"))?;
+                return Ok(Some(socle::date::d(j)?.plus_jours(1)?));
             }
         }
     }

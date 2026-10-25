@@ -4,9 +4,9 @@
 
 use crate::outils;
 use paie::avenant::{ecart_au_contrat_signe, motif, normaliser, retrouve, valeurs_du_contrat};
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::nfkc::nfkc;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::nfkc::nfkc;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -158,7 +158,7 @@ fn monde(nom: &str) -> Monde {
     let ctx = m.contexte();
     m.cle = ctx.salarie("Biancolelli").unwrap()["_cle"].as_str().unwrap().to_string();
     let valeurs = valeurs_du_contrat(&ctx, MOIS, &m.cle, DEBUT).unwrap().expect("la paie de ce contrat");
-    let modele = paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele");
+    let modele = socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele");
     let description = json!({
         "format": fabrique_pdf::FORMAT, "style": "contrat",
         "documents": [{"modele": {"chemin": modele.to_str().unwrap(), "valeurs": valeurs}}]
@@ -205,7 +205,7 @@ fn un_avenant_envoye_compte_deja_signe_ou_non() {
     let ctx = m.contexte();
     let valeurs = valeurs_du_contrat(&ctx, MOIS, &m.cle, DEBUT).unwrap().unwrap();
     let modele = fabrique_pdf::modele::lire_fichier(
-        paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
+        socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
     )
     .unwrap();
     let neuf = fabrique_pdf::modele::texte_brut(&modele.articles[3].1[0], &valeurs).unwrap();
@@ -256,7 +256,7 @@ fn le_modele_a_change_depuis_l_envoi_la_pastille_n_invente_pas() {
     m.ecrire_saisie(&saisie(190.0, "Scene fictive du Mans"));
     assert_eq!(m.ecart(AUJOURDHUI, MOIS), "article 4 (Rémunération)");
     // La compagnie reecrit une clause fixe de l'article 2 : l'ancien texte ne se retrouve plus.
-    let livre = std::fs::read_to_string(paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele")).unwrap();
+    let livre = std::fs::read_to_string(socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele")).unwrap();
     assert!(livre.contains("sans qu'il soit besoin d'un préavis"));
     std::fs::create_dir_all(m.racine.join("gabarits")).unwrap();
     std::fs::write(
@@ -275,7 +275,7 @@ fn paragraphe_remuneration(m: &Monde) -> (fabrique_pdf::modele::Valeurs, String)
     let _ = std::fs::remove_file(m.calcul());
     let valeurs = valeurs_du_contrat(&ctx, MOIS, &m.cle, DEBUT).unwrap().unwrap();
     let modele = fabrique_pdf::modele::lire_fichier(
-        paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
+        socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
     )
     .unwrap();
     let texte = fabrique_pdf::modele::texte_brut(&modele.articles[3].1[0], &valeurs).unwrap();

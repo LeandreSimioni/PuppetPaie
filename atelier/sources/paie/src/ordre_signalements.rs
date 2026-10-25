@@ -31,11 +31,12 @@ use std::path::Path;
 
 use serde_json::Value;
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::releve_retours::{self, Client};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Trois mois de releve : la retention des documents de la plate-forme (guide API v6.8, §8.2). 92 jours couvrent trois
 /// mois civils, quels qu'ils soient.

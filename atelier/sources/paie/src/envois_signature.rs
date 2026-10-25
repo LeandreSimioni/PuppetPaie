@@ -20,12 +20,13 @@ use std::path::PathBuf;
 use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::depot_acte::verifier_preuve;
 use crate::envoi::{self, Message};
-use crate::etats::{erreur, py_str};
-use crate::fichiers::{repr, vrai};
-use crate::retours::Echec;
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::{repr, vrai};
+use socle::echec::Echec;
 use crate::routes_envois::{
     capitaliser, charge_texte, echec_d_envoi, html_echapper, jour_iso, mailto, noter, noter_echec_d_envoi, nom_du, preuve_de, refus, requis, vrai_ou, Ouvrir, R,
 };
@@ -62,7 +63,7 @@ type Cible = (String, String, Option<String>);
 
 /// `jj_mm_aaaa(x)` : `ValueError` si `x` ne se lit pas comme une date.
 fn jj(iso: &str) -> R<String> {
-    crate::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).map_err(|m| erreur("ValueError", m))
+    socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).map_err(|m| erreur("ValueError", m))
 }
 
 /// `jj_mm_aaaa(p.engagement.fin)`.
@@ -95,7 +96,7 @@ pub(crate) fn code_au_hasard(prefixe: &str) -> String {
     let mut code = String::from(prefixe);
     while code.len() < prefixe.len() + 6 {
         let mut b = [0u8; 1];
-        if crate::temps::aleas(&mut b).is_err() {
+        if socle::temps::aleas(&mut b).is_err() {
             let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_nanos()).unwrap_or(7);
             b[0] = (t >> (code.len() % 3)) as u8;
         }
@@ -158,7 +159,7 @@ fn liste_de<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Vec<Value>>> {
     match charge.get(cle).filter(|v| vrai(v)) {
         None => Ok(None),
         Some(Value::Array(a)) => Ok(Some(a)),
-        Some(autre) => Err(erreur("TypeError", format!("`{}` : une liste est attendue, pas {}", cle, crate::etats::nom_type(autre)))),
+        Some(autre) => Err(erreur("TypeError", format!("`{}` : une liste est attendue, pas {}", cle, socle::valeur::nom_type(autre)))),
     }
 }
 
@@ -235,7 +236,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     // `reserver_numeros_envoyes` n'avance que les compteurs de contrat, jusqu'au numero reellement envoye.
     let mut reserves = crate::produire_mois::Reserves::default();
     let (data, _rep, paies) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, &mois, Some(&mut reserves), false)?;
-    let s_mois = data.get("mois").map(crate::date::en_texte).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+    let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
 
@@ -507,7 +508,7 @@ pub(crate) fn an_et_nom_du_mois(mois: &str) -> R<(i32, &'static str)> {
         t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
     };
     let an = lire(mois.get(..4))?;
-    let nom = crate::date::nom_du_mois(lire(mois.get(5..7))?, crate::date::Graphie::Accentuee).map_err(|e| erreur("IndexError", e))?;
+    let nom = socle::date::nom_du_mois(lire(mois.get(5..7))?, socle::date::Graphie::Accentuee).map_err(|e| erreur("IndexError", e))?;
     Ok((an as i32, nom))
 }
 
@@ -591,7 +592,7 @@ pub(crate) fn reserver_numeros_envoyes(
     if change {
         reserves.valider(ctx)?;
         crate::routes_contrats::sauver_avant(&chemin).map_err(Echec::from)?;
-        crate::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| erreur("OSError", m))?;
     }
     Ok(())
 }
@@ -655,7 +656,7 @@ pub(crate) fn avenants_envoyer(o: &HashMap<String, String>, ctx: &Contexte, char
     let voulus: Vec<Value> = match requis(charge, "avenants")? {
         Value::Array(a) => a.clone(),
         Value::Null => Vec::new(),
-        autre => return Err(erreur("TypeError", format!("`avenants` : une liste est attendue, pas {}", crate::etats::nom_type(autre)))),
+        autre => return Err(erreur("TypeError", format!("`avenants` : une liste est attendue, pas {}", socle::valeur::nom_type(autre)))),
     };
     let r = envoyer_avenants(o, ctx, &voulus, &preuve_de(charge), ouvrir)?;
     Ok(json!({"partis": r.partis, "avenants": r.avenants}))

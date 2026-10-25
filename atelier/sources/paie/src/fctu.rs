@@ -9,15 +9,15 @@
 
 use serde_json::Value;
 
-use crate::contexte::{aujourdhui, Contexte};
-use crate::date::{en_texte, Jour};
+use droit::contexte::{aujourdhui, Contexte};
+use socle::date::{en_texte, Jour};
 use crate::dsn::{
     autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, jj, jour, liste, primes_et_indemnites,
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use crate::engagement::Engagement;
-use crate::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::num::Resultat;
 
 pub const NATURE: &str = "07";
 /// CCH-14 (cahier technique p. 293) : la base assujettie de prevoyance n'a
@@ -372,7 +372,7 @@ S21.G00.63.002.",
             let mut noms = Vec::new();
             for c in &permis {
                 let lib = tous.iter().find(|x| en_texte(&x["code"]) == *c).map(|x| en_texte(&x["libelle"]));
-                noms.push(format!("« {} - {} »", c, lib.ok_or_else(|| crate::fichiers::absent(c))?));
+                noms.push(format!("« {} - {} »", c, lib.ok_or_else(|| socle::fichiers::absent(c))?));
             }
             return Err(Echec::Impossible(format!(
                 "Preavis « {} » avec le motif de rupture {} : {} n'y permet que {}. {}",
@@ -646,14 +646,14 @@ ou un annule."
         f.add_v(rub, req(s, k)?)?;
     }
     // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-    f.add("S21.G00.30.013", crate::codification_ue::codification_ue(s)?);
+    f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
     for (rub, k) in [
         ("S21.G00.30.014", "departement_naissance"),
         ("S21.G00.30.015", "pays_naissance"),
         ("S21.G00.30.019", "code_salarie"),
     ] {
         // Le pays de naissance se lit dans la liste livree (`pays.rs`, vague 1k) : un code inconnu refuse.
-        let v = if k == "pays_naissance" { crate::pays::de_naissance(s)? } else { req(s, k)?.clone() };
+        let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
     crate::ntt::poser_ntt(&mut f, &ent_l, s, &fin_jour)?;

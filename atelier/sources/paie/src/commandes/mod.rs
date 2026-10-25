@@ -88,9 +88,9 @@ use std::rc::Rc;
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::echec::Echec;
 use analyse::{Args, Spec};
 
 /// Ce qu'une commande trouve en arrivant : la compagnie, le jour, et ses options.

@@ -18,11 +18,13 @@ use std::path::Path;
 use serde_json::{json, Value};
 
 use crate::coffre::{Coffre, Echec as EchecCoffre};
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::filet::exiger_mot_de_passe;
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_etats::{coffre_etat_de, version};
 
 /// Les routes que ce module sert.
@@ -88,8 +90,8 @@ fn en_coffre(x: EchecCoffre) -> Echec {
 
 /// `datetime.now().isoformat(timespec="minutes")`, a l'heure de Paris : ce que `coffre._maintenant` posait.
 fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_minutes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_minutes(t)
 }
 
 fn coffre(ctx: &Contexte) -> Coffre {
@@ -135,7 +137,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         let v = optionnel(charge, cle);
         let brut = if vrai(v) { py_str(v) } else { String::new() };
         let sans = crate::champs::sans_accents(&brut);
-        let net = sans.split(crate::retours::blanc_py).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
+        let net = sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
         if net.is_empty() {
             return Err(refus(format!(
                 "Le {} du compte Urssaf manque. Il est celui du compte ouvert sur urssaf.fr pour la DPAE -- pas forcement celui de la personne qui signe. Rien n'a ete modifie.",
@@ -151,11 +153,11 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let mut contenu = crate::routes_etats::lire_json_ou_vide(&chemin)?;
     let Value::Object(entreprise) = &mut contenu else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(&contenu))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&contenu))));
     };
     let mut cfg = match entreprise.get("api_dpae").filter(|v| vrai(v)) {
         Some(Value::Object(o)) => o.clone(),
-        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(autre)))),
+        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
         None => serde_json::Map::new(),
     };
     for (cle, v) in propres {
@@ -163,9 +165,9 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     entreprise.insert("api_dpae".into(), Value::Object(cfg));
     crate::routes_contrats::sauver_avant(&chemin)?;
-    crate::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
+    socle::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
     // L'etat se lit sur la fiche qu'on vient d'ecrire : `ctx` l'a lue avant.
-    let relue = crate::contexte::telle_qu_au(&contenu, &ctx.date).map_err(Echec::from)?;
+    let relue = droit::contexte::telle_qu_au(&contenu, &ctx.date).map_err(Echec::from)?;
     coffre_etat_de(&ctx.racine, &relue)
 }
 
@@ -234,7 +236,7 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// un calcul s'appliquera au prochain demarrage meme si un mois saisi n'a pas sa DSN. La decision s'ecrit dans
 /// `maj/prete.json` de l'installation ; la reponse est celle de `maj-etat`.
 fn maj_malgre_calcul(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
-    let inst = crate::fichiers::dossier_du_code().join("..").join("..");
+    let inst = socle::fichiers::dossier_du_code().join("..").join("..");
     let Some(mut p) = crate::routes_etats::prete(&inst)? else {
         return Err(refus("Aucune version prete."));
     };
@@ -244,6 +246,6 @@ fn maj_malgre_calcul(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     m.insert("malgre_calcul".into(), Value::Bool(true));
     let chemin = crate::maj::dossier_maj(&inst).join("prete.json");
     // `write_text(json.dumps(p, ensure_ascii=False, indent=1))` : sans saut de ligne final.
-    std::fs::write(&chemin, crate::ecriture::json_py(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
+    std::fs::write(&chemin, socle::ecriture::json_py(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
     version(o, ctx)
 }

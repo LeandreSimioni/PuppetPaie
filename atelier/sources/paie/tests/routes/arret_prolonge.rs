@@ -20,8 +20,8 @@
 //!   la DSN mensuelle (ameli).
 
 use crate::outils::{self, compagnie, dossier_de_test, ecrire, lire, refus, reussi};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Arret, Options};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};

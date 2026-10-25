@@ -5,8 +5,8 @@
 //! `atelier/reference/sources/code-du-travail/articles-20261013.md` (L1234-5, L1226-14, L1221-25, L1221-26).
 
 use crate::outils::{self, compagnie};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::engagement::charger;
 use paie::fctu::{self, Echec};
 use serde_json::{json, Value};
@@ -68,9 +68,9 @@ fn le_preavis_non_effectue_d_un_licenciement_se_declare_en_023() {
 #[test]
 fn le_code_032_n_accompagne_qu_une_inaptitude() {
     // CCH-29 : avec 032, le motif de rupture est 033, 091, 092 ou 099 ; un 032 avec un licenciement ordinaire refuse.
-    assert_eq!(paie::permanents::code_52_permis(Some("032"), Some("092")).unwrap(), None);
-    assert_eq!(paie::permanents::code_52_permis(Some("032"), Some("033")).unwrap(), None);
-    let refus = paie::permanents::code_52_permis(Some("032"), Some("020")).unwrap().expect("032 avec 020");
+    assert_eq!(droit::permanents::code_52_permis(Some("032"), Some("092")).unwrap(), None);
+    assert_eq!(droit::permanents::code_52_permis(Some("032"), Some("033")).unwrap(), None);
+    let refus = droit::permanents::code_52_permis(Some("032"), Some("020")).unwrap().expect("032 avec 020");
     assert!(refus.contains("CCH-29") && refus.contains("092"), "{}", refus);
 }
 

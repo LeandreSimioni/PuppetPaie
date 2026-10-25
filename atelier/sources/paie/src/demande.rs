@@ -502,7 +502,7 @@ mod terminal_unix {
 mod tests {
     use super::*;
     use crate::coffre::{oublier_mot_de_passe_tape, CONSULTATION};
-    use crate::contexte::Contexte;
+    use droit::contexte::Contexte;
     use serde_json::json;
     use std::path::PathBuf;
     use std::sync::{Mutex, MutexGuard};

@@ -16,9 +16,9 @@
 use std::path::{Path, PathBuf};
 
 use paie::calcul::{calculer, Paie};
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use paie::courriel::{self, BoiteSimulee, Client, Courriel, ErreurCourriel};
-use paie::date::d;
+use socle::date::d;
 use paie::engagement::{engagements_du_fichier, LignesPermanent};
 use paie::envoi::{self, Hasards, Message};
 use serde_json::{json, Value};

@@ -32,7 +32,7 @@ const DEPOT = path.resolve(__dirname, "../../..");
 const PAIE_PAR_DEFAUT = [
   process.env.PUPPETPAIE_ATELIER,
   process.env.CARGO_TARGET_DIR && path.join(process.env.CARGO_TARGET_DIR, "essais/paie-atelier"),
-  path.join(DEPOT, "atelier/sources/paie/target/essais/paie-atelier"),
+  path.join(DEPOT, "atelier/sources/target/essais/paie-atelier"),
 ].filter(Boolean);
 // Les secrets du poste ne vont jamais à la fenêtre du banc.
 const RETIREES = ["NET_ENTREPRISES_MOTDEPASSE", "URSSAF_MOTDEPASSE", "COURRIEL_COMPTE", "COURRIEL_MOTDEPASSE",

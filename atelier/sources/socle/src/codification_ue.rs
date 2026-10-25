@@ -58,7 +58,7 @@ pub fn code_du_pays(iso: &str) -> &'static str {
 }
 
 fn texte(fiche: &Value, cle: &str) -> Option<String> {
-    fiche.get(cle).filter(|v| vrai(v)).map(|v| crate::etats::py_str(v).trim().to_string()).filter(|t| !t.is_empty())
+    fiche.get(cle).filter(|v| vrai(v)).map(|v| crate::valeur::py_str(v).trim().to_string()).filter(|t| !t.is_empty())
 }
 
 fn qui(fiche: &Value) -> String {

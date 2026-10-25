@@ -11,8 +11,9 @@
 use serde_json::Value;
 
 use crate::dpae::ascii_nfkd;
-use crate::fichiers::vrai;
-use crate::retours::{est_chiffre, Echec};
+use socle::fichiers::vrai;
+use crate::retours::{est_chiffre};
+use socle::echec::Echec;
 use crate::usages::{lignes, strip};
 
 type Resultat<T> = Result<T, Echec>;
@@ -70,7 +71,7 @@ pub const LONGUEUR_DPAE: i64 = 990;
 
 #[track_caller]
 fn refus(classe: &'static str, message: impl Into<String>) -> Echec {
-    crate::etats::noter_et(Some(classe), message)
+    socle::echec::noter_et(Some(classe), message)
 }
 
 #[track_caller]
@@ -465,7 +466,7 @@ pub fn identifiants(declarant: &Value, arobase: bool) -> Resultat<Vec<String>> {
             None => "",
             Some(Value::String(s)) => s.as_str(),
             Some(x) => {
-                return Err(refus("TypeError", crate::fichiers::attendu("un texte", type_python(x))));
+                return Err(refus("TypeError", socle::fichiers::attendu("un texte", type_python(x))));
             }
         };
         if v != ascii_nfkd(v) {

@@ -25,8 +25,8 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
-use crate::date::Jour;
-use crate::num::Resultat;
+use socle::date::Jour;
+use socle::num::Resultat;
 
 /// Un releve fait, pret a s'ecrire.
 pub struct Releve {
@@ -42,7 +42,7 @@ pub struct Releve {
 impl Releve {
     /// Les octets du fichier : `json.dump(donnees, ensure_ascii=False, indent=n)`, en LF.
     pub fn octets(&self) -> Vec<u8> {
-        let mut t = crate::ecriture::json_py(&self.donnees, self.indent);
+        let mut t = socle::ecriture::json_py(&self.donnees, self.indent);
         if self.saut_final {
             t.push('\n');
         }
@@ -165,7 +165,7 @@ pub(crate) fn nom_de(chemin: &Path) -> String {
 /// L'empreinte SHA-256 du fichier, en hexadecimal.
 pub(crate) fn sha256(chemin: &Path) -> Resultat<String> {
     let octets = std::fs::read(chemin).map_err(|e| format!("{} illisible ({})", chemin.display(), e))?;
-    Ok(crate::fichiers::sha256_hex(&octets))
+    Ok(socle::fichiers::sha256_hex(&octets))
 }
 
 /// `" ".join(texte.split())` : les blancs (au sens de Python) ramenes a un, sans blanc au bord.
@@ -180,7 +180,7 @@ pub(crate) fn nfc(texte: &str) -> String {
 
 /// Une case d'un classeur en texte comme le releve sur PDF le rend : vide pour une case vide, sinon `str()` de la valeur,
 /// blancs ramenes a un, en forme composee (NFC).
-pub(crate) fn propre(c: &Option<crate::lecture_xlsx::Cellule>) -> String {
+pub(crate) fn propre(c: &Option<socle::lecture_xlsx::Cellule>) -> String {
     match c {
         None => String::new(),
         Some(c) => nfc(&blancs_ramenes(&c.py_str())),

@@ -21,14 +21,15 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::courriel::{self, BoiteSimulee, Client, Courriel};
 use crate::depot_acte::{verifier_preuve, Preuve};
 use crate::envoi::{self, Message};
-use crate::etats::{erreur, py_str};
-use crate::fichiers::{repr, vrai};
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::{repr, vrai};
 use crate::journal::{self, Note};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub(crate) type R<T> = Result<T, Echec>;
 
@@ -71,8 +72,8 @@ pub(crate) fn refus(message: impl Into<String>) -> Echec {
 /// `d[cle]` : `KeyError` si elle manque.
 pub(crate) fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
     match d {
-        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(autre)))),
+        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     }
 }
 
@@ -202,7 +203,7 @@ pub(crate) fn mailto(adresse: &str, objet: &str, corps: &str) -> String {
 }
 
 /// `date.fromisoformat(texte)` : `AAAA-MM-JJ` ou `AAAAMMJJ`.
-pub(crate) fn jour_iso(texte: &str) -> Option<crate::date::Jour> {
+pub(crate) fn jour_iso(texte: &str) -> Option<socle::date::Jour> {
     let chiffres = |t: &str| t.chars().all(|c| c.is_ascii_digit());
     let (a, m, j) = match texte.len() {
         10 if texte.is_char_boundary(4) && texte.is_char_boundary(7) && &texte[4..5] == "-" && &texte[7..8] == "-" => (&texte[..4], &texte[5..7], &texte[8..10]),
@@ -212,7 +213,7 @@ pub(crate) fn jour_iso(texte: &str) -> Option<crate::date::Jour> {
     if !(chiffres(a) && chiffres(m) && chiffres(j)) {
         return None;
     }
-    crate::date::Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
+    socle::date::Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
 }
 
 /// `str.capitalize()`.
@@ -371,7 +372,7 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
 pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
     let debut = std::time::Instant::now();
     let (data, paies) = crate::routes_documents::charger_le_mois_avec(o, ctx, mois, false)?;
-    let mois_saisie = data.get("mois").map(crate::date::en_texte).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
     if !dossier.exists() {
         return Err(erreur("SortieAbsente", format!("{} n'existe pas.", dossier.display())));
@@ -396,7 +397,7 @@ pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: 
             expediteur, signataire
         ));
     }
-    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, client, preparation_ms: crate::temps::duree(debut).as_millis() })
+    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, client, preparation_ms: socle::temps::duree(debut).as_millis() })
 }
 
 /// Ce qui suit la preparation : la PREUVE (le mot de passe du logiciel), l'envoi, le journal. `qui` : la ligne du journal.
@@ -406,7 +407,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
     // LA DUREE DE CHAQUE ETAPE (08/10/2026 : un envoi de deux courriels a pris quatre minutes, sans qu'on sache ou).
     let t_preuve = std::time::Instant::now();
     verifier_preuve(ctx, Some(preuve), mois, "envoi des documents du mois aux salaries", &a_qui)?;
-    let preuve_ms = crate::temps::duree(t_preuve).as_millis();
+    let preuve_ms = socle::temps::duree(t_preuve).as_millis();
     let t_envoi = std::time::Instant::now();
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client.as_mut(), None, None) {
         Ok(p) => p,
@@ -415,7 +416,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
             return Err(echec_d_envoi(e.message));
         }
     };
-    let envoi_ms = crate::temps::duree(t_envoi).as_millis();
+    let envoi_ms = socle::temps::duree(t_envoi).as_millis();
     let detail = json!({
         // Ce que chaque salarie a recu : ses pieces, l'empreinte de sa paie et son resume (ticket #240 : ce qui dira, si sa
         // paie change, que ses documents sont a renvoyer, et ce qui a change), et si c'etait un renvoi.
@@ -490,7 +491,7 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes_dossier_salarie:
     }
     let mut messages: Vec<Message> = Vec::new();
     for (cle, f) in d.salaries.iter().zip(&d.fichiers) {
-        let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))?;
+        let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
         let Some(email) = s.get("email").filter(|v| vrai(v)).map(py_str) else {
             return Err(refus(format!(
                 "Pas d'adresse e-mail pour {} {} : compléter sa fiche avant d'envoyer. Rien n'est parti.",
@@ -612,7 +613,7 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),
         Some(Value::Object(o)) => o.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
-        Some(autre) => return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(autre)))),
+        Some(autre) => return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     };
     let aujourdhui = crate::routes_dossier_salarie::aujourdhui_reel();
     let mut dates: Vec<(String, String)> = Vec::new();
@@ -656,7 +657,7 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     }
 
     let mut client = ouvrir()?;
-    let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", crate::fichiers::trop_courte("les mois de la régularisation")))?;
+    let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de la régularisation")))?;
     verifier_preuve(ctx, Some(&preuve_de(charge)), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
 
     let messages = vec![

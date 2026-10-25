@@ -5,10 +5,10 @@
 //! de `fictive-3090-grande` et `fictive-1285-grande` avec leurs DSN deposees (`compagnie::ses_dsn`).
 
 use crate::outils::{self, compagnie, dec, ecrire, lire, valeur, versement};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 

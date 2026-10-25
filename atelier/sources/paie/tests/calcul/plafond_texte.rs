@@ -15,11 +15,11 @@
 //! le dossier temporaire des tests.
 
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::{charger, Saisie};
-use paie::num::{eur, Decimal, Resultat};
+use socle::num::{eur, Decimal, Resultat};
 use serde_json::{json, Value};
 use crate::outils::{dec, fictive, versement};
 

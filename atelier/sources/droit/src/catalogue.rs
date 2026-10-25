@@ -9,8 +9,8 @@
 //! l'ecran et de l'audit, pas du calcul), `Rubrique.jours` (qui ne fait que
 //! refuser).
 
-use crate::fichiers::{dossier_du_code, lire_json, repr, signature, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{dossier_du_code, lire_json, repr, signature, vrai};
+use socle::num::Resultat;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::path::Path;
@@ -258,7 +258,7 @@ impl Rubrique {
 
 /// `_lire` : un fichier absent est un dictionnaire vide.
 fn lire(p: &Path) -> Resultat<Value> {
-    if !crate::fichiers::existe(p) {
+    if !socle::fichiers::existe(p) {
         return Ok(Value::Object(Map::new()));
     }
     lire_json(p)
@@ -283,7 +283,7 @@ pub fn annexes() -> Resultat<Value> {
 
 /// `d["cle"]` : un `KeyError` Python se lit `'cle'`.
 fn requis<'a>(d: &'a Map<String, Value>, cle: &str) -> Resultat<&'a Value> {
-    d.get(cle).ok_or_else(|| crate::fichiers::absent(cle))
+    d.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 fn chaine_opt(d: &Map<String, Value>, cle: &str) -> Option<String> {
@@ -384,7 +384,7 @@ fn construire_catalogue(racine: &Path) -> Resultat<Vec<Rubrique>> {
     }
     let mut choix: Vec<String> = Vec::new();
     let mut usages = Map::new();
-    if crate::fichiers::est_dossier(racine) {
+    if socle::fichiers::est_dossier(racine) {
         let propres = lire(&racine.join("config").join("rubriques-compagnie.json"))?;
         if let Some(Value::Object(m)) = propres.get("rubriques") {
             for (c, v) in m {
@@ -446,17 +446,17 @@ pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
     if let Some(c) = cache.lock().unwrap().get(&cle) {
         // Un catalogue servi par le cache a lu ses fichiers quand meme, pour l'empreinte du calcul -- seulement quand un
         // calcul suivi les note (sinon, autant de lectures du disque pour rien a chaque rubrique, ticket #244).
-        if !crate::fichiers::registre_ouvert() {
+        if !socle::fichiers::registre_ouvert() {
             return Ok(c.clone());
         }
-        crate::fichiers::est_dossier(racine);
+        socle::fichiers::est_dossier(racine);
         for p in [
             dossier_du_code().join("rubriques-base.json"),
             racine.join("config").join("rubriques-compagnie.json"),
             racine.join("config").join("rubriques-actives.json"),
         ] {
-            if crate::fichiers::existe(&p) {
-                crate::fichiers::noter_si_besoin(&p);
+            if socle::fichiers::existe(&p) {
+                socle::fichiers::noter_si_besoin(&p);
             }
         }
         return Ok(c.clone());

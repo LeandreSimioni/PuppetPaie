@@ -9,9 +9,9 @@
 //! (2025-2026, tous les mois, deux departs, durees 1 a 62 jours, 0, 1, 3 ou 6 cachets, artiste ou technicien), et a
 //! `plafond-dates.json`, ecrit a la main depuis les memes textes.
 
-use paie::fichiers::lire_json;
-use paie::num::Decimal;
-use paie::plafond::{plafond_urssaf, pour_paie, prorata_calendaire, pss_depuis_table, EngagementPlafond, Jour};
+use socle::fichiers::lire_json;
+use socle::num::Decimal;
+use droit::plafond::{plafond_urssaf, pour_paie, prorata_calendaire, pss_depuis_table, EngagementPlafond, Jour};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::Path;

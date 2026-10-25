@@ -13,7 +13,7 @@ use super::actes::{mois_valide, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, enveloppe, erreur, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "nouveau",
@@ -77,7 +77,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             }
         }
     }
-    crate::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| Echec { classe: Some("OSError"), message: m })?;
+    socle::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| Echec { classe: Some("OSError"), message: m })?;
 
     // Ce qui court encore, relu apres l'ecriture (`deja_repris` dit ce que le fichier vient de recevoir).
     let courants = en_cours(cadre, mois)?;
@@ -93,7 +93,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("{} contrat(s) en cours depuis un mois precedent :", courants.len());
         for (c, _) in &courants {
             let numero = match c.get("numero") {
-                Some(n) if crate::fichiers::vrai(n) => super::rendu::texte(n),
+                Some(n) if socle::fichiers::vrai(n) => super::rendu::texte(n),
                 _ => "?".to_string(),
             };
             dire!(

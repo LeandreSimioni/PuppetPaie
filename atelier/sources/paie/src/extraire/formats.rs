@@ -44,9 +44,9 @@ use serde_json::{json, Map, Value};
 
 use super::usages::{en_classeur, version_du_cahier};
 use super::{date_du_releve, nom_de, sha256, Releve};
-use crate::date::Jour;
-use crate::lecture_xlsx::{self, Cellule};
-use crate::num::Resultat;
+use socle::date::Jour;
+use socle::lecture_xlsx::{self, Cellule};
+use socle::num::Resultat;
 use crate::usages::{espace, strip};
 
 /// Une expression ecartee : (rubrique, expression).
@@ -219,7 +219,7 @@ fn entier_py(c: &Cellule) -> Resultat<i64> {
         Cellule::Flottant(f) if f.is_finite() => Ok(f.trunc() as i64),
         Cellule::Booleen(b) => Ok(*b as i64),
         Cellule::Texte(s) => {
-            strip(s).parse::<i64>().map_err(|_| format!("longueur illisible : {}", crate::fichiers::repr(s)))
+            strip(s).parse::<i64>().map_err(|_| format!("longueur illisible : {}", socle::fichiers::repr(s)))
         }
         Cellule::Flottant(f) => Err(format!("longueur illisible : {}", f)),
     }

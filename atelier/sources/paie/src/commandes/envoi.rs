@@ -25,7 +25,7 @@ use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{enveloppe, erreur, rendre};
 use super::Cadre;
 use crate::depot_acte::Preuve;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "envoi", positionnels: &[Pos::requis("fichier")], options: &[Opt::drapeau("sans-navigateur"), Opt::drapeau("json")] };
 

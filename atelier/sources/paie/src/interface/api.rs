@@ -126,7 +126,7 @@ pub fn separateurs_windows(chemin: &str) -> String {
 /// Ouvre une adresse dans le navigateur du poste.
 pub fn ouvrir_adresse(url: &str) -> Result<(), String> {
     // En essai, le garde-fou reseau : aucun navigateur vers une adresse reelle.
-    crate::garde_reseau::directe(&crate::garde_reseau::hote_de(url))?;
+    socle::garde_reseau::directe(&socle::garde_reseau::hote_de(url))?;
     #[cfg(windows)]
     let r = Command::new("rundll32").args(["url.dll,FileProtocolHandler", url]).spawn();
     #[cfg(target_os = "macos")]
@@ -212,7 +212,7 @@ fn ouvrir_import(racine: &Path, charge: &Value) -> Result<Value, Refus> {
 }
 
 fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
-    charge.get(cle).and_then(Value::as_str).map(String::from).ok_or_else(|| Refus::simple("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).and_then(Value::as_str).map(String::from).ok_or_else(|| Refus::simple("KeyError", socle::fichiers::absent(cle)))
 }
 
 fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
@@ -295,7 +295,7 @@ fn ouvrir_sous(dossier: PathBuf, absent: &str) -> Result<Value, Refus> {
 }
 
 fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    let vers = |f: crate::retours::Echec| Refus::simple(f.classe.unwrap_or("ErreurOperation"), f.message);
+    let vers = |f: socle::echec::Echec| Refus::simple(f.classe.unwrap_or("ErreurOperation"), f.message);
     let mot = charge.get("motdepasse").cloned().unwrap_or(Value::Null);
     crate::filet::exiger_mot_de_passe(racine, &mot, "lier le compte Google").map_err(vers)?;
     let url = |u: &str| {
@@ -415,7 +415,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
 /// La reponse a `/api/<nom>`, au format que la page attend.
 pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, etats: Option<&FileDesEtats>) -> Value {
     let debut = std::time::Instant::now();
-    let debut_ms = crate::diagnostic::maintenant_ms();
+    let debut_ms = socle::temps::maintenant_ms();
     let avant = DANS_LA_PAGE.with(|d| d.replace(true));
     let rendu = traiter(racine, nom, charge, veille, etats);
     DANS_LA_PAGE.with(|d| d.set(avant));
@@ -423,7 +423,7 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
     // LE FIL : la route de la page, sa charge mise en forme, sa duree, son issue. Une erreur de la page (`incident-navigateur`)
     // s'y dit comme telle.
     if nom == "incident-navigateur" {
-        let c = |k: &str| charge.get(k).map(crate::etats::py_str).unwrap_or_default();
+        let c = |k: &str| charge.get(k).map(socle::valeur::py_str).unwrap_or_default();
         crate::diagnostic::noter_moteur(&format!(
             "erreur JS {} : {} ({}:{})",
             c("genre"),

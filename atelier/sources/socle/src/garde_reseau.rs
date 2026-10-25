@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn dans_un_essai_rien_ne_sort_de_la_machine() {
         assert!(en_essai(), "Cargo doit poser {} pour les essais (.cargo/config.toml)", VARIABLE);
-        for url in [crate::editeur::SERVEUR_PAR_DEFAUT, "https://services.net-entreprises.fr/", "https://oauth2.googleapis.com/token", crate::maj::DEPOT_PAR_DEFAUT] {
+        for url in ["https://filet.puppetpaie.fr", "https://services.net-entreprises.fr/", "https://oauth2.googleapis.com/token", "https://github.com/LeandreSimioni/PuppetPaie/releases/latest/download"] {
             assert!(sortie(url).is_err(), "{}", url);
         }
         assert!(directe("smtp.gmail.com").is_err());

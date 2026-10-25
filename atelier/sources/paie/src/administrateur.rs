@@ -44,11 +44,14 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::coffre::Coffre;
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, est, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use crate::etats::{self, est};
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
@@ -127,7 +130,7 @@ fn ecrire_registre(inst: &Path, entrees: &[Value]) -> Result<(), String> {
         "_lisez_moi": "Les compagnies que gere l'administrateur de ce logiciel : un seul mot de passe les ouvre toutes. Aucun secret ici.",
         "compagnies": entrees,
     });
-    crate::ecriture::ecrire_json(&p, &v, 2)
+    socle::ecriture::ecrire_json(&p, &v, 2)
 }
 
 /// Les compagnies rattachees a l'administrateur, telles qu'elles sont sur le disque (un dossier parti n'y est plus). Une
@@ -483,7 +486,7 @@ fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r:
             let mois = texte("mois");
             let e = r.get("echeance_depot").cloned().unwrap_or(Value::Null);
             d.insert("genre".into(), json!("dsn"));
-            d.insert("titre".into(), json!(format!("DSN de {}", crate::date::libelle_du_mois_ou_tel_quel(&mois, crate::date::Graphie::Accentuee))));
+            d.insert("titre".into(), json!(format!("DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&mois, socle::date::Graphie::Accentuee))));
             d.insert("mois".into(), json!(mois));
             d.insert("butoir".into(), e.get("jour").cloned().unwrap_or(Value::Null));
             d.insert("quand".into(), e.get("phrase").cloned().unwrap_or(Value::Null));
@@ -595,7 +598,7 @@ pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value
     }
     declarations.sort_by_key(cle_d_urgence);
     let t = json!({"le": ctx.aujourdhui.iso(), "declarations": declarations, "empreinte": empreinte});
-    let _ = crate::ecriture::ecrire_json(&ctx.racine.join(TABLEAU), &t, 2);
+    let _ = socle::ecriture::ecrire_json(&ctx.racine.join(TABLEAU), &t, 2);
     Ok(t)
 }
 

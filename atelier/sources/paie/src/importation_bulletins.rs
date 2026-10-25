@@ -47,13 +47,15 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 
 use crate::bulletin_lu::{self, BulletinLu, Compteurs, Refus, Table};
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::importation_completer as completer;
 use crate::importation_tri::Sorte;
-use crate::num::Decimal;
+use socle::num::Decimal;
 use crate::routes_importation::{self as ri, ACreer, Apercu, CleEngagement};
 
 /// Les sorts du compte rendu, dans l'ordre ou il les compte.
@@ -1232,9 +1234,9 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
     // de cadre imprimes priment sur ceux du catalogue. Un intitule qui ne nomme aucun metier, ou plusieurs, reste tel
     // quel : le metier se choisit dans la fiche apres l'import, et l'apercu le dit.
     let intitule = f.get("emploi").map(py_str).unwrap_or_default();
-    if let Some((code, feminin)) = crate::emplois::par_intitule(&intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
+    if let Some((code, feminin)) = droit::emplois::par_intitule(&intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
         let cadre = f.get("statut_categoriel_rc").map(py_str).map(|s| s == "01");
-        let r = crate::emplois::resoudre(&code, cadre, feminin).map_err(|m| erreur("ErreurOperation", m))?;
+        let r = droit::emplois::resoudre(&code, cadre, feminin).map_err(|m| erreur("ErreurOperation", m))?;
         for (k, v) in r.as_object().into_iter().flatten() {
             if v.is_null() || (k == "statut" && f.contains_key("statut")) {
                 continue;

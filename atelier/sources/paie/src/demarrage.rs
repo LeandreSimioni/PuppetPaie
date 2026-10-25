@@ -13,9 +13,9 @@
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
@@ -148,7 +148,7 @@ fn une_suspension_non_remuneree(ctx: &Contexte) -> bool {
         crate::imprevus::est_une_suspension(imp)
             && imp
                 .get("motif")
-                .map(crate::date::en_texte)
+                .map(socle::date::en_texte)
                 .and_then(|m| crate::imprevus::motif_de_suspension(&m).ok().flatten())
                 .is_some_and(|m| !m.get("remunere").is_some_and(vrai))
     })
@@ -246,9 +246,9 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // La sante d'un permanent suspendu sans indemnisation tout un mois : hors de la 3090, aucun texte ne la dit, et le mois
     // refuse tant que la fiche ne repond pas (`calcul::sante_de_la_suspension`). Elle ne se demande que si une suspension
     // non remuneree est saisie : un champ n'apparait que parce qu'un fait l'exige.
-    let idcc = ent.get("idcc").map(crate::date::en_texte).unwrap_or_default();
-    if idcc != "3090" && !valeur(ent, crate::calcul::SANTE_SUSPENSION).is_some_and(vrai) && une_suspension_non_remuneree(ctx) {
-        let cle = crate::calcul::SANTE_SUSPENSION;
+    let idcc = ent.get("idcc").map(socle::date::en_texte).unwrap_or_default();
+    if idcc != "3090" && !valeur(ent, droit::bareme::SANTE_SUSPENSION).is_some_and(vrai) && une_suspension_non_remuneree(ctx) {
+        let cle = droit::bareme::SANTE_SUSPENSION;
         let (libelle, aide) = champ(cle);
         out.push(manque(cle, libelle, "le mois d'un permanent suspendu sans indemnisation tout le mois", ENTREPRISE, Some(cle), aide));
     }

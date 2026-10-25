@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, enveloppe, rendre, texte};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC_ECHEANCIER: Spec = Spec {
     commande: "echeancier",
@@ -40,17 +40,17 @@ fn jour_le(args: &Args) -> Result<Option<String>, Echec> {
     } else if b.len() == 8 && chiffres(b) {
         (nombre(&b[..4]), nombre(&b[4..6]), nombre(&b[6..]))
     } else {
-        return Err(Echec { classe: Some("ValueError"), message: format!("date illisible : {}", crate::fichiers::repr(t)) });
+        return Err(Echec { classe: Some("ValueError"), message: format!("date illisible : {}", socle::fichiers::repr(t)) });
     };
     let refus = |m: &str| Err(Echec { classe: Some("ValueError"), message: m.to_string() });
     if an == 0 {
-        return refus(&crate::date::annee_impossible(0));
+        return refus(&socle::date::annee_impossible(0));
     }
     if !(1..=12).contains(&mois) {
-        return refus(&crate::date::mois_impossible(mois));
+        return refus(&socle::date::mois_impossible(mois));
     }
-    if jour < 1 || jour > crate::date::jours_du_mois(an as i32, mois) {
-        return refus(&crate::date::jour_impossible(an, mois, jour));
+    if jour < 1 || jour > socle::date::jours_du_mois(an as i32, mois) {
+        return refus(&socle::date::jour_impossible(an, mois, jour));
     }
     Ok(Some(format!("{:04}-{:02}-{:02}", an, mois, jour)))
 }
@@ -75,7 +75,7 @@ pub fn echeancier(cadre: &Cadre, args: &Args) -> i32 {
 fn cocher(cadre: &Cadre, cle: &str, fait: bool) -> i32 {
     match cadre.route("echeance-faite", json!({"cle": cle, "fait": fait, "qui": "ligne de commande"})) {
         Ok(r) => {
-            dire!("{} : {}.", champ(&r, "cle"), if r.get("fait").is_some_and(crate::fichiers::vrai) { "faite" } else { "a faire" });
+            dire!("{} : {}.", champ(&r, "cle"), if r.get("fait").is_some_and(socle::fichiers::vrai) { "faite" } else { "a faire" });
             0
         }
         Err(e) if super::actes::est_operation(e.classe) => {
@@ -97,7 +97,7 @@ fn faire_echeancier(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         rendre(&enveloppe("echeancier", r));
         return Ok(0);
     }
-    let compagnie = r.get("compagnie").filter(|v| crate::fichiers::vrai(v)).map(texte);
+    let compagnie = r.get("compagnie").filter(|v| socle::fichiers::vrai(v)).map(texte);
     dire!("Nous sommes le {}. {}{}.", champ(&r, "date"), champ(&r, "bienvenue"), compagnie.map(|c| format!(" -- {}", c)).unwrap_or_default());
     dire!();
     dire!("CE MOIS-CI");
@@ -106,7 +106,7 @@ fn faire_echeancier(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     for x in &ce_mois {
         let etat = champ(x, "etat");
         let avant = match x.get("date") {
-            Some(d) if crate::fichiers::vrai(d) && etat != "fait" => format!(" (avant le {})", texte(d)),
+            Some(d) if socle::fichiers::vrai(d) && etat != "fait" => format!(" (avant le {})", texte(d)),
             _ => String::new(),
         };
         dire!("  {} {}{}", marque(&etat), champ(x, "titre"), avant);
@@ -143,18 +143,18 @@ fn faire_rappels(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(0);
     }
     for x in &liste {
-        let en_retard = x.get("en_retard").is_some_and(crate::fichiers::vrai);
+        let en_retard = x.get("en_retard").is_some_and(socle::fichiers::vrai);
         dire!("{} {}", if en_retard { "!" } else { "-" }, champ(x, "titre"));
         dire!("    {}", champ(x, "question"));
-        if x.get("detail").is_some_and(crate::fichiers::vrai) {
+        if x.get("detail").is_some_and(socle::fichiers::vrai) {
             dire!("    {}", champ(x, "detail"));
         }
-        if x.get("fichier").is_some_and(crate::fichiers::vrai) {
+        if x.get("fichier").is_some_and(socle::fichiers::vrai) {
             dire!("    a deposer : {}", champ(x, "fichier"));
         }
         for s in x.get("spectacles").and_then(Value::as_array).cloned().unwrap_or_default() {
             let objet = match s.get("numero_objet") {
-                Some(o) if crate::fichiers::vrai(o) => texte(o),
+                Some(o) if socle::fichiers::vrai(o) => texte(o),
                 _ => "aucun numero".to_string(),
             };
             dire!("    {} : {}", champ(&s, "titre"), objet);

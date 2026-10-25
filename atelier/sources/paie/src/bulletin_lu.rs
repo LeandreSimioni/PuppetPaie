@@ -32,8 +32,8 @@ use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
 
-use crate::date::Jour;
-use crate::num::{Decimal, Resultat};
+use socle::date::Jour;
+use socle::num::{Decimal, Resultat};
 
 /// La table des gabarits, dans `logiciel/donnees/`.
 pub const FICHIER_TABLE: &str = "bulletins-gabarits-base.json";
@@ -477,8 +477,8 @@ fn resume(v: Option<&Value>, colonnes: &[(String, f64, f64)], ou: &str) -> Resul
 impl Table {
     /// La table livree (`logiciel/donnees/bulletins-gabarits-base.json`).
     pub fn livree() -> Resultat<Table> {
-        let chemin = crate::fichiers::dossier_du_code().join(FICHIER_TABLE);
-        Table::depuis(&*crate::fichiers::json_en_cache(&chemin)?)
+        let chemin = socle::fichiers::dossier_du_code().join(FICHIER_TABLE);
+        Table::depuis(&*socle::fichiers::json_en_cache(&chemin)?)
     }
 
     /// Une table, verifiee : un champ, une colonne ou une forme inconnue est un refus qui la nomme.
@@ -652,7 +652,7 @@ fn gabarit(g: &Value, i: usize) -> Resultat<Gabarit> {
                     let r = r.ok_or_else(|| format!("{} : `rubrique` manque", o))?.to_string();
                     let h = match m.get("heures") {
                         None => None,
-                        Some(x) => match crate::num::dec(x) {
+                        Some(x) => match socle::num::dec(x) {
                             Ok(h) if x.is_number() && h > Decimal::ZERO => Some(h),
                             _ => return Err(format!("{} : `heures` est un nombre d'heures positif", o)),
                         },
@@ -1644,9 +1644,9 @@ pub fn compteurs(b: &BulletinLu, racine: &Path) -> Resultat<Compteurs> {
             avertissements.push(format!("« {} » : sans rubrique du catalogue, la ligne n'entre dans aucun compteur", l.libelle));
             continue;
         };
-        let r = crate::catalogue::rubrique(racine, code)?;
+        let r = droit::catalogue::rubrique(racine, code)?;
         let cachet = r.unite == "cachet";
-        let forfait = r.heures_forfait.map(crate::num::dec_f64).transpose()?;
+        let forfait = r.heures_forfait.map(socle::num::dec_f64).transpose()?;
         let par_unite = forfait.or(l.heures).or_else(|| (r.unite == "heure").then_some(Decimal::ONE));
         if !cachet && par_unite.is_none() {
             continue; // un defraiement, un acompte : ni cachet ni heure
@@ -1701,7 +1701,7 @@ pub fn compteurs(b: &BulletinLu, racine: &Path) -> Resultat<Compteurs> {
         if cachets == Some(zero) {
             confronter("heures", "ses lignes", x, &mut heures);
         } else {
-            let forfait = crate::catalogue::rubrique(racine, "cachet")?.heures_forfait.map(crate::num::dec_f64).transpose()?;
+            let forfait = droit::catalogue::rubrique(racine, "cachet")?.heures_forfait.map(socle::num::dec_f64).transpose()?;
             let ensemble = match (heures, cachets, forfait) {
                 (Some(h), Some(c), Some(f)) => Some(h + c * f),
                 _ => None,

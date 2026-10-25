@@ -24,11 +24,14 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{eq_py, get, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use crate::etats::{get};
+use socle::valeur::eq_py;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::fichiers::vrai;
 use crate::incidents::{self, DEPOSE, EN_ATTENTE};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::{filet, problemes};
 
 /// Les routes que ce module sert.

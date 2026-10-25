@@ -8,8 +8,8 @@ use serde_json::{json, Map, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{debut, enveloppe, exiger, rendre};
 use super::Cadre;
-use crate::num::Decimal;
-use crate::retours::Echec;
+use socle::num::Decimal;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "droits",
@@ -43,7 +43,7 @@ fn texte(v: &Value, cle: &str) -> String {
 }
 
 fn vrai(v: &Value, cle: &str) -> bool {
-    v.get(cle).is_some_and(crate::fichiers::vrai)
+    v.get(cle).is_some_and(socle::fichiers::vrai)
 }
 
 /// `Decimal(v).quantize(Decimal("0.01"))`, au pair le plus proche comme le contexte de Python.
@@ -79,7 +79,7 @@ fn convertir_objet(o: &Value, sans: &[&str]) -> Map<String, Value> {
 /// `sortie_json.position_droits`.
 fn position_json(cle: &str, salarie: &Value, x: &Value, p: &Value) -> Value {
     let prenom = match salarie.get("prenom_affichage") {
-        Some(v) if crate::fichiers::vrai(v) => super::rendu::texte(v),
+        Some(v) if socle::fichiers::vrai(v) => super::rendu::texte(v),
         _ => salarie.get("prenom").map(super::rendu::texte).unwrap_or_default(),
     };
     let colonnes: Vec<Value> = x.get("colonnes").and_then(Value::as_array).map(|a| a.iter().map(|c| Value::Object(convertir_objet(c, &[]))).collect()).unwrap_or_default();
@@ -119,7 +119,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let mut lues: Vec<(String, Value, Value)> = Vec::new();
     for x in &positions {
         let cle = texte(x, "cle");
-        let fiche = cadre.ctx.salaries.get(&cle).cloned().ok_or(Echec { classe: Some("KeyError"), message: crate::fichiers::repr(&cle) })?;
+        let fiche = cadre.ctx.salaries.get(&cle).cloned().ok_or(Echec { classe: Some("KeyError"), message: socle::fichiers::repr(&cle) })?;
         lues.push((cle, fiche, x.clone()));
     }
 
@@ -170,7 +170,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         } else {
             dire!("  => il manque {} h, soit environ {} cachets.", n("manque"), n("cachets_manquants"));
         }
-        let anniversaire = x.get("anniversaire").is_some_and(crate::fichiers::vrai);
+        let anniversaire = x.get("anniversaire").is_some_and(socle::fichiers::vrai);
         if anniversaire && n("jours_restants") > 0 {
             dire!("  {:<34} {:>6} j", "avant le reexamen", n("jours_restants"));
         }
@@ -183,7 +183,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             dire!("  ({} h d'enseignement depassent le plafond : payees et", n("enseignement_perdu"));
             dire!("   declarees, mais sans effet sur les droits.)");
         }
-        if n("heures_enseignement") != 0 && p.get("date_naissance").map_or(true, |v| !crate::fichiers::vrai(v)) {
+        if n("heures_enseignement") != 0 && p.get("date_naissance").map_or(true, |v| !socle::fichiers::vrai(v)) {
             dire!("  (date de naissance absente de config/salaries.json : le");
             dire!("   plafond bas est applique, ce qui sous-estime peut-etre.)");
         }

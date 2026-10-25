@@ -2,9 +2,9 @@
 //! forme des JSON de la compagnie (indentation 2, accents tels quels, flottants ecrits au plus court) est figee : `prive/`
 //! est commite, et la changer ferait un diff sur tous ses fichiers deja ecrits.
 
-use paie::ecriture::{ecrire_json, json_py, repr_flottant};
+use socle::ecriture::{ecrire_json, json_py, repr_flottant};
 use paie::journal::{self, Note};
-use paie::verrou;
+use socle::verrou;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 

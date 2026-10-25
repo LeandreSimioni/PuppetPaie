@@ -13,9 +13,10 @@ use std::path::Path;
 use mailparse::{parse_mail, MailHeaderMap, ParsedMail};
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::courriel::{BoiteSimulee, Courriel, ErreurCourriel};
-use crate::etats::{erreur, R};
+use socle::echec::R;
+use socle::echec::erreur;
 
 const DOSSIER: &str = "courriels-simules";
 
@@ -308,7 +309,7 @@ pub fn courriels_fictifs(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !crate::routes_accueil::simulation_active(&ctx.racine) {
         return Err(erreur("ErreurOperation", "Seulement dans la compagnie fictive."));
     }
-    let apres = charge.get("apres").filter(|v| crate::fichiers::vrai(v)).map(crate::etats::py_str).unwrap_or_default();
+    let apres = charge.get("apres").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::py_str).unwrap_or_default();
     let (mut sortie, mut dernier) = (vec![], String::new());
     for (nom, octets) in courriels(&ctx.racine) {
         dernier = nom.clone();
@@ -380,7 +381,7 @@ pub fn reponse_jouee(de: &str, a: &str, sujet: &str, corps: &str, ident: &str) -
         corps: corps.to_string(),
         ..Default::default()
     };
-    let t = crate::temps::secondes().floor() as i64;
+    let t = socle::temps::secondes().floor() as i64;
     let mut frontiere = String::new;
     let octets = crate::envoi::en_mime_avec(
         &message,

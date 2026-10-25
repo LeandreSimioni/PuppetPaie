@@ -18,9 +18,10 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
-use crate::date::{d, en_texte, repr_py, repr_texte, Jour};
-use crate::fichiers::{dossier_du_code, vrai};
-use crate::num::{flottant, Resultat};
+use socle::date::{d, en_texte, repr_py, repr_texte, Jour};
+use socle::fichiers::{dossier_du_code, vrai};
+use socle::num::{flottant, Resultat};
+use socle::texte::{cle_recherche, sigle};
 
 // ------------------------------------------------------------ les petits outils
 
@@ -38,7 +39,7 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
 
 /// `x["cle"]` : le `KeyError` de Python s'ecrit `'cle'`.
 fn exiger<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    v.get(cle).ok_or_else(|| crate::fichiers::absent(cle))
+    v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 /// `str(x["cle"])`.
@@ -52,18 +53,18 @@ fn entier(v: &Value) -> Resultat<i64> {
         Value::Number(n) => n
             .as_i64()
             .or_else(|| n.as_f64().filter(|x| x.is_finite()).map(|x| x.trunc() as i64))
-            .ok_or_else(|| crate::fichiers::entier_hors_limites(&n.to_string())),
+            .ok_or_else(|| socle::fichiers::entier_hors_limites(&n.to_string())),
         Value::String(s) => s
             .trim()
             .parse::<i64>()
             .map_err(|_| format!("nombre entier illisible : {}", repr_texte(s))),
         Value::Bool(b) => Ok(i64::from(*b)),
-        autre => Err(crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre))),
+        autre => Err(socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre))),
     }
 }
 
 /// `"%g" % x`.
-pub(crate) fn format_g(x: f64) -> String {
+pub fn format_g(x: f64) -> String {
     if x == 0.0 {
         return "0".into();
     }
@@ -98,11 +99,11 @@ fn lire_json(p: &Path) -> Resultat<Value> {
     type Cache = Mutex<HashMap<PathBuf, ((u128, u64), Value)>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let sig = crate::fichiers::signature(p);
+    let sig = socle::fichiers::signature(p);
     if let Some(s) = sig {
         if let Some((vue, v)) = cache.lock().unwrap().get(p) {
             if *vue == s {
-                crate::fichiers::noter_si_besoin(p);
+                socle::fichiers::noter_si_besoin(p);
                 return Ok(v.clone());
             }
         }
@@ -115,8 +116,8 @@ fn lire_json(p: &Path) -> Resultat<Value> {
 }
 
 fn lire_json_sans_cache(p: &Path) -> Resultat<Value> {
-    let texte = crate::fichiers::lire_texte(p).map_err(|e| {
-        crate::fichiers::panne_fichier(&e, p)
+    let texte = socle::fichiers::lire_texte(p).map_err(|e| {
+        socle::fichiers::panne_fichier(&e, p)
     })?;
     serde_json::from_str(&texte).map_err(|e| format!("{} ({})", e, p.display()))
 }
@@ -128,77 +129,9 @@ fn objet(v: Value, nom: &str) -> Resultat<Map<String, Value>> {
     }
 }
 
-// ------------------------------------------------- util.py : la recherche floue
+// ------------------------------------------------- la recherche floue
 
-/// Les lettres accentuees du latin (Latin-1 et Latin etendu A) que
-/// `unicodedata.normalize("NFD")` decompose en lettre de base + diacritique.
-/// Pas de crate de normalisation : la table suffit aux noms de personnes.
-const ACCENTS: [(&str, char); 38] = [
-    ("àáâãäåāăą", 'a'),
-    ("ÀÁÂÃÄÅĀĂĄ", 'A'),
-    ("çćĉċč", 'c'),
-    ("ÇĆĈĊČ", 'C'),
-    ("ď", 'd'),
-    ("Ď", 'D'),
-    ("èéêëēĕėęě", 'e'),
-    ("ÈÉÊËĒĔĖĘĚ", 'E'),
-    ("ĝğġģ", 'g'),
-    ("ĜĞĠĢ", 'G'),
-    ("ĥ", 'h'),
-    ("Ĥ", 'H'),
-    ("ìíîïĩīĭį", 'i'),
-    ("ÌÍÎÏĨĪĬĮİ", 'I'),
-    ("ĵ", 'j'),
-    ("Ĵ", 'J'),
-    ("ķ", 'k'),
-    ("Ķ", 'K'),
-    ("ĺļľ", 'l'),
-    ("ĹĻĽ", 'L'),
-    ("ñńņň", 'n'),
-    ("ÑŃŅŇ", 'N'),
-    ("òóôõöōŏő", 'o'),
-    ("ÒÓÔÕÖŌŎŐ", 'O'),
-    ("ŕŗř", 'r'),
-    ("ŔŖŘ", 'R'),
-    ("śŝşš", 's'),
-    ("ŚŜŞŠ", 'S'),
-    ("ţť", 't'),
-    ("ŢŤ", 'T'),
-    ("ùúûüũūŭůűų", 'u'),
-    ("ÙÚÛÜŨŪŬŮŰŲ", 'U'),
-    ("ŵ", 'w'),
-    ("Ŵ", 'W'),
-    ("ŷÿý", 'y'),
-    ("ŶŸÝ", 'Y'),
-    ("źżž", 'z'),
-    ("ŹŻŽ", 'Z'),
-];
-
-/// La lettre de base d'un caractere accentue (NFD sans les marques), ou lui-meme.
-fn sans_diacritique(c: char) -> char {
-    ACCENTS.iter().find(|(lettres, _)| lettres.contains(c)).map_or(c, |(_, base)| *base)
-}
-
-/// `util.sans_accent` : sans les accents (NFD, marques retirees). Les lettres
-/// hors du latin courant sont gardees telles quelles.
-pub fn sans_accent(s: &str) -> String {
-    s.chars().filter(|c| !('\u{300}'..='\u{36f}').contains(c)).map(sans_diacritique).collect()
-}
-
-/// `util.cle_recherche` : minuscules, sans accent, sans ponctuation, espaces simples.
-pub fn cle_recherche(s: &str) -> String {
-    let bas: String = sans_accent(s).chars().flat_map(char::to_lowercase).collect();
-    let net: String = bas.chars().map(|c| if c.is_alphanumeric() { c } else { ' ' }).collect();
-    net.split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-/// `minima._sigle` : « Scène Ensemble » -> « SCENE ENSEMBLE » (NFKD, ASCII seul, majuscules).
-pub fn sigle(s: &str) -> String {
-    let ascii: String = sans_accent(s).chars().filter(char::is_ascii).collect();
-    ascii.to_uppercase().split_whitespace().collect::<Vec<_>>().join(" ")
-}
-
-/// `contexte._levenshtein`, sur les caracteres.
+/// La distance de Levenshtein, sur les caracteres.
 fn levenshtein(a: &str, b: &str) -> usize {
     if a == b {
         return 0;
@@ -236,7 +169,7 @@ pub fn telle_qu_au(fiche: &Value, date_ref: &Jour) -> Resultat<Value> {
     let mut champs: Vec<&str> = Vec::new();
     for e in entrees {
         let c = exiger(e, "champ")?;
-        let c = c.as_str().ok_or_else(|| format!("historique, 'champ' : {}", crate::fichiers::attendu("un texte", crate::etats::nom_type(c))))?;
+        let c = c.as_str().ok_or_else(|| format!("historique, 'champ' : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(c))))?;
         if !champs.contains(&c) {
             champs.push(c);
         }
@@ -278,7 +211,7 @@ pub struct Effectif {
 /// `Effectif.de` : lit `config/effectifs.json` (absent : vide).
 pub fn effectif_de(racine: &Path, fiche: &Value) -> Resultat<Effectif> {
     let p = racine.join("config").join("effectifs.json");
-    let brut = if crate::fichiers::existe(&p) { lire_json(&p)? } else { Value::Object(Map::new()) };
+    let brut = if socle::fichiers::existe(&p) { lire_json(&p)? } else { Value::Object(Map::new()) };
     let mut annees = BTreeMap::new();
     if let Some(Value::Object(o)) = brut.get("annees") {
         for (an, c) in o {
@@ -313,7 +246,7 @@ fn annee_de_premiere_embauche(fiche: &Value) -> Option<i32> {
 }
 
 impl Effectif {
-    pub(crate) fn annee(&self, a: i32) -> Option<f64> {
+    pub fn annee(&self, a: i32) -> Option<f64> {
         if let Some(v) = self.annees.get(&a) {
             return Some(*v);
         }
@@ -402,7 +335,7 @@ fn introuvable(message: String) -> Refus {
 
 /// `baremes.annees` : les annees dont le socle est livre.
 fn annees_du_socle(dossier: &Path) -> Vec<i32> {
-    let mut v: Vec<i32> = crate::fichiers::lister(dossier)
+    let mut v: Vec<i32> = socle::fichiers::lister(dossier)
         .into_iter()
         .flatten()
         .filter_map(|p| {
@@ -433,7 +366,7 @@ fn disponibles(dossier: &Path) -> String {
 /// `baremes.socle` : le socle livre de l'annee, ou `None`.
 fn socle(dossier: &Path, an: i32) -> Result<Option<Value>, String> {
     let p = dossier.join(format!("{}.json", an));
-    if !crate::fichiers::existe(&p) {
+    if !socle::fichiers::existe(&p) {
         return Ok(None);
     }
     lire_json(&p).map(Some)
@@ -1124,13 +1057,13 @@ fn a_la_date(obj: &Value, jour: &Jour, garder: &[&str]) -> Resultat<Value> {
 /// Le jour courant (UTC : sans fuseau, un `date.today()` local differe
 /// entre minuit et l'heure locale). Au temps du moteur (`temps`) : la montre, ou le temps simule du banc et du rejeu.
 pub fn jour_reel() -> Jour {
-    crate::temps::jour_utc()
+    socle::temps::jour_utc()
 }
 
 /// `contexte.aujourdhui` : `PUPPETPAIE_AUJOURDHUI` (AAAA-MM-JJ) remplace l'horloge.
 pub fn aujourdhui() -> Resultat<Jour> {
     let jour = aujourdhui_brut()?;
-    crate::fichiers::noter_valeur("aujourdhui", jour.iso());
+    socle::fichiers::noter_valeur("aujourdhui", jour.iso());
     Ok(jour)
 }
 
@@ -1141,8 +1074,8 @@ pub fn aujourdhui_sans_note() -> Resultat<Jour> {
 
 fn aujourdhui_brut() -> Resultat<Jour> {
     // LE TEMPS SIMULE (le banc d'essai, le rejeu d'un scenario : `temps`) fait foi : c'est lui qui dit quel jour on est.
-    if crate::temps::simule() {
-        return Ok(crate::temps::jour_de_paris());
+    if socle::temps::simule() {
+        return Ok(socle::temps::jour_de_paris());
     }
     match std::env::var("PUPPETPAIE_AUJOURDHUI") {
         Ok(v) if !v.is_empty() => Jour::lire(&v),
@@ -1238,7 +1171,7 @@ impl Contexte {
     /// `Contexte.echeance_dsn` : le 5 a partir de cinquante salaries, le 15 sinon
     /// (un effectif inconnu donne le 15).
     pub fn echeance_dsn(&self) -> Resultat<u32> {
-        crate::fichiers::noter_valeur("aujourdhui", self.aujourdhui.iso());
+        socle::fichiers::noter_valeur("aujourdhui", self.aujourdhui.iso());
         Ok(match self.effectif()?.atteint(50, self.aujourdhui.an) {
             Ok(true) => 5,
             _ => 15,
@@ -1273,11 +1206,11 @@ impl Contexte {
     pub fn empreinte_bareme(&self, an: i32) -> String {
         let cfg = self.racine.join("config");
         let sig = [
-            crate::fichiers::signature(&cfg.join("baremes").join(format!("{}.json", an))),
-            crate::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", an))),
-            crate::fichiers::signature(&cfg.join("effectifs.json")),
+            socle::fichiers::signature(&cfg.join("baremes").join(format!("{}.json", an))),
+            socle::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", an))),
+            socle::fichiers::signature(&cfg.join("effectifs.json")),
         ];
-        format!("{}|{}|{}|{:?}|{}|g{}", self.racine.display(), self.code.display(), an, sig, self.entreprise, crate::fichiers::generation())
+        format!("{}|{}|{}|{:?}|{}|g{}", self.racine.display(), self.code.display(), an, sig, self.entreprise, socle::fichiers::generation())
     }
 
     fn bareme_brut(&self, an: i32) -> Result<Arc<Value>, Refus> {
@@ -1292,13 +1225,13 @@ impl Contexte {
             return Ok(v.clone());
         }
         let fondu = Arc::new(self.bareme_brut_sans_cache(an)?);
-        crate::fichiers::ranger(cache, cle, fondu.clone());
+        socle::fichiers::ranger(cache, cle, fondu.clone());
         Ok(fondu)
     }
 
     fn bareme_brut_sans_cache(&self, an: i32) -> Result<Value, Refus> {
         let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
-        let fichier = if crate::fichiers::existe(&p) { Some(lire_json(&p)?) } else { None };
+        let fichier = if socle::fichiers::existe(&p) { Some(lire_json(&p)?) } else { None };
         let idcc = self.entreprise.get("idcc").filter(|v| !v.is_null());
         let fondu = bareme_de_l_annee(&self.code.join("baremes"), an, fichier, idcc)?;
         // Le controle est ici, le seul endroit qui compose un bareme.
@@ -1326,7 +1259,7 @@ impl Contexte {
             return Ok(v.clone());
         }
         let bar = Arc::new(self.bareme_sans_cache(jour)?);
-        crate::fichiers::ranger(cache, cle, bar.clone());
+        socle::fichiers::ranger(cache, cle, bar.clone());
         Ok(bar)
     }
 
@@ -1354,8 +1287,8 @@ impl Contexte {
         e.insert("prevoyance_techniciens_3097".into(), copie("prevoyance_techniciens_3097"));
         // Ce que le contrat de sante fait d'un mois entierement suspendu sans indemnisation (`calcul::sante_de_la_suspension`).
         // Absent : rien (la pile, et son empreinte, ne changent pas pour une compagnie qui ne l'a pas dit).
-        if let Some(v) = ent.get(crate::calcul::SANTE_SUSPENSION).filter(|v| vrai(v)) {
-            e.insert(crate::calcul::SANTE_SUSPENSION.into(), v.clone());
+        if let Some(v) = ent.get(crate::bareme::SANTE_SUSPENSION).filter(|v| vrai(v)) {
+            e.insert(crate::bareme::SANTE_SUSPENSION.into(), v.clone());
         }
         e.insert("organisation_patronale".into(), copie("organisation_patronale"));
         e.insert("organisation_patronale_depuis".into(), copie("organisation_patronale_depuis"));
@@ -1364,8 +1297,8 @@ impl Contexte {
         e.insert("etablissements".into(), ou_vide("etablissements", Value::Array(vec![])));
         // Le motif de non-assujettissement a la taxe d'apprentissage : la pile retire la taxe du bulletin et du
         // nominatif quand il vaut pour le mois (`bareme::bareme_taxe_apprentissage`, lot D1). Absent : rien.
-        if let Some(m) = ent.get(crate::assujettissement::CHAMP_MOTIF_TAXE_APPRENTISSAGE).filter(|v| vrai(v)) {
-            e.insert(crate::assujettissement::CHAMP_MOTIF_TAXE_APPRENTISSAGE.into(), m.clone());
+        if let Some(m) = ent.get(crate::apprentissage::CHAMP_MOTIF_TAXE_APPRENTISSAGE).filter(|v| vrai(v)) {
+            e.insert(crate::apprentissage::CHAMP_MOTIF_TAXE_APPRENTISSAGE.into(), m.clone());
         }
         bar.insert("_entreprise".into(), Value::Object(e));
         // Les etablissements secondaires : leur taux AT/MP et leur versement

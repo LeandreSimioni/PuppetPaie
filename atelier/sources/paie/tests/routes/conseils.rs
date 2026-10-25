@@ -405,7 +405,7 @@ fn le_conseil_du_jour_fait_le_tour_de_la_banque_sans_se_repeter() {
     assert!(n > 100, "{}", n);
     let mut vus = std::collections::BTreeSet::new();
     // Une annee civile : le bareme de l'annee fournit les chiffres dates (un conseil dont le gabarit ne se resout pas se tait).
-    let mut jour = paie::date::Jour::lire("2026-01-01").unwrap();
+    let mut jour = socle::date::Jour::lire("2026-01-01").unwrap();
     for _ in 0..n {
         let r = reussi(&route(c, "conseil-du-jour", json!({}), &jour.iso())).clone();
         assert!(vus.insert(r["conseil"]["id"].as_str().unwrap().to_string()), "repetition avant le tour : {}", r);

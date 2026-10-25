@@ -21,10 +21,13 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, py_str};
-use crate::fichiers::vrai;
-use crate::retours::{self, Echec};
+use droit::contexte::Contexte;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use crate::retours;
+use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 

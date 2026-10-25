@@ -10,11 +10,11 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnie inventee).
 
 use crate::outils::{self, compagnie, dec, fictive, paires as lignes};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
-use paie::num::Decimal;
+use socle::num::Decimal;
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};

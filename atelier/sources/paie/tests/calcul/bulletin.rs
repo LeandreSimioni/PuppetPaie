@@ -3,14 +3,14 @@
 //! (prelevement ou plafond absents, conges, enseignement, logo). `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, fictive, lire_oracle, oracle};
-use paie::bareme::canon;
+use droit::bareme::canon;
 use paie::bulletin::{description, fmt_eur, fmt_heures, fmt_taux, jeux_et_description, jj_mm_aaaa, jours, remboursements, Jeu};
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use paie::cumul::Colonne;
 use paie::conges::CompteurConges;
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::engagement::charger;
-use paie::num::{dec, Decimal};
+use socle::num::{dec, Decimal};
 use paie::oracle::entreprise_du_mois;
 use paie::pas::Versement;
 use serde_json::{json, Value};

@@ -18,7 +18,7 @@ use super::actes::{afficher_etapes, afficher_fichiers, est_operation, jj_mm_aaaa
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, enveloppe, erreur, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "dpae",
@@ -47,7 +47,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let mut liste = Vec::new();
         for x in &seulement {
             let Some((cle, debut)) = x.split_once(':') else {
-                dire!("--seulement attend SALARIE:AAAA-MM-JJ, recu {}", crate::fichiers::repr(x));
+                dire!("--seulement attend SALARIE:AAAA-MM-JJ, recu {}", socle::fichiers::repr(x));
                 return Ok(2);
             };
             liste.push(json!({"salarie": cle.trim(), "debut": debut.trim()}));
@@ -72,7 +72,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Err(e);
         }
     };
-    let retard = r.get("retard").is_some_and(crate::fichiers::vrai);
+    let retard = r.get("retard").is_some_and(socle::fichiers::vrai);
     if json {
         rendre(&enveloppe("dpae", r));
         return Ok(if retard { 3 } else { 0 });

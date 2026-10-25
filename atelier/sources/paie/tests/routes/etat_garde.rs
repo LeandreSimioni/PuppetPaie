@@ -31,7 +31,7 @@ fn toucher(racine: &Path, rel: &str) {
 
 /// L'etat garde de `mois` est-il juste ? Au jour d'un `Contexte` (`aujourdhui`, que la date des calculs ne regle pas).
 fn juste(racine: &Path, mois: &str) -> bool {
-    let jour = paie::contexte::aujourdhui_sans_note().unwrap().iso();
+    let jour = droit::contexte::aujourdhui_sans_note().unwrap().iso();
     servir(racine, mois, &jour).map(|(_, j)| j) == Some(true)
 }
 
@@ -223,13 +223,13 @@ fn une_ecriture_perime_l_ouverture_et_la_file_la_refait() {
 #[test]
 fn l_ouverture_dit_le_jour_du_moteur() {
     let racine = compagnie("ouverture-jour");
-    let jour = paie::date::Jour::lire("2026-10-05").unwrap();
-    paie::temps::figer(paie::temps::instant_de(jour, 9));
+    let jour = socle::date::Jour::lire("2026-10-05").unwrap();
+    socle::temps::figer(socle::temps::instant_de(jour, 9));
     let f = FileDesEtats::nouvelle(&racine, Some(JOUR));
     let o = ouvrir(&f, 120_000, false);
     assert_eq!(o["pret"], json!(true));
     assert_eq!(o["aujourdhui"], json!("2026-10-05"));
     assert_eq!(ouvrir(&f, 0, true)["aujourdhui"], json!("2026-10-05"), "l'ouverture fraiche aussi");
     f.arreter();
-    paie::temps::liberer();
+    socle::temps::liberer();
 }

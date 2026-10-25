@@ -37,8 +37,8 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::contexte::Contexte;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
@@ -180,7 +180,7 @@ const HORS_DE_L_ECRAN: [&str; 9] = [
 pub fn empreinte_de(racine: &Path, cle: &str, jour: &str) -> String {
     let ouverture = cle == OUVERTURE;
     let mut h = Sha256::new();
-    let mut marques = vec![env!("PAIE_SOURCES").to_string(), jour.to_string(), absolu(racine), absolu(&crate::fichiers::dossier_du_code())];
+    let mut marques = vec![env!("PAIE_SOURCES").to_string(), jour.to_string(), absolu(racine), absolu(&socle::fichiers::dossier_du_code())];
     if ouverture {
         marques.push(format!("ouverture {}", std::env::var("COURRIEL_COMPTE").unwrap_or_default()));
     }
@@ -209,7 +209,7 @@ pub fn empreinte_de(racine: &Path, cle: &str, jour: &str) -> String {
         signer_dossier(&mut h, racine, &racine.join("sorties").join(cle), true, &|n| n.starts_with(&sorties_du_mois));
     }
     // Le code livre : baremes, bases, modeles (une mise a jour les change sans changer le moteur).
-    let code = crate::fichiers::dossier_du_code();
+    let code = socle::fichiers::dossier_du_code();
     signer_dossier(&mut h, &code, &code, true, &|_| true);
     h.finalize().iter().map(|o| format!("{:02x}", o)).collect()
 }
@@ -296,7 +296,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
 /// ecriture impossible ne change rien au resultat : la prochaine lecture refera.
 fn ecrire(racine: &Path, mois: &str, etat: &Value) {
     let f = chemin(racine, mois);
-    let tmp = crate::ecriture::provisoire(&f);
+    let tmp = socle::ecriture::provisoire(&f);
     if std::fs::write(&tmp, etat.to_string()).is_ok() && std::fs::rename(&tmp, &f).is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
@@ -457,7 +457,7 @@ impl Fil {
         let f = Arc::new(Fil { etat: Mutex::new(EtatDuFil::default()), reveil: Condvar::new() });
         let fil = f.clone();
         crate::routes::fil_de_routes(move || {
-            crate::fil_de_fond::marquer();
+            socle::fil_de_fond::marquer();
             fil.tourner();
         });
         f
@@ -609,7 +609,7 @@ impl FileDesEtats {
 
     /// Le jour de l'empreinte : celui d'un `Contexte` (`aujourdhui`, que `date` ne regle pas).
     fn jour(&self) -> String {
-        crate::contexte::aujourdhui_sans_note().map(|j| j.iso()).unwrap_or_default()
+        droit::contexte::aujourdhui_sans_note().map(|j| j.iso()).unwrap_or_default()
     }
 
     /// La prochaine cle a refaire, si la file en a une (sous le verrou du fil, `Fil::choisir`).
@@ -648,7 +648,7 @@ impl FileDesEtats {
             return Ok(v);
         }
         let o = &self.o;
-        let _code = crate::fichiers::code_fige();
+        let _code = socle::fichiers::code_fige();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
             lire(o, &ctx, mois)
@@ -672,7 +672,7 @@ impl FileDesEtats {
             return Ok(v);
         }
         let o = &self.o;
-        let _code = crate::fichiers::code_fige();
+        let _code = socle::fichiers::code_fige();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
             crate::administrateur::tableau_compagnie(o, &ctx)
@@ -822,7 +822,7 @@ impl FileDesEtats {
         match self.verrou().en_cours.clone() {
             Some(c) if c == OUVERTURE => "Lecture de la compagnie : sa configuration, ses échéances, ses rappels…".into(),
             Some(c) if c == TABLEAU => "Tableau des déclarations de la compagnie…".into(),
-            Some(m) => format!("Calcul de {}…", crate::date::libelle_du_mois_ou_tel_quel(&m, crate::date::Graphie::Accentuee)),
+            Some(m) => format!("Calcul de {}…", socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee)),
             None => "Préparation de l'écran…".into(),
         }
     }

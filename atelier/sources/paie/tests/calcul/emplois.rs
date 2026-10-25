@@ -3,8 +3,8 @@
 //! oracles, que `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit.
 
 use crate::outils::{lire_oracle, oracle};
-use paie::date::Jour;
-use paie::emplois::{emploi_a_la_date, emploi_de, metier, resoudre, statut_non_cadre, EmploiEngagement};
+use socle::date::Jour;
+use droit::emplois::{emploi_a_la_date, emploi_de, metier, resoudre, statut_non_cadre, EmploiEngagement};
 use serde_json::{json, Map, Value};
 
 #[test]
@@ -73,7 +73,7 @@ fn champ(e: &Map<String, Value>, c: &str) -> Option<String> {
 fn emploi_de_et_emploi_a_la_date() {
     let mut cas = lire_oracle("emploi_de.json");
     assert!(cas.as_array().unwrap().len() > 100);
-    let telle_qu_au = |f: &Value, j: &str| paie::contexte::telle_qu_au(f, &Jour::lire(j)?);
+    let telle_qu_au = |f: &Value, j: &str| droit::contexte::telle_qu_au(f, &Jour::lire(j)?);
     for c in cas.as_array_mut().unwrap() {
         let (fiche, debut) = (&c["fiche"], c["debut"].as_str());
         let e = c["eng"].as_object().unwrap();

@@ -11,8 +11,8 @@
 //! `fictive-3090-grande` (compagnie inventee) dont le bareme couvre 2027, comme `rubriques_2027.rs`.
 
 use crate::outils::{self, compagnie, ecrire, lire};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use serde_json::{json, Value};
 use std::path::PathBuf;

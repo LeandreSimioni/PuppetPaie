@@ -228,7 +228,7 @@ fn parsedate_tz(donnees: &str) -> Option<(i64, i64, i64, i64, i64, i64, Option<i
 /// `None` quand Python leve `ValueError`.
 fn date_lue(brut: &str) -> Option<i64> {
     let (an, mois, jour, h, mi, s, decalage) = parsedate_tz(brut)?;
-    let j = crate::date::Jour::nouveau(i32::try_from(an).ok()?, u32::try_from(mois).ok()?, u32::try_from(jour).ok()?)?;
+    let j = socle::date::Jour::nouveau(i32::try_from(an).ok()?, u32::try_from(mois).ok()?, u32::try_from(jour).ok()?)?;
     if !(0..24).contains(&h) || !(0..60).contains(&mi) || !(0..60).contains(&s) {
         return None;
     }
@@ -241,7 +241,7 @@ fn date_lue(brut: &str) -> Option<i64> {
                 return None;
             }
             let t = naif - d;
-            Some(t + crate::paris::decalage(t))
+            Some(t + socle::paris::decalage(t))
         }
     }
 }

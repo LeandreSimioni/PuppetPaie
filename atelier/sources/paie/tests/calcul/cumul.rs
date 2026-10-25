@@ -5,15 +5,15 @@
 //! tests reecrivent sur demande.
 
 use crate::outils;
-use paie::bareme::canon;
-use paie::contexte::Contexte;
+use droit::bareme::canon;
+use droit::contexte::Contexte;
 use paie::cumul::{
     fenetre_annee_civile, fenetre_anniversaire, fenetre_douze_mois, plafond_enseignement, position, Constantes,
     Engagement, Fenetre,
 };
-use paie::date::Jour;
-use paie::fichiers::lire_json;
-use paie::num::dec;
+use socle::date::Jour;
+use socle::fichiers::lire_json;
+use socle::num::dec;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

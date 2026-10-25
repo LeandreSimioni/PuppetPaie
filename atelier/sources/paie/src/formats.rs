@@ -8,9 +8,9 @@
 //! sous-ensemble que la table des formats emploie (classes, groupes,
 //! alternatives, `? * + {n,m}`, `\d \s`, `^ $`), prouve contre `re`.
 
-use crate::fichiers::{dossier_du_code, json_en_cache, repr};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr};
 use crate::norme::Norme;
-use crate::num::Resultat;
+use socle::num::Resultat;
 use crate::usages::{espace, lignes, strip};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -312,7 +312,7 @@ pub fn table_de(norme: &Norme) -> Resultat<Arc<Value>> {
 pub fn format_en(norme: &Norme, rubrique: &str) -> Resultat<Value> {
     let t = table_de(norme)?;
     Ok(match t["formats"].get(rubrique) {
-        Some(f) if crate::fichiers::vrai(f) => f.clone(),
+        Some(f) if socle::fichiers::vrai(f) => f.clone(),
         _ => Value::Object(Default::default()),
     })
 }

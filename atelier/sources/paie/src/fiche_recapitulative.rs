@@ -21,12 +21,12 @@ use serde_json::{json, Map, Value};
 
 use crate::bulletin::FORMAT;
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::{en_texte, Jour};
+use droit::contexte::Contexte;
+use socle::date::{en_texte, Jour};
 use crate::engagement;
-use crate::etats::py_str;
-use crate::fichiers::vrai;
-use crate::num::{eur2, Decimal};
+use socle::valeur::py_str;
+use socle::fichiers::vrai;
+use socle::num::{eur2, Decimal};
 use crate::routes_ouverture::{refus_du_calcul, Refus};
 
 type R<T> = Result<T, Refus>;
@@ -120,7 +120,7 @@ fn decimal_de(v: &Val) -> R<Decimal> {
         Val::Dec(d) => return Ok(*d),
         Val::Num(s) | Val::Txt(s) => s,
     };
-    crate::apercu_dsn::decimal_py(t).ok_or_else(|| avec_classe("InvalidOperation", crate::num::illisible(t)))
+    crate::apercu_dsn::decimal_py(t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(t)))
 }
 
 /// `_somme` : la somme de ce qui est DECLARE, ou `None` quand aucune ligne ne l'est.
@@ -209,7 +209,7 @@ pub(crate) fn fractions(entetes: &[(String, bool)], rangees: &[(Vec<String>, &st
     let mut plus_long_mot = vec![0.0f64; n];
     let mut mot_entete = vec![0.0f64; n];
     for (i, (libelle, _)) in entetes.iter().enumerate() {
-        mot_entete[i] = libelle.split(crate::retours::blanc_py).filter(|m| !m.is_empty()).map(|m| m.chars().count()).max().unwrap_or(0) as f64;
+        mot_entete[i] = libelle.split(socle::texte::blanc).filter(|m| !m.is_empty()).map(|m| m.chars().count()).max().unwrap_or(0) as f64;
     }
     let gonfle = |genre: &str| match genre {
         "total" => 1.1,
@@ -219,7 +219,7 @@ pub(crate) fn fractions(entetes: &[(String, bool)], rangees: &[(Vec<String>, &st
     for (cellules, genre) in rangees {
         for (i, c) in cellules.iter().take(n).enumerate() {
             plus_long[i] = plus_long[i].max(c.chars().count() as f64 * gonfle(genre));
-            for m in c.split(crate::retours::blanc_py).filter(|m| !m.is_empty()) {
+            for m in c.split(socle::texte::blanc).filter(|m| !m.is_empty()) {
                 plus_long_mot[i] = plus_long_mot[i].max(m.chars().count() as f64 * gonfle(genre));
             }
         }
@@ -324,7 +324,7 @@ fn description(t: &Tableau, nom: &str) -> Value {
 pub(crate) fn nom_compagnie(ctx: &Contexte) -> String {
     // `fiche(ctx)` lit aussi les compteurs : un fichier abime fait rendre « ».
     let compteurs = ctx.racine.join("config").join("compteurs.json");
-    if compteurs.exists() && crate::fichiers::lire_json(&compteurs).is_err() {
+    if compteurs.exists() && socle::fichiers::lire_json(&compteurs).is_err() {
         return String::new();
     }
     for c in ["nom_affichage", "raison_sociale", "nom"] {
@@ -397,7 +397,7 @@ struct LigneLivre {
 }
 
 fn requis<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
-    v.get(k).ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent(k)))
+    v.get(k).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(k)))
 }
 
 /// `_qui` : « NOM Prenom ».
@@ -415,10 +415,10 @@ fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
         None | Some(Value::Null) => Ok(None),
         Some(x) => {
             let t = py_str(x);
-            if t.trim_matches(crate::retours::blanc_py).is_empty() {
+            if t.trim_matches(socle::texte::blanc).is_empty() {
                 return Ok(None);
             }
-            let d = crate::apercu_dsn::decimal_py(&t).ok_or_else(|| avec_classe("InvalidOperation", crate::num::illisible(&t)))?;
+            let d = crate::apercu_dsn::decimal_py(&t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(&t)))?;
             Ok(Some(eur2(d)))
         }
     }
@@ -484,7 +484,7 @@ impl<'a> Recapitulatifs<'a> {
         }
         let data = crate::routes_listes::lire_json(&p)?;
         let Value::Object(o) = data else {
-            return Err(avec_classe("AttributeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(&data))));
+            return Err(avec_classe("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&data))));
         };
         match o.get(cle) {
             None => Ok(Rc::new(Vec::new())),
@@ -493,8 +493,8 @@ impl<'a> Recapitulatifs<'a> {
             // leur `.get` qui refuse ; vide, rien ne se parcourt.
             Some(Value::String(t)) if t.is_empty() => Ok(Rc::new(Vec::new())),
             Some(Value::Object(m)) if m.is_empty() => Ok(Rc::new(Vec::new())),
-            Some(autre @ (Value::String(_) | Value::Object(_))) => Err(avec_classe("AttributeError", crate::fichiers::attendu("une liste", crate::etats::nom_type(autre)))),
-            Some(autre) => Err(avec_classe("TypeError", crate::fichiers::attendu("une liste", crate::etats::nom_type(autre)))),
+            Some(autre @ (Value::String(_) | Value::Object(_))) => Err(avec_classe("AttributeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
+            Some(autre) => Err(avec_classe("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
         }
     }
 
@@ -692,7 +692,7 @@ impl<'a> Recapitulatifs<'a> {
             prevu: Decimal,
             incomplet: bool,
         }
-        let zero = crate::num::zero2();
+        let zero = socle::num::zero2();
         let mut cotes: [Vec<(String, Cumul)>; 2] = [Vec::new(), Vec::new()];
         for l in self.lignes_du_livre(&p)? {
             for (i, cle) in [&l.spectacle, &l.cle_salarie].into_iter().enumerate() {
@@ -885,7 +885,7 @@ impl<'a> Recapitulatifs<'a> {
         let mut objets: HashMap<String, Value> = HashMap::new();
         for s in self.ctx.spectacles.values() {
             let Value::Object(o) = s else {
-                return Err(avec_classe("AttributeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(s))));
+                return Err(avec_classe("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(s))));
             };
             objets.insert(o.get("numero_objet").map_or("None".to_string(), py_str), o.get("titre").cloned().unwrap_or(Value::Null));
         }
@@ -922,7 +922,7 @@ impl<'a> Recapitulatifs<'a> {
                 "jours".into(),
                 match x.get("jours") {
                     None | Some(Value::Null) => None,
-                    Some(Value::Number(n)) => Some(Val::Num(crate::date::repr_py(&Value::Number(n.clone())))),
+                    Some(Value::Number(n)) => Some(Val::Num(socle::date::repr_py(&Value::Number(n.clone())))),
                     Some(autre) => Some(Val::Txt(py_str(autre))),
                 },
             );
@@ -1010,7 +1010,7 @@ impl<'a> Recapitulatifs<'a> {
     /// `_recapitulatif` : les deux etats reduits au salarie `cle`, en un PDF dans `tmp`. `None` quand
     /// aucun des deux n'a rien a dire de lui.
     pub(crate) fn pdf(&mut self, cle: &str, tmp: &Path) -> R<Option<std::path::PathBuf>> {
-        let fiche = self.ctx.salaries.get(cle).ok_or_else(|| avec_classe("KeyError", crate::fichiers::absent(cle)))?;
+        let fiche = self.ctx.salaries.get(cle).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(cle)))?;
         let lui = format!(
             "{} {}",
             py_str(requis(fiche, "nom")?),
@@ -1080,7 +1080,7 @@ fn montant_brut(v: Option<&Value>) -> R<Decimal> {
         Some(x) => py_str(x),
         None => "0".to_string(),
     };
-    crate::apercu_dsn::decimal_py(&t).ok_or_else(|| avec_classe("InvalidOperation", crate::num::illisible(&t)))
+    crate::apercu_dsn::decimal_py(&t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(&t)))
 }
 
 /// `int(l["jours"])` : un `jours` qui ne se lit pas leve `ValueError`.
@@ -1091,7 +1091,7 @@ fn controle_jours(v: &Val) -> R<()> {
                 return Ok(());
             }
             if crate::apercu_dsn::int_py(t).is_none() {
-                return Err(avec_classe("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(t))));
+                return Err(avec_classe("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))));
             }
             Ok(())
         }
@@ -1101,7 +1101,7 @@ fn controle_jours(v: &Val) -> R<()> {
 
 #[allow(dead_code)]
 fn jour_ou_vide(v: &Value) -> String {
-    match crate::date::d(v) {
+    match socle::date::d(v) {
         Ok(j) => j.iso(),
         Err(_) => en_texte(v),
     }

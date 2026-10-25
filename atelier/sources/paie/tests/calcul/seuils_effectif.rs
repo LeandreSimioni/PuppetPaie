@@ -14,8 +14,8 @@
 //! dossier temporaire des tests : rien n'est ecrit dans `tests/donnees/fictives/`.
 
 use crate::outils::{fictive, ecrire, lire, Copie};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::engagement::charger;
 use serde_json::{json, Value};
 

@@ -140,7 +140,7 @@ impl Entrepot {
         std::fs::rename(&tmp, &fin).map_err(|e| format!("{} : {}", fin.display(), e))?;
         self.etat.insert("mis_a_jour_le".into(), json!(aujourdhui));
         let p = self.dossier.join(ETAT);
-        let texte = crate::ecriture::json_py(&trie(&Value::Object(self.etat.clone())), 1);
+        let texte = socle::ecriture::json_py(&trie(&Value::Object(self.etat.clone())), 1);
         std::fs::write(&p, texte).map_err(|e| format!("{} : {}", p.display(), e))
     }
 
@@ -183,9 +183,9 @@ fn ligne_triee(article: &Value, cle: &[&str]) -> String {
         if i > 0 {
             s.push_str(", ");
         }
-        s.push_str(&crate::ecriture::json_py_trie(&json!(k)));
+        s.push_str(&socle::ecriture::json_py_trie(&json!(k)));
         s.push_str(": ");
-        s.push_str(&crate::ecriture::json_py_trie(v));
+        s.push_str(&socle::ecriture::json_py_trie(v));
     }
     s.push('}');
     s
@@ -231,7 +231,7 @@ fn agent(delai_global: Option<u64>, url: &str) -> R<ureq::Agent> {
     }
     c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
     // En essai, le garde-fou reseau : rien ne sort de la machine.
-    Ok(crate::garde_reseau::regler(c, url)?.build().into())
+    Ok(socle::garde_reseau::regler(c, url)?.build().into())
 }
 
 impl Source for Reseau {
@@ -496,11 +496,11 @@ impl<L: Read> LecteurTar<L> {
     }
 }
 
-use crate::retours::blanc_py;
+use socle::texte::blanc;
 
 /// `str.strip()`.
 pub fn strip_py(t: &str) -> &str {
-    t.trim_matches(blanc_py)
+    t.trim_matches(blanc)
 }
 
 /// `html.unescape` pour ce que portent les XML de la DILA : les references numeriques (avec les regles de Python : `&#13;`
@@ -578,7 +578,7 @@ pub fn debut_py(s: &str, n: usize) -> &str {
 
 /// `str(v)` d'une valeur lue dans un JSON.
 pub fn texte(v: &Value) -> String {
-    crate::etats::py_str(v)
+    socle::valeur::py_str(v)
 }
 
 /// La verite d'une valeur au sens du Python (`if v:`).

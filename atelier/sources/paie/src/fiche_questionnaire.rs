@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use serde_json::{json, Map, Value};
 
 use crate::champs::{espace, strip};
-use crate::date::Jour;
+use socle::date::Jour;
 
 pub const ALPHABET_CODE: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -138,12 +138,12 @@ pub fn questionnaire(code: &str) -> String {
 
 /// `_sans_accents` : sans accents, en minuscules, sans blancs aux bords.
 fn sans_accents(t: &str) -> String {
-    strip(&crate::contexte::sans_accent(t).to_lowercase()).to_string()
+    strip(&socle::texte::sans_accent(t).to_lowercase()).to_string()
 }
 
 /// `_cle_libelle` : sans accents ni casse, les parentheses (des consignes) retirees, les mots de `a-z` seulement.
 fn cle_libelle(texte: &str) -> String {
-    let t: Vec<char> = crate::contexte::sans_accent(texte).to_lowercase().chars().collect();
+    let t: Vec<char> = socle::texte::sans_accent(texte).to_lowercase().chars().collect();
     // `re.sub(r"\(.*?\)", " ", t)` : de la parenthese ouvrante a la premiere fermante, sans passer a la ligne.
     let mut sans = String::new();
     let mut i = 0;
@@ -293,11 +293,11 @@ pub fn date_lue(texte: &str) -> Option<String> {
 /// `None` pour ce que la liste ne connait pas.
 pub fn pays_lu(texte: &str) -> Option<(String, Option<&'static str>)> {
     let t = sans_accents(texte).replace('\u{2019}', "'");
-    let lu = |p: crate::pays::Pays| (p.code.clone(), Some(crate::pays::codification(&p)));
+    let lu = |p: socle::pays::Pays| (p.code.clone(), Some(socle::pays::codification(&p)));
     if t.chars().count() == 2 && t.chars().all(|c| c.is_ascii_lowercase()) {
-        return crate::pays::du_code(&t).ok().flatten().map(lu);
+        return socle::pays::du_code(&t).ok().flatten().map(lu);
     }
-    let cherche = |n: &str| crate::pays::du_nom(n).ok().flatten().map(lu);
+    let cherche = |n: &str| socle::pays::du_nom(n).ok().flatten().map(lu);
     cherche(&t).or_else(|| cherche(&t.replace(' ', "-")))
 }
 
@@ -349,7 +349,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
             illisible.push(format!("numéro de sécurité sociale : « {} »", reponse("nir")));
         }
     }
-    if !reponse("sexe").is_empty() && !d.get("nir").is_some_and(crate::fichiers::vrai) {
+    if !reponse("sexe").is_empty() && !d.get("nir").is_some_and(socle::fichiers::vrai) {
         let s = sans_accents(reponse("sexe"));
         match s.chars().next() {
             Some('f') => {
@@ -369,9 +369,9 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
             .or_else(|| {
                 let t = sans_accents(reponse("pays")).replace('\u{2019}', "'");
                 if t.chars().count() == 2 && t.chars().all(|c| c.is_ascii_lowercase()) {
-                    crate::pays::de_la_table_dsn(&t).ok().flatten().map(|p| p.code)
+                    socle::pays::de_la_table_dsn(&t).ok().flatten().map(|p| p.code)
                 } else {
-                    crate::pays::naissance_du_nom(&t).ok().flatten()
+                    socle::pays::naissance_du_nom(&t).ok().flatten()
                 }
             });
         match lu {
@@ -392,9 +392,9 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
         match pays {
             Some(pays) => {
                 // La codification se lit dans la liste (un territoire suit son pays de rattachement), `pays.rs`.
-                match crate::pays::du_code(&pays).ok().flatten() {
+                match socle::pays::du_code(&pays).ok().flatten() {
                     Some(p) => {
-                        d.insert("code_nationalite_dsn".into(), json!(crate::pays::codification(&p)));
+                        d.insert("code_nationalite_dsn".into(), json!(socle::pays::codification(&p)));
                         d.insert("pays_nationalite".into(), json!(p.code));
                     }
                     None => illisible.push(format!("nationalité : « {} »", reponse("nationalite"))),
@@ -421,7 +421,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
 /// signes ; 99 pour une naissance a l'etranger). Deux cas se taisent : la Corse d'avant 1976 (« 20 ») et un NIR
 /// incomplet.
 fn naissance_depuis_nir(nir: Option<&Value>) -> Vec<(&'static str, String)> {
-    let nir = nir.filter(|v| crate::fichiers::vrai(v)).map(crate::etats::py_str).unwrap_or_default();
+    let nir = nir.filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::py_str).unwrap_or_default();
     let c: Vec<char> = strip(&nir).chars().collect();
     if c.len() != 13 || !c.iter().all(|x| chiffre(*x)) || !matches!(c[0], '1' | '2') {
         return Vec::new();

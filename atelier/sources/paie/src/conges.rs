@@ -15,21 +15,21 @@ use std::str::FromStr;
 use serde_json::{json, Value};
 
 use crate::calcul::Paie;
-use crate::catalogue::rubrique;
-use crate::clauses;
-use crate::contexte::Contexte;
-use crate::contrats::{self, Nature};
-use crate::date::{d, dernier_du_mois, en_texte, jours_du_mois, premier_du_mois, repr_py, Jour};
+use droit::catalogue::rubrique;
+use droit::clauses;
+use droit::contexte::Contexte;
+use droit::natures::{self, Nature};
+use socle::date::{d, dernier_du_mois, en_texte, jours_du_mois, premier_du_mois, repr_py, Jour};
 use crate::engagement::{charger, Avis};
-use crate::feries;
-use crate::fichiers::{repr, vrai};
-use crate::num::{add, dec, dec_f64, dec_py, div, eur2, mul, zero2, Decimal, Resultat};
-use crate::permanents::{arrondir_jours, indemnite_conges, jours_acquis, periode_de_reference, plafonner};
+use socle::feries;
+use socle::fichiers::{repr, vrai};
+use socle::num::{add, dec, dec_f64, dec_py, div, eur2, mul, zero2, Decimal, Resultat};
+use droit::permanents::{arrondir_jours, indemnite_conges, jours_acquis, periode_de_reference, plafonner};
 
 // ------------------------------------------------------------ les aides
 
 fn requis<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// `e.get("numero") or "?"`.
@@ -68,13 +68,13 @@ pub(crate) fn entier(v: &Value) -> Resultat<i64> {
         Value::Number(n) => n
             .as_i64()
             .or_else(|| n.as_f64().map(|x| x.trunc() as i64))
-            .ok_or_else(|| crate::fichiers::entier_hors_limites(&n.to_string())),
+            .ok_or_else(|| socle::fichiers::entier_hors_limites(&n.to_string())),
         Value::String(s) => s
             .trim()
             .parse::<i64>()
             .map_err(|_| format!("nombre entier illisible : {}", repr(s))),
         Value::Bool(b) => Ok(*b as i64),
-        autre => Err(crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre))),
+        autre => Err(socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre))),
     }
 }
 
@@ -83,7 +83,7 @@ pub(crate) fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
         None | Some(Value::Null) => None,
         Some(x) => Some(en_texte(x)),
     };
-    contrats::nature(cle.as_deref())
+    natures::nature(cle.as_deref())
 }
 
 // -------------------------------------------------- les jours ouvrables
@@ -244,7 +244,7 @@ impl Drop for Derivation {
 /// (`fichiers::generation`, 0 sans registre). Un calcul suivi ne se sert ainsi que des mois relus par lui-meme (leurs
 /// lectures se notent), meme dans une derivation ouverte avant lui (`routes_mois::mois_a_ouvrir`, ticket #244).
 fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
-    (ctx.racine.display().to_string(), format!("{}|{}", mois, crate::fichiers::generation()))
+    (ctx.racine.display().to_string(), format!("{}|{}", mois, socle::fichiers::generation()))
 }
 
 /// Le brut des paies d'un mois deja charge, pose dans le memo de la derivation
@@ -540,7 +540,7 @@ pub fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Repr
 /// elle est anterieure a ce mois ; sinon `None`.
 fn commence_avant(ctx: &Contexte, cle_salarie: &str, premier: &str) -> Resultat<Option<Jour>> {
     let chemin = ctx.racine.join("paies").join(format!("{}.json", premier));
-    let Ok(saisie) = crate::fichiers::lire_texte(&chemin).map_err(|_| ()).and_then(|t| serde_json::from_str::<Value>(&t).map_err(|_| ()))
+    let Ok(saisie) = socle::fichiers::lire_texte(&chemin).map_err(|_| ()).and_then(|t| serde_json::from_str::<Value>(&t).map_err(|_| ()))
     else {
         return Ok(None);
     };
@@ -559,7 +559,7 @@ fn commence_avant(ctx: &Contexte, cle_salarie: &str, premier: &str) -> Resultat<
 
 /// Les fichiers `AAAA-MM.json` du dossier des paies, du plus ancien au plus recent.
 fn fichiers_de_paie(ctx: &Contexte) -> Vec<(String, std::path::PathBuf)> {
-    let Some(dossier) = crate::fichiers::lister(&ctx.racine.join("paies")) else {
+    let Some(dossier) = socle::fichiers::lister(&ctx.racine.join("paies")) else {
         return Vec::new();
     };
     let mut out: Vec<(String, std::path::PathBuf)> = dossier
@@ -580,7 +580,7 @@ fn premier_mois(ctx: &Contexte, cle_salarie: &str, jusqu_au_mois: Option<&str>) 
         if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) {
             return Ok(None);
         }
-        let Some(saisie) = crate::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
+        let Some(saisie) = socle::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
             continue;
         };
         for e in saisie.get("engagements").and_then(|x| x.as_array()).map_or(&[][..], |a| &a[..]) {
@@ -612,7 +612,7 @@ fn mois_du_salarie(
         if fin_mois_de(&mois)? < *debut || premier_du_mois(&mois)? > *fin {
             continue;
         }
-        let Some(saisie) = crate::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
+        let Some(saisie) = socle::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
             continue;
         };
         if !saisie.get("engagements").is_some_and(|e| e.is_array()) {
@@ -680,7 +680,7 @@ pub(crate) fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> 
         if !m.starts_with(&annee) || m.as_str() >= mois {
             continue;
         }
-        let Some(saisie) = crate::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
+        let Some(saisie) = socle::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
             continue;
         };
         let sien = saisie.get("engagements").and_then(|e| e.as_array()).map_or(false, |a| {
@@ -758,7 +758,7 @@ pub fn indemnite_des_jours(
 /// plus ce que ce mois acquiert et prend.
 pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<CompteurConges> {
     let eng = &paie.engagement;
-    let cle = paie.salarie.get("_cle").and_then(|c| c.as_str()).ok_or_else(|| crate::fichiers::absent("_cle"))?;
+    let cle = paie.salarie.get("_cle").and_then(|c| c.as_str()).ok_or_else(|| socle::fichiers::absent("_cle"))?;
     let fin_du_mois = fin_mois_de(mois)?;
     let mut cpt = compteur_conges(ctx, cle, &fin_du_mois, Some(mois))?;
     let (debut, fin) = periode_de_reference(&fin_du_mois, Some(&ctx.entreprise))?;
@@ -877,7 +877,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
     })];
 
     // Le salaire du mois tel que la ligne « mois » le paie (`calcul::lignes_brut` : le montant arrondi ligne par ligne).
-    let salaire_du_mois = crate::num::eur(mul(dec(requis(&lignes[0], "taux")?)?, dec(requis(&lignes[0], "quantite")?)?));
+    let salaire_du_mois = socle::num::eur(mul(dec(requis(&lignes[0], "taux")?)?, dec(requis(&lignes[0], "quantite")?)?));
     // L'entreprise dit quels jours feries elle chome.
     let ent = &ctx.entreprise;
     let ouvrables = Decimal::from(jours_ouvrables(&debut, &fin, Some(ent))?);
@@ -940,7 +940,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
 
     // --- les primes
     for pr in e.get("primes").and_then(|p| p.as_array()).map_or(&[][..], |a| &a[..]) {
-        let montant = crate::num::flottant(requis(pr, "montant")?)?;
+        let montant = socle::num::flottant(requis(pr, "montant")?)?;
         lignes.push(json!({
             "rubrique": pr.get("rubrique").cloned().unwrap_or_else(|| json!("prime")),
             "quantite": 1, "taux": montant,

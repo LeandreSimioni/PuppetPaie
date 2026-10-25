@@ -8,13 +8,14 @@ use std::collections::BTreeSet;
 
 use serde_json::Value;
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str};
+use droit::contexte::Contexte;
+use socle::valeur::py_str;
+use socle::echec::erreur;
 use crate::etats_paie::{
     dossier_exports, ecrire_fini, fiche_texte, finir, paies_declarees, titre_spectacle, Demande, Lecture, Periode, DSN, SAISIE,
 };
-use crate::fichiers::vrai;
-use crate::num::{eur2, Decimal};
+use socle::fichiers::vrai;
+use socle::num::{eur2, Decimal};
 use crate::tableaux_export::{col_m, col_t, jj, libelle_mois, montant, qui, qui_souple, refus, sections_de, Ligne, Section, Tableau, Val, R};
 
 /// `fiche.get(a) or fiche.get(b) or ...`, la valeur telle que le fichier la porte (un nombre reste un nombre).
@@ -86,7 +87,7 @@ fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<Cont
     for s in ctx.spectacles.values() {
         objets.push((s.get("numero_objet").cloned().unwrap_or(Value::Null), s.get("titre").cloned().unwrap_or(Value::Null)));
     }
-    let cddu = crate::contrats::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone();
+    let cddu = droit::natures::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone();
     let declares = p.declares();
     for x in paies_declarees(ctx)? {
         let m = x.get("mois").map(py_str).unwrap_or_default();
@@ -205,13 +206,13 @@ pub(crate) fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let code_ue = if texte(&["code_nationalite_dsn", "pays_nationalite", "pays_nationalite_hors_liste"], "").is_empty() {
             Ok(String::new())
         } else {
-            crate::codification_ue::codification_ue(f)
+            socle::codification_ue::codification_ue(f)
         };
         // LE PAYS, quand la fiche le porte (vagues 1j et 2h, reste R1 #147) : le registre dit la nationalite (C. trav.,
         // art. D1221-23, 1°), la categorie DSN la suit entre parentheses ; sans pays, la categorie seule.
         let pays = match texte(&["pays_nationalite"], "") {
             c if c.is_empty() => texte(&["pays_nationalite_hors_liste"], ""),
-            c => crate::pays::du_code(&c).ok().flatten().map_or(c, |p| p.nom),
+            c => socle::pays::du_code(&c).ok().flatten().map_or(c, |p| p.nom),
         };
         let categorie = code_ue.map_or_else(|_| "à préciser dans la fiche".to_string(), |c| nationalite(&c).to_string());
         l.t(
@@ -343,7 +344,7 @@ fn acte_lisible(quoi: &str) -> Option<&'static str> {
 /// `_reponse` : une reponse lisible ; un rapport XML complet ne tient pas dans une case.
 fn reponse(r: Option<&Value>) -> String {
     let t = r.filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    let t = t.split(crate::retours::blanc_py).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
+    let t = t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
     if t.starts_with('<') {
         return "rapport de l'organisme (XML, conservé au journal)".to_string();
     }

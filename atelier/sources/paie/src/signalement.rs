@@ -11,11 +11,11 @@
 
 use serde_json::Value;
 
-use crate::contexte::{aujourdhui, Contexte};
-use crate::date::{d, en_texte, Jour};
+use droit::contexte::{aujourdhui, Contexte};
+use socle::date::{d, en_texte, Jour};
 use crate::dsn::{self, Arret, Fichier, LOGICIEL, VERSION};
-use crate::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, repr_valeur, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, repr_valeur, vrai};
+use socle::num::Resultat;
 
 pub const ARRET: &str = "04";
 pub const REPRISE: &str = "05";
@@ -49,7 +49,7 @@ fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
 
 /// `v[k]` : la cle doit exister (`KeyError`).
 fn req<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 fn s(v: &Value, k: &str) -> String {

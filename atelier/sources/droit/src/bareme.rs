@@ -11,11 +11,11 @@
 //! prevoyance de branche (`prevoyance.py`, module `prevoyance` ci-dessous) et
 //! l'etablissement du salarie (`etablissements.du_salarie`, `surcharger`).
 
-use crate::contexte::sans_accent;
-use crate::contrats::Nature;
-use crate::date::{d, en_texte, Jour};
-use crate::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::num::{add, dec, div, flottant, mul, sub, Decimal, Resultat};
+use socle::texte::sans_accent;
+use crate::natures::Nature;
+use socle::date::{d, en_texte, Jour};
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use socle::num::{add, dec, div, flottant, mul, sub, Decimal, Resultat};
 use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Number, Value};
 
@@ -35,12 +35,12 @@ fn g_def<'a>(v: &'a Value, k: &str, defaut: &'a Value) -> &'a Value {
 
 /// `m["k"]` sur un dict possede.
 fn exiger_m<'a>(m: &'a Map<String, Value>, k: &str) -> Resultat<&'a Value> {
-    m.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    m.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// `x["k"]` : le `KeyError` de Python s'ecrit `'k'`.
 fn exiger<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// Les elements de `x or []`.
@@ -392,7 +392,7 @@ section par_nature['{}'].cpf_cdd qui dise son taux et sa cotisation. Rien n'est 
 /// vaut, et une pile sans ligne marquee : refus (regle 1), plutot qu'une taxe qu'on garderait sans le dire.
 pub fn bareme_taxe_apprentissage(bar: Value, fin: Option<&Jour>) -> Resultat<Value> {
     let Some(fin) = fin else { return Ok(bar) };
-    if !crate::assujettissement::taxe_apprentissage_non_due_au_mois(g(&bar, "_entreprise"), fin.an, fin.mois)? {
+    if !crate::apprentissage::taxe_apprentissage_non_due_au_mois(g(&bar, "_entreprise"), fin.an, fin.mois)? {
         return Ok(bar);
     }
     let mut applique = en_map(bar);
@@ -521,7 +521,7 @@ pub fn est_cadre(sal: &Value) -> bool {
 
 /// Le salarie travaille-t-il dans le Bas-Rhin, le Haut-Rhin ou la Moselle ?
 /// Le code postal de SON etablissement, sinon celui de l'entreprise.
-pub(crate) fn alsace_moselle(ent: &Value, sal: &Value) -> bool {
+pub fn alsace_moselle(ent: &Value, sal: &Value) -> bool {
     let mut cp = txt(g(ent, "code_postal"));
     let nic = txt(g(sal, "etablissement")).trim().to_string();
     for e in liste(g(ent, "etablissements")) {
@@ -599,6 +599,24 @@ enum Mutuelle {
     Pose { base: Value, total: Decimal, pat: Decimal },
 }
 
+/// La marque que la fiche lue par la paie porte quand les garanties de sante sont suspendues tout le mois
+/// (`calcul::sante_de_la_suspension`) : le bareme pose alors la paie sans mutuelle (`bareme_sante`), et la DSN ne
+/// rattache pas le salarie a l'adhesion sante ce mois-la (`dsn::affiliations_du_permanent`), comme pour une dispense.
+pub const SANTE_SUSPENDUE: &str = "_sante_suspendue";
+
+/// Le champ de la fiche entreprise qui dit ce que le contrat de sante de la compagnie fait d'un mois entierement suspendu
+/// sans indemnisation, hors de la 3090 (`logiciel/donnees/champs-base.json`, `atelier/docs/ARCHITECTURE.md`) : « suspendue » (les
+/// garanties sont suspendues, rien sur la paie), « maintenue » (garanties et cotisations maintenues sur la paie).
+pub const SANTE_SUSPENSION: &str = "sante_suspension_non_indemnisee";
+pub const SANTE_SUSPENSION_SUSPENDUE: &str = "suspendue";
+pub const SANTE_SUSPENSION_MAINTENUE: &str = "maintenue";
+
+/// La garantie sante est-elle sans objet ce mois-la pour la fiche `sal` que la paie lit : une dispense
+/// (`sante_dispense`), ou un mois entierement suspendu sans indemnisation (`SANTE_SUSPENDUE`).
+pub fn sans_sante(sal: &Value) -> bool {
+    sal.get("sante_dispense").is_some_and(vrai) || sal.get(SANTE_SUSPENDUE).is_some_and(vrai)
+}
+
 /// La complementaire sante que la CONVENTION fixe, quand elle en fixe une ;
 /// `None` si la convention n'a pas de section `sante`.
 fn sante_conventionnelle(bar: &Value, sal: &Value, fin: Option<&Jour>) -> Resultat<Option<Mutuelle>> {
@@ -608,7 +626,7 @@ fn sante_conventionnelle(bar: &Value, sal: &Value, fin: Option<&Jour>) -> Result
     if !vrai(sante) {
         return Ok(None);
     }
-    if crate::calcul::sans_sante(sal) {
+    if sans_sante(sal) {
         return Ok(Some(Mutuelle::Sans));
     }
     let jour = jour_texte(fin);
@@ -737,7 +755,7 @@ seul) et part employeur. Rien n'est calcule.",
                 idcc
             ));
         }
-        if crate::calcul::sans_sante(sal) {
+        if sans_sante(sal) {
             return sans_mutuelle(bar);
         }
         let total = dec(&choix["taux_contrat"])?;
@@ -763,7 +781,7 @@ la Securite sociale), et pas plus de 100.",
     // rattache pas a la sante (`dsn::affiliations_du_permanent`). Ses bornes sont deja lues
     // (`calcul::dispense_de_la_periode`). Un mois entierement suspendu sans indemnisation suspend les garanties (art. 4.2 :
     // `calcul::sante_de_la_suspension`) : pas de mutuelle non plus (`calcul::sans_sante`).
-    if crate::calcul::sans_sante(sal) {
+    if sans_sante(sal) {
         return sans_mutuelle(bar);
     }
     let sec = match &nat.and_then(|n| n.bareme.clone()) {
@@ -1110,15 +1128,15 @@ pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
                 representation = Some(representation_du_personnel(ent)?);
             }
             let rep = representation.clone().unwrap_or_default();
-            let t = taux.get(&rep).ok_or_else(|| crate::fichiers::absent(&rep))?;
+            let t = taux.get(&rep).ok_or_else(|| socle::fichiers::absent(&rep))?;
             let t = if t.is_object() { g(t, population).clone() } else { t.clone() };
             c.insert("taux_pat".into(), t);
         }
         if let Some(b) = c.get("base").filter(|b| b.is_object()) {
-            let pris = b.get(population).ok_or_else(|| crate::fichiers::absent(population))?.clone();
+            let pris = b.get(population).ok_or_else(|| socle::fichiers::absent(population))?.clone();
             c.insert("base".into(), pris);
         }
-        let id = c.get("id").ok_or_else(|| crate::fichiers::absent("id"))?.clone();
+        let id = c.get("id").ok_or_else(|| socle::fichiers::absent("id"))?.clone();
         let i = rang(&rubriques, &id);
         let get = |k: &str| c.get(k).unwrap_or(&NUL);
         if !vrai(get("taux_pat")) && !vrai(get("taux_sal")) {
@@ -1435,13 +1453,13 @@ impl Fraction {
     /// `Fraction("2/3")` ou `Fraction("1")`.
     fn lire(s: &str) -> Resultat<Fraction> {
         let s = s.trim();
-        let faux = || format!("fraction illisible : {}", crate::fichiers::repr(s));
+        let faux = || format!("fraction illisible : {}", socle::fichiers::repr(s));
         let (n, dn) = match s.split_once('/') {
             Some((a, b)) => (a.trim().parse::<i128>().map_err(|_| faux())?, b.trim().parse::<i128>().map_err(|_| faux())?),
             None => (s.parse::<i128>().map_err(|_| faux())?, 1),
         };
         if dn == 0 {
-            return Err(format!("fraction de denominateur nul : {}", crate::fichiers::repr(s)));
+            return Err(format!("fraction de denominateur nul : {}", socle::fichiers::repr(s)));
         }
         Ok(Fraction::nouvelle(n, dn))
     }
@@ -1477,14 +1495,14 @@ du socle.",
         let mut p = texte_rep.split('-');
         match (p.next(), p.next(), p.next()) {
             (Some(a), Some(b), None) => Ok((Fraction::lire(a)?, Fraction::lire(b)?)),
-            _ => Err(format!("repartition de la tranche 1 illisible : {}", crate::fichiers::repr(&texte_rep))),
+            _ => Err(format!("repartition de la tranche 1 illisible : {}", socle::fichiers::repr(&texte_rep))),
         }
     } else {
         let (a, b) = texte_rep
             .split_once('/')
-            .ok_or_else(|| format!("repartition de la tranche 1 illisible : {}", crate::fichiers::repr(&texte_rep)))?;
+            .ok_or_else(|| format!("repartition de la tranche 1 illisible : {}", socle::fichiers::repr(&texte_rep)))?;
         let ent = |s: &str| {
-            s.trim().parse::<i128>().map_err(|_| format!("nombre entier illisible : {}", crate::fichiers::repr(s)))
+            s.trim().parse::<i128>().map_err(|_| format!("nombre entier illisible : {}", socle::fichiers::repr(s)))
         };
         Ok((Fraction::nouvelle(ent(a)?, 100), Fraction::nouvelle(ent(b)?, 100)))
     }
@@ -1776,7 +1794,7 @@ intermittent : ses tranches sont mensuelles"
     let mut rubriques = Vec::new();
     for r in liste(exiger(&bar, "rubriques_bulletin")?) {
         let mut r = copie(r);
-        let id = r.get("id").ok_or_else(|| crate::fichiers::absent("id"))?.clone();
+        let id = r.get("id").ok_or_else(|| socle::fichiers::absent("id"))?.clone();
         if let Some(champs) = id.as_str().and_then(|i| g(&sec, "rubriques").get(i)) {
             for (k, v) in paires(champs) {
                 if !k.starts_with('_') {
@@ -1805,7 +1823,7 @@ intermittent : ses tranches sont mensuelles"
     let mut cots = Vec::new();
     for c in liste(exiger(&bar, "cotisations_dsn")?) {
         let mut c = copie(c);
-        let code = en_texte(c.get("code81").ok_or_else(|| crate::fichiers::absent("code81"))?);
+        let code = en_texte(c.get("code81").ok_or_else(|| socle::fichiers::absent("code81"))?);
         let cle = match c.get("affectation") {
             Some(a) if vrai(a) => format!("{}:{}", code, en_texte(a)),
             _ => code,
@@ -1857,7 +1875,7 @@ pub fn canon(v: &Value) -> Value {
             } else if let Some(u) = n.as_u64() {
                 Decimal::from(u)
             } else {
-                crate::num::dec_f64(n.as_f64().unwrap_or(0.0)).unwrap_or_default()
+                socle::num::dec_f64(n.as_f64().unwrap_or(0.0)).unwrap_or_default()
             };
             let s = x.normalize().to_string();
             Value::String(if s == "-0" { "0".to_string() } else { s })

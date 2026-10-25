@@ -39,9 +39,9 @@ use std::path::Path;
 
 use serde_json::{json, Value};
 
-use crate::contexte::format_g;
-use crate::date::{d, en_texte, Jour};
-use crate::fichiers::vrai;
+use droit::contexte::format_g;
+use socle::date::{d, en_texte, Jour};
+use socle::fichiers::vrai;
 
 /// L'encre d'un tampon, et la geometrie du dessin. Le rapport 2:1 est celui
 /// d'un tampon rectangulaire courant ; il tient dans la case cachet de l'AER

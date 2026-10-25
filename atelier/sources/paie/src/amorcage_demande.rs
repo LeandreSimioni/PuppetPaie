@@ -13,10 +13,10 @@ use std::path::PathBuf;
 use serde_json::Value;
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::etats::py_str;
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::valeur::py_str;
+use socle::fichiers::vrai;
 
 /// Ce qu'on demande de produire.
 pub struct Demande<'a> {
@@ -66,7 +66,7 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
     use crate::amorcage as am;
     let mut par_salarie: Vec<(String, usize)> = Vec::new();
     for (i, p) in paies.iter().enumerate() {
-        let cle = p.salarie.get("_cle").map(py_str).ok_or_else(|| crate::fichiers::absent("_cle"))?;
+        let cle = p.salarie.get("_cle").map(py_str).ok_or_else(|| socle::fichiers::absent("_cle"))?;
         if !par_salarie.iter().any(|(c, _)| *c == cle) {
             par_salarie.push((cle, i));
         }

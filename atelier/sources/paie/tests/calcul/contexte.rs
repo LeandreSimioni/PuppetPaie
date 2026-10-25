@@ -3,8 +3,8 @@
 //! compris. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{fictive, egal, lire_oracle, oracle_selon, sceller};
-use paie::contexte::Contexte;
-use paie::date::d;
+use droit::contexte::Contexte;
+use socle::date::d;
 use serde_json::json;
 
 #[test]

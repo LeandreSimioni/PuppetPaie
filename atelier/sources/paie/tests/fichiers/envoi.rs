@@ -5,8 +5,8 @@
 use std::path::{Path, PathBuf};
 
 use paie::calcul::{calculer, Paie};
-use paie::contexte::Contexte;
-use paie::date::d;
+use droit::contexte::Contexte;
+use socle::date::d;
 use paie::engagement::{engagements_du_fichier, LignesPermanent};
 use paie::envoi::{self, Message};
 use serde_json::{json, Value};

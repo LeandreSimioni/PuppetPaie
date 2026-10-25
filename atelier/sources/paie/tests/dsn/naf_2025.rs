@@ -10,8 +10,8 @@
 
 use crate::outils::{self, compagnie, ecrire, lire};
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
 use serde_json::{json, Value};

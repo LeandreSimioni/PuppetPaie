@@ -97,7 +97,7 @@ fn echec_brut(p: Panne) -> Value {
 
 // ------------------------------------------------------- les petits outils Python
 
-use crate::retours::blanc_py as blanc;
+use socle::texte::blanc as blanc;
 
 fn py_strip(s: &str) -> &str {
     s.trim_matches(blanc)
@@ -385,7 +385,7 @@ fn agent(delai: u64, url: &str) -> Result<ureq::Agent, Panne> {
     if tls {
         c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
     }
-    let c = crate::garde_reseau::regler(c, url).map_err(Panne::Reseau)?;
+    let c = socle::garde_reseau::regler(c, url).map_err(Panne::Reseau)?;
     Ok(c.build().into())
 }
 

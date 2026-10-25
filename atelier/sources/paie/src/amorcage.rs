@@ -12,14 +12,14 @@ use std::collections::HashSet;
 use serde_json::Value;
 
 use crate::calcul::Paie;
-use crate::contexte::{aujourdhui, Contexte};
-use crate::date::{en_texte, Jour};
+use droit::contexte::{aujourdhui, Contexte};
+use socle::date::{en_texte, Jour};
 use crate::dsn::{
     affiliations, bloc_anciennete, bloc_contrat, g, jj, jour, liste, req, usage_admet, Fichier, LOGICIEL, VERSION,
 };
 use crate::fctu::Echec;
-use crate::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::num::Resultat;
 
 pub const NATURE: &str = "08";
 pub const EMBAUCHE: &str = "01";
@@ -59,9 +59,9 @@ pub fn embauche(ctx: &Contexte, eng: &crate::engagement::Engagement) -> Resultat
     let spec = if nat.mensuelle() {
         Value::Null
     } else {
-        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| crate::fichiers::absent("spectacle"))?)?
+        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
     };
-    let zero = crate::num::Decimal::new(0, 2);
+    let zero = socle::num::Decimal::new(0, 2);
     Ok(Paie::nouveau(eng.clone(), sal, spec, zero, zero, zero, 0.0, zero))
 }
 
@@ -272,7 +272,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
         f.add_v(rub, req(s, k)?)?;
     }
     // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-    f.add("S21.G00.30.013", crate::codification_ue::codification_ue(s)?);
+    f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
     for (rub, k) in [
         ("S21.G00.30.014", "departement_naissance"),
         ("S21.G00.30.015", "pays_naissance"),
@@ -280,7 +280,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
         ("S21.G00.30.019", "code_salarie"),
     ] {
         // Le pays de naissance se lit dans la liste livree (`pays.rs`, vague 1k) : un code inconnu refuse.
-        let v = if k == "pays_naissance" { crate::pays::de_naissance(s)? } else { req(s, k)?.clone() };
+        let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
     crate::ntt::poser_ntt(&mut f, ent, s, &e.debut)?;

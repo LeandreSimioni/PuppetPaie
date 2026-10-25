@@ -22,9 +22,9 @@
 //! generale sous DFS : arrete du 4 decembre 2019, art. 1er (`dfs/arrete-2019-reduction-generale/`).
 
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use paie::engagement::{charger, Saisie};
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 use crate::outils::{chemin_unique, copier, dec, fictive, ecrire, lire, Copie};
 use std::str::FromStr;
@@ -341,7 +341,7 @@ fn la_reduction_generale_d_un_technicien_sous_dfs_ne_depasse_pas_130_pour_cent_d
     let p = &s.paies[0];
     assert_eq!(p.deduction_forfaitaire.as_ref().unwrap().montant, dec("24.00"));
     let rg = p.reduction_generale.clone().unwrap();
-    let limite = paie::num::eur(rg_sans.montant * dec("1.30"));
+    let limite = socle::num::eur(rg_sans.montant * dec("1.30"));
     assert_eq!(rg.montant, limite, "la limite de 130 % s'applique (sans elle : la reduction de 126,00)");
     assert_eq!(rg.urssaf + rg.chomage + rg.agirc_arrco, rg.montant, "la reduction se repartit encore");
     let ligne = p.lignes.iter().find(|l| l.id == "reduction_generale").unwrap();

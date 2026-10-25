@@ -19,14 +19,16 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::{jours_du_mois, Jour};
+use droit::contexte::Contexte;
+use socle::date::{jours_du_mois, Jour};
 use crate::engagement;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
-use crate::num::{dec_py, pct, Decimal};
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::{dec_py, pct, Decimal};
 use crate::pas::{self, ErreurPas, ZONE_DEFAUT};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_mois::Moteur;
 use crate::routes_regularisation as regul;
 use crate::versement_declare::{self, VersementDeclare};
@@ -87,9 +89,9 @@ pub(crate) fn corrections_a_porter(ctx: &Contexte, mois_courant: &str) -> R<Vec<
 pub(crate) fn regularisations_pour(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, mois_courant: &str) -> R<Vec<Reg>> {
     let mut out = Vec::new();
     for c in corrections_a_porter(ctx, mois_courant)? {
-        let get = |k: &str| c.get(k).cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
+        let get = |k: &str| c.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
         let (mois, salarie, debut, corrige) = (py_str(&get("mois")?), get("salarie")?, get("debut")?, get("engagement")?);
-        let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("numero")))?;
+        let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("numero")))?;
         if c.get("ajout").is_some_and(vrai) {
             out.push(ajout(o, ctx, m, c.clone(), mois, numero, corrige)?);
             continue;
@@ -205,7 +207,7 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
     }
     portees.sort();
     let fiche = &ctx.entreprise;
-    let nic = crate::bareme::etablissement_du_salarie(fiche, &apres.salarie).map_err(refus_valeur)?;
+    let nic = droit::bareme::etablissement_du_salarie(fiche, &apres.salarie).map_err(refus_valeur)?;
     let nir = apres.salarie.get("nir").and_then(Value::as_str).unwrap_or("");
     let faire = format!("Remettre dans sorties/{}/ la DSN deposee de ce mois (celle que nomme journal/depots.json), ou annuler la correction.", mois);
     let chemin = crate::casc::dsn_deposee(ctx, mois, Some(&nic))
@@ -260,7 +262,7 @@ pub(crate) fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for r in regs {
         let s = &r.apres.salarie;
-        let nom = s.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?;
+        let nom = s.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
         out.push(format!(
             "{} {}, contrat {} ({}) : brut {} -> {}, net {} -> {} -- {}",
             py_str(nom),
@@ -285,7 +287,7 @@ pub(crate) fn a_imprimer(ctx: &Contexte, donnees: &Value, engagement: &Value, nu
         obj.insert("engagements".into(), Value::Array(vec![engagement.clone()]));
     }
     let s = engagement::charger_donnees(ctx, &seule).map_err(|msg| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &seule, msg)))?;
-    let mut p = s.paies.into_iter().next().ok_or_else(|| erreur("IndexError", crate::fichiers::trop_courte("la paie de l'engagement")))?;
+    let mut p = s.paies.into_iter().next().ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("la paie de l'engagement")))?;
     p.engagement.numero = numero_contrat.cloned();
     p.numero_bulletin = numero_bulletin;
     Ok(p)
@@ -334,7 +336,7 @@ fn net_deja_verse_lu(ctx: &Contexte, mois: &str, mois_courant: &str, avant: &Pai
     let (fichier, lequel) = match derniere {
         None => (format!("Bulletins_{}.pdf", etiq), "le bulletin du mois d'origine, tel qu'il lui a ete remis".to_string()),
         Some((porteur, n)) => {
-            let cle = py_str(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+            let cle = py_str(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
             (
                 format!("{}_{}_{}_c{}.pdf", PREFIXE_ARCHIVE, cle, etiq, n),
                 format!("le bulletin rectificatif de la correction n° {}, partie dans la DSN de {}", n, porteur),
@@ -385,10 +387,10 @@ pub(crate) fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: 
     let d_ni = apres.net_imposable - avant.net_imposable;
     let net_avant = r.net_deja_verse;
     let d_net = apres.net_a_payer - net_avant;
-    let an: i32 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(mois_courant))))?;
-    let mo: u32 = mois_courant.get(5..7).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(mois_courant))))?;
-    let fin_mois = Jour::nouveau(an, mo, jours_du_mois(an, mo)).ok_or_else(|| refus_valeur(crate::date::date_impossible(an, mo, 1)))?;
-    let debut_mois = Jour::nouveau(an, mo, 1).ok_or_else(|| refus_valeur(crate::date::date_impossible(an, mo, 1)))?;
+    let an: i32 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
+    let mo: u32 = mois_courant.get(5..7).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
+    let fin_mois = Jour::nouveau(an, mo, jours_du_mois(an, mo)).ok_or_else(|| refus_valeur(socle::date::date_impossible(an, mo, 1)))?;
+    let debut_mois = Jour::nouveau(an, mo, 1).ok_or_else(|| refus_valeur(socle::date::date_impossible(an, mo, 1)))?;
     let indu = d_ni < Decimal::ZERO;
     let mut taux: Value = Value::Null;
     let mut prelevement: Option<Decimal> = None;
@@ -398,7 +400,7 @@ pub(crate) fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: 
             prelevement = Some(pct(d_ni, dec_py(&json!(t)).map_err(refus_valeur)?));
         }
     } else {
-        let cle = py_str(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+        let cle = py_str(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let triplet = pas::taux_dgfip(ctx, &cle, None).map_err(refus_valeur)?;
         let bareme = ctx.bareme(&debut_mois).map_err(refus_valeur)?;
         let court = crate::dsn::court(apres, fin_mois).map_err(refus_valeur)?;
@@ -489,7 +491,7 @@ pub(crate) fn ecrire_rectificatifs(
     if payes.is_empty() {
         return Ok(out);
     }
-    let an: i64 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(mois_courant))))?;
+    let an: i64 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
     let mut n = reserves.prochain(ctx, "bulletin", an)?;
     // Par salarie, dans l'ordre ou on les rencontre : (cle, [(paie imprimee, rectificatif, ent)]).
     let mut par_salarie: Vec<(String, Vec<(Paie, Value, Value)>)> = Vec::new();
@@ -517,7 +519,7 @@ pub(crate) fn ecrire_rectificatifs(
             ));
         }
         let ent = crate::oracle::entreprise_du_mois(ctx, &r.mois).map_err(Echec::from)?;
-        let cle = py_str(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+        let cle = py_str(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let etiq = crate::envoi::etiquette(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_c{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.numero));
         let imprimee = a_imprimer(ctx, &r.donnees, &r.corrige, r.apres.engagement.numero.as_ref(), Some(numero_bulletin))?;

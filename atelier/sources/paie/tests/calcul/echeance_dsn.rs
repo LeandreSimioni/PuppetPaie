@@ -8,7 +8,7 @@
 //! - midi : cahier technique DSN 2026.1, § 1.4.2 (`atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt`) ;
 //! - les fetes legales : L. 3133-1 (`logiciel/donnees/feries-base.json`).
 
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::echeance_dsn::{du_mois, reporter, HEURE_LIMITE};
 
 fn j(s: &str) -> Jour {

@@ -29,15 +29,17 @@ use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::depot_acte::avec_donnee;
-use crate::ecriture::{ecrire_json, json_py};
+use socle::ecriture::{ecrire_json, json_py};
 use crate::engagement::{self, Avis};
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::{lire_json, vrai};
-use crate::jumeaux;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{lire_json, vrai};
+use droit::jumeaux;
 use crate::produire_regularisations::{self as regularisations, Reg};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_mois::{Moteur, Paire};
 use crate::routes_ouverture::q2;
 
@@ -93,7 +95,7 @@ impl Reserves {
         let lu = match c.get(&an).and_then(|a| a.get(cle)) {
             None => 0,
             Some(Value::Number(n)) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)).unwrap_or(0),
-            Some(Value::String(s)) => s.trim().parse().map_err(|_| valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(s))))?,
+            Some(Value::String(s)) => s.trim().parse().map_err(|_| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(s))))?,
             Some(Value::Bool(b)) => *b as i64,
             Some(_) => 0,
         };
@@ -136,8 +138,8 @@ impl Reserves {
         }
         let p = ctx.racine.join("config").join("compteurs.json");
         let mut c = if p.exists() { lire_json(&p).map_err(valeur)? } else { json!({}) };
-        let lu = crate::etats::nom_type(&c);
-        let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", crate::fichiers::attendu("un objet", lu))))?;
+        let lu = socle::valeur::nom_type(&c);
+        let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", socle::fichiers::attendu("un objet", lu))))?;
         for (an, cle) in &self.ordre {
             let annee = racine.entry(an.clone()).or_insert_with(|| json!({}));
             let annee = annee.as_object_mut().ok_or_else(|| erreur("AttributeError", "l'annee des compteurs n'est pas un dictionnaire"))?;
@@ -160,14 +162,14 @@ pub(crate) fn calculer(o: &HashMap<String, String>, ctx: &Contexte, data: &Value
 /// intact.
 pub(crate) fn charger(ctx: &Contexte, data: &Value, rep: &Value, reserves: Option<&mut Reserves>) -> R<Vec<Paie>> {
     let engs = crate::routes_ouverture::engagements_calcules(ctx, data, rep)?;
-    let paies_json = rep.get("paies").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("paies")))?;
+    let paies_json = rep.get("paies").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("paies")))?;
     let mut paies = Vec::new();
     for (e, v) in engs.into_iter().zip(paies_json) {
         paies.push(crate::routes_ouverture::paie_de_json(ctx, e, v)?);
     }
     if let Some(r) = reserves {
-        let mois = py_str(data.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?);
-        let annee: i32 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(&mois))))?;
+        let mois = py_str(data.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
+        let annee: i32 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(&mois))))?;
         r.numeroter(ctx, &mut paies, annee)?;
     }
     Ok(paies)
@@ -242,7 +244,7 @@ fn controler_calcul_stocke(o: &HashMap<String, String>, ctx: &Contexte, mois: &s
         return;
     }
     let Ok(sur_le_disque) = lire_json(&p) else { return };
-    if !crate::etats::eq_py(&sur_le_disque, data) {
+    if !socle::valeur::eq_py(&sur_le_disque, data) {
         return;
     }
     let demande = json!({"mois": mois, "resultat": rep}).to_string();
@@ -600,16 +602,16 @@ fn produire_mois(
     forcer: bool,
     qui: &str,
     sans_contrat: bool,
-    constitution: Option<crate::date::Jour>,
+    constitution: Option<socle::date::Jour>,
     reserves: &mut Reserves,
 ) -> R<MoisProduit> {
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
-    let mois = py_str(data.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?);
+    let mois = py_str(data.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
     // apercu_mois : le mois calcule, rien d'ecrit (`charger` : la saisie numerotee, une deuxieme fois).
-    let annee: i64 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(&mois))))?;
-    let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", crate::fichiers::repr(&mois))))?;
+    let annee: i64 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(&mois))))?;
+    let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(&mois))))?;
     // « 00 » ou « 13 » ne sont aucun mois : refus ici, jamais un mois ramene de force dans l'annee.
-    let nom_du_mois = crate::date::nom_du_mois(numero_mois as i64, crate::date::Graphie::Titre).map_err(valeur)?;
+    let nom_du_mois = socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
     let paies = charger(ctx, data, rep, Some(reserves))?;
     let (urssaf, avert) = crate::routes_ouverture::urssaf_de_l_apercu(ctx, &paies, &mois)?;
     let mut avertissements: Vec<Avis> = avert.into_iter().map(avertissement).collect();
@@ -618,15 +620,15 @@ fn produire_mois(
         avertissements.extend(p.avertissements.iter().cloned());
     }
     let n_apercu = avertissements.len();
-    let zero = crate::num::Decimal::new(0, 2);
+    let zero = socle::num::Decimal::new(0, 2);
     let total_brut = paies.iter().fold(zero, |a, p| a + q2(p.brut));
     let total_cout = paies.iter().fold(zero, |a, p| a + q2(p.cout_employeur));
 
     crate::routes_ecritures::refuser_si_clos(ctx, &mois)?; // un exercice cloture ne bouge plus
     crate::routes_ecritures::refuser_si_hors_delai(ctx, &mois, forcer)?; // DSN due le 15
     let fiche = ctx.entreprise.clone();
-    let principal = crate::bareme::nic_principal(&fiche);
-    let secondaires: Vec<String> = crate::bareme::secondaires(&fiche).iter().map(|e| py_str(e.get("nic").unwrap_or(&Value::Null))).collect();
+    let principal = droit::bareme::nic_principal(&fiche);
+    let secondaires: Vec<String> = droit::bareme::secondaires(&fiche).iter().map(|e| py_str(e.get("nic").unwrap_or(&Value::Null))).collect();
     let plusieurs = !secondaires.is_empty();
     if !envoi_test && ESSAI_DSN == 1 {
         // Un mois deja declare dont l'annule-et-remplace n'est plus admis (veille de l'echeance passee) : on le dit
@@ -834,7 +836,7 @@ fn produire_mois(
     let mut lots: Vec<Lot> = Vec::new();
     if plusieurs {
         for nic in std::iter::once(principal.clone()).chain(secondaires.iter().cloned()) {
-            let du_nic = |sal: &Value| -> R<bool> { Ok(crate::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == nic) };
+            let du_nic = |sal: &Value| -> R<bool> { Ok(droit::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == nic) };
             let mut lot = Lot { nic: Some(nic.clone()), paies: Vec::new(), regs: Vec::new(), arrets: Vec::new() };
             for (i, p) in paies.iter().enumerate() {
                 if du_nic(&p.salarie)? {
@@ -973,12 +975,12 @@ pub fn produire(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
 /// `produire`, pour qui l appelle sous son nom (`qui` : `cli` pour la ligne de commande) et avec la date de constitution de la
 /// DSN qu il choisit (`--constitution` ; le jour du contexte sinon). Rend aussi ce que l apercu a dit (a regarder, puis informations) :
 /// la ligne de commande le montre deux fois, comme le Python.
-pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, qui: &str, constitution: Option<crate::date::Jour>) -> R<(Value, (Vec<String>, Vec<String>))> {
-    let saisie = charge.get("saisie").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("saisie")))?;
+pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, qui: &str, constitution: Option<socle::date::Jour>) -> R<(Value, (Vec<String>, Vec<String>))> {
+    let saisie = charge.get("saisie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("saisie")))?;
     let Value::Object(brute) = saisie else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let mois = py_str(charge.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?);
+    let mois = py_str(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
     let envoi_test = charge.get("test").is_some_and(vrai);
     let forcer = charge.get("forcer").is_some_and(vrai);
     // `enregistrer_saisie` D'ABORD : elle valide la saisie de l'ecran en la calculant, reprend du fichier ce que l'ecran

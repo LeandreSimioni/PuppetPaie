@@ -4,8 +4,8 @@
 //! le reste (assiettes, salarie, net, SMIC retenu) si.
 
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::d;
+use droit::contexte::Contexte;
+use socle::date::d;
 use paie::engagement::charger;
 use serde_json::{json, Value};
 use crate::outils::{dec, fictive};

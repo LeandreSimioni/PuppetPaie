@@ -14,11 +14,15 @@ use std::str::FromStr;
 use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, get, nom_type, py_str, R};
-use crate::fichiers::vrai;
-use crate::num::Decimal;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use crate::etats::{self, get};
+use socle::valeur::py_str;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::Decimal;
+use socle::echec::Echec;
 use crate::routes_mois::Moteur;
 
 /// Les routes que ce module sert.
@@ -33,7 +37,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 }
 
 fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
-    charge.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)))
+    charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
 #[track_caller]
@@ -43,12 +47,12 @@ fn non_regularisable(message: impl Into<String>) -> Echec {
 
 /// `d["cle"]` : `KeyError` si elle manque.
 pub(crate) fn requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
-    d.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)))
+    d.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
 /// `jj_mm_aaaa(x)`.
 fn jj_mm_aaaa(iso: &str) -> R<String> {
-    Ok(crate::date::Jour::lire(iso).map_err(|m| erreur("ValueError", m))?.jj_mm_aaaa())
+    Ok(socle::date::Jour::lire(iso).map_err(|m| erreur("ValueError", m))?.jj_mm_aaaa())
 }
 
 // ------------------------------------------------------------------ le mois d'origine
@@ -57,7 +61,7 @@ fn jj_mm_aaaa(iso: &str) -> R<String> {
 pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Value> {
     let e = m.dsn_du_mois(&py_str(mois_v))?;
     let Some(mois) = mois_v.as_str() else {
-        return Err(erreur("TypeError", format!("'mois' : {}", crate::fichiers::attendu("un texte", nom_type(mois_v)))));
+        return Err(erreur("TypeError", format!("'mois' : {}", socle::fichiers::attendu("un texte", nom_type(mois_v)))));
     };
     let echeance = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
@@ -260,7 +264,7 @@ pub(crate) fn engagement_declare_en(
     let mut paies = paies_de_en(o, ctx, &donnees, frais)?;
     poser_numeros(m, ctx, mois, &mut paies)?;
     let portees = engagements_portes(ctx, mois)?;
-    let engs = donnees.get("engagements").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("engagements")))?;
+    let engs = donnees.get("engagements").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("engagements")))?;
     let engs = etats::items(engs)?;
     let mut trouve: Option<(Value, Value)> = None;
     for (p, e) in paies.iter().zip(engs.iter()) {
@@ -307,7 +311,7 @@ pub(crate) fn paie_d_un_engagement_en(o: &HashMap<String, String>, m: &mut Moteu
     let mois = py_str(requis(donnees, "mois")?);
     poser_numeros(m, ctx, &mois, &mut paies)?;
     if paies.is_empty() {
-        return Err(erreur("IndexError", crate::fichiers::trop_courte("la paie corrigée")));
+        return Err(erreur("IndexError", socle::fichiers::trop_courte("la paie corrigée")));
     }
     Ok(paies.remove(0))
 }
@@ -327,15 +331,15 @@ fn normaliser(declare: &Value, engagement: &Value) -> R<Value> {
             }
             Value::Array(a) => {
                 if a.iter().any(|x| x.as_str() == Some(k)) {
-                    return Err(erreur("TypeError", crate::fichiers::attendu("un objet", "list")));
+                    return Err(erreur("TypeError", socle::fichiers::attendu("un objet", "list")));
                 }
             }
             Value::String(s) => {
                 if s.contains(k) {
-                    return Err(erreur("TypeError", crate::fichiers::attendu("un objet", "str")));
+                    return Err(erreur("TypeError", socle::fichiers::attendu("un objet", "str")));
                 }
             }
-            autre => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+            autre => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         }
     }
     for k in ["salarie", "spectacle", "numero", "debut", "fin", "metier", "cadre", "emploi", "pcs_ese", "code_emploi_ft", "statut"] {
@@ -359,7 +363,7 @@ pub(crate) fn q2(d: Decimal) -> String {
 fn resume(p: &Paie) -> Value {
     let e = &p.engagement;
     let heures = match e.heures {
-        Some(h) if h != 0.0 => crate::ecriture::repr_flottant(h),
+        Some(h) if h != 0.0 => socle::ecriture::repr_flottant(h),
         _ => "0".to_string(),
     };
     json!({
@@ -522,12 +526,12 @@ fn phrase_des_dates(mois: &str, declarees: &Bornes, corrigees: &Bornes) -> R<Str
 
 /// Les mois (AAAA-MM) que couvrent des bornes ; sans fin, le seul premier mois.
 fn mois_des_bornes(b: &Bornes) -> R<Vec<String>> {
-    let debut = crate::date::Jour::lire(&b.0).map_err(|m| erreur("ValueError", m))?;
+    let debut = socle::date::Jour::lire(&b.0).map_err(|m| erreur("ValueError", m))?;
     let fin = match &b.1 {
-        Some(f) => crate::date::Jour::lire(f).map_err(|m| erreur("ValueError", m))?,
+        Some(f) => socle::date::Jour::lire(f).map_err(|m| erreur("ValueError", m))?,
         None => debut,
     };
-    Ok(crate::date::mois_entre(&debut, &fin))
+    Ok(socle::date::mois_entre(&debut, &fin))
 }
 
 // ------------------------------------------------- modifier la paie d'un mois deja declare
@@ -545,7 +549,7 @@ pub const CLASSE_NON_DECLARABLE: &str = "ModificationNonDeclarable";
 
 /// `septembre 2026`, avec ses accents.
 fn mois_en_clair(mois: &str) -> String {
-    crate::date::libelle_du_mois_ou_tel_quel(mois, crate::date::Graphie::Accentuee)
+    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
 }
 
 /// `de septembre 2026`, `d'octobre 2026`.
@@ -652,7 +656,7 @@ fn bornes(p: &Paie) -> Bornes {
 
 /// « du 02/07/2026 au 25/07/2026 ».
 pub(crate) fn bornes_en_clair(b: &Bornes) -> String {
-    let jour = |t: &str| crate::date::Jour::lire(t).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| t.to_string());
+    let jour = |t: &str| socle::date::Jour::lire(t).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| t.to_string());
     match &b.1 {
         Some(f) => format!("du {} au {}", jour(&b.0), jour(f)),
         None => format!("à partir du {}, sans fin", jour(&b.0)),
@@ -676,7 +680,7 @@ pub(crate) fn bornes_en_clair(b: &Bornes) -> String {
 pub(crate) fn propager_les_bornes(ctx: &Contexte, mois: &str, ancienne: &Value, nouvelle: &Value) -> R<Vec<(String, Value)>> {
     let (Some(avant), Some(apres)) = (identifies(ctx, ancienne), identifies(ctx, nouvelle)) else { return Ok(Vec::new()) };
     let (Some(b_avant), Some(b_apres)) = (bornes_saisies(ctx, ancienne), bornes_saisies(ctx, nouvelle)) else { return Ok(Vec::new()) };
-    let paires = crate::jumeaux::apparier_meme_numero(&apres, &avant);
+    let paires = droit::jumeaux::apparier_meme_numero(&apres, &avant);
     // (salarie, numero, nouvelles bornes) des contrats dont les dates changent.
     let mut changes: Vec<(String, String, Bornes)> = Vec::new();
     for (i, j) in paires.iter().enumerate() {
@@ -740,7 +744,7 @@ pub(crate) struct Changements {
 }
 
 /// Les engagements d'une saisie, identifies (`jumeaux`) ; `None` s'ils ne s'identifient pas.
-fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<crate::jumeaux::Ident>>> {
+fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<droit::jumeaux::Ident>>> {
     crate::routes_ecritures::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
 }
 
@@ -764,7 +768,7 @@ pub(crate) fn ce_qui_a_change(o: &HashMap<String, String>, ctx: &Contexte, mois:
     let e_apres = actuelle.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     // Le meme contrat a d'autres dates garde son numero (`jumeaux::apparier_meme_numero`) : il designe le contrat
     // declare, a son premier jour declare.
-    let paires = crate::jumeaux::apparier_meme_numero(&apres, &avant);
+    let paires = droit::jumeaux::apparier_meme_numero(&apres, &avant);
     let mut contrats = Vec::new();
     for (i, j) in paires.iter().enumerate() {
         let (Some(Some(id)), Some(e), Some(p)) = (apres.get(i), e_apres.get(i), p_apres.get(i)) else { continue };
@@ -801,13 +805,13 @@ pub(crate) fn ce_qui_a_change(o: &HashMap<String, String>, ctx: &Contexte, mois:
 /// `base` : la saisie telle que declaree ; `nouvelle` : ce qu'on veut ecrire. `Ok(None)` : rien d'indeclarable.
 pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nouvelle: &Value) -> R<Option<String>> {
     let (Some(avant), Some(apres)) = (identifies(ctx, base), identifies(ctx, nouvelle)) else { return Ok(None) };
-    let paires = crate::jumeaux::apparier_meme_numero(&avant, &apres);
+    let paires = droit::jumeaux::apparier_meme_numero(&avant, &apres);
     let e_avant = base.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let de = de_mois_en_clair(mois);
     for (i, j) in paires.iter().enumerate() {
         let Some(Some(id)) = avant.get(i) else { continue };
         let nom = e_avant.get(i).and_then(|e| e.get("salarie")).map(py_str).unwrap_or_else(|| id.0.clone());
-        let debut = crate::date::Jour::lire(&id.1).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| id.1.clone());
+        let debut = socle::date::Jour::lire(&id.1).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| id.1.clone());
         if j.is_none() {
             return Ok(Some(format!(
                 "Le contrat de {} du {} est déclaré dans la DSN {}, dont l'annule-et-remplace est passé : il ne se retire plus. La norme DSN n'annule pas un contrat déclaré (seule une fin de contrat s'annule, motif 099, fiche net-entreprises 1722). S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : « Corriger ce mois » déclarera l'annulation de ses montants dans la DSN suivante (rappel de paie, cahier technique DSN §2.1.3.6) ; sa DPAE s'annule auprès de l'Urssaf. Rien n'est enregistré.",
@@ -839,7 +843,7 @@ pub(crate) fn debut_declare_avant(ctx: &Contexte, cle: &str, numero: &str, debut
 /// a la date vraie est a deposer. La DPAE n'a pas d'annule-et-remplace (guide de l'API DPAE de l'Urssaf,
 /// `atelier/reference/norme-dpae/5491-API-DPAE-Fonctionnement.pdf`, p. 3).
 pub(crate) fn dpae_d_une_date_changee(avant: &str, apres: &str) -> (bool, String) {
-    let jour = |t: &str| crate::date::Jour::lire(t).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| t.to_string());
+    let jour = |t: &str| socle::date::Jour::lire(t).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| t.to_string());
     if avant < apres {
         (
             true,
@@ -1004,7 +1008,7 @@ pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: 
         return Ok(n.clone());
     }
     let fiche = ctx.salarie(salarie).map_err(|e| erreur("KeyError", e))?;
-    let texte = |k: &str| fiche.get(k).map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
+    let texte = |k: &str| fiche.get(k).map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
     let annee: i64 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| erreur("ValueError", format!("date illisible : {}", debut)))?;
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, "interface")?;
     let mut reserves = crate::produire_mois::Reserves::default();
@@ -1017,6 +1021,6 @@ pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: 
     }
     reserves.valider(ctx)?;
     crate::routes_contrats::sauver_avant(&chemin).map_err(Echec::from)?;
-    crate::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| erreur("OSError", m))?;
+    socle::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| erreur("OSError", m))?;
     Ok(numero)
 }

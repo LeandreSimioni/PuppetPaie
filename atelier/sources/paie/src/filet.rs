@@ -21,12 +21,15 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::ecriture::ecrire_json;
+use droit::contexte::Contexte;
+use socle::ecriture::ecrire_json;
 use crate::editeur::Client;
-use crate::etats::{self, erreur, get, py_str, R};
-use crate::fichiers::vrai;
-use crate::verrou::Verrou;
+use crate::etats::{self, get};
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::verrou::Verrou;
 
 pub const FICHIER: &str = "filet-dpae.json";
 const DSN: &str = "dsn";
@@ -41,7 +44,7 @@ fn chemin(racine: &Path) -> PathBuf {
 }
 
 #[track_caller]
-fn en_os(m: String) -> crate::retours::Echec {
+fn en_os(m: String) -> socle::echec::Echec {
     erreur("OSError", m)
 }
 
@@ -77,8 +80,8 @@ fn verrouiller(racine: &Path) -> R<Verrou> {
     if let Some(d) = p.parent() {
         std::fs::create_dir_all(d).map_err(|e| en_os(format!("{} : {}", d.display(), e)))?;
     }
-    let marque = crate::verrou::marque("filet", std::process::id(), &crate::incidents::maintenant());
-    match Verrou::prendre(&p, &marque, crate::verrou::DELAI_VERROU).map_err(en_os)? {
+    let marque = socle::verrou::marque("filet", std::process::id(), &crate::incidents::maintenant());
+    match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(en_os)? {
         Ok(v) => Ok(v),
         Err(_) => Err(erreur("ErreurOperation", "Un autre passage du filet est en cours : reessayer dans un instant. Rien n'a ete modifie.")),
     }
@@ -161,7 +164,7 @@ pub fn activer(racine: &Path, adresse: &Value, motdepasse: &Value) -> R<Value> {
     let adresse = match adresse {
         Value::String(s) => s.trim_matches(|c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)).to_lowercase(),
         a if !vrai(a) => String::new(),
-        a => return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", etats::nom_type(a)))),
+        a => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(a)))),
     };
     if !adresse.contains('@') {
         return Err(erreur("ErreurOperation", "Une adresse courriel, pour recevoir le rappel."));
@@ -242,7 +245,7 @@ pub fn verifier(racine: &Path) -> R<Value> {
         return etat_filet(racine);
     }
     let Value::Object(_) = &compte else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", etats::nom_type(&compte))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&compte))));
     };
     match client_du_compte(&compte)?.etat() {
         Ok(r) => {
@@ -279,7 +282,7 @@ fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
 pub fn suivies(ctx: &Contexte) -> R<Vec<Value>> {
     use crate::routes_ouverture::{embauches_suivies, nic_principal, Etat};
     let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
-    let liste = embauches_suivies(&st).map_err(crate::retours::Echec::from)?;
+    let liste = embauches_suivies(&st).map_err(socle::echec::Echec::from)?;
     Ok(liste
         .into_iter()
         .map(|(e, parti)| {
@@ -295,7 +298,7 @@ pub fn suivies(ctx: &Contexte) -> R<Vec<Value>> {
 /// aussi, rien -- l'embauche a commence, le reveil n'a plus d'objet.
 /// `AAAA-MM-JJTHH:MM`, qui se compare comme un instant.
 pub fn echeance_du_reveil(debut: &str, maintenant: &str) -> R<Option<String>> {
-    let jour = crate::date::Jour::lire(debut).map_err(|m| erreur("ValueError", m))?;
+    let jour = socle::date::Jour::lire(debut).map_err(|m| erreur("ValueError", m))?;
     let veille = jour.plus_jours(-1).map_err(|m| erreur("ValueError", m))?;
     for t in [format!("{}T{}", veille.iso(), HEURE_VEILLE), format!("{}T{}", jour.iso(), HEURE_JOUR_MEME)] {
         if t.as_str() > maintenant {
@@ -320,11 +323,11 @@ pub struct Reveils {
 fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
     use crate::routes_ouverture::{mois_a_declarer, nic_principal, Etat};
     let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
-    let echeance = ctx.echeance_dsn().map_err(crate::retours::Echec::from)?;
+    let echeance = ctx.echeance_dsn().map_err(socle::echec::Echec::from)?;
     let mut out = Vec::new();
-    for m in mois_a_declarer(&st).map_err(crate::retours::Echec::from)? {
+    for m in mois_a_declarer(&st).map_err(socle::echec::Echec::from)? {
         // Le jour de depot, reporte au jour ouvre (`echeance_dsn`) : le reveil sonne la veille et le jour meme, avant midi.
-        let jour = crate::echeance_dsn::du_mois(&m, echeance).map_err(crate::retours::Echec::from)?.jour;
+        let jour = crate::echeance_dsn::du_mois(&m, echeance).map_err(socle::echec::Echec::from)?.jour;
         out.push((m, jour.iso()));
     }
     Ok(out)
@@ -411,7 +414,7 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
         for k in a_desarmer {
             let code = match etat["reveils"].get(&k).and_then(|r| r.get("code")) {
                 Some(c) => py_str(c),
-                None => return Err(erreur("KeyError", crate::fichiers::absent("code"))),
+                None => return Err(erreur("KeyError", socle::fichiers::absent("code"))),
             };
             if let Err(e) = c.desarmer(&code) {
                 if e.est_filet() {
@@ -495,7 +498,7 @@ pub fn desarmer(racine: &Path, k: &str) -> R<bool> {
     if !vrai(&compte) {
         return Ok(false);
     }
-    let code = r.get("code").map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("code")))?;
+    let code = r.get("code").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
     match client_du_compte(&compte)?.desarmer(&code) {
         Ok(_) => {}
         Err(e) if e.est_filet() => return Ok(false),

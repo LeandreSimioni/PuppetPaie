@@ -99,7 +99,7 @@ impl Poste {
     /// Par un faux mandataire local, nomme comme seule porte du garde-fou reseau des essais (`garde_reseau::VARIABLE`) : il
     /// voit a qui le moteur voulait parler, et refuse ; rien ne sort.
     fn route_par(&self, mandataire: &str, route: &str, charge: Value) -> Value {
-        self.route_env(route, charge, "2026-09-25", &[(paie::garde_reseau::VARIABLE, mandataire)])
+        self.route_env(route, charge, "2026-09-25", &[(socle::garde_reseau::VARIABLE, mandataire)])
     }
 
     fn route_env(&self, route: &str, charge: Value, aujourdhui: &str, env: &[(&str, &str)]) -> Value {
@@ -601,14 +601,14 @@ fn sans_serveur_pose_rien_ne_sort_vers_le_serveur_de_l_editeur() {
     let env: Vec<(&str, &str)> = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"].iter().map(|v| (*v, m.as_str())).collect();
     let r = p.route_env("filet-activer", json!({"adresse": "a@exemple.fr"}), "2026-09-25", &env);
     assert_eq!((r["ok"].clone(), r["classe"].clone()), (json!(false), json!("ErreurOperation")), "{}", r);
-    assert!(r["erreur"].as_str().unwrap().contains(paie::garde_reseau::VARIABLE), "le refus vient du garde-fou : {}", r);
+    assert!(r["erreur"].as_str().unwrap().contains(socle::garde_reseau::VARIABLE), "le refus vient du garde-fou : {}", r);
     let pose = p.racine.join("config/filet-dpae.json");
     assert!(!pose.exists() || p.fichier("config/filet-dpae.json")["compte"].is_null(), "aucun compte sans inscription");
     p.ecrire("journal/incidents.json", &json!([incident(0, "en-attente")]));
     let r = p.route_env("diagnostic-envoyer", json!({}), "2026-09-25", &env);
     let b = r["resultat"]["bilan"].clone();
     assert_eq!((b["reste"].clone(), b["envoyes"].clone()), (json!(1), json!(0)), "{}", r);
-    assert!(b["erreur"].as_str().unwrap().contains(paie::garde_reseau::VARIABLE), "{}", b);
+    assert!(b["erreur"].as_str().unwrap().contains(socle::garde_reseau::VARIABLE), "{}", b);
     assert!(demandes.lock().unwrap().is_empty(), "rien n'est parti, pas meme vers un mandataire : {:?}", demandes.lock().unwrap());
 }
 
@@ -895,7 +895,7 @@ fn un_envoi_qui_echoue_se_refait_au_passage_suivant() {
 fn sans_serveur_pose_le_nombre_de_paies_ne_sort_pas_de_la_machine() {
     let p = poste_des_paies("paies-garde");
     let (mandataire, vus) = crate::outils::mandataire();
-    let r = p.route_env("ouverture", json!({"retours": false, "signatures": false, "sauvegarder": false}), "2026-01-16", &[(paie::garde_reseau::VARIABLE, mandataire.as_str())]);
+    let r = p.route_env("ouverture", json!({"retours": false, "signatures": false, "sauvegarder": false}), "2026-01-16", &[(socle::garde_reseau::VARIABLE, mandataire.as_str())]);
     assert_eq!(r["ok"], json!(true), "{}", r);
     let vus = vus.lock().unwrap().clone();
     assert!(!vus.is_empty() && vus.iter().all(|v| v.contains("filet.puppetpaie.fr")), "{:?}", vus);

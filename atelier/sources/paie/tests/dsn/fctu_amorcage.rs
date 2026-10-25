@@ -6,8 +6,8 @@
 use crate::outils::{self, compagnie};
 use paie::amorcage;
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::engagement::charger;
 use paie::fctu::{self, Echec};
 use serde_json::{Map, Value};
@@ -137,10 +137,10 @@ fn cch_15_il_faut_les_trois_blocs_51() {
 /// inaptitude est en 033 (p. 271). Le CDD les proposait, et le moteur les ecrivait.
 #[test]
 fn l_inaptitude_d_un_cdd_est_033_jamais_091_ni_092() {
-    let cdd = paie::contrats::nature(Some("cdd")).unwrap();
+    let cdd = droit::natures::nature(Some("cdd")).unwrap();
     let codes: Vec<String> = cdd.motifs_rupture().iter().map(|m| m["code"].as_str().unwrap().to_string()).collect();
     assert!(!codes.iter().any(|c| c == "091" || c == "092") && codes.iter().any(|c| c == "033"), "{:?}", codes);
-    let cdi = paie::contrats::nature(Some("cdi")).unwrap();
+    let cdi = droit::natures::nature(Some("cdi")).unwrap();
     assert!(cdi.motif_rupture_refuse("091", "X").is_none() && cdi.motif_rupture_refuse("092", "X").is_none());
 
     // Le FCTU de la fictive (un CDD, AU.25.01) avec 091 : refuse ; avec 033 : ecrit.

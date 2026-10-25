@@ -10,11 +10,11 @@
 //! saisies s'ecrivent dans le dossier temporaire des tests.
 
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::{charger, Saisie};
-use paie::num::{eur, pct, Decimal};
+use socle::num::{eur, pct, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
 use crate::outils::{base78, compagnie::sans_les_pdf, ctp, dec, fictive, dossier_de_test, paires, versement};

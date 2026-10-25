@@ -1,0 +1,80 @@
+# L'espace Cargo du moteur : une crate par partie, chaque flèche descend.
+#
+#     paie   la ligne de commande `paie` et les parties du dessus (engagement, documents, déclarations, envois,
+#            interface, compagnie, import, atelier)
+#     droit  barèmes datés, conventions, natures de contrat, règles ; lit tout à une date ; ne connaît pas l'engagement
+#     socle  dates, heure de Paris, temps simulé, nombres, texte, fichiers, échecs, garde-fou réseau
+#
+# La fenêtre (`fenetre/`) et la fabrique de PDF (`fabrique-pdf/`) gardent chacune leur verrou et leurs profils : elles ne
+# sont pas de l'espace (la fenêtre prend `paie` par son chemin).
+
+[workspace]
+members = ["socle", "droit", "paie"]
+exclude = ["fenetre", "fabrique-pdf"]
+resolver = "2"
+
+[workspace.dependencies]
+# Arithmetique decimale : ROUND_HALF_UP = MidpointAwayFromZero.
+rust_decimal = { version = "1", default-features = false, features = ["std", "maths"] }
+# Les fichiers se lisent en serde_json::Value : les cles inconnues et `_commentaires` survivent sans schema a maintenir.
+# `float_roundtrip` : un flottant lu est exactement celui qui est ecrit, et `num::dec` passe par sa representation la
+# plus courte.
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+sha2 = { version = "0.10", default-features = false }
+getrandom = "0.3"
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier"] }
+roxmltree = { version = "0.20", default-features = false, features = ["std"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+# « unwind », pas « abort » (ticket #244) : la fenetre sert les routes du moteur dans son processus ; une route qui
+# tombe (une panique) doit rendre un refus `DefautDuLogiciel` et laisser la fenetre debout (`routes::dans_la_fenetre`,
+# `catch_unwind`).
+panic = "unwind"
+strip = true
+
+# scrypt brasse 32 Mo par essai : le code des briques de chiffrement va vite,
+# le reste du binaire reste petit.
+[profile.release.package.scrypt]
+opt-level = 3
+[profile.release.package.salsa20]
+opt-level = 3
+[profile.release.package.pbkdf2]
+opt-level = 3
+[profile.release.package.sha2]
+opt-level = 3
+
+# Les tests (profil dev) derivent des cles scrypt par dizaines (le mot de passe du logiciel, les demandes de `demande.rs`) :
+# ces briques-la, optimisees, les font passer de minutes a secondes.
+[profile.dev.package.scrypt]
+opt-level = 3
+[profile.dev.package.salsa20]
+opt-level = 3
+[profile.dev.package.pbkdf2]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3
+
+# Le profil des ESSAIS (`cargo nextest run --cargo-profile essais`) : le code optimise de `release`, sans le LTO ni
+# l'unite de compilation unique, qui se repaient pour chacun des binaires de `tests/`. L'exe livre (`release`) ne change pas.
+[profile.essais]
+inherits = "release"
+opt-level = 1
+lto = false
+codegen-units = 16
+incremental = true
+strip = false
+panic = "unwind"
+[profile.essais.package."*"]
+opt-level = 2
+[profile.essais.package.scrypt]
+opt-level = 3
+[profile.essais.package.salsa20]
+opt-level = 3
+[profile.essais.package.pbkdf2]
+opt-level = 3
+[profile.essais.package.sha2]
+opt-level = 3

@@ -27,7 +27,7 @@ use std::time::Duration;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_google::{en_texte, encoder, identifiants, phrase_de_panne, DESCRIPTION, FICHIER_JETON, JETONS, PERMISSIONS};
 use crate::transport::{envoyer, Requete};
 

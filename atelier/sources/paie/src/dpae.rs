@@ -23,11 +23,11 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contrats;
-use crate::date::{d, en_texte};
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use droit::natures;
+use socle::date::{d, en_texte};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
 use crate::ntt;
-use crate::num::Resultat;
+use socle::num::Resultat;
 use crate::usages::strip;
 
 // Ce que `unicodedata.normalize("NFKD", c).encode("ascii", "ignore")` laisse
@@ -125,7 +125,7 @@ fn chaine(v: Option<&Value>) -> String {
 
 /// `s[cle]` : le `KeyError` du Python s'ecrit `'cle'`.
 fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
-    s.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    s.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// `s.ljust(n)` : complete a droite avec des espaces, ne tronque pas.
@@ -284,7 +284,7 @@ fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
         Some(e) => modele_de(NOM_GABARIT, e, &chemins.poste),
         None => chemins.defaut.clone(),
     };
-    let octets = std::fs::read(&chemin).map_err(|e| crate::fichiers::panne_fichier(&e, &chemin))?;
+    let octets = std::fs::read(&chemin).map_err(|e| socle::fichiers::panne_fichier(&e, &chemin))?;
     let texte: String = octets.iter().map(|&o| o as char).collect();
     let texte = texte.replace("\r\n", "\n").replace('\r', "\n");
     let gab: Vec<char> = texte.chars().take(LONGUEUR).collect();
@@ -689,8 +689,8 @@ fn type_py(v: &Value) -> &'static str {
 
 /// La nature de contrat de cette embauche. Une nature inconnue est un
 /// `KeyError` en Python, dont `str()` rend le message entre guillemets.
-fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<contrats::Nature>> {
-    contrats::nature(e.nature.as_deref()).map_err(|m| repr(&m))
+fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<natures::Nature>> {
+    natures::nature(e.nature.as_deref()).map_err(|m| repr(&m))
 }
 
 /// Texte a recopier si l'on prefere la saisie en ligne sur net-entreprises.
@@ -699,7 +699,7 @@ fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<contrats::Nature>> {
 pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat<String> {
     let heure_embauche = match heure_embauche {
         Value::String(t) => t.as_str(),
-        autre => return Err(format!("heure d'embauche : {}", crate::fichiers::attendu("un texte", type_py(autre)))),
+        autre => return Err(format!("heure d'embauche : {}", socle::fichiers::attendu("un texte", type_py(autre)))),
     };
     let h: Vec<char> = heure_embauche.chars().collect();
     let heure = format!(

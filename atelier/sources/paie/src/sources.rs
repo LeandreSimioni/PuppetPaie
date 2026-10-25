@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::date::Jour;
+use socle::date::Jour;
 use crate::kali::{self, Suivi};
 
 pub const MANIFESTE: &str = "sources.json";
@@ -112,7 +112,7 @@ pub fn telecharger(url: &str, secondes: u64) -> R<(Vec<u8>, Option<String>)> {
         c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
     }
     // En essai, le garde-fou reseau : rien ne sort de la machine.
-    let agent: ureq::Agent = crate::garde_reseau::regler(c, url)?.build().into();
+    let agent: ureq::Agent = socle::garde_reseau::regler(c, url)?.build().into();
     let mut r = agent.get(url).call().map_err(|e| e.to_string())?;
     let modifie = r.headers().get("last-modified").and_then(|v| v.to_str().ok()).map(String::from);
     let o = r.body_mut().with_config().limit(512 * 1024 * 1024).read_to_vec().map_err(|e| e.to_string())?;
@@ -192,7 +192,7 @@ pub fn verifier(
 }
 
 fn nourrit(e: &Value) -> String {
-    let n: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(crate::etats::py_str).collect();
+    let n: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(socle::valeur::py_str).collect();
     if n.is_empty() {
         "rien".into()
     } else {

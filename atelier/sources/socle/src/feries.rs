@@ -16,7 +16,7 @@ use std::sync::Arc;
 pub type Jours = Vec<(Jour, String)>;
 
 /// `datetime.date(an, mois, jour)` avec les refus et messages de Python.
-pub(crate) fn date_py(an: i64, mois: i64, jour: i64) -> Resultat<Jour> {
+pub fn date_py(an: i64, mois: i64, jour: i64) -> Resultat<Jour> {
     if !(1..=9999).contains(&an) {
         return Err(crate::date::annee_impossible(an));
     }
@@ -57,7 +57,7 @@ fn entier(v: &Value, cle: &str) -> Resultat<i64> {
             .trim()
             .parse::<i64>()
             .map_err(|_| format!("nombre entier illisible : {}", repr(s))),
-        autre => Err(format!("{} : {}", repr(cle), crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre)))),
+        autre => Err(format!("{} : {}", repr(cle), crate::fichiers::attendu("un nombre entier", crate::valeur::nom_type(autre)))),
     }
 }
 
@@ -133,7 +133,7 @@ pub fn chomes(annee: i32, entreprise: Option<&Value>) -> Resultat<Jours> {
             })
             .collect(),
         Value::Object(o) => o.keys().cloned().collect(),
-        autre => return Err(crate::fichiers::attendu("une liste", crate::etats::nom_type(autre))),
+        autre => return Err(crate::fichiers::attendu("une liste", crate::valeur::nom_type(autre))),
     };
     let tous = jours_du_fichier()?;
     let connus: Vec<&str> = tous.iter().filter_map(|j| j.get("nom").and_then(|n| n.as_str())).collect();

@@ -4,9 +4,9 @@
 
 use crate::outils::{code_livre, copier, fictive, dossier_de_test, lire, lire_oracle, oracle};
 use paie::casc::{base, dsn_deposee, mois_regularises};
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::num::Decimal;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::num::Decimal;
 use paie::oeth::{declaration, Declaration};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};

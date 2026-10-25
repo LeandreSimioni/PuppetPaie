@@ -10,10 +10,10 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Once, OnceLock};
 
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use outils::{copier, dossier_de_test, dossier_du_processus, ecrire, lire, FauxCourriel as Faux};
 use paie::courriel::Courriel;
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::releve_signatures as rs;
 use serde_json::{json, Value};
 

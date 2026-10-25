@@ -12,7 +12,7 @@
 
 use paie::engagement::Saisie;
 use paie::calcul::Paie;
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::json;
 use crate::outils::permanents::{bloc, blocs_41, contexte, deposer, dorval_cadre_au, dsn, retoucher_saisie, saisie};
 use crate::outils::{compagnie::sans_les_pdf, dec, dossier_de_test, ecrire, individu, lire};

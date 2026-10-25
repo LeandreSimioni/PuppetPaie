@@ -18,11 +18,11 @@
 //! contrats successifs qui, mis bout a bout, font douze mois continus ; un contrat prolonge au-dela de douze mois) est
 //! dans `prive/journal/norme/corrections/PASSATION-V2f.md` : ce sont des decisions, pas des lectures.
 
-use crate::contrats::Nature;
-use crate::date::Jour;
+use crate::natures::Nature;
+use socle::date::Jour;
 use crate::emplois;
-use crate::fichiers::vrai;
-use crate::num::Resultat;
+use socle::fichiers::vrai;
+use socle::num::Resultat;
 use serde_json::Value;
 
 /// Ce que la pile du bareme decrit sans contrat : le CORPS est un intermittent affilie (le CDDU), la section
@@ -36,7 +36,7 @@ pub fn par_defaut(nat: &Nature) -> bool {
 /// ce jour n'existe pas : un 29 fevrier). Un contrat dont le lendemain du terme l'atteint dure douze mois ou plus.
 fn douze_mois_apres(debut: &Jour) -> Jour {
     let an = debut.an + 1;
-    let jour = debut.jour.min(crate::date::jours_du_mois(an, debut.mois));
+    let jour = debut.jour.min(socle::date::jours_du_mois(an, debut.mois));
     Jour::nouveau(an, debut.mois, jour).unwrap_or(*debut)
 }
 
@@ -98,11 +98,6 @@ moteur ne la devine pas.",
     Ok(!douze_mois_ou_plus(debut, fin)?)
 }
 
-/// `affilie` pour une paie calculee : son contrat et la fiche qu'elle a lue.
-pub fn de_la_paie(p: &crate::calcul::Paie) -> Resultat<bool> {
-    let e = &p.engagement;
-    affilie(&*e.nat()?, &p.salarie, &e.debut, e.fin.as_ref())
-}
 
 #[cfg(test)]
 mod tests {

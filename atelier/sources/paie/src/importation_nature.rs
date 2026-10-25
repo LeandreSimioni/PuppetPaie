@@ -30,10 +30,12 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 
 /// La marque d'un contrat repris dont la nature reste a dire.
 pub const A_DIRE: &str = "nature_a_dire";
@@ -46,14 +48,14 @@ fn chemin(racine: &Path) -> std::path::PathBuf {
 }
 
 /// Les natures qu'un permanent peut recevoir.
-fn natures_permanentes() -> R<Vec<std::sync::Arc<crate::contrats::Nature>>> {
-    let toutes = crate::contrats::natures().map_err(|m| erreur("ErreurOperation", m))?;
+fn natures_permanentes() -> R<Vec<std::sync::Arc<droit::natures::Nature>>> {
+    let toutes = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?;
     Ok(toutes.iter().filter(|n| n.paie == "mensuelle").cloned().collect())
 }
 
 /// Ce qu'une nature demande avec elle pour un contrat qui court encore : son debut, son numero, son salaire et
 /// sa duree du travail, et sa fin s'il a un terme. Rien pour un contrat fini.
-fn demande(n: &crate::contrats::Nature, en_cours: bool) -> Vec<&'static str> {
+fn demande(n: &droit::natures::Nature, en_cours: bool) -> Vec<&'static str> {
     match (en_cours, n.duree_indeterminee) {
         (false, _) => vec![],
         (true, true) => vec!["debut", "numero", "salaire", "quotite"],
@@ -145,7 +147,7 @@ pub(crate) fn a_dire(racine: &Path) -> Vec<Value> {
         .collect()
 }
 
-fn refus(m: impl Into<String>) -> crate::retours::Echec {
+fn refus(m: impl Into<String>) -> socle::echec::Echec {
     erreur("ErreurOperation", m.into())
 }
 
@@ -205,8 +207,8 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
                 } else {
                     ("contrat_quotite", "une durée du travail en heures par mois")
                 };
-                match s.parse::<crate::num::Decimal>() {
-                    Ok(d) if d > crate::num::Decimal::ZERO => contrat.insert(cle.into(), json!(d.to_string().parse::<f64>().unwrap_or_default())),
+                match s.parse::<socle::num::Decimal>() {
+                    Ok(d) if d > socle::num::Decimal::ZERO => contrat.insert(cle.into(), json!(d.to_string().parse::<f64>().unwrap_or_default())),
                     _ => return Err(refus(format!("« {} » n'est pas {} : rien n'a été écrit.", v, quoi))),
                 };
             }
@@ -233,7 +235,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
     crate::routes_contrats::sauver_avant(&p)?;
-    crate::ecriture::ecrire_json(&p, &h, 1).map_err(|m| erreur("OSError", m))?;
+    socle::ecriture::ecrire_json(&p, &h, 1).map_err(|m| erreur("OSError", m))?;
     // LA COMPAGNIE EMPLOIE UN PERMANENT : c'est ce qu'on vient de dire (une nature payee au mois). La case « La
     // compagnie emploie aussi des salaries au mois » de la fiche Entreprise (`contexte::emploie_des_permanents`) se
     // coche donc ici, sans la redemander : sans elle, la paie du mois suivant refuserait ce contrat
@@ -241,12 +243,12 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
     // demande alors dans « Pour demarrer », comme pour toute compagnie qui la coche.
     let pe = ctx.racine.join("config").join("entreprise.json");
     let mut ent = crate::routes_etats::lire_json_ou_vide(&pe)?;
-    let permanents_declares = !crate::contexte::emploie_des_permanents(&ent);
+    let permanents_declares = !droit::contexte::emploie_des_permanents(&ent);
     if permanents_declares {
         let o = ent.as_object_mut().ok_or_else(|| refus("config/entreprise.json n'est pas un objet : la case des permanents n'a pas été cochée."))?;
         o.insert("emploie_des_permanents".into(), json!(true));
         crate::routes_contrats::sauver_avant(&pe)?;
-        crate::ecriture::ecrire_json(&pe, &ent, 2).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&pe, &ent, 2).map_err(|m| erreur("OSError", m))?;
     }
     Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares}))
 }
@@ -293,7 +295,7 @@ pub(crate) fn repris_en_cours(racine: &Path, mois: &str) -> Vec<Repris> {
     let premier = format!("{}-01", mois);
     par.into_values()
         .filter(|r| r.depuis.as_str() < mois && r.debut.as_str() < premier.as_str() && (r.fin.is_empty() || r.fin >= premier))
-        .filter(|r| crate::contrats::nature(Some(&r.nature)).is_ok_and(|n| n.mensuelle() && (n.duree_indeterminee || !r.fin.is_empty())))
+        .filter(|r| droit::natures::nature(Some(&r.nature)).is_ok_and(|n| n.mensuelle() && (n.duree_indeterminee || !r.fin.is_empty())))
         .collect()
 }
 
@@ -313,7 +315,7 @@ pub(crate) fn libelle_d_un_contrat(e: &Map<String, Value>) -> R<Option<String>> 
         return Ok(Some("nature à dire".into()));
     }
     match e.get("nature").and_then(Value::as_str).filter(|s| !s.is_empty()) {
-        Some(n) => Ok(Some(crate::contrats::nature(Some(n)).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())),
+        Some(n) => Ok(Some(droit::natures::nature(Some(n)).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())),
         None => Ok(None),
     }
 }

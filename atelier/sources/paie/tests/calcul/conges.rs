@@ -3,8 +3,8 @@
 
 use crate::outils::{fictive, lire_oracle, oracle};
 use paie::conges::{compteur_conges, jours_ouvrables, lignes_du_mois};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use serde_json::{json, Value};
 
 fn lire() -> Value {

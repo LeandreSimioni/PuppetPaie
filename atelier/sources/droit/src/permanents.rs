@@ -7,11 +7,11 @@
 //! Les `dict` du Python sont des `serde_json::Value` ; un `Decimal` y est
 //! ecrit en chaine (`"149.66"`), un entier en nombre.
 
-use crate::contrats::Nature;
-use crate::date::{jours_du_mois, Jour};
-use crate::feries::date_py;
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
-use crate::num::{add, sub, dec, dec_f64, dec_py, div, eur2, mul, zero2, Decimal, Resultat};
+use crate::natures::Nature;
+use socle::date::{jours_du_mois, Jour};
+use socle::feries::date_py;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::num::{add, sub, dec, dec_f64, dec_py, div, eur2, mul, zero2, Decimal, Resultat};
 use rust_decimal::prelude::*;
 use serde_json::{json, Map, Value};
 use std::sync::Arc;
@@ -33,7 +33,7 @@ pub struct OptionsMaintien {
 
 // ------------------------------------------------------------ les aides
 fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// `Decimal(str(x))` de la valeur d'une cle du fichier.
@@ -46,12 +46,12 @@ fn entier(v: &Value) -> Resultat<i64> {
         Value::Number(n) => n
             .as_i64()
             .or_else(|| n.as_f64().map(|x| x.trunc() as i64))
-            .ok_or_else(|| crate::fichiers::entier_hors_limites(&n.to_string())),
+            .ok_or_else(|| socle::fichiers::entier_hors_limites(&n.to_string())),
         Value::String(s) => s
             .trim()
             .parse::<i64>()
             .map_err(|_| format!("nombre entier illisible : {}", repr(s))),
-        autre => Err(crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre))),
+        autre => Err(socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre))),
     }
 }
 
@@ -240,7 +240,7 @@ pub fn preavis_mois(anciennete: Decimal, motif_rupture: Option<&str>, cdd: bool)
     if sans.map_or(false, vrai) {
         return Ok(Some(Decimal::ZERO));
     }
-    for t in cle(r, "tranches")?.as_array().ok_or_else(|| crate::fichiers::absent("tranches"))? {
+    for t in cle(r, "tranches")?.as_array().ok_or_else(|| socle::fichiers::absent("tranches"))? {
         let haut = match t.get("anciennete_mois_max") {
             None | Some(Value::Null) => None,
             Some(h) => Some(dec(h)?),
@@ -317,7 +317,7 @@ pub fn rubrique_de_l_indemnite_de_preavis(motif_rupture: Option<&str>) -> Result
     if let Some(r) = ic.get("rubrique_par_motif").and_then(|p| p.get(motif_texte(motif_rupture))).and_then(Value::as_str) {
         return Ok(r.to_string());
     }
-    Ok(cle(ic, "rubrique")?.as_str().ok_or_else(|| crate::fichiers::absent("rubrique"))?.to_string())
+    Ok(cle(ic, "rubrique")?.as_str().ok_or_else(|| socle::fichiers::absent("rubrique"))?.to_string())
 }
 
 // ------------------------------------------------ le delai de prevenance d'une fin d'essai (L1221-25, lot P2)
@@ -345,7 +345,7 @@ pub struct DelaiDePrevenance {
 fn plus_mois(j: &Jour, n: u32) -> Resultat<Jour> {
     let rang = j.mois - 1 + n;
     let (an, mois) = (j.an + (rang / 12) as i32, rang % 12 + 1);
-    Jour::nouveau(an, mois, j.jour.min(jours_du_mois(an, mois))).ok_or_else(|| crate::date::date_impossible(an, mois, j.jour))
+    Jour::nouveau(an, mois, j.jour.min(jours_du_mois(an, mois))).ok_or_else(|| socle::date::date_impossible(an, mois, j.jour))
 }
 
 /// L1221-25 : le delai de prevenance d'une fin d'essai notifiee le `notification` dans un contrat commence le `debut`
@@ -355,7 +355,7 @@ fn plus_mois(j: &Jour, n: u32) -> Resultat<Jour> {
 pub fn delai_de_prevenance(debut: &Jour, notification: &Jour) -> Resultat<DelaiDePrevenance> {
     let rg = regles()?;
     let s = cle(cle(&rg, "preavis")?, "delai_de_prevenance")?;
-    let tranches = cle(s, "tranches")?.as_array().ok_or_else(|| crate::fichiers::absent("tranches"))?;
+    let tranches = cle(s, "tranches")?.as_array().ok_or_else(|| socle::fichiers::absent("tranches"))?;
     let presence_jours = notification.moins(debut) + 1;
     let presence_mois = anciennete_mois(debut, notification);
     let tranche = tranches
@@ -369,9 +369,9 @@ pub fn delai_de_prevenance(debut: &Jour, notification: &Jour) -> Resultat<DelaiD
     let expiration = match (tranche.get("delai_jours"), tranche.get("delai_mois")) {
         (Some(j), _) => notification.plus_jours(entier(j)?)?,
         (None, Some(m)) => plus_mois(notification, entier(m)? as u32)?,
-        (None, None) => return Err(crate::fichiers::absent("delai_jours")),
+        (None, None) => return Err(socle::fichiers::absent("delai_jours")),
     };
-    Ok(DelaiDePrevenance { texte: crate::date::en_texte(cle(tranche, "texte")?), presence_jours, expiration })
+    Ok(DelaiDePrevenance { texte: socle::date::en_texte(cle(tranche, "texte")?), presence_jours, expiration })
 }
 
 /// Le salaire de reference de l'indemnite de licenciement : la moyenne des
@@ -431,7 +431,7 @@ fn bareme_licenciement(anciennete: Decimal, reference: Decimal) -> Resultat<(Dec
     let r = cle(&rg, "indemnite_licenciement")?;
     let annees = div(anciennete, douze());
     let (mut total, mut bas) = (Decimal::ZERO, Decimal::ZERO);
-    for t in cle(r, "taux")?.as_array().ok_or_else(|| crate::fichiers::absent("taux"))? {
+    for t in cle(r, "taux")?.as_array().ok_or_else(|| socle::fichiers::absent("taux"))? {
         let haut = match cle(t, "jusqu_a_annees")? {
             Value::Null => annees,
             h => dec(h)?,
@@ -480,7 +480,7 @@ pub fn code_52_permis(code: Option<&str>, motif_rupture: Option<&str>) -> Result
         None => return Ok(None),
     };
     let motif = motif_texte(motif_rupture);
-    let motifs = cle(dit, "motifs")?.as_array().ok_or_else(|| crate::fichiers::absent("motifs"))?;
+    let motifs = cle(dit, "motifs")?.as_array().ok_or_else(|| socle::fichiers::absent("motifs"))?;
     if motif.is_empty() || motifs.iter().any(|m| m.as_str() == Some(motif)) {
         return Ok(None);
     }
@@ -531,7 +531,7 @@ pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Res
     let rg = regles()?;
     let sec = cle(cle(&rg, "depart_a_la_retraite")?, "indemnite")?;
     let annees = div(anciennete, douze());
-    let taux = cle(sec, "taux")?.as_array().ok_or_else(|| crate::fichiers::absent("taux"))?;
+    let taux = cle(sec, "taux")?.as_array().ok_or_else(|| socle::fichiers::absent("taux"))?;
     let mut tries: Vec<(Decimal, &Value)> = Vec::new();
     for t in taux {
         tries.push((nombre(t, "anciennete_annees")?, t));
@@ -551,7 +551,7 @@ pub fn indemnite_depart_retraite(anciennete: Decimal, reference: Decimal) -> Res
                 x.unwrap_or_default().cmp(&y.unwrap_or_default())
             });
             let premier = match premier {
-                Some(t) => crate::fichiers::repr_valeur(cle(t, "anciennete_annees")?),
+                Some(t) => socle::fichiers::repr_valeur(cle(t, "anciennete_annees")?),
                 None => return Err("min() arg is an empty sequence".to_string()),
             };
             return Ok(json!({"montant": dv(zero2()), "du": false, "mois": dv(Decimal::ZERO),
@@ -622,7 +622,7 @@ pub fn duree_du_maintien(anciennete_mois: Decimal) -> Resultat<Vec<Tranche>> {
     let bonus = (au_dela / entier(cle(maj, "par_annees")?)?) * entier(cle(maj, "jours")?)?;
     let plafond = entier(cle(maj, "plafond_jours")?)?;
     let mut out = Vec::new();
-    for t in cle(r, "tranches")?.as_array().ok_or_else(|| crate::fichiers::absent("tranches"))? {
+    for t in cle(r, "tranches")?.as_array().ok_or_else(|| socle::fichiers::absent("tranches"))? {
         let jours = (entier(cle(t, "jours")?)? + bonus).min(plafond);
         out.push(Tranche { jours, taux: nombre(t, "taux")? });
     }

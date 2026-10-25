@@ -12,8 +12,8 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::date::Jour;
-use crate::fichiers::dossier_du_code;
+use socle::date::Jour;
+use socle::fichiers::dossier_du_code;
 
 const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 const FICHIER_MODE: &str = ".mode-developpeur.json";
@@ -75,7 +75,7 @@ pub fn mode_actif() -> bool {
     std::fs::read_to_string(chemin_mode())
         .ok()
         .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
-        .and_then(|v| v.get("actif").map(crate::fichiers::vrai))
+        .and_then(|v| v.get("actif").map(socle::fichiers::vrai))
         .unwrap_or(false)
 }
 
@@ -86,7 +86,7 @@ pub fn copie_faite() -> bool {
 
 /// Le jour de Paris, aujourd'hui.
 pub fn jour_de_paris() -> Jour {
-    crate::temps::jour_de_paris()
+    socle::temps::jour_de_paris()
 }
 
 /// Pose `PUPPETPAIE_AUJOURDHUI` a l'heure de Paris quand rien ne l'a posee (le Python lit `date.today()`, a Paris).

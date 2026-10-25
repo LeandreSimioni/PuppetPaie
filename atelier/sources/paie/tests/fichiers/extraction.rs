@@ -10,7 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::extraire::{self, Releve};
 use serde_json::Value;
 

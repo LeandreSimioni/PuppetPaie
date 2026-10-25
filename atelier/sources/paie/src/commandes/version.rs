@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, enveloppe, rendre, texte};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "version", positionnels: &[], options: &[Opt::drapeau("json")] };
 
@@ -30,7 +30,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         rendre(&enveloppe("version", v));
         return Ok(0);
     }
-    let vrai = |k: &str| v.get(k).is_some_and(crate::fichiers::vrai);
+    let vrai = |k: &str| v.get(k).is_some_and(socle::fichiers::vrai);
     let lue = |k: &str| crate::maj::version_lue(&champ(&v, k));
     dire!("PuppetPaie {}{}", lue("courante"), if vrai("editeur") { " (poste de l'editeur)" } else { "" });
     #[cfg(feature = "atelier")]

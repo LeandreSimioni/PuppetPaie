@@ -18,7 +18,7 @@ use super::actes::{est_refus_d_envoi, ouvrir_la_boite, reponse_metier};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, enveloppe, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 use serde_json::{json, Value};
 
 pub static SPEC: Spec = Spec { commande: "signatures", positionnels: &[], options: &[Opt::valeur("mois"), Opt::drapeau("json")] };
@@ -63,7 +63,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     dire!("{}", champ(&r, "resume"));
     for x in &recues {
         let quand: String = champ(x, "quand").replace('T', " ").chars().take(16).collect();
-        let renvoye = if x.get("renvoye").is_some_and(crate::fichiers::vrai) { " -- contrat contresigne renvoye" } else { "" };
+        let renvoye = if x.get("renvoye").is_some_and(socle::fichiers::vrai) { " -- contrat contresigne renvoye" } else { "" };
         dire!("      {}  signe le {} depuis {} ({}){}", champ(x, "nom"), quand, champ(x, "adresse"), champ(x, "code"), renvoye);
     }
     for i in &incidents {

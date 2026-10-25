@@ -12,14 +12,14 @@ use std::path::Path;
 use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Value};
 
-use crate::bareme::{self, bareme_applique_au_contrat};
+use droit::bareme::{self, bareme_applique_au_contrat};
 use crate::bordereau::{self, LigneBordereau};
 use crate::calcul::{au_dela_du_seuil, Paie};
-use crate::contexte::{aujourdhui, Contexte};
-use crate::contrats::{contrat_court, Nature};
-use crate::date::{en_texte, Jour};
-use crate::fichiers::{dossier_du_code, json_en_cache, lire_json, vrai};
-use crate::num::{add, dec, dec_py, div, eur, mul, pct, sub, Decimal, Resultat};
+use droit::contexte::{aujourdhui, Contexte};
+use droit::natures::{contrat_court, Nature};
+use socle::date::{en_texte, Jour};
+use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, vrai};
+use socle::num::{add, dec, dec_py, div, eur, mul, pct, sub, Decimal, Resultat};
 use crate::pas::{self, Triplet, ZONE_DEFAUT};
 
 pub const LOGICIEL: &str = "PUPPETPAIE";
@@ -112,7 +112,7 @@ pub(crate) fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
 
 /// `v[k]` : la cle doit exister.
 pub(crate) fn req<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// Le bloc `S10.G00.02` (contact émetteur), commun à la mensuelle et aux signalements : UNE personne, celle que les
@@ -252,7 +252,7 @@ fn rond(x: Decimal) -> Decimal {
 }
 
 pub(crate) fn jour(v: &Value) -> Resultat<Jour> {
-    crate::date::d(v)
+    socle::date::d(v)
 }
 
 pub(crate) fn jj(v: &Value) -> Resultat<String> {
@@ -260,11 +260,11 @@ pub(crate) fn jj(v: &Value) -> Resultat<String> {
 }
 
 fn fin_mois(an: i32, mo: u32) -> Jour {
-    Jour::nouveau(an, mo, crate::date::jours_du_mois(an, mo)).unwrap()
+    Jour::nouveau(an, mo, socle::date::jours_du_mois(an, mo)).unwrap()
 }
 
 fn premier(mois: &str) -> Resultat<Jour> {
-    crate::date::premier_du_mois(mois)
+    socle::date::premier_du_mois(mois)
 }
 
 fn tuple(j: Jour) -> (i32, u32, u32) {
@@ -596,7 +596,7 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
 
 fn base<'a>(bases: &'a HashMap<String, Decimal>, cle: &Value) -> Resultat<Decimal> {
     let k = en_texte(cle);
-    bases.get(&k).copied().ok_or_else(|| crate::fichiers::absent(&k))
+    bases.get(&k).copied().ok_or_else(|| socle::fichiers::absent(&k))
 }
 
 /// Les bases assujetties que la deduction forfaitaire specifique abat (lot R9, 11/10/2026 ;
@@ -666,7 +666,7 @@ fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
         p.engagement.motif_recours.as_deref(),
         &format!("Contrat {} de {}", p.engagement.numero.as_deref().unwrap_or("sans numero"), p.engagement.salarie),
     )?;
-    bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), crate::caisse_conges::de_la_paie(p)?, cpf_cdd)
+    bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), crate::calcul::declaree_a_la_caisse_des_conges(p)?, cpf_cdd)
 }
 
 /// Les cotisations d'un versement, dans l'ordre du bareme.
@@ -852,10 +852,10 @@ fn sans_la_cet(p: &Paie, l: &crate::calcul::LigneCotisation, r: &Value) -> Resul
     if !vrai(cet) || p.bases.get("cet").map_or(true, |b| b.is_zero()) {
         return Ok((l.montant_pat, None));
     }
-    let cet_pat = crate::num::flottant(req(cet, "pat")?)?;
+    let cet_pat = socle::num::flottant(req(cet, "pat")?)?;
     let comp = match crate::calcul::taux_liste(r.get("composants_pat"))? {
         Some(c) => c,
-        None => vec![crate::num::flottant(req(r, "taux_pat")?)?],
+        None => vec![socle::num::flottant(req(r, "taux_pat")?)?],
     };
     let sans = crate::calcul::somme_pct(l.base, &comp)?;
     let mut avec = comp;
@@ -936,7 +936,7 @@ meme versement (cahier technique 2026.1, SIG-18 p. 303), ne se lit que sur les l
         let (Some(r), Some(l)) = (rubrique(id), p.lignes.iter().find(|l| &l.id == id)) else { continue };
         let (montant, cet) = sans_la_cet(p, l, r)?;
         let taux = match &cet {
-            Some(_) => crate::num::flottant(req(r, "taux_pat")?)?,
+            Some(_) => socle::num::flottant(req(r, "taux_pat")?)?,
             None => l.taux_pat.ok_or_else(|| format!("La ligne « {} » du bulletin n'a pas de taux patronal : sa part Agirc-Arrco ne se declare pas.", id))?,
         };
         if let Some((m, t)) = cet {
@@ -1068,12 +1068,12 @@ fn affiliations_du_permanent(p: &Paie, ent: &Value) -> Resultat<Option<Affiliati
     // suspendue (pas de bloc 70 ? un bloc 70 avec une fin de rattachement ? une base 31 a zero ?) ; le moteur n'ecrit ni
     // bloc 70 ni base 31 de sante pour ce mois (`atelier/reference/sources/suspension-non-remuneree/RAPPORT-20261015.md`,
     // point 2 et « Ce qui reste ouvert », 3).
-    let suspendue = vrai(g(&p.salarie, crate::calcul::SANTE_SUSPENDUE));
+    let suspendue = vrai(g(&p.salarie, droit::bareme::SANTE_SUSPENDUE));
     if suspendue && p.lignes.iter().any(|l| l.id == "mutuelle") {
         return Err(format!(
             "{} : sa sante est suspendue ce mois-ci ({}) et le bulletin cotise a la mutuelle. Rien n'est declare.",
             qui_contrat(p),
-            txt(g(&p.salarie, crate::calcul::SANTE_SUSPENDUE))
+            txt(g(&p.salarie, droit::bareme::SANTE_SUSPENDUE))
         ));
     }
     if dispense && p.lignes.iter().any(|l| l.id == "mutuelle") {
@@ -1350,7 +1350,7 @@ fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar:
                     "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens de la compagnie, et \
 config/organismes.json n'en a pas (`adhesions_prevoyance`, une entree avec \"contribution\": \"{}\", sa \"reference\" et \
 son \"libelle\" tels que la fiche de parametrage Audiens les donne). Elle ne se devine pas. Rien n'est ecrit.",
-                    crate::date::repr_py(g(ent, "idcc")).trim_matches('\''),
+                    socle::date::repr_py(g(ent, "idcc")).trim_matches('\''),
                     nom,
                     en_texte(g(spec, "en_dsn_depuis")),
                     nom
@@ -1474,7 +1474,7 @@ fn qt(x: Decimal) -> String {
 }
 
 fn qt_f(x: f64) -> Resultat<String> {
-    Ok(qt(crate::num::dec_f64(x)?))
+    Ok(qt(socle::num::dec_f64(x)?))
 }
 
 /// « Prenom NOM » d'une fiche, a defaut sa cle : qui une phrase de refus designe.
@@ -1540,7 +1540,7 @@ pub(crate) fn statuts_du_contrat(p: &Paie) -> Resultat<(String, String)> {
     let s = &p.salarie;
     let lu = |k: &str| Some(txt(g(s, k)).trim().to_string()).filter(|v| !v.is_empty());
     let code = txt(g(s, "code_emploi_ft")).trim().to_uppercase();
-    let m = crate::emplois::metier(&code)?.filter(|m| m.get("catalogue") == Some(&Value::Bool(true)));
+    let m = droit::emplois::metier(&code)?.filter(|m| m.get("catalogue") == Some(&Value::Bool(true)));
     let metier_dit = if code.is_empty() {
         "la fiche n'a pas de metier (code emploi)".to_string()
     } else if m.is_none() {
@@ -1582,7 +1582,7 @@ metiers, ou saisir `statut_categoriel_rc` et `statut_conventionnel` sur la fiche
         Some(sc) => Some(sc),
         None => m.as_ref().and_then(|m| match rc.as_str() {
             "01" => Some("04".to_string()),
-            "04" => crate::emplois::statut_non_cadre(m),
+            "04" => droit::emplois::statut_non_cadre(m),
             _ => None,
         }),
     };
@@ -1716,7 +1716,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     }
     // « dans le cas ou les indemnites ne sont pas versees par l'employeur » (p. 195) : un contrat declare a la caisse
     // des Conges Spectacles (`caisse_conges::affilie`), et aucun autre -- ni un CDI, ni un contrat de douze mois ou plus.
-    let caisse_conges = nat.ecrit("S21.G00.40.022") && crate::caisse_conges::de_la_paie(p)?;
+    let caisse_conges = nat.ecrit("S21.G00.40.022") && crate::calcul::declaree_a_la_caisse_des_conges(p)?;
     if caisse_conges {
         f.add("S21.G00.40.022", crate::conges_spectacles::code_dsn(ent)?);
     }
@@ -1804,7 +1804,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
 fn suspension_sans_maintien(f: &Fichier, p: &Paie, s: &Value) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("bloc_65_sans_maintien_de_remuneration")? else { return Ok(()) };
     let motif = txt(req(s, "motif")?);
-    let regles = crate::permanents::regles()?;
+    let regles = droit::permanents::regles()?;
     let m = liste(&regles["suspensions"]["motifs"]).into_iter().find(|m| txt(g(m, "code")) == motif);
     let Some(m) = m.filter(|m| vrai(g(m, "remunere"))) else { return Ok(()) };
     Err(format!(
@@ -1829,7 +1829,7 @@ Rien n'est ecrit.",
 /// duree legale (35 heures par semaine, C. trav. L. 3121-27 : 151,67 h par mois, `quotite_reference_defaut` de la
 /// nature), une heure est une heure supplementaire (L. 3121-28) : une quotite de reference plus haute en inclut, et
 /// refuse. Une duree collective plus courte (32 h) passe. Un contrat d'usage (en jours) n'est pas concerne.
-fn quotite_de_reference_sans_heures_supplementaires(f: &Fichier, p: &Paie, nat: &crate::contrats::Nature, reference: f64) -> Resultat<()> {
+fn quotite_de_reference_sans_heures_supplementaires(f: &Fichier, p: &Paie, nat: &droit::natures::Nature, reference: f64) -> Resultat<()> {
     let Some(texte) = f.norme()?.regle("quotite_reference_sans_heures_supplementaires")? else { return Ok(()) };
     let Some(legale) = nat.quotite_reference_defaut.filter(|_| nat.mensuelle()) else { return Ok(()) };
     if reference <= legale {
@@ -1918,7 +1918,7 @@ pub fn remunerations(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe:
             "002" => p.assiette_chomage,
             "003" => p.salaire_retabli,
             "010" => p.salaire_de_base,
-            autre => return Err(format!("type de rémunération inconnu : {}", crate::fichiers::repr(autre))),
+            autre => return Err(format!("type de rémunération inconnu : {}", socle::fichiers::repr(autre))),
         };
         f.add("S21.G00.51.001", debut.jjmmaaaa());
         f.add("S21.G00.51.002", fin.jjmmaaaa());
@@ -1941,11 +1941,11 @@ fn activites(f: &mut Fichier, p: &Paie, signe: i64) -> Resultat<()> {
             "jours" => Decimal::from(e.jours),
             "cachets" => Decimal::from(e.cachets),
             "heures" => match e.heures {
-                Some(h) if h != 0.0 => crate::num::dec_f64(h)?,
+                Some(h) if h != 0.0 => socle::num::dec_f64(h)?,
                 _ => Decimal::ZERO,
             },
             "heures_travaillees" => p.heures_travaillees,
-            autre => return Err(format!("mesure inconnue : {}", crate::fichiers::repr(autre))),
+            autre => return Err(format!("mesure inconnue : {}", socle::fichiers::repr(autre))),
         };
         if vrai(g(&u, "si_non_nul")) && valeur.is_zero() {
             continue;
@@ -1973,7 +1973,7 @@ pub fn primes_et_indemnites(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour,
             None => continue,
         };
         if let Some(m) = p.engagement.motif_rupture.as_deref().filter(|m| !m.is_empty()) {
-            if let Some(pourquoi) = crate::permanents::code_52_permis(Some(code), Some(m))? {
+            if let Some(pourquoi) = droit::permanents::code_52_permis(Some(code), Some(m))? {
                 return Err(format!(
                     "Contrat {}, ligne << {} >> : {}",
                     p.engagement.numero.clone().unwrap_or_else(|| "None".into()),
@@ -2169,7 +2169,7 @@ pub fn bases_et_cotisations(
             f.add("S21.G00.81.002", o);
         }
         if org.is_some() || c.cle_total.as_deref().map_or(false, |k| !k.is_empty()) {
-            f.add("S21.G00.81.003", ms(c.base81.ok_or_else(|| crate::fichiers::absent("base81"))?, signe));
+            f.add("S21.G00.81.003", ms(c.base81.ok_or_else(|| socle::fichiers::absent("base81"))?, signe));
         }
         f.add("S21.G00.81.004", ms(montant, signe));
         if let Some(insee) = c.code_insee.as_deref().filter(|i| !i.is_empty()) {
@@ -2736,7 +2736,7 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Res
     let mensuelle = p.engagement.nat()?.mensuelle();
     // Un permanent declare a la caisse des Conges Spectacles (lot V2f) a declare sa taxe d'apprentissage et son FNAL
     // sur des assiettes majorees ; les autres, sur le brut et la tranche 1.
-    let caisse = mensuelle && crate::caisse_conges::de_la_paie(p)?;
+    let caisse = mensuelle && crate::calcul::declaree_a_la_caisse_des_conges(p)?;
     let tech = !mensuelle && statut(p) == "technicien";
     let art = !mensuelle && !tech;
     let l = lecture(p, bar)?;
@@ -2785,7 +2785,7 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Res
         k if k == plafonnee("brut_x115_artiste") => si(art, &|| base("brut_x115_plafonne")),
         k if k == plafonnee("brut_technicien") => si(tech, &|| base("brut_plafonne")),
         k if k == plafonnee("brut_x115_technicien") => si(tech, &|| base("brut_x115_plafonne")),
-        autre => return Err(format!("assiette inconnue : {}", crate::fichiers::repr(autre))),
+        autre => return Err(format!("assiette inconnue : {}", socle::fichiers::repr(autre))),
     })
 }
 
@@ -3038,7 +3038,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decim
     // Sous le qualifiant 921 (« Assiette plafonnee », cahier technique 2026.1, p. 168), une population porte son assiette
     // PLAFONNEE : celle du bulletin et de la base 02 de chaque contrat (point 22). La cle de config/organismes.json reste
     // celle de la population (`brut_artiste` sous 312/921) ; c'est le qualifiant qui dit plafonnee.
-    let base = |i: usize, k: &str| b[i].get(k).copied().ok_or_else(|| crate::fichiers::absent(k));
+    let base = |i: usize, k: &str| b[i].get(k).copied().ok_or_else(|| socle::fichiers::absent(k));
     let plaf = |f: &dyn Fn(usize) -> bool, k: &str| -> Resultat<Decimal> {
         (0..paies.len()).filter(|i| f(*i)).try_fold(zero(), |s, i| Ok(add(s, base(i, k)?)))
     };
@@ -3126,7 +3126,7 @@ lit l'assiette « {} », qui n'a pas de forme plafonnee. Rien n'est ecrit.",
             QUALIFIANT_PLAFONNEE,
             &k[plafonnee("").len()..]
         )),
-        None => Err(format!("assiette inconnue : {}", crate::fichiers::repr(&k))),
+        None => Err(format!("assiette inconnue : {}", socle::fichiers::repr(&k))),
     }
 }
 
@@ -3213,7 +3213,7 @@ fn ctp_urssaf(orgs: &Value) -> Resultat<Vec<Value>> {
 /// franchi : le bareme du mois l'a deja exige s'il porte `seuils_effectif` (`contexte::controler_effectif` refuse alors
 /// de payer), et seul un bareme complet pris tel quel (sans `seuils_effectif`) passe sans lui.
 pub(crate) struct Seuils {
-    effectif: crate::contexte::Effectif,
+    effectif: droit::contexte::Effectif,
     an: i32,
 }
 
@@ -3259,7 +3259,7 @@ fn fnal_des_artistes(ctps: &[Value], somme: &HashMap<String, Decimal>, effectif:
 /// `assujettissement::taxe_apprentissage_non_due_au_mois` pour un mois `AAAA-MM`.
 fn taxe_apprentissage_non_due_du_mois(ent: &Value, mois: &str) -> Resultat<bool> {
     let m: u32 = mois.get(5..7).and_then(|m| m.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))?;
-    crate::assujettissement::taxe_apprentissage_non_due_au_mois(ent, annee_du_mois(mois)?, m)
+    droit::apprentissage::taxe_apprentissage_non_due_au_mois(ent, annee_du_mois(mois)?, m)
 }
 
 fn lignes_bordereau(
@@ -3864,7 +3864,7 @@ fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Valu
     }
     let annee: i32 = mois[..4].parse::<i32>().map_err(|e| e.to_string())? - 1;
     // Pas de solde d'une taxe que la fiche dit non due pour l'annee (R12, `assujettissement::taxe_apprentissage_non_due`).
-    if crate::assujettissement::taxe_apprentissage_non_due(&ctx.entreprise, annee)? {
+    if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, annee)? {
         return Ok(None);
     }
     let mut assiette = Decimal::ZERO;
@@ -4660,7 +4660,7 @@ certificat de conformite du depot precedent.",
             f.add_v(rub, req(s, k)?)?;
         }
         // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-        f.add("S21.G00.30.013", crate::codification_ue::codification_ue(s)?);
+        f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
         for (rub, k) in [
             ("S21.G00.30.014", "departement_naissance"),
             ("S21.G00.30.015", "pays_naissance"),
@@ -4668,7 +4668,7 @@ certificat de conformite du depot precedent.",
             ("S21.G00.30.019", "code_salarie"),
         ] {
             // Le pays de naissance se lit dans la liste livree (`pays.rs`, vague 1k) : un code inconnu refuse.
-            let v = if k == "pays_naissance" { crate::pays::de_naissance(s)? } else { req(s, k)?.clone() };
+            let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
             f.add_v(rub, &v)?;
         }
         // L'identite DECLAREE (vague 3d), relue dans la derniere DSN deposee qui le porte. Declare sans NIR, sous un NTT :
@@ -4823,7 +4823,7 @@ pub fn ecrire(texte: &str, chemin: &Path) -> Resultat<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::date::d;
+    use socle::date::d;
     use serde_json::json;
     use std::path::PathBuf;
 

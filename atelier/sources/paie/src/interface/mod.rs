@@ -141,7 +141,7 @@ fn empreinte() -> String {
             let nom = e.file_name().to_string_lossy().into_owned();
             if e.file_type().is_ok_and(|t| t.is_file()) && (nom.ends_with(".css") || nom.ends_with(".js")) {
                 let nom = if dossier.is_empty() { nom } else { format!("{}/{}", dossier, nom) };
-                let sig = crate::fichiers::signature(&ressources().join(&nom));
+                let sig = socle::fichiers::signature(&ressources().join(&nom));
                 noms.push((nom, sig));
             }
         }
@@ -650,26 +650,26 @@ impl Fenetre {
         let enr = crate::scenario::enregistreur_actif();
         match geste {
             "etat" => json!({"ok": true,
-                "simule": crate::temps::simule(),
-                "jour": crate::temps::jour_de_paris().iso(),
-                "heure": crate::paris::iso_secondes(crate::temps::secondes()),
-                "secondes": crate::temps::secondes(),
+                "simule": socle::temps::simule(),
+                "jour": socle::temps::jour_de_paris().iso(),
+                "heure": socle::paris::iso_secondes(socle::temps::secondes()),
+                "secondes": socle::temps::secondes(),
                 "scenario": enr.map(|e| e.dossier().display().to_string()),
                 "compagnie": ouverte.as_ref().map(|r| r.display().to_string()),
                 "simulee": ouverte.as_ref().is_some_and(|r| crate::routes_accueil::simulation_active(r)),
                 "ajoutee": ouverte.as_ref().is_some_and(|r| compagnies::est_ajoutee(r))}),
             "jour" => {
-                if !crate::temps::simule() {
+                if !socle::temps::simule() {
                     return refus("Le temps n'est pas simule : lancer l'interface avec --jour.".into());
                 }
-                let Some(jour) = charge.get("jour").and_then(Value::as_str).and_then(|j| crate::date::Jour::lire(j).ok()) else {
+                let Some(jour) = charge.get("jour").and_then(Value::as_str).and_then(|j| socle::date::Jour::lire(j).ok()) else {
                     return refus("Il faut {\"jour\": \"AAAA-MM-JJ\"}.".into());
                 };
-                let instant = crate::temps::instant_de(jour, 9);
-                if instant <= crate::temps::secondes() {
-                    return refus(format!("Le {} n'est pas apres l'instant simule ({}) : le calendrier n'avance que vers demain.", jour.iso(), crate::paris::iso_secondes(crate::temps::secondes())));
+                let instant = socle::temps::instant_de(jour, 9);
+                if instant <= socle::temps::secondes() {
+                    return refus(format!("Le {} n'est pas apres l'instant simule ({}) : le calendrier n'avance que vers demain.", jour.iso(), socle::paris::iso_secondes(socle::temps::secondes())));
                 }
-                crate::temps::couler_depuis(instant);
+                socle::temps::couler_depuis(instant);
                 if let Some(e) = enr {
                     let _ = e.geste("jour", || {
                         let mut m = serde_json::Map::new();
@@ -982,7 +982,7 @@ impl Fenetre {
         }
         let Phase::Ouverte { racine, .. } = self.phase() else { return rien() };
         if quoi == "cachet-automatique" {
-            let ent = crate::contexte::Contexte::nouveau(&racine, None).map(|c| c.entreprise.clone()).unwrap_or(Value::Null);
+            let ent = droit::contexte::Contexte::nouveau(&racine, None).map(|c| c.entreprise.clone()).unwrap_or(Value::Null);
             return match crate::cachet::svg(&ent, None) {
                 Some(d) => Reponse::nouvelle(200, "image/svg+xml; charset=utf-8", d),
                 None => rien(),
@@ -1164,7 +1164,7 @@ fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
                 i += 2;
             }
             "--jour" if i + 1 < args.len() => {
-                jour = Some(crate::date::Jour::lire(&args[i + 1]).map_err(|_| format!("Jour illisible : {} (AAAA-MM-JJ).", args[i + 1]))?);
+                jour = Some(socle::date::Jour::lire(&args[i + 1]).map_err(|_| format!("Jour illisible : {} (AAAA-MM-JJ).", args[i + 1]))?);
                 i += 2;
             }
             a => {
@@ -1179,23 +1179,23 @@ fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
     };
     let dernier = enr.and_then(|e| e.dernier_instant());
     let depart = match (jour, dernier) {
-        (Some(j), Some(t)) if crate::temps::instant_de(j, 9) <= t => {
-            return Err(format!("Le scenario va deja jusqu'au {} : --jour {} le ferait reculer.", crate::paris::iso_secondes(t), j.iso()))
+        (Some(j), Some(t)) if socle::temps::instant_de(j, 9) <= t => {
+            return Err(format!("Le scenario va deja jusqu'au {} : --jour {} le ferait reculer.", socle::paris::iso_secondes(t), j.iso()))
         }
-        (Some(j), _) => Some(crate::temps::instant_de(j, 9)),
+        (Some(j), _) => Some(socle::temps::instant_de(j, 9)),
         (None, Some(t)) => Some(t + 60.0),
         (None, None) => None,
     };
     if let Some(t) = depart {
-        crate::temps::couler_depuis(t);
+        socle::temps::couler_depuis(t);
     }
     if let Some(e) = enr {
         // LES ALEAS DU BANC sont ceux du rejeu (`temps::aleas`) : la compagnie du banc et son rejeu s'ecrivent pareil, et
         // `scenario::verifier` le controle. Le banc n'est jamais un poste.
-        crate::temps::aleas_fixes();
+        socle::temps::aleas_fixes();
         e.geste("debut", || {
             let mut m = serde_json::Map::new();
-            m.insert("jour".into(), json!(crate::temps::jour_de_paris().iso()));
+            m.insert("jour".into(), json!(socle::temps::jour_de_paris().iso()));
             m.insert("logiciel".into(), json!(version()));
             m.insert("format".into(), json!(crate::scenario::FORMAT));
             Ok(((), m))

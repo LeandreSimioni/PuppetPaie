@@ -25,9 +25,11 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{self, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::fichiers::vrai;
 use crate::importation_completer::A_COMPLETER;
 use crate::routes_saisie::lire_saisie;
 
@@ -187,7 +189,7 @@ fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
 fn jours_du_mois(dates: &Value, mois: &str) -> Vec<String> {
     let mut out = Vec::new();
     for d in dates.as_array().map_or(&[][..], |a| &a[..]) {
-        let (Ok(a), Ok(b)) = (crate::date::Jour::lire(&texte(d, "debut")), crate::date::Jour::lire(&texte(d, "fin"))) else { continue };
+        let (Ok(a), Ok(b)) = (socle::date::Jour::lire(&texte(d, "debut")), socle::date::Jour::lire(&texte(d, "fin"))) else { continue };
         let mut j = a;
         while j <= b {
             let iso = j.iso();
@@ -441,7 +443,7 @@ pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     // Les totaux du mois, sur ce qui est connu ; ce qui manque se compte a part.
     let mut totaux = Map::new();
     for k in ["brut", "net_a_payer", "cout_employeur"] {
-        let mut somme = crate::num::Decimal::ZERO;
+        let mut somme = socle::num::Decimal::ZERO;
         let mut connus = 0usize;
         for c in &cartes {
             if let Some(v) = c["montants"].get(k).and_then(Value::as_str).and_then(crate::apercu_dsn::decimal_py) {

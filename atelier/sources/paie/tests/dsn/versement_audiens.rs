@@ -10,8 +10,8 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnie inventee).
 
 use crate::outils::{fictive, paires as lignes};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
 

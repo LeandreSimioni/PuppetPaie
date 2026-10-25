@@ -145,7 +145,7 @@ fn colonne(reference: &str) -> Resultat<usize> {
 
 /// `int(texte)` de Python (blancs autour admis).
 fn entier(texte: &str, quoi: &str) -> Resultat<i64> {
-    crate::usages::strip(texte)
+    texte.trim_matches(crate::texte::blanc)
         .parse::<i64>()
         .map_err(|_| format!("{} illisible : {}", quoi, crate::fichiers::repr(texte)))
 }
@@ -237,7 +237,7 @@ pub fn lignes(chemin: &Path, feuille: &str) -> Resultat<Vec<Ligne>> {
                     Some("str") | Some("e") => Cellule::Texte(v.to_string()),
                     Some("b") => Cellule::Booleen(v == "1"),
                     _ if v.contains(['.', 'e', 'E']) => Cellule::Flottant(
-                        crate::usages::strip(v)
+                        v.trim_matches(crate::texte::blanc)
                             .parse::<f64>()
                             .map_err(|_| format!("{} : nombre illisible {}", c.nom, crate::fichiers::repr(v)))?,
                     ),

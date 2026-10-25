@@ -39,7 +39,7 @@
 //! (`Contexte.plafond_securite_sociale` en production). Un refus du resolveur passe tel quel. Les dates sont des
 //! `(an, mois, jour)`.
 
-use crate::num::{add, div, eur, mul, Decimal, Resultat};
+use socle::num::{add, div, eur, mul, Decimal, Resultat};
 use std::collections::{BTreeSet, HashMap};
 
 /// Une date civile : (an, mois, jour).

@@ -32,11 +32,16 @@ use std::sync::OnceLock;
 use serde_json::{json, Map, Value};
 
 use crate::editeur::{Client, ErreurFilet};
-use crate::ecriture::ecrire_json;
-use crate::etats::{eq_py, erreur, get, nom_type, py_str, R};
-use crate::fichiers::{dossier_du_code, vrai};
+use socle::ecriture::ecrire_json;
+use crate::etats::{get};
+use socle::valeur::eq_py;
+use socle::valeur::py_str;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, vrai};
 use regex::Regex;
-use crate::verrou::Verrou;
+use socle::verrou::Verrou;
 
 pub const LOGICIEL: &str = "logiciel";
 pub const REFUS: &str = "refus";
@@ -160,8 +165,8 @@ fn tete(s: &str, n: usize) -> String {
 
 /// L'heure de Paris, `datetime.now().isoformat(timespec="seconds")`.
 pub fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_secondes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_secondes(t)
 }
 
 // -------------------------------------------------------------------- caviardage
@@ -305,7 +310,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
         ecrire_json(&p, &Value::Array(toutes), 2).ok()?;
         return Some(ligne);
     }
-    let fil = crate::diagnostic::fil(crate::diagnostic::maintenant_ms());
+    let fil = crate::diagnostic::fil(socle::temps::maintenant_ms());
     let fil = fil[fil.len().saturating_sub(FIL_PAR_INCIDENT)..].to_vec();
     let ligne = json!({
         "quoi": nature,
@@ -321,7 +326,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
         "fois": 1,
         "derniere": quand,
         "fil": fil,
-        "ecritures": crate::diagnostic::ecritures(crate::diagnostic::maintenant_ms(), ECRITURES_PAR_INCIDENT),
+        "ecritures": crate::diagnostic::ecritures(socle::temps::maintenant_ms(), ECRITURES_PAR_INCIDENT),
         "machine_detail": crate::diagnostic::machine(racine),
         "envoi": {"etat": n.envoi.unwrap_or(EN_ATTENTE), "quand": Value::Null},
     });
@@ -973,7 +978,7 @@ fn concatener(a: &Value, b: &Value) -> R<Vec<Value>> {
     let (a, b) = (if vrai(a) { a } else { &vide }, if vrai(b) { b } else { &vide });
     match (a, b) {
         (Value::Array(x), Value::Array(y)) => Ok(x.iter().chain(y).cloned().collect()),
-        (Value::Array(_), autre) | (autre, _) => Err(erreur("TypeError", format!("'recus' et 'ecartes' : {}", crate::fichiers::attendu("une liste", nom_type(autre))))),
+        (Value::Array(_), autre) | (autre, _) => Err(erreur("TypeError", format!("'recus' et 'ecartes' : {}", socle::fichiers::attendu("une liste", nom_type(autre))))),
     }
 }
 
@@ -1060,8 +1065,8 @@ pub fn envoyer(racine: &Path) -> Value {
         return bilan.json();
     }
     // Un autre passage est en cours : celui-ci n'a rien a faire.
-    let marque = crate::verrou::marque("incidents", std::process::id(), &maintenant());
-    let _verrou = match Verrou::prendre(&p.with_file_name(".envoi.verrou"), &marque, crate::verrou::DELAI_VERROU) {
+    let marque = socle::verrou::marque("incidents", std::process::id(), &maintenant());
+    let _verrou = match Verrou::prendre(&p.with_file_name(".envoi.verrou"), &marque, socle::verrou::DELAI_VERROU) {
         Ok(Ok(v)) => v,
         Ok(Err(_)) => return bilan.json(),
         Err(m) => {

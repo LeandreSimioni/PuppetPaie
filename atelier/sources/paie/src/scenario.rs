@@ -61,7 +61,7 @@ pub fn rendre_simulee(racine: &Path) -> Result<(), String> {
         return Err(format!("{} n'est pas une compagnie ajoutee par le « + » : rien a changer.", racine.display()));
     }
     let nom = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    crate::ecriture::ecrire_json(
+    socle::ecriture::ecrire_json(
         &racine.join("COPIE-DE-DEVELOPPEMENT.json"),
         &json!({
             "copie_de": format!("{} {} sur le banc d'essai", crate::interface::compagnies::MARQUE_FICTIVE, nom),
@@ -80,7 +80,7 @@ pub fn relatif(inst: &Path, racine: &Path) -> String {
 
 /// L'heure lisible d'un instant, a Paris.
 fn heure(t: f64) -> String {
-    crate::paris::iso_secondes(t)
+    socle::paris::iso_secondes(t)
 }
 
 /// Les fichiers d'un dossier, relatifs a lui (barres droites), dans l'ordre des noms.
@@ -193,15 +193,15 @@ pub fn rejouer(scenario: &Path, inst: &Path, options: &OptionsRejeu) -> Result<R
     std::fs::create_dir_all(inst).map_err(|e| format!("{} : {}", inst.display(), e))?;
     // L'INSTALLATION DU REJEU, BRIDEE EN TOUTES LETTRES (le geste de l'accueil, `bridage.rs`) : comme celle du banc, et le
     // moteur ne lit qu'elle (`compagnies::base`) -- rien du depot ni du poste ou l'on rejoue.
-    crate::ecriture::ecrire_json(&inst.join(".edition.json"), &json!({"edition": crate::bridage::BRIDE}), 2)?;
+    socle::ecriture::ecrire_json(&inst.join(".edition.json"), &json!({"edition": crate::bridage::BRIDE}), 2)?;
     let inst = std::fs::canonicalize(inst).map_err(|e| format!("{} : {}", inst.display(), e))?;
     let travail = inst.join("pieces-deposees");
-    crate::temps::liberer();
-    crate::temps::aleas_fixes();
+    socle::temps::liberer();
+    socle::temps::aleas_fixes();
     crate::interface::compagnies::poser_l_installation_du_rejeu(Some(inst.clone()));
     let rendu = rejouer_les_gestes(scenario, &inst, &travail, &gestes, options);
     crate::interface::compagnies::poser_l_installation_du_rejeu(None);
-    crate::temps::liberer();
+    socle::temps::liberer();
     rendu
 }
 
@@ -215,7 +215,7 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
             break;
         }
         if let Some(t) = g.get("quand").and_then(Value::as_f64) {
-            crate::temps::figer(t);
+            socle::temps::figer(t);
             r.fin = Some(t);
         }
         let compagnie = g.get("compagnie").and_then(Value::as_str).unwrap_or("");
@@ -258,7 +258,7 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
                     _ => None,
                 };
                 for p in jouees.and_then(Value::as_array).into_iter().flatten() {
-                    r.horloge.push(format!("{} {}", heure(g.get("quand").and_then(Value::as_f64).unwrap_or(0.0)), crate::etats::py_str(p)));
+                    r.horloge.push(format!("{} {}", heure(g.get("quand").and_then(Value::as_f64).unwrap_or(0.0)), socle::valeur::py_str(p)));
                 }
                 let attendu = g.get("ok") == Some(&Value::Bool(true));
                 if ok != attendu {
@@ -269,7 +269,7 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
                         route,
                         if ok { "reussit" } else { "refuse" },
                         if attendu { "reussi" } else { "refuse" },
-                        rep.get("erreur").map(|e| format!(" : {}", crate::etats::py_str(e))).unwrap_or_default()
+                        rep.get("erreur").map(|e| format!(" : {}", socle::valeur::py_str(e))).unwrap_or_default()
                     ));
                 }
             }
@@ -382,8 +382,8 @@ pub fn commande(args: &[String]) -> i32 {
     let lectures = args.iter().any(|a| a == "--lectures");
     let a: Vec<&str> = args.iter().map(String::as_str).filter(|a| *a != "--lectures").collect();
     // Rien ne sort de la machine (`garde_reseau`) : lancee a la main, la commande pose la variable, avant tout fil.
-    if std::env::var_os(crate::garde_reseau::VARIABLE).is_none() {
-        std::env::set_var(crate::garde_reseau::VARIABLE, "1");
+    if std::env::var_os(socle::garde_reseau::VARIABLE).is_none() {
+        std::env::set_var(socle::garde_reseau::VARIABLE, "1");
     }
     let debut = std::time::Instant::now();
     match a.as_slice() {
@@ -509,7 +509,7 @@ mod enregistreur {
         fichiers_de(racine)
             .into_iter()
             .filter(|(r, _)| !hors_empreinte(r))
-            .filter_map(|(r, p)| std::fs::metadata(&p).ok().map(|m| (r, (m.len(), crate::paris::mtime(&m)))))
+            .filter_map(|(r, p)| std::fs::metadata(&p).ok().map(|m| (r, (m.len(), socle::paris::mtime(&m)))))
             .collect()
     }
 
@@ -554,10 +554,10 @@ mod enregistreur {
         /// meme instant fige ; `f` rend ce qu'on ajoute a la ligne, ou son refus (rien n'est alors enregistre).
         pub fn geste<T>(&self, nom: &str, f: impl FnOnce() -> Result<(T, Map<String, Value>), String>) -> Result<T, String> {
             let mut n = self.tour.lock().unwrap_or_else(|p| p.into_inner());
-            let quand = crate::temps::secondes();
-            crate::temps::figer(quand);
+            let quand = socle::temps::secondes();
+            socle::temps::figer(quand);
             let rendu = f();
-            crate::temps::defiger();
+            socle::temps::defiger();
             let (t, mut plus) = rendu?;
             let mut ligne = Map::new();
             ligne.insert("geste".into(), json!(nom));
@@ -575,13 +575,13 @@ mod enregistreur {
         /// l'empreinte de la compagnie avant et apres, puis sa ligne.
         pub fn route(&self, racine: &Path, nom: &str, charge: &Value, servir: impl FnOnce() -> Value) -> Value {
             let mut n = self.tour.lock().unwrap_or_else(|p| p.into_inner());
-            let quand = crate::temps::secondes();
-            crate::temps::figer(quand);
+            let quand = socle::temps::secondes();
+            socle::temps::figer(quand);
             let pieces = self.recopier_les_pieces(racine, nom, charge);
             let avant = empreinte(racine);
             let rep = servir();
             let ecrit = empreinte(racine) != avant;
-            crate::temps::defiger();
+            socle::temps::defiger();
             let mut ligne = Map::new();
             ligne.insert("route".into(), json!(nom));
             ligne.insert("compagnie".into(), json!(self.compagnie(racine)));
@@ -594,7 +594,7 @@ mod enregistreur {
             ligne.insert("ok".into(), json!(ok));
             // Le refus se garde, pour qui relit le scenario (le rejeu ne compare que `ok`).
             if !ok {
-                ligne.insert("refus".into(), json!(rep.get("erreur").map(crate::etats::py_str).unwrap_or_default()));
+                ligne.insert("refus".into(), json!(rep.get("erreur").map(socle::valeur::py_str).unwrap_or_default()));
             }
             self.ecrire(&mut n, ligne, quand);
             rep
@@ -603,7 +603,7 @@ mod enregistreur {
         /// Recopie un fichier dans `pieces/` (une fois par contenu) ; rend son empreinte.
         fn recopier(&self, p: &Path) -> Option<String> {
             let octets = std::fs::read(p).ok()?;
-            let sha = crate::fichiers::sha256_hex(&octets);
+            let sha = socle::fichiers::sha256_hex(&octets);
             let dest = self.dossier.join(PIECES).join(&sha);
             if !dest.exists() {
                 std::fs::write(&dest, &octets).ok()?;
@@ -686,8 +686,8 @@ mod atelier {
         let (inst, sc, ailleurs) = (d.join("installation"), d.join("scenario"), d.join("ailleurs"));
         std::fs::create_dir_all(ailleurs.join("sous")).unwrap();
         std::fs::write(ailleurs.join("sous/note.txt"), "une piece deposee\n").unwrap();
-        crate::temps::couler_depuis(crate::temps::instant_de(crate::date::Jour::nouveau(2026, 11, 2).unwrap(), 9));
-        crate::temps::aleas_fixes();
+        socle::temps::couler_depuis(socle::temps::instant_de(socle::date::Jour::nouveau(2026, 11, 2).unwrap(), 9));
+        socle::temps::aleas_fixes();
         let e = Enregistreur::nouveau(&sc, &inst).unwrap();
         let c = e
             .geste("ajouter", || {
@@ -702,7 +702,7 @@ mod atelier {
         assert_eq!(route(&e, &c.racine, "enregistrer-fiche", fiche)["ok"], json!(true));
         route(&e, &c.racine, "etat", json!({"motdepasse": "pas-dans-le-scenario"}));
         route(&e, &c.racine, "importation-apercu", json!({"dossier": ailleurs.to_string_lossy()}));
-        crate::temps::liberer();
+        socle::temps::liberer();
 
         let gestes = lire(&sc).unwrap();
         let de = |r: &str| gestes.iter().find(|g| g["route"] == json!(r)).unwrap_or_else(|| panic!("{} absent du scenario", r)).clone();
@@ -722,7 +722,7 @@ mod atelier {
         let lire_fiche = |i: &Path| std::fs::read_to_string(i.join("fictives/ajoutee-essai-du-rejeu/config/spectacles.json")).unwrap();
         assert_eq!(lire_fiche(&inst2), lire_fiche(&inst));
         assert_eq!(std::fs::read_to_string(inst2.join("pieces-deposees/4/dossier/sous/note.txt")).unwrap(), "une piece deposee\n");
-        assert!(!crate::temps::simule(), "le rejeu rend le temps a la montre");
+        assert!(!socle::temps::simule(), "le rejeu rend le temps a la montre");
 
         // VERIFIER LE BANC : son rejeu refait la compagnie ; un fichier ecrit sans passer par la fenetre se nomme.
         assert_eq!(verifier(&sc, &inst, &d.join("verification")).unwrap(), Vec::<String>::new());

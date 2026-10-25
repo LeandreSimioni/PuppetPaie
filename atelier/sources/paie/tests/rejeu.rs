@@ -57,7 +57,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
 
     // UN SECOND REJEU, ailleurs, rend exactement le meme releve : rien n'y depend du hasard ni de l'heure de la machine.
     let (r2, racine2) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "treteaux-bis"));
-    let jour = paie::paris::iso_secondes(r2.fin.unwrap())[..10].to_string();
+    let jour = socle::paris::iso_secondes(r2.fin.unwrap())[..10].to_string();
     let second: Value = outils::rejeu::sorties(&racine2, &jour);
     assert!(second == releve, "deux rejeux du meme scenario ne rendent pas les memes sorties");
 }
@@ -72,7 +72,7 @@ fn un_scenario_elague_se_rejoue_a_l_identique() {
     let texte = std::fs::read_to_string(d.join("scenario").join(paie::scenario::GESTES)).unwrap();
     assert!(texte.lines().all(|l| !l.contains("\"ecrit\":false")), "une lecture est restee");
     let (r, racine) = outils::rejeu::rejouer_dossier(&d.join("scenario"), &d.join("rejeu"));
-    let jour = paie::paris::iso_secondes(r.fin.unwrap())[..10].to_string();
+    let jour = socle::paris::iso_secondes(r.fin.unwrap())[..10].to_string();
     assert!(outils::rejeu::sorties(&racine, &jour) == outils::lire_oracle("scenarios/treteaux-du-banc/sorties.json"));
 }
 

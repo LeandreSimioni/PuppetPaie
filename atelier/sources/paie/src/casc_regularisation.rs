@@ -13,19 +13,21 @@ use std::str::FromStr;
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::ecriture::{ecrire_json, repr_flottant};
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::{lire_json, vrai};
-use crate::num::Decimal;
+use droit::contexte::Contexte;
+use socle::ecriture::{ecrire_json, repr_flottant};
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{lire_json, vrai};
+use socle::num::Decimal;
 
 #[track_caller]
-fn refus(m: impl Into<String>) -> crate::retours::Echec {
+fn refus(m: impl Into<String>) -> socle::echec::Echec {
     erreur("ErreurOperation", m)
 }
 
 fn dec(t: &str) -> R<Decimal> {
-    Decimal::from_str(t.trim()).map_err(|_| erreur("InvalidOperation", crate::num::illisible(t)))
+    Decimal::from_str(t.trim()).map_err(|_| erreur("InvalidOperation", socle::num::illisible(t)))
 }
 
 /// `_eur` : `1 234,50 €` (deux decimales, espace des milliers, virgule).
@@ -78,7 +80,7 @@ pub(crate) fn lire_dsn_casc(chemin: &Path, contrat_casc: &str) -> R<DsnCasc> {
     let (mut type53, mut mesure): (Option<String>, Option<String>) = (None, None);
     for ligne in crate::apercu_dsn::lignes_py(&texte) {
         let (k, v) = ligne.split_once(',').unwrap_or((&ligne, ""));
-        let v = v.trim_matches(crate::retours::blanc_py).trim_matches('\'');
+        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'');
         match k {
             "S21.G00.51.010" => numero = Some(v.to_string()),
             "S21.G00.53.001" => {
@@ -207,12 +209,12 @@ pub(crate) struct Demande {
 /// « mars 2025 » : le nom d'un mois de la regularisation. « 00 » n'est aucun mois et se refuse
 /// (`date::numero_du_mois`, lot F1 ; l'indice `0 - 1` paniquait, un mois illisible se lisait janvier).
 fn libelle_du_mois(m: &str, an: &str) -> R<String> {
-    let mo = crate::date::numero_du_mois(m).map_err(refus)?;
-    Ok(format!("{} {}", crate::date::nom_du_mois(mo as i64, crate::date::Graphie::Accentuee).map_err(refus)?, an))
+    let mo = socle::date::numero_du_mois(m).map_err(refus)?;
+    Ok(format!("{} {}", socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee).map_err(refus)?, an))
 }
 
 fn plafond_mensuel(annee: &str) -> R<Option<Decimal>> {
-    let f = crate::fichiers::dossier_du_code().join("baremes").join(format!("{}.json", annee));
+    let f = socle::fichiers::dossier_du_code().join("baremes").join(format!("{}.json", annee));
     if !f.exists() {
         return Ok(None);
     }
@@ -241,7 +243,7 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
             if idcc.is_empty() { "rien".to_string() } else { idcc }
         )));
     }
-    match crate::bareme::casc_exemptee(ent) {
+    match droit::bareme::casc_exemptee(ent) {
         Err(m) => return Err(refus(m)),
         Ok(true) => {
             return Err(refus(
@@ -554,9 +556,9 @@ pub(crate) fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
     // Le classeur modele : voir `liste_nominative_xlsx`.
     liste_nominative_xlsx(ctx, r, &dossier, &mut fichiers)?;
     let ecrit_csv = |nom: &str, entetes: &[&str], lignes: Vec<Vec<String>>| -> R<std::path::PathBuf> {
-        let mut t = crate::csv_py::ligne(&entetes.iter().map(|s| s.to_string()).collect::<Vec<_>>(), ';');
+        let mut t = socle::csv::ligne(&entetes.iter().map(|s| s.to_string()).collect::<Vec<_>>(), ';');
         for l in &lignes {
-            t.push_str(&crate::csv_py::ligne(l, ';'));
+            t.push_str(&socle::csv::ligne(l, ';'));
         }
         let p = dossier.join(nom);
         std::fs::write(&p, format!("\u{feff}{}", t)).map_err(|e| io(&p, e))?;
@@ -672,7 +674,7 @@ fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path,
     ws.set_freeze_panes(3, 0).map_err(xl)?;
     ws.set_column_range_width(0, 36, 14.0).map_err(xl)?;
     let siret = ctx.entreprise.get("siret").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    let aujourdhui = crate::contexte::jour_reel().jj_mm_aaaa();
+    let aujourdhui = droit::contexte::jour_reel().jj_mm_aaaa();
     let mut cumul: Vec<((String, Option<String>), Decimal)> = Vec::new();
     let texte_de = |m: &Value, cle: &str| -> String { m.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_default() };
     let coupe = |t: String, n: usize| -> String { t.chars().take(n).collect() };
@@ -791,7 +793,7 @@ mod tests_mois {
     fn le_mois_00_de_la_regularisation_se_refuse() {
         let refus = std::panic::catch_unwind(|| super::libelle_du_mois("2026-00", "2026").map_err(|e| e.message));
         let refus = refus.expect("un refus, pas une panique").unwrap_err();
-        assert!(refus.contains(&crate::date::mois_impossible(0)), "{}", refus);
+        assert!(refus.contains(&socle::date::mois_impossible(0)), "{}", refus);
         assert_eq!(super::libelle_du_mois("2025-03", "2025").unwrap(), "mars 2025");
     }
 }

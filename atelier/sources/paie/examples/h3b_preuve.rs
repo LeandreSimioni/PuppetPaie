@@ -11,9 +11,9 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use paie::courriel::{Courriel, ErreurCourriel};
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::routes_envois;
 use serde_json::{json, Value};
 

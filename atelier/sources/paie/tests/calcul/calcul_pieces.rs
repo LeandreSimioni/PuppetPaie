@@ -5,11 +5,11 @@
 
 use crate::outils::{dec, fictive, lire_oracle, oracle, sceller};
 use paie::calcul::{au_dela_du_seuil, code_54, deduction_forfaitaire, lignes_brut, reduction_generale, LigneBrut, LigneCotisation, Paie};
-use paie::catalogue::rubrique;
-use paie::contexte::Contexte;
-use paie::date::d;
+use droit::catalogue::rubrique;
+use droit::contexte::Contexte;
+use socle::date::d;
 use paie::engagement::{canon_valeur, engagements_du_fichier};
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::{json, Map, Value};
 use std::cell::Cell;
 use std::path::Path;

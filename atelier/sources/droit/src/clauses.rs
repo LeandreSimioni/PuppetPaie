@@ -10,11 +10,11 @@
 //! ecrit en chaine (`"149.66"`). Les phrases rendues sont celles du Python,
 //! au caractere pres.
 
-use crate::date::{en_texte, Jour};
+use socle::date::{en_texte, Jour};
 use crate::emplois;
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
-use crate::num::{dec, Decimal, Resultat};
-pub use crate::d28::P;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use socle::num::{dec, Decimal, Resultat};
+pub use socle::d28::P;
 use serde_json::{json, Map, Value};
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -31,7 +31,7 @@ fn get<'a>(v: &'a Value, k: &str) -> &'a Value {
 
 /// `v[k]` : une cle absente est un `KeyError`.
 fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// `a or b`.
@@ -63,12 +63,12 @@ fn entier(v: &Value) -> Resultat<i64> {
         Value::Number(n) => n
             .as_i64()
             .or_else(|| n.as_f64().map(|x| x.trunc() as i64))
-            .ok_or_else(|| crate::fichiers::entier_hors_limites(&n.to_string())),
+            .ok_or_else(|| socle::fichiers::entier_hors_limites(&n.to_string())),
         Value::String(s) => s
             .trim()
             .parse::<i64>()
             .map_err(|_| format!("nombre entier illisible : {}", repr(s))),
-        autre => Err(crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre))),
+        autre => Err(socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre))),
     }
 }
 
@@ -175,7 +175,7 @@ pub fn profil(idcc: &Value, fiche: &Value, engagement: Option<&Value>) -> Result
     let valeurs = get(sec, "valeurs");
     let code = ou(get(e, "metier"), get(fiche, "code_emploi_ft"));
     let m = if vrai(code) {
-        let c = code.as_str().ok_or_else(|| format!("code emploi : {}", crate::fichiers::attendu("un texte", crate::etats::nom_type(code))))?;
+        let c = code.as_str().ok_or_else(|| format!("code emploi : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(code))))?;
         emplois::metier(c)?
     } else {
         None
@@ -775,7 +775,7 @@ pub fn maintien(idcc: &Value, anciennete_mois: Decimal, accident_du_travail: boo
                 texte(cle(&tr[0], "jours")?)
             )));
         }
-        let deux = || crate::fichiers::trop_courte("les tranches (deux attendues)");
+        let deux = || socle::fichiers::trop_courte("les tranches (deux attendues)");
         let (t0, t1) = (tr.first().ok_or_else(deux)?, tr.get(1).ok_or_else(deux)?);
         return Ok(Some(format!(
             "{} (art. {}) garantit {} % du salaire {} pendant {} jours puis {} % pendant {} \
@@ -928,7 +928,7 @@ pub fn prime_anciennete(
     let e = engagement.unwrap_or(&NUL);
     let code = ou(get(e, "metier"), get(fiche, "code_emploi_ft"));
     let m = if vrai(code) {
-        let c = code.as_str().ok_or_else(|| format!("code emploi : {}", crate::fichiers::attendu("un texte", crate::etats::nom_type(code))))?;
+        let c = code.as_str().ok_or_else(|| format!("code emploi : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(code))))?;
         emplois::metier(c)?
     } else {
         None

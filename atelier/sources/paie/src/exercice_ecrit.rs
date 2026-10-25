@@ -21,13 +21,15 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::catalogue::{self, HorsAssiette};
-use crate::contexte::Contexte;
+use droit::catalogue::{self, HorsAssiette};
+use droit::contexte::Contexte;
 use crate::engagement;
-use crate::etats::{self, erreur, py_str};
-use crate::fichiers::vrai;
-use crate::num::{eur2, zero2, Decimal};
-use crate::retours::Echec;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::{eur2, zero2, Decimal};
+use socle::echec::Echec;
 use crate::routes_dossier_salarie::{entree_ecrite, entree_fichier, zip, Entree};
 use crate::routes_dossiers::{compte_du_salarie, plan_comptable, Refus};
 use crate::routes_ouverture::{mois_de_l_annee, nic_principal, refus_du_calcul};
@@ -50,8 +52,8 @@ fn est_une_erreur_d_operation(e: &Echec) -> bool {
 
 /// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
 fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_secondes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_secondes(t)
 }
 
 /// `str(annee)` d'une valeur de la charge.
@@ -60,7 +62,7 @@ fn texte_de(v: &Value) -> String {
 }
 
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// `int(x)` d'une valeur JSON.
@@ -70,10 +72,10 @@ fn entier(v: &Value) -> R<i64> {
         Value::Bool(b) => Ok(i64::from(*b)),
         Value::String(s) => crate::apercu_dsn::int_py(s)
             .and_then(|n| i64::try_from(n).ok())
-            .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(s)))),
+            .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", etats::nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
         )),
     }
 }
@@ -134,7 +136,7 @@ impl Ecriture {
 /// `operations_exercice._dernier_jour` : le dernier jour du mois, AAAA-MM-JJ.
 fn dernier_jour(annee: i64, mois: i64) -> R<String> {
     let (a, m) = if mois == 12 { (annee + 1, 1) } else { (annee, mois + 1) };
-    let premier = crate::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
+    let premier = socle::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
     Ok(premier.plus_jours(-1).map_err(|x| erreur("ValueError", x))?.iso())
 }
 
@@ -142,22 +144,22 @@ fn dernier_jour(annee: i64, mois: i64) -> R<String> {
 /// refuse (`date::numero_du_mois`, lot F1 ; il se datait du 31 decembre de l'annee d'avant, libelle « Decembre »).
 fn date_et_libelle(mois: &str) -> R<(String, String)> {
     let annee: i64 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
-    let mo = i64::from(crate::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
+    let mo = i64::from(socle::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
     let date = dernier_jour(annee, mo)?;
-    let nom = crate::date::nom_du_mois(mo, crate::date::Graphie::Titre).map_err(|e| erreur("ValueError", e))?;
+    let nom = socle::date::nom_du_mois(mo, socle::date::Graphie::Titre).map_err(|e| erreur("ValueError", e))?;
     Ok((date, format!("{} {}", nom, annee)))
 }
 
 /// `plan[cle]` : `KeyError` s'il manque.
 fn cle_du_plan<'a>(plan: &'a Map<String, Value>, cle: &str) -> R<&'a Value> {
-    plan.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    plan.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// `v[cle]` sur un dictionnaire du plan : `KeyError` s'il manque.
 fn dans<'a>(v: &'a Value, cle: &str) -> R<&'a Value> {
     match v {
-        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un objet", etats::nom_type(autre)))),
+        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     }
 }
 
@@ -223,7 +225,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
             Some(v) => py_str(v),
             None => p.salarie.get("prenom").map(py_str).unwrap_or_default(),
         };
-        let qui = format!("{} {}", py_str(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?), prenom);
+        let qui = format!("{} {}", py_str(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?), prenom);
         let mut retenu = zero;
         for l in p.remuneration.iter().filter(|l| !l.soumis) {
             if catalogue::rubrique(&ctx.racine, &l.code).and_then(|r| r.hors_assiette()).map_err(refus)? != HorsAssiette::Mouvement {
@@ -274,7 +276,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
                     *charge.entry(k).or_insert(zero) += eur2(l.montant_pat);
                     for (part, id_tiers) in [(rg.urssaf, "maladie"), (rg.chomage, "chomage"), (rg.agirc_arrco, "retraite_t1")] {
                         if !part.is_zero() {
-                            let r = lignes_du_plan.as_object().and_then(|o| o.get(id_tiers)).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(id_tiers)))?;
+                            let r = lignes_du_plan.as_object().and_then(|o| o.get(id_tiers)).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(id_tiers)))?;
                             let c = py_str(dans(r, "tiers")?);
                             *tiers.entry(c).or_insert(zero) -= part;
                         }
@@ -554,7 +556,7 @@ pub(crate) fn export_compta_charge(ctx: &Contexte, charge: &Value) -> R<ExportCo
 fn lire_exercices(ctx: &Contexte) -> R<Map<String, Value>> {
     match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => Ok(o),
-        autre => Err(erreur("AttributeError", crate::fichiers::attendu("un objet", etats::nom_type(&autre)))),
+        autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre)))),
     }
 }
 
@@ -566,7 +568,7 @@ fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
 
 fn ecrire_exercices(ctx: &Contexte, tous: &Map<String, Value>) -> R<()> {
     let chemin = ctx.racine.join("config").join("exercices.json");
-    crate::ecriture::ecrire_json(&chemin, &Value::Object(tous.clone()), 1).map_err(|m| erreur("OSError", m))
+    socle::ecriture::ecrire_json(&chemin, &Value::Object(tous.clone()), 1).map_err(|m| erreur("OSError", m))
 }
 
 /// Les fichiers sous `d`, dans l'ordre de `sorted(d.rglob("*"))` (les chemins se comparent composant par composant).
@@ -693,7 +695,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     let le = maintenant();
     let mut tous = match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => o,
-        autre => return Err(erreur("TypeError", crate::fichiers::non_modifiable(etats::nom_type(&autre)))),
+        autre => return Err(erreur("TypeError", socle::fichiers::non_modifiable(socle::valeur::nom_type(&autre)))),
     };
     let relatif = archive.strip_prefix(&ctx.racine).unwrap_or(&archive).to_string_lossy().replace('\\', "/");
     tous.insert(
@@ -716,14 +718,14 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
     let mut tous = match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => o,
-        autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", crate::fichiers::attendu("un objet", etats::nom_type(&autre))))),
+        autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
     };
     let Some(clos) = tous.shift_remove(annee) else {
         return Err(refus(format!("L'exercice {} n'est pas clos.", annee)));
     };
     let mut rouvert = match &clos {
         Value::Object(o) => o.clone(),
-        autre => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", etats::nom_type(autre)))),
+        autre => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     };
     rouvert.insert("annee".into(), json!(annee));
     rouvert.insert("rouvert_le".into(), json!(maintenant()));
@@ -731,7 +733,7 @@ fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
     let liste = tous.entry("_rouverts").or_insert_with(|| json!([]));
     match liste {
         Value::Array(a) => a.push(Value::Object(rouvert)),
-        autre => return Err(erreur("AttributeError", crate::fichiers::attendu("une liste", etats::nom_type(autre)))),
+        autre => return Err(erreur("AttributeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     }
     ecrire_exercices(ctx, &tous)?;
     Ok(json!({
@@ -759,7 +761,7 @@ mod tests_mois {
     #[test]
     fn le_mois_00_d_une_ecriture_se_refuse() {
         let refus = super::date_et_libelle("2026-00").unwrap_err();
-        assert!(refus.message.contains(&crate::date::mois_impossible(0)), "{}", refus.message);
+        assert!(refus.message.contains(&socle::date::mois_impossible(0)), "{}", refus.message);
         assert_eq!(super::date_et_libelle("2026-12").unwrap(), ("2026-12-31".to_string(), "Decembre 2026".to_string()));
     }
 }

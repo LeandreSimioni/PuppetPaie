@@ -27,7 +27,7 @@ fn compagnie_de(inst: &Path, nom: &str) -> PathBuf {
 
 /// Le jour des empreintes (celui d'un `Contexte`).
 fn jour() -> String {
-    paie::contexte::aujourdhui_sans_note().unwrap().iso()
+    droit::contexte::aujourdhui_sans_note().unwrap().iso()
 }
 
 /// La date de modification d'un fichier, decalee de `secondes` (ce que fait toute ecriture).

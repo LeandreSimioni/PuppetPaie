@@ -3,8 +3,8 @@
 //! l'etablissement d'un salarie d'un secondaire, l'arret repris le premier du mois.
 
 use crate::outils;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::Arret;
 use paie::signalement::{generer, Echec, Options};
 use serde_json::{json, Value};

@@ -16,10 +16,12 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, est, get, getd, items, objet_vide, py_str, LISTE_VIDE, SIGNATURE};
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use crate::etats::{self, est, get, getd, items, objet_vide, LISTE_VIDE, SIGNATURE};
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 use crate::routes_mois::{dans_l_ensemble, premier, Moteur, SaisieMois};
 
 type R<T> = Result<T, Echec>;
@@ -41,7 +43,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
-    charge.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)))
+    charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
 /// `Path.glob("<prefixe>*<suffixe>")` sur un dossier : y a-t-il un nom qui s'y accorde ? Un dossier
@@ -197,14 +199,14 @@ pub(crate) fn salaries_d_identite(ctx: &Contexte) -> Value {
 
 /// `d["cle"]` sur une fiche : `KeyError` si elle manque.
 fn get_requis<'a>(d: &'a Value, k: &str) -> R<&'a Value> {
-    d.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)))
+    d.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
 // ------------------------------------------------------------------ avenant-apercu
 
 /// `jj_mm_aaaa(x)` : `JJ/MM/AAAA`, `ValueError` si `x` ne se lit pas comme une date.
 fn jj_mm_aaaa(v: &Value) -> R<String> {
-    Ok(crate::date::d(v).map_err(|m| erreur("ValueError", m))?.jj_mm_aaaa())
+    Ok(socle::date::d(v).map_err(|m| erreur("ValueError", m))?.jj_mm_aaaa())
 }
 
 /// Les numeros propres des paies de ce salarie qui commencent ce jour-la (celles d'un spectacle), dans l'ordre de la saisie.
@@ -401,7 +403,7 @@ fn entier(t: &str) -> R<i64> {
         None => (false, s.strip_prefix('+').unwrap_or(s)),
     };
     if chiffres.is_empty() || !chiffres.chars().all(|c| c.is_ascii_digit()) {
-        return Err(erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(t))));
+        return Err(erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))));
     }
     let n: i64 = chiffres.parse().unwrap_or(i64::MAX);
     Ok(if neg { -n } else { n })
@@ -415,14 +417,14 @@ fn an_et_mois(mois: &str) -> R<(i64, i64)> {
 
 /// Le nom du mois `mo` (`date::nom_du_mois`) ; hors 1-12, `IndexError` (l'indice negatif du Python lisait « 00 »
 /// decembre : il se refuse).
-fn nom_du_mois(mo: i64, g: crate::date::Graphie) -> R<&'static str> {
-    crate::date::nom_du_mois(mo, g).map_err(|e| erreur("IndexError", e))
+fn nom_du_mois(mo: i64, g: socle::date::Graphie) -> R<&'static str> {
+    socle::date::nom_du_mois(mo, g).map_err(|e| erreur("IndexError", e))
 }
 
 /// `envoi.etiquette` : `2026-08` -> `Aout2026`.
 fn etiquette(mois: &str) -> R<String> {
     let (an, mo) = an_et_mois(mois)?;
-    Ok(format!("{}{}", nom_du_mois(mo, crate::date::Graphie::Titre)?, an))
+    Ok(format!("{}{}", nom_du_mois(mo, socle::date::Graphie::Titre)?, an))
 }
 
 /// `envoi.nom_fichier` : `AER_<cle>_<etiquette>.pdf`.
@@ -861,7 +863,7 @@ fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: 
         }
         let sujet = format!(
             "{} {} — {}{}",
-            capitaliser(nom_du_mois(mo, crate::date::Graphie::Accentuee)?),
+            capitaliser(nom_du_mois(mo, socle::date::Graphie::Accentuee)?),
             an,
             if renvois.contains_key(&cle) { "documents corrigés : " } else { "" },
             match courts.len() {
@@ -912,8 +914,8 @@ pub(crate) fn charger_le_mois_avec(o: &HashMap<String, String>, ctx: &Contexte, 
     for (e, v) in engs.into_iter().zip(paies_json) {
         paies.push(crate::routes_ouverture::paie_de_json(ctx, e, v)?);
     }
-    let mois_saisie = data.get("mois").map(crate::date::en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
-    let annee: i32 = mois_saisie.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", format!("mois illisible : {}", crate::fichiers::repr(&mois_saisie))))?;
+    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
+    let annee: i32 = mois_saisie.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", format!("mois illisible : {}", socle::fichiers::repr(&mois_saisie))))?;
     crate::routes_ouverture::numeroter(ctx, &mut paies, annee)?;
     Ok((data, paies))
 }
@@ -940,7 +942,7 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let (mut expediteur, mut avertissements) = (String::new(), Vec::<String>::new());
     if prets.get("boite_liee").is_some_and(vrai) {
         // `preparer_envoi` : la saisie rechargee, les messages refaits, le compte de la boite.
-        let mois_saisie = data.get("mois").map(crate::date::en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
+        let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
         let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
         if dossier.exists() {
             preparer(ctx, &paies, &mois_saisie, &dossier, &choix.renvois)?;

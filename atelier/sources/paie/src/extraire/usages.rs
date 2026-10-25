@@ -34,9 +34,9 @@ use regex::Regex;
 use serde_json::{json, Map, Value};
 
 use super::{date_du_releve, nom_de, propre, sha256, somme_py, Releve};
-use crate::date::Jour;
-use crate::lecture_xlsx;
-use crate::num::Resultat;
+use socle::date::Jour;
+use socle::lecture_xlsx;
+use socle::num::Resultat;
 
 /// La feuille du classeur des usages (fiche 3358).
 pub const FEUILLE_USAGES: &str = "1 - Tableau des usages";

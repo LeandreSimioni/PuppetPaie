@@ -23,11 +23,11 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::conges::{avertir, flot, info};
-use crate::contexte::Contexte;
-use crate::date::{d, en_texte, Jour};
+use droit::contexte::Contexte;
+use socle::date::{d, en_texte, Jour};
 use crate::engagement::Avis;
-use crate::fichiers::{repr, vrai};
-use crate::num::{dec_py, div, eur2, mul, Decimal, Resultat};
+use socle::fichiers::{repr, vrai};
+use socle::num::{dec_py, div, eur2, mul, Decimal, Resultat};
 
 /// Le genre d'un arret de travail (bloc S21.G00.60).
 pub const ARRET: &str = "arret";
@@ -94,7 +94,7 @@ fn champs_du_genre(genre: &str) -> Option<(&'static [&'static str], usize)> {
 /// presents) et complete de ses valeurs par defaut, ses champs dans l'ordre du genre.
 pub fn complet(v: &Value) -> Resultat<Value> {
     let Value::Object(m) = v else {
-        return Err(format!("Imprevu : un objet est attendu, pas {}", crate::etats::nom_type(v)));
+        return Err(format!("Imprevu : un objet est attendu, pas {}", socle::valeur::nom_type(v)));
     };
     let genre = m.get("genre").and_then(Value::as_str).unwrap_or("");
     let Some((champs, requis)) = champs_du_genre(genre) else {
@@ -140,7 +140,7 @@ suspension du contrat, bloc S21.G00.65).",
 fn repr_valeur_courte(v: Option<&Value>) -> String {
     match v {
         None => "absent".into(),
-        Some(x) => crate::fichiers::repr_valeur(x),
+        Some(x) => socle::fichiers::repr_valeur(x),
     }
 }
 
@@ -164,7 +164,7 @@ fn est_un_mois(nom: &str) -> bool {
 /// LE DOSSIER `arrets/` N'EST PLUS LU (15/10/2026, regle du 14/10 : pas de compatibilite). Un arret qu'il garderait ne
 /// serait ni reporte ni retire de la paie : rien ne se lit tant qu'il est la, et la phrase dit le geste.
 fn refuser_l_ancien(racine: &Path) -> Resultat<()> {
-    if crate::fichiers::est_dossier(&racine.join("arrets")) {
+    if socle::fichiers::est_dossier(&racine.join("arrets")) {
         return Err(format!(
             "Le dossier {} n'est plus lu : depuis le 15/10/2026, arrets de travail et suspensions sont des IMPREVUS, \
 dans {}. Pour chaque arrets/AAAA-MM.json : le deplacer en imprevus/AAAA-MM.json, y renommer la cle \"arrets\" en \
@@ -179,12 +179,12 @@ dans {}. Pour chaque arrets/AAAA-MM.json : le deplacer en imprevus/AAAA-MM.json,
 /// Les imprevus d'un fichier deja lu.
 fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
     let Value::Object(m) = contenu else {
-        return Err(format!("{} : un objet est attendu, pas {}", chemin.display(), crate::etats::nom_type(contenu)));
+        return Err(format!("{} : un objet est attendu, pas {}", chemin.display(), socle::valeur::nom_type(contenu)));
     };
     let liste = match m.get("imprevus") {
         None => return Ok(Vec::new()),
         Some(Value::Array(l)) => l,
-        Some(autre) => return Err(format!("{} : `imprevus` n'est pas une liste ({})", chemin.display(), crate::etats::nom_type(autre))),
+        Some(autre) => return Err(format!("{} : `imprevus` n'est pas une liste ({})", chemin.display(), socle::valeur::nom_type(autre))),
     };
     liste.iter().map(|v| complet(v).map_err(|e| format!("{} : {}", chemin.display(), e))).collect()
 }
@@ -193,14 +193,14 @@ fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
 /// lecture se note au registre du calcul (`fichiers::lister`, `fichiers::lire_json`) : un imprevu saisi refait la paie.
 pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
     refuser_l_ancien(racine)?;
-    let Some(fichiers) = crate::fichiers::lister(&dossier(racine)) else { return Ok(Vec::new()) };
+    let Some(fichiers) = socle::fichiers::lister(&dossier(racine)) else { return Ok(Vec::new()) };
     let mut out = Vec::new();
     for f in fichiers {
         let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         if !est_un_mois(&nom) {
             continue;
         }
-        out.extend(du_contenu(&crate::fichiers::lire_json(&f)?, &f)?);
+        out.extend(du_contenu(&socle::fichiers::lire_json(&f)?, &f)?);
     }
     Ok(out)
 }
@@ -209,15 +209,15 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
 pub fn du_fichier(racine: &Path, mois: &str) -> Resultat<Vec<Value>> {
     refuser_l_ancien(racine)?;
     let p = chemin(racine, mois);
-    if !crate::fichiers::existe(&p) {
+    if !socle::fichiers::existe(&p) {
         return Ok(Vec::new());
     }
-    du_contenu(&crate::fichiers::lire_json(&p)?, &p)
+    du_contenu(&socle::fichiers::lire_json(&p)?, &p)
 }
 
 /// Ecrit le fichier d'un mois du magasin.
 pub fn ecrire(racine: &Path, mois: &str, imprevus: Vec<Value>) -> Resultat<()> {
-    crate::ecriture::ecrire_json(
+    socle::ecriture::ecrire_json(
         &chemin(racine, mois),
         &json!({
             "_origine": format!(
@@ -283,7 +283,7 @@ pub fn croise(imp: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
 
 /// Les imprevus d'un genre (ou de tous les genres) qui croisent le mois `AAAA-MM`.
 pub fn du_mois(racine: &Path, mois: &str, genre_voulu: Option<&str>) -> Resultat<Vec<Value>> {
-    let (debut, fin) = (crate::date::premier_du_mois(mois)?, crate::date::dernier_du_mois(mois)?);
+    let (debut, fin) = (socle::date::premier_du_mois(mois)?, socle::date::dernier_du_mois(mois)?);
     let mut out = Vec::new();
     for imp in tous(racine)? {
         if genre_voulu.is_some_and(|gv| gv != genre(&imp)) {
@@ -312,13 +312,13 @@ pub fn du_contrat(imp: &Value, cle: &str, numero: Option<&str>, debut: &Jour) ->
 
 /// Le motif d'arret (`arrets-base.json`, `motifs_arret`), s'il existe.
 pub fn motif_d_arret(code: &str) -> Resultat<Option<Value>> {
-    let n = crate::fichiers::json_en_cache(&crate::fichiers::dossier_du_code().join("arrets-base.json"))?;
+    let n = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("arrets-base.json"))?;
     Ok(n["motifs_arret"]["codes"].as_array().and_then(|l| l.iter().find(|c| c["code"].as_str() == Some(code))).cloned())
 }
 
 /// Le motif de suspension (`permanents-base.json`, section `suspensions`), s'il existe.
 pub fn motif_de_suspension(code: &str) -> Resultat<Option<Value>> {
-    let regles = crate::permanents::regles()?;
+    let regles = droit::permanents::regles()?;
     Ok(regles["suspensions"]["motifs"].as_array().and_then(|l| l.iter().find(|m| m["code"].as_str() == Some(code))).cloned())
 }
 
@@ -333,7 +333,7 @@ pub fn verifier_motif_de_suspension(code: &str, qui: &str) -> Resultat<Value> {
         ));
     };
     if vrai(g(&m, "_ne_pas_declarer")) {
-        let regles = crate::permanents::regles()?;
+        let regles = droit::permanents::regles()?;
         return Err(format!(
             "Motif de suspension {} ({}) : {} Les conges payes pris se saisissent dans le mois (« conges pris »).",
             code,
@@ -440,7 +440,7 @@ pub fn jours_de_conges_non_acquis(
         }
         let (d, f) = (premier_jour(&imp)?.max(*debut), dernier_jour(&imp)?.min(*fin));
         if d <= f {
-            total += crate::permanents::jours_acquis(&d, &f)?;
+            total += droit::permanents::jours_acquis(&d, &f)?;
         }
     }
     Ok(total)
@@ -677,7 +677,7 @@ pub fn origine(imp: &Value) -> Resultat<(bool, bool)> {
 /// Ce que la loi donne pour cet arret-la, dit sans etre applique : L1226-1, D1226-1 a D1226-4 (le droit, la carence, les
 /// tranches, les jours deja indemnises dans les douze mois, saisis sur l'arret), sur l'arret entier.
 fn maintien_possible(ctx: &Contexte, e: &Value, imp: &Value, mois: &str, remuneration_journaliere: Decimal) -> Resultat<Vec<Avis>> {
-    use crate::permanents::{anciennete_mois, droit_au_maintien, maintien_de_salaire, OptionsMaintien};
+    use droit::permanents::{anciennete_mois, droit_au_maintien, maintien_de_salaire, OptionsMaintien};
     let numero = crate::conges::numero(e);
     let nat = crate::conges::nature_de(e.get("nature"))?;
     let premier = premier_jour(imp)?;
@@ -732,7 +732,7 @@ deduction des indemnites journalieres (L1226-1, D1226-1 a D1226-3).",
             numero, au_dela
         )));
     }
-    if let Some(conv) = crate::clauses::maintien(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), anciennete, at)? {
+    if let Some(conv) = droit::clauses::maintien(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), anciennete, at)? {
         dit.push(avertir(format!("{} : {}", numero, conv)));
     }
     if !g(imp, "maintien").get(mois).is_some_and(vrai) {
@@ -757,7 +757,7 @@ fn dates_de_ligne(l: &Value) -> Vec<Jour> {
 
 /// Le libelle d'une rubrique, ou son code si le catalogue ne la connait pas.
 fn libelle_rubrique(racine: &Path, code: &str) -> String {
-    crate::catalogue::rubrique(racine, code).map(|r| r.libelle).unwrap_or_else(|_| code.to_string())
+    droit::catalogue::rubrique(racine, code).map(|r| r.libelle).unwrap_or_else(|_| code.to_string())
 }
 
 /// LES CACHETS ET SERVICES DE LA SAISIE QUI TOMBENT DANS UN IMPREVU : pour chaque mois saisi qu'il croise, les lignes des
@@ -772,7 +772,7 @@ pub fn cachets_dans(ctx: &Contexte, imp: &Value) -> Resultat<Vec<Value>> {
     if dernier < premier {
         return Ok(out);
     }
-    for mois in crate::date::mois_entre(&premier, &dernier) {
+    for mois in socle::date::mois_entre(&premier, &dernier) {
         let p = ctx.racine.join("paies").join(format!("{}.json", mois));
         if !p.exists() {
             continue;

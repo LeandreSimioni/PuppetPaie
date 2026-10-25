@@ -12,8 +12,8 @@
 
 use std::path::{Path, PathBuf};
 
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use serde_json::{json, Value};
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, noms};

@@ -15,9 +15,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use paie::coffre_verifier;
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use paie::courriel::{Courriel, ErreurCourriel};
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::releve_retours::Panne;
 use paie::routes_fiches_courriel;
 use serde_json::{json, Value};

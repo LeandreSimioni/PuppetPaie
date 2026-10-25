@@ -3,10 +3,10 @@
 //! racine `racines/pas`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, code_livre, fictive, lire_oracle, oracle};
-use paie::bareme::canon;
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::num::dec;
+use droit::bareme::canon;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::num::dec;
 use paie::pas::{abattement, du_versement, taux_par_defaut, ErreurPas, Triplet, Versement};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -29,7 +29,7 @@ fn ligne(r: Vec<String>) -> Value {
     Value::String(if r.iter().all(|x| *x == r[0]) { format!("*{}", r[0]) } else { r.join(";") })
 }
 
-fn montants(a: &Value) -> Vec<paie::num::Decimal> {
+fn montants(a: &Value) -> Vec<socle::num::Decimal> {
     a["grille"]["montants"].as_array().unwrap().iter().map(|m| dec(m).unwrap()).collect()
 }
 

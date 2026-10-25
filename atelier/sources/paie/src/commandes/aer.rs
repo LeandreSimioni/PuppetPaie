@@ -16,7 +16,8 @@
 
 use super::analyse::{Args, Opt, Spec};
 use super::Cadre;
-use crate::retours::{Echec, NATURE_AER_SPECTACLE};
+use crate::retours::{NATURE_AER_SPECTACLE};
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "aer",

@@ -8,7 +8,7 @@
 #     git config core.hooksPath atelier/.githooks
 #
 # Le programme : PUPPETPAIE_FABRIQUE s'il nomme un paie, sinon celui que Cargo a compile
-# (CARGO_TARGET_DIR, sinon atelier/sources/paie/target ; `cargo build --release`, ou le profil `essais` que les
+# (CARGO_TARGET_DIR, sinon atelier/sources/target, la cible de l'espace ; `cargo build --release`, ou le profil `essais` que les
 # seances du nuage compilent pour les tests), sinon celui
 # que le depot livre (atelier/sources/paie/bin/<systeme>/). Le premier qui connait la commande
 # juge ; si aucun ne la connait, le commit est refuse : un garde qui n'a pas tourne ne laisse
@@ -31,7 +31,7 @@ unix() {
     if [ -n "$1" ] && command -v cygpath >/dev/null 2>&1; then cygpath -u "$1"; else printf '%s\n' "$1"; fi
 }
 
-cible=$(unix "${CARGO_TARGET_DIR:-$paie_src/target}")
+cible=$(unix "${CARGO_TARGET_DIR:-$racine/atelier/sources/target}")
 voulu=$(unix "$PUPPETPAIE_FABRIQUE")
 
 for p in "$voulu" "$cible/release/paie" "$cible/release/paie.exe" "$cible/essais/paie" "$cible/essais/paie.exe" \

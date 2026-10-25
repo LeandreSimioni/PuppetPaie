@@ -6,9 +6,9 @@
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire};
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::num::Decimal;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -78,7 +78,7 @@ fn un_mois_entier_de_conge_parental_retire_tout_le_salaire_et_suspend_la_sante_3
     assert_eq!(p.heures_absence, d("154"));
     assert_eq!(p.engagement.heures, None, "l'activite remuneree d'un mois entierement absent est nulle (fiche 2640)");
     assert!(!cotise_a_la_sante(&p), "{:?}", p.lignes.iter().map(|l| &l.id).collect::<Vec<_>>());
-    assert!(p.salarie[paie::calcul::SANTE_SUSPENDUE].as_str().is_some_and(|t| t.contains("4.2")));
+    assert!(p.salarie[droit::bareme::SANTE_SUSPENDUE].as_str().is_some_and(|t| t.contains("4.2")));
     assert_eq!((p.net_imposable, p.net_social, p.net_a_payer), (d("0.00"), d("0.00"), d("0.00")));
     // La prevoyance s'assoit sur la remuneration (tranche A) : rien non plus.
     assert!(p.lignes.iter().all(|l| l.montant_sal.is_zero()), "{:?}", p.lignes.iter().map(|l| (&l.id, l.montant_sal)).collect::<Vec<_>>());
@@ -120,15 +120,15 @@ fn en_1285_le_mois_entierement_suspendu_attend_la_fiche_entreprise() {
         &json!({"imprevus": [suspension("NADAR", "2022-01-03", "NA.22.01", "639", "2026-09-01", "2027-02-28")]}),
     );
     let e = charger(&racine).err().expect("sans la fiche, le mois refuse");
-    assert!(e.contains(paie::calcul::SANTE_SUSPENSION), "{}", e);
+    assert!(e.contains(droit::bareme::SANTE_SUSPENSION), "{}", e);
     // « Pour demarrer » le demande, parce qu'une suspension non remuneree est saisie (et seulement alors).
-    let manque = |r: &Path| paie::demarrage::manques(&contexte(r)).iter().any(|m| m["cle"] == json!(paie::calcul::SANTE_SUSPENSION));
+    let manque = |r: &Path| paie::demarrage::manques(&contexte(r)).iter().any(|m| m["cle"] == json!(droit::bareme::SANTE_SUSPENSION));
     assert!(manque(&racine));
     assert!(!manque(&copie("fictive-1285-grande", "1285-sans-suspension")));
 
     let poser = |valeur: &str| {
         let mut ent = lire(&racine, "config/entreprise.json");
-        ent[paie::calcul::SANTE_SUSPENSION] = json!(valeur);
+        ent[droit::bareme::SANTE_SUSPENSION] = json!(valeur);
         ecrire(&racine, "config/entreprise.json", &ent);
     };
     poser("suspendue");

@@ -209,7 +209,7 @@ fn l_ouverture_n_envoie_rien_et_le_coffre_se_pose() {
 fn le_nombre_de_paies_ne_part_pas_d_une_fictive_ajoutee() {
     let r = copie("nombre-de-paies", true);
     let o = std::collections::HashMap::from([("racine".to_string(), r.display().to_string())]);
-    let ctx = paie::contexte::Contexte::nouveau(&r, Some(paie::date::Jour::lire("2027-01-20").unwrap())).unwrap();
+    let ctx = droit::contexte::Contexte::nouveau(&r, Some(socle::date::Jour::lire("2027-01-20").unwrap())).unwrap();
     let bilan = paie::nombre_de_paies::envoyer_si_du(&o, &ctx);
     assert_eq!((bilan["envoye"].clone(), bilan["raison"].clone()), (json!(false), json!("compagnie fictive")), "{}", bilan);
 }

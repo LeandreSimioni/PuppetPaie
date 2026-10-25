@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 /// `json.dumps(charge, ensure_ascii=False, indent=2)` suivi d'un saut de ligne, comme `cli._rendre`.
 /// Rend le code de sortie : 0 si `ok`, 2 sinon.
 pub fn rendre(charge: &Value) -> i32 {
-    dire!("{}", crate::ecriture::json_py(charge, 2));
+    dire!("{}", socle::ecriture::json_py(charge, 2));
     if charge.get("ok").and_then(Value::as_bool).unwrap_or(false) {
         0
     } else {
@@ -16,7 +16,7 @@ pub fn rendre(charge: &Value) -> i32 {
 
 /// Comme `rendre`, avec l'indentation d'un espace (`arrivee --json`).
 pub fn rendre_indent(charge: &Value, indent: usize) -> i32 {
-    dire!("{}", crate::ecriture::json_py(charge, indent));
+    dire!("{}", socle::ecriture::json_py(charge, indent));
     if charge.get("ok").and_then(Value::as_bool).unwrap_or(false) {
         0
     } else {
@@ -42,7 +42,7 @@ pub fn erreur(commande: &str, classe: &str, message: &str, extra: &[(&str, Value
 
 /// Le texte d'une valeur JSON comme `str(x)` de Python le donnerait : `None`, `True`, `0.5`.
 pub fn texte(v: &Value) -> String {
-    crate::etats::py_str(v)
+    socle::valeur::py_str(v)
 }
 
 /// Le texte d'une cle d'un objet JSON, `None` quand elle manque (Python leverait `KeyError` ; ici on est plus doux).
@@ -53,7 +53,7 @@ pub fn champ(v: &Value, cle: &str) -> String {
 /// Le texte d'une cle quand elle est vraie, sinon `defaut` (`x.get(cle) or defaut`).
 pub fn champ_ou(v: &Value, cle: &str, defaut: &str) -> String {
     match v.get(cle) {
-        Some(x) if crate::fichiers::vrai(x) => texte(x),
+        Some(x) if socle::fichiers::vrai(x) => texte(x),
         _ => defaut.to_string(),
     }
 }
@@ -65,12 +65,12 @@ pub fn debut(t: &str, n: usize) -> String {
 
 /// `jj_mm_aaaa` d'un `AAAA-MM-JJ` (les dix premiers caracteres).
 pub fn jj_mm_aaaa_de_iso(iso: &str) -> String {
-    crate::date::Jour::lire(&debut(iso, 10)).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
+    socle::date::Jour::lire(&debut(iso, 10)).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
 }
 
 /// `x.get("quand")[:16].replace("T", " ")` -- l'heure d'une ligne de journal.
 pub fn quand_court(v: Option<&Value>) -> String {
-    let t = v.filter(|x| crate::fichiers::vrai(x)).map(texte).unwrap_or_default();
+    let t = v.filter(|x| socle::fichiers::vrai(x)).map(texte).unwrap_or_default();
     debut(&t, 16).replace('T', " ")
 }
 
@@ -100,7 +100,7 @@ pub fn json_ligne(v: &Value) -> String {
             Value::Number(n) => match (n.as_i64(), n.as_u64()) {
                 (Some(i), _) => s.push_str(&i.to_string()),
                 (None, Some(u)) => s.push_str(&u.to_string()),
-                _ => s.push_str(&crate::ecriture::repr_flottant(n.as_f64().unwrap_or(0.0))),
+                _ => s.push_str(&socle::ecriture::repr_flottant(n.as_f64().unwrap_or(0.0))),
             },
             Value::String(t) => chaine(t, s),
             Value::Array(a) => {
@@ -133,10 +133,10 @@ pub fn json_ligne(v: &Value) -> String {
 }
 
 /// `d[cle]` : le texte de la cle, ou le `KeyError` que Python leverait.
-pub fn exiger(v: &Value, cle: &str) -> Result<String, crate::retours::Echec> {
+pub fn exiger(v: &Value, cle: &str) -> Result<String, socle::echec::Echec> {
     match v.get(cle) {
         Some(x) => Ok(texte(x)),
-        None => Err(crate::retours::Echec { classe: Some("KeyError"), message: crate::fichiers::repr(cle) }),
+        None => Err(socle::echec::Echec { classe: Some("KeyError"), message: socle::fichiers::repr(cle) }),
     }
 }
 

@@ -20,7 +20,7 @@ use super::actes::{est_refus, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, debut, enveloppe, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "cloture",
@@ -51,7 +51,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         if json_ {
             return Ok(rendre(&enveloppe("cloture", r)));
         }
-        let depuis = r.get("etait_clos_depuis").filter(|v| crate::fichiers::vrai(v)).map(super::rendu::texte).unwrap_or_else(|| "?".to_string());
+        let depuis = r.get("etait_clos_depuis").filter(|v| socle::fichiers::vrai(v)).map(super::rendu::texte).unwrap_or_else(|| "?".to_string());
         dire!("Exercice {} rouvert (il etait clos depuis le {} ; l'archive {} reste).", champ(&r, "annee"), debut(&depuis, 10), champ(&r, "archive"));
         return Ok(0);
     }
@@ -93,12 +93,12 @@ fn etat(cadre: &Cadre, json_: bool) -> Result<i32, Echec> {
     }
     for e in &etats {
         let nb = |cle: &str| e.get(cle).and_then(Value::as_array).map_or(0, Vec::len);
-        let clos = e.get("clos").filter(|v| crate::fichiers::vrai(v));
+        let clos = e.get("clos").filter(|v| socle::fichiers::vrai(v));
         let statut = match clos {
             Some(c) => format!("CLOS le {} ({})", debut(&champ(c, "le"), 10), champ(c, "archive")),
             None => "ouvert".to_string(),
         };
-        let export = match e.get("export").filter(|v| crate::fichiers::vrai(v)) {
+        let export = match e.get("export").filter(|v| socle::fichiers::vrai(v)) {
             Some(x) => format!(", export compta du {}", debut(&champ(x, "ecrit"), 10)),
             None => String::new(),
         };

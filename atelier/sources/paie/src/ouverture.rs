@@ -36,14 +36,16 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::courriel::Courriel;
 use crate::drive::Drive;
-use crate::etats::{self, py_str, R};
-use crate::fichiers::vrai;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::fichiers::vrai;
 use crate::releve_retours::{self, Client, Releve};
 use crate::releve_signatures::{self, ReleveSignatures};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_fiches_courriel::{self, ReleveFiches};
 use crate::sauvegarde::{self, Sauvegarde};
 
@@ -310,7 +312,7 @@ fn chemin_etape(racine: &Path) -> std::path::PathBuf {
 }
 
 fn dire_l_etape(ctx: &Contexte, etape: &str) {
-    let _ = crate::ecriture::ecrire_json(&chemin_etape(&ctx.racine), &json!({"etape": etape, "depuis": quand_maintenant()}), 1);
+    let _ = socle::ecriture::ecrire_json(&chemin_etape(&ctx.racine), &json!({"etape": etape, "depuis": quand_maintenant()}), 1);
 }
 
 fn finir_les_etapes(ctx: &Contexte) {
@@ -364,7 +366,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
             .unwrap_or_default()
     };
     let hors_tests = |liste: &[Value]| -> usize {
-        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| etats::eq_py(f, t)))).count()
+        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| socle::valeur::eq_py(f, t)))).count()
     };
     let (trouves, nouveaux) = match &r.releve {
         Some(rel) => (hors_tests(&rel.trouves), hors_tests(&rel.nouveaux)),
@@ -412,7 +414,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
     trace.insert("a_poser".into(), json!(r.a_poser));
     trace.insert("taux_pas".into(), json!(r.taux_pas));
     trace.insert("horloge".into(), json!(r.horloge));
-    let _ = crate::ecriture::ecrire_json(&p, &Value::Object(trace), 1);
+    let _ = socle::ecriture::ecrire_json(&p, &Value::Object(trace), 1);
 }
 
 // ------------------------------------------------------------------ outils
@@ -482,7 +484,7 @@ fn trier_hors_ligne(r: &mut Ouverture) {
 fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
     finir_les_etapes(ctx);
     trier_hors_ligne(r);
-    r.secondes = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
+    r.secondes = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     noter_ouverture(ctx, r, precedente);
 }
 
@@ -497,7 +499,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     };
     let etait_hors_ligne = avant.get("hors_ligne").is_some_and(vrai);
     trier_hors_ligne(r);
-    let ma_duree = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
+    let ma_duree = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     r.secondes = ma_duree;
     let mut trace = avant.clone();
     let liste = |cle: &str| -> Vec<Value> { avant.get(cle).and_then(Value::as_array).cloned().unwrap_or_default() };
@@ -519,7 +521,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     let mut manquants = liste("manquants");
     manquants.extend(r.manquants.iter().filter(|m| !r.phrases_coffre.contains(m)).map(|m| json!(m)));
     trace.insert("manquants".into(), Value::Array(manquants));
-    let _ = crate::ecriture::ecrire_json(&chemin_trace(ctx), &Value::Object(trace), 1);
+    let _ = socle::ecriture::ecrire_json(&chemin_trace(ctx), &Value::Object(trace), 1);
 }
 
 // ------------------------------------------------------------------ l'ouverture

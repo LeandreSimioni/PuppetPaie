@@ -119,8 +119,8 @@ fictives/ajoutee-*/
 # LA FABRIQUE DE PDF (Rust) : le dossier de compilation se refait d'une
 # commande. `Cargo.lock`, lui, SE VERSIONNE (les dependances sont figees).
 atelier/sources/fabrique-pdf/target/
-atelier/sources/paie/target/
-atelier/sources/paie/target-atelier/
+atelier/sources/target/
+atelier/sources/target-atelier/
 atelier/sources/fenetre/target/
 
 # LES PHOTOS D'ORIGINE DES FICTIVES (02/10/2026) : prises a la premiere

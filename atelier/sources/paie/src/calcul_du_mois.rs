@@ -21,9 +21,9 @@ use std::path::Path;
 
 use serde_json::{Map, Value};
 
-use crate::contexte::Contexte;
-use crate::fichiers::{self, dossier_du_code};
-use crate::num::Resultat;
+use droit::contexte::Contexte;
+use socle::fichiers::{self, dossier_du_code};
+use socle::num::Resultat;
 use crate::service::{calculer_avec, contexte, racine_de};
 
 /// La version du moteur : celle du crate et la marque de ses sources
@@ -78,7 +78,7 @@ fn enregistrer(chemin: &Path, resultat: &Value, entrees: &BTreeMap<String, Strin
     f.insert("empreinte".into(), Value::String(empreinte(entrees)));
     f.insert("entrees".into(), Value::Object(entrees.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect()));
     f.insert("resultat".into(), resultat.clone());
-    crate::ecriture::ecrire_json(chemin, &Value::Object(f), 2)
+    socle::ecriture::ecrire_json(chemin, &Value::Object(f), 2)
 }
 
 /// Le fichier stocke : `(resultat, entrees, integre)`. `integre` : l'empreinte
@@ -121,7 +121,7 @@ fn a_jour_avec(o: &HashMap<String, String>, ctx: &Contexte, entrees: &BTreeMap<S
         "moteur" => v == MOTEUR,
         "fiches" => *v == empreinte_fiches(ctx),
         "date" => *v == ctx.date.iso(),
-        "aujourdhui" => crate::contexte::aujourdhui_sans_note().is_ok_and(|j| *v == j.iso()),
+        "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| *v == j.iso()),
         _ => match fichiers::chemin_de(k, &racine, &code) {
             Some((genre, p)) => match genre.as_str() {
                 "fichier" => *v == fichiers::empreinte_fichier(&p),
@@ -224,7 +224,7 @@ pub fn ecrire_calcul(o: &HashMap<String, String>, mois: &str, resultat: &Value, 
         return false;
     }
     let Ok(octets) = std::fs::read(&saisie) else { return false };
-    if !serde_json::from_slice::<Value>(&octets).is_ok_and(|lu| crate::etats::eq_py(&lu, ecrite)) {
+    if !serde_json::from_slice::<Value>(&octets).is_ok_and(|lu| socle::valeur::eq_py(&lu, ecrite)) {
         return false;
     }
     entrees.insert(cle("fichier", &rel), fichiers::sha256_hex(&octets));
@@ -393,7 +393,7 @@ pub fn sceller_les_anciennes(o: &HashMap<String, String>, ctx: &Contexte, mois: 
     }
     let lu: Value = serde_json::from_slice(&octets).unwrap_or(Value::Null);
     if data != lu && std::fs::read(&chemin).ok().as_deref() == Some(&octets[..]) {
-        let _ = crate::ecriture::ecrire_json(&chemin, &data, 2);
+        let _ = socle::ecriture::ecrire_json(&chemin, &data, 2);
     }
 }
 

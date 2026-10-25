@@ -18,7 +18,7 @@
 //!   (clic, champ modifie, boite ouverte, console), chaque route (sa charge mise en forme, sa duree, son issue), ce que la
 //!   veille et le fond ont joue. Une ligne par action, l'heure relative (« -2:41 ») ; les repetitions se comptent.
 //! - LA TRACE D'UN REFUS (`noter_echec`, `trace_du_refus`) : l'endroit du code ou chaque echec a ete construit
-//!   (`#[track_caller]` sur `etats::erreur` et sur les conversions de `retours::Echec`), et les paniques ; un refus de route
+//!   (`#[track_caller]` sur `socle::echec::erreur` et sur les conversions de `socle::echec::Echec`), et les paniques ; un refus de route
 //!   retrouve la chaine des echecs construits pendant la route, et celui qui porte son message.
 //! - LA MACHINE (`machine`) : version et build exacts, systeme, architecture, coeurs, memoire, disque libre, installation
 //!   (installee, portable, atelier ; chemin sans nom de session), edition (bride, debloque), compagnie fictive ou reelle
@@ -29,13 +29,13 @@
 use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime};
 
 use regex::Regex;
 use serde_json::{json, Map, Value};
 
-/// La fenetre du fil : les trois minutes d'avant (Leandre, 23/10/2026).
-pub const FENETRE_MS: u64 = 180_000;
+use socle::echec::{Echoue, FENETRE_MS};
+use socle::temps::maintenant_ms;
 /// Au plus tant d'actions gardees en memoire, et rendues (les plus recentes).
 const FIL_MAX: usize = 600;
 const FIL_RENDU: usize = 150;
@@ -52,10 +52,6 @@ fn verrou<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|p| p.into_inner())
 }
 
-/// L'heure du mur, en millisecondes depuis 1970 : celle de la page (`Date.now()`), jamais l'horloge simulee d'une fictive.
-pub fn maintenant_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
-}
 
 fn demarrage() -> &'static Instant {
     static D: OnceLock<Instant> = OnceLock::new();
@@ -76,7 +72,7 @@ pub fn installer() {
                 .or_else(|| info.payload().downcast_ref::<String>().cloned())
                 .unwrap_or_default();
             let ou = info.location().map(|l| format!("{}:{}", l.file(), l.line())).unwrap_or_else(|| "?".into());
-            noter_echec_a(&ou, Some("panique"), &message);
+            socle::echec::noter_echec_a(&ou, Some("panique"), &message);
             avant(info);
         }));
     });
@@ -807,58 +803,14 @@ pub fn page() -> Value {
 
 // ===================================================================================================== les echecs
 
-struct Echoue {
-    t: u64,
-    fil: String,
-    ou: String,
-    classe: String,
-    message: String,
-}
-
-fn les_echecs() -> &'static Mutex<VecDeque<Echoue>> {
-    static E: OnceLock<Mutex<VecDeque<Echoue>>> = OnceLock::new();
-    E.get_or_init(|| Mutex::new(VecDeque::new()))
-}
-
-fn fil_courant() -> String {
-    let t = std::thread::current();
-    match t.name() {
-        Some(n) => format!("{} {:?}", n, t.id()),
-        None => format!("{:?}", t.id()),
-    }
-}
-
-/// Un echec vient d'etre construit (`etats::erreur`, `retours::Echec::from`) : son endroit dans le code, gardee en memoire
-/// (les 80 derniers, trois minutes).
-#[track_caller]
-pub fn noter_echec(classe: Option<&str>, message: &str) {
-    let l = std::panic::Location::caller();
-    noter_echec_a(&format!("{}:{}", l.file(), l.line()), classe, message);
-}
-
-fn noter_echec_a(ou: &str, classe: Option<&str>, message: &str) {
-    let e = Echoue {
-        t: maintenant_ms(),
-        fil: fil_courant(),
-        ou: ou.to_string(),
-        classe: classe.unwrap_or("-").to_string(),
-        message: message.chars().take(300).collect(),
-    };
-    let mut l = verrou(les_echecs());
-    while l.len() >= 80 || l.front().is_some_and(|x| x.t + FENETRE_MS < e.t) {
-        l.pop_front();
-    }
-    l.push_back(e);
-}
-
 /// La trace d'un refus de route : l'endroit ou son echec a ete construit (celui qui porte son message, sur quelque fil
 /// que ce soit : un etat de mois se calcule dans le fil de fond), et la chaine des echecs construits avant lui sur le
 /// meme fil, depuis `debut` (le debut de la route) ou cinq secondes avant lui. `None` : aucun echec note ne s'y rattache.
 pub fn trace_du_refus(racine: &Path, message: &str, debut: u64) -> Option<String> {
-    let l = verrou(les_echecs());
+    let l = socle::echec::echecs_notes();
     let tete: String = message.chars().take(300).collect();
     let porte = |e: &Echoue| !e.message.is_empty() && (e.message == tete || tete.contains(&e.message) || e.message.contains(tete.as_str()));
-    let ici = fil_courant();
+    let ici = socle::echec::fil_courant();
     let (fil, jusqu_a, depuis, endroit) = match l.iter().rev().find(|e| porte(e)) {
         Some(e) => (e.fil.clone(), e.t, if e.fil == ici { debut.min(e.t) } else { e.t.saturating_sub(5_000) }, Some(e)),
         None => (ici, u64::MAX, debut, None),

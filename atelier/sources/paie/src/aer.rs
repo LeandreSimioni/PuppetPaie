@@ -51,9 +51,9 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::cachet;
-use crate::date::{en_texte, Jour};
-use crate::fichiers::vrai;
-use crate::num::Resultat;
+use socle::date::{en_texte, Jour};
+use socle::fichiers::vrai;
+use socle::num::Resultat;
 
 /// Les champs du cadre 5, et rien d'autre.
 pub const CHAMPS_TEXTE: [&str; 10] = [
@@ -166,7 +166,7 @@ pub struct Cadre5 {
 
 /// `ent[cle]` : la cle doit exister (`KeyError`).
 fn req<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    v.get(cle).ok_or_else(|| crate::fichiers::absent(cle))
+    v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 impl Cadre5 {
@@ -234,12 +234,12 @@ pub fn jour(t: &str) -> Resultat<Option<Jour>> {
     let n = |a: usize, z: usize| t[a..z].parse::<u32>().unwrap();
     let (j, m, a) = (n(0, 2), n(3, 5), n(6, 10));
     if a < 1 {
-        return Err(crate::date::annee_impossible(a));
+        return Err(socle::date::annee_impossible(a));
     }
     if !(1..=12).contains(&m) {
-        return Err(crate::date::mois_impossible(m));
+        return Err(socle::date::mois_impossible(m));
     }
-    Jour::nouveau(a as i32, m, j).map(Some).ok_or_else(|| crate::date::jour_impossible(a, m, j))
+    Jour::nouveau(a as i32, m, j).map(Some).ok_or_else(|| socle::date::jour_impossible(a, m, j))
 }
 
 /// Une colonne du cadre 4 telle qu'IMPRIMEE sur l'attestation : la periode, le numero du contrat (repris de la colonne

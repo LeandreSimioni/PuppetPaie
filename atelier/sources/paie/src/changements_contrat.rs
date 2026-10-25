@@ -33,9 +33,9 @@ use std::collections::HashMap;
 use serde_json::Value;
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::{dernier_du_mois, premier_du_mois, Jour};
-use crate::num::Resultat;
+use droit::contexte::Contexte;
+use socle::date::{dernier_du_mois, premier_du_mois, Jour};
+use socle::num::Resultat;
 
 /// Une modalite du contrat qui a sa rubrique en bloc 41 : d'ou son changement tient sa date.
 struct Modalite {
@@ -153,7 +153,7 @@ fn blocs_du_contrat(texte: &str, numero: &str) -> (Vec<Vec<(String, String)>>, S
     let (mut blocs, mut courant): (Vec<Vec<(String, String)>>, Option<Vec<(String, String)>>) = (Vec::new(), None);
     for ligne in crate::apercu_dsn::lignes_py(texte) {
         let Some((k, v)) = ligne.split_once(',') else { continue };
-        let v = v.trim_matches(crate::retours::blanc_py).trim_matches('\'').to_string();
+        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'').to_string();
         match k {
             "S21.G00.06.001" => siren = v.clone(),
             "S21.G00.11.001" => nic = v.clone(),

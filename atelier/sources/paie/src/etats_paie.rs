@@ -17,12 +17,13 @@ use rust_xlsxwriter::{Format, FormatAlign, Workbook};
 use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::en_texte;
+use droit::contexte::Contexte;
+use socle::date::en_texte;
 use crate::engagement;
-use crate::etats::{erreur, py_str};
-use crate::fichiers::vrai;
-use crate::num::{eur2, zero2, Decimal};
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::{eur2, zero2, Decimal};
 use crate::pas::Versement;
 use crate::routes_ouverture::refus_du_calcul;
 use crate::tableaux_export::{
@@ -54,7 +55,7 @@ pub(crate) struct Demande {
 /// Le nom du mois `i` abrege de quatre lettres, avec son point : « Janv. ». Les appelants parcourent les douze colonnes
 /// d'une annee (1 a 12) : un autre rang ne peut pas arriver, et donnerait une entete vide plutot qu'un autre mois.
 pub(crate) fn mois_abrege(i: usize) -> String {
-    crate::date::nom_du_mois(i as i64, crate::date::Graphie::Titre).map(|n| n.chars().take(4).collect::<String>() + ".").unwrap_or_default()
+    socle::date::nom_du_mois(i as i64, socle::date::Graphie::Titre).map(|n| n.chars().take(4).collect::<String>() + ".").unwrap_or_default()
 }
 
 // ------------------------------------------------------------------ ou ca s'ecrit
@@ -229,15 +230,15 @@ pub(crate) fn liste_historique(ctx: &Contexte, fichier: &str, cle: &str) -> R<Ve
     }
     let data = crate::routes_listes::lire_json(&p)?;
     let Value::Object(o) = data else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(&data))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&data))));
     };
     match o.get(cle) {
         None => Ok(Vec::new()),
         Some(Value::Array(a)) => Ok(a.clone()),
         Some(Value::String(t)) if t.is_empty() => Ok(Vec::new()),
         Some(Value::Object(m)) if m.is_empty() => Ok(Vec::new()),
-        Some(autre @ (Value::String(_) | Value::Object(_))) => Err(erreur("AttributeError", crate::fichiers::attendu("une liste", crate::etats::nom_type(autre)))),
-        Some(autre) => Err(erreur("TypeError", crate::fichiers::attendu("une liste", crate::etats::nom_type(autre)))),
+        Some(autre @ (Value::String(_) | Value::Object(_))) => Err(erreur("AttributeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
+        Some(autre) => Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     }
 }
 
@@ -249,7 +250,7 @@ pub(crate) fn paies_declarees(ctx: &Contexte) -> R<Vec<Value>> {
 pub(crate) fn charger_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
     let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
     let data = engagement::lire_saisie(&chemin).map_err(|m| erreur("ErreurOperation", m))?;
-    let s = engagement::charger_donnees(ctx, &data).map_err(|m| crate::retours::Echec::from(refus_du_calcul(ctx, &data, m)))?;
+    let s = engagement::charger_donnees(ctx, &data).map_err(|m| socle::echec::Echec::from(refus_du_calcul(ctx, &data, m)))?;
     Ok((data, s.paies))
 }
 
@@ -297,7 +298,7 @@ pub(crate) fn titre_spectacle(p: &Paie) -> String {
 
 /// `str(Decimal)` d'un taux flottant : `Decimal(str(x))`.
 pub(crate) fn dec_taux(x: f64) -> R<Decimal> {
-    crate::num::dec_f64(x).map_err(|m| erreur("ValueError", m))
+    socle::num::dec_f64(x).map_err(|m| erreur("ValueError", m))
 }
 
 fn nat_libelle(p: &Paie) -> R<String> {
@@ -393,7 +394,7 @@ fn totaliser_lignes(lignes: &[&LigneLivre]) -> Totaux {
                 },
                 Some(v) => {
                     if let Some(x) = t.sommes.iter_mut().find(|(c, _)| *c == champ) {
-                        x.1 = crate::num::add(x.1, v);
+                        x.1 = socle::num::add(x.1, v);
                     }
                 }
             }
@@ -476,7 +477,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
         lignes.push(LigneLivre {
             mois: mois.to_string(),
             salarie: qui(s)?,
-            cle_salarie: py_str(s.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?),
+            cle_salarie: py_str(s.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?),
             contrat: p.engagement.numero.clone().unwrap_or_default(),
             nature: nat_libelle(p)?,
             spectacle: titre_spectacle(p),
@@ -534,7 +535,7 @@ fn lignes_declarees(ctx: &Contexte, mois: &str, coordonnees: bool, declarees: &[
                 return Ok(l);
             }
         }
-        Ok(crate::contrats::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())
+        Ok(droit::natures::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())
     };
     for x in declarees {
         if x.get("mois").map_or(true, |m| py_str(m) != mois) {
@@ -817,7 +818,7 @@ fn titre_livre(livre: &LivreDePaie) -> String {
 /// `csv_livre` : point-virgule, virgule decimale, UTF-8 avec BOM.
 pub(crate) fn csv_livre(livre: &LivreDePaie) -> Vec<u8> {
     let mut s = String::from("\u{feff}");
-    let ligne = |s: &mut String, c: &[String]| s.push_str(&crate::csv_py::ligne(c, ';'));
+    let ligne = |s: &mut String, c: &[String]| s.push_str(&socle::csv::ligne(c, ';'));
     let texte = |c: &CelL| -> String {
         match c {
             CelL::T(t) => t.clone(),
@@ -1103,7 +1104,7 @@ pub(crate) fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         ligne.n("bulletins", *n);
         let k = format!("m{}", l.mois.chars().skip(5).take(2).collect::<String>());
         let avant = ligne.decimal(&k).unwrap_or(zero);
-        ligne.d(&k, crate::num::add(avant, l.brut.unwrap_or(zero)));
+        ligne.d(&k, socle::num::add(avant, l.brut.unwrap_or(zero)));
         for (champ, v) in [
             ("brut", l.brut),
             ("net_imposable", l.net_imposable),
@@ -1114,7 +1115,7 @@ pub(crate) fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         ] {
             if let Some(v) = v {
                 let avant = ligne.decimal(champ).unwrap_or(zero);
-                ligne.d(champ, crate::num::add(avant, v));
+                ligne.d(champ, socle::num::add(avant, v));
             }
         }
         sources.insert(l.source);
@@ -1180,7 +1181,7 @@ pub(crate) fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         ] {
             if let Some(v) = v {
                 let avant = ligne.decimal(champ).unwrap_or(zero);
-                ligne.d(champ, crate::num::add(avant, v));
+                ligne.d(champ, socle::num::add(avant, v));
             }
         }
     }
@@ -1304,7 +1305,7 @@ pub(crate) fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau>
                     l.d("abattement", v.abattement).d("assiette", v.montant_soumis);
                     let code = py_str(&v.type_taux);
                     l.t("type", format!("{} — {}", code, type_de_taux(&code)));
-                    l.d("taux", crate::num::dec(&v.taux).map_err(|m| erreur("InvalidOperation", m))?).d("prelevement", eur2(v.prelevement));
+                    l.d("taux", socle::num::dec(&v.taux).map_err(|m| erreur("InvalidOperation", m))?).d("prelevement", eur2(v.prelevement));
                 }
                 None => {
                     l.rien("abattement").rien("assiette").t("type", "").rien("taux").rien("prelevement");
@@ -1498,17 +1499,17 @@ fn entier_py(v: &Val) -> R<i64> {
             return Ok(f.trunc() as i64);
         }
     }
-    crate::apercu_dsn::int_py(t.trim()).and_then(|n| i64::try_from(n).ok()).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&t))))
+    crate::apercu_dsn::int_py(t.trim()).and_then(|n| i64::try_from(n).ok()).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&t))))
 }
 
 /// `datetime.date(*map(int, "JJ/MM/AAAA".split("/")[::-1]))` : `None` quand le texte ne se lit pas.
-fn date_jj(t: &str) -> Option<crate::date::Jour> {
+fn date_jj(t: &str) -> Option<socle::date::Jour> {
     let p: Vec<&str> = t.split('/').collect();
     if p.len() != 3 {
         return None;
     }
     let n = |x: &str| x.trim().parse::<i64>().ok();
-    crate::date::Jour::nouveau(n(p[2])? as i32, n(p[1])? as u32, n(p[0])? as u32)
+    socle::date::Jour::nouveau(n(p[2])? as i32, n(p[1])? as u32, n(p[0])? as u32)
 }
 
 /// `operations_etats.heures_et_cachets` : contrat par contrat, cachets, heures retenues pour les annexes 8 et 10,
@@ -1546,7 +1547,7 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut objets: Vec<(Value, Value)> = Vec::new();
     for s in ctx.spectacles.values() {
         let Value::Object(o) = s else {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(s))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(s))));
         };
         objets.push((o.get("numero_objet").cloned().unwrap_or(Value::Null), o.get("titre").cloned().unwrap_or(Value::Null)));
     }
@@ -1555,7 +1556,7 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             Some(x) => py_str(x),
             None => "0".to_string(),
         };
-        crate::apercu_dsn::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", crate::num::illisible(&t)))
+        crate::apercu_dsn::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))
     };
     for x in liste_historique(ctx, "engagements.json", "engagements")? {
         let debut = fiche_texte(&x, "debut");
@@ -1676,7 +1677,7 @@ pub(crate) fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         for (champ, v) in [("brut", l.brut), ("cotisations_patronales", l.cotisations_patronales), ("cout_employeur", l.cout_employeur), ("net_a_payer", l.net_a_payer)] {
             if let Some(v) = v {
                 let avant = ligne.decimal(champ).unwrap_or(zero);
-                ligne.d(champ, crate::num::add(avant, v));
+                ligne.d(champ, socle::num::add(avant, v));
             }
         }
     }

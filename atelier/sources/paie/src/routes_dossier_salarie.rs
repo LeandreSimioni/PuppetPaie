@@ -30,14 +30,16 @@ use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
 use crate::conges_spectacles::{self, ContratCs, PaieCs};
-use crate::contexte::Contexte;
-use crate::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use crate::engagement::{self, Engagement};
-use crate::etats::{items, nom_type, py_str};
+use crate::etats::{items};
+use socle::valeur::py_str;
+use socle::valeur::nom_type;
 use crate::fiche_recapitulative::Recapitulatifs;
-use crate::fichiers::vrai;
-use crate::num::{eur2, Decimal};
-use crate::retours::Echec;
+use socle::fichiers::vrai;
+use socle::num::{eur2, Decimal};
+use socle::echec::Echec;
 use crate::routes_ouverture::{refus_du_calcul, Refus};
 
 type R<T> = Result<T, Refus>;
@@ -252,7 +254,7 @@ impl Periode {
             let c: Vec<char> = m.chars().collect();
             let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
             // « 00 » n'est aucun mois (l'indice -1 du Python le lisait decembre) : il se refuse, comme partout.
-            let nom = crate::date::nom_du_mois(n, crate::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
+            let nom = socle::date::nom_du_mois(n, socle::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
             return Ok(format!("{} {}", nom, c[..4].iter().collect::<String>()));
         }
         Ok(self.annee.clone().unwrap_or_default())
@@ -421,9 +423,9 @@ pub(crate) fn charger(ctx: &Contexte, chemin: &Path) -> R<(Value, Vec<Paie>)> {
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
 fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
-    let mois = data.get("mois").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("mois")))?;
+    let mois = data.get("mois").map(py_str).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
     let annee = crate::apercu_dsn::int_py(&mois.chars().take(4).collect::<String>())
-        .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
+        .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
     crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee as i32, attente)
 }
 
@@ -516,7 +518,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
             let s = engagement::charger_donnees(ctx, &data).map_err(|msg| refus_du_calcul(ctx, &data, msg))?;
             (s.mois, s.paies)
         };
-        let sous = sous.into_iter().next().ok_or_else(|| avec("IndexError", crate::fichiers::trop_courte("la paie de l'engagement")))?;
+        let sous = sous.into_iter().next().ok_or_else(|| avec("IndexError", socle::fichiers::trop_courte("la paie de l'engagement")))?;
         if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
             lignes.extend(l.iter().cloned());
         }
@@ -566,7 +568,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
     for p in paies {
         // Un permanent n'a pas de certificat Conges Spectacles ; un CDDU de douze mois ou plus non plus : il n'est pas
         // declare a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41).
-        if p.engagement.nat()?.mensuelle() || !crate::caisse_conges::de_la_paie(p)? {
+        if p.engagement.nat()?.mensuelle() || !crate::calcul::declaree_a_la_caisse_des_conges(p)? {
             continue;
         }
         let (cle, debut) = (cle_de(p), p.engagement.debut.iso());
@@ -668,7 +670,7 @@ fn mois_puppetpaie(
                     return Err(erreur_operation(format!(
                         "{}, {} : aucune page de sorties/{}/{} ne porte son bulletin du {} au {}. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
                         lib,
-                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?,
+                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
                         mois,
                         nom_archive,
                         p.engagement.debut_periode().map_err(|m| avec("ValueError", m))?.jj_mm_aaaa(),
@@ -679,7 +681,7 @@ fn mois_puppetpaie(
                     return Err(erreur_operation(format!(
                         "{}, {} : le bulletin n° {} partage une page de sorties/{}/{} avec un autre bulletin. Cette page porte la paie d'un autre salarié, elle ne se donne pas ; et un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
                         lib,
-                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?,
+                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
                         lu.bulletin,
                         mois,
                         nom_archive
@@ -797,7 +799,7 @@ fn mois_puppetpaie(
                                 .first()
                                 .and_then(|(pc, _)| pc.salarie.get("nom"))
                                 .map(py_str)
-                                .ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?;
+                                .ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?;
                             let mut ses_pages: Vec<usize> = Vec::new();
                             let mut etrangeres: Vec<i64> = Vec::new();
                             for (pc, n) in siens {
@@ -940,7 +942,7 @@ fn dossier_coolpaie(ctx: &Contexte) -> Option<PathBuf> {
 
 /// `_sans_accents` : sans accent, en majuscules.
 fn sans_accents(t: &str) -> String {
-    crate::contexte::sans_accent(t).to_uppercase()
+    socle::texte::sans_accent(t).to_uppercase()
 }
 
 /// `re.sub(r"[^A-Z0-9]+", " ", t)`.
@@ -1274,7 +1276,7 @@ fn assembler(pages: &[&Page]) -> R<Option<Vec<u8>>> {
         if !textes.contains_key(pg.source.as_path()) {
             textes.insert(pg.source.as_path(), texte_pdf(&pg.source)?);
         }
-        let texte = textes[pg.source.as_path()].get(pg.numero).cloned().ok_or_else(|| avec("IndexError", crate::fichiers::trop_courte(&format!("la page {} de {}", pg.numero + 1, pg.source.display()))))?;
+        let texte = textes[pg.source.as_path()].get(pg.numero).cloned().ok_or_else(|| avec("IndexError", socle::fichiers::trop_courte(&format!("la page {} de {}", pg.numero + 1, pg.source.display()))))?;
         if !vues.insert(texte) {
             continue;
         }
@@ -1307,7 +1309,7 @@ pub(crate) struct Entree {
 
 /// La date et l'heure locales (Paris) au format DOS, a partir de secondes unix.
 fn horodatage_dos(secondes: i64) -> (u16, u16) {
-    let local = secondes + crate::paris::decalage(secondes);
+    let local = secondes + socle::paris::decalage(secondes);
     let jour = Jour::depuis_jours_unix(local.div_euclid(86_400)).unwrap_or(Jour { an: 1980, mois: 1, jour: 1 });
     let reste = local.rem_euclid(86_400);
     let (h, m, s) = (reste / 3600, (reste % 3600) / 60, reste % 60);
@@ -1318,7 +1320,7 @@ fn horodatage_dos(secondes: i64) -> (u16, u16) {
 }
 
 fn maintenant() -> i64 {
-    crate::temps::secondes().floor() as i64
+    socle::temps::secondes().floor() as i64
 }
 
 /// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix, comme Python.
@@ -1426,7 +1428,7 @@ fn mode(meta: &std::fs::Metadata) -> u32 {
 }
 
 fn ecrire_octets(chemin: &Path, octets: &[u8]) -> R<()> {
-    std::fs::write(chemin, octets).map_err(|e| avec("OSError", crate::fichiers::ecriture_impossible(&e, chemin)))
+    std::fs::write(chemin, octets).map_err(|e| avec("OSError", socle::fichiers::ecriture_impossible(&e, chemin)))
 }
 
 /// `{cle: {categorie: octets}}`, dans l'ordre ou les cles et les categories sont apparues.
@@ -1501,14 +1503,14 @@ fn ecrire_ensemble(dossier: &Path, contenus: &Contenus, preuves: &[(String, Vec<
 /// Le jour reel de Paris : `date.today()`, pas `ctx.aujourdhui`.
 pub(crate) fn aujourdhui_reel() -> Jour {
     let t = maintenant();
-    Jour::depuis_jours_unix((t + crate::paris::decalage(t)).div_euclid(86_400)).unwrap_or_else(crate::contexte::jour_reel)
+    Jour::depuis_jours_unix((t + socle::paris::decalage(t)).div_euclid(86_400)).unwrap_or_else(droit::contexte::jour_reel)
 }
 
 /// `etats::getd(charge, cle)` puis `or None` : la valeur de la charge quand elle est vraie.
 fn vraie<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Value>> {
     match charge {
         Value::Object(o) => Ok(o.get(cle).filter(|v| vrai(v))),
-        autre => Err(avec("AttributeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+        autre => Err(avec("AttributeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
     }
 }
 
@@ -1518,7 +1520,7 @@ fn joindre(valeurs: &[Value]) -> R<String> {
     for (i, v) in valeurs.iter().enumerate() {
         match v {
             Value::String(s) => textes.push(s.clone()),
-            autre => return Err(avec("TypeError", crate::fichiers::element(i, &crate::fichiers::attendu("un texte", nom_type(autre))))),
+            autre => return Err(avec("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre))))),
         }
     }
     Ok(textes.join(", "))
@@ -1563,7 +1565,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
             let mut absents = Vec::new();
             for c in liste {
                 match c {
-                    Value::Array(_) | Value::Object(_) => return Err(avec("TypeError", crate::fichiers::pas_une_cle(nom_type(c)))),
+                    Value::Array(_) | Value::Object(_) => return Err(avec("TypeError", socle::fichiers::pas_une_cle(nom_type(c)))),
                     Value::String(s) if fiches.contains(&s) => {}
                     autre => absents.push(autre.clone()),
                 }
@@ -1666,7 +1668,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
         return Ok(d);
     }
     let dossier = ctx.racine.join("exports").join("dossiers");
-    std::fs::create_dir_all(&dossier).map_err(|e| avec("OSError", crate::fichiers::ecriture_impossible(&e, &dossier)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| avec("OSError", socle::fichiers::ecriture_impossible(&e, &dossier)))?;
     let un_seul = cats.len() == 1;
     if ensemble {
         d.fichiers.push(ecrire_ensemble(&dossier, &contenus, &preuves, &cats, &p, un_seul, tmp)?);

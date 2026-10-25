@@ -16,11 +16,11 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::en_texte;
-use crate::ecriture::ecrire_json;
-use crate::fichiers::{dossier_du_code, lire_json, vrai};
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::en_texte;
+use socle::ecriture::ecrire_json;
+use socle::fichiers::{dossier_du_code, lire_json, vrai};
+use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
@@ -34,12 +34,12 @@ const PREMIER_LIBRE: u32 = 104;
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(Some("ErreurOperation"), m)
+    socle::echec::noter_et(Some("ErreurOperation"), m)
 }
 
 fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
@@ -90,7 +90,7 @@ fn attendus(ctx: &Contexte, base: &Value) -> R<Vec<Value>> {
     let contrats = g(base, "contrats");
     let mut out = liste(g(contrats, "tous"));
     let casc = crate::casc::base().map_err(plain)?;
-    if idcc == txt(g(&casc, "idcc")) && !crate::bareme::casc_exemptee(ent).map_err(plain)? {
+    if idcc == txt(g(&casc, "idcc")) && !droit::bareme::casc_exemptee(ent).map_err(plain)? {
         out.push(json!({
             "cle": "casc", "libelle": txt(g(g(&casc, "dsn"), "contrat")), "reference": "100", "type": "02",
             "beneficiaires": "tous les salariés", "quoi": "CASC-SVP (activités sociales et culturelles)",

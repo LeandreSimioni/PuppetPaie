@@ -10,10 +10,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Once};
 
 use paie::coffre::Coffre;
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use outils::{copier, dossier_de_test, dossier_du_processus, FauxCourriel as Faux, Mail};
-use paie::date::Jour;
-use paie::retours::Echec;
+use socle::date::Jour;
+use socle::echec::Echec;
 use paie::routes_fiches_courriel as rfc;
 use serde_json::{json, Value};
 
@@ -797,7 +797,7 @@ fn la_releve_de_la_veille_se_note_sous_son_nom() {
 /// Date la demande (la ligne du journal) `secondes` avant maintenant.
 fn dater_la_demande(racine: &Path, secondes: i64) {
     let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 - secondes;
-    let quand = paie::paris::iso_secondes(t as f64);
+    let quand = socle::paris::iso_secondes(t as f64);
     let mut lignes = journal(racine);
     for l in lignes.iter_mut().filter(|l| l["quoi"] == json!("fiche-demande")) {
         l["quand"] = json!(quand);

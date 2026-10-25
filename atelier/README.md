@@ -1013,13 +1013,13 @@ C'est un **outil de l'éditeur**, lancé avant chaque publication (`atelier/CLAU
 ne figure pas dans l'aide. Une installation ne fait que recevoir la mise à jour
 signée ; la publication ne vérifie pas d'elle-même que les sources l'ont été.
 
-**Les tables Unicode du moteur** (`paie/src/tables_nfkc.rs`, `nfkd_ascii.rs`,
+**Les tables Unicode du moteur** (`socle/src/tables_nfkc.rs`, `paie/src/nfkd_ascii.rs`,
 `tables_retours.rs`, `tables_journal.rs` : la normalisation NFKC/NFKD, les
 chiffres et lettres de `str.isdigit`/`str.isalnum`/`\d`, cp437 et cp1252, les
 encodages qu'un XML de retour peut déclarer, les caractères d'un nom XML)
 s'écrivent depuis les textes déposés (`atelier/reference/sources/unicode/`,
 `python/`, `w3c/`, chacun avec son `LISEZ-MOI.md`) par **`paie generer-tables
-atelier/reference/sources atelier/sources/paie/src`** (`paie/src/generer_tables.rs`,
+atelier/reference/sources atelier/sources`** (`paie/src/generer_tables.rs`,
 15/10/2026 ; avant, quatre scripts Python les tiraient de l'Unicode de
 l'interpréteur). Le test `tables_generees` vérifie que les tables commitées sont
 celles que les textes donnent. Monter de version d'Unicode : déposer les
@@ -1912,7 +1912,7 @@ git config core.hooksPath atelier/.githooks   # une fois : le crochet le lance �
 
 Le crochet (`atelier/.githooks/pre-commit`) prend le `paie` de
 `PUPPETPAIE_FABRIQUE`, sinon celui que Cargo a compilé (`CARGO_TARGET_DIR`,
-sinon `atelier/sources/paie/target`), sinon celui que le dépôt livre
+sinon `atelier/sources/target`), sinon celui que le dépôt livre
 (`atelier/sources/paie/bin/<système>/`) ; si aucun ne connaît la commande, le
 commit est refusé. Une trouvaille se regarde : une valeur réelle sort du
 dépôt, une valeur inventée s'inscrit dans `FICTIVES`

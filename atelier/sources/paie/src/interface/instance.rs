@@ -115,7 +115,7 @@ fn retenir(inst: &Path, creneau: u16) {
         "creneau": creneau,
         "_commentaire": "Le creneau de la fenetre de cette installation (paie/src/interface/instance.rs) : son port de page reste le meme d'un lancement a l'autre, et le navigateur y retrouve ce qu'il a retenu.",
     });
-    let _ = crate::ecriture::ecrire_json(&inst.join(FICHIER), &v, 2);
+    let _ = socle::ecriture::ecrire_json(&inst.join(FICHIER), &v, 2);
 }
 
 /// Le creneau que vise une installation qui n'en a pas retenu : une empreinte de son dossier.

@@ -245,7 +245,7 @@ fn lire_json(p: &Path) -> Option<Value> {
 }
 
 fn ecrire_json(p: &Path, v: &Value) -> R<()> {
-    crate::ecriture::ecrire_json(p, v, 1)
+    socle::ecriture::ecrire_json(p, v, 1)
 }
 
 /// L'INSTALLATION : le dossier qui porte `logiciel/`, et a cote les compagnies (`prive/`, `compagnies/`, les fictives) et
@@ -343,7 +343,7 @@ fn lire_depot_suivi(depot: &str, nom: &str, suivre: &dyn Fn(u64, Option<u64>)) -
             c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
         }
         // En essai, le garde-fou reseau : rien ne sort de la machine (une panne de reseau, comme hors ligne).
-        let agent: ureq::Agent = crate::garde_reseau::regler(c, &url).map_err(|e| (HORS_LIGNE, format!("{} : {}", url, e)))?.build().into();
+        let agent: ureq::Agent = socle::garde_reseau::regler(c, &url).map_err(|e| (HORS_LIGNE, format!("{} : {}", url, e)))?.build().into();
         let mut r = agent.get(&url).call().map_err(|e| {
             let mot = if matches!(e, ureq::Error::StatusCode(_)) { INTROUVABLE } else { HORS_LIGNE };
             (mot, format!("{} : {}", url, e))
@@ -474,7 +474,7 @@ fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
 
 /// Les mois d'UNE compagnie qui retiennent une version qui change un calcul (`mois_qui_retiennent`) : ses mois saisis sans
 /// DSN acceptee, hors ceux qu'elle a saisis en demo avant d'etre gardee.
-pub(crate) fn mois_qui_retiennent_la_compagnie(o: &std::collections::HashMap<String, String>, ctx: &crate::contexte::Contexte) -> crate::etats::R<Vec<Value>> {
+pub(crate) fn mois_qui_retiennent_la_compagnie(o: &std::collections::HashMap<String, String>, ctx: &droit::contexte::Contexte) -> socle::echec::R<Vec<Value>> {
     let demo = crate::interface::suppression::mois_de_demo(&ctx.racine);
     let mut mois = crate::routes_etats::mois_saisis_non_deposes(o, ctx)?;
     mois.retain(|m| !m.as_str().is_some_and(|m| demo.iter().any(|d| d == m)));

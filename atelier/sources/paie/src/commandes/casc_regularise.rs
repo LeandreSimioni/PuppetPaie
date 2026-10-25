@@ -15,7 +15,7 @@ use super::actes::{est_refus, jour_option, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::champ;
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "casc-regularise",
@@ -43,9 +43,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let vire_le = args.texte("vire-le").unwrap_or("");
     let montant = args.texte("montant").unwrap_or("");
     jour_option("vire-le", vire_le)?;
-    match crate::num::dec(&json!(montant.trim())) {
-        Ok(d) if d > crate::num::Decimal::ZERO => {}
-        _ => return Err(refus(format!("--montant attend le montant vire, en euros (un nombre positif), recu {}.", crate::fichiers::repr(montant)))),
+    match socle::num::dec(&json!(montant.trim())) {
+        Ok(d) if d > socle::num::Decimal::ZERO => {}
+        _ => return Err(refus(format!("--montant attend le montant vire, en euros (un nombre positif), recu {}.", socle::fichiers::repr(montant)))),
     }
     // Rien a regulariser : le Python notait quand meme une ligne sans mois.
     let r = crate::casc_regularisation::regularisation(

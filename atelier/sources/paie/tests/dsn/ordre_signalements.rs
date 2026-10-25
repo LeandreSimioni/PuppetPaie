@@ -7,8 +7,8 @@
 //! `None` pour le client : il irait chercher le vrai mot de passe.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, http, lire, noms, port_ferme, serveur, Recu, Requete};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::ordre_signalements::dernier_ordre_connu;
 use paie::releve_retours::{iso_de_naif, maintenant_naif, relever_retours, Adresses, Client};
 use serde_json::json;

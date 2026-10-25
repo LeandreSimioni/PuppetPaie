@@ -13,13 +13,13 @@ use std::sync::Arc;
 
 use serde_json::{Map, Value};
 
-use crate::catalogue::rubrique;
-use crate::contexte::Contexte;
-use crate::contrats::{self, Nature};
-use crate::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, repr_py, Jour};
-use crate::emplois;
-use crate::fichiers::{lire_json, vrai};
-use crate::num::{dec, dec_f64, dec_py, div, flottant, Decimal, Resultat};
+use droit::catalogue::rubrique;
+use droit::contexte::Contexte;
+use droit::natures::{self, Nature};
+use socle::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, repr_py, Jour};
+use droit::emplois;
+use socle::fichiers::{lire_json, vrai};
+use socle::num::{dec, dec_f64, dec_py, div, flottant, Decimal, Resultat};
 
 #[derive(Debug, Clone)]
 pub struct Engagement {
@@ -195,7 +195,7 @@ fn jours_et_lieux(liste: &[Value], strict: bool) -> Resultat<(Vec<Jour>, BTreeMa
                             repr_py(x)
                         )
                     } else {
-                        crate::fichiers::absent("jour")
+                        socle::fichiers::absent("jour")
                     });
                 };
                 let jour = d(j)?;
@@ -271,7 +271,7 @@ impl Engagement {
 
         // Un contrat permanent ne se deduit pas de ses dates.
         let nature = chaine(get("nature"));
-        let nat = contrats::nature(nature.as_deref())?;
+        let nat = natures::nature(nature.as_deref())?;
         let mensuel = nat.mensuelle();
         let planning_brut = liste(get("planning"), "planning")?;
         if mensuel {
@@ -319,10 +319,10 @@ impl Engagement {
         let mut autres = 0.0;
         let mut premier_cachet: Option<&Value> = None;
         for l in &lignes {
-            let code = l.get("rubrique").ok_or_else(|| crate::fichiers::absent("rubrique"))?;
+            let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
             let code = code.as_str().map_or_else(|| en_texte(code), String::from);
             let r = rubrique(racine, &code)?;
-            let q = flottant(l.get("quantite").ok_or_else(|| crate::fichiers::absent("quantite"))?)?;
+            let q = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
             if r.unite == "cachet" {
                 cachets_somme += q;
                 premier_cachet.get_or_insert(l);
@@ -350,7 +350,7 @@ impl Engagement {
             Some(x) => Some(flottant(x)?),
         };
         if let Some(l) = premier_cachet {
-            taux_cachet = Some(flottant(l.get("taux").ok_or_else(|| crate::fichiers::absent("taux"))?)?);
+            taux_cachet = Some(flottant(l.get("taux").ok_or_else(|| socle::fichiers::absent("taux"))?)?);
         }
 
         // Les jours travailles : un fait qui se saisit, sinon les dates distinctes.
@@ -380,14 +380,14 @@ impl Engagement {
         let debut = if debut_saisi {
             d(get("debut").unwrap())?
         } else {
-            *jours_joues.first().ok_or_else(|| crate::fichiers::trop_courte("les jours joués"))?
+            *jours_joues.first().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?
         };
         let fin = if fin_saisie {
             Some(d(get("fin").unwrap())?)
         } else if mensuel {
             None
         } else {
-            let derniere = *jours_joues.last().ok_or_else(|| crate::fichiers::trop_courte("les jours joués"))?;
+            let derniere = *jours_joues.last().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?;
             Some(derniere.max(planning.last().copied().unwrap_or(derniere)))
         };
 
@@ -423,7 +423,7 @@ impl Engagement {
             .copied()
             .collect();
         let mois = if mois_saisi.is_empty() {
-            jours_joues.first().ok_or_else(|| crate::fichiers::trop_courte("les jours joués"))?.mois_iso()
+            jours_joues.first().ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?.mois_iso()
         } else {
             mois_saisi
         };
@@ -525,7 +525,7 @@ impl Engagement {
 
     /// La nature de contrat, relue a chaque acces.
     pub fn nat(&self) -> Resultat<Arc<Nature>> {
-        contrats::nature(self.nature.as_deref())
+        natures::nature(self.nature.as_deref())
     }
 
     pub fn debut_mois(&self) -> Resultat<Jour> {
@@ -872,7 +872,7 @@ pub fn jours_du_contrat(e: &Value) -> usize {
 /// `Engagement.nature` par `e.get("nature")`, avec le `KeyError` rendu comme
 /// le Python l'ecrit dans le message d'un refus (`%s` d'un `KeyError`).
 fn nature_de(e: &Value, rang: usize, mois: &str) -> Resultat<Arc<Nature>> {
-    contrats::nature(chaine(e.get("nature")).as_deref())
+    natures::nature(chaine(e.get("nature")).as_deref())
         .map_err(|m| format!("Engagement {} de {} : {}", rang, mois, m))
 }
 
@@ -893,7 +893,7 @@ pub fn engagements(
     // Le taux du mois, s'il en ecrit un ; sinon rien (regle 1, lot F1 : plus de 130 EUR).
     let defaut_taux = data.get("taux_cachet").cloned().unwrap_or(Value::Null);
     let (mut out, mut dits) = (Vec::new(), Vec::new());
-    let tous = data.get("engagements").ok_or_else(|| crate::fichiers::absent("engagements"))?;
+    let tous = data.get("engagements").ok_or_else(|| socle::fichiers::absent("engagements"))?;
     let tous = tous.as_array().ok_or("`engagements` : une liste est attendue")?;
     for (i, e) in tous.iter().enumerate() {
         let rang = i + 1;
@@ -971,7 +971,7 @@ pub fn engagements(
                 Some(Value::Bool(b)) => Some(*b),
                 _ => None,
             };
-            let salarie = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| crate::fichiers::absent("salarie"))?)?;
+            let salarie = ctx.salarie(&chaine(e.get("salarie")).ok_or_else(|| socle::fichiers::absent("salarie"))?)?;
             let feminin = sexe(&salarie) == "2";
             declare = emplois::resoudre(&code, cadre, feminin)
                 .map_err(|m| format!("Engagement {} de {} : {}", rang, mois_dit, m))?;
@@ -998,7 +998,7 @@ pub fn engagements(
         poser("debut", e.get("debut"));
         poser("fin", e.get("fin"));
         poser("numero", e.get("numero"));
-        poser("mois", Some(data.get("mois").ok_or_else(|| crate::fichiers::absent("mois"))?));
+        poser("mois", Some(data.get("mois").ok_or_else(|| socle::fichiers::absent("mois"))?));
         poser("jours", e.get("jours"));
         poser("planning", Some(&Value::Array(planning_engagement(e))));
         poser("lignes", lignes.as_ref());
@@ -1064,7 +1064,7 @@ fn heures_dites(ctx: &Contexte, eng: &Engagement, rang: usize, mois: &str) -> Re
         if !r.heures_a_saisir() {
             continue;
         }
-        let quantite = flottant(l.get("quantite").ok_or_else(|| crate::fichiers::absent("quantite"))?)?;
+        let quantite = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
         if quantite == 0.0 || flottant_opt(l.get("heures"))?.map_or(false, |h| h != 0.0) {
             continue;
         }
@@ -1106,11 +1106,11 @@ pub fn engagements_du_fichier(
     chemin: &Path,
     lignes_permanent: LignesPermanent,
 ) -> Resultat<(Value, Vec<Engagement>, Vec<Vec<Avis>>)> {
-    let p: PathBuf = if crate::fichiers::existe(chemin) || chemin.is_absolute() {
+    let p: PathBuf = if socle::fichiers::existe(chemin) || chemin.is_absolute() {
         chemin.to_path_buf()
     } else {
         let sous = ctx.racine.join(chemin);
-        if crate::fichiers::existe(&sous) { sous } else { chemin.to_path_buf() }
+        if socle::fichiers::existe(&sous) { sous } else { chemin.to_path_buf() }
     };
     let data = lire_saisie(&p)?;
     let (engs, dits) = engagements(ctx, &data, lignes_permanent)?;
@@ -1123,7 +1123,7 @@ pub fn engagements_du_fichier(
 /// l'appellent). Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
 /// s'ecrit tel quel (« 2026-00 »), jamais sous le nom de janvier.
 pub fn libelle_mois(mois: &str) -> String {
-    crate::date::libelle_du_mois_ou_tel_quel(mois, crate::date::Graphie::Minuscule)
+    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Minuscule)
 }
 
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
@@ -1137,7 +1137,7 @@ pub(crate) fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
 /// la cle du salarie ; vide si le mois n'est pas sur le disque.
 pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<(String, Value)>> {
     let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !crate::fichiers::existe(&p) {
+    if !socle::fichiers::existe(&p) {
         return Ok(Vec::new());
     }
     let mut out = Vec::new();
@@ -1177,9 +1177,9 @@ fn engagement_du_premier_mois(ctx: &Contexte, eng: &Engagement, cle: &str) -> Re
     }
     let numero = eng.numero.as_deref().filter(|n| !n.is_empty());
     if let Some(n) = numero {
-        return Ok(du_jour.into_iter().find(|e| crate::jumeaux::numero_pose(e).as_deref() == Some(n)));
+        return Ok(du_jour.into_iter().find(|e| droit::jumeaux::numero_pose(e).as_deref() == Some(n)));
     }
-    let lesquels: Vec<String> = du_jour.iter().map(|e| crate::jumeaux::numero_pose(e).unwrap_or_else(|| "sans numero".into())).collect();
+    let lesquels: Vec<String> = du_jour.iter().map(|e| droit::jumeaux::numero_pose(e).unwrap_or_else(|| "sans numero".into())).collect();
     Err(format!(
         "{} : {} contrats commencent le {} dans la saisie de {} ({}), et celui-ci ne porte pas de numero : on ne devine pas \
          lequel il poursuit. Recopier son numero dans la saisie de {}.",
@@ -1199,8 +1199,8 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
     let mut avis = Vec::new();
     let fiche = ctx.salarie(&eng.salarie)?;
     let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte);
-    let nom = texte("nom").ok_or_else(|| crate::fichiers::absent("nom"))?;
-    let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| crate::fichiers::absent("prenom"))?;
+    let nom = texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?;
+    let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?;
     let qui = format!("{} {}", nom, prenom);
     let depuis = eng.debut.jj_mm_aaaa();
     let libelle = eng.nat()?.libelle.clone();
@@ -1262,8 +1262,8 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
     }
     let fiche = ctx.salarie(&eng.salarie)?;
     let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte);
-    let nom = texte("nom").ok_or_else(|| crate::fichiers::absent("nom"))?;
-    let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| crate::fichiers::absent("prenom"))?;
+    let nom = texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?;
+    let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?;
     let qui = format!("{} {}", nom, prenom);
     let fin = eng.fin.ok_or("contrat a cheval sans fin")?;
     let bornes = format!("du {} au {}", eng.debut.jj_mm_aaaa(), fin.jj_mm_aaaa());
@@ -1319,7 +1319,7 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
     }
     if !eng.dernier_mois()? {
         let place = mois_du_contrat.iter().position(|m| *m == eng.mois).ok_or("mois hors du contrat")?;
-        let suivant = mois_du_contrat.get(place + 1).ok_or_else(|| crate::fichiers::trop_courte("les mois du contrat"))?;
+        let suivant = mois_du_contrat.get(place + 1).ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?;
         let fin_de_phrase = if eng.premier_mois()? {
             if eng.planning_connu() {
                 " Le contrat imprime couvre toutes les dates."
@@ -1357,11 +1357,11 @@ pub struct Saisie {
 
 /// `operations_paies.charger(..., sans_numeros=True)` ; `minima::sans_minima` coupe les minima.
 pub fn charger(ctx: &Contexte, chemin: &Path) -> Resultat<Saisie> {
-    let p: PathBuf = if crate::fichiers::existe(chemin) || chemin.is_absolute() {
+    let p: PathBuf = if socle::fichiers::existe(chemin) || chemin.is_absolute() {
         chemin.to_path_buf()
     } else {
         let sous = ctx.racine.join(chemin);
-        if crate::fichiers::existe(&sous) { sous } else { chemin.to_path_buf() }
+        if socle::fichiers::existe(&sous) { sous } else { chemin.to_path_buf() }
     };
     charger_donnees(ctx, &lire_saisie(&p)?)
 }
@@ -1400,7 +1400,7 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
     let _derivation = crate::conges::Derivation::ouvrir();
     let lignes: LignesPermanent = &crate::conges::lignes_du_mois;
     let (engs, dits) = engagements(ctx, data, lignes)?;
-    let mois = data.get("mois").map(en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
+    let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
     let mut paies = Vec::new();
     for e in &engs {
         let p = crate::calcul::calculer_apres(ctx, e, &paies)?;
@@ -1425,7 +1425,7 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
         }
     }
     // La case cadre decochee sur un metier habituellement cadre : on le dit.
-    let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| crate::fichiers::absent("engagements"))?;
+    let tous = data.get("engagements").and_then(Value::as_array).ok_or_else(|| socle::fichiers::absent("engagements"))?;
     for (p, e) in paies.iter_mut().zip(tous) {
         let metier = e.get("metier").filter(|m| vrai(m)).map(en_texte).unwrap_or_default();
         let m = emplois::metier(&metier)?.unwrap_or(Value::Null);
@@ -1436,8 +1436,8 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
                 "{} {}, {} : case cadre decochee, alors que ce metier est \
                  habituellement cadre. Si c'est voulu, rien a faire ; sinon, \
                  la cocher -- la retraite complementaire en depend.",
-                texte("nom").ok_or_else(|| crate::fichiers::absent("nom"))?,
-                texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| crate::fichiers::absent("prenom"))?,
+                texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?,
+                texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?,
                 libelle
             );
             p.avertissements.push(Avis { info: false, texte: msg });

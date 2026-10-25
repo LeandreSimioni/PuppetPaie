@@ -9,11 +9,11 @@
 
 use crate::agirc_arrco::{patronale_par_contrat, sig_18, versement_20_et_lignes, AUDIENS_RETRAITE};
 use crate::outils;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
-use paie::num::Decimal;
+use socle::num::Decimal;
 use std::collections::BTreeMap;
 
 /// La somme des 81.004 des `codes`, contrat par contrat (78.006, ou le 40.009 d'un individu à contrat unique, qui

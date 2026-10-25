@@ -20,12 +20,13 @@ use std::path::PathBuf;
 use serde_json::{json, Map, Value};
 
 use crate::bulletin::{jeux_et_description, Modele, CASE_MODELE};
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::ecriture::ecrire_json;
-use crate::etats::{erreur, R};
-use crate::fichiers::{dossier_du_code, lire_json};
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::ecriture::ecrire_json;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, lire_json};
+use socle::echec::Echec;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 3] = ["bulletin-modeles", "bulletin-modele-apercu", "bulletin-modele-choisir"];

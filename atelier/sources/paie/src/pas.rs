@@ -9,12 +9,12 @@ use std::collections::BTreeSet;
 use serde_json::{Map, Value};
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::contrats::contrat_court;
-use crate::date::{en_texte, jours_du_mois, Jour};
+use droit::contexte::Contexte;
+use droit::natures::contrat_court;
+use socle::date::{en_texte, jours_du_mois, Jour};
 use crate::engagement::nombre;
-use crate::fichiers::{lire_json, repr, vrai};
-use crate::num::{dec_py, eur, pct, sub, Decimal, Resultat};
+use socle::fichiers::{lire_json, repr, vrai};
+use socle::num::{dec_py, eur, pct, sub, Decimal, Resultat};
 
 const FICHIER: &str = "pas.json";
 
@@ -152,7 +152,7 @@ pub fn avec_validite(e: &Value, le: Jour) -> Value {
 /// `pas.charger` : le magasin (`config/pas.json`), ou un magasin vide.
 pub fn charger(ctx: &Contexte) -> Resultat<Value> {
     let p = ctx.racine.join("config").join(FICHIER);
-    if !crate::fichiers::existe(&p) {
+    if !socle::fichiers::existe(&p) {
         let mut m = Map::new();
         m.insert("salaries".into(), Value::Object(Map::new()));
         m.insert("journal".into(), Value::Array(Vec::new()));
@@ -179,7 +179,7 @@ pub fn sans_nir(ctx: &Contexte, cle: &str) -> bool {
 /// Le jour auquel on demande si un taux vaut encore : celui du contexte.
 pub fn le_jour(ctx: &Contexte, le: Option<Jour>) -> Jour {
     le.unwrap_or_else(|| {
-        crate::fichiers::noter_valeur("date", ctx.date.iso());
+        socle::fichiers::noter_valeur("date", ctx.date.iso());
         ctx.date
     })
 }
@@ -234,7 +234,7 @@ pub fn etat(ctx: &Contexte, cle: &str, le: Option<Jour>) -> R<Value> {
 /// `(taux, type, identifiant)` prets pour S21.G00.50.006/.007/.008.
 pub fn rubriques(ctx: &Contexte, cle: &str) -> R<Triplet> {
     let e = etat(ctx, cle, None)?;
-    let champ = |c: &str| e.get(c).cloned().ok_or_else(|| ErreurPas::Autre(crate::fichiers::absent(c)));
+    let champ = |c: &str| e.get(c).cloned().ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent(c)));
     Ok((champ("taux")?, champ("type")?, champ("identifiant")?))
 }
 
@@ -273,7 +273,7 @@ fn le_texte(le: Option<Jour>) -> String {
 /// Une valeur du bareme, deja resolue ou encore datee (`[{depuis, valeur}]`).
 pub fn valeur_datee(v: &Value, le: Option<Jour>) -> R<Value> {
     let Value::Array(entrees) = v else { return Ok(v.clone()) };
-    let cle = |e: &Value| -> Resultat<String> { Ok(en_texte(e.get("depuis").ok_or_else(|| crate::fichiers::absent("depuis"))?)) };
+    let cle = |e: &Value| -> Resultat<String> { Ok(en_texte(e.get("depuis").ok_or_else(|| socle::fichiers::absent("depuis"))?)) };
     let mut tries: Vec<(String, &Value)> = Vec::new();
     for e in entrees {
         tries.push((cle(e)?, e));
@@ -286,7 +286,7 @@ pub fn valeur_datee(v: &Value, le: Option<Jour>) -> R<Value> {
             Some(l) => str_iso(&e["depuis"])? <= l,
         };
         if dans {
-            retenu = Some(e.get("valeur").cloned().ok_or_else(|| crate::fichiers::absent("valeur"))?);
+            retenu = Some(e.get("valeur").cloned().ok_or_else(|| socle::fichiers::absent("valeur"))?);
         }
     }
     retenu.ok_or_else(|| {
@@ -300,19 +300,19 @@ pub fn valeur_datee(v: &Value, le: Option<Jour>) -> R<Value> {
 
 /// L'abattement contrats courts en vigueur : la moitie du SMIC net imposable.
 pub fn abattement(bareme: &Value, le: Option<Jour>) -> R<Decimal> {
-    let v = section(bareme)?.get("abattement_contrats_courts").ok_or_else(|| ErreurPas::Autre(crate::fichiers::absent("abattement_contrats_courts")))?;
+    let v = section(bareme)?.get("abattement_contrats_courts").ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("abattement_contrats_courts")))?;
     Ok(dec_py(&valeur_datee(v, le)?)?)
 }
 
 /// La grille en vigueur a cette date pour cette zone (elles changent au 1er mai).
 pub fn grille<'a>(bareme: &'a Value, le: Option<Jour>, zone: &str) -> R<&'a Value> {
-    let grilles = section(bareme)?.get("grilles").and_then(Value::as_array).ok_or_else(|| ErreurPas::Autre(crate::fichiers::absent("grilles")))?;
+    let grilles = section(bareme)?.get("grilles").and_then(Value::as_array).ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("grilles")))?;
     let mut meilleure: Option<(&Value, String)> = None;
     for g in grilles {
         if en_texte(g.get("zone").unwrap_or(&Value::Null)) != zone {
             continue;
         }
-        let depuis = en_texte(g.get("depuis").ok_or_else(|| crate::fichiers::absent("depuis"))?);
+        let depuis = en_texte(g.get("depuis").ok_or_else(|| socle::fichiers::absent("depuis"))?);
         if let Some(l) = le {
             if depuis_iso(&depuis)? > l {
                 continue;
@@ -343,15 +343,15 @@ fn deux_decimales(v: &Value) -> Resultat<String> {
     match v {
         Value::Number(n) => Ok(format!("{:.2}", n.as_f64().unwrap_or(0.0))),
         Value::Bool(b) => Ok(format!("{:.2}", f64::from(u8::from(*b)))),
-        autre => Err(crate::fichiers::attendu("un nombre", crate::etats::nom_type(autre))),
+        autre => Err(socle::fichiers::attendu("un nombre", socle::valeur::nom_type(autre))),
     }
 }
 
 /// `(taux, type de taux)` pour un montant DEJA abattu.
 pub fn taux_par_defaut(bareme: &Value, montant: Decimal, le: Option<Jour>, zone: &str) -> R<(String, String)> {
     let g = grille(bareme, le, zone)?;
-    let type_taux = en_texte(g.get("type").ok_or_else(|| crate::fichiers::absent("type"))?);
-    let tranches = g.get("tranches").and_then(Value::as_array).ok_or_else(|| ErreurPas::Autre(crate::fichiers::absent("tranches")))?;
+    let type_taux = en_texte(g.get("type").ok_or_else(|| socle::fichiers::absent("type"))?);
+    let tranches = g.get("tranches").and_then(Value::as_array).ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("tranches")))?;
     for t in tranches {
         let (bas, haut, taux) = match t.as_array().map(Vec::as_slice) {
             Some([b, h, x]) => (b, h, x),
@@ -612,7 +612,7 @@ fn deja_declare(ctx: &Contexte, pa: &Paie) -> Result<Option<Versement>, String> 
     }
     let fin = e.fin_periode()?;
     let mois = format!("{:04}-{:02}", fin.an, fin.mois);
-    let nic = crate::bareme::etablissement_du_salarie(&ctx.entreprise, &pa.salarie)?;
+    let nic = droit::bareme::etablissement_du_salarie(&ctx.entreprise, &pa.salarie)?;
     let Some(chemin) = crate::casc::dsn_deposee(ctx, &mois, Some(&nic))? else { return Ok(None) };
     let lu = crate::versement_declare::pas_declare(&chemin, &mois, &nir, &numero)
         .map_err(|m| format!("Le prelevement a la source de {} (contrat {}) se lit dans la DSN deposee : {}. Rien n'est ecrit.", mois, numero, m))?;
@@ -647,7 +647,7 @@ pub fn des_paies(ctx: &Contexte, paies: &[Paie]) -> Result<Vec<Option<Versement>
             out.push(Some(v));
             continue;
         }
-        let cle = en_texte(pa.salarie.get("_cle").ok_or_else(|| crate::fichiers::absent("_cle"))?);
+        let cle = en_texte(pa.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
         let i = match taux.iter().position(|(c, _)| *c == cle) {
             Some(i) => i,
             None => {

@@ -16,10 +16,10 @@
 
 use paie::bulletin::{fmt_eur, fmt_taux, jeux_et_description};
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::engagement::{charger, Saisie};
-use paie::num::{dec_f64, Decimal};
+use socle::num::{dec_f64, Decimal};
 use paie::oracle::entreprise_du_mois;
 use serde_json::{json, Value};
 use std::collections::HashMap;

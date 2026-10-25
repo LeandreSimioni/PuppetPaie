@@ -47,6 +47,12 @@ fn montre() -> f64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |d| d.as_secs_f64())
 }
 
+/// L'heure du mur, en millisecondes depuis 1970 : celle de la page (`Date.now()`), jamais le temps simule. Elle date ce
+/// qu'on garde en memoire pour un diagnostic (les echecs, le fil des actions), pas ce qu'on ecrit.
+pub fn maintenant_ms() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+}
+
 /// L'instant present, en secondes depuis 1970 (UTC) : simule s'il est pose, sinon la montre de la machine.
 pub fn secondes() -> f64 {
     match etat().as_ref() {

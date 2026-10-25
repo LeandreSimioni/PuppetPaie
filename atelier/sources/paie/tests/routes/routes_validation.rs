@@ -113,7 +113,7 @@ fn le_contrat_recu_ne_touche_pas_au_calcul_du_mois() {
     let racine = compagnie("contrat-recu-calcul");
     let o: std::collections::HashMap<String, String> =
         [("racine".to_string(), racine.to_string_lossy().into_owned()), ("date".to_string(), "2026-10-03".to_string())].into();
-    let ctx = paie::contexte::Contexte::nouveau(&racine, Some(paie::date::Jour::lire("2026-10-03").unwrap())).unwrap();
+    let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire("2026-10-03").unwrap())).unwrap();
     let contrat_recu = |recu: bool| {
         paie::routes_ecritures_g4::route(&o, &ctx, "contrat-recu", &json!({"mois": "2026-11", "salarie": "BRIOCHE", "debut": "2026-11-24", "recu": recu}))
             .unwrap_or_else(|e| panic!("{:?}", e))

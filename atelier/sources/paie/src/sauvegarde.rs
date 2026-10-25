@@ -360,7 +360,7 @@ pub fn inventaire(racine: &Path) -> (Vec<(String, Etat)>, usize) {
         }
         let Ok(m) = std::fs::metadata(&complet) else { continue };
         let relatif = rel.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect::<Vec<_>>().join("/");
-        trouves.push((relatif, Etat { octets: m.len(), mtime: crate::paris::mtime(&m) as i64 }));
+        trouves.push((relatif, Etat { octets: m.len(), mtime: socle::paris::mtime(&m) as i64 }));
     }
     (trouves, ecartes)
 }
@@ -383,7 +383,7 @@ fn lire_index(racine: &Path) -> Map<String, Value> {
 }
 
 pub(crate) fn ecrire_index(racine: &Path, index: &Value) -> Result<(), ErreurGoogle> {
-    crate::ecriture::ecrire_json(&chemin_index(racine), index, 1).map_err(|e| ErreurGoogle::nouvelle("OSError", e))
+    socle::ecriture::ecrire_json(&chemin_index(racine), index, 1).map_err(|e| ErreurGoogle::nouvelle("OSError", e))
 }
 
 /// `rien_n_a_bouge` : le disque est-il identique au dernier passage ? SANS RESEAU. Taille et date
@@ -606,7 +606,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
         }
     }
     let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
-    let quand = crate::paris::iso_minutes(maintenant).replacen('T', " ", 1);
+    let quand = socle::paris::iso_minutes(maintenant).replacen('T', " ", 1);
     let mut nouvel_index = Map::new();
     nouvel_index.insert("quand".into(), json!(quand));
     nouvel_index.insert("racine_drive".into(), json!(racine_drive));
@@ -643,6 +643,6 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
     }
     resultat.persistant = phrase_persistante(&nouvel_index, crate::releve_retours::maintenant_naif());
     ecrire_index(racine, &Value::Object(nouvel_index))?;
-    resultat.secondes = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
+    resultat.secondes = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     Ok(resultat)
 }

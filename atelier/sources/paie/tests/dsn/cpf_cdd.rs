@@ -23,11 +23,11 @@
 //! en CDI ; en octobre 2026, Deburau, comedien, en CDD de droit commun de trois mois (declare a la caisse).
 
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
-use paie::num::{pct, Decimal};
+use socle::num::{pct, Decimal};
 use rust_decimal::RoundingStrategy;
 use crate::outils::{base81, chemin_unique, ctp, dec, fictive, ecrire, lire, versement, Copie};
 use serde_json::{json, Value};

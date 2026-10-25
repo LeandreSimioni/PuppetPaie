@@ -24,12 +24,15 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::{d, Jour};
-use crate::ecriture::ecrire_json;
-use crate::etats::{eq_py, erreur, py_str, R};
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::{d, Jour};
+use socle::ecriture::ecrire_json;
+use socle::valeur::eq_py;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 use crate::routes_dossiers::{brut, salarie};
 use crate::routes_ecrites::{etat_correction, lire_corrections, marquer_echeance};
 use crate::routes_listes::nomenclatures;
@@ -72,7 +75,7 @@ fn en_os(m: String) -> Echec {
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// `charge.get(cle)`.
@@ -91,8 +94,8 @@ fn ou_rien(v: &Value) -> Value {
 
 /// `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
 pub(crate) fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_minutes(t).replacen('T', " ", 1)
+    let t = socle::temps::secondes();
+    socle::paris::iso_minutes(t).replacen('T', " ", 1)
 }
 
 fn ecrire_fichier(chemin: &Path, v: Value) -> R<()> {
@@ -129,7 +132,7 @@ fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = exiger(charge, "cle")?;
     let fait = charge.get("fait") != Some(&Value::Bool(false));
     let Some(texte) = cle.as_str() else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", crate::etats::nom_type(cle))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(cle))));
     };
     marquer_echeance(ctx, texte, fait, &qui_de(charge))?;
     Ok(json!({"cle": texte, "fait": fait}))
@@ -180,10 +183,10 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
         v if !vrai(v) => String::new(),
         Value::String(t) => t.clone(),
         autre => {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", crate::etats::nom_type(autre))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(autre))));
         }
     };
-    let motif = motif.trim_matches(crate::retours::blanc_py).to_string();
+    let motif = motif.trim_matches(socle::texte::blanc).to_string();
     if motif.is_empty() {
         return Err(refus("Une correction se motive : dire ce qui etait faux."));
     }
@@ -264,13 +267,13 @@ fn entier_py(v: &Value) -> R<i64> {
         },
         Value::Bool(b) => Ok(*b as i64),
         Value::String(t) => {
-            let net = t.trim_matches(crate::retours::blanc_py);
+            let net = t.trim_matches(socle::texte::blanc);
             net.parse::<i64>()
-                .map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(t))))
+                .map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))))
         }
         autre => Err(erreur(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
         )),
     }
 }
@@ -295,7 +298,7 @@ fn regularisation_annuler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let c = &mut corrections[i];
     if vrai(&c["portee_par"]) {
         let portee = c["portee_par"].clone();
-        let mois_porteur = portee.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+        let mois_porteur = portee.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
         let quand = portee.get("quand").cloned().unwrap_or_else(|| json!("?"));
         return Err(refus(format!(
             "La correction n° {} de {} a ete PORTEE par la DSN de {} (deposee le {}) : elle ne s'annule plus. Une nouvelle correction peut la contredire.",
@@ -335,7 +338,7 @@ pub(crate) fn verifier(arret: &Value) -> R<()> {
 
 /// `ctx.salarie(salarie)["_cle"]`.
 fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
-    salarie(ctx, nom)?.get("_cle").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))
+    salarie(ctx, nom)?.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
 }
 
 /// L'arret de ce salarie a ce dernier jour travaille : (son indice, le fichier de son mois, tous imprevus compris).

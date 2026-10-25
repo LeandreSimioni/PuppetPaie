@@ -15,7 +15,7 @@ use super::actes::{est_refus, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{debut, enveloppe, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "export-compta",

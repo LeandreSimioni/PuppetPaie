@@ -1,0 +1,12 @@
+[package]
+name = "droit"
+version = "0.1.0"
+edition = "2021"
+description = "Le droit du moteur de PuppetPaie : baremes dates, conventions, natures de contrat, regles (plafonds, clauses, conges des permanents, caisse des conges). Lit tout a une date ; ne connait pas l'engagement."
+license = "EUPL-1.2"
+publish = false
+
+[dependencies]
+socle = { path = "../socle" }
+rust_decimal = { workspace = true }
+serde_json = { workspace = true }

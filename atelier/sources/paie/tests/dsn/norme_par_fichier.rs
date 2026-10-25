@@ -16,8 +16,8 @@
 
 use paie::amorcage;
 use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use paie::engagement::charger;
 use paie::fctu::{self, Echec};

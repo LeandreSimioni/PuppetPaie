@@ -17,7 +17,7 @@ use super::actes::{afficher_etapes, afficher_fichiers, est_operation, fmt_eur_te
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, enveloppe, erreur, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "mois",
@@ -106,7 +106,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     };
     let constitution = match args.texte("constitution") {
         None => None,
-        Some(t) => match crate::date::Jour::lire(t) {
+        Some(t) => match socle::date::Jour::lire(t) {
             Ok(j) => Some(j),
             Err(_) => {
                 return Ok(reponse_metier("mois", json, &refus(format!("La date de constitution « {} » ne se lit pas : JJ/MM/AAAA attendu.", t)), &[]));

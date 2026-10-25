@@ -17,12 +17,15 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::depot_acte::{self, phrase_de, Preuve};
-use crate::etats::{self, erreur, py_str, R};
-use crate::fichiers::vrai;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::releve_retours;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 5] = ["deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "produire"];
@@ -41,7 +44,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 // ------------------------------------------------------------------------ deposer

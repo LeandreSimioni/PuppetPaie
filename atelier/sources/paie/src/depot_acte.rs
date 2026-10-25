@@ -20,12 +20,15 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::depot::{self, Apercu};
-use crate::etats::{self, erreur, py_str, R};
-use crate::fichiers::vrai;
+use crate::etats;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::releve_retours::{iso_de_naif, maintenant_naif, Client, Panne};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
 /// voyagent ensemble dans le message, que `routes.rs` redresse en `{"erreur", "classe", <cle>}`.
@@ -393,7 +396,7 @@ pub(crate) const ANCIEN_PREFIXE_FLUX_FICTIF: &str = "DEMO-";
 /// `simulation.reponse_depot` : ce que le point de depot aurait repondu -- un flux, et la mention.
 fn reponse_fictive(quoi: &str, reel: bool) -> R<String> {
     let mut o = [0u8; 6];
-    crate::temps::aleas(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
+    socle::temps::aleas(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
     let flux = format!("{}{}", PREFIXE_FLUX_FICTIF, o.iter().map(|b| format!("{:02X}", b)).collect::<String>());
     Ok(format!(
         "<idflux>{}</idflux>\nCompagnie fictive : {} {} jouee, rien n'a quitte le poste.",
@@ -460,7 +463,7 @@ fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64
 
 /// Le mois de constitution (`AAAA-MM`) d'une date S20.G00.05.007 (`JJMMAAAA`) ; illisible, celui d'aujourd'hui (la
 /// date de constitution est le jour ou le fichier s'ecrit, `dsn::generer`).
-fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &crate::date::Jour) -> String {
+fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &socle::date::Jour) -> String {
     let c: Vec<char> = jjmmaaaa.trim().chars().collect();
     if c.len() == 8 && c.iter().all(char::is_ascii_digit) {
         return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());

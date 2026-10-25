@@ -18,12 +18,15 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::{d, Jour};
-use crate::etats::{eq_py, erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::{d, Jour};
+use socle::valeur::eq_py;
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::imprevus::{self, ARRET, SUSPENSION};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_listes::refus_magasin;
 
 /// Les routes que ce module sert ; toutes sauf `imprevus` ecrivent.
@@ -51,7 +54,7 @@ pub(crate) fn refus(m: impl Into<String>) -> Echec {
 }
 
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 fn optionnel<'a>(charge: &'a Value, cle: &str) -> &'a Value {
@@ -69,7 +72,7 @@ fn magasin<T>(r: Result<T, String>) -> R<T> {
 /// La cle de la fiche que `nom` designe (`KeyError` si aucune).
 pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<String> {
     let fiche = crate::routes_dossiers::salarie(ctx, nom)?;
-    Ok(py_str(fiche.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?))
+    Ok(py_str(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
 }
 
 /// LE CONTRAT QU'UN IMPREVU SUSPEND : parmi ceux du salarie qui couvrent `jour` (`routes_dossiers::contrats_au`), celui
@@ -182,7 +185,7 @@ pub(crate) fn ecrire(ctx: &Contexte, mois: &str, liste: Vec<Value>) -> R<()> {
 /// Les mois qu'un imprevu traverse, du premier au dernier jour d'absence.
 fn mois_traverses(imp: &Value) -> R<Vec<String>> {
     let (p, dj) = (magasin(imprevus::premier_jour(imp))?, magasin(imprevus::dernier_jour(imp))?);
-    Ok(if dj < p { Vec::new() } else { crate::date::mois_entre(&p, &dj) })
+    Ok(if dj < p { Vec::new() } else { socle::date::mois_entre(&p, &dj) })
 }
 
 /// Les DSN mensuelles qui ont reporte l'imprevu (`envois` de nature 01).
@@ -274,7 +277,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
 
 /// Les motifs d'une suspension qui se DECLARENT (`permanents-base.json`, section `suspensions`, sans le 200).
 fn motifs_de_suspension() -> R<Vec<Value>> {
-    let regles = crate::permanents::regles().map_err(refus_magasin)?;
+    let regles = droit::permanents::regles().map_err(refus_magasin)?;
     Ok(regles["suspensions"]["motifs"]
         .as_array()
         .map_or(&[][..], |a| &a[..])
@@ -296,8 +299,8 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = charge.get("mois").filter(|v| vrai(v)).map(py_str);
     let bornes = match &mois {
         Some(m) => Some((
-            crate::date::premier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
-            crate::date::dernier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
+            socle::date::premier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
+            socle::date::dernier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
         )),
         None => None,
     };
@@ -387,11 +390,11 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
         let montant = optionnel(charge, "montant");
         let mut table = a["maintien"].as_object().cloned().unwrap_or_default();
         let vide = montant.is_null() || montant.as_str().is_some_and(|t| t.trim().is_empty());
-        let valeur = if vide { None } else { Some(crate::num::dec_py(montant).map_err(|e| refus(format!("Montant du maintien : {}", e)))?) };
+        let valeur = if vide { None } else { Some(socle::num::dec_py(montant).map_err(|e| refus(format!("Montant du maintien : {}", e)))?) };
         match valeur {
-            Some(v) if v < crate::num::Decimal::ZERO => return Err(refus("Un maintien de salaire ne se verse pas en negatif.")),
-            Some(v) if v > crate::num::Decimal::ZERO => {
-                table.insert(mois, json!(crate::conges::flot(crate::num::eur2(v))));
+            Some(v) if v < socle::num::Decimal::ZERO => return Err(refus("Un maintien de salaire ne se verse pas en negatif.")),
+            Some(v) if v > socle::num::Decimal::ZERO => {
+                table.insert(mois, json!(crate::conges::flot(socle::num::eur2(v))));
             }
             _ => {
                 table.remove(&mois);
@@ -519,7 +522,7 @@ l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche n
         )));
         // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
         let declares = reporte_par(&avant);
-        for m in crate::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
+        for m in socle::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
             if declares.iter().any(|x| py_str(x) == m) {
                 avertissements.push(json!(format!(
                     "La DSN de {} est déjà partie avec l'ancienne fin (le {}) : la paie de ce mois, où les jours ajoutés \

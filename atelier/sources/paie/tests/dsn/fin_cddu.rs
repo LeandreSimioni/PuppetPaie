@@ -9,8 +9,8 @@
 //! (Biancolelli) et CL6.26.06 (Clairon), du 12 au 22 mai.
 
 use crate::outils::{self, compagnie, refus, reussi, route_en_processus};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::engagement::charger;
 use paie::fctu;
 use serde_json::{json, Value};

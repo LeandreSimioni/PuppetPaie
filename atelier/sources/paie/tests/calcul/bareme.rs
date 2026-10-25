@@ -5,11 +5,11 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{fictive, lire_oracle, oracle, sceller};
-use paie::bareme::{bareme_applique, canon};
-use paie::contexte::{telle_qu_au, Contexte};
-use paie::contrats::nature;
-use paie::date::Jour;
-use paie::emplois::{emploi_de, EmploiEngagement};
+use droit::bareme::{bareme_applique, canon};
+use droit::contexte::{telle_qu_au, Contexte};
+use droit::natures::nature;
+use socle::date::Jour;
+use droit::emplois::{emploi_de, EmploiEngagement};
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 

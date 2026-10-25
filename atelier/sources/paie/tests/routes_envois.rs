@@ -12,9 +12,9 @@ use std::sync::{Once, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use outils::{compagnie, dossier_de_test, dossier_du_processus, ecrire, lire, noms, paires, FauxCourriel as Faux, Mail};
 use paie::coffre::Coffre;
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::echec::Echec;
 use paie::{routes_documents, routes_ecritures_g4, routes_envois};
 use rust_decimal::{Decimal, RoundingStrategy};
 use serde_json::{json, Value};
@@ -703,7 +703,7 @@ fn demander_signature_dans_une_fictive_joue_le_courriel() {
 /// des defraiements : `remuneration.detail` ne cite que le brut, ce qui est verse en plus n'est que dans
 /// `{{remuneration.hors_brut}}`.
 fn gabarit_sans_hors_brut(racine: &Path) -> PathBuf {
-    let livre = std::fs::read_to_string(paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele")).unwrap();
+    let livre = std::fs::read_to_string(socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele")).unwrap();
     assert!(livre.contains("{{remuneration.hors_brut}}"));
     let gabarit = racine.join("gabarits").join("contrat-cddu.modele");
     std::fs::create_dir_all(gabarit.parent().unwrap()).unwrap();
@@ -1370,7 +1370,7 @@ fn casc_envoyer_avec_des_masses_les_montants_non_nuls_et_le_classeur() {
     let faux = Faux::nouveau();
     let r = avec(&racine, "casc-envoyer", json!({"vire_le": {"2025": "2026-10-01"}, "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
     // 118,84 EUR : le taux de 2025 (`donnees/casc-svp-base.json`, 0,40 %) du brut que chacune des trois DSN declare.
-    let taux = Decimal::from_str_exact(&lire(&paie::fichiers::dossier_du_code(), "casc-svp-base.json")["taux"]["2025"].to_string()).unwrap();
+    let taux = Decimal::from_str_exact(&lire(&socle::fichiers::dossier_du_code(), "casc-svp-base.json")["taux"]["2025"].to_string()).unwrap();
     let total: Decimal = ["2025-03", "2025-10", "2025-11"].iter().map(|m| casc_du_mois(&racine, m, taux)).sum();
     assert_eq!(total.to_string(), "118.84");
     assert_eq!(r["total"], json!("118.84"));

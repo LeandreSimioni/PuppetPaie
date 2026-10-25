@@ -34,11 +34,11 @@ use std::collections::BTreeMap;
 use serde_json::{json, Value};
 
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, reduction_au_coefficient, reduction_generale, LigneCotisation, Paie, ReductionGenerale};
-use crate::contexte::{telle_qu_au, Contexte};
-use crate::date::{en_texte, Jour};
+use droit::contexte::{telle_qu_au, Contexte};
+use socle::date::{en_texte, Jour};
 use crate::engagement::{Avis, Engagement};
-use crate::fichiers::vrai;
-use crate::num::{dec, div, eur2, Decimal, Resultat};
+use socle::fichiers::vrai;
+use socle::num::{dec, div, eur2, Decimal, Resultat};
 
 /// Ce que `avant` (les termes du contrat avant un avenant en cours de mois) peut dire.
 const TERMES_D_AVANT: [&str; 2] = ["salaire_mensuel", "quotite_contrat"];
@@ -107,7 +107,7 @@ pub fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jour)>> {
     let fiche = ctx.salarie(&eng.salarie)?;
     let brute = fiche.get("_cle").and_then(Value::as_str).and_then(|c| ctx.salarie_brut(c));
     let tqa = |f: &Value, j: &str| telle_qu_au(f, &Jour::lire(j)?);
-    let mut jours = crate::emplois::jours_de_changement(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
+    let mut jours = droit::emplois::jours_de_changement(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
     jours.extend(jour_de_l_avenant(eng)?);
     jours.retain(|j| *j > debut && *j <= fin);
     jours.sort();
@@ -152,7 +152,7 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
             ));
         }
     };
-    let salaire_apres = dec(ligne.get("taux").ok_or_else(|| crate::fichiers::absent("taux"))?)?;
+    let salaire_apres = dec(ligne.get("taux").ok_or_else(|| socle::fichiers::absent("taux"))?)?;
     let quotite_apres = eng.quotite()?;
     let avenant = jour_de_l_avenant(eng)?;
     let (salaire_avant, quotite_avant) = match &eng.avant {
@@ -172,7 +172,7 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
         e.lignes = vec![json!({"rubrique": "mois", "quantite": q, "taux": crate::conges::flot(salaire), "heures": h})];
         // Les heures que la DSN mesure (S21.G00.53, « heures » d'un contrat paye au mois) : celles de la ligne de la
         // periode, comme `Engagement::nouveau` les tire des lignes du mois.
-        let heures = crate::catalogue::rubrique(&ctx.racine, "mois")?.heures(q, Some(h));
+        let heures = droit::catalogue::rubrique(&ctx.racine, "mois")?.heures(q, Some(h));
         e.heures = if heures != 0.0 { Some(heures) } else { None };
         out.push(e);
     }

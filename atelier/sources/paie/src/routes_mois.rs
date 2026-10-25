@@ -30,13 +30,16 @@ use std::str::FromStr;
 use serde_json::{json, Map, Value};
 
 use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::{en_texte, Jour};
+use droit::contexte::Contexte;
+use socle::date::{en_texte, Jour};
 use crate::engagement::{self, LignesPermanent};
-use crate::etats::{self, erreur, est, get, getd, joindre, objet_vide, ou, py_str, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, R, SIGNATURE};
-use crate::fichiers::{sha256_hex, vrai};
-use crate::num::Decimal;
-use crate::retours::Echec;
+use crate::etats::{self, est, get, getd, joindre, objet_vide, ou, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
+use socle::valeur::py_str;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{sha256_hex, vrai};
+use socle::num::Decimal;
+use socle::echec::Echec;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 6] = ["etat-par-paie", "etat-du-mois", "embauches-a-declarer", "mois-a-ouvrir", "bilan-du-mois", "fichiers-deposables"];
@@ -72,7 +75,7 @@ fn dupliquer(e: &Echec) -> Echec {
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 /// `un if k == 1 else des` : le pluriel de `_pluriel`, qui compte zero au pluriel.
@@ -96,7 +99,7 @@ pub fn classer_saisie(message: String) -> Echec {
 
 /// `d["cle"]` sur un dictionnaire de fiche : `KeyError` si elle manque.
 fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
-    d.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    d.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 fn paire(cle: &Value, debut: &Value) -> Option<Paire> {
@@ -177,7 +180,7 @@ fn brut_en_texte(v: &Value) -> R<String> {
     let t = py_str(v);
     let mut d = Decimal::from_str(t.trim())
         .or_else(|_| Decimal::from_scientific(t.trim()))
-        .map_err(|_| erreur("InvalidOperation", crate::num::illisible(&t)))?;
+        .map_err(|_| erreur("InvalidOperation", socle::num::illisible(&t)))?;
     d = d.round_dp_with_strategy(2, rust_decimal::RoundingStrategy::MidpointNearestEven);
     d.rescale(2);
     Ok(d.to_string())
@@ -200,7 +203,7 @@ pub(crate) fn sans_bruit(x: &Value) -> Value {
 }
 
 pub(crate) fn empreinte_de(v: &Value) -> String {
-    sha256_hex(crate::ecriture::json_py_trie(&sans_bruit(v)).as_bytes())[..16].to_string()
+    sha256_hex(socle::ecriture::json_py_trie(&sans_bruit(v)).as_bytes())[..16].to_string()
 }
 
 /// `^\d{4}-\d{2}$`.
@@ -385,7 +388,7 @@ impl<'a> Moteur<'a> {
         let _derivation = crate::conges::Derivation::ouvrir();
         let lignes: LignesPermanent = &crate::conges::lignes_du_mois;
         let (engs, _) = engagement::engagements(self.ctx, &data, lignes).map_err(classer_saisie)?;
-        let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(crate::fichiers::absent("mois")))?;
+        let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
         // Le salarie, son emploi et son spectacle d'abord, pour tous les
         // engagements (ce que le calcul lit avant de suivre les contrats) ; puis
         // le contrat qui deborde du mois reprend le numero de son premier mois.
@@ -397,7 +400,7 @@ impl<'a> Moteur<'a> {
             engagement::suivre_contrat(self.ctx, &mut p.engagement).map_err(classer_saisie)?;
         }
         let annee: i32 = mois_dit.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| {
-            erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
+            erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
         })?;
         self.numeroter(&mut paies, annee)?;
         Ok(SaisieMois { data, paies })
@@ -421,12 +424,12 @@ impl<'a> Moteur<'a> {
             Some(Value::Number(n)) => n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64) + 1,
             Some(Value::Bool(b)) => i64::from(*b) + 1,
             Some(Value::String(s)) => {
-                s.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(s))))? + 1
+                s.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s))))? + 1
             }
             Some(autre) => {
                 return Err(erreur(
                     "TypeError",
-                    crate::fichiers::attendu("un nombre entier", etats::nom_type(autre)),
+                    socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
                 ))
             }
         })
@@ -482,9 +485,9 @@ impl<'a> Moteur<'a> {
     /// (salarie, debut, "#rang") parmi ceux du meme salarie et du meme jour. Deux jumeaux ne se confondent pas.
     fn cles_de_contrat(s: &SaisieMois, rangs: &[Paire]) -> Vec<Cle3> {
         let eng = s.engagements();
-        let ids: Vec<crate::jumeaux::Ident> =
-            rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), d.clone(), eng.get(i).and_then(crate::jumeaux::numero_pose))).collect();
-        crate::jumeaux::cles(&ids)
+        let ids: Vec<droit::jumeaux::Ident> =
+            rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), d.clone(), eng.get(i).and_then(droit::jumeaux::numero_pose))).collect();
+        droit::jumeaux::cles(&ids)
     }
 
     /// `paies_validees` : cle de contrat (`cles_de_contrat`) -> date de validation.
@@ -638,7 +641,7 @@ impl<'a> Moteur<'a> {
             let spectacle = if vrai(&p.spectacle) { requis(&p.spectacle, "titre")?.clone() } else { Value::Null };
             let mois_du_contrat = p.engagement.mois_du_contrat().map_err(plain)?;
             if mois_du_contrat.is_empty() {
-                return Err(erreur("IndexError", crate::fichiers::trop_courte("les mois du contrat")));
+                return Err(erreur("IndexError", socle::fichiers::trop_courte("les mois du contrat")));
             }
             let premier_mois = p.engagement.premier_mois().map_err(plain)?;
             let dernier_mois = p.engagement.dernier_mois().map_err(plain)?;
@@ -695,7 +698,7 @@ impl<'a> Moteur<'a> {
             if !p.engagement.sans_paie() {
                 pieces.push("bulletin");
             }
-            if !nat.mensuelle() && dernier_mois && crate::caisse_conges::de_la_paie(p).map_err(plain)? {
+            if !nat.mensuelle() && dernier_mois && crate::calcul::declaree_a_la_caisse_des_conges(p).map_err(plain)? {
                 pieces.push("certificat_cs");
             }
             if crate::aer::due(&p.engagement).map_err(plain)? {
@@ -1286,7 +1289,7 @@ impl<'a> Moteur<'a> {
                     let ordre: i64 = if ordre.is_empty() {
                         0
                     } else {
-                        ordre.trim().parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(ordre))))?
+                        ordre.trim().parse().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(ordre))))?
                     };
                     if ordre > r["dernier_ordre"].as_i64().unwrap_or(0) {
                         self.etape_de_depot(mois, DSN, &mut b)?;
@@ -1316,17 +1319,17 @@ impl<'a> Moteur<'a> {
     /// `exercice_clos` : la cloture de l'annee de ce mois, ou `None`.
     pub(crate) fn exercice_clos(&self, mois_ou_annee: &str) -> R<bool> {
         let p = self.racine().join("config").join("exercices.json");
-        if !crate::fichiers::existe(&p) {
+        if !socle::fichiers::existe(&p) {
             return Ok(false);
         }
         // LU UNE FOIS TANT QU'IL NE CHANGE PAS (ticket #244) : `etat` le demandait pour chaque mois. Le refus d'un fichier
         // illisible ne change pas (`OSError`, `JSONDecodeError`), et ne se garde pas.
-        let v = crate::fichiers::json_en_cache_ou(&p, |p| {
-            let t = crate::fichiers::lire_texte(p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
+        let v = socle::fichiers::json_en_cache_ou(&p, |p| {
+            let t = socle::fichiers::lire_texte(p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
             serde_json::from_str::<Value>(&t).map_err(|e| erreur("JSONDecodeError", e.to_string()))
         })?;
         let Value::Object(o) = &*v else {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", etats::nom_type(&v))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&v))));
         };
         let annee: String = mois_ou_annee.chars().take(4).collect();
         Ok(o.iter().filter(|(k, _)| !k.starts_with('_')).find(|(k, _)| **k == annee).is_some_and(|(_, x)| vrai(x)))
@@ -1517,7 +1520,7 @@ pub fn etat_signature(
     }
     // LE NUMERO (30/09/2026) : le contrat signe porte le sien, la DSN declarera
     // celui de la saisie. S'ils different, ce n'est pas celui qui est declare.
-    if vrai(fait) && vrai(numero_parti) && vrai(numero_saisi) && !etats::eq_py(numero_parti, numero_saisi) {
+    if vrai(fait) && vrai(numero_parti) && vrai(numero_saisi) && !socle::valeur::eq_py(numero_parti, numero_saisi) {
         pourquoi.push(format!("il porte le n° {}, la paie déclare le n° {}", py_str(numero_parti), py_str(numero_saisi)));
     }
     // CE QUE LE CONTRAT PARTI NE DIT PLUS, lu dans son PDF (30/09/2026).
@@ -1537,7 +1540,7 @@ pub fn etat_signature(
 // ----------------------------------------------------------- l'aiguillage
 
 pub(crate) fn mois_de(charge: &Value) -> R<(Value, String)> {
-    let v = charge.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+    let v = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     Ok((v.clone(), py_str(v)))
 }
 

@@ -9,11 +9,11 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use crate::engagement::{charger, charger_donnees, Saisie};
-use crate::fichiers::dossier_du_code;
-use crate::num::Resultat;
+use socle::fichiers::dossier_du_code;
+use socle::num::Resultat;
 
 pub(crate) fn options(args: &[String]) -> Option<HashMap<String, String>> {
     let mut o = HashMap::new();
@@ -146,13 +146,13 @@ fn bulletin(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// barème que la DSN a choisi, `{"bareme", "salarie", "nature", "fin_periode"}`.
 fn bareme_applique(entree: &str) -> Resultat<Value> {
     let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
-    let nat = crate::contrats::nature(d.get("nature").and_then(Value::as_str))?;
+    let nat = droit::natures::nature(d.get("nature").and_then(Value::as_str))?;
     let fin = d.get("fin_periode").and_then(Value::as_str).map(Jour::lire).transpose()?;
     let bar = d.get("bareme").cloned().ok_or("demande illisible : il faut `bareme`")?;
     let sal = d.get("salarie").cloned().unwrap_or(Value::Null);
     let mut m = Map::new();
     m.insert("ok".into(), Value::Bool(true));
-    m.insert("bareme".into(), crate::bareme::bareme_applique(bar, &sal, &nat, fin.as_ref())?);
+    m.insert("bareme".into(), droit::bareme::bareme_applique(bar, &sal, &nat, fin.as_ref())?);
     Ok(Value::Object(m))
 }
 
@@ -213,10 +213,10 @@ pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Valu
 
 /// Le compteur d'un permanent a la fin du mois et l'indemnite de son solde.
 pub(crate) struct Provision {
-    pub report_restant: crate::num::Decimal,
-    pub acquis: crate::num::Decimal,
-    pub pris: crate::num::Decimal,
-    pub solde: crate::num::Decimal,
+    pub report_restant: socle::num::Decimal,
+    pub acquis: socle::num::Decimal,
+    pub pris: socle::num::Decimal,
+    pub solde: socle::num::Decimal,
     pub avertissements: Vec<crate::engagement::Avis>,
     pub indemnite: Option<crate::conges::IndemniteDesJours>,
 }
@@ -226,15 +226,15 @@ pub(crate) struct Provision {
 /// valeur de l'engagement (`None` ou fausse = 0).
 pub(crate) fn provision_conges_de(ctx: &Contexte, salarie: &str, mois: &str, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
     use crate::conges::{compteur_conges, indemnite_des_jours, jours_ouvrables};
-    use crate::num::{dec, div, eur, mul, Decimal};
-    let fin = crate::date::dernier_du_mois(mois)?;
+    use socle::num::{dec, div, eur, mul, Decimal};
+    let fin = socle::date::dernier_du_mois(mois)?;
     let cpt = compteur_conges(ctx, salarie, &fin, Some(&fin.mois_suivant()))?;
     let solde = cpt.solde();
     let salaire = match salaire_mensuel {
-        Some(v) if crate::fichiers::vrai(v) => dec(v)?,
+        Some(v) if socle::fichiers::vrai(v) => dec(v)?,
         _ => Decimal::ZERO,
     };
-    let ouvrables = match jours_ouvrables(&crate::date::premier_du_mois(mois)?, &fin, None)? {
+    let ouvrables = match jours_ouvrables(&socle::date::premier_du_mois(mois)?, &fin, None)? {
         0 => Decimal::ONE,
         n => Decimal::from(n),
     };
@@ -282,10 +282,10 @@ fn preavis(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     let d = demande(entree)?;
     let ctx = contexte(o)?;
     let e = d.get("engagement").filter(|e| e.is_object()).ok_or("demande illisible : il faut `engagement`")?;
-    let (debut, fin) = (crate::date::d(&e["debut"])?, crate::date::d(&e["fin"])?);
+    let (debut, fin) = (socle::date::d(&e["debut"])?, socle::date::d(&e["fin"])?);
     let motif = e.get("motif_rupture").and_then(Value::as_str);
-    let p = crate::solde::duree_du_preavis(&ctx, e, crate::permanents::anciennete_mois(&debut, &fin), motif)?;
-    let nombre = |x: Option<crate::num::Decimal>| x.map_or(Value::Null, |x| Value::String(x.to_string()));
+    let p = crate::solde::duree_du_preavis(&ctx, e, droit::permanents::anciennete_mois(&debut, &fin), motif)?;
+    let nombre = |x: Option<socle::num::Decimal>| x.map_or(Value::Null, |x| Value::String(x.to_string()));
     let mut m = Map::new();
     m.insert("ok".into(), Value::Bool(true));
     m.insert("mois".into(), nombre(p.mois));
@@ -312,7 +312,7 @@ fn lignes(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     let _derivation = crate::conges::Derivation::ouvrir();
     let mut out = Vec::new();
     for e in data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-        let nat = crate::contrats::nature(e.get("nature").and_then(Value::as_str))?;
+        let nat = droit::natures::nature(e.get("nature").and_then(Value::as_str))?;
         out.push(if nat.mensuelle() {
             let (l, dits) = crate::conges::lignes_du_mois(&ctx, e, mois)?;
             let mut m = Map::new();
@@ -392,17 +392,17 @@ fn dsn(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
             apres,
             taux_pas_origine: r.get("taux_pas_origine").and_then(Value::as_str).map(str::to_string),
             // Le net deja verse se lit sur le bulletin recu ; la demande le dit, il ne se devine pas.
-            net_deja_verse: crate::num::dec(r.get("net_deja_verse").ok_or(
+            net_deja_verse: socle::num::dec(r.get("net_deja_verse").ok_or(
                 "regularisation sans `net_deja_verse` : le net a payer avant impot deja verse (lu sur le bulletin recu) \
                  dit si la correction verse quelque chose, et a quelle periode se rattache son montant net social",
             )?)?,
             // Le jour de la correction (S21.G00.41.001 d'une date de debut corrigee) : la demande le dit, ou rien.
-            decidee_le: r.get("decidee_le").and_then(Value::as_str).and_then(|t| t.get(..10)).and_then(|t| crate::date::Jour::lire(t).ok()),
+            decidee_le: r.get("decidee_le").and_then(Value::as_str).and_then(|t| t.get(..10)).and_then(|t| socle::date::Jour::lire(t).ok()),
         });
     }
     let arrets: Vec<Arret> = liste("arrets").into_iter().map(|v| Arret { v }).collect();
     let mut op = Options::default();
-    let s = |c: &str| d.get(c).filter(|v| !v.is_null()).map(crate::date::en_texte);
+    let s = |c: &str| d.get(c).filter(|v| !v.is_null()).map(socle::date::en_texte);
     if let Some(v) = s("date_constitution") {
         op.date_constitution = Some(Jour::lire(&v)?);
     }
@@ -469,7 +469,7 @@ fn signalement(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     let ctx = contexte(o)?;
     let arret = crate::dsn::Arret { v: d.get("arret").cloned().unwrap_or(Value::Null) };
     let mut op = Options::default();
-    let s = |c: &str| d.get(c).filter(|v| !v.is_null()).map(crate::date::en_texte);
+    let s = |c: &str| d.get(c).filter(|v| !v.is_null()).map(socle::date::en_texte);
     if let Some(v) = s("nature") {
         op.nature = v;
     }
@@ -503,11 +503,11 @@ fn signalement(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 fn signalement_verifier(entree: &str) -> Resultat<Value> {
     let d = demande(entree)?;
     let arret = crate::dsn::Arret { v: d.get("arret").cloned().unwrap_or(Value::Null) };
-    let nature = d.get("nature").map(crate::date::en_texte).unwrap_or_default();
+    let nature = d.get("nature").map(socle::date::en_texte).unwrap_or_default();
     let constitution = d
         .get("constitution")
         .filter(|v| !v.is_null())
-        .map(|v| crate::date::d(v))
+        .map(|v| socle::date::d(v))
         .transpose()?;
     reponse_signalement(crate::signalement::verifier(&arret, &nature, constitution.as_ref()).map(|avis| {
         let mut corps = Map::new();
@@ -570,7 +570,7 @@ fn saisies_embauches(ctx: &Contexte, liste: &[Value]) -> Resultat<Vec<Saisie>> {
             p.engagement.numero = n.get(1).and_then(Value::as_str).map(str::to_string);
             paies.push(p);
         }
-        saisies.push(Saisie { mois: crate::date::en_texte(&data["mois"]), paies });
+        saisies.push(Saisie { mois: socle::date::en_texte(&data["mois"]), paies });
     }
     Ok(saisies)
 }
@@ -583,7 +583,7 @@ fn signalement_de_paie(ctx: &Contexte, d: &Value) -> Resultat<Signalement> {
         saisies_numerotees(ctx, &liste("saisies"))?
     };
     let paie = paie_designee(&saisies, d.get("paie").unwrap_or(&Value::Null))?;
-    let s = |c: &str| d.get(c).filter(|v| !v.is_null()).map(crate::date::en_texte);
+    let s = |c: &str| d.get(c).filter(|v| !v.is_null()).map(socle::date::en_texte);
     let ordre = match s("ordre") {
         Some(v) => v.trim().parse().map_err(|_| format!("ordre illisible : {}", v))?,
         // Sans ordre donne : le suivant de tous les signalements deja partis (cahier technique DSN, p. 136).
@@ -675,8 +675,8 @@ fn bordereau(entree: &str) -> Resultat<Value> {
     use crate::bordereau::{montant, LigneBordereau};
     let d = demande(entree)?;
     let champ = |l: &Value, c: &str| l.get(c).and_then(Value::as_str).unwrap_or("").to_string();
-    let nombre = |l: &Value, c: &str| -> Resultat<Option<crate::num::Decimal>> {
-        l.get(c).filter(|v| !v.is_null()).map(crate::num::dec_py).transpose()
+    let nombre = |l: &Value, c: &str| -> Resultat<Option<socle::num::Decimal>> {
+        l.get(c).filter(|v| !v.is_null()).map(socle::num::dec_py).transpose()
     };
     let mut montants = Vec::new();
     for b in d.get("bordereaux").and_then(Value::as_array).ok_or("demande illisible : il faut `bordereaux`")? {
@@ -726,8 +726,8 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
                 "dpae" => crate::dpae::commande(entree),
                 "dpae-lire" => crate::dpae::commande_lire(entree),
                 "retours" => crate::retours::commande(entree),
-                "ecrire-json" => crate::ecriture::commande(entree),
-                "verrou" => crate::verrou::commande(entree),
+                "ecrire-json" => socle::ecriture::commande(entree),
+                "verrou" => socle::verrou::commande(entree),
                 q if q.starts_with("aer") => match crate::aer::service(q, entree) {
                     Some(r) => r,
                     None => return None,

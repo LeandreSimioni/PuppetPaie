@@ -23,17 +23,18 @@ use std::collections::HashMap;
 use serde_json::{json, Map, Value};
 
 use crate::champs::strip;
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::courriel::{self, Client, Courriel};
 use crate::simulation_courriels::BoiteQuiRepond;
 use crate::courriel_lecture as lecture;
 use crate::depot_acte::{verifier_preuve, Preuve};
 use crate::envoi::{self, Message};
-use crate::etats::{erreur, py_str};
-use crate::fichiers::vrai;
+use socle::valeur::py_str;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::fiche_questionnaire as fq;
 use crate::journal::{self, Note};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_envois::{capitaliser, client_courriel, echec_d_envoi, html_echapper, mailto, maintenant, noter, preuve_de, refus, vrai_ou, R};
 
 /// Les routes de ce module.

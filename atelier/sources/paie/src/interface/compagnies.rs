@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::fichiers::dossier_du_code;
+use socle::fichiers::dossier_du_code;
 
 pub const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 const COULEUR_DEFAUT: &str = "#B22222";
@@ -53,7 +53,7 @@ fn lire(p: &Path) -> Option<Value> {
 }
 
 fn ecrire(p: &Path, v: &Value) -> Result<(), String> {
-    crate::ecriture::ecrire_json(p, v, 2)
+    socle::ecriture::ecrire_json(p, v, 2)
 }
 
 /// La vraie compagnie : `prive/` a cote du code, sinon le code lui-meme.
@@ -84,7 +84,7 @@ const ANCIENNE_MARQUE_FICTIVE: &str = "compagnie de demonstration";
 /// Une COMPAGNIE FICTIVE : son marqueur le dit (ses envois sont joues, rien n'en part).
 pub fn est_fictive(racine: &Path) -> bool {
     lire(&racine.join(MARQUEUR))
-        .and_then(|i| i.get("copie_de").filter(|v| crate::fichiers::vrai(v)).map(crate::etats::py_str))
+        .and_then(|i| i.get("copie_de").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::py_str))
         .is_some_and(|c| c.starts_with(MARQUE_FICTIVE) || c.starts_with(ANCIENNE_MARQUE_FICTIVE))
 }
 
@@ -100,7 +100,7 @@ pub const CLE_AJOUTEE: &str = "ajoutee";
 /// UN DOSSIER DE `fictives/` SANS MARQUEUR DE FICTIVE (un marqueur retire ou illisible) se lit aussi comme ajoute : l'accueil
 /// le propose parmi les fictives, rien ne doit en partir, et rien n'en est joue.
 pub fn est_ajoutee(racine: &Path) -> bool {
-    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| crate::fichiers::vrai(&v));
+    let marque = lire(&racine.join(MARQUEUR)).and_then(|i| i.get(CLE_AJOUTEE).cloned()).is_some_and(|v| socle::fichiers::vrai(&v));
     marque || (racine.parent().and_then(Path::file_name).is_some_and(|n| n == DOSSIER_FICTIVES) && !est_fictive(racine))
 }
 
@@ -351,8 +351,8 @@ pub(crate) fn nom_de_dossier(nom: &str) -> String {
 /// compagnie d'une installation) n'en a pas : `None`.
 pub const FICHIER_CREATION: &str = "creation.json";
 
-pub fn cree_le(racine: &Path) -> Option<crate::date::Jour> {
-    lire(&racine.join("config").join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| crate::date::Jour::lire(j).ok())
+pub fn cree_le(racine: &Path) -> Option<socle::date::Jour> {
+    lire(&racine.join("config").join(FICHIER_CREATION))?.get("le").and_then(Value::as_str).and_then(|j| socle::date::Jour::lire(j).ok())
 }
 
 /// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
@@ -394,7 +394,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
     ecrire(
         &cfg.join(FICHIER_CREATION),
-        &json!({"le": crate::temps::jour_de_paris().iso(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant)."}),
+        &json!({"le": socle::temps::jour_de_paris().iso(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant)."}),
     )?;
     if !bride {
         return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));
