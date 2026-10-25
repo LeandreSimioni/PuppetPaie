@@ -15,7 +15,7 @@ use engagement::calcul::Paie;
 use socle::num::Decimal;
 use serde_json::json;
 use crate::outils::permanents::{bloc, blocs_41, contexte, deposer, dorval_cadre_au, dsn, retoucher_saisie, saisie};
-use crate::outils::{compagnie::sans_les_pdf, dec, dossier_de_test, ecrire, individu, lire};
+use crate::outils::{compagnie::sans_les_pdf, dec, dossier_de_test, individu};
 use std::path::{Path, PathBuf};
 
 /// Une copie de la 1285-grande sans ses PDF, propre a un test.
@@ -240,9 +240,9 @@ fn la_dsn_d_un_passage_cadre_au_15_declare_les_remunerations_et_les_bases_de_cha
     assert!(n.iter().all(|x| x.1 == "01092026" && x.2 == "30092026"), "{:?}", n);
     // Septembre depose, octobre ne redeclare rien et ne se decoupe pas.
     deposer(&racine, "2026-09", "DSN_Septembre2026.dsn", &sept);
-    let mut s = lire(&racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&racine, "2026-10");
     s["engagements"].as_array_mut().unwrap().retain(|e| e["nature"] == "cdi");
-    ecrire(&racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
     let oct = dsn(&racine, "2026-10").unwrap();
     assert!(!oct.contains("S21.G00.41."), "octobre ne redeclare pas le changement");
     let o = bases_78(&individu(&oct, "DORVAL"));

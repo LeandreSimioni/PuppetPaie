@@ -13,7 +13,6 @@ use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use engagement::charger;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -43,7 +42,7 @@ fn mois_de_nicolet(ctx: &Contexte, mois: &str) -> Vec<Paie> {
     ]});
     let chemin = outils::chemin_unique("naf-2025.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin).unwrap().paies
+    crate::outils::charger_fichier(ctx, &chemin).unwrap().paies
 }
 
 fn dsn_du_mois(racine: &Path, mois: &str, constitution: &str) -> Result<String, String> {

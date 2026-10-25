@@ -27,7 +27,7 @@ fn contexte(racine: &Path) -> Contexte {
 
 fn charger(racine: &Path) -> Result<Vec<Paie>, String> {
     let ctx = contexte(racine);
-    engagement::charger(&ctx, &racine.join("paies/2026-09.json")).map(|s| s.paies)
+    engagement::charger(&ctx, "2026-09").map(|s| s.paies)
 }
 
 fn paie_de(racine: &Path, cle: &str) -> Paie {

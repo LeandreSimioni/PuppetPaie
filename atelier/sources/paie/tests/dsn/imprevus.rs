@@ -25,7 +25,7 @@ fn contexte(racine: &Path) -> Contexte {
 }
 
 fn paies(ctx: &Contexte, mois: &str) -> Vec<Paie> {
-    engagement::charger(ctx, &ctx.racine.join(format!("paies/{}.json", mois))).unwrap().paies
+    engagement::charger(ctx, &mois).unwrap().paies
 }
 
 /// Les arrets que la DSN de `mois` reporte, tires du magasin (ce que fait la production du mois).

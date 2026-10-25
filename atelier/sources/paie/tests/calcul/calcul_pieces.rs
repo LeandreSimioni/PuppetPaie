@@ -8,7 +8,7 @@ use engagement::calcul::{au_dela_du_seuil, code_54, deduction_forfaitaire, ligne
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
 use socle::date::d;
-use engagement::{canon_valeur, engagements_du_fichier};
+use engagement::canon_valeur;
 use socle::num::Decimal;
 use serde_json::{json, Map, Value};
 use std::cell::Cell;
@@ -81,7 +81,8 @@ fn les_lignes_de_remuneration_et_la_paie_fabriquee() {
             appel.set(i + 1);
             Ok((permanents[i].as_array().unwrap().clone(), Vec::new()))
         };
-        let (_, engs, _) = engagements_du_fichier(&ctx, &racine.join("paies").join(&fichier), &lignes).unwrap();
+        let mois_du_fichier = fichier.trim_end_matches(".json");
+        let (engs, _) = engagement::saisie_du_mois(&racine, mois_du_fichier).and_then(|d| engagement::engagements(&ctx, &d, &lignes)).unwrap();
         let attendus = c["engagements"].as_array().unwrap().clone();
         let vus: Vec<Value> = engs
             .iter()

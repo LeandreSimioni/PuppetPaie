@@ -24,23 +24,23 @@ const A_TERME: &str = "CL6.26.06";
 /// La copie du cas, ou le CDDU de Biancolelli est rompu le 22 mai pour le motif `motif` (rien : il va a son terme).
 fn compagnie_du_cas(test: &str, motif: Option<&str>) -> PathBuf {
     let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("fin_cddu", test));
-    let mut saisie = outils::lire(&racine, "paies/2026-05.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-05");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == ROMPU).unwrap();
     if let Some(m) = motif {
         e["motif_rupture"] = json!(m);
     }
-    outils::ecrire(&racine, "paies/2026-05.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-05", &saisie);
     racine
 }
 
 /// Pose `champs` sur le CDDU rompu de la saisie de mai.
 fn poser(racine: &PathBuf, champs: Value) {
-    let mut saisie = outils::lire(racine, "paies/2026-05.json");
+    let mut saisie = crate::outils::saisie(racine, "2026-05");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == ROMPU).unwrap();
     for (k, v) in champs.as_object().unwrap() {
         e[k] = v.clone();
     }
-    outils::ecrire(racine, "paies/2026-05.json", &saisie);
+    crate::outils::poser_saisie(racine, "2026-05", &saisie);
 }
 
 fn contexte(racine: &PathBuf) -> Contexte {
@@ -49,7 +49,7 @@ fn contexte(racine: &PathBuf) -> Contexte {
 
 /// La mensuelle de mai 2026, ou son refus.
 fn mensuelle(ctx: &Contexte) -> Result<String, String> {
-    let s = charger(ctx, &ctx.racine.join("paies/2026-05.json")).unwrap();
+    let s = charger(ctx, "2026-05").unwrap();
     let o = paie::dsn::Options { date_constitution: Some(Jour::lire("2026-10-02").unwrap()), ..Default::default() };
     paie::dsn::generer(ctx, &s.paies, "2026-05", &[], &[], &o)
 }
@@ -116,7 +116,7 @@ fn la_fin_du_cddu_rompu_se_signale_et_celle_du_cddu_a_son_terme_non() {
 #[test]
 fn le_signalement_du_cddu_rompu_s_ecrit_sans_l_avis_de_la_derogation() {
     let ctx = contexte(&compagnie_du_cas("fctu", Some("037")));
-    let s = charger(&ctx, &ctx.racine.join("paies/2026-05.json")).unwrap();
+    let s = charger(&ctx, "2026-05").unwrap();
     let fin = |motif: &str| {
         fctu::FinDeContrat::lire(&json!({
             "fin": "2026-05-22", "motif": motif, "mois_rattachement": "2026-05", "type_preavis": "90", "notification": "2026-05-20",
@@ -152,7 +152,7 @@ fn un_099_saisi_ne_s_ecrit_ni_dans_la_mensuelle_ni_dans_le_signalement() {
         Err(m) => assert!(m.contains("099") && m.contains("CCH-11"), "{}", m),
         Ok(t) => panic!("la mensuelle a ecrit {:?}", blocs_62(&t).get(ROMPU)),
     }
-    let s = charger(&ctx, &ctx.racine.join("paies/2026-05.json")).unwrap();
+    let s = charger(&ctx, "2026-05").unwrap();
     let paie = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some(ROMPU)).unwrap();
     let fin = fctu::FinDeContrat::lire(&json!({"fin": "2026-05-22", "motif": "099", "mois_rattachement": "2026-05", "type_preavis": "90"})).unwrap();
     match fctu::verifier(&fin, &paie.engagement, fctu::NORMALE) {
@@ -215,7 +215,7 @@ fn la_rupture_qui_se_notifie_ne_se_signale_pas_sans_sa_date_de_notification() {
 
     // Le format lui-meme le refuse, quel que soit le chemin qui l'appelle.
     let ctx = contexte(&racine);
-    let s = charger(&ctx, &ctx.racine.join("paies/2026-05.json")).unwrap();
+    let s = charger(&ctx, "2026-05").unwrap();
     let paie = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some(ROMPU)).unwrap();
     let fin = |motif: &str| {
         fctu::FinDeContrat::lire(&json!({"fin": "2026-05-22", "motif": motif, "mois_rattachement": "2026-05", "type_preavis": "90"})).unwrap()

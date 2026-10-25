@@ -70,7 +70,7 @@ fn la<'a>(a: &'a Value, cle: &str) -> &'a Value {
 /// La DSN mensuelle de `mois` telle que la production la fait : les paies du mois et les arrets du magasin qui le croisent.
 fn dsn(racine: &Path, mois: &str) -> (String, Vec<engagement::calcul::Paie>) {
     let ctx = Contexte::nouveau(racine, Some(Jour::lire(LE).unwrap())).unwrap();
-    let paies = engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois))).unwrap().paies;
+    let paies = engagement::charger(&ctx, &mois).unwrap().paies;
     let arrets: Vec<Arret> = engagement::imprevus::du_mois(racine, mois, Some(engagement::imprevus::ARRET)).unwrap().into_iter().map(|v| Arret { v }).collect();
     let o = Options { date_constitution: Some(Jour::lire("2026-10-15").unwrap()), envoi_test: true, ..Options::default() };
     (generer(&ctx, &paies, mois, &[], &arrets, &o).unwrap_or_else(|e| panic!("{} : {}", mois, e)), paies)

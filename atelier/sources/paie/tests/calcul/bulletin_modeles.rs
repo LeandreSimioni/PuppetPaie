@@ -28,7 +28,7 @@ use std::path::Path;
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
     let chemin = crate::outils::chemin_unique("bulletin-modeles.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin).unwrap()
+    crate::outils::charger_fichier(ctx, &chemin).unwrap()
 }
 
 /// Montansier (cadre permanent : mutuelle, prevoyance conventionnelle, Apec, CET) en octobre 2026.
@@ -47,7 +47,7 @@ fn permanent() -> (Contexte, Paie, &'static str) {
 /// Biancolelli (artiste intermittente, Conges Spectacles, prevoyance et Fonds sante, defraiements), juillet 2026.
 fn intermittent() -> (Contexte, Paie, &'static str) {
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let p = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("BI4.26.06")).unwrap().clone();
     (ctx, p, "2026-07")
 }

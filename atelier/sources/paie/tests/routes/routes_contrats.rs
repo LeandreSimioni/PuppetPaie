@@ -22,7 +22,7 @@ fn refus(c: &Path, nom: &str, charge: Value) -> String {
 }
 
 fn ecrire_mois(c: &Path, mois: &str, engagements: Value) {
-    ecrire(c, &format!("paies/{}.json", mois), &json!({"mois": mois, "taux_cachet": 130.0, "date_paiement": format!("{}-28", mois), "engagements": engagements}));
+    crate::outils::poser_saisie(c, &mois, &json!({"mois": mois, "taux_cachet": 130.0, "date_paiement": format!("{}-28", mois), "engagements": engagements}));
 }
 
 /// Un contrat de septembre qui court jusqu'au 10 octobre, trois jours de planning.
@@ -115,7 +115,7 @@ fn le_planning_des_mois_suivants_reste_en_planning_et_un_mois_repris_se_dit() {
     sans["lignes"][0].as_object_mut().unwrap().remove("planning");
     sans["fin"] = json!("2026-10-10");
     ecrire_mois(c, "2026-09", json!([sans]));
-    std::fs::remove_file(c.join("paies/2026-10.json")).unwrap();
+    std::fs::remove_file(c.join("engagements/2026-10.json")).unwrap();
     let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
     assert_eq!(r["contrats"][0]["engagement"]["lignes"], json!([{"rubrique": "cachet", "quantite": 0, "taux": 130.0, "dates": []}]));
 }
@@ -125,7 +125,7 @@ fn le_planning_des_mois_suivants_reste_en_planning_et_un_mois_repris_se_dit() {
 #[test]
 fn une_reprise_sans_cachet_propose_le_dernier_taux_saisi() {
     let c = &compagnie("dernier-taux");
-    let ecrire = |mois: &str, v: Value| ecrire(c, &format!("paies/{}.json", mois), &v);
+    let ecrire = |mois: &str, v: Value| crate::outils::poser_saisie(c, &mois, &v);
     ecrire("2026-08", json!({"mois": "2026-08", "date_paiement": "2026-08-31", "engagements": [{
         "salarie": "BRIOCHE", "spectacle": "ubu-roi", "metier": "COM010",
         "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 155.0, "dates": ["2026-08-20"]}]}]}));
@@ -142,7 +142,7 @@ fn une_reprise_sans_cachet_propose_le_dernier_taux_saisi() {
 #[test]
 fn une_reprise_sans_aucun_cachet_dans_le_dossier_ne_propose_aucun_taux() {
     let c = &compagnie("aucun-taux");
-    ecrire(c, "paies/2026-09.json", &json!({"mois": "2026-09", "date_paiement": "2026-09-30", "engagements": [{
+    crate::outils::poser_saisie(c, "2026-09", &json!({"mois": "2026-09", "date_paiement": "2026-09-30", "engagements": [{
         "salarie": "BRIOCHE", "spectacle": "ubu-roi", "fin": "2026-10-10", "numero": "BR1.26.01", "metier": "COM010",
         "lignes": [{"rubrique": "journee", "quantite": 1, "taux": 200.0, "dates": ["2026-09-28"]}]}]}));
     let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
@@ -222,12 +222,12 @@ fn un_contrat_d_usage_sans_spectacle_prend_celui_du_mois_et_rien_ne_se_devine() 
     let mois = |spectacle: Value| {
         json!({"mois": "2026-09", "taux_cachet": 130.0, "date_paiement": "2026-09-28", "spectacle": spectacle, "engagements": [e.clone()]})
     };
-    ecrire(c, "paies/2026-09.json", &mois(json!("les-pupazzi")));
+    crate::outils::poser_saisie(c, "2026-09", &mois(json!("les-pupazzi")));
     let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
     assert_eq!(r["contrats"][0]["spectacle"], "les-pupazzi", "{}", r);
     assert_eq!(r["contrats"][0]["engagement"]["spectacle"], "les-pupazzi");
     // Ni l'un ni l'autre : le contrat se reprend (il court), sans spectacle -- pas avec le premier venu.
-    ecrire(c, "paies/2026-09.json", &mois(json!("")));
+    crate::outils::poser_saisie(c, "2026-09", &mois(json!("")));
     let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
     let l = r["contrats"].as_array().unwrap();
     assert_eq!(l.len(), 1, "{}", r);
@@ -286,10 +286,10 @@ fn une_charge_fausse_ou_un_mois_abime_refuse() {
     for (nom, charge) in [("contrats-en-cours", json!({})), ("contrats-passes", json!({})), ("contrats-en-cours", json!({"mois": 5}))] {
         refus(c, nom, charge);
     }
-    std::fs::write(c.join("paies/2026-08.json"), "{pas du json").unwrap();
+    std::fs::write(c.join("engagements/2026-08.json"), "{pas du json").unwrap();
     refus(c, "contrats-en-cours", json!({"mois": "2026-10"}));
     // Des lignes qui ne sont pas des objets.
-    std::fs::remove_file(c.join("paies/2026-08.json")).unwrap();
+    std::fs::remove_file(c.join("engagements/2026-08.json")).unwrap();
     let mut mal = contrat_a_cheval();
     mal["lignes"] = json!(["texte"]);
     ecrire_mois(c, "2026-07", json!([mal]));

@@ -193,12 +193,12 @@ fn les_salaries_payes_au_mois_se_lisent_dans_les_saisies() {
     let c = &compagnie("au-mois");
     changer(c, "entreprise.json", |e| e["emploie_des_permanents"] = json!(true));
     // Un contrat a duree indeterminee pour LEMERCIER, dit par son nom approchant.
-    let mut saisie = lire(c, "paies/2026-09.json");
+    let mut saisie = crate::outils::saisie(c, "2026-09");
     saisie["engagements"] = json!([{"salarie": "Lemercier", "nature": "cdi", "debut": "2026-09-01", "lignes": []}, {"salaries": ["Brioche", "", "Inconnu Total"], "nature": "cddu_spectacle"}, "pas un engagement"]);
-    ecrire(c, "paies/2026-09.json", &saisie);
+    crate::outils::poser_saisie(c, "2026-09", &saisie);
     // Un fichier abime et une saisie sans engagements ne bloquent rien.
     std::fs::write(c.join("paies/2026-07.json"), "pas du json").unwrap();
-    ecrire(c, "paies/2026-06.json", &json!({"mois": "2026-06"}));
+    crate::outils::poser_saisie(c, "2026-06", &json!({"mois": "2026-06"}));
     let e = etat(c);
     assert_eq!(e["configuration"]["salaries_au_mois"], json!(["LEMERCIER"]));
 }

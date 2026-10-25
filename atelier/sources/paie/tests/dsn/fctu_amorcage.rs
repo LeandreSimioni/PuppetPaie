@@ -26,9 +26,9 @@ fn racine(nom: &str) -> PathBuf {
 }
 
 /// La paie du cas, avec les numeros que le releve lui attribue.
-fn paie_du_cas(ctx: &Contexte, nom: &str, c: &Value) -> Paie {
+fn paie_du_cas(ctx: &Contexte, c: &Value) -> Paie {
     let mois = c["mois"].as_str().unwrap();
-    let mut s = charger(ctx, &racine(nom).join("paies").join(format!("{}.json", mois))).unwrap();
+    let mut s = charger(ctx, mois).unwrap();
     let numeros = c["numeros"].as_array().unwrap();
     assert_eq!(numeros.len(), s.paies.len(), "{}", c["titre"]);
     for (p, n) in s.paies.iter_mut().zip(numeros) {
@@ -59,7 +59,7 @@ fn rejouer(v: &mut Value, quoi: &str, generer: impl Fn(&Contexte, Paie, &Value, 
     let nom = v["racine"].as_str().unwrap().to_string();
     let ctx = Contexte::nouveau(&racine(&nom), Some(Jour::lire(v["date"].as_str().unwrap()).unwrap())).unwrap();
     let constitution = Jour::lire(v["constitution"].as_str().unwrap()).unwrap();
-    let cas: Vec<Value> = v[quoi].as_array().unwrap().iter().map(|c| avec_le_resultat(c, generer(&ctx, paie_du_cas(&ctx, &nom, c), c, constitution))).collect();
+    let cas: Vec<Value> = v[quoi].as_array().unwrap().iter().map(|c| avec_le_resultat(c, generer(&ctx, paie_du_cas(&ctx, c), c, constitution))).collect();
     assert!(cas.iter().any(|c| c.get("attendu").is_some()) && cas.iter().any(|c| c.get("refus").is_some()), "{}", quoi);
     v[quoi] = Value::Array(cas);
 }
@@ -148,7 +148,7 @@ fn l_inaptitude_d_un_cdd_est_033_jamais_091_ni_092() {
     let nom = v["racine"].as_str().unwrap();
     let ctx = Contexte::nouveau(&racine(nom), Some(Jour::lire(v["date"].as_str().unwrap()).unwrap())).unwrap();
     let c = &v["fctu"][0];
-    let paie = paie_du_cas(&ctx, nom, c);
+    let paie = paie_du_cas(&ctx, c);
     let op = fctu::Options { envoi_test: true, date_constitution: Some(Jour::lire("2026-10-02").unwrap()), ..Default::default() };
     for (motif, refuse) in [("091", true), ("092", true), ("033", false)] {
         let fin = fctu::FinDeContrat {
@@ -204,7 +204,7 @@ fn le_fctu_et_l_amorcage_d_un_salarie_d_un_secondaire_portent_son_etablissement(
 
     // La mensuelle de juin 2026, DSN de l'etablissement 00099, pour le salarie qu'on y rattache.
     let c = &v["fctu"][0];
-    let mut paie = paie_du_cas(&ctx, nom, c);
+    let mut paie = paie_du_cas(&ctx, c);
     paie.salarie["etablissement"] = Value::String("00099".into());
     // Le contrat a ete declare par le principal jusqu'en mai : la mutation se date sur la fiche (au 01/06/2026), sans
     // quoi la mensuelle refuse d'ecrire le SIRET de l'ancien etablissement sans date (41.012, vague V3c).
@@ -234,7 +234,7 @@ fn le_fctu_et_l_amorcage_d_un_salarie_d_un_secondaire_portent_son_etablissement(
 
     // Son amorcage : le meme etablissement ; au changement de logiciel, 05.012 nomme le SIRET qui le declarait.
     for c in v["amorcage"].as_array().unwrap().iter().filter(|c| c.get("attendu").is_some()) {
-        let mut paie = paie_du_cas(&ctx, nom, c);
+        let mut paie = paie_du_cas(&ctx, c);
         paie.salarie["etablissement"] = Value::String("00099".into());
         let op = amorcage::Options {
             motif: c["motif"].as_str().unwrap().to_string(),
@@ -255,7 +255,7 @@ fn le_fctu_et_l_amorcage_d_un_salarie_d_un_secondaire_portent_son_etablissement(
     }
 
     // Un etablissement que la fiche entreprise ne porte pas : refus, rien n'est ecrit sous le principal.
-    let mut perdu = paie_du_cas(&ctx, nom, c);
+    let mut perdu = paie_du_cas(&ctx, c);
     perdu.salarie["etablissement"] = Value::String("00077".into());
     match fctu::generer(&ctx, &perdu, &fin, &op, &[], &[]) {
         Err(e) => assert!(e.message().contains("00077"), "{}", e.message()),
@@ -268,7 +268,7 @@ fn le_fctu_et_l_amorcage_d_un_salarie_d_un_secondaire_portent_son_etablissement(
 /// du 16 au 30 juin ; `dernier_jour_paye` : ce que la saisie en dit.
 fn rupture_avec_preavis_non_effectue(test: &str, dernier_jour_paye: Option<&str>) -> Contexte {
     let racine = compagnie::ses_dsn(releve()["racine"].as_str().unwrap(), &[], &outils::dossier_de_test("fctu_amorcage", test));
-    let mut saisie = outils::lire(&racine, "paies/2026-06.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "AU.25.01").unwrap();
     e["motif_rupture"] = "036".into();
     e["notification_rupture"] = "2026-06-10".into();
@@ -276,13 +276,13 @@ fn rupture_avec_preavis_non_effectue(test: &str, dernier_jour_paye: Option<&str>
     if let Some(j) = dernier_jour_paye {
         e["dernier_jour_paye"] = j.into();
     }
-    outils::ecrire(&racine, "paies/2026-06.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-06", &saisie);
     Contexte::nouveau(&racine, Some(Jour::lire("2026-10-20").unwrap())).unwrap()
 }
 
 /// La mensuelle de juin 2026 et le FCTU du CDD AU.25.01 (la fin que la route `fin-contrat-signaler` declarerait).
 fn mensuelle_et_fctu(ctx: &Contexte) -> (Result<String, String>, Result<String, Echec>) {
-    let s = charger(ctx, &ctx.racine.join("paies/2026-06.json")).unwrap();
+    let s = charger(ctx, "2026-06").unwrap();
     let constitution = Some(Jour::lire("2026-10-02").unwrap());
     let o = paie::dsn::Options { date_constitution: constitution, ..Default::default() };
     let mensuelle = paie::dsn::generer(ctx, &s.paies, "2026-06", &[], &[], &o);
@@ -332,7 +332,7 @@ fn la_mensuelle_et_le_fctu_du_meme_contrat_portent_le_meme_dernier_jour_paye() {
 #[test]
 fn le_fctu_d_un_salarie_en_arret_subroge_n_ecrit_que_ce_que_la_nature_07_admet() {
     let ctx = rupture_avec_preavis_non_effectue("60-subroge", Some("2026-06-15"));
-    let s = charger(&ctx, &ctx.racine.join("paies/2026-06.json")).unwrap();
+    let s = charger(&ctx, "2026-06").unwrap();
     let paie = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("AU.25.01")).unwrap();
     let fin = fctu::FinDeContrat::lire(&serde_json::json!({
         "fin": "2026-06-30", "motif": "036", "mois_rattachement": "2026-06",
@@ -369,7 +369,7 @@ fn un_amorcage_annule_et_remplace_est_refuse_cch_15() {
     let nom = v["racine"].as_str().unwrap();
     let ctx = Contexte::nouveau(&racine(nom), Some(Jour::lire(v["date"].as_str().unwrap()).unwrap())).unwrap();
     let c = v["amorcage"].as_array().unwrap().iter().find(|c| c.get("attendu").is_some()).unwrap();
-    let paie = paie_du_cas(&ctx, nom, c);
+    let paie = paie_du_cas(&ctx, c);
     let op = amorcage::Options {
         motif: c["motif"].as_str().unwrap().to_string(),
         type_declaration: "03".into(),

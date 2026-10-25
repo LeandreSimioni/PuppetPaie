@@ -18,7 +18,7 @@ use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use engagement::{charger, Saisie};
+use engagement::Saisie;
 use socle::num::{eur, Decimal, Resultat};
 use serde_json::{json, Value};
 use crate::outils::{dec, fictive, versement};
@@ -35,7 +35,7 @@ fn ctx(date: &str) -> Contexte {
 fn essayer(ctx: &Contexte, s: Value) -> Resultat<Saisie> {
     let chemin = crate::outils::chemin_unique("plafond-texte.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin)
+    crate::outils::charger_fichier(ctx, &chemin)
 }
 
 /// Une saisie d'octobre 2026 a un seul engagement.

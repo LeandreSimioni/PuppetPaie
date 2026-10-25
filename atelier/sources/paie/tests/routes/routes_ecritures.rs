@@ -155,18 +155,18 @@ fn une_fiche_valide_s_ecrit_avec_sa_copie_et_rend_la_configuration() {
 fn une_saisie_s_enregistre_a_l_octet_pres_et_un_mois_clos_se_refuse() {
     let racine = compagnie("saisie");
     // Novembre 2026 est ouvert : la saisie relue et renvoyee telle quelle s'ecrit sans changer un octet.
-    let avant = std::fs::read(racine.join("paies/2026-11.json")).unwrap();
-    let r = route(&racine, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": lire(&racine, "paies/2026-11.json"), "forcer": true}));
+    let avant = std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
+    let r = route(&racine, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": crate::outils::saisie(&racine, "2026-11"), "forcer": true}));
     assert!(r["resultat"]["chemin"].as_str().is_some_and(|c| c.ends_with("2026-11.json")), "{}", r);
-    assert_eq!(std::fs::read(racine.join("paies/2026-11.json")).unwrap(), avant);
+    assert_eq!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap(), avant);
     // 2025 est clos (`config/exercices.json`) : mars refuse, meme force, et rien ne s'ecrit.
-    let avant = std::fs::read(racine.join("paies/2025-03.json")).unwrap();
-    let r = route(&racine, "enregistrer-saisie", json!({"mois": "2025-03", "saisie": lire(&racine, "paies/2025-03.json"), "forcer": true}));
+    let avant = std::fs::read(racine.join("engagements/2025-03.json")).unwrap();
+    let r = route(&racine, "enregistrer-saisie", json!({"mois": "2025-03", "saisie": crate::outils::saisie(&racine, "2025-03"), "forcer": true}));
     assert_eq!(r["ok"], json!(false), "{}", r);
-    assert_eq!(std::fs::read(racine.join("paies/2025-03.json")).unwrap(), avant);
+    assert_eq!(std::fs::read(racine.join("engagements/2025-03.json")).unwrap(), avant);
     let r = route(&racine, "enregistrer-saisie", json!({"mois": "pas-un-mois", "saisie": {"engagements": []}}));
     assert_eq!(r["ok"], json!(false), "{}", r);
-    assert!(!racine.join("paies/pas-un-mois.json").exists());
+    assert!(!racine.join("engagements/pas-un-mois.json").exists());
 }
 
 /// Deux cachets de 130 EUR le meme mois.
@@ -191,7 +191,7 @@ fn nombre(v: &Value) -> f64 {
 fn viser_un_cout_remonte_au_taux_du_cachet_au_centime_pres() {
     let racine = compagnie("ajuster-cout");
     let saisie = saisie_deux_cachets(&racine);
-    let (mois, compteurs) = (racine.join("paies/2026-11.json"), racine.join("config/compteurs.json"));
+    let (mois, compteurs) = (racine.join("engagements/2026-11.json"), racine.join("config/compteurs.json"));
     let avant = (std::fs::read(&mois).ok(), std::fs::read(&compteurs).ok());
     let r = ajuste(&racine, &saisie, "cout", json!(500));
     assert_eq!(r["ok"], json!(true), "{}", r);
@@ -300,37 +300,12 @@ fn un_metier_de_la_convention_se_decoche_puis_se_recoche() {
 }
 
 #[test]
-fn enregistrer_une_saisie_garde_la_validation_que_l_ecran_ne_renvoie_pas() {
-    let racine = compagnie("saisie-fusion");
-    let mois = "2026-11";
-    let chemin = racine.join(format!("paies/{}.json", mois));
-    let mut fichier = lire(&racine, &format!("paies/{}.json", mois));
-    assert!(fichier["engagements"].as_array().is_some_and(|e| !e.is_empty()), "la compagnie fictive a des engagements en {}", mois);
-    fichier["_origine"] = json!("ecrite a la main");
-    fichier["engagements"][0]["valide"] = json!("2026-09-12T11:30:00");
-    fichier["engagements"][0]["numero"] = json!("ZZ1.26.01");
-    std::fs::write(&chemin, serde_json::to_vec_pretty(&fichier).unwrap()).unwrap();
-    // L'ecran renvoie la saisie sans ce qu'il ne voit pas.
-    let mut saisie = fichier.clone();
-    saisie.as_object_mut().unwrap().remove("_origine");
-    saisie["engagements"][0].as_object_mut().unwrap().remove("valide");
-    saisie["engagements"][0].as_object_mut().unwrap().remove("numero");
-    let r = route(&racine, "enregistrer-saisie", json!({"mois": mois, "saisie": saisie, "forcer": true}));
-    assert_eq!(r["ok"], json!(true), "{}", r);
-    let ecrit = lire(&racine, &format!("paies/{}.json", mois));
-    assert_eq!(ecrit["_origine"], json!("ecrite a la main"));
-    assert_eq!(ecrit["engagements"][0]["valide"], json!("2026-09-12T11:30:00"));
-    assert_eq!(ecrit["engagements"][0]["numero"], json!("ZZ1.26.01"));
-    assert_eq!(nommes(&racine.join("paies/avant"), "2026-11.json.").len(), 1, "la copie d'avant");
-}
-
-#[test]
 fn un_mois_impossible_se_refuse_meme_force() {
     let racine = compagnie("saisie-mois");
-    let saisie = lire(&racine, "paies/2026-11.json");
+    let saisie = crate::outils::saisie(&racine, "2026-11");
     let r = route(&racine, "enregistrer-saisie", json!({"mois": "2026-13", "saisie": saisie, "forcer": true}));
     assert_eq!(r["ok"], json!(false), "{}", r);
-    assert!(!racine.join("paies/2026-13.json").exists());
+    assert!(!racine.join("engagements/2026-13.json").exists());
 }
 
 #[test]
@@ -347,45 +322,3 @@ fn un_historique_qui_n_est_pas_une_liste_se_refuse_et_rien_n_est_ecrit() {
     assert_eq!(std::fs::read(racine.join("config/spectacles.json")).unwrap(), avant);
 }
 
-/// Novembre de la petite, avec un JUMEAU : un second contrat de Brioche qui commence le meme jour que le premier
-/// (un seul cachet, le 24). Le premier porte `BR.26.01`, le jumeau `BR.26.02` et une validation.
-fn novembre_avec_un_jumeau(racine: &Path) -> Value {
-    let mut fichier = lire(racine, "paies/2026-11.json");
-    let mut jumeau = fichier["engagements"][0].clone();
-    jumeau["fin"] = json!("2026-11-24");
-    jumeau["date_paiement"] = json!("2026-11-24");
-    jumeau["lignes"][0]["quantite"] = json!(1);
-    jumeau["lignes"][0]["dates"] = json!(["2026-11-24"]);
-    jumeau["numero"] = json!("BR.26.02");
-    jumeau["valide"] = json!("2026-09-12T11:30:00");
-    fichier["engagements"][0]["numero"] = json!("BR.26.01");
-    fichier["engagements"].as_array_mut().unwrap().insert(1, jumeau);
-    std::fs::write(racine.join("paies/2026-11.json"), serde_json::to_vec_pretty(&fichier).unwrap()).unwrap();
-    fichier
-}
-
-#[test]
-fn deux_contrats_du_meme_jour_gardent_chacun_leur_numero_et_leur_validation() {
-    // Les jumeaux (meme salarie, meme debut) se confondaient sur (salarie, debut) : le jumeau valide remplacait
-    // l'autre, et le dernier numero lu allait aux deux.
-    let racine = compagnie("saisie-jumeaux");
-    let fichier = novembre_avec_un_jumeau(&racine);
-    // L'ecran renvoie la saisie sans numeros ni validation.
-    let mut saisie = fichier.clone();
-    for e in saisie["engagements"].as_array_mut().unwrap() {
-        let e = e.as_object_mut().unwrap();
-        e.remove("numero");
-        e.remove("valide");
-    }
-    let r = route(&racine, "enregistrer-saisie", json!({"mois": "2026-11", "saisie": saisie, "forcer": true}));
-    assert_eq!(r["ok"], json!(true), "{}", r);
-    let ecrit = lire(&racine, "paies/2026-11.json");
-    let e = ecrit["engagements"].as_array().unwrap();
-    assert_eq!(e.len(), 4);
-    assert_eq!(e[0]["numero"], json!("BR.26.01"), "{}", ecrit);
-    assert_eq!(e[0]["lignes"][0]["quantite"], json!(4), "le premier contrat reste le sien : {}", ecrit);
-    assert!(e[0].get("valide").is_none(), "le premier n'a jamais ete valide : {}", ecrit);
-    assert_eq!(e[1]["numero"], json!("BR.26.02"), "{}", ecrit);
-    assert_eq!(e[1]["lignes"][0]["quantite"], json!(1), "{}", ecrit);
-    assert_eq!(e[1]["valide"], json!("2026-09-12T11:30:00"), "{}", ecrit);
-}

@@ -94,7 +94,7 @@ fn des_dates_de_fichier_touchees_ne_font_changer_aucune_paie() {
             mois.push(e.file_name().to_string_lossy().into_owned());
         }
     }
-    for e in std::fs::read_dir(c.join("paies")).unwrap().flatten().filter(|e| e.path().is_file()) {
+    for e in std::fs::read_dir(c.join("engagements")).unwrap().flatten().filter(|e| e.path().is_file()) {
         toucher(&e.path(), std::time::SystemTime::now());
     }
     assert!(mois.len() > 10, "{:?}", mois);
@@ -130,7 +130,7 @@ fn l_export_compta_est_a_jour_d_apres_le_journal_et_non_les_dates() {
     let toucher = |p: &std::path::Path, t: std::time::SystemTime| std::fs::File::options().write(true).open(p).unwrap().set_modified(t).unwrap();
     let dater = || {
         toucher(&export, vieux);
-        for e in std::fs::read_dir(c.join("paies")).unwrap().flatten().filter(|e| e.path().is_file()) {
+        for e in std::fs::read_dir(c.join("engagements")).unwrap().flatten().filter(|e| e.path().is_file()) {
             toucher(&e.path(), std::time::SystemTime::now());
         }
     };
@@ -147,9 +147,9 @@ fn l_export_compta_est_a_jour_d_apres_le_journal_et_non_les_dates() {
     dater();
     assert!(!rappel(&c));
     // Une saisie de 2025 change : l'export est perime, le rappel revient.
-    let mut mars = lire(&c, "paies/2025-03.json");
+    let mut mars = crate::outils::saisie(&c, "2025-03");
     mars["date_paiement"] = json!("2025-03-28");
-    ecrire(&c, "paies/2025-03.json", &mars);
+    crate::outils::poser_saisie(&c, "2025-03", &mars);
     assert!(rappel(&c), "la saisie de mars n'est plus celle que l'export a lue");
 }
 
@@ -177,19 +177,3 @@ fn un_mois_ne_s_ecrit_que_le_premier_du_mois_suivant_a_sa_vraie_date() {
     assert!(phrases.as_array().unwrap().iter().any(|p| p == "Le 03/12/2026 : Novembre 2026 écrit — contrats, bulletins, DSN"), "{}", phrases);
 }
 
-/// UN CACHE DE LECTURE NE FAIT CLORE AUCUN EXERCICE (#236, banc du Petit Castelet : `paies/2024-12.etat.json`, ecrit en
-/// fond quand on avait regarde decembre 2024, faisait clore au banc un exercice 2024 vide -- `config/exercices.json`,
-/// `Exercice_2024.zip` -- que le rejeu du scenario, qui ne refait pas les lectures, ne clot pas). Seules les saisies
-/// `paies/AAAA-MM.json` disent qu'une annee a des paies. Sur `fictive-3090-petite`, qui commence en janvier 2025.
-#[test]
-fn un_cache_de_lecture_ne_fait_clore_aucun_exercice() {
-    let c = compagnie::ses_dsn("fictive-3090-petite", &[], &dossier_de_test("horloge_mois_ecrit", "cache-exercice").join("compagnie"));
-    let mut memoire = lire(&c, "config/horloge.json");
-    memoire["annees_faites"] = json!([]);
-    ecrire(&c, "config/horloge.json", &memoire);
-    ecrire(&c, "paies/2024-12.etat.json", &json!({}));
-    let phrases = reussi(&route(&c, "horloge-rattraper", json!({"aujourdhui": "2026-11-25"}), "2026-11-25")).clone();
-    assert!(!phrases.to_string().contains("exercice 2024"), "{}", phrases);
-    assert!(lire(&c, "config/exercices.json").get("2024").is_none(), "2024 n'a aucune paie : rien a clore");
-    assert!(!c.join("sorties/exercices/Exercice_2024.zip").exists());
-}

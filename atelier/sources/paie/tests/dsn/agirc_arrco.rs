@@ -21,7 +21,7 @@ pub(crate) const AUDIENS_RETRAITE: &str = "44832375800038";
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
     let chemin = outils::chemin_unique("agirc-arrco.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin).unwrap()
+    crate::outils::charger_fichier(ctx, &chemin).unwrap()
 }
 
 /// Une ligne 81 : son code, son bloc 78 (rang dans le versement), son 81.002, son 81.003 s'il y en a un, son 81.004, son
@@ -153,7 +153,7 @@ fn un_cadre_intermittent_declare_sa_retraite_en_131_et_son_apec_en_132() {
     let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "cadres"));
     outils::retoucher_fiches(&racine, &[("BIANCOLELLI", cadre.clone()), ("SERVANDONI", cadre)]);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     sans_105(&dsn);
 
@@ -301,7 +301,7 @@ fn un_intermittent_non_cadre_declare_sa_part_patronale_t1_en_142_a_l_urssaf() {
     // porte un taux sur le brut ; le 142, sous le meme bloc 78, la part patronale de la ligne de retraite T1 du bulletin,
     // son assiette et son taux patronal. Aucun 146 : un non cadre intermittent n'a pas de tranche 2.
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     sig_18(&dsn, "3090-grande 2026-07");
     for numero in ["CL6.26.07", "CH8.26.04", "SE9.26.05"] {
@@ -443,7 +443,7 @@ fn le_142_porte_le_taux_patronal_d_une_organisation_patronale() {
     e["organisation_patronale_depuis"] = json!("2020-01-01");
     outils::ecrire(&racine, "config/entreprise.json", &e);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let p = paie(&s, "CL6.26.07");
     let t1 = ligne(p, "retraite_t1");

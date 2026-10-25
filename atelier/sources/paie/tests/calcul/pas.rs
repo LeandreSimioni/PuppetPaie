@@ -38,7 +38,7 @@ fn changer_les_taux(racine: &std::path::Path) {
 /// (taux, prelevement) de chaque paie qui en a un.
 fn pas_des_paies(racine: &std::path::Path, mois: &str) -> Vec<(String, String, String)> {
     let ctx = Contexte::nouveau(racine, Some(Jour::lire("2027-02-15").unwrap())).unwrap();
-    let s = engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois))).unwrap();
+    let s = engagement::charger(&ctx, &mois).unwrap();
     let v = paie::prelevement::des_paies(&ctx, &s.paies).unwrap();
     s.paies
         .iter()
@@ -59,7 +59,7 @@ fn un_mois_depose_relu_apres_un_changement_de_taux_garde_son_pas() {
     assert!(!lus.is_empty());
     let ctx = Contexte::nouveau(&depose, Some(Jour::lire("2027-02-15").unwrap())).unwrap();
     let dsn = pas_de_la_dsn(&paie::casc::dsn_deposee(&ctx, mois, None).unwrap().expect("le mois est depose"));
-    let s = engagement::charger(&ctx, &depose.join(format!("paies/{}.json", mois))).unwrap();
+    let s = engagement::charger(&ctx, &mois).unwrap();
     for (numero, taux, montant) in &lus {
         let p = s.paies.iter().find(|p| p.engagement.numero.as_ref() == Some(numero)).unwrap();
         let nir = p.salarie["nir"].as_str().unwrap().to_string();

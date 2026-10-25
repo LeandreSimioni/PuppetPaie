@@ -6,7 +6,6 @@
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::d;
-use engagement::charger;
 use serde_json::{json, Value};
 use crate::outils::{dec, fictive};
 
@@ -24,7 +23,7 @@ fn paie(racine: &str, mois: &str, salarie: &str, extra: Value, jours: &[&str], l
     let chemin = crate::outils::chemin_unique("calculer.json");
     std::fs::write(&chemin, saisie.to_string()).unwrap();
     let ctx = Contexte::nouveau(&fictive(racine), Some(d(&json!(format!("{}-28", mois))).unwrap())).unwrap();
-    let mut s = charger(&ctx, &chemin).unwrap();
+    let mut s = crate::outils::charger_fichier(&ctx, &chemin).unwrap();
     s.paies.remove(0)
 }
 

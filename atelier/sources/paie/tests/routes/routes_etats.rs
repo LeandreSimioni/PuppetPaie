@@ -215,15 +215,13 @@ fn une_version_qui_change_un_calcul_attend_les_mois_saisis_sans_dsn() {
     assert_eq!((r["prete"].clone(), r["attend"].clone(), r["signee"].clone()), (Value::Null, json!([]), json!(true)));
     assert_eq!(r["courante"], json!("2026.10.09"), "la version de l'installation");
     for mois in ["2026-08", "2026-09"] {
-        ecrire(c, &format!("paies/{}.json", mois), &json!({"mois": mois, "engagements": [{"salarie": "INVENTE"}]}));
+        crate::outils::poser_saisie(c, &mois, &json!({"mois": mois, "engagements": [{"salarie": "INVENTE"}]}));
     }
     prete(inst, json!({}));
     let r = lu_dans(c, inst, "maj-etat");
     assert_eq!(r["prete"], json!("2099.01.01"));
     assert_eq!(r["calcul"], json!("un calcul"));
     assert_eq!(r["attend"], json!(["2026-08", "2026-09"]), "les deux mois saisis, sans DSN reelle acceptee");
-    ecrire(c, "paies/2026-09.calcul.json", &json!({"engagements": [1]}));
-    assert_eq!(lu_dans(c, inst, "maj-etat")["attend"], json!(["2026-08", "2026-09"]), "`AAAA-MM.calcul.json` n'est pas un mois");
     // Une compagnie fictive (ou une copie) ne retient rien : elle ne depose jamais.
     ecrire(c, "COPIE-DE-DEVELOPPEMENT.json", &json!({"copie_de": "compagnie fictive essai"}));
     assert_eq!(lu_dans(c, inst, "maj-etat")["attend"], json!([]), "une fictive ne retient pas la version");

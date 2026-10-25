@@ -1,7 +1,7 @@
 //! `paie route` : les listes que la page lit en s'ouvrant (`arrets`, `fins-de-contrat`, `regularisations`). Sur
 //! `fictive-3090-petite` (config, aout et septembre 2026, journal vide), que chaque test mute ; un fichier abime refuse.
 
-use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route};
+use crate::outils::{compagnie, dossier_de_test, ecrire, reussi, route};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -111,10 +111,10 @@ fn un_cdd(motif: Option<&str>, preavis: Option<Value>) -> Value {
 }
 
 fn avec_engagements(c: &Path, mois: &str, extra: Vec<Value>) {
-    let mut saisie = lire(c, &format!("paies/{}.json", mois));
+    let mut saisie = crate::outils::saisie(c, &mois);
     let engagements = saisie["engagements"].as_array_mut().unwrap();
     engagements.extend(extra);
-    ecrire(c, &format!("paies/{}.json", mois), &saisie);
+    crate::outils::poser_saisie(c, &mois, &saisie);
 }
 
 #[test]
@@ -233,7 +233,7 @@ fn une_nature_inconnue_ou_un_mois_abime_refuse_les_fins_de_contrat() {
     assert!(message.starts_with("Nature de contrat inconnue : 'bidon'. Connues : "), "{}", message);
     ecrire_texte(c, "paies/2026-08.json", "{");
     refus(c, "fins-de-contrat", json!({"mois": "2026-08"}));
-    ecrire(c, "paies/2026-08.json", &json!([]));
+    crate::outils::poser_saisie(c, "2026-08", &json!([]));
     refus(c, "fins-de-contrat", json!({"mois": "2026-08"}));
 }
 

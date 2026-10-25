@@ -29,7 +29,7 @@ fn contexte(racine: &Path) -> Contexte {
 
 /// La paie de `salarie` dans la saisie du mois, calculee comme pour la DSN (`engagement::charger`).
 fn paie(ctx: &Contexte, mois: &str, salarie: &str) -> engagement::calcul::Paie {
-    let s = engagement::charger(ctx, &ctx.racine.join(format!("paies/{}.json", mois))).unwrap();
+    let s = engagement::charger(ctx, &mois).unwrap();
     s.paies.into_iter().find(|p| p.salarie["_cle"] == json!(salarie)).unwrap()
 }
 
@@ -145,7 +145,7 @@ fn une_suspension_remuneree_ne_retire_rien_et_le_200_refuse() {
     assert!(lignes_de(&p, "absence_non_remuneree").is_empty());
     assert_eq!(p.engagement.suspensions.len(), 1);
     ecrire(&racine, "imprevus/2026-07.json", &json!({"imprevus": [suspension("200", "2026-07-20", "2026-07-21")]}));
-    let e = engagement::charger(&ctx, &racine.join("paies/2026-07.json")).err().unwrap();
+    let e = engagement::charger(&ctx, "2026-07").err().unwrap();
     assert!(e.contains("200"), "{}", e);
 }
 
@@ -185,6 +185,6 @@ fn un_magasin_abime_refuse_la_paie() {
     let racine = compagnie("abime");
     ecrire(&racine, "imprevus/2026-07.json", &json!({"imprevus": [{"genre": "conge", "salarie": "NICOLET"}]}));
     let ctx = contexte(&racine);
-    let e = engagement::charger(&ctx, &racine.join("paies/2026-07.json")).err().unwrap();
+    let e = engagement::charger(&ctx, "2026-07").err().unwrap();
     assert!(e.contains("genre"), "{}", e);
 }

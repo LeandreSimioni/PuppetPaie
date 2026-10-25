@@ -138,8 +138,8 @@ fn un_mois_fait_en_demo_puis_garde_montre_ses_dpae_dues() {
     debloquer(&i);
     repondre(&i, &[format!("fictive:{}", a.file_name().unwrap().to_string_lossy())], &[], &poste(&i), &sans_rien).unwrap();
     let r = i.join("compagnies/les-pupazzi");
-    let paies = reussi(&crate::outils::route(&r, "etat-par-paie", json!({"mois": "2026-10"}), JOUR)).clone();
-    let paies = paies["paies"].as_array().cloned().unwrap_or_else(|| paies.as_array().cloned().unwrap_or_default());
+    let paies = reussi(&crate::outils::route(&r, "etat-par-engagement", json!({"mois": "2026-10"}), JOUR)).clone();
+    let paies = paies["engagements"].as_array().cloned().unwrap_or_else(|| paies.as_array().cloned().unwrap_or_default());
     assert!(!paies.is_empty());
     for p in &paies {
         assert_eq!(p["etats"]["dpae"]["fait"], Value::Null, "DPAE due, pas faite : {}", p);

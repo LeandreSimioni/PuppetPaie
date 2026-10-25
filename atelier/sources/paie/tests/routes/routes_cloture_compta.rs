@@ -70,7 +70,7 @@ fn la_cloture_ecrit_une_archive_fidele_et_se_rouvre() {
     assert_eq!(c["fichiers"], json!(entrees.len()));
     assert_eq!(c["manques"], json!([]));
     let noms: Vec<&str> = entrees.iter().map(|(n, _)| n.as_str()).collect();
-    assert_eq!(noms[0], "paies/2025-01.json");
+    assert_eq!(noms[0], "engagements/2025-01.json");
     assert_eq!(*noms.last().unwrap(), "LISEZ-MOI.txt");
     assert!(noms.contains(&"compta/Compta_2025.csv") && noms.contains(&"journal/depots.json") && noms.contains(&"config/baremes/2025.json"));
     // Chaque entree est le fichier lui-meme, octet pour octet.
@@ -202,11 +202,11 @@ fn l_export_compta_porte_le_prelevement_a_la_source_et_s_equilibre_avec_et_sans(
 fn un_acompte_retenu_solde_l_avance_au_425_et_pas_les_charges() {
     let racine = compagnie("compta-acompte");
     // Mars 2025 : un acompte de 100 EUR retenu sur la paie de BRIOCHE (rubrique livree `acompte`, nature `retenue`).
-    let chemin = racine.join("paies").join("2025-03.json");
-    let mut saisie = lire(&racine, "paies/2025-03.json");
+    let mut saisie = crate::outils::saisie(&racine, "2025-03");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["salarie"] == json!("Brioche")).unwrap();
     e["lignes"].as_array_mut().unwrap().push(json!({"rubrique": "acompte", "quantite": 1, "taux": 100.0}));
-    std::fs::write(&chemin, serde_json::to_vec_pretty(&saisie).unwrap()).unwrap();
+    crate::outils::poser_saisie(&racine, "2025-03", &saisie);
+    crate::outils::tout_valider(&racine, "2025-03", "2025-04-05");
     let r = route(&racine, "export-compta", json!({"annee": "2025", "du": 3, "au": 3, "apercu": true}));
     let c = reussi(&r);
     let ecritures = c["ecritures"].as_array().unwrap();

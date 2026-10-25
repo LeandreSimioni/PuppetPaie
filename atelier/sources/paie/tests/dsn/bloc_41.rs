@@ -111,9 +111,9 @@ fn un_passage_cadre_declare_l_ancien_statut_en_bloc_41_et_le_mois_suivant_n_en_p
     // Septembre depose : octobre declare 04 / 01 sans bloc 41.
     deposer(&racine, "2026-09", "DSN_Septembre2026.dsn", &sept);
     // Octobre n'est pas produit dans la compagnie fictive : ses CDDU n'ont pas de numero ; seuls les deux CDI restent.
-    let mut s = outils::lire(&racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&racine, "2026-10");
     s["engagements"].as_array_mut().unwrap().retain(|e| e["nature"] == "cdi");
-    outils::ecrire(&racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
     let oct = dsn(&racine, "2026-10").unwrap();
     assert!(!oct.contains("S21.G00.41."), "octobre ne redeclare pas le changement");
     let d = individu(&oct, "DORVAL");
@@ -221,7 +221,7 @@ fn une_mutation_datee_declare_l_ancien_siret_seul_puis_le_lieu_et_le_code_risque
         json!({"etablissement": "00021", "historique": [{"champ": "etablissement", "valeur": "", "jusqu_au": "2026-08-31", "note": ""}]}),
     );
     let ctx = contexte(&racine, "2026-09");
-    let s = charger(&ctx, &racine.join("paies/2026-09.json")).unwrap();
+    let s = charger(&ctx, "2026-09").unwrap();
     let siens: Vec<_> = s.paies.iter().filter(|p| p.salarie["_cle"] == "DORVAL").cloned().collect();
     let o = Options { etablissement: Some("00021".into()), ..Options::default() };
     let texte = generer(&ctx, &siens, "2026-09", &[], &[], &o).unwrap();
@@ -242,7 +242,7 @@ fn une_mutation_datee_declare_l_ancien_siret_seul_puis_le_lieu_et_le_code_risque
     // La meme mutation, non datee : refus.
     retoucher_fiche(&racine, "DORVAL", json!({"historique": null}));
     let ctx = contexte(&racine, "2026-09");
-    let s = charger(&ctx, &racine.join("paies/2026-09.json")).unwrap();
+    let s = charger(&ctx, "2026-09").unwrap();
     let siens: Vec<_> = s.paies.iter().filter(|p| p.salarie["_cle"] == "DORVAL").cloned().collect();
     let e = generer(&ctx, &siens, "2026-09", &[], &[], &o).unwrap_err();
     assert!(e.contains("S21.G00.41.012") && e.contains("12345693100013"), "{}", e);
@@ -254,13 +254,13 @@ fn un_second_emploi_dans_le_mois_declare_l_ancien_code_emplois_multiples_et_le_m
     // passe de « 01 - emploi unique » (aout) a « 02 - emplois multiples » (p. 199), une modalite (41.061, § 4.4.14.1,
     // p. 103), datee du premier jour de la periode payee ; en octobre, elle revient a 01.
     let racine = copie("emplois-multiples");
-    let mut s = outils::lire(&racine, "paies/2026-09.json");
+    let mut s = crate::outils::saisie(&racine, "2026-09");
     let mut cddu = s["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "Torelli").unwrap().clone();
     cddu["salarie"] = json!("Dorval");
     cddu["numero"] = json!("DO7.26.09");
     cddu["metier"] = json!("REG130");
     s["engagements"].as_array_mut().unwrap().push(cddu);
-    outils::ecrire(&racine, "paies/2026-09.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-09", &s);
     let sept = dsn(&racine, "2026-09").unwrap();
     let d = individu(&sept, "DORVAL");
     let cdi: Vec<(String, String)> = {
@@ -276,9 +276,9 @@ fn un_second_emploi_dans_le_mois_declare_l_ancien_code_emplois_multiples_et_le_m
     paie::usages::verifier_fichier(&sept).unwrap();
     paie::formats::verifier_fichier(&sept).unwrap();
     deposer(&racine, "2026-09", "DSN_Septembre2026.dsn", &sept);
-    let mut s = outils::lire(&racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&racine, "2026-10");
     s["engagements"].as_array_mut().unwrap().retain(|e| e["nature"] == "cdi");
-    outils::ecrire(&racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
     let d = individu(&dsn(&racine, "2026-10").unwrap(), "DORVAL");
     assert_eq!(valeur(&d, "S21.G00.40.036"), "01");
     assert_eq!(blocs_41(&d), vec![bloc(&[("S21.G00.41.001", "01102026"), ("S21.G00.41.061", "02"), ("S21.G00.41.028", "01102026")])]);

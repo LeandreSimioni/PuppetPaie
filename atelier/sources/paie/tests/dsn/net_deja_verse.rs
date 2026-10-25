@@ -20,7 +20,7 @@ fn copie(test: &str) -> PathBuf {
 }
 
 fn produire_le(racine: &Path, mois: &str, jour: &str) -> Value {
-    outils::route(racine, "produire", json!({"mois": mois, "saisie": lire(racine, &format!("paies/{}.json", mois))}), jour)
+    outils::route(racine, "produire", json!({"mois": mois, "saisie": crate::outils::saisie(racine, &mois)}), jour)
 }
 
 /// Une correction du contrat `numero` de `mois` : le taux de ses lignes `rubrique` passe a `taux`.
@@ -124,13 +124,13 @@ struct Chaminade {
 
 fn chaminade_corrigee(test: &str, ancien_58004: bool) -> Chaminade {
     let r = copie(test);
-    let mut s = lire(&r, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&r, "2026-10");
     let e = s["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["salarie"] == json!("Chaminade")).unwrap();
     e["lignes"].as_array_mut().unwrap().push(json!({"rubrique": "acompte", "quantite": 1, "taux": 100.0}));
-    ecrire(&r, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&r, "2026-10", &s);
     mois_pret(&r, "2026-10");
     outils::reussi(&produire_le(&r, "2026-10", JOUR));
-    let saisie = lire(&r, "paies/2026-10.json");
+    let saisie = crate::outils::saisie(&r, "2026-10");
     let numero = saisie["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == json!("Chaminade")).unwrap()["numero"].as_str().unwrap().to_string();
 
     let archive = texte_pdf(&r.join("sorties/2026-10/Bulletins_Octobre2026.pdf"));

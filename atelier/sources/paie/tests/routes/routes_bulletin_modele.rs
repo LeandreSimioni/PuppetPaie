@@ -121,7 +121,7 @@ fn la_page_lit_les_modeles_et_la_compagnie_choisit_pour_tous() {
 
     // Le bulletin suit le choix enregistre ; la case d'un salarie qui demande le simplifie l'emporte.
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-10-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-10.json")).unwrap();
+    let s = charger(&ctx, "2026-10").unwrap();
     let ent = ctx.entreprise_du_mois("2026-10").unwrap();
     let mut p = s.paies.iter().find(|p| !p.engagement.sans_paie()).unwrap().clone();
     let documents = |p: &engagement::calcul::Paie| jeux_et_description(&ctx, std::slice::from_ref(p), &ent, "2026-10", None, false, &HashMap::new()).unwrap()["documents"].as_array().unwrap().len();

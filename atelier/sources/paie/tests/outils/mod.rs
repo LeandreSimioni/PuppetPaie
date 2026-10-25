@@ -137,6 +137,26 @@ pub mod compagnie {
         racine.to_path_buf()
     }
 
+    /// Les engagements que les `mois` montrent : le fichier de chaque mois ou l'un d'eux commence
+    /// (`engagements/AAAA-MM.json`), copie tel quel.
+    fn copier_les_engagements(d: &Path, mois: &[&str], racine: &Path) {
+        std::fs::create_dir_all(racine.join(engagement::stock::DOSSIER)).unwrap();
+        let mut fichiers: Vec<String> = Vec::new();
+        for m in mois {
+            for o in engagement::stock::objets_du_mois(d, m).unwrap() {
+                if !fichiers.contains(&o.fichier) {
+                    fichiers.push(o.fichier.clone());
+                }
+            }
+            if engagement::stock::chemin(d, m).is_file() && !fichiers.contains(&m.to_string()) {
+                fichiers.push(m.to_string());
+            }
+        }
+        for f in fichiers {
+            std::fs::copy(engagement::stock::chemin(d, &f), engagement::stock::chemin(racine, &f)).unwrap();
+        }
+    }
+
     /// `config/`, `journal/`, les saisies des `mois` et leurs `sorties/<mois>/` quand il y en a.
     pub fn config_et_mois(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
         let d = super::fictive(fictive);
@@ -145,10 +165,8 @@ pub mod compagnie {
                 copier(&d.join(sous), &racine.join(sous));
             }
         }
-        std::fs::create_dir_all(racine.join("paies")).unwrap();
+        copier_les_engagements(&d, mois, racine);
         for m in mois {
-            let saisie = format!("paies/{}.json", m);
-            std::fs::copy(d.join(&saisie), racine.join(&saisie)).unwrap();
             let sorties = format!("sorties/{}", m);
             if d.join(&sorties).is_dir() {
                 copier(&d.join(&sorties), &racine.join(&sorties));
@@ -161,11 +179,7 @@ pub mod compagnie {
     pub fn saisies(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
         let d = super::fictive(fictive);
         copier(&d.join("config"), &racine.join("config"));
-        std::fs::create_dir_all(racine.join("paies")).unwrap();
-        for m in mois {
-            let saisie = format!("paies/{}.json", m);
-            std::fs::copy(d.join(&saisie), racine.join(&saisie)).unwrap();
-        }
+        copier_les_engagements(&d, mois, racine);
         ecrire(racine, "journal/depots.json", &json!([]));
         racine.to_path_buf()
     }
@@ -240,10 +254,30 @@ pub fn retoucher_fiches(racine: &Path, retouches: &[(&str, Value)]) {
     ecrire(racine, "config/salaries.json", &sal);
 }
 
-/// La DSN mensuelle de `mois` (`paies/<mois>.json`), produite au `jour`, sans rien écrire.
+/// La saisie de `mois` telle que ses engagements la montrent (`engagement::saisie_du_mois`).
+pub fn saisie(racine: &Path, mois: &str) -> Value {
+    let mut v = engagement::saisie_du_mois(racine, mois).unwrap();
+    v["mois"] = Value::String(mois.to_string());
+    v
+}
+
+/// Ecrit la saisie de `mois` comme l'ecran l'enregistre (`engagement::stock::ecrire_vue_du_mois`), apres avoir remis en
+/// saisie les engagements valides du mois (« Modifier… ») : ce qu'un test retouche s'ecrit.
+pub fn poser_saisie(racine: &Path, mois: &str, v: &Value) {
+    let ctx = droit::contexte::Contexte::nouveau(racine, None).unwrap();
+    let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
+    for (i, o) in objets.iter().enumerate() {
+        if o.est_valide() {
+            engagement::etats::modifier(&ctx, mois, i).unwrap();
+        }
+    }
+    engagement::stock::ecrire_vue_du_mois(&ctx, mois, v).unwrap();
+}
+
+/// La DSN mensuelle de `mois`, produite au `jour` depuis ses engagements, sans rien écrire.
 pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, String> {
     let ctx = droit::contexte::Contexte::nouveau(racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
-    let s = engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
+    let s = engagement::charger(&ctx, mois)?;
     paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
 }
 
@@ -258,8 +292,7 @@ pub mod permanents {
 
     /// Pose des champs sur l'engagement de `salarie` dans la saisie du mois.
     pub fn retoucher_saisie(racine: &Path, mois: &str, salarie: &str, champs: Value) {
-        let chemin = format!("paies/{}.json", mois);
-        let mut s = lire(racine, &chemin);
+        let mut s = super::saisie(racine, mois);
         for e in s["engagements"].as_array_mut().unwrap() {
             if e["salarie"] == salarie {
                 for (k, v) in champs.as_object().unwrap() {
@@ -267,7 +300,7 @@ pub mod permanents {
                 }
             }
         }
-        ecrire(racine, &chemin, &s);
+        poser_saisie(racine, mois, &s);
     }
 
     /// Le contexte du jour où l'on produit `mois` : le 5 du mois suivant.
@@ -279,13 +312,13 @@ pub mod permanents {
 
     /// La saisie de `mois`, lue au 5 du mois suivant.
     pub fn saisie(racine: &Path, mois: &str) -> Result<Saisie, String> {
-        charger(&contexte(racine, mois), &racine.join(format!("paies/{}.json", mois)))
+        charger(&contexte(racine, mois), mois)
     }
 
     /// La DSN de `mois`, produite au 5 du mois suivant, sans rien écrire.
     pub fn dsn(racine: &Path, mois: &str) -> Result<String, String> {
         let ctx = contexte(racine, mois);
-        let s = charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
+        let s = charger(&ctx, mois)?;
         paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
     }
 
@@ -338,7 +371,7 @@ pub mod permanents {
 /// Le mois est prêt à produire : les DPAE des engagements qui y commencent sont parties et leurs contrats sont revenus
 /// signés (des lignes de journal comme celles de la compagnie fictive).
 pub fn mois_pret(racine: &Path, mois: &str) {
-    let saisie = lire(racine, &format!("paies/{}.json", mois));
+    let saisie = saisie(racine, mois);
     let mut j = lire(racine, "journal/depots.json");
     let l = j.as_array_mut().unwrap();
     let modele = l.iter().find(|x| x["quoi"] == json!("dpae") && x["mode"] == json!("reel")).unwrap().clone();
@@ -394,7 +427,7 @@ impl Copie {
         Copie(d)
     }
 
-    /// La seule config de la compagnie fictive : ni journal, ni paies, ni sorties.
+    /// La seule config de la compagnie fictive : ni journal, ni engagements, ni sorties.
     pub fn config_de(fictive: &str) -> Copie {
         let d = Copie::dossier(fictive);
         copier(&self::fictive(fictive).join("config"), &d.join("config"));
@@ -963,5 +996,20 @@ impl FauxCourriel {
     /// Le message parti de rang `n`.
     pub fn message(&self, n: usize) -> Mail {
         Mail(self.recus.borrow()[n].clone())
+    }
+}
+
+/// Les paies d'une saisie ecrite dans un fichier de test (`engagement::charger_donnees`).
+pub fn charger_fichier(ctx: &droit::contexte::Contexte, chemin: &Path) -> Result<engagement::Saisie, String> {
+    let v: Value = serde_json::from_slice(&std::fs::read(chemin).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    engagement::charger_donnees(ctx, &v)
+}
+
+/// « Valider l'engagement » pour chaque engagement de `mois` encore en saisie, comme l'ecran le fait au `jour`.
+pub fn tout_valider(racine: &Path, mois: &str, jour: &str) {
+    let etat = route_en_processus(racine, "etat-par-engagement", json!({"mois": mois}), jour);
+    for e in reussi(&etat)["engagements"].as_array().unwrap().iter().filter(|e| e["valide"].is_null()) {
+        let charge = json!({"mois": mois, "salarie": e["salarie"], "debut": e["debut"], "numero": e["numero"], "rang": e["rang"], "valide": true});
+        reussi(&route_en_processus(racine, "valider-engagement", charge, jour));
     }
 }

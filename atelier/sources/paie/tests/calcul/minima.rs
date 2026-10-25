@@ -23,8 +23,11 @@ fn contexte(racine: &str, date: &str) -> Contexte {
     Contexte::nouveau(&fictive(racine), Some(Jour::lire(date).unwrap())).unwrap()
 }
 
+/// Les paies du mois que `fichier` nomme (`<fictive>/engagements/AAAA-MM.json`), telles que ses engagements
+/// les donnent.
 fn paies(ctx: &Contexte, fichier: &str) -> Vec<Paie> {
-    charger(ctx, &fictive(fichier)).unwrap().paies
+    let mois = fichier.rsplit('/').next().unwrap().trim_end_matches(".json");
+    charger(ctx, mois).unwrap().paies
 }
 
 fn en_json<T>(r: Result<Vec<Avis>, String>, f: impl Fn(&Avis) -> T) -> Value
@@ -53,7 +56,7 @@ fn charger_porte_l_avertissement_d_un_cachet_sous_le_minimum() {
     let cachet = json!({"rubrique": "cachet", "quantite": 1, "taux": 20.0, "lieu": "Scene fictive", "dates": ["2026-03-24"]});
     let e = json!({"salarie": "Brioche", "spectacle": "256Z00920011", "debut": "2026-03-24", "fin": "2026-03-24", "numero": "BR1.26.09", "lignes": [cachet]});
     std::fs::write(&chemin, json!({"mois": "2026-03", "date_paiement": "2026-03-31", "engagements": [e]}).to_string()).unwrap();
-    let p = &charger(&ctx, &chemin).unwrap().paies[0];
+    let p = &crate::outils::charger_fichier(&ctx, &chemin).unwrap().paies[0];
     let attendus = minima::avertissements(&ctx, p).unwrap();
     assert!(!attendus.is_empty(), "un cachet de 20,00 est sous le minimum de la convention");
     for a in &attendus {

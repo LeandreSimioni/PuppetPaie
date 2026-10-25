@@ -4,10 +4,10 @@
 //! Les `permanents` de l'oracle sont une entree : les lignes de permanent de chaque mois, a la place de
 //! `conges::lignes_du_mois`.
 
-use crate::outils::{copier, fictive, dossier_de_test, lire_oracle, oracle};
+use crate::outils::{fictive, lire_oracle, oracle};
 use droit::contexte::Contexte;
 use socle::date::{d, Jour};
-use engagement::{engagements, engagements_du_fichier, suivre_contrat, Avis, Engagement};
+use engagement::{engagements, suivre_contrat, Avis, Engagement};
 use serde_json::{json, Map, Value};
 use std::cell::Cell;
 use std::path::Path;
@@ -71,7 +71,7 @@ fn les_fichiers_de_mois_et_leur_reprise() {
     let mut engs_n = 0;
     for c in mois.as_array_mut().unwrap() {
         let racine = fictive(c["racine"].as_str().unwrap());
-        let fichier = racine.join("paies").join(c["fichier"].as_str().unwrap());
+        let mois = c["fichier"].as_str().unwrap().trim_end_matches(".json").to_string();
         let ctx = contexte(&racine);
         let permanents = c["permanents"].as_array().unwrap().clone();
         let appel = Cell::new(0);
@@ -80,12 +80,12 @@ fn les_fichiers_de_mois_et_leur_reprise() {
             appel.set(i + 1);
             Ok((permanents[i].as_array().unwrap().clone(), Vec::new()))
         };
-        let engs = match engagements_du_fichier(&ctx, &fichier, &lignes) {
+        let engs = match engagement::saisie_du_mois(&racine, &mois).and_then(|d| engagements(&ctx, &d, &lignes)) {
             Err(e) => {
                 c["refus"] = json!(e);
                 continue;
             }
-            Ok((_, engs, _)) => engs,
+            Ok((engs, _)) => engs,
         };
         engs_n += engs.len();
         c["engagements"] = Value::Array(engs.iter().map(releve).collect());
@@ -129,72 +129,6 @@ fn les_saisies_fabriquees_et_leurs_refus() {
     }
     assert!(refus >= 40, "{}", refus);
     oracle("engagement.json", "/saisies", &saisies);
-}
-
-#[test]
-fn le_contrat_a_cheval_recopie_le_premier_mois() {
-    let mut reprises = lire_oracle("engagement.json")["reprises"].clone();
-    for c in reprises.as_array_mut().unwrap() {
-        let tmp = dossier_de_test("engagement", c["nom"].as_str().unwrap());
-        copier(&fictive(c["config"].as_str().unwrap()).join("config"), &tmp.join("config"));
-        std::fs::create_dir_all(tmp.join("paies")).unwrap();
-        for (m, data) in c["fichiers"].as_object().unwrap() {
-            std::fs::write(tmp.join("paies").join(format!("{}.json", m)), data.to_string()).unwrap();
-        }
-        let ctx = contexte(&tmp);
-        for (m, attendu) in c["attendu"].as_object_mut().unwrap() {
-            let chemin = tmp.join("paies").join(format!("{}.json", m));
-            *attendu = (|| -> Result<Value, String> {
-                let (_, engs, _) = engagements_du_fichier(&ctx, &chemin, &sans_permanents)?;
-                engs.into_iter().map(|mut e| reprise(&ctx, &mut e)).collect::<Result<Vec<_>, _>>().map(Value::Array)
-            })()
-            .unwrap_or_else(|m| json!({"refus": m}));
-        }
-    }
-    oracle("engagement.json", "/reprises", &reprises);
-}
-
-/// Deux contrats a cheval de Brioche qui commencent le meme jour (les JUMEAUX) : `BR1.26.01` (5 jours) et
-/// `BR1.26.02` (2 jours), ouverts en septembre. Octobre ne porte que le second.
-#[test]
-fn le_mois_suivant_d_un_jumeau_recopie_son_premier_mois_et_pas_celui_de_l_autre() {
-    let tmp = dossier_de_test("engagement", "jumeaux");
-    copier(&fictive("fictive-3090-petite").join("config"), &tmp.join("config"));
-    std::fs::create_dir_all(tmp.join("paies")).unwrap();
-    let ecrire = |mois: &str, engagements: Value| {
-        let v = json!({"mois": mois, "spectacle": "ubu-roi", "taux_cachet": 130.0, "engagements": engagements});
-        std::fs::write(tmp.join("paies").join(format!("{}.json", mois)), v.to_string()).unwrap();
-    };
-    let contrat = |numero: Option<&str>, fin: &str, dates: Value, planning: Value| {
-        let mut e = json!({"salarie": "BRIOCHE", "spectacle": "ubu-roi", "debut": "2026-09-28", "fin": fin,
-                           "lignes": [{"rubrique": "cachet", "quantite": dates.as_array().unwrap().len(), "taux": 130.0,
-                                       "dates": dates, "planning": planning}]});
-        if let Some(n) = numero {
-            e["numero"] = json!(n);
-        }
-        e
-    };
-    ecrire(
-        "2026-09",
-        json!([
-            contrat(Some("BR1.26.01"), "2026-10-10", json!(["2026-09-28", "2026-09-29"]), json!(["2026-10-01", "2026-10-05", "2026-10-10"])),
-            contrat(Some("BR1.26.02"), "2026-10-02", json!(["2026-09-28"]), json!(["2026-10-02"])),
-        ]),
-    );
-    let ctx = contexte(&tmp);
-    let octobre = |numero: Option<&str>| -> Result<Engagement, String> {
-        ecrire("2026-10", json!([contrat(numero, "2026-10-02", json!(["2026-10-02"]), json!([]))]));
-        let (_, mut engs, _) = engagements_du_fichier(&ctx, &tmp.join("paies/2026-10.json"), &sans_permanents)?;
-        let mut e = engs.remove(0);
-        suivre_contrat(&ctx, &mut e)?;
-        Ok(e)
-    };
-    // Par son numero, octobre retrouve SON premier mois : ses deux jours, pas les cinq du jumeau.
-    let e = octobre(Some("BR1.26.02")).unwrap();
-    assert_eq!((e.numero.as_deref(), e.jours_contrat), (Some("BR1.26.02"), 2));
-    // Sans numero, deux contrats du meme jour en septembre : on ne devine pas lequel, on refuse.
-    let refus = octobre(None).expect_err("deux jumeaux en septembre, aucun numero en octobre");
-    assert!(refus.contains("BR1.26.01") && refus.contains("BR1.26.02"), "{}", refus);
 }
 
 // ------------------------------------------------- les heures d'un permanent
@@ -262,7 +196,7 @@ fn une_absence_ne_se_saisit_plus_dans_le_mois() {
 #[test]
 fn un_numero_de_contrat_porte_par_deux_salaries_se_refuse() {
     let ctx = contexte(&fictive("fictive-3090-petite"));
-    let mut data = crate::outils::lire(&fictive("fictive-3090-petite"), "paies/2026-08.json");
+    let mut data = crate::outils::saisie(&fictive("fictive-3090-petite"), "2026-08");
     assert!(engagement::charger_donnees(&ctx, &data).is_ok());
     let numero = data["engagements"][0]["numero"].clone();
     data["engagements"][1]["numero"] = numero.clone();
@@ -318,7 +252,7 @@ fn une_ligne_qui_demande_ses_heures_ne_passe_pas_sans_elles() {
     let racine = fictive("fictive-3090-petite");
     let ctx = contexte(&racine);
     let avec = |ligne: Value| {
-        let mut data = crate::outils::lire(&racine, "paies/2026-08.json");
+        let mut data = crate::outils::saisie(&racine, "2026-08");
         data["engagements"][0]["debut"] = json!("2026-08-19");
         data["engagements"][0]["fin"] = json!("2026-08-20");
         data["engagements"][0]["lignes"] = json!([ligne]);
