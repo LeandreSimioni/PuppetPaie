@@ -1,10 +1,9 @@
-//! `operations_permanents.py` : d'une saisie de permanent aux lignes d'un
-//! bulletin (`lignes_du_mois`), et le compteur de conges payes qu'elle
-//! derive des mois produits.
+//! Les conges payes d'un permanent, et les lignes de son mois : d'une saisie de permanent aux lignes d'un bulletin
+//! (`lignes_du_mois`), et le compteur de conges payes qu'elle derive des mois de ses engagements. Les jours et
+//! l'indemnite retenue sont la regle du droit (`droit::conges`, `droit::permanents`).
 //!
-//! Rien n'est stocke : le compteur se derive des fichiers de paie, et le
-//! brut d'un mois passe se recalcule par `engagement::charger`, qui redemande
-//! un compteur. Le memo d'une derivation (profondeur + brut par mois) coupe
+//! Rien n'est stocke : le compteur se derive des saisies des mois, et le brut d'un mois passe se recalcule par
+//! `engagement::charger`, qui redemande un compteur. Le memo d'une derivation (profondeur + brut par mois) coupe
 //! l'explosion de ces appels ; il meurt avec la derivation qui l'a ouvert.
 
 use std::cell::RefCell;
@@ -24,6 +23,7 @@ use crate::{charger, Avis};
 use socle::feries;
 use socle::fichiers::{repr, vrai};
 use socle::num::{add, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
+use droit::conges::{heures_par_jour_oeuvre, jours_oeuvres, jours_ouvrables, IndemniteDesJours};
 use droit::permanents::{arrondir_jours, indemnite_conges, jours_acquis, periode_de_reference, plafonner};
 
 // ------------------------------------------------------------ les aides
@@ -88,46 +88,7 @@ pub fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
 
 // -------------------------------------------------- les jours ouvrables
 
-/// Le nombre de jours ouvrables entre deux dates, bornes incluses : du lundi
-/// au samedi, moins les feries que l'entreprise chome.
-pub fn jours_ouvrables(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
-    jours_de_semaine(debut, fin, entreprise, 6)
-}
-
-/// LES JOURS OEUVRES entre deux dates, bornes incluses : du lundi au vendredi, moins les feries que l'entreprise chome
-/// -- les jours ou un salarie a temps plein « doit travailler » dans la modalite classique (cinq jours de sept heures
-/// pour 35 h). Fiche DSN 2640 (`atelier/reference/sources/suspension-non-remuneree/net-entreprises-fiche2640-volumes-
-/// activite-s21g00-53-20260929.txt`, « Le decompte et calcul des absences au reel ») : quand le planning du salarie n'est
-/// pas connu du logiciel, « Nombre d'heures d'absence = Nb d'heures travaillees/jours oeuvres x Nb de jours
-/// theoriquement oeuvres sur la periode », sur « une ou plusieurs hypotheses de modalites classiques de travail » ;
-/// fiche 2693, exemple 10 : un mois de septembre 2026 entier, « 154 heures (22 x 7 heures) ». INFERENCE NOMMEE : la
-/// saisie ne dit pas les jours de la semaine d'un permanent, et le moteur prend l'hypothese classique, du lundi au
-/// vendredi (la mesure des absences, `imprevus::lignes_du_mois`).
-pub fn jours_oeuvres(debut: &Jour, fin: &Jour, entreprise: Option<&Value>) -> Resultat<i64> {
-    jours_de_semaine(debut, fin, entreprise, 5)
-}
-
-/// Les jours de `debut` a `fin` dont le rang dans la semaine (lundi = 0) est sous `jusqu_a`, moins les feries chomes.
-fn jours_de_semaine(debut: &Jour, fin: &Jour, entreprise: Option<&Value>, jusqu_a: u32) -> Resultat<i64> {
-    let chomes = feries::chomes_entre(debut, fin, entreprise)?;
-    let (mut n, mut jour) = (0, *debut);
-    while jour <= *fin {
-        if jour.jour_de_la_semaine() < jusqu_a && !chomes.iter().any(|(j, _)| *j == jour) {
-            n += 1;
-        }
-        jour = jour.plus_jours(1)?;
-    }
-    Ok(n)
-}
-
-/// LES HEURES D'UN JOUR OEUVRE d'un contrat paye au mois de quotite `quotite` (heures par mois) : la duree hebdomadaire
-/// (quotite x 12 / 52, au centieme : 151,67 h font 35,00 h) sur cinq jours (`jours_oeuvres`) -- 7 h pour un temps plein.
-/// Fiche DSN 2640, « Nb d'heures travaillees/jours oeuvres » ; l'hypothese des cinq jours est l'inference de
-/// `jours_oeuvres`.
-pub fn heures_par_jour_oeuvre(quotite: Decimal) -> Decimal {
-    div(eur2(div(mul(quotite, Decimal::from(12)), Decimal::from(52))), Decimal::from(5))
-}
-
+/// Les jours ouvrables d'un conge pris (`{"debut", "fin"}`) dans l'entreprise `ent` (`droit::conges::jours_ouvrables`).
 pub fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
     jours_ouvrables(&d(requis(c, "debut")?)?, &d(requis(c, "fin")?)?, Some(ent))
 }
@@ -708,15 +669,6 @@ n'est calcule.",
 
 // ------------------------------------------------------ l'indemnite
 
-/// L'indemnite de conges : le dixieme, le maintien, et celui qui gagne.
-#[derive(Debug, Clone)]
-pub struct IndemniteDesJours {
-    pub dixieme: Decimal,
-    pub maintien: Decimal,
-    pub retenu: Decimal,
-    pub regle: &'static str,
-}
-
 /// L'indemnite de `jours` de conges (L3141-24), chaque jour au dixieme DE LA
 /// PERIODE OU IL A ETE ACQUIS : le report d'abord, puis la periode en cours.
 /// Le maintien se compare au TOTAL.
@@ -745,13 +697,7 @@ pub fn indemnite_des_jours(
     if en_cours != Decimal::ZERO {
         dixieme += dixieme_de(en_cours, cpt.remuneration_periode, cpt.acquis)?;
     }
-    let maintien = eur2(maintien);
-    Ok(IndemniteDesJours {
-        dixieme,
-        maintien,
-        retenu: if maintien > dixieme { maintien } else { dixieme },
-        regle: if dixieme > maintien { "dixieme" } else { "maintien" },
-    })
+    Ok(droit::conges::la_plus_forte(dixieme, maintien))
 }
 
 /// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant,

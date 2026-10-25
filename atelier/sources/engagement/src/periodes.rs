@@ -1,33 +1,8 @@
-//! La paie d'un mois decoupee en periodes elementaires (lot R10, 11/10/2026) : un permanent dont le statut, la categorie
-//! ou la quotite change en cours de mois.
-//!
-//! Textes (`atelier/reference/`) :
-//! - norme DSN 2026.1, § 2.1.3.2, p. 28 (`norme-dsn/texte/chapitre-2-principes-de-constitution.txt`, l. 500-511) : « La
-//!   periode elementaire de paie constitue une sous-partie de la periode de paie. Le decoupage [...] decoule de
-//!   modalites differentes de calcul de la paie en cas d'evolution des parametres de calcul de la paie et notamment du
-//!   statut du salarie (par exemple, passage de non cadre a cadre en cours de periode de paie) » ; « La periode a
-//!   declarer dans le bloc Remuneration est cette periode elementaire de paie, lorsque le logiciel de paie produit
-//!   effectivement un decoupage » ; § 2.1.3.3 et 2.1.3.5, p. 29 : les elements du bloc 51 et les mesures d'activite
-//!   (53) « par periode elementaire de paie » ;
-//! - FAQ Agirc-Arrco « Changement de situation en cours de mois », v2 (`sources/agirc-arrco/`) : « le salarie concerne
-//!   par ce changement doit faire l'objet d'un decoupage de ses bases assujetties declarees en DSN » ; « Le salaire brut
-//!   et le plafond de securite sociale doivent etre proratises selon la duree de chacune des periodes
-//!   infra-mensuelles » (exemple 1 : non cadre -> cadre au 10 avril, 9/30 et 21/30) ; pour un passage a temps partiel,
-//!   le plafond et le salaire de la periode « au prorata temporis de la duree du travail » (exemple 2 : 15/30 x
-//!   70/151,67) ; les bases 02 et 03 datees de chaque periode (78.002, 78.003) ; cahier Agirc-Arrco CT2026, § 6.1 ;
-//! - fiche net-entreprises 1265 (`sources/net-entreprises-base-connaissances/`, l. 52) : « Pour tout changement
-//!   intervenant en cours de mois, il convient de ventiler les bases assujetties par periodes afin de permettre un
-//!   calcul correspondant a la situation exacte du salarie » (tous les organismes, Urssaf compris) ;
-//! - CSS R. 242-2, I (`sources/code-de-la-securite-sociale/articles-20261010.md`) : le plafond « reduit[s] a due
-//!   proportion du nombre de jours de la periode pendant laquelle les personnes sont employees », et pour un temps
-//!   partiel « a due proportion de la duree de travail inscrite a leur contrat de travail au titre de la periode ou ils
-//!   sont presents » ; BOSS, assiette generale, § 730 (`sources/boss/`) : « les differentes regles d'ajustement du
-//!   plafond sont cumulables ».
-//!
-//! LA MECANIQUE, EN UN SEUL ENDROIT : chaque periode est une paie calculee par `calcul::calculer_periode`, sur un
-//! engagement borne (`Engagement::periode`) ; elle lit sa fiche sur ses bornes, sa pile de bareme (rien n'est empile
-//! ailleurs que dans `bareme_applique`), son plafond (`plafond::plafond_permanent` : le prorata calendaire qui servait
-//! deja au contrat commence ou fini en cours de mois, sur une autre borne), son salaire. La paie du mois est leur somme.
+//! La paie d'un mois decoupee en periodes elementaires (`droit::periodes`, qui cite les textes) : chaque periode est une
+//! paie calculee par `calcul::calculer_periode`, sur un engagement borne (`Engagement::periode`) ; elle lit sa fiche sur
+//! ses bornes, sa pile de bareme (rien n'est empile ailleurs que dans `bareme_applique`), son plafond
+//! (`plafond::plafond_permanent` : le prorata calendaire qui servait deja au contrat commence ou fini en cours de mois,
+//! sur une autre borne), son salaire. La paie du mois est leur somme (`assembler`).
 
 use std::collections::BTreeMap;
 
@@ -38,60 +13,15 @@ use droit::contexte::{telle_qu_au, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::{Avis, Engagement};
 use socle::fichiers::vrai;
-use socle::num::{dec, div, eur2, Decimal, Resultat};
-
-/// Ce que `avant` (les termes du contrat avant un avenant en cours de mois) peut dire.
-const TERMES_D_AVANT: [&str; 2] = ["salaire_mensuel", "quotite_contrat"];
+use socle::num::{dec, eur2, Decimal, Resultat};
 
 fn qui(eng: &Engagement) -> String {
     format!("Contrat {} de {}", eng.numero.as_deref().filter(|n| !n.is_empty()).unwrap_or("sans numero"), eng.salarie)
 }
 
-/// Le jour ou l'avenant de la saisie du mois decoupe la paie : sa `date_modification`, quand l'engagement dit les termes
-/// d'avant (`avant`) et qu'elle tombe apres le premier jour de la periode payee. Sans `avant`, rien (un avenant en cours
-/// de mois sans ses termes d'avant refuse plus loin, au bloc 41) ; un `avant` qui ne decoupe rien refuse.
+/// Le jour ou l'avenant de la saisie du mois decoupe la paie (`droit::periodes::jour_de_l_avenant`).
 fn jour_de_l_avenant(eng: &Engagement) -> Resultat<Option<Jour>> {
-    let Some(avant) = &eng.avant else { return Ok(None) };
-    let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
-    let objet = avant.as_object().ok_or_else(|| format!("{} : `avant` (les termes du contrat avant l'avenant) : un objet est attendu, lu {}.", qui(eng), avant))?;
-    if let Some(k) = objet.keys().find(|k| !TERMES_D_AVANT.contains(&k.as_str())) {
-        return Err(format!(
-            "{} : `avant` dit `{}`, que le decoupage de la paie ne sait pas porter. Il dit les termes du contrat avant un \
-avenant en cours de mois : {} ; un autre changement en cours de mois (nature, motif, duree de reference...) n'a pas de \
-periode elementaire dans le logiciel. Refus.",
-            qui(eng),
-            k,
-            TERMES_D_AVANT.join(", ")
-        ));
-    }
-    if let Some(k) = TERMES_D_AVANT.iter().find(|k| objet.get(**k).map_or(true, Value::is_null)) {
-        return Err(format!(
-            "{} : `avant` ne dit pas `{}`. La periode d'avant l'avenant se paie sur les termes du contrat d'alors, le \
-salaire mensuel ET la duree du travail (S21.G00.40.013) ; le logiciel ne les devine pas. Les dire tous les deux.",
-            qui(eng),
-            k
-        ));
-    }
-    let Some(texte) = eng.date_modification.as_deref() else {
-        return Err(format!(
-            "{} : `avant` dit les termes du contrat avant un avenant, et `date_modification` (« Avenant a compter du ») \
-ne dit pas quand il prend effet. Le dater.",
-            qui(eng)
-        ));
-    };
-    let j = Jour::lire(texte).map_err(|_| format!("{} : `date_modification` illisible : {}.", qui(eng), texte))?;
-    if j <= debut || j > fin {
-        return Err(format!(
-            "{} : `avant` dit les termes du contrat avant un avenant qui prend effet le {}, et la periode payee va du {} \
-au {} : il ne la coupe pas, rien n'est a decouper. Retirer `avant` (un avenant au premier jour de la periode se paie sur \
-les termes de la saisie, tout le mois).",
-            qui(eng),
-            j.jj_mm_aaaa(),
-            debut.jj_mm_aaaa(),
-            fin.jj_mm_aaaa()
-        ));
-    }
-    Ok(Some(j))
+    droit::periodes::jour_de_l_avenant(eng.avant.as_ref(), eng.date_modification.as_deref(), eng.debut_periode()?, eng.fin_periode()?, &qui(eng))
 }
 
 /// Les bornes des periodes elementaires de la paie de `eng` : une seule (la periode payee) pour un mois d'un seul
@@ -109,17 +39,7 @@ pub fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jour)>> {
     let tqa = |f: &Value, j: &str| telle_qu_au(f, &Jour::lire(j)?);
     let mut jours = droit::emplois::jours_de_changement(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
     jours.extend(jour_de_l_avenant(eng)?);
-    jours.retain(|j| *j > debut && *j <= fin);
-    jours.sort();
-    jours.dedup();
-    let mut out = Vec::new();
-    let mut d = debut;
-    for j in jours {
-        out.push((d, j.plus_jours(-1)?));
-        d = j;
-    }
-    out.push((d, fin));
-    Ok(out)
+    droit::periodes::decouper(debut, fin, jours)
 }
 
 /// Les engagements des periodes elementaires `bornes` de `eng` : chacun borne a sa periode, sur les termes du contrat
@@ -160,11 +80,10 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
         None => (salaire_apres, quotite_apres),
     };
     let fin_mois = eng.fin_mois()?;
-    let jours_du_mois = Decimal::from(fin_mois.jours_du_mois());
     let mut out = Vec::new();
     for (d, f) in bornes {
         let (salaire, quotite) = if avenant.map_or(false, |a| *d < a) { (salaire_avant, quotite_avant) } else { (salaire_apres, quotite_apres) };
-        let fraction = div(Decimal::from(f.moins(d) + 1), jours_du_mois);
+        let fraction = droit::periodes::fraction_du_mois(d, f, &fin_mois);
         let mut e = eng.clone();
         e.periode = Some((*d, *f));
         e.quotite_contrat = Some(crate::conges::flot(quotite));

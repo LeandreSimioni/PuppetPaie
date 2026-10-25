@@ -6,7 +6,7 @@ use crate::outils::{chemin_oracle, fictive, lire_oracle, oracle};
 use droit::bareme::canon;
 use paie::bulletin::{description, fmt_eur, fmt_heures, fmt_taux, jeux_et_description, jj_mm_aaaa, jours, remboursements, Jeu};
 use droit::contexte::Contexte;
-use engagement::cumul::Colonne;
+use droit::cumul::Colonne;
 use engagement::conges::CompteurConges;
 use socle::date::Jour;
 use engagement::charger;

@@ -46,7 +46,7 @@ fn d(v: &Value) -> Decimal {
 /// oeuvres x Nb de jours theoriquement oeuvres » ; fiche 2693, exemple 10 : 22 x 7 h ;
 /// `atelier/reference/sources/suspension-non-remuneree/`).
 fn heures(ctx: &Contexte, debut: &str, fin: &str) -> Decimal {
-    let oeuvres = engagement::conges::jours_oeuvres(&jour(debut), &jour(fin), Some(&ctx.entreprise)).unwrap();
+    let oeuvres = droit::conges::jours_oeuvres(&jour(debut), &jour(fin), Some(&ctx.entreprise)).unwrap();
     eur2(mul(Decimal::from(7), Decimal::from(oeuvres)))
 }
 

@@ -600,7 +600,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str, m: &MoisDuContrat) 
     for imp in du_contrat_dans_le_mois(ctx, e, mois)? {
         let (premier, dernier) = (premier_jour(&imp)?, dernier_jour(&imp)?);
         let (debut, fin) = (premier.max(m.debut), dernier.min(m.fin));
-        let oeuvres = if debut <= fin { Decimal::from(crate::conges::jours_oeuvres(&debut, &fin, Some(ent))?) } else { Decimal::ZERO };
+        let oeuvres = if debut <= fin { Decimal::from(droit::conges::jours_oeuvres(&debut, &fin, Some(ent))?) } else { Decimal::ZERO };
         let heures = eur2(mul(m.heures_par_jour, oeuvres));
         let retenue = |rubrique: &str| -> Option<Value> {
             match &taux_horaire {

@@ -1,13 +1,10 @@
-//! Les minima conventionnels confrontes a une paie (`minima.py`) : des
-//! avertissements, jamais un refus. `avertissements` lit la grille de la
-//! convention ; `sous_le_smic` lit la loi. Ni `etat` ni `non_compares` : ils ne
-//! servent qu'au rapport en ligne de commande.
+//! Les minima conventionnels confrontes a une paie (la table et ses grilles : `droit::minima`) : des avertissements,
+//! jamais un refus. `avertissements` lit la grille de la convention ; `sous_le_smic` lit la loi.
 //!
-//! Chaque minimum prend, quand la paie ne dit pas tout, l'hypothese la plus
-//! basse : un avertissement qui crie a tort ne se lit plus.
+//! Chaque minimum prend, quand la paie ne dit pas tout, l'hypothese la plus basse : un avertissement qui crie a tort ne
+//! se lit plus.
 
 use std::collections::BTreeSet;
-use std::sync::Arc;
 
 use rust_decimal::RoundingStrategy;
 use serde_json::Value;
@@ -15,11 +12,11 @@ use serde_json::Value;
 use crate::calcul::{LigneBrut, Paie};
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
-use socle::texte::sigle;
 use socle::date::{en_texte, repr_texte, Jour};
 use droit::emplois;
 use crate::{Avis, Engagement};
-use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use droit::minima::{ans_revolus, grille_non_etendue, iso, palier, plancher, plus_bas, table, vaut, Minimum, Par, Plancher};
+use socle::fichiers::vrai;
 use socle::num::{add, dec, dec_f64, div, mul, sub, Decimal, Resultat};
 
 static NUL: Value = Value::Null;
@@ -37,9 +34,6 @@ fn mensuel(c: &str) -> bool {
     c == "mois"
 }
 
-pub fn table() -> Resultat<Arc<Value>> {
-    json_en_cache(&dossier_du_code().join("minima-conventionnels.json"))
-}
 
 // ------------------------------------------------------------- les petits outils
 
@@ -69,17 +63,6 @@ fn texte_de(v: &Value, k: &str) -> String {
 /// `x or None`, lu comme texte.
 fn ou_rien(v: &Value) -> Option<String> {
     vrai(v).then(|| en_texte(v))
-}
-
-fn plus_bas<T>(v: Vec<T>, valeur: impl Fn(&T) -> Decimal) -> Option<T> {
-    let mut mini: Option<(Decimal, T)> = None;
-    for x in v {
-        let k = valeur(&x);
-        if mini.as_ref().map_or(true, |(m, _)| k < *m) {
-            mini = Some((k, x));
-        }
-    }
-    mini.map(|(_, x)| x)
 }
 
 /// `Decimal.quantize(Decimal("0.01"), ROUND_DOWN)`.
@@ -130,27 +113,6 @@ pub fn qui(sal: &Value) -> String {
     format!("{} {}", nom, prenom)
 }
 
-/// `date.fromisoformat(str(x)[:10])` : AAAA-MM-JJ ou AAAAMMJJ.
-fn iso(s: &str) -> Option<Jour> {
-    let s: String = s.chars().take(10).collect();
-    let c = s.as_bytes();
-    let n = |a: usize, b: usize| -> Option<u32> {
-        let x = s.get(a..b)?;
-        if x.bytes().all(|c| c.is_ascii_digit()) { x.parse().ok() } else { None }
-    };
-    match c.len() {
-        10 if c[4] == b'-' && c[7] == b'-' => Jour::nouveau(n(0, 4)? as i32, n(5, 7)?, n(8, 10)?),
-        8 => Jour::nouveau(n(0, 4)? as i32, n(4, 6)?, n(6, 8)?),
-        _ => None,
-    }
-}
-
-fn ans_revolus(depuis: &Value, jour: Option<&str>) -> Option<i64> {
-    let a = iso(&en_texte(depuis))?;
-    let b = iso(jour?)?;
-    Some(b.an as i64 - a.an as i64 - i64::from((b.mois, b.jour) < (a.mois, a.jour)))
-}
-
 /// La duree du contrat en jours calendaires, bornes comprises.
 fn jours_du_contrat(eng: &Engagement) -> Option<i64> {
     Some(eng.fin?.moins(&eng.debut) + 1)
@@ -192,49 +154,6 @@ fn idcc_du_contrat(ent: &Value, paie: &Paie) -> Resultat<String> {
 }
 
 // ------------------------------------------------------------------ les planchers
-
-/// Un minimum : le montant, d'ou il vient, et s'il se compare a l'unite.
-pub struct Plancher {
-    pub montant: Decimal,
-    pub quoi: String,
-    pub unite: bool,
-}
-
-fn plancher(montant: Decimal, quoi: String) -> Option<Plancher> {
-    Some(Plancher { montant, quoi, unite: false })
-}
-
-/// Le montant du palier ou tombe `nombre` de representations.
-fn palier(paliers: &Value, nombre: i64) -> Resultat<Option<Decimal>> {
-    for p in paliers.as_array().into_iter().flatten() {
-        let j = cle(p, "jusqu_a")?;
-        if j.is_null() || j.as_f64().map_or(false, |x| nombre as f64 <= x) {
-            return Ok(Some(dec(cle(p, "montant")?)?));
-        }
-    }
-    Ok(None)
-}
-
-/// La grille NAO non etendue de la CCNEAC, si elle s'impose a cette compagnie :
-/// adherente d'une organisation signataire, travail posterieur a l'entree en vigueur.
-pub fn grille_non_etendue<'a>(t: &'a Value, organisation: Option<&str>, jour: Option<&str>) -> Option<&'a Value> {
-    let ne = g(g(t, "1285"), "non_etendu");
-    let (organisation, jour) = (organisation?, jour?);
-    if !vrai(ne) {
-        return None;
-    }
-    let s = sigle(organisation);
-    let signe = g(ne, "signataires").as_array().into_iter().flatten().any(|x| sigle(&en_texte(x)) == s);
-    if !signe {
-        return None;
-    }
-    let vigueur = match g(ne, "en_vigueur") {
-        v if vrai(v) => en_texte(v),
-        _ => "9999".into(),
-    };
-    let jour: String = jour.chars().take(10).collect();
-    (jour >= vigueur).then_some(ne)
-}
 
 /// `ne["texte"].split(",")[0]`.
 fn premiere_partie(v: &Value) -> Resultat<String> {
@@ -995,16 +914,6 @@ fn ligne_de_l_unite(unite: &str) -> Option<&'static str> {
     }
 }
 
-/// Une condition de grille (`si_*`) : la valeur lue est-elle celle qu'on attend ?
-fn vaut(attendu: &Value, lu: &Value) -> bool {
-    let texte = |v: &Value| if v.is_null() { String::new() } else { en_texte(v) };
-    match attendu {
-        Value::Bool(b) => vrai(lu) == *b,
-        Value::Array(l) => l.iter().any(|x| en_texte(x) == texte(lu)),
-        autre => texte(lu) == en_texte(autre),
-    }
-}
-
 // ------------------------------------------------------------------ les deux lectures
 
 /// Une lecture, pas un verdict : la phrase renvoie au texte pour qu'on verifie.
@@ -1020,25 +929,6 @@ fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
     }
 }
 
-/// Ce qu'un minimum compare : le prix d'une heure, d'un cachet, d'un service, ou d'une unite de grille (la journee,
-/// la semaine, le mois).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Par {
-    Heure,
-    Cachet,
-    Service,
-    Unite,
-}
-
-/// Le minimum conventionnel d'une ligne de paie, tel que les avertissements le lisent : le montant, la grille d'ou il
-/// vient, ce qu'il compare. `service_3090` : le service de repetition d'un artiste de la 3090 (sa phrase est a part).
-#[derive(Debug, Clone, PartialEq)]
-pub struct Minimum {
-    pub montant: Decimal,
-    pub quoi: String,
-    pub par: Par,
-    pub service_3090: bool,
-}
 
 /// Le contexte d'un plancher pour cette paie (la convention du contrat, le metier de la fiche), passe a `f` ; rien
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.

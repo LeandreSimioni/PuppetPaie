@@ -6,8 +6,9 @@ use serde_json::{json, Value};
 
 use droit::catalogue::rubrique;
 use droit::clauses;
+use droit::conges::jours_ouvrables;
 use crate::conges::{
-    avertir, compteur_conges, dec_ou, indemnite_des_jours, info, jours_ouvrables, jours_ouvrables_de, nature_de,
+    avertir, compteur_conges, dec_ou, indemnite_des_jours, info, jours_ouvrables_de, nature_de,
     numero, flot, remuneration_du_mois, sub,
 };
 use droit::contexte::{aujourdhui, Contexte};

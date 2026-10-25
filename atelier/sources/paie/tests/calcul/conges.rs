@@ -2,7 +2,8 @@
 //! leurs avertissements, le compteur de conges. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{fictive, lire_oracle, oracle};
-use engagement::conges::{compteur_conges, jours_ouvrables, lignes_du_mois};
+use droit::conges::jours_ouvrables;
+use engagement::conges::{compteur_conges, lignes_du_mois};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use serde_json::{json, Value};

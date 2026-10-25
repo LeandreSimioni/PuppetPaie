@@ -102,7 +102,8 @@ fn avis(v: &[engagement::Avis]) -> Value {
 /// `{"mois", "aujourdhui"}` -> `{"constantes", "positions": [{"cle",
 /// "anniversaire", "position", "colonnes"}]}`, les salaries dans l'ordre.
 pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
-    use engagement::cumul::{anniversaire_configure, lire_engagements, position_droits, tableau_cumul, Constantes};
+    use droit::cumul::{anniversaire_configure, position_droits, tableau_cumul, Constantes};
+    use engagement::cumul::lire_engagements;
     let d = demande(entree)?;
     let ctx = contexte(o)?;
     let (mois, aujourdhui) = (texte(&d, "mois")?, Jour::lire(texte(&d, "aujourdhui")?)?);
@@ -112,8 +113,8 @@ pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Valu
     let mut positions = Vec::new();
     for cle in cles {
         let anniv = anniversaire_configure(&ctx, cle)?;
-        let pos = position_droits(&ctx, cle, Some(&engs), anniv, None)?;
-        let colonnes = tableau_cumul(&ctx, cle, mois, Some(&engs))?;
+        let pos = position_droits(&ctx, cle, &engs, anniv, None)?;
+        let colonnes = tableau_cumul(&ctx, cle, mois, &engs)?;
         let mut m = Map::new();
         m.insert("cle".into(), Value::String(cle.to_string()));
         m.insert("anniversaire".into(), jour(anniv));
@@ -139,14 +140,15 @@ pub(crate) struct Provision {
     pub pris: socle::num::Decimal,
     pub solde: socle::num::Decimal,
     pub avertissements: Vec<engagement::Avis>,
-    pub indemnite: Option<engagement::conges::IndemniteDesJours>,
+    pub indemnite: Option<droit::conges::IndemniteDesJours>,
 }
 
 /// Le calcul de `provision-conges`, pour un contexte deja lu : le compteur d'un permanent a la fin de `mois`, et
 /// l'indemnite de son solde (le dixieme ou le maintien, L3141-24) quand il est positif. `salaire_mensuel` : la
 /// valeur de l'engagement (`None` ou fausse = 0).
 pub(crate) fn provision_conges_de(ctx: &Contexte, salarie: &str, mois: &str, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
-    use engagement::conges::{compteur_conges, indemnite_des_jours, jours_ouvrables};
+    use droit::conges::jours_ouvrables;
+    use engagement::conges::{compteur_conges, indemnite_des_jours};
     use socle::num::{dec, div, eur, mul, Decimal};
     let fin = socle::date::dernier_du_mois(mois)?;
     let cpt = compteur_conges(ctx, salarie, &fin, Some(&fin.mois_suivant()))?;

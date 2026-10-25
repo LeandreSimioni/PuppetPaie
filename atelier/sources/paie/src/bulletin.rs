@@ -10,7 +10,8 @@
 use engagement::calcul::Paie;
 use engagement::conges::{compteur_au_bulletin, CompteurConges};
 use droit::contexte::Contexte;
-use engagement::cumul::{lire_engagements, tableau_cumul, Colonne};
+use droit::cumul::{tableau_cumul, Colonne};
+use engagement::cumul::lire_engagements;
 use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
 use droit::emplois;
 use socle::fichiers::vrai;
@@ -1248,7 +1249,7 @@ pub fn jeux_et_description(
                     conges_par_paie.insert(i, compteur_au_bulletin(ctx, pa, mois)?);
                 }
             } else if !colonnes_par_salarie.contains_key(&cle) {
-                colonnes_par_salarie.insert(cle.clone(), tableau_cumul(ctx, &cle, mois, Some(&engagements))?);
+                colonnes_par_salarie.insert(cle.clone(), tableau_cumul(ctx, &cle, mois, &engagements)?);
             }
         }
     }
