@@ -1,33 +1,32 @@
-//! L'ETAT GARDE D'UN MOIS (Leandre, 08/10/2026 : « la verite est dans les JSON, l'ecran ne fait que lire » ; « c'est a
-//! l'ecriture que ca doit fonctionner » ; 09/10/2026 : « juste de la lecture »). Le plan : `PLAN-MOIS-INSTANTANE.md`.
+//! L'ETAT D'UN MOIS ET L'ETAT DE L'OUVERTURE, tels que l'ecran les lit.
 //!
-//! `paies/AAAA-MM.etat.json` porte TOUT ce que l'ecran d'un mois lit : l'etat de chaque paie (`etat-par-paie`), celui du
-//! mois (`etat-du-mois`), et les lectures que la page faisait une a une (`LECTURES` : la saisie, les contrats en cours,
-//! les embauches, les fins, les imprevus, l'apercu de la saisie enregistree). Il est refait dans
-//! le processus de la fenetre, par UNE file (`FileDesEtats`, ticket #212) -- des le lancement pour les compagnies de
-//! l'installation (`Fil`, ticket #244) --, puis apres chaque ecriture, a l'ouverture d'une
-//! compagnie et apres chaque tour de veille, le mois affiche et ses voisins d'abord. La fenetre le sert elle-meme, sans
-//! processus (`FileDesEtats::ecran`, route `mois` de `interface/api.rs`) : le dernier etat connu, TOUT DE SUITE, meme
-//! perime -- marque `perime`, refait aussitot, et la page se repeint quand l'etat frais arrive.
+//! L'etat d'un mois porte TOUT ce que l'ecran d'un mois lit : l'etat de chaque engagement (`etat-par-engagement`), celui
+//! du mois (`etat-du-mois`), et les lectures que la page faisait une a une (`LECTURES` : la saisie, les contrats en
+//! cours, les embauches, les fins, les imprevus, l'apercu de la saisie enregistree). Il se fait dans le processus de la
+//! fenetre, par UNE file (`FileDesEtats`) -- des le lancement pour les compagnies de l'installation (`Fil`) --, puis
+//! apres chaque ecriture, a l'ouverture d'une compagnie et apres chaque tour de veille, le mois affiche et ses voisins
+//! d'abord. Il ne s'ecrit pas : la file le garde en memoire, sous l'EMPREINTE de tout ce dont il est tire (`empreinte`),
+//! et la fenetre le sert sans processus (`FileDesEtats::ecran`, route `mois` de `interface/api.rs`) : le dernier etat
+//! connu, TOUT DE SUITE, meme perime -- marque `perime`, refait aussitot, et la page se repeint quand l'etat frais
+//! arrive. Les paies des engagements valides sont ecrites dans l'engagement (`engagement::etats`) : un etat se refait
+//! sans les recalculer.
 //!
-//! Il n'est pas une seconde verite : la verite reste la saisie, le calcul, les journaux, les retours et les fiches. L'etat
-//! garde en est le resume, sous l'EMPREINTE de tout ce dont il est tire (`empreinte`). Depuis le 09/10/2026 l'empreinte ne
-//! relit plus le contenu des sources : elle prend, pour chacune, sa date de modification et sa taille (une modification a
-//! la main change la date). S'y ajoutent la date du jour (une echeance passee change ce qui se dit : un etat se refait
-//! donc une fois par jour, et la file le refait des l'ouverture), le moteur lui-meme et l'emplacement du dossier
-//! (l'etat porte des chemins : un dossier deplace se refait). Tant que l'empreinte est la meme, il se sert sans rien
-//! recalculer ; si quoi que ce soit a bouge, par le logiciel ou a la main, il se refait une fois. Un etat garde ne ment
-//! donc pas longtemps : servi perime, il le dit, et il se refait.
+//! L'empreinte ne relit pas le contenu des sources : elle prend, pour chacune, sa date de modification et sa taille (une
+//! modification a la main change la date). S'y ajoutent la date du jour (une echeance passee change ce qui se dit : un
+//! etat se refait donc une fois par jour), le moteur lui-meme et l'emplacement du dossier (l'etat porte des chemins).
+//! Tant que l'empreinte est la meme, il se sert sans rien refaire ; si quoi que ce soit a bouge, par le logiciel ou a la
+//! main, il se refait une fois.
 //!
-//! L'OUVERTURE D'UNE COMPAGNIE (ticket #244, Leandre, 22/10/2026 : « pas 1 seconde, une demi max » ; « je veux que
-//! l'affichage soit en premier ; une fois affichee, les petits ajustements du moteur se font sans faire bouger la page »).
-//! Le meme mecanisme, sous une autre cle (`OUVERTURE`) : `ouverture.etat.json`, a la racine de la compagnie, porte ce que
-//! la page lit en s'ouvrant et qui n'est pas l'ecran d'un mois (`LECTURES_OUVERTURE` : la configuration et l'historique,
-//! le mois a ouvrir, l'echeancier, les rappels, ce qui manque pour demarrer, les conseils). Meme empreinte (dates et
-//! tailles), mais de TOUTE la compagnie (`empreinte_ouverture`) ; meme file, qui le refait a l'ouverture, apres chaque
-//! ecriture et chaque tour de veille ; meme service sans processus (`FileDesEtats::ouverture`, route `ouverture` de
-//! `interface/api.rs`) : le dernier etat connu, tout de suite, avec l'ecran du mois a ouvrir, chacun marque `perime` s'il
-//! l'est. Sans etat connu, la fenetre le fait faire et dit ce que fait le moteur (`phrase`), au lieu d'une roue muette.
+//! L'OUVERTURE D'UNE COMPAGNIE (ticket #244 : « pas 1 seconde, une demi max » ; « je veux que l'affichage soit en
+//! premier ; une fois affichee, les petits ajustements du moteur se font sans faire bouger la page »). Le meme mecanisme,
+//! sous une autre cle (`OUVERTURE`) : `ouverture.etat.json`, a la racine de la compagnie, porte ce que la page lit en
+//! s'ouvrant et qui n'est pas l'ecran d'un mois (`LECTURES_OUVERTURE` : la configuration et l'historique, le mois a
+//! ouvrir, l'echeancier, les rappels, ce qui manque pour demarrer, les conseils) ; lui s'ecrit, pour qu'une compagnie
+//! s'ouvre tout de suite au lancement suivant. Meme empreinte (dates et tailles), mais de TOUTE la compagnie ; meme
+//! file, qui le refait a l'ouverture, apres chaque ecriture et chaque tour de veille ; meme service sans processus
+//! (`FileDesEtats::ouverture`, route `ouverture` de `interface/api.rs`) : le dernier etat connu, tout de suite, avec
+//! l'ecran du mois a ouvrir, chacun marque `perime` s'il l'est. Sans etat connu, la fenetre le fait faire et dit ce que
+//! fait le moteur (`phrase`), au lieu d'une roue muette.
 
 use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
@@ -45,8 +44,8 @@ type R<T> = Result<T, Echec>;
 /// Le format du fichier : un autre se refait avant de se montrer. 3 : le moteur qui l'a ecrit (`moteur`).
 const FORMAT: u64 = 3;
 
-/// Les routes que l'etat garde sert.
-pub const ROUTES: [&str; 3] = ["etat-par-paie", "etat-du-mois", "mois"];
+/// Les routes que l'etat d'un mois sert.
+pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois"];
 
 /// Les lectures de l'ecran d'un mois qui ne sont pas les deux etats : la route, et si sa charge est `{"mois"}` (sinon
 /// `{}`). La page les demandait une a une, chacune dans un processus ; elles sont faites ici, une fois, avec les memes
@@ -78,24 +77,15 @@ const LECTURES_OUVERTURE: [(&str, &str); 7] = [
     ("conseil-du-jour", r#"{"decalage": 0}"#),
 ];
 
-/// Le fichier d'un etat garde : `paies/AAAA-MM.etat.json` pour un mois ; `ouverture.etat.json` a la racine pour
-/// l'ouverture -- hors de `paies/`, que des routes relisent fichier par fichier (`salaries_au_mois`).
-pub fn chemin(racine: &Path, cle: &str) -> PathBuf {
-    if cle == OUVERTURE {
-        return racine.join("ouverture.etat.json");
-    }
-    racine.join("paies").join(format!("{}.etat.json", cle))
+/// Le fichier de l'etat de l'OUVERTURE, a la racine de la compagnie : le seul etat qui s'ecrit.
+pub fn chemin(racine: &Path) -> PathBuf {
+    racine.join("ouverture.etat.json")
 }
 
 /// Un mois `AAAA-MM`, rien d'autre : il nomme un fichier.
 fn mois_valide(mois: &str) -> bool {
     let b = mois.as_bytes();
     b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
-}
-
-/// Une cle de la file : un mois, ou l'ouverture.
-fn cle_valide(cle: &str) -> bool {
-    cle == OUVERTURE || mois_valide(cle)
 }
 
 /// Le dossier, absolu et comparable (sous Windows, sans le `\\?\` de `canonicalize`).
@@ -137,7 +127,7 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
 
 /// CE QUE L'ECRAN D'UN MOIS NE LIT PAS, et qui bouge sans lui (ticket #212, 16/10/2026). Etabli par mesure (`strace` de la
 /// route `mois` sur cinq mois de la grande fictive 3090 : aucun de ces fichiers n'est ouvert ni teste) et par le code
-/// (chacun n'a de lecteur que hors des lectures du mois : `LECTURES`, `etat-par-paie`, `etat-du-mois`, l'apercu) :
+/// (chacun n'a de lecteur que hors des lectures du mois : `LECTURES`, `etat-par-engagement`, `etat-du-mois`, l'apercu) :
 /// - `config/.ouverture.json` : la trace de la veille (`ouverture.rs`, `chemin_trace`), reecrite a chaque tour ; lue par
 ///   `ouverture-derniere` seulement ;
 /// - `config/.sauvegarde.json` : l'index de la sauvegarde (`sauvegarde::chemin_index`), reecrit a chaque sauvegarde ; lu
@@ -164,19 +154,16 @@ const HORS_DE_L_ECRAN: [&str; 9] = [
     "config/.tableau.json",
 ];
 
-/// L'empreinte de tout ce dont l'etat garde `cle` est tire, au jour `jour` (AAAA-MM-JJ).
+/// L'empreinte de tout ce dont l'etat `cle` est tire, au jour `jour` (AAAA-MM-JJ).
 ///
-/// Pour un MOIS : les calculs des AUTRES mois n'y sont pas (ils ne changent rien a celui-ci), ni le coffre (un `.bin` :
-/// ce qu'il dit se relit a chaque lecture), ni ce que l'ecran ne lit pas (`HORS_DE_L_ECRAN`), ni les sorties des autres
-/// mois.
+/// Pour un MOIS : ni le coffre (un `.bin` : ce qu'il dit se relit a chaque lecture), ni ce que l'ecran ne lit pas
+/// (`HORS_DE_L_ECRAN`), ni les sorties des autres mois.
 ///
-/// Pour l'OUVERTURE (ticket #244) : toute la compagnie -- les saisies et les sorties de tous les mois (le mois a ouvrir et
-/// l'historique les lisent), mais pas les calculs gardes (`AAAA-MM.calcul.json`) : chacun est tire de saisies, de fiches
-/// et de baremes deja signes, et l'etat d'un mois le refait en fond (sinon chaque mois refait perimerait l'ouverture) ;
-/// les images de l'identite (`gabarits/`), la date et la taille des fichiers du coffre (la
-/// configuration dit si la boite courriel est liee, `boite_liee` : rien n'en est lu ici, ni ailleurs dans l'empreinte), et
-/// l'adresse de la boite posee dans l'environnement (`COURRIEL_COMPTE`). Ce qui ne s'y lit pas reste dehors
-/// (`HORS_DE_L_ECRAN` : les signalements se lisent a chaque ouverture, a cote).
+/// Pour l'OUVERTURE (ticket #244) : toute la compagnie -- les engagements et les sorties de tous les mois (le mois a
+/// ouvrir et l'historique les lisent), les images de l'identite (`gabarits/`), la date et la taille des fichiers du coffre
+/// (la configuration dit si la boite courriel est liee, `boite_liee` : rien n'en est lu ici, ni ailleurs dans
+/// l'empreinte), et l'adresse de la boite posee dans l'environnement (`COURRIEL_COMPTE`). Ce qui ne s'y lit pas reste
+/// dehors (`HORS_DE_L_ECRAN` : les signalements se lisent a chaque ouverture, a cote).
 pub fn empreinte_de(racine: &Path, cle: &str, jour: &str) -> String {
     let ouverture = cle == OUVERTURE;
     let mut h = Sha256::new();
@@ -188,13 +175,11 @@ pub fn empreinte_de(racine: &Path, cle: &str, jour: &str) -> String {
         h.update(marque.as_bytes());
         h.update([0]);
     }
-    let calcul_du_mois = format!("paies/{}.calcul.json", cle);
     let sorties_du_mois = format!("sorties/{}/", cle);
-    // La compagnie : ses saisies (et `paies/avant/`), sa configuration, ses journaux, ses imprevus, ses regularisations, son
-    // historique importe, ses retours, et ce qui est sorti pour ce mois-ci (pour l'ouverture : pour tous les mois).
-    signer_dossier(&mut h, racine, &racine.join("paies"), true, &|n| {
-        n.ends_with(".json") && !n.ends_with(".etat.json") && (!n.ends_with(".calcul.json") || (!ouverture && n == calcul_du_mois))
-    });
+    // La compagnie : ses engagements (et `engagements/avant/`), sa configuration, ses journaux, ses imprevus, ses
+    // regularisations, son historique importe, ses retours, et ce qui est sorti pour ce mois-ci (pour l'ouverture : pour
+    // tous les mois).
+    signer_dossier(&mut h, racine, &racine.join(engagement::stock::DOSSIER), true, &|n| n.ends_with(".json"));
     signer_dossier(&mut h, racine, &racine.join("config"), true, &|n| {
         (ouverture || !n.ends_with(".bin")) && !n.ends_with(".tmp") && !HORS_DE_L_ECRAN.contains(&n)
     });
@@ -218,9 +203,9 @@ pub fn empreinte(ctx: &Contexte, mois: &str) -> String {
     empreinte_de(&ctx.racine, mois, &ctx.aujourdhui.iso())
 }
 
-/// L'etat garde de `mois`, s'il est encore juste.
-fn garde(racine: &Path, mois: &str, empreinte: &str) -> Option<Value> {
-    let v: Value = serde_json::from_slice(&std::fs::read(chemin(racine, mois)).ok()?).ok()?;
+/// L'etat de l'ouverture tel qu'il est ecrit, s'il est encore juste.
+fn garde(racine: &Path, empreinte: &str) -> Option<Value> {
+    let v: Value = serde_json::from_slice(&std::fs::read(chemin(racine)).ok()?).ok()?;
     (v.get("format").and_then(Value::as_u64) == Some(FORMAT) && v.get("empreinte").and_then(Value::as_str) == Some(empreinte)).then_some(v)
 }
 
@@ -239,19 +224,17 @@ fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
         let charge = if du_mois { json!({ "mois": mois }) } else { json!({}) };
         l.insert(route.to_string(), lecture(o, route, charge));
     }
-    // L'APERCU : ce que la page demandait des qu'un mois s'affichait (`calculerApercu`), sur la saisie qu'elle venait de
-    // lire. Le meme calcul, sur la saisie enregistree ; la page ne le redemande que quand on modifie la saisie.
-    // La saisie telle qu'elle est sur le disque (`{"saisie": mois}`) : celle dont les cartes figees ont pris l'empreinte, et
-    // dont le calcul du mois est garde (`paies/AAAA-MM.calcul.json`).
+    // L'APERCU : ce que la page demande des qu'un mois s'affiche (`calculerApercu`), sur la saisie qu'elle vient de lire
+    // (`{"saisie": mois}`, la saisie enregistree) ; la page ne le redemande que quand on modifie la saisie.
     if l.get("saisie").and_then(|s| s.pointer("/resultat/existe")).is_some_and(|e| e == &Value::Bool(true)) {
         l.insert("apercu".into(), lecture(o, "apercu", json!({"saisie": mois, "lignes": false})));
     }
     Value::Object(l)
 }
 
-/// Refait l'etat de `mois` et l'ecrit. Le calcul du mois peut se refaire pendant la lecture (le brut de chaque paie) :
-/// l'empreinte d'apres n'est alors plus celle d'avant, et un second passage, sans calcul cette fois, la retrouve. Si elle
-/// bouge encore (une autre ecriture passait), rien ne s'ecrit : la prochaine lecture refera.
+/// Refait l'etat de `cle` (un mois, ou l'ouverture, qui s'ecrit). Ce qui se lit peut ecrire (une paie validee qui se
+/// recalcule d'elle-meme a l'ouverture de son mois, `engagement::etats::rafraichir`) : l'empreinte d'apres n'est alors
+/// plus celle d'avant, et un second passage, sans recalcul cette fois, la retrouve.
 fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> {
     let charge = json!({ "mois": mois });
     let mut derniere = None;
@@ -271,20 +254,23 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
                 "lectures": l,
             })
         } else {
-            let par_paie = crate::routes_mois::route(o, ctx, "etat-par-paie", &charge)?;
+            let lus = lectures(o, mois);
+            let par_engagement = crate::routes_mois::route(o, ctx, "etat-par-engagement", &charge)?;
             let du_mois = crate::routes_mois::route(o, ctx, "etat-du-mois", &charge)?;
             json!({
                 "format": FORMAT,
                 "moteur": env!("PAIE_SOURCES"),
                 "mois": mois,
                 "empreinte": avant,
-                "paies": par_paie.get("paies").cloned().unwrap_or(Value::Null),
+                "engagements": par_engagement.get("engagements").cloned().unwrap_or(Value::Null),
                 "du_mois": du_mois,
-                "lectures": lectures(o, mois),
+                "lectures": lus,
             })
         };
         if empreinte(ctx, mois) == avant {
-            ecrire(&ctx.racine, mois, &etat);
+            if mois == OUVERTURE {
+                ecrire(&ctx.racine, &etat);
+            }
             return Ok(etat);
         }
         derniere = Some(etat);
@@ -292,22 +278,24 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
     Ok(derniere.unwrap_or(Value::Null))
 }
 
-/// Ecrit d'un coup : un fichier a cote, puis le remplacement. Une lecture ne voit jamais un etat a moitie ecrit. Une
-/// ecriture impossible ne change rien au resultat : la prochaine lecture refera.
-fn ecrire(racine: &Path, mois: &str, etat: &Value) {
-    let f = chemin(racine, mois);
+/// Ecrit l'etat de l'ouverture d'un coup : un fichier a cote, puis le remplacement. Une lecture ne voit jamais un etat a
+/// moitie ecrit. Une ecriture impossible ne change rien au resultat : la prochaine lecture refera.
+fn ecrire(racine: &Path, etat: &Value) {
+    let f = chemin(racine);
     let tmp = socle::ecriture::provisoire(&f);
     if std::fs::write(&tmp, etat.to_string()).is_ok() && std::fs::rename(&tmp, &f).is_err() {
         let _ = std::fs::remove_file(&tmp);
     }
 }
 
-/// L'etat de `mois` : le garde s'il est juste, sinon refait.
-pub fn lire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> {
-    match garde(&ctx.racine, mois, &empreinte(ctx, mois)) {
-        Some(v) => Ok(v),
-        None => refaire(o, ctx, mois),
+/// L'etat de `cle` : celui de l'ouverture, ecrit, s'il est juste ; sinon refait.
+pub fn lire(o: &HashMap<String, String>, ctx: &Contexte, cle: &str) -> R<Value> {
+    if cle == OUVERTURE {
+        if let Some(v) = garde(&ctx.racine, &empreinte(ctx, cle)) {
+            return Ok(v);
+        }
     }
+    refaire(o, ctx, cle)
 }
 
 /// `etat-du-mois` tel que la page le recoit. LE COFFRE N'EST PAS DANS L'EMPREINTE (un `.bin`, qu'on ne lit pas) : ce
@@ -328,7 +316,7 @@ fn du_mois(racine: &Path, etat: &Value) -> R<Value> {
 fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
     use crate::interface::api::{en_page, Refus};
     let mut l = etat.get("lectures").and_then(Value::as_object).cloned().unwrap_or_default();
-    l.insert("etat-par-paie".into(), en_page(Ok(json!({ "mois": brut, "paies": etat.get("paies").cloned().unwrap_or(Value::Null) }))));
+    l.insert("etat-par-engagement".into(), en_page(Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null) }))));
     l.insert(
         "etat-du-mois".into(),
         en_page(du_mois(racine, etat).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))),
@@ -336,48 +324,40 @@ fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
     json!({ "mois": brut, "lectures": l })
 }
 
-/// `etat-par-paie`, `etat-du-mois` et `mois`, servis par l'etat garde : pour les deux premiers, le meme JSON que
+/// `etat-par-engagement`, `etat-du-mois` et `mois`, servis par l'etat du mois : pour les deux premiers, le meme JSON que
 /// `routes_mois`.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let (brut, mois) = crate::routes_mois::mois_de(charge)?;
     let etat = lire(o, ctx, &mois)?;
     match nom {
-        "etat-par-paie" => Ok(json!({ "mois": brut, "paies": etat.get("paies").cloned().unwrap_or(Value::Null) })),
+        "etat-par-engagement" => Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null) })),
         "mois" => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
         _ => du_mois(&ctx.racine, &etat),
     }
 }
-/// L'etat garde `mois` (un mois, ou `OUVERTURE`) tel qu'il est sur le disque, JUSTE OU NON (ticket #212) : `(etat, juste)`. `None` s'il n'y en a
-/// L'etat garde de `mois` tel qu'il est sur le disque, JUSTE OU NON (ticket #212) : `(etat, juste)`. `None` s'il n'y en a
-/// pas, s'il ne se lit pas, ou s'il vient d'un autre format ou d'un autre moteur (sa forme peut n'etre pas celle que la
-/// page lit : il se refait avant de se montrer). Rien ne se calcule ici : une lecture de fichier, des dates de fichiers.
-pub fn servir(racine: &Path, mois: &str, jour: &str) -> Option<(Value, bool)> {
-    if !cle_valide(mois) {
+
+/// L'etat de l'OUVERTURE tel qu'il est ecrit, JUSTE OU NON : `(etat, juste)`. `None` s'il n'y en a pas, s'il ne se lit
+/// pas, ou s'il vient d'un autre format ou d'un autre moteur (sa forme peut n'etre pas celle que la page lit : il se
+/// refait avant de se montrer). Rien ne se calcule ici : une lecture de fichier, des dates de fichiers. Un mois n'a pas
+/// d'etat ecrit (`FileDesEtats` le garde en memoire).
+pub fn servir(racine: &Path, cle: &str, jour: &str) -> Option<(Value, bool)> {
+    if cle != OUVERTURE {
         return None;
     }
-    let v: Value = serde_json::from_slice(&std::fs::read(chemin(racine, mois)).ok()?).ok()?;
+    let v: Value = serde_json::from_slice(&std::fs::read(chemin(racine)).ok()?).ok()?;
     let de_ce_moteur = v.get("format").and_then(Value::as_u64) == Some(FORMAT)
         && v.get("moteur").and_then(Value::as_str) == Some(env!("PAIE_SOURCES"))
-        && v.get("mois").and_then(Value::as_str) == Some(mois);
+        && v.get("mois").and_then(Value::as_str) == Some(cle);
     if !de_ce_moteur {
         return None;
     }
-    let juste = v.get("empreinte").and_then(Value::as_str) == Some(empreinte_de(racine, mois, jour).as_str());
+    let juste = v.get("empreinte").and_then(Value::as_str) == Some(empreinte_de(racine, cle, jour).as_str());
     Some((v, juste))
 }
 
-/// Les mois dont l'etat se tient a jour : ceux qui ont une saisie ou un etat garde, et le mois du jour.
+/// Les mois dont l'etat se tient a jour : ceux que la saisie a touches, et le mois du jour.
 fn mois_suivis(racine: &Path, jour: &str) -> Vec<String> {
-    let mut mois: Vec<String> = std::fs::read_dir(racine.join("paies"))
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter_map(|e| {
-            let n = e.file_name().to_str()?.to_string();
-            let m = n.strip_suffix(".etat.json").or_else(|| n.strip_suffix(".json"))?;
-            mois_valide(m).then(|| m.to_string())
-        })
-        .collect();
+    let mut mois = engagement::stock::mois_saisis(racine).unwrap_or_default();
     if jour.len() >= 7 {
         mois.push(jour[..7].to_string());
     }
@@ -612,6 +592,20 @@ impl FileDesEtats {
         droit::contexte::aujourdhui_sans_note().map(|j| j.iso()).unwrap_or_default()
     }
 
+    /// Le dernier etat connu de `cle`, JUSTE OU NON : celui de l'ouverture, ecrit (`servir`) ; celui d'un mois, que la file
+    /// garde en memoire depuis son dernier passage. `None` : aucun.
+    pub fn connu(&self, cle: &str, jour: &str) -> Option<(Value, bool)> {
+        if cle == OUVERTURE {
+            return servir(&self.racine, cle, jour);
+        }
+        let v = match self.verrou().fait.get(cle) {
+            Some((_, Ok(v))) => v.clone(),
+            _ => return None,
+        };
+        let juste = v.get("empreinte").and_then(Value::as_str) == Some(empreinte_de(&self.racine, cle, jour).as_str());
+        Some((v, juste))
+    }
+
     /// La prochaine cle a refaire, si la file en a une (sous le verrou du fil, `Fil::choisir`).
     fn prendre_travail(&self) -> Option<(String, u64)> {
         let mut e = self.verrou();
@@ -644,7 +638,7 @@ impl FileDesEtats {
         if mois == TABLEAU {
             return self.faire_le_tableau();
         }
-        if let Some((v, true)) = servir(&self.racine, mois, &self.jour()) {
+        if let Some((v, true)) = self.connu(mois, &self.jour()) {
             return Ok(v);
         }
         let o = &self.o;
@@ -779,7 +773,7 @@ impl FileDesEtats {
         }
         self.verrou().affiche = Some(mois.to_string());
         let brut = Value::String(mois.to_string());
-        match servir(&self.racine, mois, &self.jour()) {
+        match self.connu(mois, &self.jour()) {
             Some((etat, true)) => return Ok(Self::marquer(pour_la_page(&self.racine, &etat, &brut), false)),
             Some((etat, false)) if !attendre => {
                 self.demander(mois, true);
@@ -794,7 +788,7 @@ impl FileDesEtats {
     /// L'etat garde `cle`, juste ou non, s'il y en a un ; sinon il est demande devant et attendu jusqu'a `limite` --
     /// `Ok(None)` si elle passe avant lui. Le passage rend l'etat (juste) ou son refus.
     fn obtenir(&self, cle: &str, jour: &str, limite: Instant) -> R<Option<(Value, bool)>> {
-        if let Some(x) = servir(&self.racine, cle, jour) {
+        if let Some(x) = self.connu(cle, jour) {
             return Ok(Some(x));
         }
         let n = self.demander(cle, true);

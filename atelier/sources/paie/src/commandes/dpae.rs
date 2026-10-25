@@ -33,7 +33,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// Le mois du fichier de saisie, si c'est bien `paies/AAAA-MM.json` des donnees (sinon la phrase qui le dit).
+/// Le mois que la commande vise (`actes::mois_du_fichier`).
 fn mois_de_la_saisie(cadre: &Cadre, texte: &str) -> Result<String, Echec> {
     super::actes::mois_du_fichier(cadre, texte, "La DPAE se produit")
 }

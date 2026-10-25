@@ -378,11 +378,9 @@ mensuelle et le signalement le declarent tous deux."
 /// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
 /// colonne du mois) et les rappels de l'ouverture (`routes_ouverture`) la lisent.
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
+    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
-    }
-    let saisie = lire_json(&chemin)?;
+    };
     let fin_mois = fin_du_mois(mois)?;
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
@@ -605,7 +603,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
 fn mois_a_corriger(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let mut m = Moteur::nouveau(o, ctx);
     let mut etats = Vec::new();
-    for (mois, _) in fichiers_de_mois(&ctx.racine.join("paies")) {
+    for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
         etats.push(etat_mois(&mut m, ctx, &mois)?);
     }
     let choisis = |f: &dyn Fn(&Value) -> bool| -> Vec<Value> { etats.iter().filter(|e| f(e)).cloned().collect() };

@@ -16,16 +16,16 @@
 //!
 //! SANS CALCUL TANT QU'ON PEUT : `ecart_au_contrat_signe` regarde d'abord tout ce qui ne demande
 //! pas la paie (le delai, le contrat parti ce mois-la, le PDF, le modele, le texte du PDF), puis
-//! seulement prend les montants dans la paie calculee relue (`calcul_du_mois`).
+//! seulement prend les montants dans la paie validee de l'engagement.
 //!
-//! Rend "" dans tous les cas ou le Python rend "" -- et la ou il leve (la pastille n'invente pas).
+//! Rend "" dans tous les cas ou rien ne se lit -- et la ou une lecture refuse (la pastille n'invente pas).
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use fabrique_pdf::modele::{self, Modele, Valeurs};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
 use droit::contexte::{telle_qu_au, Contexte};
@@ -925,36 +925,24 @@ pub(crate) fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
     Ok(ent)
 }
 
-/// Le dernier depot REEL accepte de DSN pour ce mois existe-t-il ? Alors le mois est parti : il
-/// garde ses chiffres (`calcul_du_mois`).
-fn dsn_partie(ctx: &Contexte, mois: &str) -> Resultat<bool> {
-    let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
-    Ok(!crate::etats::dsn_du_mois(&lignes, &ctx.entreprise, mois).map_err(|e| e.message)?.is_null())
-}
-
-/// La paie de ce contrat dans la paie calculee du mois (relue sans calcul si ses entrees n'ont pas changé).
-/// `rang` : la paie de ce rang parmi celles de ce salarie qui commencent ce jour-la (0 : la premiere).
+/// La paie validee de ce contrat (`engagement::etats::validees_du_mois`), dans sa forme ecrite. `rang` : la paie de ce
+/// rang parmi celles de ce salarie qui commencent ce jour-la (0 : la premiere).
 fn paie_calculee(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, rang: usize) -> Resultat<Option<Value>> {
-    let mut o = HashMap::new();
-    o.insert("racine".to_string(), ctx.racine.to_string_lossy().into_owned());
-    o.insert("date".to_string(), ctx.date.iso());
-    let demande = json!({ "mois": mois, "parti": dsn_partie(ctx, mois)? });
-    let rep = crate::calcul_du_mois::commande(&o, &demande.to_string())?;
-    let paies = rep.get("paies").and_then(Value::as_array).ok_or("la paie calculee n'a pas de `paies`")?;
-    Ok(paies
+    let Some((_, paies)) = engagement::etats::validees_du_mois(ctx, mois)? else { return Ok(None) };
+    let Some(p) = paies
         .iter()
-        .filter(|p| {
-            p.pointer("/salarie/_cle").and_then(Value::as_str) == Some(salarie)
-                && p.pointer("/engagement/debut").and_then(Value::as_str) == Some(debut)
-        })
+        .filter(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(salarie) && p.engagement.debut.iso() == debut)
         .nth(rang)
-        .cloned())
+    else {
+        return Ok(None);
+    };
+    engagement::relire::ecrire(ctx, p).map(Some)
 }
 
 /// Les valeurs que le modele de contrat lit dans la paie d'aujourd'hui de ce contrat (`contrat.marqueurs`) :
 /// de quoi ecrire le contrat tel que la paie le dirait. `None` quand la paie n'a pas ce contrat, ou n'est
 /// pas celle d'un spectacle (un permanent n'a pas de contrat imprime). Les montants viennent de la paie
-/// calculee relue (`calcul_du_mois`), sans calcul si ses entrees n'ont pas change.
+/// validee de l'engagement, sans calcul.
 pub fn valeurs_du_contrat(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Resultat<Option<Valeurs>> {
     valeurs_du_rang(ctx, mois, salarie, debut, 0)
 }

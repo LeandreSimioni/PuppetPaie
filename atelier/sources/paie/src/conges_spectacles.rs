@@ -9,7 +9,6 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 
 use crate::bulletin::{identite_de, FORMAT};
-use engagement::calcul::Paie;
 use socle::date::{repr_flottant, Jour};
 use engagement::Engagement;
 use socle::valeur::valeur_en_texte;
@@ -268,12 +267,6 @@ pub(crate) struct PaieCs {
     pub engagement: ContratCs,
     pub brut: Decimal,
     pub salarie: Value,
-}
-
-impl PaieCs {
-    pub fn de(p: &Paie) -> R<PaieCs> {
-        Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: p.brut, salarie: p.salarie.clone() })
-    }
 }
 
 /// Les 31 mars strictement traverses par un contrat.

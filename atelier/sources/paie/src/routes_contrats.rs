@@ -3,11 +3,9 @@
 //! `contrats-en-cours`, `contrats-passes`, `emploi`, `rubriques-actives`,
 //! `metiers-catalogue`.
 //!
-//! AUCUN CALCUL DE PAIE, et pas un seul fichier `calcul.json` : ni les contrats
-//! en cours ni les contrats passes n'ont besoin d'un brut. Les bornes et les
-//! quantites sont dans les fichiers de saisie (`paies/AAAA-MM.json`) ; les jours
-//! exacts des mois passes aussi ; l'historique importe parle pour les autres
-//! (`historique/engagements.json`). Le Python lisait exactement cela.
+//! AUCUN CALCUL DE PAIE : ni les contrats en cours ni les contrats passes n'ont besoin d'un brut. Les bornes et les
+//! quantites sont dans les engagements (`engagements/`) ; l'historique importe parle pour les autres
+//! (`historique/engagements.json`).
 //!
 //! `rubriques-actives` n'est pas une lecture : elle ecrit la preference
 //! `config/rubriques-actives.json`, avec la copie horodatee que le Python en
@@ -223,23 +221,19 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
 
 // ------------------------------------------------------------ les fichiers de mois
 
-/// Les mois dont un fichier de saisie existe, dans l'ordre croissant : `routes_mois::mois_saisis`, les `paies/AAAA-MM.json`
-/// seulement. Un cache (`2024-12.etat.json`, `2026-09.calcul.json`), qu'une lecture ecrit en fond, n'est pas un mois
-/// (#236 : le rejeu d'un banc, qui ne refait pas les lectures, ne doit pas voir une autre compagnie).
+/// Les mois que des engagements touchent, dans l'ordre croissant (`routes_mois::mois_saisis`).
 pub(crate) fn mois_saisis(ctx: &Contexte) -> Vec<String> {
     crate::routes_mois::mois_saisis(&ctx.racine)
 }
 
-/// `operations_paies._engagements_du_mois` : les engagements bruts d'un fichier
-/// de mois, avec la cle du salarie ; vide si le mois n'est pas sur le disque.
+/// Les engagements bruts que le mois montre (`engagement::stock::vue_du_mois`), avec la cle du salarie ; vide si aucun
+/// engagement ne le touche.
 /// Un engagement dont le salarie est inconnu (ou qui n'est pas un dictionnaire)
 /// est sauté.
 pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, Map<String, Value>)>> {
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !p.exists() {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
-    }
-    let data = lire_saisie(&p)?;
+    };
     let mut out = Vec::new();
     for e in parcourir(get(&data, "engagements")?.into())? {
         let Some(m) = e.as_object() else { continue };
@@ -464,11 +458,10 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
 /// Le `spectacle` d'un fichier de mois : celui que joue un engagement qui n'en nomme pas
 /// (`engagement::engagements`). `None` s'il n'en dit pas.
 fn spectacle_du_fichier(ctx: &Contexte, mois: &str) -> R<Option<String>> {
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !p.exists() {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(None);
-    }
-    Ok(lire_saisie(&p)?.get("spectacle").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(String::from))
+    };
+    Ok(data.get("spectacle").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(String::from))
 }
 
 /// Les 7 premiers caracteres (`jour[:7]`) d'un jour de planning.

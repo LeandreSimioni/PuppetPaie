@@ -31,7 +31,7 @@ use socle::num::{eur2, zero2, Decimal};
 use socle::echec::Echec;
 use crate::routes_dossier_salarie::{entree_ecrite, entree_fichier, zip, Entree};
 use crate::routes_dossiers::{compte_du_salarie, plan_comptable, Refus};
-use crate::routes_ouverture::{mois_de_l_annee, nic_principal, refus_du_calcul};
+use crate::routes_ouverture::{mois_de_l_annee, nic_principal};
 
 type R<T> = Result<T, Echec>;
 
@@ -170,14 +170,12 @@ fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
     }
 }
 
-/// `operations_exercice.ecritures_du_mois` : une ecriture pour le mois, depuis les bulletins recalcules.
+/// `operations_exercice.ecritures_du_mois` : une ecriture pour le mois, depuis les paies validees.
 /// Le brut par spectacle, la charge patronale et le tiers par ligne de bulletin, le prelevement a la source retenu
 /// (une dette envers l'Etat, au compte `pas` du plan), le net par salarie -- le net PAYE, apres l'impot, celui du
 /// bulletin. Un identifiant de ligne absent du plan fait refuser : on ne devine pas un compte.
 pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) -> R<Vec<Ecriture>> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let data = engagement::lire_saisie(&chemin).map_err(Echec::from)?;
-    let saisie = engagement::charger_donnees(ctx, &data).map_err(|m| Echec::from(refus_du_calcul(ctx, &data, m)))?;
+    let (_, paies) = crate::etats_paie::charger_mois(ctx, mois)?;
     let (date, lib_mois) = date_et_libelle(mois)?;
     let jrn = ou_texte(plan.get("journal"), "OD");
     let jrn = if plan.contains_key("journal") { valeur_en_texte(&plan["journal"]) } else { jrn };
@@ -197,7 +195,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     // mois DEPOSE est celui que sa DSN a declare (S21.G00.50.009), lu et non recalcule au taux du jour (lot D2 ; CGI
     // art. 1671 : `prelevement::des_paies`) ; jusque-la (limite du lot R3), il s'en ecartait quand la DGFiP avait transmis un
     // autre taux depuis.
-    let pas_des_paies = crate::prelevement::des_paies(ctx, &saisie.paies).map_err(refus)?;
+    let pas_des_paies = crate::prelevement::des_paies(ctx, &paies).map_err(refus)?;
     let mut pas_du_mois = zero;
     // LES RETENUES (une ligne hors assiette de nature `retenue` : acompte, avance, saisie) ne sont pas une charge : un
     // acompte solde une avance deja versee (425 « Personnel - Avances et acomptes et autres comptes debiteurs »), une
@@ -209,7 +207,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         let e = m.entry(k).or_insert(zero);
         *e += v;
     };
-    for (p, pas) in saisie.paies.iter().zip(&pas_des_paies) {
+    for (p, pas) in paies.iter().zip(&pas_des_paies) {
         // UN PERMANENT N'A PAS DE SPECTACLE : son brut va a sa propre section.
         let titre = match p.spectacle.get("titre").filter(|t| vrai(t)) {
             Some(t) => valeur_en_texte(t),
@@ -446,7 +444,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         .into_iter()
         .filter(|m| {
             let n: i64 = m.chars().skip(5).take(2).collect::<String>().parse().unwrap_or(0);
-            du <= n && n <= au && ctx.racine.join("paies").join(format!("{}.json", m)).exists()
+            du <= n && n <= au && engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false)
         })
         .collect();
     if mois.is_empty() {
@@ -488,25 +486,14 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
     Ok(ExportCompta { annee: annee.to_string(), du, au, mois, ecritures, total_debit, total_credit, fichier, plan: origine.to_string(), avertissements: avert })
 }
 
-/// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE (#236) : `{"AAAA-MM": empreinte}` pour chaque `paies/AAAA-MM.json` de
-/// l'annee (`routes_mois::empreinte_de`, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut `null`. L'export
-/// compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
+/// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE (#236) : `{"AAAA-MM": empreinte}` pour chaque mois saisi de l'annee
+/// (`routes_mois::empreinte_de` de la saisie du mois, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut
+/// `null`. L'export compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
 pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
     let mut m = Map::new();
-    let Ok(rd) = std::fs::read_dir(racine.join("paies")) else { return Value::Object(m) };
-    let mut noms: Vec<String> = rd.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
-    noms.sort();
-    for nom in noms {
-        let Some(mois) = nom.strip_suffix(".json") else { continue };
-        let b = mois.as_bytes();
-        if !(b.len() == 7 && mois.starts_with(annee) && b[4] == b'-' && b[5].is_ascii_digit() && b[6].is_ascii_digit()) {
-            continue;
-        }
-        let e = std::fs::read(racine.join("paies").join(&nom))
-            .ok()
-            .and_then(|o| serde_json::from_slice::<Value>(&o).ok())
-            .map_or(Value::Null, |v| json!(crate::routes_mois::empreinte_de(&v)));
-        m.insert(mois.to_string(), e);
+    for mois in engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().filter(|x| x.starts_with(annee)) {
+        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes_mois::empreinte_de(&v)));
+        m.insert(mois, e);
     }
     Value::Object(m)
 }
@@ -602,7 +589,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     let mut depots = Depots::nouveau(ctx);
     let mut sans_dsn: Vec<String> = Vec::new();
     for m in &mois {
-        if ctx.racine.join("paies").join(format!("{}.json", m)).exists() && !depots.dsn_acceptee(m)? {
+        if engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false) && !depots.dsn_acceptee(m)? {
             sans_dsn.push(m.clone());
         }
     }
@@ -625,9 +612,9 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     let archive = dossier.join(format!("Exercice_{}.zip", annee));
     let mut entrees: Vec<Entree> = Vec::new();
     for m in &mois {
-        let s = ctx.racine.join("paies").join(format!("{}.json", m));
+        let s = engagement::stock::chemin(&ctx.racine, m);
         if s.exists() {
-            entrees.push(entree_fichier(&s, format!("paies/{}.json", m))?);
+            entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::stock::DOSSIER, m))?);
         }
         let d = ctx.racine.join("sorties").join(m);
         if d.is_dir() {
@@ -677,7 +664,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     let aujourd_hui = ctx.aujourdhui;
     let lisez_moi = format!(
         "Exercice {} -- archive de cloture, PuppetPaie, le {:02}/{:02}/{:04}.\n\n\
-         paies/      les saisies de chaque mois\n\
+         engagements/ les engagements de chaque mois ou ils commencent, et leurs paies validees\n\
          sorties/    bulletins, contrats (signes dans envoi/), DPAE, DSN, certificats, courriels\n\
          retours/    les reponses des organismes (net-entreprises, Urssaf DPAE)\n\
          journal/    le journal des depots\n\

@@ -1,22 +1,13 @@
-//! Les routes `saisie` et `echeancier` de l'interface (`moteur/web.py`,
-//! `moteur/operations_echeancier.py`, `moteur/operations_paies.py`).
+//! Les routes `saisie` et `echeancier` de l'interface.
 //!
-//! `saisie` : le mois tel que l'ecran l'ouvre -- le fichier `paies/AAAA-MM.json`
-//! ou, pour un mois neuf, un squelette vide au dernier taux saisi --, avec les
-//! noms resolus en cles de fiche et les lignes de paie telles que le moteur les
-//! comprend (`web._resoudre_noms`). AUCUN CALCUL DE PAIE : le Python chargeait
-//! la saisie par `operations_paies.charger`, donc la calculait, pour n'en tirer
-//! que la cle de chaque salarie et de chaque spectacle, et les lignes de
-//! remuneration (qui ne dependent que de l'engagement). Ici la saisie se charge
-//! comme `engagement::charger_donnees` jusqu'au contrat qui deborde, sans
-//! chiffrer. Seule difference : une saisie dont le CALCUL refuserait (un bareme
-//! absent, un minimum) mais dont l'engagement se construit est resolue ; le
-//! Python la rendait telle quelle, noms non resolus.
+//! `saisie` : le mois tel que l'ecran l'ouvre -- la saisie que ses engagements montrent (`engagement::stock::vue_du_mois`)
+//! ou, pour un mois neuf, un squelette vide au dernier taux saisi --, avec les noms resolus en cles de fiche et les lignes
+//! de paie telles que le moteur les comprend. Aucun calcul de paie pour l'ecran : la saisie se charge jusqu'au contrat qui
+//! deborde, sans chiffrer. C'est l'ouverture du mois : les engagements valides dont la paie n'est plus juste s'y
+//! recalculent d'eux-memes (`engagement::etats::rafraichir`).
 //!
-//! `echeancier` : la date, ce qui est a faire ce mois-ci, et l'annee qui vient
-//! (`operations_echeancier.echeancier`). Les echeances annuelles sont dans
-//! `donnees/echeancier-base.json`, lu par le Python et par le Rust. Les etats du
-//! journal se lisent directement (`etats.rs`) : aucun processus `paie journal`.
+//! `echeancier` : la date, ce qui est a faire ce mois-ci, et l'annee qui vient. Les echeances annuelles sont dans
+//! `donnees/echeancier-base.json`. Les etats du journal se lisent directement (`etats.rs`).
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -96,7 +87,7 @@ pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
 /// a declarer. Rend la premiere embauche (`AAAA-MM-JJ`), ou `None`.
 pub(crate) fn avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<Option<String>> {
     let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
-    if embauche.len() < 7 || mois >= &embauche[..7] || ctx.racine.join("paies").join(format!("{}.json", mois)).exists() {
+    if embauche.len() < 7 || mois >= &embauche[..7] || engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)? {
         return Ok(None);
     }
     if crate::mois_importe::importe(&ctx.racine, mois)? || mois_hors_delai(ctx, mois)?.is_none() {
@@ -155,36 +146,13 @@ fn pas_de_get(v: &Value) -> Echec {
     erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v)))
 }
 
-/// `operations_paies.dernier_taux` : le taux du cachet le plus recemment saisi.
-/// Une ligne de cachet d'abord, le `taux_cachet` du mois a defaut ; `None` si
-/// aucun mois n'en dit rien. Le Python rendait alors 130 (herite de CoolPaie) :
-/// un chiffre qu'aucun texte ne fixe (regle 1, R12), le moteur ne propose plus rien
-/// et la compagnie saisit son premier cachet.
+/// Le taux du cachet le plus recemment saisi : une ligne de cachet d'abord, le `taux_cachet` du mois a defaut ; `None` si
+/// aucun mois n'en dit rien -- aucun texte ne fixe un taux de cachet (regle 1, R12), la compagnie saisit le sien.
 pub(crate) fn dernier_taux(ctx: &Contexte) -> R<Option<f64>> {
-    let dossier = ctx.racine.join("paies");
-    // Les mois connus : le radical de chaque `*.json` (le Python prenait aussi
-    // `2026-09.calcul`), du plus recent au plus ancien.
-    let mut mois: Vec<String> = match std::fs::read_dir(&dossier) {
-        Ok(l) => l
-            .filter_map(|e| e.ok())
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.ends_with(".json"))
-            .map(|n| match n.rfind('.') {
-                Some(i) if i > 0 && i < n.len() - 1 => n[..i].to_string(),
-                _ => n,
-            })
-            .collect(),
-        Err(_) => Vec::new(),
-    };
-    mois.sort();
-    mois.dedup();
+    let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
     mois.reverse();
     for m in mois {
-        let p = dossier.join(format!("{}.json", m));
-        if !p.exists() {
-            continue;
-        }
-        let Ok(data) = lire_saisie(&p) else { continue };
+        let Ok(Some(data)) = engagement::stock::vue_du_mois(&ctx.racine, &m) else { continue };
         let Some(objet) = data.as_object() else { return Err(pas_de_get(&data)) };
         for e in elements(objet.get("engagements"))?.iter().rev() {
             let Some(eng) = e.as_object() else { return Err(pas_de_get(e)) };
@@ -443,10 +411,20 @@ fn descendre_le_mois(saisie: Value) -> Value {
 fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let mois = en_texte(brut);
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let existe = p.exists();
-    // `ctx` au squelette : un mois neuf s'ouvre VIDE, avec le dernier taux saisi.
-    let saisie = if existe { lire_saisie(&p)? } else { squelette(ctx, &mois)? };
+    let existe = engagement::stock::a_une_saisie(&ctx.racine, &mois).map_err(Echec::from)?;
+    // L'OUVERTURE DU MOIS : chaque engagement valide dont la paie n'est plus juste se recalcule (`engagement::etats::rafraichir`),
+    // et dit pourquoi. Un recalcul qui refuse laisse la paie validee telle qu'elle est ecrite ; l'ecran la montre.
+    if existe {
+        let _ = engagement::etats::rafraichir(ctx, &mois);
+    }
+    // Un mois neuf s'ouvre VIDE, avec le dernier taux saisi ; un mois que des engagements touchent prend du squelette ce
+    // qu'il ne dit pas de lui.
+    let mut saisie = squelette(ctx, &mois)?;
+    if let Some(Value::Object(vue)) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? {
+        for (k, v) in vue {
+            saisie[k] = v;
+        }
+    }
     // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE (21/10/2026) n'est pas ferme : sa paie se modifie, en le
     // confirmant a la premiere modification (`routes_regularisation::modification_de_la_paie`) -- il n'est pas en retard.
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);

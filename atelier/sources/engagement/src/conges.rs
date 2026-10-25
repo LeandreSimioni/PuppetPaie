@@ -497,12 +497,10 @@ pub fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Repr
     }))
 }
 
-/// La date de debut du contrat au mois lu dans le premier mois produit, si
-/// elle est anterieure a ce mois ; sinon `None`.
+/// La date de debut du contrat paye au mois de ce salarie, lue dans la saisie de `premier` (son premier mois saisi),
+/// si elle est anterieure a ce mois ; sinon `None`.
 fn commence_avant(ctx: &Contexte, cle_salarie: &str, premier: &str) -> Resultat<Option<Jour>> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", premier));
-    let Ok(saisie) = socle::fichiers::lire_texte(&chemin).map_err(|_| ()).and_then(|t| serde_json::from_str::<Value>(&t).map_err(|_| ()))
-    else {
+    let Ok(Some(saisie)) = crate::stock::vue_du_mois(&ctx.racine, premier) else {
         return Ok(None);
     };
     for e in saisie.get("engagements").and_then(|x| x.as_array()).map_or(&[][..], |a| &a[..]) {
@@ -518,32 +516,21 @@ fn commence_avant(ctx: &Contexte, cle_salarie: &str, premier: &str) -> Resultat<
     Ok(None)
 }
 
-/// Les fichiers `AAAA-MM.json` du dossier des paies, du plus ancien au plus recent.
-fn fichiers_de_paie(ctx: &Contexte) -> Vec<(String, std::path::PathBuf)> {
-    let Some(dossier) = socle::fichiers::lister(&ctx.racine.join("paies")) else {
-        return Vec::new();
-    };
-    let mut out: Vec<(String, std::path::PathBuf)> = dossier
+/// Les mois que la saisie a touches (`stock::mois_saisis`), du plus ancien au plus recent, avec leur saisie.
+fn saisies_des_mois(ctx: &Contexte) -> Vec<(String, Value)> {
+    crate::stock::mois_saisis(&ctx.racine)
+        .unwrap_or_default()
         .into_iter()
-        .filter(|p| p.extension().is_some_and(|x| x == "json"))
-        .filter_map(|p| {
-            let mois = p.file_stem()?.to_str()?.to_string();
-            (mois.chars().count() == 7 && mois.chars().take(4).all(|c| c.is_ascii_digit())).then_some((mois, p))
-        })
-        .collect();
-    out.sort();
-    out
+        .filter_map(|m| crate::stock::vue_du_mois(&ctx.racine, &m).ok().flatten().map(|v| (m, v)))
+        .collect()
 }
 
-/// Le premier mois produit ou le salarie a un contrat paye au mois.
+/// Le premier mois saisi ou le salarie a un contrat paye au mois.
 fn premier_mois(ctx: &Contexte, cle_salarie: &str, jusqu_au_mois: Option<&str>) -> Resultat<Option<String>> {
-    for (mois, chemin) in fichiers_de_paie(ctx) {
+    for (mois, saisie) in saisies_des_mois(ctx) {
         if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) {
             return Ok(None);
         }
-        let Some(saisie) = socle::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
-            continue;
-        };
         for e in saisie.get("engagements").and_then(|x| x.as_array()).map_or(&[][..], |a| &a[..]) {
             if e.is_object()
                 && e.get("salarie").and_then(|s| s.as_str()) == Some(cle_salarie)
@@ -556,8 +543,8 @@ fn premier_mois(ctx: &Contexte, cle_salarie: &str, jusqu_au_mois: Option<&str>) 
     Ok(None)
 }
 
-/// Les fichiers de paie qui croisent la periode, du plus ancien au plus
-/// recent. Un fichier illisible est ignore.
+/// Les mois saisis (`stock::mois_saisis`) qui croisent la periode, du plus ancien au plus recent, avec leur saisie : un contrat
+/// paye au mois touche chacun de ses mois, meme ceux que la saisie n'a pas changes.
 fn mois_du_salarie(
     ctx: &Contexte,
     _cle: &str,
@@ -566,16 +553,15 @@ fn mois_du_salarie(
     jusqu_au_mois: Option<&str>,
 ) -> Resultat<Vec<(String, Value)>> {
     let mut out = Vec::new();
-    for (mois, chemin) in fichiers_de_paie(ctx) {
-        if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) {
+    if fin < debut {
+        return Ok(out);
+    }
+    let saisis = crate::stock::mois_saisis(&ctx.racine)?;
+    for mois in socle::date::mois_entre(debut, fin) {
+        if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) || !saisis.contains(&mois) {
             continue;
         }
-        if fin_mois_de(&mois)? < *debut || premier_du_mois(&mois)? > *fin {
-            continue;
-        }
-        let Some(saisie) = socle::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
-            continue;
-        };
+        let Ok(Some(saisie)) = crate::stock::vue_du_mois(&ctx.racine, &mois) else { continue };
         if !saisie.get("engagements").is_some_and(|e| e.is_array()) {
             continue;
         }
@@ -594,8 +580,7 @@ fn paies_du_mois_memorisees(ctx: &Contexte, mois: &str) -> PaiesDuMois {
     if let Some(p) = memo {
         return p;
     }
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let p = charger(ctx, &chemin).map(|s| resume_des_paies(&s.paies));
+    let p = charger(ctx, mois).map(|s| resume_des_paies(&s.paies));
     MEMO.with(|m| {
         let mut m = m.borrow_mut();
         if m.0 > 0 {
@@ -637,13 +622,10 @@ pub fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resulta
     let annee: String = mois.chars().take(4).collect();
     let cle_fiche = cle_de_fiche(ctx, cle);
     let mut total = zero2();
-    for (m, chemin) in fichiers_de_paie(ctx) {
+    for (m, saisie) in saisies_des_mois(ctx) {
         if !m.starts_with(&annee) || m.as_str() >= mois {
             continue;
         }
-        let Some(saisie) = socle::fichiers::lire_texte(&chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
-            continue;
-        };
         let sien = saisie.get("engagements").and_then(|e| e.as_array()).map_or(false, |a| {
             a.iter().filter_map(|e| e.get("salarie").and_then(|s| s.as_str())).any(|s| s == cle || cle_de_fiche(ctx, s) == cle_fiche)
         });

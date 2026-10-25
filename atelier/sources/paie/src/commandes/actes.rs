@@ -147,26 +147,30 @@ pub fn textes_de(v: &Value, cle: &str) -> Vec<String> {
     v.get(cle).and_then(Value::as_array).map(|l| l.iter().map(super::rendu::texte).collect()).unwrap_or_default()
 }
 
-/// Le mois du fichier de saisie, si c'est bien `paies/AAAA-MM.json` des donnees (sinon la phrase qui le dit : `sujet` + « depuis la
-/// saisie du mois dans les donnees (...) ; ... n'est pas ce fichier »). Les routes lisent la saisie sous `paies/` : le Python lisait
-/// n'importe quel chemin.
+/// Le mois que la commande vise : `AAAA-MM`, ou le fichier `engagements/AAAA-MM.json` des donnees. Refus (`sujet` + la phrase
+/// qui le dit) : un autre fichier, ou un mois qu'aucun engagement ne touche.
 pub fn mois_du_fichier(cadre: &super::Cadre, texte: &str, sujet: &str) -> Result<String, Echec> {
     let refus = |m: String| Echec { classe: Some("ErreurOperation"), message: m };
-    let chemin = crate::routes_apercus::resoudre(&cadre.racine, &serde_json::json!(texte))?;
-    let chemin = std::path::PathBuf::from(chemin);
-    let saisie = crate::routes_saisie::lire_saisie(&chemin).map_err(|e| refus(format!("Fichier illisible : {}", e.message)))?;
-    let mois = saisie
-        .get("mois")
-        .and_then(Value::as_str)
-        .ok_or_else(|| refus(format!("{} ne dit pas son mois (cle `mois`, AAAA-MM).", chemin.display())))?
-        .to_string();
-    let attendu = cadre.racine.join("paies").join(format!("{}.json", mois));
-    let meme = match (std::fs::canonicalize(&chemin), std::fs::canonicalize(&attendu)) {
-        (Ok(a), Ok(b)) => a == b,
-        _ => false,
+    let est_un_mois = |s: &str| s.len() == 7 && s.as_bytes()[4] == b'-' && s.chars().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit());
+    let mois = if est_un_mois(texte) {
+        texte.to_string()
+    } else {
+        let chemin = std::path::PathBuf::from(crate::routes_apercus::resoudre(&cadre.racine, &serde_json::json!(texte))?);
+        let mois = chemin.file_stem().map(|s| s.to_string_lossy().into_owned()).filter(|s| est_un_mois(s)).unwrap_or_default();
+        let attendu = engagement::stock::chemin(&cadre.racine, &mois);
+        let meme = matches!((std::fs::canonicalize(&chemin), std::fs::canonicalize(&attendu)), (Ok(a), Ok(b)) if a == b);
+        if !meme {
+            return Err(refus(format!(
+                "{} depuis les engagements du mois (AAAA-MM, ou {}/AAAA-MM.json dans les donnees) ; {} n'est pas ce fichier.",
+                sujet,
+                engagement::stock::DOSSIER,
+                chemin.display()
+            )));
+        }
+        mois
     };
-    if !meme {
-        return Err(refus(format!("{} depuis la saisie du mois dans les donnees ({}) ; {} n'est pas ce fichier.", sujet, attendu.display(), chemin.display())));
+    if !engagement::stock::a_une_saisie(&cadre.racine, &mois).map_err(Echec::from)? {
+        return Err(refus(format!("{} depuis les engagements du mois : aucun ne touche {}.", sujet, mois)));
     }
     Ok(mois)
 }

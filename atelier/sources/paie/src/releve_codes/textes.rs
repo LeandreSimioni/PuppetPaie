@@ -144,7 +144,7 @@ pub static TEXTES: &[Texte] = &[
             // `etats_personnel::registre_du_personnel` ecrit ; il citait les
             // articles sans qu'ils soient dans le releve.
             Domaine { cle: "registre", titre: "Le registre unique du personnel", numeros: &["L1221-13", "D1221-23", "D1221-24"] },
-            // La DPAE quand la date d'embauche d'un contrat declare change (21/10/2026, `routes_mois::etat_par_paie`) :
+            // La DPAE quand la date d'embauche d'un contrat declare change (21/10/2026, `routes_mois::etat_par_engagement`) :
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
             // previsible (R1221-4).
             Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },

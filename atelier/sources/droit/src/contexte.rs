@@ -1236,6 +1236,36 @@ impl Contexte {
     /// qui se resout a la fin de la periode payee : voir `smic`), et le bareme
     /// porte `_entreprise` (et `_etablissements` s'il y en a plusieurs) : ce
     /// que le calcul et la DSN doivent savoir de la fiche.
+    /// LES REGLES DATEES QUI S'APPLIQUENT A CE JOUR : le `depuis` de la valeur en vigueur de chaque liste datee
+    /// `[{depuis, valeur}]` du bareme de l'annee (le socle, la convention, la compagnie), du plus ancien au plus recent,
+    /// sans doublon. Une paie qui s'est calculee sous d'autres regles le dit a sa date (« regle du JJ/MM/AAAA »).
+    pub fn regles_datees(&self, jour: &Jour) -> Resultat<Vec<Jour>> {
+        fn parcourir(v: &Value, jour: &Jour, out: &mut Vec<Jour>) -> Resultat<()> {
+            if est_liste_datee(v) {
+                let mut retenu: Option<Jour> = None;
+                for e in v.as_array().into_iter().flatten() {
+                    let depuis = d(&e["depuis"])?;
+                    if depuis <= *jour && retenu.map_or(true, |r| depuis > r) {
+                        retenu = Some(depuis);
+                    }
+                }
+                out.extend(retenu);
+                return Ok(());
+            }
+            match v {
+                Value::Object(o) => o.values().try_for_each(|x| parcourir(x, jour, out)),
+                Value::Array(a) => a.iter().try_for_each(|x| parcourir(x, jour, out)),
+                _ => Ok(()),
+            }
+        }
+        let brut = self.bareme_brut(jour.an).map_err(|r| r.message)?;
+        let mut out = Vec::new();
+        parcourir(&brut, jour, &mut out)?;
+        out.sort();
+        out.dedup();
+        Ok(out)
+    }
+
     pub fn bareme(&self, jour: &Jour) -> Resultat<Value> {
         // Le bareme resolu a ce jour est garde, comme `_baremes_resolus` ; on en
         // rend une copie, que l'appelant peut modifier.

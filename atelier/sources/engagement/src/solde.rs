@@ -303,7 +303,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
                         "{} : indemnite de fin de contrat NULLE -- la \
                          remuneration totale du contrat est de {} EUR. Si le \
                          contrat a paye quelque chose, ce sont ses mois \
-                         precedents qui manquent dans `paies/` : l'assiette de \
+                         precedents dont la saisie manque : l'assiette de \
                          L1243-8 est la remuneration de TOUT le contrat.",
                         numero, total
                     )));
@@ -1119,7 +1119,7 @@ fn bruts_precedents(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Deci
             a -= 1;
         }
         let nom = format!("{:04}-{:02}", a, m);
-        if !socle::fichiers::existe(&ctx.racine.join("paies").join(format!("{}.json", nom))) {
+        if !crate::stock::a_une_saisie(&ctx.racine, &nom)? {
             continue;
         }
         bruts.push(remuneration_du_mois(ctx, &nom, &salarie)?);
@@ -1159,7 +1159,7 @@ fn remuneration_du_contrat(ctx: &Contexte, e: &Value, mois: &str, ce_mois: Decim
         if m.as_str() > mois {
             break;
         }
-        if socle::fichiers::existe(&ctx.racine.join("paies").join(format!("{}.json", m))) && m != mois {
+        if m != mois && crate::stock::a_une_saisie(&ctx.racine, &m)? {
             total = add(total, remuneration_du_mois(ctx, &m, &salarie)?);
         }
         (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };

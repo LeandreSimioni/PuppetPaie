@@ -1,17 +1,15 @@
 //! `paie route` : la demande JSON sur l'entree standard, la reponse en une ligne de JSON sur la sortie standard ; un
-//! refus : `{"ok": false, "erreur": "..."}`. Et le calcul d'une saisie, `{"fichier": CHEMIN}` ou `{"saisie": {...}}`
-//! (`calculer_avec`) : `{"ok": true, "mois", "paies": [...]}`, une paie par engagement de la saisie et dans son ordre ;
-//! les avertissements gardent leur nature (`{"texte", "info"}`).
+//! refus : `{"ok": false, "erreur": "..."}`. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`), la
+//! position des droits (`droits`) et la provision de conges (`provision_conges_de`).
 
 use std::collections::HashMap;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde_json::{Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use engagement::{charger, charger_donnees, Saisie};
 use socle::fichiers::dossier_du_code;
 use socle::num::Resultat;
 
@@ -29,14 +27,6 @@ pub(crate) fn options(args: &[String]) -> Option<HashMap<String, String>> {
     Some(o)
 }
 
-fn saisie(ctx: &Contexte, demande: &Value) -> Resultat<Saisie> {
-    match (demande.get("fichier").and_then(Value::as_str), demande.get("saisie")) {
-        (Some(f), _) => charger(ctx, Path::new(f)),
-        (None, Some(s)) if s.is_object() => charger_donnees(ctx, s),
-        _ => Err("demande illisible : il faut `fichier` ou `saisie`".to_string()),
-    }
-}
-
 /// La compagnie d'une commande : `--racine` (`o["racine"]`, toujours pose par la fenetre et la file des etats), sinon,
 /// a la ligne de commande seulement, `PUPPETPAIE_DONNEES` (`paie route` lance a la main ou par un test).
 pub(crate) fn racine_de(o: &HashMap<String, String>) -> PathBuf {
@@ -52,31 +42,6 @@ pub(crate) fn contexte(o: &HashMap<String, String>) -> Resultat<Contexte> {
     Contexte::nouveau(&racine_de(o), date)
 }
 
-pub(crate) fn calculer_avec(ctx: &Contexte, demande: &Value) -> Resultat<Value> {
-    let s = saisie(ctx, demande)?;
-    socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
-    let paies = paies_fideles(ctx, &s);
-    socle::num::ECHELLE_GARDEE.with(|f| f.set(false));
-    let mut m = Map::new();
-    m.insert("ok".into(), Value::Bool(true));
-    m.insert("mois".into(), Value::String(s.mois.clone()));
-    m.insert("paies".into(), Value::Array(paies?));
-    Ok(Value::Object(m))
-}
-
-fn paies_fideles(ctx: &Contexte, s: &Saisie) -> Resultat<Vec<Value>> {
-    let mut paies = Vec::new();
-    for p in &s.paies {
-        let mut v = p.canon(ctx)?;
-        v["avertissements"] = avis(&p.avertissements);
-        // Les lignes telles quelles (celles d'un permanent, deduites) : le
-        // Python reconstruit l'engagement avec elles.
-        v["engagement"]["lignes"] = Value::Array(p.engagement.lignes.clone());
-        paies.push(v);
-    }
-    Ok(paies)
-}
-
 fn demande(entree: &str) -> Resultat<Value> {
     serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))
 }
@@ -87,15 +52,6 @@ fn texte<'a>(d: &'a Value, cle: &str) -> Resultat<&'a str> {
 
 fn jour(j: Option<Jour>) -> Value {
     j.map_or(Value::Null, |j| Value::String(j.iso()))
-}
-
-fn avis(v: &[engagement::Avis]) -> Value {
-    Value::Array(v.iter().map(|a| {
-        let mut m = Map::new();
-        m.insert("texte".into(), Value::String(a.texte.clone()));
-        m.insert("info".into(), Value::Bool(a.info));
-        Value::Object(m)
-    }).collect())
 }
 
 /// `droits` : la position de chaque salarie au regard des annexes 8 et 10,

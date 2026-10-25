@@ -10,13 +10,17 @@ pub mod cachet;
 pub mod calcul;
 pub mod conges;
 pub mod cumul;
+pub mod empreinte;
+pub mod etats;
 pub mod imprevus;
 pub mod minima;
 pub mod periodes;
+pub mod relire;
 pub mod solde;
+pub mod stock;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use serde_json::{Map, Value};
@@ -26,7 +30,7 @@ use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use socle::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, forme_ecrite, Jour};
 use droit::emplois;
-use socle::fichiers::{lire_json, vrai};
+use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, dec_avec_echelle, div, flottant, nombre, Decimal, Resultat};
 
 #[derive(Debug, Clone)]
@@ -802,11 +806,6 @@ pub struct Avis {
     pub texte: String,
 }
 
-/// `operations_paies.lire_saisie`.
-pub fn lire_saisie(chemin: &Path) -> Resultat<Value> {
-    lire_json(chemin)
-}
-
 /// `dates_engagement` (`cle` = "dates") et `planning_engagement` (`cle` =
 /// "planning") : la reunion, dedoublonnee, des jours des lignes, chacun nu ou
 /// detaille `{jour, lieu}` quand une ligne dit ou elle se joue.
@@ -992,6 +991,7 @@ pub fn engagements(
         poser("numero", e.get("numero"));
         poser("mois", Some(data.get("mois").ok_or_else(|| socle::fichiers::absent("mois"))?));
         poser("jours", e.get("jours"));
+        poser("jours_contrat", e.get("jours_contrat"));
         poser("planning", Some(&Value::Array(planning_engagement(e))));
         poser("lignes", lignes.as_ref());
         poser("date_paiement", e.get("date_paiement").or(data.get("date_paiement")));
@@ -1091,24 +1091,6 @@ fn sexe(fiche: &Value) -> String {
     }
 }
 
-/// `engagements` sur un fichier de mois (`paies/AAAA-MM.json`) : tel quel
-/// s'il existe, sinon sous la racine des donnees.
-pub fn engagements_du_fichier(
-    ctx: &Contexte,
-    chemin: &Path,
-    lignes_permanent: LignesPermanent,
-) -> Resultat<(Value, Vec<Engagement>, Vec<Vec<Avis>>)> {
-    let p: PathBuf = if socle::fichiers::existe(chemin) || chemin.is_absolute() {
-        chemin.to_path_buf()
-    } else {
-        let sous = ctx.racine.join(chemin);
-        if socle::fichiers::existe(&sous) { sous } else { chemin.to_path_buf() }
-    };
-    let data = lire_saisie(&p)?;
-    let (engs, dits) = engagements(ctx, &data, lignes_permanent)?;
-    Ok((data, engs, dits))
-}
-
 // ------------------------------------------- le contrat qui deborde du mois
 
 /// `libelle_mois` : '2026-10' -> 'octobre 2026' (sans accent, comme l'ecrivent les phrases et les documents qui
@@ -1124,16 +1106,11 @@ pub fn cle_de_l_engagement(ctx: &Contexte, e: &Value) -> Option<String> {
     let nom = e.get("salarie").and_then(Value::as_str)?;
     ctx.salarie(nom).ok()?.get("_cle").and_then(Value::as_str).map(str::to_string)
 }
-
-/// `_engagements_du_mois` : les engagements bruts d'un fichier de mois, avec
-/// la cle du salarie ; vide si le mois n'est pas sur le disque.
+/// Les engagements que le mois montre (`stock::vue_du_mois`), bruts, avec la cle du salarie ; vide si aucun ne le
+/// touche.
 pub fn engagements_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<(String, Value)>> {
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !socle::fichiers::existe(&p) {
-        return Ok(Vec::new());
-    }
+    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
     let mut out = Vec::new();
-    let data = lire_saisie(&p)?;
     for e in data.get("engagements").and_then(|x| x.as_array()).map_or(&[][..], |a| &a[..]) {
         if let Some(cle) = cle_de_l_engagement(ctx, e) {
             out.push((cle, e.clone()));
@@ -1142,7 +1119,7 @@ pub fn engagements_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<(String, 
     Ok(out)
 }
 
-/// `_bornes_brutes(e)[0]` : le debut d'un engagement brut, comme `Engagement` le deduirait.
+/// Le debut d'un engagement brut, comme `Engagement` le deduirait : `debut` s'il le dit, sinon son premier jour joue.
 pub fn debut_brut(e: &Value) -> String {
     let cle = |j: &Value| match j {
         Value::Object(m) => m.get("jour").map_or(String::new(), en_texte),
@@ -1156,70 +1133,39 @@ pub fn debut_brut(e: &Value) -> String {
     jours.into_iter().next().unwrap_or_default()
 }
 
-/// `_engagement_du_premier_mois` : l'engagement brut qui a ouvert ce contrat.
-///
-/// LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : quand le premier mois porte plusieurs contrats de ce salarie
-/// qui commencent ce jour-la, c'est le numero qui dit lequel ; sans numero, on ne devine pas, on refuse.
-fn engagement_du_premier_mois(ctx: &Contexte, eng: &Engagement, cle: &str) -> Resultat<Option<Value>> {
-    let premier = eng.mois_du_contrat()?.remove(0);
-    let debut = eng.debut.iso();
-    let mut du_jour: Vec<Value> = engagements_du_mois(ctx, &premier)?.into_iter().filter(|(c, e)| c == cle && debut_brut(e) == debut).map(|(_, e)| e).collect();
-    if du_jour.len() <= 1 {
-        return Ok(du_jour.pop());
-    }
-    let numero = eng.numero.as_deref().filter(|n| !n.is_empty());
-    if let Some(n) = numero {
-        return Ok(du_jour.into_iter().find(|e| droit::jumeaux::numero_pose(e).as_deref() == Some(n)));
-    }
-    let lesquels: Vec<String> = du_jour.iter().map(|e| droit::jumeaux::numero_pose(e).unwrap_or_else(|| "sans numero".into())).collect();
-    Err(format!(
-        "{} : {} contrats commencent le {} dans la saisie de {} ({}), et celui-ci ne porte pas de numero : on ne devine pas \
-         lequel il poursuit. Recopier son numero dans la saisie de {}.",
-        cle,
-        du_jour.len(),
-        eng.debut.jj_mm_aaaa(),
-        premier,
-        lesquels.join(", "),
-        eng.mois
-    ))
-}
-
-/// `_suivre_contrat_permanent` : un contrat permanent court d'un bout a
-/// l'autre, son numero ne se regenere pas (recopie du premier mois), et le
-/// dernier mois le dit.
-fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>> {
-    let mut avis = Vec::new();
-    let fiche = ctx.salarie(&eng.salarie)?;
+/// « NOM Prenom » d'une fiche.
+fn qui_de(fiche: &Value) -> Resultat<String> {
     let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte);
     let nom = texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?;
     let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?;
-    let qui = format!("{} {}", nom, prenom);
-    let depuis = eng.debut.jj_mm_aaaa();
+    Ok(format!("{} {}", nom, prenom))
+}
+
+/// Le refus d'un mois du contrat qui n'est pas le premier et dont le numero n'est pas connu : le numero identifie le
+/// contrat en DSN (S21.G00.40.009), il se pose quand le contrat part a la signature ou quand son premier mois part, et
+/// il ne se regenere pas (regle 4).
+fn numero_inconnu(qui: &str, contrat: &str, premier: &str) -> String {
+    format!(
+        "{}, {} : en cours depuis {}, mais son numero n'est pas connu -- le contrat n'est pas encore parti, ni a la \
+         signature, ni avec les documents de {}. Le numero identifie le contrat en DSN (S21.G00.40.009) et ne se \
+         regenere pas : faire partir le contrat d'abord. Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, \
+         dans Configuration > Reprendre l'historique.",
+        qui,
+        contrat,
+        libelle_mois(premier),
+        libelle_mois(premier)
+    )
+}
+
+/// Un contrat permanent court d'un bout a l'autre, son numero est celui de l'engagement, et le dernier mois le dit.
+fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>> {
+    let mut avis = Vec::new();
+    let fiche = ctx.salarie(&eng.salarie)?;
+    let qui = qui_de(&fiche)?;
     let libelle = eng.nat()?.libelle.clone();
     if !eng.premier_mois()? && eng.numero.as_deref().map_or(true, str::is_empty) {
-        let cle = fiche.get("_cle").and_then(|c| c.as_str()).unwrap_or("").to_string();
-        let premier = engagement_du_premier_mois(ctx, eng, &cle)?;
-        let mois_du_contrat = eng.mois_du_contrat()?;
-        // Un contrat repris d'un autre logiciel (#236) : aucun mois saisi ne le porte, l'historique dit son numero tel
-        // que la DSN d'avant l'a declare (`importation_nature::numero_repris`).
-        let repris = premier.is_none().then(|| numero_repris(&ctx.racine, &cle, &eng.debut.iso())).flatten().map(Value::String);
-        let numero = premier.as_ref().and_then(|p| p.get("numero")).filter(|n| vrai(n)).cloned().or(repris);
-        let Some(numero) = numero else {
-            return Err(format!(
-                "{}, {} depuis le {} : son numero de contrat n'est pas connu \
-                 -- le mois {} n'a pas ete produit, ou son fichier ne porte \
-                 pas ce contrat. Le numero identifie le contrat en DSN \
-                 (S21.G00.40.009) et il ne se regenere pas : produire {} \
-                 d'abord ; un contrat repris d'un autre logiciel dit le sien, \
-                 lu sur sa DSN, dans Configuration > Reprendre l'historique.",
-                qui,
-                libelle,
-                depuis,
-                mois_du_contrat[0],
-                libelle_mois(&mois_du_contrat[0])
-            ));
-        };
-        eng.numero = Some(en_texte(&numero));
+        let premier = eng.mois_du_contrat()?.remove(0);
+        return Err(numero_inconnu(&qui, &format!("{} depuis le {}", libelle, eng.debut.jj_mm_aaaa()), &premier));
     }
     if eng.dernier_mois()? {
         let fin = eng.fin.ok_or("fin")?;
@@ -1240,10 +1186,9 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
     Ok(avis)
 }
 
-/// Ce que `charger` fait d'un contrat a cheval (§5.4) : sur un mois qui n'est
-/// pas le premier, recopie `jours_contrat` et `numero` du fichier du premier
-/// mois (refus s'il manque), et pose les avertissements. `e` est l'engagement
-/// brut du fichier ; un contrat paye au mois a sa propre suite, non portee ici.
+/// Ce que devient un contrat a cheval sur plusieurs mois : sur un mois qui n'est pas le premier, il porte le numero de
+/// l'engagement (refus s'il n'en a pas encore) et les jours du contrat entier (`stock`, `jours_contrat`), et les
+/// avertissements le disent. Un contrat paye au mois a sa propre suite (`suivre_permanent`).
 pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>> {
     let mut avis = Vec::new();
     if eng.nat()?.mensuelle() {
@@ -1253,49 +1198,13 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
         return Ok(avis);
     }
     let fiche = ctx.salarie(&eng.salarie)?;
-    let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte);
-    let nom = texte("nom").ok_or_else(|| socle::fichiers::absent("nom"))?;
-    let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).ok_or_else(|| socle::fichiers::absent("prenom"))?;
-    let qui = format!("{} {}", nom, prenom);
+    let qui = qui_de(&fiche)?;
     let fin = eng.fin.ok_or("contrat a cheval sans fin")?;
     let bornes = format!("du {} au {}", eng.debut.jj_mm_aaaa(), fin.jj_mm_aaaa());
     let mois_du_contrat = eng.mois_du_contrat()?;
     if !eng.premier_mois()? {
-        let cle = fiche.get("_cle").and_then(|c| c.as_str()).unwrap_or("").to_string();
-        let premier = engagement_du_premier_mois(ctx, eng, &cle)?;
-        match &premier {
-            Some(p) => eng.jours_contrat = jours_du_contrat(p) as i64,
-            None => avis.push(Avis {
-                info: false,
-                texte: format!(
-                    "{} : contrat {} -- la saisie de {} est introuvable, la \
-                     DSN comptera {} jours de contrat (ceux de ce mois et du \
-                     planning). Remettre le fichier de ce mois-la pour \
-                     compter aussi les jours passes.",
-                    qui,
-                    bornes,
-                    libelle_mois(&mois_du_contrat[0]),
-                    eng.jours_contrat
-                ),
-            }),
-        }
         if eng.numero.as_deref().map_or(true, str::is_empty) {
-            let numero = premier.as_ref().and_then(|p| p.get("numero")).filter(|n| vrai(n));
-            let Some(numero) = numero else {
-                return Err(format!(
-                    "{}, contrat {} : en cours depuis {}, mais son numero \
-                     n'est pas connu -- le mois {} n'a pas ete produit, \
-                     ou son fichier ne porte pas ce contrat. Produire \
-                     {} d'abord : c'est la que le contrat et la DPAE \
-                     partent, et que le numero se fige.",
-                    qui,
-                    bornes,
-                    libelle_mois(&mois_du_contrat[0]),
-                    mois_du_contrat[0],
-                    libelle_mois(&mois_du_contrat[0])
-                ));
-            };
-            eng.numero = Some(en_texte(numero));
+            return Err(numero_inconnu(&qui, &format!("contrat {}", bornes), &mois_du_contrat[0]));
         }
         avis.push(Avis {
             info: true,
@@ -1347,15 +1256,15 @@ pub struct Saisie {
     pub paies: Vec<crate::calcul::Paie>,
 }
 
-/// Une saisie de mois lue et calculee, sans numeroter les contrats ; les minima et le SMIC y portent leurs avertissements.
-pub fn charger(ctx: &Contexte, chemin: &Path) -> Resultat<Saisie> {
-    let p: PathBuf = if socle::fichiers::existe(chemin) || chemin.is_absolute() {
-        chemin.to_path_buf()
-    } else {
-        let sous = ctx.racine.join(chemin);
-        if socle::fichiers::existe(&sous) { sous } else { chemin.to_path_buf() }
-    };
-    charger_donnees(ctx, &lire_saisie(&p)?)
+/// La saisie de `mois` telle que l'ecran la montre (`stock::vue_du_mois`) ; refus quand aucun engagement ne le touche.
+pub fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Value> {
+    stock::vue_du_mois(racine, mois)?.ok_or_else(|| format!("{} : aucun engagement ne touche ce mois ({}/).", mois, stock::DOSSIER))
+}
+
+/// Les engagements de `mois` lus et ses paies calculees, sans numeroter les contrats ; les minima et le SMIC y portent
+/// leurs avertissements.
+pub fn charger(ctx: &Contexte, mois: &str) -> Resultat<Saisie> {
+    charger_donnees(ctx, &saisie_du_mois(&ctx.racine, mois)?)
 }
 
 /// UN NUMERO DE CONTRAT EST CELUI D'UN SEUL SALARIE (regle 4 ; #139) : il se lit, il ne se partage pas. Un salarie
@@ -1439,17 +1348,4 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
         p.avertissements.extend(avis);
     }
     Ok(Saisie { mois, paies })
-}
-
-/// Le numero d'un contrat repris d'un autre logiciel, tel que l'historique importe le dit
-/// (`historique/engagements.json` : le salarie, le debut du contrat, le numero que la DSN d'avant a declare).
-fn numero_repris(racine: &Path, salarie: &str, debut: &str) -> Option<String> {
-    let chemin = racine.join("historique").join("engagements.json");
-    let h = if socle::fichiers::existe(&chemin) { lire_json(&chemin).ok()? } else { return None };
-    let texte = |e: &Value, k: &str| e.get(k).filter(|v| vrai(v)).map(en_texte).unwrap_or_default();
-    h.get("engagements")?
-        .as_array()?
-        .iter()
-        .find(|e| texte(e, "salarie") == salarie && texte(e, "contrat_debut") == debut && !texte(e, "numero").is_empty())
-        .map(|e| texte(e, "numero"))
 }

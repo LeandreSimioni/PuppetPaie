@@ -324,6 +324,19 @@ pub struct Versement {
 }
 
 impl Versement {
+    /// Le versement tel que `canon` l'ecrit.
+    pub fn lire(v: &Value) -> Resultat<Versement> {
+        let n = |k: &str| v.get(k).ok_or_else(|| socle::fichiers::absent(k)).and_then(dec_avec_echelle);
+        Ok(Versement {
+            taux: v.get("taux").cloned().unwrap_or(Value::Null),
+            type_taux: v.get("type").cloned().unwrap_or(Value::Null),
+            identifiant: v.get("identifiant").cloned().unwrap_or(Value::Null),
+            abattement: n("abattement")?,
+            montant_soumis: n("montant_soumis")?,
+            prelevement: n("prelevement")?,
+        })
+    }
+
     pub fn canon(&self) -> Value {
         let mut m = Map::new();
         m.insert("taux".into(), self.taux.clone());

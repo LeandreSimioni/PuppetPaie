@@ -179,13 +179,9 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
 }
 
 /// Les paies d'un mois de saisie, SANS montants : l'engagement et sa fiche (`amorcage::embauche`), ce que lit un signalement.
-/// `None` : pas de `paies/AAAA-MM.json` (le Python rendait alors une liste vide, et disait « tous les taux sont valides »).
+/// `None` : aucun engagement ne touche le mois.
 pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Result<Option<Vec<Paie>>, String> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
-        return Ok(None);
-    }
-    let data = engagement::lire_saisie(&chemin)?;
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
     let _derivation = engagement::conges::Derivation::ouvrir();
     let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois)?;
     let paies = engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<Vec<_>, _>>()?;

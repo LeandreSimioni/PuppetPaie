@@ -412,12 +412,10 @@ pub(crate) fn cle_de(p: &Paie) -> String {
     p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
-/// `charger(ctx, paies/<mois>.json, sans_numeros=True)` : la saisie lue, ses paies calculees ;
-/// un refus du calcul garde le type d'une saisie encore incomplete.
-pub(crate) fn charger(ctx: &Contexte, chemin: &Path) -> R<(Value, Vec<Paie>)> {
-    let data = engagement::lire_saisie(chemin)?;
-    let s = engagement::charger_donnees(ctx, &data).map_err(|m| refus_du_calcul(ctx, &data, m))?;
-    Ok((data, s.paies))
+/// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies
+/// ecrites, sans numeros ; un mois sans saisie n'a rien.
+pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
+    Ok(engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)?.unwrap_or_else(|| (json!({"mois": mois, "engagements": []}), Vec::new())))
 }
 
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
@@ -614,7 +612,7 @@ fn mois_puppetpaie(
     let groupe = sortie.join(format!("Bulletins_{}.pdf", etiq));
     let envoi_dir = sortie.join("envoi");
     let ecrit = groupe.exists();
-    let (donnees, mut paies) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
+    let (donnees, mut paies) = charger(ctx, mois)?;
     let siennes: Vec<usize> = (0..paies.len()).filter(|i| cles.contains(&cle_de(&paies[*i]))).collect();
     if siennes.is_empty() {
         return Ok(pages);
@@ -645,7 +643,7 @@ fn mois_puppetpaie(
                 d.refus.push(format!("{} : contrats non réédités — leurs numéros ne sont pas encore figés, et un numéro ne s'invente pas.", lib));
             }
         } else {
-            let (data, mut figees) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
+            let (data, mut figees) = charger(ctx, mois)?;
             numeroter(ctx, &data, &mut figees, attente)?;
             siennes_contrats = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i]))).collect();
             paies_contrats = figees;

@@ -26,7 +26,7 @@ use socle::date::{en_texte, Jour};
 use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
-use crate::routes_ouverture::{refus_du_calcul, Refus};
+use crate::routes_ouverture::Refus;
 
 type R<T> = Result<T, Refus>;
 
@@ -423,21 +423,9 @@ fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
     }
 }
 
-/// `un mois saisi` : `paies/AAAA-MM.json`, rien d'autre.
+/// Les mois que la saisie a touches (`engagement::stock::mois_saisis`).
 pub(crate) fn mois_saisis(ctx: &Contexte) -> Vec<String> {
-    let mut out = Vec::new();
-    if let Ok(lecture) = std::fs::read_dir(ctx.racine.join("paies")) {
-        for e in lecture.flatten() {
-            let Some(nom) = e.file_name().to_str().map(str::to_string) else { continue };
-            let Some(stem) = nom.strip_suffix(".json") else { continue };
-            let c: Vec<char> = stem.chars().collect();
-            if c.len() == 7 && c[4] == '-' && c.iter().enumerate().all(|(i, x)| i == 4 || x.is_ascii_digit()) && e.path().is_file() {
-                out.push(stem.to_string());
-            }
-        }
-    }
-    out.sort();
-    out
+    engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default()
 }
 
 /// Ce que les deux etats lisent, une fois chacun.
@@ -457,16 +445,10 @@ impl<'a> Recapitulatifs<'a> {
         Recapitulatifs { ctx, mois, annee, toutes, saisies: HashMap::new(), declarees: None, historique: None, etats: [None, None] }
     }
 
-    /// `charger(ctx, paies/<mois>.json, sans_numeros=True).paies`.
+    /// Les paies validees du mois (`engagement::etats::validees_du_mois`), telles qu'elles ont ete ecrites.
     fn paies(&mut self, mois: &str) -> R<Rc<Vec<Paie>>> {
         if !self.saisies.contains_key(mois) {
-            let ctx = self.ctx;
-            let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-            let r = (|| -> R<Rc<Vec<Paie>>> {
-                let data = engagement::lire_saisie(&chemin)?;
-                let s = engagement::charger_donnees(ctx, &data).map_err(|m| refus_du_calcul(ctx, &data, m))?;
-                Ok(Rc::new(s.paies))
-            })();
+            let r = engagement::etats::validees_du_mois(self.ctx, mois).map(|v| Rc::new(v.map(|(_, p)| p).unwrap_or_default())).map_err(Refus::from);
             self.saisies.insert(mois.to_string(), r);
         }
         match &self.saisies[mois] {

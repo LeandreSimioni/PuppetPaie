@@ -3,7 +3,7 @@
 //! « un mois importe doit etre un mois comme les autres, avec ses cases » ; « il se dit en retard alors qu'il est deja
 //! declare »).
 //!
-//! Un mois tenu AVANT ce logiciel n'a pas de fichier dans `paies/` : il vit dans l'historique que l'import a ecrit
+//! Un mois tenu AVANT ce logiciel n'a aucun engagement : il vit dans l'historique que l'import a ecrit
 //! (`historique/paies.json`, une ligne par paie, de la DSN et/ou du bulletin ; `historique/engagements.json`, un contrat
 //! par AEM ou par bulletin : `importation_ecrite`). Ce module le rend tel que la page Paie montre un mois saisi : une
 //! CARTE PAR PAIE, avec ses cases (salarie, spectacle, debut et fin, jours travailles, cachets et heures, montants, etats),
@@ -69,15 +69,15 @@ fn contrats_du_mois(racine: &Path, mois: &str) -> R<Vec<Value>> {
         .collect())
 }
 
-/// Le mois est-il tenu avant ce logiciel : pas de fichier dans `paies/`, et l'historique importe en parle.
+/// Le mois est-il tenu avant ce logiciel : aucun engagement ne le touche, et l'historique importe en parle.
 pub(crate) fn importe(racine: &Path, mois: &str) -> R<bool> {
-    if racine.join("paies").join(format!("{}.json", mois)).exists() {
+    if engagement::stock::a_une_saisie(racine, mois).map_err(socle::echec::Echec::from)? {
         return Ok(false);
     }
     Ok(!paies_du_mois(racine, mois)?.is_empty() || !contrats_du_mois(racine, mois)?.is_empty())
 }
 
-/// Les mois que l'historique importe porte (une paie, ou un contrat qui les touche), sans fichier dans `paies/`.
+/// Les mois que l'historique importe porte (une paie, ou un contrat qui les touche), qu'aucun engagement ne touche.
 pub(crate) fn mois_importes(racine: &Path) -> R<Vec<String>> {
     let mut mois: BTreeSet<String> = BTreeSet::new();
     for p in liste(racine, "paies.json", "paies")? {
@@ -98,7 +98,7 @@ pub(crate) fn mois_importes(racine: &Path) -> R<Vec<String>> {
             m = mois_suivant(&m);
         }
     }
-    Ok(mois.into_iter().filter(|m| !racine.join("paies").join(format!("{}.json", m)).exists()).collect())
+    Ok(mois.into_iter().filter(|m| !engagement::stock::a_une_saisie(racine, m).unwrap_or(false)).collect())
 }
 
 fn mois_suivant(m: &str) -> String {
@@ -115,7 +115,7 @@ fn mois_suivant(m: &str) -> String {
 /// `{"importee": true, "etablie_le", "fichier"}` -- la date est celle que le fichier porte (S20.G00.05.007, sa
 /// constitution), pas celle d'un depot : aucun bilan de la plate-forme n'est lu pour lui.
 pub(crate) fn dsn_importee(racine: &Path, mois: &str) -> R<Option<Value>> {
-    if racine.join("paies").join(format!("{}.json", mois)).exists() {
+    if engagement::stock::a_une_saisie(racine, mois).map_err(socle::echec::Echec::from)? {
         return Ok(None);
     }
     let p = paies_du_mois(racine, mois)?;
@@ -398,7 +398,7 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     })
 }
 
-/// LE MOIS TENU AVANT, comme la page Paie le montre : `None` si le mois a son fichier dans `paies/` ou si l'historique
+/// LE MOIS TENU AVANT, comme la page Paie le montre : `None` si un engagement touche le mois ou si l'historique
 /// importe n'en dit rien. Sinon `{"dsn", "paies", "totaux", "manques"}` : une carte par paie de l'historique (rapprochee
 /// du contrat atteste des memes salarie, debut et fin), puis une par contrat atteste qu'aucune paie ne porte.
 pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {

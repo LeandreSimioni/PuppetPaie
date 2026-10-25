@@ -1,24 +1,15 @@
-//! `depot-apercu` pour une DSN : ce qui partirait, en clair, sans rien envoyer ni demander.
+//! `depot-apercu` pour une DSN : ce qui partirait, en clair, sans rien envoyer ni demander -- le fichier lu, son
+//! annule-et-remplace, et ce qu'il declare compare aux engagements valides du mois, contrat par contrat.
 //!
-//! C'est le Python de `operations_declarations.apercu_depot_dsn` et de ce qu'il appelle
-//! (`dsn_api.lire`, `_remplacement_du_fichier`, `_recapitulatif_sur`, `recapitulatif_dsn`,
-//! `dsn_recap.lire`, `operations_documents.saisie_aux_numeros_declares`,
-//! `operations_documents.numeroter_depuis_archive`, `bulletin.numeros_archives`), porte a
-//! l'identique : meme JSON, memes refus sous la meme classe.
-//!
-//! Aucun reseau, aucun mot de passe, aucune ecriture de ce module. Une seule ecriture, et
-//! elle est celle que `paie calculer` faisait deja quand le Python l'appelait : le cache
-//! `paies/AAAA-MM.calcul.json` du calcul du mois (`calcul_du_mois::calcul_avec`), que la
-//! route `apercu` ecrit de la meme facon.
+//! Aucun reseau, aucun mot de passe, aucune ecriture de ce module.
 //!
 //! Les pieces reprises du reste du moteur : `Moteur::etat_remplacement` (l'annule-et-
-//! remplace d'un etablissement), `routes_ouverture::{paie_du_mois, engagements_calcules,
-//! paie_de_json, numeroter}` (la saisie calculee, numerotee), `depot::lire` (la lecture du
+//! remplace d'un etablissement), `engagement::etats::validees_du_mois` et
+//! `routes_ouverture::numeroter` (les paies validees, numerotees), `depot::lire` (la lecture du
 //! fichier), `etats::{deja_depose, repetition}` (le journal).
 //!
-//! DEUX ECARTS ASSUMES AVEC `decimal.Decimal` : `NaN` et `Infinity` ne se lisent pas ici
-//! (le Python les accepte puis echoue plus loin), et un exposant qui sortirait des 28
-//! chiffres de `rust_decimal` est refuse comme un nombre illisible.
+//! Un nombre `NaN`, `Infinity`, ou dont l'exposant sortirait des 28 chiffres de `rust_decimal`, se refuse comme un
+//! nombre illisible.
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -37,7 +28,7 @@ use socle::texte::blanc;
 use socle::echec::Echec;
 use crate::routes_apercus::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes_mois::Moteur;
-use crate::routes_ouverture::{engagements_calcules, numeroter, paie_de_json, paie_du_mois, Refus};
+use crate::routes_ouverture::{numeroter, Refus};
 
 type R<T> = Result<T, Echec>;
 
@@ -699,72 +690,50 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
 
 // ------------------------------------------------------------------ la saisie aux numeros declares
 
-/// `saisie_aux_numeros_declares` : la saisie du mois (le fichier lu, la reponse du calcul), et ses paies,
-/// chaque contrat sous le numero qu'il porte VRAIMENT (figes dans la saisie, lus dans l'archive, ou ceux
-/// que la production prendrait).
-pub(crate) fn paies_aux_numeros_declares(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> Result<(Value, Value, Vec<Paie>), Refus> {
-    paies_aux_numeros_declares_avec(o, ctx, mois, None, true)
-}
-
-/// La meme, pour un ENVOI : `charger` du Python RESERVE (en memoire du `Contexte`) les numeros qu'il propose, et la
-/// route d'envoi les ecrit plus loin (`reserver_numeros_envoyes`) ; `reserves` les garde. `cache` : `false` calcule
-/// sans toucher a `paies/AAAA-MM.calcul.json` (le `charger` du Python ne l'ecrit jamais).
-pub(crate) fn paies_aux_numeros_declares_avec(
-    o: &HashMap<String, String>,
-    ctx: &Contexte,
-    mois: &str,
-    reserves: Option<&mut crate::produire_mois::Reserves>,
-    cache: bool,
-) -> Result<(Value, Value, Vec<Paie>), Refus> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let data = engagement::lire_saisie(&chemin)?;
-    let rep = if cache {
-        paie_du_mois(o, ctx, &data)?
-    } else {
-        crate::service::calculer_avec(ctx, &json!({ "saisie": data })).map_err(|m| crate::routes_ouverture::refus_du_calcul(ctx, &data, m))?
+/// LA SAISIE DU MOIS AUX NUMEROS DECLARES : ce qui peut partir de `mois` (`etats::validees_du_mois` : la saisie reduite
+/// aux engagements valides, et leurs paies ecrites), chaque contrat sous le numero qu'il porte VRAIMENT (pose sur
+/// l'engagement, lu dans l'archive des bulletins, ou celui que la production prendrait). `reserves` : les numeros
+/// qu'un envoi propose, que la route d'envoi ecrit plus loin (`reserver_numeros_envoyes`). Un mois sans engagement
+/// valide n'a rien.
+pub(crate) fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut crate::produire_mois::Reserves>) -> Result<(Value, Vec<Paie>), Refus> {
+    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
+        return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
-    let engs = engagements_calcules(ctx, &data, &rep)?;
-    let paies_json = rep.get("paies").and_then(Value::as_array).ok_or("reponse du calcul illisible : `paies`")?;
-    let mut paies = Vec::new();
-    for (e, v) in engs.into_iter().zip(paies_json) {
-        paies.push(paie_de_json(ctx, e, v)?);
-    }
+    let annee = || -> Result<i32, Refus> {
+        let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
+        Ok(int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32)
+    };
     if data.get("numeros_figes").is_some_and(vrai) {
-        // Un contrat ajoute apres la production n'a pas de numero fige : il prend celui que le compteur propose,
-        // comme un mois pas encore produit. Le Python l'imprimait « n° None » (defaut non reproduit) ; les autres
-        // gardent leurs numeros, bulletin compris.
+        // Un contrat ajoute apres la production n'a pas de numero fige : il prend celui que le compteur propose, comme un
+        // mois pas encore produit ; les autres gardent leurs numeros, bulletin compris.
         let sans: Vec<usize> = (0..paies.len()).filter(|&i| paies[i].engagement.numero.as_deref().map_or(true, str::is_empty)).collect();
         if !sans.is_empty() {
-            let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-            let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))?;
             let mut neufs: Vec<Paie> = sans.iter().map(|&i| paies[i].clone()).collect();
             match reserves {
-                Some(r) => r.numeroter(ctx, &mut neufs, annee as i32)?,
-                None => numeroter(ctx, &mut neufs, annee as i32)?,
+                Some(r) => r.numeroter(ctx, &mut neufs, annee()?)?,
+                None => numeroter(ctx, &mut neufs, annee()?)?,
             }
             for (i, p) in sans.into_iter().zip(neufs) {
                 paies[i] = p;
             }
         }
-        return Ok((data, rep, paies));
+        return Ok((data, paies));
     }
     let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", crate::envoi::etiquette(mois)?));
     if groupe.exists() {
         numeroter_depuis_archive(ctx, &mut paies, &groupe)?;
     } else {
-        let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-        let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))?;
         match reserves {
-            Some(r) => r.numeroter(ctx, &mut paies, annee as i32)?,
-            None => numeroter(ctx, &mut paies, annee as i32)?,
+            Some(r) => r.numeroter(ctx, &mut paies, annee()?)?,
+            None => numeroter(ctx, &mut paies, annee()?)?,
         }
     }
-    Ok((data, rep, paies))
+    Ok((data, paies))
 }
 
 /// La meme, sans le detail du refus : le moindre refus, quel qu'il soit, rend `Err`.
-fn saisie_aux_numeros_declares(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, String> {
-    paies_aux_numeros_declares(o, ctx, mois).map(|t| t.2).map_err(|r| r.message)
+fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, String> {
+    paies_aux_numeros_declares(ctx, mois, None).map(|t| t.1).map_err(|r| r.message)
 }
 
 // ------------------------------------------------------------------ recapitulatif_dsn
@@ -774,9 +743,9 @@ fn requis(v: &Value, cle: &str) -> Result<String, String> {
 }
 
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
-fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
+fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
     let sals = lire_recap(octets)?;
-    let (mut compare, liste) = match saisie_aux_numeros_declares(o, ctx, mois) {
+    let (mut compare, liste) = match saisie_aux_numeros_declares(ctx, mois) {
         Ok(l) => (true, l),
         Err(_) => (false, Vec::new()),
     };
@@ -976,7 +945,7 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
     let recapitulatif = if signalement {
         Value::Null
     } else {
-        match recapitulatif_dsn(o, ctx, &contenu, &mois, a.champ("etablissement")) {
+        match recapitulatif_dsn(ctx, &contenu, &mois, a.champ("etablissement")) {
             Ok(v) => v,
             Err(message) => json!({ "erreur": message }),
         }

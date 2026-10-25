@@ -101,8 +101,7 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
             groupe.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
         )));
     }
-    let saisie = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !saisie.exists() {
+    if !engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)? {
         return Err(refus(format!(
             "Aucune saisie pour {} : les bulletins sont archives mais la paie qui les a produits n'est plus la.",
             engagement::libelle_mois(mois)
@@ -111,7 +110,7 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
 
     let mut avertissements: Vec<String> = Vec::new();
     // La lecture ne RESERVE aucun numero : ils viennent de l'archive.
-    let (_donnees, mut paies) = charger(ctx, &saisie)?;
+    let (_donnees, mut paies) = charger(ctx, mois)?;
     let annee: i32 = mois
         .chars()
         .take(4)
@@ -123,7 +122,7 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     // UN CONTRAT AJOUTE APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (21/10/2026) n'est pas dans le fichier archive : il n'a
     // ni numero de bulletin ni page a redecouper. Son bulletin est celui de sa correction, ecrit avec la DSN qui le
     // declare (`produire_regularisations::ecrire_rectificatifs`).
-    let ajoutes: Vec<(String, String)> = crate::routes_regularisation::ce_qui_a_change(&HashMap::new(), ctx, mois)?
+    let ajoutes: Vec<(String, String)> = crate::routes_regularisation::ce_qui_a_change(ctx, mois)?
         .map(|c| c.contrats.into_iter().filter(|x| x.ajoute).map(|x| (x.salarie, x.debut)).collect())
         .unwrap_or_default();
     if !ajoutes.is_empty() {

@@ -723,11 +723,7 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
     for mois in socle::date::mois_entre(debut, fin) {
-        let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-        if !socle::fichiers::existe(&chemin) {
-            continue;
-        }
-        let Ok(saisie) = engagement::charger(ctx, &chemin) else { continue };
+        let Ok(saisie) = engagement::charger(ctx, &mois) else { continue };
         for p in &saisie.paies {
             let e = &p.engagement;
             if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {

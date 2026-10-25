@@ -777,11 +777,7 @@ pub fn cachets_dans(ctx: &Contexte, imp: &Value) -> Resultat<Vec<Value>> {
         return Ok(out);
     }
     for mois in socle::date::mois_entre(&premier, &dernier) {
-        let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-        if !p.exists() {
-            continue;
-        }
-        let data = crate::lire_saisie(&p)?;
+        let Some(data) = crate::stock::vue_du_mois(&ctx.racine, &mois)? else { continue };
         out.extend(cachets_de_la_saisie(ctx, &data, &mois, &cle, &premier, &dernier)?);
     }
     Ok(out)

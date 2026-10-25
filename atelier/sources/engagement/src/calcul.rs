@@ -336,6 +336,9 @@ pub struct Paie {
     /// bornes, sa fiche et sa pile ; vide pour un mois d'un seul tenant. La paie du mois en est la somme ; la DSN declare
     /// leurs remunerations (51) et leurs bases (78, 79, 81) une par une.
     pub periodes: Vec<Paie>,
+    /// Le prelevement a la source de la paie, tel que la validation l'a calcule au taux qu'elle avait (`etats::valider`) ;
+    /// `None` pour une paie que rien n'a encore validee.
+    pub pas: Option<droit::pas::Versement>,
 }
 
 impl Paie {
@@ -352,7 +355,7 @@ impl Paie {
             bases: BTreeMap::new(), remuneration: Vec::new(), reduction_generale: None,
             deduction_forfaitaire: None, avertissements: Vec::new(), salaire_de_base: zero,
             salaire_retabli: zero, assiette_chomage: zero, heures_travaillees: zero,
-            heures_absence: zero, periodes: Vec::new(),
+            heures_absence: zero, periodes: Vec::new(), pas: None,
         }
     }
 

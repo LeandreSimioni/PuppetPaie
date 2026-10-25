@@ -1,19 +1,13 @@
-//! Les routes qui ECRIVENT du lot G4 (`moteur/web.py`, `operations_paies`, `operations_documents`,
-//! `operations_retours`, `operations_exports`, `operations_ecritures`, `operations_casc`, `simulation`) :
-//! `valider-paie`, `contrat-recu`, `journal-reprise`, `ecrire-documents`, `exporter`, `retenir-logiciel`,
-//! `casc-regularise` et `courriels-fictifs`.
+//! Les routes qui ECRIVENT du lot G4 : `valider-engagement`, `contrat-recu`, `journal-reprise`, `ecrire-documents`,
+//! `exporter`, `retenir-logiciel`, `casc-regularise` et `courriels-fictifs`. Un refus garde sa phrase quand elle est
+//! utile a la page.
 //!
-//! Memes fichiers ecrits, memes reponses que le Python (ce qui compte, ce sont les VALEURS). Un refus garde sa
-//! phrase quand elle est utile a la page ; la classe de l'exception peut differer.
-//!
-//! - `valider-paie` ferme (ou rouvre) l'edition d'une paie : il ne touche que la saisie, par la meme porte que
-//!   `enregistrer-saisie` (`routes_ecritures::ecrire_saisie`), sans fusionner avec l'ancien fichier.
+//! - `valider-engagement` valide un engagement (ses paies s'ecrivent) ou le remet en saisie (« Modifier… »).
 //! - `contrat-recu` note au journal qu'un contrat signe est revenu (ou retire la note).
 //! - `exporter` route vers tous les etats (`etats_paie`, `etats_organismes`, `etats_personnel`, `etats_compta`,
 //!   `casc_regularisation`) et rend le tableau en JSON (`tableaux_export::brut_tableau`).
 //! - `retenir-logiciel` ecrit `config/compta.json` et rend le controle du plan pour ce logiciel.
 
-use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
@@ -28,13 +22,13 @@ use socle::echec::Echec;
 use crate::routes_ouverture::Refus;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 8] = ["valider-paie", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "ecrire-documents", "exporter"];
+pub const ROUTES: [&str; 8] = ["valider-engagement", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "ecrire-documents", "exporter"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "valider-paie" => valider_paie(o, ctx, charge),
-        "contrat-recu" => contrat_recu(o, ctx, charge),
+        "valider-engagement" => valider_engagement(ctx, charge),
+        "contrat-recu" => contrat_recu(ctx, charge),
         "retenir-logiciel" => retenir_logiciel(ctx, charge),
         "casc-regularise" => casc_regularise(ctx, charge),
         "exporter" => exporter(ctx, charge),
@@ -72,23 +66,30 @@ fn maintenant() -> String {
     socle::paris::iso_secondes(t)
 }
 
-// ------------------------------------------------------------------ valider-paie
+// ------------------------------------------------------------------ valider-engagement
 
-/// `operations_paies.valider_paie` : ferme (ou rouvre) l'edition d'une paie. N'ecrit que la saisie, et refuse
-/// une paie absente du fichier ENREGISTRE : valider ce qui n'est pas enregistre poserait une pastille verte sur
-/// un formulaire qu'un rechargement de page effacerait.
-fn valider_paie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+/// La classe du refus qui pose la question avant de modifier un engagement dont des documents sont partis
+/// (`engagement::etats::QUESTION_DOCUMENTS_PARTIS`) : la page la montre, et renvoie la demande avec `confirme`.
+pub const CLASSE_DOCUMENTS_PARTIS: &str = "DocumentsPartis";
+
+/// « Valider l'engagement » (`valide` vrai, par defaut) ou « Modifier… » (`valide` faux). L'engagement se designe
+/// dans la saisie enregistree de `mois` : `salarie`, `debut`, et, si deux contrats du salarie commencent ce jour-la,
+/// `numero` ou `rang` (son rang parmi eux). Refus : un engagement absent de la saisie enregistree (valider ce qui
+/// n'est pas enregistre poserait une pastille verte sur un formulaire qu'un rechargement effacerait).
+///
+/// VALIDER ecrit les paies de l'engagement, une par mois qu'il couvre (`engagement::etats::valider`) ; un engagement
+/// deja valide le reste, tel quel. MODIFIER le remet en saisie (`engagement::etats::modifier`) ; si les documents d'un
+/// de ses mois sont partis, le moteur pose d'abord sa question (`CLASSE_DOCUMENTS_PARTIS`) et ne modifie qu'avec
+/// `confirme`.
+fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
     let valide = booleen(charge, "valide", true);
-    let forcer = booleen(charge, "forcer", false);
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
+    let confirme = booleen(charge, "confirme", false);
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Err(refus(format!("Le mois {} n'est pas enregistre : il n'y a rien a valider. Enregistrer la saisie d'abord.", mois)));
-    }
-    let mut data = crate::routes_saisie::lire_saisie(&chemin)?;
+    };
     let rangs = crate::routes_ecritures::identifiants(ctx, &data).map_err(Echec::from)?;
     // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie peuvent commencer le meme jour.
-    // `numero` (facultatif) dit lequel ; sans numero pose, `rang` (facultatif) : son rang parmi ceux de ce jour.
     let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
     let rang = charge.get("rang").and_then(Value::as_u64);
     let du_jour: Vec<usize> = (0..rangs.len()).filter(|&j| rangs[j].0 == salarie && rangs[j].1 == debut).collect();
@@ -96,7 +97,7 @@ fn valider_paie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let i = match (par_numero, du_jour.as_slice()) {
         (_, []) => {
             return Err(refus(format!(
-                "Aucune paie de {} commencant le {} dans la saisie enregistree de {}. Enregistrer la saisie avant de valider.",
+                "Aucun engagement de {} commencant le {} dans la saisie enregistree de {}. Enregistrer la saisie avant de valider.",
                 salarie, debut, mois
             )))
         }
@@ -119,38 +120,21 @@ fn valider_paie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
             }
         },
     };
-    let a_l_index = |data: &mut Value| -> R<Map<String, Value>> {
-        match data.get_mut("engagements").and_then(|e| e.get_mut(i)) {
-            Some(Value::Object(m)) => Ok(std::mem::take(m)),
-            _ => Err(erreur("TypeError", "engagements : un objet est attendu")),
+    let deja = data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned();
+    let rendu = if valide {
+        match deja {
+            Some(le) => le,
+            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &data, m)))?.le().to_string()),
         }
-    };
-    let mut eng = a_l_index(&mut data)?;
-    if valide {
-        eng.remove("valide");
-        eng.remove("rouverte");
     } else {
-        eng.remove("valide");
-        // Rouverte A LA MAIN : une paie dont la DSN est partie se lit validee sans l'avoir ete ; la marque dit
-        // qu'on l'a rouverte.
-        eng.insert("rouverte".into(), Value::String(maintenant()));
-    }
-    data["engagements"][i] = Value::Object(eng);
-    if valide {
-        // VALIDER FIGE LA CARTE (`calcul_du_mois::sceller`) : la paie se calcule une fois, ici, et ce que l'ecran en
-        // montre s'ecrit avec l'empreinte de ce dont ce calcul depend. Ensuite elle se lit.
-        let (rep, entrees) = crate::calcul_du_mois::calculer_suivi(o, &json!({"saisie": data.clone()}))
-            .map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &data, m)))?;
-        let (_, vues) = crate::routes_ouverture::vues_du_calcul(ctx, &data, &rep, false).map_err(Echec::from)?;
-        let vue = vues.get(i).ok_or_else(|| erreur("IndexError", "le calcul a rendu une paie de moins que la saisie"))?;
-        data["engagements"][i]["valide"] = crate::calcul_du_mois::sceller(&maintenant(), vue, &data, i, &entrees, mois);
-    }
-    let rendu = crate::calcul_du_mois::valide_le(data["engagements"][i].get("valide"));
-    // `fusionner=False` : `data` EST le fichier, validation comprise.
-    let Value::Object(donnees) = &data else {
-        return Err(erreur("AttributeError", "la saisie n'est pas un objet"));
+        if !confirme {
+            if let Some(q) = engagement::etats::question_avant_de_modifier(ctx, mois, i).map_err(Echec::from)? {
+                return Err(erreur(CLASSE_DOCUMENTS_PARTIS, q));
+            }
+        }
+        engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
+        Value::Null
     };
-    crate::routes_ecritures::ecrire_saisie(o, ctx, mois, donnees, forcer, false)?;
     Ok(json!({"salarie": salarie, "debut": debut, "valide": rendu}))
 }
 
@@ -159,18 +143,17 @@ fn valider_paie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
 /// `operations_documents.contrat_recu` : un humain dit que le contrat signe est revenu (ou retire la note).
 /// Une ligne de journal, pas un etat de la saisie : elle date un fait du monde. Rien ne part, aucun compteur ne
 /// bouge.
-fn contrat_recu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn contrat_recu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
     let recu = booleen(charge, "recu", true);
     // `numero` (facultatif) dit QUEL contrat du jour : deux contrats du meme salarie peuvent commencer le meme jour.
     let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
-    contrat_recu_avec(o, ctx, mois, salarie, debut, numero.as_deref(), recu, "interface", None)
+    contrat_recu_avec(ctx, mois, salarie, debut, numero.as_deref(), recu, "interface", None)
 }
 
 /// `contrat_recu(ctx, mois, salarie, debut, recu=..., qui=...)` : la meme note, `qui` donne (l'horloge d'une
 /// compagnie fictive passe `horloge`).
 pub(crate) fn contrat_recu_par(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     mois: &str,
     salarie: &str,
@@ -179,7 +162,7 @@ pub(crate) fn contrat_recu_par(
     recu: bool,
     qui: &str,
 ) -> R<Value> {
-    contrat_recu_avec(o, ctx, mois, salarie, debut, numero, recu, qui, None)
+    contrat_recu_avec(ctx, mois, salarie, debut, numero, recu, qui, None)
 }
 
 /// `contrat_recu(..., courriel=...)` : quand la releve des signatures a trouve la reponse « Je signe », elle passe
@@ -188,7 +171,6 @@ pub(crate) fn contrat_recu_par(
 /// "courriel"` puis les champs de `courriel` dans l'ordre ou ils sont donnes.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn contrat_recu_avec(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     mois: &str,
     salarie: &str,
@@ -200,7 +182,7 @@ pub(crate) fn contrat_recu_avec(
 ) -> R<Value> {
     // Le Python calcule sans rien ecrire (`charger`) : `cache = false`, `paies/AAAA-MM.calcul.json` n'est ni lu ni ecrit
     // (reste 163 : il etait ecrit puis remis tel qu'il etait).
-    let paies = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, mois, None, false).map_err(en_echec)?.2;
+    let paies = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
     // LE CONTRAT, pas le salarie : `numero` est celui sous lequel le journal le connait (la releve), ou celui que l'ecran affiche.
     let numero = numero.filter(|n| !n.is_empty());
     let lignes = crate::etats::charger(&ctx.racine)?;

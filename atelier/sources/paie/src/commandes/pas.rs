@@ -303,7 +303,7 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
     let paies = match paies_du_mois(ctx, &mois) {
         Ok(Some(p)) => p,
         Ok(None) => {
-            dire!("Aucune saisie pour {} : paies/{}.json n'existe pas. Rien n'est ecrit.", mois, mois);
+            dire!("Aucun engagement ne touche {}. Rien n'est ecrit.", mois);
             return 1;
         }
         Err(m) => {

@@ -68,7 +68,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let mois = mois_du_fichier(cadre, fichier, "L'envoi se prepare")?;
     ouvrir_la_boite(cadre);
     let ctx = &cadre.ctx;
-    let prep = match crate::routes_envois::preparer_envoi(&cadre.o, ctx, &mois, &mut || crate::routes_envois::client_courriel(ctx)) {
+    let prep = match crate::routes_envois::preparer_envoi(ctx, &mois, &mut || crate::routes_envois::client_courriel(ctx)) {
         Ok(p) => p,
         Err(e) => match preparation_refusee(json, fichier, &e) {
             Some(code) => return Ok(code),

@@ -21,7 +21,6 @@ pub mod bordereau;
 pub mod bridage;
 pub mod bulletin;
 pub mod changements_individu;
-pub mod calcul_du_mois;
 pub mod casc;
 pub mod changements_contrat;
 pub mod champs;

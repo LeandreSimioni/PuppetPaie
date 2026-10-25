@@ -396,7 +396,7 @@ pub(crate) fn taxe_sur_les_salaires_de_la_fiche(ent: &Value) -> Resultat<Option<
 
 /// Une paie de l'annee : son salarie (`_cle`), et la paie calculee ou seulement son contrat.
 enum MoisDeLAnnee {
-    /// Les paies calculees du mois (le mois de la DSN, ou un mois saisi quand les montants sont necessaires).
+    /// Les paies du mois (celles de la DSN, ou les paies validees d'un mois saisi quand les montants sont necessaires).
     Calcules(String, Vec<Paie>),
     /// Les contrats saisis du mois, sans montants (`dsn::contrats_du_mois`).
     Contrats(Vec<Paie>),
@@ -410,7 +410,7 @@ fn lire_latin1(chemin: &Path) -> Resultat<String> {
 }
 
 /// Les douze mois de l'annee de la DSN, pour l'etablissement `nic`. Le mois de la DSN est `paies` (celles qu'elle
-/// declare) ; un autre mois se lit dans sa saisie (`paies/AAAA-MM.json`), calcule si `montants`, sinon ses seuls
+/// declare) ; un autre mois se lit dans ses engagements : leurs paies validees si `montants`, sinon leurs seuls
 /// contrats ; sans saisie, dans la DSN deposee du mois (`casc::dsn_deposee` : celle du journal, ou celle de l'ancien
 /// logiciel). Un mois sans rien n'a pas eu de salarie.
 fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool) -> Resultat<Vec<MoisDeLAnnee>> {
@@ -431,11 +431,10 @@ fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[
             out.push(MoisDeLAnnee::Calcules(m, paies.to_vec()));
             continue;
         }
-        let saisie = ctx.racine.join("paies").join(format!("{}.json", m));
-        if saisie.is_file() {
+        if engagement::stock::a_une_saisie(&ctx.racine, &m)? {
             if montants {
-                let s = engagement::charger(ctx, &saisie).map_err(|e| format!("{} : {}", m, e))?;
-                out.push(MoisDeLAnnee::Calcules(m, de_l_etablissement(s.paies)?));
+                let (_, paies) = engagement::etats::validees_du_mois(ctx, &m).map_err(|e| format!("{} : {}", m, e))?.unwrap_or_default();
+                out.push(MoisDeLAnnee::Calcules(m, de_l_etablissement(paies)?));
             } else {
                 out.push(MoisDeLAnnee::Contrats(de_l_etablissement(crate::dsn::contrats_du_mois(ctx, &m)?)?));
             }

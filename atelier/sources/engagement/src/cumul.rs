@@ -113,22 +113,11 @@ pub fn engagements_des_paies(
             groupes[i].1.push(e);
         }
     }
-    let dossier = ctx.racine.join("paies");
-    let mut fichiers: Vec<(String, std::path::PathBuf)> = Vec::new();
-    if let Some(rd) = socle::fichiers::lister(&dossier) {
-        for f in rd {
-            let nom = f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            if let Some(stem) = nom.strip_suffix(".json") {
-                fichiers.push((stem.to_string(), f.clone()));
-            }
-        }
-    }
-    fichiers.sort();
-    for (stem, chemin) in fichiers {
-        if stem.chars().count() != 7 || groupes.iter().any(|(m, _)| *m == stem) {
+    for stem in crate::stock::mois_saisis(&ctx.racine)? {
+        if groupes.iter().any(|(m, _)| *m == stem) {
             continue;
         }
-        let Ok(saisie) = charger(ctx, &chemin) else { continue };
+        let Ok(saisie) = charger(ctx, &stem) else { continue };
         crate::conges::memoriser_mois(ctx, &stem, &saisie.paies);
         let mut es = Vec::new();
         for p in &saisie.paies {

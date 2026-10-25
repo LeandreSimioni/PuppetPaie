@@ -473,9 +473,9 @@ fn corrections_du_mois(ctx: &Contexte, mois: &Value) -> R<Vec<Value>> {
 /// `engagements_d_origine` : les engagements du mois d'origine tels que DECLARES -- ou tels que la
 /// derniere correction PORTEE les a laisses --, avec leur cle (salarie, debut) et l'etat de leur
 /// correction en cours s'il y en a une.
-fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
+fn engagements_d_origine(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     let donnees = regul::saisie_d_origine(ctx, mois)?;
-    let mut paies = regul::paies_de(o, ctx, &donnees)?;
+    let mut paies = regul::paies_de(ctx, &donnees)?;
     regul::poser_numeros(m, ctx, mois, &mut paies)?;
     let mut portees: Vec<((Value, Value), Map<String, Value>)> = Vec::new();
     let mut en_cours: Vec<((Value, Value), Map<String, Value>)> = Vec::new();
@@ -503,7 +503,7 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
     };
     // LA SAISIE MODIFIEE APRES LA LIMITE (21/10/2026) : la correction d'un contrat dont la paie a change part de la saisie
     // d'aujourd'hui (`engagement_saisi`), la page s'en sert pour preremplir ; le declare reste ce qui est declare.
-    let modifies = regul::ce_qui_a_change(o, ctx, mois)?.map(|c| c.contrats).unwrap_or_default();
+    let modifies = regul::ce_qui_a_change(ctx, mois)?.map(|c| c.contrats).unwrap_or_default();
     let mut out = Vec::new();
     for (p, e) in paies.iter().zip(engs.iter()) {
         let cle_s = valeur_en_texte(regul::requis(&p.salarie, "_cle")?);
@@ -543,7 +543,7 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
     // LES CONTRATS AJOUTES APRES LA LIMITE (un contrat oublie) : rien de declare ; leur correction les declare en entier
     // dans la DSN suivante (`routes_regularisation::apercu_correction`).
     for a in modifies.iter().filter(|c| c.ajoute) {
-        let p = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &a.engagement, true)?;
+        let p = regul::paie_d_un_engagement(m, ctx, &donnees, &a.engagement)?;
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
             Some(v) => valeur_en_texte(v),
@@ -580,7 +580,7 @@ fn regularisation_mois(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
     let mot_de_passe_pose = coffre.ouverture_exigee().map_err(crate::routes_etats::vers_route)?;
     let engagements = if etat["regularisable"].as_bool().unwrap_or(false) {
-        engagements_d_origine(o, &mut m, ctx, &valeur_en_texte(mois_v))?
+        engagements_d_origine(&mut m, ctx, &valeur_en_texte(mois_v))?
     } else {
         Vec::new()
     };

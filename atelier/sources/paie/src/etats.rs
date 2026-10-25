@@ -195,11 +195,6 @@ pub(crate) enum Maille {
 /// (salarie, premier jour, numero) : la cle d'un contrat, hors du journal.
 pub(crate) type Cle3 = (String, String, String);
 
-/// La cle en valeurs JSON, comme `cle_contrat` la range dans un `Dico`.
-pub(crate) fn cle3_valeurs(k: &Cle3) -> Vec<Value> {
-    vec![json!(k.0), json!(k.1), json!(k.2)]
-}
-
 /// Le numero d'une ligne de contrat, tel qu'il sert de cle : son texte, ou `""`.
 pub(crate) fn numero_de_cle(v: &Value) -> Value {
     Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })
