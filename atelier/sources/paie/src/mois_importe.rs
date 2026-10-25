@@ -27,7 +27,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::fichiers::vrai;
 use crate::importation_completer::A_COMPLETER;
@@ -44,7 +44,7 @@ fn liste(racine: &Path, nom: &str, cle: &str) -> R<Vec<Value>> {
 }
 
 fn texte(v: &Value, k: &str) -> String {
-    v.get(k).filter(|x| vrai(x)).map(py_str).map(|t| t.trim().to_string()).unwrap_or_default()
+    v.get(k).filter(|x| vrai(x)).map(valeur_en_texte).map(|t| t.trim().to_string()).unwrap_or_default()
 }
 
 /// Le contrat touche-t-il `mois` (`AAAA-MM`) ? Ses bornes en ISO ; une fin absente vaut le debut.

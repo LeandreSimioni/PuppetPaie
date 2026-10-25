@@ -17,7 +17,7 @@ use serde_json::{json, Value};
 use crate::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
 use droit::contexte::Contexte;
-use socle::ecriture::json_py;
+use socle::ecriture::json_indente;
 use crate::engagement;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -72,7 +72,7 @@ fn ecrire_compteur(ctx: &Contexte, cle: &str, annee: i32, valeur: i64) -> R<()> 
     let annee_obj = racine.entry(an).or_insert_with(|| json!({}));
     let annee_obj = annee_obj.as_object_mut().ok_or_else(|| erreur("AttributeError", "l'annee des compteurs n'est pas un dictionnaire"))?;
     annee_obj.insert(cle.to_string(), json!(valeur));
-    std::fs::write(&p, json_py(&c, 2)).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))
+    std::fs::write(&p, json_indente(&c, 2)).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))
 }
 
 /// `verrou_compteurs(ctx, qui=...)` : refuse si un autre tient les compteurs.
@@ -129,7 +129,7 @@ pub fn ecrire_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
         .unwrap_or_default();
     if !ajoutes.is_empty() {
         paies.retain(|p| {
-            let cle = p.salarie.get("_cle").map(socle::valeur::py_str).unwrap_or_default();
+            let cle = p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).unwrap_or_default();
             !ajoutes.contains(&(cle, p.engagement.debut.iso()))
         });
         avertissements.push(format!(

@@ -25,7 +25,7 @@ use droit::contexte::Contexte;
 use crate::courriel::{self, BoiteSimulee, Client, Courriel};
 use crate::depot_acte::{verifier_preuve, Preuve};
 use crate::envoi::{self, Message};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use crate::journal::{self, Note};
@@ -79,12 +79,12 @@ pub(crate) fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
 
 /// `d.get(cle) or defaut` en texte : la valeur quand elle est vraie.
 pub(crate) fn vrai_ou(d: &Value, cle: &str) -> Option<String> {
-    d.get(cle).filter(|v| vrai(v)).map(py_str)
+    d.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
 }
 
 /// `charge[cle]` en texte (`KeyError` si elle manque).
 pub(crate) fn charge_texte(charge: &Value, cle: &str) -> R<String> {
-    Ok(py_str(requis(charge, cle)?))
+    Ok(valeur_en_texte(requis(charge, cle)?))
 }
 
 /// Le `qui` du journal : celui que la charge donne (la ligne de commande : `ligne de commande`), sinon « interface ».
@@ -299,7 +299,7 @@ impl Choix {
 pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::calcul::Paie]) -> R<Choix> {
     let lignes = crate::etats::charger(&ctx.racine)?;
     let partis = crate::etats::documents_partis(&lignes, mois)?;
-    let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(py_str).unwrap_or_default()).collect();
+    let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).collect();
     let engagements = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     let empreintes = crate::routes_mois::Moteur::empreintes_documents(engagements, &cles);
     let mut resumes: HashMap<String, Value> = HashMap::new();
@@ -313,10 +313,10 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
     let mut choix = Choix { empreintes, resumes, ..Choix::default() };
     let declaration = declaration_de_la_correction(ctx, mois)?;
     for (cle, parti) in &partis {
-        let notee = parti.get("empreinte").filter(|e| vrai(e)).map(py_str);
+        let notee = parti.get("empreinte").filter(|e| vrai(e)).map(valeur_en_texte);
         match (notee, choix.empreintes.get(cle)) {
             (Some(n), Some(a)) if &n != a => {
-                let quand = parti.get("quand").map(py_str).unwrap_or_default();
+                let quand = parti.get("quand").map(valeur_en_texte).unwrap_or_default();
                 let envoye_le = jour_iso(quand.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or(quand);
                 let ancien = parti.get("resume").cloned().unwrap_or(Value::Null);
                 let changements = envoi::ce_qui_a_change(&ancien, choix.resumes.get(cle).unwrap_or(&Value::Null));
@@ -346,15 +346,15 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
     if !vrai(&etat["regularisable"]) {
         return Ok(None);
     }
-    let courant = py_str(&etat["mois_courant"]);
+    let courant = valeur_en_texte(&etat["mois_courant"]);
     let mut porteurs: HashMap<String, String> = HashMap::new();
     for c in crate::routes_ecrites::lire_corrections(ctx, mois)? {
         if c.get("annulee_le").is_some_and(vrai) {
             continue;
         }
-        let par = |k: &str| c.get(k).filter(|p| vrai(p)).and_then(|p| p.get("mois")).map(py_str);
+        let par = |k: &str| c.get(k).filter(|p| vrai(p)).and_then(|p| p.get("mois")).map(valeur_en_texte);
         let porteur = par("portee_par").or_else(|| par("preparee_par")).unwrap_or_else(|| courant.clone());
-        porteurs.insert(c.get("salarie").map(py_str).unwrap_or_default(), porteur);
+        porteurs.insert(c.get("salarie").map(valeur_en_texte).unwrap_or_default(), porteur);
     }
     let de = crate::routes_regularisation::de_mois_en_clair(mois);
     Ok(Some(Box::new(move |cle: &str| match porteurs.get(cle) {
@@ -390,7 +390,7 @@ pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: 
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());
     let mut avertissements: Vec<String> = Vec::new();
-    let signataire = requis(&ctx.entreprise, "signataire")?.get("email").filter(|v| vrai(v)).map(py_str).unwrap_or_default().to_lowercase();
+    let signataire = requis(&ctx.entreprise, "signataire")?.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
     if !signataire.is_empty() && signataire != expediteur {
         avertissements.push(format!(
             "Les messages partiront de {} (la boite posee), pas de {} (le courriel du signataire, fiche Entreprise).",
@@ -492,16 +492,16 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes_dossier_salarie:
     let mut messages: Vec<Message> = Vec::new();
     for (cle, f) in d.salaries.iter().zip(&d.fichiers) {
         let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
-        let Some(email) = s.get("email").filter(|v| vrai(v)).map(py_str) else {
+        let Some(email) = s.get("email").filter(|v| vrai(v)).map(valeur_en_texte) else {
             return Err(refus(format!(
                 "Pas d'adresse e-mail pour {} {} : compléter sa fiche avant d'envoyer. Rien n'est parti.",
-                py_str(requis(s, "nom")?),
-                py_str(requis(s, "prenom")?)
+                valeur_en_texte(requis(s, "nom")?),
+                valeur_en_texte(requis(s, "prenom")?)
             )));
         };
         let prenom = match vrai_ou(s, "prenom_affichage") {
             Some(p) => p,
-            None => py_str(requis(s, "prenom")?),
+            None => valeur_en_texte(requis(s, "prenom")?),
         };
         let signataire = ctx.entreprise.get("signataire").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!({}));
         let ses_pages = d.pages.get(cle).and_then(Value::as_object);
@@ -519,13 +519,13 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes_dossier_salarie:
                 ("periode", if d.periode == "toute la période" { String::new() } else { format!(" ({})", d.periode) }),
                 ("liste", liste),
                 ("reedition", if ses_pages.is_some_and(|p| p.contains_key("contrats")) { REEDITION_CONTRATS.to_string() } else { String::new() }),
-                ("signataire", vrai_ou(&signataire, "prenom_affichage").or_else(|| signataire.get("prenom").map(py_str)).unwrap_or_default()),
-                ("raison_sociale", vrai_ou(&ctx.entreprise, "nom_affichage").or_else(|| ctx.entreprise.get("raison_sociale").map(py_str)).unwrap_or_default()),
+                ("signataire", vrai_ou(&signataire, "prenom_affichage").or_else(|| signataire.get("prenom").map(valeur_en_texte)).unwrap_or_default()),
+                ("raison_sociale", vrai_ou(&ctx.entreprise, "nom_affichage").or_else(|| ctx.entreprise.get("raison_sociale").map(valeur_en_texte)).unwrap_or_default()),
             ],
         );
         messages.push(Message {
             cle: cle.clone(),
-            nom: format!("{} {}", prenom, py_str(requis(s, "nom")?)),
+            nom: format!("{} {}", prenom, valeur_en_texte(requis(s, "nom")?)),
             destinataire: email.to_lowercase(),
             sujet: format!("Ton dossier de salarié — {}", d.periode),
             corps,
@@ -618,7 +618,7 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let aujourdhui = crate::routes_dossier_salarie::aujourdhui_reel();
     let mut dates: Vec<(String, String)> = Vec::new();
     for (a, d) in &vire_le {
-        let texte = py_str(d);
+        let texte = valeur_en_texte(d);
         let Some(jour) = jour_iso(&texte) else {
             return Err(refus(format!("Date du virement {} illisible : {} (attendu AAAA-MM-JJ). Rien n'est parti.", a, repr(&d_en_repr(d)))));
         };
@@ -730,5 +730,5 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
 
 /// Le texte d'une valeur de `vire_le` comme `%r` l'ecrit : ce qui n'est pas un texte s'ecrit sans guillemets.
 fn d_en_repr(d: &Value) -> String {
-    py_str(d)
+    valeur_en_texte(d)
 }

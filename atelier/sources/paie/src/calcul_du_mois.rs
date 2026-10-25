@@ -224,7 +224,7 @@ pub fn ecrire_calcul(o: &HashMap<String, String>, mois: &str, resultat: &Value, 
         return false;
     }
     let Ok(octets) = std::fs::read(&saisie) else { return false };
-    if !serde_json::from_slice::<Value>(&octets).is_ok_and(|lu| socle::valeur::eq_py(&lu, ecrite)) {
+    if !serde_json::from_slice::<Value>(&octets).is_ok_and(|lu| socle::valeur::valeurs_egales(&lu, ecrite)) {
         return false;
     }
     entrees.insert(cle("fichier", &rel), fichiers::sha256_hex(&octets));

@@ -1,4 +1,4 @@
-//! Qui l'employeur declare a la caisse des Conges Spectacles (lot V2f).
+//! Qui l'employeur declare a la caisse des Conges Spectacles.
 //!
 //! Les textes (deposes ; `atelier/reference/sources/caisse-conges-affiliation/LISEZ-MOI.md` dit ou, et ce qu'on en lit) :
 //! - code du travail D. 7121-40 : les employeurs du spectacle « s'affilient, pour le personnel artistique et technique
@@ -15,8 +15,8 @@
 //! Ce que le moteur en fait : un CDDU de moins de douze mois (du debut au terme signes) est declare a la caisse, un
 //! CDDU de douze mois ou plus ne l'est pas, des son premier bulletin ; un CDD de droit commun de moins de douze mois
 //! d'un ARTISTE l'est ; un CDI ne l'est jamais. Ce qui n'est pas porte (le technicien en CDD de droit commun ; des
-//! contrats successifs qui, mis bout a bout, font douze mois continus ; un contrat prolonge au-dela de douze mois) est
-//! dans `prive/journal/norme/corrections/PASSATION-V2f.md` : ce sont des decisions, pas des lectures.
+//! contrats successifs qui, mis bout a bout, font douze mois continus ; un contrat prolonge au-dela de douze mois)
+//! attend une decision : aucun texte depose ne le tranche.
 
 use crate::natures::Nature;
 use socle::date::Jour;
@@ -27,7 +27,7 @@ use serde_json::Value;
 
 /// Ce que la pile du bareme decrit sans contrat : le CORPS est un intermittent affilie (le CDDU), la section
 /// `par_nature.permanent` un salarie que l'employeur paie de ses conges (CDI, CDD de droit commun). C'est la valeur
-/// que prennent les lectures qui n'ont pas de contrat (`oracle bareme`, `service bareme-applique`).
+/// que prennent les lectures qui n'ont pas de contrat.
 pub fn par_defaut(nat: &Nature) -> bool {
     !nat.mensuelle()
 }
@@ -54,7 +54,7 @@ pub fn douze_mois_ou_plus(debut: &Jour, fin: &Jour) -> Resultat<bool> {
 /// techniciens » l'administrateur, le charge et l'attache de production (liste de l'Unedic,
 /// `unedic-annexe8-liste-champ-application-20161216.txt`, p. 21-22), que la compagnie fictive `fictive-3090-grande` paie en
 /// CDD de droit commun avec ses conges payes par l'employeur. Quel technicien en CDD de droit commun est declare a la
-/// caisse est une decision (PASSATION-V2f.md) ; en attendant, il reste ce qu'il etait : non declare.
+/// caisse attend une decision : il n'est pas declare.
 pub fn artiste_du_spectacle(sal: &Value) -> Resultat<bool> {
     let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).and_then(Value::as_str).unwrap_or("").trim().to_string();
     if code.is_empty() || code.eq_ignore_ascii_case("999SPT") {

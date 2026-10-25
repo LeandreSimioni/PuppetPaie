@@ -26,8 +26,8 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use crate::etats::{get};
-use socle::valeur::eq_py;
-use socle::valeur::py_str;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::fichiers::vrai;
 use crate::incidents::{self, DEPOSE, EN_ATTENTE};
@@ -138,8 +138,8 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
             let q = get(l, "quoi")?;
             q.as_str().is_some_and(|q| q == incidents::LOGICIEL || q == incidents::REFUS)
         };
-        let cle = if regroupe { empreinte.clone() } else { json!(format!("{}|{}", py_str(empreinte), py_str(quand))) };
-        let i = match groupes.iter().position(|(k, _)| eq_py(k, &cle)) {
+        let cle = if regroupe { empreinte.clone() } else { json!(format!("{}|{}", valeur_en_texte(empreinte), valeur_en_texte(quand))) };
+        let i = match groupes.iter().position(|(k, _)| valeurs_egales(k, &cle)) {
             Some(i) => i,
             None => {
                 let mut g = Map::new();
@@ -186,10 +186,10 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
         }
     }
     // `sorted(..., key=derniere or "", reverse=True)` : stable.
-    let cle_de = |g: &Map<String, Value>| if vrai(&g["derniere"]) { py_str(&g["derniere"]) } else { String::new() };
+    let cle_de = |g: &Map<String, Value>| if vrai(&g["derniere"]) { valeur_en_texte(&g["derniere"]) } else { String::new() };
     let mut liste: Vec<Map<String, Value>> = groupes.into_iter().map(|(_, g)| g).collect();
     liste.sort_by(|a, b| cle_de(b).cmp(&cle_de(a)));
-    let partis: Vec<String> = liste.iter().filter(|g| vrai(&g["parti_le"])).map(|g| py_str(&g["parti_le"])).collect();
+    let partis: Vec<String> = liste.iter().filter(|g| vrai(&g["parti_le"])).map(|g| valeur_en_texte(&g["parti_le"])).collect();
     let somme = |c: &str| liste.iter().map(|g| g[c].as_i64().unwrap_or(0)).sum::<i64>();
     let (partis_total, en_attente_total) = (somme("partis"), somme("en_attente"));
     // LE NOMBRE DE PAIES DE L'ANNEE (ticket #246) se voit dans la meme liste : une entree par annee partie, avec exactement

@@ -6,7 +6,7 @@
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::fichiers::{lire_json, repr, repr_valeur, vrai};
-use socle::num::{add, dec_f64, dec_py, eur2, mul, sub, Decimal, Resultat};
+use socle::num::{add, dec_f64, dec_avec_echelle, eur2, mul, sub, Decimal, Resultat};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -108,7 +108,7 @@ impl Declaration {
 /// `Decimal(str(v))` d'une valeur JSON ; `None` si Python lèverait `InvalidOperation`.
 fn decimal_de(v: &Value) -> Option<Decimal> {
     match v {
-        Value::Number(_) | Value::String(_) => dec_py(v).ok(),
+        Value::Number(_) | Value::String(_) => dec_avec_echelle(v).ok(),
         _ => None,
     }
 }
@@ -397,7 +397,7 @@ pub fn smic_au_31_decembre(ctx: &Contexte, millesime: i32) -> Resultat<Decimal> 
         }
     }
     match val {
-        Some(v) => dec_py(v),
+        Some(v) => dec_avec_echelle(v),
         None => Err(format!("Aucun SMIC au {} dans le socle {}.", jour.iso(), millesime)),
     }
 }

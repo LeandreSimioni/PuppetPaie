@@ -29,7 +29,7 @@ use crate::simulation_courriels::BoiteQuiRepond;
 use crate::courriel_lecture as lecture;
 use crate::depot_acte::{verifier_preuve, Preuve};
 use crate::envoi::{self, Message};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::fiche_questionnaire as fq;
@@ -50,7 +50,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 /// Une route de ce module, la boite venant de `client` quand il est donne (un faux client dans les tests).
 pub fn route_avec(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, client: Option<&mut dyn Courriel>) -> R<Value> {
-    let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     match nom {
         "fiche-demander" => {
             let d = demander_fiche(ctx, &texte("adresse"), &texte("prenom"), &preuve_de(charge), "interface", client)?;
@@ -103,12 +103,12 @@ pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preu
     let ent = &ctx.entreprise;
     let compagnie = match vrai_ou(ent, "nom_affichage") {
         Some(c) => c,
-        None => ent.get("raison_sociale").map(py_str).unwrap_or_default(),
+        None => ent.get("raison_sociale").map(valeur_en_texte).unwrap_or_default(),
     };
     let sg = ent.get("signataire").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!({}));
     let signataire = match vrai_ou(&sg, "prenom_affichage") {
         Some(p) => p,
-        None => capitaliser(&sg.get("prenom").map(py_str).unwrap_or_default()),
+        None => capitaliser(&sg.get("prenom").map(valeur_en_texte).unwrap_or_default()),
     };
     let expediteur = client.compte().to_lowercase();
     let code = fq::code_fiche();
@@ -179,9 +179,9 @@ pub fn fiches_attendues(ctx: &Contexte) -> R<Vec<Attendue>> {
         if !l.get("accepte").is_some_and(vrai) || !vrai(&code) || closes.contains(&code) {
             continue;
         }
-        let texte = |cle: &str| d.get(cle).map(py_str).unwrap_or_default();
+        let texte = |cle: &str| d.get(cle).map(valeur_en_texte).unwrap_or_default();
         sortie.push(Attendue {
-            code: py_str(&code),
+            code: valeur_en_texte(&code),
             adresse: texte("adresse"),
             prenom: texte("prenom"),
             quand: l.get("quand").and_then(Value::as_str).unwrap_or("").to_string(),
@@ -208,7 +208,7 @@ impl ReleveFiches {
         if self.recues.is_empty() {
             return String::new();
         }
-        let noms: Vec<String> = self.recues.iter().map(|r| r.get("nom").map(py_str).unwrap_or_default()).collect();
+        let noms: Vec<String> = self.recues.iter().map(|r| r.get("nom").map(valeur_en_texte).unwrap_or_default()).collect();
         format!("{} fiche(s) salarié reçue(s) : {}", self.recues.len(), noms.join(", "))
     }
 }
@@ -309,7 +309,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         let existante: Option<String> = ctx
             .salaries
             .iter()
-            .find(|(k, s)| s.is_object() && !k.starts_with('_') && strip(&s.get("email").filter(|v| vrai(v)).map(py_str).unwrap_or_default()).to_lowercase() == de)
+            .find(|(k, s)| s.is_object() && !k.starts_with('_') && strip(&s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_lowercase() == de)
             .map(|(k, _)| k.clone());
         let donnees: Map<String, Value> = match &existante {
             Some(k) => {
@@ -318,7 +318,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
                 let ancienne = ctx.salaries.get(k).and_then(Value::as_object).cloned().unwrap_or_default();
                 let mut fusion = ancienne.clone();
                 for (cle, valeur) in &donnees {
-                    if strip(&ancienne.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_default()).is_empty() {
+                    if strip(&ancienne.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).is_empty() {
                         fusion.insert(cle.clone(), valeur.clone());
                     }
                 }
@@ -333,7 +333,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
             }
         };
         let f = crate::routes_ecritures::ecrire_fiche(ctx, "salarie", existante.clone(), &Value::Object(donnees.clone()), crate::routes_ecritures::Forcer::Tout, &Value::Null, &Value::Null)?;
-        let texte_de = |cle: &str| donnees.get(cle).map(py_str).unwrap_or_default();
+        let texte_de = |cle: &str| donnees.get(cle).map(valeur_en_texte).unwrap_or_default();
         let nom = format!("{} {}", texte_de("prenom_affichage"), texte_de("nom_affichage"));
         let erreurs = f.anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).count();
         let detail = json!({"code": code, "salarie": f.cle, "illisible": illisible, "erreurs": erreurs});

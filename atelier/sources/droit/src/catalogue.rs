@@ -1,13 +1,8 @@
-//! Le catalogue des rubriques (`moteur/catalogue.py`) : ce que le calcul lit.
+//! Le catalogue des rubriques : ce que le calcul lit.
 //!
 //! Trois fichiers : `donnees/rubriques-base.json` (le logiciel),
 //! `config/rubriques-compagnie.json` et `config/rubriques-actives.json` (les
-//! donnees, sous la racine de la compagnie). Les refus gardent les messages
-//! du Python.
-//!
-//! Non porte : `CHAMPS`, `Champ`, `non_appliques`, `verifier_les_champs` (de
-//! l'ecran et de l'audit, pas du calcul), `Rubrique.jours` (qui ne fait que
-//! refuser).
+//! donnees, sous la racine de la compagnie).
 
 use socle::fichiers::{dossier_du_code, lire_json, repr, signature, vrai};
 use socle::num::Resultat;
@@ -85,7 +80,7 @@ pub const AUTRES_BRUTS: &[(&str, &str)] = &[
     ("96", "Potentiel nouveau type E"),
 ];
 
-/// Les champs d'une rubrique (`Rubrique.__dataclass_fields__`) : tout autre
+/// Les champs d'une rubrique : tout autre
 /// champ dans un fichier est refuse.
 const CHAMPS_CONNUS: [&str; 28] = [
     "code", "libelle", "unite", "nature", "saisie", "soumis", "imposable",
@@ -134,7 +129,7 @@ fn joindre(l: &[&str]) -> String {
 }
 
 impl Rubrique {
-    /// `__post_init__` : les refus d'une rubrique mal formee.
+    /// Les refus d'une rubrique mal formee.
     fn verifier(&self) -> Resultat<()> {
         let code = &self.code;
         if !UNITES.contains(&self.unite.as_str()) {
@@ -199,7 +194,7 @@ impl Rubrique {
         }
     }
 
-    /// `Rubrique.reservee_a` : `"mensuelle"`, `"activite"` ou rien.
+    /// La forme de paie a laquelle la rubrique est reservee : `"mensuelle"`, `"activite"` ou rien.
     pub fn reservee_a(&self) -> Option<&'static str> {
         if self.salaire_de_base
             || self.retabli
@@ -221,7 +216,7 @@ impl Rubrique {
     /// la journee, la semaine, le mois, l'absence a la journee). Le catalogue
     /// le dit (`_heures` de `rubriques-base.json`) : « partout ailleurs les
     /// heures sont saisies, parce qu'elles sont un fait elles aussi ». Une
-    /// ligne qui les tait se refuse (`engagement::engagements`, ticket #125) :
+    /// ligne qui les tait se refuse (`engagement::engagements`) :
     /// sans elle, [`Rubrique::heures`] compterait zero en silence.
     pub fn heures_a_saisir(&self) -> bool {
         self.heures_forfait.is_none() && self.saisie.iter().any(|s| s == "heures")
@@ -268,7 +263,7 @@ fn base_json() -> Resultat<Value> {
     lire(&dossier_du_code().join("rubriques-base.json"))
 }
 
-/// `catalogue.annexes()` : seuil et fenetre des annexes VIII et X.
+/// Le seuil et la fenetre des annexes VIII et X.
 pub fn annexes() -> Resultat<Value> {
     let b = base_json()?;
     let a = b.get("annexes").cloned().unwrap_or(Value::Object(Map::new()));
@@ -281,7 +276,7 @@ pub fn annexes() -> Resultat<Value> {
     Ok(a)
 }
 
-/// `d["cle"]` : un `KeyError` Python se lit `'cle'`.
+/// Un champ exige ; son absence se refuse en le nommant.
 fn requis<'a>(d: &'a Map<String, Value>, cle: &str) -> Resultat<&'a Value> {
     d.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
@@ -295,7 +290,7 @@ fn chaine_opt(d: &Map<String, Value>, cle: &str) -> Option<String> {
 }
 
 fn entier(v: &Value) -> i64 {
-    // int(x) de Python pour un nombre ou une chaine.
+    // Un entier, depuis un nombre (tronque) ou une chaine.
     match v {
         Value::Number(n) => n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64),
         Value::String(s) => s.trim().parse().unwrap_or(0),
@@ -315,8 +310,8 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str, usages: i64, ac
     if !inconnus.is_empty() {
         inconnus.sort();
         return Err(format!(
-            "Rubrique {} : champ(s) inconnu(s) {}. Le schema est celui de \
-             moteur/catalogue.Rubrique.", repr(code), inconnus.join(", ")));
+            "Rubrique {} : champ(s) inconnu(s) {}. Les champs admis sont ceux des rubriques livrees, \
+             rubriques-base.json.", repr(code), inconnus.join(", ")));
     }
     let texte = |v: &Value| match v {
         Value::String(s) => s.clone(),
@@ -445,7 +440,7 @@ pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
     let cache = CATALOGUES.get_or_init(|| Mutex::new(HashMap::new()));
     if let Some(c) = cache.lock().unwrap().get(&cle) {
         // Un catalogue servi par le cache a lu ses fichiers quand meme, pour l'empreinte du calcul -- seulement quand un
-        // calcul suivi les note (sinon, autant de lectures du disque pour rien a chaque rubrique, ticket #244).
+        // calcul suivi les note (sinon, autant de lectures du disque pour rien a chaque rubrique).
         if !socle::fichiers::registre_ouvert() {
             return Ok(c.clone());
         }
@@ -471,8 +466,8 @@ pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
 }
 
 /// LA RUBRIQUE D'UNE LIGNE DE PAIE NEUVE, par forme de paie (`"activite"` ou `"mensuelle"`, celles de
-/// [`Rubrique::reservee_a`]) : #236, une ligne neuve s'ouvrait sur la premiere rubrique du deroulant -- « Absence », dans
-/// une compagnie neuve, ou rien n'est coche et ou le catalogue se trie par libelle. Une ligne neuve paie un travail : la
+/// [`Rubrique::reservee_a`]) : une ligne neuve paie un travail, elle ne s'ouvre pas sur la premiere rubrique du
+/// deroulant (« Absence », dans une compagnie neuve, ou rien n'est coche et ou le catalogue se trie par libelle) : la
 /// premiere rubrique de salaire (nature `salaire`) que la forme propose, dans l'ordre du catalogue (les cochees d'abord,
 /// la plus utilisee en tete) ; au mois, le salaire de base (`salaire_de_base`) passe devant. `None` : aucune.
 pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str) -> Option<&'a Rubrique> {

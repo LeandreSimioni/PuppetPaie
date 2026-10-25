@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 /// `json.dumps(charge, ensure_ascii=False, indent=2)` suivi d'un saut de ligne, comme `cli._rendre`.
 /// Rend le code de sortie : 0 si `ok`, 2 sinon.
 pub fn rendre(charge: &Value) -> i32 {
-    dire!("{}", socle::ecriture::json_py(charge, 2));
+    dire!("{}", socle::ecriture::json_indente(charge, 2));
     if charge.get("ok").and_then(Value::as_bool).unwrap_or(false) {
         0
     } else {
@@ -16,7 +16,7 @@ pub fn rendre(charge: &Value) -> i32 {
 
 /// Comme `rendre`, avec l'indentation d'un espace (`arrivee --json`).
 pub fn rendre_indent(charge: &Value, indent: usize) -> i32 {
-    dire!("{}", socle::ecriture::json_py(charge, indent));
+    dire!("{}", socle::ecriture::json_indente(charge, indent));
     if charge.get("ok").and_then(Value::as_bool).unwrap_or(false) {
         0
     } else {
@@ -42,7 +42,7 @@ pub fn erreur(commande: &str, classe: &str, message: &str, extra: &[(&str, Value
 
 /// Le texte d'une valeur JSON comme `str(x)` de Python le donnerait : `None`, `True`, `0.5`.
 pub fn texte(v: &Value) -> String {
-    socle::valeur::py_str(v)
+    socle::valeur::valeur_en_texte(v)
 }
 
 /// Le texte d'une cle d'un objet JSON, `None` quand elle manque (Python leverait `KeyError` ; ici on est plus doux).

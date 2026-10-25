@@ -1,5 +1,4 @@
-//! Les metiers du spectacle (`moteur/emplois.py`) et la fiche telle qu'elle
-//! vaut pour un engagement (`calcul.emploi_de`, `calcul._emploi_a_la_date`).
+//! Les metiers du spectacle et la fiche telle qu'elle vaut pour un engagement (`emploi_de`, `emploi_a_la_date`).
 //!
 //! Deux fichiers livres avec le code : `emplois-base.json` (le catalogue) et
 //! `nomenclature-emplois-ft.json` (les codes France Travail).
@@ -11,7 +10,7 @@ use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
 use socle::num::Resultat;
 use serde_json::{Map, Value};
 
-/// Les champs de la fiche qu'un historique peut dater (`calcul.CHAMPS_EMPLOI`).
+/// Les champs de la fiche qu'un historique peut dater.
 pub const CHAMPS_EMPLOI: [&str; 7] = [
     "emploi",
     "emploi_affichage",
@@ -22,7 +21,7 @@ pub const CHAMPS_EMPLOI: [&str; 7] = [
     "statut_categoriel_rc",
 ];
 
-/// `str.capitalize()` : premiere lettre en majuscule, le reste en minuscules.
+/// Premiere lettre en majuscule, le reste en minuscules.
 fn capitaliser(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {
@@ -147,10 +146,10 @@ pub fn statut_non_cadre(m: &Value) -> Option<String> {
     None
 }
 
-/// Une fonction `telle_qu_au(fiche, date_ref)` : `contexte.telle_qu_au`.
+/// Une fonction `telle_qu_au(fiche, date_ref)` : `contexte::telle_qu_au`.
 pub type TelleQuAu<'a> = &'a dyn Fn(&Value, &str) -> Resultat<Value>;
 
-/// `calcul._emploi_a_la_date` : l'emploi de la fiche au `jour` (AAAA-MM-JJ),
+/// L'emploi de la fiche au `jour` (AAAA-MM-JJ),
 /// d'apres son historique. `jour` vide ou absent : la fiche telle quelle.
 pub fn emploi_a_la_date(sal: &Value, jour: Option<&str>, telle_qu_au: TelleQuAu) -> Resultat<Value> {
     let fiche = sal.as_object().ok_or("fiche salarie : un objet est attendu")?;
@@ -221,14 +220,14 @@ const UNE_VALEUR_PAR_MOIS: [&str; 5] = ["statut_categoriel_rc", "statut_conventi
 /// La fiche salarie d'un contrat PAYE AU MOIS (CDI, CDD de droit commun), telle qu'elle vaut pour la periode payee
 /// (`debut`, `fin`, AAAA-MM-JJ) : l'emploi (`CHAMPS_EMPLOI`) et le statut BOETH lus a la fin de la periode, plus au
 /// premier jour du contrat. Un permanent passe cadre, change de poste, obtient ou perd sa RQTH en cours de contrat :
-/// la paie et la DSN du mois ou cela prend effet le disent (vague V3c ; jusqu'au 10/10/2026, le moteur relisait la
-/// fiche telle qu'au premier jour du contrat, et le passage cadre d'un CDI n'atteignait ni le bareme ni la DSN).
+/// la paie et la DSN du mois ou cela prend effet le disent : la fiche du premier jour du contrat ferait manquer au
+/// bareme et a la DSN le passage cadre d'un CDI.
 ///
 /// `sal` est la fiche du contexte (lue a sa date) ; `brute`, la meme telle qu'ecrite : ce qu'elle porte aujourd'hui
 /// fait foi pour ces champs, la date du contexte pouvant preceder la fin du mois paye.
 ///
 /// UN CHANGEMENT DANS LA PERIODE REFUSE (`UNE_VALEUR_PAR_MOIS`) : une paie se calcule sur une seule pile de bareme
-/// (regle 6). Depuis le lot R10, la paie d'un mois ou ces valeurs changent se decoupe en periodes elementaires aux jours
+/// (regle 6). La paie d'un mois ou ces valeurs changent se decoupe en periodes elementaires aux jours
 /// du changement (`jours_de_changement`, `periodes::bornes`, norme § 2.1.3.2, p. 28), et chaque periode lit sa fiche
 /// ici, sur ses bornes : le refus ne garde que l'appel sur une periode qui n'aurait pas ete coupee. Le statut BOETH, qui
 /// ne change pas la paie, peut changer en cours de mois.
@@ -323,7 +322,7 @@ fn fiche_ecrite(sal: &Value, brute: Option<&Value>) -> Resultat<Value> {
 /// change une valeur qui choisit la pile du bareme ou que le bloc 40 porte avec une rubrique en bloc 41
 /// (`UNE_VALEUR_PAR_MOIS`) : le lendemain d'une fenetre `jusqu_au` de l'historique des champs de l'emploi, quand la
 /// fiche d'avant et celle d'apres different sur l'une de ces valeurs. C'est la que la paie du mois se decoupe en periodes
-/// elementaires (`periodes::bornes`, lot R10 ; norme DSN 2026.1, § 2.1.3.2, p. 28 : « passage de non cadre a cadre en
+/// elementaires (`periodes::bornes` ; norme DSN 2026.1, § 2.1.3.2, p. 28 : « passage de non cadre a cadre en
 /// cours de periode de paie »). Vide : le mois se paie d'un seul tenant.
 pub fn jours_de_changement(sal: &Value, brute: Option<&Value>, debut: &str, fin: &str, telle_qu_au: TelleQuAu) -> Resultat<Vec<socle::date::Jour>> {
     use socle::date::Jour;
@@ -349,11 +348,11 @@ pub fn jours_de_changement(sal: &Value, brute: Option<&Value>, debut: &str, fin:
     Ok(out)
 }
 
-/// Ce que `calcul.emploi_de` lit d'un `Engagement`.
+/// Ce que `emploi_de` lit d'un engagement.
 #[derive(Debug, Clone, Default)]
 pub struct EmploiEngagement {
     pub emploi: Option<String>,
-    /// Le libelle lisible que l'engagement a resolu (`Engagement.emploi_affichage`).
+    /// Le libelle lisible que l'engagement a resolu.
     pub emploi_affichage: Option<String>,
     pub pcs_ese: Option<String>,
     pub code_emploi_ft: Option<String>,
@@ -362,7 +361,7 @@ pub struct EmploiEngagement {
     pub statut_categoriel_rc: Option<String>,
 }
 
-/// `calcul.emploi_de` : la fiche salarie telle qu'elle vaut POUR CET
+/// La fiche salarie telle qu'elle vaut POUR CET
 /// ENGAGEMENT. `debut` est le premier jour du contrat (AAAA-MM-JJ). Ce que
 /// l'engagement dit l'emporte ; le reste vient de la fiche.
 pub fn emploi_de(
@@ -414,7 +413,7 @@ pub fn emploi_de(
 
 // ------------------------------------------------------------- l'interface
 
-/// `emplois.catalogue()` : le catalogue du spectacle vivant, pour un
+/// Le catalogue du spectacle vivant, pour un
 /// deroulant, dans l'ordre du fichier.
 pub fn catalogue() -> Resultat<Vec<Value>> {
     let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
@@ -462,13 +461,13 @@ pub fn par_intitule(intitule: &str, norme: impl Fn(&str) -> String) -> Resultat<
     Ok(if trouves.len() == 1 { trouves.pop() } else { None })
 }
 
-/// `emplois.noms_des_conventions()` : IDCC -> le nom court de la convention.
+/// IDCC -> le nom court de la convention.
 pub fn noms_des_conventions() -> Resultat<Map<String, Value>> {
     let base = json_en_cache(&dossier_du_code().join("emplois-base.json"))?;
     Ok(base.get("_conventions").and_then(Value::as_object).cloned().unwrap_or_default())
 }
 
-/// `emplois.familles()` : les familles du catalogue, dans l'ordre ou les
+/// Les familles du catalogue, dans l'ordre ou les
 /// montrer : les artistes d'abord, parce que c'est le cas de presque toutes
 /// les paies.
 pub fn familles() -> Resultat<Vec<String>> {
@@ -487,12 +486,12 @@ pub fn familles() -> Resultat<Vec<String>> {
     Ok(out)
 }
 
-/// `emplois.controler_fiche` : ce qu'une fiche salarie declare, confronte au
+/// Ce qu'une fiche salarie declare, confronte au
 /// catalogue. Des phrases d'avertissement, jamais d'erreur : la fiche peut
 /// avoir raison contre le catalogue.
 pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, socle::echec::Echec> {
-    use socle::valeur::eq_py;
-    use socle::valeur::py_repr;
+    use socle::valeur::valeurs_egales;
+    use socle::valeur::valeur_ecrite;
     use socle::valeur::nom_type;
     use socle::echec::erreur;
     let mut avis = Vec::new();
@@ -508,14 +507,14 @@ pub fn controler_fiche(d: &Map<String, Value>) -> Result<Vec<String>, socle::ech
         avis.push(format!("Code emploi France Travail {} inconnu de la nomenclature (S21.G00.40.005).", repr(&code)));
         return Ok(avis);
     };
-    let texte = |v: Option<&Value>| v.map(socle::valeur::py_str).unwrap_or_default();
+    let texte = |v: Option<&Value>| v.map(socle::valeur::valeur_en_texte).unwrap_or_default();
     let libelle = texte(m.get("libelle"));
     if let Some(statut) = d.get("statut").filter(|v| vrai(v)) {
-        if !m.get("statut").map_or(false, |x| eq_py(statut, x)) {
+        if !m.get("statut").map_or(false, |x| valeurs_egales(statut, x)) {
             let annexe = m.get("annexe").and_then(|a| a.as_i64().or_else(|| a.as_f64().map(|x| x as i64))).unwrap_or(0);
             avis.push(format!(
                 "Le code emploi {} ({}) est de l'annexe {}, donc {} ; la fiche dit {}.",
-                code, libelle, annexe, texte(m.get("statut")), py_repr(statut)
+                code, libelle, annexe, texte(m.get("statut")), valeur_ecrite(statut)
             ));
         }
     }

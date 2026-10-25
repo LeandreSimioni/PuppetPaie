@@ -72,7 +72,7 @@ fn fr(iso: Option<&str>) -> String {
 /// `pas.ecrire` : `json.dumps(data, ensure_ascii=False, indent=2)`, sans saut de ligne final.
 fn ecrire(ctx: &Contexte, data: &Value) -> Result<(), Echec> {
     let p = ctx.racine.join("config").join("pas.json");
-    std::fs::write(&p, socle::ecriture::json_py(data, 2)).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })
+    std::fs::write(&p, socle::ecriture::json_indente(data, 2)).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })
 }
 
 /// `pas.enregistrer` : applique des releves de CRM ; rend les changements lisibles. Un releve :

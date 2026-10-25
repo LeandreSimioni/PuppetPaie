@@ -26,8 +26,8 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use crate::etats::{self, est, get, getd, items, joindre, objet_vide, ou, DPAE, SIGNATURE};
-use socle::valeur::eq_py;
-use socle::valeur::py_str;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, vrai};
@@ -214,7 +214,7 @@ fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
             }
             let noms: Vec<Value> = [get(&d, "nom")?, get(&d, "prenom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
             let texte = joindre(" ", &noms)?;
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, py_str(get(&d, "siret")?)) } else { String::new() };
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(get(&d, "siret")?)) } else { String::new() };
             Ok(json!({"texte": phrase, "manque": manque, "ici": false, "ou": "fiche Entreprise › Qui les organismes contactent"}))
         }
         "urssaf" => {
@@ -228,7 +228,7 @@ fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
             }
             let noms: Vec<Value> = [get(cfg, "prenom")?, get(cfg, "nom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
             let texte = joindre(" ", &noms)?;
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, py_str(siret)) } else { String::new() };
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(siret)) } else { String::new() };
             Ok(json!({
                 "texte": phrase, "manque": manque, "ici": true,
                 "nom": ou_texte(get(cfg, "nom")?), "prenom": ou_texte(get(cfg, "prenom")?),
@@ -353,7 +353,7 @@ fn etat_importation(racine: &Path) -> R<Value> {
         for e in &engagements {
             let x = get(e, cle)?;
             if vrai(x) {
-                v.push(py_str(x));
+                v.push(valeur_en_texte(x));
             }
         }
         v.sort();
@@ -619,14 +619,14 @@ fn piece_existe(racine: &Path, mois: &Value, fichier: &Value) -> R<bool> {
     if !vrai(mois) || !vrai(fichier) {
         return Ok(false);
     }
-    let nom = py_str(fichier);
+    let nom = valeur_en_texte(fichier);
     if ["/", "\\", ".."].iter().any(|x| nom.contains(x)) {
         return Ok(false);
     }
     let Value::String(f) = fichier else {
         return Err(erreur("TypeError", format!("'fichier' : {}", socle::fichiers::attendu("un texte", nom_type(fichier)))));
     };
-    let base = racine.join("sorties").join(py_str(mois));
+    let base = racine.join("sorties").join(valeur_en_texte(mois));
     Ok([base.join("envoi").join(f), base.join(f)].iter().any(|c| c.is_file()))
 }
 
@@ -636,7 +636,7 @@ fn piece(racine: &Path, quoi: &str, quand: &Value, mois: &Value, fichier: &Value
 
 /// `(c.get("salarie"), c.get("debut")) == (salarie, debut)`.
 fn est_cette_paie(c: &Value, salarie: &Value, debut: &Value) -> R<bool> {
-    Ok(eq_py(get(c, "salarie")?, salarie) && eq_py(get(c, "debut")?, debut))
+    Ok(valeurs_egales(get(c, "salarie")?, salarie) && valeurs_egales(get(c, "debut")?, debut))
 }
 
 /// `pieces_parties` : les FICHIERS partis pour une paie -- la DPAE deposee, le
@@ -678,9 +678,9 @@ fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
                 continue;
             }
             let quoi = if est(get(&c, "acte")?, "avenant") {
-                format!("Avenant n° {} envoyé à la signature", py_str(get(&c, "avenant")?))
+                format!("Avenant n° {} envoyé à la signature", valeur_en_texte(get(&c, "avenant")?))
             } else if est(get(&c, "acte")?, "remplace") {
-                format!("Contrat qui annule et remplace le n° {}, envoyé à la signature", py_str(get(&c, "remplace")?))
+                format!("Contrat qui annule et remplace le n° {}, envoyé à la signature", valeur_en_texte(get(&c, "remplace")?))
             } else {
                 "Contrat envoyé à la signature".to_string()
             };
@@ -695,7 +695,7 @@ fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
         }
         if vrai(get(d, "fichier_signe")?) {
             let quoi = if est(get(d, "acte")?, "avenant") {
-                format!("Avenant n° {} signé, contresigné", py_str(get(d, "avenant")?))
+                format!("Avenant n° {} signé, contresigné", valeur_en_texte(get(d, "avenant")?))
             } else {
                 "Contrat signé, contresigné".to_string()
             };
@@ -706,6 +706,6 @@ fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
         }
     }
     // `contrat.sort(key=lambda x: x["quand"] or "")` : stable.
-    contrat.sort_by_key(|x| if vrai(&x["quand"]) { py_str(&x["quand"]) } else { String::new() });
+    contrat.sort_by_key(|x| if vrai(&x["quand"]) { valeur_en_texte(&x["quand"]) } else { String::new() });
     Ok(json!({"dpae": dpae, "contrat": contrat}))
 }

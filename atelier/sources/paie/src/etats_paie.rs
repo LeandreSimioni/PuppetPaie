@@ -20,7 +20,7 @@ use crate::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::en_texte;
 use crate::engagement;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::{eur2, zero2, Decimal};
@@ -288,7 +288,7 @@ impl<'a> Lecture<'a> {
 
 /// Un texte de la fiche (`fiche.get(cle) or ""`).
 pub(crate) fn fiche_texte(fiche: &Value, cle: &str) -> String {
-    fiche.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_default()
+    fiche.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
 }
 
 /// Le titre du spectacle d'une paie (`(p.spectacle or {}).get("titre") or ""`).
@@ -477,7 +477,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
         lignes.push(LigneLivre {
             mois: mois.to_string(),
             salarie: qui(s)?,
-            cle_salarie: py_str(s.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?),
+            cle_salarie: valeur_en_texte(s.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?),
             contrat: p.engagement.numero.clone().unwrap_or_default(),
             nature: nat_libelle(p)?,
             spectacle: titre_spectacle(p),
@@ -526,7 +526,7 @@ fn lignes_declarees(ctx: &Contexte, mois: &str, coordonnees: bool, declarees: &[
     let nature_de = |cle: &str| -> R<String> {
         for e in &contrats {
             let Some(o) = e.as_object() else { continue };
-            let t = |k: &str| o.get(k).map(py_str).unwrap_or_default();
+            let t = |k: &str| o.get(k).map(valeur_en_texte).unwrap_or_default();
             let (debut, fin) = (t("debut"), t("fin"));
             if t("salarie") != cle || debut.len() < 7 || debut[..7] > *mois || (fin.len() >= 7 && fin[..7] < *mois) {
                 continue;
@@ -538,7 +538,7 @@ fn lignes_declarees(ctx: &Contexte, mois: &str, coordonnees: bool, declarees: &[
         Ok(droit::natures::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())
     };
     for x in declarees {
-        if x.get("mois").map_or(true, |m| py_str(m) != mois) {
+        if x.get("mois").map_or(true, |m| valeur_en_texte(m) != mois) {
             continue;
         }
         let cle = fiche_texte(x, "salarie");
@@ -925,7 +925,7 @@ pub(crate) fn pdf_livre(ctx: &Contexte, livre: &LivreDePaie) -> R<Vec<u8>> {
     };
     let entetes: Vec<(String, bool)> = colonnes_livre(livre).iter().map(|c| (etiquette(c), MONTANTS.contains(c))).collect();
     // `_pdf_nom` : `nom_affichage`, sinon `nom` (pas la raison sociale).
-    let nom = ["nom_affichage", "nom"].iter().find_map(|c| ctx.entreprise.get(*c).filter(|v| vrai(v)).map(py_str)).unwrap_or_default();
+    let nom = ["nom_affichage", "nom"].iter().find_map(|c| ctx.entreprise.get(*c).filter(|v| vrai(v)).map(valeur_en_texte)).unwrap_or_default();
     let sous = format!("{} — {}{}", livre.periode, regroupement_lisible(&livre.regroupement), if livre.coordonnees { " — avec les coordonnées des salariés" } else { "" });
     let d = crate::tableaux_export::description_pdf(
         "Livre de paie",
@@ -1233,8 +1233,8 @@ pub(crate) fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert = Vec::new();
     let mut verse: HashMap<(Option<String>, Option<String>), Option<String>> = HashMap::new();
     for x in paies_declarees(ctx)? {
-        let texte = |k: &str| x.get(k).filter(|v| !v.is_null()).map(py_str);
-        verse.insert((texte("mois"), texte("contrat")), x.get("verse_le").filter(|v| vrai(v)).map(py_str));
+        let texte = |k: &str| x.get(k).filter(|v| !v.is_null()).map(valeur_en_texte);
+        verse.insert((texte("mois"), texte("contrat")), x.get("verse_le").filter(|v| vrai(v)).map(valeur_en_texte));
     }
     let mut lignes = Vec::new();
     for l in lignes_livre(ctx, &p, &mut avert)? {
@@ -1303,7 +1303,7 @@ pub(crate) fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau>
             match r {
                 Some(v) => {
                     l.d("abattement", v.abattement).d("assiette", v.montant_soumis);
-                    let code = py_str(&v.type_taux);
+                    let code = valeur_en_texte(&v.type_taux);
                     l.t("type", format!("{} — {}", code, type_de_taux(&code)));
                     l.d("taux", socle::num::dec(&v.taux).map_err(|m| erreur("InvalidOperation", m))?).d("prelevement", eur2(v.prelevement));
                 }
@@ -1317,7 +1317,7 @@ pub(crate) fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau>
     }
     let declares = p.declares();
     for x in paies_declarees(ctx)? {
-        let m = x.get("mois").map(py_str).unwrap_or_default();
+        let m = x.get("mois").map(valeur_en_texte).unwrap_or_default();
         if !declares.contains(&m) {
             continue;
         }
@@ -1327,7 +1327,7 @@ pub(crate) fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau>
         l.t("mois", m.clone());
         l.t("salarie", match fiche {
             Some(f) => qui(f)?,
-            None => x.get("salarie").map(py_str).unwrap_or_default(),
+            None => x.get("salarie").map(valeur_en_texte).unwrap_or_default(),
         });
         l.t("contrat", fiche_texte(&x, "contrat")).t("nir", if coord { fiche_texte(&x, "nir") } else { String::new() });
         l.od("net_imposable", montant(x.get("net_imposable"))?).od("prelevement", montant(x.get("pas"))?).t("source", DSN);
@@ -1553,7 +1553,7 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let compte = |v: Option<&Value>| -> R<Decimal> {
         let t = match v.filter(|v| vrai(v)) {
-            Some(x) => py_str(x),
+            Some(x) => valeur_en_texte(x),
             None => "0".to_string(),
         };
         crate::apercu_dsn::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))
@@ -1569,10 +1569,10 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let objet = x.get("numero_objet").cloned().unwrap_or(Value::Null);
         let titre = objets.iter().rev().find(|(n, _)| *n == objet).map(|(_, t)| t.clone()).filter(vrai);
         let spectacle = match titre {
-            Some(t) => py_str(&t),
+            Some(t) => valeur_en_texte(&t),
             None => {
                 if vrai(&objet) {
-                    py_str(&objet)
+                    valeur_en_texte(&objet)
                 } else {
                     String::new()
                 }
@@ -1581,11 +1581,11 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let mut l = Ligne::nouvelle();
         l.t("mois", m).t("salarie", match fiche {
             Some(f) => qui(f)?,
-            None => x.get("salarie").map(py_str).unwrap_or_default(),
+            None => x.get("salarie").map(valeur_en_texte).unwrap_or_default(),
         });
         l.t("contrat", fiche_texte(&x, "numero_attestation")).t("spectacle", spectacle);
         l.t("emploi", fiche.map(|f| fiche_texte(f, "emploi")).unwrap_or_default());
-        l.t("debut", jj(&x.get("debut").map(py_str).unwrap_or_default())).t("fin", jj(&x.get("fin").map(py_str).unwrap_or_default()));
+        l.t("debut", jj(&x.get("debut").map(valeur_en_texte).unwrap_or_default())).t("fin", jj(&x.get("fin").map(valeur_en_texte).unwrap_or_default()));
         l.d("cachets", compte(x.get("cachets"))?).d("heures", compte(x.get("heures"))?);
         l.poser(
             "jours",

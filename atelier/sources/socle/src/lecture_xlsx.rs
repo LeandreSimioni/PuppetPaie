@@ -9,8 +9,7 @@
 //! classeur, `<v>`), pas de format applique (une date reste le nombre que le classeur ecrit), pas de cellule fusionnee
 //! recopiee (seule la premiere case d'une fusion porte une valeur ; les autres sont vides).
 //!
-//! Le portage de `atelier/outils/lire_xlsx.py` (retire le 15/10/2026), a l'identique : memes lignes, memes cellules, memes
-//! types. `lignes(chemin, "Fields")` rend `[[cellule, ...], ...]`, `None` pour une case vide.
+//! `lignes(chemin, "Fields")` rend `[[cellule, ...], ...]`, `None` pour une case vide.
 
 use std::io::Read;
 use std::path::Path;
@@ -35,8 +34,8 @@ pub enum Cellule {
 pub type Ligne = Vec<Option<Cellule>>;
 
 impl Cellule {
-    /// `str(valeur)` de Python : le texte tel quel, `repr` d'un flottant (`1.0`, `1e-05`), `True`/`False`.
-    pub fn py_str(&self) -> String {
+    /// La case en texte : le texte tel quel, un flottant sous sa forme ecrite (`1.0`, `1e-05`), `True`/`False`.
+    pub fn en_texte(&self) -> String {
         match self {
             Cellule::Texte(s) => s.clone(),
             Cellule::Entier(i) => i.to_string(),
@@ -45,7 +44,7 @@ impl Cellule {
         }
     }
 
-    /// La verite de Python : un texte vide, un zero et `False` sont faux.
+    /// Un texte vide, un zero et `False` sont faux.
     pub fn vrai(&self) -> bool {
         match self {
             Cellule::Texte(s) => !s.is_empty(),
@@ -68,9 +67,9 @@ impl Cellule {
     }
 }
 
-/// `str(v)` d'une case lue : `None` pour une case vide, comme Python.
-pub fn py_str(c: &Option<Cellule>) -> String {
-    c.as_ref().map_or_else(|| "None".to_string(), Cellule::py_str)
+/// Une case lue en texte : `None` pour une case vide.
+pub fn cellule_en_texte(c: &Option<Cellule>) -> String {
+    c.as_ref().map_or_else(|| "None".to_string(), Cellule::en_texte)
 }
 
 struct Classeur {
@@ -143,7 +142,7 @@ fn colonne(reference: &str) -> Resultat<usize> {
     Ok(n - 1)
 }
 
-/// `int(texte)` de Python (blancs autour admis).
+/// Un entier ecrit en texte (blancs autour admis).
 fn entier(texte: &str, quoi: &str) -> Resultat<i64> {
     texte.trim_matches(crate::texte::blanc)
         .parse::<i64>()

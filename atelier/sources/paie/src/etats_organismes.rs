@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{Map, Value};
 
 use droit::contexte::Contexte;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{ecarter_declares, finir, lignes_livre, Demande, Lecture, Periode};
 use socle::fichiers::vrai;
@@ -60,8 +60,8 @@ fn organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     if let Some(Value::Object(lignes)) = plan.get("lignes") {
         for (k, v) in lignes {
             let tiers = v.get("tiers").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("tiers")))?;
-            let nom = noms.and_then(|n| n.get(py_str(tiers).as_str())).filter(|n| vrai(n)).map(py_str);
-            out.push((k.clone(), nom.unwrap_or_else(|| format!("Organisme {}", py_str(tiers)))));
+            let nom = noms.and_then(|n| n.get(valeur_en_texte(tiers).as_str())).filter(|n| vrai(n)).map(valeur_en_texte);
+            out.push((k.clone(), nom.unwrap_or_else(|| format!("Organisme {}", valeur_en_texte(tiers)))));
         }
     }
     Ok(out)
@@ -100,7 +100,7 @@ fn annee_entiere(an: &str) -> R<i32> {
 }
 
 fn idcc_de(ctx: &Contexte) -> String {
-    ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(py_str).unwrap_or_default()
+    ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
 }
 
 // ===================================== 6. les cotisations par organisme
@@ -330,7 +330,7 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let mut out: Vec<(String, String)> = Vec::new();
     for v in d.get("versements").and_then(Value::as_array).into_iter().flatten() {
         if let Some(siret) = v.get("siret").filter(|s| vrai(s)) {
-            let (k, lib) = (py_str(siret), v.get("libelle").map(py_str).unwrap_or_default());
+            let (k, lib) = (valeur_en_texte(siret), v.get("libelle").map(valeur_en_texte).unwrap_or_default());
             match out.iter_mut().find(|(c, _)| *c == k) {
                 Some(x) => x.1 = lib,
                 None => out.push((k, lib)),
@@ -768,8 +768,8 @@ pub(crate) fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         if let Some(pl) = f.get("plafond").filter(|v| !v.is_null()) {
             m = py_min(m, dec_de(pl)?);
         }
-        let collecteur = f.get("collecteur").filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| "l'organisme collecteur de la branche".to_string());
-        if let Some(a) = f.get("avertissement").filter(|v| vrai(v)).map(py_str) {
+        let collecteur = f.get("collecteur").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "l'organisme collecteur de la branche".to_string());
+        if let Some(a) = f.get("avertissement").filter(|v| vrai(v)).map(valeur_en_texte) {
             if !avert.contains(&a) {
                 avert.push(a);
             }

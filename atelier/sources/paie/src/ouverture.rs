@@ -40,7 +40,7 @@ use droit::contexte::Contexte;
 use crate::courriel::Courriel;
 use crate::drive::Drive;
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::fichiers::vrai;
 use crate::releve_retours::{self, Client, Releve};
@@ -137,7 +137,7 @@ impl Options {
         let entier = |cle: &str, defaut: i64| charge.get(cle).and_then(|v| v.as_i64().or_else(|| v.as_f64().map(|f| f as i64))).unwrap_or(defaut);
         o.jours = entier("jours", o.jours);
         o.pas_avant = entier("pas_avant", o.pas_avant);
-        if let Some(r) = charge.get("racine_drive").filter(|v| vrai(v)).map(py_str) {
+        if let Some(r) = charge.get("racine_drive").filter(|v| vrai(v)).map(valeur_en_texte) {
             o.racine_drive = r;
         }
         o
@@ -242,7 +242,7 @@ impl Ouverture {
                     "chemin": a.chemin.to_string_lossy(),
                     "fichier": a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
                     "nature": a.retour.get("nature").cloned().unwrap_or(Value::Null),
-                    "libelle": crate::retours::libelle_nature(&a.retour.get("nature").map(py_str).unwrap_or_else(|| "None".to_string())),
+                    "libelle": crate::retours::libelle_nature(&a.retour.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".to_string())),
                 })).collect::<Vec<_>>(),
                 "rattaches": r.rattaches,
             })
@@ -366,7 +366,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
             .unwrap_or_default()
     };
     let hors_tests = |liste: &[Value]| -> usize {
-        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| socle::valeur::eq_py(f, t)))).count()
+        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| socle::valeur::valeurs_egales(f, t)))).count()
     };
     let (trouves, nouveaux) = match &r.releve {
         Some(rel) => (hors_tests(&rel.trouves), hors_tests(&rel.nouveaux)),
@@ -452,7 +452,7 @@ fn naif_de_quand(quand: &str) -> Option<i64> {
 /// `pas_avant` ne retenait donc jamais rien. Ici les deux formes se lisent, et l'option fait ce que son nom et son aide
 /// disent. A VALIDER (voir la passation).
 fn age_de_la_derniere(precedente: &Value) -> Option<i64> {
-    let quand = precedente.get("quand").filter(|v| vrai(v)).map(py_str)?;
+    let quand = precedente.get("quand").filter(|v| vrai(v)).map(valeur_en_texte)?;
     let avant = naif_de_quand(&quand)?;
     Some(releve_retours::maintenant_naif() - avant)
 }
@@ -655,7 +655,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
         match crate::routes_actes_h2::filet_preparer_avec(o, ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
             Ok(f) => {
-                r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(py_str));
+                r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(valeur_en_texte));
                 r.filet = Some(f);
             }
             Err(e) => r.incidents.push(format!("DPAE préparée d'avance : {}", e.message)),

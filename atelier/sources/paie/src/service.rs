@@ -54,9 +54,9 @@ pub(crate) fn contexte(o: &HashMap<String, String>) -> Resultat<Contexte> {
 
 pub(crate) fn calculer_avec(ctx: &Contexte, demande: &Value) -> Resultat<Value> {
     let s = saisie(ctx, demande)?;
-    socle::num::FIDELE.with(|f| f.set(true));
+    socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
     let paies = paies_fideles(ctx, &s);
-    socle::num::FIDELE.with(|f| f.set(false));
+    socle::num::ECHELLE_GARDEE.with(|f| f.set(false));
     let mut m = Map::new();
     m.insert("ok".into(), Value::Bool(true));
     m.insert("mois".into(), Value::String(s.mois.clone()));

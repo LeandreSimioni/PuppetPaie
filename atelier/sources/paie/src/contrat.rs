@@ -113,14 +113,14 @@ pub(crate) fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value 
 }
 
 /// `contrat.marqueurs(p, ent)` : les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
-/// Python les ecrit (`FIDELE`).
+/// Python les ecrit (`ECHELLE_GARDEE`).
 pub(crate) fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeurs> {
-    socle::num::FIDELE.with(|f| f.set(true));
+    socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
     let r = (|| -> R<Valeurs> {
         let canon = p.canon(ctx)?;
         Ok(valeurs_de_la_paie(ctx, ent, &canon, None)?)
     })();
-    socle::num::FIDELE.with(|f| f.set(false));
+    socle::num::ECHELLE_GARDEE.with(|f| f.set(false));
     r
 }
 
@@ -143,7 +143,7 @@ pub(crate) fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacem
         let mut un = Map::new();
         un.insert("valeurs".into(), valeurs_en_ordre(&v, &[]));
         let cle = (
-            p.salarie.get("_cle").map(socle::valeur::py_str).unwrap_or_default(),
+            p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).unwrap_or_default(),
             p.engagement.debut.iso(),
             p.engagement.numero.clone().unwrap_or_default(),
         );

@@ -1,16 +1,8 @@
-//! Les donnees de la compagnie, lues une fois : `moteur/contexte.py` (PORTAGE-RUST §9),
-//! avec ce dont `Contexte.bareme` depend dans `baremes.py`, `entreprise.py`,
-//! `etablissements.py`, `effectif.py` et `util.py`.
+//! Les donnees de la compagnie, lues une fois a une date : les fiches (entreprise, etablissements, salaries,
+//! spectacles), l'effectif, et le bareme de l'annee empile (le socle livre, la convention, la surcouche de la
+//! compagnie) puis lu a la date.
 //!
-//! Les fiches et les baremes restent des `serde_json::Value`, comme les dict
-//! Python. Un refus est une `String` : le message du Python, mot pour mot.
-//! Attention : `salarie` et `spectacle` levent des `KeyError` en Python, et
-//! `str(KeyError(m))` ecrit `repr(m)` (guillemets, `\n` echappes) : ce que
-//! l'oracle imprime pour ces deux-la est `date::repr_texte(&message)`.
-//!
-//! Non porte : les compteurs, `rubriques`, `export`. Pas de cache de
-//! baremes : le processus est court, et le Python n'en a que pour suivre les
-//! fichiers qui changent pendant que l'interface tourne.
+//! Les fiches et les baremes restent des `serde_json::Value`. Un refus est une `String`.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -18,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
-use socle::date::{d, en_texte, repr_py, repr_texte, Jour};
+use socle::date::{d, en_texte, forme_ecrite, repr_texte, Jour};
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::num::{flottant, Resultat};
 use socle::texte::{cle_recherche, sigle};
@@ -37,7 +29,7 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
     }
 }
 
-/// `x["cle"]` : le `KeyError` de Python s'ecrit `'cle'`.
+/// La valeur de `cle`, exigee : son absence se refuse en la nommant.
 fn exiger<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
     v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
@@ -88,7 +80,7 @@ pub fn format_g(x: f64) -> String {
     }
 }
 
-/// `_nombre` de `effectif.py` : `%g` a virgule.
+/// Un nombre a virgule, sans zeros inutiles.
 fn nombre_fr(x: f64) -> String {
     format_g(x).replace('.', ",")
 }
@@ -150,12 +142,12 @@ fn levenshtein(a: &str, b: &str) -> usize {
 
 // ------------------------------------------------------------ les fiches
 
-/// `contexte.archivee` : `actif: false`. L'absence de la cle vaut actif.
+/// `actif: false`. L'absence de la cle vaut actif.
 pub fn archivee(fiche: &Value) -> bool {
     fiche.get("actif") == Some(&Value::Bool(false))
 }
 
-/// `contexte.telle_qu_au` : la fiche telle qu'elle etait a cette date. Chaque
+/// La fiche telle qu'elle etait a cette date. Chaque
 /// entree de `historique` dit : jusqu'au `jusqu_au` INCLUS, ce champ valait cela ;
 /// plusieurs fenetres sur un champ se lisent par `jusqu_au` croissant, la
 /// premiere qui couvre encore la date gagne.
@@ -191,7 +183,7 @@ pub fn telle_qu_au(fiche: &Value, date_ref: &Jour) -> Resultat<Value> {
     Ok(sortie)
 }
 
-// ------------------------------------------------ l'effectif (effectif.py)
+// ------------------------------------------------ l'effectif
 
 const CODE_SECURITE_SOCIALE: &str = "A01";
 const ANNEES_CONSECUTIVES: i32 = 5;
@@ -208,7 +200,7 @@ pub struct Effectif {
     pub premiere_embauche: Option<i32>,
 }
 
-/// `Effectif.de` : lit `config/effectifs.json` (absent : vide).
+/// Lit `config/effectifs.json` (absent : vide).
 pub fn effectif_de(racine: &Path, fiche: &Value) -> Resultat<Effectif> {
     let p = racine.join("config").join("effectifs.json");
     let brut = if socle::fichiers::existe(&p) { lire_json(&p)? } else { Value::Object(Map::new()) };
@@ -230,7 +222,7 @@ pub fn effectif_de(racine: &Path, fiche: &Value) -> Resultat<Effectif> {
     Ok(Effectif { annees, passe, premiere_embauche: annee_de_premiere_embauche(fiche) })
 }
 
-/// `effectif.annee_de_premiere_embauche` : `date.fromisoformat` (AAAA-MM-JJ ou AAAAMMJJ).
+/// L'annee de la premiere embauche (AAAA-MM-JJ ou AAAAMMJJ).
 fn annee_de_premiere_embauche(fiche: &Value) -> Option<i32> {
     let v = texte_ou_vide(fiche.get("premiere_embauche")).trim().to_string();
     let chiffres = |s: &str| s.chars().all(|c| c.is_ascii_digit());
@@ -314,7 +306,7 @@ reduction generale et echeance de la DSN a cinquante).",
     }
 }
 
-// ----------------------------------------- baremes.py : socle, convention, fusion
+// ----------------------------------------- les baremes : socle, convention, fusion
 
 /// Une erreur de bareme ; `introuvable` est le `FileNotFoundError` que
 /// `plafond_securite_sociale` sait reformuler.
@@ -333,7 +325,7 @@ fn introuvable(message: String) -> Refus {
     Refus { introuvable: true, message }
 }
 
-/// `baremes.annees` : les annees dont le socle est livre.
+/// Les annees dont le socle est livre.
 fn annees_du_socle(dossier: &Path) -> Vec<i32> {
     let mut v: Vec<i32> = socle::fichiers::lister(dossier)
         .into_iter()
@@ -363,7 +355,7 @@ fn disponibles(dossier: &Path) -> String {
     }
 }
 
-/// `baremes.socle` : le socle livre de l'annee, ou `None`.
+/// Le socle livre de l'annee, ou `None`.
 fn socle(dossier: &Path, an: i32) -> Result<Option<Value>, String> {
     let p = dossier.join(format!("{}.json", an));
     if !socle::fichiers::existe(&p) {
@@ -372,7 +364,7 @@ fn socle(dossier: &Path, an: i32) -> Result<Option<Value>, String> {
     lire_json(&p).map(Some)
 }
 
-/// `baremes._identite` : (cle, valeur, affectation) d'une entree nommee.
+/// (cle, valeur, affectation) d'une entree nommee.
 fn identite(e: &Value) -> Option<(&'static str, String, String)> {
     if !e.is_object() {
         return None;
@@ -387,7 +379,7 @@ fn identite(e: &Value) -> Option<(&'static str, String, String)> {
     None
 }
 
-/// `baremes._fusionner_listes` : une liste de valeurs se remplace, une liste
+/// Une liste de valeurs se remplace, une liste
 /// d'objets NOMMES se fond (les entrees anonymes de la base sont gardees).
 fn fusionner_listes(base: &[Value], dessus: &[Value]) -> Value {
     let mut sortie: Vec<Value> = base.to_vec();
@@ -412,7 +404,7 @@ fn fusionner_listes(base: &[Value], dessus: &[Value]) -> Value {
     Value::Array(sortie)
 }
 
-/// `baremes.fusionner` : `dessus` par-dessus `base`, en descendant.
+/// `dessus` par-dessus `base`, en descendant.
 pub fn fusionner(base: &Value, dessus: &Value) -> Value {
     match (base, dessus) {
         (Value::Object(b), Value::Object(h)) => {
@@ -431,7 +423,7 @@ pub fn fusionner(base: &Value, dessus: &Value) -> Value {
     }
 }
 
-/// `baremes.convention` : la couche de la convention collective de l'entreprise.
+/// La couche de la convention collective de l'entreprise.
 fn convention(socle_annee: &Value, idcc: &Value) -> Result<Value, String> {
     let par_conv = match socle_annee.get("par_convention") {
         Some(p) if vrai(p) => p,
@@ -491,7 +483,7 @@ fn texte_ou_vide_defaut(v: Option<&Value>, defaut: &str) -> String {
     v.map_or_else(|| defaut.to_string(), en_texte)
 }
 
-/// `baremes.bareme` : le bareme de l'annee tel que le moteur le lira.
+/// Le bareme de l'annee tel que le moteur le lira.
 fn bareme_de_l_annee(dossier: &Path, an: i32, fichier: Option<Value>, idcc: Option<&Value>) -> Result<Value, Refus> {
     let ou = format!("config/baremes/{}.json", an);
     let fichier = match fichier {
@@ -552,13 +544,13 @@ depuis le plus recent.",
     Ok(fusionner(&s, &fichier))
 }
 
-// ----------------------------------------- entreprise.py et etablissements.py
+// ----------------------------------------- l'entreprise et ses etablissements
 
 fn principal(fiche: &Value) -> String {
     texte_ou_vide(fiche.get("nic"))
 }
 
-/// `etablissements.secondaires` : les etablissements autres que le principal.
+/// Les etablissements autres que le principal.
 fn secondaires(fiche: &Value) -> Vec<Value> {
     let nic = principal(fiche);
     let brut = fiche.get("etablissements").filter(|v| vrai(v)).cloned().unwrap_or_else(|| Value::Array(vec![]));
@@ -586,7 +578,7 @@ fn cle_siret(siret: &str) -> bool {
     total % 10 == 0
 }
 
-/// `etablissements.controler`.
+/// Les etablissements de la fiche se tiennent-ils (SIRET, NIC, une fois chacun) ?
 fn controler_etablissements(fiche: &Value, bareme: &Value) -> Resultat<()> {
     let siren = texte_ou_vide(fiche.get("siren"));
     let mut vus = vec![principal(fiche)];
@@ -645,7 +637,7 @@ declare dans sa propre DSN, avec ce qui est a lui.\n  - {}",
     ))
 }
 
-/// `entreprise.controler_secteur`.
+/// Le secteur de la fiche est-il un de ceux du bareme ?
 fn controler_secteur(bareme: &Value, fiche: &Value) -> Resultat<()> {
     let sec = match bareme.get("secteurs") {
         Some(s) if vrai(s) => s,
@@ -667,7 +659,7 @@ fn controler_secteur(bareme: &Value, fiche: &Value) -> Resultat<()> {
     ))
 }
 
-/// `calcul.couche_organisation` : la couche de l'organisation patronale `nom`.
+/// La couche de l'organisation patronale `nom`.
 fn couche_organisation<'a>(bareme: &'a Value, nom: &str) -> Option<&'a Value> {
     let cle = sigle(nom);
     if cle.is_empty() {
@@ -685,10 +677,10 @@ fn couche_organisation<'a>(bareme: &'a Value, nom: &str) -> Option<&'a Value> {
     None
 }
 
-/// Ce que `calcul.bareme_retraite_t1` lit d'une couche d'organisation.
+/// Ce que `bareme::bareme_retraite_t1` lit d'une couche d'organisation.
 const COUCHE_ORGANISATION_LUE: [&str; 5] = ["libelle", "applicable", "alias", "retraite_t1", "adhesion_avant"];
 
-/// `entreprise.controler_organisation_patronale`.
+/// L'organisation patronale de la fiche est-elle une de celles du bareme ?
 fn controler_organisation_patronale(bareme: &Value, fiche: &Value) -> Resultat<()> {
     let nom = texte_ou_vide(fiche.get("organisation_patronale")).trim().to_string();
     if nom.is_empty() {
@@ -758,7 +750,7 @@ ce serait declare et jamais applique.\n\
     Ok(())
 }
 
-/// `entreprise._valeur` : la valeur au bout d'un chemin du bareme (`a.b`,
+/// La valeur au bout d'un chemin du bareme (`a.b`,
 /// `[id ou code81]` dans une liste d'objets, `[rang]` dans une liste de valeurs).
 fn valeur_du_chemin<'a>(bareme: &'a Value, chemin: &str) -> Option<&'a Value> {
     let c: Vec<char> = chemin.chars().collect();
@@ -806,7 +798,7 @@ fn valeur_du_chemin<'a>(bareme: &'a Value, chemin: &str) -> Option<&'a Value> {
                 if rang >= n {
                     return None;
                 }
-                // Un rang negatif compte depuis la fin, comme en Python.
+                // Un rang negatif compte depuis la fin.
                 cur = liste.get(usize::try_from(if rang < 0 { n + rang } else { rang }).ok()?)?;
             }
         } else {
@@ -816,24 +808,24 @@ fn valeur_du_chemin<'a>(bareme: &'a Value, chemin: &str) -> Option<&'a Value> {
     Some(cur)
 }
 
-/// `float(x)` de Python, ou `None` s'il leve.
-fn flottant_py(v: &Value) -> Option<f64> {
+/// Le flottant d'une valeur, un booleen comptant 1 ou 0 ; `None` s'il ne se lit pas.
+fn flottant_ou_rien(v: &Value) -> Option<f64> {
     match v {
         Value::Bool(b) => Some(f64::from(u8::from(*b))),
         autre => flottant(autre).ok(),
     }
 }
 
-/// `entreprise._meme_nombre`.
+/// Deux valeurs sont-elles le meme nombre ?
 fn meme_nombre(a: Option<&Value>, b: &Value) -> bool {
     let Some(a) = a else { return false };
-    match (flottant_py(a), flottant_py(b)) {
+    match (flottant_ou_rien(a), flottant_ou_rien(b)) {
         (Some(x), Some(y)) => (x - y).abs() < 1e-9,
         _ => a == b,
     }
 }
 
-/// `entreprise.controler_effectif` : le bareme fondu dit-il ce qu'il faut pour
+/// Le bareme fondu dit-il ce qu'il faut pour
 /// l'effectif de l'entreprise ? Un bareme sans `seuils_effectif` ne se controle pas.
 fn controler_effectif(bareme: &Value, eff: &Effectif, ou: &str) -> Resultat<()> {
     let decl = match bareme.get("seuils_effectif") {
@@ -857,7 +849,7 @@ fn controler_effectif(bareme: &Value, eff: &Effectif, ou: &str) -> Resultat<()> 
 
     for v in liste("valeurs") {
         if !atteint(exiger(v, "seuil")?)? {
-            // SOUS LE SEUIL (lot F1) : quand le socle dit que sa valeur est alors la seule due (`sous_le_seuil`, et le
+            // SOUS LE SEUIL : quand le socle dit que sa valeur est alors la seule due (`sous_le_seuil`, et le
             // texte qu'il cite : pour la formation, C. trav. L. 6331-1 et L. 6331-1 A, CSS L. 130-1, II), une surcouche
             // qui en ecrit une autre -- restee d'avant un franchissement a la baisse -- ferait payer ce qui n'est pas du.
             if let (Some(texte), Some(Value::Object(chemins))) = (v.get("sous_le_seuil").filter(|t| vrai(t)), v.get("chemins")) {
@@ -959,13 +951,13 @@ L'effacer, ou ecrire \"aucun\".",
 caracteres) de la commune de l'etablissement : les deux se \
 lisent sur la deliberation de l'autorite ou sur le bordereau \
 Urssaf.",
-                repr_py(r)
+                forme_ecrite(r)
             ),
             Some(r) => format!(
                 "La valeur ecrite ({}) ne le debloque pas : il n'y a ni \
 rubrique, ni ligne DSN, ni CTP pour la porter -- ecrire un \
 taux ne le ferait pas cotiser.",
-                repr_py(r)
+                forme_ecrite(r)
             ),
         };
         attendues.sort();
@@ -1004,7 +996,7 @@ AT/MP, que lui seul ne peut pas connaitre.",
     ))
 }
 
-/// `entreprise.controler` : les quatre, dans l'ordre du plus structurel au plus chiffre.
+/// Les quatre, dans l'ordre du plus structurel au plus chiffre.
 fn controler(bareme: &Value, fiche: &Value, eff: &Effectif, ou: &str) -> Resultat<()> {
     controler_secteur(bareme, fiche)?;
     controler_etablissements(fiche, bareme)?;
@@ -1014,7 +1006,7 @@ fn controler(bareme: &Value, fiche: &Value, eff: &Effectif, ou: &str) -> Resulta
 
 // ----------------------------------------------------- les listes datees
 
-/// `contexte._est_liste_datee`.
+/// Une liste datee : `[{depuis, valeur}, ...]`.
 fn est_liste_datee(v: &Value) -> bool {
     match v {
         Value::Array(a) => {
@@ -1024,7 +1016,7 @@ fn est_liste_datee(v: &Value) -> bool {
     }
 }
 
-/// `contexte._a_la_date` : remplace chaque liste datee `[{depuis, valeur}]` par
+/// Remplace chaque liste datee `[{depuis, valeur}]` par
 /// sa valeur au jour. Une liste sans entree applicable est une erreur : un taux
 /// qui n'existe pas encore ne se devine pas. Les cles de `garder` restent des listes.
 fn a_la_date(obj: &Value, jour: &Jour, garder: &[&str]) -> Resultat<Value> {
@@ -1044,7 +1036,7 @@ fn a_la_date(obj: &Value, jour: &Jour, garder: &[&str]) -> Resultat<Value> {
                 retenu = Some(e["valeur"].clone());
             }
         }
-        return retenu.ok_or_else(|| format!("Bareme : aucune valeur applicable au {} dans {}.", jour.iso(), repr_py(obj)));
+        return retenu.ok_or_else(|| format!("Bareme : aucune valeur applicable au {} dans {}.", jour.iso(), forme_ecrite(obj)));
     }
     if let Value::Array(a) = obj {
         return Ok(Value::Array(a.iter().map(|v| a_la_date(v, jour, garder)).collect::<Resultat<Vec<_>>>()?));
@@ -1054,13 +1046,13 @@ fn a_la_date(obj: &Value, jour: &Jour, garder: &[&str]) -> Resultat<Value> {
 
 // --------------------------------------------------------------- le Contexte
 
-/// Le jour courant (UTC : sans fuseau, un `date.today()` local differe
+/// Le jour courant (UTC : sans fuseau, un jour local differe
 /// entre minuit et l'heure locale). Au temps du moteur (`temps`) : la montre, ou le temps simule du banc et du rejeu.
 pub fn jour_reel() -> Jour {
     socle::temps::jour_utc()
 }
 
-/// `contexte.aujourdhui` : `PUPPETPAIE_AUJOURDHUI` (AAAA-MM-JJ) remplace l'horloge.
+/// `PUPPETPAIE_AUJOURDHUI` (AAAA-MM-JJ) remplace l'horloge.
 pub fn aujourdhui() -> Resultat<Jour> {
     let jour = aujourdhui_brut()?;
     socle::fichiers::noter_valeur("aujourdhui", jour.iso());
@@ -1083,7 +1075,7 @@ fn aujourdhui_brut() -> Resultat<Jour> {
     }
 }
 
-/// LE CURSEUR DES PERMANENTS (tickets #214, 20/10/2026) : une fiche Entreprise dit-elle que la compagnie emploie des
+/// LE CURSEUR DES PERMANENTS : une fiche Entreprise dit-elle que la compagnie emploie des
 /// salaries payes au mois (`emploie_des_permanents`) ? Absent vaut NON. C'est la seule question qui ouvre ce qui ne vaut
 /// que pour eux : les natures payees au mois, les champs `si_permanents` des fiches, les contrats de prevoyance et de
 /// sante des permanents (`organismes`), les etats qui ne concernent qu'eux. La page ne le deduit jamais : elle le lit
@@ -1113,7 +1105,7 @@ pub struct Contexte {
 }
 
 impl Contexte {
-    /// `Contexte(racine, date)`. Sans `date`, le Python prend `date.today()` --
+    /// Le contexte de `racine` a la date `date`. Sans `date`, celle de l'horloge --
     /// l'horloge, pas `PUPPETPAIE_AUJOURDHUI`, qui ne regle que `aujourdhui`.
     pub fn nouveau(racine: &Path, date: Option<Jour>) -> Resultat<Contexte> {
         let date = date.unwrap_or_else(jour_reel);
@@ -1163,12 +1155,12 @@ impl Contexte {
         self.spectacles.iter().filter(|(_, v)| !archivee(v)).map(|(k, _)| k.as_str()).collect()
     }
 
-    /// `Contexte.effectif`.
+    /// L'effectif de la compagnie (`config/effectifs.json`).
     pub fn effectif(&self) -> Resultat<Effectif> {
         effectif_de(&self.racine, &self.entreprise)
     }
 
-    /// `Contexte.echeance_dsn` : le 5 a partir de cinquante salaries, le 15 sinon
+    /// Le 5 a partir de cinquante salaries, le 15 sinon
     /// (un effectif inconnu donne le 15).
     pub fn echeance_dsn(&self) -> Resultat<u32> {
         socle::fichiers::noter_valeur("aujourdhui", self.aujourdhui.iso());
@@ -1178,19 +1170,19 @@ impl Contexte {
         })
     }
 
-    /// `baremes.socle` : le socle livre de l'annee, ou `None`.
+    /// Le socle livre de l'annee, ou `None`.
     pub fn socle_livre(&self, an: i32) -> Resultat<Option<Value>> {
         socle(&self.code.join("baremes"), an)
     }
 
-    /// `Contexte.gabarits`.
+    /// Le dossier des gabarits de la compagnie.
     pub fn gabarits(&self) -> PathBuf {
         self.racine.join("gabarits")
     }
 
     /// La fiche entreprise et le dossier `gabarits/` de CETTE compagnie (`_gabarits`) : ce qu'un document lit pour
     /// trouver son modele, la signature, le logo ou le cachet. La compagnie vient du contexte, jamais d'une variable
-    /// du processus : la fenetre sert plusieurs compagnies dans le meme processus (ticket #244).
+    /// du processus : la fenetre sert plusieurs compagnies dans le meme processus.
     pub fn entreprise_et_gabarits(&self) -> Value {
         let mut ent = self.entreprise.clone();
         if let Some(o) = ent.as_object_mut() {
@@ -1199,7 +1191,7 @@ impl Contexte {
         ent
     }
 
-    /// `Contexte._bareme_brut` : le socle livre + la surcouche de la compagnie,
+    /// Le socle livre + la surcouche de la compagnie,
     /// confrontes aux faits d'entreprise de la fiche. Les listes datees restent des listes.
     /// Ce dont depend le bareme d'une annee : la compagnie, sa fiche, et la
     /// signature (date, taille) des fichiers qui le composent.
@@ -1214,7 +1206,7 @@ impl Contexte {
     }
 
     fn bareme_brut(&self, an: i32) -> Result<Arc<Value>, Refus> {
-        // Garde comme `Contexte._baremes` : tant que les fichiers (et la fiche,
+        // Garde tant que les fichiers (et la fiche,
         // qu'un clone du contexte peut changer) sont les memes. Un refus ne se
         // garde pas.
         type Cache = Mutex<HashMap<String, Arc<Value>>>;
@@ -1239,7 +1231,7 @@ impl Contexte {
         Ok(fondu)
     }
 
-    /// `Contexte.bareme` : le bareme applicable A CETTE DATE. Les listes
+    /// Le bareme applicable A CETTE DATE. Les listes
     /// `{depuis, valeur}` deviennent la valeur en vigueur (sauf `smic_horaire`,
     /// qui se resout a la fin de la periode payee : voir `smic`), et le bareme
     /// porte `_entreprise` (et `_etablissements` s'il y en a plusieurs) : ce
@@ -1296,7 +1288,7 @@ impl Contexte {
         e.insert("code_postal".into(), copie("code_postal"));
         e.insert("etablissements".into(), ou_vide("etablissements", Value::Array(vec![])));
         // Le motif de non-assujettissement a la taxe d'apprentissage : la pile retire la taxe du bulletin et du
-        // nominatif quand il vaut pour le mois (`bareme::bareme_taxe_apprentissage`, lot D1). Absent : rien.
+        // nominatif quand il vaut pour le mois (`bareme::bareme_taxe_apprentissage`). Absent : rien.
         if let Some(m) = ent.get(crate::apprentissage::CHAMP_MOTIF_TAXE_APPRENTISSAGE).filter(|v| vrai(v)) {
             e.insert(crate::apprentissage::CHAMP_MOTIF_TAXE_APPRENTISSAGE.into(), m.clone());
         }
@@ -1313,7 +1305,7 @@ impl Contexte {
         Ok(Value::Object(bar))
     }
 
-    /// `Contexte.plafond_securite_sociale` : (PSS mensuel, PSS horaire) de l'annee.
+    /// (PSS mensuel, PSS horaire) de l'annee.
     pub fn plafond_securite_sociale(&self, annee: i32) -> Resultat<(i64, i64)> {
         let brut = match self.bareme_brut(annee) {
             Ok(b) => b,
@@ -1342,7 +1334,7 @@ PSS_H_METROP).",
         }
     }
 
-    /// `Contexte.smic` : le SMIC horaire applicable a la date (le bareme liste
+    /// Le SMIC horaire applicable a la date (le bareme liste
     /// les revalorisations ; la derniere dont `depuis <= date` gagne).
     pub fn smic(&self, jour: &Jour) -> Resultat<f64> {
         let brut = self.bareme_brut(jour.an).map_err(|r| r.message)?;
@@ -1376,7 +1368,7 @@ PSS_H_METROP).",
         Ok(ent)
     }
 
-    /// `Contexte.licence` : le numero de licence applicable a la date, relu dans
+    /// Le numero de licence applicable a la date, relu dans
     /// la fiche entreprise `telle_qu_au` ce jour-la. Une ancienne liste datee
     /// `{depuis, numero}` reste acceptee.
     pub fn licence(&self, jour: &Jour) -> Resultat<String> {
@@ -1407,10 +1399,10 @@ PSS_H_METROP).",
 
     // -------------------------------------------------------------- recherche
 
-    /// `Contexte.salarie` : retrouve un salarie par cle, NIR, nom, prenom ou
+    /// Retrouve un salarie par cle, NIR, nom, prenom ou
     /// faute de frappe. Le nom EXACT retrouve n'importe qui, archive compris ;
     /// la recherche APPROCHANTE (prefixe, Levenshtein <= 3) ne va que parmi les actifs.
-    /// Rend la fiche avec `_cle`. Refus : `KeyError` en Python.
+    /// Rend la fiche avec `_cle`, ou le refus.
     pub fn salarie(&self, nom: &str) -> Resultat<Value> {
         let q = cle_recherche(nom);
         let avec_cle = |cle: &str| -> Value {
@@ -1513,9 +1505,9 @@ une paie passee ; pour l'embaucher a nouveau, remettre \
         Err(format!("Salarie inconnu : {}. Connus : {}.", repr_texte(nom), actifs.join(", ")))
     }
 
-    /// `Contexte.spectacle` : par cle, titre, alias ou numero d'objet (les fiches
+    /// Par cle, titre, alias ou numero d'objet (les fiches
     /// actives d'abord), puis par inclusion dans un sens ou l'autre. Rend la fiche
-    /// avec `_cle`. Refus : `KeyError` en Python.
+    /// avec `_cle`, ou le refus.
     /// Un nom vide (ou blanc) ne designe AUCUN spectacle : la recherche par inclusion le trouverait
     /// dans tous (« » est dans tout titre) et rendrait le premier actif, au hasard -- c'est ainsi
     /// qu'un permanent repris se rattachait a un spectacle. Il se refuse.

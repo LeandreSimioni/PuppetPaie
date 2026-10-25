@@ -27,7 +27,7 @@ use droit::contexte::Contexte;
 use socle::date::{d, en_texte, Jour};
 use crate::engagement::Avis;
 use socle::fichiers::{repr, vrai};
-use socle::num::{dec_py, div, eur2, mul, Decimal, Resultat};
+use socle::num::{dec_avec_echelle, div, eur2, mul, Decimal, Resultat};
 
 /// Le genre d'un arret de travail (bloc S21.G00.60).
 pub const ARRET: &str = "arret";
@@ -626,7 +626,7 @@ chaque mois qu'il traverse.",
                 avert.extend(maintien_possible(ctx, e, &imp, mois, m.taux_jour_ouvrable)?);
             }
             if let Some(montant) = g(&imp, "maintien").get(mois).filter(|x| vrai(x)) {
-                let montant = dec_py(montant)?;
+                let montant = dec_avec_echelle(montant)?;
                 // Le montant saisi est verse tel quel : un taux arrondi avant de multiplier le changerait (`taux_exact`).
                 let (q, t) = if heures > Decimal::ZERO { (heures, taux_exact(montant, heures)) } else { (Decimal::ONE, json!(flot(montant))) };
                 lignes.push(json!({"rubrique": "maintien_salaire", "quantite": flot(q), "taux": t}));

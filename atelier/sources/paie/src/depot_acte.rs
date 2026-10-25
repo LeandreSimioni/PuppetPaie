@@ -23,7 +23,7 @@ use serde_json::{json, Value};
 use droit::contexte::Contexte;
 use crate::depot::{self, Apercu};
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -50,7 +50,7 @@ pub struct Preuve {
 
 impl Preuve {
     pub fn de_la_charge(charge: &Value) -> Preuve {
-        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(py_str), mois_recopie: None }
+        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None }
     }
 }
 
@@ -100,8 +100,8 @@ fn cle_de_version(v: &str) -> Vec<i64> {
 pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
     let code = ctx.code.parent().map(Path::to_path_buf).unwrap_or_default();
     let Some(p) = crate::routes_etats::prete(&code.join(".."))? else { return Ok(String::new()) };
-    let exigee = p.get("exigee").filter(|e| vrai(e)).map(py_str).unwrap_or_default();
-    let version = p.get("version").map(py_str).unwrap_or_default();
+    let exigee = p.get("exigee").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_default();
+    let version = p.get("version").map(valeur_en_texte).unwrap_or_default();
     if exigee.is_empty() || cle_de_version(&version) <= cle_de_version(&crate::routes_etats::courante(&code)?) {
         return Ok(String::new());
     }
@@ -209,7 +209,7 @@ pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
     for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
         if r.get("verdict").and_then(Value::as_str) == Some("KO") {
             for a in r.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-                let t = py_str(a);
+                let t = valeur_en_texte(a);
                 if !anomalies.contains(&t) {
                     anomalies.push(t);
                 }
@@ -219,7 +219,7 @@ pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
     if !anomalies.is_empty() {
         return anomalies.join(" ; ");
     }
-    let rep: String = ligne.get("reponse").filter(|r| vrai(r)).map(py_str).unwrap_or_default().trim().chars().take(200).collect();
+    let rep: String = ligne.get("reponse").filter(|r| vrai(r)).map(valeur_en_texte).unwrap_or_default().trim().chars().take(200).collect();
     if rep.is_empty() {
         "motif non lu".into()
     } else {
@@ -255,8 +255,8 @@ fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) ->
         format!(
             "Un fichier du meme nom a bien ete essaye en test le {}, mais son\ncontenu a CHANGE depuis ({} teste, {} aujourd'hui) : un octet qui\nbouge rend le test caduc.",
             quand_a(&l["quand"]),
-            l.get("empreinte").filter(|e| vrai(e)).map(py_str).unwrap_or_else(|| "?".into()),
-            py_str(&etat["empreinte"])
+            l.get("empreinte").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_else(|| "?".into()),
+            valeur_en_texte(&etat["empreinte"])
         )
     } else {
         "Ce contenu n'a jamais ete depose en test.".to_string()
@@ -436,7 +436,7 @@ fn libelle_dsn_deposee(mois: &str, e: &Value) -> String {
     let anomalies = || -> String {
         let mut v: Vec<String> = Vec::new();
         for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let t = py_str(a);
+            let t = valeur_en_texte(a);
             if !v.contains(&t) {
                 v.push(t);
             }
@@ -508,13 +508,13 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
     let mut connus: Vec<i64> = vec![essais.len() as i64, vues.ordre];
     for l in &essais {
         let d = l.get("detail").cloned().unwrap_or(Value::Null);
-        let o = d.get("ordre_test").filter(|o| vrai(o)).map(py_str).unwrap_or_default();
+        let o = d.get("ordre_test").filter(|o| vrai(o)).map(valeur_en_texte).unwrap_or_default();
         if !o.is_empty() && o.chars().all(|c| c.is_ascii_digit()) {
             if let Ok(n) = o.parse() {
                 connus.push(n);
             }
         }
-        if let Some(nom) = l.get("fichier").filter(|f| vrai(f)).map(py_str) {
+        if let Some(nom) = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte) {
             let p = ctx.racine.join("sorties").join(mois).join(nom);
             if p.exists() {
                 if let Some(n) = std::fs::read(&p).ok().and_then(|o| rang_dans_le_fichier(&o)) {
@@ -650,7 +650,7 @@ pub fn deposer_dsn_dans(
     }
     // UNE COMPAGNIE D'ESSAI ne depose que ce qu'elle a ecrit sous SON identite : les DSN copiees de la fictive portent le
     // SIREN de la fictive, que le compte net-entreprises ne declare pas. Le refus ne cite aucun des deux numeros.
-    if crate::essai::est_essai(&ctx.racine) && apercu.champ("siren") != py_str(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
+    if crate::essai::est_essai(&ctx.racine) && apercu.champ("siren") != valeur_en_texte(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
         return Err(erreur(
             "ErreurOperation",
             "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Produire le mois ici (`paie mois`), puis deposer la DSN ecrite. Rien n'est parti.",
@@ -857,14 +857,14 @@ pub fn deposer_dpae_avec(
     let chemin = PathBuf::from(crate::routes_apercus::resoudre(&ctx.racine, fichier)?);
     let apercu = crate::routes_apercus::apercu_depot_dpae(o, ctx, &json!(chemin.to_string_lossy()))?;
     let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;
-    let mois = py_str(&apercu["mois"]);
+    let mois = valeur_en_texte(&apercu["mois"]);
 
     if reel && !vrai(&apercu["reel"]) {
         return Err(erreur(
             "ErreurOperation",
             format!(
                 "Le fichier porte l'indicateur {} (test) et vous demandez un depot REEL : rien ne serait declare. Reproduire le fichier sans --test.",
-                py_str(&apercu["indicateur"])
+                valeur_en_texte(&apercu["indicateur"])
             ),
         ));
     }

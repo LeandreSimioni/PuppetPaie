@@ -82,7 +82,7 @@ fn la_pile_de_bareme() {
             let bar = ctx.bareme(&jour).unwrap();
             (ctx, bar)
         });
-        // Comme `oracle bareme` : la fiche, le cadre force, l'emploi a la date.
+        // La fiche, le cadre force, l'emploi a la date.
         let mut sal = ctx.salarie(c["salarie"].as_str().unwrap()).unwrap();
         if let Some(cadre) = c["cadre"].as_str() {
             sal["statut_categoriel_rc"] = Value::String(if cadre == "oui" { "01" } else { "04" }.into());

@@ -23,7 +23,7 @@ use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::retours;
@@ -109,13 +109,13 @@ fn nature_dsn(nature: &str, type_: &str) -> String {
 /// `routes_ecritures_g4::contrat_recu_avec` et `releve_signatures`), sinon celui de sa fiche (`detail.salarie` est sa cle),
 /// sinon la cle elle-meme.
 fn qui_du_contrat(ctx: &Contexte, d: &Value) -> String {
-    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     if !t("nom").is_empty() {
         return t("nom");
     }
     let cle = t("salarie");
     let fiche = ctx.salarie_brut(&cle);
-    let f = |k: &str| fiche.and_then(|x| x.get(k)).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let f = |k: &str| fiche.and_then(|x| x.get(k)).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let prenom = if f("prenom_affichage").is_empty() { f("prenom") } else { f("prenom_affichage") };
     let nom = [f("nom"), prenom].iter().filter(|x| !x.is_empty()).cloned().collect::<Vec<_>>().join(" ");
     if nom.is_empty() { cle } else { nom }
@@ -123,7 +123,7 @@ fn qui_du_contrat(ctx: &Contexte, d: &Value) -> String {
 
 /// Le contrat d'une ligne `contrat-recu` en mots : son numero et son debut (`detail.numero`, `detail.debut`).
 fn contrat_en_mots(d: &Value) -> String {
-    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let numero = if t("numero").is_empty() { String::new() } else { format!(" n° {}", t("numero")) };
     let debut = if t("debut").is_empty() { String::new() } else { format!(" commençant le {}", etats::quand_lisible(&json!(t("debut")))) };
     format!("contrat{}{}", numero, debut)
@@ -132,7 +132,7 @@ fn contrat_en_mots(d: &Value) -> String {
 /// L'acte d'une ligne du journal, en mots ; un contrat qui revient ou repart dit de qui il est.
 fn acte(ctx: &Contexte, l: &Value) -> String {
     let d = l.get("detail").cloned().unwrap_or(Value::Null);
-    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     match l.get("quoi").and_then(Value::as_str).unwrap_or("") {
         "dsn" => nature_dsn(&t("nature"), &t("type")),
         "dpae" => "DPAE".into(),
@@ -186,7 +186,7 @@ fn documents(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     }
     let envoi = crate::routes_apercus::documents_du_mois(ctx, &json!(mois), &json!("tout"))?;
     for d in envoi.as_array().into_iter().flatten() {
-        let nom = py_str(&d["nom"]);
+        let nom = valeur_en_texte(&d["nom"]);
         out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": d["salarie"], "chemin": format!("sorties/{}/envoi/{}", mois, nom)}));
     }
     let rang = |v: &Value| SORTES.iter().position(|(s, _)| v["sorte"] == json!(s)).unwrap_or(SORTES.len());
@@ -254,7 +254,7 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
         if !lignes.is_empty() {
             l.titre = "Certificat de conformité des DPAE".into();
             for x in &lignes {
-                let t = |k: &str| x.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+                let t = |k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
                 let qui = [t("nom"), t("prenom")].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
                 let etat = if vrai(&x["enregistree"]) {
                     let dossier = t("dossier");
@@ -283,23 +283,23 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
         } else {
             l.phrases.push(format!("{} attestation{} employeur rematérialisée{} :", aer.len(), if aer.len() > 1 { "s" } else { "" }, if aer.len() > 1 { "s" } else { "" }));
             for a in &aer {
-                let p = py_str(&a["periode"]);
-                l.phrases.push(format!("{}{}", py_str(&a["qui"]), if p.is_empty() { String::new() } else { format!(" (période {})", p) }));
+                let p = valeur_en_texte(&a["periode"]);
+                l.phrases.push(format!("{}{}", valeur_en_texte(&a["qui"]), if p.is_empty() { String::new() } else { format!(" (période {})", p) }));
             }
             l.phrases.push("Chaque AER se range aussi parmi les documents du mois, prête à partir au salarié.".into());
         }
         return l;
     }
     if let Some(r) = retours::lire_rapport(o) {
-        let type_ = py_str(&r["type"]);
-        l.titre = if vrai(&r["libelle"]) { py_str(&r["libelle"]) } else if type_.is_empty() { "Compte rendu".into() } else { format!("Rapport {}", type_) };
+        let type_ = valeur_en_texte(&r["type"]);
+        l.titre = if vrai(&r["libelle"]) { valeur_en_texte(&r["libelle"]) } else if type_.is_empty() { "Compte rendu".into() } else { format!("Rapport {}", type_) };
         if vrai(&r["message"]) {
-            l.phrases.push(py_str(&r["message"]));
+            l.phrases.push(valeur_en_texte(&r["message"]));
         }
         if r["essai_reel"] == json!("01") {
             l.phrases.push("Envoi d'essai (test) : rien n'est déclaré ni conservé.".into());
         }
-        let etat = py_str(&r["etat_envoi"]);
+        let etat = valeur_en_texte(&r["etat_envoi"]);
         let envoi = match etat.as_str() {
             "OK" => "accepté",
             "KO" => "refusé",
@@ -310,20 +310,20 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
             l.phrases.push(format!("L'envoi est {} ({}).", envoi, etat));
         }
         for d in r["declarations"].as_array().into_iter().flatten() {
-            let e = py_str(&d["etat"]);
-            let mois = py_str(&d["mois"]);
-            let ordre = py_str(&d["ordre"]);
+            let e = valeur_en_texte(&d["etat"]);
+            let mois = valeur_en_texte(&d["mois"]);
+            let ordre = valeur_en_texte(&d["ordre"]);
             l.phrases.push(format!(
                 "{}{}{} : {}.",
-                nature_dsn(&py_str(&d["nature"]), &py_str(&d["type"])),
+                nature_dsn(&valeur_en_texte(&d["nature"]), &valeur_en_texte(&d["type"])),
                 if mois.is_empty() { String::new() } else { format!(" de {}", mois) },
                 if ordre.is_empty() { String::new() } else { format!(", ordre {}", ordre) },
                 if verdict_en_mots(&e).is_empty() { if e.is_empty() { "sans état".to_string() } else { e.clone() } } else { format!("{} ({})", verdict_en_mots(&e), e) }
             ));
         }
         for i in r["informations"].as_array().into_iter().flatten() {
-            let donnees: Vec<String> = i["donnees"].as_array().into_iter().flatten().map(|d| format!("{} : {}", py_str(&d["nom"]), py_str(&d["valeur"]))).collect();
-            let t = py_str(&i["type"]);
+            let donnees: Vec<String> = i["donnees"].as_array().into_iter().flatten().map(|d| format!("{} : {}", valeur_en_texte(&d["nom"]), valeur_en_texte(&d["valeur"]))).collect();
+            let t = valeur_en_texte(&i["type"]);
             let quoi = match t.as_str() {
                 "atmp" => "Information : taux accident du travail et maladie professionnelle".to_string(),
                 "bmcc" => "Information : bonus-malus de la contribution chômage".to_string(),
@@ -340,8 +340,8 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
         // LE VERDICT EST CELUI DE LA PIECE (21/10/2026) : France Travail publie son compte rendu « cinéma, spectacle »
         // (nature 45) toujours au statut ANOBLOQUANTE, même quand il ne relève rien (guide « De la DSN à l'attestation
         // employeur », v3.2, p. 10, dépose dans `net-entreprises-base-connaissances/`). Ce que dit la piece passe devant.
-        let etats: Vec<String> = std::iter::once(py_str(&r["etat_envoi"]))
-            .chain(r["declarations"].as_array().into_iter().flatten().map(|d| py_str(&d["etat"])))
+        let etats: Vec<String> = std::iter::once(valeur_en_texte(&r["etat_envoi"]))
+            .chain(r["declarations"].as_array().into_iter().flatten().map(|d| valeur_en_texte(&d["etat"])))
             .filter(|e| !e.is_empty())
             .collect();
         l.verdict = if etats.iter().any(|e| e == "KO") {
@@ -651,16 +651,16 @@ fn lire_crm_oc(crm: &Value, l: &mut Lecture) {
 fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     let quoi = ligne.get("quoi").and_then(Value::as_str).unwrap_or("");
     let canal = if quoi == "dpae" { "dpae" } else { "" };
-    let nature = r.get("nature").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    let statut = r.get("statut").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    let publication = r.get("publication").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    let flux = ligne.get("flux").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let nature = r.get("nature").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let statut = r.get("statut").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let publication = r.get("publication").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let flux = ligne.get("flux").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let (organisme, format) = if canal == "dpae" {
         ("l'Urssaf (DPAE)", "")
     } else {
         NATURES.iter().find(|(c, _, _)| *c == nature).map(|(_, o, f)| (*o, *f)).unwrap_or(("", ""))
     };
-    let libelle = r.get("libelle").filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| retours::libelle_nature(&nature));
+    let libelle = r.get("libelle").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| retours::libelle_nature(&nature));
     let piece = if flux.is_empty() && publication.is_empty() { None } else { piece_du_retour(racine, canal, &flux, &nature, &publication) };
     let mut phrases: Vec<String> = Vec::new();
     let lecture = piece.as_ref().and_then(|p| std::fs::read(p).ok()).map(|o| lire_piece(&o, canal, &nature, format));
@@ -699,7 +699,7 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
                 .map(|a| if a.is_string() { json!({"code": "", "categorie": "", "message": a, "rubrique": "", "ligne": "", "nombre": "", "salarie": ""}) } else { a.clone() })
                 .collect();
             for d in r["dpae"].as_array().into_iter().flatten() {
-                let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+                let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
                 let etat = if vrai(&d["enregistree"]) { "enregistrée".to_string() } else if vrai(&d["deja_existante"]) { "déjà enregistrée auparavant".into() } else { format!("refusée : {}", t("libelle")) };
                 phrases.push(format!("{} {} : {}.", t("nom"), t("prenom"), etat));
             }
@@ -708,7 +708,7 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
     };
     // L'organisme que la piece nomme passe devant celui de la nature (« l'organisme complementaire » : lequel).
     let organisme = if lu_organisme.is_empty() { organisme.to_string() } else { lu_organisme };
-    let verdict = if lu_verdict.is_empty() { r.get("verdict").filter(|v| vrai(v)).map(py_str).unwrap_or_default() } else { lu_verdict };
+    let verdict = if lu_verdict.is_empty() { r.get("verdict").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default() } else { lu_verdict };
     json!({
         "nature": nature, "libelle": libelle, "organisme": organisme, "statut": statut, "verdict": verdict,
         "quand": quand_publication(&publication), "titre": titre, "phrases": phrases, "anomalies": anomalies, "traduite": traduite,
@@ -734,8 +734,8 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut envois = Vec::new();
     for l in &lignes {
         let mut retours: Vec<Value> = l["retours"].as_array().into_iter().flatten().map(|r| retour_lu(&ctx.racine, l, r)).collect();
-        retours.sort_by(|a, b| py_str(&a["quand"]).cmp(&py_str(&b["quand"])));
-        let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        retours.sort_by(|a, b| valeur_en_texte(&a["quand"]).cmp(&valeur_en_texte(&b["quand"])));
+        let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         // Ce qui REVIENT (un contrat signe, une fiche remplie) n'a pas ete « envoye » et n'attend rien ; un depot attend
         // ses retours par son flux (`journal.rattacher_retours`).
         let recu = ["contrat-recu", "fiche-recue"].contains(&t("quoi").as_str());
@@ -763,7 +763,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
         }));
     }
     // Le plus recent en premier : c'est le dernier envoi qu'on vient lire ; a la meme heure, le reel devant son test.
-    envois.sort_by(|a, b| (py_str(&b["quand"]), b["mode"] == json!("reel")).cmp(&(py_str(&a["quand"]), a["mode"] == json!("reel"))));
+    envois.sort_by(|a, b| (valeur_en_texte(&b["quand"]), b["mode"] == json!("reel")).cmp(&(valeur_en_texte(&a["quand"]), a["mode"] == json!("reel"))));
     Ok(json!({"mois": mois, "documents": documents(ctx, mois)?, "envois": envois}))
 }
 

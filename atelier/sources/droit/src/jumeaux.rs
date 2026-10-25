@@ -1,7 +1,7 @@
 //! LES JUMEAUX : deux contrats du meme salarie qui commencent le meme jour (deux CDDU sur deux spectacles, un
 //! cachet et une masterclass...). Ils ne se confondent pas sur (salarie, debut).
 //!
-//! L'IDENTITE D'UN ENGAGEMENT DANS UN FICHIER DE MOIS (decide le 09/10/2026) : (salarie, debut, numero) quand le
+//! L'IDENTITE D'UN ENGAGEMENT DANS UN FICHIER DE MOIS : (salarie, debut, numero) quand le
 //! numero est pose ; sans numero (premier mois, avant production), son RANG parmi les engagements de meme
 //! (salarie, debut) du fichier. C'est ici, et seulement ici, que cette regle s'ecrit :
 //! - `cles` : la cle unique de chaque engagement d'UNE liste ;
@@ -13,7 +13,7 @@
 
 use serde_json::Value;
 
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 
 /// Un engagement tel qu'il s'identifie : (cle du salarie, premier jour ISO, numero de contrat s'il est pose).
@@ -26,7 +26,7 @@ pub fn numero_pose(e: &Value) -> Option<String> {
 
 /// Le meme, depuis le champ `"numero"` lui-meme (un engagement deja deplie en dictionnaire).
 pub fn numero_du_champ(n: Option<&Value>) -> Option<String> {
-    n.filter(|n| vrai(n)).map(py_str)
+    n.filter(|n| vrai(n)).map(valeur_en_texte)
 }
 
 /// La cle unique de chaque engagement d'une liste : `(salarie, debut, numero)` quand le numero est pose, sinon
@@ -80,12 +80,12 @@ pub fn apparier(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> 
 }
 
 /// `apparier`, puis LE MEME CONTRAT A D'AUTRES DATES : un engagement reste sans jumeau retrouve celui du meme salarie
-/// qui porte le meme numero de contrat pose, quel que soit son premier jour (21/10/2026). Un numero de contrat se lit et
+/// qui porte le meme numero de contrat pose, quel que soit son premier jour. Un numero de contrat se lit et
 /// ne se recalcule pas (regle 4) : deux engagements du meme salarie au meme numero sont un seul contrat, dont la date de
 /// debut a change -- ce que la DSN declare par l'ancienne date dans un bloc « Changements contrat » (S21.G00.41.021,
 /// fiche net-entreprises 1952, `atelier/reference/sources/net-entreprises-base-connaissances/`). Seulement pour comparer
 /// une saisie declaree a sa modification (`routes_regularisation`), et pour ce qu'une saisie reprend du fichier d'avant
-/// (`routes_ecritures::fusionner`, #253) : ailleurs, l'identite reste (salarie, debut, numero).
+/// (`routes_ecritures::fusionner`) : ailleurs, l'identite reste (salarie, debut, numero).
 pub fn apparier_meme_numero(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> {
     let mut sortie = apparier(a, b);
     let mut pris = vec![false; b.len()];

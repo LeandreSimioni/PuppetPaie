@@ -1,14 +1,12 @@
-//! Les clauses d'une convention collective qui changent la fin d'un contrat
-//! (`moteur/clauses.py`) : preavis, indemnites de licenciement et de retraite,
-//! maintien de salaire, prime d'anciennete.
+//! Les clauses d'une convention collective qui changent la fin d'un contrat : preavis, indemnites de licenciement et
+//! de retraite, maintien de salaire, prime d'anciennete.
 //!
 //! Le module rend ce que dit la convention, ou `None` quand elle ne dit rien
 //! ou n'est pas relevee ; il ne choisit pas entre la convention et la loi.
 //! Les nombres vivent dans `clauses-conventionnelles-base.json`.
 //!
-//! Les `dict` du Python sont des `serde_json::Value` ; un `Decimal` y est
-//! ecrit en chaine (`"149.66"`). Les phrases rendues sont celles du Python,
-//! au caractere pres.
+//! Les resultats sont des `serde_json::Value` ; un `Decimal` y est
+//! ecrit en chaine (`"149.66"`).
 
 use socle::date::{en_texte, Jour};
 use crate::emplois;
@@ -24,12 +22,12 @@ use std::sync::Arc;
 static NUL: Value = Value::Null;
 
 // ------------------------------------------------------------ les aides
-/// `v.get(k)` de Python : `None` (ici `Null`) quand la cle manque.
+/// La valeur de `k`, `Null` quand la cle manque.
 fn get<'a>(v: &'a Value, k: &str) -> &'a Value {
     v.get(k).unwrap_or(&NUL)
 }
 
-/// `v[k]` : une cle absente est un `KeyError`.
+/// La valeur de `k`, exigee : son absence se refuse en la nommant.
 fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
@@ -43,12 +41,12 @@ fn ou<'a>(a: &'a Value, b: &'a Value) -> &'a Value {
     }
 }
 
-/// `P(str(x))`.
+/// Le decimal a 28 chiffres d'une valeur lue.
 fn nb(v: &Value) -> Resultat<P> {
     dec(v).map(P::depuis)
 }
 
-/// `P(str(v[k]))`.
+/// Le decimal a 28 chiffres de `v[k]`.
 fn nombre(v: &Value, k: &str) -> Resultat<P> {
     nb(cle(v, k)?)
 }
@@ -589,7 +587,7 @@ pub fn indemnite_licenciement(
     Ok(sortie(&lectures, &article, hors_primes, &pourquoi, true))
 }
 
-/// `d[k] = v` d'un dict ordonne : une cle existante garde sa place.
+/// Pose `k` a `v` dans une liste ordonnee de paires : une cle existante garde sa place.
 fn set(l: &mut Vec<(String, P)>, k: &str, v: P) {
     match l.iter_mut().find(|x| x.0 == k) {
         Some(x) => x.1 = v,
@@ -889,7 +887,7 @@ pub fn maintien(idcc: &Value, anciennete_mois: Decimal, accident_du_travail: boo
 }
 
 // ------------------------------------------------- la prime d'anciennete
-/// `date.fromisoformat` sur les dix premiers caracteres : `AAAA-MM-JJ`.
+/// Une date `AAAA-MM-JJ`, lue sur les dix premiers caracteres.
 fn iso(s: &str) -> Resultat<Jour> {
     let c: Vec<char> = s.chars().take(10).collect();
     let nombre = |a: usize, b: usize| -> Option<u32> {

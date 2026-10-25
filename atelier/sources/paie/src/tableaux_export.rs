@@ -22,8 +22,8 @@ use rust_xlsxwriter::{Format, FormatAlign, Workbook, Worksheet};
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use socle::date::repr_py;
-use socle::valeur::py_str;
+use socle::date::forme_ecrite;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::Decimal;
@@ -62,7 +62,7 @@ impl Val {
     pub(crate) fn str_py(&self) -> String {
         match self {
             Val::Dec(d) => d.to_string(),
-            Val::Num(v) => repr_py(v),
+            Val::Num(v) => forme_ecrite(v),
             Val::Txt(s) => s.clone(),
         }
     }
@@ -347,7 +347,7 @@ pub(crate) fn texte(v: Option<&Val>, c: &Colonne) -> String {
     match v {
         None => String::new(),
         Some(Val::Dec(d)) if c.a_droite() => d.to_string().replace('.', ","),
-        Some(Val::Num(n)) if c.a_droite() => repr_py(n).replace('.', ","),
+        Some(Val::Num(n)) if c.a_droite() => forme_ecrite(n).replace('.', ","),
         Some(autre) => autre.str_py(),
     }
 }
@@ -487,7 +487,7 @@ pub(crate) fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
 
 /// `json_tableau` : `json.dumps(dict_tableau(t), ensure_ascii=False, indent=1)`. Le fichier n'est pas encore nomme quand il s'ecrit.
 pub(crate) fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
-    Ok(socle::ecriture::json_py(&dict_tableau(t, false), 1).into_bytes())
+    Ok(socle::ecriture::json_indente(&dict_tableau(t, false), 1).into_bytes())
 }
 
 /// `sortie_json.brut(Tableau)` : la reponse de la route.
@@ -543,7 +543,7 @@ fn cellule_classeur(v: Option<&Val>, c: &Colonne) -> Cel {
         Val::Dec(d) => Cel::Nombre(en_f64(d)),
         Val::Num(n) => match n.as_f64() {
             Some(x) => Cel::Nombre(x),
-            None => Cel::Texte(repr_py(n)),
+            None => Cel::Texte(forme_ecrite(n)),
         },
         Val::Txt(s) => Cel::Texte(s.clone()),
     }
@@ -832,20 +832,20 @@ pub(crate) fn jj(iso: &str) -> String {
 /// `_qui` : « NOM Prenom ».
 pub(crate) fn qui(fiche: &Value) -> R<String> {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
-        None => fiche.get("prenom").map(py_str).unwrap_or_default(),
+        Some(v) => valeur_en_texte(v),
+        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
     };
     let nom = fiche.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
-    Ok(format!("{} {}", py_str(nom), prenom))
+    Ok(format!("{} {}", valeur_en_texte(nom), prenom))
 }
 
 /// `_qui` d'une fiche qui n'a peut-etre pas de nom (`.get("nom", "")`).
 pub(crate) fn qui_souple(fiche: &Value) -> String {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
-        None => fiche.get("prenom").map(py_str).unwrap_or_default(),
+        Some(v) => valeur_en_texte(v),
+        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
     };
-    format!("{} {}", fiche.get("nom").map(py_str).unwrap_or_default(), prenom)
+    format!("{} {}", fiche.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom)
 }
 
 /// `_montant` : un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).
@@ -853,7 +853,7 @@ pub(crate) fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
     match v {
         None | Some(Value::Null) => Ok(None),
         Some(x) => {
-            let t = py_str(x);
+            let t = valeur_en_texte(x);
             if t.trim_matches(socle::texte::blanc).is_empty() {
                 return Ok(None);
             }

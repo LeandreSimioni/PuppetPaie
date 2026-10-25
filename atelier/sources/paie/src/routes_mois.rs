@@ -34,7 +34,7 @@ use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use crate::engagement::{self, LignesPermanent};
 use crate::etats::{self, est, get, getd, joindre, objet_vide, ou, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{sha256_hex, vrai};
@@ -159,7 +159,7 @@ pub(crate) fn dans_l_ensemble(ensemble: &HashSet<Cle3>, cles: &[Cle3]) -> bool {
 pub(crate) fn contrats_des_paies(paies: &[Paie]) -> Vec<Cle3> {
     paies
         .iter()
-        .map(|p| (p.salarie.get("_cle").map(py_str).unwrap_or_default(), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default()))
+        .map(|p| (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default()))
         .collect()
 }
 
@@ -177,7 +177,7 @@ fn cles_en_ensemble(v: Value) -> HashSet<Paire> {
 
 /// `str(Decimal(str(x)).quantize(Decimal("0.01")))` : un montant a deux decimales.
 fn brut_en_texte(v: &Value) -> R<String> {
-    let t = py_str(v);
+    let t = valeur_en_texte(v);
     let mut d = Decimal::from_str(t.trim())
         .or_else(|_| Decimal::from_scientific(t.trim()))
         .map_err(|_| erreur("InvalidOperation", socle::num::illisible(&t)))?;
@@ -203,7 +203,7 @@ pub(crate) fn sans_bruit(x: &Value) -> Value {
 }
 
 pub(crate) fn empreinte_de(v: &Value) -> String {
-    sha256_hex(socle::ecriture::json_py_trie(&sans_bruit(v)).as_bytes())[..16].to_string()
+    sha256_hex(socle::ecriture::json_trie(&sans_bruit(v)).as_bytes())[..16].to_string()
 }
 
 /// `^\d{4}-\d{2}$`.
@@ -308,7 +308,7 @@ impl SaisieMois {
 }
 
 fn texte_de(v: &Value) -> String {
-    py_str(v)
+    valeur_en_texte(v)
 }
 
 /// Les etats du journal et de la saisie, calcules une fois par processus.
@@ -759,7 +759,7 @@ impl<'a> Moteur<'a> {
                 let recu = premier(&g.recus, cles).filter(|r| vrai(r));
                 let depuis = mois_du_contrat.first().cloned().unwrap_or_default();
                 let signe_en = match recu {
-                    Some(r) => py_str(r).chars().take(7).collect::<String>(),
+                    Some(r) => valeur_en_texte(r).chars().take(7).collect::<String>(),
                     None => depuis.clone(),
                 };
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
@@ -846,7 +846,7 @@ impl<'a> Moteur<'a> {
     pub(crate) fn ordre_de_la_ligne(&self, mois: &str, l: &Value) -> R<i64> {
         let d = ou(get(l, "detail")?, objet_vide());
         let ordre = get(d, "ordre")?;
-        let t = if vrai(ordre) { py_str(ordre) } else { String::new() };
+        let t = if vrai(ordre) { valeur_en_texte(ordre) } else { String::new() };
         if !t.is_empty() && t.chars().all(|c| c.is_ascii_digit()) {
             if let Ok(n) = t.parse::<i64>() {
                 return Ok(n);
@@ -854,7 +854,7 @@ impl<'a> Moteur<'a> {
         }
         let nom = get(l, "fichier")?;
         if vrai(nom) {
-            let p = self.racine().join("sorties").join(mois).join(py_str(nom));
+            let p = self.racine().join("sorties").join(mois).join(valeur_en_texte(nom));
             if p.exists() {
                 let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
                 if let Some(n) = rang_dans_le_fichier(&octets) {
@@ -1028,7 +1028,7 @@ impl<'a> Moteur<'a> {
         let Some(premier) = fichiers.get(quoi).and_then(Value::as_array).and_then(|l| l.first()).cloned() else {
             return Ok(());
         };
-        let chemin = PathBuf::from(py_str(&premier["chemin"]));
+        let chemin = PathBuf::from(valeur_en_texte(&premier["chemin"]));
         let lignes = self.lignes()?;
         let empreinte = crate::journal::empreinte_fichier(&chemin).map_err(|m| erreur("FileNotFoundError", m))?;
         if vrai(&etats::deja_depose(&lignes, quoi, &empreinte)?) {
@@ -1056,7 +1056,7 @@ impl<'a> Moteur<'a> {
             Some(l) if etape == "test_refuse" => format!("Le test a été refusé : {}. Le même refus attendrait le dépôt réel.", crate::depot_acte::pourquoi_rate(l).trim_end_matches('.')),
             _ => phrase.to_string(),
         };
-        let avant = bilan.get("phrase").filter(|p| vrai(p)).map(py_str).unwrap_or_default();
+        let avant = bilan.get("phrase").filter(|p| vrai(p)).map(valeur_en_texte).unwrap_or_default();
         let avant = avant.trim_end_matches('.');
         bilan.insert("etape".into(), json!(etape));
         bilan.insert("fichier".into(), premier["chemin"].clone());
@@ -1158,7 +1158,7 @@ impl<'a> Moteur<'a> {
             for (p, e) in a_signer.iter().zip(&s) {
                 if vrai(&e["avenant_attendu"]) {
                     let v = if vrai(&p["nom"]) { &p["nom"] } else { &p["salarie"] };
-                    let t = py_str(v);
+                    let t = valeur_en_texte(v);
                     if !qui.contains(&t) {
                         qui.push(t);
                     }
@@ -1183,16 +1183,16 @@ impl<'a> Moteur<'a> {
         out.insert(SIGNATURE.into(), signature);
 
         // --- Documents : par salarie du mois.
-        let salaries: BTreeSet<String> = paies.iter().map(|p| py_str(&p["salarie"])).collect();
-        let faits: BTreeSet<String> = paies.iter().filter(|p| vrai(&p["etats"]["documents"]["fait"])).map(|p| py_str(&p["salarie"])).collect();
+        let salaries: BTreeSet<String> = paies.iter().map(|p| valeur_en_texte(&p["salarie"])).collect();
+        let faits: BTreeSet<String> = paies.iter().filter(|p| vrai(&p["etats"]["documents"]["fait"])).map(|p| valeur_en_texte(&p["salarie"])).collect();
         // A RENVOYER (ticket #240) : ceux dont la paie a change depuis l'envoi de leurs documents.
         let mut a_renvoyer: Vec<String> = Vec::new();
         let mut noms: Vec<String> = Vec::new();
         for p in &paies {
-            let cle = py_str(&p["salarie"]);
+            let cle = valeur_en_texte(&p["salarie"]);
             if vrai(&p["etats"]["documents"]["caduc"]) && !a_renvoyer.contains(&cle) {
                 a_renvoyer.push(cle);
-                noms.push(py_str(&p["nom"]));
+                noms.push(valeur_en_texte(&p["nom"]));
             }
         }
         let jamais = salaries.len() - faits.len();
@@ -1282,7 +1282,7 @@ impl<'a> Moteur<'a> {
             // chemin a montrer, et jamais hors delai (§1.4.2).
             let ecrits = self.fichiers_deposables(mois)?;
             let premier = ecrits.get(DSN).and_then(Value::as_array).and_then(|l| l.first()).cloned();
-            let apercu = premier.and_then(|f| std::fs::read(py_str(&f["chemin"])).ok()).map(|o| crate::depot::lire(&o));
+            let apercu = premier.and_then(|f| std::fs::read(valeur_en_texte(&f["chemin"])).ok()).map(|o| crate::depot::lire(&o));
             if let Some(a) = apercu {
                 if vrai(&r["admis"]) && ["03", "05"].contains(&a.champ("type_declaration")) {
                     let ordre = a.champ("ordre");
@@ -1520,8 +1520,8 @@ pub fn etat_signature(
     }
     // LE NUMERO (30/09/2026) : le contrat signe porte le sien, la DSN declarera
     // celui de la saisie. S'ils different, ce n'est pas celui qui est declare.
-    if vrai(fait) && vrai(numero_parti) && vrai(numero_saisi) && !socle::valeur::eq_py(numero_parti, numero_saisi) {
-        pourquoi.push(format!("il porte le n° {}, la paie déclare le n° {}", py_str(numero_parti), py_str(numero_saisi)));
+    if vrai(fait) && vrai(numero_parti) && vrai(numero_saisi) && !socle::valeur::valeurs_egales(numero_parti, numero_saisi) {
+        pourquoi.push(format!("il porte le n° {}, la paie déclare le n° {}", valeur_en_texte(numero_parti), valeur_en_texte(numero_saisi)));
     }
     // CE QUE LE CONTRAT PARTI NE DIT PLUS, lu dans son PDF (30/09/2026).
     if vrai(fait) && !ecart.is_empty() && pourquoi.is_empty() {
@@ -1541,7 +1541,7 @@ pub fn etat_signature(
 
 pub(crate) fn mois_de(charge: &Value) -> R<(Value, String)> {
     let v = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    Ok((v.clone(), py_str(v)))
+    Ok((v.clone(), valeur_en_texte(v)))
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (`mois`).
@@ -1559,7 +1559,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "bilan-du-mois" => m.bilan_du_mois(&mois_de(charge)?.1),
         "fichiers-deposables" => m.fichiers_deposables(&mois_de(charge)?.1),
         "embauches-a-declarer" => {
-            let mois = charge.get("mois").filter(|v| vrai(v)).map(py_str);
+            let mois = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
             Ok(json!({"embauches": m.embauches_a_declarer(mois.as_deref())?}))
         }
         "mois-a-ouvrir" => m.mois_a_ouvrir(),

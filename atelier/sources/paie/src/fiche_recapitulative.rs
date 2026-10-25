@@ -24,7 +24,7 @@ use crate::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use crate::engagement;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
 use crate::routes_ouverture::{refus_du_calcul, Refus};
@@ -329,7 +329,7 @@ pub(crate) fn nom_compagnie(ctx: &Contexte) -> String {
     }
     for c in ["nom_affichage", "raison_sociale", "nom"] {
         if let Some(v) = ctx.entreprise.get(c).filter(|v| vrai(v)) {
-            return py_str(v);
+            return valeur_en_texte(v);
         }
     }
     String::new()
@@ -403,10 +403,10 @@ fn requis<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
 /// `_qui` : « NOM Prenom ».
 fn qui(fiche: &Value) -> R<String> {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
-        None => fiche.get("prenom").map(py_str).unwrap_or_default(),
+        Some(v) => valeur_en_texte(v),
+        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
     };
-    Ok(format!("{} {}", py_str(requis(fiche, "nom")?), prenom))
+    Ok(format!("{} {}", valeur_en_texte(requis(fiche, "nom")?), prenom))
 }
 
 /// `_montant` : un montant declare, ou `None` quand il ne l'a pas ete.
@@ -414,7 +414,7 @@ fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
     match v {
         None | Some(Value::Null) => Ok(None),
         Some(x) => {
-            let t = py_str(x);
+            let t = valeur_en_texte(x);
             if t.trim_matches(socle::texte::blanc).is_empty() {
                 return Ok(None);
             }
@@ -526,7 +526,7 @@ impl<'a> Recapitulatifs<'a> {
         for x in self.paies_declarees()?.iter() {
             let m = x.get("mois").map_or(Value::Null, Clone::clone);
             if vrai(&m) {
-                out.insert(py_str(&m), DSN);
+                out.insert(valeur_en_texte(&m), DSN);
             }
         }
         for m in mois_saisis(self.ctx) {
@@ -593,7 +593,7 @@ impl<'a> Recapitulatifs<'a> {
             out.push(LigneLivre {
                 mois: mois.to_string(),
                 salarie: qui(&p.salarie)?,
-                cle_salarie: py_str(requis(&p.salarie, "_cle")?),
+                cle_salarie: valeur_en_texte(requis(&p.salarie, "_cle")?),
                 spectacle: p.spectacle.get("titre").filter(|t| vrai(t)).map(en_texte).unwrap_or_default(),
                 brut: Some(eur2(p.brut)),
                 cotisations_patronales: Some(eur2(p.total_pat)),
@@ -611,11 +611,11 @@ impl<'a> Recapitulatifs<'a> {
     fn lignes_declarees(&mut self, mois: &str) -> R<Vec<LigneLivre>> {
         let mut out = Vec::new();
         for x in self.paies_declarees()?.iter() {
-            if x.get("mois").map_or(true, |m| py_str(m) != mois) {
+            if x.get("mois").map_or(true, |m| valeur_en_texte(m) != mois) {
                 continue;
             }
             let cle = match x.get("salarie").filter(|v| vrai(v)) {
-                Some(v) => py_str(v),
+                Some(v) => valeur_en_texte(v),
                 None => String::new(),
             };
             let fiche = if cle.is_empty() { None } else { self.ctx.salaries.get(&cle).filter(|f| vrai(f)) };
@@ -859,11 +859,11 @@ impl<'a> Recapitulatifs<'a> {
                 l.insert("contrat".into(), txt(e.numero.clone().unwrap_or_default()));
                 l.insert(
                     "spectacle".into(),
-                    txt(paie.spectacle.get("titre").filter(|v| vrai(v)).map(py_str).unwrap_or_default()),
+                    txt(paie.spectacle.get("titre").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()),
                 );
                 let emploi = match e.emploi.clone().filter(|x| !x.is_empty()) {
                     Some(x) => x,
-                    None => paie.salarie.get("emploi").filter(|v| vrai(v)).map(py_str).unwrap_or_default(),
+                    None => paie.salarie.get("emploi").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default(),
                 };
                 l.insert("emploi".into(), txt(emploi));
                 l.insert("debut".into(), txt(jj(&e.debut.iso().to_string())));
@@ -887,20 +887,20 @@ impl<'a> Recapitulatifs<'a> {
             let Value::Object(o) = s else {
                 return Err(avec_classe("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(s))));
             };
-            objets.insert(o.get("numero_objet").map_or("None".to_string(), py_str), o.get("titre").cloned().unwrap_or(Value::Null));
+            objets.insert(o.get("numero_objet").map_or("None".to_string(), valeur_en_texte), o.get("titre").cloned().unwrap_or(Value::Null));
         }
         for x in self.engagements_attestes()?.iter() {
-            let debut = x.get("debut").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+            let debut = x.get("debut").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
             let m: String = debut.chars().take(7).collect();
             if m.is_empty() || saisis.contains(&m) || !p.contient(&m) {
                 continue;
             }
-            let cle = x.get("salarie").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+            let cle = x.get("salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
             let fiche = if cle.is_empty() { None } else { self.ctx.salaries.get(&cle).filter(|f| vrai(f)) };
             let objet = x.get("numero_objet").cloned().unwrap_or(Value::Null);
-            let spectacle = match objets.get(&py_str(&objet)).filter(|v| vrai(v)) {
-                Some(t) => py_str(t),
-                None => if vrai(&objet) { py_str(&objet) } else { String::new() },
+            let spectacle = match objets.get(&valeur_en_texte(&objet)).filter(|v| vrai(v)) {
+                Some(t) => valeur_en_texte(t),
+                None => if vrai(&objet) { valeur_en_texte(&objet) } else { String::new() },
             };
             let mut l = Ligne::new();
             l.insert("mois".into(), txt(m));
@@ -908,22 +908,22 @@ impl<'a> Recapitulatifs<'a> {
                 "salarie".into(),
                 txt(match fiche {
                     Some(f) => qui(f)?,
-                    None => x.get("salarie").map_or(String::new(), py_str),
+                    None => x.get("salarie").map_or(String::new(), valeur_en_texte),
                 }),
             );
-            l.insert("contrat".into(), txt(x.get("numero_attestation").filter(|v| vrai(v)).map(py_str).unwrap_or_default()));
+            l.insert("contrat".into(), txt(x.get("numero_attestation").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()));
             l.insert("spectacle".into(), txt(spectacle));
-            l.insert("emploi".into(), txt(fiche.and_then(|f| f.get("emploi")).filter(|v| vrai(v)).map(py_str).unwrap_or_default()));
-            l.insert("debut".into(), txt(jj(&py_str(x.get("debut").unwrap_or(&Value::Null)))));
-            l.insert("fin".into(), txt(jj(&py_str(x.get("fin").unwrap_or(&Value::Null)))));
+            l.insert("emploi".into(), txt(fiche.and_then(|f| f.get("emploi")).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()));
+            l.insert("debut".into(), txt(jj(&valeur_en_texte(x.get("debut").unwrap_or(&Value::Null)))));
+            l.insert("fin".into(), txt(jj(&valeur_en_texte(x.get("fin").unwrap_or(&Value::Null)))));
             l.insert("cachets".into(), Some(Val::Dec(montant_brut(x.get("cachets"))?)));
             l.insert("heures".into(), Some(Val::Dec(montant_brut(x.get("heures"))?)));
             l.insert(
                 "jours".into(),
                 match x.get("jours") {
                     None | Some(Value::Null) => None,
-                    Some(Value::Number(n)) => Some(Val::Num(socle::date::repr_py(&Value::Number(n.clone())))),
-                    Some(autre) => Some(Val::Txt(py_str(autre))),
+                    Some(Value::Number(n)) => Some(Val::Num(socle::date::forme_ecrite(&Value::Number(n.clone())))),
+                    Some(autre) => Some(Val::Txt(valeur_en_texte(autre))),
                 },
             );
             l.insert("brut".into(), montant(x.get("brut"))?.map(Val::Dec));
@@ -1013,10 +1013,10 @@ impl<'a> Recapitulatifs<'a> {
         let fiche = self.ctx.salaries.get(cle).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(cle)))?;
         let lui = format!(
             "{} {}",
-            py_str(requis(fiche, "nom")?),
+            valeur_en_texte(requis(fiche, "nom")?),
             match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-                Some(v) => py_str(v),
-                None => fiche.get("prenom").map(py_str).unwrap_or_default(),
+                Some(v) => valeur_en_texte(v),
+                None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
             }
         );
         let mut morceaux: Vec<Vec<u8>> = Vec::new();
@@ -1077,7 +1077,7 @@ impl<'a> Recapitulatifs<'a> {
 /// `_montant(x.get(...))` pour les cachets et les heures attestes : `Decimal(str(x.get("cachets") or 0))`.
 fn montant_brut(v: Option<&Value>) -> R<Decimal> {
     let t = match v.filter(|v| vrai(v)) {
-        Some(x) => py_str(x),
+        Some(x) => valeur_en_texte(x),
         None => "0".to_string(),
     };
     crate::apercu_dsn::decimal_py(&t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(&t)))

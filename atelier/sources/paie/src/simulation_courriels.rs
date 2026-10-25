@@ -309,7 +309,7 @@ pub fn courriels_fictifs(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !crate::routes_accueil::simulation_active(&ctx.racine) {
         return Err(erreur("ErreurOperation", "Seulement dans la compagnie fictive."));
     }
-    let apres = charge.get("apres").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::py_str).unwrap_or_default();
+    let apres = charge.get("apres").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte).unwrap_or_default();
     let (mut sortie, mut dernier) = (vec![], String::new());
     for (nom, octets) in courriels(&ctx.racine) {
         dernier = nom.clone();

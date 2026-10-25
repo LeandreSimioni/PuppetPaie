@@ -23,8 +23,8 @@ use socle::date::Jour;
 use socle::ecriture::ecrire_json;
 use droit::emplois;
 use crate::engagement;
-use socle::valeur::eq_py;
-use socle::valeur::py_str;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -163,7 +163,7 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
 // ----------------------------------------------------- fiche-oublier-demande
 
 fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let code = charge.get("code").filter(|c| vrai(c)).map(py_str).unwrap_or_default();
+    let code = charge.get("code").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let lignes = crate::etats::charger(&ctx.racine)?;
     let attendues = routes_accueil::attendues(&lignes)?;
     if !attendues.iter().any(|a| a.get("code").and_then(Value::as_str) == Some(code.as_str())) {
@@ -322,7 +322,7 @@ fn metier_retenu(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("Metier hors catalogue : {}.", code)));
     };
     // Ceux de sa convention le sont d'office ; sans IDCC, rien ne se cache.
-    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let conventions = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
     let de_la_convention = conventions.is_empty() || idcc.is_empty() || conventions.iter().any(|c| c.as_str() == Some(idcc.as_str()));
     let (mut ajoutes, mut retires) = routes_accueil::preferences_metiers(&ctx.racine)?;
@@ -349,7 +349,7 @@ fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
         .iter()
         .filter_map(|m| m.get("code").and_then(Value::as_str).map(str::to_string))
         .collect();
-    let inconnus: Vec<String> = codes.iter().filter(|c| !c.as_str().is_some_and(|s| connus.contains(s))).map(py_str).collect();
+    let inconnus: Vec<String> = codes.iter().filter(|c| !c.as_str().is_some_and(|s| connus.contains(s))).map(valeur_en_texte).collect();
     if !inconnus.is_empty() {
         return Err(refus(format!("Metier(s) hors catalogue : {}.", inconnus.join(", "))));
     }
@@ -379,7 +379,7 @@ fn matricule_suivant(salaries: &Map<String, Value>) -> i64 {
         .filter(|(k, _)| !k.starts_with('_'))
         .filter_map(|(_, s)| {
             let s = s.as_object()?;
-            let texte = s.get("code_salarie").map_or_else(String::new, py_str);
+            let texte = s.get("code_salarie").map_or_else(String::new, valeur_en_texte);
             entier(&Value::String(texte.trim().to_string())).ok()
         })
         .collect();
@@ -398,7 +398,7 @@ fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Va
             t.to_uppercase()
         }
     };
-    let texte = |k: &str| donnees.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let texte = |k: &str| donnees.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let ou = |a: &str, b: &str| {
         let x = texte(a);
         if x.is_empty() {
@@ -415,7 +415,7 @@ fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Va
         let titre = texte("titre");
         let titre = titre.trim();
         let base = if (titre.is_empty() || titre.to_uppercase() == "A COMPLETER") && donnees.get("numero_objet").is_some_and(vrai) {
-            format!("objet-{}", py_str(&donnees["numero_objet"]).trim())
+            format!("objet-{}", valeur_en_texte(&donnees["numero_objet"]).trim())
         } else {
             propre(titre, true)
         };
@@ -475,11 +475,11 @@ fn dater(historique: Option<&Value>, changements: &[Value], depuis: &Value, note
     }
     let jour = if vrai(depuis) { socle::date::d(depuis).map_err(|m| erreur("ValueError", m))? } else { aujourd_hui() };
     let veille = jour.plus_jours(-1).map_err(|m| erreur("ValueError", m))?.iso();
-    let note = if vrai(note) { py_str(note) } else { String::new() };
+    let note = if vrai(note) { valeur_en_texte(note) } else { String::new() };
     for c in changements {
         hist.push(json!({"champ": c["champ"], "valeur": c["avant"], "jusqu_au": veille, "note": note}));
     }
-    let cle = |e: &Value, k: &str| e.get(k).map(py_str).unwrap_or_default();
+    let cle = |e: &Value, k: &str| e.get(k).map(valeur_en_texte).unwrap_or_default();
     hist.sort_by(|a, b| (cle(a, "champ"), cle(a, "jusqu_au")).cmp(&(cle(b, "champ"), cle(b, "jusqu_au"))));
     Ok(hist)
 }
@@ -523,7 +523,7 @@ fn fiche_refusee(anomalies: &[Value]) -> Echec {
     let erreurs: Vec<&Value> = anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).collect();
     let phrases: Vec<String> = erreurs
         .iter()
-        .map(|a| format!("{} : {}", a.get("champ").map_or_else(String::new, py_str), a.get("message").map_or_else(String::new, py_str)))
+        .map(|a| format!("{} : {}", a.get("champ").map_or_else(String::new, valeur_en_texte), a.get("message").map_or_else(String::new, valeur_en_texte)))
         .collect();
     let message = format!("{} erreur(s) : {}", erreurs.len(), phrases.join(" ; "));
     Echec { classe: Some("FicheRefusee"), message: json!({"message": message, "anomalies": anomalies}).to_string() }
@@ -587,26 +587,26 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         let (avant, apres) = (ancienne.get("code_salarie"), donnees.get("code_salarie"));
         if let (Some(a), Some(b)) = (avant.filter(|v| vrai(v)), apres.filter(|v| vrai(v))) {
             let nir = donnees.get("nir").is_some_and(vrai) || ancienne.get("nir").is_some_and(vrai);
-            if py_str(a) != py_str(b) && !nir {
+            if valeur_en_texte(a) != valeur_en_texte(b) && !nir {
                 return Err(refus(format!(
                     "Le matricule de cette fiche passerait de {} a {}, et le salarie n'a pas de NIR : il est declare sous un numero \
                      technique temporaire qui FINIT par son matricule. Le changer ferait apparaitre un deuxieme individu dans la DSN, \
                      que rien ne rattacherait au premier. Saisir d'abord le NIR notifie par la caisse.",
-                    py_str(a),
-                    py_str(b)
+                    valeur_en_texte(a),
+                    valeur_en_texte(b)
                 )));
             }
         }
     }
     // UN NIR, UNE PERSONNE : `forcer` ne leve pas ce refus.
     if nom == "salarie" {
-        let nir = donnees.get("nir").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        let nir = donnees.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let nir = nir.trim();
         if !nir.is_empty() {
             let autres: Vec<&str> = ctx
                 .salaries
                 .iter()
-                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.get("nir").filter(|v| vrai(v)).map(py_str).unwrap_or_default().trim() == nir)
+                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim() == nir)
                 .map(|(k, _)| k.as_str())
                 .collect();
             if !autres.is_empty() {
@@ -622,13 +622,13 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     let chemin = ctx.racine.join("config").join(fichier);
     if cle.as_deref().map_or(true, str::is_empty) && nom == "salarie" {
         // Le matricule d'une fiche neuve : le suivant. Un matricule saisi est garde tel quel.
-        if !donnees.get("code_salarie").filter(|v| vrai(v)).map(py_str).unwrap_or_default().trim().is_empty() {
+        if !donnees.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
         } else {
             let existants = objet_du_fichier(&chemin)?;
             donnees.insert("code_salarie".into(), Value::String(matricule_suivant(&existants).to_string()));
         }
         // L'ANCIENNETE PART DU JOUR DE LA FICHE ; une date saisie est gardee telle quelle.
-        if donnees.get("date_anciennete").filter(|v| vrai(v)).map(py_str).unwrap_or_default().trim().is_empty() {
+        if donnees.get("date_anciennete").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
             donnees.insert("date_anciennete".into(), Value::String(ctx.aujourdhui.iso()));
         }
     }
@@ -726,7 +726,7 @@ fn finir_fiche(
 pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
     let annee: String = mois.chars().take(4).collect();
     if let Some(clos) = crate::routes_ouverture::exercice_clos(ctx, &annee)?.filter(vrai) {
-        let le: String = clos.get("le").filter(|v| vrai(v)).map_or_else(|| "?".to_string(), py_str).chars().take(10).collect();
+        let le: String = clos.get("le").filter(|v| vrai(v)).map_or_else(|| "?".to_string(), valeur_en_texte).chars().take(10).collect();
         return Err(refus(format!(
             "L'exercice {} est cloture depuis le {} : {} ne se modifie plus. Rouvrir l'exercice (Historique > L'exercice, ou \
              `paie cloture {} --rouvrir`) avant de toucher a ce mois.",
@@ -784,7 +784,7 @@ pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, S
     let mut out = Vec::new();
     for (i, e) in engs.iter().enumerate() {
         let fiche = ctx.salarie(&e.salarie)?;
-        out.push((fiche.get("_cle").map_or_else(String::new, py_str), e.debut.iso(), bruts.get(i).and_then(numero_pose)));
+        out.push((fiche.get("_cle").map_or_else(String::new, valeur_en_texte), e.debut.iso(), bruts.get(i).and_then(numero_pose)));
     }
     Ok(out)
 }
@@ -887,7 +887,7 @@ fn ecrire_saisie_seule(
             }
         }
         if change && !confirme {
-            let texte = declaree.get("avertissement").map(py_str).unwrap_or_default();
+            let texte = declaree.get("avertissement").map(valeur_en_texte).unwrap_or_default();
             return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));
         }
         if change {
@@ -909,7 +909,7 @@ fn ecrire_saisie_seule(
         let d = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, autre)?;
         if d.get("confirmer").is_some_and(vrai) {
             if !confirme {
-                let texte = d.get("avertissement").map(py_str).unwrap_or_default();
+                let texte = d.get("avertissement").map(valeur_en_texte).unwrap_or_default();
                 return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));
             }
             a_garder.push(autre.clone());
@@ -933,7 +933,7 @@ fn ecrire_saisie_seule(
     // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
     // Le calcul qui vient de valider la saisie est celui du fichier quand la fusion n'y a rien change.
-    if eq_py(&donnees, &calculee) {
+    if valeurs_egales(&donnees, &calculee) {
         crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees, &donnees);
     }
     Ok(p)
@@ -1057,7 +1057,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut Value, rangs: &[usize]) -> 
             }
         }
         if sans_taux.len() > 1 {
-            let qui = e.get("salarie").filter(|v| vrai(v)).map_or_else(|| "cet engagement".to_string(), py_str);
+            let qui = e.get("salarie").filter(|v| vrai(v)).map_or_else(|| "cet engagement".to_string(), valeur_en_texte);
             let noms: Vec<&str> = sans_taux.iter().map(|(_, l)| l.as_str()).collect();
             return Err(refus(format!(
                 "{} : {} lignes de salaire sans taux ({}). Le montant vise ne dit pas comment le partager entre elles : saisir un taux \
@@ -1121,7 +1121,7 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
     let lire = |v: &'_ Value, k: &str| v.get(k).cloned().unwrap_or(Value::Null);
     let mut d = Map::new();
     d.insert("index".into(), json!(index));
-    if !eq_py(&lire(apres, "salaire_mensuel"), &lire(avant, "salaire_mensuel")) {
+    if !valeurs_egales(&lire(apres, "salaire_mensuel"), &lire(avant, "salaire_mensuel")) {
         d.insert("salaire_mensuel".into(), lire(apres, "salaire_mensuel"));
     }
     let mut lignes = Vec::new();
@@ -1130,7 +1130,7 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
         if !rempli(a.get("taux")) && !vrai(tb) {
             continue; // restee sans taux : rien a ecrire
         }
-        if !eq_py(ta, tb) {
+        if !valeurs_egales(ta, tb) {
             lignes.push(json!({
                 "rang": rang,
                 "rubrique": b.get("rubrique").cloned().unwrap_or_else(|| json!("cachet")),

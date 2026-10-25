@@ -1,6 +1,6 @@
-//! Le plafond d'un contrat, depuis le texte (vague 1l, 10/10/2026) : arrete du 24/01/1975, art. 3, al. 2 (un artiste
+//! Le plafond d'un contrat, depuis le texte : arrete du 24/01/1975, art. 3, al. 2 (un artiste
 //! engage moins de cinq jours continus : douze fois le plafond horaire par journee de travail accomplie) et, sinon,
-//! CSS R. 242-2 (le plafond mensuel reduit a due proportion des jours du contrat). Vague 1o : hors de l'arrete, un
+//! CSS R. 242-2 (le plafond mensuel reduit a due proportion des jours du contrat). Hors de l'arrete, un
 //! intermittent a le plafond proratise sur les jours ayant donne lieu a remuneration (BOSS, assiette generale, § 1090,
 //! tolerance appliquee). Textes : atelier/reference/sources/arrete-1975-artistes-du-spectacle/,
 //! code-de-la-securite-sociale/, boss/ (§ 680, 690, 700, 1090, 1100).
@@ -174,9 +174,9 @@ fn les_dates_et_le_mensuel() {
     let err = pour_paie(&EngagementPlafond { jours: 3, ..e.clone() }, &pss).unwrap_err();
     assert!(err.contains("3 jour(s) travaille(s) pour 2 date(s)"), "{}", err);
     assert_eq!(pour_paie(&EngagementPlafond { jours: 0, dates_travail: vec![], ..e.clone() }, &pss).unwrap(), dec("0.00"));
-    // Un technicien : le prorata de ses jours remuneres (BOSS § 1090), 4005 x 2 / 31 (vague 1l : le contrat, 516.77).
+    // Un technicien : le prorata de ses jours remuneres (BOSS § 1090), 4005 x 2 / 31.
     assert_eq!(pour_paie(&EngagementPlafond { artiste: false, ..e.clone() }, &pss).unwrap(), dec("258.39"));
-    // Vague 1o : une paie de janvier d'un contrat du 20/01 au 10/02/2026 ne compte que ses jours (R. 242-2, « pour
+    // Une paie de janvier d'un contrat du 20/01 au 10/02/2026 ne compte que ses jours (R. 242-2, « pour
     // chaque paie ») ; une date hors de la periode de paie refuse.
     let janvier = EngagementPlafond {
         mensuelle: false, artiste: true, debut_periode: (2026, 1, 20), fin_periode: (2026, 1, 31),
@@ -200,7 +200,7 @@ fn bornes_incluses_et_exemples_des_bulletins() {
     // FAVART 24/05/2026 : un jour, une journee -> 30 x 12 = 360.
     let r = plafond_urssaf((2026, 5, 24), (2026, 5, 24), true, &pss, &[(2026, 5, 24)]).unwrap();
     assert_eq!(r, dec("360"));
-    // FAVART 13-22/05/2026 : dix jours, un jour remunere, 4005 / 31 (BOSS § 1090 ; vague 1l : 4005 x 10 / 31 = 1291.94).
+    // FAVART 13-22/05/2026 : dix jours, un jour remunere, 4005 / 31 (BOSS § 1090).
     let r = plafond_urssaf((2026, 5, 13), (2026, 5, 22), true, &pss, &[(2026, 5, 15)]).unwrap();
     assert_eq!(r, dec("129.19"));
 }

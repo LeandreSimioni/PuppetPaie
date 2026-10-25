@@ -511,7 +511,7 @@ fn ecrire(racine: &Path, articles: &Map<String, Value>, lues: &[String], totales
             "articles": siens,
         });
         let p = dossier.join("releve.json");
-        std::fs::write(&p, socle::ecriture::json_py(&releve, 1)).map_err(|e| format!("{} : {}", p.display(), e))?;
+        std::fs::write(&p, socle::ecriture::json_indente(&releve, 1)).map_err(|e| format!("{} : {}", p.display(), e))?;
     }
     Ok(())
 }

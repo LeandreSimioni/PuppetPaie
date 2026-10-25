@@ -60,7 +60,7 @@ use droit::contexte::Contexte;
 use socle::date::en_texte;
 use droit::apprentissage::{champ_du_motif, motif_de_la_fiche, taxe_apprentissage_non_due, MILLESIME_ASSOCIATIONS_REDEVABLES, MNATA_ASSOCIATIONS};
 use crate::dsn::{g, liste, txt};
-use socle::num::{add, dec_py, div, eur, mul, sub, Decimal, Resultat};
+use socle::num::{add, dec_avec_echelle, div, eur, mul, sub, Decimal, Resultat};
 
 /// Un bloc S21.G00.44 : le code taxe (44.001) et, s'il y en a un, le montant (44.002). Le millesime (44.003) est
 /// l'annee de la DSN de decembre.
@@ -190,7 +190,7 @@ decembre ne se fait pas.",
             let part = match fiche.get("part_tva") {
                 None | Some(Value::Null) => None,
                 Some(Value::String(s)) if s.trim().is_empty() => None,
-                Some(v) => match dec_py(v) {
+                Some(v) => match dec_avec_echelle(v) {
                     Ok(p) if p >= Decimal::ZERO && p <= Decimal::ONE_HUNDRED => Some(p),
                     _ => {
                         return manque(
@@ -325,7 +325,7 @@ fn euros(x: Decimal) -> String {
 /// de services, total. `None` si le bareme ne les porte pas.
 pub fn plafonds_franchise(bar: Option<&Value>) -> Option<(Decimal, Decimal)> {
     let pf = g(g(bar?, CHAMP_TAXE_SUR_LES_SALAIRES), "plafonds_franchise");
-    let lire = |k: &str| pf.get(k).and_then(|v| dec_py(v).ok());
+    let lire = |k: &str| pf.get(k).and_then(|v| dec_avec_echelle(v).ok());
     Some((lire("prestations_de_services")?, lire("total")?))
 }
 
@@ -576,7 +576,7 @@ fn assiettes_taxe_sur_les_salaires(annee: &[MoisDeLAnnee], bar: &Value, pct: Dec
     let ts = g(bar, "taxe_sur_les_salaires");
     let seuil = |k: &str| -> Resultat<Decimal> {
         match ts.get(k) {
-            Some(v) => dec_py(v),
+            Some(v) => dec_avec_echelle(v),
             None => Err(format!(
                 "Le bareme de l'annee ne porte pas la taxe sur les salaires (`taxe_sur_les_salaires.{}`) : les seuils des taux \
 majores se lisent sur la notice 2501-SD de l'annee.",
@@ -586,7 +586,7 @@ majores se lisent sur la notice 2501-SD de l'annee.",
     };
     let (s1, s2) = (seuil("seuil_1")?, seuil("seuil_2")?);
     let abattement = match bar.get("abattement_csg").filter(|v| socle::fichiers::vrai(v)) {
-        Some(v) => dec_py(v)?,
+        Some(v) => dec_avec_echelle(v)?,
         None => Decimal::ONE,
     };
     let mut par_salarie: BTreeMap<String, Decimal> = BTreeMap::new();

@@ -166,7 +166,7 @@ pub fn sceller(v: &Value) -> String {
     fnv(&serde_json::to_string(&trie(v)).unwrap())
 }
 
-/// L'échantillon d'une grille (décision E) : un cas sur `un_sur`, tiré de son texte et d'une graine fixe. Le tirage ne
+/// L'échantillon d'une grille : un cas sur `un_sur`, tiré de son texte et d'une graine fixe. Le tirage ne
 /// dépend que du cas : un oracle déjà réduit se réécrit sans rien perdre de plus.
 pub fn tire(graine: u64, cas: &Value, un_sur: u64) -> bool {
     u64::from_str_radix(&fnv(&format!("{}|{}", graine, cas)), 16).unwrap() % un_sur == 0

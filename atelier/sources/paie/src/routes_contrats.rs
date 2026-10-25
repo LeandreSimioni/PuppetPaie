@@ -29,7 +29,7 @@ use socle::ecriture::ecrire_json;
 use droit::emplois;
 use crate::etats::{self, get, items, ou, Dico};
 use socle::valeur::nombre;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -207,16 +207,16 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
     let jours = trier(jours_des_lignes(e, "dates")?.iter().map(jour_de).collect())?;
     let plan = trier(jours_des_lignes(e, "planning")?.iter().map(jour_de).collect())?;
     let ecrit = |k: &str| e.get(k).filter(|x| vrai(x)).cloned();
-    let debut = ecrit("debut").or_else(|| jours.first().cloned()).map(|v| py_str(&v)).unwrap_or_default();
+    let debut = ecrit("debut").or_else(|| jours.first().cloned()).map(|v| valeur_en_texte(&v)).unwrap_or_default();
     let fin = if !jours.is_empty() || !plan.is_empty() {
         let mut tous = jours.clone();
         tous.extend(plan);
         match ecrit("fin") {
-            Some(f) => py_str(&f),
-            None => py_str(&maximum(&tous)?),
+            Some(f) => valeur_en_texte(&f),
+            None => valeur_en_texte(&maximum(&tous)?),
         }
     } else {
-        ecrit("fin").map(|f| py_str(&f)).unwrap_or_default()
+        ecrit("fin").map(|f| valeur_en_texte(&f)).unwrap_or_default()
     };
     Ok((debut, fin))
 }
@@ -315,7 +315,7 @@ impl EnCours {
 /// la fin depasse le 1er de `mois`. Lu dans les fichiers de saisie des mois qui
 /// precedent, jamais dans la DSN.
 fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
-    let texte = py_str(mois);
+    let texte = valeur_en_texte(mois);
     let premier = format!("{}-01", texte);
     // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie qui commencent le meme jour se
     // reprennent chacun, et chacun se dit repris ou non.
@@ -396,7 +396,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 .unwrap_or(Value::Null);
             out.push(EnCours {
                 salarie: cle.clone(),
-                nom: format!("{} {}", py_str(&texte_de("nom")?), py_str(&prenom)),
+                nom: format!("{} {}", valeur_en_texte(&texte_de("nom")?), valeur_en_texte(&prenom)),
                 spectacle: spec,
                 debut: debut.clone(),
                 fin,
@@ -427,7 +427,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         }
         vus.poser(ident, ())?;
         let Ok(sal) = ctx.salarie(&r.salarie) else { continue };
-        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
         let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
         let mut mensuel = Map::new();
         mensuel.insert("nature".into(), json!(r.nature));
@@ -584,7 +584,7 @@ fn contrats_en_cours_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut contrats = Vec::new();
     for c in contrats_en_cours(ctx, mois)? {
         let mut m = c.json();
-        m.insert("engagement".into(), engagement_de_reprise(ctx, &c, &py_str(mois))?);
+        m.insert("engagement".into(), engagement_de_reprise(ctx, &c, &valeur_en_texte(mois))?);
         contrats.push(Value::Object(m));
     }
     Ok(json!({"mois": mois, "contrats": contrats}))
@@ -655,7 +655,7 @@ impl<'a> Spectacles<'a> {
 
 /// `_titre` : le titre de la fiche, ou le numero d'objet a defaut.
 fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
-    let t = spec.and_then(|s| s.get("titre")).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+    let t = spec.and_then(|s| s.get("titre")).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
     let t = t.trim();
     if !t.is_empty() && t != TITRE_A_COMPLETER {
         json!(t)
@@ -675,13 +675,13 @@ fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
     };
     let (nom, prenom) = match sal {
         Some(s) => (
-            s.get("nom").map(py_str).unwrap_or_else(|| py_str(cle)),
+            s.get("nom").map(valeur_en_texte).unwrap_or_else(|| valeur_en_texte(cle)),
             match s.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => py_str(p),
-                None => s.get("prenom").map(py_str).unwrap_or_default(),
+                Some(p) => valeur_en_texte(p),
+                None => s.get("prenom").map(valeur_en_texte).unwrap_or_default(),
             },
         ),
-        None => (py_str(cle), String::new()),
+        None => (valeur_en_texte(cle), String::new()),
     };
     Ok(format!("{} {}", nom, prenom))
 }
@@ -734,7 +734,7 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
 /// ses jours exacts), l'historique importe des AEM parle pour les autres.
 /// Trie par salarie puis debut.
 fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<Vec<Passe>> {
-    let texte = py_str(mois);
+    let texte = valeur_en_texte(mois);
     let (premier, dernier) = (format!("{}-01", texte), format!("{}-31", texte));
     let voulus: HashSet<String> = parcourir(salaries)?.into_iter().filter_map(|v| v.as_str().map(String::from)).collect();
     let voulu = |cle: &Value| voulus.is_empty() || cle.as_str().is_some_and(|c| voulus.contains(c));
@@ -763,7 +763,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
             let spec = spectacles.trouver(&ref_spec)?;
             let numero = match spec.and_then(|s| s.get("numero_objet")).filter(|x| vrai(x)) {
                 Some(n) => n.clone(),
-                None => json!(py_str(&ref_spec)),
+                None => json!(valeur_en_texte(&ref_spec)),
             };
             let cachets = cachets_de(ctx, &e)?;
             let mut dates: Vec<Value> = trier(jours_des_lignes(&e, "dates")?.iter().map(jour_de).collect())?;
@@ -808,7 +808,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
     let mut out = paie;
     for e in historique(ctx)? {
         let e = objet(&e)?;
-        let texte_de = |k: &str| e.get(k).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+        let texte_de = |k: &str| e.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
         let (debut, fin) = (texte_de("debut"), texte_de("fin"));
         if debut.is_empty() || debut > dernier || fin < premier {
             continue;
@@ -1064,7 +1064,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
     let ordre: HashMap<&str, usize> = familles.iter().enumerate().map(|(i, f)| (f.as_str(), i)).collect();
     let noms = emplois::noms_des_conventions().map_err(plain)?;
     let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = ctx.entreprise.get("idcc").filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+    let idcc = ctx.entreprise.get("idcc").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
     let mut liste: Vec<Map<String, Value>> = Vec::new();
     for m in emplois::catalogue().map_err(plain)? {
         let conventions: Vec<Value> = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -1073,7 +1073,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
         let de = if conv || conventions.is_empty() {
             String::new()
         } else {
-            conventions.iter().map(|c| noms.get(&py_str(c)).map(py_str).unwrap_or_else(|| py_str(c))).collect::<Vec<_>>().join(", ")
+            conventions.iter().map(|c| noms.get(&valeur_en_texte(c)).map(valeur_en_texte).unwrap_or_else(|| valeur_en_texte(c))).collect::<Vec<_>>().join(", ")
         };
         let mut e = m.as_object().cloned().unwrap_or_default();
         e.insert("retenu".into(), json!(metier_visible(&m, &idcc, &ajoutes, &retires)));
@@ -1081,7 +1081,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
         e.insert("de".into(), json!(de));
         liste.push(e);
     }
-    let texte = |m: &Map<String, Value>, k: &str| m.get(k).map(py_str).unwrap_or_default();
+    let texte = |m: &Map<String, Value>, k: &str| m.get(k).map(valeur_en_texte).unwrap_or_default();
     liste.sort_by_cached_key(|m| (ordre.get(texte(m, "famille").as_str()).copied().unwrap_or(ordre.len()), texte(m, "libelle").to_lowercase()));
     let _ = etats::s("");
     Ok(json!({"metiers": liste, "familles": familles}))

@@ -16,9 +16,9 @@ use serde_json::{json, Map, Value};
 
 use crate::champs;
 use droit::contexte::Contexte;
-use socle::valeur::eq_py;
-use socle::valeur::py_repr;
-use socle::valeur::py_str;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_ecrite;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -71,7 +71,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         None | Some(Value::Null) => ctx.aujourdhui.an,
         Some(v) => match v.as_i64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
             Some(a) if (1900..=2999).contains(&a) => a as i32,
-            _ => return Err(erreur("ValueError", socle::date::annee_impossible(py_repr(v)))),
+            _ => return Err(erreur("ValueError", socle::date::annee_impossible(valeur_ecrite(v)))),
         },
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
@@ -257,7 +257,7 @@ pub(crate) fn copie_en_objet(v: &Value) -> R<Map<String, Value>> {
 /// `str(v or "")`.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
-        Some(x) if vrai(x) => py_str(x),
+        Some(x) if vrai(x) => valeur_en_texte(x),
         _ => String::new(),
     }
 }
@@ -297,7 +297,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
 
 /// `champs._capitales` : sans accents, en capitales, espaces resserrees.
 fn capitales(v: &Value) -> String {
-    let t: String = champs::sans_accents(&py_str(v)).chars().flat_map(char::to_uppercase).collect();
+    let t: String = champs::sans_accents(&valeur_en_texte(v)).chars().flat_map(char::to_uppercase).collect();
     t.split(champs::espace).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
@@ -325,11 +325,11 @@ fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<Stri
         if let Some((cible, morceaux)) = compose {
             let lisibles: Vec<Value> = morceaux.iter().map(|m| neuf.get(&format!("{}_affichage", m)).cloned().unwrap_or(Value::Null)).collect();
             if lisibles.iter().any(vrai) && (forcer || faux(&neuf, cible)) {
-                let mots: Vec<String> = lisibles.iter().filter(|x| vrai(x)).map(py_str).collect();
+                let mots: Vec<String> = lisibles.iter().filter(|x| vrai(x)).map(valeur_en_texte).collect();
                 neuf.insert(cible.to_string(), Value::String(capitales(&Value::String(mots.join(" ")))));
             }
         }
-        if !eq_py(&Value::Object(neuf.clone()), &Value::Object(p.clone())) {
+        if !valeurs_egales(&Value::Object(neuf.clone()), &Value::Object(p.clone())) {
             faits.insert(cle.to_string(), json!([Value::Object(p.clone()), Value::Object(neuf.clone())]));
             donnees.insert(cle.to_string(), Value::Object(neuf));
         }
@@ -600,7 +600,7 @@ pub(crate) fn fichiers_dsn(dossier: &Path, sortie: &mut Vec<std::path::PathBuf>)
 /// `usages_declares` : combien de DSN deja deposees portent cette valeur (telle
 /// qu'une DSN l'ecrit, `,'VALEUR'`), et sur quelle periode.
 fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
-    let jeton = format!(",'{}'", py_str(valeur));
+    let jeton = format!(",'{}'", valeur_en_texte(valeur));
     let prefixe = "S20.G00.05.005,";
     let (mut fichiers, mut mois) = (0, Vec::<String>::new());
     for dossier in [declarations_coolpaie(ctx).join("DSN"), ctx.racine.join("sorties")] {
@@ -669,7 +669,7 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
         Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
         Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
         Value::String(s) if matches!(s.as_str(), "entreprise" | "salarie" | "spectacle") => s.as_str(),
-        autre => return Err(erreur("ErreurOperation", format!("Fiche inconnue : {}", py_repr(autre)))),
+        autre => return Err(erreur("ErreurOperation", format!("Fiche inconnue : {}", valeur_ecrite(autre)))),
     };
     let vide = Value::Object(Map::new());
     let ancienne: &Value = if nom == "entreprise" {
@@ -705,12 +705,12 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
         // Le NIR qui arrive : seule case vide a dater.
         let nir_qui_arrive = vrai(ancienne) && c.cle == "nir" && !vrai(&avant) && vrai(&apres);
         let avant_vide = avant.is_null() || avant.as_str() == Some("");
-        if (avant_vide && !nir_qui_arrive) || py_str(&avant) == py_str(&apres) {
+        if (avant_vide && !nir_qui_arrive) || valeur_en_texte(&avant) == valeur_en_texte(&apres) {
             continue;
         }
         // La forme lisible d'une personne ne se declare pas.
         if let (Value::Object(a), Value::Object(b)) = (&avant, &apres) {
-            if eq_py(&sans_affichage(a), &sans_affichage(b)) {
+            if valeurs_egales(&sans_affichage(a), &sans_affichage(b)) {
                 continue;
             }
         }
@@ -724,7 +724,7 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
             let vue = champs::combler_affichage(nom, anc)?;
             let l_avant = vue.get(source).cloned().unwrap_or(Value::Null);
             let l_apres = donnees.get(source).cloned().unwrap_or(Value::Null);
-            let texte = |v: &Value| if vrai(v) { py_str(v) } else { String::new() };
+            let texte = |v: &Value| if vrai(v) { valeur_en_texte(v) } else { String::new() };
             let silencieux = texte(&l_avant) == texte(&l_apres);
             let o = entree.as_object_mut().unwrap();
             o.insert("libelle".into(), json!(lisible.map_or(&c.libelle, |l| &l.libelle)));

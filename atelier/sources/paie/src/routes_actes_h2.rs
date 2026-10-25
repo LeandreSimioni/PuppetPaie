@@ -20,7 +20,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use crate::depot_acte::{self, phrase_de, Preuve};
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -57,7 +57,7 @@ fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Val
     let quoi = requis(charge, "quoi")?;
     let fichier = requis(charge, "fichier")?;
     let preuve = Preuve::de_la_charge(charge);
-    let contournement = charge.get("contournement").filter(|c| vrai(c)).map(py_str).unwrap_or_default();
+    let contournement = charge.get("contournement").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let contournement = contournement.trim().to_string();
     let reel = charge.get("reel").is_some_and(vrai);
     let fait = if etats::est(quoi, "dsn") {
@@ -76,8 +76,8 @@ fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Val
 /// quand le bilan du mois est la (DSN).
 fn suivre_depot(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
-    let flux = charge.get("flux").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
-    let mois = charge.get("mois").filter(|m| vrai(m)).map(py_str).unwrap_or_default();
+    let flux = charge.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
+    let mois = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte).unwrap_or_default();
     let dpae = etats::est(quoi, "dpae");
     let (debut, fin) = releve_retours::derniere_journee();
     let releve = if dpae {
@@ -97,7 +97,7 @@ fn suivre_depot(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
         let mut par_cle: HashMap<(String, String), &Value> = HashMap::new();
         for t in etat.as_array().map(Vec::as_slice).unwrap_or(&[]) {
             if let Some(a) = t.as_array() {
-                par_cle.insert((py_str(&a[0]), py_str(&a[1])), &a[2]);
+                par_cle.insert((valeur_en_texte(&a[0]), valeur_en_texte(&a[1])), &a[2]);
             }
         }
         let vide = json!({});
@@ -105,7 +105,7 @@ fn suivre_depot(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
             .and_then(|l| l.get("detail"))
             .and_then(|d| d.get("embauches"))
             .and_then(Value::as_array)
-            .map(|a| a.iter().map(|e| par_cle.get(&(py_str(e.get("salarie").unwrap_or(&Value::Null)), py_str(e.get("debut").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
+            .map(|a| a.iter().map(|e| par_cle.get(&(valeur_en_texte(e.get("salarie").unwrap_or(&Value::Null)), valeur_en_texte(e.get("debut").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
             .unwrap_or_default();
         passe = !embauches.is_empty() && embauches.iter().all(|x| x.get("passee").is_some_and(vrai));
         refuse = embauches.iter().any(|x| x.get("refusee").is_some_and(vrai));
@@ -134,7 +134,7 @@ fn bilan_repetition(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
         let (debut, fin) = releve_retours::derniere_journee();
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
-            let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
+            let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
             releve_retours::relever_retours_dpae(ctx, o, debut, fin, false, &flux)
         } else {
             releve_retours::relever_retours(ctx, o, debut, fin, false, "production", None, "")
@@ -170,8 +170,8 @@ pub(crate) fn filet_preparer(o: &HashMap<String, String>, ctx: &Contexte, charge
 /// l'ouverture, lot I2b : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
 pub(crate) fn filet_preparer_avec(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, mut client: Option<&mut crate::releve_retours::Client>) -> R<Value> {
     let tester = charge.get("tester").map_or(true, vrai);
-    let qui = charge.get("qui").filter(|q| vrai(q)).map(py_str).unwrap_or_else(|| "filet".into());
-    let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(py_str) {
+    let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
+    let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
         Some(m) => m,
         None => releve_retours::iso_de_naif(releve_retours::maintenant_naif())[..16].to_string(),
     };
@@ -186,7 +186,7 @@ pub(crate) fn filet_preparer_avec(o: &HashMap<String, String>, ctx: &Contexte, c
             demande.insert("tests".into(), tests);
             demande.insert(
                 "vivantes".into(),
-                Value::Array(suivies.iter().map(|e| json!(cle_du_test(&py_str(&e["salarie"]), &py_str(&e["debut"])))).collect()),
+                Value::Array(suivies.iter().map(|e| json!(cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])))).collect()),
             );
         }
     }
@@ -243,7 +243,7 @@ fn tester_les_dpae(
     let mut a_tester: Vec<((String, String), Vec<&Value>)> = Vec::new();
     let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
     for e in suivies {
-        let (salarie, debut) = (py_str(&e["salarie"]), py_str(&e["debut"]));
+        let (salarie, debut) = (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"]));
         if !vrai(&e["contrat_parti"]) || debut < aujourdhui {
             continue;
         }
@@ -252,13 +252,13 @@ fn tester_les_dpae(
                 if !t.get("erreur").is_some_and(vrai) {
                     continue; // teste, et rien n'a change
                 }
-                let essai = t.get("essai_le").filter(|x| vrai(x)).map(py_str).and_then(|x| releve_retours::naif_de_iso(&x)).unwrap_or_else(|| releve_retours::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
+                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| releve_retours::naif_de_iso(&x)).unwrap_or_else(|| releve_retours::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
                 if maintenant - essai < REESSAI_SECONDES {
                     continue;
                 }
             }
         }
-        let k = (py_str(&e["mois"]), debut);
+        let k = (valeur_en_texte(&e["mois"]), debut);
         match a_tester.iter_mut().find(|(c, _)| *c == k) {
             Some((_, g)) => g.push(e),
             None => a_tester.push((k, vec![e])),
@@ -299,7 +299,7 @@ fn tester_les_dpae(
         }
         for e in &groupe {
             tests.insert(
-                cle_du_test(&py_str(&e["salarie"]), &py_str(&e["debut"])),
+                cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])),
                 json!({
                     "empreinte": e["empreinte"], "mois": mois, "fichier": fichier.clone().unwrap_or_default(),
                     "essai_le": maintenant_iso, "erreur": erreur_texte,

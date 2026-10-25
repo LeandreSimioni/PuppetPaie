@@ -16,7 +16,7 @@ use serde_json::{json, Map, Value};
 use crate::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::etats::{self, get};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -59,7 +59,7 @@ fn jj_mm_aaaa(iso: &str) -> R<String> {
 
 /// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
 pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Value> {
-    let e = m.dsn_du_mois(&py_str(mois_v))?;
+    let e = m.dsn_du_mois(&valeur_en_texte(mois_v))?;
     let Some(mois) = mois_v.as_str() else {
         return Err(erreur("TypeError", format!("'mois' : {}", socle::fichiers::attendu("un texte", nom_type(mois_v)))));
     };
@@ -130,7 +130,7 @@ pub(crate) fn dsn_deposees(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Vec<
     let mut fichiers: Vec<PathBuf> = Vec::new();
     for l in etats::filtrer(&lignes, Some("dsn"), Some(mois), false)? {
         if etats::est(get(l, "mode")?, "reel") && vrai(get(l, "fichier")?) {
-            let p = dossier.join(py_str(get(l, "fichier")?));
+            let p = dossier.join(valeur_en_texte(get(l, "fichier")?));
             if p.exists() {
                 fichiers.push(p);
             }
@@ -242,7 +242,7 @@ fn engagements_portes(ctx: &Contexte, mois: &str) -> R<HashMap<(String, String),
             }
         }
         if c.get("portee_par").is_some_and(vrai) {
-            let k = (py_str(&c["salarie"]), py_str(&c["debut"]));
+            let k = (valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["debut"]));
             portees.insert(k, c["engagement"].clone());
         }
     }
@@ -268,16 +268,16 @@ pub(crate) fn engagement_declare_en(
     let engs = etats::items(engs)?;
     let mut trouve: Option<(Value, Value)> = None;
     for (p, e) in paies.iter().zip(engs.iter()) {
-        let cle_s = py_str(requis(&p.salarie, "_cle")?);
+        let cle_s = valeur_en_texte(requis(&p.salarie, "_cle")?);
         let debut_s = p.engagement.debut.iso();
         let declare = portees.get(&(cle_s.clone(), debut_s.clone())).cloned().unwrap_or_else(|| e.as_ref().clone());
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
-            None => py_str(requis(sal, "prenom")?),
+            Some(v) => valeur_en_texte(v),
+            None => valeur_en_texte(requis(sal, "prenom")?),
         };
         let fiche = json!({
-            "nom": format!("{} {}", py_str(requis(sal, "nom")?), prenom),
+            "nom": format!("{} {}", valeur_en_texte(requis(sal, "nom")?), prenom),
             "spectacle": p.titre()?,
             "numero": p.engagement.numero,
         });
@@ -289,8 +289,8 @@ pub(crate) fn engagement_declare_en(
         Some((declare, fiche)) => Ok((donnees, declare, fiche)),
         None => Err(non_regularisable(format!(
             "Aucun engagement de {} commencant le {} dans la saisie de {}. Un contrat jamais declare n'est pas une correction : c'est un contrat en retard, avec sa DPAE -- a saisir dans son mois avec `--forcer`.",
-            py_str(salarie),
-            py_str(debut),
+            valeur_en_texte(salarie),
+            valeur_en_texte(debut),
             mois
         ))),
     }
@@ -308,7 +308,7 @@ pub(crate) fn paie_d_un_engagement_en(o: &HashMap<String, String>, m: &mut Moteu
         obj.insert("engagements".into(), Value::Array(vec![engagement.clone()]));
     }
     let mut paies = paies_de_en(o, ctx, &seule, frais)?;
-    let mois = py_str(requis(donnees, "mois")?);
+    let mois = valeur_en_texte(requis(donnees, "mois")?);
     poser_numeros(m, ctx, &mois, &mut paies)?;
     if paies.is_empty() {
         return Err(erreur("IndexError", socle::fichiers::trop_courte("la paie corrigée")));
@@ -393,9 +393,9 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
     let mut m = Moteur::nouveau(o, ctx);
     let etat = etat_mois(&mut m, ctx, mois_v)?;
     if !etat["regularisable"].as_bool().unwrap_or(false) {
-        return Err(non_regularisable(py_str(&etat["raison"])));
+        return Err(non_regularisable(valeur_en_texte(&etat["raison"])));
     }
-    let mois = py_str(mois_v);
+    let mois = valeur_en_texte(mois_v);
     // UN CONTRAT AJOUTE APRES LA LIMITE (21/10/2026) : rien de declare, sa correction le declare en entier.
     let change = match (salarie.as_str(), debut.as_str()) {
         (Some(sal), Some(deb)) => contrat_change(o, ctx, &mois, sal, deb)?,
@@ -412,8 +412,8 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
         // Sans le numero sous lequel le contrat a ete DECLARE, la correction ne designe rien.
         return Err(non_regularisable(format!(
             "Le numero de contrat declare pour {} (engagement du {}) est introuvable : la saisie de {} ne le porte pas, et la DSN deposee de ce mois n'est pas relisible dans sorties/{}/. Une correction doit citer le numero d'origine (S21.G00.40.009), il ne se recalcule pas. Remettre la DSN deposee dans sorties/{}/ suffit.",
-            py_str(salarie),
-            py_str(debut),
+            valeur_en_texte(salarie),
+            valeur_en_texte(debut),
             mois,
             mois,
             mois
@@ -590,7 +590,7 @@ pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str
             ),
         }));
     }
-    let porteur = de_mois_en_clair(&py_str(&etat["mois_courant"]));
+    let porteur = de_mois_en_clair(&valeur_en_texte(&etat["mois_courant"]));
     Ok(json!({
         "confirmer": true,
         "limite": veille.iso(),
@@ -618,7 +618,7 @@ pub(crate) fn garder_la_saisie_declaree(m: &mut Moteur, ctx: &Contexte, mois: &s
         return Ok(());
     }
     let faits = m.depots_reels(mois, &Value::Null)?;
-    let notee = faits.last().and_then(|l| l.get("detail")).and_then(|d| d.get("empreinte_saisie")).filter(|e| vrai(e)).map(py_str);
+    let notee = faits.last().and_then(|l| l.get("detail")).and_then(|d| d.get("empreinte_saisie")).filter(|e| vrai(e)).map(valeur_en_texte);
     if let Some(n) = notee {
         if m.empreinte_saisie(mois)?.as_deref() != Some(n.as_str()) {
             return Ok(());
@@ -712,7 +712,7 @@ pub(crate) fn propager_les_bornes(ctx: &Contexte, mois: &str, ancienne: &Value, 
                 continue;
             }
             if !mois_des_bornes(b)?.contains(&autre) {
-                let nom = saisie["engagements"][k].get("salarie").map(py_str).unwrap_or_else(|| id.0.clone());
+                let nom = saisie["engagements"][k].get("salarie").map(valeur_en_texte).unwrap_or_else(|| id.0.clone());
                 return Err(erreur(
                     CLASSE_NON_DECLARABLE,
                     format!(
@@ -810,7 +810,7 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
     let de = de_mois_en_clair(mois);
     for (i, j) in paires.iter().enumerate() {
         let Some(Some(id)) = avant.get(i) else { continue };
-        let nom = e_avant.get(i).and_then(|e| e.get("salarie")).map(py_str).unwrap_or_else(|| id.0.clone());
+        let nom = e_avant.get(i).and_then(|e| e.get("salarie")).map(valeur_en_texte).unwrap_or_else(|| id.0.clone());
         let debut = socle::date::Jour::lire(&id.1).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| id.1.clone());
         if j.is_none() {
             return Ok(Some(format!(
@@ -898,8 +898,8 @@ pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str
     for x in &ch.contrats {
         let derniere = ecrites.iter().rev().find(|e| {
             !e.get("annulee_le").is_some_and(vrai)
-                && e.get("salarie").map(py_str).as_deref() == Some(x.salarie.as_str())
-                && e.get("debut").map(py_str).as_deref() == Some(x.debut.as_str())
+                && e.get("salarie").map(valeur_en_texte).as_deref() == Some(x.salarie.as_str())
+                && e.get("debut").map(valeur_en_texte).as_deref() == Some(x.debut.as_str())
         });
         let Some(ecrite) = derniere else {
             c.a_ecrire += 1;
@@ -955,7 +955,7 @@ fn apercu_d_un_ajout(
     o: &HashMap<String, String>, m: &mut Moteur, ctx: &Contexte, charge: &Value, etat: Value, saisi: &Value,
 ) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
-    let mois = py_str(mois_v);
+    let mois = valeur_en_texte(mois_v);
     let donnees = saisie_d_origine(ctx, &mois)?;
     let corrige = normaliser(saisi, cle(charge, "engagement")?)?;
     let apres = paie_d_un_engagement(o, m, ctx, &donnees, &corrige)?;
@@ -971,14 +971,14 @@ fn apercu_d_un_ajout(
     let rien_ne_change = tout_nul && r_apres["cachets"] == json!(0) && r_apres["heures"] == json!("0");
     let sal = &apres.salarie;
     let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
-        None => py_str(requis(sal, "prenom")?),
+        Some(v) => valeur_en_texte(v),
+        None => valeur_en_texte(requis(sal, "prenom")?),
     };
     Ok(json!({
         "mois": mois_v,
         "salarie": cle(charge, "salarie")?,
         "debut": cle(charge, "debut")?,
-        "nom": format!("{} {}", py_str(requis(sal, "nom")?), prenom),
+        "nom": format!("{} {}", valeur_en_texte(requis(sal, "nom")?), prenom),
         "spectacle": apres.titre()?,
         "numero": apres.engagement.numero,
         "etat": etat,
@@ -1008,7 +1008,7 @@ pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: 
         return Ok(n.clone());
     }
     let fiche = ctx.salarie(salarie).map_err(|e| erreur("KeyError", e))?;
-    let texte = |k: &str| fiche.get(k).map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
+    let texte = |k: &str| fiche.get(k).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
     let annee: i64 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| erreur("ValueError", format!("date illisible : {}", debut)))?;
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, "interface")?;
     let mut reserves = crate::produire_mois::Reserves::default();

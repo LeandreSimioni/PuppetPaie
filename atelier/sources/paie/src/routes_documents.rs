@@ -18,7 +18,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use crate::etats::{self, est, get, getd, items, objet_vide, LISTE_VIDE, SIGNATURE};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
@@ -82,7 +82,7 @@ fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
 /// d'envoi : le `charger` du Python ne l'ecrit jamais).
 pub(crate) fn signature_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, cache: bool) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
-    let mois = py_str(mois_v);
+    let mois = valeur_en_texte(mois_v);
     let (data, _rep, paies) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, &mois, None, cache)?;
     let mut m = Moteur::nouveau(o, ctx);
     let g = m.globales()?;
@@ -90,7 +90,7 @@ pub(crate) fn signature_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte,
     // `empreintes_engagements` et `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
     let rangs: Vec<(String, String)> = paies
         .iter()
-        .map(|p| Ok((py_str(get(&p.salarie, "_cle")?), p.engagement.debut.iso())))
+        .map(|p| Ok((valeur_en_texte(get(&p.salarie, "_cle")?), p.engagement.debut.iso())))
         .collect::<R<_>>()?;
     // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur empreinte et leur numero.
     let uniques: Vec<(String, String)> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
@@ -138,14 +138,14 @@ pub(crate) fn signature_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte,
         );
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
-            None => py_str(get_requis(sal, "prenom")?),
+            Some(v) => valeur_en_texte(v),
+            None => valeur_en_texte(get_requis(sal, "prenom")?),
         };
         let numero = p.engagement.numero.clone().map_or(Value::Null, Value::String);
         let fin = p.engagement.fin.map_or("None".to_string(), |f| f.iso());
         let mut l = Map::new();
         l.insert("salarie".into(), json!(cle_s));
-        l.insert("nom".into(), json!(format!("{} {}", py_str(get_requis(sal, "nom")?), prenom)));
+        l.insert("nom".into(), json!(format!("{} {}", valeur_en_texte(get_requis(sal, "nom")?), prenom)));
         l.insert("destinataire".into(), sal.get("email").cloned().unwrap_or_else(|| json!("")));
         l.insert("spectacle".into(), json!(p.titre()?));
         l.insert("debut".into(), json!(debut));
@@ -301,8 +301,8 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     // `contrat_parti` : le dernier contrat parti a la signature pour cette paie.
     let lignes = m.lignes()?;
     // Le contrat que la page vise : son numero (que `signature-apercu` rend) et le mois de l'ecran, facultatifs.
-    let numero_voulu = charge.get("numero").filter(|v| vrai(v)).map(py_str);
-    let mois_voulu = charge.get("mois").filter(|v| vrai(v)).map(py_str);
+    let numero_voulu = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
+    let mois_voulu = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
     let parti = match (salarie_v.as_str(), debut_v.as_str()) {
         (Some(s), Some(d)) => {
             let j = numero_du_contrat(o, ctx, &lignes, s, d, numero_voulu.as_deref(), mois_voulu.as_deref())?;
@@ -318,15 +318,15 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     let Some(parti) = parti else {
         return Err(erreur(
             "ErreurOperation",
-            format!("Aucun contrat n'est parti à la signature pour {} du {} : il n'y a rien à modifier.", py_str(salarie_v), jj_mm_aaaa(debut_v)?),
+            format!("Aucun contrat n'est parti à la signature pour {} du {} : il n'y a rien à modifier.", valeur_en_texte(salarie_v), jj_mm_aaaa(debut_v)?),
         ));
     };
-    let (salarie, debut) = (py_str(salarie_v), py_str(debut_v));
+    let (salarie, debut) = (valeur_en_texte(salarie_v), valeur_en_texte(debut_v));
     // `_paie_du_contrat(ctx, parti["mois"], salarie, debut)`.
-    let mois_parti = py_str(&parti.mois);
+    let mois_parti = valeur_en_texte(&parti.mois);
     let (_data, rep, paies) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, &mois_parti, None, cache)?;
     // La paie de CE contrat : celle dont le journal connait le numero (`apparier`), sinon celle qui le porte.
-    let numero_parti = py_str(&etats::numero_de_cle(&parti.numero));
+    let numero_parti = valeur_en_texte(&etats::numero_de_cle(&parti.numero));
     let trouvee = paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
     let Some(i) = trouvee else {
         return Err(erreur(
@@ -338,7 +338,7 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     let Some(pdf) = crate::avenant::chemin_piece(&ctx.racine, &parti.mois, &parti.fichier) else {
         return Err(erreur(
             "ErreurOperation",
-            format!("Le contrat parti ({}) n'est plus dans sorties/{} : l'avenant ne peut pas citer son texte.", py_str(&parti.fichier), mois_parti),
+            format!("Le contrat parti ({}) n'est plus dans sorties/{} : l'avenant ne peut pas citer son texte.", valeur_en_texte(&parti.fichier), mois_parti),
         ));
     };
     let g = m.globales()?;
@@ -366,8 +366,8 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     }
     let sal = &p.salarie;
     let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
-        None => py_str(get_requis(sal, "prenom")?),
+        Some(v) => valeur_en_texte(v),
+        None => valeur_en_texte(get_requis(sal, "prenom")?),
     };
     let modifications: Vec<Value> = modifs
         .iter()
@@ -377,7 +377,7 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
         "salarie": salarie_v,
         "debut": debut_v,
         "fin": p.engagement.fin.map_or("None".to_string(), |f| f.iso()),
-        "nom": format!("{} {}", prenom, py_str(get_requis(sal, "nom")?)),
+        "nom": format!("{} {}", prenom, valeur_en_texte(get_requis(sal, "nom")?)),
         "spectacle": p.titre()?,
         "mois": parti.mois,
         "contrat": parti.numero,
@@ -458,7 +458,7 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
         .iter()
         .filter(|(_, v)| v.is_object())
         .map(|(cle, v)| {
-            let champ = |c: &str| v.get(c).map_or("".to_string(), py_str);
+            let champ = |c: &str| v.get(c).map_or("".to_string(), valeur_en_texte);
             json!([cle, format!("{} {}", champ("nom"), champ("prenom"))])
         })
         .collect();
@@ -476,14 +476,14 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
         };
         let mut de_ce_retour: HashMap<(String, String), Vec<Attestation>> = HashMap::new();
         for (a, c) in liste.iter().zip(cles.as_array().map(Vec::as_slice).unwrap_or(&[])) {
-            let periode = py_str(&a["periode"]);
+            let periode = valeur_en_texte(&a["periode"]);
             if mois.is_some_and(|m| !m.is_empty()) && Some(periode.as_str()) != mois {
                 continue;
             }
-            let qui = py_str(&a["qui"]);
+            let qui = valeur_en_texte(&a["qui"]);
             let donnees = crate::retours::base64_lire(a["donnees"].as_str().unwrap_or("")).map_err(Echec::from)?;
             de_ce_retour.entry((periode, qui.clone())).or_default().push(Attestation {
-                nom_archive: py_str(&a["nom_archive"]),
+                nom_archive: valeur_en_texte(&a["nom_archive"]),
                 qui,
                 donnees,
                 cle: c.as_str().map(str::to_string),
@@ -551,7 +551,7 @@ fn periodes_attendues(
     let mut du_mois = |m: &str| -> Vec<crate::calcul::Paie> {
         par_mois.entry(m.to_string()).or_insert_with(|| paies_de_la_periode(o, ctx, m, sans_cache)).clone()
     };
-    let de_lui = |p: &crate::calcul::Paie| p.salarie.get("_cle").map(py_str).as_deref() == Some(cle);
+    let de_lui = |p: &crate::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle);
     let mut out = Vec::new();
     for p in du_mois(periode).iter().filter(|p| de_lui(p)) {
         let e = &p.engagement;
@@ -819,7 +819,7 @@ fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: 
     rectifs.sort();
     for f in rectifs {
         let cle: String = f.chars().skip(prefixe.chars().count()).take(f.chars().count() - prefixe.chars().count() - suffixe.chars().count()).collect();
-        let connues: Vec<String> = salaries.iter().map(|s| s.get("_cle").map_or("None".to_string(), py_str)).collect();
+        let connues: Vec<String> = salaries.iter().map(|s| s.get("_cle").map_or("None".to_string(), valeur_en_texte)).collect();
         if !connues.contains(&cle) {
             let mut fiche = ctx.salarie(&cle).map_err(|m| erreur("KeyError", m))?;
             if let Some(o) = fiche.as_object_mut() {
@@ -831,7 +831,7 @@ fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: 
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
     for s in &salaries {
-        let cle = py_str(get_requis(s, "_cle")?);
+        let cle = valeur_en_texte(get_requis(s, "_cle")?);
         if vus.contains(&cle) {
             continue;
         }
@@ -841,8 +841,8 @@ fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: 
                 "ValueError",
                 format!(
                     "Pas d'adresse e-mail pour {} {} : completer config/salaries.json avant d'envoyer.",
-                    py_str(get_requis(s, "nom")?),
-                    py_str(get_requis(s, "prenom")?)
+                    valeur_en_texte(get_requis(s, "nom")?),
+                    valeur_en_texte(get_requis(s, "prenom")?)
                 ),
             ));
         }
@@ -873,8 +873,8 @@ fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: 
             }
         );
         messages.push(Message {
-            nom: format!("{} {}", py_str(get_requis(s, "prenom_affichage")?), py_str(get_requis(s, "nom")?)),
-            destinataire: py_str(get_requis(s, "email")?).to_lowercase(),
+            nom: format!("{} {}", valeur_en_texte(get_requis(s, "prenom_affichage")?), valeur_en_texte(get_requis(s, "nom")?)),
+            destinataire: valeur_en_texte(get_requis(s, "email")?).to_lowercase(),
             cle,
             sujet,
             pieces,
@@ -923,7 +923,7 @@ pub(crate) fn charger_le_mois_avec(o: &HashMap<String, String>, ctx: &Contexte, 
 /// `apercu_envoi` : ce que chaque salarie recevrait, sans rien envoyer.
 fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
-    let mois = py_str(mois_v);
+    let mois = valeur_en_texte(mois_v);
     // LE RATTRAPAGE : une AER relevee avant que la releve ne sache la ranger se range ici.
     if !aer_manquantes(ctx, &mois)?.is_empty() {
         let _ = ranger_aer(o, ctx, Some(&mois), None, false)?;
@@ -948,7 +948,7 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
             preparer(ctx, &paies, &mois_saisie, &dossier, &choix.renvois)?;
             expediteur = compte_de_la_boite(ctx)?.to_lowercase();
             let sg = get_requis(&ctx.entreprise, "signataire")?;
-            let signataire = sg.get("email").filter(|v| vrai(v)).map(py_str).unwrap_or_default().to_lowercase();
+            let signataire = sg.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
             if !signataire.is_empty() && signataire != expediteur {
                 avertissements.push(format!(
                     "Les messages partiront de {} (la boite posee), pas de {} (le courriel du signataire, fiche Entreprise).",
@@ -1012,7 +1012,7 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
 fn compte_de_la_boite(ctx: &Contexte) -> R<String> {
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         let sg = ctx.entreprise.get("signataire").filter(|v| vrai(v));
-        let mail = sg.and_then(|s| s.get("email")).filter(|v| vrai(v)).map(py_str);
+        let mail = sg.and_then(|s| s.get("email")).filter(|v| vrai(v)).map(valeur_en_texte);
         return Ok(mail.unwrap_or_else(|| "fictive@puppetpaie.invalid".to_string()));
     }
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");

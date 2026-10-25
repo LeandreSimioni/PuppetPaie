@@ -192,7 +192,7 @@ pub fn verifier(
 }
 
 fn nourrit(e: &Value) -> String {
-    let n: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(socle::valeur::py_str).collect();
+    let n: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(socle::valeur::valeur_en_texte).collect();
     if n.is_empty() {
         "rien".into()
     } else {

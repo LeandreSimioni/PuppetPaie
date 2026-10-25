@@ -10,7 +10,7 @@ use crate::contexte::Contexte;
 use socle::date::{en_texte, jours_du_mois, Jour};
 use socle::num::nombre;
 use socle::fichiers::{lire_json, repr, vrai};
-use socle::num::{dec_py, eur, pct, sub, Decimal, Resultat};
+use socle::num::{dec_avec_echelle, eur, pct, sub, Decimal, Resultat};
 
 const FICHIER: &str = "pas.json";
 
@@ -96,7 +96,7 @@ pub fn mise_a_disposition(e: &Value) -> Option<Jour> {
     None
 }
 
-/// `date.fromisoformat` sur `AAAA-MM-JJ`.
+/// Une date `AAAA-MM-JJ` stricte.
 fn depuis_iso(s: &str) -> Resultat<Jour> {
     let faux = || format!("date illisible : {}", repr(s));
     let c: Vec<char> = s.chars().collect();
@@ -145,7 +145,7 @@ pub fn avec_validite(e: &Value, le: Jour) -> Value {
 
 // ------------------------------------------------------------------ lecture
 
-/// `pas.charger` : le magasin (`config/pas.json`), ou un magasin vide.
+/// Le magasin des taux (`config/pas.json`), ou un magasin vide.
 pub fn charger(ctx: &Contexte) -> Resultat<Value> {
     let p = ctx.racine.join("config").join(FICHIER);
     if !socle::fichiers::existe(&p) {
@@ -248,7 +248,7 @@ pub fn valeur_datee(v: &Value, le: Option<Jour>) -> R<Value> {
 /// L'abattement contrats courts en vigueur : la moitie du SMIC net imposable.
 pub fn abattement(bareme: &Value, le: Option<Jour>) -> R<Decimal> {
     let v = section(bareme)?.get("abattement_contrats_courts").ok_or_else(|| ErreurPas::Autre(socle::fichiers::absent("abattement_contrats_courts")))?;
-    Ok(dec_py(&valeur_datee(v, le)?)?)
+    Ok(dec_avec_echelle(&valeur_datee(v, le)?)?)
 }
 
 /// La grille en vigueur a cette date pour cette zone (elles changent au 1er mai).
@@ -304,7 +304,7 @@ pub fn taux_par_defaut(bareme: &Value, montant: Decimal, le: Option<Jour>, zone:
             Some([b, h, x]) => (b, h, x),
             _ => return Err(ErreurPas::Autre(format!("tranche de la grille du PAS illisible (bas, haut, taux attendus) : {}", t))),
         };
-        if montant >= dec_py(bas)? && (haut.is_null() || montant < dec_py(haut)?) {
+        if montant >= dec_avec_echelle(bas)? && (haut.is_null() || montant < dec_avec_echelle(haut)?) {
             return Ok((deux_decimales(taux)?, type_taux));
         }
     }
@@ -360,7 +360,7 @@ pub fn rubriques_par_defaut(
     let abat = eur(abat.min(plancher(rnf, zero)));
     let soumis = eur(plancher(sub(rnf, abat), zero));
     let (taux, type_taux) = taux_par_defaut(bareme, soumis, le, zone)?;
-    let prelevement = pct(soumis, dec_py(&Value::String(taux.clone()))?);
+    let prelevement = pct(soumis, dec_avec_echelle(&Value::String(taux.clone()))?);
     Ok(Versement {
         taux: Value::String(taux),
         type_taux: Value::String(type_taux),
@@ -412,7 +412,7 @@ pub fn du_versement(
         identifiant: identifiant.clone(),
         abattement: Decimal::new(0, 2),
         montant_soumis: soumis,
-        prelevement: pct(soumis, dec_py(t)?),
+        prelevement: pct(soumis, dec_avec_echelle(t)?),
     })
 }
 

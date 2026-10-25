@@ -1,4 +1,4 @@
-//! LE FIL DE FOND (ticket #244) : le fil de la fenetre qui tient les etats des compagnies a jour des le lancement, AVANT
+//! LE FIL DE FOND : le fil de la fenetre qui tient les etats des compagnies a jour des le lancement, AVANT
 //! tout mot de passe (`etat_garde::Fil`). Il ne fait que du calcul local : lire les fichiers de la compagnie (en clair sur
 //! le disque) et ecrire ses etats gardes. Ce module le marque, et deux gardes le tiennent, quoi qu'une lecture demande :
 //! - `garde_reseau::sortie_vers` refuse toute sortie hors de la machine depuis ce fil ;
@@ -23,5 +23,5 @@ pub fn ici() -> bool {
 
 /// Le refus, en une phrase.
 pub fn refus(quoi: &str) -> String {
-    format!("Le calcul en fond de la fenetre ne fait que lire et calculer : {} lui est refuse (ticket #244).", quoi)
+    format!("Le calcul en fond de la fenetre ne fait que lire et calculer : {} lui est refuse.", quoi)
 }

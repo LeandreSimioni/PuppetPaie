@@ -1,8 +1,8 @@
-//! Lire les fichiers JSON livres avec le code (`util.json_en_cache`) et dire
+//! Lire les fichiers JSON livres avec le code (`json_en_cache`) et dire
 //! ou est le code.
 //!
 //! Le cache est cle par chemin ET par signature (date de modification,
-//! taille) : un fichier reecrit se relit, comme en Python.
+//! taille) : un fichier reecrit se relit.
 
 use crate::num::Resultat;
 use serde_json::Value;
@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 // liste des `.json` d'un dossier. C'est la liste des entrees du calcul
 // (`calcul_du_mois`). Les caches qui ne notent rien quand ils servent (les baremes composes) se cle par
 // `generation` : un calcul suivi a la sienne, a lui seul, et repart a froid ; hors registre, la generation est 0 et
-// ces caches servent d'une route a l'autre (la fenetre garde le moteur charge, ticket #244).
+// ces caches servent d'une route a l'autre (la fenetre garde le moteur charge).
 
 struct Registre {
     racine: PathBuf,
@@ -60,7 +60,7 @@ pub fn registre_ouvert() -> bool {
 /// Au-dela, un cache du processus se vide (`ranger`).
 pub const CACHE_MAX: usize = 512;
 
-/// Range `v` sous `cle` dans un cache du processus. La fenetre garde le moteur charge (ticket #244) : chaque calcul
+/// Range `v` sous `cle` dans un cache du processus. La fenetre garde le moteur charge : chaque calcul
 /// suivi ajoute ses cles (`generation`), et un cache plein se vide plutot que de grossir tant que la fenetre tourne.
 pub fn ranger<K: Eq + std::hash::Hash, V>(cache: &Mutex<HashMap<K, V>>, cle: K, v: V) {
     let mut c = cache.lock().unwrap_or_else(|p| p.into_inner());
@@ -93,11 +93,9 @@ fn cle_de(genre: &str, chemin: &Path) -> String {
     })
 }
 
-/// UN CHEMIN RELATIF NOTE S'ECRIT AVEC DES BARRES DROITES, sur tous les systemes (#253, 23/10/2026) : la saisie du mois
-/// se cherche dans les entrees sous `racine:paies/AAAA-MM.json` (`calcul_du_mois`), et, sous Windows, la cle notee
-/// etait `racine:paies\AAAA-MM.json` -- la saisie ne s'y retrouvait jamais (la carte figee d'une paie validee ne
-/// tenait plus a la moindre frappe dans une autre carte, et le calcul d'un mois depose ne savait pas si c'etait sa
-/// saisie). `chemin_de` la relit telle quelle : Windows accepte la barre droite.
+/// UN CHEMIN RELATIF NOTE S'ECRIT AVEC DES BARRES DROITES, sur tous les systemes : la saisie du mois
+/// se cherche dans les entrees sous `racine:paies/AAAA-MM.json` (`calcul_du_mois`) : une cle notee avec la barre de
+/// Windows ne s'y retrouverait pas. `chemin_de` la relit telle quelle : Windows accepte la barre droite.
 fn chemin_en_barres(rel: &Path) -> String {
     rel.components().map(|c| c.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/")
 }
@@ -220,9 +218,9 @@ pub fn dossier_du_code() -> PathBuf {
     }
 }
 
-/// `util.signature_fichier` : (date de modification en ns, taille), ou `None`.
+/// La signature d'un fichier : (date de modification en ns, taille), ou `None`.
 ///
-/// LE CODE LIVRE NE BOUGE PAS PENDANT UNE ROUTE (ticket #244) : le temps d'une route (`code_fige`), la signature d'un
+/// LE CODE LIVRE NE BOUGE PAS PENDANT UNE ROUTE : le temps d'une route (`code_fige`), la signature d'un
 /// fichier du code (`dossier_du_code`) se lit une fois. Les caches du moteur la demandaient a chaque service -- mille
 /// fois `norme-dsn-base.json` pour un seul `etat` --, et sous Windows chaque demande ouvre le fichier, que l'antivirus
 /// inspecte. Les fichiers de la compagnie, eux, se relisent toujours : une route les ecrit.
@@ -321,7 +319,7 @@ pub fn lire_json(chemin: &Path) -> Resultat<Value> {
     serde_json::from_str(&texte).map_err(|e| format!("{} : {}", chemin.display(), e))
 }
 
-/// La valeur de verite Python d'un `Value`.
+/// Une valeur est-elle vraie ? Faux : `null`, `false`, zero, un texte, une liste ou un objet vides.
 pub fn vrai(v: &Value) -> bool {
     match v {
         Value::Null => false,
@@ -333,7 +331,8 @@ pub fn vrai(v: &Value) -> bool {
     }
 }
 
-/// `repr(s)` d'une chaine Python, pour les messages (`%r`).
+/// Un texte cite dans un message : entre guillemets simples (doubles s'il porte une apostrophe et aucun guillemet),
+/// echappe.
 pub fn repr(s: &str) -> String {
     let guillemet = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
     let mut out = String::from(guillemet);
@@ -364,7 +363,7 @@ pub fn repr(s: &str) -> String {
     out
 }
 
-/// `str.isprintable()` : ni controle, ni separateur (hors espace), ni format,
+/// Ni controle, ni separateur (hors espace), ni format,
 /// ni usage prive. Les points de code non attribues ne sont pas connus ici.
 pub fn imprimable(c: char) -> bool {
     let n = c as u32;
@@ -379,7 +378,7 @@ pub fn imprimable(c: char) -> bool {
         || n & 0xfffe == 0xfffe)
 }
 
-/// `%r` d'une valeur JSON lue comme en Python (`None`, `True`, `12`, `'x'`).
+/// Une valeur JSON citee dans un message (`None`, `True`, `12`, `'x'`).
 pub fn repr_valeur(v: &Value) -> String {
     match v {
         Value::Null => "None".into(),
@@ -402,9 +401,9 @@ pub fn absent(cle: &str) -> String {
     format!("champ {} absent", repr(cle))
 }
 
-/// Une valeur JSON dite en francais, depuis son nom de type Python (`etats::nom_type`).
-pub fn nature(nom_py: &str) -> &'static str {
-    match nom_py {
+/// Une valeur JSON dite en francais, depuis son nom de type (`valeur::nom_type`).
+pub fn nature(nom_type: &str) -> &'static str {
+    match nom_type {
         "dict" => "un objet",
         "list" | "tuple" => "une liste",
         "str" => "un texte",
@@ -417,9 +416,9 @@ pub fn nature(nom_py: &str) -> &'static str {
 }
 
 /// « un objet est attendu, lu : une liste ».
-pub fn attendu(quoi: &str, nom_py: &str) -> String {
+pub fn attendu(quoi: &str, nom_type: &str) -> String {
     let accord = if quoi.starts_with("une ") { "e" } else { "" };
-    format!("{} est attendu{}, lu : {}", quoi, accord, nature(nom_py))
+    format!("{} est attendu{}, lu : {}", quoi, accord, nature(nom_type))
 }
 
 /// « liste trop courte : <ce qui y etait cherche> ».
@@ -428,13 +427,13 @@ pub fn trop_courte(quoi: &str) -> String {
 }
 
 /// « une liste ne peut pas servir de clé » : une valeur cherchée dans une table, ou rangée parmi des clés.
-pub fn pas_une_cle(nom_py: &str) -> String {
-    format!("{} ne peut pas servir de clé", nature(nom_py))
+pub fn pas_une_cle(nom_type: &str) -> String {
+    format!("{} ne peut pas servir de clé", nature(nom_type))
 }
 
 /// « comparaison impossible : un texte et un nombre entier » : deux valeurs à ranger qui ne se comparent pas.
-pub fn incomparables(a_py: &str, b_py: &str) -> String {
-    format!("comparaison impossible : {} et {}", nature(a_py), nature(b_py))
+pub fn incomparables(type_a: &str, type_b: &str) -> String {
+    format!("comparaison impossible : {} et {}", nature(type_a), nature(type_b))
 }
 
 /// « élément 3 de la liste : <ce qui ne va pas> » (`rang` compte depuis zéro, l'élément depuis un).
@@ -448,13 +447,13 @@ pub fn paire_attendue(rang: usize, longueur: usize) -> String {
 }
 
 /// « élément 3 de la liste : une paire (clé, valeur) est attendue, lu : un nombre ».
-pub fn pas_une_paire(rang: usize, nom_py: &str) -> String {
-    element(rang, &format!("une paire (clé, valeur) est attendue, lu : {}", nature(nom_py)))
+pub fn pas_une_paire(rang: usize, nom_type: &str) -> String {
+    element(rang, &format!("une paire (clé, valeur) est attendue, lu : {}", nature(nom_type)))
 }
 
 /// « un texte ne se modifie pas par clé » : une valeur qui n'est ni un objet ni une liste, là où l'on écrit dedans.
-pub fn non_modifiable(nom_py: &str) -> String {
-    format!("{} ne se modifie pas par clé", nature(nom_py))
+pub fn non_modifiable(nom_type: &str) -> String {
+    format!("{} ne se modifie pas par clé", nature(nom_type))
 }
 
 /// Un nombre que l'on voudrait entier et qui ne tient pas : infini, ou hors de ce qu'un entier porte.

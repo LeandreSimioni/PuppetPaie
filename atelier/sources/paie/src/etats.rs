@@ -23,7 +23,7 @@ use socle::fichiers::vrai;
 use crate::journal::{chemin, ACTES, REEL};
 use crate::retours;
 use socle::echec::{erreur, Echec, R};
-use socle::valeur::{eq_py, nom_type, nombre, py_repr, py_str};
+use socle::valeur::{valeurs_egales, nom_type, nombre, valeur_ecrite, valeur_en_texte};
 use crate::tables_journal::ALNUM;
 
 pub(crate) const DSN: &str = "dsn";
@@ -202,7 +202,7 @@ pub(crate) fn cle3_valeurs(k: &Cle3) -> Vec<Value> {
 
 /// Le numero d'une ligne de contrat, tel qu'il sert de cle : son texte, ou `""`.
 pub(crate) fn numero_de_cle(v: &Value) -> Value {
-    Value::String(if vrai(v) { py_str(v) } else { String::new() })
+    Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })
 }
 
 /// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou le `detail` d'un `contrat-recu`).
@@ -223,7 +223,7 @@ pub(crate) fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> 
         if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? {
             let d = ou(get(l, "detail")?, objet_vide());
             if est(get(d, "salarie")?, salarie) && est(get(d, "debut")?, debut) {
-                let n = py_str(&numero_de_cle(get(d, "numero")?));
+                let n = valeur_en_texte(&numero_de_cle(get(d, "numero")?));
                 if !out.contains(&n) {
                     out.push(n);
                 }
@@ -235,7 +235,7 @@ pub(crate) fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> 
         }
         for c in detail_ou_liste(l, "contrats")? {
             if est(get(&c, "salarie")?, salarie) && est(get(&c, "debut")?, debut) {
-                let n = py_str(&numero_de_cle(get(&c, "numero")?));
+                let n = valeur_en_texte(&numero_de_cle(get(&c, "numero")?));
                 if !out.contains(&n) {
                     out.push(n);
                 }
@@ -408,11 +408,11 @@ pub(crate) fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
 
 /// `journal.de_l_etablissement` : `principal` est le NIC de la fiche entreprise.
 pub(crate) fn de_l_etablissement(lignes: &[Value], nic: &Value, principal: &str) -> R<Vec<Value>> {
-    let voulu = if vrai(nic) { py_str(nic) } else { principal.to_string() };
+    let voulu = if vrai(nic) { valeur_en_texte(nic) } else { principal.to_string() };
     let mut out = Vec::new();
     for l in lignes {
         let e = get(ou(get(l, "detail")?, objet_vide()), "etablissement")?;
-        let de_la_ligne = if vrai(e) { py_str(e) } else { principal.to_string() };
+        let de_la_ligne = if vrai(e) { valeur_en_texte(e) } else { principal.to_string() };
         if de_la_ligne == voulu {
             out.push(l.clone());
         }
@@ -436,7 +436,7 @@ pub(crate) fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, princi
     let mut refus = Vec::new();
     let mut aer = false;
     for r in &retours {
-        let nature = py_str(get(r, "nature")?);
+        let nature = valeur_en_texte(get(r, "nature")?);
         if nature == "11" {
             verdicts.push(ou(get(r, "verdict")?, texte_vide()));
         }
@@ -447,7 +447,7 @@ pub(crate) fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, princi
         }
     }
     for r in &retours {
-        if py_str(get(r, "nature")?) == "46" {
+        if valeur_en_texte(get(r, "nature")?) == "46" {
             aer = true;
         }
     }
@@ -461,7 +461,7 @@ pub(crate) fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, princi
     // en garde le verdict (`detail.etat_declaration`) -- tant qu'aucun retour n'est range en face, c'est lui qui dit.
     let detail = ou(get(l, "detail")?, objet_vide());
     let repris = if verdicts.is_empty() && vrai(getd(detail, "reconstruit", &Value::Null)?) {
-        Some(py_str(getd(detail, "etat_declaration", texte_vide())?).to_uppercase())
+        Some(valeur_en_texte(getd(detail, "etat_declaration", texte_vide())?).to_uppercase())
     } else {
         None
     };
@@ -511,7 +511,7 @@ pub(crate) fn alnum_py(c: char) -> bool {
 fn dossiers_urssaf(retours: &[Cow<'_, Value>]) -> R<Dico<Value>> {
     let mut out = Dico::nouveau();
     for r in retours {
-        if py_str(get(r, "nature")?) != NATURE_CERTIFICAT_DPAE {
+        if valeur_en_texte(get(r, "nature")?) != NATURE_CERTIFICAT_DPAE {
             continue;
         }
         for l in items(ou(get(r, "dpae")?, &LISTE_VIDE))? {
@@ -530,7 +530,7 @@ pub(crate) fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
         let retours = items(ou(get(l, "retours")?, &LISTE_VIDE))?;
         let mut passee = false;
         for r in &retours {
-            let nature = py_str(get(r, "nature")?);
+            let nature = valeur_en_texte(get(r, "nature")?);
             if nature == NATURE_CERTIFICAT_DPAE || (nature == "11" && est(ou(get(r, "verdict")?, texte_vide()), "OK")) {
                 passee = true;
             }
@@ -553,7 +553,7 @@ pub(crate) fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
         for e in detail_liste(l, "embauches")? {
             let mut cert: Option<&Value> = None;
             for ((nom, emb), v) in dossiers.items.iter().map(|(k, v)| ((&k[0], &k[1]), v)) {
-                if eq_py(emb, get(&e, "debut")?) && meme_nom(get(&e, "salarie")?, nom)? {
+                if valeurs_egales(emb, get(&e, "debut")?) && meme_nom(get(&e, "salarie")?, nom)? {
                     cert = Some(v);
                     break;
                 }
@@ -595,7 +595,7 @@ fn normalisees(lignes: &[Value], m: Maille) -> Cow<'_, [Value]> {
                         if est(c.get("acte").unwrap_or(&NUL), "avenant") {
                             continue;
                         }
-                        dernier.insert((s.to_string(), d.to_string()), py_str(&numero_de_cle(c.get("numero").unwrap_or(&NUL))));
+                        dernier.insert((s.to_string(), d.to_string()), valeur_en_texte(&numero_de_cle(c.get("numero").unwrap_or(&NUL))));
                     }
                 }
             }
@@ -689,7 +689,7 @@ pub(crate) fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dic
                     continue;
                 }
                 if let Some(deja) = signe.get(&k)? {
-                    if vrai(&e) && vrai(deja) && !eq_py(&e, deja) {
+                    if vrai(&e) && vrai(deja) && !valeurs_egales(&e, deja) {
                         renvoye.poser(k.clone(), ())?;
                     }
                 }
@@ -831,7 +831,7 @@ pub(crate) fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salarie
                         rang: i,
                         apres_signature: false,
                         envoyes: Dico::nouveau(),
-                        nom: format!("{} {}", py_str(&prenom), py_str(nom_aff)),
+                        nom: format!("{} {}", valeur_en_texte(&prenom), valeur_en_texte(nom_aff)),
                         prenom,
                         contrats: Vec::new(),
                     });
@@ -900,7 +900,7 @@ pub(crate) fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
                 }
                 let liste = out.get_mut(&k)?.unwrap();
                 let numero = get(&c, "avenant")?;
-                liste.retain(|a| !eq_py(&a["numero"], numero));
+                liste.retain(|a| !valeurs_egales(&a["numero"], numero));
                 liste.push(json!({
                     "numero": numero, "quand": get(l, "quand")?,
                     "mois": ou(get(&c, "mois")?, get(l, "mois")?),
@@ -956,7 +956,7 @@ pub(crate) fn documents_partis(lignes: &[Value], mois: &str) -> R<std::collectio
         }
         for sal in detail_liste(l, "salaries")? {
             out.insert(
-                py_str(get(&sal, "cle")?),
+                valeur_en_texte(get(&sal, "cle")?),
                 json!({"quand": get(l, "quand")?, "empreinte": get(&sal, "empreinte")?, "resume": get(&sal, "resume")?}),
             );
         }
@@ -992,7 +992,7 @@ pub(crate) fn flux_de_test(lignes: &[Value]) -> R<Value> {
 
 /// `util.quand_lisible` avec sa liaison par defaut.
 pub(crate) fn quand_lisible(iso: &Value) -> String {
-    let t = if vrai(iso) { py_str(iso) } else { String::new() };
+    let t = if vrai(iso) { valeur_en_texte(iso) } else { String::new() };
     let c: Vec<char> = t.chars().collect();
     if c.len() < 10 || c[4] != '-' || c[7] != '-' {
         return t;
@@ -1041,7 +1041,7 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
         let rep = ou(get(ligne, "reponse")?, texte_vide());
         let debut = match rep {
             Value::String(t) => t.chars().take(120).collect::<String>(),
-            Value::Array(a) => py_repr(&Value::Array(a.iter().take(120).cloned().collect())),
+            Value::Array(a) => valeur_ecrite(&Value::Array(a.iter().take(120).cloned().collect())),
             autre => return Err(erreur("TypeError", format!("'reponse' : {}", socle::fichiers::attendu("un texte", nom_type(autre))))),
         };
         return Ok(format!("envoi du {} refusé au dépôt — {}", quand, debut));
@@ -1095,7 +1095,7 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
     }
     let mut a_certificat = false;
     for r in &retours {
-        if py_str(get(r, "nature")?) == NATURE_CERTIFICAT_DPAE {
+        if valeur_en_texte(get(r, "nature")?) == NATURE_CERTIFICAT_DPAE {
             a_certificat = true;
         }
     }
@@ -1126,7 +1126,7 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
     }
     let mut certificat = None;
     for r in &retours {
-        if py_str(get(r, "nature")?) == NATURE_CERTIFICAT_DPAE {
+        if valeur_en_texte(get(r, "nature")?) == NATURE_CERTIFICAT_DPAE {
             certificat = Some(r);
         }
     }
@@ -1158,14 +1158,14 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
     }
     let mut bilan_ok = false;
     for r in &retours {
-        if py_str(get(r, "nature")?) == "11" && est(ou(get(r, "verdict")?, texte_vide()), "OK") {
+        if valeur_en_texte(get(r, "nature")?) == "11" && est(ou(get(r, "verdict")?, texte_vide()), "OK") {
             bilan_ok = true;
         }
     }
     if bilan_ok {
         let mut apres = 0;
         for r in &retours {
-            let n = py_str(get(r, "nature")?);
+            let n = valeur_en_texte(get(r, "nature")?);
             if n != "10" && n != "11" {
                 apres += 1;
             }
@@ -1180,7 +1180,7 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
     let dernier = retours.last().expect("retours non vide");
     let retour = s("retour reçu");
     let choix = ou(get(dernier, "libelle")?, ou(get(dernier, "nature")?, &retour));
-    Ok(format!("{} — {}", prefixe, py_str(choix)))
+    Ok(format!("{} — {}", prefixe, valeur_en_texte(choix)))
 }
 
 // ------------------------------------------------------ la repetition avant l'acte
@@ -1207,7 +1207,7 @@ fn compte_rendu_du_depot(ligne: &Value) -> R<&'static str> {
         if est(v, "KO") {
             return Ok("ko");
         }
-        let nature = py_str(get(&r, "nature")?);
+        let nature = valeur_en_texte(get(&r, "nature")?);
         ok = ok || ((nature == "11" || nature == NATURE_CERTIFICAT_DPAE) && est(v, "OK"));
     }
     Ok(if ok { "ok" } else { "attendu" })
@@ -1465,7 +1465,7 @@ fn archive_du_retour(racine: &Path, r: &Value, quoi: &Value) -> R<Option<PathBuf
         Value::String(t) => t.chars().take(24).collect::<String>(),
         autre => return Err(erreur("TypeError", format!("'flux' : {}", socle::fichiers::attendu("un texte", nom_type(autre))))),
     };
-    let motif: Vec<char> = format!("*_nature{}_{}*", py_str(get(r, "nature")?), flux).chars().collect();
+    let motif: Vec<char> = format!("*_nature{}_{}*", valeur_en_texte(get(r, "nature")?), flux).chars().collect();
     let motif = jetons(&motif.iter().collect::<String>());
     let mut noms = Vec::new();
     for e in std::fs::read_dir(&dossier).map_err(|e| erreur_io(&e, &dossier))? {
@@ -1519,7 +1519,7 @@ fn verdict_du_certificat(contenu: &[u8]) -> Value {
 
 /// `journal.verdict_du_retour`.
 fn verdict_du_retour(racine: &Path, r: &Value, quoi: &Value, contenu: Option<&[u8]>) -> R<Value> {
-    let nature = py_str(get(r, "nature")?);
+    let nature = valeur_en_texte(get(r, "nature")?);
     if nature != "10" && nature != "11" && !(est(quoi, DPAE) && nature == NATURE_CERTIFICAT_DPAE) {
         return Ok(json!({}));
     }
@@ -1548,13 +1548,13 @@ fn libelle_nature(code: &Value, acte: &Value) -> String {
         return String::new();
     }
     if est(acte, DPAE) {
-        let c = py_str(code);
+        let c = valeur_en_texte(code);
         return match NATURES_DPAE.iter().find(|(k, _)| *k == c) {
             Some((_, l)) => l.to_string(),
             None => format!("nature {} (inconnue du canal DPAE)", c),
         };
     }
-    retours::libelle_nature(&py_str(code))
+    retours::libelle_nature(&valeur_en_texte(code))
 }
 
 /// L'incident que `journal._noter_rejet` ecrirait : rien quand le retour ne
@@ -1566,7 +1566,7 @@ fn incident(racine: &Path, ligne: &Value, r: &Value, verdict: &Value, contenus: 
         }
         let dsn = s(DSN);
         let quoi = ou(get(ligne, "quoi")?, &dsn);
-        let nature = py_str(ou(get(r, "nature")?, texte_vide()));
+        let nature = valeur_en_texte(ou(get(r, "nature")?, texte_vide()));
         let mut anomalies: Vec<Value> = Vec::new();
         if est(quoi, DPAE) && nature == NATURE_CERTIFICAT_DPAE {
             for d in items(ou(get(verdict, "dpae")?, &LISTE_VIDE))? {
@@ -1623,14 +1623,14 @@ fn incident(racine: &Path, ligne: &Value, r: &Value, verdict: &Value, contenus: 
         }
         let mut phrases = Vec::new();
         for a in anomalies.iter().take(10) {
-            let t = format!("{} : {}", py_str(get(a, "code")?), py_str(get(a, "message")?));
+            let t = format!("{} : {}", valeur_en_texte(get(a, "code")?), valeur_en_texte(get(a, "message")?));
             phrases.push(t.trim_matches(|c| c == ' ' || c == ':').to_string());
         }
         let resume = if phrases.join(" ; ").is_empty() { "Rejet sans motif lisible".to_string() } else { phrases.join(" ; ") };
         let canal = if est(quoi, DPAE) { "dpae" } else { "dsn" };
         Ok(Some(json!({
             "canal": canal,
-            "ou": format!("retour-{}", py_str(quoi)),
+            "ou": format!("retour-{}", valeur_en_texte(quoi)),
             "quoi": codes.first().cloned().unwrap_or_else(|| s("KO")),
             "resume": resume,
             "detail": {
@@ -1685,7 +1685,7 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
             let verdict = verdict_du_retour(racine, r, get(&ligne, "quoi")?, contenus.get(&cle_contenu)?.map(Vec::as_slice))?;
             let mut existant = None;
             for (xi, x) in connus.iter().enumerate() {
-                if eq_py(get(x, "nature")?, &cle[0]) && eq_py(get(x, "publication")?, &cle[1]) {
+                if valeurs_egales(get(x, "nature")?, &cle[0]) && valeurs_egales(get(x, "publication")?, &cle[1]) {
                     existant = Some(xi);
                     break;
                 }
@@ -1767,7 +1767,7 @@ pub(crate) fn rattacher_retours_avec_contenus(racine: &Path, retours: &Value, co
 /// `journal._nic_principal` : le NIC de la fiche entreprise, ou `""`.
 pub(crate) fn nic_principal(entreprise: &Value) -> String {
     match entreprise.get("nic") {
-        Some(v) if vrai(v) => py_str(v),
+        Some(v) if vrai(v) => valeur_en_texte(v),
         _ => String::new(),
     }
 }

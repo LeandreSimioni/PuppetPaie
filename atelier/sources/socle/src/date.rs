@@ -1,13 +1,10 @@
-//! Le jour civil, ecrit nous-memes (PORTAGE-RUST §3) : pas de `chrono`, pas
-//! de fuseau, pas d'horloge. Un jour est un triplet (an, mois, jour) du
-//! calendrier gregorien proleptique, comme `datetime.date` de Python.
+//! Le jour civil : pas de `chrono`, pas de fuseau, pas d'horloge. Un jour est un triplet (an, mois, jour) du calendrier
+//! gregorien proleptique, des annees 1 a 9999.
 //!
-//! `lire` reproduit `util.d` : les cinq formats, essayes dans le meme ordre,
-//! avec le meme message d'erreur. Python passe par `strptime`, dont les
-//! champs sont des expressions regulieres a alternatives ordonnees (`%d` :
-//! `3[01]|[12]\d|0[1-9]|[1-9]| [1-9]`), et qui accepte donc `2026-3-5` ;
-//! et le premier appariement gagne SANS retour une fois la chaine entamee
-//! (`20260315` n'est pas lu en `JJMMAAAA`). On refait le meme parcours.
+//! `lire` admet cinq formats, essayes dans un ordre fixe : `AAAA-MM-JJ`, `JJ/MM/AAAA`, `JJMMAAAA`, `AAAAMMJJ`,
+//! `JJ-MM-AAAA`. Chaque champ admet sa forme courte (`2026-3-5`) ; le premier format qui lit la chaine entiere gagne,
+//! et un format entame ne revient pas en arriere (`20260315` n'est pas lu en `JJMMAAAA`). Ce parcours est celui des
+//! fichiers deja ecrits : une date lue aujourd'hui se lit comme elle s'est toujours lue.
 
 use serde_json::Value;
 
@@ -22,7 +19,7 @@ pub struct Jour {
 
 const JOURS_PAR_MOIS: [u32; 12] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-/// Ordinal Python (`toordinal`) du 1970-01-01 : le 0001-01-01 vaut 1.
+/// Le rang du 1970-01-01 a compter du 0001-01-01, qui vaut 1.
 const ORDINAL_EPOQUE_UNIX: i64 = 719_163;
 
 pub fn bissextile(an: i32) -> bool {
@@ -39,7 +36,7 @@ pub fn jours_du_mois(an: i32, mois: u32) -> u32 {
 }
 
 impl Jour {
-    /// `None` si le jour n'existe pas ; l'annee va de 1 a 9999 comme en Python.
+    /// `None` si le jour n'existe pas ; l'annee va de 1 a 9999.
     pub fn nouveau(an: i32, mois: u32, jour: u32) -> Option<Jour> {
         if !(1..=9999).contains(&an) || !(1..=12).contains(&mois) {
             return None;
@@ -50,7 +47,7 @@ impl Jour {
         Some(Jour { an, mois, jour })
     }
 
-    /// `util.d` sur une chaine.
+    /// Une date ecrite dans l'un des cinq formats.
     pub fn lire(texte: &str) -> Resultat<Jour> {
         let s = texte.trim();
         let c: Vec<char> = s.chars().collect();
@@ -72,22 +69,22 @@ impl Jour {
         format!("{:04}-{:02}", self.an, self.mois)
     }
 
-    /// `util.jj_mm_aaaa`.
+    /// `JJ/MM/AAAA`.
     pub fn jj_mm_aaaa(&self) -> String {
         format!("{:02}/{:02}/{:04}", self.jour, self.mois, self.an)
     }
 
-    /// `util.jjmmaaaa`.
+    /// `JJMMAAAA`.
     pub fn jjmmaaaa(&self) -> String {
         format!("{:02}{:02}{:04}", self.jour, self.mois, self.an)
     }
 
-    /// `util.aaaammjj`.
+    /// `AAAAMMJJ`.
     pub fn aaaammjj(&self) -> String {
         format!("{:04}{:02}{:02}", self.an, self.mois, self.jour)
     }
 
-    /// `date.toordinal()` : le 0001-01-01 vaut 1. Formule des jours depuis
+    /// Le 0001-01-01 vaut 1. Formule des jours depuis
     /// l'epoque (annee commencant en mars, cycles de 400 ans).
     pub fn ordinal(&self) -> i64 {
         let a = i64::from(self.an) - i64::from(self.mois <= 2);
@@ -99,7 +96,7 @@ impl Jour {
         ere * 146_097 + jour_d_ere - 719_468 + ORDINAL_EPOQUE_UNIX
     }
 
-    /// `date.fromordinal`. `None` hors de 0001-01-01 .. 9999-12-31.
+    /// Le jour de rang `ordinal` (le 0001-01-01 vaut 1). `None` hors de 0001-01-01 .. 9999-12-31.
     pub fn depuis_ordinal(ordinal: i64) -> Option<Jour> {
         let z = ordinal - ORDINAL_EPOQUE_UNIX + 719_468;
         let ere = z.div_euclid(146_097);
@@ -135,12 +132,12 @@ impl Jour {
         jours_du_mois(self.an, self.mois)
     }
 
-    /// `date.weekday()` : 0 = lundi ... 6 = dimanche.
+    /// 0 = lundi ... 6 = dimanche.
     pub fn jour_de_la_semaine(&self) -> u32 {
         ((self.ordinal() + 6) % 7) as u32
     }
 
-    /// Le mois suivant, `AAAA-MM` (`Engagement.mois_du_contrat` incremente ainsi).
+    /// Le mois suivant, `AAAA-MM` (`Engagement::mois_du_contrat` incremente ainsi).
     pub fn mois_suivant(&self) -> String {
         suivant(self.an, self.mois)
     }
@@ -168,7 +165,7 @@ pub fn jour_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into
 }
 
 /// Le numero du mois d'un « AAAA-MM », de 1 a 12 ; « 00 » (ou « 13 ») n'est aucun mois et se refuse, comme
-/// `premier_du_mois`, `dernier_du_mois` et `envoi::etiquette` (lot F1). Le mois d'une paie est celui que sa DSN declare :
+/// `premier_du_mois`, `dernier_du_mois` et `envoi::etiquette`. Le mois d'une paie est celui que sa DSN declare :
 /// « le premier jour du mois civil au titre duquel est etablie la paie », de forme `(01)(0[1-9]|1[0-2])(20)[0-9]{2}`
 /// (S20.G00.05.005, atelier/reference/norme-dsn/texte-2027/bloc-S20.G00.05.txt l. 122-129). La norme n'admet « 00 »
 /// qu'au mois d'une date de naissance inconnue (S21.G00.30.006, bloc-S21.G00.30.txt l. 143-148), ce que `champs.rs` lit
@@ -198,8 +195,8 @@ const MOIS_MINUSCULE: [&str; 12] = ["janvier", "fevrier", "mars", "avril", "mai"
 const MOIS_ACCENTUE: [&str; 12] = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 /// Le nom du mois `mois` (1 a 12) dans la graphie `g` : la seule table des noms de mois du moteur. Un mois hors 1-12
-/// n'est aucun mois et se refuse (`mois_impossible`), comme `numero_du_mois` : jamais l'indice -1 d'une liste (le Python
-/// lisait « 00 » decembre) ni un mois ramene de force dans l'annee.
+/// n'est aucun mois et se refuse (`mois_impossible`), comme `numero_du_mois` : jamais le dernier de la liste (« 00 »
+/// n'est pas decembre) ni un mois ramene de force dans l'annee.
 pub fn nom_du_mois(mois: i64, g: Graphie) -> Resultat<&'static str> {
     if !(1..=12).contains(&mois) {
         return Err(mois_impossible(mois));
@@ -224,7 +221,7 @@ pub fn libelle_du_mois_ou_tel_quel(mois: &str, g: Graphie) -> String {
     libelle_du_mois(mois, g).unwrap_or_else(|_| mois.to_string())
 }
 
-/// L'annee, sinon le mois, sinon le jour : ce que `datetime.date` refuse en premier.
+/// Ce qui rend une date impossible : l'annee d'abord, sinon le mois, sinon le jour.
 pub fn date_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into<i64>) -> String {
     let (an, mois, jour) = (an.into(), mois.into(), jour.into());
     if !(1..=9999).contains(&an) {
@@ -238,13 +235,12 @@ pub fn date_impossible(an: impl Into<i64>, mois: impl Into<i64>, jour: impl Into
 
 pub const HORS_CALENDRIER: &str = "date hors du calendrier (années 1 à 9999)";
 
-/// `Engagement.debut_mois_de` : `d(mois + "-01")`.
+/// Le premier jour du mois `AAAA-MM`.
 pub fn premier_du_mois(mois: &str) -> Resultat<Jour> {
     Jour::lire(&format!("{}-01", mois))
 }
 
-/// `Engagement.fin_mois_de` : `int(mois[:4])`, `int(mois[5:7])`, puis
-/// `calendar.monthrange`, qui refuse un mois hors de 1 a 12.
+/// Le dernier jour du mois `AAAA-MM` ; un mois hors de 1 a 12 se refuse.
 pub fn dernier_du_mois(mois: &str) -> Resultat<Jour> {
     let c: Vec<char> = mois.chars().collect();
     let tranche = |a: usize, b: usize| -> String { c.iter().skip(a).take(b - a).collect() };
@@ -260,7 +256,7 @@ pub fn dernier_du_mois(mois: &str) -> Resultat<Jour> {
     Jour::lire(&format!("{}-{:02}-{:02}", an, mo, jours_du_mois(an.max(1), mo as u32)))
 }
 
-/// Les mois `AAAA-MM` de `debut` a `fin` inclus (`Engagement.mois_du_contrat`).
+/// Les mois `AAAA-MM` de `debut` a `fin` inclus (`Engagement::mois_du_contrat`).
 pub fn mois_entre(debut: &Jour, fin: &Jour) -> Vec<String> {
     let mut sortie = Vec::new();
     let (mut an, mut mo) = (debut.an, debut.mois);
@@ -276,20 +272,20 @@ pub fn mois_entre(debut: &Jour, fin: &Jour) -> Vec<String> {
     sortie
 }
 
-/// `util.d` sur une valeur JSON : une chaine, un nombre (`str(x)`), ou la
+/// Une date lue dans une valeur JSON : une chaine, un nombre (lu en texte), ou la
 /// date detaillee `{"jour": ..., "lieu": ...}` qui se lit par son `jour`.
 pub fn d(v: &Value) -> Resultat<Jour> {
     match v {
         Value::Object(o) => match o.get("jour") {
             Some(j) => d(j),
-            None => Err(format!("date detaillee sans `jour` : {}", repr_py(v))),
+            None => Err(format!("date detaillee sans `jour` : {}", forme_ecrite(v))),
         },
         Value::String(s) => Jour::lire(s),
         autre => Jour::lire(&en_texte(autre)),
     }
 }
 
-// ------------------------------------------------------------ le strptime
+// ------------------------------------------------------------ la lecture d'une date
 
 #[derive(Clone, Copy)]
 enum Champ {
@@ -301,7 +297,7 @@ enum Champ {
 
 use Champ::*;
 
-/// `%Y-%m-%d`, `%d/%m/%Y`, `%d%m%Y`, `%Y%m%d`, `%d-%m-%Y`, dans l'ordre de `util.d`.
+/// `%Y-%m-%d`, `%d/%m/%Y`, `%d%m%Y`, `%Y%m%d`, `%d-%m-%Y`, dans cet ordre.
 const FORMATS: [&[Champ]; 5] = [
     &[An, Lit('-'), Mois, Lit('-'), Jour],
     &[Jour, Lit('/'), Mois, Lit('/'), An],
@@ -315,7 +311,7 @@ fn chiffre(c: &[char], i: usize) -> bool {
 }
 
 /// Les longueurs que le champ peut avaler en `pos`, dans l'ordre des
-/// alternatives de l'expression reguliere de `_strptime`.
+/// formes admises : la plus longue d'abord.
 fn longueurs(champ: Champ, c: &[char], pos: usize) -> Vec<usize> {
     let a = c.get(pos).copied();
     let b = c.get(pos + 1).copied();
@@ -370,7 +366,7 @@ fn nombre(c: &[char], de: usize, len: usize) -> u32 {
 }
 
 /// Premier appariement de l'expression reguliere (avec retour sur les
-/// alternatives), sans exiger la fin de chaine : comme `re.match`.
+/// alternatives), sans exiger la fin de chaine.
 fn apparier(format: &[Champ], c: &[char], pos: usize, vus: &mut [u32; 3]) -> Option<usize> {
     let Some((champ, reste)) = format.split_first() else {
         return Some(pos);
@@ -391,7 +387,7 @@ fn apparier(format: &[Champ], c: &[char], pos: usize, vus: &mut [u32; 3]) -> Opt
     None
 }
 
-/// `strptime(s, format).date()` ; `None` pour tout `ValueError` (pas
+/// Une date dans un format ; `None` s'il ne s'y lit pas (pas
 /// d'appariement, reste de chaine, jour inexistant).
 fn lire_format(format: &[Champ], c: &[char]) -> Option<Jour> {
     let mut vus = [0u32; 3];
@@ -402,16 +398,16 @@ fn lire_format(format: &[Champ], c: &[char]) -> Option<Jour> {
     Jour::nouveau(vus[0] as i32, vus[1], vus[2])
 }
 
-/// `datetime.strptime(s, "%Y%m%d").date()` : `None` pour tout `ValueError`.
-pub fn strptime_aaaammjj(s: &str) -> Option<Jour> {
+/// Une date `AAAAMMJJ`, ou `None`.
+pub fn lire_aaaammjj(s: &str) -> Option<Jour> {
     let c: Vec<char> = s.chars().collect();
     lire_format(FORMATS[3], &c)
 }
 
-// ------------------------------------------------------ les reprs Python
+// ------------------------------------------------------ les formes ecrites
 
-/// `repr(str)` : les guillemets simples, sauf si le texte porte une apostrophe
-/// et aucun guillemet double. Sert aux messages (`{nom!r}`, `%r`).
+/// Un texte cite dans un message : entre guillemets simples, sauf s'il porte une apostrophe
+/// et aucun guillemet double.
 pub fn repr_texte(s: &str) -> String {
     let guillemet = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
     let mut o = String::new();
@@ -434,7 +430,7 @@ pub fn repr_texte(s: &str) -> String {
     o
 }
 
-/// `repr(float)` de Python : le plus court qui revient au meme flottant,
+/// Un flottant ecrit : le plus court qui revient au meme flottant,
 /// `1.0` pour un entier, l'exposant des 1e16 et des 1e-5.
 pub fn repr_flottant(x: f64) -> String {
     if x.is_nan() {
@@ -445,7 +441,7 @@ pub fn repr_flottant(x: f64) -> String {
     }
     let a = x.abs();
     if a != 0.0 && !(1e-4..1e16).contains(&a) {
-        // `{:e}` donne `1e-5` ; Python ecrit `1e-05`.
+        // `{:e}` donne `1e-5` ; la forme ecrite est `1e-05`.
         let t = format!("{:e}", x);
         let (m, e) = t.split_once('e').unwrap_or((&t, "0"));
         let e: i32 = e.parse().unwrap_or(0);
@@ -459,8 +455,8 @@ pub fn repr_flottant(x: f64) -> String {
     }
 }
 
-/// `repr(valeur)` : dict, liste, texte, nombre, `True`, `None`.
-pub fn repr_py(v: &Value) -> String {
+/// La forme ecrite d'une valeur dans un message : objet, liste, texte cite, nombre, `True`, `None`.
+pub fn forme_ecrite(v: &Value) -> String {
     match v {
         Value::Null => "None".into(),
         Value::Bool(true) => "True".into(),
@@ -475,19 +471,19 @@ pub fn repr_py(v: &Value) -> String {
             }
         }
         Value::String(s) => repr_texte(s),
-        Value::Array(a) => format!("[{}]", a.iter().map(repr_py).collect::<Vec<_>>().join(", ")),
+        Value::Array(a) => format!("[{}]", a.iter().map(forme_ecrite).collect::<Vec<_>>().join(", ")),
         Value::Object(o) => format!(
             "{{{}}}",
-            o.iter().map(|(k, v)| format!("{}: {}", repr_texte(k), repr_py(v))).collect::<Vec<_>>().join(", ")
+            o.iter().map(|(k, v)| format!("{}: {}", repr_texte(k), forme_ecrite(v))).collect::<Vec<_>>().join(", ")
         ),
     }
 }
 
-/// `str(valeur)` : le texte tel quel, le reste comme `repr`.
+/// Une valeur en texte : un texte tel quel, le reste sous sa forme ecrite.
 pub fn en_texte(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
-        autre => repr_py(autre),
+        autre => forme_ecrite(autre),
     }
 }
 
@@ -511,7 +507,7 @@ mod tests {
     }
 
     /// Formule independante : jours avant l'annee + jours avant le mois + jour,
-    /// comme `_days_before_year` de CPython (et non la formule des cycles).
+    /// sans passer par la formule des cycles.
     fn ordinal_naif(an: i32, mois: u32, jour: u32) -> i64 {
         let y = i64::from(an) - 1;
         let mut n = y * 365 + y / 4 - y / 100 + y / 400;

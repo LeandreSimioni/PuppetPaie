@@ -1,9 +1,6 @@
-//! Les natures de contrat (`moteur/contrats.py`) : ce que la DSN ecrit de la
-//! STRUCTURE d'un contrat, lu dans `donnees/contrats-base.json`.
+//! Les natures de contrat : ce que la DSN ecrit de la STRUCTURE d'un contrat, lu dans `donnees/contrats-base.json`.
 //!
-//! Ce module ne decide rien et ne calcule rien : il lit le fichier, verifie
-//! qu'il se tient, et rend des valeurs. Les refus gardent les messages du
-//! Python. Non porte : `TYPES_CONTRAT_DPAE` hors du controle de lecture.
+//! Ce module ne decide rien et ne calcule rien : il lit le fichier, verifie qu'il se tient, et rend des valeurs.
 
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, signature, vrai};
 use socle::num::Resultat;
@@ -102,7 +99,7 @@ impl Nature {
     /// `contrats-base.json` sont ceux que la CCH-11 de la rubrique autorise pour la nature (cahier technique DSN
     /// 2026.1, p. 270-273, `norme-dsn/texte/bloc-S21.G00.62.txt`) : un motif hors de la liste serait rejete (091 et 092,
     /// l'inaptitude, ne valent que pour les natures 01, 07, 08, 09, 50, 53, 54, 82, 91 ; un CDD rompu pour inaptitude
-    /// est en 033). Le CDDU, de nature 02, a la liste du CDD (lot C1). Une nature sans liste n'est pas controlee.
+    /// est en 033). Le CDDU, de nature 02, a la liste du CDD. Une nature sans liste n'est pas controlee.
     pub fn motif_rupture_refuse(&self, motif: &str, numero: &str) -> Option<String> {
         let motifs = self.motifs_rupture();
         let code = |m: &Value| m.get("code").and_then(texte).unwrap_or_default();

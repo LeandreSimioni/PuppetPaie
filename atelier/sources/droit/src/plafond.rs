@@ -21,7 +21,7 @@
 //! - BOSS, assiette generale, version du 01/08/2026, § 1090 (`boss/boss-assiette-generale-20260801.txt`,
 //!   l. 1472-1483) : les artistes du spectacle « ne sont pas eligibles a la reduction du plafond » ; « Toutefois, il est
 //!   admis que : pour les salaries intermittents, le plafond soit proratise pour ne tenir compte que des jours ayant
-//!   donne lieu a remuneration ». Tolerance appliquee (Leandre, 10/10/2026 : le BOSS est opposable) a tout
+//!   donne lieu a remuneration ». Tolerance appliquee (le BOSS est opposable) a tout
 //!   intermittent hors de l'arrete de 1975 ; le prorata se fait comme au § 700 (« valeur mens. du plafond x (nombre de
 //!   jours de la periode d'emploi / nombre de jours calendaires du mois) »), les jours de la periode d'emploi etant
 //!   ici les jours remuneres de la paie. Un jour remunere se lit sur les lignes datees ; il ne se devine pas ;
@@ -30,13 +30,8 @@
 //!   employees » : la regle d'un permanent, sur la periode de sa paie ;
 //! - CSS D. 242-19 : la valeur horaire (dans le bareme, `plafond_securite_sociale`).
 //!
-//! Avant le 10/10/2026, ce module comptait des cachets (PSS horaire x 12 x cachets), jugeait « isole » un cachet sur
-//! les jours travailles d'affilee, et prenait le maximum de ce plancher et du prorata (vague 1l,
-//! `prive/journal/norme/corrections/PASSATION-V1l.md`) ; puis, jusqu'a la vague 1o, un intermittent hors de l'arrete
-//! recevait a chaque paie le prorata calendaire de TOUT son contrat (`PASSATION-V1o.md`).
-//!
 //! Les plafonds (PSS) ne sont pas dans le code : le module recoit un resolveur `annee -> (mensuel, horaire)`
-//! (`Contexte.plafond_securite_sociale` en production). Un refus du resolveur passe tel quel. Les dates sont des
+//! (`Contexte::plafond_securite_sociale` en production). Un refus du resolveur passe tel quel. Les dates sont des
 //! `(an, mois, jour)`.
 
 use socle::num::{add, div, eur, mul, Decimal, Resultat};
@@ -237,7 +232,7 @@ pub fn plafond_permanent(debut_periode: Jour, fin_periode: Jour, temps_partiel: 
 /// Ce que `pour_paie` lit de l'engagement.
 #[derive(Debug, Clone)]
 pub struct EngagementPlafond {
-    /// `engagement.nat.mensuelle`.
+    /// La nature du contrat est payee au mois (`Nature::mensuelle`).
     pub mensuelle: bool,
     /// Le statut du salarie est `artiste` (vide compris) ; `false` : `technicien`.
     pub artiste: bool,
@@ -247,7 +242,7 @@ pub struct EngagementPlafond {
     pub fin: Jour,
     /// Les jours travailles de la paie, dates (les dates distinctes de toutes les lignes).
     pub dates_travail: Vec<Jour>,
-    /// Les jours travailles que la saisie dit (`Engagement.jours` : saisi, sinon les dates distinctes).
+    /// Les jours travailles que la saisie dit (saisis, sinon les dates distinctes).
     pub jours: i64,
 }
 

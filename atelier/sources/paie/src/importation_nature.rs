@@ -32,7 +32,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -64,7 +64,7 @@ fn demande(n: &droit::natures::Nature, en_cours: bool) -> Vec<&'static str> {
 }
 
 fn texte(e: &Value, k: &str) -> String {
-    e.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default()
+    e.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
 }
 
 fn engagements(racine: &Path) -> Vec<Value> {

@@ -258,7 +258,7 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
                     _ => None,
                 };
                 for p in jouees.and_then(Value::as_array).into_iter().flatten() {
-                    r.horloge.push(format!("{} {}", heure(g.get("quand").and_then(Value::as_f64).unwrap_or(0.0)), socle::valeur::py_str(p)));
+                    r.horloge.push(format!("{} {}", heure(g.get("quand").and_then(Value::as_f64).unwrap_or(0.0)), socle::valeur::valeur_en_texte(p)));
                 }
                 let attendu = g.get("ok") == Some(&Value::Bool(true));
                 if ok != attendu {
@@ -269,7 +269,7 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
                         route,
                         if ok { "reussit" } else { "refuse" },
                         if attendu { "reussi" } else { "refuse" },
-                        rep.get("erreur").map(|e| format!(" : {}", socle::valeur::py_str(e))).unwrap_or_default()
+                        rep.get("erreur").map(|e| format!(" : {}", socle::valeur::valeur_en_texte(e))).unwrap_or_default()
                     ));
                 }
             }
@@ -594,7 +594,7 @@ mod enregistreur {
             ligne.insert("ok".into(), json!(ok));
             // Le refus se garde, pour qui relit le scenario (le rejeu ne compare que `ok`).
             if !ok {
-                ligne.insert("refus".into(), json!(rep.get("erreur").map(socle::valeur::py_str).unwrap_or_default()));
+                ligne.insert("refus".into(), json!(rep.get("erreur").map(socle::valeur::valeur_en_texte).unwrap_or_default()));
             }
             self.ecrire(&mut n, ligne, quand);
             rep

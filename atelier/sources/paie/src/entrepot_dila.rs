@@ -140,7 +140,7 @@ impl Entrepot {
         std::fs::rename(&tmp, &fin).map_err(|e| format!("{} : {}", fin.display(), e))?;
         self.etat.insert("mis_a_jour_le".into(), json!(aujourdhui));
         let p = self.dossier.join(ETAT);
-        let texte = socle::ecriture::json_py(&trie(&Value::Object(self.etat.clone())), 1);
+        let texte = socle::ecriture::json_indente(&trie(&Value::Object(self.etat.clone())), 1);
         std::fs::write(&p, texte).map_err(|e| format!("{} : {}", p.display(), e))
     }
 
@@ -183,9 +183,9 @@ fn ligne_triee(article: &Value, cle: &[&str]) -> String {
         if i > 0 {
             s.push_str(", ");
         }
-        s.push_str(&socle::ecriture::json_py_trie(&json!(k)));
+        s.push_str(&socle::ecriture::json_trie(&json!(k)));
         s.push_str(": ");
-        s.push_str(&socle::ecriture::json_py_trie(v));
+        s.push_str(&socle::ecriture::json_trie(v));
     }
     s.push('}');
     s
@@ -578,7 +578,7 @@ pub fn debut_py(s: &str, n: usize) -> &str {
 
 /// `str(v)` d'une valeur lue dans un JSON.
 pub fn texte(v: &Value) -> String {
-    socle::valeur::py_str(v)
+    socle::valeur::valeur_en_texte(v)
 }
 
 /// La verite d'une valeur au sens du Python (`if v:`).

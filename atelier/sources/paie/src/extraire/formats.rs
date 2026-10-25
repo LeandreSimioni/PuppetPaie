@@ -260,7 +260,7 @@ fn relever_xlsx(
         let bloc = champ_exige(e, &r, "Block Id", "Fields")?;
         let id = champ_exige(e, &r, "Id", "Fields")?;
         let type_id = champ_exige(e, &r, "DataType Id", "Fields")?;
-        let texte = |c: Option<&Cellule>| strip(&lecture_xlsx::py_str(&c.cloned())).to_string();
+        let texte = |c: Option<&Cellule>| strip(&lecture_xlsx::cellule_en_texte(&c.cloned())).to_string();
         let rid = format!("{}.{}", texte(bloc), texte(id));
         let genre = type_id.and_then(|t| types.get(&cle(t)));
         let Some(genre) = genre else {
@@ -275,7 +275,7 @@ fn relever_xlsx(
         let expression = match lg("Regexp") {
             Some(Cellule::Texte(s)) => strip(s).to_string(),
             Some(c) if c.vrai() => {
-                return Err(format!("{} : l'expression du type n'est pas un texte ({})", rid, c.py_str()))
+                return Err(format!("{} : l'expression du type n'est pas un texte ({})", rid, c.en_texte()))
             }
             _ => String::new(),
         };

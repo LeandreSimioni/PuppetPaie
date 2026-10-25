@@ -1,7 +1,7 @@
 //! Les clauses conventionnelles (`clauses-conventionnelles-base.json`, 18 IDCC) contre `clauses.json` : profil, preavis,
 //! lecture des baremes, paliers, clause d'annexe, indemnites, maintien, prime d'anciennete. Des blocs (une grille par
 //! jeu de parametres) resumes par une empreinte, et des cas lisibles. Les grandes grilles (`profil`, `preavis_mois`,
-//! `indemnite_licenciement`, `prime_anciennete`) se jouent sur un echantillon a graine fixe (decision E).
+//! `indemnite_licenciement`, `prime_anciennete`) se jouent sur un echantillon a graine fixe.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{egal, fnv, oracle, oracle_selon, reecrire_oracles, tire};

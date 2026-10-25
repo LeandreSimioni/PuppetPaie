@@ -38,7 +38,7 @@ pub fn garder_description(description: &Value, pdf: &Path) -> Resultat<PathBuf> 
     let empreinte = empreinte_sha256(&octets);
     let f = chemin_description(pdf);
     let contenu = serde_json::json!({"format": FORMAT_GARDE, "pdf_sha256": empreinte, "description": description});
-    std::fs::write(&f, socle::ecriture::json_py(&contenu, 1)).map_err(|e| format!("{} : {}", f.display(), e))?;
+    std::fs::write(&f, socle::ecriture::json_indente(&contenu, 1)).map_err(|e| format!("{} : {}", f.display(), e))?;
     Ok(f)
 }
 

@@ -19,7 +19,7 @@ use serde_json::{json, Value};
 
 use crate::coffre::{Coffre, Echec as EchecCoffre};
 use droit::contexte::Contexte;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -135,7 +135,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut propres: Vec<(&str, String)> = Vec::new();
     for cle in ["nom", "prenom"] {
         let v = optionnel(charge, cle);
-        let brut = if vrai(v) { py_str(v) } else { String::new() };
+        let brut = if vrai(v) { valeur_en_texte(v) } else { String::new() };
         let sans = crate::champs::sans_accents(&brut);
         let net = sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
         if net.is_empty() {
@@ -181,7 +181,7 @@ fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = |cle: &str| {
         let v = optionnel(charge, cle);
         if vrai(v) {
-            py_str(v)
+            valeur_en_texte(v)
         } else {
             String::new()
         }
@@ -246,6 +246,6 @@ fn maj_malgre_calcul(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     m.insert("malgre_calcul".into(), Value::Bool(true));
     let chemin = crate::maj::dossier_maj(&inst).join("prete.json");
     // `write_text(json.dumps(p, ensure_ascii=False, indent=1))` : sans saut de ligne final.
-    std::fs::write(&chemin, socle::ecriture::json_py(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
+    std::fs::write(&chemin, socle::ecriture::json_indente(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
     version(o, ctx)
 }

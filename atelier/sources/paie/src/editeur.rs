@@ -267,7 +267,7 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
             let lu = corps.ok().filter(|c| !c.is_empty()).unwrap_or_else(|| b"{}".to_vec());
             let msg = match std::str::from_utf8(&lu).ok().and_then(|t| serde_json::from_str::<Value>(t.trim_start_matches('\u{feff}')).ok()) {
                 Some(Value::Object(o)) => match o.get("erreur") {
-                    Some(e) if socle::fichiers::vrai(e) => socle::valeur::py_str(e),
+                    Some(e) if socle::fichiers::vrai(e) => socle::valeur::valeur_en_texte(e),
                     _ => propre,
                 },
                 Some(autre) => {

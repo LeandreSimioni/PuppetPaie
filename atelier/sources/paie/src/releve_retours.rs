@@ -20,7 +20,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -189,7 +189,7 @@ fn adresses_dpae(ent: &Value) -> Adresses {
         .get("api_dpae")
         .and_then(|c| c.get("service"))
         .filter(|s| vrai(s))
-        .map(py_str);
+        .map(valeur_en_texte);
     // L'atelier seulement : un faux Urssaf local (`atelier.rs`).
     #[cfg(feature = "atelier")]
     if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_DPAE) {
@@ -392,7 +392,7 @@ fn cle_de_retour(r: &Value) -> [Value; 3] {
 }
 
 fn date_publication(r: &Value) -> String {
-    let p = r.get("publication").filter(|v| !v.is_null()).map(py_str).unwrap_or_default();
+    let p = r.get("publication").filter(|v| !v.is_null()).map(valeur_en_texte).unwrap_or_default();
     let c: Vec<char> = p.chars().collect();
     if c.len() >= 8 {
         format!("{}{}/{}{}/{}", c[6], c[7], c[4], c[5], c[..4].iter().collect::<String>())
@@ -432,7 +432,7 @@ fn deja_vus(ctx: &Contexte, canal: &str) -> Result<Vec<[Value; 3]>, Panne> {
 }
 
 fn egal_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
-    a.iter().zip(b).all(|(x, y)| socle::valeur::eq_py(x, y))
+    a.iter().zip(b).all(|(x, y)| socle::valeur::valeurs_egales(x, y))
 }
 
 /// La liste est-elle deja vue ? Les trois champs, comme `(flux, nature, publication) in connus`.
@@ -471,12 +471,12 @@ fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
     if !crate::routes_accueil::simulation_active(&ctx.racine) || l.get("mode").and_then(Value::as_str) != Some("reel") {
         return Ok(None);
     }
-    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(py_str).unwrap_or_default();
+    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
     if !nature.is_empty() && nature != "01" {
         return Ok(None);
     }
-    let mois = l.get("mois").map(py_str).unwrap_or_default();
-    let fichier = l.get("fichier").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
+    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
+    let fichier = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
     if mois.is_empty() || fichier.is_empty() {
         return Ok(None);
     }
@@ -499,7 +499,7 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
     let mut faits = 0;
     for l in lignes.iter_mut() {
         let quoi = l.get("quoi").and_then(Value::as_str).unwrap_or("");
-        let flux = l.get("flux").map(|f| if vrai(f) { py_str(f) } else { String::new() }).unwrap_or_default();
+        let flux = l.get("flux").map(|f| if vrai(f) { valeur_en_texte(f) } else { String::new() }).unwrap_or_default();
         let age = l.get("quand").and_then(Value::as_str).and_then(naif_de_iso).map_or(0, |t| maintenant - t);
         if (quoi == "dsn" || quoi == "dpae")
             && l.get("accepte").is_some_and(vrai)
@@ -624,11 +624,11 @@ pub fn relever_retours(
     let mut rates: Vec<Value> = Vec::new();
     let a_telecharger: Vec<Value> = if tout { releve.trouves.clone() } else { releve.nouveaux.clone() };
     for r in a_telecharger {
-        let Some(url) = r.get("url").filter(|u| vrai(u)).map(py_str) else { continue };
+        let Some(url) = r.get("url").filter(|u| vrai(u)).map(valeur_en_texte) else { continue };
         match client.telecharger(&url) {
             Ok((contenu, ctype)) => {
                 let chemin = archiver(ctx, &r, &contenu, &ctype, canal).map_err(en_echec)?;
-                if canal.is_empty() && r.get("nature").map(py_str).as_deref() == Some(crate::retours::NATURE_TAUX_ATMP) {
+                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_ATMP) {
                     releve.a_faire.push(format!(
                         "Notification du taux AT/MP recue le {} (retour de nature 34, archive {}) : le taux se reporte dans config/baremes/<annee>.json (`taux_atmp`), avec sa source.",
                         date_publication(&r),
@@ -636,8 +636,8 @@ pub fn relever_retours(
                     ));
                 }
                 // UN SIGNALEMENT REFUSE B1-208-10 (lot O1) : l'ordre etait deja pris ; la conduite a tenir se dit.
-                if canal.is_empty() && r.get("nature").map(py_str).as_deref() == Some("11") {
-                    let flux = r.get("flux").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
+                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some("11") {
+                    let flux = r.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
                     for d in crate::retours::declarations_du_bilan(&contenu) {
                         releve.a_faire.extend(crate::ordre_signalements::conduite_b1_208_10(&d, &flux));
                     }
@@ -645,7 +645,7 @@ pub fn relever_retours(
                 releve.archives.push(RetourArchive { retour: r, chemin, contenu });
             }
             Err(p) if p.est_api() => {
-                releve.incidents.push(format!("Telechargement du retour nature {} : {}", r.get("nature").map(py_str).unwrap_or_else(|| "None".into()), p.message));
+                releve.incidents.push(format!("Telechargement du retour nature {} : {}", r.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".into()), p.message));
                 rates.push(r);
             }
             Err(p) => return Err(en_echec(p)),
@@ -676,7 +676,7 @@ pub fn relever_retours(
     let aer: Vec<PathBuf> = releve
         .archives
         .iter()
-        .filter(|a| a.retour.get("nature").map(py_str).as_deref() == Some(crate::retours::NATURE_AER_SPECTACLE))
+        .filter(|a| a.retour.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_AER_SPECTACLE))
         .map(|a| a.chemin.clone())
         .collect();
     if !aer.is_empty() && canal.is_empty() {
@@ -717,13 +717,13 @@ pub fn relever_retours_dpae(ctx: &Contexte, o: &HashMap<String, String>, debut: 
         Err(p) => return Err(en_echec(p)),
     }
     for x in r.trouves.clone() {
-        let Some(url) = x.get("url").filter(|u| vrai(u)).map(py_str) else { continue };
+        let Some(url) = x.get("url").filter(|u| vrai(u)).map(valeur_en_texte) else { continue };
         match client.telecharger(&url) {
             Ok((contenu, ctype)) => {
                 let chemin = archiver(ctx, &x, &contenu, &ctype, "dpae").map_err(en_echec)?;
                 r.archives.push(RetourArchive { retour: x, chemin, contenu });
             }
-            Err(p) if p.est_api() => r.incidents.push(format!("Telechargement nature {} : {}", x.get("nature").map(py_str).unwrap_or_else(|| "None".into()), p.message)),
+            Err(p) if p.est_api() => r.incidents.push(format!("Telechargement nature {} : {}", x.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".into()), p.message)),
             Err(p) => return Err(en_echec(p)),
         }
     }

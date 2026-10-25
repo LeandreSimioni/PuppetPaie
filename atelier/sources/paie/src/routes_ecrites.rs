@@ -23,9 +23,9 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::ecriture::ecrire_json;
 use crate::etats::{self, getd, items};
-use socle::valeur::eq_py;
-use socle::valeur::py_repr;
-use socle::valeur::py_str;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_ecrite;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -76,7 +76,7 @@ fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
         if matches!(c.as_ref(), Value::Array(_) | Value::Object(_)) {
             return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&c))));
         }
-        if !garder.iter().any(|g| eq_py(g, &c)) {
+        if !garder.iter().any(|g| valeurs_egales(g, &c)) {
             garder.push(c.into_owned());
         }
     }
@@ -303,12 +303,12 @@ fn aujourdhui_jj_mm_aaaa() -> String {
 /// `operations_fiches.poser_taux_atmp` : pose le taux AT/MP de l'annee dans la surcouche de la
 /// compagnie (`config/baremes/<annee>.json`), le reste de la surcouche est garde.
 pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risque: &Value) -> R<()> {
-    let brut = py_str(valeur).replace(',', ".").replace('%', "");
+    let brut = valeur_en_texte(valeur).replace(',', ".").replace('%', "");
     let Some(v) = decimal_py(&brut) else {
-        return Err(erreur("ErreurOperation", format!("Taux AT/MP illisible : {}.", py_repr(valeur))));
+        return Err(erreur("ErreurOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
     };
     if v.special == Some("NaN") {
-        return Err(erreur("InvalidOperation", format!("Taux AT/MP illisible : {}.", py_repr(valeur))));
+        return Err(erreur("InvalidOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
     }
     if !v.entre_0_et_20() {
         return Err(erreur(
@@ -458,7 +458,7 @@ fn corrections_du_mois(ctx: &Contexte, mois: &Value) -> R<Vec<Value>> {
         if matches!(m, Value::Array(_) | Value::Object(_)) {
             return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&m))));
         }
-        if eq_py(&m, mois) {
+        if valeurs_egales(&m, mois) {
             let etat = etat_correction(&c);
             let mut v = c;
             v.insert("etat".into(), json!(etat));
@@ -480,7 +480,7 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
     let mut portees: Vec<((Value, Value), Map<String, Value>)> = Vec::new();
     let mut en_cours: Vec<((Value, Value), Map<String, Value>)> = Vec::new();
     let poser = |liste: &mut Vec<((Value, Value), Map<String, Value>)>, cle: (Value, Value), c: Map<String, Value>| {
-        match liste.iter_mut().find(|(k, _)| eq_py(&k.0, &cle.0) && eq_py(&k.1, &cle.1)) {
+        match liste.iter_mut().find(|(k, _)| valeurs_egales(&k.0, &cle.0) && valeurs_egales(&k.1, &cle.1)) {
             Some(existant) => existant.1 = c,
             None => liste.push((cle, c)),
         }
@@ -499,14 +499,14 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
     let engs = donnees.get("engagements").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("engagements")))?;
     let engs = items(engs)?;
     let trouve = |liste: &'_ [((Value, Value), Map<String, Value>)], cle: &(Value, Value)| -> Option<usize> {
-        liste.iter().position(|(k, _)| eq_py(&k.0, &cle.0) && eq_py(&k.1, &cle.1))
+        liste.iter().position(|(k, _)| valeurs_egales(&k.0, &cle.0) && valeurs_egales(&k.1, &cle.1))
     };
     // LA SAISIE MODIFIEE APRES LA LIMITE (21/10/2026) : la correction d'un contrat dont la paie a change part de la saisie
     // d'aujourd'hui (`engagement_saisi`), la page s'en sert pour preremplir ; le declare reste ce qui est declare.
     let modifies = regul::ce_qui_a_change(o, ctx, mois)?.map(|c| c.contrats).unwrap_or_default();
     let mut out = Vec::new();
     for (p, e) in paies.iter().zip(engs.iter()) {
-        let cle_s = py_str(regul::requis(&p.salarie, "_cle")?);
+        let cle_s = valeur_en_texte(regul::requis(&p.salarie, "_cle")?);
         let modifie = modifies.iter().find(|c| !c.ajoute && c.salarie == cle_s && c.debut == p.engagement.debut.iso());
         let saisi = modifie.map(|c| c.engagement.clone());
         // SES DATES CHANGEES DANS LA SAISIE (21/10/2026) : la correction les reprend, la page le dit.
@@ -519,14 +519,14 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
         };
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
-            None => py_str(regul::requis(sal, "prenom")?),
+            Some(v) => valeur_en_texte(v),
+            None => valeur_en_texte(regul::requis(sal, "prenom")?),
         };
         let en_cours_ici = trouve(&en_cours, &cle).map(|i| Value::Object(en_cours[i].1.clone())).unwrap_or(Value::Null);
         out.push(json!({
             "salarie": cle_s,
             "debut": p.engagement.debut.iso(),
-            "nom": format!("{} {}", py_str(regul::requis(sal, "nom")?), prenom),
+            "nom": format!("{} {}", valeur_en_texte(regul::requis(sal, "nom")?), prenom),
             "spectacle": p.titre()?,
             "numero": p.engagement.numero,
             "fin": p.engagement.fin.map(|f| f.iso()),
@@ -546,15 +546,15 @@ fn engagements_d_origine(o: &HashMap<String, String>, m: &mut Moteur, ctx: &Cont
         let p = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &a.engagement, true)?;
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
-            None => py_str(regul::requis(sal, "prenom")?),
+            Some(v) => valeur_en_texte(v),
+            None => valeur_en_texte(regul::requis(sal, "prenom")?),
         };
         let cle = (Value::String(a.salarie.clone()), Value::String(a.debut.clone()));
         let en_cours_ici = trouve(&en_cours, &cle).map(|i| Value::Object(en_cours[i].1.clone())).unwrap_or(Value::Null);
         out.push(json!({
             "salarie": a.salarie,
             "debut": a.debut,
-            "nom": format!("{} {}", py_str(regul::requis(sal, "nom")?), prenom),
+            "nom": format!("{} {}", valeur_en_texte(regul::requis(sal, "nom")?), prenom),
             "spectacle": p.titre()?,
             "numero": p.engagement.numero,
             "fin": p.engagement.fin.map(|f| f.iso()),
@@ -580,7 +580,7 @@ fn regularisation_mois(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
     let mot_de_passe_pose = coffre.ouverture_exigee().map_err(crate::routes_etats::vers_route)?;
     let engagements = if etat["regularisable"].as_bool().unwrap_or(false) {
-        engagements_d_origine(o, &mut m, ctx, &py_str(mois_v))?
+        engagements_d_origine(o, &mut m, ctx, &valeur_en_texte(mois_v))?
     } else {
         Vec::new()
     };

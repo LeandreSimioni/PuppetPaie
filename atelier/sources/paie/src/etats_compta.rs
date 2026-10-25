@@ -12,12 +12,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Map, Value};
 
 use droit::contexte::{archivee, Contexte};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode, SAISIE};
 use crate::exercice_ecrit::{ecritures_du_mois, Ecriture};
 use socle::fichiers::vrai;
-use socle::num::{add, div, dec_py, eur, eur2, mul, sub, zero2, Decimal};
+use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
 use crate::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, nom_compagnie, refus, totaliser, Ligne, Section, Tableau, Val,
     FORMATS_TABLEAU, R, TOTAL_GENERAL,
@@ -98,7 +98,7 @@ fn deux(v: Decimal) -> String {
 /// `str(x or "")` d'une valeur JSON.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
-        Some(x) if vrai(x) => py_str(x),
+        Some(x) if vrai(x) => valeur_en_texte(x),
         _ => String::new(),
     }
 }
@@ -164,28 +164,28 @@ fn cp1252(lignes: &[String]) -> Vec<u8> {
 fn libelle_compte(plan: &Map<String, Value>, compte: &str) -> R<String> {
     if let Some(Value::Object(tiers)) = plan.get("tiers").filter(|t| vrai(t)) {
         if let Some(v) = tiers.get(compte) {
-            return Ok(py_str(v));
+            return Ok(valeur_en_texte(v));
         }
     }
     for k in ["brut", "net", "pas"] {
         let vide = Value::Object(Map::new());
         let x = plan.get(k).unwrap_or(&vide);
-        let c = x.get("compte").map(py_str).unwrap_or_else(|| "None".to_string());
+        let c = x.get("compte").map(valeur_en_texte).unwrap_or_else(|| "None".to_string());
         if c == compte {
             let l = x.get("libelle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("libelle")))?;
-            return Ok(py_str(l));
+            return Ok(valeur_en_texte(l));
         }
     }
     if let Some(Value::Object(retenues)) = plan.get("retenues") {
         for regle in retenues.values() {
-            if regle.get("compte").map(py_str).as_deref() == Some(compte) {
+            if regle.get("compte").map(valeur_en_texte).as_deref() == Some(compte) {
                 return Ok(texte_brut(regle.get("libelle")));
             }
         }
     }
     if let Some(Value::Object(lignes)) = plan.get("lignes") {
         for regle in lignes.values() {
-            let charge = regle.get("charge").map(py_str).unwrap_or_else(|| "None".to_string());
+            let charge = regle.get("charge").map(valeur_en_texte).unwrap_or_else(|| "None".to_string());
             if charge == compte {
                 let nom = match compte {
                     "645100" => Some("Cotisations Urssaf"),
@@ -207,7 +207,7 @@ fn libelle_compte(plan: &Map<String, Value>, compte: &str) -> R<String> {
 
 /// `regle.get("libelle", "")`.
 fn texte_brut(v: Option<&Value>) -> String {
-    v.map(py_str).unwrap_or_default()
+    v.map(valeur_en_texte).unwrap_or_default()
 }
 
 /// `_compte` : le sous-compte individuel du salarie quand le plan en tient un, le compte general sinon.
@@ -268,7 +268,7 @@ impl Envoi<'_> {
     /// `Envoi.section` : le code de section d'une ligne -- seules les lignes de salaires bruts en ont une.
     fn section(&self, e: &Ecriture) -> String {
         let Some(sections) = &self.sections else { return String::new() };
-        let brut = self.plan.get("brut").and_then(|b| b.get("compte")).map(py_str).unwrap_or_default();
+        let brut = self.plan.get("brut").and_then(|b| b.get("compte")).map(valeur_en_texte).unwrap_or_default();
         if e.compte != brut {
             return String::new();
         }
@@ -291,7 +291,7 @@ fn codes_des_fiches(spectacles: &Map<String, Value>) -> BTreeMap<String, String>
     for (_, v) in rangees {
         let code = texte_ou_vide(v.get("code_analytique")).trim().to_string();
         if !code.is_empty() && v.get("titre").is_some_and(vrai) {
-            out.insert(py_str(&v["titre"]), code);
+            out.insert(valeur_en_texte(&v["titre"]), code);
         }
     }
     out
@@ -299,7 +299,7 @@ fn codes_des_fiches(spectacles: &Map<String, Value>) -> BTreeMap<String, String>
 
 /// `codes_sections` : le code de chaque spectacle -- celui de sa fiche, sinon celui du plan, sinon tire du titre.
 fn codes_sections(plan: &Map<String, Value>, ecritures: &[Ecriture], largeur: usize, fiches: &BTreeMap<String, String>) -> R<BTreeMap<String, String>> {
-    let brut = plan.get("brut").and_then(|b| b.get("compte")).map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("brut")))?;
+    let brut = plan.get("brut").and_then(|b| b.get("compte")).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("brut")))?;
     let mut propres: BTreeMap<String, String> = BTreeMap::new();
     if let Some(Value::Object(s)) = plan.get("sections") {
         for (k, v) in s {
@@ -367,7 +367,7 @@ fn fec(ecritures: &[Ecriture], env: &Envoi) -> R<Vec<u8>> {
     let plan = env.plan;
     let mut lignes = vec![ZONES_FEC.join("\t")];
     let journal_lib = match plan.get("journal_libelle").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
+        Some(v) => valeur_en_texte(v),
         None => "Opérations diverses — paie".to_string(),
     };
     for e in ecritures {
@@ -866,7 +866,7 @@ pub(crate) fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut format = d.format.clone();
     let mut logiciel = d.logiciel.clone().filter(|l| !l.is_empty());
     if logiciel.is_none() && format.is_empty() {
-        logiciel = retenu.get("logiciel").filter(|v| vrai(v)).map(py_str);
+        logiciel = retenu.get("logiciel").filter(|v| vrai(v)).map(valeur_en_texte);
     }
     let analytique = match d.analytique {
         Some(a) => a,
@@ -1119,9 +1119,9 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             }
         }
         let nom_salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("salarie")))?;
-        let nom_txt = py_str(nom_salarie);
+        let nom_txt = valeur_en_texte(nom_salarie);
         let cle = match ctx.salarie(&nom_txt) {
-            Ok(f) => f.get("_cle").map(py_str).unwrap_or_else(|| nom_txt.clone()),
+            Ok(f) => f.get("_cle").map(valeur_en_texte).unwrap_or_else(|| nom_txt.clone()),
             Err(_) => nom_txt.clone(),
         };
         if !vus.insert(cle.clone()) {
@@ -1148,7 +1148,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let charges = taux.map(|t| eur(div(mul(retenu, t), Decimal::ONE_HUNDRED)));
         let fiche = ctx.salaries.get(&cle).cloned().unwrap_or(Value::Object(Map::new()));
         let nom = match fiche.get("nom").filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
+            Some(v) => valeur_en_texte(v),
             None => cle.clone(),
         };
         let prenom = texte_ou_vide(fiche.get("prenom"));
@@ -1175,7 +1175,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     if !pc.as_object().is_none_or(|o| o.is_empty()) {
         let cle = |a: &str, b: &str| -> R<String> {
             let x = pc.get(a).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(a)))?;
-            Ok(py_str(x.get(b).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(b)))?))
+            Ok(valeur_en_texte(x.get(b).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(b)))?))
         };
         avert.push(format!(
             "Écriture au {} (journal OD) : {} {} au débit, {} {} au crédit, {} € ; {} {} au débit, {} {} au crédit, {} €. À extourner le premier jour de l'exercice suivant — la dette se paie au fil des congés pris, ou au solde de tout compte.",
@@ -1236,7 +1236,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 /// `Decimal(str(v))` d'une valeur du bareme.
 fn dec_du_bareme(v: &Value) -> R<Decimal> {
-    dec_py(v).map_err(|m| erreur("InvalidOperation", m))
+    dec_avec_echelle(v).map_err(|m| erreur("InvalidOperation", m))
 }
 
 /// `ts[cle]` : `KeyError` s'il manque.
@@ -1299,7 +1299,7 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             if pa.engagement.sans_paie() {
                 continue;
             }
-            let cle = pa.salarie.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
+            let cle = pa.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
             if !par.contains_key(&cle) {
                 ordre.push(cle.clone());
                 par.insert(cle.clone(), (crate::tableaux_export::qui_souple(&pa.salarie), zero, zero, BTreeSet::new()));
@@ -1389,8 +1389,8 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("brut", "Brut"),
         col_m("base", "Base (assiette CSG sans réduction)"),
         col_m("taux_normal", "4,25 %"),
-        col_m("majoration_1", &format!("+4,25 % au-delà de {} €", py_str(du_bareme(&ts, "seuil_1")?))),
-        col_m("majoration_2", &format!("+9,35 % au-delà de {} €", py_str(du_bareme(&ts, "seuil_2")?))),
+        col_m("majoration_1", &format!("+4,25 % au-delà de {} €", valeur_en_texte(du_bareme(&ts, "seuil_1")?))),
+        col_m("majoration_2", &format!("+9,35 % au-delà de {} €", valeur_en_texte(du_bareme(&ts, "seuil_2")?))),
         col_m("taxe", "Taxe brute"),
     ];
     t.sources = vec!["CGI art. 231 et 1679 A ; notices 2501-SD et 2502-SD de la DGFiP (seuils, franchise, décote, abattement de l'année)".to_string()];

@@ -1,13 +1,12 @@
-//! Le garde-fou reseau des essais (21/10/2026) : AUCUN ESSAI NE SORT DE LA MACHINE.
+//! Le garde-fou reseau des essais : AUCUN ESSAI NE SORT DE LA MACHINE.
 //!
-//! Pourquoi : un essai qui appelait `filet-activer` sans serveur pose partait au vrai serveur de l'editeur
-//! (`editeur::SERVEUR_PAR_DEFAUT`), qui l'inscrivait et envoyait un courriel de confirmation a `a@exemple.fr` (rebonds
-//! dans la boite de l'editeur, les 15, 16, 20 et 21/10/2026). Reparer l'essai ne suffisait pas : tout ce qui retombe sur
-//! une adresse reelle (le serveur de l'editeur, net-entreprises, l'Urssaf, Google, la DILA, le depot des versions, une
-//! boite courriel) partait de la meme facon des qu'un essai l'oubliait, sur tout poste qui a internet.
+//! Pourquoi : tout ce qui retombe sur une adresse reelle (le serveur de l'editeur, net-entreprises, l'Urssaf, Google,
+//! la DILA, le depot des versions, une boite courriel) partirait des qu'un essai l'oublie, sur tout poste qui a
+//! internet : un essai sans serveur pose joindrait le vrai serveur de l'editeur, qui inscrirait une compagnie et
+//! enverrait un courriel. Reparer chaque essai ne suffit pas.
 //!
 //! La regle, en un seul endroit : quand la variable `PUPPETPAIE_ESSAIS_HORS_RESEAU` est posee -- Cargo la pose pour tout
-//! processus qu'il lance, donc pour chaque essai et chaque `paie` qu'un essai lance (`.cargo/config.toml` du moteur,
+//! processus qu'il lance, donc pour chaque essai et chaque `paie` qu'un essai lance (`atelier/sources/.cargo/config.toml`,
 //! `[env]`, `force`) --, une sortie vers une autre machine que celle-ci est REFUSEE avant toute connexion. La seule
 //! porte : un mandataire LOCAL que l'essai nomme dans cette variable meme (`outils::mandataire`, un faux qui note a qui
 //! le moteur voulait parler et refuse) ; il remplace alors le mandataire de l'environnement (celui d'un conteneur, qui
@@ -66,7 +65,7 @@ fn refus(hote: &str) -> String {
 
 /// La decision pour une sortie vers `hote`.
 pub fn sortie_vers(hote: &str) -> Result<Sortie, String> {
-    // LE FIL DE FOND de la fenetre (ticket #244, `fil_de_fond`) : il tourne avant tout mot de passe, et ne sort jamais.
+    // LE FIL DE FOND de la fenetre (`fil_de_fond`) : il tourne avant tout mot de passe, et ne sort jamais.
     if crate::fil_de_fond::ici() {
         return Err(crate::fil_de_fond::refus(&format!("une sortie vers {}", hote)));
     }

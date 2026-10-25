@@ -35,7 +35,7 @@ use crate::courriel::{Courriel, ErreurCourriel};
 use socle::date::{jours_du_mois, Jour};
 use crate::depot_acte::{self, Preuve};
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, vrai};
@@ -181,7 +181,7 @@ fn empreinte_saisie(chemin: &Path) -> String {
     let Some(v) = std::fs::read_to_string(chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
         return String::new();
     };
-    crate::journal::empreinte(socle::ecriture::json_py_trie(&v).as_bytes())
+    crate::journal::empreinte(socle::ecriture::json_trie(&v).as_bytes())
 }
 
 /// Les refus que Python rangeait sous `ErreurOperation`.
@@ -268,7 +268,7 @@ fn deposer_les_dsn(
     a_faire: &mut Vec<String>,
 ) -> R<bool> {
     let f = Moteur::nouveau(o, ctx).fichiers_deposables(mois)?;
-    let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| py_str(&x["chemin"])).collect()).unwrap_or_default();
+    let chemins: Vec<String> = f["dsn"].as_array().map(|l| l.iter().map(|x| valeur_en_texte(&x["chemin"])).collect()).unwrap_or_default();
     let parties: BTreeSet<String> = etats::charger(&ctx.racine)?
         .iter()
         .filter(|l| l.get("quoi").and_then(Value::as_str) == Some("dsn") && l.get("mode").and_then(Value::as_str) == Some("reel"))
@@ -317,7 +317,7 @@ pub fn dernier_rattrapage(racine: &Path, aujourdhui: Option<Jour>) -> R<Vec<Stri
     if dernier.get("le").and_then(Value::as_str) != Some(jour.as_str()) {
         return Ok(Vec::new());
     }
-    Ok(dernier.get("fait").and_then(Value::as_array).map(|a| a.iter().map(py_str).collect()).unwrap_or_default())
+    Ok(dernier.get("fait").and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default())
 }
 
 // ------------------------------------------------------------------ rattraper
@@ -486,7 +486,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: 
                 c.iter()
                     .filter(|x| !x.get("recu_le").is_some_and(vrai))
                     .map(|x| {
-                        (py_str(&x["salarie"]), py_str(&x["debut"]), py_str(&crate::etats::numero_de_cle(&x["numero"])), x.get("demande_le").is_some_and(vrai))
+                        (valeur_en_texte(&x["salarie"]), valeur_en_texte(&x["debut"]), valeur_en_texte(&crate::etats::numero_de_cle(&x["numero"])), x.get("demande_le").is_some_and(vrai))
                     })
                     .collect()
             })
@@ -649,7 +649,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
         let Some(dernier) = e.get("mois").and_then(Value::as_array).and_then(|m| m.iter().filter_map(Value::as_u64).max()) else { continue };
         let dernier = dernier as u32;
         let Some(fin) = Jour::nouveau(annee, dernier, jours_du_mois(annee, dernier)) else { continue };
-        let cle = format!("{}:{}", py_str(&e["cle"]), annee);
+        let cle = format!("{}:{}", valeur_en_texte(&e["cle"]), annee);
         let deja = std::fs::read_to_string(racine.join("config").join("echeancier.json"))
             .ok()
             .and_then(|t| serde_json::from_str::<Value>(&t).ok())
@@ -663,7 +663,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
         if crate::interface::compagnies::cree_le(racine).is_some_and(|c| fin < c) {
             continue;
         }
-        let titre = py_str(&e["titre"])
+        let titre = valeur_en_texte(&e["titre"])
             .replace("{annee}", &annee.to_string())
             .replace("{annee_precedente}", &(annee - 1).to_string())
             .replace("{jour_dsn}", "");
@@ -681,7 +681,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
 /// `horloge-derniere` (`{"aujourdhui"?}` -> ce que le bandeau lit).
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let jour = match charge.get("aujourdhui").filter(|v| vrai(v)) {
-        Some(v) => Some(Jour::lire(&py_str(v)).map_err(Echec::from)?),
+        Some(v) => Some(Jour::lire(&valeur_en_texte(v)).map_err(Echec::from)?),
         None => None,
     };
     match nom {

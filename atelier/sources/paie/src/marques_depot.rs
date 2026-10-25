@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -64,7 +64,7 @@ pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
 
 /// `operations_arrets._mois_de` : le mois ou l'arret commence.
 fn mois_de(arret: &Value) -> String {
-    py_str(&arret["dernier_jour_travaille"]).chars().take(7).collect()
+    valeur_en_texte(&arret["dernier_jour_travaille"]).chars().take(7).collect()
 }
 
 /// `_trouver`, avec `ArretIntrouvable` rendu en `None`.
@@ -115,8 +115,8 @@ pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand
     for a in crate::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
         let genre = crate::imprevus::genre(&a).to_string();
         let rangement = crate::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
-        let Some((i, mut liste)) = crate::routes_imprevus::trouver(ctx, &genre, &py_str(&a["salarie"]), &rangement)? else {
-            return Err(erreur("ErreurOperation", format!("Aucun imprevu ({}) de {} au {}.", genre, py_str(&a["salarie"]), rangement.jj_mm_aaaa())));
+        let Some((i, mut liste)) = crate::routes_imprevus::trouver(ctx, &genre, &valeur_en_texte(&a["salarie"]), &rangement)? else {
+            return Err(erreur("ErreurOperation", format!("Aucun imprevu ({}) de {} au {}.", genre, valeur_en_texte(&a["salarie"]), rangement.jj_mm_aaaa())));
         };
         let deja = liste[i]["envois"].as_array().is_some_and(|e| {
             e.iter().any(|r| r.get("nature").and_then(Value::as_str) == Some("01") && r.get("mois").and_then(Value::as_str) == Some(mois))
@@ -175,7 +175,7 @@ pub(crate) fn enregistrer_demande(ctx: &Contexte, cles: &[String], motif: &str, 
     }
     if !cles.is_empty() {
         let chemin = ctx.racine.join("config").join("pas.json");
-        std::fs::write(&chemin, socle::ecriture::json_py(&data, 2)).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        std::fs::write(&chemin, socle::ecriture::json_indente(&data, 2)).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     }
     Ok(())
 }
@@ -197,7 +197,7 @@ pub(crate) fn marquer_demande_depuis(ctx: &Contexte, chemin: &Path, quand: &str)
 /// en reel -- les corrections qu'elle avait preparees sont portees.
 pub(crate) fn marquer_portees(ctx: &Contexte, mois_courant: &str, fichier: &Path, quand: &str) -> R<()> {
     let nom = fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut mois: Vec<String> = crate::routes_ecrites::toutes_les_corrections(ctx)?.iter().map(|c| py_str(&c["mois"])).collect();
+    let mut mois: Vec<String> = crate::routes_ecrites::toutes_les_corrections(ctx)?.iter().map(|c| valeur_en_texte(&c["mois"])).collect();
     mois.sort();
     mois.dedup();
     for m in mois {

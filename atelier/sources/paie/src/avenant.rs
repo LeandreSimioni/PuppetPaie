@@ -32,7 +32,7 @@ use droit::contexte::{telle_qu_au, Contexte};
 use socle::date::{d, en_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::etats::{accepte, est, get, getd, items, objet_vide, ou, CONTRAT_RECU, LISTE_VIDE, SIGNATURE};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::Echec;
 use socle::fichiers::vrai;
 use socle::nfkc::nfkc;
@@ -800,7 +800,7 @@ impl Parti {
 /// ce debut (le dernier l'emporte), comme avant.
 pub(crate) fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
     let du_contrat = |l: &Value| -> Result<bool, Echec> {
-        Ok(numero.map_or(true, |n| py_str(&crate::etats::numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
+        Ok(numero.map_or(true, |n| valeur_en_texte(&crate::etats::numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
     };
     let mut parti: Option<Parti> = None;
     for l in lignes {

@@ -211,7 +211,7 @@ fn extraire(cadre: &Cadre, args: &Args, mois: &str) -> Result<i32, Echec> {
     }
     for e in liste_de(&r, "engagements") {
         if champ(&e, "salarie") == salarie && champ(&e, "debut") == debut {
-            dire!("{}", socle::ecriture::json_py(&e["engagement"], 2));
+            dire!("{}", socle::ecriture::json_indente(&e["engagement"], 2));
             return Ok(0);
         }
     }

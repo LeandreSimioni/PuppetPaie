@@ -20,7 +20,7 @@ use serde_json::{json, Map, Value};
 
 use socle::texte::sans_accent;
 use socle::date::Jour;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::echec::Echec;
@@ -476,7 +476,7 @@ pub fn combler_affichage(nom: &str, donnees: &Map<String, Value>) -> R<Map<Strin
             if (cle == "declarant_dsn" || cle == "contact_sante_travail") && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
                 // << NOM PRENOM >> en un seul champ : le premier mot fait le nom,
                 // le reste le prenom.
-                let np = p.get("nom_prenom").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+                let np = p.get("nom_prenom").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
                 let mots: Vec<&str> = np.split(espace).filter(|m| !m.is_empty()).collect();
                 if !mots.is_empty() {
                     p.insert("nom_affichage".into(), Value::String(titre(mots[0])));
@@ -859,7 +859,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
         return Ok(Some("nombre attendu".into()));
     }
     if c.forme == "choix" && !c.choix.is_empty() && !c.choix.iter().any(|x| x.as_str() == Some(v)) {
-        let liste: Vec<String> = c.choix.iter().map(py_str).collect();
+        let liste: Vec<String> = c.choix.iter().map(valeur_en_texte).collect();
         return Ok(Some(format!("valeur attendue parmi : {}", liste.join(", "))));
     }
     // UN PAYS SE CHOISIT DANS LA LISTE LIVREE (`pays.rs`, vague 1k) : un code qu'elle ne connait pas refuse.
@@ -962,7 +962,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     // UNE AUTRE URSSAF QUE CELLE DE L'ADRESSE (Leandre, 08/10/2026) : permis, mais dit, et par le moteur, pour que la
     // ligne de commande l'entende comme la fenetre. C'est l'Urssaf du territoire qui recoit DPAE et DSN.
     if nom == "entreprise" {
-        let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(py_str).unwrap_or_default()).to_string();
+        let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !choisi.is_empty() {
             if let Ok(base) = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("urssaf-dpae-base.json")) {
                 let deduit = crate::routes_accueil::urssaf_du_code_postal(&base, d.get("code_postal"));
@@ -981,7 +981,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     }
 
     if nom == "spectacle" {
-        let code = strip(&d.get("code_analytique").filter(|v| vrai(v)).map(py_str).unwrap_or_default()).to_string();
+        let code = strip(&d.get("code_analytique").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !code.is_empty() && !code.chars().all(|c| c.is_ascii() && (c.is_alphanumeric() || c == '-' || c == '_')) {
             out.push(anomalie(
                 "code_analytique",
@@ -1051,7 +1051,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                 out.push(anomalie(
                     "nir",
                     "avertissement",
-                    format!("le NIR annonce {}/{}, la date de naissance dit {}/{}", mo, an, py_str(&n57), py_str(&n24)),
+                    format!("le NIR annonce {}/{}, la date de naissance dit {}/{}", mo, an, valeur_en_texte(&n57), valeur_en_texte(&n24)),
                 ));
             }
         }
@@ -1077,7 +1077,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         }
         // LES BORNES D'UNE DISPENSE DE SANTE (Q13) : elles bornent un motif, et la fin ne precede pas le debut. Ce que
         // le mois en fait est dans `calcul::dispense_de_la_periode`.
-        let borne = |k: &str| d.get(k).filter(|v| vrai(v)).map(py_str);
+        let borne = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
         let (depuis, jusqu_au) = (borne("sante_dispense_depuis"), borne("sante_dispense_jusqu_au"));
         if (depuis.is_some() || jusqu_au.is_some()) && !d.get("sante_dispense").is_some_and(vrai) {
             out.push(anomalie(
@@ -1103,8 +1103,8 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         let (siret, siren, nic) = (brut("siret"), brut("siren"), brut("nic"));
         if vrai(&siret) && vrai(&siren) && vrai(&nic) {
             let somme = additionner(&siren, &nic)?;
-            if !socle::valeur::eq_py(&siret, &somme) {
-                out.push(anomalie("siret", "erreur", format!("SIRET != SIREN + NIC ({})", py_str(&somme))));
+            if !socle::valeur::valeurs_egales(&siret, &somme) {
+                out.push(anomalie("siret", "erreur", format!("SIRET != SIREN + NIC ({})", valeur_en_texte(&somme))));
             }
         }
         if vrai(&siret) {

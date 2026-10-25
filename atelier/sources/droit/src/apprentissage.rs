@@ -35,7 +35,7 @@ pub const MILLESIME_ASSOCIATIONS_REDEVABLES: i32 = 2026;
 /// (`atelier/reference/sources/majoration-caisses-conges/urssaf-guide-contributions-formation-apprentissage-20260312.txt`,
 /// l. 1166-1176 et 1192-1196) : « À compter de la période d'emploi de mars 2026, conformément au XIII de l'article 135
 /// de la loi n° 2026-103 du 19 février 2026 de finances pour 2026 modifiant l'article L6241-1 du code du travail, la taxe
-/// d'apprentissage est également due par les associations [...] à activités non lucratives » (lot D1). Les salaires de
+/// d'apprentissage est également due par les associations [...] à activités non lucratives ». Les salaires de
 /// janvier et fevrier 2026 n'en portent pas ; le millesime 2026 la porte de mars a decembre, et se declare 001.
 pub const PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES: (i32, u32) = (2026, 3);
 
@@ -71,9 +71,9 @@ de la DSN (S21.G00.44.004 : {}). {}. Rien n'est ecrit.",
 }
 
 /// La taxe d'apprentissage des salaires de l'annee `an` est-elle hors du bordereau Urssaf ? Oui quand la fiche entreprise
-/// dit un motif de non-assujettissement (table MNATA) qui vaut pour cette annee : un motif dit que la taxe n'est pas due
-/// (lot R12, la question de R2). Le 007 (associations) ne vaut que jusqu'au millesime 2025
-/// (`MILLESIME_ASSOCIATIONS_REDEVABLES`, INFERENCE de R2 ecrite la-bas) : une association la paie pour 2026. Le
+/// dit un motif de non-assujettissement (table MNATA) qui vaut pour cette annee : un motif dit que la taxe n'est pas due.
+/// Le 007 (associations) ne vaut que jusqu'au millesime 2025
+/// (`MILLESIME_ASSOCIATIONS_REDEVABLES`, INFERENCE ecrite la-bas) : une association la paie pour 2026. Le
 /// bordereau de chaque mois (`dsn::lignes_bordereau`, `dsn::lignes_regularisees`), le solde d'avril
 /// (`dsn::solde_taxe_apprentissage`) et le bloc 44 de decembre (`blocs`) lisent cette meme decision : le fichier des
 /// organismes garde ses lignes 992/993, comme ses lignes qui dependent du statut ou de l'effectif.
@@ -89,7 +89,7 @@ pub fn taxe_apprentissage_non_due(ent: &Value, an: i32) -> Resultat<bool> {
 /// fevrier 2026 (`PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES`, guide Urssaf du 12/03/2026). C'est la decision du MOIS,
 /// et la seule : le bareme du contrat (`bareme::bareme_taxe_apprentissage` : la ligne du bulletin et la cotisation
 /// individuelle 130 du bloc 81) et le bordereau (`dsn::lignes_bordereau`, `dsn::lignes_regularisees` : CTP 992 et 993)
-/// la lisent ici, pour que les trois faces disent la meme chose (lot D1 ; R12 ne retirait que le bordereau).
+/// la lisent ici, pour que les trois faces disent la meme chose.
 pub fn taxe_apprentissage_non_due_au_mois(ent: &Value, an: i32, mois: u32) -> Resultat<bool> {
     Ok(match motif_de_la_fiche(ent)? {
         Some((code, _)) => !(code == MNATA_ASSOCIATIONS && (an, mois) >= PREMIERE_PERIODE_ASSOCIATIONS_REDEVABLES),

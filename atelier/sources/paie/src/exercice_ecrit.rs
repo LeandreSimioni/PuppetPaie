@@ -25,7 +25,7 @@ use droit::catalogue::{self, HorsAssiette};
 use droit::contexte::Contexte;
 use crate::engagement;
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::{eur2, zero2, Decimal};
@@ -58,7 +58,7 @@ fn maintenant() -> String {
 
 /// `str(annee)` d'une valeur de la charge.
 fn texte_de(v: &Value) -> String {
-    py_str(v)
+    valeur_en_texte(v)
 }
 
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
@@ -166,7 +166,7 @@ fn dans<'a>(v: &'a Value, cle: &str) -> R<&'a Value> {
 /// `x or defaut`.
 fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
     match v {
-        Some(x) if vrai(x) => py_str(x),
+        Some(x) if vrai(x) => valeur_en_texte(x),
         _ => defaut.to_string(),
     }
 }
@@ -181,7 +181,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let saisie = engagement::charger_donnees(ctx, &data).map_err(|m| Echec::from(refus_du_calcul(ctx, &data, m)))?;
     let (date, lib_mois) = date_et_libelle(mois)?;
     let jrn = ou_texte(plan.get("journal"), "OD");
-    let jrn = if plan.contains_key("journal") { py_str(&plan["journal"]) } else { jrn };
+    let jrn = if plan.contains_key("journal") { valeur_en_texte(&plan["journal"]) } else { jrn };
     let zero = zero2();
 
     let lignes_du_plan = cle_du_plan(plan, "lignes")?;
@@ -213,7 +213,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     for (p, pas) in saisie.paies.iter().zip(&pas_des_paies) {
         // UN PERMANENT N'A PAS DE SPECTACLE : son brut va a sa propre section.
         let titre = match p.spectacle.get("titre").filter(|t| vrai(t)) {
-            Some(t) => py_str(t),
+            Some(t) => valeur_en_texte(t),
             None => match p.engagement.spectacle.as_deref().filter(|s| !s.is_empty()) {
                 Some(s) => s.to_string(),
                 None => "Salariés au mois".to_string(),
@@ -222,10 +222,10 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         let brut = eur2(p.brut);
         ajouter(&mut brut_par_spectacle, titre.clone(), brut);
         let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
-            None => p.salarie.get("prenom").map(py_str).unwrap_or_default(),
+            Some(v) => valeur_en_texte(v),
+            None => p.salarie.get("prenom").map(valeur_en_texte).unwrap_or_default(),
         };
-        let qui = format!("{} {}", py_str(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?), prenom);
+        let qui = format!("{} {}", valeur_en_texte(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?), prenom);
         let mut retenu = zero;
         for l in p.remuneration.iter().filter(|l| !l.soumis) {
             if catalogue::rubrique(&ctx.racine, &l.code).and_then(|r| r.hors_assiette()).map_err(refus)? != HorsAssiette::Mouvement {
@@ -237,7 +237,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
                     l.code, l.libelle
                 )));
             };
-            let k = (py_str(dans(regle, "compte")?), ou_texte(regle.get("libelle"), &l.libelle), qui.clone());
+            let k = (valeur_en_texte(dans(regle, "compte")?), ou_texte(regle.get("libelle"), &l.libelle), qui.clone());
             *retenues.entry(k).or_insert(zero) += eur2(l.montant);
             retenu += eur2(l.montant);
         }
@@ -254,7 +254,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         let prelevement = eur2(pas.as_ref().map_or(zero, |v| v.prelevement));
         pas_du_mois += prelevement;
         ajouter(&mut net_par_salarie, qui.clone(), eur2(p.net_a_payer) - prelevement);
-        let cle_salarie = p.salarie.get("_cle").map(py_str).unwrap_or_default();
+        let cle_salarie = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
         let compte = compte_du_salarie(plan, &p.salarie, &cle_salarie).map_err(|r| match r {
             Refus::Operation(m) => refus(m),
             Refus::Autre(e) => e,
@@ -272,12 +272,12 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
             if l.id == "reduction_generale" {
                 if let Some(rg) = &p.reduction_generale {
                     // La RGDU : une charge negative, ventilee au tiers de chaque part telle que la paie l'a calculee.
-                    let k = (py_str(dans(regle, "charge")?), libelle_de(regle));
+                    let k = (valeur_en_texte(dans(regle, "charge")?), libelle_de(regle));
                     *charge.entry(k).or_insert(zero) += eur2(l.montant_pat);
                     for (part, id_tiers) in [(rg.urssaf, "maladie"), (rg.chomage, "chomage"), (rg.agirc_arrco, "retraite_t1")] {
                         if !part.is_zero() {
                             let r = lignes_du_plan.as_object().and_then(|o| o.get(id_tiers)).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(id_tiers)))?;
-                            let c = py_str(dans(r, "tiers")?);
+                            let c = valeur_en_texte(dans(r, "tiers")?);
                             *tiers.entry(c).or_insert(zero) -= part;
                         }
                     }
@@ -286,11 +286,11 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
             }
             let (pat, sal) = (eur2(l.montant_pat), eur2(l.montant_sal));
             if !pat.is_zero() {
-                let k = (py_str(dans(regle, "charge")?), libelle_de(regle));
+                let k = (valeur_en_texte(dans(regle, "charge")?), libelle_de(regle));
                 *charge.entry(k).or_insert(zero) += pat;
             }
             if !pat.is_zero() || !sal.is_zero() {
-                *tiers.entry(py_str(dans(regle, "tiers")?)).or_insert(zero) += pat + sal;
+                *tiers.entry(valeur_en_texte(dans(regle, "tiers")?)).or_insert(zero) += pat + sal;
             }
         }
     }
@@ -327,7 +327,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     };
     let brut_plan = cle_du_plan(plan, "brut")?;
     for (titre, m) in &brut_par_spectacle {
-        ligne(&py_str(dans(brut_plan, "compte")?), &py_str(dans(brut_plan, "libelle")?), *m, zero, titre, "");
+        ligne(&valeur_en_texte(dans(brut_plan, "compte")?), &valeur_en_texte(dans(brut_plan, "libelle")?), *m, zero, titre, "");
     }
     let frais_defaut = json!({"compte": "641400", "libelle": "Indemnites non soumises"});
     let frais = match plan.get("frais").filter(|f| vrai(f)) {
@@ -335,7 +335,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         None => frais_defaut,
     };
     for (titre, m) in &frais_par_spectacle {
-        ligne(&py_str(dans(&frais, "compte")?), &py_str(dans(&frais, "libelle")?), *m, zero, titre, "");
+        ligne(&valeur_en_texte(dans(&frais, "compte")?), &valeur_en_texte(dans(&frais, "libelle")?), *m, zero, titre, "");
     }
     // Les charges dans l'ordre du plan (un compte, un libelle), puis les tiers.
     for ((c, lib), m) in &charge {
@@ -344,7 +344,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let noms_tiers = plan.get("tiers").filter(|t| vrai(t));
     for (c, m) in &tiers {
         let nom = match noms_tiers.and_then(|t| t.get(c.as_str())).filter(|n| vrai(n)) {
-            Some(n) => py_str(n),
+            Some(n) => valeur_en_texte(n),
             None => format!("Organisme {}", c),
         };
         ligne(c, &nom, zero, *m, "", "");
@@ -352,7 +352,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     // Au credit, une ligne pour le mois : la dette envers la DGFiP, qui la preleve sur la declaration du mois.
     if !pas_du_mois.is_zero() {
         let pas_plan = cle_du_plan(plan, "pas")?;
-        ligne(&py_str(dans(pas_plan, "compte")?), &py_str(dans(pas_plan, "libelle")?), zero, pas_du_mois, "", "");
+        ligne(&valeur_en_texte(dans(pas_plan, "compte")?), &valeur_en_texte(dans(pas_plan, "libelle")?), zero, pas_du_mois, "", "");
     }
     // Une retenue est negative sur le bulletin : elle passe au credit (un acompte retenu solde l'avance).
     for ((c, lib, qui), m) in &retenues {
@@ -361,7 +361,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let net_plan = cle_du_plan(plan, "net")?;
     for (qui, m) in &net_par_salarie {
         let aux = compte_de.get(qui).cloned().unwrap_or_default();
-        ligne(&py_str(dans(net_plan, "compte")?), &py_str(dans(net_plan, "libelle")?), zero, *m, qui, &aux);
+        ligne(&valeur_en_texte(dans(net_plan, "compte")?), &valeur_en_texte(dans(net_plan, "libelle")?), zero, *m, qui, &aux);
     }
 
     let d = out.iter().fold(zero, |a, e| a + e.debit);
@@ -590,7 +590,7 @@ fn fichiers_sous(d: &Path, out: &mut Vec<PathBuf>) {
 pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> R<Value> {
     if let Some(clos) = exercice_clos(ctx, annee)? {
         let le: String = match clos.get("le") {
-            Some(v) => py_str(v),
+            Some(v) => valeur_en_texte(v),
             None => "?".to_string(),
         };
         return Err(refus(format!("L'exercice {} est déjà clos (le {}).", annee, le.chars().take(10).collect::<String>())));
@@ -747,7 +747,7 @@ fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
 pub(crate) fn cloture_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let annee = texte_de(exiger(charge, "annee")?);
     // `qui` : la ligne de commande ecrit `cli`, la page `interface`.
-    let qui = charge.get("qui").filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| "interface".to_string());
+    let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
     if charge.get("rouvrir").is_some_and(vrai) {
         return rouvrir_exercice(ctx, &annee, &qui);
     }

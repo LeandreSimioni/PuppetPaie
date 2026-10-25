@@ -12,16 +12,16 @@ use serde_json::Value;
 
 use crate::num::Resultat;
 
-/// `json.dumps(v, ensure_ascii=False, indent=indent)`.
-pub fn json_py(v: &Value, indent: usize) -> String {
+/// Le JSON de `v`, indente de `indent`, sous la forme du module.
+pub fn json_indente(v: &Value, indent: usize) -> String {
     let mut s = String::new();
     ecrire(v, indent, 0, &mut s);
     s
 }
 
-/// `json.dumps(v, sort_keys=True, ensure_ascii=False)` : separateurs `, ` et
+/// Le JSON de `v` sur une ligne : separateurs `, ` et
 /// `: `, cles triees (par point de code), non-ASCII laisse tel quel.
-pub fn json_py_trie(v: &Value) -> String {
+pub fn json_trie(v: &Value) -> String {
     let mut s = String::new();
     ecrire_trie(v, &mut s);
     s
@@ -126,7 +126,7 @@ fn chaine(t: &str, s: &mut String) {
     s.push('"');
 }
 
-/// `repr(float)` de Python : les plus courts chiffres qui reviennent au meme
+/// Un flottant ecrit : les plus courts chiffres qui reviennent au meme
 /// flottant, en notation positionnelle pour 1e-4 <= |x| < 1e16, sinon
 /// `d.ddde+XX` (exposant sur deux chiffres au moins).
 pub fn repr_flottant(x: f64) -> String {
@@ -161,7 +161,7 @@ pub fn repr_flottant(x: f64) -> String {
 }
 
 /// Quand la valeur exacte tombe pile entre deux ecritures de meme longueur
-/// (`...403.25` : `.2` et `.3`), Python prend la paire (`.2`) et Rust la
+/// (`...403.25` : `.2` et `.3`), la forme ecrite prend la paire (`.2`), la ou Rust prend la
 /// superieure : on rend la paire, si elle revient au meme flottant.
 fn pair_a_egalite(x: f64, chiffres: String, exp: i32) -> String {
     let n = chiffres.len();
@@ -190,20 +190,20 @@ fn pair_a_egalite(x: f64, chiffres: String, exp: i32) -> String {
     }
 }
 
-/// `util.ecrire_json(chemin, donnees, indent)` : cree le dossier, ecrit en
+/// Ecrit `donnees` dans `chemin` : cree le dossier, ecrit en
 /// LF, le JSON suivi d'un saut de ligne.
 pub fn ecrire_json(chemin: &Path, donnees: &Value, indent: usize) -> Resultat<()> {
     if let Some(dossier) = chemin.parent() {
         std::fs::create_dir_all(dossier).map_err(|e| format!("{} : {}", dossier.display(), e))?;
     }
-    let mut texte = json_py(donnees, indent);
+    let mut texte = json_indente(donnees, indent);
     texte.push('\n');
-    // ATOMIQUE (15/10/2026) : le fichier s'ecrit a cote puis prend sa place d'un coup. `std::fs::write` tronquait d'abord,
-    // puis ecrivait : un lecteur arrive entre les deux (l'etat du mois se refait dans le fil de la fenetre, `etat_garde::
-    // FileDesEtats`, pendant qu'une route ou un test relit `journal/depots.json`) lisait un fichier vide, « EOF while
+    // ATOMIQUE : le fichier s'ecrit a cote puis prend sa place d'un coup. `std::fs::write` tronque d'abord,
+    // puis ecrit : un lecteur arrive entre les deux (l'etat du mois se refait dans le fil de la fenetre, `etat_garde::
+    // FileDesEtats`, pendant qu'une route relit `journal/depots.json`) lirait un fichier vide, « EOF while
     // parsing a value ». Un journal JSON ne se voit jamais a moitie ecrit.
     // Le fichier d'a cote est a cette ecriture seule (le processus, un numero) : la fenetre sert ses routes dans son
-    // processus, et deux fils qui ecrivent le meme fichier ne s'ecrivent jamais l'un sur l'autre (ticket #244). En `.tmp` :
+    // processus, et deux fils qui ecrivent le meme fichier ne s'ecrivent jamais l'un sur l'autre. En `.tmp` :
     // ni l'empreinte de l'etat d'un mois ni la sauvegarde ne le voient le temps qu'il existe.
     let provisoire = provisoire(chemin);
     std::fs::write(&provisoire, texte).map_err(|e| format!("{} : {}", provisoire.display(), e))?;

@@ -28,8 +28,8 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::date::{d, Jour};
 use crate::etats::{get, getd, items, objet_vide, ou, LISTE_VIDE};
-use socle::valeur::py_repr;
-use socle::valeur::py_str;
+use socle::valeur::valeur_ecrite;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -303,7 +303,7 @@ fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
             // Une cle qui n'est pas un texte ne peut etre aucune nature.
             let mut connues: Vec<String> = droit::natures::natures().map_err(plain)?.iter().map(|n| n.cle.clone()).collect();
             connues.sort();
-            return Err(erreur("KeyError", format!("Nature de contrat inconnue : {}. Connues : {}.", py_repr(autre), connues.join(", "))));
+            return Err(erreur("KeyError", format!("Nature de contrat inconnue : {}. Connues : {}.", valeur_ecrite(autre), connues.join(", "))));
         }
     };
     droit::natures::nature(texte.as_deref()).map_err(|m| erreur("KeyError", m))
@@ -320,12 +320,12 @@ pub(crate) fn ce_qui_manque(ctx: &Contexte, e: &Value) -> R<Vec<Value>> {
         ));
     }
     // CCH-12 de S21.G00.62.003 : la date de notification, obligatoire pour ces motifs (`fctu::notification_exigee`).
-    if vrai(motif) && !vrai(get(e, "notification_rupture")?) && crate::fctu::notification_exigee(&py_str(motif)).map_err(plain)? {
+    if vrai(motif) && !vrai(get(e, "notification_rupture")?) && crate::fctu::notification_exigee(&valeur_en_texte(motif)).map_err(plain)? {
         manque.push(json!(format!(
             "`notification_rupture` : la date de notification de la rupture (S21.G00.62.003) est obligatoire pour le motif {} \
 (CCH-12, cahier technique DSN p. 275) : l'envoi de la lettre de licenciement ou de rupture, la remise de la demission, la \
 notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans elle.",
-            py_str(motif)
+            valeur_en_texte(motif)
         )));
     }
     let preavis = ou(get(e, "preavis")?, objet_vide());
@@ -333,7 +333,7 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
         let requis = |k: &str| e.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
         let (debut, fin) = (d(requis("debut")?).map_err(|m| erreur("ValueError", m))?, d(requis("fin")?).map_err(|m| erreur("ValueError", m))?);
         let anciennete = droit::permanents::anciennete_mois(&debut, &fin);
-        let motif_texte = if vrai(motif) { Some(py_str(motif)) } else { None };
+        let motif_texte = if vrai(motif) { Some(valeur_en_texte(motif)) } else { None };
         let cdd = !nature_de(get(e, "nature")?)?.duree_indeterminee;
         let duree = droit::permanents::preavis_mois(anciennete, motif_texte.as_deref(), cdd).map_err(plain)?;
         let regle = droit::permanents::regle_du_preavis(motif_texte.as_deref(), cdd).map_err(plain)?;
@@ -364,7 +364,7 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
              preavis applicable >>. {}",
             dit
         )));
-    } else if crate::fctu::preavis_non_effectue(&py_str(get(preavis, "type")?)).map_err(plain)? && !vrai(get(e, "dernier_jour_paye")?) {
+    } else if crate::fctu::preavis_non_effectue(&valeur_en_texte(get(preavis, "type")?)).map_err(plain)? && !vrai(get(e, "dernier_jour_paye")?) {
         manque.push(json!(
             "`dernier_jour_paye` : sur un preavis non effectue, le dernier jour travaille et paye au salaire habituel \
 (S21.G00.62.006) n'est pas la fin du contrat, il precede le debut du preavis (CCH-12, cahier technique DSN p. 275). La \
@@ -392,7 +392,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         let e: &Value = &e;
         let nat = nature_de(get(e, "nature")?)?;
         // La regle est celle de la nature et du motif (`Nature::signalement_fctu`) : un CDDU rompu avant son terme se signale.
-        let motif = e.get("motif_rupture").filter(|m| vrai(m)).map(py_str);
+        let motif = e.get("motif_rupture").filter(|m| vrai(m)).map(valeur_en_texte);
         if !nat.signalement_fctu(motif.as_deref()) || !vrai(get(e, "fin")?) {
             continue;
         }
@@ -403,7 +403,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
         }
         let salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("salarie")))?;
         // La cle de la fiche : celle que porte le nom du fichier du signalement (`fin-contrat-signaler`).
-        let cle = ctx.salarie(&py_str(salarie)).ok().and_then(|f| f.get("_cle").map(py_str));
+        let cle = ctx.salarie(&valeur_en_texte(salarie)).ok().and_then(|f| f.get("_cle").map(valeur_en_texte));
         out.push(json!({
             "salarie": salarie,
             "numero": get(e, "numero")?,
@@ -422,7 +422,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
 /// La route `fins-de-contrat`.
 fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let fins = fins_a_signaler(ctx, &py_str(brut), ctx.aujourdhui)?;
+    let fins = fins_a_signaler(ctx, &valeur_en_texte(brut), ctx.aujourdhui)?;
     Ok(json!({"mois": brut, "fins": fins}))
 }
 

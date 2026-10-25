@@ -19,7 +19,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::ecriture::ecrire_json;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -89,7 +89,7 @@ fn valider_paie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let rangs = crate::routes_ecritures::identifiants(ctx, &data).map_err(Echec::from)?;
     // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie peuvent commencer le meme jour.
     // `numero` (facultatif) dit lequel ; sans numero pose, `rang` (facultatif) : son rang parmi ceux de ce jour.
-    let numero = charge.get("numero").filter(|v| vrai(v)).map(py_str);
+    let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
     let rang = charge.get("rang").and_then(Value::as_u64);
     let du_jour: Vec<usize> = (0..rangs.len()).filter(|&j| rangs[j].0 == salarie && rangs[j].1 == debut).collect();
     let par_numero = numero.as_ref().and_then(|n| du_jour.iter().copied().find(|&j| rangs[j].2.as_ref() == Some(n)));
@@ -163,7 +163,7 @@ fn contrat_recu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
     let recu = booleen(charge, "recu", true);
     // `numero` (facultatif) dit QUEL contrat du jour : deux contrats du meme salarie peuvent commencer le meme jour.
-    let numero = charge.get("numero").filter(|v| vrai(v)).map(py_str);
+    let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
     contrat_recu_avec(o, ctx, mois, salarie, debut, numero.as_deref(), recu, "interface", None)
 }
 
@@ -223,7 +223,7 @@ pub(crate) fn contrat_recu_avec(
     let p = &paies[rang];
     // La ligne porte le numero du contrat tel que le journal le connait (celui de sa demande), a defaut le sien.
     let numero_note = if cles[rang][0].2.is_empty() { Value::Null } else { json!(cles[rang][0].2) };
-    let texte = |cle: &str| p.salarie.get(cle).filter(|v| vrai(v)).map(py_str);
+    let texte = |cle: &str| p.salarie.get(cle).filter(|v| vrai(v)).map(valeur_en_texte);
     let prenom = texte("prenom_affichage").or_else(|| texte("prenom")).unwrap_or_default();
     let nom = format!("{} {}", texte("nom").unwrap_or_default(), prenom);
     let mut detail = json!({
@@ -231,7 +231,7 @@ pub(crate) fn contrat_recu_avec(
         "numero": numero_note, "nom": nom,
     });
     let courriel = courriel.filter(|c| !c.is_empty());
-    let texte_du_courriel = |cle: &str, defaut: &str| courriel.and_then(|c| c.get(cle)).map_or_else(|| defaut.to_string(), py_str);
+    let texte_du_courriel = |cle: &str, defaut: &str| courriel.and_then(|c| c.get(cle)).map_or_else(|| defaut.to_string(), valeur_en_texte);
     let (reponse, quand, origine) = match courriel {
         Some(c) => {
             detail["origine"] = json!("courriel");
@@ -240,7 +240,7 @@ pub(crate) fn contrat_recu_avec(
             }
             (
                 format!("contrat signe par courriel ({}, {})", texte_du_courriel("code", "?"), texte_du_courriel("adresse", "?")),
-                c.get("quand").filter(|v| vrai(v)).map(py_str).unwrap_or_default(),
+                c.get("quand").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default(),
                 format!("courriel {}", texte_du_courriel("message", "?")),
             )
         }
@@ -280,7 +280,7 @@ pub(crate) fn contrat_recu_avec(
 fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
     let logiciel = charge.get("logiciel").filter(|v| vrai(v));
     let analytique = booleen(charge, "analytique", false);
-    let nom = logiciel.map(py_str).unwrap_or_default();
+    let nom = logiciel.map(valeur_en_texte).unwrap_or_default();
     if logiciel.is_some() {
         let connus = crate::routes_dossiers::logiciels_connus();
         if !connus.iter().any(|l| *l == nom) {
@@ -305,7 +305,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let vire_le = crate::routes_fiches::exiger(charge, "vire_le")?;
     let montant = crate::routes_fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
-    let qui = charge.get("qui").filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| "interface".to_string());
+    let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
     crate::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
 }
 
@@ -313,7 +313,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `charge[cle] or None` : un texte, ou rien.
 fn texte_ou_rien(charge: &Value, cle: &str) -> Option<String> {
-    charge.get(cle).filter(|v| vrai(v)).map(py_str)
+    charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
 }
 
 /// `operations_exports.exporter` : le verbe unique, `exporter <etat>`. Lit la charge (etat, mois, annee,

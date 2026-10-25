@@ -16,7 +16,7 @@ use socle::date::{d, Jour};
 use crate::engagement::charger;
 use socle::num::nombre;
 use socle::fichiers::{lire_json, repr};
-use socle::num::{add, dec_py, flottant, Decimal, Resultat};
+use socle::num::{add, dec_avec_echelle, flottant, Decimal, Resultat};
 
 /// Les constantes du decompte, lues dans les donnees livrees (catalogue et
 /// `annexes`), comme les constantes de module du Python.
@@ -296,7 +296,7 @@ fn ligne_historique(e: &Value) -> Resultat<Option<Engagement>> {
         return Ok(None);
     };
     let zero = Value::String("0".into());
-    let brut = dec_py(o.get("brut").unwrap_or(&zero))?;
+    let brut = dec_avec_echelle(o.get("brut").unwrap_or(&zero))?;
     let Some(heures_enseignement) = entier_py(o.get("heures_enseignement"), 0) else { return Ok(None) };
     Ok(Some(Engagement { salarie: salarie.clone(), debut, fin, numero_objet, heures, cachets, jours, brut, heures_enseignement }))
 }

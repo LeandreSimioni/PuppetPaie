@@ -1,8 +1,7 @@
 //! L'heure locale du poste : Europe/Paris, sans lire le fuseau du systeme.
 //!
-//! Le Python pose `TZ=Europe/Paris` (`moteur/__init__.py`), donc
-//! `datetime.fromtimestamp(mtime)` rend l'heure de Paris. Le moteur n'a pas de
-//! fuseau : il applique la regle de l'heure d'ete de l'Union europeenne
+//! Les dates et heures que le logiciel ecrit sont celles de Paris, quel que soit le fuseau du poste. Le moteur n'a pas
+//! de fuseau : il applique la regle de l'heure d'ete de l'Union europeenne
 //! (directive 2000/84/CE, art. 2 et 3, en vigueur a compter de 2002 ;
 //! `atelier/reference/sources/union-europeenne/eurlex-directive-2000-84-ce-heure-d-ete-20010202.txt`) :
 //! UTC+2 du dernier dimanche de mars (1 h UTC) au dernier dimanche d'octobre
@@ -44,7 +43,7 @@ pub fn iso_secondes(t: f64) -> String {
 }
 
 /// Les secondes locales de Paris d'un instant, apres l'arrondi a la
-/// microseconde que Python fait (au pair le plus proche).
+/// microseconde (au pair le plus proche).
 fn local_de(t: f64) -> (i64, i64) {
     let mut entier = t.trunc();
     let mut us = ((t - entier) * 1e6).round_ties_even();
@@ -60,8 +59,8 @@ fn local_de(t: f64) -> (i64, i64) {
     (utc + decalage(utc), utc)
 }
 
-/// `datetime.fromtimestamp(t).isoformat(timespec="minutes")` a l'heure de
-/// Paris : `AAAA-MM-JJTHH:MM`. Python arrondit la fraction de seconde a la
+/// Un instant a l'heure de
+/// Paris : `AAAA-MM-JJTHH:MM`. La fraction de seconde s'arrondit a la
 /// microseconde (au pair le plus proche) avant de tronquer aux minutes.
 pub fn iso_minutes(t: f64) -> String {
     let mut entier = t.trunc();
@@ -82,7 +81,7 @@ pub fn iso_minutes(t: f64) -> String {
     format!("{:04}-{:02}-{:02}T{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60)
 }
 
-/// `st_mtime` d'un fichier, comme Python le lit : les secondes et la fraction
+/// La date de modification d'un fichier : les secondes et la fraction
 /// en nanosecondes, additionnees en flottant.
 /// Hors Unix (Windows), la meme valeur par `modified()`.
 #[cfg(unix)]

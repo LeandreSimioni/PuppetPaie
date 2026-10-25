@@ -9,10 +9,10 @@ use crate::d28::P;
 pub use rust_decimal::Decimal;
 use serde_json::Value;
 
-/// Un refus du moteur : le message dit quoi faire, comme celui du Python.
+/// Un refus du moteur : le message dit quoi faire.
 pub type Resultat<T> = Result<T, String>;
 
-/// `Decimal(str(x))` pour un nombre JSON (entier ou flottant) ou une chaine.
+/// Le decimal d'un nombre JSON (entier ou flottant, par sa forme ecrite la plus courte) ou d'une chaine.
 pub fn dec(v: &Value) -> Resultat<Decimal> {
     match v {
         Value::Number(n) => {
@@ -36,12 +36,12 @@ pub fn illisible(t: &str) -> String {
     format!("nombre illisible : {}", crate::fichiers::repr(t))
 }
 
-/// `Decimal(str(x))` pour un flottant Python.
+/// Le decimal d'un flottant, par sa forme ecrite la plus courte.
 pub fn dec_f64(x: f64) -> Resultat<Decimal> {
     if !x.is_finite() {
         return Err(format!("nombre non fini : {}", x));
     }
-    // `str(1.0)` vaut "1.0" en Python : un flottant entier garde sa decimale.
+    // Un flottant entier garde sa decimale : `1.0`.
     let mut s = format!("{}", x);
     if !s.contains(['.', 'e', 'E']) && x.abs() < 1e16 {
         s.push_str(".0");
@@ -51,8 +51,8 @@ pub fn dec_f64(x: f64) -> Resultat<Decimal> {
         .map_err(|_| format!("nombre hors de portee : {}", s))
 }
 
-/// `Decimal(str(x))` : un flottant garde sa forme Python (`130.0`).
-pub fn dec_py(v: &Value) -> Resultat<Decimal> {
+/// Le decimal d'un nombre JSON dont un flottant garde son echelle (`130.0`).
+pub fn dec_avec_echelle(v: &Value) -> Resultat<Decimal> {
     match v {
         Value::Number(n) if n.as_i64().is_none() && n.as_u64().is_none() => {
             let s = crate::date::repr_flottant(n.as_f64().unwrap_or(f64::NAN));
@@ -64,7 +64,7 @@ pub fn dec_py(v: &Value) -> Resultat<Decimal> {
     }
 }
 
-/// `float(x)` d'une valeur JSON.
+/// Le flottant d'une valeur JSON (un nombre, ou un nombre ecrit en texte).
 pub fn flottant(v: &Value) -> Resultat<f64> {
     match v {
         Value::Number(n) => n.as_f64().ok_or_else(|| format!("nombre illisible : {}", n)),
@@ -73,18 +73,18 @@ pub fn flottant(v: &Value) -> Resultat<f64> {
     }
 }
 
-/// `util.eur` : deux decimales, la moitie toujours vers le haut (jamais au pair).
+/// Deux decimales, la moitie toujours vers le haut (jamais au pair).
 pub fn eur(x: Decimal) -> Decimal {
     x.round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero)
 }
 
-/// `util.pct` : un taux en pourcentage applique, arrondi au centime.
+/// Un taux en pourcentage applique, arrondi au centime.
 pub fn pct(base: Decimal, taux: Decimal) -> Decimal {
     eur(div(mul(base, taux), Decimal::ONE_HUNDRED))
 }
 
-/// `round(x, 3)` de Python sur un flottant (arrondi correct, au pair sur le
-/// demi exact) : passe par la chaine, comme CPython.
+/// Un flottant a trois decimales (arrondi correct, au pair sur le
+/// demi exact), par sa forme ecrite.
 pub fn round3(x: f64) -> f64 {
     format!("{:.3}", x).parse().unwrap_or(x)
 }
@@ -128,22 +128,22 @@ fn en_decimal(p: P) -> Decimal {
     Decimal::try_from_i128_with_scale(m, e.max(0) as u32).unwrap_or(Decimal::MAX)
 }
 
-/// `a * b` de `decimal` : 28 chiffres significatifs, au pair sur le demi.
+/// `a * b` a 28 chiffres significatifs, au pair sur le demi (`d28`).
 pub fn mul(a: Decimal, b: Decimal) -> Decimal {
     en_decimal(P::depuis(a).mul(P::depuis(b)))
 }
 
-/// `a / b` de `decimal`.
+/// `a / b` a 28 chiffres significatifs (`d28`).
 pub fn div(a: Decimal, b: Decimal) -> Decimal {
     en_decimal(P::depuis(a).div(P::depuis(b)))
 }
 
-/// `a + b` de `decimal`.
+/// `a + b` a 28 chiffres significatifs (`d28`).
 pub fn add(a: Decimal, b: Decimal) -> Decimal {
     en_decimal(P::depuis(a).add(P::depuis(b)))
 }
 
-/// `a - b` de `decimal`.
+/// `a - b` a 28 chiffres significatifs (`d28`).
 pub fn sub(a: Decimal, b: Decimal) -> Decimal {
     en_decimal(P::depuis(a).sub(P::depuis(b)))
 }
@@ -151,13 +151,13 @@ pub fn sub(a: Decimal, b: Decimal) -> Decimal {
 thread_local! {
     /// Pose : `nombre` garde l'echelle du nombre (`48.0`, `0.3230`), comme l'ecrivent les valeurs d'un contrat et le
     /// calcul que sert `service::calculer_avec` ; sinon il l'ecrit sous sa forme la plus courte.
-    pub static FIDELE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    pub static ECHELLE_GARDEE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
-/// Un montant en texte : sa forme la plus courte (`48`, `0.323`), ou son echelle quand `FIDELE` est pose ; « -0 »
+/// Un montant en texte : sa forme la plus courte (`48`, `0.323`), ou son echelle quand `ECHELLE_GARDEE` est pose ; « -0 »
 /// s'ecrit « 0 ».
 pub fn nombre(x: Decimal) -> String {
-    let s = if FIDELE.with(|f| f.get()) { x.to_string() } else { x.normalize().to_string() };
+    let s = if ECHELLE_GARDEE.with(|f| f.get()) { x.to_string() } else { x.normalize().to_string() };
     if s == "-0" {
         "0".into()
     } else {
@@ -190,7 +190,7 @@ mod tests {
         Decimal::from_str(s).unwrap()
     }
 
-    // Attendus relevés dans Python (`decimal`, 28 chiffres significatifs).
+    // L'arithmetique a 28 chiffres significatifs (`d28`).
     #[test]
     fn div_et_mul_sans_double_arrondi() {
         // 97/31 = 3.129032258064516129032258065 ; arrondi deux fois (28 decimales
@@ -204,8 +204,8 @@ mod tests {
 
     #[test]
     fn div_a_plus_de_28_decimales() {
-        // Python : 1/120 = 0.008333333333333333333333333333 (30 decimales) ;
-        // Decimal n'en porte que 28, la valeur est ramenee a 0.0083333333333333333333333333.
+        // 1/120 = 0.008333333333333333333333333333 a 28 chiffres significatifs (30 decimales) ;
+        // `rust_decimal` n'en porte que 28, la valeur est ramenee a 0.0083333333333333333333333333.
         assert_eq!(div(d("1"), d("120")).to_string(), "0.0083333333333333333333333333");
         assert_eq!(div(d("10000"), d("12")).to_string(), "833.3333333333333333333333333");
         assert_eq!(div(d("1"), d("3")).to_string(), "0.3333333333333333333333333333");

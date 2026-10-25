@@ -323,7 +323,7 @@ pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fic
         let debut = iso_depuis_jjmmaaaa(champ("date_embauche"));
         let nom_s = etats::getd(s, "nom", etats::texte_vide())?;
         let prenom = etats::ou(etats::get(s, "prenom_affichage")?, etats::getd(s, "prenom", etats::texte_vide())?);
-        let nom = format!("{} {}", socle::valeur::py_str(nom_s), socle::valeur::py_str(prenom));
+        let nom = format!("{} {}", socle::valeur::valeur_en_texte(nom_s), socle::valeur::valeur_en_texte(prenom));
         let nom = nom.trim_matches(socle::texte::blanc);
         let nom = if nom.is_empty() { "salarie inconnu de la configuration" } else { nom };
         let type_brut = champ("type_contrat").trim_matches(socle::texte::blanc);

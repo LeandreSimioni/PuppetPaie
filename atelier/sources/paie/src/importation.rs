@@ -559,7 +559,7 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
             let illisible = |illisibles: &mut Vec<String>| illisibles.push(format!("{} : un enregistrement illisible", nom));
             let nir: String = champ(&l, 375, 390).chars().take(13).collect();
             let (Some(debut), Some(fin)) =
-                (socle::date::strptime_aaaammjj(&champ(&l, 618, 626)), socle::date::strptime_aaaammjj(&champ(&l, 627, 635)))
+                (socle::date::lire_aaaammjj(&champ(&l, 618, 626)), socle::date::lire_aaaammjj(&champ(&l, 627, 635)))
             else {
                 illisible(&mut illisibles);
                 continue;
@@ -687,7 +687,7 @@ pub(crate) fn siren_de_reference(
     dsn: &std::collections::BTreeSet<String>,
     autres: &std::collections::BTreeSet<String>,
 ) -> Option<String> {
-    let s = fiche.get("siren").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::py_str).map(|s| s.trim().to_string());
+    let s = fiche.get("siren").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte).map(|s| s.trim().to_string());
     if let Some(s) = s.filter(|s| !s.is_empty()) {
         return Some(s);
     }

@@ -216,7 +216,7 @@ pub(crate) fn encoder(champs: &[(&str, String)]) -> String {
 pub(crate) fn en_texte(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
-        autre => socle::valeur::py_str(autre),
+        autre => socle::valeur::valeur_en_texte(autre),
     }
 }
 

@@ -62,7 +62,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let fins: Vec<Value> = r.get("fins").and_then(Value::as_array).cloned().unwrap_or_default();
         if json {
             // Le Python imprime la liste telle quelle, sans enveloppe.
-            dire!("{}", socle::ecriture::json_py(&Value::Array(fins), 2));
+            dire!("{}", socle::ecriture::json_indente(&Value::Array(fins), 2));
             return Ok(0);
         }
         if fins.is_empty() {
@@ -118,7 +118,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let avertissements: Vec<Value> = r.get("avertissements").and_then(Value::as_array).cloned().unwrap_or_default();
         if json {
             let sortie = json!({"fichier": r["fichier"], "ordre": r["ordre"], "type": r["type"], "avertissements": avertissements});
-            dire!("{}", socle::ecriture::json_py(&sortie, 2));
+            dire!("{}", socle::ecriture::json_indente(&sortie, 2));
             return Ok(0);
         }
         dire!("Signalement de fin de contrat ecrit : {}", champ(&r, "fichier"));
@@ -144,7 +144,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let avertissements: Vec<Value> = r.get("avertissements").and_then(Value::as_array).cloned().unwrap_or_default();
     if json {
         let sortie = json!({"certificat": r["certificat"], "recu": r["recu"], "avertissements": avertissements});
-        dire!("{}", socle::ecriture::json_py(&sortie, 2));
+        dire!("{}", socle::ecriture::json_indente(&sortie, 2));
         return Ok(0);
     }
     dire!("Certificat de travail        : {}", champ(&r, "certificat"));

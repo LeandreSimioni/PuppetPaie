@@ -27,7 +27,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -243,8 +243,8 @@ fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
 fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let base = crate::casc::base().map_err(Echec::from)?;
     let ent = &ctx.entreprise;
-    let idcc = ent.get("idcc").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    if idcc != py_str(&base["idcc"]) {
+    let idcc = ent.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    if idcc != valeur_en_texte(&base["idcc"]) {
         return Ok(None);
     }
     if !matches!(droit::bareme::casc_exemptee(ent), Ok(false)) {
@@ -260,12 +260,12 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     };
     for x in &liste {
         if let Some(m) = etats::get(x, "mois").ok().filter(|m| vrai(m)) {
-            dispo.insert(py_str(m));
+            dispo.insert(valeur_en_texte(m));
         }
     }
     dispo.extend(crate::routes_mois::mois_saisis(&ctx.racine));
-    let depuis = py_str(&base["depuis"]);
-    let contrat = py_str(&base["dsn"]["contrat"]);
+    let depuis = valeur_en_texte(&base["depuis"]);
+    let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
     let mut par_mois: Vec<(String, Decimal)> = Vec::new();
     for m in dispo.iter().filter(|m| **m >= depuis && !faits.contains(*m)) {
         let chemin = match crate::casc::dsn_deposee(ctx, m, None) {
@@ -280,7 +280,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
         let mut masse = socle::num::zero2();
         for v in d["versements"].as_array().into_iter().flatten() {
             let Some(brut) = v.get("brut").filter(|b| vrai(b)) else { continue };
-            let tb = py_str(brut);
+            let tb = valeur_en_texte(brut);
             let b = crate::apercu_dsn::decimal_py(&tb).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&tb)))?;
             masse += b;
         }
@@ -333,7 +333,7 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
         None => Some(String::new()),
         autre => texte(autre),
     };
-    let brut = e.get("brut").map_or("0".to_string(), py_str);
+    let brut = e.get("brut").map_or("0".to_string(), valeur_en_texte);
     Ok(match (texte(e.get("salarie")), texte(e.get("debut")), texte(e.get("fin")), objet) {
         (Some(a), Some(b), Some(c2), Some(d)) => Some((a, b, c2, d, h, c, j, brut)),
         _ => None,
@@ -351,7 +351,7 @@ fn lire_liste(chemin: &Path, cle: &str) -> R<Map<String, Value>> {
 }
 
 fn cle_paie(x: &Value) -> R<(String, String, String)> {
-    let k = |c: &str| x.get(c).map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c)));
+    let k = |c: &str| x.get(c).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c)));
     Ok((k("mois")?, k("salarie")?, k("contrat")?))
 }
 
@@ -402,7 +402,7 @@ fn completer_par(ligne: &mut Value, b: &Value) {
 /// salarie, debut et fin, qu'elle complete (une seule ; plusieurs : celle du meme mois, sinon rien ne se rapproche).
 /// Rend le nombre de paies de bulletin laissees a cote de plusieurs paies declarees.
 fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize {
-    let t = |x: &Value, k: &str| x.get(k).map(py_str).unwrap_or_default();
+    let t = |x: &Value, k: &str| x.get(k).map(valeur_en_texte).unwrap_or_default();
     let de_bulletin: Vec<(String, String, String)> = par_cle.iter().filter(|(_, x)| declaree_par_bulletin(x)).map(|(k, _)| k.clone()).collect();
     let mut ambigues = 0usize;
     for kb in de_bulletin {
@@ -523,7 +523,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &frais.salaries {
         if let Some(n) = s.get("nir").filter(|v| vrai(v)) {
-            par_nir.insert(py_str(n), cle.clone());
+            par_nir.insert(valeur_en_texte(n), cle.clone());
         }
     }
     let chemin_hist = ctx.racine.join("historique").join("engagements.json");
@@ -570,7 +570,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         contrats_bulletins += 1;
     }
     if contrats_aem + contrats_bulletins > 0 || !hist_existait {
-        let texte = |e: &Value, k: &str| e.get(k).map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
+        let texte = |e: &Value, k: &str| e.get(k).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
         let mut cles: Vec<((String, String, String), Value)> = Vec::new();
         for e in engagements {
             cles.push(((texte(&e, "debut")?, texte(&e, "fin")?, texte(&e, "salarie")?), e));
@@ -668,7 +668,7 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut reponse = Value::Object(std::mem::take(&mut imp.reponse));
     let mut avertissements: Vec<Value> = reponse["avertissements"].as_array().cloned().unwrap_or_default();
     avertissements.extend(garde.avertissements(true, false).into_iter().map(Value::String));
-    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(py_str).collect();
+    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
     if !differents.is_empty() {
         avertissements.push(json!(avertissement_differents(&differents, "l'export")));
     }
@@ -783,7 +783,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut avertissements: Vec<Value> =
         reponse["avertissements"].as_array().into_iter().flatten().filter(|a| !dit_les_non_repris(a)).cloned().collect();
     avertissements.extend(non_repris);
-    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(py_str).collect();
+    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
     if !differents.is_empty() {
         avertissements.push(json!(avertissement_differents(&differents, "ce dossier")));
     }

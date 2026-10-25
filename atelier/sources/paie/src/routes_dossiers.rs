@@ -43,8 +43,8 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::date::{d, repr_texte};
 use crate::etats::{getd, items, objet_vide, ou, texte_vide, Dico};
-use socle::valeur::py_repr;
-use socle::valeur::py_str;
+use socle::valeur::valeur_ecrite;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -89,12 +89,12 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// entre guillemets. Un `nom` qui n'est pas un texte se lit `str(nom)` et se
 /// montre `repr(nom)` dans la phrase.
 pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
-    let texte = py_str(nom);
+    let texte = valeur_en_texte(nom);
     ctx.salarie(&texte).map_err(|m| {
         let m = if m.starts_with("Salarie ") {
             let m = match nom {
                 Value::String(_) => m,
-                autre => m.replacen(&repr_texte(&texte), &py_repr(autre), 1),
+                autre => m.replacen(&repr_texte(&texte), &valeur_ecrite(autre), 1),
             };
             m
         } else {
@@ -131,7 +131,7 @@ fn arret_contrats(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// lus dans les saisies, du plus ancien debut au plus recent. Chacun : salarie, nom, numero, debut,
 /// fin, mois, spectacle.
 pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Value>> {
-    let cle_texte = py_str(cle);
+    let cle_texte = valeur_en_texte(cle);
     let mut sorties: Vec<(String, Value)> = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
     let mut mois = crate::routes_contrats::mois_saisis(ctx);
@@ -163,7 +163,7 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
                 Some(p) => p.clone(),
                 None => champ("prenom")?,
             };
-            let nom = format!("{} {}", py_str(&champ("nom")?), py_str(&prenom));
+            let nom = format!("{} {}", valeur_en_texte(&champ("nom")?), valeur_en_texte(&prenom));
             let ou_vide = |k: &str| e.get(k).filter(|x| vrai(x)).cloned().unwrap_or_else(|| json!(""));
             let mut o = Map::new();
             o.insert("salarie".into(), cle.clone());
@@ -240,8 +240,8 @@ fn salaries_de_la_page(ctx: &Contexte) -> Vec<Value> {
         .map(|(k, v)| {
             let nom = format!(
                 "{} {}",
-                py_str(v.get("nom").unwrap_or(texte_vide())),
-                py_str(ou(v.get("prenom_affichage").unwrap_or(&Value::Null), v.get("prenom").unwrap_or(texte_vide())))
+                valeur_en_texte(v.get("nom").unwrap_or(texte_vide())),
+                valeur_en_texte(ou(v.get("prenom_affichage").unwrap_or(&Value::Null), v.get("prenom").unwrap_or(texte_vide())))
             );
             json!({"cle": k, "nom": nom, "actif": v.get("actif").map_or(true, vrai), "email": v.get("email").is_some_and(vrai)})
         })
@@ -306,7 +306,7 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
 /// 3090 a une compagnie de la 1285, ni la dette de conges a qui n'emploie pas de
 /// permanents.
 fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
-    let idcc = py_str(ou(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), texte_vide()));
+    let idcc = valeur_en_texte(ou(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), texte_vide()));
     let t = tables();
     if let Some(liste) = t["si_convention"].get(etat) {
         if !idcc.is_empty() && !liste.as_array().expect("liste").iter().any(|c| c.as_str() == Some(idcc.as_str())) {
@@ -391,7 +391,7 @@ fn mettre_a_jour(cible: &mut Map<String, Value>, v: &Value) -> R<()> {
             for (i, el) in a.iter().enumerate() {
                 match el {
                     Value::Array(paire) if paire.len() == 2 => {
-                        cible.insert(py_str(&paire[0]), paire[1].clone());
+                        cible.insert(valeur_en_texte(&paire[0]), paire[1].clone());
                     }
                     Value::Array(paire) => {
                         return Err(erreur(
@@ -450,7 +450,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
     let nom_format = lim["nom"].as_str().expect("nom");
     let mut comptes: HashSet<String> = HashSet::new();
     for k in ["brut", "net", "pas"] {
-        comptes.insert(py_str(&compte_de(&plan, k)?));
+        comptes.insert(valeur_en_texte(&compte_de(&plan, k)?));
     }
     if let Some(lignes) = plan.get("lignes") {
         let vide = Map::new();
@@ -459,7 +459,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
             for k in ["charge", "tiers"] {
                 let v = getd(regle, k, &Value::Null)?;
                 if vrai(v) {
-                    comptes.insert(py_str(&regle[k]));
+                    comptes.insert(valeur_en_texte(&regle[k]));
                 }
             }
         }
@@ -471,7 +471,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
         for regle in retenues.values() {
             let v = getd(regle, "compte", &Value::Null)?;
             if vrai(v) {
-                comptes.insert(py_str(v));
+                comptes.insert(valeur_en_texte(v));
             }
         }
     }
@@ -491,7 +491,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
             Err(Refus::Autre(e)) => return Err(e),
         }
     }
-    let journal = py_str(plan.get("journal").unwrap_or(&json!("OD")));
+    let journal = valeur_en_texte(plan.get("journal").unwrap_or(&json!("OD")));
     let mut tries: Vec<&String> = comptes.iter().collect();
     tries.sort();
     for c in tries {
@@ -528,8 +528,8 @@ pub(crate) fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle:
         return Ok(String::new());
     }
     let code_brut = ou(salarie.get("code_salarie").unwrap_or(&Value::Null), texte_vide());
-    let code = entier_py(py_str(code_brut).trim());
-    let modele_texte = py_str(modele);
+    let code = entier_py(valeur_en_texte(code_brut).trim());
+    let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;
         // le reste (TypeError, AttributeError...) traverse comme en Python.
@@ -540,7 +540,7 @@ pub(crate) fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle:
                     "ErreurOperation",
                     format!(
                         "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `paie route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement que Python.",
-                        py_str(modele),
+                        valeur_en_texte(modele),
                         message
                     ),
                 ))
@@ -549,7 +549,7 @@ pub(crate) fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle:
         }
         Refus::Operation(format!(
             "Le modèle du compte individuel « {} » (net.par_salarie du plan comptable) ne se remplit pas pour {} : {}. Modèles possibles : « 421{{code:03}} », « 421{{cle}} ».",
-            py_str(modele),
+            valeur_en_texte(modele),
             cle,
             message
         ))

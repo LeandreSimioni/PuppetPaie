@@ -1,6 +1,6 @@
 //! Le refus du moteur, et la memoire de l'endroit ou il se construit.
 //!
-//! Un `Echec` porte sa phrase et, s'il y a lieu, sa classe (`KeyError`, `ErreurOperation`, `BadZipFile`...) que les
+//! Un `Echec` porte sa phrase et, s'il y a lieu, sa classe (`ErreurOperation`, `BadZipFile`...) que les
 //! routes rendent a la page. Chaque echec construit se note ici (l'endroit dans le code, le fil, l'instant) : la trace
 //! d'un refus de route (`diagnostic::trace_du_refus`) retrouve ou il est ne et ce qui l'a precede sur le meme fil.
 

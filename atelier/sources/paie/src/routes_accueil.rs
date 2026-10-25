@@ -26,7 +26,7 @@ use crate::champs;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use droit::emplois;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
@@ -130,7 +130,7 @@ pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Valu
 /// `str(x or "")`.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
-        Some(x) if vrai(x) => py_str(x),
+        Some(x) if vrai(x) => valeur_en_texte(x),
         _ => String::new(),
     }
 }
@@ -193,7 +193,7 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
                 if !vrai(&nom) {
                     continue;
                 }
-                if let Ok(s) = ctx.salarie(&py_str(&nom)) {
+                if let Ok(s) = ctx.salarie(&valeur_en_texte(&nom)) {
                     if let Some(c) = s.get("_cle").and_then(Value::as_str) {
                         trouves.insert(c.to_string());
                     }
@@ -245,7 +245,7 @@ pub(crate) fn signataire_de(ent: &Value) -> R<Value> {
     objet(s, "signataire")?;
     let lisible = |affichage: &str, brut: &str| -> String {
         match s.get(affichage).filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
+            Some(v) => valeur_en_texte(v),
             None => champs::titre(&texte_ou_vide(s.get(brut))),
         }
     };
@@ -587,7 +587,7 @@ pub(crate) fn preferences_metiers(racine: &Path) -> R<(Vec<String>, Vec<String>)
         return Ok((vec![], vec![]));
     }
     let v = lire_objet(&p)?;
-    let liste = |k: &str| -> Vec<String> { v.get(k).and_then(Value::as_array).map(|a| a.iter().map(py_str).collect()).unwrap_or_default() };
+    let liste = |k: &str| -> Vec<String> { v.get(k).and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default() };
     objet(&v, "metiers-ajoutes.json")?;
     Ok((liste("codes"), liste("retires")))
 }
@@ -607,7 +607,7 @@ pub(crate) fn metier_visible(m: &Value, idcc: &str, ajoutes: &[String], retires:
 }
 
 fn texte_de(m: &Value, k: &str) -> String {
-    m.get(k).map(py_str).unwrap_or_default()
+    m.get(k).map(valeur_en_texte).unwrap_or_default()
 }
 
 /// `metiers` : le catalogue des metiers, groupe par famille (les artistes en
@@ -637,8 +637,8 @@ pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Value> {
         let de: Vec<String> = conventions
             .iter()
             .map(|c| {
-                let cle = py_str(c);
-                format!("{} ({})", noms.get(&cle).map(py_str).unwrap_or_else(|| cle.clone()), cle)
+                let cle = valeur_en_texte(c);
+                format!("{} ({})", noms.get(&cle).map(valeur_en_texte).unwrap_or_else(|| cle.clone()), cle)
             })
             .collect();
         let de = de.join(", ");
@@ -655,7 +655,7 @@ pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Value> {
 fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     const SANS_NOTIFICATION: [&str; 5] = ["031", "043", "065", "083", "084"];
     const LICENCIEMENTS: [&str; 8] = ["014", "020", "087", "088", "091", "092", "095", "096"];
-    let m = if vrai(motif) { py_str(motif) } else { String::new() };
+    let m = if vrai(motif) { valeur_en_texte(motif) } else { String::new() };
     if m.is_empty() {
         return Ok(vec![]);
     }
@@ -725,8 +725,8 @@ fn natures(ctx: &Contexte) -> R<Value> {
         let (mut faits, mut signales) = (Map::new(), Map::new());
         for m in &motifs {
             let code = m.get("code").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
-            faits.insert(py_str(&code), json!(faits_de_rupture(n, &code)?));
-            signales.insert(py_str(&code), json!(n.signalement_fctu(Some(&py_str(&code)))));
+            faits.insert(valeur_en_texte(&code), json!(faits_de_rupture(n, &code)?));
+            signales.insert(valeur_en_texte(&code), json!(n.signalement_fctu(Some(&valeur_en_texte(&code)))));
         }
         sortie.push(json!({
             "cle": n.cle, "libelle": n.libelle,
@@ -823,7 +823,7 @@ fn conventions(ctx: &Contexte) -> R<Value> {
 fn urssaf_du_departement(base: &Value, dep: &str) -> String {
     let d = dep.trim().to_uppercase();
     let table = base.get("par_departement").and_then(Value::as_object);
-    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(py_str);
+    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(valeur_en_texte);
     lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
 }
 
@@ -859,7 +859,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
                 Some(p) => p,
                 None => v.get("prenom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?,
             };
-            Ok(json!({"cle": k, "libelle": format!("{} {}", py_str(nom), py_str(prenom))}))
+            Ok(json!({"cle": k, "libelle": format!("{} {}", valeur_en_texte(nom), valeur_en_texte(prenom))}))
         })
         .collect::<R<Vec<Value>>>()?;
     let spectacles = ctx

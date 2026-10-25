@@ -23,7 +23,7 @@ use socle::date::{en_texte, repr_texte, Jour};
 use crate::dpae::{Chemins, Embauche, Parametres};
 use crate::engagement;
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, vrai};
@@ -129,7 +129,7 @@ fn mois_dit(mois: &str) -> String {
 /// prenom, le NIR ne comptent pas). Un nom qui ne designe personne se refuse avec la phrase de `Contexte::salarie`.
 fn cle_du_salarie(ctx: &Contexte, nom: &str) -> R<String> {
     let fiche = crate::routes_dossiers::salarie(ctx, &json!(nom))?;
-    fiche.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
+    fiche.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
 }
 
 /// L'engagement de ce salarie (sa cle) qui se termine ce mois, et son rang dans la saisie. Un engagement se rattache a
@@ -154,14 +154,14 @@ fn paie_de_l_engagement(ctx: &Contexte, chemin: &Path, rang: usize, cle: &str, n
     let (data, mut paies) = crate::routes_dossier_salarie::charger(ctx, chemin).map_err(en_echec)?;
     let annee = data
         .get("mois")
-        .map(py_str)
+        .map(valeur_en_texte)
         .and_then(|m| m.chars().take(4).collect::<String>().parse::<i32>().ok())
         .ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     crate::routes_ouverture::numeroter(ctx, &mut paies, annee).map_err(en_echec)?;
     paies
         .into_iter()
         .nth(rang)
-        .filter(|p| p.salarie.get("_cle").map(py_str).as_deref() == Some(cle))
+        .filter(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
         .ok_or_else(|| refus(format!("{} n'a aucune paie calculee en {} pour ce contrat.", nom, mois_dit(mois))))
 }
 
@@ -301,7 +301,7 @@ fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<crate::fc
     let manque = crate::routes_listes::ce_qui_manque(ctx, e)?;
     if !manque.is_empty() {
         let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_else(|| "?".to_string());
-        let liste: Vec<String> = manque.iter().map(py_str).collect();
+        let liste: Vec<String> = manque.iter().map(valeur_en_texte).collect();
         return Err(refus(format!(
             "Contrat {} : le signalement de fin de contrat ne peut pas etre produit, la saisie ne dit pas tout.\n  {}",
             numero,
@@ -395,7 +395,7 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
 /// L'arret de ce salarie dont c'est le dernier jour travaille, dans le magasin des imprevus.
 fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value> {
     let cle = ctx.salarie(salarie).map_err(|m| erreur("KeyError", m))?;
-    let cle = cle.get("_cle").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
+    let cle = cle.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
     if vrai(dernier_jour) {
         let jour = crate::routes_imprevus::jour(dernier_jour)?;
         if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &cle, &jour)? {
@@ -491,7 +491,7 @@ fn arret_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
 /// La phrase qu'on lit en face d'une embauche deja declaree (`libelle_embauche_declaree`).
 fn libelle_embauche_declaree(cle: &str, debut: &str, e: &Value) -> R<String> {
     let quand = {
-        let t = e.get("quand").filter(|q| vrai(q)).map(py_str).unwrap_or_default();
+        let t = e.get("quand").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_default();
         let c: Vec<char> = t.chars().collect();
         if c.len() < 10 || c[4] != '-' || c[7] != '-' {
             t
@@ -509,7 +509,7 @@ fn libelle_embauche_declaree(cle: &str, debut: &str, e: &Value) -> R<String> {
     if e.get("refusee").map_or(false, vrai) {
         let mut vus: Vec<String> = Vec::new();
         for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let t = py_str(a);
+            let t = valeur_en_texte(a);
             if !vus.contains(&t) {
                 vus.push(t);
             }
@@ -565,7 +565,7 @@ fn latin1(octets: &[u8]) -> String {
 
 /// `urssaf.pour_entreprise` : le code Urssaf que la DPAE de cette compagnie porte.
 fn code_urssaf(ent: &Value) -> R<String> {
-    let ecrit = ent.get("code_urssaf").filter(|c| vrai(c)).map(py_str).unwrap_or_default();
+    let ecrit = ent.get("code_urssaf").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let ecrit = ecrit.trim();
     if !ecrit.is_empty() {
         return Ok(ecrit.to_string());
@@ -647,7 +647,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
     let sortie = ctx.racine.join("sorties").join(&mois);
     let aujourdhui = ctx.aujourdhui;
-    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(py_str).unwrap_or_default(), p.engagement.debut.iso()) };
+    let cle_de = |p: &Paie| -> (String, String) { (p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(), p.engagement.debut.iso()) };
 
     // Un contrat en cours depuis un mois precedent n'est pas une embauche de ce mois.
     let mut en_cours: Vec<&Paie> = Vec::new();
@@ -838,7 +838,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         let nom = p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
         let prenom = p.salarie.get("prenom_affichage").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom_affichage")))?;
         lignes.push(json!({
-            "salarie": format!("{} {}", py_str(nom), py_str(prenom)),
+            "salarie": format!("{} {}", valeur_en_texte(nom), valeur_en_texte(prenom)),
             "debut": p.engagement.debut.iso(),
             "heure": heure,
             "etat": etat,

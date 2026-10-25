@@ -32,7 +32,7 @@ use std::path::Path;
 use serde_json::Value;
 
 use droit::contexte::Contexte;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::releve_retours::{self, Client};
@@ -55,8 +55,8 @@ pub struct OrdreConnu {
 /// Le SIREN de l'entreprise : `siren`, sinon les neuf premiers chiffres du `siret`.
 fn siren(ent: &Value) -> String {
     match ent.get("siren").filter(|s| vrai(s)) {
-        Some(s) => py_str(s),
-        None => ent.get("siret").map(py_str).unwrap_or_default().chars().take(9).collect(),
+        Some(s) => valeur_en_texte(s),
+        None => ent.get("siret").map(valeur_en_texte).unwrap_or_default().chars().take(9).collect(),
     }
 }
 
@@ -98,7 +98,7 @@ fn dernier_ordre_des_essais(racine: &Path) -> Result<i64, Echec> {
     let mut dernier = 0;
     for l in lignes.iter().filter(|l| l.get("mode").and_then(Value::as_str) == Some("test")) {
         let detail = l.get("detail").cloned().unwrap_or(Value::Null);
-        let nature = detail.get("nature").map(py_str).unwrap_or_default();
+        let nature = detail.get("nature").map(valeur_en_texte).unwrap_or_default();
         if !crate::depot::SIGNALEMENTS.contains(&nature.as_str()) {
             continue;
         }

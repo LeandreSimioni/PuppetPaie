@@ -11,7 +11,7 @@ use crate::calcul::Paie;
 use crate::conges::{compteur_au_bulletin, CompteurConges};
 use droit::contexte::Contexte;
 use crate::cumul::{lire_engagements, tableau_cumul, Colonne};
-use socle::date::{d, dernier_du_mois, en_texte, repr_py, Jour};
+use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
 use droit::emplois;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
@@ -1222,7 +1222,7 @@ pub fn jeux_et_description(
             return Err(format!(
                 "licence_spectacle non resolue : elle vaut {}. Le numero change de date en date ; le resoudre au \
                  mois du bulletin avec Contexte.licence(), comme le fait operations_paies.produire_mois.",
-                repr_py(l)
+                forme_ecrite(l)
             ));
         }
     }

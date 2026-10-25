@@ -618,7 +618,7 @@ pub(crate) fn numeros_archives(chemin: &Path) -> Result<Vec<Lu>, Refus> {
 fn texte_fiche(sal: &Value, cle: &str) -> String {
     match sal.get(cle) {
         None => String::new(),
-        Some(v) => socle::valeur::py_str(v),
+        Some(v) => socle::valeur::valeur_en_texte(v),
     }
 }
 
@@ -639,7 +639,7 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
         par_prefixe.insert(format!("{}{}", texte_fiche(sal, "initiales_contrat"), texte_fiche(sal, "code_salarie")), cle.clone());
     }
     let cle_de = |p: &Paie| -> Result<String, Refus> {
-        p.salarie.get("_cle").map(socle::valeur::py_str).ok_or_else(|| Refus { classe: Some("KeyError"), message: socle::fichiers::absent("_cle") })
+        p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).ok_or_else(|| Refus { classe: Some("KeyError"), message: socle::fichiers::absent("_cle") })
     };
     let mut par_numero: HashMap<String, String> = HashMap::new();
     for p in paies.iter() {
@@ -771,7 +771,7 @@ fn saisie_aux_numeros_declares(o: &HashMap<String, String>, ctx: &Contexte, mois
 // ------------------------------------------------------------------ recapitulatif_dsn
 
 fn requis(v: &Value, cle: &str) -> Result<String, String> {
-    v.get(cle).map(socle::valeur::py_str).ok_or_else(|| socle::fichiers::absent(cle))
+    v.get(cle).map(socle::valeur::valeur_en_texte).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
@@ -881,7 +881,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
                     if attendu_emploi != Some(c.emploi.as_str()) {
                         let dit = match emploi {
                             None | Some(Value::Null) => "None".to_string(),
-                            Some(v) => socle::valeur::py_str(v),
+                            Some(v) => socle::valeur::valeur_en_texte(v),
                         };
                         ecarts.push(format!("emploi : la paie dit {}, le fichier {}", dit, c.emploi));
                     }
@@ -919,7 +919,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
         let p = &liste[par_numero[n]];
         let nom = requis(&p.salarie, "nom")?;
         let prenom = match p.salarie.get("prenom_affichage") {
-            Some(v) if vrai(v) => socle::valeur::py_str(v),
+            Some(v) if vrai(v) => socle::valeur::valeur_en_texte(v),
             _ => requis(&p.salarie, "prenom")?,
         };
         absents.push(json!({

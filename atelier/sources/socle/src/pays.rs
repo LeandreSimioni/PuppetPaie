@@ -1,5 +1,5 @@
 //! La liste des pays qu'une fiche salarie choisit : pays de naissance (`pays_naissance`, `S21.G00.30.015`) et pays de
-//! nationalite (`pays_nationalite`, d'ou se deduit `S21.G00.30.013`). Vague 1k, 10/10/2026.
+//! nationalite (`pays_nationalite`, d'ou se deduit `S21.G00.30.013`).
 //!
 //! LA LISTE est `logiciel/donnees/pays-base.json`, lue dans le Code officiel geographique de l'INSEE au 1er janvier
 //! 2026, fichier « Pays et territoires etrangers »
@@ -10,11 +10,11 @@
 //! LA NORME (cahier technique DSN 2026.1, p. 173, `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 297-303) :
 //! « Le Code pays de naissance est à déterminer dans la table "Codes Pays" ISO 3166-1-A2 » ; « X [2,2] Table Pays ».
 //!
-//! LE PAYS DE NAISSANCE (`S21.G00.30.015`) se lit, depuis le 11/10/2026 (lot R2), dans LA TABLE « PAYS » DE LA DSN,
+//! LE PAYS DE NAISSANCE (`S21.G00.30.015`) se lit dans LA TABLE « PAYS » DE LA DSN,
 //! livree dans `logiciel/donnees/pays-dsn-base.json` : la nomenclature NEODeS de net-entreprises du 24/09/2026
 //! (`atelier/reference/sources/dsn-nomenclatures/tables-PAYS-et-PAY-20260924.txt`, `LISEZ-MOI.md` a cote), 274 codes,
 //! les 213 du COG et 61 de plus (XK Kosovo, les Etats disparus : SU URSS, YU Yougoslavie, CS Tchecoslovaquie... ; les
-//! territoires et les DROM-COM). Avant, le COG en tenait lieu (une inference) et un ne au Kosovo refusait.
+//! territoires et les DROM-COM) : un ne au Kosovo se declare.
 //! LE PAYS DE NATIONALITE garde la liste du COG : la DSN n'en declare que la codification UE (`30.013`), qui se deduit
 //! du pays ou de son pays de rattachement, et la table « Pays » ne dit ni l'un ni l'autre.
 //!
@@ -43,7 +43,7 @@ pub struct Pays {
 
 /// Une table livree, lue et construite une fois tant que son fichier ne change pas (chemin, date, taille) ; servie du
 /// cache, elle se note quand meme au registre d'un calcul suivi. La fiche d'un salarie la consulte a chaque champ, et
-/// l'ecran recoit la liste triee (ticket #244 : `etat` la reconstruisait des centaines de fois).
+/// l'ecran recoit la liste triee.
 type Garde<T> = Mutex<Option<(PathBuf, Option<(u128, u64)>, Arc<Vec<T>>)>>;
 
 fn garde<T>(cache: &'static OnceLock<Garde<T>>, nom: &str, construire: impl Fn(&Value) -> Resultat<Vec<T>>) -> Resultat<Arc<Vec<T>>> {
@@ -104,7 +104,7 @@ pub fn inconnu(quoi: &str, code: &str) -> String {
 }
 
 /// La phrase d'un pays de nationalite qui n'est pas dans la liste : il s'ecrit a part, et la nationalite DSN se choisit
-/// (vague 2h, `codification_ue::codification_ue`).
+/// (`codification_ue::codification_ue`).
 pub fn inconnu_nationalite(quoi: &str, code: &str) -> String {
     format!(
         "{} S'il n'y est pas, l'écrire dans « Pays de nationalité absent de la liste », laisser « Pays de nationalité » \

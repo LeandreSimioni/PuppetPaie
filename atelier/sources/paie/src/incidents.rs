@@ -34,8 +34,8 @@ use serde_json::{json, Map, Value};
 use crate::editeur::{Client, ErreurFilet};
 use socle::ecriture::ecrire_json;
 use crate::etats::{get};
-use socle::valeur::eq_py;
-use socle::valeur::py_str;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -405,7 +405,7 @@ pub fn depuis_exception(racine: &Path, classe: &str, message: &str, nature: Opti
 
 /// `str(x)` (`None` n'est pas ici un texte : voir l'appelant).
 fn texte_de(v: &Value) -> String {
-    py_str(v)
+    valeur_en_texte(v)
 }
 
 /// `_fichier_court` : « http://hote:7331/interface.js?v=3 » -> « interface.js ».
@@ -550,7 +550,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
         let regroupe = se_regroupe(get(&l, "quoi")?);
         let cle = if regroupe { Some(get(&l, "empreinte")?.clone()) } else { None };
         let existant = match &cle {
-            Some(c) => paquets.iter().position(|(k, _)| k.as_ref().is_some_and(|k| eq_py(k, c))),
+            Some(c) => paquets.iter().position(|(k, _)| k.as_ref().is_some_and(|k| valeurs_egales(k, c))),
             None => None,
         };
         let quand = get(&l, "quand")?.clone();
@@ -577,7 +577,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
                 p.insert("derniere".into(), quand);
                 let version = get(&l, "version")?.clone();
                 if let Some(Value::Array(vs)) = p.get_mut("versions") {
-                    if !vs.iter().any(|v| eq_py(v, &version)) {
+                    if !vs.iter().any(|v| valeurs_egales(v, &version)) {
                         vs.push(version);
                     }
                 }
@@ -585,7 +585,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
                 if vrai(cav) {
                     for c in crate::etats::items(cav)? {
                         if let Some(Value::Array(cs)) = p.get_mut("caviarde") {
-                            if !cs.iter().any(|x| eq_py(x, &c)) {
+                            if !cs.iter().any(|x| valeurs_egales(x, &c)) {
                                 cs.push(c.into_owned());
                             }
                         }
@@ -615,7 +615,7 @@ pub fn marquer_envoye(racine: &Path, empreintes: &[Value]) -> usize {
     let mut n = 0;
     for l in toutes.iter_mut() {
         let porte = match l.get("empreinte") {
-            Some(e) => empreintes.iter().any(|v| eq_py(v, e)),
+            Some(e) => empreintes.iter().any(|v| valeurs_egales(v, e)),
             None => false,
         };
         if l.is_object() && porte && matches!(etat_d_envoi(l), Ok(Some(e)) if e == EN_ATTENTE) {
@@ -891,7 +891,7 @@ fn serveur_propre(racine: &Path) -> R<String> {
     let e = crate::filet::lire_etat(racine)?;
     let compte = get(&e, "compte")?;
     let compte = if vrai(compte) { compte.clone() } else { json!({}) };
-    let texte = |v: &Value| if vrai(v) { py_str(v) } else { String::new() };
+    let texte = |v: &Value| if vrai(v) { valeur_en_texte(v) } else { String::new() };
     let s = get(&e, "serveur")?;
     Ok(if vrai(s) { texte(s) } else { texte(get(&compte, "serveur")?) })
 }
@@ -920,7 +920,7 @@ pub fn configuration(racine: &Path) -> R<Option<(String, PathBuf)>> {
     }
     let e = std::fs::read(logiciel.join(FICHIER_EDITEUR)).ok().and_then(|o| String::from_utf8(o).ok()).and_then(|t| serde_json::from_str::<Value>(&t).ok());
     match e {
-        Some(Value::Object(d)) => match d.get("serveur").filter(|v| vrai(v)).map(py_str) {
+        Some(Value::Object(d)) => match d.get("serveur").filter(|v| vrai(v)).map(valeur_en_texte) {
             Some(s) => Ok(Some((s, racine.to_path_buf()))),
             None => Ok(Some((crate::editeur::SERVEUR_PAR_DEFAUT.to_string(), racine.to_path_buf()))),
         },
@@ -961,7 +961,7 @@ fn marquer(racine: &Path, cles: &[(Value, Value)]) -> R<usize> {
     for l in toutes.iter_mut() {
         let empreinte = get(l, "empreinte")?.clone();
         let q = get(l, "quand")?.clone();
-        if cles.iter().any(|(e, w)| eq_py(e, &empreinte) && eq_py(w, &q)) && etat_d_envoi(l)? == Some(EN_ATTENTE.to_string()) {
+        if cles.iter().any(|(e, w)| valeurs_egales(e, &empreinte) && valeurs_egales(w, &q)) && etat_d_envoi(l)? == Some(EN_ATTENTE.to_string()) {
             l["envoi"] = json!({"etat": DEPOSE, "quand": quand});
             n += 1;
         }

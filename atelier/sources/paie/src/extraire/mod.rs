@@ -42,7 +42,7 @@ pub struct Releve {
 impl Releve {
     /// Les octets du fichier : `json.dump(donnees, ensure_ascii=False, indent=n)`, en LF.
     pub fn octets(&self) -> Vec<u8> {
-        let mut t = socle::ecriture::json_py(&self.donnees, self.indent);
+        let mut t = socle::ecriture::json_indente(&self.donnees, self.indent);
         if self.saut_final {
             t.push('\n');
         }
@@ -183,7 +183,7 @@ pub(crate) fn nfc(texte: &str) -> String {
 pub(crate) fn propre(c: &Option<socle::lecture_xlsx::Cellule>) -> String {
     match c {
         None => String::new(),
-        Some(c) => nfc(&blancs_ramenes(&c.py_str())),
+        Some(c) => nfc(&blancs_ramenes(&c.en_texte())),
     }
 }
 

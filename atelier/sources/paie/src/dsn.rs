@@ -19,7 +19,7 @@ use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::{contrat_court, Nature};
 use socle::date::{en_texte, Jour};
 use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, vrai};
-use socle::num::{add, dec, dec_py, div, eur, mul, pct, sub, Decimal, Resultat};
+use socle::num::{add, dec, dec_avec_echelle, div, eur, mul, pct, sub, Decimal, Resultat};
 use droit::pas::{self, Triplet, ZONE_DEFAUT};
 
 pub const LOGICIEL: &str = "PUPPETPAIE";
@@ -536,12 +536,12 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     out.insert("brut_cs".into(), ou("brut_cs", Ok(p.brut))?);
     out.insert("csg".into(), p.base_csg);
     if !b.contains_key("brut_x115") {
-        out.insert("brut_x115".into(), eur(mul(p.brut, dec_py(req(bar, "majoration_conges_115")?)?)));
+        out.insert("brut_x115".into(), eur(mul(p.brut, dec_avec_echelle(req(bar, "majoration_conges_115")?)?)));
     } else {
         out.insert("brut_x115".into(), b["brut_x115"]);
     }
     if !b.contains_key("brut_x110") {
-        out.insert("brut_x110".into(), eur(mul(p.brut, dec_py(req(bar, "majoration_conges_110")?)?)));
+        out.insert("brut_x110".into(), eur(mul(p.brut, dec_avec_echelle(req(bar, "majoration_conges_110")?)?)));
     } else {
         out.insert("brut_x110".into(), b["brut_x110"]);
     }
@@ -549,7 +549,7 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     if vrai(g(bar, "plafond_journalier")) {
         let v = match b.get("t1_journaliere") {
             Some(x) => *x,
-            None => p.brut.min(eur(mul(dec_py(&bar["plafond_journalier"])?, Decimal::from(p.engagement.jours)))),
+            None => p.brut.min(eur(mul(dec_avec_echelle(&bar["plafond_journalier"])?, Decimal::from(p.engagement.jours)))),
         };
         out.insert("t1_journaliere".into(), v);
     }
@@ -711,9 +711,9 @@ pub fn cotisations(p: &Paie, bar: &Value) -> Resultat<Vec<Cotisation>> {
             l.base81 = Some(b);
             l.taux = Some(c["taux"].clone());
             l.montant = Some(if vrai(g(c, "composants")) {
-                liste(&c["composants"]).iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_py(t)?))))?
+                liste(&c["composants"]).iter().try_fold(zero(), |s, t| Ok::<_, String>(add(s, pct(b, dec_avec_echelle(t)?))))?
             } else {
-                pct(b, dec_py(&c["taux"])?)
+                pct(b, dec_avec_echelle(&c["taux"])?)
             });
         }
         let unifie = l.code81 == AGIRC_ARRCO_UNIFIE;
@@ -1348,7 +1348,7 @@ fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar:
                     "Convention {} : le {} se declare en DSN depuis {}, sous une adhesion Audiens de la compagnie, et \
 config/organismes.json n'en a pas (`adhesions_prevoyance`, une entree avec \"contribution\": \"{}\", sa \"reference\" et \
 son \"libelle\" tels que la fiche de parametrage Audiens les donne). Elle ne se devine pas. Rien n'est ecrit.",
-                    socle::date::repr_py(g(ent, "idcc")).trim_matches('\''),
+                    socle::date::forme_ecrite(g(ent, "idcc")).trim_matches('\''),
                     nom,
                     en_texte(g(spec, "en_dsn_depuis")),
                     nom
@@ -1735,7 +1735,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     si_admise(f, nature_dsn, "S21.G00.40.039", nat.code("S21.G00.40.039"))?;
     if ecrit_atmp {
         si_admise(f, nature_dsn, "S21.G00.40.040", Some(en_texte(&atmp["code_risque"])))?;
-        si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_py(&atmp["valeur"])?, 2)))?;
+        si_admise(f, nature_dsn, "S21.G00.40.043", Some(fmt_f(dec_avec_echelle(&atmp["valeur"])?, 2)))?;
     }
     licence_du_contrat(f, nature_dsn, ent, nat.ecrit("S21.G00.40.050"))?;
     if nat.ecrit("S21.G00.40.050") && usage_admet(f, "S21.G00.40.050", nature_dsn)? {
@@ -2031,7 +2031,7 @@ pub fn autre_revenu(f: &mut Fichier, p: &Paie, bar: &Value, debut: &Jour, fin: &
         } else {
             let k = if supp.get("base").is_some() { en_texte(&supp["base"]) } else { "brut".into() };
             let base_54 = bases(p, &bp)?.get(&k).copied().unwrap_or(p.brut);
-            pct(base_54, dec_py(req(supp, "taux_sur_brut")?)?)
+            pct(base_54, dec_avec_echelle(req(supp, "taux_sur_brut")?)?)
         };
         let montant = rond(montant);
         if montant.is_zero() {
@@ -2175,7 +2175,7 @@ pub fn bases_et_cotisations(
         }
         if let (Some(_), Some(t)) = (&org, &c.taux) {
             if !t.is_null() {
-                f.add("S21.G00.81.007", fmt_f(dec_py(t)?, 3));
+                f.add("S21.G00.81.007", fmt_f(dec_avec_echelle(t)?, 3));
             }
         }
     }
@@ -2216,7 +2216,7 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     if en_texte(&type_taux) == "01" {
         f.add_v("S21.G00.50.008", &identifiant)?;
     }
-    f.add("S21.G00.50.009", mt(pct(soumis, dec_py(&taux)?)));
+    f.add("S21.G00.50.009", mt(pct(soumis, dec_avec_echelle(&taux)?)));
     f.add("S21.G00.50.013", mt(soumis));
 
     // Un mois decoupe (lot R10) : les remunerations de chaque periode elementaire, datees de ses bornes (« La periode a
@@ -2456,7 +2456,7 @@ fn bloc_regularisation(
         f.add_v("S21.G00.50.008", &identifiant)?;
     }
     let indu = d_ni < Decimal::ZERO;
-    f.add("S21.G00.50.009", if indu { "0.00".into() } else { mt(pct(soumis, dec_py(&taux)?)) });
+    f.add("S21.G00.50.009", if indu { "0.00".into() } else { mt(pct(soumis, dec_avec_echelle(&taux)?)) });
     f.add("S21.G00.50.013", if indu { "0.00".into() } else { mt(soumis) });
 
     annuler_le_declare(f, r, &["51", "53"])?;
@@ -2909,7 +2909,7 @@ le taux notifie par l'Assurance Maladie (Configuration > Entreprise). Rien n'est
         }
         return Ok(en_texte(&ctp["taux_at"]));
     }
-    let mut valeur = dec_py(g(g(bar, "taux_atmp"), "valeur"))?;
+    let mut valeur = dec_avec_echelle(g(g(bar, "taux_atmp"), "valeur"))?;
     if txt(g(ctp, "statut")) == "artiste" {
         valeur = mul(valeur, Decimal::new(70, 2));
     }
@@ -3501,7 +3501,7 @@ config/organismes.json. Rien n'est ecrit : corrigez celui qui est faux.",
 fn montant_versement(v: &Value, totaux: &[(String, Decimal)], brut_mois: Decimal) -> Resultat<Decimal> {
     let regle = g(v, "montant");
     if vrai(regle) && txt(g(regle, "mode")) == "taux_sur_brut" {
-        let m = div(mul(brut_mois, dec_py(req(regle, "taux")?)?), Decimal::ONE_HUNDRED);
+        let m = div(mul(brut_mois, dec_avec_echelle(req(regle, "taux")?)?), Decimal::ONE_HUNDRED);
         return Ok(if txt(g(regle, "arrondi")) == "euro" { rond(m) } else { eur(m) });
     }
     req(v, "codes81")?;
@@ -3881,7 +3881,7 @@ fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Valu
         .find(|c| txt(g(c, "code81")) == "075" && vrai(g(c, "org")))
         .map(|c| en_texte(&c["org"]))
         .unwrap_or_else(|| "78861779300013".into());
-    let montant = div(mul(assiette, dec_py(&sec["taux"])?), Decimal::ONE_HUNDRED)
+    let montant = div(mul(assiette, dec_avec_echelle(&sec["taux"])?), Decimal::ONE_HUNDRED)
         .round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
     Ok(Some(SoldeTa { annee, assiette, montant, org }))
 }

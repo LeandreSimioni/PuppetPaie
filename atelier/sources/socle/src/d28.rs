@@ -184,7 +184,7 @@ impl P {
         }
     }
 
-    /// `util.eur` : deux decimales, la moitie vers le haut.
+    /// Deux decimales, la moitie vers le haut.
     pub fn eur2(self) -> P {
         if self.e > 2 {
             let p = 10i128.pow((self.e - 2) as u32);
@@ -210,8 +210,8 @@ impl P {
         self == self.plancher()
     }
 
-    /// `max(a, b)` de Python : le premier a egalite.
-    pub fn max_py(self, o: P) -> P {
+    /// Le plus grand des deux ; le premier a egalite.
+    pub fn max_premier(self, o: P) -> P {
         if o > self {
             o
         } else {
@@ -219,8 +219,8 @@ impl P {
         }
     }
 
-    /// `min(a, b)` de Python : le premier a egalite.
-    pub fn min_py(self, o: P) -> P {
+    /// Le plus petit des deux ; le premier a egalite.
+    pub fn min_premier(self, o: P) -> P {
         if o < self {
             o
         } else {

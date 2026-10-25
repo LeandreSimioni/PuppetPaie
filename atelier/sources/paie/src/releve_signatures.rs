@@ -40,7 +40,7 @@ use crate::courriel::{self, Client, Courriel};
 use crate::courriel_lecture as lecture;
 use crate::envoi::{self, Message};
 use crate::etats;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -141,7 +141,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 pub fn route_avec(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, client: Option<&mut dyn Courriel>) -> R<Value> {
     match nom {
         "signatures-relever" => {
-            let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(py_str);
+            let texte = |cle: &str| charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte);
             let mois = texte("mois");
             let qui = texte("qui").unwrap_or_else(|| "interface".to_string());
             Ok(relever_signatures(o, ctx, client, mois.as_deref(), &qui)?.en_json())
@@ -164,7 +164,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
     let envoyes = crate::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues.as_array().into_iter().flatten() {
-        let quand = a.get("quand").map(py_str).unwrap_or_default();
+        let quand = a.get("quand").map(valeur_en_texte).unwrap_or_default();
         let age = crate::releve_retours::naif_de_iso(&quand).map_or(0, |t| maintenant_naif - t);
         if age < delai {
             continue;
@@ -202,12 +202,12 @@ pub fn relever_signatures_fictive(o: &HashMap<String, String>, ctx: &Contexte, d
 // ------------------------------------------------------------------ la releve
 
 fn texte_de(d: &Value, cle: &str) -> String {
-    d.get(cle).map(py_str).unwrap_or_default()
+    d.get(cle).map(valeur_en_texte).unwrap_or_default()
 }
 
 /// `a["envoyes"]` : les `Message-ID` de NOS envois pour cette demande.
 fn identifiants_de(a: &Value) -> Vec<String> {
-    a.get("envoyes").and_then(Value::as_array).map(|l| l.iter().map(py_str).collect()).unwrap_or_default()
+    a.get("envoyes").and_then(Value::as_array).map(|l| l.iter().map(valeur_en_texte).collect()).unwrap_or_default()
 }
 
 /// `x.get(cle) or y` : la valeur de `x` quand elle est vraie, sinon celle de `y` (ou `null`).
@@ -220,7 +220,7 @@ fn ou_valeur(x: &Value, y: &Value, cle: &str) -> Value {
 
 /// `x.get(cle) or defaut`, en texte.
 fn texte_ou(x: &Value, cle: &str, defaut: &str) -> String {
-    x.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| defaut.to_string())
+    x.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| defaut.to_string())
 }
 
 #[track_caller]
@@ -438,7 +438,7 @@ pub fn relever_signatures(o: &HashMap<String, String>, ctx: &Contexte, client: O
                 spectacles.push(s);
             }
         }
-        let numeros: Vec<String> = contrats.iter().map(|c| py_str(&ou_valeur(c, a, "avenant"))).collect();
+        let numeros: Vec<String> = contrats.iter().map(|c| valeur_en_texte(&ou_valeur(c, a, "avenant"))).collect();
         let (sujet, quoi) = if est_avenant {
             (
                 format!("{} - {}", if nb == 1 { "Ton avenant signé" } else { "Tes avenants signés" }, spectacles[0]),

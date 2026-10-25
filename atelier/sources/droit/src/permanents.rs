@@ -1,17 +1,16 @@
-//! Ce qu'un contrat permanent a de plus : conges, absences, fin de contrat
-//! (`moteur/permanents.py`).
+//! Ce qu'un contrat permanent a de plus : conges, absences, fin de contrat.
 //!
 //! Le module calcule, il ne decide pas : les nombres vivent dans
 //! `permanents-base.json`, avec l'article qui les porte.
 //!
-//! Les `dict` du Python sont des `serde_json::Value` ; un `Decimal` y est
+//! Les resultats sont des `serde_json::Value` ; un `Decimal` y est
 //! ecrit en chaine (`"149.66"`), un entier en nombre.
 
 use crate::natures::Nature;
 use socle::date::{jours_du_mois, Jour};
-use socle::feries::date_py;
+use socle::feries::date_ou_refus;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
-use socle::num::{add, sub, dec, dec_f64, dec_py, div, eur2, mul, zero2, Decimal, Resultat};
+use socle::num::{add, sub, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
 use rust_decimal::prelude::*;
 use serde_json::{json, Map, Value};
 use std::sync::Arc;
@@ -36,9 +35,9 @@ fn cle<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// `Decimal(str(x))` de la valeur d'une cle du fichier.
+/// Le decimal de la valeur d'une cle du fichier.
 fn nombre(v: &Value, k: &str) -> Resultat<Decimal> {
-    dec_py(cle(v, k)?)
+    dec_avec_echelle(cle(v, k)?)
 }
 
 fn entier(v: &Value) -> Resultat<i64> {
@@ -55,7 +54,7 @@ fn entier(v: &Value) -> Resultat<i64> {
     }
 }
 
-/// Un `Decimal` pour un dict : sa chaine, comme `str(Decimal)`.
+/// Un `Decimal` dans un resultat : sa chaine, a son echelle.
 fn dv(x: Decimal) -> Value {
     Value::String(x.to_string())
 }
@@ -97,8 +96,8 @@ pub fn periode_de_reference(jour: &Jour, entreprise: Option<&Value>) -> Resultat
     };
     let dj = entier(cle(r, "debut_jour")?)?;
     let an = if (jour.mois as i64, jour.jour as i64) >= (mois, dj) { jour.an } else { jour.an - 1 } as i64;
-    let debut = date_py(an, mois, dj)?;
-    let fin = date_py(an + 1, mois, dj)?.plus_jours(-1)?;
+    let debut = date_ou_refus(an, mois, dj)?;
+    let fin = date_ou_refus(an + 1, mois, dj)?.plus_jours(-1)?;
     Ok((debut, fin))
 }
 
@@ -275,7 +274,7 @@ pub fn raison_sans_preavis(motif_rupture: Option<&str>, cdd: bool) -> Resultat<O
         .map(str::to_string))
 }
 
-/// Ce que le texte fait du preavis non effectue, pour ce motif (`preavis.indemnite_compensatrice`, lot P1).
+/// Ce que le texte fait du preavis non effectue, pour ce motif (`preavis.indemnite_compensatrice`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IndemniteDePreavis {
     /// L1234-5, l'indemnite du salarie licencie : le motif n'est dans aucune des listes.
@@ -310,7 +309,7 @@ pub fn indemnite_de_preavis(motif_rupture: Option<&str>) -> Resultat<IndemniteDe
 /// La rubrique de la ligne qui paie le preavis non effectue, selon le motif : `preavis.indemnite_compensatrice.rubrique`
 /// (`indemnite_preavis`, DSN 52 « 023 »), sauf le motif qui a la sienne (`rubrique_par_motif` : le 092, L1226-14,
 /// `indemnite_preavis_inaptitude`, DSN 52 « 032 », cahier technique 2026.1 p. 253, `norme-dsn/texte/bloc-S21.G00.52.txt`).
-/// Le code du bloc 52 est celui de la rubrique : il suit le motif comme l'indemnite (lot P2).
+/// Le code du bloc 52 est celui de la rubrique : il suit le motif comme l'indemnite.
 pub fn rubrique_de_l_indemnite_de_preavis(motif_rupture: Option<&str>) -> Resultat<String> {
     let rg = regles()?;
     let ic = cle(cle(&rg, "preavis")?, "indemnite_compensatrice")?;
@@ -320,7 +319,7 @@ pub fn rubrique_de_l_indemnite_de_preavis(motif_rupture: Option<&str>) -> Result
     Ok(cle(ic, "rubrique")?.as_str().ok_or_else(|| socle::fichiers::absent("rubrique"))?.to_string())
 }
 
-// ------------------------------------------------ le delai de prevenance d'une fin d'essai (L1221-25, lot P2)
+// ------------------------------------------------ le delai de prevenance d'une fin d'essai (L1221-25)
 
 /// La section `preavis.delai_de_prevenance` si ce motif est le sien (034 : la fin d'essai a l'initiative de l'employeur),
 /// sinon `None` : le 035 (L1221-26) n'ouvre rien au salarie.

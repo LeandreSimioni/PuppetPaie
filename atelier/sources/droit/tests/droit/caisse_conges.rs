@@ -23,7 +23,7 @@ fn qui_est_declare_a_la_caisse() {
     assert!(affilie(&cdd, &comedien, &debut, Some(&trois_mois)).unwrap(), "un artiste en CDD de droit commun");
     assert!(!affilie(&cdd, &comedien, &debut, Some(&un_an)).unwrap(), "un CDD de douze mois");
     // Le technicien en CDD de droit commun : non declare tant que n'est pas decide quel technicien la caisse attend
-    // (l'annexe 8 range aussi l'attache de production parmi les techniciens ; PASSATION-V2f.md).
+    // (l'annexe 8 range aussi l'attache de production parmi les techniciens).
     assert!(!affilie(&cdd, &regisseur, &debut, Some(&trois_mois)).unwrap(), "un technicien en CDD de droit commun");
     assert!(affilie(&cddu, &regisseur, &debut, Some(&trois_mois)).unwrap(), "un technicien en CDDU");
     assert!(!affilie(&cdd, &sans_metier, &debut, Some(&trois_mois)).unwrap(), "un metier hors de la nomenclature");

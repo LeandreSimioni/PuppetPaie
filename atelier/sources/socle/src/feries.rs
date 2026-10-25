@@ -1,10 +1,10 @@
-//! Les jours feries et ceux qui sont chomes (`moteur/feries.py`).
+//! Les jours feries et ceux qui sont chomes.
 //!
 //! Un ferie n'est pas forcement chome : la loi ne rend chome d'office que
 //! le 1er mai. Le reste se lit dans la fiche entreprise
 //! (`jours_feries_chomes`). Les dates mobiles se comptent depuis Paques.
 //!
-//! Un `dict {date: nom}` devient `Jours`, une liste dans l'ordre d'insertion.
+//! `Jours` : la date et le nom de chaque jour, dans l'ordre du fichier livre.
 
 use crate::date::Jour;
 use crate::fichiers::{dossier_du_code, json_en_cache, repr};
@@ -12,11 +12,11 @@ use crate::num::Resultat;
 use serde_json::Value;
 use std::sync::Arc;
 
-/// `{date: nom}`, dans l'ordre d'insertion du dict Python.
+/// La date et le nom de chaque jour, une date une fois, dans l'ordre ou elle vient.
 pub type Jours = Vec<(Jour, String)>;
 
-/// `datetime.date(an, mois, jour)` avec les refus et messages de Python.
-pub fn date_py(an: i64, mois: i64, jour: i64) -> Resultat<Jour> {
+/// Le jour `an`-`mois`-`jour`, ou le refus qui dit ce qui ne va pas (l'annee, le mois, le jour).
+pub fn date_ou_refus(an: i64, mois: i64, jour: i64) -> Resultat<Jour> {
     if !(1..=9999).contains(&an) {
         return Err(crate::date::annee_impossible(an));
     }
@@ -74,7 +74,7 @@ pub fn paques(annee: i32) -> Resultat<Jour> {
     let l = (32 + 2 * e + 2 * i - h - k).rem_euclid(7);
     let m = (a + 11 * h + 22 * l).div_euclid(451);
     let t = h + l - 7 * m + 114;
-    date_py(an, t.div_euclid(31), t.rem_euclid(31) + 1)
+    date_ou_refus(an, t.div_euclid(31), t.rem_euclid(31) + 1)
 }
 
 /// Les onze fetes legales de l'annee.
@@ -88,7 +88,7 @@ pub fn feries(annee: i32) -> Resultat<Jours> {
             None => {
                 let mois = entier(j.get("mois").ok_or_else(|| crate::fichiers::absent("mois"))?, "mois")?;
                 let jr = entier(j.get("jour").ok_or_else(|| crate::fichiers::absent("jour"))?, "jour")?;
-                date_py(annee as i64, mois, jr)?
+                date_ou_refus(annee as i64, mois, jr)?
             }
         };
         inserer(&mut out, jour, nom);
@@ -122,7 +122,7 @@ pub fn chomes(annee: i32, entreprise: Option<&Value>) -> Resultat<Jours> {
     if dits.as_str() == Some("1er mai seulement") {
         return chomes_de_droit(annee);
     }
-    // `set(dits)` : une chaine se decoupe en caracteres, comme en Python.
+    // Un autre texte se lit caractere par caractere : aucun n'est le nom d'un ferie, rien n'est chome en plus.
     let voulus: Vec<String> = match dits {
         Value::String(s) => s.chars().map(|c| c.to_string()).collect(),
         Value::Array(a) => a

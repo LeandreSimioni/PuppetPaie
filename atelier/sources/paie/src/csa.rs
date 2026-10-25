@@ -126,7 +126,7 @@ pub fn taux(quotient: Decimal, plus_de_deux_mille: bool) -> Option<Decimal> {
 fn effectif_du_118(effectifs: &Value, annee: i32, code: &str) -> Resultat<Option<Decimal>> {
     match effectifs.get("annees").and_then(|a| a.get(annee.to_string())).and_then(|a| a.get(code)).and_then(|c| c.get("valeur")) {
         None | Some(Value::Null) => Ok(None),
-        Some(v) => Ok(Some(socle::num::dec_py(v)?)),
+        Some(v) => Ok(Some(socle::num::dec_avec_echelle(v)?)),
     }
 }
 

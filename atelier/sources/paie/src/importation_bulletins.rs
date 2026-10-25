@@ -49,7 +49,7 @@ use serde_json::{json, Map, Value};
 use crate::bulletin_lu::{self, BulletinLu, Compteurs, Refus, Table};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -339,7 +339,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     // 3. La compagnie : son Siren (`importation::siren_de_reference`, le meme pour l'export) -- la fiche, sinon les DSN
     // si elles n'en portent qu'un, sinon les bulletins et les AEM s'ils n'en portent qu'un. Une DSN, une AEM ou un
     // bulletin d'une autre entreprise n'est pas repris ; d'une DSN ou d'une AEM ecartee, RIEN n'est lu.
-    let siren_fiche = ctx.entreprise.get("siren").filter(|v| vrai(v)).map(py_str).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let siren_fiche = ctx.entreprise.get("siren").filter(|v| vrai(v)).map(valeur_en_texte).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
     let sirens_dsn: std::collections::BTreeSet<String> =
         pieces.iter().filter(|(_, aem, _)| !aem).flat_map(|(_, _, e)| e.sirens.iter().cloned()).collect();
     let mut sirens_autres: std::collections::BTreeSet<String> =
@@ -412,7 +412,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &ctx.salaries {
         if let Some(n) = s.get("nir").filter(|v| vrai(v)) {
-            par_nir.insert(py_str(n), cle.clone());
+            par_nir.insert(valeur_en_texte(n), cle.clone());
         }
     }
     let cle_de = |nir: &str| par_nir.get(nir).cloned().unwrap_or_else(|| A_CREER.to_string());
@@ -426,7 +426,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         .a_creer
         .iter()
         .filter(|a| a.nom == "salarie")
-        .filter_map(|a| a.donnees.get("nir").map(py_str))
+        .filter_map(|a| a.donnees.get("nir").map(valeur_en_texte))
         .collect();
 
     // Le sort des DSN et des AEM, avant que les bulletins ne completent les paies.
@@ -436,7 +436,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         if f.sorte == Sorte::Dsn {
             let mut n = 0usize;
             let mut nouveaux = 0usize;
-            for x in ap.paies.iter().filter(|x| x.get("fichier").map(py_str).as_deref() == Some(nom.as_str())) {
+            for x in ap.paies.iter().filter(|x| x.get("fichier").map(valeur_en_texte).as_deref() == Some(nom.as_str())) {
                 n += 1;
                 if !hist_par_cle.contains_key(&ri::cle_paie(x)?) {
                     nouveaux += 1;
@@ -515,7 +515,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
                     i
                 }
                 None => {
-                    let libelle = format!("{} {}", fiche.get("nom").map_or(String::new(), py_str), ri::titre_de(fiche.get("prenom")));
+                    let libelle = format!("{} {}", fiche.get("nom").map_or(String::new(), valeur_en_texte), ri::titre_de(fiche.get("prenom")));
                     liste.push(ri::fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({})));
                     liste.len() - 1
                 }
@@ -533,7 +533,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         }
         let donnees = fiche_salarie(nir, &siens)?;
         let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
-        let libelle = format!("{} {}", donnees.get("nom").map_or(String::new(), py_str), ri::titre_de(donnees.get("prenom")));
+        let libelle = format!("{} {}", donnees.get("nom").map_or(String::new(), valeur_en_texte), ri::titre_de(donnees.get("prenom")));
         let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
         ap.a_creer.push(ACreer { nom: "salarie", rang: Some(liste.len()), donnees: donnees.clone() });
         liste.push(ri::fiche_importee("salarie", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(donnees)));
@@ -547,7 +547,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             if reponse.get("entreprise").is_some_and(Value::is_object) {
                 fusionner_ecarts(&mut reponse["entreprise"], ec);
             } else {
-                let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), py_str);
+                let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), valeur_en_texte);
                 reponse.insert("entreprise".into(), ri::fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({})));
             }
             let champs = completer::champs_a_completer("entreprise", &ctx.entreprise, &fiche_entreprise(&lus, dernier)?)?;
@@ -560,7 +560,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         } else if reponse.get("entreprise").is_none_or(Value::is_null) {
             let e = fiche_entreprise(&lus, dernier)?;
             let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
-            let libelle = e.get("raison_sociale").map_or("?".to_string(), py_str);
+            let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             ap.a_creer.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             reponse.insert("entreprise".into(), ri::fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e)));
             nouvelles_fiches += 1;
@@ -570,7 +570,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     // 7. Les spectacles, par numero d'objet, avec leur titre quand le bulletin le donne.
     let mut connus: HashMap<String, String> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
-        connus.insert(sp.get("numero_objet").map_or(String::new(), py_str).to_uppercase(), cle.clone());
+        connus.insert(sp.get("numero_objet").map_or(String::new(), valeur_en_texte).to_uppercase(), cle.clone());
     }
     let mut par_objet: BTreeMap<String, Vec<usize>> = BTreeMap::new();
     for (k, l) in lus.iter().enumerate() {
@@ -592,7 +592,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             // celui du bulletin, comme une fiche que l'import cree (Leandre, 14/10/2026) ; un vrai titre saisi reste, et
             // l'ecart est seulement signale.
             if let (Some(t), Some(p)) = (&titre, porteur) {
-                let a = fiche.get("titre").map_or(String::new(), py_str);
+                let a = fiche.get("titre").map_or(String::new(), valeur_en_texte);
                 if !completer::vide(fiche.get("titre")) && compare(&a) != compare(t) {
                     ec.insert("titre".into(), json!({"fiche": a, "bulletin": t, "fichier": chemin_de(p), "page": p.page}));
                 }
@@ -612,7 +612,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
                     i
                 }
                 None => {
-                    let t = fiche.get("titre").map_or("?".to_string(), py_str);
+                    let t = fiche.get("titre").map_or("?".to_string(), valeur_en_texte);
                     liste.push(ri::fiche_importee("spectacle", Some(cle), &format!("{} ({})", t, numero), "existante", Value::Object(ec), Vec::new(), json!({})));
                     liste.len() - 1
                 }
@@ -623,7 +623,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         }
         let deja_la = liste.iter().position(|e| {
             e.get("etat").and_then(Value::as_str) == Some("a_creer")
-                && e.get("donnees").and_then(|d| d.get("numero_objet")).map(py_str).map(|n| n.to_uppercase()).as_deref() == Some(numero.as_str())
+                && e.get("donnees").and_then(|d| d.get("numero_objet")).map(valeur_en_texte).map(|n| n.to_uppercase()).as_deref() == Some(numero.as_str())
         });
         if let Some(rang) = deja_la {
             // Un objet que les DSN ou les AEM creent : le bulletin lui donne son titre.
@@ -670,7 +670,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     let mut index: HashMap<(String, String, String), Vec<(String, String, Cible)>> = HashMap::new();
     let mut vus: HashSet<(String, String, String)> = HashSet::new();
     for (k, x) in ap.paies.iter().enumerate() {
-        let t = |c: &str| x.get(c).map(py_str).unwrap_or_default();
+        let t = |c: &str| x.get(c).map(valeur_en_texte).unwrap_or_default();
         vus.insert((t("mois"), t("nir"), t("contrat")));
         index.entry((t("nir"), t("debut"), t("fin"))).or_default().push((t("mois"), t("contrat"), Cible::Dsn(k)));
     }
@@ -679,7 +679,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     // (`importation_ecrite::rapprocher`).
     let mut de_bulletin: HashSet<(String, String, String)> = HashSet::new();
     for x in &historique_paies {
-        let t = |c: &str| x.get(c).map(py_str).unwrap_or_default();
+        let t = |c: &str| x.get(c).map(valeur_en_texte).unwrap_or_default();
         if t("nir").is_empty() || !vus.insert((t("mois"), t("nir"), t("contrat"))) {
             continue;
         }
@@ -811,8 +811,8 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         let mut phrases: Vec<String> = vec![match (etat_paie, source) {
             ("deja", _) => "paie déjà dans l'historique".to_string(),
             ("nouvelle", _) => "paie nouvelle : aucune DSN ne la déclare".to_string(),
-            (_, "dsn") => format!("complète la paie déclarée en DSN ({})", py_str(&ligne["mois"])),
-            _ => format!("complète la paie de l'historique ({})", py_str(&ligne["mois"])),
+            (_, "dsn") => format!("complète la paie déclarée en DSN ({})", valeur_en_texte(&ligne["mois"])),
+            _ => format!("complète la paie de l'historique ({})", valeur_en_texte(&ligne["mois"])),
         }];
         if !ecarts.is_empty() {
             let gagnants: Vec<&str> = ecarts.iter().filter(|e| e.2).map(|e| e.0).collect();
@@ -1059,7 +1059,7 @@ fn infos_de(l: &Lu, salarie: Option<&str>) -> Map<String, Value> {
 /// Une fiche que l'import cree des DSN (`a_creer` ; un salarie par son NIR, ou l'entreprise), completee de ce que les
 /// bulletins impriment et qu'elle n'a pas ; ses anomalies se refont, et la reponse montre la fiche completee.
 fn completer_a_creer(a_creer: &mut [ACreer], reponse: &mut Map<String, Value>, nom: &str, nir: Option<&str>, proposees: &Map<String, Value>) -> R<()> {
-    let Some(a) = a_creer.iter_mut().find(|a| a.nom == nom && nir.is_none_or(|n| a.donnees.get("nir").map(py_str).as_deref() == Some(n))) else {
+    let Some(a) = a_creer.iter_mut().find(|a| a.nom == nom && nir.is_none_or(|n| a.donnees.get("nir").map(valeur_en_texte).as_deref() == Some(n))) else {
         return Ok(());
     };
     let champs = completer::champs_a_completer(nom, &Value::Object(a.donnees.clone()), proposees)?;
@@ -1139,7 +1139,7 @@ fn ecarts_salarie(fiche: &Value, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> 
         if !matches!(cle, "nom" | "prenom" | "date_naissance" | "num_conges_spectacles") {
             continue;
         }
-        let a = fiche.get(cle).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        let a = fiche.get(cle).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete.
         if completer::vide(fiche.get(cle)) || compare(&a) == compare(&lu) {
             continue;
@@ -1153,10 +1153,10 @@ fn ecarts_salarie(fiche: &Value, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> 
 /// (lot I2, 3g) la raison sociale, l'adresse, l'IDCC et le compte Urssaf -- ce que `fiche_entreprise` en lit.
 fn ecarts_entreprise(fiche: &Value, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
     let mut out = Map::new();
-    let t = |k: &str| fiche.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let t = |k: &str| fiche.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let siret_fiche = if t("siret").is_empty() { format!("{}{}", t("siren"), t("nic")) } else { t("siret") };
     let lue = fiche_entreprise(lus, l).unwrap_or_default();
-    let de = |k: &str| lue.get(k).filter(|v| vrai(v)).map(py_str);
+    let de = |k: &str| lue.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
     for (cle, a, lu) in [
         ("siret", siret_fiche, siret_lu(&l.b)),
         ("naf", t("naf"), l.b.entreprise.naf.clone()),
@@ -1233,9 +1233,9 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
     // code France Travail, le statut conventionnel), comme si on l'avait choisi dans la liste. Le statut et la qualite
     // de cadre imprimes priment sur ceux du catalogue. Un intitule qui ne nomme aucun metier, ou plusieurs, reste tel
     // quel : le metier se choisit dans la fiche apres l'import, et l'apercu le dit.
-    let intitule = f.get("emploi").map(py_str).unwrap_or_default();
+    let intitule = f.get("emploi").map(valeur_en_texte).unwrap_or_default();
     if let Some((code, feminin)) = droit::emplois::par_intitule(&intitule, compare).map_err(|m| erreur("ErreurOperation", m))? {
-        let cadre = f.get("statut_categoriel_rc").map(py_str).map(|s| s == "01");
+        let cadre = f.get("statut_categoriel_rc").map(valeur_en_texte).map(|s| s == "01");
         let r = droit::emplois::resoudre(&code, cadre, feminin).map_err(|m| erreur("ErreurOperation", m))?;
         for (k, v) in r.as_object().into_iter().flatten() {
             if v.is_null() || (k == "statut" && f.contains_key("statut")) {
@@ -1310,7 +1310,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
     let pas = b.pas.as_ref().and_then(|p| p.montant);
     for (champ, v) in [("brut", Some(b.brut)), ("net_imposable", b.net_imposable), ("net_a_payer", Some(b.net_a_payer)), ("pas", pas)] {
         let Some(v) = v else { continue };
-        let avant = ligne.get(champ).map(py_str).unwrap_or_default();
+        let avant = ligne.get(champ).map(valeur_en_texte).unwrap_or_default();
         let vide = avant.trim().is_empty();
         let differe = !vide && crate::apercu_dsn::decimal_py(avant.trim()).is_none_or(|a| a != v);
         if differe {
@@ -1321,7 +1321,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
         }
     }
     let objet = b.numero_objet.clone().unwrap_or_default();
-    let avant = ligne.get("numero_objet").map(py_str).unwrap_or_default();
+    let avant = ligne.get("numero_objet").map(valeur_en_texte).unwrap_or_default();
     if avant.trim().is_empty() {
         if !objet.is_empty() {
             ligne.insert("numero_objet".into(), json!(objet));
@@ -1329,7 +1329,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
     } else if !objet.is_empty() && avant.to_uppercase() != objet.to_uppercase() {
         ecarts.push(("numero_objet", avant, false, objet));
     }
-    if ligne.get("verse_le").map(py_str).unwrap_or_default().trim().is_empty() {
+    if ligne.get("verse_le").map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
         if let Some(r) = b.regle_le {
             ligne.insert("verse_le".into(), json!(r.iso()));
         }

@@ -1,9 +1,9 @@
-//! LE TEMPS DU MOTEUR (#236, phase 2) : l'horloge de la machine, ou un temps SIMULE, et les aleas qui vont avec.
+//! LE TEMPS DU MOTEUR : l'horloge de la machine, ou un temps SIMULE, et les aleas qui vont avec.
 //!
 //! Tout ce que le moteur ECRIT avec l'heure dedans -- le « quand » d'une ligne du journal, l'horodatage d'une DSN ou d'une
 //! DPAE, le nom d'un courriel joue, la sauvegarde d'une saisie dans `paies/avant/` -- lit l'heure ICI (`secondes`), et le
 //! jour qu'on est aussi (`contexte::aujourdhui`, `contexte::jour_reel`). Sur un poste, rien n'est jamais pose : c'est
-//! l'horloge de la machine, au meme prix qu'avant (un verrou libre, puis `SystemTime::now`).
+//! l'horloge de la machine, pour le prix d'un verrou libre puis de `SystemTime::now`.
 //!
 //! DEUX USAGES DE L'ATELIER, et eux seuls posent le temps (aucune variable d'environnement, aucune commande du binaire
 //! livre ne le fait) :

@@ -23,7 +23,7 @@ use crate::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::depot_acte::verifier_preuve;
 use crate::envoi::{self, Message};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::echec::Echec;
@@ -72,7 +72,7 @@ fn fin_de(p: &Paie) -> R<String> {
 }
 
 fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(py_str).unwrap_or_default()
+    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
 /// `a, b et c`.
@@ -113,11 +113,11 @@ pub(crate) fn signataire_et_raison(ctx: &Contexte) -> R<(String, String)> {
     let sg = requis(&ctx.entreprise, "signataire")?;
     let signataire = match vrai_ou(sg, "prenom_affichage") {
         Some(p) => p,
-        None => capitaliser(&sg.get("prenom").map(py_str).unwrap_or_default()),
+        None => capitaliser(&sg.get("prenom").map(valeur_en_texte).unwrap_or_default()),
     };
     let raison = match vrai_ou(&ctx.entreprise, "nom_affichage") {
         Some(r) => r,
-        None => py_str(requis(&ctx.entreprise, "raison_sociale")?),
+        None => valeur_en_texte(requis(&ctx.entreprise, "raison_sociale")?),
     };
     Ok((signataire, raison))
 }
@@ -126,7 +126,7 @@ pub(crate) fn signataire_et_raison(ctx: &Contexte) -> R<(String, String)> {
 fn prenom_de(sal: &Value) -> R<String> {
     match vrai_ou(sal, "prenom_affichage") {
         Some(p) => Ok(p),
-        None => Ok(py_str(requis(sal, "prenom")?)),
+        None => Ok(valeur_en_texte(requis(sal, "prenom")?)),
     }
 }
 
@@ -134,7 +134,7 @@ fn prenom_de(sal: &Value) -> R<String> {
 fn nom_complet_de(sal: &Value) -> R<String> {
     let nom = match vrai_ou(sal, "nom_affichage") {
         Some(n) => n,
-        None => py_str(requis(sal, "nom")?),
+        None => valeur_en_texte(requis(sal, "nom")?),
     };
     Ok(format!("{} {}", prenom_de(sal)?, nom))
 }
@@ -206,7 +206,7 @@ fn message_de_signature(d: &Demande, pieces: Vec<PathBuf>) -> R<Message> {
     html.push(("mailto", html_echapper(&lien)));
     Ok(Message {
         cle: d.cle.to_string(),
-        nom: py_str(requis(d.sal, "nom")?),
+        nom: valeur_en_texte(requis(d.sal, "nom")?),
         destinataire: d.adresse.to_string(),
         sujet: d.sujet.to_string(),
         corps: envoi::formater(CORPS_SIGNATURE, &texte),
@@ -240,7 +240,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
 
-    let voulus: Option<Vec<String>> = liste_de(charge, "salaries")?.map(|l| l.iter().map(py_str).collect());
+    let voulus: Option<Vec<String>> = liste_de(charge, "salaries")?.map(|l| l.iter().map(valeur_en_texte).collect());
     let mut client = ouvrir()?;
     let a_qui = match &voulus {
         Some(l) if !l.is_empty() => format!("{} salarie(s) : {}", l.len(), l.join(", ")),
@@ -259,8 +259,8 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
         Some(l) => {
             let mut v = Vec::new();
             for c in l {
-                let numero = c.get("numero").filter(|n| vrai(n)).map(py_str);
-                v.push((py_str(requis(c, "salarie")?), py_str(requis(c, "debut")?), numero));
+                let numero = c.get("numero").filter(|n| vrai(n)).map(valeur_en_texte);
+                v.push((valeur_en_texte(requis(c, "salarie")?), valeur_en_texte(requis(c, "debut")?), numero));
             }
             Some(v)
         }
@@ -333,7 +333,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
                         jj(&debut)?
                     )));
                 }
-                let numero = if vrai(&parti.numero) { py_str(&parti.numero) } else { "(sans numéro)".to_string() };
+                let numero = if vrai(&parti.numero) { valeur_en_texte(&parti.numero) } else { "(sans numéro)".to_string() };
                 remplacements.push(((k.clone(), debut, p.engagement.numero.clone().unwrap_or_default()), (numero, jj(&parti.date())?)));
             }
         }
@@ -521,7 +521,7 @@ fn verifier_relance(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, cle
         let c = etats.iter().rev().find(|c| {
             c["salarie"].as_str() == Some(salarie)
                 && c["debut"].as_str() == Some(debut)
-                && py_str(&crate::etats::numero_de_cle(&c["numero"])) == *numero
+                && valeur_en_texte(&crate::etats::numero_de_cle(&c["numero"])) == *numero
         });
         let pb = match c {
             None => "n'a jamais ete demande : il s'envoie",
@@ -581,7 +581,7 @@ pub(crate) fn reserver_numeros_envoyes(
                 e.insert("numero".into(), n.clone());
             }
             change = true;
-            if let Some((annee, seq)) = annee_et_rang(&py_str(n)) {
+            if let Some((annee, seq)) = annee_et_rang(&valeur_en_texte(n)) {
                 let compteur = format!("contrat_{}", cle.0);
                 if reserves.prochain(ctx, &compteur, annee)? <= seq {
                     reserves.enregistrer(annee, &compteur, seq);
@@ -621,7 +621,7 @@ struct UnAvenant {
 
 impl UnAvenant {
     fn texte(&self, cle: &str) -> String {
-        self.apercu.get(cle).map(py_str).unwrap_or_default()
+        self.apercu.get(cle).map(valeur_en_texte).unwrap_or_default()
     }
     fn numero(&self) -> i64 {
         self.apercu["numero"].as_i64().unwrap_or(0)
@@ -629,7 +629,7 @@ impl UnAvenant {
     /// `a["contrat"] or "(sans numéro)"`.
     fn contrat(&self) -> String {
         if vrai(&self.apercu["contrat"]) {
-            py_str(&self.apercu["contrat"])
+            valeur_en_texte(&self.apercu["contrat"])
         } else {
             "(sans numéro)".to_string()
         }
@@ -692,22 +692,22 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
             false,
         )?;
         let modifications = apercu["modifications"].as_array().map_or(0, Vec::len);
-        let nom = apercu.get("nom").map(py_str).unwrap_or_default();
+        let nom = apercu.get("nom").map(valeur_en_texte).unwrap_or_default();
         if modifications == 0 {
             return Err(refus(format!(
                 "{}, contrat du {} : le contrat parti dit déjà ce que dit la paie, pas d'avenant à faire. Rien n'est parti.",
                 nom,
-                jj(&py_str(debut_v))?
+                jj(&valeur_en_texte(debut_v))?
             )));
         }
-        let effet = vrai_ou(v, "effet").unwrap_or_else(|| apercu.get("effet").map(py_str).unwrap_or_default());
+        let effet = vrai_ou(v, "effet").unwrap_or_else(|| apercu.get("effet").map(valeur_en_texte).unwrap_or_default());
         if jour_iso(&effet).is_none() {
             return Err(refus(format!("Date d'effet illisible : {}.", repr(&effet))));
         }
-        if apercu.get("destinataire").map(py_str).unwrap_or_default().trim().is_empty() {
-            return Err(refus(format!("{} n'a pas de courriel dans sa fiche : l'avenant ne peut pas partir.", py_str(salarie_v))));
+        if apercu.get("destinataire").map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
+            return Err(refus(format!("{} n'a pas de courriel dans sa fiche : l'avenant ne peut pas partir.", valeur_en_texte(salarie_v))));
         }
-        let cle = py_str(salarie_v);
+        let cle = valeur_en_texte(salarie_v);
         let un = UnAvenant { apercu, effet };
         match par_salarie.iter_mut().find(|(k, _)| *k == cle) {
             Some((_, l)) => l.push(un),
@@ -742,7 +742,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
             let (data, paies) = &saisies[&mois_a];
             // `_paie_du_contrat`.
             let debut = a.texte("debut");
-            let numero_j = py_str(&crate::etats::numero_de_cle(&a.apercu["contrat"]));
+            let numero_j = valeur_en_texte(&crate::etats::numero_de_cle(&a.apercu["contrat"]));
             let Some(rang_p) = crate::routes_documents::paie_du_contrat(paies, &lignes_j, salarie, &debut, &numero_j, false)? else {
                 return Err(refus(format!("Aucun contrat de {} commençant le {} dans la paie de {}.", salarie, jj(&debut)?, mois_a)));
             };
@@ -753,7 +753,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
                 "Avenant{}_{}_{}_{}.pdf",
                 a.numero(),
                 salarie,
-                if vrai(&a.apercu["contrat"]) { py_str(&a.apercu["contrat"]) } else { "sans-numero".to_string() },
+                if vrai(&a.apercu["contrat"]) { valeur_en_texte(&a.apercu["contrat"]) } else { "sans-numero".to_string() },
                 envoi::etiquette(&mois_a).map_err(|m| erreur("ValueError", m))?
             ));
             crate::contrat::ecrire_avenant(
@@ -803,7 +803,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
         }
         let un = |a: &UnAvenant| -> R<String> {
             let articles = et_fr(
-                &a.modifications().iter().map(|m| format!("l'article {} « {} »", py_str(&m["numero"]), py_str(&m["article"]))).collect::<Vec<_>>(),
+                &a.modifications().iter().map(|m| format!("l'article {} « {} »", valeur_en_texte(&m["numero"]), valeur_en_texte(&m["article"]))).collect::<Vec<_>>(),
             );
             Ok(format!(
                 "l'avenant n° {} à ton contrat d'engagement n° {} pour {}, du {} au {}, qui modifie {}",
@@ -879,7 +879,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
         }
         let reponse = format!(
             "{} envoye(s) a la signature",
-            aa.iter().map(|a| format!("avenant n° {} au contrat {}", a.numero(), py_str(&a.apercu["contrat"]))).collect::<Vec<_>>().join("; ")
+            aa.iter().map(|a| format!("avenant n° {} au contrat {}", a.numero(), valeur_en_texte(&a.apercu["contrat"]))).collect::<Vec<_>>().join("; ")
         );
         let detail = json!({"contrats": lignes_contrats, "expediteur": expediteur, "relance": false, "acte": "avenant"});
         lignes.push(noter(ctx, "contrat-signature", Some(&mois), "interface", true, &partis_ici.join(", "), &reponse, Some(&detail))?);

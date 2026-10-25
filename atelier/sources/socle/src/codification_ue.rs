@@ -4,8 +4,8 @@
 //! « Classification de l'origine du salarié au vu des frontières françaises et des limites de l'Union Européenne. Il
 //! faut renseigner dans cette rubrique le code le plus précis applicable à l'individu » ; « 01 - France / 02 - UE /
 //! 03 - EEE / 04 - Reste du Monde ». « Le plus precis » : la France est dans l'Union, l'Union dans l'EEE ; 03 ne vaut
-//! donc que pour un Etat de l'EEE hors de l'Union. Lire « origine » comme la nationalite est une INFERENCE (le moteur
-//! le fait depuis le 23/09/2026 ; la norme ne dit pas « nationalite »).
+//! donc que pour un Etat de l'EEE hors de l'Union. Lire « origine » comme la nationalite est une INFERENCE (la
+//! norme ne dit pas « nationalite »).
 //!
 //! LES ETATS (`atelier/reference/sources/union-europeenne/LISEZ-MOI.md`) : l'Union, traite sur l'Union europeenne,
 //! art. 52 § 1, version consolidee (JO C 202 du 07/06/2016), moins le Royaume-Uni, sorti par l'accord de retrait
@@ -14,15 +14,13 @@
 //! et la Suisse ne sont ni dans l'une ni dans l'autre liste : 04 (INFERENCE par absence, la norme ne les nomme pas).
 //! Les iles Feroe, dont le pays de rattachement est le Danemark, sont hors de l'Union par le texte (TFUE art. 355 § 5 a) : 04.
 //!
-//! JUSQU'AU 10/10/2026, LE MOTEUR N'AVAIT QUE TROIS VALEURS, 03 voulant dire « un autre pays ». Une fiche en 03 sans
-//! pays de nationalite est donc ambigue : ancienne (« reste du monde », 04 aujourd'hui) ou neuve (EEE). Elle ne se
-//! convertit pas en silence : le moteur la recode quand la fiche porte le pays (`pays_nationalite`), il refuse sinon.
+//! UN 03 SANS PAYS DE NATIONALITE ne dit pas si le salarie est de l'EEE ou du reste du monde : le moteur recode depuis
+//! le pays quand la fiche le porte (`pays_nationalite`), il refuse sinon.
 //!
-//! UN PAYS HORS DE LA LISTE (vague 2h, Leandre, 10/10/2026 : « Si le pays n'existe pas, on laisse l'administrateur
-//! choisir. ») : la fiche l'ecrit en `pays_nationalite_hors_liste` (le nom, en texte), et la codification est celle que
-//! l'administrateur choisit en `code_nationalite_dsn`, sans pays de la liste a cote. La DSN ne declare pas le pays de
-//! nationalite, seulement `30.013` : rien a inventer. Un pays de la liste ecrit la ne compte pas comme hors liste (il
-//! se choisit dans la liste, la codification s'en deduit) ; la France non plus (01 refuse).
+//! UN PAYS HORS DE LA LISTE : la fiche l'ecrit en `pays_nationalite_hors_liste` (le nom, en texte), et la codification
+//! est celle que l'administrateur choisit en `code_nationalite_dsn`, sans pays de la liste a cote. La DSN ne declare
+//! pas le pays de nationalite, seulement `30.013` : rien a inventer. Un pays de la liste ecrit la ne compte pas comme
+//! hors liste (il se choisit dans la liste, la codification s'en deduit) ; la France non plus (01 refuse).
 
 use serde_json::Value;
 
@@ -58,7 +56,7 @@ pub fn code_du_pays(iso: &str) -> &'static str {
 }
 
 fn texte(fiche: &Value, cle: &str) -> Option<String> {
-    fiche.get(cle).filter(|v| vrai(v)).map(|v| crate::valeur::py_str(v).trim().to_string()).filter(|t| !t.is_empty())
+    fiche.get(cle).filter(|v| vrai(v)).map(|v| crate::valeur::valeur_en_texte(v).trim().to_string()).filter(|t| !t.is_empty())
 }
 
 fn qui(fiche: &Value) -> String {
@@ -102,10 +100,10 @@ pub fn faute_hors_liste(fiche: &Value) -> Resultat<Option<String>> {
     }))
 }
 
-/// Le code a declarer en `S21.G00.30.013` pour une fiche salarie. Refus : pas de code ; un 03 sans pays (ancienne
-/// valeur, ambigue) ; un pays et un code qui se contredisent sans que l'ancienne codification l'explique. Un pays de
-/// nationalite hors de la liste livree (`pays.rs`, vague 1k) refuse aussi, sauf ecrit comme tel
-/// (`pays_nationalite_hors_liste`, vague 2h) : la codification est alors celle que l'administrateur a choisie.
+/// Le code a declarer en `S21.G00.30.013` pour une fiche salarie. Refus : pas de code ; un 03 sans pays de nationalite
+/// (la fiche ne dit pas si c'est l'EEE ou le reste du monde) ; un pays et un code qui se contredisent. Un pays de
+/// nationalite hors de la liste livree (`pays.rs`) refuse aussi, sauf ecrit comme tel (`pays_nationalite_hors_liste`) :
+/// la codification est alors celle que l'administrateur a choisie.
 pub fn codification_ue(fiche: &Value) -> Resultat<String> {
     let code = texte(fiche, "code_nationalite_dsn");
     if let Some(m) = faute_hors_liste(fiche)? {
@@ -133,8 +131,8 @@ pub fn codification_ue(fiche: &Value) -> Resultat<String> {
         return match code.as_deref() {
             None => Err(crate::fichiers::absent("code_nationalite_dsn")),
             Some("03") => Err(format!(
-                "La nationalité de {} est codée 03. Jusqu'au 10/10/2026, 03 voulait dire « un autre pays » ; la norme DSN \
-                 en fait l'Espace économique européen hors Union (Islande, Liechtenstein, Norvège), et le reste du monde \
+                "La nationalité de {} est codée 03 sans pays de nationalité. La norme DSN \
+                 fait du 03 l'Espace économique européen hors Union (Islande, Liechtenstein, Norvège), et le reste du monde \
                  est 04 (S21.G00.30.013, cahier technique p. 173). Dans sa fiche, indiquer son pays de nationalité, ou \
                  choisir de nouveau la nationalité (04 pour un pays hors Union et hors EEE).",
                 qui(fiche)
@@ -142,7 +140,7 @@ pub fn codification_ue(fiche: &Value) -> Resultat<String> {
             Some(c) => Ok(c.to_string()),
         };
     };
-    // LE PAYS SE LIT DANS LA LISTE LIVREE (vague 1k, `pays.rs`) : un code qu'elle ne connait pas refuse ; un territoire
+    // LE PAYS SE LIT DANS LA LISTE LIVREE (`pays.rs`) : un code qu'elle ne connait pas refuse ; un territoire
     // prend la codification de son pays de rattachement.
     let Some(p) = crate::pays::du_code(&pays)? else {
         return Err(crate::pays::inconnu_nationalite(&format!("Le pays de nationalité de {}", qui(fiche)), &pays));
@@ -150,8 +148,8 @@ pub fn codification_ue(fiche: &Value) -> Resultat<String> {
     let iso = p.code.clone();
     let attendu = crate::pays::codification(&p);
     match code.as_deref() {
-        // L'ancienne codification : 03 « autre pays » (aujourd'hui 04), et 02 pour l'Islande, le Liechtenstein et la
-        // Norvege (aujourd'hui 03). Le pays tranche.
+        // Un code 03 ou 02 que le pays contredit d'un cran (03 pour un pays hors EEE, 02 pour l'Islande, le
+        // Liechtenstein ou la Norvege) se recode depuis le pays : le pays tranche.
         Some(c) if c != attendu && !(c == "03" && attendu == "04") && !(c == "02" && attendu == "03") => Err(format!(
             "La fiche de {} dit la nationalité {} et le pays de nationalité {}, qui se déclare {} (S21.G00.30.013 : 01 \
              France, 02 Union européenne, 03 EEE hors Union, 04 reste du monde). Corriger l'un ou l'autre dans sa fiche.",

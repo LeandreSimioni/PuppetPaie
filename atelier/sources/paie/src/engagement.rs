@@ -16,10 +16,10 @@ use serde_json::{Map, Value};
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
-use socle::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, repr_py, Jour};
+use socle::date::{d, dernier_du_mois, en_texte, mois_entre, premier_du_mois, forme_ecrite, Jour};
 use droit::emplois;
 use socle::fichiers::{lire_json, vrai};
-use socle::num::{dec, dec_f64, dec_py, div, flottant, nombre, Decimal, Resultat};
+use socle::num::{dec, dec_f64, dec_avec_echelle, div, flottant, nombre, Decimal, Resultat};
 
 #[derive(Debug, Clone)]
 pub struct Engagement {
@@ -106,7 +106,7 @@ fn entier_opt(v: Option<&Value>, nom: &str) -> Resultat<Option<i64>> {
             .or_else(|| n.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64))
             .map(Some)
             .ok_or_else(|| format!("`{}` : un entier est attendu, lu {}", nom, n)),
-        Some(autre) => Err(format!("`{}` : un entier est attendu, lu {}", nom, repr_py(autre))),
+        Some(autre) => Err(format!("`{}` : un entier est attendu, lu {}", nom, forme_ecrite(autre))),
     }
 }
 
@@ -139,13 +139,13 @@ pub fn ligne_en_pourcentage(l: &Value) -> Resultat<Value> {
     };
     let rub = o.get("rubrique").map_or("None".to_string(), en_texte);
     let (base, pct) = match (o.get("base"), o.get("taux_majoration")) {
-        (Some(b), Some(p)) => (dec_py(b)?, dec_py(p)?),
+        (Some(b), Some(p)) => (dec_avec_echelle(b)?, dec_avec_echelle(p)?),
         _ => {
             return Err(format!(
                 "Ligne << {} >> : une ligne en pourcentage dit sa `base` (en euros) \
                  ET son `taux_majoration` (en %). Recu : {}",
                 rub,
-                repr_py(l)
+                forme_ecrite(l)
             ))
         }
     };
@@ -160,7 +160,7 @@ pub fn ligne_en_pourcentage(l: &Value) -> Resultat<Value> {
     for (champ, attendu) in [("quantite", base), ("taux", taux)] {
         if let Some(x) = o.get(champ) {
             let vide = x.is_null() || x.as_str() == Some("");
-            if !vide && dec_py(x)? != attendu {
+            if !vide && dec_avec_echelle(x)? != attendu {
                 return Err(format!(
                     "Ligne << {} >> : `{}` ({}) contredit `base` x `taux_majoration` \
                      ({} x {} %). N'ecrire que base et pourcentage.",
@@ -192,7 +192,7 @@ fn jours_et_lieux(liste: &[Value], strict: bool) -> Resultat<(Vec<Jour>, BTreeMa
                         format!(
                             "Une date ecrite en detail doit dire son `jour` : \
                              {{\"jour\": \"2026-10-02\", \"lieu\": \"Berlin\"}}. Recu : {}",
-                            repr_py(x)
+                            forme_ecrite(x)
                         )
                     } else {
                         socle::fichiers::absent("jour")
@@ -216,7 +216,7 @@ fn liste<'a>(v: Option<&'a Value>, nom: &str) -> Resultat<&'a [Value]> {
     match v {
         None | Some(Value::Null) => Ok(&[]),
         Some(Value::Array(a)) => Ok(a),
-        Some(autre) => Err(format!("`{}` : une liste est attendue, lu {}", nom, repr_py(autre))),
+        Some(autre) => Err(format!("`{}` : une liste est attendue, lu {}", nom, forme_ecrite(autre))),
     }
 }
 

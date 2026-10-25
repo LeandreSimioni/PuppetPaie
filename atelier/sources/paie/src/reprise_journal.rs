@@ -23,7 +23,7 @@ use socle::fichiers::vrai;
 use crate::journal::{self, Note};
 
 fn texte(b: &Value, cle: &str) -> String {
-    b.get(cle).filter(|v| vrai(v)).map(socle::valeur::py_str).unwrap_or_default()
+    b.get(cle).filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte).unwrap_or_default()
 }
 
 fn accepte(b: &Value) -> bool {
@@ -80,7 +80,7 @@ fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
     let connus: Vec<String> = journal::lire(&ctx.racine, None, None, false)
         .map_err(socle::echec::Echec::from)?
         .iter()
-        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::py_str))
+        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte))
         .collect();
     let mut out: Vec<Atteste> = par_flux
         .into_iter()
@@ -287,7 +287,7 @@ pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -
     let connus: Vec<String> = journal::lire(&ctx.racine, None, None, false)
         .map_err(socle::echec::Echec::from)?
         .iter()
-        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::py_str))
+        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte))
         .collect();
 
     // Le bilan XML du meme flux, quand il est la : il porte l'idflux ENTIER et dit si le depot etait reel ou de test.

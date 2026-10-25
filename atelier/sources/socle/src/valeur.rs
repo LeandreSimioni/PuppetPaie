@@ -29,11 +29,11 @@ pub fn nombre(v: &Value) -> Option<f64> {
 }
 
 /// L'egalite des valeurs lues : `1 == 1.0 == true`, listes et dictionnaires en profondeur.
-pub fn eq_py(a: &Value, b: &Value) -> bool {
+pub fn valeurs_egales(a: &Value, b: &Value) -> bool {
     match (a, b) {
-        (Value::Array(x), Value::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(u, v)| eq_py(u, v)),
+        (Value::Array(x), Value::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(u, v)| valeurs_egales(u, v)),
         (Value::Object(x), Value::Object(y)) => {
-            x.len() == y.len() && x.iter().all(|(k, v)| y.get(k).is_some_and(|w| eq_py(v, w)))
+            x.len() == y.len() && x.iter().all(|(k, v)| y.get(k).is_some_and(|w| valeurs_egales(v, w)))
         }
         _ => match (nombre(a), nombre(b)) {
             (Some(x), Some(y)) => x == y,
@@ -43,7 +43,7 @@ pub fn eq_py(a: &Value, b: &Value) -> bool {
 }
 
 /// La forme ecrite d'une valeur : `None`, `True`, un texte entre apostrophes, une liste entre crochets.
-pub fn py_repr(v: &Value) -> String {
+pub fn valeur_ecrite(v: &Value) -> String {
     match v {
         Value::Null => "None".into(),
         Value::Bool(true) => "True".into(),
@@ -54,18 +54,18 @@ pub fn py_repr(v: &Value) -> String {
             _ => repr_flottant(n.as_f64().unwrap_or(0.0)),
         },
         Value::String(s) => repr(s),
-        Value::Array(a) => format!("[{}]", a.iter().map(py_repr).collect::<Vec<_>>().join(", ")),
+        Value::Array(a) => format!("[{}]", a.iter().map(valeur_ecrite).collect::<Vec<_>>().join(", ")),
         Value::Object(o) => format!(
             "{{{}}}",
-            o.iter().map(|(k, v)| format!("{}: {}", repr(k), py_repr(v))).collect::<Vec<_>>().join(", ")
+            o.iter().map(|(k, v)| format!("{}: {}", repr(k), valeur_ecrite(v))).collect::<Vec<_>>().join(", ")
         ),
     }
 }
 
-/// Une valeur en texte : un texte tel quel, le reste sous sa forme ecrite (`py_repr`).
-pub fn py_str(v: &Value) -> String {
+/// Une valeur en texte : un texte tel quel, le reste sous sa forme ecrite (`valeur_ecrite`).
+pub fn valeur_en_texte(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
-        autre => py_repr(autre),
+        autre => valeur_ecrite(autre),
     }
 }

@@ -25,7 +25,7 @@ use droit::contexte::Contexte;
 use socle::ecriture::ecrire_json;
 use crate::editeur::Client;
 use crate::etats::{self, get};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -104,7 +104,7 @@ fn maintenant() -> String {
 fn client_du_compte(compte: &Value) -> R<Client> {
     let serveur = get(compte, "serveur")?;
     let cle = get(compte, "cle")?;
-    Ok(Client::nouveau(&if vrai(serveur) { py_str(serveur) } else { String::new() }, &if vrai(cle) { py_str(cle) } else { String::new() }))
+    Ok(Client::nouveau(&if vrai(serveur) { valeur_en_texte(serveur) } else { String::new() }, &if vrai(cle) { valeur_en_texte(cle) } else { String::new() }))
 }
 
 /// `exiger_mot_de_passe` : le mot de passe du logiciel, s'il est pose, pour un
@@ -127,7 +127,7 @@ pub(crate) fn exiger_mot_de_passe(racine: &Path, motdepasse: &Value, quoi: &str)
             )),
         };
     }
-    let mdp = py_str(motdepasse);
+    let mdp = valeur_en_texte(motdepasse);
     if !coffre.verifier_ouverture(&mdp).map_err(vers)? {
         return Err(erreur("PreuveInsuffisante", "Mot de passe du logiciel refuse. Rien n'a ete modifie."));
     }
@@ -145,7 +145,7 @@ pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
 /// `config/filet-dpae.json`), sinon celui du moteur (`editeur::SERVEUR_PAR_DEFAUT`, lot S1). `activer` s'y inscrit,
 /// `filet-etat` le montre.
 pub fn serveur(etat: &Value) -> String {
-    let texte = |v: Option<&Value>| v.filter(|v| vrai(v)).map(py_str);
+    let texte = |v: Option<&Value>| v.filter(|v| vrai(v)).map(valeur_en_texte);
     let compte = etat.get("compte").filter(|c| c.is_object());
     texte(compte.and_then(|c| c.get("serveur")))
         .or_else(|| texte(etat.get("serveur")))
@@ -372,9 +372,9 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
             if !vrai(get(e, "contrat_parti")?) {
                 continue;
             }
-            let debut = py_str(get(e, "debut")?);
+            let debut = valeur_en_texte(get(e, "debut")?);
             if let Some(quand) = echeance_du_reveil(&debut, maintenant)? {
-                poser(cle(&py_str(get(e, "salarie")?), &debut), debut, quand, "dpae");
+                poser(cle(&valeur_en_texte(get(e, "salarie")?), &debut), debut, quand, "dpae");
             }
         }
         // LA DSN PAS PARTIE : le meme reveil, la veille de l'echeance a 9 h.
@@ -391,7 +391,7 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
                 }
             }
             let code = match &deja {
-                Some(d) if vrai(get(d, "code")?) => py_str(get(d, "code")?),
+                Some(d) if vrai(get(d, "code")?) => valeur_en_texte(get(d, "code")?),
                 _ => nouveau_code()?,
             };
             if let Err(e) = c.armer(&code, quand, jour, objet) {
@@ -413,7 +413,7 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
         };
         for k in a_desarmer {
             let code = match etat["reveils"].get(&k).and_then(|r| r.get("code")) {
-                Some(c) => py_str(c),
+                Some(c) => valeur_en_texte(c),
                 None => return Err(erreur("KeyError", socle::fichiers::absent("code"))),
             };
             if let Err(e) = c.desarmer(&code) {
@@ -467,7 +467,7 @@ pub fn passage(ctx: &Contexte, tests: &Value, vivantes: &Value, maintenant_force
         }
     }
     if let Value::Array(v) = vivantes {
-        let gardees: Vec<String> = v.iter().map(py_str).collect();
+        let gardees: Vec<String> = v.iter().map(valeur_en_texte).collect();
         if let Some(t) = etat["tests"].as_object_mut() {
             let a_retirer: Vec<String> = t.keys().filter(|k| !gardees.contains(k)).cloned().collect();
             for k in a_retirer {
@@ -498,7 +498,7 @@ pub fn desarmer(racine: &Path, k: &str) -> R<bool> {
     if !vrai(&compte) {
         return Ok(false);
     }
-    let code = r.get("code").map(py_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
+    let code = r.get("code").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
     match client_du_compte(&compte)?.desarmer(&code) {
         Ok(_) => {}
         Err(e) if e.est_filet() => return Ok(false),
@@ -514,10 +514,10 @@ pub fn desarmer(racine: &Path, k: &str) -> R<bool> {
 /// La cle d'un reveil de DPAE ou de DSN.
 pub fn cle_du_reveil(charge: &Value) -> String {
     match charge.get("cle").filter(|c| vrai(c)) {
-        Some(c) => py_str(c),
+        Some(c) => valeur_en_texte(c),
         None => cle(
-            &charge.get("salarie").map(py_str).unwrap_or_else(|| "None".into()),
-            &charge.get("debut").map(py_str).unwrap_or_else(|| "None".into()),
+            &charge.get("salarie").map(valeur_en_texte).unwrap_or_else(|| "None".into()),
+            &charge.get("debut").map(valeur_en_texte).unwrap_or_else(|| "None".into()),
         ),
     }
 }

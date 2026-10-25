@@ -31,9 +31,9 @@ use crate::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
 use droit::contexte::Contexte;
 use crate::depot_acte::avec_donnee;
-use socle::ecriture::{ecrire_json, json_py};
+use socle::ecriture::{ecrire_json, json_indente};
 use crate::engagement::{self, Avis};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{lire_json, vrai};
@@ -63,13 +63,13 @@ fn valeur(m: String) -> Echec {
 }
 
 fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(py_str).unwrap_or_default()
+    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
 fn prenom_de(sal: &Value) -> String {
     match sal.get("prenom_affichage") {
-        Some(v) if vrai(v) => py_str(v),
-        _ => py_str(sal.get("prenom").unwrap_or(&Value::Null)),
+        Some(v) if vrai(v) => valeur_en_texte(v),
+        _ => valeur_en_texte(sal.get("prenom").unwrap_or(&Value::Null)),
     }
 }
 
@@ -145,7 +145,7 @@ impl Reserves {
             let annee = annee.as_object_mut().ok_or_else(|| erreur("AttributeError", "l'annee des compteurs n'est pas un dictionnaire"))?;
             annee.insert(cle.clone(), json!(self.valeurs[&(an.clone(), cle.clone())]));
         }
-        std::fs::write(&p, json_py(&c, 2)).map_err(|e| os(&p, e))
+        std::fs::write(&p, json_indente(&c, 2)).map_err(|e| os(&p, e))
     }
 }
 
@@ -168,7 +168,7 @@ pub(crate) fn charger(ctx: &Contexte, data: &Value, rep: &Value, reserves: Optio
         paies.push(crate::routes_ouverture::paie_de_json(ctx, e, v)?);
     }
     if let Some(r) = reserves {
-        let mois = py_str(data.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
+        let mois = valeur_en_texte(data.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
         let annee: i32 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(&mois))))?;
         r.numeroter(ctx, &mut paies, annee)?;
     }
@@ -209,10 +209,10 @@ fn manques_pour_fermer(m: &mut Moteur, paies: &[Paie]) -> R<Vec<Value>> {
         let nom = format!(
             "{} {}",
             match p.salarie.get("prenom_affichage") {
-                Some(v) if vrai(v) => py_str(v),
-                _ => p.salarie.get("prenom").map(py_str).unwrap_or_default(),
+                Some(v) if vrai(v) => valeur_en_texte(v),
+                _ => p.salarie.get("prenom").map(valeur_en_texte).unwrap_or_default(),
             },
-            p.salarie.get("nom").map(py_str).unwrap_or_default()
+            p.salarie.get("nom").map(valeur_en_texte).unwrap_or_default()
         );
         let nom = nom.trim().to_string();
         let mut manque = |quoi: &str, phrase: String| {
@@ -244,7 +244,7 @@ fn controler_calcul_stocke(o: &HashMap<String, String>, ctx: &Contexte, mois: &s
         return;
     }
     let Ok(sur_le_disque) = lire_json(&p) else { return };
-    if !socle::valeur::eq_py(&sur_le_disque, data) {
+    if !socle::valeur::valeurs_egales(&sur_le_disque, data) {
         return;
     }
     let demande = json!({"mois": mois, "resultat": rep}).to_string();
@@ -315,7 +315,7 @@ fn remplacee_versait_pas_de(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Va
         }
     }
     let Some((_, l)) = dernier else { return Ok(None) };
-    let nom = l.get("fichier").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let nom = l.get("fichier").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     if nom.is_empty() {
         return Ok(None);
     }
@@ -429,7 +429,7 @@ fn numeros_a_figer(ctx: &Contexte, mois: &str, saisie: &Value, paies: &[Paie]) -
         .map(|e| {
             // Un engagement qui ne se calcule pas seul est laisse tel quel (`except Exception: continue`).
             let fiche = ctx.salarie(e.get("salarie").and_then(Value::as_str)?).ok()?;
-            let cle = py_str(fiche.get("_cle").unwrap_or(&Value::Null));
+            let cle = valeur_en_texte(fiche.get("_cle").unwrap_or(&Value::Null));
             let seule = json!({"mois": mois, "engagements": [e.clone()], "taux_cachet": taux, "spectacle": spectacle});
             let s = engagement::charger_donnees(ctx, &seule).ok()?;
             Some((cle, s.paies.first()?.engagement.debut.iso(), jumeaux::numero_pose(e)))
@@ -606,7 +606,7 @@ fn produire_mois(
     reserves: &mut Reserves,
 ) -> R<MoisProduit> {
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
-    let mois = py_str(data.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
+    let mois = valeur_en_texte(data.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
     // apercu_mois : le mois calcule, rien d'ecrit (`charger` : la saisie numerotee, une deuxieme fois).
     let annee: i64 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(&mois))))?;
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(&mois))))?;
@@ -628,7 +628,7 @@ fn produire_mois(
     crate::routes_ecritures::refuser_si_hors_delai(ctx, &mois, forcer)?; // DSN due le 15
     let fiche = ctx.entreprise.clone();
     let principal = droit::bareme::nic_principal(&fiche);
-    let secondaires: Vec<String> = droit::bareme::secondaires(&fiche).iter().map(|e| py_str(e.get("nic").unwrap_or(&Value::Null))).collect();
+    let secondaires: Vec<String> = droit::bareme::secondaires(&fiche).iter().map(|e| valeur_en_texte(e.get("nic").unwrap_or(&Value::Null))).collect();
     let plusieurs = !secondaires.is_empty();
     if !envoi_test && ESSAI_DSN == 1 {
         // Un mois deja declare dont l'annule-et-remplace n'est plus admis (veille de l'echeance passee) : on le dit
@@ -664,7 +664,7 @@ fn produire_mois(
         if p.engagement.premier_mois()? && p.engagement.nat()?.mensuelle() {
             avertissements.push(avertissement(format!(
                 "{} {} : {} commence en {} -- le moteur n'imprime que le contrat d'un CDD d'usage ; celui-ci se redige a part.",
-                py_str(p.salarie.get("nom").unwrap_or(&Value::Null)),
+                valeur_en_texte(p.salarie.get("nom").unwrap_or(&Value::Null)),
                 prenom_de(&p.salarie),
                 p.engagement.nat()?.libelle,
                 engagement::libelle_mois(&mois)
@@ -716,7 +716,7 @@ fn produire_mois(
         if p.engagement.sans_paie() {
             avertissements.push(info(format!(
                 "{} {} : contrat {} en cours, aucun cachet en {} -- pas de bulletin ; la DSN porte le contrat avec un versement a zero.",
-                py_str(p.salarie.get("nom").unwrap_or(&Value::Null)),
+                valeur_en_texte(p.salarie.get("nom").unwrap_or(&Value::Null)),
                 prenom_de(&p.salarie),
                 p.engagement.numero.as_deref().unwrap_or("None"),
                 engagement::libelle_mois(&mois)
@@ -734,16 +734,16 @@ fn produire_mois(
     // UN CERTIFICAT SANS NIR N'EST RATTACHABLE A PERSONNE : il sort quand meme, mais le mois le dit.
     let mut vues_cs: Vec<String> = Vec::new();
     for p in &paies_cs {
-        let cle = py_str(p.salarie.get("_cle").unwrap_or(&Value::Null));
+        let cle = valeur_en_texte(p.salarie.get("_cle").unwrap_or(&Value::Null));
         if vues_cs.contains(&cle) {
             continue;
         }
         vues_cs.push(cle.clone());
         let s_cs = ctx.salarie(&cle).map_err(valeur)?;
-        if s_cs.get("nir").filter(|n| vrai(n)).map(py_str).unwrap_or_default().trim().is_empty() {
+        if s_cs.get("nir").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
             avertissements.push(avertissement(format!(
                 "{} {} : certificat Conges Spectacles emis SANS numero de securite sociale -- Audiens ne pourra pas le rattacher. Le reproduire quand le numero sera connu.",
-                py_str(s_cs.get("nom").unwrap_or(&Value::Null)),
+                valeur_en_texte(s_cs.get("nom").unwrap_or(&Value::Null)),
                 prenom_de(&s_cs)
             )));
         }
@@ -801,8 +801,8 @@ fn produire_mois(
         };
         avertissements.push(info(format!(
             "Arret de travail reporte dans la DSN : {}, {}, du {} au {}{}.",
-            py_str(a.get("salarie").unwrap_or(&Value::Null)),
-            py_str(&resume["motif_libelle"]),
+            valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null)),
+            valeur_en_texte(&resume["motif_libelle"]),
             jour(a.get("dernier_jour_travaille").unwrap_or(&Value::Null))?,
             jour(&fin)?,
             if reprise.is_some() { " (reprise)" } else { " (fin previsionnelle)" }
@@ -817,8 +817,8 @@ fn produire_mois(
         let jour = |v: &Value| -> R<String> { Ok(crate::bulletin::jj_mm_aaaa(v).map_err(valeur)?) };
         avertissements.push(info(format!(
             "Suspension declaree dans la DSN : {}, motif {}, du {} au {}.",
-            py_str(&s["salarie"]),
-            py_str(&s["motif"]),
+            valeur_en_texte(&s["salarie"]),
+            valeur_en_texte(&s["motif"]),
             jour(&s["debut"])?,
             jour(&s["fin"])?
         )));
@@ -849,7 +849,7 @@ fn produire_mois(
                 }
             }
             for a in &arrets {
-                let sal = ctx.salarie(&py_str(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
+                let sal = ctx.salarie(&valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
                 if du_nic(&sal)? {
                     lot.arrets.push(a.clone());
                 }
@@ -980,7 +980,7 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
     let Value::Object(brute) = saisie else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let mois = py_str(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
+    let mois = valeur_en_texte(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
     let envoi_test = charge.get("test").is_some_and(vrai);
     let forcer = charge.get("forcer").is_some_and(vrai);
     // `enregistrer_saisie` D'ABORD : elle valide la saisie de l'ecran en la calculant, reprend du fichier ce que l'ecran
@@ -1004,7 +1004,7 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
     let mut m = Moteur::nouveau(o, ctx);
     let manques = manques_pour_fermer(&mut m, &paies)?;
     if !manques.is_empty() {
-        let lignes: Vec<String> = manques.iter().map(|x| format!("  - {}", py_str(&x["phrase"]))).collect();
+        let lignes: Vec<String> = manques.iter().map(|x| format!("  - {}", valeur_en_texte(&x["phrase"]))).collect();
         return Err(avec_donnee("MoisPasPret", format!("Le mois {} ne peut pas encore se fermer :\n{}", mois, lignes.join("\n")), "manques", Value::Array(manques)));
     }
     controler_calcul_stocke(o, ctx, &mois, &data, &rep);

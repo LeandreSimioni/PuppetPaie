@@ -34,7 +34,7 @@ use droit::contexte::Contexte;
 use socle::date::Jour;
 use crate::engagement::{self, Engagement};
 use crate::etats::{items};
-use socle::valeur::py_str;
+use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use crate::fiche_recapitulative::Recapitulatifs;
 use socle::fichiers::vrai;
@@ -226,7 +226,7 @@ impl Periode {
             p.mois = Some(m.clone());
         }
         if let Some(a) = annee {
-            let t = py_str(a);
+            let t = valeur_en_texte(a);
             if !(t.chars().count() == 4 && t.chars().all(|x| chiffre(*&x).is_some())) {
                 return Err(erreur_operation(format!("Année attendue sous la forme AAAA : « {} ».", t)));
             }
@@ -409,7 +409,7 @@ fn nom_salarie(cle: &str) -> String {
 // ------------------------------------------------------------------ les mois PuppetPaie
 
 pub(crate) fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(py_str).unwrap_or_default()
+    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
 /// `charger(ctx, paies/<mois>.json, sans_numeros=True)` : la saisie lue, ses paies calculees ;
@@ -423,7 +423,7 @@ pub(crate) fn charger(ctx: &Contexte, chemin: &Path) -> R<(Value, Vec<Paie>)> {
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
 fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
-    let mois = data.get("mois").map(py_str).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
+    let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
     let annee = crate::apercu_dsn::int_py(&mois.chars().take(4).collect::<String>())
         .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
     crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee as i32, attente)
@@ -670,7 +670,7 @@ fn mois_puppetpaie(
                     return Err(erreur_operation(format!(
                         "{}, {} : aucune page de sorties/{}/{} ne porte son bulletin du {} au {}. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
                         lib,
-                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
+                        p.salarie.get("nom").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
                         mois,
                         nom_archive,
                         p.engagement.debut_periode().map_err(|m| avec("ValueError", m))?.jj_mm_aaaa(),
@@ -681,7 +681,7 @@ fn mois_puppetpaie(
                     return Err(erreur_operation(format!(
                         "{}, {} : le bulletin n° {} partage une page de sorties/{}/{} avec un autre bulletin. Cette page porte la paie d'un autre salarié, elle ne se donne pas ; et un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
                         lib,
-                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
+                        p.salarie.get("nom").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
                         lu.bulletin,
                         mois,
                         nom_archive
@@ -798,7 +798,7 @@ fn mois_puppetpaie(
                             let nom = siens
                                 .first()
                                 .and_then(|(pc, _)| pc.salarie.get("nom"))
-                                .map(py_str)
+                                .map(valeur_en_texte)
                                 .ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?;
                             let mut ses_pages: Vec<usize> = Vec::new();
                             let mut etrangeres: Vec<i64> = Vec::new();
@@ -989,13 +989,13 @@ fn a_qui(texte: &str, fiches: &[(&String, &Value)]) -> Vec<String> {
     let t = format!(" {} ", lettres_et_chiffres(&sans_accents(texte)));
     let mut out = Vec::new();
     for (cle, f) in fiches {
-        let brut = f.get("nir").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        let brut = f.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let nir: String = brut.chars().filter(est_chiffre).take(13).collect();
         if nir.chars().count() == 13 && chiffres.contains(&nir) {
             out.push((*cle).clone());
             continue;
         }
-        let normal = |c: &str| lettres_et_chiffres(&sans_accents(&f.get(c).filter(|v| vrai(v)).map(py_str).unwrap_or_default())).trim().to_string();
+        let normal = |c: &str| lettres_et_chiffres(&sans_accents(&f.get(c).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default())).trim().to_string();
         let (nom, prenom) = (normal("nom"), normal("prenom"));
         if !nom.is_empty() && !prenom.is_empty() && t.contains(&format!(" {} ", nom)) && t.contains(&format!(" {} ", prenom)) {
             out.push((*cle).clone());
@@ -1115,7 +1115,7 @@ fn date_de_page(texte: &str, fiche: &Value, nom: &str) -> Option<String> {
     if let Some((j, m, a)) = du_au(&c) {
         return Some(format!("{}-{}-{}", a, m, j));
     }
-    let naissance = fiche.get("date_naissance").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let naissance = fiche.get("date_naissance").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let valide = |j: &str, m: &str| ("01"..="12").contains(&m) && ("01"..="31").contains(&j);
     for g in trouver_gabarit(&c, "dd dd dddd", |x| x == ' ') {
         let iso = format!("{}-{}-{}", g[2], g[1], g[0]);

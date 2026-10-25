@@ -1,15 +1,11 @@
-//! La pile de bareme (`calcul.py`, de `bareme_du_statut` a `bareme_cadre`) :
-//! statut, nature du contrat, convention, sante, retraite, categorie,
-//! prevoyance, regime local, versement mobilite (PORTAGE-RUST §6).
+//! La pile de bareme, de `bareme_du_statut` a `bareme_cadre` : statut, nature du contrat, convention, sante, retraite,
+//! categorie, prevoyance, regime local, versement mobilite.
 //!
-//! Un bareme est un `serde_json::Value` (un dict), comme en Python : chaque
-//! etage rend un NOUVEAU bareme et ne modifie pas le precedent. Un refus est
-//! une `String`, le message du Python mot pour mot. Les cles `_` d'un bareme
-//! sont des commentaires, sauf celles que la pile pose elle-meme.
+//! Un bareme est un `serde_json::Value` : chaque etage rend un NOUVEAU bareme et ne modifie pas le precedent. Un refus
+//! est une `String`. Les cles `_` d'un bareme sont des commentaires, sauf celles que la pile pose elle-meme.
 //!
-//! Porte avec elle, parce que la pile les appelle : la lecture du catalogue de
-//! prevoyance de branche (`prevoyance.py`, module `prevoyance` ci-dessous) et
-//! l'etablissement du salarie (`etablissements.du_salarie`, `surcharger`).
+//! Avec elle, parce que la pile les appelle : la lecture du catalogue de prevoyance de branche (module `prevoyance`
+//! ci-dessous) et l'etablissement du salarie (`etablissement_du_salarie`, `surcharger`).
 
 use socle::texte::sans_accent;
 use crate::natures::Nature;
@@ -23,22 +19,22 @@ use serde_json::{Map, Number, Value};
 
 static NUL: Value = Value::Null;
 
-/// `v.get(k)` d'un dict ; `None` (nul) si la cle manque ou si `v` n'en est pas un.
+/// `v.get(k)` d'un objet ; `Null` si la cle manque ou si `v` n'en est pas un.
 fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
     v.get(k).unwrap_or(&NUL)
 }
 
-/// `v.get(k, defaut)` : la valeur si la cle est la, meme nulle.
+/// La valeur si la cle est la, meme nulle.
 fn g_def<'a>(v: &'a Value, k: &str, defaut: &'a Value) -> &'a Value {
     v.get(k).unwrap_or(defaut)
 }
 
-/// `m["k"]` sur un dict possede.
+/// La valeur de `k`, exigee.
 fn exiger_m<'a>(m: &'a Map<String, Value>, k: &str) -> Resultat<&'a Value> {
     m.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// `x["k"]` : le `KeyError` de Python s'ecrit `'k'`.
+/// La valeur de `k`, exigee : son absence se refuse en la nommant.
 fn exiger<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
     v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
@@ -53,12 +49,12 @@ fn paires(v: &Value) -> impl Iterator<Item = (&String, &Value)> {
     v.as_object().into_iter().flat_map(|o| o.iter())
 }
 
-/// `dict(v)`.
+/// L'objet `v`, recopie.
 fn copie(v: &Value) -> Map<String, Value> {
     v.as_object().cloned().unwrap_or_default()
 }
 
-/// `dict(v)` quand `v` n'est plus servi : le dict lui-meme, sans recopie.
+/// L'objet `v` quand `v` n'est plus servi : lui-meme, sans recopie.
 fn en_map(v: Value) -> Map<String, Value> {
     match v {
         Value::Object(m) => m,
@@ -126,7 +122,7 @@ fn entier(v: &Value) -> i64 {
     }
 }
 
-/// Les cles d'un dict qui ne commencent pas par `_`, avec leurs valeurs.
+/// Les cles d'un objet qui ne commencent pas par `_`, avec leurs valeurs.
 fn sans_souligne(v: &Value) -> Map<String, Value> {
     paires(v).filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), x.clone())).collect()
 }
@@ -335,7 +331,7 @@ par un humain, le moteur refuse.",
     empiler(bar, &sec)
 }
 
-/// LA CONTRIBUTION CPF-CDD (lot R2, 11/10/2026) d'un contrat qui l'ouvre (`assujettissement::contrat_ouvre_cpf_cdd` :
+/// LA CONTRIBUTION CPF-CDD d'un contrat qui l'ouvre (`assujettissement::contrat_ouvre_cpf_cdd` :
 /// un CDD de droit commun, ni saisonnier, ni CDDU, ni contrat aide) : la section `cpf_cdd` de la nature du contrat
 /// (`par_nature.<nature>.cpf_cdd`) ajoute son taux comme un composant de la rubrique qu'elle nomme (« Autres
 /// contributions dues par l'employeur », a cote de la formation professionnelle) et sa cotisation au nominatif (129). Le
@@ -381,14 +377,14 @@ section par_nature['{}'].cpf_cdd qui dise son taux et sa cotisation. Rien n'est 
     Ok(Value::Object(applique))
 }
 
-/// LA TAXE D'APPRENTISSAGE NON DUE (lot D1, 13/10/2026). Quand la fiche entreprise dit un motif de non-assujettissement
+/// LA TAXE D'APPRENTISSAGE NON DUE. Quand la fiche entreprise dit un motif de non-assujettissement
 /// (table MNATA, `taxe_apprentissage_motif_non_assujettissement`) qui vaut pour la periode d'emploi `fin`
-/// (`assujettissement::taxe_apprentissage_non_due_au_mois`), la taxe n'est pas due : C. trav. L. 6241-1, I et III, dit
+/// (`apprentissage::taxe_apprentissage_non_due_au_mois`), la taxe n'est pas due : C. trav. L. 6241-1, I et III, dit
 /// qui la doit et qui n'en est « pas redevable ». Une taxe que l'employeur ne doit pas ne se calcule pas : la ligne du
 /// bulletin qui la porte (`"taxe_apprentissage": true` dans le bareme, part principale et solde) et sa cotisation
 /// individuelle (81.001 = 130, « Part principale de la taxe d'apprentissage », norme DSN, bloc 81) sortent de la pile ;
-/// le bordereau retire ses CTP 992 et 993 par la meme decision (`dsn::lignes_bordereau`). Avant ce lot, le bordereau
-/// seul la retirait (R12), et le bulletin et le nominatif portaient une taxe que le bordereau ne payait pas. Un motif qui
+/// le bordereau retire ses CTP 992 et 993 par la meme decision (`dsn::lignes_bordereau`) : le bulletin, le nominatif
+/// et le bordereau disent la meme taxe. Un motif qui
 /// vaut, et une pile sans ligne marquee : refus (regle 1), plutot qu'une taxe qu'on garderait sans le dire.
 pub fn bareme_taxe_apprentissage(bar: Value, fin: Option<&Jour>) -> Resultat<Value> {
     let Some(fin) = fin else { return Ok(bar) };
@@ -536,7 +532,7 @@ pub fn alsace_moselle(ent: &Value, sal: &Value) -> bool {
     matches!(debut.as_str(), "57" | "67" | "68")
 }
 
-/// Les cles d'un dict, triees, jusqu'a `jour` inclus (toutes si `jour` est vide).
+/// Les cles d'un objet, triees, jusqu'a `jour` inclus (toutes si `jour` est vide).
 fn dates_jusqu_a(table: &Value, jour: &str) -> Vec<String> {
     let mut ks: Vec<String> =
         paires(table).map(|(k, _)| k.clone()).filter(|k| jour.is_empty() || k.as_str() <= jour).collect();
@@ -1222,7 +1218,7 @@ pub fn entree(fiche: &Value, nic: &str) -> Option<Value> {
     secondaires(fiche).into_iter().find(|e| txt(g(e, "nic")) == nic)
 }
 
-/// `etablissements.du_salarie` : le NIC de l'etablissement du salarie.
+/// Le NIC de l'etablissement du salarie.
 pub fn etablissement_du_salarie(fiche: &Value, sal: &Value) -> Resultat<String> {
     let nic = txt(g(sal, "etablissement")).trim().to_string();
     if nic.is_empty() || nic == nic_principal(fiche) {
@@ -1252,7 +1248,7 @@ fn nom_ou(sal: &Value, defaut: &str) -> String {
     }
 }
 
-/// `etablissements.surcharger` : le taux AT/MP et le versement mobilite de
+/// Le taux AT/MP et le versement mobilite de
 /// l'etablissement remplacent ceux du siege.
 pub fn surcharger(bar: Value, fiche: &Value, nic: &str) -> Resultat<Value> {
     let e = if !nic.is_empty() && nic != nic_principal(fiche) { entree(fiche, nic) } else { None };
@@ -1430,7 +1426,7 @@ pub fn couche_organisation<'a>(bar: &'a Value, nom: &Value) -> Option<&'a Value>
     None
 }
 
-/// Une fraction `num/den` irreductible (le `Fraction` de Python).
+/// Une fraction `num/den` irreductible.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Fraction {
     pub num: i128,
@@ -1865,7 +1861,7 @@ pas `{}` (Audiens, Parametres de l'annee). Il ne se devine pas.",
 
 // ------------------------------------------------------------ la canonisation
 
-/// La forme canonique de l'oracle (`oracle.canon`) : nombres en chaines
+/// La forme canonique d'une valeur : nombres en chaines
 /// normalisees, cles `_` retirees sauf `_cle`.
 pub fn canon(v: &Value) -> Value {
     match v {
@@ -1890,7 +1886,7 @@ pub fn canon(v: &Value) -> Value {
 
 // ------------------------------------------------ la prevoyance de branche
 
-/// `moteur/prevoyance.py` : ce que la convention impose aux permanents, lu
+/// Ce que la convention impose aux permanents, lu
 /// dans `prevoyance-conventionnelle-base.json`.
 mod prevoyance {
     use super::*;

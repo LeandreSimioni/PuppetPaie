@@ -15,7 +15,7 @@ use droit::natures::Nature;
 use socle::date::{d, en_texte, premier_du_mois, repr_flottant};
 use crate::engagement::Avis;
 use socle::fichiers::vrai;
-use socle::num::{add, dec, dec_py, div, eur2, flottant, mul, zero2, Decimal, Resultat};
+use socle::num::{add, dec, dec_avec_echelle, div, eur2, flottant, mul, zero2, Decimal, Resultat};
 use droit::permanents::{self, anciennete_mois, arrondir_jours, jours_acquis, IndemniteDePreavis};
 
 static NUL: Value = Value::Null;
@@ -342,7 +342,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
         let duree = duree_du_preavis(ctx, e, anciennete, motif)?;
         let mut mois_preavis = duree.mois;
         if let Some(saisi) = e.get("preavis_mois").filter(|x| !x.is_null()) {
-            let saisi = dec_py(saisi)?;
+            let saisi = dec_avec_echelle(saisi)?;
             if let Some(m) = mois_preavis {
                 if saisi < m {
                     return Err(format!(
@@ -446,7 +446,7 @@ fn delai_de_prevenance(
     };
     // Un CDD : seulement s'il stipule une periode d'essai d'au moins une semaine (L1221-25, renvoi a L1242-10).
     if !nat.duree_indeterminee {
-        let minimum = dec_py(cle(&regle, "cdd_essai_minimum_jours")?)?;
+        let minimum = dec_avec_echelle(cle(&regle, "cdd_essai_minimum_jours")?)?;
         let Some(essai) = e.get("periode_essai_jours").filter(|x| !x.is_null()) else {
             return Err(format!(
                 "{} : fin de periode d'essai a l'initiative de l'employeur (034) d'un contrat a duree determinee : L1221-25 \
@@ -455,7 +455,7 @@ fn delai_de_prevenance(
                 numero
             ));
         };
-        if dec_py(essai)? < minimum {
+        if dec_avec_echelle(essai)? < minimum {
             stc.avertissements.push(info(format!(
                 "{} : periode d'essai stipulee de {} jour(s), moins d'une semaine : pas de delai de prevenance (L1221-25), \
                  rien a payer.",
@@ -666,7 +666,7 @@ fn indemnite_de_rupture(
 
     let montant;
     if let Some(saisi) = saisi {
-        montant = dec_py(saisi)?;
+        montant = dec_avec_echelle(saisi)?;
         if !du {
             return Err(format!(
                 "{} : indemnite de {} de {} EUR saisie, et ni la loi ni la \
@@ -786,7 +786,7 @@ fn indemnite_de_rupture(
     let contrib = cle(&regles, "regime_des_indemnites_de_rupture")?.get("contribution_patronale").filter(|x| vrai(x));
     if let (Some(contrib), Some(m)) = (contrib, motif) {
         if get(contrib, "motifs").as_array().is_some_and(|l| l.iter().any(|x| x.as_str() == Some(m))) {
-            let taux = dec_py(cle(contrib, "taux")?)?;
+            let taux = dec_avec_echelle(cle(contrib, "taux")?)?;
             stc.avertissements.push(avertir(format!(
                 "{} : l'employeur doit en plus la CONTRIBUTION DE {} % sur la \
                  part exoneree de cette indemnite (L137-12 du code de la \
@@ -887,7 +887,7 @@ fn verifier_les_plafonds(ctx: &Contexte, mois: &str, montant: Decimal, quoi: &st
         ("cotisations_assujettissement_total_pass", "hors de l'assiette"),
     ] {
         let combien = cle(regles_plafonds, k)?;
-        let seuil = mul(annuel, dec_py(combien)?);
+        let seuil = mul(annuel, dec_avec_echelle(combien)?);
         if montant > seuil {
             return Err(format!(
                 "{} : indemnite de {} de {} EUR, au-dela de {} plafonds \
@@ -933,7 +933,7 @@ fn indemnite_de_licenciement(
 
     let montant;
     if let Some(saisi) = saisi {
-        montant = dec_py(saisi)?;
+        montant = dec_avec_echelle(saisi)?;
         if montant > haut {
             return Err(format!(
                 "{} : indemnite de licenciement de {} EUR, alors que \
@@ -1141,7 +1141,7 @@ fn brut_des_lignes(ctx: &Contexte, lignes: &[Value]) -> Resultat<Decimal> {
             continue;
         }
         let signe = if r.sens == "-" { Decimal::NEGATIVE_ONE } else { Decimal::ONE };
-        total = add(total, mul(signe, eur2(mul(dec_py(cle(l, "taux")?)?, dec_py(cle(l, "quantite")?)?))));
+        total = add(total, mul(signe, eur2(mul(dec_avec_echelle(cle(l, "taux")?)?, dec_avec_echelle(cle(l, "quantite")?)?))));
     }
     Ok(total)
 }

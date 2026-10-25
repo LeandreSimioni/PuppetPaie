@@ -19,11 +19,11 @@ use droit::catalogue::rubrique;
 use droit::clauses;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
-use socle::date::{d, dernier_du_mois, en_texte, jours_du_mois, premier_du_mois, repr_py, Jour};
+use socle::date::{d, dernier_du_mois, en_texte, jours_du_mois, premier_du_mois, forme_ecrite, Jour};
 use crate::engagement::{charger, Avis};
 use socle::feries;
 use socle::fichiers::{repr, vrai};
-use socle::num::{add, dec, dec_f64, dec_py, div, eur2, mul, zero2, Decimal, Resultat};
+use socle::num::{add, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
 use droit::permanents::{arrondir_jours, indemnite_conges, jours_acquis, periode_de_reference, plafonner};
 
 // ------------------------------------------------------------ les aides
@@ -57,7 +57,7 @@ pub(crate) fn sub(a: Decimal, b: Decimal) -> Decimal {
 /// `Decimal(str(x))` d'une valeur ou, si elle est fausse, de `defaut`.
 pub(crate) fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
     match v {
-        Some(x) if vrai(x) => dec_py(x),
+        Some(x) if vrai(x) => dec_avec_echelle(x),
         _ => Ok(defaut),
     }
 }
@@ -508,7 +508,7 @@ pub fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Repr
         format!(
             "{} : la date des conges a la reprise ({}) n'est pas une date AAAA-MM-JJ.",
             cle_salarie,
-            repr_py(r.get("date").unwrap_or(&Value::Null))
+            forme_ecrite(r.get("date").unwrap_or(&Value::Null))
         )
     })?;
     let nombre = |c: &str| -> Resultat<Decimal> {
@@ -521,7 +521,7 @@ pub fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Repr
                 "{} : conges a la reprise, {} = {} n'est pas un nombre.",
                 cle_salarie,
                 c,
-                repr_py(r.get(c).unwrap_or(&Value::Null))
+                forme_ecrite(r.get(c).unwrap_or(&Value::Null))
             )
         })
     };
@@ -781,7 +781,7 @@ pub fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Decimal> {
     let mut total = Decimal::ZERO;
     for l in &paie.engagement.lignes {
         if rubrique(racine, &en_texte(requis(l, "rubrique")?))?.conges_pris {
-            total += dec_py(requis(l, "quantite")?)?;
+            total += dec_avec_echelle(requis(l, "quantite")?)?;
         }
     }
     Ok(total)
@@ -836,7 +836,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
     };
     let defaut = dec_f64(nat.quotite_reference_defaut.ok_or("quotite_reference_defaut")?)?;
     let quotite = dec_ou(e.get("quotite_contrat"), defaut)?;
-    let salaire = dec_py(salaire)?;
+    let salaire = dec_avec_echelle(salaire)?;
 
     let debut_mois = premier_du_mois(mois)?;
     let fin_mois = fin_mois_de(mois)?;
