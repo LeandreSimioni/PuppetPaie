@@ -121,6 +121,12 @@ montre que celui qui a lieu.
   preuve : il se vérifie avant de s'affirmer.
 - **L'orchestrateur organise, puis vérifie après coup** : il donne à l'Opus le but, les règles, la passation attendue, et le
   laisse faire ; il ne dit pas *comment* faire ce qu'il n'a pas lu dans le code. Puis il vérifie (commits, diff, tests).
+- **L'orchestrateur surveille pendant, pas seulement après** (Léandre, 25/10/2026 : « tu devrais regarder que tes agents
+  font pas du bordel ») : toutes les 30 minutes, il regarde le worktree de chaque Opus (commits, fichiers touchés, tests
+  et données modifiés) sans lire sa conversation ; une heure sans commit, il demande où il en est ; un Opus trop chargé
+  commite, rend sa passation, et un Opus neuf reprend. En tête de chaque consigne, avant le but : **un test de l'ancien
+  parcours qui casse se supprime, il ne se répare pas** ; **aucune donnée destinée à être remplacée ne se convertit**. Un
+  Opus qui le fait est arrêté aussitôt ; à la fusion, la liste des tests modifiés se relit avant d'accepter le lot.
 - **Un reste ne remonte pas à Léandre : l'orchestrateur le tranche et le fait corriger** (Léandre, 21/10/2026 : « tu as
   trouvé un problème ? c'est super, maintenant il faut le corriger »). Chaque « laissé de côté », « à trancher », « limite »
   d'une passation se lit comme un travail à faire : l'orchestrateur décide (le code, les textes, le bon sens d'un
