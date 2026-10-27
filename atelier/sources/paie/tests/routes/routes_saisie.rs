@@ -67,7 +67,6 @@ fn un_mois_neuf_s_ouvre_vide_au_dernier_taux_saisi() {
     let r = saisie_ouverte(c, "2026-10", "2026-10-04");
     assert_eq!(r["mois"], "2026-10");
     assert_eq!(r["existe"], json!(false));
-    assert_eq!(r["hors_delai"], Value::Null);
     assert_eq!(r["saisie"]["engagements"], json!([]));
     assert_eq!(r["saisie"]["date_paiement"], "2026-10-31");
     assert_eq!(r["saisie"]["taux_cachet"], attendu);
@@ -127,18 +126,6 @@ fn sans_aucun_cachet_saisi_le_moteur_ne_propose_aucun_taux() {
     crate::outils::poser_saisie(c, "2026-08", &cachet);
     let r = saisie_ouverte(c, "2026-09", "2026-09-10");
     assert_eq!((&r["saisie"]["taux_cachet"], &r["defauts"]["taux_cachet"]), (&json!(145.0), &json!(145.0)), "{}", r);
-}
-
-#[test]
-fn passe_le_delai_le_mois_est_ferme() {
-    let c = &compagnie("delai", &["2026-08"]);
-    // La DSN d'aout est due le 15 septembre : le 15, le mois est ouvert ; le 16, il est ferme.
-    assert_eq!(saisie_ouverte(c, "2026-08", "2026-09-15")["hors_delai"], Value::Null);
-    let r = saisie_ouverte(c, "2026-08", "2026-09-16");
-    assert_eq!(r["hors_delai"], "2026-09-15");
-    assert_eq!(r["existe"], json!(true));
-    // Decembre : l'echeance tombe en janvier de l'annee d'apres.
-    assert_eq!(saisie_ouverte(c, "2026-12", "2027-01-16")["hors_delai"], "2027-01-15");
 }
 
 #[test]
@@ -413,10 +400,10 @@ fn une_echeance_que_le_logiciel_voit_lui_meme_ou_qui_n_existe_pas_ne_se_coche_pa
 }
 
 /// UN MOIS D'AVANT LA PREMIERE EMBAUCHE N'A PAS DE DSN DUE (#236, banc du Petit Castelet : premiere embauche le 25/01/2025,
-/// decembre 2024 proposait « Rouvrir ce mois (DSN en retard) »). La DSN est due pour les salaries qu'on emploie : la borne
+/// decembre 2024 se disait en retard). La DSN est due pour les salaries qu'on emploie : la borne
 /// est la premiere embauche de la fiche (`routes_ouverture::premier_mois_declarable`, que l'echeancier lit deja). Le mois
-/// d'avant, passe, se lit sans limite de depot ; il ne se saisit pas, pas meme `forcer`, et rien n'est ecrit. Le mois de la
-/// premiere embauche, lui, garde sa limite.
+/// d'avant, passe, se lit ; il ne se saisit pas, et rien n'est ecrit. Le mois de la
+/// premiere embauche, lui, se saisit.
 #[test]
 fn un_mois_d_avant_la_premiere_embauche_n_a_pas_de_dsn_due() {
     let c = &compagnie("avant-embauche", &[]);
@@ -425,17 +412,13 @@ fn un_mois_d_avant_la_premiere_embauche_n_a_pas_de_dsn_due() {
     ecrire(c, "config/entreprise.json", &ent);
     let r = saisie_ouverte(c, "2024-12", "2025-01-20");
     assert_eq!(r["avant_premiere_embauche"], json!("2025-01-25"));
-    assert_eq!(r["hors_delai"], Value::Null, "pas de DSN due, pas de retard");
     let s = json!({"mois": "2024-12", "engagements": []});
-    for forcer in [false, true] {
-        refus(&route(c, "enregistrer-saisie", json!({"mois": "2024-12", "saisie": s, "forcer": forcer}), "2025-01-20"));
-        assert!(!c.join("engagements/2024-12.json").exists(), "rien n'est ecrit");
-    }
-    // Le mois de la premiere embauche : sa DSN est due le 15 fevrier, et passe ce jour il est en retard.
+    refus(&route(c, "enregistrer-saisie", json!({"mois": "2024-12", "saisie": s}), "2025-01-20"));
+    assert!(!c.join("engagements/2024-12.json").exists(), "rien n'est ecrit");
+    // Le mois de la premiere embauche se saisit.
     assert_eq!(saisie_ouverte(c, "2025-01", "2025-02-20")["avant_premiere_embauche"], Value::Null);
-    assert!(saisie_ouverte(c, "2025-01", "2025-02-20")["hors_delai"].is_string());
-    // Sans premiere embauche dite, rien ne borne : decembre est en retard comme avant.
+    // Sans premiere embauche dite, rien ne borne.
     ent.as_object_mut().unwrap().remove("premiere_embauche");
     ecrire(c, "config/entreprise.json", &ent);
-    assert!(saisie_ouverte(c, "2024-12", "2025-01-20")["hors_delai"].is_string());
+    assert_eq!(saisie_ouverte(c, "2024-12", "2025-01-20")["avant_premiere_embauche"], Value::Null);
 }

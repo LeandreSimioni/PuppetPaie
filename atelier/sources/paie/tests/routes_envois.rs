@@ -15,7 +15,7 @@ use paie::coffre::Coffre;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::Echec;
-use paie::{routes_documents, routes_ecritures_g4, routes_envois};
+use paie::{routes_documents, routes_envois};
 use rust_decimal::{Decimal, RoundingStrategy};
 use serde_json::{json, Value};
 
@@ -132,11 +132,7 @@ fn phrase(r: Result<Value, Echec>) -> (String, String) {
     (e.classe.unwrap_or("").to_string(), e.message)
 }
 
-/// Les routes d'ecriture et d'apercu dont les envois ont besoin.
-fn ecrire_les_documents(racine: &Path, mois: &str) {
-    routes_ecritures_g4::route(&contexte(racine), "ecrire-documents", &json!({"mois": mois})).unwrap();
-}
-
+/// Les routes d'apercu dont les envois ont besoin.
 fn apercu(racine: &Path, nom: &str, charge: Value) -> Value {
     routes_documents::route(&options(racine), &contexte(racine), nom, &charge).unwrap()
 }
@@ -147,7 +143,6 @@ fn apercu(racine: &Path, nom: &str, charge: Value) -> Value {
 fn envoyer_documents_dans_une_fictive_ecrit_les_courriels_simules_et_le_journal() {
     let _t = tour();
     let racine = compagnie("documents-fictive", true);
-    ecrire_les_documents(&racine, "2026-08");
     let avant = journal(&racine).len();
     let r = telle_quelle(&racine, "envoyer-documents", json!({"mois": "2026-08"})).unwrap();
 
@@ -185,7 +180,6 @@ fn envoyer_documents_dans_une_fictive_ecrit_les_courriels_simules_et_le_journal(
 fn envoyer_documents_sans_preuve_ou_avec_une_fausse_n_ecrit_rien() {
     let _t = tour();
     let racine = compagnie("documents-preuve", false);
-    ecrire_les_documents(&racine, "2026-08");
     let j0 = journal(&racine);
     let sortie0 = noms(&racine.join("sorties/2026-08/envoi"));
     let faux = Faux::nouveau();
@@ -232,7 +226,6 @@ fn envoyer_documents_qui_echoue_au_milieu_le_dit_et_le_note() {
     let _t = tour();
     let racine = compagnie("documents-echec", false);
     poser_le_mot_de_passe(&racine);
-    ecrire_les_documents(&racine, "2026-08");
     let j0 = journal(&racine);
     // Le deuxieme message est refuse : le premier est parti.
     let faux = refuse_le(1);
@@ -263,20 +256,15 @@ fn envoyer_documents_qui_echoue_au_milieu_le_dit_et_le_note() {
 }
 
 #[test]
-fn envoyer_documents_refuse_une_boite_absente_et_un_mois_non_ecrit() {
+fn envoyer_documents_refuse_une_boite_absente_et_un_mois_sans_saisie() {
     let _t = tour();
     let racine = compagnie("documents-boite", false);
-    ecrire_les_documents(&racine, "2026-08");
     let j0 = journal(&racine);
     // Ni adresse ni mot de passe d'application : la boite est absente, avant toute preuve.
     let (classe, m) = phrase(telle_quelle(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE})));
     assert_eq!(classe, "BoiteAbsente");
     assert!(m.starts_with("Aucune boite courriel : poser le mot de passe d'application"), "{}", m);
     assert_eq!(journal(&racine), j0);
-    // Un mois dont les documents ne sont pas decoupes par salarie : `sorties/<mois>/envoi` n'existe pas.
-    let (classe, m) = phrase(telle_quelle(&racine, "envoyer-documents", json!({"mois": "2026-07"})));
-    assert_eq!(classe, "SortieAbsente");
-    assert!(m.ends_with("envoi n'existe pas."), "{}", m);
     // Un mois sans saisie, et une charge sans mois.
     assert!(phrase(telle_quelle(&racine, "envoyer-documents", json!({"mois": "2031-01"}))).1.contains("2031-01"));
     phrase(telle_quelle(&racine, "envoyer-documents", json!({})));
@@ -311,7 +299,6 @@ fn des_documents_partis_puis_une_paie_modifiee_se_renvoient_au_seul_salarie_conc
     let _t = tour();
     let racine = compagnie("documents-renvoi", false);
     poser_le_mot_de_passe(&racine);
-    ecrire_les_documents(&racine, "2026-08");
     let faux = Faux::nouveau();
     avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
     assert_eq!(faux.partis(), 3);
@@ -329,7 +316,6 @@ fn des_documents_partis_puis_une_paie_modifiee_se_renvoient_au_seul_salarie_conc
     let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
     saisie["engagements"][rang]["lignes"][0]["quantite"] = json!(40);
     crate::outils::poser_saisie(&racine, "2026-08", &saisie);
-    ecrire_les_documents(&racine, "2026-08");
 
     // Sa pastille n'est plus verte : la paie a change depuis l'envoi. Les deux autres n'ont pas bouge.
     let p = pastilles_documents(&racine, "2026-08");
@@ -403,7 +389,6 @@ fn apres_la_limite_les_documents_corriges_repartent_et_le_courriel_dit_quand_la_
     let _t = tour();
     let racine = compagnie("documents-apres-limite", false);
     poser_le_mot_de_passe(&racine);
-    ecrire_les_documents(&racine, "2026-08");
     avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
     assert!(bulletin_de_lemercier(&racine).contains("576,00"));
 

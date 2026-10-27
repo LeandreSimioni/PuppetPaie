@@ -19,8 +19,8 @@ fn copie(test: &str) -> PathBuf {
     compagnie::ses_dsn("fictive-3090-grande", &["2026-06", "2026-07"], &outils::dossier_de_test("net_deja_verse", test))
 }
 
-fn produire_le(racine: &Path, mois: &str, jour: &str) -> Value {
-    outils::route(racine, "produire", json!({"mois": mois, "saisie": crate::outils::saisie(racine, &mois)}), jour)
+fn dsn_le(racine: &Path, mois: &str, jour: &str) -> Value {
+    outils::route(racine, "dsn-a-deposer", json!({"mois": mois}), jour)
 }
 
 /// Une correction du contrat `numero` de `mois` : le taux de ses lignes `rubrique` passe a `taux`.
@@ -99,7 +99,7 @@ fn le_net_deja_verse_de_servandoni_est_celui_de_son_bulletin_de_juillet() {
     assert_eq!(paye, "2 943,62");
     corriger(&r, JOUR, "2026-07", SERVANDONI, "heure", 19.0);
     mois_pret(&r, "2026-10");
-    let rep = produire_le(&r, "2026-10", JOUR);
+    let rep = dsn_le(&r, "2026-10", JOUR);
     outils::reussi(&rep);
     let rect = texte_pdf(&rectificatif(&r, "2026-07", 1));
     assert_eq!(montant_apres(&rect, NET_RECTIFIE), paye, "le net deja verse est celui du bulletin archive");
@@ -129,7 +129,7 @@ fn chaminade_corrigee(test: &str, ancien_58004: bool) -> Chaminade {
     e["lignes"].as_array_mut().unwrap().push(json!({"rubrique": "acompte", "quantite": 1, "taux": 100.0}));
     crate::outils::poser_saisie(&r, "2026-10", &s);
     mois_pret(&r, "2026-10");
-    outils::reussi(&produire_le(&r, "2026-10", JOUR));
+    outils::reussi(&dsn_le(&r, "2026-10", JOUR));
     let saisie = crate::outils::saisie(&r, "2026-10");
     let numero = saisie["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == json!("Chaminade")).unwrap()["numero"].as_str().unwrap().to_string();
 
@@ -164,7 +164,7 @@ fn chaminade_corrigee(test: &str, ancien_58004: bool) -> Chaminade {
     let jour = "2026-12-10";
     corriger(&r, jour, "2026-10", &numero, "heure", 20.0);
     mois_pret(&r, "2026-11");
-    outils::reussi(&produire_le(&r, "2026-11", jour));
+    outils::reussi(&dsn_le(&r, "2026-11", jour));
     let verse = montant_apres(&texte_pdf(&rectificatif(&r, "2026-10", 1)), NET_RECTIFIE);
     Chaminade { r, numero, social, paye, verse }
 }
@@ -213,7 +213,7 @@ fn refus_pour_servandoni(test: &str, abimer: &dyn Fn(&Path)) -> String {
     corriger(&r, JOUR, "2026-07", SERVANDONI, "heure", 19.0);
     mois_pret(&r, "2026-10");
     abimer(&r);
-    let (_, message) = outils::refus(&produire_le(&r, "2026-10", JOUR));
+    let (_, message) = outils::refus(&dsn_le(&r, "2026-10", JOUR));
     assert!(!r.join("sorties/2026-10/DSN_Octobre2026.dsn").exists(), "la DSN d'octobre ne se produit pas");
     assert!(message.contains("Correction de 2026-07") && message.contains(SERVANDONI), "{}", message);
     assert!(message.contains("net deja verse"), "{}", message);
@@ -245,7 +245,7 @@ fn une_seconde_correction_lit_le_net_sur_le_rectificatif_de_la_premiere() {
     let r = copie("seconde");
     corriger(&r, JOUR, "2026-07", SERVANDONI, "heure", 19.0);
     mois_pret(&r, "2026-10");
-    outils::reussi(&produire_le(&r, "2026-10", JOUR));
+    outils::reussi(&dsn_le(&r, "2026-10", JOUR));
     dsn_deposee(&r, "2026-10", "DSN_Octobre2026.dsn", "2026-11-12T10:00:00");
     let mut c = lire(&r, "regularisations/2026-07.json");
     c["corrections"][0]["portee_par"] = json!({"mois": "2026-10", "fichier": "DSN_Octobre2026.dsn", "quand": "2026-11-12T10:00:00"});
@@ -262,12 +262,12 @@ fn une_seconde_correction_lit_le_net_sur_le_rectificatif_de_la_premiere() {
     // Sans le rectificatif de la premiere : refus, il dit lequel manque.
     let garde = r.parent().unwrap().join("seconde-rectificatif-c1.pdf");
     std::fs::rename(&premier, &garde).unwrap();
-    let (_, message) = outils::refus(&produire_le(&r, "2026-11", jour));
+    let (_, message) = outils::refus(&dsn_le(&r, "2026-11", jour));
     assert!(message.contains(&premier.file_name().unwrap().to_string_lossy().to_string()) && message.contains("n'est pas sur le disque"), "{}", message);
     assert!(!r.join("sorties/2026-11/DSN_Novembre2026.dsn").exists());
 
     std::fs::rename(&garde, &premier).unwrap();
-    outils::reussi(&produire_le(&r, "2026-11", jour));
+    outils::reussi(&dsn_le(&r, "2026-11", jour));
     let rect2 = texte_pdf(&rectificatif(&r, "2026-07", 2));
     assert_eq!(montant_apres(&rect2, NET_RECTIFIE), rectifie);
 }

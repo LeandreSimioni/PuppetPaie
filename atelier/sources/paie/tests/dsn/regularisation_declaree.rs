@@ -93,12 +93,12 @@ fn changer_le_bareme(racine: &Path) {
     assert!(vus > 0, "le bareme 2026 porte la cotisation FNAL");
 }
 
-fn produire_le(racine: &Path, mois: &str, jour: &str) -> Value {
-    route_le(racine, jour, "produire", json!({"mois": mois, "saisie": crate::outils::saisie(racine, &mois)}))
+fn dsn_le(racine: &Path, mois: &str, jour: &str) -> Value {
+    route_le(racine, jour, "dsn-a-deposer", json!({"mois": mois}))
 }
 
-fn produire_octobre(racine: &Path) -> Value {
-    produire_le(racine, "2026-10", JOUR)
+fn dsn_d_octobre(racine: &Path) -> Value {
+    dsn_le(racine, "2026-10", JOUR)
 }
 
 /// (rubrique, valeur) d'un fichier DSN.
@@ -297,7 +297,7 @@ fn les_blocs_d_annulation_portent_les_montants_du_fichier_depose_pas_ceux_du_rec
     corriger_juillet(&r);
     changer_le_bareme(&r);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -363,7 +363,7 @@ fn le_105_depose_s_annule_tel_quel_et_le_rappel_se_declare_en_131() {
     assert_eq!(declare.iter().map(|(c, _)| c.as_str()).collect::<Vec<_>>(), ["105"], "le depot de juillet porte un 105");
     corriger_juillet(&r);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -391,7 +391,7 @@ fn sans_la_dsn_deposee_la_correction_refuse_et_ne_recalcule_pas() {
     corriger_juillet(&r);
     octobre_pret(&r);
     std::fs::remove_file(r.join("sorties/2026-07/DSN_Juillet2026.dsn")).unwrap();
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(false), "{}", rep);
     let message = rep["erreur"].as_str().unwrap_or_default();
     assert!(message.contains("Correction de 2026-07") && message.contains(CONTRAT), "{}", message);
@@ -439,7 +439,7 @@ fn deux_dsn_reelles_acceptees_pour_le_mois_d_origine_la_derniere_fait_foi() {
     l.push(reel);
     ecrire_json(&r, "journal/depots.json", &j);
 
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
     verifier_l_annulation(&remplace, &regul);
@@ -465,7 +465,7 @@ fn une_seconde_correction_annule_le_rappel_porte_par_la_premiere_pas_le_depot_d_
     let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
     corriger_juillet(&r);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul_octobre = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
     let rappel_octobre = rappel(&depose, &regul_octobre);
@@ -481,7 +481,7 @@ fn une_seconde_correction_annule_le_rappel_porte_par_la_premiere_pas_le_depot_d_
     let jour = "2026-12-10";
     corriger_juillet_a(&r, jour, 20.0);
     mois_pret(&r, "2026-11");
-    let rep = produire_le(&r, "2026-11", jour);
+    let rep = dsn_le(&r, "2026-11", jour);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement(&lignes(&r.join("sorties/2026-11/DSN_Novembre2026.dsn")), JUILLET);
 
@@ -642,7 +642,7 @@ fn l_agrege_du_mois_d_origine_porte_la_meme_difference_que_le_nominatif() {
     });
     assert!(vus >= 4, "{} objets du bareme retouches", vus);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -801,7 +801,7 @@ fn une_correction_de_juillet_2025_annule_le_declare_et_plafonne_le_rappel() {
     let w = route_le(&r, JOUR, "regularisation-ecrire", json!({"mois": "2025-07", "salarie": item["salarie"], "debut": item["debut"], "engagement": e, "motif": "le taux horaire etait faux"}));
     assert_eq!(w["ok"], json!(true), "{}", w);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement_du(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), SE, PERIODE);
     verifier_l_annulation(&depose, &regul);
@@ -855,7 +855,7 @@ fn un_contrat_paye_ce_mois_et_corrige_porte_des_numeros_de_versement_distincts()
     crate::outils::poser_saisie(&r, "2026-10", &saisie);
     crate::outils::tout_valider(&r, "2026-10", JOUR);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let lui = individu(&octobre, NIR);
@@ -925,7 +925,7 @@ fn la_correction_d_un_etablissement_secondaire_porte_son_taux_at_dans_le_bordere
 
     corriger_juillet_a(&r, JOUR, 25.0);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let secondaire = lignes(&r.join("sorties/2026-10/DSN_Octobre2026_00099.dsn"));
     assert_eq!(valeur(&secondaire, "S21.G00.11.001"), "00099");
@@ -1031,7 +1031,7 @@ fn la_correction_d_un_cdi_annule_le_declare_et_son_bordereau_porte_la_reduction_
     let (_, w) = corriger_le_cdi(&r, juillet_sans_la_prime());
     assert_eq!(w["ok"], json!(true), "{}", w);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement_de(&octobre, NIR_MO, CDI, JUILLET_MOIS);
@@ -1114,7 +1114,7 @@ fn un_permanent_corrige_au_dessus_de_quatre_plafonds_garde_une_base_07_a_quatre_
     let (_, w) = corriger_le_cdi(&r, json!([{"rubrique": "mois", "quantite": 1, "taux": 20000.0, "heures": 151.67}]));
     assert_eq!(w["ok"], json!(true), "{}", w);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement_de(&octobre, NIR_MO, CDI, JUILLET_MOIS);
@@ -1163,7 +1163,7 @@ fn le_taux_du_bloc_56_est_le_50006_du_versement_declare_pas_celui_d_un_autre_fic
     // Un indu : l'heure de Servandoni passe de 18 a 10 EUR, le net fiscal du rappel est negatif.
     corriger_juillet_a(&r, JOUR, 10.0);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
     assert!(centimes(valeur(&regul, "S21.G00.50.002")) < 0, "un indu");
@@ -1224,7 +1224,7 @@ fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_sui
     assert_eq!(b["resultat"]["dsn"]["remplacement"]["correction_ecrite"], json!(true), "{}", b["resultat"]["dsn"]);
 
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     // Le bloc 40 du contrat oublie, a sa date de debut passee.
@@ -1285,7 +1285,7 @@ fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
     // leur versement est a zero -- « non signe, valeur zero autorisee » (cahier technique DSN 2026.1, p. 156,
     // `norme-dsn/texte/bloc-S21.G00.20.txt`) -- et le credit reste declare dans les cotisations individuelles (81.004).
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -1418,7 +1418,7 @@ fn changer_les_dates_de_juillet(r: &Path, debut: &str, fin: &str, jours: &[&str]
     assert_eq!((dsn["couleur"].as_str(), dsn["remplacement"]["correction_ecrite"].as_bool()), (Some("bien"), Some(true)), "{}", dsn);
 
     octobre_pret(r);
-    let rep = produire_octobre(r);
+    let rep = dsn_d_octobre(r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     (lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), w["resultat"]["correction"].clone())
 }
@@ -1555,7 +1555,7 @@ fn contrat_a_cheval(test: &str) -> (PathBuf, String) {
     crate::outils::poser_saisie(&r, "2026-07", &juillet);
     crate::outils::tout_valider(&r, "2026-07", "2026-08-05");
     mois_pret(&r, "2026-07");
-    let rep = produire_le(&r, "2026-07", "2026-08-05");
+    let rep = dsn_le(&r, "2026-07", "2026-08-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let numero = crate::outils::saisie(&r, "2026-07")["engagements"]
         .as_array()
@@ -1574,7 +1574,7 @@ fn contrat_a_cheval(test: &str) -> (PathBuf, String) {
     e["date_paiement"] = a_cheval["date_paiement"].clone();
     crate::outils::poser_saisie(&r, "2026-08", &aout);
     crate::outils::tout_valider(&r, "2026-08", "2026-09-05");
-    let rep = produire_le(&r, "2026-08", "2026-09-05");
+    let rep = dsn_le(&r, "2026-08", "2026-09-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     remettre_les_depots(&r, depots_aout);
     let aout = lignes(&r.join("sorties/2026-08/DSN_Aout2026.dsn"));
@@ -1641,7 +1641,7 @@ fn un_contrat_sur_deux_mois_dont_le_debut_est_avance_se_corrige_mois_par_mois() 
     corriger_le_contrat(&r, "2026-08", &numero);
 
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let c = le_contrat(&octobre, &numero);
@@ -1678,7 +1678,7 @@ fn un_contrat_sur_deux_mois_dont_la_fin_est_reculee_se_corrige_mois_par_mois() {
     corriger_le_contrat(&r, "2026-08", &numero);
 
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let c = le_contrat(&octobre, &numero);

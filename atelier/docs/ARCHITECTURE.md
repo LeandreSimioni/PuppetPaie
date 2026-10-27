@@ -91,11 +91,21 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
   une ligne `documents` du mois qui nomme le salarié). Tout document se fabrique depuis les paies écrites
   (`etats::validees_du_mois`, `etats::paies_du_mois`, qui refuse un mois dont un engagement est en saisie) ; aucun ne
   recalcule.
-- **Le recalcul de lui-même** (`etats::rafraichir`, à l'ouverture d'un mois et avant de produire) : une paie validée
+- **Chaque document se fabrique à son départ** (`paie/src/depart.rs`) : la DSN à son dépôt (`fabriquer_dsn`, route
+  `dsn-a-deposer`), dès qu'un engagement du mois est validé, sans attendre DPAE ni contrat ; le bulletin et le certificat
+  Congés Spectacles à l'envoi des documents (`fabriquer_documents`), qui écrit dans la paie le numéro du bulletin
+  (`N/AAAA`) et le premier N° CE (`etats::poser_numeros_des_documents`) ; le contrat à son envoi à la signature, où son
+  numéro se fige (`envois_signature::reserver_numeros_envoyes`). Une paie partie puis refaite part sous un numéro
+  nouveau, en rectificatif (`rectifie`), l'original gardé. Après la veille de l'échéance, un mois déclaré ne se
+  redépose plus (`AnnuleRemplaceHorsDelai`) : sa correction s'écrit d'elle-même et part dans la DSN suivante
+  (`depart::corrections_dues`). L'AER ne se fabrique pas : France Travail la renvoie, et elle se vérifie contre les
+  paies écrites.
+- **Le recalcul de lui-même** (`etats::rafraichir`, à chaque lecture d'un mois, `etats::du_mois`) : une paie validée
   dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
   chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
   qu'il livre), « un autre engagement du mois a changé », « configuration de la compagnie modifiée ». L'écran le montre
-  (« Recalculé le JJ/MM/AAAA : … »). Sans chiffre changé, rien ne se dit.
+  (« Recalculé le JJ/MM/AAAA : … »). Sans chiffre changé, rien ne se dit. Un recalcul que le moteur refuse
+  garde la paie validée et se note en incident pour l'éditeur (`incidents::poser_le_temoin_des_recalculs`).
 - **Modifier…** (route `valider-engagement`, `valide: false`) repasse l'engagement en saisie. Si les documents d'un de
   ses mois sont partis, le moteur pose d'abord sa question (`etats::QUESTION_DOCUMENTS_PARTIS`) et ne bouge qu'avec la
   réponse (`confirme`) ; les paies parties se gardent (`figees`) et se reprennent telles quelles à la validation si la
