@@ -77,8 +77,9 @@ pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, char
     let saisis = Moteur::numeros_saisis(&saisie, &uniques);
     let cles_paies = etats::cles_des_paies(&lignes, &crate::routes_mois::contrats_des_paies(&paies))?;
 
-    // Quand chaque CONTRAT a ete demande (ce mois-ci).
+    // Quand chaque CONTRAT a ete demande (ce mois-ci), et s'il est parti imprime, pour une remise en main propre.
     let mut demandes: HashMap<etats::Cle3, Value> = HashMap::new();
+    let mut en_main_propre: HashMap<etats::Cle3, bool> = HashMap::new();
     for l in etats::filtrer(&lignes, Some(SIGNATURE), Some(&mois), false)? {
         if !etats::accepte(l)? {
             continue;
@@ -87,6 +88,7 @@ pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, char
         for c in items(contrats)? {
             if let [Value::String(a), Value::String(b), Value::String(n)] = etats::cle_contrat(&c, etats::Maille::Contrat)?.as_slice() {
                 demandes.insert((a.clone(), b.clone(), n.clone()), get(l, "quand")?.clone());
+                en_main_propre.insert((a.clone(), b.clone(), n.clone()), l.pointer("/detail/main_propre").is_some_and(vrai));
             }
         }
     }
@@ -130,6 +132,7 @@ pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, char
         l.insert("fin".into(), json!(fin));
         l.insert("numero".into(), numero);
         l.insert("demande_le".into(), premier(&demandes, cles).cloned().unwrap_or(Value::Null));
+        l.insert("main_propre".into(), json!(premier(&en_main_propre, cles).copied().unwrap_or(false)));
         l.insert("recu_le".into(), etat["recu"].clone());
         l.insert("recu_par".into(), etat["recu_par"].clone());
         l.insert("caduc".into(), etat["caduc"].clone());

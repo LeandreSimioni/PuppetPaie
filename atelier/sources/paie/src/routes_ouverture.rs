@@ -1119,55 +1119,40 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
     Ok(out)
 }
 
-/// `engagement.numeroter` : les numeros de contrat (FA1.26.13) et de bulletin
-/// (17/2026), RESERVES et pas ecrits : l'apercu ne touche a aucun compteur.
-/// Un engagement qui PORTE DEJA son numero de contrat le garde, une paie partie son
-/// numero de bulletin (`engagement::etats::Valide::bulletin`).
+/// `engagement.numeroter` : les numeros de contrat (FA1.26.13) et de bulletin (17/2026) que les paies porteraient, en
+/// memoire : l'apercu n'ecrit rien. Un engagement qui PORTE DEJA son numero de contrat le garde (`engagement::numeros`),
+/// une paie partie son numero de bulletin (`engagement::etats::Valide::bulletin`).
 pub(crate) fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32) -> R<()> {
     numeroter_en_attente(ctx, paies, annee, &mut HashMap::new())
 }
 
-/// La meme, avec les numeros deja RESERVES par un appel precedent du meme processus
-/// (`Contexte._compteurs_en_attente`, `enregistrer_compteur`) : `(annee, compteur) -> dernier numero`.
+/// La meme, avec les numeros de bulletin deja RESERVES par un appel precedent du meme processus : `(annee, "bulletin")
+/// -> dernier numero`. Le contrat sans numero prend la suite des numeros deja pris pour son salarie
+/// (`engagement::numeros::derniers_pris`).
 pub(crate) fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, attente: &mut HashMap<(String, String), i64>) -> R<()> {
     let p = ctx.racine.join("config").join("compteurs.json");
     let compteurs = if p.exists() { lire_json(&p)? } else { Value::Null };
     let an = annee.to_string();
-    let prochain = |attente: &HashMap<(String, String), i64>, cle: &str| -> i64 {
-        if let Some(v) = attente.get(&(an.clone(), cle.to_string())) {
-            return v + 1;
-        }
-        compteurs.get(&an).and_then(|c| c.get(cle)).and_then(|v| match v {
+    let mut n_bull = match attente.get(&(an.clone(), "bulletin".to_string())) {
+        Some(v) => v + 1,
+        None => compteurs.get(&an).and_then(|c| c.get("bulletin")).and_then(|v| match v {
             Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)),
             Value::String(s) => s.trim().parse().ok(),
             _ => None,
-        }).unwrap_or(0) + 1
+        }).unwrap_or(0) + 1,
     };
-    let mut n_bull = prochain(attente, "bulletin");
-    let mut seqs: Vec<(String, i64)> = Vec::new();
+    let mut pris: Option<HashMap<String, i64>> = None;
     let manque = |s: &Value, k: &str| s.get(k).map(en_texte).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(k)));
     for p in paies.iter_mut() {
-        let sal = p.salarie.clone();
         let sans_paie = p.engagement.sans_paie();
-        let sans_numero = p.engagement.numero.as_deref().map_or(true, str::is_empty);
-        if sans_numero {
+        if p.engagement.numero.as_deref().map_or(true, str::is_empty) {
             engagement::refus_sans_numero(ctx, &p.engagement)?;
-            let cle = format!("contrat_{}", manque(&sal, "_cle")?);
-            let seq = match seqs.iter().find(|(k, _)| *k == cle) {
-                Some((_, s)) => s + 1,
-                None => prochain(attente, &cle),
-            };
-            match seqs.iter_mut().find(|(k, _)| *k == cle) {
-                Some(e) => e.1 = seq,
-                None => seqs.push((cle, seq)),
+            if pris.is_none() {
+                pris = Some(engagement::numeros::derniers_pris(ctx, annee)?);
             }
-            p.engagement.numero = Some(format!(
-                "{}{}.{}.{:02}",
-                manque(&sal, "initiales_contrat")?,
-                manque(&sal, "code_salarie")?,
-                &an[2.min(an.len())..],
-                seq
-            ));
+            let dernier = pris.as_mut().unwrap().entry(manque(&p.salarie, "_cle")?).or_insert(0);
+            *dernier += 1;
+            p.engagement.numero = Some(engagement::numeros::former(&p.salarie, annee, *dernier)?);
         }
         // Un mois sans cachet n'a pas de bulletin : rien n'est paye, aucun
         // numero de bulletin ne se reserve.
@@ -1181,10 +1166,7 @@ pub(crate) fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i3
         p.numero_bulletin = Some(format!("{}/{}", n_bull, annee));
         n_bull += 1;
     }
-    attente.insert((an.clone(), "bulletin".to_string()), n_bull - 1);
-    for (cle, v) in seqs {
-        attente.insert((an.clone(), cle), v);
-    }
+    attente.insert((an, "bulletin".to_string()), n_bull - 1);
     Ok(())
 }
 

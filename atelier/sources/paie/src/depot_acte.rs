@@ -817,7 +817,7 @@ pub fn deposer_dsn_dans(
         crate::marques_depot::marquer_portees(ctx, &mois, &chemin, &quand)?;
         crate::marques_depot::marquer_reportes(ctx, &mois, &chemin, &quand)?;
         // Les numeros de contrat que la DSN a declares sont ceux des contrats, desormais.
-        crate::depart::figer_numeros_declares(ctx, &mois, &octets, qui)?;
+        crate::depart::numeros_declares(ctx, &mois, &octets)?;
     }
     Ok(DepotFait { quoi: "dsn".into(), mois, reel, reponse, flux, trace: Some(trace), ligne, deja, repetition })
 }

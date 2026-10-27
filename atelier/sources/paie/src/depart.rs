@@ -11,9 +11,10 @@
 //!   a cote.
 //!
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
-//! Un numero de contrat se fige au premier depart qui le porte : le contrat a son envoi a la signature ou a
-//! sa reception signee (`envois_signature::reserver_numeros_envoyes`), ou la DSN a son depot reel (`figer_numeros_declares`). Jusque-la, un
-//! contrat qui ne porte pas encore le sien se declare sous celui que le compteur propose ; ensuite il se relit.
+//! Un numero de contrat s'ecrit dans l'engagement au premier depart qui le porte (`engagement::numeros`) : l'envoi du
+//! contrat a la signature, son impression pour une remise en main propre (`envois_signature`), ou le depot reel de la
+//! DSN (`numeros_declares`). Jusque-la, un contrat qui ne porte pas encore le sien se declare sous celui qui lui serait
+//! donne ; ensuite il se relit.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -101,21 +102,12 @@ impl Reserves {
         self.valeurs.insert(k, v);
     }
 
-    /// Les numeros de contrat et de bulletin des paies, reserves.
+    /// Les numeros de bulletin des paies, reserves ; leurs numeros de contrat, ceux qu'elles porteraient.
     pub(crate) fn numeroter(&mut self, ctx: &Contexte, paies: &mut [Paie], annee: i32) -> R<()> {
         crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee, &mut self.valeurs)?;
-        let an = annee.to_string();
-        let rang = |c: &str| -> usize {
-            if c == "bulletin" {
-                0
-            } else {
-                paies.iter().position(|p| format!("contrat_{}", cle_de(p)) == c).map_or(usize::MAX, |i| i + 1)
-            }
-        };
-        let mut nouveaux: Vec<String> = self.valeurs.keys().filter(|k| k.0 == an && !self.ordre.contains(k)).map(|k| k.1.clone()).collect();
-        nouveaux.sort_by_key(|c| (rang(c), c.clone()));
-        for c in nouveaux {
-            self.ordre.push((an.clone(), c));
+        let k = (annee.to_string(), "bulletin".to_string());
+        if !self.ordre.contains(&k) {
+            self.ordre.push(k);
         }
         Ok(())
     }
@@ -577,12 +569,10 @@ fn corrections_dues(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> 
 
 // ------------------------------------------------------------- les numeros de contrat que la DSN a declares
 
-/// UN NUMERO DE CONTRAT SE FIGE AU PREMIER DEPART QUI LE PORTE (regle 4 : il ne se recalcule pas, il se lit). Une DSN
-/// reelle deposee avant l'envoi du contrat a la signature a declare, en S21.G00.40.009, le numero que le compteur
-/// proposait : chaque contrat du mois qui ne porte pas encore le sien recoit celui que le fichier depose declare pour lui
-/// (meme numero, meme debut en S21.G00.40.001), et le compteur passe au-dessus. Le contrat envoye ensuite part sous ce
-/// numero-la.
-pub(crate) fn figer_numeros_declares(ctx: &Contexte, mois: &str, octets: &[u8], qui: &str) -> R<()> {
+/// LE DEPOT REEL D'UNE DSN EST UN DEPART : chaque contrat du mois qui ne porte pas encore son numero recoit celui que le
+/// fichier depose declare pour lui en S21.G00.40.009 (meme numero, meme debut en S21.G00.40.001), ecrit dans son
+/// engagement (`envois_signature::numeros_des_partis`). Le contrat envoye ensuite part sous ce numero-la.
+pub(crate) fn numeros_declares(ctx: &Contexte, mois: &str, octets: &[u8]) -> R<()> {
     let declares: std::collections::HashSet<(String, String)> = crate::apercu_dsn::lire_recap(octets)
         .map_err(valeur)?
         .into_iter()
@@ -593,11 +583,11 @@ pub(crate) fn figer_numeros_declares(ctx: &Contexte, mois: &str, octets: &[u8], 
     for (rang, p) in paies.iter().enumerate() {
         let Some(n) = p.engagement.numero.as_deref().filter(|n| !n.is_empty()) else { continue };
         if declares.contains(&(n.to_string(), p.engagement.debut.iso())) {
-            contrats.push(json!({"salarie": cle_de(p), "debut": p.engagement.debut.iso(), "numero": n}));
+            contrats.push(json!({"numero": n}));
             rangs.push(rang);
         }
     }
-    crate::envois_signature::reserver_numeros_envoyes(ctx, mois, &contrats, &rangs, qui)
+    crate::envois_signature::numeros_des_partis(ctx, mois, &contrats, &rangs)
 }
 
 // ------------------------------------------------------------- les documents, a leur envoi

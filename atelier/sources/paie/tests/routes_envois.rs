@@ -606,7 +606,7 @@ fn demander_signature_envoie_un_courriel_par_salarie_et_garde_ce_qu_il_faut() {
     assert!(html.contains(&format!("<b>{}</b>", code)));
     assert_eq!(faux.message(1).entete("Subject"), "Contrat d'engagement Les Pupazzi - octobre 2026");
 
-    // Le journal : une ligne, avec les contrats et leur code ; le numero parti est ecrit dans la saisie et le compteur passe au-dessus.
+    // Le journal : une ligne, avec les contrats et leur code ; le numero parti est ecrit dans la saisie, aucun compteur ne bouge.
     let j = journal(&racine);
     assert_eq!(j.len(), j0.len() + 1);
     let l = j.last().unwrap();
@@ -620,14 +620,7 @@ fn demander_signature_envoie_un_courriel_par_salarie_et_garde_ce_qu_il_faut() {
     let saisie = crate::outils::saisie(&racine, "2026-10");
     let ecrits: Vec<&str> = saisie["engagements"].as_array().unwrap().iter().map(|e| e["numero"].as_str().unwrap()).collect();
     assert_eq!(ecrits, ["BR1.26.05", "SE2.26.05", "BR1.26.06"]);
-    let compteurs = lire(&racine, "config/compteurs.json");
-    // Les numeros justes : seuls les compteurs de contrat avancent, jusqu'au dernier numero ecrit ; `bulletin` ne bouge pas.
-    let avant: Value = serde_json::from_slice(&compteurs0).unwrap();
-    assert_eq!(compteurs["2026"]["contrat_BRIOCHE"], json!(6));
-    assert_eq!(compteurs["2026"]["contrat_SERAPHIN"], json!(5));
-    assert_eq!(compteurs["2026"]["bulletin"], avant["2026"]["bulletin"]);
-    assert_eq!(compteurs["2026"]["contrat_LEMERCIER"], avant["2026"]["contrat_LEMERCIER"]);
-    assert_eq!(compteurs["2025"], avant["2025"]);
+    assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), compteurs0);
     assert!(racine.join("engagements/avant").exists());
 
     // Le contrat est parti : il se relance (objet « Rappel »), il ne se renvoie pas sans le dire.
@@ -761,68 +754,30 @@ fn octobre_a_quatre(racine: &Path, deux_spectacles: bool) {
     crate::outils::poser_saisie(racine, "2026-10", &s);
 }
 
-fn compteurs_2026(racine: &Path) -> Value {
-    lire(racine, "config/compteurs.json")["2026"].clone()
-}
-
+/// Regle 4 : un numero de contrat ne se recalcule pas, il se lit. L'impression d'un contrat a remettre en main propre est
+/// un depart : son numero s'ecrit dans l'engagement des l'impression, et le contrat du meme salarie qui part ensuite,
+/// avant que le premier soit revenu signe, prend le numero d'apres. Aucun compteur ne bouge.
 #[test]
-fn demander_signature_n_avance_que_les_compteurs_de_contrat_jusqu_au_dernier_numero_envoye() {
+fn un_contrat_imprime_garde_son_numero_et_le_suivant_ne_le_reprend_pas() {
     let _t = tour();
-    // Decision de Leandre du 07/10/2026 : seuls les compteurs de contrat avancent, jusqu'au dernier numero parti.
-    let racine = compagnie("signature-compteurs", false);
+    let racine = compagnie("imprimer-numero", false);
     poser_le_mot_de_passe(&racine);
     octobre_a_quatre(&racine, false);
-    let avant_tout = lire(&racine, "config/compteurs.json");
-    let avant = avant_tout["2026"].clone();
-    assert_eq!((avant["bulletin"].clone(), avant["contrat_BRIOCHE"].clone(), avant["contrat_SERAPHIN"].clone(), avant["contrat_LEMERCIER"].clone()), (json!(12), json!(4), json!(4), json!(4)));
-    let faux = Faux::nouveau();
-    let r = avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
-    let numeros: Vec<&str> = r["contrats"].as_array().unwrap().iter().map(|c| c["numero"].as_str().unwrap()).collect();
-    assert_eq!(numeros, ["BR1.26.05", "BR1.26.06", "SE2.26.05", "LE3.26.05"]);
-    let apres = lire(&racine, "config/compteurs.json");
-    assert_eq!((apres["2026"]["bulletin"].clone(), apres["2026"]["contrat_BRIOCHE"].clone(), apres["2026"]["contrat_SERAPHIN"].clone(), apres["2026"]["contrat_LEMERCIER"].clone()), (json!(12), json!(6), json!(5), json!(5)));
-    // Tout le reste du fichier est intact.
-    let mut attendu = avant_tout.clone();
-    attendu["2026"]["contrat_BRIOCHE"] = json!(6);
-    attendu["2026"]["contrat_SERAPHIN"] = json!(5);
-    attendu["2026"]["contrat_LEMERCIER"] = json!(5);
-    assert_eq!(apres, attendu);
-    // Une relance ne bouge plus rien.
-    let octets = std::fs::read(racine.join("config/compteurs.json")).unwrap();
-    avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "relance": true}), &faux).unwrap();
-    assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), octets);
+    let compteurs = std::fs::read(racine.join("config/compteurs.json")).unwrap();
+    let r = avec(&racine, "contrats-imprimer", json!({"mois": "2026-10", "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-27"}]}), &Faux::nouveau()).unwrap();
+    assert_eq!(r["contrats"][0]["numero"], json!("BR1.26.06"));
+    assert!(racine.join("sorties/2026-10/envoi/Contrat_BRIOCHE_BR1.26.06_Octobre2026.pdf").exists());
+    let saisie = crate::outils::saisie(&racine, "2026-10");
+    let ecrits: Vec<Value> = saisie["engagements"].as_array().unwrap().iter().map(|e| e.get("numero").cloned().unwrap_or(Value::Null)).collect();
+    assert_eq!(ecrits, [Value::Null, Value::Null, json!("BR1.26.06"), Value::Null]);
+    let l = journal(&racine).last().cloned().unwrap();
+    assert_eq!((l["quoi"].as_str(), l["detail"]["main_propre"].as_bool()), (Some("contrat-signature"), Some(true)));
 
-    // Un numero deja porte par la saisie n'est pas reecrit : son compteur ne bouge pas.
-    let racine = compagnie("signature-compteurs-porte", false);
-    poser_le_mot_de_passe(&racine);
-    octobre_a_quatre(&racine, false);
-    let mut saisie = crate::outils::saisie(&racine, "2026-10");
-    saisie["engagements"][1]["numero"] = json!("SE2.26.09");
-    crate::outils::poser_saisie(&racine, "2026-10", &saisie);
-    avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
-    let c = compteurs_2026(&racine);
-    assert_eq!((c["bulletin"].clone(), c["contrat_SERAPHIN"].clone(), c["contrat_BRIOCHE"].clone()), (json!(12), json!(4), json!(6)));
-
-    // Un compteur deja haut : les numeros partent au-dessus de lui, le compteur s'arrete au dernier ; `bulletin` ne bouge pas.
-    let racine = compagnie("signature-compteurs-haut", false);
-    poser_le_mot_de_passe(&racine);
-    octobre_a_quatre(&racine, false);
-    let mut c = lire(&racine, "config/compteurs.json");
-    c["2026"]["contrat_BRIOCHE"] = json!(40);
-    c["2026"]["bulletin"] = json!(77);
-    ecrire(&racine, "config/compteurs.json", &c);
-    avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
-    let c = compteurs_2026(&racine);
-    // Les contrats de Brioche partent en 41 et 42 : le compteur va jusqu'au dernier numero ecrit.
-    assert_eq!((c["bulletin"].clone(), c["contrat_BRIOCHE"].clone(), c["contrat_SERAPHIN"].clone()), (json!(77), json!(42), json!(5)));
-
-    // Sans `compteurs.json` : il est cree avec les seuls compteurs de contrat.
-    let racine = compagnie("signature-sans-compteurs", false);
-    poser_le_mot_de_passe(&racine);
-    octobre_a_quatre(&racine, false);
-    std::fs::remove_file(racine.join("config/compteurs.json")).unwrap();
-    avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
-    assert_eq!(lire(&racine, "config/compteurs.json"), json!({"2026": {"contrat_BRIOCHE": 2, "contrat_SERAPHIN": 1, "contrat_LEMERCIER": 1}}));
+    let r = avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13"}]}), &Faux::nouveau()).unwrap();
+    assert_eq!(r["contrats"][0]["numero"], json!("BR1.26.07"));
+    let saisie = crate::outils::saisie(&racine, "2026-10");
+    assert_eq!((saisie["engagements"][0]["numero"].clone(), saisie["engagements"][2]["numero"].clone()), (json!("BR1.26.07"), json!("BR1.26.06")));
+    assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), compteurs);
 }
 
 #[test]

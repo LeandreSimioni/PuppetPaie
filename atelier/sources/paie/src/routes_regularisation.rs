@@ -875,10 +875,9 @@ fn apercu_d_un_ajout(
     }))
 }
 
-/// LE NUMERO D'UN CONTRAT AJOUTE, fige a l'ecriture de sa correction s'il n'en a pas encore (son contrat n'est pas parti
-/// a la signature) : la DSN suivante le declare sous ce numero (S21.G00.40.009), et il ne se recalcule plus (regle 4).
-/// Le meme numero que `numeroter` donnerait : la suite du compteur `contrat_<cle>` de l'annee du contrat, reservee et
-/// ecrite, et pose dans la saisie du mois.
+/// LE NUMERO D'UN CONTRAT AJOUTE, quand sa correction s'ecrit pour partir dans la DSN suivante : la correction le porte,
+/// la DSN le declare sous ce numero (S21.G00.40.009), et il ne se recalcule plus (regle 4). S'il n'en a pas encore, il
+/// le prend la (`engagement::numeros::numero_au_depart`).
 pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> R<String> {
     let data = engagement::saisie_du_mois(&ctx.racine, mois)?;
     let ids = crate::routes_ecritures::identifiants(ctx, &data).map_err(|e| erreur("ValueError", e))?;
@@ -889,17 +888,6 @@ pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: 
     if let Some((_, _, Some(n))) = ids.get(rang) {
         return Ok(n.clone());
     }
-    let fiche = ctx.salarie(salarie).map_err(|e| erreur("KeyError", e))?;
-    let texte = |k: &str| fiche.get(k).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-    let annee: i64 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| erreur("ValueError", format!("date illisible : {}", debut)))?;
-    let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, "interface")?;
-    let mut reserves = crate::depart::Reserves::default();
-    let compteur = format!("contrat_{}", salarie);
-    let seq = reserves.prochain(ctx, &compteur, annee)?;
-    let numero = format!("{}{}.{}.{:02}", texte("initiales_contrat")?, texte("code_salarie")?, &annee.to_string()[2..], seq);
-    reserves.enregistrer(annee, &compteur, seq);
-    let jumeau = ids[..rang].iter().filter(|(s, d, n)| s == salarie && d == debut && n.is_none()).count();
-    engagement::stock::poser_numero(ctx, mois, salarie, debut, jumeau, &numero).map_err(Echec::from)?;
-    reserves.valider(ctx)?;
-    Ok(numero)
+    let numeros = engagement::numeros::numero_au_depart(ctx, mois, &[(rang, None)]).map_err(Echec::from)?;
+    Ok(numeros.into_iter().next().unwrap_or_default())
 }

@@ -453,9 +453,8 @@ pub fn dsn_deposee(racine: &Path, mois: &str, fichier: &str, quand: &str) {
     numeros_declares(racine, mois, fichier);
 }
 
-/// Ce que le dépôt réel d'une DSN écrit (`depart::figer_numeros_declares`) : chaque engagement de `mois` sans numéro
-/// reçoit celui que le fichier déclare pour son salarié (NIR, S21.G00.30.001) et son début (S21.G00.40.001), et le
-/// compteur de contrats du salarié passe au-dessus.
+/// Ce que le dépôt réel d'une DSN écrit (`depart::numeros_declares`) : chaque engagement de `mois` sans numéro reçoit
+/// celui que le fichier déclare pour son salarié (NIR, S21.G00.30.001) et son début (S21.G00.40.001).
 pub fn numeros_declares(racine: &Path, mois: &str, fichier: &str) {
     let octets = std::fs::read(racine.join("sorties").join(mois).join(fichier)).unwrap();
     let mut declares: Vec<(String, String, String)> = Vec::new();
@@ -473,7 +472,6 @@ pub fn numeros_declares(racine: &Path, mois: &str, fichier: &str) {
     let salaries = lire(racine, "config/salaries.json");
     let rel = format!("engagements/{}.json", mois);
     let mut engs = lire(racine, &rel);
-    let mut compteurs = if racine.join("config/compteurs.json").exists() { lire(racine, "config/compteurs.json") } else { json!({}) };
     for e in engs["engagements"].as_array_mut().into_iter().flatten() {
         if e.get("numero").and_then(Value::as_str).is_some_and(|n| !n.is_empty()) {
             continue;
@@ -482,18 +480,8 @@ pub fn numeros_declares(racine: &Path, mois: &str, fichier: &str) {
         let nir_du = salaries[&cle]["nir"].as_str().unwrap_or("").replace(' ', "");
         let Some((_, _, numero)) = declares.iter().find(|(n, d, _)| *n == nir_du && Some(d.as_str()) == e["debut"].as_str()) else { continue };
         e["numero"] = json!(numero);
-        let morceaux: Vec<&str> = numero.rsplitn(3, '.').collect();
-        if let [rang, an, _] = morceaux[..] {
-            if let (Ok(rang), Ok(an)) = (rang.parse::<i64>(), an.parse::<i64>()) {
-                let c = &mut compteurs[(2000 + an).to_string()][format!("contrat_{}", cle)];
-                if c.as_i64().unwrap_or(0) < rang {
-                    *c = json!(rang);
-                }
-            }
-        }
     }
     ecrire(racine, &rel, &engs);
-    ecrire(racine, "config/compteurs.json", &compteurs);
 }
 
 /// Une copie d'une compagnie fictive, retouchée par le test, qui s'efface quand elle sort de portée.

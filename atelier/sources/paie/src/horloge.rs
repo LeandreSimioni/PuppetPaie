@@ -520,9 +520,18 @@ fn les_embauches_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: 
         fait.extend(faits);
     }
 
-    // Les contrats revenus signes (celui qui n'a pas pu partir par courriel a ete remis en main propre).
+    // Les contrats revenus signes. Celui qui n'a pas pu partir par courriel s'imprime et se remet en main propre :
+    // l'impression est son depart.
     for debut in &a_signer {
         let faits = pas(d, &format!("contrats de l'embauche du {} revenus signés", le(debut)), &format!("{}T08:00:00", debut), |ctx| {
+            let a_imprimer: Vec<Value> = signables(ctx)?
+                .into_iter()
+                .filter(|(_, db, _, demande)| db == debut && !demande)
+                .map(|(salarie, db, numero, _)| json!({"salarie": salarie, "debut": db, "numero": if numero.is_empty() { Value::Null } else { json!(numero) }}))
+                .collect();
+            if !a_imprimer.is_empty() {
+                crate::envois_signature::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
+            }
             let manquent: Vec<(String, String, String, bool)> = signables(ctx)?.into_iter().filter(|(_, db, _, _)| db == debut).collect();
             if manquent.is_empty() {
                 return Ok(false);

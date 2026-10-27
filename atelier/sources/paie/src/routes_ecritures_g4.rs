@@ -246,11 +246,6 @@ pub(crate) fn contrat_recu_avec(
         origine: &origine,
     };
     let ligne = journal::noter(&ctx.racine, &note, &maintenant()).map_err(Echec::from)?;
-    // Le contrat signe est parti sous le numero qu'il porte, meme remis en main propre : c'est desormais le sien.
-    if recu && !tous[rang].2.is_empty() {
-        let contrat = json!({"salarie": tous[rang].0, "debut": tous[rang].1, "numero": tous[rang].2});
-        crate::envois_signature::reserver_numeros_envoyes(ctx, mois, &[contrat], &[rang], qui)?;
-    }
     Ok(json!({
         "salarie": salarie, "debut": debut,
         "recu": if recu { ligne["quand"].clone() } else { Value::Null },

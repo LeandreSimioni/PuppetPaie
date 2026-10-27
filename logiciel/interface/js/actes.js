@@ -961,6 +961,8 @@ async function boiteSignature(mois, seulement) {
               || "la paie a changé depuis l'envoi")}${c.demande_le ? ` (envoyé le ${echapper(quand(c.demande_le))})` : ""} —
               ce contrat est à renvoyer</span>`
               : c.recu_le ? `<br><span class="pastille bien">${echapper(signeLe(c.recu_le, c.recu_par))}</span>`
+              : c.demande_le && c.main_propre ? `<br><span class="pastille alerte">imprimé le
+              ${echapper(quand(c.demande_le))} pour une remise en main propre — pas encore revenu signé</span>`
               : c.demande_le ? `<br><span class="pastille alerte">demandé le
               ${echapper(quand(c.demande_le))} — pas encore revenu</span>
               ${a.boite_liee ? `<button class="secondaire petit s-relancer"
@@ -972,17 +974,36 @@ async function boiteSignature(mois, seulement) {
     ${a.boite_liee ? "" : `<div class="encart"><b>Aucune boîte courriel</b>
       Posez le mot de passe d'application de la boîte de la compagnie
       (Configuration › Mots de passe) pour envoyer les contrats par courriel.
-      En attendant, ils s'ouvrent depuis le dossier du mois et se font signer
-      à la main.</div>`}
+      En attendant, ils s'impriment pour être signés à la main.</div>`}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       ${a.produit ? `<button class="secondaire" id="s-dossier">Ouvrir le dossier des contrats</button>` : ""}
+      <button class="secondaire" id="s-imprimer" title="Les contrats cochés, en PDF, à imprimer et à faire signer à la main : ils partent sous leur numéro">Imprimer pour une remise en main propre</button>
       <button class="primaire" id="s-envoyer" ${a.boite_liee ? "" : "disabled"}
               title="${a.boite_liee ? "" : "Aucune boîte courriel."}">${enFictive() ? "Envoyer à la signature — simulé" : "Envoyer à la signature"}</button>
     </div>`);
 
   const dossierS = document.getElementById("s-dossier");
   if (dossierS) dossierS.onclick = () => ouvrirDossier(dossierS, mois, "contrats");
+  // IMPRIMER : le contrat part à la main. C'est un départ, il prend son
+  // numéro ; le salarié le signe, et sa pastille se coche à son retour.
+  document.getElementById("s-imprimer").onclick = async () => {
+    const coches = [...document.querySelectorAll(".s-qui:checked")].filter((c) => !c.dataset.avenant);
+    if (!coches.length) { dire("Aucun contrat coché."); return; }
+    const contrats = coches.map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero }));
+    const bouton = document.getElementById("s-imprimer");
+    const rendre = occupe(bouton, "Impression…");
+    try {
+      const r = await api("contrats-imprimer", { mois, contrats });
+      rendre();
+      dire(r.contrats.length + " contrat(s) à imprimer : " + r.contrats.map((c) => "n° " + c.numero).join(", ") + ".", "envoye");
+      await ouvrirDossier(bouton, mois, "contrats");
+      await rafraichirActions();
+    } catch (e) {
+      rendre();
+      dire(e.message, "erreur");
+    }
+  };
   // RELANCER (30/09/2026) : le MÊME contrat, redemandé parce que la
   // signature n'est pas revenue — distinct de « Envoyer », qui sert à un
   // contrat jamais parti ou changé depuis. Le journal le dit, et la

@@ -137,6 +137,7 @@ fn acte(ctx: &Contexte, l: &Value) -> String {
         "dsn" => nature_dsn(&t("nature"), &t("type")),
         "dpae" => "DPAE".into(),
         "documents" => "Documents aux salariés".into(),
+        "contrat-signature" if d.get("main_propre").is_some_and(vrai) => "Contrat imprimé, à remettre en main propre".into(),
         "contrat-signature" => "Contrat envoyé à la signature".into(),
         "contrat-recu" => format!("Contrat revenu signé — {}", qui_du_contrat(ctx, &d)),
         "contrat-contresigne" => format!("Contrat contresigné renvoyé — {}", qui_du_contrat(ctx, &d)),

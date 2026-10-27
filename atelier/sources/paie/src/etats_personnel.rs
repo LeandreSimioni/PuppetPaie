@@ -369,7 +369,8 @@ pub(crate) fn journal_des_declarations(ctx: &Contexte, d: &Demande) -> R<Tableau
         let quoi = texte("quoi");
         let mut x = Ligne::nouvelle();
         x.t("quand", texte("quand").replace('T', " ").chars().take(16).collect::<String>());
-        x.t("acte", acte_lisible(&quoi).map(str::to_string).unwrap_or(quoi));
+        let main_propre = quoi == "contrat-signature" && l.pointer("/detail/main_propre").is_some_and(vrai);
+        x.t("acte", if main_propre { "Contrat imprimé, à remettre en main propre".to_string() } else { acte_lisible(&quoi).map(str::to_string).unwrap_or(quoi) });
         x.t("mois", m).t("mode", texte("mode")).t("issue", if l.get("accepte").is_some_and(vrai) { "accepté" } else { "refusé ou échoué" });
         x.t("fichier", texte("fichier")).t("destinataire", texte("destinataire")).t("reponse", reponse(l.get("reponse"))).t("origine", texte("origine"));
         lignes.push(x);

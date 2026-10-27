@@ -37,7 +37,7 @@ pub(crate) type R<T> = Result<T, Echec>;
 pub type Ouvrir<'a> = &'a mut dyn FnMut() -> R<Box<dyn Courriel>>;
 
 /// Les routes de ce module (les trois autres sont dans `envois_signature`).
-pub const ROUTES: [&str; 6] = ["envoyer-documents", "dossier-envoyer", "casc-envoyer", "demander-signature", "avenant-envoyer", "avenants-envoyer"];
+pub const ROUTES: [&str; 7] = ["envoyer-documents", "dossier-envoyer", "casc-envoyer", "demander-signature", "contrats-imprimer", "avenant-envoyer", "avenants-envoyer"];
 
 /// Une route d'envoi, avec la vraie boite (ou la simulee).
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -51,6 +51,7 @@ pub fn route_avec(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge
         "dossier-envoyer" => dossier_envoyer(ctx, charge, ouvrir),
         "casc-envoyer" => casc_envoyer(ctx, charge, ouvrir),
         "demander-signature" => crate::envois_signature::demander_signature(o, ctx, charge, ouvrir),
+        "contrats-imprimer" => crate::envois_signature::contrats_imprimer(ctx, charge),
         "avenant-envoyer" => crate::envois_signature::avenant_envoyer(o, ctx, charge, ouvrir),
         "avenants-envoyer" => crate::envois_signature::avenants_envoyer(o, ctx, charge, ouvrir),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),

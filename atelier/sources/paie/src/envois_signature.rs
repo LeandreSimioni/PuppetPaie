@@ -1,18 +1,19 @@
-//! `demander-signature`, `avenant-envoyer` et `avenants-envoyer` (`moteur/operations_documents.py` :
-//! `demander_signature`, `envoyer_avenant`, `envoyer_avenants`, `_verifier_relance`, `_clauses_du_contrat`,
-//! `contrat_parti`, `code_signature`, `_mailto` ; `operations_paies.reserver_numeros_envoyes`). Lot H3b.
+
+
+//! Les contrats qui partent : `demander-signature` (par courriel, avec le bouton « Je signe »), `contrats-imprimer`
+//! (pour une remise en main propre), `avenant-envoyer` et `avenants-envoyer`.
 //!
-//! ECRIT, NON PROUVE, NON BRANCHE. Un courriel par salarie, un PDF par courriel (le contrat, ou les avenants), le
-//! bouton « Je signe » (un lien `mailto:` vers la boite de la compagnie, objet et corps deja ecrits) et un CODE
-//! UNIQUE (`SIG-XXXXXX`) par courriel, garde au journal avec la demande : c'est par lui que la releve des signatures
-//! (lots H4 et I) reconnaitra la reponse. Les messages sont ceux que `signature-apercu` et `avenant-apercu` ont
-//! montres : les paies (`apercu_dsn::paies_aux_numeros_declares`), les articles modifies (`avenant-apercu` lui-meme,
-//! appele ici), les etats (`signature-apercu`, pour la relance).
+//! Un courriel par salarie, un PDF par courriel (le contrat, ou les avenants), le bouton « Je signe » (un lien `mailto:`
+//! vers la boite de la compagnie, objet et corps deja ecrits) et un CODE UNIQUE (`SIG-XXXXXX`) par courriel, garde au
+//! journal avec la demande : c'est par lui que la releve des signatures reconnait la reponse. Les messages sont ceux que
+//! `signature-apercu` et `avenant-apercu` ont montres : les paies (`apercu_dsn::paies_aux_numeros_declares`), les
+//! articles modifies (`avenant-apercu` lui-meme, appele ici), les etats (`signature-apercu`, pour la relance).
 //!
-//! Tout se verifie avant que rien ne parte, puis la preuve (le mot de passe du logiciel) ; les PDF s'ecrivent APRES
-//! elle (le Python creait `sorties/<mois>/envoi/` avant, un dossier vide : ecart, rien n'est ecrit sur un refus).
+//! Tout se verifie avant que rien ne parte, puis la preuve (le mot de passe du logiciel) ; les PDF s'ecrivent apres
+//! elle : rien n'est ecrit sur un refus.
 //!
-//! LE FILET EN FOND (`ops.preparer_filet_en_fond`) N'EST PAS ICI : `web.py` le lancera apres l'appel Rust.
+//! UN CONTRAT QUI PART FIXE SON NUMERO : envoye a la signature ou imprime pour etre remis en main propre, il porte un
+//! numero, qui s'ecrit dans son engagement (`numeros_des_partis`).
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -215,45 +216,14 @@ fn message_de_signature(d: &Demande, pieces: Vec<PathBuf>) -> R<Message> {
     })
 }
 
-// ------------------------------------------------------------------ demander-signature
+// ------------------------------------------------------------------ les contrats choisis
 
-/// `operations_documents.demander_signature` : envoie a chaque salarie son contrat, avec le bouton « Je signe ».
-///
-/// `remplace` : le contrat refait EN ENTIER, qui annule et remplace celui qui est deja parti -- une phrase en tete
-/// le dit. Refuse pour un contrat jamais parti, ou dont l'execution a commence : celui-la se modifie par un
-/// avenant. `relance` : redemander un contrat deja demande et pas revenu, TEL QUEL -- objet « Rappel », une ligne
-/// de rappel, et le journal le dit. Refuse pour un contrat jamais demande, deja signe ou caduc.
-///
-/// LA SELECTION EST PAR CONTRAT, pas par salarie (`contrats`). `salaries` reste accepte (tous les contrats de ces
-/// salaries). UN COURRIEL PAR SALARIE, UN PDF PAR COURRIEL, tous ses contrats dedans (une page par contrat), ecrit
-/// dans `sorties/<mois>/envoi/` avec les MEMES numeros que le fichier groupe.
-pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
-    let mois = charge_texte(charge, "mois")?;
-    let relance = charge.get("relance").is_some_and(vrai);
-    let remplace = charge.get("remplace").is_some_and(vrai);
-    // Les numeros que le compteur PROPOSE, en memoire seulement : ils servent aux contrats qui partent. Rien n'en
-    // est ecrit (le Python ecrivait tout, bulletin compris : defaut non reproduit, decision de Leandre du 07/10/2026) ;
-    // `reserver_numeros_envoyes` n'avance que les compteurs de contrat, jusqu'au numero reellement envoye.
-    let mut reserves = crate::depart::Reserves::default();
-    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, Some(&mut reserves))?;
-    let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-    let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
-    let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
-
+/// Les contrats que la charge choisit parmi `paies`, par salarie, dans l'ordre du mois : `(cle, ses paies, leur rang)`.
+/// LA SELECTION EST PAR CONTRAT (`contrats` : [{"salarie", "debut", "numero"}]) : deux contrats du meme salarie qui
+/// commencent le meme jour se distinguent par leur numero ; sans numero, elle vaut pour tous ceux de ce salarie a ce
+/// debut. `salaries` prend tous les contrats de ces salaries. Un permanent n'a pas de contrat qui parte ici.
+fn contrats_choisis(charge: &Value, mois: &str, paies: &[Paie]) -> R<Vec<(String, Vec<Paie>, Vec<usize>)>> {
     let voulus: Option<Vec<String>> = liste_de(charge, "salaries")?.map(|l| l.iter().map(valeur_en_texte).collect());
-    let mut client = ouvrir()?;
-    let a_qui = match &voulus {
-        Some(l) if !l.is_empty() => format!("{} salarie(s) : {}", l.len(), l.join(", ")),
-        _ => "les salaries du mois qui ont un contrat a signer".to_string(),
-    };
-    let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
-    verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
-
-    let (an, nom_mois) = an_et_nom_du_mois(&s_mois)?;
-    let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
-    // Retours Windows, B : deux contrats du meme salarie qui commencent le meme jour se distinguent par leur NUMERO
-    // (`numero`, que `signature-apercu` rend et que la page renvoie) : on peut n'en envoyer qu'un. Sans `numero`, la
-    // selection vaut pour tous les contrats de ce salarie a ce debut (l'ancien comportement).
     let cibles: Option<Vec<Cible>> = match liste_de(charge, "contrats")? {
         None => None,
         Some(l) => {
@@ -266,22 +236,17 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
         }
     };
     let vise = |c: &Cible, cle: &str, p: &Paie| c.0 == cle && c.1 == p.engagement.debut.iso() && c.2.as_ref().map_or(true, |n| p.engagement.numero.as_deref() == Some(n.as_str()));
-    // Par salarie, dans l'ordre du mois ; le rang de chaque contrat dans la saisie suit sa paie.
     let mut par_salarie: Vec<(String, Vec<Paie>, Vec<usize>)> = Vec::new();
     for (rang, p) in paies.iter().enumerate() {
         let cle = cle_de(p);
         if !vrai(&p.spectacle) {
-            continue; // un permanent : voir `signature-apercu`
+            continue;
         }
-        if let Some(v) = voulus.as_ref().filter(|v| !v.is_empty()) {
-            if !v.contains(&cle) {
-                continue;
-            }
+        if voulus.as_ref().is_some_and(|v| !v.is_empty() && !v.contains(&cle)) {
+            continue;
         }
-        if let Some(c) = &cibles {
-            if !c.iter().any(|x| vise(x, &cle, p)) {
-                continue;
-            }
+        if cibles.as_ref().is_some_and(|c| !c.iter().any(|x| vise(x, &cle, p))) {
+            continue;
         }
         match par_salarie.iter_mut().find(|(k, _, _)| *k == cle) {
             Some((_, ps, rs)) => {
@@ -303,6 +268,109 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
             )));
         }
     }
+    Ok(par_salarie)
+}
+
+/// Le contrat tel qu'il part, pour le journal : qui, quand, sous quel numero, dans quel fichier, l'empreinte de
+/// l'engagement (si la paie change ensuite, l'ecran dira que ce contrat n'est plus le bon) et ce qu'il dit, clause par
+/// clause (l'avenant qui le modifiera doit citer l'ancien texte).
+#[allow(clippy::too_many_arguments)]
+fn entree_du_contrat(ctx: &Contexte, p: &Paie, cle: &str, pdf: &std::path::Path, titre: &str, mois: &str, empreinte: Option<&String>, ent: &Value) -> Map<String, Value> {
+    let mut c = Map::new();
+    c.insert("salarie".into(), json!(cle));
+    c.insert("debut".into(), json!(p.engagement.debut.iso()));
+    c.insert("fin".into(), p.engagement.fin.map_or(Value::Null, |f| json!(f.iso())));
+    c.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::String));
+    c.insert("fichier".into(), json!(nom_du(pdf)));
+    c.insert("spectacle".into(), json!(titre));
+    c.insert("mois".into(), json!(mois));
+    c.insert("empreinte".into(), empreinte.map_or(Value::Null, |e| json!(e)));
+    c.insert("clauses".into(), clauses_du_contrat(ctx, p, ent));
+    c
+}
+
+/// Le nom du PDF des contrats d'un salarie : `Contrat_<cle>_<numero>_<mois>.pdf`, `Contrats_..._<n1>+<n2>_...` quand il en
+/// porte plusieurs (une page par contrat).
+fn nom_du_pdf(cle: &str, ps: &[Paie], etiq: &str, suffixe: &str) -> String {
+    let numeros: Vec<String> = ps.iter().map(|p| p.engagement.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "sans-numero".to_string())).collect();
+    format!("Contrat{}_{}_{}_{}{}.pdf", if ps.len() > 1 { "s" } else { "" }, cle, numeros.join("+"), etiq, suffixe)
+}
+
+// ------------------------------------------------------------------ contrats-imprimer
+
+/// La route `contrats-imprimer` : les contrats choisis (comme `demander-signature`), un PDF par salarie dans
+/// `sorties/<mois>/envoi/`, a imprimer et a remettre en main propre. L'IMPRESSION EST UN DEPART : chaque contrat y
+/// prend son numero, ecrit dans son engagement, et le journal le note (`contrat-signature`, `main_propre`) ; le contrat
+/// revenu signe se note ensuite d'un clic (`contrat-recu`). Rien ne quitte le poste : aucun mot de passe.
+pub(crate) fn contrats_imprimer(ctx: &Contexte, charge: &Value) -> R<Value> {
+    contrats_imprimer_par(ctx, charge, "interface")
+}
+
+/// La meme, `qui` donne (l'horloge d'une compagnie fictive passe le sien).
+pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -> R<Value> {
+    let mois = charge_texte(charge, "mois")?;
+    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+    let par_salarie = contrats_choisis(charge, &mois, &paies)?;
+    if par_salarie.is_empty() {
+        return Err(refus(format!("Aucun contrat a imprimer pour {}.", mois)));
+    }
+    let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
+    let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
+    let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
+    let rangs: Vec<Paire> = paies.iter().enumerate().map(|(i, p)| (cle_de(p), format!("{}#{}", p.engagement.debut.iso(), i))).collect();
+    let empreintes = Moteur::empreintes_engagements(&SaisieMois { data: data.clone(), paies: Vec::new() }, &rangs);
+    let (mut fichiers, mut contrats, mut rangs_partis) = (Vec::new(), Vec::new(), Vec::new());
+    for (cle, ps, rs) in &par_salarie {
+        let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, ""));
+        crate::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &[])?;
+        fichiers.push(json!(pdf.to_string_lossy()));
+        for (p, rang) in ps.iter().zip(rs) {
+            let empreinte = empreintes.get(&(cle.clone(), format!("{}#{}", p.engagement.debut.iso(), rang)));
+            contrats.push(Value::Object(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, empreinte, &ent)));
+            rangs_partis.push(*rang);
+        }
+    }
+    numeros_des_partis(ctx, &s_mois, &contrats, &rangs_partis)?;
+    let detail = json!({"contrats": contrats, "main_propre": true});
+    let ligne = noter(ctx, "contrat-signature", Some(&mois), qui, true, "", &format!("{} contrat(s) imprime(s) pour une remise en main propre", contrats.len()), Some(&detail))?;
+    Ok(json!({"fichiers": fichiers, "contrats": contrats, "ligne": ligne}))
+}
+
+// ------------------------------------------------------------------ demander-signature
+
+/// `operations_documents.demander_signature` : envoie a chaque salarie son contrat, avec le bouton « Je signe ».
+///
+/// `remplace` : le contrat refait EN ENTIER, qui annule et remplace celui qui est deja parti -- une phrase en tete
+/// le dit. Refuse pour un contrat jamais parti, ou dont l'execution a commence : celui-la se modifie par un
+/// avenant. `relance` : redemander un contrat deja demande et pas revenu, TEL QUEL -- objet « Rappel », une ligne
+/// de rappel, et le journal le dit. Refuse pour un contrat jamais demande, deja signe ou caduc.
+///
+/// LA SELECTION EST PAR CONTRAT, pas par salarie (`contrats`). `salaries` reste accepte (tous les contrats de ces
+/// salaries). UN COURRIEL PAR SALARIE, UN PDF PAR COURRIEL, tous ses contrats dedans (une page par contrat), ecrit
+/// dans `sorties/<mois>/envoi/` avec les MEMES numeros que le fichier groupe.
+pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+    let mois = charge_texte(charge, "mois")?;
+    let relance = charge.get("relance").is_some_and(vrai);
+    let remplace = charge.get("remplace").is_some_and(vrai);
+    // Chaque contrat sous le numero qu'il porte, ou celui qui lui serait donne : c'est celui-la qui part.
+    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+    let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
+    let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
+
+    let voulus: Option<Vec<String>> = liste_de(charge, "salaries")?.map(|l| l.iter().map(valeur_en_texte).collect());
+    let mut client = ouvrir()?;
+    let a_qui = match &voulus {
+        Some(l) if !l.is_empty() => format!("{} salarie(s) : {}", l.len(), l.join(", ")),
+        _ => "les salaries du mois qui ont un contrat a signer".to_string(),
+    };
+    let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
+    verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
+
+    let (an, nom_mois) = an_et_nom_du_mois(&s_mois)?;
+    let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
+    let par_salarie = contrats_choisis(charge, &mois, &paies)?;
 
     // Le journal, lu une fois : chaque paie y retrouve SON contrat (salarie, debut, numero), pas celui de son jumeau du meme jour.
     let lignes_j = crate::etats::charger(&ctx.racine)?;
@@ -358,16 +426,8 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
         let sal = &ps[0].salarie;
         let adresse = vrai_ou(sal, "email").unwrap_or_default().trim().to_lowercase();
         let code = code_signature();
-        let numeros: Vec<String> = ps.iter().map(|p| p.engagement.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "sans-numero".to_string())).collect();
         // Le contrat qui en remplace un autre porte son propre nom : le PDF parti avant lui reste sur le disque.
-        let pdf = dossier.join(format!(
-            "Contrat{}_{}_{}_{}{}.pdf",
-            if ps.len() > 1 { "s" } else { "" },
-            cle,
-            numeros.join("+"),
-            etiq,
-            if remplace { "_remplace" } else { "" }
-        ));
+        let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, if remplace { "_remplace" } else { "" }));
         crate::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &remplacements)?;
         let mut spectacles: Vec<String> = Vec::new();
         let mut titres: Vec<String> = Vec::new();
@@ -440,17 +500,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
         for ((p, t), rang) in ps.iter().zip(&titres).zip(rs) {
             let debut = p.engagement.debut.iso();
             rangs_envoyes.push(*rang);
-            let mut c = Map::new();
-            c.insert("salarie".into(), json!(cle));
-            c.insert("debut".into(), json!(debut));
-            c.insert("fin".into(), p.engagement.fin.map_or(Value::Null, |f| json!(f.iso())));
-            c.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::String));
-            c.insert("fichier".into(), json!(nom_du(&pdf)));
-            c.insert("spectacle".into(), json!(t));
-            c.insert("mois".into(), json!(s_mois));
-            c.insert("empreinte".into(), empreintes.get(&(cle.clone(), format!("{}#{}", debut, rang))).map_or(Value::Null, |e| json!(e)));
-            // CE QUE LE CONTRAT DIT, clause par clause : l'avenant qui le modifiera doit citer l'ancien texte.
-            c.insert("clauses".into(), clauses_du_contrat(ctx, p, &ent));
+            let mut c = entree_du_contrat(ctx, p, cle, &pdf, t, &s_mois, empreintes.get(&(cle.clone(), format!("{}#{}", debut, rang))), &ent);
             // Ce qu'il faut pour reconnaitre la reponse : le code, et l'adresse dont elle doit venir.
             c.insert("code".into(), json!(code));
             c.insert("adresse".into(), json!(adresse));
@@ -484,8 +534,8 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
             o.insert("message".into(), json!(ident));
         }
     }
-    // Le numero parti est celui que la DSN declarera : il s'ecrit dans la saisie et le compteur passe au-dessus.
-    reserver_numeros_envoyes(ctx, &s_mois, &contrats, &rangs_envoyes, "interface")?;
+    // Le contrat est parti sous le numero qu'il porte : il s'ecrit dans l'engagement.
+    numeros_des_partis(ctx, &s_mois, &contrats, &rangs_envoyes)?;
     let detail = json!({"contrats": contrats, "expediteur": expediteur, "relance": relance});
     let ligne = noter(
         ctx,
@@ -535,60 +585,20 @@ fn verifier_relance(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, cle
     Ok(())
 }
 
-// ------------------------------------------------------------------ reserver_numeros_envoyes
+// ------------------------------------------------------------------ le numero des contrats partis
 
-/// UN CONTRAT PARTI A LA SIGNATURE GARDE SON NUMERO. Il part sous le numero que le compteur PROPOSE ; le numero
-/// s'ecrit sur l'engagement des l'envoi (`engagement::stock::poser_numero` ; `numeroter` garde un numero deja porte) et
-/// le compteur passe au-dessus. `contrats` : [{"salarie", "debut", "numero"}] ; `rangs_envoyes` : leur rang parmi les
-/// paies qui peuvent partir du mois (`apercu_dsn::paies_aux_numeros_declares`). Sous le verrou des compteurs.
-pub(crate) fn reserver_numeros_envoyes(ctx: &Contexte, mois: &str, contrats: &[Value], rangs_envoyes: &[usize], qui: &str) -> R<()> {
-    let Some((_data, paies)) = engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)? else { return Ok(()) };
-    let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
-    // Les compteurs ne bougent que par ce qui est ecrit sur un contrat parti : `reserves` ne recoit que `enregistrer`.
-    let mut reserves = crate::depart::Reserves::default();
-    let rangs: Vec<Paire> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso())).collect();
-    // Par RANG, pas par (salarie, debut) : deux contrats du meme jour ne se confondent pas, et celui qui n'est pas parti
-    // ne recoit pas le numero de l'autre.
-    let mut voulus: HashMap<usize, Value> = HashMap::new();
-    for (c, rang) in contrats.iter().zip(rangs_envoyes) {
-        voulus.insert(*rang, c.get("numero").cloned().unwrap_or(Value::Null));
+/// Les contrats qui partent de `mois` (`contrats` : [{"numero"}] ; `rangs` : leur rang parmi les paies qui peuvent
+/// partir, `apercu_dsn::paies_aux_numeros_declares`) : chacun garde le numero que son document porte, ecrit dans son
+/// engagement (`engagement::numeros::numero_au_depart`).
+pub(crate) fn numeros_des_partis(ctx: &Contexte, mois: &str, contrats: &[Value], rangs: &[usize]) -> R<()> {
+    let ecran = engagement::numeros::rangs_des_valides(&ctx.racine, mois).map_err(Echec::from)?;
+    let mut departs = Vec::new();
+    for (c, rang) in contrats.iter().zip(rangs) {
+        let Some(&r) = ecran.get(*rang) else { continue };
+        departs.push((r, c.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)));
     }
-    let mut change = false;
-    for (i, cle) in rangs.iter().enumerate() {
-        let Some(n) = voulus.get(&i).filter(|n| vrai(n)) else { continue };
-        if paies[i].engagement.numero.as_deref().is_some_and(|x| !x.is_empty()) {
-            continue;
-        }
-        let jumeau = rangs[..i].iter().zip(&paies[..i]).filter(|(r, p)| *r == cle && p.engagement.numero.as_deref().map_or(true, str::is_empty)).count();
-        if !engagement::stock::poser_numero(ctx, mois, &cle.0, &cle.1, jumeau, &valeur_en_texte(n)).map_err(Echec::from)? {
-            continue;
-        }
-        change = true;
-        if let Some((annee, seq)) = annee_et_rang(&valeur_en_texte(n)) {
-            let compteur = format!("contrat_{}", cle.0);
-            if reserves.prochain(ctx, &compteur, annee)? <= seq {
-                reserves.enregistrer(annee, &compteur, seq);
-            }
-        }
-    }
-    if change {
-        reserves.valider(ctx)?;
-    }
+    engagement::numeros::numero_au_depart(ctx, mois, &departs).map_err(Echec::from)?;
     Ok(())
-}
-
-/// `re.search(r"\.(\d{2})\.(\d+)$", n)` : l'annee (2000 + les deux chiffres) et le rang d'un numero `FA1.26.16`.
-fn annee_et_rang(n: &str) -> Option<(i64, i64)> {
-    let (tete, rang) = n.rsplit_once('.')?;
-    if rang.is_empty() || !rang.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    let t: Vec<char> = tete.chars().collect();
-    if t.len() < 3 || t[t.len() - 3] != '.' || !t[t.len() - 2].is_ascii_digit() || !t[t.len() - 1].is_ascii_digit() {
-        return None;
-    }
-    let yy: i64 = t[t.len() - 2..].iter().collect::<String>().parse().ok()?;
-    Some((2000 + yy, rang.parse().ok()?))
 }
 
 // ------------------------------------------------------------------ les avenants

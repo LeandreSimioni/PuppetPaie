@@ -760,24 +760,11 @@ pub fn a_une_saisie(racine: &Path, mois: &str) -> Resultat<bool> {
     Ok(false)
 }
 
-/// POSE LE NUMERO DE CONTRAT `numero` sur l'engagement de `mois` du salarie `cle` qui commence le `debut` et n'en porte
-/// pas encore (le `jumeau`-ieme de ceux-la, dans l'ordre de l'ecran) : un contrat parti a la signature garde son numero
-/// (regle 4). Le numero ne change aucun montant ; un engagement valide le recoit aussi. `false` : aucun engagement a
-/// numeroter.
-pub fn poser_numero(ctx: &Contexte, mois: &str, cle: &str, debut: &str, jumeau: usize, numero: &str) -> Resultat<bool> {
-    let candidats: Vec<Objet> = objets_du_mois(&ctx.racine, mois)?
-        .into_iter()
-        .filter(|o| {
-            let e = Value::Object(o.brut.clone());
-            crate::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle) && crate::debut_brut(&e) == debut
-        })
-        .collect();
-    let Some(mut o) = candidats.into_iter().filter(|o| !o.brut.get("numero").is_some_and(vrai)).nth(jumeau) else { return Ok(false) };
-    o.brut.insert("numero".into(), Value::String(numero.to_string()));
-    let p = chemin(&ctx.racine, &o.fichier);
-    sauver_avant(&p)?;
-    reecrire(&ctx.racine, &o)?;
-    Ok(true)
+/// Remplace l'objet `o` dans son fichier, apres une copie du fichier dans `engagements/avant/` : ce qu'un depart y ecrit
+/// (son numero de contrat, `numeros::numero_au_depart`).
+pub fn reecrire_en_gardant(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
+    sauver_avant(&chemin(racine, &o.fichier))?;
+    reecrire(racine, o)
 }
 
 /// Pose `cle` = `valeur` sur le mois `mois` lui-meme (son fichier, cree s'il le faut : un mois que seuls des engagements

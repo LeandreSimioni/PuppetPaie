@@ -17,6 +17,7 @@ pub mod minima;
 pub mod periodes;
 pub mod relire;
 pub mod solde;
+pub mod numeros;
 pub mod stock;
 
 use std::collections::{BTreeMap, BTreeSet};
