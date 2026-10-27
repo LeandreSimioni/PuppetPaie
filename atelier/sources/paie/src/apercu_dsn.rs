@@ -690,7 +690,7 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
 
 /// LA SAISIE DU MOIS AUX NUMEROS DECLARES : ce qui peut partir de `mois` (`etats::validees_du_mois` : la saisie reduite
 /// aux engagements valides, et leurs paies ecrites), chaque contrat sous le numero qu'il porte (pose sur l'engagement a
-/// son envoi a la signature, ou celui que le compteur propose), chaque bulletin sous le sien (ecrit dans la paie a son
+/// son premier depart, envoi a la signature ou DSN deposee, ou celui que le compteur propose), chaque bulletin sous le sien (ecrit dans la paie a son
 /// depart, ou celui que le compteur propose). `reserves` : les numeros qu'un envoi propose, que la route d'envoi ecrit
 /// plus loin (`reserver_numeros_envoyes`). Un mois sans engagement valide n'a rien.
 pub(crate) fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut crate::depart::Reserves>) -> Result<(Value, Vec<Paie>), Refus> {

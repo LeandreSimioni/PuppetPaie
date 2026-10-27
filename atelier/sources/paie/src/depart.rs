@@ -11,8 +11,9 @@
 //!   a cote.
 //!
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
-//! Les numeros de contrat se figent a l'envoi a la signature (`envois_signature::reserver_numeros_envoyes`), et la
-//! seulement : ici, un contrat qui ne porte pas encore le sien se declare sous celui que le compteur propose.
+//! Un numero de contrat se fige au premier depart qui le porte : le contrat a son envoi a la signature
+//! (`envois_signature::reserver_numeros_envoyes`), ou la DSN a son depot reel (`figer_numeros_declares`). Jusque-la, un
+//! contrat qui ne porte pas encore le sien se declare sous celui que le compteur propose ; ensuite il se relit.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -572,6 +573,31 @@ fn corrections_dues(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> 
         }
     }
     Ok(())
+}
+
+// ------------------------------------------------------------- les numeros de contrat que la DSN a declares
+
+/// UN NUMERO DE CONTRAT SE FIGE AU PREMIER DEPART QUI LE PORTE (regle 4 : il ne se recalcule pas, il se lit). Une DSN
+/// reelle deposee avant l'envoi du contrat a la signature a declare, en S21.G00.40.009, le numero que le compteur
+/// proposait : chaque contrat du mois qui ne porte pas encore le sien recoit celui que le fichier depose declare pour lui
+/// (meme numero, meme debut en S21.G00.40.001), et le compteur passe au-dessus. Le contrat envoye ensuite part sous ce
+/// numero-la.
+pub(crate) fn figer_numeros_declares(ctx: &Contexte, mois: &str, octets: &[u8], qui: &str) -> R<()> {
+    let declares: std::collections::HashSet<(String, String)> = crate::apercu_dsn::lire_recap(octets)
+        .map_err(valeur)?
+        .into_iter()
+        .flat_map(|s| s.contrats.into_iter().map(|c| (c.numero, c.debut)))
+        .collect();
+    let (_data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None)?;
+    let (mut contrats, mut rangs) = (Vec::new(), Vec::new());
+    for (rang, p) in paies.iter().enumerate() {
+        let Some(n) = p.engagement.numero.as_deref().filter(|n| !n.is_empty()) else { continue };
+        if declares.contains(&(n.to_string(), p.engagement.debut.iso())) {
+            contrats.push(json!({"salarie": cle_de(p), "debut": p.engagement.debut.iso(), "numero": n}));
+            rangs.push(rang);
+        }
+    }
+    crate::envois_signature::reserver_numeros_envoyes(ctx, mois, &contrats, &rangs, qui)
 }
 
 // ------------------------------------------------------------- les documents, a leur envoi
