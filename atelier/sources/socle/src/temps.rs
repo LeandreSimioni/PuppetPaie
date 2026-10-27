@@ -69,15 +69,22 @@ pub fn secondes() -> f64 {
     }
 }
 
-/// LE JOUR POSE (`PUPPETPAIE_AUJOURDHUI`, AAAA-MM-JJ) : l'instant `t` de la montre, a la meme heure de Paris, ce jour-la.
-/// Sans jour pose, ou illisible, `t` tel quel.
+/// LE JOUR POSE (`PUPPETPAIE_AUJOURDHUI`, AAAA-MM-JJ) : la montre, decalee d'autant de jours qu'il y en a entre le jour
+/// de Paris ou il a ete lu pour la premiere fois et le jour pose : la meme heure (a une heure pres d'un changement d'heure
+/// entre les deux), ce jour-la, et minuit passe comme a la montre. Sans jour pose, ou illisible, `t` tel quel.
 fn au_jour_pose(t: f64) -> f64 {
-    let Some(jour) = std::env::var("PUPPETPAIE_AUJOURDHUI").ok().filter(|v| !v.is_empty()).and_then(|v| Jour::lire(&v).ok()) else {
-        return t;
-    };
+    static DECALAGE: Mutex<Option<(String, f64)>> = Mutex::new(None);
+    let Some(pose) = std::env::var("PUPPETPAIE_AUJOURDHUI").ok().filter(|v| !v.is_empty()) else { return t };
+    let mut d = DECALAGE.lock().unwrap_or_else(|p| p.into_inner());
+    if let Some((_, decalage)) = d.as_ref().filter(|(lu, _)| *lu == pose) {
+        return t + decalage;
+    }
+    let Ok(jour) = Jour::lire(&pose) else { return t };
     let entier = t.floor() as i64;
-    let dans_le_jour = (entier + crate::paris::decalage(entier)).rem_euclid(86_400) as f64 + (t - t.floor());
-    instant_de(jour, 0) + dans_le_jour
+    let jour_de_la_montre = (entier + crate::paris::decalage(entier)).div_euclid(86_400);
+    let decalage = ((jour.ordinal() - 719_163) - jour_de_la_montre) as f64 * 86_400.0;
+    *d = Some((pose, decalage));
+    t + decalage
 }
 
 /// Le temps est-il simule (le banc, le rejeu) ?
