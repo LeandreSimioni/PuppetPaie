@@ -16,7 +16,7 @@
 //! sur une copie. La periode d'affectation et le code d'affectation se prouvent dans `src/dsn.rs`.
 
 use crate::outils::{self, compagnie, dec, fictive, paires as lignes};
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

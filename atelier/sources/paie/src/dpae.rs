@@ -23,11 +23,11 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contrats;
-use crate::date::{d, en_texte};
-use crate::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use droit::natures;
+use socle::date::{d, en_texte};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
 use crate::ntt;
-use crate::num::Resultat;
+use socle::num::Resultat;
 use crate::usages::strip;
 
 // Ce que `unicodedata.normalize("NFKD", c).encode("ascii", "ignore")` laisse
@@ -125,7 +125,7 @@ fn chaine(v: Option<&Value>) -> String {
 
 /// `s[cle]` : le `KeyError` du Python s'ecrit `'cle'`.
 fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
-    s.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    s.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 /// `s.ljust(n)` : complete a droite avec des espaces, ne tronque pas.
@@ -284,7 +284,7 @@ fn gabarit_lu(ent: Option<&Value>, chemins: &Chemins) -> Resultat<Vec<char>> {
         Some(e) => modele_de(NOM_GABARIT, e, &chemins.poste),
         None => chemins.defaut.clone(),
     };
-    let octets = std::fs::read(&chemin).map_err(|e| crate::fichiers::panne_fichier(&e, &chemin))?;
+    let octets = std::fs::read(&chemin).map_err(|e| socle::fichiers::panne_fichier(&e, &chemin))?;
     let texte: String = octets.iter().map(|&o| o as char).collect();
     let texte = texte.replace("\r\n", "\n").replace('\r', "\n");
     let gab: Vec<char> = texte.chars().take(LONGUEUR).collect();
@@ -689,8 +689,8 @@ fn type_py(v: &Value) -> &'static str {
 
 /// La nature de contrat de cette embauche. Une nature inconnue est un
 /// `KeyError` en Python, dont `str()` rend le message entre guillemets.
-fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<contrats::Nature>> {
-    contrats::nature(e.nature.as_deref()).map_err(|m| repr(&m))
+fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<natures::Nature>> {
+    natures::nature(e.nature.as_deref()).map_err(|m| repr(&m))
 }
 
 /// Texte a recopier si l'on prefere la saisie en ligne sur net-entreprises.
@@ -699,7 +699,7 @@ fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<contrats::Nature>> {
 pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat<String> {
     let heure_embauche = match heure_embauche {
         Value::String(t) => t.as_str(),
-        autre => return Err(format!("heure d'embauche : {}", crate::fichiers::attendu("un texte", type_py(autre)))),
+        autre => return Err(format!("heure d'embauche : {}", socle::fichiers::attendu("un texte", type_py(autre)))),
     };
     let h: Vec<char> = heure_embauche.chars().collect();
     let heure = format!(
@@ -926,127 +926,6 @@ pub fn lire_certificat(contenu: &str) -> Vec<Value> {
         out.push(Value::Object(m));
     }
     out
-}
-
-// ----------------------------------------------------------- le service
-
-fn demande(entree: &str) -> Resultat<Value> {
-    serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))
-}
-
-fn ok(mut m: Map<String, Value>) -> Value {
-    let mut o = Map::new();
-    o.insert("ok".into(), Value::Bool(true));
-    o.append(&mut m);
-    Value::Object(o)
-}
-
-fn texte_de<'a>(v: &'a Value, k: &str) -> Resultat<&'a str> {
-    v.get(k).and_then(Value::as_str).ok_or_else(|| format!("demande illisible : il faut `{}`", k))
-}
-
-/// `paie dpae` : `operation` vaut `enregistrements` (la liste des textes de
-/// 990 caracteres), `contenu` (le texte que le latin-1 ecrit), `ecrire` (le
-/// fichier et son .zip, a `sortie`) ou `recapitulatif`.
-///
-/// Demande : `paies` (une `Embauche` par entree : `salarie`, `debut`, `fin`,
-/// `nature`, `spectacle`), `horodatage` (JJMMAAAAHHMM, l'heure de Paris, que
-/// le Python donne), `heure_embauche`, `code_urssaf`, `ent` (la fiche
-/// entreprise, `null` si l'appelant n'en a pas), `gabarit_defaut` et
-/// `gabarits_poste` (les dossiers que le Python connait), `sortie`, `zipper`.
-pub fn commande(entree: &str) -> Resultat<Value> {
-    let dem = demande(entree)?;
-    let operation = texte_de(&dem, "operation")?.to_string();
-    let embauches: Vec<Embauche> = dem
-        .get("paies")
-        .and_then(Value::as_array)
-        .ok_or("demande illisible : il faut `paies`")?
-        .iter()
-        .map(Embauche::lire)
-        .collect::<Resultat<_>>()?;
-    let mut m = Map::new();
-    if operation == "recapitulatif" {
-        let heure = dem.get("heure_embauche").cloned().unwrap_or_else(|| json!(HEURE_EMBAUCHE));
-        m.insert("texte".into(), json!(recapitulatif(&embauches, &heure)?));
-        return Ok(ok(m));
-    }
-    let heure = dem.get("heure_embauche").map_or_else(|| HEURE_EMBAUCHE.to_string(), en_texte);
-    let chemins = Chemins {
-        defaut: PathBuf::from(texte_de(&dem, "gabarit_defaut")?),
-        poste: PathBuf::from(texte_de(&dem, "gabarits_poste")?),
-    };
-    let p = Parametres {
-        horodatage: texte_de(&dem, "horodatage")?,
-        heure_embauche: heure,
-        code_urssaf: dem.get("code_urssaf").cloned().unwrap_or(Value::Null),
-        ent: dem.get("ent").filter(|e| !e.is_null()),
-        chemins: &chemins,
-    };
-    match operation.as_str() {
-        "enregistrements" => {
-            m.insert("enregistrements".into(), json!(enregistrements(&embauches, &p)?));
-        }
-        "contenu" => {
-            let t = enregistrements(&embauches, &p)?.concat();
-            en_latin1(&t)?;
-            m.insert("texte".into(), json!(t));
-        }
-        "ecrire" => {
-            let sortie = texte_de(&dem, "sortie")?;
-            let zipper = dem.get("zipper").and_then(Value::as_bool).unwrap_or(true);
-            ecrire(&embauches, Path::new(sortie), &p, zipper)?;
-            m.insert("chemin".into(), json!(sortie));
-        }
-        autre => return Err(format!("demande illisible : operation {} inconnue", repr(autre))),
-    }
-    Ok(ok(m))
-}
-
-/// `paie dpae-lire` : les lecteurs. `operation` vaut `enregistrements` (les
-/// textes de 990 caracteres), `relire` (les zones de `CHAMPS`), `certificat`
-/// (`lire_certificat`), `meme` (`meme_declaration` de `a` et `b`) ou `format`
-/// (les tables, pour que le Python verifie qu'il porte les memes). Le
-/// `contenu` est le flux decode en latin-1.
-pub fn commande_lire(entree: &str) -> Resultat<Value> {
-    let dem = demande(entree)?;
-    let mut m = Map::new();
-    match texte_de(&dem, "operation")? {
-        "enregistrements" => {
-            let v: Vec<String> = lire_enregistrements(texte_de(&dem, "contenu")?).iter().map(|r| r.iter().collect()).collect();
-            m.insert("enregistrements".into(), json!(v));
-        }
-        "relire" => {
-            let lignes: Vec<Value> = relire(texte_de(&dem, "contenu")?)
-                .into_iter()
-                .map(|r| Value::Object(r.into_iter().map(|(k, v)| (k.to_string(), json!(v))).collect()))
-                .collect();
-            m.insert("lignes".into(), Value::Array(lignes));
-        }
-        "certificat" => {
-            m.insert("lignes".into(), Value::Array(lire_certificat(texte_de(&dem, "contenu")?)));
-        }
-        "meme" => {
-            m.insert("meme".into(), json!(meme_declaration(texte_de(&dem, "a")?, texte_de(&dem, "b")?)));
-        }
-        "format" => {
-            let zones = |t: &[(&str, usize, usize)]| {
-                Value::Object(t.iter().map(|(k, a, b)| (k.to_string(), json!([a, b]))).collect())
-            };
-            let codes = |t: &[(&str, &str)]| Value::Object(t.iter().map(|(k, v)| (k.to_string(), json!(v))).collect());
-            m.insert("longueur".into(), json!(LONGUEUR));
-            m.insert("heure_embauche".into(), json!(HEURE_EMBAUCHE));
-            m.insert("champs".into(), zones(&CHAMPS));
-            m.insert("employeur".into(), zones(&EMPLOYEUR));
-            m.insert("zones_retour".into(), zones(&ZONES_RETOUR));
-            m.insert("formalites".into(), codes(&FORMALITES));
-            m.insert("codes_ret_ar_lot".into(), codes(&CODES_RET_AR_LOT));
-            m.insert("codes_retour_ar".into(), codes(&CODES_RETOUR_AR));
-            m.insert("codes_enregistree".into(), json!(CODES_ENREGISTREE));
-            m.insert("code_deja_existante".into(), json!(CODE_DEJA_EXISTANTE));
-        }
-        autre => return Err(format!("demande illisible : operation {} inconnue", repr(autre))),
-    }
-    Ok(ok(m))
 }
 
 // ------------------------------------------------------------------ tests
@@ -1616,41 +1495,5 @@ mod tests {
         assert!(zones.iter().all(|z| z.1 <= LONGUEUR - 1));
         assert_eq!(CODES_RETOUR_AR.len(), 26);
         assert!(ZONES_RETOUR.iter().all(|z| z.2 < LONGUEUR));
-    }
-
-    #[test]
-    fn la_commande_dpae_repond_en_json() {
-        let mut ent = entreprise();
-        ent["_gabarits"] = json!("/n/existe/pas");
-        let demande = json!({
-            "operation": "contenu",
-            "paies": [{"salarie": salarie(), "debut": "2026-10-01", "fin": null, "nature": "cdi", "spectacle": null}],
-            "horodatage": "031020261407", "heure_embauche": "0800", "code_urssaf": "117", "ent": ent,
-            "gabarit_defaut": "/n/existe/pas", "gabarits_poste": "/n/existe/pas"
-        });
-        let r = commande(&demande.to_string()).unwrap();
-        assert_eq!(r["ok"], true);
-        assert_eq!(r["texte"].as_str().unwrap().chars().count(), LONGUEUR);
-        let mut m = demande.clone();
-        m["operation"] = json!("enregistrements");
-        assert_eq!(commande(&m.to_string()).unwrap()["enregistrements"][0], r["texte"]);
-        m["operation"] = json!("recapitulatif");
-        assert!(commande(&m.to_string()).unwrap()["texte"].as_str().unwrap().contains("08h00"));
-        m["operation"] = json!("autre");
-        assert!(commande(&m.to_string()).unwrap_err().contains("'autre'"), "le refus nomme l'operation");
-        assert!(commande("pas du json").is_err());
-    }
-
-    #[test]
-    fn la_commande_lire_rend_les_tables_que_le_python_recopie() {
-        let r = commande_lire(&json!({"operation": "format"}).to_string()).unwrap();
-        assert_eq!(r["longueur"], 990);
-        assert_eq!(r["champs"]["horodatage"], json!([121, 133]));
-        assert_eq!(r["employeur"]["medecine_travail"], json!([937, 947]));
-        assert_eq!(r["zones_retour"]["dossier"], json!([424, 429]));
-        assert_eq!(r["formalites"]["pmf5"], "PMF5");
-        assert_eq!(r["codes_ret_ar_lot"]["15"], "Longueur du message incorrecte");
-        let m = commande_lire(&json!({"operation": "meme", "a": "", "b": ""}).to_string()).unwrap();
-        assert_eq!(m["meme"], false);
     }
 }

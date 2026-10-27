@@ -21,22 +21,24 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::catalogue::{self, Rubrique};
+use droit::catalogue::{self, Rubrique};
 use crate::champs;
-use crate::contexte::Contexte;
-use crate::contrats::{self, Nature};
-use crate::emplois;
-use crate::etats::{erreur, nom_type, py_str};
-use crate::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::permanents;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use droit::natures::{self, Nature};
+use droit::emplois;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use droit::permanents;
+use socle::echec::Echec;
 use crate::routes_mois::{mois_saisis, Moteur};
 
 type R<T> = Result<T, Echec>;
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (rien ici).
@@ -76,7 +78,7 @@ fn nombre(x: f64) -> Value {
 
 /// `v.get(...)` : un dictionnaire, sinon `AttributeError`.
 fn objet<'a>(v: &'a Value, _qui: &str) -> R<&'a Map<String, Value>> {
-    v.as_object().ok_or_else(|| erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v))))
+    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
 }
 
 /// `json.loads(p.read_text(encoding="utf-8"))` : un refus garde la classe que
@@ -128,7 +130,7 @@ pub(crate) fn vue_fiche(nom: &str, cle: Option<&str>, donnees: &Map<String, Valu
 /// `str(x or "")`.
 fn texte_ou_vide(v: Option<&Value>) -> String {
     match v {
-        Some(x) if vrai(x) => py_str(x),
+        Some(x) if vrai(x) => valeur_en_texte(x),
         _ => String::new(),
     }
 }
@@ -155,46 +157,34 @@ fn compteurs(racine: &Path) -> R<Value> {
     }
 }
 
-/// `salaries_au_mois` : les salaries qui ont, ou ont eu, un contrat paye au
-/// mois. Lu dans les saisies : la nature se dit sur l'engagement, pas sur la
-/// fiche. L'ecran n'ouvre le bloc « Salarie au mois » qu'a eux.
+/// `salaries_au_mois` : les salaries qui ont, ou ont eu, un contrat paye au mois. Lu dans les engagements : la nature se
+/// dit sur l'engagement (ou sur un de ses mois), pas sur la fiche. L'ecran n'ouvre le bloc « Salarie au mois » qu'a eux.
 fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
-    let mensuelles: BTreeSet<String> = contrats::natures().map_err(plain)?.iter().filter(|n| n.mensuelle()).map(|n| n.cle.clone()).collect();
-    let mut noms_de_fichiers: Vec<PathBuf> = Vec::new();
-    if let Ok(rd) = std::fs::read_dir(ctx.racine.join("paies")) {
-        for e in rd.flatten() {
-            if e.file_name().to_string_lossy().ends_with(".json") {
-                noms_de_fichiers.push(e.path());
-            }
-        }
-    }
-    noms_de_fichiers.sort();
+    let mensuelles: BTreeSet<String> = natures::natures().map_err(plain)?.iter().filter(|n| n.mensuelle()).map(|n| n.cle.clone()).collect();
     let mut trouves: BTreeSet<String> = BTreeSet::new();
-    for f in noms_de_fichiers {
-        // Un fichier illisible ou qui n'est pas une saisie est ignore.
-        // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
-        let Ok(v) = crate::fichiers::json_en_cache(&f) else { continue };
-        let Some(d) = v.as_object() else { continue };
-        let engs = d.get("engagements").filter(|x| vrai(x)).cloned().unwrap_or(Value::Array(vec![]));
-        let Value::Array(engs) = engs else { continue };
-        for e in &engs {
-            let Some(e) = e.as_object() else { continue };
-            if !e.get("nature").and_then(Value::as_str).is_some_and(|n| mensuelles.contains(n)) {
+    // Un fichier illisible est ignore ; les autres se lisent.
+    let fichiers = engagement::stock::fichiers(&ctx.racine);
+    let lus = fichiers.iter().filter_map(|f| engagement::stock::lire_fichier(&ctx.racine, f).ok().flatten());
+    let objets: Vec<Map<String, Value>> =
+        lus.flat_map(|m| m.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default()).filter_map(|e| e.as_object().cloned()).collect();
+    for e in &objets {
+        let suites = e.get(engagement::stock::SUITE).and_then(Value::as_object).into_iter().flat_map(|s| s.values());
+        let natures = std::iter::once(e.get("nature")).chain(suites.map(|s| s.get("nature")));
+        if !natures.flatten().filter_map(Value::as_str).any(|n| mensuelles.contains(n)) {
+            continue;
+        }
+        let noms: Vec<Value> = match e.get("salaries").filter(|x| vrai(x)) {
+            Some(Value::Array(a)) => a.clone(),
+            Some(autre) => vec![autre.clone()],
+            None => vec![e.get("salarie").cloned().unwrap_or(Value::Null)],
+        };
+        for nom in noms {
+            if !vrai(&nom) {
                 continue;
             }
-            let noms: Vec<Value> = match e.get("salaries").filter(|x| vrai(x)) {
-                Some(Value::Array(a)) => a.clone(),
-                Some(autre) => vec![autre.clone()],
-                None => vec![e.get("salarie").cloned().unwrap_or(Value::Null)],
-            };
-            for nom in noms {
-                if !vrai(&nom) {
-                    continue;
-                }
-                if let Ok(s) = ctx.salarie(&py_str(&nom)) {
-                    if let Some(c) = s.get("_cle").and_then(Value::as_str) {
-                        trouves.insert(c.to_string());
-                    }
+            if let Ok(s) = ctx.salarie(&valeur_en_texte(&nom)) {
+                if let Some(c) = s.get("_cle").and_then(Value::as_str) {
+                    trouves.insert(c.to_string());
                 }
             }
         }
@@ -243,7 +233,7 @@ pub(crate) fn signataire_de(ent: &Value) -> R<Value> {
     objet(s, "signataire")?;
     let lisible = |affichage: &str, brut: &str| -> String {
         match s.get(affichage).filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
+            Some(v) => valeur_en_texte(v),
             None => champs::titre(&texte_ou_vide(s.get(brut))),
         }
     };
@@ -273,7 +263,7 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
                 e.insert("automatique".into(), json!(auto));
                 e.insert("octets".into(), json!(st.len()));
                 e.insert("format".into(), json!(f.extension().map(|x| x.to_string_lossy().into_owned()).unwrap_or_default()));
-                e.insert("quand".into(), json!(crate::paris::iso_secondes(crate::paris::mtime(&st))));
+                e.insert("quand".into(), json!(socle::paris::iso_secondes(socle::paris::mtime(&st))));
                 e.insert("fichier".into(), json!(f.display().to_string()));
             }
         }
@@ -444,7 +434,7 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
 /// `bilan_des_mois` : chaque mois connu, du plus recent au plus ancien, avec ou
 /// en est sa DSN (en mots), s'il se corrige, et quelles SORTES de documents il
 /// a. L'etat de la DSN : « passee » (bilan OK), « refusee », « attente »,
-/// « a_deposer », « a_ecrire », « en_retard » ; la meme lecture que les
+/// « a_deposer », « en_retard » ; la meme lecture que les
 /// rappels : le journal des depots, et lui seul.
 fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]) -> R<Value> {
     let mut out = Vec::new();
@@ -481,11 +471,9 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
-        // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit : le mois est ecrit quand le moteur a note
-        // sa DSN mensuelle (`produire_mois::mois_ecrit`, le critere de l'horloge et des rappels), et il dit alors
-        // « a deposer ».
-        let etat = etat.unwrap_or(if crate::produire_mois::mois_ecrit(&ctx.racine, nom) { "a_deposer" } else { "a_ecrire" });
-        // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a ecrire, a deposer, refusee ou en
+        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot.
+        let etat = etat.unwrap_or("a_deposer");
+        // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
         let a_faire = match etat {
@@ -585,7 +573,7 @@ pub(crate) fn preferences_metiers(racine: &Path) -> R<(Vec<String>, Vec<String>)
         return Ok((vec![], vec![]));
     }
     let v = lire_objet(&p)?;
-    let liste = |k: &str| -> Vec<String> { v.get(k).and_then(Value::as_array).map(|a| a.iter().map(py_str).collect()).unwrap_or_default() };
+    let liste = |k: &str| -> Vec<String> { v.get(k).and_then(Value::as_array).map(|a| a.iter().map(valeur_en_texte).collect()).unwrap_or_default() };
     objet(&v, "metiers-ajoutes.json")?;
     Ok((liste("codes"), liste("retires")))
 }
@@ -605,7 +593,7 @@ pub(crate) fn metier_visible(m: &Value, idcc: &str, ajoutes: &[String], retires:
 }
 
 fn texte_de(m: &Value, k: &str) -> String {
-    m.get(k).map(py_str).unwrap_or_default()
+    m.get(k).map(valeur_en_texte).unwrap_or_default()
 }
 
 /// `metiers` : le catalogue des metiers, groupe par famille (les artistes en
@@ -635,8 +623,8 @@ pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Value> {
         let de: Vec<String> = conventions
             .iter()
             .map(|c| {
-                let cle = py_str(c);
-                format!("{} ({})", noms.get(&cle).map(py_str).unwrap_or_else(|| cle.clone()), cle)
+                let cle = valeur_en_texte(c);
+                format!("{} ({})", noms.get(&cle).map(valeur_en_texte).unwrap_or_else(|| cle.clone()), cle)
             })
             .collect();
         let de = de.join(", ");
@@ -653,7 +641,7 @@ pub(crate) fn metiers_autres_conventions(ctx: &Contexte) -> R<Value> {
 fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     const SANS_NOTIFICATION: [&str; 5] = ["031", "043", "065", "083", "084"];
     const LICENCIEMENTS: [&str; 8] = ["014", "020", "087", "088", "091", "092", "095", "096"];
-    let m = if vrai(motif) { py_str(motif) } else { String::new() };
+    let m = if vrai(motif) { valeur_en_texte(motif) } else { String::new() };
     if m.is_empty() {
         return Ok(vec![]);
     }
@@ -669,7 +657,7 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     let sans_indemnite = matches!(permanents::indemnite_de_preavis(Some(&m)).map_err(plain)?, permanents::IndemniteDePreavis::Aucune(_));
     if n.duree_indeterminee && !sans_indemnite {
         let regles = permanents::regles().map_err(plain)?;
-        let preavis = regles.get("preavis").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("preavis")))?;
+        let preavis = regles.get("preavis").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("preavis")))?;
         let sans = ou_vide(preavis.get("motifs_sans_preavis"));
         let dedans = match sans {
             Value::Object(o) => o.contains_key(&m),
@@ -709,12 +697,12 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
 /// Tout vient de `contrats-base.json`. SAUF LES NATURES PAYEES AU MOIS : elles
 /// ne descendent que si la fiche entreprise dit employer des permanents.
 fn natures(ctx: &Contexte) -> R<Value> {
-    let toutes = contrats::natures().map_err(plain)?;
-    let defaut = contrats::defaut().map_err(plain)?;
+    let toutes = natures::natures().map_err(plain)?;
+    let defaut = natures::defaut().map_err(plain)?;
     let permanents = ctx.emploie_des_permanents();
     let gardees: Vec<&std::sync::Arc<Nature>> = toutes.iter().filter(|n| permanents || !n.mensuelle() || n.cle == defaut).collect();
     // L'ordre est celui du fichier, le defaut en tete.
-    let premier = gardees.iter().find(|n| n.cle == defaut).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(&defaut)))?;
+    let premier = gardees.iter().find(|n| n.cle == defaut).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(&defaut)))?;
     let mut ordre: Vec<&Nature> = vec![premier];
     ordre.extend(gardees.iter().filter(|n| n.cle != defaut).map(|n| &***n));
     let mut sortie = Vec::new();
@@ -722,9 +710,9 @@ fn natures(ctx: &Contexte) -> R<Value> {
         let motifs = n.motifs_rupture();
         let (mut faits, mut signales) = (Map::new(), Map::new());
         for m in &motifs {
-            let code = m.get("code").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("code")))?;
-            faits.insert(py_str(&code), json!(faits_de_rupture(n, &code)?));
-            signales.insert(py_str(&code), json!(n.signalement_fctu(Some(&py_str(&code)))));
+            let code = m.get("code").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("code")))?;
+            faits.insert(valeur_en_texte(&code), json!(faits_de_rupture(n, &code)?));
+            signales.insert(valeur_en_texte(&code), json!(n.signalement_fctu(Some(&valeur_en_texte(&code)))));
         }
         sortie.push(json!({
             "cle": n.cle, "libelle": n.libelle,
@@ -756,7 +744,7 @@ fn niveaux_sante(ctx: &Contexte) -> R<Value> {
     let ajoutees = sec.get("rubriques_ajoutees").and_then(Value::as_array).cloned().unwrap_or_default();
     let releve = ajoutees.iter().find(|r| r.get("id").and_then(Value::as_str) == Some("mutuelle")).and_then(|r| r.get("_releve_svp_sante"));
     let Some(releve) = releve.filter(|v| vrai(v)) else { return Ok(json!([])) };
-    let niveaux = releve.get("niveaux").and_then(Value::as_object).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("niveaux")))?;
+    let niveaux = releve.get("niveaux").and_then(Value::as_object).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("niveaux")))?;
     let mut tries: Vec<(&String, &Value)> = niveaux.iter().collect();
     tries.sort_by(|a, b| a.0.cmp(b.0));
     Ok(Value::Array(
@@ -794,7 +782,7 @@ fn conventions(ctx: &Contexte) -> R<Value> {
     let mut par = Map::new();
     for f in candidats {
         // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
-        let Ok(v) = crate::fichiers::json_en_cache(&f) else { continue };
+        let Ok(v) = socle::fichiers::json_en_cache(&f) else { continue };
         let Some(d) = v.as_object() else { continue };
         if let Some(Value::Object(p)) = d.get("par_convention").filter(|x| vrai(x)) {
             par = p.clone();
@@ -821,7 +809,7 @@ fn conventions(ctx: &Contexte) -> R<Value> {
 fn urssaf_du_departement(base: &Value, dep: &str) -> String {
     let d = dep.trim().to_uppercase();
     let table = base.get("par_departement").and_then(Value::as_object);
-    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(py_str);
+    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(valeur_en_texte);
     lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
 }
 
@@ -852,12 +840,12 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .into_iter()
         .map(|k| {
             let v = &ctx.salaries[k];
-            let nom = v.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?;
+            let nom = v.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
             let prenom = match v.get("prenom_affichage").filter(|p| vrai(p)) {
                 Some(p) => p,
-                None => v.get("prenom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("prenom")))?,
+                None => v.get("prenom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("prenom")))?,
             };
-            Ok(json!({"cle": k, "libelle": format!("{} {}", py_str(nom), py_str(prenom))}))
+            Ok(json!({"cle": k, "libelle": format!("{} {}", valeur_en_texte(nom), valeur_en_texte(prenom))}))
         })
         .collect::<R<Vec<Value>>>()?;
     let spectacles = ctx
@@ -865,7 +853,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .into_iter()
         .map(|k| {
             let v = &ctx.spectacles[k];
-            let titre = v.get("titre").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("titre")))?;
+            let titre = v.get("titre").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("titre")))?;
             Ok(json!({"cle": k, "titre": titre, "numero_objet": v.get("numero_objet").cloned().unwrap_or(Value::Null)}))
         })
         .collect::<R<Vec<Value>>>()?;
@@ -881,7 +869,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     // SAISISSABLES seulement.
     let fctu = json_en_cache(&dossier_du_code().join("fctu-base.json")).map_err(plain)?;
     let codes = |quoi: &str| -> R<Vec<Value>> {
-        let n = fctu.get(quoi).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(quoi)))?;
+        let n = fctu.get(quoi).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(quoi)))?;
         Ok(n.get("codes").and_then(Value::as_array).cloned().unwrap_or_default())
     };
     let types_preavis: Vec<Value> = codes("types_preavis")?.into_iter().filter(|c| c.get("saisissable").is_some_and(vrai)).collect();
@@ -894,7 +882,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let organismes: Vec<Value> = urssaf
         .get("organismes")
         .and_then(Value::as_array)
-        .ok_or_else(|| erreur("KeyError", crate::fichiers::absent("organismes")))?
+        .ok_or_else(|| erreur("KeyError", socle::fichiers::absent("organismes")))?
         .iter()
         .map(|x| json!({"code": x.get("code").cloned().unwrap_or(Value::Null), "nom": x.get("nom").cloned().unwrap_or(Value::Null)}))
         .collect();
@@ -927,7 +915,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         // LES NATURES DE CONTRAT. Un engagement qui ne dit rien est un CDDU du
         // spectacle : c'est le defaut que l'ecran garde.
         "natures": natures(ctx)?,
-        "nature_defaut": contrats::defaut().map_err(plain)?,
+        "nature_defaut": natures::defaut().map_err(plain)?,
         "types_preavis": types_preavis,
         "transaction": transaction,
         // Les niveaux de complementaire sante, pour la fiche d'un permanent.
@@ -938,8 +926,8 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         "urssaf_deduit": if deduit.is_empty() { "117".to_string() } else { deduit },
         // LES PAYS (vague 1k) : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
         // deduit. Le pays de naissance et le pays de nationalite s'y choisissent.
-        "pays": crate::pays::servir().map_err(plain)?,
+        "pays": socle::pays::servir().map_err(plain)?,
         // Le pays de naissance (lot R2) : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
-        "pays_naissance": crate::pays::servir_naissance().map_err(plain)?,
+        "pays_naissance": socle::pays::servir_naissance().map_err(plain)?,
     }))
 }

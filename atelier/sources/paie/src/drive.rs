@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::fichiers::vrai;
+use socle::fichiers::vrai;
 use crate::routes_google::{champ, en_texte, encoder, identifiants, jeton_par_rafraichissement, lire_jeton_dit, phrase_de_panne, refus_de_copie, JETONS};
 use crate::transport::{envoyer, Requete};
 
@@ -90,7 +90,7 @@ impl ErreurGoogle {
             std::io::ErrorKind::PermissionDenied => "PermissionError",
             _ => "OSError",
         };
-        ErreurGoogle::nouvelle(classe, crate::fichiers::panne_fichier(e, chemin))
+        ErreurGoogle::nouvelle(classe, socle::fichiers::panne_fichier(e, chemin))
     }
 }
 
@@ -102,8 +102,8 @@ impl std::fmt::Display for ErreurGoogle {
 
 impl std::error::Error for ErreurGoogle {}
 
-impl From<crate::retours::Echec> for ErreurGoogle {
-    fn from(e: crate::retours::Echec) -> Self {
+impl From<socle::echec::Echec> for ErreurGoogle {
+    fn from(e: socle::echec::Echec) -> Self {
         ErreurGoogle::nouvelle(e.classe.unwrap_or("Exception"), e.message)
     }
 }
@@ -391,7 +391,7 @@ fn type_py(v: &Value) -> &'static str {
 fn en_dict(v: &Value) -> Result<&serde_json::Map<String, Value>, ErreurGoogle> {
     match v {
         Value::Object(o) => Ok(o),
-        autre => Err(ErreurGoogle::nouvelle("AttributeError", crate::fichiers::attendu("un objet", type_py(autre)))),
+        autre => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("un objet", type_py(autre)))),
     }
 }
 
@@ -400,9 +400,9 @@ fn texte_requis(v: &Value, cle: &str) -> Result<String, ErreurGoogle> {
     match v {
         Value::Object(o) => match o.get(cle) {
             Some(x) => Ok(en_texte(x)),
-            None => Err(ErreurGoogle::nouvelle("KeyError", crate::fichiers::absent(cle))),
+            None => Err(ErreurGoogle::nouvelle("KeyError", socle::fichiers::absent(cle))),
         },
-        autre => Err(ErreurGoogle::nouvelle("TypeError", crate::fichiers::attendu("un objet", type_py(autre)))),
+        autre => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("un objet", type_py(autre)))),
     }
 }
 
@@ -413,10 +413,10 @@ fn elements_de(r: &Value) -> Result<Vec<&Value>, ErreurGoogle> {
         None => Ok(Vec::new()),
         Some(Value::Array(a)) => Ok(a.iter().collect()),
         // parcourir un texte ou un objet donne des chaines : `f.get(...)` leve sur la premiere
-        Some(autre @ Value::String(t)) if !t.is_empty() => Err(ErreurGoogle::nouvelle("AttributeError", crate::fichiers::attendu("une liste", type_py(autre)))),
-        Some(autre @ Value::Object(m)) if !m.is_empty() => Err(ErreurGoogle::nouvelle("AttributeError", crate::fichiers::attendu("une liste", type_py(autre)))),
+        Some(autre @ Value::String(t)) if !t.is_empty() => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("une liste", type_py(autre)))),
+        Some(autre @ Value::Object(m)) if !m.is_empty() => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("une liste", type_py(autre)))),
         Some(Value::String(_)) | Some(Value::Object(_)) => Ok(Vec::new()),
-        Some(autre) => Err(ErreurGoogle::nouvelle("TypeError", crate::fichiers::attendu("une liste", type_py(autre)))),
+        Some(autre) => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
     }
 }
 
@@ -431,7 +431,7 @@ fn octets_de(t: &Value) -> Result<u64, ErreurGoogle> {
             .map_err(|_| ErreurGoogle::nouvelle("ValueError", format!("nombre entier illisible : '{}'", x))),
         autre => Err(ErreurGoogle::nouvelle(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", type_py(autre)),
+            socle::fichiers::attendu("un nombre entier", type_py(autre)),
         )),
     }
 }
@@ -447,9 +447,9 @@ fn premier_de(trouves: &Value, strict: bool) -> Result<Option<String>, ErreurGoo
     let premier: &Value = match files {
         Value::Array(a) => &a[0],
         // "abc"[0] est une chaine
-        Value::String(_) => return Err(ErreurGoogle::nouvelle(if strict { "TypeError" } else { "AttributeError" }, crate::fichiers::attendu("une liste", "str"))),
-        Value::Object(_) => return Err(ErreurGoogle::nouvelle("KeyError", crate::fichiers::attendu("une liste", "dict"))),
-        autre => return Err(ErreurGoogle::nouvelle("TypeError", crate::fichiers::attendu("une liste", type_py(autre)))),
+        Value::String(_) => return Err(ErreurGoogle::nouvelle(if strict { "TypeError" } else { "AttributeError" }, socle::fichiers::attendu("une liste", "str"))),
+        Value::Object(_) => return Err(ErreurGoogle::nouvelle("KeyError", socle::fichiers::attendu("une liste", "dict"))),
+        autre => return Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
     };
     if strict {
         return Ok(Some(texte_requis(premier, "id")?));

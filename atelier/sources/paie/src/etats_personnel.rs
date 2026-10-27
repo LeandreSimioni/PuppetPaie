@@ -8,13 +8,14 @@ use std::collections::BTreeSet;
 
 use serde_json::Value;
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str};
+use droit::contexte::Contexte;
+use socle::valeur::valeur_en_texte;
+use socle::echec::erreur;
 use crate::etats_paie::{
     dossier_exports, ecrire_fini, fiche_texte, finir, paies_declarees, titre_spectacle, Demande, Lecture, Periode, DSN, SAISIE,
 };
-use crate::fichiers::vrai;
-use crate::num::{eur2, Decimal};
+use socle::fichiers::vrai;
+use socle::num::{eur2, Decimal};
 use crate::tableaux_export::{col_m, col_t, jj, libelle_mois, montant, qui, qui_souple, refus, sections_de, Ligne, Section, Tableau, Val, R};
 
 /// `fiche.get(a) or fiche.get(b) or ...`, la valeur telle que le fichier la porte (un nombre reste un nombre).
@@ -24,7 +25,7 @@ fn premiere(fiche: &Value, cles: &[&str]) -> Option<Val> {
             return Some(match v {
                 Value::String(s) => Val::Txt(s.clone()),
                 Value::Number(_) => Val::Num(v.clone()),
-                autre => Val::Txt(py_str(autre)),
+                autre => Val::Txt(valeur_en_texte(autre)),
             });
         }
     }
@@ -64,7 +65,7 @@ fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<Cont
             };
             out.push(ContratMois {
                 mois: m.clone(),
-                cle: paie.salarie.get("_cle").map(py_str).unwrap_or_default(),
+                cle: paie.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default(),
                 fiche: paie.salarie.clone(),
                 salarie: qui(&paie.salarie)?,
                 contrat: e.numero.clone().unwrap_or_default(),
@@ -86,30 +87,30 @@ fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<Cont
     for s in ctx.spectacles.values() {
         objets.push((s.get("numero_objet").cloned().unwrap_or(Value::Null), s.get("titre").cloned().unwrap_or(Value::Null)));
     }
-    let cddu = crate::contrats::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone();
+    let cddu = droit::natures::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone();
     let declares = p.declares();
     for x in paies_declarees(ctx)? {
-        let m = x.get("mois").map(py_str).unwrap_or_default();
+        let m = x.get("mois").map(valeur_en_texte).unwrap_or_default();
         if !declares.contains(&m) {
             continue;
         }
         let cle = fiche_texte(&x, "salarie");
         let fiche = ctx.salaries.get(&cle).filter(|f| vrai(f)).cloned();
         let objet = x.get("numero_objet").cloned().unwrap_or(Value::Null);
-        let titre = objets.iter().rev().find(|(n, _)| *n == objet).map(|(_, t)| t.clone()).filter(vrai).map(|t| py_str(&t)).unwrap_or_default();
+        let titre = objets.iter().rev().find(|(n, _)| *n == objet).map(|(_, t)| t.clone()).filter(vrai).map(|t| valeur_en_texte(&t)).unwrap_or_default();
         out.push(ContratMois {
             mois: m,
             cle: cle.clone(),
             salarie: match &fiche {
                 Some(f) => qui(f)?,
-                None => x.get("salarie").map(py_str).unwrap_or_default(),
+                None => x.get("salarie").map(valeur_en_texte).unwrap_or_default(),
             },
             fiche: fiche.clone().unwrap_or(Value::Null),
             contrat: fiche_texte(&x, "contrat"),
             nature: cddu.clone(),
             emploi: fiche.as_ref().map(|f| fiche_texte(f, "emploi")).unwrap_or_default(),
             spectacle: titre,
-            objet: if vrai(&objet) { py_str(&objet) } else { String::new() },
+            objet: if vrai(&objet) { valeur_en_texte(&objet) } else { String::new() },
             debut: fiche_texte(&x, "debut"),
             fin: fiche_texte(&x, "fin"),
             brut: montant(x.get("brut"))?,
@@ -176,7 +177,7 @@ fn nationalite(code: &str) -> &'static str {
 
 /// `_sexe` : le premier chiffre du NIR (1 homme, 2 femme) ; un NIR provisoire ne le dit pas.
 fn sexe(nir: Option<&Value>) -> &'static str {
-    let t = nir.filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let t = nir.filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     match t.chars().next() {
         Some('1') => "M",
         Some('2') => "F",
@@ -198,20 +199,20 @@ pub(crate) fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             continue;
         }
         let f = &c.fiche;
-        let texte = |cles: &[&str], defaut: &str| -> String { cles.iter().find_map(|k| f.get(*k).filter(|v| vrai(v)).map(py_str)).unwrap_or_else(|| defaut.to_string()) };
+        let texte = |cles: &[&str], defaut: &str| -> String { cles.iter().find_map(|k| f.get(*k).filter(|v| vrai(v)).map(valeur_en_texte)).unwrap_or_else(|| defaut.to_string()) };
         let mut l = Ligne::nouvelle();
         l.t("nom", texte(&["nom_affichage", "nom"], &c.salarie)).t("prenom", texte(&["prenom_affichage", "prenom"], ""));
         // La codification relue comme la DSN la declare (`codification_ue`) : un ancien 03 sans pays ne se lit pas « EEE ».
         let code_ue = if texte(&["code_nationalite_dsn", "pays_nationalite", "pays_nationalite_hors_liste"], "").is_empty() {
             Ok(String::new())
         } else {
-            crate::codification_ue::codification_ue(f)
+            socle::codification_ue::codification_ue(f)
         };
         // LE PAYS, quand la fiche le porte (vagues 1j et 2h, reste R1 #147) : le registre dit la nationalite (C. trav.,
         // art. D1221-23, 1°), la categorie DSN la suit entre parentheses ; sans pays, la categorie seule.
         let pays = match texte(&["pays_nationalite"], "") {
             c if c.is_empty() => texte(&["pays_nationalite_hors_liste"], ""),
-            c => crate::pays::du_code(&c).ok().flatten().map_or(c, |p| p.nom),
+            c => socle::pays::du_code(&c).ok().flatten().map_or(c, |p| p.nom),
         };
         let categorie = code_ue.map_or_else(|_| "à préciser dans la fiche".to_string(), |c| nationalite(&c).to_string());
         l.t(
@@ -279,7 +280,7 @@ pub(crate) fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         l.poser("prenom", Some(ou_cle(&["prenom_affichage", "prenom"])));
         let nir = f.get("nir").filter(|v| vrai(v));
         l.t("nir", match nir {
-            Some(n) => format!("{} {}", py_str(n), f.get("nir_cle").filter(|v| vrai(v)).map(py_str).unwrap_or_default()),
+            Some(n) => format!("{} {}", valeur_en_texte(n), f.get("nir_cle").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()),
             None => String::new(),
         });
         l.t("naissance", jj(&fiche_texte(f, "date_naissance")));
@@ -342,8 +343,8 @@ fn acte_lisible(quoi: &str) -> Option<&'static str> {
 
 /// `_reponse` : une reponse lisible ; un rapport XML complet ne tient pas dans une case.
 fn reponse(r: Option<&Value>) -> String {
-    let t = r.filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    let t = t.split(crate::retours::blanc_py).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
+    let t = r.filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let t = t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
     if t.starts_with('<') {
         return "rapport de l'organisme (XML, conservé au journal)".to_string();
     }
@@ -357,7 +358,7 @@ pub(crate) fn journal_des_declarations(ctx: &Contexte, d: &Demande) -> R<Tableau
     let mut lignes = Vec::new();
     for l in crate::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))? {
         // Un acte porte le mois qu'il declare ; un acte annuel se range au mois ou il a eu lieu.
-        let texte = |k: &str| l.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        let texte = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let mut m = texte("mois");
         if m.chars().count() != 7 {
             m = texte("quand").chars().take(7).collect();
@@ -368,7 +369,8 @@ pub(crate) fn journal_des_declarations(ctx: &Contexte, d: &Demande) -> R<Tableau
         let quoi = texte("quoi");
         let mut x = Ligne::nouvelle();
         x.t("quand", texte("quand").replace('T', " ").chars().take(16).collect::<String>());
-        x.t("acte", acte_lisible(&quoi).map(str::to_string).unwrap_or(quoi));
+        let main_propre = quoi == "contrat-signature" && l.pointer("/detail/main_propre").is_some_and(vrai);
+        x.t("acte", if main_propre { "Contrat imprimé, à remettre en main propre".to_string() } else { acte_lisible(&quoi).map(str::to_string).unwrap_or(quoi) });
         x.t("mois", m).t("mode", texte("mode")).t("issue", if l.get("accepte").is_some_and(vrai) { "accepté" } else { "refusé ou échoué" });
         x.t("fichier", texte("fichier")).t("destinataire", texte("destinataire")).t("reponse", reponse(l.get("reponse"))).t("origine", texte("origine"));
         lignes.push(x);

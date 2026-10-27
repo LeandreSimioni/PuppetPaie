@@ -1,24 +1,15 @@
-//! `depot-apercu` pour une DSN : ce qui partirait, en clair, sans rien envoyer ni demander.
+//! `depot-apercu` pour une DSN : ce qui partirait, en clair, sans rien envoyer ni demander -- le fichier lu, son
+//! annule-et-remplace, et ce qu'il declare compare aux engagements valides du mois, contrat par contrat.
 //!
-//! C'est le Python de `operations_declarations.apercu_depot_dsn` et de ce qu'il appelle
-//! (`dsn_api.lire`, `_remplacement_du_fichier`, `_recapitulatif_sur`, `recapitulatif_dsn`,
-//! `dsn_recap.lire`, `operations_documents.saisie_aux_numeros_declares`,
-//! `operations_documents.numeroter_depuis_archive`, `bulletin.numeros_archives`), porte a
-//! l'identique : meme JSON, memes refus sous la meme classe.
-//!
-//! Aucun reseau, aucun mot de passe, aucune ecriture de ce module. Une seule ecriture, et
-//! elle est celle que `paie calculer` faisait deja quand le Python l'appelait : le cache
-//! `paies/AAAA-MM.calcul.json` du calcul du mois (`calcul_du_mois::calcul_avec`), que la
-//! route `apercu` ecrit de la meme facon.
+//! Aucun reseau, aucun mot de passe, aucune ecriture de ce module.
 //!
 //! Les pieces reprises du reste du moteur : `Moteur::etat_remplacement` (l'annule-et-
-//! remplace d'un etablissement), `routes_ouverture::{paie_du_mois, engagements_calcules,
-//! paie_de_json, numeroter}` (la saisie calculee, numerotee), `depot::lire` (la lecture du
+//! remplace d'un etablissement), `engagement::etats::validees_du_mois` et
+//! `routes_ouverture::numeroter` (les paies validees, numerotees), `depot::lire` (la lecture du
 //! fichier), `etats::{deja_depose, repetition}` (le journal).
 //!
-//! DEUX ECARTS ASSUMES AVEC `decimal.Decimal` : `NaN` et `Infinity` ne se lisent pas ici
-//! (le Python les accepte puis echoue plus loin), et un exposant qui sortirait des 28
-//! chiffres de `rust_decimal` est refuse comme un nombre illisible.
+//! Un nombre `NaN`, `Infinity`, ou dont l'exposant sortirait des 28 chiffres de `rust_decimal`, se refuse comme un
+//! nombre illisible.
 
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -26,17 +17,18 @@ use std::str::FromStr;
 
 use serde_json::{json, Value};
 
-use crate::calcul::Paie;
-use crate::contexte::Contexte;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
 use crate::depot::{self, Apercu};
-use crate::engagement;
-use crate::etats::{self, erreur};
-use crate::fichiers::{repr, vrai};
-use crate::num::Decimal;
-use crate::retours::{blanc_py, Echec};
+use crate::etats;
+use socle::echec::erreur;
+use socle::fichiers::{repr, vrai};
+use socle::num::Decimal;
+use socle::texte::blanc;
+use socle::echec::Echec;
 use crate::routes_apercus::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes_mois::Moteur;
-use crate::routes_ouverture::{engagements_calcules, numeroter, paie_de_json, paie_du_mois, Refus};
+use crate::routes_ouverture::{numeroter, Refus};
 
 type R<T> = Result<T, Echec>;
 
@@ -47,7 +39,7 @@ const TYPES: [(&str, &str); 5] = depot::TYPES;
 /// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.
 /// Python n'a pas de plafond : un entier trop long pour `i128` se rend au plus grand.
 pub(crate) fn int_py(t: &str) -> Option<i128> {
-    let t = t.trim_matches(blanc_py);
+    let t = t.trim_matches(blanc);
     let (neg, reste) = match t.strip_prefix('-') {
         Some(r) => (true, r),
         None => (false, t.strip_prefix('+').unwrap_or(t)),
@@ -66,7 +58,7 @@ pub(crate) fn int_py(t: &str) -> Option<i128> {
 /// `Decimal(texte)` : le signe, les chiffres avec un point et des tirets bas entre deux
 /// chiffres, un exposant. `None` quand Python leve `InvalidOperation`.
 pub(crate) fn decimal_py(t: &str) -> Option<Decimal> {
-    let t = t.trim_matches(blanc_py);
+    let t = t.trim_matches(blanc);
     let c: Vec<char> = t.chars().collect();
     let mut i = 0;
     let mut propre = String::new();
@@ -253,7 +245,7 @@ pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
     let mut activite: Option<(String, Decimal)> = None;
     for ligne in lignes_py(&texte) {
         let Some((k, v)) = ligne.split_once(',') else { continue };
-        let v = v.trim_matches(blanc_py).trim_matches('\'');
+        let v = v.trim_matches(blanc).trim_matches('\'');
         let kc: Vec<char> = k.chars().collect();
         let bloc: String = kc.iter().take(10).collect();
         let champ: String = kc.iter().skip(11).collect();
@@ -327,7 +319,7 @@ pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
                         "010" => r.0 = v.to_string(),
                         "011" => r.1 = v.to_string(),
                         "013" => {
-                            let montant = decimal_py(v).ok_or_else(|| crate::num::illisible(v))?;
+                            let montant = decimal_py(v).ok_or_else(|| socle::num::illisible(v))?;
                             let (numero, genre) = (r.0.clone(), r.1.clone());
                             if let Some(&(cs, cc)) = sals[si].par_numero.get(&numero) {
                                 let c = &mut sals[cs].contrats[cc];
@@ -345,7 +337,7 @@ pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
                 if champ == "001" {
                     activite = Some((v.to_string(), Decimal::ZERO));
                 } else if activite.is_some() && champ == "002" {
-                    activite.as_mut().unwrap().1 = decimal_py(v).ok_or_else(|| crate::num::illisible(v))?;
+                    activite.as_mut().unwrap().1 = decimal_py(v).ok_or_else(|| socle::num::illisible(v))?;
                 } else if activite.is_some() && champ == "003" {
                     let (genre, mesure) = activite.clone().unwrap();
                     let c = remu.as_ref().and_then(|r| sals[si].par_numero.get(&r.0).copied());
@@ -378,7 +370,6 @@ pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
 const MARQUE_NUMERO: &str = "Bulletin de paie n";
 const MARQUE_CONTRAT: &str = "Contrat n";
 
-use crate::retours::blanc_py as blanc;
 
 fn suite_de(m: &[char], de: usize, f: impl Fn(char) -> bool) -> usize {
     m.get(de..).map_or(0, |r| r.iter().take_while(|c| f(**c)).count())
@@ -588,7 +579,7 @@ pub(crate) fn numeros_archives(chemin: &Path) -> Result<Vec<Lu>, Refus> {
                 ),
             });
         };
-        let jour = |t: &str| crate::date::Jour::lire(t).map(|j| j.iso()).map_err(Refus::from);
+        let jour = |t: &str| socle::date::Jour::lire(t).map(|j| j.iso()).map_err(Refus::from);
         let premiere = commencent[k];
         let suivante = commencent.get(k + 1).copied();
         let derniere = match suivante {
@@ -617,14 +608,8 @@ pub(crate) fn numeros_archives(chemin: &Path) -> Result<Vec<Lu>, Refus> {
 fn texte_fiche(sal: &Value, cle: &str) -> String {
     match sal.get(cle) {
         None => String::new(),
-        Some(v) => etats::py_str(v),
+        Some(v) => socle::valeur::valeur_en_texte(v),
     }
-}
-
-/// `operations_documents.numeroter_depuis_archive` : les numeros LUS dans le fichier groupe archive,
-/// poses sur les paies. Une paie sans page correspondante fait echouer.
-pub(crate) fn numeroter_depuis_archive(ctx: &Contexte, paies: &mut [Paie], groupe: &Path) -> Result<(), Refus> {
-    numeroter_et_lire(ctx, paies, groupe).map(|_| ())
 }
 
 /// La meme, qui rend aussi ce qui a ete lu pour chaque paie (son rang) et les avertissements (les
@@ -638,7 +623,7 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
         par_prefixe.insert(format!("{}{}", texte_fiche(sal, "initiales_contrat"), texte_fiche(sal, "code_salarie")), cle.clone());
     }
     let cle_de = |p: &Paie| -> Result<String, Refus> {
-        p.salarie.get("_cle").map(etats::py_str).ok_or_else(|| Refus { classe: Some("KeyError"), message: crate::fichiers::absent("_cle") })
+        p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).ok_or_else(|| Refus { classe: Some("KeyError"), message: socle::fichiers::absent("_cle") })
     };
     let mut par_numero: HashMap<String, String> = HashMap::new();
     for p in paies.iter() {
@@ -668,6 +653,10 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
         }
         let (debut, fin) = (p.engagement.debut_periode()?, p.engagement.fin_periode()?);
         let ident = (cle_de(p)?, debut.iso(), fin.iso());
+        // Un bulletin pas encore parti n'est pas dans l'archive : il n'a pas de numero, rien ne se lit pour lui.
+        if !archives.contains_key(&ident) && p.numero_bulletin.as_deref().map_or(true, str::is_empty) {
+            continue;
+        }
         let (_, lu) = archives.remove(&ident).ok_or_else(|| Refus {
             classe: Some("ErreurOperation"),
             message: format!(
@@ -699,93 +688,49 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
 
 // ------------------------------------------------------------------ la saisie aux numeros declares
 
-/// `saisie_aux_numeros_declares` : la saisie du mois (le fichier lu, la reponse du calcul), et ses paies,
-/// chaque contrat sous le numero qu'il porte VRAIMENT (figes dans la saisie, lus dans l'archive, ou ceux
-/// que la production prendrait).
-pub(crate) fn paies_aux_numeros_declares(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> Result<(Value, Value, Vec<Paie>), Refus> {
-    paies_aux_numeros_declares_avec(o, ctx, mois, None, true)
-}
-
-/// La meme, pour un ENVOI : `charger` du Python RESERVE (en memoire du `Contexte`) les numeros qu'il propose, et la
-/// route d'envoi les ecrit plus loin (`reserver_numeros_envoyes`) ; `reserves` les garde. `cache` : `false` calcule
-/// sans toucher a `paies/AAAA-MM.calcul.json` (le `charger` du Python ne l'ecrit jamais).
-pub(crate) fn paies_aux_numeros_declares_avec(
-    o: &HashMap<String, String>,
-    ctx: &Contexte,
-    mois: &str,
-    reserves: Option<&mut crate::produire_mois::Reserves>,
-    cache: bool,
-) -> Result<(Value, Value, Vec<Paie>), Refus> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let data = engagement::lire_saisie(&chemin)?;
-    let rep = if cache {
-        paie_du_mois(o, ctx, &data)?
-    } else {
-        crate::service::calculer_avec(ctx, &json!({ "saisie": data })).map_err(|m| crate::routes_ouverture::refus_du_calcul(ctx, &data, m))?
+/// LA SAISIE DU MOIS AUX NUMEROS DECLARES : ce qui peut partir de `mois` (`etats::validees_du_mois` : la saisie reduite
+/// aux engagements valides, et leurs paies ecrites), chaque contrat sous le numero que son engagement porte depuis sa
+/// validation (`engagement::numeros`), chaque bulletin sous le sien (ecrit dans la paie a son depart, ou celui que le
+/// compteur propose). `reserves` : les numeros de bulletin qu'un envoi propose, que la route d'envoi ecrit plus loin. Un
+/// mois sans engagement valide n'a rien.
+pub(crate) fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut crate::depart::Reserves>) -> Result<(Value, Vec<Paie>), Refus> {
+    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
+        return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
-    let engs = engagements_calcules(ctx, &data, &rep)?;
-    let paies_json = rep.get("paies").and_then(Value::as_array).ok_or("reponse du calcul illisible : `paies`")?;
-    let mut paies = Vec::new();
-    for (e, v) in engs.into_iter().zip(paies_json) {
-        paies.push(paie_de_json(ctx, e, v)?);
+    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
+    let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
+    match reserves {
+        Some(r) => r.numeroter(ctx, &mut paies, annee)?,
+        None => numeroter(ctx, &mut paies, annee)?,
     }
-    if data.get("numeros_figes").is_some_and(vrai) {
-        // Un contrat ajoute apres la production n'a pas de numero fige : il prend celui que le compteur propose,
-        // comme un mois pas encore produit. Le Python l'imprimait « n° None » (defaut non reproduit) ; les autres
-        // gardent leurs numeros, bulletin compris.
-        let sans: Vec<usize> = (0..paies.len()).filter(|&i| paies[i].engagement.numero.as_deref().map_or(true, str::is_empty)).collect();
-        if !sans.is_empty() {
-            let mois_saisie = data.get("mois").map(crate::date::en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
-            let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))?;
-            let mut neufs: Vec<Paie> = sans.iter().map(|&i| paies[i].clone()).collect();
-            match reserves {
-                Some(r) => r.numeroter(ctx, &mut neufs, annee as i32)?,
-                None => numeroter(ctx, &mut neufs, annee as i32)?,
-            }
-            for (i, p) in sans.into_iter().zip(neufs) {
-                paies[i] = p;
-            }
-        }
-        return Ok((data, rep, paies));
-    }
-    let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", crate::envoi::etiquette(mois)?));
-    if groupe.exists() {
-        numeroter_depuis_archive(ctx, &mut paies, &groupe)?;
-    } else {
-        let mois_saisie = data.get("mois").map(crate::date::en_texte).ok_or_else(|| crate::fichiers::absent("mois"))?;
-        let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))?;
-        match reserves {
-            Some(r) => r.numeroter(ctx, &mut paies, annee as i32)?,
-            None => numeroter(ctx, &mut paies, annee as i32)?,
-        }
-    }
-    Ok((data, rep, paies))
+    Ok((data, paies))
 }
 
 /// La meme, sans le detail du refus : le moindre refus, quel qu'il soit, rend `Err`.
-fn saisie_aux_numeros_declares(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, String> {
-    paies_aux_numeros_declares(o, ctx, mois).map(|t| t.2).map_err(|r| r.message)
+fn saisie_aux_numeros_declares(ctx: &Contexte, mois: &str) -> Result<Vec<Paie>, String> {
+    paies_aux_numeros_declares(ctx, mois, None).map(|t| t.1).map_err(|r| r.message)
 }
 
 // ------------------------------------------------------------------ recapitulatif_dsn
 
 fn requis(v: &Value, cle: &str) -> Result<String, String> {
-    v.get(cle).map(etats::py_str).ok_or_else(|| crate::fichiers::absent(cle))
+    v.get(cle).map(socle::valeur::valeur_en_texte).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
-fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
+fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
     let sals = lire_recap(octets)?;
-    let (mut compare, liste) = match saisie_aux_numeros_declares(o, ctx, mois) {
-        Ok(l) => (true, l),
-        Err(_) => (false, Vec::new()),
+    // Un mois sans engagement n'a rien a comparer.
+    let (mut compare, liste) = match saisie_aux_numeros_declares(ctx, mois) {
+        Ok(l) if !l.is_empty() => (true, l),
+        _ => (false, Vec::new()),
     };
     // `paies` : numero -> paie, dans l'ordre ou les numeros sont apparus
     let mut ordre: Vec<String> = Vec::new();
     let mut par_numero: HashMap<String, usize> = HashMap::new();
     for (i, p) in liste.iter().enumerate() {
         if !nic.is_empty() {
-            match crate::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie) {
+            match droit::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie) {
                 Ok(e) if e == nic => {}
                 Ok(_) => continue,
                 Err(_) => {
@@ -811,7 +756,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
             let mut ecarts: Vec<String> = Vec::new();
             let brut = c.brut_texte();
             // UNE CORRECTION D'UN MOIS DEJA DECLARE (21/10/2026) : un contrat que la paie du mois ne porte pas, et dont la
-            // fin (40.010) precede le mois, n'est dans le fichier que pour sa regularisation (« Corriger ce mois »,
+            // fin (40.010) precede le mois, n'est dans le fichier que pour sa regularisation (la correction d'un mois suivant,
             // `dsn::generer` et ses `regs`). Ce n'est pas un ecart avec la paie : il se dit pour ce qu'il est.
             let correction = p.is_none() && !c.fin.is_empty() && c.fin.as_str() < format!("{}-01", mois).as_str();
             match p {
@@ -839,7 +784,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
                         if !genre_ok {
                             continue;
                         }
-                        let code = u.get("code").ok_or_else(|| crate::fichiers::absent("code"))?;
+                        let code = u.get("code").ok_or_else(|| socle::fichiers::absent("code"))?;
                         let Some(cle) = (match code.as_str() {
                             Some("10") | Some("35") => Some("heures"),
                             Some("12") => Some("jours"),
@@ -848,7 +793,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
                         }) else {
                             continue;
                         };
-                        let mesure = u.get("mesure").and_then(Value::as_str).ok_or_else(|| crate::fichiers::absent("mesure"))?;
+                        let mesure = u.get("mesure").and_then(Value::as_str).ok_or_else(|| socle::fichiers::absent("mesure"))?;
                         let valeur = match mesure {
                             "jours" => e.jours as f64,
                             "cachets" => e.cachets as f64,
@@ -859,13 +804,13 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
                         let avant: f64 = attendu[cle].parse().unwrap_or(0.0);
                         let somme = avant + valeur;
                         let t = format!("{}", if somme == 0.0 { 0.0 } else { somme });
-                        let d = decimal_py(&t).ok_or_else(|| crate::num::illisible(&t))?;
+                        let d = decimal_py(&t).ok_or_else(|| socle::num::illisible(&t))?;
                         attendu.insert(cle, norm(d));
                     }
                     for cle in ["brut", "jours", "cachets", "heures"] {
                         let fichier = if cle == "brut" { brut.clone() } else { c.mesure_texte(cle) };
-                        let a = decimal_py(&attendu[cle]).ok_or_else(|| crate::num::illisible(&attendu[cle]))?;
-                        let f = decimal_py(&fichier).ok_or_else(|| crate::num::illisible(&fichier))?;
+                        let a = decimal_py(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
+                        let f = decimal_py(&fichier).ok_or_else(|| socle::num::illisible(&fichier))?;
                         if norm(f) != norm(a) {
                             ecarts.push(format!("{} : la paie dit {}, le fichier {}", cle, attendu[cle], fichier));
                         }
@@ -880,7 +825,7 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
                     if attendu_emploi != Some(c.emploi.as_str()) {
                         let dit = match emploi {
                             None | Some(Value::Null) => "None".to_string(),
-                            Some(v) => etats::py_str(v),
+                            Some(v) => socle::valeur::valeur_en_texte(v),
                         };
                         ecarts.push(format!("emploi : la paie dit {}, le fichier {}", dit, c.emploi));
                     }
@@ -918,11 +863,11 @@ fn recapitulatif_dsn(o: &HashMap<String, String>, ctx: &Contexte, octets: &[u8],
         let p = &liste[par_numero[n]];
         let nom = requis(&p.salarie, "nom")?;
         let prenom = match p.salarie.get("prenom_affichage") {
-            Some(v) if vrai(v) => etats::py_str(v),
+            Some(v) if vrai(v) => socle::valeur::valeur_en_texte(v),
             _ => requis(&p.salarie, "prenom")?,
         };
         absents.push(json!({
-            "salarie": p.salarie.get("_cle").cloned().ok_or_else(|| crate::fichiers::absent("_cle"))?,
+            "salarie": p.salarie.get("_cle").cloned().ok_or_else(|| socle::fichiers::absent("_cle"))?,
             "nom": format!("{} {}", nom, prenom),
             "numero": n,
             "debut": p.engagement.debut.iso(),
@@ -976,7 +921,7 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
     let recapitulatif = if signalement {
         Value::Null
     } else {
-        match recapitulatif_dsn(o, ctx, &contenu, &mois, a.champ("etablissement")) {
+        match recapitulatif_dsn(ctx, &contenu, &mois, a.champ("etablissement")) {
             Ok(v) => v,
             Err(message) => json!({ "erreur": message }),
         }
@@ -984,7 +929,7 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
     let repetition = etats::repetition(&lignes, "dsn", &empreinte, &nom)?;
     // LES ORDRES DE PAIEMENT EN CLAIR (ticket #223) : a qui, pour quoi, combien, pour quand.
     let chemin_orgs = ctx.racine.join("config").join("organismes.json");
-    let organismes = if chemin_orgs.is_file() { crate::fichiers::lire_json(&chemin_orgs)? } else { Value::Null };
+    let organismes = if chemin_orgs.is_file() { socle::fichiers::lire_json(&chemin_orgs)? } else { Value::Null };
     let ordres = crate::ordres_paiement::decrire(&texte_latin1(&contenu), &mois, &organismes, ctx.echeance_dsn()?)?;
     let genre = a.champ("type_declaration");
     let nature = a.champ("nature");
@@ -1069,6 +1014,6 @@ mod tests {
         let c = &s[0].contrats[0];
         assert_eq!((c.brut_texte().as_str(), c.mesure_texte("cachets").as_str()), ("200.00", "2"));
         assert_eq!((c.debut.as_str(), c.fin_declaree.as_str(), c.remunere), ("2026-08-01", "2026-08-31", true));
-        assert_eq!(lire_recap(b"S21.G00.30.001,'1'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'A'\nS21.G00.51.001,'x'\nS21.G00.51.010,'A'\nS21.G00.51.013,'12,5'\n").err(), Some(crate::num::illisible("12,5")));
+        assert_eq!(lire_recap(b"S21.G00.30.001,'1'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'A'\nS21.G00.51.001,'x'\nS21.G00.51.010,'A'\nS21.G00.51.013,'12,5'\n").err(), Some(socle::num::illisible("12,5")));
     }
 }

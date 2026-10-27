@@ -162,7 +162,7 @@ fn dire_ouverture(r: &Value) {
             dire!("  Signatures: {}", champ(&s, "resume"));
             for x in &recues {
                 let quand: String = texte(x.get("quand").unwrap_or(&Value::Null)).replace('T', " ").chars().take(16).collect();
-                let renvoye = if x.get("renvoye").is_some_and(crate::fichiers::vrai) { " -- contrat contresigne renvoye" } else { "" };
+                let renvoye = if x.get("renvoye").is_some_and(socle::fichiers::vrai) { " -- contrat contresigne renvoye" } else { "" };
                 dire!("      {}  signe le {} depuis {} ({}){}", champ(x, "nom"), quand, champ(x, "adresse"), champ(x, "code"), renvoye);
             }
         }

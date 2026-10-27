@@ -142,7 +142,7 @@ fn le_seul_numero_conges_spectacles_saisi_est_le_numero_d_adherent() {
 /// spectacle est configure ; ni montree ni demandee dans l'audiovisuel. La DSN le prouve dans `tests/dsn/licence.rs`.
 #[test]
 fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
-    let bareme: Value = serde_json::from_slice(&std::fs::read(paie::fichiers::dossier_du_code().join("baremes/2026.json")).unwrap()).unwrap();
+    let bareme: Value = serde_json::from_slice(&std::fs::read(socle::fichiers::dossier_du_code().join("baremes/2026.json")).unwrap()).unwrap();
     let mut conventions: Vec<String> =
         bareme["par_convention"].as_object().unwrap().keys().filter(|k| !k.starts_with('_')).cloned().collect();
     assert_eq!(conventions.len(), 10, "les dix conventions de 2026 : {:?}", conventions);

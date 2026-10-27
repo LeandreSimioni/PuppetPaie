@@ -110,7 +110,7 @@ fn oserr(e: &std::io::Error, p: &Path) -> Echec {
     let nom = affiche(p);
     Echec {
         classe: "OSError",
-        message: crate::fichiers::panne_fichier(e, p),
+        message: socle::fichiers::panne_fichier(e, p),
         os: Some((errno, strerror, nom)),
     }
 }
@@ -166,7 +166,7 @@ fn resoudre(p: &Path) -> PathBuf {
     }
 }
 
-use crate::retours::blanc_py as espace;
+use socle::texte::blanc as espace;
 
 fn strip(s: &str) -> &str {
     s.trim_matches(espace)
@@ -200,7 +200,7 @@ fn type_python(v: &Value) -> &'static str {
     }
 }
 
-use crate::fichiers::imprimable;
+use socle::fichiers::imprimable;
 
 /// `repr()` d'une chaine, comme Python l'ecrit.
 fn repr_chaine(s: &str) -> String {
@@ -482,7 +482,7 @@ fn entier(v: &Value) -> R<i128> {
         }
         autre => Err(echec(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", type_python(autre)),
+            socle::fichiers::attendu("un nombre entier", type_python(autre)),
         )),
     }
 }
@@ -493,7 +493,7 @@ fn objet(v: Option<&Value>) -> R<Map<String, Value>> {
         None | Some(Value::Null) => Ok(Map::new()),
         Some(Value::Object(o)) => Ok(o.clone()),
         Some(x) if !vrai(x) => Ok(Map::new()),
-        Some(x) => Err(echec("AttributeError", crate::fichiers::attendu("un objet", type_python(x)))),
+        Some(x) => Err(echec("AttributeError", socle::fichiers::attendu("un objet", type_python(x)))),
     }
 }
 
@@ -613,8 +613,8 @@ fn aad_fiches(fiches: &Value) -> Vec<u8> {
 /// verifies comme `hashlib.scrypt` le fait (OpenSSL), memoire comprise.
 pub fn deriver(motdepasse: &str, kdf: Option<&Value>) -> R<Vec<u8>> {
     // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : aucun mot de passe ne s'y derive.
-    if crate::fil_de_fond::ici() {
-        return Err(refus(crate::fil_de_fond::refus("le coffre")));
+    if socle::fil_de_fond::ici() {
+        return Err(refus(socle::fil_de_fond::refus("le coffre")));
     }
     let kdf = objet(kdf)?;
     let algo = kdf.get("algo").filter(|v| vrai(v));
@@ -625,7 +625,7 @@ pub fn deriver(motdepasse: &str, kdf: Option<&Value>) -> R<Vec<u8>> {
         };
         return Err(refus(format!("Ce coffre dit avoir ete ferme par {}, que cette version ne sait pas ouvrir.", dit)));
     }
-    let cle = |nom: &str| kdf.get(nom).ok_or_else(|| echec("KeyError", crate::fichiers::absent(nom)));
+    let cle = |nom: &str| kdf.get(nom).ok_or_else(|| echec("KeyError", socle::fichiers::absent(nom)));
     let sel = d64(cle("sel")?)?;
     let n = entier(cle("n")?)?;
     let r = entier(cle("r")?)?;
@@ -821,8 +821,8 @@ impl Coffre {
     /// Les 32 octets de ce poste, ou None. `creer` en tire de neufs.
     fn cle_poste(&self, creer: bool) -> R<Option<Vec<u8>>> {
         // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : la cle du poste ne s'y sert pas.
-        if crate::fil_de_fond::ici() {
-            return Err(refus(crate::fil_de_fond::refus("le coffre")));
+        if socle::fil_de_fond::ici() {
+            return Err(refus(socle::fil_de_fond::refus("le coffre")));
         }
         let p = self.chemin_cle();
         if existe(&p)? {
@@ -1328,7 +1328,7 @@ impl Coffre {
         }
         let (maitresse, contenu) = self.ouvrir_ou_lever(ancien)?;
         let mut enveloppes = objet(contenu.get("enveloppes"))?;
-        let kdf = contenu.get("kdf").ok_or_else(|| echec("KeyError", crate::fichiers::absent("kdf")))?;
+        let kdf = contenu.get("kdf").ok_or_else(|| echec("KeyError", socle::fichiers::absent("kdf")))?;
         enveloppes.insert("motdepasse".into(), b64(&sceller(&deriver(motdepasse, Some(kdf))?, &maitresse, AAD_MOTDEPASSE)?));
         let mut c = contenu;
         c.insert("enveloppes".into(), Value::Object(enveloppes));

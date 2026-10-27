@@ -55,8 +55,8 @@ compagnies/  à côté : un dossier par compagnie
 - **Tout garde-fou vit dans le moteur** (mot de passe retapé, refus,
   contrôles). Un fichier d'interface se modifie facilement sur le disque : il
   n'autorise donc jamais rien. La page affiche et demande ; le moteur décide.
-- Au lot J, seuls deux points de la page changent (voir
-  `logiciel/docs/PORTAGE-RUST.md`, lot J) ; le reste ne se porte pas.
+- Au lot J, seuls deux points de la page changent ;
+  le reste ne se porte pas.
 
 ---
 

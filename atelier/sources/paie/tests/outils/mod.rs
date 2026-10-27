@@ -137,6 +137,26 @@ pub mod compagnie {
         racine.to_path_buf()
     }
 
+    /// Les engagements que les `mois` montrent : le fichier de chaque mois ou l'un d'eux commence
+    /// (`engagements/AAAA-MM.json`), copie tel quel.
+    fn copier_les_engagements(d: &Path, mois: &[&str], racine: &Path) {
+        std::fs::create_dir_all(racine.join(engagement::stock::DOSSIER)).unwrap();
+        let mut fichiers: Vec<String> = Vec::new();
+        for m in mois {
+            for o in engagement::stock::objets_du_mois(d, m).unwrap() {
+                if !fichiers.contains(&o.fichier) {
+                    fichiers.push(o.fichier.clone());
+                }
+            }
+            if engagement::stock::chemin(d, m).is_file() && !fichiers.contains(&m.to_string()) {
+                fichiers.push(m.to_string());
+            }
+        }
+        for f in fichiers {
+            std::fs::copy(engagement::stock::chemin(d, &f), engagement::stock::chemin(racine, &f)).unwrap();
+        }
+    }
+
     /// `config/`, `journal/`, les saisies des `mois` et leurs `sorties/<mois>/` quand il y en a.
     pub fn config_et_mois(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
         let d = super::fictive(fictive);
@@ -145,10 +165,8 @@ pub mod compagnie {
                 copier(&d.join(sous), &racine.join(sous));
             }
         }
-        std::fs::create_dir_all(racine.join("paies")).unwrap();
+        copier_les_engagements(&d, mois, racine);
         for m in mois {
-            let saisie = format!("paies/{}.json", m);
-            std::fs::copy(d.join(&saisie), racine.join(&saisie)).unwrap();
             let sorties = format!("sorties/{}", m);
             if d.join(&sorties).is_dir() {
                 copier(&d.join(&sorties), &racine.join(&sorties));
@@ -161,13 +179,22 @@ pub mod compagnie {
     pub fn saisies(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
         let d = super::fictive(fictive);
         copier(&d.join("config"), &racine.join("config"));
-        std::fs::create_dir_all(racine.join("paies")).unwrap();
-        for m in mois {
-            let saisie = format!("paies/{}.json", m);
-            std::fs::copy(d.join(&saisie), racine.join(&saisie)).unwrap();
-        }
+        copier_les_engagements(&d, mois, racine);
         ecrire(racine, "journal/depots.json", &json!([]));
         racine.to_path_buf()
+    }
+
+    /// La compagnie réduite aux engagements de `salaries` (leur nom dans la saisie), dans chaque mois : un cas qui ne
+    /// regarde qu'eux ne calcule pas les autres.
+    pub fn seulement(racine: &Path, salaries: &[&str]) {
+        for f in std::fs::read_dir(racine.join("engagements")).unwrap().flatten() {
+            let rel = format!("engagements/{}", f.file_name().to_string_lossy());
+            let mut mois = super::lire(racine, &rel);
+            if let Some(l) = mois["engagements"].as_array_mut() {
+                l.retain(|e| salaries.iter().any(|s| e["salarie"] == *s));
+            }
+            super::ecrire(racine, &rel, &mois);
+        }
     }
 
     /// La compagnie fictive sans les pièces de `sorties/` (bulletins, contrats, DPAE, certificats) : ses DSN déposées, que
@@ -240,10 +267,59 @@ pub fn retoucher_fiches(racine: &Path, retouches: &[(&str, Value)]) {
     ecrire(racine, "config/salaries.json", &sal);
 }
 
-/// La DSN mensuelle de `mois` (`paies/<mois>.json`), produite au `jour`, sans rien écrire.
+/// La saisie de `mois` telle que ses engagements la montrent (`engagement::saisie_du_mois`).
+pub fn saisie(racine: &Path, mois: &str) -> Value {
+    let mut v = engagement::saisie_du_mois(racine, mois).unwrap();
+    v["mois"] = Value::String(mois.to_string());
+    v
+}
+
+/// « Modifier… » pour les engagements valides de `mois` (`numero` : celui de ce contrat seulement) : ils repassent en
+/// saisie, et ce que l'ecran enregistre ensuite s'ecrit.
+pub fn remettre_en_saisie(racine: &Path, mois: &str, numero: Option<&str>) {
+    let ctx = droit::contexte::Contexte::nouveau(racine, None).unwrap();
+    let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
+    for (i, o) in objets.iter().enumerate() {
+        let son_numero = o.brut.get("numero").and_then(Value::as_str);
+        if o.est_valide() && numero.map_or(true, |n| son_numero == Some(n)) {
+            engagement::etats::modifier(&ctx, mois, i).unwrap();
+        }
+    }
+}
+
+/// Ecrit la saisie de `mois` comme l'ecran l'enregistre (`engagement::stock::ecrire_vue_du_mois`) : chaque engagement
+/// valide que `v` change repasse d'abord en saisie (« Modifier… »), puis tout engagement du mois en saisie se valide
+/// comme l'ecran (« Valider l'engagement ») : ce qu'un test retouche s'ecrit, et part. Un engagement dont le calcul
+/// refuse reste en saisie.
+pub fn poser_saisie(racine: &Path, mois: &str, v: &Value) {
+    let ctx = droit::contexte::Contexte::nouveau(racine, None).unwrap();
+    let sans_validation = |e: &Value| {
+        let mut e = e.clone();
+        if let Some(m) = e.as_object_mut() {
+            m.remove("valide");
+        }
+        e
+    };
+    let avant = engagement::stock::vue_du_mois(racine, mois).ok().flatten().unwrap_or(Value::Null);
+    let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
+    for (i, o) in objets.iter().enumerate() {
+        let change = v["engagements"].get(i).map(sans_validation) != avant["engagements"].get(i).map(sans_validation);
+        if o.est_valide() && change {
+            engagement::etats::modifier(&ctx, mois, i).unwrap();
+        }
+    }
+    engagement::stock::ecrire_vue_du_mois(&ctx, mois, v).unwrap();
+    for (i, o) in engagement::stock::objets_du_mois(racine, mois).unwrap().iter().enumerate() {
+        if !o.est_valide() {
+            let _ = engagement::etats::valider(&ctx, mois, i);
+        }
+    }
+}
+
+/// La DSN mensuelle de `mois`, produite au `jour` depuis ses engagements, sans rien écrire.
 pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, String> {
-    let ctx = paie::contexte::Contexte::nouveau(racine, Some(paie::date::Jour::lire(jour).unwrap())).unwrap();
-    let s = paie::engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
+    let ctx = droit::contexte::Contexte::nouveau(racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
+    let s = engagement::charger(&ctx, mois)?;
     paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
 }
 
@@ -252,14 +328,13 @@ pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, Stri
 /// `tests/calcul/periodes.rs`.
 pub mod permanents {
     use super::*;
-    use paie::contexte::Contexte;
-    use paie::date::Jour;
-    use paie::engagement::{charger, Saisie};
+    use droit::contexte::Contexte;
+    use socle::date::Jour;
+    use engagement::{charger, Saisie};
 
     /// Pose des champs sur l'engagement de `salarie` dans la saisie du mois.
     pub fn retoucher_saisie(racine: &Path, mois: &str, salarie: &str, champs: Value) {
-        let chemin = format!("paies/{}.json", mois);
-        let mut s = lire(racine, &chemin);
+        let mut s = super::saisie(racine, mois);
         for e in s["engagements"].as_array_mut().unwrap() {
             if e["salarie"] == salarie {
                 for (k, v) in champs.as_object().unwrap() {
@@ -267,7 +342,7 @@ pub mod permanents {
                 }
             }
         }
-        ecrire(racine, &chemin, &s);
+        poser_saisie(racine, mois, &s);
     }
 
     /// Le contexte du jour où l'on produit `mois` : le 5 du mois suivant.
@@ -279,13 +354,13 @@ pub mod permanents {
 
     /// La saisie de `mois`, lue au 5 du mois suivant.
     pub fn saisie(racine: &Path, mois: &str) -> Result<Saisie, String> {
-        charger(&contexte(racine, mois), &racine.join(format!("paies/{}.json", mois)))
+        charger(&contexte(racine, mois), mois)
     }
 
     /// La DSN de `mois`, produite au 5 du mois suivant, sans rien écrire.
     pub fn dsn(racine: &Path, mois: &str) -> Result<String, String> {
         let ctx = contexte(racine, mois);
-        let s = charger(&ctx, &racine.join(format!("paies/{}.json", mois)))?;
+        let s = charger(&ctx, mois)?;
         paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
     }
 
@@ -338,7 +413,7 @@ pub mod permanents {
 /// Le mois est prêt à produire : les DPAE des engagements qui y commencent sont parties et leurs contrats sont revenus
 /// signés (des lignes de journal comme celles de la compagnie fictive).
 pub fn mois_pret(racine: &Path, mois: &str) {
-    let saisie = lire(racine, &format!("paies/{}.json", mois));
+    let saisie = saisie(racine, mois);
     let mut j = lire(racine, "journal/depots.json");
     let l = j.as_array_mut().unwrap();
     let modele = l.iter().find(|x| x["quoi"] == json!("dpae") && x["mode"] == json!("reel")).unwrap().clone();
@@ -394,15 +469,15 @@ impl Copie {
         Copie(d)
     }
 
-    /// La seule config de la compagnie fictive : ni journal, ni paies, ni sorties.
+    /// La seule config de la compagnie fictive : ni journal, ni engagements, ni sorties.
     pub fn config_de(fictive: &str) -> Copie {
         let d = Copie::dossier(fictive);
         copier(&self::fictive(fictive).join("config"), &d.join("config"));
         Copie(d)
     }
 
-    pub fn contexte(&self, jour: &str) -> paie::contexte::Contexte {
-        paie::contexte::Contexte::nouveau(&self.0, Some(paie::date::Jour::lire(jour).unwrap())).unwrap()
+    pub fn contexte(&self, jour: &str) -> droit::contexte::Contexte {
+        droit::contexte::Contexte::nouveau(&self.0, Some(socle::date::Jour::lire(jour).unwrap())).unwrap()
     }
 }
 
@@ -790,7 +865,7 @@ pub fn port_ferme() -> String {
     u
 }
 
-/// Un faux mandataire, que l'essai nomme comme seule porte du garde-fou reseau (`paie::garde_reseau::VARIABLE`) : il
+/// Un faux mandataire, que l'essai nomme comme seule porte du garde-fou reseau (`socle::garde_reseau::VARIABLE`) : il
 /// note la première ligne de chaque demande (`CONNECT hote:port HTTP/1.1`) et refuse ; rien ne sort de la machine.
 pub fn mandataire() -> (String, Arc<Mutex<Vec<String>>>) {
     let ecoute = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -907,168 +982,11 @@ impl Courriel for FauxCourriel {
     }
 }
 
-// ------------------------------------------------------------------ les oracles
+// ------------------------------------------------------------------ les oracles (communs aux trois crates)
 
-/// `tests/donnees/<nom>`.
-pub fn chemin_oracle(nom: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees").join(nom)
-}
-
-pub fn lire_oracle(nom: &str) -> Value {
-    serde_json::from_slice(&std::fs::read(chemin_oracle(nom)).unwrap()).unwrap_or_else(|e| panic!("{} illisible : {}", nom, e))
-}
-
-/// `PUPPETPAIE_REECRIRE_ORACLES=1` : les tests réécrivent leurs oracles au lieu de les comparer. Lue, jamais posée par un test.
-pub fn reecrire_oracles() -> bool {
-    std::env::var("PUPPETPAIE_REECRIRE_ORACLES").is_ok_and(|v| v == "1")
-}
-
-/// Deux nombres égaux en valeur (`2.0` et `2`, `"2.50"` et `"2.5"` à 1e-25 près) ; tout le reste au caractère près.
-pub fn egal(a: &Value, b: &Value) -> bool {
-    match (a, b) {
-        (Value::Number(x), Value::Number(y)) => x.as_f64() == y.as_f64(),
-        (Value::String(x), Value::String(y)) => {
-            x == y
-                || match (Decimal::from_str(x), Decimal::from_str(y)) {
-                    (Ok(x), Ok(y)) => (x - y).abs() < Decimal::from_str("0.0000000000000000000000001").unwrap(),
-                    _ => false,
-                }
-        }
-        (Value::Array(x), Value::Array(y)) => x.len() == y.len() && x.iter().zip(y).all(|(a, b)| egal(a, b)),
-        (Value::Object(x), Value::Object(y)) => x.len() == y.len() && x.iter().all(|(k, v)| y.get(k).is_some_and(|w| egal(v, w))),
-        _ => a == b,
-    }
-}
-
-fn ecarts(attendu: &Value, obtenu: &Value, chemin: &str, egal: &dyn Fn(&Value, &Value) -> bool, out: &mut Vec<String>) {
-    if egal(attendu, obtenu) {
-        return;
-    }
-    match (attendu, obtenu) {
-        (Value::Array(a), Value::Array(o)) if a.len() == o.len() => {
-            a.iter().zip(o).enumerate().for_each(|(i, (x, y))| ecarts(x, y, &format!("{}/{}", chemin, i), egal, out))
-        }
-        (Value::Object(a), Value::Object(o)) if a.len() == o.len() && a.keys().all(|k| o.contains_key(k)) => {
-            a.iter().for_each(|(k, x)| ecarts(x, &o[k], &format!("{}/{}", chemin, k), egal, out))
-        }
-        _ => {
-            let court = |v: &Value| v.to_string().chars().take(300).collect::<String>();
-            out.push(format!("{}\n  attendu : {}\n  obtenu  : {}", chemin, court(attendu), court(obtenu)));
-        }
-    }
-}
-
-/// Ce qui est égal garde la forme de l'oracle ; le reste prend celle du moteur.
-fn fondre(ancien: &Value, neuf: &Value, egal: &dyn Fn(&Value, &Value) -> bool) -> Value {
-    if egal(ancien, neuf) {
-        return ancien.clone();
-    }
-    match (ancien, neuf) {
-        (Value::Array(a), Value::Array(n)) if a.len() == n.len() => Value::Array(a.iter().zip(n).map(|(x, y)| fondre(x, y, egal)).collect()),
-        (Value::Object(a), Value::Object(n)) => {
-            Value::Object(n.iter().map(|(k, y)| (k.clone(), a.get(k).map_or_else(|| y.clone(), |x| fondre(x, y, egal)))).collect())
-        }
-        _ => neuf.clone(),
-    }
-}
-
-/// Le texte d'un oracle dans la forme du fichier qu'il remplace : d'un bloc s'il l'était, sinon indenté comme lui.
-fn texte_oracle(v: &Value, ancien: &str) -> Vec<u8> {
-    let mut lignes = ancien.lines();
-    let retrait = match (lignes.next(), lignes.next()) {
-        (Some("{" | "["), Some(l)) => Some(l.len() - l.trim_start().len()),
-        _ => None,
-    };
-    let mut out = Vec::new();
-    match retrait {
-        None => serde_json::to_writer(&mut out, v).unwrap(),
-        Some(n) => {
-            // `to_string_pretty` indente de deux espaces ; une chaîne JSON ne contient aucun saut de ligne.
-            let lignes: Vec<String> = serde_json::to_string_pretty(v).unwrap().lines().map(|l| {
-                let t = l.trim_start();
-                format!("{}{}", " ".repeat((l.len() - t.len()) / 2 * n), t)
-            }).collect();
-            out.extend_from_slice(lignes.join("\n").as_bytes());
-        }
-    }
-    if ancien.ends_with('\n') {
-        out.push(b'\n');
-    }
-    out
-}
-
-/// Compare `obtenu` à la partie `pointeur` (RFC 6901 ; `""` : le fichier entier) de l'oracle `tests/donnees/<nom>`, selon
-/// `egal`. Sous `PUPPETPAIE_REECRIRE_ORACLES=1`, l'y écrit à la place (ce qui reste égal garde sa forme) : le diff de
-/// l'oracle se relit au commit.
-pub fn oracle_selon(nom: &str, pointeur: &str, obtenu: &Value, egal: impl Fn(&Value, &Value) -> bool) {
-    let chemin = chemin_oracle(nom);
-    if reecrire_oracles() {
-        // Plusieurs tests (et processus) écrivent des parties du même fichier : chacun à son tour.
-        let verrou = chemin.with_extension("verrou");
-        while std::fs::OpenOptions::new().write(true).create_new(true).open(&verrou).is_err() {
-            std::thread::sleep(std::time::Duration::from_millis(20));
-        }
-        let ancien = std::fs::read_to_string(&chemin).unwrap_or_default();
-        let mut tout: Value = serde_json::from_str(&ancien).unwrap_or(Value::Null);
-        match tout.pointer_mut(pointeur) {
-            Some(p) => *p = fondre(p, obtenu, &egal),
-            None if pointeur.is_empty() => tout = obtenu.clone(),
-            None => {
-                let (parent, cle) = pointeur.rsplit_once('/').unwrap();
-                tout.pointer_mut(parent).and_then(Value::as_object_mut).unwrap_or_else(|| panic!("{} : pas de {}", nom, parent)).insert(cle.to_string(), obtenu.clone());
-            }
-        }
-        // Un test qui lit l'oracle sans verrou ne voit jamais un fichier a moitie ecrit.
-        let provisoire = chemin.with_extension(format!("{}.json", std::process::id()));
-        std::fs::write(&provisoire, texte_oracle(&tout, &ancien)).unwrap();
-        std::fs::rename(&provisoire, &chemin).unwrap();
-        std::fs::remove_file(&verrou).unwrap();
-        return;
-    }
-    let tout = lire_oracle(nom);
-    let attendu = tout.pointer(pointeur).unwrap_or_else(|| panic!("{} : rien en {:?} (PUPPETPAIE_REECRIRE_ORACLES=1 l'écrit)", nom, pointeur));
-    let mut out = Vec::new();
-    ecarts(attendu, obtenu, pointeur, &egal, &mut out);
-    assert!(out.is_empty(), "{} écarts avec {}{} :\n{}", out.len(), nom, pointeur, out.iter().take(8).cloned().collect::<Vec<_>>().join("\n"));
-}
-
-/// `oracle_selon` à l'égalité stricte.
-pub fn oracle(nom: &str, pointeur: &str, obtenu: &Value) {
-    oracle_selon(nom, pointeur, obtenu, |a, b| a == b)
-}
-
-/// FNV-1a 64 bits, en hexadécimal.
-pub fn fnv(texte: &str) -> String {
-    let mut h: u64 = 0xcbf29ce484222325;
-    for o in texte.bytes() {
-        h = (h ^ u64::from(o)).wrapping_mul(0x100000001b3);
-    }
-    format!("{:016x}", h)
-}
-
-/// Les clés triées à tous les niveaux.
-pub fn trie(v: &Value) -> Value {
-    match v {
-        Value::Object(o) => {
-            let mut cles: Vec<&String> = o.keys().collect();
-            cles.sort();
-            Value::Object(cles.into_iter().map(|k| (k.clone(), trie(&o[k]))).collect())
-        }
-        Value::Array(a) => Value::Array(a.iter().map(trie).collect()),
-        autre => autre.clone(),
-    }
-}
-
-/// L'empreinte du JSON compact, clés triées.
-pub fn sceller(v: &Value) -> String {
-    fnv(&serde_json::to_string(&trie(v)).unwrap())
-}
-
-/// L'échantillon d'une grille (décision E) : un cas sur `un_sur`, tiré de son texte et d'une graine fixe. Le tirage ne
-/// dépend que du cas : un oracle déjà réduit se réécrit sans rien perdre de plus.
-pub fn tire(graine: u64, cas: &Value, un_sur: u64) -> bool {
-    u64::from_str_radix(&fnv(&format!("{}|{}", graine, cas)), 16).unwrap() % un_sur == 0
-}
+#[path = "../../../socle/tests/outils/oracles.rs"]
+mod oracles;
+pub use oracles::*;
 
 /// Un message parti, lu comme une messagerie le lit.
 pub struct Mail(pub Vec<u8>);
@@ -1120,5 +1038,20 @@ impl FauxCourriel {
     /// Le message parti de rang `n`.
     pub fn message(&self, n: usize) -> Mail {
         Mail(self.recus.borrow()[n].clone())
+    }
+}
+
+/// Les paies d'une saisie ecrite dans un fichier de test (`engagement::charger_donnees`).
+pub fn charger_fichier(ctx: &droit::contexte::Contexte, chemin: &Path) -> Result<engagement::Saisie, String> {
+    let v: Value = serde_json::from_slice(&std::fs::read(chemin).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    engagement::charger_donnees(ctx, &v)
+}
+
+/// « Valider l'engagement » pour chaque engagement de `mois` encore en saisie, comme l'ecran le fait au `jour`.
+pub fn tout_valider(racine: &Path, mois: &str, jour: &str) {
+    let etat = route_en_processus(racine, "etat-par-engagement", json!({"mois": mois}), jour);
+    for e in reussi(&etat)["engagements"].as_array().unwrap().iter().filter(|e| e["valide"].is_null()) {
+        let charge = json!({"mois": mois, "salarie": e["salarie"], "debut": e["debut"], "numero": e["numero"], "rang": e["rang"], "valide": true});
+        reussi(&route_en_processus(racine, "valider-engagement", charge, jour));
     }
 }

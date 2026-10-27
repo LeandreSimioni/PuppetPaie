@@ -8,12 +8,12 @@
 //! Le rejeu des mois deposes des compagnies fictives : `compagnies fictives.rs`.
 
 use crate::outils::{self, compagnie, dec, fictive, paires as lignes, versement};
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
-use paie::num::Decimal;
+use engagement::{charger, Saisie};
+use socle::num::Decimal;
 use serde_json::{json, Value};
 
 pub(crate) const AUDIENS_RETRAITE: &str = "44832375800038";
@@ -21,7 +21,7 @@ pub(crate) const AUDIENS_RETRAITE: &str = "44832375800038";
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
     let chemin = outils::chemin_unique("agirc-arrco.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin).unwrap()
+    crate::outils::charger_fichier(ctx, &chemin).unwrap()
 }
 
 /// Une ligne 81 : son code, son bloc 78 (rang dans le versement), son 81.002, son 81.003 s'il y en a un, son 81.004, son
@@ -153,7 +153,7 @@ fn un_cadre_intermittent_declare_sa_retraite_en_131_et_son_apec_en_132() {
     let racine = compagnie::ses_dsn("fictive-3090-grande", &[], &outils::dossier_de_test("agirc_arrco", "cadres"));
     outils::retoucher_fiches(&racine, &[("BIANCOLELLI", cadre.clone()), ("SERVANDONI", cadre)]);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     sans_105(&dsn);
 
@@ -180,10 +180,10 @@ fn le_taux_d_une_organisation_patronale_se_pose_sur_le_131() {
     // `bareme::poser_t1` remplace le taux de la retraite T1 d'un intermittent non cadre quand l'organisation patronale
     // de la compagnie l'impose (SYNDEAC : 10,16 % pour un artiste) : sur la ligne du bulletin ET sur la cotisation DSN de
     // meme assiette, qui s'ecrit desormais en 131.
-    use paie::bareme::bareme_applique;
-    use paie::contexte::telle_qu_au;
-    use paie::contrats::nature;
-    use paie::emplois::{emploi_de, EmploiEngagement};
+    use droit::bareme::bareme_applique;
+    use droit::contexte::telle_qu_au;
+    use droit::natures::nature;
+    use droit::emplois::{emploi_de, EmploiEngagement};
     let jour = Jour::lire("2026-07-15").unwrap();
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(jour)).unwrap();
     let mut bar = ctx.bareme(&jour).unwrap();
@@ -287,7 +287,7 @@ fn sig_18_n_exige_le_142_que_sous_une_base_datee_dans_le_mois_principal() {
     assert!(refuse.is_err());
 }
 
-fn ligne<'a>(p: &'a Paie, id: &str) -> &'a paie::calcul::LigneCotisation {
+fn ligne<'a>(p: &'a Paie, id: &str) -> &'a engagement::calcul::LigneCotisation {
     p.lignes.iter().find(|l| l.id == id).unwrap_or_else(|| panic!("pas de ligne {} au bulletin", id))
 }
 
@@ -301,7 +301,7 @@ fn un_intermittent_non_cadre_declare_sa_part_patronale_t1_en_142_a_l_urssaf() {
     // porte un taux sur le brut ; le 142, sous le meme bloc 78, la part patronale de la ligne de retraite T1 du bulletin,
     // son assiette et son taux patronal. Aucun 146 : un non cadre intermittent n'a pas de tranche 2.
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     sig_18(&dsn, "3090-grande 2026-07");
     for numero in ["CL6.26.07", "CH8.26.04", "SE9.26.05"] {
@@ -394,7 +394,7 @@ fn un_cadre_permanent_declare_142_sous_la_tranche_1_et_146_sous_la_tranche_2_et_
     let a: Vec<&L81> = l.iter().filter(|x| ["131", "142", "146", "132"].contains(&x.code.as_str())).collect();
     let vu: Vec<(&str, Option<String>, Decimal, Option<String>)> =
         a.iter().map(|x| (x.code.as_str(), x.assiette.clone(), x.montant, x.taux.clone())).collect();
-    let s3 = |l: &paie::calcul::LigneCotisation| (Some(paie::dsn::mt(l.base)), l.montant_pat, Some(taux3(l.taux_pat.unwrap())));
+    let s3 = |l: &engagement::calcul::LigneCotisation| (Some(paie::dsn::mt(l.base)), l.montant_pat, Some(taux3(l.taux_pat.unwrap())));
     let (b1, m1, x1) = s3(t1);
     let (bc, mc, xc) = s3(cet);
     let (b2, m2, x2) = s3(t2);
@@ -443,7 +443,7 @@ fn le_142_porte_le_taux_patronal_d_une_organisation_patronale() {
     e["organisation_patronale_depuis"] = json!("2020-01-01");
     outils::ecrire(&racine, "config/entreprise.json", &e);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let p = paie(&s, "CL6.26.07");
     let t1 = ligne(p, "retraite_t1");

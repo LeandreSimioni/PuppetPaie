@@ -3,7 +3,7 @@
 //! ecrire). Sur la configuration de `fictive-3090-petite` sans compteurs, et les mois de chaque test.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, reussi, route};
-use paie::date::Jour;
+use socle::date::Jour;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -18,11 +18,7 @@ fn rappels(c: &Path, aujourdhui: &str) -> Vec<Value> {
 }
 
 fn saisie(c: &Path, mois: &str) -> Value {
-    lire(c, &format!("paies/{}.json", mois))
-}
-
-fn calcul(c: &Path, mois: &str) -> PathBuf {
-    c.join("paies").join(format!("{}.calcul.json", mois))
+    crate::outils::saisie(c, &mois)
 }
 
 fn journal(c: &Path, lignes: Value) {
@@ -52,22 +48,19 @@ fn par_cle<'a>(r: &'a [Value], cle: &str) -> &'a Value {
 fn la_dsn_du_mois_d_avant_se_rappelle_sans_aucun_calcul() {
     let c = &compagnie("dsn", &["2026-08"]);
     sans_baremes(c);
-    // Une paie validee sur les trois : c'est le seul chiffre que le rappel lit de la paie.
-    let mut s = saisie(c, "2026-08");
-    s["engagements"][0]["valide"] = json!("2026-09-01");
-    ecrire(c, "paies/2026-08.json", &s);
+    // Un engagement valide sur les trois : c'est le seul chiffre que le rappel lit des engagements.
+    modifier(c, "2026-08", 1, "2026-09-10");
+    modifier(c, "2026-08", 2, "2026-09-10");
     let r = rappels(c, "2026-09-10");
     let dsn = par_cle(&r, "dsn:2026-08");
     assert_eq!(dsn["quoi"], "dsn");
     assert_eq!(dsn["etat"], "a_produire");
     assert_eq!(dsn["en_retard"], json!(false));
-    assert_eq!(dsn["paies"], json!(3));
+    assert_eq!(dsn["engagements"], json!(3));
     assert_eq!(dsn["validees"], json!(1));
     assert_eq!(dsn["titre"], "Il est temps d'envoyer la DSN de aout 2026");
-    assert!(dsn["detail"].as_str().unwrap().contains("3 paies saisies, 1 validée. Le mois n'est pas encore écrit"));
-    assert!(dsn["detail"].as_str().unwrap().contains("Il reste 2 paies non validées."));
-    // Aucun calcul, donc aucun fichier de paie calculee.
-    assert!(!calcul(c, "2026-08").exists());
+    assert!(dsn["detail"].as_str().unwrap().contains("3 engagements saisis, 1 validé. Le mois n'est pas encore écrit"));
+    assert!(dsn["detail"].as_str().unwrap().contains("Il reste 2 engagements non validés."));
     // Passee l'echeance du 15, c'est un retard.
     let r = rappels(c, "2026-09-16");
     assert_eq!(par_cle(&r, "dsn:2026-08")["en_retard"], json!(true));
@@ -158,7 +151,7 @@ fn le_rappel_d_une_fin_de_cdd_dit_le_preavis_de_son_motif_de_rupture() {
         s["engagements"].as_array_mut().unwrap().push(json!({"salarie": salarie, "nature": "cdd", "debut": "2019-03-04",
             "fin": "2026-08-20", "numero": format!("{}.26.01", &salarie[..2]), "motif_rupture": motif}));
     }
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     let r = rappels(c, "2026-08-24");
     let a_saisir = |salarie: &str| par_cle(&r, &format!("fin-contrat:{}:2026-08-20", salarie))["a_saisir"].to_string();
     let faute = a_saisir("LEMERCIER");
@@ -195,14 +188,20 @@ fn apercu(c: &Path, saisie: &Value, lignes: bool) -> Value {
     route(c, "apercu", json!({ "saisie": saisie, "lignes": lignes }), "2026-09-10")
 }
 
+/// Remet en saisie l'engagement de rang `i` du mois (« Modifier… », la question du moteur acceptee).
+fn modifier(c: &Path, mois: &str, i: usize, jour: &str) {
+    let e = saisie(c, mois)["engagements"][i].clone();
+    // La cle de la fiche, comme l'ecran la rend (les fiches de la fictive : le nom en capitales).
+    let charge = json!({"mois": mois, "salarie": e["salarie"].as_str().unwrap().to_uppercase(), "debut": e["debut"], "numero": e["numero"], "valide": false, "confirme": true});
+    reussi(&route(c, "valider-engagement", charge, jour));
+}
+
 #[test]
-fn l_apercu_d_une_saisie_enregistree_se_relit_il_ne_se_recalcule_pas() {
+fn l_apercu_d_un_engagement_valide_lit_sa_paie_ecrite() {
     let c = &compagnie("relu", &[MOIS]);
     let saisie = saisie(c, MOIS);
-    assert!(!calcul(c, MOIS).exists());
     let premier = apercu(c, &saisie, false);
     assert_eq!(premier["ok"], json!(true), "{}", premier);
-    assert!(calcul(c, MOIS).exists(), "la saisie enregistree s'est calculee et son calcul est ecrit");
     let r = &premier["resultat"];
     assert_eq!(r["mois"], MOIS);
     assert_eq!(r["libelle"], "Aout 2026");
@@ -211,38 +210,35 @@ fn l_apercu_d_une_saisie_enregistree_se_relit_il_ne_se_recalcule_pas() {
     assert_eq!(r["paies"][0]["numero_bulletin"], "1/2026");
     assert!(!c.join("config/compteurs.json").exists());
 
-    // On retouche le resultat stocke (les entrees, donc l'empreinte, ne bougent pas) :
-    // un second apercu le relit tel quel, il ne calcule pas.
-    let mut f = lire(c, &format!("paies/{}.calcul.json", MOIS));
-    f["resultat"]["paies"][0]["brut"] = json!("999999.99");
-    ecrire(c, &format!("paies/{}.calcul.json", MOIS), &f);
+    // La paie ecrite fait foi : retouchee dans le fichier (son empreinte tient), l'apercu la montre telle quelle.
+    let rel = format!("engagements/{}.json", MOIS);
+    let mut f = lire(c, &rel);
+    f["engagements"][0]["valide"]["paies"][MOIS]["paie"]["brut"] = json!("999999.99");
+    ecrire(c, &rel, &f);
     let second = apercu(c, &saisie, true);
-    assert_eq!(second["resultat"]["paies"][0]["brut"], "999999.99", "relu, pas recalcule");
+    assert_eq!(second["resultat"]["paies"][0]["brut"], "999999.99", "lue, pas recalculee");
     assert!(second["resultat"]["paies"][0]["lignes"].as_array().is_some_and(|l| !l.is_empty()), "`lignes` demande les cotisations");
     assert!(premier["resultat"]["paies"][0].get("lignes").is_none());
-    // Le total ne se retouche pas : il se refait des paies relues.
+    // Le total ne se retouche pas : il se refait des paies lues.
     let somme: f64 = second["resultat"]["paies"].as_array().unwrap().iter().map(|p| p["brut"].as_str().unwrap().parse::<f64>().unwrap()).sum();
     assert!((second["resultat"]["total_brut"].as_str().unwrap().parse::<f64>().unwrap() - somme).abs() < 0.01);
 }
 
 #[test]
-fn l_apercu_d_une_saisie_en_cours_se_calcule_en_memoire_sans_rien_ecrire() {
+fn l_apercu_d_un_engagement_en_saisie_se_calcule_en_memoire_sans_rien_ecrire() {
     let c = &compagnie("memoire", &[MOIS]);
+    let attendu = apercu(c, &saisie(c, MOIS), false);
+    modifier(c, MOIS, 0, "2026-09-10");
+    let avant = std::fs::read(c.join(format!("engagements/{}.json", MOIS))).unwrap();
     let saisie = saisie(c, MOIS);
-    let attendu = apercu(c, &saisie, false); // le fichier : calcule, stocke
-    std::fs::remove_file(calcul(c, MOIS)).unwrap();
-    // Une saisie qui n'est pas celle du fichier (une cle de plus) : meme paie, calculee, rien d'ecrit.
-    let mut encours = saisie.clone();
-    encours["_frappe"] = json!("en cours");
-    let r = apercu(c, &encours, false);
-    assert_eq!(r, attendu, "le calcul en memoire rend ce que la relecture rend");
-    assert!(!calcul(c, MOIS).exists(), "rien n'est ecrit pour une saisie qui n'est pas enregistree");
-    // Un nombre de plus ou de moins dans le fichier n'est pas la meme saisie.
+    let r = apercu(c, &saisie, false);
+    assert_eq!(r["resultat"]["paies"][0]["brut"], attendu["resultat"]["paies"][0]["brut"], "le calcul rend la paie validee");
+    // Un nombre de plus ou de moins : une autre paie, calculee, rien d'ecrit.
     let mut autre = saisie.clone();
     autre["engagements"][0]["lignes"][0]["taux"] = json!(131);
     let r = apercu(c, &autre, false);
     assert_ne!(r["resultat"]["paies"][0]["brut"], attendu["resultat"]["paies"][0]["brut"]);
-    assert!(!calcul(c, MOIS).exists());
+    assert_eq!(std::fs::read(c.join(format!("engagements/{}.json", MOIS))).unwrap(), avant);
 }
 
 #[test]
@@ -262,6 +258,8 @@ fn les_numeros_se_reservent_a_la_suite_des_compteurs_sans_les_ecrire() {
 #[test]
 fn une_saisie_incomplete_est_un_refus_qui_garde_son_nom() {
     let c = &compagnie("incomplete", &[MOIS]);
+    // L'apercu d'un engagement valide lit sa paie ecrite : celui-ci repasse en saisie, l'apercu le calcule.
+    modifier(c, MOIS, 0, "2026-09-10");
     let mut s = saisie(c, MOIS);
     s["engagements"][0]["lignes"][0]["dates"] = json!([]);
     let r = apercu(c, &s, false);

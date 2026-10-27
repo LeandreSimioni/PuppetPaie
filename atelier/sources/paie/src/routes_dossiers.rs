@@ -40,12 +40,17 @@ use std::sync::OnceLock;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::{d, repr_texte};
-use crate::etats::{erreur, getd, items, nom_type, objet_vide, ou, py_repr, py_str, texte_vide, Dico, R};
-use crate::fichiers::{repr, vrai};
-use crate::retours::Echec;
-use crate::routes_listes::{lire_json, vers_route};
+use droit::contexte::Contexte;
+use socle::date::{d, repr_texte};
+use crate::etats::{getd, items, objet_vide, ou, texte_vide, Dico};
+use socle::valeur::valeur_ecrite;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{repr, vrai};
+use socle::echec::Echec;
+use crate::routes_listes::lire_json;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 3] = ["arret-contrats", "dossier-formes", "exports-periodes"];
@@ -73,7 +78,7 @@ pub(crate) fn logiciels_connus() -> Vec<&'static str> {
 
 /// `charge["cle"]`.
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 // -------------------------------------------------------------- arret-contrats
@@ -84,12 +89,12 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// entre guillemets. Un `nom` qui n'est pas un texte se lit `str(nom)` et se
 /// montre `repr(nom)` dans la phrase.
 pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
-    let texte = py_str(nom);
+    let texte = valeur_en_texte(nom);
     ctx.salarie(&texte).map_err(|m| {
         let m = if m.starts_with("Salarie ") {
             let m = match nom {
                 Value::String(_) => m,
-                autre => m.replacen(&repr_texte(&texte), &py_repr(autre), 1),
+                autre => m.replacen(&repr_texte(&texte), &valeur_ecrite(autre), 1),
             };
             m
         } else {
@@ -116,7 +121,7 @@ fn arret_contrats(ctx: &Contexte, charge: &Value) -> R<Value> {
     let jour = exiger(charge, "jour")?;
     let cle = match salarie(ctx, sal)?.get("_cle") {
         Some(c) => c.clone(),
-        None => return Err(erreur("KeyError", crate::fichiers::absent("_cle"))),
+        None => return Err(erreur("KeyError", socle::fichiers::absent("_cle"))),
     };
     let jour = d(jour).map_err(|m| erreur("ValueError", m))?.iso();
     Ok(json!({"contrats": contrats_au(ctx, &cle, &jour)?}))
@@ -126,10 +131,10 @@ fn arret_contrats(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// lus dans les saisies, du plus ancien debut au plus recent. Chacun : salarie, nom, numero, debut,
 /// fin, mois, spectacle.
 pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Value>> {
-    let cle_texte = py_str(cle);
+    let cle_texte = valeur_en_texte(cle);
     let mut sorties: Vec<(String, Value)> = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    let mut mois = crate::routes_contrats::mois_saisis(ctx);
+    let mut mois = crate::routes_contrats::mois_saisis(ctx)?;
     mois.reverse();
     for m in mois {
         for (c, e) in crate::routes_contrats::engagements_du_mois(ctx, &m)? {
@@ -140,7 +145,7 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
             // Un contrat paye au mois sans fin ecrite (un CDI qui court) couvre tout jour depuis son debut : c'est sur lui
             // qu'un arret ou une suspension se pose. Le mois le plus recent qui le saisit fait foi (une fin ecrite plus
             // tard l'emporte) : il est retenu, couvrant ou non, avant les mois plus anciens.
-            let mensuel = crate::contrats::nature(e.get("nature").and_then(Value::as_str)).map(|n| n.mensuelle()).unwrap_or(false);
+            let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map(|n| n.mensuelle()).unwrap_or(false);
             let numero = e.get("numero").cloned().unwrap_or(Value::Null);
             if debut.is_empty() || (fin.is_empty() && !mensuel) {
                 continue;
@@ -153,12 +158,12 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
                 continue;
             }
             let s = salarie(ctx, cle)?;
-            let champ = |k: &str| -> R<Value> { s.get(k).cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k))) };
+            let champ = |k: &str| -> R<Value> { s.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k))) };
             let prenom = match s.get("prenom_affichage").filter(|x| vrai(x)) {
                 Some(p) => p.clone(),
                 None => champ("prenom")?,
             };
-            let nom = format!("{} {}", py_str(&champ("nom")?), py_str(&prenom));
+            let nom = format!("{} {}", valeur_en_texte(&champ("nom")?), valeur_en_texte(&prenom));
             let ou_vide = |k: &str| e.get(k).filter(|x| vrai(x)).cloned().unwrap_or_else(|| json!(""));
             let mut o = Map::new();
             o.insert("salarie".into(), cle.clone());
@@ -187,7 +192,7 @@ pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>>
     let p = ctx.racine.join("historique").join("paies.json");
     let data = if p.exists() { lire_json(&p)? } else { json!({}) };
     let Value::Object(o) = &data else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&data))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&data))));
     };
     let vide = Value::Array(Vec::new());
     let mut cles: Dico<&'static str> = Dico::nouveau();
@@ -197,7 +202,7 @@ pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>>
             cles.poser(vec![m.clone()], "DSN déposée")?;
         }
     }
-    for m in crate::routes_contrats::mois_saisis(ctx) {
+    for m in crate::routes_contrats::mois_saisis(ctx)? {
         cles.poser(vec![Value::String(m)], "saisie")?;
     }
     let tous: Vec<Value> = cles.items.iter().map(|(k, _)| k[0].clone()).collect();
@@ -208,8 +213,8 @@ pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>>
         return Err(erreur(
             "TypeError",
             match tous.iter().find(|k| k.is_string() != premier.is_string()) {
-                Some(autre) => crate::fichiers::incomparables(nom_type(autre), nom_type(premier)),
-                None => crate::fichiers::attendu("un texte", nom_type(premier)),
+                Some(autre) => socle::fichiers::incomparables(nom_type(autre), nom_type(premier)),
+                None => socle::fichiers::attendu("un texte", nom_type(premier)),
             },
         ));
     }
@@ -235,8 +240,8 @@ fn salaries_de_la_page(ctx: &Contexte) -> Vec<Value> {
         .map(|(k, v)| {
             let nom = format!(
                 "{} {}",
-                py_str(v.get("nom").unwrap_or(texte_vide())),
-                py_str(ou(v.get("prenom_affichage").unwrap_or(&Value::Null), v.get("prenom").unwrap_or(texte_vide())))
+                valeur_en_texte(v.get("nom").unwrap_or(texte_vide())),
+                valeur_en_texte(ou(v.get("prenom_affichage").unwrap_or(&Value::Null), v.get("prenom").unwrap_or(texte_vide())))
             );
             json!({"cle": k, "nom": nom, "actif": v.get("actif").map_or(true, vrai), "email": v.get("email").is_some_and(vrai)})
         })
@@ -283,8 +288,8 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
     let retenu = ou(retenu, texte_vide());
     let analytique = vrai(getd(&choix, "analytique", &Value::Null)?);
     let controle = match retenu {
-        Value::Array(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+        Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+        Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
         Value::String(nom) => {
             let logiciels = tables()["logiciels"].as_array().expect("logiciels");
             match logiciels.iter().find(|l| l["logiciel"].as_str() == Some(nom)) {
@@ -301,7 +306,7 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
 /// 3090 a une compagnie de la 1285, ni la dette de conges a qui n'emploie pas de
 /// permanents.
 fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
-    let idcc = py_str(ou(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), texte_vide()));
+    let idcc = valeur_en_texte(ou(ctx.entreprise.get("idcc").unwrap_or(&Value::Null), texte_vide()));
     let t = tables();
     if let Some(liste) = t["si_convention"].get(etat) {
         if !idcc.is_empty() && !liste.as_array().expect("liste").iter().any(|c| c.as_str() == Some(idcc.as_str())) {
@@ -353,7 +358,7 @@ pub(crate) fn plan_comptable(ctx: &Contexte) -> R<Map<String, Value>> {
     if propre.exists() {
         let perso = lire_json(&propre)?;
         let Value::Object(perso) = perso else {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&perso))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&perso))));
         };
         for (k, v) in &perso {
             if k.starts_with('_') {
@@ -386,12 +391,12 @@ fn mettre_a_jour(cible: &mut Map<String, Value>, v: &Value) -> R<()> {
             for (i, el) in a.iter().enumerate() {
                 match el {
                     Value::Array(paire) if paire.len() == 2 => {
-                        cible.insert(py_str(&paire[0]), paire[1].clone());
+                        cible.insert(valeur_en_texte(&paire[0]), paire[1].clone());
                     }
                     Value::Array(paire) => {
                         return Err(erreur(
                             "ValueError",
-                            crate::fichiers::paire_attendue(i, paire.len()),
+                            socle::fichiers::paire_attendue(i, paire.len()),
                         ))
                     }
                     Value::String(t) if t.chars().count() == 2 => {
@@ -401,7 +406,7 @@ fn mettre_a_jour(cible: &mut Map<String, Value>, v: &Value) -> R<()> {
                     Value::String(t) => {
                         return Err(erreur(
                             "ValueError",
-                            crate::fichiers::paire_attendue(i, t.chars().count()),
+                            socle::fichiers::paire_attendue(i, t.chars().count()),
                         ))
                     }
                     Value::Object(o) if o.len() == 2 => {
@@ -411,28 +416,28 @@ fn mettre_a_jour(cible: &mut Map<String, Value>, v: &Value) -> R<()> {
                     Value::Object(o) => {
                         return Err(erreur(
                             "ValueError",
-                            crate::fichiers::paire_attendue(i, o.len()),
+                            socle::fichiers::paire_attendue(i, o.len()),
                         ))
                     }
-                    _ => return Err(erreur("TypeError", crate::fichiers::pas_une_paire(i, nom_type(el)))),
+                    _ => return Err(erreur("TypeError", socle::fichiers::pas_une_paire(i, nom_type(el)))),
                 }
             }
             Ok(())
         }
         Value::String(t) => match t.chars().next() {
             None => Ok(()),
-            Some(_) => Err(erreur("ValueError", crate::fichiers::paire_attendue(0, 1))),
+            Some(_) => Err(erreur("ValueError", socle::fichiers::paire_attendue(0, 1))),
         },
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("une liste", nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
     }
 }
 
 /// `plan[k]["compte"]`.
 fn compte_de(plan: &Map<String, Value>, k: &str) -> R<Value> {
-    let section = plan.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)))?;
+    let section = plan.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))?;
     match section {
-        Value::Object(o) => o.get("compte").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("compte"))),
-        autre => Err(erreur("TypeError", format!("{} : {}", repr(k), crate::fichiers::attendu("un objet", nom_type(autre))))),
+        Value::Object(o) => o.get("compte").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("compte"))),
+        autre => Err(erreur("TypeError", format!("{} : {}", repr(k), socle::fichiers::attendu("un objet", nom_type(autre))))),
     }
 }
 
@@ -445,7 +450,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
     let nom_format = lim["nom"].as_str().expect("nom");
     let mut comptes: HashSet<String> = HashSet::new();
     for k in ["brut", "net", "pas"] {
-        comptes.insert(py_str(&compte_de(&plan, k)?));
+        comptes.insert(valeur_en_texte(&compte_de(&plan, k)?));
     }
     if let Some(lignes) = plan.get("lignes") {
         let vide = Map::new();
@@ -454,7 +459,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
             for k in ["charge", "tiers"] {
                 let v = getd(regle, k, &Value::Null)?;
                 if vrai(v) {
-                    comptes.insert(py_str(&regle[k]));
+                    comptes.insert(valeur_en_texte(&regle[k]));
                 }
             }
         }
@@ -466,7 +471,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
         for regle in retenues.values() {
             let v = getd(regle, "compte", &Value::Null)?;
             if vrai(v) {
-                comptes.insert(py_str(v));
+                comptes.insert(valeur_en_texte(v));
             }
         }
     }
@@ -486,7 +491,7 @@ fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
             Err(Refus::Autre(e)) => return Err(e),
         }
     }
-    let journal = py_str(plan.get("journal").unwrap_or(&json!("OD")));
+    let journal = valeur_en_texte(plan.get("journal").unwrap_or(&json!("OD")));
     let mut tries: Vec<&String> = comptes.iter().collect();
     tries.sort();
     for c in tries {
@@ -523,8 +528,8 @@ pub(crate) fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle:
         return Ok(String::new());
     }
     let code_brut = ou(salarie.get("code_salarie").unwrap_or(&Value::Null), texte_vide());
-    let code = entier_py(py_str(code_brut).trim());
-    let modele_texte = py_str(modele);
+    let code = entier_py(valeur_en_texte(code_brut).trim());
+    let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;
         // le reste (TypeError, AttributeError...) traverse comme en Python.
@@ -535,7 +540,7 @@ pub(crate) fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle:
                     "ErreurOperation",
                     format!(
                         "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `paie route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement que Python.",
-                        py_str(modele),
+                        valeur_en_texte(modele),
                         message
                     ),
                 ))
@@ -544,7 +549,7 @@ pub(crate) fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle:
         }
         Refus::Operation(format!(
             "Le modèle du compte individuel « {} » (net.par_salarie du plan comptable) ne se remplit pas pour {} : {}. Modèles possibles : « 421{{code:03}} », « 421{{cle}} ».",
-            py_str(modele),
+            valeur_en_texte(modele),
             cle,
             message
         ))
@@ -841,7 +846,7 @@ struct Specification {
 
 fn lire_specification(spec: &str, type_py: &str) -> Result<Specification, Faute> {
     let c: Vec<char> = spec.chars().collect();
-    let invalide = || ("ValueError", format!("mise en forme « {} » invalide pour {}", spec, crate::fichiers::nature(type_py)));
+    let invalide = || ("ValueError", format!("mise en forme « {} » invalide pour {}", spec, socle::fichiers::nature(type_py)));
     let est_align = |x: char| matches!(x, '<' | '>' | '=' | '^');
     let mut s = Specification { remplissage: ' ', alignement: None, signe: None, diese: false, zero: false, largeur: None, groupe: None, precision: None, genre: None };
     let mut i = 0;

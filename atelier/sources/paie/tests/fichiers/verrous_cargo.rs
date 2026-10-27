@@ -1,4 +1,4 @@
-//! Les trois verrous Cargo de l'atelier (`paie/Cargo.lock`, `fabrique-pdf/Cargo.lock`, `fenetre/Cargo.lock`) disent la
+//! Les trois verrous Cargo de l'atelier (celui de l'espace `Cargo.lock`, `fabrique-pdf/Cargo.lock`, `fenetre/Cargo.lock`) disent la
 //! meme chose des paquets de l'atelier. « Publier » (`.github/workflows/publier.yml`) compile la fenetre avec `--locked` :
 //! une dependance ajoutee au moteur sans que le verrou de la fenetre la connaisse fait echouer la publication, et rien
 //! d'autre ne le dit avant (le 15/10/2026 au soir, `icu_normalizer` ajoute a `paie` : Windows et Mac refuses). Pour
@@ -54,17 +54,17 @@ fn dependances(verrou: &Path, nom: &str) -> Option<BTreeSet<String>> {
 #[test]
 fn le_verrou_de_la_fenetre_connait_les_dependances_du_moteur_et_de_la_fabrique() {
     let fenetre = sources().join("fenetre/Cargo.lock");
-    for paquet in ["paie", "fabrique-pdf"] {
-        let sien = sources().join(paquet).join("Cargo.lock");
+    for (paquet, verrou) in [("socle", "Cargo.lock"), ("droit", "Cargo.lock"), ("engagement", "Cargo.lock"), ("paie", "Cargo.lock"), ("fabrique-pdf", "fabrique-pdf/Cargo.lock")] {
+        let sien = sources().join(verrou);
         let attendu = dependances(&sien, paquet).unwrap_or_else(|| panic!("{} absent de son propre verrou", paquet));
         let vu = dependances(&fenetre, paquet).unwrap_or_else(|| panic!("{} absent du verrou de la fenetre", paquet));
         let manquantes: Vec<_> = attendu.difference(&vu).collect();
         let en_trop: Vec<_> = vu.difference(&attendu).collect();
         assert!(
             manquantes.is_empty() && en_trop.is_empty(),
-            "fenetre/Cargo.lock ne dit pas la meme chose que {}/Cargo.lock sur `{}` (manque {:?}, en trop {:?}) : \
+            "fenetre/Cargo.lock ne dit pas la meme chose que {} sur `{}` (manque {:?}, en trop {:?}) : \
              `cargo update --workspace` dans atelier/sources/fenetre/, sinon « Publier » refuse (--locked)",
-            paquet, paquet, manquantes, en_trop
+            verrou, paquet, manquantes, en_trop
         );
     }
 }
@@ -81,7 +81,7 @@ fn un_verrou_en_retard_se_voit() {
     assert_ne!(texte, en_retard, "le verrou d'aujourd'hui connait icu_normalizer");
     let chemin = d.join("Cargo.lock");
     std::fs::write(&chemin, en_retard).unwrap();
-    let attendu = dependances(&sources().join("paie/Cargo.lock"), "paie").unwrap();
+    let attendu = dependances(&sources().join("Cargo.lock"), "paie").unwrap();
     let vu = dependances(&chemin, "paie").unwrap();
     assert_eq!(attendu.difference(&vu).collect::<Vec<_>>(), vec!["icu_normalizer"]);
     assert_eq!(dependances(&chemin, "paquet-inconnu"), None);

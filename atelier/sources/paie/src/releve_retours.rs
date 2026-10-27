@@ -14,35 +14,37 @@
 //! Le reseau passe par `transport::operation` (le meme JSON que `paie transport`) : rien n'est reecrit.
 //! La compagnie fictive (`simulation.rattacher`) pose les retours des depots joues, sans reseau.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
-use crate::retours::{base64_ecrire, base64_lire, Echec};
+use droit::contexte::Contexte;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use crate::retours::{base64_ecrire, base64_lire};
+use socle::echec::Echec;
 
 // ------------------------------------------------------------ l'horloge locale
 
 /// Les secondes unix de l'horloge.
 fn secondes_unix() -> i64 {
-    crate::temps::secondes().floor() as i64
+    socle::temps::secondes().floor() as i64
 }
 
 /// `datetime.now()` a l'heure de Paris, en secondes d'une epoque « naive » (l'heure locale lue comme si
 /// c'etait de l'UTC) : de quoi additionner des jours et comparer deux heures locales.
 pub fn maintenant_naif() -> i64 {
     let t = secondes_unix();
-    t + crate::paris::decalage(t)
+    t + socle::paris::decalage(t)
 }
 
 /// `AAAA-MM-JJTHH:MM:SS` d'une heure locale naive.
 pub fn iso_de_naif(local: i64) -> String {
     let jours = local.div_euclid(86_400);
     let reste = local.rem_euclid(86_400);
-    let j = crate::date::Jour::depuis_jours_unix(jours).unwrap_or(crate::date::Jour { an: 1970, mois: 1, jour: 1 });
+    let j = socle::date::Jour::depuis_jours_unix(jours).unwrap_or(socle::date::Jour { an: 1970, mois: 1, jour: 1 });
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60, reste % 60)
 }
 
@@ -53,7 +55,7 @@ pub fn naif_de_iso(iso: &str) -> Option<i64> {
         let t: String = c.get(a..b)?.iter().collect();
         t.chars().all(|x| x.is_ascii_digit()).then(|| t.parse().ok()).flatten()
     };
-    let jour = crate::date::Jour::nouveau(n(0, 4)? as i32, n(5, 7)? as u32, n(8, 10)? as u32)?;
+    let jour = socle::date::Jour::nouveau(n(0, 4)? as i32, n(5, 7)? as u32, n(8, 10)? as u32)?;
     let jours = jour.ordinal() - 719_163;
     let (h, m, s) = if c.len() >= 16 { (n(11, 13)?, n(14, 16)?, if c.len() >= 19 { n(17, 19)? } else { 0 }) } else { (0, 0, 0) };
     Some(jours * 86_400 + h * 3_600 + m * 60 + s)
@@ -186,7 +188,7 @@ fn adresses_dpae(ent: &Value) -> Adresses {
         .get("api_dpae")
         .and_then(|c| c.get("service"))
         .filter(|s| vrai(s))
-        .map(py_str);
+        .map(valeur_en_texte);
     // L'atelier seulement : un faux Urssaf local (`atelier.rs`).
     #[cfg(feature = "atelier")]
     if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_DPAE) {
@@ -338,7 +340,7 @@ impl Client {
         let corps = gzip(contenu)?;
         let rep = transport(json!({"operation": "depot", "url": url, "jeton": self.jeton, "forme": forme, "corps": base64_ecrire(&corps)}))?;
         let brut = base64_lire(rep.get("corps").and_then(Value::as_str).unwrap_or("")).map_err(|m| Panne { classe: "ValueError".into(), message: m, code: 0 })?;
-        let texte = String::from_utf8_lossy(&brut).trim_matches(crate::retours::blanc_py).to_string();
+        let texte = String::from_utf8_lossy(&brut).trim_matches(socle::texte::blanc).to_string();
         let ctype = rep.get("entetes").and_then(|e| e.get("Content-Type")).and_then(Value::as_str).unwrap_or("").to_string();
         Ok((texte, ctype))
     }
@@ -389,7 +391,7 @@ fn cle_de_retour(r: &Value) -> [Value; 3] {
 }
 
 fn date_publication(r: &Value) -> String {
-    let p = r.get("publication").filter(|v| !v.is_null()).map(py_str).unwrap_or_default();
+    let p = r.get("publication").filter(|v| !v.is_null()).map(valeur_en_texte).unwrap_or_default();
     let c: Vec<char> = p.chars().collect();
     if c.len() >= 8 {
         format!("{}{}/{}{}/{}", c[6], c[7], c[4], c[5], c[..4].iter().collect::<String>())
@@ -429,7 +431,7 @@ fn deja_vus(ctx: &Contexte, canal: &str) -> Result<Vec<[Value; 3]>, Panne> {
 }
 
 fn egal_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
-    a.iter().zip(b).all(|(x, y)| crate::etats::eq_py(x, y))
+    a.iter().zip(b).all(|(x, y)| socle::valeur::valeurs_egales(x, y))
 }
 
 /// La liste est-elle deja vue ? Les trois champs, comme `(flux, nature, publication) in connus`.
@@ -468,12 +470,12 @@ fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
     if !crate::routes_accueil::simulation_active(&ctx.racine) || l.get("mode").and_then(Value::as_str) != Some("reel") {
         return Ok(None);
     }
-    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(py_str).unwrap_or_default();
+    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
     if !nature.is_empty() && nature != "01" {
         return Ok(None);
     }
-    let mois = l.get("mois").map(py_str).unwrap_or_default();
-    let fichier = l.get("fichier").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
+    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
+    let fichier = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
     if mois.is_empty() || fichier.is_empty() {
         return Ok(None);
     }
@@ -496,7 +498,7 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
     let mut faits = 0;
     for l in lignes.iter_mut() {
         let quoi = l.get("quoi").and_then(Value::as_str).unwrap_or("");
-        let flux = l.get("flux").map(|f| if vrai(f) { py_str(f) } else { String::new() }).unwrap_or_default();
+        let flux = l.get("flux").map(|f| if vrai(f) { valeur_en_texte(f) } else { String::new() }).unwrap_or_default();
         let age = l.get("quand").and_then(Value::as_str).and_then(naif_de_iso).map_or(0, |t| maintenant - t);
         if (quoi == "dsn" || quoi == "dpae")
             && l.get("accepte").is_some_and(vrai)
@@ -539,7 +541,7 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
         }
     }
     if faits > 0 {
-        crate::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
     }
     // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement, qui signe le cadre 5 et la pose dans
     // `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
@@ -547,7 +549,7 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
     for (retour, archive) in &a_archiver {
         chemins.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
     }
-    let a_faire = if chemins.is_empty() { Vec::new() } else { crate::routes_documents::ranger_aer(&HashMap::new(), ctx, None, Some(&chemins), true)? };
+    let a_faire = if chemins.is_empty() { Vec::new() } else { crate::routes_documents::ranger_aer(ctx, None, Some(&chemins))? };
     Ok((faits, a_faire))
 }
 
@@ -556,7 +558,6 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
 /// passe le sien, avec `canal = "dpae"`).
 pub fn relever_retours(
     ctx: &Contexte,
-    o: &HashMap<String, String>,
     debut: i64,
     fin: i64,
     tout: bool,
@@ -621,11 +622,11 @@ pub fn relever_retours(
     let mut rates: Vec<Value> = Vec::new();
     let a_telecharger: Vec<Value> = if tout { releve.trouves.clone() } else { releve.nouveaux.clone() };
     for r in a_telecharger {
-        let Some(url) = r.get("url").filter(|u| vrai(u)).map(py_str) else { continue };
+        let Some(url) = r.get("url").filter(|u| vrai(u)).map(valeur_en_texte) else { continue };
         match client.telecharger(&url) {
             Ok((contenu, ctype)) => {
                 let chemin = archiver(ctx, &r, &contenu, &ctype, canal).map_err(en_echec)?;
-                if canal.is_empty() && r.get("nature").map(py_str).as_deref() == Some(crate::retours::NATURE_TAUX_ATMP) {
+                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_ATMP) {
                     releve.a_faire.push(format!(
                         "Notification du taux AT/MP recue le {} (retour de nature 34, archive {}) : le taux se reporte dans config/baremes/<annee>.json (`taux_atmp`), avec sa source.",
                         date_publication(&r),
@@ -633,8 +634,8 @@ pub fn relever_retours(
                     ));
                 }
                 // UN SIGNALEMENT REFUSE B1-208-10 (lot O1) : l'ordre etait deja pris ; la conduite a tenir se dit.
-                if canal.is_empty() && r.get("nature").map(py_str).as_deref() == Some("11") {
-                    let flux = r.get("flux").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
+                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some("11") {
+                    let flux = r.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
                     for d in crate::retours::declarations_du_bilan(&contenu) {
                         releve.a_faire.extend(crate::ordre_signalements::conduite_b1_208_10(&d, &flux));
                     }
@@ -642,7 +643,7 @@ pub fn relever_retours(
                 releve.archives.push(RetourArchive { retour: r, chemin, contenu });
             }
             Err(p) if p.est_api() => {
-                releve.incidents.push(format!("Telechargement du retour nature {} : {}", r.get("nature").map(py_str).unwrap_or_else(|| "None".into()), p.message));
+                releve.incidents.push(format!("Telechargement du retour nature {} : {}", r.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".into()), p.message));
                 rates.push(r);
             }
             Err(p) => return Err(en_echec(p)),
@@ -673,11 +674,11 @@ pub fn relever_retours(
     let aer: Vec<PathBuf> = releve
         .archives
         .iter()
-        .filter(|a| a.retour.get("nature").map(py_str).as_deref() == Some(crate::retours::NATURE_AER_SPECTACLE))
+        .filter(|a| a.retour.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_AER_SPECTACLE))
         .map(|a| a.chemin.clone())
         .collect();
     if !aer.is_empty() && canal.is_empty() {
-        match crate::routes_documents::ranger_aer(o, ctx, None, Some(&aer), true) {
+        match crate::routes_documents::ranger_aer(ctx, None, Some(&aer)) {
             Ok(a_faire) => releve.a_faire.extend(a_faire),
             Err(e) => releve.incidents.push(format!("Attestations France Travail recues mais non rangees : {}", e.message)),
         }
@@ -688,7 +689,7 @@ pub fn relever_retours(
 /// `operations_retours.relever_retours_dpae` : les retours de l'API DPAE -- UN AUTRE SERVICE que celui de
 /// la DSN, ses archives sont dans `retours/dpae/`. `flux` : le seul chemin documente (la FAQ) quand on
 /// connait l'idflux ; sinon la consultation par plage, sur le canal `dpae`.
-pub fn relever_retours_dpae(ctx: &Contexte, o: &HashMap<String, String>, debut: i64, fin: i64, tout: bool, flux: &str) -> R<Releve> {
+pub fn relever_retours_dpae(ctx: &Contexte, debut: i64, fin: i64, tout: bool, flux: &str) -> R<Releve> {
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         let mut r = Releve::default();
         (r.rattaches, r.a_faire) = rattacher_simulation_detail(ctx, 6)?;
@@ -701,7 +702,7 @@ pub fn relever_retours_dpae(ctx: &Contexte, o: &HashMap<String, String>, debut: 
     };
     let mut client = Client::dpae(ctx, false, Some(mdp));
     if flux.is_empty() {
-        return relever_retours(ctx, o, debut, fin, tout, "production", Some(client), "dpae");
+        return relever_retours(ctx, debut, fin, tout, "production", Some(client), "dpae");
     }
     let mut r = Releve::default();
     let trouves = client.authentifier().and_then(|_| client.lister_retours_du_flux(flux));
@@ -714,13 +715,13 @@ pub fn relever_retours_dpae(ctx: &Contexte, o: &HashMap<String, String>, debut: 
         Err(p) => return Err(en_echec(p)),
     }
     for x in r.trouves.clone() {
-        let Some(url) = x.get("url").filter(|u| vrai(u)).map(py_str) else { continue };
+        let Some(url) = x.get("url").filter(|u| vrai(u)).map(valeur_en_texte) else { continue };
         match client.telecharger(&url) {
             Ok((contenu, ctype)) => {
                 let chemin = archiver(ctx, &x, &contenu, &ctype, "dpae").map_err(en_echec)?;
                 r.archives.push(RetourArchive { retour: x, chemin, contenu });
             }
-            Err(p) if p.est_api() => r.incidents.push(format!("Telechargement nature {} : {}", x.get("nature").map(py_str).unwrap_or_else(|| "None".into()), p.message)),
+            Err(p) if p.est_api() => r.incidents.push(format!("Telechargement nature {} : {}", x.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".into()), p.message)),
             Err(p) => return Err(en_echec(p)),
         }
     }
@@ -813,7 +814,7 @@ pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
     }
     let donnees = Value::Object(donnees);
     if existant != donnees {
-        crate::ecriture::ecrire_json(&chemin, &donnees, 2).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&chemin, &donnees, 2).map_err(|m| erreur("OSError", m))?;
     }
     Ok(())
 }

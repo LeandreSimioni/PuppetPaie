@@ -21,14 +21,15 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::courriel::{self, BoiteSimulee, Client, Courriel};
 use crate::depot_acte::{verifier_preuve, Preuve};
 use crate::envoi::{self, Message};
-use crate::etats::{erreur, py_str};
-use crate::fichiers::{repr, vrai};
+use socle::valeur::valeur_en_texte;
+use socle::echec::erreur;
+use socle::fichiers::{repr, vrai};
 use crate::journal::{self, Note};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub(crate) type R<T> = Result<T, Echec>;
 
@@ -36,7 +37,7 @@ pub(crate) type R<T> = Result<T, Echec>;
 pub type Ouvrir<'a> = &'a mut dyn FnMut() -> R<Box<dyn Courriel>>;
 
 /// Les routes de ce module (les trois autres sont dans `envois_signature`).
-pub const ROUTES: [&str; 6] = ["envoyer-documents", "dossier-envoyer", "casc-envoyer", "demander-signature", "avenant-envoyer", "avenants-envoyer"];
+pub const ROUTES: [&str; 7] = ["envoyer-documents", "dossier-envoyer", "casc-envoyer", "demander-signature", "contrats-imprimer", "avenant-envoyer", "avenants-envoyer"];
 
 /// Une route d'envoi, avec la vraie boite (ou la simulee).
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -46,10 +47,11 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 /// Une route d'envoi, la boite venant de `ouvrir`.
 pub fn route_avec(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     match nom {
-        "envoyer-documents" => envoyer_documents(o, ctx, charge, ouvrir),
+        "envoyer-documents" => envoyer_documents(ctx, charge, ouvrir),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, ouvrir),
         "casc-envoyer" => casc_envoyer(ctx, charge, ouvrir),
         "demander-signature" => crate::envois_signature::demander_signature(o, ctx, charge, ouvrir),
+        "contrats-imprimer" => crate::envois_signature::contrats_imprimer(ctx, charge),
         "avenant-envoyer" => crate::envois_signature::avenant_envoyer(o, ctx, charge, ouvrir),
         "avenants-envoyer" => crate::envois_signature::avenants_envoyer(o, ctx, charge, ouvrir),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -71,19 +73,19 @@ pub(crate) fn refus(message: impl Into<String>) -> Echec {
 /// `d[cle]` : `KeyError` si elle manque.
 pub(crate) fn requis<'a>(d: &'a Value, cle: &str) -> R<&'a Value> {
     match d {
-        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(autre)))),
+        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     }
 }
 
 /// `d.get(cle) or defaut` en texte : la valeur quand elle est vraie.
 pub(crate) fn vrai_ou(d: &Value, cle: &str) -> Option<String> {
-    d.get(cle).filter(|v| vrai(v)).map(py_str)
+    d.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
 }
 
 /// `charge[cle]` en texte (`KeyError` si elle manque).
 pub(crate) fn charge_texte(charge: &Value, cle: &str) -> R<String> {
-    Ok(py_str(requis(charge, cle)?))
+    Ok(valeur_en_texte(requis(charge, cle)?))
 }
 
 /// Le `qui` du journal : celui que la charge donne (la ligne de commande : `ligne de commande`), sinon « interface ».
@@ -202,7 +204,7 @@ pub(crate) fn mailto(adresse: &str, objet: &str, corps: &str) -> String {
 }
 
 /// `date.fromisoformat(texte)` : `AAAA-MM-JJ` ou `AAAAMMJJ`.
-pub(crate) fn jour_iso(texte: &str) -> Option<crate::date::Jour> {
+pub(crate) fn jour_iso(texte: &str) -> Option<socle::date::Jour> {
     let chiffres = |t: &str| t.chars().all(|c| c.is_ascii_digit());
     let (a, m, j) = match texte.len() {
         10 if texte.is_char_boundary(4) && texte.is_char_boundary(7) && &texte[4..5] == "-" && &texte[7..8] == "-" => (&texte[..4], &texte[5..7], &texte[8..10]),
@@ -212,7 +214,7 @@ pub(crate) fn jour_iso(texte: &str) -> Option<crate::date::Jour> {
     if !(chiffres(a) && chiffres(m) && chiffres(j)) {
         return None;
     }
-    crate::date::Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
+    socle::date::Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
 }
 
 /// `str.capitalize()`.
@@ -237,15 +239,15 @@ fn expediteur_de(client: &dyn Courriel) -> String {
 // ------------------------------------------------------------------ envoyer-documents
 
 /// `operations_documents.envoyer_documents` : envoie a chaque salarie ses documents du mois. Irreversible.
-fn envoyer_documents(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+fn envoyer_documents(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
-    envoyer_documents_de(o, ctx, &mois, &preuve_de(charge), &qui_de(charge), ouvrir)
+    envoyer_documents_de(ctx, &mois, &preuve_de(charge), &qui_de(charge), ouvrir)
 }
 
 /// `envoyer_documents(ctx, mois, preuve=..., qui=...)` : la meme operation, `qui` et la preuve donnes (l'horloge de
 /// la compagnie fictive passe `horloge` et une boite muette).
-pub(crate) fn envoyer_documents_de(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, preuve: &Preuve, qui: &str, ouvrir: Ouvrir) -> R<Value> {
-    let prepare = preparer_envoi(o, ctx, mois, ouvrir)?;
+pub(crate) fn envoyer_documents_de(ctx: &Contexte, mois: &str, preuve: &Preuve, qui: &str, ouvrir: Ouvrir) -> R<Value> {
+    let prepare = preparer_envoi(ctx, mois, ouvrir)?;
     expedier_envoi(ctx, prepare, mois, preuve, qui)
 }
 
@@ -257,6 +259,8 @@ pub(crate) struct EnvoiPrepare {
     pub(crate) avertissements: Vec<String>,
     /// A qui les documents partent, et pourquoi (`choisir`) : le journal en garde l'empreinte et le resume.
     pub(crate) choix: Choix,
+    /// Les documents fabriques pour ceux a qui ils partent ; leurs numeros s.ecrivent quand ils sont partis.
+    documents: crate::depart::DocumentsFabriques,
     client: Box<dyn Courriel>,
     /// La duree de la preparation (lecture du mois, messages, boite), en millisecondes : le journal la garde.
     preparation_ms: u128,
@@ -294,11 +298,11 @@ impl Choix {
     }
 }
 
-/// Le choix, pour le mois `mois`, sur sa saisie `data` et ses paies calculees (`charger_le_mois_avec`).
-pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::calcul::Paie]) -> R<Choix> {
+/// Le choix, pour le mois `mois`, sur sa saisie `data` et ses paies validees (`routes_documents::charger_le_mois`).
+pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[engagement::calcul::Paie]) -> R<Choix> {
     let lignes = crate::etats::charger(&ctx.racine)?;
     let partis = crate::etats::documents_partis(&lignes, mois)?;
-    let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(py_str).unwrap_or_default()).collect();
+    let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).collect();
     let engagements = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     let empreintes = crate::routes_mois::Moteur::empreintes_documents(engagements, &cles);
     let mut resumes: HashMap<String, Value> = HashMap::new();
@@ -306,16 +310,16 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
         if resumes.contains_key(cle) {
             continue;
         }
-        let siennes: Vec<&crate::calcul::Paie> = paies.iter().zip(&cles).filter(|(_, c)| *c == cle).map(|(p, _)| p).collect();
+        let siennes: Vec<&engagement::calcul::Paie> = paies.iter().zip(&cles).filter(|(_, c)| *c == cle).map(|(p, _)| p).collect();
         resumes.insert(cle.clone(), envoi::resume_de(&siennes).map_err(Echec::from)?);
     }
     let mut choix = Choix { empreintes, resumes, ..Choix::default() };
     let declaration = declaration_de_la_correction(ctx, mois)?;
     for (cle, parti) in &partis {
-        let notee = parti.get("empreinte").filter(|e| vrai(e)).map(py_str);
+        let notee = parti.get("empreinte").filter(|e| vrai(e)).map(valeur_en_texte);
         match (notee, choix.empreintes.get(cle)) {
             (Some(n), Some(a)) if &n != a => {
-                let quand = parti.get("quand").map(py_str).unwrap_or_default();
+                let quand = parti.get("quand").map(valeur_en_texte).unwrap_or_default();
                 let envoye_le = jour_iso(quand.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or(quand);
                 let ancien = parti.get("resume").cloned().unwrap_or(Value::Null);
                 let changements = envoi::ce_qui_a_change(&ancien, choix.resumes.get(cle).unwrap_or(&Value::Null));
@@ -332,7 +336,7 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
 
 /// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE (Leandre, 21/10/2026 : « le courriel de renvoi, dans ce
 /// cas, ajoute une phrase : la correction sera declaree avec la paie du mois suivant »). La DSN deposee ne se refait plus ;
-/// la correction part dans la DSN d'un mois suivant, celle qui embarque les corrections ECRITES (« Corriger ce mois »,
+/// la correction part dans la DSN d'un mois suivant, celle qui embarque les corrections ECRITES (`depart::corrections_dues`,
 /// `produire_regularisations::corrections_a_porter`) : celle du mois courant pour une correction en attente, celle qui
 /// l'a preparee ou portee sinon. Le paragraphe nomme ce mois quand la correction du salarie est ecrite ; sans elle, il ne
 /// dit que « une paie suivante » (l'etape DSN du mois reste orange tant qu'elle ne l'est pas). `None` : le mois n'en est
@@ -345,15 +349,15 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
     if !vrai(&etat["regularisable"]) {
         return Ok(None);
     }
-    let courant = py_str(&etat["mois_courant"]);
+    let courant = valeur_en_texte(&etat["mois_courant"]);
     let mut porteurs: HashMap<String, String> = HashMap::new();
     for c in crate::routes_ecrites::lire_corrections(ctx, mois)? {
         if c.get("annulee_le").is_some_and(vrai) {
             continue;
         }
-        let par = |k: &str| c.get(k).filter(|p| vrai(p)).and_then(|p| p.get("mois")).map(py_str);
+        let par = |k: &str| c.get(k).filter(|p| vrai(p)).and_then(|p| p.get("mois")).map(valeur_en_texte);
         let porteur = par("portee_par").or_else(|| par("preparee_par")).unwrap_or_else(|| courant.clone());
-        porteurs.insert(c.get("salarie").map(py_str).unwrap_or_default(), porteur);
+        porteurs.insert(c.get("salarie").map(valeur_en_texte).unwrap_or_default(), porteur);
     }
     let de = crate::routes_regularisation::de_mois_en_clair(mois);
     Ok(Some(Box::new(move |cle: &str| match porteurs.get(cle) {
@@ -368,45 +372,52 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
 
 /// `operations_documents.preparer_envoi` : la saisie du mois, les messages, puis la boite -- une boite absente se voit
 /// avant la preuve. Rien n'est parti.
-pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
+pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
     let debut = std::time::Instant::now();
-    let (data, paies) = crate::routes_documents::charger_le_mois_avec(o, ctx, mois, false)?;
-    let mois_saisie = data.get("mois").map(crate::date::en_texte).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
-    let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
-    if !dossier.exists() {
-        return Err(erreur("SortieAbsente", format!("{} n'existe pas.", dossier.display())));
+    let (data, paies) = crate::routes_documents::charger_le_mois(ctx, mois)?;
+    if paies.is_empty() {
+        return Err(erreur(
+            "AucunDocument",
+            format!("{} : aucun engagement valide, aucun document a envoyer. Rien ne part d'un engagement en saisie.", engagement::libelle_mois(mois)),
+        ));
     }
+    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+    let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
     let fiche = |cle: &str| ctx.salarie(cle).unwrap_or_else(|_| json!({}));
     let choix = choisir(ctx, mois, &data, &paies)?;
-    // APRES LA LIMITE DE L'ANNULE-ET-REMPLACE, rien ne refait le mois (`produire` refuse, la DSN deposee ne se regenere
-    // pas, regle 4) : les documents de ceux dont la paie a change se refont ICI, depuis la paie d'aujourd'hui, aux numeros
-    // du fichier archive (`ecrire_documents`, qui ne redeclare rien), avant de repartir.
-    if !choix.renvois.is_empty() && choix.renvois.values().any(|r| !r.declaration.is_empty()) {
-        crate::ecrire_documents::ecrire_documents(ctx, &json!({"mois": mois_saisie}))?;
+    // LES DOCUMENTS SE FABRIQUENT ICI, pour ceux a qui ils partent : depuis les paies ecrites, a leurs numeros.
+    let mut cles: Vec<String> = Vec::new();
+    for p in &paies {
+        let cle = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        if !cles.contains(&cle) {
+            cles.push(cle);
+        }
     }
+    let cles = choix.garder(cles, |c| c.as_str());
+    let documents = crate::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
     let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, Some(&fiche), &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
     let messages = choix.garder(messages, |m| m.cle.as_str());
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());
-    let mut avertissements: Vec<String> = Vec::new();
-    let signataire = requis(&ctx.entreprise, "signataire")?.get("email").filter(|v| vrai(v)).map(py_str).unwrap_or_default().to_lowercase();
+    let mut avertissements: Vec<String> = documents.avertissements.clone();
+    let signataire = requis(&ctx.entreprise, "signataire")?.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
     if !signataire.is_empty() && signataire != expediteur {
         avertissements.push(format!(
             "Les messages partiront de {} (la boite posee), pas de {} (le courriel du signataire, fiche Entreprise).",
             expediteur, signataire
         ));
     }
-    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, client, preparation_ms: crate::temps::duree(debut).as_millis() })
+    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, documents, client, preparation_ms: socle::temps::duree(debut).as_millis() })
 }
 
 /// Ce qui suit la preparation : la PREUVE (le mot de passe du logiciel), l'envoi, le journal. `qui` : la ligne du journal.
 pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, preuve: &Preuve, qui: &str) -> R<Value> {
-    let EnvoiPrepare { messages, expediteur, avertissements, choix, mut client, preparation_ms, .. } = prepare;
+    let EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, documents, mut client, preparation_ms } = prepare;
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
     // LA DUREE DE CHAQUE ETAPE (08/10/2026 : un envoi de deux courriels a pris quatre minutes, sans qu'on sache ou).
     let t_preuve = std::time::Instant::now();
     verifier_preuve(ctx, Some(preuve), mois, "envoi des documents du mois aux salaries", &a_qui)?;
-    let preuve_ms = crate::temps::duree(t_preuve).as_millis();
+    let preuve_ms = socle::temps::duree(t_preuve).as_millis();
     let t_envoi = std::time::Instant::now();
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client.as_mut(), None, None) {
         Ok(p) => p,
@@ -415,7 +426,7 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
             return Err(echec_d_envoi(e.message));
         }
     };
-    let envoi_ms = crate::temps::duree(t_envoi).as_millis();
+    let envoi_ms = socle::temps::duree(t_envoi).as_millis();
     let detail = json!({
         // Ce que chaque salarie a recu : ses pieces, l'empreinte de sa paie et son resume (ticket #240 : ce qui dira, si sa
         // paie change, que ses documents sont a renvoyer, et ce qui a change), et si c'etait un renvoi.
@@ -428,6 +439,8 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
         "durees_ms": {"preparation": preparation_ms as u64, "mot_de_passe": preuve_ms as u64, "envoi": envoi_ms as u64},
     });
     let ligne = noter(ctx, "documents", Some(mois), qui, true, &partis.join(", "), &format!("{} message(s) envoye(s)", partis.len()), Some(&detail))?;
+    // LES DOCUMENTS SONT PARTIS : leurs numeros s'ecrivent dans les paies des engagements.
+    documents.engager(ctx, &mois_saisie)?;
     Ok(json!({
         "partis": partis,
         "messages": messages.len(),
@@ -490,17 +503,17 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes_dossier_salarie:
     }
     let mut messages: Vec<Message> = Vec::new();
     for (cle, f) in d.salaries.iter().zip(&d.fichiers) {
-        let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))?;
-        let Some(email) = s.get("email").filter(|v| vrai(v)).map(py_str) else {
+        let s = ctx.salaries.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))?;
+        let Some(email) = s.get("email").filter(|v| vrai(v)).map(valeur_en_texte) else {
             return Err(refus(format!(
                 "Pas d'adresse e-mail pour {} {} : compléter sa fiche avant d'envoyer. Rien n'est parti.",
-                py_str(requis(s, "nom")?),
-                py_str(requis(s, "prenom")?)
+                valeur_en_texte(requis(s, "nom")?),
+                valeur_en_texte(requis(s, "prenom")?)
             )));
         };
         let prenom = match vrai_ou(s, "prenom_affichage") {
             Some(p) => p,
-            None => py_str(requis(s, "prenom")?),
+            None => valeur_en_texte(requis(s, "prenom")?),
         };
         let signataire = ctx.entreprise.get("signataire").filter(|v| vrai(v)).cloned().unwrap_or_else(|| json!({}));
         let ses_pages = d.pages.get(cle).and_then(Value::as_object);
@@ -518,13 +531,13 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes_dossier_salarie:
                 ("periode", if d.periode == "toute la période" { String::new() } else { format!(" ({})", d.periode) }),
                 ("liste", liste),
                 ("reedition", if ses_pages.is_some_and(|p| p.contains_key("contrats")) { REEDITION_CONTRATS.to_string() } else { String::new() }),
-                ("signataire", vrai_ou(&signataire, "prenom_affichage").or_else(|| signataire.get("prenom").map(py_str)).unwrap_or_default()),
-                ("raison_sociale", vrai_ou(&ctx.entreprise, "nom_affichage").or_else(|| ctx.entreprise.get("raison_sociale").map(py_str)).unwrap_or_default()),
+                ("signataire", vrai_ou(&signataire, "prenom_affichage").or_else(|| signataire.get("prenom").map(valeur_en_texte)).unwrap_or_default()),
+                ("raison_sociale", vrai_ou(&ctx.entreprise, "nom_affichage").or_else(|| ctx.entreprise.get("raison_sociale").map(valeur_en_texte)).unwrap_or_default()),
             ],
         );
         messages.push(Message {
             cle: cle.clone(),
-            nom: format!("{} {}", prenom, py_str(requis(s, "nom")?)),
+            nom: format!("{} {}", prenom, valeur_en_texte(requis(s, "nom")?)),
             destinataire: email.to_lowercase(),
             sujet: format!("Ton dossier de salarié — {}", d.periode),
             corps,
@@ -612,12 +625,12 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),
         Some(Value::Object(o)) => o.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
-        Some(autre) => return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", crate::etats::nom_type(autre)))),
+        Some(autre) => return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     };
     let aujourdhui = crate::routes_dossier_salarie::aujourdhui_reel();
     let mut dates: Vec<(String, String)> = Vec::new();
     for (a, d) in &vire_le {
-        let texte = py_str(d);
+        let texte = valeur_en_texte(d);
         let Some(jour) = jour_iso(&texte) else {
             return Err(refus(format!("Date du virement {} illisible : {} (attendu AAAA-MM-JJ). Rien n'est parti.", a, repr(&d_en_repr(d)))));
         };
@@ -656,7 +669,7 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     }
 
     let mut client = ouvrir()?;
-    let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", crate::fichiers::trop_courte("les mois de la régularisation")))?;
+    let dernier_mois = r.mois.last().map(|m| m.mois.clone()).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de la régularisation")))?;
     verifier_preuve(ctx, Some(&preuve_de(charge)), &dernier_mois, "envoi a Audiens et au CASC-SVP (liste nominative)", "Audiens et CASC-SVP")?;
 
     let messages = vec![
@@ -729,5 +742,5 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
 
 /// Le texte d'une valeur de `vire_le` comme `%r` l'ecrit : ce qui n'est pas un texte s'ecrit sans guillemets.
 fn d_en_repr(d: &Value) -> String {
-    py_str(d)
+    valeur_en_texte(d)
 }

@@ -29,15 +29,16 @@ use std::sync::Arc;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::cumul::{self, Constantes, Engagement as Declare, Fenetre};
-use crate::date::{en_texte, Jour};
-use crate::emplois;
-use crate::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::minima::{self, Par};
-use crate::num::{div, Decimal, Resultat};
-use crate::retours::Echec;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use droit::cumul::{self, Constantes, Declare, Fenetre};
+use socle::date::{en_texte, Jour};
+use droit::emplois;
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use droit::minima::Par;
+use engagement::minima;
+use socle::num::{div, Decimal, Resultat};
+use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
@@ -186,7 +187,7 @@ fn donnee(source: &Value, expr: &str) -> Option<String> {
         _ => (expr, None),
     };
     let (chemin, ops) = expr.split_at(expr.find('*').unwrap_or(expr.len()));
-    let mut x = crate::num::dec(suivre(source, chemin)?).ok()?;
+    let mut x = socle::num::dec(suivre(source, chemin)?).ok()?;
     let mut reste = ops;
     while let Some(op) = reste.chars().next() {
         let suite = &reste[1..];
@@ -214,7 +215,7 @@ impl Donnees {
         Donnees {
             annee,
             bareme: json_en_cache(&code.join("baremes").join(format!("{}.json", annee))).ok(),
-            minima: minima::table().ok(),
+            minima: droit::minima::table().ok(),
         }
     }
 }
@@ -412,7 +413,7 @@ struct Art30 {
 
 fn art30(b: &Value, annexe: &str) -> Option<Art30> {
     let a = b.get("annexes")?.get(annexe)?;
-    let n = |k: &str| a.get(k).and_then(|v| crate::num::dec(v).ok());
+    let n = |k: &str| a.get(k).and_then(|v| socle::num::dec(v).ok());
     Some(Art30 { heures_par_jour: n("heures_par_jour")?, coefficient: n("coefficient")?, jours_sans_allocation: n("jours_sans_allocation")? })
 }
 
@@ -448,7 +449,7 @@ struct GainRepetition {
     gain: Decimal,
     jours: i64,
     montant: Decimal,
-    minimum: minima::Minimum,
+    minimum: droit::minima::Minimum,
 }
 
 fn gain_repetition(ctx: &Contexte, p: &Paie, heures_cachet: Decimal) -> Resultat<Option<GainRepetition>> {
@@ -537,7 +538,7 @@ struct Declares<'a> {
 impl<'a> Declares<'a> {
     fn tous(&mut self) -> Resultat<&[Declare]> {
         if self.lus.is_none() {
-            self.lus = Some(cumul::lire_engagements(self.ctx, Some(self.paies))?);
+            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies))?);
         }
         Ok(self.lus.as_deref().unwrap_or(&[]))
     }
@@ -553,7 +554,7 @@ fn phrase_fenetre(b: &Value, f: &cumul::Position, anniversaire: bool) -> String 
 /// 12 mois jusqu'a `a_la_date`.
 fn position(ctx: &Contexte, cle: &str, engs: &[Declare], a_la_date: Jour) -> Resultat<(cumul::Position, bool)> {
     let anniv = cumul::anniversaire_configure(ctx, cle)?;
-    let p = cumul::position_droits(ctx, cle, Some(engs), anniv, Some(a_la_date))?;
+    let p = cumul::position_droits(ctx, cle, engs, anniv, Some(a_la_date))?;
     Ok((p, anniv.is_some()))
 }
 
@@ -594,7 +595,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
         let cle = texte(&p.salarie, "_cle");
         let (heures_mois, cachets_mois) = du_mois.get(&cle).copied().unwrap_or((0, 0));
         let qui = prenom(&p.salarie);
-        let mois = crate::date::libelle_du_mois_ou_tel_quel(&e.mois, crate::date::Graphie::Accentuee);
+        let mois = socle::date::libelle_du_mois_ou_tel_quel(&e.mois, socle::date::Graphie::Accentuee);
         let base = |extra: Vec<(&str, Valeur)>| -> Valeurs {
             let mut v = Valeurs::new();
             v.insert("prenom".into(), val_texte(qui.clone()));
@@ -682,7 +683,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
                 "saisie:enseignement" => {
                     let mut trouve = None;
                     for l in &p.remuneration {
-                        let r = crate::catalogue::rubrique(&ctx.racine, &l.code)?;
+                        let r = droit::catalogue::rubrique(&ctx.racine, &l.code)?;
                         if r.compte_pour != "ouverture_des_droits" {
                             continue;
                         }
@@ -721,12 +722,8 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
     let (debut, fin, _) = f;
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
-    for mois in crate::date::mois_entre(debut, fin) {
-        let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-        if !crate::fichiers::existe(&chemin) {
-            continue;
-        }
-        let Ok(saisie) = crate::engagement::charger(ctx, &chemin) else { continue };
+    for mois in socle::date::mois_entre(debut, fin) {
+        let Ok(saisie) = engagement::charger(ctx, &mois) else { continue };
         for p in &saisie.paies {
             let e = &p.engagement;
             if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {
@@ -759,7 +756,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine)?;
-    let engs = cumul::lire_engagements(ctx, None)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None)?;
     let (pos, anniv) = position(ctx, cle, &engs, jour)?;
     if pos.engagements.is_empty() {
         return Ok(Vec::new());
@@ -819,7 +816,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
         pousser(
             "historique:cachets-perdus",
             base(vec![
-                ("mois", val_texte(crate::date::libelle_du_mois_ou_tel_quel(&m, crate::date::Graphie::Accentuee))),
+                ("mois", val_texte(socle::date::libelle_du_mois_ou_tel_quel(&m, socle::date::Graphie::Accentuee))),
                 ("cachets", val_entier(n)),
                 ("plafond", val_entier(c.cachets_par_mois)),
                 ("perdus", val_entier(n - c.cachets_par_mois)),
@@ -853,7 +850,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine)?;
-    let engs = cumul::lire_engagements(ctx, None)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
     let mut fiches = Vec::new();

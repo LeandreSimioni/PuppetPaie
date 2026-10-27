@@ -1,22 +1,13 @@
-//! Les routes `saisie` et `echeancier` de l'interface (`moteur/web.py`,
-//! `moteur/operations_echeancier.py`, `moteur/operations_paies.py`).
+//! Les routes `saisie` et `echeancier` de l'interface.
 //!
-//! `saisie` : le mois tel que l'ecran l'ouvre -- le fichier `paies/AAAA-MM.json`
-//! ou, pour un mois neuf, un squelette vide au dernier taux saisi --, avec les
-//! noms resolus en cles de fiche et les lignes de paie telles que le moteur les
-//! comprend (`web._resoudre_noms`). AUCUN CALCUL DE PAIE : le Python chargeait
-//! la saisie par `operations_paies.charger`, donc la calculait, pour n'en tirer
-//! que la cle de chaque salarie et de chaque spectacle, et les lignes de
-//! remuneration (qui ne dependent que de l'engagement). Ici la saisie se charge
-//! comme `engagement::charger_donnees` jusqu'au contrat qui deborde, sans
-//! chiffrer. Seule difference : une saisie dont le CALCUL refuserait (un bareme
-//! absent, un minimum) mais dont l'engagement se construit est resolue ; le
-//! Python la rendait telle quelle, noms non resolus.
+//! `saisie` : le mois tel que l'ecran l'ouvre -- la saisie que ses engagements montrent (`engagement::stock::vue_du_mois`)
+//! ou, pour un mois neuf, un squelette vide au dernier taux saisi --, avec les noms resolus en cles de fiche et les lignes
+//! de paie telles que le moteur les comprend. Aucun calcul de paie pour l'ecran : la saisie se charge jusqu'au contrat qui
+//! deborde, sans chiffrer. Les paies validees que l'ecran montre se lisent par
+//! `engagement::etats::du_mois`, qui les recalcule si elles ne sont plus justes.
 //!
-//! `echeancier` : la date, ce qui est a faire ce mois-ci, et l'annee qui vient
-//! (`operations_echeancier.echeancier`). Les echeances annuelles sont dans
-//! `donnees/echeancier-base.json`, lu par le Python et par le Rust. Les etats du
-//! journal se lisent directement (`etats.rs`) : aucun processus `paie journal`.
+//! `echeancier` : la date, ce qui est a faire ce mois-ci, et l'annee qui vient. Les echeances annuelles sont dans
+//! `donnees/echeancier-base.json`. Les etats du journal se lisent directement (`etats.rs`).
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -24,13 +15,16 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::amorcage;
-use crate::calcul::lignes_brut;
-use crate::contexte::Contexte;
-use crate::date::{en_texte, jours_du_mois, Jour};
-use crate::engagement::{self, Engagement};
-use crate::etats::{self, erreur, nom_type, R};
-use crate::fichiers::{dossier_du_code, vrai};
-use crate::retours::Echec;
+use engagement::calcul::lignes_brut;
+use droit::contexte::Contexte;
+use socle::date::{en_texte, jours_du_mois, Jour};
+use engagement::{self, Engagement};
+use crate::etats;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, vrai};
+use socle::echec::Echec;
 use crate::routes_ouverture::{self as ouverture, Etat};
 
 /// Les routes que ce module sert.
@@ -61,7 +55,7 @@ fn nombre_f(x: f64) -> Value {
 
 /// `int(texte)` de Python, a quelques ecarts de forme pres.
 fn entier(t: &str) -> R<i32> {
-    t.trim().parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(t))))
+    t.trim().parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))))
 }
 
 /// Les `n` premiers caracteres (`mois[:n]`) et ceux de `a` a `b` (`mois[a:b]`).
@@ -93,7 +87,7 @@ pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
 /// a declarer. Rend la premiere embauche (`AAAA-MM-JJ`), ou `None`.
 pub(crate) fn avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<Option<String>> {
     let embauche = ctx.entreprise.get("premiere_embauche").and_then(Value::as_str).unwrap_or("").trim().to_string();
-    if embauche.len() < 7 || mois >= &embauche[..7] || ctx.racine.join("paies").join(format!("{}.json", mois)).exists() {
+    if embauche.len() < 7 || mois >= &embauche[..7] || engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)? {
         return Ok(None);
     }
     if crate::mois_importe::importe(&ctx.racine, mois)? || mois_hors_delai(ctx, mois)?.is_none() {
@@ -128,7 +122,7 @@ fn flottant_py(v: &Value) -> R<f64> {
         Value::String(s) => s
             .trim()
             .parse::<f64>()
-            .map_err(|_| erreur("ValueError", format!("nombre illisible : {}", crate::fichiers::repr(s)))),
+            .map_err(|_| erreur("ValueError", format!("nombre illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur("TypeError", format!("float() argument must be a string or a real number, not '{}'", nom_type(autre)))),
     }
 }
@@ -149,39 +143,16 @@ fn elements(v: Option<&Value>) -> R<Vec<Value>> {
 
 #[track_caller]
 fn pas_de_get(v: &Value) -> Echec {
-    erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v)))
+    erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v)))
 }
 
-/// `operations_paies.dernier_taux` : le taux du cachet le plus recemment saisi.
-/// Une ligne de cachet d'abord, le `taux_cachet` du mois a defaut ; `None` si
-/// aucun mois n'en dit rien. Le Python rendait alors 130 (herite de CoolPaie) :
-/// un chiffre qu'aucun texte ne fixe (regle 1, R12), le moteur ne propose plus rien
-/// et la compagnie saisit son premier cachet.
+/// Le taux du cachet le plus recemment saisi : une ligne de cachet d'abord, le `taux_cachet` du mois a defaut ; `None` si
+/// aucun mois n'en dit rien -- aucun texte ne fixe un taux de cachet (regle 1, R12), la compagnie saisit le sien.
 pub(crate) fn dernier_taux(ctx: &Contexte) -> R<Option<f64>> {
-    let dossier = ctx.racine.join("paies");
-    // Les mois connus : le radical de chaque `*.json` (le Python prenait aussi
-    // `2026-09.calcul`), du plus recent au plus ancien.
-    let mut mois: Vec<String> = match std::fs::read_dir(&dossier) {
-        Ok(l) => l
-            .filter_map(|e| e.ok())
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.ends_with(".json"))
-            .map(|n| match n.rfind('.') {
-                Some(i) if i > 0 && i < n.len() - 1 => n[..i].to_string(),
-                _ => n,
-            })
-            .collect(),
-        Err(_) => Vec::new(),
-    };
-    mois.sort();
-    mois.dedup();
+    let mut mois = engagement::stock::mois_saisis(&ctx.racine).map_err(Echec::from)?;
     mois.reverse();
     for m in mois {
-        let p = dossier.join(format!("{}.json", m));
-        if !p.exists() {
-            continue;
-        }
-        let Ok(data) = lire_saisie(&p) else { continue };
+        let Ok(Some(data)) = engagement::stock::vue_du_mois(&ctx.racine, &m) else { continue };
         let Some(objet) = data.as_object() else { return Err(pas_de_get(&data)) };
         for e in elements(objet.get("engagements"))?.iter().rev() {
             let Some(eng) = e.as_object() else { return Err(pas_de_get(e)) };
@@ -202,7 +173,7 @@ pub(crate) fn dernier_taux(ctx: &Contexte) -> R<Option<f64>> {
 /// leve est une ligne qui ne dit rien.
 fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
     let code = l.get("rubrique")?.as_str()?;
-    if crate::catalogue::rubrique(&ctx.racine, code).ok()?.unite != "cachet" {
+    if droit::catalogue::rubrique(&ctx.racine, code).ok()?.unite != "cachet" {
         return None;
     }
     let taux = l.get("taux").filter(|t| vrai(t))?;
@@ -213,9 +184,9 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
 /// contrat qui deborde, plus les lignes de remuneration de chaque engagement
 /// paye au cachet (elles ne dependent que de l'engagement). `None` quand le
 /// Python aurait refuse la saisie (la page la montre alors telle quelle).
-fn charger_sans_calcul(ctx: &Contexte, data: &Value) -> Option<Vec<crate::calcul::Paie>> {
-    let _derivation = crate::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, data, &crate::conges::lignes_du_mois).ok()?;
+fn charger_sans_calcul(ctx: &Contexte, data: &Value) -> Option<Vec<engagement::calcul::Paie>> {
+    let _derivation = engagement::conges::Derivation::ouvrir();
+    let (engs, _) = engagement::engagements(ctx, data, &engagement::conges::lignes_du_mois).ok()?;
     let mut paies = Vec::new();
     for e in &engs {
         paies.push(amorcage::embauche(ctx, e).ok()?);
@@ -230,7 +201,7 @@ fn charger_sans_calcul(ctx: &Contexte, data: &Value) -> Option<Vec<crate::calcul
 }
 
 /// `float(Decimal)` : la valeur la plus proche, par sa representation.
-fn decimal_en_f64(d: crate::num::Decimal) -> f64 {
+fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
     d.to_string().parse().unwrap_or(0.0)
 }
 
@@ -245,9 +216,9 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
         let resolu = match paies.first() {
             Some(p) => {
                 if !vrai(&p.spectacle) {
-                    return Err(erreur("TypeError", format!("'spectacle' : {}", crate::fichiers::attendu("un objet", nom_type(&p.spectacle)))));
+                    return Err(erreur("TypeError", format!("'spectacle' : {}", socle::fichiers::attendu("un objet", nom_type(&p.spectacle)))));
                 }
-                p.spectacle.get("_cle").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?
+                p.spectacle.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?
             }
             None => objet["spectacle"].clone(),
         };
@@ -258,10 +229,10 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
     for (e, p) in tous.iter().zip(&paies) {
         let Some(brut) = e.as_object() else { return Ok(saisie.clone()) };
         let mut resolu = brut.clone();
-        resolu.insert("salarie".into(), p.salarie.get("_cle").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+        resolu.insert("salarie".into(), p.salarie.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         // UN PERMANENT N'A PAS DE SPECTACLE : le numero d'objet lui est interdit.
         if vrai(&p.spectacle) {
-            resolu.insert("spectacle".into(), p.spectacle.get("_cle").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+            resolu.insert("spectacle".into(), p.spectacle.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         }
         // Les lignes d'un permanent sont CALCULEES, pas saisies.
         if !p.engagement.nat()?.mensuelle() {
@@ -282,7 +253,7 @@ const CHAMPS_DE_LIGNE_GARDES: [&str; 4] = ["heures", "genre", "base", "taux_majo
 
 /// `web._lignes_affichees` : les lignes de paie telles que le MOTEUR les a comprises.
 /// `remuneration` suit les lignes du fichier une a une (`calcul::lignes_brut`).
-fn lignes_affichees(ctx: &Contexte, p: &crate::calcul::Paie, brutes: &[Value]) -> R<Vec<Value>> {
+fn lignes_affichees(ctx: &Contexte, p: &engagement::calcul::Paie, brutes: &[Value]) -> R<Vec<Value>> {
     let lignes: Vec<Map<String, Value>> = p
         .remuneration
         .iter()
@@ -314,7 +285,7 @@ fn liste_py(v: &Value) -> R<Vec<Value>> {
         Value::Array(a) => Ok(a.clone()),
         Value::String(s) => Ok(s.chars().map(|c| Value::String(c.to_string())).collect()),
         Value::Object(o) => Ok(o.keys().map(|k| Value::String(k.clone())).collect()),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("une liste", nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
     }
 }
 
@@ -350,7 +321,7 @@ fn jours_sur_les_lignes(
     let cachet = |l: &Map<String, Value>| {
         l.get("rubrique")
             .and_then(Value::as_str)
-            .map_or(false, |c| crate::catalogue::rubrique(&ctx.racine, c).map_or(false, |r| r.unite == "cachet"))
+            .map_or(false, |c| droit::catalogue::rubrique(&ctx.racine, c).map_or(false, |r| r.unite == "cachet"))
     };
     let jours: Vec<Value> = eng.dates_travail.iter().map(|j| Value::String(j.iso())).collect();
     let Some(i) = lignes.iter().position(cachet) else {
@@ -424,7 +395,7 @@ fn descendre_le_mois(saisie: Value) -> Value {
     if let Some(Value::Array(engagements)) = m.get_mut("engagements") {
         for e in engagements.iter_mut() {
             let Value::Object(e) = e else { continue };
-            let mensuel = crate::contrats::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle());
+            let mensuel = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_or(false, |n| n.mensuelle());
             if let Some(s) = spectacle.as_ref().filter(|_| !mensuel && !e.get("spectacle").is_some_and(vrai)) {
                 e.insert("spectacle".into(), s.clone());
             }
@@ -438,18 +409,22 @@ fn descendre_le_mois(saisie: Value) -> Value {
 
 /// La route `saisie`.
 fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+    let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let mois = en_texte(brut);
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let existe = p.exists();
-    // `ctx` au squelette : un mois neuf s'ouvre VIDE, avec le dernier taux saisi.
-    let saisie = if existe { lire_saisie(&p)? } else { squelette(ctx, &mois)? };
+    let existe = engagement::stock::a_une_saisie(&ctx.racine, &mois).map_err(Echec::from)?;
+    // Un mois neuf s'ouvre VIDE, avec le dernier taux saisi ; un mois que des engagements touchent prend du squelette ce
+    // qu'il ne dit pas de lui.
+    let mut saisie = squelette(ctx, &mois)?;
+    if let Some(Value::Object(vue)) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? {
+        for (k, v) in vue {
+            saisie[k] = v;
+        }
+    }
     // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE (21/10/2026) n'est pas ferme : sa paie se modifie, en le
     // confirmant a la premiere modification (`routes_regularisation::modification_de_la_paie`) -- il n'est pas en retard.
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let dsn_deposee = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
     let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
-    let limite = if dsn_deposee.get("confirmer").is_some_and(vrai) || avant_embauche.is_some() { None } else { mois_hors_delai(ctx, &mois)? };
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
     // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : pas de fichier ici, mais l'historique importe le porte -- ses paies,
@@ -460,9 +435,6 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
         "existe": existe,
         "importe": importe,
         "defauts": defauts,
-        // Passe le 15 du mois suivant, le mois est ferme : la page le montre en
-        // lecture seule (le serveur refuserait de toute facon).
-        "hors_delai": limite.map(|j| j.iso()),
         // Un mois passe d'avant la premiere embauche : rien n'y est du, il se lit (`avant_la_premiere_embauche`).
         "avant_premiere_embauche": avant_embauche,
         // La DSN reelle du mois est deposee : ce qu'il faut savoir avant d'en modifier la paie (`null` sinon).
@@ -534,7 +506,7 @@ fn formater(modele: &str, valeurs: &[(&str, String)]) -> R<String> {
                         None => return Err(erreur("ValueError", "expected '}' before end of string")),
                     }
                 }
-                let v = valeurs.iter().find(|(k, _)| *k == nom).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(&nom)))?;
+                let v = valeurs.iter().find(|(k, _)| *k == nom).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(&nom)))?;
                 out.push_str(&v.1);
             }
             '}' => return Err(erreur("ValueError", "Single '}' encountered in format string")),
@@ -546,7 +518,7 @@ fn formater(modele: &str, valeurs: &[(&str, String)]) -> R<String> {
 
 fn libelle(mois: &str) -> R<String> {
     let n = entier(&tranche(mois, 5, 7))?;
-    let nom = crate::date::nom_du_mois(n as i64, crate::date::Graphie::Accentuee).map_err(|e| erreur("IndexError", e))?;
+    let nom = socle::date::nom_du_mois(n as i64, socle::date::Graphie::Accentuee).map_err(|e| erreur("IndexError", e))?;
     Ok(format!("{} {}", nom, tranche(mois, 0, 4)))
 }
 
@@ -567,7 +539,7 @@ fn mois_plus(mois: &str, n: i32) -> String {
 /// « mercredi 23 septembre 2026 ».
 fn date_en_clair(j: &Jour) -> String {
     // Le mois d'un `Jour` va de 1 a 12 : le repli (vide) ne peut pas arriver.
-    let mois = crate::date::nom_du_mois(j.mois as i64, crate::date::Graphie::Accentuee).unwrap_or_default();
+    let mois = socle::date::nom_du_mois(j.mois as i64, socle::date::Graphie::Accentuee).unwrap_or_default();
     format!("{} {} {} {}", JOURS[j.jour_de_la_semaine() as usize], j.jour, mois, j.an)
 }
 
@@ -584,7 +556,7 @@ fn dsn(st: &Etat, jour_dsn: u32, mois: &str, modele: &Value, aujourdhui: &Jour) 
         A_FAIRE
     };
     let suivant = mois_plus(mois, 1);
-    let champ = |c: &str| -> R<&str> { modele.get(c).and_then(Value::as_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(c))) };
+    let champ = |c: &str| -> R<&str> { modele.get(c).and_then(Value::as_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c))) };
     Ok(Echeance {
         cle: format!("dsn:{}", mois),
         quoi: "dsn".into(),
@@ -616,7 +588,7 @@ fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
         None => Ok(Map::new()),
         Some(Value::Object(f)) => Ok(f.clone()),
         // `.get("fait", {})` rend ce qui s'y trouve, et `in` s'y applique.
-        Some(autre) => Err(erreur("TypeError", format!("'fait' : {}", crate::fichiers::attendu("un objet", nom_type(autre))))),
+        Some(autre) => Err(erreur("TypeError", format!("'fait' : {}", socle::fichiers::attendu("un objet", nom_type(autre))))),
     }
 }
 
@@ -657,12 +629,12 @@ fn fait_annuel(ctx: &Contexte, e: &Value, annee: i32, faites: &Map<String, Value
 }
 
 fn mois_de_l_echeance(e: &Value, rang: Option<usize>) -> R<i64> {
-    let mois = e.get("mois").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+    let mois = e.get("mois").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let x = match rang {
         Some(i) => mois.get(i),
         None => mois.last(),
     };
-    x.and_then(Value::as_i64).ok_or_else(|| erreur("IndexError", crate::fichiers::trop_courte("les mois de l'échéance")))
+    x.and_then(Value::as_i64).ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les mois de l'échéance")))
 }
 
 /// Une echeance annuelle ; `None` quand elle ne concerne pas ce dossier.
@@ -676,7 +648,7 @@ fn annuelle(
     premier: &Option<String>,
 ) -> R<Option<Echeance>> {
     let ctx = st.ctx;
-    let cle = e.get("cle").and_then(Value::as_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("cle")))?;
+    let cle = e.get("cle").and_then(Value::as_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("cle")))?;
     let comment = e.get("fait_par").and_then(Value::as_str);
     // La cloture d'une annee dont aucun mois n'est dans PuppetPaie (tenue
     // ailleurs) ne concerne pas ce dossier.
@@ -715,7 +687,7 @@ fn annuelle(
             A_FAIRE
         }
     };
-    let champ = |c: &str| -> R<&str> { e.get(c).and_then(Value::as_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(c))) };
+    let champ = |c: &str| -> R<&str> { e.get(c).and_then(Value::as_str).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c))) };
     Ok(Some(Echeance {
         cle: format!("{}:{}", cle, annee),
         quoi: cle.to_string(),
@@ -734,7 +706,7 @@ fn annuelle(
 
 /// Les echeances annuelles de la convention de la fiche (`idcc`).
 pub(crate) fn annuelles_de<'a>(base: &'a Value, idcc: Option<&Value>) -> R<Vec<&'a Value>> {
-    let toutes = base.get("annuelles").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("annuelles")))?;
+    let toutes = base.get("annuelles").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("annuelles")))?;
     let voulu = idcc.map_or("None".to_string(), en_texte);
     Ok(toutes
         .iter()
@@ -762,7 +734,7 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let annuelles = annuelles_de(&base, ctx.entreprise.get("idcc"))?;
     let jour_dsn = ctx.echeance_dsn()?;
     let st = Etat { ctx, aujourdhui, journal: etats::charger(&ctx.racine)?, principal: ouverture::nic_principal(ctx) };
-    let modele = base.get("dsn").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("dsn")))?;
+    let modele = base.get("dsn").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("dsn")))?;
 
     let mut toutes: Vec<Echeance> = Vec::new();
     // Les DSN : celle qui tombe ce mois-ci (celle du mois d'avant), l'annee qui

@@ -11,11 +11,12 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str};
+use droit::contexte::Contexte;
+use socle::valeur::valeur_en_texte;
+use socle::echec::erreur;
 use crate::etats_paie::{ecarter_declares, finir, lignes_livre, Demande, Lecture, Periode};
-use crate::fichiers::vrai;
-use crate::num::{add, div, eur2, mul, zero2, Decimal};
+use socle::fichiers::vrai;
+use socle::num::{add, div, eur2, mul, zero2, Decimal};
 use crate::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, montant, qui, refus, sections_de, Ligne, Section, Tableau, R};
 
 // ------------------------------------------------------------------ outils
@@ -40,7 +41,7 @@ fn py_max(a: Decimal, b: Decimal) -> Decimal {
 
 /// `Decimal(str(v))` d'une valeur d'un fichier de baremes.
 fn dec_de(v: &Value) -> R<Decimal> {
-    crate::num::dec(v).map_err(|m| erreur("InvalidOperation", m))
+    socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m))
 }
 
 /// `plan_comptable(ctx)` : le plan livre recouvert par `config/plan-comptable.json`, et d'ou il vient.
@@ -58,9 +59,9 @@ fn organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let mut out = Vec::new();
     if let Some(Value::Object(lignes)) = plan.get("lignes") {
         for (k, v) in lignes {
-            let tiers = v.get("tiers").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("tiers")))?;
-            let nom = noms.and_then(|n| n.get(py_str(tiers).as_str())).filter(|n| vrai(n)).map(py_str);
-            out.push((k.clone(), nom.unwrap_or_else(|| format!("Organisme {}", py_str(tiers)))));
+            let tiers = v.get("tiers").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("tiers")))?;
+            let nom = noms.and_then(|n| n.get(valeur_en_texte(tiers).as_str())).filter(|n| vrai(n)).map(valeur_en_texte);
+            out.push((k.clone(), nom.unwrap_or_else(|| format!("Organisme {}", valeur_en_texte(tiers)))));
         }
     }
     Ok(out)
@@ -95,11 +96,11 @@ fn socle_de(ctx: &Contexte, an: i32) -> R<Value> {
 }
 
 fn annee_entiere(an: &str) -> R<i32> {
-    an.parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(an))))
+    an.parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(an))))
 }
 
 fn idcc_de(ctx: &Contexte) -> String {
-    ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(py_str).unwrap_or_default()
+    ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
 }
 
 // ===================================== 6. les cotisations par organisme
@@ -171,7 +172,7 @@ pub(crate) fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tablea
                         let mut reparti = zero;
                         for (part, id_org, quoi) in [(rg.urssaf, "maladie", "part Urssaf"), (rg.chomage, "chomage", "part chômage"), (rg.agirc_arrco, "retraite_t1", "part retraite")] {
                             if !part.is_zero() {
-                                let o = org_de(id_org).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(id_org)))?;
+                                let o = org_de(id_org).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(id_org)))?;
                                 ajouter(&m, &o, &c.id, &format!("{} — {}", c.libelle, quoi), None, None, zero, None, -part);
                                 reparti = add(reparti, part);
                             }
@@ -264,7 +265,7 @@ fn lire_blocs(chemin: &Path, prefixes: &[&str]) -> R<Vec<Bloc>> {
     let mut en_cours = false;
     for l in crate::apercu_dsn::lignes_py(&texte) {
         let Some((k, v)) = l.split_once(',') else { continue };
-        let v = v.trim_matches(crate::retours::blanc_py).trim_matches('\'').to_string();
+        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'').to_string();
         let bloc: String = k.chars().take(10).collect();
         if !prefixes.contains(&bloc.as_str()) {
             en_cours = false;
@@ -329,7 +330,7 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let mut out: Vec<(String, String)> = Vec::new();
     for v in d.get("versements").and_then(Value::as_array).into_iter().flatten() {
         if let Some(siret) = v.get("siret").filter(|s| vrai(s)) {
-            let (k, lib) = (py_str(siret), v.get("libelle").map(py_str).unwrap_or_default());
+            let (k, lib) = (valeur_en_texte(siret), v.get("libelle").map(valeur_en_texte).unwrap_or_default());
             match out.iter_mut().find(|(c, _)| *c == k) {
                 Some(x) => x.1 = lib,
                 None => out.push((k, lib)),
@@ -547,7 +548,7 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
     let idcc = idcc_de(ctx);
-    let table = crate::routes_listes::lire_json(&crate::fichiers::dossier_du_code().join("prevoyance-conventionnelle-base.json"))?;
+    let table = crate::routes_listes::lire_json(&socle::fichiers::dossier_du_code().join("prevoyance-conventionnelle-base.json"))?;
     let fp = table.get("conventions").and_then(|c| c.get(idcc.as_str())).and_then(|r| r.get("financement_paritarisme")).filter(|v| vrai(v)).cloned();
     let Some(fp) = fp else {
         return Err(refus(format!(
@@ -565,7 +566,7 @@ pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         for b in lire_blocs(&chemin, &["S21.G00.78"])? {
             if b.get("001") == Some("02") {
                 let t = b.get("004").filter(|t| !t.is_empty()).unwrap_or("0");
-                let x = crate::apercu_dsn::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", crate::num::illisible(t)))?;
+                let x = crate::apercu_dsn::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))?;
                 ta = add(ta, x);
             }
         }
@@ -644,7 +645,7 @@ pub(crate) fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut par_an: Vec<(String, Decimal, Decimal)> = Vec::new();
     let zero = zero2();
     // Un permanent est une nature MENSUELLE du catalogue des contrats.
-    let mensuelles: Vec<String> = crate::contrats::natures().map_err(|m| erreur("ErreurOperation", m))?.iter().filter(|n| n.mensuelle()).map(|n| n.libelle.clone()).collect();
+    let mensuelles: Vec<String> = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?.iter().filter(|n| n.mensuelle()).map(|n| n.libelle.clone()).collect();
     for l in lignes_livre(ctx, &p, &mut avert)? {
         let Some(brut) = l.brut else { continue };
         let an: String = l.mois.chars().take(4).collect();
@@ -681,7 +682,7 @@ pub(crate) fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             .get("contribution_conventionnelle_permanents")
             .and_then(|c| c.get("par_effectif"))
             .and_then(Value::as_array)
-            .ok_or_else(|| erreur("KeyError", crate::fichiers::absent("contribution_conventionnelle_permanents")))?;
+            .ok_or_else(|| erreur("KeyError", socle::fichiers::absent("contribution_conventionnelle_permanents")))?;
         let eff = effectif.unwrap_or(0.0);
         let tranche = tranches
             .iter()
@@ -767,8 +768,8 @@ pub(crate) fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         if let Some(pl) = f.get("plafond").filter(|v| !v.is_null()) {
             m = py_min(m, dec_de(pl)?);
         }
-        let collecteur = f.get("collecteur").filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| "l'organisme collecteur de la branche".to_string());
-        if let Some(a) = f.get("avertissement").filter(|v| vrai(v)).map(py_str) {
+        let collecteur = f.get("collecteur").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "l'organisme collecteur de la branche".to_string());
+        if let Some(a) = f.get("avertissement").filter(|v| vrai(v)).map(valeur_en_texte) {
             if !avert.contains(&a) {
                 avert.push(a);
             }

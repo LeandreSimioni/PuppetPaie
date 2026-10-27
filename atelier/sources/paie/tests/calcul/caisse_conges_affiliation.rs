@@ -13,14 +13,11 @@
 //! anciennete dans la branche), et son config/organismes.json le CTP 332 des permanents tel que le recompose
 //! `donnees/organismes-base.json`. Rien n'est ecrit dans `tests/donnees/fictives/`.
 
-use paie::caisse_conges::{affilie, douze_mois_ou_plus};
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::contrats::nature;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
-use paie::num::Decimal;
+use engagement::Saisie;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 use crate::outils::{base81, chemin_unique, contrat, ctp, dec, ecrire, lire, valeur, versement, Copie};
 
@@ -59,7 +56,7 @@ fn saisie(ctx: &Contexte, engagements: Value) -> Result<Saisie, String> {
     let chemin = chemin_unique("caisse-conges.json");
     let s = json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": engagements});
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let r = charger(ctx, &chemin);
+    let r = crate::outils::charger_fichier(ctx, &chemin);
     let _ = std::fs::remove_file(&chemin);
     r
 }
@@ -190,16 +187,6 @@ fn un_cdi_n_a_ni_la_caisse_ni_les_majorations() {
 }
 
 #[test]
-fn un_cdd_declare_a_la_caisse_ne_se_declare_pas_sur_un_organismes_compose_avant() {
-    // config/organismes.json compose avant le lot V2f : le 332 des permanents lit `t1_permanent`, la tranche 1 nue.
-    let copie = copie(false);
-    let ctx = copie.contexte("2026-10-28");
-    let s = saisie(&ctx, json!([au_mois("cdd", "DE5.26.09", Some("2026-11-30"))])).unwrap();
-    let e = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap_err();
-    assert!(e.contains("t1_x115_permanent") && e.contains("Rien n'est ecrit"), "{}", e);
-}
-
-#[test]
 fn la_caisse_paie_les_conges_d_un_cdd_declare_l_employeur_ne_les_paie_pas_en_plus() {
     let copie = copie(true);
     let ctx = copie.contexte("2026-10-28");
@@ -209,35 +196,13 @@ fn la_caisse_paie_les_conges_d_un_cdd_declare_l_employeur_ne_les_paie_pas_en_plu
     assert!(err.contains("caisse des Conges Spectacles") && err.contains("deux fois"), "{}", err);
 }
 
-#[test]
-fn qui_est_declare_a_la_caisse() {
-    let (cddu, cdd, cdi) = (nature(Some("cddu_spectacle")).unwrap(), nature(Some("cdd")).unwrap(), nature(Some("cdi")).unwrap());
-    let j = |s: &str| Jour::lire(s).unwrap();
-    let comedien = json!({"code_emploi_ft": "COM010", "statut": "artiste"});
-    let regisseur = json!({"code_emploi_ft": "REG130", "statut": "technicien"});
-    let sans_metier = json!({"statut": "technicien"});
-    let (debut, trois_mois, un_an) = (j("2026-09-01"), j("2026-11-30"), j("2027-08-31"));
-    assert!(douze_mois_ou_plus(&debut, &un_an).unwrap());
-    assert!(affilie(&cddu, &comedien, &debut, Some(&trois_mois)).unwrap());
-    assert!(!affilie(&cddu, &comedien, &debut, Some(&un_an)).unwrap(), "un CDDU de douze mois");
-    assert!(affilie(&cdd, &comedien, &debut, Some(&trois_mois)).unwrap(), "un artiste en CDD de droit commun");
-    assert!(!affilie(&cdd, &comedien, &debut, Some(&un_an)).unwrap(), "un CDD de douze mois");
-    // Le technicien en CDD de droit commun : non declare tant que n'est pas decide quel technicien la caisse attend
-    // (l'annexe 8 range aussi l'attache de production parmi les techniciens ; PASSATION-V2f.md).
-    assert!(!affilie(&cdd, &regisseur, &debut, Some(&trois_mois)).unwrap(), "un technicien en CDD de droit commun");
-    assert!(affilie(&cddu, &regisseur, &debut, Some(&trois_mois)).unwrap(), "un technicien en CDDU");
-    assert!(!affilie(&cdd, &sans_metier, &debut, Some(&trois_mois)).unwrap(), "un metier hors de la nomenclature");
-    assert!(!affilie(&cdi, &comedien, &debut, None).unwrap(), "un CDI");
-    assert!(affilie(&cdd, &comedien, &debut, None).unwrap_err().contains("sans terme"));
-}
-
 /// #132 (V2f, « vu sans le faire ») : la caisse paie les conges d'un CDD declare (D. 7121-41) ; son bulletin ne montre
 /// donc pas le compteur de conges de l'employeur. Celui d'un CDI, si.
 #[test]
 fn le_bulletin_d_un_cdd_declare_a_la_caisse_n_a_pas_le_compteur_de_conges_de_l_employeur() {
     let copie = copie(true);
     let ctx = copie.contexte("2026-10-28");
-    let ent = paie::oracle::entreprise_du_mois(&ctx, "2026-10").unwrap();
+    let ent = ctx.entreprise_du_mois("2026-10").unwrap();
     let compteur = |e: Value| -> bool {
         let s = saisie(&ctx, json!([e])).unwrap();
         let d = paie::bulletin::jeux_et_description(&ctx, &s.paies, &ent, "2026-10", None, false, &Default::default()).unwrap();

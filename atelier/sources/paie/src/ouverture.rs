@@ -36,14 +36,16 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::courriel::Courriel;
 use crate::drive::Drive;
-use crate::etats::{self, py_str, R};
-use crate::fichiers::vrai;
+use crate::etats;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::fichiers::vrai;
 use crate::releve_retours::{self, Client, Releve};
 use crate::releve_signatures::{self, ReleveSignatures};
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_fiches_courriel::{self, ReleveFiches};
 use crate::sauvegarde::{self, Sauvegarde};
 
@@ -135,7 +137,7 @@ impl Options {
         let entier = |cle: &str, defaut: i64| charge.get(cle).and_then(|v| v.as_i64().or_else(|| v.as_f64().map(|f| f as i64))).unwrap_or(defaut);
         o.jours = entier("jours", o.jours);
         o.pas_avant = entier("pas_avant", o.pas_avant);
-        if let Some(r) = charge.get("racine_drive").filter(|v| vrai(v)).map(py_str) {
+        if let Some(r) = charge.get("racine_drive").filter(|v| vrai(v)).map(valeur_en_texte) {
             o.racine_drive = r;
         }
         o
@@ -240,7 +242,7 @@ impl Ouverture {
                     "chemin": a.chemin.to_string_lossy(),
                     "fichier": a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
                     "nature": a.retour.get("nature").cloned().unwrap_or(Value::Null),
-                    "libelle": crate::retours::libelle_nature(&a.retour.get("nature").map(py_str).unwrap_or_else(|| "None".to_string())),
+                    "libelle": crate::retours::libelle_nature(&a.retour.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".to_string())),
                 })).collect::<Vec<_>>(),
                 "rattaches": r.rattaches,
             })
@@ -310,7 +312,7 @@ fn chemin_etape(racine: &Path) -> std::path::PathBuf {
 }
 
 fn dire_l_etape(ctx: &Contexte, etape: &str) {
-    let _ = crate::ecriture::ecrire_json(&chemin_etape(&ctx.racine), &json!({"etape": etape, "depuis": quand_maintenant()}), 1);
+    let _ = socle::ecriture::ecrire_json(&chemin_etape(&ctx.racine), &json!({"etape": etape, "depuis": quand_maintenant()}), 1);
 }
 
 fn finir_les_etapes(ctx: &Contexte) {
@@ -364,7 +366,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
             .unwrap_or_default()
     };
     let hors_tests = |liste: &[Value]| -> usize {
-        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| etats::eq_py(f, t)))).count()
+        liste.iter().filter(|x| !tests.iter().any(|t| x.get("flux").is_some_and(|f| socle::valeur::valeurs_egales(f, t)))).count()
     };
     let (trouves, nouveaux) = match &r.releve {
         Some(rel) => (hors_tests(&rel.trouves), hors_tests(&rel.nouveaux)),
@@ -412,7 +414,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
     trace.insert("a_poser".into(), json!(r.a_poser));
     trace.insert("taux_pas".into(), json!(r.taux_pas));
     trace.insert("horloge".into(), json!(r.horloge));
-    let _ = crate::ecriture::ecrire_json(&p, &Value::Object(trace), 1);
+    let _ = socle::ecriture::ecrire_json(&p, &Value::Object(trace), 1);
 }
 
 // ------------------------------------------------------------------ outils
@@ -450,7 +452,7 @@ fn naif_de_quand(quand: &str) -> Option<i64> {
 /// `pas_avant` ne retenait donc jamais rien. Ici les deux formes se lisent, et l'option fait ce que son nom et son aide
 /// disent. A VALIDER (voir la passation).
 fn age_de_la_derniere(precedente: &Value) -> Option<i64> {
-    let quand = precedente.get("quand").filter(|v| vrai(v)).map(py_str)?;
+    let quand = precedente.get("quand").filter(|v| vrai(v)).map(valeur_en_texte)?;
     let avant = naif_de_quand(&quand)?;
     Some(releve_retours::maintenant_naif() - avant)
 }
@@ -482,7 +484,7 @@ fn trier_hors_ligne(r: &mut Ouverture) {
 fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
     finir_les_etapes(ctx);
     trier_hors_ligne(r);
-    r.secondes = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
+    r.secondes = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     noter_ouverture(ctx, r, precedente);
 }
 
@@ -497,7 +499,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     };
     let etait_hors_ligne = avant.get("hors_ligne").is_some_and(vrai);
     trier_hors_ligne(r);
-    let ma_duree = (crate::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
+    let ma_duree = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     r.secondes = ma_duree;
     let mut trace = avant.clone();
     let liste = |cle: &str| -> Vec<Value> { avant.get(cle).and_then(Value::as_array).cloned().unwrap_or_default() };
@@ -519,7 +521,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     let mut manquants = liste("manquants");
     manquants.extend(r.manquants.iter().filter(|m| !r.phrases_coffre.contains(m)).map(|m| json!(m)));
     trace.insert("manquants".into(), Value::Array(manquants));
-    let _ = crate::ecriture::ecrire_json(&chemin_trace(ctx), &Value::Object(trace), 1);
+    let _ = socle::ecriture::ecrire_json(&chemin_trace(ctx), &Value::Object(trace), 1);
 }
 
 // ------------------------------------------------------------------ l'ouverture
@@ -601,7 +603,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         }
         dire_l_etape(ctx, "Compagnie fictive : signatures et fiches des salariés…");
         // Le resultat de la relève jouee n'est pas gardé : le Python le jetait aussi (`simulation.relever_signatures(ctx)`).
-        if let Err(e) = releve_signatures::relever_signatures_fictive(o, ctx, releve_signatures::DELAI_FICTIVE) {
+        if let Err(e) = releve_signatures::relever_signatures_fictive(ctx, releve_signatures::DELAI_FICTIVE) {
             r.incidents.push(format!("Signatures : {}", e.message));
         }
         match routes_fiches_courriel::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {
@@ -615,13 +617,13 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     }
 
     if retours {
-        relever_les_retours(o, ctx, opt, &mut clients, &mut r);
+        relever_les_retours(ctx, opt, &mut clients, &mut r);
     }
 
     // LE PAS, AU MEME PASSAGE QUE LES RETOURS, et juste apres eux : c'est un retour qui pose les taux, donc c'est ici qu'ils
     // sont les plus frais. Cela se fait hors ligne aussi (une lecture de config/pas.json), parce qu'un taux perime le reste
     // que le reseau soit la ou non.
-    match crate::pas::avertissements(ctx, None, None) {
+    match droit::pas::avertissements(ctx, None, None) {
         Ok(l) => r.taux_pas = l,
         Err(m) => r.incidents.push(format!("Taux de PAS : {}", m)),
     }
@@ -629,7 +631,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     if signatures {
         dire_l_etape(ctx, "Boîte courriel : contrats revenus signés…");
         // Les reponses « Je signe ». La relève ne leve pas pour un compte absent ou une permission manquante : elle le dit.
-        match releve_signatures::relever_signatures(o, ctx, reborrow_courriel(&mut clients.courriel), None, "veille") {
+        match releve_signatures::relever_signatures(ctx, reborrow_courriel(&mut clients.courriel), None, "veille") {
             Ok(s) => {
                 r.incidents.extend(s.incidents.iter().cloned());
                 r.signatures = Some(s);
@@ -653,7 +655,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
         match crate::routes_actes_h2::filet_preparer_avec(o, ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
             Ok(f) => {
-                r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(py_str));
+                r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(valeur_en_texte));
                 r.filet = Some(f);
             }
             Err(e) => r.incidents.push(format!("DPAE préparée d'avance : {}", e.message)),
@@ -670,7 +672,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         let _ = crate::incidents::envoyer(&ctx.racine);
         // LE NOMBRE DE PAIES DE L'ANNEE PASSEE (ticket #246), a partir du 16 janvier, une fois : `nombre_de_paies` decide
         // seul (ni fictive, ni copie de developpement, ni logiciel bride, ni envoi coupe) et retient ce qui est parti.
-        let _ = crate::nombre_de_paies::envoyer_si_du(o, ctx);
+        let _ = crate::nombre_de_paies::envoyer_si_du(ctx);
         // Les messages « Un probleme, une idee ? » que l'envoi en fond n'a pas fait partir (serveur injoignable...).
         let _ = crate::problemes::partir(&ctx.racine);
         let _ = crate::problemes::relever_reponses(&ctx.racine);
@@ -712,7 +714,7 @@ fn reborrow_courriel<'b>(c: &'b mut Option<&mut dyn Courriel>) -> Option<&'b mut
 }
 
 /// Les retours DSN (net-entreprises) puis DPAE (Urssaf) : un secret absent est un manque, une panne est un incident.
-fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>, r: &mut Ouverture) {
+fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>, r: &mut Ouverture) {
     // Le canal DSN.
     let client_dsn = clients.dsn.take();
     let dispo = match &client_dsn {
@@ -736,7 +738,7 @@ fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Option
         Some(true) => {
             dire_l_etape(ctx, "net-entreprises : retours des DSN…");
             let fin = releve_retours::maintenant_naif();
-            match releve_retours::relever_retours(ctx, o, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
+            match releve_retours::relever_retours(ctx, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
                 Ok(rel) => {
                     r.incidents.extend(rel.incidents.iter().cloned());
                     r.manquants.extend(rel.a_faire.iter().cloned());
@@ -773,8 +775,8 @@ fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Option
             // Un client donne passe par la meme releve que le vrai (canal `dpae`) ; sans client, `relever_retours_dpae`
             // cherche le mot de passe de consultation et construit le sien.
             let rel = match client_dpae {
-                Some(c) => releve_retours::relever_retours(ctx, o, debut, fin, false, "production", Some(c), "dpae"),
-                None => releve_retours::relever_retours_dpae(ctx, o, debut, fin, false, ""),
+                Some(c) => releve_retours::relever_retours(ctx, debut, fin, false, "production", Some(c), "dpae"),
+                None => releve_retours::relever_retours_dpae(ctx, debut, fin, false, ""),
             };
             match rel {
                 Ok(rel) => {

@@ -1,13 +1,13 @@
-//! `paie generer-tables SOURCES SRC` : ecrit les quatre tables que le moteur tient de l'Unicode (et de quelques autres
-//! textes) depuis les textes deposes dans `atelier/reference/sources/` (`SOURCES`), dans `atelier/sources/paie/src/`
-//! (`SRC`) :
+//! `paie generer-tables SOURCES ESPACE` : ecrit les quatre tables que le moteur tient de l'Unicode (et de quelques autres
+//! textes) depuis les textes deposes dans `atelier/reference/sources/` (`SOURCES`), dans l'espace `atelier/sources/`
+//! (`ESPACE`) :
 //!
-//! - `tables_nfkc.rs` (pour `nfkc.rs`) : la decomposition de compatibilite complete, les classes de combinaison et les
+//! - `socle/src/tables_nfkc.rs` (pour `nfkc.rs`) : la decomposition de compatibilite complete, les classes de combinaison et les
 //!   compositions canoniques ;
-//! - `nfkd_ascii.rs` (pour `dpae.rs`) : ce que la decomposition de compatibilite laisse d'ASCII, et `str.isdigit` ;
-//! - `tables_retours.rs` (pour `retours.rs`) : `\d`, cp437, windows-1252, les noms d'encodage que `pyexpat` connait, les
+//! - `paie/src/nfkd_ascii.rs` (pour `dpae.rs`) : ce que la decomposition de compatibilite laisse d'ASCII, et `str.isdigit` ;
+//! - `paie/src/tables_retours.rs` (pour `retours.rs`) : `\d`, cp437, windows-1252, les noms d'encodage que `pyexpat` connait, les
 //!   caracteres d'un nom XML qu'expat admet ;
-//! - `tables_journal.rs` (pour `etats.rs`) : `str.isalnum`.
+//! - `paie/src/tables_journal.rs` (pour `etats.rs`) : `str.isalnum`.
 //!
 //! Les textes (`LISEZ-MOI.md` de chaque dossier) :
 //! - `unicode/` : la base de caracteres Unicode (`UnicodeData.txt`, `DerivedNormalizationProps.txt`,
@@ -36,7 +36,7 @@ pub const XML_4E: &str = "w3c/w3c-xml-1.0-quatrieme-edition-20060816.html";
 pub const CODECS: &str = "python/python-releve-codecs-pyexpat-3.11.17-20261015.txt";
 
 /// Les quatre fichiers ecrits, dans l'ordre.
-pub const FICHIERS: [&str; 4] = ["tables_nfkc.rs", "nfkd_ascii.rs", "tables_retours.rs", "tables_journal.rs"];
+pub const FICHIERS: [&str; 4] = ["socle/src/tables_nfkc.rs", "paie/src/nfkd_ascii.rs", "paie/src/tables_retours.rs", "paie/src/tables_journal.rs"];
 
 const FIN: u32 = 0x110000;
 
@@ -449,14 +449,14 @@ pub fn generer(sources: &Path) -> Result<Vec<(&'static str, String)>, String> {
 
 /// `paie generer-tables SOURCES SRC`.
 pub fn commande(args: &[String]) -> i32 {
-    let [sources, src] = args else {
-        eprintln!("usage : paie generer-tables SOURCES SRC   (SOURCES : atelier/reference/sources ; SRC : atelier/sources/paie/src)");
+    let [sources, espace] = args else {
+        eprintln!("usage : paie generer-tables SOURCES ESPACE   (SOURCES : atelier/reference/sources ; ESPACE : atelier/sources)");
         return 2;
     };
     match generer(Path::new(sources)) {
         Ok(fichiers) => {
             for (nom, contenu) in fichiers {
-                let chemin = Path::new(src).join(nom);
+                let chemin = Path::new(espace).join(nom);
                 if let Err(e) = std::fs::write(&chemin, contenu) {
                     eprintln!("{} : {}", chemin.display(), e);
                     return 1;

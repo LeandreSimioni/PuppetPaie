@@ -20,7 +20,7 @@ use super::actes::{est_refus_d_envoi, ouvrir_la_boite, options_requises, reponse
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::champ;
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "casc-envoyer", positionnels: &[], options: &[Opt::ajout("vire-le"), Opt::drapeau("fenetre")] };
 

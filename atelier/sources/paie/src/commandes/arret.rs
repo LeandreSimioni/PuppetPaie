@@ -23,8 +23,8 @@ use super::actes::{est_refus, jj_mm_aaaa, jour_option, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{brut, champ, enveloppe, rendre, texte};
 use super::Cadre;
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "arret",
@@ -71,7 +71,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(Some("ErreurOperation"), m)
+    socle::echec::noter_et(Some("ErreurOperation"), m)
 }
 
 /// Une option texte, vide ou absente = absente (`if args.x`).
@@ -108,7 +108,7 @@ fn oui_non(cadre: &Cadre, v: &str) -> Result<Value, Echec> {
     let n = crate::routes_listes::nomenclatures(&cadre.ctx)?;
     let codes: Vec<Value> = n.get("subrogation").and_then(|s| s.get("codes")).and_then(Value::as_array).cloned().unwrap_or_default();
     let table: Vec<(String, String)> = codes.iter().map(|c| (champ(c, "libelle"), champ(c, "code"))).collect();
-    let v = v.trim_matches(crate::retours::blanc_py).to_lowercase();
+    let v = v.trim_matches(socle::texte::blanc).to_lowercase();
     if let Some((_, code)) = table.iter().find(|(lib, _)| *lib == v) {
         return Ok(json!(code));
     }

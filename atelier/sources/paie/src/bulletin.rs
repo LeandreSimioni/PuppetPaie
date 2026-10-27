@@ -7,15 +7,16 @@
 //! sert plus qu'aux tests du Python, `numeros_archives` et `_montant_lu`
 //! (relecture d'un PDF ecrit).
 
-use crate::calcul::Paie;
-use crate::conges::{compteur_au_bulletin, CompteurConges};
-use crate::contexte::Contexte;
-use crate::cumul::{lire_engagements, tableau_cumul, Colonne};
-use crate::date::{d, dernier_du_mois, en_texte, repr_py, Jour};
-use crate::emplois;
-use crate::fichiers::vrai;
-use crate::num::{dec, dec_f64, div, sub, Decimal, Resultat};
-use crate::pas::{self, Versement};
+use engagement::calcul::Paie;
+use engagement::conges::{compteur_au_bulletin, CompteurConges};
+use droit::contexte::Contexte;
+use droit::cumul::{tableau_cumul, Colonne};
+use engagement::cumul::lire_engagements;
+use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
+use droit::emplois;
+use socle::fichiers::vrai;
+use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
+use droit::pas::Versement;
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
@@ -103,7 +104,7 @@ fn num(x: f64) -> Value {
 }
 
 fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    o.get(cle).ok_or_else(|| crate::fichiers::absent(cle))
+    o.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 /// `str(o[cle])`.
@@ -275,6 +276,13 @@ pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<(
         }
         Some(_) => Ok((idcc, libelle)),
     }
+}
+
+/// Un bulletin qui remplace en entier celui qui est parti (`{"remplace": true, "rectifie", "mois_origine"}`) : la paie du
+/// mois refaite avant que sa DSN ne soit close, imprimee comme un bulletin du mois, sous un nouveau numero. Sans
+/// `remplace`, c'est la regularisation d'un mois clos, versee avec une paie suivante (`rectificatif_lignes`).
+pub fn remplace_en_entier(r: &Value) -> bool {
+    r.get("remplace").is_some_and(vrai)
 }
 
 /// `_rectificatif_lignes` : le bas d'un bulletin RECTIFICATIF.
@@ -582,7 +590,7 @@ const FACULTATIVES: &str = "COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES";
 /// charges dues par l'employeur » ». La caisse est propre au secteur, legale (C. trav. L. 3141-32 et D. 7121-40,
 /// atelier/reference/sources/code-du-travail/articles-20261013.md : l'employeur du spectacle « s'affilie ») et a la seule
 /// charge de l'employeur (le bareme n'a pas de taux salarial).
-fn rang(l: &crate::calcul::LigneCotisation) -> Rang {
+fn rang(l: &engagement::calcul::LigneCotisation) -> Rang {
     let seule_employeur = l.taux_sal.is_none() && l.montant_sal.is_zero();
     match l.id.as_str() {
         "maladie" | "regime_local" | "mutuelle" => Rang::Sante,
@@ -623,8 +631,8 @@ fn obligatoire(r: &Rang) -> bool {
 
 /// Les lignes de cotisation d'une paie, groupees par rang dans l'ordre du modele (un tri stable : les familles que le
 /// moteur ne range pas gardent leur ordre entre elles, et les lignes d'un rang celui du moteur).
-fn rangees(p: &Paie) -> Vec<(Rang, Vec<&crate::calcul::LigneCotisation>)> {
-    let mut rangees: Vec<(Rang, Vec<&crate::calcul::LigneCotisation>)> = Vec::new();
+fn rangees(p: &Paie) -> Vec<(Rang, Vec<&engagement::calcul::LigneCotisation>)> {
+    let mut rangees: Vec<(Rang, Vec<&engagement::calcul::LigneCotisation>)> = Vec::new();
     for l in &p.lignes {
         let r = rang(l);
         match rangees.iter_mut().find(|(x, _)| *x == r) {
@@ -639,7 +647,7 @@ fn rangees(p: &Paie) -> Vec<(Rang, Vec<&crate::calcul::LigneCotisation>)> {
 /// Le libelle qu'une ligne de « Santé » ou de « Retraite » prend du modele ; celles qu'il ne nomme pas (le regime
 /// local d'Alsace-Moselle, la CET d'un permanent, que le moteur calcule sur T1 + T2 sans la partager entre les deux
 /// tranches) gardent le leur.
-fn libelle_du_modele(l: &crate::calcul::LigneCotisation) -> String {
+fn libelle_du_modele(l: &engagement::calcul::LigneCotisation) -> String {
     match l.id.as_str() {
         "maladie" => SANTE_SECU.into(),
         "mutuelle" => SANTE_COMPLEMENTAIRE.into(),
@@ -660,7 +668,7 @@ fn montant_ou_rien(x: Decimal) -> String {
 }
 
 /// La base d'une ligne, et son taux salarial et son taux employeur ; rien la ou le bareme masque base et taux.
-fn base_et_taux(l: &crate::calcul::LigneCotisation) -> Resultat<(String, String, String)> {
+fn base_et_taux(l: &engagement::calcul::LigneCotisation) -> Resultat<(String, String, String)> {
     if l.masquer_base_et_taux {
         return Ok((String::new(), String::new(), String::new()));
     }
@@ -675,7 +683,7 @@ fn base_et_taux(l: &crate::calcul::LigneCotisation) -> Resultat<(String, String,
 
 /// Une ligne de cotisation du bulletin : libelle, base (sauf `masquer_base_et_taux`), taux salarial, montant salarial,
 /// montant employeur ; un montant nul ne s'ecrit pas.
-fn ligne_cotisation(libelle: String, l: &crate::calcul::LigneCotisation) -> Resultat<Value> {
+fn ligne_cotisation(libelle: String, l: &engagement::calcul::LigneCotisation) -> Resultat<Value> {
     let ts = match l.taux_sal {
         Some(t) => fmt_taux(dec_f64(t)?),
         None => String::new(),
@@ -689,7 +697,7 @@ fn titre_groupe(titre: &str, colonnes: i64) -> Value {
 }
 
 /// Les lignes d'un groupe de rangs egaux, dans l'ordre du moteur.
-fn lignes_du_rang(r: &Rang, lignes: &[&crate::calcul::LigneCotisation]) -> Resultat<Vec<Value>> {
+fn lignes_du_rang(r: &Rang, lignes: &[&engagement::calcul::LigneCotisation]) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
     match r {
         Rang::Sante | Rang::Retraite => {
@@ -725,7 +733,7 @@ fn lignes_du_rang(r: &Rang, lignes: &[&crate::calcul::LigneCotisation]) -> Resul
 
 /// Les sommes salariale et employeur des lignes des rangs que `filtre` retient.
 fn somme_des_rangs(
-    rangees: &[(Rang, Vec<&crate::calcul::LigneCotisation>)],
+    rangees: &[(Rang, Vec<&engagement::calcul::LigneCotisation>)],
     filtre: &dyn Fn(&Rang) -> bool,
 ) -> (Decimal, Decimal) {
     let zero = Decimal::new(0, 2);
@@ -818,7 +826,7 @@ fn blocs_annexe(p: &Paie) -> Resultat<Vec<Value>> {
         th,
     )];
     let rangees = rangees(p);
-    let detail = |r: &Rang, lignes: &[&crate::calcul::LigneCotisation], corps: &mut Vec<Value>| -> Resultat<()> {
+    let detail = |r: &Rang, lignes: &[&engagement::calcul::LigneCotisation], corps: &mut Vec<Value>| -> Resultat<()> {
         // Les exonerations n'ont pas de titre : la ligne du bulletin qui les porte est leur total, qui les suit.
         if *r != Rang::Allegement {
             corps.push(titre_groupe(r.titre(), COLONNES_ANNEXE));
@@ -930,11 +938,12 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
             Some(v) if vrai(v) => format!("n° {}", en_texte(v)),
             _ => format!("du contrat {}", numero),
         };
+        let suite = match r.get("motif").filter(|v| vrai(v)) {
+            Some(motif) => format!(", qu'il remplace. Motif : {}.", en_texte(motif)),
+            None => ", qu'il remplace.".to_string(),
+        };
         blocs.push(para(
-            vec![
-                m(format!("Rectifie le bulletin {} de {}", rectifie, texte(r, "mois_origine")?), true, None),
-                mt(format!(", qu'il remplace. Motif : {}.", texte(r, "motif")?)),
-            ],
+            vec![m(format!("Rectifie le bulletin {} de {}", rectifie, texte(r, "mois_origine")?), true, None), mt(suite)],
             7.0,
             Some(GRIS),
             0.0,
@@ -1052,7 +1061,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let entete =
         vec![ligne(vec![cell("LIBELLE", 1, true, None), s("Base"), s("Taux"), s("Salarié"), s("Employeur")], th())];
     let mut corps = Vec::new();
-    let rem: Vec<&crate::calcul::LigneBrut> =
+    let rem: Vec<&engagement::calcul::LigneBrut> =
         p.remuneration.iter().enumerate().filter(|(i, _)| !j.remboursements.contains(i)).map(|(_, l)| l).collect();
     // « MONTANT BRUT » (art. 1, I ; VI : mis en valeur). Jusqu'a la vague V2g : « SALAIRE BRUT ».
     if rem.len() <= 1 {
@@ -1090,7 +1099,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     corps.push(ligne_net("MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU", p.net_a_payer, n));
     corps.push(ligne(vec![s("IMPOT SUR LE REVENU"), s("Base"), s("Taux"), s("Salarié")], style_section()));
     corps.push(ligne(vec![cel("Montant net imposable", 3), s(fmt_eur(p.net_imposable))], vec![]));
-    match j.rectificatif {
+    match j.rectificatif.filter(|r| !remplace_en_entier(r)) {
         Some(r) => corps.extend(rectificatif_lignes(r, n)?),
         None => corps.extend(lignes_pas_tableau(p, j.pas, n)?),
     }
@@ -1194,7 +1203,7 @@ pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
 pub fn remboursements(ctx: &Contexte, p: &Paie) -> Resultat<Vec<usize>> {
     let mut out = Vec::new();
     for (i, l) in p.remuneration.iter().enumerate() {
-        if !l.soumis && crate::catalogue::rubrique(&ctx.racine, &l.code)?.hors_assiette()? != crate::catalogue::HorsAssiette::Revenu {
+        if !l.soumis && droit::catalogue::rubrique(&ctx.racine, &l.code)?.hors_assiette()? != droit::catalogue::HorsAssiette::Revenu {
             out.push(i);
         }
     }
@@ -1221,12 +1230,12 @@ pub fn jeux_et_description(
         if !l.is_null() && !l.is_string() {
             return Err(format!(
                 "licence_spectacle non resolue : elle vaut {}. Le numero change de date en date ; le resoudre au \
-                 mois du bulletin avec Contexte.licence(), comme le fait operations_paies.produire_mois.",
-                repr_py(l)
+                 mois du bulletin avec Contexte.licence(), comme le fait la fabrique des documents (`depart`).",
+                forme_ecrite(l)
             ));
         }
     }
-    let pas_par_paie = pas::des_paies(ctx, paies)?;
+    let pas_par_paie = crate::prelevement::des_paies(ctx, paies)?;
     let mut colonnes_par_salarie: HashMap<String, Vec<Colonne>> = HashMap::new();
     let mut conges_par_paie: HashMap<usize, CompteurConges> = HashMap::new();
     if !mois.is_empty() {
@@ -1241,14 +1250,14 @@ pub fn jeux_et_description(
         for (i, pa) in paies.iter().enumerate() {
             let cle = texte(&pa.salarie, "_cle")?;
             // Le compteur de conges est par contrat, le cumul des 507 h par salarie. Un contrat paye au mois et
-            // declare a la caisse des Conges Spectacles (`caisse_conges::de_la_paie`, D. 7121-41) n'a pas de compteur
+            // declare a la caisse des Conges Spectacles (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'a pas de compteur
             // de l'employeur : c'est la caisse qui lui paie ses conges (#132).
             if pa.engagement.nat()?.mensuelle() {
-                if !crate::caisse_conges::de_la_paie(pa)? {
+                if !engagement::calcul::declaree_a_la_caisse_des_conges(pa)? {
                     conges_par_paie.insert(i, compteur_au_bulletin(ctx, pa, mois)?);
                 }
             } else if !colonnes_par_salarie.contains_key(&cle) {
-                colonnes_par_salarie.insert(cle.clone(), tableau_cumul(ctx, &cle, mois, Some(&engagements))?);
+                colonnes_par_salarie.insert(cle.clone(), tableau_cumul(ctx, &cle, mois, &engagements)?);
             }
         }
     }

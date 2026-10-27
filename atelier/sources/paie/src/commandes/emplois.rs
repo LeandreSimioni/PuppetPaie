@@ -13,8 +13,8 @@ use super::actes::{est_operation, reponse_metier};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, debut, enveloppe, rendre};
 use super::Cadre;
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "emplois",
@@ -49,7 +49,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let retirer = args.drapeau("retirer");
     let source = if args.drapeau("ajouter") { args.liste("ajouter") } else { args.liste("retirer") };
     if args.drapeau("ajouter") || retirer {
-        let codes: Vec<Value> = source.iter().map(|c| json!(c.trim_matches(crate::retours::blanc_py).to_uppercase())).collect();
+        let codes: Vec<Value> = source.iter().map(|c| json!(c.trim_matches(socle::texte::blanc).to_uppercase())).collect();
         cadre.route("metiers-ajoutes", json!({"codes": codes, "retirer": retirer}))?;
     }
     let liste = if args.drapeau("autres") {

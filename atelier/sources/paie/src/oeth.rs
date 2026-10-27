@@ -3,10 +3,10 @@
 //! (`moteur/oeth.py`). Les chiffres viennent de `config/oeth.json`, par
 //! millesime ; le calcul applique D5212-2, -20 a -24.
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::fichiers::{lire_json, repr, repr_valeur, vrai};
-use crate::num::{add, dec_f64, dec_py, eur2, mul, sub, Decimal, Resultat};
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::fichiers::{lire_json, repr, repr_valeur, vrai};
+use socle::num::{add, dec_f64, dec_avec_echelle, eur2, mul, sub, Decimal, Resultat};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -26,7 +26,7 @@ fn taux() -> Decimal {
 }
 
 fn zero2() -> Decimal {
-    crate::num::zero2()
+    socle::num::zero2()
 }
 
 /// Ce que la DSN d'avril porte pour un millesime.
@@ -108,7 +108,7 @@ impl Declaration {
 /// `Decimal(str(v))` d'une valeur JSON ; `None` si Python lèverait `InvalidOperation`.
 fn decimal_de(v: &Value) -> Option<Decimal> {
     match v {
-        Value::Number(_) | Value::String(_) => dec_py(v).ok(),
+        Value::Number(_) | Value::String(_) => dec_avec_echelle(v).ok(),
         _ => None,
     }
 }
@@ -123,7 +123,7 @@ fn dec(v: &Value, nom: &str, millesime: i32) -> Resultat<Decimal> {
             "config/oeth.json, {} : << {} >> est negatif ({}).",
             millesime,
             nom,
-            crate::date::en_texte(v)
+            socle::date::en_texte(v)
         ));
     }
     Ok(x)
@@ -179,7 +179,7 @@ Rien n'est ecrit.",
         externes: vec![],
         accord: None,
         non_realisees: zero2(),
-        source: crate::date::en_texte(&donnees["source"]),
+        source: socle::date::en_texte(&donnees["source"]),
     };
 
     let mut externes = vec![];
@@ -188,7 +188,7 @@ Rien n'est ecrit.",
             for x in l {
                 let t = match x.get("type") {
                     None => String::new(),
-                    Some(v) => crate::date::en_texte(v),
+                    Some(v) => socle::date::en_texte(v),
                 };
                 if !TYPES_EXTERNES.contains(&t.as_str()) {
                     return Err(format!(
@@ -205,13 +205,13 @@ Rien n'est ecrit.",
                 }
             }
         }
-        Some(v) if vrai(v) => return Err(format!("{} : 'boeth_externes' : {}", ou, crate::fichiers::attendu("une liste", crate::etats::nom_type(v)))),
+        Some(v) if vrai(v) => return Err(format!("{} : 'boeth_externes' : {}", ou, socle::fichiers::attendu("une liste", socle::valeur::nom_type(v)))),
         _ => {}
     }
     d.externes = externes;
 
     let accord = match donnees.get("accord") {
-        Some(v) if vrai(v) => crate::date::en_texte(v).trim().to_string(),
+        Some(v) if vrai(v) => socle::date::en_texte(v).trim().to_string(),
         _ => String::new(),
     };
     if !accord.is_empty() {
@@ -237,7 +237,7 @@ Rien n'est ecrit.",
 inferieur (D5212-2) en donne {}. L'un des deux est mal recopie -- ou une regle que le moteur ne \
 connait pas s'applique. Rien n'est ecrit.",
                     ou,
-                    crate::date::en_texte(dus),
+                    socle::date::en_texte(dus),
                     eff,
                     d.obligation
                 ));
@@ -262,7 +262,7 @@ connait pas s'applique. Rien n'est ecrit.",
         _ => &vide,
     };
     let Some(dep_obj) = depenses.as_object() else {
-        return Err(format!("'depenses' : {}", crate::fichiers::attendu("un objet", crate::etats::nom_type(depenses))));
+        return Err(format!("'depenses' : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(depenses))));
     };
     let mut inconnues: Vec<&str> =
         dep_obj.keys().map(String::as_str).filter(|k| !DEPENSES.iter().any(|(c, _)| c == k)).collect();
@@ -303,7 +303,7 @@ pour le dire. Rien n'est ecrit.",
     }
 
     // Les plafonds, sur la contribution brute (D5212-22 et -23).
-    let moitie_du_taux = mul(d.beneficiaires, Decimal::ONE_HUNDRED) >= crate::num::div(mul(eff, taux()), Decimal::from(2));
+    let moitie_du_taux = mul(d.beneficiaires, Decimal::ONE_HUNDRED) >= socle::num::div(mul(eff, taux()), Decimal::from(2));
     let part = if moitie_du_taux { Decimal::new(75, 2) } else { Decimal::new(50, 2) };
     let plafond_st = eur2(mul(d.brute, part));
     let plafond_dep = eur2(mul(d.brute, Decimal::new(10, 2)));
@@ -318,7 +318,7 @@ pour le dire. Rien n'est ecrit.",
 }
 
 fn div_cent(x: Decimal) -> Decimal {
-    crate::num::div(x, Decimal::ONE_HUNDRED)
+    socle::num::div(x, Decimal::ONE_HUNDRED)
 }
 
 /// La declaration OETH que la DSN de `mois` doit porter, ou `None` : seulement
@@ -336,7 +336,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Declaration>> 
         .map_err(|_| format!("nombre entier illisible : {}", repr(&tranche(0, 4))))?
         - 1;
     let chemin = ctx.racine.join("config").join("oeth.json");
-    let fichier = if crate::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
+    let fichier = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let donnees = match fichier.get(millesime.to_string()) {
         None | Some(Value::Null) => None,
         Some(v) => Some(v),
@@ -355,7 +355,7 @@ l'Urssaf transmet avant le 15 mars : \"{}\": {{\"effectif_assujettissement\": ..
     };
     if donnees.get("assujetti") == Some(&Value::Bool(false)) {
         let pourquoi = match donnees.get("pourquoi") {
-            Some(v) if vrai(v) => crate::date::en_texte(v),
+            Some(v) if vrai(v) => socle::date::en_texte(v),
             _ => String::new(),
         };
         if pourquoi.trim().is_empty() {
@@ -389,15 +389,15 @@ pub fn smic_au_31_decembre(ctx: &Contexte, millesime: i32) -> Resultat<Decimal> 
         _ => return dec_f64(ctx.smic(&jour)?),
     };
     let mut entrees: Vec<&Value> = liste.as_array().map(|a| a.iter().collect()).unwrap_or_default();
-    entrees.sort_by_key(|e| crate::date::en_texte(&e["depuis"]));
+    entrees.sort_by_key(|e| socle::date::en_texte(&e["depuis"]));
     let mut val = None;
     for e in entrees {
-        if Jour::lire(&crate::date::en_texte(&e["depuis"]))? <= jour {
+        if Jour::lire(&socle::date::en_texte(&e["depuis"]))? <= jour {
             val = Some(&e["valeur"]);
         }
     }
     match val {
-        Some(v) => dec_py(v),
+        Some(v) => dec_avec_echelle(v),
         None => Err(format!("Aucun SMIC au {} dans le socle {}.", jour.iso(), millesime)),
     }
 }
@@ -406,7 +406,7 @@ pub fn smic_au_31_decembre(ctx: &Contexte, millesime: i32) -> Resultat<Decimal> 
 /// 118 l'emporte s'il est la et sous le seuil ; un effectif inconnu reste sous le seuil.
 fn assujetti_selon_l_effectif(ctx: &Contexte, millesime: i32) -> Resultat<bool> {
     let chemin = ctx.racine.join("config").join("effectifs.json");
-    let brut = if crate::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
+    let brut = if socle::fichiers::existe(&chemin) { lire_json(&chemin)? } else { Value::Object(Default::default()) };
     let a04 = brut
         .get("annees")
         .and_then(|a| a.get(millesime.to_string()))
@@ -414,7 +414,7 @@ fn assujetti_selon_l_effectif(ctx: &Contexte, millesime: i32) -> Resultat<bool> 
         .and_then(|a| a.get("valeur"))
         .filter(|v| !v.is_null());
     if let Some(v) = a04 {
-        if crate::num::flottant(v)? < SEUIL as f64 {
+        if socle::num::flottant(v)? < SEUIL as f64 {
             return Ok(false);
         }
     }

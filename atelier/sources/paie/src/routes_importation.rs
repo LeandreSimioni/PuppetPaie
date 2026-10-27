@@ -17,11 +17,15 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, nom_type, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use crate::etats;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::importation::{self, SalarieDeclare};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 2] = ["importation-apercu", "importation-tri"];
@@ -116,7 +120,7 @@ pub(crate) fn brut(v: &Value) -> Value {
 /// `str.title()` d'un texte, `""` s'il manque.
 pub(crate) fn titre_de(v: Option<&Value>) -> String {
     match v.filter(|x| vrai(x)) {
-        Some(x) => crate::champs::titre(&py_str(x)),
+        Some(x) => crate::champs::titre(&valeur_en_texte(x)),
         None => String::new(),
     }
 }
@@ -131,12 +135,12 @@ fn ecarts(nom: &str, fiche: &Value, declare: &Map<String, Value>, mois: &str) ->
         let a = fiche.get(&c.cle).unwrap_or(&Value::Null);
         let b = &declare[&c.cle];
         // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete (`importation_completer`).
-        if crate::importation_completer::vide(Some(a)) || py_str(a) == py_str(b) {
+        if crate::importation_completer::vide(Some(a)) || valeur_en_texte(a) == valeur_en_texte(b) {
             continue;
         }
         // Une structure (la banque) ne differe que par ce que la DSN en declare : ses notes et autres cles restent.
         if let (Value::Object(x), Value::Object(y)) = (a, b) {
-            if y.iter().all(|(k, v)| x.get(k).map(py_str) == Some(py_str(v))) {
+            if y.iter().all(|(k, v)| x.get(k).map(valeur_en_texte) == Some(valeur_en_texte(v))) {
                 continue;
             }
         }
@@ -162,11 +166,11 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
         f.insert("date_anciennete".into(), json!(decl.premier_contrat));
     }
     // Le statut de bareme se deduit du code emploi France Travail, a defaut de la PCS (354x : artistes).
-    let code = f.get("code_emploi_ft").map_or(String::new(), py_str);
-    let m = crate::emplois::metier(&code)?.unwrap_or_else(|| json!({}));
+    let code = f.get("code_emploi_ft").map_or(String::new(), valeur_en_texte);
+    let m = droit::emplois::metier(&code)?.unwrap_or_else(|| json!({}));
     let statut = match m.get("statut").filter(|v| vrai(v)) {
         Some(s) => s.clone(),
-        None => json!(if f.get("pcs_ese").map_or(String::new(), py_str).starts_with("354") { "artiste" } else { "technicien" }),
+        None => json!(if f.get("pcs_ese").map_or(String::new(), valeur_en_texte).starts_with("354") { "artiste" } else { "technicien" }),
     };
     f.insert("statut".into(), statut);
     let mut f = crate::champs::combler_affichage("salarie", &f)?;
@@ -179,7 +183,7 @@ fn fiche_entreprise(lecture: &importation::LectureDsn) -> R<Map<String, Value>> 
     let mut e = lecture.entreprise.clone();
     let (siren, nic) = (e.get("siren").filter(|v| vrai(v)).cloned(), e.get("nic").filter(|v| vrai(v)).cloned());
     if let (Some(s), Some(n)) = (siren, nic) {
-        e.insert("siret".into(), json!(format!("{}{}", py_str(&s), py_str(&n))));
+        e.insert("siret".into(), json!(format!("{}{}", valeur_en_texte(&s), valeur_en_texte(&n))));
     }
     if !lecture.licences.is_empty() {
         let l: Vec<Value> = lecture.licences.iter().map(|(m, n)| json!({"depuis": format!("{}-01", m), "numero": n})).collect();
@@ -234,7 +238,7 @@ pub(crate) struct Apercu {
 /// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE (lot G1) : `importation::garder_export` les ecarte devant le
 /// Siren de la compagnie (`importation::siren_de_reference`, le meme que pour les bulletins) ; l'apercu lit alors une
 /// copie de l'export sans elles (un dossier de travail, efface avant de rendre), et chacune est un avertissement.
-pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: crate::date::Jour) -> R<Apercu> {
+pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socle::date::Jour) -> R<Apercu> {
     let export: PathBuf = export.to_path_buf();
     let (dsn, aem) = importation::dossiers(&export);
     if dsn.is_none() && aem.is_none() {
@@ -290,7 +294,7 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
     let historique = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("engagements.json"))?;
     // `lire_historique` : `data.setdefault("engagements", [])` leve sur ce qui n'est pas un objet.
     if !historique.is_object() {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", etats::nom_type(&historique))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&historique))));
     }
     let engagements = historique.get("engagements").cloned().unwrap_or_else(|| json!([]));
     let mut deja: HashSet<CleEngagement> = HashSet::new();
@@ -298,7 +302,7 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
         // `_cle_engagement(e)` : les cles qu'elle lit doivent y etre, et les nombres se lire.
         for k in ["salarie", "debut", "fin"] {
             if e.get(k).is_none() {
-                return Err(erreur("KeyError", crate::fichiers::absent(k)));
+                return Err(erreur("KeyError", socle::fichiers::absent(k)));
             }
         }
         let mut nombres = [0i128; 3];
@@ -313,7 +317,7 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
             None => Some(String::new()),
             autre => texte(autre),
         };
-        let brut = e.get("brut").map_or("0".to_string(), py_str);
+        let brut = e.get("brut").map_or("0".to_string(), valeur_en_texte);
         if let (Some(a), Some(b), Some(c), Some(d)) = (texte(e.get("salarie")), texte(e.get("debut")), texte(e.get("fin")), objet) {
             deja.insert((a, b, c, d, nombres[0], nombres[1], nombres[2], brut));
         }
@@ -325,7 +329,7 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
 pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
     let fichier_paies = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
     if !fichier_paies.is_object() {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", etats::nom_type(&fichier_paies))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&fichier_paies))));
     }
     let liste_paies = fichier_paies.get("paies").cloned().unwrap_or_else(|| json!([]));
     Ok(etats::items(&liste_paies)?.into_iter().map(|c| c.into_owned()).collect())
@@ -333,7 +337,7 @@ pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
 
 /// La cle d'une paie de l'historique : (mois, salarie, contrat).
 pub(crate) fn cle_paie(x: &Value) -> R<(String, String, String)> {
-    let k = |c: &str| -> R<String> { x.get(c).map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(c))) };
+    let k = |c: &str| -> R<String> { x.get(c).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c))) };
     Ok((k("mois")?, k("salarie")?, k("contrat")?))
 }
 
@@ -345,7 +349,7 @@ pub(crate) fn apercu_lu(
     source: &str,
     dsn: Option<&Path>,
     aem: Option<&Path>,
-    aujourdhui: crate::date::Jour,
+    aujourdhui: socle::date::Jour,
     a_venir: &HashSet<String>,
 ) -> R<Apercu> {
     let lecture = match &dsn {
@@ -376,14 +380,14 @@ pub(crate) fn apercu_lu(
     let origine_dsn = |mois: &str| json!({"source": "dsn", "mois": mois});
     if !lecture.entreprise.is_empty() {
         let e = fiche_entreprise(&lecture)?;
-        if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !py_str(s).trim().is_empty()) {
+        if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !valeur_en_texte(s).trim().is_empty()) {
             let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
-            let libelle = e.get("raison_sociale").map_or("?".to_string(), py_str);
+            let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             entreprise = fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e));
             a_creer += 1;
         } else {
-            let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), py_str);
+            let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), valeur_en_texte);
             let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise, &lecture.dernier_mois)?;
             entreprise = fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({}));
             let champs = crate::importation_completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
@@ -396,7 +400,7 @@ pub(crate) fn apercu_lu(
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &ctx.salaries {
         if let Some(n) = s.get("nir").filter(|v| vrai(v)) {
-            par_nir.insert(py_str(n), cle.clone());
+            par_nir.insert(valeur_en_texte(n), cle.clone());
         }
     }
     let mut ordre: Vec<&SalarieDeclare> = lecture.salaries.iter().collect();
@@ -406,7 +410,7 @@ pub(crate) fn apercu_lu(
     for decl in ordre {
         let libelle = format!(
             "{} {}",
-            decl.fiche.get("nom").map_or(String::new(), py_str),
+            decl.fiche.get("nom").map_or(String::new(), valeur_en_texte),
             titre_de(decl.fiche.get("prenom"))
         );
         if let Some(cle) = par_nir.get(&decl.nir) {
@@ -468,7 +472,7 @@ pub(crate) fn apercu_lu(
     }
     let mut connus: HashMap<String, String> = HashMap::new();
     for (cle, sp) in &ctx.spectacles {
-        let n = sp.get("numero_objet").map_or(String::new(), py_str).to_uppercase();
+        let n = sp.get("numero_objet").map_or(String::new(), valeur_en_texte).to_uppercase();
         connus.insert(n, cle.clone());
     }
     objets.sort_by(|a, b| a.premier.cmp(&b.premier));
@@ -476,7 +480,7 @@ pub(crate) fn apercu_lu(
     let mut spectacles = Vec::new();
     for o in &objets {
         if let Some(cle) = connus.get(&o.numero.to_uppercase()) {
-            let titre = ctx.spectacles[cle].get("titre").map_or("?".to_string(), py_str);
+            let titre = ctx.spectacles[cle].get("titre").map_or("?".to_string(), valeur_en_texte);
             spectacles.push(fiche_importee("spectacle", Some(cle), &format!("{} ({})", titre, o.numero), "existante", json!({}), Vec::new(), json!({})));
             continue;
         }
@@ -555,7 +559,7 @@ pub(crate) fn apercu_lu(
         let objet = match v.get("objet").filter(|x| vrai(x)) {
             Some(o) => o.clone(),
             None => {
-                let k = (nir.clone(), py_str(&texte("debut")), py_str(&texte("fin")));
+                let k = (nir.clone(), valeur_en_texte(&texte("debut")), valeur_en_texte(&texte("fin")));
                 json!(objets_aem.get(&k).cloned().unwrap_or_default())
             }
         };
@@ -602,10 +606,10 @@ fn entier_py(v: &Value) -> R<i128> {
         Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
         Value::Bool(b) => Ok(i128::from(*b)),
         Value::String(s) => crate::apercu_dsn::int_py(s)
-            .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(s)))),
+            .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", nom_type(autre)),
         )),
     }
 }

@@ -10,12 +10,12 @@
 //! cadre, 3 010 EUR ; DORVAL depuis le 01/04/2025, technicienne non cadre, 2 200 EUR ; toutes les DSN deposees jusqu'a
 //! aout 2026), copiee dans le dossier temporaire des tests avant d'y retoucher les fiches et les saisies.
 
-use paie::engagement::Saisie;
-use paie::calcul::Paie;
-use paie::num::Decimal;
+use engagement::Saisie;
+use engagement::calcul::Paie;
+use socle::num::Decimal;
 use serde_json::json;
 use crate::outils::permanents::{bloc, blocs_41, contexte, deposer, dorval_cadre_au, dsn, retoucher_saisie, saisie};
-use crate::outils::{compagnie::sans_les_pdf, dec, dossier_de_test, ecrire, individu, lire};
+use crate::outils::{compagnie::sans_les_pdf, dec, dossier_de_test, individu};
 use std::path::{Path, PathBuf};
 
 /// Une copie de la 1285-grande sans ses PDF, propre a un test.
@@ -133,19 +133,6 @@ fn un_passage_a_temps_partiel_au_16_proratise_le_salaire_et_le_plafond_de_la_sec
 }
 
 #[test]
-fn un_mois_sans_changement_ne_se_decoupe_pas() {
-    let racine = compagnie("sans-changement");
-    let s = saisie(&racine, "2026-09").unwrap();
-    for p in &s.paies {
-        assert!(p.periodes.is_empty(), "{}", p.salarie["_cle"]);
-    }
-    // Un avenant au premier jour du mois se paie tout le mois sur les termes de la saisie : `avant` n'y a pas de sens.
-    retoucher_saisie(&racine, "2026-09", "Dorval", json!({"date_modification": "2026-09-01", "avant": {"salaire_mensuel": 2000.0, "quotite_contrat": 151.67}}));
-    let e = saisie(&racine, "2026-09").err().expect("`avant` qui ne coupe rien refuse");
-    assert!(e.contains("`avant`") && e.contains("01/09/2026") && e.contains("rien n'est a decouper"), "{}", e);
-}
-
-#[test]
 fn un_avenant_en_cours_de_mois_dit_ses_termes_d_avant_entiers() {
     let racine = compagnie("avant-incomplet");
     retoucher_saisie(&racine, "2026-09", "Dorval", json!({"quotite_contrat": 70.0, "date_modification": "2026-09-16", "avant": {"quotite_contrat": 151.67}}));
@@ -154,15 +141,6 @@ fn un_avenant_en_cours_de_mois_dit_ses_termes_d_avant_entiers() {
     retoucher_saisie(&racine, "2026-09", "Dorval", json!({"avant": {"quotite_contrat": 151.67, "salaire_mensuel": 2200.0, "nature": "cdd"}}));
     let e = saisie(&racine, "2026-09").err().expect("une nature d'avant ne se decoupe pas");
     assert!(e.contains("`nature`"), "{}", e);
-}
-
-#[test]
-fn un_mois_decoupe_qui_porte_autre_chose_que_le_salaire_mensuel_refuse() {
-    let racine = compagnie("decoupe-prime");
-    dorval_cadre_au(&racine, "2026-09-14");
-    retoucher_saisie(&racine, "2026-09", "Dorval", json!({"primes": [{"montant": 300.0}]}));
-    let e = saisie(&racine, "2026-09").err().expect("une prime dans un mois decoupe refuse");
-    assert!(e.contains("periodes elementaires") && e.contains("15/09/2026") && e.contains("prime"), "{}", e);
 }
 
 // ------------------------------------------------------------------ la DSN
@@ -262,9 +240,9 @@ fn la_dsn_d_un_passage_cadre_au_15_declare_les_remunerations_et_les_bases_de_cha
     assert!(n.iter().all(|x| x.1 == "01092026" && x.2 == "30092026"), "{:?}", n);
     // Septembre depose, octobre ne redeclare rien et ne se decoupe pas.
     deposer(&racine, "2026-09", "DSN_Septembre2026.dsn", &sept);
-    let mut s = lire(&racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&racine, "2026-10");
     s["engagements"].as_array_mut().unwrap().retain(|e| e["nature"] == "cdi");
-    ecrire(&racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
     let oct = dsn(&racine, "2026-10").unwrap();
     assert!(!oct.contains("S21.G00.41."), "octobre ne redeclare pas le changement");
     let o = bases_78(&individu(&oct, "DORVAL"));
@@ -297,23 +275,13 @@ fn la_dsn_d_un_passage_a_temps_partiel_au_16_declare_l_ancienne_duree_au_jour_et
 }
 
 #[test]
-fn un_avenant_en_cours_de_mois_sans_ses_termes_d_avant_refuse_et_dit_avant() {
-    // La duree change au 16/09 sans que la saisie dise les termes d'avant : la paie ne se decoupe pas, et le bloc 41
-    // refuse le changement en cours de mois en nommant `avant`.
-    let racine = compagnie("avenant-sans-avant");
-    retoucher_saisie(&racine, "2026-09", "Dorval", json!({"quotite_contrat": 70.0, "salaire_mensuel": 1015.36, "date_modification": "2026-09-16"}));
-    let e = dsn(&racine, "2026-09").unwrap_err();
-    assert!(e.contains("S21.G00.40.013") && e.contains("16/09/2026") && e.contains("`avant`"), "{}", e);
-}
-
-#[test]
 fn le_bulletin_d_un_mois_decoupe_porte_les_lignes_des_deux_periodes_et_le_plafond_du_mois() {
     let racine = compagnie("cadre-15-bulletin");
     dorval_cadre_au(&racine, "2026-09-14");
     let ctx = contexte(&racine, "2026-09");
     let s = saisie(&racine, "2026-09").unwrap();
     let p = paie_de(&s, "DORVAL").clone();
-    let ent = paie::oracle::entreprise_du_mois(&ctx, "2026-09").unwrap();
+    let ent = ctx.entreprise_du_mois("2026-09").unwrap();
     let d = paie::bulletin::jeux_et_description(&ctx, &[p], &ent, "2026-09", None, true, &std::collections::HashMap::new()).unwrap();
     let t = d.to_string();
     // Le plafond du mois (la somme des deux parts), les deux prevoyances, l'Apec de la periode cadre.

@@ -27,7 +27,7 @@ Claude sert à parler à ce moteur en français, pas à calculer la paie.
 
 Ce rapport est celui du calcul Python, retiré le 02/10/2026 : le moteur Rust
 (`atelier/sources/paie/`), qui calcule depuis, en reproduisait les sorties à l'octet sur tous
-les mois des compagnies fictives et de la compagnie (`docs/PORTAGE-RUST.md` §14).
+les mois des compagnies fictives et de la compagnie.
 
 ## L'arrivée d'une compagnie
 
@@ -93,7 +93,7 @@ lue — on n'en a pas besoin.
 8 et 10 : 507 h sur 12 mois, un cachet = 12 h) se comptent sur tout ce que la
 compagnie a déclaré, et `paie droits` comme le bloc de cumul du
 bulletin lisent **une seule source, la nôtre** : l'historique importé, puis
-nos fichiers de paie. Un mois qui a son fichier dans `paies/` est lu là, et
+nos engagements. Un mois qui a des engagements dans `engagements/` est lu là, et
 l'historique se tait pour ce mois-là — pendant un double run, rien n'est
 compté deux fois. Une fois l'import fait, le logiciel n'a plus besoin du
 dossier `import/` : il lit ses copies.
@@ -196,21 +196,19 @@ passe du logiciel retapé à chaque acte.
 paie nouveau 2026-10
 ```
 
-Éditer `paies/2026-10.json` (noms, dates, spectacle), puis :
+Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : noms, dates, spectacle) et les valider
+(« Valider l'engagement »). Chaque document se fabrique au moment où il part, depuis les engagements validés :
 
-```bash
-paie mois paies/2026-10.json
-```
-
-Sortie dans `sorties/2026-10/` :
-
-| Fichier | Où il va |
+| Document | Quand il se fabrique |
 |---|---|
-| `Contrats_Octobre2026.pdf` | à faire signer |
-| `DPAE_Octobre2026.txt` (+ récapitulatif) | net-entreprises.fr, **avant** le début du contrat |
-| `Bulletins_Octobre2026.pdf` | aux artistes |
-| `CertificatsCS_Octobre2026.pdf` (+ récapitulatif) | **aux artistes** — congés spectacles ; rien à envoyer à Audiens |
-| `DSN_Octobre2026.dsn` | dépôt en test (`depot-dsn --test`), lecture du bilan, puis dépôt réel |
+| la DPAE (`paie dpae`) | avant le début du contrat |
+| le contrat | à son envoi à la signature : son numéro s'y fige |
+| `DSN_Octobre2026.dsn` | à son dépôt : `paie depot-dsn 2026-10 --test`, lecture du bilan, puis `--reel` |
+| bulletin et certificat Congés Spectacles | à l'envoi des documents aux salariés : le numéro du bulletin s'écrit dans la paie |
+
+Une DSN se dépose dès qu'un engagement du mois est validé, sans attendre ni DPAE ni contrat. Le moteur dit si c'est un
+dépôt initial ou un annule-et-remplace ; après la veille de l'échéance, ce qui change dans un mois déjà déclaré part en
+correction dans la DSN d'un mois suivant.
 
 Plus d'AEM depuis le 01/06/2026 (100 % DSN) : France Travail édite
 l'attestation lui-même, et `paie aer --mois 2026-10` range celles qu'il a
@@ -219,7 +217,7 @@ envoyées.
 Puis, pour envoyer aux salariés :
 
 ```
-paie envoi paies/2026-10.json
+paie envoi 2026-10
 ```
 
 Un message par salarié — bulletin, certificat Congés Spectacles et AER France Travail —
@@ -516,7 +514,7 @@ Autres commandes : `paie fiche` (rappel des données de référence),
 **Pour un programme.** Toute commande accepte `--json` : même travail, mêmes
 garde-fous, sortie lisible par une machine. Les montants y sont des chaînes
 (`"201.32"`, jamais un flottant), les dates en `AAAA-MM-JJ`, et une erreur
-métier reste une réponse — `{"ok": false, "erreur": {"type": "MoisPasPret",
+métier reste une réponse — `{"ok": false, "erreur": {"type": "AnnuleRemplaceHorsDelai",
 …}}` — sur laquelle un appelant branche son comportement. C'est par là que
 passe l'interface, et que passerait une API.
 
@@ -527,7 +525,7 @@ travaillé**, donc bien avant la paie. Elle se produit seule, sans montant
 Urssaf et sans consommer de numéro de bulletin :
 
 ```bash
-paie dpae paies/2026-09.json --heure 0800
+paie dpae 2026-09 --heure 0800
 ```
 
 Elle dit, pour chaque contrat, si le délai est tenu — la DPAE ne s'envoie que
@@ -733,9 +731,8 @@ déclaration de revenus l'année suivante. D'où l'appel de taux, ci-dessus.
   DSN non plus : le cahier technique 2026.1 (p. 244) dit que le prélèvement à
   la source ne s'en déduit pas.
 
-Ce module **ne dépose rien** : il n'a aucune fonction d'envoi. Pour produire une
-DSN en envoi de test (`S10.G00.00.005 = 01`, données non conservées) :
-`paie mois paies/2026-09.json --test`.
+Ce module **ne dépose rien** : il n'a aucune fonction d'envoi. Le dépôt de test (`paie depot-dsn 2026-09 --test`)
+bascule la DSN en envoi de test (`S10.G00.00.005 = 01`, données non conservées) en mémoire.
 
 ## Un arrêt de travail
 
@@ -1013,13 +1010,13 @@ C'est un **outil de l'éditeur**, lancé avant chaque publication (`atelier/CLAU
 ne figure pas dans l'aide. Une installation ne fait que recevoir la mise à jour
 signée ; la publication ne vérifie pas d'elle-même que les sources l'ont été.
 
-**Les tables Unicode du moteur** (`paie/src/tables_nfkc.rs`, `nfkd_ascii.rs`,
+**Les tables Unicode du moteur** (`socle/src/tables_nfkc.rs`, `paie/src/nfkd_ascii.rs`,
 `tables_retours.rs`, `tables_journal.rs` : la normalisation NFKC/NFKD, les
 chiffres et lettres de `str.isdigit`/`str.isalnum`/`\d`, cp437 et cp1252, les
 encodages qu'un XML de retour peut déclarer, les caractères d'un nom XML)
 s'écrivent depuis les textes déposés (`atelier/reference/sources/unicode/`,
 `python/`, `w3c/`, chacun avec son `LISEZ-MOI.md`) par **`paie generer-tables
-atelier/reference/sources atelier/sources/paie/src`** (`paie/src/generer_tables.rs`,
+atelier/reference/sources atelier/sources`** (`paie/src/generer_tables.rs`,
 15/10/2026 ; avant, quatre scripts Python les tiraient de l'Unicode de
 l'interpréteur). Le test `tables_generees` vérifie que les tables commitées sont
 celles que les textes donnent. Monter de version d'Unicode : déposer les
@@ -1191,20 +1188,23 @@ tant qu'il manque, ce sont ses références d'adhésion (`config/organismes.json
 ### Un contrat sur plusieurs mois
 
 Un CDDU signé une fois pour une tournée d'octobre à décembre est **un seul
-contrat, saisi dans chacun de ses mois**. Chaque fichier de mois reste
-autonome : il porte les cachets joués ce mois-là, et le contrat entier par
-ses bornes — `debut`, `fin`, et, dès le deuxième mois, le `numero` que le
-premier a déclaré :
+engagement**, dans le fichier du mois où il commence. Son premier mois est
+écrit en clair ; chaque mois d'après n'écrit, sous `mois_suivants`, que ce
+qu'il change (ses cachets) ; les bornes et le numéro sont ceux du contrat
+entier :
 
 ```json
-paies/2026-10.json   { "salarie": "Celi", "spectacle": "aaah zerbinette",
-                       "debut": "2026-10-12", "fin": "2026-12-20",
-                       "lignes": [ …les cachets d'octobre… ] }
-paies/2026-11.json   { "salarie": "Celi", "spectacle": "aaah zerbinette",
-                       "debut": "2026-10-12", "fin": "2026-12-20",
-                       "numero": "FA1.26.14",
-                       "lignes": [ …les cachets de novembre… ] }
+engagements/2026-10.json   { "salarie": "Celi", "spectacle": "aaah zerbinette",
+                             "debut": "2026-10-12", "fin": "2026-12-20",
+                             "numero": "FA1.26.14",
+                             "lignes": [ …les cachets d'octobre… ],
+                             "mois_suivants": {
+                               "2026-11": { "lignes": [ …les cachets de novembre… ] },
+                               "2026-12": { "lignes": [ …ceux de décembre… ] } } }
 ```
+
+L'écran de novembre le montre avec les cachets de novembre ; « Valider
+l'engagement » écrit une paie par mois couvert.
 
 Le rôle du mois se **déduit** des dates, il ne se saisit pas :
 
@@ -1218,16 +1218,13 @@ La DSN déclare le même bloc contrat chaque mois (début, numéro, fin
 prévisionnelle : ce sont ses identifiants), la période de paie bornée au
 mois, et la fin de contrat le dernier mois seulement. Le certificat Congés
 Spectacles du dernier mois additionne les cachets et le brut de tous les
-mois du contrat, lus dans les fichiers précédents — le seul regard en
-arrière du moteur.
+mois du contrat, lus dans les paies validées de l'engagement — le seul
+regard en arrière du moteur.
 
-**Le numéro se fige à la production** : `produire_mois` réécrit `numero`
-dans chaque engagement du fichier produit et pose `numeros_figes: true`.
-Le mois suivant le recopie (`paie nouveau 2026-11 --reprendre`
-écrit les contrats en cours dans le fichier neuf, bornes et numéro, à
-compléter avec les jours ; dans l'interface, « + reprendre un contrat en
-cours »). Un mois du milieu dont le premier mois n'a pas été produit est
-refusé : sans numéro connu, le moteur en tirerait un autre.
+**Le numéro se pose sur l'engagement** quand le contrat part à la signature,
+ou avec les documents de son premier mois, et se relit dans tous ses mois.
+Un mois qui n'est pas le premier ne se numérote pas : sans numéro connu, le
+moteur en tirerait un autre, il refuse.
 
 **Le planning.** Une ligne de paie peut porter, sous `planning`, les jours
 des mois *suivants* cochés d'avance — dans l'interface, le calendrier d'une
@@ -1253,8 +1250,8 @@ ses autres employeurs n'y sont pas. Rien ne s'y coche.
 Le planning n'est pas payé ce mois-ci ; il sert à trois choses : `fin` se
 cale sur son dernier jour sans qu'on l'écrive, le contrat imprimé liste
 toutes les dates de la tournée (et dit que sa rémunération chiffre le
-mois), et le mois venu, l'écran — qui reprend d'office chaque contrat en cours
-(ou `nouveau --reprendre`) — retrouve la ligne déjà datée — même rubrique, même taux,
+mois), et le mois venu, l'écran — qui montre d'office chaque contrat en cours —
+retrouve la ligne déjà datée — même rubrique, même taux,
 même lieu, quantité = nombre de jours pour un cachet. Un jour de planning
 dans le mois est refusé (c'est un jour joué), de même qu'un planning
 au-delà d'une `fin` écrite. Sans planning, le contrat imprimé ne connaît
@@ -1270,11 +1267,8 @@ signature.
    DSN de CoolPaie retrouvées au centime. Rien à recopier :
 
    ```
-   paie mois paies/2026-09.json
+   paie depot-dsn 2026-09 --apercu
    ```
-
-   La commande **ferme le mois** : elle refuse (`MoisPasPret`) tant que la DPAE
-   et le contrat de chaque embauche du mois ne sont pas partis.
 2. **La DSN en dépôt de test** (`depot-dsn --test`) avant tout dépôt réel.
    C'est le validateur qui fait foi : la même brique de contrôle que DSN-Val,
    à jour, côté plate-forme (voir `atelier/reference/norme-dsn/LISEZMOI.md`).
@@ -1479,8 +1473,8 @@ Quatre choses à savoir :
   fait foi ;
 - chaque ligne porte **d'où elle vient** (colonne `Source`), parce qu'il y a
   deux sources et qu'elles n'ont pas les mêmes colonnes :
-  - **saisie** — le mois a son fichier dans `paies/`. Les bulletins sont
-    recalculés au centime, et toutes les colonnes sont remplies ;
+  - **saisie** — le mois a des engagements validés dans `engagements/`. Les bulletins sont
+    relus des paies validées, et toutes les colonnes sont remplies ;
   - **DSN déposée** — le mois est antérieur à PuppetPaie. C'est ce que la DSN
     a déclaré avoir versé, importé de CoolPaie dans
     `historique/paies.json` : brut, net imposable, net à payer, PAS. **Une
@@ -1784,7 +1778,7 @@ installation que le rejeu monte lui-même, bridée en toutes lettres :
 de l'atelier, `cargo run --profile essais --example vie_fictive -- rejouer …`) ;
 `outils/demos/les-faisceaux/` en est un, écrit à la main. Au rejeu comme au banc,
 le temps du moteur est figé à l'instant de chaque geste et les aléas suivent une
-suite fixe (`paie/src/temps.rs`) : deux rejeux écrivent les mêmes octets, et
+suite fixe (`socle/src/temps.rs`) : deux rejeux écrivent les mêmes octets, et
 `banc.js verifier` (`scenario verifier`) contrôle, fichier par fichier, que le
 rejeu refait la compagnie du banc. `scenario elaguer` ôte les lectures d'un
 scénario pour le figer dans `paie/tests/donnees/scenarios/<nom>/`, où il devient
@@ -1844,7 +1838,7 @@ atelier/                  ← ce dossier : tout le reste
                           BOSS…), leur transcription et un LISEZ-MOI.md par
                           dossier (15/10/2026 ; d'un organisme privé, seule la
                           transcription) ; `paie sources` y vérifie les copies
-  docs/                   ARCHITECTURE.md, RUBRIQUES.md, PORTAGE-RUST.md,
+  docs/                   ARCHITECTURE.md, RUBRIQUES.md,
                           COMPAGNIES-FICTIVES.md et COMPAGNIES-FICTIVES-DEPOT.md
                           (le dernier bilan du crash-test, 21/09/2026)
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
@@ -1864,7 +1858,7 @@ atelier/                  ← ce dossier : tout le reste
 prive/                    les données de la compagnie
   config/                 entreprise, salariés, spectacles, barèmes, compteurs,
                           effectifs (écrit par le moteur)
-  paies/                  fichiers de saisie, un par mois
+  engagements/            les engagements, dans le fichier du mois où chacun commence
   imprevus/               les imprévus des salariés (arrêts de travail,
                           suspensions), au mois où ils commencent (créé au
                           premier) ; l'ancien dossier arrets/ n'est plus lu
@@ -1912,7 +1906,7 @@ git config core.hooksPath atelier/.githooks   # une fois : le crochet le lance �
 
 Le crochet (`atelier/.githooks/pre-commit`) prend le `paie` de
 `PUPPETPAIE_FABRIQUE`, sinon celui que Cargo a compilé (`CARGO_TARGET_DIR`,
-sinon `atelier/sources/paie/target`), sinon celui que le dépôt livre
+sinon `atelier/sources/target`), sinon celui que le dépôt livre
 (`atelier/sources/paie/bin/<système>/`) ; si aucun ne connaît la commande, le
 commit est refusé. Une trouvaille se regarde : une valeur réelle sort du
 dépôt, une valeur inventée s'inscrit dans `FICTIVES`

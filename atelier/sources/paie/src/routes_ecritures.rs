@@ -18,17 +18,20 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::champs;
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::ecriture::ecrire_json;
-use crate::emplois;
-use crate::engagement;
-use crate::etats::{eq_py, erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::ecriture::ecrire_json;
+use droit::emplois;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::journal;
-use crate::jumeaux::{apparier_meme_numero, numero_pose, Ident};
-use crate::num::{dec, Decimal};
-use crate::retours::Echec;
+use droit::jumeaux::{numero_pose, Ident};
+use socle::num::{dec, Decimal};
+use engagement::calcul::Paie;
+use socle::echec::Echec;
 use crate::routes_accueil;
 use crate::routes_contrats::sauver_avant;
 use crate::routes_fiches::{self, entier, exiger};
@@ -67,7 +70,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 #[track_caller]
@@ -111,8 +114,8 @@ pub(crate) fn configuration(o: &HashMap<String, String>, ctx: &Contexte) -> R<Va
 
 /// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
 fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_secondes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_secondes(t)
 }
 
 /// Aujourd'hui, a Paris (`date.today()`).
@@ -136,7 +139,7 @@ fn fichier_de(nom: &str) -> Option<&'static str> {
 pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -> R<()> {
     let fichier = match nom {
         "salarie" | "spectacle" => fichier_de(nom).unwrap(),
-        _ => return Err(refus(format!("Seuls un salarie ou un spectacle s'activent : {}.", crate::fichiers::repr(nom)))),
+        _ => return Err(refus(format!("Seuls un salarie ou un spectacle s'activent : {}.", socle::fichiers::repr(nom)))),
     };
     let chemin = ctx.racine.join("config").join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
@@ -160,7 +163,7 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
 // ----------------------------------------------------- fiche-oublier-demande
 
 fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let code = charge.get("code").filter(|c| vrai(c)).map(py_str).unwrap_or_default();
+    let code = charge.get("code").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let lignes = crate::etats::charger(&ctx.racine)?;
     let attendues = routes_accueil::attendues(&lignes)?;
     if !attendues.iter().any(|a| a.get("code").and_then(Value::as_str) == Some(code.as_str())) {
@@ -194,7 +197,7 @@ const OCTETS_MAX: usize = 2 * 1024 * 1024;
 
 #[track_caller]
 fn identite_inconnue(quoi: &str) -> Echec {
-    refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", crate::fichiers::repr(quoi)))
+    refus(format!("Identite inconnue : {}. Connues : cachet, logo, signature.", socle::fichiers::repr(quoi)))
 }
 
 fn dossier_identite(ctx: &Contexte) -> PathBuf {
@@ -319,7 +322,7 @@ fn metier_retenu(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("Metier hors catalogue : {}.", code)));
     };
     // Ceux de sa convention le sont d'office ; sans IDCC, rien ne se cache.
-    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let idcc = ctx.entreprise.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let conventions = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
     let de_la_convention = conventions.is_empty() || idcc.is_empty() || conventions.iter().any(|c| c.as_str() == Some(idcc.as_str()));
     let (mut ajoutes, mut retires) = routes_accueil::preferences_metiers(&ctx.racine)?;
@@ -346,7 +349,7 @@ fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
         .iter()
         .filter_map(|m| m.get("code").and_then(Value::as_str).map(str::to_string))
         .collect();
-    let inconnus: Vec<String> = codes.iter().filter(|c| !c.as_str().is_some_and(|s| connus.contains(s))).map(py_str).collect();
+    let inconnus: Vec<String> = codes.iter().filter(|c| !c.as_str().is_some_and(|s| connus.contains(s))).map(valeur_en_texte).collect();
     if !inconnus.is_empty() {
         return Err(refus(format!("Metier(s) hors catalogue : {}.", inconnus.join(", "))));
     }
@@ -376,7 +379,7 @@ fn matricule_suivant(salaries: &Map<String, Value>) -> i64 {
         .filter(|(k, _)| !k.starts_with('_'))
         .filter_map(|(_, s)| {
             let s = s.as_object()?;
-            let texte = s.get("code_salarie").map_or_else(String::new, py_str);
+            let texte = s.get("code_salarie").map_or_else(String::new, valeur_en_texte);
             entier(&Value::String(texte.trim().to_string())).ok()
         })
         .collect();
@@ -395,7 +398,7 @@ fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Va
             t.to_uppercase()
         }
     };
-    let texte = |k: &str| donnees.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let texte = |k: &str| donnees.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let ou = |a: &str, b: &str| {
         let x = texte(a);
         if x.is_empty() {
@@ -412,7 +415,7 @@ fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Va
         let titre = texte("titre");
         let titre = titre.trim();
         let base = if (titre.is_empty() || titre.to_uppercase() == "A COMPLETER") && donnees.get("numero_objet").is_some_and(vrai) {
-            format!("objet-{}", py_str(&donnees["numero_objet"]).trim())
+            format!("objet-{}", valeur_en_texte(&donnees["numero_objet"]).trim())
         } else {
             propre(titre, true)
         };
@@ -470,13 +473,13 @@ fn dater(historique: Option<&Value>, changements: &[Value], depuis: &Value, note
     if changements.is_empty() {
         return Ok(hist);
     }
-    let jour = if vrai(depuis) { crate::date::d(depuis).map_err(|m| erreur("ValueError", m))? } else { aujourd_hui() };
+    let jour = if vrai(depuis) { socle::date::d(depuis).map_err(|m| erreur("ValueError", m))? } else { aujourd_hui() };
     let veille = jour.plus_jours(-1).map_err(|m| erreur("ValueError", m))?.iso();
-    let note = if vrai(note) { py_str(note) } else { String::new() };
+    let note = if vrai(note) { valeur_en_texte(note) } else { String::new() };
     for c in changements {
         hist.push(json!({"champ": c["champ"], "valeur": c["avant"], "jusqu_au": veille, "note": note}));
     }
-    let cle = |e: &Value, k: &str| e.get(k).map(py_str).unwrap_or_default();
+    let cle = |e: &Value, k: &str| e.get(k).map(valeur_en_texte).unwrap_or_default();
     hist.sort_by(|a, b| (cle(a, "champ"), cle(a, "jusqu_au")).cmp(&(cle(b, "champ"), cle(b, "jusqu_au"))));
     Ok(hist)
 }
@@ -520,7 +523,7 @@ fn fiche_refusee(anomalies: &[Value]) -> Echec {
     let erreurs: Vec<&Value> = anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).collect();
     let phrases: Vec<String> = erreurs
         .iter()
-        .map(|a| format!("{} : {}", a.get("champ").map_or_else(String::new, py_str), a.get("message").map_or_else(String::new, py_str)))
+        .map(|a| format!("{} : {}", a.get("champ").map_or_else(String::new, valeur_en_texte), a.get("message").map_or_else(String::new, valeur_en_texte)))
         .collect();
     let message = format!("{} erreur(s) : {}", erreurs.len(), phrases.join(" ; "));
     Echec { classe: Some("FicheRefusee"), message: json!({"message": message, "anomalies": anomalies}).to_string() }
@@ -557,7 +560,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
 pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: Forcer, depuis: &Value, note: &Value) -> R<FicheEcrite> {
     let mut cle = cle;
     let Some(fichier) = fichier_de(nom) else {
-        return Err(refus(format!("Fiche inconnue : {}", crate::fichiers::repr(nom))));
+        return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
     if !donnees.is_object() {
         return Err(erreur("TypeError", "`donnees` : un objet est attendu"));
@@ -584,26 +587,26 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         let (avant, apres) = (ancienne.get("code_salarie"), donnees.get("code_salarie"));
         if let (Some(a), Some(b)) = (avant.filter(|v| vrai(v)), apres.filter(|v| vrai(v))) {
             let nir = donnees.get("nir").is_some_and(vrai) || ancienne.get("nir").is_some_and(vrai);
-            if py_str(a) != py_str(b) && !nir {
+            if valeur_en_texte(a) != valeur_en_texte(b) && !nir {
                 return Err(refus(format!(
                     "Le matricule de cette fiche passerait de {} a {}, et le salarie n'a pas de NIR : il est declare sous un numero \
                      technique temporaire qui FINIT par son matricule. Le changer ferait apparaitre un deuxieme individu dans la DSN, \
                      que rien ne rattacherait au premier. Saisir d'abord le NIR notifie par la caisse.",
-                    py_str(a),
-                    py_str(b)
+                    valeur_en_texte(a),
+                    valeur_en_texte(b)
                 )));
             }
         }
     }
     // UN NIR, UNE PERSONNE : `forcer` ne leve pas ce refus.
     if nom == "salarie" {
-        let nir = donnees.get("nir").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        let nir = donnees.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let nir = nir.trim();
         if !nir.is_empty() {
             let autres: Vec<&str> = ctx
                 .salaries
                 .iter()
-                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.get("nir").filter(|v| vrai(v)).map(py_str).unwrap_or_default().trim() == nir)
+                .filter(|(k, s)| Some(k.as_str()) != cle.as_deref() && s.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim() == nir)
                 .map(|(k, _)| k.as_str())
                 .collect();
             if !autres.is_empty() {
@@ -619,13 +622,13 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     let chemin = ctx.racine.join("config").join(fichier);
     if cle.as_deref().map_or(true, str::is_empty) && nom == "salarie" {
         // Le matricule d'une fiche neuve : le suivant. Un matricule saisi est garde tel quel.
-        if !donnees.get("code_salarie").filter(|v| vrai(v)).map(py_str).unwrap_or_default().trim().is_empty() {
+        if !donnees.get("code_salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
         } else {
             let existants = objet_du_fichier(&chemin)?;
             donnees.insert("code_salarie".into(), Value::String(matricule_suivant(&existants).to_string()));
         }
         // L'ANCIENNETE PART DU JOUR DE LA FICHE ; une date saisie est gardee telle quelle.
-        if donnees.get("date_anciennete").filter(|v| vrai(v)).map(py_str).unwrap_or_default().trim().is_empty() {
+        if donnees.get("date_anciennete").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
             donnees.insert("date_anciennete".into(), Value::String(ctx.aujourdhui.iso()));
         }
     }
@@ -669,7 +672,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
 /// fichier est sauvegarde comme pour une fiche de l'ecran. Rend les champs ecrits.
 pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, champs: &Map<String, Value>) -> R<Map<String, Value>> {
     let Some(fichier) = fichier_de(nom) else {
-        return Err(refus(format!("Fiche inconnue : {}", crate::fichiers::repr(nom))));
+        return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
     let chemin = ctx.racine.join("config").join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
@@ -723,7 +726,7 @@ fn finir_fiche(
 pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
     let annee: String = mois.chars().take(4).collect();
     if let Some(clos) = crate::routes_ouverture::exercice_clos(ctx, &annee)?.filter(vrai) {
-        let le: String = clos.get("le").filter(|v| vrai(v)).map_or_else(|| "?".to_string(), py_str).chars().take(10).collect();
+        let le: String = clos.get("le").filter(|v| vrai(v)).map_or_else(|| "?".to_string(), valeur_en_texte).chars().take(10).collect();
         return Err(refus(format!(
             "L'exercice {} est cloture depuis le {} : {} ne se modifie plus. Rouvrir l'exercice (Historique > L'exercice, ou \
              `paie cloture {} --rouvrir`) avant de toucher a ce mois.",
@@ -735,7 +738,7 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
 
 /// UN MOIS TENU AVANT CE LOGICIEL NE SE SAISIT PAS (ticket #215) : ses paies ont ete calculees et declarees ailleurs
 /// (l'historique importe les porte, `mois_importe`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la
-/// DSN -- une declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre, pas meme `forcer`.
+/// DSN -- une declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre.
 pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
     if crate::mois_importe::importe(&ctx.racine, mois)? {
         return Err(refus(format!(
@@ -747,9 +750,9 @@ pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
     Ok(())
 }
 
-/// `refuser_si_hors_delai` : la DSN du mois etait due ; seul `forcer` passe outre.
-pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) -> R<()> {
-    // Un mois d'avant la premiere embauche n'a pas de DSN due : il ne se rouvre pas « en retard », pas meme sous `forcer`.
+/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE NE SE SAISIT PAS (`routes_saisie::avant_la_premiere_embauche`) : aucune DSN n'y
+/// est due.
+pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<()> {
     if let Some(embauche) = crate::routes_saisie::avant_la_premiere_embauche(ctx, mois)? {
         return Err(refus(format!(
             "{} precede la premiere embauche de la compagnie ({}) : aucune DSN n'y est due, rien ne s'y saisit. Si la \
@@ -758,42 +761,30 @@ pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) ->
             Jour::lire(&embauche).map(|j| j.jj_mm_aaaa()).unwrap_or(embauche)
         )));
     }
-    // Le calcul de la limite se fait meme sous `forcer` : un mois impossible (2026-13) se refuse.
-    if let Some(limite) = crate::routes_saisie::mois_hors_delai(ctx, mois)?.filter(|_| !forcer) {
-        return Err(refus(format!(
-            "Le mois {} ne se modifie plus : sa DSN etait due le {}, nous sommes le {}. Un mois passe ne se saisit plus et ne se \
-             produit plus. Pour une DSN en retard, assumee : `paie mois paies/{}.json --forcer`.",
-            mois,
-            limite.jj_mm_aaaa(),
-            ctx.aujourdhui.jj_mm_aaaa(),
-            mois
-        )));
-    }
     Ok(())
 }
 
 /// Le contrat de chaque engagement : (cle du salarie, premier jour, numero POSE dans la saisie) -- l'identite de
 /// `jumeaux` : deux contrats du meme salarie qui commencent le meme jour ne se confondent pas.
 pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, String> {
-    let lignes: engagement::LignesPermanent = &crate::conges::lignes_du_mois;
+    let lignes: engagement::LignesPermanent = &engagement::conges::lignes_du_mois;
     let (engs, _) = engagement::engagements(ctx, data, lignes)?;
     let bruts = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     let mut out = Vec::new();
     for (i, e) in engs.iter().enumerate() {
         let fiche = ctx.salarie(&e.salarie)?;
-        out.push((fiche.get("_cle").map_or_else(String::new, py_str), e.debut.iso(), bruts.get(i).and_then(numero_pose)));
+        out.push((fiche.get("_cle").map_or_else(String::new, valeur_en_texte), e.debut.iso(), bruts.get(i).and_then(numero_pose)));
     }
     Ok(out)
 }
 
 fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
-    let forcer = charge.get("forcer").is_some_and(vrai);
     let confirme = charge.get(crate::routes_regularisation::CONFIRMATION).is_some_and(vrai);
     let Value::Object(brute) = exiger(charge, "saisie")? else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let p = ecrire_saisie_confirmee(o, ctx, mois, brute, forcer, confirme, true)?;
+    let p = ecrire_saisie_confirmee(o, ctx, mois, brute, confirme)?;
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`routes_regularisation::modification_de_la_paie`).
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let dsn = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
@@ -801,82 +792,43 @@ fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Valu
     Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
 }
 
-/// `operations_paies.enregistrer_saisie` : verifie la saisie en la calculant, puis l'ecrit. `fusionner` a faux
-/// pour qui ecrit le fichier ENTIER en connaissance de cause (`valider_paie`). Sans confirmation : voir
-/// `ecrire_saisie_confirmee`.
-pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, fusionner_ancien: bool) -> R<PathBuf> {
-    ecrire_saisie_confirmee(o, ctx, mois, brute, forcer, false, fusionner_ancien)
-}
-
-/// LA PAIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE (Leandre, 21/10/2026 : « modifier la paie
-/// d'un mois dont la DSN est deposee et dont la limite de l'annule-et-remplace est passee demande une confirmation
-/// explicite, avec un gros avertissement »). Une ecriture qui en change la paie (`routes_mois::empreinte_de` : ni la
-/// validation ni la reouverture) se refuse sans `confirme` (`routes_regularisation::CONFIRMATION` dans la charge), sous
-/// `CLASSE_A_CONFIRMER`, avec l'avertissement que la page montre ; rien n'est ecrit. Avec, elle s'ecrit -- la limite de
-/// depot (`refuser_si_hors_delai`) ne la retient pas : le mois n'est pas en retard, il est declare -- et la saisie telle
-/// que declaree est gardee d'abord (`garder_la_saisie_declaree`) : « Corriger ce mois » en part.
+/// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
+/// (`routes_mois::empreinte_de` : ni la validation ni ce que le moteur tient seul) se refuse sans `confirme`
+/// (`routes_regularisation::CONFIRMATION` dans la charge), sous `CLASSE_A_CONFIRMER`, avec l'avertissement que la page
+/// montre ; rien n'est ecrit. Avec, elle s'ecrit -- et la saisie telle que declaree est gardee d'abord
+/// (`garder_la_saisie_declaree`) : la correction que la DSN d'un mois suivant portera en part (`depart::corrections_dues`).
 ///
-/// UNE SAISIE S'ECRIT A LA FOIS (#253, 23/10/2026). La fenetre sert ses routes en parallele, et la page enregistre une
-/// seconde apres la derniere frappe, meme si l'enregistrement d'avant n'a pas fini (un mois long se calcule en plus d'une
-/// seconde) : deux ecritures du meme mois se croisaient -- l'une fusionnait avec un fichier que l'autre remplacait. Elles
-/// passent l'une apres l'autre, dans ce processus (`SAISIE_EN_COURS`).
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn ecrire_saisie_confirmee(
-    o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool, fusionner_ancien: bool,
-) -> R<PathBuf> {
+/// UNE SAISIE S'ECRIT A LA FOIS : la fenetre sert ses routes en parallele, et la page enregistre une seconde apres la
+/// derniere frappe, meme si l'enregistrement d'avant n'a pas fini. Deux ecritures du meme mois passent l'une apres
+/// l'autre, dans ce processus (`SAISIE_EN_COURS`).
+pub(crate) fn ecrire_saisie_confirmee(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     static SAISIE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _une_a_la_fois = SAISIE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
-    ecrire_saisie_seule(o, ctx, mois, brute, forcer, confirme, fusionner_ancien)
+    ecrire_saisie_seule(o, ctx, mois, brute, confirme)
 }
 
 /// `ecrire_saisie_confirmee`, la seule ecriture en cours.
-#[allow(clippy::too_many_arguments)]
-fn ecrire_saisie_seule(
-    o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool, fusionner_ancien: bool,
-) -> R<PathBuf> {
+fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     let mut donnees = brute.clone();
     donnees.insert("mois".into(), Value::String(mois.to_string()));
+    let donnees = Value::Object(donnees);
     refuser_si_importe(ctx, mois)?;
     refuser_si_clos(ctx, mois)?;
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let declaree = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
-    if !a_confirmer {
-        refuser_si_hors_delai(ctx, mois, forcer)?;
-    }
-    let calculee = Value::Object(donnees.clone());
+    refuser_si_avant_la_premiere_embauche(ctx, mois)?;
     // Le calcul valide la saisie : un nom de salarie ou un spectacle inconnu refuse, et rien n'est ecrit.
-    let (rep, entrees) = crate::calcul_du_mois::calculer_suivi(o, &json!({"saisie": calculee}))
-        .map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &calculee, m)))?;
-    let nouveaux = identifiants(ctx, &calculee).map_err(plain)?;
-
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if let Some(parent) = p.parent() {
-        creer_dossier(parent)?;
-    }
-    if fusionner_ancien && p.exists() {
-        // ELLE GARDE CE QUE L'ECRAN NE MONTRE PAS : `_origine`, la validation, le numero fige, la reouverture.
-        // Un fichier qu'on ne sait plus lire ne doit pas empecher d'enregistrer : la copie de `avant/` le garde tel quel.
-        let lu = lire_saisie(&p).ok().filter(Value::is_object);
-        // L'ancien fichier se CHARGE en entier, calcul compris (`charger(ctx, p)`) : un fichier qui ne se calcule plus
-        // (spectacle devenu inconnu...) n'est pas fusionne.
-        let anciens = lu.as_ref().filter(|_| crate::calcul_du_mois::calculer_suivi(o, &json!({"fichier": p.display().to_string()})).is_ok());
-        let anciens = anciens.and_then(|a| identifiants(ctx, a).ok());
-        if let (Some(ancien), Some(anciens)) = (lu, anciens) {
-            fusionner(&mut donnees, &ancien, &anciens, &nouveaux);
-        }
-    }
-    let donnees = Value::Object(donnees);
+    engagement::charger_donnees(ctx, &donnees).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &donnees, m)))?;
     if a_confirmer {
-        // Ce qui change LA PAIE, pas sa validation ni sa reouverture (`sans_bruit`) ; un mois sans fichier n'a rien de
-        // declare a changer.
-        let avant = lire_saisie(&p).ok().map(|v| crate::routes_mois::empreinte_de(&v));
-        let change = avant.is_some_and(|a| a != crate::routes_mois::empreinte_de(&donnees));
+        // Ce qui change LA PAIE (`sans_bruit`) ; un mois sans saisie n'a rien de declare a changer.
+        let actuelle = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(plain)?;
+        let change = actuelle.as_ref().is_some_and(|a| crate::routes_mois::empreinte_de(a) != crate::routes_mois::empreinte_de(&donnees));
         // Ce que la norme ne permet pas de declarer apres la limite (un contrat declare retire, ses dates changees) se
         // refuse, confirme ou non : accepte, il ne serait jamais declare (`routes_regularisation::refus_non_declarable`).
         if change {
             let copie = crate::routes_regularisation::chemin_saisie_declaree(ctx, mois);
-            let base = lire_saisie(if copie.exists() { &copie } else { &p }).ok();
+            let base = if copie.exists() { lire_saisie(&copie).ok() } else { actuelle.clone() };
             if let Some(base) = base {
                 if let Some(texte) = crate::routes_regularisation::refus_non_declarable(ctx, mois, &base, &donnees)? {
                     return Err(erreur(crate::routes_regularisation::CLASSE_NON_DECLARABLE, texte));
@@ -884,108 +836,37 @@ fn ecrire_saisie_seule(
             }
         }
         if change && !confirme {
-            let texte = declaree.get("avertissement").map(py_str).unwrap_or_default();
+            let texte = declaree.get("avertissement").map(valeur_en_texte).unwrap_or_default();
             return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));
         }
         if change {
             crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, mois)?;
-        }
-    }
-    // LES DATES D'UN CONTRAT SUR PLUSIEURS MOIS (21/10/2026) : ses autres mois recoivent les memes dates
-    // (`routes_regularisation::propager_les_bornes`). Chacun se verifie comme cette saisie -- calcul, mois declare a
-    // confirmer -- avant que rien ne s'ecrive.
-    let ancienne = if p.exists() { lire_saisie(&p).ok() } else { None };
-    let autres = match &ancienne {
-        Some(a) => crate::routes_regularisation::propager_les_bornes(ctx, mois, a, &donnees)?,
-        None => Vec::new(),
-    };
-    let mut a_garder = Vec::new();
-    for (autre, saisie) in &autres {
-        refuser_si_importe(ctx, autre)?;
-        refuser_si_clos(ctx, autre)?;
-        let d = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, autre)?;
-        if d.get("confirmer").is_some_and(vrai) {
-            if !confirme {
-                let texte = d.get("avertissement").map(py_str).unwrap_or_default();
-                return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));
+            // Les bornes d'un engagement sont celles de tous ses mois : quand elles changent, un autre mois du contrat deja
+            // declare garde aussi sa saisie telle que declaree, dont sa correction part. Le contrat se retrouve par
+            // son numero.
+            let entrants: Vec<Value> = donnees.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+            let mut autres: Vec<String> = Vec::new();
+            for o in engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(plain)? {
+                let Some(numero) = o.brut.get("numero").filter(|n| vrai(n)) else { continue };
+                let ecrit = Value::Object(o.brut.clone());
+                let bornes = |e: &Value| (engagement::debut_brut(e), e.get("fin").map(valeur_en_texte).unwrap_or_default());
+                if entrants.iter().any(|e| e.get("numero") == Some(numero) && bornes(e) != bornes(&ecrit)) {
+                    autres.extend(o.mois_couverts(mois).map_err(plain)?.into_iter().filter(|x| x != mois));
+                }
             }
-            a_garder.push(autre.clone());
+            autres.sort();
+            autres.dedup();
+            for x in autres {
+                if !m.depots_reels(&x, &Value::Null)?.is_empty() {
+                    crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, &x)?;
+                }
+            }
         }
-        crate::calcul_du_mois::calculer_suivi(o, &json!({"saisie": saisie}))
-            .map_err(|msg| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, saisie, msg)))?;
     }
-    for autre in &a_garder {
-        crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, autre)?;
-    }
-    for (autre, saisie) in autres {
-        let chemin = ctx.racine.join("paies").join(format!("{}.json", autre));
-        sauver_avant(&chemin)?;
-        ecrire(&chemin, saisie)?;
-        crate::interface::suppression::sortir_de_la_demo(&ctx.racine, &autre).map_err(|m| erreur("OSError", m))?;
-    }
-    if p.exists() {
-        sauver_avant(&p)?;
-    }
-    ecrire(&p, donnees.clone())?;
+    engagement::stock::ecrire_vue_du_mois(ctx, mois, &donnees).map_err(|m| erreur("ErreurOperation", m))?;
     // UN MOIS FAIT EN DEMO, retravaille dans la compagnie gardee : il cesse d'etre « de demo » (`suppression::sortir_de_la_demo`).
     crate::interface::suppression::sortir_de_la_demo(&ctx.racine, mois).map_err(|m| erreur("OSError", m))?;
-    // Le calcul qui vient de valider la saisie est celui du fichier quand la fusion n'y a rien change.
-    if eq_py(&donnees, &calculee) {
-        crate::calcul_du_mois::ecrire_calcul(o, mois, &rep, entrees, &donnees);
-    }
-    Ok(p)
-}
-
-/// CE QUE LE MOTEUR TIENT SEUL, repris du fichier d'avant : `_origine`, les numeros figes, et, engagement par engagement,
-/// la validation (sa carte figee comprise, `calcul_du_mois::sceller`), la reouverture et le numero du contrat. Ce que
-/// l'ecran envoie de `valide` et de `rouverte` ne compte pas : une paie se valide et se rouvre par `valider-paie`, jamais
-/// par une saisie (une page qui renverrait une validation lue rouvrirait ou revaliderait en silence).
-///
-/// LE CONTRAT, PAS LE SALARIE DU JOUR : chaque engagement de l'ecran retrouve le sien dans le fichier par
-/// `jumeaux::apparier` (le numero, sinon le rang parmi ceux du meme salarie et du meme jour) ; le jumeau d'un contrat
-/// valide ne devient pas sa copie, et chacun garde son numero.
-///
-/// LE MEME CONTRAT A D'AUTRES DATES GARDE SA REOUVERTURE (#253, 23/10/2026 ; banc Le Petit Castelet) : un jour ajoute
-/// AVANT le premier jour d'une paie rouverte change son premier jour, et l'appariement par (salarie, debut) ne la
-/// retrouvait plus : la reouverture tombait au premier enregistrement, et, le mois etant depose, la paie modifiee se
-/// relisait « validee » au jour du depot, avec les chiffres d'avant. Le numero de contrat pose la designe, quel que soit
-/// son premier jour (`jumeaux::apparier_meme_numero`, regle 4).
-fn fusionner(donnees: &mut Map<String, Value>, ancien: &Value, anciens: &[Ident], nouveaux: &[Ident]) {
-    if let Some(origine) = ancien.get("_origine") {
-        if !donnees.contains_key("_origine") {
-            donnees.insert("_origine".into(), origine.clone());
-        }
-    }
-    if ancien.get("numeros_figes").is_some_and(vrai) && !donnees.contains_key("numeros_figes") {
-        donnees.insert("numeros_figes".into(), Value::Bool(true));
-    }
-    let Some(Value::Array(engagements)) = donnees.get_mut("engagements") else { return };
-    for e in engagements.iter_mut() {
-        if let Value::Object(eng) = e {
-            eng.remove("valide");
-            eng.remove("rouverte");
-        }
-    }
-    let engagements_anciens = ancien.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let en_option = |l: &[Ident]| l.iter().cloned().map(Some).collect::<Vec<_>>();
-    let paires = apparier_meme_numero(&en_option(nouveaux), &en_option(anciens));
-    for (i, paire) in paires.iter().enumerate() {
-        let Some(e) = (*paire).and_then(|j| engagements_anciens.get(j)).filter(|e| e.is_object()) else { continue };
-        let Some(Value::Object(eng)) = engagements.get_mut(i) else { continue };
-        // UNE PAIE VALIDEE NE CHANGE PAS PAR CE CHEMIN : on garde celle du fichier, telle quelle.
-        if e.get("valide").is_some_and(vrai) {
-            engagements[i] = e.clone();
-            continue;
-        }
-        if !eng.get("numero").is_some_and(vrai) {
-            if let Some(n) = e.get("numero").filter(|v| vrai(v)) {
-                eng.insert("numero".into(), n.clone());
-            }
-        }
-        if let Some(r) = e.get("rouverte").filter(|v| vrai(v)) {
-            eng.insert("rouverte".into(), r.clone());
-        }
-    }
+    Ok(engagement::stock::chemin(&ctx.racine, mois))
 }
 
 // ----------------------------------------------------------------------- ajuster
@@ -1010,16 +891,16 @@ fn rempli(v: Option<&Value>) -> bool {
 
 /// `valeur in (None, "", 0)`.
 fn absent_ou_zero(v: Option<&Value>) -> bool {
-    !rempli(v) || v.is_some_and(|x| crate::etats::nombre(x) == Some(0.0))
+    !rempli(v) || v.is_some_and(|x| socle::valeur::nombre(x) == Some(0.0))
 }
 
-fn rubrique_de(ctx: &Contexte, ligne: &Value) -> Option<crate::catalogue::Rubrique> {
+fn rubrique_de(ctx: &Contexte, ligne: &Value) -> Option<droit::catalogue::Rubrique> {
     let code = match ligne.get("rubrique") {
         None => "cachet",
         Some(Value::String(s)) => s.as_str(),
         Some(_) => return None,
     };
-    crate::catalogue::rubrique(&ctx.racine, code).ok()
+    droit::catalogue::rubrique(&ctx.racine, code).ok()
 }
 
 /// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.
@@ -1054,7 +935,7 @@ fn poser_taux_provisoires(ctx: &Contexte, data: &mut Value, rangs: &[usize]) -> 
             }
         }
         if sans_taux.len() > 1 {
-            let qui = e.get("salarie").filter(|v| vrai(v)).map_or_else(|| "cet engagement".to_string(), py_str);
+            let qui = e.get("salarie").filter(|v| vrai(v)).map_or_else(|| "cet engagement".to_string(), valeur_en_texte);
             let noms: Vec<&str> = sans_taux.iter().map(|(_, l)| l.as_str()).collect();
             return Err(refus(format!(
                 "{} : {} lignes de salaire sans taux ({}). Le montant vise ne dit pas comment le partager entre elles : saisir un taux \
@@ -1118,7 +999,7 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
     let lire = |v: &'_ Value, k: &str| v.get(k).cloned().unwrap_or(Value::Null);
     let mut d = Map::new();
     d.insert("index".into(), json!(index));
-    if !eq_py(&lire(apres, "salaire_mensuel"), &lire(avant, "salaire_mensuel")) {
+    if !valeurs_egales(&lire(apres, "salaire_mensuel"), &lire(avant, "salaire_mensuel")) {
         d.insert("salaire_mensuel".into(), lire(apres, "salaire_mensuel"));
     }
     let mut lignes = Vec::new();
@@ -1127,7 +1008,7 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
         if !rempli(a.get("taux")) && !vrai(tb) {
             continue; // restee sans taux : rien a ecrire
         }
-        if !eq_py(ta, tb) {
+        if !valeurs_egales(ta, tb) {
             lignes.push(json!({
                 "rang": rang,
                 "rubrique": b.get("rubrique").cloned().unwrap_or_else(|| json!("cachet")),
@@ -1141,12 +1022,15 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
     Value::Object(d)
 }
 
-fn somme(rep: &Value, rangs: &[usize], champ: &str) -> R<Decimal> {
-    let paies = rep.get("paies").and_then(Value::as_array).ok_or_else(|| plain("reponse du calcul illisible : `paies`"))?;
+fn somme(paies: &[Paie], rangs: &[usize], champ: &str) -> R<Decimal> {
     let mut total = Decimal::new(0, 2);
     for &i in rangs {
-        let v = paies.get(i).and_then(|p| p.get(champ)).ok_or_else(|| plain(format!("reponse du calcul illisible : `{}`", champ)))?;
-        total += dec(v).map_err(plain)?;
+        let p = paies.get(i).ok_or_else(|| plain("le calcul du mois n'a pas cette paie"))?;
+        total += match champ {
+            "net_a_payer" => p.net_a_payer,
+            "brut" => p.brut,
+            _ => p.cout_employeur,
+        };
     }
     Ok(total)
 }
@@ -1161,7 +1045,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
         "net" => "net_a_payer",
         "brut" => "brut",
         "cout" => "cout_employeur",
-        _ => return Err(refus(format!("Cible inconnue : {}. Les trois qui se visent sont brut, cout, net.", crate::fichiers::repr(cible)))),
+        _ => return Err(refus(format!("Cible inconnue : {}. Les trois qui se visent sont brut, cout, net.", socle::fichiers::repr(cible)))),
     };
     let vise = centimes(dec(montant).map_err(|m| erreur("InvalidOperation", m))?);
     if vise <= Decimal::ZERO {
@@ -1190,7 +1074,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     let origine = data.clone();
     poser_taux_provisoires(ctx, &mut data, &rangs)?;
 
-    let essai = |facteur: Decimal| -> R<(Value, Value, Decimal)> {
+    let essai = |facteur: Decimal| -> R<(Value, Vec<Paie>, Decimal)> {
         let mut d = data.clone();
         let mut touche = false;
         for &i in &rangs {
@@ -1205,10 +1089,9 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
                  (cachet, service, heure, journee...) avec sa quantite ; le taux, lui, peut rester vide.",
             ));
         }
-        let rep = crate::service::calculer_avec(ctx, &json!({"saisie": d}))
-            .map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &d, m)))?;
-        let atteint = somme(&rep, &rangs, champ)?;
-        Ok((d, rep, atteint))
+        let paies = engagement::charger_donnees(ctx, &d).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &d, m)))?.paies;
+        let atteint = somme(&paies, &rangs, champ)?;
+        Ok((d, paies, atteint))
     };
 
     let (_, _, depart) = essai(Decimal::ONE)?;
@@ -1223,11 +1106,11 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     let rang_essai = |atteint: Decimal| ((atteint - vise).abs(), atteint > vise);
     let mut facteur = (vise / depart).round_dp(20);
     let mut vus = vec![facteur];
-    let mut meilleur: Option<(Value, Value, Decimal, Decimal, usize)> = None;
+    let mut meilleur: Option<(Value, Vec<Paie>, Decimal, Decimal, usize)> = None;
     for tour in 1..=TOURS {
-        let (d, rep, atteint) = essai(facteur)?;
+        let (d, paies, atteint) = essai(facteur)?;
         if meilleur.as_ref().map_or(true, |m| rang_essai(atteint) < rang_essai(m.2)) {
-            meilleur = Some((d, rep, atteint, facteur, tour));
+            meilleur = Some((d, paies, atteint, facteur, tour));
         }
         if atteint == vise || atteint <= Decimal::ZERO {
             break;
@@ -1239,18 +1122,12 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
         vus.push(suivant);
         facteur = suivant;
     }
-    let (d, rep, atteint, facteur, tours) = meilleur.expect("au moins un essai");
+    let (d, paies, atteint, facteur, tours) = meilleur.expect("au moins un essai");
 
     // Les paies de ces engagements, telles que la page les montre.
-    let engs = crate::routes_ouverture::engagements_calcules(ctx, &d, &rep).map_err(Echec::from)?;
-    let paies_json = rep.get("paies").and_then(Value::as_array).ok_or_else(|| plain("reponse du calcul illisible : `paies`"))?;
     let mut vues = Vec::new();
-    for (i, e) in engs.into_iter().enumerate() {
-        if !rangs.contains(&i) {
-            continue;
-        }
-        let p = crate::routes_ouverture::paie_de_json(ctx, e, &paies_json[i]).map_err(Echec::from)?;
-        vues.push(crate::routes_ouverture::vue_paie(ctx, &p, &d["engagements"][i], &d, false).map_err(Echec::from)?);
+    for &i in &rangs {
+        vues.push(crate::routes_ouverture::vue_paie(ctx, &paies[i], &d["engagements"][i], &d, false).map_err(Echec::from)?);
     }
     let atteint = centimes(atteint);
     let mut f = facteur.round_dp(6);

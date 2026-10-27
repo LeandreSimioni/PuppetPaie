@@ -57,7 +57,7 @@ use std::time::Instant;
 use regex::Regex;
 use serde_json::{json, Map, Value};
 
-use crate::date::Jour;
+use socle::date::Jour;
 use crate::entrepot_dila::{self as dila, dire, Entrepot, LecteurTar, Source};
 
 mod difflib;
@@ -148,7 +148,7 @@ pub fn commande(args: &[String]) -> i32 {
         return 2;
     }
     let racine = Path::new(&args[1]);
-    let aujourdhui = match crate::contexte::aujourdhui_sans_note() {
+    let aujourdhui = match droit::contexte::aujourdhui_sans_note() {
         Ok(j) => j,
         Err(m) => {
             eprintln!("{}", m);
@@ -511,7 +511,7 @@ fn ecrire(racine: &Path, articles: &Map<String, Value>, lues: &[String], totales
             "articles": siens,
         });
         let p = dossier.join("releve.json");
-        std::fs::write(&p, crate::ecriture::json_py(&releve, 1)).map_err(|e| format!("{} : {}", p.display(), e))?;
+        std::fs::write(&p, socle::ecriture::json_indente(&releve, 1)).map_err(|e| format!("{} : {}", p.display(), e))?;
     }
     Ok(())
 }

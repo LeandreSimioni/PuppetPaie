@@ -8,8 +8,8 @@ use serde_json::{json, Map, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{brut, enveloppe, exiger, json_ligne, rendre};
 use super::Cadre;
-use crate::contexte::archivee;
-use crate::retours::Echec;
+use droit::contexte::archivee;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "fiche", positionnels: &[], options: &[Opt::drapeau("archives"), Opt::drapeau("json")] };
 
@@ -59,7 +59,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     dire!("Entreprise : {} - SIRET {} - IDCC {}", exiger(&ctx.entreprise, "raison_sociale")?, exiger(&ctx.entreprise, "siret")?, exiger(&ctx.entreprise, "idcc")?);
     dire!("\nSalaries :");
     for (k, s) in &salaries {
-        let nir = if s.get("nir").is_some_and(crate::fichiers::vrai) {
+        let nir = if s.get("nir").is_some_and(socle::fichiers::vrai) {
             format!("NIR {}{}", exiger(s, "nir")?, exiger(s, "nir_cle")?)
         } else {
             "NIR aucun (declare sous NTT)".to_string()

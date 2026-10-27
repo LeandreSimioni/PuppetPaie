@@ -14,18 +14,18 @@ fi
 # chaque commit, avec le `paie` que la compilation d'avance produit (profil `essais`).
 git -C "$CLAUDE_PROJECT_DIR" config core.hooksPath atelier/.githooks || true
 
-PAIE="$CLAUDE_PROJECT_DIR/atelier/sources/paie"
+ESPACE="$CLAUDE_PROJECT_DIR/atelier/sources"
 JOURNAL="${TMPDIR:-/tmp}/puppetpaie-compilation-davance.log"
-if [ -d "$PAIE" ] && command -v cargo >/dev/null 2>&1; then
+if [ -f "$ESPACE/Cargo.toml" ] && command -v cargo >/dev/null 2>&1; then
   # cargo-nextest manque dans l'image du conteneur (13/10/2026) : le binaire precompile se telecharge en quelques
   # secondes ; si le reseau le refuse, la suite retombe sur `cargo test`.
   if ! cargo nextest --version >/dev/null 2>&1; then
     (curl -LsSf --max-time 120 https://get.nexte.st/latest/linux | tar zxf - -C "${CARGO_HOME:-$HOME/.cargo}/bin") 2>/dev/null || true
   fi
   if cargo nextest --version >/dev/null 2>&1; then
-    (cd "$PAIE" && nohup cargo nextest run --cargo-profile essais --no-run >"$JOURNAL" 2>&1 &) || true
+    (cd "$ESPACE" && nohup cargo nextest run --cargo-profile essais --no-run >"$JOURNAL" 2>&1 &) || true
   else
-    (cd "$PAIE" && nohup cargo test --profile essais --no-run >"$JOURNAL" 2>&1 &) || true
+    (cd "$ESPACE" && nohup cargo test --profile essais --no-run >"$JOURNAL" 2>&1 &) || true
   fi
 fi
 exit 0

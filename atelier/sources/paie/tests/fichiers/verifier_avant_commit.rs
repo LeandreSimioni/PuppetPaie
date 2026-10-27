@@ -61,7 +61,7 @@ fn monter(test: &str, avec_prive: bool) -> PathBuf {
 
 fn environnement(c: &mut Command, depot: &Path) {
     c.env_clear()
-        .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
+        .env(socle::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
         .env("PATH", std::env::var("PATH").unwrap_or_default())
         .env("HOME", depot.parent().unwrap().join("home"))
         .env("GIT_CONFIG_NOSYSTEM", "1")

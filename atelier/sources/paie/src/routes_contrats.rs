@@ -3,11 +3,9 @@
 //! `contrats-en-cours`, `contrats-passes`, `emploi`, `rubriques-actives`,
 //! `metiers-catalogue`.
 //!
-//! AUCUN CALCUL DE PAIE, et pas un seul fichier `calcul.json` : ni les contrats
-//! en cours ni les contrats passes n'ont besoin d'un brut. Les bornes et les
-//! quantites sont dans les fichiers de saisie (`paies/AAAA-MM.json`) ; les jours
-//! exacts des mois passes aussi ; l'historique importe parle pour les autres
-//! (`historique/engagements.json`). Le Python lisait exactement cela.
+//! AUCUN CALCUL DE PAIE : ni les contrats en cours ni les contrats passes n'ont besoin d'un brut. Les bornes et les
+//! quantites sont dans les engagements (`engagements/`) ; l'historique importe parle pour les autres
+//! (`historique/engagements.json`).
 //!
 //! `rubriques-actives` n'est pas une lecture : elle ecrit la preference
 //! `config/rubriques-actives.json`, avec la copie horodatee que le Python en
@@ -23,14 +21,19 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::catalogue;
-use crate::contexte::Contexte;
-use crate::ecriture::ecrire_json;
-use crate::emplois;
-use crate::etats::{self, erreur, get, items, nom_type, nombre, ou, py_str, Dico, R};
-use crate::fichiers::{repr, repr_valeur, vrai};
-use crate::jumeaux;
-use crate::retours::Echec;
+use droit::catalogue;
+use droit::contexte::Contexte;
+use socle::ecriture::ecrire_json;
+use droit::emplois;
+use crate::etats::{self, get, items, ou, Dico};
+use socle::valeur::nombre;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{repr, repr_valeur, vrai};
+use droit::jumeaux;
+use socle::echec::Echec;
 use crate::routes_accueil::{metier_visible, preferences_metiers, rubrique_json};
 use crate::routes_saisie::lire_saisie;
 
@@ -53,12 +56,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 #[track_caller]
 fn cle_manquante(cle: &str) -> Echec {
-    erreur("KeyError", crate::fichiers::absent(cle))
+    erreur("KeyError", socle::fichiers::absent(cle))
 }
 
 /// `charge["cle"]`.
@@ -81,7 +84,7 @@ fn comparer(a: &Value, b: &Value) -> R<Ordering> {
 
 #[track_caller]
 fn pas_comparable(a: &Value, b: &Value) -> Echec {
-    erreur("TypeError", crate::fichiers::incomparables(nom_type(a), nom_type(b)))
+    erreur("TypeError", socle::fichiers::incomparables(nom_type(a), nom_type(b)))
 }
 
 /// `sorted(valeurs)`.
@@ -121,7 +124,7 @@ fn parcourir(v: Option<&Value>) -> R<Vec<Value>> {
 
 /// Les cles d'un dictionnaire de fiche (`dict.get` sur une valeur qui n'en est pas un : `AttributeError`).
 fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
-    v.as_object().ok_or_else(|| erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v))))
+    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
 }
 
 /// `int(v)` de Python.
@@ -135,7 +138,7 @@ fn entier_py(v: &Value) -> R<i64> {
                 if x.is_nan() {
                     Err(erreur("ValueError", "cannot convert float NaN to integer"))
                 } else if x.is_infinite() {
-                    Err(erreur("OverflowError", crate::fichiers::entier_hors_limites("infini")))
+                    Err(erreur("OverflowError", socle::fichiers::entier_hors_limites("infini")))
                 } else {
                     Ok(x.trunc() as i64)
                 }
@@ -148,7 +151,7 @@ fn entier_py(v: &Value) -> R<i64> {
             .map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(s)))),
         autre => Err(erreur(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", nom_type(autre)),
         )),
     }
 }
@@ -202,43 +205,40 @@ pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
     let jours = trier(jours_des_lignes(e, "dates")?.iter().map(jour_de).collect())?;
     let plan = trier(jours_des_lignes(e, "planning")?.iter().map(jour_de).collect())?;
     let ecrit = |k: &str| e.get(k).filter(|x| vrai(x)).cloned();
-    let debut = ecrit("debut").or_else(|| jours.first().cloned()).map(|v| py_str(&v)).unwrap_or_default();
+    let debut = ecrit("debut").or_else(|| jours.first().cloned()).map(|v| valeur_en_texte(&v)).unwrap_or_default();
     let fin = if !jours.is_empty() || !plan.is_empty() {
         let mut tous = jours.clone();
         tous.extend(plan);
         match ecrit("fin") {
-            Some(f) => py_str(&f),
-            None => py_str(&maximum(&tous)?),
+            Some(f) => valeur_en_texte(&f),
+            None => valeur_en_texte(&maximum(&tous)?),
         }
     } else {
-        ecrit("fin").map(|f| py_str(&f)).unwrap_or_default()
+        ecrit("fin").map(|f| valeur_en_texte(&f)).unwrap_or_default()
     };
     Ok((debut, fin))
 }
 
 // ------------------------------------------------------------ les fichiers de mois
 
-/// Les mois dont un fichier de saisie existe, dans l'ordre croissant : `routes_mois::mois_saisis`, les `paies/AAAA-MM.json`
-/// seulement. Un cache (`2024-12.etat.json`, `2026-09.calcul.json`), qu'une lecture ecrit en fond, n'est pas un mois
-/// (#236 : le rejeu d'un banc, qui ne refait pas les lectures, ne doit pas voir une autre compagnie).
-pub(crate) fn mois_saisis(ctx: &Contexte) -> Vec<String> {
-    crate::routes_mois::mois_saisis(&ctx.racine)
+/// Les mois que des engagements touchent, dans l'ordre croissant (`engagement::stock::mois_saisis`) ; un fichier
+/// d'engagements illisible refuse.
+pub(crate) fn mois_saisis(ctx: &Contexte) -> R<Vec<String>> {
+    engagement::stock::mois_saisis(&ctx.racine).map_err(|m| erreur("ValueError", m))
 }
 
-/// `operations_paies._engagements_du_mois` : les engagements bruts d'un fichier
-/// de mois, avec la cle du salarie ; vide si le mois n'est pas sur le disque.
+/// Les engagements bruts que le mois montre (`engagement::stock::vue_du_mois`), avec la cle du salarie ; vide si aucun
+/// engagement ne le touche.
 /// Un engagement dont le salarie est inconnu (ou qui n'est pas un dictionnaire)
 /// est sauté.
 pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, Map<String, Value>)>> {
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !p.exists() {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
-    }
-    let data = lire_saisie(&p)?;
+    };
     let mut out = Vec::new();
     for e in parcourir(get(&data, "engagements")?.into())? {
         let Some(m) = e.as_object() else { continue };
-        let Some(cle) = crate::engagement::cle_de_l_engagement(ctx, &e) else { continue };
+        let Some(cle) = engagement::cle_de_l_engagement(ctx, &e) else { continue };
         out.push((cle, m.clone()));
     }
     Ok(out)
@@ -310,7 +310,7 @@ impl EnCours {
 /// la fin depasse le 1er de `mois`. Lu dans les fichiers de saisie des mois qui
 /// precedent, jamais dans la DSN.
 fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
-    let texte = py_str(mois);
+    let texte = valeur_en_texte(mois);
     let premier = format!("{}-01", texte);
     // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie qui commencent le meme jour se
     // reprennent chacun, et chacun se dit repris ou non.
@@ -318,11 +318,11 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     for (c, e) in engagements_du_mois(ctx, &texte)? {
         deja.push(Some((c, bornes_brutes(&e)?.0, jumeaux::numero_du_champ(e.get("numero")))));
     }
-    let precedents = mois_saisis(ctx);
+    let precedents = mois_saisis(ctx)?;
     let Some(texte_mois) = mois.as_str() else {
         // `x.mois < mois` : un texte et autre chose ne se comparent pas.
         return match precedents.first() {
-            Some(_) => Err(erreur("TypeError", crate::fichiers::incomparables("str", nom_type(mois)))),
+            Some(_) => Err(erreur("TypeError", socle::fichiers::incomparables("str", nom_type(mois)))),
             None => Ok(Vec::new()),
         };
     };
@@ -338,7 +338,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             // d'un permanent ne se reprenait jamais au mois suivant. Une fin vide ne vaut « en cours » que pour une
             // nature a duree indeterminee : un contrat d'usage sans jour ni fin ne court pas.
             let sans_terme = fin.is_empty()
-                && e.get("nature").and_then(Value::as_str).and_then(|n| crate::contrats::nature(Some(n)).ok()).is_some_and(|n| n.duree_indeterminee);
+                && e.get("nature").and_then(Value::as_str).and_then(|n| droit::natures::nature(Some(n)).ok()).is_some_and(|n| n.duree_indeterminee);
             if debut.is_empty() || (fin < premier && !sans_terme) {
                 continue;
             }
@@ -355,7 +355,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 Some(Value::String(s)) => Some(s.as_str()),
                 Some(_) => continue,
             };
-            let Ok(nat) = crate::contrats::nature(nature) else { continue };
+            let Ok(nat) = droit::natures::nature(nature) else { continue };
             let mensuel: Option<Map<String, Value>> = nat.mensuelle().then(|| {
                 DEFINIT_LE_MENSUEL.iter().filter_map(|k| e.get(*k).filter(|v| !v.is_null()).map(|v| (k.to_string(), v.clone()))).collect()
             });
@@ -391,7 +391,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
                 .unwrap_or(Value::Null);
             out.push(EnCours {
                 salarie: cle.clone(),
-                nom: format!("{} {}", py_str(&texte_de("nom")?), py_str(&prenom)),
+                nom: format!("{} {}", valeur_en_texte(&texte_de("nom")?), valeur_en_texte(&prenom)),
                 spectacle: spec,
                 debut: debut.clone(),
                 fin,
@@ -422,7 +422,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         }
         vus.poser(ident, ())?;
         let Ok(sal) = ctx.salarie(&r.salarie) else { continue };
-        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+        let t = |k: &str| sal.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
         let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
         let mut mensuel = Map::new();
         mensuel.insert("nature".into(), json!(r.nature));
@@ -459,18 +459,17 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
 /// Le `spectacle` d'un fichier de mois : celui que joue un engagement qui n'en nomme pas
 /// (`engagement::engagements`). `None` s'il n'en dit pas.
 fn spectacle_du_fichier(ctx: &Contexte, mois: &str) -> R<Option<String>> {
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !p.exists() {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(None);
-    }
-    Ok(lire_saisie(&p)?.get("spectacle").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(String::from))
+    };
+    Ok(data.get("spectacle").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(String::from))
 }
 
 /// Les 7 premiers caracteres (`jour[:7]`) d'un jour de planning.
 fn mois_du_jour(j: &Value) -> R<String> {
     match jour_de_planning(j)? {
         Value::String(s) => Ok(s.chars().take(7).collect()),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un texte", nom_type(&autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte", nom_type(&autre)))),
     }
 }
 
@@ -579,7 +578,7 @@ fn contrats_en_cours_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut contrats = Vec::new();
     for c in contrats_en_cours(ctx, mois)? {
         let mut m = c.json();
-        m.insert("engagement".into(), engagement_de_reprise(ctx, &c, &py_str(mois))?);
+        m.insert("engagement".into(), engagement_de_reprise(ctx, &c, &valeur_en_texte(mois))?);
         contrats.push(Value::Object(m));
     }
     Ok(json!({"mois": mois, "contrats": contrats}))
@@ -650,7 +649,7 @@ impl<'a> Spectacles<'a> {
 
 /// `_titre` : le titre de la fiche, ou le numero d'objet a defaut.
 fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
-    let t = spec.and_then(|s| s.get("titre")).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+    let t = spec.and_then(|s| s.get("titre")).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
     let t = t.trim();
     if !t.is_empty() && t != TITRE_A_COMPLETER {
         json!(t)
@@ -665,18 +664,18 @@ fn titre_de(spec: Option<&Value>, numero: &Value) -> Value {
 fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
     let sal = match cle {
         Value::String(s) => ctx.salaries.get(s).filter(|x| vrai(x)),
-        Value::Array(_) | Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle(nom_type(cle)))),
+        Value::Array(_) | Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(cle)))),
         _ => None,
     };
     let (nom, prenom) = match sal {
         Some(s) => (
-            s.get("nom").map(py_str).unwrap_or_else(|| py_str(cle)),
+            s.get("nom").map(valeur_en_texte).unwrap_or_else(|| valeur_en_texte(cle)),
             match s.get("prenom_affichage").filter(|x| vrai(x)) {
-                Some(p) => py_str(p),
-                None => s.get("prenom").map(py_str).unwrap_or_default(),
+                Some(p) => valeur_en_texte(p),
+                None => s.get("prenom").map(valeur_en_texte).unwrap_or_default(),
             },
         ),
-        None => (py_str(cle), String::new()),
+        None => (valeur_en_texte(cle), String::new()),
     };
     Ok(format!("{} {}", nom, prenom))
 }
@@ -716,7 +715,7 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
             continue;
         }
         if q.is_infinite() {
-            return Err(erreur("OverflowError", crate::fichiers::entier_hors_limites("infini")));
+            return Err(erreur("OverflowError", socle::fichiers::entier_hors_limites("infini")));
         }
         cachets += q.trunc() as i64;
     }
@@ -729,7 +728,7 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
 /// ses jours exacts), l'historique importe des AEM parle pour les autres.
 /// Trie par salarie puis debut.
 fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<Vec<Passe>> {
-    let texte = py_str(mois);
+    let texte = valeur_en_texte(mois);
     let (premier, dernier) = (format!("{}-01", texte), format!("{}-31", texte));
     let voulus: HashSet<String> = parcourir(salaries)?.into_iter().filter_map(|v| v.as_str().map(String::from)).collect();
     let voulu = |cle: &Value| voulus.is_empty() || cle.as_str().is_some_and(|c| voulus.contains(c));
@@ -741,7 +740,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
     // mois regarde l'ecrit (c'est lui qui a les jours joues).
     let mut vus: Dico<usize> = Dico::nouveau();
     let mut paie: Vec<Passe> = Vec::new();
-    let mut connus = mois_saisis(ctx);
+    let mut connus = mois_saisis(ctx)?;
     connus.reverse();
     for mc in &connus {
         couverts.insert(mc.clone());
@@ -758,7 +757,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
             let spec = spectacles.trouver(&ref_spec)?;
             let numero = match spec.and_then(|s| s.get("numero_objet")).filter(|x| vrai(x)) {
                 Some(n) => n.clone(),
-                None => json!(py_str(&ref_spec)),
+                None => json!(valeur_en_texte(&ref_spec)),
             };
             let cachets = cachets_de(ctx, &e)?;
             let mut dates: Vec<Value> = trier(jours_des_lignes(&e, "dates")?.iter().map(jour_de).collect())?;
@@ -803,7 +802,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
     let mut out = paie;
     for e in historique(ctx)? {
         let e = objet(&e)?;
-        let texte_de = |k: &str| e.get(k).filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+        let texte_de = |k: &str| e.get(k).filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
         let (debut, fin) = (texte_de("debut"), texte_de("fin"));
         if debut.is_empty() || debut > dernier || fin < premier {
             continue;
@@ -816,7 +815,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
         let cle = e.get("salarie").cloned().unwrap_or_else(|| json!(""));
         if !voulus.is_empty() {
             if matches!(cle, Value::Array(_) | Value::Object(_)) {
-                return Err(erreur("TypeError", crate::fichiers::pas_une_cle(nom_type(&cle))));
+                return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&cle))));
             }
             if !voulu(&cle) {
                 continue;
@@ -875,7 +874,7 @@ fn historique(ctx: &Contexte) -> R<Vec<Value>> {
     }
     let data = lire_saisie(&p)?;
     let Value::Object(o) = &data else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&data))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&data))));
     };
     match o.get("engagements") {
         None => Ok(Vec::new()),
@@ -906,7 +905,7 @@ fn emploi(charge: &Value) -> R<Value> {
     let texte = match code {
         Value::String(s) => s.clone(),
         autre if !vrai(autre) => String::new(),
-        autre => return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", nom_type(autre)))),
+        autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
     };
     let inconnu = |t: &str| {
         erreur(
@@ -939,8 +938,8 @@ pub(crate) fn sauver_avant(chemin: &Path) -> R<()> {
     let dossier = parent.join("avant");
     std::fs::create_dir_all(&dossier).map_err(io)?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let maintenant = crate::temps::secondes();
-    let horodatage = crate::paris::iso_secondes(maintenant).replace(['-', ':'], "").replace('T', "-");
+    let maintenant = socle::temps::secondes();
+    let horodatage = socle::paris::iso_secondes(maintenant).replace(['-', ':'], "").replace('T', "-");
     std::fs::copy(chemin, dossier.join(format!("{}.{}", nom, horodatage))).map_err(io)?;
     let prefixe = format!("{}.", nom);
     let mut anciennes: Vec<String> = std::fs::read_dir(&dossier)
@@ -971,18 +970,18 @@ fn verifier_les_fichiers_du_catalogue(racine: &Path) -> R<()> {
         }
         let v = lire_saisie(&p)?;
         let Value::Object(o) = &v else {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&v))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&v))));
         };
         if nom == "rubriques-actives.json" {
             if let Some(a) = o.get("actives") {
                 for c in items(a)? {
                     if matches!(c.as_ref(), Value::Array(_) | Value::Object(_)) {
-                        return Err(erreur("TypeError", crate::fichiers::pas_une_cle(nom_type(&c))));
+                        return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&c))));
                     }
                 }
             }
             if let Some(u) = o.get("usages").filter(|u| !u.is_object()) {
-                return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(u))));
+                return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(u))));
             }
         }
     }
@@ -1004,7 +1003,7 @@ fn rubriques_actives(ctx: &Contexte, charge: &Value) -> R<Value> {
     for c in &actives {
         // `c not in connus` : le code se hache.
         if matches!(c, Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", crate::fichiers::pas_une_cle(nom_type(c))));
+            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(c))));
         }
         if !c.as_str().is_some_and(|s| connus.contains(&s)) {
             inconnues.push(c);
@@ -1013,7 +1012,7 @@ fn rubriques_actives(ctx: &Contexte, charge: &Value) -> R<Value> {
     connus.sort();
     if !inconnues.is_empty() {
         if let Some((i, autre)) = inconnues.iter().enumerate().find(|(_, c)| !c.is_string()) {
-            return Err(erreur("TypeError", crate::fichiers::element(i, &crate::fichiers::attendu("un texte", nom_type(autre)))));
+            return Err(erreur("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre)))));
         }
         let noms: Vec<&str> = inconnues.iter().filter_map(|c| c.as_str()).collect();
         return Err(erreur(
@@ -1024,7 +1023,7 @@ fn rubriques_actives(ctx: &Contexte, charge: &Value) -> R<Value> {
     let p = ctx.racine.join("config").join("rubriques-actives.json");
     let mut donnees = if p.exists() { lire_saisie(&p)? } else { json!({}) };
     let Value::Object(d) = &mut donnees else {
-        return Err(erreur("TypeError", format!("config/rubriques-actives.json : {}", crate::fichiers::attendu("un objet", nom_type(&donnees)))));
+        return Err(erreur("TypeError", format!("config/rubriques-actives.json : {}", socle::fichiers::attendu("un objet", nom_type(&donnees)))));
     };
     let mut uniques: Vec<Value> = Vec::new();
     for c in actives {
@@ -1059,7 +1058,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
     let ordre: HashMap<&str, usize> = familles.iter().enumerate().map(|(i, f)| (f.as_str(), i)).collect();
     let noms = emplois::noms_des_conventions().map_err(plain)?;
     let (ajoutes, retires) = preferences_metiers(&ctx.racine)?;
-    let idcc = ctx.entreprise.get("idcc").filter(|x| vrai(x)).map(py_str).unwrap_or_default();
+    let idcc = ctx.entreprise.get("idcc").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default();
     let mut liste: Vec<Map<String, Value>> = Vec::new();
     for m in emplois::catalogue().map_err(plain)? {
         let conventions: Vec<Value> = m.get("conventions").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -1068,7 +1067,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
         let de = if conv || conventions.is_empty() {
             String::new()
         } else {
-            conventions.iter().map(|c| noms.get(&py_str(c)).map(py_str).unwrap_or_else(|| py_str(c))).collect::<Vec<_>>().join(", ")
+            conventions.iter().map(|c| noms.get(&valeur_en_texte(c)).map(valeur_en_texte).unwrap_or_else(|| valeur_en_texte(c))).collect::<Vec<_>>().join(", ")
         };
         let mut e = m.as_object().cloned().unwrap_or_default();
         e.insert("retenu".into(), json!(metier_visible(&m, &idcc, &ajoutes, &retires)));
@@ -1076,7 +1075,7 @@ fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
         e.insert("de".into(), json!(de));
         liste.push(e);
     }
-    let texte = |m: &Map<String, Value>, k: &str| m.get(k).map(py_str).unwrap_or_default();
+    let texte = |m: &Map<String, Value>, k: &str| m.get(k).map(valeur_en_texte).unwrap_or_default();
     liste.sort_by_cached_key(|m| (ordre.get(texte(m, "famille").as_str()).copied().unwrap_or(ordre.len()), texte(m, "libelle").to_lowercase()));
     let _ = etats::s("");
     Ok(json!({"metiers": liste, "familles": familles}))

@@ -28,7 +28,7 @@ use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, texte};
 use super::Cadre;
 use crate::coffre::{Coffre, SERVICES};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "coffre",
@@ -85,17 +85,17 @@ fn faire(cadre: &Cadre) -> Result<i32, Echec> {
     }
     dire!();
     for s in c.etat().map_err(vers)? {
-        let mut marque = if s.get("pose").is_some_and(crate::fichiers::vrai) { "pose" } else { "-" };
-        if s.get("dans_environnement").is_some_and(crate::fichiers::vrai) {
+        let mut marque = if s.get("pose").is_some_and(socle::fichiers::vrai) { "pose" } else { "-" };
+        if s.get("dans_environnement").is_some_and(socle::fichiers::vrai) {
             marque = "environnement";
         }
         let depuis = match s.get("pose_le") {
-            Some(d) if crate::fichiers::vrai(d) => format!("depuis le {}", texte(d)),
+            Some(d) if socle::fichiers::vrai(d) => format!("depuis le {}", texte(d)),
             _ => String::new(),
         };
         dire!("  {:<18} {:<14} {}", champ(&s, "service"), marque, depuis);
         dire!("     {}", champ(&s, "sert_a"));
-        if let Some(Value::String(compte)) = s.get("compte").filter(|v| crate::fichiers::vrai(v)) {
+        if let Some(Value::String(compte)) = s.get("compte").filter(|v| socle::fichiers::vrai(v)) {
             dire!("     boite : {}", compte);
         }
     }
@@ -299,11 +299,11 @@ fn verifier(cadre: &Cadre) -> Result<i32, Echec> {
             continue;
         }
         match cadre.route("coffre-verifier", json!({"service": service})) {
-            Ok(v) if v.get("ok").is_some_and(crate::fichiers::vrai) => dire!("  {:<16} OK -- session ouverte", service),
+            Ok(v) if v.get("ok").is_some_and(socle::fichiers::vrai) => dire!("  {:<16} OK -- session ouverte", service),
             Ok(v) => {
                 essais.push(service);
                 dire!("  {:<16} REFUSE : {}", service, champ(&v, "message"));
-                if v.get("conseil").is_some_and(crate::fichiers::vrai) {
+                if v.get("conseil").is_some_and(socle::fichiers::vrai) {
                     dire!("       {}", champ(&v, "conseil"));
                 }
             }

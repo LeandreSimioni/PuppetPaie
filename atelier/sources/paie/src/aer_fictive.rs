@@ -34,9 +34,9 @@ use std::io::Write;
 use serde_json::{json, Value};
 
 use crate::apercu_dsn::{lire_recap, Contrat, Individu};
-use crate::contexte::Contexte;
-use crate::date::{en_texte, Jour};
-use crate::num::{Decimal, Resultat};
+use droit::contexte::Contexte;
+use socle::date::{en_texte, Jour};
+use socle::num::{Decimal, Resultat};
 
 /// Le « code » du nom d'archive (`AER_<siret>__<MMAAAA>_<code>_<JJMMAAAA>_<NOM>_<rang>_<id>.pdf`) : celui d'une fictive.
 const CODE: &str = "FICTIVE";
@@ -143,7 +143,7 @@ fn mois_suivant(m: &str) -> String {
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
     let l = crate::etats::dsn_du_mois(lignes, &ctx.entreprise, m).ok()?;
-    let fichier = l.get("fichier").map(crate::etats::py_str).filter(|f| !f.is_empty() && f != "None")?;
+    let fichier = l.get("fichier").map(socle::valeur::valeur_en_texte).filter(|f| !f.is_empty() && f != "None")?;
     let p = std::path::Path::new(&fichier);
     let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m).join(&fichier) };
     lire_recap(&std::fs::read(chemin).ok()?).ok()
@@ -170,7 +170,7 @@ fn periodes(ctx: &Contexte, lignes: &[Value], mois: &str, nir: &str, c: &Contrat
 }
 
 fn periode(x: &Contrat, debut: Jour, fin: Jour, m: &str, paiement: &str, premiere: bool) -> Resultat<Periode> {
-    let (d, f) = (crate::date::premier_du_mois(m)?, crate::date::dernier_du_mois(m)?);
+    let (d, f) = (socle::date::premier_du_mois(m)?, socle::date::dernier_du_mois(m)?);
     Ok(Periode {
         contrat: premiere.then(|| (x.numero.clone(), debut.jj_mm_aaaa(), fin.jj_mm_aaaa(), x.objet.clone())),
         debut: if debut > d { debut } else { d },

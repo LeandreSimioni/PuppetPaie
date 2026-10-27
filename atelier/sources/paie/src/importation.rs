@@ -9,7 +9,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::apercu_dsn::{lignes_py, texte_latin1};
-use crate::retours::blanc_py;
+use socle::texte::blanc;
 
 /// Bloc S21.G00.30 (individu) -> champ de `salaries.json`.
 ///
@@ -86,7 +86,7 @@ const VERSEMENT: [(&str, &str); 3] =
 /// CCH-18 du bloc 40) ne dit rien du salarie : elle ne passe pas dans sa fiche. `999SPT` n'est pas un metier, et une
 /// DSN de PuppetPaie reimportee le donnerait comme `code_emploi_ft` d'un permanent (#152).
 fn fixe_par_une_nature(rubrique: &str, valeur: &str) -> bool {
-    crate::contrats::natures().map_or(false, |n| n.iter().any(|nat| nat.code(rubrique).as_deref() == Some(valeur)))
+    droit::natures::natures().map_or(false, |n| n.iter().any(|nat| nat.code(rubrique).as_deref() == Some(valeur)))
 }
 
 /// `01` -> `1`, `02` -> `2` (les choix du champ `sexe` de la fiche) ; une autre valeur reste telle quelle, et la fiche
@@ -153,7 +153,7 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     let mut blocs20: Vec<[String; 4]> = Vec::new();
     for l in &lignes {
         let Some((k, v)) = l.split_once(',') else { continue };
-        let v = v.trim_matches(blanc_py).trim_matches('\'');
+        let v = v.trim_matches(blanc).trim_matches('\'');
         if let Some(c) = table(&A_DEFAUT, k) {
             autres.entry(c.to_string()).or_insert_with(|| texte(v));
         }
@@ -519,8 +519,8 @@ fn champ(ligne: &[char], a: usize, b: usize) -> String {
 /// `importation.ContratAtteste` : un enregistrement AEM, un contrat tel qu'il a ete atteste.
 pub(crate) struct ContratAtteste {
     pub(crate) nir: String,
-    pub(crate) debut: crate::date::Jour,
-    pub(crate) fin: crate::date::Jour,
+    pub(crate) debut: socle::date::Jour,
+    pub(crate) fin: socle::date::Jour,
     pub(crate) numero_objet: String,
     pub(crate) heures: i128,
     /// Les cachets, et les cachets « groupes » (la case que le gabarit garde a 00).
@@ -537,7 +537,7 @@ pub(crate) struct ContratAtteste {
 /// `importation.lire_aem` : tous les contrats attestes d'un dossier AEM_EDI, dedoublonnes, et les
 /// fichiers ou enregistrements illisibles. Un `InvalidOperation` (un brut qui n'est pas un nombre)
 /// n'est pas rattrape, comme en Python.
-pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<String>), crate::retours::Echec> {
+pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<String>), socle::echec::Echec> {
     use crate::apercu_dsn::{decimal_py, int_py};
     let mut vus: Vec<(Vec<String>, ContratAtteste)> = Vec::new();
     let mut connus: std::collections::HashSet<Vec<String>> = std::collections::HashSet::new();
@@ -559,12 +559,12 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
             let illisible = |illisibles: &mut Vec<String>| illisibles.push(format!("{} : un enregistrement illisible", nom));
             let nir: String = champ(&l, 375, 390).chars().take(13).collect();
             let (Some(debut), Some(fin)) =
-                (crate::date::strptime_aaaammjj(&champ(&l, 618, 626)), crate::date::strptime_aaaammjj(&champ(&l, 627, 635)))
+                (socle::date::lire_aaaammjj(&champ(&l, 618, 626)), socle::date::lire_aaaammjj(&champ(&l, 627, 635)))
             else {
                 illisible(&mut illisibles);
                 continue;
             };
-            let numero_objet = champ(&l, 638, 650).trim_matches(blanc_py).to_string();
+            let numero_objet = champ(&l, 638, 650).trim_matches(blanc).to_string();
             let entiers = [(650, 653), (653, 655), (655, 657), (657, 659)].map(|(a, b)| int_py(&champ(&l, a, b)));
             let [Some(heures), Some(c1), Some(c2), Some(jours)] = entiers else {
                 illisible(&mut illisibles);
@@ -572,9 +572,9 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
             };
             let brut_texte = champ(&l, 659, 668);
             let Some(brut_cts) = decimal_py(&brut_texte) else {
-                return Err(crate::retours::Echec { classe: Some("InvalidOperation"), message: crate::num::illisible(&brut_texte) });
+                return Err(socle::echec::Echec { classe: Some("InvalidOperation"), message: socle::num::illisible(&brut_texte) });
             };
-            let mut brut = brut_cts / crate::num::Decimal::from(100);
+            let mut brut = brut_cts / socle::num::Decimal::from(100);
             brut = brut.round_dp(2);
             brut.rescale(2);
             let cle = vec![
@@ -597,7 +597,7 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
                     cachets: c1 + c2,
                     jours,
                     brut: brut.to_string(),
-                    numero_attestation: tranche(&l, 36, 42).trim_matches(blanc_py).to_string(),
+                    numero_attestation: tranche(&l, 36, 42).trim_matches(blanc).to_string(),
                     date_attestation: aaaammjj(&tranche(&l, 858, 866)),
                     fichier: nom.clone(),
                 }));
@@ -649,7 +649,7 @@ pub(crate) fn employeur_dsn(chemin: &Path) -> Employeur {
     let Ok(octets) = std::fs::read(chemin) else { return e };
     for l in lignes_py(&texte_latin1(&octets)) {
         if let Some(v) = l.strip_prefix("S21.G00.06.001,") {
-            let v = v.trim_matches(blanc_py).trim_matches('\'').trim();
+            let v = v.trim_matches(blanc).trim_matches('\'').trim();
             if !v.is_empty() {
                 e.sirens.insert(v.to_string());
             }
@@ -687,7 +687,7 @@ pub(crate) fn siren_de_reference(
     dsn: &std::collections::BTreeSet<String>,
     autres: &std::collections::BTreeSet<String>,
 ) -> Option<String> {
-    let s = fiche.get("siren").filter(|v| crate::fichiers::vrai(v)).map(crate::etats::py_str).map(|s| s.trim().to_string());
+    let s = fiche.get("siren").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte).map(|s| s.trim().to_string());
     if let Some(s) = s.filter(|s| !s.is_empty()) {
         return Some(s);
     }

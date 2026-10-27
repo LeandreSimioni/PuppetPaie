@@ -18,15 +18,16 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::{jours_du_mois, Jour};
-use crate::engagement;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
-use crate::num::{dec_py, pct, Decimal};
-use crate::pas::{self, ErreurPas, ZONE_DEFAUT};
-use crate::retours::Echec;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::{jours_du_mois, Jour};
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::{dec_avec_echelle, pct, Decimal};
+use droit::pas::{self, ErreurPas, ZONE_DEFAUT};
+use socle::echec::Echec;
 use crate::routes_mois::Moteur;
 use crate::routes_regularisation as regul;
 use crate::versement_declare::{self, VersementDeclare};
@@ -61,7 +62,7 @@ pub(crate) struct Reg {
 }
 
 fn en_texte_ou_vide(v: Option<&Value>) -> String {
-    v.filter(|x| vrai(x)).map(py_str).unwrap_or_default()
+    v.filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default()
 }
 
 /// `corrections_a_porter` : celles en attente, plus celles que ce meme mois a deja portees (un
@@ -70,7 +71,7 @@ fn en_texte_ou_vide(v: Option<&Value>) -> String {
 pub(crate) fn corrections_a_porter(ctx: &Contexte, mois_courant: &str) -> R<Vec<Map<String, Value>>> {
     let mut out = Vec::new();
     for c in crate::routes_ecrites::toutes_les_corrections(ctx)? {
-        if c.get("annulee_le").is_some_and(vrai) || py_str(c.get("mois").unwrap_or(&Value::Null)).as_str() >= mois_courant {
+        if c.get("annulee_le").is_some_and(vrai) || valeur_en_texte(c.get("mois").unwrap_or(&Value::Null)).as_str() >= mois_courant {
             continue;
         }
         let portee = c.get("portee_par").filter(|p| vrai(p));
@@ -84,19 +85,19 @@ pub(crate) fn corrections_a_porter(ctx: &Contexte, mois_courant: &str) -> R<Vec<
 /// `regularisations_pour` : les corrections de la DSN de `mois_courant`, chacune avec le versement DECLARE (relu dans la
 /// DSN deposee du mois d'origine, `versement_declare_de`), sa paie d'avant refaite (telle que
 /// declaree, ou telle que la correction portee precedente l'a laissee) et sa paie d'apres.
-pub(crate) fn regularisations_pour(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, mois_courant: &str) -> R<Vec<Reg>> {
+pub(crate) fn regularisations_pour(ctx: &Contexte, m: &mut Moteur, mois_courant: &str) -> R<Vec<Reg>> {
     let mut out = Vec::new();
     for c in corrections_a_porter(ctx, mois_courant)? {
-        let get = |k: &str| c.get(k).cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
-        let (mois, salarie, debut, corrige) = (py_str(&get("mois")?), get("salarie")?, get("debut")?, get("engagement")?);
-        let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", crate::fichiers::absent("numero")))?;
+        let get = |k: &str| c.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
+        let (mois, salarie, debut, corrige) = (valeur_en_texte(&get("mois")?), get("salarie")?, get("debut")?, get("engagement")?);
+        let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("numero")))?;
         if c.get("ajout").is_some_and(vrai) {
-            out.push(ajout(o, ctx, m, c.clone(), mois, numero, corrige)?);
+            out.push(ajout(ctx, m, c.clone(), mois, numero, corrige)?);
             continue;
         }
-        let (donnees, declare, _fiche) = regul::engagement_declare_en(o, m, ctx, &mois, &salarie, &debut, true)?;
-        let avant = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &declare, true)?;
-        let apres = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &corrige, true)?;
+        let (donnees, declare, _fiche) = regul::engagement_declare(m, ctx, &mois, &salarie, &debut)?;
+        let avant = regul::paie_d_un_engagement(m, ctx, &donnees, &declare)?;
+        let apres = regul::paie_d_un_engagement(m, ctx, &donnees, &corrige)?;
         let (lu, derniere) = versement_declare_de(ctx, &c, &mois, mois_courant, &apres)?;
         // Le taux du bloc 56 : le 50.006 du versement relu (reste R1 #3), pas celui d'un fichier quelconque du mois.
         let taux_pas_origine = lu.taux_pas.clone();
@@ -113,13 +114,13 @@ pub(crate) fn regularisations_pour(o: &HashMap<String, String>, ctx: &Contexte, 
 /// 2026.1, §2.1.2.1 et §2.2.2.5 ; fiche net-entreprises 1741 : `routes_regularisation::apercu_d_un_ajout`), et le
 /// versement de la correction paie son net. Sa paie se calcule depuis la saisie du mois telle que declaree, son
 /// engagement a la place des autres, comme toute correction.
-fn ajout(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, c: Map<String, Value>, mois: String, numero: i64, corrige: Value) -> R<Reg> {
+fn ajout(ctx: &Contexte, m: &mut Moteur, c: Map<String, Value>, mois: String, numero: i64, corrige: Value) -> R<Reg> {
     let donnees = regul::saisie_d_origine(ctx, &mois)?;
-    let apres = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &corrige, true)?;
+    let apres = regul::paie_d_un_engagement(m, ctx, &donnees, &corrige)?;
     if !apres.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
         return Err(erreur(
             "MoisNonRegularisable",
-            format!("Correction n° {} de {} : le contrat ajoute n'a pas de numero (S21.G00.40.009). Reecrire la correction : elle le fige.", numero, mois),
+            format!("Correction n° {} de {} : le contrat ajoute n'a pas de numero (S21.G00.40.009). Valider l'engagement, puis reecrire la correction.", numero, mois),
         ));
     }
     let declare = VersementDeclare {
@@ -162,7 +163,7 @@ fn ajout(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, c: Map<Str
 /// Rend aussi la derniere de ces corrections deja portees, (mois qui l'a portee, numero), s'il y en a une : son
 /// bulletin rectificatif dit ce qui a ete paye depuis (`net_deja_verse_lu`).
 fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois_courant: &str, apres: &Paie) -> R<(VersementDeclare, Option<(String, String)>)> {
-    let nom = py_str(apres.salarie.get("nom").unwrap_or(&Value::Null));
+    let nom = valeur_en_texte(apres.salarie.get("nom").unwrap_or(&Value::Null));
     let numero = apres.engagement.numero.clone().unwrap_or_default();
     let refus = |quoi: String, faire: &str| {
         erreur(
@@ -177,18 +178,18 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
         return Err(refus("le numero sous lequel le contrat a ete declare (S21.G00.40.009) n'est pas connu".into(), "La correction doit porter le numero d'origine."));
     }
     // Les corrections de ce contrat deja parties dans la DSN d'un autre mois : (mois qui l'a portee, numero).
-    let meme = |k: &str| c.get(k).map(py_str);
+    let meme = |k: &str| c.get(k).map(valeur_en_texte);
     let mut portees: Vec<(String, String)> = Vec::new();
     for autre in crate::routes_ecrites::toutes_les_corrections(ctx)? {
-        let Some(porteur) = autre.get("portee_par").filter(|p| vrai(p)).map(|p| py_str(p.get("mois").unwrap_or(&Value::Null))) else { continue };
+        let Some(porteur) = autre.get("portee_par").filter(|p| vrai(p)).map(|p| valeur_en_texte(p.get("mois").unwrap_or(&Value::Null))) else { continue };
         if autre.get("annulee_le").is_some_and(vrai)
-            || !["mois", "salarie", "debut"].iter().all(|k| autre.get(*k).map(py_str) == meme(k))
+            || !["mois", "salarie", "debut"].iter().all(|k| autre.get(*k).map(valeur_en_texte) == meme(k))
             || autre.get("numero") == c.get("numero")
             || porteur == mois_courant
         {
             continue;
         }
-        let n = py_str(autre.get("numero").unwrap_or(&Value::Null));
+        let n = valeur_en_texte(autre.get("numero").unwrap_or(&Value::Null));
         if porteur.as_str() > mois_courant {
             return Err(refus(
                 format!("une correction de ce contrat (n° {}) est deja partie dans la DSN de {}, posterieure a {}", n, porteur, mois_courant),
@@ -205,7 +206,7 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
     }
     portees.sort();
     let fiche = &ctx.entreprise;
-    let nic = crate::bareme::etablissement_du_salarie(fiche, &apres.salarie).map_err(refus_valeur)?;
+    let nic = droit::bareme::etablissement_du_salarie(fiche, &apres.salarie).map_err(refus_valeur)?;
     let nir = apres.salarie.get("nir").and_then(Value::as_str).unwrap_or("");
     let faire = format!("Remettre dans sorties/{}/ la DSN deposee de ce mois (celle que nomme journal/depots.json), ou annuler la correction.", mois);
     let chemin = crate::casc::dsn_deposee(ctx, mois, Some(&nic))
@@ -228,9 +229,9 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
     // derniere DSN qui a porte une correction du contrat ; le changement ne se redeclare pas.
     let mut porteurs: Vec<String> = Vec::new();
     for autre in crate::routes_ecrites::toutes_les_corrections(ctx)? {
-        let Some(porteur) = autre.get("portee_par").filter(|p| vrai(p)).map(|p| py_str(p.get("mois").unwrap_or(&Value::Null))) else { continue };
-        let meme = autre.get("salarie").map(py_str) == meme("salarie")
-            && autre.get("engagement").and_then(|e| e.get("numero")).map(py_str).as_deref() == Some(numero.as_str());
+        let Some(porteur) = autre.get("portee_par").filter(|p| vrai(p)).map(|p| valeur_en_texte(p.get("mois").unwrap_or(&Value::Null))) else { continue };
+        let meme = autre.get("salarie").map(valeur_en_texte) == meme("salarie")
+            && autre.get("engagement").and_then(|e| e.get("numero")).map(valeur_en_texte).as_deref() == Some(numero.as_str());
         if meme && !autre.get("annulee_le").is_some_and(vrai) && porteur.as_str() < mois_courant {
             porteurs.push(porteur);
         }
@@ -250,8 +251,8 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
 
 fn prenom_de(sal: &Value) -> String {
     match sal.get("prenom_affichage") {
-        Some(v) if vrai(v) => py_str(v),
-        _ => py_str(sal.get("prenom").unwrap_or(&Value::Null)),
+        Some(v) if vrai(v) => valeur_en_texte(v),
+        _ => valeur_en_texte(sal.get("prenom").unwrap_or(&Value::Null)),
     }
 }
 
@@ -260,10 +261,10 @@ pub(crate) fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for r in regs {
         let s = &r.apres.salarie;
-        let nom = s.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?;
+        let nom = s.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
         out.push(format!(
             "{} {}, contrat {} ({}) : brut {} -> {}, net {} -> {} -- {}",
-            py_str(nom),
+            valeur_en_texte(nom),
             prenom_de(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
             engagement::libelle_mois(&r.mois),
@@ -285,7 +286,7 @@ pub(crate) fn a_imprimer(ctx: &Contexte, donnees: &Value, engagement: &Value, nu
         obj.insert("engagements".into(), Value::Array(vec![engagement.clone()]));
     }
     let s = engagement::charger_donnees(ctx, &seule).map_err(|msg| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &seule, msg)))?;
-    let mut p = s.paies.into_iter().next().ok_or_else(|| erreur("IndexError", crate::fichiers::trop_courte("la paie de l'engagement")))?;
+    let mut p = s.paies.into_iter().next().ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("la paie de l'engagement")))?;
     p.engagement.numero = numero_contrat.cloned();
     p.numero_bulletin = numero_bulletin;
     Ok(p)
@@ -328,13 +329,13 @@ fn refus_valeur(m: String) -> Echec {
 /// REFUS (regle 1), la DSN du mois ne se produit pas : le fichier absent ou illisible, aucun bulletin du contrat sur sa
 /// periode, plusieurs (lequel a ete paye ne se lit pas), ou un bulletin dont le net a payer ne se lit pas.
 fn net_deja_verse_lu(ctx: &Contexte, mois: &str, mois_courant: &str, avant: &Paie, apres: &Paie, derniere: Option<&(String, String)>) -> R<Decimal> {
-    let nom = py_str(apres.salarie.get("nom").unwrap_or(&Value::Null));
+    let nom = valeur_en_texte(apres.salarie.get("nom").unwrap_or(&Value::Null));
     let numero = apres.engagement.numero.clone().unwrap_or_default();
     let etiq = crate::envoi::etiquette(mois).map_err(refus_valeur)?;
     let (fichier, lequel) = match derniere {
         None => (format!("Bulletins_{}.pdf", etiq), "le bulletin du mois d'origine, tel qu'il lui a ete remis".to_string()),
         Some((porteur, n)) => {
-            let cle = py_str(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+            let cle = valeur_en_texte(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
             (
                 format!("{}_{}_{}_c{}.pdf", PREFIXE_ARCHIVE, cle, etiq, n),
                 format!("le bulletin rectificatif de la correction n° {}, partie dans la DSN de {}", n, porteur),
@@ -385,26 +386,26 @@ pub(crate) fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: 
     let d_ni = apres.net_imposable - avant.net_imposable;
     let net_avant = r.net_deja_verse;
     let d_net = apres.net_a_payer - net_avant;
-    let an: i32 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(mois_courant))))?;
-    let mo: u32 = mois_courant.get(5..7).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(mois_courant))))?;
-    let fin_mois = Jour::nouveau(an, mo, jours_du_mois(an, mo)).ok_or_else(|| refus_valeur(crate::date::date_impossible(an, mo, 1)))?;
-    let debut_mois = Jour::nouveau(an, mo, 1).ok_or_else(|| refus_valeur(crate::date::date_impossible(an, mo, 1)))?;
+    let an: i32 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
+    let mo: u32 = mois_courant.get(5..7).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
+    let fin_mois = Jour::nouveau(an, mo, jours_du_mois(an, mo)).ok_or_else(|| refus_valeur(socle::date::date_impossible(an, mo, 1)))?;
+    let debut_mois = Jour::nouveau(an, mo, 1).ok_or_else(|| refus_valeur(socle::date::date_impossible(an, mo, 1)))?;
     let indu = d_ni < Decimal::ZERO;
     let mut taux: Value = Value::Null;
     let mut prelevement: Option<Decimal> = None;
     if indu {
         if let Some(t) = r.taux_pas_origine.as_deref().filter(|t| !t.is_empty()) {
             taux = json!(t);
-            prelevement = Some(pct(d_ni, dec_py(&json!(t)).map_err(refus_valeur)?));
+            prelevement = Some(pct(d_ni, dec_avec_echelle(&json!(t)).map_err(refus_valeur)?));
         }
     } else {
-        let cle = py_str(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+        let cle = valeur_en_texte(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let triplet = pas::taux_dgfip(ctx, &cle, None).map_err(refus_valeur)?;
         let bareme = ctx.bareme(&debut_mois).map_err(refus_valeur)?;
         let court = crate::dsn::court(apres, fin_mois).map_err(refus_valeur)?;
         match pas::du_versement(triplet.as_ref(), &bareme, d_ni, Some(fin_mois), court, ZONE_DEFAUT) {
             Ok(v) => {
-                prelevement = Some(pct(v.montant_soumis, dec_py(&v.taux).map_err(refus_valeur)?));
+                prelevement = Some(pct(v.montant_soumis, dec_avec_echelle(&v.taux).map_err(refus_valeur)?));
                 taux = v.taux;
             }
             Err(ErreurPas::SansGrille(_)) => {}
@@ -471,7 +472,7 @@ pub(crate) fn ecrire_rectificatifs(
     regs: &[Reg],
     mois_courant: &str,
     sortie_courante: &Path,
-    reserves: &mut crate::produire_mois::Reserves,
+    reserves: &mut crate::depart::Reserves,
 ) -> R<Rectificatifs> {
     let mut out = Rectificatifs { fichiers: Vec::new(), avertissements: Vec::new() };
     let payes: Vec<&Reg> = regs.iter().filter(|r| !r.apres.engagement.sans_paie()).collect();
@@ -479,7 +480,7 @@ pub(crate) fn ecrire_rectificatifs(
         if r.apres.engagement.sans_paie() {
             out.avertissements.push(format!(
                 "{}, contrat {} ({}) : la correction retire toute la paie -- pas de bulletin rectificatif a imprimer ; le net deja verse ({}) se retient, et le salarie doit en etre prevenu par ecrit.",
-                py_str(r.apres.salarie.get("nom").unwrap_or(&Value::Null)),
+                valeur_en_texte(r.apres.salarie.get("nom").unwrap_or(&Value::Null)),
                 r.apres.engagement.numero.as_deref().unwrap_or("None"),
                 engagement::libelle_mois(&r.mois),
                 regul::q2(r.net_deja_verse)
@@ -489,7 +490,7 @@ pub(crate) fn ecrire_rectificatifs(
     if payes.is_empty() {
         return Ok(out);
     }
-    let an: i64 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", crate::fichiers::repr(mois_courant))))?;
+    let an: i64 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
     let mut n = reserves.prochain(ctx, "bulletin", an)?;
     // Par salarie, dans l'ordre ou on les rencontre : (cle, [(paie imprimee, rectificatif, ent)]).
     let mut par_salarie: Vec<(String, Vec<(Paie, Value, Value)>)> = Vec::new();
@@ -516,8 +517,8 @@ pub(crate) fn ecrire_rectificatifs(
                 numero_bulletin
             ));
         }
-        let ent = crate::oracle::entreprise_du_mois(ctx, &r.mois).map_err(Echec::from)?;
-        let cle = py_str(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?);
+        let ent = ctx.entreprise_du_mois(&r.mois).map_err(Echec::from)?;
+        let cle = valeur_en_texte(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let etiq = crate::envoi::etiquette(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_c{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.numero));
         let imprimee = a_imprimer(ctx, &r.donnees, &r.corrige, r.apres.engagement.numero.as_ref(), Some(numero_bulletin))?;

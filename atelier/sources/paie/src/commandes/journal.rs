@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, quand_court, texte};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "journal",
@@ -48,7 +48,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(0);
     }
     for l in lignes {
-        let vrai = |k: &str| l.get(k).is_some_and(crate::fichiers::vrai);
+        let vrai = |k: &str| l.get(k).is_some_and(socle::fichiers::vrai);
         let cible = if vrai("fichier") { champ(l, "fichier") } else if vrai("flux") { champ(l, "flux") } else { String::new() };
         dire!(
             "{}  {:<16} {:<4} {:<7} {:<8} {}",
@@ -64,8 +64,8 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             dire!("        repris de : {}", champ(l, "origine"));
         }
         for r in l.get("retours").and_then(Value::as_array).cloned().unwrap_or_default() {
-            let libelle = if r.get("libelle").is_some_and(crate::fichiers::vrai) { champ(&r, "libelle") } else { String::new() };
-            let publication = if r.get("publication").is_some_and(crate::fichiers::vrai) { champ(&r, "publication") } else { String::new() };
+            let libelle = if r.get("libelle").is_some_and(socle::fichiers::vrai) { champ(&r, "libelle") } else { String::new() };
+            let publication = if r.get("publication").is_some_and(socle::fichiers::vrai) { champ(&r, "publication") } else { String::new() };
             dire!("        retour {} {} ({})", texte(r.get("nature").unwrap_or(&Value::Null)), libelle, publication);
         }
     }
@@ -90,14 +90,14 @@ fn reprendre(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("DPAE attestees par les certificats de l'Urssaf : {}", d_trouves.len());
         dire!();
         for v in &d_trouves {
-            let quand = if v.get("quand").is_some_and(crate::fichiers::vrai) { quand_court(v.get("quand")) } else { "?".to_string() };
+            let quand = if v.get("quand").is_some_and(socle::fichiers::vrai) { quand_court(v.get("quand")) } else { "?".to_string() };
             dire!(
                 "  {}  {:<4}  {:<8}  {}{}",
                 quand,
                 if champ(v, "mode") == "reel" { "REEL" } else { "test" },
-                if v.get("mois").is_some_and(crate::fichiers::vrai) { champ(v, "mois") } else { "-".to_string() },
+                if v.get("mois").is_some_and(socle::fichiers::vrai) { champ(v, "mois") } else { "-".to_string() },
                 champ(v, "flux"),
-                if v.get("deja").is_some_and(crate::fichiers::vrai) { "   [deja au journal]" } else { "" }
+                if v.get("deja").is_some_and(socle::fichiers::vrai) { "   [deja au journal]" } else { "" }
             );
             for e in liste_de(v, "embauches") {
                 dire!("        {} a partir du {}", champ(&e, "salarie"), champ(&e, "debut"));
@@ -122,7 +122,7 @@ fn reprendre(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("Depots DSN attestes par les retours : {}\n", trouves.len());
     }
     for v in &trouves {
-        let vrai_de = |k: &str| v.get(k).is_some_and(crate::fichiers::vrai);
+        let vrai_de = |k: &str| v.get(k).is_some_and(socle::fichiers::vrai);
         let quand = if vrai_de("quand") { quand_court(v.get("quand")) } else { "?".to_string() };
         dire!(
             "  {}  {:<4}  {:<7}  {:<8}  {:<11}  {}{}",

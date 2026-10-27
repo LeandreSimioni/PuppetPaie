@@ -21,24 +21,26 @@
 //!   `contexte::sans_accent` (Latin-1 et Latin etendu A), pas par la normalisation NFD complete
 //!   de Python : un accent hors de cette table (vietnamien, par exemple) n'est pas retire ;
 //! - les chiffres des motifs de date et de nom de fichier sont les chiffres ASCII ;
-//! - un mois saisi est un fichier `paies/AAAA-MM.json`, rien d'autre.
+//! - un mois saisi est un mois que des engagements touchent (`engagements/`).
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::conges_spectacles::{self, ContratCs, PaieCs};
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::engagement::{self, Engagement};
-use crate::etats::{items, nom_type, py_str};
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use engagement::{self, Engagement};
+use crate::etats::{items};
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
 use crate::fiche_recapitulative::Recapitulatifs;
-use crate::fichiers::vrai;
-use crate::num::{eur2, Decimal};
-use crate::retours::Echec;
-use crate::routes_ouverture::{refus_du_calcul, Refus};
+use socle::fichiers::vrai;
+use socle::num::{eur2, Decimal};
+use socle::echec::Echec;
+use crate::routes_ouverture::Refus;
 
 type R<T> = Result<T, Refus>;
 
@@ -224,7 +226,7 @@ impl Periode {
             p.mois = Some(m.clone());
         }
         if let Some(a) = annee {
-            let t = py_str(a);
+            let t = valeur_en_texte(a);
             if !(t.chars().count() == 4 && t.chars().all(|x| chiffre(*&x).is_some())) {
                 return Err(erreur_operation(format!("Année attendue sous la forme AAAA : « {} ».", t)));
             }
@@ -252,7 +254,7 @@ impl Periode {
             let c: Vec<char> = m.chars().collect();
             let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
             // « 00 » n'est aucun mois (l'indice -1 du Python le lisait decembre) : il se refuse, comme partout.
-            let nom = crate::date::nom_du_mois(n, crate::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
+            let nom = socle::date::nom_du_mois(n, socle::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
             return Ok(format!("{} {}", nom, c[..4].iter().collect::<String>()));
         }
         Ok(self.annee.clone().unwrap_or_default())
@@ -407,23 +409,21 @@ fn nom_salarie(cle: &str) -> String {
 // ------------------------------------------------------------------ les mois PuppetPaie
 
 pub(crate) fn cle_de(p: &Paie) -> String {
-    p.salarie.get("_cle").map(py_str).unwrap_or_default()
+    p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
-/// `charger(ctx, paies/<mois>.json, sans_numeros=True)` : la saisie lue, ses paies calculees ;
-/// un refus du calcul garde le type d'une saisie encore incomplete.
-pub(crate) fn charger(ctx: &Contexte, chemin: &Path) -> R<(Value, Vec<Paie>)> {
-    let data = engagement::lire_saisie(chemin)?;
-    let s = engagement::charger_donnees(ctx, &data).map_err(|m| refus_du_calcul(ctx, &data, m))?;
-    Ok((data, s.paies))
+/// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies
+/// ecrites, sans numeros ; un mois sans saisie n'a rien.
+pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
+    Ok(engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)?.unwrap_or_else(|| (json!({"mois": mois, "engagements": []}), Vec::new())))
 }
 
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
 fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
-    let mois = data.get("mois").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("mois")))?;
+    let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
     let annee = crate::apercu_dsn::int_py(&mois.chars().take(4).collect::<String>())
-        .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
+        .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
     crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee as i32, attente)
 }
 
@@ -456,72 +456,36 @@ fn erreur_utf8(octets: &[u8], e: std::str::Utf8Error) -> Refus {
     avec("UnicodeDecodeError", message)
 }
 
-/// `_premier_ce` : le premier N CE inscrit au recapitulatif des certificats d'un mois.
-pub(crate) fn premier_ce(recap: &Path) -> R<Option<i64>> {
-    if !recap.exists() {
-        return Ok(None);
-    }
-    let octets = std::fs::read(recap).map_err(|e| avec("OSError", e.to_string()))?;
-    let texte = String::from_utf8(octets.clone()).map_err(|e| erreur_utf8(&octets, e.utf8_error()))?;
-    let c: Vec<char> = texte.chars().collect();
-    let marque: Vec<char> = "N CE".chars().collect();
-    let mut i = 0;
-    while i + marque.len() <= c.len() {
-        if c[i..i + marque.len()] == marque[..] {
-            let a = i + marque.len();
-            let blancs = c[a..].iter().take_while(|x| x.is_whitespace()).count();
-            let chiffres = c[a + blancs..].iter().take_while(|x| x.is_ascii_digit()).count();
-            if blancs > 0 && chiffres > 0 {
-                let t: String = c[a + blancs..a + blancs + chiffres].iter().collect();
-                return Ok(Some(t.parse().unwrap_or(i64::MAX)));
-            }
-        }
-        i += 1;
-    }
-    Ok(None)
-}
-
 /// `Paie` -> ce que le certificat en lit : le brut est celui du calcul, a deux decimales.
 pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
     Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
 }
 
-/// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Rend la
-/// paie du certificat et les mois du contrat absents du disque.
+/// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Les mois d'avant se lisent
+/// dans les paies validees de l'engagement (`engagement::etats::paie_ecrite_de`). Rend la paie du certificat et les
+/// mois du contrat dont aucune paie n'est ecrite.
 fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> {
     let eng = &p.engagement;
     let cle = cle_de(p);
     let mois_du = eng.mois_du_contrat()?;
     let debut = eng.debut.iso();
-    let mut precedents: Vec<(String, Value)> = Vec::new();
-    for m in &mois_du {
-        if *m >= eng.mois {
-            break;
-        }
-        for (c, e) in engagement::engagements_du_mois(ctx, m)? {
-            if c == cle && engagement::debut_brut(&e) == debut {
-                precedents.push((m.clone(), e));
-            }
-        }
-    }
-    let presents: HashSet<&String> = precedents.iter().map(|(m, _)| m).collect();
-    let manquants: Vec<String> = mois_du.iter().filter(|m| **m < eng.mois && !presents.contains(m)).cloned().collect();
+    let mut manquants: Vec<String> = Vec::new();
     let mut lignes: Vec<Value> = Vec::new();
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
-    for (m, e) in &precedents {
-        let taux = e.get("taux_cachet").cloned().unwrap_or_else(|| json!(eng.taux_cachet));
-        let data = json!({"mois": m, "engagements": [e], "taux_cachet": taux});
-        let (_, sous) = {
-            let s = engagement::charger_donnees(ctx, &data).map_err(|msg| refus_du_calcul(ctx, &data, msg))?;
-            (s.mois, s.paies)
+    for m in mois_du.iter().filter(|m| **m < eng.mois) {
+        let ecrite = engagement::etats::paie_ecrite_de(ctx, m, &cle, &debut).map_err(|e| avec("ValueError", e))?;
+        let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
+            manquants.push(m.clone());
+            continue;
         };
-        let sous = sous.into_iter().next().ok_or_else(|| avec("IndexError", crate::fichiers::trop_courte("la paie de l'engagement")))?;
+        let illisible = |k: &str| avec("ValueError", format!("{} : paie ecrite illisible : `{}`", m, k));
+        let e = paie.get("engagement").ok_or_else(|| illisible("engagement"))?;
         if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
             lignes.extend(l.iter().cloned());
         }
-        bruts += eur2(sous.brut);
-        jours += sous.engagement.jours;
+        bruts += eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?);
+        jours += e.get("jours").map(valeur_en_texte).and_then(|j| j.trim().parse::<i64>().ok()).ok_or_else(|| illisible("jours"))?;
     }
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
@@ -566,7 +530,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
     for p in paies {
         // Un permanent n'a pas de certificat Conges Spectacles ; un CDDU de douze mois ou plus non plus : il n'est pas
         // declare a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41).
-        if p.engagement.nat()?.mensuelle() || !crate::caisse_conges::de_la_paie(p)? {
+        if p.engagement.nat()?.mensuelle() || !engagement::calcul::declaree_a_la_caisse_des_conges(p)? {
             continue;
         }
         let (cle, debut) = (cle_de(p), p.engagement.debut.iso());
@@ -612,17 +576,17 @@ fn mois_puppetpaie(
     let groupe = sortie.join(format!("Bulletins_{}.pdf", etiq));
     let envoi_dir = sortie.join("envoi");
     let ecrit = groupe.exists();
-    let (donnees, mut paies) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
+    let (_, mut paies) = charger(ctx, mois)?;
     let siennes: Vec<usize> = (0..paies.len()).filter(|i| cles.contains(&cle_de(&paies[*i]))).collect();
     if siennes.is_empty() {
         return Ok(pages);
     }
-    let ent = crate::oracle::entreprise_du_mois(ctx, mois)?;
+    let ent = ctx.entreprise_du_mois(mois)?;
     let lib = engagement::libelle_mois(mois);
 
     let mut lus: HashMap<usize, crate::apercu_dsn::Lu> = HashMap::new();
     // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie
-    // numerotee quand ses numeros sont figes.
+    // dont chaque engagement porte son numero.
     let mut paies_contrats: Vec<Paie> = Vec::new();
     let mut siennes_contrats: Vec<usize> = Vec::new();
     if ecrit {
@@ -632,20 +596,21 @@ fn mois_puppetpaie(
     } else {
         if categories.contains(BULLETINS) || categories.contains(CERTIFICATS_CS) {
             d.avertissements.push(format!(
-                "{} n'est pas encore écrit : ni bulletin ni certificat à rééditer. Il s'écrit dans l'onglet Paie (« Produire »).",
+                "{} : aucun document n'est encore parti, ni bulletin ni certificat à rééditer.",
                 lib
             ));
         }
-        // Les contrats d'un mois pas encore ecrit ont un numero s'il a ete FIGE par une production
-        // anterieure : la saisie numerotee le lit alors. Sinon, rien.
-        if !donnees.get("numeros_figes").is_some_and(vrai) {
+        // Un engagement valide porte son numero, ecrit a sa validation ; un engagement en saisie n'en a
+        // pas, et un numero ne s'invente pas.
+        let (data, mut figees) = charger(ctx, mois)?;
+        let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.as_deref().is_some_and(|n| !n.is_empty())).collect();
+        if partis.is_empty() {
             if categories.contains(CONTRATS) {
-                d.refus.push(format!("{} : contrats non réédités — leurs numéros ne sont pas encore figés, et un numéro ne s'invente pas.", lib));
+                d.refus.push(format!("{} : contrats non réédités — aucun n'est parti à la signature, et un numéro ne s'invente pas.", lib));
             }
         } else {
-            let (data, mut figees) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
             numeroter(ctx, &data, &mut figees, attente)?;
-            siennes_contrats = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i]))).collect();
+            siennes_contrats = partis;
             paies_contrats = figees;
         }
     }
@@ -664,11 +629,15 @@ fn mois_puppetpaie(
             let mut ses_pages: Vec<usize> = Vec::new();
             for i in siennes.iter().filter(|i| cle_de(&paies[**i]) == *cle && !paies[**i].engagement.sans_paie()) {
                 let p = &paies[*i];
+                // Un bulletin pas encore parti n'a rien a redonner.
+                if !lus.contains_key(i) && p.numero_bulletin.as_deref().map_or(true, str::is_empty) {
+                    continue;
+                }
                 let Some(lu) = lus.get(i).filter(|lu| !lu.pages.is_empty()) else {
                     return Err(erreur_operation(format!(
                         "{}, {} : aucune page de sorties/{}/{} ne porte son bulletin du {} au {}. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
                         lib,
-                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?,
+                        p.salarie.get("nom").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
                         mois,
                         nom_archive,
                         p.engagement.debut_periode().map_err(|m| avec("ValueError", m))?.jj_mm_aaaa(),
@@ -679,7 +648,7 @@ fn mois_puppetpaie(
                     return Err(erreur_operation(format!(
                         "{}, {} : le bulletin n° {} partage une page de sorties/{}/{} avec un autre bulletin. Cette page porte la paie d'un autre salarié, elle ne se donne pas ; et un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
                         lib,
-                        p.salarie.get("nom").map(py_str).ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?,
+                        p.salarie.get("nom").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
                         lu.bulletin,
                         mois,
                         nom_archive
@@ -737,98 +706,82 @@ fn mois_puppetpaie(
         }
     }
 
-    // 3. Les certificats Conges Spectacles, aux N CE du recapitulatif.
+    // 3. Les certificats Conges Spectacles partis, a leurs N CE, ecrits dans la paie a leur depart.
     if categories.contains(CERTIFICATS_CS) && ecrit {
         let (pour_cs, avert) = certificats_dus(ctx, &paies)?;
         d.avertissements.extend(avert.into_iter().map(|a| format!("{} : {}", lib, a)));
-        let recap = sortie.join(format!("CertificatsCS_{}_recapitulatif.txt", etiq));
-        let premier = premier_ce(&recap)?;
-        let a_faire = pour_cs.iter().any(|(_, _, v)| v.is_some());
+        let ecrits = engagement::etats::numeros_des_documents(ctx, mois).map_err(Echec::from)?;
         let trouve = |cle: &str, debut: &str| pour_cs.iter().find(|(c, de, _)| c == cle && de == debut).and_then(|(_, _, v)| v.as_ref());
-        match (a_faire, premier) {
-            (true, None) => d.refus.push(format!(
-                "{} : certificats Congés Spectacles non joints — aucun récapitulatif de leurs N° CE ({}), et un N° CE ne se reprend pas à la séquence. « Écrire les documents des salariés » les émet pour de bon.",
-                lib,
-                recap.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
-            )),
-            (true, Some(premier)) => {
-                // Les N CE se donnent dans l'ordre de la saisie, TOUS salaries confondus : on les
-                // repasse tous, on ne garde que les siens.
-                let mut numero = premier;
-                let mut paires: Vec<(String, Vec<(&PaieCs, i64)>)> = Vec::new();
-                for p in &paies {
-                    let cle = cle_de(p);
-                    let Some(pc) = trouve(&cle, &p.engagement.debut.iso()) else { continue };
-                    if cles.contains(&cle) {
-                        match paires.iter_mut().find(|(c, _)| *c == cle) {
-                            Some((_, v)) => v.push((pc, numero)),
-                            None => paires.push((cle.clone(), vec![(pc, numero)])),
-                        }
-                    }
-                    numero += conges_spectacles::decouper(&pc.engagement)?.len() as i64;
-                }
-                paires.sort_by(|a, b| a.0.cmp(&b.0));
-                // Les certificats remis sont dans `CertificatsCS_<Mois>.pdf`, un par page, dans l'ordre de leurs N CE
-                // a partir du premier du recapitulatif (`produire_mois`, `ecrire_documents` : `description_numerotee`,
-                // un document par certificat, une page sans marge). Le N CE n donne la page n - premier ; la page porte
-                // le nom du salarie, sinon le fichier ne dit pas ce que le recapitulatif dit, et rien ne se joint.
-                // Comme les bulletins : la page meme, jamais un certificat reimprime (regle 4).
-                let archive = sortie.join(format!("CertificatsCS_{}.pdf", etiq));
-                let nom_archive = archive.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-                let total = (numero - premier) as usize;
-                let textes = if archive.exists() { Some(texte_pdf(&archive)?) } else { None };
-                match textes {
-                    None if !paires.is_empty() => d.refus.push(format!(
-                        "{} : certificats Congés Spectacles non joints — {} n'est pas dans sorties/{}/, et un certificat remis ne se réimprime pas.",
-                        lib, nom_archive, mois
-                    )),
-                    Some(t) if !paires.is_empty() && t.len() != total => d.refus.push(format!(
-                        "{} : certificats Congés Spectacles non joints — {} a {} page(s), le récapitulatif et la saisie en attendent {} (N° CE {} à {}). Le fichier ne dit pas ce que le récapitulatif dit : rien n'est joint à sa place.",
-                        lib,
-                        nom_archive,
-                        t.len(),
-                        total,
-                        premier,
-                        numero - 1
-                    )),
-                    Some(t) => {
-                        for (cle, siens) in &paires {
-                            let nom = siens
-                                .first()
-                                .and_then(|(pc, _)| pc.salarie.get("nom"))
-                                .map(py_str)
-                                .ok_or_else(|| avec("KeyError", crate::fichiers::absent("nom")))?;
-                            let mut ses_pages: Vec<usize> = Vec::new();
-                            let mut etrangeres: Vec<i64> = Vec::new();
-                            for (pc, n) in siens {
-                                for k in 0..conges_spectacles::decouper(&pc.engagement)?.len() as i64 {
-                                    let page = (n + k - premier) as usize;
-                                    if sans_accents(&t[page]).contains(&sans_accents(&nom)) {
-                                        ses_pages.push(page);
-                                    } else {
-                                        etrangeres.push(n + k);
-                                    }
-                                }
-                            }
-                            if !etrangeres.is_empty() {
-                                d.refus.push(format!(
-                                    "{}, {} : certificats Congés Spectacles non joints — dans {}, la page du N° CE {} ne porte pas son nom. Le fichier ne dit pas ce que le récapitulatif dit : rien n'est joint à sa place.",
-                                    lib,
-                                    cle,
-                                    nom_archive,
-                                    etrangeres.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ")
-                                ));
-                                continue;
-                            }
-                            for page in ses_pages {
-                                pages.push(Page { categorie: CERTIFICATS_CS, cle: cle.clone(), tri: format!("{}-02", mois), source: archive.clone(), numero: page });
-                            }
-                        }
-                    }
-                    None => {}
+        // Chaque certificat parti, et tous les N CE de l'archive du mois.
+        let mut tous: Vec<i64> = Vec::new();
+        let mut paires: Vec<(String, Vec<(&PaieCs, i64)>)> = Vec::new();
+        for (i, p) in paies.iter().enumerate() {
+            let cle = cle_de(p);
+            let (Some(pc), Some(n)) = (trouve(&cle, &p.engagement.debut.iso()), ecrits.get(i).and_then(|e| e.premier_ce)) else { continue };
+            let combien = conges_spectacles::decouper(&pc.engagement)?.len() as i64;
+            tous.extend(n..n + combien);
+            if cles.contains(&cle) {
+                match paires.iter_mut().find(|(c, _)| *c == cle) {
+                    Some((_, v)) => v.push((pc, n)),
+                    None => paires.push((cle.clone(), vec![(pc, n)])),
                 }
             }
-            (false, _) => {}
+        }
+        tous.sort_unstable();
+        paires.sort_by(|a, b| a.0.cmp(&b.0));
+        // Les certificats remis sont dans `CertificatsCS_<Mois>.pdf`, un par page, dans l'ordre de leurs N CE
+        // (`depart::fabriquer_documents`) ; la page porte le nom du salarie, sinon le fichier ne dit pas ce que les paies
+        // disent, et rien ne se joint. Comme les bulletins : la page meme, jamais un certificat reimprime (regle 4).
+        let archive = sortie.join(format!("CertificatsCS_{}.pdf", etiq));
+        let nom_archive = archive.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let textes = if archive.exists() { Some(texte_pdf(&archive)?) } else { None };
+        match textes {
+            None if !paires.is_empty() => d.refus.push(format!(
+                "{} : certificats Congés Spectacles non joints — {} n'est pas dans sorties/{}/, et un certificat remis ne se réimprime pas.",
+                lib, nom_archive, mois
+            )),
+            Some(t) if !paires.is_empty() && t.len() != tous.len() => d.refus.push(format!(
+                "{} : certificats Congés Spectacles non joints — {} a {} page(s), les paies en attendent {}. Le fichier ne dit pas ce que les paies disent : rien n'est joint à sa place.",
+                lib,
+                nom_archive,
+                t.len(),
+                tous.len()
+            )),
+            Some(t) => {
+                for (cle, siens) in &paires {
+                    let nom = siens
+                        .first()
+                        .and_then(|(pc, _)| pc.salarie.get("nom"))
+                        .map(valeur_en_texte)
+                        .ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?;
+                    let mut ses_pages: Vec<usize> = Vec::new();
+                    let mut etrangeres: Vec<i64> = Vec::new();
+                    for (pc, n) in siens {
+                        for k in 0..conges_spectacles::decouper(&pc.engagement)?.len() as i64 {
+                            let page = tous.iter().position(|x| *x == n + k).unwrap_or(usize::MAX);
+                            if t.get(page).is_some_and(|p| sans_accents(p).contains(&sans_accents(&nom))) {
+                                ses_pages.push(page);
+                            } else {
+                                etrangeres.push(n + k);
+                            }
+                        }
+                    }
+                    if !etrangeres.is_empty() {
+                        d.refus.push(format!(
+                            "{}, {} : certificats Congés Spectacles non joints — dans {}, la page du N° CE {} ne porte pas son nom. Le fichier ne dit pas ce que les paies disent : rien n'est joint à sa place.",
+                            lib,
+                            cle,
+                            nom_archive,
+                            etrangeres.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ")
+                        ));
+                        continue;
+                    }
+                    for page in ses_pages {
+                        pages.push(Page { categorie: CERTIFICATS_CS, cle: cle.clone(), tri: format!("{}-02", mois), source: archive.clone(), numero: page });
+                    }
+                }
+            }
+            None => {}
         }
     }
 
@@ -940,7 +893,7 @@ fn dossier_coolpaie(ctx: &Contexte) -> Option<PathBuf> {
 
 /// `_sans_accents` : sans accent, en majuscules.
 fn sans_accents(t: &str) -> String {
-    crate::contexte::sans_accent(t).to_uppercase()
+    socle::texte::sans_accent(t).to_uppercase()
 }
 
 /// `re.sub(r"[^A-Z0-9]+", " ", t)`.
@@ -987,13 +940,13 @@ fn a_qui(texte: &str, fiches: &[(&String, &Value)]) -> Vec<String> {
     let t = format!(" {} ", lettres_et_chiffres(&sans_accents(texte)));
     let mut out = Vec::new();
     for (cle, f) in fiches {
-        let brut = f.get("nir").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+        let brut = f.get("nir").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let nir: String = brut.chars().filter(est_chiffre).take(13).collect();
         if nir.chars().count() == 13 && chiffres.contains(&nir) {
             out.push((*cle).clone());
             continue;
         }
-        let normal = |c: &str| lettres_et_chiffres(&sans_accents(&f.get(c).filter(|v| vrai(v)).map(py_str).unwrap_or_default())).trim().to_string();
+        let normal = |c: &str| lettres_et_chiffres(&sans_accents(&f.get(c).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default())).trim().to_string();
         let (nom, prenom) = (normal("nom"), normal("prenom"));
         if !nom.is_empty() && !prenom.is_empty() && t.contains(&format!(" {} ", nom)) && t.contains(&format!(" {} ", prenom)) {
             out.push((*cle).clone());
@@ -1113,7 +1066,7 @@ fn date_de_page(texte: &str, fiche: &Value, nom: &str) -> Option<String> {
     if let Some((j, m, a)) = du_au(&c) {
         return Some(format!("{}-{}-{}", a, m, j));
     }
-    let naissance = fiche.get("date_naissance").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let naissance = fiche.get("date_naissance").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let valide = |j: &str, m: &str| ("01"..="12").contains(&m) && ("01"..="31").contains(&j);
     for g in trouver_gabarit(&c, "dd dd dddd", |x| x == ' ') {
         let iso = format!("{}-{}-{}", g[2], g[1], g[0]);
@@ -1274,7 +1227,7 @@ fn assembler(pages: &[&Page]) -> R<Option<Vec<u8>>> {
         if !textes.contains_key(pg.source.as_path()) {
             textes.insert(pg.source.as_path(), texte_pdf(&pg.source)?);
         }
-        let texte = textes[pg.source.as_path()].get(pg.numero).cloned().ok_or_else(|| avec("IndexError", crate::fichiers::trop_courte(&format!("la page {} de {}", pg.numero + 1, pg.source.display()))))?;
+        let texte = textes[pg.source.as_path()].get(pg.numero).cloned().ok_or_else(|| avec("IndexError", socle::fichiers::trop_courte(&format!("la page {} de {}", pg.numero + 1, pg.source.display()))))?;
         if !vues.insert(texte) {
             continue;
         }
@@ -1307,7 +1260,7 @@ pub(crate) struct Entree {
 
 /// La date et l'heure locales (Paris) au format DOS, a partir de secondes unix.
 fn horodatage_dos(secondes: i64) -> (u16, u16) {
-    let local = secondes + crate::paris::decalage(secondes);
+    let local = secondes + socle::paris::decalage(secondes);
     let jour = Jour::depuis_jours_unix(local.div_euclid(86_400)).unwrap_or(Jour { an: 1980, mois: 1, jour: 1 });
     let reste = local.rem_euclid(86_400);
     let (h, m, s) = (reste / 3600, (reste % 3600) / 60, reste % 60);
@@ -1318,7 +1271,7 @@ fn horodatage_dos(secondes: i64) -> (u16, u16) {
 }
 
 fn maintenant() -> i64 {
-    crate::temps::secondes().floor() as i64
+    socle::temps::secondes().floor() as i64
 }
 
 /// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix, comme Python.
@@ -1426,7 +1379,7 @@ fn mode(meta: &std::fs::Metadata) -> u32 {
 }
 
 fn ecrire_octets(chemin: &Path, octets: &[u8]) -> R<()> {
-    std::fs::write(chemin, octets).map_err(|e| avec("OSError", crate::fichiers::ecriture_impossible(&e, chemin)))
+    std::fs::write(chemin, octets).map_err(|e| avec("OSError", socle::fichiers::ecriture_impossible(&e, chemin)))
 }
 
 /// `{cle: {categorie: octets}}`, dans l'ordre ou les cles et les categories sont apparues.
@@ -1501,14 +1454,14 @@ fn ecrire_ensemble(dossier: &Path, contenus: &Contenus, preuves: &[(String, Vec<
 /// Le jour reel de Paris : `date.today()`, pas `ctx.aujourdhui`.
 pub(crate) fn aujourdhui_reel() -> Jour {
     let t = maintenant();
-    Jour::depuis_jours_unix((t + crate::paris::decalage(t)).div_euclid(86_400)).unwrap_or_else(crate::contexte::jour_reel)
+    Jour::depuis_jours_unix((t + socle::paris::decalage(t)).div_euclid(86_400)).unwrap_or_else(droit::contexte::jour_reel)
 }
 
 /// `etats::getd(charge, cle)` puis `or None` : la valeur de la charge quand elle est vraie.
 fn vraie<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Value>> {
     match charge {
         Value::Object(o) => Ok(o.get(cle).filter(|v| vrai(v))),
-        autre => Err(avec("AttributeError", crate::fichiers::attendu("un objet", nom_type(autre)))),
+        autre => Err(avec("AttributeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
     }
 }
 
@@ -1518,7 +1471,7 @@ fn joindre(valeurs: &[Value]) -> R<String> {
     for (i, v) in valeurs.iter().enumerate() {
         match v {
             Value::String(s) => textes.push(s.clone()),
-            autre => return Err(avec("TypeError", crate::fichiers::element(i, &crate::fichiers::attendu("un texte", nom_type(autre))))),
+            autre => return Err(avec("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre))))),
         }
     }
     Ok(textes.join(", "))
@@ -1563,7 +1516,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
             let mut absents = Vec::new();
             for c in liste {
                 match c {
-                    Value::Array(_) | Value::Object(_) => return Err(avec("TypeError", crate::fichiers::pas_une_cle(nom_type(c)))),
+                    Value::Array(_) | Value::Object(_) => return Err(avec("TypeError", socle::fichiers::pas_une_cle(nom_type(c)))),
                     Value::String(s) if fiches.contains(&s) => {}
                     autre => absents.push(autre.clone()),
                 }
@@ -1666,7 +1619,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
         return Ok(d);
     }
     let dossier = ctx.racine.join("exports").join("dossiers");
-    std::fs::create_dir_all(&dossier).map_err(|e| avec("OSError", crate::fichiers::ecriture_impossible(&e, &dossier)))?;
+    std::fs::create_dir_all(&dossier).map_err(|e| avec("OSError", socle::fichiers::ecriture_impossible(&e, &dossier)))?;
     let un_seul = cats.len() == 1;
     if ensemble {
         d.fichiers.push(ecrire_ensemble(&dossier, &contenus, &preuves, &cats, &p, un_seul, tmp)?);

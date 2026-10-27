@@ -46,7 +46,7 @@ use imap_proto::{AttributeValue, MailboxDatum, Response, Status};
 use serde_json::{json, Value};
 
 use crate::coffre::{Coffre, CONSULTATION};
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 
 pub const FICHIER_SERVEURS: &str = "courriel.json";
 /// Secondes, par connexion.
@@ -207,7 +207,7 @@ impl<T: Read + Write + ?Sized> Flux for T {}
 
 fn connecter(hote: &str, port: u16) -> Result<TcpStream, ErreurCourriel> {
     // En essai, le garde-fou reseau : aucune boite reelle.
-    crate::garde_reseau::directe(hote).map_err(injoignable)?;
+    socle::garde_reseau::directe(hote).map_err(injoignable)?;
     let delai = Duration::from_secs(DELAI);
     let adresses: Vec<_> = (hote, port).to_socket_addrs().map_err(injoignable)?.collect();
     let mut derniere = None;
@@ -544,7 +544,7 @@ impl Courriel for Client {
         let mdp = mot_de_passe(&self.racine)?;
         let (hote, port) = (self.serveurs.smtp.clone(), self.serveurs.port_smtp);
         // En essai, le garde-fou reseau : aucun serveur d'envoi reel.
-        crate::garde_reseau::directe(&hote).map_err(injoignable)?;
+        socle::garde_reseau::directe(&hote).map_err(injoignable)?;
         let tls = TlsParameters::builder(hote.clone()).build_rustls().map_err(|e| erreur(format!("TLS : {}", e)))?;
         let transport = SmtpTransport::builder_dangerous(hote.as_str())
             .port(port)
@@ -650,7 +650,7 @@ fn message_id_de(brut: &[u8]) -> Option<String> {
 
 pub(crate) fn hexa_au_hasard(octets: usize) -> String {
     let mut o = vec![0u8; octets];
-    if crate::temps::aleas(&mut o).is_err() {
+    if socle::temps::aleas(&mut o).is_err() {
         let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(1);
         for (i, c) in o.iter_mut().enumerate() {
             *c = (t >> (i * 8 % 64)) as u8;
@@ -662,8 +662,8 @@ pub(crate) fn hexa_au_hasard(octets: usize) -> String {
 /// `%Y%m%d-%H%M%S-%f` de l'heure de Paris : l'ordre des noms est celui des envois.
 fn horodatage_de(t: std::time::Duration) -> String {
     let secondes = t.as_secs() as i64;
-    let local = secondes + crate::paris::decalage(secondes);
-    let j = crate::date::Jour::depuis_jours_unix(local.div_euclid(86_400)).unwrap_or(crate::date::Jour { an: 1970, mois: 1, jour: 1 });
+    let local = secondes + socle::paris::decalage(secondes);
+    let j = socle::date::Jour::depuis_jours_unix(local.div_euclid(86_400)).unwrap_or(socle::date::Jour { an: 1970, mois: 1, jour: 1 });
     let s = local.rem_euclid(86_400);
     format!("{:04}{:02}{:02}-{:02}{:02}{:02}-{:06}", j.an, j.mois, j.jour, s / 3600, s % 3600 / 60, s % 60, t.subsec_micros())
 }
@@ -683,7 +683,7 @@ impl Courriel for BoiteSimulee {
         let dossier = self.racine.join(DOSSIER_COURRIELS);
         std::fs::create_dir_all(&dossier).map_err(|e| erreur(format!("{} : {}", dossier.display(), e)))?;
         let ident = message_id_de(message_mime).unwrap_or_else(|| format!("<{}@fictive.puppetpaie>", hexa_au_hasard(8)));
-        let maintenant = std::time::Duration::from_secs_f64(crate::temps::secondes());
+        let maintenant = std::time::Duration::from_secs_f64(socle::temps::secondes());
         let nom = format!("{}_{}.eml", horodatage_de(maintenant), hexa_au_hasard(4));
         let chemin = dossier.join(&nom);
         std::fs::write(&chemin, message_mime).map_err(|e| erreur(format!("{} : {}", chemin.display(), e)))?;

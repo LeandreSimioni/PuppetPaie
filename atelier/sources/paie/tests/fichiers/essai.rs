@@ -83,7 +83,7 @@ fn lancer(binaire: &str, donnees: Option<&Path>, args: &[&str], env: &[(&str, &s
     let m = monde();
     let mut c = Command::new(binaire);
     c.env_clear()
-        .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
+        .env(socle::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
         .env("PATH", std::env::var("PATH").unwrap_or_default())
         .env("HOME", m)
         .env("PUPPETPAIE_CLE", m.join("cle"))
@@ -271,9 +271,10 @@ fn remonter_une_compagnie_d_essai_ne_reecrit_que_son_identite() {
 
 // ------------------------------------------------------------------ la DSN et la DPAE, sous cette identite
 
-/// La DSN de septembre s'ecrit sous l'identite de la variable, et la sortie de `paie mois` n'en montre rien.
+/// La DSN de septembre se fabrique sous l'identite de la variable (`paie depot-dsn 2026-09 --apercu`), et la sortie n'en
+/// montre rien.
 fn dsn_de_septembre(binaire: &str, d: &Path) -> String {
-    let s = lancer(binaire, Some(d), &["mois", "paies/2026-09.json"], &[]);
+    let s = lancer(binaire, Some(d), &["depot-dsn", "2026-09", "--apercu"], &[]);
     assert_eq!(s.code, 0, "{}", s.texte);
     rien_d_affiche(&s, &identite());
     std::fs::read_to_string(d.join("sorties/2026-09/DSN_Septembre2026.dsn")).unwrap()
@@ -303,7 +304,7 @@ fn le_depot_de_test_de_la_dsn_va_au_reseau_et_le_reel_est_refuse() {
     dsn_de_septembre(PAIE, &d);
     let fichier = "sorties/2026-09/DSN_Septembre2026.dsn";
     let (proxy, vus) = mandataire();
-    let env = [("NET_ENTREPRISES_MOTDEPASSE", FAUX_MOTDEPASSE), (paie::garde_reseau::VARIABLE, proxy.as_str())];
+    let env = [("NET_ENTREPRISES_MOTDEPASSE", FAUX_MOTDEPASSE), (socle::garde_reseau::VARIABLE, proxy.as_str())];
     let s = lancer(PAIE, Some(&d), &["depot-dsn", fichier, "--test"], &env);
     rien_d_affiche(&s, &identite());
     assert!(s.texte.contains("SIREN de la compagnie d'essai (ne s'affiche pas)"), "{}", s.texte);
@@ -325,7 +326,7 @@ fn le_depot_de_test_de_la_dsn_va_au_reseau_et_le_reel_est_refuse() {
 fn une_dsn_ecrite_sous_l_identite_de_la_fictive_ne_part_pas() {
     let d = montee(PAIE, "dsn-de-la-fictive");
     let (proxy, vus) = mandataire();
-    let s = lancer(PAIE, Some(&d), &["depot-dsn", "sorties/2026-08/DSN_Aout2026.dsn", "--test"], &[("NET_ENTREPRISES_MOTDEPASSE", FAUX_MOTDEPASSE), (paie::garde_reseau::VARIABLE, proxy.as_str())]);
+    let s = lancer(PAIE, Some(&d), &["depot-dsn", "sorties/2026-08/DSN_Aout2026.dsn", "--test"], &[("NET_ENTREPRISES_MOTDEPASSE", FAUX_MOTDEPASSE), (socle::garde_reseau::VARIABLE, proxy.as_str())]);
     assert_eq!(s.code, 2, "{}", s.texte);
     assert!(s.texte.contains("ne porte pas le SIREN de la compagnie"), "{}", s.texte);
     let siren_fictive = lire(&fictive(FICTIVE), "config/entreprise.json")["siren"].as_str().unwrap().to_string();
@@ -343,7 +344,7 @@ fn l_ordre_d_essai_n_est_admis_qu_en_test() {
     for args in [&["--reel", "--ordre", "5"][..], &["--test", "--ordre", "0"][..], &["--test", "--ordre", "cinq"][..]] {
         let mut a = vec!["depot-dsn", "sorties/2026-09/DSN_Septembre2026.dsn"];
         a.extend_from_slice(args);
-        let s = lancer(PAIE, Some(&d), &a, &[(paie::garde_reseau::VARIABLE, proxy.as_str())]);
+        let s = lancer(PAIE, Some(&d), &a, &[(socle::garde_reseau::VARIABLE, proxy.as_str())]);
         assert_eq!(s.code, 2, "{:?} : {}", args, s.texte);
         assert!(s.texte.contains("--ordre N"), "{}", s.texte);
     }
@@ -355,13 +356,13 @@ fn l_ordre_d_essai_n_est_admis_qu_en_test() {
 #[test]
 fn la_dpae_s_ecrit_sous_l_identite_et_son_test_va_a_l_urssaf() {
     let d = montee(PAIE, "dpae");
-    let s = lancer(PAIE, Some(&d), &["dpae", "paies/2026-11.json"], &[]);
+    let s = lancer(PAIE, Some(&d), &["dpae", "2026-11"], &[]);
     assert_eq!(s.code, 0, "{}", s.texte);
     rien_d_affiche(&s, &identite());
     let dpae = std::fs::read_to_string(d.join("sorties/2026-11/DPAE_Novembre2026.txt")).unwrap();
     assert!(dpae.contains("98765432400019") && dpae.contains("MTESSAI7"), "la DPAE ne porte pas l'identite de la variable");
     let (proxy, vus) = mandataire();
-    let s = lancer(PAIE, Some(&d), &["deposer-dpae", "sorties/2026-11/DPAE_Novembre2026.txt", "--test"], &[("URSSAF_MOTDEPASSE", FAUX_MOTDEPASSE), (paie::garde_reseau::VARIABLE, proxy.as_str())]);
+    let s = lancer(PAIE, Some(&d), &["deposer-dpae", "sorties/2026-11/DPAE_Novembre2026.txt", "--test"], &[("URSSAF_MOTDEPASSE", FAUX_MOTDEPASSE), (socle::garde_reseau::VARIABLE, proxy.as_str())]);
     rien_d_affiche(&s, &identite());
     let v = vus.lock().unwrap().clone();
     assert!(v.iter().any(|l| l.starts_with("CONNECT mon.urssaf.fr:443")), "le test n'est pas alle a l'Urssaf : {:?}\n{}", v, s.texte);
@@ -431,7 +432,7 @@ mod atelier {
     #[test]
     fn le_depot_de_test_de_la_dpae_arrive_au_faux_urssaf() {
         let d = montee(ATELIER, "atelier-dpae");
-        let s = lancer(ATELIER, Some(&d), &["dpae", "paies/2026-11.json"], &[]);
+        let s = lancer(ATELIER, Some(&d), &["dpae", "2026-11"], &[]);
         assert_eq!(s.code, 0, "{}", s.texte);
         let (base, recu) = faux();
         let dpae = format!("{}/dpae", base);

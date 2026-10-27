@@ -13,9 +13,9 @@ use std::sync::{Mutex, MutexGuard, Once};
 
 use paie::coffre::Coffre;
 use paie::coffre_verifier::{self, verifier_secret_avec};
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use paie::courriel::ErreurCourriel;
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::releve_retours::Panne;
 use serde_json::{json, Value};
 

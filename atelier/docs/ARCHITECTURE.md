@@ -22,14 +22,14 @@ donc exactement tel que l'administration l'a déjà accepté.
 **Rien n'est réputé juste sans rejeu.** Le moteur a été calé en reconstruisant
 chaque DSN et chaque AEM du dossier `export/` à partir de leurs propres données
 et en les comparant à l'original (`calibrer`, du temps du Python ; retiré avec
-lui et non porté, `docs/PORTAGE-RUST.md`). Ce qui en tient lieu : les attendus
+lui et non porté). Ce qui en tient lieu : les attendus
 transcrits dans les tests (`atelier/sources/paie/tests/`) et le dépôt de test,
 seul validateur (règle de fond 10).
 
 ## Le flux
 
 ```
-   une phrase, ou paies/AAAA-MM.json (des lignes de paie datées)
+   une phrase, ou engagements/AAAA-MM.json (des engagements, leurs lignes de paie datées)
               │
               ▼
    routes.rs ── les routes du moteur (`paie route`) : l'orchestration et les
@@ -69,6 +69,51 @@ compagnie réelle, pièce hors du dépôt public, dépôt privé) — fin des AE
 AE Cinéma Spectacle remise au salarié, `S21.G00.40.025` vide ; la date vaut
 pour cette compagnie, une autre reçoit la sienne.
 
+## L'engagement : un objet, ses paies validées
+
+L'engagement est au centre (crate `engagement`, `atelier/sources/engagement/`). Il vit dans
+`engagements/AAAA-MM.json`, le fichier **du mois où il commence**, et nulle part ailleurs ; un engagement de
+novembre à janvier est un seul objet de `engagements/2026-11.json`.
+
+- **Sa forme** (`engagement/src/stock.rs`) : son premier mois en clair (salarié, spectacle, `debut`, `fin`, lignes de
+  paie datées…) ; chaque mois d'après n'écrit que ce qu'il change, sous `mois_suivants` (`null` : retiré). Le salarié,
+  les bornes et le numéro de contrat sont ceux de l'engagement dans tous ses mois (`PARTAGES`) ; la nature, le
+  spectacle, l'emploi… se reconduisent d'un mois au suivant (`RECONDUITS`) ; un contrat d'usage commence chaque mois
+  d'après avec les jours que le mois d'avant a mis au planning (une ligne par ligne qui en a). Le fichier d'un mois
+  porte aussi les défauts du mois (`taux_cachet`, `date_paiement`).
+- **Le mois de l'écran** (`stock::vue_du_mois`) : le fichier du mois et chaque engagement d'un mois d'avant qui court
+  encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_vue_du_mois`) ; chaque engagement y retrouve
+  son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.
+- **Trois états** (`engagement/src/etats.rs`), trois types : **en saisie** (calculé à mesure pour l'écran, rien ne
+  part de lui) ; **validé** (« Valider l'engagement » écrit sous `valide` la date et une paie par mois couvert, avec
+  son prélèvement à la source et l'empreinte de ce dont le calcul dépend : fichiers lus, fiches, saisie des mois lus,
+  code du moteur, règles datées) ; **documents partis** pour un mois (le journal des envois, `journal/depots.json`, a
+  une ligne `documents` du mois qui nomme le salarié). Tout document se fabrique depuis les paies écrites
+  (`etats::validees_du_mois`, `etats::paies_du_mois`, qui refuse un mois dont un engagement est en saisie) ; aucun ne
+  recalcule.
+- **Chaque document se fabrique à son départ** (`paie/src/depart.rs`) : la DSN à son dépôt (`fabriquer_dsn`, route
+  `dsn-a-deposer`), dès qu'un engagement du mois est validé, sans attendre DPAE ni contrat ; le bulletin et le certificat
+  Congés Spectacles à l'envoi des documents (`fabriquer_documents`), qui écrit dans la paie le numéro du bulletin
+  (`N/AAAA`) et le premier N° CE (`etats::poser_numeros_des_documents`) ; le contrat à son envoi à la signature, où son
+  numéro se fige (`envois_signature::reserver_numeros_envoyes`). Une paie partie puis refaite part sous un numéro
+  nouveau, en rectificatif (`rectifie`), l'original gardé. Après la veille de l'échéance, un mois déclaré ne se
+  redépose plus (`AnnuleRemplaceHorsDelai`) : sa correction s'écrit d'elle-même et part dans la DSN suivante
+  (`depart::corrections_dues`). L'AER ne se fabrique pas : France Travail la renvoie, et elle se vérifie contre les
+  paies écrites.
+- **Le recalcul de lui-même** (`etats::rafraichir`, à chaque lecture d'un mois, `etats::du_mois`) : une paie validée
+  dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
+  chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
+  qu'il livre), « un autre engagement du mois a changé », « configuration de la compagnie modifiée ». L'écran le montre
+  (« Recalculé le JJ/MM/AAAA : … »). Sans chiffre changé, rien ne se dit. Un recalcul que le moteur refuse
+  garde la paie validée et se note en incident pour l'éditeur (`incidents::poser_le_temoin_des_recalculs`).
+- **Modifier…** (route `valider-engagement`, `valide: false`) repasse l'engagement en saisie. Si les documents d'un de
+  ses mois sont partis, le moteur pose d'abord sa question (`etats::QUESTION_DOCUMENTS_PARTIS`) et ne bouge qu'avec la
+  réponse (`confirme`) ; les paies parties se gardent (`figees`) et se reprennent telles quelles à la validation si la
+  saisie de leur mois n'a pas changé.
+- **Le numéro de contrat** se pose sur l'engagement quand le contrat part à la signature ou avec son premier mois
+  (`stock::poser_numero`), et se relit ensuite ; un mois qui n'est pas le premier ne se numérote pas
+  (`engagement::refus_sans_numero`, règle 4).
+
 ## La ligne de paie datée
 
 Le fichier de saisie ne décrit pas un engagement par ses dates et son lieu,
@@ -90,7 +135,7 @@ Ce que ça impose au moteur :
   refusé par `charger`, qui dit ce qu'il a vu et ce qu'une saisie porte.
   Plus aucune saisie n'est à l'ancienne écriture : l'outil de conversion
   (Python) est retiré le 15/10/2026.
-- `date::d` (`paie/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
+- `date::d` (`socle/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
 - La construction d'un `Engagement` (`paie/src/engagement.rs`) réunit les deux écritures et n'en
@@ -232,7 +277,7 @@ Les taux de vieillesse et de famille sont les taux de droit commun réduits de
 **Le plafond de Sécurité sociale est dans le barème** (`plafond_securite_sociale`
 : `{"mensuel": 4005, "horaire": 30}`, source BOSS), depuis le 16/09/2026 —
 c'était la seule valeur réglementaire qui vivait dans le code. Le module
-(`paie/src/plafond.rs`) ne porte plus que la règle, et
+(`droit/src/plafond.rs`) ne porte plus que la règle, et
 `calcul::plafond_de_l_engagement` en est la seule source : le bas du bulletin,
 les bases du calcul, la DSN et le bordereau la suivent. La règle, telle que
 le module la dit avec ses textes (`atelier/reference/sources/`) :
@@ -285,7 +330,7 @@ cotisation prévoyance `059` de la DSN (0,420 + 0,810 ; « Cotisation individuel
 
 **Tous les arrondis sont au demi supérieur.** `round()` de Python arrondissait au
 pair le plus proche et se trompait donc d'un centime régulièrement ; `eur`
-(`paie/src/num.rs`) arrondit un `Decimal` au demi qui s'éloigne de zéro
+(`socle/src/num.rs`) arrondit un `Decimal` au demi qui s'éloigne de zéro
 (`MidpointAwayFromZero`, le `ROUND_HALF_UP` d'avant).
 
 ## Le SMIC déclaré en DSN (composant 01 de la base 03)
@@ -384,7 +429,7 @@ Depuis le 15/09/2026 il ne lit qu'**une source, la nôtre**, en deux fichiers :
 | | quoi | quand |
 |---|---|---|
 | `prive/historique/engagements.json` | les contrats attestés **avant** ce logiciel : les AEM de CoolPaie, importées une fois (`paie importer`) — dates, numéro d'objet, cachets, heures, jours, brut, numéro et date d'attestation | pour tout mois qui n'a pas de fichier de paie |
-| `prive/paies/AAAA-MM.json` | les mois produits ici, chargés par `charger` (`paie/src/engagement.rs`) (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
+| `prive/engagements/AAAA-MM.json` | les engagements saisis ici, lus par `charger` (`engagement/src/lib.rs`) (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
 
 La règle de départage tient en une phrase : **un mois qui a son fichier de
 paie est lu là, jamais deux fois.** Pendant le double run d'août 2026, l'AEM
@@ -671,7 +716,7 @@ livre**. L'état exact est aux §38 à §45 de `prive/journal/ETAT.md`.
 ### Le taux d'une branche n'est pas une donnée de compagnie
 
 `logiciel/donnees/prevoyance-conventionnelle-base.json` porte la prévoyance des
-permanents telle que la fixe la convention collective, et `paie/src/bareme.rs` (module `prevoyance`)
+permanents telle que la fixe la convention collective, et `droit/src/bareme.rs` (module `prevoyance`)
 la lit. 1,20 % de la tranche A est vrai pour **toutes** les entreprises de
 l'IDCC 3090 : le mettre dans le barème d'une compagnie, c'est le ranger là où
 aucune autre ne le trouvera. La ligne de partage, et elle vaut pour la suite :
@@ -753,7 +798,7 @@ prévoyance, elle, vient de la convention.
 contrat, par nature — ce qui était, jusque-là, écrit dans `dsn.py`. Trois
 natures : `cddu_spectacle` (l'intermittent, et le défaut d'un engagement qui
 ne dit rien), `cdi`, `cdd`. Chaque code y porte sa valeur, sa phrase et sa
-source ; `paie/src/contrats.rs` les lit et ne décide rien.
+source ; `droit/src/natures.rs` les lit et ne décide rien.
 
 Ce qui sépare un permanent d'un intermittent, en une page :
 
@@ -882,7 +927,7 @@ Venu de `CLAUDE.md` (règle 8) le 04/10/2026, tel quel pour l'essentiel.
 section `seuils_effectif` du socle dit, chemin par chemin, où vit chaque valeur
 qui dépend de l'effectif et ce que le socle y porte (formation des permanents à
 onze salariés ; FNAL, `tdelta` et échéance de la DSN à cinquante).
-`paie/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
+`droit/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
 le 23/09/2026 il ne se saisit plus : il arrive en CRM de nature 118,
 `paie/src/releve_retours.rs` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
 un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — et
@@ -903,7 +948,7 @@ un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — e
 - Le même module refuse une **adhésion à une organisation patronale** dont la
   couche n'est pas relevée (`par_organisation_patronale`) et un **second
   établissement** incomplet (adresse, taux AT/MP) ; complet, il a sa propre DSN
-  depuis le 25/09/2026 (`paie/src/contexte.rs`, `paie/src/dsn.rs`). Le contrôle est appelé dans
+  depuis le 25/09/2026 (`droit/src/contexte.rs`, `paie/src/dsn.rs`). Le contrôle est appelé dans
   `Contexte._bareme_brut`, seul endroit que les deux fronts traversent.
 
 ### Le barème a deux axes, pas un
@@ -982,7 +1027,7 @@ permanents, un seul CTP 992.
 ### Ce que la loi doit à un permanent
 
 `logiciel/donnees/permanents-base.json` porte les nombres, chacun avec son article ;
-`paie/src/permanents.rs` porte la règle ; les routes portées d'`operations_permanents.py`
+`droit/src/permanents.rs` porte la règle ; les routes portées d'`operations_permanents.py`
 (`paie/src/routes_actes_h1.rs`, `routes_listes.rs`)
 décident. Les articles sont relevés et datés dans
 `atelier/reference/sources/code-du-travail/`.
@@ -1092,7 +1137,7 @@ décident. Les articles sont relevés et datés dans
   dépendent de Pâques — le seul calcul du logiciel qui remplace un relevé,
   aucune table officielle ne publiant cette date. Mais **férié n'est pas
   chômé** : la loi n'impose que le 1er mai (L3133-4), les dix autres relèvent
-  de la convention ou de l'usage. `paie/src/feries.rs` ne retire donc du
+  de la convention ou de l'usage. `socle/src/feries.rs` ne retire donc du
   décompte des jours ouvrables que ce que `config/entreprise.json` déclare
   chômer (`jours_feries_chomes`), et **dit** ce qu'il a compté comme
   ouvrable. À noter : L3133-3 exclut nommément les **intermittents** du
@@ -1567,7 +1612,7 @@ fait ; jamais un clic — ici, la revue enregistrée.
 **La clôture** (`cloturer`) refuse une année déjà close, l'année en cours,
 et une année dont un mois avec des paies n'a pas de DSN réelle acceptée
 (`forcer` passe outre, et `exercices.json` le garde). Elle écrit l'export
-compta si besoin, puis `sorties/exercices/Exercice_<année>.zip` : `paies/`,
+compta si besoin, puis `sorties/exercices/Exercice_<année>.zip` : `engagements/` (le fichier de chaque mois de l'année, et celui du mois où commence un engagement qui court dans l'année),
 chaque `sorties/<mois>/` en entier (les contrats signés sont dans `envoi/`),
 les retours dont le nom commence par l'année ou par janvier suivant (le
 bilan de la DSN de décembre arrive en janvier), `journal/depots.json`, les

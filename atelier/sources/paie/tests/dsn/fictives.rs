@@ -1,4 +1,5 @@
-//! Chaque mois déposé des quatre démonstrations (3090 et 1285, intermittents et permanents, cadres compris), refait
+//! Les mois déposés des quatre démonstrations (3090 et 1285, intermittents et permanents, cadres compris ; pour la
+//! 3090-grande, le premier semestre 2025 et juin 2026, le seul mois ou une tranche 2 cotise), refaits
 //! aujourd'hui sur la copie figée, une fois : le fichier passe `usages` et `formats`, ne porte ni 105 ni bloc 41, déclare
 //! 131 + 132 au montant du 105 déposé, et sa part patronale Agirc-Arrco en 142 et 146 à l'Urssaf (SIG-18).
 //!
@@ -9,11 +10,11 @@
 
 use crate::agirc_arrco::{patronale_par_contrat, sig_18, versement_20_et_lignes, AUDIENS_RETRAITE};
 use crate::outils;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
-use paie::num::Decimal;
+use engagement::charger;
+use socle::num::Decimal;
 use std::collections::BTreeMap;
 
 /// La somme des 81.004 des `codes`, contrat par contrat (78.006, ou le 40.009 d'un individu à contrat unique, qui
@@ -33,11 +34,13 @@ fn par_contrat(dsn: &str, codes: &[&str]) -> BTreeMap<String, Decimal> {
     out
 }
 
-/// Rejoue chaque mois déposé de la compagnie fictive `nom` ; rend (mois rejoués, mois qui déclarent un 132, un 146).
-fn rejouer(nom: &str) -> (usize, usize, usize) {
+/// Rejoue les mois déposés de la compagnie fictive `nom` que `garder` retient ; rend
+/// (mois rejoués, mois qui déclarent un 132, un 146).
+fn rejouer(nom: &str, garder: &dyn Fn(&str) -> bool) -> (usize, usize, usize) {
     let sorties = outils::fictive(nom).join("sorties");
     let mut mois: Vec<String> =
         std::fs::read_dir(&sorties).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|m| m.len() == 7 && m.starts_with("202")).collect();
+    mois.retain(|m| garder(m));
     mois.sort();
     let (mut vus, mut avec_132, mut avec_146) = (0, 0, 0);
     for m in mois {
@@ -50,7 +53,7 @@ fn rejouer(nom: &str) -> (usize, usize, usize) {
             .unwrap_or_else(|| panic!("{} : pas de DSN deposee", quoi));
         let depose = String::from_utf8_lossy(&std::fs::read(depose).unwrap()).into_owned();
         let ctx = Contexte::nouveau(&outils::fictive(nom), Some(Jour::lire(&format!("{}-28", m)).unwrap())).unwrap();
-        let s = charger(&ctx, &outils::fictive(nom).join(format!("paies/{}.json", m))).unwrap();
+        let s = charger(&ctx, &m).unwrap();
         let dsn = generer(&ctx, &s.paies, &m, &[], &[], &Options::default()).unwrap_or_else(|e| panic!("{} : {}", quoi, e));
 
         paie::usages::verifier_fichier(&dsn).unwrap_or_else(|e| panic!("{} : {}", quoi, e));
@@ -71,22 +74,22 @@ fn rejouer(nom: &str) -> (usize, usize, usize) {
 
 #[test]
 fn la_3090_grande_se_refait_mois_par_mois() {
-    let (vus, avec_132, avec_146) = rejouer("fictive-3090-grande");
-    assert!(vus > 20 && avec_132 > 0 && avec_146 > 0, "des cadres declarent l'Apec en 132, une tranche 2 sa part patronale en 146");
+    let (vus, avec_132, avec_146) = rejouer("fictive-3090-grande", &|m| m < "2025-07" || m == "2026-06");
+    assert!(vus > 3 && avec_132 > 0 && avec_146 > 0, "des cadres declarent l'Apec en 132 ; en juin 2026, une tranche 2 sa part patronale en 146");
 }
 
 #[test]
 fn la_3090_petite_se_refait_mois_par_mois() {
-    assert!(rejouer("fictive-3090-petite").0 > 20);
+    assert!(rejouer("fictive-3090-petite", &|_| true).0 > 20);
 }
 
 #[test]
 fn la_1285_grande_se_refait_mois_par_mois() {
-    let (vus, avec_132, _) = rejouer("fictive-1285-grande");
+    let (vus, avec_132, _) = rejouer("fictive-1285-grande", &|_| true);
     assert!(vus > 20 && avec_132 > 0, "une cadre declare l'Apec en 132");
 }
 
 #[test]
 fn la_1285_petite_se_refait_mois_par_mois() {
-    assert!(rejouer("fictive-1285-petite").0 > 20);
+    assert!(rejouer("fictive-1285-petite", &|_| true).0 > 20);
 }

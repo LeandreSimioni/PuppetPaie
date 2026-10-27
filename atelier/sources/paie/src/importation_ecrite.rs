@@ -25,11 +25,14 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, nom_type, py_str};
-use crate::fichiers::vrai;
-use crate::num::Decimal;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use crate::etats;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::Decimal;
+use socle::echec::Echec;
 use crate::routes_importation::{apercu_importation, export_de};
 
 type R<T> = Result<T, Echec>;
@@ -58,7 +61,7 @@ fn en_os(e: &std::io::Error, p: &Path) -> Echec {
     erreur("OSError", format!("{} : {}", p.display(), e))
 }
 
-fn jj_mm_aaaa(j: &crate::date::Jour) -> String {
+fn jj_mm_aaaa(j: &socle::date::Jour) -> String {
     format!("{:02}/{:02}/{:04}", j.jour, j.mois, j.an)
 }
 
@@ -206,8 +209,8 @@ fn eur_fr(v: Decimal) -> String {
 /// « janvier 2025 » : le nom d'un mois de l'alerte CASC-SVP. « 00 » n'est aucun mois et se refuse
 /// (`date::numero_du_mois`, lot F1 ; il se lisait janvier, et un mois illisible aussi).
 fn libelle_casc(m: &str) -> R<String> {
-    let n = crate::date::numero_du_mois(m).map_err(|e| erreur("ValueError", e))?;
-    let nom = crate::date::nom_du_mois(n as i64, crate::date::Graphie::Accentuee).map_err(|e| erreur("ValueError", e))?;
+    let n = socle::date::numero_du_mois(m).map_err(|e| erreur("ValueError", e))?;
+    let nom = socle::date::nom_du_mois(n as i64, socle::date::Graphie::Accentuee).map_err(|e| erreur("ValueError", e))?;
     Ok(format!("{} {}", nom, m.chars().take(4).collect::<String>()))
 }
 
@@ -220,7 +223,7 @@ fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
     let mut libelle: Option<String> = None;
     for ligne in crate::apercu_dsn::lignes_py(&crate::apercu_dsn::texte_latin1(&octets)) {
         let (k, v) = ligne.split_once(',').unwrap_or((&ligne, ""));
-        let v = v.trim_matches(crate::retours::blanc_py).trim_matches('\'');
+        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'');
         if k == "S21.G00.15.001" {
             libelle = Some(v.to_string());
         } else if k == "S21.G00.15.005" && libelle.as_deref() == Some(contrat) {
@@ -240,11 +243,11 @@ fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
 fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let base = crate::casc::base().map_err(Echec::from)?;
     let ent = &ctx.entreprise;
-    let idcc = ent.get("idcc").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
-    if idcc != py_str(&base["idcc"]) {
+    let idcc = ent.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    if idcc != valeur_en_texte(&base["idcc"]) {
         return Ok(None);
     }
-    if !matches!(crate::bareme::casc_exemptee(ent), Ok(false)) {
+    if !matches!(droit::bareme::casc_exemptee(ent), Ok(false)) {
         return Ok(None);
     }
     let faits: HashSet<String> = crate::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
@@ -257,12 +260,12 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     };
     for x in &liste {
         if let Some(m) = etats::get(x, "mois").ok().filter(|m| vrai(m)) {
-            dispo.insert(py_str(m));
+            dispo.insert(valeur_en_texte(m));
         }
     }
     dispo.extend(crate::routes_mois::mois_saisis(&ctx.racine));
-    let depuis = py_str(&base["depuis"]);
-    let contrat = py_str(&base["dsn"]["contrat"]);
+    let depuis = valeur_en_texte(&base["depuis"]);
+    let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
     let mut par_mois: Vec<(String, Decimal)> = Vec::new();
     for m in dispo.iter().filter(|m| **m >= depuis && !faits.contains(*m)) {
         let chemin = match crate::casc::dsn_deposee(ctx, m, None) {
@@ -274,16 +277,16 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
         if porte {
             continue;
         }
-        let mut masse = crate::num::zero2();
+        let mut masse = socle::num::zero2();
         for v in d["versements"].as_array().into_iter().flatten() {
             let Some(brut) = v.get("brut").filter(|b| vrai(b)) else { continue };
-            let tb = py_str(brut);
-            let b = crate::apercu_dsn::decimal_py(&tb).ok_or_else(|| erreur("InvalidOperation", crate::num::illisible(&tb)))?;
+            let tb = valeur_en_texte(brut);
+            let b = crate::apercu_dsn::decimal_py(&tb).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&tb)))?;
             masse += b;
         }
         let an: String = m.chars().take(4).collect();
         let Some(taux) = base["taux"].get(&an) else { return Ok(None) };
-        let taux = crate::num::dec(taux).map_err(Echec::from)?;
+        let taux = socle::num::dec(taux).map_err(Echec::from)?;
         let cot = (masse * taux / Decimal::from(100)).round_dp_with_strategy(2, rust_decimal::RoundingStrategy::MidpointAwayFromZero);
         par_mois.push((m.clone(), cot));
     }
@@ -309,7 +312,7 @@ type CleEngagement = (String, String, String, String, i128, i128, i128, String);
 fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
     for k in ["salarie", "debut", "fin"] {
         if e.get(k).is_none() {
-            return Err(erreur("KeyError", crate::fichiers::absent(k)));
+            return Err(erreur("KeyError", socle::fichiers::absent(k)));
         }
     }
     let entier = |k: &str| -> R<i128> {
@@ -317,8 +320,8 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
         match &v {
             Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
             Value::Bool(b) => Ok(i128::from(*b)),
-            Value::String(s) => crate::apercu_dsn::int_py(s).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(s)))),
-            autre => Err(erreur("TypeError", crate::fichiers::attendu("un nombre entier", nom_type(autre)))),
+            Value::String(s) => crate::apercu_dsn::int_py(s).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
+            autre => Err(erreur("TypeError", socle::fichiers::attendu("un nombre entier", nom_type(autre)))),
         }
     };
     let (h, c, j) = (entier("heures")?, entier("cachets")?, entier("jours")?);
@@ -330,7 +333,7 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
         None => Some(String::new()),
         autre => texte(autre),
     };
-    let brut = e.get("brut").map_or("0".to_string(), py_str);
+    let brut = e.get("brut").map_or("0".to_string(), valeur_en_texte);
     Ok(match (texte(e.get("salarie")), texte(e.get("debut")), texte(e.get("fin")), objet) {
         (Some(a), Some(b), Some(c2), Some(d)) => Some((a, b, c2, d, h, c, j, brut)),
         _ => None,
@@ -341,14 +344,14 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
 fn lire_liste(chemin: &Path, cle: &str) -> R<Map<String, Value>> {
     let lu = crate::routes_etats::lire_json_ou_vide(chemin)?;
     let Value::Object(mut data) = lu else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&lu))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&lu))));
     };
     data.entry(cle).or_insert_with(|| json!([]));
     Ok(data)
 }
 
 fn cle_paie(x: &Value) -> R<(String, String, String)> {
-    let k = |c: &str| x.get(c).map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(c)));
+    let k = |c: &str| x.get(c).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(c)));
     Ok((k("mois")?, k("salarie")?, k("contrat")?))
 }
 
@@ -399,7 +402,7 @@ fn completer_par(ligne: &mut Value, b: &Value) {
 /// salarie, debut et fin, qu'elle complete (une seule ; plusieurs : celle du meme mois, sinon rien ne se rapproche).
 /// Rend le nombre de paies de bulletin laissees a cote de plusieurs paies declarees.
 fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize {
-    let t = |x: &Value, k: &str| x.get(k).map(py_str).unwrap_or_default();
+    let t = |x: &Value, k: &str| x.get(k).map(valeur_en_texte).unwrap_or_default();
     let de_bulletin: Vec<(String, String, String)> = par_cle.iter().filter(|(_, x)| declaree_par_bulletin(x)).map(|(k, _)| k.clone()).collect();
     let mut ambigues = 0usize;
     for kb in de_bulletin {
@@ -520,7 +523,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &frais.salaries {
         if let Some(n) = s.get("nir").filter(|v| vrai(v)) {
-            par_nir.insert(py_str(n), cle.clone());
+            par_nir.insert(valeur_en_texte(n), cle.clone());
         }
     }
     let chemin_hist = ctx.racine.join("historique").join("engagements.json");
@@ -529,7 +532,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
     let mut deja: HashSet<CleEngagement> = HashSet::new();
     let mut engagements: Vec<Value> = match data.get("engagements") {
         Some(Value::Array(a)) => a.clone(),
-        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("une liste", nom_type(autre)))),
+        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
         None => Vec::new(),
     };
     for e in &engagements {
@@ -567,7 +570,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         contrats_bulletins += 1;
     }
     if contrats_aem + contrats_bulletins > 0 || !hist_existait {
-        let texte = |e: &Value, k: &str| e.get(k).map(py_str).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
+        let texte = |e: &Value, k: &str| e.get(k).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
         let mut cles: Vec<((String, String, String), Value)> = Vec::new();
         for e in engagements {
             cles.push(((texte(&e, "debut")?, texte(&e, "fin")?, texte(&e, "salarie")?), e));
@@ -578,7 +581,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         data.insert("importe_le".into(), json!(aujourdhui.iso()));
         data.insert("source".into(), json!(source));
         crate::routes_contrats::sauver_avant(&chemin_hist)?;
-        crate::ecriture::ecrire_json(&chemin_hist, &Value::Object(data), 1).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&chemin_hist, &Value::Object(data), 1).map_err(|m| erreur("OSError", m))?;
         fichiers.push(json!(chemin_hist.display().to_string()));
     }
 
@@ -591,7 +594,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
     let mut par_cle: BTreeMap<(String, String, String), Value> = BTreeMap::new();
     let anciennes = match paies.get("paies") {
         Some(Value::Array(a)) => a.clone(),
-        Some(autre) => return Err(erreur("TypeError", crate::fichiers::attendu("une liste", nom_type(autre)))),
+        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
         None => Vec::new(),
     };
     for x in anciennes {
@@ -622,7 +625,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         paies.insert("importe_le".into(), json!(aujourdhui.iso()));
         paies.insert("source".into(), json!(source));
         crate::routes_contrats::sauver_avant(&chemin_paies)?;
-        crate::ecriture::ecrire_json(&chemin_paies, &Value::Object(paies), 1).map_err(|m| erreur("OSError", m))?;
+        socle::ecriture::ecrire_json(&chemin_paies, &Value::Object(paies), 1).map_err(|m| erreur("OSError", m))?;
         fichiers.push(json!(chemin_paies.display().to_string()));
     }
     Ok(Ecrit { fichiers, contrats_aem, contrats_bulletins, paies: neuves, restent_a_creer, completees, avertissements })
@@ -665,7 +668,7 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut reponse = Value::Object(std::mem::take(&mut imp.reponse));
     let mut avertissements: Vec<Value> = reponse["avertissements"].as_array().cloned().unwrap_or_default();
     avertissements.extend(garde.avertissements(true, false).into_iter().map(Value::String));
-    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(py_str).collect();
+    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
     if !differents.is_empty() {
         avertissements.push(json!(avertissement_differents(&differents, "l'export")));
     }
@@ -780,7 +783,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut avertissements: Vec<Value> =
         reponse["avertissements"].as_array().into_iter().flatten().filter(|a| !dit_les_non_repris(a)).cloned().collect();
     avertissements.extend(non_repris);
-    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(py_str).collect();
+    let differents: Vec<String> = copie["differents"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
     if !differents.is_empty() {
         avertissements.push(json!(avertissement_differents(&differents, "ce dossier")));
     }
@@ -811,7 +814,7 @@ mod tests_mois {
     #[test]
     fn le_mois_00_de_l_alerte_casc_se_refuse() {
         let refus = super::libelle_casc("2026-00").unwrap_err();
-        assert!(refus.message.contains(&crate::date::mois_impossible(0)), "{}", refus.message);
+        assert!(refus.message.contains(&socle::date::mois_impossible(0)), "{}", refus.message);
         assert_eq!(super::libelle_casc("2025-03").unwrap(), "mars 2025");
     }
 }

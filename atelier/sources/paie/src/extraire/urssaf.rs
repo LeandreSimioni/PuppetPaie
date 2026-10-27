@@ -38,9 +38,9 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use super::{date_du_releve, nom_de, Releve};
-use crate::date::Jour;
-use crate::fichiers::repr;
-use crate::num::Resultat;
+use socle::date::Jour;
+use socle::fichiers::repr;
+use socle::num::Resultat;
 use crate::usages::strip;
 
 /// Les caracteres de windows-1252 de 0x80 a 0x9F (`None` : non attribue, que le codec de Python refuse).

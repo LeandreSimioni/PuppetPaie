@@ -1,12 +1,9 @@
 //! `paie route` : les routes de l'interface. La fenetre les sert dans son processus (`dans_la_fenetre`, ticket #244) ;
 //! `paie route`, une par processus, reste pour la ligne de commande et les tests.
 //!
-//! Demande sur l'entree standard : `{"route": "...", "charge": {...}}`, avec
-//! `--racine` et `--date` comme `paie interne`. Reponse : `{"ok": true,
-//! "resultat": ...}`, le JSON que la route Python rendait ; un refus rend
-//! `{"ok": false, "erreur": "...", "classe": "..."}` avec la classe
-//! d'exception que Python levait (`ErreurOperation`, `FileNotFoundError`,
-//! `KeyError`...), que `paie_rust.route` releve sous le meme nom.
+//! Demande sur l'entree standard : `{"route": "...", "charge": {...}}`, avec `--racine` et `--date`. Reponse :
+//! `{"ok": true, "resultat": ...}` ; un refus rend `{"ok": false, "erreur": "...", "classe": "..."}` avec sa classe
+//! (`ErreurOperation`, `FileNotFoundError`, `KeyError`...), que la page releve.
 //!
 //! L'aiguillage ne fait rien d'autre : chaque lot de routes vit dans son
 //! module et s'ajoute ici d'une ligne. Les routes de l'ouverture
@@ -18,8 +15,8 @@ use std::collections::HashMap;
 
 use serde_json::{json, Value};
 
-use crate::num::Resultat;
-use crate::retours::Echec;
+use socle::num::Resultat;
+use socle::echec::Echec;
 use crate::service::contexte;
 
 /// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `paie route` sous Linux (un
@@ -42,15 +39,15 @@ pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
 /// de mot de passe tape, les nombres a leur ecriture normale, aucun registre de lectures ouvert.
 pub(crate) fn remettre_le_fil() {
     crate::coffre::oublier_mot_de_passe_tape();
-    crate::engagement::FIDELE.with(|f| f.set(false));
-    let _ = crate::fichiers::rendre();
+    socle::num::ECHELLE_GARDEE.with(|f| f.set(false));
+    let _ = socle::fichiers::rendre();
 }
 
 /// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL (ticket #244). La fenetre sert ses routes dans son
 /// processus (`interface::api::route`, la file des etats), et le fil d'une connexion en sert d'autres ensuite. Cette
 /// fonction fait la route (`commande`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel` et le
 /// fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` : il ne
-/// survit jamais a sa route), les nombres a leur ecriture normale (`engagement::FIDELE`), le registre des lectures
+/// survit jamais a sa route), les nombres a leur ecriture normale (`num::ECHELLE_GARDEE`), le registre des lectures
 /// qu'un calcul aurait laisse ouvert en tombant ferme (`fichiers::suivre`).
 ///
 /// `paie route` et la ligne de commande (`commandes::Cadre`) appellent `commande` directement : le processus meurt avec
@@ -76,7 +73,8 @@ pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value)
 /// `paie route [--racine R] [--date D]`.
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
-    let _code = crate::fichiers::code_fige();
+    let _code = socle::fichiers::code_fige();
+    crate::incidents::poser_le_temoin_des_recalculs();
     let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
     let route = d.get("route").and_then(Value::as_str).ok_or("demande illisible : il faut `route`")?;
     let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
@@ -88,8 +86,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // UNE ROUTE QUI TOMBE, pour les essais seulement (`garde_reseau::en_essai`, que Cargo pose) : la fenetre doit rendre
     // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes_dans_la_fenetre.rs`). Le fil est laisse sale
     // expres, comme un calcul qui tombe le laisserait.
-    if route == ROUTE_QUI_TOMBE && crate::garde_reseau::en_essai() {
-        crate::engagement::FIDELE.with(|f| f.set(true));
+    if route == ROUTE_QUI_TOMBE && socle::garde_reseau::en_essai() {
+        socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
         panic!("la route d'essai tombe expres");
     }
     if let Some(r) = crate::routes_ouverture::traiter(o, route, &charge) {
@@ -106,7 +104,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
         crate::demarrage::ROUTE => crate::demarrage::route(&ctx),
         // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
-        crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx),
+        crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx, &charge),
         crate::organismes::ROUTE_ECRIRE => crate::organismes::enregistrer(&ctx, &charge),
         // L'etat d'un mois : l'etat garde, ecrit apres chaque ecriture, lu tel quel (`etat_garde`).
         r if crate::etat_garde::ROUTES.contains(&r) => crate::etat_garde::route(o, &ctx, route, &charge),
@@ -160,19 +158,18 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if crate::routes_imprevus::ROUTES.contains(&r) => crate::routes_imprevus::route(o, &ctx, route, &charge),
         // Les ecritures du lot G3 : coffre, mot de passe du logiciel, jeton Google, mise a jour, cloture, export compta, import.
         r if crate::routes_ecritures_g3::ROUTES.contains(&r) => crate::routes_ecritures_g3::route(o, &ctx, route, &charge),
-        // Les ecritures du lot G4 : valider une paie, le contrat recu, les reglages et reprises locales.
-        r if crate::routes_ecritures_g4::ROUTES.contains(&r) => crate::routes_ecritures_g4::route(o, &ctx, route, &charge),
+        // Les ecritures du lot G4 : valider ou modifier un engagement, le contrat recu, les reglages et reprises locales.
+        r if crate::routes_ecritures_g4::ROUTES.contains(&r) => crate::routes_ecritures_g4::route(&ctx, route, &charge),
         // Les obligations d'un arret (15/10/2026) : le jour ou la compagnie l'a su, la declaration d'accident faite.
         r if crate::obligations::ROUTES.contains(&r) || crate::obligations::ROUTES_LECTURE.contains(&r) => crate::obligations::route(&ctx, route, &charge),
         // Les productions du lot H1 : la DPAE, le signalement d'arret, la fin de contrat et ses papiers (rien ne part).
-        r if crate::routes_actes_h1::ROUTES.contains(&r) => crate::routes_actes_h1::route(o, &ctx, route, &charge),
+        r if crate::routes_actes_h1::ROUTES.contains(&r) => crate::routes_actes_h1::route(&ctx, route, &charge),
         // Les actes du lot H2 : deposer, suivre un depot, le bilan d'une repetition, le filet. Un refus qui porte une
-        // donnee pour la page (`etat`, `manques`) la rend a cote de `erreur` et `classe`.
+        // donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
         r if crate::routes_actes_h2::ROUTES.contains(&r) => match crate::routes_actes_h2::route(o, &ctx, route, &charge) {
-            Err(Echec { classe: Some(c), message }) if matches!(c, "RepetitionManquante" | "DsnDejaDeposee" | "MoisPasPret") => {
+            Err(Echec { classe: Some(c), message }) if matches!(c, "RepetitionManquante" | "DsnDejaDeposee") => {
                 let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));
-                let cle = if c == "MoisPasPret" { "manques" } else { "etat" };
-                return Ok(json!({"ok": false, "erreur": d["message"], "classe": c, cle: d[cle]}));
+                return Ok(json!({"ok": false, "erreur": d["message"], "classe": c, "etat": d["etat"]}));
             }
             autre => autre,
         },
@@ -187,7 +184,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // La releve des reponses « Je signe » du lot I2a : cherche les codes attendus dans la boite (la vraie, ou celle d'une
         // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat. N'a de sens, hors d'une
         // compagnie fictive, que pour relever pour de bon : une vraie boite est lue.
-        r if crate::releve_signatures::ROUTES.contains(&r) => crate::releve_signatures::route(o, &ctx, route, &charge),
+        r if crate::releve_signatures::ROUTES.contains(&r) => crate::releve_signatures::route(&ctx, route, &charge),
         // L'ouverture du logiciel et la veille (lot I2b) : sauvegarder, relever les retours, les signatures et les fiches, sans
         // jamais echouer. ATTENTION : hors d'une compagnie fictive, cette route va au reseau (net-entreprises, Urssaf,
         // boite courriel, Drive, serveur des incidents).
@@ -212,7 +209,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && !message.trim_start().starts_with('{') => {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes_ecritures_g4::CLASSE_DOCUMENTS_PARTIS) && !message.trim_start().starts_with('{') => {
             let suite = crate::demarrage::a_la_suite(&ctx).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }

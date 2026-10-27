@@ -9,15 +9,15 @@
 
 use serde_json::Value;
 
-use crate::contexte::{aujourdhui, Contexte};
-use crate::date::{en_texte, Jour};
+use droit::contexte::{aujourdhui, Contexte};
+use socle::date::{en_texte, Jour};
 use crate::dsn::{
     autre_revenu, bases_et_cotisations, bloc_anciennete, bloc_contrat_fctu, g, jj, jour, liste, primes_et_indemnites,
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
-use crate::engagement::Engagement;
-use crate::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
-use crate::num::Resultat;
+use engagement::Engagement;
+use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::num::Resultat;
 
 pub const NATURE: &str = "07";
 /// CCH-14 (cahier technique p. 293) : la base assujettie de prevoyance n'a
@@ -169,49 +169,9 @@ pub fn notification_exigee(motif: &str) -> Resultat<bool> {
 
 // ------------------------------------------------ le type de preavis et ce que la paie verse
 
-/// Les codes S21.G00.52.001 d'une indemnite compensatrice de preavis (`types_preavis.codes_52_de_l_indemnite_de_preavis` :
-/// 023, 032 ; cahier technique 2026.1, p. 253).
-pub fn codes_52_de_l_indemnite_de_preavis() -> Resultat<Vec<String>> {
-    let n = nomenclatures()?;
-    Ok(liste(g(&n["types_preavis"], "codes_52_de_l_indemnite_de_preavis")).iter().map(en_texte).collect())
-}
-
-/// Le type de preavis (S21.G00.63.001) et l'indemnite compensatrice de preavis que la paie verse disent-ils la meme chose
-/// (lot P2) ? `versees` : les lignes de la paie declarees sous un code de `codes_52_de_l_indemnite_de_preavis`, en
-/// (code, libelle). `None` s'ils s'accordent, sinon pourquoi non. Le drapeau `indemnite_de_preavis` du type
-/// (`fctu-base.json`, `_indemnite_de_preavis`) : `versee` (02) veut une ligne, `aucune` (01, 03, 10, 60, 61, 90) n'en
-/// veut pas, un type sans drapeau (50, 51) n'est pas confronte. Un type inconnu refuse.
-pub fn desaccord_du_preavis(type_preavis: &str, versees: &[(String, String)]) -> Resultat<Option<String>> {
-    let tous = codes("types_preavis")?;
-    let t = tous.iter().find(|c| en_texte(&c["code"]) == type_preavis).ok_or_else(|| {
-        format!("Type de preavis {} inconnu de la norme (S21.G00.63.001). Les types sont dans fctu-base.json.", repr(type_preavis))
-    })?;
-    let nom = format!("« {} - {} »", type_preavis, en_texte(&t["libelle"]));
-    let codes = codes_52_de_l_indemnite_de_preavis()?.join(" ou ");
-    Ok(match g(t, "indemnite_de_preavis").as_str() {
-        Some("versee") if versees.is_empty() => Some(format!(
-            "le preavis se declare {} (S21.G00.63.001), et la paie de ce contrat ne verse aucune indemnite compensatrice \
-de preavis (S21.G00.52.001 = {}) : le signalement dirait paye un preavis qui ne l'est pas. Si aucune indemnite n'est due \
-pour ce motif (le solde de tout compte le dit), le type est « 03 - preavis non effectue et non paye » ; si elle est due, \
-c'est la saisie qui le dit (`preavis_non_effectue`), et le solde la paie.",
-            nom, codes
-        )),
-        Some("aucune") if !versees.is_empty() => {
-            let lignes: Vec<String> = versees.iter().map(|(c, l)| format!("« {} » ({})", l, c)).collect();
-            Some(format!(
-                "le preavis se declare {} (S21.G00.63.001), et la paie de ce contrat verse {} : l'indemnite d'un preavis \
-non effectue. Un preavis non effectue dont l'indemnite est versee se declare « 02 - preavis non effectue et paye ».",
-                nom,
-                lignes.join(", ")
-            ))
-        }
-        _ => None,
-    })
-}
-
 /// Les lignes d'une paie declarees en indemnite compensatrice de preavis (S21.G00.52.001), en (code, libelle).
-pub fn indemnites_de_preavis_versees(paie: &crate::calcul::Paie) -> Resultat<Vec<(String, String)>> {
-    let codes = codes_52_de_l_indemnite_de_preavis()?;
+pub fn indemnites_de_preavis_versees(paie: &engagement::calcul::Paie) -> Resultat<Vec<(String, String)>> {
+    let codes = droit::preavis::codes_52_de_l_indemnite_de_preavis()?;
     Ok(paie
         .remuneration
         .iter()
@@ -372,7 +332,7 @@ S21.G00.63.002.",
             let mut noms = Vec::new();
             for c in &permis {
                 let lib = tous.iter().find(|x| en_texte(&x["code"]) == *c).map(|x| en_texte(&x["libelle"]));
-                noms.push(format!("« {} - {} »", c, lib.ok_or_else(|| crate::fichiers::absent(c))?));
+                noms.push(format!("« {} - {} »", c, lib.ok_or_else(|| socle::fichiers::absent(c))?));
             }
             return Err(Echec::Impossible(format!(
                 "Preavis « {} » avec le motif de rupture {} : {} n'y permet que {}. {}",
@@ -505,7 +465,7 @@ impl Default for Options {
 /// Le fichier d'un FCTU, pret a deposer. `suspensions` : les suspensions a
 /// ecrire (bloc 65) ; `arrets` : les arrets a reporter (bloc 60).
 pub fn generer(
-    ctx: &Contexte, paie: &crate::calcul::Paie, fin: &FinDeContrat, o: &Options, suspensions: &[Value], arrets: &[Arret],
+    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, suspensions: &[Value], arrets: &[Arret],
 ) -> Result<String, Echec> {
     let type_declaration = o.type_declaration.as_str();
     let libelle_type = match type_de_declaration(type_declaration) {
@@ -529,7 +489,7 @@ ou un annule."
     }
     verifier(fin, &paie.engagement, type_declaration)?;
     // Le type de preavis (63.001) et l'indemnite que la paie du solde verse (52.001) disent la meme chose (lot P2).
-    if let Some(pourquoi) = desaccord_du_preavis(&fin.type_preavis, &indemnites_de_preavis_versees(paie)?)? {
+    if let Some(pourquoi) = droit::preavis::desaccord_du_preavis(&fin.type_preavis, &indemnites_de_preavis_versees(paie)?)? {
         return Err(Echec::Impossible(format!(
             "Contrat {} : {}",
             paie.engagement.numero.clone().unwrap_or_else(|| "None".into()),
@@ -646,14 +606,14 @@ ou un annule."
         f.add_v(rub, req(s, k)?)?;
     }
     // La codification UE se lit dans la fiche par `codification_ue` : quatre valeurs, et un ancien 03 se relit.
-    f.add("S21.G00.30.013", crate::codification_ue::codification_ue(s)?);
+    f.add("S21.G00.30.013", socle::codification_ue::codification_ue(s)?);
     for (rub, k) in [
         ("S21.G00.30.014", "departement_naissance"),
         ("S21.G00.30.015", "pays_naissance"),
         ("S21.G00.30.019", "code_salarie"),
     ] {
         // Le pays de naissance se lit dans la liste livree (`pays.rs`, vague 1k) : un code inconnu refuse.
-        let v = if k == "pays_naissance" { crate::pays::de_naissance(s)? } else { req(s, k)?.clone() };
+        let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
     crate::ntt::poser_ntt(&mut f, &ent_l, s, &fin_jour)?;
@@ -671,7 +631,7 @@ ou un annule."
     f.add("S21.G00.50.003", "01");
     f.add("S21.G00.50.020", defaut("rattachement_versement")?);
     // Un mois decoupe en periodes elementaires (lot R10) : les remunerations et les bases de chacune, datees de ses bornes.
-    let bornes = |q: &crate::calcul::Paie| -> Resultat<(Jour, Jour)> {
+    let bornes = |q: &engagement::calcul::Paie| -> Resultat<(Jour, Jour)> {
         if paie.periodes.is_empty() { Ok((debut_p, fin_p)) } else { Ok((q.engagement.debut_periode()?, q.engagement.fin_periode()?)) }
     };
     for q in paie.elementaires() {

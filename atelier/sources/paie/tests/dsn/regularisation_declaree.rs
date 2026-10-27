@@ -8,7 +8,8 @@
 //! depose pour de vrai (journal et `sorties/2026-07/DSN_Juillet2026.dsn`), l'echeance passee. On corrige le contrat de
 //! Servandoni (technicien, SE9.26.05, pas paye en octobre), on change parfois un taux du bareme livre (dans une copie de
 //! `logiciel/donnees/`, ou `PUPPETPAIE_CODE` pointe alors), et on produit octobre : la DSN d'octobre porte la correction
-//! de juillet. Aucun reseau, aucun depot.
+//! de juillet. Les contrats sur deux mois montent la `fictive-3090-petite`, ou Lemercier en a un. Aucun reseau, aucun
+//! depot.
 
 use crate::outils::{self, compagnie, ecrire as ecrire_json, lire, mois_pret};
 use serde_json::{json, Value};
@@ -93,12 +94,12 @@ fn changer_le_bareme(racine: &Path) {
     assert!(vus > 0, "le bareme 2026 porte la cotisation FNAL");
 }
 
-fn produire_le(racine: &Path, mois: &str, jour: &str) -> Value {
-    route_le(racine, jour, "produire", json!({"mois": mois, "saisie": lire(racine, &format!("paies/{}.json", mois))}))
+fn dsn_le(racine: &Path, mois: &str, jour: &str) -> Value {
+    route_le(racine, jour, "dsn-a-deposer", json!({"mois": mois}))
 }
 
-fn produire_octobre(racine: &Path) -> Value {
-    produire_le(racine, "2026-10", JOUR)
+fn dsn_d_octobre(racine: &Path) -> Value {
+    dsn_le(racine, "2026-10", JOUR)
 }
 
 /// (rubrique, valeur) d'un fichier DSN.
@@ -297,7 +298,7 @@ fn les_blocs_d_annulation_portent_les_montants_du_fichier_depose_pas_ceux_du_rec
     corriger_juillet(&r);
     changer_le_bareme(&r);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -363,7 +364,7 @@ fn le_105_depose_s_annule_tel_quel_et_le_rappel_se_declare_en_131() {
     assert_eq!(declare.iter().map(|(c, _)| c.as_str()).collect::<Vec<_>>(), ["105"], "le depot de juillet porte un 105");
     corriger_juillet(&r);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -391,7 +392,7 @@ fn sans_la_dsn_deposee_la_correction_refuse_et_ne_recalcule_pas() {
     corriger_juillet(&r);
     octobre_pret(&r);
     std::fs::remove_file(r.join("sorties/2026-07/DSN_Juillet2026.dsn")).unwrap();
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(false), "{}", rep);
     let message = rep["erreur"].as_str().unwrap_or_default();
     assert!(message.contains("Correction de 2026-07") && message.contains(CONTRAT), "{}", message);
@@ -439,7 +440,7 @@ fn deux_dsn_reelles_acceptees_pour_le_mois_d_origine_la_derniere_fait_foi() {
     l.push(reel);
     ecrire_json(&r, "journal/depots.json", &j);
 
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
     verifier_l_annulation(&remplace, &regul);
@@ -465,7 +466,7 @@ fn une_seconde_correction_annule_le_rappel_porte_par_la_premiere_pas_le_depot_d_
     let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
     corriger_juillet(&r);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul_octobre = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
     let rappel_octobre = rappel(&depose, &regul_octobre);
@@ -481,7 +482,7 @@ fn une_seconde_correction_annule_le_rappel_porte_par_la_premiere_pas_le_depot_d_
     let jour = "2026-12-10";
     corriger_juillet_a(&r, jour, 20.0);
     mois_pret(&r, "2026-11");
-    let rep = produire_le(&r, "2026-11", jour);
+    let rep = dsn_le(&r, "2026-11", jour);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement(&lignes(&r.join("sorties/2026-11/DSN_Novembre2026.dsn")), JUILLET);
 
@@ -600,7 +601,7 @@ fn versements_20(toutes: &[(String, String)], debut: &str) -> BTreeMap<String, i
 
 /// `outils::par_contrat_de_prevoyance`, en centimes.
 fn par_contrat_de_prevoyance(toutes: &[(String, String)]) -> BTreeMap<String, i64> {
-    outils::par_contrat_de_prevoyance(toutes).into_iter().map(|(c, m)| (c, i64::try_from(m * paie::num::Decimal::ONE_HUNDRED).unwrap())).collect()
+    outils::par_contrat_de_prevoyance(toutes).into_iter().map(|(c, m)| (c, i64::try_from(m * socle::num::Decimal::ONE_HUNDRED).unwrap())).collect()
 }
 
 /// La ligne 23 de la reduction generale d'un mois corrige, pour une difference `d` (en centimes, positive quand la
@@ -642,7 +643,7 @@ fn l_agrege_du_mois_d_origine_porte_la_meme_difference_que_le_nominatif() {
     });
     assert!(vus >= 4, "{} objets du bareme retouches", vus);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -801,7 +802,7 @@ fn une_correction_de_juillet_2025_annule_le_declare_et_plafonne_le_rappel() {
     let w = route_le(&r, JOUR, "regularisation-ecrire", json!({"mois": "2025-07", "salarie": item["salarie"], "debut": item["debut"], "engagement": e, "motif": "le taux horaire etait faux"}));
     assert_eq!(w["ok"], json!(true), "{}", w);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement_du(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), SE, PERIODE);
     verifier_l_annulation(&depose, &regul);
@@ -842,16 +843,20 @@ fn un_contrat_paye_ce_mois_et_corrige_porte_des_numeros_de_versement_distincts()
     // courant : deux blocs 50 numerotes 01 sous le meme individu.
     let r = copie("numero-de-versement");
     corriger_juillet(&r);
-    let mut saisie = lire(&r, "paies/2026-10.json");
-    saisie["engagements"].as_array_mut().unwrap().push(json!({
-        "salarie": "Servandoni", "spectacle": "266Z00910022", "debut": "2026-07-02", "fin": "2026-10-09",
-        "date_paiement": "2026-10-09", "numero": CONTRAT,
-        "lignes": [{"rubrique": "heure", "quantite": 32, "taux": 18.0, "lieu": "Theatre fictif de Saumur",
-                    "dates": ["2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"]}]
-    }));
-    ecrire_json(&r, "paies/2026-10.json", &saisie);
+    // Le contrat se prolonge : sa fin passe au 09/10, et octobre porte ses jours.
+    let mut juillet = crate::outils::saisie(&r, "2026-07");
+    let e = juillet["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(CONTRAT)).unwrap();
+    e["fin"] = json!("2026-10-09");
+    crate::outils::poser_saisie(&r, "2026-07", &juillet);
+    let mut saisie = crate::outils::saisie(&r, "2026-10");
+    let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(CONTRAT)).expect("octobre montre le contrat prolonge");
+    e["date_paiement"] = json!("2026-10-09");
+    e["lignes"] = json!([{"rubrique": "heure", "quantite": 32, "taux": 18.0, "lieu": "Theatre fictif de Saumur",
+                          "dates": ["2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"]}]);
+    crate::outils::poser_saisie(&r, "2026-10", &saisie);
+    crate::outils::tout_valider(&r, "2026-10", JOUR);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let lui = individu(&octobre, NIR);
@@ -921,7 +926,7 @@ fn la_correction_d_un_etablissement_secondaire_porte_son_taux_at_dans_le_bordere
 
     corriger_juillet_a(&r, JOUR, 25.0);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let secondaire = lignes(&r.join("sorties/2026-10/DSN_Octobre2026_00099.dsn"));
     assert_eq!(valeur(&secondaire, "S21.G00.11.001"), "00099");
@@ -1027,7 +1032,7 @@ fn la_correction_d_un_cdi_annule_le_declare_et_son_bordereau_porte_la_reduction_
     let (_, w) = corriger_le_cdi(&r, juillet_sans_la_prime());
     assert_eq!(w["ok"], json!(true), "{}", w);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement_de(&octobre, NIR_MO, CDI, JUILLET_MOIS);
@@ -1110,7 +1115,7 @@ fn un_permanent_corrige_au_dessus_de_quatre_plafonds_garde_une_base_07_a_quatre_
     let (_, w) = corriger_le_cdi(&r, json!([{"rubrique": "mois", "quantite": 1, "taux": 20000.0, "heures": 151.67}]));
     assert_eq!(w["ok"], json!(true), "{}", w);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement_de(&octobre, NIR_MO, CDI, JUILLET_MOIS);
@@ -1159,7 +1164,7 @@ fn le_taux_du_bloc_56_est_le_50006_du_versement_declare_pas_celui_d_un_autre_fic
     // Un indu : l'heure de Servandoni passe de 18 a 10 EUR, le net fiscal du rappel est negatif.
     corriger_juillet_a(&r, JOUR, 10.0);
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let regul = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
     assert!(centimes(valeur(&regul, "S21.G00.50.002")) < 0, "un indu");
@@ -1181,7 +1186,7 @@ fn le_taux_du_bloc_56_est_le_50006_du_versement_declare_pas_celui_d_un_autre_fic
 #[test]
 fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_suivante() {
     let r = copie("contrat-oublie");
-    let mut saisie = lire(&r, "paies/2026-07.json");
+    let mut saisie = crate::outils::saisie(&r, "2026-07");
     let mut e = saisie["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(CONTRAT)).unwrap().clone();
     let o = e.as_object_mut().unwrap();
     o.remove("numero");
@@ -1198,11 +1203,14 @@ fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_sui
     let ecrire = |confirme: bool| route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": confirme}));
     assert_eq!(ecrire(false)["classe"], json!("ModificationApresEcheance"));
     assert_eq!(ecrire(true)["ok"], json!(true));
+    // Valide, il recoit son numero.
+    let v = route_le(&r, JOUR, "valider-engagement", json!({"mois": "2026-07", "salarie": "SERVANDONI", "debut": "2026-07-27"}));
+    assert_eq!(v["ok"], json!(true), "{}", v);
 
-    // « Corriger ce mois » le liste, sans rien de declare ; sa correction le declare en entier et lui donne son numero.
+    // La regularisation du mois le liste, sans rien de declare ; sa correction le declare en entier, sous son numero.
     let d = route_le(&r, JOUR, "regularisation-mois", json!({"mois": "2026-07"}));
     let item = d["resultat"]["engagements"].as_array().unwrap().iter().find(|e| e["ajoute"] == json!(true)).unwrap().clone();
-    assert_eq!((item["debut"].as_str(), &item["numero"]), (Some("2026-07-27"), &Value::Null), "{}", item);
+    assert_eq!(item["debut"].as_str(), Some("2026-07-27"), "{}", item);
     let charge = json!({"mois": "2026-07", "salarie": item["salarie"], "debut": item["debut"], "engagement": {"lignes": item["engagement_saisi"]["lignes"]}});
     let a = route_le(&r, JOUR, "regularisation-apercu", charge.clone());
     assert_eq!((a["resultat"]["avant"]["brut"].as_str(), a["resultat"]["apres"]["brut"].as_str()), (Some("0.00"), Some("432.00")), "{}", a);
@@ -1212,15 +1220,15 @@ fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_sui
     assert_eq!(w["ok"], json!(true), "{}", w);
     let numero = w["resultat"]["correction"]["engagement"]["numero"].as_str().unwrap().to_string();
     assert!(numero.starts_with("SE9.26.") && numero != CONTRAT, "{}", numero);
-    let fige = lire(&r, "paies/2026-07.json")["engagements"].as_array().unwrap().iter().any(|e| e["numero"] == json!(numero));
-    assert!(fige, "le numero est pose dans la saisie de juillet");
+    let pose = crate::outils::saisie(&r, "2026-07")["engagements"].as_array().unwrap().iter().any(|e| e["numero"] == json!(numero));
+    assert!(pose, "le numero est celui de la saisie de juillet");
 
     // L'etape DSN de juillet n'a plus rien a faire.
     let b = route_le(&r, JOUR, "bilan-du-mois", json!({"mois": "2026-07"}));
     assert_eq!(b["resultat"]["dsn"]["remplacement"]["correction_ecrite"], json!(true), "{}", b["resultat"]["dsn"]);
 
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     // Le bloc 40 du contrat oublie, a sa date de debut passee.
@@ -1254,11 +1262,12 @@ fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_sui
 fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
     let r = copie("contrat-a-zero");
     let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
-    let mut saisie = lire(&r, "paies/2026-07.json");
+    let mut saisie = crate::outils::saisie(&r, "2026-07");
     let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["numero"] == json!(CONTRAT)).unwrap();
     for l in saisie["engagements"][rang]["lignes"].as_array_mut().unwrap() {
         l["quantite"] = json!(0);
     }
+    crate::outils::remettre_en_saisie(&r, "2026-07", Some(CONTRAT));
     let w = route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": true}));
     assert_eq!(w["ok"], json!(true), "{}", w);
     let d = route_le(&r, JOUR, "regularisation-mois", json!({"mois": "2026-07"}));
@@ -1280,7 +1289,7 @@ fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
     // leur versement est a zero -- « non signe, valeur zero autorisee » (cahier technique DSN 2026.1, p. 156,
     // `norme-dsn/texte/bloc-S21.G00.20.txt`) -- et le credit reste declare dans les cotisations individuelles (81.004).
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let regul = versement(&octobre, JUILLET);
@@ -1378,7 +1387,7 @@ fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
 /// Les dates de Servandoni changees dans la saisie de juillet apres la limite (confirme), puis sa correction ecrite
 /// depuis « Corriger ce mois », et octobre produit. Rend la DSN d'octobre et la correction ecrite.
 fn changer_les_dates_de_juillet(r: &Path, debut: &str, fin: &str, jours: &[&str]) -> (Vec<(String, String)>, Value) {
-    let mut saisie = lire(r, "paies/2026-07.json");
+    let mut saisie = crate::outils::saisie(r, "2026-07");
     let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["numero"] == json!(CONTRAT)).unwrap();
     let e = &mut saisie["engagements"][rang];
     e["debut"] = json!(debut);
@@ -1386,6 +1395,7 @@ fn changer_les_dates_de_juillet(r: &Path, debut: &str, fin: &str, jours: &[&str]
     e["date_paiement"] = json!(fin);
     e["lignes"][0]["dates"] = json!(jours);
     e["lignes"][0]["quantite"] = json!(8 * jours.len());
+    crate::outils::remettre_en_saisie(r, "2026-07", Some(CONTRAT));
     let ecrire = |confirme: bool| route_le(r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": confirme}));
     assert_eq!(ecrire(false)["classe"], json!("ModificationApresEcheance"));
     let w = ecrire(true);
@@ -1412,7 +1422,7 @@ fn changer_les_dates_de_juillet(r: &Path, debut: &str, fin: &str, jours: &[&str]
     assert_eq!((dsn["couleur"].as_str(), dsn["remplacement"]["correction_ecrite"].as_bool()), (Some("bien"), Some(true)), "{}", dsn);
 
     octobre_pret(r);
-    let rep = produire_octobre(r);
+    let rep = dsn_d_octobre(r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     (lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), w["resultat"]["correction"].clone())
 }
@@ -1522,12 +1532,12 @@ fn remettre_les_depots(r: &Path, mut depots: Vec<Value>) {
     ecrire_json(r, "journal/depots.json", &j);
 }
 
-/// Un engagement de Servandoni sur le spectacle de `CONTRAT`, du 28 juillet au 3 aout 2026, 8 heures par jour.
-fn servandoni_a_cheval(numero: Option<&str>, jours: &[&str]) -> Value {
+/// Un engagement de Lemercier (regisseuse) sur Ubu roi, du 28 juillet au 3 aout 2026, 8 heures par jour.
+fn lemercier_a_cheval(numero: Option<&str>, jours: &[&str]) -> Value {
     let mut e = json!({
-        "salarie": "Servandoni", "spectacle": "266Z00910022", "debut": "2026-07-28", "fin": "2026-08-03",
+        "salarie": "Lemercier", "spectacle": "256Z00920011", "debut": "2026-07-28", "fin": "2026-08-03",
         "date_paiement": jours.last().unwrap(),
-        "lignes": [{"rubrique": "heure", "quantite": 8 * jours.len(), "taux": 18.0, "lieu": "Festival fictif d'Avignon, Gymnase", "dates": jours}],
+        "lignes": [{"rubrique": "heure", "quantite": 8 * jours.len(), "taux": 18.0, "lieu": "Festival fictif de Charleville, Gymnase", "dates": jours}],
     });
     if let Some(n) = numero {
         e["numero"] = json!(n);
@@ -1537,34 +1547,44 @@ fn servandoni_a_cheval(numero: Option<&str>, jours: &[&str]) -> Value {
 
 const JUILLET_A_CHEVAL: [&str; 4] = ["2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31"];
 const AOUT_A_CHEVAL: [&str; 3] = ["2026-08-01", "2026-08-02", "2026-08-03"];
+/// Le NIR (invente) de Lemercier, dans la 3090-petite.
+const NIR_LEMERCIER: &str = "2950803999012";
 
-/// La 3090-grande ou Servandoni a aussi un contrat du 28 juillet au 3 aout 2026, declare dans les DSN de juillet et
+/// La 3090-petite ou Lemercier a aussi un contrat du 28 juillet au 3 aout 2026, declare dans les DSN de juillet et
 /// d'aout (reproduites avec lui, deposees et acceptees au journal comme les autres). Rend la racine et son numero.
 fn contrat_a_cheval(test: &str) -> (PathBuf, String) {
-    let r = compagnie::ses_dsn("fictive-3090-grande", &["2025-07", "2026-07", "2026-08"], &outils::dossier_de_test("regularisation_declaree", test).join("compagnie"));
+    let r = compagnie::ses_dsn("fictive-3090-petite", &["2026-07", "2026-08"], &outils::dossier_de_test("regularisation_declaree", test).join("compagnie"));
     let depots_juillet = retirer_les_depots_dsn(&r, "2026-07");
     let depots_aout = retirer_les_depots_dsn(&r, "2026-08");
-    let mut juillet = lire(&r, "paies/2026-07.json");
-    juillet["engagements"].as_array_mut().unwrap().push(servandoni_a_cheval(None, &JUILLET_A_CHEVAL));
-    ecrire_json(&r, "paies/2026-07.json", &juillet);
+    let mut juillet = crate::outils::saisie(&r, "2026-07");
+    juillet["engagements"].as_array_mut().unwrap().push(lemercier_a_cheval(None, &JUILLET_A_CHEVAL));
+    crate::outils::poser_saisie(&r, "2026-07", &juillet);
+    crate::outils::tout_valider(&r, "2026-07", "2026-08-05");
     mois_pret(&r, "2026-07");
-    let rep = produire_le(&r, "2026-07", "2026-08-05");
+    let rep = dsn_le(&r, "2026-07", "2026-08-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
-    let numero = lire(&r, "paies/2026-07.json")["engagements"]
+    let numero = crate::outils::saisie(&r, "2026-07")["engagements"]
         .as_array()
         .unwrap()
         .iter()
         .find(|e| e["debut"] == json!("2026-07-28"))
         .and_then(|e| e["numero"].as_str())
-        .expect("le numero est fige dans la saisie de juillet")
+        .expect("le numero est ecrit dans la saisie de juillet a sa validation")
         .to_string();
     remettre_les_depots(&r, depots_juillet);
-    let mut aout = lire(&r, "paies/2026-08.json");
-    aout["engagements"].as_array_mut().unwrap().push(servandoni_a_cheval(Some(&numero), &AOUT_A_CHEVAL));
-    ecrire_json(&r, "paies/2026-08.json", &aout);
-    let rep = produire_le(&r, "2026-08", "2026-09-05");
+    outils::reussi(&route_le(&r, "2026-08-05", "envoyer-documents", json!({"mois": "2026-07", "motdepasse": "x"})));
+    let mut aout = crate::outils::saisie(&r, "2026-08");
+    // Le contrat de juillet court en aout : l'ecran d'aout le montre, ses jours d'aout s'y posent.
+    let e = aout["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(numero)).expect("aout montre le contrat de juillet");
+    let a_cheval = lemercier_a_cheval(Some(&numero), &AOUT_A_CHEVAL);
+    e["lignes"] = a_cheval["lignes"].clone();
+    e["date_paiement"] = a_cheval["date_paiement"].clone();
+    crate::outils::poser_saisie(&r, "2026-08", &aout);
+    crate::outils::tout_valider(&r, "2026-08", "2026-09-05");
+    let rep = dsn_le(&r, "2026-08", "2026-09-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     remettre_les_depots(&r, depots_aout);
+    outils::reussi(&route_le(&r, "2026-09-05", "envoyer-documents", json!({"mois": "2026-08", "motdepasse": "x"})));
     let aout = lignes(&r.join("sorties/2026-08/DSN_Aout2026.dsn"));
     assert!(aout.iter().any(|(k, v)| k == "S21.G00.40.009" && *v == numero), "la DSN d'aout declare le contrat");
     (r, numero)
@@ -1572,27 +1592,12 @@ fn contrat_a_cheval(test: &str) -> (PathBuf, String) {
 
 /// La saisie de `mois`, le contrat `numero` change par `changer`, ecrite en confirmant.
 fn changer_le_contrat(r: &Path, mois: &str, numero: &str, changer: &dyn Fn(&mut Value)) {
-    let mut s = lire(r, &format!("paies/{}.json", mois));
+    let mut s = crate::outils::saisie(r, &mois);
     let e = s["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(numero)).unwrap();
     changer(e);
+    crate::outils::remettre_en_saisie(r, mois, Some(numero));
     let w = route_le(r, JOUR, "enregistrer-saisie", json!({"mois": mois, "saisie": s, "modifier_apres_echeance": true}));
     assert_eq!(w["ok"], json!(true), "{}", w);
-}
-
-/// « Corriger ce mois » pour le contrat `numero` de `mois`, depuis ce qui est saisi ; l'etape DSN du mois passe au vert.
-fn corriger_le_contrat(r: &Path, mois: &str, numero: &str) {
-    let d = route_le(r, JOUR, "regularisation-mois", json!({"mois": mois}));
-    let item = d["resultat"]["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(numero)).unwrap().clone();
-    assert!(item["engagement_saisi"].is_object(), "{} : {}", mois, item);
-    let w = route_le(
-        r,
-        JOUR,
-        "regularisation-ecrire",
-        json!({"mois": mois, "salarie": item["salarie"], "debut": item["debut"], "engagement": {"lignes": item["engagement_saisi"]["lignes"]}, "motif": "les dates du contrat"}),
-    );
-    assert_eq!(w["ok"], json!(true), "{}", w);
-    let b = route_le(r, JOUR, "bilan-du-mois", json!({"mois": mois}));
-    assert_eq!(b["resultat"]["dsn"]["couleur"], json!("bien"), "{} : {}", mois, b["resultat"]["dsn"]);
 }
 
 /// Le bloc 40 du contrat `numero` (unique dans la DSN) et ce qui le suit jusqu'au contrat ou au versement suivant.
@@ -1605,10 +1610,10 @@ fn le_contrat(toutes: &[(String, String)], numero: &str) -> Vec<(String, String)
     toutes[debut..fin].to_vec()
 }
 
-/// UN CONTRAT SUR DEUX MOIS DONT LE DEBUT EST AVANCE APRES LA LIMITE (21/10/2026). Le contrat de Servandoni du 28 juillet
+/// UN CONTRAT SUR DEUX MOIS DONT LE DEBUT EST AVANCE APRES LA LIMITE. Le contrat de Lemercier du 28 juillet
 /// au 3 aout commencait en fait le 27 : la saisie de juillet change (le 27 en plus), celle d'aout recoit la meme date de
-/// debut (« La date de debut du contrat est un des identifiants du contrat », fiche net-entreprises 3344), et chaque
-/// mois se corrige pour lui-meme. La DSN d'octobre porte UN bloc 40 du contrat a sa nouvelle date (S21.G00.40.001 =
+/// debut (« La date de debut du contrat est un des identifiants du contrat », fiche net-entreprises 3344), et la DSN
+/// d'octobre porte d'elle-meme la correction de chaque mois : UN bloc 40 du contrat a sa nouvelle date (S21.G00.40.001 =
 /// 27072026), un bloc « Changements contrat » avec l'ancienne (S21.G00.41.021 = 28072026, fiche 1952), et un versement par
 /// mois civil (cahier technique DSN 2026.1, §2.2.2.5) : juillet (l'annulation a 28072026, la paie corrigee a 27072026) et
 /// aout (l'annulation et la redeclaration a 01082026). Pas de bloc 62 : la fin n'a pas change.
@@ -1620,15 +1625,13 @@ fn un_contrat_sur_deux_mois_dont_le_debut_est_avance_se_corrige_mois_par_mois() 
         e["lignes"][0]["dates"] = json!(["2026-07-27", "2026-07-28", "2026-07-29", "2026-07-30", "2026-07-31"]);
         e["lignes"][0]["quantite"] = json!(40);
     });
-    let aout = lire(&r, "paies/2026-08.json");
+    let aout = crate::outils::saisie(&r, "2026-08");
     let e = aout["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(numero)).unwrap();
     assert_eq!((e["debut"].as_str(), e["fin"].as_str()), (Some("2026-07-27"), Some("2026-08-03")), "aout suit : {}", e);
     assert!(r.join("regularisations/2026-08.saisie-declaree.json").exists(), "la saisie d'aout telle que declaree est gardee");
-    corriger_le_contrat(&r, "2026-07", &numero);
-    corriger_le_contrat(&r, "2026-08", &numero);
 
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let c = le_contrat(&octobre, &numero);
@@ -1637,14 +1640,14 @@ fn un_contrat_sur_deux_mois_dont_le_debut_est_avance_se_corrige_mois_par_mois() 
     assert_eq!(valeur(&c, "S21.G00.41.021"), "28072026");
     assert_eq!(c.iter().filter(|(k, _)| k == "S21.G00.41.021").count(), 1);
     assert!(!c.iter().any(|(k, _)| k.starts_with("S21.G00.62.")), "{:?}", c);
-    let juillet = versement_du(&octobre, &numero, "28072026");
+    let juillet = versement_de(&octobre, NIR_LEMERCIER, &numero, "28072026");
     assert!(juillet.iter().any(|(k, v)| k == "S21.G00.51.001" && v == "27072026"), "{:?}", juillet);
-    let aout = versement_du(&octobre, &numero, "01082026");
+    let aout = versement_de(&octobre, NIR_LEMERCIER, &numero, "01082026");
     assert!(aout.iter().all(|(k, v)| k != "S21.G00.51.001" || v == "01082026"), "{:?}", aout);
 }
 
-/// UN CONTRAT SUR DEUX MOIS DONT LA FIN EST RECULEE DANS LE MOIS SUIVANT, APRES LA LIMITE (21/10/2026). Le contrat de
-/// Servandoni finissait le 5 aout, pas le 3 : la saisie d'aout change (le 4 et le 5 en plus), celle de juillet recoit la
+/// UN CONTRAT SUR DEUX MOIS DONT LA FIN EST RECULEE DANS LE MOIS SUIVANT, APRES LA LIMITE. Le contrat de
+/// Lemercier finissait le 5 aout, pas le 3 : la saisie d'aout change (le 4 et le 5 en plus), celle de juillet recoit la
 /// meme fin. La DSN d'octobre porte un bloc 40 a la nouvelle fin (S21.G00.40.010 = 05082026) et un bloc « Fin du
 /// contrat » corrige (S21.G00.62.001 = 05082026 : « une correction de fin de contrat s'opere par l'emission d'un bloc
 /// " Fin du contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes », fiche
@@ -1658,14 +1661,12 @@ fn un_contrat_sur_deux_mois_dont_la_fin_est_reculee_se_corrige_mois_par_mois() {
         e["lignes"][0]["dates"] = json!(["2026-08-01", "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05"]);
         e["lignes"][0]["quantite"] = json!(40);
     });
-    let juillet = lire(&r, "paies/2026-07.json");
+    let juillet = crate::outils::saisie(&r, "2026-07");
     let e = juillet["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(numero)).unwrap();
     assert_eq!(e["fin"], json!("2026-08-05"), "juillet suit : {}", e);
-    corriger_le_contrat(&r, "2026-07", &numero);
-    corriger_le_contrat(&r, "2026-08", &numero);
 
     octobre_pret(&r);
-    let rep = produire_octobre(&r);
+    let rep = dsn_d_octobre(&r);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
     let c = le_contrat(&octobre, &numero);
@@ -1673,8 +1674,8 @@ fn un_contrat_sur_deux_mois_dont_la_fin_est_reculee_se_corrige_mois_par_mois() {
     assert_eq!(valeur(&c, "S21.G00.40.010"), "05082026");
     assert_eq!(valeur(&c, "S21.G00.62.001"), "05082026");
     assert!(!c.iter().any(|(k, _)| k.starts_with("S21.G00.41.")), "{:?}", c);
-    versement_du(&octobre, &numero, "28072026");
-    let aout = versement_du(&octobre, &numero, "01082026");
+    versement_de(&octobre, NIR_LEMERCIER, &numero, "28072026");
+    let aout = versement_de(&octobre, NIR_LEMERCIER, &numero, "01082026");
     assert!(aout.iter().any(|(k, v)| k == "S21.G00.51.002" && v == "05082026"), "{:?}", aout);
 }
 
@@ -1682,11 +1683,13 @@ fn un_contrat_sur_deux_mois_dont_la_fin_est_reculee_se_corrige_mois_par_mois() {
 #[test]
 fn des_dates_qui_sortent_le_contrat_d_un_mois_saisi_se_refusent() {
     let (r, numero) = contrat_a_cheval("a-cheval-sorti");
-    let mut s = lire(&r, "paies/2026-07.json");
+    let mut s = crate::outils::saisie(&r, "2026-07");
     let e = s["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(numero)).unwrap();
     e["fin"] = json!("2026-07-31");
+    crate::outils::remettre_en_saisie(&r, "2026-07", Some(&numero));
     let w = route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": s, "modifier_apres_echeance": true}));
-    assert_eq!(w["classe"], json!("ModificationNonDeclarable"), "{}", w);
-    assert!(w["erreur"].as_str().unwrap().contains("Retirez d'abord ses jours d'août 2026"), "{}", w);
-    assert_eq!(lire(&r, "paies/2026-07.json")["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(numero)).unwrap()["fin"], json!("2026-08-03"));
+    assert_eq!(w["ok"], json!(false), "{}", w);
+    let message = w["erreur"].as_str().unwrap();
+    assert!(message.contains("août 2026") || message.contains("aout 2026"), "le refus nomme le mois qui porte des jours : {}", message);
+    assert_eq!(crate::outils::saisie(&r, "2026-07")["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(numero)).unwrap()["fin"], json!("2026-08-03"));
 }

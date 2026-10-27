@@ -34,9 +34,9 @@
 //! Preuves : `tests/calcul/bordereau.rs`, dont le rejeu des 75 bordereaux
 //! (`tests/donnees/bordereaux-reels.json`).
 
-use crate::date::Jour;
-use crate::fichiers::{dossier_du_code, signature};
-use crate::num::{div, mul, Decimal, Resultat};
+use socle::date::Jour;
+use socle::fichiers::{dossier_du_code, signature};
+use socle::num::{div, mul, Decimal, Resultat};
 use rust_decimal::RoundingStrategy;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -91,7 +91,7 @@ fn date_table(texte: &str) -> Resultat<Option<Jour>> {
     } else {
         None
     };
-    j.map(Some).ok_or_else(|| crate::date::date_impossible(an, mois, jour))
+    j.map(Some).ok_or_else(|| socle::date::date_impossible(an, mois, jour))
 }
 
 fn taux(texte: &str) -> Resultat<Option<Decimal>> {
@@ -99,7 +99,7 @@ fn taux(texte: &str) -> Resultat<Option<Decimal>> {
     if texte.is_empty() {
         return Ok(None);
     }
-    Decimal::from_str(texte).map(Some).map_err(|_| crate::num::illisible(texte))
+    Decimal::from_str(texte).map(Some).map_err(|_| socle::num::illisible(texte))
 }
 
 /// Les enregistrements d'un CSV a point-virgule (guillemets doubles admis).
@@ -248,16 +248,16 @@ urssaf-codes-types-personnel). Rien n'est ecrit.",
     let at = if l.taux_at.is_empty() {
         Decimal::ZERO
     } else {
-        Decimal::from_str(l.taux_at.trim()).map_err(|_| crate::num::illisible(&l.taux_at))?
+        Decimal::from_str(l.taux_at.trim()).map_err(|_| socle::num::illisible(&l.taux_at))?
     };
     let cent = Decimal::ONE_HUNDRED;
     match t.format.as_str() {
         "F" => {
-            let m = l.montant.ok_or_else(|| crate::fichiers::absent("montant"))?;
+            let m = l.montant.ok_or_else(|| socle::fichiers::absent("montant"))?;
             Ok(-euro(m))
         }
         "Z" => {
-            let a = l.assiette.ok_or_else(|| crate::fichiers::absent("assiette"))?;
+            let a = l.assiette.ok_or_else(|| socle::fichiers::absent("assiette"))?;
             Ok(euro(div(mul(a, at), cent)))
         }
         "A" | "C" | "D" | "E" | "K" => {
@@ -272,7 +272,7 @@ Rien n'est ecrit.",
                     if plafonne { "plafonne" } else { "deplafonne" }
                 ));
             };
-            let a = l.assiette.ok_or_else(|| crate::fichiers::absent("assiette"))?;
+            let a = l.assiette.ok_or_else(|| socle::fichiers::absent("assiette"))?;
             Ok(euro(div(mul(a, tx), cent)) + euro(div(mul(a, at), cent)))
         }
         fmt => Err(format!(

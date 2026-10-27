@@ -69,7 +69,7 @@ fn aucune_donnee_de_personne_d_une_charge_de_route_ne_passe_et_les_montants_et_d
     for (cle, fiche) in salaries.as_object().unwrap().iter().filter(|(k, _)| !k.starts_with('_')) {
         charges.push(json!({"route": "enregistrer-fiche", "charge": {"nom": "salarie", "cle": cle, "donnees": fiche}}));
     }
-    let saisie = lire(&racine.join("paies/2026-10.json"));
+    let saisie = crate::outils::saisie(&racine, "2026-10");
     charges.push(json!({"route": "enregistrer-saisie", "charge": {"mois": "2026-10", "saisie": saisie}}));
     let un = saisie["engagements"][0]["salarie"].as_str().unwrap().to_string();
     charges.push(json!({"route": "avenant-envoyer", "charge": {"salarie": un, "debut": "2026-10-13", "mois": "2026-10", "motdepasse": "Tres-secret-42"}}));
@@ -106,7 +106,7 @@ fn aucune_donnee_de_personne_d_une_charge_de_route_ne_passe_et_les_montants_et_d
 fn le_fil_dit_les_trois_minutes_d_avant_une_ligne_par_action_sans_personne() {
     let racine = fictive();
     diagnostic::oublier_le_fil();
-    let t = diagnostic::maintenant_ms();
+    let t = socle::temps::maintenant_ms();
     let lot = json!({
         "page": {"ecran": "1920×1080", "echelle": 1.25, "fuseau": "Europe/Paris", "agent": "Mozilla/5.0 Edg/129.0"},
         "gestes": [
@@ -121,7 +121,7 @@ fn le_fil_dit_les_trois_minutes_d_avant_une_ligne_par_action_sans_personne() {
     for _ in 0..10 {
         diagnostic::noter_route(&racine, "page", "mois", &json!({"mois": "2026-10", "attendre": true}), std::time::Duration::from_millis(3), Err(("ErreurOperation", "calcul du mois : une paie de moins que la saisie")));
     }
-    let fil = diagnostic::fil(diagnostic::maintenant_ms());
+    let fil = diagnostic::fil(socle::temps::maintenant_ms());
     let tout = fil.join("\n");
     assert!(fil[0].starts_with("-2:4"), "{}", tout);
     assert!(tout.contains("clic « [salarié n°1] » (button.carte) — écran paie"), "{}", tout);
@@ -135,7 +135,7 @@ fn le_fil_dit_les_trois_minutes_d_avant_une_ligne_par_action_sans_personne() {
     assert!(refus[0].contains("{\"mois\":\"2026-10\",\"attendre\":true}") && refus[0].contains("(×10"), "{}", refus[0]);
     assert_eq!(diagnostic::page()["fuseau"], json!("Europe/Paris"));
     // Et la route refusee se garde entiere une fois, de quoi la rejouer : sa charge exacte.
-    let e = diagnostic::ecritures(diagnostic::maintenant_ms(), 12);
+    let e = diagnostic::ecritures(socle::temps::maintenant_ms(), 12);
     assert_eq!(e.len(), 1, "{:?}", e);
     assert_eq!((e[0]["route"].clone(), e[0]["charge"].clone()), (json!("mois"), json!({"mois": "2026-10", "attendre": true})));
 }
@@ -178,11 +178,11 @@ fn un_refus_repete_fait_un_incident_compte_qui_porte_sa_route_son_fil_et_sa_mach
 #[test]
 fn la_trace_d_un_refus_dit_l_endroit_du_code() {
     let racine = fictive();
-    let debut = diagnostic::maintenant_ms();
-    diagnostic::noter_echec(Some("KeyError"), "cle absente : taux");
-    diagnostic::noter_echec(Some("ErreurOperation"), "le mois de Brioche ne se calcule pas");
+    let debut = socle::temps::maintenant_ms();
+    socle::echec::noter_echec(Some("KeyError"), "cle absente : taux");
+    socle::echec::noter_echec(Some("ErreurOperation"), "le mois de Brioche ne se calcule pas");
     let trace = diagnostic::trace_du_refus(&racine, "le mois de Brioche ne se calcule pas", debut).unwrap();
-    let ici = format!("tests/fichiers/diagnostic.rs:{}", line!() - 2);
+    let ici = format!("{}:{}", file!(), line!() - 2);
     assert!(trace.starts_with(&format!("endroit : {} (ErreurOperation)", ici)), "{}", trace);
     assert!(trace.contains("KeyError") && trace.contains("[salarié n°1]") && !trace.contains("Brioche"), "{}", trace);
 }

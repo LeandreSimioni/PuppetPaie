@@ -245,7 +245,7 @@ fn lire_json(p: &Path) -> Option<Value> {
 }
 
 fn ecrire_json(p: &Path, v: &Value) -> R<()> {
-    crate::ecriture::ecrire_json(p, v, 1)
+    socle::ecriture::ecrire_json(p, v, 1)
 }
 
 /// L'INSTALLATION : le dossier qui porte `logiciel/`, et a cote les compagnies (`prive/`, `compagnies/`, les fictives) et
@@ -343,7 +343,7 @@ fn lire_depot_suivi(depot: &str, nom: &str, suivre: &dyn Fn(u64, Option<u64>)) -
             c = c.tls_config(ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build());
         }
         // En essai, le garde-fou reseau : rien ne sort de la machine (une panne de reseau, comme hors ligne).
-        let agent: ureq::Agent = crate::garde_reseau::regler(c, &url).map_err(|e| (HORS_LIGNE, format!("{} : {}", url, e)))?.build().into();
+        let agent: ureq::Agent = socle::garde_reseau::regler(c, &url).map_err(|e| (HORS_LIGNE, format!("{} : {}", url, e)))?.build().into();
         let mut r = agent.get(&url).call().map_err(|e| {
             let mot = if matches!(e, ureq::Error::StatusCode(_)) { INTROUVABLE } else { HORS_LIGNE };
             (mot, format!("{} : {}", url, e))
@@ -474,7 +474,7 @@ fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
 
 /// Les mois d'UNE compagnie qui retiennent une version qui change un calcul (`mois_qui_retiennent`) : ses mois saisis sans
 /// DSN acceptee, hors ceux qu'elle a saisis en demo avant d'etre gardee.
-pub(crate) fn mois_qui_retiennent_la_compagnie(o: &std::collections::HashMap<String, String>, ctx: &crate::contexte::Contexte) -> crate::etats::R<Vec<Value>> {
+pub(crate) fn mois_qui_retiennent_la_compagnie(o: &std::collections::HashMap<String, String>, ctx: &droit::contexte::Contexte) -> socle::echec::R<Vec<Value>> {
     let demo = crate::interface::suppression::mois_de_demo(&ctx.racine);
     let mut mois = crate::routes_etats::mois_saisis_non_deposes(o, ctx)?;
     mois.retain(|m| !m.as_str().is_some_and(|m| demo.iter().any(|d| d == m)));
@@ -1345,7 +1345,7 @@ fn fichiers(code: &Path, rel: &Path, out: &mut Vec<PathBuf>) {
 
 /// Ce qu'une compagnie fictive porte sur un poste sans que ce soit la compagnie livree : ses secrets et son jeton (une
 /// fictive ouverte pose elle aussi un coffre), le journal de la fenetre. Ni l'archive ni le depot ne les portent (les memes
-/// exclusions que le `.gitignore` du depot public, « LES COMPAGNIES FICTIVES »), ni les paies calculees (`*.calcul.json`).
+/// exclusions que le `.gitignore` du depot public, « LES COMPAGNIES FICTIVES »).
 /// La marque d'une livraison (`LIVREE`) non plus : la livraison l'ajoute elle-meme.
 const HORS_D_UNE_FICTIVE_LIVREE: [&str; 6] =
     ["config/coffre.bin", "config/google-jeton.bin", "config/maj-cle-privee.bin", "config/.jeton-interface", "journal/interface.log", LIVREE];
@@ -1379,7 +1379,7 @@ fn fictives_livrees(code: &Path) -> R<Vec<PathBuf>> {
         fichiers(&e.path(), Path::new(""), &mut dans);
         for r in dans {
             let rs = r.to_string_lossy().replace('\\', "/");
-            if !HORS_D_UNE_FICTIVE_LIVREE.contains(&rs.as_str()) && !rs.ends_with(".calcul.json") {
+            if !HORS_D_UNE_FICTIVE_LIVREE.contains(&rs.as_str()) {
                 out.push(Path::new(&nom).join(r));
             }
         }
@@ -2260,14 +2260,13 @@ mod tests {
         let octets = archiver(&code, TOUT_SYSTEME).unwrap();
         assert!(archiver_installation(&code, TOUT_SYSTEME).unwrap_err().contains("aucune compagnie fictive"));
         une_fictive(&base);
-        // Ce qui est du poste et pas de la fictive livree : sa photo d'origine, ses secrets, sa paie calculee, le journal
+        // Ce qui est du poste et pas de la fictive livree : sa photo d'origine, ses secrets, le journal
         // de la fenetre ; et un dossier qui n'est pas une fictive.
         let f = base.join("fictives");
         for (rel, t) in [
             (".origine/fictive-essai/config/entreprise.json", "{}"),
             ("fictive-essai/config/coffre.bin", "scelle"),
             ("fictive-essai/journal/interface.log", "chemin du poste"),
-            ("fictive-essai/paies/2026-09.calcul.json", "{}"),
             ("pas-une-fictive/config/entreprise.json", "{}"),
         ] {
             std::fs::create_dir_all(f.join(rel).parent().unwrap()).unwrap();

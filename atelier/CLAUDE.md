@@ -88,7 +88,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
-| `atelier/sources/` | `paie/` (le moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`), `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
+| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
 | `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `paie`), les docs, les versions publiées, l'installeur, le site |
 
@@ -121,6 +121,23 @@ montre que celui qui a lieu.
   preuve : il se vérifie avant de s'affirmer.
 - **L'orchestrateur organise, puis vérifie après coup** : il donne à l'Opus le but, les règles, la passation attendue, et le
   laisse faire ; il ne dit pas *comment* faire ce qu'il n'a pas lu dans le code. Puis il vérifie (commits, diff, tests).
+- **L'orchestrateur surveille pendant, pas seulement après** (Léandre, 25/10/2026 : « tu devrais regarder que tes agents
+  font pas du bordel ») : toutes les 30 minutes, il regarde le worktree de chaque Opus (commits, fichiers touchés, tests
+  et données modifiés) sans lire sa conversation ; une heure sans commit, il demande où il en est ; un Opus trop chargé
+  commite, rend sa passation, et un Opus neuf reprend. En tête de chaque consigne, avant le but : **un test de l'ancien
+  parcours qui casse se supprime, il ne se répare pas** ; **aucune donnée destinée à être remplacée ne se convertit**. Un
+  Opus qui le fait est arrêté aussitôt ; à la fusion, la liste des tests modifiés se relit avant d'accepter le lot.
+  Aussi en tête (Léandre, 27/10/2026) : **aucun test de plus de 30 secondes** (une lenteur est un défaut de conception :
+  on réduit le test ou on le supprime) ; **aucune mesure à part**, aucun `tail -f`, aucune attente empilée : une seule
+  commande de tests à la fois, rien en fond ; **aucun acte réel lancé à la main**, même sur une fictive (un dépôt qu'on
+  lance soi-même est de test ; le réel se voit par l'horloge de la fictive) ; un texte en PDF se transcrit une fois et
+  ne se relit qu'à sa nouvelle version.
+- **Le relais** : un Opus travaille au plus 1 h 15 environ, ou moins si ses notifications montrent qu'il dépasse
+  500 000 jetons ; au relais, il laisse finir sa commande, commite, écrit sa passation, et un Opus neuf reprend. **On
+  n'écrit jamais à un Opus qui a fini** : un message le réveille et lui fait relire tout son contexte. Une décision
+  envoyée en cours de lot se vérifie dans le commit qui suit.
+- **Parler à Léandre** : une décision qui touche le fonctionnement se présente entière, en trois lignes — ce qui se passe,
+  à quel moment, ce que ça change —, avec ses contre-arguments, jamais par bribes.
 - **Un reste ne remonte pas à Léandre : l'orchestrateur le tranche et le fait corriger** (Léandre, 21/10/2026 : « tu as
   trouvé un problème ? c'est super, maintenant il faut le corriger »). Chaque « laissé de côté », « à trancher », « limite »
   d'une passation se lit comme un travail à faire : l'orchestrateur décide (le code, les textes, le bon sens d'un
@@ -213,13 +230,13 @@ fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas d
 binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
-cd atelier/sources/paie && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"     # les dossiers de travail des tests (~3 Go)
-cargo nextest run --cargo-profile essais --no-fail-fast                  # le moteur ; la fenêtre n'a pas de tests
+cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, paie ; les dossiers de travail des tests (~3 Go)
+cargo nextest run --cargo-profile essais --no-fail-fast                  # les trois crates ; la fenêtre n'a pas de tests
 ```
 
 - La suite de l'atelier (`--features atelier`, sa propre cible `<cible>-atelier`), seulement quand on touche à ce qui est sous
   `#[cfg(feature = "atelier")]` : `CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo-profile
-  essais --features atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'`.
+  essais -p paie --features atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'`.
 - **Quatre binaires par domaine** (`tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`) ; un fichier qui pose une
   variable d'environnement reste seul dans `tests/`. Les aides sont dans `tests/outils/` (un fichier n'en recopie aucune) ;
   un test se monte dans `outils::dossier_de_test`. Un fichier seul : `-E 'binary(calcul) & test(/^clauses::/)'`.
@@ -231,8 +248,8 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # le mo
   (les séances la refont et la commitent ; « Publier » la livre à part, `maj.rs`), un test ne la lit jamais. Une compagnie de
   test se nomme toujours.
 - **Aucun test ne sort de la machine** (21/10/2026 : un test s'était inscrit au vrai filet, d'où des courriels à
-  `a@exemple.fr`). `paie/.cargo/config.toml` pose `PUPPETPAIE_ESSAIS_HORS_RESEAU` pour tout ce que Cargo lance, et
-  `src/garde_reseau.rs` refuse alors toute sortie hors de 127.0.0.1 ; un test qui veut voir une sortie nomme son faux
+  `a@exemple.fr`). `atelier/sources/.cargo/config.toml` pose `PUPPETPAIE_ESSAIS_HORS_RESEAU` pour tout ce que Cargo lance, et
+  `socle/src/garde_reseau.rs` refuse alors toute sortie hors de 127.0.0.1 ; un test qui veut voir une sortie nomme son faux
   mandataire dans cette variable. `tests/fichiers/garde_reseau.rs` exige que toute connexion du moteur passe par le garde-fou
   et qu'un `env_clear()` repose la variable.
 - `.claude/hooks/session-start.sh` compile la suite d'avance dans le nuage. Doutes sur des tests : `journal/tests/DOUTES-TESTS.md`.

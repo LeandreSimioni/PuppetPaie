@@ -226,10 +226,10 @@ fn seule_la_reprise_anticipee_fait_naitre_un_signalement() {
 #[test]
 fn la_fin_d_un_cdd_se_signale_en_cinq_jours_ouvres() {
     let c = &compagnie("fin");
-    let mut s = lire(c, "paies/2026-08.json");
+    let mut s = crate::outils::saisie(c, "2026-08");
     s["engagements"].as_array_mut().unwrap().push(json!({"salarie": "LEMERCIER", "nature": "cdd", "debut": "2026-03-02",
         "fin": "2026-08-20", "numero": "LE1.26.01", "motif_rupture": "031", "preavis": {"type": "90"}}));
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     let fin = |jour: &str| reussi(&route(c, "fins-de-contrat", json!({"mois": "2026-08"}), jour))["fins"][0]["obligation"].clone();
     let o = fin("2026-08-24");
     assert_eq!((o["butoir"].as_str(), o["etat"].as_str(), o["jours_restants"].as_i64()), (Some("2026-08-27"), Some("a_faire"), Some(3)), "{}", o);

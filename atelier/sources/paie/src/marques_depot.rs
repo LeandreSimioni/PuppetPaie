@@ -10,10 +10,12 @@ use std::path::Path;
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::etats::{erreur, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 
 /// `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
 fn maintenant() -> String {
@@ -56,13 +58,13 @@ fn cle_du_nir(ctx: &Contexte, nir: &str) -> Option<String> {
 /// Les arrets que la DSN de `mois` doit reporter -- ceux du magasin des imprevus dont la periode croise le mois principal
 /// declare (`imprevus::du_mois`).
 pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    crate::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
-    crate::imprevus::du_mois(&ctx.racine, mois, Some(crate::imprevus::ARRET)).map_err(crate::routes_listes::refus_magasin)
+    socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::ARRET)).map_err(crate::routes_listes::refus_magasin)
 }
 
 /// `operations_arrets._mois_de` : le mois ou l'arret commence.
 fn mois_de(arret: &Value) -> String {
-    py_str(&arret["dernier_jour_travaille"]).chars().take(7).collect()
+    valeur_en_texte(&arret["dernier_jour_travaille"]).chars().take(7).collect()
 }
 
 /// `_trouver`, avec `ArretIntrouvable` rendu en `None`.
@@ -109,12 +111,12 @@ pub(crate) fn marquer_envoye_depuis(
 /// Note, sur chaque imprevu (arret ou suspension) que la DSN mensuelle REELLE de `mois` a declare, qu'elle l'a reporte
 /// (un envoi de nature 01) : un imprevu declare ne s'oublie plus.
 pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand: &str) -> R<()> {
-    crate::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
-    for a in crate::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
-        let genre = crate::imprevus::genre(&a).to_string();
-        let rangement = crate::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
-        let Some((i, mut liste)) = crate::routes_imprevus::trouver(ctx, &genre, &py_str(&a["salarie"]), &rangement)? else {
-            return Err(erreur("ErreurOperation", format!("Aucun imprevu ({}) de {} au {}.", genre, py_str(&a["salarie"]), rangement.jj_mm_aaaa())));
+    socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
+    for a in engagement::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
+        let genre = engagement::imprevus::genre(&a).to_string();
+        let rangement = engagement::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
+        let Some((i, mut liste)) = crate::routes_imprevus::trouver(ctx, &genre, &valeur_en_texte(&a["salarie"]), &rangement)? else {
+            return Err(erreur("ErreurOperation", format!("Aucun imprevu ({}) de {} au {}.", genre, valeur_en_texte(&a["salarie"]), rangement.jj_mm_aaaa())));
         };
         let deja = liste[i]["envois"].as_array().is_some_and(|e| {
             e.iter().any(|r| r.get("nature").and_then(Value::as_str) == Some("01") && r.get("mois").and_then(Value::as_str) == Some(mois))
@@ -146,7 +148,7 @@ fn jours_ouvres_apres(depart: Jour, combien: i64) -> R<Jour> {
             continue;
         }
         if !cache.contains_key(&jour.an) {
-            let f = crate::feries::feries(jour.an).map_err(|m| erreur("ValueError", m))?;
+            let f = socle::feries::feries(jour.an).map_err(|m| erreur("ValueError", m))?;
             cache.insert(jour.an, f.into_iter().map(|(j, _)| j).collect());
         }
         if cache[&jour.an].contains(&jour) {
@@ -165,7 +167,7 @@ pub(crate) fn enregistrer_demande(ctx: &Contexte, cles: &[String], motif: &str, 
         None => ctx.date,
     };
     let avant = jours_ouvres_apres(jour, 5)?;
-    let mut data = crate::pas::charger(ctx).map_err(|m| erreur("OSError", m))?;
+    let mut data = droit::pas::charger(ctx).map_err(|m| erreur("OSError", m))?;
     for cle in cles {
         data["demandes"][cle.as_str()] = json!({
             "quand": jour.iso(), "motif": motif, "reponse_attendue_avant": avant.iso(), "flux": flux,
@@ -173,7 +175,7 @@ pub(crate) fn enregistrer_demande(ctx: &Contexte, cles: &[String], motif: &str, 
     }
     if !cles.is_empty() {
         let chemin = ctx.racine.join("config").join("pas.json");
-        std::fs::write(&chemin, crate::ecriture::json_py(&data, 2)).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
+        std::fs::write(&chemin, socle::ecriture::json_indente(&data, 2)).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     }
     Ok(())
 }
@@ -195,7 +197,7 @@ pub(crate) fn marquer_demande_depuis(ctx: &Contexte, chemin: &Path, quand: &str)
 /// en reel -- les corrections qu'elle avait preparees sont portees.
 pub(crate) fn marquer_portees(ctx: &Contexte, mois_courant: &str, fichier: &Path, quand: &str) -> R<()> {
     let nom = fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut mois: Vec<String> = crate::routes_ecrites::toutes_les_corrections(ctx)?.iter().map(|c| py_str(&c["mois"])).collect();
+    let mut mois: Vec<String> = crate::routes_ecrites::toutes_les_corrections(ctx)?.iter().map(|c| valeur_en_texte(&c["mois"])).collect();
     mois.sort();
     mois.dedup();
     for m in mois {

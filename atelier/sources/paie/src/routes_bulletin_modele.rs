@@ -20,12 +20,13 @@ use std::path::PathBuf;
 use serde_json::{json, Map, Value};
 
 use crate::bulletin::{jeux_et_description, Modele, CASE_MODELE};
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::ecriture::ecrire_json;
-use crate::etats::{erreur, R};
-use crate::fichiers::{dossier_du_code, lire_json};
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::ecriture::ecrire_json;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, lire_json};
+use socle::echec::Echec;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 3] = ["bulletin-modeles", "bulletin-modele-apercu", "bulletin-modele-choisir"];
@@ -114,7 +115,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
     let jour = saisie.get("date_paiement").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas sa date de paiement.")?;
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire(jour)?))?;
-    let s = crate::engagement::charger_donnees(&ctx, &saisie)?;
+    let s = engagement::charger_donnees(&ctx, &saisie)?;
     let mut ent = ctx.entreprise.clone();
     let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;
     o.insert(CASE_MODELE.into(), json!(modele.cle()));

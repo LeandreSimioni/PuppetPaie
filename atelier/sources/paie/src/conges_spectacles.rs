@@ -9,12 +9,11 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{json, Map, Value};
 
 use crate::bulletin::{identite_de, FORMAT};
-use crate::calcul::Paie;
-use crate::date::{repr_flottant, Jour};
-use crate::engagement::Engagement;
-use crate::etats::py_str;
-use crate::fichiers::vrai;
-use crate::num::{dec, dec_f64, Decimal};
+use socle::date::{repr_flottant, Jour};
+use engagement::Engagement;
+use socle::valeur::valeur_en_texte;
+use socle::fichiers::vrai;
+use socle::num::{dec, dec_f64, Decimal};
 use crate::routes_ouverture::Refus;
 
 type R<T> = Result<T, Refus>;
@@ -52,7 +51,7 @@ pub fn faute_adherent(v: &str) -> Option<String> {
 /// quoi saisir.
 pub fn adherent(ent: &Value) -> Result<String, String> {
     let v = match ent.get(CLE_ADHERENT) {
-        Some(v) if vrai(v) => forme_adherent(&py_str(v)),
+        Some(v) if vrai(v) => forme_adherent(&valeur_en_texte(v)),
         _ => {
             return Err("le numéro d'adhérent Congés Spectacles manque dans la fiche de l'entreprise (Entreprise, « Vos \
                         numéros chez les organismes ») : dix chiffres suivis d'une lettre, tel qu'il figure sur les \
@@ -218,7 +217,7 @@ pub(crate) fn arrondi_euro(x: Decimal) -> i64 {
 fn base_conge(brut: Decimal, salarie: &Value) -> R<Decimal> {
     match salarie.get("minimum_conventionnel_cachet") {
         Some(mini) if vrai(mini) => {
-            let m = dec(&Value::String(py_str(mini)))? * Decimal::from(3);
+            let m = dec(&Value::String(valeur_en_texte(mini)))? * Decimal::from(3);
             Ok(brut.min(m))
         }
         _ => Ok(brut),
@@ -268,12 +267,6 @@ pub(crate) struct PaieCs {
     pub engagement: ContratCs,
     pub brut: Decimal,
     pub salarie: Value,
-}
-
-impl PaieCs {
-    pub fn de(p: &Paie) -> R<PaieCs> {
-        Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: p.brut, salarie: p.salarie.clone() })
-    }
 }
 
 /// Les 31 mars strictement traverses par un contrat.
@@ -387,7 +380,7 @@ pub(crate) fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certifica
         if total != paie.brut {
             let qui = match &e.numero {
                 Some(n) if !n.is_empty() => n.clone(),
-                _ => py_str(paie.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
+                _ => valeur_en_texte(paie.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
             };
             return Err(Refus {
                 classe: Some("ValueError"),
@@ -402,7 +395,7 @@ pub(crate) fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certifica
 }
 
 fn cle_absente(k: &str) -> Refus {
-    Refus { classe: Some("KeyError"), message: crate::fichiers::absent(k) }
+    Refus { classe: Some("KeyError"), message: socle::fichiers::absent(k) }
 }
 
 // --------------------------------------------------------------------- rendu
@@ -413,7 +406,7 @@ fn cases_date(j: &Jour) -> String {
 
 /// `_siret_espace` : 12345678900017 -> '123456789 00017'.
 fn siret_espace(siret: &Value) -> String {
-    let s = py_str(siret);
+    let s = valeur_en_texte(siret);
     let c: Vec<char> = s.chars().collect();
     if c.len() == 14 {
         format!("{} {}", c[..9].iter().collect::<String>(), c[9..].iter().collect::<String>())
@@ -428,7 +421,7 @@ fn requis<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
 
 fn ou_vide(v: &Value, k: &str) -> String {
     match v.get(k) {
-        Some(x) if vrai(x) => py_str(x),
+        Some(x) if vrai(x) => valeur_en_texte(x),
         _ => String::new(),
     }
 }
@@ -441,11 +434,11 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<(&'static str, Stri
     let adresse_defaut = requis(s, "adresse")?;
     let commune_defaut = requis(s, "commune")?;
     let mut out: Vec<(&'static str, String)> = Vec::new();
-    out.push(("dest_nom", format!("{} {}", py_str(requis(s, "prenom")?), py_str(requis(s, "nom")?))));
-    out.push(("dest_adresse", py_str(s.get("adresse_affichage").unwrap_or(adresse_defaut))));
+    out.push(("dest_nom", format!("{} {}", valeur_en_texte(requis(s, "prenom")?), valeur_en_texte(requis(s, "nom")?))));
+    out.push(("dest_adresse", valeur_en_texte(s.get("adresse_affichage").unwrap_or(adresse_defaut))));
     out.push((
         "dest_commune",
-        format!("{} {}", py_str(requis(s, "code_postal")?), py_str(s.get("commune_affichage").unwrap_or(commune_defaut))),
+        format!("{} {}", valeur_en_texte(requis(s, "code_postal")?), valeur_en_texte(s.get("commune_affichage").unwrap_or(commune_defaut))),
     ));
     out.push(("dest_pays", "France".to_string()));
     out.push(("siret", siret_espace(requis(ent, "siret")?)));
@@ -453,14 +446,14 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<(&'static str, Stri
     out.push(("num_ce", c.numero.to_string()));
     out.push((
         "nir",
-        format!("{} {}", ou_vide(s, "nir"), ou_vide(s, "nir_cle")).trim_matches(crate::retours::blanc_py).to_string(),
+        format!("{} {}", ou_vide(s, "nir"), ou_vide(s, "nir_cle")).trim_matches(socle::texte::blanc).to_string(),
     ));
-    out.push(("raison_sociale", py_str(requis(ent, "raison_sociale")?)));
-    out.push(("nom_naissance", py_str(requis(s, "nom")?)));
+    out.push(("raison_sociale", valeur_en_texte(requis(ent, "raison_sociale")?)));
+    out.push(("nom_naissance", valeur_en_texte(requis(s, "nom")?)));
     out.push(("nom_usage", ou_vide(s, "nom_usage")));
-    out.push(("emploi", py_str(requis(s, "emploi")?)));
+    out.push(("emploi", valeur_en_texte(requis(s, "emploi")?)));
     out.push(("cadre", if s.get("cadre").map_or(false, vrai) { "OUI" } else { "NON" }.to_string()));
-    out.push(("prenom", py_str(requis(s, "prenom")?)));
+    out.push(("prenom", valeur_en_texte(requis(s, "prenom")?)));
     out.push(("pseudonyme", ou_vide(s, "pseudonyme")));
     out.push(("debut", cases_date(&c.debut)));
     out.push(("fin", cases_date(&c.fin)));
@@ -469,7 +462,7 @@ fn valeurs(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<(&'static str, Stri
     out.push(("salaire_brut", arrondi_euro(c.brut).to_string()));
     let e = c.emission;
     out.push(("date", format!("{:02}/{:02}/{:02}", e.jour, e.mois, e.an % 100)));
-    out.push(("signataire", py_str(requis(sig, "nom")?)));
+    out.push(("signataire", valeur_en_texte(requis(sig, "nom")?)));
     out.push((
         "agrement",
         if agrement.is_empty() { "N° d'agrément :".to_string() } else { format!("N° d'agrément : {}", agrement) },
@@ -564,10 +557,10 @@ pub(crate) fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &Value) -> R
 }
 
 /// `recapitulatif` : le meme contenu en texte, ce qui va etre imprime et sous quels numeros (la trace des N CE
-/// consommes, relue par `_premier_ce`).
+/// consommes).
 pub(crate) fn recapitulatif(paires: &[(&PaieCs, i64)], ent: &Value) -> R<String> {
     let adherent = match ent.get("congesspectacles_adherent") {
-        Some(v) if vrai(v) => py_str(v),
+        Some(v) if vrai(v) => valeur_en_texte(v),
         _ => "?".to_string(),
     };
     let mut lignes = vec!["Certificats d'emploi Conges Spectacles".to_string(), format!("Compte (adherent Audiens) : {}", adherent), "-".repeat(76)];
@@ -575,8 +568,8 @@ pub(crate) fn recapitulatif(paires: &[(&PaieCs, i64)], ent: &Value) -> R<String>
         for c in certificats(p, *premier)? {
             let nom = format!(
                 "{} {}",
-                py_str(p.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
-                py_str(p.salarie.get("prenom_affichage").ok_or_else(|| cle_absente("prenom_affichage"))?)
+                valeur_en_texte(p.salarie.get("nom").ok_or_else(|| cle_absente("nom"))?),
+                valeur_en_texte(p.salarie.get("prenom_affichage").ok_or_else(|| cle_absente("prenom_affichage"))?)
             );
             lignes.push(format!(
                 "  N CE {:<6} {:<22} {} -> {}  {:>2} jour(s)/cachet(s)  brut {:>5}  base {:>5}",

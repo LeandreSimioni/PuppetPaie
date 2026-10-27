@@ -144,7 +144,7 @@ pub static TEXTES: &[Texte] = &[
             // `etats_personnel::registre_du_personnel` ecrit ; il citait les
             // articles sans qu'ils soient dans le releve.
             Domaine { cle: "registre", titre: "Le registre unique du personnel", numeros: &["L1221-13", "D1221-23", "D1221-24"] },
-            // La DPAE quand la date d'embauche d'un contrat declare change (21/10/2026, `routes_mois::etat_par_paie`) :
+            // La DPAE quand la date d'embauche d'un contrat declare change (21/10/2026, `routes_mois::etat_par_engagement`) :
             // l'embauche apres la declaration (L1221-10), la date d'embauche dans la declaration (R1221-1, 3°), la date
             // previsible (R1221-4).
             Domaine { cle: "dpae", titre: "La declaration prealable a l'embauche", numeros: &["L1221-10", "R1221-1", "R1221-4"] },
@@ -247,7 +247,7 @@ pub static TEXTES: &[Texte] = &[
             // dernier alinea du I de R242-2 met en oeuvre (l'employeur << est
             // en droit de corriger le plafond >>) ; L242-10, qu'il cite, en
             // exclut les emplois a taux ou assiette specifiques et le plafond
-            // fractionne entre plusieurs employeurs. `paie/src/plafond.rs`.
+            // fractionne entre plusieurs employeurs. `droit/src/plafond.rs`.
             Domaine { cle: "plafond_temps_partiel", titre: "Le plafond d'un salarie a temps partiel (l'abattement d'assiette)", numeros: &["L242-8", "L242-10"] },
             // LA DISPENSE D'UN TEMPS PARTIEL DE LA SANTE (13/10/2026, lot D1).
             // R242-1-6, 2°, c : un salarie a temps partiel peut se dispenser
@@ -330,7 +330,7 @@ pub static TEXTES: &[Texte] = &[
     // JORFTEXT000000310494/article/...`) : le meme filtre les attrape.
     // C'est lui qui fixe le plafond d'un artiste engage moins de cinq
     // jours continus : douze fois le plafond horaire par journee de
-    // travail (`paie/src/plafond.rs`).
+    // travail (`droit/src/plafond.rs`).
     Texte {
         cle: "artistes-1975",
         legitext: "JORFTEXT000000310494",
@@ -467,7 +467,7 @@ pub static TEXTES: &[Texte] = &[
             // 1671, 1 et 2 -- la retenue est « effectuee par le debiteur
             // lors du paiement », au taux transmis « au plus tard le
             // deuxieme mois suivant sa transmission » ; ce qui a ete
-            // retenu ne se recalcule pas (`pas::des_paies`).
+            // retenu ne se recalcule pas (`prelevement::des_paies`).
             Domaine { cle: "pas", titre: "La retenue a la source : quand, et a quel taux", numeros: &["1671"] },
             // L'ASSIETTE DU PRELEVEMENT A LA SOURCE ET LA SANTE PATRONALE REINTEGREE (15/10/2026 ;
             // `atelier/reference/sources/suspension-non-remuneree/legi-extrait-code-general-des-impots-20261015.md`) : 83,

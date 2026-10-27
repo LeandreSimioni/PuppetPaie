@@ -40,7 +40,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         }
         Err(f) => return cadre.plantage(f),
     };
-    let vrai = |k: &str| e.get(k).is_some_and(crate::fichiers::vrai);
+    let vrai = |k: &str| e.get(k).is_some_and(socle::fichiers::vrai);
     if json {
         // L'ordre des cles de `sortie_json.etat_google` (la route les range autrement).
         let ordre: serde_json::Map<String, Value> =
@@ -74,7 +74,7 @@ fn oublier(cadre: &Cadre, json: bool) -> i32 {
     let r = super::actes::refuser_dans_l_atelier(cadre, "d'oublier le compte Google").and_then(|()| cadre.route("google-oublier", json!({})));
     match r {
         Ok(e) => {
-            if e.get("efface").is_some_and(crate::fichiers::vrai) {
+            if e.get("efface").is_some_and(socle::fichiers::vrai) {
                 dire!("Jeton local efface. L'acces reste accorde cote Google :\n  le retirer sur myaccount.google.com > Securite >\n  Vos connexions a des applications tierces.");
             } else {
                 dire!("Il n'y avait pas de jeton local.");

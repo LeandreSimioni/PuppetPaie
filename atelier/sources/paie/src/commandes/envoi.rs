@@ -13,10 +13,10 @@
 //! `qui` : `ligne de commande` -- le Python n'ecrivait pas dans le journal ici (`envoi.envoyer` seul) ; la route le fait, avec ce
 //! `qui` (point douteux de la passation).
 //!
-//! La commande ne lit que `paies/AAAA-MM.json` des donnees (le Python lisait n'importe quel chemin). Rien ne s'enchaine a `mois`.
+//! La commande lit le mois (`AAAA-MM`, ou `engagements/AAAA-MM.json`) des donnees. Rien ne s'enchaine a `mois`.
 //!
 //! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : une saisie incomplete, une fiche sans adresse, un fichier introuvable donnaient
-//! une trace d'appels. Ici : `! phrase`, code 2. Le texte propose `paie mois ...`.
+//! une trace d'appels. Ici : `! phrase`, code 2.
 
 use serde_json::{json, Value};
 
@@ -25,7 +25,7 @@ use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{enveloppe, erreur, rendre};
 use super::Cadre;
 use crate::depot_acte::Preuve;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "envoi", positionnels: &[Pos::requis("fichier")], options: &[Opt::drapeau("sans-navigateur"), Opt::drapeau("json")] };
 
@@ -48,7 +48,7 @@ fn preparation_refusee(json: bool, fichier: &str, e: &Echec) -> Option<i32> {
                 let dossier = message.strip_suffix(" n'existe pas.").unwrap_or(&message).to_string();
                 return Some(rendre(&erreur("envoi", classe, &message, &[("dossier", json!(dossier))])));
             }
-            dire!("Rien a envoyer : {}\nProduire le mois d'abord :  paie mois {}", message, fichier);
+            dire!("Rien a envoyer : {} (mois {}).", message, fichier);
             Some(1)
         }
         "BoiteAbsente" | "ErreurCourriel" | "ErreurGoogle" => {
@@ -68,7 +68,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let mois = mois_du_fichier(cadre, fichier, "L'envoi se prepare")?;
     ouvrir_la_boite(cadre);
     let ctx = &cadre.ctx;
-    let prep = match crate::routes_envois::preparer_envoi(&cadre.o, ctx, &mois, &mut || crate::routes_envois::client_courriel(ctx)) {
+    let prep = match crate::routes_envois::preparer_envoi(ctx, &mois, &mut || crate::routes_envois::client_courriel(ctx)) {
         Ok(p) => p,
         Err(e) => match preparation_refusee(json, fichier, &e) {
             Some(code) => return Ok(code),
@@ -100,7 +100,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     for a in &prep.avertissements {
         dire!("Note : {}\n", a);
     }
-    let libelle = crate::routes_envois::capitaliser(&crate::engagement::libelle_mois(&prep.mois_saisie));
+    let libelle = crate::routes_envois::capitaliser(&engagement::libelle_mois(&prep.mois_saisie));
     dire!("\n{} - {} message(s)\n{}", libelle, prep.messages.len(), "-".repeat(62));
     for m in &prep.messages {
         dire!("  {:<22} {:<30} {} piece(s), {} ko", m.nom, m.destinataire, m.pieces.len(), m.taille() / 1024);

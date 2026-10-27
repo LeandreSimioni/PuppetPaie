@@ -15,12 +15,11 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`), lue sans y rien ecrire.
 
 use paie::bulletin::{fmt_eur, fmt_taux, jeux_et_description};
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::engagement::{charger, Saisie};
-use paie::num::{dec_f64, Decimal};
-use paie::oracle::entreprise_du_mois;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use engagement::{charger, Saisie};
+use socle::num::{dec_f64, Decimal};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use crate::outils::fictive;
@@ -29,7 +28,7 @@ use std::path::Path;
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
     let chemin = crate::outils::chemin_unique("bulletin-modeles.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin).unwrap()
+    crate::outils::charger_fichier(ctx, &chemin).unwrap()
 }
 
 /// Montansier (cadre permanent : mutuelle, prevoyance conventionnelle, Apec, CET) en octobre 2026.
@@ -48,7 +47,7 @@ fn permanent() -> (Contexte, Paie, &'static str) {
 /// Biancolelli (artiste intermittente, Conges Spectacles, prevoyance et Fonds sante, defraiements), juillet 2026.
 fn intermittent() -> (Contexte, Paie, &'static str) {
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let p = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("BI4.26.06")).unwrap().clone();
     (ctx, p, "2026-07")
 }
@@ -69,7 +68,7 @@ fn technicien() -> (Contexte, Paie, &'static str) {
 
 /// La fiche entreprise du mois, la case `modele_bulletin` posee a `modele` (`None` : retiree).
 fn entreprise(ctx: &Contexte, mois: &str, modele: Option<&str>) -> Value {
-    let mut ent = entreprise_du_mois(ctx, mois).unwrap();
+    let mut ent = ctx.entreprise_du_mois(mois).unwrap();
     let o = ent.as_object_mut().unwrap();
     o.remove("modele_bulletin");
     if let Some(m) = modele {
@@ -109,7 +108,7 @@ fn rangs(desc: &Value) -> Vec<Vec<String>> {
 
 /// Le bulletin du mois, sous le modele que la fiche entreprise du mois choisit.
 fn du_mois(ctx: &Contexte, p: &Paie, mois: &str) -> Value {
-    bulletin(ctx, p, mois, &entreprise_du_mois(ctx, mois).unwrap()).unwrap()
+    bulletin(ctx, p, mois, &ctx.entreprise_du_mois(mois).unwrap()).unwrap()
 }
 
 fn position(r: &[Vec<String>], libelle: &str) -> usize {
@@ -440,7 +439,7 @@ fn la_ligne_du_prelevement_dit_son_assiette_son_taux_et_son_montant() {
     assert_eq!(pas.len(), 3);
     let (assiette, taux, montant) = (&pas[0], &pas[1], &pas[2]);
     let lu = |t: &str| t.replace([' ', '\u{a0}'], "").replace(',', ".").parse::<f64>().unwrap();
-    // Le mois est depose : l'assiette, le taux et le montant sont ceux que sa DSN a declares (lot D2, `pas::des_paies`),
+    // Le mois est depose : l'assiette, le taux et le montant sont ceux que sa DSN a declares (lot D2, `prelevement::des_paies`),
     // pas recalcules ; l'assiette n'est donc pas comparee au net imposable que le moteur du jour recalcule.
     assert!(lu(assiette) > 0.0, "l'assiette : {}", assiette);
     assert!(((lu(assiette) * lu(taux) / 100.0) - lu(montant)).abs() < 0.011, "{} x {} % = {}", assiette, taux, montant);

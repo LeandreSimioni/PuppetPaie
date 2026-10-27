@@ -12,7 +12,7 @@ use super::actes::{refuser_si_pas_redirige, reponse_metier, Organisme};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{enveloppe, erreur, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "archiver",

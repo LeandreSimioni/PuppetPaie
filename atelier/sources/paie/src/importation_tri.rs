@@ -28,7 +28,8 @@ use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
 use crate::apercu_dsn::{lignes_py, texte_latin1};
-use crate::etats::{erreur, R};
+use socle::echec::R;
+use socle::echec::erreur;
 
 /// Les sortes, dans l'ordre ou le compte rendu les compte.
 pub const SORTES: [Sorte; 8] =
@@ -477,7 +478,7 @@ fn lire_pdf(f: &mut Fichier) {
 fn lire_aem(f: &mut Fichier, octets: &[u8]) {
     let lignes: Vec<Vec<char>> =
         lignes_py(&texte_latin1(apres_bom(octets))).into_iter().filter(|l| !l.is_empty()).map(|l| l.chars().collect()).collect();
-    let date = |l: &[char], a: usize| crate::date::strptime_aaaammjj(&l[a..a + 8].iter().collect::<String>()).is_some();
+    let date = |l: &[char], a: usize| socle::date::lire_aaaammjj(&l[a..a + 8].iter().collect::<String>()).is_some();
     for (i, l) in lignes.iter().enumerate() {
         let marque: String = l.iter().take(AEM_MARQUE.len()).collect();
         let defaut = if marque != AEM_MARQUE {

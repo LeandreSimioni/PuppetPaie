@@ -16,23 +16,28 @@
 //! - annexes VIII et X du 15/11/2024, art. 49 : le chomage « avant application de l'abattement » ; norme DSN, bloc 78 :
 //!   les Conges Spectacles « avant toute deduction forfaitaire specifique ».
 //!
-//! Sur une copie de la config et des saisies de `fictive-3090-grande` (compagnie inventee), dans le dossier temporaire des
+//! Sur une copie de la config et de trois mois de saisie de `fictive-3090-grande` (compagnie inventee), dans le dossier temporaire des
 //! tests ; l'original n'est pas touche. Deburau (comedien) et Jacquet (musicien) y sont des artistes intermittents,
 //! Chaminade (regisseur lumiere) un technicien, Montansier une cadre ; Deburau a un contrat en mars 2026. La reduction
 //! generale sous DFS : arrete du 4 decembre 2019, art. 1er (`dfs/arrete-2019-reduction-generale/`).
 
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::engagement::{charger, Saisie};
-use paie::num::Decimal;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use engagement::{charger, Saisie};
+use socle::num::Decimal;
 use serde_json::{json, Value};
-use crate::outils::{chemin_unique, copier, dec, fictive, ecrire, lire, Copie};
+use crate::outils::{chemin_unique, dec, fictive, ecrire, lire, Copie};
 use std::str::FromStr;
 
-/// La config et les saisies de `fictive-3090-grande`, `retouche` appliquee a sa fiche entreprise et a ses fiches salaries.
+/// La config de `fictive-3090-grande` et les saisies de mars, octobre et novembre 2026 (les mois que la deduction de
+/// l'annee de Deburau lit), `retouche` appliquee a sa fiche entreprise et a ses fiches salaries.
 fn copie(retouche: impl Fn(&mut Value, &mut Value)) -> Copie {
     let c = Copie::config_de("fictive-3090-grande");
-    copier(&fictive("fictive-3090-grande").join("paies"), &c.0.join("paies"));
+    std::fs::create_dir_all(c.0.join("engagements")).unwrap();
+    for mois in ["2026-03", "2026-10", "2026-11"] {
+        let f = format!("engagements/{}.json", mois);
+        std::fs::copy(fictive("fictive-3090-grande").join(&f), c.0.join(&f)).unwrap();
+    }
     let (mut ent, mut sal) = (lire(&c.0, "config/entreprise.json"), lire(&c.0, "config/salaries.json"));
     retouche(&mut ent, &mut sal);
     ecrire(&c.0, "config/entreprise.json", &ent);
@@ -51,7 +56,7 @@ fn deburau() -> Copie {
 fn essai(ctx: &Contexte, s: &Value) -> Result<Saisie, String> {
     let chemin = chemin_unique("dfs.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let r = charger(ctx, &chemin);
+    let r = crate::outils::charger_fichier(ctx, &chemin);
     let _ = std::fs::remove_file(&chemin);
     r
 }
@@ -170,10 +175,10 @@ fn le_plafond_annuel_de_7600_euros_se_suit_dans_le_mois_et_d_un_mois_a_l_autre()
     assert!(b.avertissements.iter().any(|x| x.texte.contains("7600") && x.texte.contains("annee civile")), "{:?}", b.avertissements);
     // Octobre enregistre, novembre (Deburau y a un contrat) ne deduit plus rien.
     let mut octobre = cachets(&[("Deburau", "DE2.26.10", "40000.00"), ("Deburau", "DE2.26.11", "2000.00")]);
-    octobre["engagements"].as_array_mut().unwrap().extend(lire(&c.0, "paies/2026-10.json")["engagements"].as_array().unwrap().iter().cloned());
-    ecrire(&c.0, "paies/2026-10.json", &octobre);
+    octobre["engagements"].as_array_mut().unwrap().extend(crate::outils::saisie(&c.0, "2026-10")["engagements"].as_array().unwrap().iter().cloned());
+    crate::outils::poser_saisie(&c.0, "2026-10", &octobre);
     let ctx = c.contexte("2026-12-28");
-    let nov = charger(&ctx, &c.0.join("paies/2026-11.json")).unwrap();
+    let nov = charger(&ctx, "2026-11").unwrap();
     let p = nov.paies.iter().find(|p| p.engagement.salarie == "Deburau").unwrap();
     let d = p.deduction_forfaitaire.as_ref().unwrap();
     assert_eq!((d.deja, d.montant), (dec("7600.00"), dec("0.00")));
@@ -341,7 +346,7 @@ fn la_reduction_generale_d_un_technicien_sous_dfs_ne_depasse_pas_130_pour_cent_d
     let p = &s.paies[0];
     assert_eq!(p.deduction_forfaitaire.as_ref().unwrap().montant, dec("24.00"));
     let rg = p.reduction_generale.clone().unwrap();
-    let limite = paie::num::eur(rg_sans.montant * dec("1.30"));
+    let limite = socle::num::eur(rg_sans.montant * dec("1.30"));
     assert_eq!(rg.montant, limite, "la limite de 130 % s'applique (sans elle : la reduction de 126,00)");
     assert_eq!(rg.urssaf + rg.chomage + rg.agirc_arrco, rg.montant, "la reduction se repartit encore");
     let ligne = p.lignes.iter().find(|l| l.id == "reduction_generale").unwrap();

@@ -20,12 +20,15 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::depot::{self, Apercu};
-use crate::etats::{self, erreur, py_str, R};
-use crate::fichiers::vrai;
+use crate::etats;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::releve_retours::{iso_de_naif, maintenant_naif, Client, Panne};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
 /// voyagent ensemble dans le message, que `routes.rs` redresse en `{"erreur", "classe", <cle>}`.
@@ -47,7 +50,7 @@ pub struct Preuve {
 
 impl Preuve {
     pub fn de_la_charge(charge: &Value) -> Preuve {
-        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(py_str), mois_recopie: None }
+        Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None }
     }
 }
 
@@ -97,8 +100,8 @@ fn cle_de_version(v: &str) -> Vec<i64> {
 pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
     let code = ctx.code.parent().map(Path::to_path_buf).unwrap_or_default();
     let Some(p) = crate::routes_etats::prete(&code.join(".."))? else { return Ok(String::new()) };
-    let exigee = p.get("exigee").filter(|e| vrai(e)).map(py_str).unwrap_or_default();
-    let version = p.get("version").map(py_str).unwrap_or_default();
+    let exigee = p.get("exigee").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_default();
+    let version = p.get("version").map(valeur_en_texte).unwrap_or_default();
     if exigee.is_empty() || cle_de_version(&version) <= cle_de_version(&crate::routes_etats::courante(&code)?) {
         return Ok(String::new());
     }
@@ -206,7 +209,7 @@ pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
     for r in ligne.get("retours").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
         if r.get("verdict").and_then(Value::as_str) == Some("KO") {
             for a in r.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-                let t = py_str(a);
+                let t = valeur_en_texte(a);
                 if !anomalies.contains(&t) {
                     anomalies.push(t);
                 }
@@ -216,7 +219,7 @@ pub(crate) fn pourquoi_rate(ligne: &Value) -> String {
     if !anomalies.is_empty() {
         return anomalies.join(" ; ");
     }
-    let rep: String = ligne.get("reponse").filter(|r| vrai(r)).map(py_str).unwrap_or_default().trim().chars().take(200).collect();
+    let rep: String = ligne.get("reponse").filter(|r| vrai(r)).map(valeur_en_texte).unwrap_or_default().trim().chars().take(200).collect();
     if rep.is_empty() {
         "motif non lu".into()
     } else {
@@ -252,8 +255,8 @@ fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) ->
         format!(
             "Un fichier du meme nom a bien ete essaye en test le {}, mais son\ncontenu a CHANGE depuis ({} teste, {} aujourd'hui) : un octet qui\nbouge rend le test caduc.",
             quand_a(&l["quand"]),
-            l.get("empreinte").filter(|e| vrai(e)).map(py_str).unwrap_or_else(|| "?".into()),
-            py_str(&etat["empreinte"])
+            l.get("empreinte").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_else(|| "?".into()),
+            valeur_en_texte(&etat["empreinte"])
         )
     } else {
         "Ce contenu n'a jamais ete depose en test.".to_string()
@@ -393,7 +396,7 @@ pub(crate) const ANCIEN_PREFIXE_FLUX_FICTIF: &str = "DEMO-";
 /// `simulation.reponse_depot` : ce que le point de depot aurait repondu -- un flux, et la mention.
 fn reponse_fictive(quoi: &str, reel: bool) -> R<String> {
     let mut o = [0u8; 6];
-    crate::temps::aleas(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
+    socle::temps::aleas(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
     let flux = format!("{}{}", PREFIXE_FLUX_FICTIF, o.iter().map(|b| format!("{:02X}", b)).collect::<String>());
     Ok(format!(
         "<idflux>{}</idflux>\nCompagnie fictive : {} {} jouee, rien n'a quitte le poste.",
@@ -433,7 +436,7 @@ fn libelle_dsn_deposee(mois: &str, e: &Value) -> String {
     let anomalies = || -> String {
         let mut v: Vec<String> = Vec::new();
         for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let t = py_str(a);
+            let t = valeur_en_texte(a);
             if !v.contains(&t) {
                 v.push(t);
             }
@@ -460,7 +463,7 @@ fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64
 
 /// Le mois de constitution (`AAAA-MM`) d'une date S20.G00.05.007 (`JJMMAAAA`) ; illisible, celui d'aujourd'hui (la
 /// date de constitution est le jour ou le fichier s'ecrit, `dsn::generer`).
-fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &crate::date::Jour) -> String {
+fn mois_de_constitution(jjmmaaaa: &str, aujourdhui: &socle::date::Jour) -> String {
     let c: Vec<char> = jjmmaaaa.trim().chars().collect();
     if c.len() == 8 && c.iter().all(char::is_ascii_digit) {
         return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());
@@ -505,13 +508,13 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
     let mut connus: Vec<i64> = vec![essais.len() as i64, vues.ordre];
     for l in &essais {
         let d = l.get("detail").cloned().unwrap_or(Value::Null);
-        let o = d.get("ordre_test").filter(|o| vrai(o)).map(py_str).unwrap_or_default();
+        let o = d.get("ordre_test").filter(|o| vrai(o)).map(valeur_en_texte).unwrap_or_default();
         if !o.is_empty() && o.chars().all(|c| c.is_ascii_digit()) {
             if let Ok(n) = o.parse() {
                 connus.push(n);
             }
         }
-        if let Some(nom) = l.get("fichier").filter(|f| vrai(f)).map(py_str) {
+        if let Some(nom) = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte) {
             let p = ctx.racine.join("sorties").join(mois).join(nom);
             if p.exists() {
                 if let Some(n) = std::fs::read(&p).ok().and_then(|o| rang_dans_le_fichier(&o)) {
@@ -548,7 +551,7 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
     }
     // CE QUE LA PLATE-FORME A VU EN REEL au mois de constitution du fichier, lu en silence dans les bilans archives
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : une mensuelle reelle envoyee d'un autre poste compte, comme
-    // a la production (`produire_mois::forme_a_produire`).
+    // a la production (`depart::forme_a_produire`).
     let constitution = mois_de_constitution(a.champ("constitution"), &ctx.aujourdhui);
     let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
     let dernier = match dernier {
@@ -561,10 +564,9 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
         return Err(erreur(
             "AnnuleRemplaceHorsDelai",
             format!(
-                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). La correction se porte dans la DSN suivante : Historique › Corriger ce mois (`paie corriger {}`). Rien n'est ecrit.",
+                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien n'est parti.",
                 mois,
-                limite.jj_mm_aaaa(),
-                mois
+                limite.jj_mm_aaaa()
             ),
         ));
     }
@@ -647,10 +649,10 @@ pub fn deposer_dsn_dans(
     }
     // UNE COMPAGNIE D'ESSAI ne depose que ce qu'elle a ecrit sous SON identite : les DSN copiees de la fictive portent le
     // SIREN de la fictive, que le compte net-entreprises ne declare pas. Le refus ne cite aucun des deux numeros.
-    if crate::essai::est_essai(&ctx.racine) && apercu.champ("siren") != py_str(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
+    if crate::essai::est_essai(&ctx.racine) && apercu.champ("siren") != valeur_en_texte(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
         return Err(erreur(
             "ErreurOperation",
-            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Produire le mois ici (`paie mois`), puis deposer la DSN ecrite. Rien n'est parti.",
+            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Deposer ici la DSN du mois (`paie depot-dsn AAAA-MM`), qui s'y fabrique. Rien n'est parti.",
         ));
     }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };
@@ -854,14 +856,14 @@ pub fn deposer_dpae_avec(
     let chemin = PathBuf::from(crate::routes_apercus::resoudre(&ctx.racine, fichier)?);
     let apercu = crate::routes_apercus::apercu_depot_dpae(o, ctx, &json!(chemin.to_string_lossy()))?;
     let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;
-    let mois = py_str(&apercu["mois"]);
+    let mois = valeur_en_texte(&apercu["mois"]);
 
     if reel && !vrai(&apercu["reel"]) {
         return Err(erreur(
             "ErreurOperation",
             format!(
                 "Le fichier porte l'indicateur {} (test) et vous demandez un depot REEL : rien ne serait declare. Reproduire le fichier sans --test.",
-                py_str(&apercu["indicateur"])
+                valeur_en_texte(&apercu["indicateur"])
             ),
         ));
     }

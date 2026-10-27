@@ -26,16 +26,16 @@
 //! en silence. Une compagnie fictive n'a pas de plate-forme : ses envois sont joues, son journal est la seule
 //! memoire, rien n'est a dire.
 
-use std::collections::HashMap;
 use std::path::Path;
 
 use serde_json::Value;
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, py_str};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::valeur::valeur_en_texte;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::releve_retours::{self, Client};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Trois mois de releve : la retention des documents de la plate-forme (guide API v6.8, §8.2). 92 jours couvrent trois
 /// mois civils, quels qu'ils soient.
@@ -54,8 +54,8 @@ pub struct OrdreConnu {
 /// Le SIREN de l'entreprise : `siren`, sinon les neuf premiers chiffres du `siret`.
 fn siren(ent: &Value) -> String {
     match ent.get("siren").filter(|s| vrai(s)) {
-        Some(s) => py_str(s),
-        None => ent.get("siret").map(py_str).unwrap_or_default().chars().take(9).collect(),
+        Some(s) => valeur_en_texte(s),
+        None => ent.get("siret").map(valeur_en_texte).unwrap_or_default().chars().take(9).collect(),
     }
 }
 
@@ -97,7 +97,7 @@ fn dernier_ordre_des_essais(racine: &Path) -> Result<i64, Echec> {
     let mut dernier = 0;
     for l in lignes.iter().filter(|l| l.get("mode").and_then(Value::as_str) == Some("test")) {
         let detail = l.get("detail").cloned().unwrap_or(Value::Null);
-        let nature = detail.get("nature").map(py_str).unwrap_or_default();
+        let nature = detail.get("nature").map(valeur_en_texte).unwrap_or_default();
         if !crate::depot::SIGNALEMENTS.contains(&nature.as_str()) {
             continue;
         }
@@ -116,7 +116,7 @@ fn dernier_ordre_des_essais(racine: &Path) -> Result<i64, Echec> {
 /// archives et le journal (reels, `journal::dernier_ordre_des_signalements`, qui refuse une ligne reelle sans son
 /// ordre ; essais). `client` : un client donne (un test le pointe sur un faux serveur) ; sans lui, net-entreprises,
 /// avec le mot de passe de consultation.
-pub fn dernier_ordre_connu(o: &HashMap<String, String>, ctx: &Contexte, client: Option<Client>) -> Result<OrdreConnu, Echec> {
+pub fn dernier_ordre_connu(ctx: &Contexte, client: Option<Client>) -> Result<OrdreConnu, Echec> {
     let reels = crate::journal::dernier_ordre_des_signalements(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
     let journal = reels.max(dernier_ordre_des_essais(&ctx.racine)?);
     let mut avertissements = Vec::new();
@@ -127,7 +127,7 @@ pub fn dernier_ordre_connu(o: &HashMap<String, String>, ctx: &Contexte, client: 
         Ok(())
     } else {
         let fin = releve_retours::maintenant_naif();
-        match releve_retours::relever_retours(ctx, o, fin - JOURS_DE_RELEVE * 86_400, fin, false, "production", client, "") {
+        match releve_retours::relever_retours(ctx, fin - JOURS_DE_RELEVE * 86_400, fin, false, "production", client, "") {
             Ok(r) if r.incidents.is_empty() => Ok(()),
             Ok(r) => Err(releve_retours::incidents_en_phrase(&r)),
             Err(e) => Err(e.message),

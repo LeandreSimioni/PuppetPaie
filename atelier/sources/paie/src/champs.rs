@@ -18,17 +18,18 @@ use std::sync::{Arc, OnceLock};
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::sans_accent;
-use crate::date::Jour;
-use crate::etats::{erreur, py_str};
-use crate::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::retours::Echec;
+use socle::texte::sans_accent;
+use socle::date::Jour;
+use socle::valeur::valeur_en_texte;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
+use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(None, m)
+    socle::echec::noter_et(None, m)
 }
 
 /// `FORMES` : le libelle de chaque forme de champ.
@@ -151,18 +152,18 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
         .map_err(|m| plain(m.clone()))?;
     // Lu une fois par processus (le code livre ne change pas sous la fenetre), mais note a chaque usage : un calcul
     // suivi dans un processus deja chaud a les memes entrees qu'un processus neuf (ticket #244).
-    crate::fichiers::noter_si_besoin(&dossier_du_code().join("champs-base.json"));
+    socle::fichiers::noter_si_besoin(&dossier_du_code().join("champs-base.json"));
     match nom {
         "entreprise" => Ok(t.entreprise.clone()),
         "salarie" => Ok(t.salarie.clone()),
         "spectacle" => Ok(t.spectacle.clone()),
-        autre => Err(erreur("KeyError", format!("fiche inconnue : {}", crate::fichiers::repr(autre)))),
+        autre => Err(erreur("KeyError", format!("fiche inconnue : {}", socle::fichiers::repr(autre)))),
     }
 }
 
 // ------------------------------------------------------- les outils de texte
 
-pub(crate) use crate::retours::blanc_py as espace;
+pub(crate) use socle::texte::blanc as espace;
 
 pub(crate) fn strip(s: &str) -> &str {
     s.trim_matches(espace)
@@ -279,7 +280,7 @@ fn date_iso(s: &str) -> Option<Jour> {
         // Une annee compte 53 semaines si elle commence un jeudi, ou un
         // mercredi quand elle est bissextile ; 52 sinon.
         let premier = Jour::nouveau(an, 1, 1)?.jour_de_la_semaine();
-        let semaines = if premier == 3 || (premier == 2 && crate::date::bissextile(an)) { 53 } else { 52 };
+        let semaines = if premier == 3 || (premier == 2 && socle::date::bissextile(an)) { 53 } else { 52 };
         if semaine > semaines {
             return None;
         }
@@ -475,7 +476,7 @@ pub fn combler_affichage(nom: &str, donnees: &Map<String, Value>) -> R<Map<Strin
             if (cle == "declarant_dsn" || cle == "contact_sante_travail") && faux_ou_absent(&p, "nom_affichage") && faux_ou_absent(&p, "prenom_affichage") {
                 // << NOM PRENOM >> en un seul champ : le premier mot fait le nom,
                 // le reste le prenom.
-                let np = p.get("nom_prenom").filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+                let np = p.get("nom_prenom").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
                 let mots: Vec<&str> = np.split(espace).filter(|m| !m.is_empty()).collect();
                 if !mots.is_empty() {
                     p.insert("nom_affichage".into(), Value::String(titre(mots[0])));
@@ -858,23 +859,23 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
         return Ok(Some("nombre attendu".into()));
     }
     if c.forme == "choix" && !c.choix.is_empty() && !c.choix.iter().any(|x| x.as_str() == Some(v)) {
-        let liste: Vec<String> = c.choix.iter().map(py_str).collect();
+        let liste: Vec<String> = c.choix.iter().map(valeur_en_texte).collect();
         return Ok(Some(format!("valeur attendue parmi : {}", liste.join(", "))));
     }
     // UN PAYS SE CHOISIT DANS LA LISTE LIVREE (`pays.rs`, vague 1k) : un code qu'elle ne connait pas refuse.
     // Hors de la liste (vague 2h) : un pays de nationalite s'ecrit a part. Le pays de naissance se lit dans la table
     // « Pays » de la DSN (lot R2, `pays::de_la_table_dsn`), le Kosovo et les Etats disparus compris.
     let connu = if c.cle == "pays_naissance" {
-        crate::pays::de_la_table_dsn(v).map_err(plain)?.is_some()
+        socle::pays::de_la_table_dsn(v).map_err(plain)?.is_some()
     } else {
-        crate::pays::du_code(v).map_err(plain)?.is_some()
+        socle::pays::du_code(v).map_err(plain)?.is_some()
     };
     if c.forme == "pays" && !connu {
         let quoi = format!("Le {}", c.libelle.to_lowercase());
         return Ok(Some(match c.cle.as_str() {
-            "pays_naissance" => crate::pays::inconnu_naissance(&quoi, v),
-            "pays_nationalite" => crate::pays::inconnu_nationalite(&quoi, v),
-            _ => crate::pays::inconnu(&quoi, v),
+            "pays_naissance" => socle::pays::inconnu_naissance(&quoi, v),
+            "pays_nationalite" => socle::pays::inconnu_nationalite(&quoi, v),
+            _ => socle::pays::inconnu(&quoi, v),
         }));
     }
     // LE NUMERO D'ADHERENT CONGES SPECTACLES (#236) : dix chiffres et une lettre, dont la DSN tire S21.G00.40.022 (97 + ce
@@ -907,8 +908,8 @@ fn tranche_py(v: &Value, a: usize, b: usize) -> R<Value> {
     match v {
         Value::String(t) => Ok(Value::String(tranche(t, a, b))),
         Value::Array(l) => Ok(Value::Array(l.iter().skip(a).take(b.saturating_sub(a)).cloned().collect())),
-        Value::Object(_) => Err(erreur("TypeError", crate::fichiers::attendu("un texte", "dict"))),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un texte", crate::etats::nom_type(autre)))),
+        Value::Object(_) => Err(erreur("TypeError", socle::fichiers::attendu("un texte", "dict"))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(autre)))),
     }
 }
 
@@ -919,7 +920,7 @@ fn eq_py_texte(t: &Value, texte: &str) -> bool {
 
 /// `a + b` de Python sur ce qu'un JSON porte.
 fn additionner(a: &Value, b: &Value) -> R<Value> {
-    use crate::etats::nom_type;
+    use socle::valeur::nom_type;
     match (a, b) {
         (Value::String(x), Value::String(y)) => Ok(Value::String(format!("{}{}", x, y))),
         (Value::String(_), _) => Err(erreur("TypeError", format!("can only concatenate str (not \"{}\") to str", nom_type(b)))),
@@ -933,10 +934,10 @@ fn additionner(a: &Value, b: &Value) -> R<Value> {
             };
             match (ent(a), ent(b)) {
                 (Some(x), Some(y)) => Ok(json!(x + y)),
-                _ => Ok(json!(crate::etats::nombre(a).unwrap_or(0.0) + crate::etats::nombre(b).unwrap_or(0.0))),
+                _ => Ok(json!(socle::valeur::nombre(a).unwrap_or(0.0) + socle::valeur::nombre(b).unwrap_or(0.0))),
             }
         }
-        _ => Err(erreur("TypeError", format!("addition impossible : {} et {}", crate::fichiers::nature(nom_type(a)), crate::fichiers::nature(nom_type(b))))),
+        _ => Err(erreur("TypeError", format!("addition impossible : {} et {}", socle::fichiers::nature(nom_type(a)), socle::fichiers::nature(nom_type(b))))),
     }
 }
 
@@ -946,7 +947,7 @@ fn texte_de(d: &Map<String, Value>, cle: &str) -> R<String> {
         None | Some(Value::Null) => Ok(String::new()),
         Some(Value::String(s)) => Ok(s.clone()),
         Some(v) if !vrai(v) => Ok(String::new()),
-        Some(v) => Err(erreur("AttributeError", crate::fichiers::attendu("un texte", crate::etats::nom_type(v)))),
+        Some(v) => Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(v)))),
     }
 }
 
@@ -961,9 +962,9 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     // UNE AUTRE URSSAF QUE CELLE DE L'ADRESSE (Leandre, 08/10/2026) : permis, mais dit, et par le moteur, pour que la
     // ligne de commande l'entende comme la fenetre. C'est l'Urssaf du territoire qui recoit DPAE et DSN.
     if nom == "entreprise" {
-        let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(py_str).unwrap_or_default()).to_string();
+        let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !choisi.is_empty() {
-            if let Ok(base) = crate::fichiers::json_en_cache(&crate::fichiers::dossier_du_code().join("urssaf-dpae-base.json")) {
+            if let Ok(base) = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("urssaf-dpae-base.json")) {
                 let deduit = crate::routes_accueil::urssaf_du_code_postal(&base, d.get("code_postal"));
                 if !deduit.is_empty() && deduit != choisi {
                     out.push(anomalie(
@@ -980,7 +981,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     }
 
     if nom == "spectacle" {
-        let code = strip(&d.get("code_analytique").filter(|v| vrai(v)).map(py_str).unwrap_or_default()).to_string();
+        let code = strip(&d.get("code_analytique").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !code.is_empty() && !code.chars().all(|c| c.is_ascii() && (c.is_alphanumeric() || c == '-' || c == '_')) {
             out.push(anomalie(
                 "code_analytique",
@@ -1050,7 +1051,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                 out.push(anomalie(
                     "nir",
                     "avertissement",
-                    format!("le NIR annonce {}/{}, la date de naissance dit {}/{}", mo, an, py_str(&n57), py_str(&n24)),
+                    format!("le NIR annonce {}/{}, la date de naissance dit {}/{}", mo, an, valeur_en_texte(&n57), valeur_en_texte(&n24)),
                 ));
             }
         }
@@ -1061,22 +1062,22 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         // sa case a lui ; sinon c'est la nationalite choisie qui manque ou qui ne va pas, sur la sienne.
         let fiche = Value::Object(d.clone());
         let pays_inconnu = match d.get("pays_nationalite").filter(|v| vrai(v)) {
-            Some(Value::String(p)) => crate::pays::du_code(p).map_err(plain)?.is_none(),
+            Some(Value::String(p)) => socle::pays::du_code(p).map_err(plain)?.is_none(),
             _ => false,
         };
         let hors_liste = d.get("pays_nationalite_hors_liste").map_or(false, vrai);
-        if let Some(m) = crate::codification_ue::faute_hors_liste(&fiche).map_err(plain)? {
+        if let Some(m) = socle::codification_ue::faute_hors_liste(&fiche).map_err(plain)? {
             out.push(anomalie("pays_nationalite_hors_liste", "erreur", m));
         } else if !pays_inconnu
             && (hors_liste || d.get("code_nationalite_dsn").map_or(false, vrai) || d.get("pays_nationalite").map_or(false, vrai))
         {
-            if let Err(m) = crate::codification_ue::codification_ue(&fiche) {
+            if let Err(m) = socle::codification_ue::codification_ue(&fiche) {
                 out.push(anomalie("code_nationalite_dsn", "erreur", m));
             }
         }
         // LES BORNES D'UNE DISPENSE DE SANTE (Q13) : elles bornent un motif, et la fin ne precede pas le debut. Ce que
         // le mois en fait est dans `calcul::dispense_de_la_periode`.
-        let borne = |k: &str| d.get(k).filter(|v| vrai(v)).map(py_str);
+        let borne = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
         let (depuis, jusqu_au) = (borne("sante_dispense_depuis"), borne("sante_dispense_jusqu_au"));
         if (depuis.is_some() || jusqu_au.is_some()) && !d.get("sante_dispense").is_some_and(vrai) {
             out.push(anomalie(
@@ -1092,7 +1093,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         }
         // Le code emploi, le statut et le PCS de la fiche, confrontes au
         // catalogue des metiers. Avertissements, pas erreurs.
-        for msg in crate::emplois::controler_fiche(d)? {
+        for msg in droit::emplois::controler_fiche(d)? {
             out.push(anomalie("code_emploi_ft", "avertissement", msg));
         }
     }
@@ -1102,8 +1103,8 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         let (siret, siren, nic) = (brut("siret"), brut("siren"), brut("nic"));
         if vrai(&siret) && vrai(&siren) && vrai(&nic) {
             let somme = additionner(&siren, &nic)?;
-            if !crate::etats::eq_py(&siret, &somme) {
-                out.push(anomalie("siret", "erreur", format!("SIRET != SIREN + NIC ({})", py_str(&somme))));
+            if !socle::valeur::valeurs_egales(&siret, &somme) {
+                out.push(anomalie("siret", "erreur", format!("SIRET != SIREN + NIC ({})", valeur_en_texte(&somme))));
             }
         }
         if vrai(&siret) {
@@ -1111,7 +1112,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                 Value::String(t) => t.chars().count(),
                 Value::Array(a) => a.len(),
                 Value::Object(o) => o.len(),
-                autre => return Err(erreur("TypeError", crate::fichiers::attendu("un texte ou une liste", crate::etats::nom_type(autre)))),
+                autre => return Err(erreur("TypeError", socle::fichiers::attendu("un texte ou une liste", socle::valeur::nom_type(autre)))),
             };
             if longueur == 14 {
                 match &siret {
@@ -1120,7 +1121,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                             out.push(anomalie("siret", "erreur", "ce numéro ne peut pas être un SIRET : un chiffre est probablement mal tapé"));
                         }
                     }
-                    autre => return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", crate::etats::nom_type(autre)))),
+                    autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(autre)))),
                 }
             }
         }

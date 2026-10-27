@@ -209,7 +209,7 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
         "mois": crate::routes_mois::mois_saisis(racine),
         "_quoi": "Cette compagnie a ete creee dans la version demo de PuppetPaie, puis gardee au deblocage : rien de ce qui y a ete fait avant n'est parti (ni DPAE, ni contrat a la signature, ni DSN, ni document).",
     });
-    crate::ecriture::ecrire_json(&racine.join(FICHIER_DEMO), &mention, 2)?;
+    socle::ecriture::ecrire_json(&racine.join(FICHIER_DEMO), &mention, 2)?;
     if let Err(e) = std::fs::rename(racine, &cible) {
         let _ = std::fs::remove_file(racine.join(FICHIER_DEMO));
         return Err(format!("{} ne se garde pas ({}) : rien n'a changé.", nom, e));
@@ -304,5 +304,5 @@ pub fn sortir_de_la_demo(racine: &Path, mois: &str) -> Result<(), String> {
     if liste.len() == avant {
         return Ok(());
     }
-    crate::ecriture::ecrire_json(&p, &v, 2)
+    socle::ecriture::ecrire_json(&p, &v, 2)
 }

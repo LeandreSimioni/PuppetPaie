@@ -17,10 +17,12 @@ use std::path::Path;
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, nom_type};
-use crate::fichiers::{repr, vrai};
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use crate::etats;
+use socle::valeur::nom_type;
+use socle::echec::erreur;
+use socle::fichiers::{repr, vrai};
+use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
@@ -41,7 +43,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
-    charge.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)))
+    charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
 /// L'erreur du disque, sous le nom que Python lui donne.
@@ -53,7 +55,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
         (_, Some(21)) => "IsADirectoryError",
         _ => "OSError",
     };
-    erreur(classe, crate::fichiers::panne_fichier(e, p))
+    erreur(classe, socle::fichiers::panne_fichier(e, p))
 }
 
 // ------------------------------------------------------------------ documents-liste
@@ -65,7 +67,7 @@ fn sous_sorties(ctx: &Contexte, mois: &Value) -> R<std::path::PathBuf> {
         Value::String(m) => Ok(ctx.racine.join("sorties").join(m)),
         autre => Err(erreur(
             "TypeError",
-            format!("'mois' : {}", crate::fichiers::attendu("un texte", nom_type(autre))),
+            format!("'mois' : {}", socle::fichiers::attendu("un texte", nom_type(autre))),
         )),
     }
 }
@@ -98,8 +100,8 @@ pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R
     let envoi = base.join("envoi");
     // `{...}.get(quoi)` : un texte seulement se trouve ; une liste ou un dictionnaire ne se hache pas.
     let prefixes: Option<&[&str]> = match quoi {
-        Value::Array(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-        Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+        Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+        Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
         Value::String(q) if q == "contrats" => Some(&["Contrat_", "Contrats_"]),
         Value::String(q) if q == "documents" => Some(&["Bulletin_", "CertificatCS_", "AER_"]),
         _ => None,
@@ -174,7 +176,7 @@ fn existe(t: &str) -> bool {
 pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
     let vide = match chemin {
         Value::Null => true,
-        Value::String(t) => t.chars().all(crate::retours::blanc_py),
+        Value::String(t) => t.chars().all(socle::texte::blanc),
         _ => false,
     };
     if vide {
@@ -199,7 +201,7 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
         && c[4] == '-'
         && c[5..].iter().all(|x| crate::retours::est_chiffre(*x))
     {
-        let saisie = normaliser(&format!("{}/paies/{}.json", base, t));
+        let saisie = normaliser(&format!("{}/{}/{}.json", base, engagement::stock::DOSSIER, t));
         if existe(&saisie) {
             return Ok(saisie);
         }
@@ -253,7 +255,7 @@ fn chiffre_py(c: char) -> bool {
 
 /// `operations_declarations._iso_depuis_jjmmaaaa`.
 fn iso_depuis_jjmmaaaa(v: &str) -> String {
-    let t: Vec<char> = v.trim_matches(crate::retours::blanc_py).chars().collect();
+    let t: Vec<char> = v.trim_matches(socle::texte::blanc).chars().collect();
     if t.len() != 8 || !t.iter().all(|c| chiffre_py(*c)) {
         return String::new();
     }
@@ -274,13 +276,13 @@ fn pas_avant_dpae(debuts: &[String]) -> R<String> {
     let n = |a: usize, b: usize| c[a..b].iter().collect::<String>().parse::<i32>().unwrap_or(0);
     let (an, mo, jo) = (n(0, 4), n(5, 7), n(8, 10));
     if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", crate::date::annee_impossible(an)));
+        return Err(erreur("ValueError", socle::date::annee_impossible(an)));
     }
     if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", crate::date::mois_impossible(mo)));
+        return Err(erreur("ValueError", socle::date::mois_impossible(mo)));
     }
-    let Some(j) = crate::date::Jour::nouveau(an, mo as u32, jo as u32) else {
-        return Err(erreur("ValueError", crate::date::jour_impossible(an, mo, jo)));
+    let Some(j) = socle::date::Jour::nouveau(an, mo as u32, jo as u32) else {
+        return Err(erreur("ValueError", socle::date::jour_impossible(an, mo, jo)));
     };
     j.plus_jours(-8).map(|x| x.iso()).map_err(|m| erreur("OverflowError", m))
 }
@@ -301,8 +303,8 @@ pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fic
             continue;
         }
         match nir {
-            Value::Array(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-            Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
+            Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+            Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
             Value::String(t) => {
                 par_nir.insert(t.clone(), (cle, s));
             }
@@ -321,10 +323,10 @@ pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fic
         let debut = iso_depuis_jjmmaaaa(champ("date_embauche"));
         let nom_s = etats::getd(s, "nom", etats::texte_vide())?;
         let prenom = etats::ou(etats::get(s, "prenom_affichage")?, etats::getd(s, "prenom", etats::texte_vide())?);
-        let nom = format!("{} {}", etats::py_str(nom_s), etats::py_str(prenom));
-        let nom = nom.trim_matches(crate::retours::blanc_py);
+        let nom = format!("{} {}", socle::valeur::valeur_en_texte(nom_s), socle::valeur::valeur_en_texte(prenom));
+        let nom = nom.trim_matches(socle::texte::blanc);
         let nom = if nom.is_empty() { "salarie inconnu de la configuration" } else { nom };
-        let type_brut = champ("type_contrat").trim_matches(crate::retours::blanc_py);
+        let type_brut = champ("type_contrat").trim_matches(socle::texte::blanc);
         let type_contrat = match type_brut {
             "1" => "CDD".to_string(),
             "2" => "CDI".to_string(),

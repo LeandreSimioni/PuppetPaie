@@ -20,7 +20,7 @@ use super::actes::{est_operation, refuser_dans_l_atelier, refuser_si_pas_redirig
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, texte};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "filet",
@@ -45,15 +45,15 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 }
 
 fn afficher(e: &Value) {
-    if !e.get("actif").is_some_and(crate::fichiers::vrai) {
+    if !e.get("actif").is_some_and(socle::fichiers::vrai) {
         dire!("Filet de securite DPAE : non active.");
         dire!("  paie filet activer adresse@exemple.fr");
         return;
     }
     dire!("Filet de securite DPAE : {}", champ(e, "adresse"));
-    dire!("  {}", if e.get("confirme").is_some_and(crate::fichiers::vrai) { "adresse confirmee" } else { "adresse PAS ENCORE confirmee : ouvrir le lien recu par courriel" });
+    dire!("  {}", if e.get("confirme").is_some_and(socle::fichiers::vrai) { "adresse confirmee" } else { "adresse PAS ENCORE confirmee : ouvrir le lien recu par courriel" });
     dire!("  {} reveil(s) arme(s) -- serveur {}", champ(e, "reveils"), champ(e, "serveur"));
-    if e.get("erreur").is_some_and(crate::fichiers::vrai) {
+    if e.get("erreur").is_some_and(socle::fichiers::vrai) {
         dire!("  ! {}", champ(e, "erreur"));
     }
 }
@@ -67,7 +67,7 @@ fn faire(cadre: &Cadre, quoi: &str, args: &Args) -> Result<i32, Echec> {
                 dire!("Aucune embauche sans trace de DPAE.");
             }
             for e in &liste {
-                let parti = e.get("contrat_parti").is_some_and(crate::fichiers::vrai);
+                let parti = e.get("contrat_parti").is_some_and(socle::fichiers::vrai);
                 dire!("  {}  {:<28} {}{}", texte(e.get("debut").unwrap_or(&Value::Null)), champ(e, "nom"), champ(e, "spectacle"), if parti { "" } else { "  (contrat pas encore parti)" });
             }
             Ok(0)

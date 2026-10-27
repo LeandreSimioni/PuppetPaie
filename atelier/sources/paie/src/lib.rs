@@ -1,13 +1,10 @@
-//! Le moteur de PuppetPaie en Rust (docs/PORTAGE-RUST.md).
+//! Le moteur de PuppetPaie au-dessus du socle et du droit (`socle`, `droit`).
 //!
-//! Le chemin, de bout en bout : un fichier de mois (`paies/AAAA-MM.json`) ->
-//! `engagement` (les contrats, et leurs refus) -> `calcul` (la paie, au
-//! centime) -> `bulletin` (la description) -> la fabrique (`fabrique-pdf`,
-//! le PDF). Le Python est l'oracle : `paie oracle ...` et `python -m moteur
-//! oracle ...` ecrivent le meme JSON, octet pour octet.
+//! Le chemin, de bout en bout : les engagements (`engagements/AAAA-MM.json`) -> `engagement` (les contrats, et leurs
+//! refus) -> `calcul` (la paie, au centime) -> `bulletin` (la description) -> la fabrique (`fabrique-pdf`, le PDF) ;
+//! et, depuis les paies, la DSN, la DPAE, les envois.
 //!
-//! Les fichiers de donnees se lisent en `serde_json::Value`, comme le Python
-//! lit des dictionnaires : rien a migrer, et une cle inconnue survit.
+//! Les fichiers de donnees se lisent en `serde_json::Value` : une cle inconnue survit, rien a migrer.
 
 pub mod administrateur;
 pub mod aer;
@@ -20,35 +17,21 @@ pub mod apercu_dsn;
 pub mod archivage;
 pub mod assujettissement;
 pub mod avenant;
-pub mod bareme;
 pub mod bordereau;
 pub mod bridage;
 pub mod bulletin;
-pub mod cachet;
 pub mod changements_individu;
-pub mod caisse_conges;
-pub mod calcul;
-pub mod calcul_du_mois;
 pub mod casc;
 pub mod changements_contrat;
-pub mod catalogue;
 pub mod champs;
-pub mod clauses;
-pub mod codification_ue;
 pub mod coffre;
 pub mod commandes;
 pub mod courriel;
 pub mod courriel_lecture;
 pub mod coffre_verifier;
-pub mod conges;
 pub mod conges_spectacles;
-pub mod contexte;
 pub mod contrat;
-pub mod contrats;
 pub mod conseils;
-pub mod cumul;
-pub mod d28;
-pub mod date;
 pub mod demande;
 pub mod depot;
 pub mod demarrage;
@@ -56,11 +39,8 @@ pub mod dpae;
 pub mod drive;
 pub mod dsn;
 pub mod echeance_dsn;
-pub mod ecriture;
 pub mod diagnostic;
 pub mod editeur;
-pub mod emplois;
-pub mod engagement;
 pub mod entrepot_dila;
 pub mod essai;
 pub mod envoi;
@@ -72,12 +52,8 @@ pub mod fabrique;
 pub mod fiche_questionnaire;
 pub mod fiche_recapitulative;
 pub mod fctu;
-pub mod feries;
-pub mod fichiers;
-pub mod fil_de_fond;
 pub mod filet;
 pub mod generer_tables;
-pub mod garde_reseau;
 pub mod google_autorisation;
 pub mod guet;
 pub mod horloge;
@@ -85,35 +61,23 @@ pub mod formats;
 pub mod interface;
 pub mod journal;
 pub mod kali;
-pub mod lecture_xlsx;
-pub(crate) mod jumeaux;
 pub mod maj;
-pub mod minima;
 pub mod mois_importe;
-pub mod nfkc;
 pub mod naf;
 pub mod norme;
 pub mod ntt;
-pub mod num;
 pub mod csa;
 pub mod obligations;
 pub mod oeth;
 pub mod ordres_paiement;
 pub mod organismes;
-pub mod oracle;
 pub mod ordre_signalements;
-pub mod paris;
-pub mod pays;
-pub mod periodes;
-pub mod pas;
-pub mod permanents;
-pub mod plafond;
+pub mod prelevement;
 pub mod problemes;
 pub mod retours;
 pub mod routes;
 pub mod routes_accueil;
 pub mod importation;
-pub mod imprevus;
 pub mod importation_tri;
 pub mod bulletin_lu;
 pub mod importation_bulletins;
@@ -145,10 +109,9 @@ pub mod releve_retours;
 pub mod releve_signatures;
 pub mod routes_actes_h1;
 pub mod routes_actes_h2;
-pub mod produire_mois;
+pub mod depart;
 pub mod produire_regularisations;
 pub mod routes_ecritures_g4;
-pub mod csv_py;
 pub mod tableaux_export;
 pub mod etats_paie;
 pub mod etats_organismes;
@@ -179,13 +142,9 @@ pub mod restauration;
 pub mod signature_courriel;
 pub mod service;
 pub mod signalement;
-pub mod solde;
 pub mod sources;
 pub mod tables_journal;
-pub mod tables_nfkc;
 pub mod tables_retours;
-pub mod temps;
 pub mod usages;
 pub mod verifier_avant_commit;
 pub mod transport;
-pub mod verrou;

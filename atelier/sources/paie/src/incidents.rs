@@ -32,11 +32,16 @@ use std::sync::OnceLock;
 use serde_json::{json, Map, Value};
 
 use crate::editeur::{Client, ErreurFilet};
-use crate::ecriture::ecrire_json;
-use crate::etats::{eq_py, erreur, get, nom_type, py_str, R};
-use crate::fichiers::{dossier_du_code, vrai};
+use socle::ecriture::ecrire_json;
+use crate::etats::{get};
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, vrai};
 use regex::Regex;
-use crate::verrou::Verrou;
+use socle::verrou::Verrou;
 
 pub const LOGICIEL: &str = "logiciel";
 pub const REFUS: &str = "refus";
@@ -160,8 +165,8 @@ fn tete(s: &str, n: usize) -> String {
 
 /// L'heure de Paris, `datetime.now().isoformat(timespec="seconds")`.
 pub fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_secondes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_secondes(t)
 }
 
 // -------------------------------------------------------------------- caviardage
@@ -305,7 +310,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
         ecrire_json(&p, &Value::Array(toutes), 2).ok()?;
         return Some(ligne);
     }
-    let fil = crate::diagnostic::fil(crate::diagnostic::maintenant_ms());
+    let fil = crate::diagnostic::fil(socle::temps::maintenant_ms());
     let fil = fil[fil.len().saturating_sub(FIL_PAR_INCIDENT)..].to_vec();
     let ligne = json!({
         "quoi": nature,
@@ -321,7 +326,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
         "fois": 1,
         "derniere": quand,
         "fil": fil,
-        "ecritures": crate::diagnostic::ecritures(crate::diagnostic::maintenant_ms(), ECRITURES_PAR_INCIDENT),
+        "ecritures": crate::diagnostic::ecritures(socle::temps::maintenant_ms(), ECRITURES_PAR_INCIDENT),
         "machine_detail": crate::diagnostic::machine(racine),
         "envoi": {"etat": n.envoi.unwrap_or(EN_ATTENTE), "quand": Value::Null},
     });
@@ -398,9 +403,20 @@ pub fn depuis_exception(racine: &Path, classe: &str, message: &str, nature: Opti
     )
 }
 
+/// UN RECALCUL QUE LE MOTEUR REFUSE A LA LECTURE D'UN ENGAGEMENT VALIDE (`engagement::etats::du_mois`) : l'engagement garde
+/// sa paie validee, l'utilisateur n'en voit rien, et l'editeur le recoit comme un incident.
+fn recalcul_refuse(racine: &Path, mois: &str, refus: &str) {
+    let _ = depuis_exception(racine, "RecalculRefuse", refus, None, "engagement::etats::du_mois", serde_json::json!({ "mois": mois }), None);
+}
+
+/// Pose le temoin des recalculs refuses (`recalcul_refuse`) : a l'entree de toute commande du moteur.
+pub fn poser_le_temoin_des_recalculs() {
+    engagement::etats::poser_temoin(recalcul_refuse);
+}
+
 /// `str(x)` (`None` n'est pas ici un texte : voir l'appelant).
 fn texte_de(v: &Value) -> String {
-    py_str(v)
+    valeur_en_texte(v)
 }
 
 /// `_fichier_court` : « http://hote:7331/interface.js?v=3 » -> « interface.js ».
@@ -545,7 +561,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
         let regroupe = se_regroupe(get(&l, "quoi")?);
         let cle = if regroupe { Some(get(&l, "empreinte")?.clone()) } else { None };
         let existant = match &cle {
-            Some(c) => paquets.iter().position(|(k, _)| k.as_ref().is_some_and(|k| eq_py(k, c))),
+            Some(c) => paquets.iter().position(|(k, _)| k.as_ref().is_some_and(|k| valeurs_egales(k, c))),
             None => None,
         };
         let quand = get(&l, "quand")?.clone();
@@ -572,7 +588,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
                 p.insert("derniere".into(), quand);
                 let version = get(&l, "version")?.clone();
                 if let Some(Value::Array(vs)) = p.get_mut("versions") {
-                    if !vs.iter().any(|v| eq_py(v, &version)) {
+                    if !vs.iter().any(|v| valeurs_egales(v, &version)) {
                         vs.push(version);
                     }
                 }
@@ -580,7 +596,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
                 if vrai(cav) {
                     for c in crate::etats::items(cav)? {
                         if let Some(Value::Array(cs)) = p.get_mut("caviarde") {
-                            if !cs.iter().any(|x| eq_py(x, &c)) {
+                            if !cs.iter().any(|x| valeurs_egales(x, &c)) {
                                 cs.push(c.into_owned());
                             }
                         }
@@ -610,7 +626,7 @@ pub fn marquer_envoye(racine: &Path, empreintes: &[Value]) -> usize {
     let mut n = 0;
     for l in toutes.iter_mut() {
         let porte = match l.get("empreinte") {
-            Some(e) => empreintes.iter().any(|v| eq_py(v, e)),
+            Some(e) => empreintes.iter().any(|v| valeurs_egales(v, e)),
             None => false,
         };
         if l.is_object() && porte && matches!(etat_d_envoi(l), Ok(Some(e)) if e == EN_ATTENTE) {
@@ -886,7 +902,7 @@ fn serveur_propre(racine: &Path) -> R<String> {
     let e = crate::filet::lire_etat(racine)?;
     let compte = get(&e, "compte")?;
     let compte = if vrai(compte) { compte.clone() } else { json!({}) };
-    let texte = |v: &Value| if vrai(v) { py_str(v) } else { String::new() };
+    let texte = |v: &Value| if vrai(v) { valeur_en_texte(v) } else { String::new() };
     let s = get(&e, "serveur")?;
     Ok(if vrai(s) { texte(s) } else { texte(get(&compte, "serveur")?) })
 }
@@ -915,7 +931,7 @@ pub fn configuration(racine: &Path) -> R<Option<(String, PathBuf)>> {
     }
     let e = std::fs::read(logiciel.join(FICHIER_EDITEUR)).ok().and_then(|o| String::from_utf8(o).ok()).and_then(|t| serde_json::from_str::<Value>(&t).ok());
     match e {
-        Some(Value::Object(d)) => match d.get("serveur").filter(|v| vrai(v)).map(py_str) {
+        Some(Value::Object(d)) => match d.get("serveur").filter(|v| vrai(v)).map(valeur_en_texte) {
             Some(s) => Ok(Some((s, racine.to_path_buf()))),
             None => Ok(Some((crate::editeur::SERVEUR_PAR_DEFAUT.to_string(), racine.to_path_buf()))),
         },
@@ -956,7 +972,7 @@ fn marquer(racine: &Path, cles: &[(Value, Value)]) -> R<usize> {
     for l in toutes.iter_mut() {
         let empreinte = get(l, "empreinte")?.clone();
         let q = get(l, "quand")?.clone();
-        if cles.iter().any(|(e, w)| eq_py(e, &empreinte) && eq_py(w, &q)) && etat_d_envoi(l)? == Some(EN_ATTENTE.to_string()) {
+        if cles.iter().any(|(e, w)| valeurs_egales(e, &empreinte) && valeurs_egales(w, &q)) && etat_d_envoi(l)? == Some(EN_ATTENTE.to_string()) {
             l["envoi"] = json!({"etat": DEPOSE, "quand": quand});
             n += 1;
         }
@@ -973,7 +989,7 @@ fn concatener(a: &Value, b: &Value) -> R<Vec<Value>> {
     let (a, b) = (if vrai(a) { a } else { &vide }, if vrai(b) { b } else { &vide });
     match (a, b) {
         (Value::Array(x), Value::Array(y)) => Ok(x.iter().chain(y).cloned().collect()),
-        (Value::Array(_), autre) | (autre, _) => Err(erreur("TypeError", format!("'recus' et 'ecartes' : {}", crate::fichiers::attendu("une liste", nom_type(autre))))),
+        (Value::Array(_), autre) | (autre, _) => Err(erreur("TypeError", format!("'recus' et 'ecartes' : {}", socle::fichiers::attendu("une liste", nom_type(autre))))),
     }
 }
 
@@ -1060,8 +1076,8 @@ pub fn envoyer(racine: &Path) -> Value {
         return bilan.json();
     }
     // Un autre passage est en cours : celui-ci n'a rien a faire.
-    let marque = crate::verrou::marque("incidents", std::process::id(), &maintenant());
-    let _verrou = match Verrou::prendre(&p.with_file_name(".envoi.verrou"), &marque, crate::verrou::DELAI_VERROU) {
+    let marque = socle::verrou::marque("incidents", std::process::id(), &maintenant());
+    let _verrou = match Verrou::prendre(&p.with_file_name(".envoi.verrou"), &marque, socle::verrou::DELAI_VERROU) {
         Ok(Ok(v)) => v,
         Ok(Err(_)) => return bilan.json(),
         Err(m) => {

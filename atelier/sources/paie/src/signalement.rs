@@ -11,11 +11,11 @@
 
 use serde_json::Value;
 
-use crate::contexte::{aujourdhui, Contexte};
-use crate::date::{d, en_texte, Jour};
+use droit::contexte::{aujourdhui, Contexte};
+use socle::date::{d, en_texte, Jour};
 use crate::dsn::{self, Arret, Fichier, LOGICIEL, VERSION};
-use crate::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, repr_valeur, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, repr_valeur, vrai};
+use socle::num::Resultat;
 
 pub const ARRET: &str = "04";
 pub const REPRISE: &str = "05";
@@ -49,7 +49,7 @@ fn g<'a>(v: &'a Value, k: &str) -> &'a Value {
 
 /// `v[k]` : la cle doit exister (`KeyError`).
 fn req<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
-    v.get(k).ok_or_else(|| crate::fichiers::absent(k))
+    v.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
 fn s(v: &Value, k: &str) -> String {
@@ -432,8 +432,13 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.11.004", req(&etab, "code_postal")?)?;
     f.add_v("S21.G00.11.005", req(&etab, "commune")?)?;
 
+    // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
     let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let jour = jours(a, "dernier_jour_travaille")?;
     for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
+        if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {
+            continue;
+        }
         f.add_v("S21.G00.15.001", req(ad, "libelle")?)?;
         f.add_v("S21.G00.15.002", req(ad, "delegataire")?)?;
         f.add_v("S21.G00.15.005", req(ad, "reference")?)?;

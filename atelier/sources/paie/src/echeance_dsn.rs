@@ -36,8 +36,8 @@
 
 use serde_json::{json, Value};
 
-use crate::date::Jour;
-use crate::num::Resultat;
+use socle::date::Jour;
+use socle::num::Resultat;
 
 /// L'heure limite du depot le jour de l'echeance (cahier technique DSN 2026.1, § 1.4.2).
 pub const HEURE_LIMITE: &str = "12:00";
@@ -75,7 +75,7 @@ pub(crate) fn non_ouvre(j: &Jour) -> Resultat<Option<String>> {
         6 => return Ok(Some("dimanche".into())),
         _ => {}
     }
-    Ok(crate::feries::feries(j.an)?.into_iter().find(|(d, _)| d == j).map(|(_, nom)| format!("{}, fête légale", nom)))
+    Ok(socle::feries::feries(j.an)?.into_iter().find(|(d, _)| d == j).map(|(_, nom)| format!("{}, fête légale", nom)))
 }
 
 /// `nominale`, reportee au premier jour ouvre qui la suit si elle n'en est pas un (R. 133-14, I ; inferences 1 et 2).
@@ -90,7 +90,7 @@ pub fn reporter(nominale: Jour) -> Resultat<Echeance> {
 
 /// `int(texte)` d'un morceau de nom de mois.
 fn entier(t: &str) -> Resultat<i64> {
-    t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {}", crate::fichiers::repr(t)))
+    t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : {}", socle::fichiers::repr(t)))
 }
 
 /// L'echeance de la DSN du mois `mois` (`AAAA-MM`) : le `jour_du_mois` (5 ou 15, `Contexte::echeance_dsn`) du mois
@@ -99,17 +99,17 @@ pub fn du_mois(mois: &str, jour_du_mois: u32) -> Resultat<Echeance> {
     let (an, mo) = (entier(&mois.chars().take(4).collect::<String>())?, entier(&mois.chars().skip(5).take(2).collect::<String>())?);
     let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
     if !(1..=12).contains(&mo) {
-        return Err(crate::date::mois_impossible(mo));
+        return Err(socle::date::mois_impossible(mo));
     }
     if !(1..=9999).contains(&an) {
-        return Err(crate::date::annee_impossible(an));
+        return Err(socle::date::annee_impossible(an));
     }
-    let nominale = Jour::nouveau(an as i32, mo as u32, jour_du_mois).ok_or_else(|| crate::date::jour_impossible(an, mo, jour_du_mois))?;
+    let nominale = Jour::nouveau(an as i32, mo as u32, jour_du_mois).ok_or_else(|| socle::date::jour_impossible(an, mo, jour_du_mois))?;
     reporter(nominale)
 }
 
 /// L'echeance de la DSN du mois `mois` pour cette compagnie (son effectif choisit le 5 ou le 15).
-pub fn de_la_compagnie(ctx: &crate::contexte::Contexte, mois: &str) -> Resultat<Echeance> {
+pub fn de_la_compagnie(ctx: &droit::contexte::Contexte, mois: &str) -> Resultat<Echeance> {
     du_mois(mois, ctx.echeance_dsn()?)
 }
 

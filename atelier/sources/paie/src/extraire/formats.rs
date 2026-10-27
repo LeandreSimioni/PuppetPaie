@@ -35,7 +35,7 @@
 //! declaration licite -- pire que pas de controle du tout (regle 7). Une expression qui refuse une valeur deja acceptee
 //! par net-entreprises est retiree du releve, pas imposee au moteur.
 //!
-//! Portage de `atelier/outils/extraire_formats.py`.
+//! Le PDF se lit une fois, a son depot : sa transcription (`transcrire`, `super::Transcription`) redonne le meme releve.
 
 use std::path::Path;
 
@@ -43,10 +43,10 @@ use regex::Regex;
 use serde_json::{json, Map, Value};
 
 use super::usages::{en_classeur, version_du_cahier};
-use super::{date_du_releve, nom_de, sha256, Releve};
-use crate::date::Jour;
-use crate::lecture_xlsx::{self, Cellule};
-use crate::num::Resultat;
+use super::{date_du_releve, en_transcription, nom_de, sha256, Releve, Transcription};
+use socle::date::Jour;
+use socle::lecture_xlsx::{self, Cellule};
+use socle::num::Resultat;
 use crate::usages::{espace, strip};
 
 /// Une expression ecartee : (rubrique, expression).
@@ -219,7 +219,7 @@ fn entier_py(c: &Cellule) -> Resultat<i64> {
         Cellule::Flottant(f) if f.is_finite() => Ok(f.trunc() as i64),
         Cellule::Booleen(b) => Ok(*b as i64),
         Cellule::Texte(s) => {
-            strip(s).parse::<i64>().map_err(|_| format!("longueur illisible : {}", crate::fichiers::repr(s)))
+            strip(s).parse::<i64>().map_err(|_| format!("longueur illisible : {}", socle::fichiers::repr(s)))
         }
         Cellule::Flottant(f) => Err(format!("longueur illisible : {}", f)),
     }
@@ -260,7 +260,7 @@ fn relever_xlsx(
         let bloc = champ_exige(e, &r, "Block Id", "Fields")?;
         let id = champ_exige(e, &r, "Id", "Fields")?;
         let type_id = champ_exige(e, &r, "DataType Id", "Fields")?;
-        let texte = |c: Option<&Cellule>| strip(&lecture_xlsx::py_str(&c.cloned())).to_string();
+        let texte = |c: Option<&Cellule>| strip(&lecture_xlsx::cellule_en_texte(&c.cloned())).to_string();
         let rid = format!("{}.{}", texte(bloc), texte(id));
         let genre = type_id.and_then(|t| types.get(&cle(t)));
         let Some(genre) = genre else {
@@ -275,7 +275,7 @@ fn relever_xlsx(
         let expression = match lg("Regexp") {
             Some(Cellule::Texte(s)) => strip(s).to_string(),
             Some(c) if c.vrai() => {
-                return Err(format!("{} : l'expression du type n'est pas un texte ({})", rid, c.py_str()))
+                return Err(format!("{} : l'expression du type n'est pas un texte ({})", rid, c.en_texte()))
             }
             _ => String::new(),
         };
@@ -293,12 +293,21 @@ fn relever_xlsx(
     Ok(out)
 }
 
-/// Le releve des formats, depuis le classeur ou le cahier en PDF.
+/// LA TRANSCRIPTION DES DEFINITIONS du cahier en PDF (`super::Transcription`) : son texte, tel que la fabrique de PDF le
+/// lit, les pages separees par un saut de ligne -- ce que `relever_pdf` lit.
+pub fn transcrire(pdf: &Path) -> Resultat<String> {
+    version_du_cahier(pdf)?;
+    let (textes, _) = fabrique_pdf::lecture::texte(&pdf.to_string_lossy()).map_err(|r| r.0)?;
+    let t = Transcription::de(pdf, Vec::new(), textes.join("\n"))?;
+    Ok(t.texte(&format!("Le texte de {}, tel que la fabrique de PDF le lit (`paie extraire transcrire`)", nom_de(pdf))))
+}
+
+/// Le releve des formats, depuis le classeur, le cahier en PDF ou sa transcription.
 pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     let date = date_du_releve(jour);
     let (mut ecartees, mut sans_type) = (Vec::new(), Vec::new());
     let classeur = en_classeur(source);
-    let (formats, provenance) = if classeur {
+    let (formats, provenance, empreinte) = if classeur {
         let chemin = source.to_string_lossy();
         let v = Regex::new(r"datatypes-usages-(\d[\d.]*\d)-\d{8}\.xlsx$")
             .expect("motif")
@@ -319,19 +328,26 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
             nom_de(source),
             date
         );
-        (formats, provenance)
+        (formats, provenance, sha256(source)?)
     } else {
-        let v = version_du_cahier(source)?;
-        let (textes, _) = fabrique_pdf::lecture::texte(&source.to_string_lossy()).map_err(|r| r.0)?;
-        let formats = relever_pdf(&textes.join("\n"), &mut ecartees)?;
+        // Le texte du cahier : sa transcription (`dsn-cahier-technique-<version>-formats.txt`), ou le PDF lui-meme.
+        let (pdf, texte, empreinte) = if en_transcription(source) {
+            let t = Transcription::lire(source)?;
+            (t.pdf, t.corps, t.sha256)
+        } else {
+            let (textes, _) = fabrique_pdf::lecture::texte(&source.to_string_lossy()).map_err(|r| r.0)?;
+            (nom_de(source), textes.join("\n"), sha256(source)?)
+        };
+        let v = version_du_cahier(Path::new(&pdf))?;
+        let formats = relever_pdf(&texte, &mut ecartees)?;
         let provenance = format!(
             "Cahier technique NEODeS {} ({}), definitions des rubriques. Releve automatiquement par \
              `paie extraire formats` le {}.",
             v,
-            nom_de(source),
+            pdf,
             date
         );
-        (formats, provenance)
+        (formats, provenance, empreinte)
     };
     let mut bilan = vec![format!(
         "{} rubriques, dont {} avec expression de controle",
@@ -360,7 +376,7 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     donnees.insert("_source".into(), Value::String(provenance));
     donnees.insert(
         (if classeur { "_sha256_du_classeur" } else { "_sha256_du_pdf" }).into(),
-        Value::String(sha256(source)?),
+        Value::String(empreinte),
     );
     donnees.insert(
         "_comment_le_verifier".into(),

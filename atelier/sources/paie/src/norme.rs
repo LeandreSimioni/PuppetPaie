@@ -9,9 +9,9 @@
 //! Le fichier en cours de fabrication porte sa norme (`dsn::Fichier::en_norme`) : « ce fichier est-il en P27V01 ? »
 //! se demande a lui, par la table de sa version (`Norme::admet`), en un seul endroit.
 
-use crate::date::Jour;
-use crate::fichiers::{dossier_du_code, json_en_cache};
-use crate::num::Resultat;
+use socle::date::Jour;
+use socle::fichiers::{dossier_du_code, json_en_cache};
+use socle::num::Resultat;
 use crate::usages::{lignes, rubrique_valeur};
 use serde_json::Value;
 use std::sync::Arc;

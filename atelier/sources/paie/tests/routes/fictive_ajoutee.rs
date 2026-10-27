@@ -151,9 +151,9 @@ fn l_avenant_la_relance_et_le_contresigne_d_une_fictive_ajoutee_ne_partent_pas()
     let r = copie("contresigne", false);
     reussi(&route(&r, "demander-signature", json!({"mois": "2026-10", "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13", "numero": "BR1.26.05"}], "motdepasse": ""})));
     // Le lieu change : un avenant est du.
-    let mut s = lire(&r, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&r, "2026-10");
     s["engagements"][0]["lignes"][0]["lieu"] = json!("Theatre de la Ville");
-    crate::outils::ecrire(&r, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&r, "2026-10", &s);
     rendre_ajoutee(&r);
     let avant = depots(&r);
     refuse_l_envoi(&route(&r, "avenant-envoyer", json!({"salarie": "BRIOCHE", "debut": "2026-10-13", "motdepasse": "x"})), "avenant");
@@ -172,11 +172,11 @@ fn l_avenant_la_relance_et_le_contresigne_d_une_fictive_ajoutee_ne_partent_pas()
 #[test]
 fn le_signalement_s_ecrit_et_son_depot_refuse() {
     let r = compagnie::ses_dsn("fictive-3090-grande", &[], &dossier_de_test("fictive_ajoutee", "signalement"));
-    let mut saisie = lire(&r, "paies/2026-05.json");
+    let mut saisie = crate::outils::saisie(&r, "2026-05");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "BI4.26.05").unwrap();
     e["motif_rupture"] = json!("084");
     e["preavis"] = json!({"type": "90"});
-    crate::outils::ecrire(&r, "paies/2026-05.json", &saisie);
+    crate::outils::poser_saisie(&r, "2026-05", &saisie);
     rendre_ajoutee(&r);
     let avant = depots(&r);
     let ecrit = reussi(&route(&r, "fin-contrat-signaler", json!({"mois": "2026-05", "salarie": "Biancolelli", "test": true}))).clone();
@@ -208,8 +208,7 @@ fn l_ouverture_n_envoie_rien_et_le_coffre_se_pose() {
 #[test]
 fn le_nombre_de_paies_ne_part_pas_d_une_fictive_ajoutee() {
     let r = copie("nombre-de-paies", true);
-    let o = std::collections::HashMap::from([("racine".to_string(), r.display().to_string())]);
-    let ctx = paie::contexte::Contexte::nouveau(&r, Some(paie::date::Jour::lire("2027-01-20").unwrap())).unwrap();
-    let bilan = paie::nombre_de_paies::envoyer_si_du(&o, &ctx);
+    let ctx = droit::contexte::Contexte::nouveau(&r, Some(socle::date::Jour::lire("2027-01-20").unwrap())).unwrap();
+    let bilan = paie::nombre_de_paies::envoyer_si_du(&ctx);
     assert_eq!((bilan["envoye"].clone(), bilan["raison"].clone()), (json!(false), json!("compagnie fictive")), "{}", bilan);
 }

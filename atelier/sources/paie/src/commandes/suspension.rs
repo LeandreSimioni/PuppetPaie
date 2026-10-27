@@ -11,7 +11,7 @@ use super::actes::{est_refus, jj_mm_aaaa, jour_option, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{brut, champ, enveloppe, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "suspension",
@@ -39,7 +39,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(Some("ErreurOperation"), m)
+    socle::echec::noter_et(Some("ErreurOperation"), m)
 }
 
 fn opt<'a>(args: &'a Args, nom: &str) -> Option<&'a str> {

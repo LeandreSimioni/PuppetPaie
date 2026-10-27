@@ -10,10 +10,10 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnie inventee).
 
 use crate::outils::{fictive, paires as lignes};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 
 /// Le bloc 20 de l'organisme `id` : ses rubriques jusqu'au bloc suivant.
 fn bloc(dsn: &str, id: &str) -> Vec<(String, String)> {
@@ -33,7 +33,7 @@ fn val<'a>(b: &'a [(String, String)], r: &str) -> Option<&'a str> {
 #[test]
 fn audiens_sante_prevoyance_est_prelevee_le_25_du_mois_suivant() {
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     // P0983 : la date doit etre renseignee, le 25 du mois qui suit juillet.
     assert_eq!(val(&bloc(&dsn, "P0983"), "S21.G00.20.011"), Some("25082026"));

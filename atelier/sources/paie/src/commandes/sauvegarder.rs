@@ -33,7 +33,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let racine_drive = args.texte("racine-drive").unwrap_or(sauvegarde::RACINE_DRIVE);
     if args.drapeau("point") {
         let d = sauvegarde::derniere(&cadre.racine);
-        let quand = if crate::fichiers::vrai(&d.quand) { texte(&d.quand) } else { "jamais".to_string() };
+        let quand = if socle::fichiers::vrai(&d.quand) { texte(&d.quand) } else { "jamais".to_string() };
         dire!("Dernier passage : {} ({} fichier(s) suivis)", quand, d.fichiers);
         dire!("Rien n'a bouge depuis : {}", if sauvegarde::rien_n_a_bouge(&cadre.racine, racine_drive) { "oui" } else { "non" });
         return 0;
@@ -57,7 +57,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     if let Some(p) = &r.persistant {
         dire!("{}", p);
     }
-    dire!("En {} s.", crate::ecriture::repr_flottant(r.secondes));
+    dire!("En {} s.", socle::ecriture::repr_flottant(r.secondes));
     if r.incidents.is_empty() {
         0
     } else {

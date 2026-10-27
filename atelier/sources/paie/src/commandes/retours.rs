@@ -16,9 +16,9 @@ use serde_json::{json, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, debut as debut_de, texte};
 use super::Cadre;
-use crate::date::Jour;
+use socle::date::Jour;
 use crate::releve_retours::{self, Client, Releve};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "retours",
@@ -89,7 +89,7 @@ pub(crate) fn jour_de(t: i64) -> String {
 
 /// `_date_lisible` : `20260915...` -> `15/09/2026`.
 fn date_lisible(h: Option<&Value>) -> String {
-    let s = h.filter(|v| crate::fichiers::vrai(v)).map(texte).unwrap_or_default();
+    let s = h.filter(|v| socle::fichiers::vrai(v)).map(texte).unwrap_or_default();
     let c: Vec<char> = s.chars().collect();
     if c.len() < 8 {
         return "?".into();
@@ -126,7 +126,7 @@ const NATURES_DPAE: [(&str, &str); 4] = [
 
 fn trier_par_publication(trouves: &[Value]) -> Vec<Value> {
     let mut v = trouves.to_vec();
-    v.sort_by_key(|x| x.get("publication").filter(|p| crate::fichiers::vrai(p)).map(texte).unwrap_or_default());
+    v.sort_by_key(|x| x.get("publication").filter(|p| socle::fichiers::vrai(p)).map(texte).unwrap_or_default());
     v
 }
 
@@ -135,8 +135,8 @@ pub fn retours_dpae(cadre: &Cadre, args: &Args, client: Option<Client>) -> Resul
     let (debut, fin) = fenetre(args)?;
     let flux = args.texte("flux").unwrap_or("");
     let r: Releve = match client {
-        Some(c) if flux.is_empty() => releve_retours::relever_retours(&cadre.ctx, &cadre.o, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
-        _ => releve_retours::relever_retours_dpae(&cadre.ctx, &cadre.o, debut, fin, args.drapeau("tout"), flux)?,
+        Some(c) if flux.is_empty() => releve_retours::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
+        _ => releve_retours::relever_retours_dpae(&cadre.ctx, debut, fin, args.drapeau("tout"), flux)?,
     };
     for i in &r.incidents {
         dire!("{}", i);
@@ -154,7 +154,7 @@ pub fn retours_dpae(cadre: &Cadre, args: &Args, client: Option<Client>) -> Resul
     for x in trier_par_publication(&r.trouves) {
         let n = nature_de(&x);
         let libelle = NATURES_DPAE.iter().find(|(c, _)| *c == n).map(|(_, l)| *l).unwrap_or("nature inconnue de ce moteur");
-        let publication = x.get("publication").filter(|p| crate::fichiers::vrai(p)).map(texte).unwrap_or_default();
+        let publication = x.get("publication").filter(|p| socle::fichiers::vrai(p)).map(texte).unwrap_or_default();
         dire!("  {}  nature {:<3} {:<45} flux {}", debut_de(&publication, 14), n, libelle, champ(&x, "flux"));
     }
     if !r.archives.is_empty() {
@@ -189,7 +189,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
     let environnement = args.texte("environnement").unwrap_or("production");
     let (debut, fin) = fenetre(args)?;
     dire!("Consultation des retours {}, du {} au {}.", environnement, jour_de(debut), jour_de(fin));
-    let releve = releve_retours::relever_retours(&cadre.ctx, &cadre.o, debut, fin, args.drapeau("tout"), environnement, client, "")?;
+    let releve = releve_retours::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), environnement, client, "")?;
     if !releve.session_jusqu_a.is_empty() {
         dire!("Session ouverte (valide jusqu'a {}).\n", releve.session_jusqu_a);
     }
@@ -242,7 +242,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
             dire!("  {} : archive illisible. Le fichier brut est garde, on peut recommencer.", nom);
             continue;
         }
-        let mut periodes: Vec<String> = att.iter().filter_map(|x| x.get("periode").filter(|p| crate::fichiers::vrai(p)).map(texte)).collect();
+        let mut periodes: Vec<String> = att.iter().filter_map(|x| x.get("periode").filter(|p| socle::fichiers::vrai(p)).map(texte)).collect();
         periodes.sort();
         periodes.dedup();
         dire!("  {} attestation(s) AER, periode {} ({})", att.len(), if periodes.is_empty() { "non lue".to_string() } else { periodes.join(", ") }, nom);
@@ -271,7 +271,7 @@ fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArc
         .ctx
         .salaries
         .iter()
-        .filter(|(_, s)| s.get("nir").is_some_and(crate::fichiers::vrai))
+        .filter(|(_, s)| s.get("nir").is_some_and(socle::fichiers::vrai))
         .map(|(cle, s)| json!([cle, s["nir"]]))
         .collect();
     let mut tous: Vec<Value> = Vec::new();
@@ -314,7 +314,7 @@ fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArc
                 champ(x, "identifiant")
             );
         }
-        let production = a.retour.get("production").filter(|p| crate::fichiers::vrai(p)).map(texte).unwrap_or_default();
+        let production = a.retour.get("production").filter(|p| socle::fichiers::vrai(p)).map(texte).unwrap_or_default();
         for x in rattaches {
             let mut m = x.as_object().cloned().unwrap_or_default();
             m.insert("periode".into(), json!(debut_de(&production, 6)));

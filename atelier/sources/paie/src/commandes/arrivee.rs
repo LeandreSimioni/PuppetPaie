@@ -10,8 +10,8 @@ use serde_json::{json, Map, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{enveloppe, rendre_indent};
 use super::Cadre;
-use crate::contexte::{effectif_de, Contexte};
-use crate::retours::Echec;
+use droit::contexte::{effectif_de, Contexte};
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "arrivee", positionnels: &[], options: &[Opt::drapeau("json")] };
 
@@ -59,7 +59,7 @@ fn nombre(v: f64) -> String {
 }
 
 /// `Effectif.decrire`.
-fn decrire(eff: &crate::contexte::Effectif, an: i32) -> String {
+fn decrire(eff: &droit::contexte::Effectif, an: i32) -> String {
     match eff.valeur(an) {
         None => "effectif inconnu".to_string(),
         Some(v) => {
@@ -82,14 +82,14 @@ fn txt(v: &Value, k: &str) -> String {
     v.get(k).map(super::rendu::texte).unwrap_or_default()
 }
 
-fn etapes(ctx: &Contexte, aujourdhui: crate::date::Jour) -> Result<Vec<Etape>, Echec> {
+fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, Echec> {
     let an = aujourdhui.an;
     let mut out: Vec<Etape> = Vec::new();
 
     // 1. La fiche entreprise.
     let ent = &ctx.entreprise;
     let err = erreurs("entreprise", ent)?;
-    let sans_siren = txt(ent, "siren").trim().is_empty() || ent.get("siren").map_or(true, |v| !crate::fichiers::vrai(v));
+    let sans_siren = txt(ent, "siren").trim().is_empty() || ent.get("siren").map_or(true, |v| !socle::fichiers::vrai(v));
     let a_faire = !err.is_empty() || sans_siren;
     out.push(Etape {
         cle: "entreprise",
@@ -148,7 +148,7 @@ fn etapes(ctx: &Contexte, aujourdhui: crate::date::Jour) -> Result<Vec<Etape>, E
         .salaries
         .iter()
         .filter(|(k, v)| !k.starts_with('_') && v.is_object())
-        .filter(|(_, v)| v.get("actif").map_or(true, crate::fichiers::vrai))
+        .filter(|(_, v)| v.get("actif").map_or(true, socle::fichiers::vrai))
         .collect();
     let mut a_completer: Vec<(String, Vec<Value>)> = Vec::new();
     for (k, v) in &fiches {
@@ -226,7 +226,7 @@ fn etapes(ctx: &Contexte, aujourdhui: crate::date::Jour) -> Result<Vec<Etape>, E
 
     // 6. Les taux de PAS.
     let cles: Vec<String> = fiches.iter().map(|(k, _)| (*k).clone()).collect();
-    let diag = if fiches.is_empty() { Vec::new() } else { crate::pas::diagnostic(ctx, Some(&cles), None).map_err(ko)? };
+    let diag = if fiches.is_empty() { Vec::new() } else { droit::pas::diagnostic(ctx, Some(&cles), None).map_err(ko)? };
     let manquants: Vec<&Value> = diag.iter().filter(|d| matches!(d.get("situation").and_then(Value::as_str), Some("inconnu" | "perime"))).collect();
     let mut cmds = Vec::new();
     if !manquants.is_empty() {
@@ -255,7 +255,7 @@ fn etapes(ctx: &Contexte, aujourdhui: crate::date::Jour) -> Result<Vec<Etape>, E
         .etat()
         .map_err(|e| ko(e.message))?
         .iter()
-        .map(|s| (txt(s, "service"), s.get("pose").is_some_and(crate::fichiers::vrai) || s.get("dans_environnement").is_some_and(crate::fichiers::vrai)))
+        .map(|s| (txt(s, "service"), s.get("pose").is_some_and(socle::fichiers::vrai) || s.get("dans_environnement").is_some_and(socle::fichiers::vrai)))
         .collect();
     let manque: Vec<&str> = ["net-entreprises", "urssaf"].into_iter().filter(|s| poses.iter().any(|(n, p)| n == s && !*p)).collect();
     out.push(Etape {

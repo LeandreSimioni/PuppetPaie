@@ -22,7 +22,7 @@ use super::actes::est_refus;
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{debut, enveloppe, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 use crate::routes_ecritures_g4::{exporter_objet, Exporte};
 use crate::tableaux_export::{texte, Tableau};
 
@@ -57,7 +57,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 }
 
 /// `m` : un montant, ou deux tirets quand la source ne le declare pas.
-fn m(v: &Option<crate::num::Decimal>) -> String {
+fn m(v: &Option<socle::num::Decimal>) -> String {
     v.map_or_else(|| "--".to_string(), |d| d.to_string())
 }
 
@@ -298,7 +298,7 @@ fn casc(r: &Value) {
     for a in super::actes::textes_de(r, "avertissements") {
         dire!("! {}", a);
     }
-    if r.get("dossier").is_some_and(crate::fichiers::vrai) {
+    if r.get("dossier").is_some_and(socle::fichiers::vrai) {
         dire!("");
         dire!("Ecrit dans {}", champ(r, "dossier"));
     }

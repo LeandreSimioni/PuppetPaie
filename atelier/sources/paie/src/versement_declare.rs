@@ -20,7 +20,7 @@
 use std::path::Path;
 use std::str::FromStr;
 
-use crate::num::Decimal;
+use socle::num::Decimal;
 
 /// Les rubriques d'un versement que l'annulation reprend, et si elles portent un montant (a changer de signe).
 /// Le bloc 52 (primes) n'y est pas : `bloc_regularisation` ne l'a jamais ecrit, ni avant ni apres (fiche N7,
@@ -176,7 +176,7 @@ fn versements_du_contrat(chemin: &Path, mois: &str, nir: &str, numero: &str) -> 
     let (mut debut_courant, mut debut_du_contrat): (Option<String>, Option<String>) = (None, None);
     for ligne in crate::apercu_dsn::lignes_py(&texte) {
         let Some((k, v)) = ligne.split_once(',') else { continue };
-        let v = v.trim_matches(crate::retours::blanc_py).trim_matches('\'').to_string();
+        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'').to_string();
         if k == "S21.G00.30.001" {
             individu = v == nir;
             contrat_courant = None;

@@ -15,11 +15,11 @@
 //! se prouvent dans `src/usages.rs` et `src/formats.rs`.
 
 use paie::amorcage;
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use paie::fctu::{self, Echec};
 use serde_json::{json, Value};
 use crate::outils::{self, compagnie, fictive, ecrire, lire, porte};
@@ -66,7 +66,7 @@ fn copie_en_naf_2025(nom: &str) -> PathBuf {
 fn saisie(ctx: &Contexte, s: Value) -> Vec<Paie> {
     let chemin = outils::chemin_unique("norme-par-fichier.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin).unwrap().paies
+    crate::outils::charger_fichier(ctx, &chemin).unwrap().paies
 }
 
 /// Le mois `mois` d'un permanent non cadre (Nicolet, CDI) : ni CET ni Apec.
@@ -247,7 +247,7 @@ fn paie_du_releve(ctx: &Contexte, quoi: &str) -> (Paie, Value) {
     let v = releve_fctu_amorcage();
     let c = v[quoi].as_array().unwrap().iter().find(|c| c.get("attendu").is_some()).unwrap().clone();
     let mois = c["mois"].as_str().unwrap();
-    let mut s = charger(ctx, &fictive("fictive-3090-grande").join("paies").join(format!("{}.json", mois))).unwrap();
+    let mut s = charger(ctx, mois).unwrap();
     for (p, n) in s.paies.iter_mut().zip(c["numeros"].as_array().unwrap()) {
         p.numero_bulletin = n[0].as_str().map(str::to_string);
         p.engagement.numero = n[1].as_str().map(str::to_string);

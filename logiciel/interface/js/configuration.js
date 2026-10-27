@@ -1509,16 +1509,21 @@ async function dessinerMetiers(cible) {
  * décide rien. */
 async function dessinerOrganismes(cible) {
   let r;
-  try { r = await api("organismes-contrats"); }
+  // Les contrats de la periode regardee : le mois de l'onglet Paie, sinon le moteur prend celui du jour.
+  const mois = typeof MOIS_AFFICHE === "string" && MOIS_AFFICHE ? { mois: MOIS_AFFICHE } : {};
+  try { r = await api("organismes-contrats", mois); }
   catch (e) { cible.innerHTML = `<p class="discret">${echapper(e.message)}</p>`; return; }
   const champ = (c, k, fixe, place) => fixe
     ? `<span>${echapper(c[k]) || "—"}</span>`
     : `<input type="text" data-contrat="${echapper(c.cle)}" data-champ="${k}" value="${echapper(c[k])}"
          placeholder="${place}" maxlength="${k === "libelle" ? 30 : 9}">`;
+  const jour = (v) => echapper(jjmmaaaa(String(v || "").slice(0, 10)));
+  const periode = (c) => c.depuis && c.jusqu_a ? `Du ${jour(c.depuis)} au ${jour(c.jusqu_a)}.`
+    : c.depuis ? `Depuis le ${jour(c.depuis)}.` : c.jusqu_a ? `Jusqu'au ${jour(c.jusqu_a)}.` : "";
   const ligne = (c) => `
     <tr>
       <td><b>${echapper(c.quoi)}</b>
-        ${c.depuis ? `<div class="note">Depuis le ${echapper(jjmmaaaa(String(c.depuis || "").slice(0, 10)))}.</div>` : ""}
+        ${periode(c) ? `<div class="note">${periode(c)}</div>` : ""}
         ${c.note ? `<div class="note">${echapper(c.note)}</div>` : ""}</td>
       <td>${echapper(c.beneficiaires)}</td>
       <td>${champ(c, "organisme", c.organisme_fixe, "P0983")}</td>
@@ -1532,6 +1537,7 @@ async function dessinerOrganismes(cible) {
         d'adhésion et sur la fiche de paramétrage DSN de l'organisme. Le reste
         (organismes payés, Urssaf, taux AT/MP, compte France Travail) vient de la loi,
         de la convention et de la fiche Entreprise.</p>
+      ${r.mois ? `<p class="note">Les contrats en vigueur en ${echapper(moisEnClair(r.mois))}.</p>` : ""}
       ${r.compose ? "" : `<p class="rappel retard">Pas encore enregistré : la DSN est refusée tant que ces contrats ne le sont pas.</p>`}
       <table class="tableau">
         <thead><tr><th>Contrat</th><th>Bénéficiaires</th><th>Organisme</th><th>Référence du contrat</th></tr></thead>
@@ -1545,7 +1551,7 @@ async function dessinerOrganismes(cible) {
       (contrats[i.dataset.contrat] ||= {})[i.dataset.champ] = i.value.trim();
     });
     try {
-      await api("organismes-enregistrer", { contrats });
+      await api("organismes-enregistrer", { contrats, ...mois });
       dire("Organismes et contrats enregistrés.");
       dessinerOrganismes(cible);
     } catch (e) { dire(e.message, "erreur"); }

@@ -21,12 +21,13 @@ use std::path::{Path, PathBuf};
 use rust_xlsxwriter::{Format, FormatAlign, Workbook, Worksheet};
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::repr_py;
-use crate::etats::{erreur, py_str};
-use crate::fichiers::vrai;
-use crate::num::Decimal;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::forme_ecrite;
+use socle::valeur::valeur_en_texte;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::Decimal;
+use socle::echec::Echec;
 
 pub(crate) type R<T> = Result<T, Echec>;
 
@@ -61,7 +62,7 @@ impl Val {
     pub(crate) fn str_py(&self) -> String {
         match self {
             Val::Dec(d) => d.to_string(),
-            Val::Num(v) => repr_py(v),
+            Val::Num(v) => forme_ecrite(v),
             Val::Txt(s) => s.clone(),
         }
     }
@@ -70,10 +71,10 @@ impl Val {
     pub(crate) fn decimal(&self) -> R<Decimal> {
         let t = match self {
             Val::Dec(d) => return Ok(*d),
-            Val::Num(v) => return crate::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
+            Val::Num(v) => return socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
             Val::Txt(s) => s,
         };
-        crate::apercu_dsn::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", crate::num::illisible(t)))
+        crate::apercu_dsn::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
     }
 
     /// `dict_tableau._v` / `sortie_json.brut` : un `Decimal` devient son texte.
@@ -346,7 +347,7 @@ pub(crate) fn texte(v: Option<&Val>, c: &Colonne) -> String {
     match v {
         None => String::new(),
         Some(Val::Dec(d)) if c.a_droite() => d.to_string().replace('.', ","),
-        Some(Val::Num(n)) if c.a_droite() => repr_py(n).replace('.', ","),
+        Some(Val::Num(n)) if c.a_droite() => forme_ecrite(n).replace('.', ","),
         Some(autre) => autre.str_py(),
     }
 }
@@ -403,7 +404,7 @@ fn lire_nom(ctx: Option<&Contexte>) -> String {
 /// `csv_tableau` : point-virgule, virgule decimale, UTF-8 avec BOM.
 pub(crate) fn csv_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut s = String::from("\u{feff}");
-    let ligne = |s: &mut String, c: &[String]| s.push_str(&crate::csv_py::ligne(c, ';'));
+    let ligne = |s: &mut String, c: &[String]| s.push_str(&socle::csv::ligne(c, ';'));
     for x in entete_texte(t, &lire_nom(ctx)) {
         ligne(&mut s, &[x]);
     }
@@ -441,12 +442,12 @@ pub(crate) fn tsv_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut s = String::new();
     let mut entete: Vec<String> = if groupe { vec!["Groupe".to_string()] } else { Vec::new() };
     entete.extend(t.colonnes.iter().map(|c| c.libelle.clone()));
-    s.push_str(&crate::csv_py::ligne(&entete, '\t'));
+    s.push_str(&socle::csv::ligne(&entete, '\t'));
     for sec in &t.sections {
         for l in &sec.lignes {
             let mut cel: Vec<String> = if groupe { vec![sec.libelle.clone()] } else { Vec::new() };
             cel.extend(t.colonnes.iter().map(|c| texte(l.val(&c.cle), c)));
-            s.push_str(&crate::csv_py::ligne(&cel, '\t'));
+            s.push_str(&socle::csv::ligne(&cel, '\t'));
         }
     }
     Ok(s.into_bytes())
@@ -486,7 +487,7 @@ pub(crate) fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
 
 /// `json_tableau` : `json.dumps(dict_tableau(t), ensure_ascii=False, indent=1)`. Le fichier n'est pas encore nomme quand il s'ecrit.
 pub(crate) fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
-    Ok(crate::ecriture::json_py(&dict_tableau(t, false), 1).into_bytes())
+    Ok(socle::ecriture::json_indente(&dict_tableau(t, false), 1).into_bytes())
 }
 
 /// `sortie_json.brut(Tableau)` : la reponse de la route.
@@ -542,7 +543,7 @@ fn cellule_classeur(v: Option<&Val>, c: &Colonne) -> Cel {
         Val::Dec(d) => Cel::Nombre(en_f64(d)),
         Val::Num(n) => match n.as_f64() {
             Some(x) => Cel::Nombre(x),
-            None => Cel::Texte(repr_py(n)),
+            None => Cel::Texte(forme_ecrite(n)),
         },
         Val::Txt(s) => Cel::Texte(s.clone()),
     }
@@ -809,8 +810,8 @@ pub(crate) fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte)
 /// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
 pub(crate) fn nom_du_mois(m: &str) -> R<&'static str> {
     let tranche: String = m.chars().skip(5).take(2).collect();
-    let n = crate::apercu_dsn::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(&tranche))))?;
-    crate::date::nom_du_mois(i64::try_from(n).unwrap_or(0), crate::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
+    let n = crate::apercu_dsn::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
+    socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
 /// `_libelle_mois` : « Septembre 2026 ».
@@ -831,20 +832,20 @@ pub(crate) fn jj(iso: &str) -> String {
 /// `_qui` : « NOM Prenom ».
 pub(crate) fn qui(fiche: &Value) -> R<String> {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
-        None => fiche.get("prenom").map(py_str).unwrap_or_default(),
+        Some(v) => valeur_en_texte(v),
+        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
     };
-    let nom = fiche.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?;
-    Ok(format!("{} {}", py_str(nom), prenom))
+    let nom = fiche.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?;
+    Ok(format!("{} {}", valeur_en_texte(nom), prenom))
 }
 
 /// `_qui` d'une fiche qui n'a peut-etre pas de nom (`.get("nom", "")`).
 pub(crate) fn qui_souple(fiche: &Value) -> String {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
-        Some(v) => py_str(v),
-        None => fiche.get("prenom").map(py_str).unwrap_or_default(),
+        Some(v) => valeur_en_texte(v),
+        None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
     };
-    format!("{} {}", fiche.get("nom").map(py_str).unwrap_or_default(), prenom)
+    format!("{} {}", fiche.get("nom").map(valeur_en_texte).unwrap_or_default(), prenom)
 }
 
 /// `_montant` : un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).
@@ -852,12 +853,12 @@ pub(crate) fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
     match v {
         None | Some(Value::Null) => Ok(None),
         Some(x) => {
-            let t = py_str(x);
-            if t.trim_matches(crate::retours::blanc_py).is_empty() {
+            let t = valeur_en_texte(x);
+            if t.trim_matches(socle::texte::blanc).is_empty() {
                 return Ok(None);
             }
-            let d = crate::apercu_dsn::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", crate::num::illisible(&t)))?;
-            Ok(Some(crate::num::eur2(d)))
+            let d = crate::apercu_dsn::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))?;
+            Ok(Some(socle::num::eur2(d)))
         }
     }
 }

@@ -4,9 +4,9 @@
 
 use crate::outils;
 use paie::avenant::{ecart_au_contrat_signe, motif, normaliser, retrouve, valeurs_du_contrat};
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::nfkc::nfkc;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::nfkc::nfkc;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -85,7 +85,7 @@ struct Monde {
 
 impl Monde {
     fn ecrire_saisie(&self, v: &Value) {
-        std::fs::write(self.racine.join("paies").join(format!("{}.json", MOIS)), serde_json::to_string_pretty(v).unwrap()).unwrap();
+        crate::outils::poser_saisie(&self.racine, MOIS, v);
     }
 
     fn journal(&self, lignes: Vec<Value>) {
@@ -95,10 +95,6 @@ impl Monde {
 
     fn contexte(&self) -> Contexte {
         Contexte::nouveau(&self.racine, Some(Jour::lire(AUJOURDHUI).unwrap())).unwrap()
-    }
-
-    fn calcul(&self) -> PathBuf {
-        self.racine.join("paies").join(format!("{}.calcul.json", MOIS))
     }
 
     fn pdf(&self) -> PathBuf {
@@ -147,7 +143,7 @@ fn configuration(test: &str) -> PathBuf {
     let fictive = outils::fictive("fictive-3090-grande");
     outils::copier(&fictive.join("config"), &racine.join("config"));
     std::fs::copy(fictive.join("COPIE-DE-DEVELOPPEMENT.json"), racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
-    std::fs::create_dir_all(racine.join("paies")).unwrap();
+    std::fs::create_dir_all(racine.join("engagements")).unwrap();
     racine
 }
 
@@ -158,7 +154,7 @@ fn monde(nom: &str) -> Monde {
     let ctx = m.contexte();
     m.cle = ctx.salarie("Biancolelli").unwrap()["_cle"].as_str().unwrap().to_string();
     let valeurs = valeurs_du_contrat(&ctx, MOIS, &m.cle, DEBUT).unwrap().expect("la paie de ce contrat");
-    let modele = paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele");
+    let modele = socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele");
     let description = json!({
         "format": fabrique_pdf::FORMAT, "style": "contrat",
         "documents": [{"modele": {"chemin": modele.to_str().unwrap(), "valeurs": valeurs}}]
@@ -166,8 +162,6 @@ fn monde(nom: &str) -> Monde {
     paie::fabrique::ecrire(&description, &m.pdf()).unwrap();
     let parti = m.ligne_parti(MOIS);
     m.journal(vec![parti]);
-    // Le calcul ecrit pour fabriquer le contrat n'est pas ce que les cas regardent.
-    let _ = std::fs::remove_file(m.calcul());
     m
 }
 
@@ -205,7 +199,7 @@ fn un_avenant_envoye_compte_deja_signe_ou_non() {
     let ctx = m.contexte();
     let valeurs = valeurs_du_contrat(&ctx, MOIS, &m.cle, DEBUT).unwrap().unwrap();
     let modele = fabrique_pdf::modele::lire_fichier(
-        paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
+        socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
     )
     .unwrap();
     let neuf = fabrique_pdf::modele::texte_brut(&modele.articles[3].1[0], &valeurs).unwrap();
@@ -233,12 +227,10 @@ fn sans_calcul_tant_qu_on_peut() {
     m.ecrire_saisie(&saisie(190.0, "Scene fictive du Mans"));
     // Un mois dont la DSN etait due : on ne regarde rien.
     assert_eq!(m.ecart("2026-04-20", MOIS), "");
-    assert!(!m.calcul().exists(), "mois ferme : la paie n'a pas ete calculee");
     // Rien de parti ce mois-la.
     let autre = m.ligne_parti("2026-02");
     m.journal(vec![autre]);
     assert_eq!(m.ecart(AUJOURDHUI, MOIS), "");
-    assert!(!m.calcul().exists(), "pas de contrat parti ce mois : la paie n'a pas ete calculee");
     // Rien du tout au journal.
     m.journal(vec![]);
     assert_eq!(m.ecart(AUJOURDHUI, MOIS), "");
@@ -247,7 +239,6 @@ fn sans_calcul_tant_qu_on_peut() {
     m.journal(vec![parti]);
     std::fs::remove_file(m.pdf()).unwrap();
     assert_eq!(m.ecart(AUJOURDHUI, MOIS), "");
-    assert!(!m.calcul().exists(), "PDF absent : la paie n'a pas ete calculee");
 }
 
 #[test]
@@ -256,7 +247,7 @@ fn le_modele_a_change_depuis_l_envoi_la_pastille_n_invente_pas() {
     m.ecrire_saisie(&saisie(190.0, "Scene fictive du Mans"));
     assert_eq!(m.ecart(AUJOURDHUI, MOIS), "article 4 (Rémunération)");
     // La compagnie reecrit une clause fixe de l'article 2 : l'ancien texte ne se retrouve plus.
-    let livre = std::fs::read_to_string(paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele")).unwrap();
+    let livre = std::fs::read_to_string(socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele")).unwrap();
     assert!(livre.contains("sans qu'il soit besoin d'un préavis"));
     std::fs::create_dir_all(m.racine.join("gabarits")).unwrap();
     std::fs::write(
@@ -272,10 +263,9 @@ fn le_modele_a_change_depuis_l_envoi_la_pastille_n_invente_pas() {
 /// Le paragraphe « Rémunération » tel que le contrat d'aujourd'hui l'ecrit.
 fn paragraphe_remuneration(m: &Monde) -> (fabrique_pdf::modele::Valeurs, String) {
     let ctx = m.contexte();
-    let _ = std::fs::remove_file(m.calcul());
     let valeurs = valeurs_du_contrat(&ctx, MOIS, &m.cle, DEBUT).unwrap().unwrap();
     let modele = fabrique_pdf::modele::lire_fichier(
-        paie::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
+        socle::fichiers::dossier_du_code().join("modeles").join("contrat-cddu.modele").to_str().unwrap(),
     )
     .unwrap();
     let texte = fabrique_pdf::modele::texte_brut(&modele.articles[3].1[0], &valeurs).unwrap();
@@ -320,7 +310,7 @@ fn emploi_au_contrat(nom: &str, salarie: &str, metier: &str) -> (String, String)
     let mut s = saisie(185.0, "Scene fictive du Mans");
     s["engagements"][0]["salarie"] = json!(salarie);
     s["engagements"][0]["metier"] = json!(metier);
-    std::fs::write(racine.join("paies").join(format!("{}.json", MOIS)), s.to_string()).unwrap();
+    crate::outils::poser_saisie(&racine, MOIS, &s);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire(AUJOURDHUI).unwrap())).unwrap();
     let cle = ctx.salarie(salarie).unwrap()["_cle"].as_str().unwrap().to_string();
     let v = valeurs_du_contrat(&ctx, MOIS, &cle, DEBUT).unwrap().expect("la paie de ce contrat");

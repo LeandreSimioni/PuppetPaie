@@ -2,9 +2,9 @@
 //! forme des JSON de la compagnie (indentation 2, accents tels quels, flottants ecrits au plus court) est figee : `prive/`
 //! est commite, et la changer ferait un diff sur tous ses fichiers deja ecrits.
 
-use paie::ecriture::{ecrire_json, json_py, repr_flottant};
+use socle::ecriture::{ecrire_json, json_indente, repr_flottant};
 use paie::journal::{self, Note};
-use paie::verrou;
+use socle::verrou;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
@@ -48,9 +48,9 @@ fn la_forme_du_fichier() {
     )
     .unwrap();
     let attendu = "{\n  \"a\": [\n    1,\n    2.5,\n    {\n      \"b\": null\n    }\n  ],\n  \"é\": \"x\\u0001\\n\\\\\\\"/\u{7f}\u{2028}\",\n  \"e\": [],\n  \"f\": {},\n  \"g\": [\n    1e+16,\n    1e-05,\n    100.0,\n    9223372036854775808,\n    -9223372036854775808,\n    18446744073709551615\n  ]\n}";
-    assert_eq!(json_py(&v, 2), attendu);
-    assert_eq!(json_py(&json!([[], {}]), 1), "[\n [],\n {}\n]");
-    assert_eq!(json_py(&json!({"a": [1, {"b": 2}]}), 0), "{\n\"a\": [\n1,\n{\n\"b\": 2\n}\n]\n}");
+    assert_eq!(json_indente(&v, 2), attendu);
+    assert_eq!(json_indente(&json!([[], {}]), 1), "[\n [],\n {}\n]");
+    assert_eq!(json_indente(&json!({"a": [1, {"b": 2}]}), 0), "{\n\"a\": [\n1,\n{\n\"b\": 2\n}\n]\n}");
 }
 
 #[test]

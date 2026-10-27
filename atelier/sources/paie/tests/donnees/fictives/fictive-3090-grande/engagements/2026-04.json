@@ -1,0 +1,1204 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-grande, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-04",
+  "taux_cachet": 180.0,
+  "date_paiement": "2026-04-30",
+  "numeros_figes": true,
+  "engagements": [
+    {
+      "salarie": "Clairon",
+      "spectacle": "256Z00910033",
+      "debut": "2026-04-07",
+      "fin": "2026-04-10",
+      "date_paiement": "2026-04-10",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 165.0,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10"
+          ]
+        }
+      ],
+      "numero": "CL6.26.05",
+      "valide": {
+        "le": "2026-10-25T18:58:57",
+        "paies": {
+          "2026-04": {
+            "paie": {
+              "assiette_chomage": "660",
+              "avertissements": [],
+              "base_csg": "655.78",
+              "bases": {
+                "brut": "660",
+                "brut_chomage": "660",
+                "brut_cs": "660",
+                "brut_plafonne": "660",
+                "brut_x110": "726",
+                "brut_x115": "735.9",
+                "brut_x115_plafonne": "735.9",
+                "csg": "655.78"
+              },
+              "brut": "660",
+              "cout_employeur": "1038.76",
+              "deduction_forfaitaire": null,
+              "engagement": {
+                "salarie": "Clairon",
+                "spectacle": "256Z00910033",
+                "dates_travail": [
+                  "2026-04-07",
+                  "2026-04-08",
+                  "2026-04-09",
+                  "2026-04-10"
+                ],
+                "lignes": [
+                  {
+                    "rubrique": "cachet",
+                    "quantite": 4,
+                    "taux": 165.0,
+                    "lieu": "Ecoles de Touraine",
+                    "dates": [
+                      "2026-04-07",
+                      "2026-04-08",
+                      "2026-04-09",
+                      "2026-04-10"
+                    ]
+                  }
+                ],
+                "debut": "2026-04-07",
+                "fin": "2026-04-10",
+                "numero": "CL6.26.05",
+                "mois": "2026-04",
+                "planning": [],
+                "planning_lieux": {},
+                "jours": "4",
+                "jours_contrat": "4",
+                "date_paiement": "2026-04-10",
+                "taux_cachet": "165",
+                "cachets": "4",
+                "heures": null,
+                "lieu": "",
+                "lieux": {
+                  "2026-04-07": "Ecoles de Touraine",
+                  "2026-04-08": "Ecoles de Touraine",
+                  "2026-04-09": "Ecoles de Touraine",
+                  "2026-04-10": "Ecoles de Touraine"
+                },
+                "emploi": null,
+                "pcs_ese": null,
+                "code_emploi_ft": null,
+                "statut": null,
+                "statut_conventionnel": null,
+                "statut_categoriel_rc": null,
+                "nature": "cddu_spectacle",
+                "quotite_contrat": null,
+                "quotite_reference_saisie": null,
+                "modalite_temps_travail_saisie": null,
+                "motif_recours": null,
+                "motif_rupture": null,
+                "notification_rupture": null,
+                "preavis": null,
+                "transaction": null,
+                "suspensions": [],
+                "debut_periode": "2026-04-07",
+                "fin_periode": "2026-04-10",
+                "quotite": "4",
+                "sans_paie": false,
+                "premier_mois": true,
+                "dernier_mois": true,
+                "mois_du_contrat": [
+                  "2026-04"
+                ]
+              },
+              "heures": "28",
+              "heures_absence": "0",
+              "heures_travaillees": "48",
+              "lignes": [
+                {
+                  "id": "maladie",
+                  "famille": "SANTÉ",
+                  "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
+                  "base": "660",
+                  "taux_pat": "9.1",
+                  "montant_pat": "60.06",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "prevoyance",
+                  "famille": "SANTÉ",
+                  "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+                  "base": "660",
+                  "taux_pat": "1.11",
+                  "montant_pat": "7.33",
+                  "taux_sal": "0.12",
+                  "montant_sal": "0.79",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "atmp",
+                  "famille": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
+                  "libelle": "Accidents du travail",
+                  "base": "660",
+                  "taux_pat": "0.875",
+                  "montant_pat": "5.78",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_plaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale plafonnée",
+                  "base": "660",
+                  "taux_pat": "5.99",
+                  "montant_pat": "39.53",
+                  "taux_sal": "4.83",
+                  "montant_sal": "31.88",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_deplaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale déplafonnée",
+                  "base": "660",
+                  "taux_pat": "1.48",
+                  "montant_pat": "9.77",
+                  "taux_sal": "0.28",
+                  "montant_sal": "1.85",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "retraite_t1",
+                  "famille": "RETRAITE",
+                  "libelle": "Complémentaire Tranche 1",
+                  "base": "660",
+                  "taux_pat": "5.74",
+                  "montant_pat": "37.88",
+                  "taux_sal": "5.3",
+                  "montant_sal": "34.98",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "famille",
+                  "famille": "FAMILLE",
+                  "libelle": "Allocations familiales",
+                  "base": "660",
+                  "taux_pat": "3.68",
+                  "montant_pat": "24.29",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "chomage",
+                  "famille": "ASSURANCE CHÔMAGE",
+                  "libelle": "Chômage",
+                  "base": "660",
+                  "taux_pat": "9.75",
+                  "montant_pat": "64.35",
+                  "taux_sal": "2.4",
+                  "montant_sal": "15.84",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_1",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "660",
+                  "taux_pat": "2.836",
+                  "montant_pat": "18.72",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_2",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "735.9",
+                  "taux_pat": "0.07",
+                  "montant_pat": "0.52",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_3",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "726",
+                  "taux_pat": "0.68",
+                  "montant_pat": "4.93",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "conges_spec",
+                  "famille": "CONGÉS SPECTACLES",
+                  "libelle": "Caisse des Congés Spectacles",
+                  "base": "660",
+                  "taux_pat": "15.5",
+                  "montant_pat": "102.3",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "ccn",
+                  "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+                  "libelle": "Cotisations conventionnelles IDCC 3090",
+                  "base": "660",
+                  "taux_pat": "0.5",
+                  "montant_pat": "3.3",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                },
+                {
+                  "id": "csg_ded",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG déductible de l'impôt sur le revenu",
+                  "base": "655.78",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "6.8",
+                  "montant_sal": "44.59",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "csg_crds_nd",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+                  "base": "655.78",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "2.9",
+                  "montant_sal": "19.02",
+                  "masquer_base_et_taux": false
+                }
+              ],
+              "net_a_payer": "511.05",
+              "net_imposable": "530.07",
+              "net_social": "511.05",
+              "numero_bulletin": null,
+              "reduction_generale": null,
+              "remuneration": [
+                {
+                  "code": "cachet",
+                  "libelle": "Cachet",
+                  "unite": "cachet",
+                  "quantite": "4",
+                  "taux": "165",
+                  "montant": "660",
+                  "heures_annexes": "48",
+                  "soumis": true,
+                  "imposable": true,
+                  "conges_spectacles": true,
+                  "salaire_de_base": false,
+                  "retabli": false,
+                  "conges_pris": false,
+                  "dsn_bloc52": null,
+                  "arret_de_travail": false,
+                  "dsn_autres_bruts": null,
+                  "designation": "4 Cachets"
+                }
+              ],
+              "salaire_de_base": "660",
+              "salaire_retabli": "660",
+              "salarie": {
+                "_cle": "CLAIRON"
+              },
+              "smic": "12.02",
+              "spectacle": {
+                "_cle": "le-medecin-volant"
+              },
+              "total_pat": "378.76",
+              "total_sal": "148.95",
+              "plafond": "336.56",
+              "plafond_urssaf": "1440"
+            },
+            "empreinte": {
+              "entrees": {
+                "dossier racine:imprevus": "absent",
+                "dossier? racine:": "oui",
+                "dossier? racine:arrets": "non",
+                "existe code:baremes/2025.json": "oui",
+                "existe code:baremes/2026.json": "oui",
+                "existe code:rubriques-base.json": "oui",
+                "existe racine:config/baremes/2025.json": "oui",
+                "existe racine:config/baremes/2026.json": "oui",
+                "existe racine:config/effectifs.json": "oui",
+                "existe racine:config/pas.json": "oui",
+                "existe racine:config/rubriques-actives.json": "oui",
+                "existe racine:config/rubriques-compagnie.json": "non",
+                "fiches": "300ef921628d4cd2657c3abca28520ffc961057a9c83dd55809ed01ff32da333",
+                "fichier code:baremes/2025.json": "8395e89ee96a6c351522e76c04467833cecf9361e64929abecec26ce12821149",
+                "fichier code:baremes/2026.json": "a57af8d9d2132d5c4f979f785d766e3df53e729912b9d5a9c13ecf277417ca8f",
+                "fichier code:clauses-conventionnelles-base.json": "176579e896e20a35d182e60d44f5fef868773546c63fb4f039cd4397822a0a5c",
+                "fichier code:contrats-base.json": "a881fb6ed4fa89b72c3912e3f6ac5a1be537eb3842f11855971097750e4a3de8",
+                "fichier code:emplois-base.json": "18fa6cbb9d595636973a3689eac9964b5f9781448f7ef0e043124028bb8572ad",
+                "fichier code:feries-base.json": "79fc689f195ca421a4233d015e885cd798c7da7aaddc9904566f783e7b1b4068",
+                "fichier code:minima-conventionnels.json": "52a5712b31f9ce263f273dc49dcf8aa817a69bd81535f7c483e9fb21f11db5ee",
+                "fichier code:permanents-base.json": "925f80e5eb9aefec7d9f5a93af6786149b9ba6e67afe24c8838cddc3a79b0e0b",
+                "fichier code:prevoyance-conventionnelle-base.json": "17c224291d6bd91cf7a498b45079ca3862ef79807c15191ac1927877aaff898d",
+                "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
+                "fichier racine:config/baremes/2025.json": "ee48aba31c947a8474f44fb0205f8a836027f71ddc7b157925f455c75801031c",
+                "fichier racine:config/baremes/2026.json": "4ff04df028809eec5ff474444db925d112cc514aa61a8beff6eee070717a6c6a",
+                "fichier racine:config/effectifs.json": "ed6625fb5c66f14bcc6174f4f8bda2f9e6b95f828bfd36eb6007a549b9d2f4cd",
+                "fichier racine:config/pas.json": "48b6a2990ebb238f6e95cc18aa886e92ed3aaf476f61228212d9b2d9e61cd6c0",
+                "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
+                "moteur": "0.1.0+f150e58b15f7cd60",
+                "saisie 2025-01": "22b23b14395d9d2ef3199c81152da29bcdecfbde2337b506b829ee6beff9e2aa",
+                "saisie 2025-02": "fcf6f1c41b625c9ca7a4fd1533ac0cb826cb0ea44ae9dee3214a3c1e30c00c9e",
+                "saisie 2025-03": "50497bb40a7fddc9f85878bde795adcc7f062c77435d2a178af3289847c34189",
+                "saisie 2025-04": "e0b614fa09078ef40e8c734a6b7a47c8f100b90782813f13ff256ebb8a3a7d3a",
+                "saisie 2025-05": "236fcaaab56a87ea0ef9992a2c3770ecdb25f3ea52c56bc7dd674595d2ffd923",
+                "saisie 2025-06": "7c6075f829bf2ce2f301f0f6e3578b1bcdede335fbec4d0713414deddf9f17a5",
+                "saisie 2025-07": "3460c1354bc4b97643f35f54784960486f1f871263c04553ab6fefb3320b98df",
+                "saisie 2025-08": "8592244a783dd666eab124d1534941a6cd742d92ec5223cd266bcf9385b83983",
+                "saisie 2025-09": "7fe2bdd775dbba6ce6fd62d8be0a4c8bb6eceb0904bc343dab1cac7776d42aea",
+                "saisie 2025-10": "2f676ea197f8f794b68b3081485d9b28fa057ae6b89641f8fe575f038bf2d35b",
+                "saisie 2025-11": "0c3eb848c44695db4a6d10f3b8e0b496475392323a33a67c94d2f66c50eec94b",
+                "saisie 2025-12": "eaa586106de327634692bf690ceadbed84941943fd32651b85eed38bc9e61d5d",
+                "saisie 2026-01": "755be35b68d324f7066cc8e57132c366f1d69ab6849adcd6f04dc1ee6e80d087",
+                "saisie 2026-02": "b37880319d3d82f77d361a78b0406bfc3d29b0d9f24b6af0f203bfa9fc5247b5",
+                "saisie 2026-03": "d496e7f786b6fd1829012c928e4fa191193b61c02898f101a7a28adae4ccc6d5",
+                "saisie 2026-04": "5821fc229c249b2fe8281b83ad372120d146746258ad69c9f64409ce38c7f524",
+                "saisie 2026-05": "88913e2f15e31ff282139d003f21f239df2374a4b00379cd8fbee0010440df30",
+                "saisie 2026-06": "4d17f6c05a0a8cc670c7e1e0fbe7086ec34599aa587f51bab853fa3ba241558e",
+                "saisie 2026-07": "bf8150ef8a03ce1cc71c3fbcb54c6c34acfa9468299a2225a4bd33ab2219f8a1",
+                "saisie 2026-08": "8fcd87380f7f030ab355d15dc637d2ced1b0986e429cce8e270d7e241b6587e6",
+                "saisie 2026-09": "a1c247d71770bc8786a149a4bbafc30aaa6ba04143325e9cea8540f0173951f3",
+                "saisie 2026-10": "859a75a013ca432eb4b73f707d17f0586c82298e7a7f4708c0915da831ad53e3",
+                "saisie 2026-11": "db83030f33b57d7e697613f1a82fe0612df46a6b23d279486ff90b71b8a6566e",
+                "saisie 2026-12": "fb73722bcb7f606c65f14554d0e7b34bc955d3081b386610143f5c844a797788"
+              },
+              "regles": [
+                "2026-01-01"
+              ]
+            },
+            "pas": {
+              "taux": "5.10",
+              "type": "01",
+              "identifiant": "891092027",
+              "abattement": "0",
+              "montant_soumis": "530.07",
+              "prelevement": "27.03"
+            }
+          }
+        }
+      }
+    },
+    {
+      "salarie": "Jacquet",
+      "spectacle": "256Z00910033",
+      "debut": "2026-04-07",
+      "fin": "2026-04-10",
+      "date_paiement": "2026-04-10",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 4,
+          "taux": 176.45,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10"
+          ]
+        }
+      ],
+      "numero": "JA7.26.04",
+      "valide": {
+        "le": "2026-10-25T18:59:13",
+        "paies": {
+          "2026-04": {
+            "paie": {
+              "assiette_chomage": "705.8",
+              "avertissements": [],
+              "base_csg": "701.28",
+              "bases": {
+                "brut": "705.8",
+                "brut_chomage": "705.8",
+                "brut_cs": "705.8",
+                "brut_plafonne": "705.8",
+                "brut_x110": "776.38",
+                "brut_x115": "786.97",
+                "brut_x115_plafonne": "786.97",
+                "csg": "701.28"
+              },
+              "brut": "705.8",
+              "cout_employeur": "1110.85",
+              "deduction_forfaitaire": null,
+              "engagement": {
+                "salarie": "Jacquet",
+                "spectacle": "256Z00910033",
+                "dates_travail": [
+                  "2026-04-07",
+                  "2026-04-08",
+                  "2026-04-09",
+                  "2026-04-10"
+                ],
+                "lignes": [
+                  {
+                    "rubrique": "cachet",
+                    "quantite": 4,
+                    "taux": 176.45,
+                    "lieu": "Ecoles de Touraine",
+                    "dates": [
+                      "2026-04-07",
+                      "2026-04-08",
+                      "2026-04-09",
+                      "2026-04-10"
+                    ]
+                  }
+                ],
+                "debut": "2026-04-07",
+                "fin": "2026-04-10",
+                "numero": "JA7.26.04",
+                "mois": "2026-04",
+                "planning": [],
+                "planning_lieux": {},
+                "jours": "4",
+                "jours_contrat": "4",
+                "date_paiement": "2026-04-10",
+                "taux_cachet": "176.45",
+                "cachets": "4",
+                "heures": null,
+                "lieu": "",
+                "lieux": {
+                  "2026-04-07": "Ecoles de Touraine",
+                  "2026-04-08": "Ecoles de Touraine",
+                  "2026-04-09": "Ecoles de Touraine",
+                  "2026-04-10": "Ecoles de Touraine"
+                },
+                "emploi": null,
+                "pcs_ese": null,
+                "code_emploi_ft": null,
+                "statut": null,
+                "statut_conventionnel": null,
+                "statut_categoriel_rc": null,
+                "nature": "cddu_spectacle",
+                "quotite_contrat": null,
+                "quotite_reference_saisie": null,
+                "modalite_temps_travail_saisie": null,
+                "motif_recours": null,
+                "motif_rupture": null,
+                "notification_rupture": null,
+                "preavis": null,
+                "transaction": null,
+                "suspensions": [],
+                "debut_periode": "2026-04-07",
+                "fin_periode": "2026-04-10",
+                "quotite": "4",
+                "sans_paie": false,
+                "premier_mois": true,
+                "dernier_mois": true,
+                "mois_du_contrat": [
+                  "2026-04"
+                ]
+              },
+              "heures": "28",
+              "heures_absence": "0",
+              "heures_travaillees": "48",
+              "lignes": [
+                {
+                  "id": "maladie",
+                  "famille": "SANTÉ",
+                  "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
+                  "base": "705.8",
+                  "taux_pat": "9.1",
+                  "montant_pat": "64.23",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "prevoyance",
+                  "famille": "SANTÉ",
+                  "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+                  "base": "705.8",
+                  "taux_pat": "1.11",
+                  "montant_pat": "7.83",
+                  "taux_sal": "0.12",
+                  "montant_sal": "0.85",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "atmp",
+                  "famille": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
+                  "libelle": "Accidents du travail",
+                  "base": "705.8",
+                  "taux_pat": "0.875",
+                  "montant_pat": "6.18",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_plaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale plafonnée",
+                  "base": "705.8",
+                  "taux_pat": "5.99",
+                  "montant_pat": "42.28",
+                  "taux_sal": "4.83",
+                  "montant_sal": "34.09",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_deplaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale déplafonnée",
+                  "base": "705.8",
+                  "taux_pat": "1.48",
+                  "montant_pat": "10.45",
+                  "taux_sal": "0.28",
+                  "montant_sal": "1.98",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "retraite_t1",
+                  "famille": "RETRAITE",
+                  "libelle": "Complémentaire Tranche 1",
+                  "base": "705.8",
+                  "taux_pat": "5.74",
+                  "montant_pat": "40.51",
+                  "taux_sal": "5.3",
+                  "montant_sal": "37.41",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "famille",
+                  "famille": "FAMILLE",
+                  "libelle": "Allocations familiales",
+                  "base": "705.8",
+                  "taux_pat": "3.68",
+                  "montant_pat": "25.97",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "chomage",
+                  "famille": "ASSURANCE CHÔMAGE",
+                  "libelle": "Chômage",
+                  "base": "705.8",
+                  "taux_pat": "9.75",
+                  "montant_pat": "68.82",
+                  "taux_sal": "2.4",
+                  "montant_sal": "16.94",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_1",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "705.8",
+                  "taux_pat": "2.836",
+                  "montant_pat": "20.02",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_2",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "786.97",
+                  "taux_pat": "0.07",
+                  "montant_pat": "0.55",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_3",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "776.38",
+                  "taux_pat": "0.68",
+                  "montant_pat": "5.28",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "conges_spec",
+                  "famille": "CONGÉS SPECTACLES",
+                  "libelle": "Caisse des Congés Spectacles",
+                  "base": "705.8",
+                  "taux_pat": "15.5",
+                  "montant_pat": "109.4",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "ccn",
+                  "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+                  "libelle": "Cotisations conventionnelles IDCC 3090",
+                  "base": "705.8",
+                  "taux_pat": "0.5",
+                  "montant_pat": "3.53",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                },
+                {
+                  "id": "csg_ded",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG déductible de l'impôt sur le revenu",
+                  "base": "701.28",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "6.8",
+                  "montant_sal": "47.69",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "csg_crds_nd",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+                  "base": "701.28",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "2.9",
+                  "montant_sal": "20.34",
+                  "masquer_base_et_taux": false
+                }
+              ],
+              "net_a_payer": "546.5",
+              "net_imposable": "566.84",
+              "net_social": "546.5",
+              "numero_bulletin": null,
+              "reduction_generale": null,
+              "remuneration": [
+                {
+                  "code": "cachet",
+                  "libelle": "Cachet",
+                  "unite": "cachet",
+                  "quantite": "4",
+                  "taux": "176.45",
+                  "montant": "705.8",
+                  "heures_annexes": "48",
+                  "soumis": true,
+                  "imposable": true,
+                  "conges_spectacles": true,
+                  "salaire_de_base": false,
+                  "retabli": false,
+                  "conges_pris": false,
+                  "dsn_bloc52": null,
+                  "arret_de_travail": false,
+                  "dsn_autres_bruts": null,
+                  "designation": "4 Cachets"
+                }
+              ],
+              "salaire_de_base": "705.8",
+              "salaire_retabli": "705.8",
+              "salarie": {
+                "_cle": "JACQUET"
+              },
+              "smic": "12.02",
+              "spectacle": {
+                "_cle": "le-medecin-volant"
+              },
+              "total_pat": "405.05",
+              "total_sal": "159.3",
+              "plafond": "336.56",
+              "plafond_urssaf": "1440"
+            },
+            "empreinte": {
+              "entrees": {
+                "dossier racine:imprevus": "absent",
+                "dossier? racine:": "oui",
+                "dossier? racine:arrets": "non",
+                "existe code:baremes/2025.json": "oui",
+                "existe code:baremes/2026.json": "oui",
+                "existe code:rubriques-base.json": "oui",
+                "existe racine:config/baremes/2025.json": "oui",
+                "existe racine:config/baremes/2026.json": "oui",
+                "existe racine:config/effectifs.json": "oui",
+                "existe racine:config/pas.json": "oui",
+                "existe racine:config/rubriques-actives.json": "oui",
+                "existe racine:config/rubriques-compagnie.json": "non",
+                "fiches": "300ef921628d4cd2657c3abca28520ffc961057a9c83dd55809ed01ff32da333",
+                "fichier code:baremes/2025.json": "8395e89ee96a6c351522e76c04467833cecf9361e64929abecec26ce12821149",
+                "fichier code:baremes/2026.json": "a57af8d9d2132d5c4f979f785d766e3df53e729912b9d5a9c13ecf277417ca8f",
+                "fichier code:clauses-conventionnelles-base.json": "176579e896e20a35d182e60d44f5fef868773546c63fb4f039cd4397822a0a5c",
+                "fichier code:contrats-base.json": "a881fb6ed4fa89b72c3912e3f6ac5a1be537eb3842f11855971097750e4a3de8",
+                "fichier code:emplois-base.json": "18fa6cbb9d595636973a3689eac9964b5f9781448f7ef0e043124028bb8572ad",
+                "fichier code:feries-base.json": "79fc689f195ca421a4233d015e885cd798c7da7aaddc9904566f783e7b1b4068",
+                "fichier code:minima-conventionnels.json": "52a5712b31f9ce263f273dc49dcf8aa817a69bd81535f7c483e9fb21f11db5ee",
+                "fichier code:permanents-base.json": "925f80e5eb9aefec7d9f5a93af6786149b9ba6e67afe24c8838cddc3a79b0e0b",
+                "fichier code:prevoyance-conventionnelle-base.json": "17c224291d6bd91cf7a498b45079ca3862ef79807c15191ac1927877aaff898d",
+                "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
+                "fichier racine:config/baremes/2025.json": "ee48aba31c947a8474f44fb0205f8a836027f71ddc7b157925f455c75801031c",
+                "fichier racine:config/baremes/2026.json": "4ff04df028809eec5ff474444db925d112cc514aa61a8beff6eee070717a6c6a",
+                "fichier racine:config/effectifs.json": "ed6625fb5c66f14bcc6174f4f8bda2f9e6b95f828bfd36eb6007a549b9d2f4cd",
+                "fichier racine:config/pas.json": "48b6a2990ebb238f6e95cc18aa886e92ed3aaf476f61228212d9b2d9e61cd6c0",
+                "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
+                "moteur": "0.1.0+f150e58b15f7cd60",
+                "saisie 2025-01": "22b23b14395d9d2ef3199c81152da29bcdecfbde2337b506b829ee6beff9e2aa",
+                "saisie 2025-02": "fcf6f1c41b625c9ca7a4fd1533ac0cb826cb0ea44ae9dee3214a3c1e30c00c9e",
+                "saisie 2025-03": "50497bb40a7fddc9f85878bde795adcc7f062c77435d2a178af3289847c34189",
+                "saisie 2025-04": "e0b614fa09078ef40e8c734a6b7a47c8f100b90782813f13ff256ebb8a3a7d3a",
+                "saisie 2025-05": "236fcaaab56a87ea0ef9992a2c3770ecdb25f3ea52c56bc7dd674595d2ffd923",
+                "saisie 2025-06": "7c6075f829bf2ce2f301f0f6e3578b1bcdede335fbec4d0713414deddf9f17a5",
+                "saisie 2025-07": "3460c1354bc4b97643f35f54784960486f1f871263c04553ab6fefb3320b98df",
+                "saisie 2025-08": "8592244a783dd666eab124d1534941a6cd742d92ec5223cd266bcf9385b83983",
+                "saisie 2025-09": "7fe2bdd775dbba6ce6fd62d8be0a4c8bb6eceb0904bc343dab1cac7776d42aea",
+                "saisie 2025-10": "2f676ea197f8f794b68b3081485d9b28fa057ae6b89641f8fe575f038bf2d35b",
+                "saisie 2025-11": "0c3eb848c44695db4a6d10f3b8e0b496475392323a33a67c94d2f66c50eec94b",
+                "saisie 2025-12": "eaa586106de327634692bf690ceadbed84941943fd32651b85eed38bc9e61d5d",
+                "saisie 2026-01": "755be35b68d324f7066cc8e57132c366f1d69ab6849adcd6f04dc1ee6e80d087",
+                "saisie 2026-02": "b37880319d3d82f77d361a78b0406bfc3d29b0d9f24b6af0f203bfa9fc5247b5",
+                "saisie 2026-03": "d496e7f786b6fd1829012c928e4fa191193b61c02898f101a7a28adae4ccc6d5",
+                "saisie 2026-04": "5821fc229c249b2fe8281b83ad372120d146746258ad69c9f64409ce38c7f524",
+                "saisie 2026-05": "88913e2f15e31ff282139d003f21f239df2374a4b00379cd8fbee0010440df30",
+                "saisie 2026-06": "4d17f6c05a0a8cc670c7e1e0fbe7086ec34599aa587f51bab853fa3ba241558e",
+                "saisie 2026-07": "bf8150ef8a03ce1cc71c3fbcb54c6c34acfa9468299a2225a4bd33ab2219f8a1",
+                "saisie 2026-08": "8fcd87380f7f030ab355d15dc637d2ced1b0986e429cce8e270d7e241b6587e6",
+                "saisie 2026-09": "a1c247d71770bc8786a149a4bbafc30aaa6ba04143325e9cea8540f0173951f3",
+                "saisie 2026-10": "859a75a013ca432eb4b73f707d17f0586c82298e7a7f4708c0915da831ad53e3",
+                "saisie 2026-11": "db83030f33b57d7e697613f1a82fe0612df46a6b23d279486ff90b71b8a6566e",
+                "saisie 2026-12": "fb73722bcb7f606c65f14554d0e7b34bc955d3081b386610143f5c844a797788"
+              },
+              "regles": [
+                "2026-01-01"
+              ]
+            },
+            "pas": {
+              "taux": "3.80",
+              "type": "01",
+              "identifiant": "891102027",
+              "abattement": "0",
+              "montant_soumis": "566.84",
+              "prelevement": "21.54"
+            }
+          }
+        }
+      }
+    },
+    {
+      "salarie": "Servandoni",
+      "spectacle": "256Z00910033",
+      "debut": "2026-04-07",
+      "fin": "2026-04-10",
+      "date_paiement": "2026-04-10",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 28,
+          "taux": 18.0,
+          "lieu": "Ecoles de Touraine",
+          "dates": [
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10"
+          ]
+        }
+      ],
+      "numero": "SE9.26.03",
+      "valide": {
+        "le": "2026-10-25T18:59:27",
+        "paies": {
+          "2026-04": {
+            "paie": {
+              "assiette_chomage": "504",
+              "avertissements": [],
+              "base_csg": "500.77",
+              "bases": {
+                "brut": "504",
+                "brut_chomage": "504",
+                "brut_cs": "504",
+                "brut_plafonne": "504",
+                "brut_x110": "554.4",
+                "brut_x115": "561.96",
+                "brut_x115_plafonne": "561.96",
+                "csg": "500.77"
+              },
+              "brut": "504",
+              "cout_employeur": "761.81",
+              "deduction_forfaitaire": null,
+              "engagement": {
+                "salarie": "Servandoni",
+                "spectacle": "256Z00910033",
+                "dates_travail": [
+                  "2026-04-07",
+                  "2026-04-08",
+                  "2026-04-09",
+                  "2026-04-10"
+                ],
+                "lignes": [
+                  {
+                    "rubrique": "heure",
+                    "quantite": 28,
+                    "taux": 18.0,
+                    "lieu": "Ecoles de Touraine",
+                    "dates": [
+                      "2026-04-07",
+                      "2026-04-08",
+                      "2026-04-09",
+                      "2026-04-10"
+                    ]
+                  }
+                ],
+                "debut": "2026-04-07",
+                "fin": "2026-04-10",
+                "numero": "SE9.26.03",
+                "mois": "2026-04",
+                "planning": [],
+                "planning_lieux": {},
+                "jours": "4",
+                "jours_contrat": "4",
+                "date_paiement": "2026-04-10",
+                "taux_cachet": "180",
+                "cachets": "0",
+                "heures": "28",
+                "lieu": "",
+                "lieux": {
+                  "2026-04-07": "Ecoles de Touraine",
+                  "2026-04-08": "Ecoles de Touraine",
+                  "2026-04-09": "Ecoles de Touraine",
+                  "2026-04-10": "Ecoles de Touraine"
+                },
+                "emploi": null,
+                "pcs_ese": null,
+                "code_emploi_ft": null,
+                "statut": null,
+                "statut_conventionnel": null,
+                "statut_categoriel_rc": null,
+                "nature": "cddu_spectacle",
+                "quotite_contrat": null,
+                "quotite_reference_saisie": null,
+                "modalite_temps_travail_saisie": null,
+                "motif_recours": null,
+                "motif_rupture": null,
+                "notification_rupture": null,
+                "preavis": null,
+                "transaction": null,
+                "suspensions": [],
+                "debut_periode": "2026-04-07",
+                "fin_periode": "2026-04-10",
+                "quotite": "4",
+                "sans_paie": false,
+                "premier_mois": true,
+                "dernier_mois": true,
+                "mois_du_contrat": [
+                  "2026-04"
+                ]
+              },
+              "heures": "28",
+              "heures_absence": "0",
+              "heures_travaillees": "28",
+              "lignes": [
+                {
+                  "id": "maladie",
+                  "famille": "SANTÉ",
+                  "libelle": "Sécurité sociale – Maladie Maternité Invalidité Décès",
+                  "base": "504",
+                  "taux_pat": "13",
+                  "montant_pat": "65.52",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "prevoyance",
+                  "famille": "SANTÉ",
+                  "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+                  "base": "504",
+                  "taux_pat": "1.11",
+                  "montant_pat": "5.59",
+                  "taux_sal": "0.12",
+                  "montant_sal": "0.6",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "atmp",
+                  "famille": "ACCIDENTS DU TRAVAIL – MALADIES PROFESSIONNELLES",
+                  "libelle": "Accidents du travail",
+                  "base": "504",
+                  "taux_pat": "1.25",
+                  "montant_pat": "6.3",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_plaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale plafonnée",
+                  "base": "504",
+                  "taux_pat": "8.55",
+                  "montant_pat": "43.09",
+                  "taux_sal": "6.9",
+                  "montant_sal": "34.78",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_deplaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale déplafonnée",
+                  "base": "504",
+                  "taux_pat": "2.11",
+                  "montant_pat": "10.63",
+                  "taux_sal": "0.4",
+                  "montant_sal": "2.02",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "retraite_t1",
+                  "famille": "RETRAITE",
+                  "libelle": "Complémentaire Tranche 1",
+                  "base": "504",
+                  "taux_pat": "5.23",
+                  "montant_pat": "26.36",
+                  "taux_sal": "4.79",
+                  "montant_sal": "24.14",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "famille",
+                  "famille": "FAMILLE",
+                  "libelle": "Allocations familiales",
+                  "base": "504",
+                  "taux_pat": "5.25",
+                  "montant_pat": "26.46",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "chomage",
+                  "famille": "ASSURANCE CHÔMAGE",
+                  "libelle": "Chômage",
+                  "base": "504",
+                  "taux_pat": "9.75",
+                  "montant_pat": "49.14",
+                  "taux_sal": "2.4",
+                  "montant_sal": "12.1",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_1",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "504",
+                  "taux_pat": "2.836",
+                  "montant_pat": "14.29",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_2",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "561.96",
+                  "taux_pat": "0.1",
+                  "montant_pat": "0.56",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_3",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "554.4",
+                  "taux_pat": "0.68",
+                  "montant_pat": "3.77",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "conges_spec",
+                  "famille": "CONGÉS SPECTACLES",
+                  "libelle": "Caisse des Congés Spectacles",
+                  "base": "504",
+                  "taux_pat": "15.5",
+                  "montant_pat": "78.12",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "ccn",
+                  "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+                  "libelle": "Cotisations conventionnelles IDCC 3090",
+                  "base": "504",
+                  "taux_pat": "0.5",
+                  "montant_pat": "2.52",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                },
+                {
+                  "id": "csg_ded",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG déductible de l'impôt sur le revenu",
+                  "base": "500.77",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "6.8",
+                  "montant_sal": "34.05",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "csg_crds_nd",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+                  "base": "500.77",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "2.9",
+                  "montant_sal": "14.52",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "reduction_generale",
+                  "famille": "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS",
+                  "libelle": "Réduction générale dégressive unique",
+                  "base": "504",
+                  "taux_pat": null,
+                  "montant_pat": "-74.54",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                }
+              ],
+              "net_a_payer": "381.79",
+              "net_imposable": "396.31",
+              "net_social": "381.79",
+              "numero_bulletin": null,
+              "reduction_generale": {
+                "coefficient": "0.1479",
+                "montant": "74.54",
+                "smic_reference": "336.56",
+                "heures": "28",
+                "urssaf": "55.8",
+                "chomage": "7.49",
+                "agirc_arrco": "11.25"
+              },
+              "remuneration": [
+                {
+                  "code": "heure",
+                  "libelle": "Heure de travail",
+                  "unite": "heure",
+                  "quantite": "28",
+                  "taux": "18",
+                  "montant": "504",
+                  "heures_annexes": "28",
+                  "soumis": true,
+                  "imposable": true,
+                  "conges_spectacles": true,
+                  "salaire_de_base": false,
+                  "retabli": false,
+                  "conges_pris": false,
+                  "dsn_bloc52": null,
+                  "arret_de_travail": false,
+                  "dsn_autres_bruts": null,
+                  "designation": "28 Heures de travail"
+                }
+              ],
+              "salaire_de_base": "504",
+              "salaire_retabli": "504",
+              "salarie": {
+                "_cle": "SERVANDONI"
+              },
+              "smic": "12.02",
+              "spectacle": {
+                "_cle": "le-medecin-volant"
+              },
+              "total_pat": "257.81",
+              "total_sal": "122.21",
+              "plafond": "336.56",
+              "plafond_urssaf": "534"
+            },
+            "empreinte": {
+              "entrees": {
+                "dossier racine:imprevus": "absent",
+                "dossier? racine:": "oui",
+                "dossier? racine:arrets": "non",
+                "existe code:baremes/2025.json": "oui",
+                "existe code:baremes/2026.json": "oui",
+                "existe code:rubriques-base.json": "oui",
+                "existe racine:config/baremes/2025.json": "oui",
+                "existe racine:config/baremes/2026.json": "oui",
+                "existe racine:config/effectifs.json": "oui",
+                "existe racine:config/pas.json": "oui",
+                "existe racine:config/rubriques-actives.json": "oui",
+                "existe racine:config/rubriques-compagnie.json": "non",
+                "fiches": "300ef921628d4cd2657c3abca28520ffc961057a9c83dd55809ed01ff32da333",
+                "fichier code:baremes/2025.json": "8395e89ee96a6c351522e76c04467833cecf9361e64929abecec26ce12821149",
+                "fichier code:baremes/2026.json": "a57af8d9d2132d5c4f979f785d766e3df53e729912b9d5a9c13ecf277417ca8f",
+                "fichier code:clauses-conventionnelles-base.json": "176579e896e20a35d182e60d44f5fef868773546c63fb4f039cd4397822a0a5c",
+                "fichier code:contrats-base.json": "a881fb6ed4fa89b72c3912e3f6ac5a1be537eb3842f11855971097750e4a3de8",
+                "fichier code:emplois-base.json": "18fa6cbb9d595636973a3689eac9964b5f9781448f7ef0e043124028bb8572ad",
+                "fichier code:feries-base.json": "79fc689f195ca421a4233d015e885cd798c7da7aaddc9904566f783e7b1b4068",
+                "fichier code:minima-conventionnels.json": "52a5712b31f9ce263f273dc49dcf8aa817a69bd81535f7c483e9fb21f11db5ee",
+                "fichier code:permanents-base.json": "925f80e5eb9aefec7d9f5a93af6786149b9ba6e67afe24c8838cddc3a79b0e0b",
+                "fichier code:prevoyance-conventionnelle-base.json": "17c224291d6bd91cf7a498b45079ca3862ef79807c15191ac1927877aaff898d",
+                "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
+                "fichier racine:config/baremes/2025.json": "ee48aba31c947a8474f44fb0205f8a836027f71ddc7b157925f455c75801031c",
+                "fichier racine:config/baremes/2026.json": "4ff04df028809eec5ff474444db925d112cc514aa61a8beff6eee070717a6c6a",
+                "fichier racine:config/effectifs.json": "ed6625fb5c66f14bcc6174f4f8bda2f9e6b95f828bfd36eb6007a549b9d2f4cd",
+                "fichier racine:config/pas.json": "48b6a2990ebb238f6e95cc18aa886e92ed3aaf476f61228212d9b2d9e61cd6c0",
+                "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
+                "moteur": "0.1.0+f150e58b15f7cd60",
+                "saisie 2025-01": "22b23b14395d9d2ef3199c81152da29bcdecfbde2337b506b829ee6beff9e2aa",
+                "saisie 2025-02": "fcf6f1c41b625c9ca7a4fd1533ac0cb826cb0ea44ae9dee3214a3c1e30c00c9e",
+                "saisie 2025-03": "50497bb40a7fddc9f85878bde795adcc7f062c77435d2a178af3289847c34189",
+                "saisie 2025-04": "e0b614fa09078ef40e8c734a6b7a47c8f100b90782813f13ff256ebb8a3a7d3a",
+                "saisie 2025-05": "236fcaaab56a87ea0ef9992a2c3770ecdb25f3ea52c56bc7dd674595d2ffd923",
+                "saisie 2025-06": "7c6075f829bf2ce2f301f0f6e3578b1bcdede335fbec4d0713414deddf9f17a5",
+                "saisie 2025-07": "3460c1354bc4b97643f35f54784960486f1f871263c04553ab6fefb3320b98df",
+                "saisie 2025-08": "8592244a783dd666eab124d1534941a6cd742d92ec5223cd266bcf9385b83983",
+                "saisie 2025-09": "7fe2bdd775dbba6ce6fd62d8be0a4c8bb6eceb0904bc343dab1cac7776d42aea",
+                "saisie 2025-10": "2f676ea197f8f794b68b3081485d9b28fa057ae6b89641f8fe575f038bf2d35b",
+                "saisie 2025-11": "0c3eb848c44695db4a6d10f3b8e0b496475392323a33a67c94d2f66c50eec94b",
+                "saisie 2025-12": "eaa586106de327634692bf690ceadbed84941943fd32651b85eed38bc9e61d5d",
+                "saisie 2026-01": "755be35b68d324f7066cc8e57132c366f1d69ab6849adcd6f04dc1ee6e80d087",
+                "saisie 2026-02": "b37880319d3d82f77d361a78b0406bfc3d29b0d9f24b6af0f203bfa9fc5247b5",
+                "saisie 2026-03": "d496e7f786b6fd1829012c928e4fa191193b61c02898f101a7a28adae4ccc6d5",
+                "saisie 2026-04": "5821fc229c249b2fe8281b83ad372120d146746258ad69c9f64409ce38c7f524",
+                "saisie 2026-05": "88913e2f15e31ff282139d003f21f239df2374a4b00379cd8fbee0010440df30",
+                "saisie 2026-06": "4d17f6c05a0a8cc670c7e1e0fbe7086ec34599aa587f51bab853fa3ba241558e",
+                "saisie 2026-07": "bf8150ef8a03ce1cc71c3fbcb54c6c34acfa9468299a2225a4bd33ab2219f8a1",
+                "saisie 2026-08": "8fcd87380f7f030ab355d15dc637d2ced1b0986e429cce8e270d7e241b6587e6",
+                "saisie 2026-09": "a1c247d71770bc8786a149a4bbafc30aaa6ba04143325e9cea8540f0173951f3",
+                "saisie 2026-10": "859a75a013ca432eb4b73f707d17f0586c82298e7a7f4708c0915da831ad53e3",
+                "saisie 2026-11": "db83030f33b57d7e697613f1a82fe0612df46a6b23d279486ff90b71b8a6566e",
+                "saisie 2026-12": "fb73722bcb7f606c65f14554d0e7b34bc955d3081b386610143f5c844a797788"
+              },
+              "regles": [
+                "2026-01-01"
+              ]
+            },
+            "pas": {
+              "taux": "2.10",
+              "type": "01",
+              "identifiant": "891052027",
+              "abattement": "0",
+              "montant_soumis": "396.31",
+              "prelevement": "8.32"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

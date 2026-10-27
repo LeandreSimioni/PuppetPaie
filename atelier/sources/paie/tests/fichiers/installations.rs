@@ -136,9 +136,9 @@ fn le_fil_de_fond_ne_sort_pas_et_ne_touche_a_aucune_cle() {
     let coffre = move |r: &Path| paie::coffre::Coffre::sur(r, r.join("cle"), "2026-10-22T10:00");
     let r = racine.clone();
     let (reseau, cle) = std::thread::spawn(move || {
-        paie::fil_de_fond::marquer();
+        socle::fil_de_fond::marquer();
         (
-            paie::garde_reseau::sortie_vers("127.0.0.1").is_err() && paie::garde_reseau::sortie_vers("net-entreprises.fr").is_err(),
+            socle::garde_reseau::sortie_vers("127.0.0.1").is_err() && socle::garde_reseau::sortie_vers("net-entreprises.fr").is_err(),
             coffre(&r).poser_cle_poste().is_err(),
         )
     })
@@ -147,7 +147,7 @@ fn le_fil_de_fond_ne_sort_pas_et_ne_touche_a_aucune_cle() {
     assert!(reseau, "aucune sortie depuis le fil de fond");
     assert!(cle && !racine.join("cle").join(paie::coffre::FICHIER_CLE).exists(), "la cle du poste ne s'y sert ni ne s'y pose");
     // Hors du fil de fond, rien ne change.
-    assert!(paie::garde_reseau::sortie_vers("127.0.0.1").is_ok());
+    assert!(socle::garde_reseau::sortie_vers("127.0.0.1").is_ok());
     assert!(coffre(&racine).poser_cle_poste().is_ok());
 }
 

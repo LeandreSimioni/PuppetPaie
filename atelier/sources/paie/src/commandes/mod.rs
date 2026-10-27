@@ -1,9 +1,4 @@
-//! La ligne de commande du produit, `paie COMMANDE ...` : ce qu'un humain (ou un agent) tape. Lot J2a : la
-//! CONSULTATION. Les commandes qui agissent (J2b) et celles de l'atelier (K) viennent apres.
-//!
-//! Les commandes INTERNES -- celles que le Python appelle avec du JSON sur l'entree standard (`moteur/paie_rust.py`) --
-//! vivent sous `paie interne NOM` (`main.rs`) : les noms `retours`, `coffre`, `journal`, `droits` reviennent aux
-//! commandes du produit.
+//! La ligne de commande du produit, `paie COMMANDE ...` : ce qu'un humain (ou un agent) tape.
 //!
 //! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie. Chacune reprend la
 //! commande Python du meme nom (`moteur/cli.py`, `moteur/commandes_*.py`) : memes options, meme sortie -- texte et
@@ -70,7 +65,6 @@ pub mod importer;
 pub mod google;
 pub mod incidents;
 pub mod journal;
-pub mod mois;
 pub mod nouveau;
 pub mod ouverture;
 pub mod pas;
@@ -88,9 +82,9 @@ use std::rc::Rc;
 
 use serde_json::{json, Value};
 
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::echec::Echec;
 use analyse::{Args, Spec};
 
 /// Ce qu'une commande trouve en arrivant : la compagnie, le jour, et ses options.
@@ -218,7 +212,6 @@ fn commandes() -> Vec<Commande> {
         Commande { nom: "sources", aide: "les sources des donnees livrees, et leur veille (poste de l'editeur)", cachee: true, spec: &sources::SPEC, executer: sources::executer },
         Commande { nom: "fiche", aide: "rappeler les donnees de reference", cachee: false, spec: &fiche::SPEC, executer: fiche::executer },
         Commande { nom: "nouveau", aide: "creer un fichier de saisie pour un mois", cachee: false, spec: &nouveau::SPEC, executer: nouveau::executer },
-        Commande { nom: "mois", aide: "produire bulletins, certificats CS et DSN d un mois", cachee: false, spec: &mois::SPEC, executer: mois::executer },
         Commande { nom: "dpae", aide: "produire la seule DPAE, avant l embauche", cachee: false, spec: &dpae::SPEC, executer: dpae::executer },
         Commande { nom: "fin-contrat", aide: "le signalement de fin de contrat de travail unique (nature 07)", cachee: false, spec: &fin_contrat::SPEC, executer: fin_contrat::executer },
         Commande { nom: "arret", aide: "les arrets de travail : saisir, signaler, reporter", cachee: false, spec: &arret::SPEC, executer: arret::executer },

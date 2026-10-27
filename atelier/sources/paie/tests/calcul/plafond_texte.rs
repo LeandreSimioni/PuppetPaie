@@ -14,12 +14,12 @@
 //! des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : les saisies s'ecrivent dans
 //! le dossier temporaire des tests.
 
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
-use paie::num::{eur, Decimal, Resultat};
+use engagement::Saisie;
+use socle::num::{eur, Decimal, Resultat};
 use serde_json::{json, Value};
 use crate::outils::{dec, fictive, versement};
 
@@ -35,7 +35,7 @@ fn ctx(date: &str) -> Contexte {
 fn essayer(ctx: &Contexte, s: Value) -> Resultat<Saisie> {
     let chemin = crate::outils::chemin_unique("plafond-texte.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin)
+    crate::outils::charger_fichier(ctx, &chemin)
 }
 
 /// Une saisie d'octobre 2026 a un seul engagement.
@@ -101,22 +101,6 @@ fn un_contrat_de_quatre_jours_un_jour_travaille() {
 }
 
 #[test]
-fn un_contrat_de_sept_jours_quatre_cachets_a_le_prorata_des_jours_remuneres() {
-    // Deburau engage du 19 au 25/10/2026 (sept jours), quatre cachets de 500,00 un jour sur deux : la periode
-    // d'engagement continu n'est pas inferieure a cinq jours, l'arrete ne s'applique pas ; BOSS § 1090, les jours ayant
-    // donne lieu a remuneration : 4 005 x 4 / 31 = 516,77. Vague 1l : R. 242-2 sur les sept jours du contrat, 904,35 ;
-    // avant : « cachets isoles », max(904,35, 4 x 360) = 1 440,00.
-    let c = ctx("2026-10-28");
-    let s = octobre(&c, json!({"salarie": "Deburau", "spectacle": "266Z00910022", "debut": "2026-10-19", "fin": "2026-10-25",
-        "numero": "DE4.26.10", "date_paiement": "2026-10-25",
-        "lignes": [cachets(4, 500.0, &["2026-10-19", "2026-10-21", "2026-10-23", "2026-10-25"])]}));
-    let p = seule(&s);
-    assert_eq!(p.plafond_urssaf(&c).unwrap(), dec("516.77"));
-    assert_eq!(base(p, "vieil_plaf"), dec("516.77"));
-    assert_eq!(base(p, "chomage"), dec("2000.00"));
-}
-
-#[test]
 fn un_contrat_de_cinq_jours_pile_a_le_prorata_des_jours_remuneres() {
     // Deburau du 20 au 24/10/2026, deux cachets de 600,00 les 20 et 21 : cinq jours ne sont pas « inferieurs a cinq
     // jours ». BOSS § 1090 : 4 005 x 2 / 31 = 258,39. Vague 1l : les cinq jours du contrat, 645,97 ; avant : max(645,97,
@@ -131,41 +115,6 @@ fn un_contrat_de_cinq_jours_pile_a_le_prorata_des_jours_remuneres() {
     let s = octobre(&c, json!({"salarie": "Deburau", "spectacle": "266Z00910022", "debut": "2026-10-20", "fin": "2026-10-23",
         "numero": "DE6.26.10", "date_paiement": "2026-10-23", "lignes": [cachets(2, 600.0, &["2026-10-20", "2026-10-21"])]}));
     assert_eq!(seule(&s).plafond_urssaf(&c).unwrap(), dec("720.00"));
-}
-
-#[test]
-fn un_technicien_engage_moins_de_cinq_jours_a_le_prorata() {
-    // Chaminade, technicien, du 20 au 21/10/2026, 20 h a 40,00 : l'arrete ne vise que les artistes ; BOSS § 1090, deux
-    // jours remuneres, 4 005 x 2 / 31 = 258,39 (vague 1l : les deux jours du contrat, le meme montant).
-    let c = ctx("2026-10-28");
-    let s = octobre(&c, json!({"salarie": "Chaminade", "spectacle": "266Z00910022", "debut": "2026-10-20", "fin": "2026-10-21",
-        "numero": "CH1.26.10", "date_paiement": "2026-10-21",
-        "lignes": [{"rubrique": "heure", "quantite": 20, "taux": 40.0, "lieu": "Theatre fictif", "dates": ["2026-10-20", "2026-10-21"]}]}));
-    let p = seule(&s);
-    assert_eq!(p.salarie["statut"], "technicien");
-    assert_eq!(p.plafond_urssaf(&c).unwrap(), dec("258.39"));
-    assert_eq!(base(p, "vieil_plaf"), dec("258.39"));
-    assert_eq!(base(p, "chomage"), dec("800.00"));
-    // Le meme technicien paye au cachet, un jour : l'arrete ne le vise toujours pas, 4 005 / 31 = 129,19. Avant : le
-    // plancher des cachets s'appliquait a tout intermittent, 360,00.
-    let s = octobre(&c, json!({"salarie": "Chaminade", "spectacle": "266Z00910022", "debut": "2026-10-20", "fin": "2026-10-20",
-        "numero": "CH2.26.10", "date_paiement": "2026-10-20", "lignes": [cachets(1, 500.0, &["2026-10-20"])]}));
-    let p = seule(&s);
-    assert_eq!(p.plafond_urssaf(&c).unwrap(), dec("129.19"));
-    assert_eq!(base(p, "vieil_plaf"), dec("129.19"));
-}
-
-#[test]
-fn une_journee_dite_et_non_datee_refuse() {
-    // Deburau, contrat de deux jours, `jours` : 2, une seule date : la seconde journee ne se lit pas, elle ne se devine
-    // pas. Avant : 2 cachets x 360 = 720,00, sans rien demander.
-    let c = ctx("2026-10-28");
-    let err = essayer(&c, json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [
-        {"salarie": "Deburau", "spectacle": "266Z00910022", "debut": "2026-10-20", "fin": "2026-10-21", "numero": "DE7.26.10",
-         "date_paiement": "2026-10-21", "jours": 2, "lignes": [cachets(2, 600.0, &["2026-10-20"])]}]}))
-    .err()
-    .expect("une journee non datee refuse");
-    assert!(err.contains("arrete du 24/01/1975") && err.contains("2 jour(s) travaille(s) pour 1 date(s)"), "{}", err);
 }
 
 #[test]

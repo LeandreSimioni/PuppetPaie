@@ -1,6 +1,8 @@
-//! `paie depot-dsn FICHIER (--test | --reel | --apercu) [--confirmer-mois AAAA-MM] [--force] [--sans-repetition MOTIF]
+//! `paie depot-dsn (FICHIER | AAAA-MM) (--test | --reel | --apercu) [--confirmer-mois AAAA-MM] [--force] [--sans-repetition MOTIF]
 //! [--environnement production|editeur] [--ordre N] [--fenetre]` : deposer une DSN sur net-entreprises (`moteur/commandes_dsn.py`,
 //! `cmd_depot_dsn`). La seule commande qui declare quelque chose avec `deposer-dpae`.
+//! Un mois `AAAA-MM` a la place du fichier : la DSN du mois, fabriquee a son depot depuis ses engagements valides
+//! (`depart::fabriquer_dsn`).
 //!
 //! LE DEPOT LUI-MEME EST `depot_acte::deposer_dsn_dans` : la commande lit, affiche, puis appelle -- et affiche ce qui est revenu.
 //! Les garde-fous sont ceux du moteur, jamais ceux de la commande :
@@ -32,7 +34,7 @@ use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
 use crate::depot::{self, Apercu};
 use crate::depot_acte::{self, DepotFait, Preuve};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "depot-dsn",
@@ -100,13 +102,13 @@ fn afficher_apercu(chemin: &str, a: &Apercu, essai: bool) {
 /// Ce qui a ouvert le depot reel : le test qui en repond, ou le motif (`dire_repetition`). Un contournement se LIT au moment ou
 /// il sert.
 pub(crate) fn dire_repetition(r: &Value) {
-    if !crate::fichiers::vrai(r) {
+    if !socle::fichiers::vrai(r) {
         return;
     }
-    if r.get("contournement").is_some_and(crate::fichiers::vrai) {
+    if r.get("contournement").is_some_and(socle::fichiers::vrai) {
         dire!("\nDEPOSE SANS REPETITION -- motif inscrit au journal :\n  {}", super::rendu::champ(r, "contournement"));
     } else {
-        let test = r.get("test").filter(|x| crate::fichiers::vrai(x)).map(quand_a).filter(|t| !t.is_empty()).unwrap_or_else(|| "?".into());
+        let test = r.get("test").filter(|x| socle::fichiers::vrai(x)).map(quand_a).filter(|t| !t.is_empty()).unwrap_or_else(|| "?".into());
         dire!("\nRepetition : depot de test du {}, compte rendu {}.", test, super::rendu::champ_ou(r, "compte_rendu", "?"));
     }
 }
@@ -131,6 +133,15 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     let environnement = args.texte("environnement").unwrap_or("production");
     let fichier = args.texte("fichier").unwrap_or("");
+    // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
+    let fabriquee;
+    let fichier = if est_un_mois(fichier) {
+        let dsn = crate::depart::fabriquer_dsn(&cadre.o, &cadre.ctx, fichier, "cli")?;
+        fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+        fabriquee.as_str()
+    } else {
+        fichier
+    };
     let chemin = crate::routes_apercus::resoudre(&cadre.racine, &json!(fichier))?;
     let octets = match crate::routes_apercus::lire_octets(&chemin) {
         Ok(o) => o,
@@ -230,7 +241,7 @@ fn refus_du_depot(e: &Echec) -> i32 {
 }
 
 fn dire_la_suite(fait: &DepotFait, reel: bool, apercu: &Apercu) {
-    if crate::fichiers::vrai(&fait.deja) {
+    if socle::fichiers::vrai(&fait.deja) {
         dire!("\nA SAVOIR : ce fichier exact avait deja ete depose le {}.", super::rendu::champ_ou(&fait.deja, "quand", "?"));
     }
     dire_repetition(&fait.repetition);
@@ -243,4 +254,10 @@ fn dire_la_suite(fait: &DepotFait, reel: bool, apercu: &Apercu) {
     if reel && !apercu.est_signalement() {
         dire!("\nPuis, quelques jours plus tard, les attestations France Travail :\n\n  paie aer --mois {}", apercu.mois_lisible());
     }
+}
+
+/// `AAAA-MM` : un mois, pas un fichier.
+fn est_un_mois(t: &str) -> bool {
+    let b = t.as_bytes();
+    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
 }

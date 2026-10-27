@@ -20,11 +20,16 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::ecriture::ecrire_json;
-use crate::etats::{eq_py, erreur, get, items, nom_type, py_str, R};
-use crate::fichiers::vrai;
+use socle::ecriture::ecrire_json;
+use crate::etats::{get, items};
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::incidents::{self, Canal, DEPOSE, EN_ATTENTE};
-use crate::verrou::Verrou;
+use socle::verrou::Verrou;
 
 const TEXTE_MAX: usize = 5000;
 /// 1,5 Mo decodes.
@@ -38,7 +43,7 @@ fn tete(s: &str, n: usize) -> String {
     s.chars().take(n).collect()
 }
 
-fn valeur_erreur(m: &str) -> crate::retours::Echec {
+fn valeur_erreur(m: &str) -> socle::echec::Echec {
     erreur("ValueError", m)
 }
 
@@ -98,7 +103,7 @@ pub fn captures_de(charge: &Value) -> R<Vec<Value>> {
     for c in items(liste)? {
         let Value::Object(o) = c.as_ref() else { continue };
         let donnees = match o.get("donnees") {
-            Some(d) if vrai(d) => py_str(d),
+            Some(d) if vrai(d) => valeur_en_texte(d),
             _ => String::new(),
         };
         let donnees = if donnees.starts_with("data:") { donnees.split_once(',').map(|(_, r)| r.to_string()).unwrap_or_default() } else { donnees };
@@ -120,7 +125,7 @@ fn capture_valide(capture: &Value) -> R<Capture> {
         _ => return Err(valeur_erreur("Une capture doit être une image PNG ou JPEG.")),
     };
     let donnees = match capture.get("donnees") {
-        Some(d) if vrai(d) => py_str(d),
+        Some(d) if vrai(d) => valeur_en_texte(d),
         _ => String::new(),
     };
     let Some(brut) = base64_strict(&donnees) else { return Err(valeur_erreur("Une capture est illisible.")) };
@@ -146,7 +151,7 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
     let texte = match texte {
         Value::String(s) => s.trim_matches(|c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)).to_string(),
         t if !vrai(t) => String::new(),
-        t => return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", nom_type(t)))),
+        t => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(t)))),
     };
     if texte.is_empty() {
         return Err(valeur_erreur("Écrivez votre message avant d'envoyer."));
@@ -161,7 +166,7 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
     let fictive = crate::interface::compagnies::est_fictive(racine);
     let nom_du_dossier = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let poste = incidents::poste(racine)?;
-    let ecran_txt = if vrai(ecran) { tete(&py_str(ecran), 200) } else { String::new() };
+    let ecran_txt = if vrai(ecran) { tete(&valeur_en_texte(ecran), 200) } else { String::new() };
     let lues = incidents::lire(racine, None, false)?;
     let debut = lues.len().saturating_sub(INCIDENTS_JOINTS);
     let joints: Vec<Value> = lues[debut..].iter().map(|l| incidents::pour_l_editeur(racine, l)).collect::<R<_>>()?;
@@ -179,9 +184,9 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
             "machine": crate::diagnostic::machine(racine),
         },
         // LES TROIS MINUTES D'AVANT (Leandre, 23/10/2026) : chaque geste et chaque route, une ligne par action.
-        "fil": crate::diagnostic::fil(crate::diagnostic::maintenant_ms()),
+        "fil": crate::diagnostic::fil(socle::temps::maintenant_ms()),
         // Et, entieres (mises en forme), les ecritures et les refus de la page dans ces trois minutes : de quoi les rejouer.
-        "ecritures": crate::diagnostic::ecritures(crate::diagnostic::maintenant_ms(), 12),
+        "ecritures": crate::diagnostic::ecritures(socle::temps::maintenant_ms(), 12),
         "incidents": joints,
         "captures": caps.iter().map(|c| json!({"type": c.mime, "donnees": c.donnees})).collect::<Vec<_>>(),
     });
@@ -298,10 +303,10 @@ fn verrouiller(racine: &Path) -> R<Result<Verrou, ()>> {
     if let Some(d) = p.parent() {
         std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
     }
-    let marque = crate::verrou::marque("signalements", std::process::id(), &incidents::maintenant());
+    let marque = socle::verrou::marque("signalements", std::process::id(), &incidents::maintenant());
     let fin = std::time::Instant::now() + std::time::Duration::from_secs(10);
     loop {
-        match Verrou::prendre(&p, &marque, crate::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
+        match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
             Ok(v) => return Ok(Ok(v)),
             Err(_) if std::time::Instant::now() >= fin => return Ok(Err(())),
             Err(_) => std::thread::sleep(std::time::Duration::from_millis(50)),
@@ -324,7 +329,7 @@ fn modifier<T>(racine: &Path, f: impl FnOnce(&mut Vec<Value>) -> R<(T, bool)>) -
 /// Un identifiant de message, propre au poste : l'heure et six octets tires au hasard. Il nomme son fichier d'attente.
 fn nouvel_id() -> R<String> {
     let mut alea = [0u8; 6];
-    crate::temps::aleas(&mut alea).map_err(|e| erreur("OSError", e))?;
+    socle::temps::aleas(&mut alea).map_err(|e| erreur("OSError", e))?;
     let heure: String = incidents::maintenant().chars().filter(char::is_ascii_alphanumeric).collect();
     Ok(format!("{}-{}", heure, alea.iter().map(|o| format!("{:02x}", o)).collect::<String>()))
 }
@@ -337,7 +342,7 @@ fn brut_ou_vide(v: &Value, cle: &str) -> R<Value> {
 
 fn texte_ou_vide(v: &Value, cle: &str) -> R<String> {
     let x = get(v, cle)?;
-    Ok(if vrai(x) { py_str(x) } else { String::new() })
+    Ok(if vrai(x) { valeur_en_texte(x) } else { String::new() })
 }
 
 /// `signalement-envoyer` : ENREGISTRE le message sur le poste, et rend la main tout de suite (Leandre, 14/10/2026 : le
@@ -438,8 +443,8 @@ fn passage(racine: &Path) -> R<Value> {
     if let Some(d) = p.parent() {
         std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
     }
-    let marque = crate::verrou::marque("signalements-envoi", std::process::id(), &incidents::maintenant());
-    let _envoi = match Verrou::prendre(&p, &marque, crate::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
+    let marque = socle::verrou::marque("signalements-envoi", std::process::id(), &incidents::maintenant());
+    let _envoi = match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
         Ok(v) => v,
         Err(_) => return Ok(bilan(0, en_ordre(racine).iter().filter(|l| en_attente(l)).count(), "", true)),
     };
@@ -603,7 +608,7 @@ pub fn relever_reponses(racine: &Path) -> R<usize> {
             if let Value::Object(o) = x.as_ref() {
                 if o.get("reponse").is_some_and(vrai) {
                     let k = o.get("numero").cloned().unwrap_or(Value::Null);
-                    match recues.iter().position(|(c, _)| eq_py(c, &k)) {
+                    match recues.iter().position(|(c, _)| valeurs_egales(c, &k)) {
                         Some(i) => recues[i].1 = x.clone().into_owned(),
                         None => recues.push((k, x.into_owned())),
                     }
@@ -616,12 +621,12 @@ pub fn relever_reponses(racine: &Path) -> R<usize> {
         let mut n = 0;
         for l in lignes.iter_mut() {
             let numero = get(l, "numero")?.clone();
-            let Some((_, x)) = recues.iter().find(|(c, _)| eq_py(c, &numero)) else { continue };
+            let Some((_, x)) = recues.iter().find(|(c, _)| valeurs_egales(c, &numero)) else { continue };
             if vrai(get(l, "reponse")?) {
                 continue;
             }
             let o = l.as_object_mut().expect("get a verifie");
-            o.insert("reponse".into(), json!(tete(&py_str(&x["reponse"]), 2000)));
+            o.insert("reponse".into(), json!(tete(&valeur_en_texte(&x["reponse"]), 2000)));
             o.insert("repondu_le".into(), json!(texte_ou_vide(x, "repondu_le")?));
             o.insert("lu".into(), json!(false));
             n += 1;

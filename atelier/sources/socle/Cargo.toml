@@ -1,0 +1,19 @@
+[package]
+name = "socle"
+version = "0.1.0"
+edition = "2021"
+description = "Le socle du moteur de PuppetPaie : dates, heure de Paris, temps simule, nombres, texte, fichiers, echecs, garde-fou reseau. Aucun droit, aucun metier."
+license = "EUPL-1.2"
+publish = false
+
+[dependencies]
+rust_decimal = { workspace = true }
+serde_json = { workspace = true }
+# L'empreinte d'un fichier lu, et les aleas en suite fixe du temps simule.
+sha2 = { workspace = true }
+getrandom = { workspace = true }
+# Le garde-fou reseau regle l'agent HTTP de chaque sortie.
+ureq = { workspace = true }
+# Les classeurs .xlsx qu'on lit (`lecture_xlsx`) : une archive zip de XML.
+zip = { workspace = true }
+roxmltree = { workspace = true }

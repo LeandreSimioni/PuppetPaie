@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{brut, champ, enveloppe, rendre, texte};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "incidents",
@@ -33,7 +33,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 /// `quand_lisible` : `2026-09-12T18:18:08` -> `12/09/2026 à 18:18`.
 fn quand_lisible(v: Option<&Value>) -> String {
-    let s = v.filter(|x| crate::fichiers::vrai(x)).map(texte).unwrap_or_default();
+    let s = v.filter(|x| socle::fichiers::vrai(x)).map(texte).unwrap_or_default();
     let c: Vec<char> = s.chars().collect();
     if c.len() < 10 || c[4] != '-' || c[7] != '-' {
         return s;
@@ -69,17 +69,17 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
         // Les lignes caviardees d'abord : chacune designe un message d'erreur qui cite une valeur au lieu de nommer un
         // champ, et c'est le message qu'il faut corriger.
-        lignes.sort_by_key(|l| !l.get("caviarde").is_some_and(crate::fichiers::vrai));
+        lignes.sort_by_key(|l| !l.get("caviarde").is_some_and(socle::fichiers::vrai));
         for l in &lignes {
             dire!("{}  {:<9} {}", quand_lisible(l.get("quand")), champ(l, "quoi"), champ(l, "ou"));
-            if l.get("resume").is_some_and(crate::fichiers::vrai) {
+            if l.get("resume").is_some_and(socle::fichiers::vrai) {
                 dire!("    {}", champ(l, "resume"));
             }
-            if let Some(c) = l.get("caviarde").filter(|c| crate::fichiers::vrai(c)) {
+            if let Some(c) = l.get("caviarde").filter(|c| socle::fichiers::vrai(c)) {
                 let noms: Vec<String> = c.as_array().map(|a| a.iter().map(texte).collect()).unwrap_or_default();
                 dire!("    /!\\ caviarde : {} -- le message cite une valeur, il devrait nommer le champ", noms.join(", "));
             }
-            let etat = l.get("envoi").and_then(|e| e.get("etat")).filter(|e| crate::fichiers::vrai(e)).map(texte);
+            let etat = l.get("envoi").and_then(|e| e.get("etat")).filter(|e| socle::fichiers::vrai(e)).map(texte);
             if let Some(e) = etat.filter(|e| e != "sans-objet") {
                 dire!("    envoi : {}", e);
             }
@@ -102,17 +102,17 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let combien = p.get("combien").and_then(Value::as_i64).unwrap_or(0);
         total += combien;
         let ou = match p.get("ou") {
-            Some(o) if crate::fichiers::vrai(o) => texte(o),
+            Some(o) if socle::fichiers::vrai(o) => texte(o),
             _ => "?".to_string(),
         };
-        let genre = p.get("genre").filter(|g| crate::fichiers::vrai(g)).map(texte).unwrap_or_default();
+        let genre = p.get("genre").filter(|g| socle::fichiers::vrai(g)).map(texte).unwrap_or_default();
         dire!("{:<9} {:<28} {}{}", champ(p, "quoi"), ou, genre, if combien > 1 { format!(" x{}", combien) } else { String::new() });
-        if p.get("resume").is_some_and(crate::fichiers::vrai) {
+        if p.get("resume").is_some_and(socle::fichiers::vrai) {
             dire!("    {}", champ(p, "resume"));
         }
         let versions: Vec<String> = p.get("versions").and_then(Value::as_array).map(|a| a.iter().map(texte).collect()).unwrap_or_default();
         dire!("    du {} au {}, version(s) {}", quand_lisible(p.get("premiere")), quand_lisible(p.get("derniere")), versions.join(", "));
-        if let Some(c) = p.get("caviarde").filter(|c| crate::fichiers::vrai(c)) {
+        if let Some(c) = p.get("caviarde").filter(|c| socle::fichiers::vrai(c)) {
             let noms: Vec<String> = c.as_array().map(|a| a.iter().map(texte).collect()).unwrap_or_default();
             dire!("    /!\\ caviarde : {}", noms.join(", "));
         }
@@ -125,12 +125,12 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 fn envoyer(cadre: &Cadre) -> Result<i32, Echec> {
     let b = cadre.route("incidents-envoyer", json!({}))?;
     let reste = b.get("reste").and_then(Value::as_i64).unwrap_or(0);
-    if b.get("sans_serveur").is_some_and(crate::fichiers::vrai) {
+    if b.get("sans_serveur").is_some_and(socle::fichiers::vrai) {
         dire!("Aucun serveur configure (\"serveur\" dans config/filet-dpae.json) : {} incident(s) restent en attente.", reste);
         return Ok(1);
     }
     dire!("{} incident(s) depose(s) chez l'editeur, {} en attente.", b.get("envoyes").and_then(Value::as_i64).unwrap_or(0), reste);
-    if b.get("erreur").is_some_and(crate::fichiers::vrai) {
+    if b.get("erreur").is_some_and(socle::fichiers::vrai) {
         dire!("Interrompu : {}", champ(&b, "erreur"));
         return Ok(1);
     }

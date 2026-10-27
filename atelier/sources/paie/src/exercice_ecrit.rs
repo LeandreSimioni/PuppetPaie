@@ -21,16 +21,17 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::catalogue::{self, HorsAssiette};
-use crate::contexte::Contexte;
-use crate::engagement;
-use crate::etats::{self, erreur, py_str};
-use crate::fichiers::vrai;
-use crate::num::{eur2, zero2, Decimal};
-use crate::retours::Echec;
+use droit::catalogue::{self, HorsAssiette};
+use droit::contexte::Contexte;
+use crate::etats;
+use socle::valeur::valeur_en_texte;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::num::{eur2, zero2, Decimal};
+use socle::echec::Echec;
 use crate::routes_dossier_salarie::{entree_ecrite, entree_fichier, zip, Entree};
 use crate::routes_dossiers::{compte_du_salarie, plan_comptable, Refus};
-use crate::routes_ouverture::{mois_de_l_annee, nic_principal, refus_du_calcul};
+use crate::routes_ouverture::{mois_de_l_annee, nic_principal};
 
 type R<T> = Result<T, Echec>;
 
@@ -50,17 +51,17 @@ fn est_une_erreur_d_operation(e: &Echec) -> bool {
 
 /// L'heure de Paris, a la seconde (`datetime.now().isoformat(timespec="seconds")`).
 fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_secondes(t)
+    let t = socle::temps::secondes();
+    socle::paris::iso_secondes(t)
 }
 
 /// `str(annee)` d'une valeur de la charge.
 fn texte_de(v: &Value) -> String {
-    py_str(v)
+    valeur_en_texte(v)
 }
 
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// `int(x)` d'une valeur JSON.
@@ -70,10 +71,10 @@ fn entier(v: &Value) -> R<i64> {
         Value::Bool(b) => Ok(i64::from(*b)),
         Value::String(s) => crate::apercu_dsn::int_py(s)
             .and_then(|n| i64::try_from(n).ok())
-            .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(s)))),
+            .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", etats::nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
         )),
     }
 }
@@ -134,7 +135,7 @@ impl Ecriture {
 /// `operations_exercice._dernier_jour` : le dernier jour du mois, AAAA-MM-JJ.
 fn dernier_jour(annee: i64, mois: i64) -> R<String> {
     let (a, m) = if mois == 12 { (annee + 1, 1) } else { (annee, mois + 1) };
-    let premier = crate::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
+    let premier = socle::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
     Ok(premier.plus_jours(-1).map_err(|x| erreur("ValueError", x))?.iso())
 }
 
@@ -142,44 +143,42 @@ fn dernier_jour(annee: i64, mois: i64) -> R<String> {
 /// refuse (`date::numero_du_mois`, lot F1 ; il se datait du 31 decembre de l'annee d'avant, libelle « Decembre »).
 fn date_et_libelle(mois: &str) -> R<(String, String)> {
     let annee: i64 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
-    let mo = i64::from(crate::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
+    let mo = i64::from(socle::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
     let date = dernier_jour(annee, mo)?;
-    let nom = crate::date::nom_du_mois(mo, crate::date::Graphie::Titre).map_err(|e| erreur("ValueError", e))?;
+    let nom = socle::date::nom_du_mois(mo, socle::date::Graphie::Titre).map_err(|e| erreur("ValueError", e))?;
     Ok((date, format!("{} {}", nom, annee)))
 }
 
 /// `plan[cle]` : `KeyError` s'il manque.
 fn cle_du_plan<'a>(plan: &'a Map<String, Value>, cle: &str) -> R<&'a Value> {
-    plan.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    plan.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// `v[cle]` sur un dictionnaire du plan : `KeyError` s'il manque.
 fn dans<'a>(v: &'a Value, cle: &str) -> R<&'a Value> {
     match v {
-        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle))),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un objet", etats::nom_type(autre)))),
+        Value::Object(o) => o.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     }
 }
 
 /// `x or defaut`.
 fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
     match v {
-        Some(x) if vrai(x) => py_str(x),
+        Some(x) if vrai(x) => valeur_en_texte(x),
         _ => defaut.to_string(),
     }
 }
 
-/// `operations_exercice.ecritures_du_mois` : une ecriture pour le mois, depuis les bulletins recalcules.
+/// `operations_exercice.ecritures_du_mois` : une ecriture pour le mois, depuis les paies validees.
 /// Le brut par spectacle, la charge patronale et le tiers par ligne de bulletin, le prelevement a la source retenu
 /// (une dette envers l'Etat, au compte `pas` du plan), le net par salarie -- le net PAYE, apres l'impot, celui du
 /// bulletin. Un identifiant de ligne absent du plan fait refuser : on ne devine pas un compte.
 pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) -> R<Vec<Ecriture>> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let data = engagement::lire_saisie(&chemin).map_err(Echec::from)?;
-    let saisie = engagement::charger_donnees(ctx, &data).map_err(|m| Echec::from(refus_du_calcul(ctx, &data, m)))?;
+    let (_, paies) = crate::etats_paie::charger_mois(ctx, mois)?;
     let (date, lib_mois) = date_et_libelle(mois)?;
     let jrn = ou_texte(plan.get("journal"), "OD");
-    let jrn = if plan.contains_key("journal") { py_str(&plan["journal"]) } else { jrn };
+    let jrn = if plan.contains_key("journal") { valeur_en_texte(&plan["journal"]) } else { jrn };
     let zero = zero2();
 
     let lignes_du_plan = cle_du_plan(plan, "lignes")?;
@@ -189,14 +188,14 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let mut frais_par_spectacle: BTreeMap<String, Decimal> = BTreeMap::new();
     let mut charge: BTreeMap<(String, String), Decimal> = BTreeMap::new();
     let mut tiers: BTreeMap<String, Decimal> = BTreeMap::new();
-    // LE PRELEVEMENT A LA SOURCE : celui du bulletin (`pas::des_paies`, le meme calcul, la meme position), retenu sur
+    // LE PRELEVEMENT A LA SOURCE : celui du bulletin (`prelevement::des_paies`, le meme calcul, la meme position), retenu sur
     // le net et du a la DGFiP (compte 4421 « Prelevements a la source (Impot sur le revenu) » du plan
     // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md). Une paie dont le prelevement
     // ne se calcule pas (bareme sans grille) n'en a pas : le bulletin imprime 0,00 et paie le net entier. Le PAS d'un
     // mois DEPOSE est celui que sa DSN a declare (S21.G00.50.009), lu et non recalcule au taux du jour (lot D2 ; CGI
-    // art. 1671 : `pas::des_paies`) ; jusque-la (limite du lot R3), il s'en ecartait quand la DGFiP avait transmis un
+    // art. 1671 : `prelevement::des_paies`) ; jusque-la (limite du lot R3), il s'en ecartait quand la DGFiP avait transmis un
     // autre taux depuis.
-    let pas_des_paies = crate::pas::des_paies(ctx, &saisie.paies).map_err(refus)?;
+    let pas_des_paies = crate::prelevement::des_paies(ctx, &paies).map_err(refus)?;
     let mut pas_du_mois = zero;
     // LES RETENUES (une ligne hors assiette de nature `retenue` : acompte, avance, saisie) ne sont pas une charge : un
     // acompte solde une avance deja versee (425 « Personnel - Avances et acomptes et autres comptes debiteurs »), une
@@ -208,10 +207,10 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         let e = m.entry(k).or_insert(zero);
         *e += v;
     };
-    for (p, pas) in saisie.paies.iter().zip(&pas_des_paies) {
+    for (p, pas) in paies.iter().zip(&pas_des_paies) {
         // UN PERMANENT N'A PAS DE SPECTACLE : son brut va a sa propre section.
         let titre = match p.spectacle.get("titre").filter(|t| vrai(t)) {
-            Some(t) => py_str(t),
+            Some(t) => valeur_en_texte(t),
             None => match p.engagement.spectacle.as_deref().filter(|s| !s.is_empty()) {
                 Some(s) => s.to_string(),
                 None => "Salariés au mois".to_string(),
@@ -220,10 +219,10 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         let brut = eur2(p.brut);
         ajouter(&mut brut_par_spectacle, titre.clone(), brut);
         let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => py_str(v),
-            None => p.salarie.get("prenom").map(py_str).unwrap_or_default(),
+            Some(v) => valeur_en_texte(v),
+            None => p.salarie.get("prenom").map(valeur_en_texte).unwrap_or_default(),
         };
-        let qui = format!("{} {}", py_str(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("nom")))?), prenom);
+        let qui = format!("{} {}", valeur_en_texte(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?), prenom);
         let mut retenu = zero;
         for l in p.remuneration.iter().filter(|l| !l.soumis) {
             if catalogue::rubrique(&ctx.racine, &l.code).and_then(|r| r.hors_assiette()).map_err(refus)? != HorsAssiette::Mouvement {
@@ -235,7 +234,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
                     l.code, l.libelle
                 )));
             };
-            let k = (py_str(dans(regle, "compte")?), ou_texte(regle.get("libelle"), &l.libelle), qui.clone());
+            let k = (valeur_en_texte(dans(regle, "compte")?), ou_texte(regle.get("libelle"), &l.libelle), qui.clone());
             *retenues.entry(k).or_insert(zero) += eur2(l.montant);
             retenu += eur2(l.montant);
         }
@@ -252,7 +251,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         let prelevement = eur2(pas.as_ref().map_or(zero, |v| v.prelevement));
         pas_du_mois += prelevement;
         ajouter(&mut net_par_salarie, qui.clone(), eur2(p.net_a_payer) - prelevement);
-        let cle_salarie = p.salarie.get("_cle").map(py_str).unwrap_or_default();
+        let cle_salarie = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
         let compte = compte_du_salarie(plan, &p.salarie, &cle_salarie).map_err(|r| match r {
             Refus::Operation(m) => refus(m),
             Refus::Autre(e) => e,
@@ -270,12 +269,12 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
             if l.id == "reduction_generale" {
                 if let Some(rg) = &p.reduction_generale {
                     // La RGDU : une charge negative, ventilee au tiers de chaque part telle que la paie l'a calculee.
-                    let k = (py_str(dans(regle, "charge")?), libelle_de(regle));
+                    let k = (valeur_en_texte(dans(regle, "charge")?), libelle_de(regle));
                     *charge.entry(k).or_insert(zero) += eur2(l.montant_pat);
                     for (part, id_tiers) in [(rg.urssaf, "maladie"), (rg.chomage, "chomage"), (rg.agirc_arrco, "retraite_t1")] {
                         if !part.is_zero() {
-                            let r = lignes_du_plan.as_object().and_then(|o| o.get(id_tiers)).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(id_tiers)))?;
-                            let c = py_str(dans(r, "tiers")?);
+                            let r = lignes_du_plan.as_object().and_then(|o| o.get(id_tiers)).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(id_tiers)))?;
+                            let c = valeur_en_texte(dans(r, "tiers")?);
                             *tiers.entry(c).or_insert(zero) -= part;
                         }
                     }
@@ -284,11 +283,11 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
             }
             let (pat, sal) = (eur2(l.montant_pat), eur2(l.montant_sal));
             if !pat.is_zero() {
-                let k = (py_str(dans(regle, "charge")?), libelle_de(regle));
+                let k = (valeur_en_texte(dans(regle, "charge")?), libelle_de(regle));
                 *charge.entry(k).or_insert(zero) += pat;
             }
             if !pat.is_zero() || !sal.is_zero() {
-                *tiers.entry(py_str(dans(regle, "tiers")?)).or_insert(zero) += pat + sal;
+                *tiers.entry(valeur_en_texte(dans(regle, "tiers")?)).or_insert(zero) += pat + sal;
             }
         }
     }
@@ -325,7 +324,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     };
     let brut_plan = cle_du_plan(plan, "brut")?;
     for (titre, m) in &brut_par_spectacle {
-        ligne(&py_str(dans(brut_plan, "compte")?), &py_str(dans(brut_plan, "libelle")?), *m, zero, titre, "");
+        ligne(&valeur_en_texte(dans(brut_plan, "compte")?), &valeur_en_texte(dans(brut_plan, "libelle")?), *m, zero, titre, "");
     }
     let frais_defaut = json!({"compte": "641400", "libelle": "Indemnites non soumises"});
     let frais = match plan.get("frais").filter(|f| vrai(f)) {
@@ -333,7 +332,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         None => frais_defaut,
     };
     for (titre, m) in &frais_par_spectacle {
-        ligne(&py_str(dans(&frais, "compte")?), &py_str(dans(&frais, "libelle")?), *m, zero, titre, "");
+        ligne(&valeur_en_texte(dans(&frais, "compte")?), &valeur_en_texte(dans(&frais, "libelle")?), *m, zero, titre, "");
     }
     // Les charges dans l'ordre du plan (un compte, un libelle), puis les tiers.
     for ((c, lib), m) in &charge {
@@ -342,7 +341,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let noms_tiers = plan.get("tiers").filter(|t| vrai(t));
     for (c, m) in &tiers {
         let nom = match noms_tiers.and_then(|t| t.get(c.as_str())).filter(|n| vrai(n)) {
-            Some(n) => py_str(n),
+            Some(n) => valeur_en_texte(n),
             None => format!("Organisme {}", c),
         };
         ligne(c, &nom, zero, *m, "", "");
@@ -350,7 +349,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     // Au credit, une ligne pour le mois : la dette envers la DGFiP, qui la preleve sur la declaration du mois.
     if !pas_du_mois.is_zero() {
         let pas_plan = cle_du_plan(plan, "pas")?;
-        ligne(&py_str(dans(pas_plan, "compte")?), &py_str(dans(pas_plan, "libelle")?), zero, pas_du_mois, "", "");
+        ligne(&valeur_en_texte(dans(pas_plan, "compte")?), &valeur_en_texte(dans(pas_plan, "libelle")?), zero, pas_du_mois, "", "");
     }
     // Une retenue est negative sur le bulletin : elle passe au credit (un acompte retenu solde l'avance).
     for ((c, lib, qui), m) in &retenues {
@@ -359,7 +358,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
     let net_plan = cle_du_plan(plan, "net")?;
     for (qui, m) in &net_par_salarie {
         let aux = compte_de.get(qui).cloned().unwrap_or_default();
-        ligne(&py_str(dans(net_plan, "compte")?), &py_str(dans(net_plan, "libelle")?), zero, *m, qui, &aux);
+        ligne(&valeur_en_texte(dans(net_plan, "compte")?), &valeur_en_texte(dans(net_plan, "libelle")?), zero, *m, qui, &aux);
     }
 
     let d = out.iter().fold(zero, |a, e| a + e.debit);
@@ -445,7 +444,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         .into_iter()
         .filter(|m| {
             let n: i64 = m.chars().skip(5).take(2).collect::<String>().parse().unwrap_or(0);
-            du <= n && n <= au && ctx.racine.join("paies").join(format!("{}.json", m)).exists()
+            du <= n && n <= au && engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false)
         })
         .collect();
     if mois.is_empty() {
@@ -481,31 +480,20 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         std::fs::write(&f, csv_compta(&ecritures)).map_err(|e| en_os(&e, &f))?;
         // L'export de l'annee entiere note les saisies qu'il a lues (`export_compta_a_jour`).
         let lues = ((du, au) == (1, 12)).then(|| empreintes_des_saisies(&ctx.racine, &annee.to_string()));
-        crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&f), lues)?;
+        crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&f), lues)?;
         fichier = Some(f);
     }
     Ok(ExportCompta { annee: annee.to_string(), du, au, mois, ecritures, total_debit, total_credit, fichier, plan: origine.to_string(), avertissements: avert })
 }
 
-/// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE (#236) : `{"AAAA-MM": empreinte}` pour chaque `paies/AAAA-MM.json` de
-/// l'annee (`routes_mois::empreinte_de`, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut `null`. L'export
-/// compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
+/// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE (#236) : `{"AAAA-MM": empreinte}` pour chaque mois saisi de l'annee
+/// (`routes_mois::empreinte_de` de la saisie du mois, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut
+/// `null`. L'export compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
 pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
     let mut m = Map::new();
-    let Ok(rd) = std::fs::read_dir(racine.join("paies")) else { return Value::Object(m) };
-    let mut noms: Vec<String> = rd.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
-    noms.sort();
-    for nom in noms {
-        let Some(mois) = nom.strip_suffix(".json") else { continue };
-        let b = mois.as_bytes();
-        if !(b.len() == 7 && mois.starts_with(annee) && b[4] == b'-' && b[5].is_ascii_digit() && b[6].is_ascii_digit()) {
-            continue;
-        }
-        let e = std::fs::read(racine.join("paies").join(&nom))
-            .ok()
-            .and_then(|o| serde_json::from_slice::<Value>(&o).ok())
-            .map_or(Value::Null, |v| json!(crate::routes_mois::empreinte_de(&v)));
-        m.insert(mois.to_string(), e);
+    for mois in engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().filter(|x| x.starts_with(annee)) {
+        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes_mois::empreinte_de(&v)));
+        m.insert(mois, e);
     }
     Value::Object(m)
 }
@@ -521,7 +509,7 @@ pub(crate) fn export_compta_a_jour(racine: &Path, annee: &str) -> bool {
     if !racine.join("sorties").join("exercices").join(&nom).is_file() {
         return false;
     }
-    let journal = crate::produire_mois::journal_des_ecritures(racine);
+    let journal = crate::depart::journal_des_ecritures(racine);
     match journal.get(&format!("exercices/{}", nom)).and_then(|n| n.get("empreinte_saisie")) {
         Some(lues) if lues.is_object() => *lues == empreintes_des_saisies(racine, annee),
         _ => true,
@@ -554,7 +542,7 @@ pub(crate) fn export_compta_charge(ctx: &Contexte, charge: &Value) -> R<ExportCo
 fn lire_exercices(ctx: &Contexte) -> R<Map<String, Value>> {
     match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => Ok(o),
-        autre => Err(erreur("AttributeError", crate::fichiers::attendu("un objet", etats::nom_type(&autre)))),
+        autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre)))),
     }
 }
 
@@ -566,7 +554,7 @@ fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
 
 fn ecrire_exercices(ctx: &Contexte, tous: &Map<String, Value>) -> R<()> {
     let chemin = ctx.racine.join("config").join("exercices.json");
-    crate::ecriture::ecrire_json(&chemin, &Value::Object(tous.clone()), 1).map_err(|m| erreur("OSError", m))
+    socle::ecriture::ecrire_json(&chemin, &Value::Object(tous.clone()), 1).map_err(|m| erreur("OSError", m))
 }
 
 /// Les fichiers sous `d`, dans l'ordre de `sorted(d.rglob("*"))` (les chemins se comparent composant par composant).
@@ -588,7 +576,7 @@ fn fichiers_sous(d: &Path, out: &mut Vec<PathBuf>) {
 pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> R<Value> {
     if let Some(clos) = exercice_clos(ctx, annee)? {
         let le: String = match clos.get("le") {
-            Some(v) => py_str(v),
+            Some(v) => valeur_en_texte(v),
             None => "?".to_string(),
         };
         return Err(refus(format!("L'exercice {} est déjà clos (le {}).", annee, le.chars().take(10).collect::<String>())));
@@ -601,7 +589,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     let mut depots = Depots::nouveau(ctx);
     let mut sans_dsn: Vec<String> = Vec::new();
     for m in &mois {
-        if ctx.racine.join("paies").join(format!("{}.json", m)).exists() && !depots.dsn_acceptee(m)? {
+        if engagement::stock::a_une_saisie(&ctx.racine, m).unwrap_or(false) && !depots.dsn_acceptee(m)? {
             sans_dsn.push(m.clone());
         }
     }
@@ -623,11 +611,22 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     std::fs::create_dir_all(&dossier).map_err(|e| en_os(&e, &dossier))?;
     let archive = dossier.join(format!("Exercice_{}.zip", annee));
     let mut entrees: Vec<Entree> = Vec::new();
+    // Les engagements qui touchent l'annee : le fichier de chacun de ses mois, et celui du mois ou commence un engagement
+    // qui court encore dans l'annee (un contrat commence l'annee d'avant).
+    let mut fichiers_engagements: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for m in &mois {
-        let s = ctx.racine.join("paies").join(format!("{}.json", m));
-        if s.exists() {
-            entrees.push(entree_fichier(&s, format!("paies/{}.json", m))?);
+        fichiers_engagements.insert(m.clone());
+        for o in engagement::stock::objets_du_mois(&ctx.racine, m).map_err(refus)? {
+            fichiers_engagements.insert(o.fichier);
         }
+    }
+    for f in &fichiers_engagements {
+        let s = engagement::stock::chemin(&ctx.racine, f);
+        if s.exists() {
+            entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::stock::DOSSIER, f))?);
+        }
+    }
+    for m in &mois {
         let d = ctx.racine.join("sorties").join(m);
         if d.is_dir() {
             let mut fichiers = Vec::new();
@@ -676,7 +675,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     let aujourd_hui = ctx.aujourdhui;
     let lisez_moi = format!(
         "Exercice {} -- archive de cloture, PuppetPaie, le {:02}/{:02}/{:04}.\n\n\
-         paies/      les saisies de chaque mois\n\
+         engagements/ les engagements de chaque mois ou ils commencent, et leurs paies validees\n\
          sorties/    bulletins, contrats (signes dans envoi/), DPAE, DSN, certificats, courriels\n\
          retours/    les reponses des organismes (net-entreprises, Urssaf DPAE)\n\
          journal/    le journal des depots\n\
@@ -693,7 +692,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     let le = maintenant();
     let mut tous = match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => o,
-        autre => return Err(erreur("TypeError", crate::fichiers::non_modifiable(etats::nom_type(&autre)))),
+        autre => return Err(erreur("TypeError", socle::fichiers::non_modifiable(socle::valeur::nom_type(&autre)))),
     };
     let relatif = archive.strip_prefix(&ctx.racine).unwrap_or(&archive).to_string_lossy().replace('\\', "/");
     tous.insert(
@@ -716,14 +715,14 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
     let mut tous = match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => o,
-        autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", crate::fichiers::attendu("un objet", etats::nom_type(&autre))))),
+        autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
     };
     let Some(clos) = tous.shift_remove(annee) else {
         return Err(refus(format!("L'exercice {} n'est pas clos.", annee)));
     };
     let mut rouvert = match &clos {
         Value::Object(o) => o.clone(),
-        autre => return Err(erreur("TypeError", crate::fichiers::attendu("un objet", etats::nom_type(autre)))),
+        autre => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     };
     rouvert.insert("annee".into(), json!(annee));
     rouvert.insert("rouvert_le".into(), json!(maintenant()));
@@ -731,7 +730,7 @@ fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
     let liste = tous.entry("_rouverts").or_insert_with(|| json!([]));
     match liste {
         Value::Array(a) => a.push(Value::Object(rouvert)),
-        autre => return Err(erreur("AttributeError", crate::fichiers::attendu("une liste", etats::nom_type(autre)))),
+        autre => return Err(erreur("AttributeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     }
     ecrire_exercices(ctx, &tous)?;
     Ok(json!({
@@ -745,7 +744,7 @@ fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
 pub(crate) fn cloture_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let annee = texte_de(exiger(charge, "annee")?);
     // `qui` : la ligne de commande ecrit `cli`, la page `interface`.
-    let qui = charge.get("qui").filter(|v| vrai(v)).map(py_str).unwrap_or_else(|| "interface".to_string());
+    let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
     if charge.get("rouvrir").is_some_and(vrai) {
         return rouvrir_exercice(ctx, &annee, &qui);
     }
@@ -759,7 +758,7 @@ mod tests_mois {
     #[test]
     fn le_mois_00_d_une_ecriture_se_refuse() {
         let refus = super::date_et_libelle("2026-00").unwrap_err();
-        assert!(refus.message.contains(&crate::date::mois_impossible(0)), "{}", refus.message);
+        assert!(refus.message.contains(&socle::date::mois_impossible(0)), "{}", refus.message);
         assert_eq!(super::date_et_libelle("2026-12").unwrap(), ("2026-12-31".to_string(), "Decembre 2026".to_string()));
     }
 }

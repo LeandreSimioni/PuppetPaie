@@ -22,12 +22,12 @@
 //! AUDINOT en CDD (motif 02, accroissement temporaire d'activite, technicienne : non declaree a la caisse) et MONTANSIER
 //! en CDI ; en octobre 2026, Deburau, comedien, en CDD de droit commun de trois mois (declare a la caisse).
 
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
-use paie::num::{pct, Decimal};
+use engagement::charger;
+use socle::num::{pct, Decimal};
 use rust_decimal::RoundingStrategy;
 use crate::outils::{base81, chemin_unique, ctp, dec, fictive, ecrire, lire, versement, Copie};
 use serde_json::{json, Value};
@@ -46,7 +46,7 @@ fn paie<'a>(ps: &'a [Paie], numero: &str) -> &'a Paie {
 fn un_cdd_de_droit_commun_paie_la_contribution_cpf_cdd_au_bulletin_au_nominatif_et_au_bordereau() {
     let racine = fictive("fictive-3090-grande");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-03-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-03.json")).unwrap();
+    let s = charger(&ctx, "2026-03").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-03", &[], &[], &Options::default()).unwrap();
     let cdd = paie(&s.paies, "AU.25.01");
     let brut = cdd.brut;
@@ -77,7 +77,7 @@ fn un_cdd_saisonnier_ou_un_cddu_ne_la_paient_pas() {
     // L. 6331-55 : l'intermittent en CDDU non plus.
     let racine = fictive("fictive-3090-grande");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-03-28").unwrap())).unwrap();
-    let mut saisie: Value = serde_json::from_str(&std::fs::read_to_string(racine.join("paies/2026-03.json")).unwrap()).unwrap();
+    let mut saisie = crate::outils::saisie(&racine, "2026-03");
     for e in saisie["engagements"].as_array_mut().unwrap() {
         if e["numero"] == "AU.25.01" {
             // Un avenant au 01/03/2026 : la DSN de mars declare l'ancien motif dans un bloc 41.
@@ -87,7 +87,7 @@ fn un_cdd_saisonnier_ou_un_cddu_ne_la_paient_pas() {
     }
     let chemin = crate::outils::chemin_unique("cpf-cdd-saisonnier.json");
     std::fs::write(&chemin, saisie.to_string()).unwrap();
-    let s = charger(&ctx, &chemin).unwrap();
+    let s = crate::outils::charger_fichier(&ctx, &chemin).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-03", &[], &[], &Options::default()).unwrap();
     assert!(cotisation(&versement(&dsn, "AU.25.01"), "129").is_none());
     assert_eq!(ctp(&dsn, "987", "920"), None);
@@ -120,7 +120,7 @@ fn cdd_d_artiste_declare_a_la_caisse() -> (Copie, Contexte, Vec<Paie>) {
                    "lignes": [{"rubrique": "mois", "quantite": 1, "taux": 2400.0, "heures": 151.67}]});
     let chemin = chemin_unique("cpf-cdd-caisse.json");
     std::fs::write(&chemin, json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [e]}).to_string()).unwrap();
-    let s = charger(&ctx, &chemin).unwrap();
+    let s = crate::outils::charger_fichier(&ctx, &chemin).unwrap();
     let _ = std::fs::remove_file(&chemin);
     (c, ctx, s.paies)
 }

@@ -1,7 +1,7 @@
 # Unicode : la base de caractères et les pages de code que le moteur lit
 
 Le moteur n'embarque pas de crate de normalisation ni de propriétés Unicode : quatre tables de `atelier/sources/paie/src/`
-en tiennent lieu, et `paie generer-tables atelier/reference/sources atelier/sources/paie/src` (`src/generer_tables.rs`)
+en tiennent lieu, et `paie generer-tables atelier/reference/sources atelier/sources` (`src/generer_tables.rs`)
 les écrit depuis les fichiers de ce dossier (et de `python/`, `w3c/`). Le test `tables_generees` (`tests/fichiers/`)
 vérifie que les tables commitées sont celles que ces textes donnent.
 

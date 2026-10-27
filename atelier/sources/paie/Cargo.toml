@@ -2,7 +2,7 @@
 name = "paie"
 version = "0.1.0"
 edition = "2021"
-description = "Le moteur de PuppetPaie en Rust : du fichier de mois au bulletin (docs/PORTAGE-RUST.md)."
+description = "Le moteur de PuppetPaie au-dessus du socle et du droit : la ligne de commande paie, du fichier de mois au bulletin et a la DSN."
 license = "EUPL-1.2"
 publish = false
 
@@ -13,7 +13,7 @@ path = "src/lib.rs"
 name = "paie"
 path = "src/main.rs"
 
-# Le binaire de l'ATELIER (lot J2a, preuve) : le meme code, construit avec `--features atelier`, pour les essais seulement,
+# Le binaire de l'ATELIER : le meme code, construit avec `--features atelier`, pour les essais seulement,
 # jamais livre. Il peut etre pointe vers de faux serveurs locaux et refuse tout acte reel. La construction ordinaire
 # (`cargo build --release`) ne le fait pas : elle donne `paie` seul, sans une ligne de la redirection.
 [[bin]]
@@ -25,19 +25,19 @@ required-features = ["atelier"]
 atelier = []
 
 [dependencies]
-# Arithmetique decimale : ROUND_HALF_UP = MidpointAwayFromZero (PORTAGE-RUST §2).
-rust_decimal = { version = "1", default-features = false, features = ["std", "maths"] }
-# Les fichiers se lisent en serde_json::Value, comme le Python lit des dict :
-# les cles inconnues et `_commentaires` survivent sans schema a maintenir.
-# `float_roundtrip` : un flottant lu est exactement celui de Python, puis
-# `num::dec` passe par sa representation la plus courte, comme Decimal(str(x)).
-serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+# Les deux parties du dessous : le socle (dates, nombres, fichiers, echecs, temps, garde-fou reseau) et le droit
+# (baremes dates, conventions, natures de contrat, regles).
+socle = { path = "../socle" }
+droit = { path = "../droit" }
+engagement = { path = "../engagement" }
+rust_decimal = { workspace = true }
+serde_json = { workspace = true }
 # Le .zip de la DPAE : deflate et CRC-32, deja lies par la fabrique de PDF.
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 # Les retours DSN sont du XML : lecture seule, Rust pur (`retours.rs`).
-roxmltree = { version = "0.20", default-features = false, features = ["std"] }
+roxmltree = { workspace = true }
 # L'empreinte d'un fichier du journal (deja liee par la fabrique de PDF).
-sha2 = { version = "0.10", default-features = false }
+sha2 = { workspace = true }
 # L'empreinte MD5 que Drive publie pour chaque fichier (`sauvegarde.rs`) : RustCrypto, sans options par defaut.
 md-5 = { version = "0.10", default-features = false }
 # Les motifs du journal des incidents (caviardage, ce qui part chez l'editeur) ;
@@ -48,12 +48,12 @@ fabrique-pdf = { path = "../fabrique-pdf" }
 # Le transport vers net-entreprises et l'Urssaf (`transport.rs`) : HTTP/1.1
 # synchrone, TLS par rustls, racines du systeme (`SSL_CERT_FILE` honore),
 # proxy lu dans l'environnement. Ni gzip (flate2 s'en charge), ni cookies, ni json.
-ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier"] }
+ureq = { workspace = true }
 # Le coffre (`coffre.rs`) : AES-256-GCM et scrypt de RustCrypto, aleas du systeme.
 # Rien de leurs options par defaut (ni `password-hash`, ni `std`).
 aes-gcm = { version = "0.10", default-features = false, features = ["aes", "alloc"] }
 scrypt = { version = "0.11", default-features = false }
-getrandom = "0.3"
+getrandom = { workspace = true }
 # Les courriels joués de la démonstration (`simulation_courriels.rs`) : lecture MIME, bibliothèque éprouvée.
 mailparse = "0.16"
 # Les classeurs .xlsx de `exporter` et la liste nominative du CASC-SVP : ecriture seule, bibliotheque eprouvee.
@@ -67,7 +67,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rustls-platform-verifier = "0.7"
 # La mise a jour (`maj.rs`, lot J4) : la signature Ed25519 de l'editeur, et l'archive zip (lecture et ecriture).
 ed25519-dalek = { version = "2", default-features = false, features = ["std", "zeroize"] }
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { workspace = true }
 # La forme composee (NFC) des releves de l'atelier (`extraire/`, `unicodedata.normalize("NFC")` de l'ancien Python) : la
 # normalisation d'ICU4X, deja liee (`lettre` -> `idna`), avec ses seules donnees compilees.
 icu_normalizer = { version = "2", default-features = false, features = ["compiled_data"] }
@@ -78,55 +78,3 @@ icu_normalizer = { version = "2", default-features = false, features = ["compile
 [target.'cfg(windows)'.dependencies]
 rpassword = "7"
 
-[profile.release]
-opt-level = "z"
-lto = "fat"
-codegen-units = 1
-# « unwind », pas « abort » (ticket #244) : la fenetre sert les routes du moteur dans son processus ; une route qui
-# tombe (une panique) doit rendre un refus `DefautDuLogiciel` et laisser la fenetre debout (`routes::dans_la_fenetre`,
-# `catch_unwind`). En « abort », la premiere panique fermait le logiciel.
-panic = "unwind"
-strip = true
-
-# scrypt brasse 32 Mo par essai : le code des briques de chiffrement va vite,
-# le reste du binaire reste petit.
-[profile.release.package.scrypt]
-opt-level = 3
-[profile.release.package.salsa20]
-opt-level = 3
-[profile.release.package.pbkdf2]
-opt-level = 3
-[profile.release.package.sha2]
-opt-level = 3
-
-# Les tests (profil dev) derivent des cles scrypt par dizaines (le mot de passe du logiciel, les demandes de `demande.rs`) :
-# ces briques-la, optimisees, les font passer de minutes a secondes.
-[profile.dev.package.scrypt]
-opt-level = 3
-[profile.dev.package.salsa20]
-opt-level = 3
-[profile.dev.package.pbkdf2]
-opt-level = 3
-[profile.dev.package.sha2]
-opt-level = 3
-
-# Le profil des ESSAIS (`cargo test --profile essais`) : le code optimise de `release`, sans le LTO ni l'unite de
-# compilation unique, qui se repaient pour chacun des binaires de `tests/`. L'exe livre (`release`) ne change pas.
-[profile.essais]
-inherits = "release"
-opt-level = 1
-lto = false
-codegen-units = 16
-incremental = true
-strip = false
-panic = "unwind"
-[profile.essais.package."*"]
-opt-level = 2
-[profile.essais.package.scrypt]
-opt-level = 3
-[profile.essais.package.salsa20]
-opt-level = 3
-[profile.essais.package.pbkdf2]
-opt-level = 3
-[profile.essais.package.sha2]
-opt-level = 3

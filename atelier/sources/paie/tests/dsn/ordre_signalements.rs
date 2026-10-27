@@ -7,12 +7,11 @@
 //! `None` pour le client : il irait chercher le vrai mot de passe.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, http, lire, noms, port_ferme, serveur, Recu, Requete};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::ordre_signalements::dernier_ordre_connu;
 use paie::releve_retours::{iso_de_naif, maintenant_naif, relever_retours, Adresses, Client};
 use serde_json::json;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// Le SIREN de `fictive-3090-petite`.
@@ -129,7 +128,7 @@ fn l_ordre_suit_le_plus_grand_que_la_plate_forme_connait_quand_le_journal_en_con
         ("FLUX-MENSUELLE", bilan("FLUX-MENSUELLE", "02", SIREN, "01", "30", &[])),
     ]);
     let ctx = contexte(&racine);
-    let connu = dernier_ordre_connu(&HashMap::new(), &ctx, Some(client(&ctx, &base))).unwrap();
+    let connu = dernier_ordre_connu(&ctx, Some(client(&ctx, &base))).unwrap();
     assert_eq!(connu.dernier, 9, "{:?}", connu);
     assert!(
         connu.avertissements.iter().any(|a| a.contains("ordre 9") && a.contains("FLUX-ESSAI") && a.contains("6")),
@@ -153,7 +152,7 @@ fn sans_reseau_l_ordre_suit_le_journal_et_les_bilans_archives_et_le_dit() {
     )
     .unwrap();
     let ctx = contexte(&racine);
-    let connu = dernier_ordre_connu(&HashMap::new(), &ctx, Some(client(&ctx, &port_ferme()))).unwrap();
+    let connu = dernier_ordre_connu(&ctx, Some(client(&ctx, &port_ferme()))).unwrap();
     assert_eq!(connu.dernier, 8, "{:?}", connu);
     assert!(connu.avertissements.iter().any(|a| a.contains("n'a pas pu etre consultee")), "{:?}", connu.avertissements);
 }
@@ -171,7 +170,7 @@ fn un_signalement_refuse_b1_208_10_se_reconnait_et_la_releve_dit_la_conduite_a_t
     )]);
     let ctx = contexte(&racine);
     let fin = maintenant_naif();
-    let releve = relever_retours(&ctx, &HashMap::new(), fin - 86_400, fin, false, "production", Some(client(&ctx, &base)), "").unwrap();
+    let releve = relever_retours(&ctx, fin - 86_400, fin, false, "production", Some(client(&ctx, &base)), "").unwrap();
     let dit: Vec<&String> = releve.a_faire.iter().filter(|a| a.contains("B1-208-10")).collect();
     assert_eq!(dit.len(), 1, "{:?}", releve.a_faire);
     assert!(dit[0].contains("FLUX-REFUSE") && dit[0].contains("ordre 1"), "{}", dit[0]);
@@ -183,6 +182,6 @@ fn un_signalement_refuse_b1_208_10_se_reconnait_et_la_releve_dit_la_conduite_a_t
         bilan("FLUX-MENSUELLE", "01", SIREN, "01", "1", &[("B1-208-10", "Il existe deja une declaration normale.")]),
     )]);
     let ctx = contexte(&racine);
-    let releve = relever_retours(&ctx, &HashMap::new(), fin - 86_400, fin, false, "production", Some(client(&ctx, &base)), "").unwrap();
+    let releve = relever_retours(&ctx, fin - 86_400, fin, false, "production", Some(client(&ctx, &base)), "").unwrap();
     assert!(releve.a_faire.iter().all(|a| !a.contains("B1-208-10")), "{:?}", releve.a_faire);
 }

@@ -24,7 +24,7 @@ use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
 use super::depot_dsn::dire_repetition;
 use crate::depot_acte::{self, Preuve};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "deposer-dpae",
@@ -57,13 +57,13 @@ fn type_de_contrat(t: &str) -> &'static str {
 }
 
 /// `JJMMAAAA` -> le jour, ou le refus d'une phrase (le Python levait une trace d'appels).
-fn jour_de(t: &str, quoi: &str) -> Result<crate::date::Jour, Echec> {
+fn jour_de(t: &str, quoi: &str) -> Result<socle::date::Jour, Echec> {
     let b = t.as_bytes();
     let bon = b.len() == 8 && b.iter().all(u8::is_ascii_digit);
     let iso = if bon { format!("{}-{}-{}", &t[4..], &t[2..4], &t[..2]) } else { String::new() };
     super::actes::jour_iso(&iso).ok_or_else(|| Echec {
         classe: Some("ErreurOperation"),
-        message: format!("{} illisible dans le fichier ({}) : ce n'est pas un flux DPAE que le moteur ait produit. Rien n'est envoye.", quoi, crate::fichiers::repr(t)),
+        message: format!("{} illisible dans le fichier ({}) : ce n'est pas un flux DPAE que le moteur ait produit. Rien n'est envoye.", quoi, socle::fichiers::repr(t)),
     })
 }
 
@@ -80,7 +80,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let p = std::path::Path::new(&chemin);
     if !p.exists() {
         dire!("Fichier introuvable : {}", chemin);
-        dire!("Le produire d'abord :  paie dpae paies/AAAA-MM.json");
+        dire!("Le produire d'abord :  paie dpae AAAA-MM");
         return Ok(1);
     }
     if p.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip")) {
@@ -150,12 +150,12 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     if !crate::depot::est_reel(&contenu) {
         dire!(
             "\nARRET - champ C_VERSION {} en position {}-{}, attendu {}.\n\nLe fichier produit par le moteur porte toujours {}. Un flux dont on ignore\ns'il sera traite comme un test ou comme une declaration ne part pas d'ici.\nPour un depot de test, ne pas bricoler le fichier : utiliser --test, qui\nbascule C_VERSION en {} en memoire, au moment de l'envoi.\n",
-            crate::fichiers::repr(&indicateur),
+            socle::fichiers::repr(&indicateur),
             crate::depot::INDICATEUR.0,
             crate::depot::INDICATEUR.1,
-            crate::fichiers::repr(crate::depot::INDICATEUR_REEL),
-            crate::fichiers::repr(crate::depot::INDICATEUR_REEL),
-            crate::fichiers::repr(crate::depot::INDICATEUR_TEST)
+            socle::fichiers::repr(crate::depot::INDICATEUR_REEL),
+            socle::fichiers::repr(crate::depot::INDICATEUR_REEL),
+            socle::fichiers::repr(crate::depot::INDICATEUR_TEST)
         );
         return Ok(2);
     }
@@ -249,7 +249,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         Err(e) => return Ok(refus_du_depot(&e, test)),
     };
 
-    if crate::fichiers::vrai(&fait.deja) {
+    if socle::fichiers::vrai(&fait.deja) {
         dire!("\nA SAVOIR : ce fichier exact avait deja ete depose le {}.", super::rendu::champ_ou(&fait.deja, "quand", "?"));
     }
     dire_repetition(&fait.repetition);

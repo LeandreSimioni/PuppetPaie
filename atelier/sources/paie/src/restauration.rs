@@ -306,7 +306,7 @@ pub fn restaurer(cible: &Path, racine_drive: &str, client: &mut dyn Drive) -> Re
     }
     let maintenant = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs_f64()).unwrap_or(0.0);
     let index = json!({
-        "quand": crate::paris::iso_minutes(maintenant).replacen('T', " ", 1),
+        "quand": socle::paris::iso_minutes(maintenant).replacen('T', " ", 1),
         "racine_drive": racine_drive,
         "dossiers": Value::Object(index_dossiers),
         "fichiers": Value::Object(fichiers),
@@ -318,17 +318,17 @@ pub fn restaurer(cible: &Path, racine_drive: &str, client: &mut dyn Drive) -> Re
 /// Ecrit `contenu` a `chemin` par un `.part` renomme, SANS JAMAIS REMPLACER : `Ok(false)` si `chemin` existe deja.
 fn ecrire_sans_remplacer(chemin: &Path, contenu: &[u8]) -> Result<bool, String> {
     if let Some(parent) = chemin.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| crate::fichiers::panne_fichier(&e, parent))?;
+        std::fs::create_dir_all(parent).map_err(|e| socle::fichiers::panne_fichier(&e, parent))?;
     }
     let mut part = chemin.as_os_str().to_owned();
     part.push(".part");
     let part = PathBuf::from(part);
-    std::fs::write(&part, contenu).map_err(|e| crate::fichiers::panne_fichier(&e, &part))?;
+    std::fs::write(&part, contenu).map_err(|e| socle::fichiers::panne_fichier(&e, &part))?;
     if std::fs::symlink_metadata(chemin).is_ok() {
         let _ = std::fs::remove_file(&part);
         return Ok(false);
     }
-    std::fs::rename(&part, chemin).map_err(|e| crate::fichiers::panne_fichier(&e, chemin))?;
+    std::fs::rename(&part, chemin).map_err(|e| socle::fichiers::panne_fichier(&e, chemin))?;
     Ok(true)
 }
 

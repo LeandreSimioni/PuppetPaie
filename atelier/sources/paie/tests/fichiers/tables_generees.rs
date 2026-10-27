@@ -1,11 +1,11 @@
-//! Les tables Unicode du moteur (`src/tables_nfkc.rs`, `src/nfkd_ascii.rs`, `src/tables_retours.rs`,
-//! `src/tables_journal.rs`) sont celles que `paie generer-tables` (`src/generer_tables.rs`) ecrit depuis les textes
+//! Les tables Unicode du moteur (`socle/src/tables_nfkc.rs`, `paie/src/nfkd_ascii.rs`, `paie/src/tables_retours.rs`,
+//! `paie/src/tables_journal.rs`) sont celles que `paie generer-tables` (`src/generer_tables.rs`) ecrit depuis les textes
 //! deposes : `atelier/reference/sources/unicode/` (base de caracteres Unicode, pages de code cp437 et cp1252),
 //! `python/` (les proprietes que `str.isdigit`, `str.isalnum` et `\d` traduisent ; le releve des encodages de `pyexpat`),
 //! `w3c/` (XML 1.0 quatrieme edition, annexe B). Chaque `LISEZ-MOI.md` dit ce qu'on en lit.
 //!
 //! Une table editee a la main, ou un texte depose change sans que les tables suivent, fait echouer ce test. Pour
-//! regenerer : `paie generer-tables atelier/reference/sources atelier/sources/paie/src` (ou `PUPPETPAIE_REECRIRE_ORACLES=1`
+//! regenerer : `paie generer-tables atelier/reference/sources atelier/sources` (ou `PUPPETPAIE_REECRIRE_ORACLES=1`
 //! sur ce test), puis lire le `git diff`.
 
 use std::path::{Path, PathBuf};
@@ -24,7 +24,7 @@ fn les_tables_commitees_sont_celles_des_textes_deposes() {
     assert_eq!(fichiers.iter().map(|(n, _)| *n).collect::<Vec<_>>(), FICHIERS);
     let mut ecarts = Vec::new();
     for (nom, contenu) in fichiers {
-        let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(nom);
+        let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join(nom);
         if std::fs::read_to_string(&chemin).unwrap() != contenu {
             if reecrire_oracles() {
                 std::fs::write(&chemin, contenu).unwrap();
@@ -33,7 +33,7 @@ fn les_tables_commitees_sont_celles_des_textes_deposes() {
             }
         }
     }
-    assert!(ecarts.is_empty(), "{:?} ne sont pas ce que les textes deposes donnent : paie generer-tables atelier/reference/sources atelier/sources/paie/src", ecarts);
+    assert!(ecarts.is_empty(), "{:?} ne sont pas ce que les textes deposes donnent : paie generer-tables atelier/reference/sources atelier/sources", ecarts);
 }
 
 #[test]

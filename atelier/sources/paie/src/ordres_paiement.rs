@@ -50,8 +50,8 @@
 use serde_json::{json, Map, Value};
 
 use crate::bordereau::{self, Destinataire};
-use crate::date::Jour;
-use crate::num::{Decimal, Resultat};
+use socle::date::Jour;
+use socle::num::{Decimal, Resultat};
 
 /// Un bloc S21.G00.20, tel que le fichier l'ecrit.
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -112,7 +112,7 @@ fn jour_dsn(v: &str) -> Option<Jour> {
 
 fn nom_du_mois(an: i32, mois: u32) -> String {
     // `mois` vient d'un `Jour`, donc de 1 a 12 : le repli (vide) ne peut pas arriver.
-    format!("{} {}", crate::date::nom_du_mois(mois as i64, crate::date::Graphie::Accentuee).unwrap_or_default(), an)
+    format!("{} {}", socle::date::nom_du_mois(mois as i64, socle::date::Graphie::Accentuee).unwrap_or_default(), an)
 }
 
 /// « d'août 2026 », « de septembre 2026 », ou « du 01/07/2026 au 30/09/2026 ».
@@ -134,7 +134,7 @@ fn periode_lisible(debut: Option<Jour>, fin: Option<Jour>) -> String {
 /// Le dernier jour ouvre (ni samedi, ni dimanche, ni fete legale) du mois qui suit `fin`.
 fn dernier_ouvre_du_mois_suivant(fin: &Jour) -> Resultat<Jour> {
     let (an, mois) = if fin.mois == 12 { (fin.an + 1, 1) } else { (fin.an, fin.mois + 1) };
-    let mut j = Jour::nouveau(an, mois, crate::date::jours_du_mois(an, mois)).ok_or_else(|| crate::date::jour_impossible(an, mois, 31))?;
+    let mut j = Jour::nouveau(an, mois, socle::date::jours_du_mois(an, mois)).ok_or_else(|| socle::date::jour_impossible(an, mois, 31))?;
     while crate::echeance_dsn::non_ouvre(&j)?.is_some() {
         j = j.plus_jours(-1)?;
     }
@@ -143,14 +143,14 @@ fn dernier_ouvre_du_mois_suivant(fin: &Jour) -> Resultat<Jour> {
 
 /// Le `jour` du mois qui suit le mois declare `mois` (`AAAA-MM`).
 fn jour_du_mois_suivant(mois: &str, jour: u32) -> Resultat<Jour> {
-    let d = crate::date::premier_du_mois(mois)?;
+    let d = socle::date::premier_du_mois(mois)?;
     let (an, mo) = if d.mois == 12 { (d.an + 1, 1) } else { (d.an, d.mois + 1) };
-    Jour::nouveau(an, mo, jour).ok_or_else(|| crate::date::jour_impossible(an, mo, jour))
+    Jour::nouveau(an, mo, jour).ok_or_else(|| socle::date::jour_impossible(an, mo, jour))
 }
 
 fn versement_de<'a>(organismes: &'a Value, id: &str) -> Option<&'a Map<String, Value>> {
     organismes.get("versements")?.as_array()?.iter().filter_map(Value::as_object).find(|v| {
-        v.get("siret").map(crate::date::en_texte).as_deref() == Some(id)
+        v.get("siret").map(socle::date::en_texte).as_deref() == Some(id)
     })
 }
 

@@ -1273,20 +1273,6 @@
       "certitude": "sourcé (doc du dépôt)"
     },
     {
-      "id": "mois-ferme-dpae-contrat",
-      "domaine": "logiciel",
-      "public": "employeur",
-      "quand": "toujours",
-      "texte": "PuppetPaie refuse de fermer un mois tant que la DPAE et le contrat de chaque embauche de ce mois ne sont pas partis. C'est volontaire : mieux vaut un blocage à l'écran qu'une embauche sans papier.",
-      "source": {
-        "fichier": "atelier/README.md",
-        "article": "§ « Ce qu'il faut vérifier à chaque mois »",
-        "citation": "La commande ferme le mois : elle refuse (`MoisPasPret`) tant que la DPAE et le contrat de chaque embauche du mois ne sont pas partis."
-      },
-      "ciblage": "quand un mois contient une embauche dont la DPAE ou le contrat n'est pas parti",
-      "certitude": "sourcé (doc du dépôt)"
-    },
-    {
       "id": "contrat-ecrit-sinon-cdi",
       "domaine": "contrats",
       "public": "employeur",

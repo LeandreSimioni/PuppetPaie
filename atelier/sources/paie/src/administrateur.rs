@@ -44,11 +44,14 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::coffre::Coffre;
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, est, py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use crate::etats::{self, est};
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::interface::compagnies::{self, Compagnie};
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Le registre de l'administrateur, a la racine de l'installation.
 pub const FICHIER: &str = "administrateur.json";
@@ -127,7 +130,7 @@ fn ecrire_registre(inst: &Path, entrees: &[Value]) -> Result<(), String> {
         "_lisez_moi": "Les compagnies que gere l'administrateur de ce logiciel : un seul mot de passe les ouvre toutes. Aucun secret ici.",
         "compagnies": entrees,
     });
-    crate::ecriture::ecrire_json(&p, &v, 2)
+    socle::ecriture::ecrire_json(&p, &v, 2)
 }
 
 /// Les compagnies rattachees a l'administrateur, telles qu'elles sont sur le disque (un dossier parti n'y est plus). Une
@@ -463,7 +466,7 @@ fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
         "signalement_reprise" => format!("SignalementReprise_{}_{}.dsn", salarie, compact),
         "fin-contrat" => {
             let fiche = ctx.salarie(salarie).ok()?;
-            format!("SignalementFinContrat_{}_{}.dsn", py_str(fiche.get("_cle")?), compact)
+            format!("SignalementFinContrat_{}_{}.dsn", valeur_en_texte(fiche.get("_cle")?), compact)
         }
         _ => return None,
     };
@@ -472,7 +475,7 @@ fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
 
 /// Une declaration du tableau, a partir d'un rappel de la compagnie.
 fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> {
-    let texte = |k: &str| r.get(k).filter(|v| vrai(v)).map(py_str).unwrap_or_default();
+    let texte = |k: &str| r.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let quoi = texte("quoi");
     let mut d = Map::new();
     d.insert("cle".into(), json!(texte("cle")));
@@ -483,7 +486,7 @@ fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r:
             let mois = texte("mois");
             let e = r.get("echeance_depot").cloned().unwrap_or(Value::Null);
             d.insert("genre".into(), json!("dsn"));
-            d.insert("titre".into(), json!(format!("DSN de {}", crate::date::libelle_du_mois_ou_tel_quel(&mois, crate::date::Graphie::Accentuee))));
+            d.insert("titre".into(), json!(format!("DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&mois, socle::date::Graphie::Accentuee))));
             d.insert("mois".into(), json!(mois));
             d.insert("butoir".into(), e.get("jour").cloned().unwrap_or(Value::Null));
             d.insert("quand".into(), e.get("phrase").cloned().unwrap_or(Value::Null));
@@ -503,9 +506,9 @@ fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r:
         }
         "obligation" => {
             let ob = r.get("obligation").cloned().unwrap_or(Value::Null);
-            let cle = py_str(ob.get("cle").unwrap_or(&Value::Null));
-            let butoir = ob.get("butoir").filter(|b| vrai(b)).map(py_str);
-            let heure = ob.get("butoir_heure").filter(|b| vrai(b)).map(py_str);
+            let cle = valeur_en_texte(ob.get("cle").unwrap_or(&Value::Null));
+            let butoir = ob.get("butoir").filter(|b| vrai(b)).map(valeur_en_texte);
+            let heure = ob.get("butoir_heure").filter(|b| vrai(b)).map(valeur_en_texte);
             d.insert("titre".into(), json!(texte("titre")));
             d.insert("butoir".into(), json!(butoir));
             d.insert(
@@ -516,7 +519,7 @@ fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r:
                     None => format!("le {}", jj_mm_aaaa(b)),
                 })),
             );
-            d.insert("detail".into(), json!(ob.get("phrase").filter(|p| vrai(p)).map(py_str).unwrap_or_else(|| texte("detail"))));
+            d.insert("detail".into(), json!(ob.get("phrase").filter(|p| vrai(p)).map(valeur_en_texte).unwrap_or_else(|| texte("detail"))));
             if cle.starts_with("signalement_") {
                 d.insert("genre".into(), json!("signalement"));
                 fichier = fichier_du_signalement(ctx, r);
@@ -540,7 +543,7 @@ fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r:
         "dpae" => {
             d.insert("genre".into(), json!("dpae"));
             d.insert("titre".into(), json!(texte("titre")));
-            let jour = r.get("jour").filter(|j| vrai(j)).map(py_str);
+            let jour = r.get("jour").filter(|j| vrai(j)).map(valeur_en_texte);
             d.insert("quand".into(), json!(jour.as_ref().map(|j| format!("le {}", jj_mm_aaaa(j)))));
             d.insert("butoir".into(), json!(jour));
             d.insert("detail".into(), json!(texte("detail")));
@@ -595,7 +598,7 @@ pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value
     }
     declarations.sort_by_key(cle_d_urgence);
     let t = json!({"le": ctx.aujourdhui.iso(), "declarations": declarations, "empreinte": empreinte});
-    let _ = crate::ecriture::ecrire_json(&ctx.racine.join(TABLEAU), &t, 2);
+    let _ = socle::ecriture::ecrire_json(&ctx.racine.join(TABLEAU), &t, 2);
     Ok(t)
 }
 
@@ -817,7 +820,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "administrateur-tableau" => Ok(tableau(o, &inst, charge.get("relever").is_some_and(vrai))),
         "administrateur-deposer" => {
             let reel = charge.get("reel").is_some_and(vrai);
-            let mdp = charge.get("motdepasse").filter(|m| vrai(m)).map(py_str);
+            let mdp = charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte);
             deposer(o, &inst, reel, mdp)
         }
         autre => Err(erreur("ErreurOperation", format!("route inconnue : {}", autre))),

@@ -18,12 +18,15 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::{d, Jour};
-use crate::etats::{eq_py, erreur, py_str, R};
-use crate::fichiers::vrai;
-use crate::imprevus::{self, ARRET, SUSPENSION};
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::{d, Jour};
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use engagement::imprevus::{self, ARRET, SUSPENSION};
+use socle::echec::Echec;
 use crate::routes_listes::refus_magasin;
 
 /// Les routes que ce module sert ; toutes sauf `imprevus` ecrivent.
@@ -51,7 +54,7 @@ pub(crate) fn refus(m: impl Into<String>) -> Echec {
 }
 
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 fn optionnel<'a>(charge: &'a Value, cle: &str) -> &'a Value {
@@ -69,7 +72,7 @@ fn magasin<T>(r: Result<T, String>) -> R<T> {
 /// La cle de la fiche que `nom` designe (`KeyError` si aucune).
 pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<String> {
     let fiche = crate::routes_dossiers::salarie(ctx, nom)?;
-    Ok(py_str(fiche.get("_cle").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))?))
+    Ok(valeur_en_texte(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
 }
 
 /// LE CONTRAT QU'UN IMPREVU SUSPEND : parmi ceux du salarie qui couvrent `jour` (`routes_dossiers::contrats_au`), celui
@@ -78,15 +81,15 @@ pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<String> {
 /// declarant : on le lui demande.
 pub(crate) fn contrat_suspendu(ctx: &Contexte, cle: &str, jour: &Jour, voulu: &Value) -> R<Value> {
     let candidats = crate::routes_dossiers::contrats_au(ctx, &json!(cle), &jour.iso())?;
-    let texte_de = |c: &Value, k: &str| py_str(&c[k]);
+    let texte_de = |c: &Value, k: &str| valeur_en_texte(&c[k]);
     if vrai(voulu) {
-        return match candidats.iter().find(|c| eq_py(&c["numero"], voulu)) {
+        return match candidats.iter().find(|c| valeurs_egales(&c["numero"], voulu)) {
             Some(c) => Ok(c.clone()),
             None => {
                 let liste: Vec<String> = candidats.iter().map(|c| texte_de(c, "numero")).collect();
                 Err(refus(format!(
                     "Contrat {} introuvable parmi ceux de {} qui couvrent le {} : {}",
-                    py_str(voulu),
+                    valeur_en_texte(voulu),
                     cle,
                     jour.jj_mm_aaaa(),
                     if liste.is_empty() { "aucun".to_string() } else { liste.join(", ") }
@@ -119,9 +122,9 @@ contrat.",
 /// Le contrat de l'imprevu est-il paye au mois ? Lu dans les saisies (`contrats_au`, au jour de son debut) ; un contrat
 /// que plus aucune saisie ne porte ne l'est pas.
 fn mensuel(ctx: &Contexte, imp: &Value) -> R<bool> {
-    let debut = py_str(&imp["contrat_debut"]);
+    let debut = valeur_en_texte(&imp["contrat_debut"]);
     let contrats = crate::routes_dossiers::contrats_au(ctx, &imp["salarie"], &debut)?;
-    Ok(contrats.iter().any(|c| py_str(&c["debut"]) == debut && c["mensuel"] == json!(true)))
+    Ok(contrats.iter().any(|c| valeur_en_texte(&c["debut"]) == debut && c["mensuel"] == json!(true)))
 }
 
 /// UN IMPREVU NE CHEVAUCHE PAS UN AUTRE IMPREVU DU MEME CONTRAT : un jour d'absence ne se retire qu'une fois du salaire,
@@ -129,9 +132,9 @@ fn mensuel(ctx: &Contexte, imp: &Value) -> R<bool> {
 /// travaille pas le dernier jour travaille d'un arret qui court deja). `sauf` : l'imprevu lui-meme, quand il change.
 pub(crate) fn sans_chevauchement(ctx: &Contexte, nouveau: &Value, sauf: Option<&Value>) -> R<()> {
     let (p, dj) = (magasin(imprevus::premier_jour(nouveau))?, magasin(imprevus::dernier_jour(nouveau))?);
-    let cle = py_str(&nouveau["salarie"]);
+    let cle = valeur_en_texte(&nouveau["salarie"]);
     let debut = jour(&nouveau["contrat_debut"])?;
-    let numero = py_str(&nouveau["contrat_numero"]);
+    let numero = valeur_en_texte(&nouveau["contrat_numero"]);
     for autre in magasin(imprevus::tous(&ctx.racine))? {
         if sauf.is_some_and(|s| meme_imprevu(s, &autre)) || meme_imprevu(nouveau, &autre) {
             continue;
@@ -160,7 +163,7 @@ declare et ne se retire qu'une fois : corriger les dates, ou reprendre l'autre i
 /// Le meme imprevu : meme genre, meme salarie, meme jour de rangement.
 fn meme_imprevu(a: &Value, b: &Value) -> bool {
     imprevus::genre(a) == imprevus::genre(b)
-        && eq_py(&a["salarie"], &b["salarie"])
+        && valeurs_egales(&a["salarie"], &b["salarie"])
         && imprevus::jour_de_rangement(a).ok() == imprevus::jour_de_rangement(b).ok()
 }
 
@@ -169,7 +172,7 @@ fn meme_imprevu(a: &Value, b: &Value) -> bool {
 pub(crate) fn trouver(ctx: &Contexte, genre: &str, cle: &str, jour: &Jour) -> R<Option<(usize, Vec<Value>)>> {
     let liste = magasin(imprevus::du_fichier(&ctx.racine, &jour.mois_iso()))?;
     let i = liste.iter().position(|x| {
-        imprevus::genre(x) == genre && py_str(&x["salarie"]) == cle && imprevus::jour_de_rangement(x).ok() == Some(*jour)
+        imprevus::genre(x) == genre && valeur_en_texte(&x["salarie"]) == cle && imprevus::jour_de_rangement(x).ok() == Some(*jour)
     });
     Ok(i.map(|i| (i, liste)))
 }
@@ -182,7 +185,7 @@ pub(crate) fn ecrire(ctx: &Contexte, mois: &str, liste: Vec<Value>) -> R<()> {
 /// Les mois qu'un imprevu traverse, du premier au dernier jour d'absence.
 fn mois_traverses(imp: &Value) -> R<Vec<String>> {
     let (p, dj) = (magasin(imprevus::premier_jour(imp))?, magasin(imprevus::dernier_jour(imp))?);
-    Ok(if dj < p { Vec::new() } else { crate::date::mois_entre(&p, &dj) })
+    Ok(if dj < p { Vec::new() } else { socle::date::mois_entre(&p, &dj) })
 }
 
 /// Les DSN mensuelles qui ont reporte l'imprevu (`envois` de nature 01).
@@ -217,7 +220,7 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
     if fin >= ctx.aujourdhui {
         return Ok(true);
     }
-    Ok(!reporte_par(imp).iter().any(|m| py_str(m) == fin.mois_iso()))
+    Ok(!reporte_par(imp).iter().any(|m| valeur_en_texte(m) == fin.mois_iso()))
 }
 
 // ------------------------------------------------------------------ le resume
@@ -234,7 +237,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
     let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
     if imprevus::est_un_arret(imp) {
         let mut r = crate::routes_listes::resume_arret(n, imp)?;
-        let motif = magasin(imprevus::motif_d_arret(&py_str(&imp["motif"])))?.unwrap_or(Value::Null);
+        let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
         let maintien_legal = motif.get("maintien_legal").is_some_and(vrai);
         let ouvert = mensuel(ctx, imp)?;
         let o = r.as_object_mut().ok_or_else(|| erreur("TypeError", "resume"))?;
@@ -260,7 +263,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(imp, crate::signalement::REPRISE)));
         return Ok(r);
     }
-    let motif = magasin(imprevus::motif_de_suspension(&py_str(&imp["motif"])))?.unwrap_or(Value::Null);
+    let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
     Ok(json!({
         "genre": SUSPENSION,
         "salarie": imp["salarie"], "contrat": imp["contrat_numero"], "contrat_debut": imp["contrat_debut"],
@@ -274,7 +277,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
 
 /// Les motifs d'une suspension qui se DECLARENT (`permanents-base.json`, section `suspensions`, sans le 200).
 fn motifs_de_suspension() -> R<Vec<Value>> {
-    let regles = crate::permanents::regles().map_err(refus_magasin)?;
+    let regles = droit::permanents::regles().map_err(refus_magasin)?;
     Ok(regles["suspensions"]["motifs"]
         .as_array()
         .map_or(&[][..], |a| &a[..])
@@ -293,11 +296,11 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(nom) => Some(cle_du_salarie(ctx, nom)?),
         None => None,
     };
-    let mois = charge.get("mois").filter(|v| vrai(v)).map(py_str);
+    let mois = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
     let bornes = match &mois {
         Some(m) => Some((
-            crate::date::premier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
-            crate::date::dernier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
+            socle::date::premier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
+            socle::date::dernier_du_mois(m).map_err(|e| erreur("ValueError", e))?,
         )),
         None => None,
     };
@@ -305,7 +308,7 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
     let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut out = Vec::new();
     for imp in magasin(imprevus::tous(&ctx.racine))? {
-        if cle.as_deref().is_some_and(|c| py_str(&imp["salarie"]) != c) {
+        if cle.as_deref().is_some_and(|c| valeur_en_texte(&imp["salarie"]) != c) {
             continue;
         }
         if let Some((debut, fin)) = &bornes {
@@ -345,7 +348,7 @@ pub(crate) fn jours_ou_rien(v: &Value, quoi: &str) -> R<Value> {
     };
     match n {
         Some(k) if k >= 0 => Ok(json!(k)),
-        _ => Err(refus(format!("{} : un nombre entier de jours, positif ou nul, est attendu ({}).", quoi, py_str(v)))),
+        _ => Err(refus(format!("{} : un nombre entier de jours, positif ou nul, est attendu ({}).", quoi, valeur_en_texte(v)))),
     }
 }
 
@@ -369,12 +372,12 @@ fn arret_maintien(ctx: &Contexte, charge: &Value) -> R<Value> {
             "L'arret de {} suspend le contrat {}, qui n'est pas paye au mois : le maintien de salaire de L1226-1 ne \
 s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire a completer. Rien n'est change.",
             cle,
-            py_str(&a["contrat_numero"])
+            valeur_en_texte(&a["contrat_numero"])
         )));
     }
     let mut nouveau = a.clone();
     if let Some(m) = charge.get("mois") {
-        let mois = py_str(m);
+        let mois = valeur_en_texte(m);
         if !mois_traverses(&a)?.contains(&mois) {
             return Err(refus(format!(
                 "Le maintien de {} : l'arret de {} (du {} au {}) ne traverse pas ce mois. Rien n'est change.",
@@ -387,11 +390,11 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
         let montant = optionnel(charge, "montant");
         let mut table = a["maintien"].as_object().cloned().unwrap_or_default();
         let vide = montant.is_null() || montant.as_str().is_some_and(|t| t.trim().is_empty());
-        let valeur = if vide { None } else { Some(crate::num::dec_py(montant).map_err(|e| refus(format!("Montant du maintien : {}", e)))?) };
+        let valeur = if vide { None } else { Some(socle::num::dec_avec_echelle(montant).map_err(|e| refus(format!("Montant du maintien : {}", e)))?) };
         match valeur {
-            Some(v) if v < crate::num::Decimal::ZERO => return Err(refus("Un maintien de salaire ne se verse pas en negatif.")),
-            Some(v) if v > crate::num::Decimal::ZERO => {
-                table.insert(mois, json!(crate::conges::flot(crate::num::eur2(v))));
+            Some(v) if v < socle::num::Decimal::ZERO => return Err(refus("Un maintien de salaire ne se verse pas en negatif.")),
+            Some(v) if v > socle::num::Decimal::ZERO => {
+                table.insert(mois, json!(engagement::conges::flot(socle::num::eur2(v))));
             }
             _ => {
                 table.remove(&mois);
@@ -519,12 +522,12 @@ l'arrêt traverse porte la nouvelle fin prévisionnelle (S21.G00.60.003, fiche n
         )));
         // Les jours ajoutes qui tombent dans un mois dont la DSN reelle est deja partie : elle portait l'ancienne fin.
         let declares = reporte_par(&avant);
-        for m in crate::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
-            if declares.iter().any(|x| py_str(x) == m) {
+        for m in socle::date::mois_entre(&fin_avant.plus_jours(1).map_err(|e| erreur("ValueError", e))?, &nouvelle_fin) {
+            if declares.iter().any(|x| valeur_en_texte(x) == m) {
                 avertissements.push(json!(format!(
                     "La DSN de {} est déjà partie avec l'ancienne fin (le {}) : la paie de ce mois, où les jours ajoutés \
 tombent, est à corriger.",
-                    crate::engagement::libelle_mois(&m),
+                    engagement::libelle_mois(&m),
                     fin_avant.jj_mm_aaaa()
                 )));
             }
@@ -582,7 +585,7 @@ atteint, la garder (fiche net-entreprises 1983).",
 /// Ce qu'une suspension doit tenir avant de s'ecrire : son motif se declare (`imprevus::verifier_motif_de_suspension` :
 /// connu, pas le 200), elle finit apres avoir commence, et ne deborde pas de son contrat.
 fn verifier_suspension(s: &Value, contrat_fin: &str) -> R<()> {
-    imprevus::verifier_motif_de_suspension(&py_str(&s["motif"]), &py_str(&s["salarie"])).map_err(refus)?;
+    imprevus::verifier_motif_de_suspension(&valeur_en_texte(&s["motif"]), &valeur_en_texte(&s["salarie"])).map_err(refus)?;
     let (debut, fin) = (jour(&s["debut"])?, jour(&s["fin"])?);
     if fin < debut {
         return Err(refus(format!(
@@ -595,7 +598,7 @@ fn verifier_suspension(s: &Value, contrat_fin: &str) -> R<()> {
         return Err(refus(format!(
             "Suspension jusqu'au {}, mais le contrat {} finit le {} : une suspension ne survit pas a son contrat.",
             fin.jj_mm_aaaa(),
-            py_str(&s["contrat_numero"]),
+            valeur_en_texte(&s["contrat_numero"]),
             jour(&json!(contrat_fin))?.jj_mm_aaaa()
         )));
     }
@@ -604,9 +607,9 @@ fn verifier_suspension(s: &Value, contrat_fin: &str) -> R<()> {
 
 /// La fin du contrat d'une suspension deja ecrite, lue dans les saisies (vide : un contrat qui court).
 fn fin_du_contrat(ctx: &Contexte, s: &Value) -> R<String> {
-    let debut = py_str(&s["contrat_debut"]);
+    let debut = valeur_en_texte(&s["contrat_debut"]);
     let contrats = crate::routes_dossiers::contrats_au(ctx, &s["salarie"], &debut)?;
-    Ok(contrats.iter().find(|c| py_str(&c["debut"]) == debut).map(|c| py_str(&c["fin"])).unwrap_or_default())
+    Ok(contrats.iter().find(|c| valeur_en_texte(&c["debut"]) == debut).map(|c| valeur_en_texte(&c["fin"])).unwrap_or_default())
 }
 
 fn note_de(charge: &Value) -> Value {
@@ -623,7 +626,7 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = cle_du_salarie(ctx, exiger(charge, "salarie")?)?;
     let debut = jour(exiger(charge, "debut")?)?;
     let fin = jour(exiger(charge, "fin")?)?;
-    let motif = py_str(exiger(charge, "motif")?);
+    let motif = valeur_en_texte(exiger(charge, "motif")?);
     let contrat = contrat_suspendu(ctx, &cle, &debut, optionnel(charge, "contrat"))?;
     let mut s = Map::new();
     s.insert("genre".into(), json!(SUSPENSION));
@@ -638,7 +641,7 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     s.insert("note".into(), note_de(charge));
     s.insert("envois".into(), json!([]));
     let s = Value::Object(s);
-    verifier_suspension(&s, &py_str(&contrat["fin"]))?;
+    verifier_suspension(&s, &valeur_en_texte(&contrat["fin"]))?;
     if trouver(ctx, SUSPENSION, &cle, &debut)?.is_some() {
         return Err(refus(format!(
             "Une suspension de {} au {} est deja enregistree : la modifier plutot que d'en saisir une seconde.",
@@ -669,7 +672,7 @@ fn suspension_modifier(ctx: &Contexte, charge: &Value) -> R<Value> {
         s["fin"] = json!(jour(f)?.iso());
     }
     if let Some(m) = charge.get("motif") {
-        s["motif"] = json!(py_str(m));
+        s["motif"] = json!(valeur_en_texte(m));
     }
     if charge.get("note").is_some() {
         s["note"] = note_de(charge);

@@ -13,7 +13,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::entrepot_dila::Source;
 use serde_json::Value;
 

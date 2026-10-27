@@ -22,11 +22,11 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-use crate::contexte::{telle_qu_au, Contexte};
-use crate::date::{en_texte, Jour};
+use droit::contexte::{telle_qu_au, Contexte};
+use socle::date::{en_texte, Jour};
 use crate::dsn::Fichier;
-use crate::fichiers::{lire_json, vrai};
-use crate::num::Resultat;
+use socle::fichiers::{lire_json, vrai};
+use socle::num::Resultat;
 use crate::usages::{lignes, rubrique_valeur, strip};
 
 /// Les champs de la fiche que le bloc 30 ecrit et que le bloc 31 peut porter : (champ, rubrique 30, rubrique 31,
@@ -127,7 +127,7 @@ fn texte(v: Option<&Value>) -> String {
 fn ecrite(champ: &str, v: Option<&Value>) -> Option<String> {
     if champ == "date_naissance" {
         let v = v.filter(|x| vrai(x))?;
-        return crate::date::d(v).ok().map(|j| j.jjmmaaaa());
+        return socle::date::d(v).ok().map(|j| j.jjmmaaaa());
     }
     Some(texte(v))
 }
@@ -293,7 +293,7 @@ fn date_d_effet(salarie: &Value, champ: &str, declaree: &str, fin: &Jour) -> Res
             continue;
         }
         let Some(j) = e.get("jusqu_au") else { continue };
-        let jusqu_au = crate::date::d(j)?;
+        let jusqu_au = socle::date::d(j)?;
         if jusqu_au < *fin && meilleur.map_or(true, |m| jusqu_au > m) {
             meilleur = Some(jusqu_au);
         }

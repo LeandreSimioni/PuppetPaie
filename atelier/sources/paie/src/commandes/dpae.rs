@@ -3,9 +3,8 @@
 //! (990 caracteres par embauche), son archive et son recapitulatif, plus -- dans le meme geste -- les signalements d'amorcage
 //! (nature 08) des embauches dont le taux de PAS manque. Le depot est une commande a part (`paie deposer-dpae`).
 //!
-//! Elle passe par la route `dpae` du moteur (`routes_actes_h1::dpae_detail`). La route lit la saisie dans
-//! `paies/AAAA-MM.json` des donnees : un fichier qui n'est pas celui-la est refuse en une phrase (le Python lisait n'importe
-//! quel chemin).
+//! Elle passe par la route `dpae` du moteur (`routes_actes_h1::dpae_detail`). La route lit les
+//! engagements du mois (`AAAA-MM`, ou `engagements/AAAA-MM.json` des donnees) : un autre fichier est refuse en une phrase.
 //!
 //! Code de sortie 3 : au moins une embauche est deja passee, la DPAE est hors delai (elle s'ecrit quand meme, sans antidater).
 //!
@@ -18,7 +17,7 @@ use super::actes::{afficher_etapes, afficher_fichiers, est_operation, jj_mm_aaaa
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, enveloppe, erreur, rendre};
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "dpae",
@@ -33,7 +32,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// Le mois du fichier de saisie, si c'est bien `paies/AAAA-MM.json` des donnees (sinon la phrase qui le dit).
+/// Le mois que la commande vise (`actes::mois_du_fichier`).
 fn mois_de_la_saisie(cadre: &Cadre, texte: &str) -> Result<String, Echec> {
     super::actes::mois_du_fichier(cadre, texte, "La DPAE se produit")
 }
@@ -47,7 +46,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let mut liste = Vec::new();
         for x in &seulement {
             let Some((cle, debut)) = x.split_once(':') else {
-                dire!("--seulement attend SALARIE:AAAA-MM-JJ, recu {}", crate::fichiers::repr(x));
+                dire!("--seulement attend SALARIE:AAAA-MM-JJ, recu {}", socle::fichiers::repr(x));
                 return Ok(2);
             };
             liste.push(json!({"salarie": cle.trim(), "debut": debut.trim()}));
@@ -72,7 +71,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Err(e);
         }
     };
-    let retard = r.get("retard").is_some_and(crate::fichiers::vrai);
+    let retard = r.get("retard").is_some_and(socle::fichiers::vrai);
     if json {
         rendre(&enveloppe("dpae", r));
         return Ok(if retard { 3 } else { 0 });

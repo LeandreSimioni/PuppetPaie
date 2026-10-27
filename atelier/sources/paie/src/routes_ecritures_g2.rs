@@ -24,12 +24,15 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::date::{d, Jour};
-use crate::ecriture::ecrire_json;
-use crate::etats::{eq_py, erreur, py_str, R};
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::date::{d, Jour};
+use socle::ecriture::ecrire_json;
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 use crate::routes_dossiers::{brut, salarie};
 use crate::routes_ecrites::{etat_correction, lire_corrections, marquer_echeance};
 use crate::routes_listes::nomenclatures;
@@ -72,7 +75,7 @@ fn en_os(m: String) -> Echec {
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 /// `charge.get(cle)`.
@@ -91,8 +94,8 @@ fn ou_rien(v: &Value) -> Value {
 
 /// `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
 pub(crate) fn maintenant() -> String {
-    let t = crate::temps::secondes();
-    crate::paris::iso_minutes(t).replacen('T', " ", 1)
+    let t = socle::temps::secondes();
+    socle::paris::iso_minutes(t).replacen('T', " ", 1)
 }
 
 fn ecrire_fichier(chemin: &Path, v: Value) -> R<()> {
@@ -129,7 +132,7 @@ fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = exiger(charge, "cle")?;
     let fait = charge.get("fait") != Some(&Value::Bool(false));
     let Some(texte) = cle.as_str() else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", crate::etats::nom_type(cle))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(cle))));
     };
     marquer_echeance(ctx, texte, fait, &qui_de(charge))?;
     Ok(json!({"cle": texte, "fait": fait}))
@@ -140,7 +143,7 @@ fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `operations_etats.couts_de_l_annee(ctx, charge["annee"], ctx.aujourdhui)`.
 fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let _ = o;
-    let annee = py_str(exiger(charge, "annee")?);
+    let annee = valeur_en_texte(exiger(charge, "annee")?);
     let mut r = crate::fiche_recapitulative::Recapitulatifs::nouveau(ctx, None, Some(annee), false);
     r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
@@ -180,13 +183,32 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
         v if !vrai(v) => String::new(),
         Value::String(t) => t.clone(),
         autre => {
-            return Err(erreur("AttributeError", crate::fichiers::attendu("un texte", crate::etats::nom_type(autre))));
+            return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(autre))));
         }
     };
-    let motif = motif.trim_matches(crate::retours::blanc_py).to_string();
+    let motif = motif.trim_matches(socle::texte::blanc).to_string();
     if motif.is_empty() {
         return Err(refus("Une correction se motive : dire ce qui etait faux."));
     }
+    ecrire_une_correction(o, ctx, mois, salarie_v, debut, engagement, &motif, &qui_de(charge), false)
+}
+
+/// ECRIT LA CORRECTION d'un engagement d'un mois deja declare, que la DSN d'un mois suivant portera. Une seule en cours
+/// par engagement : une correction en attente se remplace. Ce que fait `regularisation-ecrire`, et ce que la DSN d'un
+/// mois suivant ecrit d'elle-meme pour un engagement modifie apres la limite (`depart::corrections_dues`). `remplacer_preparee` :
+/// la DSN qui se fabrique remplace celle, pas encore deposee, qui portait la correction en cours.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn ecrire_une_correction(
+    o: &HashMap<String, String>,
+    ctx: &Contexte,
+    mois: &Value,
+    salarie_v: &Value,
+    debut: &Value,
+    engagement: &Value,
+    motif: &str,
+    qui: &str,
+    remplacer_preparee: bool,
+) -> R<Value> {
     let a = crate::routes_regularisation::apercu_correction(
         o,
         ctx,
@@ -195,7 +217,7 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
     if a["rien_ne_change"].as_bool().unwrap_or(false) {
         return Err(refus("La correction ne change rien a la paie declaree : rien n'est ecrit."));
     }
-    let nom_du_mois = py_str(mois);
+    let nom_du_mois = valeur_en_texte(mois);
     let mut corrections = lire_corrections(ctx, &nom_du_mois)?;
     let ajout = a.get("ajout").is_some_and(vrai);
     // UNE CORRECTION EN ATTENTE SE REMPLACE (21/10/2026) : la paie a encore change depuis qu'elle a ete ecrite, et rien
@@ -203,13 +225,13 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
     // attend son depot, ou que la DSN se refasse.
     let mut remplacee: Option<usize> = None;
     for (i, c) in corrections.iter().enumerate() {
-        let meme = eq_py(&c["salarie"], salarie_v) && eq_py(&c["debut"], debut);
+        let meme = valeurs_egales(&c["salarie"], salarie_v) && valeurs_egales(&c["debut"], debut);
         if meme && !vrai(&c["portee_par"]) && !vrai(&c["annulee_le"]) {
-            if vrai(&c["preparee_par"]) {
+            if vrai(&c["preparee_par"]) && !remplacer_preparee {
                 return Err(refus(format!(
                     "Une correction de cet engagement est deja dans une DSN ecrite, pas encore deposee (n° {}, {}). La deposer, ou l'annuler d'abord.",
-                    py_str(&c["numero"]),
-                    py_str(&c["motif"])
+                    valeur_en_texte(&c["numero"]),
+                    valeur_en_texte(&c["motif"])
                 )));
             }
             remplacee = Some(i);
@@ -219,14 +241,14 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
         if meme && ajout && vrai(&c["portee_par"]) && !vrai(&c["annulee_le"]) {
             return Err(refus(format!(
                 "Ce contrat ajoute a deja ete declare par la DSN de {} (correction n° {}). Le corriger encore n'est pas porte par le logiciel. Rien n'est ecrit.",
-                py_str(&c["portee_par"]["mois"]),
-                py_str(&c["numero"])
+                valeur_en_texte(&c["portee_par"]["mois"]),
+                valeur_en_texte(&c["numero"])
             )));
         }
     }
     let mut engagement_ecrit = a["engagement"].clone();
     if ajout && !engagement_ecrit.get("numero").is_some_and(vrai) {
-        let n = crate::routes_regularisation::figer_le_numero(ctx, &nom_du_mois, &py_str(salarie_v), &py_str(debut))?;
+        let n = crate::routes_regularisation::numero_du_contrat(ctx, &nom_du_mois, &valeur_en_texte(salarie_v), &valeur_en_texte(debut))?;
         engagement_ecrit["numero"] = json!(n);
     }
     if let Some(i) = remplacee {
@@ -245,7 +267,7 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
         c.insert("ajout".into(), json!(true));
     }
     c.insert("decidee_le".into(), json!(maintenant()));
-    c.insert("qui".into(), json!(qui_de(charge)));
+    c.insert("qui".into(), json!(qui));
     c.insert("preparee_par".into(), Value::Null);
     c.insert("portee_par".into(), Value::Null);
     c.insert("annulee_le".into(), Value::Null);
@@ -264,13 +286,13 @@ fn entier_py(v: &Value) -> R<i64> {
         },
         Value::Bool(b) => Ok(*b as i64),
         Value::String(t) => {
-            let net = t.trim_matches(crate::retours::blanc_py);
+            let net = t.trim_matches(socle::texte::blanc);
             net.parse::<i64>()
-                .map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", crate::fichiers::repr(t))))
+                .map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))))
         }
         autre => Err(erreur(
             "TypeError",
-            crate::fichiers::attendu("un nombre entier", crate::etats::nom_type(autre)),
+            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
         )),
     }
 }
@@ -280,33 +302,33 @@ fn regularisation_annuler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = exiger(charge, "mois")?;
     let numero = exiger(charge, "numero")?;
     crate::filet::exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "annuler une correction")?;
-    let nom_du_mois = py_str(mois);
+    let nom_du_mois = valeur_en_texte(mois);
     let mut corrections = lire_corrections(ctx, &nom_du_mois)?;
     let mut trouve: Option<usize> = None;
     for (i, c) in corrections.iter().enumerate() {
-        if eq_py(&c["numero"], &json!(entier_py(numero)?)) {
+        if valeurs_egales(&c["numero"], &json!(entier_py(numero)?)) {
             trouve = Some(i);
             break;
         }
     }
     let Some(i) = trouve else {
-        return Err(refus(format!("Pas de correction n° {} pour {}.", py_str(numero), nom_du_mois)));
+        return Err(refus(format!("Pas de correction n° {} pour {}.", valeur_en_texte(numero), nom_du_mois)));
     };
     let c = &mut corrections[i];
     if vrai(&c["portee_par"]) {
         let portee = c["portee_par"].clone();
-        let mois_porteur = portee.get("mois").ok_or_else(|| erreur("KeyError", crate::fichiers::absent("mois")))?;
+        let mois_porteur = portee.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
         let quand = portee.get("quand").cloned().unwrap_or_else(|| json!("?"));
         return Err(refus(format!(
             "La correction n° {} de {} a ete PORTEE par la DSN de {} (deposee le {}) : elle ne s'annule plus. Une nouvelle correction peut la contredire.",
-            py_str(&c["numero"]),
+            valeur_en_texte(&c["numero"]),
             nom_du_mois,
-            py_str(mois_porteur),
-            py_str(&quand)
+            valeur_en_texte(mois_porteur),
+            valeur_en_texte(&quand)
         )));
     }
     if vrai(&c["annulee_le"]) {
-        return Err(refus(format!("La correction n° {} de {} est deja annulee.", py_str(&c["numero"]), nom_du_mois)));
+        return Err(refus(format!("La correction n° {} de {} est deja annulee.", valeur_en_texte(&c["numero"]), nom_du_mois)));
     }
     c.insert("annulee_le".into(), json!(maintenant()));
     c.insert("qui".into(), json!(qui_de(charge)));
@@ -335,21 +357,21 @@ pub(crate) fn verifier(arret: &Value) -> R<()> {
 
 /// `ctx.salarie(salarie)["_cle"]`.
 fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
-    salarie(ctx, nom)?.get("_cle").cloned().ok_or_else(|| erreur("KeyError", crate::fichiers::absent("_cle")))
+    salarie(ctx, nom)?.get("_cle").cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
 }
 
 /// L'arret de ce salarie a ce dernier jour travaille : (son indice, le fichier de son mois, tous imprevus compris).
 pub(crate) fn trouver(ctx: &Contexte, nom: &Value, dernier_jour: &Value) -> R<(usize, Vec<Value>)> {
     let cle = cle_du_salarie(ctx, nom)?;
     if vrai(dernier_jour) {
-        if let Some(t) = crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &py_str(&cle), &jour(dernier_jour)?)? {
+        if let Some(t) = crate::routes_imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &jour(dernier_jour)?)? {
             return Ok(t);
         }
     }
     let quand = if vrai(dernier_jour) { jj_mm_aaaa(dernier_jour)? } else { "?".to_string() };
     Err(refus(format!(
         "Aucun arret de {} dont le dernier jour travaille soit le {}. `paie arret` les liste.",
-        py_str(&cle),
+        valeur_en_texte(&cle),
         quand
     )))
 }
@@ -371,7 +393,7 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let motif = exiger(charge, "motif")?;
     let cle = cle_du_salarie(ctx, nom)?;
     let dernier = jour(dernier_jour)?;
-    let choisi = crate::routes_imprevus::contrat_suspendu(ctx, &py_str(&cle), &dernier, &ou_rien(optionnel(charge, "contrat")))?;
+    let choisi = crate::routes_imprevus::contrat_suspendu(ctx, &valeur_en_texte(&cle), &dernier, &ou_rien(optionnel(charge, "contrat")))?;
 
     let jour_ou_rien = |k: &str| -> R<Value> {
         let v = optionnel(charge, k);
@@ -393,7 +415,7 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     // paye au mois, et un motif de maladie ou d'accident (L1226-1 ; `maintien_legal` dans arrets-base.json).
     let deja = crate::routes_imprevus::jours_ou_rien(optionnel(charge, "jours_deja_indemnises"), "Jours deja indemnises")?;
     if !deja.is_null() {
-        let m = crate::imprevus::motif_d_arret(&py_str(motif)).map_err(crate::routes_listes::refus_magasin)?.unwrap_or(Value::Null);
+        let m = engagement::imprevus::motif_d_arret(&valeur_en_texte(motif)).map_err(crate::routes_listes::refus_magasin)?.unwrap_or(Value::Null);
         if choisi["mensuel"] != json!(true) || !m.get("maintien_legal").is_some_and(vrai) {
             return Err(refus(
                 "Les jours deja indemnises (D1226-4) ne servent qu'au maintien de salaire d'un permanent arrete pour maladie \
@@ -402,11 +424,11 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
         }
     }
     let mut a = Map::new();
-    a.insert("genre".into(), json!(crate::imprevus::ARRET));
+    a.insert("genre".into(), json!(engagement::imprevus::ARRET));
     a.insert("salarie".into(), cle.clone());
     a.insert("contrat_debut".into(), choisi["debut"].clone());
     a.insert("contrat_numero".into(), choisi["numero"].clone());
-    a.insert("motif".into(), json!(py_str(motif)));
+    a.insert("motif".into(), json!(valeur_en_texte(motif)));
     a.insert("dernier_jour_travaille".into(), json!(dernier.iso()));
     a.insert("fin_previsionnelle".into(), json!(jour(fin)?.iso()));
     a.insert("subrogation".into(), optionnel(charge, "subrogation").clone());
@@ -427,15 +449,15 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     verifier(&arret)?;
 
     let mois = dernier.mois_iso();
-    if crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &py_str(&cle), &dernier)?.is_some() {
+    if crate::routes_imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &dernier)?.is_some() {
         return Err(refus(format!(
             "Un arret de {} au {} est deja enregistre. Le modifier plutot que d'en saisir un second : deux arrets au meme dernier jour travaille, ce sont deux declarations qui se contredisent.",
-            py_str(&cle),
+            valeur_en_texte(&cle),
             dernier.jj_mm_aaaa()
         )));
     }
     crate::routes_imprevus::sans_chevauchement(ctx, &arret, None)?;
-    let mut liste = crate::imprevus::du_fichier(&ctx.racine, &mois).map_err(crate::routes_listes::refus_magasin)?;
+    let mut liste = engagement::imprevus::du_fichier(&ctx.racine, &mois).map_err(crate::routes_listes::refus_magasin)?;
     liste.push(arret.clone());
     ecrire_arrets(ctx, &mois, liste)?;
     reponse_arret(ctx, &arret)
@@ -454,7 +476,7 @@ fn arret_reprise(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let arret = liste[i].clone();
     verifier(&arret)?;
-    let mois: String = py_str(&arret["dernier_jour_travaille"]).chars().take(7).collect();
+    let mois: String = valeur_en_texte(&arret["dernier_jour_travaille"]).chars().take(7).collect();
     ecrire_arrets(ctx, &mois, liste)?;
     reponse_arret(ctx, &arret)
 }
@@ -475,7 +497,7 @@ fn arret_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
         )));
     }
     let arret = liste.remove(i);
-    let mois: String = py_str(&arret["dernier_jour_travaille"]).chars().take(7).collect();
+    let mois: String = valeur_en_texte(&arret["dernier_jour_travaille"]).chars().take(7).collect();
     ecrire_arrets(ctx, &mois, liste)?;
     reponse_arret(ctx, &arret)
 }

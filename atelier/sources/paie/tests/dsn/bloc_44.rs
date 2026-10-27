@@ -14,12 +14,12 @@
 //! Sur des copies des compagnies fictives (compagnies inventees) : la fiche, l'effectif et la surcouche du bareme y changent.
 
 use crate::outils::{self, compagnie, dec, ecrire, lire, paires as lignes};
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
-use paie::num::Decimal;
+use engagement::charger;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -102,7 +102,7 @@ impl Copie {
     }
 
     fn paies(&self, mois: &str) -> Vec<Paie> {
-        charger(&self.contexte(mois), &self.0.join(format!("paies/{}.json", mois))).unwrap().paies
+        charger(&self.contexte(mois), mois).unwrap().paies
     }
 
     /// La DSN du mois ; celle de decembre passe aussi les deux controles d'avant depot (regle 7 : `usages`, que la
@@ -181,7 +181,7 @@ fn taxe_sur_les_salaires_2025(c: &Copie, pct: Decimal) -> (Decimal, Decimal, Dec
     let mut par: BTreeMap<String, Decimal> = BTreeMap::new();
     for m in 1..=12 {
         let mois = format!("2025-{:02}", m);
-        if !c.0.join(format!("paies/{}.json", mois)).exists() {
+        if !engagement::stock::a_une_saisie(&c.0, &mois).unwrap() {
             continue;
         }
         for p in c.paies(&mois).iter().filter(|p| !p.engagement.lignes.is_empty()) {
@@ -315,7 +315,7 @@ fn a_cinquante_salaries_la_peec_porte_l_assiette_de_l_annee() {
     let mut bases_03 = Decimal::ZERO;
     for m in 1..=11 {
         let mois = format!("2025-{:02}", m);
-        if !c.0.join(format!("paies/{}.json", mois)).exists() {
+        if !engagement::stock::a_une_saisie(&c.0, &mois).unwrap() {
             continue;
         }
         let dsn = c.dsn(&mois).unwrap();
@@ -409,7 +409,7 @@ fn une_association_non_redevable_en_2025_declare_002_et_son_motif_mnata() {
     // Un motif hors de la table refuse (le bordereau du mois ne sait pas si la taxe est due ; R12) : des le bulletin, que
     // la meme decision du mois commande depuis le lot D1.
     let c = Copie::de("fictive-3090-petite").fiche(motif_ta("999")).organismes(sans_ta);
-    let e = charger(&c.contexte("2025-12"), &c.0.join("paies/2025-12.json")).map(|_| ()).unwrap_err();
+    let e = charger(&c.contexte("2025-12"), "2025-12").map(|_| ()).unwrap_err();
     assert!(e.contains("« 999 »") && e.contains("MNATA"), "{}", e);
 
     // Depuis le 21/02/2026, L. 6241-1 rend redevables « les associations [...] a activites non lucratives » : le motif

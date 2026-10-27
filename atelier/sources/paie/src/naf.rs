@@ -21,9 +21,9 @@
 //!   controle pas : avant la mise en production il se depose en NAF rev. 2, apres en NAF 2025, et le jour de la mise en
 //!   production n'est pas publie (D1).
 
-use crate::fichiers::{dossier_du_code, json_en_cache};
+use socle::fichiers::{dossier_du_code, json_en_cache};
 use crate::norme::Norme;
-use crate::num::Resultat;
+use socle::num::Resultat;
 use serde_json::Value;
 use std::sync::Arc;
 
@@ -115,7 +115,7 @@ fn codes_de(ent: &Value) -> Vec<(String, String)> {
     if let Some(c) = ent.get("naf").and_then(Value::as_str).filter(|c| !c.trim().is_empty()) {
         out.push(("de la fiche entreprise".to_string(), net(c)));
     }
-    for e in crate::bareme::secondaires(ent) {
+    for e in droit::bareme::secondaires(ent) {
         if let Some(c) = e.get("naf").and_then(Value::as_str).filter(|c| !c.trim().is_empty()) {
             let nic = e.get("nic").map(|v| v.as_str().map(String::from).unwrap_or_else(|| v.to_string())).unwrap_or_default();
             out.push((format!("de l'etablissement {}", nic), net(c)));

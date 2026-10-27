@@ -12,12 +12,12 @@
 //! Sur une copie de la compagnie fictive figee `fictive-3090-grande` (compagnie inventee), dans le dossier temporaire des
 //! tests : sa surcouche y recoit un versement mobilite fictif, et rien n'est ecrit dans `tests/donnees/fictives/`.
 
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
-use paie::num::{eur, Decimal};
+use engagement::{charger, Saisie};
+use socle::num::{eur, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
 use crate::outils::{base78, chemin_unique, ctp, dec, fictive, ecrire, lire, versement, Copie};
@@ -36,8 +36,7 @@ const TAUX_VM: &str = "2.0";
 fn copie(retouche: impl Fn(&mut Value, &mut Value)) -> Copie {
     let c = Copie::config_de("fictive-3090-grande");
     let r = &c.0;
-    std::fs::create_dir_all(r.join("paies")).unwrap();
-    std::fs::copy(fictive("fictive-3090-grande").join("paies/2026-07.json"), r.join("paies/2026-07.json")).unwrap();
+    crate::outils::poser_saisie(r, "2026-07", &crate::outils::saisie(&fictive("fictive-3090-grande"), "2026-07"));
     let (mut bar, mut sal, mut eff) = (lire(r, "config/baremes/2026.json"), lire(r, "config/salaries.json"), lire(r, "config/effectifs.json"));
     for an in eff["annees"].as_object_mut().unwrap().values_mut() {
         an["A01"]["valeur"] = json!(12.0);
@@ -56,7 +55,7 @@ fn copie(retouche: impl Fn(&mut Value, &mut Value)) -> Copie {
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
     let chemin = chemin_unique("majoration.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let s = charger(ctx, &chemin).unwrap();
+    let s = crate::outils::charger_fichier(ctx, &chemin).unwrap();
     let _ = std::fs::remove_file(&chemin);
     s
 }
@@ -81,7 +80,7 @@ fn le_versement_mobilite_d_un_intermittent_se_majore_de_11_5_pour_cent_pas_celui
     // au-dessus de leur plafond -- le versement mobilite, deplafonne, n'en tient pas compte.
     let copie = copie(|_, _| {});
     let ctx = Contexte::nouveau(&copie.0, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &copie.0.join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let (mut artistes, mut autres) = (Decimal::ZERO, Decimal::ZERO);
     let (mut vus_i, mut vus_p) = (0, 0);

@@ -11,8 +11,8 @@
 //! `fictive-3090-grande` (compagnie inventee) dont le bareme couvre 2027, comme `rubriques_2027.rs`.
 
 use crate::outils::{self, compagnie, ecrire, lire};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -44,7 +44,7 @@ fn dsn(test: &str, mois: &str, entreprise: Value) -> Result<String, String> {
          "date_paiement": j2, "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 300.0, "lieu": "Theatre fictif", "dates": [j1, j2]}]}]});
     let chemin = outils::chemin_unique("contact-sante-travail.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let paies = paie::engagement::charger(&ctx, &chemin)?.paies;
+    let paies = crate::outils::charger_fichier(&ctx, &chemin)?.paies;
     generer(&ctx, &paies, mois, &[], &[], &Options { date_constitution: Some(Jour::lire(jour).unwrap()), ..Options::default() })
 }
 

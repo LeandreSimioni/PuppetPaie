@@ -5,10 +5,10 @@
 //! de `fictive-3090-grande` et `fictive-1285-grande` avec leurs DSN deposees (`compagnie::ses_dsn`).
 
 use crate::outils::{self, compagnie, dec, ecrire, lire, valeur, versement};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -18,7 +18,7 @@ fn copie(fictive: &str, test: &str) -> PathBuf {
 
 fn dsn_de_septembre(racine: &Path) -> Result<String, String> {
     let ctx = Contexte::nouveau(racine, Some(Jour::lire("2026-10-15").unwrap())).unwrap();
-    let paies = paie::engagement::charger(&ctx, &racine.join("paies/2026-09.json"))?.paies;
+    let paies = engagement::charger(&ctx, "2026-09")?.paies;
     let o = Options { date_constitution: Some(Jour::lire("2026-10-15").unwrap()), envoi_test: true, ..Options::default() };
     generer(&ctx, &paies, "2026-09", &[], &[], &o)
 }

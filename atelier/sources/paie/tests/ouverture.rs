@@ -22,10 +22,10 @@ use std::io::Write;
 use std::sync::{Arc, Mutex, MutexGuard, Once, OnceLock};
 
 use faux_drive::{FauxDrive, Panne};
-use paie::contexte::Contexte;
+use droit::contexte::Contexte;
 use outils::{compagnie as cie, dossier_de_test, dossier_du_processus, ecrire, lire, port_ferme, serveur, http, http_json, FauxCourriel, Requete};
 use paie::courriel::Courriel;
-use paie::date::Jour;
+use socle::date::Jour;
 use paie::drive::{Depose, Distant, Drive, ErreurGoogle};
 use paie::ouverture::{derniere_ouverture, ouverture, Clients, Options, Ouverture};
 use paie::releve_retours::{maintenant_naif, Adresses, Client};
@@ -391,14 +391,14 @@ fn la_fictive_joue_l_horloge_les_retours_et_ne_fait_rien_d_autre() {
     let _t = tour();
     let c = compagnie("fictive-horloge", "fictive-3090-petite", false);
     reculer_l_horloge(&c, "2026-08-15");
-    // Septembre saisi et pas ecrit : le 08/10, l'horloge l'ecrit (a sa date, le 01/10 ; octobre, en cours, attend le
-    // 1er novembre).
-    let mut ecrites = lire(&c, "journal/dsn-ecrites.json");
-    ecrites.as_object_mut().unwrap().remove("2026-09/DSN_Septembre2026.dsn");
-    ecrire(&c, "journal/dsn-ecrites.json", &ecrites);
+    // La DSN d'aout pas partie : le 08/10, l'horloge la depose (a son echeance, en septembre ; celle de septembre, due
+    // le 15/10, attend).
+    let mut j = lire(&c, "journal/depots.json");
+    j.as_array_mut().unwrap().retain(|l| !(l["quoi"] == json!("dsn") && l["mois"] == json!("2026-08")));
+    ecrire(&c, "journal/depots.json", &j);
     let r = sans_clients(&c, &Options { filet: false, ..opt() });
-    assert!(r.horloge.iter().any(|p| p.starts_with("Le 01/10/2026 : Septembre 2026 écrit")), "{:?}", r.horloge);
-    assert!(!r.horloge.iter().any(|p| p.contains("Octobre 2026 écrit")), "{:?}", r.horloge);
+    assert!(r.horloge.iter().any(|p| p.contains("/09/2026 : DSN de août 2026 déposée")), "{:?}", r.horloge);
+    assert!(!r.horloge.iter().any(|p| p.contains("DSN de septembre 2026")), "{:?}", r.horloge);
     assert!(!r.horloge.is_empty(), "l'horloge a rejoue ce qui etait du avant aujourd'hui");
     let releve = r.releve.as_ref().expect("les retours des depots joues sont rattaches");
     assert!(releve.trouves.is_empty() && releve.archives.is_empty(), "un releve qui ne porte que `rattaches`");
@@ -664,7 +664,7 @@ fn les_taux_de_pas_sont_ceux_du_module_pas() {
     let _t = tour();
     let c = compagnie("pas", "fictive-3090-petite", true);
     let r = sans_clients(&c, &seule_la_trace());
-    let attendu = paie::pas::avertissements(&contexte(&c), None, None).unwrap();
+    let attendu = droit::pas::avertissements(&contexte(&c), None, None).unwrap();
     assert_eq!(r.taux_pas, attendu);
     assert_eq!(trace(&c)["taux_pas"], json!(attendu));
 }
@@ -1215,7 +1215,7 @@ fn route(racine: &Path, nom: &str, charge: Value) -> Value {
     let mut p = Command::new(env!("CARGO_BIN_EXE_paie"))
         .args(["route", "--racine", racine.to_str().unwrap(), "--date", AUJOURDHUI])
         .env_clear()
-        .env(paie::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
+        .env(socle::garde_reseau::VARIABLE, "1") // le garde-fou reseau des essais : rien ne sort de la machine
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .env("HOME", base.join("home"))
         .env("TZ", "Europe/Paris")

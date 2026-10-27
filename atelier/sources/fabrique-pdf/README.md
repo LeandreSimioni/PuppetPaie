@@ -2,8 +2,7 @@
 
 Première brique Rust de PuppetPaie (décidée le 30/09/2026) : un programme qui
 lit la description d'un document en JSON et écrit le PDF. Le contrat
-d'interface est **`FORMAT.md`** ; la décision et les mesures, dans
-`../docs/PORTAGE-RUST.md`, « La fabrique de PDF ».
+d'interface est **`FORMAT.md`**.
 
 ## Construire
 

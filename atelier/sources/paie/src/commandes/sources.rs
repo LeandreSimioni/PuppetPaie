@@ -63,7 +63,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
     let s = |e: &Value, k: &str| match &e[k] {
         Value::Null => "?".to_string(),
-        v => crate::etats::py_str(v),
+        v => socle::valeur::valeur_en_texte(v),
     };
     dire!();
     for e in &liste {
@@ -80,7 +80,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         } else {
             format!("copie absente ({}/{})", crate::sources::COPIES, s(e, "fichier"))
         };
-        let nourrit: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(crate::etats::py_str).collect();
+        let nourrit: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(socle::valeur::valeur_en_texte).collect();
         dire!("   {} ; nourrit : {}", copie, if nourrit.is_empty() { "rien (verification)".to_string() } else { nourrit.join(", ") });
         if let Some(en_ligne) = e["en_ligne"].as_str() {
             let marque = match en_ligne {

@@ -12,11 +12,11 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
-use crate::calcul::Paie;
-use crate::contexte::Contexte;
-use crate::date::Jour;
-use crate::etats::py_str;
-use crate::fichiers::vrai;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use socle::valeur::valeur_en_texte;
+use socle::fichiers::vrai;
 
 /// Ce qu'on demande de produire.
 pub struct Demande<'a> {
@@ -66,7 +66,7 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
     use crate::amorcage as am;
     let mut par_salarie: Vec<(String, usize)> = Vec::new();
     for (i, p) in paies.iter().enumerate() {
-        let cle = p.salarie.get("_cle").map(py_str).ok_or_else(|| crate::fichiers::absent("_cle"))?;
+        let cle = p.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
         if !par_salarie.iter().any(|(c, _)| *c == cle) {
             par_salarie.push((cle, i));
         }
@@ -75,13 +75,13 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
     let mut lignes = Vec::new();
     for (cle, i) in &par_salarie {
         let p = &paies[*i];
-        let s = crate::pas::situation(ctx, cle, None)?;
+        let s = droit::pas::situation(ctx, cle, None)?;
         if !s.get("a_demander").is_some_and(vrai) {
             continue;
         }
         let mut l = Ligne {
             salarie: cle.clone(),
-            libelle: s.get("libelle").map(py_str).unwrap_or_default(),
+            libelle: s.get("libelle").map(valeur_en_texte).unwrap_or_default(),
             contrat: p.engagement.numero.clone().unwrap_or_default(),
             pourquoi_pas: String::new(),
             indice: *i,
@@ -146,7 +146,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         let texte = am::generer(ctx, &paies[l.indice], &options).map_err(|e| e.message().to_string())?;
         let cible = dossier.join(&nom);
         crate::dsn::ecrire(&texte, &cible)?;
-        crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&cible), None).map_err(|e| e.message)?;
+        crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None).map_err(|e| e.message)?;
         ecrits.push(cible.clone());
         fichiers.push(cible);
     }
@@ -179,15 +179,11 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
 }
 
 /// Les paies d'un mois de saisie, SANS montants : l'engagement et sa fiche (`amorcage::embauche`), ce que lit un signalement.
-/// `None` : pas de `paies/AAAA-MM.json` (le Python rendait alors une liste vide, et disait « tous les taux sont valides »).
+/// `None` : aucun engagement ne touche le mois.
 pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Result<Option<Vec<Paie>>, String> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
-        return Ok(None);
-    }
-    let data = crate::engagement::lire_saisie(&chemin)?;
-    let _derivation = crate::conges::Derivation::ouvrir();
-    let (engs, _) = crate::engagement::engagements(ctx, &data, &crate::conges::lignes_du_mois)?;
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
+    let _derivation = engagement::conges::Derivation::ouvrir();
+    let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois)?;
     let paies = engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<Vec<_>, _>>()?;
     Ok(Some(paies))
 }

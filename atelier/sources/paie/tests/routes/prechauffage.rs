@@ -27,7 +27,7 @@ fn compagnie_de(inst: &Path, nom: &str) -> PathBuf {
 
 /// Le jour des empreintes (celui d'un `Contexte`).
 fn jour() -> String {
-    paie::contexte::aujourdhui_sans_note().unwrap().iso()
+    droit::contexte::aujourdhui_sans_note().unwrap().iso()
 }
 
 /// La date de modification d'un fichier, decalee de `secondes` (ce que fait toute ecriture).
@@ -40,16 +40,15 @@ fn dater(p: &Path, secondes: u64) {
     f.set_modified(SystemTime::now() + Duration::from_secs(secondes)).unwrap();
 }
 
-/// Tout est-il juste pour `racine` : son ouverture, ses mois suivis (ceux des saisies et le mois du jour), son tableau ?
+/// Ce qui s'ecrit est-il juste pour `racine` : son ouverture et son tableau ? (L'etat d'un mois vit dans la memoire de sa file.)
 fn tout_juste(racine: &Path) -> bool {
     let j = jour();
-    let mois_du_jour = j[..7].to_string();
     let juste = |cle: &str| servir(racine, cle, &j).is_some_and(|(_, ok)| ok);
     let tableau = std::fs::read_to_string(racine.join(administrateur::TABLEAU))
         .ok()
         .and_then(|t| serde_json::from_str::<Value>(&t).ok())
         .is_some_and(|t| t["empreinte"] == json!(empreinte_de(racine, OUVERTURE, &j)));
-    juste(OUVERTURE) && MOIS.iter().all(|m| juste(m)) && juste(&mois_du_jour) && tableau
+    juste(OUVERTURE) && tableau
 }
 
 /// Attend que le fil ait tout refait, pour toutes (cinq minutes au plus).
@@ -119,10 +118,13 @@ fn au_lancement_les_compagnies_se_refont_en_fond_et_s_ouvrent_fraiches() {
     }
 
     // RIEN N'EST REFUSE PAR LE FIL : aucune lecture n'a voulu sortir ni ouvrir un coffre.
-    for r in &racines {
-        for cle in [OUVERTURE, MOIS[0], MOIS[1]] {
-            let etat = std::fs::read_to_string(paie::etat_garde::chemin(r, cle)).unwrap();
-            assert!(!etat.contains("calcul en fond de la fenetre"), "{} {} : une lecture refusee par le fil", r.display(), cle);
+    for file in &files {
+        let r = file.racine();
+        let ouverture = std::fs::read_to_string(paie::etat_garde::chemin(r)).unwrap();
+        assert!(!ouverture.contains("calcul en fond de la fenetre"), "{} : une lecture refusee par le fil", r.display());
+        for m in MOIS {
+            let etat = file.attendre(m).unwrap_or_else(|e| panic!("{} {} : {}", r.display(), m, e.message));
+            assert!(!etat.to_string().contains("calcul en fond de la fenetre"), "{} {} : une lecture refusee par le fil", r.display(), m);
         }
     }
     files.iter().for_each(|f| f.arreter());

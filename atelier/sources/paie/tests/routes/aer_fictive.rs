@@ -12,8 +12,8 @@
 
 use std::path::{Path, PathBuf};
 
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use serde_json::{json, Value};
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, noms};
@@ -61,11 +61,11 @@ fn ligne_du_mois(r: &Path) -> Value {
 }
 
 /// Les paies du mois, calculees.
-fn paies(r: &Path) -> Vec<paie::calcul::Paie> {
-    paie::engagement::charger(&contexte(r), &r.join("paies").join(format!("{}.json", MOIS))).unwrap().paies
+fn paies(r: &Path) -> Vec<engagement::calcul::Paie> {
+    engagement::charger(&contexte(r), MOIS).unwrap().paies
 }
 
-fn cle(p: &paie::calcul::Paie) -> String {
+fn cle(p: &engagement::calcul::Paie) -> String {
     p.salarie["_cle"].as_str().unwrap().to_string()
 }
 
@@ -175,7 +175,7 @@ fn ni_une_fictive_ajoutee_ni_une_compagnie_reelle_n_ont_d_aer_jouee() {
 fn la_fin_d_un_cdd_le_dit_sans_annoncer_d_aer_cinema_spectacle() {
     let r = compagnie::entiere("fictive-3090-grande", &dossier_de_test("aer_fictive", "cdd"));
     let ctx = contexte(&r);
-    let paies = paie::engagement::charger(&ctx, &r.join("paies/2026-06.json")).unwrap().paies;
+    let paies = engagement::charger(&ctx, "2026-06").unwrap().paies;
     let messages = paie::envoi::preparer(&paies, &ctx.entreprise, "2026-06", &r.join("sorties/2026-06/envoi"), None).unwrap();
     assert_eq!(messages.len(), 3);
     for m in &messages {

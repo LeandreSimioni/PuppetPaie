@@ -20,8 +20,8 @@
 //!   la DSN mensuelle (ameli).
 
 use crate::outils::{self, compagnie, dossier_de_test, ecrire, lire, refus, reussi};
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Arret, Options};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -68,10 +68,10 @@ fn la<'a>(a: &'a Value, cle: &str) -> &'a Value {
 }
 
 /// La DSN mensuelle de `mois` telle que la production la fait : les paies du mois et les arrets du magasin qui le croisent.
-fn dsn(racine: &Path, mois: &str) -> (String, Vec<paie::calcul::Paie>) {
+fn dsn(racine: &Path, mois: &str) -> (String, Vec<engagement::calcul::Paie>) {
     let ctx = Contexte::nouveau(racine, Some(Jour::lire(LE).unwrap())).unwrap();
-    let paies = paie::engagement::charger(&ctx, &racine.join(format!("paies/{}.json", mois))).unwrap().paies;
-    let arrets: Vec<Arret> = paie::imprevus::du_mois(racine, mois, Some(paie::imprevus::ARRET)).unwrap().into_iter().map(|v| Arret { v }).collect();
+    let paies = engagement::charger(&ctx, &mois).unwrap().paies;
+    let arrets: Vec<Arret> = engagement::imprevus::du_mois(racine, mois, Some(engagement::imprevus::ARRET)).unwrap().into_iter().map(|v| Arret { v }).collect();
     let o = Options { date_constitution: Some(Jour::lire("2026-10-15").unwrap()), envoi_test: true, ..Options::default() };
     (generer(&ctx, &paies, mois, &[], &arrets, &o).unwrap_or_else(|e| panic!("{} : {}", mois, e)), paies)
 }

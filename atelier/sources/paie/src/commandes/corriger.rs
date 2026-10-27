@@ -22,8 +22,8 @@ use super::actes::{est_refus, mois_valide, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{brut, champ, enveloppe, rendre, texte};
 use super::Cadre;
-use crate::fichiers::vrai;
-use crate::retours::Echec;
+use socle::fichiers::vrai;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "corriger",
@@ -51,7 +51,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 #[track_caller]
 fn refus(m: impl Into<String>) -> Echec {
-    crate::etats::noter_et(Some("ErreurOperation"), m)
+    socle::echec::noter_et(Some("ErreurOperation"), m)
 }
 
 fn opt<'a>(args: &'a Args, nom: &str) -> Option<&'a str> {
@@ -142,7 +142,7 @@ fn toutes(cadre: &Cadre, json: bool) -> Result<i32, Echec> {
     let regularisables = liste_de(&mois, "regularisables");
     for e in &en_retard {
         dire!("! {} : aucune DSN acceptee, et l'echeance du {} est passee.", champ(e, "mois"), champ(e, "echeance"));
-        dire!("    `paie mois paies/{}.json --forcer` -- en retard, assume.", champ(e, "mois"));
+        dire!("    `paie depot-dsn {} --test`, puis --reel -- en retard, elle part quand meme.", champ(e, "mois"));
     }
     if !regularisables.is_empty() {
         dire!("Les mois qui se corrigent (deposes, echeance passee) :");
@@ -211,7 +211,7 @@ fn extraire(cadre: &Cadre, args: &Args, mois: &str) -> Result<i32, Echec> {
     }
     for e in liste_de(&r, "engagements") {
         if champ(&e, "salarie") == salarie && champ(&e, "debut") == debut {
-            dire!("{}", crate::ecriture::json_py(&e["engagement"], 2));
+            dire!("{}", socle::ecriture::json_indente(&e["engagement"], 2));
             return Ok(0);
         }
     }

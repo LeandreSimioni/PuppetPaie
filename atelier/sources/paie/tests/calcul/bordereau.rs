@@ -6,7 +6,7 @@
 
 use crate::outils::{dec, egal, lire_oracle, oracle_selon, reecrire_oracles};
 use paie::bordereau::{montant, montant_ligne, LigneBordereau};
-use paie::date::Jour;
+use socle::date::Jour;
 use serde_json::Value;
 
 fn jour(s: &str) -> Jour {

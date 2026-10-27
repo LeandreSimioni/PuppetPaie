@@ -33,9 +33,10 @@ use serde_json::{json, Map, Value};
 
 use crate::bulletin_lu::{Entreprise, Salarie};
 use crate::caviardage::{self, Caviarde, Connus};
-use crate::contexte::Contexte;
-use crate::etats::{py_str, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::fichiers::vrai;
 use crate::importation_bulletins::{self as ib, DossierLu};
 use crate::importation_tri::Sorte;
 use crate::incidents;
@@ -100,10 +101,10 @@ impl Proposition {
         for (k, m) in self.messages.iter().enumerate() {
             t.push_str(&format!("== Message {}/{} : {} ==\n{}\n", k + 1, n, m.genre, m.resume));
             for f in m.detail.get("fichiers").and_then(Value::as_array).into_iter().flatten() {
-                let s = |c: &str| f.get(c).map(py_str).unwrap_or_default();
+                let s = |c: &str| f.get(c).map(valeur_en_texte).unwrap_or_default();
                 t.push_str(&format!("- fichier {} ({}, {} octets) : {}\n", s("fichier"), s("sorte"), s("taille"), s("raison")));
                 for p in f.get("pages").and_then(Value::as_array).into_iter().flatten() {
-                    let s = |c: &str| p.get(c).map(py_str).unwrap_or_default();
+                    let s = |c: &str| p.get(c).map(valeur_en_texte).unwrap_or_default();
                     let gabarit = if s("gabarit").is_empty() { String::new() } else { format!(" [gabarit {}]", s("gabarit")) };
                     t.push_str(&format!("    page {} : {}{} -- {} ({})\n", s("page"), s("sort"), gabarit, s("raison"), s("forme")));
                 }
@@ -190,7 +191,7 @@ fn connus(ctx: &Contexte, lu: &DossierLu) -> Connus {
         .map(|(_, v)| v.clone())
         .chain(lu.ap.a_creer.iter().filter(|a| a.nom == "salarie").map(|a| Value::Object(a.donnees.clone())));
     for f in fiches {
-        let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(py_str);
+        let t = |k: &str| f.get(k).filter(|v| vrai(v)).map(valeur_en_texte);
         for k in ["nom", "nom_affichage"] {
             pousser(&mut c.noms, t(k));
         }
@@ -215,7 +216,7 @@ fn connus(ctx: &Contexte, lu: &DossierLu) -> Connus {
     }
     let e = &ctx.entreprise;
     for k in ["raison_sociale", "nom_affichage", "adresse", "adresse_affichage", "code_postal", "commune", "commune_affichage"] {
-        pousser(&mut c.entreprise, e.get(k).filter(|v| vrai(v)).map(py_str));
+        pousser(&mut c.entreprise, e.get(k).filter(|v| vrai(v)).map(valeur_en_texte));
     }
     for Entreprise { nom, adresse: lignes, .. } in &lu.entreprises_lues {
         pousser(&mut c.entreprise, nom.clone());
@@ -455,7 +456,7 @@ fn envoyer(racine: &Path, p: &Proposition) -> Value {
     if bilan.get("sans_serveur") == Some(&Value::Bool(true)) {
         return reponse(false, "Le message est noté sur ce poste, mais l'adresse de l'éditeur n'y est pas réglée : il partira dès qu'elle le sera.");
     }
-    let erreur = bilan.get("erreur").map(py_str).unwrap_or_default();
+    let erreur = bilan.get("erreur").map(valeur_en_texte).unwrap_or_default();
     reponse(
         false,
         &format!(

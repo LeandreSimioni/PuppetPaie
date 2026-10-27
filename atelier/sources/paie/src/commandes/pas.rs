@@ -9,8 +9,8 @@ use serde_json::{json, Map, Value};
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, jj_mm_aaaa_de_iso};
 use super::Cadre;
-use crate::contexte::Contexte;
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
     commande: "pas",
@@ -72,13 +72,13 @@ fn fr(iso: Option<&str>) -> String {
 /// `pas.ecrire` : `json.dumps(data, ensure_ascii=False, indent=2)`, sans saut de ligne final.
 fn ecrire(ctx: &Contexte, data: &Value) -> Result<(), Echec> {
     let p = ctx.racine.join("config").join("pas.json");
-    std::fs::write(&p, crate::ecriture::json_py(data, 2)).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })
+    std::fs::write(&p, socle::ecriture::json_indente(data, 2)).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })
 }
 
 /// `pas.enregistrer` : applique des releves de CRM ; rend les changements lisibles. Un releve :
 /// `{"salarie", "taux", "type", "identifiant", "periode", "mis_a_disposition"}`.
 pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
-    let mut data = crate::pas::charger(ctx).map_err(ko)?;
+    let mut data = droit::pas::charger(ctx).map_err(ko)?;
     let mut changements = Vec::new();
     let mut soldees = false;
     let horodatage = maintenant_court();
@@ -94,14 +94,14 @@ pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Ve
             "periode": get("periode"), "mis_a_disposition": get("mis_a_disposition"),
             "source": source, "releve_le": horodatage,
         });
-        if let Some(a) = avant.as_ref().filter(|a| crate::fichiers::vrai(a)) {
+        if let Some(a) = avant.as_ref().filter(|a| socle::fichiers::vrai(a)) {
             if ["taux", "type", "identifiant"].iter().all(|k| a.get(*k) == neuf.get(*k)) {
                 continue;
             }
         }
         let t = |v: &Value, k: &str| super::rendu::champ(v, k);
         data["salaries"].as_object_mut().ok_or_else(|| ko("salaries illisibles".into()))?.insert(cle.clone(), neuf.clone());
-        match avant.filter(|a| crate::fichiers::vrai(a)) {
+        match avant.filter(|a| socle::fichiers::vrai(a)) {
             Some(a) => changements.push(format!(
                 "{} : taux {} -> {}, type {} -> {}, identifiant {} -> {}",
                 cle, t(&a, "taux"), t(&neuf, "taux"), t(&a, "type"), t(&neuf, "type"), t(&a, "identifiant"), t(&neuf, "identifiant")
@@ -146,7 +146,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
     let par_nir: std::collections::HashMap<String, String> = ctx
         .salaries
         .iter()
-        .filter_map(|(cle, s)| s.get("nir").filter(|n| crate::fichiers::vrai(n)).map(|n| (super::rendu::texte(n), cle.clone())))
+        .filter_map(|(cle, s)| s.get("nir").filter(|n| socle::fichiers::vrai(n)).map(|n| (super::rendu::texte(n), cle.clone())))
         .collect();
     let mut fichiers = Vec::new();
     crate::routes_fiches::fichiers_dsn(dossier, &mut fichiers);
@@ -225,7 +225,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(0);
     }
 
-    let etat = crate::pas::charger(ctx).map_err(ko)?;
+    let etat = droit::pas::charger(ctx).map_err(ko)?;
     let salaries: Map<String, Value> = etat.get("salaries").and_then(Value::as_object).cloned().unwrap_or_default();
     if salaries.is_empty() {
         dire!("Magasin vide. `paie pas --amorcer` pour partir de l'historique, ou `paie retours` pour lire un CRM.");
@@ -233,7 +233,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     dire!("Taux de prelevement a la source connus\n{}", "-".repeat(62));
     for (cle, e) in &salaries {
-        let s = crate::pas::situation(ctx, cle, None).map_err(ko)?;
+        let s = droit::pas::situation(ctx, cle, None).map_err(ko)?;
         dire!("  {:<12} taux {:<6} type {} ({})", cle, champ(e, "taux"), champ(e, "type"), libelle_type(&champ(e, "type")));
         dire!("  {:<12} identifiant {}", "", champ(e, "identifiant"));
         let jusqu = match s.get("valable_jusqu_a") {
@@ -241,18 +241,18 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             _ => String::new(),
         };
         dire!("  {:<12} {}{}", "", champ(&s, "libelle"), jusqu);
-        let periode = if e.get("periode").is_some_and(crate::fichiers::vrai) { format!(" (periode {})", champ(e, "periode")) } else { String::new() };
+        let periode = if e.get("periode").is_some_and(socle::fichiers::vrai) { format!(" (periode {})", champ(e, "periode")) } else { String::new() };
         dire!("  {:<12} source : {}{}\n", "", champ(e, "source"), periode);
     }
 
     // CE QU'IL FAUDRAIT DEMANDER. Un taux perime n'est plus le taux du salarie : deux mois apres sa mise a disposition,
     // c'est la grille de l'article 204 H qui s'applique, et le moteur ne sait pas encore la calculer.
-    let diag = crate::pas::diagnostic(ctx, None, None).map_err(ko)?;
-    let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(crate::fichiers::vrai)).collect();
+    let diag = droit::pas::diagnostic(ctx, None, None).map_err(ko)?;
+    let a_demander: Vec<&Value> = diag.iter().filter(|s| s.get("a_demander").is_some_and(socle::fichiers::vrai)).collect();
     if !a_demander.is_empty() {
         dire!("A demander a la DGFiP (signalement d'amorcage, nature 08)\n{}", "-".repeat(62));
         for s in a_demander {
-            let attente = match s.get("demande").filter(|d| crate::fichiers::vrai(d)) {
+            let attente = match s.get("demande").filter(|d| socle::fichiers::vrai(d)) {
                 Some(d) => format!(
                     "  -- demande partie le {}, reponse attendue avant le {}",
                     fr(d.get("quand").and_then(Value::as_str)),
@@ -264,7 +264,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
         dire!("\nPour ecrire les signalements (un fichier par individu) :\n    paie pas --demander\nReponse de la DGFiP sous cinq jours ouvres, par un CRM de nature 94 que\n`paie retours` ramassera comme les autres.\n");
     }
-    for s in diag.iter().filter(|s| s.get("situation").and_then(Value::as_str) == Some(crate::pas::SANS_NIR)) {
+    for s in diag.iter().filter(|s| s.get("situation").and_then(Value::as_str) == Some(droit::pas::SANS_NIR)) {
         dire!("  {:<12} {} -- rien a demander, c'est le bareme.", champ(s, "salarie"), champ(s, "libelle"));
     }
     dire!("S21.G00.50.006/.007/.008 sortent d'ici. Aucune n'est calculee : elles\nviennent du compte-rendu metier DGFiP de nature 94.");
@@ -287,12 +287,12 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
     let mois = match args.texte("mois") {
         Some(m) => {
             if !super::actes::mois_valide(m) {
-                dire!("--mois attend AAAA-MM, recu {}.", crate::fichiers::repr(m));
+                dire!("--mois attend AAAA-MM, recu {}.", socle::fichiers::repr(m));
                 return 1;
             }
             m.to_string()
         }
-        None => match crate::routes_contrats::mois_saisis(ctx).into_iter().filter(|m| super::actes::mois_valide(m)).last() {
+        None => match crate::routes_mois::mois_saisis(&ctx.racine).into_iter().filter(|m| super::actes::mois_valide(m)).last() {
             Some(m) => m,
             None => {
                 dire!("Aucun mois saisi : un signalement d'amorcage declare un CONTRAT (bloc 40, cardinalite (1,1)), et il n'y en a aucun a declarer.");
@@ -303,7 +303,7 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
     let paies = match paies_du_mois(ctx, &mois) {
         Ok(Some(p)) => p,
         Ok(None) => {
-            dire!("Aucune saisie pour {} : paies/{}.json n'existe pas. Rien n'est ecrit.", mois, mois);
+            dire!("Aucun engagement ne touche {}. Rien n'est ecrit.", mois);
             return 1;
         }
         Err(m) => {

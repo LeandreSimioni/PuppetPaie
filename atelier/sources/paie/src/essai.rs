@@ -6,7 +6,7 @@
 //! son bareme, ses organismes) dans DOSSIER, hors de tout depot Git, et lui donne l'IDENTITE d'une vraie compagnie, lue dans
 //! UNE variable d'environnement, `PUPPETPAIE_COMPAGNIE` : un objet JSON sur une ligne, fragment de `config/entreprise.json`,
 //! avec EXACTEMENT les cles de `CLES` (decide par Leandre le 14/10/2026). Le reste de la seance nomme cette compagnie par
-//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des commandes ordinaires (`paie mois`, `paie depot-dsn --test`, `paie dpae`,
+//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des commandes ordinaires (`paie depot-dsn AAAA-MM --test`, `paie dpae`,
 //! `paie deposer-dpae --test`, `paie retours`).
 //!
 //! POURQUOI UNE COPIE, ET PAS LA VARIABLE LUE PARTOUT. Sur le poste, une variable posee par megarde ecraserait la vraie fiche ;
@@ -284,7 +284,7 @@ pub struct Montage {
 
 /// Le dossier d'installation : celui qui porte `logiciel/` (`logiciel/donnees` -> `logiciel` -> l'installation).
 fn installation() -> PathBuf {
-    crate::fichiers::dossier_du_code().parent().and_then(Path::parent).map(Path::to_path_buf).unwrap_or_default()
+    socle::fichiers::dossier_du_code().parent().and_then(Path::parent).map(Path::to_path_buf).unwrap_or_default()
 }
 
 /// La fictive a copier : un chemin (s'il designe un dossier), sinon un nom de `fictives/` de l'installation.
@@ -354,11 +354,11 @@ fn retirer_les_depots_de_dsn(dossier: &Path) -> Result<(), String> {
     if !p.is_file() {
         return Ok(());
     }
-    let Value::Array(lignes) = crate::fichiers::lire_json(&p)? else {
+    let Value::Array(lignes) = socle::fichiers::lire_json(&p)? else {
         return Err(format!("{} : une liste est attendue.", p.display()));
     };
     let gardees: Vec<Value> = lignes.into_iter().filter(|l| l.get("quoi").and_then(Value::as_str) != Some("dsn")).collect();
-    crate::ecriture::ecrire_json(&p, &Value::Array(gardees), 2)
+    socle::ecriture::ecrire_json(&p, &Value::Array(gardees), 2)
 }
 
 /// Monte (ou remet a jour) la compagnie d'essai dans `dossier`, depuis la fictive `depuis`, sous l'identite `texte` (le
@@ -385,7 +385,7 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
     }
     let (src, nom) = if deja {
         // La copie dit de quelle fictive elle vient ; `--depuis` ne la change pas (il faudrait une copie neuve).
-        let fiche = crate::fichiers::lire_json(&dossier.join(MARQUEUR)).unwrap_or(Value::Null);
+        let fiche = socle::fichiers::lire_json(&dossier.join(MARQUEUR)).unwrap_or(Value::Null);
         (None, fiche.get("depuis").and_then(Value::as_str).unwrap_or("?").to_string())
     } else {
         let s = source(depuis)?;
@@ -397,24 +397,24 @@ pub fn monter(dossier: &Path, depuis: &str, texte: Option<&str>) -> Result<Monta
         Some(s) => s.join("config").join("entreprise.json"),
         None => dossier.join("config").join("entreprise.json"),
     };
-    let fiche = crate::fichiers::lire_json(&base_fiche).map_err(|e| format!("{} : {}", base_fiche.display(), e))?;
+    let fiche = socle::fichiers::lire_json(&base_fiche).map_err(|e| format!("{} : {}", base_fiche.display(), e))?;
     let fiche = id.appliquer(&fiche)?;
 
     if let Some(s) = &src {
         copier(s, dossier, s)?;
         retirer_les_depots_de_dsn(dossier)?;
-        let quand = crate::paris::iso_secondes(crate::temps::secondes());
+        let quand = socle::paris::iso_secondes(socle::temps::secondes());
         let marqueur = json!({
             "copie_de": format!("{} (paie essai monter, identite de {}), depuis la compagnie fictive {}", MARQUE_ESSAI, VARIABLE, nom),
             "depuis": nom,
             "quand": quand,
             "_quoi": "Compagnie d'ESSAI : ses depots de TEST vont au reseau, sous l'identite d'une vraie compagnie ; tout acte reel est refuse (depot_acte::refuser_si_copie, et pas de coffre). Ne se commite jamais.",
         });
-        crate::ecriture::ecrire_json(&dossier.join(MARQUEUR), &marqueur, 2)?;
+        socle::ecriture::ecrire_json(&dossier.join(MARQUEUR), &marqueur, 2)?;
         std::fs::write(dossier.join(".gitignore"), "# Compagnie d'essai : l'identite d'une vraie compagnie. Rien ici ne se commite.\n*\n")
             .map_err(|e| format!("{} : {}", dossier.display(), e))?;
     }
-    crate::ecriture::ecrire_json(&dossier.join("config").join("entreprise.json"), &fiche, 2)?;
+    socle::ecriture::ecrire_json(&dossier.join("config").join("entreprise.json"), &fiche, 2)?;
     Ok(Montage { dossier: absolu(dossier), depuis: nom, neuf: !deja })
 }
 
@@ -436,7 +436,7 @@ PUPPETPAIE_COMPAGNIE : un objet JSON sur une ligne, avec exactement ces cles (se
   api_dpae       {nom, prenom, siret, service}               (le compte DPAE d'urssaf.fr ; siret et service peuvent etre vides)
 Les mots de passe restent dans NET_ENTREPRISES_MOTDEPASSE et URSSAF_MOTDEPASSE.
 
-Puis, avec PUPPETPAIE_DONNEES=DOSSIER : paie mois, paie depot-dsn --test, paie retours, paie dpae, paie deposer-dpae --test
+Puis, avec PUPPETPAIE_DONNEES=DOSSIER : paie depot-dsn AAAA-MM --test, paie retours, paie dpae, paie deposer-dpae --test
 (la suite : atelier/docs/COMPAGNIE-D-ESSAI.md).";
 
 /// `paie essai ...` : rend le code de sortie.
@@ -492,8 +492,8 @@ pub fn commande(args: &[String]) -> i32 {
             println!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
             println!();
             println!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
-            println!("  paie mois paies/AAAA-MM.json       puis   paie depot-dsn sorties/AAAA-MM/<DSN>.dsn --test   puis   paie retours");
-            println!("  paie dpae paies/AAAA-MM.json       puis   paie deposer-dpae sorties/AAAA-MM/<DPAE>.txt --test");
+            println!("  paie depot-dsn AAAA-MM --test      puis   paie retours");
+            println!("  paie dpae AAAA-MM                  puis   paie deposer-dpae sorties/AAAA-MM/<DPAE>.txt --test");
             println!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
             0
         }

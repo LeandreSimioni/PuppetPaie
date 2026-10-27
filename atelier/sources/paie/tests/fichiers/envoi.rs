@@ -4,10 +4,10 @@
 
 use std::path::{Path, PathBuf};
 
-use paie::calcul::{calculer, Paie};
-use paie::contexte::Contexte;
-use paie::date::d;
-use paie::engagement::{engagements_du_fichier, LignesPermanent};
+use engagement::calcul::{calculer, Paie};
+use droit::contexte::Contexte;
+use socle::date::d;
+use engagement::LignesPermanent;
 use paie::envoi::{self, Message};
 use serde_json::{json, Value};
 
@@ -135,8 +135,8 @@ fn fictive() -> (PathBuf, Contexte) {
 }
 
 fn paies_du_mois(racine: &Path, ctx: &Contexte) -> Vec<Paie> {
-    let lignes: LignesPermanent = &paie::conges::lignes_du_mois;
-    let (_, engs, _) = engagements_du_fichier(ctx, &racine.join("paies").join(format!("{}.json", MOIS)), lignes).unwrap();
+    let lignes: LignesPermanent = &engagement::conges::lignes_du_mois;
+    let (engs, _) = engagement::engagements(ctx, &engagement::saisie_du_mois(racine, MOIS).unwrap(), lignes).unwrap();
     engs.iter().map(|e| calculer(ctx, e).unwrap()).collect()
 }
 
@@ -299,8 +299,8 @@ fn preparer_rend_les_messages_attendus_sur_deux_fictives() {
         let (nom_fictive, mois) = (un["fictive"].as_str().unwrap().to_string(), un["mois"].as_str().unwrap().to_string());
         let racine = crate::outils::fictive(&nom_fictive);
         let ctx = Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap();
-        let lignes: LignesPermanent = &paie::conges::lignes_du_mois;
-        let (_, engs, _) = engagements_du_fichier(&ctx, &racine.join("paies").join(format!("{}.json", mois)), lignes).unwrap();
+        let lignes: LignesPermanent = &engagement::conges::lignes_du_mois;
+        let (engs, _) = engagement::engagements(&ctx, &engagement::saisie_du_mois(&racine, &mois).unwrap(), lignes).unwrap();
         let paies: Vec<Paie> = engs.iter().map(|e| calculer(&ctx, e).unwrap()).collect();
         let t = travail(&format!("fictive-{}-{}", nom_fictive, mois));
         for f in un["fichiers"].as_array().unwrap() {

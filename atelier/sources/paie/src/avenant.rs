@@ -16,26 +16,27 @@
 //!
 //! SANS CALCUL TANT QU'ON PEUT : `ecart_au_contrat_signe` regarde d'abord tout ce qui ne demande
 //! pas la paie (le delai, le contrat parti ce mois-la, le PDF, le modele, le texte du PDF), puis
-//! seulement prend les montants dans la paie calculee relue (`calcul_du_mois`).
+//! seulement prend les montants dans la paie validee de l'engagement.
 //!
-//! Rend "" dans tous les cas ou le Python rend "" -- et la ou il leve (la pastille n'invente pas).
+//! Rend "" dans tous les cas ou rien ne se lit -- et la ou une lecture refuse (la pastille n'invente pas).
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use fabrique_pdf::modele::{self, Modele, Valeurs};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
-use crate::contexte::{telle_qu_au, Contexte};
-use crate::date::{d, en_texte, Jour};
-use crate::emplois::{emploi_de, EmploiEngagement};
-use crate::etats::{accepte, est, get, getd, items, objet_vide, ou, py_str, CONTRAT_RECU, LISTE_VIDE, SIGNATURE};
-use crate::retours::Echec;
-use crate::fichiers::vrai;
-use crate::nfkc::nfkc;
-use crate::num::{dec, Resultat};
+use droit::contexte::{telle_qu_au, Contexte};
+use socle::date::{d, en_texte, Jour};
+use droit::emplois::{emploi_de, EmploiEngagement};
+use crate::etats::{accepte, est, get, getd, items, objet_vide, ou, CONTRAT_RECU, LISTE_VIDE, SIGNATURE};
+use socle::valeur::valeur_en_texte;
+use socle::echec::Echec;
+use socle::fichiers::vrai;
+use socle::nfkc::nfkc;
+use socle::num::{dec, Resultat};
 
 /// `contrat.MODELE.name`.
 const MODELE: &str = "contrat-cddu.modele";
@@ -46,7 +47,7 @@ const INVALIDE: &str = "\u{0}\u{0}VALEUR-SANS-TEXTE\u{0}\u{0}";
 
 // ------------------------------------------------------ le texte d'un PDF
 
-use crate::retours::blanc_py as est_blanc;
+use socle::texte::blanc as est_blanc;
 
 /// `avenant._normaliser` : ce qui se compare. Ligatures defaites (NFKC : « ﬀ » -> « ff », espaces
 /// insecables -> espaces), une coupure apres un trait d'union recollee, les blancs ramenes a un seul.
@@ -461,7 +462,7 @@ fn remuneration_detaillee(remuneration: &[Value], e: &Eng) -> Resultat<String> {
     }
     let mut phrase = et(&morceaux);
     if !e.dernier_mois {
-        let nom = crate::date::nom_du_mois(mois_de(&e.mois)? as i64, crate::date::Graphie::Accentuee)?;
+        let nom = socle::date::nom_du_mois(mois_de(&e.mois)? as i64, socle::date::Graphie::Accentuee)?;
         let quand = format!("{} {}", nom, an_de(&e.mois)?);
         if !e.planning.is_empty() {
             let n = e.planning.len();
@@ -486,7 +487,7 @@ fn remuneration_detaillee(remuneration: &[Value], e: &Eng) -> Resultat<String> {
 fn remuneration_hors_brut(remuneration: &[Value]) -> Resultat<String> {
     let mut morceaux = Vec::new();
     for l in remuneration.iter().filter(|l| !fait_le_brut(l)) {
-        if dec(requis(l, "montant")?)? > crate::num::Decimal::ZERO {
+        if dec(requis(l, "montant")?)? > socle::num::Decimal::ZERO {
             morceaux.push(ligne_citee(l)?);
         }
     }
@@ -495,7 +496,7 @@ fn remuneration_hors_brut(remuneration: &[Value]) -> Resultat<String> {
 
 /// Le numero du mois, de 1 a 12 : « 00 » se refuse (`date::numero_du_mois`, lot F1 ; il se lisait janvier).
 fn mois_de(mois: &str) -> Resultat<usize> {
-    crate::date::numero_du_mois(mois).map(|n| n as usize)
+    socle::date::numero_du_mois(mois).map(|n| n as usize)
 }
 
 fn an_de(mois: &str) -> Resultat<i32> {
@@ -507,7 +508,7 @@ fn periode_remuneration(e: &Eng) -> Resultat<String> {
     if e.dernier_mois {
         return Ok(String::new());
     }
-    let nom = crate::date::nom_du_mois(mois_de(&e.mois)? as i64, crate::date::Graphie::Accentuee)?;
+    let nom = socle::date::nom_du_mois(mois_de(&e.mois)? as i64, socle::date::Graphie::Accentuee)?;
     let de = if nom.chars().next().map_or(false, |c| "aeiouyâàéèêîôû".contains(c)) { "d'" } else { "de " };
     Ok(format!(" pour le mois {}{} {}", de, nom, an_de(&e.mois)?))
 }
@@ -799,7 +800,7 @@ impl Parti {
 /// ce debut (le dernier l'emporte), comme avant.
 pub(crate) fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
     let du_contrat = |l: &Value| -> Result<bool, Echec> {
-        Ok(numero.map_or(true, |n| py_str(&crate::etats::numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
+        Ok(numero.map_or(true, |n| valeur_en_texte(&crate::etats::numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
     };
     let mut parti: Option<Parti> = None;
     for l in lignes {
@@ -924,36 +925,24 @@ pub(crate) fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
     Ok(ent)
 }
 
-/// Le dernier depot REEL accepte de DSN pour ce mois existe-t-il ? Alors le mois est parti : il
-/// garde ses chiffres (`calcul_du_mois`).
-fn dsn_partie(ctx: &Contexte, mois: &str) -> Resultat<bool> {
-    let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
-    Ok(!crate::etats::dsn_du_mois(&lignes, &ctx.entreprise, mois).map_err(|e| e.message)?.is_null())
-}
-
-/// La paie de ce contrat dans la paie calculee du mois (relue sans calcul si ses entrees n'ont pas changé).
-/// `rang` : la paie de ce rang parmi celles de ce salarie qui commencent ce jour-la (0 : la premiere).
+/// La paie validee de ce contrat (`engagement::etats::validees_du_mois`), dans sa forme ecrite. `rang` : la paie de ce
+/// rang parmi celles de ce salarie qui commencent ce jour-la (0 : la premiere).
 fn paie_calculee(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, rang: usize) -> Resultat<Option<Value>> {
-    let mut o = HashMap::new();
-    o.insert("racine".to_string(), ctx.racine.to_string_lossy().into_owned());
-    o.insert("date".to_string(), ctx.date.iso());
-    let demande = json!({ "mois": mois, "parti": dsn_partie(ctx, mois)? });
-    let rep = crate::calcul_du_mois::commande(&o, &demande.to_string())?;
-    let paies = rep.get("paies").and_then(Value::as_array).ok_or("la paie calculee n'a pas de `paies`")?;
-    Ok(paies
+    let Some((_, paies)) = engagement::etats::validees_du_mois(ctx, mois)? else { return Ok(None) };
+    let Some(p) = paies
         .iter()
-        .filter(|p| {
-            p.pointer("/salarie/_cle").and_then(Value::as_str) == Some(salarie)
-                && p.pointer("/engagement/debut").and_then(Value::as_str) == Some(debut)
-        })
+        .filter(|p| p.salarie.get("_cle").and_then(Value::as_str) == Some(salarie) && p.engagement.debut.iso() == debut)
         .nth(rang)
-        .cloned())
+    else {
+        return Ok(None);
+    };
+    engagement::relire::ecrire(ctx, p).map(Some)
 }
 
 /// Les valeurs que le modele de contrat lit dans la paie d'aujourd'hui de ce contrat (`contrat.marqueurs`) :
 /// de quoi ecrire le contrat tel que la paie le dirait. `None` quand la paie n'a pas ce contrat, ou n'est
 /// pas celle d'un spectacle (un permanent n'a pas de contrat imprime). Les montants viennent de la paie
-/// calculee relue (`calcul_du_mois`), sans calcul si ses entrees n'ont pas change.
+/// validee de l'engagement, sans calcul.
 pub fn valeurs_du_contrat(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> Resultat<Option<Valeurs>> {
     valeurs_du_rang(ctx, mois, salarie, debut, 0)
 }
@@ -972,7 +961,7 @@ pub fn valeurs_du_rang(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, r
 }
 
 /// `contrat.marqueurs(p, ent)` pour une paie calculee (`paie`, sa forme JSON). `numero` : le numero
-/// de contrat que la paie porte VRAIMENT (lu dans l'archive, fige ou propose par le compteur), quand il
+/// de contrat que la paie porte VRAIMENT (lu dans l'archive, ou celui de l'engagement), quand il
 /// differe de celui de la reponse du calcul.
 pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Option<&Option<String>>) -> Resultat<Valeurs> {
     let nul = Value::Null;
@@ -1071,8 +1060,8 @@ mod tests_mois {
     /// comme `envoi::etiquette` (il se lisait janvier).
     #[test]
     fn le_mois_00_d_un_contrat_qui_se_poursuit_se_refuse() {
-        assert_eq!(periode_remuneration(&eng("2026-00")).unwrap_err(), crate::date::mois_impossible(0));
-        assert_eq!(remuneration_detaillee(&[], &eng("2026-00")).unwrap_err(), crate::date::mois_impossible(0));
+        assert_eq!(periode_remuneration(&eng("2026-00")).unwrap_err(), socle::date::mois_impossible(0));
+        assert_eq!(remuneration_detaillee(&[], &eng("2026-00")).unwrap_err(), socle::date::mois_impossible(0));
         assert_eq!(periode_remuneration(&eng("2026-10")).unwrap(), " pour le mois d'octobre 2026");
     }
 }

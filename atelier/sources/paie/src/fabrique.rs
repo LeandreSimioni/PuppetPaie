@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
-use crate::num::Resultat;
+use socle::num::Resultat;
 
 /// Ecrit le PDF de `description` dans `chemin` et rend le chemin.
 pub fn ecrire(description: &Value, chemin: &Path) -> Resultat<PathBuf> {
@@ -38,7 +38,7 @@ pub fn garder_description(description: &Value, pdf: &Path) -> Resultat<PathBuf> 
     let empreinte = empreinte_sha256(&octets);
     let f = chemin_description(pdf);
     let contenu = serde_json::json!({"format": FORMAT_GARDE, "pdf_sha256": empreinte, "description": description});
-    std::fs::write(&f, crate::ecriture::json_py(&contenu, 1)).map_err(|e| format!("{} : {}", f.display(), e))?;
+    std::fs::write(&f, socle::ecriture::json_indente(&contenu, 1)).map_err(|e| format!("{} : {}", f.display(), e))?;
     Ok(f)
 }
 
@@ -66,9 +66,9 @@ pub fn description_gardee(pdf: &Path) -> Option<Value> {
 /// (`KeyError` du Python).
 pub fn avec_mention_artiste(description: &Value, mention: &str) -> Result<Value, String> {
     let mut nouvelle = description.clone();
-    let documents = nouvelle.get_mut("documents").and_then(Value::as_array_mut).ok_or_else(|| crate::fichiers::absent("documents"))?;
+    let documents = nouvelle.get_mut("documents").and_then(Value::as_array_mut).ok_or_else(|| socle::fichiers::absent("documents"))?;
     for doc in documents.iter_mut() {
-        let modele = doc.get_mut("modele").and_then(Value::as_object_mut).ok_or_else(|| crate::fichiers::absent("modele"))?;
+        let modele = doc.get_mut("modele").and_then(Value::as_object_mut).ok_or_else(|| socle::fichiers::absent("modele"))?;
         modele.insert("mention_artiste".into(), Value::String(mention.to_string()));
     }
     Ok(nouvelle)
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn une_description_devient_un_pdf_lisible_et_le_dossier_parent_se_cree() {
         let d = dossier("bulletin");
-        let description = crate::fichiers::lire_json(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fabrique-bulletin.json")).unwrap();
+        let description = socle::fichiers::lire_json(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fabrique-bulletin.json")).unwrap();
         let sortie = d.join("sous/dossier/bulletin.pdf");
         assert_eq!(ecrire(&description, &sortie).unwrap(), sortie);
         assert!(std::fs::read(&sortie).unwrap().starts_with(b"%PDF"));

@@ -16,13 +16,14 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{erreur, R};
-use crate::fichiers::vrai;
+use droit::contexte::Contexte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::journal::{self, Note};
 
 fn texte(b: &Value, cle: &str) -> String {
-    b.get(cle).filter(|v| vrai(v)).map(crate::etats::py_str).unwrap_or_default()
+    b.get(cle).filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte).unwrap_or_default()
 }
 
 fn accepte(b: &Value) -> bool {
@@ -77,9 +78,9 @@ fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
         }
     }
     let connus: Vec<String> = journal::lire(&ctx.racine, None, None, false)
-        .map_err(crate::retours::Echec::from)?
+        .map_err(socle::echec::Echec::from)?
         .iter()
-        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(crate::etats::py_str))
+        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte))
         .collect();
     let mut out: Vec<Atteste> = par_flux
         .into_iter()
@@ -181,7 +182,7 @@ pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
             quand: &quand,
             origine: &origine,
         };
-        journal::noter(&ctx.racine, &note, maintenant).map_err(crate::retours::Echec::from)?;
+        journal::noter(&ctx.racine, &note, maintenant).map_err(socle::echec::Echec::from)?;
     }
     // Les retours deja archives se rangent en face des lignes qui viennent d'apparaitre -- par le flux.
     let p = ctx.racine.join("retours").join("journal.json");
@@ -284,9 +285,9 @@ pub(crate) fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
 pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -> R<Value> {
     let (attestees, inconnus) = embauches_attestees(ctx);
     let connus: Vec<String> = journal::lire(&ctx.racine, None, None, false)
-        .map_err(crate::retours::Echec::from)?
+        .map_err(socle::echec::Echec::from)?
         .iter()
-        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(crate::etats::py_str))
+        .filter_map(|l| l.get("flux").filter(|v| vrai(v)).map(socle::valeur::valeur_en_texte))
         .collect();
 
     // Le bilan XML du meme flux, quand il est la : il porte l'idflux ENTIER et dit si le depot etait reel ou de test.
@@ -352,7 +353,7 @@ pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -
                 quand: &texte(vue, "quand"),
                 origine: &origine,
             };
-            journal::noter(&ctx.racine, &note, maintenant).map_err(crate::retours::Echec::from)?;
+            journal::noter(&ctx.racine, &note, maintenant).map_err(socle::echec::Echec::from)?;
         }
     }
     Ok(json!({"trouves": trouves, "ajoutes": ajoutes, "deja": deja, "inconnus": inconnus, "ecrit": ecrire}))

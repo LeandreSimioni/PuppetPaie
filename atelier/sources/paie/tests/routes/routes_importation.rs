@@ -132,7 +132,7 @@ fn boite_aux_lettres(nom: &str) -> PathBuf {
     juin.periode = "du 09/06/2025 au 13/06/2025";
     juin.dates = vec!["du 09/06/2025 au 13/06/2025"];
     pdf(vec![a_la_compagnie(page_a(&juin))], &import.join("juin.pdf"));
-    std::fs::write(racine.join("paies").join("2025-06.json"), "{}").unwrap();
+    std::fs::write(racine.join("engagements").join("2025-06.json"), "{}").unwrap();
     std::fs::write(import.join("scan.pdf"), pdf_en_traces()).unwrap();
     std::fs::write(import.join("notes.txt"), "a ne pas oublier\n").unwrap();
     racine
@@ -166,7 +166,7 @@ fn le_dossier_import_rend_un_compte_rendu_par_fichier_les_fiches_les_contrats_et
     assert_eq!(sort(r, "bulletins/coolpaie.pdf").0, json!("repris"));
     assert_eq!(sort(r, "bulletins/coolpaie.pdf").1, json!("2 pages : 2 repris"));
     assert_eq!(sort(r, "bulletins/spaiectacle.pdf").0, json!("repris"));
-    assert_eq!(sort(r, "juin.pdf"), (json!("deja_saisi"), json!("le mois 2025-06 a sa saisie dans paies/ : non repris")));
+    assert_eq!(sort(r, "juin.pdf"), (json!("deja_saisi"), json!("le mois 2025-06 a des engagements dans engagements/ : non repris")));
     assert_eq!(sort(r, "scan.pdf").0, json!("sans_texte"));
     assert_eq!(sort(r, "notes.txt"), (json!("non_reconnu"), json!("ni DSN, ni AEM, ni PDF, ni archive zip (extension .txt)")));
     assert_eq!(r["tri"]["comptes"]["repris"], json!(4));
@@ -1289,7 +1289,7 @@ fn un_mois_importe_porte_ses_cases_et_dit_ce_qui_manque() {
     // Il ne se saisit pas : la saisie est refusee, et aucun fichier de paie n'apparait.
     let r = route(&racine, "enregistrer-saisie", json!({"mois": "2025-03", "forcer": true, "saisie": {"engagements": []}}));
     assert!(refus(&r).1.contains("tenu avant PuppetPaie"), "{}", r);
-    assert!(!racine.join("paies").join("2025-03.json").exists());
+    assert!(!racine.join("engagements").join("2025-03.json").exists());
 }
 
 /// UN MOIS DECLARE N'EST PAS EN RETARD. Sa DSN importee (le fichier de l'ancien logiciel) le dit declare ; un depot que
@@ -1359,7 +1359,8 @@ fn un_mois_importe_meme_sans_trace_ne_fait_l_objet_d_aucun_rappel_de_dsn() {
         (rappel, retard)
     };
     let saisie_de_decembre = |racine: &Path| {
-        std::fs::write(racine.join("paies").join("2024-12.json"), json!({"mois": "2024-12", "engagements": []}).to_string()).unwrap();
+        std::fs::create_dir_all(racine.join("engagements")).unwrap();
+        std::fs::write(racine.join("engagements").join("2024-12.json"), json!({"mois": "2024-12", "engagements": []}).to_string()).unwrap();
     };
 
     // Le temoin : des paies, aucune DSN au journal, mars sans rien -- mars est reclame, en retard.

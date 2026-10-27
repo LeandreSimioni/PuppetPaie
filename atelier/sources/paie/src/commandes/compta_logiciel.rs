@@ -14,7 +14,7 @@ use super::actes::{est_refus, reponse_metier};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::exporter::LOGICIELS;
 use super::Cadre;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 const CHOIX: &[&str] = &["oxygene", "sage", "quadra", "ciel", "ebp", "pennylane", "paheko", "acd", "loop", "isacompta", "autre", "aucun"];
 
@@ -47,7 +47,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         Some(n) if !retenu.is_empty() => dire!("Logiciel du comptable : {} (format {})", super::rendu::champ(n, "nom"), super::rendu::champ(n, "format")),
         _ => dire!("Logiciel du comptable : aucun -- le format se choisit"),
     }
-    dire!("Analytique par spectacle : {}", if e.get("analytique").is_some_and(crate::fichiers::vrai) { "oui" } else { "non" });
+    dire!("Analytique par spectacle : {}", if e.get("analytique").is_some_and(socle::fichiers::vrai) { "oui" } else { "non" });
     for m in super::actes::textes_de(&e, "controle") {
         dire!("  ! {}", m);
     }

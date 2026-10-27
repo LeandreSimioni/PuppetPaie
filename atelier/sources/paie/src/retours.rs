@@ -19,37 +19,8 @@ use crate::tables_retours::{CODECS_ASCII, CODECS_AUTRES, CODECS_CP1252, CODECS_L
 
 type Resultat<T> = Result<T, Echec>;
 
-/// Un refus : sa phrase, et la classe d'exception Python que la porte releve
-/// (`ParseError`, `BadZipFile`...) ; `None` pour un refus ordinaire.
-#[derive(Debug)]
-pub struct Echec {
-    pub classe: Option<&'static str>,
-    pub message: String,
-}
-
-// L'endroit ou un echec se construit se note (`diagnostic::noter_echec`) : la trace d'un refus de route le retrouve.
-impl From<String> for Echec {
-    #[track_caller]
-    fn from(message: String) -> Self {
-        crate::diagnostic::noter_echec(None, &message);
-        Echec { classe: None, message }
-    }
-}
-
-impl From<&str> for Echec {
-    #[track_caller]
-    fn from(m: &str) -> Self {
-        crate::diagnostic::noter_echec(None, m);
-        Echec { classe: None, message: m.to_string() }
-    }
-}
-
-#[track_caller]
-fn echec(classe: &'static str, message: impl Into<String>) -> Echec {
-    let message = message.into();
-    crate::diagnostic::noter_echec(Some(classe), &message);
-    Echec { classe: Some(classe), message }
-}
+use socle::echec::{erreur as echec, Echec};
+use socle::texte::blanc;
 
 // ---------------------------------------------------------------- les tables
 
@@ -116,16 +87,9 @@ pub fn libelle_nature(code: &str) -> String {
 
 // ------------------------------------------------------ le texte, a la Python
 
-/// `str.isspace()` de Python (donc ce que `strip()` retire et ce que `\s` reconnait) : le blanc d'Unicode (`char::is_whitespace`),
-/// plus `\x1c` a `\x1f`. La seule du moteur : `entrepot_dila`, `coffre`, `usages`, `champs`, `transport`, `avenant`, `envoi` et
-/// `apercu_dsn` la reprennent sous leur nom.
-pub fn blanc_py(c: char) -> bool {
-    matches!(c, '\u{9}'..='\u{d}' | '\u{1c}'..='\u{20}' | '\u{85}' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
-}
-
 /// `str.strip()`.
 fn nettoye(s: &str) -> &str {
-    s.trim_matches(blanc_py)
+    s.trim_matches(blanc)
 }
 
 /// `\d` d'une expression reguliere de Python sur du texte : un chiffre decimal Unicode.
@@ -1105,7 +1069,7 @@ fn json_lire(texte: &str) -> Resultat<Value> {
 }
 
 fn attribut_inconnu(v: &Value) -> Echec {
-    echec("AttributeError", crate::fichiers::attendu("un objet", type_py(v)))
+    echec("AttributeError", socle::fichiers::attendu("un objet", type_py(v)))
 }
 
 /// `d.get(cle, d)` puis `.get(...)` : Python refuse un non-dictionnaire.
@@ -1123,7 +1087,7 @@ fn elements(v: &Value) -> Resultat<Vec<Value>> {
         Value::Array(a) => Ok(a.clone()),
         Value::String(s) => Ok(s.chars().map(|c| Value::String(c.to_string())).collect()),
         Value::Object(m) => Ok(m.keys().map(|k| Value::String(k.clone())).collect()),
-        autre => Err(echec("TypeError", crate::fichiers::attendu("une liste", type_py(autre)))),
+        autre => Err(echec("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
     }
 }
 
@@ -1134,7 +1098,7 @@ fn dict_de(r: &Value) -> Resultat<Map<String, Value>> {
         Value::Object(m) => return Ok(m.clone()),
         Value::Array(a) => a.clone(),
         Value::String(s) => s.chars().map(|c| Value::String(c.to_string())).collect(),
-        autre => return Err(echec("TypeError", crate::fichiers::attendu("une liste", type_py(autre)))),
+        autre => return Err(echec("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
     };
     let mut m = Map::new();
     for (i, e) in elements.iter().enumerate() {
@@ -1142,10 +1106,10 @@ fn dict_de(r: &Value) -> Resultat<Map<String, Value>> {
             Value::Array(a) => a.clone(),
             Value::String(s) => s.chars().map(|c| Value::String(c.to_string())).collect(),
             Value::Object(o) => o.keys().map(|k| Value::String(k.clone())).collect(),
-            _ => return Err(echec("TypeError", crate::fichiers::pas_une_paire(i, type_py(e)))),
+            _ => return Err(echec("TypeError", socle::fichiers::pas_une_paire(i, type_py(e)))),
         };
         if paire.len() != 2 {
-            return Err(echec("ValueError", crate::fichiers::paire_attendue(i, paire.len())));
+            return Err(echec("ValueError", socle::fichiers::paire_attendue(i, paire.len())));
         }
         let Value::String(k) = &paire[0] else {
             return Err(echec("TypeError", "unsupported dictionary key"));
@@ -2054,13 +2018,13 @@ pub(crate) fn aer_spectacle(o: &[u8]) -> Resultat<Value> {
 pub(crate) fn rattacher(quis: &[Value], index: &[Value]) -> Value {
     let mut idx: Vec<(String, &str)> = index
         .iter()
-        .filter_map(|p| Some((crate::contexte::cle_recherche(p.get(1)?.as_str()?), p.get(0)?.as_str()?)))
+        .filter_map(|p| Some((socle::texte::cle_recherche(p.get(1)?.as_str()?), p.get(0)?.as_str()?)))
         .collect();
     idx.sort_by_key(|(n, _)| std::cmp::Reverse(n.chars().count()));
     let cles: Vec<Value> = quis
         .iter()
         .map(|q| {
-            let cible = crate::contexte::cle_recherche(q.as_str().unwrap_or(""));
+            let cible = socle::texte::cle_recherche(q.as_str().unwrap_or(""));
             idx.iter()
                 .find(|(nom, _)| !nom.is_empty() && (cible.contains(nom.as_str()) || nom.contains(cible.as_str())))
                 .map(|(_, cle)| Value::String((*cle).to_string()))
@@ -2571,10 +2535,10 @@ mod tests {
 
     #[test]
     fn le_blanc_de_python_est_celui_d_unicode_plus_les_separateurs_1c_a_1f() {
-        // La table de `blanc_py` et la forme que reprenaient ses anciennes copies (`is_whitespace`, plus 0x1C-0x1F) disent
+        // La table de `blanc` et la forme que reprenaient ses anciennes copies (`is_whitespace`, plus 0x1C-0x1F) disent
         // la meme chose, caractere pour caractere.
         for c in (0..=0x10FFFFu32).filter_map(char::from_u32) {
-            assert_eq!(blanc_py(c), c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c), "U+{:04X}", c as u32);
+            assert_eq!(blanc(c), c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c), "U+{:04X}", c as u32);
         }
     }
 }

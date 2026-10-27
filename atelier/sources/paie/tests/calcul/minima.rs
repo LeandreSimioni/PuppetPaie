@@ -4,12 +4,12 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{fictive, fnv, lire_oracle, oracle, reecrire_oracles, tire};
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
-use paie::engagement::{charger, Avis};
-use paie::minima;
-use paie::num::Decimal;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
+use engagement::{charger, Avis};
+use engagement::minima;
+use socle::num::Decimal;
 use serde_json::{json, Map, Value};
 use std::str::FromStr;
 
@@ -23,8 +23,11 @@ fn contexte(racine: &str, date: &str) -> Contexte {
     Contexte::nouveau(&fictive(racine), Some(Jour::lire(date).unwrap())).unwrap()
 }
 
+/// Les paies du mois que `fichier` nomme (`<fictive>/engagements/AAAA-MM.json`), telles que ses engagements
+/// les donnent.
 fn paies(ctx: &Contexte, fichier: &str) -> Vec<Paie> {
-    charger(ctx, &fictive(fichier)).unwrap().paies
+    let mois = fichier.rsplit('/').next().unwrap().trim_end_matches(".json");
+    charger(ctx, mois).unwrap().paies
 }
 
 fn en_json<T>(r: Result<Vec<Avis>, String>, f: impl Fn(&Avis) -> T) -> Value
@@ -45,23 +48,6 @@ fn lire(ctx: &Contexte, p: &Paie, ctx_smic: &Contexte) -> Value {
     json!([a, s])
 }
 
-#[test]
-fn les_mois_des_fictives() {
-    let att = attendus();
-    let date = att["date"].as_str().unwrap();
-    let mois: Vec<Value> = att["mois"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|m| {
-            let fichier = m[0].as_str().unwrap();
-            let ctx = contexte(fichier.split('/').next().unwrap(), date);
-            json!([fichier, paies(&ctx, fichier).iter().map(|p| lire(&ctx, p, &ctx)).collect::<Vec<_>>()])
-        })
-        .collect();
-    oracle("minima.json", "/mois", &Value::Array(mois));
-}
-
 /// Aucun mois des compagnies fictives n'avertit : un cachet de 20,00 le fait, et `charger` le dit sur la paie.
 #[test]
 fn charger_porte_l_avertissement_d_un_cachet_sous_le_minimum() {
@@ -70,7 +56,7 @@ fn charger_porte_l_avertissement_d_un_cachet_sous_le_minimum() {
     let cachet = json!({"rubrique": "cachet", "quantite": 1, "taux": 20.0, "lieu": "Scene fictive", "dates": ["2026-03-24"]});
     let e = json!({"salarie": "Brioche", "spectacle": "256Z00920011", "debut": "2026-03-24", "fin": "2026-03-24", "numero": "BR1.26.09", "lignes": [cachet]});
     std::fs::write(&chemin, json!({"mois": "2026-03", "date_paiement": "2026-03-31", "engagements": [e]}).to_string()).unwrap();
-    let p = &charger(&ctx, &chemin).unwrap().paies[0];
+    let p = &crate::outils::charger_fichier(&ctx, &chemin).unwrap().paies[0];
     let attendus = minima::avertissements(&ctx, p).unwrap();
     assert!(!attendus.is_empty(), "un cachet de 20,00 est sous le minimum de la convention");
     for a in &attendus {

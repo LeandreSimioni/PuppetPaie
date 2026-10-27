@@ -17,12 +17,11 @@
 //! de `fictive-3090-grande`.
 
 use crate::outils::{self, compagnie, contrat, paires, versement};
-use paie::calcul::Paie;
-use paie::contexte::Contexte;
-use paie::date::Jour;
+use engagement::calcul::Paie;
+use droit::contexte::Contexte;
+use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
-use paie::num::Decimal;
+use socle::num::Decimal;
 use serde_json::json;
 use std::str::FromStr;
 
@@ -45,7 +44,7 @@ fn octobre_sous_dfs() -> (Vec<Paie>, String) {
     let saisie = json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": [cachet("Deburau", "DE2.26.10"), cachet("Clairon", "CL6.26.10")]});
     outils::ecrire(&r, "saisie-dfs.json", &saisie);
     let ctx = Contexte::nouveau(&r, Some(Jour::lire("2026-10-28").unwrap())).unwrap();
-    let s = charger(&ctx, &r.join("saisie-dfs.json")).unwrap();
+    let s = crate::outils::charger_fichier(&ctx, &r.join("saisie-dfs.json")).unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-10", &[], &[], &Options::default()).unwrap();
     (s.paies, dsn)
 }

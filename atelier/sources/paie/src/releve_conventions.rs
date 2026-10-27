@@ -25,7 +25,7 @@ use std::time::Instant;
 use regex::Regex;
 use serde_json::{json, Map, Value};
 
-use crate::date::Jour;
+use socle::date::Jour;
 use crate::entrepot_dila::{self as dila, dire, Entrepot, LecteurTar, Source};
 
 type R<T> = Result<T, String>;
@@ -365,8 +365,8 @@ pub fn commande(args: &[String]) -> i32 {
     match args[0].as_str() {
         "mettre-a-jour" => {
             crate::commandes::compagnie::fixer_le_code();
-            let r = crate::sources::manifeste(&crate::fichiers::dossier_du_code()).and_then(|m| {
-                let jour = crate::contexte::aujourdhui_sans_note()?;
+            let r = crate::sources::manifeste(&socle::fichiers::dossier_du_code()).and_then(|m| {
+                let jour = droit::contexte::aujourdhui_sans_note()?;
                 mettre_a_jour(racine, args.iter().any(|a| a == "--reconstruire"), &m, &dila::Reseau, &jour).map(|_| String::new())
             });
             sortie(r)

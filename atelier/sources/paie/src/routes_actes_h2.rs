@@ -1,47 +1,52 @@
-//! Les routes du lot H2 : DEPOSER et SUIVRE (`moteur/web.py`, `operations_declarations`, `operations_retours`,
-//! `operations_filet`, `operations_paies.fermer_mois`) :
+
+
+//! Les routes qui DEPOSENT et SUIVENT :
 //!
 //! - `deposer` : une DSN ou une DPAE, en test ou en reel (`depot_acte`) -- la preuve du mot de passe du logiciel,
 //!   la repetition exigee avant le reel, le journal, les incidents, la trace sur les arrets, le desarmement du
-//!   filet ; la compagnie fictive joue le depot ;
+//!   filet ; la compagnie fictive joue le depot. La DSN du mois se nomme par son mois : elle se fabrique alors depuis
+//!   l'engagement valide (`depart::fabriquer_dsn`) ;
+//! - `dsn-a-deposer` : la DSN du mois, fabriquee pour etre deposee (`depart::fabriquer_dsn`) ;
 //! - `suivre-depot` : juste apres un depot REEL, relever ses retours et dire s'il est tranche ;
 //! - `bilan-repetition` : ou en est le test de CE fichier, et -- s'il attend son compte rendu -- aller le
 //!   chercher maintenant (`releve_retours`) ;
-//! - `filet-preparer` : un passage du filet DPAE (tester une DPAE par jour d'embauche, armer, desarmer) ;
-//! - `produire` : fermer le mois puis enregistrer la saisie (`produire_mois`) ; le filet en fond reste un lanceur.
+//! - `filet-preparer` : un passage du filet DPAE (tester une DPAE par jour d'embauche, armer, desarmer).
 //!
 //! Tout garde-fou vit ICI, dans le moteur : la page n'en decide aucun. Les fils d'arriere-plan (le filet apres
-//! `produire` et `demander-signature`) restent des lanceurs, au branchement : le moteur n'a pas de fil.
+//! `dsn-a-deposer` et `demander-signature`) restent des lanceurs, au branchement : le moteur n'a pas de fil.
 
 use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
+use droit::contexte::Contexte;
 use crate::depot_acte::{self, phrase_de, Preuve};
-use crate::etats::{self, erreur, py_str, R};
-use crate::fichiers::vrai;
+use crate::etats;
+use socle::valeur::valeur_en_texte;
+use socle::echec::R;
+use socle::echec::erreur;
+use socle::fichiers::vrai;
 use crate::releve_retours;
-use crate::retours::Echec;
+use socle::echec::Echec;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 5] = ["deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "produire"];
+pub const ROUTES: [&str; 5] = ["deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
 
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "deposer" => deposer(o, ctx, charge),
-        "suivre-depot" => suivre_depot(o, ctx, charge),
+        "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(o, ctx, charge),
         "filet-preparer" => filet_preparer(o, ctx, charge),
-        "produire" => crate::produire_mois::produire(o, ctx, charge),
+        "dsn-a-deposer" => crate::depart::dsn_a_deposer(o, ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
 
 /// `charge["cle"]` : `KeyError` si elle manque.
 fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
-    charge.get(cle).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(cle)))
+    charge.get(cle).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(cle)))
 }
 
 // ------------------------------------------------------------------------ deposer
@@ -52,9 +57,24 @@ fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// `DsnDejaDeposee` -- jamais par defaut.
 fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
-    let fichier = requis(charge, "fichier")?;
+    // LA DSN DU MOIS SE NOMME PAR SON MOIS : elle se fabrique ici, depuis l'engagement valide, et c'est elle qui part
+    // (celle de l'etablissement `etablissement`, le principal sinon).
+    let fabriquee;
+    let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
+        (None, Some(mois)) if etats::est(quoi, "dsn") => {
+            let dsn = crate::depart::fabriquer_dsn(o, ctx, &valeur_en_texte(mois), "interface")?;
+            let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
+            let chemin = match nic {
+                Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
+                None => dsn.fichiers.first(),
+            };
+            fabriquee = json!(chemin.ok_or_else(|| erreur("ErreurOperation", "Aucune DSN de cet etablissement ce mois-ci. Rien n'est parti."))?.to_string_lossy());
+            &fabriquee
+        }
+        _ => requis(charge, "fichier")?,
+    };
     let preuve = Preuve::de_la_charge(charge);
-    let contournement = charge.get("contournement").filter(|c| vrai(c)).map(py_str).unwrap_or_default();
+    let contournement = charge.get("contournement").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let contournement = contournement.trim().to_string();
     let reel = charge.get("reel").is_some_and(vrai);
     let fait = if etats::est(quoi, "dsn") {
@@ -71,16 +91,16 @@ fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Val
 /// `suivre_le_depot` : juste apres un depot REEL, relever ses retours et dire s'il est tranche. Une LECTURE.
 /// `{"fini", "passe", "refuse", "incident"}`. Fini quand chaque embauche du depot est passee ou refusee (DPAE),
 /// quand le bilan du mois est la (DSN).
-fn suivre_depot(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
-    let flux = charge.get("flux").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
-    let mois = charge.get("mois").filter(|m| vrai(m)).map(py_str).unwrap_or_default();
+    let flux = charge.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
+    let mois = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte).unwrap_or_default();
     let dpae = etats::est(quoi, "dpae");
     let (debut, fin) = releve_retours::derniere_journee();
     let releve = if dpae {
-        releve_retours::relever_retours_dpae(ctx, o, debut, fin, false, &flux)
+        releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
     } else {
-        releve_retours::relever_retours(ctx, o, debut, fin, false, "production", None, "")
+        releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
@@ -94,7 +114,7 @@ fn suivre_depot(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
         let mut par_cle: HashMap<(String, String), &Value> = HashMap::new();
         for t in etat.as_array().map(Vec::as_slice).unwrap_or(&[]) {
             if let Some(a) = t.as_array() {
-                par_cle.insert((py_str(&a[0]), py_str(&a[1])), &a[2]);
+                par_cle.insert((valeur_en_texte(&a[0]), valeur_en_texte(&a[1])), &a[2]);
             }
         }
         let vide = json!({});
@@ -102,7 +122,7 @@ fn suivre_depot(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
             .and_then(|l| l.get("detail"))
             .and_then(|d| d.get("embauches"))
             .and_then(Value::as_array)
-            .map(|a| a.iter().map(|e| par_cle.get(&(py_str(e.get("salarie").unwrap_or(&Value::Null)), py_str(e.get("debut").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
+            .map(|a| a.iter().map(|e| par_cle.get(&(valeur_en_texte(e.get("salarie").unwrap_or(&Value::Null)), valeur_en_texte(e.get("debut").unwrap_or(&Value::Null)))).copied().unwrap_or(&vide)).collect())
             .unwrap_or_default();
         passe = !embauches.is_empty() && embauches.iter().all(|x| x.get("passee").is_some_and(vrai));
         refuse = embauches.iter().any(|x| x.get("refusee").is_some_and(vrai));
@@ -131,10 +151,10 @@ fn bilan_repetition(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
         let (debut, fin) = releve_retours::derniere_journee();
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
-            let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(py_str).unwrap_or_default();
-            releve_retours::relever_retours_dpae(ctx, o, debut, fin, false, &flux)
+            let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
+            releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
         } else {
-            releve_retours::relever_retours(ctx, o, debut, fin, false, "production", None, "")
+            releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
@@ -167,8 +187,8 @@ pub(crate) fn filet_preparer(o: &HashMap<String, String>, ctx: &Contexte, charge
 /// l'ouverture, lot I2b : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
 pub(crate) fn filet_preparer_avec(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, mut client: Option<&mut crate::releve_retours::Client>) -> R<Value> {
     let tester = charge.get("tester").map_or(true, vrai);
-    let qui = charge.get("qui").filter(|q| vrai(q)).map(py_str).unwrap_or_else(|| "filet".into());
-    let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(py_str) {
+    let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
+    let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
         Some(m) => m,
         None => releve_retours::iso_de_naif(releve_retours::maintenant_naif())[..16].to_string(),
     };
@@ -183,7 +203,7 @@ pub(crate) fn filet_preparer_avec(o: &HashMap<String, String>, ctx: &Contexte, c
             demande.insert("tests".into(), tests);
             demande.insert(
                 "vivantes".into(),
-                Value::Array(suivies.iter().map(|e| json!(cle_du_test(&py_str(&e["salarie"]), &py_str(&e["debut"])))).collect()),
+                Value::Array(suivies.iter().map(|e| json!(cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])))).collect()),
             );
         }
     }
@@ -240,7 +260,7 @@ fn tester_les_dpae(
     let mut a_tester: Vec<((String, String), Vec<&Value>)> = Vec::new();
     let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
     for e in suivies {
-        let (salarie, debut) = (py_str(&e["salarie"]), py_str(&e["debut"]));
+        let (salarie, debut) = (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"]));
         if !vrai(&e["contrat_parti"]) || debut < aujourdhui {
             continue;
         }
@@ -249,13 +269,13 @@ fn tester_les_dpae(
                 if !t.get("erreur").is_some_and(vrai) {
                     continue; // teste, et rien n'a change
                 }
-                let essai = t.get("essai_le").filter(|x| vrai(x)).map(py_str).and_then(|x| releve_retours::naif_de_iso(&x)).unwrap_or_else(|| releve_retours::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
+                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| releve_retours::naif_de_iso(&x)).unwrap_or_else(|| releve_retours::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
                 if maintenant - essai < REESSAI_SECONDES {
                     continue;
                 }
             }
         }
-        let k = (py_str(&e["mois"]), debut);
+        let k = (valeur_en_texte(&e["mois"]), debut);
         match a_tester.iter_mut().find(|(c, _)| *c == k) {
             Some((_, g)) => g.push(e),
             None => a_tester.push((k, vec![e])),
@@ -296,7 +316,7 @@ fn tester_les_dpae(
         }
         for e in &groupe {
             tests.insert(
-                cle_du_test(&py_str(&e["salarie"]), &py_str(&e["debut"])),
+                cle_du_test(&valeur_en_texte(&e["salarie"]), &valeur_en_texte(&e["debut"])),
                 json!({
                     "empreinte": e["empreinte"], "mois": mois, "fichier": fichier.clone().unwrap_or_default(),
                     "essai_le": maintenant_iso, "erreur": erreur_texte,

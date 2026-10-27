@@ -45,15 +45,14 @@
 //! Le jour de la signature vient de l'appelant (le jour du logiciel, celui de
 //! Paris) : ce module ne lit jamais l'horloge.
 
-use std::io::Read;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::cachet;
-use crate::date::{en_texte, Jour};
-use crate::fichiers::vrai;
-use crate::num::Resultat;
+use engagement::cachet;
+use socle::date::{en_texte, Jour};
+use socle::fichiers::vrai;
+use socle::num::Resultat;
 
 /// Les champs du cadre 5, et rien d'autre.
 pub const CHAMPS_TEXTE: [&str; 10] = [
@@ -100,7 +99,7 @@ const NUM_CONTRAT: &str = "CON_NUMERO_";
 /// « Ce qu'on en conclut », point 1). Un permanent (CDI, CDD de droit commun) n'en a pas : sa fin de contrat est un
 /// signalement (`contrats-base.json`, `cdd.fin_de_contrat.signalement_fctu`), et l'attestation de droit commun qui en
 /// revient n'est pas celle-ci.
-pub fn due(e: &crate::engagement::Engagement) -> Resultat<bool> {
+pub fn due(e: &engagement::Engagement) -> Resultat<bool> {
     if e.nat()?.mensuelle() {
         return Ok(false);
     }
@@ -117,7 +116,7 @@ pub fn due(e: &crate::engagement::Engagement) -> Resultat<bool> {
 /// `net-entreprises-base-connaissances/net-entreprises-fiche3037-attestation-employeur-aed-fctu-20250323.txt`). Le moteur
 /// ne la range pas pour l'envoi : la forme de ce PDF (ses champs, son cadre d'authentification) n'est relevee sur
 /// aucune piece deposee. Le courriel des documents le dit (`envoi::NOTE_SANS_ATTESTATION_FCTU`), sans rien promettre.
-pub fn attestation_fctu(e: &crate::engagement::Engagement) -> Resultat<bool> {
+pub fn attestation_fctu(e: &engagement::Engagement) -> Resultat<bool> {
     let nat = e.nat()?;
     if !nat.signalement_fctu(e.motif_rupture.as_deref().filter(|m| !m.is_empty())) {
         return Ok(false);
@@ -166,7 +165,7 @@ pub struct Cadre5 {
 
 /// `ent[cle]` : la cle doit exister (`KeyError`).
 fn req<'a>(v: &'a Value, cle: &str) -> Resultat<&'a Value> {
-    v.get(cle).ok_or_else(|| crate::fichiers::absent(cle))
+    v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))
 }
 
 impl Cadre5 {
@@ -234,12 +233,12 @@ pub fn jour(t: &str) -> Resultat<Option<Jour>> {
     let n = |a: usize, z: usize| t[a..z].parse::<u32>().unwrap();
     let (j, m, a) = (n(0, 2), n(3, 5), n(6, 10));
     if a < 1 {
-        return Err(crate::date::annee_impossible(a));
+        return Err(socle::date::annee_impossible(a));
     }
     if !(1..=12).contains(&m) {
-        return Err(crate::date::mois_impossible(m));
+        return Err(socle::date::mois_impossible(m));
     }
-    Jour::nouveau(a as i32, m, j).map(Some).ok_or_else(|| crate::date::jour_impossible(a, m, j))
+    Jour::nouveau(a as i32, m, j).map(Some).ok_or_else(|| socle::date::jour_impossible(a, m, j))
 }
 
 /// Une colonne du cadre 4 telle qu'IMPRIMEE sur l'attestation : la periode, le numero du contrat (repris de la colonne
@@ -301,7 +300,7 @@ pub struct PaieAer {
 
 impl PaieAer {
     /// La periode d'une paie : son contrat (`e.debut`, `e.fin`) borne au mois de la paie.
-    pub fn du_mois(e: &crate::engagement::Engagement) -> Resultat<PaieAer> {
+    pub fn du_mois(e: &engagement::Engagement) -> Resultat<PaieAer> {
         let (d, f) = (e.debut_mois()?, e.fin_mois()?);
         let fin = e.fin.ok_or_else(|| format!("contrat {} sans fin", e.numero.clone().unwrap_or_default()))?;
         Ok(PaieAer {
@@ -482,146 +481,6 @@ pub fn remplir(donnees: &[u8], valeurs: &Map<String, Value>, images: &[Value]) -
     let description = json!({"format": fabrique_pdf::FORMAT, "champs": valeurs, "images": images});
     let texte = serde_json::to_string(&description).map_err(|e| Echec::Autre(e.to_string()))?;
     fabrique(fabrique_pdf::formulaire::remplir(donnees, &texte))
-}
-
-// ------------------------------------------------------------ le service `paie aer*`
-
-fn lire_demande(entree: &str) -> Resultat<Value> {
-    serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))
-}
-
-fn chemin<'a>(d: &'a Value, cle: &str) -> Option<&'a str> {
-    d.get(cle).and_then(Value::as_str)
-}
-
-fn pdf_de(d: &Value) -> Resultat<Vec<u8>> {
-    let f = chemin(d, "fichier").ok_or("demande illisible : il faut `fichier`")?;
-    let mut octets = Vec::new();
-    std::fs::File::open(f)
-        .and_then(|mut h| h.read_to_end(&mut octets))
-        .map_err(|e| format!("{} illisible ({})", f, e))?;
-    Ok(octets)
-}
-
-fn paies_de(v: &Value) -> Resultat<Vec<PaieAer>> {
-    let mut out = Vec::new();
-    for p in v.as_array().ok_or("demande illisible : `paies` doit etre une liste")? {
-        let jour = |c: &str| Jour::lire(&en_texte(p.get(c).unwrap_or(&Value::Null)));
-        let entier = |c: &str| p.get(c).and_then(Value::as_i64).map(i128::from).ok_or(format!("demande illisible : `{}` doit etre un entier", c));
-        let numero = p.get("numero").map(en_texte).unwrap_or_default();
-        out.push(PaieAer { numero, debut: jour("debut")?, fin: jour("fin")?, cachets: entier("cachets")?, heures: entier("heures")? });
-    }
-    Ok(out)
-}
-
-fn ok() -> Map<String, Value> {
-    let mut m = Map::new();
-    m.insert("ok".into(), Value::Bool(true));
-    m
-}
-
-/// La reponse d'un echec : les ecarts sont `{"ok": true, "ecarts": [...]}` (le
-/// Python releve `AttestationInexacte`), un refus de la fabrique porte sa
-/// `classe`, le reste est un refus ordinaire.
-fn reponse(r: R<Map<String, Value>>) -> Resultat<Value> {
-    let mut m = ok();
-    match r {
-        Ok(corps) => m.extend(corps),
-        Err(Echec::Ecarts(e)) => {
-            m.insert("ecarts".into(), Value::Array(e.into_iter().map(Value::String).collect()));
-        }
-        Err(Echec::Fabrique(e)) => {
-            m.insert("ok".into(), Value::Bool(false));
-            m.insert("erreur".into(), Value::String(e));
-            m.insert("classe".into(), Value::String("FabriqueRefus".into()));
-        }
-        Err(Echec::Autre(e)) => return Err(e),
-    }
-    Ok(Value::Object(m))
-}
-
-/// `aer` : l'attestation signee. Demande : `fichier` (le PDF), `sortie` (le PDF
-/// signe y est ecrit), `entreprise`, `aujourdhui`, `paies` (null : on signe sans
-/// regarder, sinon `[{"numero", "debut", "fin", "cachets", "heures"}]`, une par periode), `signature`,
-/// `cachet_fichier`, `forcer`. Reponse : `{"chemin"}`, ou `{"ecarts"}` si rien
-/// n'est signe.
-fn authentifier_service(d: &Value) -> Resultat<Value> {
-    let donnees = pdf_de(d)?;
-    let sortie = chemin(d, "sortie").ok_or("demande illisible : il faut `sortie`")?;
-    let ent = d.get("entreprise").ok_or("demande illisible : il faut `entreprise`")?;
-    let aujourdhui = Jour::lire(&en_texte(d.get("aujourdhui").ok_or("demande illisible : il faut `aujourdhui`")?))?;
-    let paies = d.get("paies").filter(|v| !v.is_null()).map(paies_de).transpose()?;
-    let a = Authentification {
-        ent,
-        aujourdhui,
-        signature: chemin(d, "signature"),
-        paies: paies.as_deref(),
-        forcer: d.get("forcer").and_then(Value::as_bool).unwrap_or(false),
-        cachet_fichier: chemin(d, "cachet_fichier"),
-    };
-    reponse(authentifier(&donnees, &a).and_then(|octets| {
-        std::fs::write(sortie, &octets).map_err(|e| Echec::Autre(format!("ecriture impossible de {} : {}", sortie, e)))?;
-        let mut m = Map::new();
-        m.insert("chemin".into(), Value::String(sortie.to_string()));
-        Ok(m)
-    }))
-}
-
-/// `aer-verifier` : les ecarts entre l'attestation et les paies.
-/// Reponse : `{"ecarts": [...]}` (vide : concordance).
-fn verifier_service(d: &Value) -> Resultat<Value> {
-    let donnees = pdf_de(d)?;
-    let paies = paies_de(d.get("paies").ok_or("demande illisible : il faut `paies`")?)?;
-    reponse(verifier(&donnees, &paies).map(|e| {
-        let mut m = Map::new();
-        m.insert("ecarts".into(), Value::Array(e.into_iter().map(Value::String).collect()));
-        m
-    }))
-}
-
-/// `aer-quantites` : les quantites imprimees, `[{"debut", "fin", "numero",
-/// "cachets", "heures"}]` ; une date absente est null.
-fn quantites_service(d: &Value) -> Resultat<Value> {
-    let donnees = pdf_de(d)?;
-    reponse(champs(&donnees).and_then(|c| lire_quantites(&c).map_err(Echec::from)).map(|lues| {
-        let jour = |j: Option<Jour>| j.map(|j| Value::String(j.iso())).unwrap_or(Value::Null);
-        let mut m = Map::new();
-        m.insert(
-            "quantites".into(),
-            Value::Array(
-                lues.into_iter()
-                    .map(|l| {
-                        json!({"debut": jour(l.debut), "fin": jour(l.fin), "numero": l.numero,
-                               "cachets": l.cachets.to_string(), "heures": l.heures.to_string()})
-                    })
-                    .collect(),
-            ),
-        );
-        m
-    }))
-}
-
-/// `aer-cachet` : le cachet dessine (SVG) depuis la fiche `entreprise`, ou
-/// `{"svg": null}` s'il n'y a rien a dessiner. `aujourdhui` : facultatif.
-fn cachet_service(d: &Value) -> Resultat<Value> {
-    let ent = d.get("entreprise").ok_or("demande illisible : il faut `entreprise`")?;
-    let jour = d.get("aujourdhui").filter(|v| !v.is_null()).map(|v| Jour::lire(&en_texte(v))).transpose()?;
-    let mut m = ok();
-    m.insert("svg".into(), cachet::svg(ent, jour.as_ref()).map(Value::String).unwrap_or(Value::Null));
-    Ok(Value::Object(m))
-}
-
-/// Les commandes `paie aer`, `aer-verifier`, `aer-quantites`, `aer-cachet` :
-/// la demande en JSON sur l'entree standard. None : commande inconnue.
-pub fn service(quoi: &str, entree: &str) -> Option<Resultat<Value>> {
-    let f: fn(&Value) -> Resultat<Value> = match quoi {
-        "aer" => authentifier_service,
-        "aer-verifier" => verifier_service,
-        "aer-quantites" => quantites_service,
-        "aer-cachet" => cachet_service,
-        _ => return None,
-    };
-    Some(lire_demande(entree).and_then(|d| f(&d)))
 }
 
 #[cfg(test)]

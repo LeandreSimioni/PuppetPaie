@@ -1576,16 +1576,13 @@ document.getElementById("ajouter-engagement").onclick = () => {
   rafraichirApercu();
 };
 
-/* LES CONTRATS EN COURS SE POSENT D'EUX-MÊMES. Un CDDU signé en octobre
-   pour une tournée jusqu'en décembre est UN contrat, déclaré une fois (DPAE,
-   numéro) ; chaque mois n'en porte que les cachets joués. Le moteur sait
-   lesquels courent encore (`contrats_en_cours`, lu dans les saisies des mois
-   précédents). Ce n'était qu'un bouton, « + reprendre un contrat en cours » :
-   l'éditeur, 01/10/2026 — « il faut le reprendre, il est annoncé et pas
-   fermé, la reprise n'est pas une option ». Le mois ouvert les montre donc
+/* LES CONTRATS EN COURS SE POSENT D'EUX-MÊMES. Un engagement commencé un
+   mois précédent est déjà dans le mois (le moteur le montre, `deja_repris`) ;
+   ce que le moteur rend en plus (`contrats-en-cours`), ce sont les contrats
+   repris d'un autre logiciel qui courent encore. Le mois ouvert les montre
    tout de suite, préremplis et verrouillés ; il reste à poser les jours, ou
    rien si aucun cachet ce mois-ci (la DSN porte le contrat, sans bulletin).
-   Un mois fermé ne reçoit rien. */
+   */
 let CONTRATS_EN_COURS = [];
 
 async function poserContratsEnCours(mois) {
@@ -1594,7 +1591,6 @@ async function poserContratsEnCours(mois) {
     CONTRATS_EN_COURS = r.contrats || [];
   } catch (e) { CONTRATS_EN_COURS = []; return; }
   if (MOIS_AFFICHE !== mois) return;
-  if (!!MOIS_FERME && MOIS_FORCE !== mois) return;
   const restants = CONTRATS_EN_COURS.filter((c) => !c.deja_repris);
   if (!restants.length) return;
   const cible = document.getElementById("engagements");

@@ -24,10 +24,14 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::contexte::Contexte;
-use crate::etats::{self, erreur, est, eq_py, get, getd, items, joindre, nom_type, objet_vide, ou, py_str, DPAE, SIGNATURE};
-use crate::fichiers::{dossier_du_code, vrai};
-use crate::retours::Echec;
+use droit::contexte::Contexte;
+use crate::etats::{self, est, get, getd, items, joindre, objet_vide, ou, DPAE, SIGNATURE};
+use socle::valeur::valeurs_egales;
+use socle::valeur::valeur_en_texte;
+use socle::valeur::nom_type;
+use socle::echec::erreur;
+use socle::fichiers::{dossier_du_code, vrai};
+use socle::echec::Echec;
 use crate::routes_accueil::{identite, mois_connus};
 use crate::routes_mois::Moteur;
 
@@ -103,13 +107,13 @@ fn longueur(v: &Value) -> R<usize> {
         Value::Array(a) => Ok(a.len()),
         Value::Object(o) => Ok(o.len()),
         Value::String(s) => Ok(s.chars().count()),
-        autre => Err(erreur("TypeError", crate::fichiers::attendu("un texte ou une liste", nom_type(autre)))),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte ou une liste", nom_type(autre)))),
     }
 }
 
 /// `v.get(...)` sur un dictionnaire ; sinon `AttributeError`.
 fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
-    v.as_object().ok_or_else(|| erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v))))
+    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
 }
 
 fn valeur<'a>(m: &'a Map<String, Value>, cle: &str) -> &'a Value {
@@ -133,7 +137,7 @@ fn exercices_clos(racine: &Path) -> R<Map<String, Value>> {
     let v = lire_json_ou_vide(&racine.join("config").join("exercices.json"))?;
     match v {
         Value::Object(o) => Ok(o.into_iter().filter(|(k, _)| !k.starts_with('_')).collect()),
-        autre => Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&autre)))),
+        autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&autre)))),
     }
 }
 
@@ -167,7 +171,7 @@ fn etat_exercices(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
             Some(p) => {
                 json!({
                     "fichier": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                    "ecrit": crate::produire_mois::ecrit_le(&ctx.racine, p),
+                    "ecrit": crate::depart::ecrit_le(&ctx.racine, p),
                 })
             }
             None => Value::Null,
@@ -210,7 +214,7 @@ fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
             }
             let noms: Vec<Value> = [get(&d, "nom")?, get(&d, "prenom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
             let texte = joindre(" ", &noms)?;
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, py_str(get(&d, "siret")?)) } else { String::new() };
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(get(&d, "siret")?)) } else { String::new() };
             Ok(json!({"texte": phrase, "manque": manque, "ici": false, "ou": "fiche Entreprise › Qui les organismes contactent"}))
         }
         "urssaf" => {
@@ -224,7 +228,7 @@ fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
             }
             let noms: Vec<Value> = [get(cfg, "prenom")?, get(cfg, "nom")?].into_iter().filter(|x| vrai(x)).cloned().collect();
             let texte = joindre(" ", &noms)?;
-            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, py_str(siret)) } else { String::new() };
+            let phrase = if manque.is_empty() { format!("compte de {}, SIRET {}", texte, valeur_en_texte(siret)) } else { String::new() };
             Ok(json!({
                 "texte": phrase, "manque": manque, "ici": true,
                 "nom": ou_texte(get(cfg, "nom")?), "prenom": ou_texte(get(cfg, "prenom")?),
@@ -308,9 +312,9 @@ fn distincts(engagements: &[&Value], cle: &str) -> R<usize> {
         }
         vus.insert(match v {
             Value::String(t) => format!("s{}", t),
-            Value::Array(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("list"))),
-            Value::Object(_) => return Err(erreur("TypeError", crate::fichiers::pas_une_cle("dict"))),
-            autre => format!("n{:?}", etats::nombre(autre).unwrap_or(0.0)),
+            Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+            Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
+            autre => format!("n{:?}", socle::valeur::nombre(autre).unwrap_or(0.0)),
         });
     }
     Ok(vus.len())
@@ -335,7 +339,7 @@ fn etat_importation(racine: &Path) -> R<Value> {
     let p = racine.join("historique").join("engagements.json");
     let mut h = lire_json_ou_vide(&p)?;
     let Value::Object(m) = &mut h else {
-        return Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(&h))));
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&h))));
     };
     m.entry("engagements").or_insert_with(|| json!([]));
     let brut = ou(valeur(m, "engagements"), &etats::LISTE_VIDE);
@@ -349,7 +353,7 @@ fn etat_importation(racine: &Path) -> R<Value> {
         for e in &engagements {
             let x = get(e, cle)?;
             if vrai(x) {
-                v.push(py_str(x));
+                v.push(valeur_en_texte(x));
             }
         }
         v.sort();
@@ -529,7 +533,7 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
     let o = objet(&d)?;
     let version = o.get("version").cloned().unwrap_or_else(|| json!(""));
     let Value::String(v) = &version else {
-        return Err(erreur("TypeError", format!("prete.json : 'version' : {}", crate::fichiers::attendu("un texte", nom_type(&version)))));
+        return Err(erreur("TypeError", format!("prete.json : 'version' : {}", socle::fichiers::attendu("un texte", nom_type(&version)))));
     };
     if !dossier.join(v).join("logiciel").join("donnees").is_dir() {
         return Ok(None);
@@ -537,14 +541,14 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
     Ok(Some(d))
 }
 
-/// `maj.mois_saisis_non_deposes` : les mois dont le fichier de paie porte au
+/// `maj.mois_saisis_non_deposes` : les mois qui montrent au
 /// moins un engagement et dont aucune DSN reelle n'est acceptee (ou dont la
 /// derniere est refusee).
 pub(crate) fn mois_saisis_non_deposes(o: &HashMap<String, String>, ctx: &Contexte) -> R<Vec<Value>> {
     let mut m = Moteur::nouveau(o, ctx);
     let mut out = Vec::new();
     for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
-        let Some(d) = lire_json_tolerant(&ctx.racine.join("paies").join(format!("{}.json", mois)))? else {
+        let Some(d) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? else {
             continue;
         };
         if !d.is_object() || !vrai(get(&d, "engagements")?) {
@@ -615,14 +619,14 @@ fn piece_existe(racine: &Path, mois: &Value, fichier: &Value) -> R<bool> {
     if !vrai(mois) || !vrai(fichier) {
         return Ok(false);
     }
-    let nom = py_str(fichier);
+    let nom = valeur_en_texte(fichier);
     if ["/", "\\", ".."].iter().any(|x| nom.contains(x)) {
         return Ok(false);
     }
     let Value::String(f) = fichier else {
-        return Err(erreur("TypeError", format!("'fichier' : {}", crate::fichiers::attendu("un texte", nom_type(fichier)))));
+        return Err(erreur("TypeError", format!("'fichier' : {}", socle::fichiers::attendu("un texte", nom_type(fichier)))));
     };
-    let base = racine.join("sorties").join(py_str(mois));
+    let base = racine.join("sorties").join(valeur_en_texte(mois));
     Ok([base.join("envoi").join(f), base.join(f)].iter().any(|c| c.is_file()))
 }
 
@@ -632,14 +636,14 @@ fn piece(racine: &Path, quoi: &str, quand: &Value, mois: &Value, fichier: &Value
 
 /// `(c.get("salarie"), c.get("debut")) == (salarie, debut)`.
 fn est_cette_paie(c: &Value, salarie: &Value, debut: &Value) -> R<bool> {
-    Ok(eq_py(get(c, "salarie")?, salarie) && eq_py(get(c, "debut")?, debut))
+    Ok(valeurs_egales(get(c, "salarie")?, salarie) && valeurs_egales(get(c, "debut")?, debut))
 }
 
 /// `pieces_parties` : les FICHIERS partis pour une paie -- la DPAE deposee, le
 /// contrat envoye a la signature, le contrat revenu signe et la preuve de la
 /// signature. Lu au journal ; rien ne part.
 fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = |k: &str| charge.get(k).ok_or_else(|| erreur("KeyError", crate::fichiers::absent(k)));
+    let cle = |k: &str| charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
     let salarie = cle("salarie")?;
     let debut = cle("debut")?;
     let racine = ctx.racine.as_path();
@@ -674,9 +678,9 @@ fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
                 continue;
             }
             let quoi = if est(get(&c, "acte")?, "avenant") {
-                format!("Avenant n° {} envoyé à la signature", py_str(get(&c, "avenant")?))
+                format!("Avenant n° {} envoyé à la signature", valeur_en_texte(get(&c, "avenant")?))
             } else if est(get(&c, "acte")?, "remplace") {
-                format!("Contrat qui annule et remplace le n° {}, envoyé à la signature", py_str(get(&c, "remplace")?))
+                format!("Contrat qui annule et remplace le n° {}, envoyé à la signature", valeur_en_texte(get(&c, "remplace")?))
             } else {
                 "Contrat envoyé à la signature".to_string()
             };
@@ -691,7 +695,7 @@ fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
         }
         if vrai(get(d, "fichier_signe")?) {
             let quoi = if est(get(d, "acte")?, "avenant") {
-                format!("Avenant n° {} signé, contresigné", py_str(get(d, "avenant")?))
+                format!("Avenant n° {} signé, contresigné", valeur_en_texte(get(d, "avenant")?))
             } else {
                 "Contrat signé, contresigné".to_string()
             };
@@ -702,6 +706,6 @@ fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
         }
     }
     // `contrat.sort(key=lambda x: x["quand"] or "")` : stable.
-    contrat.sort_by_key(|x| if vrai(&x["quand"]) { py_str(&x["quand"]) } else { String::new() });
+    contrat.sort_by_key(|x| if vrai(&x["quand"]) { valeur_en_texte(&x["quand"]) } else { String::new() });
     Ok(json!({"dpae": dpae, "contrat": contrat}))
 }

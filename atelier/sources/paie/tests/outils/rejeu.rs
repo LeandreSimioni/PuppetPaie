@@ -6,7 +6,7 @@
 //! l'oracle `tests/donnees/scenarios/<nom>/sorties.json` (reecrit par `PUPPETPAIE_REECRIRE_ORACLES=1`).
 //!
 //! CE QUE LE RELEVE GARDE, fichier par fichier, sous la compagnie :
-//! - les paies de chaque mois saisi, CALCULEES au dernier jour du scenario (`calcul_du_mois::calculer_suivi`, rien
+//! - les paies de chaque mois saisi, CALCULEES au dernier jour du scenario (`engagement::charger`, rien
 //!   d'ecrit) : brut, net, cout, chaque ligne de cotisation, telles que le moteur les rend ;
 //! - chaque `.dsn` (les mensuelles, les signalements), ligne par ligne ;
 //! - chaque `.txt`, `.csv` et `.eml` (la DPAE a largeur fixe, les recapitulatifs, les traces de depot), ligne par ligne ;
@@ -16,10 +16,10 @@
 //! - de tout autre fichier (une archive), son empreinte.
 //!
 //! RIEN N'Y EST ECARTE POUR CAUSE DE HASARD : le rejeu est deterministe (le temps du moteur est fige a l'instant de
-//! chaque geste et les aleas suivent une suite fixe, `paie/src/temps.rs`), deux rejeux ecrivent les memes octets. Ce
+//! chaque geste et les aleas suivent une suite fixe, `socle/src/temps.rs`), deux rejeux ecrivent les memes octets. Ce
 //! qui est ecarte, et pourquoi :
 //! - le chemin du dossier de test, s'il apparait (un texte qui cite un chemin) : remplace par `<racine>` ;
-//! - les caches que la fenetre refait (`*.etat.json`, `*.calcul.json`) et les fichiers caches (`.ouverture.json`, la
+//! - le cache que la fenetre refait (`ouverture.etat.json`) et les fichiers caches (`.ouverture.json`, la
 //!   trace du dernier passage de la veille, `.origine/`) : ce ne sont pas des sorties ;
 //! - les copies d'avant une ecriture (`avant/`) : seulement leur nom.
 
@@ -93,7 +93,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
     let mut par_fichier = Map::new();
     let mut avant = Vec::new();
     for rel in fichiers(racine) {
-        if rel.ends_with(".etat.json") || rel.ends_with(".calcul.json") {
+        if rel == "ouverture.etat.json" {
             continue;
         }
         if rel.contains("/avant/") || rel.starts_with("avant/") {
@@ -108,21 +108,17 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
             // Les fichiers a largeur fixe sont en latin-1 : un octet, un caractere.
             "dsn" | "txt" | "csv" | "eml" => lignes(&octets.iter().map(|&o| o as char).collect::<String>(), &r),
             "pdf" => lignes(&paie::avenant::texte_du_pdf(&p).unwrap_or_else(|m| panic!("{} : {}", rel, m)), &r),
-            _ => json!({"empreinte": paie::fichiers::sha256_hex(&octets)}),
+            _ => json!({"empreinte": socle::fichiers::sha256_hex(&octets)}),
         };
         par_fichier.insert(rel, v);
     }
     // Les paies de chaque mois saisi, calculees au dernier jour du scenario.
     let mut paies = Map::new();
-    let mut o = std::collections::HashMap::new();
-    o.insert("racine".to_string(), r.clone());
-    o.insert("date".to_string(), jour.to_string());
-    for rel in fichiers(&racine.join("paies")) {
-        let Some(mois) = rel.strip_suffix(".json").filter(|m| m.len() == 7) else { continue };
-        let saisie = racine.join("paies").join(&rel);
-        let calcul = paie::calcul_du_mois::calculer_suivi(&o, &json!({"fichier": saisie.to_string_lossy()}))
-            .map(|(v, _)| v)
-            .unwrap_or_else(|m| json!({"refus": m}));
+    let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
+    for mois in engagement::stock::mois_saisis(&racine).unwrap() {
+        let calcul = engagement::charger(&ctx, &mois)
+            .and_then(|s| s.paies.iter().map(|p| p.canon(&ctx)).collect::<Result<Vec<_>, _>>())
+            .map_or_else(|m| json!({"refus": m}), |v| json!({"paies": v}));
         paies.insert(mois.to_string(), masquer(calcul, &r));
     }
     json!({"paies": paies, "fichiers": par_fichier, "copies_avant": avant})
@@ -132,7 +128,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
 /// sorties, et les compare a l'oracle `scenarios/<nom>/sorties.json`. Rend le releve.
 pub fn rejouer_et_comparer(nom: &str, dossier: &Path) -> Value {
     let (r, racine) = rejouer(nom, dossier);
-    let jour = paie::paris::iso_secondes(r.fin.expect("un scenario sans geste"))[..10].to_string();
+    let jour = socle::paris::iso_secondes(r.fin.expect("un scenario sans geste"))[..10].to_string();
     let releve = sorties(&racine, &jour);
     super::oracle(&format!("scenarios/{}/sorties.json", nom), "", &releve);
     releve

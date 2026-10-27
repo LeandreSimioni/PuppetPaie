@@ -1,4 +1,4 @@
-//! Le garde-fou reseau des essais (21/10/2026, `src/garde_reseau.rs`) tient pour TOUTE sortie du moteur, et pour tout
+//! Le garde-fou reseau des essais (`socle/src/garde_reseau.rs`) tient pour TOUTE sortie du moteur, et pour tout
 //! `paie` qu'un essai lance : un essai ne joint jamais un serveur reel (celui de l'editeur, net-entreprises, l'Urssaf,
 //! Google, la DILA, le depot des versions, une boite courriel). Cargo pose la variable (`.cargo/config.toml`, `[env]`) ;
 //! ces essais verifient, dans les sources, que rien ne la contourne :
@@ -22,8 +22,9 @@ fn fichiers_rs(dossier: &Path, o: &mut Vec<PathBuf>) {
     }
 }
 
-fn manifeste() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+/// L'espace `atelier/sources/` : le socle, le droit et le moteur.
+fn espace() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")
 }
 
 /// Ce qui ouvre une connexion (ou un navigateur) vers une adresse.
@@ -31,19 +32,21 @@ const SORTIES: [&str; 8] = ["ureq::Agent", "ureq::get(", "ureq::post(", "TcpStre
 
 /// Les fichiers qui n'ouvrent de connexion que vers la machine elle-meme.
 const LOCAUX: [(&str, &str); 2] = [
-    ("src/interface/instance.rs", "le verrou d'une installation : la fenetre deja ouverte, sur 127.0.0.1"),
-    ("src/google_autorisation.rs", "reveille son propre ecouteur local (127.0.0.1) ; l'echange de jetons passe par `transport`"),
+    ("paie/src/interface/instance.rs", "le verrou d'une installation : la fenetre deja ouverte, sur 127.0.0.1"),
+    ("paie/src/google_autorisation.rs", "reveille son propre ecouteur local (127.0.0.1) ; l'echange de jetons passe par `transport`"),
 ];
 
 #[test]
 fn chaque_sortie_du_moteur_passe_par_le_garde_fou() {
-    let racine = manifeste();
+    let racine = espace();
     let mut fichiers = Vec::new();
-    fichiers_rs(&racine.join("src"), &mut fichiers);
+    for c in ["socle", "droit", "engagement", "paie"] {
+        fichiers_rs(&racine.join(c).join("src"), &mut fichiers);
+    }
     let mut fautifs = Vec::new();
     for f in fichiers {
         let rel = f.strip_prefix(&racine).unwrap().to_string_lossy().replace('\\', "/");
-        if rel == "src/garde_reseau.rs" || LOCAUX.iter().any(|(l, _)| *l == rel) {
+        if rel == "socle/src/garde_reseau.rs" || LOCAUX.iter().any(|(l, _)| *l == rel) {
             continue;
         }
         let texte = std::fs::read_to_string(&f).unwrap();
@@ -62,9 +65,13 @@ fn chaque_sortie_du_moteur_passe_par_le_garde_fou() {
 
 #[test]
 fn chaque_environnement_vide_d_un_essai_repose_le_garde_fou() {
-    let racine = manifeste();
+    let racine = espace();
     let mut fichiers = Vec::new();
-    fichiers_rs(&racine.join("tests"), &mut fichiers);
+    for c in ["socle", "droit", "engagement", "paie"] {
+        if racine.join(c).join("tests").is_dir() {
+            fichiers_rs(&racine.join(c).join("tests"), &mut fichiers);
+        }
+    }
     let mut fautifs = Vec::new();
     for f in fichiers {
         if f.ends_with("fichiers/garde_reseau.rs") {
@@ -87,5 +94,5 @@ fn chaque_environnement_vide_d_un_essai_repose_le_garde_fou() {
 /// Cargo pose la variable pour cet essai, et donc pour tout `paie` qu'il lance sans vider l'environnement.
 #[test]
 fn cargo_pose_le_garde_fou() {
-    assert!(std::env::var_os(paie::garde_reseau::VARIABLE).is_some(), "`.cargo/config.toml` du moteur doit poser {}", paie::garde_reseau::VARIABLE);
+    assert!(std::env::var_os(socle::garde_reseau::VARIABLE).is_some(), "`.cargo/config.toml` du moteur doit poser {}", socle::garde_reseau::VARIABLE);
 }

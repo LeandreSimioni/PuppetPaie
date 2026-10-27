@@ -1,10 +1,9 @@
-//! `paie route` : les routes du mois, sans calcul de paie (`etat-par-paie`, `etat-du-mois`, `embauches-a-declarer`,
+//! `paie route` : les routes du mois, sans calcul de paie (`etat-par-engagement`, `etat-du-mois`, `embauches-a-declarer`,
 //! `mois-a-ouvrir`, `bilan-du-mois`, `fichiers-deposables`). Sur `fictive-3090-petite` (config, aout 2026), avec le journal
 //! des depots que chaque test ecrit ; le contexte est au 03/10/2026, le jour du test varie.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire, refus, reussi, route_avec, route_en_processus};
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
 
@@ -19,12 +18,12 @@ fn journal(c: &Path, lignes: &[Value]) {
 }
 
 fn saisie(c: &Path, mois: &str) -> PathBuf {
-    c.join("paies").join(format!("{}.json", mois))
+    engagement::stock::chemin(c, mois)
 }
 
 /// Un mois sans aucun engagement : saisi, mais sans paie.
 fn mois_vide(c: &Path, mois: &str) {
-    ecrire(c, &format!("paies/{}.json", mois), &json!({"mois": mois, "engagements": []}));
+    crate::outils::poser_saisie(c, &mois, &json!({"mois": mois, "engagements": []}));
 }
 
 fn dossier_sorties(c: &Path, mois: &str) -> PathBuf {
@@ -64,12 +63,12 @@ fn dsn_reelle(mois: &str, verdict: Option<&str>, detail: Value) -> Value {
 const CLES: [&str; 3] = ["BRIOCHE", "SERAPHIN", "LEMERCIER"];
 
 #[test]
-fn etat_par_paie_une_ligne_par_engagement_avec_le_brut_du_calcul_stocke() {
-    let c = &compagnie("etat-par-paie");
+fn etat_par_engagement_une_ligne_par_engagement_avec_le_brut_de_sa_paie_validee() {
+    let c = &compagnie("etat-par-engagement");
     journal(c, &[dpae_declaree(&CLES, json!([{"nature": "11", "verdict": "OK", "anomalies": []}]))]);
-    let r = rendu(c, "etat-par-paie", json!({"mois": MOIS}), "2026-10-03");
+    let r = rendu(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-10-03");
     assert_eq!(r["mois"], MOIS);
-    let paies = r["paies"].as_array().unwrap();
+    let paies = r["engagements"].as_array().unwrap();
     assert_eq!(paies.len(), 3);
     let p = &paies[0];
     assert_eq!(p["salarie"], "BRIOCHE");
@@ -85,25 +84,23 @@ fn etat_par_paie_une_ligne_par_engagement_avec_le_brut_du_calcul_stocke() {
     assert_eq!(p["etats"]["signature"]["maille"], "paie");
     assert_eq!(p["etats"]["documents"], json!({"fait": null, "maille": "salarie", "caduc": false, "pourquoi": ""}));
     assert_eq!(p["etats"]["dsn"], json!({"fait": null, "maille": "mois"}));
-    assert_eq!(p["valide"], Value::Null);
-    // Le brut est celui du calcul de la saisie, a deux decimales.
-    let o = HashMap::from([("racine".to_string(), c.to_string_lossy().into_owned()), ("date".to_string(), "2026-10-03".to_string())]);
-    let (direct, _) = paie::calcul_du_mois::calculer_suivi(&o, &json!({"fichier": saisie(c, MOIS).to_str().unwrap()})).unwrap();
+    assert!(p["valide"].is_string(), "la fictive est validee : {}", p["valide"]);
+    // Le brut est celui de la paie validee, a deux decimales.
+    let ctx = droit::contexte::Contexte::nouveau(c, Some(socle::date::Jour::lire("2026-10-03").unwrap())).unwrap();
+    let (_, direct) = engagement::etats::validees_du_mois(&ctx, MOIS).unwrap().unwrap();
     let nombre = |v: &Value| v.as_str().unwrap().parse::<f64>().unwrap();
     for (i, p) in paies.iter().enumerate() {
-        assert_eq!(nombre(&p["brut"]), nombre(&direct["paies"][i]["brut"]), "paie {}", i);
+        assert_eq!(nombre(&p["brut"]), direct[i].brut.to_string().parse::<f64>().unwrap(), "paie {}", i);
         assert_eq!(p["brut"].as_str().unwrap().split('.').nth(1).unwrap().len(), 2, "deux decimales");
     }
     assert_eq!(paies[0]["brut"], "620.00");
-    // Le calcul est ecrit a cote de la saisie ; la saisie n'a pas bouge.
-    assert!(c.join("paies/2026-08.calcul.json").exists());
-    assert_eq!(rendu(c, "etat-par-paie", json!({"mois": MOIS}), "2026-10-03"), r);
+    assert_eq!(rendu(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-10-03"), r);
 }
 
 #[test]
 fn un_mois_sans_saisie_n_a_pas_de_paie_et_le_bilan_n_a_rien_a_dire() {
     let c = &compagnie("sans-saisie");
-    assert_eq!(rendu(c, "etat-par-paie", json!({"mois": "2031-01"}), "2026-10-03"), json!({"mois": "2031-01", "paies": []}));
+    assert_eq!(rendu(c, "etat-par-engagement", json!({"mois": "2031-01"}), "2026-10-03"), json!({"mois": "2031-01", "engagements": []}));
     let b = rendu(c, "bilan-du-mois", json!({"mois": "2031-01"}), "2026-10-03");
     let rien = json!({"couleur": "bien", "courte": "rien ce mois-ci", "vide": true, "phrase": "aucune paie ce mois-ci : rien à faire à cette étape"});
     assert_eq!(b["dpae"], rien);
@@ -158,9 +155,9 @@ fn une_dsn_reelle_ferme_le_mois_et_une_paie_modifiee_la_rouvre_tant_que_la_norme
     let c = &compagnie("annule-remplace");
     // La paie du mois n'a pas bouge depuis la DSN : l'empreinte notee est la sienne.
     journal(c, &[dsn_reelle(MOIS, Some("OK"), json!({"type": "01", "ordre": "1"}))]);
-    let r = rendu(c, "etat-par-paie", json!({"mois": MOIS}), "2026-09-10");
-    for p in r["paies"].as_array().unwrap() {
-        assert_eq!(p["valide"], "2026-09-05T10:00:00", "un mois parti se lit valide au jour du depot");
+    let r = rendu(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-09-10");
+    for p in r["engagements"].as_array().unwrap() {
+        assert!(p["valide"].is_string(), "{}", p);
         assert_eq!(p["etats"]["dsn"]["fait"], "2026-09-05T10:00:00");
     }
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-09-10");
@@ -174,11 +171,12 @@ fn une_dsn_reelle_ferme_le_mois_et_une_paie_modifiee_la_rouvre_tant_que_la_norme
         b["dsn"]["remplacement"]["phrase"],
         "Une modification reste possible : la DSN refaite partira en annule-et-remplace (ordre 2), jusqu'au 14/09/2026 à minuit"
     );
-    // Une paie reouverte a la main n'est plus lue validee.
-    modifier_saisie(c, |v| v["engagements"][1]["rouverte"] = json!("2026-09-06T10:00:00"));
-    let r = rendu(c, "etat-par-paie", json!({"mois": MOIS}), "2026-09-10");
-    assert_eq!(r["paies"][1]["valide"], Value::Null);
-    assert_eq!(r["paies"][0]["valide"], "2026-09-05T10:00:00");
+    // Un engagement remis en saisie (« Modifier… ») n'est plus valide ; l'autre l'est toujours.
+    let e = r["engagements"][1].clone();
+    rendu(c, "valider-engagement", json!({"mois": MOIS, "salarie": e["salarie"], "debut": e["debut"], "valide": false}), "2026-09-10");
+    let r = rendu(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-09-10");
+    assert_eq!(r["engagements"][1]["valide"], Value::Null);
+    assert!(r["engagements"][0]["valide"].is_string());
     // La paie a change depuis la DSN : annule-et-remplace a envoyer, puis plus admis.
     journal(c, &[dsn_reelle(MOIS, Some("OK"), json!({"type": "01", "ordre": 3, "empreinte_saisie": "0000000000000000"}))]);
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-09-10");
@@ -203,8 +201,9 @@ fn une_dsn_reelle_ferme_le_mois_et_une_paie_modifiee_la_rouvre_tant_que_la_norme
     assert_eq!(dsn, json!({"couleur": "refus", "phrase": "DSN REFUSÉE — B1-208-10"}));
 }
 
+/// Retouche le fichier des engagements du mois, tel qu'il est ecrit (ceux d'aout y commencent tous).
 fn modifier_saisie(c: &Path, f: impl FnOnce(&mut Value)) {
-    let rel = format!("paies/{}.json", MOIS);
+    let rel = format!("{}/{}.json", engagement::stock::DOSSIER, MOIS);
     let mut v = lire(c, &rel);
     f(&mut v);
     ecrire(c, &rel, &v);
@@ -215,7 +214,7 @@ fn le_chemin_d_un_depot_se_lit_dans_le_bilan() {
     let c = &compagnie("etapes");
     let dsn = dossier_sorties(c, MOIS).join("DSN_Aout2026.dsn");
     std::fs::write(&dsn, "S10.G00.00.005,'02'\nS20.G00.05.001,'01'\nS20.G00.05.002,'01'\nS20.G00.05.004,'1'\n").unwrap();
-    // Ecrite, c'est notee au journal des ecritures (`produire_mois::mois_ecrit`) : le moteur la note en l'ecrivant.
+    // Ecrite, c'est notee au journal des ecritures (`depart::mois_ecrit`) : le moteur la note en l'ecrivant.
     std::fs::write(c.join("journal/dsn-ecrites.json"), json!({"2026-08/DSN_Aout2026.dsn": {"quand": "2026-10-01T09:00:00"}}).to_string()).unwrap();
     let empreinte = paie::journal::empreinte_fichier(&dsn).unwrap();
     let essai = |retours: Value, accepte: bool| {
@@ -310,8 +309,7 @@ fn les_embauches_a_declarer_sont_celles_sans_trace_d_envoi() {
         json!({"mois": MOIS, "salarie": "SERAPHIN", "nom": "SERAPHIN Valentin", "spectacle": "Ubu roi", "debut": "2026-08-19", "fin": "2026-08-22"})
     );
     assert_eq!(e[1]["salarie"], "LEMERCIER");
-    // Sans mois : tous les mois saisis, le plus recent d'abord ; le calcul stocke n'est pas un mois.
-    std::fs::write(c.join("paies/2026-08.calcul.json"), "{}").unwrap();
+    // Sans mois : tous les mois saisis, le plus recent d'abord.
     assert_eq!(rendu(c, "embauches-a-declarer", json!({}), "2026-10-03"), r);
 }
 
@@ -365,33 +363,9 @@ fn l_etat_du_mois_rassemble_les_actes_les_resumes_et_le_bilan() {
 }
 
 #[test]
-fn les_numeros_de_contrat_manquants_sont_proposes_en_memoire_sans_toucher_aux_compteurs() {
-    let c = &compagnie("numeros");
-    let compteurs = std::fs::read(c.join("config/compteurs.json")).unwrap();
-    modifier_saisie(c, |v| {
-        for i in 0..2 {
-            v["engagements"][i].as_object_mut().unwrap().remove("numero");
-        }
-        // Un deuxieme contrat de Brioche, sans numero non plus.
-        let mut copie = v["engagements"][0].clone();
-        copie["debut"] = json!("2026-08-25");
-        copie["fin"] = json!("2026-08-25");
-        copie["lignes"][0]["dates"] = json!(["2026-08-25"]);
-        copie["lignes"][0]["quantite"] = json!(1);
-        copie["lignes"][1]["quantite"] = json!(1);
-        v["engagements"].as_array_mut().unwrap().push(copie);
-    });
-    let r = rendu(c, "etat-par-paie", json!({"mois": MOIS}), "2026-10-03");
-    let numeros: Vec<&str> = r["paies"].as_array().unwrap().iter().map(|p| p["numero"].as_str().unwrap()).collect();
-    // Les compteurs de 2026 : BRIOCHE a 4, SERAPHIN a 4.
-    assert_eq!(numeros, ["BR1.26.05", "SE2.26.05", "LE3.26.04", "BR1.26.06"]);
-    assert_eq!(std::fs::read(c.join("config/compteurs.json")).unwrap(), compteurs);
-}
-
-#[test]
 fn une_saisie_en_cours_garde_son_nom_et_un_journal_abime_refuse() {
     let c = &compagnie("refus");
-    assert_eq!(route(c, "etat-par-paie", json!({}), "2026-10-03")["ok"], json!(false), "sans mois");
+    assert_eq!(route(c, "etat-par-engagement", json!({}), "2026-10-03")["ok"], json!(false), "sans mois");
     let r = route(c, "n-importe-quoi", json!({}), "2026-10-03");
     assert_eq!(r["ok"], false);
     assert_eq!(r["erreur"], "route inconnue : n-importe-quoi");
@@ -400,7 +374,7 @@ fn une_saisie_en_cours_garde_son_nom_et_un_journal_abime_refuse() {
     modifier_saisie(c, |v| {
         v["engagements"][0].as_object_mut().unwrap().remove("spectacle");
     });
-    let r = route(c, "etat-par-paie", json!({"mois": MOIS}), "2026-10-03");
+    let r = route(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-10-03");
     assert_eq!(r["classe"], "SaisieIncomplete");
     assert!(r["erreur"].as_str().unwrap().starts_with("L'engagement 1 de 2026-08 ne dit pas quel spectacle il joue"), "{}", r);
     // Le bilan et les embauches voient la meme saisie : l'un refuse, l'autre passe son mois.
@@ -413,7 +387,7 @@ fn une_saisie_en_cours_garde_son_nom_et_un_journal_abime_refuse() {
                                                  "dates": ["2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"]}]);
     });
     let avant = std::fs::read(saisie(c, MOIS)).unwrap();
-    for nom in ["etat-par-paie", "bilan-du-mois"] {
+    for nom in ["etat-par-engagement", "bilan-du-mois"] {
         let r = route(c, nom, json!({"mois": MOIS}), "2026-10-03");
         assert_eq!(r["classe"], "SaisieIncomplete", "{}", r);
         assert!(r["erreur"].as_str().unwrap().starts_with("L'engagement 1 de 2026-08 : sa ligne 1 "), "{}", r);
@@ -430,18 +404,18 @@ fn une_saisie_en_cours_garde_son_nom_et_un_journal_abime_refuse() {
 #[test]
 fn un_cdi_sans_fin_se_rend_null_et_pas_none() {
     let c = &compagnie::saisies("fictive-3090-grande", &[], &dossier_de_test("routes_mois", "cdi-sans-fin").join("compagnie"));
-    let mut saisie = lire(&crate::outils::fictive("fictive-3090-grande"), "paies/2026-10.json");
+    let mut saisie = crate::outils::saisie(&crate::outils::fictive("fictive-3090-grande"), "2026-10");
     for e in saisie["engagements"].as_array_mut().unwrap() {
         if e["numero"] == json!("NI.24.01") {
             e["debut"] = json!("2026-10-01");
         }
     }
-    ecrire(c, "paies/2026-10.json", &saisie);
-    let paies = rendu(c, "etat-par-paie", json!({"mois": "2026-10"}), "2026-10-03")["paies"].as_array().unwrap().clone();
+    crate::outils::poser_saisie(c, "2026-10", &saisie);
+    let paies = rendu(c, "etat-par-engagement", json!({"mois": "2026-10"}), "2026-10-03")["engagements"].as_array().unwrap().clone();
     let cdi: Vec<&Value> = paies.iter().filter(|p| p["numero"] == json!("MO.23.01") || p["numero"] == json!("NI.24.01")).collect();
     assert_eq!(cdi.len(), 2, "{:?}", paies);
     for p in cdi {
-        assert_eq!(p["fin"], Value::Null, "etat-par-paie : {}", p);
+        assert_eq!(p["fin"], Value::Null, "etat-par-engagement : {}", p);
     }
     let e = rendu(c, "embauches-a-declarer", json!({"mois": "2026-10"}), "2026-10-03")["embauches"].as_array().unwrap().clone();
     let nicolet = e.iter().find(|x| x["debut"] == json!("2026-10-01")).unwrap_or_else(|| panic!("{:?}", e));
