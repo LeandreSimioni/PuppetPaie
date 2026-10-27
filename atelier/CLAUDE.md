@@ -127,6 +127,17 @@ montre que celui qui a lieu.
   commite, rend sa passation, et un Opus neuf reprend. En tête de chaque consigne, avant le but : **un test de l'ancien
   parcours qui casse se supprime, il ne se répare pas** ; **aucune donnée destinée à être remplacée ne se convertit**. Un
   Opus qui le fait est arrêté aussitôt ; à la fusion, la liste des tests modifiés se relit avant d'accepter le lot.
+  Aussi en tête (Léandre, 27/10/2026) : **aucun test de plus de 30 secondes** (une lenteur est un défaut de conception :
+  on réduit le test ou on le supprime) ; **aucune mesure à part**, aucun `tail -f`, aucune attente empilée : une seule
+  commande de tests à la fois, rien en fond ; **aucun acte réel lancé à la main**, même sur une fictive (un dépôt qu'on
+  lance soi-même est de test ; le réel se voit par l'horloge de la fictive) ; un texte en PDF se transcrit une fois et
+  ne se relit qu'à sa nouvelle version.
+- **Le relais** : un Opus travaille au plus 1 h 15 environ, ou moins si ses notifications montrent qu'il dépasse
+  500 000 jetons ; au relais, il laisse finir sa commande, commite, écrit sa passation, et un Opus neuf reprend. **On
+  n'écrit jamais à un Opus qui a fini** : un message le réveille et lui fait relire tout son contexte. Une décision
+  envoyée en cours de lot se vérifie dans le commit qui suit.
+- **Parler à Léandre** : une décision qui touche le fonctionnement se présente entière, en trois lignes — ce qui se passe,
+  à quel moment, ce que ça change —, avec ses contre-arguments, jamais par bribes.
 - **Un reste ne remonte pas à Léandre : l'orchestrateur le tranche et le fait corriger** (Léandre, 21/10/2026 : « tu as
   trouvé un problème ? c'est super, maintenant il faut le corriger »). Chaque « laissé de côté », « à trancher », « limite »
   d'une passation se lit comme un travail à faire : l'orchestrateur décide (le code, les textes, le bon sens d'un
