@@ -11,8 +11,8 @@
 //!   a cote.
 //!
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
-//! Un numero de contrat se fige au premier depart qui le porte : le contrat a son envoi a la signature
-//! (`envois_signature::reserver_numeros_envoyes`), ou la DSN a son depot reel (`figer_numeros_declares`). Jusque-la, un
+//! Un numero de contrat se fige au premier depart qui le porte : le contrat a son envoi a la signature ou a
+//! sa reception signee (`envois_signature::reserver_numeros_envoyes`), ou la DSN a son depot reel (`figer_numeros_declares`). Jusque-la, un
 //! contrat qui ne porte pas encore le sien se declare sous celui que le compteur propose ; ensuite il se relit.
 
 use std::collections::HashMap;
