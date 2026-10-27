@@ -4651,7 +4651,16 @@ certificat de conformite du depot precedent.",
             ("S21.G00.30.018", "email"),
             ("S21.G00.30.019", "code_salarie"),
         ] {
-            // Le pays de naissance se lit dans la liste livree (`pays.rs`, vague 1k) : un code inconnu refuse.
+            // L'adresse mel est conditionnelle (usage « C » en DSN mensuelle, et « conditionne a l'accord explicite » de
+            // l'individu : `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, `texte/bloc-S21.G00.30.txt`) :
+            // une fiche sans courriel n'en declare pas.
+            if k == "email" {
+                if let Some(v) = s.get(k).filter(|v| vrai(v)) {
+                    f.add_v(rub, v)?;
+                }
+                continue;
+            }
+            // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
             let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
             f.add_v(rub, &v)?;
         }
