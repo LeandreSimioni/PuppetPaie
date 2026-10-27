@@ -3,8 +3,8 @@
 //! sources sont lues dans le depot meme, la ou elles sont deposees : un texte qui change sans que le referentiel soit
 //! releve de nouveau, ou un releve qui ne redonne plus le referentiel, fait echouer le test.
 //!
-//! Les deux releves sur le cahier technique 2026.1 en PDF (382 pages) lisent tout le document par la fabrique : une a deux
-//! minutes chacun.
+//! Le cahier technique 2026.1 en PDF (382 pages) ne se relit pas : ses releves lisent ses transcriptions, dont l'empreinte
+//! est verifiee contre celle du PDF depose.
 //!
 //! Et le contrat de la commande : la sortie se nomme toujours, un referentiel deja la ne se remplace qu'avec `--remplacer`.
 
@@ -79,21 +79,30 @@ fn les_formats_p27v01_livres_sont_ceux_du_classeur_2027_1_2() {
     redonne_le_livre(r.unwrap(), "formats-dsn-p27v01-base.json", "paie extraire formats", &[x]);
 }
 
+/// Le cahier 2026.1 en PDF ne se relit pas ici : ses deux transcriptions deposees a cote de lui (`paie extraire
+/// transcrire`) portent l'empreinte du PDF dont elles viennent, et elle est celle du PDF depose.
+fn transcription_du_cahier_2026_1(quoi: &str) -> PathBuf {
+    let pdf = reference("norme-dsn/dsn-cahier-technique-2026.1.pdf");
+    let chemin = reference(&format!("norme-dsn/dsn-cahier-technique-2026.1-{}.txt", quoi));
+    let t = extraire::Transcription::lire(&chemin).unwrap();
+    let octets = std::fs::read(&pdf).unwrap();
+    assert_eq!(t.sha256, socle::fichiers::sha256_hex(&octets), "{} : le PDF depose a change, la transcription se refait", chemin.display());
+    chemin
+}
+
 /// Le tableau des usages par rubrique du cahier 2026.1 occupe les pages 363 a 371 ; le tableau des usages des controles
 /// qui le suit (p. 372-382) n'a aucune ligne de rubrique.
 #[test]
 fn les_usages_p26v01_livres_sont_ceux_du_cahier_2026_1() {
-    let pdf = "dsn-cahier-technique-2026.1.pdf";
-    let r = extraire::usages::relever(&reference(&format!("norme-dsn/{}", pdf)), &jour()).unwrap();
+    let r = extraire::usages::relever(&transcription_du_cahier_2026_1("usages"), &jour()).unwrap();
     assert!(r.donnees["_source"].as_str().unwrap().contains("(p. 363-371)"), "{}", r.donnees["_source"]);
-    redonne_le_livre(r, "usages-dsn-base.json", "paie extraire usages", &[pdf]);
+    redonne_le_livre(r, "usages-dsn-base.json", "paie extraire usages", &["dsn-cahier-technique-2026.1.pdf"]);
 }
 
 #[test]
 fn les_formats_p26v01_livres_sont_ceux_du_cahier_2026_1() {
-    let pdf = "dsn-cahier-technique-2026.1.pdf";
-    let r = extraire::formats::relever(&reference(&format!("norme-dsn/{}", pdf)), &jour());
-    redonne_le_livre(r.unwrap(), "formats-dsn-base.json", "paie extraire formats", &[pdf]);
+    let r = extraire::formats::relever(&transcription_du_cahier_2026_1("formats"), &jour());
+    redonne_le_livre(r.unwrap(), "formats-dsn-base.json", "paie extraire formats", &["dsn-cahier-technique-2026.1.pdf"]);
 }
 
 const TABLE: &str = "sources/urssaf-table-des-urssaf-20260618.csv";
