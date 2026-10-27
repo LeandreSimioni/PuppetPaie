@@ -80,7 +80,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let p = std::path::Path::new(&chemin);
     if !p.exists() {
         dire!("Fichier introuvable : {}", chemin);
-        dire!("Le produire d'abord :  paie dpae paies/AAAA-MM.json");
+        dire!("Le produire d'abord :  paie dpae AAAA-MM");
         return Ok(1);
     }
     if p.extension().is_some_and(|e| e.eq_ignore_ascii_case("zip")) {

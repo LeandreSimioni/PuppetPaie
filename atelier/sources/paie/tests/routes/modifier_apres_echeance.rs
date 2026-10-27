@@ -13,8 +13,16 @@ const MOIS: &str = "2026-08";
 /// La limite de l'annule-et-remplace d'aout 2026 est passee (la DSN d'octobre embarque la correction).
 const APRES: &str = "2026-10-03";
 
+/// Aout de la petite fictive, ses engagements remis en saisie (« Modifier… », la question du moteur acceptee) : sa paie se
+/// modifie.
 fn compagnie(nom: &str) -> PathBuf {
-    compagnie::config_et_mois("fictive-3090-petite", &[MOIS], &dossier_de_test("modifier_apres_echeance", nom).join("compagnie"))
+    let r = compagnie::config_et_mois("fictive-3090-petite", &[MOIS], &dossier_de_test("modifier_apres_echeance", nom).join("compagnie"));
+    let etat = route(&r, "etat-par-engagement", json!({"mois": MOIS}), APRES);
+    for e in reussi(&etat)["engagements"].as_array().unwrap() {
+        let charge = json!({"mois": MOIS, "salarie": e["salarie"], "debut": e["debut"], "numero": e["numero"], "valide": false, "confirme": true});
+        reussi(&route(&r, "valider-engagement", charge, APRES));
+    }
+    r
 }
 
 fn route(racine: &Path, nom: &str, charge: Value, jour: &str) -> Value {
@@ -27,7 +35,7 @@ fn octets(racine: &Path, rel: &str) -> Option<Vec<u8>> {
 
 /// La saisie d'aout, les heures de Lemercier portees a `heures`.
 fn saisie_modifiee(racine: &Path, heures: i64) -> Value {
-    let mut s = lire(racine, &format!("paies/{}.json", MOIS));
+    let mut s = crate::outils::saisie(racine, &MOIS);
     let rang = s["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
     s["engagements"][rang]["lignes"][0]["quantite"] = json!(heures);
     s
@@ -42,7 +50,7 @@ fn lemercier(racine: &Path) -> Value {
 #[test]
 fn apres_la_limite_une_modification_se_refuse_sans_confirmation_et_rien_n_est_ecrit() {
     let racine = compagnie("apres-la-limite");
-    let saisie = format!("paies/{}.json", MOIS);
+    let saisie = format!("engagements/{}.json", MOIS);
     let copie = format!("regularisations/{}.saisie-declaree.json", MOIS);
 
     // Le mois n'est pas ferme : il se modifie, en le confirmant. Le moteur le dit avant toute frappe.
@@ -53,6 +61,7 @@ fn apres_la_limite_une_modification_se_refuse_sans_confirmation_et_rien_n_est_ec
 
     // Sans confirmation : refuse, avec l'avertissement, et rien n'est ecrit.
     let avant = octets(&racine, &saisie).unwrap();
+    let declaree = crate::outils::saisie(&racine, MOIS);
     let r = route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 40)}), APRES);
     let (classe, texte) = refus(&r);
     assert_eq!(classe, "ModificationApresEcheance", "{}", r);
@@ -63,7 +72,7 @@ fn apres_la_limite_une_modification_se_refuse_sans_confirmation_et_rien_n_est_ec
     assert!(!racine.join(&copie).exists());
 
     // Ce qui ne change pas la paie (la meme saisie) n'a rien a confirmer.
-    let meme = lire(&racine, &saisie);
+    let meme = crate::outils::saisie(&racine, MOIS);
     reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": meme}), APRES));
     assert!(!racine.join(&copie).exists());
 
@@ -71,10 +80,10 @@ fn apres_la_limite_une_modification_se_refuse_sans_confirmation_et_rien_n_est_ec
     let r = route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 40), "modifier_apres_echeance": true}), APRES);
     assert_eq!(reussi(&r)["dsn_deposee"]["confirmer"], json!(true), "{}", r);
     assert_ne!(octets(&racine, &saisie).unwrap(), avant);
-    assert_eq!(octets(&racine, &copie).unwrap(), avant);
+    assert_eq!(lire(&racine, &copie), declaree);
     // Une seconde modification ne la remplace pas : elle reste la paie declaree.
     reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 41), "modifier_apres_echeance": true}), APRES));
-    assert_eq!(octets(&racine, &copie).unwrap(), avant);
+    assert_eq!(lire(&racine, &copie), declaree);
     reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 40), "modifier_apres_echeance": true}), APRES));
 
     // L'etape DSN le dit, en orange, tant que la correction n'est pas ecrite.
@@ -110,9 +119,9 @@ fn apres_la_limite_une_modification_se_refuse_sans_confirmation_et_rien_n_est_ec
 #[test]
 fn retirer_un_contrat_declare_apres_la_limite_se_refuse_et_dit_quoi_faire() {
     let racine = compagnie("retrait");
-    let saisie = format!("paies/{}.json", MOIS);
+    let saisie = format!("engagements/{}.json", MOIS);
     let avant = octets(&racine, &saisie).unwrap();
-    let mut s = lire(&racine, &saisie);
+    let mut s = crate::outils::saisie(&racine, MOIS);
     s["engagements"].as_array_mut().unwrap().pop();
     for confirme in [false, true] {
         let r = route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s, "modifier_apres_echeance": confirme}), APRES);
@@ -164,7 +173,7 @@ fn une_saisie_qui_change_apres_la_correction_ecrite_est_a_corriger_a_nouveau() {
 #[test]
 fn un_contrat_ajoute_apres_la_limite_se_declare_par_sa_correction() {
     let racine = compagnie("ajout");
-    let mut s = lire(&racine, &format!("paies/{}.json", MOIS));
+    let mut s = crate::outils::saisie(&racine, &MOIS);
     let mut e = s["engagements"][2].clone();
     let o = e.as_object_mut().unwrap();
     o.remove("numero");
@@ -193,7 +202,7 @@ fn un_contrat_ajoute_apres_la_limite_se_declare_par_sa_correction() {
     let numero = c["engagement"]["numero"].as_str().unwrap().to_string();
     assert!(numero.starts_with("LE3.26."), "{}", numero);
     assert_ne!(lire(&racine, "config/compteurs.json"), compteurs, "le numero se reserve");
-    assert!(lire(&racine, &format!("paies/{}.json", MOIS))["engagements"].as_array().unwrap().iter().any(|e| e["numero"] == json!(numero)));
+    assert!(crate::outils::saisie(&racine, &MOIS)["engagements"].as_array().unwrap().iter().any(|e| e["numero"] == json!(numero)));
     let d = dsn();
     assert_eq!((d["couleur"].as_str(), d["remplacement"]["correction_ecrite"].as_bool()), (Some("bien"), Some(true)), "{}", d);
 }
@@ -212,7 +221,7 @@ fn avant_la_limite_la_modification_ne_demande_rien_et_l_annule_et_remplace_se_di
     );
     let r = route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 40)}), "2026-09-10");
     reussi(&r);
-    let ecrite = lire(&racine, &format!("paies/{}.json", MOIS));
+    let ecrite = crate::outils::saisie(&racine, &MOIS);
     let rang = ecrite["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
     assert_eq!(ecrite["engagements"][rang]["lignes"][0]["quantite"], json!(40));
     // Rien n'est garde : la DSN refaite remplacera la deposee.
@@ -221,7 +230,7 @@ fn avant_la_limite_la_modification_ne_demande_rien_et_l_annule_et_remplace_se_di
 
 /// La saisie d'aout, le contrat de Lemercier (LE3.26.04, du 19 au 22 aout, 8 heures par jour) a d'autres dates.
 fn lemercier_aux_dates(racine: &Path, debut: &str, fin: &str, jours: &[&str]) -> Value {
-    let mut s = lire(racine, &format!("paies/{}.json", MOIS));
+    let mut s = crate::outils::saisie(racine, &MOIS);
     let rang = s["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
     let e = &mut s["engagements"][rang];
     e["debut"] = json!(debut);
@@ -327,74 +336,24 @@ fn une_embauche_reportee_garde_sa_dpae_et_l_etape_le_dit() {
     assert!(!dues.as_array().unwrap().iter().any(|x| x["salarie"] == json!("LEMERCIER")), "{}", dues);
 }
 
-/// UN ENGAGEMENT AJOUTE PAR LA PAGE A UN MOIS DEPOSE (ticket #253, Leandre, 23/10/2026 : « je peux pas ajouter un
-/// engagement ce mois-ci »). Le mois avait son calcul garde (`paies/AAAA-MM.calcul.json`) ; la page envoie la saisie sans
-/// ce que le moteur tient seul (`_origine`, `numeros_figes`), le fichier ecrit n'est donc pas la saisie calculee, et le
-/// calcul garde n'etait pas remplace. Le mois etant parti, ce calcul d'avant l'ajout passait pour celui d'apres : une
-/// paie de moins que d'engagements, et l'ecran du mois refusait (« calcul du mois : une paie de moins que la saisie »),
-/// a chaque relecture. L'engagement ajoute a sa paie, et l'ecran du mois se lit.
+/// UN ENGAGEMENT REMIS EN SAISIE GARDE SON IDENTITE QUAND SON PREMIER JOUR CHANGE (#253, banc Le Petit Castelet). Un jour
+/// ajoute avant son premier jour change le couple (salarie, debut) : le numero de contrat pose le designe
+/// (`jumeaux::apparier_meme_numero`, regle 4). Il reste en saisie, et se lit avec ses chiffres d'apres.
 #[test]
-fn un_engagement_ajoute_par_la_page_a_un_mois_depose_a_sa_paie() {
+fn un_engagement_en_saisie_garde_son_identite_quand_son_premier_jour_change() {
     const PENDANT: &str = "2026-09-10";
-    let racine = compagnie("ajout-253");
-    let fichier = format!("paies/{}.json", MOIS);
-    // Le calcul garde du mois, tel qu'il est avant l'ajout.
-    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": lire(&racine, &fichier)}), PENDANT));
-    assert!(racine.join(format!("paies/{}.calcul.json", MOIS)).exists());
-    // Ce que la page envoie : la saisie sans `_origine` ni `numeros_figes`, et un cachet de plus pour Brioche, au meme
-    // spectacle, un autre jour, sans lieu.
-    let mut s = lire(&racine, &fichier);
-    let o = s.as_object_mut().unwrap();
-    o.remove("_origine");
-    o.remove("numeros_figes");
-    let mut nouveau = s["engagements"][0].clone();
-    let e = nouveau.as_object_mut().unwrap();
-    for k in ["numero", "valide", "debut", "fin", "date_paiement"] {
-        e.remove(k);
-    }
-    e.insert("lignes".into(), json!([{"rubrique": "cachet", "quantite": 1, "taux": 136, "lieu": "", "dates": ["2026-08-28"]}]));
-    s["engagements"].as_array_mut().unwrap().push(nouveau);
-    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s}), PENDANT));
-    let engagements = lire(&racine, &fichier)["engagements"].as_array().unwrap().len();
-    assert_eq!(engagements, 4);
-    for _ in 0..2 {
-        let etat = route(&racine, "etat-par-paie", json!({"mois": MOIS}), PENDANT);
-        let paies = reussi(&etat)["paies"].as_array().unwrap();
-        assert_eq!(paies.len(), engagements, "{}", etat);
-        // Ce que la DSN partie declare se lit valide au jour du depot ; l'engagement ajoute apres, que le fichier parti ne
-        // declare pas, ne l'est pas : il se valide a la main.
-        assert!(paies[0]["valide"].is_string(), "{}", paies[0]);
-        assert_eq!(paies[3]["valide"], Value::Null, "{}", paies[3]);
-        let ecran = route(&racine, "mois", json!({"mois": MOIS}), PENDANT);
-        assert_eq!(reussi(&ecran)["lectures"]["etat-par-paie"]["ok"], json!(true), "{}", ecran["resultat"]["lectures"]["etat-par-paie"]);
-    }
-}
-
-/// UNE PAIE ROUVERTE D'UN MOIS DEPOSE RESTE ROUVERTE QUAND SON PREMIER JOUR CHANGE (#253, banc Le Petit Castelet : « la
-/// carte dit 3 × Cachet… validée le 03/02/2025, le tableau 2 Cachets 280 € »). Un jour ajoute avant le premier jour de la
-/// paie rouverte changeait son identite (salarie, debut) : l'enregistrement de la page ne la retrouvait plus dans le
-/// fichier, la reouverture tombait, et, la DSN etant partie, la paie modifiee se relisait validee au jour du depot. Le
-/// numero de contrat pose la designe (`jumeaux::apparier_meme_numero`, regle 4) : elle reste rouverte, et se lit avec
-/// ses chiffres d'apres.
-#[test]
-fn une_paie_rouverte_garde_sa_reouverture_quand_son_premier_jour_change() {
-    const PENDANT: &str = "2026-09-10";
-    let racine = compagnie("rouverte-253");
-    let fichier = format!("paies/{}.json", MOIS);
+    let racine = compagnie("premier-jour-253");
     let brioche = |racine: &Path| -> Value {
-        let etat = route(racine, "etat-par-paie", json!({"mois": MOIS}), PENDANT);
-        reussi(&etat)["paies"].as_array().unwrap().iter().find(|p| p["numero"] == "BR1.26.04").unwrap().clone()
+        let etat = route(racine, "etat-par-engagement", json!({"mois": MOIS}), PENDANT);
+        reussi(&etat)["engagements"].as_array().unwrap().iter().find(|p| p["numero"] == "BR1.26.04").unwrap().clone()
     };
     let avant = brioche(&racine);
-    assert!(avant["valide"].is_string(), "la DSN partie la declare : {}", avant);
-    reussi(&route(&racine, "valider-paie", json!({"mois": MOIS, "salarie": "BRIOCHE", "debut": "2026-08-19", "valide": false}), PENDANT));
-    assert_eq!(brioche(&racine)["valide"], Value::Null);
+    assert_eq!(avant["valide"], Value::Null, "remis en saisie : {}", avant);
 
-    // La page ajoute le 18 : un cachet de plus, et un premier jour plus tot. Elle n'envoie pas la reouverture.
-    let mut s = lire(&racine, &fichier);
+    // La page ajoute le 18 : un cachet de plus, et un premier jour plus tot.
+    let mut s = crate::outils::saisie(&racine, MOIS);
     let rang = s["engagements"].as_array().unwrap().iter().position(|e| e["numero"] == "BR1.26.04").unwrap();
     let e = s["engagements"][rang].as_object_mut().unwrap();
-    e.remove("rouverte");
     // Le contrat se borne a ses jours, comme dans la page : ni debut ni fin poses.
     e.remove("debut");
     e.remove("fin");
@@ -406,10 +365,10 @@ fn une_paie_rouverte_garde_sa_reouverture_quand_son_premier_jour_change() {
     });
     reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": s}), PENDANT));
 
-    let ecrit = lire(&racine, &fichier)["engagements"][rang].clone();
-    assert!(ecrit["rouverte"].is_string(), "la reouverture reste : {}", ecrit);
+    let engagements = crate::outils::saisie(&racine, MOIS)["engagements"].as_array().unwrap().len();
+    assert_eq!(engagements, 3, "le meme engagement, pas un nouveau");
     let apres = brioche(&racine);
-    assert_eq!(apres["valide"], Value::Null, "rouverte, pas validee au jour du depot : {}", apres);
+    assert_eq!(apres["valide"], Value::Null, "{}", apres);
     assert_eq!(apres["debut"], "2026-08-18", "{}", apres);
     let brut = |p: &Value| p["brut"].as_str().unwrap().parse::<f64>().unwrap();
     assert!(brut(&apres) > brut(&avant), "les chiffres d'apres : {} puis {}", avant["brut"], apres["brut"]);

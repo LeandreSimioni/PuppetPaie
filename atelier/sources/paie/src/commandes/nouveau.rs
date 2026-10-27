@@ -1,11 +1,8 @@
-//! `paie nouveau AAAA-MM [--force] [--reprendre] [--json]` : creer le fichier de saisie d'un mois
-//! (`moteur/cli.py`, `cmd_nouveau` ; `operations_paies.nouvelle_saisie`). Rien ne part : un fichier `paies/AAAA-MM.json`.
+//! `paie nouveau AAAA-MM [--force] [--json]` : ouvrir un mois, `engagements/AAAA-MM.json`, avec son taux de cachet et sa
+//! date de paiement. Rien ne part. Les contrats des mois d'avant qui courent encore y sont deja : un engagement est un
+//! seul objet, du mois ou il commence a celui ou il finit.
 //!
-//! `--reprendre` y ecrit, a la place des deux exemples, les contrats en cours des mois precedents (bornes et numero) : la
-//! route `contrats-en-cours` du moteur les dit, avec l'engagement de chacun, tel que la fenetre le pose d'office.
-//!
-//! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : un mois passe (`MoisHorsDelai`), un mois mal ecrit (`2026-13`, `foo`) donnaient une
-//! trace d'appels au lieu d'une phrase. Ici : un refus d'une phrase (`! ...`, code 2).
+//! Un mois passe (`MoisHorsDelai`), un mois mal ecrit (`2026-13`, `foo`) : un refus d'une phrase (`! ...`, code 2).
 
 use serde_json::{json, Value};
 
@@ -18,7 +15,7 @@ use socle::echec::Echec;
 pub static SPEC: Spec = Spec {
     commande: "nouveau",
     positionnels: &[Pos::requis("mois")],
-    options: &[Opt::drapeau("force"), Opt::drapeau("reprendre"), Opt::drapeau("json")],
+    options: &[Opt::drapeau("force"), Opt::drapeau("json")],
 };
 
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
@@ -47,17 +44,17 @@ fn en_cours(cadre: &Cadre, mois: &str) -> Result<Vec<(Value, Value)>, Echec> {
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let json = args.drapeau("json");
     let mois = args.texte("mois").unwrap_or("");
-    let (force, reprendre) = (args.drapeau("force"), args.drapeau("reprendre"));
+    let force = args.drapeau("force");
     if !mois_valide(mois) {
         return Ok(reponse_metier("nouveau", json, &refus(format!("Le mois « {} » ne se lit pas : AAAA-MM attendu (par exemple 2026-10).", mois)), &[]));
     }
-    let chemin = cadre.racine.join("paies").join(format!("{}.json", mois));
+    let chemin = engagement::stock::chemin(&cadre.racine, mois);
     if chemin.exists() && !force {
         let message = format!("{} existe deja.", chemin.display());
         if json {
             return Ok(rendre(&erreur("nouveau", "FichierExistant", &message, &[("chemin", json!(chemin.display().to_string()))])));
         }
-        dire!("{}  (--force pour ecraser)", message);
+        dire!("{}  (--force pour en reposer le taux et la date de paiement)", message);
         return Ok(1);
     }
     // Un mois passe ne se cree plus : sa DSN etait due.
@@ -67,22 +64,20 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
         return Err(e);
     }
+    // Le mois dit son taux et sa date de paiement ; ses engagements restent ceux qu'il montre (ceux des mois d'avant qui
+    // courent encore y sont deja).
     let mut data = crate::routes_saisie::squelette(&cadre.ctx, mois)?;
-    if reprendre {
-        let reprises = en_cours(cadre, mois)?;
-        if !reprises.is_empty() {
-            if let Some(o) = data.as_object_mut() {
-                o.remove("spectacle");
-                o.insert("engagements".into(), Value::Array(reprises.into_iter().map(|(_, e)| e).collect()));
-            }
-        }
+    if let Some(vue) = engagement::stock::vue_du_mois(&cadre.racine, mois).map_err(Echec::from)? {
+        data["engagements"] = vue.get("engagements").cloned().unwrap_or_else(|| json!([]));
     }
-    socle::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| Echec { classe: Some("OSError"), message: m })?;
+    engagement::stock::ecrire_vue_du_mois(&cadre.ctx, mois, &data).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m })?;
+    for cle in ["taux_cachet", "date_paiement"] {
+        engagement::stock::poser_au_mois(&cadre.racine, mois, cle, data[cle].clone()).map_err(|m| Echec { classe: Some("OSError"), message: m })?;
+    }
 
-    // Ce qui court encore, relu apres l'ecriture (`deja_repris` dit ce que le fichier vient de recevoir).
     let courants = en_cours(cadre, mois)?;
     if json {
-        let saisie = crate::routes_saisie::lire_saisie(&chemin)?;
+        let saisie = engagement::saisie_du_mois(&cadre.racine, mois).map_err(Echec::from)?;
         let contrats: Vec<Value> = courants.into_iter().map(|(c, _)| c).collect();
         let r = enveloppe("nouveau", json!({"mois": mois, "chemin": chemin.display().to_string(), "saisie": saisie, "contrats_en_cours": contrats}));
         return Ok(rendre(&r));
@@ -90,29 +85,22 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     dire!("Cree : {}", chemin.display());
     if !courants.is_empty() {
         dire!();
-        dire!("{} contrat(s) en cours depuis un mois precedent :", courants.len());
+        dire!("{} contrat(s) en cours depuis un mois precedent, deja dans le mois :", courants.len());
         for (c, _) in &courants {
             let numero = match c.get("numero") {
                 Some(n) if socle::fichiers::vrai(n) => super::rendu::texte(n),
                 _ => "?".to_string(),
             };
             dire!(
-                "  {:<24} {} -> {}  n° {}  (depuis {}){}",
+                "  {:<24} {} -> {}  n° {}  (depuis {})",
                 champ(c, "nom"),
                 champ(c, "debut"),
                 champ(c, "fin"),
                 numero,
-                crate::engagement::libelle_mois(&champ(c, "depuis")),
-                if reprendre { "  -- ecrit dans le fichier, poser les jours" } else { "" }
-            );
-        }
-        if !reprendre {
-            dire!(
-                "  Pour les reprendre : recopier `debut`, `fin` et `numero` dans un engagement du fichier (ou `paie nouveau {} --force --reprendre`). Ni contrat ni DPAE ne seront refaits : ils datent du premier mois.",
-                mois
+                engagement::libelle_mois(&champ(c, "depuis"))
             );
         }
     }
-    dire!("Modifier les dates et les noms, puis :  paie mois {}", chemin.display());
+    dire!("Saisir les engagements, les valider, puis :  paie mois {}", mois);
     Ok(0)
 }

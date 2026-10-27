@@ -18,10 +18,9 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{jours_du_mois, Jour};
-use crate::engagement;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -86,19 +85,19 @@ pub(crate) fn corrections_a_porter(ctx: &Contexte, mois_courant: &str) -> R<Vec<
 /// `regularisations_pour` : les corrections de la DSN de `mois_courant`, chacune avec le versement DECLARE (relu dans la
 /// DSN deposee du mois d'origine, `versement_declare_de`), sa paie d'avant refaite (telle que
 /// declaree, ou telle que la correction portee precedente l'a laissee) et sa paie d'apres.
-pub(crate) fn regularisations_pour(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, mois_courant: &str) -> R<Vec<Reg>> {
+pub(crate) fn regularisations_pour(ctx: &Contexte, m: &mut Moteur, mois_courant: &str) -> R<Vec<Reg>> {
     let mut out = Vec::new();
     for c in corrections_a_porter(ctx, mois_courant)? {
         let get = |k: &str| c.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
         let (mois, salarie, debut, corrige) = (valeur_en_texte(&get("mois")?), get("salarie")?, get("debut")?, get("engagement")?);
         let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("numero")))?;
         if c.get("ajout").is_some_and(vrai) {
-            out.push(ajout(o, ctx, m, c.clone(), mois, numero, corrige)?);
+            out.push(ajout(ctx, m, c.clone(), mois, numero, corrige)?);
             continue;
         }
-        let (donnees, declare, _fiche) = regul::engagement_declare_en(o, m, ctx, &mois, &salarie, &debut, true)?;
-        let avant = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &declare, true)?;
-        let apres = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &corrige, true)?;
+        let (donnees, declare, _fiche) = regul::engagement_declare(m, ctx, &mois, &salarie, &debut)?;
+        let avant = regul::paie_d_un_engagement(m, ctx, &donnees, &declare)?;
+        let apres = regul::paie_d_un_engagement(m, ctx, &donnees, &corrige)?;
         let (lu, derniere) = versement_declare_de(ctx, &c, &mois, mois_courant, &apres)?;
         // Le taux du bloc 56 : le 50.006 du versement relu (reste R1 #3), pas celui d'un fichier quelconque du mois.
         let taux_pas_origine = lu.taux_pas.clone();
@@ -115,9 +114,9 @@ pub(crate) fn regularisations_pour(o: &HashMap<String, String>, ctx: &Contexte, 
 /// 2026.1, §2.1.2.1 et §2.2.2.5 ; fiche net-entreprises 1741 : `routes_regularisation::apercu_d_un_ajout`), et le
 /// versement de la correction paie son net. Sa paie se calcule depuis la saisie du mois telle que declaree, son
 /// engagement a la place des autres, comme toute correction.
-fn ajout(o: &HashMap<String, String>, ctx: &Contexte, m: &mut Moteur, c: Map<String, Value>, mois: String, numero: i64, corrige: Value) -> R<Reg> {
+fn ajout(ctx: &Contexte, m: &mut Moteur, c: Map<String, Value>, mois: String, numero: i64, corrige: Value) -> R<Reg> {
     let donnees = regul::saisie_d_origine(ctx, &mois)?;
-    let apres = regul::paie_d_un_engagement_en(o, m, ctx, &donnees, &corrige, true)?;
+    let apres = regul::paie_d_un_engagement(m, ctx, &donnees, &corrige)?;
     if !apres.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
         return Err(erreur(
             "MoisNonRegularisable",

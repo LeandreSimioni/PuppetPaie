@@ -13,7 +13,7 @@
 //! `qui` : `ligne de commande` -- le Python n'ecrivait pas dans le journal ici (`envoi.envoyer` seul) ; la route le fait, avec ce
 //! `qui` (point douteux de la passation).
 //!
-//! La commande ne lit que `paies/AAAA-MM.json` des donnees (le Python lisait n'importe quel chemin). Rien ne s'enchaine a `mois`.
+//! La commande lit le mois (`AAAA-MM`, ou `engagements/AAAA-MM.json`) des donnees. Rien ne s'enchaine a `mois`.
 //!
 //! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : une saisie incomplete, une fiche sans adresse, un fichier introuvable donnaient
 //! une trace d'appels. Ici : `! phrase`, code 2. Le texte propose `paie mois ...`.
@@ -68,7 +68,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let mois = mois_du_fichier(cadre, fichier, "L'envoi se prepare")?;
     ouvrir_la_boite(cadre);
     let ctx = &cadre.ctx;
-    let prep = match crate::routes_envois::preparer_envoi(&cadre.o, ctx, &mois, &mut || crate::routes_envois::client_courriel(ctx)) {
+    let prep = match crate::routes_envois::preparer_envoi(ctx, &mois, &mut || crate::routes_envois::client_courriel(ctx)) {
         Ok(p) => p,
         Err(e) => match preparation_refusee(json, fichier, &e) {
             Some(code) => return Ok(code),
@@ -100,7 +100,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     for a in &prep.avertissements {
         dire!("Note : {}\n", a);
     }
-    let libelle = crate::routes_envois::capitaliser(&crate::engagement::libelle_mois(&prep.mois_saisie));
+    let libelle = crate::routes_envois::capitaliser(&engagement::libelle_mois(&prep.mois_saisie));
     dire!("\n{} - {} message(s)\n{}", libelle, prep.messages.len(), "-".repeat(62));
     for m in &prep.messages {
         dire!("  {:<22} {:<30} {} piece(s), {} ko", m.nom, m.destinataire, m.pieces.len(), m.taille() / 1024);

@@ -17,11 +17,10 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, repr_texte, Jour};
 use crate::dpae::{Chemins, Embauche, Parametres};
-use crate::engagement;
 use crate::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -35,11 +34,11 @@ use crate::routes_ouverture::Refus;
 pub const ROUTES: [&str; 4] = ["dpae", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "dpae" => dpae(ctx, charge),
-        "arret-signaler" => arret_signaler(o, ctx, charge),
-        "fin-contrat-signaler" => fin_contrat_signaler(o, ctx, charge),
+        "arret-signaler" => arret_signaler(ctx, charge),
+        "fin-contrat-signaler" => fin_contrat_signaler(ctx, charge),
         "fin-contrat-documents" => fin_contrat_documents(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -90,12 +89,6 @@ fn maintenant_iso() -> String {
     socle::paris::iso_secondes(maintenant())
 }
 
-/// `"%-14s" % texte` : le texte, completé d'espaces a droite jusqu'a `n` caracteres.
-fn gauche(t: &str, n: usize) -> String {
-    let long = t.chars().count();
-    format!("{}{}", t, " ".repeat(n.saturating_sub(long)))
-}
-
 fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
     let an = mois.get(..4).ok_or_else(|| erreur("ValueError", "mois illisible"))?;
     let rang: usize = mois
@@ -107,14 +100,10 @@ fn mois_en_toutes_lettres(mois: &str) -> R<(String, String)> {
     Ok((format!("{}{}", nom, annee), format!("{} {}", nom, annee)))
 }
 
-/// La saisie d'un mois, lue (le fichier doit exister).
-fn saisie_du_mois(ctx: &Contexte, mois: &str) -> R<(PathBuf, Value)> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
-        return Err(refus(format!("Aucune saisie pour {}.", mois)));
-    }
-    let data = engagement::lire_saisie(&chemin).map_err(plain)?;
-    Ok((chemin, data))
+/// Ce qui peut partir du mois : la saisie de ses engagements valides (`engagement::etats::validees_du_mois`), et leurs
+/// paies ecrites ; refus si aucun engagement ne le touche.
+fn saisie_du_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
+    engagement::etats::validees_du_mois(ctx, mois).map_err(plain)?.ok_or_else(|| refus(format!("Aucune saisie pour {}.", mois)))
 }
 
 /// Le mois en toutes lettres (« mai 2026 ») pour une phrase ; tel quel s'il n'a pas la forme AAAA-MM.
@@ -148,21 +137,17 @@ fn engagement_qui_finit<'a>(ctx: &Contexte, saisie: &'a Value, cle: &str, nom: &
     })
 }
 
-/// `charger(ctx, saisie)` : la paie calculee de l'engagement de rang `rang` (une paie par engagement, dans l'ordre de la
-/// saisie : `engagement::charger_donnees`), numerotee (les numeros ne sont que reserves).
-fn paie_de_l_engagement(ctx: &Contexte, chemin: &Path, rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
-    let (data, mut paies) = crate::routes_dossier_salarie::charger(ctx, chemin).map_err(en_echec)?;
-    let annee = data
-        .get("mois")
-        .map(valeur_en_texte)
-        .and_then(|m| m.chars().take(4).collect::<String>().parse::<i32>().ok())
-        .ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+/// La paie validee de l'engagement de rang `rang` (`paies` : celles de `saisie_du_mois`, au meme rang que sa saisie),
+/// numerotee (les numeros ne sont que reserves).
+fn paie_de_l_engagement(ctx: &Contexte, paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
+    let annee = mois.chars().take(4).collect::<String>().parse::<i32>().map_err(|_| erreur("ValueError", format!("mois illisible : {}", repr_texte(mois))))?;
+    let mut paies = paies.to_vec();
     crate::routes_ouverture::numeroter(ctx, &mut paies, annee).map_err(en_echec)?;
     paies
         .into_iter()
         .nth(rang)
         .filter(|p| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle))
-        .ok_or_else(|| refus(format!("{} n'a aucune paie calculee en {} pour ce contrat.", nom, mois_dit(mois))))
+        .ok_or_else(|| refus(format!("{} n'a aucune paie validee en {} pour ce contrat.", nom, mois_dit(mois))))
 }
 
 fn ecrire_texte(chemin: &Path, texte: &str) -> R<()> {
@@ -250,10 +235,10 @@ fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent:
 /// tout compte. Deux PAPIERS : rien ne part nulle part.
 fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?);
-    let (chemin, saisie) = saisie_du_mois(ctx, mois)?;
+    let (saisie, paies) = saisie_du_mois(ctx, mois)?;
     let cle = cle_du_salarie(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
-    let p = paie_de_l_engagement(ctx, &chemin, rang, &cle, salarie, mois)?;
+    let p = paie_de_l_engagement(ctx, &paies, rang, &cle, salarie, mois)?;
     let ent = ctx.entreprise_et_gabarits();
     let sortie = ctx.racine.join("sorties").join(mois);
     let date: Jour = jour_le(charge)?.unwrap_or(ctx.aujourdhui);
@@ -336,7 +321,7 @@ fn echec_fctu(e: crate::fctu::Echec) -> Echec {
 
 /// `operations_permanents.produire_fctu` : ecrit le signalement dans `sorties/AAAA-MM/`. Rien n'est
 /// depose : le depot est un acte a part.
-fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?);
     let remplace: Option<String> = facultatif(charge, "remplace").map(en_texte);
     // LE NUMERO D'ORDRE : celui qu'on donne, sinon (0) le suivant de tous les signalements deja partis (p. 136), lu une
@@ -351,14 +336,14 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
     };
     let envoi_test = facultatif(charge, "test").is_some();
 
-    let (chemin, saisie) = saisie_du_mois(ctx, mois)?;
+    let (saisie, paies) = saisie_du_mois(ctx, mois)?;
     let cle = cle_du_salarie(ctx, salarie)?;
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
     let fin = fin_de_contrat_declaree(ctx, e, mois)?;
-    let paie = paie_de_l_engagement(ctx, &chemin, rang, &cle, salarie, mois)?;
+    let paie = paie_de_l_engagement(ctx, &paies, rang, &cle, salarie, mois)?;
     let type_declaration = if remplace.is_some() { crate::fctu::ANNULE_ET_REMPLACE } else { crate::fctu::NORMALE };
     let mut avertissements = crate::fctu::verifier(&fin, &paie.engagement, type_declaration).map_err(echec_fctu)?;
-    let (ordre, plate_forme) = if ordre != 0 { (ordre, Vec::new()) } else { prochain_ordre(o, ctx)? };
+    let (ordre, plate_forme) = if ordre != 0 { (ordre, Vec::new()) } else { prochain_ordre(ctx)? };
     avertissements.extend(plate_forme);
     let nom = format!("SignalementFinContrat_{}_{}.dsn", cle, fin.fin.replace('-', ""));
     let cible = ctx.racine.join("sorties").join(mois).join(&nom);
@@ -372,7 +357,7 @@ fn fin_contrat_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Va
     // Les arrets du contrat qui croisent la periode du signalement : le FCTU les reporte (bloc 60), comme la mensuelle,
     // tires du magasin des imprevus ; ses suspensions (bloc 65) en viennent deja (`imprevus::suspensions_du_mois`).
     let (debut_p, fin_p) = (paie.engagement.debut_periode().map_err(plain)?, paie.engagement.fin_periode().map_err(plain)?);
-    let arrets: Vec<crate::dsn::Arret> = crate::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
+    let arrets: Vec<crate::dsn::Arret> = engagement::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
         .map_err(crate::routes_listes::refus_magasin)?
         .into_iter()
         .map(|v| crate::dsn::Arret { v })
@@ -398,7 +383,7 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
     let cle = cle.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
     if vrai(dernier_jour) {
         let jour = crate::routes_imprevus::jour(dernier_jour)?;
-        if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, crate::imprevus::ARRET, &cle, &jour)? {
+        if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, engagement::imprevus::ARRET, &cle, &jour)? {
             return Ok(liste[i].clone());
         }
     }
@@ -419,14 +404,14 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
 /// soit le mois d'emission » (et non plus le rang parmi les envois de CET arret, qui repartait a 1). LA PLATE-FORME
 /// FAIT FOI (lot O1) : `ordre_signalements::dernier_ordre_connu` la consulte ; ce qu'il faut en dire (elle n'a pas
 /// repondu, elle connaissait plus que le journal) part avec les avertissements.
-pub(crate) fn prochain_ordre(o: &HashMap<String, String>, ctx: &Contexte) -> R<(i64, Vec<String>)> {
-    let connu = crate::ordre_signalements::dernier_ordre_connu(o, ctx, None)?;
+pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
+    let connu = crate::ordre_signalements::dernier_ordre_connu(ctx, None)?;
     Ok((connu.dernier + 1, connu.avertissements))
 }
 
 /// `operations_arrets.produire` : ecrit le fichier du signalement dans `sorties/AAAA-MM/`. Rien
 /// n'est depose : le depot est un acte a part.
-fn arret_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     use crate::signalement::{self, Echec as Ech};
     let salarie = en_texte(crate::routes_fiches::exiger(charge, "salarie")?);
     let dernier_jour = crate::routes_fiches::exiger(charge, "dernier_jour")?;
@@ -451,7 +436,7 @@ fn arret_signaler(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -
         Ech::Impossible(m) | Ech::Autre(m) => erreur("ValueError", m),
     };
     let mut avertissements = signalement::verifier(&dsn_arret, &nature, Some(&constitution)).map_err(echec)?;
-    let (ordre, plate_forme) = if ordre != 0 { (ordre, Vec::new()) } else { prochain_ordre(o, ctx)? };
+    let (ordre, plate_forme) = if ordre != 0 { (ordre, Vec::new()) } else { prochain_ordre(ctx)? };
     avertissements.extend(plate_forme);
 
     let jour = en_texte(&arret["dernier_jour_travaille"]);
@@ -632,15 +617,13 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     };
 
-    // `charger_engagements` : la saisie vue comme des embauches, sans calculer la paie.
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois_demande));
-    if !chemin.exists() {
-        return Err(erreur("FileNotFoundError", socle::fichiers::introuvable(&chemin)));
-    }
-    let data = engagement::lire_saisie(&chemin).map_err(plain)?;
+    // Les engagements valides du mois (rien ne part d'un engagement en saisie), vus comme des embauches, sans relire leur
+    // paie.
+    let data = engagement::etats::validees_du_mois(ctx, mois_demande).map_err(plain)?.map(|(d, _)| d)
+        .ok_or_else(|| erreur("FileNotFoundError", format!("Aucune saisie pour {}.", mois_demande)))?;
     let paies: Vec<Paie> = {
-        let _derivation = crate::conges::Derivation::ouvrir();
-        let (engs, _) = engagement::engagements(ctx, &data, &crate::conges::lignes_du_mois).map_err(plain)?;
+        let _derivation = engagement::conges::Derivation::ouvrir();
+        let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois).map_err(plain)?;
         engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
@@ -710,11 +693,12 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche. Le Python ne le
     // voyait pas (une embauche par paie retenue). Decision du 07/10/2026 : la DPAE ne se produit pas ; le refus dit
-    // lesquelles (salarie, jour) et qu'il faut corriger la saisie. Le numero de contrat ne distingue pas deux lignes.
+    // lesquelles (salarie, jour) et qu'il faut corriger la saisie. Ni le numero de contrat ni la validation ne distinguent
+    // deux lignes.
     if let Some(brutes) = data.get("engagements").and_then(Value::as_array).filter(|b| b.len() == paies.len()) {
         let sans_numero = |v: &Value| -> Value {
             match v {
-                Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| *k != "numero").map(|(k, x)| (k.clone(), x.clone())).collect()),
+                Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| *k != "numero" && *k != "valide").map(|(k, x)| (k.clone(), x.clone())).collect()),
                 autre => autre.clone(),
             }
         };

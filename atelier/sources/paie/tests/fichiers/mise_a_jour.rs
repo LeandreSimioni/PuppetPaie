@@ -617,7 +617,7 @@ fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
     let origine = inst.join("fictives").join(".origine").join("fictive-3090-petite");
     assert!(origine.join("config").join("entreprise.json").is_file(), "la photo d'origine");
     crate::outils::ecrire(&fictive, "config/entreprise.json", &json!({"nom_affichage": "Jouee sur ce poste"}));
-    crate::outils::ecrire(&fictive, "paies/2026-12.json", &json!({"joue": true}));
+    crate::outils::poser_saisie(&fictive, "2026-12", &json!({"joue": true}));
     let fiche = lire(&fictive.join("config").join("entreprise.json"));
     let photo = lire(&origine.join("config").join("entreprise.json"));
     crate::outils::ecrire(&inst, "maj/reglage.json", &json!({"depot": depot.display().to_string()}));
@@ -632,7 +632,7 @@ fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
     assert_eq!(lire(&fictive.join("config").join("entreprise.json")), fiche, "la fiche jouee est intacte");
-    assert!(fictive.join("paies").join("2026-12.json").is_file(), "la paie jouee aussi");
+    assert!(fictive.join("engagements").join("2026-12.json").is_file(), "la saisie jouee aussi");
     assert_eq!(lire(&origine.join("config").join("entreprise.json")), photo, "la photo d'origine aussi");
     let mut fictives: Vec<String> = std::fs::read_dir(inst.join("fictives")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
     fictives.sort();
@@ -705,7 +705,7 @@ fn une_livraison_de_fictives_changee_remplace_celles_qu_elle_a_posees_et_rien_d_
     let jouee = f.join("fictive-3090-petite");
     paie::interface::compagnies::figer_origine(&jouee).unwrap();
     crate::outils::ecrire(&jouee, "config/entreprise.json", &json!({"nom_affichage": "Jouee sur ce poste"}));
-    crate::outils::ecrire(&jouee, "paies/2026-12.json", &json!({"joue": true}));
+    crate::outils::poser_saisie(&jouee, "2026-12", &json!({"joue": true}));
     let copie = f.join("ma-partie");
     copier(&jouee, &copie);
     paie::interface::compagnies::figer_origine(&copie).unwrap();
@@ -730,7 +730,7 @@ fn une_livraison_de_fictives_changee_remplace_celles_qu_elle_a_posees_et_rien_d_
     let dit = maj::poser_les_fictives_pretes(&inst).unwrap();
     assert!(dit.contains("fictive-nouvelle non posee"), "{}", dit);
     assert!(lire(&jouee.join("config").join("entreprise.json")).contains("Nouvelle histoire"), "la fictive jouee est remplacee");
-    assert!(!jouee.join("paies").join("2026-12.json").exists(), "ce qui y etait joue est parti");
+    assert!(!jouee.join("engagements").join("2026-12.json").exists(), "ce qui y etait joue est parti");
     assert!(!f.join(".origine").join("fictive-3090-petite").exists(), "sa photo d'origine aussi");
     paie::interface::compagnies::figer_origine(&jouee).unwrap();
     assert!(lire(&f.join(".origine/fictive-3090-petite/config/entreprise.json")).contains("Nouvelle histoire"), "la suivante est la neuve");
@@ -815,7 +815,7 @@ fn la_livraison_des_fictives_ne_touche_jamais_une_fictive_ajoutee() {
     let f = inst.join("fictives");
     assert!(!f.join("ajoutee-chez-l-editeur").exists(), "rien de l'editeur n'arrive");
     let c = paie::interface::compagnies::ajouter_dans(&inst, "Fictive 3090 petite").unwrap();
-    crate::outils::ecrire(&c.racine, "paies/2026-12.json", &json!({"saisi": "sur ce poste"}));
+    crate::outils::poser_saisie(&c.racine, "2026-12", &json!({"saisi": "sur ce poste"}));
     let photo = photo_de(&c.racine);
 
     // La livraison suivante change tout, et livre une fictive au nom que porterait l'ajoutee sans son prefixe.
@@ -918,12 +918,12 @@ fn une_version_qui_change_un_calcul_attend_les_compagnies_reelles_pas_les_fictiv
     let fictive = inst.join(paie::interface::compagnies::DOSSIER_FICTIVES).join("fictive-3090-petite");
     compagnie::config_et_mois("fictive-3090-petite", &[], &fictive);
     std::fs::copy(crate::outils::fictive("fictive-3090-petite").join("COPIE-DE-DEVELOPPEMENT.json"), fictive.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
-    crate::outils::ecrire(&fictive, "paies/2030-01.json", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
+    crate::outils::poser_saisie(&fictive, "2030-01", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
     assert_eq!(maj::applicable(&inst).as_deref(), Some("2026.11.01"), "une fictive ne retient pas la version");
     // Une compagnie reelle avec le meme mois : elle la retient.
     let reelle = inst.join("compagnies").join("reelle");
     compagnie::config_et_mois("fictive-3090-petite", &[], &reelle);
-    crate::outils::ecrire(&reelle, "paies/2030-01.json", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
+    crate::outils::poser_saisie(&reelle, "2030-01", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
     assert!(maj::applicable(&inst).is_none(), "le mois 2030-01 de la compagnie reelle attend sa DSN");
     let refus = maj::appliquer(&inst, false).unwrap_err();
     assert!(refus.contains("2030-01 (reelle)") && refus.contains("--malgre-calcul"), "{}", refus);
@@ -947,17 +947,17 @@ fn les_mois_faits_en_demo_d_une_compagnie_gardee_ne_retiennent_pas_la_version() 
     let mut e = crate::outils::lire(&ajoutee.racine, "config/entreprise.json");
     e["nom_affichage"] = json!("Les Pupazzi");
     crate::outils::ecrire(&ajoutee.racine, "config/entreprise.json", &e);
-    crate::outils::ecrire(&ajoutee.racine, "paies/2030-01.json", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
+    crate::outils::poser_saisie(&ajoutee.racine, "2030-01", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
     // Debloque, on la garde : une compagnie reelle.
     crate::outils::debloquer(&inst);
     let poste = paie::administrateur::Poste { dossier_cle: base.join("cle"), maintenant: "2026-10-23T10:00".into() };
     let v = paie::interface::suppression::repondre(&inst, std::slice::from_ref(&ajoutee.id), &[], &poste, &|_| {}).unwrap();
     assert_eq!(v["erreurs"], json!([]), "{}", v);
     let gardee = inst.join("compagnies").join("les-pupazzi");
-    assert!(gardee.join("paies/2030-01.json").is_file());
+    assert!(gardee.join("engagements/2030-01.json").is_file());
     assert_eq!(maj::applicable(&inst).as_deref(), Some("2026.11.01"), "le mois fait en demo ne retient rien");
     // Un mois saisi apres : il attend sa DSN.
-    crate::outils::ecrire(&gardee, "paies/2030-02.json", &json!({"mois": "2030-02", "engagements": [{"salarie": "INVENTE"}]}));
+    crate::outils::poser_saisie(&gardee, "2030-02", &json!({"mois": "2030-02", "engagements": [{"salarie": "INVENTE"}]}));
     assert!(maj::applicable(&inst).is_none(), "le mois 2030-02, saisi apres, attend sa DSN");
     let refus = maj::appliquer(&inst, false).unwrap_err();
     assert!(refus.contains("2030-02 (les-pupazzi)") && !refus.contains("2030-01"), "{}", refus);
@@ -986,7 +986,7 @@ fn un_mois_de_demo_retravaille_apres_avoir_ete_garde_retient_la_version() {
     assert_eq!(paie::interface::suppression::mois_de_demo(&gardee), vec!["2026-10".to_string()]);
     assert_eq!(maj::applicable(&inst).as_deref(), Some("2026.11.01"), "fait en demo, il ne retient rien");
     // On le retravaille : sa saisie s'enregistre.
-    let saisie = crate::outils::lire(&gardee, "paies/2026-10.json");
+    let saisie = crate::outils::saisie(&gardee, "2026-10");
     crate::outils::reussi(&crate::outils::route(&gardee, "enregistrer-saisie", json!({"mois": "2026-10", "saisie": saisie}), "2026-10-22"));
     assert!(paie::interface::suppression::mois_de_demo(&gardee).is_empty(), "il n'est plus de demo");
     assert!(maj::applicable(&inst).is_none(), "il attend sa DSN comme tout mois reel");
@@ -1246,7 +1246,7 @@ fn la_recherche_dit_ou_elle_en_est_et_se_tait_quand_elle_a_fini() {
     crate::outils::ecrire(&inst, "maj/prete.json", &p);
     let reelle = inst.join("compagnies").join("reelle");
     compagnie::config_et_mois("fictive-3090-petite", &[], &reelle);
-    crate::outils::ecrire(&reelle, "paies/2030-01.json", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
+    crate::outils::poser_saisie(&reelle, "2030-01", &json!({"mois": "2030-01", "engagements": [{"salarie": "INVENTE"}]}));
     maj::verifier_suivi(&inst, true, &[&publique()], &suivi);
     let e = suivi.etat();
     fini(&e, "retenue");

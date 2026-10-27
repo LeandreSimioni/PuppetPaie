@@ -19,7 +19,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::depot_acte::verifier_preuve;
 use crate::envoi::{self, Message};
@@ -235,7 +235,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     // est ecrit (le Python ecrivait tout, bulletin compris : defaut non reproduit, decision de Leandre du 07/10/2026) ;
     // `reserver_numeros_envoyes` n'avance que les compteurs de contrat, jusqu'au numero reellement envoye.
     let mut reserves = crate::produire_mois::Reserves::default();
-    let (data, _rep, paies) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, &mois, Some(&mut reserves), false)?;
+    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, Some(&mut reserves))?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
@@ -485,7 +485,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
         }
     }
     // Le numero parti est celui que la DSN declarera : il s'ecrit dans la saisie et le compteur passe au-dessus.
-    reserver_numeros_envoyes(o, ctx, &s_mois, &contrats, &rangs_envoyes, "interface")?;
+    reserver_numeros_envoyes(ctx, &s_mois, &contrats, &rangs_envoyes, "interface")?;
     let detail = json!({"contrats": contrats, "expediteur": expediteur, "relance": relance});
     let ligne = noter(
         ctx,
@@ -514,7 +514,7 @@ pub(crate) fn an_et_nom_du_mois(mois: &str) -> R<(i32, &'static str)> {
 
 /// `_verifier_relance` : une relance ne vaut que pour un contrat demande, pas revenu, a jour.
 fn verifier_relance(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, cles: &[(String, String, String)]) -> R<()> {
-    let apercu = crate::routes_documents::signature_apercu_avec(o, ctx, &json!({"mois": mois}), false)?;
+    let apercu = crate::routes_documents::signature_apercu(o, ctx, &json!({"mois": mois}))?;
     let etats: Vec<&Value> = apercu.get("contrats").and_then(Value::as_array).map(|l| l.iter().collect()).unwrap_or_default();
     for (salarie, debut, numero) in cles {
         // Le contrat, pas son jumeau du meme jour : (salarie, debut, numero), comme l'ecran.
@@ -537,62 +537,42 @@ fn verifier_relance(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, cle
 
 // ------------------------------------------------------------------ reserver_numeros_envoyes
 
-/// `operations_paies.reserver_numeros_envoyes` : UN CONTRAT PARTI A LA SIGNATURE GARDE SON NUMERO.
-///
-/// Avant l'ecriture du mois, un contrat part sous le numero que le compteur PROPOSE, sans le reserver. Le numero
-/// s'ecrit dans la saisie des l'envoi (`numeroter` garde un numero deja porte) et le compteur passe au-dessus.
-/// `contrats` : [{"salarie", "debut", "numero"}]. Sous le verrou des compteurs.
-pub(crate) fn reserver_numeros_envoyes(
-    o: &HashMap<String, String>,
-    ctx: &Contexte,
-    mois: &str,
-    contrats: &[Value],
-    rangs_envoyes: &[usize],
-    qui: &str,
-) -> R<()> {
-    use crate::produire_mois::{calculer, charger};
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
-        return Ok(());
-    }
+/// UN CONTRAT PARTI A LA SIGNATURE GARDE SON NUMERO. Il part sous le numero que le compteur PROPOSE ; le numero
+/// s'ecrit sur l'engagement des l'envoi (`engagement::stock::poser_numero` ; `numeroter` garde un numero deja porte) et
+/// le compteur passe au-dessus. `contrats` : [{"salarie", "debut", "numero"}] ; `rangs_envoyes` : leur rang parmi les
+/// paies qui peuvent partir du mois (`apercu_dsn::paies_aux_numeros_declares`). Sous le verrou des compteurs.
+pub(crate) fn reserver_numeros_envoyes(ctx: &Contexte, mois: &str, contrats: &[Value], rangs_envoyes: &[usize], qui: &str) -> R<()> {
+    let Some((_data, paies)) = engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)? else { return Ok(()) };
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
-    // `_paies_par_rang` : les donnees brutes, et (cle du salarie, premier jour) de chaque paie, dans l'ordre du fichier.
-    // Les compteurs ne bougent que par ce qui est ecrit sur un contrat parti : `reserves` ne recoit que
-    // `enregistrer` (le Python reservait aussi ce que `charger` propose, bulletin compris : defaut non reproduit).
+    // Les compteurs ne bougent que par ce qui est ecrit sur un contrat parti : `reserves` ne recoit que `enregistrer`.
     let mut reserves = crate::produire_mois::Reserves::default();
-    let mut data = crate::engagement::lire_saisie(&chemin).map_err(|m| erreur("ValueError", m))?;
-    let rep = calculer(o, ctx, &data)?;
-    let paies = charger(ctx, &data, &rep, None)?;
     let rangs: Vec<Paire> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso())).collect();
-    // Par RANG dans la saisie, pas par (salarie, debut) : deux contrats du meme jour ne se confondent pas, et celui qui n'est
-    // pas parti ne recoit pas le numero de l'autre.
+    // Par RANG, pas par (salarie, debut) : deux contrats du meme jour ne se confondent pas, et celui qui n'est pas parti
+    // ne recoit pas le numero de l'autre.
     let mut voulus: HashMap<usize, Value> = HashMap::new();
     for (c, rang) in contrats.iter().zip(rangs_envoyes) {
         voulus.insert(*rang, c.get("numero").cloned().unwrap_or(Value::Null));
     }
     let mut change = false;
-    if let Some(Value::Array(eng)) = data.get_mut("engagements") {
-        for (i, cle) in rangs.iter().enumerate() {
-            let Some(n) = voulus.get(&i).filter(|n| vrai(n)) else { continue };
-            if i >= eng.len() || eng[i].get("numero").is_some_and(vrai) {
-                continue;
-            }
-            if let Value::Object(e) = &mut eng[i] {
-                e.insert("numero".into(), n.clone());
-            }
-            change = true;
-            if let Some((annee, seq)) = annee_et_rang(&valeur_en_texte(n)) {
-                let compteur = format!("contrat_{}", cle.0);
-                if reserves.prochain(ctx, &compteur, annee)? <= seq {
-                    reserves.enregistrer(annee, &compteur, seq);
-                }
+    for (i, cle) in rangs.iter().enumerate() {
+        let Some(n) = voulus.get(&i).filter(|n| vrai(n)) else { continue };
+        if paies[i].engagement.numero.as_deref().is_some_and(|x| !x.is_empty()) {
+            continue;
+        }
+        let jumeau = rangs[..i].iter().zip(&paies[..i]).filter(|(r, p)| *r == cle && p.engagement.numero.as_deref().map_or(true, str::is_empty)).count();
+        if !engagement::stock::poser_numero(ctx, mois, &cle.0, &cle.1, jumeau, &valeur_en_texte(n)).map_err(Echec::from)? {
+            continue;
+        }
+        change = true;
+        if let Some((annee, seq)) = annee_et_rang(&valeur_en_texte(n)) {
+            let compteur = format!("contrat_{}", cle.0);
+            if reserves.prochain(ctx, &compteur, annee)? <= seq {
+                reserves.enregistrer(annee, &compteur, seq);
             }
         }
     }
     if change {
         reserves.valider(ctx)?;
-        crate::routes_contrats::sauver_avant(&chemin).map_err(Echec::from)?;
-        socle::ecriture::ecrire_json(&chemin, &data, 2).map_err(|m| erreur("OSError", m))?;
     }
     Ok(())
 }
@@ -685,11 +665,10 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
         let salarie_v = requis(v, "salarie")?;
         let debut_v = requis(v, "debut")?;
         // `numero` (celui que `signature-apercu` rend) et `mois` (celui de l'ecran) disent QUEL contrat du jour : facultatifs.
-        let apercu = crate::routes_documents::avenant_apercu_avec(
+        let apercu = crate::routes_documents::avenant_apercu(
             o,
             ctx,
             &json!({"salarie": salarie_v, "debut": debut_v, "numero": v.get("numero").cloned().unwrap_or(Value::Null), "mois": v.get("mois").cloned().unwrap_or(Value::Null)}),
-            false,
         )?;
         let modifications = apercu["modifications"].as_array().map_or(0, Vec::len);
         let nom = apercu.get("nom").map(valeur_en_texte).unwrap_or_default();
@@ -736,7 +715,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
         for a in aa {
             let mois_a = a.texte("mois");
             if !saisies.contains_key(&mois_a) {
-                let (d, _rep, p) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, &mois_a, None, false)?;
+                let (d, p) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois_a, None)?;
                 saisies.insert(mois_a.clone(), (d, p));
             }
             let (data, paies) = &saisies[&mois_a];

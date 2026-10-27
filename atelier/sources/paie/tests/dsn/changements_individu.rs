@@ -42,7 +42,7 @@ fn changer(racine: &Path, cle: &str, changements: &[(&str, &str, Option<&str>)])
 }
 
 fn produire(racine: &Path, mois: &str, jour: &str) -> Value {
-    outils::route(racine, "produire", json!({"mois": mois, "saisie": lire(racine, &format!("paies/{}.json", mois))}), jour)
+    outils::route(racine, "produire", json!({"mois": mois, "saisie": crate::outils::saisie(racine, &mois)}), jour)
 }
 
 /// (rubrique, valeur) d'un fichier DSN.

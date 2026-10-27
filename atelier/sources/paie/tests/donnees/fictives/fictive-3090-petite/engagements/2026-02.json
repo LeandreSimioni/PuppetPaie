@@ -1,0 +1,1123 @@
+{
+  "_origine": "Compagnie de demonstration demo-3090-petite, fabriquee par outils/compagnies_demo.py.",
+  "mois": "2026-02",
+  "taux_cachet": 150.0,
+  "date_paiement": "2026-02-28",
+  "numeros_figes": true,
+  "engagements": [
+    {
+      "salarie": "Brioche",
+      "spectacle": "256Z00920022",
+      "debut": "2026-02-09",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 150.0,
+          "lieu": "Ecoles du Puy-de-Dome",
+          "dates": [
+            "2026-02-09",
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ],
+      "numero": "BR1.26.01",
+      "valide": {
+        "le": "2026-10-25T19:01:41",
+        "paies": {
+          "2026-02": {
+            "paie": {
+              "assiette_chomage": "750",
+              "avertissements": [],
+              "base_csg": "745.2",
+              "bases": {
+                "brut": "750",
+                "brut_chomage": "750",
+                "brut_cs": "750",
+                "brut_plafonne": "715.18",
+                "brut_x110": "825",
+                "brut_x115": "836.25",
+                "brut_x115_plafonne": "797.43",
+                "csg": "745.2"
+              },
+              "brut": "750",
+              "cout_employeur": "1178.3",
+              "deduction_forfaitaire": null,
+              "engagement": {
+                "salarie": "Brioche",
+                "spectacle": "256Z00920022",
+                "dates_travail": [
+                  "2026-02-09",
+                  "2026-02-10",
+                  "2026-02-11",
+                  "2026-02-12",
+                  "2026-02-13"
+                ],
+                "lignes": [
+                  {
+                    "rubrique": "cachet",
+                    "quantite": 5,
+                    "taux": 150.0,
+                    "lieu": "Ecoles du Puy-de-Dome",
+                    "dates": [
+                      "2026-02-09",
+                      "2026-02-10",
+                      "2026-02-11",
+                      "2026-02-12",
+                      "2026-02-13"
+                    ]
+                  }
+                ],
+                "debut": "2026-02-09",
+                "fin": "2026-02-13",
+                "numero": "BR1.26.01",
+                "mois": "2026-02",
+                "planning": [],
+                "planning_lieux": {},
+                "jours": "5",
+                "jours_contrat": "5",
+                "date_paiement": "2026-02-13",
+                "taux_cachet": "150",
+                "cachets": "5",
+                "heures": null,
+                "lieu": "",
+                "lieux": {
+                  "2026-02-09": "Ecoles du Puy-de-Dome",
+                  "2026-02-10": "Ecoles du Puy-de-Dome",
+                  "2026-02-11": "Ecoles du Puy-de-Dome",
+                  "2026-02-12": "Ecoles du Puy-de-Dome",
+                  "2026-02-13": "Ecoles du Puy-de-Dome"
+                },
+                "emploi": null,
+                "pcs_ese": null,
+                "code_emploi_ft": null,
+                "statut": null,
+                "statut_conventionnel": null,
+                "statut_categoriel_rc": null,
+                "nature": "cddu_spectacle",
+                "quotite_contrat": null,
+                "quotite_reference_saisie": null,
+                "modalite_temps_travail_saisie": null,
+                "motif_recours": null,
+                "motif_rupture": null,
+                "notification_rupture": null,
+                "preavis": null,
+                "transaction": null,
+                "suspensions": [],
+                "debut_periode": "2026-02-09",
+                "fin_periode": "2026-02-13",
+                "quotite": "5",
+                "sans_paie": false,
+                "premier_mois": true,
+                "dernier_mois": true,
+                "mois_du_contrat": [
+                  "2026-02"
+                ]
+              },
+              "heures": "35",
+              "heures_absence": "0",
+              "heures_travaillees": "60",
+              "lignes": [
+                {
+                  "id": "maladie",
+                  "famille": "SANTÉ",
+                  "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
+                  "base": "750",
+                  "taux_pat": "9.1",
+                  "montant_pat": "68.25",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "prevoyance",
+                  "famille": "SANTÉ",
+                  "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+                  "base": "750",
+                  "taux_pat": "1.11",
+                  "montant_pat": "8.33",
+                  "taux_sal": "0.12",
+                  "montant_sal": "0.9",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "atmp",
+                  "famille": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
+                  "libelle": "Accidents du travail",
+                  "base": "750",
+                  "taux_pat": "0.875",
+                  "montant_pat": "6.56",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_plaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale plafonnée",
+                  "base": "715.18",
+                  "taux_pat": "5.99",
+                  "montant_pat": "42.84",
+                  "taux_sal": "4.83",
+                  "montant_sal": "34.54",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_deplaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale déplafonnée",
+                  "base": "750",
+                  "taux_pat": "1.48",
+                  "montant_pat": "11.1",
+                  "taux_sal": "0.28",
+                  "montant_sal": "2.1",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "retraite_t1",
+                  "famille": "RETRAITE",
+                  "libelle": "Complémentaire Tranche 1",
+                  "base": "750",
+                  "taux_pat": "5.74",
+                  "montant_pat": "43.05",
+                  "taux_sal": "5.3",
+                  "montant_sal": "39.75",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "famille",
+                  "famille": "FAMILLE",
+                  "libelle": "Allocations familiales",
+                  "base": "750",
+                  "taux_pat": "3.68",
+                  "montant_pat": "27.6",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "chomage",
+                  "famille": "ASSURANCE CHÔMAGE",
+                  "libelle": "Chômage",
+                  "base": "750",
+                  "taux_pat": "9.75",
+                  "montant_pat": "73.13",
+                  "taux_sal": "2.4",
+                  "montant_sal": "18",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_1",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "750",
+                  "taux_pat": "2.836",
+                  "montant_pat": "21.27",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_2",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "797.43",
+                  "taux_pat": "0.07",
+                  "montant_pat": "0.56",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_3",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "825",
+                  "taux_pat": "0.68",
+                  "montant_pat": "5.61",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "conges_spec",
+                  "famille": "CONGÉS SPECTACLES",
+                  "libelle": "Caisse des Congés Spectacles",
+                  "base": "750",
+                  "taux_pat": "15.5",
+                  "montant_pat": "116.25",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "ccn",
+                  "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+                  "libelle": "Cotisations conventionnelles IDCC 3090",
+                  "base": "750",
+                  "taux_pat": "0.5",
+                  "montant_pat": "3.75",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                },
+                {
+                  "id": "csg_ded",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG déductible de l'impôt sur le revenu",
+                  "base": "745.2",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "6.8",
+                  "montant_sal": "50.67",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "csg_crds_nd",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+                  "base": "745.2",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "2.9",
+                  "montant_sal": "21.61",
+                  "masquer_base_et_taux": false
+                }
+              ],
+              "net_a_payer": "582.43",
+              "net_imposable": "604.04",
+              "net_social": "582.43",
+              "numero_bulletin": null,
+              "reduction_generale": null,
+              "remuneration": [
+                {
+                  "code": "cachet",
+                  "libelle": "Cachet",
+                  "unite": "cachet",
+                  "quantite": "5",
+                  "taux": "150",
+                  "montant": "750",
+                  "heures_annexes": "60",
+                  "soumis": true,
+                  "imposable": true,
+                  "conges_spectacles": true,
+                  "salaire_de_base": false,
+                  "retabli": false,
+                  "conges_pris": false,
+                  "dsn_bloc52": null,
+                  "arret_de_travail": false,
+                  "dsn_autres_bruts": null,
+                  "designation": "5 Cachets"
+                }
+              ],
+              "salaire_de_base": "750",
+              "salaire_retabli": "750",
+              "salarie": {
+                "_cle": "BRIOCHE"
+              },
+              "smic": "12.02",
+              "spectacle": {
+                "_cle": "les-pupazzi"
+              },
+              "total_pat": "428.3",
+              "total_sal": "167.57",
+              "plafond": "420.7",
+              "plafond_urssaf": "715.18"
+            },
+            "empreinte": {
+              "entrees": {
+                "dossier racine:imprevus": "absent",
+                "dossier? racine:": "oui",
+                "dossier? racine:arrets": "non",
+                "existe code:baremes/2026.json": "oui",
+                "existe code:rubriques-base.json": "oui",
+                "existe racine:config/baremes/2026.json": "oui",
+                "existe racine:config/effectifs.json": "oui",
+                "existe racine:config/pas.json": "oui",
+                "existe racine:config/rubriques-actives.json": "oui",
+                "existe racine:config/rubriques-compagnie.json": "non",
+                "fiches": "c1a9377bb49e2e75dc21cb97f0f40450522b2fa3a239efb26d9195932e5dc637",
+                "fichier code:baremes/2026.json": "a57af8d9d2132d5c4f979f785d766e3df53e729912b9d5a9c13ecf277417ca8f",
+                "fichier code:contrats-base.json": "a881fb6ed4fa89b72c3912e3f6ac5a1be537eb3842f11855971097750e4a3de8",
+                "fichier code:emplois-base.json": "18fa6cbb9d595636973a3689eac9964b5f9781448f7ef0e043124028bb8572ad",
+                "fichier code:minima-conventionnels.json": "52a5712b31f9ce263f273dc49dcf8aa817a69bd81535f7c483e9fb21f11db5ee",
+                "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
+                "fichier racine:config/baremes/2026.json": "4ff04df028809eec5ff474444db925d112cc514aa61a8beff6eee070717a6c6a",
+                "fichier racine:config/effectifs.json": "ccfb4683cded75a52fe850b311604013de2de6842a64b6cf82bd99ffbdd3118b",
+                "fichier racine:config/pas.json": "aeb78091c7cdd504ab65b51a9875b851cf783624344089b8c4f93ec153af776d",
+                "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
+                "moteur": "0.1.0+f150e58b15f7cd60",
+                "saisie 2026-02": "24817f4a759594c464f9b221027d1bb03fd6b4f526f3ea431a961adb2ed7a77b"
+              },
+              "regles": [
+                "2026-01-01"
+              ]
+            },
+            "pas": {
+              "taux": "4.30",
+              "type": "01",
+              "identifiant": "892012027",
+              "abattement": "0",
+              "montant_soumis": "604.04",
+              "prelevement": "25.97"
+            }
+          }
+        }
+      }
+    },
+    {
+      "salarie": "Seraphin",
+      "spectacle": "256Z00920022",
+      "debut": "2026-02-09",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "cachet",
+          "quantite": 5,
+          "taux": 150.0,
+          "lieu": "Ecoles du Puy-de-Dome",
+          "dates": [
+            "2026-02-09",
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ],
+      "numero": "SE2.26.01",
+      "valide": {
+        "le": "2026-10-25T19:01:41",
+        "paies": {
+          "2026-02": {
+            "paie": {
+              "assiette_chomage": "750",
+              "avertissements": [],
+              "base_csg": "745.2",
+              "bases": {
+                "brut": "750",
+                "brut_chomage": "750",
+                "brut_cs": "750",
+                "brut_plafonne": "715.18",
+                "brut_x110": "825",
+                "brut_x115": "836.25",
+                "brut_x115_plafonne": "797.43",
+                "csg": "745.2"
+              },
+              "brut": "750",
+              "cout_employeur": "1178.3",
+              "deduction_forfaitaire": null,
+              "engagement": {
+                "salarie": "Seraphin",
+                "spectacle": "256Z00920022",
+                "dates_travail": [
+                  "2026-02-09",
+                  "2026-02-10",
+                  "2026-02-11",
+                  "2026-02-12",
+                  "2026-02-13"
+                ],
+                "lignes": [
+                  {
+                    "rubrique": "cachet",
+                    "quantite": 5,
+                    "taux": 150.0,
+                    "lieu": "Ecoles du Puy-de-Dome",
+                    "dates": [
+                      "2026-02-09",
+                      "2026-02-10",
+                      "2026-02-11",
+                      "2026-02-12",
+                      "2026-02-13"
+                    ]
+                  }
+                ],
+                "debut": "2026-02-09",
+                "fin": "2026-02-13",
+                "numero": "SE2.26.01",
+                "mois": "2026-02",
+                "planning": [],
+                "planning_lieux": {},
+                "jours": "5",
+                "jours_contrat": "5",
+                "date_paiement": "2026-02-13",
+                "taux_cachet": "150",
+                "cachets": "5",
+                "heures": null,
+                "lieu": "",
+                "lieux": {
+                  "2026-02-09": "Ecoles du Puy-de-Dome",
+                  "2026-02-10": "Ecoles du Puy-de-Dome",
+                  "2026-02-11": "Ecoles du Puy-de-Dome",
+                  "2026-02-12": "Ecoles du Puy-de-Dome",
+                  "2026-02-13": "Ecoles du Puy-de-Dome"
+                },
+                "emploi": null,
+                "pcs_ese": null,
+                "code_emploi_ft": null,
+                "statut": null,
+                "statut_conventionnel": null,
+                "statut_categoriel_rc": null,
+                "nature": "cddu_spectacle",
+                "quotite_contrat": null,
+                "quotite_reference_saisie": null,
+                "modalite_temps_travail_saisie": null,
+                "motif_recours": null,
+                "motif_rupture": null,
+                "notification_rupture": null,
+                "preavis": null,
+                "transaction": null,
+                "suspensions": [],
+                "debut_periode": "2026-02-09",
+                "fin_periode": "2026-02-13",
+                "quotite": "5",
+                "sans_paie": false,
+                "premier_mois": true,
+                "dernier_mois": true,
+                "mois_du_contrat": [
+                  "2026-02"
+                ]
+              },
+              "heures": "35",
+              "heures_absence": "0",
+              "heures_travaillees": "60",
+              "lignes": [
+                {
+                  "id": "maladie",
+                  "famille": "SANTÉ",
+                  "libelle": "Sécurité sociale — Maladie Maternité Invalidité Décès",
+                  "base": "750",
+                  "taux_pat": "9.1",
+                  "montant_pat": "68.25",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "prevoyance",
+                  "famille": "SANTÉ",
+                  "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+                  "base": "750",
+                  "taux_pat": "1.11",
+                  "montant_pat": "8.33",
+                  "taux_sal": "0.12",
+                  "montant_sal": "0.9",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "atmp",
+                  "famille": "ACCIDENTS DU TRAVAIL — MALADIES PROFESSIONNELLES",
+                  "libelle": "Accidents du travail",
+                  "base": "750",
+                  "taux_pat": "0.875",
+                  "montant_pat": "6.56",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_plaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale plafonnée",
+                  "base": "715.18",
+                  "taux_pat": "5.99",
+                  "montant_pat": "42.84",
+                  "taux_sal": "4.83",
+                  "montant_sal": "34.54",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_deplaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale déplafonnée",
+                  "base": "750",
+                  "taux_pat": "1.48",
+                  "montant_pat": "11.1",
+                  "taux_sal": "0.28",
+                  "montant_sal": "2.1",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "retraite_t1",
+                  "famille": "RETRAITE",
+                  "libelle": "Complémentaire Tranche 1",
+                  "base": "750",
+                  "taux_pat": "5.74",
+                  "montant_pat": "43.05",
+                  "taux_sal": "5.3",
+                  "montant_sal": "39.75",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "famille",
+                  "famille": "FAMILLE",
+                  "libelle": "Allocations familiales",
+                  "base": "750",
+                  "taux_pat": "3.68",
+                  "montant_pat": "27.6",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "chomage",
+                  "famille": "ASSURANCE CHÔMAGE",
+                  "libelle": "Chômage",
+                  "base": "750",
+                  "taux_pat": "9.75",
+                  "montant_pat": "73.13",
+                  "taux_sal": "2.4",
+                  "montant_sal": "18",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_1",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "750",
+                  "taux_pat": "2.836",
+                  "montant_pat": "21.27",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_2",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "797.43",
+                  "taux_pat": "0.07",
+                  "montant_pat": "0.56",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_3",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "825",
+                  "taux_pat": "0.68",
+                  "montant_pat": "5.61",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "conges_spec",
+                  "famille": "CONGÉS SPECTACLES",
+                  "libelle": "Caisse des Congés Spectacles",
+                  "base": "750",
+                  "taux_pat": "15.5",
+                  "montant_pat": "116.25",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "ccn",
+                  "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+                  "libelle": "Cotisations conventionnelles IDCC 3090",
+                  "base": "750",
+                  "taux_pat": "0.5",
+                  "montant_pat": "3.75",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                },
+                {
+                  "id": "csg_ded",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG déductible de l'impôt sur le revenu",
+                  "base": "745.2",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "6.8",
+                  "montant_sal": "50.67",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "csg_crds_nd",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+                  "base": "745.2",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "2.9",
+                  "montant_sal": "21.61",
+                  "masquer_base_et_taux": false
+                }
+              ],
+              "net_a_payer": "582.43",
+              "net_imposable": "604.04",
+              "net_social": "582.43",
+              "numero_bulletin": null,
+              "reduction_generale": null,
+              "remuneration": [
+                {
+                  "code": "cachet",
+                  "libelle": "Cachet",
+                  "unite": "cachet",
+                  "quantite": "5",
+                  "taux": "150",
+                  "montant": "750",
+                  "heures_annexes": "60",
+                  "soumis": true,
+                  "imposable": true,
+                  "conges_spectacles": true,
+                  "salaire_de_base": false,
+                  "retabli": false,
+                  "conges_pris": false,
+                  "dsn_bloc52": null,
+                  "arret_de_travail": false,
+                  "dsn_autres_bruts": null,
+                  "designation": "5 Cachets"
+                }
+              ],
+              "salaire_de_base": "750",
+              "salaire_retabli": "750",
+              "salarie": {
+                "_cle": "SERAPHIN"
+              },
+              "smic": "12.02",
+              "spectacle": {
+                "_cle": "les-pupazzi"
+              },
+              "total_pat": "428.3",
+              "total_sal": "167.57",
+              "plafond": "420.7",
+              "plafond_urssaf": "715.18"
+            },
+            "empreinte": {
+              "entrees": {
+                "dossier racine:imprevus": "absent",
+                "dossier? racine:": "oui",
+                "dossier? racine:arrets": "non",
+                "existe code:baremes/2026.json": "oui",
+                "existe code:rubriques-base.json": "oui",
+                "existe racine:config/baremes/2026.json": "oui",
+                "existe racine:config/effectifs.json": "oui",
+                "existe racine:config/pas.json": "oui",
+                "existe racine:config/rubriques-actives.json": "oui",
+                "existe racine:config/rubriques-compagnie.json": "non",
+                "fiches": "c1a9377bb49e2e75dc21cb97f0f40450522b2fa3a239efb26d9195932e5dc637",
+                "fichier code:baremes/2026.json": "a57af8d9d2132d5c4f979f785d766e3df53e729912b9d5a9c13ecf277417ca8f",
+                "fichier code:contrats-base.json": "a881fb6ed4fa89b72c3912e3f6ac5a1be537eb3842f11855971097750e4a3de8",
+                "fichier code:emplois-base.json": "18fa6cbb9d595636973a3689eac9964b5f9781448f7ef0e043124028bb8572ad",
+                "fichier code:minima-conventionnels.json": "52a5712b31f9ce263f273dc49dcf8aa817a69bd81535f7c483e9fb21f11db5ee",
+                "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
+                "fichier racine:config/baremes/2026.json": "4ff04df028809eec5ff474444db925d112cc514aa61a8beff6eee070717a6c6a",
+                "fichier racine:config/effectifs.json": "ccfb4683cded75a52fe850b311604013de2de6842a64b6cf82bd99ffbdd3118b",
+                "fichier racine:config/pas.json": "aeb78091c7cdd504ab65b51a9875b851cf783624344089b8c4f93ec153af776d",
+                "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
+                "moteur": "0.1.0+f150e58b15f7cd60",
+                "saisie 2026-02": "24817f4a759594c464f9b221027d1bb03fd6b4f526f3ea431a961adb2ed7a77b"
+              },
+              "regles": [
+                "2026-01-01"
+              ]
+            },
+            "pas": {
+              "taux": "5.40",
+              "type": "01",
+              "identifiant": "892112027",
+              "abattement": "0",
+              "montant_soumis": "604.04",
+              "prelevement": "32.62"
+            }
+          }
+        }
+      }
+    },
+    {
+      "salarie": "Lemercier",
+      "spectacle": "256Z00920022",
+      "debut": "2026-02-09",
+      "fin": "2026-02-13",
+      "date_paiement": "2026-02-13",
+      "lignes": [
+        {
+          "rubrique": "heure",
+          "quantite": 30,
+          "taux": 18.0,
+          "lieu": "Ecoles du Puy-de-Dome",
+          "dates": [
+            "2026-02-09",
+            "2026-02-10",
+            "2026-02-11",
+            "2026-02-12",
+            "2026-02-13"
+          ]
+        }
+      ],
+      "numero": "LE3.26.01",
+      "valide": {
+        "le": "2026-10-25T19:01:41",
+        "paies": {
+          "2026-02": {
+            "paie": {
+              "assiette_chomage": "540",
+              "avertissements": [],
+              "base_csg": "536.54",
+              "bases": {
+                "brut": "540",
+                "brut_chomage": "540",
+                "brut_cs": "540",
+                "brut_plafonne": "540",
+                "brut_x110": "594",
+                "brut_x115": "602.1",
+                "brut_x115_plafonne": "602.1",
+                "csg": "536.54"
+              },
+              "brut": "540",
+              "cout_employeur": "816.21",
+              "deduction_forfaitaire": null,
+              "engagement": {
+                "salarie": "Lemercier",
+                "spectacle": "256Z00920022",
+                "dates_travail": [
+                  "2026-02-09",
+                  "2026-02-10",
+                  "2026-02-11",
+                  "2026-02-12",
+                  "2026-02-13"
+                ],
+                "lignes": [
+                  {
+                    "rubrique": "heure",
+                    "quantite": 30,
+                    "taux": 18.0,
+                    "lieu": "Ecoles du Puy-de-Dome",
+                    "dates": [
+                      "2026-02-09",
+                      "2026-02-10",
+                      "2026-02-11",
+                      "2026-02-12",
+                      "2026-02-13"
+                    ]
+                  }
+                ],
+                "debut": "2026-02-09",
+                "fin": "2026-02-13",
+                "numero": "LE3.26.01",
+                "mois": "2026-02",
+                "planning": [],
+                "planning_lieux": {},
+                "jours": "5",
+                "jours_contrat": "5",
+                "date_paiement": "2026-02-13",
+                "taux_cachet": "150",
+                "cachets": "0",
+                "heures": "30",
+                "lieu": "",
+                "lieux": {
+                  "2026-02-09": "Ecoles du Puy-de-Dome",
+                  "2026-02-10": "Ecoles du Puy-de-Dome",
+                  "2026-02-11": "Ecoles du Puy-de-Dome",
+                  "2026-02-12": "Ecoles du Puy-de-Dome",
+                  "2026-02-13": "Ecoles du Puy-de-Dome"
+                },
+                "emploi": null,
+                "pcs_ese": null,
+                "code_emploi_ft": null,
+                "statut": null,
+                "statut_conventionnel": null,
+                "statut_categoriel_rc": null,
+                "nature": "cddu_spectacle",
+                "quotite_contrat": null,
+                "quotite_reference_saisie": null,
+                "modalite_temps_travail_saisie": null,
+                "motif_recours": null,
+                "motif_rupture": null,
+                "notification_rupture": null,
+                "preavis": null,
+                "transaction": null,
+                "suspensions": [],
+                "debut_periode": "2026-02-09",
+                "fin_periode": "2026-02-13",
+                "quotite": "5",
+                "sans_paie": false,
+                "premier_mois": true,
+                "dernier_mois": true,
+                "mois_du_contrat": [
+                  "2026-02"
+                ]
+              },
+              "heures": "30",
+              "heures_absence": "0",
+              "heures_travaillees": "30",
+              "lignes": [
+                {
+                  "id": "maladie",
+                  "famille": "SANTÉ",
+                  "libelle": "Sécurité sociale – Maladie Maternité Invalidité Décès",
+                  "base": "540",
+                  "taux_pat": "13",
+                  "montant_pat": "70.2",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "prevoyance",
+                  "famille": "SANTÉ",
+                  "libelle": "Complémentaire Incapacité Invalidité Décès (Audiens)",
+                  "base": "540",
+                  "taux_pat": "1.11",
+                  "montant_pat": "5.99",
+                  "taux_sal": "0.12",
+                  "montant_sal": "0.65",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "atmp",
+                  "famille": "ACCIDENTS DU TRAVAIL – MALADIES PROFESSIONNELLES",
+                  "libelle": "Accidents du travail",
+                  "base": "540",
+                  "taux_pat": "1.25",
+                  "montant_pat": "6.75",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_plaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale plafonnée",
+                  "base": "540",
+                  "taux_pat": "8.55",
+                  "montant_pat": "46.17",
+                  "taux_sal": "6.9",
+                  "montant_sal": "37.26",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "vieil_deplaf",
+                  "famille": "RETRAITE",
+                  "libelle": "Sécurité sociale déplafonnée",
+                  "base": "540",
+                  "taux_pat": "2.11",
+                  "montant_pat": "11.39",
+                  "taux_sal": "0.4",
+                  "montant_sal": "2.16",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "retraite_t1",
+                  "famille": "RETRAITE",
+                  "libelle": "Complémentaire Tranche 1",
+                  "base": "540",
+                  "taux_pat": "5.23",
+                  "montant_pat": "28.24",
+                  "taux_sal": "4.79",
+                  "montant_sal": "25.87",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "famille",
+                  "famille": "FAMILLE",
+                  "libelle": "Allocations familiales",
+                  "base": "540",
+                  "taux_pat": "5.25",
+                  "montant_pat": "28.35",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "chomage",
+                  "famille": "ASSURANCE CHÔMAGE",
+                  "libelle": "Chômage",
+                  "base": "540",
+                  "taux_pat": "9.75",
+                  "montant_pat": "52.65",
+                  "taux_sal": "2.4",
+                  "montant_sal": "12.96",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_1",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "540",
+                  "taux_pat": "2.836",
+                  "montant_pat": "15.31",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_2",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "602.1",
+                  "taux_pat": "0.1",
+                  "montant_pat": "0.6",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "autres_3",
+                  "famille": "AUTRES CONTRIBUTIONS DUES PAR L'EMPLOYEUR",
+                  "libelle": "Autres contributions dues par l'employeur",
+                  "base": "594",
+                  "taux_pat": "0.68",
+                  "montant_pat": "4.03",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "conges_spec",
+                  "famille": "CONGÉS SPECTACLES",
+                  "libelle": "Caisse des Congés Spectacles",
+                  "base": "540",
+                  "taux_pat": "15.5",
+                  "montant_pat": "83.7",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "ccn",
+                  "famille": "COTISATIONS STATUTAIRES OU PRÉVUES PAR LA CONVENTION COLLECTIVE",
+                  "libelle": "Cotisations conventionnelles IDCC 3090",
+                  "base": "540",
+                  "taux_pat": "0.5",
+                  "montant_pat": "2.7",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                },
+                {
+                  "id": "csg_ded",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG déductible de l'impôt sur le revenu",
+                  "base": "536.54",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "6.8",
+                  "montant_sal": "36.48",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "csg_crds_nd",
+                  "famille": "CSG / CRDS",
+                  "libelle": "CSG/CRDS non déductible de l'impôt sur le revenu",
+                  "base": "536.54",
+                  "taux_pat": null,
+                  "montant_pat": "0",
+                  "taux_sal": "2.9",
+                  "montant_sal": "15.56",
+                  "masquer_base_et_taux": false
+                },
+                {
+                  "id": "reduction_generale",
+                  "famille": "EXONÉRATIONS ET ALLÈGEMENTS DE COTISATIONS",
+                  "libelle": "Réduction générale dégressive unique",
+                  "base": "540",
+                  "taux_pat": null,
+                  "montant_pat": "-79.87",
+                  "taux_sal": null,
+                  "montant_sal": "0",
+                  "masquer_base_et_taux": true
+                }
+              ],
+              "net_a_payer": "409.06",
+              "net_imposable": "424.62",
+              "net_social": "409.06",
+              "numero_bulletin": null,
+              "reduction_generale": {
+                "coefficient": "0.1479",
+                "montant": "79.87",
+                "smic_reference": "360.6",
+                "heures": "30",
+                "urssaf": "59.78",
+                "chomage": "8.03",
+                "agirc_arrco": "12.06"
+              },
+              "remuneration": [
+                {
+                  "code": "heure",
+                  "libelle": "Heure de travail",
+                  "unite": "heure",
+                  "quantite": "30",
+                  "taux": "18",
+                  "montant": "540",
+                  "heures_annexes": "30",
+                  "soumis": true,
+                  "imposable": true,
+                  "conges_spectacles": true,
+                  "salaire_de_base": false,
+                  "retabli": false,
+                  "conges_pris": false,
+                  "dsn_bloc52": null,
+                  "arret_de_travail": false,
+                  "dsn_autres_bruts": null,
+                  "designation": "30 Heures de travail"
+                }
+              ],
+              "salaire_de_base": "540",
+              "salaire_retabli": "540",
+              "salarie": {
+                "_cle": "LEMERCIER"
+              },
+              "smic": "12.02",
+              "spectacle": {
+                "_cle": "les-pupazzi"
+              },
+              "total_pat": "276.21",
+              "total_sal": "130.94",
+              "plafond": "360.6",
+              "plafond_urssaf": "715.18"
+            },
+            "empreinte": {
+              "entrees": {
+                "dossier racine:imprevus": "absent",
+                "dossier? racine:": "oui",
+                "dossier? racine:arrets": "non",
+                "existe code:baremes/2026.json": "oui",
+                "existe code:rubriques-base.json": "oui",
+                "existe racine:config/baremes/2026.json": "oui",
+                "existe racine:config/effectifs.json": "oui",
+                "existe racine:config/pas.json": "oui",
+                "existe racine:config/rubriques-actives.json": "oui",
+                "existe racine:config/rubriques-compagnie.json": "non",
+                "fiches": "c1a9377bb49e2e75dc21cb97f0f40450522b2fa3a239efb26d9195932e5dc637",
+                "fichier code:baremes/2026.json": "a57af8d9d2132d5c4f979f785d766e3df53e729912b9d5a9c13ecf277417ca8f",
+                "fichier code:contrats-base.json": "a881fb6ed4fa89b72c3912e3f6ac5a1be537eb3842f11855971097750e4a3de8",
+                "fichier code:emplois-base.json": "18fa6cbb9d595636973a3689eac9964b5f9781448f7ef0e043124028bb8572ad",
+                "fichier code:minima-conventionnels.json": "52a5712b31f9ce263f273dc49dcf8aa817a69bd81535f7c483e9fb21f11db5ee",
+                "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
+                "fichier racine:config/baremes/2026.json": "4ff04df028809eec5ff474444db925d112cc514aa61a8beff6eee070717a6c6a",
+                "fichier racine:config/effectifs.json": "ccfb4683cded75a52fe850b311604013de2de6842a64b6cf82bd99ffbdd3118b",
+                "fichier racine:config/pas.json": "aeb78091c7cdd504ab65b51a9875b851cf783624344089b8c4f93ec153af776d",
+                "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
+                "moteur": "0.1.0+f150e58b15f7cd60",
+                "saisie 2026-02": "24817f4a759594c464f9b221027d1bb03fd6b4f526f3ea431a961adb2ed7a77b"
+              },
+              "regles": [
+                "2026-01-01"
+              ]
+            },
+            "pas": {
+              "taux": "0.00",
+              "type": "01",
+              "identifiant": "892122027",
+              "abattement": "0",
+              "montant_soumis": "424.62",
+              "prelevement": "0"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

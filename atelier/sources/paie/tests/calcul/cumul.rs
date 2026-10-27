@@ -5,9 +5,9 @@
 use crate::outils;
 use droit::bareme::canon;
 use droit::contexte::Contexte;
-use paie::cumul::{
+use droit::cumul::{
     fenetre_annee_civile, fenetre_anniversaire, fenetre_douze_mois, plafond_enseignement, position, Constantes,
-    Engagement, Fenetre,
+    Declare, Fenetre,
 };
 use socle::date::Jour;
 use socle::fichiers::lire_json;
@@ -53,9 +53,9 @@ fn le_plafond_d_enseignement_suit_l_age_a_la_date() {
     assert_eq!(plafond(Some("2010-05-05"), "2026-09-27"), 70);
 }
 
-fn engagement(r: &Value) -> Engagement {
+fn engagement(r: &Value) -> Declare {
     let entier = |c: &str| r[c].as_i64().unwrap();
-    Engagement {
+    Declare {
         salarie: r["salarie"].as_str().unwrap().to_string(),
         debut: jour(&r["debut"]).unwrap(),
         fin: jour(&r["fin"]).unwrap(),
@@ -83,7 +83,7 @@ fn les_positions_sur_chaque_fenetre() {
     let aujourdhui = jour(&a["aujourdhui"]).unwrap();
     let ctx = Contexte::nouveau(&fictive("fictive-1285-grande"), Some(aujourdhui)).unwrap();
     let c = Constantes::lire(&ctx.racine).unwrap();
-    let engs: Vec<Engagement> = a["lignes"].as_array().unwrap().iter().map(engagement).collect();
+    let engs: Vec<Declare> = a["lignes"].as_array().unwrap().iter().map(engagement).collect();
     let cas = a["cas"].as_array_mut().unwrap();
     assert!(cas.len() > 40);
     for cas in cas.iter_mut() {
@@ -109,5 +109,5 @@ fn une_ligne_moins_d_enseignement_retire_ses_heures() {
     outils::ecrire(&racine, "config/rubriques-compagnie.json", &json!({"rubriques": {"enseignement_annule": retrait}}));
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-10-11").unwrap())).unwrap();
     let lignes = vec![json!({"rubrique": "enseignement", "quantite": 10, "taux": 50.0}), json!({"rubrique": "enseignement_annule", "quantite": 4, "taux": 50.0})];
-    assert_eq!(paie::cumul::heures_enseignement(&ctx, &lignes).unwrap(), 6);
+    assert_eq!(droit::cumul::heures_enseignement(&ctx, &lignes).unwrap(), 6);
 }

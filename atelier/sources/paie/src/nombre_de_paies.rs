@@ -4,12 +4,10 @@
 //! CE QUI PART : une fois par an et par compagnie, `{"annee": N-1, "paies": <nombre>}`, et le numero de poste que portent
 //! deja les incidents. Rien d'autre : ni nom, ni SIREN, ni NIR, ni montant. Zero part aussi (zero est une information).
 //!
-//! LE COMPTE : les paies VALIDEES dont le mois de paie est dans l'annee N-1, intermittents et permanents confondus. Une paie
-//! est une ligne de la saisie d'un mois (`paies/AAAA-MM.json`, ce mois est son mois de paie) ; elle est validee selon la
-//! seule regle du moteur, celle que la page Paie affiche (`routes_mois::Moteur::etat_par_paie`, champ `valide`) : validee a
-//! la main (`valide.le`), ou dans un mois dont la DSN reelle est partie, sauf rouverte. Un mois tenu avant ce logiciel (ticket
-//! #215) n'a pas de saisie : PuppetPaie n'a pas fait ces paies, elles ne comptent pas. Un mois dont la saisie ne se lit pas
-//! fait REFUSER le compte (regle 1 : rien ne se devine) : rien ne part, et le passage suivant recommence.
+//! LE COMPTE : les paies VALIDEES dont le mois de paie est dans l'annee N-1, intermittents et permanents confondus : une
+//! par mois que chaque engagement valide couvre (`engagements/`, `valide.paies`). Un mois tenu avant ce logiciel (ticket
+//! #215) n'a pas d'engagement : PuppetPaie n'a pas fait ces paies, elles ne comptent pas. Des engagements qui ne se
+//! lisent pas font REFUSER le compte (regle 1 : rien ne se devine) : rien ne part, et le passage suivant recommence.
 //!
 //! QUAND : a partir du 16 janvier (l'horloge du moteur, `PUPPETPAIE_AUJOURDHUI` dans les essais), a l'ouverture ou au
 //! passage de la veille (`ouverture::ouverture`, avec les incidents), le premier ce jour-la ou apres si le poste etait
@@ -31,7 +29,6 @@
 //! marqueur est parti, `interface::suppression::garder`) : son nombre part, et ses paies validees en demo comptent -- le
 //! logiciel les a faites ; qu'elles ne soient pas parties ne change pas la regle du compte.
 
-use std::collections::HashMap;
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
@@ -39,7 +36,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::R;
-use socle::fichiers::vrai;
+
 use crate::incidents::{self, Canal};
 
 /// La cle de `config/diagnostic.json` qui retient les annees parties.
@@ -54,15 +51,12 @@ pub fn annee_due(aujourdhui: Jour) -> Option<i32> {
 }
 
 /// Le nombre de paies validees dont le mois de paie est dans `annee` (voir l'en-tete).
-pub fn compter(o: &HashMap<String, String>, ctx: &Contexte, annee: i32) -> R<usize> {
-    let mut moteur = crate::routes_mois::Moteur::nouveau(o, ctx);
+pub fn compter(ctx: &Contexte, annee: i32) -> R<usize> {
+    let an = format!("{:04}-", annee);
     let mut n = 0;
-    for m in 1..=12 {
-        let mois = format!("{:04}-{:02}", annee, m);
-        if !ctx.racine.join("paies").join(format!("{}.json", mois)).is_file() {
-            continue;
-        }
-        n += moteur.etat_par_paie(&mois, false)?.iter().filter(|p| p.get("valide").is_some_and(vrai)).count();
+    for o in engagement::stock::objets(&ctx.racine).map_err(socle::echec::Echec::from)? {
+        let paies = o.brut.get("valide").and_then(|v| v.get("paies")).and_then(Value::as_object);
+        n += paies.map_or(0, |p| p.keys().filter(|m| m.starts_with(&an)).count());
     }
     Ok(n)
 }
@@ -107,7 +101,7 @@ fn empechement(racine: &Path) -> Option<&'static str> {
 /// A l'ouverture et a chaque passage de la veille : envoie le nombre de paies de l'annee passee s'il est du et pas encore
 /// parti. Ne leve jamais (l'ouverture n'echoue pas) : rend ce qui s'est passe, `{"annee", "envoye", "paies", "raison",
 /// "erreur"}` -- `erreur` non vide quand le passage suivant recommencera.
-pub fn envoyer_si_du(o: &HashMap<String, String>, ctx: &Contexte) -> Value {
+pub fn envoyer_si_du(ctx: &Contexte) -> Value {
     let racine = ctx.racine.as_path();
     let bilan = |annee: Option<i32>, envoye: bool, paies: Option<usize>, raison: &str, erreur: &str| {
         json!({"annee": annee, "envoye": envoye, "paies": paies, "raison": raison, "erreur": erreur})
@@ -127,7 +121,7 @@ pub fn envoyer_si_du(o: &HashMap<String, String>, ctx: &Contexte) -> Value {
         Ok(Canal::Panne(e)) => return bilan(Some(annee), false, None, "", &e.message),
         Err(e) => return bilan(Some(annee), false, None, "", &e.message),
     };
-    let paies = match compter(o, ctx, annee) {
+    let paies = match compter(ctx, annee) {
         Ok(n) => n,
         Err(e) => return bilan(Some(annee), false, None, "", &format!("compte refuse : {}", e.message)),
     };

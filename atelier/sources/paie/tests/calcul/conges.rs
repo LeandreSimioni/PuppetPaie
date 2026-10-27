@@ -2,7 +2,8 @@
 //! leurs avertissements, le compteur de conges. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{fictive, lire_oracle, oracle};
-use paie::conges::{compteur_conges, jours_ouvrables, lignes_du_mois};
+use droit::conges::jours_ouvrables;
+use engagement::conges::{compteur_conges, lignes_du_mois};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use serde_json::{json, Value};
@@ -27,7 +28,7 @@ fn contexte(feries: &Value) -> Contexte {
     ctx
 }
 
-fn avis(a: &[paie::engagement::Avis]) -> Value {
+fn avis(a: &[engagement::Avis]) -> Value {
     Value::Array(a.iter().map(|x| json!([x.info, x.texte])).collect())
 }
 

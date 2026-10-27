@@ -1,10 +1,10 @@
-//! `paie mois FICHIER [--constitution JJ/MM/AAAA] [--forcer] [--test] [--json]` : produire un mois -- bulletins, certificats
+//! `paie mois MOIS [--constitution JJ/MM/AAAA] [--forcer] [--test] [--json]` : produire un mois -- bulletins, certificats
 //! Conges Spectacles et DSN (`moteur/cli.py`, `cmd_mois` ; `operations_paies.fermer_mois`). Rien n'est depose : le depot est une
 //! commande a part (`paie depot-dsn`).
 //!
 //! Elle passe par la route `produire` du moteur (`produire_mois::produire_pour`), celle que la fenetre appelle : on ne ferme
 //! qu'un mois pret (la DPAE de chaque embauche partie, son contrat parti a la signature), tout le mois ou rien, les compteurs
-//! sous verrou. La saisie lue dans le fichier est celle qui se produit ; la route l'enregistre d'abord, comme pour la fenetre.
+//! sous verrou. Ce qui se produit, ce sont les engagements valides du mois (`AAAA-MM`, ou `engagements/AAAA-MM.json`).
 //!
 //! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : un fichier introuvable, une date de constitution illisible, un mois dont la
 //! DSN etait due (`MoisHorsDelai`), un exercice clos, une saisie incomplete donnaient une trace d'appels (seuls `MoisPasPret` et
@@ -86,23 +86,14 @@ fn textes(r: &Value, cle: &str) -> Vec<String> {
 
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let json = args.drapeau("json");
-    // Le fichier : tel quel s'il existe, sinon sous les donnees ; un mois nu (`2026-10`) designe sa saisie.
-    let chemin = match crate::routes_apercus::resoudre(&cadre.racine, &json!(args.texte("fichier").unwrap_or(""))) {
-        Ok(c) => c,
-        Err(e) => return Ok(reponse_metier("mois", json, &Echec { classe: Some("ErreurOperation"), message: e.message }, &[])),
+    // Le mois : `AAAA-MM`, ou le fichier `engagements/AAAA-MM.json` des donnees ; la saisie que ses engagements montrent.
+    let mois = match super::actes::mois_du_fichier(cadre, args.texte("fichier").unwrap_or(""), "Le mois se produit") {
+        Ok(m) => m,
+        Err(e) => return Ok(reponse_metier("mois", json, &e, &[])),
     };
-    let saisie = match crate::routes_saisie::lire_saisie(std::path::Path::new(&chemin)) {
+    let saisie = match engagement::saisie_du_mois(&cadre.racine, &mois) {
         Ok(s) => s,
-        Err(e) => {
-            if json {
-                return Ok(rendre(&erreur("mois", e.classe.unwrap_or("OSError"), &e.message, &[])));
-            }
-            dire!("Fichier illisible : {}", e.message);
-            return Ok(1);
-        }
-    };
-    let Some(mois) = saisie.get("mois").and_then(Value::as_str).map(str::to_string) else {
-        return Ok(reponse_metier("mois", json, &refus(format!("{} ne dit pas son mois (cle `mois`, AAAA-MM).", chemin)), &[]));
+        Err(e) => return Ok(reponse_metier("mois", json, &refus(e), &[])),
     };
     let constitution = match args.texte("constitution") {
         None => None,

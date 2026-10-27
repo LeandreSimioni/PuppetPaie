@@ -109,7 +109,7 @@ fn un_arret_repris_le_premier_du_mois_ne_se_reporte_pas_dans_ce_mois() {
         }),
     };
     let ctx = Contexte::nouveau(&outils::fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = paie::engagement::charger(&ctx, &outils::fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = engagement::charger(&ctx, "2026-07").unwrap();
     assert!(s.paies.iter().all(|p| p.engagement.numero.as_deref() != Some("AU.25.01")));
     let t = paie::dsn::generer(&ctx, &s.paies, "2026-07", &[], &[repris_le_1er], &paie::dsn::Options::default())
         .unwrap_or_else(|m| panic!("la DSN de juillet est refusee : {}", m));

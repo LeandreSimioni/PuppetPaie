@@ -13,10 +13,10 @@
 //! anciennete dans la branche), et son config/organismes.json le CTP 332 des permanents tel que le recompose
 //! `donnees/organismes-base.json`. Rien n'est ecrit dans `tests/donnees/fictives/`.
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::Saisie;
 use socle::num::Decimal;
 use serde_json::{json, Value};
 use crate::outils::{base81, chemin_unique, contrat, ctp, dec, ecrire, lire, valeur, versement, Copie};
@@ -56,7 +56,7 @@ fn saisie(ctx: &Contexte, engagements: Value) -> Result<Saisie, String> {
     let chemin = chemin_unique("caisse-conges.json");
     let s = json!({"mois": "2026-10", "date_paiement": "2026-10-31", "engagements": engagements});
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let r = charger(ctx, &chemin);
+    let r = crate::outils::charger_fichier(ctx, &chemin);
     let _ = std::fs::remove_file(&chemin);
     r
 }

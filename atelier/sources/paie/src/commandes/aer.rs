@@ -46,7 +46,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
 
     let mois = args.texte("mois");
-    let fait = crate::routes_documents::ranger_aer_detail(&cadre.o, &cadre.ctx, mois, None, false, args.drapeau("forcer"))?;
+    let fait = crate::routes_documents::ranger_aer_detail(&cadre.ctx, mois, None, args.drapeau("forcer"))?;
     if fait.ecrits.is_empty() && fait.a_ranger.is_empty() && fait.refusees.is_empty() {
         dire!(
             "Aucune attestation{} dans les archives de nature {}.",
@@ -91,7 +91,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
     if let Some(dernier) = periodes.last() {
         dire!("\nElles partiront avec le message aux salaries :");
-        dire!("   paie envoi paies/{}.json", dernier);
+        dire!("   paie envoi {}", dernier);
     }
     Ok(if fait.refusees.is_empty() { 0 } else { 2 })
 }

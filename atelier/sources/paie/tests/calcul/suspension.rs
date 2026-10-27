@@ -5,7 +5,7 @@
 //! `fictive-1285-grande` (Nadar, CDI NA.22.01 a 3 010 EUR pour 151,67 h), dont le test ecrit le magasin `imprevus/`.
 
 use crate::outils::{compagnie, dossier_de_test, ecrire, lire};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::num::Decimal;
@@ -27,7 +27,7 @@ fn contexte(racine: &Path) -> Contexte {
 
 fn charger(racine: &Path) -> Result<Vec<Paie>, String> {
     let ctx = contexte(racine);
-    paie::engagement::charger(&ctx, &racine.join("paies/2026-09.json")).map(|s| s.paies)
+    engagement::charger(&ctx, "2026-09").map(|s| s.paies)
 }
 
 fn paie_de(racine: &Path, cle: &str) -> Paie {
@@ -70,7 +70,7 @@ fn un_mois_entier_de_conge_parental_retire_tout_le_salaire_et_suspend_la_sante_3
     let racine = copie("fictive-3090-grande", "mois-entier");
     ecrire(&racine, "imprevus/2026-09.json", &json!({"mois": "2026-09", "imprevus": [nicolet("632", "2026-09-01", "2026-12-31")]}));
     let p = paie_de(&racine, "NICOLET");
-    let absence: Vec<&paie::calcul::LigneBrut> = p.remuneration.iter().filter(|l| l.code == "absence_non_remuneree").collect();
+    let absence: Vec<&engagement::calcul::LigneBrut> = p.remuneration.iter().filter(|l| l.code == "absence_non_remuneree").collect();
     assert_eq!(absence.len(), 1, "{:?}", p.remuneration);
     assert_eq!(absence[0].quantite, d("154"), "22 jours oeuvres x 7 h");
     assert_eq!(absence[0].montant, d("-2310.00"));
@@ -153,12 +153,12 @@ fn en_1285_le_mois_entierement_suspendu_attend_la_fiche_entreprise() {
 fn un_mois_entierement_suspendu_n_acquiert_aucun_conge() {
     let sans = copie("fictive-3090-grande", "conges-sans");
     let p = paie_de(&sans, "NICOLET");
-    let a = paie::conges::compteur_au_bulletin(&contexte(&sans), &p, "2026-09").unwrap().acquis;
+    let a = engagement::conges::compteur_au_bulletin(&contexte(&sans), &p, "2026-09").unwrap().acquis;
 
     let avec = copie("fictive-3090-grande", "conges-avec");
     ecrire(&avec, "imprevus/2026-09.json", &json!({"imprevus": [nicolet("639", "2026-09-01", "2026-12-31")]}));
     let p = paie_de(&avec, "NICOLET");
-    let b = paie::conges::compteur_au_bulletin(&contexte(&avec), &p, "2026-09").unwrap().acquis;
+    let b = engagement::conges::compteur_au_bulletin(&contexte(&avec), &p, "2026-09").unwrap().acquis;
     assert_eq!(a - b, d("2.5"), "sans suspension {}, avec {}", a, b);
 }
 
@@ -171,12 +171,12 @@ fn un_mois_entierement_suspendu_n_acquiert_aucun_conge() {
 fn le_conge_parental_compte_pour_moitie_dans_l_anciennete() {
     let racine = copie("fictive-3090-grande", "anciennete");
     ecrire(&racine, "imprevus/2025-01.json", &json!({"imprevus": [nicolet("632", "2025-01-01", "2025-12-31")]}));
-    let (depuis, dit) = paie::imprevus::anciennete_depuis(&racine, "NICOLET", &jour("2024-03-01"), &jour("2026-09-30")).unwrap();
+    let (depuis, dit) = engagement::imprevus::anciennete_depuis(&racine, "NICOLET", &jour("2024-03-01"), &jour("2026-09-30")).unwrap();
     assert_eq!(depuis.iso(), "2024-08-30", "182 jours de moins");
     assert!(dit.iter().all(|a| a.info) && dit.iter().any(|a| a.texte.contains("L1225-54")), "{:?}", dit.iter().map(|a| &a.texte).collect::<Vec<_>>());
 
     ecrire(&racine, "imprevus/2025-01.json", &json!({"imprevus": [nicolet("639", "2025-01-01", "2025-12-31")]}));
-    let (depuis, dit) = paie::imprevus::anciennete_depuis(&racine, "NICOLET", &jour("2024-03-01"), &jour("2026-09-30")).unwrap();
+    let (depuis, dit) = engagement::imprevus::anciennete_depuis(&racine, "NICOLET", &jour("2024-03-01"), &jour("2026-09-30")).unwrap();
     assert_eq!(depuis.iso(), "2025-03-01", "365 jours de moins");
     assert!(dit.iter().any(|a| !a.info && a.texte.contains("aucun texte")), "{:?}", dit.iter().map(|a| &a.texte).collect::<Vec<_>>());
 }

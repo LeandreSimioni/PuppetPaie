@@ -2,14 +2,8 @@
 //! `envoi-apercu` -- ce que la page montre AVANT qu'on envoie un contrat, un avenant ou les
 //! documents du mois.
 //!
-//! C'est le Python de `moteur/web.py` (`_traiter`) et de `operations_documents.py`
-//! (`apercu_signature`, `apercu_avenant`, `apercu_envoi`, `documents_prets`, `aer_manquantes`,
-//! `ranger_aer`, `contrat_parti`, `saisie_aux_numeros_declares`), porte a l'identique : meme JSON,
-//! memes refus sous la meme classe.
-//!
-//! Aucun reseau, aucun mot de passe. Les ecritures de ce module sont celles que le Python faisait
-//! deja : le cache `paies/AAAA-MM.calcul.json` du calcul du mois, et, pour `envoi-apercu`, le
-//! rangement des AER revenues (`ranger_aer`) dans `sorties/<mois>/envoi/`.
+//! Aucun reseau, aucun mot de passe. La seule ecriture de ce module : le rangement des AER revenues (`ranger_aer`) dans
+//! `sorties/<mois>/envoi/`, pour `envoi-apercu`.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -56,16 +50,6 @@ pub(crate) fn un_nom_commence_et_finit(dossier: &Path, prefixe: &str, suffixe: &
     })
 }
 
-/// La paire (salarie, debut) d'une ligne du journal, si les deux sont des textes : toute autre
-/// valeur ne peut egaler une cle (salarie, debut) de la saisie.
-fn paire_de(c: &Value) -> R<Option<(String, String)>> {
-    let (s, d) = (get(c, "salarie")?, get(c, "debut")?);
-    Ok(match (s.as_str(), d.as_str()) {
-        (Some(s), Some(d)) => Some((s.to_string(), d.to_string())),
-        _ => None,
-    })
-}
-
 fn nul() -> &'static Value {
     static V: Value = Value::Null;
     &V
@@ -74,16 +58,10 @@ fn nul() -> &'static Value {
 // ------------------------------------------------------------------ signature-apercu
 
 /// `apercu_signature` : les contrats du mois et l'etat de leur demande de signature.
-fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    signature_apercu_avec(o, ctx, charge, true)
-}
-
-/// `cache` : `false` calcule les paies sans toucher a `paies/AAAA-MM.calcul.json` (la relance d'un contrat, route
-/// d'envoi : le `charger` du Python ne l'ecrit jamais).
-pub(crate) fn signature_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, cache: bool) -> R<Value> {
+pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
-    let (data, _rep, paies) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, &mois, None, cache)?;
+    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
     let mut m = Moteur::nouveau(o, ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
@@ -210,7 +188,7 @@ fn jj_mm_aaaa(v: &Value) -> R<String> {
 }
 
 /// Les numeros propres des paies de ce salarie qui commencent ce jour-la (celles d'un spectacle), dans l'ordre de la saisie.
-pub(crate) fn numeros_du_jour(paies: &[crate::calcul::Paie], salarie: &str, debut: &str) -> R<Vec<String>> {
+pub(crate) fn numeros_du_jour(paies: &[engagement::calcul::Paie], salarie: &str, debut: &str) -> R<Vec<String>> {
     let mut v = Vec::new();
     for x in paies {
         if est(get_requis(&x.salarie, "_cle")?, salarie) && x.engagement.debut.iso() == debut && vrai(&x.spectacle) {
@@ -223,7 +201,7 @@ pub(crate) fn numeros_du_jour(paies: &[crate::calcul::Paie], salarie: &str, debu
 /// L'indice, dans `paies`, de la paie du contrat que le journal connait sous `numero_j` : celle qui lui est appariee
 /// (`etats::apparier`), sinon celle qui porte ce numero ; sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
 pub(crate) fn paie_du_contrat(
-    paies: &[crate::calcul::Paie],
+    paies: &[engagement::calcul::Paie],
     lignes: &[Value],
     salarie: &str,
     debut: &str,
@@ -250,7 +228,6 @@ pub(crate) fn paie_du_contrat(
 /// l'ecran, qui donne les paies jumelles. `None` : ce contrat n'est jamais parti. Sans `numero`, le contrat est celui qui est
 /// parti ; s'il y en a plusieurs, l'appelant doit preciser lequel (refus).
 pub(crate) fn numero_du_contrat(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     lignes: &[Value],
     salarie: &str,
@@ -277,7 +254,7 @@ pub(crate) fn numero_du_contrat(
         return Ok(Some(n.to_string()));
     }
     if let Some(m) = mois.filter(|m| !m.is_empty()) {
-        let (_d, _rep, paies) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, m, None, false)?;
+        let (_d, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, m, None)?;
         let propres = numeros_du_jour(&paies, salarie, debut)?;
         if let Some(i) = propres.iter().position(|x| x == n) {
             return Ok(etats::apparier(&propres, &parti)[i].clone());
@@ -287,14 +264,8 @@ pub(crate) fn numero_du_contrat(
 }
 
 /// `apercu_avenant` : ce que l'avenant d'un contrat parti modifierait, article par article, l'ancien
-/// texte (lu dans le PDF parti) et le nouveau (la paie d'aujourd'hui). Rien n'est ecrit.
-fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    avenant_apercu_avec(o, ctx, charge, true)
-}
-
-/// `cache` : `false` calcule les paies sans toucher a `paies/AAAA-MM.calcul.json` (l'envoi d'un avenant : le
-/// `charger` du Python ne l'ecrit jamais).
-pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, cache: bool) -> R<Value> {
+/// texte (lu dans le PDF parti) et le nouveau (la paie validee). Rien n'est ecrit.
+pub(crate) fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let salarie_v = cle(charge, "salarie")?;
     let debut_v = cle(charge, "debut")?;
     let mut m = Moteur::nouveau(o, ctx);
@@ -305,7 +276,7 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     let mois_voulu = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
     let parti = match (salarie_v.as_str(), debut_v.as_str()) {
         (Some(s), Some(d)) => {
-            let j = numero_du_contrat(o, ctx, &lignes, s, d, numero_voulu.as_deref(), mois_voulu.as_deref())?;
+            let j = numero_du_contrat(ctx, &lignes, s, d, numero_voulu.as_deref(), mois_voulu.as_deref())?;
             // Un contrat dont le numero est donne et que le journal ne connait pas n'est jamais parti (le jumeau qui n'est pas parti).
             if numero_voulu.is_some() && j.is_none() {
                 None
@@ -324,7 +295,7 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     let (salarie, debut) = (valeur_en_texte(salarie_v), valeur_en_texte(debut_v));
     // `_paie_du_contrat(ctx, parti["mois"], salarie, debut)`.
     let mois_parti = valeur_en_texte(&parti.mois);
-    let (_data, rep, paies) = crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, &mois_parti, None, cache)?;
+    let (_data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois_parti, None)?;
     // La paie de CE contrat : celle dont le journal connait le numero (`apparier`), sinon celle qui le porte.
     let numero_parti = valeur_en_texte(&etats::numero_de_cle(&parti.numero));
     let trouvee = paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
@@ -347,13 +318,9 @@ pub(crate) fn avenant_apercu_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     let texte_signe = crate::avenant::textes_des_avenants_de(&deja, true)?;
     let ent = crate::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = crate::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
-    let paie_json = rep
-        .get("paies")
-        .and_then(Value::as_array)
-        .and_then(|l| l.get(i))
-        .ok_or("reponse du calcul illisible : `paies`")?;
+    let paie_json = engagement::relire::ecrire(ctx, p)?;
     let numero_porte = Some(p.engagement.numero.clone().unwrap_or_else(|| "None".to_string()));
-    let vals = crate::avenant::valeurs_de_la_paie(ctx, &ent, paie_json, Some(&numero_porte))?;
+    let vals = crate::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
     let texte_pdf = crate::avenant::texte_du_pdf(&pdf)?;
     let modifs = match crate::avenant::modifications(&modele, &vals, &texte_pdf, &numero_parti, &texte_signe) {
         Ok(v) => v,
@@ -517,11 +484,9 @@ fn aer_manquantes(ctx: &Contexte, mois: &str) -> R<Vec<String>> {
 }
 
 /// Les paies de `periode`, sous les numeros de contrat que la DSN a DECLARES (regle 4 : un numero se lit --
-/// `apercu_dsn::paies_aux_numeros_declares`), sans rien dire de ce qui les fait echouer (vide). `sans_cache` : la releve
-/// des retours (`releve_retours`) range les AER sans toucher a `AAAA-MM.calcul.json` ; l'apercu d'envoi, lui, passe par
-/// le calcul du mois et son cache.
-fn paies_de_la_periode(o: &HashMap<String, String>, ctx: &Contexte, periode: &str, sans_cache: bool) -> Vec<crate::calcul::Paie> {
-    crate::apercu_dsn::paies_aux_numeros_declares_avec(o, ctx, periode, None, !sans_cache).map(|t| t.2).unwrap_or_default()
+/// `apercu_dsn::paies_aux_numeros_declares`), sans rien dire de ce qui les fait echouer (vide).
+fn paies_de_la_periode(ctx: &Contexte, periode: &str) -> Vec<engagement::calcul::Paie> {
+    crate::apercu_dsn::paies_aux_numeros_declares(ctx, periode, None).map(|t| t.1).unwrap_or_default()
 }
 
 /// `mois_suivant("2026-12")` = `"2027-01"`.
@@ -537,21 +502,14 @@ fn mois_suivant(m: &str) -> String {
 /// Toutes les periodes que l'AER de `cle` pour `periode` doit porter (`aer::ecarts`) : chaque contrat dont l'AER est due
 /// ce mois-ci (`aer::due`), mois par mois depuis son debut, chacun lu dans la paie de son mois. `None` : la saisie de la
 /// periode n'est pas dans le logiciel (un mois d'avant lui) -- rien a quoi comparer.
-fn periodes_attendues(
-    o: &HashMap<String, String>,
-    ctx: &Contexte,
-    par_mois: &mut HashMap<String, Vec<crate::calcul::Paie>>,
-    periode: &str,
-    cle: &str,
-    sans_cache: bool,
-) -> R<Option<Vec<crate::aer::PaieAer>>> {
-    if !ctx.racine.join("paies").join(format!("{}.json", periode)).exists() {
+fn periodes_attendues(ctx: &Contexte, par_mois: &mut HashMap<String, Vec<engagement::calcul::Paie>>, periode: &str, cle: &str) -> R<Option<Vec<crate::aer::PaieAer>>> {
+    if !engagement::stock::a_une_saisie(&ctx.racine, periode).unwrap_or(false) {
         return Ok(None);
     }
-    let mut du_mois = |m: &str| -> Vec<crate::calcul::Paie> {
-        par_mois.entry(m.to_string()).or_insert_with(|| paies_de_la_periode(o, ctx, m, sans_cache)).clone()
+    let mut du_mois = |m: &str| -> Vec<engagement::calcul::Paie> {
+        par_mois.entry(m.to_string()).or_insert_with(|| paies_de_la_periode(ctx, m)).clone()
     };
-    let de_lui = |p: &crate::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle);
+    let de_lui = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).as_deref() == Some(cle);
     let mut out = Vec::new();
     for p in du_mois(periode).iter().filter(|p| de_lui(p)) {
         let e = &p.engagement;
@@ -621,8 +579,8 @@ pub(crate) struct RangementAer {
 
 /// `ranger_aer(ctx, mois=mois)` : signe et range les AER deja archivees la ou l'envoi ira les chercher -- en phrases, pour la releve
 /// et l'ouverture (qui ne signent jamais malgre un ecart).
-pub(crate) fn ranger_aer(o: &HashMap<String, String>, ctx: &Contexte, mois: Option<&str>, fichiers: Option<&[std::path::PathBuf]>, sans_cache: bool) -> R<Vec<String>> {
-    let fait = ranger_aer_detail(o, ctx, mois, fichiers, sans_cache, false)?;
+pub(crate) fn ranger_aer(ctx: &Contexte, mois: Option<&str>, fichiers: Option<&[std::path::PathBuf]>) -> R<Vec<String>> {
+    let fait = ranger_aer_detail(ctx, mois, fichiers, false)?;
     let mut phrases: Vec<String> = Vec::new();
     // `RangementAer.a_faire()` : d'abord les attestations sans salarie, puis les refusees (la paie ne les confirme pas).
     for (qui, chemin) in &fait.a_ranger {
@@ -636,10 +594,10 @@ pub(crate) fn ranger_aer(o: &HashMap<String, String>, ctx: &Contexte, mois: Opti
 }
 
 /// `ranger_aer` du Python, structure : le rangement et ce qu'il a laisse. `forcer` : signer malgre un ecart (`aer --forcer`).
-pub(crate) fn ranger_aer_detail(o: &HashMap<String, String>, ctx: &Contexte, mois: Option<&str>, fichiers: Option<&[std::path::PathBuf]>, sans_cache: bool, forcer: bool) -> R<RangementAer> {
+pub(crate) fn ranger_aer_detail(ctx: &Contexte, mois: Option<&str>, fichiers: Option<&[std::path::PathBuf]>, forcer: bool) -> R<RangementAer> {
     use crate::aer::{authentifier, Authentification, Echec as AerEchec};
     let vues = attestations_archivees(ctx, mois, fichiers)?;
-    let mut par_mois: HashMap<String, Vec<crate::calcul::Paie>> = HashMap::new();
+    let mut par_mois: HashMap<String, Vec<engagement::calcul::Paie>> = HashMap::new();
     let mut cles: Vec<&(String, String)> = vues.keys().collect();
     cles.sort();
     // `RangementAer.a_faire()` : d'abord les attestations sans salarie, puis les refusees (la paie ne les confirme pas).
@@ -669,7 +627,7 @@ pub(crate) fn ranger_aer_detail(o: &HashMap<String, String>, ctx: &Contexte, moi
             })?;
             imprime.extend(crate::aer::lire_quantites(&champs).map_err(Echec::from)?);
         }
-        let ecarts = match periodes_attendues(o, ctx, &mut par_mois, periode, &cle, sans_cache)? {
+        let ecarts = match periodes_attendues(ctx, &mut par_mois, periode, &cle)? {
             Some(attendues) => crate::aer::ecarts(&imprime, &attendues),
             None => Vec::new(),
         };
@@ -709,7 +667,7 @@ pub(crate) fn ranger_aer_detail(o: &HashMap<String, String>, ctx: &Contexte, moi
 
 /// Une AER Cinema Spectacle est-elle due a l'un des salaries du mois (`aer::due`) ? Sans elle, France Travail n'en
 /// publie aucune (pas de retour 46) : le mois d'un permanent seul n'a rien a attendre.
-fn aer_attendue(paies: &[crate::calcul::Paie]) -> R<bool> {
+fn aer_attendue(paies: &[engagement::calcul::Paie]) -> R<bool> {
     for p in paies {
         if crate::aer::due(&p.engagement).map_err(Echec::from)? {
             return Ok(true);
@@ -719,7 +677,7 @@ fn aer_attendue(paies: &[crate::calcul::Paie]) -> R<bool> {
 }
 
 /// `documents_prets` : peut-on envoyer les documents du mois ? Le moteur repond, et dit pourquoi.
-fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[crate::calcul::Paie]) -> R<Map<String, Value>> {
+fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie]) -> R<Map<String, Value>> {
     let dossier = ctx.racine.join("sorties").join(mois).join("envoi");
     let produit = dossier.exists() && un_nom_commence_et_finit(&dossier, "Bulletin_", ".pdf");
     let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", etiquette(mois)?));
@@ -795,7 +753,7 @@ impl Message {
 /// `envoi.preparer` : un message par salarie, a partir des pieces individuelles deja ecrites. Le texte
 /// du corps, que l'apercu ne montre pas, n'est pas compose : seuls ses refus (`KeyError` d'une fiche
 /// sans nom d'affichage ou sans signataire) sont gardes.
-fn preparer(ctx: &Contexte, paies: &[crate::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, crate::envoi::Renvoi>) -> R<Vec<Message>> {
+fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, crate::envoi::Renvoi>) -> R<Vec<Message>> {
     const PIECES: [(&str, &str, &str); 4] = [
         ("bulletin", "Bulletin", "bulletin"),
         ("rectificatif", "BulletinRectificatif", "bulletin rectificatif"),
@@ -892,30 +850,13 @@ fn capitaliser(t: &str) -> String {
     }
 }
 
-/// `charger(ctx, paies/<mois>.json)` : la saisie du mois (le fichier lu) et ses paies, numerotees. L'envoi des
-/// documents (`routes_envois`) prepare ses messages sur les memes paies que l'apercu.
-pub(crate) fn charger_le_mois(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<(Value, Vec<crate::calcul::Paie>)> {
-    charger_le_mois_avec(o, ctx, mois, true)
-}
-
-/// La meme ; `cache` : `false` calcule sans toucher a `paies/AAAA-MM.calcul.json` (le `charger` du Python ne l'ecrit
-/// jamais : c'est ce que font les routes d'envoi).
-pub(crate) fn charger_le_mois_avec(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, cache: bool) -> R<(Value, Vec<crate::calcul::Paie>)> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let data = crate::engagement::lire_saisie(&chemin)?;
-    let rep = if cache {
-        crate::routes_ouverture::paie_du_mois(o, ctx, &data)?
-    } else {
-        crate::service::calculer_avec(ctx, &json!({ "saisie": data })).map_err(|m| crate::routes_ouverture::refus_du_calcul(ctx, &data, m))?
+/// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois` : la saisie des engagements valides et leurs paies
+/// ecrites), numerote. L'envoi des documents (`routes_envois`) prepare ses messages sur les memes paies que l'apercu.
+pub(crate) fn charger_le_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<engagement::calcul::Paie>)> {
+    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
+        return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
-    let engs = crate::routes_ouverture::engagements_calcules(ctx, &data, &rep)?;
-    let paies_json = rep.get("paies").and_then(Value::as_array).ok_or("reponse du calcul illisible : `paies`")?;
-    let mut paies = Vec::new();
-    for (e, v) in engs.into_iter().zip(paies_json) {
-        paies.push(crate::routes_ouverture::paie_de_json(ctx, e, v)?);
-    }
-    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee: i32 = mois_saisie.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", format!("mois illisible : {}", socle::fichiers::repr(&mois_saisie))))?;
+    let annee: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     crate::routes_ouverture::numeroter(ctx, &mut paies, annee)?;
     Ok((data, paies))
 }
@@ -926,10 +867,10 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let mois = valeur_en_texte(mois_v);
     // LE RATTRAPAGE : une AER relevee avant que la releve ne sache la ranger se range ici.
     if !aer_manquantes(ctx, &mois)?.is_empty() {
-        let _ = ranger_aer(o, ctx, Some(&mois), None, false)?;
+        let _ = ranger_aer(ctx, Some(&mois), None)?;
     }
-    // `charger(ctx, paies/<mois>.json)` : la saisie du mois, numerotee.
-    let (data, paies) = charger_le_mois(o, ctx, &mois)?;
+    // Ce qui peut partir du mois, numerote.
+    let (data, paies) = charger_le_mois(ctx, &mois)?;
     let mut m = Moteur::nouveau(o, ctx);
     let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");

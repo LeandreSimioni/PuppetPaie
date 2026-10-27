@@ -147,7 +147,7 @@ pub(crate) fn refus_magasin(m: String) -> Echec {
 /// Les arrets de travail du magasin des imprevus (`imprevus/AAAA-MM.json`, genre `arret`), dans l'ordre des mois du
 /// magasin, chacun complet.
 pub(crate) fn tous_les_arrets(ctx: &Contexte) -> R<Vec<Value>> {
-    Ok(crate::imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(crate::imprevus::est_un_arret).collect())
+    Ok(engagement::imprevus::tous(&ctx.racine).map_err(refus_magasin)?.into_iter().filter(engagement::imprevus::est_un_arret).collect())
 }
 
 /// `signalement.nomenclatures()`.
@@ -349,7 +349,7 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
         // Ce que dit la convention, a cote, par le moteur (le calcul de `paie preavis`) ; pas pour un motif sans preavis
         // ni pour la rupture d'un CDD par le salarie (L1243-2), que la convention du licenciement ne regle pas.
         if duree != Some(Decimal::ZERO) && regle.is_none() {
-            let tout = crate::solde::duree_du_preavis(ctx, e, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
+            let tout = engagement::solde::duree_du_preavis(ctx, e, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
             if let (Some(conv), true) = (tout.convention, tout.qui != "la loi (L1234-1)") {
                 dit.push_str(&format!(" {} en donne {} : c'est elle qui s'applique.", tout.qui, conv));
             } else if tout.mois.is_none() {
@@ -378,11 +378,9 @@ mensuelle et le signalement le declarent tous deux."
 /// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
 /// colonne du mois) et les rappels de l'ouverture (`routes_ouverture`) la lisent.
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
+    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());
-    }
-    let saisie = lire_json(&chemin)?;
+    };
     let fin_mois = fin_du_mois(mois)?;
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
@@ -571,7 +569,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     let veille = echeance.veille().map_err(plain)?;
     let mut regularisable = false;
     let raison = if !deposee {
-        let retard = if passee { format!(" (en retard : `paie mois paies/{}.json --forcer`)", mois) } else { String::new() };
+        let retard = if passee { format!(" (en retard : `paie mois {} --forcer`)", mois) } else { String::new() };
         format!("Aucune DSN reelle n'est partie pour {} : ce mois se saisit et se depose normalement{}.", mois, retard)
     } else if refusee {
         format!("La DSN de {} a ete REFUSEE : elle se corrige et se redepose, il n'y a rien a regulariser.", mois)
@@ -605,7 +603,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
 fn mois_a_corriger(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let mut m = Moteur::nouveau(o, ctx);
     let mut etats = Vec::new();
-    for (mois, _) in fichiers_de_mois(&ctx.racine.join("paies")) {
+    for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
         etats.push(etat_mois(&mut m, ctx, &mois)?);
     }
     let choisis = |f: &dyn Fn(&Value) -> bool| -> Vec<Value> { etats.iter().filter(|e| f(e)).cloned().collect() };

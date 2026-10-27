@@ -26,7 +26,7 @@
       une précision que le journal n'a pas. D'où le « du mois », le « de
       <nom> », sous la pastille — et la maille vient du moteur, pas d'ici.
    2. L'ÉTAT EST CELUI DE LA SAISIE ENREGISTRÉE, pas de ce qui est à l'écran.
-      `etat_par_paie` lit `paies/AAAA-MM.json`. Un engagement qu'on vient
+      `etat-par-engagement` lit les engagements enregistrés (`engagements/`). Un engagement qu'on vient
       d'ajouter ou de changer n'a donc pas d'état, et le bloc le DIT au lieu
       de montrer celui d'à côté. Une pastille verte sur une paie modifiée
       serait le pire mensonge possible ici.
@@ -47,7 +47,7 @@ let ETATS_PAIES = null;      // "clé|début|rang" → les quatre actes ; null =
    quand il est posé, sinon par leur RANG parmi ceux du même salarié et du
    même jour, dans l'ordre du fichier (`jumeaux.rs`) — et le fichier suit
    l'ordre des blocs à l'écran (`saisieCourante`). Chaque ligne
-   d'`etat-par-paie` porte ce rang ; la page le rend à `valider-paie`. */
+   d'`etat-par-engagement` porte ce rang ; la page le rend à `valider-engagement`. */
 const clePaie = (salarie, debut, rang) => salarie + "|" + debut + "|" + (rang || 0);
 
 /** Les (salarié, premier jour) d'un bloc, sans leur rang.
@@ -74,9 +74,9 @@ function paiesDuBloc(div) {
     rang: avant.filter((a) => a.salarie === p.salarie && a.debut === p.debut).length }));
 }
 
-/** La ligne d'`etat-par-paie` d'une paie de l'écran : par son numéro s'il est
+/** La ligne d'`etat-par-engagement` d'une paie de l'écran : par son numéro s'il est
  *  posé, sinon par son rang — jamais une ligne qui porte un autre numéro que
- *  le sien (la règle de `valider-paie`). */
+ *  le sien (la règle de `valider-engagement`). */
 function etatDePaie(p) {
   if (!ETATS_PAIES) return undefined;
   if (p.numero) {
@@ -89,7 +89,7 @@ function etatDePaie(p) {
   return l;
 }
 
-/** QUEL contrat `valider-paie` vise : son numéro s'il en a un, et son rang. */
+/** QUEL contrat `valider-engagement` vise : son numéro s'il en a un, et son rang. */
 const contratDe = (l) => ({ salarie: l.salarie, debut: l.debut,
                             numero: l.numero || "", rang: l.rang || 0 });
 
@@ -434,8 +434,7 @@ async function validerPlusieurs(div, lignes) {
   let faites = 0;
   try {
     for (const l of lignes) {
-      await api("valider-paie", { mois, ...contratDe(l),
-                                  valide: true, forcer: MOIS_FORCE === mois });
+      await api("valider-engagement", { mois, ...contratDe(l), valide: true });
       faites += 1;
     }
     dire(`${faites} engagements validés.`);
@@ -447,14 +446,14 @@ async function validerPlusieurs(div, lignes) {
   await dessinerEtatsDesPaies(mois);
 }
 
-/** Lit `etat-par-paie` et repeint. */
+/** Lit `etat-par-engagement` et repeint. */
 async function dessinerEtatsDesPaies(mois) {
   ETATS_PAIES = null;
   if (!mois) { peindreEtats(); return; }
   try {
-    const r = await api("etat-par-paie", { mois });
+    const r = await api("etat-par-engagement", { mois });
     ETATS_PAIES = {};
-    r.paies.forEach((l) => { ETATS_PAIES[clePaie(l.salarie, l.debut, l.rang)] = l; });
+    r.engagements.forEach((l) => { ETATS_PAIES[clePaie(l.salarie, l.debut, l.rang)] = l; });
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
     // rien à peindre, et rien d'alarmant à dire. La saisie, elle, marche.
@@ -583,11 +582,30 @@ function brancherRetirer(div) {
   };
 }
 
+/** « Valider l'engagement » ou « Modifier… ». Si des documents d'un de ses mois sont partis, le moteur pose sa
+ *  question (`DocumentsPartis`) : la page la montre telle quelle, et ne renvoie qu'avec la réponse. */
+async function validerEngagement(mois, ligne, valide) {
+  const charge = { mois, ...contratDe(ligne), valide };
+  try { return await api("valider-engagement", charge); } catch (e) {
+    if (e.detail?.type !== "DocumentsPartis") throw e;
+    const oui = await new Promise((repondre) => {
+      ouvrirBoite(`<p>${echapper(e.message)}</p>
+        <div class="actions">
+          <button class="secondaire" id="dp-non">Annuler</button>
+          <button class="primaire" id="dp-oui">Modifier l'engagement</button>
+        </div>`, () => repondre(false));
+      document.getElementById("dp-non").onclick = () => fermerBoite();
+      document.getElementById("dp-oui").onclick = () => { repondre(true); fermerBoite(); };
+    });
+    if (!oui) return null;
+    return api("valider-engagement", { ...charge, confirme: true });
+  }
+}
+
 async function basculerValidation(ligne, valide) {
   const mois = document.getElementById("mois").value;
   try {
-    await api("valider-paie", { mois, ...contratDe(ligne), valide,
-                                forcer: MOIS_FORCE === mois });
+    if (await validerEngagement(mois, ligne, valide) === null) return;
     dire(valide ? "Engagement validé." : "Engagement rouvert.");
     await dessinerEtatsDesPaies(mois);
   } catch (e) { dire(e.message, "erreur"); }
@@ -612,8 +630,7 @@ async function rouvrirPaies(lignes) {
   const mois = document.getElementById("mois").value;
   try {
     for (const l of lignes) {
-      await api("valider-paie", { mois, ...contratDe(l), valide: false,
-                                  forcer: MOIS_FORCE === mois });
+      if (await validerEngagement(mois, l, false) === null) return;
     }
     dire(lignes.length > 1 ? `Ces ${lignes.length} engagements sont rouverts.`
                            : "Engagement rouvert.");
@@ -747,13 +764,13 @@ async function boiteDpae(mois) {
   }
   let r;
   try {
-    r = await api("etat-par-paie", { mois });
+    r = await api("etat-par-engagement", { mois });
   } catch (e) {
     // Un mois sans paie rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel (#253).
     dire(e.message, "erreur");
     return;
   }
-  const lignes = r.paies || [];
+  const lignes = r.engagements || [];
   if (!lignes.length) { dire("Aucune paie enregistrée en " + moisEnClair(mois) + "."); return; }
   const embauche = (l) => !l.contrat || l.contrat.premier_mois;
   // Déjà partie ET pas refusée : elle ne repart pas. Une refusée, si — c'est

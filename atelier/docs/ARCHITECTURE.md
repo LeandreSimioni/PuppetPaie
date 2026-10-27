@@ -29,7 +29,7 @@ seul validateur (règle de fond 10).
 ## Le flux
 
 ```
-   une phrase, ou paies/AAAA-MM.json (des lignes de paie datées)
+   une phrase, ou engagements/AAAA-MM.json (des engagements, leurs lignes de paie datées)
               │
               ▼
    routes.rs ── les routes du moteur (`paie route`) : l'orchestration et les
@@ -68,6 +68,41 @@ francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf` : relevé sur une
 compagnie réelle, pièce hors du dépôt public, dépôt privé) — fin des AEM,
 AE Cinéma Spectacle remise au salarié, `S21.G00.40.025` vide ; la date vaut
 pour cette compagnie, une autre reçoit la sienne.
+
+## L'engagement : un objet, ses paies validées
+
+L'engagement est au centre (crate `engagement`, `atelier/sources/engagement/`). Il vit dans
+`engagements/AAAA-MM.json`, le fichier **du mois où il commence**, et nulle part ailleurs ; un engagement de
+novembre à janvier est un seul objet de `engagements/2026-11.json`.
+
+- **Sa forme** (`engagement/src/stock.rs`) : son premier mois en clair (salarié, spectacle, `debut`, `fin`, lignes de
+  paie datées…) ; chaque mois d'après n'écrit que ce qu'il change, sous `mois_suivants` (`null` : retiré). Le salarié,
+  les bornes et le numéro de contrat sont ceux de l'engagement dans tous ses mois (`PARTAGES`) ; la nature, le
+  spectacle, l'emploi… se reconduisent d'un mois au suivant (`RECONDUITS`) ; un contrat d'usage commence chaque mois
+  d'après avec les jours que le mois d'avant a mis au planning (une ligne par ligne qui en a). Le fichier d'un mois
+  porte aussi les défauts du mois (`taux_cachet`, `date_paiement`).
+- **Le mois de l'écran** (`stock::vue_du_mois`) : le fichier du mois et chaque engagement d'un mois d'avant qui court
+  encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_vue_du_mois`) ; chaque engagement y retrouve
+  son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.
+- **Trois états** (`engagement/src/etats.rs`), trois types : **en saisie** (calculé à mesure pour l'écran, rien ne
+  part de lui) ; **validé** (« Valider l'engagement » écrit sous `valide` la date et une paie par mois couvert, avec
+  son prélèvement à la source et l'empreinte de ce dont le calcul dépend : fichiers lus, fiches, saisie des mois lus,
+  code du moteur, règles datées) ; **documents partis** pour un mois (le journal des envois, `journal/depots.json`, a
+  une ligne `documents` du mois qui nomme le salarié). Tout document se fabrique depuis les paies écrites
+  (`etats::validees_du_mois`, `etats::paies_du_mois`, qui refuse un mois dont un engagement est en saisie) ; aucun ne
+  recalcule.
+- **Le recalcul de lui-même** (`etats::rafraichir`, à l'ouverture d'un mois et avant de produire) : une paie validée
+  dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
+  chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
+  qu'il livre), « un autre engagement du mois a changé », « configuration de la compagnie modifiée ». L'écran le montre
+  (« Recalculé le JJ/MM/AAAA : … »). Sans chiffre changé, rien ne se dit.
+- **Modifier…** (route `valider-engagement`, `valide: false`) repasse l'engagement en saisie. Si les documents d'un de
+  ses mois sont partis, le moteur pose d'abord sa question (`etats::QUESTION_DOCUMENTS_PARTIS`) et ne bouge qu'avec la
+  réponse (`confirme`) ; les paies parties se gardent (`figees`) et se reprennent telles quelles à la validation si la
+  saisie de leur mois n'a pas changé.
+- **Le numéro de contrat** se pose sur l'engagement quand le contrat part à la signature ou avec son premier mois
+  (`stock::poser_numero`), et se relit ensuite ; un mois qui n'est pas le premier ne se numérote pas
+  (`engagement::refus_sans_numero`, règle 4).
 
 ## La ligne de paie datée
 
@@ -384,7 +419,7 @@ Depuis le 15/09/2026 il ne lit qu'**une source, la nôtre**, en deux fichiers :
 | | quoi | quand |
 |---|---|---|
 | `prive/historique/engagements.json` | les contrats attestés **avant** ce logiciel : les AEM de CoolPaie, importées une fois (`paie importer`) — dates, numéro d'objet, cachets, heures, jours, brut, numéro et date d'attestation | pour tout mois qui n'a pas de fichier de paie |
-| `prive/paies/AAAA-MM.json` | les mois produits ici, chargés par `charger` (`paie/src/engagement.rs`) (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
+| `prive/engagements/AAAA-MM.json` | les engagements saisis ici, lus par `charger` (`engagement/src/lib.rs`) (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
 
 La règle de départage tient en une phrase : **un mois qui a son fichier de
 paie est lu là, jamais deux fois.** Pendant le double run d'août 2026, l'AEM
@@ -1567,7 +1602,7 @@ fait ; jamais un clic — ici, la revue enregistrée.
 **La clôture** (`cloturer`) refuse une année déjà close, l'année en cours,
 et une année dont un mois avec des paies n'a pas de DSN réelle acceptée
 (`forcer` passe outre, et `exercices.json` le garde). Elle écrit l'export
-compta si besoin, puis `sorties/exercices/Exercice_<année>.zip` : `paies/`,
+compta si besoin, puis `sorties/exercices/Exercice_<année>.zip` : `engagements/` (le fichier de chaque mois de l'année, et celui du mois où commence un engagement qui court dans l'année),
 chaque `sorties/<mois>/` en entier (les contrats signés sont dans `envoi/`),
 les retours dont le nom commence par l'année ou par janvier suivant (le
 bilan de la DSN de décembre arrive en janvier), `journal/depots.json`, les

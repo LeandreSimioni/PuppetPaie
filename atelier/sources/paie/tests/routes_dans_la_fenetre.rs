@@ -92,23 +92,6 @@ fn une_route_servie_dans_la_fenetre_rend_ce_que_rend_paie_route() {
     }
 }
 
-/// `bilan-du-mois` (et `mois-a-ouvrir`, qui le fait pour chaque mois passe) lit l'etat garde du mois quand il est juste,
-/// au lieu de recharger la saisie : il rend la meme chose avec ou sans lui.
-#[test]
-fn le_bilan_d_un_mois_est_le_meme_avec_ou_sans_son_etat_garde() {
-    let racine = compagnie("bilan-garde", "fictive-1285-grande");
-    for mois in ["2025-03", "2026-02", "2026-09"] {
-        let _ = std::fs::remove_file(racine.join("paies").join(format!("{}.etat.json", mois)));
-        let charge = json!({ "mois": mois });
-        let sans = dans_la_fenetre(&racine, "bilan-du-mois", &charge);
-        assert!(sans.is_ok(), "{} : {:?}", mois, sans);
-        // L'etat garde se fait (la route `etat-par-paie` le refait et l'ecrit), puis le bilan le lit.
-        dans_la_fenetre(&racine, "etat-par-paie", &charge).unwrap();
-        assert_eq!(paie::etat_garde::servir(&racine, mois, JOUR).map(|(_, juste)| juste), Some(true), "{} : pas d'etat garde juste", mois);
-        assert_eq!(dans_la_fenetre(&racine, "bilan-du-mois", &charge), sans, "{} : le bilan change avec l'etat garde", mois);
-    }
-}
-
 #[test]
 fn une_route_qui_tombe_rend_un_refus_et_la_suivante_est_servie() {
     let racine = compagnie("tombe", "fictive-1285-petite");

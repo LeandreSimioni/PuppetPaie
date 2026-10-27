@@ -245,7 +245,7 @@ fn lire_heure(h: &str) -> Option<u32> {
 
 /// Ce que la compagnie a dit des obligations de ses arrets : `imprevus/obligations.json`, a cote du magasin des imprevus.
 fn chemin(ctx: &Contexte) -> PathBuf {
-    crate::imprevus::dossier(&ctx.racine).join("obligations.json")
+    engagement::imprevus::dossier(&ctx.racine).join("obligations.json")
 }
 
 /// Les fiches de suivi, par (cle du salarie, dernier jour travaille).

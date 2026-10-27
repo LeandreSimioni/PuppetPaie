@@ -7,7 +7,7 @@
 use crate::outils::{self, compagnie};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use paie::engagement::charger;
+use engagement::charger;
 use paie::fctu::{self, Echec};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -19,14 +19,14 @@ const JOUR: &str = "2026-10-20";
 /// pour `motif`, avec les `champs` poses sur son engagement de juin.
 fn fin_du_cdi(test: &str, motif: &str, champs: Value) -> PathBuf {
     let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", test));
-    let mut saisie = outils::lire(&racine, "paies/2026-06.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "MO.23.01").unwrap();
     e["fin"] = "2026-06-30".into();
     e["motif_rupture"] = motif.into();
     for (k, v) in champs.as_object().unwrap() {
         e[k] = v.clone();
     }
-    outils::ecrire(&racine, "paies/2026-06.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-06", &saisie);
     racine
 }
 
@@ -80,9 +80,9 @@ fn le_code_032_n_accompagne_qu_une_inaptitude() {
 
 /// Le contrat `numero` de la copie, sa paie de juin 2026 (le solde de tout compte), et le signalement de sa fin pour
 /// `motif` avec le type de preavis `type_preavis` (du 01/06 au 30/06, notifie le 29/05).
-fn paie_et_fctu(racine: &PathBuf, numero: &str, motif: &str, type_preavis: &str) -> (paie::calcul::Paie, Result<String, Echec>) {
+fn paie_et_fctu(racine: &PathBuf, numero: &str, motif: &str, type_preavis: &str) -> (engagement::calcul::Paie, Result<String, Echec>) {
     let ctx = Contexte::nouveau(racine, Some(Jour::lire(JOUR).unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-06.json")).unwrap_or_else(|m| panic!("{}", m));
+    let s = charger(&ctx, "2026-06").unwrap_or_else(|m| panic!("{}", m));
     let paie = s.paies.into_iter().find(|p| p.engagement.numero.as_deref() == Some(numero)).unwrap();
     let fin = fctu::FinDeContrat::lire(&json!({
         "fin": "2026-06-30", "motif": motif, "mois_rattachement": "2026-06", "type_preavis": type_preavis,
@@ -106,7 +106,7 @@ fn cdi_preavis_non_effectue(test: &str, motif: &str, type_preavis: &str) -> Path
     )
 }
 
-fn avis(paie: &paie::calcul::Paie) -> String {
+fn avis(paie: &engagement::calcul::Paie) -> String {
     paie.avertissements.iter().map(|a| a.texte.clone()).collect::<Vec<_>>().join("\n")
 }
 
@@ -114,7 +114,7 @@ fn avis(paie: &paie::calcul::Paie) -> String {
 fn un_cdd_rompu_par_le_salarie_ne_se_declare_pas_preavis_paye() {
     // 037 : aucune indemnite (L1243-2, L1243-3 ; lot P1) ; « 02 - non effectue et paye » dirait le contraire de la paie.
     let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", "037-02"));
-    let mut saisie = outils::lire(&racine, "paies/2026-06.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "AU.25.01").unwrap();
     for (k, v) in [
         ("motif_rupture", json!("037")),
@@ -125,7 +125,7 @@ fn un_cdd_rompu_par_le_salarie_ne_se_declare_pas_preavis_paye() {
     ] {
         e[k] = v;
     }
-    outils::ecrire(&racine, "paies/2026-06.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-06", &saisie);
     let (paie, fctu) = paie_et_fctu(&racine, "AU.25.01", "037", "02");
     match fctu {
         Err(Echec::Impossible(m)) => assert!(m.contains("« 02 - ") && m.contains("aucune indemnite") && m.contains("« 03 - "), "{}", m),
@@ -183,12 +183,12 @@ fn l_indemnite_du_delai_de_prevenance_se_declare_en_017() {
     // 30/06 : vingt jours de juillet. Bloc 52 : « 017 - Dommages et interets dus [...] a une rupture de periode d'essai
     // (delai de prevenance) » (cahier technique 2026.1, p. 253).
     let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", "034"));
-    let mut saisie = outils::lire(&racine, "paies/2026-06.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "AU.25.01").unwrap();
     e["motif_rupture"] = "034".into();
     e["notification_rupture"] = "2026-06-20".into();
     e["periode_essai_jours"] = 30.into();
-    outils::ecrire(&racine, "paies/2026-06.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-06", &saisie);
     let dsn = outils::dsn_du_mois(&racine, "2026-06", JOUR).unwrap_or_else(|m| panic!("{}", m));
     let v = outils::versement(&dsn, "AU.25.01");
     let i = v.iter().position(|(k, x)| k == "S21.G00.52.001" && x == "017").unwrap_or_else(|| panic!("{:?}", v));

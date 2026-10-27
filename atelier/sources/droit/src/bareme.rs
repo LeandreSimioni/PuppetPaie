@@ -1197,6 +1197,13 @@ pub fn bareme_applique_au_contrat(
     bareme_vm(bar, sal)
 }
 
+/// La fiche de l'entreprise que la pile du bareme porte (`_entreprise`, celle que la paie a lue), sinon `ent` : un
+/// signalement d'amorcage n'a pas de bareme.
+pub fn entreprise_du<'a>(bar: &'a Value, ent: &'a Value) -> &'a Value {
+    let e = g(bar, "_entreprise");
+    if e.is_object() { e } else { ent }
+}
+
 // ---------------------------------------------------- les etablissements
 
 pub fn nic_principal(fiche: &Value) -> String {

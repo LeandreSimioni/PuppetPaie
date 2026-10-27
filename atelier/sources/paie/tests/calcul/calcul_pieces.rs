@@ -4,11 +4,11 @@
 //! l'oracle. La deduction forfaitaire specifique est prouvee par `dfs.rs` ; ici, une fiche sans profession.
 
 use crate::outils::{dec, fictive, lire_oracle, oracle, sceller};
-use paie::calcul::{au_dela_du_seuil, code_54, deduction_forfaitaire, lignes_brut, reduction_generale, LigneBrut, LigneCotisation, Paie};
+use engagement::calcul::{au_dela_du_seuil, code_54, deduction_forfaitaire, lignes_brut, reduction_generale, LigneBrut, LigneCotisation, Paie};
 use droit::catalogue::rubrique;
 use droit::contexte::Contexte;
 use socle::date::d;
-use paie::engagement::{canon_valeur, engagements_du_fichier};
+use engagement::canon_valeur;
 use socle::num::Decimal;
 use serde_json::{json, Map, Value};
 use std::cell::Cell;
@@ -29,7 +29,7 @@ fn essai(r: Result<Value, String>) -> Value {
 }
 
 // ------------------------------------------------------------------- les mois
-fn paie_fabriquee(ctx: &Contexte, e: &paie::engagement::Engagement, lignes: &[LigneBrut], a: &Value) -> Result<Value, String> {
+fn paie_fabriquee(ctx: &Contexte, e: &engagement::Engagement, lignes: &[LigneBrut], a: &Value) -> Result<Value, String> {
     let brut = dec(a["brut"].as_str().unwrap());
     let spectacle = match &e.spectacle {
         Some(s) => json!({"titre": s}),
@@ -81,7 +81,8 @@ fn les_lignes_de_remuneration_et_la_paie_fabriquee() {
             appel.set(i + 1);
             Ok((permanents[i].as_array().unwrap().clone(), Vec::new()))
         };
-        let (_, engs, _) = engagements_du_fichier(&ctx, &racine.join("paies").join(&fichier), &lignes).unwrap();
+        let mois_du_fichier = fichier.trim_end_matches(".json");
+        let (engs, _) = engagement::saisie_du_mois(&racine, mois_du_fichier).and_then(|d| engagement::engagements(&ctx, &d, &lignes)).unwrap();
         let attendus = c["engagements"].as_array().unwrap().clone();
         let vus: Vec<Value> = engs
             .iter()

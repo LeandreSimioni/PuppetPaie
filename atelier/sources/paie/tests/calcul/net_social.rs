@@ -12,12 +12,12 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`) ; saisies et compagnie retouchee dans le dossier des tests.
 
 use paie::bulletin::{fmt_eur, jeux_et_description};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::catalogue::{catalogue, HorsAssiette};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::Decimal;
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -33,7 +33,7 @@ fn ecrire_saisie(s: &Value) -> PathBuf {
 }
 
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
-    charger(ctx, &ecrire_saisie(&s)).unwrap()
+    crate::outils::charger_fichier(ctx, &ecrire_saisie(&s)).unwrap()
 }
 
 fn rubrique(v: &[(String, String)], r: &str) -> Option<Decimal> {
@@ -161,7 +161,7 @@ fn le_contrat_bi4_26_06_de_la_fictive_declare_les_nets_de_la_fiche_n2() {
     // remuneres (BOSS § 1090), 4 005 x 23 / 31 = 2 971,45 : cotisations salariales 866,71. Montant net social et 50.004
     // 3 210,29 (les defraiements n'y sont pas), 50.002 3 327,77, net a payer 3 644,99.
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let v = versement(&dsn, "BI4.26.06");
     assert_eq!(nets_sociaux(&v), vec![("03".to_string(), dec("3210.29"))]);
@@ -223,7 +223,7 @@ fn une_ligne_hors_assiette_dont_la_nature_ne_dit_pas_ce_qu_elle_est_se_refuse() 
             {"rubrique": "prime_maison", "quantite": 1, "taux": 100.0}
          ]}
     ]}));
-    let e = match charger(&ctx, &chemin) {
+    let e = match crate::outils::charger_fichier(&ctx, &chemin) {
         Ok(_) => panic!("une ligne hors assiette de nature `prime` doit se refuser"),
         Err(e) => e,
     };
@@ -242,7 +242,7 @@ fn une_ligne_hors_assiette_dont_la_nature_ne_dit_pas_ce_qu_elle_est_se_refuse() 
 #[test]
 fn la_part_patronale_de_prevoyance_et_du_fonds_sante_d_un_intermittent_reste_hors_du_montant_net_social() {
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let p = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("BI4.26.06")).unwrap();
     let patronale = somme(p, "prevoyance", true);
@@ -405,7 +405,7 @@ fn une_correction_qui_verse_un_rappel_le_date_du_mois_du_versement() {
 #[test]
 fn l_abattement_contrats_courts_ne_s_ecrit_plus_en_50_012() {
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let p = s.paies.iter().find(|p| p.engagement.numero.as_deref() == Some("BI4.26.06")).unwrap();
     // Sans taux DGFiP : la grille, et l'abattement d'un contrat court.
     let mut o = Options::default();

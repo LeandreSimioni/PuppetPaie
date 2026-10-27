@@ -4,7 +4,7 @@
 //! l'ouverture et la veille (lot I), la ligne de commande (lot J), et `web.py` qui lit
 //! `derniere` et `rien_n_a_bouge`. Le client Drive se passe en parametre (`drive::Drive`).
 //!
-//! CE QU'ELLE SAUVE : tout le dossier des donnees (`config/`, `paies/`, `sorties/`, `retours/`,
+//! CE QU'ELLE SAUVE : tout le dossier des donnees (`config/`, `engagements/`, `sorties/`, `retours/`,
 //! `gabarits/`, `journal/`, `reference/`), coffre compris (`coffre.bin`, scelle par le mot de passe du logiciel, qui
 //! l'ouvre sur un poste neuf apres `paie restaurer` : Leandre, 13/10/2026, redit le 14/10), sauf le jeton Google
 //! (`google-jeton.bin`, le compte se relie), l'etat de la machine (`.compteurs.verrou`, l'index lui-meme) et le rebut.
@@ -581,7 +581,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
                     resultat.octets_deposes += octets;
                 }
                 // LE FICHIER A DISPARU ENTRE L'INVENTAIRE ET L'ENVOI, et ce n'est pas un incident :
-                // `paies/avant/` et `config/avant/` ne gardent que les dernieres copies, et
+                // `engagements/avant/` et `config/avant/` ne gardent que les dernieres copies, et
                 // l'interface enregistre a chaque frappe. On ne l'inscrit pas a l'index non plus.
                 Err(e) if e.classe == "FileNotFoundError" => {
                     resultat.disparus += 1;

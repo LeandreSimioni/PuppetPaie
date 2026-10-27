@@ -201,7 +201,7 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
         && c[4] == '-'
         && c[5..].iter().all(|x| crate::retours::est_chiffre(*x))
     {
-        let saisie = normaliser(&format!("{}/paies/{}.json", base, t));
+        let saisie = normaliser(&format!("{}/{}/{}.json", base, engagement::stock::DOSSIER, t));
         if existe(&saisie) {
             return Ok(saisie);
         }

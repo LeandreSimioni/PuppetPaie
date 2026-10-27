@@ -9,11 +9,11 @@
 //! Sur la copie figee des compagnies fictives (`tests/donnees/fictives/`, compagnies inventees), lue sans y rien ecrire : les
 //! saisies s'ecrivent dans le dossier temporaire des tests.
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::{eur, pct, Decimal};
 use rust_decimal::RoundingStrategy;
 use serde_json::{json, Value};
@@ -29,7 +29,7 @@ use std::str::FromStr;
 fn saisie(ctx: &Contexte, s: Value) -> Saisie {
     let chemin = crate::outils::chemin_unique("plafond-intermittents.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    charger(ctx, &chemin).unwrap()
+    crate::outils::charger_fichier(ctx, &chemin).unwrap()
 }
 
 fn paie<'a>(s: &'a Saisie, numero: &str) -> &'a Paie {
@@ -58,7 +58,7 @@ fn juillet_2026_les_intermittents_au_dessus_de_leur_plafond_cotisent_sur_lui() {
     // 3 312,00), tous du 02 au 25/07. Vague 1o : chacun a le plafond de ses jours remuneres (BOSS, assiette generale,
     // § 1090), 4 005 x jours dates / 31 ; vague 1l : les 24 jours du contrat, 3 100,65 pour tous.
     let ctx = Contexte::nouveau(&fictive("fictive-3090-grande"), Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &fictive("fictive-3090-grande").join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     for (numero, brut) in [("BI4.26.06", "4077.00"), ("CH8.26.04", "3496.00"), ("SE9.26.05", "3312.00")] {
         let p = paie(&s, numero);
@@ -315,7 +315,7 @@ fn a_cinquante_salaries_le_fnal_des_artistes_se_declare_sous_le_ctp_316_sur_la_t
     // artistes, entier, comme leur 81.003 du 049 ; plus de 334.
     let racine = fictive_a_soixante("fnal-artistes-cinquante");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     let artistes: Vec<&Paie> = s.paies.iter().filter(|p| !p.engagement.nat().unwrap().mensuelle() && p.salarie["statut"] == "artiste").collect();
     assert!(!artistes.is_empty());
@@ -331,7 +331,7 @@ fn a_cinquante_salaries_le_fnal_des_artistes_se_declare_sous_le_ctp_316_sur_la_t
     // Sous cinquante (la fictive recomposee telle quelle) : le 334, pas de 316.
     let racine = fictive_recomposee("fictive-3090-grande", "fnal-artistes-sous-cinquante");
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire("2026-07-28").unwrap())).unwrap();
-    let s = charger(&ctx, &racine.join("paies/2026-07.json")).unwrap();
+    let s = charger(&ctx, "2026-07").unwrap();
     let dsn = generer(&ctx, &s.paies, "2026-07", &[], &[], &Options::default()).unwrap();
     assert!(ctp(&dsn, "334", "921").is_some());
     assert_eq!(ctp(&dsn, "316", "920"), None);

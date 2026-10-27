@@ -9,7 +9,7 @@
 //! `bloc-S21.G00.65.txt`).
 
 use crate::outils::{self, compagnie, ecrire};
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Arret, Options};
@@ -25,12 +25,12 @@ fn contexte(racine: &Path) -> Contexte {
 }
 
 fn paies(ctx: &Contexte, mois: &str) -> Vec<Paie> {
-    paie::engagement::charger(ctx, &ctx.racine.join(format!("paies/{}.json", mois))).unwrap().paies
+    engagement::charger(ctx, &mois).unwrap().paies
 }
 
 /// Les arrets que la DSN de `mois` reporte, tires du magasin (ce que fait la production du mois).
 fn arrets(racine: &Path, mois: &str) -> Vec<Arret> {
-    paie::imprevus::du_mois(racine, mois, Some(paie::imprevus::ARRET)).unwrap().into_iter().map(|v| Arret { v }).collect()
+    engagement::imprevus::du_mois(racine, mois, Some(engagement::imprevus::ARRET)).unwrap().into_iter().map(|v| Arret { v }).collect()
 }
 
 fn dsn(ctx: &Contexte, paies: &[Paie], mois: &str) -> Result<String, String> {

@@ -32,7 +32,7 @@ fn sans_dpae_ecrites(racine: &Path) {
 
 /// Les engagements portent la cle du salarie en capitales (la route compare `salarie` a la cle).
 fn engagements_en_capitales(racine: &Path, mois: &str) {
-    let rel = format!("paies/{}.json", mois);
+    let rel = format!("engagements/{}.json", mois);
     let mut s = lire(racine, &rel);
     for e in s["engagements"].as_array_mut().unwrap() {
         let n = e["salarie"].as_str().unwrap().to_uppercase();
@@ -66,10 +66,10 @@ fn dpae_refuse_deux_lignes_identiques_d_une_saisie_et_dit_lesquelles() {
     sans_dpae_au_journal(&racine);
     sans_dpae_ecrites(&racine);
     let avant = noms(&racine.join("sorties/2026-03"));
-    let mut s = lire(&racine, "paies/2026-03.json");
+    let mut s = crate::outils::saisie(&racine, "2026-03");
     let premiere = s["engagements"][0].clone();
     s["engagements"].as_array_mut().unwrap().push(premiere);
-    ecrire(&racine, "paies/2026-03.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-03", &s);
     let (_, m) = refus(&route(&racine, "dpae", json!({"mois": "2026-03"})));
     assert!(m.starts_with("Deux lignes identiques dans la saisie de 2026-03 declareraient deux fois la meme embauche : BRIOCHE au 2026-03-24."), "{}", m);
     assert!(m.contains("Corrigez la saisie") && m.ends_with("Rien n'est ecrit."), "{}", m);
@@ -78,10 +78,10 @@ fn dpae_refuse_deux_lignes_identiques_d_une_saisie_et_dit_lesquelles() {
     assert!(m.contains("BRIOCHE au 2026-03-24"), "{}", m);
     assert_eq!(noms(&racine.join("sorties/2026-03")), avant, "un refus n'ecrit rien");
     // Une ligne qui differe (un autre lieu) n'est pas un doublon : le refus ne vise que l'identique.
-    let mut s = lire(&racine, "paies/2026-03.json");
+    let mut s = crate::outils::saisie(&racine, "2026-03");
     let n = s["engagements"].as_array().unwrap().len();
     s["engagements"][n - 1]["lignes"][0]["lieu"] = json!("Ailleurs");
-    ecrire(&racine, "paies/2026-03.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-03", &s);
     reussi(&route(&racine, "dpae", json!({"mois": "2026-03"})));
 }
 

@@ -50,7 +50,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::echec::Echec;
-use crate::routes_listes::{lire_json, vers_route};
+use crate::routes_listes::lire_json;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 3] = ["arret-contrats", "dossier-formes", "exports-periodes"];
@@ -134,7 +134,7 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
     let cle_texte = valeur_en_texte(cle);
     let mut sorties: Vec<(String, Value)> = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    let mut mois = crate::routes_contrats::mois_saisis(ctx);
+    let mut mois = crate::routes_contrats::mois_saisis(ctx)?;
     mois.reverse();
     for m in mois {
         for (c, e) in crate::routes_contrats::engagements_du_mois(ctx, &m)? {
@@ -202,7 +202,7 @@ pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>>
             cles.poser(vec![m.clone()], "DSN déposée")?;
         }
     }
-    for m in crate::routes_contrats::mois_saisis(ctx) {
+    for m in crate::routes_contrats::mois_saisis(ctx)? {
         cles.poser(vec![Value::String(m)], "saisie")?;
     }
     let tous: Vec<Value> = cles.items.iter().map(|(k, _)| k[0].clone()).collect();

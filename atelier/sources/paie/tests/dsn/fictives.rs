@@ -12,7 +12,7 @@ use crate::outils;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{generer, Options};
-use paie::engagement::charger;
+use engagement::charger;
 use socle::num::Decimal;
 use std::collections::BTreeMap;
 
@@ -50,7 +50,7 @@ fn rejouer(nom: &str) -> (usize, usize, usize) {
             .unwrap_or_else(|| panic!("{} : pas de DSN deposee", quoi));
         let depose = String::from_utf8_lossy(&std::fs::read(depose).unwrap()).into_owned();
         let ctx = Contexte::nouveau(&outils::fictive(nom), Some(Jour::lire(&format!("{}-28", m)).unwrap())).unwrap();
-        let s = charger(&ctx, &outils::fictive(nom).join(format!("paies/{}.json", m))).unwrap();
+        let s = charger(&ctx, &m).unwrap();
         let dsn = generer(&ctx, &s.paies, &m, &[], &[], &Options::default()).unwrap_or_else(|e| panic!("{} : {}", quoi, e));
 
         paie::usages::verifier_fichier(&dsn).unwrap_or_else(|e| panic!("{} : {}", quoi, e));

@@ -157,12 +157,12 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if crate::routes_imprevus::ROUTES.contains(&r) => crate::routes_imprevus::route(o, &ctx, route, &charge),
         // Les ecritures du lot G3 : coffre, mot de passe du logiciel, jeton Google, mise a jour, cloture, export compta, import.
         r if crate::routes_ecritures_g3::ROUTES.contains(&r) => crate::routes_ecritures_g3::route(o, &ctx, route, &charge),
-        // Les ecritures du lot G4 : valider une paie, le contrat recu, les reglages et reprises locales.
-        r if crate::routes_ecritures_g4::ROUTES.contains(&r) => crate::routes_ecritures_g4::route(o, &ctx, route, &charge),
+        // Les ecritures du lot G4 : valider ou modifier un engagement, le contrat recu, les reglages et reprises locales.
+        r if crate::routes_ecritures_g4::ROUTES.contains(&r) => crate::routes_ecritures_g4::route(&ctx, route, &charge),
         // Les obligations d'un arret (15/10/2026) : le jour ou la compagnie l'a su, la declaration d'accident faite.
         r if crate::obligations::ROUTES.contains(&r) || crate::obligations::ROUTES_LECTURE.contains(&r) => crate::obligations::route(&ctx, route, &charge),
         // Les productions du lot H1 : la DPAE, le signalement d'arret, la fin de contrat et ses papiers (rien ne part).
-        r if crate::routes_actes_h1::ROUTES.contains(&r) => crate::routes_actes_h1::route(o, &ctx, route, &charge),
+        r if crate::routes_actes_h1::ROUTES.contains(&r) => crate::routes_actes_h1::route(&ctx, route, &charge),
         // Les actes du lot H2 : deposer, suivre un depot, le bilan d'une repetition, le filet. Un refus qui porte une
         // donnee pour la page (`etat`, `manques`) la rend a cote de `erreur` et `classe`.
         r if crate::routes_actes_h2::ROUTES.contains(&r) => match crate::routes_actes_h2::route(o, &ctx, route, &charge) {
@@ -184,7 +184,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // La releve des reponses « Je signe » du lot I2a : cherche les codes attendus dans la boite (la vraie, ou celle d'une
         // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat. N'a de sens, hors d'une
         // compagnie fictive, que pour relever pour de bon : une vraie boite est lue.
-        r if crate::releve_signatures::ROUTES.contains(&r) => crate::releve_signatures::route(o, &ctx, route, &charge),
+        r if crate::releve_signatures::ROUTES.contains(&r) => crate::releve_signatures::route(&ctx, route, &charge),
         // L'ouverture du logiciel et la veille (lot I2b) : sauvegarder, relever les retours, les signatures et les fiches, sans
         // jamais echouer. ATTENTION : hors d'une compagnie fictive, cette route va au reseau (net-entreprises, Urssaf,
         // boite courriel, Drive, serveur des incidents).
@@ -209,7 +209,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && !message.trim_start().starts_with('{') => {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes_ecritures_g4::CLASSE_DOCUMENTS_PARTIS) && !message.trim_start().starts_with('{') => {
             let suite = crate::demarrage::a_la_suite(&ctx).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }

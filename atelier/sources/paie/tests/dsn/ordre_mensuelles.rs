@@ -164,7 +164,7 @@ fn l_annule_et_remplace_reel_part_au_dessus_de_l_ordre_que_la_plate_forme_a_vu_c
     std::fs::create_dir_all(racine.join("retours")).unwrap();
     std::fs::write(racine.join("retours/20260802-101010_nature11_FLUX-AUTRE-POSTE.xml"), bilan("FLUX-AUTRE-POSTE", "02", "5", "2026-08-02", None)).unwrap();
     // Le journal sait juillet parti a l'ordre 1 ; une saisie modifiee appelle l'annule-et-remplace.
-    let r = route(&racine, "produire", json!({"mois": "2026-07", "saisie": lire(&racine, "paies/2026-07.json")}));
+    let r = route(&racine, "produire", json!({"mois": "2026-07", "saisie": crate::outils::saisie(&racine, "2026-07")}));
     reussi(&r);
     let ar = std::fs::read_dir(racine.join("sorties/2026-07"))
         .unwrap()
@@ -182,7 +182,7 @@ fn un_annule_et_remplace_reel_sous_l_ordre_qu_un_autre_poste_a_fait_accepter_ne_
     // compagnie fait accepter, ce mois civil, une mensuelle reelle a l'ordre 5 : le depot reel de l'ordre 2 prendrait
     // B1-208-11 (cahier technique DSN, p. 15). Il est refuse avant de partir, et le refus dit l'ordre a prendre.
     let racine = compagnie::ses_dsn("fictive-3090-grande", &["2026-07"], &outils::dossier_de_test("ordre_mensuelles", "reel-autre-poste"));
-    reussi(&route(&racine, "produire", json!({"mois": "2026-07", "saisie": lire(&racine, "paies/2026-07.json")})));
+    reussi(&route(&racine, "produire", json!({"mois": "2026-07", "saisie": crate::outils::saisie(&racine, "2026-07")})));
     let ar = std::fs::read_dir(racine.join("sorties/2026-07"))
         .unwrap()
         .flatten()

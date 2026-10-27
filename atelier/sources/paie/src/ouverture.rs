@@ -603,7 +603,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         }
         dire_l_etape(ctx, "Compagnie fictive : signatures et fiches des salariés…");
         // Le resultat de la relève jouee n'est pas gardé : le Python le jetait aussi (`simulation.relever_signatures(ctx)`).
-        if let Err(e) = releve_signatures::relever_signatures_fictive(o, ctx, releve_signatures::DELAI_FICTIVE) {
+        if let Err(e) = releve_signatures::relever_signatures_fictive(ctx, releve_signatures::DELAI_FICTIVE) {
             r.incidents.push(format!("Signatures : {}", e.message));
         }
         match routes_fiches_courriel::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {
@@ -617,7 +617,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     }
 
     if retours {
-        relever_les_retours(o, ctx, opt, &mut clients, &mut r);
+        relever_les_retours(ctx, opt, &mut clients, &mut r);
     }
 
     // LE PAS, AU MEME PASSAGE QUE LES RETOURS, et juste apres eux : c'est un retour qui pose les taux, donc c'est ici qu'ils
@@ -631,7 +631,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     if signatures {
         dire_l_etape(ctx, "Boîte courriel : contrats revenus signés…");
         // Les reponses « Je signe ». La relève ne leve pas pour un compte absent ou une permission manquante : elle le dit.
-        match releve_signatures::relever_signatures(o, ctx, reborrow_courriel(&mut clients.courriel), None, "veille") {
+        match releve_signatures::relever_signatures(ctx, reborrow_courriel(&mut clients.courriel), None, "veille") {
             Ok(s) => {
                 r.incidents.extend(s.incidents.iter().cloned());
                 r.signatures = Some(s);
@@ -672,7 +672,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
         let _ = crate::incidents::envoyer(&ctx.racine);
         // LE NOMBRE DE PAIES DE L'ANNEE PASSEE (ticket #246), a partir du 16 janvier, une fois : `nombre_de_paies` decide
         // seul (ni fictive, ni copie de developpement, ni logiciel bride, ni envoi coupe) et retient ce qui est parti.
-        let _ = crate::nombre_de_paies::envoyer_si_du(o, ctx);
+        let _ = crate::nombre_de_paies::envoyer_si_du(ctx);
         // Les messages « Un probleme, une idee ? » que l'envoi en fond n'a pas fait partir (serveur injoignable...).
         let _ = crate::problemes::partir(&ctx.racine);
         let _ = crate::problemes::relever_reponses(&ctx.racine);
@@ -714,7 +714,7 @@ fn reborrow_courriel<'b>(c: &'b mut Option<&mut dyn Courriel>) -> Option<&'b mut
 }
 
 /// Les retours DSN (net-entreprises) puis DPAE (Urssaf) : un secret absent est un manque, une panne est un incident.
-fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>, r: &mut Ouverture) {
+fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>, r: &mut Ouverture) {
     // Le canal DSN.
     let client_dsn = clients.dsn.take();
     let dispo = match &client_dsn {
@@ -738,7 +738,7 @@ fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Option
         Some(true) => {
             dire_l_etape(ctx, "net-entreprises : retours des DSN…");
             let fin = releve_retours::maintenant_naif();
-            match releve_retours::relever_retours(ctx, o, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
+            match releve_retours::relever_retours(ctx, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
                 Ok(rel) => {
                     r.incidents.extend(rel.incidents.iter().cloned());
                     r.manquants.extend(rel.a_faire.iter().cloned());
@@ -775,8 +775,8 @@ fn relever_les_retours(o: &HashMap<String, String>, ctx: &Contexte, opt: &Option
             // Un client donne passe par la meme releve que le vrai (canal `dpae`) ; sans client, `relever_retours_dpae`
             // cherche le mot de passe de consultation et construit le sien.
             let rel = match client_dpae {
-                Some(c) => releve_retours::relever_retours(ctx, o, debut, fin, false, "production", Some(c), "dpae"),
-                None => releve_retours::relever_retours_dpae(ctx, o, debut, fin, false, ""),
+                Some(c) => releve_retours::relever_retours(ctx, debut, fin, false, "production", Some(c), "dpae"),
+                None => releve_retours::relever_retours_dpae(ctx, debut, fin, false, ""),
             };
             match rel {
                 Ok(rel) => {

@@ -14,7 +14,7 @@ use serde_json::{Map, Value};
 
 use droit::bareme::{self, bareme_applique_au_contrat};
 use crate::bordereau::{self, LigneBordereau};
-use crate::calcul::{au_dela_du_seuil, Paie};
+use engagement::calcul::{au_dela_du_seuil, Paie};
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::{contrat_court, Nature};
 use socle::date::{en_texte, Jour};
@@ -284,7 +284,7 @@ fn emploi_declare(p: &Paie) -> (String, String, String) {
     (txt(g(s, "pcs_ese")), txt(g(s, "code_emploi_ft")), txt(g(s, "emploi")))
 }
 
-/// Les contrats enregistres d'une periode de paie (`paies/AAAA-MM.json`, sans montants) ; rien si le mois n'a pas de
+/// Les contrats enregistres d'une periode de paie (les engagements du mois, sans montants) ; rien si le mois n'a pas de
 /// saisie. Ils completent ceux qu'une declaration porte : la DSN d'un etablissement ne porte pas les contrats d'un
 /// autre, un signalement n'en porte qu'un.
 pub(crate) fn contrats_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
@@ -367,25 +367,15 @@ impl Arret {
         txt(g(&self.v, k))
     }
 
-    /// Une periode commune avec [debut, fin] ? « En cas de suspension supra-mensuelle, la suspension doit etre declaree
-    /// dans toutes les DSN mensuelles dont le Mois Principal declare presente une periode commune avec la suspension »
-    /// (bloc S21.G00.60, cahier technique DSN 2026.1, p. 265). Le dernier jour d'arret est la VEILLE de la reprise, qui
-    /// est le « premier jour travaille et paye suite a l'arret de travail » (S21.G00.60.010, p. 269) ; sans reprise,
-    /// la fin previsionnelle, « date de fin d'arret de travail » (S21.G00.60.003, p. 267). Un arret repris le 1er du
-    /// mois n'a donc aucun jour commun avec ce mois.
+    /// Une periode commune avec [debut, fin] : la regle du bloc 60 (`imprevus::arret_croise`).
     pub fn couvre(&self, debut: &Jour, fin: &Jour) -> Resultat<bool> {
-        let dernier_jour_d_arret = if vrai(g(&self.v, "reprise")) {
-            jour(g(&self.v, "reprise"))?.plus_jours(-1)?
-        } else {
-            jour(g(&self.v, "fin_previsionnelle"))?
-        };
-        Ok(jour(g(&self.v, "dernier_jour_travaille"))? <= *fin && dernier_jour_d_arret >= *debut)
+        engagement::imprevus::arret_croise(&self.v, debut, fin)
     }
 
     /// L'arret suspend-il le contrat de cette paie ? La regle des imprevus (`imprevus::du_contrat`) : le meme salarie, la
     /// meme date de debut du contrat, le meme numero quand l'un et l'autre en ont un.
     fn du_contrat(&self, p: &Paie) -> bool {
-        crate::imprevus::du_contrat(&self.v, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut).unwrap_or(false)
+        engagement::imprevus::du_contrat(&self.v, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut).unwrap_or(false)
     }
 }
 
@@ -579,7 +569,7 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
             out.insert("t1_mensuelle_x115".into(), *x);
         }
     }
-    // Un calcul d'intermittent stocke avant le point 22 (celui d'un mois parti, que `calcul_du_mois` garde tel quel) n'a
+    // Une paie d'intermittent ecrite avant le point 22 (celle d'un mois parti, qui ne se recalcule plus) n'a
     // pas ces cles : le moteur qui l'a fait assiait la vieillesse plafonnee, le FNAL et le chomage sur le brut entier, et
     // c'est ce que son bulletin a retenu. On relit ce calcul-la, on ne le refait pas.
     if !p.engagement.nat()?.mensuelle() && !b.contains_key("brut_plafonne") {
@@ -661,12 +651,12 @@ fn somme_lignes(p: &Paie, ids: &Value, patronale_seule: bool) -> Decimal {
 fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
     let nat = p.engagement.nat()?;
     let fin = p.engagement.fin_periode()?;
-    let cpf_cdd = crate::assujettissement::contrat_ouvre_cpf_cdd(
+    let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
         p.engagement.motif_recours.as_deref(),
         &format!("Contrat {} de {}", p.engagement.numero.as_deref().unwrap_or("sans numero"), p.engagement.salarie),
     )?;
-    bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), crate::calcul::declaree_a_la_caisse_des_conges(p)?, cpf_cdd)
+    bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), engagement::calcul::declaree_a_la_caisse_des_conges(p)?, cpf_cdd)
 }
 
 /// Les cotisations d'un versement, dans l'ordre du bareme.
@@ -847,22 +837,22 @@ const LIGNES_AGIRC_ARRCO: [&str; 3] = ["retraite_t1", "retraite_t2", "cet"];
 /// CET en plus) ; la retraite et la CEG seules sont ce que la ligne vaudrait sans elle, au meme arrondi (chaque composant
 /// sur la base de la ligne), et la CET le reste. Une ligne que ce calcul ne retrouve pas au centime refuse : sa CET ne
 /// se separe pas sans deviner.
-fn sans_la_cet(p: &Paie, l: &crate::calcul::LigneCotisation, r: &Value) -> Resultat<(Decimal, Option<(Decimal, f64)>)> {
+fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Value) -> Resultat<(Decimal, Option<(Decimal, f64)>)> {
     let cet = g(r, "cet_si_depasse");
     if !vrai(cet) || p.bases.get("cet").map_or(true, |b| b.is_zero()) {
         return Ok((l.montant_pat, None));
     }
     let cet_pat = socle::num::flottant(req(cet, "pat")?)?;
-    let comp = match crate::calcul::taux_liste(r.get("composants_pat"))? {
+    let comp = match engagement::calcul::taux_liste(r.get("composants_pat"))? {
         Some(c) => c,
         None => vec![socle::num::flottant(req(r, "taux_pat")?)?],
     };
-    let sans = crate::calcul::somme_pct(l.base, &comp)?;
+    let sans = engagement::calcul::somme_pct(l.base, &comp)?;
     let mut avec = comp;
     if let Some(dernier) = avec.last_mut() {
         *dernier += cet_pat;
     }
-    if crate::calcul::somme_pct(l.base, &avec)? != l.montant_pat {
+    if engagement::calcul::somme_pct(l.base, &avec)? != l.montant_pat {
         return Err(format!(
             "La ligne « {} » du bulletin ({} EUR de part patronale sur {} EUR) ne se refait pas, CET comprise, a partir de \
 ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en separe pas sans deviner. Rien n'est ecrit.",
@@ -1236,13 +1226,6 @@ Lu : {}. Rien n'est declare.",
             if choix.is_null() { "rien".to_string() } else { choix.to_string() }
         )),
     }
-}
-
-/// La fiche de l'entreprise que la pile du bareme porte (`_entreprise`, celle que la paie a lue), sinon `ent` : un
-/// signalement d'amorcage n'a pas de bareme.
-pub(crate) fn entreprise_du<'a>(bar: &'a Value, ent: &'a Value) -> &'a Value {
-    let e = g(bar, "_entreprise");
-    if e.is_object() { e } else { ent }
 }
 
 /// `places_par_contrat` : combien d'identifiants d'affiliation un contrat se reserve.
@@ -1714,7 +1697,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     }
     // « dans le cas ou les indemnites ne sont pas versees par l'employeur » (p. 195) : un contrat declare a la caisse
     // des Conges Spectacles (`caisse_conges::affilie`), et aucun autre -- ni un CDI, ni un contrat de douze mois ou plus.
-    let caisse_conges = nat.ecrit("S21.G00.40.022") && crate::calcul::declaree_a_la_caisse_des_conges(p)?;
+    let caisse_conges = nat.ecrit("S21.G00.40.022") && engagement::calcul::declaree_a_la_caisse_des_conges(p)?;
     if caisse_conges {
         f.add("S21.G00.40.022", crate::conges_spectacles::code_dsn(ent)?);
     }
@@ -1775,7 +1758,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     }
     let places = places_par_contrat(bar);
     let refs = affiliations(orgs, &nat, g(bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
-    for a in rattachements(p, orgs, entreprise_du(bar, ent), refs)? {
+    for a in rattachements(p, orgs, droit::bareme::entreprise_du(bar, ent), refs)? {
         if let Some(o) = a.option {
             si_admise(f, nature_dsn, "S21.G00.70.004", Some(o))?;
         }
@@ -1864,13 +1847,13 @@ declare {} h ; ses quatre heures sont des heures supplementaires, payees comme t
 /// - temps plein, contrat d'usage : rien.
 /// Le forfait jour reduit (40.011 = 20) n'existe pas dans le moteur (aucune nature ne l'a) : un cas a porter.
 fn proratisation_du_plafond(f: &mut Fichier, p: &Paie, ent: &Value, nature_dsn: &str) -> Resultat<()> {
-    use crate::calcul::PlafondTempsPartiel as P;
+    use engagement::calcul::PlafondTempsPartiel as P;
     let r = "S21.G00.40.084";
     let usage = crate::usages::usage_en(f.norme()?, r, nature_dsn)?;
     if usage != "O" && usage != "C" {
         return Ok(());
     }
-    let valeur = match crate::calcul::plafond_temps_partiel(ent, &p.engagement, &p.salarie)? {
+    let valeur = match engagement::calcul::plafond_temps_partiel(ent, &p.engagement, &p.salarie)? {
         P::Proratise => Some("01"),
         P::Entier | P::Exclu => Some("02"),
         P::NonConcerne => None,
@@ -2210,7 +2193,11 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     // Le versement du mois a le rang de son contrat : un contrat paye ce mois, un versement (`generer`).
     f.add("S21.G00.50.003", numero_de_versement(rang)?);
     f.add("S21.G00.50.004", mt(p.net_verse()));
-    let (taux, type_taux, identifiant, soumis) = pas_du_versement(taux_pas, bar, p.net_imposable, fin, court(p, fin)?)?;
+    // Le prelevement d'une paie validee est celui qu'elle a ecrit (`Paie::pas`) : la DSN ne le recalcule pas.
+    let (taux, type_taux, identifiant, soumis) = match &p.pas {
+        Some(v) => (v.taux.clone(), v.type_taux.clone(), v.identifiant.clone(), v.montant_soumis),
+        None => pas_du_versement(taux_pas, bar, p.net_imposable, fin, court(p, fin)?)?,
+    };
     f.add_v("S21.G00.50.006", &taux)?;
     f.add_v("S21.G00.50.007", &type_taux)?;
     if en_texte(&type_taux) == "01" {
@@ -2734,7 +2721,7 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Res
     let mensuelle = p.engagement.nat()?.mensuelle();
     // Un permanent declare a la caisse des Conges Spectacles (lot V2f) a declare sa taxe d'apprentissage et son FNAL
     // sur des assiettes majorees ; les autres, sur le brut et la tranche 1.
-    let caisse = mensuelle && crate::calcul::declaree_a_la_caisse_des_conges(p)?;
+    let caisse = mensuelle && engagement::calcul::declaree_a_la_caisse_des_conges(p)?;
     let tech = !mensuelle && statut(p) == "technicien";
     let art = !mensuelle && !tech;
     let l = lecture(p, bar)?;
@@ -4261,14 +4248,14 @@ saisir`), ou retirer la ligne. Rien n'est ecrit.",
     // chaque paie (`imprevus::suspensions_du_mois`). Une suspension de cet etablissement dont le contrat manque ne serait
     // declaree nulle part : refus, comme pour l'arret.
     let mut suspendus_absents = Vec::new();
-    for imp in crate::imprevus::du_mois(&ctx.racine, mois, Some(crate::imprevus::SUSPENSION))? {
+    for imp in engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::SUSPENSION))? {
         let fiche = ctx.salarie(&txt(g(&imp, "salarie")))?;
         if bareme::etablissement_du_salarie(&ent0, &fiche)? != nic {
             continue;
         }
         let mut declare = false;
         for p in paies {
-            if crate::imprevus::du_contrat(&imp, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut)? {
+            if engagement::imprevus::du_contrat(&imp, &cle_salarie(p), p.engagement.numero.as_deref(), &p.engagement.debut)? {
                 declare = true;
             }
         }
@@ -4408,12 +4395,12 @@ certificat de conformite du depot precedent.",
     // (`rattachements`), pas toutes celles de leur nature (CCH-13 et CCH-14 de 15.004, p. 151).
     for p in paies {
         let refs = affiliations(&orgs, &*p.engagement.nat()?, &contribs, (p.engagement.debut_periode()?, p.engagement.fin_periode()?))?;
-        couvertes.extend(rattachements(p, &orgs, entreprise_du(&bar, &ent_e), refs)?.into_iter().map(|a| a.reference));
+        couvertes.extend(rattachements(p, &orgs, droit::bareme::entreprise_du(&bar, &ent_e), refs)?.into_iter().map(|a| a.reference));
     }
     for r in regs {
         let b = bar_de(&r.mois)?;
         let refs = affiliations(&orgs, &*r.apres.engagement.nat()?, g(&b, "_contributions_du_mois"), (r.apres.engagement.debut_periode()?, r.apres.engagement.fin_periode()?))?;
-        couvertes.extend(rattachements(&r.apres, &orgs, entreprise_du(&b, &ent_e), refs)?.into_iter().map(|a| a.reference));
+        couvertes.extend(rattachements(&r.apres, &orgs, droit::bareme::entreprise_du(&b, &ent_e), refs)?.into_iter().map(|a| a.reference));
     }
     for a in liste(req(&orgs, "adhesions_prevoyance")?) {
         let reference = en_texte(req(a, "reference")?);
@@ -4953,7 +4940,7 @@ mod tests {
 
     #[test]
     fn la_dsn_porte_les_trois_parts_de_la_reduction() {
-        use crate::engagement::Engagement;
+        use engagement::Engagement;
         let jour = |s: &str| d(&json!(s)).unwrap();
         let eng = Engagement {
             salarie: "X".into(),
@@ -4998,7 +4985,7 @@ mod tests {
         };
         let dec = |s: &str| Decimal::from_str_exact(s).unwrap();
         let mut p = Paie::nouveau(eng, json!({"statut": "artiste"}), json!({}), dec("56.00"), dec("55.02"), dec("0"), 11.88, dec("0"));
-        p.reduction_generale = Some(crate::calcul::ReductionGenerale {
+        p.reduction_generale = Some(engagement::calcul::ReductionGenerale {
             coefficient: dec("0"),
             montant: dec("15.07"),
             smic_reference: dec("0"),
@@ -5030,7 +5017,7 @@ mod tests {
 
     /// Une paie de 56 EUR de brut avec reduction generale, de la nature et du statut donnes.
     fn paie_avec_reduction(nature: &str, statut: &str) -> Paie {
-        use crate::engagement::Engagement;
+        use engagement::Engagement;
         let eng = Engagement {
             salarie: "X".into(),
             spectacle: None,
@@ -5074,7 +5061,7 @@ mod tests {
         };
         let dec = |s: &str| Decimal::from_str_exact(s).unwrap();
         let mut p = Paie::nouveau(eng, json!({"statut": statut}), json!({}), dec("56.00"), dec("55.02"), dec("0"), 11.88, dec("0"));
-        p.reduction_generale = Some(crate::calcul::ReductionGenerale {
+        p.reduction_generale = Some(engagement::calcul::ReductionGenerale {
             coefficient: dec("0"),
             montant: dec("15.07"),
             smic_reference: dec("0"),

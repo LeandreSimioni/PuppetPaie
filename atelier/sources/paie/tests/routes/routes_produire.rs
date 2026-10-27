@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str, sorties: &[&str]) -> PathBuf {
     let racine = compagnie::config_et_mois("fictive-3090-grande", sorties, &dossier_de_test("routes_produire", nom).join("compagnie"));
-    copier(&fictive("fictive-3090-grande").join("paies"), &racine.join("paies"));
+    copier(&fictive("fictive-3090-grande").join("engagements"), &racine.join("engagements"));
     // Les DSN deposees, sans les PDF : la production relit l'identite declaree.
     let sorties = fictive("fictive-3090-grande").join("sorties");
     for m in noms(&sorties) {
@@ -30,13 +30,13 @@ fn route_nommee(racine: &Path, jour: &str, nom: &str, charge: Value) -> Value {
 }
 
 fn charge(racine: &Path, mois: &str) -> Value {
-    json!({"mois": mois, "saisie": lire(racine, &format!("paies/{}.json", mois))})
+    json!({"mois": mois, "saisie": crate::outils::saisie(racine, &mois)})
 }
 
 /// Le mois est pret : pour chaque intermittent qui commence ce mois-la, sa DPAE est partie et son contrat est
 /// revenu signe (octobre 2026 : quatre embauches le 6).
 fn mois_pret(racine: &Path, mois: &str) {
-    let saisie = lire(racine, &format!("paies/{}.json", mois));
+    let saisie = crate::outils::saisie(racine, &mois);
     let mut j = lire(racine, "journal/depots.json");
     let l = j.as_array_mut().unwrap();
     let modele = l.iter().find(|x| x["quoi"] == json!("dpae") && x["mode"] == json!("reel")).unwrap().clone();
@@ -75,9 +75,8 @@ fn un_mois_deja_depose_repart_en_annule_et_remplace() {
     assert!(res["informations"].as_array().unwrap().iter().any(|i| i.as_str().unwrap().contains("ANNULE-ET-REMPLACE")));
     // Retours Windows, F : constituee le jour ou ce second fichier est fait, pas a la fin de periode du mois.
     assert_eq!(constitution_de(&r, "sorties/2026-03/DSN_Mars2026_AR2.dsn"), "10042026");
-    // les numeros sont figes dans la saisie, le calcul est ecrit a cote, la DSN est notee
-    assert_eq!(lire(&r, "paies/2026-03.json")["numeros_figes"], json!(true));
-    assert!(r.join("paies/2026-03.calcul.json").is_file());
+    // les numeros sont figes dans les engagements, la DSN est notee
+    assert_eq!(crate::outils::saisie(&r, "2026-03")["numeros_figes"], json!(true));
     assert!(lire(&r, "journal/dsn-ecrites.json").get("2026-03/DSN_Mars2026_AR2.dsn").is_some());
     assert_ne!(lire(&r, "config/compteurs.json")["2026"]["bulletin"], avant["2026"]["bulletin"]);
     // CE QUI SE DEPOSE ENSUITE, C'EST L'ANNULE-ET-REMPLACE (#253) : la DSN deja partie reste dans le dossier, mais la DSN
@@ -119,7 +118,6 @@ fn un_mois_hors_delai_est_refuse_avant_toute_ecriture() {
     assert_eq!(rep["ok"], json!(false));
     assert!(rep["erreur"].as_str().unwrap().contains("2026-08"), "{}", rep);
     assert_eq!(noms(&r.join("sorties/2026-08")), avant);
-    assert!(!r.join("paies/2026-08.calcul.json").exists());
     // `forcer` ne passe pas un annule-et-remplace dont le delai est echu
     let mut c = charge(&r, "2026-08");
     c["forcer"] = json!(true);
@@ -178,7 +176,7 @@ fn un_mois_neuf_numerote_date_et_contacte_puis_le_suivant_continue_la_numerotati
     let contrats: Vec<&str> = res["paies"].as_array().unwrap().iter().map(|p| p["numero_contrat"].as_str().unwrap()).collect();
     assert!(contrats.contains(&"BI4.26.08"), "{:?}", contrats);
     // Les numeros de contrat sont figes dans la saisie enregistree.
-    let saisie = lire(&r, "paies/2026-10.json");
+    let saisie = crate::outils::saisie(&r, "2026-10");
     assert_eq!(saisie["numeros_figes"], json!(true));
     assert!(saisie["engagements"].as_array().unwrap().iter().all(|e| e.get("numero").is_some()));
     // Retours Windows, F : constituee le jour ou elle est produite (le 10/11), pas a la fin de periode la plus tardive.
@@ -220,9 +218,9 @@ fn un_mois_neuf_numerote_date_et_contacte_puis_le_suivant_continue_la_numerotati
 }
 
 /// Octobre de la grande avec un JUMEAU : un second contrat de Biancolelli qui commence le meme jour que le premier
-/// (le 6, un seul cachet), juste apres lui dans le fichier. Rend le rang du premier.
+/// (le 6, un seul cachet), juste apres lui dans le mois, et chacun valide. Rend le rang du premier.
 fn octobre_avec_un_jumeau(racine: &Path, numero_du_jumeau: Option<&str>) -> usize {
-    let mut saisie = lire(racine, "paies/2026-10.json");
+    let mut saisie = crate::outils::saisie(racine, "2026-10");
     let engs = saisie["engagements"].as_array_mut().unwrap();
     let i = engs.iter().position(|e| e["salarie"] == json!("Biancolelli")).unwrap();
     let mut jumeau = engs[i].clone();
@@ -235,7 +233,8 @@ fn octobre_avec_un_jumeau(racine: &Path, numero_du_jumeau: Option<&str>) -> usiz
         jumeau["numero"] = json!(n);
     }
     engs.insert(i + 1, jumeau);
-    ecrire(racine, "paies/2026-10.json", &saisie);
+    crate::outils::poser_saisie(racine, "2026-10", &saisie);
+    crate::outils::tout_valider(racine, "2026-10", "2026-11-10");
     i
 }
 
@@ -261,8 +260,7 @@ fn numero_neuf(racine: &Path, k: i64) -> String {
 
 #[test]
 fn deux_contrats_du_meme_jour_se_figent_chacun_sous_son_numero() {
-    // `figer_numeros` rangeait les numeros par (salarie, debut) : le dernier allait aux deux jumeaux, qui partaient
-    // dans la DSN suivante sous le meme numero.
+    // Deux contrats du meme salarie et du meme jour : chacun recoit le sien, et le garde.
     let r = compagnie("jumeaux", &[]);
     let i = octobre_avec_un_jumeau(&r, None);
     mois_pret(&r, "2026-10");
@@ -273,7 +271,7 @@ fn deux_contrats_du_meme_jour_se_figent_chacun_sous_son_numero() {
     let (a, b) = (paies[i]["numero_contrat"].as_str().unwrap(), paies[i + 1]["numero_contrat"].as_str().unwrap());
     assert_ne!(a, b, "deux contrats, deux numeros");
     // Le fichier dit ce qui a ete declare : chaque engagement porte le numero de SA paie.
-    let saisie = lire(&r, "paies/2026-10.json");
+    let saisie = crate::outils::saisie(&r, "2026-10");
     let engs = saisie["engagements"].as_array().unwrap();
     assert_eq!(engs.len(), paies.len());
     for (e, p) in engs.iter().zip(paies) {
@@ -283,41 +281,37 @@ fn deux_contrats_du_meme_jour_se_figent_chacun_sous_son_numero() {
 
 #[test]
 fn un_numero_deja_pose_et_different_n_est_jamais_ecrase() {
-    // Le fichier porte deja le numero du jumeau (parti a la signature) ; la saisie de l'ecran ne le porte pas. Quand la
-    // route produisait depuis l'ecran, la production lui en donnait un autre, et le moteur refusait. Elle enregistre
-    // maintenant la saisie d'abord (la fusion reprend le numero du fichier) et produit depuis le fichier : le numero
-    // SE LIT (regle 4), le jumeau part sous BI4.26.99, et le fichier le garde.
+    // Le jumeau porte deja son numero (parti a la signature) ; la saisie de l'ecran ne le porte pas. Le numero SE LIT
+    // (regle 4) : le jumeau part sous BI4.26.99, et l'engagement le garde.
     let r = compagnie("jumeaux-conflit", &[]);
-    let i = octobre_avec_un_jumeau(&r, Some("BI4.26.99"));
+    octobre_avec_un_jumeau(&r, Some("BI4.26.99"));
     mois_pret(&r, "2026-10");
     signes_sous(&r, [&numero_neuf(&r, 1), "BI4.26.99"]);
     let premier = numero_neuf(&r, 1);
     let mut c = charge(&r, "2026-10");
-    c["saisie"]["engagements"][i + 1].as_object_mut().unwrap().remove("numero");
+    let j = c["saisie"]["engagements"].as_array().unwrap().iter().position(|e| e["numero"] == json!("BI4.26.99")).unwrap();
+    c["saisie"]["engagements"][j].as_object_mut().unwrap().remove("numero");
     let rep = route(&r, "2026-11-10", c);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let paies = rep["resultat"]["paies"].as_array().unwrap();
-    assert_eq!(paies[i]["numero_contrat"], json!(premier));
-    assert_eq!(paies[i + 1]["numero_contrat"], json!("BI4.26.99"));
-    let saisie = lire(&r, "paies/2026-10.json");
-    assert_eq!(saisie["engagements"][i + 1]["numero"], json!("BI4.26.99"), "{}", saisie);
-    assert_eq!(saisie["engagements"][i]["numero"], json!(premier), "{}", saisie);
+    let numeros: Vec<&Value> = paies.iter().map(|p| &p["numero_contrat"]).collect();
+    assert!(numeros.contains(&&json!(premier)) && numeros.contains(&&json!("BI4.26.99")), "{:?}", numeros);
+    let saisie = crate::outils::saisie(&r, "2026-10");
+    let saisis: Vec<&Value> = saisie["engagements"].as_array().unwrap().iter().map(|e| &e["numero"]).collect();
+    assert!(saisis.contains(&&json!(premier)) && saisis.contains(&&json!("BI4.26.99")), "{}", saisie);
 }
 
 #[test]
-fn la_dsn_produite_declare_le_fichier_enregistre_meme_quand_l_ecran_le_range_autrement() {
-    // RELECTURE-COHERENCE, point 9 : la route produisait depuis la saisie de l'ecran, notait l'empreinte du fichier
-    // (numeros figes), PUIS reecrivait le fichier depuis l'ecran. Un ecran qui range les engagements autrement (le
-    // regroupement de la page) changeait le JSON : « la paie a change depuis que ce fichier a ete ecrit », sans que
-    // personne n'ait rien modifie, et le depot etait refuse. La saisie s'ecrit maintenant AVANT de produire, et la
-    // production part du fichier.
+fn la_dsn_produite_declare_les_engagements_enregistres_meme_quand_l_ecran_les_range_autrement() {
+    // Ce qui part est ce que les engagements valides du mois disent, dans leur ordre : un ecran qui les range autrement (le
+    // regroupement de la page) ne change ni la DSN ni son empreinte, et le depot n'est pas refuse (« la paie a change »).
     let r = compagnie("ordre-ecran", &[]);
     mois_pret(&r, "2026-10");
     let mut c = charge(&r, "2026-10");
     let engs = c["saisie"]["engagements"].as_array_mut().unwrap();
     engs.reverse();
     let ordre_ecran: Vec<Value> = engs.iter().map(|e| e["salarie"].clone()).collect();
-    let ordre_fichier: Vec<Value> = lire(&r, "paies/2026-10.json")["engagements"].as_array().unwrap().iter().map(|e| e["salarie"].clone()).collect();
+    let ordre_fichier: Vec<Value> = crate::outils::saisie(&r, "2026-10")["engagements"].as_array().unwrap().iter().map(|e| e["salarie"].clone()).collect();
     assert_ne!(ordre_ecran, ordre_fichier);
     let rep = route(&r, "2026-11-10", c);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
@@ -325,12 +319,12 @@ fn la_dsn_produite_declare_le_fichier_enregistre_meme_quand_l_ecran_le_range_aut
     let b = route_nommee(&r, "2026-11-10", "bilan-du-mois", json!({"mois": "2026-10"}));
     assert_eq!(b["ok"], json!(true), "{}", b);
     assert_eq!(b["resultat"]["dsn"]["etape"], json!("ecrite"), "{}", b["resultat"]["dsn"]);
-    // Ce qui est declare est la saisie de l'ecran, dans son ordre, et le fichier porte le numero de chaque paie.
+    // Ce qui est declare est dans l'ordre des engagements, et chacun porte le numero de sa paie.
     let paies = rep["resultat"]["paies"].as_array().unwrap();
-    let saisie = lire(&r, "paies/2026-10.json");
+    let saisie = crate::outils::saisie(&r, "2026-10");
     assert_eq!(saisie["numeros_figes"], json!(true));
     let engs = saisie["engagements"].as_array().unwrap();
-    assert_eq!(engs.iter().map(|e| e["salarie"].clone()).collect::<Vec<_>>(), ordre_ecran);
+    assert_eq!(engs.iter().map(|e| e["salarie"].clone()).collect::<Vec<_>>(), ordre_fichier);
     assert_eq!(engs.len(), paies.len());
     for (e, p) in engs.iter().zip(paies) {
         assert_eq!(e["numero"], p["numero_contrat"], "{}", saisie);
@@ -411,7 +405,7 @@ fn un_salarie_qui_tient_deux_emplois_dans_le_mois_est_en_emplois_multiples() {
     // contrats. Clairon a deux contrats du meme emploi : 01. Les autres, un contrat : 01.
     // à trancher, §226 : deux contrats du meme emploi en 01 est une inference ; la norme ne tranche pas ce cas.
     let r = compagnie("emplois-multiples", &[]);
-    let mut s = lire(&r, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&r, "2026-10");
     let engagements = s["engagements"].as_array_mut().unwrap();
     for (qui, metier) in [("Biancolelli", Some("MET042")), ("Clairon", None)] {
         let mut second = engagements.iter().find(|e| e["salarie"] == json!(qui)).unwrap().clone();
@@ -424,7 +418,8 @@ fn un_salarie_qui_tient_deux_emplois_dans_le_mois_est_en_emplois_multiples() {
         }
         engagements.push(second);
     }
-    ecrire(&r, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&r, "2026-10", &s);
+    crate::outils::tout_valider(&r, "2026-10", "2026-11-10");
     mois_pret(&r, "2026-10");
     let rep = route(&r, "2026-11-10", charge(&r, "2026-10"));
     assert_eq!(rep["ok"], json!(true), "{}", rep);

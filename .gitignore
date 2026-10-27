@@ -129,12 +129,9 @@ atelier/sources/fenetre/target/
 fictives/.origine/
 demo/.origine/
 
-# La paie calculee a cote de la saisie (paies/AAAA-MM.calcul.json) : un
-# resultat que le moteur refait seul, a ne pas suivre ni emporter dans un diff.
-*.calcul.json
-# L'etat garde d'un mois (paies/AAAA-MM.etat.json, `etat_garde.rs`) : le resume de la saisie, du calcul et du journal,
-# refait sur chaque poste des que ses sources bougent. Il porte des chemins du poste : il ne voyage pas.
-*.etat.json
+# L'etat garde de l'ouverture (`ouverture.etat.json`, `etat_garde.rs`) : ce que la page lit en ouvrant, refait sur chaque
+# poste des que ses sources bougent. Il porte des chemins du poste : il ne voyage pas.
+ouverture.etat.json
 
 # LE TEXTE DES PDF DEJA LUS (08/10/2026) : un cache, refait au besoin
 # (`avenant::texte_du_pdf`). Il ne dit rien que le PDF ne dise.

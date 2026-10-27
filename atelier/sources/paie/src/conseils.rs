@@ -29,13 +29,14 @@ use std::sync::Arc;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use crate::cumul::{self, Constantes, Engagement as Declare, Fenetre};
+use droit::cumul::{self, Constantes, Declare, Fenetre};
 use socle::date::{en_texte, Jour};
 use droit::emplois;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
-use crate::minima::{self, Par};
+use droit::minima::Par;
+use engagement::minima;
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
@@ -214,7 +215,7 @@ impl Donnees {
         Donnees {
             annee,
             bareme: json_en_cache(&code.join("baremes").join(format!("{}.json", annee))).ok(),
-            minima: minima::table().ok(),
+            minima: droit::minima::table().ok(),
         }
     }
 }
@@ -448,7 +449,7 @@ struct GainRepetition {
     gain: Decimal,
     jours: i64,
     montant: Decimal,
-    minimum: minima::Minimum,
+    minimum: droit::minima::Minimum,
 }
 
 fn gain_repetition(ctx: &Contexte, p: &Paie, heures_cachet: Decimal) -> Resultat<Option<GainRepetition>> {
@@ -537,7 +538,7 @@ struct Declares<'a> {
 impl<'a> Declares<'a> {
     fn tous(&mut self) -> Resultat<&[Declare]> {
         if self.lus.is_none() {
-            self.lus = Some(cumul::lire_engagements(self.ctx, Some(self.paies))?);
+            self.lus = Some(engagement::cumul::lire_engagements(self.ctx, Some(self.paies))?);
         }
         Ok(self.lus.as_deref().unwrap_or(&[]))
     }
@@ -553,7 +554,7 @@ fn phrase_fenetre(b: &Value, f: &cumul::Position, anniversaire: bool) -> String 
 /// 12 mois jusqu'a `a_la_date`.
 fn position(ctx: &Contexte, cle: &str, engs: &[Declare], a_la_date: Jour) -> Resultat<(cumul::Position, bool)> {
     let anniv = cumul::anniversaire_configure(ctx, cle)?;
-    let p = cumul::position_droits(ctx, cle, Some(engs), anniv, Some(a_la_date))?;
+    let p = cumul::position_droits(ctx, cle, engs, anniv, Some(a_la_date))?;
     Ok((p, anniv.is_some()))
 }
 
@@ -722,11 +723,7 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
     for mois in socle::date::mois_entre(debut, fin) {
-        let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-        if !socle::fichiers::existe(&chemin) {
-            continue;
-        }
-        let Ok(saisie) = crate::engagement::charger(ctx, &chemin) else { continue };
+        let Ok(saisie) = engagement::charger(ctx, &mois) else { continue };
         for p in &saisie.paies {
             let e = &p.engagement;
             if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {
@@ -759,7 +756,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine)?;
-    let engs = cumul::lire_engagements(ctx, None)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None)?;
     let (pos, anniv) = position(ctx, cle, &engs, jour)?;
     if pos.engagements.is_empty() {
         return Ok(Vec::new());
@@ -853,7 +850,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
     let c = Constantes::lire(&ctx.racine)?;
-    let engs = cumul::lire_engagements(ctx, None)?;
+    let engs = engagement::cumul::lire_engagements(ctx, None)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).
     let mut fiches = Vec::new();

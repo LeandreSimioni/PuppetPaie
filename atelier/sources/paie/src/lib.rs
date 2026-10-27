@@ -1,6 +1,6 @@
 //! Le moteur de PuppetPaie au-dessus du socle et du droit (`socle`, `droit`).
 //!
-//! Le chemin, de bout en bout : un fichier de mois (`paies/AAAA-MM.json`) -> `engagement` (les contrats, et leurs
+//! Le chemin, de bout en bout : les engagements (`engagements/AAAA-MM.json`) -> `engagement` (les contrats, et leurs
 //! refus) -> `calcul` (la paie, au centime) -> `bulletin` (la description) -> la fabrique (`fabrique-pdf`, le PDF) ;
 //! et, depuis les paies, la DSN, la DPAE, les envois.
 //!
@@ -20,10 +20,7 @@ pub mod avenant;
 pub mod bordereau;
 pub mod bridage;
 pub mod bulletin;
-pub mod cachet;
 pub mod changements_individu;
-pub mod calcul;
-pub mod calcul_du_mois;
 pub mod casc;
 pub mod changements_contrat;
 pub mod champs;
@@ -32,11 +29,9 @@ pub mod commandes;
 pub mod courriel;
 pub mod courriel_lecture;
 pub mod coffre_verifier;
-pub mod conges;
 pub mod conges_spectacles;
 pub mod contrat;
 pub mod conseils;
-pub mod cumul;
 pub mod demande;
 pub mod depot;
 pub mod demarrage;
@@ -46,7 +41,6 @@ pub mod dsn;
 pub mod echeance_dsn;
 pub mod diagnostic;
 pub mod editeur;
-pub mod engagement;
 pub mod entrepot_dila;
 pub mod essai;
 pub mod envoi;
@@ -68,7 +62,6 @@ pub mod interface;
 pub mod journal;
 pub mod kali;
 pub mod maj;
-pub mod minima;
 pub mod mois_importe;
 pub mod naf;
 pub mod norme;
@@ -79,14 +72,12 @@ pub mod oeth;
 pub mod ordres_paiement;
 pub mod organismes;
 pub mod ordre_signalements;
-pub mod periodes;
 pub mod prelevement;
 pub mod problemes;
 pub mod retours;
 pub mod routes;
 pub mod routes_accueil;
 pub mod importation;
-pub mod imprevus;
 pub mod importation_tri;
 pub mod bulletin_lu;
 pub mod importation_bulletins;
@@ -151,7 +142,6 @@ pub mod restauration;
 pub mod signature_courriel;
 pub mod service;
 pub mod signalement;
-pub mod solde;
 pub mod sources;
 pub mod tables_journal;
 pub mod tables_retours;

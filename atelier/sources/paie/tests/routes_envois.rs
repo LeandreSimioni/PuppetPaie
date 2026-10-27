@@ -134,7 +134,7 @@ fn phrase(r: Result<Value, Echec>) -> (String, String) {
 
 /// Les routes d'ecriture et d'apercu dont les envois ont besoin.
 fn ecrire_les_documents(racine: &Path, mois: &str) {
-    routes_ecritures_g4::route(&options(racine), &contexte(racine), "ecrire-documents", &json!({"mois": mois})).unwrap();
+    routes_ecritures_g4::route(&contexte(racine), "ecrire-documents", &json!({"mois": mois})).unwrap();
 }
 
 fn apercu(racine: &Path, nom: &str, charge: Value) -> Value {
@@ -283,14 +283,14 @@ fn envoyer_documents_refuse_une_boite_absente_et_un_mois_non_ecrit() {
     assert_eq!(journal(&racine), j0);
 }
 
-/// Une route du mois (`etat-par-paie`, `bilan-du-mois`) sur cette compagnie.
+/// Une route du mois (`etat-par-engagement`, `bilan-du-mois`) sur cette compagnie.
 fn du_mois(racine: &Path, nom: &str, mois: &str) -> Value {
     paie::routes_mois::route(&options(racine), &contexte(racine), nom, &json!({"mois": mois})).unwrap()
 }
 
 /// La pastille Documents de chaque paie du mois, par salarie : (caduc, pourquoi).
 fn pastilles_documents(racine: &Path, mois: &str) -> Vec<(String, bool, String)> {
-    du_mois(racine, "etat-par-paie", mois)["paies"]
+    du_mois(racine, "etat-par-engagement", mois)["engagements"]
         .as_array()
         .unwrap()
         .iter()
@@ -325,10 +325,10 @@ fn des_documents_partis_puis_une_paie_modifiee_se_renvoient_au_seul_salarie_conc
     assert_eq!(du_mois(&racine, "bilan-du-mois", "2026-08")["documents"]["couleur"], json!("bien"));
 
     // Les heures de Lemercier changent (32 -> 40), et les documents du mois se refont.
-    let mut saisie = lire(&racine, "paies/2026-08.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-08");
     let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
     saisie["engagements"][rang]["lignes"][0]["quantite"] = json!(40);
-    ecrire(&racine, "paies/2026-08.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-08", &saisie);
     ecrire_les_documents(&racine, "2026-08");
 
     // Sa pastille n'est plus verte : la paie a change depuis l'envoi. Les deux autres n'ont pas bouge.
@@ -382,13 +382,16 @@ fn bulletin_de_lemercier(racine: &Path) -> String {
     fabrique_pdf::lecture::texte(&f.to_string_lossy()).unwrap().0.join("\n")
 }
 
-/// Les heures de Lemercier en aout 2026 portees a `heures`, par la route, en confirmant (la DSN d'aout ne se remplace plus).
+/// Les heures de Lemercier en aout 2026 portees a `heures`, par la route, en confirmant (la DSN d'aout ne se remplace
+/// plus) : son engagement repasse en saisie (« Modifier… »), puis se valide a nouveau.
 fn modifier_lemercier(racine: &Path, heures: i64) {
-    let mut saisie = lire(racine, "paies/2026-08.json");
+    let mut saisie = crate::outils::saisie(racine, "2026-08");
     let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
+    engagement::etats::modifier(&contexte(racine), "2026-08", rang).unwrap();
     saisie["engagements"][rang]["lignes"][0]["quantite"] = json!(heures);
     let charge = json!({"mois": "2026-08", "saisie": saisie, "modifier_apres_echeance": true});
     paie::routes_ecritures::route(&options(racine), &contexte(racine), "enregistrer-saisie", &charge).unwrap();
+    engagement::etats::valider(&contexte(racine), "2026-08", rang).unwrap();
 }
 
 /// APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (Leandre, 21/10/2026) : la DSN d'aout ne se refait plus, la paie modifiee se
@@ -475,7 +478,7 @@ fn le_courriel_de_renvoi_dit_ce_qui_a_change_contrat_par_contrat() {
 
 /// Le mois d'octobre de la fictive, avec deux salaries et un salarie a deux contrats : de quoi essayer les envois groupes.
 fn octobre_a_signer(racine: &Path) {
-    let mut s = lire(racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(racine, "2026-10");
     let eng = s["engagements"][0].clone();
     let mut seraphin = eng.clone();
     seraphin["salarie"] = json!("Seraphin");
@@ -487,7 +490,9 @@ fn octobre_a_signer(racine: &Path) {
     deuxieme["lignes"][0]["quantite"] = json!(2);
     deuxieme["lignes"][1]["quantite"] = json!(2);
     s["engagements"] = json!([eng, seraphin, deuxieme]);
-    ecrire(racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(racine, "2026-10", &s);
+    // Lu une fois au jour des envois, comme l'ecran le lit : ses paies validees sont celles de ce jour.
+    engagement::etats::du_mois(&contexte(racine), "2026-10").unwrap();
 }
 
 #[test]
@@ -495,7 +500,7 @@ fn demander_signature_sans_preuve_n_ecrit_rien_et_refuse_ce_qui_ne_va_pas() {
     let _t = tour();
     let racine = compagnie("signature-refus", false);
     octobre_a_signer(&racine);
-    let saisie0 = std::fs::read(racine.join("paies/2026-10.json")).unwrap();
+    let saisie0 = std::fs::read(racine.join("engagements/2026-10.json")).unwrap();
     let compteurs0 = std::fs::read(racine.join("config/compteurs.json")).unwrap();
     let j0 = journal(&racine);
     let faux = Faux::nouveau();
@@ -510,7 +515,7 @@ fn demander_signature_sans_preuve_n_ecrit_rien_et_refuse_ce_qui_ne_va_pas() {
     assert_eq!(faux.partis(), 0);
     assert!(!racine.join("sorties/2026-10").exists());
     assert_eq!(journal(&racine), j0);
-    assert_eq!(std::fs::read(racine.join("paies/2026-10.json")).unwrap(), saisie0);
+    assert_eq!(std::fs::read(racine.join("engagements/2026-10.json")).unwrap(), saisie0);
     assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), compteurs0);
 
     // Des contrats qui ne sont pas dans la saisie : refus avant tout, sous le mot de passe juste.
@@ -627,7 +632,7 @@ fn demander_signature_envoie_un_courriel_par_salarie_et_garde_ce_qu_il_faut() {
     assert_eq!(l["detail"]["contrats"], r["contrats"]);
     assert_eq!(l["detail"]["expediteur"], json!("boite@exemple.invalid"));
     assert_eq!(l["detail"]["relance"], json!(false));
-    let saisie = lire(&racine, "paies/2026-10.json");
+    let saisie = crate::outils::saisie(&racine, "2026-10");
     let ecrits: Vec<&str> = saisie["engagements"].as_array().unwrap().iter().map(|e| e["numero"].as_str().unwrap()).collect();
     assert_eq!(ecrits, ["BR1.26.05", "SE2.26.05", "BR1.26.06"]);
     let compteurs = lire(&racine, "config/compteurs.json");
@@ -638,7 +643,7 @@ fn demander_signature_envoie_un_courriel_par_salarie_et_garde_ce_qu_il_faut() {
     assert_eq!(compteurs["2026"]["bulletin"], avant["2026"]["bulletin"]);
     assert_eq!(compteurs["2026"]["contrat_LEMERCIER"], avant["2026"]["contrat_LEMERCIER"]);
     assert_eq!(compteurs["2025"], avant["2025"]);
-    assert!(racine.join("paies/avant").exists());
+    assert!(racine.join("engagements/avant").exists());
 
     // Le contrat est parti : il se relance (objet « Rappel »), il ne se renvoie pas sans le dire.
     let relance = avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "relance": true, "contrats": [{"salarie": "SERAPHIN", "debut": "2026-10-13"}]}), &faux).unwrap();
@@ -665,7 +670,7 @@ fn demander_signature_qui_echoue_le_note_sans_rien_reserver() {
     let racine = compagnie("signature-echec", false);
     poser_le_mot_de_passe(&racine);
     octobre_a_signer(&racine);
-    let saisie0 = std::fs::read(racine.join("paies/2026-10.json")).unwrap();
+    let saisie0 = std::fs::read(racine.join("engagements/2026-10.json")).unwrap();
     let compteurs0 = std::fs::read(racine.join("config/compteurs.json")).unwrap();
     let j0 = journal(&racine);
     // Le second courriel est refuse : le premier est parti.
@@ -681,7 +686,7 @@ fn demander_signature_qui_echoue_le_note_sans_rien_reserver() {
     assert_eq!(l["detail"]["partis"], json!(["fanchon.brioche@exemple.invalid"]));
     assert_eq!(l["detail"]["contrats"].as_array().unwrap().len(), 3);
     assert!(l["detail"]["contrats"][0].get("message").is_none());
-    assert_eq!(std::fs::read(racine.join("paies/2026-10.json")).unwrap(), saisie0);
+    assert_eq!(std::fs::read(racine.join("engagements/2026-10.json")).unwrap(), saisie0);
     assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), compteurs0);
 }
 
@@ -740,9 +745,9 @@ fn un_gabarit_sans_le_marqueur_des_defraiements_refuse_de_les_taire() {
     // Le meme gabarit, un mois sans defraiement : rien a taire, le contrat part comme avant.
     let racine = compagnie("gabarit-sans-hors-brut-ni-defraiement", true);
     gabarit_sans_hors_brut(&racine);
-    let mut s = lire(&racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(&racine, "2026-10");
     s["engagements"][0]["lignes"].as_array_mut().unwrap().retain(|l| l["rubrique"] != json!("defraiement_forfait"));
-    ecrire(&racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
     let r = telle_quelle(&racine, "demander-signature", json!({"mois": "2026-10"})).unwrap();
     assert_eq!(r["partis"], json!(["fanchon.brioche@exemple.invalid"]));
     assert!(racine.join("sorties/2026-10/envoi/Contrat_BRIOCHE_BR1.26.05_Octobre2026.pdf").exists());
@@ -751,7 +756,7 @@ fn un_gabarit_sans_le_marqueur_des_defraiements_refuse_de_les_taire() {
 /// Octobre a quatre engagements : Brioche deux fois (le 13 et le 27), Seraphin, Lemercier. `deux_spectacles` : le
 /// second contrat de Brioche est un autre spectacle.
 fn octobre_a_quatre(racine: &Path, deux_spectacles: bool) {
-    let mut s = lire(racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(racine, "2026-10");
     let eng = s["engagements"][0].clone();
     let mut seraphin = eng.clone();
     seraphin["salarie"] = json!("Seraphin");
@@ -768,7 +773,7 @@ fn octobre_a_quatre(racine: &Path, deux_spectacles: bool) {
     let mut lemercier = eng.clone();
     lemercier["salarie"] = json!("Lemercier");
     s["engagements"] = json!([eng, seraphin, deuxieme, lemercier]);
-    ecrire(racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(racine, "2026-10", &s);
 }
 
 fn compteurs_2026(racine: &Path) -> Value {
@@ -806,9 +811,9 @@ fn demander_signature_n_avance_que_les_compteurs_de_contrat_jusqu_au_dernier_num
     let racine = compagnie("signature-compteurs-porte", false);
     poser_le_mot_de_passe(&racine);
     octobre_a_quatre(&racine, false);
-    let mut saisie = lire(&racine, "paies/2026-10.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-10");
     saisie["engagements"][1]["numero"] = json!("SE2.26.09");
-    ecrire(&racine, "paies/2026-10.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-10", &saisie);
     avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
     let c = compteurs_2026(&racine);
     assert_eq!((c["bulletin"].clone(), c["contrat_SERAPHIN"].clone(), c["contrat_BRIOCHE"].clone()), (json!(12), json!(4), json!(6)));
@@ -861,9 +866,9 @@ fn demander_signature_selection_deux_spectacles_relance_caduque_et_contrat_comme
     ));
     assert!(m.contains("13/10/2026") && m.contains("avenant"), "un contrat commence se modifie par un avenant : {}", m);
     // La paie change apres l'envoi : le contrat n'est plus le bon, il se renvoie a jour, il ne se relance pas.
-    let mut saisie = lire(&racine, "paies/2026-10.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-10");
     saisie["engagements"][0]["lignes"][0]["lieu"] = json!("Ailleurs");
-    ecrire(&racine, "paies/2026-10.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-10", &saisie);
     let partis = faux.partis();
     let (_, m) = phrase(avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "relance": true, "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13"}]}), &faux));
     assert!(m.contains("a change depuis son envoi : il se renvoie a jour, il ne se relance pas. Rien n'est parti."), "{}", m);
@@ -872,12 +877,12 @@ fn demander_signature_selection_deux_spectacles_relance_caduque_et_contrat_comme
 
 /// Retours Windows, B : Brioche a DEUX contrats qui commencent le meme jour (le 13/10), le second a un autre lieu.
 fn octobre_a_deux_le_meme_jour(racine: &Path) {
-    let mut s = lire(racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(racine, "2026-10");
     let eng = s["engagements"][0].clone();
     let mut jumeau = eng.clone();
     jumeau["lignes"][0]["lieu"] = json!("Ailleurs");
     s["engagements"] = json!([eng, jumeau]);
-    ecrire(racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(racine, "2026-10", &s);
 }
 
 #[test]
@@ -901,7 +906,7 @@ fn demander_signature_distingue_deux_contrats_du_meme_jour_et_compte_des_contrat
     let l = journal(&racine).last().unwrap().clone();
     assert_eq!(l["reponse"], json!("1 contrat(s) envoye(s) a la signature"));
     // Le numero parti s'ecrit sur CE contrat-la, pas sur son jumeau qui n'est pas parti.
-    let saisie = lire(&racine, "paies/2026-10.json");
+    let saisie = crate::outils::saisie(&racine, "2026-10");
     assert!(saisie["engagements"][0].get("numero").is_none(), "{}", saisie["engagements"][0]);
     assert_eq!(saisie["engagements"][1]["numero"], json!("BR1.26.06"));
     // Un numero que la saisie ne porte pas : refus, rien ne part.
@@ -927,10 +932,10 @@ fn demander_signature_distingue_deux_contrats_du_meme_jour_et_compte_des_contrat
 fn contrats_partis_puis_modifies(racine: &Path, faux: &Faux) {
     octobre_a_signer(racine);
     avec(racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE}), faux).unwrap();
-    let mut s = lire(racine, "paies/2026-10.json");
+    let mut s = crate::outils::saisie(racine, "2026-10");
     s["engagements"][0]["lignes"][0]["lieu"] = json!("Theatre de la Ville");
     s["engagements"][1]["lignes"][0]["lieu"] = json!("Salle des fetes de Murat");
-    ecrire(racine, "paies/2026-10.json", &s);
+    crate::outils::poser_saisie(racine, "2026-10", &s);
 }
 
 #[test]
@@ -1139,10 +1144,10 @@ fn dossier_envoyer_un_mois_dont_le_calcul_a_change_envoie_les_pages_archivees_du
     let racine = compagnie("dossier-archive", false);
     poser_le_mot_de_passe(&racine);
     // Le cachet de Brioche passe de 155 a 175 apres la production : 4 cachets, un brut de 700 au lieu des 620 payes.
-    let mut saisie = lire(&racine, "paies/2026-08.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-08");
     assert_eq!((saisie["engagements"][0]["numero"].as_str(), saisie["engagements"][0]["lignes"][0]["taux"].as_f64()), (Some("BR1.26.04"), Some(155.0)));
     saisie["engagements"][0]["lignes"][0]["taux"] = json!(175.0);
-    ecrire(&racine, "paies/2026-08.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-08", &saisie);
     let bulletins = racine.join("sorties/2026-08/Bulletins_Aout2026.pdf");
     let certificats = racine.join("sorties/2026-08/CertificatsCS_Aout2026.pdf");
     let (octets_bulletins, octets_certificats) = (std::fs::read(&bulletins).unwrap(), std::fs::read(&certificats).unwrap());
@@ -1179,9 +1184,9 @@ fn dossier_envoyer_un_mois_dont_le_calcul_a_change_envoie_les_pages_archivees_du
     assert_eq!((std::fs::read(&bulletins).unwrap(), std::fs::read(&certificats).unwrap()), (octets_bulletins, octets_certificats));
 
     // Ce qui ne se lit pas refuse, sans repli sur un recalcul : un fichier du mois qui ne porte plus la periode de Brioche.
-    let mut saisie = lire(&racine, "paies/2026-08.json");
+    let mut saisie = crate::outils::saisie(&racine, "2026-08");
     saisie["engagements"][0]["debut"] = json!("2026-08-18");
-    ecrire(&racine, "paies/2026-08.json", &saisie);
+    crate::outils::poser_saisie(&racine, "2026-08", &saisie);
     let faux = Faux::nouveau();
     let (_, m) = phrase(avec(&racine, "dossier-envoyer", json!({"salaries": ["BRIOCHE"], "mois": "2026-08", "categories": ["bulletins"], "motdepasse": MOT_DE_PASSE}), &faux));
     assert!(m.contains("aucune page correspondante dans Bulletins_Aout2026.pdf"), "{}", m);

@@ -22,7 +22,7 @@ fn echeancier(c: &Path, aujourdhui: &str) -> Value {
 }
 
 fn fichier(c: &Path, mois: &str) -> Value {
-    lire(c, &format!("paies/{}.json", mois))
+    crate::outils::saisie(c, &mois)
 }
 
 fn journal(c: &Path, lignes: Value) {
@@ -93,7 +93,7 @@ fn le_moteur_dit_le_taux_et_la_date_de_paiement_par_defaut() {
             }
         }
     }
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     let r = saisie_ouverte(c, "2026-08", "2026-09-10");
     assert_eq!(r["defauts"], json!({"taux_cachet": 171.5, "date_paiement": "2026-08-31"}));
     // Un mois neuf : le dernier taux saisi du dossier, la fin du mois.
@@ -101,7 +101,7 @@ fn le_moteur_dit_le_taux_et_la_date_de_paiement_par_defaut() {
     assert_eq!(r["defauts"], json!({"taux_cachet": 171.5, "date_paiement": "2026-09-30"}));
     // Sans aucune ligne de cachet, le taux du mois.
     s["engagements"] = json!([]);
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     assert_eq!(saisie_ouverte(c, "2026-08", "2026-09-10")["defauts"]["taux_cachet"], json!(99.0));
 }
 
@@ -118,13 +118,13 @@ fn sans_aucun_cachet_saisi_le_moteur_ne_propose_aucun_taux() {
     let journees = json!({"mois": "2026-08", "date_paiement": "2026-08-31", "engagements": [{
         "salarie": "BRIOCHE", "spectacle": "ubu-roi", "metier": "COM010",
         "lignes": [{"rubrique": "journee", "quantite": 1, "taux": 200.0, "dates": ["2026-08-20"]}]}]});
-    ecrire(c, "paies/2026-08.json", &journees);
+    crate::outils::poser_saisie(c, "2026-08", &journees);
     let r = saisie_ouverte(c, "2026-09", "2026-09-10");
     assert_eq!((&r["saisie"]["taux_cachet"], &r["defauts"]["taux_cachet"]), (&Value::Null, &Value::Null), "{}", r);
     // Un cachet saisi : c'est lui qu'on propose.
     let mut cachet = journees.clone();
     cachet["engagements"][0]["lignes"] = json!([{"rubrique": "cachet", "quantite": 1, "taux": 145.0, "dates": ["2026-08-20"]}]);
-    ecrire(c, "paies/2026-08.json", &cachet);
+    crate::outils::poser_saisie(c, "2026-08", &cachet);
     let r = saisie_ouverte(c, "2026-09", "2026-09-10");
     assert_eq!((&r["saisie"]["taux_cachet"], &r["defauts"]["taux_cachet"]), (&json!(145.0), &json!(145.0)), "{}", r);
 }
@@ -152,7 +152,7 @@ fn les_noms_se_resolvent_et_les_lignes_viennent_du_moteur_sans_aucun_calcul() {
     let nom = s["engagements"][0]["salarie"].as_str().unwrap().to_string();
     let cle = cles.iter().find(|k| k.to_lowercase() == nom.to_lowercase()).unwrap().clone();
     s["engagements"][0]["salarie"] = json!(format!("  {}", nom.to_lowercase()));
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     let r = saisie_ouverte(c, "2026-08", "2026-09-10");
     let e = &r["saisie"]["engagements"][0];
     assert_eq!(e["salarie"], json!(cle));
@@ -184,7 +184,7 @@ fn les_heures_le_genre_et_la_base_d_une_ligne_reviennent_a_la_page() {
     lignes.push(json!({"rubrique": "repetition", "quantite": 2, "taux": 50, "heures": 3}));
     lignes.push(json!({"rubrique": "majoration", "base": 300, "taux_majoration": 10}));
     lignes.push(json!({"rubrique": "avantage_nature", "quantite": 1, "taux": 40, "genre": "02"}));
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     let r = saisie_ouverte(c, "2026-08", "2026-09-10");
     let l = r["saisie"]["engagements"][0]["lignes"].as_array().unwrap().clone();
     let de = |code: &str| l.iter().find(|x| x["rubrique"] == json!(code)).unwrap_or_else(|| panic!("pas de {} dans {:?}", code, l)).clone();
@@ -199,17 +199,19 @@ fn les_heures_le_genre_et_la_base_d_une_ligne_reviennent_a_la_page() {
 #[test]
 fn une_saisie_qui_ne_se_charge_pas_se_rend_telle_quelle() {
     let c = &compagnie("telle-quelle", &["2026-08"]);
-    let mut s = fichier(c, "2026-08");
+    let mut s = crate::outils::saisie(c, "2026-08");
     s["engagements"][0]["salarie"] = json!("Personne d'inconnu");
-    ecrire(c, "paies/2026-08.json", &s);
+    // Il change : il repasse en saisie, et sa validation (le salarie ne se resout pas) ne se fait pas.
+    s["engagements"][0].as_object_mut().unwrap().remove("valide");
+    crate::outils::poser_saisie(c, "2026-08", &s);
     // Le salarie ne se resout pas : c'est l'apercu qui dira pourquoi, avec son message a lui.
-    assert_eq!(saisie_ouverte(c, "2026-08", "2026-09-10")["saisie"], s);
-    // Un fichier qui n'est pas un dictionnaire aussi.
-    std::fs::write(c.join("paies/2026-08.json"), "[1, 2]").unwrap();
-    let r = saisie_ouverte(c, "2026-08", "2026-09-10");
-    assert_eq!(r["saisie"], json!([1, 2]));
-    // Le dossier ne se relit pas : aucun taux propose, la fin du mois reste dite.
-    assert_eq!(r["defauts"], json!({"taux_cachet": null, "date_paiement": "2026-08-31"}));
+    let rendue = saisie_ouverte(c, "2026-08", "2026-09-10")["saisie"].clone();
+    let engs = rendue["engagements"].as_array().unwrap();
+    assert_eq!(engs.len(), s["engagements"].as_array().unwrap().len(), "{}", rendue);
+    assert!(engs.contains(&s["engagements"][0]), "le nom qui ne se resout pas est rendu tel quel : {}", rendue);
+    // Un fichier d'engagements qui n'est pas un dictionnaire ne se lit pas : refus.
+    std::fs::write(c.join("engagements/2026-08.json"), "[1, 2]").unwrap();
+    refus(&route(c, "saisie", json!({ "mois": "2026-08" }), "2026-09-10"));
 }
 
 #[test]
@@ -225,7 +227,7 @@ fn un_spectacle_du_mois_descend_en_cle_sur_ses_engagements() {
         e.as_object_mut().unwrap().remove("spectacle");
     }
     s["spectacle"] = numero.clone();
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     let r = saisie_ouverte(c, "2026-08", "2026-09-10");
     assert!(r["saisie"].get("spectacle").is_none(), "{}", r["saisie"]);
     for e in r["saisie"]["engagements"].as_array().unwrap() {
@@ -236,7 +238,7 @@ fn un_spectacle_du_mois_descend_en_cle_sur_ses_engagements() {
     for e in s["engagements"].as_array_mut().unwrap() {
         e["spectacle"] = numero.clone();
     }
-    ecrire(c, "paies/2026-08.json", &s);
+    crate::outils::poser_saisie(c, "2026-08", &s);
     assert!(saisie_ouverte(c, "2026-08", "2026-09-10")["saisie"].get("spectacle").is_none());
 }
 
@@ -247,7 +249,7 @@ fn un_mois_illisible_ou_absent_de_la_charge_refuse() {
         refus(&route(c, "saisie", charge, "2026-09-10"));
     }
     let c = &compagnie("refus-json", &["2026-08"]);
-    std::fs::write(c.join("paies/2026-08.json"), "{ \"mois\": ").unwrap();
+    std::fs::write(c.join("engagements/2026-08.json"), "{ \"mois\": ").unwrap();
     refus(&route(c, "saisie", json!({ "mois": "2026-08" }), "2026-09-10"));
 }
 
@@ -427,7 +429,7 @@ fn un_mois_d_avant_la_premiere_embauche_n_a_pas_de_dsn_due() {
     let s = json!({"mois": "2024-12", "engagements": []});
     for forcer in [false, true] {
         refus(&route(c, "enregistrer-saisie", json!({"mois": "2024-12", "saisie": s, "forcer": forcer}), "2025-01-20"));
-        assert!(!c.join("paies/2024-12.json").exists(), "rien n'est ecrit");
+        assert!(!c.join("engagements/2024-12.json").exists(), "rien n'est ecrit");
     }
     // Le mois de la premiere embauche : sa DSN est due le 15 fevrier, et passe ce jour il est en retard.
     assert_eq!(saisie_ouverte(c, "2025-01", "2025-02-20")["avant_premiere_embauche"], Value::Null);

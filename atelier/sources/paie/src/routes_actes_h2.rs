@@ -34,7 +34,7 @@ pub const ROUTES: [&str; 5] = ["deposer", "suivre-depot", "bilan-repetition", "f
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "deposer" => deposer(o, ctx, charge),
-        "suivre-depot" => suivre_depot(o, ctx, charge),
+        "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(o, ctx, charge),
         "filet-preparer" => filet_preparer(o, ctx, charge),
         "produire" => crate::produire_mois::produire(o, ctx, charge),
@@ -74,16 +74,16 @@ fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Val
 /// `suivre_le_depot` : juste apres un depot REEL, relever ses retours et dire s'il est tranche. Une LECTURE.
 /// `{"fini", "passe", "refuse", "incident"}`. Fini quand chaque embauche du depot est passee ou refusee (DPAE),
 /// quand le bilan du mois est la (DSN).
-fn suivre_depot(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
     let flux = charge.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
     let mois = charge.get("mois").filter(|m| vrai(m)).map(valeur_en_texte).unwrap_or_default();
     let dpae = etats::est(quoi, "dpae");
     let (debut, fin) = releve_retours::derniere_journee();
     let releve = if dpae {
-        releve_retours::relever_retours_dpae(ctx, o, debut, fin, false, &flux)
+        releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
     } else {
-        releve_retours::relever_retours(ctx, o, debut, fin, false, "production", None, "")
+        releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
@@ -135,9 +135,9 @@ fn bilan_repetition(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
             let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-            releve_retours::relever_retours_dpae(ctx, o, debut, fin, false, &flux)
+            releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
         } else {
-            releve_retours::relever_retours(ctx, o, debut, fin, false, "production", None, "")
+            releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),

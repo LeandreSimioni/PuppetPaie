@@ -1198,8 +1198,8 @@ pre.reponse {
 .rubrique .r-lieu-jour-l[hidden] { display: none; }
 .rubrique .r-lieu-jour-l { display: inline-flex; align-items: baseline; gap: 4px; }
 .rubrique .r-lieu-jour { display: inline-block; width: 10rem; padding: .2rem .4rem; }
-/* UNE PAIE VALIDÉE QUE LE CALCUL NE DONNE PLUS (16/10/2026) : sa carte reste celle qu'on a validée, et le dit. */
-.carte-revoir { grid-column: 1 / -1; margin-top: 4px; }
+/* UNE PAIE VALIDÉE QUI S'EST RECALCULÉE D'ELLE-MÊME : la carte dit quand et pourquoi. */
+.carte-recalcul { grid-column: 1 / -1; margin-top: 4px; }
 .engagement:not(.validee) .resolu,
 .engagement:not(.validee) .etats-qui { display: none; }
 @media (max-width: 780px) {

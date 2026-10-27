@@ -22,7 +22,7 @@ fn refus(c: &Path, nom: &str, charge: Value) -> String {
 }
 
 fn ecrire_mois(c: &Path, mois: &str, engagements: Value) {
-    ecrire(c, &format!("paies/{}.json", mois), &json!({"mois": mois, "taux_cachet": 130.0, "date_paiement": format!("{}-28", mois), "engagements": engagements}));
+    crate::outils::poser_saisie(c, &mois, &json!({"mois": mois, "taux_cachet": 130.0, "date_paiement": format!("{}-28", mois), "engagements": engagements}));
 }
 
 /// Un contrat de septembre qui court jusqu'au 10 octobre, trois jours de planning.
@@ -32,207 +32,6 @@ fn contrat_a_cheval() -> Value {
         "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 130.0, "lieu": "Tours",
                     "dates": ["2026-09-28", "2026-09-29"], "planning": ["2026-10-01", "2026-10-05", "2026-10-10"]}],
     })
-}
-
-// ================================================ contrats-en-cours
-
-#[test]
-fn un_contrat_a_cheval_se_reprend_au_mois_suivant_sans_aucun_calcul() {
-    let c = &compagnie("en-cours");
-    ecrire_mois(c, "2026-09", json!([contrat_a_cheval()]));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    assert_eq!(r["mois"], "2026-10");
-    let l = r["contrats"].as_array().unwrap();
-    assert_eq!(l.len(), 1);
-    let k = &l[0];
-    assert_eq!(k["salarie"], "BRIOCHE");
-    assert_eq!(k["nom"], "BRIOCHE Fanchon");
-    assert_eq!((k["debut"].as_str(), k["fin"].as_str(), k["depuis"].as_str()), (Some("2026-09-28"), Some("2026-10-10"), Some("2026-09")));
-    assert_eq!(k["deja_repris"], json!(false));
-    assert_eq!(k["taux_cachet"], json!(130.0));
-    // Les jours d'octobre deviennent les dates de la ligne, au meme taux et au meme lieu.
-    let e = &k["engagement"];
-    assert_eq!(e["numero"], "BR1.26.01");
-    assert_eq!(e["metier"], "COM010");
-    assert!(e.get("cadre").is_none() && e.get("lieu").is_none());
-    assert_eq!(
-        e["lignes"],
-        json!([{"rubrique": "cachet", "taux": 130.0, "lieu": "Tours", "quantite": 3.0,
-                "dates": ["2026-10-01", "2026-10-05", "2026-10-10"]}])
-    );
-    // Le mois d'apres ne les reprend plus.
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-11"}));
-    assert_eq!(r["contrats"], json!([]));
-}
-
-#[test]
-fn deux_contrats_a_cheval_du_meme_jour_se_reprennent_chacun() {
-    // Les jumeaux (meme salarie, meme debut, numeros distincts) : le second n'etait jamais repris.
-    let c = &compagnie("en-cours-jumeaux");
-    let premier = contrat_a_cheval();
-    let mut jumeau = contrat_a_cheval();
-    jumeau["numero"] = json!("BR1.26.02");
-    jumeau["lignes"][0]["quantite"] = json!(1);
-    jumeau["lignes"][0]["dates"] = json!(["2026-09-28"]);
-    jumeau["lignes"][0]["planning"] = json!(["2026-10-02"]);
-    ecrire_mois(c, "2026-09", json!([premier, jumeau.clone()]));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    let l = r["contrats"].as_array().unwrap();
-    let numeros: Vec<&str> = l.iter().map(|k| k["numero"].as_str().unwrap()).collect();
-    assert_eq!(numeros, vec!["BR1.26.01", "BR1.26.02"], "{}", r);
-    assert_eq!(l[1]["engagement"]["lignes"][0]["dates"], json!(["2026-10-02"]));
-    // Octobre ne reprend que le jumeau : lui seul est « deja repris ».
-    let mut repris = jumeau;
-    repris["debut"] = json!("2026-09-28");
-    repris["lignes"][0]["dates"] = json!(["2026-10-02"]);
-    repris["lignes"][0].as_object_mut().unwrap().remove("planning");
-    ecrire_mois(c, "2026-10", json!([repris]));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    let l = r["contrats"].as_array().unwrap();
-    assert_eq!(l.len(), 2, "{}", r);
-    assert_eq!((l[0]["numero"].as_str(), l[0]["deja_repris"].as_bool()), (Some("BR1.26.01"), Some(false)));
-    assert_eq!((l[1]["numero"].as_str(), l[1]["deja_repris"].as_bool()), (Some("BR1.26.02"), Some(true)));
-}
-
-#[test]
-fn le_planning_des_mois_suivants_reste_en_planning_et_un_mois_repris_se_dit() {
-    let c = &compagnie("planning");
-    let mut e = contrat_a_cheval();
-    e["fin"] = json!("2026-11-20");
-    e["lignes"][0]["planning"] = json!(["2026-10-01", "2026-10-05", "2026-11-03", "2026-11-20"]);
-    ecrire_mois(c, "2026-09", json!([e.clone()]));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    let ligne = &r["contrats"][0]["engagement"]["lignes"][0];
-    assert_eq!(ligne["dates"], json!(["2026-10-01", "2026-10-05"]));
-    assert_eq!(ligne["planning"], json!(["2026-11-03", "2026-11-20"]));
-    assert_eq!(ligne["quantite"], json!(2.0));
-    // Le fichier d'octobre porte deja ce contrat (meme salarie, meme debut) : il est « repris ».
-    ecrire_mois(c, "2026-10", json!([e]));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    assert_eq!(r["contrats"][0]["deja_repris"], json!(true));
-    // Un contrat sans planning dans le mois : une ligne de cachets a completer.
-    let mut sans = contrat_a_cheval();
-    sans["lignes"][0].as_object_mut().unwrap().remove("planning");
-    sans["fin"] = json!("2026-10-10");
-    ecrire_mois(c, "2026-09", json!([sans]));
-    std::fs::remove_file(c.join("paies/2026-10.json")).unwrap();
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    assert_eq!(r["contrats"][0]["engagement"]["lignes"], json!([{"rubrique": "cachet", "quantite": 0, "taux": 130.0, "dates": []}]));
-}
-
-/// #140 : un contrat repris sans ligne a dater recoit le DERNIER TAUX saisi (`routes_saisie::dernier_taux`), pas
-/// 130 € pose par la reprise.
-#[test]
-fn une_reprise_sans_cachet_propose_le_dernier_taux_saisi() {
-    let c = &compagnie("dernier-taux");
-    let ecrire = |mois: &str, v: Value| ecrire(c, &format!("paies/{}.json", mois), &v);
-    ecrire("2026-08", json!({"mois": "2026-08", "date_paiement": "2026-08-31", "engagements": [{
-        "salarie": "BRIOCHE", "spectacle": "ubu-roi", "metier": "COM010",
-        "lignes": [{"rubrique": "cachet", "quantite": 1, "taux": 155.0, "dates": ["2026-08-20"]}]}]}));
-    // Septembre : un contrat de journees qui court en octobre, sans planning ni cachet.
-    ecrire("2026-09", json!({"mois": "2026-09", "date_paiement": "2026-09-30", "engagements": [{
-        "salarie": "BRIOCHE", "spectacle": "ubu-roi", "fin": "2026-10-10", "numero": "BR1.26.01", "metier": "COM010",
-        "lignes": [{"rubrique": "journee", "quantite": 1, "taux": 200.0, "dates": ["2026-09-28"]}]}]}));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    assert_eq!(r["contrats"][0]["engagement"]["lignes"], json!([{"rubrique": "cachet", "quantite": 0, "taux": 155.0, "dates": []}]), "{}", r);
-}
-
-/// R12 : sans aucun cachet saisi dans le dossier, la reprise ne propose aucun taux (regle 1 : les 130 EUR de CoolPaie ne
-/// venaient d'aucun texte) ; la ligne reste a completer.
-#[test]
-fn une_reprise_sans_aucun_cachet_dans_le_dossier_ne_propose_aucun_taux() {
-    let c = &compagnie("aucun-taux");
-    ecrire(c, "paies/2026-09.json", &json!({"mois": "2026-09", "date_paiement": "2026-09-30", "engagements": [{
-        "salarie": "BRIOCHE", "spectacle": "ubu-roi", "fin": "2026-10-10", "numero": "BR1.26.01", "metier": "COM010",
-        "lignes": [{"rubrique": "journee", "quantite": 1, "taux": 200.0, "dates": ["2026-09-28"]}]}]}));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    assert_eq!(r["contrats"][0]["engagement"]["lignes"], json!([{"rubrique": "cachet", "quantite": 0, "taux": null, "dates": []}]), "{}", r);
-}
-
-#[test]
-fn un_salarie_inconnu_ou_un_contrat_fini_ne_donne_rien() {
-    let c = &compagnie("inconnu");
-    let mut inconnu = contrat_a_cheval();
-    inconnu["salarie"] = json!("Personne Zzz");
-    let mut court = contrat_a_cheval();
-    court["fin"] = json!("2026-09-30");
-    court["lignes"][0].as_object_mut().unwrap().remove("planning");
-    ecrire_mois(c, "2026-09", json!([inconnu, court]));
-    assert_eq!(resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}))["contrats"], json!([]));
-}
-
-#[test]
-fn un_cdd_paye_au_mois_se_reprend_avec_sa_nature_sans_spectacle_ni_cachet() {
-    // Un CDD de droit commun de septembre a decembre : il court en octobre, et c'est un permanent.
-    // Il ne se rattache a aucun spectacle (S21.G00.40.050, CCH-11) et ses lignes, le moteur les
-    // compose chaque mois depuis son salaire : la reprise recopie ce qui le definit, rien d'autre.
-    let c = &compagnie("cdd-au-mois");
-    ecrire_mois(c, 
-        "2026-09",
-        json!([{
-            "salarie": "SERAPHIN", "nature": "cdd", "debut": "2026-09-01", "fin": "2026-12-31", "numero": "SE.26.01",
-            "metier": "COM010", "motif_recours": "02", "salaire_mensuel": 2100.0, "quotite_contrat": 151.67,
-            "modalite_temps_travail": "10", "primes": [{"libelle": "Prime de septembre", "montant": 100.0}],
-            "date_paiement": "2026-09-30",
-        }]),
-    );
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    let l = r["contrats"].as_array().unwrap();
-    assert_eq!(l.len(), 1, "{}", r);
-    let k = &l[0];
-    assert_eq!(k["spectacle"], Value::Null, "un permanent ne joue aucun spectacle : {}", k);
-    assert_eq!(
-        k["engagement"],
-        json!({
-            "salarie": "SERAPHIN", "debut": "2026-09-01", "fin": "2026-12-31", "numero": "SE.26.01", "metier": "COM010",
-            "nature": "cdd", "motif_recours": "02", "salaire_mensuel": 2100.0, "quotite_contrat": 151.67,
-            "modalite_temps_travail": "10",
-        })
-    );
-}
-
-#[test]
-fn un_cdi_sans_terme_se_reprend_chaque_mois_suivant() {
-    // #236 : un CDI embauche le 16 novembre ne dit pas de fin. Il court en decembre comme en janvier, et se reprend avec
-    // ce qui le definit ; sa fin vide n'est pas « avant le mois ».
-    let c = &compagnie("cdi-sans-terme");
-    ecrire_mois(c,
-        "2026-09",
-        json!([{
-            "salarie": "SERAPHIN", "nature": "cdi", "debut": "2026-09-16", "numero": "SE.26.02", "metier": "COM010",
-            "salaire_mensuel": 2100.0, "quotite_contrat": 151.67, "date_paiement": "2026-09-30",
-        }]),
-    );
-    for mois in ["2026-10", "2026-11"] {
-        let r = resultat(c, "contrats-en-cours", json!({"mois": mois}));
-        let l = r["contrats"].as_array().unwrap();
-        assert_eq!(l.len(), 1, "{} : {}", mois, r);
-        assert_eq!(l[0]["engagement"]["nature"], json!("cdi"));
-        assert_eq!(l[0]["engagement"]["debut"], json!("2026-09-16"));
-        assert_eq!(l[0]["engagement"]["salaire_mensuel"], json!(2100.0));
-    }
-}
-
-#[test]
-fn un_contrat_d_usage_sans_spectacle_prend_celui_du_mois_et_rien_ne_se_devine() {
-    let c = &compagnie("sans-spectacle");
-    let mut e = contrat_a_cheval();
-    e.as_object_mut().unwrap().remove("spectacle");
-    // Le fichier de septembre nomme son spectacle : c'est celui que l'engagement jouait.
-    let mois = |spectacle: Value| {
-        json!({"mois": "2026-09", "taux_cachet": 130.0, "date_paiement": "2026-09-28", "spectacle": spectacle, "engagements": [e.clone()]})
-    };
-    ecrire(c, "paies/2026-09.json", &mois(json!("les-pupazzi")));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    assert_eq!(r["contrats"][0]["spectacle"], "les-pupazzi", "{}", r);
-    assert_eq!(r["contrats"][0]["engagement"]["spectacle"], "les-pupazzi");
-    // Ni l'un ni l'autre : le contrat se reprend (il court), sans spectacle -- pas avec le premier venu.
-    ecrire(c, "paies/2026-09.json", &mois(json!("")));
-    let r = resultat(c, "contrats-en-cours", json!({"mois": "2026-10"}));
-    let l = r["contrats"].as_array().unwrap();
-    assert_eq!(l.len(), 1, "{}", r);
-    assert_eq!(l[0]["spectacle"], Value::Null, "{}", r);
-    assert!(l[0]["engagement"].get("spectacle").is_none(), "{}", r);
 }
 
 // ================================================ contrats-passes
@@ -286,10 +85,10 @@ fn une_charge_fausse_ou_un_mois_abime_refuse() {
     for (nom, charge) in [("contrats-en-cours", json!({})), ("contrats-passes", json!({})), ("contrats-en-cours", json!({"mois": 5}))] {
         refus(c, nom, charge);
     }
-    std::fs::write(c.join("paies/2026-08.json"), "{pas du json").unwrap();
+    std::fs::write(c.join("engagements/2026-08.json"), "{pas du json").unwrap();
     refus(c, "contrats-en-cours", json!({"mois": "2026-10"}));
     // Des lignes qui ne sont pas des objets.
-    std::fs::remove_file(c.join("paies/2026-08.json")).unwrap();
+    std::fs::remove_file(c.join("engagements/2026-08.json")).unwrap();
     let mut mal = contrat_a_cheval();
     mal["lignes"] = json!(["texte"]);
     ecrire_mois(c, "2026-07", json!([mal]));

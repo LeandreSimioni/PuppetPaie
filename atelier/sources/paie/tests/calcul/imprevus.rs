@@ -6,7 +6,7 @@
 use crate::outils::{compagnie, dossier_de_test, ecrire};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::num::{div, eur2, mul, Decimal};
+use socle::num::{eur2, mul, Decimal};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -28,12 +28,12 @@ fn contexte(racine: &Path) -> Contexte {
 }
 
 /// La paie de `salarie` dans la saisie du mois, calculee comme pour la DSN (`engagement::charger`).
-fn paie(ctx: &Contexte, mois: &str, salarie: &str) -> paie::calcul::Paie {
-    let s = paie::engagement::charger(ctx, &ctx.racine.join(format!("paies/{}.json", mois))).unwrap();
+fn paie(ctx: &Contexte, mois: &str, salarie: &str) -> engagement::calcul::Paie {
+    let s = engagement::charger(ctx, &mois).unwrap();
     s.paies.into_iter().find(|p| p.salarie["_cle"] == json!(salarie)).unwrap()
 }
 
-fn lignes_de(p: &paie::calcul::Paie, rubrique: &str) -> Vec<Value> {
+fn lignes_de(p: &engagement::calcul::Paie, rubrique: &str) -> Vec<Value> {
     p.engagement.lignes.iter().filter(|l| l["rubrique"] == json!(rubrique)).cloned().collect()
 }
 
@@ -46,7 +46,7 @@ fn d(v: &Value) -> Decimal {
 /// oeuvres x Nb de jours theoriquement oeuvres » ; fiche 2693, exemple 10 : 22 x 7 h ;
 /// `atelier/reference/sources/suspension-non-remuneree/`).
 fn heures(ctx: &Contexte, debut: &str, fin: &str) -> Decimal {
-    let oeuvres = paie::conges::jours_oeuvres(&jour(debut), &jour(fin), Some(&ctx.entreprise)).unwrap();
+    let oeuvres = droit::conges::jours_oeuvres(&jour(debut), &jour(fin), Some(&ctx.entreprise)).unwrap();
     eur2(mul(Decimal::from(7), Decimal::from(oeuvres)))
 }
 
@@ -145,7 +145,7 @@ fn une_suspension_remuneree_ne_retire_rien_et_le_200_refuse() {
     assert!(lignes_de(&p, "absence_non_remuneree").is_empty());
     assert_eq!(p.engagement.suspensions.len(), 1);
     ecrire(&racine, "imprevus/2026-07.json", &json!({"imprevus": [suspension("200", "2026-07-20", "2026-07-21")]}));
-    let e = paie::engagement::charger(&ctx, &racine.join("paies/2026-07.json")).err().unwrap();
+    let e = engagement::charger(&ctx, "2026-07").err().unwrap();
     assert!(e.contains("200"), "{}", e);
 }
 
@@ -170,8 +170,8 @@ fn un_cachet_d_intermittent_un_jour_d_arret_est_un_avertissement_nomme() {
     assert!(avis.iter().any(|t| t.contains("Cachet le 10/07/2026, 11/07/2026 paye(s) pendant")), "{:?}", avis);
     assert!(lignes_de(&p, "absence_maladie").is_empty(), "un CDDU n'a pas de salaire du mois a retirer");
     // Et le moteur dit, ligne par ligne, quelles dates de la saisie tombent dans l'arret.
-    let imp = paie::imprevus::tous(&racine).unwrap().remove(0);
-    let cachets = paie::imprevus::cachets_dans(&ctx, &imp).unwrap();
+    let imp = engagement::imprevus::tous(&racine).unwrap().remove(0);
+    let cachets = engagement::imprevus::cachets_dans(&ctx, &imp).unwrap();
     let dates: Vec<Value> = cachets.iter().flat_map(|c| c["dates"].as_array().unwrap().clone()).collect();
     assert_eq!(dates, vec![json!("2026-07-10"), json!("2026-07-11")], "le 12 n'est pas joue : {:?}", cachets);
     assert_eq!(cachets[0]["mois"], json!("2026-07"));
@@ -185,6 +185,6 @@ fn un_magasin_abime_refuse_la_paie() {
     let racine = compagnie("abime");
     ecrire(&racine, "imprevus/2026-07.json", &json!({"imprevus": [{"genre": "conge", "salarie": "NICOLET"}]}));
     let ctx = contexte(&racine);
-    let e = paie::engagement::charger(&ctx, &racine.join("paies/2026-07.json")).err().unwrap();
+    let e = engagement::charger(&ctx, "2026-07").err().unwrap();
     assert!(e.contains("genre"), "{}", e);
 }

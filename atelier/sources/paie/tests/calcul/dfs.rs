@@ -21,9 +21,9 @@
 //! Chaminade (regisseur lumiere) un technicien, Montansier une cadre ; Deburau a un contrat en mars 2026. La reduction
 //! generale sous DFS : arrete du 4 decembre 2019, art. 1er (`dfs/arrete-2019-reduction-generale/`).
 
-use paie::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use paie::engagement::{charger, Saisie};
+use engagement::{charger, Saisie};
 use socle::num::Decimal;
 use serde_json::{json, Value};
 use crate::outils::{chemin_unique, copier, dec, fictive, ecrire, lire, Copie};
@@ -32,7 +32,7 @@ use std::str::FromStr;
 /// La config et les saisies de `fictive-3090-grande`, `retouche` appliquee a sa fiche entreprise et a ses fiches salaries.
 fn copie(retouche: impl Fn(&mut Value, &mut Value)) -> Copie {
     let c = Copie::config_de("fictive-3090-grande");
-    copier(&fictive("fictive-3090-grande").join("paies"), &c.0.join("paies"));
+    copier(&fictive("fictive-3090-grande").join("engagements"), &c.0.join("engagements"));
     let (mut ent, mut sal) = (lire(&c.0, "config/entreprise.json"), lire(&c.0, "config/salaries.json"));
     retouche(&mut ent, &mut sal);
     ecrire(&c.0, "config/entreprise.json", &ent);
@@ -51,7 +51,7 @@ fn deburau() -> Copie {
 fn essai(ctx: &Contexte, s: &Value) -> Result<Saisie, String> {
     let chemin = chemin_unique("dfs.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let r = charger(ctx, &chemin);
+    let r = crate::outils::charger_fichier(ctx, &chemin);
     let _ = std::fs::remove_file(&chemin);
     r
 }
@@ -170,10 +170,10 @@ fn le_plafond_annuel_de_7600_euros_se_suit_dans_le_mois_et_d_un_mois_a_l_autre()
     assert!(b.avertissements.iter().any(|x| x.texte.contains("7600") && x.texte.contains("annee civile")), "{:?}", b.avertissements);
     // Octobre enregistre, novembre (Deburau y a un contrat) ne deduit plus rien.
     let mut octobre = cachets(&[("Deburau", "DE2.26.10", "40000.00"), ("Deburau", "DE2.26.11", "2000.00")]);
-    octobre["engagements"].as_array_mut().unwrap().extend(lire(&c.0, "paies/2026-10.json")["engagements"].as_array().unwrap().iter().cloned());
-    ecrire(&c.0, "paies/2026-10.json", &octobre);
+    octobre["engagements"].as_array_mut().unwrap().extend(crate::outils::saisie(&c.0, "2026-10")["engagements"].as_array().unwrap().iter().cloned());
+    crate::outils::poser_saisie(&c.0, "2026-10", &octobre);
     let ctx = c.contexte("2026-12-28");
-    let nov = charger(&ctx, &c.0.join("paies/2026-11.json")).unwrap();
+    let nov = charger(&ctx, "2026-11").unwrap();
     let p = nov.paies.iter().find(|p| p.engagement.salarie == "Deburau").unwrap();
     let d = p.deduction_forfaitaire.as_ref().unwrap();
     assert_eq!((d.deja, d.montant), (dec("7600.00"), dec("0.00")));

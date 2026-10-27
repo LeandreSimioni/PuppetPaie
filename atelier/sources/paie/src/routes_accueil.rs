@@ -157,46 +157,34 @@ fn compteurs(racine: &Path) -> R<Value> {
     }
 }
 
-/// `salaries_au_mois` : les salaries qui ont, ou ont eu, un contrat paye au
-/// mois. Lu dans les saisies : la nature se dit sur l'engagement, pas sur la
-/// fiche. L'ecran n'ouvre le bloc « Salarie au mois » qu'a eux.
+/// `salaries_au_mois` : les salaries qui ont, ou ont eu, un contrat paye au mois. Lu dans les engagements : la nature se
+/// dit sur l'engagement (ou sur un de ses mois), pas sur la fiche. L'ecran n'ouvre le bloc « Salarie au mois » qu'a eux.
 fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
     let mensuelles: BTreeSet<String> = natures::natures().map_err(plain)?.iter().filter(|n| n.mensuelle()).map(|n| n.cle.clone()).collect();
-    let mut noms_de_fichiers: Vec<PathBuf> = Vec::new();
-    if let Ok(rd) = std::fs::read_dir(ctx.racine.join("paies")) {
-        for e in rd.flatten() {
-            if e.file_name().to_string_lossy().ends_with(".json") {
-                noms_de_fichiers.push(e.path());
-            }
-        }
-    }
-    noms_de_fichiers.sort();
     let mut trouves: BTreeSet<String> = BTreeSet::new();
-    for f in noms_de_fichiers {
-        // Un fichier illisible ou qui n'est pas une saisie est ignore.
-        // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
-        let Ok(v) = socle::fichiers::json_en_cache(&f) else { continue };
-        let Some(d) = v.as_object() else { continue };
-        let engs = d.get("engagements").filter(|x| vrai(x)).cloned().unwrap_or(Value::Array(vec![]));
-        let Value::Array(engs) = engs else { continue };
-        for e in &engs {
-            let Some(e) = e.as_object() else { continue };
-            if !e.get("nature").and_then(Value::as_str).is_some_and(|n| mensuelles.contains(n)) {
+    // Un fichier illisible est ignore ; les autres se lisent.
+    let fichiers = engagement::stock::fichiers(&ctx.racine);
+    let lus = fichiers.iter().filter_map(|f| engagement::stock::lire_fichier(&ctx.racine, f).ok().flatten());
+    let objets: Vec<Map<String, Value>> =
+        lus.flat_map(|m| m.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default()).filter_map(|e| e.as_object().cloned()).collect();
+    for e in &objets {
+        let suites = e.get(engagement::stock::SUITE).and_then(Value::as_object).into_iter().flat_map(|s| s.values());
+        let natures = std::iter::once(e.get("nature")).chain(suites.map(|s| s.get("nature")));
+        if !natures.flatten().filter_map(Value::as_str).any(|n| mensuelles.contains(n)) {
+            continue;
+        }
+        let noms: Vec<Value> = match e.get("salaries").filter(|x| vrai(x)) {
+            Some(Value::Array(a)) => a.clone(),
+            Some(autre) => vec![autre.clone()],
+            None => vec![e.get("salarie").cloned().unwrap_or(Value::Null)],
+        };
+        for nom in noms {
+            if !vrai(&nom) {
                 continue;
             }
-            let noms: Vec<Value> = match e.get("salaries").filter(|x| vrai(x)) {
-                Some(Value::Array(a)) => a.clone(),
-                Some(autre) => vec![autre.clone()],
-                None => vec![e.get("salarie").cloned().unwrap_or(Value::Null)],
-            };
-            for nom in noms {
-                if !vrai(&nom) {
-                    continue;
-                }
-                if let Ok(s) = ctx.salarie(&valeur_en_texte(&nom)) {
-                    if let Some(c) = s.get("_cle").and_then(Value::as_str) {
-                        trouves.insert(c.to_string());
-                    }
+            if let Ok(s) = ctx.salarie(&valeur_en_texte(&nom)) {
+                if let Some(c) = s.get("_cle").and_then(Value::as_str) {
+                    trouves.insert(c.to_string());
                 }
             }
         }

@@ -6,10 +6,9 @@ use crate::outils::{chemin_oracle, fictive, lire_oracle, oracle};
 use droit::bareme::canon;
 use paie::bulletin::{description, fmt_eur, fmt_heures, fmt_taux, jeux_et_description, jj_mm_aaaa, jours, remboursements, Jeu};
 use droit::contexte::Contexte;
-use paie::cumul::Colonne;
-use paie::conges::CompteurConges;
+use droit::cumul::Colonne;
+use engagement::conges::CompteurConges;
 use socle::date::Jour;
-use paie::engagement::charger;
 use socle::num::{dec, Decimal};
 use droit::pas::Versement;
 use serde_json::{json, Value};
@@ -32,9 +31,10 @@ fn racine_de(nom: &str) -> PathBuf {
     }
 }
 
-fn fichier_de(c: &Value) -> PathBuf {
+/// La saisie du mois du cas, telle que ses engagements la montrent.
+fn saisie_de(c: &Value) -> Value {
     let base = if c["racine"] == "cumul" { fictive("fictive-1285-grande") } else { racine_de(c["racine"].as_str().unwrap()) };
-    base.join("paies").join(format!("{}.json", c["mois"].as_str().unwrap()))
+    crate::outils::saisie(&base, c["mois"].as_str().unwrap())
 }
 
 fn jour(s: &str) -> Jour {
@@ -88,7 +88,7 @@ fn ce_que_jeux_et_description_passe_a_la_fabrique() {
     for c in cas.as_array_mut().unwrap() {
         let o = &c["options"];
         let ctx = Contexte::nouveau(&racine_de(o["racine"].as_str().unwrap()), Some(jour("2026-09-27"))).unwrap();
-        let mut s = charger(&ctx, &fichier_de(o)).unwrap();
+        let mut s = engagement::charger_donnees(&ctx, &saisie_de(o)).unwrap();
         let mut ent = ctx.entreprise_du_mois(&s.mois).unwrap();
         if o["licence"] == "liste" {
             ent["licence_spectacle"] = json!([{"depuis": "2026-01-01", "numero": "L-R-26-1"}]);
@@ -164,7 +164,7 @@ fn la_description_de_jeux_fabriques() {
     for c in cas.as_array_mut().unwrap() {
         let o = &c["options"].clone();
         let ctx = Contexte::nouveau(&racine_de(o["racine"].as_str().unwrap()), Some(jour("2026-09-27"))).unwrap();
-        let s = charger(&ctx, &fichier_de(o)).unwrap();
+        let s = engagement::charger_donnees(&ctx, &saisie_de(o)).unwrap();
         let mut ent = ctx.entreprise_du_mois(&s.mois).unwrap();
         if let Some(g) = o["gabarits"].as_str() {
             ent["_gabarits"] = json!(chemin_oracle("racines/bulletin").join(g).to_str().unwrap());

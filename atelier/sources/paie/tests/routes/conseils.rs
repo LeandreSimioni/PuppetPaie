@@ -447,7 +447,7 @@ fn l_historique_chiffre_ce_que_les_conseils_auraient_change() {
     )]);
     let mut s = s;
     s["mois"] = json!("2026-09");
-    ecrire(c, "paies/2026-09.json", &s);
+    crate::outils::poser_saisie(c, "2026-09", &s);
     let r = reussi(&route(c, "conseils-salarie", json!({ "salarie": "SERAPHIN" }), JOUR)).clone();
     let gain = r["conseils"].as_array().unwrap().iter().find(|x| x["id"] == "historique-gain-des-conseils").unwrap_or_else(|| panic!("{}", r));
     let t = gain["texte"].as_str().unwrap();

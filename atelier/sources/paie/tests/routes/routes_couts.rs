@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 fn compagnie(nom: &str) -> PathBuf {
     let racine = compagnie::saisies("fictive-3090-petite", &[], &dossier_de_test("routes_couts", nom).join("compagnie"));
-    copier(&fictive("fictive-3090-petite").join("paies"), &racine.join("paies"));
+    copier(&fictive("fictive-3090-petite").join("engagements"), &racine.join("engagements"));
     racine
 }
 

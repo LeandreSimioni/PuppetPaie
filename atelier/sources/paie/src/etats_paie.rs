@@ -16,16 +16,14 @@ use std::rc::Rc;
 use rust_xlsxwriter::{Format, FormatAlign, Workbook};
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::en_texte;
-use crate::engagement;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::{eur2, zero2, Decimal};
 use droit::pas::Versement;
-use crate::routes_ouverture::refus_du_calcul;
 use crate::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, montant, nom_compagnie, qui, refus, sections_de, totaliser, Ligne,
     Section, Tableau, Val, FORMATS_TABLEAU, R, TOTAL_GENERAL,
@@ -185,7 +183,7 @@ fn mois_pris(dispo: &BTreeMap<String, &'static str>, mois: &Option<String>, anne
     }
     if let Some(m) = mois {
         if !dispo.contains_key(m) {
-            return Err(refus(format!("Aucune paie en {} : ni saisie (prive/paies/{}.json), ni déclarée par une DSN importée.", m, m)));
+            return Err(refus(format!("Aucune paie en {} : ni engagement (engagements/), ni déclarée par une DSN importée.", m)));
         }
         return Ok(vec![m.clone()]);
     }
@@ -246,15 +244,15 @@ pub(crate) fn paies_declarees(ctx: &Contexte) -> R<Vec<Value>> {
     liste_historique(ctx, "paies.json", "paies")
 }
 
-/// `charger(ctx, paies/<mois>.json, sans_numeros=True)` : la saisie lue et ses paies calculees.
+/// La saisie de `mois` reduite a ses engagements valides, et leurs paies telles qu'elles ont ete validees : ce que
+/// lisent les etats et les exports.
 pub(crate) fn charger_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let data = engagement::lire_saisie(&chemin).map_err(|m| erreur("ErreurOperation", m))?;
-    let s = engagement::charger_donnees(ctx, &data).map_err(|m| socle::echec::Echec::from(refus_du_calcul(ctx, &data, m)))?;
-    Ok((data, s.paies))
+    engagement::etats::validees_du_mois(ctx, mois)
+        .map_err(|m| erreur("ErreurOperation", m))?
+        .ok_or_else(|| erreur("ErreurOperation", format!("{} : aucun engagement ne touche ce mois.", mois)))
 }
 
-/// `operations_etats.Lecture` : les paies recalculees d'un mois, lues une fois par export.
+/// Les paies validees d'un mois, lues une fois par export.
 pub(crate) struct Lecture<'a> {
     ctx: &'a Contexte,
     paies: HashMap<String, Rc<Vec<Paie>>>,

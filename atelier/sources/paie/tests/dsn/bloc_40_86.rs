@@ -180,14 +180,14 @@ fn un_permanent_sans_code_emploi_france_travail_se_declare() {
 /// La DSN de juillet 2026 de la 3090-grande, la quotite du contrat de MONTANSIER (CDI, en heures) posee a `quotite`.
 fn dsn_de_juillet_quotite(test: &str, quotite: f64) -> Result<String, String> {
     let r = copie(test);
-    let mut saisie = outils::lire(&r, "paies/2026-07.json");
+    let mut saisie = crate::outils::saisie(&r, "2026-07");
     for e in saisie["engagements"].as_array_mut().unwrap() {
         if e["numero"] == json!("MO.23.01") {
             e["quotite_contrat"] = json!(quotite);
             e["date_modification"] = json!("2026-07-01");
         }
     }
-    outils::ecrire(&r, "paies/2026-07.json", &saisie);
+    crate::outils::poser_saisie(&r, "2026-07", &saisie);
     outils::dsn_du_mois(&r, "2026-07", "2026-07-28")
 }
 

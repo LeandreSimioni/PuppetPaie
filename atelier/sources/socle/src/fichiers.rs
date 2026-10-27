@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 // `est_dossier` et `lister`. Quand un registre est ouvert (`suivre`), chacun
 // y note ce qu'il a vu : l'empreinte du contenu d'un fichier, `absent`, la
 // liste des `.json` d'un dossier. C'est la liste des entrees du calcul
-// (`calcul_du_mois`). Les caches qui ne notent rien quand ils servent (les baremes composes) se cle par
+// (`engagement::empreinte`). Les caches qui ne notent rien quand ils servent (les baremes composes) se cle par
 // `generation` : un calcul suivi a la sienne, a lui seul, et repart a froid ; hors registre, la generation est 0 et
 // ces caches servent d'une route a l'autre (la fenetre garde le moteur charge).
 
@@ -94,7 +94,7 @@ fn cle_de(genre: &str, chemin: &Path) -> String {
 }
 
 /// UN CHEMIN RELATIF NOTE S'ECRIT AVEC DES BARRES DROITES, sur tous les systemes : la saisie du mois
-/// se cherche dans les entrees sous `racine:paies/AAAA-MM.json` (`calcul_du_mois`) : une cle notee avec la barre de
+/// se reconnait dans les entrees sous `racine:engagements/AAAA-MM.json` (`engagement::empreinte`) : une cle notee avec la barre de
 /// Windows ne s'y retrouverait pas. `chemin_de` la relit telle quelle : Windows accepte la barre droite.
 fn chemin_en_barres(rel: &Path) -> String {
     rel.components().map(|c| c.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/")
@@ -146,12 +146,12 @@ pub fn empreinte_fichier(chemin: &Path) -> String {
 }
 
 fn noms(chemin: &Path) -> Option<Vec<String>> {
-    let mut n: Vec<String> = std::fs::read_dir(chemin).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".json") && !n.ends_with(".calcul.json")).collect();
+    let mut n: Vec<String> = std::fs::read_dir(chemin).ok()?.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".json")).collect();
     n.sort();
     Some(n)
 }
 
-/// L'empreinte d'un dossier : les noms de ses `.json` (hors `.calcul.json`), tries ; `absent` s'il ne s'ouvre pas.
+/// L'empreinte d'un dossier : les noms de ses `.json`, tries ; `absent` s'il ne s'ouvre pas.
 pub fn empreinte_dossier(chemin: &Path) -> String {
     match noms(chemin) {
         Some(n) => sha256_hex(n.join("\n").as_bytes()),
@@ -198,7 +198,7 @@ pub fn est_dossier(chemin: &Path) -> bool {
     v
 }
 
-/// Les `.json` d'un dossier (hors `.calcul.json`), tries ; `None` s'il ne s'ouvre pas. Note : ce
+/// Les `.json` d'un dossier, tries ; `None` s'il ne s'ouvre pas. Note : ce
 /// qui apparait ou disparait dans le dossier change l'empreinte.
 pub fn lister(dossier: &Path) -> Option<Vec<PathBuf>> {
     let n = noms(dossier);

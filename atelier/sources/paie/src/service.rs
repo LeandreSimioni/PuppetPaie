@@ -1,17 +1,15 @@
 //! `paie route` : la demande JSON sur l'entree standard, la reponse en une ligne de JSON sur la sortie standard ; un
-//! refus : `{"ok": false, "erreur": "..."}`. Et le calcul d'une saisie, `{"fichier": CHEMIN}` ou `{"saisie": {...}}`
-//! (`calculer_avec`) : `{"ok": true, "mois", "paies": [...]}`, une paie par engagement de la saisie et dans son ordre ;
-//! les avertissements gardent leur nature (`{"texte", "info"}`).
+//! refus : `{"ok": false, "erreur": "..."}`. Et ce dont les routes ont besoin pour lire la compagnie (`contexte`), la
+//! position des droits (`droits`) et la provision de conges (`provision_conges_de`).
 
 use std::collections::HashMap;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use serde_json::{Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use crate::engagement::{charger, charger_donnees, Saisie};
 use socle::fichiers::dossier_du_code;
 use socle::num::Resultat;
 
@@ -29,14 +27,6 @@ pub(crate) fn options(args: &[String]) -> Option<HashMap<String, String>> {
     Some(o)
 }
 
-fn saisie(ctx: &Contexte, demande: &Value) -> Resultat<Saisie> {
-    match (demande.get("fichier").and_then(Value::as_str), demande.get("saisie")) {
-        (Some(f), _) => charger(ctx, Path::new(f)),
-        (None, Some(s)) if s.is_object() => charger_donnees(ctx, s),
-        _ => Err("demande illisible : il faut `fichier` ou `saisie`".to_string()),
-    }
-}
-
 /// La compagnie d'une commande : `--racine` (`o["racine"]`, toujours pose par la fenetre et la file des etats), sinon,
 /// a la ligne de commande seulement, `PUPPETPAIE_DONNEES` (`paie route` lance a la main ou par un test).
 pub(crate) fn racine_de(o: &HashMap<String, String>) -> PathBuf {
@@ -52,31 +42,6 @@ pub(crate) fn contexte(o: &HashMap<String, String>) -> Resultat<Contexte> {
     Contexte::nouveau(&racine_de(o), date)
 }
 
-pub(crate) fn calculer_avec(ctx: &Contexte, demande: &Value) -> Resultat<Value> {
-    let s = saisie(ctx, demande)?;
-    socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
-    let paies = paies_fideles(ctx, &s);
-    socle::num::ECHELLE_GARDEE.with(|f| f.set(false));
-    let mut m = Map::new();
-    m.insert("ok".into(), Value::Bool(true));
-    m.insert("mois".into(), Value::String(s.mois.clone()));
-    m.insert("paies".into(), Value::Array(paies?));
-    Ok(Value::Object(m))
-}
-
-fn paies_fideles(ctx: &Contexte, s: &Saisie) -> Resultat<Vec<Value>> {
-    let mut paies = Vec::new();
-    for p in &s.paies {
-        let mut v = p.canon(ctx)?;
-        v["avertissements"] = avis(&p.avertissements);
-        // Les lignes telles quelles (celles d'un permanent, deduites) : le
-        // Python reconstruit l'engagement avec elles.
-        v["engagement"]["lignes"] = Value::Array(p.engagement.lignes.clone());
-        paies.push(v);
-    }
-    Ok(paies)
-}
-
 fn demande(entree: &str) -> Resultat<Value> {
     serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))
 }
@@ -89,20 +54,12 @@ fn jour(j: Option<Jour>) -> Value {
     j.map_or(Value::Null, |j| Value::String(j.iso()))
 }
 
-fn avis(v: &[crate::engagement::Avis]) -> Value {
-    Value::Array(v.iter().map(|a| {
-        let mut m = Map::new();
-        m.insert("texte".into(), Value::String(a.texte.clone()));
-        m.insert("info".into(), Value::Bool(a.info));
-        Value::Object(m)
-    }).collect())
-}
-
 /// `droits` : la position de chaque salarie au regard des annexes 8 et 10,
 /// `{"mois", "aujourdhui"}` -> `{"constantes", "positions": [{"cle",
 /// "anniversaire", "position", "colonnes"}]}`, les salaries dans l'ordre.
 pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
-    use crate::cumul::{anniversaire_configure, lire_engagements, position_droits, tableau_cumul, Constantes};
+    use droit::cumul::{anniversaire_configure, position_droits, tableau_cumul, Constantes};
+    use engagement::cumul::lire_engagements;
     let d = demande(entree)?;
     let ctx = contexte(o)?;
     let (mois, aujourdhui) = (texte(&d, "mois")?, Jour::lire(texte(&d, "aujourdhui")?)?);
@@ -112,8 +69,8 @@ pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Valu
     let mut positions = Vec::new();
     for cle in cles {
         let anniv = anniversaire_configure(&ctx, cle)?;
-        let pos = position_droits(&ctx, cle, Some(&engs), anniv, None)?;
-        let colonnes = tableau_cumul(&ctx, cle, mois, Some(&engs))?;
+        let pos = position_droits(&ctx, cle, &engs, anniv, None)?;
+        let colonnes = tableau_cumul(&ctx, cle, mois, &engs)?;
         let mut m = Map::new();
         m.insert("cle".into(), Value::String(cle.to_string()));
         m.insert("anniversaire".into(), jour(anniv));
@@ -138,15 +95,16 @@ pub(crate) struct Provision {
     pub acquis: socle::num::Decimal,
     pub pris: socle::num::Decimal,
     pub solde: socle::num::Decimal,
-    pub avertissements: Vec<crate::engagement::Avis>,
-    pub indemnite: Option<crate::conges::IndemniteDesJours>,
+    pub avertissements: Vec<engagement::Avis>,
+    pub indemnite: Option<droit::conges::IndemniteDesJours>,
 }
 
 /// Le calcul de `provision-conges`, pour un contexte deja lu : le compteur d'un permanent a la fin de `mois`, et
 /// l'indemnite de son solde (le dixieme ou le maintien, L3141-24) quand il est positif. `salaire_mensuel` : la
 /// valeur de l'engagement (`None` ou fausse = 0).
 pub(crate) fn provision_conges_de(ctx: &Contexte, salarie: &str, mois: &str, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
-    use crate::conges::{compteur_conges, indemnite_des_jours, jours_ouvrables};
+    use droit::conges::jours_ouvrables;
+    use engagement::conges::{compteur_conges, indemnite_des_jours};
     use socle::num::{dec, div, eur, mul, Decimal};
     let fin = socle::date::dernier_du_mois(mois)?;
     let cpt = compteur_conges(ctx, salarie, &fin, Some(&fin.mois_suivant()))?;

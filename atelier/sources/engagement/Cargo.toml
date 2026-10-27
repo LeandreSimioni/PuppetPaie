@@ -1,0 +1,14 @@
+[package]
+name = "engagement"
+version = "0.1.0"
+edition = "2021"
+description = "L'engagement du moteur de PuppetPaie : la saisie, le calcul de ses paies, la validation, la modification, le recalcul ; sait ce qui est parti et donc ce qui est fige. Ne fabrique aucun document."
+license = "EUPL-1.2"
+publish = false
+
+[dependencies]
+socle = { path = "../socle" }
+droit = { path = "../droit" }
+rust_decimal = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }

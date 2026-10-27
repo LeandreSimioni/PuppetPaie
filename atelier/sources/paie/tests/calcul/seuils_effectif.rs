@@ -16,7 +16,7 @@
 use crate::outils::{fictive, ecrire, lire, Copie};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use paie::engagement::charger;
+use engagement::charger;
 use serde_json::json;
 
 /// La config de la fictive et sa saisie de juillet 2026, la surcouche portant la formation des permanents a 1 % (ce que
@@ -24,8 +24,7 @@ use serde_json::json;
 fn copie(effectif: impl Fn(&str) -> f64) -> Copie {
     let c = Copie::config_de("fictive-3090-grande");
     let r = &c.0;
-    std::fs::create_dir_all(r.join("paies")).unwrap();
-    std::fs::copy(fictive("fictive-3090-grande").join("paies/2026-07.json"), r.join("paies/2026-07.json")).unwrap();
+    crate::outils::poser_saisie(r, "2026-07", &crate::outils::saisie(&fictive("fictive-3090-grande"), "2026-07"));
     let (mut bar, mut eff) = (lire(r, "config/baremes/2026.json"), lire(r, "config/effectifs.json"));
     for (an, v) in eff["annees"].as_object_mut().unwrap().iter_mut() {
         v["A01"]["valeur"] = json!(effectif(an));
@@ -43,7 +42,7 @@ fn copie(effectif: impl Fn(&str) -> f64) -> Copie {
 /// Le mois de juillet 2026 se charge-t-il ? `Err` : la phrase du refus.
 fn juillet(c: &Copie) -> Result<(), String> {
     let ctx = Contexte::nouveau(&c.0, Some(Jour::lire("2026-07-28").unwrap())).map_err(|e| e.to_string())?;
-    charger(&ctx, &c.0.join("paies/2026-07.json")).map(|_| ())
+    charger(&ctx, "2026-07").map(|_| ())
 }
 
 fn refus_de_la_formation(r: Result<(), String>) {

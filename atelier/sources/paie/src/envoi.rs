@@ -51,7 +51,7 @@ use rust_decimal::Decimal;
 use serde_json::Value;
 
 use crate::bulletin::{fmt_eur, fmt_heures};
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::courriel::Courriel;
 use socle::date::{en_texte, repr_flottant};
 use socle::fichiers::vrai;

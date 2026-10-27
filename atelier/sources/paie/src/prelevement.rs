@@ -3,7 +3,7 @@
 
 use serde_json::Value;
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::natures::contrat_court;
 use droit::pas::{du_versement, plancher, taux_dgfip, ErreurPas, Triplet, Versement, ZONE_DEFAUT};
@@ -52,9 +52,9 @@ fn deja_declare(ctx: &Contexte, pa: &Paie) -> Result<Option<Versement>, String> 
 
 /// Ce que `du_versement` dit de chaque paie, par POSITION dans `paies` (`None` :
 /// paie sans bulletin, ou bareme sans grille -- on n'imprime pas un impot qu'on
-/// ne sait pas calculer). Le taux DGFiP se lit une fois par salarie ;
-/// l'abattement se calcule une fois par versement. Une paie qu'une DSN deposee a
-/// deja declaree garde le prelevement que la DSN dit (`deja_declare`).
+/// ne sait pas calculer). Une paie qu'une DSN deposee a deja declaree garde le prelevement que la DSN dit
+/// (`deja_declare`) ; une paie validee, celui qu'elle a ecrit (`Paie::pas`). Sinon le taux DGFiP se lit une fois par
+/// salarie, et l'abattement se calcule une fois par versement.
 pub fn des_paies(ctx: &Contexte, paies: &[Paie]) -> Result<Vec<Option<Versement>>, String> {
     let mut taux: Vec<(String, Option<Triplet>)> = Vec::new();
     let mut out = Vec::new();
@@ -66,6 +66,10 @@ pub fn des_paies(ctx: &Contexte, paies: &[Paie]) -> Result<Vec<Option<Versement>
         }
         if let Some(v) = deja_declare(ctx, pa)? {
             out.push(Some(v));
+            continue;
+        }
+        if let Some(v) = &pa.pas {
+            out.push(Some(v.clone()));
             continue;
         }
         let cle = en_texte(pa.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);

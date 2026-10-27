@@ -44,7 +44,7 @@ fn dsn(test: &str, mois: &str, entreprise: Value) -> Result<String, String> {
          "date_paiement": j2, "lignes": [{"rubrique": "cachet", "quantite": 2, "taux": 300.0, "lieu": "Theatre fictif", "dates": [j1, j2]}]}]});
     let chemin = outils::chemin_unique("contact-sante-travail.json");
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let paies = paie::engagement::charger(&ctx, &chemin)?.paies;
+    let paies = crate::outils::charger_fichier(&ctx, &chemin)?.paies;
     generer(&ctx, &paies, mois, &[], &[], &Options { date_constitution: Some(Jour::lire(jour).unwrap()), ..Options::default() })
 }
 

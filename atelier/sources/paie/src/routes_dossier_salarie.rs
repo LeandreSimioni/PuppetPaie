@@ -21,18 +21,18 @@
 //!   `contexte::sans_accent` (Latin-1 et Latin etendu A), pas par la normalisation NFD complete
 //!   de Python : un accent hors de cette table (vietnamien, par exemple) n'est pas retire ;
 //! - les chiffres des motifs de date et de nom de fichier sont les chiffres ASCII ;
-//! - un mois saisi est un fichier `paies/AAAA-MM.json`, rien d'autre.
+//! - un mois saisi est un mois que des engagements touchent (`engagements/`).
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::conges_spectacles::{self, ContratCs, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use crate::engagement::{self, Engagement};
+use engagement::{self, Engagement};
 use crate::etats::{items};
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -40,7 +40,7 @@ use crate::fiche_recapitulative::Recapitulatifs;
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
 use socle::echec::Echec;
-use crate::routes_ouverture::{refus_du_calcul, Refus};
+use crate::routes_ouverture::Refus;
 
 type R<T> = Result<T, Refus>;
 
@@ -412,12 +412,10 @@ pub(crate) fn cle_de(p: &Paie) -> String {
     p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
-/// `charger(ctx, paies/<mois>.json, sans_numeros=True)` : la saisie lue, ses paies calculees ;
-/// un refus du calcul garde le type d'une saisie encore incomplete.
-pub(crate) fn charger(ctx: &Contexte, chemin: &Path) -> R<(Value, Vec<Paie>)> {
-    let data = engagement::lire_saisie(chemin)?;
-    let s = engagement::charger_donnees(ctx, &data).map_err(|m| refus_du_calcul(ctx, &data, m))?;
-    Ok((data, s.paies))
+/// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois`) : la saisie des engagements valides et leurs paies
+/// ecrites, sans numeros ; un mois sans saisie n'a rien.
+pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
+    Ok(engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)?.unwrap_or_else(|| (json!({"mois": mois, "engagements": []}), Vec::new())))
 }
 
 /// `numeroter` d'un mois dont les numeros ne sont pas dans l'archive : les compteurs en attente
@@ -488,42 +486,31 @@ pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
     Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
 }
 
-/// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Rend la
-/// paie du certificat et les mois du contrat absents du disque.
+/// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Les mois d'avant se lisent
+/// dans les paies validees de l'engagement (`engagement::etats::paie_ecrite_de`). Rend la paie du certificat et les
+/// mois du contrat dont aucune paie n'est ecrite.
 fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> {
     let eng = &p.engagement;
     let cle = cle_de(p);
     let mois_du = eng.mois_du_contrat()?;
     let debut = eng.debut.iso();
-    let mut precedents: Vec<(String, Value)> = Vec::new();
-    for m in &mois_du {
-        if *m >= eng.mois {
-            break;
-        }
-        for (c, e) in engagement::engagements_du_mois(ctx, m)? {
-            if c == cle && engagement::debut_brut(&e) == debut {
-                precedents.push((m.clone(), e));
-            }
-        }
-    }
-    let presents: HashSet<&String> = precedents.iter().map(|(m, _)| m).collect();
-    let manquants: Vec<String> = mois_du.iter().filter(|m| **m < eng.mois && !presents.contains(m)).cloned().collect();
+    let mut manquants: Vec<String> = Vec::new();
     let mut lignes: Vec<Value> = Vec::new();
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
-    for (m, e) in &precedents {
-        let taux = e.get("taux_cachet").cloned().unwrap_or_else(|| json!(eng.taux_cachet));
-        let data = json!({"mois": m, "engagements": [e], "taux_cachet": taux});
-        let (_, sous) = {
-            let s = engagement::charger_donnees(ctx, &data).map_err(|msg| refus_du_calcul(ctx, &data, msg))?;
-            (s.mois, s.paies)
+    for m in mois_du.iter().filter(|m| **m < eng.mois) {
+        let ecrite = engagement::etats::paie_ecrite_de(ctx, m, &cle, &debut).map_err(|e| avec("ValueError", e))?;
+        let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
+            manquants.push(m.clone());
+            continue;
         };
-        let sous = sous.into_iter().next().ok_or_else(|| avec("IndexError", socle::fichiers::trop_courte("la paie de l'engagement")))?;
+        let illisible = |k: &str| avec("ValueError", format!("{} : paie ecrite illisible : `{}`", m, k));
+        let e = paie.get("engagement").ok_or_else(|| illisible("engagement"))?;
         if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
             lignes.extend(l.iter().cloned());
         }
-        bruts += eur2(sous.brut);
-        jours += sous.engagement.jours;
+        bruts += eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?);
+        jours += e.get("jours").map(valeur_en_texte).and_then(|j| j.trim().parse::<i64>().ok()).ok_or_else(|| illisible("jours"))?;
     }
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.
@@ -568,7 +555,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
     for p in paies {
         // Un permanent n'a pas de certificat Conges Spectacles ; un CDDU de douze mois ou plus non plus : il n'est pas
         // declare a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41).
-        if p.engagement.nat()?.mensuelle() || !crate::calcul::declaree_a_la_caisse_des_conges(p)? {
+        if p.engagement.nat()?.mensuelle() || !engagement::calcul::declaree_a_la_caisse_des_conges(p)? {
             continue;
         }
         let (cle, debut) = (cle_de(p), p.engagement.debut.iso());
@@ -614,7 +601,7 @@ fn mois_puppetpaie(
     let groupe = sortie.join(format!("Bulletins_{}.pdf", etiq));
     let envoi_dir = sortie.join("envoi");
     let ecrit = groupe.exists();
-    let (donnees, mut paies) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
+    let (donnees, mut paies) = charger(ctx, mois)?;
     let siennes: Vec<usize> = (0..paies.len()).filter(|i| cles.contains(&cle_de(&paies[*i]))).collect();
     if siennes.is_empty() {
         return Ok(pages);
@@ -645,7 +632,7 @@ fn mois_puppetpaie(
                 d.refus.push(format!("{} : contrats non réédités — leurs numéros ne sont pas encore figés, et un numéro ne s'invente pas.", lib));
             }
         } else {
-            let (data, mut figees) = charger(ctx, &ctx.racine.join("paies").join(format!("{}.json", mois)))?;
+            let (data, mut figees) = charger(ctx, mois)?;
             numeroter(ctx, &data, &mut figees, attente)?;
             siennes_contrats = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i]))).collect();
             paies_contrats = figees;

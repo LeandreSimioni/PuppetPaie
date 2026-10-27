@@ -369,7 +369,7 @@ function peindreCarte(div) {
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
-    ${revoirDe(ps)}
+    ${recalculDe(ligne)}
     <span class="carte-modifier">
       <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
         aria-label="Un imprévu">&hellip;</button></span>`;
@@ -385,20 +385,10 @@ function peindreCarte(div) {
   brancherRecu(cible);
 }
 
-/* UNE PAIE VALIDÉE QUE LE CALCUL NE DONNE PLUS (Léandre, 16/10/2026). Sa carte
- * est celle qu'on a validée ; quand ce dont son calcul dépend a bougé (un taux
- * du barème, la fiche du salarié, la convention) et que le calcul d'aujourd'hui
- * donne une autre paie, le moteur le dit (`revoir`) : elle n'est plus ce qu'on a
- * validé, à revoir — rien n'a changé en silence. */
-function revoirDe(ps) {
-  const ecarts = ps.filter((p) => p.revoir).flatMap((p) => [["brut", "brut"], ["net_a_payer", "net"],
-    ["cout_employeur", "coût employeur"]]
-    .filter(([k]) => p.revoir[k] !== p[k])
-    .map(([k, mot]) => `${mot} ${echapper(euros(p.revoir[k]))} au lieu de ${echapper(euros(p[k]))}`));
-  if (!ps.some((p) => p.revoir)) return "";
-  return `<div class="encart attention carte-revoir"><b>À revoir :</b> le calcul d'aujourd'hui ne donne plus la paie
-    validée${ecarts.length ? ` — ${ecarts.join(", ")}` : ""}. Un taux, la fiche du salarié ou la convention a changé
-    depuis la validation ; « Modifier… », dans le détail de la carte, la recalcule.</div>`;
+/* UNE PAIE VALIDÉE QUI S'EST RECALCULÉE D'ELLE-MÊME : le moteur dit quand et pourquoi (`recalcul` de
+ * `etat-par-engagement`) ; la carte le montre tel quel. */
+function recalculDe(ligne) {
+  return ligne && ligne.recalcul ? `<div class="encart carte-recalcul">${echapper(ligne.recalcul)}</div>` : "";
 }
 
 /** Un jour d'une ligne, nu ou avec son propre lieu (`{"jour", "lieu"}`). */
@@ -458,7 +448,7 @@ function boiteDetail(ligne, ps) {
     <h3>${echapper(ligne.nom)}</h3>
     <p class="discret">${echapper(pourQuoi(ligne))}, ${echapper(periodeEnClair(ligne.debut, ligne.fin))}
       · validée le ${echapper(quand(ligne.valide))}</p>
-    ${revoirDe(ps)}
+    ${recalculDe(ligne)}
     ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
@@ -714,7 +704,7 @@ async function chargerMois(mois, repeint = false) {
   // ON PRÉCHARGE, PUIS ON AFFICHE (ticket #113, 02/10/2026) : « quand on
   // change de mois on arrive sur cette version toute ouverte alors que les
   // paies sont fermées en vert ». Un bloc naît ouvert ; il ne se replie
-  // qu'à l'arrivée de l'état de sa paie (`etat-par-paie`). Le démarrage
+  // qu'à l'arrivée de l'état de sa paie (`etat-par-engagement`). Le démarrage
   // l'attendait déjà sous son voile (22/09/2026) ; un changement de mois ne
   // l'attendait pas. Les blocs restent donc cachés jusque-là, et l'on
   // arrive directement sur les cartes. La page ne devine pas elle-même ce
@@ -1262,7 +1252,7 @@ document.addEventListener("visibilitychange", () => {
    2. LA LIGNE D'ÉTAT DIT L'HEURE. « Enregistré à 14:32 » — sans quoi
       l'enregistrement automatique est un enregistrement dont on ne sait pas
       s'il a eu lieu, c'est-à-dire pire que le bouton.
-   3. RIEN NE PART POUR AUTANT. Enregistrer, c'est écrire paies/AAAA-MM.json
+   3. RIEN NE PART POUR AUTANT. Enregistrer, c'est écrire les engagements (`engagements/`)
       et rien d'autre. Produire consomme des numéros et écrit des fichiers qui
       partiront : ça reste un bouton, et ça le restera. */
 let MINUTEUR_SAISIE = null;

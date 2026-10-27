@@ -11,7 +11,7 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::{
@@ -51,11 +51,11 @@ pub fn libelle_motif(motif: &str) -> Resultat<String> {
 /// Une embauche (`operations_paies.Embauche`) : un engagement et sa fiche
 /// salarie, sans paie. C'est ce que la DPAE declare, et tout ce que lit un
 /// signalement d'amorcage ; les montants de la `Paie` rendue sont a zero.
-pub fn embauche(ctx: &Contexte, eng: &crate::engagement::Engagement) -> Resultat<Paie> {
+pub fn embauche(ctx: &Contexte, eng: &engagement::Engagement) -> Resultat<Paie> {
     let nat = eng.nat()?;
     // La fiche telle que la paie la lit (`calcul::fiche_de_l_engagement`) : au premier jour d'un contrat d'usage, au
     // mois paye d'un contrat paye au mois.
-    let sal = crate::calcul::fiche_de_l_engagement(ctx, eng)?;
+    let sal = engagement::calcul::fiche_de_l_engagement(ctx, eng)?;
     let spec = if nat.mensuelle() {
         Value::Null
     } else {

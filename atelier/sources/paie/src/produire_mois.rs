@@ -1,38 +1,25 @@
-//! La route `produire` (`moteur/web.py`, `operations_paies.fermer_mois`, `manques_pour_fermer`,
-//! `controler_calcul_stocke`, `produire_mois`, `apercu_mois`, `figer_numeros`,
-//! `operations_remplacement.forme_a_produire` et `noter_dsn_ecrite`, `sortie_json.mois_produit`) -- lot H2.
+//! La route `produire` : fermer le mois et en fabriquer les documents.
 //!
-//! ECRIT, NON PROUVE. Fermer le mois : on ne ferme qu'un mois pret (la DPAE de chaque embauche partie pour de
-//! vrai, son contrat parti a la signature) ; on y fabrique bulletins, certificats et DSN -- jamais les contrats
-//! ni les DPAE, deja partis (`sans_contrat=True`). Puis la saisie s'enregistre (`routes_ecritures::ecrire_saisie`,
-//! ce que fait la route `enregistrer-saisie`). Le filet DPAE en fond n'est PAS ici : il se lance par la route
-//! `filet-preparer`, au branchement. Aucun fil dans le moteur.
+//! On ne ferme qu'un mois pret : chaque engagement valide (rien ne part d'un engagement en saisie), la DPAE de chaque
+//! embauche partie pour de vrai, son contrat parti a la signature. On y fabrique bulletins, certificats et DSN depuis les
+//! paies validees, telles qu'elles sont ecrites dans `engagements/` : aucun document ne recalcule. Les contrats et les
+//! DPAE, deja partis, n'y sont pas (`sans_contrat`), sauf pour l'horloge d'une compagnie fictive.
 //!
 //! Tout le mois, ou rien : les compteurs ne sont ecrits qu'une fois le dernier fichier ecrit (`Reserves::valider`),
-//! et le verrou des compteurs tient pendant toute la fabrication.
-//!
-//! DEUX FACONS DE FAIRE UNE PAIE, COMME LE PYTHON. Ce que l'ecran montre (`vue_paie`, les totaux, le bordereau
-//! affiche, les certificats) sort du calcul du mois (`paie_de_json`) ; ce que le bulletin et la DSN IMPRIMENT, le
-//! Python le faisait recalculer par le moteur depuis la saisie : ici `engagement::charger_donnees`, aux numeros de
-//! la paie du calcul.
-//!
-//! NUMEROTATION CONTINUE (Leandre, 06/10/2026). L'ancien Python reservait les numeros DEUX fois : `fermer_mois`
-//! charge la saisie (numerotee) pour controler le mois, puis `produire_mois` la recharge (`apercu_mois`), et
-//! `Contexte.prochain` lit d'abord les numeros deja reserves : les bulletins et les contrats neufs d'un mois
-//! produit etaient decales du nombre de paies, avec des trous dans la suite. Ici le controle numerote dans des
-//! reserves jetees ; la production repart des compteurs du disque et ne reserve qu'une fois.
+//! et le verrou des compteurs tient pendant toute la fabrication. Les numeros se reservent une seule fois, a la
+//! production : le controle des manques numerote dans des reserves jetees, sans trou dans la suite.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use crate::conges_spectacles::{self, PaieCs};
 use droit::contexte::Contexte;
 use crate::depot_acte::avec_donnee;
 use socle::ecriture::{ecrire_json, json_indente};
-use crate::engagement::{self, Avis};
+use engagement::{self, Avis};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -149,47 +136,6 @@ impl Reserves {
     }
 }
 
-// ------------------------------------------------------------- charger
-
-/// `paie_rust.calculer` : la reponse du calcul pour la saisie en memoire. Un refus garde le type d'une saisie
-/// encore incomplete (`SaisieIncomplete`).
-pub(crate) fn calculer(o: &HashMap<String, String>, ctx: &Contexte, data: &Value) -> R<Value> {
-    let (rep, _entrees) = crate::calcul_du_mois::calculer_suivi(o, &json!({"saisie": data})).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, data, m)))?;
-    Ok(rep)
-}
-
-/// `charger` : les paies du calcul, numerotees (numeros RESERVES, rien d'ecrit) ; sans numeros, `reserves` reste
-/// intact.
-pub(crate) fn charger(ctx: &Contexte, data: &Value, rep: &Value, reserves: Option<&mut Reserves>) -> R<Vec<Paie>> {
-    let engs = crate::routes_ouverture::engagements_calcules(ctx, data, rep)?;
-    let paies_json = rep.get("paies").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("paies")))?;
-    let mut paies = Vec::new();
-    for (e, v) in engs.into_iter().zip(paies_json) {
-        paies.push(crate::routes_ouverture::paie_de_json(ctx, e, v)?);
-    }
-    if let Some(r) = reserves {
-        let mois = valeur_en_texte(data.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
-        let annee: i32 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(&mois))))?;
-        r.numeroter(ctx, &mut paies, annee)?;
-    }
-    Ok(paies)
-}
-
-/// Ce que le bulletin et la DSN impriment : les paies refaites depuis la saisie (comme le moteur les refait), aux
-/// numeros des paies du calcul.
-fn paies_a_imprimer(ctx: &Contexte, data: &Value, paies: &[Paie]) -> R<Vec<Paie>> {
-    let s = engagement::charger_donnees(ctx, data).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, data, m)))?;
-    if s.paies.len() != paies.len() {
-        return Err(valeur("le nombre de paies n'est pas celui du calcul".into()));
-    }
-    let mut out = s.paies;
-    for (p, q) in out.iter_mut().zip(paies) {
-        p.numero_bulletin = q.numero_bulletin.clone();
-        p.engagement.numero = q.engagement.numero.clone();
-    }
-    Ok(out)
-}
-
 // ------------------------------------------------------------- fermer le mois
 
 /// `manques_pour_fermer` : ce qui empeche de fermer le mois, embauche par embauche ; vide = pret.
@@ -232,37 +178,6 @@ fn manques_pour_fermer(m: &mut Moteur, paies: &[Paie]) -> R<Vec<Value>> {
         }
     }
     Ok(manques)
-}
-
-/// `controler_calcul_stocke` : ce qui part se recalcule toujours ; `paies/AAAA-MM.calcul.json` ne sert qu'a
-/// l'affichage. Au moment de fermer, on compare : memes entrees et autre resultat, c'est un fichier modifie a la
-/// main ou une entree du calcul qui echappe a l'empreinte, et cela remonte en incident. Seulement quand la saisie
-/// fermee est celle du disque ; ne leve jamais.
-fn controler_calcul_stocke(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, data: &Value, rep: &Value) {
-    let p = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !p.is_file() {
-        return;
-    }
-    let Ok(sur_le_disque) = lire_json(&p) else { return };
-    if !socle::valeur::valeurs_egales(&sur_le_disque, data) {
-        return;
-    }
-    let demande = json!({"mois": mois, "resultat": rep}).to_string();
-    let Ok(constat) = crate::calcul_du_mois::comparer(o, &demande) else { return };
-    if constat.get("constat").and_then(Value::as_str) == Some("ecart") {
-        let resume = format!("La paie stockee du mois {} differe du calcul a la fermeture, pour les memes entrees.", mois);
-        let _ = crate::incidents::noter(
-            &ctx.racine,
-            &crate::incidents::Note {
-                nature: crate::incidents::LOGICIEL,
-                resume: &resume,
-                ou: "paies/calcul.json",
-                quoi: "calcul-stocke-different",
-                detail: json!({"mois": mois}),
-                ..Default::default()
-            },
-        );
-    }
 }
 
 // ------------------------------------------------------------- l'annule-et-remplace
@@ -397,95 +312,34 @@ pub(crate) fn ecrit_le(racine: &Path, fichier: &Path) -> Value {
 
 // ------------------------------------------------------------- figer les numeros
 
-/// Ce que `figer_numeros` ecrira : le fichier de saisie relu, et pour chaque engagement du fichier qui n'a pas
-/// encore de numero, celui que SA paie a recu.
-struct NumerosAFiger {
-    chemin: PathBuf,
-    data: Value,
-    poser: Vec<(usize, String)>,
-}
+/// Un numero de contrat a ecrire dans l'engagement qui ne le porte pas encore : `(cle du salarie, debut, numero)`.
+type NumeroAFiger = (String, String, String);
 
-/// La premiere moitie de `figer_numeros`, AVANT d'ecrire quoi que ce soit : quel engagement du fichier recevra quel
-/// numero. `saisie` est la saisie produite (une paie par engagement, dans son ordre), `paies` ses paies numerotees.
-///
-/// LE CONTRAT, PAS LE SALARIE DU JOUR : chaque paie retrouve son engagement dans le fichier par `jumeaux::apparier`
-/// (le numero pose, sinon le rang parmi ceux du meme salarie et du meme jour) -- deux contrats qui commencent le
-/// meme jour gardent chacun le leur. La route `produire` produit depuis ce fichier ; l'horloge aussi. S'il differait de la saisie produite
-/// (un appel qui produit depuis la memoire), on ne toucherait qu'aux numeros. UN NUMERO DEJA POSE ET DIFFERENT N'EST JAMAIS ECRASE (regle 4) : c'est un
-/// refus, avant la premiere ecriture. `None` si le fichier n'existe pas.
-fn numeros_a_figer(ctx: &Contexte, mois: &str, saisie: &Value, paies: &[Paie]) -> R<Option<NumerosAFiger>> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    if !chemin.exists() {
-        return Ok(None);
-    }
-    let data = engagement::lire_saisie(&chemin).map_err(valeur)?;
+/// Les numeros que la production vient de donner aux engagements qui n'en portaient pas, dans l'ordre de l'ecran. Un
+/// numero deja pose se lit (`Engagement::numero`) et ne change jamais (regle 4).
+fn numeros_a_figer(saisie: &Value, paies: &[Paie]) -> Vec<NumeroAFiger> {
     let produits = saisie.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
-    let des_paies: Vec<Option<jumeaux::Ident>> =
-        paies.iter().enumerate().map(|(i, p)| Some((cle_de(p), p.engagement.debut.iso(), produits.get(i).and_then(jumeaux::numero_pose)))).collect();
-    let (taux, spectacle) = (data.get("taux_cachet").cloned().unwrap_or(Value::Null), data.get("spectacle").cloned().unwrap_or(Value::Null));
-    let fichier = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
-    let du_fichier: Vec<Option<jumeaux::Ident>> = fichier
-        .iter()
-        .map(|e| {
-            // Un engagement qui ne se calcule pas seul est laisse tel quel (`except Exception: continue`).
-            let fiche = ctx.salarie(e.get("salarie").and_then(Value::as_str)?).ok()?;
-            let cle = valeur_en_texte(fiche.get("_cle").unwrap_or(&Value::Null));
-            let seule = json!({"mois": mois, "engagements": [e.clone()], "taux_cachet": taux, "spectacle": spectacle});
-            let s = engagement::charger_donnees(ctx, &seule).ok()?;
-            Some((cle, s.paies.first()?.engagement.debut.iso(), jumeaux::numero_pose(e)))
-        })
-        .collect();
     let mut poser = Vec::new();
-    let mut conflits = Vec::new();
-    for (i, paire) in jumeaux::apparier(&des_paies, &du_fichier).into_iter().enumerate() {
-        let Some(j) = paire else { continue };
-        let Some(n) = paies[i].engagement.numero.clone().filter(|n| !n.is_empty()) else { continue };
-        match du_fichier[j].as_ref().and_then(|x| x.2.clone()) {
-            None => poser.push((j, n)),
-            Some(pose) if pose == n => {}
-            Some(pose) => conflits.push(format!(
-                "  - {} {} (contrat du {}) : le fichier porte le n° {}, cette production lui donnerait le n° {}.",
-                prenom_de(&paies[i].salarie),
-                cle_de(&paies[i]),
-                paies[i].engagement.debut.jj_mm_aaaa(),
-                pose,
-                n
-            )),
+    for (i, p) in paies.iter().enumerate() {
+        if produits.get(i).and_then(jumeaux::numero_pose).is_some() {
+            continue;
+        }
+        if let Some(n) = p.engagement.numero.clone().filter(|n| !n.is_empty()) {
+            poser.push((cle_de(p), p.engagement.debut.iso(), n));
         }
     }
-    if !conflits.is_empty() {
-        return Err(erreur(
-            "ErreurOperation",
-            format!(
-                "Le mois {} ne se produit pas : un numero de contrat deja pose dans paies/{}.json ne s'ecrase pas (il se lit, il ne se recalcule pas) :\n{}\nLa saisie produite ne porte pas ces numeros : recharger le mois depuis le fichier, puis produire. Rien n'est ecrit.",
-                mois,
-                mois,
-                conflits.join("\n")
-            ),
-        ));
-    }
-    Ok(Some(NumerosAFiger { chemin, data, poser }))
+    poser
 }
 
-/// `figer_numeros` : ecrit dans le fichier de saisie les numeros de contrat que le mois vient de declarer (ceux que
-/// `numeros_a_figer` a apparies), et `numeros_figes: true`. Le fichier dit ce qui a ete declare, et le mois suivant
-/// d'un contrat en cours le recopie. Apres `valider`, sous le verrou : un numero ecrit ici est un numero consomme.
-fn figer_numeros(plan: Option<NumerosAFiger>) -> R<Option<PathBuf>> {
-    let Some(NumerosAFiger { chemin, mut data, poser }) = plan else { return Ok(None) };
-    let change = !poser.is_empty();
-    if let Some(Value::Array(engagements)) = data.get_mut("engagements") {
-        for (j, n) in poser {
-            if let Some(Value::Object(o)) = engagements.get_mut(j) {
-                o.insert("numero".into(), json!(n));
-            }
-        }
+/// `figer_numeros` : ecrit dans chaque engagement le numero de contrat que le mois vient de declarer, et
+/// `numeros_figes: true` au mois. Apres `valider`, sous le verrou : un numero ecrit ici est un numero consomme. Les
+/// numeros se posent dans l'ordre de l'ecran, chacun au premier engagement du meme salarie et du meme jour qui n'en a
+/// pas encore.
+fn figer_numeros(ctx: &Contexte, mois: &str, poser: Vec<NumeroAFiger>) -> R<()> {
+    for (cle, debut, n) in poser {
+        engagement::stock::poser_numero(ctx, mois, &cle, &debut, 0, &n).map_err(valeur)?;
     }
-    if change || !data.get("numeros_figes").is_some_and(vrai) {
-        data["numeros_figes"] = json!(true);
-        crate::routes_contrats::sauver_avant(&chemin)?;
-        ecrire_json(&chemin, &data, 2).map_err(|m| erreur("OSError", m))?;
-    }
-    Ok(Some(chemin))
+    engagement::stock::poser_au_mois(&ctx.racine, mois, "numeros_figes", Value::Bool(true)).map_err(valeur)
 }
 
 // ------------------------------------------------------------- les etapes
@@ -593,11 +447,10 @@ struct Lot {
 /// `produire_mois(sans_contrat=True)` : bulletins, certificats CS et DSN d'un mois, tout ou rien.
 #[allow(clippy::too_many_arguments)]
 fn produire_mois(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     m: &mut Moteur,
     data: &Value,
-    rep: &Value,
+    paies: Vec<Paie>,
     envoi_test: bool,
     forcer: bool,
     qui: &str,
@@ -612,7 +465,8 @@ fn produire_mois(
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(&mois))))?;
     // « 00 » ou « 13 » ne sont aucun mois : refus ici, jamais un mois ramene de force dans l'annee.
     let nom_du_mois = socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
-    let paies = charger(ctx, data, rep, Some(reserves))?;
+    let mut paies = paies;
+    reserves.numeroter(ctx, &mut paies, annee as i32)?;
     let (urssaf, avert) = crate::routes_ouverture::urssaf_de_l_apercu(ctx, &paies, &mois)?;
     let mut avertissements: Vec<Avis> = avert.into_iter().map(avertissement).collect();
     avertissements.extend(crate::routes_ouverture::archives_employees(&paies)?.into_iter().map(avertissement));
@@ -638,9 +492,7 @@ fn produire_mois(
             forme_a_produire(ctx, m, &mois, nic)?;
         }
     }
-    // Quel engagement du fichier recevra quel numero : un numero deja pose et different se refuse ICI, avant la premiere
-    // ecriture ; il ne s'ecrit qu'apres `valider`.
-    let a_figer = numeros_a_figer(ctx, &mois, data, &paies)?;
+    let a_figer = numeros_a_figer(data, &paies);
     let etiq = crate::envoi::etiquette(&mois).map_err(valeur)?;
     // Ceux de l'apercu d'abord : ils portent sur ce qu'on produit, pas sur la facon de le produire.
     if envoi_test {
@@ -652,11 +504,10 @@ fn produire_mois(
     std::fs::create_dir_all(&sortie).map_err(|e| os(&sortie, e))?;
     // Licence resolue une fois pour toutes sur le mois produit : bulletins et DSN doivent porter le meme numero.
     let ent = ctx.entreprise_du_mois(&mois).map_err(valeur)?;
-    let a_imprimer = paies_a_imprimer(ctx, data, &paies)?;
 
     // UN CONTRAT QUI DEBORDE DU MOIS n'a son certificat Conges Spectacles qu'au DERNIER mois, pour le contrat
     // entier ; le bulletin et la DSN, eux, sont mensuels. Un permanent n'a pas de certificat.
-    let (pour_cs, avert_cs) = crate::routes_dossier_salarie::certificats_dus(ctx, &a_imprimer)?;
+    let (pour_cs, avert_cs) = crate::routes_dossier_salarie::certificats_dus(ctx, &paies)?;
     // La phrase de `produire_mois` finit par un conseil que celle du dossier salarie n'a pas.
     avertissements.extend(avert_cs.into_iter().map(|a| avertissement(format!("{} Si ces mois ont ete payes, les saisir et reproduire.", a))));
     let paies_cs: Vec<&PaieCs> = pour_cs.iter().filter_map(|(_, _, v)| v.as_ref()).collect();
@@ -700,7 +551,7 @@ fn produire_mois(
     }
     let payes: Vec<usize> = (0..paies.len()).filter(|i| !paies[*i].engagement.sans_paie()).collect();
     if !payes.is_empty() {
-        let imprimees: Vec<Paie> = payes.iter().map(|i| a_imprimer[*i].clone()).collect();
+        let imprimees: Vec<Paie> = payes.iter().map(|i| paies[*i].clone()).collect();
         let description = crate::bulletin::jeux_et_description(ctx, &imprimees, &ent, &mois, None, false, &HashMap::new()).map_err(valeur)?;
         let chemin = sortie.join(format!("Bulletins_{}.pdf", etiq));
         crate::routes_dossier_salarie::ecrire_pdf(&description, &chemin)?;
@@ -768,11 +619,11 @@ fn produire_mois(
 
     // Un jeu de documents PAR SALARIE, pour l'envoi. Le fichier groupe porte la paie de tout le monde : il ne doit
     // jamais partir a un salarie.
-    crate::ecrire_documents::pieces_individuelles(ctx, &a_imprimer, &ent, &sortie.join("envoi"), &etiq, &mois, n_cs, &pour_cs)?;
+    crate::ecrire_documents::pieces_individuelles(ctx, &paies, &ent, &sortie.join("envoi"), &etiq, &mois, n_cs, &pour_cs)?;
 
     // LES CORRECTIONS DES MOIS DEPOSES : la DSN de ce mois les porte, datees de leur mois d'origine. Le net qu'elles
     // changent se paie (ou se retient) CE mois-ci, par un bulletin rectificatif du mois d'origine, ecrit apres la DSN.
-    let regs = regularisations::regularisations_pour(o, ctx, m, &mois)?;
+    let regs = regularisations::regularisations_pour(ctx, m, &mois)?;
     for ligne in regularisations::resume_regularisations(&regs)? {
         avertissements.push(info(format!(
             "Regularisation embarquee dans la DSN : {}. La difference de net se paie -- ou se retient -- ce mois-ci, par un bulletin rectificatif.",
@@ -813,7 +664,7 @@ fn produire_mois(
     }
     // LES SUSPENSIONS (bloc 65) : chacune se declare entiere dans la DSN de chaque mois qu'elle traverse, tiree du magasin
     // des imprevus sous son contrat (`imprevus::suspensions_du_mois`) ; dit ici, comme l'arret.
-    for s in crate::imprevus::du_mois(&ctx.racine, &mois, Some(crate::imprevus::SUSPENSION)).map_err(crate::routes_listes::refus_magasin)? {
+    for s in engagement::imprevus::du_mois(&ctx.racine, &mois, Some(engagement::imprevus::SUSPENSION)).map_err(crate::routes_listes::refus_magasin)? {
         let jour = |v: &Value| -> R<String> { Ok(crate::bulletin::jj_mm_aaaa(v).map_err(valeur)?) };
         avertissements.push(info(format!(
             "Suspension declaree dans la DSN : {}, motif {}, du {} au {}.",
@@ -885,7 +736,7 @@ fn produire_mois(
                 )));
             }
         }
-        let paies_e: Vec<Paie> = lot.paies.iter().map(|i| a_imprimer[*i].clone()).collect();
+        let paies_e: Vec<Paie> = lot.paies.iter().map(|i| paies[*i].clone()).collect();
         let regs_e: Vec<&Reg> = lot.regs.iter().map(|i| &regs[*i]).collect();
         let regs_dsn = regularisations::pour_la_dsn(ctx, &regs_e)?;
         let arrets_e: Vec<crate::dsn::Arret> = lot.arrets.iter().map(|v| crate::dsn::Arret { v: v.clone() }).collect();
@@ -915,22 +766,14 @@ fn produire_mois(
         avertissements.extend(rectifs.avertissements.into_iter().map(avertissement));
     }
 
-    // Les numeros n'existent qu'a partir d'ici : tous les fichiers sont ecrits.
+    // Les numeros n'existent qu'a partir d'ici : tous les fichiers sont ecrits ; ils s'ecrivent dans les engagements.
     reserves.valider(ctx)?;
-    // Et ils s'ecrivent dans la saisie : le fichier dit ce qui a ete declare, et le mois suivant d'un contrat en cours
-    // le recopie.
-    let numeros_figes = figer_numeros(a_figer)?;
+    figer_numeros(ctx, &mois, a_figer)?;
     // La paie que chaque DSN declare, numeros figes : l'ecran dira si elle change avant l'envoi.
     for f in &produits {
         if f.to_string_lossy().to_lowercase().ends_with(".dsn") {
             noter_dsn_ecrite(m, ctx, &mois, f)?;
         }
-    }
-    if numeros_figes.is_none() {
-        avertissements.push(avertissement(format!(
-            "Numeros de contrat non enregistres : la saisie de {} n'a pas pu etre relue. Un contrat qui se poursuit le mois suivant risque de ne pas retrouver son numero -- rouvrir le mois et l'enregistrer a nouveau.",
-            format!("{} {}", nom_du_mois, annee)
-        )));
     }
 
     let numero_de = |i: usize| -> i64 { paies[i].numero_bulletin.as_deref().and_then(|n| n.split('/').next()).and_then(|n| n.parse().ok()).unwrap_or(0) };
@@ -964,17 +807,25 @@ fn produire_mois(
 
 // ------------------------------------------------------------- la route
 
-/// `produire` : `{"mois", "saisie", "test"?, "forcer"?}`. La saisie de l'ecran s'ENREGISTRE D'ABORD (la route
-/// `enregistrer-saisie`, fusion comprise), puis le mois se produit depuis le FICHIER relu : la DSN declare ce que dit
-/// `paies/AAAA-MM.json`, et rien ne le reecrit apres que son empreinte a ete notee (RELECTURE-COHERENCE, point 9).
-/// Rend la reponse de `sortie_json.mois_produit`.
+/// `produire` : `{"mois", "saisie", "test"?, "forcer"?}`. La saisie de l'ecran s'enregistre d'abord (la route
+/// `enregistrer-saisie`), puis le mois se produit depuis ses engagements valides, tels qu'ils sont ecrits. Rend la
+/// reponse de `sortie_json.mois_produit`.
 pub fn produire(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     produire_pour(o, ctx, charge, "interface", None).map(|(v, _)| v)
 }
 
+/// RIEN NE PART SANS VALIDATION : la saisie du mois et les paies validees de ses engagements, telles que les lit
+/// `engagement::etats::paies_du_mois`. Refus si un engagement du mois est en saisie.
+fn le_mois_valide(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
+    let paies = engagement::etats::paies_du_mois(ctx, mois).map_err(|m| erreur("EngagementEnSaisie", m))?;
+    let mut data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(valeur)?.unwrap_or_else(|| json!({"engagements": []}));
+    data["mois"] = Value::String(mois.to_string());
+    Ok((data, paies))
+}
+
 /// `produire`, pour qui l appelle sous son nom (`qui` : `cli` pour la ligne de commande) et avec la date de constitution de la
-/// DSN qu il choisit (`--constitution` ; le jour du contexte sinon). Rend aussi ce que l apercu a dit (a regarder, puis informations) :
-/// la ligne de commande le montre deux fois, comme le Python.
+/// DSN qu il choisit (`--constitution` ; le jour du contexte sinon). Rend aussi ce que l apercu a dit (a regarder, puis
+/// informations), que la ligne de commande montre.
 pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, qui: &str, constitution: Option<socle::date::Jour>) -> R<(Value, (Vec<String>, Vec<String>))> {
     let saisie = charge.get("saisie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("saisie")))?;
     let Value::Object(brute) = saisie else {
@@ -983,34 +834,23 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
     let mois = valeur_en_texte(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
     let envoi_test = charge.get("test").is_some_and(vrai);
     let forcer = charge.get("forcer").is_some_and(vrai);
-    // `enregistrer_saisie` D'ABORD : elle valide la saisie de l'ecran en la calculant, reprend du fichier ce que l'ecran
-    // ne montre pas (`_origine`, `valide`, `numero`, `rouverte`, `numeros_figes`) et garde l'ancien dans `avant/`.
-    // Produire depuis l'ecran puis reecrire le fichier depuis l'ecran changeait le JSON apres que l'empreinte de la DSN
-    // etait notee (un ordre d'engagements, un champ que l'ecran ne renvoie pas) : le depot refusait « la paie a change ».
-    // Un mois dont la DSN etait due ne se produit plus (sauf `forcer`, une DSN en retard assumee) : la saisie d'un mois
-    // declare se modifie apres sa limite en le confirmant (`ecrire_saisie_confirmee`), elle ne se reproduit pas.
+    // Un mois dont la DSN etait due ne se produit plus (sauf `forcer`, une DSN en retard assumee).
     crate::routes_ecritures::refuser_si_hors_delai(ctx, &mois, forcer)?;
-    let chemin = crate::routes_ecritures::ecrire_saisie(o, ctx, &mois, brute, forcer, true)?;
-    // Puis tout part du FICHIER : le calcul, les manques, le controle du calcul stocke, la production et ses numeros.
-    let mut data = crate::engagement::lire_saisie(&chemin).map_err(Echec::from)?;
-    if let Value::Object(d) = &mut data {
-        d.insert("mois".into(), Value::String(mois.clone()));
-    }
+    crate::routes_ecritures::ecrire_saisie(o, ctx, &mois, brute, forcer)?;
+    let (data, paies) = le_mois_valide(ctx, &mois)?;
 
-    // fermer_mois : `charger(avec_entrees=True)`, les manques, le calcul stocke.
-    let rep = calculer(o, ctx, &data)?;
-    let mut reserves_du_controle = Reserves::default();
-    let paies = charger(ctx, &data, &rep, Some(&mut reserves_du_controle))?;
+    // Les manques se lisent sur des numeros de controle, jetes : la production repart des compteurs du disque.
+    let mut controle = paies.clone();
+    let annee: i32 = mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(&mois))))?;
+    Reserves::default().numeroter(ctx, &mut controle, annee)?;
     let mut m = Moteur::nouveau(o, ctx);
-    let manques = manques_pour_fermer(&mut m, &paies)?;
+    let manques = manques_pour_fermer(&mut m, &controle)?;
     if !manques.is_empty() {
         let lignes: Vec<String> = manques.iter().map(|x| format!("  - {}", valeur_en_texte(&x["phrase"]))).collect();
         return Err(avec_donnee("MoisPasPret", format!("Le mois {} ne peut pas encore se fermer :\n{}", mois, lignes.join("\n")), "manques", Value::Array(manques)));
     }
-    controler_calcul_stocke(o, ctx, &mois, &data, &rep);
-    // La production repart des compteurs du disque : les numeros du controle ne sont pas gardes.
     let mut reserves = Reserves::default();
-    let produit = produire_mois(o, ctx, &mut m, &data, &rep, envoi_test, forcer, qui, true, constitution, &mut reserves)?;
+    let produit = produire_mois(ctx, &mut m, &data, paies, envoi_test, forcer, qui, true, constitution, &mut reserves)?;
     let (a_regarder, informations): (Vec<&Avis>, Vec<&Avis>) = produit.avertissements[..produit.n_apercu].iter().partition(|a| !a.info);
     let apercu_avertissements = (a_regarder.iter().map(|a| a.texte.clone()).collect::<Vec<_>>(), informations.iter().map(|a| a.texte.clone()).collect::<Vec<_>>());
     Ok((mois_produit(produit), apercu_avertissements))
@@ -1018,25 +858,14 @@ pub(crate) fn produire_pour(o: &HashMap<String, String>, ctx: &Contexte, charge:
 
 // ------------------------------------------------------- l'horloge de la compagnie fictive
 
-/// `operations_paies.produire_mois(ctx, saisie, qui=..., forcer_delai=True)` tel que l'HORLOGE de la compagnie fictive
-/// l'appelle (`horloge.rs`) : le mois s'ecrit en entier -- contrats, DPAE du mois, bulletins, certificats, DSN --,
-/// SANS passer par `fermer_mois` (la DPAE de chaque embauche n'est pas encore partie : l'horloge la fera le jour de
-/// l'embauche), et SANS enregistrer la saisie (la route `produire` le fait ; l'horloge relit le fichier tel quel,
-/// seuls les numeros de contrat s'y figent, comme dans le Python). Le delai de la DSN est force.
-///
-/// `ctx` porte la date de FIN DE MOIS (`Contexte(racine, date=_fin_de_mois(mois))`). Une seule reservation de
-/// numeros, comme le Python qui n'a pas ici le controle de `fermer_mois`.
+/// Le mois tel que l'HORLOGE de la compagnie fictive l'ecrit (`horloge.rs`) : en entier -- contrats, DPAE du mois,
+/// bulletins, certificats, DSN --, sans les manques de la fermeture (la DPAE de chaque embauche n'est pas encore partie :
+/// l'horloge la fera le jour de l'embauche), depuis les engagements valides tels qu'ils sont ecrits. Le delai de la DSN
+/// est force. `ctx` porte la date de fin de mois.
 pub(crate) fn produire_pour_l_horloge(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, qui: &str) -> R<()> {
-    let chemin = ctx.racine.join("paies").join(format!("{}.json", mois));
-    let mut data = crate::engagement::lire_saisie(&chemin).map_err(Echec::from)?;
-    if let Value::Object(m) = &mut data {
-        if !m.contains_key("mois") {
-            m.insert("mois".into(), Value::String(mois.to_string()));
-        }
-    }
-    let rep = calculer(o, ctx, &data)?;
+    let (data, paies) = le_mois_valide(ctx, mois)?;
     let mut m = Moteur::nouveau(o, ctx);
     let mut reserves = Reserves::default();
-    produire_mois(o, ctx, &mut m, &data, &rep, false, true, qui, false, None, &mut reserves)?;
+    produire_mois(ctx, &mut m, &data, paies, false, true, qui, false, None, &mut reserves)?;
     Ok(())
 }

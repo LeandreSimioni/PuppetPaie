@@ -14,7 +14,6 @@
 //! Le reseau passe par `transport::operation` (le meme JSON que `paie transport`) : rien n'est reecrit.
 //! La compagnie fictive (`simulation.rattacher`) pose les retours des depots joues, sans reseau.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
@@ -550,7 +549,7 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
     for (retour, archive) in &a_archiver {
         chemins.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
     }
-    let a_faire = if chemins.is_empty() { Vec::new() } else { crate::routes_documents::ranger_aer(&HashMap::new(), ctx, None, Some(&chemins), true)? };
+    let a_faire = if chemins.is_empty() { Vec::new() } else { crate::routes_documents::ranger_aer(ctx, None, Some(&chemins))? };
     Ok((faits, a_faire))
 }
 
@@ -559,7 +558,6 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
 /// passe le sien, avec `canal = "dpae"`).
 pub fn relever_retours(
     ctx: &Contexte,
-    o: &HashMap<String, String>,
     debut: i64,
     fin: i64,
     tout: bool,
@@ -680,7 +678,7 @@ pub fn relever_retours(
         .map(|a| a.chemin.clone())
         .collect();
     if !aer.is_empty() && canal.is_empty() {
-        match crate::routes_documents::ranger_aer(o, ctx, None, Some(&aer), true) {
+        match crate::routes_documents::ranger_aer(ctx, None, Some(&aer)) {
             Ok(a_faire) => releve.a_faire.extend(a_faire),
             Err(e) => releve.incidents.push(format!("Attestations France Travail recues mais non rangees : {}", e.message)),
         }
@@ -691,7 +689,7 @@ pub fn relever_retours(
 /// `operations_retours.relever_retours_dpae` : les retours de l'API DPAE -- UN AUTRE SERVICE que celui de
 /// la DSN, ses archives sont dans `retours/dpae/`. `flux` : le seul chemin documente (la FAQ) quand on
 /// connait l'idflux ; sinon la consultation par plage, sur le canal `dpae`.
-pub fn relever_retours_dpae(ctx: &Contexte, o: &HashMap<String, String>, debut: i64, fin: i64, tout: bool, flux: &str) -> R<Releve> {
+pub fn relever_retours_dpae(ctx: &Contexte, debut: i64, fin: i64, tout: bool, flux: &str) -> R<Releve> {
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         let mut r = Releve::default();
         (r.rattaches, r.a_faire) = rattacher_simulation_detail(ctx, 6)?;
@@ -704,7 +702,7 @@ pub fn relever_retours_dpae(ctx: &Contexte, o: &HashMap<String, String>, debut: 
     };
     let mut client = Client::dpae(ctx, false, Some(mdp));
     if flux.is_empty() {
-        return relever_retours(ctx, o, debut, fin, tout, "production", Some(client), "dpae");
+        return relever_retours(ctx, debut, fin, tout, "production", Some(client), "dpae");
     }
     let mut r = Releve::default();
     let trouves = client.authentifier().and_then(|_| client.lister_retours_du_flux(flux));

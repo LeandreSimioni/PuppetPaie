@@ -65,7 +65,7 @@ use crate::routes_importation::{self as ri, ACreer, Apercu, CleEngagement};
 /// | `repris` | ce que le fichier porte entre dans l'apercu |
 /// | `deja_repris` | tout ce qu'il porte est deja dans l'historique (ou dans un autre fichier du dossier) |
 /// | `libelle_inconnu` | repris, mais une ligne au moins a un libelle que la table ne connait pas : gardee telle quelle |
-/// | `deja_saisi` | le mois a sa saisie dans `paies/` : non repris |
+/// | `deja_saisi` | le mois a des engagements dans `engagements/` : non repris |
 /// | `incoherent` | une DSN ou une AEM d'une autre entreprise (rien n'en est lu) ; la page contredit le reste (bulletin d'une autre entreprise, NIR qui contredit sa cle, plusieurs paies possibles, deux bulletins qui different) : non repris -- une page qui ne retombe pas sur ses propres totaux est reprise (le bulletin fait foi) |
 /// | `incomplet` | ce qui identifie le bulletin ne se lit pas : non repris |
 /// | `sans_texte` | aucun mot (lettres en traces, scan) : non repris |
@@ -315,7 +315,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             infos.insert("mois".into(), json!(mois));
             let refus = |sort: &'static str, raison: String, infos: Map<String, Value>| PageCr { page: l.page, sort, raison, infos };
             if saisis.contains(&mois) {
-                cr.push(refus("deja_saisi", format!("le mois {} a sa saisie dans paies/ : non repris", mois), infos));
+                cr.push(refus("deja_saisi", format!("le mois {} a des engagements dans engagements/ : non repris", mois), infos));
                 continue;
             }
             // LE BULLETIN FAIT FOI : une page qui se contredit (un centime sur le net) est reprise telle qu'imprimee.

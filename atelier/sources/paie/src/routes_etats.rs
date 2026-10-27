@@ -541,14 +541,14 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
     Ok(Some(d))
 }
 
-/// `maj.mois_saisis_non_deposes` : les mois dont le fichier de paie porte au
+/// `maj.mois_saisis_non_deposes` : les mois qui montrent au
 /// moins un engagement et dont aucune DSN reelle n'est acceptee (ou dont la
 /// derniere est refusee).
 pub(crate) fn mois_saisis_non_deposes(o: &HashMap<String, String>, ctx: &Contexte) -> R<Vec<Value>> {
     let mut m = Moteur::nouveau(o, ctx);
     let mut out = Vec::new();
     for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
-        let Some(d) = lire_json_tolerant(&ctx.racine.join("paies").join(format!("{}.json", mois)))? else {
+        let Some(d) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? else {
             continue;
         };
         if !d.is_object() || !vrai(get(&d, "engagements")?) {

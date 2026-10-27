@@ -976,7 +976,7 @@ pub fn machine(racine: &Path) -> Value {
 
 // ===================================================================================================== l'etat d'un mois
 
-/// L'etat utile de `mois` pour un refus : ce que l'etat garde en dit (valide, depose...) et ses depots (DSN, DPAE,
+/// L'etat utile de `mois` pour un refus : ses engagements (combien, combien valides) et ses depots (DSN, DPAE,
 /// annule et remplace), mis en forme. `Null` si le mois n'est pas lisible.
 pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
     let b = mois.as_bytes();
@@ -984,20 +984,10 @@ pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
         return Value::Null;
     }
     let mut m = Map::new();
-    let saisie = racine.join("paies").join(format!("{}.json", mois));
-    m.insert("saisie".into(), json!(saisie.is_file()));
-    if let Some(Value::Array(e)) = lire_json(&saisie).and_then(|s| s.get("engagements").cloned()) {
-        m.insert("engagements".into(), json!(e.len()));
-    }
-    if let Some(etat) = lire_json(&crate::etat_garde::chemin(racine, mois)) {
-        if let Some(Value::Object(d)) = etat.get("du_mois") {
-            let scalaires: Map<String, Value> = d.iter().filter(|(_, v)| !v.is_object() && !v.is_array()).map(|(k, v)| (k.clone(), v.clone())).collect();
-            m.insert("du_mois".into(), en_forme(Some(racine), &Value::Object(scalaires)));
-        }
-        if let Some(Value::Array(p)) = etat.get("paies") {
-            m.insert("paies".into(), json!(p.len()));
-        }
-    }
+    let objets = engagement::stock::objets_du_mois(racine, mois).unwrap_or_default();
+    m.insert("saisie".into(), json!(!objets.is_empty()));
+    m.insert("engagements".into(), json!(objets.len()));
+    m.insert("valides".into(), json!(objets.iter().filter(|o| o.est_valide()).count()));
     if let Some(Value::Array(depots)) = lire_json(&racine.join("journal").join("depots.json")) {
         let du_mois: Vec<Value> = depots
             .iter()

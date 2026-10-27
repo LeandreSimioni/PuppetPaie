@@ -1098,7 +1098,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     };
     let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
     let mut avert: Vec<String> = Vec::new();
-    let saisie = crate::engagement::lire_saisie(&ctx.racine.join("paies").join(format!("{}.json", m))).map_err(|x| refus(x))?;
+    let saisie = engagement::saisie_du_mois(&ctx.racine, &m).map_err(|x| refus(x))?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
     let livre: Vec<_> = lignes_livre(ctx, &toutes, &mut Vec::new())?.into_iter().filter(|l| l.source == SAISIE).collect();
     let zero = zero2();

@@ -175,13 +175,10 @@ fn dater(racine: &Path, depuis: usize, quand: &str) {
     let _ = socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2);
 }
 
-/// `_empreinte_saisie` : le CONTENU d'une saisie, pas ses octets (sha256 du JSON trie, 16 caracteres) : un
-/// enregistrement qui ne change rien ne doit pas faire reecrire le mois. Vide si la saisie ne se lit pas.
-fn empreinte_saisie(chemin: &Path) -> String {
-    let Some(v) = std::fs::read_to_string(chemin).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
-        return String::new();
-    };
-    crate::journal::empreinte(socle::ecriture::json_trie(&v).as_bytes())
+/// L'empreinte de la saisie du mois, son contenu (`engagement::stock::empreinte_de_saisie`) : un enregistrement qui ne
+/// change rien ne fait pas reecrire le mois. Vide si aucun engagement ne le touche.
+fn empreinte_saisie(racine: &Path, mois: &str) -> String {
+    engagement::stock::vue_du_mois(racine, mois).ok().flatten().map_or_else(String::new, |v| engagement::stock::empreinte_de_saisie(&v))
 }
 
 /// Les refus que Python rangeait sous `ErreurOperation`.
@@ -429,8 +426,7 @@ fn le_mois_s_ecrit(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, 
         Some(c) if c > suivant => c.min(jour),
         _ => suivant,
     };
-    let saisie = d.racine.join("paies").join(format!("{}.json", mois));
-    if !saisie.exists() {
+    if !engagement::stock::a_une_saisie(d.racine, mois).map_err(Echec::from)? {
         return Ok(Vec::new());
     }
     // ECRIT, C'EST CE QUE LE MOTEUR A CONSIGNE (#236) : la DSN du mois notee au journal des ecritures
@@ -442,7 +438,7 @@ fn le_mois_s_ecrit(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, 
         if partie {
             return Ok(Vec::new());
         }
-        let maintenant = empreinte_saisie(&saisie);
+        let maintenant = empreinte_saisie(d.racine, mois);
         match saisies.get(mois) {
             None => {
                 saisies.insert(mois.to_string(), json!(maintenant));
@@ -463,7 +459,7 @@ fn le_mois_s_ecrit(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, 
         let fin = socle::date::dernier_du_mois(mois).map_err(Echec::from)?;
         let ctx_fin = d.contexte_a(fin)?;
         crate::produire_mois::produire_pour_l_horloge(o, &ctx_fin, mois, QUI_HORLOGE)?;
-        saisies.insert(mois.to_string(), json!(empreinte_saisie(&saisie)));
+        saisies.insert(mois.to_string(), json!(empreinte_saisie(d.racine, mois)));
         Ok(true)
     }))
 }
@@ -479,7 +475,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: 
 
     // Les contrats de spectacle du mois qui ne sont pas revenus signes : (salarie, debut, numero, demande).
     let signables = |ctx: &Contexte| -> R<Vec<(String, String, String, bool)>> {
-        let a = crate::routes_documents::signature_apercu_avec(o, ctx, &json!({"mois": mois}), false)?;
+        let a = crate::routes_documents::signature_apercu(o, ctx, &json!({"mois": mois}))?;
         Ok(a["contrats"]
             .as_array()
             .map(|c| {
@@ -556,7 +552,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, o: &HashMap<String, String>, mois: 
                 return Ok(false);
             }
             for (salarie, db, numero, _) in &manquent {
-                crate::routes_ecritures_g4::contrat_recu_par(o, ctx, mois, salarie, db, Some(numero.as_str()), true, QUI_HORLOGE)?;
+                crate::routes_ecritures_g4::contrat_recu_par(ctx, mois, salarie, db, Some(numero.as_str()), true, QUI_HORLOGE)?;
             }
             Ok(true)
         });
@@ -598,7 +594,7 @@ fn a_l_echeance(d: &HorlogeFictive, o: &HashMap<String, String>, mois: &str, ech
         }
         // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
         let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-        match crate::routes_envois::envoyer_documents_de(o, ctx, mois, &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
+        match crate::routes_envois::envoyer_documents_de(ctx, mois, &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
             Ok(_) => Ok(true),
             // Un mois sans documents a remettre.
             Err(e) if est_une_erreur_d_operation(&e) => Ok(false),
@@ -619,9 +615,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
     let fin_janvier = Jour::nouveau(annee, 1, 31).ok_or_else(|| erreur("ValueError", "date impossible"))?;
     if jour >= fin_janvier {
         fait.extend(pas(d, &format!("exercice {} clos", precedente), &format!("{}T10:00:00", fin_janvier.iso()), |ctx| {
-            // UNE SAISIE, PAS UN CACHE (#236, banc du Petit Castelet) : `paies/2024-12.etat.json`, ecrit en fond quand on
-            // regarde decembre, faisait clore au banc un exercice vide que le rejeu, qui ne refait pas les lectures, ne
-            // clot pas. Les mois saisis sont ceux de `routes_mois::mois_saisis`.
+            // Une annee qui a des engagements se clot ; les mois saisis sont ceux de `routes_mois::mois_saisis`.
             let a_des_paies = crate::routes_mois::mois_saisis(&ctx.racine).iter().any(|m| m.starts_with(&format!("{}-", precedente)));
             if Moteur::nouveau(o, ctx).exercice_clos(&precedente.to_string())? || !a_des_paies {
                 return Ok(false);
@@ -640,7 +634,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
 
     // Les echeances qu'on coche, a la fin de leur fenetre (echeancier-base), si la convention de la compagnie les porte et
     // qu'elles ne le sont pas.
-    let base = crate::engagement::lire_saisie(&dossier_du_code().join("echeancier-base.json")).map_err(Echec::from)?;
+    let base = socle::fichiers::lire_json(&dossier_du_code().join("echeancier-base.json")).map_err(Echec::from)?;
     let ctx = d.contexte()?;
     for e in crate::routes_saisie::annuelles_de(&base, ctx.entreprise.get("idcc"))? {
         if e.get("fait_par").and_then(Value::as_str) != Some("coche") {
@@ -746,8 +740,8 @@ mod tests {
     #[test]
     fn la_garde_hors_compagnie_fictive_ne_joue_rien_et_ne_touche_a_rien() {
         let r = racine_d_essai(false);
-        std::fs::create_dir_all(r.join("paies")).unwrap();
-        std::fs::write(r.join("paies").join("2026-10.json"), "{}").unwrap();
+        std::fs::create_dir_all(r.join("engagements")).unwrap();
+        std::fs::write(r.join("engagements").join("2026-10.json"), "{}").unwrap();
         let avant = photo(&r);
         assert!(HorlogeFictive::verifier(&r).is_none());
         assert_eq!(rattraper(&r, Some(jour("2027-03-01")), true).unwrap(), Vec::<String>::new());
@@ -799,7 +793,7 @@ mod tests {
         assert_eq!(m["_quoi"], QUOI);
     }
 
-    // ---------------------------------------------------------------- defaut 4 : horloge.json non objet, calcul.json
+    // ---------------------------------------------------------------- defaut 4 : horloge.json non objet
 
     #[test]
     fn un_horloge_json_qui_n_est_pas_un_objet_se_lit_comme_absent() {
@@ -813,24 +807,6 @@ mod tests {
             assert!(m.is_object(), "{:?} doit etre recrit en objet", contenu);
             assert_eq!(m["le"], "2026-10-13");
         }
-    }
-
-    #[test]
-    fn un_fichier_calcul_json_n_est_pas_un_mois() {
-        // L'ancien `mois_connus` Python comptait `AAAA-MM.calcul.json` comme un mois (`fromisoformat` levait).
-        let r = racine_d_essai(true);
-        std::fs::create_dir_all(r.join("paies")).unwrap();
-        for f in ["2026-10.json", "2026-10.calcul.json", "2026-11.calcul.json", "notes.json", "2026-1.json"] {
-            std::fs::write(r.join("paies").join(f), "{}").unwrap();
-        }
-        assert_eq!(crate::routes_mois::mois_saisis(&r), vec!["2026-10".to_string()]);
-        let connus: Vec<String> = crate::routes_accueil::mois_connus(&r).into_iter().map(|(m, _)| m).collect();
-        assert_eq!(connus, vec!["2026-10".to_string()]);
-        // Et l'horloge passe : le mois qui ne s'ecrit pas devient une phrase, pas une panne.
-        let phrases = rattraper(&r, Some(jour("2026-10-20")), true).unwrap();
-        assert!(phrases.iter().all(|p| !p.contains("calcul")), "{:?}", phrases);
-        let m: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join(FICHIER_HORLOGE)).unwrap()).unwrap();
-        assert!(!m.to_string().contains("calcul"));
     }
 
     // ---------------------------------------------------------------- defaut 1 : le jour joue
@@ -950,28 +926,6 @@ mod tests {
         // Un journal qui n'est pas une liste : 0 ligne.
         std::fs::write(&p, "{}").unwrap();
         assert_eq!(n_lignes(&r), 0);
-    }
-
-    // ---------------------------------------------------------------- empreinte_saisie
-
-    #[test]
-    fn l_empreinte_d_une_saisie_est_celle_de_son_contenu() {
-        let r = racine_d_essai(false);
-        let a = r.join("a.json");
-        let b = r.join("b.json");
-        // Le vecteur de l'ancien Python : sha256(json.dumps(d, sort_keys=True, ensure_ascii=False))[:16].
-        std::fs::write(&a, r#"{"b": 1, "a": [1, 2], "z": "é"}"#).unwrap();
-        assert_eq!(empreinte_saisie(&a), "9254832cc9ec5883");
-        // Autre ordre des cles, autre mise en page : meme contenu, meme empreinte.
-        std::fs::write(&b, "{\n  \"z\": \"é\",\n  \"a\": [1,\n 2],\n  \"b\": 1\n}\n").unwrap();
-        assert_eq!(empreinte_saisie(&b), empreinte_saisie(&a));
-        // Un contenu change : une autre empreinte.
-        std::fs::write(&b, r#"{"b": 2, "a": [1, 2], "z": "é"}"#).unwrap();
-        assert_ne!(empreinte_saisie(&b), empreinte_saisie(&a));
-        // Illisible ou absente : vide.
-        std::fs::write(&b, "{ pas du json").unwrap();
-        assert_eq!(empreinte_saisie(&b), "");
-        assert_eq!(empreinte_saisie(&r.join("absent.json")), "");
     }
 
     // ---------------------------------------------------------------- les phrases

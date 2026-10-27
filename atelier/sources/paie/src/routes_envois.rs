@@ -47,7 +47,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 /// Une route d'envoi, la boite venant de `ouvrir`.
 pub fn route_avec(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     match nom {
-        "envoyer-documents" => envoyer_documents(o, ctx, charge, ouvrir),
+        "envoyer-documents" => envoyer_documents(ctx, charge, ouvrir),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, ouvrir),
         "casc-envoyer" => casc_envoyer(ctx, charge, ouvrir),
         "demander-signature" => crate::envois_signature::demander_signature(o, ctx, charge, ouvrir),
@@ -238,15 +238,15 @@ fn expediteur_de(client: &dyn Courriel) -> String {
 // ------------------------------------------------------------------ envoyer-documents
 
 /// `operations_documents.envoyer_documents` : envoie a chaque salarie ses documents du mois. Irreversible.
-fn envoyer_documents(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+fn envoyer_documents(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
-    envoyer_documents_de(o, ctx, &mois, &preuve_de(charge), &qui_de(charge), ouvrir)
+    envoyer_documents_de(ctx, &mois, &preuve_de(charge), &qui_de(charge), ouvrir)
 }
 
 /// `envoyer_documents(ctx, mois, preuve=..., qui=...)` : la meme operation, `qui` et la preuve donnes (l'horloge de
 /// la compagnie fictive passe `horloge` et une boite muette).
-pub(crate) fn envoyer_documents_de(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, preuve: &Preuve, qui: &str, ouvrir: Ouvrir) -> R<Value> {
-    let prepare = preparer_envoi(o, ctx, mois, ouvrir)?;
+pub(crate) fn envoyer_documents_de(ctx: &Contexte, mois: &str, preuve: &Preuve, qui: &str, ouvrir: Ouvrir) -> R<Value> {
+    let prepare = preparer_envoi(ctx, mois, ouvrir)?;
     expedier_envoi(ctx, prepare, mois, preuve, qui)
 }
 
@@ -295,8 +295,8 @@ impl Choix {
     }
 }
 
-/// Le choix, pour le mois `mois`, sur sa saisie `data` et ses paies calculees (`charger_le_mois_avec`).
-pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::calcul::Paie]) -> R<Choix> {
+/// Le choix, pour le mois `mois`, sur sa saisie `data` et ses paies validees (`routes_documents::charger_le_mois`).
+pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[engagement::calcul::Paie]) -> R<Choix> {
     let lignes = crate::etats::charger(&ctx.racine)?;
     let partis = crate::etats::documents_partis(&lignes, mois)?;
     let cles: Vec<String> = paies.iter().map(|p| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()).collect();
@@ -307,7 +307,7 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[crate::
         if resumes.contains_key(cle) {
             continue;
         }
-        let siennes: Vec<&crate::calcul::Paie> = paies.iter().zip(&cles).filter(|(_, c)| *c == cle).map(|(p, _)| p).collect();
+        let siennes: Vec<&engagement::calcul::Paie> = paies.iter().zip(&cles).filter(|(_, c)| *c == cle).map(|(p, _)| p).collect();
         resumes.insert(cle.clone(), envoi::resume_de(&siennes).map_err(Echec::from)?);
     }
     let mut choix = Choix { empreintes, resumes, ..Choix::default() };
@@ -369,9 +369,9 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
 
 /// `operations_documents.preparer_envoi` : la saisie du mois, les messages, puis la boite -- une boite absente se voit
 /// avant la preuve. Rien n'est parti.
-pub(crate) fn preparer_envoi(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
+pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
     let debut = std::time::Instant::now();
-    let (data, paies) = crate::routes_documents::charger_le_mois_avec(o, ctx, mois, false)?;
+    let (data, paies) = crate::routes_documents::charger_le_mois(ctx, mois)?;
     let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
     if !dossier.exists() {

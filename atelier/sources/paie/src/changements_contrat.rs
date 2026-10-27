@@ -32,7 +32,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::calcul::Paie;
+use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{dernier_du_mois, premier_du_mois, Jour};
 use socle::num::Resultat;
@@ -238,7 +238,7 @@ fn qui(p: &Paie) -> String {
 }
 
 fn libelle_mois(mois: &str) -> String {
-    crate::engagement::libelle_mois(mois)
+    engagement::libelle_mois(mois)
 }
 
 /// La date de la modification (41.001) du changement de `md`, declaree `avant` dans la DSN de `decl.mois`. Refus

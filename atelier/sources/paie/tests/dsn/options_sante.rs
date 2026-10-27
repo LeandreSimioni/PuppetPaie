@@ -22,7 +22,7 @@
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use paie::dsn::{bloc_contrat, generer, Fichier, Options};
-use paie::engagement::{charger, Saisie};
+use engagement::Saisie;
 use crate::outils::{chemin_unique, contrat, dec, ecrire, lire, paires, valeur, versement, Copie};
 use serde_json::{json, Value};
 
@@ -40,7 +40,7 @@ fn saisie(ctx: &Contexte, mois: &str, engagements: Value) -> Result<Saisie, Stri
     let chemin = chemin_unique("options-sante.json");
     let s = json!({"mois": mois, "date_paiement": format!("{}-28", mois), "engagements": engagements});
     std::fs::write(&chemin, s.to_string()).unwrap();
-    let r = charger(ctx, &chemin);
+    let r = crate::outils::charger_fichier(ctx, &chemin);
     let _ = std::fs::remove_file(&chemin);
     r
 }

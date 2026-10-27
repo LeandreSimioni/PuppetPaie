@@ -135,8 +135,8 @@ pub fn retours_dpae(cadre: &Cadre, args: &Args, client: Option<Client>) -> Resul
     let (debut, fin) = fenetre(args)?;
     let flux = args.texte("flux").unwrap_or("");
     let r: Releve = match client {
-        Some(c) if flux.is_empty() => releve_retours::relever_retours(&cadre.ctx, &cadre.o, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
-        _ => releve_retours::relever_retours_dpae(&cadre.ctx, &cadre.o, debut, fin, args.drapeau("tout"), flux)?,
+        Some(c) if flux.is_empty() => releve_retours::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
+        _ => releve_retours::relever_retours_dpae(&cadre.ctx, debut, fin, args.drapeau("tout"), flux)?,
     };
     for i in &r.incidents {
         dire!("{}", i);
@@ -189,7 +189,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
     let environnement = args.texte("environnement").unwrap_or("production");
     let (debut, fin) = fenetre(args)?;
     dire!("Consultation des retours {}, du {} au {}.", environnement, jour_de(debut), jour_de(fin));
-    let releve = releve_retours::relever_retours(&cadre.ctx, &cadre.o, debut, fin, args.drapeau("tout"), environnement, client, "")?;
+    let releve = releve_retours::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), environnement, client, "")?;
     if !releve.session_jusqu_a.is_empty() {
         dire!("Session ouverte (valide jusqu'a {}).\n", releve.session_jusqu_a);
     }
