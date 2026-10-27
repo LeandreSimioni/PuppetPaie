@@ -183,7 +183,7 @@ fn mois_pris(dispo: &BTreeMap<String, &'static str>, mois: &Option<String>, anne
     }
     if let Some(m) = mois {
         if !dispo.contains_key(m) {
-            return Err(refus(format!("Aucune paie en {} : ni saisie (prive/paies/{}.json), ni déclarée par une DSN importée.", m, m)));
+            return Err(refus(format!("Aucune paie en {} : ni engagement (engagements/), ni déclarée par une DSN importée.", m)));
         }
         return Ok(vec![m.clone()]);
     }

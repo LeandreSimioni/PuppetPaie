@@ -954,7 +954,7 @@ fn les_mois_faits_en_demo_d_une_compagnie_gardee_ne_retiennent_pas_la_version() 
     let v = paie::interface::suppression::repondre(&inst, std::slice::from_ref(&ajoutee.id), &[], &poste, &|_| {}).unwrap();
     assert_eq!(v["erreurs"], json!([]), "{}", v);
     let gardee = inst.join("compagnies").join("les-pupazzi");
-    assert!(gardee.join("paies/2030-01.json").is_file());
+    assert!(gardee.join("engagements/2030-01.json").is_file());
     assert_eq!(maj::applicable(&inst).as_deref(), Some("2026.11.01"), "le mois fait en demo ne retient rien");
     // Un mois saisi apres : il attend sa DSN.
     crate::outils::poser_saisie(&gardee, "2030-02", &json!({"mois": "2030-02", "engagements": [{"salarie": "INVENTE"}]}));

@@ -115,10 +115,11 @@ pub fn mois_apres(mois: &str) -> Resultat<String> {
 
 // ------------------------------------------------------------------ l'objet
 
-/// Un engagement tel qu'il est ecrit : le mois de son fichier (son premier mois), son rang dans le fichier, et
-/// l'objet lui-meme.
+/// Un engagement tel qu'il est ecrit : la compagnie, le mois de son fichier (son premier mois), son rang dans le
+/// fichier, et l'objet lui-meme.
 #[derive(Debug, Clone)]
 pub struct Objet {
+    pub racine: PathBuf,
     pub fichier: String,
     pub rang: usize,
     pub brut: Map<String, Value>,
@@ -219,7 +220,7 @@ impl Objet {
         let mut m = self.fichier.clone();
         while m.as_str() < mois {
             m = mois_apres(&m)?;
-            v = reconduire(&v, self.mensuel());
+            v = reconduire(&self.racine, &v, self.mensuel(), &m);
             if let Some(change) = self.brut.get(SUITE).and_then(|s| s.get(&m)).and_then(Value::as_object) {
                 appliquer(&mut v, change);
             }
@@ -237,12 +238,46 @@ impl Objet {
     }
 }
 
-/// Ce qu'un mois reconduit au suivant (`RECONDUITS`) ; un contrat d'usage y commence sans ligne.
-fn reconduire(v: &Map<String, Value>, mensuel: bool) -> Map<String, Value> {
+/// Ce qu'un mois reconduit au suivant, `mois` (`RECONDUITS`). Un contrat d'usage y commence avec les jours que les
+/// lignes du mois d'avant ont mis au planning de `mois` : une ligne par ligne qui en a, a la meme rubrique, au meme
+/// taux et au meme lieu, ses jours de `mois` en dates et ceux d'apres au planning ; un cachet, une journee ou un
+/// service par date (une autre unite, des heures, ne se deduit pas d'un nombre de jours : quantite 0, a completer).
+/// Sans planning, il commence sans ligne.
+fn reconduire(racine: &Path, v: &Map<String, Value>, mensuel: bool, mois: &str) -> Map<String, Value> {
     let mut out: Map<String, Value> = RECONDUITS.iter().filter_map(|k| v.get(*k).map(|x| (k.to_string(), x.clone()))).collect();
-    if !mensuel {
-        out.insert("lignes".into(), Value::Array(Vec::new()));
+    if mensuel {
+        return out;
     }
+    let jour_de = |x: &Value| match x {
+        Value::Object(m) => m.get("jour").map(en_texte).unwrap_or_default(),
+        autre => en_texte(autre),
+    };
+    let mut lignes = Vec::new();
+    for l in v.get("lignes").and_then(Value::as_array).into_iter().flatten() {
+        let plan: Vec<Value> = l.get("planning").and_then(Value::as_array).cloned().unwrap_or_default();
+        let dedans: Vec<Value> = plan.iter().filter(|x| jour_de(x).starts_with(mois)).cloned().collect();
+        let apres: Vec<Value> = plan.iter().filter(|x| jour_de(x).get(..7).is_some_and(|m| m > mois)).cloned().collect();
+        if dedans.is_empty() && apres.is_empty() {
+            continue;
+        }
+        let rubrique = l.get("rubrique").map(en_texte).unwrap_or_else(|| "cachet".into());
+        let unite = droit::catalogue::rubrique(racine, &rubrique).map(|r| r.unite).unwrap_or_default();
+        let par_date = matches!(unite.as_str(), "cachet" | "jour" | "service");
+        let mut n = Map::new();
+        n.insert("rubrique".into(), Value::String(rubrique));
+        n.insert("taux".into(), l.get("taux").cloned().unwrap_or(Value::Null));
+        if let Some(lieu) = l.get("lieu").filter(|x| vrai(x)) {
+            n.insert("lieu".into(), lieu.clone());
+        }
+        n.insert("quantite".into(), if par_date { Value::from(dedans.len()) } else { Value::from(0) });
+        if let Some(h) = l.get("heures").filter(|x| par_date && vrai(x)) {
+            n.insert("heures".into(), h.clone());
+        }
+        n.insert("dates".into(), Value::Array(dedans));
+        n.insert("planning".into(), Value::Array(apres));
+        lignes.push(Value::Object(n));
+    }
+    out.insert("lignes".into(), Value::Array(lignes));
     out
 }
 
@@ -280,7 +315,7 @@ pub fn objets(racine: &Path) -> Resultat<Vec<Objet>> {
         let Some(m) = lire_fichier(racine, &f)? else { continue };
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
             if let Value::Object(brut) = e {
-                out.push(Objet { fichier: f.clone(), rang, brut: brut.clone() });
+                out.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: brut.clone() });
             }
         }
     }
@@ -594,7 +629,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
 fn changer_un_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resultat<()> {
     let precedent = mois_avant(mois)?;
     let base = match o.vue(&precedent)? {
-        Some(v) => reconduire(&v, o.mensuel()),
+        Some(v) => reconduire(&o.racine, &v, o.mensuel(), mois),
         None => Map::new(),
     };
     let mut cible = saisie.clone();

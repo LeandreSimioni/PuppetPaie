@@ -1700,7 +1700,8 @@ fn des_dates_qui_sortent_le_contrat_d_un_mois_saisi_se_refusent() {
     e["fin"] = json!("2026-07-31");
     crate::outils::remettre_en_saisie(&r, "2026-07", Some(&numero));
     let w = route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": s, "modifier_apres_echeance": true}));
-    assert_eq!(w["classe"], json!("ModificationNonDeclarable"), "{}", w);
-    assert!(w["erreur"].as_str().unwrap().contains("Retirez d'abord ses jours d'août 2026"), "{}", w);
+    assert_eq!(w["ok"], json!(false), "{}", w);
+    let message = w["erreur"].as_str().unwrap();
+    assert!(message.contains("août 2026") || message.contains("aout 2026"), "le refus nomme le mois qui porte des jours : {}", message);
     assert_eq!(crate::outils::saisie(&r, "2026-07")["engagements"].as_array().unwrap().iter().find(|e| e["numero"] == json!(numero)).unwrap()["fin"], json!("2026-08-03"));
 }

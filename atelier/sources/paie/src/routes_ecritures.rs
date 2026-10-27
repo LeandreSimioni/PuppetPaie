@@ -765,7 +765,7 @@ pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) ->
     if let Some(limite) = crate::routes_saisie::mois_hors_delai(ctx, mois)?.filter(|_| !forcer) {
         return Err(refus(format!(
             "Le mois {} ne se modifie plus : sa DSN etait due le {}, nous sommes le {}. Un mois passe ne se saisit plus et ne se \
-             produit plus. Pour une DSN en retard, assumee : `paie mois paies/{}.json --forcer`.",
+             produit plus. Pour une DSN en retard, assumee : `paie mois {} --forcer`.",
             mois,
             limite.jj_mm_aaaa(),
             ctx.aujourdhui.jj_mm_aaaa(),
@@ -862,6 +862,26 @@ fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, 
         }
         if change {
             crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, mois)?;
+            // Les bornes d'un engagement sont celles de tous ses mois : quand elles changent, un autre mois du contrat deja
+            // declare garde aussi sa saisie telle que declaree, dont « Corriger ce mois » part. Le contrat se retrouve par
+            // son numero.
+            let entrants: Vec<Value> = donnees.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+            let mut autres: Vec<String> = Vec::new();
+            for o in engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(plain)? {
+                let Some(numero) = o.brut.get("numero").filter(|n| vrai(n)) else { continue };
+                let ecrit = Value::Object(o.brut.clone());
+                let bornes = |e: &Value| (engagement::debut_brut(e), e.get("fin").map(valeur_en_texte).unwrap_or_default());
+                if entrants.iter().any(|e| e.get("numero") == Some(numero) && bornes(e) != bornes(&ecrit)) {
+                    autres.extend(o.mois_couverts(mois).map_err(plain)?.into_iter().filter(|x| x != mois));
+                }
+            }
+            autres.sort();
+            autres.dedup();
+            for x in autres {
+                if !m.depots_reels(&x, &Value::Null)?.is_empty() {
+                    crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, &x)?;
+                }
+            }
         }
     }
     engagement::stock::ecrire_vue_du_mois(ctx, mois, &donnees).map_err(|m| erreur("ErreurOperation", m))?;

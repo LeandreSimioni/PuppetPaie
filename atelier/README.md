@@ -1254,8 +1254,8 @@ ses autres employeurs n'y sont pas. Rien ne s'y coche.
 Le planning n'est pas payé ce mois-ci ; il sert à trois choses : `fin` se
 cale sur son dernier jour sans qu'on l'écrive, le contrat imprimé liste
 toutes les dates de la tournée (et dit que sa rémunération chiffre le
-mois), et le mois venu, l'écran — qui reprend d'office chaque contrat en cours
-(ou `nouveau --reprendre`) — retrouve la ligne déjà datée — même rubrique, même taux,
+mois), et le mois venu, l'écran — qui montre d'office chaque contrat en cours —
+retrouve la ligne déjà datée — même rubrique, même taux,
 même lieu, quantité = nombre de jours pour un cachet. Un jour de planning
 dans le mois est refusé (c'est un jour joué), de même qu'un planning
 au-delà d'une `fin` écrite. Sans planning, le contrat imprimé ne connaît

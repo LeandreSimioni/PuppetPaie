@@ -290,7 +290,7 @@ fn depot_apercu_dsn_dit_ce_que_la_paie_dit_autrement() {
     let r = lire(c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}));
     assert_eq!(r["recapitulatif"]["conforme"], json!(false));
     assert_eq!(r["recapitulatif"]["salaries"][0]["contrats"][0]["ecarts"], json!(["brut : la paie dit 620.00, le fichier 621.00"]));
-    std::fs::remove_file(c.join("paies/2026-08.json")).unwrap();
+    std::fs::remove_file(c.join("engagements/2026-08.json")).unwrap();
     let r = lire(c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}));
     assert_eq!(r["recapitulatif"]["compare"], json!(false));
     assert_eq!(r["recapitulatif"]["salaries"][0]["contrats"][0]["paie"], json!(false));

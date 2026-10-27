@@ -495,7 +495,7 @@ fn demander_signature_sans_preuve_n_ecrit_rien_et_refuse_ce_qui_ne_va_pas() {
     let _t = tour();
     let racine = compagnie("signature-refus", false);
     octobre_a_signer(&racine);
-    let saisie0 = std::fs::read(racine.join("paies/2026-10.json")).unwrap();
+    let saisie0 = std::fs::read(racine.join("engagements/2026-10.json")).unwrap();
     let compteurs0 = std::fs::read(racine.join("config/compteurs.json")).unwrap();
     let j0 = journal(&racine);
     let faux = Faux::nouveau();
@@ -510,7 +510,7 @@ fn demander_signature_sans_preuve_n_ecrit_rien_et_refuse_ce_qui_ne_va_pas() {
     assert_eq!(faux.partis(), 0);
     assert!(!racine.join("sorties/2026-10").exists());
     assert_eq!(journal(&racine), j0);
-    assert_eq!(std::fs::read(racine.join("paies/2026-10.json")).unwrap(), saisie0);
+    assert_eq!(std::fs::read(racine.join("engagements/2026-10.json")).unwrap(), saisie0);
     assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), compteurs0);
 
     // Des contrats qui ne sont pas dans la saisie : refus avant tout, sous le mot de passe juste.
@@ -638,7 +638,7 @@ fn demander_signature_envoie_un_courriel_par_salarie_et_garde_ce_qu_il_faut() {
     assert_eq!(compteurs["2026"]["bulletin"], avant["2026"]["bulletin"]);
     assert_eq!(compteurs["2026"]["contrat_LEMERCIER"], avant["2026"]["contrat_LEMERCIER"]);
     assert_eq!(compteurs["2025"], avant["2025"]);
-    assert!(racine.join("paies/avant").exists());
+    assert!(racine.join("engagements/avant").exists());
 
     // Le contrat est parti : il se relance (objet « Rappel »), il ne se renvoie pas sans le dire.
     let relance = avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "relance": true, "contrats": [{"salarie": "SERAPHIN", "debut": "2026-10-13"}]}), &faux).unwrap();
@@ -665,7 +665,7 @@ fn demander_signature_qui_echoue_le_note_sans_rien_reserver() {
     let racine = compagnie("signature-echec", false);
     poser_le_mot_de_passe(&racine);
     octobre_a_signer(&racine);
-    let saisie0 = std::fs::read(racine.join("paies/2026-10.json")).unwrap();
+    let saisie0 = std::fs::read(racine.join("engagements/2026-10.json")).unwrap();
     let compteurs0 = std::fs::read(racine.join("config/compteurs.json")).unwrap();
     let j0 = journal(&racine);
     // Le second courriel est refuse : le premier est parti.
@@ -681,7 +681,7 @@ fn demander_signature_qui_echoue_le_note_sans_rien_reserver() {
     assert_eq!(l["detail"]["partis"], json!(["fanchon.brioche@exemple.invalid"]));
     assert_eq!(l["detail"]["contrats"].as_array().unwrap().len(), 3);
     assert!(l["detail"]["contrats"][0].get("message").is_none());
-    assert_eq!(std::fs::read(racine.join("paies/2026-10.json")).unwrap(), saisie0);
+    assert_eq!(std::fs::read(racine.join("engagements/2026-10.json")).unwrap(), saisie0);
     assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), compteurs0);
 }
 

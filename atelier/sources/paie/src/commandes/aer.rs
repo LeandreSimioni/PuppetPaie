@@ -91,7 +91,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
     if let Some(dernier) = periodes.last() {
         dire!("\nElles partiront avec le message aux salaries :");
-        dire!("   paie envoi paies/{}.json", dernier);
+        dire!("   paie envoi {}", dernier);
     }
     Ok(if fait.refusees.is_empty() { 0 } else { 2 })
 }

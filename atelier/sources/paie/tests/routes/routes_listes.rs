@@ -231,7 +231,7 @@ fn une_nature_inconnue_ou_un_mois_abime_refuse_les_fins_de_contrat() {
     avec_engagements(c, "2026-08", vec![e]);
     let message = refus(c, "fins-de-contrat", json!({"mois": "2026-08"}));
     assert!(message.starts_with("Nature de contrat inconnue : 'bidon'. Connues : "), "{}", message);
-    ecrire_texte(c, "paies/2026-08.json", "{");
+    ecrire_texte(c, "engagements/2026-08.json", "{");
     refus(c, "fins-de-contrat", json!({"mois": "2026-08"}));
     crate::outils::poser_saisie(c, "2026-08", &json!([]));
     refus(c, "fins-de-contrat", json!({"mois": "2026-08"}));
@@ -270,7 +270,7 @@ fn les_mois_se_classent_selon_leur_depot_et_leur_echeance() {
     let retard = tard["mois"]["en_retard"].as_array().unwrap();
     assert_eq!(retard.len(), 1);
     assert_eq!(retard[0]["mois"], json!("2026-09"));
-    assert!(retard[0]["raison"].as_str().unwrap().contains("(en retard : `paie mois paies/2026-09.json --forcer`)"));
+    assert!(retard[0]["raison"].as_str().unwrap().contains("(en retard : `paie mois 2026-09 --forcer`)"));
     // Avant la veille de l'echeance, l'annule-et-remplace est encore admis.
     let tot = liste(c, "regularisations", json!({}), "2026-09-10");
     assert_eq!(tot["mois"]["regularisables"], json!([]));

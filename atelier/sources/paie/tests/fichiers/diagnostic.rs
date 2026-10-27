@@ -69,7 +69,7 @@ fn aucune_donnee_de_personne_d_une_charge_de_route_ne_passe_et_les_montants_et_d
     for (cle, fiche) in salaries.as_object().unwrap().iter().filter(|(k, _)| !k.starts_with('_')) {
         charges.push(json!({"route": "enregistrer-fiche", "charge": {"nom": "salarie", "cle": cle, "donnees": fiche}}));
     }
-    let saisie = lire(&racine.join("paies/2026-10.json"));
+    let saisie = crate::outils::saisie(&racine, "2026-10");
     charges.push(json!({"route": "enregistrer-saisie", "charge": {"mois": "2026-10", "saisie": saisie}}));
     let un = saisie["engagements"][0]["salarie"].as_str().unwrap().to_string();
     charges.push(json!({"route": "avenant-envoyer", "charge": {"salarie": un, "debut": "2026-10-13", "mois": "2026-10", "motdepasse": "Tres-secret-42"}}));

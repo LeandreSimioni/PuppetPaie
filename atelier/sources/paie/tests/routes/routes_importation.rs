@@ -132,7 +132,7 @@ fn boite_aux_lettres(nom: &str) -> PathBuf {
     juin.periode = "du 09/06/2025 au 13/06/2025";
     juin.dates = vec!["du 09/06/2025 au 13/06/2025"];
     pdf(vec![a_la_compagnie(page_a(&juin))], &import.join("juin.pdf"));
-    std::fs::write(racine.join("paies").join("2025-06.json"), "{}").unwrap();
+    std::fs::write(racine.join("engagements").join("2025-06.json"), "{}").unwrap();
     std::fs::write(import.join("scan.pdf"), pdf_en_traces()).unwrap();
     std::fs::write(import.join("notes.txt"), "a ne pas oublier\n").unwrap();
     racine
@@ -166,7 +166,7 @@ fn le_dossier_import_rend_un_compte_rendu_par_fichier_les_fiches_les_contrats_et
     assert_eq!(sort(r, "bulletins/coolpaie.pdf").0, json!("repris"));
     assert_eq!(sort(r, "bulletins/coolpaie.pdf").1, json!("2 pages : 2 repris"));
     assert_eq!(sort(r, "bulletins/spaiectacle.pdf").0, json!("repris"));
-    assert_eq!(sort(r, "juin.pdf"), (json!("deja_saisi"), json!("le mois 2025-06 a sa saisie dans paies/ : non repris")));
+    assert_eq!(sort(r, "juin.pdf"), (json!("deja_saisi"), json!("le mois 2025-06 a des engagements dans engagements/ : non repris")));
     assert_eq!(sort(r, "scan.pdf").0, json!("sans_texte"));
     assert_eq!(sort(r, "notes.txt"), (json!("non_reconnu"), json!("ni DSN, ni AEM, ni PDF, ni archive zip (extension .txt)")));
     assert_eq!(r["tri"]["comptes"]["repris"], json!(4));

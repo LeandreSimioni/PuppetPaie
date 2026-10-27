@@ -273,7 +273,7 @@ fn remonter_une_compagnie_d_essai_ne_reecrit_que_son_identite() {
 
 /// La DSN de septembre s'ecrit sous l'identite de la variable, et la sortie de `paie mois` n'en montre rien.
 fn dsn_de_septembre(binaire: &str, d: &Path) -> String {
-    let s = lancer(binaire, Some(d), &["mois", "paies/2026-09.json"], &[]);
+    let s = lancer(binaire, Some(d), &["mois", "2026-09"], &[]);
     assert_eq!(s.code, 0, "{}", s.texte);
     rien_d_affiche(&s, &identite());
     std::fs::read_to_string(d.join("sorties/2026-09/DSN_Septembre2026.dsn")).unwrap()
@@ -355,7 +355,7 @@ fn l_ordre_d_essai_n_est_admis_qu_en_test() {
 #[test]
 fn la_dpae_s_ecrit_sous_l_identite_et_son_test_va_a_l_urssaf() {
     let d = montee(PAIE, "dpae");
-    let s = lancer(PAIE, Some(&d), &["dpae", "paies/2026-11.json"], &[]);
+    let s = lancer(PAIE, Some(&d), &["dpae", "2026-11"], &[]);
     assert_eq!(s.code, 0, "{}", s.texte);
     rien_d_affiche(&s, &identite());
     let dpae = std::fs::read_to_string(d.join("sorties/2026-11/DPAE_Novembre2026.txt")).unwrap();
@@ -431,7 +431,7 @@ mod atelier {
     #[test]
     fn le_depot_de_test_de_la_dpae_arrive_au_faux_urssaf() {
         let d = montee(ATELIER, "atelier-dpae");
-        let s = lancer(ATELIER, Some(&d), &["dpae", "paies/2026-11.json"], &[]);
+        let s = lancer(ATELIER, Some(&d), &["dpae", "2026-11"], &[]);
         assert_eq!(s.code, 0, "{}", s.texte);
         let (base, recu) = faux();
         let dpae = format!("{}/dpae", base);

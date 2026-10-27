@@ -98,7 +98,8 @@ fn un_engagement_sur_deux_mois_est_un_seul_objet_dans_le_fichier_de_son_premier_
     assert_eq!(nov["engagements"].as_array().unwrap().len(), 1);
     let e = &nov["engagements"][0];
     assert_eq!(e["lignes"][0]["dates"], json!(["2026-11-28", "2026-11-29", "2026-11-30"]));
-    assert_eq!(e["mois_suivants"]["2026-12"]["lignes"][0]["dates"], json!(["2026-12-01", "2026-12-02"]));
+    // Decembre dit ce que le planning de novembre annoncait : il n'ecrit rien.
+    assert!(e.get("mois_suivants").is_none(), "{}", e);
     assert!(!r.join("engagements/2026-12.json").exists() || fichier(&r, "2026-12")["engagements"] == json!([]));
     // Decembre le montre, avec ses jours ; novembre n'a pas bouge.
     let dec = reussi(&route(&r, "saisie", json!({"mois": "2026-12"})))["saisie"].clone();

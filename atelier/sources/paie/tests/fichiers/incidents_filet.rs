@@ -67,11 +67,11 @@ fn poste(nom: &str, mois: &[&str]) -> Poste {
     copier(&fictive.join("config"), &racine.join("config"));
     let _ = std::fs::remove_file(racine.join("config/compteurs.json"));
     let _ = std::fs::remove_file(racine.join("config/filet-dpae.json"));
-    std::fs::create_dir_all(racine.join("paies")).unwrap();
+    std::fs::create_dir_all(racine.join("engagements")).unwrap();
     std::fs::create_dir_all(racine.join("journal")).unwrap();
     std::fs::write(racine.join("journal/depots.json"), "[]").unwrap();
     for m in mois {
-        std::fs::copy(fictive.join("paies").join(format!("{}.json", m)), racine.join("paies").join(format!("{}.json", m))).unwrap();
+        std::fs::copy(fictive.join("engagements").join(format!("{}.json", m)), racine.join("engagements").join(format!("{}.json", m))).unwrap();
     }
     let moteur = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees");
     let code = base.join("logiciel/donnees");
@@ -754,9 +754,11 @@ fn poste_des_paies(nom: &str) -> Poste {
     let depots: Value = serde_json::from_slice(&std::fs::read(fictive.join("journal/depots.json")).unwrap()).unwrap();
     let sans_decembre: Vec<Value> = depots.as_array().unwrap().iter().filter(|l| !(l["quoi"] == json!("dsn") && l["mois"] == json!("2025-12"))).cloned().collect();
     p.ecrire("journal/depots.json", &json!(sans_decembre));
-    let mut decembre = p.fichier("paies/2025-12.json");
-    decembre["engagements"][0]["valide"] = json!({"le": "2026-01-05T10:00:00"});
-    p.ecrire("paies/2025-12.json", &decembre);
+    let mut decembre = p.fichier("engagements/2025-12.json");
+    for e in decembre["engagements"].as_array_mut().unwrap().iter_mut().skip(1) {
+        e.as_object_mut().unwrap().remove("valide");
+    }
+    p.ecrire("engagements/2025-12.json", &decembre);
     p.edition("debloque");
     p
 }

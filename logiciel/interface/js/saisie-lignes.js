@@ -1576,6 +1576,55 @@ document.getElementById("ajouter-engagement").onclick = () => {
   rafraichirApercu();
 };
 
+/* LES CONTRATS EN COURS SE POSENT D'EUX-MÊMES. Un engagement commencé un
+   mois précédent est déjà dans le mois (le moteur le montre, `deja_repris`) ;
+   ce que le moteur rend en plus (`contrats-en-cours`), ce sont les contrats
+   repris d'un autre logiciel qui courent encore. Le mois ouvert les montre
+   tout de suite, préremplis et verrouillés ; il reste à poser les jours, ou
+   rien si aucun cachet ce mois-ci (la DSN porte le contrat, sans bulletin).
+   Un mois fermé ne reçoit rien. */
+let CONTRATS_EN_COURS = [];
+
+async function poserContratsEnCours(mois) {
+  try {
+    const r = await api("contrats-en-cours", { mois });
+    CONTRATS_EN_COURS = r.contrats || [];
+  } catch (e) { CONTRATS_EN_COURS = []; return; }
+  if (MOIS_AFFICHE !== mois) return;
+  if (!!MOIS_FERME && MOIS_FORCE !== mois) return;
+  const restants = CONTRATS_EN_COURS.filter((c) => !c.deja_repris);
+  if (!restants.length) return;
+  const cible = document.getElementById("engagements");
+  restants.forEach((c) => {
+    // L'engagement vient du moteur (`engagement_de_reprise`) : bornes,
+    // numéro, métier, et les lignes déjà datées quand le premier mois a
+    // coché son planning. Sinon une ligne de cachets, à dater.
+    const e = { ...(c.engagement || {}), salarie: c.salarie, spectacle: c.spectacle,
+                debut: c.debut, fin: c.fin, numero: c.numero };
+    // UN CONTRAT PAYÉ AU MOIS N'A PAS DE CACHET (09/10/2026) : le moteur le
+    // reprend avec sa nature et ce qui la définit, sans lignes — il compose
+    // chaque mois les siennes (`conges::lignes_du_mois`), et une ligne écrite
+    // remplacerait son salaire mensuel.
+    if (!natureDe(e.nature).mensuelle) {
+      // Le moteur rend toujours au moins une ligne de cachets, avec le taux
+      // du contrat ou le dernier saisi (`engagement_de_reprise`, #140).
+      e.lignes = (e.lignes || []).map((l) => (l.quantite === 0 ? { ...l, quantite: "" } : l));
+    }
+    // Ce que l'engagement repris porte d'autre (la durée de référence,
+    // l'emploi et les statuts déclarés…) se montre dans son formulaire
+    // (`CHAMPS_RARES`), et s'écrit de là.
+    cible.appendChild(ligneEngagement(e));
+  });
+  rafraichirApercu();
+  // Un permanent n'a pas de jours à poser : il est payé au mois (son salaire
+  // se dit dans son bloc).
+  const auMois = restants.every((c) => natureDe((c.engagement || {}).nature).mensuelle);
+  dire(restants.length === 1
+    ? `Contrat en cours repris : ${restants[0].nom}${auMois ? "" : ` — poser ses jours de ${moisEnClair(mois)}`}.`
+    : `${restants.length} contrats en cours repris (${restants.map((c) => c.nom).join(", ")})`
+      + (auMois ? "." : ` — poser leurs jours de ${moisEnClair(mois)}.`));
+}
+
 /** Ce qu'une paie dit d'elle-même en une ligne : son spectacle, ou — quand
  *  elle n'en a pas, parce que c'est un permanent — la nature de son contrat.
  *  « — » tout seul derrière un nom, c'est un écran qui a l'air cassé. */
