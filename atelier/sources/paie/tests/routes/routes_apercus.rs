@@ -163,8 +163,8 @@ fn bilan_repetition_resout_le_chemin_et_refuse_ce_qui_ne_designe_pas_un_fichier(
     let sous = |fichier: Value| json!({"quoi": "dsn", "fichier": fichier});
     // Un mois nu designe sa saisie ; un chemin relatif se cherche sous les donnees.
     assert_eq!(lire(c, "bilan-repetition", sous(json!("2026-09")))["fichier"], json!("2026-09.json"));
-    assert_eq!(lire(c, "bilan-repetition", sous(json!("paies//./2026-08.json")))["fichier"], json!("2026-08.json"));
-    for charge in [json!({}), json!({"quoi": "dsn"}), sous(json!(null)), sous(json!("  ")), sous(json!("absent.dsn")), sous(json!(5)), sous(json!("paies")), sous(json!("a\u{0}b"))] {
+    assert_eq!(lire(c, "bilan-repetition", sous(json!("engagements//./2026-08.json")))["fichier"], json!("2026-08.json"));
+    for charge in [json!({}), json!({"quoi": "dsn"}), sous(json!(null)), sous(json!("  ")), sous(json!("absent.dsn")), sous(json!(5)), sous(json!("engagements")), sous(json!("a\u{0}b"))] {
         assert!(refuse(c, "bilan-repetition", charge.clone()), "{}", charge);
     }
     ecrire_texte(c, "journal/depots.json", "{abime");
@@ -290,7 +290,7 @@ fn depot_apercu_dsn_dit_ce_que_la_paie_dit_autrement() {
     let r = lire(c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}));
     assert_eq!(r["recapitulatif"]["conforme"], json!(false));
     assert_eq!(r["recapitulatif"]["salaries"][0]["contrats"][0]["ecarts"], json!(["brut : la paie dit 620.00, le fichier 621.00"]));
-    std::fs::remove_file(c.join("engagements/2026-08.json")).unwrap();
+    std::fs::remove_dir_all(c.join("engagements")).unwrap();
     let r = lire(c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}));
     assert_eq!(r["recapitulatif"]["compare"], json!(false));
     assert_eq!(r["recapitulatif"]["salaries"][0]["contrats"][0]["paie"], json!(false));

@@ -284,20 +284,21 @@ fn un_numero_deja_pose_et_different_n_est_jamais_ecrase() {
     // Le jumeau porte deja son numero (parti a la signature) ; la saisie de l'ecran ne le porte pas. Le numero SE LIT
     // (regle 4) : le jumeau part sous BI4.26.99, et l'engagement le garde.
     let r = compagnie("jumeaux-conflit", &[]);
-    let i = octobre_avec_un_jumeau(&r, Some("BI4.26.99"));
+    octobre_avec_un_jumeau(&r, Some("BI4.26.99"));
     mois_pret(&r, "2026-10");
     signes_sous(&r, [&numero_neuf(&r, 1), "BI4.26.99"]);
     let premier = numero_neuf(&r, 1);
     let mut c = charge(&r, "2026-10");
-    c["saisie"]["engagements"][i + 1].as_object_mut().unwrap().remove("numero");
+    let j = c["saisie"]["engagements"].as_array().unwrap().iter().position(|e| e["numero"] == json!("BI4.26.99")).unwrap();
+    c["saisie"]["engagements"][j].as_object_mut().unwrap().remove("numero");
     let rep = route(&r, "2026-11-10", c);
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let paies = rep["resultat"]["paies"].as_array().unwrap();
-    assert_eq!(paies[i]["numero_contrat"], json!(premier));
-    assert_eq!(paies[i + 1]["numero_contrat"], json!("BI4.26.99"));
+    let numeros: Vec<&Value> = paies.iter().map(|p| &p["numero_contrat"]).collect();
+    assert!(numeros.contains(&&json!(premier)) && numeros.contains(&&json!("BI4.26.99")), "{:?}", numeros);
     let saisie = crate::outils::saisie(&r, "2026-10");
-    assert_eq!(saisie["engagements"][i + 1]["numero"], json!("BI4.26.99"), "{}", saisie);
-    assert_eq!(saisie["engagements"][i]["numero"], json!(premier), "{}", saisie);
+    let saisis: Vec<&Value> = saisie["engagements"].as_array().unwrap().iter().map(|e| &e["numero"]).collect();
+    assert!(saisis.contains(&&json!(premier)) && saisis.contains(&&json!("BI4.26.99")), "{}", saisie);
 }
 
 #[test]

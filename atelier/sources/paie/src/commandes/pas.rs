@@ -292,7 +292,7 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
             }
             m.to_string()
         }
-        None => match crate::routes_contrats::mois_saisis(ctx).into_iter().filter(|m| super::actes::mois_valide(m)).last() {
+        None => match crate::routes_mois::mois_saisis(&ctx.racine).into_iter().filter(|m| super::actes::mois_valide(m)).last() {
             Some(m) => m,
             None => {
                 dire!("Aucun mois saisi : un signalement d'amorcage declare un CONTRAT (bloc 40, cardinalite (1,1)), et il n'y en a aucun a declarer.");

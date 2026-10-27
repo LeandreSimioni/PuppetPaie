@@ -745,9 +745,10 @@ fn requis(v: &Value, cle: &str) -> Result<String, String> {
 /// `recapitulatif_dsn` : ce que la DSN declare, contrat par contrat, comparé aux contrats saisis.
 fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Result<Value, String> {
     let sals = lire_recap(octets)?;
+    // Un mois sans engagement n'a rien a comparer.
     let (mut compare, liste) = match saisie_aux_numeros_declares(ctx, mois) {
-        Ok(l) => (true, l),
-        Err(_) => (false, Vec::new()),
+        Ok(l) if !l.is_empty() => (true, l),
+        _ => (false, Vec::new()),
     };
     // `paies` : numero -> paie, dans l'ordre ou les numeros sont apparus
     let mut ordre: Vec<String> = Vec::new();

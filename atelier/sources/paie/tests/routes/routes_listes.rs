@@ -233,7 +233,7 @@ fn une_nature_inconnue_ou_un_mois_abime_refuse_les_fins_de_contrat() {
     assert!(message.starts_with("Nature de contrat inconnue : 'bidon'. Connues : "), "{}", message);
     ecrire_texte(c, "engagements/2026-08.json", "{");
     refus(c, "fins-de-contrat", json!({"mois": "2026-08"}));
-    crate::outils::poser_saisie(c, "2026-08", &json!([]));
+    ecrire_texte(c, "engagements/2026-08.json", "[]");
     refus(c, "fins-de-contrat", json!({"mois": "2026-08"}));
 }
 

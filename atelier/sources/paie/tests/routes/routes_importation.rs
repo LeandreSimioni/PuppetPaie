@@ -1359,7 +1359,8 @@ fn un_mois_importe_meme_sans_trace_ne_fait_l_objet_d_aucun_rappel_de_dsn() {
         (rappel, retard)
     };
     let saisie_de_decembre = |racine: &Path| {
-        std::fs::write(racine.join("paies").join("2024-12.json"), json!({"mois": "2024-12", "engagements": []}).to_string()).unwrap();
+        std::fs::create_dir_all(racine.join("engagements")).unwrap();
+        std::fs::write(racine.join("engagements").join("2024-12.json"), json!({"mois": "2024-12", "engagements": []}).to_string()).unwrap();
     };
 
     // Le temoin : des paies, aucune DSN au journal, mars sans rien -- mars est reclame, en retard.

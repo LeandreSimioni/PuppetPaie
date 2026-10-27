@@ -199,11 +199,16 @@ fn les_heures_le_genre_et_la_base_d_une_ligne_reviennent_a_la_page() {
 #[test]
 fn une_saisie_qui_ne_se_charge_pas_se_rend_telle_quelle() {
     let c = &compagnie("telle-quelle", &["2026-08"]);
-    let mut s = fichier(c, "2026-08");
+    let mut s = crate::outils::saisie(c, "2026-08");
     s["engagements"][0]["salarie"] = json!("Personne d'inconnu");
+    // Il change : il repasse en saisie, et sa validation (le salarie ne se resout pas) ne se fait pas.
+    s["engagements"][0].as_object_mut().unwrap().remove("valide");
     crate::outils::poser_saisie(c, "2026-08", &s);
     // Le salarie ne se resout pas : c'est l'apercu qui dira pourquoi, avec son message a lui.
-    assert_eq!(saisie_ouverte(c, "2026-08", "2026-09-10")["saisie"], s);
+    let rendue = saisie_ouverte(c, "2026-08", "2026-09-10")["saisie"].clone();
+    let engs = rendue["engagements"].as_array().unwrap();
+    assert_eq!(engs.len(), s["engagements"].as_array().unwrap().len(), "{}", rendue);
+    assert!(engs.contains(&s["engagements"][0]), "le nom qui ne se resout pas est rendu tel quel : {}", rendue);
     // Un fichier d'engagements qui n'est pas un dictionnaire ne se lit pas : refus.
     std::fs::write(c.join("engagements/2026-08.json"), "[1, 2]").unwrap();
     refus(&route(c, "saisie", json!({ "mois": "2026-08" }), "2026-09-10"));

@@ -78,8 +78,9 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
 - **Sa forme** (`engagement/src/stock.rs`) : son premier mois en clair (salarié, spectacle, `debut`, `fin`, lignes de
   paie datées…) ; chaque mois d'après n'écrit que ce qu'il change, sous `mois_suivants` (`null` : retiré). Le salarié,
   les bornes et le numéro de contrat sont ceux de l'engagement dans tous ses mois (`PARTAGES`) ; la nature, le
-  spectacle, l'emploi… se reconduisent d'un mois au suivant (`RECONDUITS`). Le fichier d'un mois porte aussi les
-  défauts du mois (`taux_cachet`, `date_paiement`).
+  spectacle, l'emploi… se reconduisent d'un mois au suivant (`RECONDUITS`) ; un contrat d'usage commence chaque mois
+  d'après avec les jours que le mois d'avant a mis au planning (une ligne par ligne qui en a). Le fichier d'un mois
+  porte aussi les défauts du mois (`taux_cachet`, `date_paiement`).
 - **Le mois de l'écran** (`stock::vue_du_mois`) : le fichier du mois et chaque engagement d'un mois d'avant qui court
   encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_vue_du_mois`) ; chaque engagement y retrouve
   son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.

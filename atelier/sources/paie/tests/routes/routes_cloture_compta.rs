@@ -168,6 +168,10 @@ fn l_export_compta_porte_le_prelevement_a_la_source_et_s_equilibre_avec_et_sans(
     // SANS PAS : les memes paies, jamais deposees, des taux DGFiP a zero. Rien au 442100, l'ecriture s'equilibre
     // encore, et le net au 421000 est le net d'avant impot : celui d'avec PAS, plus le PAS.
     std::fs::write(racine.join("journal").join("depots.json"), b"[]").unwrap();
+    // Rien n'est parti : chaque mois, a son ouverture, recalcule ses paies au taux recu.
+    for m in 1..=12 {
+        reussi(&route(&racine, "saisie", json!({"mois": format!("2025-{:02}", m)})));
+    }
     let r = route(&racine, "export-compta", json!({"annee": "2025", "apercu": true}));
     let sans = sommes_par_mois(reussi(&r));
     assert_eq!(sans.len(), avec.len());

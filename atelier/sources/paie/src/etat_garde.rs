@@ -267,6 +267,11 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
                 "lectures": lus,
             })
         };
+        // Le mois que l'ouverture montre s'ouvre avec elle : ses paies validees se recalculent ici
+        // (`engagement::etats::rafraichir`), pas apres l'ecriture de l'etat, qui serait aussitot perime.
+        if let Some(m) = etat.pointer("/lectures/mois-a-ouvrir/resultat/mois").and_then(Value::as_str).filter(|_| mois == OUVERTURE) {
+            let _ = engagement::etats::rafraichir(ctx, m);
+        }
         if empreinte(ctx, mois) == avant {
             if mois == OUVERTURE {
                 ecrire(&ctx.racine, &etat);

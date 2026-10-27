@@ -114,6 +114,10 @@ fn un_engagement_sur_deux_mois_est_un_seul_objet_dans_le_fichier_de_son_premier_
 fn des_bornes_qui_laissent_un_mois_paye_hors_du_contrat_se_refusent_sans_rien_ecrire() {
     let r = compagnie("bornes");
     a_cheval(&r);
+    // Decembre a ses propres jours payes, ecrits dans decembre (le taux n'est pas celui du planning).
+    let mut decembre = contrat("Brioche", "2026-11-28", "2026-12-02", &["2026-12-01", "2026-12-02"], &[]);
+    decembre["lignes"][0]["taux"] = json!(160.0);
+    reussi(&enregistrer(&r, "2026-12", json!([decembre])));
     let avant = std::fs::read(r.join("engagements/2026-11.json")).unwrap();
     let r2 = enregistrer(&r, "2026-11", json!([contrat("Brioche", "2026-11-28", "2026-11-30", &["2026-11-28", "2026-11-29", "2026-11-30"], &[])]));
     let (_, message) = refus(&r2);

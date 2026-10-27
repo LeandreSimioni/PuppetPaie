@@ -693,11 +693,12 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
 
     // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche. Le Python ne le
     // voyait pas (une embauche par paie retenue). Decision du 07/10/2026 : la DPAE ne se produit pas ; le refus dit
-    // lesquelles (salarie, jour) et qu'il faut corriger la saisie. Le numero de contrat ne distingue pas deux lignes.
+    // lesquelles (salarie, jour) et qu'il faut corriger la saisie. Ni le numero de contrat ni la validation ne distinguent
+    // deux lignes.
     if let Some(brutes) = data.get("engagements").and_then(Value::as_array).filter(|b| b.len() == paies.len()) {
         let sans_numero = |v: &Value| -> Value {
             match v {
-                Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| *k != "numero").map(|(k, x)| (k.clone(), x.clone())).collect()),
+                Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| *k != "numero" && *k != "valide").map(|(k, x)| (k.clone(), x.clone())).collect()),
                 autre => autre.clone(),
             }
         };

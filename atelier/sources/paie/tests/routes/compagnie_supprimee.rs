@@ -31,7 +31,7 @@ fn poste(inst: &Path) -> Poste {
 /// fictive 3090 -- rien de son journal des depots : en demo, rien n'y a ete ecrit.
 fn ajoutee_avec_saisies(inst: &Path, nom: &str) -> PathBuf {
     let r = ajouter_dans(inst, nom).unwrap().racine;
-    for d in ["config", "paies", "gabarits"] {
+    for d in ["config", "engagements", "gabarits"] {
         copier(&fictive("fictive-3090-petite").join(d), &r.join(d));
     }
     // Le nom qu'on lui a donne au « + ».

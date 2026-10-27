@@ -287,7 +287,7 @@ pub fn poser_saisie(racine: &Path, mois: &str, v: &Value) {
         }
         e
     };
-    let avant = saisie(racine, mois);
+    let avant = engagement::stock::vue_du_mois(racine, mois).ok().flatten().unwrap_or(Value::Null);
     let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
     for (i, o) in objets.iter().enumerate() {
         let change = v["engagements"].get(i).map(sans_validation) != avant["engagements"].get(i).map(sans_validation);

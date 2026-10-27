@@ -190,9 +190,9 @@ fn apercu(c: &Path, saisie: &Value, lignes: bool) -> Value {
 
 /// Remet en saisie l'engagement de rang `i` du mois (« Modifier… », la question du moteur acceptee).
 fn modifier(c: &Path, mois: &str, i: usize, jour: &str) {
-    let etat = route(c, "etat-par-engagement", json!({"mois": mois}), jour);
-    let e = reussi(&etat)["engagements"][i].clone();
-    let charge = json!({"mois": mois, "salarie": e["salarie"], "debut": e["debut"], "numero": e["numero"], "valide": false, "confirme": true});
+    let e = saisie(c, mois)["engagements"][i].clone();
+    // La cle de la fiche, comme l'ecran la rend (les fiches de la fictive : le nom en capitales).
+    let charge = json!({"mois": mois, "salarie": e["salarie"].as_str().unwrap().to_uppercase(), "debut": e["debut"], "numero": e["numero"], "valide": false, "confirme": true});
     reussi(&route(c, "valider-engagement", charge, jour));
 }
 
@@ -258,6 +258,8 @@ fn les_numeros_se_reservent_a_la_suite_des_compteurs_sans_les_ecrire() {
 #[test]
 fn une_saisie_incomplete_est_un_refus_qui_garde_son_nom() {
     let c = &compagnie("incomplete", &[MOIS]);
+    // L'apercu d'un engagement valide lit sa paie ecrite : celui-ci repasse en saisie, l'apercu le calcule.
+    modifier(c, MOIS, 0, "2026-09-10");
     let mut s = saisie(c, MOIS);
     s["engagements"][0]["lignes"][0]["dates"] = json!([]);
     let r = apercu(c, &s, false);

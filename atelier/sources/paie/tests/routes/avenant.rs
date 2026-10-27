@@ -85,7 +85,7 @@ struct Monde {
 
 impl Monde {
     fn ecrire_saisie(&self, v: &Value) {
-        std::fs::write(self.racine.join("engagements").join(format!("{}.json", MOIS)), serde_json::to_string_pretty(v).unwrap()).unwrap();
+        crate::outils::poser_saisie(&self.racine, MOIS, v);
     }
 
     fn journal(&self, lignes: Vec<Value>) {
@@ -310,7 +310,7 @@ fn emploi_au_contrat(nom: &str, salarie: &str, metier: &str) -> (String, String)
     let mut s = saisie(185.0, "Scene fictive du Mans");
     s["engagements"][0]["salarie"] = json!(salarie);
     s["engagements"][0]["metier"] = json!(metier);
-    std::fs::write(racine.join("engagements").join(format!("{}.json", MOIS)), s.to_string()).unwrap();
+    crate::outils::poser_saisie(&racine, MOIS, &s);
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire(AUJOURDHUI).unwrap())).unwrap();
     let cle = ctx.salarie(salarie).unwrap()["_cle"].as_str().unwrap().to_string();
     let v = valeurs_du_contrat(&ctx, MOIS, &cle, DEBUT).unwrap().expect("la paie de ce contrat");

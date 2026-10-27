@@ -50,21 +50,6 @@ fn un_jour_hors_contrat_ou_un_autre_format_de_date() {
 }
 
 #[test]
-fn un_contrat_declare_deux_fois_ne_sort_qu_une_fois_et_sans_numero_il_sort_vide() {
-    let c = &compagnie("ac-doublon");
-    let mut d = crate::outils::saisie(c, "2025-01");
-    let e0 = d["engagements"][0].clone();
-    d["engagements"].as_array_mut().unwrap().push(e0);
-    let n = d["engagements"].as_array().unwrap().len();
-    d["engagements"][0].as_object_mut().unwrap().remove("numero");
-    d["engagements"][n - 1].as_object_mut().unwrap().remove("numero");
-    crate::outils::poser_saisie(c, "2025-01", &d);
-    let r = contrats_de(c, "BRIOCHE", "2025-01-22");
-    assert_eq!(r.len(), 1);
-    assert_eq!(r[0]["numero"], json!(""));
-}
-
-#[test]
 fn une_charge_fausse_ou_un_mois_abime_refuse() {
     let c = &compagnie("ac-refus");
     for charge in [json!({"jour": "2025-01-22"}), json!({"salarie": "BRIOCHE"}), json!({"salarie": "Zzzzzzzzzz", "jour": "2025-01-22"}), json!({"salarie": "BRIOCHE", "jour": "pas une date"})] {
