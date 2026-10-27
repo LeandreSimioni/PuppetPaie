@@ -564,10 +564,9 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
         return Err(erreur(
             "AnnuleRemplaceHorsDelai",
             format!(
-                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). La correction se porte dans la DSN suivante : Historique › Corriger ce mois (`paie corriger {}`). Rien n'est ecrit.",
+                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien n'est parti.",
                 mois,
-                limite.jj_mm_aaaa(),
-                mois
+                limite.jj_mm_aaaa()
             ),
         ));
     }

@@ -479,7 +479,7 @@ fn phrase_des_dates(mois: &str, declarees: &Bornes, corrigees: &Bornes) -> R<Str
     });
     if !autres.is_empty() {
         phrase.push_str(&format!(
-            " Le contrat court aussi sur {} : chaque mois se corrige pour lui-même (« Corriger ce mois »), et la DSN suivante porte un versement par mois civil (cahier technique DSN §2.2.2.5).",
+            " Le contrat court aussi sur {} : chaque mois se corrige pour lui-même, et la DSN suivante porte un versement par mois civil (cahier technique DSN §2.2.2.5).",
             autres.iter().map(|m| mois_en_clair(m)).collect::<Vec<_>>().join(" et ")
         ));
     }
@@ -520,7 +520,7 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
 }
 
 /// La saisie d'un mois TELLE QUE DECLAREE, gardee quand on la modifie apres la limite de l'annule-et-remplace : la
-/// correction (`Corriger ce mois`) se calcule depuis ce que la DSN deposee a declare, pas depuis la saisie modifiee.
+/// correction se calcule depuis ce que la DSN deposee a declare, pas depuis la saisie modifiee.
 /// A cote des corrections du mois, sous un nom que `routes_ecrites::toutes_les_corrections` ne lit pas.
 pub(crate) fn chemin_saisie_declaree(ctx: &Contexte, mois: &str) -> PathBuf {
     ctx.racine.join("regularisations").join(format!("{}.saisie-declaree.json", mois))
@@ -532,7 +532,7 @@ pub(crate) fn chemin_saisie_declaree(ctx: &Contexte, mois: &str) -> PathBuf {
 /// * tant que l'annule-et-remplace est admis (jusqu'a la veille de l'echeance, minuit) : une phrase, rien a confirmer ;
 /// * apres : `confirmer`, et l'avertissement que la page montre a la premiere modification. Il dit ce qui est VRAI : la DSN
 ///   deposee ne change plus ; la correction se declare dans la DSN du mois courant (celle qui embarque les corrections,
-///   `produire_regularisations::corrections_a_porter`), une fois ecrite par « Corriger ce mois » -- modifier la saisie
+///   `produire_regularisations::corrections_a_porter`), une fois ecrite (`depart::corrections_dues`) -- modifier la saisie
 ///   ne l'ecrit pas, et l'ecrire est un acte (mot de passe du logiciel, `regularisation-ecrire`).
 pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     let etat = etat_mois(m, ctx, &json!(mois))?;
@@ -558,11 +558,11 @@ pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str
         "limite": veille.iso(),
         "mois_courant": etat["mois_courant"],
         "phrase": format!(
-            "La DSN {} est déposée et ne peut plus être remplacée : modifier cette paie se confirme, et la correction se déclare dans la DSN {} par « Corriger ce mois ».",
+            "La DSN {} est déposée et ne peut plus être remplacée : modifier cette paie se confirme, et la correction se déclare dans la DSN {}.",
             de, porteur
         ),
         "avertissement": format!(
-            "La limite de la DSN {} est passée : l'annule-et-remplace n'est plus admis depuis le {} à minuit, on ne peut plus la remplacer. La DSN déposée ne changera pas : la correction se déclarera dans la DSN {}, une fois écrite par « Corriger ce mois » (étape DSN). Êtes-vous sûr de vouloir modifier cette paie ?",
+            "La limite de la DSN {} est passée : l'annule-et-remplace n'est plus admis depuis le {} à minuit, on ne peut plus la remplacer. La DSN déposée ne changera pas : la correction se déclarera dans la DSN {}. Êtes-vous sûr de vouloir modifier cette paie ?",
             de,
             veille.jj_mm_aaaa(),
             porteur
@@ -700,7 +700,7 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
         let debut = socle::date::Jour::lire(&id.1).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| id.1.clone());
         if j.is_none() {
             return Ok(Some(format!(
-                "Le contrat de {} du {} est déclaré dans la DSN {}, dont l'annule-et-remplace est passé : il ne se retire plus. La norme DSN n'annule pas un contrat déclaré (seule une fin de contrat s'annule, motif 099, fiche net-entreprises 1722). S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : « Corriger ce mois » déclarera l'annulation de ses montants dans la DSN suivante (rappel de paie, cahier technique DSN §2.1.3.6) ; sa DPAE s'annule auprès de l'Urssaf. Rien n'est enregistré.",
+                "Le contrat de {} du {} est déclaré dans la DSN {}, dont l'annule-et-remplace est passé : il ne se retire plus. La norme DSN n'annule pas un contrat déclaré (seule une fin de contrat s'annule, motif 099, fiche net-entreprises 1722). S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : la DSN suivante déclarera l'annulation de ses montants dans la DSN suivante (rappel de paie, cahier technique DSN §2.1.3.6) ; sa DPAE s'annule auprès de l'Urssaf. Rien n'est enregistré.",
                 nom, debut, de
             )));
         }

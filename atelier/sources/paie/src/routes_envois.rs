@@ -335,7 +335,7 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, data: &Value, paies: &[engagem
 
 /// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE (Leandre, 21/10/2026 : « le courriel de renvoi, dans ce
 /// cas, ajoute une phrase : la correction sera declaree avec la paie du mois suivant »). La DSN deposee ne se refait plus ;
-/// la correction part dans la DSN d'un mois suivant, celle qui embarque les corrections ECRITES (« Corriger ce mois »,
+/// la correction part dans la DSN d'un mois suivant, celle qui embarque les corrections ECRITES (`depart::corrections_dues`,
 /// `produire_regularisations::corrections_a_porter`) : celle du mois courant pour une correction en attente, celle qui
 /// l'a preparee ou portee sinon. Le paragraphe nomme ce mois quand la correction du salarie est ecrite ; sans elle, il ne
 /// dit que « une paie suivante » (l'etape DSN du mois reste orange tant qu'elle ne l'est pas). `None` : le mois n'en est

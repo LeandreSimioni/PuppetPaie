@@ -1582,7 +1582,7 @@ document.getElementById("ajouter-engagement").onclick = () => {
    repris d'un autre logiciel qui courent encore. Le mois ouvert les montre
    tout de suite, préremplis et verrouillés ; il reste à poser les jours, ou
    rien si aucun cachet ce mois-ci (la DSN porte le contrat, sans bulletin).
-   Un mois fermé ne reçoit rien. */
+   */
 let CONTRATS_EN_COURS = [];
 
 async function poserContratsEnCours(mois) {
@@ -1591,7 +1591,6 @@ async function poserContratsEnCours(mois) {
     CONTRATS_EN_COURS = r.contrats || [];
   } catch (e) { CONTRATS_EN_COURS = []; return; }
   if (MOIS_AFFICHE !== mois) return;
-  if (!!MOIS_FERME && MOIS_FORCE !== mois) return;
   const restants = CONTRATS_EN_COURS.filter((c) => !c.deja_repris);
   if (!restants.length) return;
   const cible = document.getElementById("engagements");

@@ -434,7 +434,7 @@ pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
 /// `bilan_des_mois` : chaque mois connu, du plus recent au plus ancien, avec ou
 /// en est sa DSN (en mots), s'il se corrige, et quelles SORTES de documents il
 /// a. L'etat de la DSN : « passee » (bilan OK), « refusee », « attente »,
-/// « a_deposer », « a_ecrire », « en_retard » ; la meme lecture que les
+/// « a_deposer », « en_retard » ; la meme lecture que les
 /// rappels : le journal des depots, et lui seul.
 fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]) -> R<Value> {
     let mut out = Vec::new();
@@ -471,11 +471,9 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
-        // Une DPAE deposee en cours de mois fait un fichier, pas un mois ecrit : le mois est ecrit quand le moteur a note
-        // sa DSN mensuelle (`depart::mois_ecrit`, le critere de l'horloge et des rappels), et il dit alors
-        // « a deposer ».
-        let etat = etat.unwrap_or(if crate::depart::mois_ecrit(&ctx.racine, nom) { "a_deposer" } else { "a_ecrire" });
-        // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a ecrire, a deposer, refusee ou en
+        // Une DSN qui n'est pas partie est a deposer : elle se fabrique a son depot.
+        let etat = etat.unwrap_or("a_deposer");
+        // CE QUI RESTE A FAIRE DANS LA PAGE PAIE (Historique, 20/10/2026) : une DSN a deposer, refusee ou en
         // retard, ou une DSN passee dont la paie a change depuis, tant que l'annule-et-remplace est admis. Le reste se
         // lit dans l'Historique : un mois fini n'a plus de chemin vers la page Paie.
         let a_faire = match etat {

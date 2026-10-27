@@ -814,20 +814,20 @@ impl<'a> Moteur<'a> {
         let quand = quand_lisible(get(derniere, "quand")?);
         let jour = lim.jj_mm_aaaa();
         if let (true, Some(c)) = (modifiee && !admis, &couverture) {
-            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction (« Corriger ce mois ») par contrat dont la paie a
+            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction par contrat dont la paie a
             // change ou qui est ajoute, et qui declare la paie d'AUJOURD'HUI (`routes_regularisation::couverture`).
             let pluriel = |n: usize| if n > 1 { "s" } else { "" };
             let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
             if c.a_ecrire == 0 && c.a_refaire == 0 && c.retires == 0 {
                 out.insert("correction_ecrite".into(), json!(true));
-                phrase.push_str(" — la correction est écrite (Corriger ce mois), elle part dans la DSN suivante");
+                phrase.push_str(" — la correction est écrite, elle part dans la DSN suivante");
             } else {
                 if c.a_ecrire > 0 {
-                    phrase.push_str(&format!(" — {} contrat{} à corriger dans la DSN suivante (Corriger ce mois)", c.a_ecrire, pluriel(c.a_ecrire)));
+                    phrase.push_str(&format!(" — {} contrat{} corrigé{} par la DSN suivante, quand elle se fabrique", c.a_ecrire, pluriel(c.a_ecrire), pluriel(c.a_ecrire)));
                 }
                 if c.a_refaire > 0 {
                     phrase.push_str(&format!(
-                        " — la paie a encore changé depuis la correction écrite — à corriger à nouveau (Corriger ce mois, {} contrat{})",
+                        " — la paie a encore changé depuis la correction écrite : la DSN suivante la refait ({} contrat{})",
                         c.a_refaire,
                         pluriel(c.a_refaire)
                     ));
@@ -856,7 +856,7 @@ impl<'a> Moteur<'a> {
                 out.insert(
                     "phrase".into(),
                     json!(format!(
-                        "Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit) — la correction part dans la DSN suivante (Corriger ce mois)",
+                        "Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit) — la correction part dans la DSN suivante",
                         quand, jour
                     )),
                 );
