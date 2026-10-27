@@ -292,11 +292,24 @@ fn appliquer(v: &mut Map<String, Value>, change: &Map<String, Value>) {
     }
 }
 
+/// Une valeur telle qu'elle se compare : sa forme canonique (`canonique`), sans les listes vides (une ligne sans
+/// `planning` et une ligne au planning vide disent la meme chose).
+fn comparable(v: &Value) -> String {
+    fn sans_vides(v: &Value) -> Value {
+        match v {
+            Value::Object(m) => Value::Object(m.iter().filter(|(_, x)| !x.as_array().is_some_and(Vec::is_empty)).map(|(k, x)| (k.clone(), sans_vides(x))).collect()),
+            Value::Array(a) => Value::Array(a.iter().map(sans_vides).collect()),
+            autre => autre.clone(),
+        }
+    }
+    canonique(&sans_vides(v))
+}
+
 /// Ce qui distingue `vue` de `base` : ce qui change ou s'ajoute, et `null` pour ce qui est retire.
 fn difference(base: &Map<String, Value>, vue: &Map<String, Value>) -> Map<String, Value> {
     let mut d = Map::new();
     for (k, x) in vue {
-        if base.get(k) != Some(x) {
+        if base.get(k).map(comparable) != Some(comparable(x)) {
             d.insert(k.clone(), x.clone());
         }
     }

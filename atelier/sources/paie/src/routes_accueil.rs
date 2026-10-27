@@ -162,9 +162,12 @@ fn compteurs(racine: &Path) -> R<Value> {
 fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
     let mensuelles: BTreeSet<String> = natures::natures().map_err(plain)?.iter().filter(|n| n.mensuelle()).map(|n| n.cle.clone()).collect();
     let mut trouves: BTreeSet<String> = BTreeSet::new();
-    // Un fichier illisible est ignore.
-    for o in engagement::stock::objets(&ctx.racine).unwrap_or_default() {
-        let e = &o.brut;
+    // Un fichier illisible est ignore ; les autres se lisent.
+    let fichiers = engagement::stock::fichiers(&ctx.racine);
+    let lus = fichiers.iter().filter_map(|f| engagement::stock::lire_fichier(&ctx.racine, f).ok().flatten());
+    let objets: Vec<Map<String, Value>> =
+        lus.flat_map(|m| m.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default()).filter_map(|e| e.as_object().cloned()).collect();
+    for e in &objets {
         let suites = e.get(engagement::stock::SUITE).and_then(Value::as_object).into_iter().flat_map(|s| s.values());
         let natures = std::iter::once(e.get("nature")).chain(suites.map(|s| s.get("nature")));
         if !natures.flatten().filter_map(Value::as_str).any(|n| mensuelles.contains(n)) {
