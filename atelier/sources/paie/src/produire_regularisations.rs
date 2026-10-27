@@ -120,7 +120,7 @@ fn ajout(ctx: &Contexte, m: &mut Moteur, c: Map<String, Value>, mois: String, nu
     if !apres.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
         return Err(erreur(
             "MoisNonRegularisable",
-            format!("Correction n° {} de {} : le contrat ajoute n'a pas de numero (S21.G00.40.009). Reecrire la correction : elle le fige.", numero, mois),
+            format!("Correction n° {} de {} : le contrat ajoute n'a pas de numero (S21.G00.40.009). Valider l'engagement, puis reecrire la correction.", numero, mois),
         ));
     }
     let declare = VersementDeclare {

@@ -875,19 +875,13 @@ fn apercu_d_un_ajout(
     }))
 }
 
-/// LE NUMERO D'UN CONTRAT AJOUTE, quand sa correction s'ecrit pour partir dans la DSN suivante : la correction le porte,
-/// la DSN le declare sous ce numero (S21.G00.40.009), et il ne se recalcule plus (regle 4). S'il n'en a pas encore, il
-/// le prend la (`engagement::numeros::numero_au_depart`).
-pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> R<String> {
+/// LE NUMERO D'UN CONTRAT AJOUTE, que sa correction porte dans la DSN suivante (S21.G00.40.009) : celui que son
+/// engagement a recu a sa validation (`engagement::numeros`). Un engagement en saisie n'en a pas : il se valide d'abord.
+pub(crate) fn numero_du_contrat(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> R<String> {
     let data = engagement::saisie_du_mois(&ctx.racine, mois)?;
     let ids = crate::routes_ecritures::identifiants(ctx, &data).map_err(|e| erreur("ValueError", e))?;
-    let rang = ids
-        .iter()
-        .position(|(s, d, _)| s == salarie && d == debut)
-        .ok_or_else(|| non_regularisable(format!("Aucun engagement de {} commencant le {} dans la saisie de {}.", salarie, debut, mois)))?;
-    if let Some((_, _, Some(n))) = ids.get(rang) {
-        return Ok(n.clone());
-    }
-    let numeros = engagement::numeros::numero_au_depart(ctx, mois, &[(rang, None)]).map_err(Echec::from)?;
-    Ok(numeros.into_iter().next().unwrap_or_default())
+    let Some((_, _, numero)) = ids.iter().find(|(s, d, _)| s == salarie && d == debut) else {
+        return Err(non_regularisable(format!("Aucun engagement de {} commencant le {} dans la saisie de {}.", salarie, debut, mois)));
+    };
+    numero.clone().ok_or_else(|| non_regularisable(format!("L'engagement de {} du {} n'est pas valide : il se valide d'abord. Rien n'est ecrit.", salarie, debut)))
 }

@@ -461,7 +461,7 @@ fn regroupement_lisible(r: &str) -> &'static str {
 }
 
 /// `_lignes_du_mois` : les lignes du livre pour un mois SAISI, ce qu'il a fallu taire, et si ses numeros de
-/// contrat sont figes. Les bulletins sont RECALCULES ; aucun numero n'est invente.
+/// contrat sont tous ecrits. Les bulletins sont RECALCULES ; aucun numero n'est invente.
 fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
     let (_, toutes) = charger_mois(ctx, mois)?;
     let paies: Vec<Paie> = toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect();
@@ -501,7 +501,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
             },
         });
     }
-    // Ses numeros de contrat sont figes quand chaque contrat est parti a la signature.
+    // Ses numeros de contrat sont ecrits quand chaque engagement est valide.
     Ok((lignes, sans_pas, paies.iter().all(|p| p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()))))
 }
 

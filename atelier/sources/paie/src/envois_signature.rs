@@ -1,5 +1,3 @@
-
-
 //! Les contrats qui partent : `demander-signature` (par courriel, avec le bouton « Je signe »), `contrats-imprimer`
 //! (pour une remise en main propre), `avenant-envoyer` et `avenants-envoyer`.
 //!
@@ -12,8 +10,8 @@
 //! Tout se verifie avant que rien ne parte, puis la preuve (le mot de passe du logiciel) ; les PDF s'ecrivent apres
 //! elle : rien n'est ecrit sur un refus.
 //!
-//! UN CONTRAT QUI PART FIXE SON NUMERO : envoye a la signature ou imprime pour etre remis en main propre, il porte un
-//! numero, qui s'ecrit dans son engagement (`numeros_des_partis`).
+//! Chaque contrat part sous le numero que son engagement porte depuis sa validation (`engagement::numeros`) ; le
+//! journal note qu'il est parti.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -300,7 +298,7 @@ fn nom_du_pdf(cle: &str, ps: &[Paie], etiq: &str, suffixe: &str) -> String {
 
 /// La route `contrats-imprimer` : les contrats choisis (comme `demander-signature`), un PDF par salarie dans
 /// `sorties/<mois>/envoi/`, a imprimer et a remettre en main propre. L'IMPRESSION EST UN DEPART : chaque contrat y
-/// prend son numero, ecrit dans son engagement, et le journal le note (`contrat-signature`, `main_propre`) ; le contrat
+/// part sous son numero, et le journal le note (`contrat-signature`, `main_propre`) ; le contrat
 /// revenu signe se note ensuite d'un clic (`contrat-recu`). Rien ne quitte le poste : aucun mot de passe.
 pub(crate) fn contrats_imprimer(ctx: &Contexte, charge: &Value) -> R<Value> {
     contrats_imprimer_par(ctx, charge, "interface")
@@ -320,7 +318,7 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
     let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
     let rangs: Vec<Paire> = paies.iter().enumerate().map(|(i, p)| (cle_de(p), format!("{}#{}", p.engagement.debut.iso(), i))).collect();
     let empreintes = Moteur::empreintes_engagements(&SaisieMois { data: data.clone(), paies: Vec::new() }, &rangs);
-    let (mut fichiers, mut contrats, mut rangs_partis) = (Vec::new(), Vec::new(), Vec::new());
+    let (mut fichiers, mut contrats) = (Vec::new(), Vec::new());
     for (cle, ps, rs) in &par_salarie {
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, ""));
         crate::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &[])?;
@@ -328,10 +326,8 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
         for (p, rang) in ps.iter().zip(rs) {
             let empreinte = empreintes.get(&(cle.clone(), format!("{}#{}", p.engagement.debut.iso(), rang)));
             contrats.push(Value::Object(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, empreinte, &ent)));
-            rangs_partis.push(*rang);
         }
     }
-    numeros_des_partis(ctx, &s_mois, &contrats, &rangs_partis)?;
     let detail = json!({"contrats": contrats, "main_propre": true});
     let ligne = noter(ctx, "contrat-signature", Some(&mois), qui, true, "", &format!("{} contrat(s) imprime(s) pour une remise en main propre", contrats.len()), Some(&detail))?;
     Ok(json!({"fichiers": fichiers, "contrats": contrats, "ligne": ligne}))
@@ -415,7 +411,6 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     let expediteur = client.compte().to_lowercase();
     let mut messages: Vec<Message> = Vec::new();
     let mut contrats: Vec<Value> = Vec::new();
-    let mut rangs_envoyes: Vec<usize> = Vec::new();
     // Retours Windows, B : TOUTES les adresses se verifient avant d'ecrire le moindre PDF (un refus ne laisse rien sur le disque).
     for (cle, ps, _) in &par_salarie {
         if vrai_ou(&ps[0].salarie, "email").unwrap_or_default().trim().is_empty() {
@@ -499,7 +494,6 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
         messages.push(message);
         for ((p, t), rang) in ps.iter().zip(&titres).zip(rs) {
             let debut = p.engagement.debut.iso();
-            rangs_envoyes.push(*rang);
             let mut c = entree_du_contrat(ctx, p, cle, &pdf, t, &s_mois, empreintes.get(&(cle.clone(), format!("{}#{}", debut, rang))), &ent);
             // Ce qu'il faut pour reconnaitre la reponse : le code, et l'adresse dont elle doit venir.
             c.insert("code".into(), json!(code));
@@ -534,8 +528,6 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
             o.insert("message".into(), json!(ident));
         }
     }
-    // Le contrat est parti sous le numero qu'il porte : il s'ecrit dans l'engagement.
-    numeros_des_partis(ctx, &s_mois, &contrats, &rangs_envoyes)?;
     let detail = json!({"contrats": contrats, "expediteur": expediteur, "relance": relance});
     let ligne = noter(
         ctx,
@@ -582,22 +574,6 @@ fn verifier_relance(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, cle
         };
         return Err(refus(format!("Le contrat de {} du {} {}, il ne se relance pas. Rien n'est parti.", salarie, debut, pb)));
     }
-    Ok(())
-}
-
-// ------------------------------------------------------------------ le numero des contrats partis
-
-/// Les contrats qui partent de `mois` (`contrats` : [{"numero"}] ; `rangs` : leur rang parmi les paies qui peuvent
-/// partir, `apercu_dsn::paies_aux_numeros_declares`) : chacun garde le numero que son document porte, ecrit dans son
-/// engagement (`engagement::numeros::numero_au_depart`).
-pub(crate) fn numeros_des_partis(ctx: &Contexte, mois: &str, contrats: &[Value], rangs: &[usize]) -> R<()> {
-    let ecran = engagement::numeros::rangs_des_valides(&ctx.racine, mois).map_err(Echec::from)?;
-    let mut departs = Vec::new();
-    for (c, rang) in contrats.iter().zip(rangs) {
-        let Some(&r) = ecran.get(*rang) else { continue };
-        departs.push((r, c.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)));
-    }
-    engagement::numeros::numero_au_depart(ctx, mois, &departs).map_err(Echec::from)?;
     Ok(())
 }
 

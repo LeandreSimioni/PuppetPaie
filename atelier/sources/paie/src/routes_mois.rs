@@ -361,7 +361,7 @@ impl<'a> Moteur<'a> {
     /// `engagement.numeroter`, la part des numeros de CONTRAT : un engagement qui porte deja son numero le garde ; les
     /// autres prennent la suite des numeros deja pris pour leur salarie (`engagement::numeros::derniers_pris`), en
     /// memoire (rien n'est ecrit). Un mois qui n'est pas le premier du contrat n'en recoit pas : son numero est celui de
-    /// l'engagement, ecrit quand le contrat part (`engagement::refus_sans_numero`).
+    /// l'engagement, ecrit a sa validation (`engagement::refus_sans_numero`).
     fn numeroter(&mut self, paies: &mut [Paie], annee: i32) -> R<()> {
         let mut pris: Option<HashMap<String, i64>> = None;
         for p in paies.iter_mut() {

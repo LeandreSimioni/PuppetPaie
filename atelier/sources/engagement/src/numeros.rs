@@ -1,26 +1,29 @@
 //! LE NUMERO D'UN CONTRAT (regle 4 : il ne se recalcule pas, il se lit). Il identifie le contrat en DSN
 //! (S21.G00.40.009), unique par individu et par etablissement dans une declaration (CCH-12,
-//! `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.40.txt`) ; aucune continuite n'est exigee.
+//! `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.40.txt`) ; aucune suite continue n'est exigee.
 //!
-//! Avant tout depart, un engagement n'a pas de numero : l'ecran et les documents en fabrication montrent celui qui lui
-//! serait donne (`derniers_pris` + 1, dans l'ordre de l'ecran). Le premier depart qui le porte -- l'envoi du contrat a la
-//! signature, son impression pour une remise en main propre, le depot reel de la DSN -- l'ecrit dans l'engagement par
-//! `numero_au_depart`, la seule fonction qui l'ecrit. Ensuite il se relit.
+//! Il s'ecrit dans l'engagement a sa validation (`a_la_validation`, que seule `etats::valider` appelle), puis tout ce qui
+//! part -- le contrat a la signature ou imprime, la DPAE, la DSN, le bulletin -- le lit la. Le numero donne est le suivant
+//! du plus haut que portent, pour le meme salarie et la meme annee, les engagements et les envois du journal
+//! (`derniers_pris`) : un engagement supprime avant tout envoi rend le sien.
 //!
-//! Le rang d'un numero se lit dans ce qui est deja pris : les numeros que portent les engagements, et ceux que le journal
-//! des envois (`journal/depots.json`) dit partis, meme quand leur engagement n'est plus la.
+//! Une revalidation garde le numero. Tant que rien n'est parti sous lui, un engagement dont le salarie ou le debut a
+//! change en recoit un nouveau ; des qu'un envoi l'a porte, il ne change plus.
 
 use std::collections::HashMap;
 use std::path::Path;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use socle::date::en_texte;
 use socle::fichiers::vrai;
 use socle::num::Resultat;
 
-use crate::stock;
+use crate::stock::{self, Objet};
+
+/// Pour qui le numero a ete donne : la cle du salarie et le debut du contrat a ce moment-la, et quand.
+const POUR: &str = "numero_pour";
 
 /// L'annee (2000 + les deux chiffres) et le rang d'un numero `FA1.26.16` ; `None` s'il n'a pas cette forme.
 pub fn annee_et_rang(n: &str) -> Option<(i32, i64)> {
@@ -43,8 +46,13 @@ pub fn former(fiche: &Value, annee: i32, seq: i64) -> Resultat<String> {
 }
 
 /// Le dernier rang pris en `annee`, par salarie (la cle de sa fiche) : le plus grand des numeros de cette annee que
-/// portent ses engagements ou que le journal des envois dit partis pour lui.
+/// portent ses engagements, ou que le journal des envois dit partis pour lui.
 pub fn derniers_pris(ctx: &Contexte, annee: i32) -> Resultat<HashMap<String, i64>> {
+    derniers_pris_sauf(ctx, annee, None)
+}
+
+/// La meme, sans l'engagement `sauf` (son fichier et son rang) : celui qui recoit un nouveau numero.
+fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>) -> Resultat<HashMap<String, i64>> {
     let mut pris: HashMap<String, i64> = HashMap::new();
     let mut noter = |cle: &str, numero: &str| {
         if let Some((a, seq)) = annee_et_rang(numero) {
@@ -55,20 +63,36 @@ pub fn derniers_pris(ctx: &Contexte, annee: i32) -> Resultat<HashMap<String, i64
         }
     };
     for o in stock::objets(&ctx.racine)? {
+        if sauf == Some((o.fichier.as_str(), o.rang)) {
+            continue;
+        }
         let e = Value::Object(o.brut.clone());
         let (Some(cle), Some(n)) = (crate::cle_de_l_engagement(ctx, &e), o.brut.get("numero").filter(|n| vrai(n))) else { continue };
         noter(&cle, &en_texte(n));
     }
-    for l in lignes_du_journal(&ctx.racine)? {
+    for (cle, n) in numeros_du_journal(&lignes_du_journal(&ctx.racine)?) {
+        noter(&cle, &n);
+    }
+    Ok(pris)
+}
+
+/// Les numeros de contrat que le journal des envois dit partis : `(cle du salarie, numero)`, d'une ligne acceptee qui
+/// porte des contrats (`detail.contrats`) ou un contrat (`detail`).
+fn numeros_du_journal(lignes: &[Value]) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for l in lignes {
+        if l.get("accepte") == Some(&Value::Bool(false)) {
+            continue;
+        }
         let Some(d) = l.get("detail") else { continue };
         let contrats = d.get("contrats").and_then(Value::as_array).cloned().unwrap_or_else(|| vec![d.clone()]);
         for c in &contrats {
             if let (Some(cle), Some(n)) = (c.get("salarie").and_then(Value::as_str), c.get("numero").and_then(Value::as_str)) {
-                noter(cle, n);
+                out.push((cle.to_string(), n.to_string()));
             }
         }
     }
-    Ok(pris)
+    out
 }
 
 fn lignes_du_journal(racine: &Path) -> Resultat<Vec<Value>> {
@@ -83,51 +107,67 @@ fn lignes_du_journal(racine: &Path) -> Resultat<Vec<Value>> {
     }
 }
 
-/// Les rangs, a l'ecran de `mois`, des engagements valides, dans l'ordre : le `i`-ieme engagement qui peut partir
-/// (`etats::validees_du_mois`) est a l'ecran au rang `rangs_des_valides(..)[i]`.
-pub fn rangs_des_valides(racine: &Path, mois: &str) -> Resultat<Vec<usize>> {
-    Ok(stock::objets_du_mois(racine, mois)?
-        .iter()
-        .enumerate()
-        .filter(|(_, o)| o.brut.get("valide").is_some_and(|v| v.get("le").is_some()))
-        .map(|(i, _)| i)
-        .collect())
-}
-
-/// LE NUMERO AU DEPART. `departs` : pour chaque contrat qui part, son rang a l'ecran de `mois` et le numero que le
-/// document qui part porte (`None` : il se donne ici, a la suite de `derniers_pris`). Un engagement qui porte deja son
-/// numero le garde ; les autres recoivent le leur, ecrit dans l'engagement. Rend le numero de chaque contrat, dans
-/// l'ordre de `departs`.
-pub fn numero_au_depart(ctx: &Contexte, mois: &str, departs: &[(usize, Option<String>)]) -> Resultat<Vec<String>> {
-    let mut objets = stock::objets_du_mois(&ctx.racine, mois)?;
-    let mut pris: HashMap<i32, HashMap<String, i64>> = HashMap::new();
-    let mut out = Vec::new();
-    for (rang, porte) in departs {
-        let o = objets.get_mut(*rang).ok_or_else(|| format!("{} : aucun engagement au rang {}", crate::libelle_mois(mois), rang + 1))?;
-        if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)) {
-            out.push(en_texte(n));
+/// Un envoi a-t-il porte le numero `n` de l'engagement `o` (du salarie `cle`) ? Le contrat parti sous lui (a la
+/// signature, imprime, revenu signe), les documents d'un de ses mois partis pendant qu'on le modifiait (`figees`), une
+/// DSN reelle d'un mois qu'il couvre deposee depuis que le numero lui a ete donne.
+fn porte_par_un_envoi(o: &Objet, cle: &str, n: &str, lignes: &[Value]) -> Resultat<bool> {
+    if o.brut.get("figees").and_then(Value::as_object).is_some_and(|f| !f.is_empty()) {
+        return Ok(true);
+    }
+    if numeros_du_journal(lignes).iter().any(|(c, x)| c == cle && x == n) {
+        return Ok(true);
+    }
+    let donne_le = o.brut.get(POUR).and_then(|p| p.get("le")).map(en_texte).unwrap_or_default();
+    for l in lignes {
+        let texte = |k: &str| l.get(k).map(en_texte).unwrap_or_default();
+        if texte("quoi") != "dsn" || texte("mode") != "reel" || l.get("accepte") == Some(&Value::Bool(false)) || texte("quand") < donne_le {
             continue;
         }
-        let e = Value::Object(o.brut.clone());
-        let numero = match porte.as_deref().filter(|n| !n.is_empty()) {
-            Some(n) => n.to_string(),
+        if o.couvre(&texte("mois"))? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+/// Un autre engagement du salarie `cle` que `o` porte-t-il le numero `n` ?
+fn porte_par_un_autre(ctx: &Contexte, o: &Objet, cle: &str, n: &str) -> Resultat<bool> {
+    Ok(stock::objets(&ctx.racine)?.iter().any(|x| {
+        (x.fichier.as_str(), x.rang) != (o.fichier.as_str(), o.rang)
+            && x.brut.get("numero").map(en_texte).as_deref() == Some(n)
+            && crate::cle_de_l_engagement(ctx, &Value::Object(x.brut.clone())).as_deref() == Some(cle)
+    }))
+}
+
+/// LE NUMERO A LA VALIDATION de l'engagement `o` (`etats::valider`), pose sur lui ; `le` : l'instant de la validation.
+/// Il garde celui qu'il porte, sauf si son salarie ou son debut a change depuis qu'il l'a recu et qu'aucun envoi ne l'a
+/// porte : il en recoit alors un nouveau, comme un engagement qui n'en a pas.
+pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Resultat<()> {
+    let e = Value::Object(o.brut.clone());
+    let fiche = ctx.salarie(&e.get("salarie").map(en_texte).unwrap_or_default())?;
+    let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
+    let debut = crate::debut_brut(&e);
+    if let Some(n) = o.brut.get("numero").filter(|n| vrai(n)).map(en_texte) {
+        let garde = match o.brut.get(POUR) {
+            Some(p) => {
+                let meme = p.get("salarie").map(en_texte).as_deref() == Some(cle.as_str()) && p.get("debut").map(en_texte) == Some(debut.clone());
+                meme || porte_par_un_envoi(o, &cle, &n, &lignes_du_journal(&ctx.racine)?)?
+            }
+            // Un numero venu avec la saisie (un contrat repris d'un autre logiciel) : le sien s'il a la forme de ceux de
+            // ce salarie, l'annee de son debut, et qu'aucun autre de ses engagements ne le porte (une copie d'engagement
+            // emporte le numero de l'original).
             None => {
-                let nom = e.get("salarie").map(en_texte).unwrap_or_default();
-                let fiche = ctx.salarie(&nom)?;
-                let cle = fiche.get("_cle").map(en_texte).unwrap_or(nom);
-                let debut = crate::debut_brut(&e);
-                let annee: i32 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("date illisible : {}", debut))?;
-                if !pris.contains_key(&annee) {
-                    pris.insert(annee, derniers_pris(ctx, annee)?);
-                }
-                let dernier = pris.get_mut(&annee).unwrap().entry(cle).or_insert(0);
-                *dernier += 1;
-                former(&fiche, annee, *dernier)?
+                let forme = annee_et_rang(&n).is_some_and(|(a, s)| debut.starts_with(&a.to_string()) && former(&fiche, a, s).ok().as_deref() == Some(n.as_str()));
+                forme && !porte_par_un_autre(ctx, o, &cle, &n)?
             }
         };
-        o.brut.insert("numero".into(), Value::String(numero.clone()));
-        stock::reecrire_en_gardant(&ctx.racine, o)?;
-        out.push(numero);
+        if garde {
+            return Ok(());
+        }
     }
-    Ok(out)
+    let annee: i32 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("date illisible : {}", debut))?;
+    let dernier = derniers_pris_sauf(ctx, annee, Some((o.fichier.as_str(), o.rang)))?.get(&cle).copied().unwrap_or(0);
+    o.brut.insert("numero".into(), Value::String(former(&fiche, annee, dernier + 1)?));
+    o.brut.insert(POUR.into(), json!({"salarie": cle, "debut": debut, "le": le}));
+    Ok(())
 }

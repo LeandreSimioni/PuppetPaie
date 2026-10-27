@@ -961,7 +961,7 @@ pub fn valeurs_du_rang(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, r
 }
 
 /// `contrat.marqueurs(p, ent)` pour une paie calculee (`paie`, sa forme JSON). `numero` : le numero
-/// de contrat que la paie porte VRAIMENT (lu dans l'archive, fige ou propose par le compteur), quand il
+/// de contrat que la paie porte VRAIMENT (lu dans l'archive, ou celui de l'engagement), quand il
 /// differe de celui de la reponse du calcul.
 pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Option<&Option<String>>) -> Resultat<Valeurs> {
     let nul = Value::Null;

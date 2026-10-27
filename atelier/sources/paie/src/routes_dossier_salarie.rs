@@ -586,7 +586,7 @@ fn mois_puppetpaie(
 
     let mut lus: HashMap<usize, crate::apercu_dsn::Lu> = HashMap::new();
     // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie
-    // numerotee quand ses numeros sont figes.
+    // dont chaque engagement porte son numero.
     let mut paies_contrats: Vec<Paie> = Vec::new();
     let mut siennes_contrats: Vec<usize> = Vec::new();
     if ecrit {
@@ -600,7 +600,7 @@ fn mois_puppetpaie(
                 lib
             ));
         }
-        // Les contrats partis a la signature portent leur numero, fige a l'envoi ; un contrat qui n'est pas parti n'en a
+        // Un engagement valide porte son numero, ecrit a sa validation ; un engagement en saisie n'en a
         // pas, et un numero ne s'invente pas.
         let (data, mut figees) = charger(ctx, mois)?;
         let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.as_deref().is_some_and(|n| !n.is_empty())).collect();

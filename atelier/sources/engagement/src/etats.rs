@@ -538,6 +538,32 @@ fn maintenant() -> String {
 /// pas change. Refus : un mois qui ne se calcule pas ; rien n'est ecrit.
 pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    // Le numero du contrat d'abord : la paie de chaque mois le porte, et le calcul lit l'engagement ecrit. Un calcul
+    // refuse rend l'engagement tel qu'il etait.
+    let avant = o.clone();
+    let le = maintenant();
+    crate::numeros::a_la_validation(ctx, &mut o, &le)?;
+    let numerote = o.brut != avant.brut;
+    if numerote {
+        stock::reecrire(&ctx.racine, &o)?;
+    }
+    let paies = match paies_a_valider(ctx, &o, mois) {
+        Ok(p) => p,
+        Err(e) => {
+            if numerote {
+                stock::reecrire(&ctx.racine, &avant)?;
+            }
+            return Err(e);
+        }
+    };
+    o.brut.remove("figees");
+    o.brut.insert("valide".into(), json!({ "le": le, "paies": paies }));
+    stock::reecrire(&ctx.racine, &o)?;
+    Valide::de(o).ok_or_else(|| "validation illisible".to_string())
+}
+
+/// Les paies que la validation de `o` ecrit, une par mois qu'il couvre jusqu'a `mois`.
+fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Map<String, Value>> {
     let figees = o.brut.get("figees").and_then(Value::as_object).cloned().unwrap_or_default();
     let mut paies = Map::new();
     for m in o.mois_couverts(mois)? {
@@ -549,7 +575,7 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
         let p = match garde {
             Some(f) => f.clone(),
             None => {
-                let mut p = calculer(ctx, &o, &m)?;
+                let mut p = calculer(ctx, o, &m)?;
                 // Une paie partie, refaite : son bulletin sera un rectificatif de celui qui est parti.
                 if let Some(parti) = figees.get(&m).and_then(|f| f.get(BULLETIN).or_else(|| f.get(RECTIFIE))).filter(|b| b.is_string()) {
                     p[RECTIFIE] = parti.clone();
@@ -559,10 +585,7 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
         };
         paies.insert(m, p);
     }
-    o.brut.remove("figees");
-    o.brut.insert("valide".into(), json!({ "le": maintenant(), "paies": paies }));
-    stock::reecrire(&ctx.racine, &o)?;
-    Valide::de(o).ok_or_else(|| "validation illisible".to_string())
+    Ok(paies)
 }
 
 /// Les mois de l'engagement `o` dont les documents sont partis, tous ses mois compris.

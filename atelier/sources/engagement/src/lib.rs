@@ -1164,10 +1164,9 @@ pub fn refus_sans_numero(ctx: &Contexte, eng: &Engagement) -> Resultat<()> {
 
 fn numero_inconnu(qui: &str, contrat: &str, premier: &str) -> String {
     format!(
-        "{}, {} : en cours depuis {}, mais son numero n'est pas connu -- le contrat n'est pas encore parti, ni a la \
-         signature, ni avec les documents de {}. Le numero identifie le contrat en DSN (S21.G00.40.009) et ne se \
-         regenere pas : faire partir le contrat d'abord. Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, \
-         dans Configuration > Reprendre l'historique.",
+        "{}, {} : en cours depuis {}, mais son numero n'est pas connu -- l'engagement n'est pas valide. Le numero \
+         identifie le contrat en DSN (S21.G00.40.009) et s'ecrit a la validation : valider l'engagement de {} d'abord. \
+         Un contrat repris d'un autre logiciel dit le sien, lu sur sa DSN, dans Configuration > Reprendre l'historique.",
         qui,
         contrat,
         libelle_mois(premier),

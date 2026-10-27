@@ -248,7 +248,7 @@ pub(crate) fn ecrire_une_correction(
     }
     let mut engagement_ecrit = a["engagement"].clone();
     if ajout && !engagement_ecrit.get("numero").is_some_and(vrai) {
-        let n = crate::routes_regularisation::figer_le_numero(ctx, &nom_du_mois, &valeur_en_texte(salarie_v), &valeur_en_texte(debut))?;
+        let n = crate::routes_regularisation::numero_du_contrat(ctx, &nom_du_mois, &valeur_en_texte(salarie_v), &valeur_en_texte(debut))?;
         engagement_ecrit["numero"] = json!(n);
     }
     if let Some(i) = remplacee {

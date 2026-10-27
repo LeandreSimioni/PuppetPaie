@@ -440,7 +440,7 @@ pub fn mois_pret(racine: &Path, mois: &str) {
 }
 
 /// La DSN `fichier` de `mois` est déposée en réel et acceptée le `quand` : une ligne de journal comme la dernière DSN
-/// réelle du journal, et les numéros de contrat qu'elle déclare figés comme au dépôt (`numeros_declares`).
+/// réelle du journal.
 pub fn dsn_deposee(racine: &Path, mois: &str, fichier: &str, quand: &str) {
     let mut j = lire(racine, "journal/depots.json");
     let l = j.as_array_mut().unwrap();
@@ -450,38 +450,6 @@ pub fn dsn_deposee(racine: &Path, mois: &str, fichier: &str, quand: &str) {
     d["quand"] = json!(quand);
     l.push(d);
     ecrire(racine, "journal/depots.json", &j);
-    numeros_declares(racine, mois, fichier);
-}
-
-/// Ce que le dépôt réel d'une DSN écrit (`depart::numeros_declares`) : chaque engagement de `mois` sans numéro reçoit
-/// celui que le fichier déclare pour son salarié (NIR, S21.G00.30.001) et son début (S21.G00.40.001).
-pub fn numeros_declares(racine: &Path, mois: &str, fichier: &str) {
-    let octets = std::fs::read(racine.join("sorties").join(mois).join(fichier)).unwrap();
-    let mut declares: Vec<(String, String, String)> = Vec::new();
-    let (mut nir, mut debut) = (String::new(), String::new());
-    for l in String::from_utf8_lossy(&octets).lines() {
-        let Some((k, v)) = l.split_once(',') else { continue };
-        let v = v.trim().trim_matches('\'');
-        match k {
-            "S21.G00.30.001" => nir = v.to_string(),
-            "S21.G00.40.001" if v.len() == 8 => debut = format!("{}-{}-{}", &v[4..8], &v[2..4], &v[0..2]),
-            "S21.G00.40.009" => declares.push((nir.clone(), debut.clone(), v.to_string())),
-            _ => {}
-        }
-    }
-    let salaries = lire(racine, "config/salaries.json");
-    let rel = format!("engagements/{}.json", mois);
-    let mut engs = lire(racine, &rel);
-    for e in engs["engagements"].as_array_mut().into_iter().flatten() {
-        if e.get("numero").and_then(Value::as_str).is_some_and(|n| !n.is_empty()) {
-            continue;
-        }
-        let cle = e["salarie"].as_str().unwrap_or("").to_uppercase();
-        let nir_du = salaries[&cle]["nir"].as_str().unwrap_or("").replace(' ', "");
-        let Some((_, _, numero)) = declares.iter().find(|(n, d, _)| *n == nir_du && Some(d.as_str()) == e["debut"].as_str()) else { continue };
-        e["numero"] = json!(numero);
-    }
-    ecrire(racine, &rel, &engs);
 }
 
 /// Une copie d'une compagnie fictive, retouchée par le test, qui s'efface quand elle sort de portée.

@@ -461,13 +461,25 @@ fn le_courriel_de_renvoi_dit_ce_qui_a_change_contrat_par_contrat() {
 
 // ================================================================== demander-signature
 
+/// La saisie d'octobre de la compagnie d'essai, et un engagement neuf tire du sien. Son engagement est valide sans
+/// numero : revalide, il recoit le sien. L'engagement neuf n'en a pas : il recevra le sien a sa validation.
+fn octobre_et_un_neuf(racine: &Path) -> (Value, Value) {
+    let ctx = Contexte::nouveau(racine, None).unwrap();
+    engagement::etats::modifier(&ctx, "2026-10", 0).unwrap();
+    engagement::etats::valider(&ctx, "2026-10", 0).unwrap();
+    let s = crate::outils::saisie(racine, "2026-10");
+    let mut neuf = s["engagements"][0].clone();
+    neuf.as_object_mut().unwrap().remove("numero");
+    (s, neuf)
+}
+
 /// Le mois d'octobre de la fictive, avec deux salaries et un salarie a deux contrats : de quoi essayer les envois groupes.
 fn octobre_a_signer(racine: &Path) {
-    let mut s = crate::outils::saisie(racine, "2026-10");
+    let (mut s, neuf) = octobre_et_un_neuf(racine);
     let eng = s["engagements"][0].clone();
-    let mut seraphin = eng.clone();
+    let mut seraphin = neuf.clone();
     seraphin["salarie"] = json!("Seraphin");
-    let mut deuxieme = eng.clone();
+    let mut deuxieme = neuf.clone();
     deuxieme["debut"] = json!("2026-10-27");
     deuxieme["fin"] = json!("2026-10-29");
     deuxieme["date_paiement"] = json!("2026-10-29");
@@ -734,11 +746,11 @@ fn un_gabarit_sans_le_marqueur_des_defraiements_refuse_de_les_taire() {
 /// Octobre a quatre engagements : Brioche deux fois (le 13 et le 27), Seraphin, Lemercier. `deux_spectacles` : le
 /// second contrat de Brioche est un autre spectacle.
 fn octobre_a_quatre(racine: &Path, deux_spectacles: bool) {
-    let mut s = crate::outils::saisie(racine, "2026-10");
+    let (mut s, neuf) = octobre_et_un_neuf(racine);
     let eng = s["engagements"][0].clone();
-    let mut seraphin = eng.clone();
+    let mut seraphin = neuf.clone();
     seraphin["salarie"] = json!("Seraphin");
-    let mut deuxieme = eng.clone();
+    let mut deuxieme = neuf.clone();
     deuxieme["debut"] = json!("2026-10-27");
     deuxieme["fin"] = json!("2026-10-29");
     deuxieme["date_paiement"] = json!("2026-10-29");
@@ -748,35 +760,58 @@ fn octobre_a_quatre(racine: &Path, deux_spectacles: bool) {
     if deux_spectacles {
         deuxieme["spectacle"] = json!("256Z00920011");
     }
-    let mut lemercier = eng.clone();
+    let mut lemercier = neuf.clone();
     lemercier["salarie"] = json!("Lemercier");
     s["engagements"] = json!([eng, seraphin, deuxieme, lemercier]);
     crate::outils::poser_saisie(racine, "2026-10", &s);
 }
 
-/// Regle 4 : un numero de contrat ne se recalcule pas, il se lit. L'impression d'un contrat a remettre en main propre est
-/// un depart : son numero s'ecrit dans l'engagement des l'impression, et le contrat du meme salarie qui part ensuite,
-/// avant que le premier soit revenu signe, prend le numero d'apres. Aucun compteur ne bouge.
+/// Regle 4 : un numero de contrat ne se recalcule pas, il se lit. Il s'ecrit dans l'engagement a sa validation, le
+/// suivant du plus haut deja pris pour le salarie (S21.G00.40.009 n'exige aucune suite continue). Revalide, l'engagement
+/// le garde ; tant que rien n'est parti, un autre salarie lui en donne un nouveau ; parti (ici imprime pour une remise en
+/// main propre), il ne change plus, meme si le debut change. Aucun compteur ne bouge.
 #[test]
-fn un_contrat_imprime_garde_son_numero_et_le_suivant_ne_le_reprend_pas() {
+fn le_numero_s_ecrit_a_la_validation_et_ne_change_plus_des_qu_un_envoi_l_a_porte() {
     let _t = tour();
-    let racine = compagnie("imprimer-numero", false);
-    poser_le_mot_de_passe(&racine);
-    octobre_a_quatre(&racine, false);
+    let racine = compagnie("numero-a-la-validation", false);
     let compteurs = std::fs::read(racine.join("config/compteurs.json")).unwrap();
-    let r = avec(&racine, "contrats-imprimer", json!({"mois": "2026-10", "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-27"}]}), &Faux::nouveau()).unwrap();
-    assert_eq!(r["contrats"][0]["numero"], json!("BR1.26.06"));
-    assert!(racine.join("sorties/2026-10/envoi/Contrat_BRIOCHE_BR1.26.06_Octobre2026.pdf").exists());
-    let saisie = crate::outils::saisie(&racine, "2026-10");
-    let ecrits: Vec<Value> = saisie["engagements"].as_array().unwrap().iter().map(|e| e.get("numero").cloned().unwrap_or(Value::Null)).collect();
-    assert_eq!(ecrits, [Value::Null, Value::Null, json!("BR1.26.06"), Value::Null]);
-    let l = journal(&racine).last().cloned().unwrap();
-    assert_eq!((l["quoi"].as_str(), l["detail"]["main_propre"].as_bool()), (Some("contrat-signature"), Some(true)));
+    octobre_a_quatre(&racine, false);
+    // (salarie, debut, numero) de chaque engagement d'octobre, dans l'ordre.
+    let numeros = |racine: &Path| -> Vec<(String, String, Value)> {
+        crate::outils::saisie(racine, "2026-10")["engagements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| (e["salarie"].as_str().unwrap().to_string(), e["debut"].as_str().unwrap().to_string(), e.get("numero").cloned().unwrap_or(Value::Null)))
+            .collect()
+    };
+    let n = |racine: &Path| numeros(racine).into_iter().map(|x| x.2).collect::<Vec<_>>();
+    assert_eq!(n(&racine), [json!("BR1.26.05"), json!("SE2.26.05"), json!("BR1.26.06"), json!("LE3.26.05")]);
 
-    let r = avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13"}]}), &Faux::nouveau()).unwrap();
-    assert_eq!(r["contrats"][0]["numero"], json!("BR1.26.07"));
-    let saisie = crate::outils::saisie(&racine, "2026-10");
-    assert_eq!((saisie["engagements"][0]["numero"].clone(), saisie["engagements"][2]["numero"].clone()), (json!("BR1.26.07"), json!("BR1.26.06")));
+    // Revalide sans changer ni le salarie ni le debut : le meme numero.
+    let mut s = crate::outils::saisie(&racine, "2026-10");
+    s["engagements"][1]["lignes"][0]["quantite"] = json!(2);
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
+    assert_eq!(n(&racine)[1], json!("SE2.26.05"));
+    // Un autre salarie, rien n'etant parti : un nouveau numero, le sien.
+    let mut s = crate::outils::saisie(&racine, "2026-10");
+    s["engagements"][1]["salarie"] = json!("Lemercier");
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
+    let mut lemercier: Vec<Value> = numeros(&racine).into_iter().filter(|x| x.0 == "Lemercier").map(|x| x.2).collect();
+    lemercier.sort_by_key(|v| v.to_string());
+    assert_eq!(lemercier, [json!("LE3.26.05"), json!("LE3.26.06")]);
+
+    // Imprime pour une remise en main propre, il est parti sous son numero : un autre debut ne le change plus (sans
+    // envoi, il prendrait le suivant, BR1.26.07).
+    let r = avec(&racine, "contrats-imprimer", json!({"mois": "2026-10", "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13"}]}), &Faux::nouveau()).unwrap();
+    assert_eq!(r["contrats"][0]["numero"], json!("BR1.26.05"));
+    assert!(racine.join("sorties/2026-10/envoi/Contrat_BRIOCHE_BR1.26.05_Octobre2026.pdf").exists());
+    let mut s = crate::outils::saisie(&racine, "2026-10");
+    let i = numeros(&racine).iter().position(|x| x.0 == "Brioche" && x.1 == "2026-10-13").unwrap();
+    s["engagements"][i]["debut"] = json!("2026-10-12");
+    crate::outils::poser_saisie(&racine, "2026-10", &s);
+    let brioche: Vec<(String, Value)> = numeros(&racine).into_iter().filter(|x| x.0 == "Brioche").map(|x| (x.1, x.2)).collect();
+    assert!(brioche.contains(&("2026-10-12".to_string(), json!("BR1.26.05"))), "{:?}", brioche);
     assert_eq!(std::fs::read(racine.join("config/compteurs.json")).unwrap(), compteurs);
 }
 
@@ -817,9 +852,9 @@ fn demander_signature_selection_deux_spectacles_relance_caduque_et_contrat_comme
 
 /// Retours Windows, B : Brioche a DEUX contrats qui commencent le meme jour (le 13/10), le second a un autre lieu.
 fn octobre_a_deux_le_meme_jour(racine: &Path) {
-    let mut s = crate::outils::saisie(racine, "2026-10");
+    let (mut s, neuf) = octobre_et_un_neuf(racine);
     let eng = s["engagements"][0].clone();
-    let mut jumeau = eng.clone();
+    let mut jumeau = neuf.clone();
     jumeau["lignes"][0]["lieu"] = json!("Ailleurs");
     s["engagements"] = json!([eng, jumeau]);
     crate::outils::poser_saisie(racine, "2026-10", &s);
@@ -845,10 +880,6 @@ fn demander_signature_distingue_deux_contrats_du_meme_jour_et_compte_des_contrat
     assert_eq!(noms(&racine.join("sorties/2026-10/envoi")).iter().filter(|n| n.ends_with(".pdf")).count(), 1);
     let l = journal(&racine).last().unwrap().clone();
     assert_eq!(l["reponse"], json!("1 contrat(s) envoye(s) a la signature"));
-    // Le numero parti s'ecrit sur CE contrat-la, pas sur son jumeau qui n'est pas parti.
-    let saisie = crate::outils::saisie(&racine, "2026-10");
-    assert!(saisie["engagements"][0].get("numero").is_none(), "{}", saisie["engagements"][0]);
-    assert_eq!(saisie["engagements"][1]["numero"], json!("BR1.26.06"));
     // Un numero que la saisie ne porte pas : refus, rien ne part.
     let (_, m) = phrase(avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE, "contrats": [{"salarie": "BRIOCHE", "debut": "2026-10-13", "numero": "BR1.26.99"}]}), &faux));
     assert!(m.contains("BR1.26.99"), "le refus nomme le numero : {}", m);

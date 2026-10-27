@@ -33,9 +33,10 @@ pub const DOSSIER: &str = "engagements";
 /// Les mois d'apres que la saisie d'un engagement a touches, et ce que chacun change.
 pub const SUITE: &str = "mois_suivants";
 
-/// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, les paies de
+/// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, pour qui son
+/// numero de contrat a ete donne (`numeros`), les paies de
 /// ses mois dont les documents sont partis pendant qu'on le modifie (`etats`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 3] = [SUITE, "valide", "figees"];
+pub const TENUS_PAR_LE_MOTEUR: [&str; 4] = [SUITE, "valide", "figees", "numero_pour"];
 
 /// Ce que la vue d'un mois porte et que le moteur deduit : les jours du contrat entier (son premier mois et son
 /// planning), que la DSN declare chaque mois (S21.G00.40.013). Il ne s'ecrit pas.
@@ -758,13 +759,6 @@ pub fn a_une_saisie(racine: &Path, mois: &str) -> Resultat<bool> {
         }
     }
     Ok(false)
-}
-
-/// Remplace l'objet `o` dans son fichier, apres une copie du fichier dans `engagements/avant/` : ce qu'un depart y ecrit
-/// (son numero de contrat, `numeros::numero_au_depart`).
-pub fn reecrire_en_gardant(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
-    sauver_avant(&chemin(racine, &o.fichier))?;
-    reecrire(racine, o)
 }
 
 /// Pose `cle` = `valeur` sur le mois `mois` lui-meme (son fichier, cree s'il le faut : un mois que seuls des engagements

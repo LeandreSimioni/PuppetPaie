@@ -1560,8 +1560,6 @@ fn contrat_a_cheval(test: &str) -> (PathBuf, String) {
     mois_pret(&r, "2026-07");
     let rep = dsn_le(&r, "2026-07", "2026-08-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
-    // La DSN de juillet repart deposee : le numero du contrat qu'elle declare est desormais le sien.
-    crate::outils::numeros_declares(&r, "2026-07", "DSN_Juillet2026.dsn");
     let numero = crate::outils::saisie(&r, "2026-07")["engagements"]
         .as_array()
         .unwrap()

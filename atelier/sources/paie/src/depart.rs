@@ -11,10 +11,7 @@
 //!   a cote.
 //!
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
-//! Un numero de contrat s'ecrit dans l'engagement au premier depart qui le porte (`engagement::numeros`) : l'envoi du
-//! contrat a la signature, son impression pour une remise en main propre (`envois_signature`), ou le depot reel de la
-//! DSN (`numeros_declares`). Jusque-la, un contrat qui ne porte pas encore le sien se declare sous celui qui lui serait
-//! donne ; ensuite il se relit.
+//! Un numero de contrat s'ecrit dans l'engagement a sa validation (`engagement::numeros`) ; tout ce qui part le lit la.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -567,29 +564,6 @@ fn corrections_dues(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> 
     Ok(())
 }
 
-// ------------------------------------------------------------- les numeros de contrat que la DSN a declares
-
-/// LE DEPOT REEL D'UNE DSN EST UN DEPART : chaque contrat du mois qui ne porte pas encore son numero recoit celui que le
-/// fichier depose declare pour lui en S21.G00.40.009 (meme numero, meme debut en S21.G00.40.001), ecrit dans son
-/// engagement (`envois_signature::numeros_des_partis`). Le contrat envoye ensuite part sous ce numero-la.
-pub(crate) fn numeros_declares(ctx: &Contexte, mois: &str, octets: &[u8]) -> R<()> {
-    let declares: std::collections::HashSet<(String, String)> = crate::apercu_dsn::lire_recap(octets)
-        .map_err(valeur)?
-        .into_iter()
-        .flat_map(|s| s.contrats.into_iter().map(|c| (c.numero, c.debut)))
-        .collect();
-    let (_data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None)?;
-    let (mut contrats, mut rangs) = (Vec::new(), Vec::new());
-    for (rang, p) in paies.iter().enumerate() {
-        let Some(n) = p.engagement.numero.as_deref().filter(|n| !n.is_empty()) else { continue };
-        if declares.contains(&(n.to_string(), p.engagement.debut.iso())) {
-            contrats.push(json!({"numero": n}));
-            rangs.push(rang);
-        }
-    }
-    crate::envois_signature::numeros_des_partis(ctx, mois, &contrats, &rangs)
-}
-
 // ------------------------------------------------------------- les documents, a leur envoi
 
 /// Les documents d'un mois, fabriques pour ceux a qui ils partent : leurs numeros sont reserves, pas encore ecrits.
@@ -631,7 +605,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     let Some((_data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)? else { return Ok(faits) };
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois).map_err(Echec::from)?;
     let an = annee_de(mois)?;
-    // Les numeros de contrat que le compteur propose (un contrat parti a la signature porte deja le sien).
+    // Les numeros de bulletin que le compteur propose ; chaque contrat porte deja le sien.
     crate::routes_ouverture::numeroter(ctx, &mut paies, an as i32)?;
     let etiq = crate::envoi::etiquette(mois).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
