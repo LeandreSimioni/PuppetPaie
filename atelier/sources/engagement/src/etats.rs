@@ -354,19 +354,47 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<(Value, V
 
 /// LES PAIES ECRITES DE `mois`, quand chaque engagement qu'il montre est valide et a la sienne : ce que lisent les calculs
 /// des mois d'apres (le brut de la periode des conges, la deduction forfaitaire de l'annee, les cumuls), sans recalculer
-/// le mois. `None` quand un engagement du mois est en saisie ou n'a pas de paie ecrite pour lui : le mois se calcule.
-/// Le mois se lit tel qu'il est ecrit, sans le recalcul de lui-meme (`du_mois`) : un calcul ne reecrit rien.
+/// le mois. `None` quand un engagement du mois est en saisie, n'a pas de paie ecrite pour lui, ou que sa paie ecrite
+/// n'est plus juste (son empreinte ne tient plus, et ses documents ne sont pas partis) : le mois se calcule, comme sa
+/// lecture (`du_mois`) le recalculerait. Un calcul ne reecrit rien.
+///
+/// Le calcul qui les lit note leur empreinte (`paies <mois>`, `empreinte_des_paies_ecrites`) : une paie ecrite qui change
+/// fait recalculer les mois qui l'ont lue.
 pub fn paies_ecrites(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Paie>>> {
     let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let mut paies = Vec::new();
-    for (i, o) in stock::objets_du_mois(&ctx.racine, mois)?.into_iter().enumerate() {
-        let Some(v) = Valide::de(o) else { return Ok(None) };
-        if v.paie_ecrite(mois).and_then(|p| p.get("paie")).is_none() {
+    let Some(valides) = valides_justes(ctx, mois)? else { return Ok(None) };
+    socle::fichiers::noter_valeur(&format!("paies {}", mois), empreinte_des_paies(&valides, mois));
+    valides.iter().enumerate().map(|(i, v)| v.paie(ctx, &data, i)).collect::<Resultat<Vec<_>>>().map(Some)
+}
+
+/// L'empreinte des paies ecrites de `mois` telles qu'un calcul les lirait (`paies_ecrites`) ; `None` s'il les calculerait.
+pub fn empreinte_des_paies_ecrites(ctx: &Contexte, mois: &str) -> Option<String> {
+    valides_justes(ctx, mois).ok().flatten().map(|v| empreinte_des_paies(&v, mois))
+}
+
+fn empreinte_des_paies(valides: &[Valide], mois: &str) -> String {
+    let paies: Vec<Value> = valides.iter().map(|v| v.paie_ecrite(mois).and_then(|p| p.get("paie")).cloned().unwrap_or(Value::Null)).collect();
+    socle::fichiers::sha256_hex(Value::Array(paies).to_string().as_bytes())
+}
+
+/// Les engagements valides de `mois` dont la paie ecrite est juste, si tous le sont.
+fn valides_justes(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Valide>>> {
+    let mut relues = empreinte::Relues::default();
+    let mut valides = Vec::new();
+    for e in ecrits(ctx, mois)? {
+        let (v, partis) = match e {
+            Etat::EnSaisie(_) => return Ok(None),
+            Etat::Valide(v) => (v, false),
+            Etat::Partis(p) => (p.valide, true),
+        };
+        let Some(ecrite) = v.paie_ecrite(mois).filter(|p| p.get("paie").is_some()) else { return Ok(None) };
+        let juste = partis || ecrite.get("empreinte").and_then(empreinte::entrees_de).is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
+        if !juste {
             return Ok(None);
         }
-        paies.push(v.paie(ctx, &data, i)?);
+        valides.push(v);
     }
-    Ok(Some(paies))
+    Ok(Some(valides))
 }
 
 /// Les numeros des documents de chaque engagement valide de `mois`, au meme rang que `validees_du_mois` : le numero de

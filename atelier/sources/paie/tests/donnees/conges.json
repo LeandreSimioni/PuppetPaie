@@ -401,13 +401,13 @@
      {
       "rubrique": "indemnite_conges_payes",
       "quantite": 18.0,
-      "taux": 120.39
+      "taux": 120.24
      }
     ],
     "avertissements": [
      [
       true,
-      "NA.22.01 : 18 jour(s) ouvrable(s) de conges. Indemnite retenue : 2166.98 (dixieme) -- le dixieme donnait 2166.98, le maintien 1966.68 (L3141-24). Solde apres ce mois : 14.5 jours."
+      "NA.22.01 : 18 jour(s) ouvrable(s) de conges. Indemnite retenue : 2164.36 (dixieme) -- le dixieme donnait 2164.36, le maintien 1966.68 (L3141-24). Solde apres ce mois : 14.5 jours."
      ],
      [
       false,
