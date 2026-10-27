@@ -1203,11 +1203,14 @@ fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_sui
     let ecrire = |confirme: bool| route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": confirme}));
     assert_eq!(ecrire(false)["classe"], json!("ModificationApresEcheance"));
     assert_eq!(ecrire(true)["ok"], json!(true));
+    // Valide, il recoit son numero.
+    let v = route_le(&r, JOUR, "valider-engagement", json!({"mois": "2026-07", "salarie": "SERVANDONI", "debut": "2026-07-27"}));
+    assert_eq!(v["ok"], json!(true), "{}", v);
 
-    // « Corriger ce mois » le liste, sans rien de declare ; sa correction le declare en entier et lui donne son numero.
+    // La regularisation du mois le liste, sans rien de declare ; sa correction le declare en entier, sous son numero.
     let d = route_le(&r, JOUR, "regularisation-mois", json!({"mois": "2026-07"}));
     let item = d["resultat"]["engagements"].as_array().unwrap().iter().find(|e| e["ajoute"] == json!(true)).unwrap().clone();
-    assert_eq!((item["debut"].as_str(), &item["numero"]), (Some("2026-07-27"), &Value::Null), "{}", item);
+    assert_eq!(item["debut"].as_str(), Some("2026-07-27"), "{}", item);
     let charge = json!({"mois": "2026-07", "salarie": item["salarie"], "debut": item["debut"], "engagement": {"lignes": item["engagement_saisi"]["lignes"]}});
     let a = route_le(&r, JOUR, "regularisation-apercu", charge.clone());
     assert_eq!((a["resultat"]["avant"]["brut"].as_str(), a["resultat"]["apres"]["brut"].as_str()), (Some("0.00"), Some("432.00")), "{}", a);
@@ -1217,8 +1220,8 @@ fn un_contrat_oublie_ajoute_apres_la_limite_se_declare_en_entier_dans_la_dsn_sui
     assert_eq!(w["ok"], json!(true), "{}", w);
     let numero = w["resultat"]["correction"]["engagement"]["numero"].as_str().unwrap().to_string();
     assert!(numero.starts_with("SE9.26.") && numero != CONTRAT, "{}", numero);
-    let fige = crate::outils::saisie(&r, "2026-07")["engagements"].as_array().unwrap().iter().any(|e| e["numero"] == json!(numero));
-    assert!(fige, "le numero est pose dans la saisie de juillet");
+    let pose = crate::outils::saisie(&r, "2026-07")["engagements"].as_array().unwrap().iter().any(|e| e["numero"] == json!(numero));
+    assert!(pose, "le numero est celui de la saisie de juillet");
 
     // L'etape DSN de juillet n'a plus rien a faire.
     let b = route_le(&r, JOUR, "bilan-du-mois", json!({"mois": "2026-07"}));
@@ -1566,7 +1569,7 @@ fn contrat_a_cheval(test: &str) -> (PathBuf, String) {
         .iter()
         .find(|e| e["debut"] == json!("2026-07-28"))
         .and_then(|e| e["numero"].as_str())
-        .expect("le numero declare est fige dans la saisie de juillet")
+        .expect("le numero est ecrit dans la saisie de juillet a sa validation")
         .to_string();
     remettre_les_depots(&r, depots_juillet);
     outils::reussi(&route_le(&r, "2026-08-05", "envoyer-documents", json!({"mois": "2026-07", "motdepasse": "x"})));
