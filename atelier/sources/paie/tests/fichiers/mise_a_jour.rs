@@ -632,7 +632,7 @@ fn la_mise_a_jour_en_place_n_ecrase_pas_les_fictives_du_poste() {
     maj::appliquer(&inst, false).unwrap();
     assert_eq!(maj::courante(&inst.join("logiciel")), "2026.11.01");
     assert_eq!(lire(&fictive.join("config").join("entreprise.json")), fiche, "la fiche jouee est intacte");
-    assert!(fictive.join("paies").join("2026-12.json").is_file(), "la paie jouee aussi");
+    assert!(fictive.join("engagements").join("2026-12.json").is_file(), "la saisie jouee aussi");
     assert_eq!(lire(&origine.join("config").join("entreprise.json")), photo, "la photo d'origine aussi");
     let mut fictives: Vec<String> = std::fs::read_dir(inst.join("fictives")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
     fictives.sort();
@@ -730,7 +730,7 @@ fn une_livraison_de_fictives_changee_remplace_celles_qu_elle_a_posees_et_rien_d_
     let dit = maj::poser_les_fictives_pretes(&inst).unwrap();
     assert!(dit.contains("fictive-nouvelle non posee"), "{}", dit);
     assert!(lire(&jouee.join("config").join("entreprise.json")).contains("Nouvelle histoire"), "la fictive jouee est remplacee");
-    assert!(!jouee.join("paies").join("2026-12.json").exists(), "ce qui y etait joue est parti");
+    assert!(!jouee.join("engagements").join("2026-12.json").exists(), "ce qui y etait joue est parti");
     assert!(!f.join(".origine").join("fictive-3090-petite").exists(), "sa photo d'origine aussi");
     paie::interface::compagnies::figer_origine(&jouee).unwrap();
     assert!(lire(&f.join(".origine/fictive-3090-petite/config/entreprise.json")).contains("Nouvelle histoire"), "la suivante est la neuve");

@@ -1289,7 +1289,7 @@ fn un_mois_importe_porte_ses_cases_et_dit_ce_qui_manque() {
     // Il ne se saisit pas : la saisie est refusee, et aucun fichier de paie n'apparait.
     let r = route(&racine, "enregistrer-saisie", json!({"mois": "2025-03", "forcer": true, "saisie": {"engagements": []}}));
     assert!(refus(&r).1.contains("tenu avant PuppetPaie"), "{}", r);
-    assert!(!racine.join("paies").join("2025-03.json").exists());
+    assert!(!racine.join("engagements").join("2025-03.json").exists());
 }
 
 /// UN MOIS DECLARE N'EST PAS EN RETARD. Sa DSN importee (le fichier de l'ancien logiciel) le dit declare ; un depot que
