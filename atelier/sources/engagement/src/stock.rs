@@ -33,10 +33,10 @@ pub const DOSSIER: &str = "engagements";
 /// Les mois d'apres que la saisie d'un engagement a touches, et ce que chacun change.
 pub const SUITE: &str = "mois_suivants";
 
-/// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, pour qui son
-/// numero de contrat a ete donne (`numeros`), les paies de
-/// ses mois dont les documents sont partis pendant qu'on le modifie (`etats`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 4] = [SUITE, "valide", "figees", "numero_pour"];
+/// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, la validation
+/// qu'une modification va remplacer, ses versions passees (`etats`), pour qui son numero de contrat a ete donne
+/// (`numeros`).
+pub const TENUS_PAR_LE_MOTEUR: [&str; 5] = [SUITE, "valide", "precedente", "versions", "numero_pour"];
 
 /// Ce que la vue d'un mois porte et que le moteur deduit : les jours du contrat entier (son premier mois et son
 /// planning), que la DSN declare chaque mois (S21.G00.40.013). Il ne s'ecrit pas.
@@ -610,10 +610,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
         };
     }
     if mois == o.fichier {
-        let suite = o.brut.remove(SUITE);
-        let valide = o.brut.remove("valide");
-        let figees = o.brut.remove("figees");
-        let pour = o.brut.remove("numero_pour");
+        let tenus: Vec<(&str, Option<Value>)> = TENUS_PAR_LE_MOTEUR.iter().map(|k| (*k, o.brut.remove(*k))).collect();
         let mut neuf = saisie.clone();
         for k in PARTAGES {
             match o.brut.get(k) {
@@ -622,7 +619,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
             };
         }
         o.brut = neuf;
-        for (k, v) in [(SUITE, suite), ("valide", valide), ("figees", figees), ("numero_pour", pour)] {
+        for (k, v) in tenus {
             if let Some(v) = v {
                 o.brut.insert(k.to_string(), v);
             }

@@ -571,8 +571,8 @@ pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str
 }
 
 /// Garde la saisie telle que declaree avant sa premiere modification apres la limite (`chemin_saisie_declaree`). Ne
-/// garde rien si elle l'est deja, ou si la saisie du disque n'est plus celle que la derniere DSN reelle a declaree (son
-/// empreinte, notee au depot, ne correspond plus) : ce ne serait pas la paie declaree.
+/// garde rien si elle l'est deja, ou si les engagements du mois ne sont plus ceux que la derniere DSN reelle a emportes
+/// (`routes_mois::dsn_a_refaire`) : ce ne serait pas la paie declaree.
 pub(crate) fn garder_la_saisie_declaree(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<()> {
     let copie = chemin_saisie_declaree(ctx, mois);
     if copie.exists() {
@@ -580,9 +580,10 @@ pub(crate) fn garder_la_saisie_declaree(m: &mut Moteur, ctx: &Contexte, mois: &s
     }
     let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(()) };
     let faits = m.depots_reels(mois, &Value::Null)?;
-    let notee = faits.last().and_then(|l| l.get("detail")).and_then(|d| d.get("empreinte_saisie")).filter(|e| vrai(e)).map(valeur_en_texte);
-    if let Some(n) = notee {
-        if m.empreinte_saisie(mois)?.as_deref() != Some(n.as_str()) {
+    if let Some(derniere) = faits.last() {
+        let etats = engagement::etats::du_mois(ctx, mois)?;
+        let refaire = crate::routes_mois::a_refaire_du_mois(ctx, &etats)?;
+        if crate::routes_mois::dsn_a_refaire(ctx, mois, derniere, &etats, &refaire) {
             return Ok(());
         }
     }

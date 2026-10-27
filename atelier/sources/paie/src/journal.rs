@@ -94,6 +94,8 @@ pub struct Note<'a> {
     pub reponse: &'a str,
     pub trace: Option<&'a str>,
     pub detail: Option<&'a Value>,
+    /// Pour une ligne d'envoi : la version de chaque engagement qu'elle couvre (`versions_du_mois`).
+    pub versions: Option<&'a Value>,
     /// L'heure de la ligne (ISO, a la seconde) ; `origine` doit alors la justifier.
     pub quand: &'a str,
     pub origine: &'a str,
@@ -138,12 +140,82 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
         Some(d) if vrai(d) => d.clone(),
         _ => json!({}),
     });
+    if let Some(v) = n.versions {
+        l.insert("versions".into(), v.clone());
+    }
     let ligne = Value::Object(l);
     let p = chemin(racine);
     let mut lignes = if p.exists() { lignes_du_fichier(&p)? } else { Vec::new() };
     lignes.push(ligne.clone());
     ecrire_json(&p, &Value::Array(lignes), 2)?;
     Ok(ligne)
+}
+
+/// CE QUI EST PARTI, pour l'engagement (`engagement::departs`) : chaque ligne d'envoi acceptee porte, pour chaque
+/// engagement qu'elle couvre, la version sur laquelle elle est partie (`versions` : `[{"salarie", "numero",
+/// "version"}]`). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
+pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
+    use engagement::departs::{Depart, Departs, Envoi};
+    let mut d = Departs::default();
+    for l in lire(racine, None, None, false)? {
+        let envoi = match l.get("quoi").and_then(Value::as_str) {
+            Some("contrat-signature") => Envoi::Contrat,
+            Some("dpae") => Envoi::Dpae,
+            Some("documents") => Envoi::Documents,
+            Some("dsn") => Envoi::Dsn,
+            _ => continue,
+        };
+        if l.get("accepte") == Some(&Value::Bool(false)) || l.get("mode").and_then(Value::as_str) != Some(REEL) {
+            continue;
+        }
+        let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.get("mois").and_then(Value::as_str).map(String::from)).flatten();
+        let le = l.get("quand").and_then(Value::as_str).unwrap_or_default().to_string();
+        for v in l.get("versions").and_then(Value::as_array).into_iter().flatten() {
+            let (Some(cle), Some(numero), Some(version)) =
+                (v.get("salarie").and_then(Value::as_str), v.get("numero").and_then(Value::as_str), v.get("version").and_then(Value::as_u64))
+            else {
+                continue;
+            };
+            d.noter(cle, numero, Depart { envoi, mois: mois.clone(), version, le: le.clone() });
+        }
+    }
+    Ok(d)
+}
+
+/// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du
+/// salarie, le numero du contrat, l'engagement), `{"salarie", "numero", "version"}`. Ce que la ligne du journal de l'envoi porte.
+pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
+    let mut out = Vec::new();
+    for e in engagement::etats::du_mois(ctx, mois)? {
+        let Some(v) = e.valide() else { continue };
+        let brut = Value::Object(v.objet().brut.clone());
+        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
+        if garder(&cle, numero, &brut) {
+            out.push(json!({"salarie": cle, "numero": numero, "version": v.version()}));
+        }
+    }
+    Ok(Value::Array(out))
+}
+
+/// `versions_du_mois` des contrats qui partent (`[{"salarie", "numero", "mois"}]`, chacun lu dans le mois qu'il nomme).
+pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]) -> Resultat<Value> {
+    let mut mois: Vec<String> = contrats.iter().filter_map(|c| c.get("mois").and_then(Value::as_str).map(String::from)).collect();
+    mois.sort();
+    mois.dedup();
+    let mut out = Vec::new();
+    for m in mois {
+        let siens = |cle: &str, n: &str, _: &Value| {
+            contrats.iter().any(|c| c["mois"].as_str() == Some(m.as_str()) && c["salarie"].as_str() == Some(cle) && c["numero"].as_str() == Some(n))
+        };
+        if let Value::Array(v) = versions_du_mois(ctx, &m, siens)? {
+            for x in v {
+                if !out.contains(&x) {
+                    out.push(x);
+                }
+            }
+        }
+    }
+    Ok(Value::Array(out))
 }
 
 /// Le plus grand numero d'ordre (`S20.G00.05.004`) des signalements REELS deja envoyes par la compagnie, tous

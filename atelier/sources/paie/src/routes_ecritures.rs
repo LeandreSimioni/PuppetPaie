@@ -182,6 +182,7 @@ fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
         reponse: "demande abandonnee, sans reponse",
         trace: None,
         detail: Some(&detail),
+        versions: None,
         quand: "",
         origine: "",
     };

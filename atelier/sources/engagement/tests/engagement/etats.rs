@@ -5,9 +5,11 @@
 //!   saisie, et ce qui part lit la paie ecrite ;
 //! - a la lecture d'un mois, une paie validee dont l'empreinte ne tient plus se recalcule et dit pourquoi ; sans chiffre
 //!   qui change, rien ne se dit ; des documents partis ne bougent plus ;
-//! - « Modifier… » d'un engagement dont des documents sont partis pose la question du moteur ; la paie partie se garde.
+//! - « Modifier… » d'un engagement dont des documents sont partis pose la question du moteur ; la paie partie se garde ;
+//! - apres un envoi, une revalidation qui change l'engagement garde la version d'avant, datee, et la comparaison dit ce
+//!   qui est a refaire. Ce qui est parti, le test l'ecrit lui-meme (`departs.json`, `outils::departs_du_test`).
 //!
-//! Sur la config et le journal de `fictive-3090-petite`, des engagements saisis par le test, au 05/11/2026.
+//! Sur la config de `fictive-3090-petite`, des engagements saisis par le test, au 05/11/2026.
 
 use std::path::{Path, PathBuf};
 
@@ -16,7 +18,7 @@ use engagement::etats::{self, Etat};
 use engagement::stock;
 use serde_json::{json, Value};
 
-use crate::outils::{config_et_journal, dossier_de_test, ecrire, lire};
+use crate::outils::{config_et_journal, departs_du_test, dossier_de_test, ecrire, lire};
 
 const JOUR: &str = "2026-11-05";
 const SPECTACLE: &str = "256Z00920011";
@@ -25,6 +27,7 @@ const FICHE_DU_SPECTACLE: &str = "ubu-roi";
 
 /// La config et le journal de la petite fictive, sans engagement ; le taux de PAS de Brioche transmis en octobre 2026.
 fn compagnie(nom: &str) -> PathBuf {
+    engagement::departs::poser_lecteur(departs_du_test);
     let r = config_et_journal("fictive-3090-petite", &dossier_de_test("etats", nom).join("compagnie"));
     let mut pas = lire(&r, "config/pas.json");
     let b = &mut pas["salaries"]["BRIOCHE"];
@@ -86,12 +89,19 @@ fn taux_de_pas(r: &Path, taux: &str) {
     ecrire(r, "config/pas.json", &pas);
 }
 
-/// Les documents de Brioche pour `mois` sont partis (le journal le dit, comme l'envoi l'ecrit).
+/// `envoi` de l'engagement de Brioche (pour `mois`, s'il y a lieu) est parti sur sa version d'aujourd'hui, comme la couche
+/// des envois le dirait.
+fn parti(r: &Path, envoi: &str, mois: Option<&str>) {
+    let e = &fichier(r, "2026-11")["engagements"][0];
+    let mut d = if r.join("departs.json").exists() { lire(r, "departs.json") } else { json!([]) };
+    d.as_array_mut().unwrap().push(json!({"salarie": "BRIOCHE", "numero": e["numero"], "envoi": envoi, "mois": mois,
+        "version": e["valide"]["version"], "le": "2026-12-03T10:00:00"}));
+    ecrire(r, "departs.json", &d);
+}
+
+/// Les documents de Brioche pour `mois` sont partis.
 fn documents_partis(r: &Path, mois: &str) {
-    let mut j = lire(r, "journal/depots.json");
-    j.as_array_mut().unwrap().push(json!({"quoi": "documents", "quand": "2026-12-03T10:00:00", "mois": mois, "mode": "reel",
-        "accepte": true, "detail": {"salaries": [{"cle": "BRIOCHE", "nom": "Fanchon BRIOCHE", "pieces": []}]}}));
-    ecrire(r, "journal/depots.json", &j);
+    parti(r, "documents", Some(mois));
 }
 
 #[test]
@@ -275,7 +285,20 @@ fn des_documents_partis_ne_bougent_plus() {
     // Decembre, dont rien n'est parti, se recalcule.
     lire_le_mois(&r, "2026-12");
     assert_eq!(paie_ecrite(&r, "2026-12")["pas"]["taux"], json!("7.50"));
+    // Une decision de l'editeur (le code qui calcule a change) touche le mois parti : la paie se refait, et la version sur
+    // laquelle les documents sont partis se garde, datee.
+    let mut f = fichier(&r, "2026-11");
+    let p = &mut f["engagements"][0]["valide"]["paies"]["2026-11"];
+    p["empreinte"]["entrees"]["moteur"] = json!("autre");
+    p["paie"]["brut"] = json!("1.00");
+    ecrire(&r, "engagements/2026-11.json", &f);
+    lire_le_mois(&r, "2026-11");
+    let e = fichier(&r, "2026-11")["engagements"][0].clone();
+    assert_eq!(e["valide"]["version"], json!(2));
+    assert_eq!(e["versions"][0]["paies"]["2026-11"]["paie"]["brut"], json!("1.00"));
+    assert_eq!(e["valide"]["paies"]["2026-11"]["recalcul"]["raison"], json!(etats::CALCUL_CORRIGE));
 }
+
 
 #[test]
 fn modifier_un_engagement_dont_les_documents_sont_partis_pose_la_question_et_garde_la_paie_partie() {
@@ -288,25 +311,69 @@ fn modifier_un_engagement_dont_les_documents_sont_partis_pose_la_question_et_gar
         let q = etats::question_avant_de_modifier(&ctx(&r), mois, 0).unwrap();
         assert_eq!(q.as_deref(), Some(etats::QUESTION_DOCUMENTS_PARTIS), "{}", mois);
     }
-    // Modifie : en saisie, et la paie partie se garde.
+    // Modifie : en saisie, et la validation d'avant se garde.
     let partie = paie_ecrite(&r, "2026-11");
     etats::modifier(&ctx(&r), "2026-11", 0).unwrap();
     let e = fichier(&r, "2026-11")["engagements"][0].clone();
     assert!(e.get("valide").is_none());
-    assert_eq!(e["figees"]["2026-11"], partie);
+    assert_eq!(e["precedente"]["paies"]["2026-11"], partie);
     // Revalide sans rien changer a novembre : la paie partie se reprend telle quelle.
     valider(&r, "2026-11");
     assert_eq!(paie_ecrite(&r, "2026-11"), partie);
 }
 
+/// LES VERSIONS DATEES ET CE QUI EST A REFAIRE : tant que rien n'est parti, une modification ne laisse pas d'historique ;
+/// apres un envoi, une revalidation qui ne change rien garde la version, une qui change le taux du cachet garde la
+/// version d'avant, datee, et la comparaison dit ce que chaque envoi parti sur elle demande : l'avenant, le bulletin
+/// rectificatif, la DSN ; pas la DPAE, la date d'embauche n'ayant pas change.
 #[test]
-fn modifier_un_engagement_dont_rien_n_est_parti_le_remet_en_saisie() {
-    let r = compagnie("modifier");
+fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_refaire() {
+    let r = compagnie("versions");
     a_cheval(&r);
     valider(&r, "2026-11");
-    assert_eq!(etats::question_avant_de_modifier(&ctx(&r), "2026-12", 0).unwrap(), None);
-    etats::modifier(&ctx(&r), "2026-12", 0).unwrap();
+    let mut plus_cher = contrat("Brioche", "2026-11-28", "2026-12-02", &["2026-11-28", "2026-11-29", "2026-11-30"], &["2026-12-01", "2026-12-02"]);
+    plus_cher["lignes"][0]["taux"] = json!(170.0);
+    // Rien n'est parti : modifie et revalide, pas d'historique.
+    etats::modifier(&ctx(&r), "2026-11", 0).unwrap();
+    enregistrer(&r, "2026-11", json!([plus_cher.clone()])).unwrap();
+    valider(&r, "2026-11");
     let e = fichier(&r, "2026-11")["engagements"][0].clone();
-    assert!(e.get("valide").is_none() && e.get("figees").is_none(), "{}", e);
-    assert!(lire_le_mois(&r, "2026-11")[0].valide().is_none());
+    assert_eq!(e["valide"]["version"], json!(1));
+    assert!(e.get("versions").is_none(), "{}", e["versions"]);
+    // Le contrat, la DPAE, les documents et la DSN de novembre partent sur la version 1.
+    parti(&r, "contrat", None);
+    parti(&r, "dpae", None);
+    documents_partis(&r, "2026-11");
+    parti(&r, "dsn", Some("2026-11"));
+    // Revalide sans rien changer : toujours la version 1, rien a refaire.
+    etats::modifier(&ctx(&r), "2026-11", 0).unwrap();
+    valider(&r, "2026-11");
+    let v = lire_le_mois(&r, "2026-11")[0].valide().cloned().unwrap();
+    assert_eq!((v.version(), v.versions().len()), (1, 0));
+    let departs = departs_du_test(&r).unwrap();
+    assert_eq!(etats::a_refaire(&ctx(&r), &v, &departs), vec![]);
+    // Un autre taux : la version 1 se garde, datee, et la 2 est le present.
+    let paie_partie = paie_ecrite(&r, "2026-11");
+    etats::modifier(&ctx(&r), "2026-11", 0).unwrap();
+    let mut encore = plus_cher.clone();
+    encore["lignes"][0]["taux"] = json!(190.0);
+    enregistrer(&r, "2026-11", json!([encore])).unwrap();
+    valider(&r, "2026-11");
+    let v = lire_le_mois(&r, "2026-11")[0].valide().cloned().unwrap();
+    assert_eq!(v.version(), 2);
+    let passee = &v.versions()[0];
+    assert_eq!(passee["version"], json!(1));
+    assert!(passee["remplacee_le"].as_str().is_some_and(|t| t.len() >= 10), "{}", passee);
+    assert_eq!(passee["paies"]["2026-11"], paie_partie, "la version d'avant garde la paie telle qu'elle etait");
+    assert_eq!(passee["saisie"]["lignes"][0]["taux"], json!(170.0));
+    assert_ne!(paie_ecrite(&r, "2026-11")["paie"]["brut"], paie_partie["paie"]["brut"]);
+    let a_refaire = etats::a_refaire(&ctx(&r), &v, &departs_du_test(&r).unwrap());
+    use etats::ARefaire::*;
+    assert_eq!(
+        a_refaire,
+        vec![Avenant { depuis: 1 }, Bulletin { mois: "2026-11".into(), depuis: 1 }, Dsn { mois: "2026-11".into(), depuis: 1 }]
+    );
+    // La DSN suivante lit ce qui a ete declare dans la version sur laquelle elle est partie.
+    let declaree = etats::paie_partie(&ctx(&r), &v, &departs_du_test(&r).unwrap(), engagement::departs::Envoi::Dsn, "2026-11").unwrap();
+    assert_eq!(declaree, paie_partie);
 }

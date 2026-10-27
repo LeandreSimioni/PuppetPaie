@@ -65,15 +65,15 @@ pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, char
     let mut m = Moteur::nouveau(o, ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
-    // `empreintes_engagements` et `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
+    // `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
     let rangs: Vec<(String, String)> = paies
         .iter()
         .map(|p| Ok((valeur_en_texte(get(&p.salarie, "_cle")?), p.engagement.debut.iso())))
         .collect::<R<_>>()?;
-    // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur empreinte et leur numero.
+    // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur numero.
     let uniques: Vec<(String, String)> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
     let saisie = SaisieMois { data, paies: Vec::new() };
-    let actuelles = Moteur::empreintes_engagements(&saisie, &uniques);
+    let avenants = crate::routes_mois::avenants_a_faire(ctx, &mois)?;
     let saisis = Moteur::numeros_saisis(&saisie, &uniques);
     let cles_paies = etats::cles_des_paies(&lignes, &crate::routes_mois::contrats_des_paies(&paies))?;
 
@@ -101,20 +101,15 @@ pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, char
         }
         let (cle_s, debut) = rangs[i].clone();
         let cles = &cles_paies[i];
-        let rang_du_jour = rangs[..i].iter().filter(|r| **r == rangs[i]).count();
-        let ecart = crate::avenant::ecart_du_contrat(ctx, &mois, &cle_s, &debut, Some(cles[0].2.as_str()), rang_du_jour);
         let etat = crate::routes_mois::etat_signature(
             premier(&g.contrats, cles).unwrap_or(nul()),
             premier(&g.recus, cles).unwrap_or(nul()),
             premier(&g.recus_par, cles).unwrap_or(nul()),
-            premier(&g.partis, cles).unwrap_or(nul()),
-            actuelles.get(&uniques[i]).map(String::as_str),
-            &mois,
             dans_l_ensemble(&g.renvoyes, cles),
             premier(&g.numeros_partis, cles).unwrap_or(nul()),
             saisis.get(&uniques[i]).unwrap_or(nul()),
             premier(&g.avenants, cles).unwrap_or(nul()),
-            &ecart,
+            avenants.contains(&(cle_s.clone(), p.engagement.numero.clone().unwrap_or_default())),
         );
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
@@ -853,7 +848,7 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`routes_envois::choisir`).
-    let choix = crate::routes_envois::choisir(ctx, &mois, &data, &paies)?;
+    let choix = crate::routes_envois::choisir(ctx, &mois, &paies)?;
     // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`routes_envois`).
     let messages = if prets.get("pret").is_some_and(vrai) {
         let mut cles: Vec<String> = Vec::new();

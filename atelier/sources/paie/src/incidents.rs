@@ -409,8 +409,10 @@ fn recalcul_refuse(racine: &Path, mois: &str, refus: &str) {
     let _ = depuis_exception(racine, "RecalculRefuse", refus, None, "engagement::etats::du_mois", serde_json::json!({ "mois": mois }), None);
 }
 
-/// Pose le temoin des recalculs refuses (`recalcul_refuse`) : a l'entree de toute commande du moteur.
-pub fn poser_le_temoin_des_recalculs() {
+/// Branche l'engagement sur ce qui l'entoure, a l'entree de toute commande du moteur : le temoin des recalculs refuses
+/// (`recalcul_refuse`), et le lecteur de ce qui est parti (`journal::departs`).
+pub fn brancher_l_engagement() {
+    engagement::departs::poser_lecteur(crate::journal::departs);
     engagement::etats::poser_temoin(recalcul_refuse);
 }
 

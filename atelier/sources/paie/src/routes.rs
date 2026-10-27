@@ -74,7 +74,7 @@ pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value)
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
     let _code = socle::fichiers::code_fige();
-    crate::incidents::poser_le_temoin_des_recalculs();
+    crate::incidents::brancher_l_engagement();
     let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
     let route = d.get("route").and_then(Value::as_str).ok_or("demande illisible : il faut `route`")?;
     let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));

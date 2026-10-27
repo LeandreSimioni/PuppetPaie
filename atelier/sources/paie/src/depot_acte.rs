@@ -363,6 +363,7 @@ fn noter(
     reponse: &str,
     trace: Option<&Path>,
     detail: &Value,
+    versions: Option<&Value>,
 ) -> R<Value> {
     let fichier = fichier.to_string_lossy().into_owned();
     // LA TRACE, RELATIVE A LA COMPAGNIE (#236 : une compagnie change de dossier -- gardee de `fictives/` a `compagnies/`
@@ -380,6 +381,7 @@ fn noter(
         reponse,
         trace: trace.as_deref(),
         detail: Some(detail),
+        versions,
         quand: "",
         origine: "",
     };
@@ -524,15 +526,6 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
         }
     }
     Ok(connus.into_iter().max().map(|m| m + 1))
-}
-
-/// `_empreinte_saisie` : l'empreinte de la paie du mois, ou `None` (une saisie illisible ne fait pas echouer).
-fn empreinte_de_la_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> Value {
-    let m = crate::routes_mois::Moteur::nouveau(o, ctx);
-    match m.empreinte_saisie(mois) {
-        Ok(Some(e)) => json!(e),
-        _ => Value::Null,
-    }
 }
 
 /// `operations_remplacement.verifier_depot` : le garde-fou du depot REEL d'une mensuelle, ecrit depuis la
@@ -765,7 +758,7 @@ pub fn deposer_dsn_dans(
             let phrase = phrase_de(&e);
             let _ = noter(
                 ctx, "dsn", &mois, &chemin, reel, qui, false, "net-entreprises", "", &phrase.chars().take(600).collect::<String>(), None,
-                &json!({"preuve": forme, "erreur": classe, "repetition": repetition, "nature": apercu.champ("nature"), "ordre": apercu.champ("ordre")}),
+                &json!({"preuve": forme, "erreur": classe, "repetition": repetition, "nature": apercu.champ("nature"), "ordre": apercu.champ("ordre")}), None,
             );
             noter_incident_depot(ctx, "dsn", reel, classe, &phrase, &repetition);
             return Err(e);
@@ -778,17 +771,18 @@ pub fn deposer_dsn_dans(
         "preuve": forme, "type": apercu.champ("type_declaration"),
         // LA NATURE : un signalement se numerote a la suite de tous ceux deja partis (`journal::dernier_ordre_des_signalements`).
         "nature": apercu.champ("nature"),
-        // LE RANG ET LA PAIE DECLARES (30/09/2026) : le prochain annule-et-remplace se numerote au-dessus de cet
-        // ordre, et une paie dont l'empreinte a change depuis en appelle un.
+        // LE RANG DECLARE : le prochain annule-et-remplace se numerote au-dessus de cet ordre.
         "ordre": apercu.champ("ordre"),
-        "empreinte_saisie": if apercu.est_signalement() { Value::Null } else { empreinte_de_la_saisie(o, ctx, &mois) },
         "versements": apercu.versements, "salaries": apercu.salaries,
         // CE QUI A ETE PRELEVE SUR LA GRILLE, et non sur le taux du salarie : la seule trace qui reste.
         "pas_bareme": apercu.pas_bareme,
         "repetition": repetition, "ordre_test": ordre_test,
         "etablissement": apercu.champ("etablissement"),
     });
-    let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail)?;
+    // LA PAIE DECLAREE : la version de chaque engagement du mois sur laquelle la mensuelle part ; une paie qui change
+    // ensuite appelle un annule-et-remplace (`engagement::etats::a_refaire`).
+    let versions = if apercu.est_signalement() { None } else { Some(crate::journal::versions_du_mois(ctx, &mois, |_, _, _| true).map_err(Echec::from)?) };
+    let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, versions.as_ref())?;
     let quand = ligne.get("quand").and_then(Value::as_str).unwrap_or("").to_string();
     if reel && apercu.est_signalement() {
         // LA TRACE SUR L'ARRET LUI-MEME : ce qui est parti, quand, avec quel numero d'ordre.
@@ -928,7 +922,7 @@ pub fn deposer_dpae_avec(
             let phrase = phrase_de(&e);
             let _ = noter(
                 ctx, "dpae", &mois, &chemin, reel, qui, false, "urssaf", "", &phrase.chars().take(600).collect::<String>(), None,
-                &json!({"preuve": forme, "erreur": classe, "repetition": repetition}),
+                &json!({"preuve": forme, "erreur": classe, "repetition": repetition}), None,
             );
             noter_incident_depot(ctx, "dpae", reel, classe, &phrase, &repetition);
             return Err(e);
@@ -940,7 +934,10 @@ pub fn deposer_dpae_avec(
     // Ce que ce depot a REELLEMENT declare, a la maille de l'embauche : c'est ce qui repondra ensuite a
     // « lesquelles restent a faire ».
     let detail = json!({"preuve": forme, "repetition": repetition, "embauches": embauches});
-    let ligne = noter(ctx, "dpae", &mois, &chemin, reel, qui, true, "urssaf", &flux, &reponse, Some(&trace), &detail)?;
+    // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
+    let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
+    let versions = crate::journal::versions_du_mois(ctx, &mois, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
+    let ligne = noter(ctx, "dpae", &mois, &chemin, reel, qui, true, "urssaf", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
     // LE REVEIL SE TAIT (27/09/2026) : la DPAE est partie, le filet n'a plus a sonner pour ces embauches.
     if reel && !joue {
         for e in &embauches {

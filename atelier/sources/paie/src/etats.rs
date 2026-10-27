@@ -636,20 +636,6 @@ pub(crate) fn contrats_demandes(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(d.sortie(Clone::clone))
 }
 
-pub(crate) fn empreintes_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
-    let lignes = &*normalisees(lignes, m);
-    let mut d = Dico::nouveau();
-    for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for c in detail_liste(l, "contrats")? {
-            d.poser(cle_contrat(&c, m)?, json!([get(&c, "mois")?, get(&c, "empreinte")?]))?;
-        }
-    }
-    Ok(d.sortie(Clone::clone))
-}
-
 pub(crate) fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
     let lignes = &*normalisees(lignes, m);
     let mut d = Dico::nouveau();
@@ -666,6 +652,8 @@ pub(crate) fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(d.sortie(Clone::clone))
 }
 
+/// Les contrats repartis apres leur signature sur une autre version de l'engagement que celle signee : ils attendent une
+/// nouvelle signature. Un avenant n'en fait pas un.
 pub(crate) fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> {
     let lignes = &*normalisees(lignes, m);
     let mut envoye: Dico<Value> = Dico::nouveau();
@@ -678,7 +666,12 @@ pub(crate) fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dic
         if est(get(l, "quoi")?, SIGNATURE) {
             for c in detail_ou_liste(l, "contrats")? {
                 let k = cle_contrat(&c, m)?;
-                let e = get(&c, "empreinte")?.clone();
+                // La version de l'engagement sur laquelle ce contrat part (`journal::versions_des_contrats`).
+                let e = get(l, "versions")?
+                    .as_array()
+                    .and_then(|v| v.iter().find(|x| est(get(x, "salarie").unwrap_or(&Value::Null), &valeur_en_texte(get(&c, "salarie").unwrap_or(&Value::Null))) && valeurs_egales(get(x, "numero").unwrap_or(&Value::Null), get(&c, "numero").unwrap_or(&Value::Null))))
+                    .and_then(|x| x.get("version").cloned())
+                    .unwrap_or(Value::Null);
                 if est(get(&c, "acte")?, "avenant") {
                     envoye.poser(k, e)?;
                     continue;
@@ -1869,25 +1862,6 @@ mod tests {
         assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
         assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
         assert_eq!(numeros_contrats_partis(&l, Maille::Paire).unwrap()[0][2], "N1");
-        assert_eq!(empreintes_contrats_partis(&l, Maille::Paire).unwrap()[1], json!(["BETA", "2026-06-04", ["2026-06", "e2"]]));
-    }
-
-    #[test]
-    fn un_contrat_change_et_renvoye_attend_une_nouvelle_signature() {
-        let l1 = signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null));
-        let l3 = signature("2026-06-07T10:00:00", contrat("ALPHA", "C3", "e9", Value::Null));
-        let l = vec![l1, recu("ALPHA", "main"), l3];
-        assert_eq!(renvoyes_depuis_la_signature(&l, Maille::Paire).unwrap().cles(), json!([["ALPHA", "2026-06-04"]]));
-        let a = signatures_attendues(&l, Some("2026-06"), &json!({})).unwrap();
-        // l'ancienne demande est revenue ; le nouveau contrat attend la sienne
-        assert_eq!(a.as_array().unwrap().len(), 1);
-        assert_eq!((&a[0]["code"], &a[0]["apres_signature"]), (&json!("C3"), &json!(true)));
-        // un meme contrat renvoye (meme empreinte) ne defait rien
-        let m1 = signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null));
-        let m3 = signature("2026-06-07T10:00:00", contrat("ALPHA", "C3", "e1", Value::Null));
-        let l = vec![m1, recu("ALPHA", "main"), m3];
-        assert_eq!(renvoyes_depuis_la_signature(&l, Maille::Paire).unwrap().cles(), json!([]));
-        assert_eq!(signatures_attendues(&l, None, &json!({})).unwrap(), json!([]));
     }
 
     #[test]

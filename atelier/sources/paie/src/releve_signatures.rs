@@ -489,6 +489,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
                 reponse: "contrat contresigne renvoye au salarie",
                 trace: None,
                 detail: Some(&detail),
+                versions: None,
                 quand: "",
                 origine: "",
             };

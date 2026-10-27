@@ -52,3 +52,23 @@ pub fn ecrire(racine: &Path, rel: &str, v: &Value) {
     std::fs::create_dir_all(p.parent().unwrap()).unwrap();
     std::fs::write(p, serde_json::to_vec_pretty(v).unwrap()).unwrap();
 }
+
+/// Ce qui est parti, tel que le test l'ecrit dans `departs.json` de la compagnie : `[{"salarie", "numero", "envoi",
+/// "mois", "version", "le"}]`. Les tests de l'engagement posent ce lecteur a la place de celui de la couche des envois.
+pub fn departs_du_test(racine: &Path) -> Result<engagement::departs::Departs, String> {
+    use engagement::departs::{Depart, Departs, Envoi};
+    let mut d = Departs::default();
+    let Ok(o) = std::fs::read(racine.join("departs.json")) else { return Ok(d) };
+    let lignes: Value = serde_json::from_slice(&o).map_err(|e| e.to_string())?;
+    for l in lignes.as_array().into_iter().flatten() {
+        let t = |k: &str| l[k].as_str().unwrap_or_default().to_string();
+        let envoi = match l["envoi"].as_str() {
+            Some("contrat") => Envoi::Contrat,
+            Some("dpae") => Envoi::Dpae,
+            Some("documents") => Envoi::Documents,
+            _ => Envoi::Dsn,
+        };
+        d.noter(&t("salarie"), &t("numero"), Depart { envoi, mois: l["mois"].as_str().map(String::from), version: l["version"].as_u64().unwrap_or(1), le: t("le") });
+    }
+    Ok(d)
+}
