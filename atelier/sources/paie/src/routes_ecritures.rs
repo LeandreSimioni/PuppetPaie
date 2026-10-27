@@ -738,7 +738,7 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
 
 /// UN MOIS TENU AVANT CE LOGICIEL NE SE SAISIT PAS (ticket #215) : ses paies ont ete calculees et declarees ailleurs
 /// (l'historique importe les porte, `mois_importe`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la
-/// DSN -- une declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre, pas meme `forcer`.
+/// DSN -- une declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre.
 pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
     if crate::mois_importe::importe(&ctx.racine, mois)? {
         return Err(refus(format!(
@@ -750,26 +750,15 @@ pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
     Ok(())
 }
 
-/// `refuser_si_hors_delai` : la DSN du mois etait due ; seul `forcer` passe outre.
-pub(crate) fn refuser_si_hors_delai(ctx: &Contexte, mois: &str, forcer: bool) -> R<()> {
-    // Un mois d'avant la premiere embauche n'a pas de DSN due : il ne se rouvre pas « en retard », pas meme sous `forcer`.
+/// UN MOIS D'AVANT LA PREMIERE EMBAUCHE NE SE SAISIT PAS (`routes_saisie::avant_la_premiere_embauche`) : aucune DSN n'y
+/// est due.
+pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<()> {
     if let Some(embauche) = crate::routes_saisie::avant_la_premiere_embauche(ctx, mois)? {
         return Err(refus(format!(
             "{} precede la premiere embauche de la compagnie ({}) : aucune DSN n'y est due, rien ne s'y saisit. Si la \
              compagnie employait deja, corriger la date de premiere embauche (Configuration › Entreprise). Rien n'est ecrit.",
             mois,
             Jour::lire(&embauche).map(|j| j.jj_mm_aaaa()).unwrap_or(embauche)
-        )));
-    }
-    // Le calcul de la limite se fait meme sous `forcer` : un mois impossible (2026-13) se refuse.
-    if let Some(limite) = crate::routes_saisie::mois_hors_delai(ctx, mois)?.filter(|_| !forcer) {
-        return Err(refus(format!(
-            "Le mois {} ne se modifie plus : sa DSN etait due le {}, nous sommes le {}. Un mois passe ne se saisit plus et ne se \
-             produit plus. Pour une DSN en retard, assumee : `paie mois {} --forcer`.",
-            mois,
-            limite.jj_mm_aaaa(),
-            ctx.aujourdhui.jj_mm_aaaa(),
-            mois
         )));
     }
     Ok(())
@@ -791,12 +780,11 @@ pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, S
 
 fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
-    let forcer = charge.get("forcer").is_some_and(vrai);
     let confirme = charge.get(crate::routes_regularisation::CONFIRMATION).is_some_and(vrai);
     let Value::Object(brute) = exiger(charge, "saisie")? else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let p = ecrire_saisie_confirmee(o, ctx, mois, brute, forcer, confirme)?;
+    let p = ecrire_saisie_confirmee(o, ctx, mois, brute, confirme)?;
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`routes_regularisation::modification_de_la_paie`).
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let dsn = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
@@ -804,30 +792,23 @@ fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Valu
     Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
 }
 
-/// Enregistrer la saisie de l'ecran de `mois` : la verifier en la calculant, puis la rendre a ses engagements
-/// (`engagement::stock::ecrire_vue_du_mois`). Sans confirmation : voir `ecrire_saisie_confirmee`.
-pub(crate) fn ecrire_saisie(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool) -> R<PathBuf> {
-    ecrire_saisie_confirmee(o, ctx, mois, brute, forcer, false)
-}
-
 /// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
 /// (`routes_mois::empreinte_de` : ni la validation ni ce que le moteur tient seul) se refuse sans `confirme`
 /// (`routes_regularisation::CONFIRMATION` dans la charge), sous `CLASSE_A_CONFIRMER`, avec l'avertissement que la page
-/// montre ; rien n'est ecrit. Avec, elle s'ecrit -- la limite de depot (`refuser_si_hors_delai`) ne la retient pas : le
-/// mois n'est pas en retard, il est declare -- et la saisie telle que declaree est gardee d'abord
-/// (`garder_la_saisie_declaree`) : « Corriger ce mois » en part.
+/// montre ; rien n'est ecrit. Avec, elle s'ecrit -- et la saisie telle que declaree est gardee d'abord
+/// (`garder_la_saisie_declaree`) : la correction que la DSN d'un mois suivant portera en part (`depart::corrections_dues`).
 ///
 /// UNE SAISIE S'ECRIT A LA FOIS : la fenetre sert ses routes en parallele, et la page enregistre une seconde apres la
 /// derniere frappe, meme si l'enregistrement d'avant n'a pas fini. Deux ecritures du meme mois passent l'une apres
 /// l'autre, dans ce processus (`SAISIE_EN_COURS`).
-pub(crate) fn ecrire_saisie_confirmee(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool) -> R<PathBuf> {
+pub(crate) fn ecrire_saisie_confirmee(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     static SAISIE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _une_a_la_fois = SAISIE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
-    ecrire_saisie_seule(o, ctx, mois, brute, forcer, confirme)
+    ecrire_saisie_seule(o, ctx, mois, brute, confirme)
 }
 
 /// `ecrire_saisie_confirmee`, la seule ecriture en cours.
-fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, forcer: bool, confirme: bool) -> R<PathBuf> {
+fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     let mut donnees = brute.clone();
     donnees.insert("mois".into(), Value::String(mois.to_string()));
     let donnees = Value::Object(donnees);
@@ -836,9 +817,7 @@ fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, 
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let declaree = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
-    if !a_confirmer {
-        refuser_si_hors_delai(ctx, mois, forcer)?;
-    }
+    refuser_si_avant_la_premiere_embauche(ctx, mois)?;
     // Le calcul valide la saisie : un nom de salarie ou un spectacle inconnu refuse, et rien n'est ecrit.
     engagement::charger_donnees(ctx, &donnees).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &donnees, m)))?;
     if a_confirmer {
@@ -863,7 +842,7 @@ fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, 
         if change {
             crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, mois)?;
             // Les bornes d'un engagement sont celles de tous ses mois : quand elles changent, un autre mois du contrat deja
-            // declare garde aussi sa saisie telle que declaree, dont « Corriger ce mois » part. Le contrat se retrouve par
+            // declare garde aussi sa saisie telle que declaree, dont sa correction part. Le contrat se retrouve par
             // son numero.
             let entrants: Vec<Value> = donnees.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
             let mut autres: Vec<String> = Vec::new();

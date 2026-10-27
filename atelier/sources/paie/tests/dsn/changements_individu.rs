@@ -41,8 +41,8 @@ fn changer(racine: &Path, cle: &str, changements: &[(&str, &str, Option<&str>)])
     ecrire_json(racine, "config/salaries.json", &s);
 }
 
-fn produire(racine: &Path, mois: &str, jour: &str) -> Value {
-    outils::route(racine, "produire", json!({"mois": mois, "saisie": crate::outils::saisie(racine, &mois)}), jour)
+fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Value {
+    outils::route(racine, "dsn-a-deposer", json!({"mois": mois}), jour)
 }
 
 /// (rubrique, valeur) d'un fichier DSN.
@@ -98,7 +98,7 @@ fn un_nom_change_le_15_porte_un_bloc_31_ce_mois_la_et_plus_le_mois_suivant() {
     // Clairon (matricule 6) a ete declaree en juillet 2026 ; son nom change le 15 septembre (mariage).
     changer(&r, "CLAIRON", &[("nom", "DUVAL", Some("2026-09-15"))]);
     mois_pret(&r, "2026-09");
-    let rep = produire(&r, "2026-09", "2026-10-05");
+    let rep = dsn_du_mois(&r, "2026-09", "2026-10-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let b = individu(&lignes(&r.join(SEPTEMBRE)), "6");
     assert_eq!(valeur(&b, "S21.G00.30.002"), Some("DUVAL"), "le bloc 30 porte le nouveau nom");
@@ -114,7 +114,7 @@ fn un_nom_change_le_15_porte_un_bloc_31_ce_mois_la_et_plus_le_mois_suivant() {
     // Septembre part et revient accepte : octobre declare DUVAL sans bloc 31.
     deposee(&r, "2026-09", "DSN_Septembre2026.dsn");
     mois_pret(&r, "2026-10");
-    let rep = produire(&r, "2026-10", "2026-11-05");
+    let rep = dsn_du_mois(&r, "2026-10", "2026-11-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let toutes = lignes(&r.join(OCTOBRE));
     let b = individu(&toutes, "6");
@@ -128,7 +128,7 @@ fn deux_identifiants_a_la_meme_date_font_un_bloc_et_deux_dates_deux_blocs() {
     // Une date de naissance rectifiee et le nom le meme jour ; le prenom, cinq jours plus tard.
     changer(&r, "CLAIRON", &[("nom", "DUVAL", Some("2026-09-15")), ("date_naissance", "1990-10-03", Some("2026-09-15")), ("prenom", "LUCIE", Some("2026-09-20"))]);
     mois_pret(&r, "2026-09");
-    let rep = produire(&r, "2026-09", "2026-10-05");
+    let rep = dsn_du_mois(&r, "2026-09", "2026-10-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let b = individu(&lignes(&r.join(SEPTEMBRE)), "6");
     assert_eq!(valeur(&b, "S21.G00.30.004"), Some("LUCIE"));
@@ -153,7 +153,7 @@ fn un_nir_corrige_ecrit_l_ancien_nir() {
     // Jacquet (matricule 7) declaree sous 2870229999010 ; la caisse notifie le bon numero, 2870229999011.
     changer(&r, "JACQUET", &[("nir", "2870229999011", Some("2026-09-10")), ("nir_cle", &cle_nir("2870229999011"), None)]);
     mois_pret(&r, "2026-09");
-    let rep = produire(&r, "2026-09", "2026-10-05");
+    let rep = dsn_du_mois(&r, "2026-09", "2026-10-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let b = individu(&lignes(&r.join(SEPTEMBRE)), "7");
     assert_eq!(valeur(&b, "S21.G00.30.001"), Some("2870229999011"));
@@ -167,7 +167,7 @@ fn un_changement_que_la_fiche_ne_date_pas_refuse_en_le_nommant() {
     // Le nom de Biancolelli (matricule 4) est retouche dans le fichier, sans historique.
     changer(&r, "BIANCOLELLI", &[("nom", "BIANCO", None)]);
     mois_pret(&r, "2026-09");
-    let rep = produire(&r, "2026-09", "2026-10-05");
+    let rep = dsn_du_mois(&r, "2026-09", "2026-10-05");
     assert_eq!(rep["ok"], json!(false), "{}", rep);
     let e = rep["erreur"].as_str().unwrap_or_default().to_string() + &rep.to_string();
     for mot in ["nom de famille", "BIANCOLELLI", "BIANCO", "2026-07", "dater", "S21.G00.31"] {
@@ -183,7 +183,7 @@ fn un_intermittent_qui_revient_declare_le_changement_au_premier_contrat_suivant(
     changer(&r, "CHAMINADE", &[("prenom", "DORINA", Some("2026-08-20"))]);
     deposee(&r, "2026-09", "DSN_Septembre2026.dsn");
     mois_pret(&r, "2026-10");
-    let rep = produire(&r, "2026-10", "2026-11-05");
+    let rep = dsn_du_mois(&r, "2026-10", "2026-11-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let b = individu(&lignes(&r.join(OCTOBRE)), "8");
     assert_eq!(valeur(&b, "S21.G00.30.004"), Some("DORINA"));
@@ -197,7 +197,7 @@ fn un_changement_date_apres_le_mois_declare_n_entre_pas_dans_sa_dsn() {
     // CLAIRON, sans bloc 31 (31.001 ne peut pas depasser le dernier jour du mois principal declare, p. 99).
     changer(&r, "CLAIRON", &[("nom", "DUVAL", Some("2026-10-02"))]);
     mois_pret(&r, "2026-09");
-    let rep = produire(&r, "2026-09", "2026-10-05");
+    let rep = dsn_du_mois(&r, "2026-09", "2026-10-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let toutes = lignes(&r.join(SEPTEMBRE));
     let b = individu(&toutes, "6");
@@ -206,7 +206,7 @@ fn un_changement_date_apres_le_mois_declare_n_entre_pas_dans_sa_dsn() {
     // Octobre, lui, le declare.
     deposee(&r, "2026-09", "DSN_Septembre2026.dsn");
     mois_pret(&r, "2026-10");
-    let rep = produire(&r, "2026-10", "2026-11-05");
+    let rep = dsn_du_mois(&r, "2026-10", "2026-11-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let b = individu(&lignes(&r.join(OCTOBRE)), "6");
     assert_eq!(valeur(&b, "S21.G00.30.002"), Some("DUVAL"));
@@ -249,7 +249,7 @@ fn le_nir_qui_arrive_apres_un_mois_sans_contrat_porte_le_ntt_declare() {
     s["CHAMINADE"]["historique"] = json!([{"champ": "nir", "valeur": "", "jusqu_au": "2026-08-09", "note": ""}]);
     ecrire_json(&r, "config/salaries.json", &s);
     mois_pret(&r, "2026-10");
-    let rep = produire(&r, "2026-10", "2026-11-05");
+    let rep = dsn_du_mois(&r, "2026-10", "2026-11-05");
     assert_eq!(rep["ok"], json!(true), "{}", rep);
     let b = individu(&lignes(&r.join(OCTOBRE)), "8");
     assert_eq!(valeur(&b, "S21.G00.30.001"), Some("2850444999004"));

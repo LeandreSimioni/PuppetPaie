@@ -11,6 +11,8 @@ le fichier, de quand il date, quand on l'a relevé, et son condensat SHA-256
 | Fichier | Contenu | Relevé le | SHA-256 |
 |---|---|---|---|
 | `dsn-cahier-technique-2026.1.pdf` | Cahier technique NEODeS 2026.1 (norme du 6 janvier 2025, en production toute l'année 2026). La référence de chaque rubrique et de chaque contrôle CSL/CCH/CRE. | 03/09/2026 | `76749006…b04ff68536` |
+| `dsn-cahier-technique-2026.1-usages.txt` | Transcription du tableau des usages du cahier 2026.1 (p. 363-371), cellule par cellule, une ligne du tableau par ligne, les cellules séparées par une tabulation. Écrite par `paie extraire transcrire` ; son en-tête porte l'empreinte du PDF. Relue par `paie extraire usages` pour `logiciel/donnees/usages-dsn-base.json`. | 27/10/2026 | (porte `76749006…b04ff68536`) |
+| `dsn-cahier-technique-2026.1-formats.txt` | Transcription du texte du cahier 2026.1, tel que la fabrique de PDF le lit (les définitions des rubriques, leurs longueurs et leurs CSL). Écrite par `paie extraire transcrire` ; son en-tête porte l'empreinte du PDF. Relue par `paie extraire formats` pour `logiciel/donnees/formats-dsn-base.json`. | 27/10/2026 | (porte `76749006…b04ff68536`) |
 | `dsn-cahier-technique-2027.1.1.pdf` | Cahier technique NEODeS 2027.1.1 du 10 juin 2026 (norme de janvier 2027). Déposé par Léandre le 18/09/2026. Relu ce jour sur la fin de CDDU, le FCTU, 62.017 et 40.025 : identique à la 2026.1 (voir `../sources/francetravail-100-dsn/LISEZMOI.md`). Découpé en texte le 10/10/2026 (`texte-2027/`, son `LISEZ-MOI.md`) ; ses tables d'usages et de formats relevées le même jour (`logiciel/donnees/usages-dsn-p27v01-base.json`, `formats-dsn-p27v01-base.json`, lot V4a). | 18/09/2026 | `15934486…5bae30bf` |
 | `dsn-guide-implementation-API-v6.8.zip` | Guide d'implémentation de l'API de dépôt (dépôt, consultation des bilans, retours). Source de `moteur/dsn_api.py`. | 03/09/2026 | `36e54492…c874672be690ecb` |
 
@@ -121,9 +123,16 @@ relevés sur ces fichiers et compare aux tables livrées. Commandes (la sortie s
 ```
 paie extraire usages atelier/reference/norme-dsn/dsn-tableau-des-usages-2027.1.2-20251224.xlsx logiciel/donnees/usages-dsn-p27v01-base.json --remplacer
 paie extraire formats atelier/reference/norme-dsn/dsn-tableaux-categories-controles-datatypes-usages-2027.1.2-20251224.xlsx logiciel/donnees/formats-dsn-p27v01-base.json --remplacer
-paie extraire usages atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf logiciel/donnees/usages-dsn-base.json --remplacer
-paie extraire formats atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf logiciel/donnees/formats-dsn-base.json --remplacer
+paie extraire transcrire atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf atelier/reference/norme-dsn/dsn-cahier-technique-2026.1-usages.txt atelier/reference/norme-dsn/dsn-cahier-technique-2026.1-formats.txt --remplacer
+paie extraire usages atelier/reference/norme-dsn/dsn-cahier-technique-2026.1-usages.txt logiciel/donnees/usages-dsn-base.json --remplacer
+paie extraire formats atelier/reference/norme-dsn/dsn-cahier-technique-2026.1-formats.txt logiciel/donnees/formats-dsn-base.json --remplacer
 ```
+
+LE CAHIER EN PDF SE LIT UNE FOIS. Sa lecture par la fabrique de PDF prend deux minutes et demie pour 382 pages :
+`paie extraire transcrire` la fait une fois, à son dépôt, et dépose les deux transcriptions à côté de lui. Les relevés
+lisent ensuite les transcriptions (ils lisent aussi le PDF lui-même, et en tirent le même relevé), et
+`tests/fichiers/extraction.rs` vérifie que l'empreinte que porte chaque transcription est celle du PDF déposé : un PDF
+qui change se transcrit de nouveau.
 
 Le tableau des usages par rubrique du cahier 2026.1 occupe les p. 363-371 ; les p. 372-382 portent le tableau des
 usages des contrôles (« Oui »/« Non » par contrôle CCH/SIG), que le relevé ne prend pas. Le `_source` de

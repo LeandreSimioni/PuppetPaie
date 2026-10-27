@@ -25,7 +25,7 @@
 //!   des CONTROLES (« Contrôle », « Oui »/« Non » : p. 362, « Tableau des usages de contrôles : explications »), dont aucune
 //!   ligne n'a la forme d'une ligne de rubrique : le `_source` dit les pages ou une rubrique a ete lue.
 //!
-//! Portage de `atelier/outils/extraire_usages.py`.
+//! Le PDF se lit une fois, a son depot : sa transcription (`transcrire`, `super::Transcription`) redonne le meme releve.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -33,7 +33,7 @@ use std::path::Path;
 use regex::Regex;
 use serde_json::{json, Map, Value};
 
-use super::{date_du_releve, nom_de, propre, sha256, somme_py, Releve};
+use super::{date_du_releve, en_transcription, nom_de, propre, sha256, somme_py, Releve, Transcription};
 use socle::date::Jour;
 use socle::lecture_xlsx;
 use socle::num::Resultat;
@@ -237,6 +237,42 @@ fn releve_xlsx(source: &Path) -> Resultat<(Vec<String>, Vec<Vec<String>>)> {
     Ok((entete, lignes))
 }
 
+/// Le tableau des usages du cahier en PDF, lu : (entete, lignes de rubriques, pages ou une rubrique a ete lue).
+fn lire_le_cahier(source: &Path) -> Resultat<(Vec<String>, Vec<Vec<String>>, Vec<usize>)> {
+    let chemin = source.to_string_lossy();
+    let (textes, _) = fabrique_pdf::lecture::texte(&chemin).map_err(|r| r.0)?;
+    let (inspection, _) = fabrique_pdf::inspection::inspecter(&chemin).map_err(|r| r.0)?;
+    let inspection: Value = serde_json::from_str(&inspection).map_err(|e| format!("{} : inspection illisible ({})", chemin, e))?;
+    let (entete, lignes, pages) = releve_pdf(&textes, &inspection)?;
+    if pages.is_empty() {
+        return Err(format!("{} : aucune ligne de rubrique dans le tableau des usages", chemin));
+    }
+    Ok((entete, lignes, pages))
+}
+
+/// LA TRANSCRIPTION DU TABLEAU DES USAGES du cahier en PDF (`super::Transcription`) : une ligne par ligne du tableau, ses
+/// cellules separees par une tabulation, l'entete d'abord ; l'en-tete dit les pages ou une rubrique a ete lue.
+pub fn transcrire(pdf: &Path) -> Resultat<String> {
+    version_du_cahier(pdf)?;
+    let (entete, lignes, pages) = lire_le_cahier(pdf)?;
+    let (premiere, derniere) = (pages.iter().min().copied().unwrap_or(0), pages.iter().max().copied().unwrap_or(0));
+    let mut corps = String::new();
+    for r in std::iter::once(&entete).chain(&lignes) {
+        corps.push_str(&r.join("\t"));
+        corps.push('\n');
+    }
+    let t = Transcription::de(pdf, vec![("pages".into(), format!("{}-{}", premiere, derniere))], corps)?;
+    Ok(t.texte(&format!("Le tableau des usages de {}, cellule par cellule (`paie extraire transcrire`)", nom_de(pdf))))
+}
+
+/// (entete, lignes de rubriques, pages) relus dans une transcription.
+fn lire_la_transcription(t: &Transcription) -> Resultat<(Vec<String>, Vec<Vec<String>>, (String, String))> {
+    let mut rangs = t.corps.lines().map(|l| l.split('\t').map(str::to_string).collect::<Vec<_>>());
+    let entete = rangs.next().ok_or("transcription vide")?;
+    let pages = t.champ("pages").and_then(|p| p.split_once('-')).ok_or("la transcription ne dit pas ses pages")?;
+    Ok((entete, rangs.collect(), (pages.0.to_string(), pages.1.to_string())))
+}
+
 /// La version, lue dans le nom du fichier depose (le releve ne la devine pas).
 fn version(source: &Path, motif: &str, attendu: &str) -> Resultat<String> {
     let chemin = source.to_string_lossy();
@@ -255,11 +291,23 @@ pub(crate) fn en_classeur(source: &Path) -> bool {
     source.to_string_lossy().to_lowercase().ends_with(".xlsx")
 }
 
-/// Le releve du tableau des usages, depuis le classeur ou le cahier en PDF.
+/// Le releve du tableau des usages, depuis le classeur, le cahier en PDF, ou la transcription du cahier
+/// (`dsn-cahier-technique-<version>-usages.txt`), qui en redonne le meme releve.
 pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     let date = date_du_releve(jour);
     let classeur = en_classeur(source);
-    let (entete, lignes, provenance) = if classeur {
+    let provenance_du_cahier = |pdf: &str, premiere: &str, derniere: &str| -> Resultat<String> {
+        Ok(format!(
+            "Cahier technique NEODeS {} ({}), tableau des usages (p. {}-{}). Releve automatiquement par \
+             `paie extraire usages` le {}.",
+            version_du_cahier(Path::new(pdf))?,
+            pdf,
+            premiere,
+            derniere,
+            date
+        ))
+    };
+    let (entete, lignes, provenance, empreinte) = if classeur {
         let (entete, lignes) = releve_xlsx(source)?;
         let v = version(
             source,
@@ -274,28 +322,17 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
             FEUILLE_USAGES,
             date
         );
-        (entete, lignes, provenance)
+        (entete, lignes, provenance, sha256(source)?)
+    } else if en_transcription(source) {
+        let t = Transcription::lire(source)?;
+        let (entete, lignes, (premiere, derniere)) = lire_la_transcription(&t)?;
+        (entete, lignes, provenance_du_cahier(&t.pdf, &premiere, &derniere)?, t.sha256)
     } else {
-        let v = version_du_cahier(source)?;
-        let chemin = source.to_string_lossy();
-        let (textes, _) = fabrique_pdf::lecture::texte(&chemin).map_err(|r| r.0)?;
-        let (inspection, _) = fabrique_pdf::inspection::inspecter(&chemin).map_err(|r| r.0)?;
-        let inspection: Value =
-            serde_json::from_str(&inspection).map_err(|e| format!("{} : inspection illisible ({})", chemin, e))?;
-        let (entete, lignes, pages) = releve_pdf(&textes, &inspection)?;
-        let (Some(premiere), Some(derniere)) = (pages.iter().min(), pages.iter().max()) else {
-            return Err(format!("{} : aucune ligne de rubrique dans le tableau des usages", chemin));
-        };
-        let provenance = format!(
-            "Cahier technique NEODeS {} ({}), tableau des usages (p. {}-{}). Releve automatiquement par \
-             `paie extraire usages` le {}.",
-            v,
-            nom_de(source),
-            premiere,
-            derniere,
-            date
-        );
-        (entete, lignes, provenance)
+        version_du_cahier(source)?;
+        let (entete, lignes, pages) = lire_le_cahier(source)?;
+        let (premiere, derniere) = (pages.iter().min().copied().unwrap_or(0), pages.iter().max().copied().unwrap_or(0));
+        let provenance = provenance_du_cahier(&nom_de(source), &premiere.to_string(), &derniere.to_string())?;
+        (entete, lignes, provenance, sha256(source)?)
     };
     let nature = Regex::new(r"\A(\d\d) - (.*)").expect("motif");
     let mut natures: Vec<(String, usize, String)> = Vec::new();
@@ -332,7 +369,7 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     donnees.insert("_source".into(), Value::String(provenance));
     donnees.insert(
         (if classeur { "_sha256_du_classeur" } else { "_sha256_du_pdf" }).into(),
-        Value::String(sha256(source)?),
+        Value::String(empreinte),
     );
     donnees.insert(
         "_comment_le_verifier".into(),

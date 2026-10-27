@@ -160,8 +160,64 @@ impl Valide {
         let une = relire::saisie_d_un_engagement(data, i);
         let mut p = relire::paies(ctx, &une, &[ecrite])?.pop().ok_or("paie ecrite illisible")?;
         p.pas = self.paie_ecrite(mois).and_then(|x| x.get("pas")).filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
+        p.numero_bulletin = self.bulletin(mois).map(String::from);
         Ok(p)
     }
+
+    /// Le numero du bulletin de `mois` (`N/AAAA`), ecrit quand ses documents sont partis (`poser_numeros_des_documents`).
+    pub fn bulletin(&self, mois: &str) -> Option<&str> {
+        self.paie_ecrite(mois)?.get(BULLETIN)?.as_str()
+    }
+
+    /// Le premier N CE du certificat Conges Spectacles de `mois`, ecrit quand ses documents sont partis.
+    pub fn premier_ce(&self, mois: &str) -> Option<i64> {
+        self.paie_ecrite(mois)?.get(CE)?.as_i64()
+    }
+
+    /// Le numero du bulletin que la paie de `mois` rectifie : celui d'une paie partie, refaite depuis.
+    pub fn rectifie(&self, mois: &str) -> Option<&str> {
+        self.paie_ecrite(mois)?.get(RECTIFIE)?.as_str()
+    }
+}
+
+/// Dans une paie ecrite : le numero de son bulletin, le premier N CE de son certificat, et le bulletin qu'elle rectifie.
+pub const BULLETIN: &str = "bulletin";
+pub const CE: &str = "ce";
+pub const RECTIFIE: &str = "rectifie";
+
+/// LES NUMEROS DES DOCUMENTS QUI PARTENT, ecrits dans la paie de `mois` de l'engagement du salarie `cle` qui commence le
+/// `debut` (le `jumeau`-ieme de ceux-la, dans l'ordre de l'ecran) : le numero de son bulletin, le premier N CE de son
+/// certificat. Ils se relisent ensuite (`Valide::bulletin`, `Valide::premier_ce`) : un document reparti a l'identique
+/// garde ses numeros. Une paie deja numerotee ne change pas de numero.
+pub fn poser_numeros_des_documents(ctx: &Contexte, mois: &str, cle: &str, debut: &str, jumeau: usize, bulletin: Option<&str>, ce: Option<i64>) -> Resultat<()> {
+    let siens: Vec<Objet> = stock::objets_du_mois(&ctx.racine, mois)?
+        .into_iter()
+        .filter(|o| {
+            let e = Value::Object(o.brut.clone());
+            crate::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle) && crate::debut_brut(&e) == debut
+        })
+        .collect();
+    let mut o = siens.into_iter().nth(jumeau).ok_or_else(|| format!("{} : pas d'engagement de {} au {}", mois, cle, debut))?;
+    let Some(p) = o.brut.get_mut("valide").and_then(|v| v.get_mut("paies")).and_then(|p| p.get_mut(mois)).and_then(Value::as_object_mut) else {
+        return Err(format!("{} : l'engagement de {} au {} n'a pas de paie validee", mois, cle, debut));
+    };
+    let mut change = false;
+    if let Some(b) = bulletin {
+        if !p.contains_key(BULLETIN) {
+            p.insert(BULLETIN.into(), json!(b));
+            change = true;
+        }
+    }
+    if let Some(n) = ce {
+        if !p.contains_key(CE) {
+            p.insert(CE.into(), json!(n));
+            change = true;
+        }
+    }
+    if change {
+        stock::reecrire(&ctx.racine, &o)?;
+    }
+    Ok(())
 }
 
 impl Partis {
@@ -220,11 +276,28 @@ fn ecrits(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
 
 /// LA LECTURE DE L'ENGAGEMENT VALIDE : l'etat de chaque engagement que `mois` montre, dans l'ordre de l'ecran, apres le
 /// recalcul de lui-meme (`rafraichir`). C'est le seul chemin vers une paie validee : l'ecran, les exports, les
-/// declarations, les documents et les envois lisent tous par ici, et lisent donc une paie juste. Un recalcul qui ne se
-/// fait pas (une saisie du mois qui ne se calcule pas encore) laisse la paie telle qu'elle a ete validee.
+/// declarations, les documents et les envois lisent tous par ici, et lisent donc une paie juste.
+///
+/// UN RECALCUL QUE LE MOTEUR REFUSE n'est pas l'affaire de l'utilisateur : ce qui releve de lui (une saisie incomplete)
+/// se refuse a la validation, avant tout calcul. L'engagement garde la paie validee, et le refus va au temoin que la
+/// couche du dessus a pose (`poser_temoin`), qui le note pour l'editeur.
 pub fn du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
-    let _ = rafraichir(ctx, mois);
+    if let Err(refus) = rafraichir(ctx, mois) {
+        if let Some(temoin) = TEMOIN.get() {
+            temoin(&ctx.racine, mois, &refus);
+        }
+    }
     ecrits(ctx, mois)
+}
+
+/// Qui recoit un recalcul refuse : `(racine de la compagnie, mois, refus du moteur)`.
+pub type Temoin = fn(&Path, &str, &str);
+
+static TEMOIN: std::sync::OnceLock<Temoin> = std::sync::OnceLock::new();
+
+/// Pose le temoin des recalculs refuses (`du_mois`), une fois pour le processus.
+pub fn poser_temoin(t: Temoin) {
+    let _ = TEMOIN.set(t);
 }
 
 /// Pour chaque engagement que `mois` montre, dans l'ordre de l'ecran : est-il valide ? Ne lit aucune paie, donc ne
@@ -277,6 +350,69 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<(Value, V
     let mut reduite = data.clone();
     reduite["engagements"] = Value::Array(gardes);
     Ok(Some((reduite, paies)))
+}
+
+/// LES PAIES ECRITES DE `mois`, quand chaque engagement qu'il montre est valide et a la sienne : ce que lisent les calculs
+/// des mois d'apres (le brut de la periode des conges, la deduction forfaitaire de l'annee, les cumuls), sans recalculer
+/// le mois. `None` quand un engagement du mois est en saisie, n'a pas de paie ecrite pour lui, ou que sa paie ecrite
+/// n'est plus juste (son empreinte ne tient plus, et ses documents ne sont pas partis) : le mois se calcule, comme sa
+/// lecture (`du_mois`) le recalculerait. Un calcul ne reecrit rien.
+///
+/// Le calcul qui les lit note leur empreinte (`paies <mois>`, `empreinte_des_paies_ecrites`) : une paie ecrite qui change
+/// fait recalculer les mois qui l'ont lue.
+pub fn paies_ecrites(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Paie>>> {
+    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
+    let Some(valides) = valides_justes(ctx, mois)? else { return Ok(None) };
+    socle::fichiers::noter_valeur(&format!("paies {}", mois), empreinte_des_paies(&valides, mois));
+    valides.iter().enumerate().map(|(i, v)| v.paie(ctx, &data, i)).collect::<Resultat<Vec<_>>>().map(Some)
+}
+
+/// L'empreinte des paies ecrites de `mois` telles qu'un calcul les lirait (`paies_ecrites`) ; `None` s'il les calculerait.
+pub fn empreinte_des_paies_ecrites(ctx: &Contexte, mois: &str) -> Option<String> {
+    valides_justes(ctx, mois).ok().flatten().map(|v| empreinte_des_paies(&v, mois))
+}
+
+fn empreinte_des_paies(valides: &[Valide], mois: &str) -> String {
+    let paies: Vec<Value> = valides.iter().map(|v| v.paie_ecrite(mois).and_then(|p| p.get("paie")).cloned().unwrap_or(Value::Null)).collect();
+    socle::fichiers::sha256_hex(Value::Array(paies).to_string().as_bytes())
+}
+
+/// Les engagements valides de `mois` dont la paie ecrite est juste, si tous le sont.
+fn valides_justes(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Valide>>> {
+    let mut relues = empreinte::Relues::default();
+    let mut valides = Vec::new();
+    for e in ecrits(ctx, mois)? {
+        let (v, partis) = match e {
+            Etat::EnSaisie(_) => return Ok(None),
+            Etat::Valide(v) => (v, false),
+            Etat::Partis(p) => (p.valide, true),
+        };
+        let Some(ecrite) = v.paie_ecrite(mois).filter(|p| p.get("paie").is_some()) else { return Ok(None) };
+        let juste = partis || ecrite.get("empreinte").and_then(empreinte::entrees_de).is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
+        if !juste {
+            return Ok(None);
+        }
+        valides.push(v);
+    }
+    Ok(Some(valides))
+}
+
+/// Les numeros des documents de chaque engagement valide de `mois`, au meme rang que `validees_du_mois` : le numero de
+/// son bulletin, le premier N CE de son certificat, et le bulletin que sa paie rectifie, tels que la paie ecrite les porte.
+pub fn numeros_des_documents(ctx: &Contexte, mois: &str) -> Resultat<Vec<NumerosEcrits>> {
+    Ok(ecrits(ctx, mois)?
+        .iter()
+        .filter_map(Etat::valide)
+        .map(|v| NumerosEcrits { bulletin: v.bulletin(mois).map(String::from), premier_ce: v.premier_ce(mois), rectifie: v.rectifie(mois).map(String::from) })
+        .collect())
+}
+
+/// Ce qu'une paie ecrite porte des documents partis d'elle.
+#[derive(Debug, Clone, Default)]
+pub struct NumerosEcrits {
+    pub bulletin: Option<String>,
+    pub premier_ce: Option<i64>,
+    pub rectifie: Option<String>,
 }
 
 // ------------------------------------------------------------------ calculer et ecrire
@@ -402,6 +538,32 @@ fn maintenant() -> String {
 /// pas change. Refus : un mois qui ne se calcule pas ; rien n'est ecrit.
 pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    // Le numero du contrat d'abord : la paie de chaque mois le porte, et le calcul lit l'engagement ecrit. Un calcul
+    // refuse rend l'engagement tel qu'il etait.
+    let avant = o.clone();
+    let le = maintenant();
+    crate::numeros::a_la_validation(ctx, &mut o, &le)?;
+    let numerote = o.brut != avant.brut;
+    if numerote {
+        stock::reecrire(&ctx.racine, &o)?;
+    }
+    let paies = match paies_a_valider(ctx, &o, mois) {
+        Ok(p) => p,
+        Err(e) => {
+            if numerote {
+                stock::reecrire(&ctx.racine, &avant)?;
+            }
+            return Err(e);
+        }
+    };
+    o.brut.remove("figees");
+    o.brut.insert("valide".into(), json!({ "le": le, "paies": paies }));
+    stock::reecrire(&ctx.racine, &o)?;
+    Valide::de(o).ok_or_else(|| "validation illisible".to_string())
+}
+
+/// Les paies que la validation de `o` ecrit, une par mois qu'il couvre jusqu'a `mois`.
+fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Map<String, Value>> {
     let figees = o.brut.get("figees").and_then(Value::as_object).cloned().unwrap_or_default();
     let mut paies = Map::new();
     for m in o.mois_couverts(mois)? {
@@ -412,14 +574,18 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
         });
         let p = match garde {
             Some(f) => f.clone(),
-            None => calculer(ctx, &o, &m)?,
+            None => {
+                let mut p = calculer(ctx, o, &m)?;
+                // Une paie partie, refaite : son bulletin sera un rectificatif de celui qui est parti.
+                if let Some(parti) = figees.get(&m).and_then(|f| f.get(BULLETIN).or_else(|| f.get(RECTIFIE))).filter(|b| b.is_string()) {
+                    p[RECTIFIE] = parti.clone();
+                }
+                p
+            }
         };
         paies.insert(m, p);
     }
-    o.brut.remove("figees");
-    o.brut.insert("valide".into(), json!({ "le": maintenant(), "paies": paies }));
-    stock::reecrire(&ctx.racine, &o)?;
-    Valide::de(o).ok_or_else(|| "validation illisible".to_string())
+    Ok(paies)
 }
 
 /// Les mois de l'engagement `o` dont les documents sont partis, tous ses mois compris.
@@ -501,6 +667,9 @@ fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
         };
         if let Some(r) = &raison {
             nouvelle["recalcul"] = json!({ "le": maintenant(), "raison": r });
+        }
+        if let Some(r) = ancienne.as_ref().and_then(|a| a.get(RECTIFIE)) {
+            nouvelle[RECTIFIE] = r.clone();
         }
         if let Some(Value::Object(paies)) = o.brut.get_mut("valide").and_then(|x| x.get_mut("paies")) {
             paies.insert(mois.to_string(), nouvelle);

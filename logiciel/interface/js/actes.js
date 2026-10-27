@@ -112,15 +112,10 @@ function cheminDuDepot(a, bilan) {
   const fichier = bilan.fichier;
   // UNE PAIE MODIFIÉE REPASSE PAR LE TEST (30/09/2026, l'éditeur : « si on
   // modifie une paie on doit passer en mode test à nouveau, simple et
-  // efficace »). Le fichier testé ne déclare plus la paie : on réécrit le
-  // mois, et la boîte de dépôt s'ouvre sur le test.
+  // efficace »). Le fichier testé ne déclare plus la paie : la DSN se refait
+  // depuis les engagements validés, et la boîte de dépôt s'ouvre sur le test.
   if (etape === "paie_changee") {
-    const mois = document.getElementById("mois").value;
-    a.ouvrir = () => boiteProduire(mois, async () => {
-      const e2 = await api("etat-du-mois", { mois });
-      const d2 = (e2.fichiers[a.cle] || [])[0];
-      if (d2) await boiteDepot(a.cle, d2.chemin, { testerDabord: true });
-    });
+    a.ouvrir = () => deposerLaDsn(document.getElementById("mois").value);
     return;
   }
   a.ouvrir = () => boiteDepot(a.cle, fichier);
@@ -177,16 +172,11 @@ async function dessinerActions(mois) {
     // l'endroit où on clique.
     { cle: "dsn", titre: "DSN", court: "DSN",
       detail: "tout le mois d'un coup — une DSN ne se découpe pas",
-      bouton: dsn ? "Déposer la DSN…" : "Fermer le mois…",
+      bouton: "Déposer la DSN…",
       fichier: dsn, toujours: true,
-      // Rien d'écrit : la boîte ferme le mois (bulletins, certificats, DSN),
-      // puis enchaîne sur le dépôt, en test d'abord. Un seul geste.
-      ouvrir: () => dsn ? boiteDepot("dsn", dsn.chemin)
-                        : boiteProduire(mois, async () => {
-                            const e2 = await api("etat-du-mois", { mois });
-                            const d2 = (e2.fichiers.dsn || [])[0];
-                            if (d2) await boiteDepot("dsn", d2.chemin, { testerDabord: true });
-                          }) },
+      // La DSN se fabrique à son dépôt, depuis les engagements validés du mois,
+      // puis part en test d'abord. Un seul geste.
+      ouvrir: () => deposerLaDsn(mois) },
     { cle: "documents", titre: "Documents aux salariés", court: "DOCUMENTS",
       detail: "",
       bouton: "Envoyer les documents…", toujours: true,
@@ -219,22 +209,15 @@ async function dessinerActions(mois) {
     // L'ANNULE-ET-REMPLACE (30/09/2026). Une DSN réelle est partie : tant que
     // la norme l'admet (veille de l'échéance, minuit), la refaire reste à
     // portée de main — et c'est LE geste quand la paie a changé depuis. Après,
-    // la correction passe par la DSN suivante (« Corriger ce mois ») ; une
-    // fois écrite (`correction_ecrite`), il n'y a plus rien à faire ici.
+    // la correction part d'elle-même dans la DSN d'un mois suivant.
     const r = a.cle === "dsn" && bilan && bilan.remplacement;
     if (r && r.deposee) {
-      const refaire = () => boiteProduire(mois, async () => {
-        const e2 = await api("etat-du-mois", { mois });
-        const d2 = (e2.fichiers.dsn || [])[0];
-        if (d2) await boiteDepot("dsn", d2.chemin, { testerDabord: true });
-      });
+      const refaire = () => deposerLaDsn(mois);
       const libelle = `Refaire la DSN (annule-et-remplace, ordre ${r.prochain_ordre})…`;
       if (bilan.etape) {
         // Un annule-et-remplace est déjà écrit : son chemin passe devant.
       } else if (r.a_envoyer) {
         a.bouton = libelle; a.ouvrir = refaire;
-      } else if (r.saisie_modifiee && !r.admis && !r.correction_ecrite) {
-        a.bouton = "Corriger ce mois…"; a.ouvrir = () => boiteCorriger(mois);
       } else if (r.admis) {
         a.second = { bouton: libelle, ouvrir: refaire };
       }
@@ -449,6 +432,20 @@ function corpsDpae(a) {
       déclarations pour un seul contrat.</div>` : ""}`;
 }
 
+/** LA DSN DU MOIS SE FABRIQUE À SON DÉPÔT : le moteur l'écrit depuis les
+ *  engagements validés (`dsn-a-deposer`), puis la boîte de dépôt s'ouvre sur
+ *  elle, en test d'abord. Ce que le moteur en dit se lit sous la barre. */
+async function deposerLaDsn(mois) {
+  let r;
+  try {
+    r = await api("dsn-a-deposer", { mois });
+  } catch (e) { dire(e.message, "erreur"); return; }
+  const dit = (r.avertissements || []).concat(r.informations || []);
+  if (dit.length) dire(dit.join("  ·  "));
+  await rafraichirActions();
+  if (r.chemin) await boiteDepot("dsn", r.chemin, { testerDabord: true });
+}
+
 async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
   let a;
   try {
@@ -479,8 +476,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
       ${enFictive() ? "sans attendre le test — simulé…" : "en réel sans attendre le test…"}</button></p>` : ""}
     ${a.reel ? "" : `<p class="note">Le fichier est codé <b>envoi de test</b> :
       déposé « pour de vrai », il ne déclarerait rien et rien ne serait
-      conservé. Reproduire le mois sans l'option d'envoi de test pour pouvoir
-      déclarer.</p>`}`);
+      conservé.</p>`}`);
 
   // Le mot de passe tapé pour le dépôt sert au renvoi (boiteRenvoiDsn) :
   // on ne le redemande pas. Une erreur l'oublie, un refus aussi.
@@ -836,9 +832,9 @@ async function boiteEnvoi(mois) {
          remettent à la main.</div>`}
     ${(a.empechements || []).map((x) =>
       `<div class="encart attention">${echapper(x)}</div>`).join("")}
-    ${(a.avertissements || []).map((x) =>
+    ${(a.avertissements || []).concat(a.informations || []).map((x) =>
       `<div class="encart info">${echapper(x)}</div>`).join("")}
-    ${!a.produit ? "" : `<table class="table-envoi">
+    ${!a.messages.length ? "" : `<table class="table-envoi">
       <colgroup><col class="c-salarie"><col class="c-adresse"><col class="c-pieces"><col class="c-taille"></colgroup>
       <tr><th>Salarié</th><th>Adresse</th><th>Pièces</th><th>Taille</th></tr>
       ${a.messages.map((m) => `
@@ -864,15 +860,7 @@ async function boiteEnvoi(mois) {
       ne revient pas. Le mot de passe du logiciel est demandé à l'envoi.</p>`}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${a.produit ? `<button class="secondaire" id="e-dossier">Ouvrir le dossier des documents</button>`
-        : a.a_redecouper
-          // LE MOIS EST PRODUIT, IL N'EST PAS DÉCOUPÉ. Proposer ici « écrire
-          // le mois » serait proposer de reproduire une déclaration déjà
-          // déposée : les numéros de contrat changeraient (règle 4 de
-          // CLAUDE.md) et le mois est de toute façon hors délai. On propose
-          // le redécoupage, qui lit les numéros dans le fichier archivé.
-          ? `<button class="secondaire" id="e-pieces">Écrire les documents des salariés</button>`
-          : `<button class="secondaire" id="e-ecrire">Écrire le mois…</button>`}
+      ${a.messages.length ? `<button class="secondaire" id="e-dossier">Ouvrir le dossier des documents</button>` : ""}
       <button class="primaire" id="e-envoyer" ${peut ? "" : "disabled"}
               title="${peut ? "" : echapper((a.empechements || []).concat(
                 a.boite_liee ? [] : ["Aucune boîte courriel."]).join(" "))}">${echapper(a.bouton)}${enFictive() ? " — simulé" : ""}</button>
@@ -880,23 +868,6 @@ async function boiteEnvoi(mois) {
 
   const dossier = document.getElementById("e-dossier");
   if (dossier) dossier.onclick = () => ouvrirDossier(dossier, mois, "documents");
-  const ecrire = document.getElementById("e-ecrire");
-  if (ecrire) ecrire.onclick = () => boiteProduire(mois, () => boiteEnvoi(mois));
-  const pieces = document.getElementById("e-pieces");
-  if (pieces) pieces.onclick = async () => {
-    pieces.disabled = true;
-    try {
-      const r = await api("ecrire-documents", { mois });
-      // `dire` n'affiche qu'un message : les avertissements le suivent sur la
-      // même ligne, sans quoi le dernier effacerait les autres.
-      dire([r.fichiers.length + " pièce(s) écrite(s) — rien n'est parti."]
-        .concat(r.avertissements || []).join("  ·  "));
-      await boiteEnvoi(mois);
-    } catch (e) {
-      pieces.disabled = false;
-      dire(e.message, "erreur");
-    }
-  };
   document.getElementById("e-envoyer").onclick = async () => {
     const mdp = await demanderMotDePasse("envoyer les documents à " + a.messages.length + " salarié(s)", { envoi: true });
     if (!mdp) return;
@@ -990,6 +961,8 @@ async function boiteSignature(mois, seulement) {
               || "la paie a changé depuis l'envoi")}${c.demande_le ? ` (envoyé le ${echapper(quand(c.demande_le))})` : ""} —
               ce contrat est à renvoyer</span>`
               : c.recu_le ? `<br><span class="pastille bien">${echapper(signeLe(c.recu_le, c.recu_par))}</span>`
+              : c.demande_le && c.main_propre ? `<br><span class="pastille alerte">imprimé le
+              ${echapper(quand(c.demande_le))} pour une remise en main propre — pas encore revenu signé</span>`
               : c.demande_le ? `<br><span class="pastille alerte">demandé le
               ${echapper(quand(c.demande_le))} — pas encore revenu</span>
               ${a.boite_liee ? `<button class="secondaire petit s-relancer"
@@ -1001,20 +974,41 @@ async function boiteSignature(mois, seulement) {
     ${a.boite_liee ? "" : `<div class="encart"><b>Aucune boîte courriel</b>
       Posez le mot de passe d'application de la boîte de la compagnie
       (Configuration › Mots de passe) pour envoyer les contrats par courriel.
-      En attendant, ils s'ouvrent depuis le dossier du mois et se font signer
-      à la main.</div>`}
+      En attendant, ils s'impriment pour être signés à la main.</div>`}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${a.produit ? `<button class="secondaire" id="s-dossier">Ouvrir le dossier des contrats</button>`
-                  : `<button class="secondaire" id="s-ecrire">Écrire le mois…</button>`}
+      ${a.produit ? `<button class="secondaire" id="s-dossier">Ouvrir le dossier des contrats</button>` : ""}
+      <button class="secondaire" id="s-imprimer" title="Les contrats cochés, en PDF, à imprimer et à faire signer à la main : ils partent sous leur numéro">Imprimer</button>
       <button class="primaire" id="s-envoyer" ${a.boite_liee ? "" : "disabled"}
               title="${a.boite_liee ? "" : "Aucune boîte courriel."}">${enFictive() ? "Envoyer à la signature — simulé" : "Envoyer à la signature"}</button>
     </div>`);
 
   const dossierS = document.getElementById("s-dossier");
   if (dossierS) dossierS.onclick = () => ouvrirDossier(dossierS, mois, "contrats");
-  const ecrireS = document.getElementById("s-ecrire");
-  if (ecrireS) ecrireS.onclick = () => boiteProduire(mois, () => boiteSignature(mois, seulement));
+  // IMPRIMER : le contrat part à la main, sous son numéro, et le journal le
+  // note ; le salarié le signe, et sa pastille se coche à son retour.
+  document.getElementById("s-imprimer").onclick = async () => {
+    const coches = [...document.querySelectorAll(".s-qui:checked")].filter((c) => !c.dataset.avenant);
+    if (!coches.length) { dire("Aucun contrat coché."); return; }
+    const contrats = coches.map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero }));
+    const bouton = document.getElementById("s-imprimer");
+    const rendre = occupe(bouton, "Impression…");
+    try {
+      const r = await api("contrats-imprimer", { mois, contrats });
+      fermerBoite();
+      // Le dossier des contrats s'ouvre ; s'il ne s'ouvre pas, son chemin se dit.
+      let ou = "";
+      try {
+        const d = await api("ouvrir-dossier", { mois, quoi: "contrats" });
+        ou = d && d.dossier ? " Dossier : " + d.dossier : "";
+      } catch (err) { ou = " " + err.message; }
+      dire(r.contrats.length + " contrat(s) à imprimer : " + r.contrats.map((c) => "n° " + c.numero).join(", ") + "." + ou, "envoye");
+      await rafraichirActions();
+    } catch (e) {
+      rendre();
+      dire(e.message, "erreur");
+    }
+  };
   // RELANCER (30/09/2026) : le MÊME contrat, redemandé parce que la
   // signature n'est pas revenue — distinct de « Envoyer », qui sert à un
   // contrat jamais parti ou changé depuis. Le journal le dit, et la

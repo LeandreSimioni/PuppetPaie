@@ -149,39 +149,15 @@
            contrats sur plusieurs mois) : le bloc arrive prérempli et ses
            bornes verrouillées, il ne reste qu'à poser les jours du mois.
            Le bouton ne se montre que s'il y a quelque chose à reprendre. -->
-      <!-- UN MOIS FERMÉ QUI SE ROUVRE (18/09/2026). Passé le 15 du mois
-           suivant, le mois est en lecture seule : sa DSN était due. Mais une
-           DSN oubliée doit pouvoir partir — en retard, et en le sachant.
-           C'était `--forcer` en ligne de commande et rien du tout ici. Le
-           bouton ne rouvre pas d'un clic : il ouvre l'avertissement, et
-           c'est la réponse qui rouvre, pour ce mois-là seulement. -->
-      <button class="secondaire alerte" id="rouvrir-mois" hidden>Rouvrir ce mois (DSN en retard)</button>
 
       <!-- Plus de barre d'actions groupées ni de case par carte (15/09/2026) :
            les boîtes DPAE et signature de la colonne de droite listent chaque
            contrat avec sa case, cochée d'avance sur ce qui reste à faire. -->
 
-      <!-- UN SEUL BOUTON, et c'est une correction du 12/09/2026 : « je
-           comprends pas les boutons en bas produire le mois et enregistrer la
-           saisie, tout est déjà dans les cases ». Il avait raison — ce qui est
-           tapé dans une case EST la saisie, et lui demander de le redire d'un
-           clic, c'était lui faire garder en tête un état que la machine
-           connaît mieux que lui. La saisie s'enregistre donc toute seule, une
-           seconde après la dernière frappe, et la ligne d'état dit quand.
-           Produire, en revanche, reste un bouton : ça consomme des numéros de
-           bulletin et ça écrit des fichiers qui partiront. -->
-      <!-- « Il y a toujours le bouton produire le mois, que je ne sais pas à
-           quoi il correspond — si c'est envoyer la DSN, il faut l'écrire
-           comme tel ! » (12/09/2026). Il ne l'est pas, et c'était bien le
-           problème : « produire » ne dit ni ce qui est fabriqué, ni que rien
-           ne part. Ce bouton CALCULE et ÉCRIT des fichiers sur le disque ; ce
-           qui part, part depuis la colonne de droite, un acte à la fois, avec
-           son récapitulatif et son mot de passe. -->
-      <!-- Plus de bouton « Écrire les documents du mois » depuis le
-           13/09/2026 (l'éditeur : « ce bouton est en trop, le bouton c'est
-           envoyer, directement, il nous dit s'il peut »). Le mois s'écrit
-           depuis la boîte DSN quand rien n'est encore écrit (boiteProduire),
-           et les autres boîtes disent ce qui manque. -->
+      <!-- La saisie s'enregistre toute seule, une seconde après la dernière
+           frappe, et la ligne d'état dit quand. Rien ne part d'ici : ce qui part,
+           part depuis la colonne de droite, un acte à la fois, et se fabrique
+           à son départ. -->
       <p class="note" id="note-saisie"></p>
     </div>
 

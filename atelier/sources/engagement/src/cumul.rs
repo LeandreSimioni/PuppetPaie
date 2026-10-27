@@ -117,10 +117,17 @@ pub fn engagements_des_paies(
         if groupes.iter().any(|(m, _)| *m == stem) {
             continue;
         }
-        let Ok(saisie) = charger(ctx, &stem) else { continue };
-        crate::conges::memoriser_mois(ctx, &stem, &saisie.paies);
+        // Un mois valide se lit dans ses paies ecrites ; un mois en saisie se calcule.
+        let paies = match crate::etats::paies_ecrites(ctx, &stem) {
+            Ok(Some(ecrites)) => ecrites,
+            _ => match charger(ctx, &stem) {
+                Ok(s) => s.paies,
+                Err(_) => continue,
+            },
+        };
+        crate::conges::memoriser_mois(ctx, &stem, &paies);
         let mut es = Vec::new();
-        for p in &saisie.paies {
+        for p in &paies {
             if let Some(e) = engagement_de_paie(ctx, p)? {
                 es.push(e);
             }

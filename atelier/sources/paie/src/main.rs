@@ -22,6 +22,7 @@ fn main() -> std::process::ExitCode {
         eprintln!("{}", m);
         return std::process::ExitCode::from(2);
     }
+    paie::incidents::poser_le_temoin_des_recalculs();
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         // Les commandes de la fabrique, servies par sa bibliotheque.

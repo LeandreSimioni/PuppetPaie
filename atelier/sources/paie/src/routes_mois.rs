@@ -206,7 +206,7 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
 /// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
 ///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent. D'un meme
 ///   etablissement, LA DERNIERE ECRITE D'ABORD (#253, 23/10/2026) : un annule-et-remplace s'ecrit a cote de la DSN deja
-///   partie, sous `DSN_<Mois>_AR<ordre>.dsn` (`produire_mois`), et c'est lui qui part ; il se reconnait a son numero
+///   partie, sous `DSN_<Mois>_AR<ordre>.dsn` (`depart::fabriquer_dsn`), et c'est lui qui part ; il se reconnait a son numero
 ///   d'ordre (S20.G00.05.004, ou `_AR<n>` du nom), le plus grand d'abord. Rangees par le seul nom, la DSN deja deposee
 ///   (`DSN_Janvier2025.dsn`) passait avant son annule-et-remplace (`DSN_Janvier2025_AR2.dsn`) : la boite « Deposer » et
 ///   l'etape DSN montraient, testaient et auraient redepose l'ancienne. PUIS LES SIGNALEMENTS (arret, fin de contrat,
@@ -300,12 +300,11 @@ pub struct Moteur<'a> {
     journal: Option<Result<std::sync::Arc<Vec<Value>>, Echec>>,
     globales: Option<Rc<Globales>>,
     fichiers: HashMap<String, Value>,
-    compteurs: Option<Value>,
 }
 
 impl<'a> Moteur<'a> {
     pub fn nouveau(o: &'a HashMap<String, String>, ctx: &'a Contexte) -> Moteur<'a> {
-        Moteur { o, ctx, journal: None, globales: None, fichiers: HashMap::new(), compteurs: None }
+        Moteur { o, ctx, journal: None, globales: None, fichiers: HashMap::new() }
     }
 
     fn racine(&self) -> &Path {
@@ -359,56 +358,22 @@ impl<'a> Moteur<'a> {
         Ok(SaisieMois { data, paies })
     }
 
-    /// `ctx.prochain(cle, annee)` : le numero que le compteur proposerait.
-    fn prochain(&mut self, cle: &str, annee: i32) -> R<i64> {
-        if self.compteurs.is_none() {
-            let p = self.racine().join("config").join("compteurs.json");
-            let v = if p.exists() {
-                let t = std::fs::read_to_string(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-                serde_json::from_str(&t).map_err(|e| erreur("JSONDecodeError", e.to_string()))?
-            } else {
-                Value::Object(Map::new())
-            };
-            self.compteurs = Some(v);
-        }
-        let valeur = self.compteurs.as_ref().unwrap().get(annee.to_string()).and_then(|a| a.get(cle));
-        Ok(match valeur {
-            None => 1,
-            Some(Value::Number(n)) => n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64) + 1,
-            Some(Value::Bool(b)) => i64::from(*b) + 1,
-            Some(Value::String(s)) => {
-                s.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s))))? + 1
-            }
-            Some(autre) => {
-                return Err(erreur(
-                    "TypeError",
-                    socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
-                ))
-            }
-        })
-    }
-
-    /// `engagement.numeroter`, la part des numeros de CONTRAT : un engagement
-    /// qui porte deja son numero le garde ; les autres prennent la suite du
-    /// compteur, en memoire (rien n'est reserve ni ecrit). Un mois qui n'est pas le premier du contrat n'en recoit pas :
-    /// son numero est celui de l'engagement, pose quand le contrat part (`engagement::refus_sans_numero`).
+    /// `engagement.numeroter`, la part des numeros de CONTRAT : un engagement qui porte deja son numero le garde ; les
+    /// autres prennent la suite des numeros deja pris pour leur salarie (`engagement::numeros::derniers_pris`), en
+    /// memoire (rien n'est ecrit). Un mois qui n'est pas le premier du contrat n'en recoit pas : son numero est celui de
+    /// l'engagement, ecrit a sa validation (`engagement::refus_sans_numero`).
     fn numeroter(&mut self, paies: &mut [Paie], annee: i32) -> R<()> {
-        let mut seqs: HashMap<String, i64> = HashMap::new();
+        let mut pris: Option<HashMap<String, i64>> = None;
         for p in paies.iter_mut() {
             if p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) || !p.engagement.premier_mois().map_err(plain)? {
                 continue;
             }
-            let s = &p.salarie;
-            let cle = format!("contrat_{}", texte_de(requis(s, "_cle")?));
-            let seq = match seqs.get(&cle) {
-                Some(x) => x + 1,
-                None => self.prochain(&cle, annee)?,
-            };
-            seqs.insert(cle, seq);
-            let initiales = texte_de(requis(s, "initiales_contrat")?);
-            let code = texte_de(requis(s, "code_salarie")?);
-            let an2: String = annee.to_string().chars().skip(2).collect();
-            p.engagement.numero = Some(format!("{}{}.{}.{:02}", initiales, code, an2, seq));
+            if pris.is_none() {
+                pris = Some(engagement::numeros::derniers_pris(self.ctx, annee).map_err(plain)?);
+            }
+            let dernier = pris.as_mut().unwrap().entry(texte_de(requis(&p.salarie, "_cle")?)).or_insert(0);
+            *dernier += 1;
+            p.engagement.numero = Some(engagement::numeros::former(&p.salarie, annee, *dernier).map_err(plain)?);
         }
         Ok(())
     }
@@ -692,7 +657,7 @@ impl<'a> Moteur<'a> {
                     v.into_iter()
                         .map(|(nom, chemin, octets)| {
                             // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier (#236).
-                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::produire_mois::ecrit_le(&racine, chemin)})
+                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::depart::ecrit_le(&racine, chemin)})
                         })
                         .collect(),
                 )
@@ -814,20 +779,20 @@ impl<'a> Moteur<'a> {
         let quand = quand_lisible(get(derniere, "quand")?);
         let jour = lim.jj_mm_aaaa();
         if let (true, Some(c)) = (modifiee && !admis, &couverture) {
-            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction (« Corriger ce mois ») par contrat dont la paie a
+            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction par contrat dont la paie a
             // change ou qui est ajoute, et qui declare la paie d'AUJOURD'HUI (`routes_regularisation::couverture`).
             let pluriel = |n: usize| if n > 1 { "s" } else { "" };
             let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
             if c.a_ecrire == 0 && c.a_refaire == 0 && c.retires == 0 {
                 out.insert("correction_ecrite".into(), json!(true));
-                phrase.push_str(" — la correction est écrite (Corriger ce mois), elle part dans la DSN suivante");
+                phrase.push_str(" — la correction est écrite, elle part dans la DSN suivante");
             } else {
                 if c.a_ecrire > 0 {
-                    phrase.push_str(&format!(" — {} contrat{} à corriger dans la DSN suivante (Corriger ce mois)", c.a_ecrire, pluriel(c.a_ecrire)));
+                    phrase.push_str(&format!(" — {} contrat{} corrigé{} par la DSN suivante, quand elle se fabrique", c.a_ecrire, pluriel(c.a_ecrire), pluriel(c.a_ecrire)));
                 }
                 if c.a_refaire > 0 {
                     phrase.push_str(&format!(
-                        " — la paie a encore changé depuis la correction écrite — à corriger à nouveau (Corriger ce mois, {} contrat{})",
+                        " — la paie a encore changé depuis la correction écrite : la DSN suivante la refait ({} contrat{})",
                         c.a_refaire,
                         pluriel(c.a_refaire)
                     ));
@@ -856,7 +821,7 @@ impl<'a> Moteur<'a> {
                 out.insert(
                     "phrase".into(),
                     json!(format!(
-                        "Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit) — la correction part dans la DSN suivante (Corriger ce mois)",
+                        "Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit) — la correction part dans la DSN suivante",
                         quand, jour
                     )),
                 );
@@ -900,9 +865,9 @@ impl<'a> Moteur<'a> {
 
     /// `_etape_de_depot` : pose sur `bilan` ou en est le fichier a deposer.
     fn etape_de_depot(&mut self, mois: &str, quoi: &str, bilan: &mut Map<String, Value>) -> R<()> {
-        // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`produire_mois::mois_ecrit`,
+        // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`depart::mois_ecrit`,
         // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`.
-        if quoi == DSN && !crate::produire_mois::mois_ecrit(self.racine(), mois) {
+        if quoi == DSN && !crate::depart::mois_ecrit(self.racine(), mois) {
             return Ok(());
         }
         let fichiers = self.fichiers_deposables(mois)?;

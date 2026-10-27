@@ -271,9 +271,10 @@ fn remonter_une_compagnie_d_essai_ne_reecrit_que_son_identite() {
 
 // ------------------------------------------------------------------ la DSN et la DPAE, sous cette identite
 
-/// La DSN de septembre s'ecrit sous l'identite de la variable, et la sortie de `paie mois` n'en montre rien.
+/// La DSN de septembre se fabrique sous l'identite de la variable (`paie depot-dsn 2026-09 --apercu`), et la sortie n'en
+/// montre rien.
 fn dsn_de_septembre(binaire: &str, d: &Path) -> String {
-    let s = lancer(binaire, Some(d), &["mois", "2026-09"], &[]);
+    let s = lancer(binaire, Some(d), &["depot-dsn", "2026-09", "--apercu"], &[]);
     assert_eq!(s.code, 0, "{}", s.texte);
     rien_d_affiche(&s, &identite());
     std::fs::read_to_string(d.join("sorties/2026-09/DSN_Septembre2026.dsn")).unwrap()

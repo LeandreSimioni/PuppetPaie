@@ -570,7 +570,8 @@ fn mois_du_salarie(
     Ok(out)
 }
 
-/// Les paies d'un mois de saisie, recalculees une fois par derivation (`resume_des_paies`).
+/// Les paies d'un mois de saisie (`resume_des_paies`) : ses paies ecrites quand tous ses engagements sont valides
+/// (`etats::paies_ecrites`), sinon recalculees, une fois par derivation.
 fn paies_du_mois_memorisees(ctx: &Contexte, mois: &str) -> PaiesDuMois {
     let reference = cle_du_memo(ctx, mois);
     let memo = MEMO.with(|m| {
@@ -580,7 +581,10 @@ fn paies_du_mois_memorisees(ctx: &Contexte, mois: &str) -> PaiesDuMois {
     if let Some(p) = memo {
         return p;
     }
-    let p = charger(ctx, mois).map(|s| resume_des_paies(&s.paies));
+    let p = match crate::etats::paies_ecrites(ctx, mois) {
+        Ok(Some(ecrites)) => Ok(resume_des_paies(&ecrites)),
+        _ => charger(ctx, mois).map(|s| resume_des_paies(&s.paies)),
+    };
     MEMO.with(|m| {
         let mut m = m.borrow_mut();
         if m.0 > 0 {
@@ -598,8 +602,8 @@ fn cle_de_fiche(ctx: &Contexte, cle: &str) -> String {
         .unwrap_or_else(|| cle.to_string())
 }
 
-/// Le brut d'un salarie sur un mois deja produit -- l'assiette du dixieme.
-/// On recalcule plutot que de lire un total ecrit.
+/// Le brut d'un salarie sur un mois anterieur -- l'assiette du dixieme -- tel que ses paies le portent
+/// (`paies_du_mois_memorisees`).
 pub fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
     let paies = match paies_du_mois_memorisees(ctx, mois) {
         Ok(p) => p,
@@ -612,9 +616,10 @@ pub fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<D
 }
 
 /// La deduction forfaitaire specifique deja retenue pour un salarie dans les mois de saisie de la meme annee civile,
-/// strictement avant `mois` (AAAA-MM), chacun recalcule depuis sa saisie (`calcul::dfs_deja_deduite` ; arrete du
-/// 4 septembre 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>). Un mois ou le salarie a un engagement et
-/// qui ne se calcule pas refuse : le cumul de l'annee ne se devine pas.
+/// strictement avant `mois` (AAAA-MM), chacun tel que ses paies le portent (`calcul::dfs_deja_deduite` ; arrete du
+/// 4 septembre 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>), lue dans ses paies ecrites quand le
+/// mois est valide. Un mois ou le salarie a un engagement et qui ne se calcule pas refuse : le cumul de l'annee ne se
+/// devine pas.
 pub fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
     // Chaque mois anterieur se calcule en demandant les siens : sans le memo d'une derivation, un salarie present tous
     // les mois ferait recalculer 2^n mois. Avec lui, chaque mois se calcule une fois.

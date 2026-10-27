@@ -268,6 +268,7 @@ fn le_fctu_et_l_amorcage_d_un_salarie_d_un_secondaire_portent_son_etablissement(
 /// du 16 au 30 juin ; `dernier_jour_paye` : ce que la saisie en dit.
 fn rupture_avec_preavis_non_effectue(test: &str, dernier_jour_paye: Option<&str>) -> Contexte {
     let racine = compagnie::ses_dsn(releve()["racine"].as_str().unwrap(), &[], &outils::dossier_de_test("fctu_amorcage", test));
+    compagnie::seulement(&racine, &["Audinot"]);
     let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "AU.25.01").unwrap();
     e["motif_rupture"] = "036".into();

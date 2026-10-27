@@ -33,9 +33,10 @@ pub const DOSSIER: &str = "engagements";
 /// Les mois d'apres que la saisie d'un engagement a touches, et ce que chacun change.
 pub const SUITE: &str = "mois_suivants";
 
-/// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, les paies de
+/// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, pour qui son
+/// numero de contrat a ete donne (`numeros`), les paies de
 /// ses mois dont les documents sont partis pendant qu'on le modifie (`etats`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 3] = [SUITE, "valide", "figees"];
+pub const TENUS_PAR_LE_MOTEUR: [&str; 4] = [SUITE, "valide", "figees", "numero_pour"];
 
 /// Ce que la vue d'un mois porte et que le moteur deduit : les jours du contrat entier (son premier mois et son
 /// planning), que la DSN declare chaque mois (S21.G00.40.013). Il ne s'ecrit pas.
@@ -490,6 +491,15 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<V
             pris[j] = true;
         }
     }
+    // Le meme numero sous un autre salarie : le meme engagement, dont le salarie a change (`numeros` dit s'il garde son
+    // numero).
+    for (i, p) in paires.iter_mut().enumerate() {
+        let Some(n) = ids_entrants[i].as_ref().and_then(|x| x.2.as_ref()).filter(|_| p.is_none()) else { continue };
+        if let Some(j) = (0..ids_actuels.len()).find(|j| !pris[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.2.as_ref() == Some(n))) {
+            *p = Some(j);
+            pris[j] = true;
+        }
+    }
     let mut touches: Vec<String> = vec![mois.to_string()];
     let mut nouveaux: Vec<Map<String, Value>> = Vec::new();
     for (i, e) in entrants.iter().enumerate() {
@@ -603,6 +613,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
         let suite = o.brut.remove(SUITE);
         let valide = o.brut.remove("valide");
         let figees = o.brut.remove("figees");
+        let pour = o.brut.remove("numero_pour");
         let mut neuf = saisie.clone();
         for k in PARTAGES {
             match o.brut.get(k) {
@@ -611,7 +622,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
             };
         }
         o.brut = neuf;
-        for (k, v) in [(SUITE, suite), ("valide", valide), ("figees", figees)] {
+        for (k, v) in [(SUITE, suite), ("valide", valide), ("figees", figees), ("numero_pour", pour)] {
             if let Some(v) = v {
                 o.brut.insert(k.to_string(), v);
             }
@@ -758,26 +769,6 @@ pub fn a_une_saisie(racine: &Path, mois: &str) -> Resultat<bool> {
         }
     }
     Ok(false)
-}
-
-/// POSE LE NUMERO DE CONTRAT `numero` sur l'engagement de `mois` du salarie `cle` qui commence le `debut` et n'en porte
-/// pas encore (le `jumeau`-ieme de ceux-la, dans l'ordre de l'ecran) : un contrat parti a la signature garde son numero
-/// (regle 4). Le numero ne change aucun montant ; un engagement valide le recoit aussi. `false` : aucun engagement a
-/// numeroter.
-pub fn poser_numero(ctx: &Contexte, mois: &str, cle: &str, debut: &str, jumeau: usize, numero: &str) -> Resultat<bool> {
-    let candidats: Vec<Objet> = objets_du_mois(&ctx.racine, mois)?
-        .into_iter()
-        .filter(|o| {
-            let e = Value::Object(o.brut.clone());
-            crate::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle) && crate::debut_brut(&e) == debut
-        })
-        .collect();
-    let Some(mut o) = candidats.into_iter().filter(|o| !o.brut.get("numero").is_some_and(vrai)).nth(jumeau) else { return Ok(false) };
-    o.brut.insert("numero".into(), Value::String(numero.to_string()));
-    let p = chemin(&ctx.racine, &o.fichier);
-    sauver_avant(&p)?;
-    reecrire(&ctx.racine, &o)?;
-    Ok(true)
 }
 
 /// Pose `cle` = `valeur` sur le mois `mois` lui-meme (son fichier, cree s'il le faut : un mois que seuls des engagements

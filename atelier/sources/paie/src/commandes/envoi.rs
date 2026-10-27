@@ -16,7 +16,7 @@
 //! La commande lit le mois (`AAAA-MM`, ou `engagements/AAAA-MM.json`) des donnees. Rien ne s'enchaine a `mois`.
 //!
 //! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : une saisie incomplete, une fiche sans adresse, un fichier introuvable donnaient
-//! une trace d'appels. Ici : `! phrase`, code 2. Le texte propose `paie mois ...`.
+//! une trace d'appels. Ici : `! phrase`, code 2.
 
 use serde_json::{json, Value};
 
@@ -48,7 +48,7 @@ fn preparation_refusee(json: bool, fichier: &str, e: &Echec) -> Option<i32> {
                 let dossier = message.strip_suffix(" n'existe pas.").unwrap_or(&message).to_string();
                 return Some(rendre(&erreur("envoi", classe, &message, &[("dossier", json!(dossier))])));
             }
-            dire!("Rien a envoyer : {}\nProduire le mois d'abord :  paie mois {}", message, fichier);
+            dire!("Rien a envoyer : {} (mois {}).", message, fichier);
             Some(1)
         }
         "BoiteAbsente" | "ErreurCourriel" | "ErreurGoogle" => {

@@ -456,31 +456,6 @@ fn erreur_utf8(octets: &[u8], e: std::str::Utf8Error) -> Refus {
     avec("UnicodeDecodeError", message)
 }
 
-/// `_premier_ce` : le premier N CE inscrit au recapitulatif des certificats d'un mois.
-pub(crate) fn premier_ce(recap: &Path) -> R<Option<i64>> {
-    if !recap.exists() {
-        return Ok(None);
-    }
-    let octets = std::fs::read(recap).map_err(|e| avec("OSError", e.to_string()))?;
-    let texte = String::from_utf8(octets.clone()).map_err(|e| erreur_utf8(&octets, e.utf8_error()))?;
-    let c: Vec<char> = texte.chars().collect();
-    let marque: Vec<char> = "N CE".chars().collect();
-    let mut i = 0;
-    while i + marque.len() <= c.len() {
-        if c[i..i + marque.len()] == marque[..] {
-            let a = i + marque.len();
-            let blancs = c[a..].iter().take_while(|x| x.is_whitespace()).count();
-            let chiffres = c[a + blancs..].iter().take_while(|x| x.is_ascii_digit()).count();
-            if blancs > 0 && chiffres > 0 {
-                let t: String = c[a + blancs..a + blancs + chiffres].iter().collect();
-                return Ok(Some(t.parse().unwrap_or(i64::MAX)));
-            }
-        }
-        i += 1;
-    }
-    Ok(None)
-}
-
 /// `Paie` -> ce que le certificat en lit : le brut est celui du calcul, a deux decimales.
 pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
     Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
@@ -601,7 +576,7 @@ fn mois_puppetpaie(
     let groupe = sortie.join(format!("Bulletins_{}.pdf", etiq));
     let envoi_dir = sortie.join("envoi");
     let ecrit = groupe.exists();
-    let (donnees, mut paies) = charger(ctx, mois)?;
+    let (_, mut paies) = charger(ctx, mois)?;
     let siennes: Vec<usize> = (0..paies.len()).filter(|i| cles.contains(&cle_de(&paies[*i]))).collect();
     if siennes.is_empty() {
         return Ok(pages);
@@ -611,7 +586,7 @@ fn mois_puppetpaie(
 
     let mut lus: HashMap<usize, crate::apercu_dsn::Lu> = HashMap::new();
     // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie
-    // numerotee quand ses numeros sont figes.
+    // dont chaque engagement porte son numero.
     let mut paies_contrats: Vec<Paie> = Vec::new();
     let mut siennes_contrats: Vec<usize> = Vec::new();
     if ecrit {
@@ -621,20 +596,21 @@ fn mois_puppetpaie(
     } else {
         if categories.contains(BULLETINS) || categories.contains(CERTIFICATS_CS) {
             d.avertissements.push(format!(
-                "{} n'est pas encore écrit : ni bulletin ni certificat à rééditer. Il s'écrit dans l'onglet Paie (« Produire »).",
+                "{} : aucun document n'est encore parti, ni bulletin ni certificat à rééditer.",
                 lib
             ));
         }
-        // Les contrats d'un mois pas encore ecrit ont un numero s'il a ete FIGE par une production
-        // anterieure : la saisie numerotee le lit alors. Sinon, rien.
-        if !donnees.get("numeros_figes").is_some_and(vrai) {
+        // Un engagement valide porte son numero, ecrit a sa validation ; un engagement en saisie n'en a
+        // pas, et un numero ne s'invente pas.
+        let (data, mut figees) = charger(ctx, mois)?;
+        let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.as_deref().is_some_and(|n| !n.is_empty())).collect();
+        if partis.is_empty() {
             if categories.contains(CONTRATS) {
-                d.refus.push(format!("{} : contrats non réédités — leurs numéros ne sont pas encore figés, et un numéro ne s'invente pas.", lib));
+                d.refus.push(format!("{} : contrats non réédités — aucun n'est parti à la signature, et un numéro ne s'invente pas.", lib));
             }
         } else {
-            let (data, mut figees) = charger(ctx, mois)?;
             numeroter(ctx, &data, &mut figees, attente)?;
-            siennes_contrats = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i]))).collect();
+            siennes_contrats = partis;
             paies_contrats = figees;
         }
     }
@@ -653,6 +629,10 @@ fn mois_puppetpaie(
             let mut ses_pages: Vec<usize> = Vec::new();
             for i in siennes.iter().filter(|i| cle_de(&paies[**i]) == *cle && !paies[**i].engagement.sans_paie()) {
                 let p = &paies[*i];
+                // Un bulletin pas encore parti n'a rien a redonner.
+                if !lus.contains_key(i) && p.numero_bulletin.as_deref().map_or(true, str::is_empty) {
+                    continue;
+                }
                 let Some(lu) = lus.get(i).filter(|lu| !lu.pages.is_empty()) else {
                     return Err(erreur_operation(format!(
                         "{}, {} : aucune page de sorties/{}/{} ne porte son bulletin du {} au {}. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
@@ -726,98 +706,82 @@ fn mois_puppetpaie(
         }
     }
 
-    // 3. Les certificats Conges Spectacles, aux N CE du recapitulatif.
+    // 3. Les certificats Conges Spectacles partis, a leurs N CE, ecrits dans la paie a leur depart.
     if categories.contains(CERTIFICATS_CS) && ecrit {
         let (pour_cs, avert) = certificats_dus(ctx, &paies)?;
         d.avertissements.extend(avert.into_iter().map(|a| format!("{} : {}", lib, a)));
-        let recap = sortie.join(format!("CertificatsCS_{}_recapitulatif.txt", etiq));
-        let premier = premier_ce(&recap)?;
-        let a_faire = pour_cs.iter().any(|(_, _, v)| v.is_some());
+        let ecrits = engagement::etats::numeros_des_documents(ctx, mois).map_err(Echec::from)?;
         let trouve = |cle: &str, debut: &str| pour_cs.iter().find(|(c, de, _)| c == cle && de == debut).and_then(|(_, _, v)| v.as_ref());
-        match (a_faire, premier) {
-            (true, None) => d.refus.push(format!(
-                "{} : certificats Congés Spectacles non joints — aucun récapitulatif de leurs N° CE ({}), et un N° CE ne se reprend pas à la séquence. « Écrire les documents des salariés » les émet pour de bon.",
-                lib,
-                recap.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
-            )),
-            (true, Some(premier)) => {
-                // Les N CE se donnent dans l'ordre de la saisie, TOUS salaries confondus : on les
-                // repasse tous, on ne garde que les siens.
-                let mut numero = premier;
-                let mut paires: Vec<(String, Vec<(&PaieCs, i64)>)> = Vec::new();
-                for p in &paies {
-                    let cle = cle_de(p);
-                    let Some(pc) = trouve(&cle, &p.engagement.debut.iso()) else { continue };
-                    if cles.contains(&cle) {
-                        match paires.iter_mut().find(|(c, _)| *c == cle) {
-                            Some((_, v)) => v.push((pc, numero)),
-                            None => paires.push((cle.clone(), vec![(pc, numero)])),
-                        }
-                    }
-                    numero += conges_spectacles::decouper(&pc.engagement)?.len() as i64;
-                }
-                paires.sort_by(|a, b| a.0.cmp(&b.0));
-                // Les certificats remis sont dans `CertificatsCS_<Mois>.pdf`, un par page, dans l'ordre de leurs N CE
-                // a partir du premier du recapitulatif (`produire_mois`, `ecrire_documents` : `description_numerotee`,
-                // un document par certificat, une page sans marge). Le N CE n donne la page n - premier ; la page porte
-                // le nom du salarie, sinon le fichier ne dit pas ce que le recapitulatif dit, et rien ne se joint.
-                // Comme les bulletins : la page meme, jamais un certificat reimprime (regle 4).
-                let archive = sortie.join(format!("CertificatsCS_{}.pdf", etiq));
-                let nom_archive = archive.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-                let total = (numero - premier) as usize;
-                let textes = if archive.exists() { Some(texte_pdf(&archive)?) } else { None };
-                match textes {
-                    None if !paires.is_empty() => d.refus.push(format!(
-                        "{} : certificats Congés Spectacles non joints — {} n'est pas dans sorties/{}/, et un certificat remis ne se réimprime pas.",
-                        lib, nom_archive, mois
-                    )),
-                    Some(t) if !paires.is_empty() && t.len() != total => d.refus.push(format!(
-                        "{} : certificats Congés Spectacles non joints — {} a {} page(s), le récapitulatif et la saisie en attendent {} (N° CE {} à {}). Le fichier ne dit pas ce que le récapitulatif dit : rien n'est joint à sa place.",
-                        lib,
-                        nom_archive,
-                        t.len(),
-                        total,
-                        premier,
-                        numero - 1
-                    )),
-                    Some(t) => {
-                        for (cle, siens) in &paires {
-                            let nom = siens
-                                .first()
-                                .and_then(|(pc, _)| pc.salarie.get("nom"))
-                                .map(valeur_en_texte)
-                                .ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?;
-                            let mut ses_pages: Vec<usize> = Vec::new();
-                            let mut etrangeres: Vec<i64> = Vec::new();
-                            for (pc, n) in siens {
-                                for k in 0..conges_spectacles::decouper(&pc.engagement)?.len() as i64 {
-                                    let page = (n + k - premier) as usize;
-                                    if sans_accents(&t[page]).contains(&sans_accents(&nom)) {
-                                        ses_pages.push(page);
-                                    } else {
-                                        etrangeres.push(n + k);
-                                    }
-                                }
-                            }
-                            if !etrangeres.is_empty() {
-                                d.refus.push(format!(
-                                    "{}, {} : certificats Congés Spectacles non joints — dans {}, la page du N° CE {} ne porte pas son nom. Le fichier ne dit pas ce que le récapitulatif dit : rien n'est joint à sa place.",
-                                    lib,
-                                    cle,
-                                    nom_archive,
-                                    etrangeres.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ")
-                                ));
-                                continue;
-                            }
-                            for page in ses_pages {
-                                pages.push(Page { categorie: CERTIFICATS_CS, cle: cle.clone(), tri: format!("{}-02", mois), source: archive.clone(), numero: page });
-                            }
-                        }
-                    }
-                    None => {}
+        // Chaque certificat parti, et tous les N CE de l'archive du mois.
+        let mut tous: Vec<i64> = Vec::new();
+        let mut paires: Vec<(String, Vec<(&PaieCs, i64)>)> = Vec::new();
+        for (i, p) in paies.iter().enumerate() {
+            let cle = cle_de(p);
+            let (Some(pc), Some(n)) = (trouve(&cle, &p.engagement.debut.iso()), ecrits.get(i).and_then(|e| e.premier_ce)) else { continue };
+            let combien = conges_spectacles::decouper(&pc.engagement)?.len() as i64;
+            tous.extend(n..n + combien);
+            if cles.contains(&cle) {
+                match paires.iter_mut().find(|(c, _)| *c == cle) {
+                    Some((_, v)) => v.push((pc, n)),
+                    None => paires.push((cle.clone(), vec![(pc, n)])),
                 }
             }
-            (false, _) => {}
+        }
+        tous.sort_unstable();
+        paires.sort_by(|a, b| a.0.cmp(&b.0));
+        // Les certificats remis sont dans `CertificatsCS_<Mois>.pdf`, un par page, dans l'ordre de leurs N CE
+        // (`depart::fabriquer_documents`) ; la page porte le nom du salarie, sinon le fichier ne dit pas ce que les paies
+        // disent, et rien ne se joint. Comme les bulletins : la page meme, jamais un certificat reimprime (regle 4).
+        let archive = sortie.join(format!("CertificatsCS_{}.pdf", etiq));
+        let nom_archive = archive.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let textes = if archive.exists() { Some(texte_pdf(&archive)?) } else { None };
+        match textes {
+            None if !paires.is_empty() => d.refus.push(format!(
+                "{} : certificats Congés Spectacles non joints — {} n'est pas dans sorties/{}/, et un certificat remis ne se réimprime pas.",
+                lib, nom_archive, mois
+            )),
+            Some(t) if !paires.is_empty() && t.len() != tous.len() => d.refus.push(format!(
+                "{} : certificats Congés Spectacles non joints — {} a {} page(s), les paies en attendent {}. Le fichier ne dit pas ce que les paies disent : rien n'est joint à sa place.",
+                lib,
+                nom_archive,
+                t.len(),
+                tous.len()
+            )),
+            Some(t) => {
+                for (cle, siens) in &paires {
+                    let nom = siens
+                        .first()
+                        .and_then(|(pc, _)| pc.salarie.get("nom"))
+                        .map(valeur_en_texte)
+                        .ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?;
+                    let mut ses_pages: Vec<usize> = Vec::new();
+                    let mut etrangeres: Vec<i64> = Vec::new();
+                    for (pc, n) in siens {
+                        for k in 0..conges_spectacles::decouper(&pc.engagement)?.len() as i64 {
+                            let page = tous.iter().position(|x| *x == n + k).unwrap_or(usize::MAX);
+                            if t.get(page).is_some_and(|p| sans_accents(p).contains(&sans_accents(&nom))) {
+                                ses_pages.push(page);
+                            } else {
+                                etrangeres.push(n + k);
+                            }
+                        }
+                    }
+                    if !etrangeres.is_empty() {
+                        d.refus.push(format!(
+                            "{}, {} : certificats Congés Spectacles non joints — dans {}, la page du N° CE {} ne porte pas son nom. Le fichier ne dit pas ce que les paies disent : rien n'est joint à sa place.",
+                            lib,
+                            cle,
+                            nom_archive,
+                            etrangeres.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(", ")
+                        ));
+                        continue;
+                    }
+                    for page in ses_pages {
+                        pages.push(Page { categorie: CERTIFICATS_CS, cle: cle.clone(), tri: format!("{}-02", mois), source: archive.clone(), numero: page });
+                    }
+                }
+            }
+            None => {}
         }
     }
 

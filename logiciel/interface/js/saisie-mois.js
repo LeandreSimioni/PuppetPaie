@@ -1,4 +1,4 @@
-/* Le mois : la saisie courante, l'apercu, charger un mois, la grille des mois, enregistrer, produire. */
+/* Le mois : la saisie courante, l'apercu, charger un mois, la grille des mois, enregistrer. */
 "use strict";
 
 /* CE QU'ON VOIT EST CE QUI EST ENREGISTRÉ (Léandre, 16/10/2026 : « il y a un
@@ -452,7 +452,7 @@ function boiteDetail(ligne, ps) {
     ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${MOIS_FERME && MOIS_FORCE !== document.getElementById("mois").value ? "" : `<button class="modifier" id="d-modifier">${CRAYON}Modifier…</button>`}
+      <button class="modifier" id="d-modifier">${CRAYON}Modifier…</button>
     </div>`);
   const m = document.getElementById("d-modifier");
   if (m) m.onclick = () => { fermerBoite(); boiteRouvrir(ligne); };
@@ -574,9 +574,6 @@ function designation(p) {
   return r.length ? r.map((l) => l.designation).join(", ") : "—";
 }
 
-/* L'APERCU NE PORTE PAS LE MONTANT URSSAF : il se CALCULE avec la DSN, au
- * centime, comme le bordereau (paie/src/bordereau.rs), et la boite
- * << Fermer le mois >> le montre. */
 /* PAR SALARIÉ, UNE LIGNE. « C'est plus facile ensuite pour faire les paies :
  * j'ai juste à mettre le montant du net » ; puis, devant
  * le détail paie par paie : « pas de détail dans l'aperçu ! ». Donc une ligne
@@ -617,9 +614,7 @@ function vueApercu(a) {
 
 /* ------------------------------------------------------- charger un mois */
 let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
-let MOIS_FERME = null;          // la date limite depassee de ce mois, ou null
 let AVANT_EMBAUCHE = null;      // la premiere embauche, quand ce mois passe la precede (rien n'y est dû), ou null
-let MOIS_FORCE = null;          // le mois ferme que l'on a rouvert, en connaissance de cause
 /* UN MOIS DONT LA DSN NE SE REMPLACE PLUS (Léandre, 21/10/2026) : sa paie se modifie, mais la première modification
  * demande confirmation, une fois par séance d'édition du mois. Le moteur refuse l'enregistrement sans elle
  * (`ModificationApresEcheance`) et dit ce qu'il faut savoir (`dsn_deposee` de la route `saisie`). */
@@ -744,14 +739,9 @@ async function chargerMois(mois, repeint = false) {
   // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
   // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
   if (repeint && ETATS_PAIES) peindreEtats();
-  // Un mois dont la DSN etait due (le 15 du mois suivant) ne se touche
-  // plus : lecture seule, pas d'ajout, pas d'enregistrement automatique.
-  MOIS_FERME = r.hors_delai || null;
-  AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
+    AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
   DSN_DEPOSEE = r.dsn_deposee || null;
-  // Rouvrir ne vaut que pour LE mois rouvert : on change de mois, on
-  // retrouve la lecture seule. Une confirmation de même : on la redonne en revenant.
-  if (MOIS_FORCE !== mois) MOIS_FORCE = null;
+  // Une confirmation ne vaut que pour LE mois confirmé : on la redonne en revenant.
   if (MOIS_CONFIRME !== mois) MOIS_CONFIRME = null;
   // Les blocs se montrent quand leurs états sont posés -- ou, quoi qu'il
   // arrive, au bout de quelques secondes : une lecture qui traîne ne doit
@@ -823,7 +813,6 @@ async function repeindreLeMois(mois, ancien, frais) {
     if (defauts.taux_cachet != null) DERNIER_TAUX = +defauts.taux_cachet;
     if (!SAISIE_DATE_PAIEMENT) SAISIE_DATE_PAIEMENT = defauts.date_paiement || "";
     afficherRappelsMois();
-    MOIS_FERME = r.hors_delai || null;
     AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
     DSN_DEPOSEE = r.dsn_deposee || null;
     IMPORTE = r.importe || null;
@@ -839,10 +828,8 @@ async function repeindreLeMois(mois, ancien, frais) {
   ]);
 }
 
-/** Ce que la fermeture d'un mois change à l'écran — et ce que sa réouverture
- *  rend. Un seul endroit : trois booléens éparpillés, c'est un écran qui se
- *  contredit. `MOIS_FERME` est la date limite dépassée ; `MOIS_FORCE` dit
- *  qu'on a répondu à l'avertissement pour ce mois-là. */
+/** Ce que l'écran dit d'un mois : un mois tenu avant PuppetPaie ou d'avant la
+ *  première embauche se lit ; tout autre mois se saisit. */
 function majFermeture(mois, existe) {
   majAvisDsn(mois);
   majAvisDemo(mois);
@@ -851,7 +838,6 @@ function majFermeture(mois, existe) {
   if (IMPORTE) {
     document.getElementById("ajouter-engagement").hidden = true;
     document.getElementById("engagements").classList.add("lecture-seule");
-    document.getElementById("rouvrir-mois").hidden = true;
     noteSaisie("");
     return;
   }
@@ -860,44 +846,15 @@ function majFermeture(mois, existe) {
   if (AVANT_EMBAUCHE) {
     document.getElementById("ajouter-engagement").hidden = true;
     document.getElementById("engagements").classList.add("lecture-seule");
-    document.getElementById("rouvrir-mois").hidden = true;
     noteSaisie(`Ce mois précède la première embauche de la compagnie (${jjmmaaaa(AVANT_EMBAUCHE)}) : aucune DSN n'y est due. `
       + "Si la compagnie employait déjà, la date de première embauche se corrige dans Configuration › Entreprise.");
     return;
   }
-  const ferme = !!MOIS_FERME && MOIS_FORCE !== mois;
-  const rouvert = !!MOIS_FERME && MOIS_FORCE === mois;
-  document.getElementById("ajouter-engagement").hidden = ferme;
-  document.getElementById("engagements").classList.toggle("lecture-seule", ferme);
-  // UN MOIS FERMÉ, TROIS CAS, UN SEUL BOUTON (30/09/2026). Le bouton disait
-  // « le rouvrir (DSN en retard) » à un mois dont la DSN était passée, et
-  // rouvrir un mois d'une année close finissait, quatre clics plus loin,
-  // sur un refus. Désormais : année close, on le dit et rien d'autre ; DSN
-  // passée, on corrige (la correction part dans la DSN suivante) ; sinon,
-  // la DSN est en retard et on rouvre.
-  const h = (ETAT.historique || []).find((x) => x.mois === mois) || {};
-  const b = document.getElementById("rouvrir-mois");
-  b.hidden = !ferme || !!h.clos || (["passee", "attente"].includes(h.dsn) && !h.corrigeable);
-  if (["passee", "attente"].includes(h.dsn) && h.corrigeable) {
-    b.textContent = "Corriger ce mois…";
-    b.classList.remove("alerte");
-    b.onclick = () => boiteCorriger(mois);
-  } else {
-    b.textContent = "Rouvrir ce mois (DSN en retard)";
-    b.classList.add("alerte");
-    b.onclick = () => boiteRouvrirMois(mois, MOIS_FERME);
-  }
-  noteSaisie(ferme
-    ? h.clos
-      ? `L'année ${mois.slice(0, 4)} est close : ce mois se lit. Pour le modifier, rouvrir l'année (Historique › L'année).`
-      : ["passee", "attente"].includes(h.dsn)
-        ? "Sa DSN est partie : ce mois se lit. Une correction part dans la DSN suivante."
-        : `Sa DSN était due le ${jjmmaaaa(MOIS_FERME)} : ce mois se lit, et se rouvre pour la déposer en retard.`
-    : rouvert
-      ? `Mois rouvert — sa DSN était due le ${jjmmaaaa(MOIS_FERME)} : ce qui part d'ici part en retard.`
-      : existe
-        ? "Saisie chargée. L'enregistrement est automatique."
-        : "Nouveau mois — l'enregistrement est automatique dès la première saisie.");
+  document.getElementById("ajouter-engagement").hidden = false;
+  document.getElementById("engagements").classList.remove("lecture-seule");
+  noteSaisie(existe
+    ? "Saisie chargée. L'enregistrement est automatique."
+    : "Nouveau mois — l'enregistrement est automatique dès la première saisie.");
 }
 
 /** Ce que le moteur dit d'un mois dont la DSN est déposée, au-dessus des engagements : l'annule-et-remplace que la
@@ -1092,17 +1049,16 @@ document.getElementById("mois").onchange = (e) => {
 function saisieAEcrire() {
   const s = saisieCourante();
   if (!s.mois) return null;
-  if (MOIS_FERME && MOIS_FORCE !== s.mois) return null;
   const empreinte = JSON.stringify(s);
   if (empreinte === DERNIERE_ECRITE) return null;
-  return { s, forcer: MOIS_FORCE === s.mois, confirme: MOIS_CONFIRME === s.mois };
+  return { s, confirme: MOIS_CONFIRME === s.mois };
 }
 
 /** La saisie d'un mois qu'on vient de quitter : écrite sans repeindre (l'écran montre déjà un autre mois), puis le mois
  *  affiché vérifié. Un échec se dit : c'est du travail qu'on croit posé. */
-async function enregistrerEnPartant({ s, forcer, confirme }, chargement) {
+async function enregistrerEnPartant({ s, confirme }, chargement) {
   const ecrire = (oui) => appelerMoteur("enregistrer-saisie",
-    { mois: s.mois, saisie: s, forcer, modifier_apres_echeance: oui });
+    { mois: s.mois, saisie: s, modifier_apres_echeance: oui });
   try {
     await ecrire(confirme);
     oublierCouts();
@@ -1253,8 +1209,7 @@ document.addEventListener("visibilitychange", () => {
       l'enregistrement automatique est un enregistrement dont on ne sait pas
       s'il a eu lieu, c'est-à-dire pire que le bouton.
    3. RIEN NE PART POUR AUTANT. Enregistrer, c'est écrire les engagements (`engagements/`)
-      et rien d'autre. Produire consomme des numéros et écrit des fichiers qui
-      partiront : ça reste un bouton, et ça le restera. */
+      et rien d'autre : ce qui part se fabrique à son départ. */
 let MINUTEUR_SAISIE = null;
 let DERNIERE_ECRITE = null;      // le JSON tel qu'il a été enregistré
 
@@ -1279,16 +1234,12 @@ function enregistrerSaisie(silencieux) {
 async function enregistrerSaisieSeule(silencieux) {
   const s = saisieCourante();
   if (!s.mois) return false;
-  // Un mois ferme ne s'ecrit plus -- sauf celui qu'on a rouvert en repondant
-  // a l'avertissement, et le moteur exige alors qu'on le redise (`forcer`).
-  if (MOIS_FERME && MOIS_FORCE !== s.mois) return false;
   // La boîte de confirmation est ouverte : on attend sa réponse, on ne la redemande pas à chaque frappe.
   if (CONFIRMATION_OUVERTE === s.mois) return false;
   const empreinte = JSON.stringify(s);
   if (empreinte === DERNIERE_ECRITE) return false;
   try {
     const r = await api("enregistrer-saisie", { mois: s.mois, saisie: s,
-                                      forcer: MOIS_FORCE === s.mois,
                                       modifier_apres_echeance: MOIS_CONFIRME === s.mois });
     DERNIERE_ECRITE = empreinte;
     if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
@@ -1344,125 +1295,5 @@ function enregistrerPlusTard() {
   clearTimeout(MINUTEUR_SAISIE);
   noteSaisie("Modifié…");
   MINUTEUR_SAISIE = setTimeout(() => enregistrerSaisie(true), 1000);
-}
-
-/* ---------------------------------------------------------- production */
-/** FERMER LE MOIS (29/09/2026) — bulletins, certificats, DSN. Plus de
- *  montant URSSAF à recopier : le moteur calcule le bordereau comme la DSN
- *  le porte (paie/src/bordereau.rs). Plus de contrats ni de DPAE :
- *  ils sont partis avant, et le moteur refuse de fermer sinon (MoisPasPret).
- *  `apres` enchaîne sur le dépôt, qui part d'abord en test. */
-async function boiteProduire(mois, apres) {
-  clearTimeout(MINUTEUR_SAISIE);
-  await enregistrerSaisie(true);
-  const saisie = saisieCourante();
-  if (mois && saisie.mois !== mois) {
-    dire("Le mois affiché n'est pas " + mois + "."); return;
-  }
-  // UN MOIS DONT LA DSN ÉTAIT DUE (#236) : le moteur refuse de le produire tant
-  // qu'on ne l'a pas rouvert en connaissance de cause (`forcer`). Le rappel
-  // « envoyer la DSN en retard » menait ici, et le refus tombait en une ligne
-  // qui citait une commande de terminal : on demande d'abord de le rouvrir.
-  if (MOIS_FERME && MOIS_FORCE !== saisie.mois) {
-    boiteRouvrirMois(saisie.mois, MOIS_FERME, () => boiteProduire(mois, apres));
-    return;
-  }
-  let urssaf = null;
-  try {
-    urssaf = (await api("apercu", { saisie, urssaf: true })).urssaf;
-  } catch (e) { dire(e.message, "erreur"); return; }
-
-  // Un mois dont la DSN réelle est partie se refait en ANNULE-ET-REMPLACE :
-  // on le dit avant, avec l'ordre et la limite que le moteur a calculés.
-  const ar = MOIS_ACTES && MOIS_ACTES.mois === saisie.mois
-    && MOIS_ACTES.bilans?.dsn?.remplacement;
-  const refaire = !!(ar && ar.deposee);
-  ouvrirBoite(`
-    <h3>${refaire ? "Refaire la DSN du mois ?" : "Fermer le mois ?"}</h3>
-    ${moisEnGros(saisie.mois)}
-    ${refaire ? `<div class="encart attention"><b>Annule-et-remplace intégral —
-      ordre ${echapper(ar.prochain_ordre)}</b> Une DSN réelle est déjà partie
-      pour ce mois. Celle-ci la remplace en entier, ordres de télépaiement
-      compris. La norme l'admet jusqu'au ${echapper(jjmmaaaa(ar.limite))} à
-      minuit ; au-delà, la correction passe par la DSN du mois suivant.</div>` : ""}
-    <p>Le logiciel écrit les bulletins, les certificats Congés Spectacles et
-      la DSN du mois. La DSN part aussitôt <b>en test</b> ; si le test passe,
-      on vous propose de l'envoyer pour de vrai.</p>
-    ${urssaf === null || urssaf === undefined ? "" : `<p class="note">Télépaiement
-      URSSAF du mois : <b>${echapper(euros(urssaf))}</b>, calculé comme le
-      bordereau de la DSN, code par code.</p>`}
-    <div id="b-manques"></div>
-    <div class="actions">
-      <button class="secondaire" onclick="fermerBoite()">Annuler</button>
-      <button class="primaire" id="b-lancer">Fermer le mois</button>
-    </div>`);
-
-  document.getElementById("b-lancer").onclick = async () => {
-    const charge = {
-      mois: saisie.mois, saisie,
-      // Un mois rouvert : le moteur refuserait sans ce mot-la.
-      forcer: MOIS_FORCE === saisie.mois,
-    };
-    document.getElementById("b-lancer").disabled = true;
-    try {
-      const r = await api("produire", charge);
-      fermerBoite();
-      // La production a figé les numéros de contrat dans la saisie : on
-      // recharge le mois pour que l'écran les porte (et les renvoie).
-      await chargerMois(saisie.mois);
-      afficherResultat(r);
-      dire(r.fichiers.length + " fichier(s) écrits dans " + r.dossier);
-      ETAT = await api("etat");
-      await rafraichirActions();      // les fichiers a deposer viennent d'apparaitre
-      if (apres) await apres();
-    } catch (e) {
-      if (e.detail?.type === "MoisPasPret") {
-        // Ce qui manque, embauche par embauche : c'est une liste, pas un
-        // refus sec. Le bouton reste éteint -- il n'y a rien à retenter ici.
-        document.getElementById("b-manques").innerHTML = `
-          <div class="encart attention"><b>Pas encore : il reste à envoyer</b>
-          <ul>${e.detail.manques.map((m) => `<li>${echapper(m.phrase)}</li>`).join("")}</ul>
-          DPAE et contrats partent aux étapes 1 et 2.</div>`;
-        return;
-      }
-      document.getElementById("b-lancer").disabled = false;
-      dire(e.message, "erreur");
-    }
-  };
-}
-
-function afficherResultat(r) {
-  const fichiers = r.fichiers.map(
-    (f) => `<li>${echapper(f.nom)} <span class="discret">(${f.octets} o)</span></li>`).join("");
-  const etapes = r.etapes.map((e, i) => `
-    <li><b>${echapper(e.titre)}</b> — ${echapper(e.detail)}
-      ${e.commande ? `<br><code class="discret">${echapper(e.commande)}</code>` : ""}</li>`).join("");
-  const avert = r.avertissements.map(
-    (a) => `<div class="encart attention">${echapper(a)}</div>`).join("")
-    + (r.informations || []).map(
-    (a) => `<div class="encart info">${echapperLiens(a)}</div>`).join("");
-  document.getElementById("resultat").innerHTML = `
-    <div class="carte" style="margin-top:20px">
-      <h2>${echapper(r.libelle)} — produit</h2>
-      ${avert}
-      <div class="encart bien">
-        <b>Numéros consommés</b>
-        ${r.numeros.bulletin_premier
-          ? `bulletins ${r.numeros.bulletin_premier} à ${r.numeros.bulletin_dernier}`
-          : "aucun bulletin (aucun cachet ce mois-ci)"}${
-          // Plus d'AEM depuis le 01/06/2026 (France Travail l'edite depuis la
-          // DSN) ; et pas de certificat CS un mois ou aucun contrat ne finit.
-          r.numeros.cs_dernier >= r.numeros.cs_premier
-            ? ` · certificats CS ${r.numeros.cs_premier} à ${r.numeros.cs_dernier}`
-            : " · aucun certificat CS ce mois-ci (contrat en cours)"}
-      </div>
-      <div class="colonnes">
-        <div><h2>Fichiers</h2><ul>${fichiers}</ul>
-          <p class="note">Dans ${echapper(r.dossier)}</p></div>
-        <div><h2>À faire ensuite</h2><ol>${etapes}</ol>
-          <p class="note">Les dépôts et les envois restent manuels : une
-             déclaration part sous la responsabilité de l'employeur.</p></div>
-      </div>
-    </div>`;
 }
 

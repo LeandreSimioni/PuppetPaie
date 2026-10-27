@@ -313,7 +313,7 @@ async function boitePieces(ligne, acte) {
         ? "Retirer la mention « signé »" : "Noter le contrat signé reçu"}</button>` : ""}
       ${signature && e.fait ? `<button class="${e.caduc && e.recu ? "primaire" : "secondaire"}" id="p-avenant"
         title="Modifier le contrat parti : l'ancien texte et le nouveau, article par article">Avenant…</button>` : ""}
-      ${signature && (e.caduc || !e.fait) && !(e.caduc && e.recu) && !(MOIS_FERME && MOIS_FORCE !== mois) ? `<button class="primaire" id="p-signer">${e.caduc
+      ${signature && (e.caduc || !e.fait) && !(e.caduc && e.recu) ? `<button class="primaire" id="p-signer">${e.caduc
         ? "Renvoyer le contrat à jour…" : "Envoyer à la signature…"}</button>` : ""}
     </div>`);
   const avenantB = document.getElementById("p-avenant");

@@ -177,9 +177,11 @@ fn un_permanent_sans_code_emploi_france_travail_se_declare() {
     assert_eq!(n, vec!["999SPT".to_string()]);
 }
 
-/// La DSN de juillet 2026 de la 3090-grande, la quotite du contrat de MONTANSIER (CDI, en heures) posee a `quotite`.
+/// La DSN de juillet 2026 de la 3090-grande reduite a MONTANSIER, la quotite de son contrat (CDI, en heures) posee a
+/// `quotite`.
 fn dsn_de_juillet_quotite(test: &str, quotite: f64) -> Result<String, String> {
     let r = copie(test);
+    compagnie::seulement(&r, &["Montansier"]);
     let mut saisie = crate::outils::saisie(&r, "2026-07");
     for e in saisie["engagements"].as_array_mut().unwrap() {
         if e["numero"] == json!("MO.23.01") {

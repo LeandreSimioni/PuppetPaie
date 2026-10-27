@@ -1105,8 +1105,7 @@ pub struct Contexte {
 }
 
 impl Contexte {
-    /// Le contexte de `racine` a la date `date`. Sans `date`, celle de l'horloge --
-    /// l'horloge, pas `PUPPETPAIE_AUJOURDHUI`, qui ne regle que `aujourdhui`.
+    /// Le contexte de `racine` a la date `date`. Sans `date`, celle de l'horloge du moteur (`jour_reel`).
     pub fn nouveau(racine: &Path, date: Option<Jour>) -> Resultat<Contexte> {
         let date = date.unwrap_or_else(jour_reel);
         let aujourdhui = aujourdhui_brut()?;

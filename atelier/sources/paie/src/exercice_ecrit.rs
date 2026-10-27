@@ -480,7 +480,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
         std::fs::write(&f, csv_compta(&ecritures)).map_err(|e| en_os(&e, &f))?;
         // L'export de l'annee entiere note les saisies qu'il a lues (`export_compta_a_jour`).
         let lues = ((du, au) == (1, 12)).then(|| empreintes_des_saisies(&ctx.racine, &annee.to_string()));
-        crate::produire_mois::noter_piece_ecrite(&ctx.racine, &crate::produire_mois::cle_de_piece(&f), lues)?;
+        crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&f), lues)?;
         fichier = Some(f);
     }
     Ok(ExportCompta { annee: annee.to_string(), du, au, mois, ecritures, total_debit, total_credit, fichier, plan: origine.to_string(), avertissements: avert })
@@ -509,7 +509,7 @@ pub(crate) fn export_compta_a_jour(racine: &Path, annee: &str) -> bool {
     if !racine.join("sorties").join("exercices").join(&nom).is_file() {
         return false;
     }
-    let journal = crate::produire_mois::journal_des_ecritures(racine);
+    let journal = crate::depart::journal_des_ecritures(racine);
     match journal.get(&format!("exercices/{}", nom)).and_then(|n| n.get("empreinte_saisie")) {
         Some(lues) if lues.is_object() => *lues == empreintes_des_saisies(racine, annee),
         _ => true,

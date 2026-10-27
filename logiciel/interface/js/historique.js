@@ -52,8 +52,6 @@ function dessinerHistorique() {
         <span class="rang-infos" title="${echapper((m.fichiers || []).join("\n"))}">${
           (m.sortes || []).length ? echapper(m.sortes.join(" · ")) : "aucun document"}</span>
         <span class="rang-actions">
-          ${m.corrigeable && !m.clos ? `<button class="secondaire" data-corriger-mois="${echapper(m.mois)}"
-            title="la correction partira dans la DSN du mois courant, datée de ce mois">Corriger…</button>` : ""}
         </span>
       </summary>
       <div class="mois-vue"><p class="discret">Lecture du mois…</p></div>
@@ -61,9 +59,6 @@ function dessinerHistorique() {
   }).join("");
   cible.querySelectorAll("details.mois-hist").forEach((d) => {
     d.addEventListener("toggle", () => { if (d.open) dessinerMoisHistorique(d); });
-  });
-  cible.querySelectorAll("[data-corriger-mois]").forEach((b) => {
-    b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); boiteCorriger(b.dataset.corrigerMois); };
   });
 }
 
@@ -123,8 +118,8 @@ async function dessinerMoisHistorique(d) {
     b.onclick = async () => {
       document.querySelector('.onglets button[data-vue="paie"]').click();
       await chargerMois(mois);
-      // Un mois en retard s'ouvre en le sachant : la boîte dit les pénalités.
-      if (d.dataset.retard === "1") boiteRouvrirMois(mois, MOIS_FERME);
+      // Un mois dont la DSN est en retard : elle se fabrique et part, en retard.
+      if (d.dataset.retard === "1") deposerLaDsn(mois);
     };
   });
 }

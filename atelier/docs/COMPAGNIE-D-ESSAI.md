@@ -80,8 +80,7 @@ export PUPPETPAIE_DONNEES=/tmp/puppetpaie-essai     # le dossier que la commande
 **Une DSN mensuelle de test** :
 
 ```bash
-paie mois 2026-09                                   # le mois s'écrit sous votre identité (--forcer pour un mois passé)
-paie depot-dsn sorties/2026-09/DSN_Septembre2026.dsn --test
+paie depot-dsn 2026-09 --test                      # la DSN du mois se fabrique sous votre identité, et part en test
 paie retours                                        # quelques minutes plus tard : le bilan (CCO/BAN) fait foi
 ```
 
@@ -96,7 +95,8 @@ plus grand que le précédent (le journal compte ses essais) : `--ordre` évite 
 paie depot-dsn sorties/2026-09/DSN_Septembre2026.dsn --test --ordre 7
 ```
 
-Une DSN copiée de la fictive (écrite avant le montage, sous son SIREN) est refusée : produire le mois d'abord.
+Une DSN copiée de la fictive (écrite avant le montage, sous son SIREN) est refusée : déposer la DSN par son mois
+(`paie depot-dsn 2026-09`), qui la fabrique sous votre identité.
 
 **Un signalement** (fin de contrat, arrêt, demande de taux) : `paie fin-contrat signaler AAAA-MM SALARIE --test`,
 `paie arret …`, `paie pas --demander --test`, puis `paie depot-dsn <fichier> --test`. Son ordre se lit sur la

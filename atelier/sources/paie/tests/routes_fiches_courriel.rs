@@ -794,9 +794,9 @@ fn la_releve_de_la_veille_se_note_sous_son_nom() {
 
 // ================================================================== la compagnie fictive
 
-/// Date la demande (la ligne du journal) `secondes` avant maintenant.
+/// Date la demande (la ligne du journal) `secondes` avant maintenant, a l'heure du moteur (le jour pose).
 fn dater_la_demande(racine: &Path, secondes: i64) {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64 - secondes;
+    let t = socle::temps::secondes() as i64 - secondes;
     let quand = socle::paris::iso_secondes(t as f64);
     let mut lignes = journal(racine);
     for l in lignes.iter_mut().filter(|l| l["quoi"] == json!("fiche-demande")) {

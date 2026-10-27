@@ -57,8 +57,8 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("{}  (--force pour en reposer le taux et la date de paiement)", message);
         return Ok(1);
     }
-    // Un mois passe ne se cree plus : sa DSN etait due.
-    if let Err(e) = crate::routes_ecritures::refuser_si_hors_delai(&cadre.ctx, mois, false) {
+    // Un mois d.avant la premiere embauche ne se cree pas : aucune DSN n.y est due.
+    if let Err(e) = crate::routes_ecritures::refuser_si_avant_la_premiere_embauche(&cadre.ctx, mois) {
         if super::actes::est_operation(e.classe) {
             return Ok(reponse_metier("nouveau", json, &e, &[]));
         }
@@ -101,6 +101,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             );
         }
     }
-    dire!("Saisir les engagements, les valider, puis :  paie mois {}", mois);
+    dire!("Saisir les engagements, les valider, puis :  paie depot-dsn {} --test", mois);
     Ok(0)
 }

@@ -190,6 +190,25 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
     if motif.is_empty() {
         return Err(refus("Une correction se motive : dire ce qui etait faux."));
     }
+    ecrire_une_correction(o, ctx, mois, salarie_v, debut, engagement, &motif, &qui_de(charge), false)
+}
+
+/// ECRIT LA CORRECTION d'un engagement d'un mois deja declare, que la DSN d'un mois suivant portera. Une seule en cours
+/// par engagement : une correction en attente se remplace. Ce que fait `regularisation-ecrire`, et ce que la DSN d'un
+/// mois suivant ecrit d'elle-meme pour un engagement modifie apres la limite (`depart::corrections_dues`). `remplacer_preparee` :
+/// la DSN qui se fabrique remplace celle, pas encore deposee, qui portait la correction en cours.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn ecrire_une_correction(
+    o: &HashMap<String, String>,
+    ctx: &Contexte,
+    mois: &Value,
+    salarie_v: &Value,
+    debut: &Value,
+    engagement: &Value,
+    motif: &str,
+    qui: &str,
+    remplacer_preparee: bool,
+) -> R<Value> {
     let a = crate::routes_regularisation::apercu_correction(
         o,
         ctx,
@@ -208,7 +227,7 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
     for (i, c) in corrections.iter().enumerate() {
         let meme = valeurs_egales(&c["salarie"], salarie_v) && valeurs_egales(&c["debut"], debut);
         if meme && !vrai(&c["portee_par"]) && !vrai(&c["annulee_le"]) {
-            if vrai(&c["preparee_par"]) {
+            if vrai(&c["preparee_par"]) && !remplacer_preparee {
                 return Err(refus(format!(
                     "Une correction de cet engagement est deja dans une DSN ecrite, pas encore deposee (n° {}, {}). La deposer, ou l'annuler d'abord.",
                     valeur_en_texte(&c["numero"]),
@@ -229,7 +248,7 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
     }
     let mut engagement_ecrit = a["engagement"].clone();
     if ajout && !engagement_ecrit.get("numero").is_some_and(vrai) {
-        let n = crate::routes_regularisation::figer_le_numero(ctx, &nom_du_mois, &valeur_en_texte(salarie_v), &valeur_en_texte(debut))?;
+        let n = crate::routes_regularisation::numero_du_contrat(ctx, &nom_du_mois, &valeur_en_texte(salarie_v), &valeur_en_texte(debut))?;
         engagement_ecrit["numero"] = json!(n);
     }
     if let Some(i) = remplacee {
@@ -248,7 +267,7 @@ fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &V
         c.insert("ajout".into(), json!(true));
     }
     c.insert("decidee_le".into(), json!(maintenant()));
-    c.insert("qui".into(), json!(qui_de(charge)));
+    c.insert("qui".into(), json!(qui));
     c.insert("preparee_par".into(), Value::Null);
     c.insert("portee_par".into(), Value::Null);
     c.insert("annulee_le".into(), Value::Null);

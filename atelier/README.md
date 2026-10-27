@@ -197,21 +197,18 @@ paie nouveau 2026-10
 ```
 
 Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : noms, dates, spectacle) et les valider
-(« Valider l'engagement »), puis :
+(« Valider l'engagement »). Chaque document se fabrique au moment où il part, depuis les engagements validés :
 
-```bash
-paie mois 2026-10
-```
-
-Sortie dans `sorties/2026-10/` :
-
-| Fichier | Où il va |
+| Document | Quand il se fabrique |
 |---|---|
-| `Contrats_Octobre2026.pdf` | à faire signer |
-| `DPAE_Octobre2026.txt` (+ récapitulatif) | net-entreprises.fr, **avant** le début du contrat |
-| `Bulletins_Octobre2026.pdf` | aux artistes |
-| `CertificatsCS_Octobre2026.pdf` (+ récapitulatif) | **aux artistes** — congés spectacles ; rien à envoyer à Audiens |
-| `DSN_Octobre2026.dsn` | dépôt en test (`depot-dsn --test`), lecture du bilan, puis dépôt réel |
+| la DPAE (`paie dpae`) | avant le début du contrat |
+| le contrat | à son envoi à la signature : son numéro s'y fige |
+| `DSN_Octobre2026.dsn` | à son dépôt : `paie depot-dsn 2026-10 --test`, lecture du bilan, puis `--reel` |
+| bulletin et certificat Congés Spectacles | à l'envoi des documents aux salariés : le numéro du bulletin s'écrit dans la paie |
+
+Une DSN se dépose dès qu'un engagement du mois est validé, sans attendre ni DPAE ni contrat. Le moteur dit si c'est un
+dépôt initial ou un annule-et-remplace ; après la veille de l'échéance, ce qui change dans un mois déjà déclaré part en
+correction dans la DSN d'un mois suivant.
 
 Plus d'AEM depuis le 01/06/2026 (100 % DSN) : France Travail édite
 l'attestation lui-même, et `paie aer --mois 2026-10` range celles qu'il a
@@ -517,7 +514,7 @@ Autres commandes : `paie fiche` (rappel des données de référence),
 **Pour un programme.** Toute commande accepte `--json` : même travail, mêmes
 garde-fous, sortie lisible par une machine. Les montants y sont des chaînes
 (`"201.32"`, jamais un flottant), les dates en `AAAA-MM-JJ`, et une erreur
-métier reste une réponse — `{"ok": false, "erreur": {"type": "MoisPasPret",
+métier reste une réponse — `{"ok": false, "erreur": {"type": "AnnuleRemplaceHorsDelai",
 …}}` — sur laquelle un appelant branche son comportement. C'est par là que
 passe l'interface, et que passerait une API.
 
@@ -734,9 +731,8 @@ déclaration de revenus l'année suivante. D'où l'appel de taux, ci-dessus.
   DSN non plus : le cahier technique 2026.1 (p. 244) dit que le prélèvement à
   la source ne s'en déduit pas.
 
-Ce module **ne dépose rien** : il n'a aucune fonction d'envoi. Pour produire une
-DSN en envoi de test (`S10.G00.00.005 = 01`, données non conservées) :
-`paie mois 2026-09 --test`.
+Ce module **ne dépose rien** : il n'a aucune fonction d'envoi. Le dépôt de test (`paie depot-dsn 2026-09 --test`)
+bascule la DSN en envoi de test (`S10.G00.00.005 = 01`, données non conservées) en mémoire.
 
 ## Un arrêt de travail
 
@@ -1271,11 +1267,8 @@ signature.
    DSN de CoolPaie retrouvées au centime. Rien à recopier :
 
    ```
-   paie mois 2026-09
+   paie depot-dsn 2026-09 --apercu
    ```
-
-   La commande **ferme le mois** : elle refuse (`MoisPasPret`) tant que la DPAE
-   et le contrat de chaque embauche du mois ne sont pas partis.
 2. **La DSN en dépôt de test** (`depot-dsn --test`) avant tout dépôt réel.
    C'est le validateur qui fait foi : la même brique de contrôle que DSN-Val,
    à jour, côté plate-forme (voir `atelier/reference/norme-dsn/LISEZMOI.md`).

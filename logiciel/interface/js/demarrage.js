@@ -175,7 +175,7 @@ async function avantDeQuitter() {
   clearTimeout(MINUTEUR_SAISIE);
   await enregistrerSaisie(false);
   const s = saisieCourante();
-  const ecrivable = s.mois && !(MOIS_FERME && MOIS_FORCE !== s.mois);
+  const ecrivable = !!s.mois;
   return !(ecrivable && JSON.stringify(s) !== DERNIERE_ECRITE);
 }
 window.avantDeQuitter = avantDeQuitter;

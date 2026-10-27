@@ -279,7 +279,7 @@ fn l_historique_dit_ou_en_est_chaque_mois_du_plus_recent_au_plus_ancien() {
     // Les mois saisis et les mois produits : `sorties/exercices` n'est pas un mois.
     assert_eq!(mois, ["2026-09", "2026-08"]);
     // Septembre : saisi, rien de parti, l'echeance (15/10) n'est pas passee.
-    assert_eq!(h[0]["dsn"], "a_ecrire");
+    assert_eq!(h[0]["dsn"], "a_deposer");
     assert_eq!(h[0]["echeance"], "2026-10-15");
     assert_eq!(h[0]["produit"], false);
     assert_eq!(h[0]["clos"], true);

@@ -425,7 +425,6 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
     let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
     let dsn_deposee = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
     let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
-    let limite = if dsn_deposee.get("confirmer").is_some_and(vrai) || avant_embauche.is_some() { None } else { mois_hors_delai(ctx, &mois)? };
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
     // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : pas de fichier ici, mais l'historique importe le porte -- ses paies,
@@ -436,9 +435,6 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
         "existe": existe,
         "importe": importe,
         "defauts": defauts,
-        // Passe le 15 du mois suivant, le mois est ferme : la page le montre en
-        // lecture seule (le serveur refuserait de toute facon).
-        "hors_delai": limite.map(|j| j.iso()),
         // Un mois passe d'avant la premiere embauche : rien n'y est du, il se lit (`avant_la_premiere_embauche`).
         "avant_premiere_embauche": avant_embauche,
         // La DSN reelle du mois est deposee : ce qu'il faut savoir avant d'en modifier la paie (`null` sinon).

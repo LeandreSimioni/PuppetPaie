@@ -403,6 +403,17 @@ pub fn depuis_exception(racine: &Path, classe: &str, message: &str, nature: Opti
     )
 }
 
+/// UN RECALCUL QUE LE MOTEUR REFUSE A LA LECTURE D'UN ENGAGEMENT VALIDE (`engagement::etats::du_mois`) : l'engagement garde
+/// sa paie validee, l'utilisateur n'en voit rien, et l'editeur le recoit comme un incident.
+fn recalcul_refuse(racine: &Path, mois: &str, refus: &str) {
+    let _ = depuis_exception(racine, "RecalculRefuse", refus, None, "engagement::etats::du_mois", serde_json::json!({ "mois": mois }), None);
+}
+
+/// Pose le temoin des recalculs refuses (`recalcul_refuse`) : a l'entree de toute commande du moteur.
+pub fn poser_le_temoin_des_recalculs() {
+    engagement::etats::poser_temoin(recalcul_refuse);
+}
+
 /// `str(x)` (`None` n'est pas ici un texte : voir l'appelant).
 fn texte_de(v: &Value) -> String {
     valeur_en_texte(v)

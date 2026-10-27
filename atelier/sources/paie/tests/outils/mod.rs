@@ -184,6 +184,19 @@ pub mod compagnie {
         racine.to_path_buf()
     }
 
+    /// La compagnie réduite aux engagements de `salaries` (leur nom dans la saisie), dans chaque mois : un cas qui ne
+    /// regarde qu'eux ne calcule pas les autres.
+    pub fn seulement(racine: &Path, salaries: &[&str]) {
+        for f in std::fs::read_dir(racine.join("engagements")).unwrap().flatten() {
+            let rel = format!("engagements/{}", f.file_name().to_string_lossy());
+            let mut mois = super::lire(racine, &rel);
+            if let Some(l) = mois["engagements"].as_array_mut() {
+                l.retain(|e| salaries.iter().any(|s| e["salarie"] == *s));
+            }
+            super::ecrire(racine, &rel, &mois);
+        }
+    }
+
     /// La compagnie fictive sans les pièces de `sorties/` (bulletins, contrats, DPAE, certificats) : ses DSN déposées, que
     /// relit la DSN d'un mois suivant ; les mois `entiers` gardent tout.
     pub fn ses_dsn(fictive: &str, entiers: &[&str], racine: &Path) -> PathBuf {

@@ -268,19 +268,12 @@ async function agirSurRappel(r) {
   fermerBoite();
   if (r.quoi === "dsn") {
     // On va sur le mois, on le regarde, et le dépôt s'enchaîne : c'est la
-    // même suite que le bouton DSN de la colonne de droite. Un mois pas
-    // encore écrit s'écrit d'abord (boiteProduire), même vide — la DSN
-    // « néant » d'un mois sans cachet passe par là aussi.
+    // même suite que le bouton DSN de la colonne de droite : la DSN se
+    // fabrique à son dépôt, même vide — la DSN « néant » d'un mois sans
+    // cachet passe par là aussi.
     document.querySelector('.onglets button[data-vue="paie"]').click();
     await chargerMois(r.mois);
-    const e = await api("etat-du-mois", { mois: r.mois });
-    const d = (e.fichiers.dsn || [])[0];
-    if (d) return boiteDepot("dsn", d.chemin);
-    return boiteProduire(r.mois, async () => {
-      const e2 = await api("etat-du-mois", { mois: r.mois });
-      const d2 = (e2.fichiers.dsn || [])[0];
-      if (d2) await boiteDepot("dsn", d2.chemin);
-    });
+    return deposerLaDsn(r.mois);
   }
   if (r.quoi === "dpae") {
     // LA DPAE PRÉPARÉE D'AVANCE (27/09/2026) : son test est passé, le bouton

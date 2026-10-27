@@ -229,8 +229,8 @@ S21.G00.20.007,'31072026'\r\nS21.G00.20.010,'05'\r\n";
     racine
 }
 
-fn produire_juillet(racine: &Path) -> Value {
-    outils::route(racine, "produire", json!({"mois": "2026-07", "saisie": crate::outils::saisie(racine, "2026-07")}), "2026-08-03")
+fn dsn_de_juillet(racine: &Path) -> Value {
+    outils::route(racine, "dsn-a-deposer", json!({"mois": "2026-07"}), "2026-08-03")
 }
 
 /// La DSN d'annule-et-remplace que la production a ecrite.
@@ -247,7 +247,7 @@ fn l_annule_et_remplace(racine: &Path) -> String {
 #[test]
 fn l_annule_et_remplace_d_un_mois_qui_versait_du_pas_porte_un_versement_dgfip_a_zero() {
     let r = compagnie_pas_nul("versait", true);
-    outils::reussi(&produire_juillet(&r));
+    outils::reussi(&dsn_de_juillet(&r));
     let dsn = l_annule_et_remplace(&r);
     assert!(dsn.contains("S20.G00.05.002,'03'"));
     assert_eq!(pas_du_nominatif(&dsn), Decimal::ZERO);
@@ -259,7 +259,7 @@ fn l_annule_et_remplace_d_un_mois_qui_versait_du_pas_porte_un_versement_dgfip_a_
 #[test]
 fn l_annule_et_remplace_d_un_mois_qui_ne_versait_rien_n_ecrit_pas_de_versement_dgfip() {
     let r = compagnie_pas_nul("ne-versait-pas", false);
-    outils::reussi(&produire_juillet(&r));
+    outils::reussi(&dsn_de_juillet(&r));
     let dsn = l_annule_et_remplace(&r);
     assert!(blocs_dgfip(&dsn).is_empty());
 }

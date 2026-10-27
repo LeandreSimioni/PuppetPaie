@@ -551,7 +551,7 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
     }
     // CE QUE LA PLATE-FORME A VU EN REEL au mois de constitution du fichier, lu en silence dans les bilans archives
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : une mensuelle reelle envoyee d'un autre poste compte, comme
-    // a la production (`produire_mois::forme_a_produire`).
+    // a la production (`depart::forme_a_produire`).
     let constitution = mois_de_constitution(a.champ("constitution"), &ctx.aujourdhui);
     let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
     let dernier = match dernier {
@@ -564,10 +564,9 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
         return Err(erreur(
             "AnnuleRemplaceHorsDelai",
             format!(
-                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). La correction se porte dans la DSN suivante : Historique › Corriger ce mois (`paie corriger {}`). Rien n'est ecrit.",
+                "La DSN de {} est deja partie, et l'annule-et-remplace n'est plus admis depuis le {} a minuit (veille de l'echeance, cahier technique DSN §1.4.2). Ce qui a change dans ce mois part dans la DSN d'un mois suivant, en correction. Rien n'est parti.",
                 mois,
-                limite.jj_mm_aaaa(),
-                mois
+                limite.jj_mm_aaaa()
             ),
         ));
     }
@@ -653,7 +652,7 @@ pub fn deposer_dsn_dans(
     if crate::essai::est_essai(&ctx.racine) && apercu.champ("siren") != valeur_en_texte(ctx.entreprise.get("siren").unwrap_or(&Value::Null)) {
         return Err(erreur(
             "ErreurOperation",
-            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Produire le mois ici (`paie mois`), puis deposer la DSN ecrite. Rien n'est parti.",
+            "Compagnie d'essai : ce fichier ne porte pas le SIREN de la compagnie (il a ete ecrit sous une autre identite : celle de la compagnie fictive, avant le montage, ou une identite d'avant). Deposer ici la DSN du mois (`paie depot-dsn AAAA-MM`), qui s'y fabrique. Rien n'est parti.",
         ));
     }
     let nic: Value = if apercu.champ("etablissement").is_empty() { Value::Null } else { json!(apercu.champ("etablissement")) };

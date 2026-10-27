@@ -391,14 +391,14 @@ fn la_fictive_joue_l_horloge_les_retours_et_ne_fait_rien_d_autre() {
     let _t = tour();
     let c = compagnie("fictive-horloge", "fictive-3090-petite", false);
     reculer_l_horloge(&c, "2026-08-15");
-    // Septembre saisi et pas ecrit : le 08/10, l'horloge l'ecrit (a sa date, le 01/10 ; octobre, en cours, attend le
-    // 1er novembre).
-    let mut ecrites = lire(&c, "journal/dsn-ecrites.json");
-    ecrites.as_object_mut().unwrap().remove("2026-09/DSN_Septembre2026.dsn");
-    ecrire(&c, "journal/dsn-ecrites.json", &ecrites);
+    // La DSN d'aout pas partie : le 08/10, l'horloge la depose (a son echeance, en septembre ; celle de septembre, due
+    // le 15/10, attend).
+    let mut j = lire(&c, "journal/depots.json");
+    j.as_array_mut().unwrap().retain(|l| !(l["quoi"] == json!("dsn") && l["mois"] == json!("2026-08")));
+    ecrire(&c, "journal/depots.json", &j);
     let r = sans_clients(&c, &Options { filet: false, ..opt() });
-    assert!(r.horloge.iter().any(|p| p.starts_with("Le 01/10/2026 : Septembre 2026 écrit")), "{:?}", r.horloge);
-    assert!(!r.horloge.iter().any(|p| p.contains("Octobre 2026 écrit")), "{:?}", r.horloge);
+    assert!(r.horloge.iter().any(|p| p.contains("/09/2026 : DSN de août 2026 déposée")), "{:?}", r.horloge);
+    assert!(!r.horloge.iter().any(|p| p.contains("DSN de septembre 2026")), "{:?}", r.horloge);
     assert!(!r.horloge.is_empty(), "l'horloge a rejoue ce qui etait du avant aujourd'hui");
     let releve = r.releve.as_ref().expect("les retours des depots joues sont rattaches");
     assert!(releve.trouves.is_empty() && releve.archives.is_empty(), "un releve qui ne porte que `rattaches`");
