@@ -75,15 +75,6 @@ pub fn rendre() -> BTreeMap<String, String> {
     REGISTRE.with(|r| r.borrow_mut().take().map(|g| g.entrees).unwrap_or_default())
 }
 
-/// `f` hors du registre ouvert sur ce fil, qui le retrouve ensuite tel qu'il etait : ce que `f` lit ne s'y note pas, et
-/// `f` peut ouvrir et rendre le sien.
-pub fn a_part<T>(f: impl FnOnce() -> T) -> T {
-    let ouvert = REGISTRE.with(|r| r.borrow_mut().take());
-    let v = f();
-    REGISTRE.with(|r| *r.borrow_mut() = ouvert);
-    v
-}
-
 fn suivi() -> bool {
     REGISTRE.with(|r| r.borrow().is_some())
 }
