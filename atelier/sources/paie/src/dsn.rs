@@ -3969,7 +3969,7 @@ fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat
 /// LE BLOC 40 DECLARE du contrat de `p` (regle 4 : il se lit, il ne se recalcule pas), pour le bloc Changements contrat
 /// de la mensuelle de `mois` : la DSN du mois le plus recent avant `mois` qui est partie pour son engagement, et la paie
 /// de ce mois telle que la version sur laquelle elle est partie l'a ecrite (`engagement::etats::paie_declaree`) ; son
-/// bloc 40 s'ecrit comme il s'est ecrit ce mois-la, des fiches telles qu'a la fin de ce mois. `etats` : les
+/// bloc 40 s'ecrit comme il s'est ecrit ce mois-la, de la fiche du salarie telle que ce calcul l'a lue. `etats` : les
 /// engagements de `mois` ; `None` : rien de declare.
 fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs, orgs: &Value) -> Resultat<Option<crate::changements_contrat::Declare>> {
     let (cle, numero) = (cle_salarie(p), p.engagement.numero.clone().unwrap_or_default());
@@ -3981,7 +3981,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
     let premier_mois = p.engagement.debut.mois_iso();
     let mut m = premier(mois)?.plus_jours(-1)?.mois_iso();
     while m >= premier_mois {
-        // Le moteur tel qu'il lisait la compagnie ce mois-la : les fiches valent a la fin du mois declare, comme la DSN de ce mois les a lues.
+        // La compagnie telle qu'a la fin du mois declare (l'entreprise, ses etablissements) ; la fiche, celle que la paie declaree a lue.
         let ctx_m = Contexte::nouveau(&ctx.racine, Some(socle::date::dernier_du_mois(&m)?))?;
         if let Some(declaree) = engagement::etats::paie_declaree(&ctx_m, v, departs, &m)? {
             // Les autres contrats du salarie declares ce mois-la : le code emplois multiples (40.036) s'ecrit avec eux.

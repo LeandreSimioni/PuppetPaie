@@ -297,6 +297,18 @@ fn des_documents_partis_ne_bougent_plus() {
     assert_eq!(e["valide"]["version"], json!(2));
     assert_eq!(e["versions"][0]["paies"]["2026-11"]["paie"]["brut"], json!("1.00"));
     assert_eq!(e["valide"]["paies"]["2026-11"]["recalcul"]["raison"], json!(etats::CALCUL_CORRIGE));
+    // La DSN de decembre part, ses documents non : un taux de PAS recu refait decembre, et la version sur laquelle la
+    // DSN est partie garde ce qu'elle a declare ; novembre, aux documents partis, ne bouge pas.
+    parti(&r, "dsn", Some("2026-12"));
+    let novembre = paie_ecrite(&r, "2026-11");
+    taux_de_pas(&r, "9.00");
+    lire_le_mois(&r, "2026-12");
+    let e = fichier(&r, "2026-11")["engagements"][0].clone();
+    assert_eq!(e["valide"]["version"], json!(3));
+    assert_eq!(e["versions"][1]["paies"]["2026-12"]["pas"]["taux"], json!("7.50"), "{}", e["versions"]);
+    assert_eq!(e["valide"]["paies"]["2026-12"]["pas"]["taux"], json!("9.00"));
+    lire_le_mois(&r, "2026-11");
+    assert_eq!(paie_ecrite(&r, "2026-11"), novembre);
 }
 
 
@@ -374,6 +386,13 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
         vec![Avenant { depuis: 1 }, Bulletin { mois: "2026-11".into(), depuis: 1 }, Dsn { mois: "2026-11".into(), depuis: 1 }]
     );
     // La DSN suivante lit ce qui a ete declare dans la version sur laquelle elle est partie.
+    // La fiche changee depuis, la paie declaree garde la fiche telle que son calcul l'a lue.
+    let email = paie_partie["fiches"]["paie"]["email"].clone();
+    let mut s = lire(&r, "config/salaries.json");
+    s["BRIOCHE"]["email"] = json!("fanchon.nouvelle@exemple.invalid");
+    ecrire(&r, "config/salaries.json", &s);
     let declaree = etats::paie_declaree(&ctx(&r), &v, &departs_du_test(&r).unwrap(), "2026-11").unwrap().unwrap();
     assert_eq!(json!(declaree.brut.to_string()), paie_partie["paie"]["brut"]);
+    assert!(email.is_string());
+    assert_eq!(declaree.salarie["email"], email);
 }
