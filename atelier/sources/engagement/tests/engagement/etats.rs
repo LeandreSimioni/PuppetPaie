@@ -374,6 +374,6 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
         vec![Avenant { depuis: 1 }, Bulletin { mois: "2026-11".into(), depuis: 1 }, Dsn { mois: "2026-11".into(), depuis: 1 }]
     );
     // La DSN suivante lit ce qui a ete declare dans la version sur laquelle elle est partie.
-    let declaree = etats::paie_partie(&ctx(&r), &v, &departs_du_test(&r).unwrap(), engagement::departs::Envoi::Dsn, "2026-11").unwrap();
-    assert_eq!(declaree, paie_partie);
+    let declaree = etats::paie_declaree(&ctx(&r), &v, &departs_du_test(&r).unwrap(), "2026-11").unwrap().unwrap();
+    assert_eq!(json!(declaree.brut.to_string()), paie_partie["paie"]["brut"]);
 }

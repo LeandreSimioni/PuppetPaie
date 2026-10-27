@@ -3966,6 +3966,55 @@ fn bareme_du_nic(ctx: &Contexte, ent: &Value, nic: &str, mois: &str) -> Resultat
     bareme::surcharger(ctx.bareme(&premier(mois)?)?, ent, nic)
 }
 
+/// LE BLOC 40 DECLARE du contrat de `p` (regle 4 : il se lit, il ne se recalcule pas), pour le bloc Changements contrat
+/// de la mensuelle de `mois` : la DSN du mois le plus recent avant `mois` qui est partie pour son engagement, et la paie
+/// de ce mois telle que la version sur laquelle elle est partie l'a ecrite (`engagement::etats::paie_declaree`) ; son
+/// bloc 40 s'ecrit comme il s'est ecrit ce jour-la, dans l'etablissement de la fiche a ce mois. `etats` : les
+/// engagements de `mois` ; `None` : rien de declare.
+fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::etats::Etat], departs: &engagement::departs::Departs, ent0: &Value, orgs: &Value) -> Resultat<Option<crate::changements_contrat::Declare>> {
+    let (cle, numero) = (cle_salarie(p), p.engagement.numero.clone().unwrap_or_default());
+    let sienne = |e: &engagement::etats::Etat| {
+        let b = Value::Object(e.objet().brut.clone());
+        engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle.as_str()) && b.get("numero").map(en_texte).as_deref() == Some(numero.as_str())
+    };
+    let Some(v) = etats.iter().filter(|e| sienne(e)).find_map(engagement::etats::Etat::valide) else { return Ok(None) };
+    let premier_mois = p.engagement.debut.mois_iso();
+    let mut m = premier(mois)?.plus_jours(-1)?.mois_iso();
+    while m >= premier_mois {
+        if let Some(declaree) = engagement::etats::paie_declaree(ctx, v, departs, &m)? {
+            // Les autres contrats du salarie declares ce mois-la : le code emplois multiples (40.036) s'ecrit avec eux.
+            let mut autres = Vec::new();
+            for e in engagement::etats::tels_qu_ecrits(ctx, &m)? {
+                let Some(w) = e.valide() else { continue };
+                if w.objet().fichier == v.objet().fichier && w.objet().rang == v.objet().rang {
+                    continue;
+                }
+                if let Some(q) = engagement::etats::paie_declaree(ctx, w, departs, &m)? {
+                    autres.push(q);
+                }
+            }
+            let nic = bareme::etablissement_du_salarie(ent0, &declaree.salarie)?;
+            let bar = bar_du(ctx, ent0, orgs, &nic, &m)?;
+            let mut ent = ent0.as_object().cloned().unwrap_or_default();
+            ent.insert("licence_spectacle".into(), Value::String(ctx.licence(&premier(&m)?)?));
+            let ent_e = fiche_de(&Value::Object(ent), &nic)?;
+            let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(&m)?);
+            let refs: Vec<&Paie> = autres.iter().collect();
+            bloc_contrat(&mut f, &declaree, &ent_e, orgs, 1, &bar, true, &[], "01", emplois_multiples(&declaree, &refs))?;
+            let bloc: Vec<(String, String)> = f
+                .lignes
+                .iter()
+                .filter_map(|l| l.split_once(','))
+                .filter(|(k, _)| k.starts_with("S21.G00.40."))
+                .map(|(k, x)| (k.to_string(), x.trim_matches('\'').to_string()))
+                .collect();
+            return Ok(Some(crate::changements_contrat::Declare { mois: m, siret: txt(g(ent0, "siren")) + &nic, nic, bloc }));
+        }
+        m = premier(&m)?.plus_jours(-1)?.mois_iso();
+    }
+    Ok(None)
+}
+
 /// Le bareme d'un mois pour l'etablissement, avec ses contributions.
 pub(crate) fn bar_du(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, m: &str) -> Resultat<Value> {
     let b = bareme_du_nic(ctx, ent, nic, m)?;
@@ -4175,9 +4224,11 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
             r.apres.engagement.numero.clone().unwrap_or_else(|| "?".into())
         ));
     }
-    // Ou relire le dernier declare d'un contrat (bloc 41) : cet etablissement, puis les autres.
+    // Les etablissements, celui de cette DSN d'abord : un contrat declare ailleurs a change d'etablissement (bloc 41).
     let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(nics(&ent0).into_iter().filter(|n| *n != nic)).collect();
-    let mut relus = crate::changements_contrat::Relus::default();
+    // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
+    let departs = engagement::departs::lire(&ctx.racine)?;
+    let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois)?;
     let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
     let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
@@ -4679,7 +4730,8 @@ certificat de conformite du depot precedent.",
             let debut_bloc = f.lignes.len();
             bloc_contrat(&mut f, p, &ent_e, &orgs, i as i64 + 1, &bar, true, &siens, "01", emplois_multiples(p, &periode))?;
             // Ce qui a change depuis la derniere DSN deposee du contrat : le bloc S21.G00.41, sous son bloc 40.
-            crate::changements_contrat::poser(&mut f.lignes, debut_bloc, ctx, p, mois, &nics_courant_d_abord, &mut relus)?;
+            let declare = bloc_40_declare(ctx, p, mois, &etats_du_mois, &departs, &ent0, &orgs)?;
+            crate::changements_contrat::poser(&mut f.lignes, debut_bloc, ctx, p, mois, &nics_courant_d_abord, declare.as_ref())?;
         }
         let mut rangs_regs = Vec::new();
         let mut ajoutes: Vec<&Regularisation> = Vec::new();

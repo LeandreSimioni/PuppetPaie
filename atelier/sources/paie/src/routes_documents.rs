@@ -262,7 +262,7 @@ pub(crate) fn numero_du_contrat(
 }
 
 /// `apercu_avenant` : ce que l'avenant d'un contrat parti modifierait, article par article, l'ancien
-/// texte (lu dans le PDF parti) et le nouveau (la paie validee). Rien n'est ecrit.
+/// texte (celui de la version sur laquelle il est parti) et le nouveau (la paie validee). Rien n'est ecrit.
 pub(crate) fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let salarie_v = cle(charge, "salarie")?;
     let debut_v = cle(charge, "debut")?;
@@ -304,27 +304,33 @@ pub(crate) fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge
         ));
     };
     let p = &paies[i];
-    let Some(pdf) = crate::avenant::chemin_piece(&ctx.racine, &parti.mois, &parti.fichier) else {
-        return Err(erreur(
-            "ErreurOperation",
-            format!("Le contrat parti ({}) n'est plus dans sorties/{} : l'avenant ne peut pas citer son texte.", valeur_en_texte(&parti.fichier), mois_parti),
-        ));
-    };
     let g = m.globales()?;
     let deja = crate::avenant::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
-    // Ce que les avenants SIGNES ont deja ecrit fait foi, paragraphe par paragraphe.
-    let texte_signe = crate::avenant::textes_des_avenants_de(&deja, true)?;
     let ent = crate::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = crate::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;
     let numero_porte = Some(p.engagement.numero.clone().unwrap_or_else(|| "None".to_string()));
     let vals = crate::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
-    let texte_pdf = crate::avenant::texte_du_pdf(&pdf)?;
-    let modifs = match crate::avenant::modifications(&modele, &vals, &texte_pdf, &numero_parti, &texte_signe) {
-        Ok(v) => v,
-        Err(crate::avenant::ErrAvenant::Impossible(msg)) => return Err(erreur("ErreurOperation", msg)),
-        Err(crate::avenant::ErrAvenant::Autre(msg)) => return Err(Echec::from(msg)),
-    };
+    // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)
+    // est parti, ecrit du modele avec les valeurs de cette version.
+    let departs = engagement::departs::lire(&ctx.racine)?;
+    let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
+        let v = e.valide()?.clone();
+        let b = Value::Object(v.objet().brut.clone());
+        (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte) == p.engagement.numero).then_some(v)
+    });
+    let ancienne = siens
+        .as_ref()
+        .and_then(|v| engagement::etats::version_au_depart(ctx, v, &departs, engagement::departs::Envoi::Contrat))
+        .and_then(|x| x.get("paies")?.get(&mois_parti)?.get("paie").cloned())
+        .ok_or_else(|| {
+            erreur(
+                "ErreurOperation",
+                format!("Le journal ne dit pas sur quelle version de l'engagement le contrat n° {} est parti : l'avenant ne peut pas citer son ancien texte.", numero_parti),
+            )
+        })?;
+    let avant = crate::avenant::valeurs_de_la_paie(ctx, &ent, &ancienne, Some(&numero_porte))?;
+    let modifs = crate::avenant::modifications(&modele, &avant, &vals)?;
     let mut signes: Vec<i64> = Vec::new();
     for a in deja.iter().filter(|a| a.get("signe").is_some_and(vrai)) {
         signes.push(a.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("TypeError", "un numero d'avenant n'est pas un entier"))?);

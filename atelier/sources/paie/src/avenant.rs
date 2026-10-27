@@ -1,28 +1,15 @@
-//! `moteur/avenant.py` (la comparaison du contrat parti a la paie d'aujourd'hui) et
-//! `operations_documents.ecart_au_contrat_signe` : ce que la pastille « Contrat » d'une paie dit
-//! quand le contrat parti a la signature ne dit plus la paie (« article 1 (Objet et nature du
-//! contrat), article 4 (Rémunération) »).
+//! L'AVENANT D'UN CONTRAT PARTI : ce que le contrat dirait aujourd'hui, compare a ce qu'il disait sur la version de
+//! l'engagement sur laquelle il est parti (`engagement::etats::version_au_depart`). L'ancien texte n'est pas relu dans le
+//! PDF signe : il s'ecrit du modele avec les valeurs de la version d'avant, telles qu'elles etaient ecrites (regle 4), et
+//! chaque paragraphe des articles du modele qui differe d'une version a l'autre est une modification (`modifications`).
 //!
-//! L'ANCIEN TEXTE SE LIT DANS LE CONTRAT PARTI, pas dans un souvenir. Le PDF envoye a la signature
-//! est ce que le salarie a signe : on en tire le texte, on le decoupe au numero du contrat, et
-//! chaque paragraphe des articles du modele y est cherche tel que la paie d'aujourd'hui l'ecrirait.
-//! Un paragraphe qui s'y lit a l'identique n'a pas change ; les autres sont retrouves dans le PDF
-//! par leur partie fixe (le texte du modele, les marqueurs laisses libres). Cela vaut pour un
-//! contrat parti avant qu'on note ses clauses au journal (avant le 30/09/2026).
-//!
-//! Ici, seule la lecture : l'apercu et l'ecriture de l'avenant restent a faire. Le texte de
-//! l'avenant n'est pas ici non plus : il vit dans `avenant-cddu.modele`, une donnee, comme celui
-//! du contrat.
-//!
-//! SANS CALCUL TANT QU'ON PEUT : `ecart_au_contrat_signe` regarde d'abord tout ce qui ne demande
-//! pas la paie (le delai, le contrat parti ce mois-la, le PDF, le modele, le texte du PDF), puis
-//! seulement prend les montants dans la paie validee de l'engagement.
-//!
-//! Rend "" dans tous les cas ou rien ne se lit -- et la ou une lecture refuse (la pastille n'invente pas).
+//! Ici, les valeurs que le modele de contrat lit dans une paie (`valeurs_de_la_paie`, `contrat.marqueurs`), le contrat
+//! parti que le journal connait (`contrat_parti`) et ses avenants. Le texte de l'avenant vit dans `avenant-cddu.modele`,
+//! une donnee, comme celui du contrat.
 
-use std::collections::{BTreeMap, HashMap};
+
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 
 use fabrique_pdf::modele::{self, Modele, Valeurs};
 use serde_json::Value;
@@ -45,7 +32,8 @@ const MODELE: &str = "contrat-cddu.modele";
 /// sert (`re.sub` ne sait pas poser autre chose qu'une chaine). Une phrase qui la porte est un refus.
 const INVALIDE: &str = "\u{0}\u{0}VALEUR-SANS-TEXTE\u{0}\u{0}";
 
-// ------------------------------------------------------ le texte d'un PDF
+
+// ------------------------------------------------------ le texte qu'on compare
 
 use socle::texte::blanc as est_blanc;
 
@@ -78,214 +66,6 @@ pub fn normaliser(texte: &str) -> String {
         }
     }
     sortie.trim_matches(' ').to_string()
-}
-
-type CleTexte = (String, u128);
-
-fn textes() -> &'static Mutex<HashMap<CleTexte, String>> {
-    static TEXTES: OnceLock<Mutex<HashMap<CleTexte, String>>> = OnceLock::new();
-    TEXTES.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
-/// `avenant.texte_du_pdf` : le texte du PDF, garde en memoire tant que le fichier ne change pas
-/// (la pastille de chaque contrat le relit a chaque affichage). Le texte des pages est celui de la
-/// fabrique (`paie pdf --texte`), lu dans le meme processus.
-pub fn texte_du_pdf(chemin: &Path) -> Resultat<String> {
-    let mtime = std::fs::metadata(chemin)
-        .and_then(|m| m.modified())
-        .map_err(|e| format!("{} : {}", chemin.display(), e))?
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|t| t.as_nanos())
-        .unwrap_or(0);
-    let cle = (chemin.to_string_lossy().into_owned(), mtime);
-    if let Some(t) = textes().lock().map_err(|e| e.to_string())?.get(&cle) {
-        return Ok(t.clone());
-    }
-    // LE TEXTE GARDE SUR LE DISQUE (Leandre, 08/10/2026 : « quand je vais en avant et en arriere, ca met autant de
-    // temps »). Chaque route est un processus neuf : la memoire ci-dessus ne survit pas a la requete, et la pastille de
-    // chaque contrat relisait son PDF (un quart de seconde chacun) a chaque changement de mois, deux fois. Le texte se
-    // range a cote du PDF, dans `.textes/`, sous un nom qui porte l'empreinte de son CONTENU : un PDF refait n'est plus
-    // lu sous l'ancien texte, et la meme compagnie refaite (le rejeu d'un banc, #236) a les memes fichiers -- la date du
-    // fichier, a la nanoseconde, n'est celle d'aucun rejeu. Une ecriture impossible ne change rien au resultat.
-    let empreinte = crate::journal::empreinte_fichier(chemin).unwrap_or_default();
-    let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let range = chemin.parent().map(|d| d.join(".textes").join(format!("{}.{}.txt", nom, empreinte)));
-    if let Some(t) = range.as_ref().and_then(|r| std::fs::read_to_string(r).ok()) {
-        textes().lock().map_err(|e| e.to_string())?.insert(cle, t.clone());
-        return Ok(t);
-    }
-    let (pages, _avertissements) = fabrique_pdf::lecture::texte(&cle.0).map_err(|r| r.0)?;
-    let texte = normaliser(&pages.join("\n"));
-    if let Some(r) = &range {
-        if let Some(d) = r.parent() {
-            // Les textes d'avant de ce meme PDF partent : un seul texte par fichier.
-            if let Ok(liste) = std::fs::read_dir(d) {
-                for e in liste.flatten() {
-                    let n = e.file_name().to_string_lossy().into_owned();
-                    if n.starts_with(&format!("{}.", nom)) && n.ends_with(".txt") {
-                        let _ = std::fs::remove_file(e.path());
-                    }
-                }
-            }
-            let _ = std::fs::create_dir_all(d).and_then(|_| std::fs::write(r, &texte));
-        }
-    }
-    textes().lock().map_err(|e| e.to_string())?.insert(cle, texte.clone());
-    Ok(texte)
-}
-
-// ------------------------------------------------------ le modele en motif
-
-/// Un morceau du motif d'un paragraphe : l'expression de `avenant._motif`, sans `re`.
-pub enum Elt {
-    /// `" ?"` : un espace, ou rien.
-    Espace,
-    /// Le texte fixe du modele, tel quel.
-    Fixe(Vec<char>),
-    /// `(.*?)` : un marqueur laisse libre.
-    Libre,
-    /// `(.*?)(?= Article \d+ — | Fait en |$)` : le dernier marqueur d'un paragraphe qui s'acheve sur lui.
-    LibreJusqu,
-}
-
-/// Le texte du modele coupe sur ses marqueurs : `[fixe, cle, fixe, cle, ..., fixe]`
-/// (`_MARQUEUR.split`, dont le groupe garde la cle).
-fn separer(texte: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let (mut dernier, mut i) = (0, 0);
-    while let Some(k) = texte[i..].find("{{") {
-        let debut = i + k;
-        match modele::marqueur_en(texte, debut) {
-            Some((cle, fin)) => {
-                out.push(texte[dernier..debut].to_string());
-                out.push(cle.to_string());
-                dernier = fin;
-                i = fin;
-            }
-            None => i = debut + 1,
-        }
-    }
-    out.push(texte[dernier..].to_string());
-    out
-}
-
-/// `avenant._motif` : un paragraphe du modele en motif, le texte fixe tel quel, chaque marqueur
-/// libre. Le gras (**) ne s'imprime pas, il disparait.
-pub fn motif(texte_modele: &str) -> Vec<Elt> {
-    let morceaux = separer(&texte_modele.replace("**", ""));
-    let dernier_fixe_non_vide = morceaux.last().map_or(false, |m| !m.trim_matches(est_blanc).is_empty());
-    let mut out = Vec::new();
-    for (i, m) in morceaux.iter().enumerate() {
-        if i % 2 == 1 {
-            out.push(if i + 2 < morceaux.len() || dernier_fixe_non_vide { Elt::Libre } else { Elt::LibreJusqu });
-        } else {
-            let fixe = normaliser(m);
-            if !fixe.is_empty() {
-                if m.chars().next().map_or(false, est_blanc) {
-                    out.push(Elt::Espace);
-                }
-                out.push(Elt::Fixe(fixe.chars().collect()));
-                if m.chars().last().map_or(false, est_blanc) {
-                    out.push(Elt::Espace);
-                }
-            } else if !m.is_empty() {
-                out.push(Elt::Espace);
-            }
-        }
-    }
-    out
-}
-
-/// Le lookahead de `LibreJusqu` en `q` : le titre d'un article suivant, la ligne « Fait en », ou la fin.
-fn borne_en(seg: &[char], q: usize) -> bool {
-    if q == seg.len() {
-        return true;
-    }
-    let est = |t: &str, de: usize| {
-        let c: Vec<char> = t.chars().collect();
-        seg.len() >= de + c.len() && seg[de..de + c.len()] == c[..]
-    };
-    if est(" Fait en ", q) {
-        return true;
-    }
-    if !est(" Article ", q) {
-        return false;
-    }
-    let mut p = q + " Article ".chars().count();
-    let debut = p;
-    while p < seg.len() && seg[p].is_ascii_digit() {
-        p += 1;
-    }
-    p > debut && est(" — ", p)
-}
-
-/// Pour chaque element du motif (et la fin, apres le dernier), les positions du segment d'ou le
-/// reste du motif tient : `t[k][p]`. On le calcule de la fin du motif vers son debut, sans retour
-/// arriere.
-fn tables(motif: &[Elt], seg: &[char]) -> Vec<Vec<bool>> {
-    let n = seg.len();
-    let mut t = vec![vec![false; n + 1]; motif.len() + 1];
-    t[motif.len()] = vec![true; n + 1];
-    for (k, e) in motif.iter().enumerate().rev() {
-        let suiv = t[k + 1].clone();
-        let cur = &mut t[k];
-        match e {
-            Elt::Espace => {
-                for p in 0..=n {
-                    cur[p] = suiv[p] || (p < n && seg[p] == ' ' && suiv[p + 1]);
-                }
-            }
-            Elt::Fixe(l) => {
-                for p in 0..=n {
-                    cur[p] = p + l.len() <= n && seg[p..p + l.len()] == l[..] && suiv[p + l.len()];
-                }
-            }
-            Elt::Libre => {
-                let mut atteint = false;
-                for p in (0..=n).rev() {
-                    atteint = atteint || suiv[p];
-                    cur[p] = atteint;
-                }
-            }
-            Elt::LibreJusqu => {
-                let mut atteint = false;
-                for p in (0..=n).rev() {
-                    atteint = atteint || (suiv[p] && borne_en(seg, p));
-                    cur[p] = atteint;
-                }
-            }
-        }
-    }
-    t
-}
-
-/// `motif.search(segment)` : le motif se retrouve-t-il quelque part dans le segment ?
-pub fn retrouve(motif: &[Elt], seg: &[char]) -> bool {
-    tables(motif, seg)[0].iter().any(|&b| b)
-}
-
-/// `motif.search(segment).span()` : le premier endroit ou le motif s'accorde, le plus a gauche, et
-/// pour chaque morceau le choix que `re` fait d'abord (l'espace facultatif pris s'il laisse le reste
-/// s'accorder, le marqueur libre le plus court).
-pub fn trouve(motif: &[Elt], seg: &[char]) -> Option<(usize, usize)> {
-    let t = tables(motif, seg);
-    let debut = (0..=seg.len()).find(|&p| t[0][p])?;
-    let mut p = debut;
-    for (k, e) in motif.iter().enumerate() {
-        p = match e {
-            Elt::Espace => {
-                if p < seg.len() && seg[p] == ' ' && t[k + 1][p + 1] {
-                    p + 1
-                } else {
-                    p
-                }
-            }
-            Elt::Fixe(l) => p + l.len(),
-            Elt::Libre => (p..=seg.len()).find(|&q| t[k + 1][q])?,
-            Elt::LibreJusqu => (p..=seg.len()).find(|&q| borne_en(seg, q) && t[k + 1][q])?,
-        };
-    }
-    Some((debut, p))
 }
 
 // ------------------------------------------------------ les valeurs du modele
@@ -642,58 +422,7 @@ fn texte_brut(texte: &str, vals: &Valeurs) -> Resultat<String> {
 
 // ------------------------------------------------- ce que l'avenant modifie
 
-/// Le refus de `avenant.modifications` : `AvenantImpossible` (l'ancien texte ne se retrouve pas),
-/// ou tout autre refus (une valeur du modele qui n'est pas un texte, un modele illisible).
-#[derive(Debug)]
-pub enum ErrAvenant {
-    Impossible(String),
-    Autre(String),
-}
-
-impl From<String> for ErrAvenant {
-    fn from(m: String) -> Self {
-        ErrAvenant::Autre(m)
-    }
-}
-
-impl From<&str> for ErrAvenant {
-    fn from(m: &str) -> Self {
-        ErrAvenant::Autre(m.to_string())
-    }
-}
-
-impl ErrAvenant {
-    pub fn message(self) -> String {
-        match self {
-            ErrAvenant::Impossible(m) | ErrAvenant::Autre(m) => m,
-        }
-    }
-}
-
-/// `avenant.segment_du_contrat` : le texte d'UN contrat dans un PDF qui peut en porter plusieurs
-/// (un par page) : de son sous-titre (« Contrat n° ... ») au titre du suivant.
-fn segment_du_contrat(texte: &str, m: &Modele, vals: &Valeurs, numero: &str) -> Result<String, ErrAvenant> {
-    let mut avec_numero = vals.clone();
-    avec_numero.insert("contrat.numero".to_string(), numero.to_string());
-    let sous = normaliser(&texte_brut(&m.soustitre, &avec_numero)?);
-    let debut = if sous.is_empty() {
-        0
-    } else {
-        texte
-            .find(&sous)
-            .ok_or_else(|| ErrAvenant::Impossible(format!("Le contrat n° {} ne se trouve pas dans le fichier envoyé.", numero)))?
-    };
-    let titre = normaliser(&texte_brut(&m.titre, vals)?);
-    let depart = debut + sous.len();
-    let fin = if titre.is_empty() { None } else { texte[depart..].find(&titre).map(|i| depart + i) };
-    let fin = match fin {
-        Some(f) if f > 0 => f,
-        _ => texte.len(),
-    };
-    Ok(texte[debut..fin].to_string())
-}
-
-/// Un article du contrat qui a change depuis le PDF parti : son numero, son titre, et pour chaque
+/// Un article du contrat qui a change depuis la version sur laquelle il est parti : son numero, son titre, et pour chaque
 /// paragraphe change l'ancien texte, le nouveau et son rang dans l'article.
 pub struct Modification {
     pub numero: usize,
@@ -703,69 +432,26 @@ pub struct Modification {
     pub blocs: Vec<usize>,
 }
 
-/// `avenant.modifications` : les articles du contrat qui ont change depuis le PDF parti, dans
-/// l'ordre du modele. Un refus quand un paragraphe change mais que son ancien texte ne se retrouve
-/// pas (le modele a change depuis l'envoi : `AvenantImpossible`).
-/// `deja` : {(article, bloc): texte} -- ce que les avenants deja ecrits ont ecrit ; c'est lui, et non
-/// le PDF d'origine, qui fait foi pour ces paragraphes-la.
-pub fn modifications(
-    m: &Modele,
-    vals: &Valeurs,
-    texte_pdf: &str,
-    numero_parti: &str,
-    deja: &HashMap<(i64, i64), Value>,
-) -> Result<Vec<Modification>, ErrAvenant> {
-    let segment = segment_du_contrat(texte_pdf, m, vals, numero_parti)?;
-    let seg: Vec<char> = segment.chars().collect();
+/// Les articles du modele `m` dont un paragraphe s'ecrit autrement avec les valeurs d'aujourd'hui (`apres`) qu'avec celles
+/// de la version sur laquelle le contrat est parti (`avant`), dans l'ordre du modele.
+pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<Vec<Modification>> {
     let mut out = Vec::new();
     for (n, (titre, corps)) in m.articles.iter().enumerate() {
         let n = n + 1;
-        let (mut avant, mut apres, mut blocs): (Vec<Value>, Vec<String>, Vec<usize>) = (Vec::new(), Vec::new(), Vec::new());
+        let (mut anciens, mut neufs, mut blocs): (Vec<Value>, Vec<String>, Vec<usize>) = (Vec::new(), Vec::new(), Vec::new());
         for (i, bloc) in corps.iter().enumerate() {
-            let neuf = normaliser(&texte_brut(bloc, vals)?);
-            if let Some(ancien) = deja.get(&(n as i64, i as i64)) {
-                let texte = ancien.as_str().ok_or("un ancien texte n'est pas un texte")?;
-                if normaliser(texte) != neuf {
-                    avant.push(ancien.clone());
-                    apres.push(neuf);
-                    blocs.push(i);
-                }
-                continue;
+            let (ancien, neuf) = (normaliser(&texte_brut(bloc, avant)?), normaliser(&texte_brut(bloc, apres)?));
+            if ancien != neuf {
+                anciens.push(Value::String(ancien));
+                neufs.push(neuf);
+                blocs.push(i);
             }
-            if segment.contains(&neuf) {
-                continue;
-            }
-            let Some((d, f)) = trouve(&motif(bloc), &seg) else {
-                return Err(ErrAvenant::Impossible(format!(
-                    "L'article {} « {} » du contrat parti ne se retrouve pas dans le modèle de contrat d'aujourd'hui (le modèle a changé depuis l'envoi ?). L'avenant doit citer l'ancien texte : faire plutôt un contrat qui annule et remplace, ou rédiger l'avenant à la main.",
-                    n,
-                    texte_brut(titre, vals)?
-                )));
-            };
-            let trouve_ici: String = seg[d..f].iter().collect();
-            avant.push(Value::String(trouve_ici.trim_matches(est_blanc).to_string()));
-            apres.push(neuf);
-            blocs.push(i);
         }
-        if !avant.is_empty() {
-            out.push(Modification { numero: n, article: texte_brut(titre, vals)?, avant, apres, blocs });
+        if !anciens.is_empty() {
+            out.push(Modification { numero: n, article: texte_brut(titre, apres)?, avant: anciens, apres: neufs, blocs });
         }
     }
     Ok(out)
-}
-
-/// `modifications`, reduit a ce que la pastille dit : « article 4 (Rémunération) » pour chaque
-/// article change, dans l'ordre du modele.
-fn articles_modifies(
-    m: &Modele,
-    vals: &Valeurs,
-    texte_pdf: &str,
-    numero_parti: &str,
-    deja: &HashMap<(i64, i64), Value>,
-) -> Resultat<Vec<(usize, String)>> {
-    modifications(m, vals, texte_pdf, numero_parti, deja)
-        .map(|v| v.into_iter().map(|x| (x.numero, x.article)).collect())
-        .map_err(ErrAvenant::message)
 }
 
 // ------------------------------------------------------ le journal
@@ -869,52 +555,6 @@ pub(crate) fn avenants_du_contrat(tous: Option<&Value>, parti: &Parti) -> Vec<Va
         .collect()
 }
 
-/// `operations_documents._textes_des_avenants` : ce que ces avenants ont ecrit, {(article, bloc):
-/// texte}, le dernier l'emportant. `signes_seulement` : seuls ceux qui sont revenus signes comptent.
-pub(crate) fn textes_des_avenants_de(avenants: &[Value], signes_seulement: bool) -> Resultat<HashMap<(i64, i64), Value>> {
-    let entier = |v: &Value| v.as_i64().or_else(|| v.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64));
-    let mut textes = HashMap::new();
-    for x in avenants {
-        if !(x.get("signe").is_some_and(vrai) || !signes_seulement) {
-            continue;
-        }
-        for m in x.get("modifications").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-            let numero = requis(m, "numero")?;
-            let blocs = m.get("blocs").filter(|v| vrai(v)).and_then(Value::as_array);
-            let apres = m.get("apres").filter(|v| vrai(v)).and_then(Value::as_array);
-            if let (Some(blocs), Some(apres), Some(n)) = (blocs, apres, entier(numero)) {
-                for (i, t) in blocs.iter().zip(apres) {
-                    if let Some(i) = entier(i) {
-                        textes.insert((n, i), t.clone());
-                    }
-                }
-            }
-        }
-    }
-    Ok(textes)
-}
-
-/// `_avenants_du_contrat` puis `_textes_des_avenants(signes_seulement=False)` pour ce contrat.
-fn textes_des_avenants(racine: &Path, salarie: &str, debut: &str, numero: Option<&str>, parti: &Parti) -> Resultat<HashMap<(i64, i64), Value>> {
-    let lignes = crate::etats::charger(racine).map_err(|e| e.message)?;
-    let rep = crate::etats::avenants(&lignes, crate::etats::Maille::Contrat).map_err(|e| e.message)?;
-    let mut avenants = Vec::new();
-    for quadruplet in rep.as_array().map(Vec::as_slice).unwrap_or(&[]) {
-        let t = quadruplet.as_array().ok_or("avenants : un quadruplet est attendu")?;
-        if t.len() != 4 || t[0].as_str() != Some(salarie) || t[1].as_str() != Some(debut) || numero.is_some_and(|n| t[2].as_str() != Some(n)) {
-            continue;
-        }
-        avenants.extend(avenants_du_contrat(Some(&t[3]), parti));
-    }
-    textes_des_avenants_de(&avenants, false)
-}
-
-/// `operations_socle.mois_hors_delai` : la date limite de la DSN du mois (`echeance_dsn`, reportee au jour ouvre) est-elle
-/// depassee ? Un mois ferme ne se reproche plus rien : ce qui est declare est declare.
-fn mois_hors_delai(ctx: &Contexte, mois: &str) -> Resultat<bool> {
-    Ok(ctx.aujourdhui > crate::echeance_dsn::de_la_compagnie(ctx, mois)?.jour)
-}
-
 /// `operations_documents._ent_du_mois` : la fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
 pub(crate) fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
     let licence = ctx.licence(&Jour::lire(&format!("{}-01", mois.get(..7).ok_or("mois illisible")?))?)?;
@@ -990,58 +630,6 @@ pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, nume
 /// `contrat.lire_modele(modele_de(contrat.MODELE.name, ent))` pour le contrat d'engagement.
 pub(crate) fn modele_du_contrat(ent: &Value, gabarits: &Path) -> Resultat<Modele> {
     modele::lire_fichier(&crate::dpae::modele_de(MODELE, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
-}
-
-fn ecart(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, numero: Option<&str>, rang: usize) -> Resultat<String> {
-    // UN MOIS FERME (echeance de sa DSN passee) ne se reproche plus rien : ce qui est declare est
-    // declare (l'editeur, 30/09/2026 : « pour aout [...] pas de soucis, laisse ca »).
-    if mois_hors_delai(ctx, mois)? {
-        return Ok(String::new());
-    }
-    // Seulement au mois ou le contrat est parti : ailleurs, c'est la paie d'un autre mois, que le
-    // contrat ne decrit pas mot pour mot.
-    let lignes = crate::journal::lire(&ctx.racine, None, None, false)?;
-    let Some(parti) = contrat_parti(&lignes, salarie, debut, numero).map_err(|e| e.message)? else {
-        return Ok(String::new());
-    };
-    if parti.mois.as_str() != Some(mois) {
-        return Ok(String::new());
-    }
-    let Some(pdf) = chemin_piece(&ctx.racine, &parti.mois, &parti.fichier) else {
-        return Ok(String::new());
-    };
-    // Un avenant ENVOYE compte deja, signe ou non : ce qu'il attend, c'est sa signature, pas un autre avenant.
-    let deja = textes_des_avenants(&ctx.racine, salarie, debut, numero, &parti)?;
-    let ent = ent_du_mois(ctx, mois)?;
-    let modele = modele_du_contrat(&ent, &ctx.gabarits())?;
-    let texte_pdf = texte_du_pdf(&pdf)?;
-    // Seulement maintenant, la paie : ses montants, la designation et le taux de ses lignes.
-    let Some(vals) = valeurs_du_rang(ctx, mois, salarie, debut, rang)? else {
-        return Ok(String::new());
-    };
-    let numero_parti = if vrai(&parti.numero) { texte_ou_invalide(&parti.numero) } else { String::new() };
-    let modifies = articles_modifies(&modele, &vals, &texte_pdf, &numero_parti, &deja)?;
-    Ok(modifies.iter().map(|(n, a)| format!("article {} ({})", n, a)).collect::<Vec<_>>().join(", "))
-}
-
-/// `operations_documents.ecart_au_contrat_signe` : CE QUE LE CONTRAT PARTI NE DIT PLUS (30/09/2026,
-/// l'editeur : « ce qui est signe n'est pas ce qu'il y a dans l'engagement que je vois -- simple et
-/// efficace »). Le PDF parti se compare a la paie, comme pour l'avenant, et la pastille le dit sans
-/// qu'on ouvre rien : « article 1 (Objet et nature du contrat), article 4 (Rémunération) ». Vide si
-/// rien n'a change, si rien n'est parti, ou si la comparaison est impossible (le PDF n'est plus la,
-/// le modele a change) -- la pastille n'invente pas.
-///
-/// Un avenant ENVOYE compte deja, signe ou non : ce qu'il attend, c'est sa signature (`avenant_attendu`),
-/// pas un autre avenant. Seulement au mois ou le contrat est parti : ailleurs, c'est la paie d'un
-/// autre mois, que le contrat ne decrit pas mot pour mot. `ctx` est lu a sa date.
-pub fn ecart_au_contrat_signe(ctx: &Contexte, mois: &str, salarie: &str, debut: &str) -> String {
-    ecart(ctx, mois, salarie, debut, None, 0).unwrap_or_default()
-}
-
-/// `ecart_au_contrat_signe` d'UN contrat, quand le salarie en a deux qui commencent le meme jour : `numero` est celui sous
-/// lequel le journal le connait, `rang` sa place parmi les paies du salarie a ce debut.
-pub fn ecart_du_contrat(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, numero: Option<&str>, rang: usize) -> String {
-    ecart(ctx, mois, salarie, debut, numero, rang).unwrap_or_default()
 }
 
 #[cfg(test)]

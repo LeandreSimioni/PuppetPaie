@@ -177,6 +177,14 @@ pub(crate) fn avenants_a_faire(ctx: &Contexte, mois: &str) -> R<HashSet<(String,
         })
         .collect())
 }
+
+/// La date d'embauche que la DPAE partie a declaree, quand elle n'est plus celle de l'engagement (`ARefaire::Dpae`).
+pub(crate) fn debut_declare(refaire: &[ARefaire]) -> Option<String> {
+    refaire.iter().find_map(|a| match a {
+        ARefaire::Dpae { debut_declare, .. } => Some(debut_declare.clone()),
+        _ => None,
+    })
+}
 /// Les salaries de `mois` dont un engagement a un bulletin rectificatif a faire (`a_refaire_du_mois`, au meme rang).
 pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str, etats: &[engagement::etats::Etat], refaire: &[Vec<ARefaire>]) -> HashSet<String> {
     etats
@@ -582,11 +590,11 @@ impl<'a> Moteur<'a> {
             }
             ligne.insert("pieces".into(), json!(pieces));
             let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
-            // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : la DPAE de l'ancienne date vaut-elle
-            // (`routes_regularisation::dpae_d_une_date_changee`) ?
+            // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie (`ARefaire::Dpae`) : la DPAE de
+            // l'ancienne date vaut-elle (`routes_regularisation::dpae_d_une_date_changee`) ?
             let mut date_changee = Value::Null;
             if !vrai(dpae_v) {
-                let ancienne = p.engagement.numero.as_deref().and_then(|n| crate::routes_regularisation::debut_declare_avant(self.ctx, &cle, n, &debut));
+                let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
                 if let Some((avant, deposee)) = ancienne.and_then(|a| g.dpae.get(&(cle.clone(), a.clone())).filter(|v| vrai(v)).map(|v| (a, v))) {
                     let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&avant, &debut);
                     if vaut {
@@ -1296,7 +1304,9 @@ impl<'a> Moteur<'a> {
                 continue;
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
-            for p in &s.paies {
+            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m).map_err(plain)?;
+            let refaire = a_refaire_du_mois(self.ctx, &etats_m)?;
+            for (i, p) in s.paies.iter().enumerate() {
                 let cle = texte_de(requis(&p.salarie, "_cle")?);
                 let debut = p.engagement.debut.iso();
                 if faites.contains(&(cle.clone(), debut.clone())) {
@@ -1306,9 +1316,9 @@ impl<'a> Moteur<'a> {
                 if !p.engagement.premier_mois().map_err(plain)? {
                     continue;
                 }
-                // UNE DATE D'EMBAUCHE CHANGEE apres la limite (21/10/2026) : reculee, la DPAE de l'ancienne date vaut ;
-                // avancee, une DPAE est a deposer, et la phrase dit pourquoi (`dpae_d_une_date_changee`).
-                let ancienne = p.engagement.numero.as_deref().and_then(|n| crate::routes_regularisation::debut_declare_avant(self.ctx, &cle, n, &debut));
+                // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie : reculee, la DPAE de l'ancienne
+                // date vaut ; avancee, une DPAE est a deposer, et la phrase dit pourquoi (`dpae_d_une_date_changee`).
+                let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
                 let pourquoi = match ancienne.filter(|a| faites.contains(&(cle.clone(), a.clone()))) {
                     Some(a) => {
                         let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&a, &debut);

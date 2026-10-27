@@ -10,7 +10,7 @@
 //!   d'ecrit) : brut, net, cout, chaque ligne de cotisation, telles que le moteur les rend ;
 //! - chaque `.dsn` (les mensuelles, les signalements), ligne par ligne ;
 //! - chaque `.txt`, `.csv` et `.eml` (la DPAE a largeur fixe, les recapitulatifs, les traces de depot), ligne par ligne ;
-//! - le texte de chaque PDF (bulletins, certificats Conges Spectacles, contrats : `avenant::texte_du_pdf`), ligne par ligne ;
+//! - le texte de chaque PDF (bulletins, certificats Conges Spectacles, contrats : `fabrique_pdf::lecture::texte`), ligne par ligne ;
 //! - chaque `.json` (les fiches, les compteurs, les saisies, le journal des depots, l'echeancier, la memoire de
 //!   l'horloge...), tel quel ;
 //! - de tout autre fichier (une archive), son empreinte.
@@ -107,7 +107,10 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
             "json" => masquer(serde_json::from_slice(&octets).unwrap_or_else(|e| panic!("{} illisible : {}", rel, e)), &r),
             // Les fichiers a largeur fixe sont en latin-1 : un octet, un caractere.
             "dsn" | "txt" | "csv" | "eml" => lignes(&octets.iter().map(|&o| o as char).collect::<String>(), &r),
-            "pdf" => lignes(&paie::avenant::texte_du_pdf(&p).unwrap_or_else(|m| panic!("{} : {}", rel, m)), &r),
+            "pdf" => {
+                let (pages, _) = fabrique_pdf::lecture::texte(&p.to_string_lossy()).unwrap_or_else(|m| panic!("{} : {}", rel, m.0));
+                lignes(&paie::avenant::normaliser(&pages.join("\n")), &r)
+            }
             _ => json!({"empreinte": socle::fichiers::sha256_hex(&octets)}),
         };
         par_fichier.insert(rel, v);

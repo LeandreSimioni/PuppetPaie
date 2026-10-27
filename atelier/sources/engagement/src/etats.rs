@@ -872,12 +872,32 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
     out
 }
 
-/// La paie ecrite de `mois` dans la version sur laquelle le dernier envoi `envoi` de ce mois est parti : ce qui a ete
-/// declare ou remis, tel qu'il etait (la DSN d'un mois suivant y lit l'ancienne valeur du bloc Changements contrat).
-/// `None` si rien de tel n'est parti.
-pub fn paie_partie(ctx: &Contexte, v: &Valide, departs: &Departs, envoi: Envoi, mois: &str) -> Option<Value> {
-    let d = ses_departs(ctx, &v.objet, departs).iter().rev().find(|d| d.envoi == envoi && d.mois.as_deref() == Some(mois))?;
-    v.version_numero(d.version)?.get("paies")?.get(mois).cloned()
+/// La version (`saisie`, `paies`) sur laquelle le dernier envoi `envoi` de l'engagement `v` est parti, telle qu'elle est
+/// ecrite ; `None` si rien de tel n'est parti.
+pub fn version_au_depart<'a>(ctx: &Contexte, v: &'a Valide, departs: &Departs, envoi: Envoi) -> Option<&'a Value> {
+    let d = ses_departs(ctx, &v.objet, departs).iter().rev().find(|d| d.envoi == envoi)?;
+    v.version_numero(d.version)
+}
+
+/// LA PAIE DECLAREE de `mois` : celle que la version sur laquelle la DSN de ce mois est partie a ecrite, relue (`relire`)
+/// sur la saisie de cette version, telle qu'elle etait (regle 4 : ce qui est declare se lit, il ne se recalcule pas) ;
+/// `None` si aucune DSN de ce mois n'est partie pour cet engagement.
+pub fn paie_declaree(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Resultat<Option<Paie>> {
+    let Some(d) = ses_departs(ctx, &v.objet, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois)) else {
+        return Ok(None);
+    };
+    let Some(ecrite) = v.version_numero(d.version).and_then(|x| x.get("paies")).and_then(|p| p.get(mois)) else { return Ok(None) };
+    let paie = ecrite.get("paie").ok_or("paie ecrite illisible : `paie`")?;
+    let mut o = v.objet.clone();
+    if let Some(Value::Object(s)) = v.version_numero(d.version).and_then(|x| x.get("saisie")) {
+        o.brut = s.clone();
+    }
+    let Some(vue) = o.vue(mois)? else { return Ok(None) };
+    let mut data = stock::vue_du_mois(&ctx.racine, mois)?.unwrap_or_else(|| json!({ "mois": mois }));
+    data["engagements"] = json!([vue]);
+    let mut p = relire::paies(ctx, &data, &[paie])?.pop().ok_or("paie ecrite illisible")?;
+    p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
+    Ok(Some(p))
 }
 
 /// La phrase d'un recalcul, pour l'ecran : « Recalculé le JJ/MM/AAAA : taux de PAS reçu. »

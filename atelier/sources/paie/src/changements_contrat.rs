@@ -16,9 +16,10 @@
 //! - ce qui n'a pas de rubrique en bloc 41 (libelle de l'emploi, date de fin, taux AT) se change en reecrivant le bloc
 //!   40 (§ 2.1.2.4, p. 21-22) : rien a faire ici.
 //!
-//! CE QUI A ETE DECLARE SE LIT, IL NE SE RECALCULE PAS (regle 4, comme `versement_declare`) : l'ancienne valeur est
-//! celle du bloc 40 du meme contrat (meme numero, 40.009) dans la derniere DSN deposee et acceptee qui le porte
-//! (`casc::dsn_deposee`), d'un mois anterieur. Un mois produit et pas encore depose n'est pas un declare.
+//! CE QUI A ETE DECLARE SE LIT, IL NE SE RECALCULE PAS (regle 4) : l'ancienne valeur est celle du bloc 40 du meme contrat
+//! dans la DSN du mois le plus recent qui est partie pour lui, ecrit de la paie de ce mois telle que la version de
+//! l'engagement sur laquelle elle est partie l'a ecrite (`dsn::bloc_40_declare`, `engagement::etats::paie_declaree`).
+//! Un mois produit et pas encore depose n'est pas un declare.
 //!
 //! LA DATE SE LIT AUSSI, elle ne se pose jamais au 1er du mois par defaut : le lendemain de la fenetre de l'historique
 //! de la fiche (salarie ou entreprise) qui a change le champ, la `date_modification` de la saisie du mois (un avenant),
@@ -28,7 +29,7 @@
 //! cours de mois refuse sauf pour ce qui ne change pas la paie (statut BOETH), pour les identifiants, et pour ce que la
 //! paie decoupee en periodes elementaires porte au jour du changement (lot R10, `periodes`).
 
-use std::collections::HashMap;
+
 
 use serde_json::Value;
 
@@ -115,19 +116,16 @@ const MODALITES: [Modalite; 20] = [
 /// Les rubriques que `dsn::bloc_contrat` ecrit telles que la nature les donne, quand elle en donne une.
 const FIXEES_PAR_LA_NATURE: [&str; 5] = ["S21.G00.40.005", "S21.G00.40.007", "S21.G00.40.008", "S21.G00.40.014", "S21.G00.40.021"];
 
-/// Le bloc 40 d'un contrat tel qu'une DSN deposee l'a declare.
-struct Declare {
+/// Le bloc 40 d'un contrat tel qu'une DSN partie l'a declare (`dsn::bloc_40_declare`).
+pub struct Declare {
     /// Le mois de cette DSN (AAAA-MM).
-    mois: String,
+    pub mois: String,
     /// Le NIC de l'etablissement qui l'a deposee, et son SIRET (06.001 + 11.001).
-    nic: String,
-    siret: String,
-    bloc: Vec<(String, String)>,
+    pub nic: String,
+    pub siret: String,
+    pub bloc: Vec<(String, String)>,
 }
 
-/// Ce qu'une DSN deposee dit, relu une fois par DSN produite : (mois, NIC) -> texte.
-#[derive(Default)]
-pub struct Relus(HashMap<(String, String), Option<String>>);
 
 fn valeur<'a>(bloc: &'a [(String, String)], r: &str) -> Option<&'a str> {
     bloc.iter().find(|(k, _)| k == r).map(|(_, v)| v.as_str())
@@ -145,74 +143,6 @@ fn ddmmaaaa(v: &str) -> Option<Jour> {
     }
     let s = |a: usize, b: usize| c[a..b].iter().collect::<String>();
     Jour::lire(&format!("{}-{}-{}", s(4, 8), s(2, 4), s(0, 2))).ok()
-}
-
-/// Les blocs 40 d'une DSN dont le numero de contrat (40.009) est `numero`, avec le SIRET de l'etablissement declarant.
-fn blocs_du_contrat(texte: &str, numero: &str) -> (Vec<Vec<(String, String)>>, String) {
-    let (mut siren, mut nic) = (String::new(), String::new());
-    let (mut blocs, mut courant): (Vec<Vec<(String, String)>>, Option<Vec<(String, String)>>) = (Vec::new(), None);
-    for ligne in crate::apercu_dsn::lignes_py(texte) {
-        let Some((k, v)) = ligne.split_once(',') else { continue };
-        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'').to_string();
-        match k {
-            "S21.G00.06.001" => siren = v.clone(),
-            "S21.G00.11.001" => nic = v.clone(),
-            _ => {}
-        }
-        if k == "S21.G00.40.001" {
-            if let Some(b) = courant.take() {
-                blocs.push(b);
-            }
-            courant = Some(Vec::new());
-        }
-        match courant.as_mut() {
-            Some(b) if k.starts_with("S21.G00.40.") => b.push((k.to_string(), v)),
-            Some(_) => blocs.push(courant.take().unwrap()),
-            None => {}
-        }
-    }
-    if let Some(b) = courant {
-        blocs.push(b);
-    }
-    blocs.retain(|b| valeur(b, "S21.G00.40.009") == Some(numero));
-    (blocs, format!("{}{}", siren, nic))
-}
-
-/// Le dernier bloc 40 declare du contrat `numero` : la DSN deposee du mois le plus recent avant `mois` qui le porte,
-/// dans l'etablissement `nics[0]` d'abord, puis dans les autres (un contrat mute d'etablissement). `None` si aucune.
-fn dernier_declare(ctx: &Contexte, nics: &[String], mois: &str, debut: &Jour, numero: &str, relus: &mut Relus) -> Resultat<Option<Declare>> {
-    let premier = format!("{:04}-{:02}", debut.an, debut.mois);
-    let mut m = mois_precedent(mois)?;
-    while m >= premier {
-        for nic in nics {
-            let cle = (m.clone(), nic.clone());
-            if !relus.0.contains_key(&cle) {
-                let texte = match crate::casc::dsn_deposee(ctx, &m, Some(nic))
-                    .map_err(|e| format!("Bloc S21.G00.41 (changements du contrat {}) : {}", numero, e))?
-                {
-                    Some(p) => {
-                        let o = std::fs::read(&p).map_err(|e| format!("La DSN deposee {} ne se lit pas ({}).", p.display(), e))?;
-                        Some(crate::apercu_dsn::texte_latin1(&o))
-                    }
-                    None => None,
-                };
-                relus.0.insert(cle.clone(), texte);
-            }
-            let Some(texte) = relus.0[&cle].as_deref() else { continue };
-            let (blocs, siret) = blocs_du_contrat(texte, numero);
-            let Some(premier_bloc) = blocs.first() else { continue };
-            if blocs.iter().any(|b| b != premier_bloc) {
-                return Err(format!(
-                    "La DSN deposee de {} porte plusieurs blocs Contrat (S21.G00.40) differents au numero {} : ce qui a ete \
-declare ne se lit pas sans ambiguite, et le bloc Changements contrat (S21.G00.41) qui en partirait serait devine. Refus.",
-                    m, numero
-                ));
-            }
-            return Ok(Some(Declare { mois: m, nic: nic.clone(), siret, bloc: premier_bloc.clone() }));
-        }
-        m = mois_precedent(&m)?;
-    }
-    Ok(None)
 }
 
 /// Les lendemains des fenetres de l'historique d'une fiche pour ces champs : les jours ou ils ont change.
@@ -359,14 +289,17 @@ intermediaires, ou ne garder qu'un changement.",
 }
 
 /// Les blocs S21.G00.41 du contrat de `p`, dont le bloc 40 vient d'etre ecrit (`ecrit`), dans la DSN mensuelle de
-/// `mois` de l'etablissement `nics[0]`. Vide au premier mois du contrat ou quand rien n'a encore ete depose.
-pub fn blocs_41(ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], ecrit: &[(String, String)], relus: &mut Relus) -> Resultat<Vec<Vec<(String, String)>>> {
+/// `mois` de l'etablissement `nics[0]` ; `declare` : son bloc 40 declare (`dsn::bloc_40_declare`). Vide au premier mois du
+/// contrat ou quand rien n'a encore ete declare.
+pub fn blocs_41(ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], ecrit: &[(String, String)], declare: Option<&Declare>) -> Resultat<Vec<Vec<(String, String)>>> {
     let e = &p.engagement;
-    let Some(numero) = e.numero.as_deref().filter(|n| !n.is_empty()) else { return Ok(Vec::new()) };
+    if e.numero.as_deref().is_none_or(str::is_empty) {
+        return Ok(Vec::new());
+    }
     if e.premier_mois()? {
         return Ok(Vec::new());
     }
-    let Some(decl) = dernier_declare(ctx, nics, mois, &e.debut, numero, relus)? else { return Ok(Vec::new()) };
+    let Some(decl) = declare else { return Ok(Vec::new()) };
     let fin_m = dernier_du_mois(mois)?;
     let mut identifiants = Vec::new();
     // L'IDENTIFIANT : la date de debut. Sans date explicite, il ne change pas en silence (les organismes verraient un
@@ -463,7 +396,7 @@ mutation (cahier technique DSN, p. 21) ; la fiche du salarie {} . Dater le chang
 }
 
 /// Pose les blocs 41 du contrat de `p` juste apres son bloc 40, qui commence a la ligne `debut` de `lignes`.
-pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], relus: &mut Relus) -> Resultat<()> {
+pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, mois: &str, nics: &[String], declare: Option<&Declare>) -> Resultat<()> {
     let mut fin = debut;
     let mut ecrit = Vec::new();
     while let Some(l) = lignes.get(fin).filter(|l| l.starts_with("S21.G00.40.")) {
@@ -472,7 +405,7 @@ pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, m
         }
         fin += 1;
     }
-    let blocs = blocs_41(ctx, p, mois, nics, &ecrit, relus)?;
+    let blocs = blocs_41(ctx, p, mois, nics, &ecrit, declare)?;
     let neuves: Vec<String> = blocs.into_iter().flatten().map(|(k, v)| format!("{},'{}'", k, v)).collect();
     lignes.splice(fin..fin, neuves);
     Ok(())

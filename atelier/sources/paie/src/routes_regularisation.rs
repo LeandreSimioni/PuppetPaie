@@ -709,19 +709,7 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
     Ok(None)
 }
 
-/// LA DATE D'EMBAUCHE DECLAREE d'un contrat dont la saisie a change le premier jour apres la limite (21/10/2026) : son
-/// premier jour dans une saisie telle que declaree (`chemin_saisie_declaree`, n'importe quel mois), meme salarie, meme
-/// numero, autre jour. `None` : il n'a pas change (ou rien n'a ete garde).
-pub(crate) fn debut_declare_avant(ctx: &Contexte, cle: &str, numero: &str, debut: &str) -> Option<String> {
-    crate::routes_mois::mois_saisis(&ctx.racine).into_iter().find_map(|m| {
-        let copie = chemin_saisie_declaree(ctx, &m);
-        let declaree = socle::fichiers::lire_json(&copie).ok()?;
-        let ids = crate::routes_ecritures::identifiants(ctx, &declaree).ok()?;
-        ids.into_iter().find(|(s, d, n)| s == cle && n.as_deref() == Some(numero) && d != debut).map(|(_, d, _)| d)
-    })
-}
-
-/// La DPAE d'un contrat dont la date d'embauche a change (`debut_declare_avant`), deposee pour l'ancienne date `avant` :
+/// La DPAE d'un contrat dont la date d'embauche a change (`routes_mois::debut_declare`), deposee pour l'ancienne date `avant` :
 /// vaut-elle pour la nouvelle `apres`, et la phrase qui le dit. Code du travail, `atelier/reference/sources/code-du-travail/`
 /// (`xml/L1221-10.xml`, `xml/R1221-1.xml`, `xml/R1221-4.xml`) : « L'embauche d'un salarie ne peut intervenir qu'apres
 /// declaration nominative » (L. 1221-10) ; la DPAE porte la « Date et heure d'embauche » (R. 1221-1, 3°) et part au plus
