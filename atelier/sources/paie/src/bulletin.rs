@@ -1230,7 +1230,7 @@ pub fn jeux_et_description(
         if !l.is_null() && !l.is_string() {
             return Err(format!(
                 "licence_spectacle non resolue : elle vaut {}. Le numero change de date en date ; le resoudre au \
-                 mois du bulletin avec Contexte.licence(), comme le fait operations_paies.produire_mois.",
+                 mois du bulletin avec Contexte.licence(), comme le fait la fabrique des documents (`depart`).",
                 forme_ecrite(l)
             ));
         }

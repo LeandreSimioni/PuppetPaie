@@ -352,6 +352,23 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<(Value, V
     Ok(Some((reduite, paies)))
 }
 
+/// LES PAIES ECRITES DE `mois`, quand chaque engagement qu'il montre est valide et a la sienne : ce que lisent les calculs
+/// des mois d'apres (le brut de la periode des conges, la deduction forfaitaire de l'annee, les cumuls), sans recalculer
+/// le mois. `None` quand un engagement du mois est en saisie ou n'a pas de paie ecrite pour lui : le mois se calcule.
+/// Le mois se lit tel qu'il est ecrit, sans le recalcul de lui-meme (`du_mois`) : un calcul ne reecrit rien.
+pub fn paies_ecrites(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Paie>>> {
+    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
+    let mut paies = Vec::new();
+    for (i, o) in stock::objets_du_mois(&ctx.racine, mois)?.into_iter().enumerate() {
+        let Some(v) = Valide::de(o) else { return Ok(None) };
+        if v.paie_ecrite(mois).and_then(|p| p.get("paie")).is_none() {
+            return Ok(None);
+        }
+        paies.push(v.paie(ctx, &data, i)?);
+    }
+    Ok(Some(paies))
+}
+
 /// Les numeros des documents de chaque engagement valide de `mois`, au meme rang que `validees_du_mois` : le numero de
 /// son bulletin, le premier N CE de son certificat, et le bulletin que sa paie rectifie, tels que la paie ecrite les porte.
 pub fn numeros_des_documents(ctx: &Contexte, mois: &str) -> Resultat<Vec<NumerosEcrits>> {

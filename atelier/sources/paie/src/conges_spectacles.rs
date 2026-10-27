@@ -557,7 +557,7 @@ pub(crate) fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &Value) -> R
 }
 
 /// `recapitulatif` : le meme contenu en texte, ce qui va etre imprime et sous quels numeros (la trace des N CE
-/// consommes, relue par `_premier_ce`).
+/// consommes).
 pub(crate) fn recapitulatif(paires: &[(&PaieCs, i64)], ent: &Value) -> R<String> {
     let adherent = match ent.get("congesspectacles_adherent") {
         Some(v) if vrai(v) => valeur_en_texte(v),
