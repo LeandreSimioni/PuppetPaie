@@ -790,13 +790,16 @@ pub fn deposer_dsn_dans(
         "repetition": repetition, "ordre_test": ordre_test,
         "etablissement": apercu.champ("etablissement"),
     });
-    // LA PAIE DECLAREE : la version de chaque engagement que la DSN emporte -- tous ceux du mois pour la mensuelle (une
-    // paie qui change ensuite appelle un annule-et-remplace, `engagement::etats::a_refaire`), ceux dont un signalement
-    // cite le contrat (S21.G00.40.009) dans le mois de son evenement.
+    // LA PAIE DECLAREE : la version de chaque engagement que la DSN emporte -- pour la mensuelle, ceux du mois qui relevent
+    // de son etablissement (S21.G00.11.001 ; une paie qui change ensuite appelle un annule-et-remplace,
+    // `engagement::etats::a_refaire`) ; pour un signalement, celui dont il cite le contrat (S21.G00.40.009) dans le mois
+    // de son evenement.
     let versions = if apercu.est_signalement() {
         versions_du_signalement(ctx, &mois, &octets)?
     } else {
-        crate::journal::versions_du_mois(ctx, &mois, |_, _, _| true).map_err(Echec::from)?
+        let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+        crate::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+            .map_err(Echec::from)?
     };
     let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
     let quand = ligne.get("quand").and_then(Value::as_str).unwrap_or("").to_string();

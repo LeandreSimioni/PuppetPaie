@@ -195,20 +195,47 @@ pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str, etats: &[engagemen
         .collect()
 }
 
-/// La DSN de `mois` est-elle a refaire ? La paie d'un engagement a change depuis la version sur laquelle elle est partie
-/// (`refaire`, de `a_refaire_du_mois` sur `etats`), ou les engagements valides du mois ne sont plus ceux qu'elle a
-/// emportes (`derniere` : sa ligne du journal, `versions`) : un engagement ajoute, ou retire.
+/// L'etablissement (NIC) dont releve l'engagement `e` pour `mois` : celui de la fiche de son salarie telle que le calcul
+/// de sa paie du mois l'a lue (`fiches`), sinon de sa fiche d'aujourd'hui.
+pub(crate) fn nic_de_l_engagement(ctx: &Contexte, mois: &str, e: &engagement::etats::Etat) -> Option<String> {
+    nic_de_l_engagement_ecrit(ctx, mois, &Value::Object(e.objet().brut.clone()))
+}
+
+/// `nic_de_l_engagement`, sur l'engagement tel qu'il est ecrit (`brut`).
+pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value) -> Option<String> {
+    let lue = brut.pointer(&format!("/valide/paies/{}/fiches/paie", mois)).filter(|f| f.is_object()).cloned();
+    let fiche = match lue {
+        Some(f) => f,
+        None => ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?,
+    };
+    droit::bareme::etablissement_du_salarie(&ctx.entreprise, &fiche).ok()
+}
+
+/// La DSN de `mois` est-elle a refaire ? Une DSN est celle d'un etablissement (`derniere` : sa ligne du journal, son NIC
+/// en `detail.etablissement`, le principal s'il est tu) : seuls comptent les engagements qui en relevent
+/// (`nic_de_l_engagement`). La paie de l'un d'eux a change depuis la version sur laquelle elle est partie (`refaire`, de
+/// `a_refaire_du_mois` sur `etats`), ou ils ne sont plus ceux qu'elle a emportes (`versions`) : un engagement ajoute, ou
+/// retire.
 pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats: &[engagement::etats::Etat], refaire: &[Vec<ARefaire>]) -> bool {
     // Une ligne qui ne dit pas ce qu'elle a emporte ne se compare a rien.
     let Some(emportes) = derniere.get("versions").and_then(Value::as_array) else { return false };
-    if refaire.iter().flatten().any(|a| matches!(a, ARefaire::Dsn { mois: m, .. } if m == mois)) {
+    let nic = derniere
+        .get("detail")
+        .and_then(|d| d.get("etablissement"))
+        .map(valeur_en_texte)
+        .filter(|n| !n.is_empty())
+        .unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+    let siens: Vec<bool> = etats.iter().map(|e| nic_de_l_engagement(ctx, mois, e).as_deref() == Some(nic.as_str())).collect();
+    if refaire.iter().zip(&siens).filter(|(_, s)| **s).flat_map(|(r, _)| r).any(|a| matches!(a, ARefaire::Dsn { mois: m, .. } if m == mois)) {
         return true;
     }
     let paire = |v: &Value| (valeur_en_texte(&v["salarie"]), valeur_en_texte(&v["numero"]));
     let mut emportes: Vec<(String, String)> = emportes.iter().map(paire).collect();
     let mut presents: Vec<(String, String)> = etats
         .iter()
-        .filter_map(|e| e.valide())
+        .zip(&siens)
+        .filter(|(_, s)| **s)
+        .filter_map(|(e, _)| e.valide())
         .filter_map(|v| {
             let b = Value::Object(v.objet().brut.clone());
             Some((engagement::cle_de_l_engagement(ctx, &b)?, b.get("numero").map(valeur_en_texte)?))
