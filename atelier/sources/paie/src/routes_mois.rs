@@ -1223,12 +1223,13 @@ impl<'a> Moteur<'a> {
         Ok(json!({"mois": courant, "courant": courant, "reste": []}))
     }
 
-    /// LES ETAPES QUI RESTENT A UN MOIS PASSE, d'apres le journal et les engagements seuls : `mois_a_ouvrir` parcourt
-    /// tous les mois passes, il ne refait pas l'etat complet de chacun (`bilan_du_mois`, qui calcule et compare). Une
-    /// etape reste quand ce qu'elle fait partir n'est pas parti : la DPAE de chaque embauche du mois passee, le contrat
-    /// de chaque embauche sur un spectacle revenu signe, les documents de chaque salarie du mois envoyes (un engagement
-    /// encore en saisie n'en a pas), la DSN du mois passee. Un mois tenu avant ce logiciel dit les siennes
-    /// (`mois_importe`).
+    /// LES ETAPES QUI RESTENT A UN MOIS PASSE, d'apres le journal et les empreintes des engagements seuls : `mois_a_ouvrir`
+    /// parcourt tous les mois passes, il ne refait pas l'etat complet de chacun (`bilan_du_mois`, qui calcule et compare).
+    /// Une etape reste quand ce qu'elle fait partir n'est pas parti, ou ne dit plus ce que dit l'engagement : la DPAE de
+    /// chaque embauche du mois passee ; le contrat de chaque embauche sur un spectacle revenu signe, toujours le bon (son
+    /// empreinte, son numero) et sans avenant en attente ; les documents de chaque salarie du mois envoyes (un engagement
+    /// encore en saisie n'en a pas) et toujours les bons (`etat_documents`) ; la DSN du mois passee, et sans
+    /// annule-et-remplace a faire (`etat_remplacement`). Un mois tenu avant ce logiciel dit les siennes (`mois_importe`).
     fn etapes_restantes(&mut self, mois: &str) -> R<Vec<String>> {
         if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
             let b = crate::mois_importe::etapes(&vue);
@@ -1248,19 +1249,51 @@ impl<'a> Moteur<'a> {
             .collect();
         let cles = etats::cles_des_paies(&lignes, &contrats)?;
         let docs = etats::documents_partis(&lignes, mois)?;
+        // Les empreintes d'aujourd'hui, comme `etat_par_engagement` les compare a ce que le journal a note.
+        let s = SaisieMois { data: vue.clone(), paies: Vec::new() };
+        let uniques: Vec<Paire> = contrats.iter().enumerate().map(|(i, (c, d, _))| (c.clone(), format!("{}#{}", d, i))).collect();
+        let actuelles = Self::empreintes_engagements(&s, &uniques);
+        let saisis = Self::numeros_saisis(&s, &uniques);
+        let salaries: Vec<String> = contrats.iter().map(|c| c.0.clone()).collect();
+        let empreintes_docs = Self::empreintes_documents(&engs, &salaries);
+        let nul = Value::Null;
         let (mut dpae, mut signature, mut documents) = (true, true, true);
         for (i, e) in engs.iter().enumerate() {
             let (cle, debut, _) = &contrats[i];
             if debut.starts_with(mois) {
                 dpae &= g.dpae.get(&(cle.clone(), debut.clone())).is_some_and(|v| vrai(&v["passee"]));
                 if vrai(e.get("spectacle").unwrap_or(&Value::Null)) {
-                    signature &= premier(&g.recus, &cles[i]).is_some_and(vrai);
+                    let sig = etat_signature(
+                        premier(&g.contrats, &cles[i]).unwrap_or(&nul),
+                        premier(&g.recus, &cles[i]).unwrap_or(&nul),
+                        premier(&g.recus_par, &cles[i]).unwrap_or(&nul),
+                        premier(&g.partis, &cles[i]).unwrap_or(&nul),
+                        actuelles.get(&uniques[i]).map(String::as_str),
+                        mois,
+                        dans_l_ensemble(&g.renvoyes, &cles[i]),
+                        premier(&g.numeros_partis, &cles[i]).unwrap_or(&nul),
+                        saisis.get(&uniques[i]).unwrap_or(&nul),
+                        premier(&g.avenants, &cles[i]).unwrap_or(&nul),
+                        "",
+                    );
+                    signature &= vrai(&sig["recu"]) && !vrai(&sig["caduc"]) && !vrai(&sig["avenant_attendu"]);
                 }
             }
-            documents &= !en_saisie.get(i).copied().unwrap_or(true) && docs.contains_key(cle);
+            let caducs = vrai(&etat_documents(docs.get(cle), empreintes_docs.get(cle).map(String::as_str))["caduc"]);
+            documents &= !en_saisie.get(i).copied().unwrap_or(true) && docs.contains_key(cle) && !caducs;
         }
         let d = self.dsn_du_mois(mois)?;
-        let dsn = vrai(&d) && vrai(get(&d, "passee")?) && !vrai(get(&d, "refusee")?);
+        let mut dsn = vrai(&d) && vrai(get(&d, "passee")?) && !vrai(get(&d, "refusee")?);
+        if dsn {
+            // L'ANNULE-ET-REMPLACE : la saisie a change depuis la DSN reelle (l'empreinte notee a son depot). Seul un mois
+            // modifie, ou dont le depot n'a pas note d'empreinte, se regarde en entier.
+            let notee = self.depots_reels(mois, &nul)?.last().and_then(|l| l.pointer("/detail/empreinte_saisie").cloned()).filter(vrai);
+            let maintenant = self.empreinte_saisie(mois)?;
+            if notee.is_none() || maintenant.map_or(true, |m| notee.as_ref().is_some_and(|n| !est(n, &m))) {
+                let r = self.etat_remplacement(mois, &nul)?;
+                dsn = !(vrai(&r["saisie_modifiee"]) && !vrai(&r["correction_ecrite"]));
+            }
+        }
         Ok([(DPAE, dpae), (SIGNATURE, signature), (DOCUMENTS, documents), (DSN, dsn)].into_iter().filter(|(_, fait)| !fait).map(|(k, _)| k.to_string()).collect())
     }
 

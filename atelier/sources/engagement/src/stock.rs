@@ -496,6 +496,13 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<V
                         saisie.insert("numero".into(), n);
                     }
                 }
+                // Un spectacle se nomme par la cle de sa fiche, son titre ou son numero d'objet : le meme, sous un autre
+                // nom, garde celui qui est ecrit.
+                if let Some(ecrit) = vues_actuelles[j].get("spectacle").filter(|s| vrai(s)) {
+                    if saisie.get("spectacle").is_some_and(|s| s != ecrit && meme_spectacle(ctx, s, ecrit)) {
+                        saisie.insert("spectacle".into(), ecrit.clone());
+                    }
+                }
                 poser_le_mois(o, mois, &saisie)?;
                 touches.push(o.fichier.clone());
             }
@@ -552,6 +559,12 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<V
         ecrits.push(p);
     }
     Ok(ecrits)
+}
+
+/// `a` et `b` nomment-ils la meme fiche de spectacle (`Contexte::spectacle`) ?
+fn meme_spectacle(ctx: &Contexte, a: &Value, b: &Value) -> bool {
+    let cle = |v: &Value| ctx.spectacle(&en_texte(v)).ok().and_then(|f| f.get("_cle").cloned());
+    cle(a).is_some_and(|x| Some(x) == cle(b))
 }
 
 /// Pose la saisie que l'ecran montre pour `mois` sur l'objet `o` : son premier mois s'il commence en `mois`, sinon ce
