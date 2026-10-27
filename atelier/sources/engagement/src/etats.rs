@@ -676,7 +676,11 @@ pub fn question_avant_de_modifier(ctx: &Contexte, mois: &str, rang: usize) -> Re
 /// « MODIFIER… » : l'engagement repasse en saisie. Sa validation se garde (`precedente`) pour la suivante.
 pub fn modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<EnSaisie> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
-    if let Some(v) = o.brut.remove("valide") {
+    if let Some(mut v) = o.brut.remove("valide") {
+        // Un engagement valide ne change pas par la saisie : la sienne est encore celle qui a ete validee.
+        if v.get("saisie").is_none() {
+            v["saisie"] = saisie_de(&o);
+        }
         o.brut.insert(PRECEDENTE.into(), v);
         stock::reecrire(&ctx.racine, &o)?;
     }

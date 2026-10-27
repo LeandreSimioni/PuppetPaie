@@ -20,7 +20,10 @@ use std::path::{Path, PathBuf};
 
 /// Une copie de la 1285-grande sans ses PDF, propre a un test.
 fn compagnie(dossier: &str) -> PathBuf {
-    sans_les_pdf("fictive-1285-grande", &dossier_de_test("periodes", dossier))
+    let r = sans_les_pdf("fictive-1285-grande", &dossier_de_test("periodes", dossier));
+    // La DSN d'aout, deposee : elle dit sur quelle version de chaque engagement elle est partie.
+    crate::outils::dsn_deposee(&r, "2026-08", "DSN_Aout2026.dsn", "2026-09-05T12:00:00");
+    r
 }
 
 /// La valeur de la rubrique, ou rien.

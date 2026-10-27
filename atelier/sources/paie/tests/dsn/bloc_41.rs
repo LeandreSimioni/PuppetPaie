@@ -24,7 +24,11 @@ use std::path::{Path, PathBuf};
 
 /// Une copie de la 1285-grande, sans ses pieces, propre a un test.
 fn copie(test: &str) -> PathBuf {
-    compagnie::ses_dsn("fictive-1285-grande", &[], &outils::dossier_de_test("bloc_41", test))
+    let r = compagnie::ses_dsn("fictive-1285-grande", &[], &outils::dossier_de_test("bloc_41", test));
+    // Les DSN de juillet et d'aout, deposees : elles disent sur quelle version de chaque engagement elles sont parties.
+    outils::dsn_deposee(&r, "2026-07", "DSN_Juillet2026.dsn", "2026-08-05T12:00:00");
+    outils::dsn_deposee(&r, "2026-08", "DSN_Aout2026.dsn", "2026-09-05T12:00:00");
+    r
 }
 
 fn retoucher_fiche(racine: &Path, cle: &str, champs: Value) {

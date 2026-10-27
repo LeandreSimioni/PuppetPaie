@@ -34,6 +34,7 @@ pub fn code_livre() -> PathBuf {
 }
 
 pub fn copier(src: &Path, dst: &Path) {
+    paie::incidents::brancher_l_engagement();
     std::fs::create_dir_all(dst).unwrap();
     for e in std::fs::read_dir(src).unwrap().flatten() {
         let (s, d) = (e.path(), dst.join(e.file_name()));
@@ -67,6 +68,8 @@ pub fn code_de(installation: &Path) -> String {
 }
 
 fn neuf(d: PathBuf) -> PathBuf {
+    // Ce que pose toute commande du moteur avant de toucher a un engagement : le lecteur de ce qui est parti.
+    paie::incidents::brancher_l_engagement();
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d
@@ -448,6 +451,9 @@ pub fn dsn_deposee(racine: &Path, mois: &str, fichier: &str, quand: &str) {
     d["mois"] = json!(mois);
     d["fichier"] = json!(fichier);
     d["quand"] = json!(quand);
+    // Les versions des engagements du mois sur lesquelles elle part, comme le depot les note (`journal::versions_du_mois`).
+    let ctx = droit::contexte::Contexte::nouveau(racine, Some(socle::date::Jour::lire(&quand[..10]).unwrap())).unwrap();
+    d["versions"] = paie::journal::versions_du_mois(&ctx, mois, |_, _, _| true).unwrap();
     l.push(d);
     ecrire(racine, "journal/depots.json", &j);
 }
@@ -457,6 +463,7 @@ pub struct Copie(pub PathBuf);
 
 impl Copie {
     fn dossier(fictive: &str) -> PathBuf {
+        paie::incidents::brancher_l_engagement();
         static N: AtomicUsize = AtomicUsize::new(0);
         let d = Path::new(env!("CARGO_TARGET_TMPDIR")).join("copies").join(format!("{}-{}-{}", fictive, std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
         let _ = std::fs::remove_dir_all(&d);
