@@ -491,6 +491,15 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<V
             pris[j] = true;
         }
     }
+    // Le meme numero sous un autre salarie : le meme engagement, dont le salarie a change (`numeros` dit s'il garde son
+    // numero).
+    for (i, p) in paires.iter_mut().enumerate() {
+        let Some(n) = ids_entrants[i].as_ref().and_then(|x| x.2.as_ref()).filter(|_| p.is_none()) else { continue };
+        if let Some(j) = (0..ids_actuels.len()).find(|j| !pris[*j] && ids_actuels[*j].as_ref().is_some_and(|y| y.2.as_ref() == Some(n))) {
+            *p = Some(j);
+            pris[j] = true;
+        }
+    }
     let mut touches: Vec<String> = vec![mois.to_string()];
     let mut nouveaux: Vec<Map<String, Value>> = Vec::new();
     for (i, e) in entrants.iter().enumerate() {
@@ -604,6 +613,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
         let suite = o.brut.remove(SUITE);
         let valide = o.brut.remove("valide");
         let figees = o.brut.remove("figees");
+        let pour = o.brut.remove("numero_pour");
         let mut neuf = saisie.clone();
         for k in PARTAGES {
             match o.brut.get(k) {
@@ -612,7 +622,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
             };
         }
         o.brut = neuf;
-        for (k, v) in [(SUITE, suite), ("valide", valide), ("figees", figees)] {
+        for (k, v) in [(SUITE, suite), ("valide", valide), ("figees", figees), ("numero_pour", pour)] {
             if let Some(v) = v {
                 o.brut.insert(k.to_string(), v);
             }

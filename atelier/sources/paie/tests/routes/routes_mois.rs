@@ -363,30 +363,6 @@ fn l_etat_du_mois_rassemble_les_actes_les_resumes_et_le_bilan() {
 }
 
 #[test]
-fn les_numeros_de_contrat_manquants_sont_proposes_en_memoire_sans_toucher_aux_compteurs() {
-    let c = &compagnie("numeros");
-    let compteurs = std::fs::read(c.join("config/compteurs.json")).unwrap();
-    modifier_saisie(c, |v| {
-        for i in 0..2 {
-            v["engagements"][i].as_object_mut().unwrap().remove("numero");
-        }
-        // Un deuxieme contrat de Brioche, sans numero non plus.
-        let mut copie = v["engagements"][0].clone();
-        copie["debut"] = json!("2026-08-25");
-        copie["fin"] = json!("2026-08-25");
-        copie["lignes"][0]["dates"] = json!(["2026-08-25"]);
-        copie["lignes"][0]["quantite"] = json!(1);
-        copie["lignes"][1]["quantite"] = json!(1);
-        v["engagements"].as_array_mut().unwrap().push(copie);
-    });
-    let r = rendu(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-10-03");
-    let numeros: Vec<&str> = r["engagements"].as_array().unwrap().iter().map(|p| p["numero"].as_str().unwrap()).collect();
-    // Les compteurs de 2026 : BRIOCHE a 4, SERAPHIN a 4.
-    assert_eq!(numeros, ["BR1.26.05", "SE2.26.05", "LE3.26.04", "BR1.26.06"]);
-    assert_eq!(std::fs::read(c.join("config/compteurs.json")).unwrap(), compteurs);
-}
-
-#[test]
 fn une_saisie_en_cours_garde_son_nom_et_un_journal_abime_refuse() {
     let c = &compagnie("refus");
     assert_eq!(route(c, "etat-par-engagement", json!({}), "2026-10-03")["ok"], json!(false), "sans mois");

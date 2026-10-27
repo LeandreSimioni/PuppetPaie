@@ -8,7 +8,8 @@
 //! (`derniers_pris`) : un engagement supprime avant tout envoi rend le sien.
 //!
 //! Une revalidation garde le numero. Tant que rien n'est parti sous lui, un engagement dont le salarie ou le debut a
-//! change en recoit un nouveau ; des qu'un envoi l'a porte, il ne change plus.
+//! change en recoit un nouveau ; des qu'un envoi l'a porte, il ne change plus. Un numero venu avec la saisie (un contrat
+//! repris d'un autre logiciel) reste le sien, sauf sur la copie d'un engagement plus ancien qui le porte deja.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -130,13 +131,12 @@ fn porte_par_un_envoi(o: &Objet, cle: &str, n: &str, lignes: &[Value]) -> Result
     Ok(false)
 }
 
-/// Un autre engagement du salarie `cle` que `o` porte-t-il le numero `n` ?
-fn porte_par_un_autre(ctx: &Contexte, o: &Objet, cle: &str, n: &str) -> Resultat<bool> {
-    Ok(stock::objets(&ctx.racine)?.iter().any(|x| {
-        (x.fichier.as_str(), x.rang) != (o.fichier.as_str(), o.rang)
-            && x.brut.get("numero").map(en_texte).as_deref() == Some(n)
-            && crate::cle_de_l_engagement(ctx, &Value::Object(x.brut.clone())).as_deref() == Some(cle)
-    }))
+/// Un engagement ecrit avant `o` (plus ancien fichier, ou plus haut dans le meme) porte-t-il deja le numero `n` ? Une
+/// copie d'engagement emporte le numero de l'original : il reste a l'original.
+fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
+    Ok(stock::objets(&ctx.racine)?
+        .iter()
+        .any(|x| (x.fichier.as_str(), x.rang) < (o.fichier.as_str(), o.rang) && x.brut.get("numero").map(en_texte).as_deref() == Some(n)))
 }
 
 /// LE NUMERO A LA VALIDATION de l'engagement `o` (`etats::valider`), pose sur lui ; `le` : l'instant de la validation.
@@ -153,13 +153,9 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Result
                 let meme = p.get("salarie").map(en_texte).as_deref() == Some(cle.as_str()) && p.get("debut").map(en_texte) == Some(debut.clone());
                 meme || porte_par_un_envoi(o, &cle, &n, &lignes_du_journal(&ctx.racine)?)?
             }
-            // Un numero venu avec la saisie (un contrat repris d'un autre logiciel) : le sien s'il a la forme de ceux de
-            // ce salarie, l'annee de son debut, et qu'aucun autre de ses engagements ne le porte (une copie d'engagement
-            // emporte le numero de l'original).
-            None => {
-                let forme = annee_et_rang(&n).is_some_and(|(a, s)| debut.starts_with(&a.to_string()) && former(&fiche, a, s).ok().as_deref() == Some(n.as_str()));
-                forme && !porte_par_un_autre(ctx, o, &cle, &n)?
-            }
+            // Un numero venu avec la saisie (un contrat repris d'un autre logiciel, sous la forme qu'il avait) : le sien,
+            // sauf s'il est la copie d'un engagement plus ancien.
+            None => !porte_par_un_autre(ctx, o, &n)?,
         };
         if garde {
             return Ok(());
