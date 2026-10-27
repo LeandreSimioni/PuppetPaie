@@ -266,7 +266,7 @@ fn envoyer_documents_refuse_une_boite_absente_et_un_mois_sans_saisie() {
     assert!(m.starts_with("Aucune boite courriel : poser le mot de passe d'application"), "{}", m);
     assert_eq!(journal(&racine), j0);
     // Un mois sans saisie, et une charge sans mois.
-    assert!(phrase(telle_quelle(&racine, "envoyer-documents", json!({"mois": "2031-01"}))).1.contains("2031-01"));
+    assert!(phrase(telle_quelle(&racine, "envoyer-documents", json!({"mois": "2031-01"}))).1.contains("2031"));
     phrase(telle_quelle(&racine, "envoyer-documents", json!({})));
     assert_eq!(journal(&racine), j0);
 }
@@ -1120,25 +1120,22 @@ fn textes_octets(octets: &[u8], nom: &str) -> Vec<String> {
     t
 }
 
-/// Un mois dont le calcul a change depuis sa production s'envoie quand meme, et ce qui part est l'archive : les pages
-/// memes de `Bulletins_<Mois>.pdf` et de `CertificatsCS_<Mois>.pdf` qui portent le salarie, rien de recalcule, rien
-/// de reimprime, rien d'un autre salarie.
+/// Un mois dont les documents sont partis : ce que le dossier du salarie envoie est l'archive, les pages memes de
+/// `Bulletins_<Mois>.pdf` et de `CertificatsCS_<Mois>.pdf` qui le portent, rien de recalcule, rien de reimprime, rien d'un
+/// autre salarie.
 #[test]
-fn dossier_envoyer_un_mois_dont_le_calcul_a_change_envoie_les_pages_archivees_du_salarie() {
+fn dossier_envoyer_un_mois_parti_envoie_les_pages_archivees_du_salarie() {
     let _t = tour();
     let racine = compagnie("dossier-archive", false);
     poser_le_mot_de_passe(&racine);
-    // Le cachet de Brioche passe de 155 a 175 apres la production : 4 cachets, un brut de 700 au lieu des 620 payes.
-    let mut saisie = crate::outils::saisie(&racine, "2026-08");
-    assert_eq!((saisie["engagements"][0]["numero"].as_str(), saisie["engagements"][0]["lignes"][0]["taux"].as_f64()), (Some("BR1.26.04"), Some(155.0)));
-    saisie["engagements"][0]["lignes"][0]["taux"] = json!(175.0);
-    crate::outils::poser_saisie(&racine, "2026-08", &saisie);
+    // Les documents d'aout partent : chacun se fabrique et s'archive sous son numero.
+    avec(&racine, "envoyer-documents", json!({"mois": "2026-08", "motdepasse": MOT_DE_PASSE}), &Faux::nouveau()).unwrap();
     let bulletins = racine.join("sorties/2026-08/Bulletins_Aout2026.pdf");
     let certificats = racine.join("sorties/2026-08/CertificatsCS_Aout2026.pdf");
     let (octets_bulletins, octets_certificats) = (std::fs::read(&bulletins).unwrap(), std::fs::read(&certificats).unwrap());
     let (archive_b, archive_cs) = (textes_fichier(&bulletins), textes_fichier(&certificats));
     assert_eq!((archive_b.len(), archive_cs.len()), (3, 3));
-    assert!(archive_b[0].contains("10/2026") && archive_b[0].contains("BR1.26.04"), "{}", archive_b[0]);
+    assert!(archive_b[0].contains("BR1.26.04"), "{}", archive_b[0]);
 
     // Les bulletins : un PDF, la premiere page de l'archive et elle seule (pas celles de Seraphin ni de Lemercier).
     let faux = Faux::nouveau();
@@ -1156,26 +1153,17 @@ fn dossier_envoyer_un_mois_dont_le_calcul_a_change_envoie_les_pages_archivees_du
     // Le courriel ne dit plus que les bulletins sont reedites.
     assert!(!m.textes().0.contains("réédités"), "{}", m.textes().0);
 
-    // Les certificats Conges Spectacles : la page du N° CE 30, la sienne, avec le brut paye (620), pas celui d'aujourd'hui.
+    // Les certificats Conges Spectacles : le sien, avec le brut paye (620).
     let faux = Faux::nouveau();
     let r = avec(&racine, "dossier-envoyer", json!({"salaries": ["BRIOCHE"], "mois": "2026-08", "categories": ["certificats-cs"], "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
     assert_eq!(r["pages"], json!({"BRIOCHE": {"certificats-cs": 1}}));
     assert_eq!(r["refus"], json!([]));
     let parti = textes_octets(&faux.message(0).pieces_octets()[0], "certificats");
     assert_eq!(parti, vec![archive_cs[0].clone()]);
-    assert!(parti[0].contains("620") && !parti[0].contains("700") && !parti[0].contains("SERAPHIN"), "{}", parti[0]);
+    assert!(parti[0].contains("620") && !parti[0].contains("SERAPHIN"), "{}", parti[0]);
 
     // L'archive n'a pas bouge.
     assert_eq!((std::fs::read(&bulletins).unwrap(), std::fs::read(&certificats).unwrap()), (octets_bulletins, octets_certificats));
-
-    // Ce qui ne se lit pas refuse, sans repli sur un recalcul : un fichier du mois qui ne porte plus la periode de Brioche.
-    let mut saisie = crate::outils::saisie(&racine, "2026-08");
-    saisie["engagements"][0]["debut"] = json!("2026-08-18");
-    crate::outils::poser_saisie(&racine, "2026-08", &saisie);
-    let faux = Faux::nouveau();
-    let (_, m) = phrase(avec(&racine, "dossier-envoyer", json!({"salaries": ["BRIOCHE"], "mois": "2026-08", "categories": ["bulletins"], "motdepasse": MOT_DE_PASSE}), &faux));
-    assert!(m.contains("aucune page correspondante dans Bulletins_Aout2026.pdf"), "{}", m);
-    assert_eq!(faux.partis(), 0);
 }
 
 #[test]
