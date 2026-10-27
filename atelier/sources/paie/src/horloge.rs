@@ -201,6 +201,15 @@ fn motif_de(e: &Echec) -> String {
     e.message.split(['\n', '\r']).next().unwrap_or("").chars().take(160).collect()
 }
 
+/// L'instant d'un pas, `AAAA-MM-JJTHH:MM:SS` a l'heure de Paris, en secondes UTC.
+fn instant_du_pas(quand: &str) -> Option<f64> {
+    let (jour, heure) = quand.split_once('T')?;
+    let jour = Jour::lire(jour).ok()?;
+    let mut hms = heure.split(':').map(|x| x.parse::<i64>().ok());
+    let (h, m, s) = (hms.next()??, hms.next().flatten().unwrap_or(0), hms.next().flatten().unwrap_or(0));
+    Some(socle::temps::instant_de(jour, h) + (m * 60 + s) as f64)
+}
+
 /// `_pas` : un pas joue -- le geste, ses lignes de journal datees, et sa phrase. Une erreur devient la phrase, sans
 /// arreter les autres pas. `geste` rend `true` quand il a fait quelque chose (sa phrase se dit), `false` quand il n'y
 /// avait rien a faire (`return False` du Python : ni phrase, ni date).
@@ -212,8 +221,14 @@ fn pas(d: &HorlogeFictive, quoi: &str, quand: &str, mut geste: impl FnMut(&Conte
         Err(e) => return echec(&e),
     };
     let n = n_lignes(racine);
+    // Le geste a lieu a son heure : ce qu'il ecrit (un nom de fichier, une ligne de journal) en porte la date.
     // La re-verification precede TOUT geste : ce qui suit ne s'execute que dans une compagnie fictive.
-    let dit = match d.reverifier().and_then(|_| geste(&ctx)) {
+    let mut jouer = || d.reverifier().and_then(|_| geste(&ctx));
+    let fait = match instant_du_pas(quand) {
+        Some(t) => socle::temps::pendant(t, jouer),
+        None => jouer(),
+    };
+    let dit = match fait {
         Ok(b) => b,
         Err(e) => return echec(&e),
     };

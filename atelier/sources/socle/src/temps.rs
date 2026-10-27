@@ -2,11 +2,16 @@
 //!
 //! Tout ce que le moteur ECRIT avec l'heure dedans -- le « quand » d'une ligne du journal, l'horodatage d'une DSN ou d'une
 //! DPAE, le nom d'un courriel joue, la sauvegarde d'une saisie dans `paies/avant/` -- lit l'heure ICI (`secondes`), et le
-//! jour qu'on est aussi (`contexte::aujourdhui`, `contexte::jour_reel`). Sur un poste, rien n'est jamais pose : c'est
-//! l'horloge de la machine, pour le prix d'un verrou libre puis de `SystemTime::now`.
+//! jour qu'on est aussi (`contexte::aujourdhui`, `contexte::jour_reel`). Sur un poste, c'est l'horloge de la machine, au
+//! jour de Paris que la commande pose (`PUPPETPAIE_AUJOURDHUI`, le jour meme), pour le prix d'un verrou libre puis de
+//! `SystemTime::now`.
 //!
-//! DEUX USAGES DE L'ATELIER, et eux seuls posent le temps (aucune variable d'environnement, aucune commande du binaire
-//! livre ne le fait) :
+//! LE JOUR POSE : quand `PUPPETPAIE_AUJOURDHUI` nomme un autre jour (un essai, une compagnie fictive qu'on fait vivre a une
+//! date), l'heure est celle de la montre, ce jour-la : un fichier ou une ligne de journal ecrits ce jour-la en portent la
+//! date, comme les calculs qui lisent `aujourdhui`.
+//!
+//! DEUX USAGES DE L'ATELIER SIMULENT le temps, et passent devant le jour pose (aucune commande du binaire livre ne le
+//! fait) :
 //! - LE BANC D'ESSAI (`paie-atelier interface --jour J`, `scenario::banc`) : le temps COULE depuis le jour J a 9 h (Paris), au
 //!   pas de la montre ; « avancer au jour J' » le repose. Pendant chaque route servie, il est FIGE a l'instant ou elle a
 //!   commence (`figer`) : la route lit une seule heure du debut a la fin, comme au rejeu. Les aleas y suivent la meme suite
@@ -28,6 +33,7 @@ use sha2::{Digest, Sha256};
 
 use crate::date::Jour;
 
+#[derive(Clone, Copy)]
 struct Simule {
     /// Le temps qui coule : l'instant simule pose, et la montre a ce moment-la. `None` : on fige seulement (le rejeu).
     coule: Option<(f64, Instant)>,
@@ -53,13 +59,25 @@ pub fn maintenant_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
-/// L'instant present, en secondes depuis 1970 (UTC) : simule s'il est pose, sinon la montre de la machine.
+/// L'instant present, en secondes depuis 1970 (UTC) : simule s'il est pose, sinon la montre de la machine, portee au jour
+/// que `PUPPETPAIE_AUJOURDHUI` pose quand il y en a un (a la meme heure de Paris).
 pub fn secondes() -> f64 {
     match etat().as_ref() {
         Some(Simule { fige: Some(t), .. }) => *t,
         Some(Simule { coule: Some((depart, pose)), .. }) => depart + pose.elapsed().as_secs_f64(),
-        _ => montre(),
+        _ => au_jour_pose(montre()),
     }
+}
+
+/// LE JOUR POSE (`PUPPETPAIE_AUJOURDHUI`, AAAA-MM-JJ) : l'instant `t` de la montre, a la meme heure de Paris, ce jour-la.
+/// Sans jour pose, ou illisible, `t` tel quel.
+fn au_jour_pose(t: f64) -> f64 {
+    let Some(jour) = std::env::var("PUPPETPAIE_AUJOURDHUI").ok().filter(|v| !v.is_empty()).and_then(|v| Jour::lire(&v).ok()) else {
+        return t;
+    };
+    let entier = t.floor() as i64;
+    let dans_le_jour = (entier + crate::paris::decalage(entier)).rem_euclid(86_400) as f64 + (t - t.floor());
+    instant_de(jour, 0) + dans_le_jour
 }
 
 /// Le temps est-il simule (le banc, le rejeu) ?
@@ -98,6 +116,27 @@ pub fn defiger() {
             s.fige = None;
         }
     }
+}
+
+/// `f`, le temps fige a `instant` ; puis le temps redevient ce qu'il etait (la montre, le banc qui coule, l'instant du
+/// geste rejoue), les aleas poursuivant leur suite. Un geste joue a sa date par l'horloge d'une compagnie fictive.
+pub fn pendant<T>(instant: f64, f: impl FnOnce() -> T) -> T {
+    let avant = *etat();
+    {
+        let mut e = etat();
+        match e.as_mut() {
+            Some(s) => s.fige = Some(instant),
+            None => *e = Some(Simule { coule: None, fige: Some(instant), tirages: None }),
+        }
+    }
+    let r = f();
+    let mut e = etat();
+    let tirages = e.as_ref().and_then(|s| s.tirages);
+    *e = avant.map(|mut s| {
+        s.tirages = tirages;
+        s
+    });
+    r
 }
 
 /// LE REJEU commence : les aleas deviennent une suite fixe, a partir du premier tirage.
