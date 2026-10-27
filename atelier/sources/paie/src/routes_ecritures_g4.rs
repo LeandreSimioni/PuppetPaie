@@ -22,7 +22,7 @@ use socle::echec::Echec;
 use crate::routes_ouverture::Refus;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 8] = ["valider-engagement", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "ecrire-documents", "exporter"];
+pub const ROUTES: [&str; 7] = ["valider-engagement", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "exporter"];
 
 /// Une route de ce module.
 pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -32,7 +32,6 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
         "retenir-logiciel" => retenir_logiciel(ctx, charge),
         "casc-regularise" => casc_regularise(ctx, charge),
         "exporter" => exporter(ctx, charge),
-        "ecrire-documents" => crate::ecrire_documents::ecrire_documents(ctx, charge),
         "journal-reprise" => crate::reprise_journal::reprise(ctx, charge, &maintenant()),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),

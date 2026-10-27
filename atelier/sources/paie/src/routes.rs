@@ -74,6 +74,7 @@ pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value)
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
     let _code = socle::fichiers::code_fige();
+    crate::incidents::poser_le_temoin_des_recalculs();
     let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
     let route = d.get("route").and_then(Value::as_str).ok_or("demande illisible : il faut `route`")?;
     let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
@@ -164,12 +165,11 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Les productions du lot H1 : la DPAE, le signalement d'arret, la fin de contrat et ses papiers (rien ne part).
         r if crate::routes_actes_h1::ROUTES.contains(&r) => crate::routes_actes_h1::route(&ctx, route, &charge),
         // Les actes du lot H2 : deposer, suivre un depot, le bilan d'une repetition, le filet. Un refus qui porte une
-        // donnee pour la page (`etat`, `manques`) la rend a cote de `erreur` et `classe`.
+        // donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
         r if crate::routes_actes_h2::ROUTES.contains(&r) => match crate::routes_actes_h2::route(o, &ctx, route, &charge) {
-            Err(Echec { classe: Some(c), message }) if matches!(c, "RepetitionManquante" | "DsnDejaDeposee" | "MoisPasPret") => {
+            Err(Echec { classe: Some(c), message }) if matches!(c, "RepetitionManquante" | "DsnDejaDeposee") => {
                 let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));
-                let cle = if c == "MoisPasPret" { "manques" } else { "etat" };
-                return Ok(json!({"ok": false, "erreur": d["message"], "classe": c, cle: d[cle]}));
+                return Ok(json!({"ok": false, "erreur": d["message"], "classe": c, "etat": d["etat"]}));
             }
             autre => autre,
         },

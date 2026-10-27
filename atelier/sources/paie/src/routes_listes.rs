@@ -569,7 +569,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     let veille = echeance.veille().map_err(plain)?;
     let mut regularisable = false;
     let raison = if !deposee {
-        let retard = if passee { format!(" (en retard : `paie mois {} --forcer`)", mois) } else { String::new() };
+        let retard = if passee { format!(" (en retard : `paie depot-dsn {} --test`, puis --reel)", mois) } else { String::new() };
         format!("Aucune DSN reelle n'est partie pour {} : ce mois se saisit et se depose normalement{}.", mois, retard)
     } else if refusee {
         format!("La DSN de {} a ete REFUSEE : elle se corrige et se redepose, il n'y a rien a regulariser.", mois)

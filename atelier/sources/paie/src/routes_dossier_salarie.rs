@@ -601,7 +601,7 @@ fn mois_puppetpaie(
     let groupe = sortie.join(format!("Bulletins_{}.pdf", etiq));
     let envoi_dir = sortie.join("envoi");
     let ecrit = groupe.exists();
-    let (donnees, mut paies) = charger(ctx, mois)?;
+    let (_, mut paies) = charger(ctx, mois)?;
     let siennes: Vec<usize> = (0..paies.len()).filter(|i| cles.contains(&cle_de(&paies[*i]))).collect();
     if siennes.is_empty() {
         return Ok(pages);
@@ -621,20 +621,21 @@ fn mois_puppetpaie(
     } else {
         if categories.contains(BULLETINS) || categories.contains(CERTIFICATS_CS) {
             d.avertissements.push(format!(
-                "{} n'est pas encore écrit : ni bulletin ni certificat à rééditer. Il s'écrit dans l'onglet Paie (« Produire »).",
+                "{} : aucun document n'est encore parti, ni bulletin ni certificat à rééditer.",
                 lib
             ));
         }
-        // Les contrats d'un mois pas encore ecrit ont un numero s'il a ete FIGE par une production
-        // anterieure : la saisie numerotee le lit alors. Sinon, rien.
-        if !donnees.get("numeros_figes").is_some_and(vrai) {
+        // Les contrats partis a la signature portent leur numero, fige a l'envoi ; un contrat qui n'est pas parti n'en a
+        // pas, et un numero ne s'invente pas.
+        let (data, mut figees) = charger(ctx, mois)?;
+        let partis: Vec<usize> = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i])) && figees[*i].engagement.numero.as_deref().is_some_and(|n| !n.is_empty())).collect();
+        if partis.is_empty() {
             if categories.contains(CONTRATS) {
-                d.refus.push(format!("{} : contrats non réédités — leurs numéros ne sont pas encore figés, et un numéro ne s'invente pas.", lib));
+                d.refus.push(format!("{} : contrats non réédités — aucun n'est parti à la signature, et un numéro ne s'invente pas.", lib));
             }
         } else {
-            let (data, mut figees) = charger(ctx, mois)?;
             numeroter(ctx, &data, &mut figees, attente)?;
-            siennes_contrats = (0..figees.len()).filter(|i| cles.contains(&cle_de(&figees[*i]))).collect();
+            siennes_contrats = partis;
             paies_contrats = figees;
         }
     }
@@ -653,6 +654,10 @@ fn mois_puppetpaie(
             let mut ses_pages: Vec<usize> = Vec::new();
             for i in siennes.iter().filter(|i| cle_de(&paies[**i]) == *cle && !paies[**i].engagement.sans_paie()) {
                 let p = &paies[*i];
+                // Un bulletin pas encore parti n'a rien a redonner.
+                if !lus.contains_key(i) && p.numero_bulletin.as_deref().map_or(true, str::is_empty) {
+                    continue;
+                }
                 let Some(lu) = lus.get(i).filter(|lu| !lu.pages.is_empty()) else {
                     return Err(erreur_operation(format!(
                         "{}, {} : aucune page de sorties/{}/{} ne porte son bulletin du {} au {}. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",

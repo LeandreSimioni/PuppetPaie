@@ -171,7 +171,7 @@ fn etat_exercices(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
             Some(p) => {
                 json!({
                     "fichier": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                    "ecrit": crate::produire_mois::ecrit_le(&ctx.racine, p),
+                    "ecrit": crate::depart::ecrit_le(&ctx.racine, p),
                 })
             }
             None => Value::Null,

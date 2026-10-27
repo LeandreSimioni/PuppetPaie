@@ -612,12 +612,6 @@ fn texte_fiche(sal: &Value, cle: &str) -> String {
     }
 }
 
-/// `operations_documents.numeroter_depuis_archive` : les numeros LUS dans le fichier groupe archive,
-/// poses sur les paies. Une paie sans page correspondante fait echouer.
-pub(crate) fn numeroter_depuis_archive(ctx: &Contexte, paies: &mut [Paie], groupe: &Path) -> Result<(), Refus> {
-    numeroter_et_lire(ctx, paies, groupe).map(|_| ())
-}
-
 /// La meme, qui rend aussi ce qui a ete lu pour chaque paie (son rang) et les avertissements (les
 /// bulletins de l'archive que la saisie ne porte plus) : le dossier du salarie s'en sert.
 pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Path) -> Result<(HashMap<usize, Lu>, Vec<String>), Refus> {
@@ -659,6 +653,10 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
         }
         let (debut, fin) = (p.engagement.debut_periode()?, p.engagement.fin_periode()?);
         let ident = (cle_de(p)?, debut.iso(), fin.iso());
+        // Un bulletin pas encore parti n'est pas dans l'archive : il n'a pas de numero, rien ne se lit pour lui.
+        if !archives.contains_key(&ident) && p.numero_bulletin.as_deref().map_or(true, str::is_empty) {
+            continue;
+        }
         let (_, lu) = archives.remove(&ident).ok_or_else(|| Refus {
             classe: Some("ErreurOperation"),
             message: format!(
@@ -691,42 +689,19 @@ pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Pat
 // ------------------------------------------------------------------ la saisie aux numeros declares
 
 /// LA SAISIE DU MOIS AUX NUMEROS DECLARES : ce qui peut partir de `mois` (`etats::validees_du_mois` : la saisie reduite
-/// aux engagements valides, et leurs paies ecrites), chaque contrat sous le numero qu'il porte VRAIMENT (pose sur
-/// l'engagement, lu dans l'archive des bulletins, ou celui que la production prendrait). `reserves` : les numeros
-/// qu'un envoi propose, que la route d'envoi ecrit plus loin (`reserver_numeros_envoyes`). Un mois sans engagement
-/// valide n'a rien.
-pub(crate) fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut crate::produire_mois::Reserves>) -> Result<(Value, Vec<Paie>), Refus> {
+/// aux engagements valides, et leurs paies ecrites), chaque contrat sous le numero qu'il porte (pose sur l'engagement a
+/// son envoi a la signature, ou celui que le compteur propose), chaque bulletin sous le sien (ecrit dans la paie a son
+/// depart, ou celui que le compteur propose). `reserves` : les numeros qu'un envoi propose, que la route d'envoi ecrit
+/// plus loin (`reserver_numeros_envoyes`). Un mois sans engagement valide n'a rien.
+pub(crate) fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut crate::depart::Reserves>) -> Result<(Value, Vec<Paie>), Refus> {
     let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
         return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
-    let annee = || -> Result<i32, Refus> {
-        let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-        Ok(int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32)
-    };
-    if data.get("numeros_figes").is_some_and(vrai) {
-        // Un contrat ajoute apres la production n'a pas de numero fige : il prend celui que le compteur propose, comme un
-        // mois pas encore produit ; les autres gardent leurs numeros, bulletin compris.
-        let sans: Vec<usize> = (0..paies.len()).filter(|&i| paies[i].engagement.numero.as_deref().map_or(true, str::is_empty)).collect();
-        if !sans.is_empty() {
-            let mut neufs: Vec<Paie> = sans.iter().map(|&i| paies[i].clone()).collect();
-            match reserves {
-                Some(r) => r.numeroter(ctx, &mut neufs, annee()?)?,
-                None => numeroter(ctx, &mut neufs, annee()?)?,
-            }
-            for (i, p) in sans.into_iter().zip(neufs) {
-                paies[i] = p;
-            }
-        }
-        return Ok((data, paies));
-    }
-    let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", crate::envoi::etiquette(mois)?));
-    if groupe.exists() {
-        numeroter_depuis_archive(ctx, &mut paies, &groupe)?;
-    } else {
-        match reserves {
-            Some(r) => r.numeroter(ctx, &mut paies, annee()?)?,
-            None => numeroter(ctx, &mut paies, annee()?)?,
-        }
+    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
+    let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
+    match reserves {
+        Some(r) => r.numeroter(ctx, &mut paies, annee)?,
+        None => numeroter(ctx, &mut paies, annee)?,
     }
     Ok((data, paies))
 }

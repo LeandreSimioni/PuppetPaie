@@ -679,58 +679,33 @@ fn aer_attendue(paies: &[engagement::calcul::Paie]) -> R<bool> {
 /// `documents_prets` : peut-on envoyer les documents du mois ? Le moteur repond, et dit pourquoi.
 fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[engagement::calcul::Paie]) -> R<Map<String, Value>> {
     let dossier = ctx.racine.join("sorties").join(mois).join("envoi");
-    let produit = dossier.exists() && un_nom_commence_et_finit(&dossier, "Bulletin_", ".pdf");
-    let groupe = ctx.racine.join("sorties").join(mois).join(format!("Bulletins_{}.pdf", etiquette(mois)?));
-    let a_redecouper = !produit && groupe.exists();
+    // LES DOCUMENTS PARTENT DES QU'UN ENGAGEMENT EST VALIDE : ils se fabriquent a leur envoi, depuis sa paie ecrite.
     let mut empechements: Vec<String> = Vec::new();
-    if a_redecouper {
-        empechements.push(format!(
-            "Le mois est produit, mais ses documents ne sont pas decoupes par salarie : il n'y a que {}, qui porte la paie de tout le monde. « Ecrire les documents des salaries » les ecrit un a un, avec les numeros du fichier archive, sans rien redeclarer.",
-            groupe.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
-        ));
-    } else if !produit {
-        empechements.push("Les documents du mois ne sont pas encore ecrits.".to_string());
+    if paies.is_empty() {
+        empechements.push("Aucun engagement valide ce mois-ci : rien ne part d'un engagement en saisie.".to_string());
     }
+    // L'AER NE SE FABRIQUE PAS : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
+    let mut informations: Vec<String> = Vec::new();
     let e = m.dsn_du_mois(mois)?;
-    if !vrai(&e) {
-        empechements.push("La DSN du mois n'est pas deposee.".to_string());
-    } else if e.get("refusee").is_some_and(vrai) {
-        empechements.push("La DSN du mois a ete REFUSEE : a corriger et a redeposer.".to_string());
-    } else if !e.get("passee").is_some_and(vrai) {
-        empechements.push(format!("La DSN est deposee ({}), son bilan n'est pas encore arrive.", etats::quand_lisible(e.get("quand").unwrap_or(nul()))));
-    } else if !e.get("aer_recue").is_some_and(vrai) && aer_attendue(paies)? {
-        empechements.push(
-            "L'attestation employeur (AER) de France Travail n'est pas encore revenue : France Travail l'édite à partir de la DSN, et chaque relevé des retours la cherche."
+    if vrai(&e) && e.get("passee").is_some_and(vrai) && !e.get("aer_recue").is_some_and(vrai) && aer_attendue(paies)? {
+        informations.push(
+            "L'attestation employeur (AER) de France Travail n'est pas encore revenue : France Travail l'édite à partir de la DSN, et chaque relevé des retours la cherche. Elle partira avec un envoi suivant."
                 .to_string(),
         );
-    } else {
-        let manquent = aer_manquantes(ctx, mois)?;
-        if !manquent.is_empty() {
-            empechements.push(format!(
-                "L'attestation employeur (AER) est revenue de France Travail, mais elle n'est pas signee pour {} : la paie ne confirme pas ce qu'elle affiche, ou le nom n'est pas reconnu. Voir les messages de l'ouverture.",
-                manquent.join(", ")
-            ));
-        }
     }
-    // LES DOCUMENTS DISENT CE QUE LA DSN DECLARE (ticket #240) : une paie modifiee depuis la DSN deposee attend sa DSN
-    // refaite (et ses documents avec elle) ; envoyer avant, ce serait envoyer des documents que la DSN ne dit pas. TANT
-    // QUE L'ANNULE-ET-REMPLACE EST ADMIS seulement (Leandre, 21/10/2026) : apres sa limite, la DSN deposee ne se refait
-    // plus, la paie modifiee se declare dans la DSN suivante (« Corriger ce mois »), et les documents refaits repartent,
-    // le courriel le disant (`routes_envois::choisir`).
-    let remplacement = if vrai(&e) && !e.get("refusee").is_some_and(vrai) { m.etat_remplacement(mois, &Value::Null)? } else { Value::Null };
-    if vrai(&remplacement["saisie_modifiee"]) && vrai(&remplacement["admis"]) {
-        empechements.push(format!(
-            "La paie a changé depuis la DSN déposée le {} : refaire le mois et sa DSN (annule-et-remplace) d'abord — les documents partent avec la paie que la DSN déclare.",
-            etats::quand_lisible(e.get("quand").unwrap_or(nul()))
+    let manquent = aer_manquantes(ctx, mois)?;
+    if !manquent.is_empty() {
+        informations.push(format!(
+            "L'attestation employeur (AER) est revenue de France Travail, mais elle n'est pas signee pour {} : la paie ne confirme pas ce qu'elle affiche, ou le nom n'est pas reconnu. Voir les messages de l'ouverture.",
+            manquent.join(", ")
         ));
     }
     let mut r = Map::new();
     r.insert("pret".into(), json!(empechements.is_empty()));
     r.insert("empechements".into(), json!(empechements));
+    r.insert("informations".into(), json!(informations));
     r.insert("boite_liee".into(), json!(crate::routes_accueil::boite_liee(ctx)?));
-    r.insert("produit".into(), json!(produit));
-    r.insert("a_redecouper".into(), json!(a_redecouper));
-    r.insert("dossier".into(), json!(if produit { dossier } else { dossier.parent().map(Path::to_path_buf).unwrap_or_default() }.to_string_lossy()));
+    r.insert("dossier".into(), json!(dossier.to_string_lossy()));
     Ok(r)
 }
 
@@ -876,7 +851,21 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`routes_envois::choisir`).
     let choix = crate::routes_envois::choisir(ctx, &mois, &data, &paies)?;
-    let messages = if prets.get("produit").is_some_and(vrai) { preparer(ctx, &paies, &mois, &dossier, &choix.renvois)? } else { Vec::new() };
+    // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`routes_envois`).
+    let messages = if prets.get("pret").is_some_and(vrai) {
+        let mut cles: Vec<String> = Vec::new();
+        for p in &paies {
+            let c = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+            if !cles.contains(&c) {
+                cles.push(c);
+            }
+        }
+        let cles = choix.garder(cles, |c| c.as_str());
+        crate::depart::fabriquer_documents(ctx, &mois, &cles, "interface")?;
+        preparer(ctx, &paies, &mois, &dossier, &choix.renvois)?
+    } else {
+        Vec::new()
+    };
     let tous_a_jour = messages.iter().all(|x| choix.a_jour.contains(&x.cle));
     let renvoi_voulu = !messages.is_empty() && tous_a_jour;
     let messages = choix.garder(messages, |x| x.cle.as_str());

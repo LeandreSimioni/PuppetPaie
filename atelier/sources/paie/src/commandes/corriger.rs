@@ -142,7 +142,7 @@ fn toutes(cadre: &Cadre, json: bool) -> Result<i32, Echec> {
     let regularisables = liste_de(&mois, "regularisables");
     for e in &en_retard {
         dire!("! {} : aucune DSN acceptee, et l'echeance du {} est passee.", champ(e, "mois"), champ(e, "echeance"));
-        dire!("    `paie mois {} --forcer` -- en retard, assume.", champ(e, "mois"));
+        dire!("    `paie depot-dsn {} --test`, puis --reel -- en retard, elle part quand meme.", champ(e, "mois"));
     }
     if !regularisables.is_empty() {
         dire!("Les mois qui se corrigent (deposes, echeance passee) :");

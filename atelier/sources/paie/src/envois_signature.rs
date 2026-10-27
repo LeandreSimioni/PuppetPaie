@@ -234,7 +234,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     // Les numeros que le compteur PROPOSE, en memoire seulement : ils servent aux contrats qui partent. Rien n'en
     // est ecrit (le Python ecrivait tout, bulletin compris : defaut non reproduit, decision de Leandre du 07/10/2026) ;
     // `reserver_numeros_envoyes` n'avance que les compteurs de contrat, jusqu'au numero reellement envoye.
-    let mut reserves = crate::produire_mois::Reserves::default();
+    let mut reserves = crate::depart::Reserves::default();
     let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, Some(&mut reserves))?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
@@ -545,7 +545,7 @@ pub(crate) fn reserver_numeros_envoyes(ctx: &Contexte, mois: &str, contrats: &[V
     let Some((_data, paies)) = engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)? else { return Ok(()) };
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     // Les compteurs ne bougent que par ce qui est ecrit sur un contrat parti : `reserves` ne recoit que `enregistrer`.
-    let mut reserves = crate::produire_mois::Reserves::default();
+    let mut reserves = crate::depart::Reserves::default();
     let rangs: Vec<Paire> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso())).collect();
     // Par RANG, pas par (salarie, debut) : deux contrats du meme jour ne se confondent pas, et celui qui n'est pas parti
     // ne recoit pas le numero de l'autre.

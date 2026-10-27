@@ -74,7 +74,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     out.insert("regularisable".into(), json!(false));
     out.insert("raison".into(), json!(""));
     if !deposee {
-        let suite = if passee { format!(" (en retard : `paie mois {} --forcer`)", mois) } else { String::new() };
+        let suite = if passee { format!(" (en retard : `paie depot-dsn {} --test`, puis --reel)", mois) } else { String::new() };
         out.insert(
             "raison".into(),
             json!(format!("Aucune DSN reelle n'est partie pour {} : ce mois se saisit et se depose normalement{}.", mois, suite)),
@@ -762,6 +762,8 @@ pub(crate) struct Couverture {
     pub(crate) a_refaire: usize,
     /// Les contrats declares retires de la saisie (d'avant le refus).
     pub(crate) retires: usize,
+    /// Les contrats a corriger, ceux de `a_ecrire` et de `a_refaire` : `(salarie, debut, engagement saisi)`.
+    pub(crate) a_corriger: Vec<(String, String, Value)>,
 }
 
 /// LA CORRECTION ECRITE DECLARE-T-ELLE LA PAIE D'AUJOURD'HUI ? Pour chaque contrat change, la derniere correction non
@@ -773,7 +775,7 @@ pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str
     let ecrites = crate::routes_ecrites::lire_corrections(ctx, mois)?;
     let donnees = saisie_d_origine(ctx, mois)?;
     let mut m = Moteur::nouveau(o, ctx);
-    let mut c = Couverture { a_ecrire: 0, a_refaire: 0, retires: ch.retires };
+    let mut c = Couverture { a_ecrire: 0, a_refaire: 0, retires: ch.retires, a_corriger: Vec::new() };
     for x in &ch.contrats {
         let derniere = ecrites.iter().rev().find(|e| {
             !e.get("annulee_le").is_some_and(vrai)
@@ -782,6 +784,7 @@ pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str
         });
         let Some(ecrite) = derniere else {
             c.a_ecrire += 1;
+            c.a_corriger.push((x.salarie.clone(), x.debut.clone(), x.engagement.clone()));
             continue;
         };
         let corrige = ecrite.get("engagement").cloned().unwrap_or(Value::Null);
@@ -794,6 +797,7 @@ pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str
         });
         if a_jour != Some(true) {
             c.a_refaire += 1;
+            c.a_corriger.push((x.salarie.clone(), x.debut.clone(), x.engagement.clone()));
         }
     }
     Ok(Some(c))
@@ -889,7 +893,7 @@ pub(crate) fn figer_le_numero(ctx: &Contexte, mois: &str, salarie: &str, debut: 
     let texte = |k: &str| fiche.get(k).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
     let annee: i64 = debut.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| erreur("ValueError", format!("date illisible : {}", debut)))?;
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, "interface")?;
-    let mut reserves = crate::produire_mois::Reserves::default();
+    let mut reserves = crate::depart::Reserves::default();
     let compteur = format!("contrat_{}", salarie);
     let seq = reserves.prochain(ctx, &compteur, annee)?;
     let numero = format!("{}{}.{}.{:02}", texte("initiales_contrat")?, texte("code_salarie")?, &annee.to_string()[2..], seq);

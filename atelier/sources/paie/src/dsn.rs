@@ -4117,7 +4117,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// (`Contexte::echeance_dsn` : le 5 a cinquante salaries, le 15 sinon --
 /// critere infere, la norme ne le donne pas, fiche N7 § 1.4.2) et sa veille
 /// (`routes_mois::Moteur::limite`) : passe cette veille, il refuse de produire
-/// l'annule-et-remplace (`produire_mois::forme_a_produire`) comme de le
+/// l'annule-et-remplace (`depart::forme_a_produire`) comme de le
 /// deposer (`depot_acte`), « AnnuleRemplaceHorsDelai ». Ce n'est pas ici, dans
 /// `generer`, qui ecrit ce qu'on lui donne, mais avant lui.
 ///

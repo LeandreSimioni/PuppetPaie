@@ -278,6 +278,13 @@ pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<(
     }
 }
 
+/// Un bulletin qui remplace en entier celui qui est parti (`{"remplace": true, "rectifie", "mois_origine"}`) : la paie du
+/// mois refaite avant que sa DSN ne soit close, imprimee comme un bulletin du mois, sous un nouveau numero. Sans
+/// `remplace`, c'est la regularisation d'un mois clos, versee avec une paie suivante (`rectificatif_lignes`).
+pub fn remplace_en_entier(r: &Value) -> bool {
+    r.get("remplace").is_some_and(vrai)
+}
+
 /// `_rectificatif_lignes` : le bas d'un bulletin RECTIFICATIF.
 fn rectificatif_lignes(r: &Value, colonnes: i64) -> Resultat<Vec<Value>> {
     let lignes = [
@@ -931,11 +938,12 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
             Some(v) if vrai(v) => format!("n° {}", en_texte(v)),
             _ => format!("du contrat {}", numero),
         };
+        let suite = match r.get("motif").filter(|v| vrai(v)) {
+            Some(motif) => format!(", qu'il remplace. Motif : {}.", en_texte(motif)),
+            None => ", qu'il remplace.".to_string(),
+        };
         blocs.push(para(
-            vec![
-                m(format!("Rectifie le bulletin {} de {}", rectifie, texte(r, "mois_origine")?), true, None),
-                mt(format!(", qu'il remplace. Motif : {}.", texte(r, "motif")?)),
-            ],
+            vec![m(format!("Rectifie le bulletin {} de {}", rectifie, texte(r, "mois_origine")?), true, None), mt(suite)],
             7.0,
             Some(GRIS),
             0.0,
@@ -1091,7 +1099,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     corps.push(ligne_net("MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU", p.net_a_payer, n));
     corps.push(ligne(vec![s("IMPOT SUR LE REVENU"), s("Base"), s("Taux"), s("Salarié")], style_section()));
     corps.push(ligne(vec![cel("Montant net imposable", 3), s(fmt_eur(p.net_imposable))], vec![]));
-    match j.rectificatif {
+    match j.rectificatif.filter(|r| !remplace_en_entier(r)) {
         Some(r) => corps.extend(rectificatif_lignes(r, n)?),
         None => corps.extend(lignes_pas_tableau(p, j.pas, n)?),
     }

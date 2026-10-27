@@ -258,6 +258,8 @@ pub(crate) struct EnvoiPrepare {
     pub(crate) avertissements: Vec<String>,
     /// A qui les documents partent, et pourquoi (`choisir`) : le journal en garde l'empreinte et le resume.
     pub(crate) choix: Choix,
+    /// Les documents fabriques pour ceux a qui ils partent ; leurs numeros s.ecrivent quand ils sont partis.
+    documents: crate::depart::DocumentsFabriques,
     client: Box<dyn Courriel>,
     /// La duree de la preparation (lecture du mois, messages, boite), en millisecondes : le journal la garde.
     preparation_ms: u128,
@@ -372,24 +374,31 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
 pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
     let debut = std::time::Instant::now();
     let (data, paies) = crate::routes_documents::charger_le_mois(ctx, mois)?;
+    if paies.is_empty() {
+        return Err(erreur(
+            "AucunDocument",
+            format!("{} : aucun engagement valide, aucun document a envoyer. Rien ne part d'un engagement en saisie.", engagement::libelle_mois(mois)),
+        ));
+    }
     let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
-    if !dossier.exists() {
-        return Err(erreur("SortieAbsente", format!("{} n'existe pas.", dossier.display())));
-    }
     let fiche = |cle: &str| ctx.salarie(cle).unwrap_or_else(|_| json!({}));
     let choix = choisir(ctx, mois, &data, &paies)?;
-    // APRES LA LIMITE DE L'ANNULE-ET-REMPLACE, rien ne refait le mois (`produire` refuse, la DSN deposee ne se regenere
-    // pas, regle 4) : les documents de ceux dont la paie a change se refont ICI, depuis la paie d'aujourd'hui, aux numeros
-    // du fichier archive (`ecrire_documents`, qui ne redeclare rien), avant de repartir.
-    if !choix.renvois.is_empty() && choix.renvois.values().any(|r| !r.declaration.is_empty()) {
-        crate::ecrire_documents::ecrire_documents(ctx, &json!({"mois": mois_saisie}))?;
+    // LES DOCUMENTS SE FABRIQUENT ICI, pour ceux a qui ils partent : depuis les paies ecrites, a leurs numeros.
+    let mut cles: Vec<String> = Vec::new();
+    for p in &paies {
+        let cle = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        if !cles.contains(&cle) {
+            cles.push(cle);
+        }
     }
+    let cles = choix.garder(cles, |c| c.as_str());
+    let documents = crate::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
     let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, Some(&fiche), &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
     let messages = choix.garder(messages, |m| m.cle.as_str());
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());
-    let mut avertissements: Vec<String> = Vec::new();
+    let mut avertissements: Vec<String> = documents.avertissements.clone();
     let signataire = requis(&ctx.entreprise, "signataire")?.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase();
     if !signataire.is_empty() && signataire != expediteur {
         avertissements.push(format!(
@@ -397,12 +406,12 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<En
             expediteur, signataire
         ));
     }
-    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, client, preparation_ms: socle::temps::duree(debut).as_millis() })
+    Ok(EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, documents, client, preparation_ms: socle::temps::duree(debut).as_millis() })
 }
 
 /// Ce qui suit la preparation : la PREUVE (le mot de passe du logiciel), l'envoi, le journal. `qui` : la ligne du journal.
 pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, preuve: &Preuve, qui: &str) -> R<Value> {
-    let EnvoiPrepare { messages, expediteur, avertissements, choix, mut client, preparation_ms, .. } = prepare;
+    let EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, documents, mut client, preparation_ms } = prepare;
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
     // LA DUREE DE CHAQUE ETAPE (08/10/2026 : un envoi de deux courriels a pris quatre minutes, sans qu'on sache ou).
     let t_preuve = std::time::Instant::now();
@@ -429,6 +438,8 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
         "durees_ms": {"preparation": preparation_ms as u64, "mot_de_passe": preuve_ms as u64, "envoi": envoi_ms as u64},
     });
     let ligne = noter(ctx, "documents", Some(mois), qui, true, &partis.join(", "), &format!("{} message(s) envoye(s)", partis.len()), Some(&detail))?;
+    // LES DOCUMENTS SONT PARTIS : leurs numeros s'ecrivent dans les paies des engagements.
+    documents.engager(ctx, &mois_saisie)?;
     Ok(json!({
         "partis": partis,
         "messages": messages.len(),

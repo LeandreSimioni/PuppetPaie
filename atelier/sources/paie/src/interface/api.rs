@@ -16,13 +16,12 @@ use crate::etat_garde::FileDesEtats;
 
 /// Les refus qui ne sont pas des defauts du logiciel : une saisie en cours, un mot de passe mal tape, un mois sans
 /// paie, et ceux que la page traite elle-meme (une fiche refusee, un depot deja fait...). On ne les compte pas en incidents.
-const PAS_DES_INCIDENTS: [&str; 10] = [
+const PAS_DES_INCIDENTS: [&str; 9] = [
     "SaisieIncomplete",
     "PreuveInsuffisante",
     "AucunDocument",
     "FicheRefusee",
     "DsnDejaDeposee",
-    "MoisPasPret",
     "RepetitionManquante",
     "DpaeDejaDeclaree",
     "ModificationApresEcheance",
@@ -356,7 +355,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             c.insert("pdf".into(), Value::Bool(true));
             route(racine, nom, &Value::Object(c))
         }
-        "produire" | "demander-signature" => {
+        "dsn-a-deposer" | "demander-signature" => {
             let r = route(racine, nom, charge);
             if r.is_ok() {
                 filet_en_fond(racine);

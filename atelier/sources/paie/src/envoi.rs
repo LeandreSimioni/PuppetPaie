@@ -269,11 +269,6 @@ pub fn nom_fichier(prefixe: &str, cle: &str, etiq: &str) -> String {
     format!("{}_{}_{}.pdf", prefixe, cle, etiq)
 }
 
-/// `envoi.pieces_individuelles` : l'ecriture des pieces par salarie est celle de la route `ecrire-documents`
-/// (`ecrire_documents.rs`), qui la portait deja : un seul fichier par salarie, tous ses bulletins dedans.
-#[allow(unused_imports)]
-pub(crate) use crate::ecrire_documents::pieces_individuelles;
-
 /// « a, b et c ». Suit les pieces REELLEMENT jointes : promettre dans l'objet une AER qui n'est pas la serait un
 /// mensonge en premiere ligne.
 fn enumerer(mots: &[&str]) -> String {

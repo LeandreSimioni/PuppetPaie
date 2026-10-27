@@ -692,7 +692,7 @@ impl<'a> Moteur<'a> {
                     v.into_iter()
                         .map(|(nom, chemin, octets)| {
                             // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier (#236).
-                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::produire_mois::ecrit_le(&racine, chemin)})
+                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::depart::ecrit_le(&racine, chemin)})
                         })
                         .collect(),
                 )
@@ -900,9 +900,9 @@ impl<'a> Moteur<'a> {
 
     /// `_etape_de_depot` : pose sur `bilan` ou en est le fichier a deposer.
     fn etape_de_depot(&mut self, mois: &str, quoi: &str, bilan: &mut Map<String, Value>) -> R<()> {
-        // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`produire_mois::mois_ecrit`,
+        // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`depart::mois_ecrit`,
         // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`.
-        if quoi == DSN && !crate::produire_mois::mois_ecrit(self.racine(), mois) {
+        if quoi == DSN && !crate::depart::mois_ecrit(self.racine(), mois) {
             return Ok(());
         }
         let fichiers = self.fichiers_deposables(mois)?;

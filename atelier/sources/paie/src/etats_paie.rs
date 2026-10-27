@@ -463,7 +463,7 @@ fn regroupement_lisible(r: &str) -> &'static str {
 /// `_lignes_du_mois` : les lignes du livre pour un mois SAISI, ce qu'il a fallu taire, et si ses numeros de
 /// contrat sont figes. Les bulletins sont RECALCULES ; aucun numero n'est invente.
 fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
-    let (data, toutes) = charger_mois(ctx, mois)?;
+    let (_, toutes) = charger_mois(ctx, mois)?;
     let paies: Vec<Paie> = toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect();
     let pas = crate::prelevement::des_paies(ctx, &paies).map_err(|m| erreur("ErreurOperation", m))?;
     let (mut lignes, mut sans_pas) = (Vec::new(), Vec::new());
@@ -501,7 +501,8 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
             },
         });
     }
-    Ok((lignes, sans_pas, data.get("numeros_figes").is_some_and(vrai)))
+    // Ses numeros de contrat sont figes quand chaque contrat est parti a la signature.
+    Ok((lignes, sans_pas, paies.iter().all(|p| p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()))))
 }
 
 /// La source d'une paie de `historique/paies.json` : la DSN deposee (completee ou non par un bulletin), ou le bulletin

@@ -6,7 +6,7 @@
 //! son bareme, ses organismes) dans DOSSIER, hors de tout depot Git, et lui donne l'IDENTITE d'une vraie compagnie, lue dans
 //! UNE variable d'environnement, `PUPPETPAIE_COMPAGNIE` : un objet JSON sur une ligne, fragment de `config/entreprise.json`,
 //! avec EXACTEMENT les cles de `CLES` (decide par Leandre le 14/10/2026). Le reste de la seance nomme cette compagnie par
-//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des commandes ordinaires (`paie mois`, `paie depot-dsn --test`, `paie dpae`,
+//! `PUPPETPAIE_DONNEES=DOSSIER` et se sert des commandes ordinaires (`paie depot-dsn AAAA-MM --test`, `paie dpae`,
 //! `paie deposer-dpae --test`, `paie retours`).
 //!
 //! POURQUOI UNE COPIE, ET PAS LA VARIABLE LUE PARTOUT. Sur le poste, une variable posee par megarde ecraserait la vraie fiche ;
@@ -436,7 +436,7 @@ PUPPETPAIE_COMPAGNIE : un objet JSON sur une ligne, avec exactement ces cles (se
   api_dpae       {nom, prenom, siret, service}               (le compte DPAE d'urssaf.fr ; siret et service peuvent etre vides)
 Les mots de passe restent dans NET_ENTREPRISES_MOTDEPASSE et URSSAF_MOTDEPASSE.
 
-Puis, avec PUPPETPAIE_DONNEES=DOSSIER : paie mois, paie depot-dsn --test, paie retours, paie dpae, paie deposer-dpae --test
+Puis, avec PUPPETPAIE_DONNEES=DOSSIER : paie depot-dsn AAAA-MM --test, paie retours, paie dpae, paie deposer-dpae --test
 (la suite : atelier/docs/COMPAGNIE-D-ESSAI.md).";
 
 /// `paie essai ...` : rend le code de sortie.
@@ -492,7 +492,7 @@ pub fn commande(args: &[String]) -> i32 {
             println!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
             println!();
             println!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
-            println!("  paie mois AAAA-MM                  puis   paie depot-dsn sorties/AAAA-MM/<DSN>.dsn --test   puis   paie retours");
+            println!("  paie depot-dsn AAAA-MM --test      puis   paie retours");
             println!("  paie dpae AAAA-MM                  puis   paie deposer-dpae sorties/AAAA-MM/<DPAE>.txt --test");
             println!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
             0

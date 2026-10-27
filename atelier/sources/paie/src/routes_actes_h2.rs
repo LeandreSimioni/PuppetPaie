@@ -1,17 +1,19 @@
-//! Les routes du lot H2 : DEPOSER et SUIVRE (`moteur/web.py`, `operations_declarations`, `operations_retours`,
-//! `operations_filet`, `operations_paies.fermer_mois`) :
+
+
+//! Les routes qui DEPOSENT et SUIVENT :
 //!
 //! - `deposer` : une DSN ou une DPAE, en test ou en reel (`depot_acte`) -- la preuve du mot de passe du logiciel,
 //!   la repetition exigee avant le reel, le journal, les incidents, la trace sur les arrets, le desarmement du
-//!   filet ; la compagnie fictive joue le depot ;
+//!   filet ; la compagnie fictive joue le depot. La DSN du mois se nomme par son mois : elle se fabrique alors depuis
+//!   l'engagement valide (`depart::fabriquer_dsn`) ;
+//! - `dsn-a-deposer` : la DSN du mois, fabriquee pour etre deposee (`depart::fabriquer_dsn`) ;
 //! - `suivre-depot` : juste apres un depot REEL, relever ses retours et dire s'il est tranche ;
 //! - `bilan-repetition` : ou en est le test de CE fichier, et -- s'il attend son compte rendu -- aller le
 //!   chercher maintenant (`releve_retours`) ;
-//! - `filet-preparer` : un passage du filet DPAE (tester une DPAE par jour d'embauche, armer, desarmer) ;
-//! - `produire` : fermer le mois puis enregistrer la saisie (`produire_mois`) ; le filet en fond reste un lanceur.
+//! - `filet-preparer` : un passage du filet DPAE (tester une DPAE par jour d'embauche, armer, desarmer).
 //!
 //! Tout garde-fou vit ICI, dans le moteur : la page n'en decide aucun. Les fils d'arriere-plan (le filet apres
-//! `produire` et `demander-signature`) restent des lanceurs, au branchement : le moteur n'a pas de fil.
+//! `dsn-a-deposer` et `demander-signature`) restent des lanceurs, au branchement : le moteur n'a pas de fil.
 
 use std::collections::HashMap;
 
@@ -28,7 +30,7 @@ use crate::releve_retours;
 use socle::echec::Echec;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 5] = ["deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "produire"];
+pub const ROUTES: [&str; 5] = ["deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
 
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -37,7 +39,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(o, ctx, charge),
         "filet-preparer" => filet_preparer(o, ctx, charge),
-        "produire" => crate::produire_mois::produire(o, ctx, charge),
+        "dsn-a-deposer" => crate::depart::dsn_a_deposer(o, ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -55,7 +57,22 @@ fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// `DsnDejaDeposee` -- jamais par defaut.
 fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
-    let fichier = requis(charge, "fichier")?;
+    // LA DSN DU MOIS SE NOMME PAR SON MOIS : elle se fabrique ici, depuis l'engagement valide, et c'est elle qui part
+    // (celle de l'etablissement `etablissement`, le principal sinon).
+    let fabriquee;
+    let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
+        (None, Some(mois)) if etats::est(quoi, "dsn") => {
+            let dsn = crate::depart::fabriquer_dsn(o, ctx, &valeur_en_texte(mois), "interface")?;
+            let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
+            let chemin = match nic {
+                Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
+                None => dsn.fichiers.first(),
+            };
+            fabriquee = json!(chemin.ok_or_else(|| erreur("ErreurOperation", "Aucune DSN de cet etablissement ce mois-ci. Rien n'est parti."))?.to_string_lossy());
+            &fabriquee
+        }
+        _ => requis(charge, "fichier")?,
+    };
     let preuve = Preuve::de_la_charge(charge);
     let contournement = charge.get("contournement").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let contournement = contournement.trim().to_string();

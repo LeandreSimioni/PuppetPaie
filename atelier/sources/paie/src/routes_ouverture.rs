@@ -532,9 +532,9 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
 /// `fichiers_deposables(ctx, mois)["dsn"]` : `(nom,
 /// chemin)` de la DSN mensuelle du dossier du mois, dans l'ordre de `routes_mois::ordre_de_depot`.
 fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
-    // Le mois n'est ecrit que si le moteur a note sa DSN mensuelle (`produire_mois::mois_ecrit`, le critere de l'horloge
+    // Le mois n'est ecrit que si le moteur a note sa DSN mensuelle (`depart::mois_ecrit`, le critere de l'horloge
     // et de l'accueil) : un fichier DSN qu'il n'a pas note ne fait pas « le mois est ecrit ».
-    if !crate::produire_mois::mois_ecrit(st.racine(), mois) {
+    if !crate::depart::mois_ecrit(st.racine(), mois) {
         return None;
     }
     let dossier = st.racine().join("sorties").join(mois);
@@ -1121,8 +1121,8 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
 
 /// `engagement.numeroter` : les numeros de contrat (FA1.26.13) et de bulletin
 /// (17/2026), RESERVES et pas ecrits : l'apercu ne touche a aucun compteur.
-/// Un engagement qui PORTE DEJA son numero de contrat le garde ; les numeros de
-/// bulletin se reservent toujours : un bulletin est mensuel.
+/// Un engagement qui PORTE DEJA son numero de contrat le garde, une paie partie son
+/// numero de bulletin (`engagement::etats::Valide::bulletin`).
 pub(crate) fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32) -> R<()> {
     numeroter_en_attente(ctx, paies, annee, &mut HashMap::new())
 }
@@ -1172,6 +1172,10 @@ pub(crate) fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i3
         // Un mois sans cachet n'a pas de bulletin : rien n'est paye, aucun
         // numero de bulletin ne se reserve.
         if sans_paie {
+            continue;
+        }
+        // Un bulletin parti garde son numero, ecrit dans la paie a son depart.
+        if p.numero_bulletin.as_deref().is_some_and(|n| !n.is_empty()) {
             continue;
         }
         p.numero_bulletin = Some(format!("{}/{}", n_bull, annee));

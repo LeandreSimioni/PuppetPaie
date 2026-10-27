@@ -1,6 +1,8 @@
-//! `paie depot-dsn FICHIER (--test | --reel | --apercu) [--confirmer-mois AAAA-MM] [--force] [--sans-repetition MOTIF]
+//! `paie depot-dsn (FICHIER | AAAA-MM) (--test | --reel | --apercu) [--confirmer-mois AAAA-MM] [--force] [--sans-repetition MOTIF]
 //! [--environnement production|editeur] [--ordre N] [--fenetre]` : deposer une DSN sur net-entreprises (`moteur/commandes_dsn.py`,
 //! `cmd_depot_dsn`). La seule commande qui declare quelque chose avec `deposer-dpae`.
+//! Un mois `AAAA-MM` a la place du fichier : la DSN du mois, fabriquee a son depot depuis ses engagements valides
+//! (`depart::fabriquer_dsn`).
 //!
 //! LE DEPOT LUI-MEME EST `depot_acte::deposer_dsn_dans` : la commande lit, affiche, puis appelle -- et affiche ce qui est revenu.
 //! Les garde-fous sont ceux du moteur, jamais ceux de la commande :
@@ -131,6 +133,15 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     let environnement = args.texte("environnement").unwrap_or("production");
     let fichier = args.texte("fichier").unwrap_or("");
+    // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
+    let fabriquee;
+    let fichier = if est_un_mois(fichier) {
+        let dsn = crate::depart::fabriquer_dsn(&cadre.o, &cadre.ctx, fichier, "cli")?;
+        fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+        fabriquee.as_str()
+    } else {
+        fichier
+    };
     let chemin = crate::routes_apercus::resoudre(&cadre.racine, &json!(fichier))?;
     let octets = match crate::routes_apercus::lire_octets(&chemin) {
         Ok(o) => o,
@@ -243,4 +254,10 @@ fn dire_la_suite(fait: &DepotFait, reel: bool, apercu: &Apercu) {
     if reel && !apercu.est_signalement() {
         dire!("\nPuis, quelques jours plus tard, les attestations France Travail :\n\n  paie aer --mois {}", apercu.mois_lisible());
     }
+}
+
+/// `AAAA-MM` : un mois, pas un fichier.
+fn est_un_mois(t: &str) -> bool {
+    let b = t.as_bytes();
+    b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())
 }
