@@ -847,6 +847,7 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
             Envoi::Dpae => 1,
             Envoi::Documents => 2,
             Envoi::Dsn => 3,
+            Envoi::Signalement => 4,
         };
         derniers.insert((sorte, d.mois.clone()), d);
     }
@@ -871,6 +872,8 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
                     out.push(ARefaire::Dpae { depuis: d.version, debut_declare: avant });
                 }
             }
+            // Un signalement (arret, reprise, fin de contrat) part sur sa version ; il ne porte pas de paie.
+            Envoi::Signalement => {}
             Envoi::Documents | Envoi::Dsn => {
                 let Some(m) = d.mois.as_deref() else { continue };
                 if paie(passee, m) != paie(&actuelle, m) {

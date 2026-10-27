@@ -348,6 +348,17 @@ fn archiver_reponse(ctx: &Contexte, quoi: &str, mois: &str, reponse: &str) -> R<
     }
 }
 
+/// LES ENGAGEMENTS QU'UN SIGNALEMENT COUVRE : un signalement porte un individu, un contrat, un evenement
+/// (`signalement`) ; l'engagement du mois de son evenement (`evenement`, AAAA-MM-JJ) dont il cite le numero
+/// (S21.G00.40.009), a sa version (`journal::versions_du_mois`).
+fn versions_du_signalement(ctx: &Contexte, evenement: &str, octets: &[u8]) -> R<Value> {
+    let Some(mois) = evenement.get(..7) else { return Ok(json!([])) };
+    let texte = String::from_utf8_lossy(octets);
+    let numeros: Vec<String> =
+        texte.lines().filter_map(|l| l.strip_prefix("S21.G00.40.009,")).map(|v| v.trim().trim_matches('\'').to_string()).collect();
+    crate::journal::versions_du_mois(ctx, mois, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
+}
+
 /// `journal.noter` : ajoute la ligne et la rend.
 #[allow(clippy::too_many_arguments)]
 fn noter(
@@ -779,10 +790,15 @@ pub fn deposer_dsn_dans(
         "repetition": repetition, "ordre_test": ordre_test,
         "etablissement": apercu.champ("etablissement"),
     });
-    // LA PAIE DECLAREE : la version de chaque engagement du mois sur laquelle la mensuelle part ; une paie qui change
-    // ensuite appelle un annule-et-remplace (`engagement::etats::a_refaire`).
-    let versions = if apercu.est_signalement() { None } else { Some(crate::journal::versions_du_mois(ctx, &mois, |_, _, _| true).map_err(Echec::from)?) };
-    let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, versions.as_ref())?;
+    // LA PAIE DECLAREE : la version de chaque engagement que la DSN emporte -- tous ceux du mois pour la mensuelle (une
+    // paie qui change ensuite appelle un annule-et-remplace, `engagement::etats::a_refaire`), ceux dont un signalement
+    // cite le contrat (S21.G00.40.009) dans le mois de son evenement.
+    let versions = if apercu.est_signalement() {
+        versions_du_signalement(ctx, &mois, &octets)?
+    } else {
+        crate::journal::versions_du_mois(ctx, &mois, |_, _, _| true).map_err(Echec::from)?
+    };
+    let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
     let quand = ligne.get("quand").and_then(Value::as_str).unwrap_or("").to_string();
     if reel && apercu.est_signalement() {
         // LA TRACE SUR L'ARRET LUI-MEME : ce qui est parti, quand, avec quel numero d'ordre.

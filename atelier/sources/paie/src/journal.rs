@@ -162,6 +162,9 @@ pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
             Some("contrat-signature") => Envoi::Contrat,
             Some("dpae") => Envoi::Dpae,
             Some("documents") => Envoi::Documents,
+            Some("dsn") if l.get("detail").and_then(|d| d.get("nature")).and_then(Value::as_str).is_some_and(|n| crate::depot::SIGNALEMENTS.contains(&n)) => {
+                Envoi::Signalement
+            }
             Some("dsn") => Envoi::Dsn,
             _ => continue,
         };

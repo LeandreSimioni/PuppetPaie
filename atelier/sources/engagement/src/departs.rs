@@ -21,6 +21,8 @@ pub enum Envoi {
     Documents,
     /// La DSN mensuelle d'un mois.
     Dsn,
+    /// Un signalement d'evenement (DSN de nature 04, 05, 07 ou 08 : arret, reprise, fin de contrat) qui cite son contrat.
+    Signalement,
 }
 
 /// Un depart : quoi, pour quel mois (documents et DSN), sur quelle version de l'engagement, et quand.
