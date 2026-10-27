@@ -492,8 +492,8 @@ pub fn commande(args: &[String]) -> i32 {
             println!("Identite : {} (posee ; ses valeurs ne s'affichent pas). Tout depot reel y est refuse.", VARIABLE);
             println!();
             println!("La suite, avec PUPPETPAIE_DONNEES={} :", d);
-            println!("  paie mois paies/AAAA-MM.json       puis   paie depot-dsn sorties/AAAA-MM/<DSN>.dsn --test   puis   paie retours");
-            println!("  paie dpae paies/AAAA-MM.json       puis   paie deposer-dpae sorties/AAAA-MM/<DPAE>.txt --test");
+            println!("  paie mois AAAA-MM                  puis   paie depot-dsn sorties/AAAA-MM/<DSN>.dsn --test   puis   paie retours");
+            println!("  paie dpae AAAA-MM                  puis   paie deposer-dpae sorties/AAAA-MM/<DPAE>.txt --test");
             println!("(atelier/docs/COMPAGNIE-D-ESSAI.md : l'ordre d'un essai deja fait d'ailleurs, les signalements)");
             0
         }

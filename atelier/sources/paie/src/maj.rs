@@ -1345,7 +1345,7 @@ fn fichiers(code: &Path, rel: &Path, out: &mut Vec<PathBuf>) {
 
 /// Ce qu'une compagnie fictive porte sur un poste sans que ce soit la compagnie livree : ses secrets et son jeton (une
 /// fictive ouverte pose elle aussi un coffre), le journal de la fenetre. Ni l'archive ni le depot ne les portent (les memes
-/// exclusions que le `.gitignore` du depot public, « LES COMPAGNIES FICTIVES »), ni les paies calculees (`*.calcul.json`).
+/// exclusions que le `.gitignore` du depot public, « LES COMPAGNIES FICTIVES »).
 /// La marque d'une livraison (`LIVREE`) non plus : la livraison l'ajoute elle-meme.
 const HORS_D_UNE_FICTIVE_LIVREE: [&str; 6] =
     ["config/coffre.bin", "config/google-jeton.bin", "config/maj-cle-privee.bin", "config/.jeton-interface", "journal/interface.log", LIVREE];
@@ -1379,7 +1379,7 @@ fn fictives_livrees(code: &Path) -> R<Vec<PathBuf>> {
         fichiers(&e.path(), Path::new(""), &mut dans);
         for r in dans {
             let rs = r.to_string_lossy().replace('\\', "/");
-            if !HORS_D_UNE_FICTIVE_LIVREE.contains(&rs.as_str()) && !rs.ends_with(".calcul.json") {
+            if !HORS_D_UNE_FICTIVE_LIVREE.contains(&rs.as_str()) {
                 out.push(Path::new(&nom).join(r));
             }
         }
@@ -2260,14 +2260,13 @@ mod tests {
         let octets = archiver(&code, TOUT_SYSTEME).unwrap();
         assert!(archiver_installation(&code, TOUT_SYSTEME).unwrap_err().contains("aucune compagnie fictive"));
         une_fictive(&base);
-        // Ce qui est du poste et pas de la fictive livree : sa photo d'origine, ses secrets, sa paie calculee, le journal
+        // Ce qui est du poste et pas de la fictive livree : sa photo d'origine, ses secrets, le journal
         // de la fenetre ; et un dossier qui n'est pas une fictive.
         let f = base.join("fictives");
         for (rel, t) in [
             (".origine/fictive-essai/config/entreprise.json", "{}"),
             ("fictive-essai/config/coffre.bin", "scelle"),
             ("fictive-essai/journal/interface.log", "chemin du poste"),
-            ("fictive-essai/paies/2026-09.calcul.json", "{}"),
             ("pas-une-fictive/config/entreprise.json", "{}"),
         ] {
             std::fs::create_dir_all(f.join(rel).parent().unwrap()).unwrap();

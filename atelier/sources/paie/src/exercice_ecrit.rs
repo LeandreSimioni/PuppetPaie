@@ -611,11 +611,22 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
     std::fs::create_dir_all(&dossier).map_err(|e| en_os(&e, &dossier))?;
     let archive = dossier.join(format!("Exercice_{}.zip", annee));
     let mut entrees: Vec<Entree> = Vec::new();
+    // Les engagements qui touchent l'annee : le fichier de chacun de ses mois, et celui du mois ou commence un engagement
+    // qui court encore dans l'annee (un contrat commence l'annee d'avant).
+    let mut fichiers_engagements: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for m in &mois {
-        let s = engagement::stock::chemin(&ctx.racine, m);
-        if s.exists() {
-            entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::stock::DOSSIER, m))?);
+        fichiers_engagements.insert(m.clone());
+        for o in engagement::stock::objets_du_mois(&ctx.racine, m).map_err(refus)? {
+            fichiers_engagements.insert(o.fichier);
         }
+    }
+    for f in &fichiers_engagements {
+        let s = engagement::stock::chemin(&ctx.racine, f);
+        if s.exists() {
+            entrees.push(entree_fichier(&s, format!("{}/{}.json", engagement::stock::DOSSIER, f))?);
+        }
+    }
+    for m in &mois {
         let d = ctx.racine.join("sorties").join(m);
         if d.is_dir() {
             let mut fichiers = Vec::new();

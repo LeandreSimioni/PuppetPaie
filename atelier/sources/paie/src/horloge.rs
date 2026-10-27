@@ -615,9 +615,7 @@ fn l_annee(d: &HorlogeFictive, o: &HashMap<String, String>, annee: i32, jour: Jo
     let fin_janvier = Jour::nouveau(annee, 1, 31).ok_or_else(|| erreur("ValueError", "date impossible"))?;
     if jour >= fin_janvier {
         fait.extend(pas(d, &format!("exercice {} clos", precedente), &format!("{}T10:00:00", fin_janvier.iso()), |ctx| {
-            // UNE SAISIE, PAS UN CACHE (#236, banc du Petit Castelet) : `paies/2024-12.etat.json`, ecrit en fond quand on
-            // regarde decembre, faisait clore au banc un exercice vide que le rejeu, qui ne refait pas les lectures, ne
-            // clot pas. Les mois saisis sont ceux de `routes_mois::mois_saisis`.
+            // Une annee qui a des engagements se clot ; les mois saisis sont ceux de `routes_mois::mois_saisis`.
             let a_des_paies = crate::routes_mois::mois_saisis(&ctx.racine).iter().any(|m| m.starts_with(&format!("{}-", precedente)));
             if Moteur::nouveau(o, ctx).exercice_clos(&precedente.to_string())? || !a_des_paies {
                 return Ok(false);
@@ -795,7 +793,7 @@ mod tests {
         assert_eq!(m["_quoi"], QUOI);
     }
 
-    // ---------------------------------------------------------------- defaut 4 : horloge.json non objet, calcul.json
+    // ---------------------------------------------------------------- defaut 4 : horloge.json non objet
 
     #[test]
     fn un_horloge_json_qui_n_est_pas_un_objet_se_lit_comme_absent() {

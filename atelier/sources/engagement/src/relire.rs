@@ -68,7 +68,8 @@ fn drapeau(v: &Value, cle: &str) -> bool {
     v.get(cle).map_or(false, vrai)
 }
 
-/// Les engagements de la saisie `data`, construits sans rien chiffrer, puis ce que le calcul a pose dessus : le numero,
+/// Les engagements de la saisie `data`, construits sans rien chiffrer, puis ce que le calcul a pose dessus : le numero
+/// (quand l'engagement n'en porte pas),
 /// les jours du contrat, les suspensions, et, pour un permanent, les lignes que le moteur a deduites. `paies` : la forme
 /// ecrite de chaque paie, dans l'ordre de la saisie.
 pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Resultat<Vec<Engagement>> {
@@ -92,7 +93,10 @@ pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Res
     }
     for (e, p) in engs.iter_mut().zip(paies) {
         let v = p.get("engagement").ok_or("paie ecrite illisible : `engagement`")?;
-        e.numero = v.get("numero").filter(|n| !n.is_null()).map(en_texte);
+        // Le numero est celui de l'engagement, pose quand le contrat part ; une paie validee avant ne le porte pas.
+        if e.numero.as_deref().map_or(true, str::is_empty) {
+            e.numero = v.get("numero").filter(|n| !n.is_null()).map(en_texte);
+        }
         e.jours_contrat = v.get("jours_contrat").and_then(entier_de).ok_or("paie ecrite illisible : `jours_contrat`")?;
         e.suspensions = v.get("suspensions").and_then(Value::as_array).cloned().unwrap_or_default();
     }

@@ -21,7 +21,7 @@
 //!   `contexte::sans_accent` (Latin-1 et Latin etendu A), pas par la normalisation NFD complete
 //!   de Python : un accent hors de cette table (vietnamien, par exemple) n'est pas retire ;
 //! - les chiffres des motifs de date et de nom de fichier sont les chiffres ASCII ;
-//! - un mois saisi est un fichier `paies/AAAA-MM.json`, rien d'autre.
+//! - un mois saisi est un mois que des engagements touchent (`engagements/`).
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -40,7 +40,7 @@ use crate::fiche_recapitulative::Recapitulatifs;
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
 use socle::echec::Echec;
-use crate::routes_ouverture::{refus_du_calcul, Refus};
+use crate::routes_ouverture::Refus;
 
 type R<T> = Result<T, Refus>;
 
@@ -486,42 +486,38 @@ pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
     Ok(PaieCs { engagement: ContratCs::de(&p.engagement)?, brut: eur2(p.brut), salarie: p.salarie.clone() })
 }
 
-/// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Rend la
-/// paie du certificat et les mois du contrat absents du disque.
+/// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Les mois d'avant se lisent
+/// dans les paies que la validation de l'engagement a ecrites ; rien ne se recalcule. Rend la paie du certificat et les
+/// mois du contrat dont aucune paie n'est ecrite.
 fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> {
     let eng = &p.engagement;
     let cle = cle_de(p);
     let mois_du = eng.mois_du_contrat()?;
     let debut = eng.debut.iso();
-    let mut precedents: Vec<(String, Value)> = Vec::new();
-    for m in &mois_du {
-        if *m >= eng.mois {
-            break;
-        }
-        for (c, e) in engagement::engagements_du_mois(ctx, m)? {
-            if c == cle && engagement::debut_brut(&e) == debut {
-                precedents.push((m.clone(), e));
-            }
-        }
-    }
-    let presents: HashSet<&String> = precedents.iter().map(|(m, _)| m).collect();
-    let manquants: Vec<String> = mois_du.iter().filter(|m| **m < eng.mois && !presents.contains(m)).cloned().collect();
+    let objet = engagement::stock::objets_du_mois(&ctx.racine, &eng.mois)
+        .map_err(|m| avec("ValueError", m))?
+        .into_iter()
+        .find(|o| {
+            let e = Value::Object(o.brut.clone());
+            engagement::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle.as_str()) && engagement::debut_brut(&e) == debut
+        });
+    let ecrites = objet.as_ref().and_then(|o| o.brut.get("valide")).and_then(|v| v.get("paies"));
+    let mut manquants: Vec<String> = Vec::new();
     let mut lignes: Vec<Value> = Vec::new();
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
-    for (m, e) in &precedents {
-        let taux = e.get("taux_cachet").cloned().unwrap_or_else(|| json!(eng.taux_cachet));
-        let data = json!({"mois": m, "engagements": [e], "taux_cachet": taux});
-        let (_, sous) = {
-            let s = engagement::charger_donnees(ctx, &data).map_err(|msg| refus_du_calcul(ctx, &data, msg))?;
-            (s.mois, s.paies)
+    for m in mois_du.iter().filter(|m| **m < eng.mois) {
+        let Some(paie) = ecrites.and_then(|x| x.get(m)).and_then(|x| x.get("paie")) else {
+            manquants.push(m.clone());
+            continue;
         };
-        let sous = sous.into_iter().next().ok_or_else(|| avec("IndexError", socle::fichiers::trop_courte("la paie de l'engagement")))?;
+        let illisible = |k: &str| avec("ValueError", format!("{} : paie ecrite illisible : `{}`", m, k));
+        let e = paie.get("engagement").ok_or_else(|| illisible("engagement"))?;
         if let Some(Value::Array(l)) = e.get("lignes").filter(|l| vrai(l)) {
             lignes.extend(l.iter().cloned());
         }
-        bruts += eur2(sous.brut);
-        jours += sous.engagement.jours;
+        bruts += eur2(socle::num::dec(paie.get("brut").ok_or_else(|| illisible("brut"))?).map_err(|x| avec("ValueError", x))?);
+        jours += e.get("jours").map(valeur_en_texte).and_then(|j| j.trim().parse::<i64>().ok()).ok_or_else(|| illisible("jours"))?;
     }
     lignes.extend(eng.lignes.iter().cloned());
     // Le planning des mois passes a ete paye dans son mois : il ne compte pas deux fois.

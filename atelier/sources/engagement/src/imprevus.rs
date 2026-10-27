@@ -280,9 +280,15 @@ pub fn dernier_jour(imp: &Value) -> Resultat<Jour> {
 /// fin previsionnelle (S21.G00.60.003, p. 267). Un arret repris le 1er du mois n'a donc aucun jour commun avec ce mois.
 pub fn croise(imp: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
     if est_un_arret(imp) {
-        return Ok(d(g(imp, "dernier_jour_travaille"))? <= *fin && dernier_jour(imp)? >= *debut);
+        return arret_croise(imp, debut, fin);
     }
     Ok(premier_jour(imp)? <= *fin && dernier_jour(imp)? >= *debut)
+}
+
+/// La meme regle pour un arret de travail, qu'il dise son genre ou non (un arret de la DSN, `dsn::Arret`).
+pub fn arret_croise(arret: &Value, debut: &Jour, fin: &Jour) -> Resultat<bool> {
+    let dernier = if vrai(g(arret, "reprise")) { d(g(arret, "reprise"))?.plus_jours(-1)? } else { d(g(arret, "fin_previsionnelle"))? };
+    Ok(d(g(arret, "dernier_jour_travaille"))? <= *fin && dernier >= *debut)
 }
 
 /// Les imprevus d'un genre (ou de tous les genres) qui croisent le mois `AAAA-MM`.

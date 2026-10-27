@@ -201,9 +201,12 @@ fn un_taux_de_pas_recu_recalcule_la_paie_a_l_ouverture_et_le_dit() {
     assert!(paie_ecrite(&r, "2026-12").get("recalcul").is_none());
 }
 
+/// La raison d'un recalcul dit ce qui a change : la configuration de la compagnie, la saisie qu'il lit (un autre
+/// engagement), le code qui calcule. Les deux derniers se posent sur la paie ecrite : une empreinte d'un autre moteur, ou
+/// d'une autre saisie du mois, et un brut qui n'est plus celui du calcul.
 #[test]
-fn un_calcul_qui_change_se_dit_calcul_corrige() {
-    let r = compagnie("calcul-corrige");
+fn la_raison_d_un_recalcul_dit_ce_qui_a_change() {
+    let r = compagnie("raisons");
     a_cheval(&r);
     reussi(&valider(&r, "2026-11", "BRIOCHE", "2026-11-28", true));
     let avant = paie_ecrite(&r, "2026-11");
@@ -213,7 +216,16 @@ fn un_calcul_qui_change_se_dit_calcul_corrige() {
     ouvrir(&r, "2026-11");
     let apres = paie_ecrite(&r, "2026-11");
     assert_ne!(apres["paie"]["cout_employeur"], avant["paie"]["cout_employeur"]);
-    assert_eq!(apres["recalcul"]["raison"], json!(engagement::etats::CALCUL_CORRIGE));
+    assert_eq!(apres["recalcul"]["raison"], json!(engagement::etats::CONFIGURATION));
+    for (entree, raison) in [("saisie 2026-11", engagement::etats::AUTRE_ENGAGEMENT), ("moteur", engagement::etats::CALCUL_CORRIGE)] {
+        let mut f = fichier(&r, "2026-11");
+        let p = &mut f["engagements"][0]["valide"]["paies"]["2026-11"];
+        p["empreinte"]["entrees"][entree] = json!("autre");
+        p["paie"]["brut"] = json!("1.00");
+        ecrire(&r, "engagements/2026-11.json", &f);
+        ouvrir(&r, "2026-11");
+        assert_eq!(paie_ecrite(&r, "2026-11")["recalcul"]["raison"], json!(raison), "{}", entree);
+    }
 }
 
 #[test]
@@ -258,6 +270,10 @@ fn modifier_un_engagement_dont_les_documents_sont_partis_pose_la_question_du_mot
     assert_eq!(rendu["classe"], json!(paie::routes_ecritures_g4::CLASSE_DOCUMENTS_PARTIS));
     assert_eq!(rendu["erreur"], json!(engagement::etats::QUESTION_DOCUMENTS_PARTIS));
     assert_eq!(std::fs::read(r.join("engagements/2026-11.json")).unwrap(), avant, "rien ne bouge sans la reponse");
+    // Depuis decembre aussi : la question porte sur tous les mois de l'engagement.
+    let depuis_decembre = valider(&r, "2026-12", "BRIOCHE", "2026-11-28", false);
+    assert_eq!(depuis_decembre["classe"], json!(paie::routes_ecritures_g4::CLASSE_DOCUMENTS_PARTIS), "{}", depuis_decembre);
+    assert_eq!(std::fs::read(r.join("engagements/2026-11.json")).unwrap(), avant);
     // Avec la reponse : en saisie, et la paie partie se garde.
     let partie = paie_ecrite(&r, "2026-11");
     reussi(&route(&r, "valider-engagement", json!({"mois": "2026-11", "salarie": "BRIOCHE", "debut": "2026-11-28", "valide": false, "confirme": true})));

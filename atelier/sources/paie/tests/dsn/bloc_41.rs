@@ -157,7 +157,7 @@ fn un_avenant_de_temps_de_travail_ecrit_41_007_et_41_008_en_deux_blocs() {
     );
     deposer(&racine, "2026-08", "DSN_Aout2026.dsn", &aout);
     // Septembre : retour a temps plein (151,67 h) par avenant au 01/09.
-    retoucher_saisie(&racine, "2026-09", "Dorval", json!({"date_modification": "2026-09-01"}));
+    retoucher_saisie(&racine, "2026-09", "Dorval", json!({"quotite_contrat": 151.67, "date_modification": "2026-09-01"}));
     let d = individu(&dsn(&racine, "2026-09").unwrap(), "DORVAL");
     assert_eq!((valeur(&d, "S21.G00.40.013"), valeur(&d, "S21.G00.40.014")), ("151.67".into(), "10".into()));
     assert_eq!(

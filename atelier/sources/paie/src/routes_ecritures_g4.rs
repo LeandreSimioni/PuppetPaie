@@ -180,8 +180,7 @@ pub(crate) fn contrat_recu_avec(
     qui: &str,
     courriel: Option<&Map<String, Value>>,
 ) -> R<Value> {
-    // Le Python calcule sans rien ecrire (`charger`) : `cache = false`, `paies/AAAA-MM.calcul.json` n'est ni lu ni ecrit
-    // (reste 163 : il etait ecrit puis remis tel qu'il etait).
+    // Les paies telles que la DSN les a declarees, sans rien ecrire.
     let paies = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
     // LE CONTRAT, pas le salarie : `numero` est celui sous lequel le journal le connait (la releve), ou celui que l'ecran affiche.
     let numero = numero.filter(|n| !n.is_empty());

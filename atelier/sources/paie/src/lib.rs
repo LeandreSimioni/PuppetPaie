@@ -1,6 +1,6 @@
 //! Le moteur de PuppetPaie au-dessus du socle et du droit (`socle`, `droit`).
 //!
-//! Le chemin, de bout en bout : un fichier de mois (`paies/AAAA-MM.json`) -> `engagement` (les contrats, et leurs
+//! Le chemin, de bout en bout : les engagements (`engagements/AAAA-MM.json`) -> `engagement` (les contrats, et leurs
 //! refus) -> `calcul` (la paie, au centime) -> `bulletin` (la description) -> la fabrique (`fabrique-pdf`, le PDF) ;
 //! et, depuis les paies, la DSN, la DPAE, les envois.
 //!

@@ -213,6 +213,10 @@ fn compagnie_pas_nul(test: &str, dgfip: bool) -> PathBuf {
         });
     }
     std::fs::write(&chemin, serde_json::to_vec_pretty(&pas).unwrap()).unwrap();
+    // Les documents de juillet ne sont pas encore partis : ses paies validees se recalculent au taux recu.
+    let mut journal = outils::lire(&racine, "journal/depots.json");
+    journal.as_array_mut().unwrap().retain(|l| !(l["quoi"] == json!("documents") && l["mois"] == json!("2026-07")));
+    outils::ecrire(&racine, "journal/depots.json", &journal);
     if dgfip {
         let f = racine.join("sorties/2026-07/DSN_Juillet2026.dsn");
         let t = String::from_utf8_lossy(&std::fs::read(&f).unwrap()).into_owned();

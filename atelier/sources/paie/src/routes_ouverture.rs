@@ -118,8 +118,7 @@ fn texte_ou_vide(v: &Value, cle: &str) -> String {
     }
 }
 
-/// Les entrees d'un dossier dont le nom finit par `.json` (`glob("*.json")`,
-/// qui prend aussi les `.calcul.json`).
+/// Les entrees d'un dossier dont le nom finit par `.json`.
 fn entrees(dossier: &Path) -> Vec<(String, PathBuf)> {
     let mut v: Vec<(String, PathBuf)> = match std::fs::read_dir(dossier) {
         Ok(l) => l
@@ -492,8 +491,7 @@ pub(crate) fn premier_mois_declarable(st: &Etat) -> Option<String> {
     if !embauche.is_empty() {
         return Some(embauche);
     }
-    // Une saisie, pas un cache qu'une lecture a laisse (`AAAA-MM.etat.json`) : le rejeu d'un banc ne refait pas les
-    // lectures (#236).
+    // Une compagnie qui a deja des engagements a deja declare.
     if !crate::routes_mois::mois_saisis(st.racine()).is_empty() {
         return None;
     }
@@ -1153,6 +1151,7 @@ pub(crate) fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i3
         let sans_paie = p.engagement.sans_paie();
         let sans_numero = p.engagement.numero.as_deref().map_or(true, str::is_empty);
         if sans_numero {
+            engagement::refus_sans_numero(ctx, &p.engagement)?;
             let cle = format!("contrat_{}", manque(&sal, "_cle")?);
             let seq = match seqs.iter().find(|(k, _)| *k == cle) {
                 Some((_, s)) => s + 1,

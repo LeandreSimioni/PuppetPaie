@@ -284,7 +284,7 @@ fn emploi_declare(p: &Paie) -> (String, String, String) {
     (txt(g(s, "pcs_ese")), txt(g(s, "code_emploi_ft")), txt(g(s, "emploi")))
 }
 
-/// Les contrats enregistres d'une periode de paie (`paies/AAAA-MM.json`, sans montants) ; rien si le mois n'a pas de
+/// Les contrats enregistres d'une periode de paie (les engagements du mois, sans montants) ; rien si le mois n'a pas de
 /// saisie. Ils completent ceux qu'une declaration porte : la DSN d'un etablissement ne porte pas les contrats d'un
 /// autre, un signalement n'en porte qu'un.
 pub(crate) fn contrats_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
@@ -367,9 +367,9 @@ impl Arret {
         txt(g(&self.v, k))
     }
 
-    /// Une periode commune avec [debut, fin] : la regle du bloc 60 (`imprevus::croise`).
+    /// Une periode commune avec [debut, fin] : la regle du bloc 60 (`imprevus::arret_croise`).
     pub fn couvre(&self, debut: &Jour, fin: &Jour) -> Resultat<bool> {
-        engagement::imprevus::croise(&self.v, debut, fin)
+        engagement::imprevus::arret_croise(&self.v, debut, fin)
     }
 
     /// L'arret suspend-il le contrat de cette paie ? La regle des imprevus (`imprevus::du_contrat`) : le meme salarie, la
@@ -569,7 +569,7 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
             out.insert("t1_mensuelle_x115".into(), *x);
         }
     }
-    // Un calcul d'intermittent stocke avant le point 22 (celui d'un mois parti, que `calcul_du_mois` garde tel quel) n'a
+    // Une paie d'intermittent ecrite avant le point 22 (celle d'un mois parti, qui ne se recalcule plus) n'a
     // pas ces cles : le moteur qui l'a fait assiait la vieillesse plafonnee, le FNAL et le chomage sur le brut entier, et
     // c'est ce que son bulletin a retenu. On relit ce calcul-la, on ne le refait pas.
     if !p.engagement.nat()?.mensuelle() && !b.contains_key("brut_plafonne") {

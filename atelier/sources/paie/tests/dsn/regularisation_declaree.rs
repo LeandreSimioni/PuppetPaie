@@ -842,13 +842,16 @@ fn un_contrat_paye_ce_mois_et_corrige_porte_des_numeros_de_versement_distincts()
     // courant : deux blocs 50 numerotes 01 sous le meme individu.
     let r = copie("numero-de-versement");
     corriger_juillet(&r);
+    // Le contrat se prolonge : sa fin passe au 09/10, et octobre porte ses jours.
+    let mut juillet = crate::outils::saisie(&r, "2026-07");
+    let e = juillet["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(CONTRAT)).unwrap();
+    e["fin"] = json!("2026-10-09");
+    crate::outils::poser_saisie(&r, "2026-07", &juillet);
     let mut saisie = crate::outils::saisie(&r, "2026-10");
-    saisie["engagements"].as_array_mut().unwrap().push(json!({
-        "salarie": "Servandoni", "spectacle": "266Z00910022", "debut": "2026-07-02", "fin": "2026-10-09",
-        "date_paiement": "2026-10-09", "numero": CONTRAT,
-        "lignes": [{"rubrique": "heure", "quantite": 32, "taux": 18.0, "lieu": "Theatre fictif de Saumur",
-                    "dates": ["2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"]}]
-    }));
+    let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(CONTRAT)).expect("octobre montre le contrat prolonge");
+    e["date_paiement"] = json!("2026-10-09");
+    e["lignes"] = json!([{"rubrique": "heure", "quantite": 32, "taux": 18.0, "lieu": "Theatre fictif de Saumur",
+                          "dates": ["2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"]}]);
     crate::outils::poser_saisie(&r, "2026-10", &saisie);
     crate::outils::tout_valider(&r, "2026-10", JOUR);
     octobre_pret(&r);
@@ -1260,6 +1263,7 @@ fn un_contrat_qui_n_a_pas_eu_lieu_se_corrige_a_zero() {
     for l in saisie["engagements"][rang]["lignes"].as_array_mut().unwrap() {
         l["quantite"] = json!(0);
     }
+    crate::outils::remettre_en_saisie(&r, "2026-07", Some(CONTRAT));
     let w = route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": true}));
     assert_eq!(w["ok"], json!(true), "{}", w);
     let d = route_le(&r, JOUR, "regularisation-mois", json!({"mois": "2026-07"}));
@@ -1387,6 +1391,7 @@ fn changer_les_dates_de_juillet(r: &Path, debut: &str, fin: &str, jours: &[&str]
     e["date_paiement"] = json!(fin);
     e["lignes"][0]["dates"] = json!(jours);
     e["lignes"][0]["quantite"] = json!(8 * jours.len());
+    crate::outils::remettre_en_saisie(r, "2026-07", Some(CONTRAT));
     let ecrire = |confirme: bool| route_le(r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": saisie, "modifier_apres_echeance": confirme}));
     assert_eq!(ecrire(false)["classe"], json!("ModificationApresEcheance"));
     let w = ecrire(true);
@@ -1562,7 +1567,11 @@ fn contrat_a_cheval(test: &str) -> (PathBuf, String) {
         .to_string();
     remettre_les_depots(&r, depots_juillet);
     let mut aout = crate::outils::saisie(&r, "2026-08");
-    aout["engagements"].as_array_mut().unwrap().push(servandoni_a_cheval(Some(&numero), &AOUT_A_CHEVAL));
+    // Le contrat de juillet court en aout : l'ecran d'aout le montre, ses jours d'aout s'y posent.
+    let e = aout["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(numero)).expect("aout montre le contrat de juillet");
+    let a_cheval = servandoni_a_cheval(Some(&numero), &AOUT_A_CHEVAL);
+    e["lignes"] = a_cheval["lignes"].clone();
+    e["date_paiement"] = a_cheval["date_paiement"].clone();
     crate::outils::poser_saisie(&r, "2026-08", &aout);
     crate::outils::tout_valider(&r, "2026-08", "2026-09-05");
     let rep = produire_le(&r, "2026-08", "2026-09-05");
@@ -1578,6 +1587,7 @@ fn changer_le_contrat(r: &Path, mois: &str, numero: &str, changer: &dyn Fn(&mut 
     let mut s = crate::outils::saisie(r, &mois);
     let e = s["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(numero)).unwrap();
     changer(e);
+    crate::outils::remettre_en_saisie(r, mois, Some(numero));
     let w = route_le(r, JOUR, "enregistrer-saisie", json!({"mois": mois, "saisie": s, "modifier_apres_echeance": true}));
     assert_eq!(w["ok"], json!(true), "{}", w);
 }
@@ -1688,6 +1698,7 @@ fn des_dates_qui_sortent_le_contrat_d_un_mois_saisi_se_refusent() {
     let mut s = crate::outils::saisie(&r, "2026-07");
     let e = s["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == json!(numero)).unwrap();
     e["fin"] = json!("2026-07-31");
+    crate::outils::remettre_en_saisie(&r, "2026-07", Some(&numero));
     let w = route_le(&r, JOUR, "enregistrer-saisie", json!({"mois": "2026-07", "saisie": s, "modifier_apres_echeance": true}));
     assert_eq!(w["classe"], json!("ModificationNonDeclarable"), "{}", w);
     assert!(w["erreur"].as_str().unwrap().contains("Retirez d'abord ses jours d'août 2026"), "{}", w);

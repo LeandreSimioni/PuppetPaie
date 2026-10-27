@@ -390,11 +390,12 @@ impl<'a> Moteur<'a> {
 
     /// `engagement.numeroter`, la part des numeros de CONTRAT : un engagement
     /// qui porte deja son numero le garde ; les autres prennent la suite du
-    /// compteur, en memoire (rien n'est reserve ni ecrit).
+    /// compteur, en memoire (rien n'est reserve ni ecrit). Un mois qui n'est pas le premier du contrat n'en recoit pas :
+    /// son numero est celui de l'engagement, pose quand le contrat part (`engagement::refus_sans_numero`).
     fn numeroter(&mut self, paies: &mut [Paie], annee: i32) -> R<()> {
         let mut seqs: HashMap<String, i64> = HashMap::new();
         for p in paies.iter_mut() {
-            if p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
+            if p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) || !p.engagement.premier_mois().map_err(plain)? {
                 continue;
             }
             let s = &p.salarie;
@@ -1209,22 +1210,58 @@ impl<'a> Moteur<'a> {
     /// `mois_a_ouvrir` : le plus ancien mois passe dont une etape n'est pas
     /// verte, sinon le mois du calendrier.
     pub fn mois_a_ouvrir(&mut self) -> R<Value> {
-        // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
-        // permanent y relisent les paies des mois d'avant (`conges::paies_du_mois_memorisees`) ; sans elle, chaque mois les
-        // recalculait toutes. Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
-        let _derivation = engagement::conges::Derivation::ouvrir();
         let courant = self.ctx.aujourdhui.mois_iso();
         for m in mois_saisis(self.racine()) {
             if m >= courant || self.exercice_clos(&m)? {
                 continue;
             }
-            let bilan = self.bilan_du_mois(&m)?;
-            let reste: Vec<&String> = bilan.as_object().unwrap().iter().filter(|(_, v)| !est(&v["couleur"], "bien")).map(|(k, _)| k).collect();
+            let reste = self.etapes_restantes(&m)?;
             if !reste.is_empty() {
                 return Ok(json!({"mois": m, "courant": courant, "reste": reste}));
             }
         }
         Ok(json!({"mois": courant, "courant": courant, "reste": []}))
+    }
+
+    /// LES ETAPES QUI RESTENT A UN MOIS PASSE, d'apres le journal et les engagements seuls : `mois_a_ouvrir` parcourt
+    /// tous les mois passes, il ne refait pas l'etat complet de chacun (`bilan_du_mois`, qui calcule et compare). Une
+    /// etape reste quand ce qu'elle fait partir n'est pas parti : la DPAE de chaque embauche du mois passee, le contrat
+    /// de chaque embauche sur un spectacle revenu signe, les documents de chaque salarie du mois envoyes (un engagement
+    /// encore en saisie n'en a pas), la DSN du mois passee. Un mois tenu avant ce logiciel dit les siennes
+    /// (`mois_importe`).
+    fn etapes_restantes(&mut self, mois: &str) -> R<Vec<String>> {
+        if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
+            let b = crate::mois_importe::etapes(&vue);
+            return Ok(b.as_object().into_iter().flatten().filter(|(_, v)| !est(&v["couleur"], "bien")).map(|(k, _)| k.clone()).collect());
+        }
+        let vue = engagement::stock::vue_du_mois(self.racine(), mois).map_err(plain)?.unwrap_or(Value::Null);
+        let engs: Vec<Value> = vue.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+        let lignes = self.lignes()?;
+        let g = self.globales()?;
+        let en_saisie: Vec<bool> = engagement::etats::du_mois(self.ctx, mois).map_err(plain)?.iter().map(|e| e.valide().is_none()).collect();
+        let contrats: Vec<Cle3> = engs
+            .iter()
+            .map(|e| {
+                let cle = engagement::cle_de_l_engagement(self.ctx, e).unwrap_or_default();
+                (cle, engagement::debut_brut(e), e.get("numero").filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default())
+            })
+            .collect();
+        let cles = etats::cles_des_paies(&lignes, &contrats)?;
+        let docs = etats::documents_partis(&lignes, mois)?;
+        let (mut dpae, mut signature, mut documents) = (true, true, true);
+        for (i, e) in engs.iter().enumerate() {
+            let (cle, debut, _) = &contrats[i];
+            if debut.starts_with(mois) {
+                dpae &= g.dpae.get(&(cle.clone(), debut.clone())).is_some_and(|v| vrai(&v["passee"]));
+                if vrai(e.get("spectacle").unwrap_or(&Value::Null)) {
+                    signature &= premier(&g.recus, &cles[i]).is_some_and(vrai);
+                }
+            }
+            documents &= !en_saisie.get(i).copied().unwrap_or(true) && docs.contains_key(cle);
+        }
+        let d = self.dsn_du_mois(mois)?;
+        let dsn = vrai(&d) && vrai(get(&d, "passee")?) && !vrai(get(&d, "refusee")?);
+        Ok([(DPAE, dpae), (SIGNATURE, signature), (DOCUMENTS, documents), (DSN, dsn)].into_iter().filter(|(_, fait)| !fait).map(|(k, _)| k.to_string()).collect())
     }
 
     /// `embauches_a_declarer` : les contrats dont la DPAE n'est pas encore partie.

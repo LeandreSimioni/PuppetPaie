@@ -9,8 +9,7 @@
 //! (`historique/engagements.json`). Un etat qui refuse en `ErreurOperation` (rien sur la periode,
 //! un mois qui ne se calcule pas) est LAISSE DE COTE ; tout autre refus remonte, comme en Python.
 //!
-//! Ecart voulu : un mois saisi est un fichier `paies/AAAA-MM.json`, rien d'autre (le Python prenait
-//! aussi `2026-09.calcul.json` pour un mois « 2026-09.calcul »).
+//! Un mois saisi est un mois que des engagements touchent (`engagements/`).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;

@@ -4,8 +4,7 @@
 //! C'est le Python de `operations_regularisation.apercu_correction` et de ce qu'il appelle
 //! (`etat_mois`, `engagements_d_origine`, `_engagement_declare`, `_paie_d_un_engagement`,
 //! `_poser_numeros`, `numeros_declares`, `_dsn_deposees`, `lire_corrections`, `_normaliser`,
-//! `_resume`), porte a l'identique : meme JSON, memes refus. La seule ecriture est celle du cache du
-//! calcul du mois (`calcul_du_mois`), comme pour les autres apercus.
+//! `_resume`), porte a l'identique : meme JSON, memes refus.
 
 use std::collections::HashMap;
 use std::path::PathBuf;

@@ -306,7 +306,7 @@ pub fn elaguer(scenario: &Path, vers: &Path) -> Result<(usize, usize), String> {
 /// Ce qu'une comparaison de deux compagnies ne regarde pas : les caches que la fenetre refait en fond, son journal, l'etape
 /// en cours d'un passage de la veille.
 fn hors_comparaison(rel: &str) -> bool {
-    rel == "journal/interface.log" || rel.ends_with(".etat.json") || rel.ends_with(".calcul.json") || rel.ends_with(crate::ouverture::ETAPE)
+    rel == "journal/interface.log" || rel == "ouverture.etat.json" || rel.ends_with(crate::ouverture::ETAPE)
 }
 
 /// Les fichiers d'une compagnie, relatifs (barres droites), hors caches.
@@ -498,8 +498,7 @@ mod enregistreur {
     /// Ce qu'une empreinte de la compagnie ne regarde pas : les caches que la fenetre refait en fond, et son journal.
     fn hors_empreinte(rel: &str) -> bool {
         rel == "journal/interface.log"
-            || rel.ends_with(".etat.json")
-            || rel.ends_with(".calcul.json")
+            || rel == "ouverture.etat.json"
             || rel.ends_with(crate::ouverture::ETAPE)
             || rel.ends_with(".verrou")
     }

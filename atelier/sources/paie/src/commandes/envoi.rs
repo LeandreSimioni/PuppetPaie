@@ -13,7 +13,7 @@
 //! `qui` : `ligne de commande` -- le Python n'ecrivait pas dans le journal ici (`envoi.envoyer` seul) ; la route le fait, avec ce
 //! `qui` (point douteux de la passation).
 //!
-//! La commande ne lit que `paies/AAAA-MM.json` des donnees (le Python lisait n'importe quel chemin). Rien ne s'enchaine a `mois`.
+//! La commande lit le mois (`AAAA-MM`, ou `engagements/AAAA-MM.json`) des donnees. Rien ne s'enchaine a `mois`.
 //!
 //! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : une saisie incomplete, une fiche sans adresse, un fichier introuvable donnaient
 //! une trace d'appels. Ici : `! phrase`, code 2. Le texte propose `paie mois ...`.

@@ -93,7 +93,7 @@ lue — on n'en a pas besoin.
 8 et 10 : 507 h sur 12 mois, un cachet = 12 h) se comptent sur tout ce que la
 compagnie a déclaré, et `paie droits` comme le bloc de cumul du
 bulletin lisent **une seule source, la nôtre** : l'historique importé, puis
-nos fichiers de paie. Un mois qui a son fichier dans `paies/` est lu là, et
+nos engagements. Un mois qui a des engagements dans `engagements/` est lu là, et
 l'historique se tait pour ce mois-là — pendant un double run, rien n'est
 compté deux fois. Une fois l'import fait, le logiciel n'a plus besoin du
 dossier `import/` : il lit ses copies.
@@ -196,10 +196,11 @@ passe du logiciel retapé à chaque acte.
 paie nouveau 2026-10
 ```
 
-Éditer `paies/2026-10.json` (noms, dates, spectacle), puis :
+Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : noms, dates, spectacle) et les valider
+(« Valider l'engagement »), puis :
 
 ```bash
-paie mois paies/2026-10.json
+paie mois 2026-10
 ```
 
 Sortie dans `sorties/2026-10/` :
@@ -219,7 +220,7 @@ envoyées.
 Puis, pour envoyer aux salariés :
 
 ```
-paie envoi paies/2026-10.json
+paie envoi 2026-10
 ```
 
 Un message par salarié — bulletin, certificat Congés Spectacles et AER France Travail —
@@ -527,7 +528,7 @@ travaillé**, donc bien avant la paie. Elle se produit seule, sans montant
 Urssaf et sans consommer de numéro de bulletin :
 
 ```bash
-paie dpae paies/2026-09.json --heure 0800
+paie dpae 2026-09 --heure 0800
 ```
 
 Elle dit, pour chaque contrat, si le délai est tenu — la DPAE ne s'envoie que
@@ -735,7 +736,7 @@ déclaration de revenus l'année suivante. D'où l'appel de taux, ci-dessus.
 
 Ce module **ne dépose rien** : il n'a aucune fonction d'envoi. Pour produire une
 DSN en envoi de test (`S10.G00.00.005 = 01`, données non conservées) :
-`paie mois paies/2026-09.json --test`.
+`paie mois 2026-09 --test`.
 
 ## Un arrêt de travail
 
@@ -1191,20 +1192,23 @@ tant qu'il manque, ce sont ses références d'adhésion (`config/organismes.json
 ### Un contrat sur plusieurs mois
 
 Un CDDU signé une fois pour une tournée d'octobre à décembre est **un seul
-contrat, saisi dans chacun de ses mois**. Chaque fichier de mois reste
-autonome : il porte les cachets joués ce mois-là, et le contrat entier par
-ses bornes — `debut`, `fin`, et, dès le deuxième mois, le `numero` que le
-premier a déclaré :
+engagement**, dans le fichier du mois où il commence. Son premier mois est
+écrit en clair ; chaque mois d'après n'écrit, sous `mois_suivants`, que ce
+qu'il change (ses cachets) ; les bornes et le numéro sont ceux du contrat
+entier :
 
 ```json
-paies/2026-10.json   { "salarie": "Celi", "spectacle": "aaah zerbinette",
-                       "debut": "2026-10-12", "fin": "2026-12-20",
-                       "lignes": [ …les cachets d'octobre… ] }
-paies/2026-11.json   { "salarie": "Celi", "spectacle": "aaah zerbinette",
-                       "debut": "2026-10-12", "fin": "2026-12-20",
-                       "numero": "FA1.26.14",
-                       "lignes": [ …les cachets de novembre… ] }
+engagements/2026-10.json   { "salarie": "Celi", "spectacle": "aaah zerbinette",
+                             "debut": "2026-10-12", "fin": "2026-12-20",
+                             "numero": "FA1.26.14",
+                             "lignes": [ …les cachets d'octobre… ],
+                             "mois_suivants": {
+                               "2026-11": { "lignes": [ …les cachets de novembre… ] },
+                               "2026-12": { "lignes": [ …ceux de décembre… ] } } }
 ```
+
+L'écran de novembre le montre avec les cachets de novembre ; « Valider
+l'engagement » écrit une paie par mois couvert.
 
 Le rôle du mois se **déduit** des dates, il ne se saisit pas :
 
@@ -1218,16 +1222,13 @@ La DSN déclare le même bloc contrat chaque mois (début, numéro, fin
 prévisionnelle : ce sont ses identifiants), la période de paie bornée au
 mois, et la fin de contrat le dernier mois seulement. Le certificat Congés
 Spectacles du dernier mois additionne les cachets et le brut de tous les
-mois du contrat, lus dans les fichiers précédents — le seul regard en
-arrière du moteur.
+mois du contrat, lus dans les paies validées de l'engagement — le seul
+regard en arrière du moteur.
 
-**Le numéro se fige à la production** : `produire_mois` réécrit `numero`
-dans chaque engagement du fichier produit et pose `numeros_figes: true`.
-Le mois suivant le recopie (`paie nouveau 2026-11 --reprendre`
-écrit les contrats en cours dans le fichier neuf, bornes et numéro, à
-compléter avec les jours ; dans l'interface, « + reprendre un contrat en
-cours »). Un mois du milieu dont le premier mois n'a pas été produit est
-refusé : sans numéro connu, le moteur en tirerait un autre.
+**Le numéro se pose sur l'engagement** quand le contrat part à la signature,
+ou avec les documents de son premier mois, et se relit dans tous ses mois.
+Un mois qui n'est pas le premier ne se numérote pas : sans numéro connu, le
+moteur en tirerait un autre, il refuse.
 
 **Le planning.** Une ligne de paie peut porter, sous `planning`, les jours
 des mois *suivants* cochés d'avance — dans l'interface, le calendrier d'une
@@ -1270,7 +1271,7 @@ signature.
    DSN de CoolPaie retrouvées au centime. Rien à recopier :
 
    ```
-   paie mois paies/2026-09.json
+   paie mois 2026-09
    ```
 
    La commande **ferme le mois** : elle refuse (`MoisPasPret`) tant que la DPAE
@@ -1479,8 +1480,8 @@ Quatre choses à savoir :
   fait foi ;
 - chaque ligne porte **d'où elle vient** (colonne `Source`), parce qu'il y a
   deux sources et qu'elles n'ont pas les mêmes colonnes :
-  - **saisie** — le mois a son fichier dans `paies/`. Les bulletins sont
-    recalculés au centime, et toutes les colonnes sont remplies ;
+  - **saisie** — le mois a des engagements validés dans `engagements/`. Les bulletins sont
+    relus des paies validées, et toutes les colonnes sont remplies ;
   - **DSN déposée** — le mois est antérieur à PuppetPaie. C'est ce que la DSN
     a déclaré avoir versé, importé de CoolPaie dans
     `historique/paies.json` : brut, net imposable, net à payer, PAS. **Une
@@ -1864,7 +1865,7 @@ atelier/                  ← ce dossier : tout le reste
 prive/                    les données de la compagnie
   config/                 entreprise, salariés, spectacles, barèmes, compteurs,
                           effectifs (écrit par le moteur)
-  paies/                  fichiers de saisie, un par mois
+  engagements/            les engagements, dans le fichier du mois où chacun commence
   imprevus/               les imprévus des salariés (arrêts de travail,
                           suspensions), au mois où ils commencent (créé au
                           premier) ; l'ancien dossier arrets/ n'est plus lu

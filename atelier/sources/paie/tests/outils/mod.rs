@@ -261,17 +261,46 @@ pub fn saisie(racine: &Path, mois: &str) -> Value {
     v
 }
 
-/// Ecrit la saisie de `mois` comme l'ecran l'enregistre (`engagement::stock::ecrire_vue_du_mois`), apres avoir remis en
-/// saisie les engagements valides du mois (« Modifier… ») : ce qu'un test retouche s'ecrit.
-pub fn poser_saisie(racine: &Path, mois: &str, v: &Value) {
+/// « Modifier… » pour les engagements valides de `mois` (`numero` : celui de ce contrat seulement) : ils repassent en
+/// saisie, et ce que l'ecran enregistre ensuite s'ecrit.
+pub fn remettre_en_saisie(racine: &Path, mois: &str, numero: Option<&str>) {
     let ctx = droit::contexte::Contexte::nouveau(racine, None).unwrap();
     let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
     for (i, o) in objets.iter().enumerate() {
-        if o.est_valide() {
+        let son_numero = o.brut.get("numero").and_then(Value::as_str);
+        if o.est_valide() && numero.map_or(true, |n| son_numero == Some(n)) {
+            engagement::etats::modifier(&ctx, mois, i).unwrap();
+        }
+    }
+}
+
+/// Ecrit la saisie de `mois` comme l'ecran l'enregistre (`engagement::stock::ecrire_vue_du_mois`) : chaque engagement
+/// valide que `v` change repasse d'abord en saisie (« Modifier… »), puis tout engagement du mois en saisie se valide
+/// comme l'ecran (« Valider l'engagement ») : ce qu'un test retouche s'ecrit, et part. Un engagement dont le calcul
+/// refuse reste en saisie.
+pub fn poser_saisie(racine: &Path, mois: &str, v: &Value) {
+    let ctx = droit::contexte::Contexte::nouveau(racine, None).unwrap();
+    let sans_validation = |e: &Value| {
+        let mut e = e.clone();
+        if let Some(m) = e.as_object_mut() {
+            m.remove("valide");
+        }
+        e
+    };
+    let avant = saisie(racine, mois);
+    let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
+    for (i, o) in objets.iter().enumerate() {
+        let change = v["engagements"].get(i).map(sans_validation) != avant["engagements"].get(i).map(sans_validation);
+        if o.est_valide() && change {
             engagement::etats::modifier(&ctx, mois, i).unwrap();
         }
     }
     engagement::stock::ecrire_vue_du_mois(&ctx, mois, v).unwrap();
+    for (i, o) in engagement::stock::objets_du_mois(racine, mois).unwrap().iter().enumerate() {
+        if !o.est_valide() {
+            let _ = engagement::etats::valider(&ctx, mois, i);
+        }
+    }
 }
 
 /// La DSN mensuelle de `mois`, produite au `jour` depuis ses engagements, sans rien écrire.

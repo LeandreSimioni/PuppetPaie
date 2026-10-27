@@ -6,7 +6,7 @@
 use crate::outils::{compagnie, dossier_de_test, ecrire};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::num::{div, eur2, mul, Decimal};
+use socle::num::{eur2, mul, Decimal};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;

@@ -93,7 +93,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
     let mut par_fichier = Map::new();
     let mut avant = Vec::new();
     for rel in fichiers(racine) {
-        if rel.ends_with(".etat.json") {
+        if rel == "ouverture.etat.json" {
             continue;
         }
         if rel.contains("/avant/") || rel.starts_with("avant/") {

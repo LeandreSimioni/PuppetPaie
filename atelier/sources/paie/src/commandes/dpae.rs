@@ -3,9 +3,8 @@
 //! (990 caracteres par embauche), son archive et son recapitulatif, plus -- dans le meme geste -- les signalements d'amorcage
 //! (nature 08) des embauches dont le taux de PAS manque. Le depot est une commande a part (`paie deposer-dpae`).
 //!
-//! Elle passe par la route `dpae` du moteur (`routes_actes_h1::dpae_detail`). La route lit la saisie dans
-//! `paies/AAAA-MM.json` des donnees : un fichier qui n'est pas celui-la est refuse en une phrase (le Python lisait n'importe
-//! quel chemin).
+//! Elle passe par la route `dpae` du moteur (`routes_actes_h1::dpae_detail`). La route lit les
+//! engagements du mois (`AAAA-MM`, ou `engagements/AAAA-MM.json` des donnees) : un autre fichier est refuse en une phrase.
 //!
 //! Code de sortie 3 : au moins une embauche est deja passee, la DPAE est hors delai (elle s'ecrit quand meme, sans antidater).
 //!

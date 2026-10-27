@@ -763,16 +763,6 @@ async function chargerMois(mois, repeint = false) {
     cible.classList.remove("en-lecture");
   };
   setTimeout(montrer, 5000);
-  // Les contrats qui courent encore arrivent AVANT les etats des paies :
-  // ceux-ci se posent sur les blocs, et un bloc absent n'aurait rien ou se
-  // poser.
-  try {
-    await poserContratsEnCours(mois);
-  } catch (e) {
-    montrer();
-    throw e;
-  }
-  if (DEMANDE_MOIS !== mois) return;
   majFermeture(mois, r.existe);
   dessinerMoisImporte();
   document.getElementById("resultat").innerHTML = "";
@@ -811,7 +801,7 @@ async function repeindreLeMois(mois, ancien, frais) {
   if ([...cles].every(memes)) return;
   const enCours = JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE;
   const saisieDe = (lu) => JSON.stringify(((lu.lectures.saisie || {}).resultat || {}).saisie);
-  if (!enCours && (saisieDe(ancien) !== saisieDe(frais) || !memes("contrats-en-cours"))) {
+  if (!enCours && saisieDe(ancien) !== saisieDe(frais)) {
     await chargerMois(mois, true);
     return;
   }

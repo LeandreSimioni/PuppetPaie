@@ -1,6 +1,6 @@
 //! Identifie les sources du binaire : `PAIE_SOURCES` (FNV-1a 64 bits sur les fichiers de `src/` du socle, du droit et
-//! du moteur, et sur le verrou de l'espace `Cargo.lock`, dans l'ordre des noms). Le calcul stocke a cote de la saisie
-//! (`calcul_du_mois`) porte cette marque : un autre moteur ne reprend pas un resultat qu'il n'a pas calcule.
+//! du moteur, et sur le verrou de l'espace `Cargo.lock`, dans l'ordre des noms). L'etat garde de l'ouverture
+//! (`etat_garde`) porte cette marque : un autre moteur ne reprend pas un resultat qu'il n'a pas calcule.
 
 use std::path::{Path, PathBuf};
 

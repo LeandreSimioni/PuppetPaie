@@ -1141,9 +1141,26 @@ fn qui_de(fiche: &Value) -> Resultat<String> {
     Ok(format!("{} {}", nom, prenom))
 }
 
-/// Le refus d'un mois du contrat qui n'est pas le premier et dont le numero n'est pas connu : le numero identifie le
-/// contrat en DSN (S21.G00.40.009), il se pose quand le contrat part a la signature ou quand son premier mois part, et
-/// il ne se regenere pas (regle 4).
+/// « (n° FA1.26.13) » quand le contrat porte son numero ; rien sinon.
+fn numero_dit(eng: &Engagement) -> String {
+    eng.numero.as_deref().filter(|n| !n.is_empty()).map_or_else(String::new, |n| format!(" (n° {})", n))
+}
+
+/// UN NUMERO DE CONTRAT NE SE DONNE QU'AU PREMIER MOIS : le numero identifie le contrat en DSN (S21.G00.40.009), il se
+/// pose quand le contrat part a la signature ou quand son premier mois part, et il ne se regenere pas (regle 4). Ce qui
+/// numerote un mois du contrat qui n'est pas le premier, sans numero, refuse ici.
+pub fn refus_sans_numero(ctx: &Contexte, eng: &Engagement) -> Resultat<()> {
+    if eng.numero.as_deref().is_some_and(|n| !n.is_empty()) || eng.premier_mois()? {
+        return Ok(());
+    }
+    let qui = qui_de(&ctx.salarie(&eng.salarie)?)?;
+    let contrat = match eng.fin {
+        Some(fin) if !eng.nat()?.mensuelle() => format!("contrat du {} au {}", eng.debut.jj_mm_aaaa(), fin.jj_mm_aaaa()),
+        _ => format!("{} depuis le {}", eng.nat()?.libelle, eng.debut.jj_mm_aaaa()),
+    };
+    Err(numero_inconnu(&qui, &contrat, &eng.mois_du_contrat()?.remove(0)))
+}
+
 fn numero_inconnu(qui: &str, contrat: &str, premier: &str) -> String {
     format!(
         "{}, {} : en cours depuis {}, mais son numero n'est pas connu -- le contrat n'est pas encore parti, ni a la \
@@ -1163,22 +1180,18 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
     let fiche = ctx.salarie(&eng.salarie)?;
     let qui = qui_de(&fiche)?;
     let libelle = eng.nat()?.libelle.clone();
-    if !eng.premier_mois()? && eng.numero.as_deref().map_or(true, str::is_empty) {
-        let premier = eng.mois_du_contrat()?.remove(0);
-        return Err(numero_inconnu(&qui, &format!("{} depuis le {}", libelle, eng.debut.jj_mm_aaaa()), &premier));
-    }
     if eng.dernier_mois()? {
         let fin = eng.fin.ok_or("fin")?;
         avis.push(Avis {
             info: true,
             texte: format!(
-                "{} : {} n° {}, dernier mois (fin le {}). Le bulletin porte le \
+                "{} : {}{}, dernier mois (fin le {}). Le bulletin porte le \
                  solde de tout compte ; ensuite, signaler la fin de contrat dans \
                  les cinq jours et remettre au salarie son certificat de travail \
                  et son recu pour solde de tout compte (Fin de contrat).",
                 qui,
                 libelle,
-                eng.numero.as_deref().unwrap_or("None"),
+                numero_dit(eng),
                 fin.jj_mm_aaaa()
             ),
         });
@@ -1187,7 +1200,7 @@ fn suivre_permanent(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>>
 }
 
 /// Ce que devient un contrat a cheval sur plusieurs mois : sur un mois qui n'est pas le premier, il porte le numero de
-/// l'engagement (refus s'il n'en a pas encore) et les jours du contrat entier (`stock`, `jours_contrat`), et les
+/// l'engagement s'il en a un et les jours du contrat entier (`stock`, `jours_contrat`), et les
 /// avertissements le disent. Un contrat paye au mois a sa propre suite (`suivre_permanent`).
 pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis>> {
     let mut avis = Vec::new();
@@ -1203,18 +1216,15 @@ pub fn suivre_contrat(ctx: &Contexte, eng: &mut Engagement) -> Resultat<Vec<Avis
     let bornes = format!("du {} au {}", eng.debut.jj_mm_aaaa(), fin.jj_mm_aaaa());
     let mois_du_contrat = eng.mois_du_contrat()?;
     if !eng.premier_mois()? {
-        if eng.numero.as_deref().map_or(true, str::is_empty) {
-            return Err(numero_inconnu(&qui, &format!("contrat {}", bornes), &mois_du_contrat[0]));
-        }
         avis.push(Avis {
             info: true,
             texte: format!(
-                "{} : contrat {} en cours depuis {} (n° {}) -- le contrat et \
-                 la DPAE sont deja faits, ce mois-ci n'a que son bulletin.",
+                "{} : contrat {} en cours depuis {}{} -- le contrat et \
+                 la DPAE sont faits avec son premier mois, ce mois-ci n'a que son bulletin.",
                 qui,
                 bornes,
                 libelle_mois(&mois_du_contrat[0]),
-                eng.numero.as_deref().unwrap_or("None")
+                numero_dit(eng)
             ),
         });
     }

@@ -13,13 +13,14 @@
 //!
 //! LE RECALCUL DE LUI-MEME (`rafraichir`) : a l'ouverture d'un mois, la paie de chaque engagement valide dont les
 //! documents ne sont pas partis se compare a son empreinte. Si elle ne tient plus, la paie se recalcule et se reecrit ;
-//! si un chiffre a change, elle dit pourquoi (`Recalcul` : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul
-//! corrigé »). Un changement qui ne change aucun chiffre ne laisse aucune trace.
+//! si un chiffre a change, elle dit pourquoi (`raison`) : « taux de PAS reçu » (seul le prelevement change), « règle du
+//! JJ/MM/AAAA » (une regle datee s'applique), « calcul corrigé » (le code qui calcule a change), « un autre engagement du
+//! mois a changé » (la saisie qu'il lit), « configuration de la compagnie modifiée » (fiches, taux, contrats). Un
+//! changement qui ne change aucun chiffre ne laisse aucune trace.
 //!
 //! MODIFIER (`modifier`) repasse l'engagement en saisie ; les paies des mois dont les documents sont partis se gardent
 //! (`figees`), et la validation suivante les reprend telles quelles tant que la saisie de leur mois n'a pas change. Si
-//! les documents d'un mois que la modification peut changer sont partis (le mois de l'ecran et ceux d'apres), le moteur
-//! pose d'abord la question (`question_avant_de_modifier`).
+//! les documents d'un de ses mois sont partis, le moteur pose d'abord la question (`question_avant_de_modifier`).
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -36,8 +37,12 @@ use socle::num::Resultat;
 
 /// La raison d'un recalcul : le taux de prelevement a la source a change.
 pub const TAUX_DE_PAS: &str = "taux de PAS reçu";
-/// La raison d'un recalcul : le calcul a change (le logiciel, un bareme corrige, une fiche, un autre engagement).
+/// La raison d'un recalcul : le code qui calcule a change (le moteur, ou les baremes et catalogues qu'il livre).
 pub const CALCUL_CORRIGE: &str = "calcul corrigé";
+/// La raison d'un recalcul : la saisie d'un autre engagement que le calcul lit a change (plafond, cumuls, conges).
+pub const AUTRE_ENGAGEMENT: &str = "un autre engagement du mois a changé";
+/// La raison d'un recalcul : la configuration de la compagnie (fiches, taux, contrats d'organismes) a change.
+pub const CONFIGURATION: &str = "configuration de la compagnie modifiée";
 
 /// La question que le moteur pose avant de modifier un engagement dont des documents sont partis.
 pub const QUESTION_DOCUMENTS_PARTIS: &str = "Les bulletins de salaire sont déjà partis. Êtes-vous sûr de vouloir changer \
@@ -276,19 +281,36 @@ fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<Value>> {
 
 /// La paie de l'engagement `o` pour `mois`, calculee maintenant : `{"paie", "pas", "empreinte"}`.
 pub fn calculer(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Value> {
-    let data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
     let i = rang_dans(&ctx.racine, o, mois)?;
-    let ((paie, pas, fin), entrees) = empreinte::suivre(ctx, &data, || {
+    calculer_les_rangs(ctx, mois, &[i])?.pop().ok_or_else(|| "le calcul du mois n'a pas cette paie".to_string())
+}
+
+/// Les paies des engagements de rangs `rangs` dans l'ecran de `mois`, d'un seul calcul du mois : chacune
+/// `{"paie", "pas", "empreinte"}`, dans l'ordre de `rangs`. Le calcul d'un mois lit tous ses engagements (plafonds,
+/// cumuls, conges) : il se fait une fois, et chaque paie en garde l'empreinte.
+fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<Vec<Value>> {
+    let data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
+    let (calculees, entrees) = empreinte::suivre(ctx, &data, || {
         let s = crate::charger_donnees(ctx, &data)?;
-        let p = s.paies.get(i).ok_or("le calcul du mois n'a pas cette paie")?;
-        Ok((relire::ecrire(ctx, p)?, prelevement(ctx, p)?, p.engagement.fin_periode()?))
+        rangs
+            .iter()
+            .map(|i| {
+                let p = s.paies.get(*i).ok_or("le calcul du mois n'a pas cette paie")?;
+                Ok((relire::ecrire(ctx, p)?, prelevement(ctx, p)?, p.engagement.fin_periode()?))
+            })
+            .collect::<Resultat<Vec<_>>>()
     })?;
-    let regles = empreinte::regles(ctx, &fin)?;
-    let mut v = json!({ "paie": paie, "empreinte": empreinte::en_json(&entrees, &regles) });
-    if let Some(pas) = pas {
-        v["pas"] = pas;
-    }
-    Ok(v)
+    calculees
+        .into_iter()
+        .map(|(paie, pas, fin)| {
+            let regles = empreinte::regles(ctx, &fin)?;
+            let mut v = json!({ "paie": paie, "empreinte": empreinte::en_json(&entrees, &regles) });
+            if let Some(pas) = pas {
+                v["pas"] = pas;
+            }
+            Ok(v)
+        })
+        .collect()
 }
 
 /// Les chiffres d'une paie ecrite : tout sauf ce qu'elle dit en mots.
@@ -308,7 +330,8 @@ fn chiffres(v: &Value) -> Value {
     x
 }
 
-/// Pourquoi la paie a change de `avant` a `apres` : son prelevement seul, une regle datee nouvelle, ou le calcul.
+/// Pourquoi la paie a change de `avant` a `apres` : son prelevement seul, une regle datee nouvelle, le code qui calcule
+/// (le moteur ou ce qu'il livre), la saisie d'un autre engagement, ou la configuration de la compagnie.
 fn raison(avant: &Value, apres: &Value) -> String {
     let (a, b) = (chiffres(avant), chiffres(apres));
     if a["paie"] == b["paie"] && a["pas"] != b["pas"] {
@@ -320,7 +343,16 @@ fn raison(avant: &Value, apres: &Value) -> String {
         let jour = Jour::lire(r).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| r.clone());
         return format!("règle du {}", jour);
     }
-    CALCUL_CORRIGE.to_string()
+    let entrees = |v: &Value| v.get("empreinte").and_then(empreinte::entrees_de).unwrap_or_default();
+    let (ea, eb) = (entrees(avant), entrees(apres));
+    let changees: Vec<&String> = ea.keys().chain(eb.keys()).filter(|k| ea.get(*k) != eb.get(*k)).collect();
+    if changees.iter().any(|k| *k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:"))) {
+        return CALCUL_CORRIGE.to_string();
+    }
+    if changees.iter().any(|k| k.starts_with("saisie ")) {
+        return AUTRE_ENGAGEMENT.to_string();
+    }
+    CONFIGURATION.to_string()
 }
 
 /// Le moment d'un geste, a l'heure du moteur.
@@ -354,26 +386,19 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
     Valide::de(o).ok_or_else(|| "validation illisible".to_string())
 }
 
-/// Les mois de l'engagement `o` que la modification depuis l'ecran de `mois` peut changer et dont les documents sont
-/// partis : `mois` et ceux d'apres.
-fn mois_partis_touches(ctx: &Contexte, o: &Objet, mois: &str, journal: &Journal) -> Resultat<Vec<String>> {
-    let Some(cle) = cle_du_salarie(ctx, o) else { return Ok(Vec::new()) };
-    let mut v = Vec::new();
+/// Les mois de l'engagement `o` dont les documents sont partis, tous ses mois compris.
+fn mois_partis(ctx: &Contexte, o: &Objet, journal: &Journal) -> Vec<String> {
+    let Some(cle) = cle_du_salarie(ctx, o) else { return Vec::new() };
     let paies = o.brut.get("valide").and_then(|x| x.get("paies")).and_then(Value::as_object).cloned().unwrap_or_default();
-    for m in paies.keys().filter(|m| m.as_str() >= mois) {
-        if journal.documents_partis(m, &cle).is_some() {
-            v.push(m.clone());
-        }
-    }
-    Ok(v)
+    paies.keys().filter(|m| journal.documents_partis(m, &cle).is_some()).cloned().collect()
 }
 
-/// LA QUESTION AVANT DE MODIFIER : si les documents d'un mois que la modification peut changer sont partis, la phrase que
-/// le moteur pose (`QUESTION_DOCUMENTS_PARTIS`) ; sinon `None`.
+/// LA QUESTION AVANT DE MODIFIER : si les documents d'un des mois de l'engagement sont partis, la phrase que le moteur
+/// pose (`QUESTION_DOCUMENTS_PARTIS`) ; sinon `None`.
 pub fn question_avant_de_modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Option<String>> {
     let Some(o) = stock::objet_du_mois(&ctx.racine, mois, rang)? else { return Ok(None) };
     let journal = Journal::lire(&ctx.racine)?;
-    Ok((!mois_partis_touches(ctx, &o, mois, &journal)?.is_empty()).then(|| QUESTION_DOCUMENTS_PARTIS.to_string()))
+    Ok((!mois_partis(ctx, &o, &journal).is_empty()).then(|| QUESTION_DOCUMENTS_PARTIS.to_string()))
 }
 
 /// « MODIFIER… » : l'engagement repasse en saisie. Les paies des mois dont les documents sont partis se gardent
@@ -410,25 +435,32 @@ pub struct Recalcule {
 /// terme qui entre dans un nouveau mois) se recalcule et se reecrit. Un chiffre qui change note pourquoi, et quand ; rien
 /// d'autre ne change.
 pub fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<Vec<Recalcule>> {
-    let mut out = Vec::new();
-    for e in du_mois(ctx, mois)? {
+    // Ce qui ne tient plus : le rang dans l'ecran, l'engagement, sa paie ecrite du mois.
+    let mut a_refaire: Vec<(usize, Objet, Option<Value>)> = Vec::new();
+    for (i, e) in du_mois(ctx, mois)?.into_iter().enumerate() {
         // Des documents partis ne bougent pas ; une paie qui manque (un contrat sans terme qui entre dans le mois) s'ecrit.
         let v = match e {
             Etat::Valide(v) => v,
             Etat::Partis(p) if p.valide().paie_ecrite(mois).is_none() => p.valide().clone(),
             _ => continue,
         };
-        let mut o = v.objet.clone();
         let ancienne = v.paie_ecrite(mois).cloned();
         let tient = ancienne
             .as_ref()
             .and_then(|a| a.get("empreinte"))
             .and_then(empreinte::entrees_de)
             .is_some_and(|en| empreinte::tient(ctx, &en));
-        if tient {
-            continue;
+        if !tient {
+            a_refaire.push((i, v.objet, ancienne));
         }
-        let mut nouvelle = calculer(ctx, &o, mois)?;
+    }
+    if a_refaire.is_empty() {
+        return Ok(Vec::new());
+    }
+    let rangs: Vec<usize> = a_refaire.iter().map(|(i, _, _)| *i).collect();
+    let nouvelles = calculer_les_rangs(ctx, mois, &rangs)?;
+    let mut out = Vec::new();
+    for ((_, mut o, ancienne), mut nouvelle) in a_refaire.into_iter().zip(nouvelles) {
         let raison = match &ancienne {
             Some(a) if chiffres(a) != chiffres(&nouvelle) => Some(raison(a, &nouvelle)),
             Some(a) => {
