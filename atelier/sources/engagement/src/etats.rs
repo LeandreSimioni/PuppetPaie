@@ -354,9 +354,9 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<(Value, V
 
 /// LES PAIES ECRITES DE `mois`, quand chaque engagement qu'il montre est valide et a la sienne : ce que lisent les calculs
 /// des mois d'apres (le brut de la periode des conges, la deduction forfaitaire de l'annee, les cumuls), sans recalculer
-/// le mois. `None` quand un engagement du mois est en saisie, n'a pas de paie ecrite pour lui, ou que sa paie ecrite
-/// n'est plus juste (son empreinte ne tient plus, et ses documents ne sont pas partis) : le mois se calcule, comme sa
-/// lecture (`du_mois`) le recalculerait. Un calcul ne reecrit rien.
+/// le mois. Une paie ecrite qui n'est plus juste (son empreinte ne tient plus, et ses documents ne sont pas partis) se
+/// recalcule et se reecrit d'abord, comme sa lecture (`du_mois`) le ferait. `None` quand un engagement du mois est en
+/// saisie, n'a pas de paie ecrite pour lui, ou que son recalcul est refuse : le mois se calcule.
 ///
 /// Le calcul qui les lit note leur empreinte (`paies <mois>`, `empreinte_des_paies_ecrites`) : une paie ecrite qui change
 /// fait recalculer les mois qui l'ont lue.
@@ -377,24 +377,46 @@ fn empreinte_des_paies(valides: &[Valide], mois: &str) -> String {
     socle::fichiers::sha256_hex(Value::Array(paies).to_string().as_bytes())
 }
 
-/// Les engagements valides de `mois` dont la paie ecrite est juste, si tous le sont.
+/// Les engagements valides de `mois` dont la paie ecrite est juste, si tous le sont. Une paie qui ne l'est plus se
+/// recalcule et se reecrit d'abord, comme sa lecture la recalculerait (`rafraichir`), hors du registre du calcul qui la
+/// lit : chaque mois d'avant se calcule ainsi une fois, et les lectures suivantes le lisent ecrit.
 fn valides_justes(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Valide>>> {
+    match valides_si_justes(ctx, mois)? {
+        Justes::Oui(v) => Ok(Some(v)),
+        Justes::Non => Ok(None),
+        Justes::ARefaire => match socle::fichiers::a_part(|| rafraichir(ctx, mois)) {
+            Ok(()) => Ok(match valides_si_justes(ctx, mois)? {
+                Justes::Oui(v) => Some(v),
+                _ => None,
+            }),
+            Err(_) => Ok(None),
+        },
+    }
+}
+
+enum Justes {
+    Oui(Vec<Valide>),
+    /// Un engagement en saisie, ou sans paie ecrite du mois : le mois se calcule.
+    Non,
+    /// Une paie ecrite que son empreinte ne tient plus, et dont les documents ne sont pas partis.
+    ARefaire,
+}
+
+fn valides_si_justes(ctx: &Contexte, mois: &str) -> Resultat<Justes> {
     let mut relues = empreinte::Relues::default();
     let mut valides = Vec::new();
+    let mut a_refaire = false;
     for e in ecrits(ctx, mois)? {
         let (v, partis) = match e {
-            Etat::EnSaisie(_) => return Ok(None),
+            Etat::EnSaisie(_) => return Ok(Justes::Non),
             Etat::Valide(v) => (v, false),
             Etat::Partis(p) => (p.valide, true),
         };
-        let Some(ecrite) = v.paie_ecrite(mois).filter(|p| p.get("paie").is_some()) else { return Ok(None) };
-        let juste = partis || ecrite.get("empreinte").and_then(empreinte::entrees_de).is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
-        if !juste {
-            return Ok(None);
-        }
+        let Some(ecrite) = v.paie_ecrite(mois).filter(|p| p.get("paie").is_some()) else { return Ok(Justes::Non) };
+        a_refaire |= !partis && !ecrite.get("empreinte").and_then(empreinte::entrees_de).is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
         valides.push(v);
     }
-    Ok(Some(valides))
+    Ok(if a_refaire { Justes::ARefaire } else { Justes::Oui(valides) })
 }
 
 /// Les numeros des documents de chaque engagement valide de `mois`, au meme rang que `validees_du_mois` : le numero de

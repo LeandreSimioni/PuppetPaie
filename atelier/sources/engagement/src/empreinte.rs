@@ -6,8 +6,8 @@
 //! (`paies <mois>`, `etats::paies_ecrites`). S'y ajoutent la marque du code qui calcule
 //! (`MOTEUR`) et les regles datees qui s'appliquent a la periode payee (`regles`).
 //!
-//! L'empreinte TIENT quand chacune de ses entrees vaut encore ce qu'elle valait (`tient`) : aucun calcul, une relecture
-//! du disque. Elle ne tient plus : la paie se recalcule, et ce qui a change dit pourquoi (`etats::rafraichir`).
+//! L'empreinte TIENT quand chacune de ses entrees vaut encore ce qu'elle valait (`tient`) : une relecture
+//! du disque (les paies ecrites d'un mois lu se relisent justes : `etats::paies_ecrites`). Elle ne tient plus : la paie se recalcule, et ce qui a change dit pourquoi (`etats::rafraichir`).
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -57,7 +57,7 @@ pub fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) 
 pub struct Relues(HashMap<(String, String), bool>);
 
 /// Les entrees valent-elles encore ce qu'elles valaient ? Chacune est relue sur le disque ; la saisie d'un mois se relit
-/// et se hache ; rien ne se calcule.
+/// et se hache ; les paies ecrites d'un mois lu se relisent comme un calcul les lirait.
 pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>, relues: &mut Relues) -> bool {
     entrees.iter().all(|(k, v)| {
         if let Some(t) = relues.0.get(&(k.clone(), v.clone())) {

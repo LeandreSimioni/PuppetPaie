@@ -382,8 +382,8 @@
                 "fichier racine:config/effectifs.json": "d783957eafff3073f37cde838c73c4c29af47cfdacec545f675a47f2229666f7",
                 "fichier racine:config/pas.json": "1b26b10faab15d22df5fd7d46aaebd54a7b7a21a0826b19e22afd5efd967c233",
                 "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
-                "moteur": "0.1.0+f150e58b15f7cd60",
-                "saisie 2026-09": "d727d81180c06ba361f888799ab8b8ddd398f80c52dd698bc44c9ebe93a68dea"
+                "moteur": "0.1.0+1fe1ba8d7552b2a0",
+                "saisie 2026-09": "f9aca75d401e80fc1220ae8e7670ef91d98dccd6ceb4db235d72eedcc217358e:22e1c77f3c4f7260cdc5e0a6fb2468bdfc70c62d31e6c6bb9ee1b40f69997820"
               },
               "regles": [
                 "2026-06-01"
@@ -778,8 +778,8 @@
                 "fichier racine:config/effectifs.json": "d783957eafff3073f37cde838c73c4c29af47cfdacec545f675a47f2229666f7",
                 "fichier racine:config/pas.json": "1b26b10faab15d22df5fd7d46aaebd54a7b7a21a0826b19e22afd5efd967c233",
                 "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
-                "moteur": "0.1.0+f150e58b15f7cd60",
-                "saisie 2026-09": "d727d81180c06ba361f888799ab8b8ddd398f80c52dd698bc44c9ebe93a68dea"
+                "moteur": "0.1.0+1fe1ba8d7552b2a0",
+                "saisie 2026-09": "f9aca75d401e80fc1220ae8e7670ef91d98dccd6ceb4db235d72eedcc217358e:22e1c77f3c4f7260cdc5e0a6fb2468bdfc70c62d31e6c6bb9ee1b40f69997820"
               },
               "regles": [
                 "2026-06-01"
@@ -1174,8 +1174,8 @@
                 "fichier racine:config/effectifs.json": "d783957eafff3073f37cde838c73c4c29af47cfdacec545f675a47f2229666f7",
                 "fichier racine:config/pas.json": "1b26b10faab15d22df5fd7d46aaebd54a7b7a21a0826b19e22afd5efd967c233",
                 "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
-                "moteur": "0.1.0+f150e58b15f7cd60",
-                "saisie 2026-09": "d727d81180c06ba361f888799ab8b8ddd398f80c52dd698bc44c9ebe93a68dea"
+                "moteur": "0.1.0+1fe1ba8d7552b2a0",
+                "saisie 2026-09": "f9aca75d401e80fc1220ae8e7670ef91d98dccd6ceb4db235d72eedcc217358e:22e1c77f3c4f7260cdc5e0a6fb2468bdfc70c62d31e6c6bb9ee1b40f69997820"
               },
               "regles": [
                 "2026-06-01"
@@ -1589,8 +1589,8 @@
                 "fichier racine:config/effectifs.json": "d783957eafff3073f37cde838c73c4c29af47cfdacec545f675a47f2229666f7",
                 "fichier racine:config/pas.json": "1b26b10faab15d22df5fd7d46aaebd54a7b7a21a0826b19e22afd5efd967c233",
                 "fichier racine:config/rubriques-actives.json": "e68c111d1d6ce5fec8d525bc209d9f05f2aff1eacb8b66b44e1b914539a9d102",
-                "moteur": "0.1.0+f150e58b15f7cd60",
-                "saisie 2026-09": "d727d81180c06ba361f888799ab8b8ddd398f80c52dd698bc44c9ebe93a68dea"
+                "moteur": "0.1.0+1fe1ba8d7552b2a0",
+                "saisie 2026-09": "f9aca75d401e80fc1220ae8e7670ef91d98dccd6ceb4db235d72eedcc217358e:22e1c77f3c4f7260cdc5e0a6fb2468bdfc70c62d31e6c6bb9ee1b40f69997820"
               },
               "regles": [
                 "2026-06-01"

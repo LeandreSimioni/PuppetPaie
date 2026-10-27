@@ -108,8 +108,8 @@ fn le_net_deja_verse_de_servandoni_est_celui_de_son_bulletin_de_juillet() {
 
 // --------------------------------- un contrat defraye avec acompte : la DSN deposee ne change rien au net deja verse
 
-/// Chaminade, octobre 2026 : 32 h a 19 EUR, 4 defraiements de 20,70, et un acompte de 100 EUR. Octobre est produit par
-/// le moteur du jour (bulletin archive a deux nets, au modele de l'arrete), depose ; `ancien_58004` reecrit le 58.004 de
+/// Chaminade, octobre 2026 : 32 h a 19 EUR, 4 defraiements de 20,70, et un acompte de 100 EUR. La DSN d'octobre est deposee,
+/// puis ses documents partent (bulletin archive a deux nets, au modele de l'arrete) ; `ancien_58004` reecrit le 58.004 de
 /// son versement dans la DSN deposee au net a payer, comme l'aurait ecrit un moteur d'avant la vague 1b. Puis l'heure
 /// passe a 20 EUR, et novembre porte la correction.
 struct Chaminade {
@@ -130,6 +130,8 @@ fn chaminade_corrigee(test: &str, ancien_58004: bool) -> Chaminade {
     crate::outils::poser_saisie(&r, "2026-10", &s);
     mois_pret(&r, "2026-10");
     outils::reussi(&dsn_le(&r, "2026-10", JOUR));
+    dsn_deposee(&r, "2026-10", "DSN_Octobre2026.dsn", "2026-11-12T10:00:00");
+    outils::reussi(&outils::route(&r, "envoyer-documents", json!({"mois": "2026-10", "motdepasse": "x"}), JOUR));
     let saisie = crate::outils::saisie(&r, "2026-10");
     let numero = saisie["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == json!("Chaminade")).unwrap()["numero"].as_str().unwrap().to_string();
 
@@ -137,7 +139,6 @@ fn chaminade_corrigee(test: &str, ancien_58004: bool) -> Chaminade {
     let bulletin = bulletin_du_contrat(&archive, &numero).to_string();
     let (social, paye) = (montant_apres(&bulletin, "MONTANT NET SOCIAL"), montant_apres(&bulletin, "MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU"));
 
-    dsn_deposee(&r, "2026-10", "DSN_Octobre2026.dsn", "2026-11-12T10:00:00");
     let chemin = r.join("sorties/2026-10/DSN_Octobre2026.dsn");
     let brut = std::fs::read(&chemin).unwrap();
     let (mut du_contrat, mut vus, mut dsn) = (false, 0, String::new());
