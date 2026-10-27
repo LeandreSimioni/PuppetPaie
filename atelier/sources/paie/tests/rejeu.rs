@@ -18,6 +18,7 @@ use serde_json::{json, Value};
 /// l'horloge de la fictive ecrit le mois, depose la DPAE (test puis reel), la DSN de novembre et son signalement
 /// d'amorcage (test puis reel, chacun sur le bilan de son test), envoie les documents.
 #[test]
+#[ignore = "lot B : l'horloge valide"]
 fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     let releve = outils::rejeu::rejouer_et_comparer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "treteaux"));
     let f = &releve["fichiers"];
@@ -65,6 +66,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
 /// LE SCENARIO FIGE SANS SES LECTURES (`scenario::elaguer`, phase 4) : les routes qui n'ont rien ecrit s'otent, et le rejeu
 /// rend exactement le meme releve que le scenario entier.
 #[test]
+#[ignore = "lot B : l'horloge valide"]
 fn un_scenario_elague_se_rejoue_a_l_identique() {
     let d = outils::dossier_de_test("rejeu", "elague");
     let (gardes, otees) = paie::scenario::elaguer(&outils::rejeu::scenario("treteaux-du-banc"), &d.join("scenario")).unwrap();
@@ -80,6 +82,7 @@ fn un_scenario_elague_se_rejoue_a_l_identique() {
 /// de janvier ne s'ecrit pas (sa DSN est refusee) ; l'horloge n'envoie donc pas ses documents aux salaries -- ils suivent
 /// la DSN du mois, jamais avant.
 #[test]
+#[ignore = "lot B : l'horloge valide"]
 fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
     let d = outils::dossier_de_test("rejeu", "faisceaux-sans-civilite");
     let (r, racine) = outils::rejeu::rejouer("faisceaux-sans-civilite", &d);

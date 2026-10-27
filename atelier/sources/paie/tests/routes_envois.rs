@@ -382,13 +382,16 @@ fn bulletin_de_lemercier(racine: &Path) -> String {
     fabrique_pdf::lecture::texte(&f.to_string_lossy()).unwrap().0.join("\n")
 }
 
-/// Les heures de Lemercier en aout 2026 portees a `heures`, par la route, en confirmant (la DSN d'aout ne se remplace plus).
+/// Les heures de Lemercier en aout 2026 portees a `heures`, par la route, en confirmant (la DSN d'aout ne se remplace
+/// plus) : son engagement repasse en saisie (« Modifier… »), puis se valide a nouveau.
 fn modifier_lemercier(racine: &Path, heures: i64) {
     let mut saisie = crate::outils::saisie(racine, "2026-08");
     let rang = saisie["engagements"].as_array().unwrap().iter().position(|e| e["salarie"] == "Lemercier").unwrap();
+    engagement::etats::modifier(&contexte(racine), "2026-08", rang).unwrap();
     saisie["engagements"][rang]["lignes"][0]["quantite"] = json!(heures);
     let charge = json!({"mois": "2026-08", "saisie": saisie, "modifier_apres_echeance": true});
     paie::routes_ecritures::route(&options(racine), &contexte(racine), "enregistrer-saisie", &charge).unwrap();
+    engagement::etats::valider(&contexte(racine), "2026-08", rang).unwrap();
 }
 
 /// APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (Leandre, 21/10/2026) : la DSN d'aout ne se refait plus, la paie modifiee se
@@ -488,6 +491,8 @@ fn octobre_a_signer(racine: &Path) {
     deuxieme["lignes"][1]["quantite"] = json!(2);
     s["engagements"] = json!([eng, seraphin, deuxieme]);
     crate::outils::poser_saisie(racine, "2026-10", &s);
+    // Lu une fois au jour des envois, comme l'ecran le lit : ses paies validees sont celles de ce jour.
+    engagement::etats::du_mois(&contexte(racine), "2026-10").unwrap();
 }
 
 #[test]
