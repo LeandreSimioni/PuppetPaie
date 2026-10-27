@@ -8,7 +8,7 @@
 //! L'empreinte TIENT quand chacune de ses entrees vaut encore ce qu'elle valait (`tient`) : aucun calcul, une relecture
 //! du disque. Elle ne tient plus : la paie se recalcule, et ce qui a change dit pourquoi (`etats::rafraichir`).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 
 use serde_json::{Map, Value};
@@ -50,31 +50,47 @@ pub fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) 
     Ok((r?, entrees))
 }
 
+/// Ce qu'une passe de verification a deja relu : une entree qui revient d'une paie a l'autre (les baremes, les fiches, la
+/// saisie du mois) ne se relit qu'une fois.
+#[derive(Default)]
+pub struct Relues(HashMap<(String, String), bool>);
+
 /// Les entrees valent-elles encore ce qu'elles valaient ? Chacune est relue sur le disque ; la saisie d'un mois se relit
 /// et se hache ; rien ne se calcule.
-pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>) -> bool {
+pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>, relues: &mut Relues) -> bool {
+    entrees.iter().all(|(k, v)| {
+        if let Some(t) = relues.0.get(&(k.clone(), v.clone())) {
+            return *t;
+        }
+        let t = entree_tient(ctx, k, v);
+        relues.0.insert((k.clone(), v.clone()), t);
+        t
+    })
+}
+
+fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
     let (racine, code) = (&ctx.racine, dossier_du_code());
-    entrees.iter().all(|(k, v)| match k.as_str() {
+    match k {
         "moteur" => v == MOTEUR,
-        "fiches" => *v == empreinte_fiches(ctx),
-        "date" => *v == ctx.date.iso(),
-        "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| *v == j.iso()),
+        "fiches" => v == empreinte_fiches(ctx),
+        "date" => v == ctx.date.iso(),
+        "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
         _ => {
             if let Some(mois) = k.strip_prefix("saisie ") {
-                return stock::vue_du_mois(racine, mois).ok().flatten().is_some_and(|vue| *v == stock::empreinte_de_saisie(&vue));
+                return stock::vue_du_mois(racine, mois).ok().flatten().is_some_and(|vue| v == stock::empreinte_de_saisie(&vue));
             }
             match fichiers::chemin_de(k, racine, &code) {
                 Some((genre, p)) => match genre.as_str() {
-                    "fichier" => *v == fichiers::empreinte_fichier(&p),
-                    "existe" => *v == if p.exists() { "oui" } else { "non" },
-                    "dossier?" => *v == if p.is_dir() { "oui" } else { "non" },
-                    "dossier" => *v == fichiers::empreinte_dossier(&p),
+                    "fichier" => v == fichiers::empreinte_fichier(&p),
+                    "existe" => v == if p.exists() { "oui" } else { "non" },
+                    "dossier?" => v == if p.is_dir() { "oui" } else { "non" },
+                    "dossier" => v == fichiers::empreinte_dossier(&p),
                     _ => false,
                 },
                 None => false,
             }
         }
-    })
+    }
 }
 
 /// Les regles datees qui s'appliquent au jour `jour` (`Contexte::regles_datees`), en AAAA-MM-JJ.

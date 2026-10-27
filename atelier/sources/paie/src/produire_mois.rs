@@ -814,10 +814,9 @@ pub fn produire(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     produire_pour(o, ctx, charge, "interface", None).map(|(v, _)| v)
 }
 
-/// RIEN NE PART SANS VALIDATION : la saisie du mois et les paies validees de ses engagements, chacune recalculee d'abord
-/// si son empreinte ne tient plus (`engagement::etats::rafraichir`). Refus si un engagement du mois est en saisie.
+/// RIEN NE PART SANS VALIDATION : la saisie du mois et les paies validees de ses engagements, telles que les lit
+/// `engagement::etats::paies_du_mois`. Refus si un engagement du mois est en saisie.
 fn le_mois_valide(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
-    engagement::etats::rafraichir(ctx, mois).map_err(valeur)?;
     let paies = engagement::etats::paies_du_mois(ctx, mois).map_err(|m| erreur("EngagementEnSaisie", m))?;
     let mut data = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(valeur)?.unwrap_or_else(|| json!({"engagements": []}));
     data["mois"] = Value::String(mois.to_string());

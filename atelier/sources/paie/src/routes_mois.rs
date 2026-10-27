@@ -573,7 +573,7 @@ impl<'a> Moteur<'a> {
                 ligne.insert("brut".into(), Value::String(brut));
             }
             ligne.insert("valide".into(), valide);
-            // RECALCULEE D'ELLE-MEME (`engagement::etats::rafraichir`) : pourquoi, et quand.
+            // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
             let recalcul = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| v.recalcul(mois)).and_then(engagement::etats::phrase_du_recalcul);
             ligne.insert("recalcul".into(), recalcul.map_or(Value::Null, Value::String));
             ligne.insert(
@@ -1238,7 +1238,7 @@ impl<'a> Moteur<'a> {
         let engs: Vec<Value> = vue.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
         let lignes = self.lignes()?;
         let g = self.globales()?;
-        let en_saisie: Vec<bool> = engagement::etats::du_mois(self.ctx, mois).map_err(plain)?.iter().map(|e| e.valide().is_none()).collect();
+        let en_saisie: Vec<bool> = engagement::etats::valides_du_mois(self.ctx, mois).map_err(plain)?.into_iter().map(|v| !v).collect();
         let contrats: Vec<Cle3> = engs
             .iter()
             .map(|e| {

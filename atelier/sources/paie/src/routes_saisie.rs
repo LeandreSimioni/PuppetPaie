@@ -3,8 +3,8 @@
 //! `saisie` : le mois tel que l'ecran l'ouvre -- la saisie que ses engagements montrent (`engagement::stock::vue_du_mois`)
 //! ou, pour un mois neuf, un squelette vide au dernier taux saisi --, avec les noms resolus en cles de fiche et les lignes
 //! de paie telles que le moteur les comprend. Aucun calcul de paie pour l'ecran : la saisie se charge jusqu'au contrat qui
-//! deborde, sans chiffrer. C'est l'ouverture du mois : les engagements valides dont la paie n'est plus juste s'y
-//! recalculent d'eux-memes (`engagement::etats::rafraichir`).
+//! deborde, sans chiffrer. Les paies validees que l'ecran montre se lisent par
+//! `engagement::etats::du_mois`, qui les recalcule si elles ne sont plus justes.
 //!
 //! `echeancier` : la date, ce qui est a faire ce mois-ci, et l'annee qui vient. Les echeances annuelles sont dans
 //! `donnees/echeancier-base.json`. Les etats du journal se lisent directement (`etats.rs`).
@@ -412,11 +412,6 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let mois = en_texte(brut);
     let existe = engagement::stock::a_une_saisie(&ctx.racine, &mois).map_err(Echec::from)?;
-    // L'OUVERTURE DU MOIS : chaque engagement valide dont la paie n'est plus juste se recalcule (`engagement::etats::rafraichir`),
-    // et dit pourquoi. Un recalcul qui refuse laisse la paie validee telle qu'elle est ecrite ; l'ecran la montre.
-    if existe {
-        let _ = engagement::etats::rafraichir(ctx, &mois);
-    }
     // Un mois neuf s'ouvre VIDE, avec le dernier taux saisi ; un mois que des engagements touchent prend du squelette ce
     // qu'il ne dit pas de lui.
     let mut saisie = squelette(ctx, &mois)?;

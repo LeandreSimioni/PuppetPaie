@@ -11,12 +11,14 @@
 //! Trois types, et seul un engagement valide (ou parti, qui l'est) donne une paie a qui fabrique un document : un
 //! engagement en saisie n'a pas de `paie`.
 //!
-//! LE RECALCUL DE LUI-MEME (`rafraichir`) : a l'ouverture d'un mois, la paie de chaque engagement valide dont les
-//! documents ne sont pas partis se compare a son empreinte. Si elle ne tient plus, la paie se recalcule et se reecrit ;
-//! si un chiffre a change, elle dit pourquoi (`raison`) : « taux de PAS reçu » (seul le prelevement change), « règle du
-//! JJ/MM/AAAA » (une regle datee s'applique), « calcul corrigé » (le code qui calcule a change), « un autre engagement du
-//! mois a changé » (la saisie qu'il lit), « configuration de la compagnie modifiée » (fiches, taux, contrats). Un
-//! changement qui ne change aucun chiffre ne laisse aucune trace.
+//! LE RECALCUL DE LUI-MEME (`rafraichir`) : a chaque lecture d'un mois (`du_mois`, par ou passe tout ce qui lit une
+//! paie validee : l'ecran, les exports, les declarations, les documents, les envois), la paie de chaque engagement
+//! valide dont les documents ne sont pas partis se compare a son empreinte. Si elle ne tient plus, la paie se recalcule
+//! et se reecrit ; si un chiffre a change, elle dit pourquoi (`raison`) : « taux de PAS reçu » (seul le prelevement
+//! change), « règle du JJ/MM/AAAA » (une regle datee s'applique), « calcul corrigé » (le code qui calcule a change),
+//! « un autre engagement du mois a changé » (un engagement que son calcul lit), « saisie du mois modifiée » (le taux du
+//! cachet, la date de paiement), « configuration de la compagnie modifiée » (fiches, taux, contrats). Un changement qui
+//! ne change aucun chiffre ne laisse aucune trace.
 //!
 //! MODIFIER (`modifier`) repasse l'engagement en saisie ; les paies des mois dont les documents sont partis se gardent
 //! (`figees`), et la validation suivante les reprend telles quelles tant que la saisie de leur mois n'a pas change. Si
@@ -41,6 +43,9 @@ pub const TAUX_DE_PAS: &str = "taux de PAS reçu";
 pub const CALCUL_CORRIGE: &str = "calcul corrigé";
 /// La raison d'un recalcul : la saisie d'un autre engagement que le calcul lit a change (plafond, cumuls, conges).
 pub const AUTRE_ENGAGEMENT: &str = "un autre engagement du mois a changé";
+/// La raison d'un recalcul : ce que la saisie du mois pose pour tous ses engagements (taux du cachet, date de paiement) a
+/// change.
+pub const SAISIE_DU_MOIS: &str = "saisie du mois modifiée";
 /// La raison d'un recalcul : la configuration de la compagnie (fiches, taux, contrats d'organismes) a change.
 pub const CONFIGURATION: &str = "configuration de la compagnie modifiée";
 
@@ -195,8 +200,8 @@ fn qui_de(o: &Objet) -> String {
     format!("{} (contrat du {})", o.brut.get("salarie").map(en_texte).unwrap_or_default(), crate::debut_brut(&Value::Object(o.brut.clone())))
 }
 
-/// Ce qu'est l'engagement `o` pour le mois `mois`.
-pub fn etat(ctx: &Contexte, o: Objet, mois: &str, journal: &Journal) -> Etat {
+/// Ce qu'est l'engagement `o` pour le mois `mois`, tel qu'il est ecrit.
+fn etat(ctx: &Contexte, o: Objet, mois: &str, journal: &Journal) -> Etat {
     let cle = cle_du_salarie(ctx, &o);
     match Valide::de(o.clone()) {
         None => Etat::EnSaisie(EnSaisie { objet: o }),
@@ -207,17 +212,42 @@ pub fn etat(ctx: &Contexte, o: Objet, mois: &str, journal: &Journal) -> Etat {
     }
 }
 
-/// L'etat de chaque engagement que `mois` montre, dans l'ordre de l'ecran.
-pub fn du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
+/// L'etat de chaque engagement que `mois` montre, tel qu'il est ecrit, sans le recalcul.
+fn ecrits(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
     let journal = Journal::lire(&ctx.racine)?;
     Ok(stock::objets_du_mois(&ctx.racine, mois)?.into_iter().map(|o| etat(ctx, o, mois, &journal)).collect())
+}
+
+/// LA LECTURE DE L'ENGAGEMENT VALIDE : l'etat de chaque engagement que `mois` montre, dans l'ordre de l'ecran, apres le
+/// recalcul de lui-meme (`rafraichir`). C'est le seul chemin vers une paie validee : l'ecran, les exports, les
+/// declarations, les documents et les envois lisent tous par ici, et lisent donc une paie juste. Un recalcul qui ne se
+/// fait pas (une saisie du mois qui ne se calcule pas encore) laisse la paie telle qu'elle a ete validee.
+pub fn du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
+    let _ = rafraichir(ctx, mois);
+    ecrits(ctx, mois)
+}
+
+/// Pour chaque engagement que `mois` montre, dans l'ordre de l'ecran : est-il valide ? Ne lit aucune paie, donc ne
+/// recalcule rien : ce que comptent l'accueil et le bilan d'un mois.
+pub fn valides_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<bool>> {
+    Ok(stock::objets_du_mois(&ctx.racine, mois)?.iter().map(|o| o.brut.get("valide").is_some_and(|v| v.get("le").is_some())).collect())
+}
+
+/// La paie ecrite de `mois` de l'engagement du salarie `cle` (la cle de sa fiche) qui commence le `debut` (AAAA-MM-JJ),
+/// lue par `du_mois` ; `None` s'il n'est pas valide ou n'a pas de paie ecrite pour ce mois.
+pub fn paie_ecrite_de(ctx: &Contexte, mois: &str, cle: &str, debut: &str) -> Resultat<Option<Value>> {
+    Ok(du_mois(ctx, mois)?.into_iter().find_map(|e| {
+        let b = Value::Object(e.objet().brut.clone());
+        let sien = crate::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle) && crate::debut_brut(&b) == debut;
+        if sien { e.valide().and_then(|v| v.paie_ecrite(mois)).cloned() } else { None }
+    }))
 }
 
 /// RIEN NE PART SANS VALIDATION : les paies validees de `mois`, une par engagement qu'il montre, dans l'ordre de
 /// l'ecran, telles qu'elles ont ete ecrites. Refus si un engagement du mois est encore en saisie : il se valide d'abord.
 pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
     let etats = du_mois(ctx, mois)?;
+    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
     let en_saisie: Vec<String> = etats.iter().filter(|e| e.valide().is_none()).map(|e| qui_de(e.objet())).collect();
     if !en_saisie.is_empty() {
         return Err(format!(
@@ -234,8 +264,8 @@ pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
 /// CE QUI PEUT PARTIR DE `mois` : sa saisie reduite aux engagements valides (dans l'ordre de l'ecran), et la paie ecrite
 /// de chacun, au meme rang. Un engagement en saisie n'y est pas : aucun document ne part de lui. `None` : aucune saisie.
 pub fn validees_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<(Value, Vec<Paie>)>> {
-    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
     let etats = du_mois(ctx, mois)?;
+    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut gardes = Vec::new();
     let mut paies = Vec::new();
@@ -349,8 +379,14 @@ fn raison(avant: &Value, apres: &Value) -> String {
     if changees.iter().any(|k| *k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:"))) {
         return CALCUL_CORRIGE.to_string();
     }
-    if changees.iter().any(|k| k.starts_with("saisie ")) {
+    // La saisie d'un mois : `<le mois>:<ses engagements>` (`stock::empreinte_de_saisie`).
+    let saisies: Vec<&String> = changees.iter().copied().filter(|k| k.starts_with("saisie ")).collect();
+    let part = |e: &BTreeMap<String, String>, k: &str, i: usize| e.get(k).and_then(|v| v.split(':').nth(i).map(String::from));
+    if saisies.iter().any(|k| part(&ea, k, 1) != part(&eb, k, 1)) {
         return AUTRE_ENGAGEMENT.to_string();
+    }
+    if !saisies.is_empty() {
+        return SAISIE_DU_MOIS.to_string();
     }
     CONFIGURATION.to_string()
 }
@@ -422,22 +458,15 @@ pub fn modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<EnSaisie> {
     Ok(EnSaisie { objet: o })
 }
 
-/// Une paie qui s'est recalculee d'elle-meme : l'engagement, le mois, et pourquoi (`None` : aucun chiffre n'a change).
-#[derive(Debug, Clone)]
-pub struct Recalcule {
-    pub objet: Objet,
-    pub mois: String,
-    pub raison: Option<String>,
-}
-
-/// LE RECALCUL DE LUI-MEME, a l'ouverture de `mois` : chaque engagement valide du mois dont les documents ne sont pas
+/// LE RECALCUL DE LUI-MEME, a la lecture de `mois` (`du_mois`) : chaque engagement valide du mois dont les documents ne sont pas
 /// partis et dont la paie de ce mois n'est plus juste (son empreinte ne tient plus, ou elle manque : un contrat sans
 /// terme qui entre dans un nouveau mois) se recalcule et se reecrit. Un chiffre qui change note pourquoi, et quand ; rien
 /// d'autre ne change.
-pub fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<Vec<Recalcule>> {
+fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
     // Ce qui ne tient plus : le rang dans l'ecran, l'engagement, sa paie ecrite du mois.
     let mut a_refaire: Vec<(usize, Objet, Option<Value>)> = Vec::new();
-    for (i, e) in du_mois(ctx, mois)?.into_iter().enumerate() {
+    let mut relues = empreinte::Relues::default();
+    for (i, e) in ecrits(ctx, mois)?.into_iter().enumerate() {
         // Des documents partis ne bougent pas ; une paie qui manque (un contrat sans terme qui entre dans le mois) s'ecrit.
         let v = match e {
             Etat::Valide(v) => v,
@@ -449,17 +478,16 @@ pub fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<Vec<Recalcule>> {
             .as_ref()
             .and_then(|a| a.get("empreinte"))
             .and_then(empreinte::entrees_de)
-            .is_some_and(|en| empreinte::tient(ctx, &en));
+            .is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
         if !tient {
             a_refaire.push((i, v.objet, ancienne));
         }
     }
     if a_refaire.is_empty() {
-        return Ok(Vec::new());
+        return Ok(());
     }
     let rangs: Vec<usize> = a_refaire.iter().map(|(i, _, _)| *i).collect();
     let nouvelles = calculer_les_rangs(ctx, mois, &rangs)?;
-    let mut out = Vec::new();
     for ((_, mut o, ancienne), mut nouvelle) in a_refaire.into_iter().zip(nouvelles) {
         let raison = match &ancienne {
             Some(a) if chiffres(a) != chiffres(&nouvelle) => Some(raison(a, &nouvelle)),
@@ -478,9 +506,8 @@ pub fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<Vec<Recalcule>> {
             paies.insert(mois.to_string(), nouvelle);
         }
         stock::reecrire(&ctx.racine, &o)?;
-        out.push(Recalcule { objet: o, mois: mois.to_string(), raison });
     }
-    Ok(out)
+    Ok(())
 }
 
 /// La phrase d'un recalcul, pour l'ecran : « Recalculé le JJ/MM/AAAA : taux de PAS reçu. »

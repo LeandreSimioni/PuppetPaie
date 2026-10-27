@@ -364,7 +364,9 @@ pub fn cle_de_saisie(mois: &str) -> String {
 }
 
 /// L'empreinte de la saisie d'un mois : ce qu'elle dit, sans ce que le moteur tient seul (la validation) ni le numero du
-/// contrat (pose a l'envoi, il ne change aucun montant), les cles triees et un nombre ecrit comme un nombre.
+/// contrat (pose a l'envoi, il ne change aucun montant), les cles triees et un nombre ecrit comme un nombre. Deux parts,
+/// `<le mois>:<ses engagements>` : ce que le mois pose pour tous (taux du cachet, date de paiement...), et ses
+/// engagements ; la raison d'un recalcul dit laquelle a change (`etats::raison`).
 pub fn empreinte_de_saisie(vue: &Value) -> String {
     let mut v = vue.clone();
     if let Some(Value::Array(es)) = v.get_mut("engagements") {
@@ -375,11 +377,16 @@ pub fn empreinte_de_saisie(vue: &Value) -> String {
             }
         }
     }
-    if let Some(m) = v.as_object_mut() {
-        m.remove("_origine");
-        m.remove("numeros_figes");
-    }
-    socle::fichiers::sha256_hex(canonique(&v).as_bytes())
+    let engagements = match v.as_object_mut() {
+        Some(m) => {
+            m.remove("_origine");
+            m.remove("numeros_figes");
+            m.remove("engagements").unwrap_or(Value::Null)
+        }
+        None => Value::Null,
+    };
+    let h = |x: &Value| socle::fichiers::sha256_hex(canonique(x).as_bytes());
+    format!("{}:{}", h(&v), h(&engagements))
 }
 
 /// Une valeur ecrite sans ce qui ne change rien a ce qu'elle dit : les cles triees, un nombre ecrit comme un flottant

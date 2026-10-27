@@ -233,7 +233,7 @@ fn lectures(o: &HashMap<String, String>, mois: &str) -> Value {
 }
 
 /// Refait l'etat de `cle` (un mois, ou l'ouverture, qui s'ecrit). Ce qui se lit peut ecrire (une paie validee qui se
-/// recalcule d'elle-meme a l'ouverture de son mois, `engagement::etats::rafraichir`) : l'empreinte d'apres n'est alors
+/// recalcule d'elle-meme quand on la lit, `engagement::etats::du_mois`) : l'empreinte d'apres n'est alors
 /// plus celle d'avant, et un second passage, sans recalcul cette fois, la retrouve.
 fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> {
     let charge = json!({ "mois": mois });
@@ -267,10 +267,10 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
                 "lectures": lus,
             })
         };
-        // Le mois que l'ouverture montre s'ouvre avec elle : ses paies validees se recalculent ici
-        // (`engagement::etats::rafraichir`), pas apres l'ecriture de l'etat, qui serait aussitot perime.
+        // Le mois que l'ouverture montre se lit avec elle : ses paies validees se recalculent ici (`engagement::etats::du_mois`),
+        // pas apres l'ecriture de l'etat, qui serait aussitot perime.
         if let Some(m) = etat.pointer("/lectures/mois-a-ouvrir/resultat/mois").and_then(Value::as_str).filter(|_| mois == OUVERTURE) {
-            let _ = engagement::etats::rafraichir(ctx, m);
+            let _ = engagement::etats::du_mois(ctx, m);
         }
         if empreinte(ctx, mois) == avant {
             if mois == OUVERTURE {

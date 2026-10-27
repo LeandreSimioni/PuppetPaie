@@ -487,27 +487,20 @@ pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
 }
 
 /// `paie_du_contrat_entier` : le contrat recompose sur tous ses mois, pour son certificat. Les mois d'avant se lisent
-/// dans les paies que la validation de l'engagement a ecrites ; rien ne se recalcule. Rend la paie du certificat et les
+/// dans les paies validees de l'engagement (`engagement::etats::paie_ecrite_de`). Rend la paie du certificat et les
 /// mois du contrat dont aucune paie n'est ecrite.
 fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> {
     let eng = &p.engagement;
     let cle = cle_de(p);
     let mois_du = eng.mois_du_contrat()?;
     let debut = eng.debut.iso();
-    let objet = engagement::stock::objets_du_mois(&ctx.racine, &eng.mois)
-        .map_err(|m| avec("ValueError", m))?
-        .into_iter()
-        .find(|o| {
-            let e = Value::Object(o.brut.clone());
-            engagement::cle_de_l_engagement(ctx, &e).as_deref() == Some(cle.as_str()) && engagement::debut_brut(&e) == debut
-        });
-    let ecrites = objet.as_ref().and_then(|o| o.brut.get("valide")).and_then(|v| v.get("paies"));
     let mut manquants: Vec<String> = Vec::new();
     let mut lignes: Vec<Value> = Vec::new();
     let mut bruts = Decimal::new(0, 2);
     let mut jours = 0i64;
     for m in mois_du.iter().filter(|m| **m < eng.mois) {
-        let Some(paie) = ecrites.and_then(|x| x.get(m)).and_then(|x| x.get("paie")) else {
+        let ecrite = engagement::etats::paie_ecrite_de(ctx, m, &cle, &debut).map_err(|e| avec("ValueError", e))?;
+        let Some(paie) = ecrite.as_ref().and_then(|x| x.get("paie")) else {
             manquants.push(m.clone());
             continue;
         };

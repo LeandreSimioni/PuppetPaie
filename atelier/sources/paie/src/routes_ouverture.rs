@@ -561,8 +561,8 @@ fn entrees_dans_l_ordre(dossier: &Path) -> Vec<(String, PathBuf)> {
 /// Combien d'engagements le mois montre, et combien sont valides. Muette en cas de pepin : un mois illisible rend
 /// `(0, 0)`.
 fn engagements_valides(ctx: &Contexte, mois: &str) -> (i64, i64) {
-    let Ok(etats) = engagement::etats::du_mois(ctx, mois) else { return (0, 0) };
-    (etats.len() as i64, etats.iter().filter(|e| e.valide().is_some()).count() as i64)
+    let Ok(valides) = engagement::etats::valides_du_mois(ctx, mois) else { return (0, 0) };
+    (valides.len() as i64, valides.iter().filter(|v| **v).count() as i64)
 }
 
 fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
