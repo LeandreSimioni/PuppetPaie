@@ -978,15 +978,15 @@ async function boiteSignature(mois, seulement) {
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       ${a.produit ? `<button class="secondaire" id="s-dossier">Ouvrir le dossier des contrats</button>` : ""}
-      <button class="secondaire" id="s-imprimer" title="Les contrats cochés, en PDF, à imprimer et à faire signer à la main : ils partent sous leur numéro">Imprimer pour une remise en main propre</button>
+      <button class="secondaire" id="s-imprimer" title="Les contrats cochés, en PDF, à imprimer et à faire signer à la main : ils partent sous leur numéro">Imprimer</button>
       <button class="primaire" id="s-envoyer" ${a.boite_liee ? "" : "disabled"}
               title="${a.boite_liee ? "" : "Aucune boîte courriel."}">${enFictive() ? "Envoyer à la signature — simulé" : "Envoyer à la signature"}</button>
     </div>`);
 
   const dossierS = document.getElementById("s-dossier");
   if (dossierS) dossierS.onclick = () => ouvrirDossier(dossierS, mois, "contrats");
-  // IMPRIMER : le contrat part à la main. C'est un départ, il prend son
-  // numéro ; le salarié le signe, et sa pastille se coche à son retour.
+  // IMPRIMER : le contrat part à la main, sous son numéro, et le journal le
+  // note ; le salarié le signe, et sa pastille se coche à son retour.
   document.getElementById("s-imprimer").onclick = async () => {
     const coches = [...document.querySelectorAll(".s-qui:checked")].filter((c) => !c.dataset.avenant);
     if (!coches.length) { dire("Aucun contrat coché."); return; }
@@ -995,9 +995,14 @@ async function boiteSignature(mois, seulement) {
     const rendre = occupe(bouton, "Impression…");
     try {
       const r = await api("contrats-imprimer", { mois, contrats });
-      rendre();
-      dire(r.contrats.length + " contrat(s) à imprimer : " + r.contrats.map((c) => "n° " + c.numero).join(", ") + ".", "envoye");
-      await ouvrirDossier(bouton, mois, "contrats");
+      fermerBoite();
+      // Le dossier des contrats s'ouvre ; s'il ne s'ouvre pas, son chemin se dit.
+      let ou = "";
+      try {
+        const d = await api("ouvrir-dossier", { mois, quoi: "contrats" });
+        ou = d && d.dossier ? " Dossier : " + d.dossier : "";
+      } catch (err) { ou = " " + err.message; }
+      dire(r.contrats.length + " contrat(s) à imprimer : " + r.contrats.map((c) => "n° " + c.numero).join(", ") + "." + ou, "envoye");
       await rafraichirActions();
     } catch (e) {
       rendre();
