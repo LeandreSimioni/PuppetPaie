@@ -254,7 +254,7 @@ pub(crate) fn engagement_declare(m: &mut Moteur, ctx: &Contexte, mois: &str, sal
     match trouve {
         Some((declare, fiche)) => Ok((donnees, declare, fiche)),
         None => Err(non_regularisable(format!(
-            "Aucun engagement de {} commencant le {} dans la saisie de {}. Un contrat jamais declare n'est pas une correction : c'est un contrat en retard, avec sa DPAE -- a saisir dans son mois avec `--forcer`.",
+            "Aucun engagement de {} commencant le {} dans la saisie de {}. Un contrat jamais declare n'est pas une correction : c'est un contrat en retard, avec sa DPAE -- a saisir dans son mois, que sa DSN declare.",
             valeur_en_texte(salarie),
             valeur_en_texte(debut),
             mois

@@ -67,10 +67,11 @@ fn apres_la_veille_de_l_echeance_un_mois_depose_ne_se_redepose_pas_et_rien_n_est
 #[test]
 fn un_exercice_clos_ne_fabrique_pas_de_dsn() {
     let r = compagnie("clos", &[]);
+    let avant = noms(&r.join("sorties/2025-06"));
     let rep = dsn(&r, "2025-07-10", "2025-06");
     assert_eq!(rep["ok"], json!(false));
     assert!(rep["erreur"].as_str().unwrap().contains("cloture"), "{}", rep);
-    assert!(!r.join("sorties/2025-06").exists());
+    assert_eq!(noms(&r.join("sorties/2025-06")), avant, "rien n'est ecrit");
 }
 
 // ------------------------------------------------------------------ le contact emetteur

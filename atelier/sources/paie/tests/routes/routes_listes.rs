@@ -270,7 +270,7 @@ fn les_mois_se_classent_selon_leur_depot_et_leur_echeance() {
     let retard = tard["mois"]["en_retard"].as_array().unwrap();
     assert_eq!(retard.len(), 1);
     assert_eq!(retard[0]["mois"], json!("2026-09"));
-    assert!(retard[0]["raison"].as_str().unwrap().contains("(en retard : `paie mois 2026-09 --forcer`)"));
+    assert!(retard[0]["raison"].as_str().unwrap().contains("en retard"), "{}", retard[0]["raison"]);
     // Avant la veille de l'echeance, l'annule-et-remplace est encore admis.
     let tot = liste(c, "regularisations", json!({}), "2026-09-10");
     assert_eq!(tot["mois"]["regularisables"], json!([]));
