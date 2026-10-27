@@ -15,10 +15,17 @@ use std::path::PathBuf;
 const DEMO: &str = "fictive-3090-grande";
 const JOUR: &str = "2026-10-20";
 
+/// Une copie de la compagnie fictive reduite aux engagements de `salarie` : la fin de son contrat ne lit que les siens.
+fn copie_de(test: &str, salarie: &str) -> PathBuf {
+    let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", test));
+    compagnie::seulement(&racine, &[salarie]);
+    racine
+}
+
 /// Une copie de la compagnie fictive ou le CDI de Montansier (MO.23.01, depuis le 04/09/2023, 3 120 EUR) finit le 30/06/2026
 /// pour `motif`, avec les `champs` poses sur son engagement de juin.
 fn fin_du_cdi(test: &str, motif: &str, champs: Value) -> PathBuf {
-    let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", test));
+    let racine = copie_de(test, "Montansier");
     let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "MO.23.01").unwrap();
     e["fin"] = "2026-06-30".into();
@@ -113,7 +120,7 @@ fn avis(paie: &engagement::calcul::Paie) -> String {
 #[test]
 fn un_cdd_rompu_par_le_salarie_ne_se_declare_pas_preavis_paye() {
     // 037 : aucune indemnite (L1243-2, L1243-3 ; lot P1) ; « 02 - non effectue et paye » dirait le contraire de la paie.
-    let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", "037-02"));
+    let racine = copie_de("037-02", "Audinot");
     let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "AU.25.01").unwrap();
     for (k, v) in [
@@ -182,7 +189,7 @@ fn l_indemnite_du_delai_de_prevenance_se_declare_en_017() {
     // (034) notifiee le 20/06/2026, plus de trois mois de presence, un mois de delai jusqu'au 20/07 ; le contrat finit le
     // 30/06 : vingt jours de juillet. Bloc 52 : « 017 - Dommages et interets dus [...] a une rupture de periode d'essai
     // (delai de prevenance) » (cahier technique 2026.1, p. 253).
-    let racine = compagnie::ses_dsn(DEMO, &[], &outils::dossier_de_test("preavis", "034"));
+    let racine = copie_de("034", "Audinot");
     let mut saisie = crate::outils::saisie(&racine, "2026-06");
     let e = saisie["engagements"].as_array_mut().unwrap().iter_mut().find(|e| e["numero"] == "AU.25.01").unwrap();
     e["motif_rupture"] = "034".into();
