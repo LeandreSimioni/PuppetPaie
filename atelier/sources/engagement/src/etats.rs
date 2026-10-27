@@ -893,21 +893,32 @@ pub fn version_au_depart<'a>(ctx: &Contexte, v: &'a Valide, departs: &Departs, e
     v.version_numero(d.version)
 }
 
+/// La version de l'engagement `o` sur laquelle la DSN de `mois` est partie, telle qu'elle est ecrite (`saisie`,
+/// `paies`) : le present, la validation que « Modifier… » a mise de cote, ou une version passee ; `None` si aucune DSN
+/// de ce mois n'est partie pour lui.
+fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: &str) -> Option<&'a Value> {
+    let d = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois))?;
+    let passees = o.brut.get(VERSIONS).and_then(Value::as_array).into_iter().flatten();
+    [o.brut.get("valide"), o.brut.get(PRECEDENTE)].into_iter().flatten().chain(passees).find(|v| version_de(Some(v)) == d.version)
+}
+
+/// L'ENGAGEMENT DECLARE pour `mois` : ce que la saisie de la version sur laquelle la DSN de ce mois est partie dit de
+/// ce mois (`Objet::vue`) ; `None` si aucune DSN de ce mois n'est partie pour l'engagement `o`.
+pub fn engagement_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+    let Some(Value::Object(saisie)) = version_de_la_dsn(ctx, o, departs, mois).and_then(|x| x.get("saisie")) else { return Ok(None) };
+    let mut declare = o.clone();
+    declare.brut = saisie.clone();
+    declare.vue(mois)
+}
+
 /// LA PAIE DECLAREE de `mois` : celle que la version sur laquelle la DSN de ce mois est partie a ecrite, relue (`relire`)
-/// sur la saisie de cette version et la fiche du salarie telle que son calcul l'a lue (`fiches`), telles qu'elles etaient
-/// (regle 4 : ce qui est declare se lit, il ne se recalcule pas) ;
-/// `None` si aucune DSN de ce mois n'est partie pour cet engagement.
-pub fn paie_declaree(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str) -> Resultat<Option<Paie>> {
-    let Some(d) = ses_departs(ctx, &v.objet, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois)) else {
-        return Ok(None);
-    };
-    let Some(ecrite) = v.version_numero(d.version).and_then(|x| x.get("paies")).and_then(|p| p.get(mois)) else { return Ok(None) };
+/// sur la saisie de cette version (`engagement_declare`) et la fiche du salarie telle que son calcul l'a lue (`fiches`)
+/// (regle 4 : ce qui est declare se lit, il ne se recalcule pas) ; `None` si aucune DSN de ce mois n'est partie pour
+/// l'engagement `o`.
+pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Paie>> {
+    let Some(ecrite) = version_de_la_dsn(ctx, o, departs, mois).and_then(|x| x.get("paies")).and_then(|p| p.get(mois)) else { return Ok(None) };
     let paie = ecrite.get("paie").ok_or("paie ecrite illisible : `paie`")?;
-    let mut o = v.objet.clone();
-    if let Some(Value::Object(s)) = v.version_numero(d.version).and_then(|x| x.get("saisie")) {
-        o.brut = s.clone();
-    }
-    let Some(vue) = o.vue(mois)? else { return Ok(None) };
+    let Some(vue) = engagement_declare(ctx, o, departs, mois)? else { return Ok(None) };
     let mut data = stock::vue_du_mois(&ctx.racine, mois)?.unwrap_or_else(|| json!({ "mois": mois }));
     data["engagements"] = json!([vue]);
     let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or("paie ecrite illisible")?;

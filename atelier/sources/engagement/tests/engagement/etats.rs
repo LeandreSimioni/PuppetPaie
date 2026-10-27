@@ -391,7 +391,7 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
     let mut s = lire(&r, "config/salaries.json");
     s["BRIOCHE"]["email"] = json!("fanchon.nouvelle@exemple.invalid");
     ecrire(&r, "config/salaries.json", &s);
-    let declaree = etats::paie_declaree(&ctx(&r), &v, &departs_du_test(&r).unwrap(), "2026-11").unwrap().unwrap();
+    let declaree = etats::paie_declaree(&ctx(&r), v.objet(), &departs_du_test(&r).unwrap(), "2026-11").unwrap().unwrap();
     assert_eq!(json!(declaree.brut.to_string()), paie_partie["paie"]["brut"]);
     assert!(email.is_string());
     assert_eq!(declaree.salarie["email"], email);

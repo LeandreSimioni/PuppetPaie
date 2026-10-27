@@ -187,12 +187,30 @@ pub(crate) fn paies_de(ctx: &Contexte, data: &Value) -> R<Vec<Paie>> {
     Ok(engagement::charger_donnees(ctx, data).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, data, m)))?.paies)
 }
 
-/// La saisie TELLE QUE DECLAREE quand elle a ete modifiee apres la limite de l'annule-et-remplace
-/// (`chemin_saisie_declaree`) : c'est d'elle que la correction part ; sinon la saisie du mois.
+/// LA SAISIE DE `mois` TELLE QUE DECLAREE : la saisie du mois, ses engagements tels que la version sur laquelle la DSN
+/// du mois est partie pour chacun les a ecrits (`engagement::etats::engagement_declare`), dans l'ordre de l'ecran ; un
+/// engagement dont aucune DSN de ce mois n'est partie n'y est pas. `None` : aucune DSN du mois n'est partie.
+pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
+    let Some(mut saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
+    let departs = engagement::departs::lire(&ctx.racine)?;
+    let mut declares = Vec::new();
+    for o in engagement::stock::objets_du_mois(&ctx.racine, mois)? {
+        if let Some(e) = engagement::etats::engagement_declare(ctx, &o, &departs, mois)? {
+            declares.push(Value::Object(e));
+        }
+    }
+    if declares.is_empty() {
+        return Ok(None);
+    }
+    saisie["engagements"] = Value::Array(declares);
+    Ok(Some(saisie))
+}
+
+/// La saisie TELLE QUE DECLAREE (`saisie_declaree`) : c'est d'elle que la correction part ; sans DSN partie, la saisie du
+/// mois.
 pub(crate) fn saisie_d_origine(ctx: &Contexte, mois: &str) -> R<Value> {
-    let declaree = chemin_saisie_declaree(ctx, mois);
-    if declaree.exists() {
-        return Ok(socle::fichiers::lire_json(&declaree)?);
+    if let Some(declaree) = saisie_declaree(ctx, mois)? {
+        return Ok(declaree);
     }
     engagement::stock::vue_du_mois(&ctx.racine, mois)?
         .ok_or_else(|| non_regularisable(format!("Aucun engagement ne touche {} : rien a corriger.", mois)))
@@ -519,13 +537,6 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
     crate::envoi::de_mois(&mois_en_clair(mois))
 }
 
-/// La saisie d'un mois TELLE QUE DECLAREE, gardee quand on la modifie apres la limite de l'annule-et-remplace : la
-/// correction se calcule depuis ce que la DSN deposee a declare, pas depuis la saisie modifiee.
-/// A cote des corrections du mois, sous un nom que `routes_ecrites::toutes_les_corrections` ne lit pas.
-pub(crate) fn chemin_saisie_declaree(ctx: &Contexte, mois: &str) -> PathBuf {
-    ctx.racine.join("regularisations").join(format!("{}.saisie-declaree.json", mois))
-}
-
 /// Ce que la page dit d'un mois dont la DSN reelle est deposee, avant qu'on en modifie la paie (`saisie`,
 /// `enregistrer-saisie`) ; `Null` quand aucune DSN reelle acceptee n'est partie.
 ///
@@ -570,27 +581,6 @@ pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str
     }))
 }
 
-/// Garde la saisie telle que declaree avant sa premiere modification apres la limite (`chemin_saisie_declaree`). Ne
-/// garde rien si elle l'est deja, ou si les engagements du mois ne sont plus ceux que la derniere DSN reelle a emportes
-/// (`routes_mois::dsn_a_refaire`) : ce ne serait pas la paie declaree.
-pub(crate) fn garder_la_saisie_declaree(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<()> {
-    let copie = chemin_saisie_declaree(ctx, mois);
-    if copie.exists() {
-        return Ok(());
-    }
-    let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(()) };
-    let faits = m.depots_reels(mois, &Value::Null)?;
-    if let Some(derniere) = faits.last() {
-        let etats = engagement::etats::du_mois(ctx, mois)?;
-        let refaire = crate::routes_mois::a_refaire_du_mois(ctx, &etats)?;
-        if crate::routes_mois::dsn_a_refaire(ctx, mois, derniere, &etats, &refaire) {
-            return Ok(());
-        }
-    }
-    socle::ecriture::ecrire_json(&copie, &saisie, 2).map_err(|m| erreur("OSError", m))?;
-    Ok(())
-}
-
 /// Un contrat de la saisie dont la paie n'est plus celle que la DSN deposee declare.
 pub(crate) struct ContratModifie {
     /// La cle du salarie, et le premier jour du contrat : ce qu'une correction designe.
@@ -623,12 +613,10 @@ pub(crate) fn bornes_en_clair(b: &Bornes) -> String {
     }
 }
 
-/// Ce qui a change dans la saisie depuis qu'elle a ete declaree.
+/// Ce qui a change dans la paie depuis qu'elle a ete declaree.
 pub(crate) struct Changements {
     /// Les contrats declares dont la paie a change, et les contrats ajoutes.
     pub(crate) contrats: Vec<ContratModifie>,
-    /// Les contrats declares que la saisie ne porte plus (le moteur les refuse apres la limite, `refus_non_declarable`).
-    pub(crate) retires: usize,
 }
 
 /// Les engagements d'une saisie, identifies (`jumeaux`) ; `None` s'ils ne s'identifient pas.
@@ -636,44 +624,49 @@ fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<droit::jumeaux::Id
     crate::routes_ecritures::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
 }
 
-/// Ce qui a change dans LA PAIE depuis que la saisie a ete declaree (`chemin_saisie_declaree`) : les contrats declares
-/// dont la paie a change -- ce que la paie calculee en dit (`resume` : montants, cachets, heures, jours), calculee sur
-/// les deux saisies : la page reecrit la saisie a sa facon (cles, nombres), ce n'est pas un changement --, les contrats
-/// ajoutes, et le nombre de contrats retires. `None` sans copie de la saisie declaree, ou si l'une des deux ne se
-/// calcule pas.
+/// Ce qui a change dans LA PAIE de `mois` depuis que sa DSN est partie : pour chaque engagement du mois, la paie que la
+/// version sur laquelle la DSN est partie a ecrite (`engagement::etats::paie_declaree`) comparee a celle d'aujourd'hui
+/// -- la paie validee, ou, pour un engagement en saisie, son calcul -- par ce qu'elles declarent (`resume`, les
+/// bornes) ; un engagement dont aucune DSN du mois n'est partie est un contrat ajoute. `None` : aucune DSN du mois n'est
+/// partie, ou la saisie d'aujourd'hui ne se calcule pas.
 pub(crate) fn ce_qui_a_change(ctx: &Contexte, mois: &str) -> R<Option<Changements>> {
-    let copie = chemin_saisie_declaree(ctx, mois);
-    if !copie.exists() {
+    if saisie_declaree(ctx, mois)?.is_none() {
         return Ok(None);
     }
     let Some(actuelle) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let declaree = socle::fichiers::lire_json(&copie)?;
-    let (Ok(p_avant), Ok(p_apres)) = (paies_de(ctx, &declaree), paies_de(ctx, &actuelle)) else {
-        return Ok(None);
+    let departs = engagement::departs::lire(&ctx.racine)?;
+    let etats = engagement::etats::du_mois(ctx, mois)?;
+    let calculees = if etats.iter().any(|e| e.valide().is_none()) {
+        match paies_de(ctx, &actuelle) {
+            Ok(p) => Some(p),
+            Err(_) => return Ok(None),
+        }
+    } else {
+        None
     };
-    let (Some(avant), Some(apres)) = (identifies(ctx, &declaree), identifies(ctx, &actuelle)) else { return Ok(None) };
     let e_apres = actuelle.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    // Le meme contrat a d'autres dates garde son numero (`jumeaux::apparier_meme_numero`) : il designe le contrat
-    // declare, a son premier jour declare.
-    let paires = droit::jumeaux::apparier_meme_numero(&apres, &avant);
     let mut contrats = Vec::new();
-    for (i, j) in paires.iter().enumerate() {
-        let (Some(Some(id)), Some(e), Some(p)) = (apres.get(i), e_apres.get(i), p_apres.get(i)) else { continue };
-        let ajoute = j.is_none();
-        let (debut, dates_changees, change) = match j {
-            None => (id.1.clone(), false, true),
-            Some(j) => {
-                let d = avant.get(*j).and_then(|x| x.as_ref()).map_or_else(|| id.1.clone(), |x| x.1.clone());
-                let dates = p_avant.get(*j).map(bornes) != Some(bornes(p));
-                (d, dates, dates || p_avant.get(*j).map(resume) != Some(resume(p)))
+    for (i, e) in etats.iter().enumerate() {
+        let p = match (e.valide(), &calculees) {
+            (Some(v), _) => v.paie(ctx, &actuelle, i)?,
+            (None, Some(c)) => c.get(i).cloned().ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("les paies du mois")))?,
+            (None, None) => continue,
+        };
+        let declaree = engagement::etats::paie_declaree(ctx, e.objet(), &departs, mois)?;
+        let (debut, ajoute, dates_changees, change) = match &declaree {
+            None => (p.engagement.debut.iso(), true, false, true),
+            Some(d) => {
+                let dates = bornes(d) != bornes(&p);
+                (d.engagement.debut.iso(), false, dates, dates || resume(d) != resume(&p))
             }
         };
         if change {
-            contrats.push(ContratModifie { salarie: id.0.clone(), debut, engagement: e.clone(), ajoute, bornes: bornes(p), dates_changees });
+            let salarie = valeur_en_texte(requis(&p.salarie, "_cle")?);
+            let engagement = e_apres.get(i).cloned().unwrap_or(Value::Null);
+            contrats.push(ContratModifie { salarie, debut, engagement, ajoute, bornes: bornes(&p), dates_changees });
         }
     }
-    let gardes = paires.iter().filter(|j| j.is_some()).count();
-    Ok(Some(Changements { contrats, retires: avant.len().saturating_sub(gardes) }))
+    Ok(Some(Changements { contrats }))
 }
 
 /// UN CONTRAT DECLARE NE SE RETIRE PAS APRES LA LIMITE (21/10/2026). Ce que la norme permet apres la date
@@ -745,12 +738,12 @@ pub(crate) fn dpae_d_une_date_changee(avant: &str, apres: &str) -> (bool, String
 
 /// Ce qui reste a ecrire pour que la DSN suivante declare la paie d'aujourd'hui (`etat_remplacement`).
 pub(crate) struct Couverture {
+    /// Les contrats dont la paie a change depuis la DSN, ou ajoutes apres elle (`ce_qui_a_change`).
+    pub(crate) changes: usize,
     /// Les contrats changes sans correction ecrite.
     pub(crate) a_ecrire: usize,
     /// Les contrats dont la correction ecrite ne declare plus la paie d'aujourd'hui (la saisie a encore change).
     pub(crate) a_refaire: usize,
-    /// Les contrats declares retires de la saisie (d'avant le refus).
-    pub(crate) retires: usize,
     /// Les contrats a corriger, ceux de `a_ecrire` et de `a_refaire` : `(salarie, debut, engagement saisi)`.
     pub(crate) a_corriger: Vec<(String, String, Value)>,
 }
@@ -758,13 +751,13 @@ pub(crate) struct Couverture {
 /// LA CORRECTION ECRITE DECLARE-T-ELLE LA PAIE D'AUJOURD'HUI ? Pour chaque contrat change, la derniere correction non
 /// annulee (en attente, preparee ou portee) : sa paie, et celle que la meme correction aurait avec les lignes saisies
 /// aujourd'hui (`normaliser` : l'identite du contrat declare, les lignes de la saisie), calculees de la meme facon
-/// (`paie_d_un_engagement`) et comparees par ce qu'elles declarent (`resume`). `None` sans copie de la saisie declaree.
+/// (`paie_d_un_engagement`) et comparees par ce qu'elles declarent (`resume`). `None` : aucune DSN du mois n'est partie.
 pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Option<Couverture>> {
     let Some(ch) = ce_qui_a_change(ctx, mois)? else { return Ok(None) };
     let ecrites = crate::routes_ecrites::lire_corrections(ctx, mois)?;
     let donnees = saisie_d_origine(ctx, mois)?;
     let mut m = Moteur::nouveau(o, ctx);
-    let mut c = Couverture { a_ecrire: 0, a_refaire: 0, retires: ch.retires, a_corriger: Vec::new() };
+    let mut c = Couverture { changes: ch.contrats.len(), a_ecrire: 0, a_refaire: 0, a_corriger: Vec::new() };
     for x in &ch.contrats {
         let derniere = ecrites.iter().rev().find(|e| {
             !e.get("annulee_le").is_some_and(vrai)

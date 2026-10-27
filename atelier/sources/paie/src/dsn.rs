@@ -3983,7 +3983,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
     while m >= premier_mois {
         // La compagnie telle qu'a la fin du mois declare (l'entreprise, ses etablissements) ; la fiche, celle que la paie declaree a lue.
         let ctx_m = Contexte::nouveau(&ctx.racine, Some(socle::date::dernier_du_mois(&m)?))?;
-        if let Some(declaree) = engagement::etats::paie_declaree(&ctx_m, v, departs, &m)? {
+        if let Some(declaree) = engagement::etats::paie_declaree(&ctx_m, v.objet(), departs, &m)? {
             // Les autres contrats du salarie declares ce mois-la : le code emplois multiples (40.036) s'ecrit avec eux.
             let mut autres = Vec::new();
             for e in engagement::etats::tels_qu_ecrits(ctx, &m)? {
@@ -3991,7 +3991,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
                 if w.objet().fichier == v.objet().fichier && w.objet().rang == v.objet().rang {
                     continue;
                 }
-                if let Some(q) = engagement::etats::paie_declaree(&ctx_m, w, departs, &m)? {
+                if let Some(q) = engagement::etats::paie_declaree(&ctx_m, w.objet(), departs, &m)? {
                     autres.push(q);
                 }
             }

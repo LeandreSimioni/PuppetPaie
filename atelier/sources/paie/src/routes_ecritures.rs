@@ -828,8 +828,7 @@ fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, 
         // Ce que la norme ne permet pas de declarer apres la limite (un contrat declare retire, ses dates changees) se
         // refuse, confirme ou non : accepte, il ne serait jamais declare (`routes_regularisation::refus_non_declarable`).
         if change {
-            let copie = crate::routes_regularisation::chemin_saisie_declaree(ctx, mois);
-            let base = if copie.exists() { lire_saisie(&copie).ok() } else { actuelle.clone() };
+            let base = crate::routes_regularisation::saisie_declaree(ctx, mois)?.or_else(|| actuelle.clone());
             if let Some(base) = base {
                 if let Some(texte) = crate::routes_regularisation::refus_non_declarable(ctx, mois, &base, &donnees)? {
                     return Err(erreur(crate::routes_regularisation::CLASSE_NON_DECLARABLE, texte));
@@ -839,29 +838,6 @@ fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, 
         if change && !confirme {
             let texte = declaree.get("avertissement").map(valeur_en_texte).unwrap_or_default();
             return Err(erreur(crate::routes_regularisation::CLASSE_A_CONFIRMER, texte));
-        }
-        if change {
-            crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, mois)?;
-            // Les bornes d'un engagement sont celles de tous ses mois : quand elles changent, un autre mois du contrat deja
-            // declare garde aussi sa saisie telle que declaree, dont sa correction part. Le contrat se retrouve par
-            // son numero.
-            let entrants: Vec<Value> = donnees.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-            let mut autres: Vec<String> = Vec::new();
-            for o in engagement::stock::objets_du_mois(&ctx.racine, mois).map_err(plain)? {
-                let Some(numero) = o.brut.get("numero").filter(|n| vrai(n)) else { continue };
-                let ecrit = Value::Object(o.brut.clone());
-                let bornes = |e: &Value| (engagement::debut_brut(e), e.get("fin").map(valeur_en_texte).unwrap_or_default());
-                if entrants.iter().any(|e| e.get("numero") == Some(numero) && bornes(e) != bornes(&ecrit)) {
-                    autres.extend(o.mois_couverts(mois).map_err(plain)?.into_iter().filter(|x| x != mois));
-                }
-            }
-            autres.sort();
-            autres.dedup();
-            for x in autres {
-                if !m.depots_reels(&x, &Value::Null)?.is_empty() {
-                    crate::routes_regularisation::garder_la_saisie_declaree(&mut m, ctx, &x)?;
-                }
-            }
         }
     }
     engagement::stock::ecrire_vue_du_mois(ctx, mois, &donnees).map_err(|m| erreur("ErreurOperation", m))?;

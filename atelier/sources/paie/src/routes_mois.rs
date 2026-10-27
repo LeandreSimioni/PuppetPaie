@@ -789,15 +789,11 @@ impl<'a> Moteur<'a> {
             modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &refaire);
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
-        // Modifiee apres la limite, en le confirmant (21/10/2026) : la saisie telle que declaree est gardee, et dit ce qui a
-        // change meme quand le depot n'a pas note d'empreinte.
+        // Apres la limite : ce que la paie d'aujourd'hui change a ce que la DSN a declare, et ce qui en est deja ecrit.
         let couverture = if admis { None } else { crate::routes_regularisation::couverture(self.o, self.ctx, mois)? };
-        if couverture.is_some() {
-            let changes = crate::routes_regularisation::ce_qui_a_change(self.ctx, mois)?;
-            if changes.is_some_and(|c| !c.contrats.is_empty() || c.retires > 0) {
-                modifiee = true;
-                out.insert("saisie_modifiee".into(), json!(true));
-            }
+        if couverture.as_ref().is_some_and(|c| c.changes > 0) {
+            modifiee = true;
+            out.insert("saisie_modifiee".into(), json!(true));
         }
         let quand = quand_lisible(get(derniere, "quand")?);
         let jour = lim.jj_mm_aaaa();
@@ -806,7 +802,7 @@ impl<'a> Moteur<'a> {
             // change ou qui est ajoute, et qui declare la paie d'AUJOURD'HUI (`routes_regularisation::couverture`).
             let pluriel = |n: usize| if n > 1 { "s" } else { "" };
             let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
-            if c.a_ecrire == 0 && c.a_refaire == 0 && c.retires == 0 {
+            if c.a_ecrire == 0 && c.a_refaire == 0 {
                 out.insert("correction_ecrite".into(), json!(true));
                 phrase.push_str(" — la correction est écrite, elle part dans la DSN suivante");
             } else {
@@ -818,15 +814,6 @@ impl<'a> Moteur<'a> {
                         " — la paie a encore changé depuis la correction écrite : la DSN suivante la refait ({} contrat{})",
                         c.a_refaire,
                         pluriel(c.a_refaire)
-                    ));
-                }
-                if c.retires > 0 {
-                    phrase.push_str(&format!(
-                        " — {} contrat{} déclaré{} retiré{} de la saisie : un contrat déclaré ne se retire pas : il se remet, ses quantités à zéro",
-                        c.retires,
-                        pluriel(c.retires),
-                        pluriel(c.retires),
-                        pluriel(c.retires)
                     ));
                 }
             }
