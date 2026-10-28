@@ -120,7 +120,7 @@ pub(crate) fn brut(v: &Value) -> Value {
 /// `str.title()` d'un texte, `""` s'il manque.
 pub(crate) fn titre_de(v: Option<&Value>) -> String {
     match v.filter(|x| vrai(x)) {
-        Some(x) => crate::champs::titre(&valeur_en_texte(x)),
+        Some(x) => declarations::champs::titre(&valeur_en_texte(x)),
         None => String::new(),
     }
 }
@@ -128,7 +128,7 @@ pub(crate) fn titre_de(v: Option<&Value>) -> String {
 /// `_ecarts` : les champs DECLARES que la DSN disait autrement que la fiche.
 fn ecarts(nom: &str, fiche: &Value, declare: &Map<String, Value>, mois: &str) -> R<Value> {
     let mut out = Map::new();
-    for c in crate::champs::fiche(nom)? {
+    for c in declarations::champs::fiche(nom)? {
         if !c.declare || !declare.contains_key(&c.cle) {
             continue;
         }
@@ -157,7 +157,7 @@ pub(crate) fn fiche_importee(nom: &str, cle: Option<&str>, libelle: &str, etat: 
 /// `_fiche_salarie` : ce qu'une fiche neuve recoit d'une DSN.
 fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
     let mut f = decl.fiche.clone();
-    f.insert("nir_cle".into(), json!(crate::champs::cle_nir(&decl.nir).unwrap_or_default()));
+    f.insert("nir_cle".into(), json!(declarations::champs::cle_nir(&decl.nir).unwrap_or_default()));
     f.insert("nir".into(), json!(decl.nir));
     if !decl.initiales.is_empty() {
         f.insert("initiales_contrat".into(), json!(decl.initiales));
@@ -173,7 +173,7 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
         None => json!(if f.get("pcs_ese").map_or(String::new(), valeur_en_texte).starts_with("354") { "artiste" } else { "technicien" }),
     };
     f.insert("statut".into(), statut);
-    let mut f = crate::champs::combler_affichage("salarie", &f)?;
+    let mut f = declarations::champs::combler_affichage("salarie", &f)?;
     f.insert("actif".into(), json!(true));
     Ok(f)
 }
@@ -189,7 +189,7 @@ fn fiche_entreprise(lecture: &importation::LectureDsn) -> R<Map<String, Value>> 
         let l: Vec<Value> = lecture.licences.iter().map(|(m, n)| json!({"depuis": format!("{}-01", m), "numero": n})).collect();
         e.insert("licence_spectacle".into(), Value::Array(l));
     }
-    let mut e = crate::champs::combler_affichage("entreprise", &e)?;
+    let mut e = declarations::champs::combler_affichage("entreprise", &e)?;
     if e.get("raison_sociale").is_some_and(vrai) && !e.get("nom_affichage").is_some_and(vrai) {
         let t = titre_de(e.get("raison_sociale"));
         e.insert("nom_affichage".into(), json!(t));
@@ -605,7 +605,7 @@ fn entier_py(v: &Value) -> R<i128> {
     match v {
         Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
         Value::Bool(b) => Ok(i128::from(*b)),
-        Value::String(s) => crate::apercu_dsn::int_py(s)
+        Value::String(s) => socle::num::int_py(s)
             .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur(
             "TypeError",

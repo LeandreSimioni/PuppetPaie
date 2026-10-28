@@ -217,31 +217,6 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: imp
     Ok(Value::Array(out))
 }
 
-/// LES VERSIONS QUE PORTENT LES CORRECTIONS d'une DSN mensuelle : pour chaque correction d'un mois passe que le fichier
-/// `fichier` de `mois` porte (`preparee_par`), la version de l'engagement du mois corrige qu'elle declare,
-/// `{"salarie", "numero", "version", "mois": <le mois corrige>}`.
-pub fn versions_des_corrections(ctx: &droit::contexte::Contexte, mois: &str, fichier: &str) -> socle::echec::R<Vec<Value>> {
-    let mut out = Vec::new();
-    for c in crate::routes_ecrites::toutes_les_corrections(ctx)? {
-        let prep = c.get("preparee_par").filter(|p| vrai(p));
-        let ici = prep.is_some_and(|p| p.get("mois").and_then(Value::as_str) == Some(mois) && p.get("fichier").and_then(Value::as_str) == Some(fichier));
-        if !ici || c.get("annulee_le").is_some_and(vrai) {
-            continue;
-        }
-        let corrige = socle::valeur::valeur_en_texte(c.get("mois").unwrap_or(&Value::Null));
-        let cle = c.get("salarie").and_then(Value::as_str).unwrap_or_default().to_string();
-        let numero = c.get("engagement").and_then(|e| e.get("numero")).map(socle::valeur::valeur_en_texte).unwrap_or_default();
-        let siens = versions_du_mois(ctx, &corrige, |k, n, _| k == cle && n == numero)?;
-        for mut v in siens.as_array().cloned().unwrap_or_default() {
-            v["mois"] = json!(corrige);
-            if !out.contains(&v) {
-                out.push(v);
-            }
-        }
-    }
-    Ok(out)
-}
-
 /// `versions_du_mois` des contrats qui partent (`[{"salarie", "numero", "mois"}]`, chacun lu dans le mois qu'il nomme).
 pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]) -> Resultat<Value> {
     let mut mois: Vec<String> = contrats.iter().filter_map(|c| c.get("mois").and_then(Value::as_str).map(String::from)).collect();

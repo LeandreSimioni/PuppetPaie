@@ -102,7 +102,7 @@ fn mots_de_cle(k: &str) -> Vec<String> {
     let mut mots = Vec::new();
     let mut cur = String::new();
     let mut prec_min = false;
-    for c in crate::champs::sans_accents(k).chars() {
+    for c in declarations::champs::sans_accents(k).chars() {
         if !c.is_alphanumeric() {
             if !cur.is_empty() {
                 mots.push(std::mem::take(&mut cur));
@@ -201,7 +201,7 @@ fn classe_de(c: char) -> String {
 
 /// L'expression d'un nom : sans accents ni casse, les separateurs (espace, tiret, apostrophe) au choix.
 fn motif_de(nom: &str) -> Option<String> {
-    let base = crate::champs::sans_accents(nom.trim()).to_lowercase();
+    let base = declarations::champs::sans_accents(nom.trim()).to_lowercase();
     let mut s = String::new();
     let mut sep = false;
     for c in base.chars() {

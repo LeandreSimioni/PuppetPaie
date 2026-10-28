@@ -387,7 +387,6 @@ pub(crate) struct Globales {
 
 /// Tout ce qu'une route lit, lu une fois.
 pub struct Moteur<'a> {
-    o: &'a HashMap<String, String>,
     ctx: &'a Contexte,
     journal: Option<Result<std::sync::Arc<Vec<Value>>, Echec>>,
     globales: Option<Rc<Globales>>,
@@ -395,8 +394,8 @@ pub struct Moteur<'a> {
 }
 
 impl<'a> Moteur<'a> {
-    pub fn nouveau(o: &'a HashMap<String, String>, ctx: &'a Contexte) -> Moteur<'a> {
-        Moteur { o, ctx, journal: None, globales: None, fichiers: HashMap::new() }
+    pub fn nouveau(ctx: &'a Contexte) -> Moteur<'a> {
+        Moteur { ctx, journal: None, globales: None, fichiers: HashMap::new() }
     }
 
     fn racine(&self) -> &Path {
@@ -438,7 +437,7 @@ impl<'a> Moteur<'a> {
         // le contrat qui deborde du mois reprend le numero de son premier mois.
         let mut paies = Vec::new();
         for e in &engs {
-            paies.push(crate::amorcage::embauche(self.ctx, e).map_err(plain)?);
+            paies.push(declarations::amorcage::embauche(self.ctx, e).map_err(plain)?);
         }
         for p in paies.iter_mut() {
             engagement::suivre_contrat(self.ctx, &mut p.engagement).map_err(classer_saisie)?;
@@ -612,7 +611,7 @@ impl<'a> Moteur<'a> {
             if !nat.mensuelle() && dernier_mois && engagement::calcul::declaree_a_la_caisse_des_conges(p).map_err(plain)? {
                 pieces.push("certificat_cs");
             }
-            if crate::aer::due(&p.engagement).map_err(plain)? {
+            if documents::aer::due(&p.engagement).map_err(plain)? {
                 pieces.push("aer");
             }
             ligne.insert("pieces".into(), json!(pieces));
@@ -733,32 +732,21 @@ impl<'a> Moteur<'a> {
     /// `limite` : le dernier jour ou un annule-et-remplace est admis, jusqu'a minuit : la veille de l'echeance de depot
     /// (`echeance_dsn::Echeance::veille`, reportee comme elle).
     pub(crate) fn limite(&self, mois: &str) -> R<Jour> {
-        let e = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+        let e = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         e.veille().map_err(plain)
     }
 
-    /// `_ordre_de_la_ligne` : le rang d'un depot reel du journal.
+    /// Le rang d'un depot reel du journal : l'ordre que sa ligne porte (S20.G00.05.004 du fichier parti, noté au depot).
     pub(crate) fn ordre_de_la_ligne(&self, mois: &str, l: &Value) -> R<i64> {
         let d = ou(get(l, "detail")?, objet_vide());
         let ordre = get(d, "ordre")?;
         let t = if vrai(ordre) { valeur_en_texte(ordre) } else { String::new() };
-        if !t.is_empty() && t.chars().all(|c| c.is_ascii_digit()) {
-            if let Ok(n) = t.parse::<i64>() {
-                return Ok(n);
-            }
-        }
-        let nom = get(l, "fichier")?;
-        if vrai(nom) {
-            let p = self.racine().join("sorties").join(mois).join(valeur_en_texte(nom));
-            if p.exists() {
-                let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-                if let Some(n) = rang_dans_le_fichier(&octets) {
-                    return Ok(n);
-                }
-            }
-        }
-        // Une ligne reconstituee sans fichier : une normale porte l'ordre 1.
-        Ok(1)
+        t.trim().parse::<i64>().map_err(|_| {
+            erreur(
+                "ValueError",
+                format!("journal/depots.json : un depot reel de la DSN de {} ne porte pas son ordre (S20.G00.05.004). Le rang d'un annule-et-remplace ne se devine pas.", mois),
+            )
+        })
     }
 
     /// `depots_reels` : les depots REELS de DSN mensuelle du mois que la
@@ -797,8 +785,8 @@ impl<'a> Moteur<'a> {
         out.insert("saisie_modifiee".into(), Value::Null);
         out.insert("a_envoyer".into(), json!(false));
         out.insert("phrase".into(), json!(""));
-        // Apres la limite : la correction de chaque contrat modifie est ecrite pour la DSN suivante.
-        out.insert("correction_ecrite".into(), json!(false));
+        // Apres la limite : la DSN suivante corrige chaque contrat dont la paie validee a change.
+        out.insert("corrigee_par_la_suivante".into(), json!(false));
         let Some(derniere) = faits.last() else {
             return Ok(Value::Object(out));
         };
@@ -816,35 +804,30 @@ impl<'a> Moteur<'a> {
             modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &refaire);
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
-        // Apres la limite : ce que la paie d'aujourd'hui change a ce que la DSN a declare, et ce qui en est deja ecrit.
-        let couverture = if admis { None } else { crate::routes_regularisation::couverture(self.ctx, mois)? };
-        if couverture.as_ref().is_some_and(|c| c.changes > 0) {
+        // Apres la limite : les contrats dont la paie validee n'est plus celle que la DSN a declaree ; la DSN suivante
+        // porte leur correction d'elle-meme (`produire_regularisations::corrections_dues`).
+        let corriges = if admis {
+            0
+        } else {
+            let departs = crate::journal::departs(&self.ctx.racine).map_err(plain)?;
+            declarations::produire_regularisations::corrections_dues(self.ctx, mois, "9999-12", &departs)?.len()
+        };
+        if corriges > 0 {
             modifiee = true;
             out.insert("saisie_modifiee".into(), json!(true));
         }
         let quand = quand_lisible(get(derniere, "quand")?);
         let jour = lim.jj_mm_aaaa();
-        if let (true, Some(c)) = (modifiee && !admis, &couverture) {
-            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction par contrat dont la paie a
-            // change ou qui est ajoute, et qui declare la paie d'AUJOURD'HUI (`routes_regularisation::couverture`).
-            let pluriel = |n: usize| if n > 1 { "s" } else { "" };
-            let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
-            if c.a_ecrire == 0 && c.a_refaire == 0 {
-                out.insert("correction_ecrite".into(), json!(true));
-                phrase.push_str(" — la correction est écrite, elle part dans la DSN suivante");
-            } else {
-                if c.a_ecrire > 0 {
-                    phrase.push_str(&format!(" — {} contrat{} corrigé{} par la DSN suivante, quand elle se fabrique", c.a_ecrire, pluriel(c.a_ecrire), pluriel(c.a_ecrire)));
-                }
-                if c.a_refaire > 0 {
-                    phrase.push_str(&format!(
-                        " — la paie a encore changé depuis la correction écrite : la DSN suivante la refait ({} contrat{})",
-                        c.a_refaire,
-                        pluriel(c.a_refaire)
-                    ));
-                }
-            }
-            out.insert("phrase".into(), json!(phrase));
+        if corriges > 0 {
+            let pluriel = if corriges > 1 { "s" } else { "" };
+            out.insert("corrigee_par_la_suivante".into(), json!(true));
+            out.insert(
+                "phrase".into(),
+                json!(format!(
+                    "Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit) — {} contrat{} corrigé{} par la DSN suivante",
+                    quand, jour, corriges, pluriel, pluriel
+                )),
+            );
             return Ok(Value::Object(out));
         }
         if modifiee {
@@ -957,7 +940,7 @@ impl<'a> Moteur<'a> {
         // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : ses etapes se sont faites ailleurs ; elles le disent, sans geste.
         if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
             let mut b = crate::mois_importe::etapes(&vue);
-            let echeance = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+            let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
             b[DSN]["echeance_depot"] = echeance.en_json();
             return Ok(b);
         }
@@ -1139,8 +1122,8 @@ impl<'a> Moteur<'a> {
         if vrai(&e) && !vrai(get(&e, "refusee")?) {
             let r = self.etat_remplacement(mois, &Value::Null)?;
             b.insert("remplacement".into(), r.clone());
-            if vrai(&r["saisie_modifiee"]) && vrai(&r["correction_ecrite"]) {
-                // Modifiee apres la limite, et sa correction est ecrite : rien a faire ici, la DSN suivante l'embarque.
+            if vrai(&r["saisie_modifiee"]) && vrai(&r["corrigee_par_la_suivante"]) {
+                // Modifiee apres la limite et revalidee : rien a faire ici, la DSN suivante porte la correction.
                 b.insert("phrase".into(), r["phrase"].clone());
                 b.insert("courte".into(), json!("corrigée — part dans la DSN suivante"));
             } else if vrai(&r["saisie_modifiee"]) {
@@ -1170,7 +1153,7 @@ impl<'a> Moteur<'a> {
                     }
                 }
             }
-            if vrai(&r["a_envoyer"]) || (vrai(&r["saisie_modifiee"]) && !vrai(&r["admis"]) && !vrai(&r["correction_ecrite"])) {
+            if vrai(&r["a_envoyer"]) || (vrai(&r["saisie_modifiee"]) && !vrai(&r["admis"]) && !vrai(&r["corrigee_par_la_suivante"])) {
                 b.remove("vide");
             }
             if vrai(b.get("etape").unwrap_or(&Value::Null)) {
@@ -1182,7 +1165,7 @@ impl<'a> Moteur<'a> {
             }
         }
         // L'echeance de depot du mois (`echeance_dsn` : le 5 ou le 15, reporte au jour ouvre, a midi).
-        let echeance = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+        let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         b.insert("echeance_depot".into(), echeance.en_json());
         out.insert(DSN.into(), Value::Object(b));
         Ok(Value::Object(out))
@@ -1290,7 +1273,7 @@ impl<'a> Moteur<'a> {
             let derniere = self.depots_reels(mois, &nul)?.last().cloned().unwrap_or(Value::Null);
             if derniere.get("versions").is_none() || dsn_a_refaire(self.ctx, mois, &derniere, &etats_eng, &refaire) {
                 let r = self.etat_remplacement(mois, &nul)?;
-                dsn = !(vrai(&r["saisie_modifiee"]) && !vrai(&r["correction_ecrite"]));
+                dsn = !(vrai(&r["saisie_modifiee"]) && !vrai(&r["corrigee_par_la_suivante"]));
             }
         }
         Ok([(DPAE, dpae), (SIGNATURE, signature), (DOCUMENTS, documents), (DSN, dsn)].into_iter().filter(|(_, fait)| !fait).map(|(k, _)| k.to_string()).collect())
@@ -1299,8 +1282,8 @@ impl<'a> Moteur<'a> {
     /// `embauches_a_declarer` : les contrats dont la DPAE n'est pas encore partie.
     pub fn embauches_a_declarer(&mut self, mois: Option<&str>) -> R<Value> {
         // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
-        // permanent y relisent les paies des mois d'avant (`conges::paies_du_mois_memorisees`) ; sans elle, chaque mois les
-        // recalculait toutes. Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
+        // permanent y lisent les paies validees des mois d'avant (`conges::paies_du_mois`) une fois pour toute la route.
+        // Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
         let _derivation = engagement::conges::Derivation::ouvrir();
         let lignes = self.lignes()?;
         let faites = cles_en_ensemble(etats::embauches_par_depot(&lignes)?.cles());
@@ -1402,23 +1385,6 @@ pub(crate) fn etat_documents(parti: Option<&Value>, caduc: bool) -> Value {
     json!({"fait": fait, "maille": "salarie", "caduc": caduc, "pourquoi": if caduc { DOCUMENTS_CADUCS } else { "" }})
 }
 
-/// `S20\.G00\.05\.004,'(\d+)'` cherche dans les octets d'un fichier DSN.
-fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
-    let motif = b"S20.G00.05.004,'";
-    let mut i = 0;
-    while i + motif.len() <= octets.len() {
-        if &octets[i..i + motif.len()] == motif {
-            let debut = i + motif.len();
-            let fin = debut + octets[debut..].iter().take_while(|c| c.is_ascii_digit()).count();
-            if fin > debut && octets.get(fin) == Some(&b'\'') {
-                return std::str::from_utf8(&octets[debut..fin]).ok()?.parse().ok();
-            }
-        }
-        i += 1;
-    }
-    None
-}
-
 /// `DSN_[^\W\d_]+\d{4}(_AR\d+)?\.dsn` : le nom d'une DSN mensuelle.
 pub(crate) fn est_une_dsn_mensuelle(nom: &str) -> bool {
     let Some(reste) = nom.strip_prefix("DSN_") else { return false };
@@ -1478,8 +1444,8 @@ pub(crate) fn mois_de(charge: &Value) -> R<(Value, String)> {
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (`mois`).
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let mut m = Moteur::nouveau(o, ctx);
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let mut m = Moteur::nouveau(ctx);
     match nom {
         "etat-par-engagement" => {
             let (brut, mois) = mois_de(charge)?;
@@ -1515,15 +1481,6 @@ mod tests {
         ] {
             assert!(!est_une_dsn_mensuelle(non), "{}", non);
         }
-    }
-
-    #[test]
-    fn le_rang_d_un_fichier_dsn_se_lit_dans_la_rubrique_s20_g00_05_004() {
-        assert_eq!(rang_dans_le_fichier(b"S20.G00.05.002,'03'\nS20.G00.05.004,'12'\n"), Some(12));
-        // Un premier motif sans chiffres n'arrete pas la recherche.
-        assert_eq!(rang_dans_le_fichier(b"S20.G00.05.004,'x'\nS20.G00.05.004,'3'\n"), Some(3));
-        assert_eq!(rang_dans_le_fichier(b"S20.G00.05.004,''\n"), None);
-        assert_eq!(rang_dans_le_fichier(b"rien"), None);
     }
 
     #[test]

@@ -284,7 +284,7 @@ dans le fichier (ticket #228).
 
 Un tableau « de données » : le moteur donne des **cellules de texte**, la fabrique
 calcule les largeurs, les retours à la ligne, les hauteurs et les coupures de page.
-C'est le bloc du bulletin de paie (`paie/src/bulletin.rs`) et des tableaux des exports.
+C'est le bloc du bulletin de paie (`documents/src/bulletin.rs`) et des tableaux des exports.
 
 - `colonnes` : au moins une ; `largeur` = fraction de la largeur utile (leur somme
   vaut 1) ; `alignement` : `gauche` (défaut), `droite` (les nombres), `centre`,
@@ -324,7 +324,7 @@ C'est le bloc du bulletin de paie (`paie/src/bulletin.rs`) et des tableaux des e
 ### Les blocs à position fixe : `texte_fixe`, `trait`, `image_fixe`
 
 Pour un formulaire dessiné point par point (le certificat d'emploi Congés
-Spectacles, `paie/src/conges_spectacles.rs`) : chaque bloc se pose à des
+Spectacles, `documents/src/conges_spectacles.rs`) : chaque bloc se pose à des
 **coordonnées absolues de la page**, en points depuis son **coin haut-gauche**
 (y vers le bas, comme dans PyMuPDF), quelles que soient les marges de la page.
 Ces blocs **ne coulent pas** : aucun n'occupe de hauteur, aucun ne déplace le
@@ -423,7 +423,7 @@ le corps, donc ne changent pas les sauts de page.
   seule passe.
 - Le texte extrait les contient, page par page. Un programme plus ancien refuse ces
   deux clés (champ inconnu) ; le moteur, lui, lie la fabrique de sa propre version comme
-  bibliothèque (`paie/src/fabrique.rs`) : il ne tombe jamais sur un programme plus ancien.
+  bibliothèque (`documents/src/fabrique.rs`) : il ne tombe jamais sur un programme plus ancien.
 
 ## Ce que la fabrique garantit
 

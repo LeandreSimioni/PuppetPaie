@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::champs;
+use declarations::champs;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::ecriture::ecrire_json;
@@ -58,7 +58,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge),
         "poser-identite" => poser_identite(ctx, charge),
         "retirer-identite" => retirer_identite(ctx, charge),
-        "enregistrer-saisie" => enregistrer_saisie(o, ctx, charge),
+        "enregistrer-saisie" => enregistrer_saisie(ctx, charge),
         "ajuster" => ajuster(ctx, charge),
         "metier-retenu" => metier_retenu(ctx, charge),
         "metiers-ajoutes" => metiers_ajoutes(ctx, charge),
@@ -857,15 +857,15 @@ pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, S
     Ok(out)
 }
 
-fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let confirme = charge.get(crate::routes_regularisation::CONFIRMATION).is_some_and(vrai);
     let Value::Object(brute) = exiger(charge, "saisie")? else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let p = ecrire_saisie_confirmee(o, ctx, mois, brute, confirme)?;
+    let p = ecrire_saisie_confirmee(ctx, mois, brute, confirme)?;
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`routes_regularisation::modification_de_la_paie`).
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let dsn = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
     Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
@@ -874,26 +874,26 @@ fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Valu
 /// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
 /// (`routes_mois::empreinte_de` : ni la validation ni ce que le moteur tient seul) se refuse sans `confirme`
 /// (`routes_regularisation::CONFIRMATION` dans la charge), sous `CLASSE_A_CONFIRMER`, avec l'avertissement que la page
-/// montre ; rien n'est ecrit. Avec, elle s'ecrit -- et la saisie telle que declaree est gardee d'abord
-/// (`garder_la_saisie_declaree`) : la correction que la DSN d'un mois suivant portera en part (`depart::corrections_dues`).
+/// montre ; rien n'est ecrit. Avec, elle s'ecrit ; revalide, l'engagement fait partir sa correction dans la DSN d'un
+/// mois suivant (`produire_regularisations::corrections_dues`).
 ///
 /// UNE SAISIE S'ECRIT A LA FOIS : la fenetre sert ses routes en parallele, et la page enregistre une seconde apres la
 /// derniere frappe, meme si l'enregistrement d'avant n'a pas fini. Deux ecritures du meme mois passent l'une apres
 /// l'autre, dans ce processus (`SAISIE_EN_COURS`).
-pub(crate) fn ecrire_saisie_confirmee(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
+pub(crate) fn ecrire_saisie_confirmee(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     static SAISIE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _une_a_la_fois = SAISIE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
-    ecrire_saisie_seule(o, ctx, mois, brute, confirme)
+    ecrire_saisie_seule(ctx, mois, brute, confirme)
 }
 
 /// `ecrire_saisie_confirmee`, la seule ecriture en cours.
-fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
+fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     let mut donnees = brute.clone();
     donnees.insert("mois".into(), Value::String(mois.to_string()));
     let donnees = Value::Object(donnees);
     refuser_si_importe(ctx, mois)?;
     refuser_si_clos(ctx, mois)?;
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let declaree = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
     refuser_si_avant_la_premiere_embauche(ctx, mois)?;

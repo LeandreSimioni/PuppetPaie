@@ -30,11 +30,11 @@ type R<T> = Result<T, Echec>;
 pub const ROUTES: [&str; 3] = ["documents-liste", "bilan-repetition", "depot-apercu"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "documents-liste" => documents_liste(ctx, charge),
-        "bilan-repetition" => bilan_repetition(o, ctx, charge),
-        "depot-apercu" => depot_apercu(o, ctx, charge),
+        "bilan-repetition" => bilan_repetition(ctx, charge),
+        "depot-apercu" => depot_apercu(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
@@ -221,13 +221,13 @@ fn empreinte_du_fichier(chemin: &str) -> R<String> {
 
 // ------------------------------------------------------------------ bilan-repetition
 
-pub(crate) fn bilan_repetition(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+pub(crate) fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = cle(charge, "quoi")?;
     let fichier = cle(charge, "fichier")?;
     let chemin = resoudre(&ctx.racine, fichier)?;
     let empreinte = empreinte_du_fichier(&chemin)?;
     let nom = nom_du_chemin(&chemin);
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let Some(quoi) = quoi.as_str() else {
         return Err(Echec { classe: None, message: "demande illisible : il faut `quoi`".to_string() });
@@ -264,12 +264,12 @@ fn iso_depuis_jjmmaaaa(v: &str) -> String {
 }
 
 /// `apercu_depot_dpae` : ce que le fichier DPAE declare, enregistrement par enregistrement.
-pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fichier: &Value) -> R<Value> {
+pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let chemin = resoudre(&ctx.racine, fichier)?;
     let contenu = lire_octets(&chemin)?;
     let texte: String = contenu.iter().map(|&b| b as char).collect();
-    let enrs = crate::dpae::relire(&texte);
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let enrs = declarations::dpae::relire(&texte);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let lignes_journal = m.lignes()?;
     let faites = etats::embauches_par_depot(&lignes_journal)?;
     let mut par_nir: HashMap<String, (&String, &Value)> = HashMap::new();
@@ -342,11 +342,11 @@ pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fic
     }))
 }
 
-fn depot_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn depot_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = cle(charge, "quoi")?;
     let fichier = cle(charge, "fichier")?;
     if etats::est(quoi, "dsn") {
-        return crate::apercu_dsn::apercu_depot_dsn(o, ctx, fichier);
+        return crate::apercu_dsn::apercu_depot_dsn(ctx, fichier);
     }
-    apercu_depot_dpae(o, ctx, fichier)
+    apercu_depot_dpae(ctx, fichier)
 }

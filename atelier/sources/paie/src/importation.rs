@@ -8,7 +8,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::apercu_dsn::{lignes_py, texte_latin1};
+use socle::texte::{lignes_py, texte_latin1};
 use socle::texte::blanc;
 
 /// Bloc S21.G00.30 (individu) -> champ de `salaries.json`.
@@ -178,8 +178,8 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
         } else if k == "S21.G00.40.022" {
             // La DSN declare « 97 puis le numero d'adherent » (`conges_spectacles::code_dsn`) : la fiche ne garde que le
             // numero d'adherent, et seulement s'il a la forme que dit la fiche d'Audiens. Autre chose ne se reprend pas.
-            if let Some(n) = v.strip_prefix("97").filter(|n| crate::conges_spectacles::faute_adherent(n).is_none()) {
-                entreprise.entry(crate::conges_spectacles::CLE_ADHERENT.to_string()).or_insert_with(|| texte(n));
+            if let Some(n) = v.strip_prefix("97").filter(|n| documents::conges_spectacles::faute_adherent(n).is_none()) {
+                entreprise.entry(documents::conges_spectacles::CLE_ADHERENT.to_string()).or_insert_with(|| texte(n));
             }
         } else if k == "S21.G00.40.049" {
             entreprise.entry("licence".to_string()).or_insert_with(|| texte(v));
@@ -265,7 +265,7 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
         let (bic, iban) = comptes.iter().next().copied().unwrap_or_default();
         entreprise.entry("banque").or_insert_with(|| json!({"bic": bic, "iban": iban}));
     }
-    if let Some(b) = blocs20.iter().find(|b| b[0] == crate::dsn::SIRET_FRANCE_TRAVAIL && !b[1].is_empty()) {
+    if let Some(b) = blocs20.iter().find(|b| b[0] == declarations::dsn::SIRET_FRANCE_TRAVAIL && !b[1].is_empty()) {
         entreprise.entry("france_travail_dossier_recouvrement").or_insert_with(|| texte(&b[1]));
     }
     let versements: Vec<Value> = versements
@@ -538,7 +538,7 @@ pub(crate) struct ContratAtteste {
 /// fichiers ou enregistrements illisibles. Un `InvalidOperation` (un brut qui n'est pas un nombre)
 /// n'est pas rattrape, comme en Python.
 pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<String>), socle::echec::Echec> {
-    use crate::apercu_dsn::{decimal_py, int_py};
+    use socle::num::{decimal_py, int_py};
     let mut vus: Vec<(Vec<String>, ContratAtteste)> = Vec::new();
     let mut connus: std::collections::HashSet<Vec<String>> = std::collections::HashSet::new();
     let mut illisibles = Vec::new();
@@ -670,7 +670,7 @@ pub(crate) fn employeur_aem(chemin: &Path) -> Employeur {
             continue;
         }
         let s = tranche(&l, AEM_SIRET.0, AEM_SIRET.1);
-        if s.len() == 14 && s.chars().all(|c| c.is_ascii_digit()) && crate::champs::luhn(&s) {
+        if s.len() == 14 && s.chars().all(|c| c.is_ascii_digit()) && declarations::champs::luhn(&s) {
             e.sirens.insert(s[..9].to_string());
         } else {
             e.illisibles += 1;

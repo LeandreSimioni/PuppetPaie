@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use droit::catalogue::{self, Rubrique};
-use crate::champs;
+use declarations::champs;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use droit::emplois;
@@ -42,9 +42,9 @@ fn plain(m: impl Into<String>) -> Echec {
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (rien ici).
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, _charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, _charge: &Value) -> R<Value> {
     match nom {
-        "etat" => etat(o, ctx),
+        "etat" => etat(ctx),
         // La part « configuration » de l'etat, pour les routes qui la rendent
         // apres un enregistrement (`web._configuration`).
         "configuration" => configuration(ctx),
@@ -352,8 +352,7 @@ pub(crate) fn attendues(lignes: &[Value]) -> R<Vec<Value>> {
 /// `_configuration` : toute la configuration, verifiee, et ce que la page en
 /// tire sans un appel de plus.
 fn configuration(ctx: &Contexte) -> R<Value> {
-    let o = HashMap::new();
-    let mut m = Moteur::nouveau(&o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     configuration_de(ctx, &mut m)
 }
 
@@ -469,7 +468,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
     let mut out = Vec::new();
     for (nom, noms) in mois {
         let e = m.dsn_du_mois(nom)?;
-        let echeance = crate::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
+        let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
         let limite = echeance.jour;
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
         let drapeau = |k: &str| e.get(k).is_some_and(vrai);
@@ -707,7 +706,7 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     // SIGNATURE de la convention ; la TRANSACTION suit un litige.
     // Et toujours quand le signalement l'exige (CCH-12 de S21.G00.62.003, `fctu::notification_exigee`) : la force majeure
     // (083) est de la table ci-dessus, et sa date de notification est pourtant obligatoire dans un FCTU.
-    if !SANS_NOTIFICATION.contains(&m.as_str()) || crate::fctu::notification_exigee(&m).map_err(plain)? {
+    if !SANS_NOTIFICATION.contains(&m.as_str()) || declarations::fctu::notification_exigee(&m).map_err(plain)? {
         faits.push("notification_rupture");
     }
     if LICENCIEMENTS.contains(&m.as_str()) {
@@ -833,31 +832,11 @@ fn conventions(ctx: &Contexte) -> R<Value> {
     ))
 }
 
-/// `urssaf.pour_departement` : l'organisme du TERRITOIRE de ce departement. Une
-/// suggestion, pas une decision.
-fn urssaf_du_departement(base: &Value, dep: &str) -> String {
-    let d = dep.trim().to_uppercase();
-    let table = base.get("par_departement").and_then(Value::as_object);
-    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(valeur_en_texte);
-    lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
-}
-
-/// `urssaf.pour_code_postal` : idem, depuis un code postal francais. L'outre-mer
-/// se lit sur TROIS chiffres (97139 -> 971), la metropole sur deux.
-pub(crate) fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String {
-    let v: Vec<char> = texte_ou_vide(cp).chars().filter(|c| c.is_ascii_digit()).collect();
-    if v.len() < 2 {
-        return String::new();
-    }
-    let n = if v[0] == '9' && (v[1] == '7' || v[1] == '8') { 3 } else { 2 };
-    urssaf_du_departement(base, &v.iter().take(n).collect::<String>())
-}
-
 // -------------------------------------------------------------------- l'etat
 
 /// La route `etat` : tout ce que la page lit en s'ouvrant.
-pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
-    let mut m = Moteur::nouveau(o, ctx);
+pub fn etat(ctx: &Contexte) -> R<Value> {
+    let mut m = Moteur::nouveau(ctx);
     let configuration = configuration_de(ctx, &mut m)?;
     let historique = historique(&mut m, ctx);
 
@@ -915,7 +894,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .iter()
         .map(|x| json!({"code": x.get("code").cloned().unwrap_or(Value::Null), "nom": x.get("nom").cloned().unwrap_or(Value::Null)}))
         .collect();
-    let deduit = urssaf_du_code_postal(&urssaf, ctx.entreprise.get("code_postal"));
+    let deduit = declarations::champs::urssaf_du_code_postal(&urssaf, ctx.entreprise.get("code_postal"));
 
     Ok(json!({
         "configuration": configuration,

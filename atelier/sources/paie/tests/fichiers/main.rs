@@ -16,7 +16,6 @@ mod bulletins_fictifs;
 #[path = "../faux_drive/mod.rs"]
 mod faux_drive;
 
-mod aer;
 mod archivage;
 mod bridage;
 mod bulletin_lu;

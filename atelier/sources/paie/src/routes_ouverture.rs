@@ -23,43 +23,12 @@ use engagement::{self, Avis, Engagement};
 use crate::etats;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::{dec, flottant, Decimal, Resultat};
-use socle::echec::Echec;
 
 // ------------------------------------------------------------------ les refus
 
-/// Un refus et, quand Python l'aurait leve sous un nom, la classe de
-/// l'exception (`SaisieIncomplete`, `KeyError`...).
-#[derive(Debug)]
-pub(crate) struct Refus {
-    pub(crate) classe: Option<&'static str>,
-    pub(crate) message: String,
-}
-
+pub(crate) use socle::echec::Refus;
 pub(crate) type R<T> = Result<T, Refus>;
 
-impl From<String> for Refus {
-    fn from(message: String) -> Self {
-        Refus { classe: None, message }
-    }
-}
-
-impl From<&str> for Refus {
-    fn from(m: &str) -> Self {
-        Refus { classe: None, message: m.to_string() }
-    }
-}
-
-impl From<Echec> for Refus {
-    fn from(e: Echec) -> Self {
-        Refus { classe: e.classe, message: e.message }
-    }
-}
-
-impl From<Refus> for Echec {
-    fn from(r: Refus) -> Self {
-        Echec { classe: r.classe, message: r.message }
-    }
-}
 
 fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
     Refus { classe: Some(classe), message: message.into() }
@@ -67,14 +36,12 @@ fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
 
 const SEPARATEUR: char = '\u{1}';
 
-impl Refus {
-    /// Le refus en texte : `\u{1}classe\u{1}message` quand il a une classe, le
-    /// message seul sinon (le `Resultat<Value>` des routes ne porte qu'un texte).
-    fn encoder(self) -> String {
-        match self.classe {
-            Some(c) => format!("{}{}{}{}", SEPARATEUR, c, SEPARATEUR, self.message),
-            None => self.message,
-        }
+/// Le refus en texte : `\u{1}classe\u{1}message` quand il a une classe, le
+/// message seul sinon (le `Resultat<Value>` des routes ne porte qu'un texte).
+fn encoder(r: Refus) -> String {
+    match r.classe {
+        Some(c) => format!("{}{}{}{}", SEPARATEUR, c, SEPARATEUR, r.message),
+        None => r.message,
     }
 }
 
@@ -95,7 +62,7 @@ pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Opti
         "apercu" => apercu(o, charge),
         _ => return None,
     };
-    Some(r.map_err(Refus::encoder))
+    Some(r.map_err(encoder))
 }
 
 // ------------------------------------------------------------------ outils
@@ -578,7 +545,7 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
     // L'echeance : `echeance_dsn`, le 5 ou le 15 du mois suivant selon l'effectif, reporte au jour ouvre suivant un
     // samedi, un dimanche ou un jour ferie (R. 133-14, I), a midi. Passee, ce n'est plus un rappel, c'est un retard --
     // et on le dit.
-    let echeance = crate::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
+    let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
     r.en_retard = st.aujourdhui > echeance.jour;
     r.echeance_depot = Some(echeance.en_json());
 
@@ -1142,57 +1109,6 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
     Ok(out)
 }
 
-/// `engagement.numeroter` : les numeros de contrat (FA1.26.13) et de bulletin (17/2026) que les paies porteraient, en
-/// memoire : l'apercu n'ecrit rien. Un engagement qui PORTE DEJA son numero de contrat le garde (`engagement::numeros`),
-/// une paie partie son numero de bulletin (`engagement::etats::Valide::bulletin`).
-pub(crate) fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32) -> R<()> {
-    numeroter_en_attente(ctx, paies, annee, &mut HashMap::new())
-}
-
-/// La meme, avec les numeros de bulletin deja RESERVES par un appel precedent du meme processus : `(annee, "bulletin")
-/// -> dernier numero`. Le contrat sans numero prend la suite des numeros deja pris pour son salarie
-/// (`engagement::numeros::derniers_pris`).
-pub(crate) fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, attente: &mut HashMap<(String, String), i64>) -> R<()> {
-    let p = ctx.racine.join("config").join("compteurs.json");
-    let compteurs = if p.exists() { lire_json(&p)? } else { Value::Null };
-    let an = annee.to_string();
-    let mut n_bull = match attente.get(&(an.clone(), "bulletin".to_string())) {
-        Some(v) => v + 1,
-        None => compteurs.get(&an).and_then(|c| c.get("bulletin")).and_then(|v| match v {
-            Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)),
-            Value::String(s) => s.trim().parse().ok(),
-            _ => None,
-        }).unwrap_or(0) + 1,
-    };
-    let mut pris: Option<HashMap<String, i64>> = None;
-    let manque = |s: &Value, k: &str| s.get(k).map(en_texte).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(k)));
-    for p in paies.iter_mut() {
-        let sans_paie = p.engagement.sans_paie();
-        if p.engagement.numero.as_deref().map_or(true, str::is_empty) {
-            engagement::refus_sans_numero(ctx, &p.engagement)?;
-            if pris.is_none() {
-                pris = Some(engagement::numeros::derniers_pris(ctx, annee)?);
-            }
-            let dernier = pris.as_mut().unwrap().entry(manque(&p.salarie, "_cle")?).or_insert(0);
-            *dernier += 1;
-            p.engagement.numero = Some(engagement::numeros::former(&p.salarie, annee, *dernier)?);
-        }
-        // Un mois sans cachet n'a pas de bulletin : rien n'est paye, aucun
-        // numero de bulletin ne se reserve.
-        if sans_paie {
-            continue;
-        }
-        // Un bulletin parti garde son numero, ecrit dans la paie a son depart.
-        if p.numero_bulletin.as_deref().is_some_and(|n| !n.is_empty()) {
-            continue;
-        }
-        p.numero_bulletin = Some(format!("{}/{}", n_bull, annee));
-        n_bull += 1;
-    }
-    attente.insert((an, "bulletin".to_string()), n_bull - 1);
-    Ok(())
-}
-
 /// `Decimal.quantize(Decimal("0.01"))` : deux decimales, la moitie au pair.
 pub(crate) fn q2(x: Decimal) -> Decimal {
     let mut r = x.round_dp(2);
@@ -1396,7 +1312,7 @@ pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> 
         );
         Value::Null
     } else {
-        match crate::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
+        match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
             Ok(m) => Value::String(m.to_string()),
             Err(e) => {
                 avert.push(format!("Bordereau Urssaf non calculable : {}", e));
@@ -1428,7 +1344,7 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
     let annee = annee_de(&mois)?;
     let montrees = paies_de_l_ecran(&ctx, &data, &mois)?;
     let mut paies: Vec<Paie> = montrees.iter().map(|m| m.paie.clone()).collect();
-    numeroter(&ctx, &mut paies, annee)?;
+    documents::ecrire_documents::numeroter(&ctx, &mut paies, annee)?;
     let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut vues = Vec::new();
     for (i, p) in paies.iter().enumerate() {

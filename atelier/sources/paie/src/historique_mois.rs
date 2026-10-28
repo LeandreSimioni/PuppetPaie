@@ -251,7 +251,7 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
     let mut l = Lecture { titre: String::new(), organisme: String::new(), phrases: Vec::new(), anomalies: Vec::new(), traduite: true, verdict: String::new() };
     if canal == "dpae" && nature == "41" {
         let texte: String = o.iter().map(|&b| b as char).collect();
-        let lignes = crate::dpae::lire_certificat(&texte);
+        let lignes = declarations::dpae::lire_certificat(&texte);
         if !lignes.is_empty() {
             l.titre = "Certificat de conformité des DPAE".into();
             for x in &lignes {

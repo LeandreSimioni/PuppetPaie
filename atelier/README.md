@@ -842,69 +842,45 @@ salarié le demande : le moteur l'écrit alors, et le dit.
 
 ## Corriger un mois déjà déposé
 
-Tant que l'échéance du 15 n'est pas passée, une DSN se corrige en refaisant
-le mois et en redéposant : un **annule-et-remplace** intégral. Après, la
-norme l'interdit (cahier technique 2026.1, §2.2.2.5) : *« les corrections
-doivent être portées par une DSN mensuelle ultérieure »*, par les mêmes
-blocs, **datés de la période d'origine**.
+Tant que la veille de l'échéance n'est pas passée, une DSN se corrige en
+modifiant l'engagement, en le revalidant et en redéposant : un
+**annule-et-remplace** intégral. Après, la norme l'interdit (cahier
+technique 2026.1, §2.2.2.5) : *« les corrections doivent être portées par
+une DSN mensuelle ultérieure »*, par les mêmes blocs, **datés de la période
+d'origine**.
 
-C'est ce que fait `corriger`. La correction est un objet à part
-(`regularisations/AAAA-MM.json`, au mois d'**origine**) : **la saisie
-déposée ne bouge jamais**, et la DSN du mois courant l'embarque
-d'elle-même, en annulation-remplacement — l'ancienne paie en négatif, la
-nouvelle en positif, aux dates du mois corrigé. Côté URSSAF, un bordereau
-et un ordre de paiement **par mois régularisé** (§2.2.3.2) ; une correction
-qui *baisse* un mois s'écrit en **reprise de crédit** (guide Urssaf, §6.4) :
-bordereau du mois d'origine négatif, pas d'ordre pour lui, l'ordre du mois
-courant diminué d'autant — et si le crédit dépasse le bordereau courant, le
-moteur refuse et renvoie vers l'URSSAF.
+Corriger, c'est toujours **modifier l'engagement et le revalider**. Rien ne
+s'écrit à côté de lui : la version présente de l'engagement est comparée à
+celle sur laquelle la DSN est partie, et chaque contrat dont la paie validée
+n'est plus celle déclarée part, de lui-même, dans la DSN du mois suivant qui
+se fabrique — l'ancienne paie en négatif, la nouvelle en positif, aux dates
+du mois corrigé. Côté URSSAF, un bordereau et un ordre de paiement **par
+mois régularisé** (§2.2.3.2) ; une correction qui *baisse* un mois s'écrit
+en **reprise de crédit** (guide Urssaf, §6.4) : bordereau du mois d'origine
+négatif, pas d'ordre pour lui, l'ordre du mois courant diminué d'autant — et
+si le crédit dépasse le bordereau courant, le moteur refuse et renvoie vers
+l'URSSAF.
 
 La différence de net se paie — ou se retient — avec la paie du mois courant,
 par un **bulletin rectificatif** du mois d'origine : un numéro neuf de la
-suite, le numéro du bulletin qu'il rectifie (lu dans l'archive), le
+suite, le numéro du bulletin qu'il rectifie (lu dans la paie déclarée), le
 prélèvement à la source sur la différence tel que la DSN le déclare, et le
 net à verser ou à retenir. Il s'archive à côté de l'original
 (`sorties/<origine>/Rectificatif_…pdf`) et part au salarié avec les pièces
 du mois (`envoi/BulletinRectificatif_…pdf`).
 
-```bash
-paie corriger                      toutes les corrections, et leur état
-paie corriger 2026-07              l'état du mois, et ses engagements déclarés
-paie corriger 2026-07 --extraire Celi --debut 2026-07-03 > corrige.json
-paie corriger 2026-07 --engagement corrige.json --salarie Celi --debut 2026-07-03
-paie corriger 2026-07 --engagement corrige.json --salarie Celi --debut 2026-07-03 --motif "un cachet oublié"
-paie corriger 2026-07 --annuler 1
-```
+Dans la fenêtre, **Historique › Les corrections** montre, mois par mois,
+chaque contrat corrigé : la paie déclarée, la paie validée, et la DSN qui
+l'a portée ou la prochaine qui la portera. Les routes `regularisation-mois`
+et `regularisation-apercu` disent la même chose pour un mois ou un contrat.
 
-Sans `--motif`, c'est un **aperçu** : avant, après, différence, et rien
-n'est écrit. Avec, la correction est enregistrée et attend ; la prochaine
-production du mois courant la porte et le dit, le dépôt réel la marque
-portée. Une correction déjà portée ne s'annule plus — une nouvelle
-correction peut la contredire.
+Un mois **fermé** (échéance passée, DSN jamais partie) se rouvre depuis
+l'onglet Paie : le bouton « Ce mois est fermé — le rouvrir » ouvre
+l'avertissement des pénalités, et c'est la réponse qui rouvre. En ligne de
+commande, c'est `--forcer`.
 
-**Écrire ou annuler une correction demande le mot de passe du logiciel** —
-au terminal ici, par le popup dans la page. Rien ne part sur le moment,
-mais ce qui s'écrit là repartira tout seul dans la prochaine DSN, sur un
-mois déjà déclaré aux organismes : c'est un acte.
-
-Dans la fenêtre, tout cela vit dans **Historique › Corriger un mois
-déposé** : les mois qui se corrigent, ceux dont la DSN est en retard, les
-corrections écrites et leur état. On y modifie les lignes d'un engagement
-comme à la saisie — calendrier compris, sur le mois d'origine — avec
-l'avant/après sous les yeux. Le numéro de contrat, lui, est celui qui a été
-déclaré : il est relu dans la DSN déposée quand la saisie ne le porte pas,
-et sans lui le moteur refuse plutôt que d'en inventer un.
-
-Un mois **fermé** (échéance passée, DSN jamais partie) se rouvre depuis la
-même page, ou depuis l'onglet Paie : le bouton « Ce mois est fermé — le
-rouvrir » ouvre l'avertissement des pénalités, et c'est la réponse qui
-rouvre. En ligne de commande, c'est `--forcer`.
-
-Ce qui se corrige : les **lignes** d'un engagement déclaré (un cachet
-oublié, un montant faux, des heures). Pas le contrat lui-même : son numéro,
-ses bornes et son spectacle identifient la déclaration d'origine. Un
-engagement oublié en entier n'est pas une correction, c'est un contrat en
-retard — avec sa DPAE en retard.
+Un contrat déclaré ne se retire plus : s'il n'a pas eu lieu, ses quantités
+passent à zéro et la correction en déclare l'annulation des montants.
 
 ## Le fichier de saisie
 
@@ -1263,7 +1239,7 @@ signature.
 1. **Le montant Urssaf** du bloc `S21.G00.20` de la DSN. C'est un ordre de
    télépaiement, et il se **calcule** depuis le 29/09/2026 : c'est la somme des
    lignes du bordereau (bloc 23), chacune valorisée à la table des CTP de
-   l'Urssaf et arrondie à l'euro (`paie/src/bordereau.rs`) — 74 des 75
+   l'Urssaf et arrondie à l'euro (`documents/src/bordereau.rs`) — 74 des 75
    DSN de CoolPaie retrouvées au centime. Rien à recopier :
 
    ```
@@ -1497,7 +1473,7 @@ figé, et la colonne reste vide plutôt que de porter un numéro qui n'a jamais
 `paie exporter` sans argument les liste, rangés par famille comme
 dans le menu de l'onglet. Chacun se demande pour un mois, une année ou toutes
 les années (sauf mention), et s'écrit en **CSV, texte tabulé, XLSX, PDF, HTML
-ou JSON** — la machinerie commune `paie/src/tableaux_export.rs`, que chaque état suit
+ou JSON** — la machinerie commune `documents/src/tableaux_export.rs`, que chaque état suit
 sans rien avoir à dire. Chaque fichier porte en pied ses avertissements et
 ses **sources** (l'article, la norme ou le format qui le fonde).
 
@@ -1542,7 +1518,7 @@ reconstitué. **Ce qui lit « DSN déposée » lit le fichier parti** (règle du
 §74.2) : un mois sans DSN réelle acceptée n'y est pas, et un état sans aucune
 DSN refuse.
 
-**Les formats de comptabilité** (`paie/src/etats_compta.rs`) :
+**Les formats de comptabilité** (`documents/src/etats_compta.rs`) :
 
 - **`fec`** — un *extrait* du journal de paie aux 18 zones du Fichier des
   Écritures Comptables (art. A47 A-1 du LPF) : tabulation, dates AAAAMMJJ,

@@ -19,7 +19,7 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::journal::{self, Note};
 use socle::echec::Echec;
-use crate::routes_ouverture::Refus;
+use socle::echec::Refus;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 7] = ["valider-engagement", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "exporter"];
@@ -180,7 +180,7 @@ pub(crate) fn contrat_recu_avec(
     courriel: Option<&Map<String, Value>>,
 ) -> R<Value> {
     // Les paies telles que la DSN les a declarees, sans rien ecrire.
-    let paies = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
+    let paies = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
     // LE CONTRAT, pas le salarie : `numero` est celui sous lequel le journal le connait (la releve), ou celui que l'ecran affiche.
     let numero = numero.filter(|n| !n.is_empty());
     let lignes = crate::etats::charger(&ctx.racine)?;
@@ -263,7 +263,7 @@ fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
     let analytique = booleen(charge, "analytique", false);
     let nom = logiciel.map(valeur_en_texte).unwrap_or_default();
     if logiciel.is_some() {
-        let connus = crate::routes_dossiers::logiciels_connus();
+        let connus = documents::plan_comptable::logiciels_connus();
         if !connus.iter().any(|l| *l == nom) {
             return Err(refus(format!("Logiciel inconnu : « {} ».", nom)));
         }
@@ -287,7 +287,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let montant = crate::routes_fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
     let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
-    crate::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
+    declarations::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
 }
 
 // ------------------------------------------------------------------ exporter
@@ -304,7 +304,7 @@ fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(match exporter_objet(ctx, charge)? {
         Exporte::Casc(v) => v,
         Exporte::Livre(l) => l.json(),
-        Exporte::Tableau(t) => crate::tableaux_export::brut_tableau(&t),
+        Exporte::Tableau(t) => documents::tableaux_export::brut_tableau(&t),
     })
 }
 
@@ -312,16 +312,16 @@ fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Python le faisait (le chemin ecrit en entier, les montants en `Decimal`).
 pub(crate) enum Exporte {
     Casc(Value),
-    Livre(crate::etats_paie::LivreDePaie),
-    Tableau(crate::tableaux_export::Tableau),
+    Livre(documents::etats_paie::LivreDePaie),
+    Tableau(documents::tableaux_export::Tableau),
 }
 
 /// `exporter`, avant la mise en JSON. La charge peut porter `format_du_logiciel_retenu` : sans `format`, les ecritures comptables laissent
 /// le logiciel retenu (`compta-logiciel`) choisir leur format (la ligne de commande), au lieu du CSV (la page, qui envoie son format).
 pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
-    use crate::etats_paie::Demande;
+    use documents::etats_paie::Demande;
     let etat = texte_ou_rien(charge, "etat").unwrap_or_else(|| "livre-de-paie".to_string());
-    let tables = crate::routes_dossiers::tables();
+    let tables = documents::plan_comptable::tables();
     let etats = tables["etats"].as_array().map(Vec::as_slice).unwrap_or(&[]);
     let Some(forme) = etats.iter().find(|e| e["etat"].as_str() == Some(etat.as_str())) else {
         let mut noms: Vec<&str> = etats.iter().filter_map(|e| e["etat"].as_str()).collect();
@@ -342,15 +342,15 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         analytique: charge.get("analytique").map(vrai),
     };
     if etat == "regularisation-casc-svp" {
-        let demande = crate::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, ..Default::default() };
-        let mut r = crate::casc_regularisation::regularisation(ctx, &demande)?;
+        let demande = declarations::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes_accueil::boite_liee(ctx).unwrap_or(false), ..Default::default() };
+        let mut r = declarations::casc_regularisation::regularisation(ctx, &demande)?;
         if d.ecrire {
-            crate::casc_regularisation::ecrire(ctx, &mut r)?;
+            declarations::casc_regularisation::ecrire(ctx, &mut r)?;
         }
-        return Ok(Exporte::Casc(crate::casc_regularisation::vers_json(&r)));
+        return Ok(Exporte::Casc(declarations::casc_regularisation::vers_json(&r)));
     }
     if etat == "livre-de-paie" {
-        return Ok(Exporte::Livre(crate::etats_paie::livre_de_paie(ctx, &d)?));
+        return Ok(Exporte::Livre(documents::etats_paie::livre_de_paie(ctx, &d)?));
     }
     // Ce que l'etat ne demande pas ne lui est pas passe : un regroupement par defaut (« salarie ») n'a pas de
     // sens pour les cotisations.
@@ -367,30 +367,30 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         d.coordonnees = false;
     }
     let tableau = match etat.as_str() {
-        "livre-de-paie-detaille" => crate::etats_paie::livre_detaille(ctx, &d),
-        "recapitulatif-annuel" => crate::etats_paie::recapitulatif_annuel(ctx, &d),
-        "masse-salariale" => crate::etats_paie::masse_salariale(ctx, &d),
-        "etat-des-virements" => crate::etats_paie::etat_des_virements(ctx, &d),
-        "prelevement-a-la-source" => crate::etats_paie::prelevement_a_la_source(ctx, &d),
-        "cotisations-par-organisme" => crate::etats_organismes::cotisations_par_organisme(ctx, &d),
-        "versements-organismes" => crate::etats_organismes::versements_organismes(ctx, &d),
-        "bordereau-urssaf" => crate::etats_organismes::bordereau_urssaf(ctx, &d),
-        "fcap-svp" => crate::etats_organismes::fcap_svp(ctx, &d),
-        "afdas-2642" => crate::etats_organismes::afdas_2642(ctx, &d),
-        "paritarisme-branche" => crate::etats_organismes::paritarisme_branche(ctx, &d),
-        "reduction-generale" => crate::etats_paie::reduction_generale(ctx, &d),
-        "assiettes" => crate::etats_paie::assiettes(ctx, &d),
-        "heures-et-cachets" => crate::etats_paie::heures_et_cachets(ctx, &d),
-        "cout-par-spectacle" => crate::etats_paie::cout_par_spectacle(ctx, &d),
-        "contrats" => crate::etats_personnel::liste_des_contrats(ctx, &d),
-        "registre-du-personnel" => crate::etats_personnel::registre_du_personnel(ctx, &d),
-        "fichier-du-personnel" => crate::etats_personnel::fichier_du_personnel(ctx, &d),
-        "journal-des-declarations" => crate::etats_personnel::journal_des_declarations(ctx, &d),
-        "ecritures-comptables" => crate::etats_compta::ecritures_comptables(ctx, &d),
-        "grand-livre-paie" => crate::etats_compta::grand_livre(ctx, &d),
-        "balance-paie" => crate::etats_compta::balance(ctx, &d),
-        "provision-conges" => crate::etats_compta::provision_conges(ctx, &d),
-        "taxe-sur-les-salaires" => crate::etats_compta::taxe_sur_les_salaires(ctx, &d),
+        "livre-de-paie-detaille" => documents::etats_paie::livre_detaille(ctx, &d),
+        "recapitulatif-annuel" => documents::etats_paie::recapitulatif_annuel(ctx, &d),
+        "masse-salariale" => documents::etats_paie::masse_salariale(ctx, &d),
+        "etat-des-virements" => documents::etats_paie::etat_des_virements(ctx, &d),
+        "prelevement-a-la-source" => documents::etats_paie::prelevement_a_la_source(ctx, &d),
+        "cotisations-par-organisme" => declarations::etats_organismes::cotisations_par_organisme(ctx, &d),
+        "versements-organismes" => declarations::etats_organismes::versements_organismes(ctx, &d, &crate::depart::dsn_du_mois),
+        "bordereau-urssaf" => declarations::etats_organismes::bordereau_urssaf(ctx, &d, &crate::depart::dsn_du_mois),
+        "fcap-svp" => declarations::etats_organismes::fcap_svp(ctx, &d),
+        "afdas-2642" => declarations::etats_organismes::afdas_2642(ctx, &d),
+        "paritarisme-branche" => declarations::etats_organismes::paritarisme_branche(ctx, &d),
+        "reduction-generale" => documents::etats_paie::reduction_generale(ctx, &d),
+        "assiettes" => documents::etats_paie::assiettes(ctx, &d),
+        "heures-et-cachets" => documents::etats_paie::heures_et_cachets(ctx, &d),
+        "cout-par-spectacle" => documents::etats_paie::cout_par_spectacle(ctx, &d),
+        "contrats" => documents::etats_personnel::liste_des_contrats(ctx, &d),
+        "registre-du-personnel" => documents::etats_personnel::registre_du_personnel(ctx, &d),
+        "fichier-du-personnel" => documents::etats_personnel::fichier_du_personnel(ctx, &d),
+        "journal-des-declarations" => documents::etats_personnel::journal_des_declarations(ctx, &d, &crate::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?),
+        "ecritures-comptables" => documents::etats_compta::ecritures_comptables(ctx, &d),
+        "grand-livre-paie" => documents::etats_compta::grand_livre(ctx, &d),
+        "balance-paie" => documents::etats_compta::balance(ctx, &d),
+        "provision-conges" => documents::etats_compta::provision_conges(ctx, &d),
+        "taxe-sur-les-salaires" => documents::etats_compta::taxe_sur_les_salaires(ctx, &d),
         autre => Err(refus(format!("État inconnu : « {} ».", autre))),
     }?;
     Ok(Exporte::Tableau(tableau))

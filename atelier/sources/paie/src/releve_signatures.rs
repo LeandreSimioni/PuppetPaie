@@ -355,7 +355,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             let souche = envoye.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             let signe = envoye.with_file_name(format!("{}_signe.pdf", souche));
             if envoye.exists() {
-                match crate::contrat::contresigner(&envoye, &signe, &a_nom, &quand_lisible, &de, &code) {
+                match documents::contrat::contresigner(&envoye, &signe, &a_nom, &quand_lisible, &de, &code) {
                     Ok(()) => match signes.iter_mut().find(|(n, _)| n == nom_f) {
                         Some(deja) => deja.1 = signe,
                         None => signes.push((nom_f.clone(), signe)),

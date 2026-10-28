@@ -62,7 +62,7 @@ fn main() -> std::process::ExitCode {
             let r = std::fs::read_to_string(&args[1])
                 .map_err(|e| format!("{} illisible ({})", args[1], e))
                 .and_then(|t| serde_json::from_str(&t).map_err(|e| e.to_string()))
-                .and_then(|d| paie::fabrique::ecrire(&d, std::path::Path::new(&args[2])));
+                .and_then(|d| documents::fabrique::ecrire(&d, std::path::Path::new(&args[2])));
             if let Err(m) = r {
                 eprintln!("{}", m);
                 std::process::exit(1);

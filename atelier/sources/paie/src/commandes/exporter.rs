@@ -24,7 +24,7 @@ use super::rendu::{debut, enveloppe, rendre};
 use super::Cadre;
 use socle::echec::Echec;
 use crate::routes_ecritures_g4::{exporter_objet, Exporte};
-use crate::tableaux_export::{texte, Tableau};
+use documents::tableaux_export::{texte, Tableau};
 
 const REGROUPEMENTS: &[&str] = &["salarie", "mois", "spectacle", "organisme"];
 const FORMATS: &[&str] = &["csv", "tsv", "xlsx", "pdf", "html", "json", "fec", "ximport", "oxygene", "sage", "quadra", "ebp", "pennylane"];
@@ -108,7 +108,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let v = match &r {
             Exporte::Casc(v) => v.clone(),
             Exporte::Livre(l) => l.json(),
-            Exporte::Tableau(t) => crate::tableaux_export::brut_tableau(t),
+            Exporte::Tableau(t) => documents::tableaux_export::brut_tableau(t),
         };
         return Ok(rendre(&enveloppe("exporter", v)));
     }
@@ -122,7 +122,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
 /// Sans etat : ce que le logiciel sait exporter.
 fn liste(json_: bool) -> i32 {
-    let t = crate::routes_dossiers::tables();
+    let t = documents::plan_comptable::tables();
     let etats: Vec<Value> = t["etats"]
         .as_array()
         .map(|a| a.iter().map(|e| json!({"etat": e["etat"], "quoi": e["quoi"], "famille": e["famille"], "formats": e.get("formats").cloned().unwrap_or(json!([]))})).collect())
@@ -163,7 +163,7 @@ fn liste(json_: bool) -> i32 {
 }
 
 /// `_afficher_livre`.
-fn livre(l: &crate::etats_paie::LivreDePaie) {
+fn livre(l: &documents::etats_paie::LivreDePaie) {
     let regroupement = match l.regroupement.as_str() {
         "salarie" => "par salarié",
         "mois" => "par mois",
@@ -228,7 +228,7 @@ fn livre(l: &crate::etats_paie::LivreDePaie) {
 
 /// `_afficher_tableau` : l'en-tete, les lignes, les totaux -- colonnes tronquees a l'ecran ; le fichier, lui, porte tout.
 fn tableau(t: &Tableau) {
-    use crate::tableaux_export::{Ligne, Val};
+    use documents::tableaux_export::{Ligne, Val};
     dire!("{} -- {}", t.titre, t.periode);
     let rangee = |d: &Ligne| -> String {
         let cellules: Vec<String> = t

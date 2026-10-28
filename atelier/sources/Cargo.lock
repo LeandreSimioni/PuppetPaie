@@ -385,6 +385,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d7439c3735f405729d52c3fbbe4de140eaf938a1fe47d227c27f8254d4302a5"
 
 [[package]]
+name = "declarations"
+version = "0.1.0"
+dependencies = [
+ "documents",
+ "droit",
+ "engagement",
+ "flate2",
+ "rust_decimal",
+ "rust_xlsxwriter",
+ "serde_json",
+ "socle",
+]
+
+[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -442,6 +456,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "documents"
+version = "0.1.0"
+dependencies = [
+ "droit",
+ "engagement",
+ "fabrique-pdf",
+ "rust_decimal",
+ "rust_xlsxwriter",
+ "serde_json",
+ "sha2",
+ "socle",
 ]
 
 [[package]]
@@ -1139,6 +1167,8 @@ name = "paie"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "declarations",
+ "documents",
  "droit",
  "ed25519-dalek",
  "engagement",
@@ -1154,7 +1184,6 @@ dependencies = [
  "roxmltree 0.20.0",
  "rpassword",
  "rust_decimal",
- "rust_xlsxwriter",
  "rustls",
  "rustls-platform-verifier",
  "scrypt",

@@ -31,7 +31,7 @@ Ce qui reste à faire : `paie rappels`, `paie echeancier`. Ce qui est parti : `p
 ## DSN mensuelle
 
 - **Quand** : le 15 du mois suivant ; le 5 à partir de cinquante salariés (déduit de l'effectif des retours), **à midi** ;
-  un samedi, un dimanche ou un jour férié reporte au jour ouvré suivant (R. 133-14, I ; `paie/src/echeance_dsn.rs`, que
+  un samedi, un dimanche ou un jour férié reporte au jour ouvré suivant (R. 133-14, I ; `declarations/src/echeance_dsn.rs`, que
   l'échéancier et les rappels disent). Due aussi les mois sans paie (envoi néant).
 - **Fichier** : `sorties/<mois>/DSN_<Mois><Année>.dsn`, écrit par `paie mois`.
 - `paie depot-dsn <fichier> --apercu` : ce qui partirait, sans réseau ni écriture. Puis `--test`, lire le bilan.
@@ -85,8 +85,8 @@ signalement parti : `--remplace <identifiant du certificat de conformité>`, jam
   contrat. Son N° CE est une suite continue de l'employeur, jamais remise à 1.
 
 ## Un mois déjà déposé, un rejet
-
-- Avant l'échéance : refaire le mois et redéposer (annule-et-remplace). Après : `paie corriger <mois>` (aperçu sans
+- Avant la veille de l'échéance : modifier l'engagement, le revalider et redéposer (annule-et-remplace). Après : modifier
+  l'engagement et le revalider suffit, la DSN du mois suivant porte la correction d'elle-même. **Jamais** reproduire un mois déposé.
   `--motif`) ; écrire la correction demande le mot de passe du logiciel. **Jamais** reproduire un mois déposé.
 - Un rejet : lire le message de net-entreprises, trouver la donnée (`config/` ou la saisie), régénérer, redéposer en
   test. Ne jamais corriger un `.dsn` à la main. Les échecs vus par le logiciel : `paie incidents`.

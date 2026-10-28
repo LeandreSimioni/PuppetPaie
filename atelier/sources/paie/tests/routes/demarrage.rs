@@ -39,7 +39,7 @@ fn chaque_chose_que_demande_une_compagnie_neuve_se_remplit_dans_un_champ_montre(
     let racine = neuve("champs-montres");
     let m = manques(&racine);
     assert!(!m.is_empty());
-    let fiche = paie::champs::fiche("entreprise").unwrap();
+    let fiche = declarations::champs::fiche("entreprise").unwrap();
     for x in &m {
         let Some(champ) = x["champ"].as_str() else {
             // Ce qui n'est pas une case mene a son onglet.
@@ -59,7 +59,7 @@ fn chaque_chose_que_demande_une_compagnie_neuve_se_remplit_dans_un_champ_montre(
     assert_eq!(mt.len(), 1, "le code du service de sante au travail, par sa case, meme sans SIRET : {:?}", m);
     assert_eq!(mt[0]["bloque"], json!("la DPAE"));
     // La DSN de decembre declare la taxe sur les salaires (bloc S21.G00.44) et ne se fait pas sans reponse : demandee
-    // d'avance, par sa case (`assujettissement::regime_taxe_sur_les_salaires`).
+    // d'avance, par sa case (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`).
     assert_eq!(par_champ(&m, "taxe_sur_les_salaires").len(), 1, "{:?}", m);
 }
 
@@ -147,7 +147,7 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
         bareme["par_convention"].as_object().unwrap().keys().filter(|k| !k.starts_with('_')).cloned().collect();
     assert_eq!(conventions.len(), 10, "les dix conventions de 2026 : {:?}", conventions);
     conventions.push(String::new());
-    let fiche = paie::champs::fiche("entreprise").unwrap();
+    let fiche = declarations::champs::fiche("entreprise").unwrap();
     let licence = fiche.iter().find(|c| c.cle == "licence_spectacle").unwrap();
     for idcc in &conventions {
         for (permanents, spectacle) in [(false, false), (false, true), (true, false), (true, true)] {
@@ -175,7 +175,7 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
                 }
             }
             let demandee = par_champ(&m, "licence_spectacle").len() == 1;
-            let (montree, exigee) = (licence.montre(&ent, permanents, false), paie::demarrage::licence_exigee(&ent, spectacle));
+            let (montree, exigee) = (licence.montre(&ent, permanents, false), declarations::demarrage::licence_exigee(&ent, spectacle));
             assert_eq!(demandee, exigee, "{} : la licence demandee si et seulement si exigee", nom);
             assert!(!exigee || montree, "{} : la licence exigee, case masquee", nom);
             match idcc.as_str() {
@@ -195,7 +195,7 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
 #[test]
 fn la_medecine_interne_et_seulement_elle_demande_son_contact() {
     let racine = neuve("medecine-interne");
-    let fiche = paie::champs::fiche("entreprise").unwrap();
+    let fiche = declarations::champs::fiche("entreprise").unwrap();
     let contact = fiche.iter().find(|c| c.cle == "contact_sante_travail").unwrap();
     let mut ent = fiche_au(&lire(&racine, "config/entreprise.json"), JOUR);
     for (code, demande) in [("MT42", false), ("MT01", true)] {

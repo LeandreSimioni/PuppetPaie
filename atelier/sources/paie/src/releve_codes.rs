@@ -205,7 +205,7 @@ fn passer<L: Read>(
         if m.nom.ends_with(".dat") && m.nom.contains("suppression") {
             // CE QUE LA LIVRAISON RETIRE : un article dont la version gardee est dans la liste sort de l'entrepot.
             let liste = String::from_utf8_lossy(&tar.lire()?).into_owned();
-            let retires: HashSet<&str> = crate::apercu_dsn::lignes_py(&liste)
+            let retires: HashSet<&str> = socle::texte::lignes_py(&liste)
                 .into_iter()
                 .map(dila::strip_py)
                 .filter(|l| !l.is_empty())

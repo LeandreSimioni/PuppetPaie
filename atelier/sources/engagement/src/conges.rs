@@ -1,10 +1,11 @@
 //! Les conges payes d'un permanent, et les lignes de son mois : d'une saisie de permanent aux lignes d'un bulletin
-//! (`lignes_du_mois`), et le compteur de conges payes qu'elle derive des mois de ses engagements. Les jours et
-//! l'indemnite retenue sont la regle du droit (`droit::conges`, `droit::permanents`).
+//! (`lignes_du_mois`), et son compteur de conges payes. Les jours et l'indemnite retenue sont la regle du droit
+//! (`droit::conges`, `droit::permanents`).
 //!
-//! Rien n'est stocke : le compteur se derive des saisies des mois, et le brut d'un mois passe se recalcule par
-//! `engagement::charger`, qui redemande un compteur. Le memo d'une derivation (profondeur + brut par mois) coupe
-//! l'explosion de ces appels ; il meurt avec la derivation qui l'a ouvert.
+//! Le compteur se tire des paies validees des mois d'avant (`etats::paies_validees`) : leur presence, leurs jours pris,
+//! leur brut. Ce qui n'est pas valide n'est pas paye, et aucun mois ne se calcule pour un autre. La validation ecrit
+//! dans chaque paie le compteur que son bulletin montre (`compteur_ecrit`) ; le bulletin et la provision le lisent. Le
+//! memo d'une derivation lit chaque mois une fois ; il meurt avec la derivation qui l'a ouvert.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -19,7 +20,7 @@ use droit::clauses;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use socle::date::{d, dernier_du_mois, en_texte, jours_du_mois, premier_du_mois, forme_ecrite, Jour};
-use crate::{charger, Avis};
+use crate::Avis;
 use socle::feries;
 use socle::fichiers::{repr, vrai};
 use socle::num::{add, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
@@ -100,7 +101,7 @@ fn fin_mois_de(mois: &str) -> Resultat<Jour> {
 // ------------------------------------------------ le compteur de conges
 
 /// Ou en est un salarie de ses conges payes, a une date.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CompteurConges {
     pub salarie: String,
     pub periode_debut: Jour,
@@ -116,6 +117,8 @@ pub struct CompteurConges {
     pub report_debut: Option<Jour>,
     pub report_fin: Option<Jour>,
     pub acquis_report: Decimal,
+    /// L'assiette du dixieme de la periode du report (zero sans report).
+    pub remuneration_report: Decimal,
     /// Les jours pris que l'ancien logiciel a deja imputes sur la periode en
     /// cours (reprise) : ils ne consomment pas le report.
     pub pris_sur_la_periode: Decimal,
@@ -152,34 +155,117 @@ impl CompteurConges {
             self.solde_affiche()
         )
     }
-}
 
-// Le memo d'une derivation : la profondeur des derivations ouvertes, et les
-// paies de chaque (racine, mois) deja recalcule -- (cle, brut, deduction
-// forfaitaire specifique), ou l'erreur d'un mois qui ne se charge pas. Un mois
-// se charge une fois pour tous ses salaries.
-type PaiesDuMois = Result<Vec<(String, Decimal, Decimal)>, String>;
-
-/// Ce que le memo garde d'une paie : la cle de sa fiche, son brut, et la deduction forfaitaire specifique qu'elle a
-/// retenue (zero sans DFS).
-fn resume_des_paies(paies: &[Paie]) -> Vec<(String, Decimal, Decimal)> {
-    paies
-        .iter()
-        .map(|p| {
-            (
-                p.salarie.get("_cle").and_then(|c| c.as_str()).unwrap_or("").to_string(),
-                p.brut,
-                p.deduction_forfaitaire.as_ref().map_or(zero2(), |d| d.montant),
-            )
+    /// Le compteur tel qu'il s'ecrit dans la paie validee (`etats::CONGES`) : les nombres en texte, les jours en
+    /// AAAA-MM-JJ.
+    pub fn en_json(&self) -> Value {
+        let n = |x: Decimal| Value::String(x.to_string());
+        let j = |x: &Option<Jour>| x.map_or(Value::Null, |j| Value::String(j.iso()));
+        json!({
+            "salarie": self.salarie,
+            "periode_debut": self.periode_debut.iso(),
+            "periode_fin": self.periode_fin.iso(),
+            "acquis": n(self.acquis),
+            "pris": n(self.pris),
+            "remuneration_periode": n(self.remuneration_periode),
+            "reports": n(self.reports),
+            "report_debut": j(&self.report_debut),
+            "report_fin": j(&self.report_fin),
+            "acquis_report": n(self.acquis_report),
+            "remuneration_report": n(self.remuneration_report),
+            "pris_sur_la_periode": n(self.pris_sur_la_periode),
+            "avertissements": self.avertissements.iter().map(|a| json!({ "texte": a.texte, "info": a.info })).collect::<Vec<_>>(),
         })
-        .collect()
+    }
+
+    /// Le compteur ecrit dans une paie validee (`en_json`). Refus : un champ qui manque ou ne se lit pas.
+    pub fn lire(v: &Value) -> Resultat<CompteurConges> {
+        let illisible = |k: &str| format!("compteur de conges illisible : `{}`", k);
+        let n = |k: &str| -> Resultat<Decimal> {
+            requis(v, k)?.as_str().and_then(|t| Decimal::from_str(t).ok()).ok_or_else(|| illisible(k))
+        };
+        let j = |k: &str| -> Resultat<Option<Jour>> { v.get(k).filter(|x| !x.is_null()).map(d).transpose() };
+        let avis = v.get("avertissements").and_then(Value::as_array).map_or(&[][..], |a| &a[..]);
+        Ok(CompteurConges {
+            salarie: en_texte(requis(v, "salarie")?),
+            periode_debut: d(requis(v, "periode_debut")?)?,
+            periode_fin: d(requis(v, "periode_fin")?)?,
+            acquis: n("acquis")?,
+            pris: n("pris")?,
+            remuneration_periode: n("remuneration_periode")?,
+            reports: n("reports")?,
+            avertissements: avis
+                .iter()
+                .map(|a| Avis { info: a.get("info").is_some_and(vrai), texte: a.get("texte").map(en_texte).unwrap_or_default() })
+                .collect(),
+            report_debut: j("report_debut")?,
+            report_fin: j("report_fin")?,
+            acquis_report: n("acquis_report")?,
+            remuneration_report: n("remuneration_report")?,
+            pris_sur_la_periode: n("pris_sur_la_periode")?,
+        })
+    }
 }
+
+/// Ce qu'une paie validee apporte au compteur de conges et a la deduction forfaitaire de l'annee.
+#[derive(Debug, Clone)]
+struct PaieLue {
+    /// La cle de la fiche du salarie.
+    cle: String,
+    brut: Decimal,
+    /// La deduction forfaitaire specifique retenue (zero sans DFS).
+    dfs: Decimal,
+    /// Un contrat paye au mois : sa presence dans le mois, et ce qu'il en decompte.
+    mensuel: Option<MoisPaye>,
+}
+
+#[derive(Debug, Clone)]
+struct MoisPaye {
+    /// La presence du mois : le contrat borne au mois (`Engagement::debut_periode`, `fin_periode`).
+    debut: Jour,
+    fin: Jour,
+    contrat_debut: Jour,
+    numero: Option<String>,
+    /// Les jours de conges que la paie decompte (`conges_pris_de_la_paie`).
+    pris: Decimal,
+    /// Un arret de travail du contrat range dans ce mois (`imprevus`).
+    arret: bool,
+}
+
+/// Ce que la paie validee `p` de `mois` apporte au compteur.
+fn lue(ctx: &Contexte, mois: &str, p: &Paie) -> Resultat<PaieLue> {
+    let eng = &p.engagement;
+    let cle = p.salarie.get("_cle").and_then(|c| c.as_str()).unwrap_or("").to_string();
+    let mensuel = if eng.nat()?.mensuelle() {
+        let mut arret = false;
+        for imp in crate::imprevus::du_mois(&ctx.racine, mois, None)? {
+            arret |= crate::imprevus::est_un_arret(&imp) && crate::imprevus::du_contrat(&imp, &cle, eng.numero.as_deref(), &eng.debut)?;
+        }
+        Some(MoisPaye {
+            debut: eng.debut_periode()?,
+            fin: eng.fin_periode()?,
+            contrat_debut: eng.debut,
+            numero: eng.numero.clone(),
+            pris: conges_pris_de_la_paie(&ctx.racine, p)?,
+            arret,
+        })
+    } else {
+        None
+    };
+    let dfs = p.deduction_forfaitaire.as_ref().map_or(zero2(), |d| d.montant);
+    Ok(PaieLue { cle, brut: p.brut, dfs, mensuel })
+}
+
+// Le memo d'une derivation : la profondeur des derivations ouvertes, et ce que chaque (racine, mois) a deja apporte
+// (`PaieLue`), ou le refus d'un mois qui ne se lit pas. Un mois se lit une fois pour tous ses salaries.
+type PaiesDuMois = Result<Vec<PaieLue>, String>;
+
 thread_local! {
     static MEMO: RefCell<(u32, HashMap<(String, String), PaiesDuMois>)> =
         RefCell::new((0, HashMap::new()));
 }
 
-/// Une derivation ouverte : le memo se vide quand la derniere se ferme.
+/// Une derivation ouverte : chaque mois s'y lit une fois ; le memo se vide quand la derniere se ferme.
 pub struct Derivation;
 
 impl Derivation {
@@ -201,26 +287,19 @@ impl Drop for Derivation {
     }
 }
 
-/// La cle d'un mois au memo de la derivation : la compagnie, le mois, et le registre de lectures ouvert sur ce fil
-/// (`fichiers::generation`, 0 sans registre). Un calcul suivi ne se sert ainsi que des mois relus par lui-meme (leurs
-/// lectures se notent), meme dans une derivation ouverte avant lui (`routes_mois::mois_a_ouvrir`, ticket #244).
+/// La cle d'un mois au memo de la derivation : la compagnie, le mois, le registre de lectures ouvert sur ce fil
+/// (`fichiers::generation`, 0 sans registre) et l'etat de la validation en cours (`etats::marque_de_validation`). Un
+/// calcul suivi ne se sert ainsi que des mois relus par lui-meme (leurs lectures se notent), meme dans une derivation
+/// ouverte avant lui (`routes_mois::mois_a_ouvrir`, ticket #244).
 fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
-    (ctx.racine.display().to_string(), format!("{}|{}", mois, socle::fichiers::generation()))
+    (
+        ctx.racine.display().to_string(),
+        format!("{}|{}|{}", mois, socle::fichiers::generation(), crate::etats::marque_de_validation()),
+    )
 }
 
-/// Le brut des paies d'un mois deja charge, pose dans le memo de la derivation
-/// ouverte : `remuneration_du_mois` ne le recalcule pas.
-pub fn memoriser_mois(ctx: &Contexte, mois: &str, paies: &[Paie]) {
-    let reference = cle_du_memo(ctx, mois);
-    MEMO.with(|m| {
-        let mut m = m.borrow_mut();
-        if m.0 > 0 && !m.1.contains_key(&reference) {
-            m.1.insert(reference, Ok(resume_des_paies(paies)));
-        }
-    });
-}
-
-/// Le compteur de conges d'un salarie, reconstruit depuis les saisies.
+/// Le compteur de conges d'un salarie, tire des paies validees des mois de ses contrats payes au mois
+/// (`etats::paies_validees`) : ce qui n'est pas valide n'est pas paye, et aucun mois ne se calcule.
 /// `jusqu_au_mois` : ne lire que les mois strictement anterieurs a celui-la.
 pub fn compteur_conges(
     ctx: &Contexte,
@@ -234,7 +313,7 @@ pub fn compteur_conges(
 
 /// Ce qu'une periode de reference a acquis et vu prendre :
 /// `(acquis plafonne, pris, remuneration, avertissements)`. Sans
-/// `remuneration`, aucun brut n'est recalcule.
+/// `remuneration`, le brut n'est pas somme.
 fn periode(
     ctx: &Contexte,
     cle_salarie: &str,
@@ -256,37 +335,33 @@ fn periode(
     }) {
         brut = add(brut, r.remuneration_report);
     }
-    for (mois, saisie) in mois_du_salarie(ctx, cle_salarie, debut, fin, jusqu_au_mois)? {
-        for e in saisie["engagements"].as_array().map_or(&[][..], |a| &a[..]) {
-            if e.get("salarie").and_then(|s| s.as_str()) != Some(cle_salarie) {
-                continue;
-            }
-            if !nature_de(e.get("nature"))?.mensuelle() {
-                continue;
-            }
-            // La presence du mois : le contrat borne au mois, borne a la periode.
-            let debut_mois = premier_du_mois(&mois)?;
-            let mut p_debut = d(requis(e, "debut")?)?.max(debut_mois).max(*debut);
+    let cle = cle_de_fiche(ctx, cle_salarie);
+    for (mois, paies) in mois_de_la_periode(ctx, debut, fin, jusqu_au_mois)? {
+        let siennes: Vec<&PaieLue> = paies.iter().filter(|p| p.cle == cle).collect();
+        let mut present = false;
+        for m in siennes.iter().filter_map(|p| p.mensuel.as_ref()) {
+            // La presence du mois, bornee a la periode et a la reprise.
+            let mut p_debut = m.debut.max(*debut);
             if let Some(r) = &rep {
                 p_debut = p_debut.max(r.date);
             }
-            let fin_du_mois = fin_mois_de(&mois)?;
-            let p_fin = match e.get("fin").filter(|x| vrai(x)) {
-                Some(f) => d(f)?.min(fin_du_mois),
-                None => fin_du_mois,
-            }
-            .min(*fin);
+            let p_fin = m.fin.min(*fin);
             if p_fin < p_debut {
                 continue;
             }
+            present = true;
             // La presence, moins les suspensions qui n'acquierent pas (`imprevus::jours_de_conges_non_acquis`).
-            let non_acquis = non_acquis_du_contrat(ctx, e, &p_debut, &p_fin)?;
+            let non_acquis = crate::imprevus::jours_de_conges_non_acquis(
+                &ctx.racine,
+                &cle,
+                m.numero.as_deref(),
+                &m.contrat_debut,
+                &p_debut,
+                &p_fin,
+            )?;
             acquis = add(acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO));
-            // Les jours pris se comptent comme la retenue du bulletin.
-            for c in e.get("conges_pris").and_then(|c| c.as_array()).map_or(&[][..], |a| &a[..]) {
-                pris += Decimal::from(jours_ouvrables_de(c, ent)?);
-            }
-            if crate::imprevus::du_contrat_dans_le_mois(ctx, e, &mois)?.iter().any(crate::imprevus::est_un_arret) {
+            pris += m.pris;
+            if m.arret {
                 avert.push(avertir(format!(
                     "{} : un arret de travail en {}. Le compteur de conges compte \
                      le TEMPS DE PRESENCE d'un arret ; les periodes assimilees a \
@@ -295,21 +370,17 @@ fn periode(
                     cle_salarie, mois
                 )));
             }
-            let avant_la_reprise = rep.as_ref().is_some_and(|r| fin_du_mois < r.date);
-            if remuneration && !avant_la_reprise {
-                brut = add(brut, remuneration_du_mois(ctx, &mois, cle_salarie)?);
-            }
+        }
+        let avant_la_reprise = match &rep {
+            Some(r) => fin_mois_de(&mois)? < r.date,
+            None => false,
+        };
+        // L'assiette du dixieme : tout le brut du salarie dans un mois ou il est present.
+        if remuneration && present && !avant_la_reprise {
+            brut = siennes.iter().fold(brut, |a, p| add(a, p.brut));
         }
     }
     Ok((plafonner(acquis)?, pris, brut, avert))
-}
-
-/// `imprevus::jours_de_conges_non_acquis` du contrat d'un engagement de saisie (sa fiche, son numero, sa date de debut).
-fn non_acquis_du_contrat(ctx: &Contexte, e: &Value, debut: &Jour, fin: &Jour) -> Resultat<Decimal> {
-    let Some(contrat_debut) = e.get("debut").filter(|x| vrai(x)).map(d).transpose()? else { return Ok(Decimal::ZERO) };
-    let cle = cle_de_fiche(ctx, &en_texte(requis(e, "salarie")?));
-    let numero = e.get("numero").filter(|x| vrai(x)).map(en_texte);
-    crate::imprevus::jours_de_conges_non_acquis(&ctx.racine, &cle, numero.as_deref(), &contrat_debut, debut, fin)
 }
 
 fn compteur(
@@ -321,6 +392,11 @@ fn compteur(
     let (debut, fin) = periode_de_reference(a_la_date, Some(&ctx.entreprise))?;
     let (acquis, pris, remuneration, avert) = periode(ctx, cle_salarie, &debut, &fin, jusqu_au_mois, true)?;
     let report = report(ctx, cle_salarie, &debut, jusqu_au_mois)?;
+    // Un jour du report se paie au dixieme de la periode ou il a ete acquis (`indemnite_des_jours`).
+    let remuneration_report = match (report.debut, report.fin) {
+        (Some(rd), Some(rf)) if report.reports > Decimal::ZERO => periode(ctx, cle_salarie, &rd, &rf, jusqu_au_mois, true)?.2,
+        _ => zero2(),
+    };
     let mut avertissements = report.avertissements;
     avertissements.extend(avert);
     Ok(CompteurConges {
@@ -335,6 +411,7 @@ fn compteur(
         report_debut: report.debut,
         report_fin: report.fin,
         acquis_report: report.acquis,
+        remuneration_report,
         pris_sur_la_periode: pris_de_la_reprise(ctx, cle_salarie, &debut, &fin)?,
     })
 }
@@ -497,61 +574,41 @@ pub fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Repr
     }))
 }
 
-/// La date de debut du contrat paye au mois de ce salarie, lue dans la saisie de `premier` (son premier mois saisi),
-/// si elle est anterieure a ce mois ; sinon `None`.
+/// La date de debut du contrat paye au mois de ce salarie, lue dans sa paie validee de `premier` (son premier mois
+/// paye), si elle est anterieure a ce mois ; sinon `None`.
 fn commence_avant(ctx: &Contexte, cle_salarie: &str, premier: &str) -> Resultat<Option<Jour>> {
-    let Ok(Some(saisie)) = crate::stock::vue_du_mois(&ctx.racine, premier) else {
-        return Ok(None);
-    };
-    for e in saisie.get("engagements").and_then(|x| x.as_array()).map_or(&[][..], |a| &a[..]) {
-        if e.is_object()
-            && e.get("salarie").and_then(|s| s.as_str()) == Some(cle_salarie)
-            && nature_de(e.get("nature"))?.mensuelle()
-            && e.get("debut").is_some_and(vrai)
-        {
-            let debut = d(&e["debut"])?;
-            return Ok((debut < premier_du_mois(premier)?).then_some(debut));
-        }
-    }
-    Ok(None)
+    let cle = cle_de_fiche(ctx, cle_salarie);
+    let debut_du_mois = premier_du_mois(premier)?;
+    Ok(paies_du_mois(ctx, premier)?
+        .iter()
+        .filter(|p| p.cle == cle)
+        .filter_map(|p| p.mensuel.as_ref())
+        .map(|m| m.contrat_debut)
+        .find(|debut| *debut < debut_du_mois))
 }
 
-/// Les mois que la saisie a touches (`stock::mois_saisis`), du plus ancien au plus recent, avec leur saisie.
-fn saisies_des_mois(ctx: &Contexte) -> Vec<(String, Value)> {
-    crate::stock::mois_saisis(&ctx.racine)
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|m| crate::stock::vue_du_mois(&ctx.racine, &m).ok().flatten().map(|v| (m, v)))
-        .collect()
-}
-
-/// Le premier mois saisi ou le salarie a un contrat paye au mois.
+/// Le premier mois ou le salarie a la paie validee d'un contrat paye au mois.
 fn premier_mois(ctx: &Contexte, cle_salarie: &str, jusqu_au_mois: Option<&str>) -> Resultat<Option<String>> {
-    for (mois, saisie) in saisies_des_mois(ctx) {
+    let cle = cle_de_fiche(ctx, cle_salarie);
+    for mois in crate::stock::mois_saisis(&ctx.racine)? {
         if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) {
             return Ok(None);
         }
-        for e in saisie.get("engagements").and_then(|x| x.as_array()).map_or(&[][..], |a| &a[..]) {
-            if e.is_object()
-                && e.get("salarie").and_then(|s| s.as_str()) == Some(cle_salarie)
-                && nature_de(e.get("nature"))?.mensuelle()
-            {
-                return Ok(Some(mois));
-            }
+        if paies_du_mois(ctx, &mois)?.iter().any(|p| p.cle == cle && p.mensuel.is_some()) {
+            return Ok(Some(mois));
         }
     }
     Ok(None)
 }
 
-/// Les mois saisis (`stock::mois_saisis`) qui croisent la periode, du plus ancien au plus recent, avec leur saisie : un contrat
-/// paye au mois touche chacun de ses mois, meme ceux que la saisie n'a pas changes.
-fn mois_du_salarie(
+/// Les mois qui croisent la periode, du plus ancien au plus recent, avec ce que leurs paies validees apportent
+/// (`paies_du_mois`) : un contrat paye au mois a une paie dans chacun de ses mois.
+fn mois_de_la_periode(
     ctx: &Contexte,
-    _cle: &str,
     debut: &Jour,
     fin: &Jour,
     jusqu_au_mois: Option<&str>,
-) -> Resultat<Vec<(String, Value)>> {
+) -> Resultat<Vec<(String, Vec<PaieLue>)>> {
     let mut out = Vec::new();
     if fin < debut {
         return Ok(out);
@@ -561,18 +618,14 @@ fn mois_du_salarie(
         if jusqu_au_mois.is_some_and(|j| !j.is_empty() && mois.as_str() >= j) || !saisis.contains(&mois) {
             continue;
         }
-        let Ok(Some(saisie)) = crate::stock::vue_du_mois(&ctx.racine, &mois) else { continue };
-        if !saisie.get("engagements").is_some_and(|e| e.is_array()) {
-            continue;
-        }
-        out.push((mois, saisie));
+        let paies = paies_du_mois(ctx, &mois)?;
+        out.push((mois, paies));
     }
     Ok(out)
 }
 
-/// Les paies d'un mois de saisie (`resume_des_paies`) : ses paies ecrites quand tous ses engagements sont valides
-/// (`etats::paies_ecrites`), sinon recalculees, une fois par derivation.
-fn paies_du_mois_memorisees(ctx: &Contexte, mois: &str) -> PaiesDuMois {
+/// Ce que les paies validees de `mois` apportent (`etats::paies_validees`, `lue`), lu une fois par derivation.
+fn paies_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<PaieLue>> {
     let reference = cle_du_memo(ctx, mois);
     let memo = MEMO.with(|m| {
         let m = m.borrow();
@@ -581,10 +634,7 @@ fn paies_du_mois_memorisees(ctx: &Contexte, mois: &str) -> PaiesDuMois {
     if let Some(p) = memo {
         return p;
     }
-    let p = match crate::etats::paies_ecrites(ctx, mois) {
-        Ok(Some(ecrites)) => Ok(resume_des_paies(&ecrites)),
-        _ => charger(ctx, mois).map(|s| resume_des_paies(&s.paies)),
-    };
+    let p = crate::etats::paies_validees(ctx, mois).and_then(|paies| paies.iter().map(|p| lue(ctx, mois, p)).collect());
     MEMO.with(|m| {
         let mut m = m.borrow_mut();
         if m.0 > 0 {
@@ -602,54 +652,34 @@ fn cle_de_fiche(ctx: &Contexte, cle: &str) -> String {
         .unwrap_or_else(|| cle.to_string())
 }
 
-/// Le brut d'un salarie sur un mois anterieur -- l'assiette du dixieme -- tel que ses paies le portent
-/// (`paies_du_mois_memorisees`).
+/// Le brut d'un salarie sur un mois anterieur -- l'assiette du dixieme -- tel que ses paies validees le portent.
 pub fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
-    let paies = match paies_du_mois_memorisees(ctx, mois) {
-        Ok(p) => p,
-        // Ce qui n'est pas porte n'est pas un mois sans brut.
-        Err(e) if e.starts_with("non porte") => return Err(e),
-        Err(_) => return Ok(zero2()),
-    };
     let cle_fiche = cle_de_fiche(ctx, cle);
-    Ok(paies.iter().filter(|(c, _, _)| c == cle || *c == cle_fiche).fold(zero2(), |a, (_, b, _)| add(a, *b)))
+    Ok(paies_du_mois(ctx, mois)?.iter().filter(|p| p.cle == cle_fiche).fold(zero2(), |a, p| add(a, p.brut)))
 }
 
-/// La deduction forfaitaire specifique deja retenue pour un salarie dans les mois de saisie de la meme annee civile,
-/// strictement avant `mois` (AAAA-MM), chacun tel que ses paies le portent (`calcul::dfs_deja_deduite` ; arrete du
-/// 4 septembre 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>), lue dans ses paies ecrites quand le
-/// mois est valide. Un mois ou le salarie a un engagement et qui ne se calcule pas refuse : le cumul de l'annee ne se
-/// devine pas.
+/// La deduction forfaitaire specifique deja retenue pour un salarie dans les mois de la meme annee civile, strictement
+/// avant `mois` (AAAA-MM), telle que ses paies validees la portent (`calcul::dfs_deja_deduite` ; arrete du 4 septembre
+/// 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>). Une paie validee qui ne se lit pas refuse : le
+/// cumul de l'annee ne se devine pas.
 pub fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
-    // Chaque mois anterieur se calcule en demandant les siens : sans le memo d'une derivation, un salarie present tous
-    // les mois ferait recalculer 2^n mois. Avec lui, chaque mois se calcule une fois.
     let _derivation = Derivation::ouvrir();
     let annee: String = mois.chars().take(4).collect();
     let cle_fiche = cle_de_fiche(ctx, cle);
     let mut total = zero2();
-    for (m, saisie) in saisies_des_mois(ctx) {
+    for m in crate::stock::mois_saisis(&ctx.racine)? {
         if !m.starts_with(&annee) || m.as_str() >= mois {
             continue;
         }
-        let sien = saisie.get("engagements").and_then(|e| e.as_array()).map_or(false, |a| {
-            a.iter().filter_map(|e| e.get("salarie").and_then(|s| s.as_str())).any(|s| s == cle || cle_de_fiche(ctx, s) == cle_fiche)
-        });
-        if !sien {
-            continue;
-        }
-        let paies = paies_du_mois_memorisees(ctx, &m).map_err(|e| {
+        let paies = paies_du_mois(ctx, &m).map_err(|e| {
             format!(
-                "Deduction forfaitaire specifique de {} : le mois {} ne se calcule pas ({}). Le plafond de 7 600 EUR par \
-annee civile (arrete du 4 septembre 2025, art. 9) se suit sur toute l'annee : sans ce mois, le cumul ne se connait pas. Rien \
-n'est calcule.",
+                "Deduction forfaitaire specifique de {} : les paies validees de {} ne se lisent pas ({}). Le plafond de \
+7 600 EUR par annee civile (arrete du 4 septembre 2025, art. 9) se suit sur toute l'annee : sans ce mois, le cumul ne se \
+connait pas. Rien n'est calcule.",
                 cle, m, e
             )
         })?;
-        for (c, _, dfs) in &paies {
-            if c == cle || *c == cle_fiche {
-                total = add(total, *dfs);
-            }
-        }
+        total = paies.iter().filter(|p| p.cle == cle_fiche).fold(total, |a, p| add(a, p.dfs));
     }
     Ok(total)
 }
@@ -659,12 +689,7 @@ n'est calcule.",
 /// L'indemnite de `jours` de conges (L3141-24), chaque jour au dixieme DE LA
 /// PERIODE OU IL A ETE ACQUIS : le report d'abord, puis la periode en cours.
 /// Le maintien se compare au TOTAL.
-pub fn indemnite_des_jours(
-    ctx: &Contexte,
-    cpt: &CompteurConges,
-    jours: Decimal,
-    maintien: Decimal,
-) -> Resultat<IndemniteDesJours> {
+pub fn indemnite_des_jours(cpt: &CompteurConges, jours: Decimal, maintien: Decimal) -> Resultat<IndemniteDesJours> {
     let sur_report = jours.min(cpt.report_restant());
     let en_cours = sub(jours, sur_report);
     let mut dixieme = zero2();
@@ -673,13 +698,7 @@ pub fn indemnite_des_jours(
         dec(requis(&v, "dixieme")?)
     };
     if sur_report != Decimal::ZERO {
-        let _derivation = Derivation::ouvrir();
-        let (debut, fin) = (
-            cpt.report_debut.ok_or("report_debut")?,
-            cpt.report_fin.ok_or("report_fin")?,
-        );
-        let (_, _, brut, _) = periode(ctx, &cpt.salarie, &debut, &fin, None, true)?;
-        dixieme += dixieme_de(sur_report, brut, cpt.acquis_report)?;
+        dixieme += dixieme_de(sur_report, cpt.remuneration_report, cpt.acquis_report)?;
     }
     if en_cours != Decimal::ZERO {
         dixieme += dixieme_de(en_cours, cpt.remuneration_periode, cpt.acquis)?;
@@ -687,11 +706,10 @@ pub fn indemnite_des_jours(
     Ok(droit::conges::la_plus_forte(dixieme, maintien))
 }
 
-/// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant,
-/// plus ce que ce mois acquiert et prend.
+/// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant, plus ce que ce mois acquiert et prend.
 pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<CompteurConges> {
     let eng = &paie.engagement;
-    let cle = paie.salarie.get("_cle").and_then(|c| c.as_str()).ok_or_else(|| socle::fichiers::absent("_cle"))?;
+    let cle = eng.salarie.as_str();
     let fin_du_mois = fin_mois_de(mois)?;
     let mut cpt = compteur_conges(ctx, cle, &fin_du_mois, Some(mois))?;
     let (debut, fin) = periode_de_reference(&fin_du_mois, Some(&ctx.entreprise))?;
@@ -706,6 +724,17 @@ pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat
     }
     cpt.pris += conges_pris_de_la_paie(&ctx.racine, paie)?;
     Ok(cpt)
+}
+
+/// LE COMPTEUR QUE LA VALIDATION ECRIT dans la paie `p` de `mois` (`etats::CONGES`) : celui que son bulletin montre
+/// (`compteur_au_bulletin`), pour un contrat paye au mois dont l'employeur tient les conges. Un contrat declare a la
+/// caisse des Conges Spectacles (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'en a pas : la caisse lui paie
+/// ses conges (#132).
+pub fn compteur_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Option<CompteurConges>> {
+    if !p.engagement.nat()?.mensuelle() || crate::calcul::declaree_a_la_caisse_des_conges(p)? {
+        return Ok(None);
+    }
+    compteur_au_bulletin(ctx, p, mois).map(Some)
 }
 
 /// Les jours de conges que CETTE paie decompte, lus sur ses lignes : le
@@ -830,7 +859,7 @@ pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Va
         let salarie = en_texte(requis(e, "salarie")?);
         let cpt = compteur_conges(ctx, &salarie, &fin, Some(mois))?;
         let maintien = eur2(mul(taux_jour_ouvrable, pris));
-        let ind = indemnite_des_jours(ctx, &cpt, pris, maintien)?;
+        let ind = indemnite_des_jours(&cpt, pris, maintien)?;
         lignes.push(json!({"rubrique": "absence_conges_payes", "quantite": flot(pris), "taux": flot(taux_jour_ouvrable)}));
         lignes.push(json!({
             "rubrique": "indemnite_conges_payes", "quantite": flot(pris),

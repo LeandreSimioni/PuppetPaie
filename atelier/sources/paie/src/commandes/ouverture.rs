@@ -39,6 +39,7 @@ pub static SPEC: Spec = Spec {
     ],
 };
 
+#[cfg_attr(not(feature = "atelier"), allow(unused_mut))]
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let mut sauvegarder = !args.drapeau("sans-sauvegarde");
     let mut retours = !args.drapeau("sans-retours");

@@ -109,7 +109,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
             "dsn" | "txt" | "csv" | "eml" => lignes(&octets.iter().map(|&o| o as char).collect::<String>(), &r),
             "pdf" => {
                 let (pages, _) = fabrique_pdf::lecture::texte(&p.to_string_lossy()).unwrap_or_else(|m| panic!("{} : {}", rel, m.0));
-                lignes(&paie::avenant::normaliser(&pages.join("\n")), &r)
+                lignes(&documents::avenant::normaliser(&pages.join("\n")), &r)
             }
             _ => json!({"empreinte": socle::fichiers::sha256_hex(&octets)}),
         };

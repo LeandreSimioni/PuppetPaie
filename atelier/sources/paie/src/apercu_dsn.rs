@@ -5,15 +5,13 @@
 //!
 //! Les pieces reprises du reste du moteur : `Moteur::etat_remplacement` (l'annule-et-
 //! remplace d'un etablissement), `engagement::etats::validees_du_mois` et
-//! `routes_ouverture::numeroter` (les paies validees, numerotees), `depot::lire` (la lecture du
+//! `ecrire_documents::paies_aux_numeros_declares` (les paies validees, numerotees), `depot::lire` (la lecture du
 //! fichier), `etats::{deja_depose, repetition}` (le journal).
 //!
 //! Un nombre `NaN`, `Infinity`, ou dont l'exposant sortirait des 28 chiffres de `rust_decimal`, se refuse comme un
 //! nombre illisible.
 
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
-use std::str::FromStr;
 
 use serde_json::{json, Value};
 
@@ -24,101 +22,18 @@ use crate::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::num::Decimal;
-use socle::texte::blanc;
+use socle::num::{decimal_py, int_py, q2};
+use socle::texte::{blanc, lignes_py, texte_latin1};
 use socle::echec::Echec;
 use crate::routes_apercus::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes_mois::Moteur;
-use crate::routes_ouverture::{numeroter, Refus};
+use documents::ecrire_documents::paies_aux_numeros_declares;
 
 type R<T> = Result<T, Echec>;
 
 const TYPES: [(&str, &str); 5] = depot::TYPES;
 
 // ------------------------------------------------------------------ les petits outils de Python
-
-/// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.
-/// Python n'a pas de plafond : un entier trop long pour `i128` se rend au plus grand.
-pub(crate) fn int_py(t: &str) -> Option<i128> {
-    let t = t.trim_matches(blanc);
-    let (neg, reste) = match t.strip_prefix('-') {
-        Some(r) => (true, r),
-        None => (false, t.strip_prefix('+').unwrap_or(t)),
-    };
-    if reste.is_empty() || reste.starts_with('_') || reste.ends_with('_') || reste.contains("__") {
-        return None;
-    }
-    let chiffres: String = reste.chars().filter(|c| *c != '_').collect();
-    if !chiffres.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    let n = chiffres.parse::<i128>().unwrap_or(i128::MAX);
-    Some(if neg { -n } else { n })
-}
-
-/// `Decimal(texte)` : le signe, les chiffres avec un point et des tirets bas entre deux
-/// chiffres, un exposant. `None` quand Python leve `InvalidOperation`.
-pub(crate) fn decimal_py(t: &str) -> Option<Decimal> {
-    let t = t.trim_matches(blanc);
-    let c: Vec<char> = t.chars().collect();
-    let mut i = 0;
-    let mut propre = String::new();
-    if i < c.len() && (c[i] == '+' || c[i] == '-') {
-        if c[i] == '-' {
-            propre.push('-');
-        }
-        i += 1;
-    }
-    // une suite de chiffres, avec des tirets bas seulement entre deux chiffres
-    let suite = |i: &mut usize, sortie: &mut String| -> usize {
-        let mut n = 0;
-        while *i < c.len() {
-            if c[*i].is_ascii_digit() {
-                sortie.push(c[*i]);
-                n += 1;
-            } else if c[*i] == '_' && n > 0 && *i + 1 < c.len() && c[*i + 1].is_ascii_digit() {
-            } else {
-                break;
-            }
-            *i += 1;
-        }
-        n
-    };
-    let mut entier = String::new();
-    let ne = suite(&mut i, &mut entier);
-    let mut frac = String::new();
-    let mut nf = 0;
-    if i < c.len() && c[i] == '.' {
-        i += 1;
-        nf = suite(&mut i, &mut frac);
-    }
-    if ne + nf == 0 {
-        return None;
-    }
-    let mut exposant = String::new();
-    if i < c.len() && (c[i] == 'e' || c[i] == 'E') {
-        i += 1;
-        if i < c.len() && (c[i] == '+' || c[i] == '-') {
-            exposant.push(c[i]);
-            i += 1;
-        }
-        if suite(&mut i, &mut exposant) == 0 {
-            return None;
-        }
-    }
-    if i != c.len() {
-        return None;
-    }
-    propre.push_str(if entier.is_empty() { "0" } else { &entier });
-    if !frac.is_empty() {
-        propre.push('.');
-        propre.push_str(&frac);
-    }
-    if exposant.is_empty() {
-        Decimal::from_str(&propre).ok()
-    } else {
-        Decimal::from_scientific(&format!("{}e{}", propre, exposant)).ok()
-    }
-}
 
 /// `format(d.normalize(), "f")`, avec `0` pour zero.
 fn norm(d: Decimal) -> String {
@@ -129,43 +44,9 @@ fn norm(d: Decimal) -> String {
     }
 }
 
-/// `str(d.quantize(Decimal("0.01")))` : deux decimales, la moitie au pair.
-fn q2(d: Decimal) -> String {
-    let mut r = d.round_dp(2);
-    r.rescale(2);
-    r.to_string()
-}
-
 /// `float(d)`.
 fn flottant(d: Decimal) -> f64 {
     d.to_string().parse::<f64>().unwrap_or(0.0)
-}
-
-/// Les lignes d'un texte comme les compte `str.splitlines()` de Python (le numéro qu'on affiche est le sien) : `\n`,
-/// `\r`, `\r\n`, et les séparateurs `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\u{85}`, `\u{2028}`, `\u{2029}` ; une fin de ligne
-/// finale ne fait pas de ligne vide. La seule copie du moteur (DSN, retours, DILA, garde avant commit).
-pub fn lignes_py(t: &str) -> Vec<&str> {
-    let mut v = Vec::new();
-    let mut debut = 0;
-    let mut it = t.char_indices().peekable();
-    while let Some((i, c)) = it.next() {
-        if matches!(c, '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\u{85}' | '\u{2028}' | '\u{2029}') {
-            v.push(&t[debut..i]);
-            debut = i + c.len_utf8();
-            if c == '\r' && it.peek().is_some_and(|&(_, d)| d == '\n') {
-                it.next();
-                debut += 1;
-            }
-        }
-    }
-    if debut < t.len() {
-        v.push(&t[debut..]);
-    }
-    v
-}
-
-pub(crate) fn texte_latin1(o: &[u8]) -> String {
-    o.iter().map(|&b| b as char).collect()
 }
 
 // ------------------------------------------------------------------ dsn_recap.lire
@@ -363,294 +244,6 @@ pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
         }
     }
     Ok(sals)
-}
-
-// ------------------------------------------------------------------ Bulletins_<Mois>.pdf
-
-const MARQUE_NUMERO: &str = "Bulletin de paie n";
-const MARQUE_CONTRAT: &str = "Contrat n";
-
-
-fn suite_de(m: &[char], de: usize, f: impl Fn(char) -> bool) -> usize {
-    m.get(de..).map_or(0, |r| r.iter().take_while(|c| f(**c)).count())
-}
-
-fn commence_par(m: &[char], de: usize, t: &str) -> bool {
-    let u: Vec<char> = t.chars().collect();
-    m.len() >= de + u.len() && m[de..de + u.len()] == u[..]
-}
-
-/// `(\d+/\d{4})` a cette position.
-fn numero_a(m: &[char], p: usize) -> Option<String> {
-    let d = suite_de(m, p, |c| c.is_ascii_digit());
-    if d == 0 || m.get(p + d) != Some(&'/') {
-        return None;
-    }
-    let an = suite_de(m, p + d + 1, |c| c.is_ascii_digit());
-    if an < 4 {
-        return None;
-    }
-    Some(m[p..p + d + 5].iter().collect())
-}
-
-/// `Bulletin de paie n\S*\s*(\d+/\d{4})`, au debut de `m`.
-fn forme_numero(m: &[char]) -> Option<String> {
-    if !commence_par(m, 0, MARQUE_NUMERO) {
-        return None;
-    }
-    let p0 = MARQUE_NUMERO.chars().count();
-    for j in (0..=suite_de(m, p0, |c| !blanc(c))).rev() {
-        let p1 = p0 + j;
-        for w in (0..=suite_de(m, p1, blanc)).rev() {
-            if let Some(n) = numero_a(m, p1 + w) {
-                return Some(n);
-            }
-        }
-    }
-    None
-}
-
-/// `Contrat n\S*\s*(\S+?)\s*—`, la premiere occurrence qui s'accorde.
-fn forme_contrat(m: &[char]) -> Option<String> {
-    let p_marque = MARQUE_CONTRAT.chars().count();
-    for debut in 0..m.len() {
-        if !commence_par(m, debut, MARQUE_CONTRAT) {
-            continue;
-        }
-        let p0 = debut + p_marque;
-        for j in (0..=suite_de(m, p0, |c| !blanc(c))).rev() {
-            let p1 = p0 + j;
-            for w in (0..=suite_de(m, p1, blanc)).rev() {
-                let p2 = p1 + w;
-                let max = suite_de(m, p2, |c| !blanc(c));
-                for g in 1..=max {
-                    let p3 = p2 + g;
-                    for w2 in (0..=suite_de(m, p3, blanc)).rev() {
-                        if m.get(p3 + w2) == Some(&'\u{2014}') {
-                            return Some(m[p2..p3].iter().collect());
-                        }
-                    }
-                }
-            }
-        }
-    }
-    None
-}
-
-/// `\d\d/\d\d/\d{4}` a cette position.
-fn date_a(m: &[char], p: usize) -> Option<String> {
-    let motif = [0usize, 1, 3, 4, 6, 7, 8, 9];
-    if m.len() < p + 10 || m[p + 2] != '/' || m[p + 5] != '/' || !motif.iter().all(|&i| m[p + i].is_ascii_digit()) {
-        return None;
-    }
-    Some(m[p..p + 10].iter().collect())
-}
-
-/// `P\S*riode\s*:?\s*du\s*(\d\d/\d\d/\d{4})\s*au\s*(\d\d/\d\d/\d{4})`, la premiere occurrence.
-fn forme_periode(m: &[char]) -> Option<(String, String)> {
-    for p in 0..m.len() {
-        if m[p] != 'P' {
-            continue;
-        }
-        for k in (0..=suite_de(m, p + 1, |c| !blanc(c))).rev() {
-            let mut q = p + 1 + k;
-            if !commence_par(m, q, "riode") {
-                continue;
-            }
-            q += 5;
-            q += suite_de(m, q, blanc);
-            if m.get(q) == Some(&':') {
-                q += 1;
-            }
-            q += suite_de(m, q, blanc);
-            if !commence_par(m, q, "du") {
-                continue;
-            }
-            q += 2;
-            q += suite_de(m, q, blanc);
-            let Some(debut) = date_a(m, q) else { continue };
-            q += 10;
-            q += suite_de(m, q, blanc);
-            if !commence_par(m, q, "au") {
-                continue;
-            }
-            q += 2;
-            q += suite_de(m, q, blanc);
-            let Some(fin) = date_a(m, q) else { continue };
-            return Some((debut, fin));
-        }
-    }
-    None
-}
-
-#[derive(Clone)]
-pub(crate) struct Lu {
-    pub(crate) bulletin: String,
-    pub(crate) contrat: String,
-    pub(crate) debut: String,
-    pub(crate) fin: String,
-    /// Les pages du fichier qui portent ce bulletin (0 = la premiere) : de celle ou il commence a celle qui precede le
-    /// bulletin suivant. Le dossier du salarie n'envoie que celles-la.
-    pub(crate) pages: Vec<usize>,
-    /// Un autre bulletin commence sur l'une de ces pages : elles ne se donnent pas a un seul salarie. Le moteur ecrit un
-    /// bulletin par page (`bulletin::description`, un document par jeu) ; un fichier qui en met deux sur une page n'est
-    /// pas de lui.
-    pub(crate) partage: bool,
-}
-
-/// `bulletin.numeros_archives` : les numeros que porte un `Bulletins_<Mois>.pdf` ecrit (ou un bulletin rectificatif),
-/// avec les pages de chacun : le dossier du salarie y prend SES pages, un bulletin rectificatif y lit le numero du
-/// bulletin qu'il rectifie.
-pub(crate) fn numeros_archives(chemin: &Path) -> Result<Vec<Lu>, Refus> {
-    let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let (pages, _) = fabrique_pdf::lecture::texte(&chemin.to_string_lossy())
-        .map_err(|r| Refus { classe: Some("FabriqueRefus"), message: r.0.replace('\n', " ").trim().to_string() })?;
-    let texte = pages.join("\n");
-    // La page ou commence chaque bulletin : celle ou se trouve sa marque dans le texte joint.
-    let mut debuts_de_page = Vec::with_capacity(pages.len());
-    let mut position = 0usize;
-    for p in &pages {
-        debuts_de_page.push(position);
-        position += p.len() + 1;
-    }
-    let page_de = |octet: usize| debuts_de_page.iter().rposition(|d| *d <= octet).unwrap_or(0);
-    let commencent: Vec<usize> = texte.match_indices(MARQUE_NUMERO).map(|(i, _)| page_de(i)).collect();
-    let mut out = Vec::new();
-    for (k, morceau) in texte.split(MARQUE_NUMERO).skip(1).enumerate() {
-        let m: Vec<char> = format!("{}{}", MARQUE_NUMERO, morceau).chars().collect();
-        let (Some(num), Some(contrat), Some((debut, fin))) = (forme_numero(&m), forme_contrat(&m), forme_periode(&m)) else {
-            return Err(Refus {
-                classe: Some("ValueError"),
-                message: format!(
-                    "Bulletin illisible dans {} : il faut le numero de bulletin, le numero de contrat et la periode, il en manque au moins un. Le fichier n'a peut-etre pas ete ecrit par ce moteur.",
-                    nom
-                ),
-            });
-        };
-        let jour = |t: &str| socle::date::Jour::lire(t).map(|j| j.iso()).map_err(Refus::from);
-        let premiere = commencent[k];
-        let suivante = commencent.get(k + 1).copied();
-        let derniere = match suivante {
-            Some(s) if s > premiere => s - 1,
-            Some(_) => premiere,
-            None => pages.len().saturating_sub(1).max(premiere),
-        };
-        let partage = suivante == Some(premiere) || (k > 0 && commencent[k - 1] == premiere);
-        out.push(Lu {
-            bulletin: num,
-            contrat,
-            debut: jour(&debut)?,
-            fin: jour(&fin)?,
-            pages: (premiere..=derniere).collect(),
-            partage,
-        });
-    }
-    if out.is_empty() {
-        return Err(Refus { classe: Some("ValueError"), message: format!("Aucun bulletin lisible dans {}.", nom) });
-    }
-    Ok(out)
-}
-
-/// `texte(x)` d'une valeur de fiche, `""` si la cle manque (`dict.get(cle, "")` puis `%s`).
-fn texte_fiche(sal: &Value, cle: &str) -> String {
-    match sal.get(cle) {
-        None => String::new(),
-        Some(v) => socle::valeur::valeur_en_texte(v),
-    }
-}
-
-/// La meme, qui rend aussi ce qui a ete lu pour chaque paie (son rang) et les avertissements (les
-/// bulletins de l'archive que la saisie ne porte plus) : le dossier du salarie s'en sert.
-pub(crate) fn numeroter_et_lire(ctx: &Contexte, paies: &mut [Paie], groupe: &Path) -> Result<(HashMap<usize, Lu>, Vec<String>), Refus> {
-    let mut par_prefixe: HashMap<String, String> = HashMap::new();
-    for (cle, sal) in &ctx.salaries {
-        if cle.starts_with('_') {
-            continue;
-        }
-        par_prefixe.insert(format!("{}{}", texte_fiche(sal, "initiales_contrat"), texte_fiche(sal, "code_salarie")), cle.clone());
-    }
-    let cle_de = |p: &Paie| -> Result<String, Refus> {
-        p.salarie.get("_cle").map(socle::valeur::valeur_en_texte).ok_or_else(|| Refus { classe: Some("KeyError"), message: socle::fichiers::absent("_cle") })
-    };
-    let mut par_numero: HashMap<String, String> = HashMap::new();
-    for p in paies.iter() {
-        if let Some(n) = p.engagement.numero.as_deref().filter(|n| !n.is_empty()) {
-            par_numero.insert(n.to_string(), cle_de(p)?);
-        }
-    }
-    // Le rang de premiere insertion garde l'ordre d'un dictionnaire Python.
-    let mut archives: HashMap<(String, String, String), (usize, Lu)> = HashMap::new();
-    for (rang_page, lu) in numeros_archives(groupe)?.into_iter().enumerate() {
-        let prefixe = lu.contrat.split('.').next().unwrap_or("").to_string();
-        let cle = par_numero.get(&lu.contrat).filter(|c| !c.is_empty()).or_else(|| par_prefixe.get(&prefixe)).cloned().ok_or_else(|| Refus {
-            classe: Some("ErreurOperation"),
-            message: format!(
-                "Le bulletin {} porte le contrat {}, dont le prefixe ne correspond a aucun salarie de config/salaries.json.",
-                lu.bulletin, lu.contrat
-            ),
-        })?;
-        let ident = (cle, lu.debut.clone(), lu.fin.clone());
-        let place = archives.get(&ident).map_or(rang_page, |(r, _)| *r);
-        archives.insert(ident, (place, lu));
-    }
-    let mut lus: HashMap<usize, Lu> = HashMap::new();
-    for (rang, p) in paies.iter_mut().enumerate() {
-        if p.engagement.sans_paie() {
-            continue;
-        }
-        let (debut, fin) = (p.engagement.debut_periode()?, p.engagement.fin_periode()?);
-        let ident = (cle_de(p)?, debut.iso(), fin.iso());
-        // Un bulletin pas encore parti n'est pas dans l'archive : il n'a pas de numero, rien ne se lit pour lui.
-        if !archives.contains_key(&ident) && p.numero_bulletin.as_deref().map_or(true, str::is_empty) {
-            continue;
-        }
-        let (_, lu) = archives.remove(&ident).ok_or_else(|| Refus {
-            classe: Some("ErreurOperation"),
-            message: format!(
-                "{}, periode du {} au {} : aucune page correspondante dans {}. La saisie et le fichier archive ne parlent pas du meme mois -- rien n'est reecrit, plutot que d'ecrire un bulletin sous un numero devine.",
-                texte_fiche(&p.salarie, "nom"),
-                debut.jj_mm_aaaa(),
-                fin.jj_mm_aaaa(),
-                groupe.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
-            ),
-        })?;
-        p.numero_bulletin = Some(lu.bulletin.clone());
-        p.engagement.numero = Some(lu.contrat.clone());
-        lus.insert(rang, lu);
-    }
-    let nom = groupe.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut restes: Vec<(usize, Lu)> = archives.into_values().collect();
-    restes.sort_by_key(|(r, _)| *r);
-    let avertissements = restes
-        .into_iter()
-        .map(|(_, r)| {
-            format!(
-                "Le bulletin {} (contrat {}) est dans {} mais la saisie ne le porte plus : aucune piece n'est ecrite pour lui.",
-                r.bulletin, r.contrat, nom
-            )
-        })
-        .collect();
-    Ok((lus, avertissements))
-}
-
-// ------------------------------------------------------------------ la saisie aux numeros declares
-
-/// LA SAISIE DU MOIS AUX NUMEROS DECLARES : ce qui peut partir de `mois` (`etats::validees_du_mois` : la saisie reduite
-/// aux engagements valides, et leurs paies ecrites), chaque contrat sous le numero que son engagement porte depuis sa
-/// validation (`engagement::numeros`), chaque bulletin sous le sien (ecrit dans la paie a son depart, ou celui que le
-/// compteur propose). `reserves` : les numeros de bulletin qu'un envoi propose, que la route d'envoi ecrit plus loin. Un
-/// mois sans engagement valide n'a rien.
-pub(crate) fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut crate::depart::Reserves>) -> Result<(Value, Vec<Paie>), Refus> {
-    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
-        return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
-    };
-    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
-    match reserves {
-        Some(r) => r.numeroter(ctx, &mut paies, annee)?,
-        None => numeroter(ctx, &mut paies, annee)?,
-    }
-    Ok((data, paies))
 }
 
 /// La meme, sans le detail du refus : le moindre refus, quel qu'il soit, rend `Err`.
@@ -853,11 +446,11 @@ fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
 }
 
 /// `apercu_depot_dsn` : ce qui partirait, en clair, sans rien envoyer ni demander.
-pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fichier: &Value) -> R<Value> {
+pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let chemin = resoudre(&ctx.racine, fichier)?;
     let contenu = lire_octets(&chemin)?;
     let a = depot::lire(&contenu);
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let empreinte = crate::journal::empreinte(&contenu);
     let deja = etats::deja_depose(&lignes, "dsn", &empreinte)?;
@@ -883,8 +476,8 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
     } else {
         let nic = a.champ("etablissement");
         let nic = Some(nic).filter(|n| !n.is_empty());
-        match crate::depart::refabriquer(o, ctx, std::path::Path::new(&chemin), &mois, nic)? {
-            Some(f) => (crate::ordres_paiement::decrire(&f.ordres, &mois, &organismes, ctx.echeance_dsn()?)?, Value::Null),
+        match crate::depart::refabriquer(ctx, std::path::Path::new(&chemin), &mois, nic)? {
+            Some(f) => (declarations::ordres_paiement::decrire(&f.ordres, &mois, &organismes, ctx.echeance_dsn()?)?, Value::Null),
             None => (Vec::new(), json!("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
         }
     };
@@ -915,18 +508,7 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn decimal_comme_python() {
-        assert_eq!(decimal_py(" 12.50 ").unwrap().to_string(), "12.50");
-        assert_eq!(decimal_py("1_000").unwrap().to_string(), "1000");
-        assert_eq!(decimal_py(".5").unwrap().to_string(), "0.5");
-        assert_eq!(decimal_py("5.").unwrap().to_string(), "5");
-        assert_eq!(decimal_py("-1E+2").unwrap().to_string(), "-100");
-        for mauvais in ["", "-", "abc", "1 2", "1__0", "_1", "1.2.3", "1e", "12,5"] {
-            assert!(decimal_py(mauvais).is_none(), "{}", mauvais);
-        }
-    }
+    use std::str::FromStr;
 
     #[test]
     fn normaliser_et_arrondir() {
@@ -935,30 +517,6 @@ mod tests {
         assert_eq!(q2(Decimal::from_str("2.345").unwrap()), "2.34");
         assert_eq!(q2(Decimal::from_str("2.355").unwrap()), "2.36");
         assert_eq!(q2(Decimal::from_str("1500").unwrap()), "1500.00");
-    }
-
-    #[test]
-    fn les_lignes_se_comptent_comme_splitlines() {
-        assert_eq!(lignes_py("a\r\nb\rc\n\nd\u{85}e\u{2028}f\n"), ["a", "b", "c", "", "d", "e", "f"]);
-        assert_eq!(lignes_py("a\n"), ["a"]);
-        assert!(lignes_py("").is_empty());
-    }
-
-    fn chars(t: &str) -> Vec<char> {
-        t.chars().collect()
-    }
-
-    #[test]
-    fn formes_du_bulletin() {
-        let m = chars("Bulletin de paie n\u{b0} 25/2026\nContrat n\u{b0} FA1.26.13 \u{2014} CDDU\nP\u{e9}riode : du 01/08/2026 au 31/08/2026");
-        assert_eq!(forme_numero(&m).as_deref(), Some("25/2026"));
-        assert_eq!(forme_contrat(&m).as_deref(), Some("FA1.26.13"));
-        assert_eq!(forme_periode(&m), Some(("01/08/2026".to_string(), "31/08/2026".to_string())));
-        let serre = chars("Bulletin de paie n\u{b0}7/2026 Contrat n\u{b0}X.1\u{2014}Periode du 1/8 au 2/8");
-        assert_eq!(forme_numero(&serre).as_deref(), Some("7/2026"));
-        // `\S*` rend le moins possible : sans espace, c'est `1` que Python lit aussi.
-        assert_eq!(forme_contrat(&serre).as_deref(), Some("1"));
-        assert_eq!(forme_periode(&serre), None);
     }
 
     #[test]

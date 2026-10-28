@@ -572,3 +572,14 @@ mod tests {
     }
 
 }
+
+/// L'etiquette d'un mois `AAAA-MM` dans le nom d'un fichier : « Aout2026 » (le nom du mois en titre, sans accent).
+pub fn etiquette_du_mois(mois: &str) -> Result<String, String> {
+    let lire = |t: Option<&str>| -> Result<i64, String> {
+        let t = t.unwrap_or("");
+        t.trim().parse::<i64>().map_err(|_| format!("nombre entier illisible : '{}'", t))
+    };
+    let an = lire(mois.get(..4))?;
+    let mo = lire(mois.get(5..7))?;
+    Ok(format!("{}{}", nom_du_mois(mo, Graphie::Titre)?, an))
+}

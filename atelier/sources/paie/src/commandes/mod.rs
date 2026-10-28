@@ -46,7 +46,6 @@ pub mod cloture;
 pub mod coffre;
 pub mod compta_logiciel;
 pub mod compagnie;
-pub mod corriger;
 pub mod depot_dsn;
 pub mod depots;
 pub mod deposer_dpae;
@@ -216,7 +215,6 @@ fn commandes() -> Vec<Commande> {
         Commande { nom: "fin-contrat", aide: "le signalement de fin de contrat de travail unique (nature 07)", cachee: false, spec: &fin_contrat::SPEC, executer: fin_contrat::executer },
         Commande { nom: "arret", aide: "les arrets de travail : saisir, signaler, reporter", cachee: false, spec: &arret::SPEC, executer: arret::executer },
         Commande { nom: "suspension", aide: "les suspensions du contrat (conge parental, sabbatique, sans solde...) : saisies une fois", cachee: false, spec: &suspension::SPEC, executer: suspension::executer },
-        Commande { nom: "corriger", aide: "corriger un mois deja depose, apres son echeance", cachee: false, spec: &corriger::SPEC, executer: corriger::executer },
         Commande { nom: "emplois", aide: "le catalogue des metiers (codes emploi, PCS, statut)", cachee: false, spec: &emplois::SPEC, executer: emplois::executer },
         Commande { nom: "importer", aide: "reprendre l historique depuis le dossier import/ : l apercu en JSON, --ecrire pour ecrire", cachee: false, spec: &importer::SPEC, executer: importer::executer },
         Commande { nom: "aer", aide: "ranger les attestations France Travail deja recues", cachee: false, spec: &aer::SPEC, executer: aer::executer },

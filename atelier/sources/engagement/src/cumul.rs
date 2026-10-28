@@ -6,7 +6,6 @@ use std::collections::BTreeSet;
 use serde_json::Value;
 
 use crate::calcul::Paie;
-use crate::charger;
 use droit::contexte::Contexte;
 use droit::cumul::{heures_enseignement, Declare};
 use socle::date::d;
@@ -89,16 +88,13 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
     }))
 }
 
-/// Ce que nos fichiers de paie declarent : (engagements, mois couverts).
-/// Un fichier qui ne se charge pas est laisse de cote, son mois n'est pas
-/// couvert. `paies_courantes` : les paies du mois en cours, deja calculees ;
-/// elles remplacent le fichier de leur mois.
+/// Ce que les engagements valides declarent : (engagements, mois couverts). Chaque mois se lit dans les paies ecrites
+/// de ses engagements valides (`etats::validees_du_mois`) : ce qui est en saisie n'est pas paye, il n'entre dans aucun
+/// cumul. `paies_courantes` : les paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois.
 pub fn engagements_des_paies(
     ctx: &Contexte,
     paies_courantes: Option<&[Paie]>,
 ) -> Resultat<(Vec<Declare>, BTreeSet<String>)> {
-    // Tous les mois se chargent : le brut d'un mois anterieur une seule fois.
-    let _derivation = crate::conges::Derivation::ouvrir();
     let mut groupes: Vec<(String, Vec<Declare>)> = Vec::new();
     for p in paies_courantes.unwrap_or(&[]) {
         let mois = p.engagement.mois.clone();
@@ -117,15 +113,7 @@ pub fn engagements_des_paies(
         if groupes.iter().any(|(m, _)| *m == stem) {
             continue;
         }
-        // Un mois valide se lit dans ses paies ecrites ; un mois en saisie se calcule.
-        let paies = match crate::etats::paies_ecrites(ctx, &stem) {
-            Ok(Some(ecrites)) => ecrites,
-            _ => match charger(ctx, &stem) {
-                Ok(s) => s.paies,
-                Err(_) => continue,
-            },
-        };
-        crate::conges::memoriser_mois(ctx, &stem, &paies);
+        let Some((_, paies)) = crate::etats::validees_du_mois(ctx, &stem)? else { continue };
         let mut es = Vec::new();
         for p in &paies {
             if let Some(e) = engagement_de_paie(ctx, p)? {
@@ -138,7 +126,7 @@ pub fn engagements_des_paies(
     Ok((groupes.into_iter().flat_map(|(_, es)| es).collect(), couverts))
 }
 
-/// TOUT ce que la compagnie a declare : l'historique importe, puis nos paies
+/// TOUT ce que la compagnie a declare : l'historique importe, puis les paies ecrites de ses engagements valides
 /// (pour un mois qui a les deux, les paies seulement), trie par (debut, fin, salarie).
 pub fn lire_engagements(ctx: &Contexte, paies_courantes: Option<&[Paie]>) -> Resultat<Vec<Declare>> {
     let (des_paies, couverts) = engagements_des_paies(ctx, paies_courantes)?;

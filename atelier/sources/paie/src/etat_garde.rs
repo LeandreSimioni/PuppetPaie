@@ -184,7 +184,7 @@ pub fn empreinte_de(racine: &Path, cle: &str, jour: &str) -> String {
         (ouverture || !n.ends_with(".bin")) && !n.ends_with(".tmp") && !HORS_DE_L_ECRAN.contains(&n)
     });
     signer_dossier(&mut h, racine, &racine.join("journal"), false, &|n| n.ends_with(".json") && !HORS_DE_L_ECRAN.contains(&n));
-    for d in ["imprevus", "regularisations", "historique", "retours"] {
+    for d in ["imprevus", "historique", "retours"] {
         signer_dossier(&mut h, racine, &racine.join(d), true, &|n| !n.ends_with(".tmp"));
     }
     if ouverture {

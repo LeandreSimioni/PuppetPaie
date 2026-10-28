@@ -171,6 +171,20 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn decimal_comme_python() {
+        assert_eq!(decimal_py(" 12.50 ").unwrap().to_string(), "12.50");
+        assert_eq!(decimal_py("1_000").unwrap().to_string(), "1000");
+        assert_eq!(decimal_py(".5").unwrap().to_string(), "0.5");
+        assert_eq!(decimal_py("5.").unwrap().to_string(), "5");
+        assert_eq!(decimal_py("-1E+2").unwrap().to_string(), "-100");
+        for mauvais in ["", "-", "abc", "1 2", "1__0", "_1", "1.2.3", "1e", "12,5"] {
+            assert!(decimal_py(mauvais).is_none(), "{}", mauvais);
+        }
+    }
+
+
+
+    #[test]
     fn eur_arrondit_le_demi_vers_le_haut() {
         assert_eq!(eur(Decimal::from_str("2.675").unwrap()).to_string(), "2.68");
         assert_eq!(eur(Decimal::from_str("258.336").unwrap()).to_string(), "258.34");
@@ -215,3 +229,95 @@ mod tests {
     }
 
 }
+
+/// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.
+/// Python n'a pas de plafond : un entier trop long pour `i128` se rend au plus grand.
+pub fn int_py(t: &str) -> Option<i128> {
+    let t = t.trim_matches(crate::texte::blanc);
+    let (neg, reste) = match t.strip_prefix('-') {
+        Some(r) => (true, r),
+        None => (false, t.strip_prefix('+').unwrap_or(t)),
+    };
+    if reste.is_empty() || reste.starts_with('_') || reste.ends_with('_') || reste.contains("__") {
+        return None;
+    }
+    let chiffres: String = reste.chars().filter(|c| *c != '_').collect();
+    if !chiffres.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let n = chiffres.parse::<i128>().unwrap_or(i128::MAX);
+    Some(if neg { -n } else { n })
+}
+
+/// `str(d.quantize(Decimal("0.01")))` : deux decimales, la moitie au pair.
+pub fn q2(d: Decimal) -> String {
+    let mut r = d.round_dp(2);
+    r.rescale(2);
+    r.to_string()
+}
+
+/// `Decimal(texte)` : le signe, les chiffres avec un point et des tirets bas entre deux
+/// chiffres, un exposant. `None` quand Python leve `InvalidOperation`.
+pub fn decimal_py(t: &str) -> Option<Decimal> {
+    let t = t.trim_matches(crate::texte::blanc);
+    let c: Vec<char> = t.chars().collect();
+    let mut i = 0;
+    let mut propre = String::new();
+    if i < c.len() && (c[i] == '+' || c[i] == '-') {
+        if c[i] == '-' {
+            propre.push('-');
+        }
+        i += 1;
+    }
+    // une suite de chiffres, avec des tirets bas seulement entre deux chiffres
+    let suite = |i: &mut usize, sortie: &mut String| -> usize {
+        let mut n = 0;
+        while *i < c.len() {
+            if c[*i].is_ascii_digit() {
+                sortie.push(c[*i]);
+                n += 1;
+            } else if c[*i] == '_' && n > 0 && *i + 1 < c.len() && c[*i + 1].is_ascii_digit() {
+            } else {
+                break;
+            }
+            *i += 1;
+        }
+        n
+    };
+    let mut entier = String::new();
+    let ne = suite(&mut i, &mut entier);
+    let mut frac = String::new();
+    let mut nf = 0;
+    if i < c.len() && c[i] == '.' {
+        i += 1;
+        nf = suite(&mut i, &mut frac);
+    }
+    if ne + nf == 0 {
+        return None;
+    }
+    let mut exposant = String::new();
+    if i < c.len() && (c[i] == 'e' || c[i] == 'E') {
+        i += 1;
+        if i < c.len() && (c[i] == '+' || c[i] == '-') {
+            exposant.push(c[i]);
+            i += 1;
+        }
+        if suite(&mut i, &mut exposant) == 0 {
+            return None;
+        }
+    }
+    if i != c.len() {
+        return None;
+    }
+    propre.push_str(if entier.is_empty() { "0" } else { &entier });
+    if !frac.is_empty() {
+        propre.push('.');
+        propre.push_str(&frac);
+    }
+    if exposant.is_empty() {
+        Decimal::from_str(&propre).ok()
+    } else {
+        Decimal::from_scientific(&format!("{}e{}", propre, exposant)).ok()
+    }
+}
+
