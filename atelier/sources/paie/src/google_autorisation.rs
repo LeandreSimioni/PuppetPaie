@@ -71,7 +71,7 @@ fn aleatoire_url(n: usize) -> Result<String, Echec> {
 }
 
 fn base64_url(o: &[u8]) -> String {
-    crate::retours::base64_ecrire(o).replace('+', "-").replace('/', "_").trim_end_matches('=').to_string()
+    socle::base64::ecrire(o).replace('+', "-").replace('/', "_").trim_end_matches('=').to_string()
 }
 
 fn egaux(a: &str, b: &str) -> bool {
@@ -292,7 +292,7 @@ pub fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn 
 
 /// `google._ecrire_jeton` : le jeton et l'adresse du compte, dans un seul fichier scelle par la cle du poste.
 fn ecrire_le_jeton(racine: &Path, rafraichissement: &str, compte: &str, permissions: &[String]) -> Result<(), Echec> {
-    let brut = crate::coffre::dumps(&json!({"rafraichissement": rafraichissement, "compte": compte, "permissions": permissions}), None, false, false);
+    let brut = socle::json_ascii::dumps(&json!({"rafraichissement": rafraichissement, "compte": compte, "permissions": permissions}), None, false, false);
     let scelle = crate::coffre::Coffre::du_poste(racine, "")
         .proteger(brut.as_bytes(), DESCRIPTION)
         .map_err(|e| refus(format!("Le jeton n'a pas pu etre scelle, rien n'est enregistre : {}", e.message)))?;

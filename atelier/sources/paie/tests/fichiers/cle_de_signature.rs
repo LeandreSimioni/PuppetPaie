@@ -75,7 +75,7 @@ fn une_cle_scellee_a_l_ancienne_s_ouvre_sur_son_poste_et_s_y_rescelle_par_le_cof
     let a = editeur("cle-ancienne");
     // La cle d'avant : la graine scellee par la cle du poste A seule.
     let graine = [7u8; 32];
-    let publique = paie::retours::base64_ecrire(ed25519_dalek::SigningKey::from_bytes(&graine).verifying_key().as_bytes());
+    let publique = socle::base64::ecrire(ed25519_dalek::SigningKey::from_bytes(&graine).verifying_key().as_bytes());
     let chemin = a.racine.join("config/maj-cle-privee.bin");
     std::fs::write(&chemin, a.proteger(&graine, DESCRIPTION_CLE).unwrap()).unwrap();
     let avant = std::fs::read(&chemin).unwrap();
@@ -135,7 +135,7 @@ fn paie_maj_cle_sur_une_cle_a_l_ancienne_la_rescelle_sans_changer_la_paire_ou_di
     let a = poste(&racine, "poste-a");
     a.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
     let graine = [9u8; 32];
-    let publique = paie::retours::base64_ecrire(ed25519_dalek::SigningKey::from_bytes(&graine).verifying_key().as_bytes());
+    let publique = socle::base64::ecrire(ed25519_dalek::SigningKey::from_bytes(&graine).verifying_key().as_bytes());
     let chemin = racine.join("config/maj-cle-privee.bin");
     std::fs::write(&chemin, a.proteger(&graine, DESCRIPTION_CLE).unwrap()).unwrap();
     let avant = std::fs::read(&chemin).unwrap();

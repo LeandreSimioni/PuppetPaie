@@ -2,7 +2,8 @@
 //! sur des coffres et des mots de passe inventes, chacun dans son dossier (jamais la vraie cle du poste).
 
 use crate::outils::chemin_unique;
-use paie::coffre::{d64, desceller, deriver, dumps, sceller, Coffre, DEPOT, CONSULTATION};
+use paie::coffre::{d64, desceller, deriver, sceller, Coffre, DEPOT, CONSULTATION};
+use socle::json_ascii::dumps;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::path::PathBuf;

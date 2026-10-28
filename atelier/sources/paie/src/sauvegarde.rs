@@ -223,7 +223,7 @@ fn ce_qui_manque(nd: usize, nf: usize) -> String {
 
 /// « depuis 09:51 » le jour meme, « depuis hier », « depuis le 18/10 ».
 fn depuis_quand(depuis: i64, maintenant: i64) -> String {
-    let iso = crate::releve_retours::iso_de_naif(depuis);
+    let iso = socle::paris::iso_de_naif(depuis);
     match maintenant.div_euclid(UNE_JOURNEE) - depuis.div_euclid(UNE_JOURNEE) {
         0 => format!("depuis {}", &iso[11..16]),
         1 => "depuis hier".to_string(),
@@ -233,7 +233,7 @@ fn depuis_quand(depuis: i64, maintenant: i64) -> String {
 
 /// `AAAA-MM-JJ HH:MM` (l'heure de Paris, comme `quand`) en heure naive.
 fn naif(quand: &str) -> Option<i64> {
-    crate::releve_retours::naif_de_iso(&quand.replacen(' ', "T", 1))
+    socle::paris::naif_de_iso(&quand.replacen(' ', "T", 1))
 }
 
 /// La phrase de ce qui persiste dans l'index (`echecs`, `derniere_complete`), a l'heure naive `maintenant`, ou `None`.
@@ -276,7 +276,7 @@ fn phrase_persistante(index: &Map<String, Value>, maintenant: i64) -> Option<Str
 /// (Google indisponible) ; le logiciel réessaie. »), ou `None` si tout est passe, ou si ce n'est que passager. SANS RESEAU :
 /// lu dans l'index. La trace de l'ouverture le porte (`sauvegarde_souci`), la fenetre le montre a la place de la sauvegarde.
 pub fn souci(racine: &Path) -> Option<String> {
-    phrase_persistante(&lire_index(racine), crate::releve_retours::maintenant_naif())
+    phrase_persistante(&lire_index(racine), socle::paris::maintenant_naif())
 }
 
 fn lisible(octets: u64) -> String {
@@ -641,7 +641,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
         }
         nouvel_index.insert("echecs".into(), Value::Object(echecs));
     }
-    resultat.persistant = phrase_persistante(&nouvel_index, crate::releve_retours::maintenant_naif());
+    resultat.persistant = phrase_persistante(&nouvel_index, socle::paris::maintenant_naif());
     ecrire_index(racine, &Value::Object(nouvel_index))?;
     resultat.secondes = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     Ok(resultat)

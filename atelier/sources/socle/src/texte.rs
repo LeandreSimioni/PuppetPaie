@@ -153,3 +153,12 @@ mod tests_lignes {
     }
 
 }
+
+/// `str.capitalize()`.
+pub fn capitaliser(t: &str) -> String {
+    let mut c = t.chars();
+    match c.next() {
+        Some(p) => p.to_uppercase().collect::<String>() + &c.as_str().to_lowercase(),
+        None => String::new(),
+    }
+}

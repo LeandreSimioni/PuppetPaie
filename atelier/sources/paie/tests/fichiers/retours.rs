@@ -1,7 +1,8 @@
 //! La lecture des retours DSN (`paie::retours::commande`) : listes, depots, CRM, bilans, anomalies, fiches de parametrage,
 //! AER ; sur des retours fabriques (NIR et SIRET inventes).
 
-use paie::retours::{base64_ecrire, base64_lire, commande};
+use paie::retours::commande;
+use socle::base64::{ecrire as base64_ecrire, lire as base64_lire};
 use serde_json::{json, Value};
 
 fn appel(operation: &str, mut demande: Value) -> Value {

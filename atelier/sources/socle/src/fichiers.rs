@@ -529,3 +529,8 @@ pub fn lire_texte_echec(p: &Path) -> Result<String, crate::echec::Echec> {
 pub fn lire_json_echec(p: &Path) -> Result<Value, crate::echec::Echec> {
     serde_json::from_str(&lire_texte_echec(p)?).map_err(|e| crate::echec::erreur("JSONDecodeError", e.to_string()))
 }
+
+/// Le nom d'un chemin, ou son texte entier s'il n'en a pas.
+pub fn nom_du(chemin: &std::path::Path) -> String {
+    chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| chemin.to_string_lossy().into_owned())
+}

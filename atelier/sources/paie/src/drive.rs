@@ -358,7 +358,7 @@ impl Client {
         if let Some(id) = premier_de(&trouves, true)? {
             return Ok(id);
         }
-        let corps = crate::coffre::dumps(&json!({"name": nom, "mimeType": DOSSIER_DRIVE, "parents": [parent]}), None, false, false);
+        let corps = socle::json_ascii::dumps(&json!({"name": nom, "mimeType": DOSSIER_DRIVE, "parents": [parent]}), None, false, false);
         let url = self.adresses.fichiers.clone();
         let cree = self.appel(&url, Some(corps.as_bytes()), Some("application/json"), None)?;
         texte_requis(&cree, "id")
@@ -479,7 +479,7 @@ fn hasard_hex() -> String {
 /// Le corps `multipart/related` d'un premier depot (`Client.televerser`) : les metadonnees JSON,
 /// puis le contenu. Rend (corps, frontiere).
 pub fn corps_multipart(nom: &str, parent: &str, type_mime: &str, contenu: &[u8], frontiere: &str) -> Vec<u8> {
-    let meta = crate::coffre::dumps(&json!({"name": nom, "parents": [parent]}), None, false, false);
+    let meta = socle::json_ascii::dumps(&json!({"name": nom, "parents": [parent]}), None, false, false);
     let mut corps = Vec::with_capacity(contenu.len() + 512);
     corps.extend_from_slice(b"--");
     corps.extend_from_slice(frontiere.as_bytes());
@@ -602,7 +602,7 @@ impl Drive for Client {
     fn telecharger(&mut self, id: &str) -> Result<Vec<u8>, ErreurGoogle> {
         // Un identifiant Drive ne porte que des lettres, des chiffres, `-` et `_` ; il s'encode quand meme, on ne
         // fabrique pas un chemin d'URL avec ce qu'un serveur a rendu.
-        let url = format!("{}/{}?{}", self.adresses.fichiers, crate::routes_envois::pourcent(id, ""), encoder(&[("alt", "media".into())]));
+        let url = format!("{}/{}?{}", self.adresses.fichiers, socle::html::pourcent(id, ""), encoder(&[("alt", "media".into())]));
         self.appel_brut(&url, None, None, None)
     }
 }

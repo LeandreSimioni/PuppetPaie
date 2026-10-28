@@ -402,7 +402,7 @@ fn condensat(octets: &[u8]) -> String {
 }
 
 fn b64(t: &str) -> R<Vec<u8>> {
-    crate::retours::base64_lire(t)
+    socle::base64::lire(t)
 }
 
 /// Les cles publiques dont une archive est acceptee : celle du poste de l'editeur (`CLE_PUBLIQUE`) et celle du flux de
@@ -426,7 +426,7 @@ pub fn signature_valide(octets: &[u8], signature: &str, cle_publique: &str) -> b
 fn signer(octets: &[u8], privee: &[u8]) -> R<String> {
     use ed25519_dalek::Signer;
     let k = <[u8; 32]>::try_from(privee).map_err(|_| "cle privee illisible (32 octets attendus)")?;
-    Ok(crate::retours::base64_ecrire(&ed25519_dalek::SigningKey::from_bytes(&k).sign(octets).to_bytes()))
+    Ok(socle::base64::ecrire(&ed25519_dalek::SigningKey::from_bytes(&k).sign(octets).to_bytes()))
 }
 
 /// Les compagnies de l'installation : la compagnie du poste (`prive/`), les autres (`compagnies/*`), les fictives ; pas
@@ -627,7 +627,7 @@ fn telecharger(inst: &Path, depot: &str, d: &Value, cles: &[&str], suivi: &Reche
     ecrire_json(
         &dossier_maj(inst).join("prete.json"),
         &json!({
-            "version": version, "quand": crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..16].to_string(),
+            "version": version, "quand": socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
             "archive": a["archive"].clone(),
             "notes": d.get("notes").cloned().unwrap_or(json!("")), "calcul": d.get("calcul").cloned().unwrap_or(json!("")),
             "exigee": d.get("exigee").cloned().unwrap_or(json!("")),
@@ -1286,7 +1286,7 @@ fn appliquer_depuis(maj: &Path, code: &Path, malgre_calcul: bool) -> R<Value> {
         }
         return Err(format!("la bascule a echoue, l'ancienne version reste en place : {}", e));
     }
-    let quand = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..16].to_string();
+    let quand = socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string();
     std::fs::create_dir_all(dossier_maj(&inst)).map_err(|e| e.to_string())?;
     ecrire_json(
         &dossier_maj(&inst).join("appliquee.json"),
@@ -1554,7 +1554,7 @@ pub fn cle_scellee_par_le_coffre(racine: &Path) -> Option<bool> {
 
 /// Ecrit la cle scellee par le coffre : un `.part` renomme, jamais un fichier coupe en route sous le vrai nom.
 fn ecrire_cle(chemin: &Path, scelle: &[u8]) -> R<()> {
-    let texte = serde_json::to_string_pretty(&json!({"format": FORMAT_CLE, "scelle": crate::retours::base64_ecrire(scelle)})).map_err(|e| e.to_string())?;
+    let texte = serde_json::to_string_pretty(&json!({"format": FORMAT_CLE, "scelle": socle::base64::ecrire(scelle)})).map_err(|e| e.to_string())?;
     let part = chemin.with_extension("bin.part");
     std::fs::write(&part, texte + "\n").map_err(|e| e.to_string())?;
     std::fs::rename(&part, chemin).map_err(|e| e.to_string())
@@ -1631,7 +1631,7 @@ pub fn generer_cle_au_poste(coffre: &Coffre, remplacer: bool) -> R<Value> {
     if chemin.exists() && !remplacer && cle_scellee_par_le_coffre(racine) == Some(false) {
         let graine = cle_privee(coffre)?.ok_or(SANS_CLE)?;
         let k = ed25519_dalek::SigningKey::from_bytes(&<[u8; 32]>::try_from(graine.as_slice()).map_err(|_| "cle privee illisible (32 octets attendus)")?);
-        let publique = crate::retours::base64_ecrire(k.verifying_key().as_bytes());
+        let publique = socle::base64::ecrire(k.verifying_key().as_bytes());
         let mut r = json!({"chemin": chemin.display().to_string(), "cle_publique": publique, "correspond": publique == CLE_PUBLIQUE, "existante": true});
         if let Some(t) = reste_a_l_ancienne(racine) {
             r["a_l_ancienne"] = json!(t);
@@ -1647,7 +1647,7 @@ pub fn generer_cle_au_poste(coffre: &Coffre, remplacer: bool) -> R<Value> {
     let mut graine = [0u8; 32];
     getrandom::fill(&mut graine).map_err(|e| e.to_string())?;
     let k = ed25519_dalek::SigningKey::from_bytes(&graine);
-    let publique = crate::retours::base64_ecrire(k.verifying_key().as_bytes());
+    let publique = socle::base64::ecrire(k.verifying_key().as_bytes());
     let scelle = coffre.proteger_par_le_coffre(&graine, DESCRIPTION_CLE).map_err(|e| e.message)?;
     ecrire_cle(&chemin, &scelle)?;
     Ok(json!({"chemin": chemin.display().to_string(), "cle_publique": publique, "correspond": publique == CLE_PUBLIQUE}))
@@ -1752,7 +1752,7 @@ pub fn publier_signe(c: &Path, d: &Path, privee: &[u8], cle_publique: &str, note
     }
     let mut manifeste = json!({
         "version": version,
-        "publiee_le": crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..10].to_string(),
+        "publiee_le": socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..10].to_string(),
         "notes": notes, "calcul": calcul, "exigee": exigee,
         "archives": archives,
         "fictives": fictives,
@@ -1799,7 +1799,7 @@ pub fn generer_cle_github(dossier: &Path) -> R<Value> {
     std::fs::create_dir_all(dossier).map_err(|e| e.to_string())?;
     let mut graine = [0u8; 32];
     getrandom::fill(&mut graine).map_err(|e| e.to_string())?;
-    let publique = crate::retours::base64_ecrire(ed25519_dalek::SigningKey::from_bytes(&graine).verifying_key().as_bytes());
+    let publique = socle::base64::ecrire(ed25519_dalek::SigningKey::from_bytes(&graine).verifying_key().as_bytes());
     let mut o = std::fs::OpenOptions::new();
     o.write(true).create_new(true);
     #[cfg(unix)]
@@ -1808,7 +1808,7 @@ pub fn generer_cle_github(dossier: &Path) -> R<Value> {
         o.mode(0o600);
     }
     let mut f = o.open(&fichier).map_err(|e| format!("{} : {}", fichier.display(), e))?;
-    f.write_all(crate::retours::base64_ecrire(&graine).as_bytes()).map_err(|e| e.to_string())?;
+    f.write_all(socle::base64::ecrire(&graine).as_bytes()).map_err(|e| e.to_string())?;
     graine.fill(0);
     std::fs::write(&fichier_publique, format!("{}\n", publique)).map_err(|e| e.to_string())?;
     Ok(json!({"graine": fichier.display().to_string(), "publique": fichier_publique.display().to_string(), "cle_publique": publique}))
@@ -1921,7 +1921,7 @@ pub fn noter(inst: &Path, t: &str) {
     let d = dossier_maj(inst);
     let _ = std::fs::create_dir_all(&d);
     if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(d.join("journal.log")) {
-        let quand = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif());
+        let quand = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
         let _ = writeln!(f, "{} {}", &quand[..quand.len().min(16)], t);
     }
 }
@@ -2296,7 +2296,7 @@ mod tests {
         assert_ne!(archiver_fictives(&code).unwrap().1, empreinte, "ce qu'elle porte, si");
         let graine = [7u8; 32];
         let k = ed25519_dalek::SigningKey::from_bytes(&graine);
-        let publique = crate::retours::base64_ecrire(k.verifying_key().as_bytes());
+        let publique = socle::base64::ecrire(k.verifying_key().as_bytes());
         let sig = signer(&octets, &graine).unwrap();
         assert!(signature_valide(&octets, &sig, &publique));
         assert!(!signature_valide(&octets, &sig, CLE_PUBLIQUE));

@@ -30,6 +30,9 @@ use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use crate::journal::{self, Note};
 use socle::echec::Echec;
+use socle::date::jour_iso;
+use socle::fichiers::nom_du;
+use socle::html::courriel_en_html;
 
 pub(crate) type R<T> = Result<T, Echec>;
 
@@ -59,11 +62,6 @@ pub fn route_avec(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charg
 }
 
 // ------------------------------------------------------------------ ce que toutes les routes partagent
-
-/// Le jour et l'heure de la ligne du journal (`datetime.now().isoformat(timespec="seconds")`, a l'heure de Paris).
-pub(crate) fn maintenant() -> String {
-    crate::incidents::maintenant()
-}
 
 /// `ErreurOperation` : un refus ordinaire, avec sa phrase.
 pub(crate) fn refus(message: impl Into<String>) -> Echec {
@@ -183,70 +181,7 @@ pub(crate) fn noter_envoi(
         quand: "",
         origine: "",
     };
-    journal::noter(&ctx.racine, &note, &maintenant()).map_err(|m| erreur("OSError", m))
-}
-
-/// `html.escape(s)` : `&`, `<`, `>`, `"` et `'`.
-pub(crate) fn html_echapper(s: &str) -> String {
-    let mut o = String::with_capacity(s.len());
-    for c in s.chars() {
-        match c {
-            '&' => o.push_str("&amp;"),
-            '<' => o.push_str("&lt;"),
-            '>' => o.push_str("&gt;"),
-            '"' => o.push_str("&quot;"),
-            '\'' => o.push_str("&#x27;"),
-            c => o.push(c),
-        }
-    }
-    o
-}
-
-/// `urllib.parse.quote(s, safe=surs)` : tout est encode en UTF-8 par `%XX`, sauf les lettres et chiffres ASCII,
-/// `_.-~` et `surs`.
-pub(crate) fn pourcent(s: &str, surs: &str) -> String {
-    let mut o = String::new();
-    for b in s.bytes() {
-        if b.is_ascii_alphanumeric() || b"_.-~".contains(&b) || surs.as_bytes().contains(&b) {
-            o.push(b as char);
-        } else {
-            o.push_str(&format!("%{:02X}", b));
-        }
-    }
-    o
-}
-
-/// `_mailto` : un lien `mailto:` (RFC 6068), objet et corps encodes comme une URL.
-pub(crate) fn mailto(adresse: &str, objet: &str, corps: &str) -> String {
-    format!("mailto:{}?subject={}&body={}", pourcent(adresse, "@"), pourcent(objet, ""), pourcent(corps, ""))
-}
-
-/// `date.fromisoformat(texte)` : `AAAA-MM-JJ` ou `AAAAMMJJ`.
-pub(crate) fn jour_iso(texte: &str) -> Option<socle::date::Jour> {
-    let chiffres = |t: &str| t.chars().all(|c| c.is_ascii_digit());
-    let (a, m, j) = match texte.len() {
-        10 if texte.is_char_boundary(4) && texte.is_char_boundary(7) && &texte[4..5] == "-" && &texte[7..8] == "-" => (&texte[..4], &texte[5..7], &texte[8..10]),
-        8 if texte.is_ascii() => (&texte[..4], &texte[4..6], &texte[6..8]),
-        _ => return None,
-    };
-    if !(chiffres(a) && chiffres(m) && chiffres(j)) {
-        return None;
-    }
-    socle::date::Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
-}
-
-/// `str.capitalize()`.
-pub(crate) fn capitaliser(t: &str) -> String {
-    let mut c = t.chars();
-    match c.next() {
-        Some(p) => p.to_uppercase().collect::<String>() + &c.as_str().to_lowercase(),
-        None => String::new(),
-    }
-}
-
-/// Le nom d'un chemin, ou son texte entier s'il n'en a pas.
-pub(crate) fn nom_du(chemin: &std::path::Path) -> String {
-    chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| chemin.to_string_lossy().into_owned())
+    journal::noter(&ctx.racine, &note, &socle::paris::maintenant()).map_err(|m| erreur("OSError", m))
 }
 
 /// Les identifiants de la saisie : `expediteur`, la boite qui envoie, en minuscules.
@@ -598,38 +533,6 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes_dossier_salarie:
 
 // ------------------------------------------------------------------ casc-envoyer
 
-/// `operations_casc._html` : le courriel en HTML, le meme texte, mais le tableau des masses en vrai tableau -- en
-/// texte brut, ses barres ne s'alignent que dans une police a chasse fixe, ce qu'aucune messagerie n'emploie.
-pub(crate) fn courriel_en_html(corps: &str) -> String {
-    let blanc = |c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c);
-    let cellule = |c: &str, balise: &str| -> String {
-        let c = c.trim_matches(blanc);
-        let gras = c.starts_with("**") && c.ends_with("**");
-        let c = html_echapper(c.trim_matches('*'));
-        let mut style = "padding:3px 10px;border-bottom:1px solid #ddd".to_string();
-        if c.chars().any(|ch| ch.is_ascii_digit()) && c.contains('€') {
-            style.push_str(";text-align:right");
-        }
-        format!("<{b} style=\"{s}\">{c}</{b}>", b = balise, s = style, c = if gras { format!("<b>{}</b>", c) } else { c })
-    };
-    let mut blocs: Vec<String> = Vec::new();
-    for para in corps.split("\n\n") {
-        let lignes: Vec<&str> = para.split('\n').collect();
-        if lignes.iter().filter(|l| !l.is_empty()).all(|l| l.starts_with('|')) {
-            let tableau: Vec<Vec<&str>> = lignes.iter().filter(|l| !l.is_empty()).map(|l| l.trim_matches('|').split('|').collect()).collect();
-            if tableau.is_empty() {
-                continue;
-            }
-            let entete: String = tableau[0].iter().map(|c| cellule(c, "th")).collect();
-            let rangees: String = tableau.iter().skip(2).map(|l| format!("<tr>{}</tr>", l.iter().map(|c| cellule(c, "td")).collect::<String>())).collect();
-            blocs.push(format!("<table style=\"border-collapse:collapse\"><tr>{}</tr>{}</table>", entete, rangees));
-        } else {
-            blocs.push(format!("<p>{}</p>", lignes.iter().map(|l| html_echapper(l)).collect::<Vec<_>>().join("<br>")));
-        }
-    }
-    format!("<div style=\"font-family:sans-serif;font-size:14px\">{}</div>", blocs.concat())
-}
-
 /// `operations_casc._jjmmaaaa`.
 fn jjmmaaaa(iso: &str) -> String {
     if iso.is_empty() {
@@ -734,7 +637,7 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     // Ce que l'envoi garde : les deux messages tels qu'ils sont partis.
     let garde = std::path::Path::new(&r.dossier).join("envoyes");
     std::fs::create_dir_all(&garde).map_err(|e| erreur("OSError", format!("{} : {}", garde.display(), e)))?;
-    let iso = maintenant();
+    let iso = socle::paris::maintenant();
     let horodate = format!("{}_{}{}{}", &iso[..10], &iso[11..13], &iso[14..16], &iso[17..19]);
     let mut emls: Vec<String> = Vec::new();
     for (m, brut) in messages.iter().zip(&copies) {
@@ -752,7 +655,7 @@ fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     });
     let ligne = noter(ctx, "regularisation-casc", None, &qui, true, &partis.join(", "), &format!("{} courriel(s) envoye(s)", partis.len()), Some(&detail))?;
     // Les annees regularisees : leurs mois sortent des dossiers suivants. S'ecrit APRES le virement, jamais avant.
-    let auj = maintenant();
+    let auj = socle::paris::maintenant();
     let mut notees: Vec<Value> = Vec::new();
     for a in &r.annees {
         notees.push(marquer_regularise(ctx, &json!(a.annee), &json!(date_de(&a.annee)), &json!(a.cotisation.to_string()), &qui, &auj[..10])?);

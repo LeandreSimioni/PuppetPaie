@@ -452,7 +452,7 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
                 continue;
             }
             let qui = valeur_en_texte(&a["qui"]);
-            let donnees = crate::retours::base64_lire(a["donnees"].as_str().unwrap_or("")).map_err(Echec::from)?;
+            let donnees = socle::base64::lire(a["donnees"].as_str().unwrap_or("")).map_err(Echec::from)?;
             de_ce_retour.entry((periode, qui.clone())).or_default().push(Attestation {
                 nom_archive: valeur_en_texte(&a["nom_archive"]),
                 qui,

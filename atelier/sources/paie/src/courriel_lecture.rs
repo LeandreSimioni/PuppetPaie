@@ -91,7 +91,7 @@ pub fn identifiant_de(m: &ParsedMail) -> String {
 pub fn date_de(m: &ParsedMail, maintenant: &str) -> String {
     let brut = m.headers.get_first_value("Date").unwrap_or_default();
     match date_lue(&brut) {
-        Some(local) => crate::releve_retours::iso_de_naif(local),
+        Some(local) => socle::paris::iso_de_naif(local),
         None => maintenant.to_string(),
     }
 }

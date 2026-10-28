@@ -46,7 +46,7 @@ use socle::fichiers::vrai;
 use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
 use crate::journal::{self, Note};
 use socle::echec::Echec;
-use crate::routes_envois::maintenant;
+use socle::paris::maintenant;
 use crate::simulation_courriels::BoiteQuiRepond;
 
 /// Les routes de ce module.
@@ -159,12 +159,12 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     let mut boite = BoiteQuiRepond::nouvelle(ctx);
     let lignes = etats::charger(&ctx.racine)?;
     let attendues = etats::signatures_attendues(&lignes, None, &crate::routes_documents::salaries_d_identite(ctx))?;
-    let maintenant_naif = crate::releve_retours::maintenant_naif();
+    let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
     let envoyes = crate::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues.as_array().into_iter().flatten() {
         let quand = a.get("quand").map(valeur_en_texte).unwrap_or_default();
-        let age = crate::releve_retours::naif_de_iso(&quand).map_or(0, |t| maintenant_naif - t);
+        let age = socle::paris::naif_de_iso(&quand).map_or(0, |t| maintenant_naif - t);
         if age < delai {
             continue;
         }
@@ -336,7 +336,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         std::fs::create_dir_all(&dossier).map_err(|e| os(format!("{} : {}", dossier.display(), e)))?;
         let preuve = dossier.join(format!("Signature_{}_{}.eml", a_salarie, code));
         std::fs::write(&preuve, &brut).map_err(|e| os(format!("{} : {}", preuve.display(), e)))?;
-        let nom_preuve = crate::routes_envois::nom_du(&preuve);
+        let nom_preuve = socle::fichiers::nom_du(&preuve);
 
         // UN PDF PAR FICHIER DISTINCT : des contrats groupes n'en ont qu'un (un par page) ; des avenants groupes en ont un
         // chacun.
@@ -371,7 +371,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
                 ));
             }
         }
-        let noms_signes: Vec<String> = signes.iter().map(|(_, p)| crate::routes_envois::nom_du(p)).collect();
+        let noms_signes: Vec<String> = signes.iter().map(|(_, p)| socle::fichiers::nom_du(p)).collect();
         let fichier_signe = noms_signes.join(", ");
 
         // LE JOURNAL D'ABORD : une fois la ligne ecrite, la releve suivante n'attend plus ce code, et le renvoi ne se fera
@@ -384,7 +384,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         // pour toujours. Ici le refus devient un incident NOMME (le salarie, le contrat, la raison) et la releve continue.
         let mut notes = 0usize;
         for c in &contrats {
-            let sien = signes.iter().find(|(n, _)| *n == texte_ou(c, "fichier", &a_fichier)).map(|(_, p)| crate::routes_envois::nom_du(p));
+            let sien = signes.iter().find(|(n, _)| *n == texte_ou(c, "fichier", &a_fichier)).map(|(_, p)| socle::fichiers::nom_du(p));
             let mut courriel = Map::new();
             courriel.insert("code".into(), json!(code));
             courriel.insert("adresse".into(), json!(de));

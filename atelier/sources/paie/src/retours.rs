@@ -177,47 +177,12 @@ impl Entree {
     }
 }
 
-const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-pub fn base64_ecrire(o: &[u8]) -> String {
-    let mut s = String::with_capacity(o.len().div_ceil(3) * 4);
-    for bloc in o.chunks(3) {
-        let n = (bloc[0] as u32) << 16 | (*bloc.get(1).unwrap_or(&0) as u32) << 8 | *bloc.get(2).unwrap_or(&0) as u32;
-        for i in 0..4 {
-            if i <= bloc.len() {
-                s.push(ALPHABET[(n >> (18 - 6 * i) & 63) as usize] as char);
-            } else {
-                s.push('=');
-            }
-        }
-    }
-    s
-}
-
-pub fn base64_lire(t: &str) -> Result<Vec<u8>, String> {
-    let mut out = Vec::with_capacity(t.len() / 4 * 3);
-    let (mut acc, mut n) = (0u32, 0);
-    for c in t.bytes().filter(|c| !c.is_ascii_whitespace()) {
-        if c == b'=' {
-            break;
-        }
-        let v = ALPHABET.iter().position(|&a| a == c).ok_or("demande illisible : `base64` n'est pas du base64")?;
-        acc = acc << 6 | v as u32;
-        n += 6;
-        if n >= 8 {
-            n -= 8;
-            out.push((acc >> n & 0xff) as u8);
-        }
-    }
-    Ok(out)
-}
-
 fn entree_de(d: &Value) -> Resultat<Entree> {
     if let Some(f) = d.get("fichier").and_then(Value::as_str) {
         return std::fs::read(f).map(Entree::Octets).map_err(|e| format!("{} : {}", f, e).into());
     }
     if let Some(b) = d.get("base64").and_then(Value::as_str) {
-        return Ok(Entree::Octets(base64_lire(b)?));
+        return Ok(Entree::Octets(socle::base64::lire(b)?));
     }
     if let Some(t) = d.get("texte").and_then(Value::as_str) {
         return Ok(Entree::Texte(t.to_string()));
@@ -2008,7 +1973,7 @@ pub(crate) fn aer_spectacle(o: &[u8]) -> Resultat<Value> {
         };
         let dernier = membres.iter().rev().find(|x| x.nom == m.nom).unwrap_or(m);
         let donnees = lire_membre(o, dernier)?;
-        out.push(json!({"nom_archive": m.nom, "periode": periode, "qui": qui, "donnees": base64_ecrire(&donnees)}));
+        out.push(json!({"nom_archive": m.nom, "periode": periode, "qui": qui, "donnees": socle::base64::ecrire(&donnees)}));
     }
     Ok(Value::Array(out))
 }

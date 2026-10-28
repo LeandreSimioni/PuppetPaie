@@ -16,7 +16,7 @@ use std::time::Duration;
 use serde_json::{json, Map, Value};
 use ureq::http;
 
-use crate::retours::{base64_ecrire, base64_lire};
+use socle::base64::{ecrire as base64_ecrire, lire as base64_lire};
 
 pub const USER_AGENT: &str = "Client-DSN (PuppetPaie/1.0; PuppetPaie)";
 

@@ -236,9 +236,9 @@ pub fn ouvrir_seance(racine: &Path) -> Verdict {
     let Some(canal) = canal_installe() else { return Verdict::Refuse(SANS_HUMAIN.into()) };
     match obtenir(racine, canal.as_ref(), |essai, refuse| question_de_la_seance(HEURES_SEANCE, essai, refuse)) {
         Ok(m) => {
-            let maintenant = crate::releve_retours::maintenant_naif();
-            let fin = crate::releve_retours::iso_de_naif(maintenant + HEURES_SEANCE * 3600)[..16].to_string();
-            let coffre = Coffre::du_poste(racine, &crate::releve_retours::iso_de_naif(maintenant)[..16]);
+            let maintenant = socle::paris::maintenant_naif();
+            let fin = socle::paris::iso_de_naif(maintenant + HEURES_SEANCE * 3600)[..16].to_string();
+            let coffre = Coffre::du_poste(racine, &socle::paris::iso_de_naif(maintenant)[..16]);
             match coffre.garder_ouverture(&m, &fin) {
                 Ok(_) => {
                     retenir_mot_de_passe_tape(&m);

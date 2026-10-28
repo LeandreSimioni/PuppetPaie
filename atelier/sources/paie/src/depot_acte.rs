@@ -26,7 +26,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::releve_retours::{iso_de_naif, maintenant_naif, Client, Panne};
+use crate::releve_retours::{Client, Panne};
 use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
@@ -77,12 +77,6 @@ impl DepotFait {
             "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition,
         })
     }
-}
-
-// ------------------------------------------------------------------ l'horloge
-
-fn maintenant_iso() -> String {
-    iso_de_naif(maintenant_naif())
 }
 
 // -------------------------------------------------------------------- la preuve
@@ -326,7 +320,7 @@ fn archiver_reponse(ctx: &Contexte, quoi: &str, mois: &str, reponse: &str) -> R<
     std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
     let etiquette: String = mois.replace('-', "").chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')).collect();
     let etiquette = if etiquette.is_empty() { "sans-date".to_string() } else { etiquette };
-    let iso = maintenant_iso();
+    let iso = socle::paris::maintenant();
     let horo = format!("{}{}{}-{}{}{}", &iso[0..4], &iso[5..7], &iso[8..10], &iso[11..13], &iso[14..16], &iso[17..19]);
     // JAMAIS PAR-DESSUS UN AUTRE (lot I1 : un depot de test puis le reel, joues a la suite par l'horloge de la compagnie fictive dans
     // la meme seconde, portaient le meme nom, et la reponse du test disparaissait ; l'ancien Python aussi). Le nom ordinaire ne
@@ -395,7 +389,7 @@ fn noter(
         quand: "",
         origine: "",
     };
-    crate::journal::noter(&ctx.racine, &n, &maintenant_iso()).map_err(|m| erreur("OSError", m))
+    crate::journal::noter(&ctx.racine, &n, &socle::paris::maintenant()).map_err(|m| erreur("OSError", m))
 }
 
 // ----------------------------------------------------------------- la compagnie fictive

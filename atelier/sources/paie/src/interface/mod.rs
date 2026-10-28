@@ -238,7 +238,7 @@ fn logo_en_ligne(racine: &Path) -> String {
     match compagnies::logo(racine) {
         Some(p) => {
             let mime = if p.extension().is_some_and(|e| e == "svg") { "image/svg+xml" } else { "image/png" };
-            std::fs::read(&p).map(|o| format!("data:{};base64,{}", mime, crate::retours::base64_ecrire(&o))).unwrap_or_default()
+            std::fs::read(&p).map(|o| format!("data:{};base64,{}", mime, socle::base64::ecrire(&o))).unwrap_or_default()
         }
         None => String::new(),
     }
@@ -794,7 +794,7 @@ impl Fenetre {
                 }
                 // L'heure est due : le coffre note quand le mot de passe a ete pose (`pose_le`). Sans elle, une compagnie
                 // neuve ne pouvait pas poser son premier mot de passe (« il faut `maintenant` », trouve le 09/10/2026).
-                let maintenant = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..16].to_string();
+                let maintenant = socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string();
                 match crate::coffre::Coffre::du_poste(&racine, &maintenant).poser_ouverture(&a(0), None) {
                     Ok(_) => {
                         self.ouvrir(racine);
@@ -965,7 +965,7 @@ impl Fenetre {
         };
         let pdf = api::route(&racine, "bulletin-modele-apercu", &json!({"modele": modele.cle()}))
             .ok()
-            .and_then(|v| v.get("pdf").and_then(Value::as_str).and_then(|b| crate::retours::base64_lire(b).ok()));
+            .and_then(|v| v.get("pdf").and_then(Value::as_str).and_then(|b| socle::base64::lire(b).ok()));
         match pdf {
             Some(octets) if octets.starts_with(b"%PDF") => Reponse::nouvelle(200, "application/pdf", octets)
                 .avec("Content-Disposition", format!("inline; filename=\"apercu-bulletin-{}.pdf\"", if modele == documents::bulletin::Modele::Complet { "complet" } else { "simplifie" }))
@@ -1009,7 +1009,7 @@ impl Fenetre {
 /// La ligne du journal de l'interface pour une route servie : `HH:MM:SS route NOM N ms`, et ` refus CLASSE` quand elle a
 /// refuse. Ni la charge ni la reponse : seulement de quoi mesurer (ticket #244).
 pub fn ligne_de_route(nom: &str, duree: Duration, rendu: &Value) -> String {
-    let heure = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif());
+    let heure = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     let nom: String = nom.chars().filter(|c| c.is_ascii_alphanumeric() || "-_.".contains(*c)).take(80).collect();
     let refus = match rendu.get("ok").and_then(Value::as_bool) {
         Some(true) => String::new(),

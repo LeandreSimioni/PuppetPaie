@@ -23,43 +23,9 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::retours::{base64_ecrire, base64_lire};
+use socle::base64::{ecrire as base64_ecrire, lire as base64_lire};
 use socle::echec::Echec;
-
-// ------------------------------------------------------------ l'horloge locale
-
-/// Les secondes unix de l'horloge.
-fn secondes_unix() -> i64 {
-    socle::temps::secondes().floor() as i64
-}
-
-/// `datetime.now()` a l'heure de Paris, en secondes d'une epoque « naive » (l'heure locale lue comme si
-/// c'etait de l'UTC) : de quoi additionner des jours et comparer deux heures locales.
-pub fn maintenant_naif() -> i64 {
-    let t = secondes_unix();
-    t + socle::paris::decalage(t)
-}
-
-/// `AAAA-MM-JJTHH:MM:SS` d'une heure locale naive.
-pub fn iso_de_naif(local: i64) -> String {
-    let jours = local.div_euclid(86_400);
-    let reste = local.rem_euclid(86_400);
-    let j = socle::date::Jour::depuis_jours_unix(jours).unwrap_or(socle::date::Jour { an: 1970, mois: 1, jour: 1 });
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", j.an, j.mois, j.jour, reste / 3_600, (reste % 3_600) / 60, reste % 60)
-}
-
-/// L'heure locale naive d'un `AAAA-MM-JJ[THH:MM[:SS]]` (`datetime.fromisoformat`), ou `None`.
-pub fn naif_de_iso(iso: &str) -> Option<i64> {
-    let c: Vec<char> = iso.chars().collect();
-    let n = |a: usize, b: usize| -> Option<i64> {
-        let t: String = c.get(a..b)?.iter().collect();
-        t.chars().all(|x| x.is_ascii_digit()).then(|| t.parse().ok()).flatten()
-    };
-    let jour = socle::date::Jour::nouveau(n(0, 4)? as i32, n(5, 7)? as u32, n(8, 10)? as u32)?;
-    let jours = jour.ordinal() - 719_163;
-    let (h, m, s) = if c.len() >= 16 { (n(11, 13)?, n(14, 16)?, if c.len() >= 19 { n(17, 19)? } else { 0 }) } else { (0, 0, 0) };
-    Some(jours * 86_400 + h * 3_600 + m * 60 + s)
-}
+use socle::paris::{iso_de_naif, maintenant_naif, naif_de_iso};
 
 /// `strftime("%Y%m%d-%H%M%S")` d'une heure locale naive.
 fn horodatage_archive(local: i64) -> String {

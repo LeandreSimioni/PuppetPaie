@@ -73,7 +73,7 @@ fn secondes(j: &Jour) -> i64 {
 pub(crate) fn fenetre(args: &Args) -> Result<(i64, i64), Echec> {
     let fin = match args.texte("jusqu-a") {
         Some(j) => secondes(&Jour::lire(j).map_err(|m| Echec { classe: Some("ValueError"), message: m })?) + 23 * 3600 + 59 * 60 + 59,
-        None => releve_retours::maintenant_naif(),
+        None => socle::paris::maintenant_naif(),
     };
     let debut = match args.texte("depuis") {
         Some(j) => secondes(&Jour::lire(j).map_err(|m| Echec { classe: Some("ValueError"), message: m })?),
@@ -280,7 +280,7 @@ fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArc
         let nom = a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         // Un CRM illisible : le Python plantait (`ParseError`, trace). Ici une phrase, le fichier brut reste archive, code 1 (decision
         // de Leandre : un defaut du Python ne se reproduit pas).
-        let res = match appel(json!({"operation": "taux_pas", "base64": crate::retours::base64_ecrire(&a.contenu)})) {
+        let res = match appel(json!({"operation": "taux_pas", "base64": socle::base64::ecrire(&a.contenu)})) {
             Ok(r) => r,
             Err(e) => {
                 dire!("\nCRM DGFiP du {} ({})", date_lisible(a.retour.get("publication")), nom);

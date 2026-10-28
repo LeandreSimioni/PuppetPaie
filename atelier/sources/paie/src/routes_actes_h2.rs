@@ -190,7 +190,7 @@ pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Op
     let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
     let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
         Some(m) => m,
-        None => releve_retours::iso_de_naif(releve_retours::maintenant_naif())[..16].to_string(),
+        None => socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
     };
     let mut bilan_testees: Vec<Value> = Vec::new();
     let mut bilan_incidents: Vec<Value> = Vec::new();
@@ -254,7 +254,7 @@ fn tester_les_dpae(
         }
     }
     let aujourdhui = ctx.aujourdhui.iso();
-    let maintenant = releve_retours::naif_de_iso(maintenant_iso).unwrap_or(0);
+    let maintenant = socle::paris::naif_de_iso(maintenant_iso).unwrap_or(0);
     // (mois, debut) -> les embauches de ce jour, dans l'ordre ; `sorted` apres.
     let mut a_tester: Vec<((String, String), Vec<&Value>)> = Vec::new();
     let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
@@ -268,7 +268,7 @@ fn tester_les_dpae(
                 if !t.get("erreur").is_some_and(vrai) {
                     continue; // teste, et rien n'a change
                 }
-                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| releve_retours::naif_de_iso(&x)).unwrap_or_else(|| releve_retours::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
+                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| socle::paris::naif_de_iso(&x)).unwrap_or_else(|| socle::paris::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
                 if maintenant - essai < REESSAI_SECONDES {
                     continue;
                 }

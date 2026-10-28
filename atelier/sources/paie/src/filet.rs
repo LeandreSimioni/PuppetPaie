@@ -80,7 +80,7 @@ fn verrouiller(racine: &Path) -> R<Verrou> {
     if let Some(d) = p.parent() {
         std::fs::create_dir_all(d).map_err(|e| en_os(format!("{} : {}", d.display(), e)))?;
     }
-    let marque = socle::verrou::marque("filet", std::process::id(), &crate::incidents::maintenant());
+    let marque = socle::verrou::marque("filet", std::process::id(), &socle::paris::maintenant());
     match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(en_os)? {
         Ok(v) => Ok(v),
         Err(_) => Err(erreur("ErreurOperation", "Un autre passage du filet est en cours : reessayer dans un instant. Rien n'a ete modifie.")),
@@ -97,7 +97,7 @@ fn cle_dsn(mois: &str) -> String {
 
 /// `_maintenant` puis `_iso` : `AAAA-MM-JJTHH:MM`, l'heure de Paris.
 fn maintenant() -> String {
-    crate::incidents::maintenant()[..16].to_string()
+    socle::paris::maintenant()[..16].to_string()
 }
 
 /// `_client(compte)` : celui de ce compte (sa cle), sans l'identite du poste.

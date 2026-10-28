@@ -163,12 +163,6 @@ fn tete(s: &str, n: usize) -> String {
     s.chars().take(n).collect()
 }
 
-/// L'heure de Paris, `datetime.now().isoformat(timespec="seconds")`.
-pub fn maintenant() -> String {
-    let t = socle::temps::secondes();
-    socle::paris::iso_secondes(t)
-}
-
 // -------------------------------------------------------------------- caviardage
 
 /// `incidents.caviarder` : le texte nettoye, et ce qui a ete trouve. Le
@@ -285,7 +279,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
     };
     trouve.sort_unstable();
     trouve.dedup();
-    let quand = n.quand.map_or_else(maintenant, str::to_string);
+    let quand = n.quand.map_or_else(socle::paris::maintenant, str::to_string);
     let empreinte = empreinte(nature, n.ou, n.quoi);
     let p = chemin(racine);
     let mut toutes = lignes(&p);
@@ -624,7 +618,7 @@ pub fn fois_de(l: &Value) -> i64 {
 pub fn marquer_envoye(racine: &Path, empreintes: &[Value]) -> usize {
     let p = chemin(racine);
     let mut toutes = lignes(&p);
-    let quand = maintenant();
+    let quand = socle::paris::maintenant();
     let mut n = 0;
     for l in toutes.iter_mut() {
         let porte = match l.get("empreinte") {
@@ -969,7 +963,7 @@ fn marquer(racine: &Path, cles: &[(Value, Value)]) -> R<usize> {
     }
     let p = chemin(racine);
     let mut toutes = lignes(&p);
-    let quand = maintenant();
+    let quand = socle::paris::maintenant();
     let mut n = 0;
     for l in toutes.iter_mut() {
         let empreinte = get(l, "empreinte")?.clone();
@@ -1078,7 +1072,7 @@ pub fn envoyer(racine: &Path) -> Value {
         return bilan.json();
     }
     // Un autre passage est en cours : celui-ci n'a rien a faire.
-    let marque = socle::verrou::marque("incidents", std::process::id(), &maintenant());
+    let marque = socle::verrou::marque("incidents", std::process::id(), &socle::paris::maintenant());
     let _verrou = match Verrou::prendre(&p.with_file_name(".envoi.verrou"), &marque, socle::verrou::DELAI_VERROU) {
         Ok(Ok(v)) => v,
         Ok(Err(_)) => return bilan.json(),

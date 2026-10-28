@@ -507,7 +507,7 @@ fn erreur_500() -> ErreurGoogle {
 
 /// `AAAA-MM-JJ HH:MM` de l'heure de Paris, il y a `secondes`.
 fn il_y_a(secondes: i64) -> String {
-    paie::releve_retours::iso_de_naif(paie::releve_retours::maintenant_naif() - secondes)[..16].replacen('T', " ", 1)
+    socle::paris::iso_de_naif(socle::paris::maintenant_naif() - secondes)[..16].replacen('T', " ", 1)
 }
 
 /// `JJ/MM` de l'heure de Paris, il y a `secondes`.

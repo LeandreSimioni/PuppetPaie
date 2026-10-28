@@ -583,3 +583,17 @@ pub fn etiquette_du_mois(mois: &str) -> Result<String, String> {
     let mo = lire(mois.get(5..7))?;
     Ok(format!("{}{}", nom_du_mois(mo, Graphie::Titre)?, an))
 }
+
+/// `date.fromisoformat(texte)` : `AAAA-MM-JJ` ou `AAAAMMJJ`.
+pub fn jour_iso(texte: &str) -> Option<Jour> {
+    let chiffres = |t: &str| t.chars().all(|c| c.is_ascii_digit());
+    let (a, m, j) = match texte.len() {
+        10 if texte.is_char_boundary(4) && texte.is_char_boundary(7) && &texte[4..5] == "-" && &texte[7..8] == "-" => (&texte[..4], &texte[5..7], &texte[8..10]),
+        8 if texte.is_ascii() => (&texte[..4], &texte[4..6], &texte[6..8]),
+        _ => return None,
+    };
+    if !(chiffres(a) && chiffres(m) && chiffres(j)) {
+        return None;
+    }
+    Jour::nouveau(a.parse().ok()?, m.parse().ok()?, j.parse().ok()?)
+}

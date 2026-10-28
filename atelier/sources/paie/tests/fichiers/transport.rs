@@ -4,7 +4,7 @@
 //! moteur les lit pour dire « reseau » (`src/releve_retours.rs`). Aucun reseau hors de la machine ; mot de passe invente.
 
 use crate::outils::{dossier_de_test, serveur, Recu, Requete};
-use paie::retours::{base64_ecrire, base64_lire};
+use socle::base64::{ecrire as base64_ecrire, lire as base64_lire};
 use paie::transport::operation;
 use serde_json::{json, Value};
 use std::io::Write;

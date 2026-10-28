@@ -66,7 +66,7 @@ fn annee_de(mois: &str) -> R<i64> {
 // ------------------------------------------------------------- le journal des pieces ecrites
 
 /// LE JOURNAL DES PIECES ECRITES (`journal/dsn-ecrites.json`, #236) : chaque piece que le moteur ecrit -- une DSN, une
-/// DPAE, un export compta -- y note QUAND, au temps du moteur (`temps.rs`, par `incidents::maintenant`). C'est ce que
+/// DPAE, un export compta -- y note QUAND, au temps du moteur (`temps.rs`, par `socle::paris::maintenant`). C'est ce que
 /// l'ecran dit (« ecrit le ... ») : la date d'un fichier n'est pas celle de son ecriture (une fictive livree est
 /// decompressee chez le visiteur, un banc simule le temps). `cle` : `<mois>/<fichier>`, ou `exercices/<fichier>` ;
 /// `empreinte_saisie` : la paie que la piece declare -- pour une DSN, l'empreinte de la saisie du mois ; pour l'export compta
@@ -74,7 +74,7 @@ fn annee_de(mois: &str) -> R<i64> {
 pub(crate) fn noter_piece_ecrite(racine: &Path, cle: &str, empreinte_saisie: Option<Value>) -> R<()> {
     let p = racine.join("journal").join("dsn-ecrites.json");
     let mut d = Value::Object(journal_des_ecritures(racine));
-    let mut note = json!({"quand": crate::incidents::maintenant()});
+    let mut note = json!({"quand": socle::paris::maintenant()});
     if let Some(e) = empreinte_saisie {
         note["empreinte_saisie"] = e;
     }

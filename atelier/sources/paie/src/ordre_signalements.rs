@@ -126,7 +126,7 @@ pub fn dernier_ordre_connu(ctx: &Contexte, client: Option<Client>) -> Result<Ord
     let lue: Result<(), String> = if joue {
         Ok(())
     } else {
-        let fin = releve_retours::maintenant_naif();
+        let fin = socle::paris::maintenant_naif();
         match releve_retours::relever_retours(ctx, fin - JOURS_DE_RELEVE * 86_400, fin, false, "production", client, "") {
             Ok(r) if r.incidents.is_empty() => Ok(()),
             Ok(r) => Err(releve_retours::incidents_en_phrase(&r)),

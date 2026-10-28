@@ -26,8 +26,12 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::echec::Echec;
+use socle::date::jour_iso;
+use socle::fichiers::nom_du;
+use socle::html::{html_echapper, mailto};
+use socle::texte::capitaliser;
 use crate::routes_envois::{
-    capitaliser, charge_texte, echec_d_envoi, html_echapper, jour_iso, mailto, noter_echec_d_envoi, noter_envoi, nom_du, preuve_de, refus, requis, vrai_ou, Ouvrir, R,
+    charge_texte, echec_d_envoi, noter_echec_d_envoi, noter_envoi, preuve_de, refus, requis, vrai_ou, Ouvrir, R,
 };
 
 /// Les clauses qu'un avenant peut modifier : ce que L1242-12 et les conventions mettent au contrat et qui bouge

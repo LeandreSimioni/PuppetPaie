@@ -35,7 +35,10 @@ use socle::fichiers::vrai;
 use documents::fiche_questionnaire as fq;
 use crate::journal::{self, Note};
 use socle::echec::Echec;
-use crate::routes_envois::{capitaliser, client_courriel, echec_d_envoi, html_echapper, mailto, maintenant, noter, preuve_de, refus, vrai_ou, R};
+use crate::routes_envois::{client_courriel, echec_d_envoi, noter, preuve_de, refus, vrai_ou, R};
+use socle::html::{html_echapper, mailto};
+use socle::texte::capitaliser;
+use socle::paris::maintenant;
 
 /// Les routes de ce module.
 pub const ROUTES: [&str; 2] = ["fiche-demander", "fiches-relever"];
@@ -404,11 +407,11 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
 /// s'ecrit comme tout courriel joue (`BoiteQuiRepond`, partagee avec `BoiteDesSignatures`).
 pub fn boite_des_fiches(ctx: &Contexte, attendues: &[Attendue], delai: i64) -> R<BoiteQuiRepond> {
     let mut boite = BoiteQuiRepond::nouvelle(ctx);
-    let maintenant_naif = crate::releve_retours::maintenant_naif();
+    let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
     let envoyes = crate::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues {
-        let age = crate::releve_retours::naif_de_iso(&a.quand).map_or(0, |t| maintenant_naif - t);
+        let age = socle::paris::naif_de_iso(&a.quand).map_or(0, |t| maintenant_naif - t);
         if age < delai {
             continue;
         }

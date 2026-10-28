@@ -426,7 +426,7 @@ fn est_copie(racine: &Path) -> bool {
 
 /// `datetime.now().strftime("%d/%m/%Y %H:%M")`, a l'heure de Paris.
 fn quand_maintenant() -> String {
-    let iso = releve_retours::iso_de_naif(releve_retours::maintenant_naif());
+    let iso = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     format!("{}/{}/{} {}:{}", &iso[8..10], &iso[5..7], &iso[0..4], &iso[11..13], &iso[14..16])
 }
 
@@ -442,7 +442,7 @@ fn naif_de_quand(quand: &str) -> Option<i64> {
     } else {
         return None;
     };
-    releve_retours::naif_de_iso(&iso)
+    socle::paris::naif_de_iso(&iso)
 }
 
 /// `pas_avant` : l'age, en secondes, de la derniere ouverture, ou `None` si la trace n'en dit rien de lisible.
@@ -454,7 +454,7 @@ fn naif_de_quand(quand: &str) -> Option<i64> {
 fn age_de_la_derniere(precedente: &Value) -> Option<i64> {
     let quand = precedente.get("quand").filter(|v| vrai(v)).map(valeur_en_texte)?;
     let avant = naif_de_quand(&quand)?;
-    Some(releve_retours::maintenant_naif() - avant)
+    Some(socle::paris::maintenant_naif() - avant)
 }
 
 /// Le coffre dit-il que `service` est pose (ou dans l'environnement) ? `Err` : le coffre refuse de s'ouvrir.
@@ -737,7 +737,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
         }
         Some(true) => {
             dire_l_etape(ctx, "net-entreprises : retours des DSN…");
-            let fin = releve_retours::maintenant_naif();
+            let fin = socle::paris::maintenant_naif();
             match releve_retours::relever_retours(ctx, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
                 Ok(rel) => {
                     r.incidents.extend(rel.incidents.iter().cloned());
@@ -770,7 +770,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
         }
         Some(true) => {
             dire_l_etape(ctx, "Urssaf : retours des DPAE…");
-            let fin = releve_retours::maintenant_naif();
+            let fin = socle::paris::maintenant_naif();
             let debut = fin - opt.jours * 86_400;
             // Un client donne passe par la meme releve que le vrai (canal `dpae`) ; sans client, `relever_retours_dpae`
             // cherche le mot de passe de consultation et construit le sien.

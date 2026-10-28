@@ -83,7 +83,7 @@ fn liste_de(v: &Value, cle: &str) -> Vec<Value> {
 /// repondent pas au meme service, et deux commandes pour une seule question (« qu'est-ce qui est deja parti ? ») seraient une de trop.
 fn reprendre(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let ecrire = args.drapeau("ecrire");
-    let maintenant = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif());
+    let maintenant = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     let d = crate::reprise_journal::reprise_dpae(&cadre.ctx, ecrire, "cli", &maintenant)?;
     let (d_trouves, d_ajoutes, d_inconnus) = (liste_de(&d, "trouves"), liste_de(&d, "ajoutes"), liste_de(&d, "inconnus"));
     if !d_trouves.is_empty() {

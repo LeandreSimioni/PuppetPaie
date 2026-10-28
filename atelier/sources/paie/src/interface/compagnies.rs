@@ -408,7 +408,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
         &json!({
             "copie_de": format!("{} ajoutee sur ce poste", MARQUE_FICTIVE),
             CLE_AJOUTEE: true,
-            "quand": crate::incidents::maintenant(),
+            "quand": socle::paris::maintenant(),
             "_quoi": "Une compagnie fictive ajoutee sur ce poste, le logiciel etant bride : tout s'y fait, rien n'en part vers un organisme ni vers une personne.",
         }),
     )?;
