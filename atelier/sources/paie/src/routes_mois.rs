@@ -24,7 +24,7 @@ use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use engagement;
 use engagement::etats::ARefaire;
-use envois::etats::{self, est, get, getd, objet_vide, ou, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
+use envois::etats::{self, est, get, getd, objet_vide, ou, quand_lisible, texte_vide, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -1457,16 +1457,6 @@ impl<'a> Moteur<'a> {
     /// `etat-du-mois` : tout ce que la page du mois affiche.
     fn etat_du_mois(&mut self, mois: &str) -> R<Value> {
         let lignes = self.lignes()?;
-        let actes = etats::etat_du_mois(&lignes, mois)?;
-        let recus = etats::contrats_recus(&lignes, etats::Maille::Contrat)?;
-        let mut cles_recus: Dico<()> = Dico::nouveau();
-        for (k, _) in &recus.items {
-            cles_recus.poser(k.clone(), ())?;
-        }
-        let mut resumes = Map::new();
-        for (k, v) in actes.as_object().unwrap() {
-            resumes.insert(k.clone(), json!(etats::resume(v, &cles_recus, etats::Maille::Contrat)?));
-        }
         let fichiers = self.fichiers_deposables(mois)?;
         let mut bilan = self.bilan_du_mois(mois)?;
         let (etapes, colonnes) = (bilan["etapes"].take(), bilan["colonnes"].take());
@@ -1475,7 +1465,7 @@ impl<'a> Moteur<'a> {
             .ouverture_exigee()
             .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
         Ok(json!({
-            "mois": mois, "actes": actes, "resumes": resumes, "fichiers": fichiers,
+            "mois": mois, "fichiers": fichiers,
             "colonnes": colonnes, "etapes": etapes, "lignes": lignes_du_mois, "mot_de_passe_pose": pose,
         }))
     }
