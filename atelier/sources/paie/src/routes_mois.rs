@@ -68,6 +68,147 @@ fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
     etapes
 }
 
+// ------------------------------------------------------------ les colonnes (#257)
+//
+// Les cases des quatre lignes s'alignent sur les memes colonnes. G, la grande, porte ce qui est le plus avance ; une
+// colonne de cote s'ouvre par vague de ce qui est en cours (des embauches nouvelles, un contrat qui change, un
+// etablissement dont la DSN diverge), et une vague qui en est au meme point que G y rentre : on ne separe que le temps
+// d'un changement. Chaque ligne fond les colonnes voisines qui en sont au meme point en une seule case.
+
+/// Ou en est un engagement, ligne par ligne. Une ligne qui ne le concerne pas (la DPAE d'un contrat qui a commence un
+/// mois d'avant, la signature d'un salarie au mois) est faite pour lui. `dsn` : la classe de son etablissement
+/// (`groupes_dsn`).
+#[derive(Clone, Copy)]
+struct Point {
+    dpae: &'static str,
+    contrat: &'static str,
+    documents: &'static str,
+    dsn: usize,
+}
+
+impl Point {
+    fn de(p: &Value, dsn: usize) -> Point {
+        let embauche = vrai(&p["contrat"]["premier_mois"]);
+        let d = &p["etats"]["dpae"];
+        let dpae = if !embauche {
+            "fait"
+        } else if vrai(&d["refusee"]) {
+            "refuse"
+        } else if vrai(&d["fait"]) {
+            "fait"
+        } else {
+            "a_faire"
+        };
+        let s = &p["etats"]["signature"];
+        let contrat = if !(embauche && vrai(&p["spectacle"])) {
+            "fait"
+        } else if !vrai(&s["fait"]) {
+            "a_envoyer"
+        } else if vrai(&s["caduc"]) {
+            "a_refaire"
+        } else if !vrai(&s["recu"]) || vrai(&s["avenant_attendu"]) {
+            "en_attente"
+        } else {
+            "fait"
+        };
+        let o = &p["etats"]["documents"];
+        let documents = if vrai(&o["caduc"]) {
+            "a_renvoyer"
+        } else if vrai(&o["fait"]) {
+            "fait"
+        } else {
+            "a_envoyer"
+        };
+        Point { dpae, contrat, documents, dsn }
+    }
+
+    /// Sa vague : ce qui reste a faire de notre cote. Une DPAE partie l'est, revenue refusee ou non ; un contrat parti
+    /// l'est, signe ou non.
+    fn vague(&self) -> (bool, &'static str, &'static str, usize) {
+        let contrat = if matches!(self.contrat, "a_envoyer" | "a_refaire") { self.contrat } else { "parti" };
+        (self.dpae == "a_faire", contrat, self.documents, self.dsn)
+    }
+
+    /// Combien de ses lignes sont faites de notre cote : l'ordre des colonnes, la plus avancee en G.
+    fn avance(&self, dsn_fait: &[bool]) -> usize {
+        [self.dpae != "a_faire", matches!(self.contrat, "fait" | "en_attente"), self.documents == "fait", dsn_fait.get(self.dsn).copied().unwrap_or(false)]
+            .iter()
+            .filter(|x| **x)
+            .count()
+    }
+}
+
+/// Une colonne : son nom, la classe DSN de ses etablissements, et ses engagements (rangs dans `etat_par_engagement`).
+struct Colonne {
+    nom: String,
+    dsn: usize,
+    membres: Vec<usize>,
+}
+
+/// LES COLONNES DU MOIS. Les engagements d'une meme vague font une colonne ; la plus avancee est G. Une DPAE revenue
+/// refusee ne reste pas dans G, qui dit ce qui est fait : elle sort a cote. Un etablissement sans engagement du mois
+/// dont la DSN diverge a sa colonne. `dsn_fait` : par classe DSN, si elle est faite.
+fn colonnes(points: &[Point], dsn_fait: &[bool]) -> Vec<Colonne> {
+    let mut vagues: Vec<((bool, &'static str, &'static str, usize), Vec<usize>)> = Vec::new();
+    for (i, p) in points.iter().enumerate() {
+        match vagues.iter_mut().find(|(v, _)| *v == p.vague()) {
+            Some((_, m)) => m.push(i),
+            None => vagues.push((p.vague(), vec![i])),
+        }
+    }
+    let mut cols: Vec<(usize, Vec<usize>)> = vagues.into_iter().map(|(v, m)| (v.3, m)).collect();
+    cols.sort_by_key(|(_, m)| std::cmp::Reverse(points[m[0]].avance(dsn_fait)));
+    if let Some((dsn, g)) = cols.first_mut() {
+        let (refusees, reste): (Vec<usize>, Vec<usize>) = g.iter().partition(|i| points[**i].dpae == "refuse");
+        if !refusees.is_empty() && !reste.is_empty() {
+            let dsn = *dsn;
+            *g = reste;
+            cols.insert(1, (dsn, refusees));
+        }
+    }
+    for c in 0..dsn_fait.len() {
+        if !cols.iter().any(|(d, _)| *d == c) {
+            cols.push((c, Vec::new()));
+        }
+    }
+    if cols.is_empty() {
+        cols.push((0, Vec::new()));
+    }
+    const COTE: &str = "ABCDEFHIJKLMNOPQRSTUVWXYZ";
+    cols.into_iter()
+        .enumerate()
+        .map(|(k, (dsn, membres))| {
+            let nom = match k {
+                0 => "G".to_string(),
+                k => COTE.chars().nth(k - 1).map_or_else(|| format!("C{}", k), String::from),
+            };
+            Colonne { nom, dsn, membres }
+        })
+        .collect()
+}
+
+/// Une ligne en cases : les colonnes voisines au meme point (`point`) se fondent. Chaque case : son point, ses
+/// engagements, ses colonnes, et la classe DSN de sa premiere colonne.
+fn cases_de_la_ligne(cols: &[Colonne], point: impl Fn(&Colonne) -> String) -> Vec<(String, Vec<usize>, Vec<String>, usize)> {
+    let mut out: Vec<(String, Vec<usize>, Vec<String>, usize)> = Vec::new();
+    for c in cols {
+        let p = point(c);
+        match out.last_mut() {
+            Some((q, m, n, _)) if *q == p => {
+                m.extend(&c.membres);
+                n.push(c.nom.clone());
+            }
+            _ => out.push((p, c.membres.clone(), vec![c.nom.clone()], c.dsn)),
+        }
+    }
+    out
+}
+
+/// Le point d'une colonne sur une ligne : le premier etat de `ordre` qu'un de ses engagements porte, sinon `fait`.
+fn point_de(c: &Colonne, points: &[Point], ligne: fn(&Point) -> &'static str, ordre: &[&'static str]) -> String {
+    ordre.iter().find(|o| c.membres.iter().any(|i| ligne(&points[*i]) == **o)).copied().unwrap_or("fait").to_string()
+}
+
 // ------------------------------------------------------------ petits outils
 
 fn dupliquer(e: &Echec) -> Echec {
@@ -576,6 +717,9 @@ impl<'a> Moteur<'a> {
             ligne.insert("fin".into(), fin);
             ligne.insert("emploi".into(), sal.get("emploi").cloned().unwrap_or(Value::Null));
             ligne.insert("statut".into(), sal.get("statut").cloned().unwrap_or(Value::Null));
+            // Son etablissement (NIC) : la DSN qui le porte.
+            let nic = etats_eng.get(i).and_then(|e| nic_de_l_engagement(self.ctx, mois, e));
+            ligne.insert("etablissement".into(), nic.map_or(Value::Null, Value::String));
             // LES ECHEANCES de l'engagement : sa DPAE (L. 1221-10) et la remise de son contrat (L. 1242-13, ou la couche
             // de la convention), `droit::echeances`. Un mois passe lu a l'ouverture (`ecrit`) ne les demande pas.
             if !self.ecrit {
@@ -974,9 +1118,10 @@ impl<'a> Moteur<'a> {
 
     /// `bilan_du_mois` : LES ETAPES DU MOIS (#257), dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
     /// avec les groupes que le panneau dessine : `{etat, compte, phrase, echeance, action}`, `etat` parmi `fait`,
-    /// `a_faire`, `en_attente`, `refuse`. Tout ce qui est fait tient dans un seul groupe `fait`, sans compte ni phrase ;
-    /// ce qui reste sort a cote, compte en nombre simple, avec son echeance et le geste qu'ouvre un clic. L'etape
-    /// `suivante` est la premiere qui a quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
+    /// `a_faire`, `en_attente`, `refuse`. Un groupe `fait` n'a ni compte ni phrase ; un groupe qui reste compte en nombre
+    /// simple, avec son echeance et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
+    /// chaque groupe nomme celles qu'il couvre, les memes d'une etape a l'autre. L'etape `suivante` est la premiere qui a
+    /// quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
     pub fn bilan_du_mois(&mut self, mois: &str) -> R<Value> {
         // UN MOIS TENU AVANT CE LOGICIEL : ses etapes se sont faites ailleurs ; elles le disent, sans geste.
         if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
@@ -985,109 +1130,104 @@ impl<'a> Moteur<'a> {
                 .iter()
                 .map(|(cle, nom)| {
                     let x = &b[*cle];
-                    let g = if est(&x["couleur"], "bien") {
+                    let mut g = if est(&x["couleur"], "bien") {
                         fait()
                     } else {
                         groupe(if est(&x["couleur"], "refus") { "refuse" } else { "a_faire" }, Value::Null, Some(valeur_en_texte(&x["courte"])), Value::Null, Value::Null)
                     };
+                    g["colonnes"] = json!(["G"]);
                     json!({"cle": cle, "nom": nom, "groupes": [g], "phrase": x["phrase"].clone()})
                 })
                 .collect();
-            return Ok(json!({"mois": mois, "etapes": suivante(etapes)}));
+            return Ok(json!({"mois": mois, "colonnes": ["G"], "etapes": suivante(etapes)}));
         }
         let paies = self.etat_par_engagement(mois, false)?;
         let echeance_de = |ps: &[&Value], quoi: &str| -> Value {
             ps.iter().map(|p| &p["echeances"][quoi]).filter(|e| e.is_object()).min_by_key(|e| valeur_en_texte(&e["jour"])).cloned().unwrap_or(Value::Null)
         };
+        let avec = |mut g: Value, noms: &[String]| -> Value {
+            g["colonnes"] = json!(noms);
+            g
+        };
+
+        // --- Les colonnes : chaque engagement a son point, la DSN celui de son etablissement.
+        let (classes, second) = self.groupes_dsn(mois)?;
+        let classe_de = |p: &Value| -> usize {
+            let nic = valeur_en_texte(&p["etablissement"]);
+            classes.iter().position(|(nics, _)| nics.contains(&nic)).unwrap_or(0)
+        };
+        let points: Vec<Point> = paies.iter().map(|p| Point::de(p, classe_de(p))).collect();
+        let dsn_fait: Vec<bool> = classes.iter().map(|(_, g)| est(&g["etat"], "fait")).collect();
+        let cols = colonnes(&points, &dsn_fait);
+        let de = |m: &[usize]| -> Vec<&Value> { m.iter().map(|i| &paies[*i]).collect() };
 
         // --- DPAE : par embauche du mois. Partie, elle est faite tant qu'aucun retour ne revient KO.
-        let embauches: Vec<&Value> = paies.iter().filter(|p| vrai(&p["contrat"]["premier_mois"])).collect();
-        let refusees: Vec<&Value> = embauches.iter().copied().filter(|p| vrai(&p["etats"]["dpae"]["refusee"])).collect();
-        let reste: Vec<&Value> = embauches.iter().copied().filter(|p| !vrai(&p["etats"]["dpae"]["refusee"]) && !vrai(&p["etats"]["dpae"]["fait"])).collect();
         let mut dpae = Vec::new();
-        if embauches.len() > refusees.len() + reste.len() || (refusees.is_empty() && reste.is_empty()) {
-            dpae.push(fait());
-        }
-        if !refusees.is_empty() {
-            let n = refusees.len();
-            dpae.push(groupe("refuse", json!(n), Some(format!("{} refusée{} · l'éditeur est prévenu", n, plur(n, "", "s"))), echeance_de(&refusees, DPAE), action("historique", "Voir le bilan…".into())));
-        }
-        if !reste.is_empty() {
-            let n = reste.len();
-            let (a, refus) = self.action_de_depot(mois, DPAE, &Value::Null, action("declarer_embauches", "Envoyer les DPAE…".into()))?;
-            let phrase = refus.map_or_else(|| format!("{} à déposer", n), |r| format!("{} à déposer · {}", n, r));
-            dpae.push(groupe("a_faire", json!(n), Some(phrase), echeance_de(&reste, DPAE), a));
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.dpae, &["a_faire", "refuse"])) {
+            let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].dpae == point).map(|(p, _)| p).collect();
+            let n = siens.len();
+            let g = match point.as_str() {
+                "refuse" => groupe("refuse", json!(n), Some(format!("{} refusée{} · l'éditeur est prévenu", n, plur(n, "", "s"))), echeance_de(&siens, DPAE), action("historique", "Voir le bilan…".into())),
+                "a_faire" => {
+                    let (a, refus) = self.action_de_depot(mois, DPAE, &Value::Null, action("declarer_embauches", "Envoyer les DPAE…".into()))?;
+                    let phrase = refus.map_or_else(|| format!("{} à déposer", n), |r| format!("{} à déposer · {}", n, r));
+                    groupe("a_faire", json!(n), Some(phrase), echeance_de(&siens, DPAE), a)
+                }
+                _ => fait(),
+            };
+            dpae.push(avec(g, &noms));
         }
 
         // --- Contrats : un par embauche sur un spectacle ; un salarie au mois n'a pas de contrat a faire signer ici.
-        let a_signer: Vec<&Value> = embauches.iter().copied().filter(|p| vrai(&p["spectacle"])).collect();
         let sig = |p: &Value| p["etats"]["signature"].clone();
-        let a_refaire: Vec<&Value> = a_signer.iter().copied().filter(|p| vrai(&sig(p)["fait"]) && vrai(&sig(p)["caduc"])).collect();
-        let jamais: Vec<&Value> = a_signer.iter().copied().filter(|p| !vrai(&sig(p)["fait"])).collect();
-        let attente: Vec<&Value> = a_signer
-            .iter()
-            .copied()
-            .filter(|p| vrai(&sig(p)["fait"]) && !vrai(&sig(p)["caduc"]) && (!vrai(&sig(p)["recu"]) || vrai(&sig(p)["avenant_attendu"])))
-            .collect();
         let mut contrats = Vec::new();
-        if a_signer.len() > a_refaire.len() + jamais.len() + attente.len() || a_signer.is_empty() {
-            contrats.push(fait());
-        }
-        if !attente.is_empty() {
-            // CE QUI EST REVENU SUR CE QUI VIENT DE PARTIR, et sur cela seul : les contrats partis le jour du dernier envoi
-            // encore attendu.
-            let jour = |p: &Value| valeur_en_texte(&sig(p)["fait"]).chars().take(10).collect::<String>();
-            let dernier = attente.iter().map(|p| jour(p)).max().unwrap_or_default();
-            let partis: Vec<&Value> = a_signer.iter().copied().filter(|p| !vrai(&sig(p)["caduc"]) && jour(p) == dernier).collect();
-            let recus = partis.iter().filter(|p| vrai(&sig(p)["recu"]) && !vrai(&sig(p)["avenant_attendu"])).count();
-            contrats.push(groupe(
-                "en_attente",
-                json!({"recus": recus, "partis": partis.len()}),
-                Some(format!("{}/{} reçu{}", recus, partis.len(), plur(recus, "", "s"))),
-                echeance_de(&attente, "contrat"),
-                action("faire_signer", "Relancer…".into()),
-            ));
-        }
-        if !a_refaire.is_empty() {
-            let n = a_refaire.len();
-            // L'AVENANT n'a pas d'echeance : L. 1242-13 date la remise du contrat a l'embauche, aucun texte depose ne date celle
-            // d'un avenant (regle 1 : rien ne se devine).
-            contrats.push(groupe("a_faire", json!(n), Some(format!("{} à refaire signer", n)), Value::Null, action("faire_signer", "Demander la signature…".into())));
-        }
-        if !jamais.is_empty() {
-            let n = jamais.len();
-            contrats.push(groupe("a_faire", json!(n), Some(format!("{} à envoyer", n)), echeance_de(&jamais, "contrat"), action("faire_signer", "Demander la signature…".into())));
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.contrat, &["a_envoyer", "a_refaire", "en_attente"])) {
+            let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].contrat == point).map(|(p, _)| p).collect();
+            let n = siens.len();
+            let g = match point.as_str() {
+                "en_attente" => {
+                    // CE QUI EST REVENU SUR CE QUI VIENT DE PARTIR, et sur cela seul : les contrats de la case partis le
+                    // jour du dernier envoi encore attendu.
+                    let jour = |p: &Value| valeur_en_texte(&sig(p)["fait"]).chars().take(10).collect::<String>();
+                    let dernier = siens.iter().map(|p| jour(p)).max().unwrap_or_default();
+                    let partis: Vec<&Value> = de(&m)
+                        .into_iter()
+                        .zip(m.iter())
+                        .filter(|(p, i)| matches!(points[**i].contrat, "fait" | "en_attente") && vrai(&sig(p)["fait"]) && jour(p) == dernier)
+                        .map(|(p, _)| p)
+                        .collect();
+                    let recus = partis.iter().filter(|p| vrai(&sig(p)["recu"]) && !vrai(&sig(p)["avenant_attendu"])).count();
+                    groupe(
+                        "en_attente",
+                        json!({"recus": recus, "partis": partis.len()}),
+                        Some(format!("{}/{} reçu{}", recus, partis.len(), plur(recus, "", "s"))),
+                        echeance_de(&siens, "contrat"),
+                        action("faire_signer", "Relancer…".into()),
+                    )
+                }
+                // L'AVENANT n'a pas d'echeance : L. 1242-13 date la remise du contrat a l'embauche, aucun texte depose ne
+                // date celle d'un avenant (regle 1 : rien ne se devine).
+                "a_refaire" => groupe("a_faire", json!(n), Some(format!("{} à refaire signer", n)), Value::Null, action("faire_signer", "Demander la signature…".into())),
+                "a_envoyer" => groupe("a_faire", json!(n), Some(format!("{} à envoyer", n)), echeance_de(&siens, "contrat"), action("faire_signer", "Demander la signature…".into())),
+                _ => fait(),
+            };
+            contrats.push(avec(g, &noms));
         }
 
-        // --- DSN : le mois entier.
-        let (dsn, second) = self.groupes_dsn(mois)?;
+        // --- DSN : par etablissement (`groupes_dsn`), chaque colonne sous la DSN de ses etablissements.
+        let dsn: Vec<Value> = cases_de_la_ligne(&cols, |c| c.dsn.to_string()).into_iter().map(|(_, _, noms, k)| avec(classes[k].1.clone(), &noms)).collect();
 
         // --- Documents : par salarie du mois, des que son engagement est valide.
-        let mut servis: BTreeSet<String> = BTreeSet::new();
-        let mut caducs: BTreeSet<String> = BTreeSet::new();
-        let mut tous: BTreeSet<String> = BTreeSet::new();
-        for p in &paies {
-            let cle = valeur_en_texte(&p["salarie"]);
-            tous.insert(cle.clone());
-            if vrai(&p["etats"]["documents"]["caduc"]) {
-                caducs.insert(cle);
-            } else if vrai(&p["etats"]["documents"]["fait"]) {
-                servis.insert(cle);
-            }
-        }
-        let servis: BTreeSet<String> = servis.difference(&caducs).cloned().collect();
-        let a_envoyer = tous.len() - servis.len() - caducs.len();
         let mut documents = Vec::new();
-        if !servis.is_empty() || tous.is_empty() {
-            documents.push(fait());
-        }
-        if !caducs.is_empty() {
-            let n = caducs.len();
-            documents.push(groupe("a_faire", json!(n), Some(format!("{} à renvoyer", n)), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))));
-        }
-        if a_envoyer > 0 {
-            let restants: Vec<&Value> = paies.iter().filter(|p| !servis.contains(&valeur_en_texte(&p["salarie"])) && !caducs.contains(&valeur_en_texte(&p["salarie"]))).collect();
-            documents.push(groupe("a_faire", json!(a_envoyer), Some(format!("{} à envoyer", a_envoyer)), echeance_de(&restants, DOCUMENTS), action("envoyer_documents", "Envoyer les documents…".into())));
+        for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.documents, &["a_renvoyer", "a_envoyer"])) {
+            let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].documents == point).map(|(p, _)| p).collect();
+            let n = siens.iter().map(|p| valeur_en_texte(&p["salarie"])).collect::<BTreeSet<String>>().len();
+            let g = match point.as_str() {
+                "a_renvoyer" => groupe("a_faire", json!(n), Some(format!("{} à renvoyer", n)), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))),
+                "a_envoyer" => groupe("a_faire", json!(n), Some(format!("{} à envoyer", n)), echeance_de(&siens, DOCUMENTS), action("envoyer_documents", "Envoyer les documents…".into())),
+                _ => fait(),
+            };
+            documents.push(avec(g, &noms));
         }
         // CE QUI PART CE MOIS-CI, NOMME PAR LE MOTEUR : les pieces des paies du mois, dans l'ordre de l'envoi.
         let noms_pieces = [("bulletin", "bulletin"), ("certificat_cs", "certificat Congés Spectacles"), ("aer", "AER")];
@@ -1103,50 +1243,42 @@ impl<'a> Moteur<'a> {
             json!({"cle": DSN, "nom": "DSN", "groupes": dsn, "second": second}),
             json!({"cle": DOCUMENTS, "nom": "Documents", "groupes": documents, "detail": presentes.join(", ")}),
         ];
-        Ok(json!({"mois": mois, "etapes": suivante(etapes)}))
+        let noms: Vec<String> = cols.iter().map(|c| c.nom.clone()).collect();
+        Ok(json!({"mois": mois, "colonnes": noms, "etapes": suivante(etapes)}))
     }
 
-    /// LES GROUPES DE LA DSN du mois. Elle « est mensuelle et produite par établissement employeur » (cahier technique
-    /// DSN 2026.1, § 2.4, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`) : chaque etablissement a la
-    /// sienne (`groupes_dsn_de`). Tant qu'ils en sont tous au meme point, une seule case ; ceux qui divergent sortent a
-    /// cote, nommes (« Lyon refusée · l'éditeur est prévenu »), ce qui est fait restant dans la case verte. Le geste de
-    /// plus (un annule-et-remplace admis sans necessite) est celui du principal.
-    fn groupes_dsn(&mut self, mois: &str) -> R<(Vec<Value>, Value)> {
+    /// LA DSN DU MOIS, par etablissement. Elle « est mensuelle et produite par établissement employeur » (cahier technique
+    /// DSN 2026.1, § 2.4, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`) : chaque
+    /// etablissement a la sienne (`groupes_dsn_de`). Les etablissements au meme point (meme etat, phrase et echeance)
+    /// forment une classe, une case ; quand ils ne sont pas tous au meme point, la case d'une classe qui n'est pas faite
+    /// nomme ses etablissements (« Lyon refusée · l'éditeur est prévenu »). Rend les classes (leurs NIC, leur case), le
+    /// principal dans la premiere, et le geste de plus (un annule-et-remplace admis sans necessite) du principal.
+    fn groupes_dsn(&mut self, mois: &str) -> R<(Vec<(Vec<String>, Value)>, Value)> {
         let ent = self.ctx.entreprise.clone();
         if droit::bareme::secondaires(&ent).is_empty() {
-            return self.groupes_dsn_de(mois, &Value::Null);
+            let (g, second) = self.groupes_dsn_de(mois, &Value::Null)?;
+            return Ok((vec![(vec![etats::nic_principal(&ent)], g)], second));
         }
-        // Par etablissement : ses groupes, rassembles avec ceux des etablissements au meme point (meme etat, meme
-        // phrase, meme echeance).
-        let point = |g: &[Value]| -> Vec<(String, String, String)> {
-            g.iter().map(|x| (valeur_en_texte(&x["etat"]), valeur_en_texte(&x["phrase"]), valeur_en_texte(&x["echeance"]["jour"]))).collect()
-        };
-        let mut classes: Vec<(Vec<String>, Vec<Value>)> = Vec::new();
+        let point = |g: &Value| (valeur_en_texte(&g["etat"]), valeur_en_texte(&g["phrase"]), valeur_en_texte(&g["echeance"]["jour"]));
+        let mut classes: Vec<(Vec<String>, Value)> = Vec::new();
         let mut second = Value::Null;
         for (rang, nic) in declarations::dsn::nics(&ent).into_iter().enumerate() {
-            let (groupes, s) = self.groupes_dsn_de(mois, &json!(nic))?;
+            let (g, s) = self.groupes_dsn_de(mois, &json!(nic))?;
             if rang == 0 {
                 second = s;
             }
-            match classes.iter_mut().find(|(_, g)| point(g) == point(&groupes)) {
-                Some((noms, _)) => noms.push(nom_de_l_etablissement(&ent, &nic)),
-                None => classes.push((vec![nom_de_l_etablissement(&ent, &nic)], groupes)),
+            match classes.iter_mut().find(|(_, x)| point(x) == point(&g)) {
+                Some((nics, _)) => nics.push(nic),
+                None => classes.push((vec![nic], g)),
             }
         }
-        if classes.len() == 1 {
-            return Ok((classes.remove(0).1, second));
-        }
-        let mut out = Vec::new();
-        if classes.iter().any(|(_, g)| g.iter().any(|x| est(&x["etat"], "fait"))) {
-            out.push(fait());
-        }
-        for (noms, groupes) in classes {
-            for mut g in groupes.into_iter().filter(|x| !est(&x["etat"], "fait")) {
+        if classes.len() > 1 {
+            for (nics, g) in classes.iter_mut().filter(|(_, g)| !est(&g["etat"], "fait")) {
+                let noms: Vec<String> = nics.iter().map(|n| nom_de_l_etablissement(&ent, n)).collect();
                 g["phrase"] = json!(format!("{} {}", noms.join(", "), valeur_en_texte(&g["phrase"])));
-                out.push(g);
             }
         }
-        Ok((out, second))
+        Ok((classes, second))
     }
 
     /// LES GROUPES DE LA DSN de l'etablissement `nic` (`Null` : la compagnie n'en a qu'un), et le geste de plus qu'elle
@@ -1157,18 +1289,18 @@ impl<'a> Moteur<'a> {
     /// § 1.4.2, `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt` : le depot initial va jusqu'au jour de
     /// l'echeance a midi, l'annule-et-remplace jusqu'a la veille a minuit). INFERENCE : un depot refuse n'ouvre pas
     /// l'annule-et-remplace, puisqu'il n'y a rien a annuler ; l'echeance de la reprise est celle du depot initial.
-    fn groupes_dsn_de(&mut self, mois: &str, nic: &Value) -> R<(Vec<Value>, Value)> {
+    fn groupes_dsn_de(&mut self, mois: &str, nic: &Value) -> R<(Value, Value)> {
         let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         let au_depot = json!({"jour": echeance.jour.iso(), "texte": format!("avant le {} à midi", echeance.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)"});
         let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
         if !vrai(&e) {
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
             let phrase = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
-            return Ok((vec![groupe("a_faire", json!(1), Some(phrase), au_depot, a)], Value::Null));
+            return Ok((groupe("a_faire", json!(1), Some(phrase), au_depot, a), Value::Null));
         }
         if vrai(get(&e, "refusee")?) {
             return Ok((
-                vec![groupe("refuse", json!(1), Some("refusée · l'éditeur est prévenu".into()), au_depot, action("historique", "Voir le bilan…".into()))],
+                groupe("refuse", json!(1), Some("refusée · l'éditeur est prévenu".into()), au_depot, action("historique", "Voir le bilan…".into())),
                 Value::Null,
             ));
         }
@@ -1181,7 +1313,7 @@ impl<'a> Moteur<'a> {
             let ecrit = self.chemin_de_depot(mois, DSN, nic)?.is_some();
             let (a, refus) = if ecrit { self.action_de_depot(mois, DSN, nic, Value::Null)? } else { (action("deposer_dsn", libelle), None) };
             let phrase = refus.map_or_else(|| "à refaire".to_string(), |x| format!("à refaire · {}", x));
-            return Ok((vec![fait(), groupe("a_faire", json!(1), Some(phrase), veille, a)], Value::Null));
+            return Ok((groupe("a_faire", json!(1), Some(phrase), veille, a), Value::Null));
         }
         if vrai(&r["saisie_modifiee"]) {
             // Apres la veille : la correction part dans la DSN du mois suivant, qui la porte d'elle-meme.
@@ -1190,21 +1322,18 @@ impl<'a> Moteur<'a> {
             let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)));
             a["mois"] = json!(suivant);
             return Ok((
-                vec![
-                    fait(),
-                    groupe(
-                        "a_faire",
-                        json!(1),
-                        Some(format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee))),
-                        json!({"jour": e2.jour.iso(), "texte": format!("avant le {} à midi", e2.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"}),
-                        a,
-                    ),
-                ],
+                groupe(
+                    "a_faire",
+                    json!(1),
+                    Some(format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee))),
+                    json!({"jour": e2.jour.iso(), "texte": format!("avant le {} à midi", e2.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"}),
+                    a,
+                ),
                 Value::Null,
             ));
         }
         let second = if vrai(&r["admis"]) { action("deposer_dsn", libelle) } else { Value::Null };
-        Ok((vec![fait()], second))
+        Ok((fait(), second))
     }
     // ------------------------------------------------------- les autres routes
 
@@ -1339,14 +1468,15 @@ impl<'a> Moteur<'a> {
             resumes.insert(k.clone(), json!(etats::resume(v, &cles_recus, etats::Maille::Contrat)?));
         }
         let fichiers = self.fichiers_deposables(mois)?;
-        let etapes = self.bilan_du_mois(mois)?["etapes"].take();
+        let mut bilan = self.bilan_du_mois(mois)?;
+        let (etapes, colonnes) = (bilan["etapes"].take(), bilan["colonnes"].take());
         let lignes_du_mois: Vec<Value> = etats::filtrer(&lignes, None, Some(mois), false)?.into_iter().cloned().collect();
         let pose = crate::coffre::Coffre::du_poste(self.racine(), "")
             .ouverture_exigee()
             .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
         Ok(json!({
             "mois": mois, "actes": actes, "resumes": resumes, "fichiers": fichiers,
-            "etapes": etapes, "lignes": lignes_du_mois, "mot_de_passe_pose": pose,
+            "colonnes": colonnes, "etapes": etapes, "lignes": lignes_du_mois, "mot_de_passe_pose": pose,
         }))
     }
 }
