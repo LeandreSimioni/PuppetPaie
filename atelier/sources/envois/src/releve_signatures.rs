@@ -140,7 +140,7 @@ pub fn chercher_reponse(client: &mut dyn Courriel, a: &Value, expediteur: &str, 
             }
         };
         // Un bloc d'en-tetes rompu se recoupe, et le message se lit quand meme.
-        let lu = lecture::lisible_comme_python(&brut);
+        let lu = lecture::recouper_les_entetes(&brut);
         let Ok(m) = mailparse::parse_mail(&lu) else { continue };
         if envoyes.contains(&lecture::identifiant_de(&m)) {
             continue; // notre propre demande, par son en-tete

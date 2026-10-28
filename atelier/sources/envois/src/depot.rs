@@ -405,49 +405,6 @@ pub fn basculer_dpae(octets: &[u8], longueur: i64) -> Resultat<Vec<u8>> {
     Ok(sortie)
 }
 
-/// Un caractere ecrit en echappement dans la forme citee d'un texte : les controles, les
-/// espaces insecables et les caracteres de format les plus courants.
-fn non_imprimable(c: char) -> bool {
-    matches!(c as u32, 0..=0x1f | 0x7f..=0xa0 | 0xad | 0x61c | 0x1680 | 0x180e | 0x2000..=0x200f | 0x2028..=0x202f | 0x205f..=0x206f | 0x3000 | 0xe000..=0xf8ff | 0xfeff | 0xfff9..=0xfffb)
-}
-
-/// Un texte cite entre guillemets, ses caracteres non imprimables echappes.
-fn repr_py(s: &str) -> String {
-    let guillemet = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
-    let mut out = String::from(guillemet);
-    for c in s.chars() {
-        match c {
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            c if c == guillemet => {
-                out.push('\\');
-                out.push(c);
-            }
-            c if non_imprimable(c) => {
-                let n = c as u32;
-                out.push_str(&if n < 0x100 { format!("\\x{:02x}", n) } else if n < 0x10000 { format!("\\u{:04x}", n) } else { format!("\\U{:08x}", n) });
-            }
-            c => out.push(c),
-        }
-    }
-    out.push(guillemet);
-    out
-}
-
-fn type_python(v: &Value) -> &'static str {
-    match v {
-        Value::Null => "NoneType",
-        Value::Bool(_) => "bool",
-        Value::Number(n) if n.is_f64() => "float",
-        Value::Number(_) => "int",
-        Value::String(_) => "str",
-        Value::Array(_) => "list",
-        Value::Object(_) => "dict",
-    }
-}
-
 /// Ce que le controle des identifiants DPAE verifie sans rien lire d'ailleurs :
 /// l'identite du declarant et ses accents. `arobase` : le mot de passe porte un
 /// `@`.
@@ -466,14 +423,14 @@ pub fn identifiants(declarant: &Value, arobase: bool) -> Resultat<Vec<String>> {
             None => "",
             Some(Value::String(s)) => s.as_str(),
             Some(x) => {
-                return Err(refus("TypeError", socle::fichiers::attendu("un texte", type_python(x))));
+                return Err(refus("TypeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(x))));
             }
         };
         if v != ascii_nfkd(v) {
             soucis.push(format!(
-                "Le {} du declarant ({}) porte un accent. La DUE MtoM les refuse : corriger config/entreprise.json.",
+                "Le {} du declarant (« {} ») porte un accent. La DUE MtoM les refuse : corriger config/entreprise.json.",
                 c,
-                repr_py(v)
+                v
             ));
         }
     }

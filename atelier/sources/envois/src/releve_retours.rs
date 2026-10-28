@@ -6,7 +6,7 @@
 //!
 //! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, ou lit la variable d'environnement
 //! du service ; c'est `paie` qui le prend au coffre. Le mot de passe sert le temps de l'authentification
-//! (`transport::operation`), n'est ni journalise, ni affiche, ni renvoye.
+//! (`transport::authentifier`), n'est ni journalise, ni affiche, ni renvoye.
 //!
 //! La releve obeit au branchement : le simulateur pose les retours des depots joues, sans reseau (`rattacher_simulation`) ;
 //! le message ne releve rien. Ce qu'elle trouve en chemin et qui touche a la compagnie (les incidents des retours, les
@@ -21,7 +21,6 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use socle::base64::{ecrire as base64_ecrire, lire as base64_lire};
 use socle::echec::Echec;
 use socle::paris::{iso_de_naif, maintenant_naif, naif_de_iso};
 
@@ -83,17 +82,13 @@ fn classe_connue(c: &str) -> &'static str {
     }
 }
 
-fn panne_de(v: &Value) -> Panne {
+/// La panne que le transport rend (`classe`, `erreur`, `code`).
+fn panne_de(v: Value) -> Panne {
     Panne {
         classe: v.get("classe").and_then(Value::as_str).unwrap_or("OSError").to_string(),
         message: v.get("erreur").and_then(Value::as_str).unwrap_or("").to_string(),
         code: v.get("code").and_then(Value::as_i64).unwrap_or(0),
     }
-}
-
-/// `paie transport` : l'operation, ou la panne.
-fn transport(demande: Value) -> Result<Value, Panne> {
-    crate::transport::operation(&demande).map_err(|v| panne_de(&v))
 }
 
 // ----------------------------------------------------------------------- le client
@@ -190,7 +185,7 @@ pub struct Client {
 impl Client {
     /// `Client(ctx, environnement, motdepasse=...)` : le compte net-entreprises de la DSN.
     pub fn dsn(ctx: &Contexte, environnement: &str, motdepasse: Option<String>) -> Result<Client, Panne> {
-        let declarant = crate::transport::declarant(&ctx.entreprise).map_err(|v| panne_de(&v))?;
+        let declarant = crate::transport::declarant(&ctx.entreprise).map_err(panne_de)?;
         Ok(Client {
             adresses: adresses_dsn(environnement)?,
             jeton: None,
@@ -233,15 +228,15 @@ impl Client {
     /// `Client.authentifier` : ouvre une session. Le mot de passe ne survit pas a cet appel.
     pub fn authentifier(&mut self) -> Result<(), Panne> {
         let mdp = self.secret().map(|m| if self.majuscules { m.to_uppercase() } else { m });
-        let rep = transport(json!({
-            "operation": "authentifier",
-            "url": self.adresses.authentification,
-            "service": self.adresses.service,
-            "declarant": self.declarant,
-            "motdepasse": mdp,
-            "variable": self.variable,
-            "jeton": self.jeton,
-        }))?;
+        let rep = crate::transport::authentifier(&crate::transport::Authentification {
+            url: &self.adresses.authentification,
+            declarant: &self.declarant,
+            motdepasse: mdp.as_deref(),
+            variable: self.variable,
+            service: self.adresses.service.as_deref(),
+            jeton: self.jeton.as_deref(),
+        })
+        .map_err(panne_de)?;
         self.jeton = rep.get("jeton").and_then(Value::as_str).map(str::to_string);
         self.expire_le = rep.get("expire_le").and_then(Value::as_str).map(str::to_string);
         Ok(())
@@ -255,21 +250,15 @@ impl Client {
         Ok(())
     }
 
-    fn appel(&self, url: &str) -> Result<(Vec<u8>, Value), Panne> {
-        let rep = transport(json!({"operation": "appel", "url": url, "jeton": self.jeton, "donnees": Value::Null, "content_type": Value::Null}))?;
-        let corps = base64_lire(rep.get("corps").and_then(Value::as_str).unwrap_or("")).map_err(|m| Panne { classe: "ValueError".into(), message: m, code: 0 })?;
-        Ok((corps, rep.get("entetes").cloned().unwrap_or(Value::Null)))
+    fn appel(&self, url: &str) -> Result<(Vec<u8>, crate::transport::Entetes), Panne> {
+        crate::transport::appeler(url, self.jeton.as_deref()).map_err(panne_de)
     }
 
-    /// `Client._consulter` : l'adresse de base et la plage (heures locales naives).
+    /// La consultation d'une plage (heures locales naives).
     fn consulter(&mut self, base: &str, debut: i64, fin: Option<i64>) -> Result<Vec<u8>, Panne> {
         self.assurer_session()?;
-        let rep = transport(json!({
-            "operation": "consulter", "base": base, "jeton": self.jeton,
-            "debut": {"iso": iso_de_naif(debut)},
-            "fin": fin.map(|f| json!({"iso": iso_de_naif(f)})),
-        }))?;
-        base64_lire(rep.get("corps").and_then(Value::as_str).unwrap_or("")).map_err(|m| Panne { classe: "ValueError".into(), message: m, code: 0 })
+        let fin = fin.map(iso_de_naif);
+        crate::transport::consulter(base, self.jeton.as_deref(), &iso_de_naif(debut), fin.as_deref()).map_err(panne_de)
     }
 
     pub fn lister_retours(&mut self, debut: i64, fin: i64) -> Result<Vec<Value>, Panne> {
@@ -296,19 +285,19 @@ impl Client {
     pub fn telecharger(&mut self, url: &str) -> Result<(Vec<u8>, String), Panne> {
         self.assurer_session()?;
         let (brut, entetes) = self.appel(url)?;
-        let ctype = entetes.get("Content-Type").and_then(Value::as_str).unwrap_or("").to_string();
+        let ctype = crate::transport::entete(&entetes, "Content-Type").unwrap_or("").to_string();
         Ok((brut, ctype))
     }
 
-    /// L'envoi du guide (text/plain, gzip, jeton DSNLogin) : le moteur `paie transport` envoie les octets
-    /// deja prepares. `forme` : `dsn` (`DepotRefuse`) ou `dpae` (`ErreurApi`).
+    /// L'envoi du guide (text/plain, gzip, jeton DSNLogin) des octets deja prepares. `forme` : `dsn` (`DepotRefuse`)
+    /// ou `dpae` (`ErreurApi`).
     pub fn deposer_octets(&mut self, url: &str, contenu: &[u8], forme: &str) -> Result<(String, String), Panne> {
         self.assurer_session()?;
         let corps = gzip(contenu)?;
-        let rep = transport(json!({"operation": "depot", "url": url, "jeton": self.jeton, "forme": forme, "corps": base64_ecrire(&corps)}))?;
-        let brut = base64_lire(rep.get("corps").and_then(Value::as_str).unwrap_or("")).map_err(|m| Panne { classe: "ValueError".into(), message: m, code: 0 })?;
+        let jeton = self.jeton.clone().unwrap_or_default();
+        let (brut, entetes) = crate::transport::depot(url, &jeton, &corps, forme, crate::transport::DELAI_DEPOT).map_err(panne_de)?;
         let texte = String::from_utf8_lossy(&brut).trim_matches(socle::texte::blanc).to_string();
-        let ctype = rep.get("entetes").and_then(|e| e.get("Content-Type")).and_then(Value::as_str).unwrap_or("").to_string();
+        let ctype = crate::transport::entete(&entetes, "Content-Type").unwrap_or("").to_string();
         Ok((texte, ctype))
     }
 }
@@ -358,34 +347,18 @@ fn date_publication(r: &Value) -> String {
     }
 }
 
-/// `archiver` : la piece telle quelle, nommee `AAAAMMJJ-hhmmss_natureN_flux.ext`.
+/// La piece telle quelle, nommee `AAAAMMJJ-hhmmss_natureN_flux.ext`.
 fn archiver(ctx: &Contexte, retour: &Value, contenu: &[u8], ctype: &str, canal: &str) -> Result<PathBuf, Panne> {
-    let rep = transport(json!({
-        "operation": "archiver", "racine": ctx.racine.to_string_lossy(), "retour": retour, "canal": canal,
-        "contenu": base64_ecrire(contenu), "content_type": ctype, "maintenant": horodatage_archive(maintenant_naif()),
-    }))?;
-    Ok(PathBuf::from(rep.get("chemin").and_then(Value::as_str).unwrap_or("")))
+    crate::transport::archiver(&ctx.racine, canal, retour, contenu, ctype, &horodatage_archive(maintenant_naif())).map_err(panne_de)
 }
 
-/// `netentreprises.noter` : la liste de ce qui a ete vu.
+/// Ce qui a ete vu, au journal du canal.
 fn noter_vus(ctx: &Contexte, entrees: &[Value], canal: &str) -> Result<(), Panne> {
-    transport(json!({"operation": "noter", "racine": ctx.racine.to_string_lossy(), "entrees": entrees, "canal": canal})).map(|_| ())
+    crate::transport::noter_vus(&ctx.racine, canal, entrees).map_err(panne_de)
 }
 
 fn deja_vus(ctx: &Contexte, canal: &str) -> Result<Vec<[Value; 3]>, Panne> {
-    let rep = transport(json!({"operation": "deja_vus", "racine": ctx.racine.to_string_lossy(), "canal": canal}))?;
-    Ok(rep
-        .get("vus")
-        .and_then(Value::as_array)
-        .map(|a| {
-            a.iter()
-                .map(|k| {
-                    let c = k.as_array().cloned().unwrap_or_default();
-                    [c.first().cloned().unwrap_or(Value::Null), c.get(1).cloned().unwrap_or(Value::Null), c.get(2).cloned().unwrap_or(Value::Null)]
-                })
-                .collect()
-        })
-        .unwrap_or_default())
+    crate::transport::deja_vus(&ctx.racine, canal).map_err(panne_de)
 }
 
 fn egal_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {

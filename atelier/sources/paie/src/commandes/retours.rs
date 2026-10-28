@@ -1,6 +1,6 @@
 //! `paie retours [--dpae] [--flux IDFLUX] [--depuis JJ/MM/AAAA] [--jusqu-a JJ/MM/AAAA] [--environnement production|editeur]
-//! [--tout] [--appliquer]` : recuperer les retours des organismes (`moteur/commandes_retours.py`, `cmd_retours`,
-//! `cmd_retours_dpae`). Le releve lui-meme est celui du moteur (`crate::releve::relever_retours`) ; ici ne reste que ce
+//! [--tout] [--appliquer]` : recuperer les retours des organismes. Le releve lui-meme est celui du moteur
+//! (`crate::releve::relever_retours`) ; ici ne reste que ce
 //! qui s'affiche -- et le traitement du taux de PAS, qui demande un oeil humain.
 //!
 //! ATTENTION : cette commande va au RESEAU (net-entreprises, ou le service DPAE de l'Urssaf avec `--dpae`). Sur une
@@ -43,15 +43,14 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// Le reseau injoignable ou coupe, ou le coffre qui ne s'ouvre pas : une phrase et un code, pas un plantage (le Python laissait passer une trace --
-/// `URLError`, `RemoteDisconnected`, `TimeoutError` --, decision de Leandre : un defaut du Python ne se reproduit pas).
+/// Le reseau injoignable ou coupe, ou le coffre qui ne s'ouvre pas : une phrase et un code, pas un plantage.
 pub(crate) fn refus_reseau_ou_plantage(cadre: &Cadre, e: Echec) -> i32 {
     if matches!(e.classe, Some("URLError" | "TimeoutError" | "RemoteDisconnected" | "IncompleteRead" | "HTTPException")) {
         dire!("Consultation interrompue : le reseau est injoignable ou a ete coupe ({}).\nRien n'est perdu : relancer la commande quand la connexion est revenue.", e.message);
         return 1;
     }
-    // Le coffre ferme et la seance refusee : « rien ici ne l'ouvre » est une phrase pour l'utilisateur, pas un defaut du logiciel (le Python
-    // plantait avec une trace et notait un incident de LOGICIEL). Code 2, comme « le mot de passe n'est nulle part ».
+    // Le coffre ferme et la seance refusee : « rien ici ne l'ouvre » est une phrase pour l'utilisateur, pas un defaut du logiciel.
+    // Code 2, comme « le mot de passe n'est nulle part ».
     if e.classe == Some("ErreurCoffre") {
         dire!("{}", e.message);
         return 2;
@@ -258,14 +257,6 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
     traiter_crm_pas(cadre, args, &crm)
 }
 
-fn appel(op: Value) -> Result<Value, Echec> {
-    let rep = envois::retours::commande(&op.to_string()).map_err(ko)?;
-    if rep.get("ok").and_then(Value::as_bool) != Some(true) {
-        return Err(ko(champ(&rep, "erreur")));
-    }
-    Ok(rep)
-}
-
 fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArchive]) -> Result<i32, Echec> {
     let nirs: Vec<Value> = cadre
         .ctx
@@ -278,9 +269,8 @@ fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArc
     let mut illisible = false;
     for a in crm {
         let nom = a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        // Un CRM illisible : le Python plantait (`ParseError`, trace). Ici une phrase, le fichier brut reste archive, code 1 (decision
-        // de Leandre : un defaut du Python ne se reproduit pas).
-        let res = match appel(json!({"operation": "taux_pas", "base64": socle::base64::ecrire(&a.contenu)})) {
+        // Un CRM illisible : une phrase, le fichier brut reste archive, code 1.
+        let res = match envois::retours::taux_pas_d_octets(&a.contenu) {
             Ok(r) => r,
             Err(e) => {
                 dire!("\nCRM DGFiP du {} ({})", date_lisible(a.retour.get("publication")), nom);
@@ -299,7 +289,7 @@ fn traiter_crm_pas(cadre: &Cadre, args: &Args, crm: &[&releve_retours::RetourArc
             continue;
         }
         dire!("  Reconnu par : {}", champ(&res, "strategie"));
-        let rr = appel(json!({"operation": "releves", "releves": releves, "nirs": nirs}))?;
+        let rr = envois::retours::releves_vers_salaries(&releves, &nirs);
         for o in rr.get("orphelins").and_then(Value::as_array).cloned().unwrap_or_default() {
             dire!("  NIR non rattache a une fiche salarie : {}", champ(&o, "nir"));
         }

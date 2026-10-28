@@ -35,7 +35,7 @@ pub fn adresse_de(m: &ParsedMail) -> String {
 /// ni une suite de ligne, ni `From `), les en-tetes s'arretent AVANT cette ligne et tout le reste est le corps ;
 /// `mailparse` prendrait cette ligne pour un en-tete (corps vide) ou refuserait le message. Ce qu'il faut lire est le message ainsi recoupe
 /// (les en-tetes valides, une ligne vide, le reste). `Borrowed` quand les en-tetes sont sains.
-pub fn lisible_comme_python(brut: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+pub fn recouper_les_entetes(brut: &[u8]) -> std::borrow::Cow<'_, [u8]> {
     let est_entete = |l: &[u8]| -> bool {
         l.starts_with(b"From ")
             || matches!(l.first(), Some(b' ') | Some(b'\t'))
