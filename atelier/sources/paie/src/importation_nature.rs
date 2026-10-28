@@ -295,15 +295,3 @@ pub(crate) fn repris_en_cours(racine: &Path, mois: &str) -> Vec<Repris> {
         .filter(|r| droit::natures::nature(Some(&r.nature)).is_ok_and(|n| n.mensuelle() && (n.duree_indeterminee || !r.fin.is_empty())))
         .collect()
 }
-
-/// La nature d'un contrat repris, pour qui la montre (le livre de paie d'un mois d'avant) : la sienne, « a dire » s'il
-/// l'attend, `None` s'il est muet (un CDDU, regle 6).
-pub(crate) fn libelle_d_un_contrat(e: &Map<String, Value>) -> R<Option<String>> {
-    if e.get(A_DIRE).is_some_and(vrai) {
-        return Ok(Some("nature à dire".into()));
-    }
-    match e.get("nature").and_then(Value::as_str).filter(|s| !s.is_empty()) {
-        Some(n) => Ok(Some(droit::natures::nature(Some(n)).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())),
-        None => Ok(None),
-    }
-}

@@ -332,13 +332,12 @@ function montrerLogiciel() {
 
 /** LE CALENDRIER DES EXPORTS (Leandre, 08/10/2026). Une ligne par année,
  *  ses douze mois ; on clique une année, un mois, ou « Tout ». Seuls les
- *  mois saisis ou déclarés se cliquent, et ce que l'état admet (`periodes`,
+ *  mois que des engagements touchent se cliquent, et ce que l'état admet (`periodes`,
  *  dit par le moteur) : un état annuel n'offre pas les mois. Le moteur prend
  *  UNE période ; le choix se range dans `x-quand` / `x-periode`. */
 function dessinerCalendrier(periodes) {
   const cal = document.getElementById("x-calendrier");
   const dispo = new Set(EXPORTS.mois);
-  const src = EXPORTS.sources || {};
   const annees = [...new Set(EXPORTS.mois.map((m) => m.slice(0, 4)))].sort().reverse();
   const peutMois = periodes.includes("mois");
   const peutAn = periodes.includes("annee");
@@ -350,7 +349,7 @@ function dessinerCalendrier(periodes) {
         const m = `${a}-${String(i + 1).padStart(2, "0")}`;
         const ok = peutMois && dispo.has(m);
         return `<button type="button" data-quand="mois" data-periode="${m}"${ok ? "" : " disabled"}
-          title="${echapper(moisEnClair(m) + (src[m] ? " — " + src[m] : ""))}">${n}</button>`;
+          title="${echapper(moisEnClair(m))}">${n}</button>`;
       }).join("")}
     </div>`).join("")}`;
   const choisir = (quand, periode) => {

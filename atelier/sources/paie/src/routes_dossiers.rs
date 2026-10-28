@@ -42,7 +42,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::{d, repr_texte};
-use crate::etats::{getd, items, objet_vide, ou, texte_vide, Dico};
+use crate::etats::{getd, objet_vide, ou, texte_vide, Dico};
 use socle::valeur::valeur_ecrite;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -185,41 +185,12 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
 
 // -------------------------------------------------------------- dossier-formes
 
-/// `operations_exports.mois_disponibles` : les mois qu'il y a matiere a
-/// exporter -- ceux que les DSN importees ont declares (`historique/paies.json`)
-/// et ceux dont la saisie est sur le disque --, du plus ancien au plus recent.
+/// Les mois qu'il y a matiere a exporter : ceux que des engagements touchent, du plus ancien au plus recent, chacun
+/// marque `saisie` (ses paies se lisent dans ses engagements valides).
 pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>> {
-    let p = ctx.racine.join("historique").join("paies.json");
-    let data = if p.exists() { lire_json(&p)? } else { json!({}) };
-    let Value::Object(o) = &data else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&data))));
-    };
-    let vide = Value::Array(Vec::new());
-    let mut cles: Dico<&'static str> = Dico::nouveau();
-    for x in items(o.get("paies").unwrap_or(&vide))? {
-        let m = getd(&x, "mois", &Value::Null)?;
-        if vrai(m) {
-            cles.poser(vec![m.clone()], "DSN déposée")?;
-        }
-    }
-    for m in crate::routes_contrats::mois_saisis(ctx)? {
-        cles.poser(vec![Value::String(m)], "saisie")?;
-    }
-    let tous: Vec<Value> = cles.items.iter().map(|(k, _)| k[0].clone()).collect();
-    if let Some(premier) = tous.first().filter(|_| tous.iter().any(|k| !k.is_string())) {
-        // Une cle qui n'est pas un texte : `sorted` ne la range pas avec les textes
-        // (le premier qui n'est pas de l'espece du premier est le fautif : « a[i] < a[0] »),
-        // et `m[:4]` ne la decoupe pas.
-        return Err(erreur(
-            "TypeError",
-            match tous.iter().find(|k| k.is_string() != premier.is_string()) {
-                Some(autre) => socle::fichiers::incomparables(nom_type(autre), nom_type(premier)),
-                None => socle::fichiers::attendu("un texte", nom_type(premier)),
-            },
-        ));
-    }
-    let mut mois: Vec<(String, &'static str)> = cles.items.iter().filter_map(|(k, v)| k[0].as_str().map(|m| (m.to_string(), *v))).collect();
+    let mut mois: Vec<(String, &'static str)> = crate::routes_contrats::mois_saisis(ctx)?.into_iter().map(|m| (m, "saisie")).collect();
     mois.sort();
+    mois.dedup();
     Ok(mois)
 }
 
@@ -326,18 +297,12 @@ fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
 fn exports_periodes(ctx: &Contexte, charge: &Value) -> R<Value> {
     let dispo = mois_disponibles(ctx)?;
     let t = tables();
-    // Ce que la page dit d'ou vient un mois. Un mois de `historique/paies.json` a ete declare AVANT PuppetPaie (une DSN
-    // d'un autre logiciel, ou un bulletin seul) : il est repris de l'historique, pas « DSN deposee » par ce logiciel
-    // (§216, reste R1 #146). Les etats gardent leur source ligne a ligne (`etats_paie::DSN`, `BULLETIN`).
-    let sources: Map<String, Value> =
-        dispo.iter().map(|(m, s)| (m.clone(), json!(if *s == "saisie" { "saisie" } else { "repris de l'historique" }))).collect();
     let etats: Vec<&Value> = t["etats"].as_array().expect("etats").iter().filter(|e| etat_concerne(ctx, e["etat"].as_str().expect("etat"))).collect();
     let annees = annees_de(&dispo);
     let compta = etat_logiciel(ctx)?;
     let fait = |k: &str| charge.get(k).is_some_and(vrai);
     Ok(json!({
         "mois": dispo.iter().map(|(m, _)| m).collect::<Vec<_>>(),
-        "sources": sources,
         "annees": annees,
         "etats": etats,
         "formats": t["formats"],

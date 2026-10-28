@@ -12,11 +12,11 @@ use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{
-    dossier_exports, ecrire_fini, fiche_texte, finir, paies_declarees, titre_spectacle, Demande, Lecture, Periode, DSN, SAISIE,
+    dossier_exports, ecrire_fini, fiche_texte, finir, titre_spectacle, Demande, Lecture, Periode, SAISIE,
 };
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
-use crate::tableaux_export::{col_m, col_t, jj, libelle_mois, montant, qui, qui_souple, refus, sections_de, Ligne, Section, Tableau, Val, R};
+use crate::tableaux_export::{col_m, col_t, jj, libelle_mois, qui, qui_souple, refus, sections_de, Ligne, Section, Tableau, Val, R};
 
 /// `fiche.get(a) or fiche.get(b) or ...`, la valeur telle que le fichier la porte (un nombre reste un nombre).
 fn premiere(fiche: &Value, cles: &[&str]) -> Option<Val> {
@@ -51,9 +51,9 @@ struct ContratMois {
     source: &'static str,
 }
 
-/// `_contrats` : chaque contrat de la periode, une ligne par mois de paie -- les saisies (engagement recalcule) et,
-/// avant, les DSN deposees (bloc 40).
-fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
+/// `_contrats` : chaque contrat de la periode, une ligne par mois de paie, lu dans la paie ecrite de son engagement
+/// valide.
+fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
     let mut out = Vec::new();
     for m in p.saisis() {
         for paie in lecture.paies(&m)?.iter() {
@@ -83,40 +83,6 @@ fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<Cont
             });
         }
     }
-    let mut objets: Vec<(Value, Value)> = Vec::new();
-    for s in ctx.spectacles.values() {
-        objets.push((s.get("numero_objet").cloned().unwrap_or(Value::Null), s.get("titre").cloned().unwrap_or(Value::Null)));
-    }
-    let cddu = droit::natures::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone();
-    let declares = p.declares();
-    for x in paies_declarees(ctx)? {
-        let m = x.get("mois").map(valeur_en_texte).unwrap_or_default();
-        if !declares.contains(&m) {
-            continue;
-        }
-        let cle = fiche_texte(&x, "salarie");
-        let fiche = ctx.salaries.get(&cle).filter(|f| vrai(f)).cloned();
-        let objet = x.get("numero_objet").cloned().unwrap_or(Value::Null);
-        let titre = objets.iter().rev().find(|(n, _)| *n == objet).map(|(_, t)| t.clone()).filter(vrai).map(|t| valeur_en_texte(&t)).unwrap_or_default();
-        out.push(ContratMois {
-            mois: m,
-            cle: cle.clone(),
-            salarie: match &fiche {
-                Some(f) => qui(f)?,
-                None => x.get("salarie").map(valeur_en_texte).unwrap_or_default(),
-            },
-            fiche: fiche.clone().unwrap_or(Value::Null),
-            contrat: fiche_texte(&x, "contrat"),
-            nature: cddu.clone(),
-            emploi: fiche.as_ref().map(|f| fiche_texte(f, "emploi")).unwrap_or_default(),
-            spectacle: titre,
-            objet: if vrai(&objet) { valeur_en_texte(&objet) } else { String::new() },
-            debut: fiche_texte(&x, "debut"),
-            fin: fiche_texte(&x, "fin"),
-            brut: montant(x.get("brut"))?,
-            source: DSN,
-        });
-    }
     Ok(out)
 }
 
@@ -125,7 +91,7 @@ pub(crate) fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let mut lecture = Lecture::nouvelle(ctx);
-    let contrats = contrats_de(ctx, &p, &mut lecture)?;
+    let contrats = contrats_de(&p, &mut lecture)?;
     let mut lignes = Vec::new();
     for c in &contrats {
         let mut l = Ligne::nouvelle();
@@ -136,9 +102,6 @@ pub(crate) fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     if contrats.iter().any(|c| c.contrat.is_empty()) {
         avert.push("Contrat sans numéro : son mois n'a pas été produit, aucun numéro n'est figé. Rien n'est inventé.".to_string());
-    }
-    if contrats.iter().any(|c| c.source == DSN) {
-        avert.push("Contrats d'avant PuppetPaie : la nature est celle par défaut (CDD d'usage) et l'emploi celui de la fiche d'aujourd'hui ; la DSN déposée fait foi pour le reste.".to_string());
     }
     let mut t = Tableau::nouveau("contrats", "Liste des contrats", p.libelle.clone());
     t.mois = p.mois.clone();
@@ -157,7 +120,7 @@ pub(crate) fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("brut", "Brut du mois"),
         col_t("source", "Source"),
     ];
-    t.sources = vec!["contrats de la saisie ; avant PuppetPaie, blocs S21.G00.40 des DSN déposées".to_string()];
+    t.sources = vec!["paies écrites des engagements validés".to_string()];
     finir(ctx, &mut t, Some(&p), "contrats", &d.format, d.ecrire)?;
     Ok(t)
 }
@@ -193,7 +156,7 @@ pub(crate) fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut vus: BTreeSet<(String, String, String, String)> = BTreeSet::new();
     let mut lignes: Vec<Ligne> = Vec::new();
     let mut lecture = Lecture::nouvelle(ctx);
-    for c in contrats_de(ctx, &p, &mut lecture)? {
+    for c in contrats_de(&p, &mut lecture)? {
         // Un contrat qui deborde du mois apparait une fois par mois de paie : c'est UNE embauche.
         if !vus.insert((c.cle.clone(), c.contrat.clone(), c.debut.clone(), c.fin.clone())) {
             continue;

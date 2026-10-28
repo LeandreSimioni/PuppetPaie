@@ -208,18 +208,6 @@ fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
     (ctx.racine.display().to_string(), format!("{}|{}", mois, socle::fichiers::generation()))
 }
 
-/// Le brut des paies d'un mois deja charge, pose dans le memo de la derivation
-/// ouverte : `remuneration_du_mois` ne le recalcule pas.
-pub fn memoriser_mois(ctx: &Contexte, mois: &str, paies: &[Paie]) {
-    let reference = cle_du_memo(ctx, mois);
-    MEMO.with(|m| {
-        let mut m = m.borrow_mut();
-        if m.0 > 0 && !m.1.contains_key(&reference) {
-            m.1.insert(reference, Ok(resume_des_paies(paies)));
-        }
-    });
-}
-
 /// Le compteur de conges d'un salarie, reconstruit depuis les saisies.
 /// `jusqu_au_mois` : ne lire que les mois strictement anterieurs a celui-la.
 pub fn compteur_conges(

@@ -1,15 +1,10 @@
-//! La fiche recapitulative du dossier d'un salarie (`operations_dossier._recapitulatif`) : « ses
-//! contrats (heures, cachets, brut) et ses paies (brut, net, PAS) sur la periode », les deux etats
-//! de l'onglet Exports reduits a lui (`operations_etats.heures_et_cachets` et
-//! `recapitulatif_annuel`), et leur mise en page PDF (`tableaux.description_pdf`).
+//! La fiche recapitulative du dossier d'un salarie : « ses contrats (heures, cachets, brut) et ses paies (brut, net, PAS)
+//! sur la periode », les deux etats de l'onglet Exports reduits a lui (heures et cachets, recapitulatif annuel), et leur
+//! mise en page PDF.
 //!
-//! Ce qui se porte ici est ce que ces deux etats lisent : la periode et les mois disponibles
-//! (`operations_exports.mois_disponibles`), les lignes du livre de paie d'un mois saisi (recalculees)
-//! ou d'un mois declare avant PuppetPaie (`historique/paies.json`), l'AEM attestee
-//! (`historique/engagements.json`). Un etat qui refuse en `ErreurOperation` (rien sur la periode,
-//! un mois qui ne se calcule pas) est LAISSE DE COTE ; tout autre refus remonte, comme en Python.
-//!
-//! Un mois saisi est un mois que des engagements touchent (`engagements/`).
+//! Elle lit les paies ecrites des engagements valides (`engagement::etats::validees_du_mois`) des mois que des
+//! engagements touchent, et rien d'autre. Un etat qui refuse en `ErreurOperation` (rien sur la periode) est LAISSE DE
+//! COTE ; tout autre refus remonte.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
@@ -30,8 +25,6 @@ use crate::routes_ouverture::Refus;
 type R<T> = Result<T, Refus>;
 
 const SAISIE: &str = "saisie";
-const DSN: &str = "DSN déposée";
-const AEM: &str = "AEM attestée";
 
 const PAGE_LARGEUR: f64 = 841.89;
 const PAGE_HAUTEUR: f64 = 595.28;
@@ -335,12 +328,9 @@ pub(crate) fn nom_compagnie(ctx: &Contexte) -> String {
 
 // ---------------------------------------------------------------- la periode
 
-/// `operations_etats.Periode` : ce qu'on a demande, les mois qu'on a, et d'ou ils viennent.
+/// Les mois qu'on a sur la periode demandee.
 struct Periode {
     dispo: BTreeMap<String, &'static str>,
-    un_mois: Option<String>,
-    annee: Option<String>,
-    toutes: bool,
     mois: Vec<String>,
     libelle: String,
 }
@@ -348,16 +338,6 @@ struct Periode {
 impl Periode {
     fn saisis(&self) -> Vec<String> {
         self.mois.iter().filter(|m| self.dispo.get(*m) == Some(&SAISIE)).cloned().collect()
-    }
-
-    fn contient(&self, m: &str) -> bool {
-        if self.toutes {
-            return true;
-        }
-        if let Some(u) = &self.un_mois {
-            return m == u;
-        }
-        m.starts_with(self.annee.as_deref().unwrap_or(""))
     }
 }
 
@@ -407,21 +387,6 @@ fn qui(fiche: &Value) -> R<String> {
     Ok(format!("{} {}", valeur_en_texte(requis(fiche, "nom")?), prenom))
 }
 
-/// `_montant` : un montant declare, ou `None` quand il ne l'a pas ete.
-fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
-    match v {
-        None | Some(Value::Null) => Ok(None),
-        Some(x) => {
-            let t = valeur_en_texte(x);
-            if t.trim_matches(socle::texte::blanc).is_empty() {
-                return Ok(None);
-            }
-            let d = crate::apercu_dsn::decimal_py(&t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(&t)))?;
-            Ok(Some(eur2(d)))
-        }
-    }
-}
-
 /// Les mois que la saisie a touches (`engagement::stock::mois_saisis`).
 pub(crate) fn mois_saisis(ctx: &Contexte) -> Vec<String> {
     engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default()
@@ -434,14 +399,12 @@ pub(crate) struct Recapitulatifs<'a> {
     annee: Option<String>,
     toutes: bool,
     saisies: HashMap<String, Result<Rc<Vec<Paie>>, Refus>>,
-    declarees: Option<Result<Rc<Vec<Value>>, Refus>>,
-    historique: Option<Result<Rc<Vec<Value>>, Refus>>,
     etats: [Option<Result<Rc<Tableau>, Refus>>; 2],
 }
 
 impl<'a> Recapitulatifs<'a> {
     pub(crate) fn nouveau(ctx: &'a Contexte, mois: Option<String>, annee: Option<String>, toutes: bool) -> Self {
-        Recapitulatifs { ctx, mois, annee, toutes, saisies: HashMap::new(), declarees: None, historique: None, etats: [None, None] }
+        Recapitulatifs { ctx, mois, annee, toutes, saisies: HashMap::new(), etats: [None, None] }
     }
 
     /// Les paies validees du mois (`engagement::etats::validees_du_mois`), telles qu'elles ont ete ecrites.
@@ -456,63 +419,9 @@ impl<'a> Recapitulatifs<'a> {
         }
     }
 
-    /// Le fichier tel qu'il est, ou un squelette vide : `data.setdefault(cle, [])`.
-    fn liste_de(&self, fichier: &str, cle: &str) -> R<Rc<Vec<Value>>> {
-        let p = self.ctx.racine.join("historique").join(fichier);
-        if !p.exists() {
-            return Ok(Rc::new(Vec::new()));
-        }
-        let data = crate::routes_listes::lire_json(&p)?;
-        let Value::Object(o) = data else {
-            return Err(avec_classe("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&data))));
-        };
-        match o.get(cle) {
-            None => Ok(Rc::new(Vec::new())),
-            Some(Value::Array(a)) => Ok(Rc::new(a.clone())),
-            // Un texte ou un dictionnaire se parcourt (ses caracteres, ses cles : des textes) et c'est
-            // leur `.get` qui refuse ; vide, rien ne se parcourt.
-            Some(Value::String(t)) if t.is_empty() => Ok(Rc::new(Vec::new())),
-            Some(Value::Object(m)) if m.is_empty() => Ok(Rc::new(Vec::new())),
-            Some(autre @ (Value::String(_) | Value::Object(_))) => Err(avec_classe("AttributeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
-            Some(autre) => Err(avec_classe("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
-        }
-    }
-
-    /// `lire_paies_declarees(ctx)["paies"]`.
-    fn paies_declarees(&mut self) -> R<Rc<Vec<Value>>> {
-        if self.declarees.is_none() {
-            self.declarees = Some(self.liste_de("paies.json", "paies"));
-        }
-        match self.declarees.as_ref().unwrap() {
-            Ok(v) => Ok(Rc::clone(v)),
-            Err(e) => Err(copie(e)),
-        }
-    }
-
-    /// `lire_historique(ctx)["engagements"]`.
-    fn engagements_attestes(&mut self) -> R<Rc<Vec<Value>>> {
-        if self.historique.is_none() {
-            self.historique = Some(self.liste_de("engagements.json", "engagements"));
-        }
-        match self.historique.as_ref().unwrap() {
-            Ok(v) => Ok(Rc::clone(v)),
-            Err(e) => Err(copie(e)),
-        }
-    }
-
-    /// `mois_disponibles` : tous les mois qu'il y a matiere a exporter, et d'ou ils viennent.
+    /// Les mois qu'il y a matiere a exporter : ceux que des engagements touchent.
     fn mois_disponibles(&mut self) -> R<BTreeMap<String, &'static str>> {
-        let mut out: BTreeMap<String, &'static str> = BTreeMap::new();
-        for x in self.paies_declarees()?.iter() {
-            let m = x.get("mois").map_or(Value::Null, Clone::clone);
-            if vrai(&m) {
-                out.insert(valeur_en_texte(&m), DSN);
-            }
-        }
-        for m in mois_saisis(self.ctx) {
-            out.insert(m, SAISIE);
-        }
-        Ok(out)
+        Ok(mois_saisis(self.ctx).into_iter().map(|m| (m, SAISIE)).collect())
     }
 
     /// `Periode(ctx, mois, annee, toutes, obligatoire=...)`.
@@ -556,7 +465,7 @@ impl<'a> Recapitulatifs<'a> {
         } else {
             "toutes les années".to_string()
         };
-        Ok(Periode { dispo, un_mois, annee, toutes, mois, libelle })
+        Ok(Periode { dispo, mois, libelle })
     }
 
     // ----------------------------------------------------------- le livre de paie
@@ -587,55 +496,11 @@ impl<'a> Recapitulatifs<'a> {
         Ok(out)
     }
 
-    /// `_lignes_declarees` : un mois ANTERIEUR a PuppetPaie, tel que la DSN deposee l'a declare.
-    fn lignes_declarees(&mut self, mois: &str) -> R<Vec<LigneLivre>> {
-        let mut out = Vec::new();
-        for x in self.paies_declarees()?.iter() {
-            if x.get("mois").map_or(true, |m| valeur_en_texte(m) != mois) {
-                continue;
-            }
-            let cle = match x.get("salarie").filter(|v| vrai(v)) {
-                Some(v) => valeur_en_texte(v),
-                None => String::new(),
-            };
-            let fiche = if cle.is_empty() { None } else { self.ctx.salaries.get(&cle).filter(|f| vrai(f)) };
-            out.push(LigneLivre {
-                mois: mois.to_string(),
-                salarie: match fiche {
-                    Some(f) => qui(f)?,
-                    None => cle.clone(),
-                },
-                cle_salarie: cle.clone(),
-                spectacle: self
-                    .ctx
-                    .spectacles
-                    .values()
-                    .find(|s| s.get("numero_objet").is_some_and(vrai) && s.get("numero_objet") == x.get("numero_objet"))
-                    .and_then(|s| s.get("titre").filter(|t| vrai(t)).map(en_texte))
-                    // A defaut de fiche, le titre que le bulletin de paie imprimait (lot E de l'import).
-                    .or_else(|| x.get("spectacle").filter(|t| vrai(t)).map(en_texte))
-                    .unwrap_or_default(),
-                brut: montant(x.get("brut"))?,
-                cotisations_patronales: montant(x.get("cotisations_patronales"))?,
-                net_imposable: montant(x.get("net_imposable"))?,
-                net_a_payer: montant(x.get("net_a_payer"))?,
-                pas: montant(x.get("pas"))?,
-                cout_employeur: montant(x.get("cout_employeur"))?,
-                source: crate::etats_paie::source_declaree(x),
-            });
-        }
-        Ok(out)
-    }
-
     /// `livre_de_paie(...).lignes`, ce que le recapitulatif annuel en lit.
     fn lignes_du_livre(&mut self, p: &Periode) -> R<Vec<LigneLivre>> {
         let mut lignes = Vec::new();
         for m in &p.mois {
-            if p.dispo.get(m) == Some(&DSN) {
-                lignes.extend(self.lignes_declarees(m)?);
-            } else {
-                lignes.extend(self.lignes_du_mois(m)?);
-            }
+            lignes.extend(self.lignes_du_mois(m)?);
         }
         if lignes.is_empty() {
             return Err(erreur_operation("Aucun bulletin sur la période : rien à porter au livre de paie."));
@@ -815,7 +680,6 @@ impl<'a> Recapitulatifs<'a> {
     fn heures_et_cachets(&mut self) -> R<Tableau> {
         let p = self.periode(false)?;
         let mut lignes: Vec<Ligne> = Vec::new();
-        let saisis: BTreeSet<String> = p.saisis().into_iter().collect();
         let jj = |iso: &str| -> String {
             let c: Vec<char> = iso.chars().collect();
             if c.len() >= 10 && c[4] == '-' {
@@ -831,7 +695,6 @@ impl<'a> Recapitulatifs<'a> {
                 let e = &paie.engagement;
                 let cachets = paie.remuneration.iter().filter(|r| r.unite == "cachet").fold(Decimal::ZERO, |a, r| a + r.quantite);
                 let heures = paie.remuneration.iter().fold(Decimal::ZERO, |a, r| a + r.heures_annexes);
-                let premiere = e.dates_travail.first().map(|j| j.iso()).unwrap_or_default();
                 let derniere = e.dates_travail.last().map(|j| j.iso()).unwrap_or_default();
                 let mut l = Ligne::new();
                 l.insert("mois".into(), txt(m.clone()));
@@ -851,7 +714,6 @@ impl<'a> Recapitulatifs<'a> {
                     Some(f) => f.iso(),
                     None => derniere,
                 };
-                let _ = premiere;
                 l.insert("fin".into(), txt(jj(&fin)));
                 l.insert("cachets".into(), Some(Val::Dec(cachets)));
                 l.insert("heures".into(), Some(Val::Dec(heures)));
@@ -861,66 +723,8 @@ impl<'a> Recapitulatifs<'a> {
                 lignes.push(l);
             }
         }
-        // L'AEM attestee, pour les mois d'avant PuppetPaie.
-        let mut objets: HashMap<String, Value> = HashMap::new();
-        for s in self.ctx.spectacles.values() {
-            let Value::Object(o) = s else {
-                return Err(avec_classe("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(s))));
-            };
-            objets.insert(o.get("numero_objet").map_or("None".to_string(), valeur_en_texte), o.get("titre").cloned().unwrap_or(Value::Null));
-        }
-        for x in self.engagements_attestes()?.iter() {
-            let debut = x.get("debut").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-            let m: String = debut.chars().take(7).collect();
-            if m.is_empty() || saisis.contains(&m) || !p.contient(&m) {
-                continue;
-            }
-            let cle = x.get("salarie").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-            let fiche = if cle.is_empty() { None } else { self.ctx.salaries.get(&cle).filter(|f| vrai(f)) };
-            let objet = x.get("numero_objet").cloned().unwrap_or(Value::Null);
-            let spectacle = match objets.get(&valeur_en_texte(&objet)).filter(|v| vrai(v)) {
-                Some(t) => valeur_en_texte(t),
-                None => if vrai(&objet) { valeur_en_texte(&objet) } else { String::new() },
-            };
-            let mut l = Ligne::new();
-            l.insert("mois".into(), txt(m));
-            l.insert(
-                "salarie".into(),
-                txt(match fiche {
-                    Some(f) => qui(f)?,
-                    None => x.get("salarie").map_or(String::new(), valeur_en_texte),
-                }),
-            );
-            l.insert("contrat".into(), txt(x.get("numero_attestation").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()));
-            l.insert("spectacle".into(), txt(spectacle));
-            l.insert("emploi".into(), txt(fiche.and_then(|f| f.get("emploi")).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()));
-            l.insert("debut".into(), txt(jj(&valeur_en_texte(x.get("debut").unwrap_or(&Value::Null)))));
-            l.insert("fin".into(), txt(jj(&valeur_en_texte(x.get("fin").unwrap_or(&Value::Null)))));
-            l.insert("cachets".into(), Some(Val::Dec(montant_brut(x.get("cachets"))?)));
-            l.insert("heures".into(), Some(Val::Dec(montant_brut(x.get("heures"))?)));
-            l.insert(
-                "jours".into(),
-                match x.get("jours") {
-                    None | Some(Value::Null) => None,
-                    Some(Value::Number(n)) => Some(Val::Num(socle::date::forme_ecrite(&Value::Number(n.clone())))),
-                    Some(autre) => Some(Val::Txt(valeur_en_texte(autre))),
-                },
-            );
-            l.insert("brut".into(), montant(x.get("brut"))?.map(Val::Dec));
-            l.insert("source".into(), txt(AEM.to_string()));
-            lignes.push(l);
-        }
-        // UNE DONNEE IMPOSSIBLE SE DIT, elle ne se corrige pas ici : seul un `jours` qui ne se lit pas leve.
-        for l in &lignes {
-            if let (Some(Some(Val::Txt(debut))), Some(Some(Val::Txt(fin)))) = (l.get("debut"), l.get("fin")) {
-                let _ = (debut, fin);
-            }
-            if let Some(Some(v)) = l.get("jours") {
-                controle_jours(v)?;
-            }
-        }
         if lignes.is_empty() {
-            return Err(erreur_operation(format!("Aucun contrat sur la période ({}), ni saisi ni attesté.", p.libelle)));
+            return Err(erreur_operation(format!("Aucun contrat validé sur la période ({}).", p.libelle)));
         }
         // Une section par salarie, ses lignes triees par (mois, debut, contrat).
         let mut paquets: BTreeMap<String, Vec<Ligne>> = BTreeMap::new();
@@ -1051,31 +855,6 @@ impl<'a> Recapitulatifs<'a> {
         let octets = crate::routes_dossier_salarie::fusion_octets(&morceaux, tmp)?;
         std::fs::write(&chemin, octets).map_err(|e| Refus::from(format!("ecriture impossible de {} : {}", chemin.display(), e)))?;
         Ok(Some(chemin))
-    }
-}
-
-/// `_montant(x.get(...))` pour les cachets et les heures attestes : `Decimal(str(x.get("cachets") or 0))`.
-fn montant_brut(v: Option<&Value>) -> R<Decimal> {
-    let t = match v.filter(|v| vrai(v)) {
-        Some(x) => valeur_en_texte(x),
-        None => "0".to_string(),
-    };
-    crate::apercu_dsn::decimal_py(&t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(&t)))
-}
-
-/// `int(l["jours"])` : un `jours` qui ne se lit pas leve `ValueError`.
-fn controle_jours(v: &Val) -> R<()> {
-    match v {
-        Val::Txt(t) => {
-            if t.is_empty() {
-                return Ok(());
-            }
-            if crate::apercu_dsn::int_py(t).is_none() {
-                return Err(avec_classe("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))));
-            }
-            Ok(())
-        }
-        _ => Ok(()),
     }
 }
 

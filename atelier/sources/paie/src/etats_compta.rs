@@ -1312,13 +1312,6 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             x.3.insert(m.clone());
         }
     }
-    let declares = p.declares();
-    if !declares.is_empty() {
-        avert.push(format!(
-            "Mois venus des DSN déposées ({}) : la DSN ne donne pas l'assiette CSG ligne à ligne — ils sont écartés de ce calcul, à compléter à la main.",
-            declares.join(", ")
-        ));
-    }
     let s1 = dec_du_bareme(du_bareme(&ts, "seuil_1")?)?;
     let s2 = dec_du_bareme(du_bareme(&ts, "seuil_2")?)?;
     let taux_normal = dec_du_bareme(du_bareme(&ts, "taux_normal")?)?;

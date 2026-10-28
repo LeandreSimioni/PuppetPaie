@@ -1,13 +1,11 @@
-//! Les etats de paie de l'onglet Exports (`moteur/operations_exports.py`, la part « livre de paie », et
-//! `moteur/operations_etats.py`, les etats 1 a 5, 9 a 12) : la periode, la lecture des bulletins recalcules,
-//! le livre de paie et ses trois ecrivains (CSV, XLSX, PDF), le livre detaille, le recapitulatif annuel, la
-//! masse salariale, les virements, le prelevement a la source, la reduction generale, les assiettes, les
-//! heures et cachets, le cout par spectacle.
+//! Les etats de paie de l'onglet Exports : la periode, le livre de paie et ses trois ecrivains (CSV, XLSX, PDF), le livre
+//! detaille, le recapitulatif annuel, la masse salariale, les virements, le prelevement a la source, la reduction
+//! generale, les assiettes, les heures et cachets, le cout par spectacle.
 //!
-//! LES MEMES REGLES POUR TOUS (docstring de `operations_etats`) : un export LIT -- les saisies sont
-//! RECALCULEES par le meme calcul que le bulletin (`engagement::charger_donnees`), le PAS par `prelevement::des_paies`,
-//! aucun numero n'est consomme ; chaque ligne dit d'ou elle vient (`saisie`, `DSN déposée`, `AEM attestée`) ;
-//! un montant que la source ne dit pas est VIDE, pas zero, et le total ne le compte pas.
+//! UN ETAT LIT LES PAIES ECRITES DES ENGAGEMENTS VALIDES (`engagement::etats::validees_du_mois`), et rien d'autre : un
+//! engagement en saisie n'est pas paye, il n'y entre pas ; la periode couvre les mois que des engagements touchent. Le
+//! PAS se lit par `prelevement::des_paies` ; aucun numero n'est consomme. Un montant que la paie ne dit pas est VIDE, pas
+//! zero, et le total ne le compte pas.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
@@ -25,16 +23,11 @@ use socle::fichiers::vrai;
 use socle::num::{eur2, zero2, Decimal};
 use droit::pas::Versement;
 use crate::tableaux_export::{
-    col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, montant, nom_compagnie, qui, refus, sections_de, totaliser, Ligne,
+    col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, nom_compagnie, qui, refus, sections_de, totaliser, Ligne,
     Section, Tableau, Val, FORMATS_TABLEAU, R, TOTAL_GENERAL,
 };
 
 pub(crate) const SAISIE: &str = "saisie";
-pub(crate) const DSN: &str = "DSN déposée";
-pub(crate) const AEM: &str = "AEM attestée";
-/// Une paie d'avant PuppetPaie qu'aucune DSN ne declare : un bulletin de paie seul l'a ecrite (`historique/paies.json`,
-/// `declare_par: "bulletin"`).
-pub(crate) const BULLETIN: &str = "bulletin de paie";
 
 /// Ce qu'un etat demande : la periode (une seule des trois), le format, ce qui ne sort que sur demande.
 #[derive(Clone, Default)]
@@ -79,7 +72,7 @@ pub(crate) struct Periode {
     pub libelle: String,
 }
 
-/// `operations_exports.mois_disponibles` : tous les mois qu'il y a matiere a exporter, et d'ou ils viennent.
+/// Les mois qu'il y a matiere a exporter : ceux que des engagements touchent.
 pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<BTreeMap<String, &'static str>> {
     Ok(crate::routes_dossiers::mois_disponibles(ctx)?.into_iter().collect())
 }
@@ -139,10 +132,6 @@ impl Periode {
         self.mois.iter().filter(|m| self.dispo.get(*m) == Some(&SAISIE)).cloned().collect()
     }
 
-    pub(crate) fn declares(&self) -> Vec<String> {
-        self.mois.iter().filter(|m| self.dispo.get(*m) == Some(&DSN)).cloned().collect()
-    }
-
     pub(crate) fn contient(&self, m: &str) -> bool {
         if self.toutes {
             return true;
@@ -175,43 +164,30 @@ impl Periode {
 fn mois_pris(dispo: &BTreeMap<String, &'static str>, mois: &Option<String>, annee: &Option<String>, toutes: bool) -> R<Vec<String>> {
     if toutes {
         if dispo.is_empty() {
-            return Err(refus(
-                "Aucune paie, ni saisie ni déclarée : il n'y a pas de livre de paie à faire. Les années d'avant PuppetPaie se reprennent des DSN de l'ancien logiciel (Configuration › Reprendre l'historique).",
-            ));
+            return Err(refus("Aucun engagement : il n'y a pas de livre de paie à faire."));
         }
         return Ok(dispo.keys().cloned().collect());
     }
     if let Some(m) = mois {
         if !dispo.contains_key(m) {
-            return Err(refus(format!("Aucune paie en {} : ni engagement (engagements/), ni déclarée par une DSN importée.", m)));
+            return Err(refus(format!("Aucune paie en {} : aucun engagement ne touche ce mois.", m)));
         }
         return Ok(vec![m.clone()]);
     }
     let a = annee.clone().unwrap_or_default();
     let pris: Vec<String> = dispo.keys().filter(|m| m.starts_with(&a)).cloned().collect();
     if pris.is_empty() {
-        return Err(refus(format!("Aucune paie en {}, ni saisie ni déclarée.", a)));
+        return Err(refus(format!("Aucune paie en {} : aucun engagement ne touche cette année.", a)));
     }
     Ok(pris)
 }
 
-/// `_ecarter_declares` : les mois saisis de la periode ; les mois declares avant PuppetPaie sont ecartes EN LE
-/// DISANT, et un etat sans aucun mois saisi refuse.
-pub(crate) fn ecarter_declares(p: &Periode, avert: &mut Vec<String>, ce_qui_manque: &str) -> R<Vec<String>> {
-    let declares = p.declares();
-    if !declares.is_empty() {
-        avert.push(format!(
-            "{} mois d'avant PuppetPaie ({} à {}) ne sont pas dans cet état : ils viennent des DSN déposées, qui ne déclarent pas {}. Rien n'est reconstitué.",
-            declares.len(),
-            declares[0],
-            declares[declares.len() - 1],
-            ce_qui_manque
-        ));
-    }
+/// Les mois de la periode que des engagements touchent ; un etat qui n'en a aucun refuse, en disant ce qui lui manque.
+pub(crate) fn ecarter_declares(p: &Periode, _avert: &mut Vec<String>, ce_qui_manque: &str) -> R<Vec<String>> {
     let saisis = p.saisis();
     if saisis.is_empty() {
         return Err(refus(format!(
-            "Aucun mois saisi dans PuppetPaie sur la période ({}) : cet état a besoin de {}, que seule une paie recalculée porte.",
+            "Aucun engagement sur la période ({}) : cet état a besoin de {}, que seule une paie validée porte.",
             p.libelle, ce_qui_manque
         )));
     }
@@ -219,30 +195,6 @@ pub(crate) fn ecarter_declares(p: &Periode, avert: &mut Vec<String>, ce_qui_manq
 }
 
 // ------------------------------------------------------------------ les lectures
-
-/// `lire_paies_declarees(ctx)["paies"]` / `lire_historique(ctx)["engagements"]` : la liste du fichier, ou rien.
-pub(crate) fn liste_historique(ctx: &Contexte, fichier: &str, cle: &str) -> R<Vec<Value>> {
-    let p = ctx.racine.join("historique").join(fichier);
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let data = crate::routes_listes::lire_json(&p)?;
-    let Value::Object(o) = data else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&data))));
-    };
-    match o.get(cle) {
-        None => Ok(Vec::new()),
-        Some(Value::Array(a)) => Ok(a.clone()),
-        Some(Value::String(t)) if t.is_empty() => Ok(Vec::new()),
-        Some(Value::Object(m)) if m.is_empty() => Ok(Vec::new()),
-        Some(autre @ (Value::String(_) | Value::Object(_))) => Err(erreur("AttributeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
-        Some(autre) => Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
-    }
-}
-
-pub(crate) fn paies_declarees(ctx: &Contexte) -> R<Vec<Value>> {
-    liste_historique(ctx, "paies.json", "paies")
-}
 
 /// La saisie de `mois` reduite a ses engagements valides, et leurs paies telles qu'elles ont ete validees : ce que
 /// lisent les etats et les exports.
@@ -505,94 +457,6 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
     Ok((lignes, sans_pas, paies.iter().all(|p| p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()))))
 }
 
-/// La source d'une paie de `historique/paies.json` : la DSN deposee (completee ou non par un bulletin), ou le bulletin
-/// seul.
-pub(crate) fn source_declaree(x: &Value) -> &'static str {
-    if x.get("declare_par").and_then(Value::as_str) == Some("bulletin") {
-        BULLETIN
-    } else {
-        DSN
-    }
-}
-
-/// `_lignes_declarees` : les lignes d'un mois ANTERIEUR a PuppetPaie, telles que la DSN deposee (et les bulletins de
-/// paie, quand l'import les a lus) les ont declarees.
-fn lignes_declarees(ctx: &Contexte, mois: &str, coordonnees: bool, declarees: &[Value]) -> R<Vec<LigneLivre>> {
-    let mut out = Vec::new();
-    // LA NATURE D'UNE PAIE D'AVANT (#236) : celle du contrat repris du meme salarie qui couvre le mois -- dite apres
-    // l'import pour un permanent (`importation_nature`) ; un contrat muet, ou aucun, est un CDDU (regle 6).
-    let contrats = liste_historique(ctx, "engagements.json", "engagements")?;
-    let nature_de = |cle: &str| -> R<String> {
-        for e in &contrats {
-            let Some(o) = e.as_object() else { continue };
-            let t = |k: &str| o.get(k).map(valeur_en_texte).unwrap_or_default();
-            let (debut, fin) = (t("debut"), t("fin"));
-            if t("salarie") != cle || debut.len() < 7 || debut[..7] > *mois || (fin.len() >= 7 && fin[..7] < *mois) {
-                continue;
-            }
-            if let Some(l) = crate::importation_nature::libelle_d_un_contrat(o)? {
-                return Ok(l);
-            }
-        }
-        Ok(droit::natures::nature(None).map_err(|m| erreur("ErreurOperation", m))?.libelle.clone())
-    };
-    for x in declarees {
-        if x.get("mois").map_or(true, |m| valeur_en_texte(m) != mois) {
-            continue;
-        }
-        let cle = fiche_texte(x, "salarie");
-        let fiche = if cle.is_empty() { None } else { ctx.salaries.get(&cle).filter(|f| vrai(f)) };
-        // Le titre de la fiche du spectacle ; a defaut, celui que le bulletin imprimait.
-        let spectacle = ctx
-            .spectacles
-            .values()
-            .find(|s| s.get("numero_objet").is_some_and(vrai) && s.get("numero_objet") == x.get("numero_objet"))
-            .map(|s| fiche_texte(s, "titre"))
-            .filter(|t| !t.is_empty())
-            .unwrap_or_else(|| fiche_texte(x, "spectacle"));
-        let coord = |cle: &str| -> String {
-            match (coordonnees, fiche) {
-                (true, Some(f)) => fiche_texte(f, cle),
-                _ => String::new(),
-            }
-        };
-        out.push(LigneLivre {
-            mois: mois.to_string(),
-            salarie: match fiche {
-                Some(f) => qui(f)?,
-                None => cle.clone(),
-            },
-            cle_salarie: cle.clone(),
-            contrat: fiche_texte(x, "contrat"),
-            nature: nature_de(&cle)?,
-            spectacle,
-            brut: montant(x.get("brut"))?,
-            // Les colonnes qu'un bulletin de paie ajoute a la ligne (lot E de l'import) ; vides pour une DSN seule.
-            cotisations_salariales: montant(x.get("cotisations_salariales"))?,
-            cotisations_patronales: montant(x.get("cotisations_patronales"))?,
-            net_imposable: montant(x.get("net_imposable"))?,
-            net_a_payer: montant(x.get("net_a_payer"))?,
-            pas: montant(x.get("pas"))?,
-            cout_employeur: montant(x.get("cout_employeur"))?,
-            source: source_declaree(x),
-            nir: coord("nir"),
-            date_naissance: coord("date_naissance"),
-            adresse: if coordonnees && fiche.is_some() {
-                let f = fiche.unwrap();
-                let a = fiche_texte(f, "adresse_affichage");
-                if a.is_empty() {
-                    fiche_texte(f, "adresse")
-                } else {
-                    a
-                }
-            } else {
-                String::new()
-            },
-        });
-    }
-    Ok(out)
-}
-
 /// `_grouper` : les lignes en groupes, chacun avec son sous-total. L'ordre DANS un groupe est chronologique puis
 /// alphabetique : deux editions de la meme periode donnent le meme fichier.
 fn grouper(lignes: &[LigneLivre], regroupement: &str) -> R<Vec<Groupe>> {
@@ -647,13 +511,8 @@ pub(crate) fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     let annee = d.annee.clone().filter(|a| !a.is_empty());
     let dispo = mois_disponibles(ctx)?;
     let pris = mois_pris(&dispo, &mois, &annee, d.toutes)?;
-    let declarees = paies_declarees(ctx)?;
     let (mut lignes, mut avert, mut sans_pas, mut sans_numeros) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
     for m in &pris {
-        if dispo.get(m) == Some(&DSN) {
-            lignes.extend(lignes_declarees(ctx, m, d.coordonnees, &declarees)?);
-            continue;
-        }
         let (l_m, sans, figes) = lignes_du_mois(ctx, m, d.coordonnees)?;
         lignes.extend(l_m);
         sans_pas.extend(sans);
@@ -663,35 +522,6 @@ pub(crate) fn livre_de_paie(ctx: &Contexte, d: &Demande) -> R<LivreDePaie> {
     }
     if lignes.is_empty() {
         return Err(refus("Aucun bulletin sur la période : rien à porter au livre de paie."));
-    }
-    let sources: BTreeSet<&str> = lignes.iter().map(|l| l.source).collect();
-    // Une ligne que la DSN seule declare n'a ni la repartition des cotisations ni le cout employeur ; un bulletin de paie
-    // lu a l'import les lui donne (et ecrit seul les paies qu'aucune DSN ne declare).
-    let incomplete = |l: &&LigneLivre| l.cotisations_salariales.is_none() || l.cotisations_patronales.is_none() || l.cout_employeur.is_none();
-    if sources.contains(DSN) && !sources.contains(BULLETIN) && lignes.iter().filter(|l| l.source == DSN).all(|l| incomplete(&l)) {
-        let mois_dsn: BTreeSet<&String> = lignes.iter().filter(|l| l.source == DSN).map(|l| &l.mois).collect();
-        avert.push(format!(
-            "{} mois ({} à {}) viennent des DSN déposées avant PuppetPaie, pas d'une saisie recalculée : la colonne Source le dit ligne par ligne. Une DSN ne déclare pas la répartition des cotisations entre part salariale et part patronale — ces deux colonnes et le coût employeur restent donc vides sur ces lignes, et les totaux ne les comptent pas.",
-            mois_dsn.len(),
-            mois_dsn.iter().next().unwrap(),
-            mois_dsn.iter().next_back().unwrap()
-        ));
-    } else if sources.contains(DSN) || sources.contains(BULLETIN) {
-        let mois_avant: BTreeSet<&String> = lignes.iter().filter(|l| l.source == DSN || l.source == BULLETIN).map(|l| &l.mois).collect();
-        let vides = lignes.iter().filter(|l| l.source == DSN || l.source == BULLETIN).filter(|l| incomplete(l)).count();
-        let mut phrase = format!(
-            "{} mois ({} à {}) viennent d'avant PuppetPaie — des DSN déposées et des bulletins de paie repris à l'import —, pas d'une saisie recalculée : la colonne Source le dit ligne par ligne ; quand un bulletin et la DSN disaient autrement, c'est le bulletin qui est porté.",
-            mois_avant.len(),
-            mois_avant.iter().next().unwrap(),
-            mois_avant.iter().next_back().unwrap()
-        );
-        if vides > 0 {
-            phrase.push_str(&format!(
-                " Une DSN ne déclare pas la répartition des cotisations entre part salariale et part patronale : sur {} ligne(s) qu'aucun bulletin ne complète, ces deux colonnes et le coût employeur restent vides, et les totaux ne les comptent pas.",
-                vides
-            ));
-        }
-        avert.push(phrase);
     }
     if !sans_numeros.is_empty() {
         avert.push(format!(
@@ -968,7 +798,7 @@ fn dec_val(v: Option<Decimal>) -> Option<Val> {
     v.map(Val::Dec)
 }
 
-/// `_lignes_livre` : les lignes du livre de paie (saisies ET DSN), et ses avertissements -- les etats de synthese se
+/// `_lignes_livre` : les lignes du livre de paie, et ses avertissements -- les etats de synthese se
 /// construisent dessus, pour tomber sur le livre.
 pub(crate) fn lignes_livre(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<LigneLivre>> {
     let d = Demande {
@@ -1230,17 +1060,11 @@ pub(crate) fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 pub(crate) fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
-    let mut verse: HashMap<(Option<String>, Option<String>), Option<String>> = HashMap::new();
-    for x in paies_declarees(ctx)? {
-        let texte = |k: &str| x.get(k).filter(|v| !v.is_null()).map(valeur_en_texte);
-        verse.insert((texte("mois"), texte("contrat")), x.get("verse_le").filter(|v| vrai(v)).map(valeur_en_texte));
-    }
     let mut lignes = Vec::new();
     for l in lignes_livre(ctx, &p, &mut avert)? {
-        let v = verse.get(&(Some(l.mois.clone()), Some(l.contrat.clone()))).cloned().flatten().unwrap_or_default();
         let mut x = Ligne::nouvelle();
         x.t("mois", l.mois.clone()).t("salarie", l.salarie.clone()).t("contrat", l.contrat.clone()).t("spectacle", l.spectacle.clone());
-        x.od("net_a_payer", l.net_a_payer).t("verse_le", jj(&v)).t("source", l.source);
+        x.od("net_a_payer", l.net_a_payer).t("verse_le", String::new()).t("source", l.source);
         lignes.push(x);
     }
     let saisis = p.saisis();
@@ -1314,33 +1138,12 @@ pub(crate) fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau>
             lignes.push(l);
         }
     }
-    let declares = p.declares();
-    for x in paies_declarees(ctx)? {
-        let m = x.get("mois").map(valeur_en_texte).unwrap_or_default();
-        if !declares.contains(&m) {
-            continue;
-        }
-        let cle = fiche_texte(&x, "salarie");
-        let fiche = ctx.salaries.get(&cle).filter(|f| vrai(f));
-        let mut l = Ligne::nouvelle();
-        l.t("mois", m.clone());
-        l.t("salarie", match fiche {
-            Some(f) => qui(f)?,
-            None => x.get("salarie").map(valeur_en_texte).unwrap_or_default(),
-        });
-        l.t("contrat", fiche_texte(&x, "contrat")).t("nir", if coord { fiche_texte(&x, "nir") } else { String::new() });
-        l.od("net_imposable", montant(x.get("net_imposable"))?).od("prelevement", montant(x.get("pas"))?).t("source", DSN);
-        lignes.push(l);
-    }
     if !sans.is_empty() {
         let uniques: BTreeSet<&String> = sans.iter().collect();
         avert.push(format!(
             "Prélèvement inconnu pour {} : aucun taux DGFiP au magasin et le barème ne porte pas la grille par défaut. La ligne reste vide.",
             uniques.into_iter().cloned().collect::<Vec<_>>().join(", ")
         ));
-    }
-    if !declares.is_empty() {
-        avert.push("Mois d'avant PuppetPaie : la DSN déclare le net imposable et le montant prélevé ; le taux, l'abattement et l'assiette n'ont pas été importés, ces colonnes restent vides.".to_string());
     }
     let mut cols = vec![col_t("mois", "Mois"), col_t("salarie", "Salarié"), col_t("contrat", "Contrat")];
     if coord {
@@ -1490,40 +1293,17 @@ pub(crate) fn assiettes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // =============================================== 11. les heures et les cachets
 
-/// `int(x)` d'un nombre d'une ligne : `ValueError` quand le texte ne se lit pas.
-fn entier_py(v: &Val) -> R<i64> {
-    let t = v.str_py();
-    if let Val::Num(n) = v {
-        if let Some(f) = n.as_f64() {
-            return Ok(f.trunc() as i64);
-        }
-    }
-    crate::apercu_dsn::int_py(t.trim()).and_then(|n| i64::try_from(n).ok()).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&t))))
-}
-
-/// `datetime.date(*map(int, "JJ/MM/AAAA".split("/")[::-1]))` : `None` quand le texte ne se lit pas.
-fn date_jj(t: &str) -> Option<socle::date::Jour> {
-    let p: Vec<&str> = t.split('/').collect();
-    if p.len() != 3 {
-        return None;
-    }
-    let n = |x: &str| x.trim().parse::<i64>().ok();
-    socle::date::Jour::nouveau(n(p[2])? as i32, n(p[1])? as u32, n(p[0])? as u32)
-}
-
 /// `operations_etats.heures_et_cachets` : contrat par contrat, cachets, heures retenues pour les annexes 8 et 10,
-/// jours travailles, brut. Un mois saisi se lit sur la paie ; un mois d'avant PuppetPaie, sur l'AEM attestee.
+/// jours travailles, brut, lus dans les paies ecrites des engagements valides.
 pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;
-    let (mut avert, mut lignes) = (Vec::new(), Vec::new());
+    let mut lignes = Vec::new();
     let mut lecture = Lecture::nouvelle(ctx);
-    let saisis: BTreeSet<String> = p.saisis().into_iter().collect();
     for m in p.saisis() {
         for paie in lecture.paies(&m)?.iter() {
             let e = &paie.engagement;
             let cachets = paie.remuneration.iter().filter(|r| r.unite == "cachet").fold(Decimal::ZERO, |a, r| a + r.quantite);
             let heures = paie.remuneration.iter().fold(Decimal::ZERO, |a, r| a + r.heures_annexes);
-            let premiere = e.dates_travail.first().map(|j| j.iso()).unwrap_or_default();
             let derniere = e.dates_travail.last().map(|j| j.iso()).unwrap_or_default();
             let emploi = match e.emploi.clone().filter(|x| !x.is_empty()) {
                 Some(x) => x,
@@ -1534,7 +1314,6 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                 Some(f) => f.iso(),
                 None => derniere,
             };
-            let _ = premiere;
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", e.numero.clone().unwrap_or_default());
             l.t("spectacle", titre_spectacle(paie)).t("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
@@ -1542,93 +1321,11 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             lignes.push(l);
         }
     }
-    // L'AEM attestee, pour les mois d'avant PuppetPaie.
-    let mut objets: Vec<(Value, Value)> = Vec::new();
-    for s in ctx.spectacles.values() {
-        let Value::Object(o) = s else {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(s))));
-        };
-        objets.push((o.get("numero_objet").cloned().unwrap_or(Value::Null), o.get("titre").cloned().unwrap_or(Value::Null)));
-    }
-    let compte = |v: Option<&Value>| -> R<Decimal> {
-        let t = match v.filter(|v| vrai(v)) {
-            Some(x) => valeur_en_texte(x),
-            None => "0".to_string(),
-        };
-        crate::apercu_dsn::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))
-    };
-    for x in liste_historique(ctx, "engagements.json", "engagements")? {
-        let debut = fiche_texte(&x, "debut");
-        let m: String = debut.chars().take(7).collect();
-        if m.is_empty() || saisis.contains(&m) || !p.contient(&m) {
-            continue;
-        }
-        let cle = fiche_texte(&x, "salarie");
-        let fiche = if cle.is_empty() { None } else { ctx.salaries.get(&cle).filter(|f| vrai(f)) };
-        let objet = x.get("numero_objet").cloned().unwrap_or(Value::Null);
-        let titre = objets.iter().rev().find(|(n, _)| *n == objet).map(|(_, t)| t.clone()).filter(vrai);
-        let spectacle = match titre {
-            Some(t) => valeur_en_texte(&t),
-            None => {
-                if vrai(&objet) {
-                    valeur_en_texte(&objet)
-                } else {
-                    String::new()
-                }
-            }
-        };
-        let mut l = Ligne::nouvelle();
-        l.t("mois", m).t("salarie", match fiche {
-            Some(f) => qui(f)?,
-            None => x.get("salarie").map(valeur_en_texte).unwrap_or_default(),
-        });
-        l.t("contrat", fiche_texte(&x, "numero_attestation")).t("spectacle", spectacle);
-        l.t("emploi", fiche.map(|f| fiche_texte(f, "emploi")).unwrap_or_default());
-        l.t("debut", jj(&x.get("debut").map(valeur_en_texte).unwrap_or_default())).t("fin", jj(&x.get("fin").map(valeur_en_texte).unwrap_or_default()));
-        l.d("cachets", compte(x.get("cachets"))?).d("heures", compte(x.get("heures"))?);
-        l.poser(
-            "jours",
-            match x.get("jours") {
-                None | Some(Value::Null) => None,
-                Some(Value::String(s)) => Some(Val::Txt(s.clone())),
-                Some(n) => Some(Val::Num(n.clone())),
-            },
-        );
-        l.od("brut", montant(x.get("brut"))?).t("source", AEM);
-        lignes.push(l);
-    }
-    // UNE DONNEE IMPOSSIBLE SE DIT, elle ne se corrige pas ici.
-    for l in &lignes {
-        let (Some(fin), Some(debut)) = (date_jj(&l.texte("fin")), date_jj(&l.texte("debut"))) else { continue };
-        let duree = fin.moins(&debut) + 1;
-        if let Some(jours) = l.val("jours") {
-            let vrai_jours = match jours {
-                Val::Txt(s) => !s.is_empty(),
-                Val::Num(n) => vrai(n),
-                Val::Dec(x) => !x.is_zero(),
-            };
-            if vrai_jours && entier_py(jours)? > duree {
-                avert.push(format!(
-                    "{}, contrat du {} au {} : {} jours attestés pour {} jours de contrat — la donnée importée est à vérifier ({}).",
-                    l.texte("salarie"),
-                    l.texte("debut"),
-                    l.texte("fin"),
-                    jours.str_py(),
-                    duree,
-                    l.texte("source")
-                ));
-            }
-        }
-    }
     if lignes.is_empty() {
-        return Err(refus(format!("Aucun contrat sur la période ({}), ni saisi ni attesté.", p.libelle)));
-    }
-    if lignes.iter().any(|l| l.texte("source") == AEM) {
-        avert.push("Lignes « AEM attestée » : la colonne Contrat porte le numéro d'attestation France Travail, et les heures sont celles que l'AEM a déclarées.".to_string());
+        return Err(refus(format!("Aucun contrat validé sur la période ({}).", p.libelle)));
     }
     let mut t = Tableau::nouveau("heures-et-cachets", "Heures et cachets (annexes 8 et 10)", p.libelle.clone());
     t.mois = lignes.iter().map(|l| l.texte("mois")).collect::<BTreeSet<_>>().into_iter().collect();
-    t.avertissements = avert;
     t.sections = sections_de(lignes, |l| l.texte("salarie"), |k| k.clone(), Some(&|l| cle_tri(l, &["mois", "debut", "contrat"])));
     t.colonnes = vec![
         col_t("mois", "Mois"),
