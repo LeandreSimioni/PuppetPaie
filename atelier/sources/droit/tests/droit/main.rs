@@ -5,11 +5,9 @@
 #[path = "../outils/mod.rs"]
 mod outils;
 
-mod bareme;
 mod caisse_conges;
 mod catalogue;
 mod clauses;
-mod contexte;
 mod emplois;
 mod natures;
 mod pas;
