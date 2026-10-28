@@ -793,7 +793,6 @@ async function boiteSignature(mois, seulement) {
 
   const contrats = a.contrats.filter((c) => c.a_envoyer);
   const coche = (c) => !seulement || seulement.includes(c.salarie);
-  const avenantAFaire = (c) => c.caduc && c.recu_le;
   ouvrirBoite(`
     <h3>Faire signer les contrats</h3>
     ${moisEnGros(mois)}
@@ -810,14 +809,14 @@ async function boiteSignature(mois, seulement) {
       ${contrats.map((c) => `
         <label class="choix">
           <input type="checkbox" class="s-qui" value="${echapper(c.salarie)}"
-                 data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}" ${avenantAFaire(c) ? 'data-avenant="1"' : ""}
+                 data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}" ${c.en_avenant ? 'data-avenant="1"' : ""}
                  ${coche(c) ? "checked" : ""}>
           <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
             ${echapper(periodeEnClair(c.debut, c.fin))}
             ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
             ${a.boite_liee ? `<br><span class="discret">${echapper(c.destinataire)
               || "aucun courriel dans la fiche — l'envoi sera refusé"}</span>` : ""}
-            ${avenantAFaire(c) ? `<br><span class="pastille alerte">${echapper(c.pourquoi
+            ${c.en_avenant ? `<br><span class="pastille alerte">${echapper(c.pourquoi
               || "la paie a changé depuis la signature")} — signé : partira en avenant</span>
               <button class="lien s-avenant" data-salarie="${echapper(c.salarie)}"
                 data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}">voir l'avenant</button>`
@@ -838,14 +837,19 @@ async function boiteSignature(mois, seulement) {
   // journal le note ; le PDF de tous les contrats cochés s'ouvre.
   const imprimer = document.getElementById("s-imprimer");
   if (imprimer) imprimer.onclick = async () => {
-    const coches = [...document.querySelectorAll(".s-qui:checked")].filter((c) => !c.dataset.avenant);
+    const coches = [...document.querySelectorAll(".s-qui:checked")];
     if (!coches.length) { dire("Aucun contrat coché."); return; }
-    const choisis = coches.map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero }));
+    // Un contrat signé qui a changé s'imprime en avenant, dans le même PDF.
+    const choisis = coches.filter((c) => !c.dataset.avenant)
+      .map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero }));
+    const avenants = coches.filter((c) => c.dataset.avenant)
+      .map((c) => ({ salarie: c.value, debut: c.dataset.debut, numero: c.dataset.numero, mois }));
     const rendre = occupe(imprimer, "Impression…");
     try {
-      const r = await api("contrats-imprimer", { mois, contrats: choisis });
+      const r = await api("contrats-imprimer", { mois, contrats: choisis, avenants });
       fermerBoite();
-      dire(r.contrats.length + " contrat(s) à imprimer : " + r.contrats.map((c) => "n° " + c.numero).join(", ") + ".", "envoye");
+      dire("À imprimer : " + [...r.contrats.map((c) => "contrat n° " + c.numero),
+        ...r.avenants.map((c) => "avenant n° " + c.avenant + " au contrat n° " + c.numero)].join(", ") + ".", "envoye");
       await ouvrirImpression(mois, r.impression);
       await rafraichirActions();
     } catch (e) {
@@ -904,11 +908,12 @@ async function boiteSignature(mois, seulement) {
   };
 }
 
-/** LES CONTRATS EN ATTENTE : partis, pas revenus signés. Chacun se note
- *  « Reçu signé » (un contrat parti par courriel peut revenir signé sur
- *  papier), et celui que le moteur dit relançable (`relancer` : parti par
- *  courriel, boîte posée) se relance. Une note se défait : le moteur rend
- *  de quoi l'annuler (`annuler`). */
+/** LES CONTRATS EN ATTENTE : un contrat ou un avenant parti, pas revenu
+ *  signé. Le moteur dit, pour chacun, ce qui est parti et quand (`attente`),
+ *  et ses gestes, route et charge : « Reçu signé » (`recu`, pour tous : ce
+ *  qui part par courriel peut revenir signé sur papier) et « Relancer »
+ *  (`relancer`, parti par courriel, boîte posée). Une note se défait : le
+ *  moteur rend de quoi l'annuler (`annuler`) et la phrase qui la dit. */
 async function boiteContratsEnAttente(mois, fait) {
   let a;
   try {
@@ -926,12 +931,11 @@ async function boiteContratsEnAttente(mois, fait) {
           <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
             ${echapper(periodeEnClair(c.debut, c.fin))}
             ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
-            <br><span class="pastille alerte">${c.par === "imprime" ? "imprimé" : "envoyé"} le
-              ${echapper(quand(c.demande_le))} — pas encore revenu signé</span></span>
+            <br><span class="pastille alerte">${echapper(c.attente)}</span></span>
           <span class="gestes-contrat">
             <button class="primaire petit a-recu" data-i="${i}">Reçu signé</button>
             ${c.relancer ? `<button class="secondaire petit a-relancer" data-i="${i}"
-              title="Renvoie le même contrat, avec un mot de rappel">Relancer</button>` : ""}
+              title="Renvoie le même document, avec un mot de rappel">Relancer</button>` : ""}
           </span>
         </div>`).join("")}
     </div>`}
@@ -953,21 +957,20 @@ async function boiteContratsEnAttente(mois, fait) {
       const c = contrats[Number(b.dataset.i)];
       const rendre = occupe(b, "…");
       try {
-        const r = await api("contrat-recu", { mois, salarie: c.salarie, debut: c.debut, numero: c.numero || "", recu: true });
+        const r = await api(c.recu.route, c.recu.charge);
         await rafraichirActions();
-        boiteContratsEnAttente(mois, { texte: "Contrat de " + c.nom + " noté reçu signé.", annuler: r.annuler });
+        boiteContratsEnAttente(mois, { texte: r.phrase, annuler: r.annuler });
       } catch (e) { rendre(); dire(e.message, "erreur"); }
     };
   });
   document.querySelectorAll(".a-relancer").forEach((b) => {
     b.onclick = async () => {
       const c = contrats[Number(b.dataset.i)];
-      const mdp = await demanderMotDePasse("relancer la signature de ce contrat", { envoi: true });
+      const mdp = await demanderMotDePasse("relancer la signature : " + c.nom + ", " + c.attente, { envoi: true });
       if (!mdp) return;
       const rendre = occupe(b, "Relance…");
       try {
-        const r = await api("demander-signature", { mois, motdepasse: mdp, relance: true,
-          contrats: [{ salarie: c.salarie, debut: c.debut, numero: c.numero || "" }] });
+        const r = await api(c.relancer.route, { ...c.relancer.charge, motdepasse: mdp });
         fermerBoite();
         dire("Relance partie : " + r.partis.join(", ") + ".", "envoye");
         await rafraichirActions();
@@ -1012,14 +1015,14 @@ async function boiteAvenant(mois, salarie, debut, numero) {
         <input type="date" id="av-effet" value="${echapper(a.effet)}"></label>`
     : `<div class="encart">Le contrat parti dit déjà tout ce que dit la paie :
         il n'y a rien à modifier.</div>`}
-    ${mods.length && a.remplacable ? `<p class="discret">Le contrat n'a pas commencé : il peut aussi être
+    ${mods.length && a.remplacable && a.boite_liee ? `<p class="discret">Le contrat n'a pas commencé : il peut aussi être
       refait en entier. Le nouveau porte en tête « annule et remplace le contrat
       n° ${echapper(a.contrat || "")} du ${echapper(jjmmaaaa(a.date_contrat))} ».</p>` : ""}
     <p class="discret"><a href="#" id="av-pieces">Voir ce qui est parti (contrat envoyé, signé, preuve)</a></p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${mods.length && a.remplacable ? `<button class="secondaire" id="av-remplace">${enFictive() ? "Contrat qui annule et remplace — simulé…" : "Contrat qui annule et remplace…"}</button>` : ""}
-      ${mods.length ? `<button class="primaire" id="av-envoyer">${enFictive() ? "Envoyer l'avenant à la signature — simulé…" : "Envoyer l'avenant à la signature…"}</button>` : ""}
+      ${mods.length && a.remplacable && a.boite_liee ? `<button class="secondaire" id="av-remplace">${enFictive() ? "Contrat qui annule et remplace — simulé…" : "Contrat qui annule et remplace…"}</button>` : ""}
+      ${mods.length && a.boite_liee ? `<button class="primaire" id="av-envoyer">${enFictive() ? "Envoyer l'avenant à la signature — simulé…" : "Envoyer l'avenant à la signature…"}</button>` : ""}
     </div>`);
   document.getElementById("av-pieces").onclick = (ev) => {
     ev.preventDefault();

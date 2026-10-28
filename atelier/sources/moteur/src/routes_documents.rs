@@ -127,15 +127,48 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("fin".into(), json!(fin));
         l.insert("numero".into(), numero);
         l.insert("demande_le".into(), premier(&demandes, cles).cloned().unwrap_or(Value::Null));
-        // CE QUE LA BOITE EN FAIT : un contrat a envoyer (jamais parti, ou caduc) se coche ; un contrat parti et pas
-        // revenu attend, et seul celui parti par courriel se relance, quand la boite est posee.
+        // CE QUE LA BOITE EN FAIT : un contrat a envoyer (jamais parti, ou caduc) se coche, et part en avenant s'il est
+        // deja revenu signe (`en_avenant`) ; un contrat ou un avenant parti et pas revenu attend : il se note reçu signe
+        // (`recu`), et seul celui parti par courriel se relance (`relancer`), quand la boite est posee. Les deux gestes
+        // sont des routes et leurs charges : la page n'en compose aucun.
         let parti = l["demande_le"].clone();
         let (recu, caduc) = (vrai(&etat["recu"]), vrai(&etat["caduc"]));
-        let en_attente = vrai(&parti) && !recu && !caduc;
-        l.insert("par".into(), etat["par"].clone());
-        l.insert("a_envoyer".into(), json!(caduc || (!recu && !vrai(&parti))));
+        let avenant_en_attente = !caduc && vrai(&etat["avenant_attendu"]);
+        let en_attente = !caduc && ((vrai(&parti) && !recu) || avenant_en_attente);
+        let a_envoyer = caduc || (!recu && !vrai(&parti));
+        let par = etat["par"].clone();
+        let (ce, depuis) = if avenant_en_attente {
+            (format!("avenant n° {} ", valeur_en_texte(&etat["avenant"]["numero"])), etat["avenant"]["quand"].clone())
+        } else {
+            (String::new(), parti.clone())
+        };
+        let jour = valeur_en_texte(&depuis);
+        let jj_mm = if jour.len() >= 10 { format!("{}/{}", &jour[8..10], &jour[5..7]) } else { jour };
+        let numero_charge = p.engagement.numero.clone().map_or(json!(""), Value::String);
+        let (recu_g, relancer) = if en_attente {
+            let avenant = if avenant_en_attente { etat["avenant"]["numero"].clone() } else { Value::Null };
+            let recu_g = json!({"route": "contrat-recu", "charge": {"mois": mois, "salarie": cle_s, "debut": debut, "numero": numero_charge, "avenant": avenant, "recu": true}});
+            let relancer = if !(est(&par, "courriel") && boite_liee) {
+                Value::Null
+            } else if avenant_en_attente {
+                json!({"route": "avenants-envoyer", "charge": {"avenants": [{"salarie": cle_s, "debut": debut, "numero": numero_charge, "mois": mois, "relance": true}]}})
+            } else {
+                json!({"route": "demander-signature", "charge": {"mois": mois, "relance": true, "contrats": [{"salarie": cle_s, "debut": debut, "numero": numero_charge}]}})
+            };
+            (recu_g, relancer)
+        } else {
+            (Value::Null, Value::Null)
+        };
+        l.insert("par".into(), par.clone());
+        l.insert("a_envoyer".into(), json!(a_envoyer));
+        l.insert("en_avenant".into(), json!(a_envoyer && caduc && recu));
         l.insert("en_attente".into(), json!(en_attente));
-        l.insert("relancer".into(), json!(en_attente && est(&etat["par"], "courriel") && boite_liee));
+        l.insert(
+            "attente".into(),
+            if en_attente { json!(format!("{}{} le {}", ce, if est(&par, "imprime") { "imprimé" } else { "envoyé" }, jj_mm)) } else { Value::Null },
+        );
+        l.insert("recu".into(), recu_g);
+        l.insert("relancer".into(), relancer);
         l.insert("recu_le".into(), etat["recu"].clone());
         l.insert("recu_par".into(), etat["recu_par"].clone());
         l.insert("caduc".into(), etat["caduc"].clone());
@@ -343,6 +376,8 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "modifications": modifications,
         "avenants": deja,
         "remplacable": debut > ctx.aujourdhui.iso(),
+        // Sans boite courriel, l'avenant s'imprime avec les contrats (`contrats-imprimer`) : rien ne part d'ici.
+        "boite_liee": crate::routes_accueil::boite_liee(ctx)?,
         "destinataire": sal.get("email").cloned().unwrap_or_else(|| json!("")),
     }))
 }

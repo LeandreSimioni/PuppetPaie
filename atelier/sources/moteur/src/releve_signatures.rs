@@ -258,7 +258,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             let debut = texte_de(c, "debut");
             // Le contrat que cette reponse signe, par son numero : le jumeau du meme jour garde sa propre attente.
             let numero = etats::numero_de_cle(c.get("numero").unwrap_or(&Value::Null));
-            match crate::routes_ecritures_g4::contrat_recu_avec(ctx, &a_mois, &texte_de(c, "salarie"), &debut, numero.as_str(), true, qui, Some(&courriel)) {
+            match crate::routes_ecritures_g4::contrat_recu_avec(ctx, &a_mois, &texte_de(c, "salarie"), &debut, numero.as_str(), true, &Value::Null, qui, Some(&courriel)) {
                 Ok(_) => notes += 1,
                 Err(e) => r.incidents.push(format!(
                     "{} : la signature de {} est arrivee mais le contrat du {} n'a pas pu etre enregistre ({}) ; il n'est pas note signe.",
