@@ -371,6 +371,7 @@ function corpsDsn(a) {
       <summary>Ordres de télépaiement (${v.length}) — la conséquence de ce que
         la DSN déclare ; un dépôt réel les déclenche tous</summary>
       <div class="encart ${enFictive() ? "info" : "attention"}">
+      ${a.ordres_erreur ? `<p><b>${echapper(a.ordres_erreur)}</b></p>` : ""}
       ${v.length
         ? `<table class="ordres">
              <tr><th>À qui</th><th>Pour quoi</th><th class="nombre">Montant</th><th>Prélevé</th></tr>

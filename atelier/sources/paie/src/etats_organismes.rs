@@ -1,13 +1,13 @@
 //! Les etats des cotisations et des organismes de `moteur/operations_etats.py` : les cotisations par organisme,
-//! les versements aux organismes (bloc 20 des DSN deposees), le bordereau Urssaf (blocs 22 et 23), le FCAP-SVP de
-//! la 3090, les contributions Afdas, le paritarisme de branche.
+//! les versements aux organismes (bloc 20), le bordereau Urssaf (blocs 22 et 23), le FCAP-SVP de la 3090, les
+//! contributions Afdas, le paritarisme de branche.
 //!
-//! CE QUI SE LIT DANS UNE DSN DEPOSEE SE LIT DANS LA DSN DEPOSEE : les versements et le bordereau sont lus dans le
-//! fichier parti (`casc::dsn_deposee`), jamais recomposes. Les montants annuels hors DSN (FCAP-SVP, Afdas,
-//! paritarisme) se calculent sur le brut du livre de paie ou sur la tranche A declaree, avec les taux du bareme.
+//! CE QUE LA DSN PORTE SE TIRE DES PAIES DECLAREES (`dsn::paies_declarees_du_mois`) par les fonctions qui ecrivent la
+//! DSN : les versements (`dsn::ordres_du_mois`), le bordereau (`dsn::bordereau_du_mois`), la tranche A (`dsn::cotisations`).
+//! Les montants annuels hors DSN (FCAP-SVP, Afdas, paritarisme) se calculent sur le brut du livre de paie ou sur la
+//! tranche A declaree, avec les taux du bareme.
 
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
@@ -240,86 +240,6 @@ pub(crate) fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tablea
 
 // ===================================== 7. les versements aux organismes (bloc 20)
 
-/// Un bloc d'une DSN : `{rubrique: valeur}`, et le bloc dont il vient.
-struct Bloc {
-    bloc: String,
-    v: Vec<(String, String)>,
-}
-
-impl Bloc {
-    fn get(&self, k: &str) -> Option<&str> {
-        self.v.iter().rev().find(|(c, _)| c == k).map(|(_, x)| x.as_str())
-    }
-
-    fn texte(&self, k: &str) -> String {
-        self.get(k).unwrap_or("").to_string()
-    }
-}
-
-/// `_lire_blocs` : les blocs d'une DSN dont la rubrique commence par l'un des prefixes. Un bloc commence a sa
-/// rubrique .001.
-fn lire_blocs(chemin: &Path, prefixes: &[&str]) -> R<Vec<Bloc>> {
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
-    let texte = crate::apercu_dsn::texte_latin1(&octets);
-    let mut blocs: Vec<Bloc> = Vec::new();
-    let mut en_cours = false;
-    for l in crate::apercu_dsn::lignes_py(&texte) {
-        let Some((k, v)) = l.split_once(',') else { continue };
-        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'').to_string();
-        let bloc: String = k.chars().take(10).collect();
-        if !prefixes.contains(&bloc.as_str()) {
-            en_cours = false;
-            continue;
-        }
-        if k.ends_with(".001") || !en_cours || blocs.last().map_or(true, |b| b.bloc != bloc) {
-            blocs.push(Bloc { bloc: bloc.clone(), v: Vec::new() });
-            en_cours = true;
-        }
-        let rubrique: String = k.chars().skip(11).collect();
-        let cur = blocs.last_mut().expect("un bloc");
-        match cur.v.iter_mut().find(|(c, _)| *c == rubrique) {
-            Some(x) => x.1 = v,
-            None => cur.v.push((rubrique, v)),
-        }
-    }
-    Ok(blocs)
-}
-
-/// `_date_dsn` : JJMMAAAA -> JJ/MM/AAAA.
-fn date_dsn(v: &str) -> String {
-    let c: Vec<char> = v.chars().collect();
-    if c.len() == 8 {
-        format!("{}/{}/{}", c[..2].iter().collect::<String>(), c[2..4].iter().collect::<String>(), c[4..8].iter().collect::<String>())
-    } else {
-        v.to_string()
-    }
-}
-
-/// `_montant` d'un texte de la DSN.
-fn montant_dsn(b: &Bloc, k: &str) -> R<Option<Decimal>> {
-    montant(b.get(k).map(|t| Value::String(t.to_string())).as_ref())
-}
-
-/// `_dsn_des_mois` : [(mois, chemin)] des DSN deposees de la periode -- lues, jamais recomposees. Un mois saisi
-/// sans DSN reelle acceptee est dit.
-fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, PathBuf)>> {
-    let (mut out, mut sans) = (Vec::new(), Vec::new());
-    for m in &p.mois {
-        match crate::casc::dsn_deposee(ctx, m, None) {
-            Err(e) => avert.push(e),
-            Ok(None) => sans.push(m.clone()),
-            Ok(Some(c)) => out.push((m.clone(), c)),
-        }
-    }
-    if !sans.is_empty() {
-        avert.push(format!("Pas de DSN réelle acceptée au journal pour {} : ces mois ne sont pas dans l'état, qui ne lit que ce qui est parti.", sans.join(", ")));
-    }
-    if out.is_empty() {
-        return Err(refus(format!("Aucune DSN déposée sur la période ({}) : cet état se lit dans les DSN parties, il n'y a rien à lire.", p.libelle)));
-    }
-    Ok(out)
-}
-
 /// Les paies declarees de chaque mois de la periode (`dsn::paies_declarees_du_mois` : la version sur laquelle la DSN est
 /// partie, ou la paie ecrite si rien n'est parti), tous etablissements. Un mois sans paie validee est dit.
 fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, Vec<engagement::calcul::Paie>)>> {
@@ -357,30 +277,37 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     Ok(out)
 }
 
-fn nom_du_fichier(p: &Path) -> String {
-    p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
-}
-
-/// `operations_etats.versements_organismes` : chaque versement que les DSN deposees ont ordonne (bloc S21.G00.20).
+/// `operations_etats.versements_organismes` : chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20).
 pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let noms = libelles_organismes(ctx)?;
     let mut lignes = Vec::new();
-    for (m, chemin) in dsn_des_mois(ctx, &p, &mut avert)? {
-        for b in lire_blocs(&chemin, &["S21.G00.20"])? {
-            let ident = b.texte("001");
-            let organisme = match noms.iter().find(|(k, _)| *k == ident).map(|(_, v)| v.clone()).filter(|v| !v.is_empty()) {
-                Some(n) => n,
-                None => ident.clone(),
-            };
-            let mode = b.texte("010");
-            let mut l = Ligne::nouvelle();
-            l.t("mois", m.clone()).t("organisme", organisme).t("identifiant", ident).t("reference", b.texte("002"));
-            l.t("du", date_dsn(&b.texte("006"))).t("au", date_dsn(&b.texte("007"))).od("montant", montant_dsn(&b, "005")?);
-            l.t("mode", if mode == "05" { "prélèvement SEPA".to_string() } else { format!("code {}", mode) });
-            l.t("date", date_dsn(&b.texte("011"))).t("fichier", nom_du_fichier(&chemin));
-            lignes.push(l);
+    for (m, paies) in paies_des_mois(ctx, &p, &mut avert)? {
+        let principal = droit::bareme::nic_principal(&ctx.entreprise);
+        for nic in crate::dsn::nics(&ctx.entreprise) {
+            let mut siennes = Vec::new();
+            for q in &paies {
+                if droit::bareme::etablissement_du_salarie(&ctx.entreprise, &q.salarie).map_err(refus)? == nic {
+                    siennes.push(q.clone());
+                }
+            }
+            if siennes.is_empty() && nic != principal {
+                continue;
+            }
+            let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
+            for o in crate::dsn::ordres_du_mois(ctx, &siennes, &m, etablissement).map_err(refus)? {
+                let organisme = match noms.iter().find(|(k, _)| *k == o.organisme).map(|(_, v)| v.clone()).filter(|v| !v.is_empty()) {
+                    Some(n) => n,
+                    None => o.organisme.clone(),
+                };
+                let mut l = Ligne::nouvelle();
+                l.t("mois", m.clone()).t("organisme", organisme).t("identifiant", o.organisme.clone()).t("reference", o.reference.clone().unwrap_or_default());
+                l.t("du", o.debut.jj_mm_aaaa()).t("au", o.fin.jj_mm_aaaa()).od("montant", Some(o.montant));
+                l.t("mode", "prélèvement SEPA");
+                l.t("date", o.date_paiement.map(|j| j.jj_mm_aaaa()).unwrap_or_default()).t("fichier", format!("DSN de {}", libelle_mois(&m).unwrap_or_else(|_| m.clone())));
+                lignes.push(l);
+            }
         }
     }
     if lignes.iter().any(|l| l.texte("date").is_empty()) {
@@ -403,7 +330,7 @@ pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("fichier", "DSN"),
     ];
     t.sources = vec![
-        "DSN déposée, bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1) ; libellés : config/organismes.json".to_string(),
+        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré des paies déclarées par la fonction qui écrit la DSN ; libellés : config/organismes.json".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "versements-organismes", &d.format, d.ecrire)?;
     Ok(t)

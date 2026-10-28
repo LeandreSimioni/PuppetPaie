@@ -255,6 +255,62 @@ fn constitution_de(chemin: &Path) -> Option<socle::date::Jour> {
 }
 
 /// Un etablissement et ce qu'il declare ce mois-ci : `(nic, paies, corrections, arrets)`.
+/// LA DSN QUE PORTE LE FICHIER `chemin` (mois principal `mois`, etablissement `nic` ; le principal sans lui), fabriquee
+/// de nouveau depuis les paies des engagements qu'elle couvre, avec ce que `produire_dsn` lui donne (les corrections a
+/// porter, les arrets du mois, la forme que son en-tete dit), au jour ou elle a ete constituee. `None` : le fichier ne dit
+/// plus ce que disent les paies, il se refait.
+pub(crate) fn refabriquer(o: &HashMap<String, String>, ctx: &Contexte, chemin: &Path, mois: &str, nic: Option<&str>) -> R<Option<crate::dsn::Fabriquee>> {
+    let Ok(octets) = std::fs::read(chemin) else { return Ok(None) };
+    let Some(constitution) = constitution_de(chemin) else { return Ok(None) };
+    let entete = crate::depot::lire(&octets);
+    let type_dsn = entete.champ("type_declaration").to_string();
+    let Ok(ordre_dsn) = entete.champ("ordre").trim().parse::<i64>() else { return Ok(None) };
+    let fiche = ctx.entreprise.clone();
+    let plusieurs = !droit::bareme::secondaires(&fiche).is_empty();
+    let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| droit::bareme::nic_principal(&fiche));
+    let du_nic = |sal: &Value| -> R<bool> { Ok(!plusieurs || droit::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == nic) };
+    let (_data, toutes) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None)?;
+    let mut paies: Vec<Paie> = Vec::new();
+    for p in toutes {
+        if du_nic(&p.salarie)? {
+            paies.push(p);
+        }
+    }
+    let regs = regularisations::regularisations_pour(ctx, mois)?;
+    let mut regs_e: Vec<&Reg> = Vec::new();
+    for r in &regs {
+        if du_nic(&r.apres.salarie)? {
+            regs_e.push(r);
+        }
+    }
+    let regs_dsn = regularisations::pour_la_dsn(ctx, &regs_e)?;
+    let mut arrets: Vec<crate::dsn::Arret> = Vec::new();
+    for a in crate::marques_depot::arrets_pour(ctx, mois)? {
+        let sal = ctx.salarie(&valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
+        if du_nic(&sal)? {
+            arrets.push(crate::dsn::Arret { v: a });
+        }
+    }
+    let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };
+    let remplacee_versait_pas = if type_dsn == "03" || type_dsn == "05" {
+        let mut m = Moteur::nouveau(o, ctx);
+        remplacee_versait_pas_de(ctx, &mut m, mois, &nic_v)?
+    } else {
+        None
+    };
+    let options = crate::dsn::Options {
+        date_constitution: Some(constitution),
+        envoi_test: false,
+        type_declaration: type_dsn,
+        ordre: ordre_dsn,
+        etablissement: if plusieurs { Some(nic) } else { None },
+        remplacee_versait_pas,
+        ..Default::default()
+    };
+    let f = crate::dsn::fabriquer(ctx, &paies, mois, &regs_dsn, &arrets, &options).map_err(valeur)?;
+    Ok((crate::dsn::en_latin1(&f.texte).ok().as_deref() == Some(octets.as_slice())).then_some(f))
+}
+
 struct Lot {
     nic: Option<String>,
     paies: Vec<usize>,
