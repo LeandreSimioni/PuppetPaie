@@ -51,7 +51,6 @@
 //! sens de L. 6331-55 ; 013 se declare seulement si l'annee a eu un CDD soumis a la contribution.
 
 use std::collections::BTreeMap;
-use std::path::Path;
 
 use serde_json::Value;
 
@@ -396,50 +395,38 @@ pub(crate) fn taxe_sur_les_salaires_de_la_fiche(ent: &Value) -> Resultat<Option<
 
 /// Une paie de l'annee : son salarie (`_cle`), et la paie calculee ou seulement son contrat.
 enum MoisDeLAnnee {
-    /// Les paies du mois (celles de la DSN, ou les paies validees d'un mois saisi quand les montants sont necessaires).
+    /// Les paies du mois : celles de la DSN, ou les paies declarees d'un autre mois quand les montants sont necessaires.
     Calcules(String, Vec<Paie>),
     /// Les contrats saisis du mois, sans montants (`dsn::contrats_du_mois`).
     Contrats(Vec<Paie>),
-    /// Un mois d'avant PuppetPaie (ou sans saisie) que seule une DSN deposee decrit.
-    Depose(String, String),
-}
-
-fn lire_latin1(chemin: &Path) -> Resultat<String> {
-    let octets = std::fs::read(chemin).map_err(|e| format!("{} illisible ({})", chemin.display(), e))?;
-    Ok(octets.iter().map(|&b| b as char).collect())
 }
 
 /// Les douze mois de l'annee de la DSN, pour l'etablissement `nic`. Le mois de la DSN est `paies` (celles qu'elle
-/// declare) ; un autre mois se lit dans ses engagements : leurs paies validees si `montants`, sinon leurs seuls
-/// contrats ; sans saisie, dans la DSN deposee du mois (`casc::dsn_deposee` : celle du journal, ou celle de l'ancien
-/// logiciel). Un mois sans rien n'a pas eu de salarie.
+/// declare) ; un autre mois se lit dans ses engagements : leurs paies declarees (`dsn::paies_declarees_du_mois`) si
+/// `montants`, sinon leurs seuls contrats. Un mois sans saisie n'a pas eu de salarie.
 fn mois_de_l_annee(ctx: &Contexte, ent: &Value, nic: &str, mois: &str, paies: &[Paie], montants: bool) -> Resultat<Vec<MoisDeLAnnee>> {
     let an = &mois[..4];
     let mut out = Vec::new();
-    let de_l_etablissement = |ps: Vec<Paie>| -> Resultat<Vec<Paie>> {
-        let mut garde = Vec::new();
-        for p in ps {
-            if droit::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
-                garde.push(p);
-            }
-        }
-        Ok(garde)
-    };
     for m in 1..=12u32 {
         let m = format!("{}-{:02}", an, m);
         if m == mois {
             out.push(MoisDeLAnnee::Calcules(m, paies.to_vec()));
             continue;
         }
-        if engagement::stock::a_une_saisie(&ctx.racine, &m)? {
-            if montants {
-                let (_, paies) = engagement::etats::validees_du_mois(ctx, &m).map_err(|e| format!("{} : {}", m, e))?.unwrap_or_default();
-                out.push(MoisDeLAnnee::Calcules(m, de_l_etablissement(paies)?));
-            } else {
-                out.push(MoisDeLAnnee::Contrats(de_l_etablissement(crate::dsn::contrats_du_mois(ctx, &m)?)?));
+        if !engagement::stock::a_une_saisie(&ctx.racine, &m)? {
+            continue;
+        }
+        if montants {
+            let declarees = crate::dsn::paies_declarees_du_mois(ctx, &m, Some(nic)).map_err(|e| format!("{} : {}", m, e))?;
+            out.push(MoisDeLAnnee::Calcules(m, declarees));
+        } else {
+            let mut garde = Vec::new();
+            for p in crate::dsn::contrats_du_mois(ctx, &m)? {
+                if droit::bareme::etablissement_du_salarie(ent, &p.salarie)? == nic {
+                    garde.push(p);
+                }
             }
-        } else if let Some(chemin) = crate::casc::dsn_deposee(ctx, &m, Some(nic))? {
-            out.push(MoisDeLAnnee::Depose(m, lire_latin1(&chemin)?));
+            out.push(MoisDeLAnnee::Contrats(garde));
         }
     }
     Ok(out)
@@ -460,29 +447,6 @@ fn qui(p: &Paie) -> String {
     )
 }
 
-/// Les contrats d'une DSN deposee : (numero 40.009, nature 40.007, dispositif 40.008, motif 40.021).
-fn contrats_deposes(texte: &str) -> Vec<(String, String, String, String)> {
-    let mut out: Vec<(String, String, String, String)> = Vec::new();
-    for l in crate::usages::lignes(texte) {
-        let (r, v) = crate::usages::rubrique_valeur(l);
-        match r {
-            "S21.G00.40.001" => out.push(Default::default()),
-            "S21.G00.40.007" | "S21.G00.40.008" | "S21.G00.40.009" | "S21.G00.40.021" => {
-                if let Some(c) = out.last_mut() {
-                    match r {
-                        "S21.G00.40.007" => c.1 = v.to_string(),
-                        "S21.G00.40.008" => c.2 = v.to_string(),
-                        "S21.G00.40.009" => c.0 = v.to_string(),
-                        _ => c.3 = v.to_string(),
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-    out
-}
-
 fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
     let mut soumis = false;
     for m in annee {
@@ -491,11 +455,6 @@ fn cpf_cdd(annee: &[MoisDeLAnnee]) -> Resultat<bool> {
                 for p in ps {
                     let (n, d, mo) = codes_du_contrat(p)?;
                     soumis |= droit::cpf_cdd::ouvre_cpf_cdd(&n, &d, &mo, &qui(p))?;
-                }
-            }
-            MoisDeLAnnee::Depose(mois, texte) => {
-                for (numero, n, d, mo) in contrats_deposes(texte) {
-                    soumis |= droit::cpf_cdd::ouvre_cpf_cdd(&n, &d, &mo, &format!("Contrat {} de la DSN deposee de {}", numero, mois))?;
                 }
             }
         }
@@ -527,7 +486,6 @@ majores se lisent sur la notice 2501-SD de l'annee.",
         None => Decimal::ONE,
     };
     let mut par_salarie: BTreeMap<String, Decimal> = BTreeMap::new();
-    let mut deposes = Vec::new();
     for m in annee {
         match m {
             MoisDeLAnnee::Calcules(_, ps) => {
@@ -536,19 +494,8 @@ majores se lisent sur la notice 2501-SD de l'annee.",
                     *b = add(*b, assiette_taxe_sur_les_salaires(p, abattement));
                 }
             }
-            MoisDeLAnnee::Depose(mois, _) => deposes.push(mois.clone()),
             MoisDeLAnnee::Contrats(_) => return Err("assiettes de la taxe sur les salaires : un mois sans montants".into()),
         }
-    }
-    if !deposes.is_empty() {
-        return Err(format!(
-            "La taxe sur les salaires de l'annee se declare dans la DSN de decembre (S21.G00.44, codes 009, 015, 016), avec \
-son assiette salarie par salarie, et {} ne {} que par une DSN deposee hors de PuppetPaie, qui ne donne pas l'assiette de \
-la CSG ligne a ligne (la meme limite que l'etat « taxe sur les salaires »). Le moteur n'ecrit pas une assiette \
-incomplete : saisir ces mois dans PuppetPaie.",
-            deposes.join(", "),
-            if deposes.len() > 1 { "se connaissent" } else { "se connait" }
-        ));
     }
     let (mut normal, mut premier, mut second) = (Decimal::ZERO, Decimal::ZERO, Decimal::ZERO);
     for b in par_salarie.values() {
@@ -561,31 +508,9 @@ incomplete : saisir ces mois dans PuppetPaie.",
     Ok((part(normal), part(premier), part(second)))
 }
 
-/// Les bases 03 (« assiette brute deplafonnee ») d'une DSN deposee dont la periode (78.002) est dans l'annee `an`.
-fn bases_03_deposees(texte: &str, an: &str) -> Resultat<Decimal> {
-    let mut total = Decimal::ZERO;
-    let mut code = String::new();
-    let mut dans_l_annee = false;
-    for l in crate::usages::lignes(texte) {
-        let (r, v) = crate::usages::rubrique_valeur(l);
-        match r {
-            "S21.G00.78.001" => {
-                code = v.to_string();
-                dans_l_annee = false;
-            }
-            "S21.G00.78.002" => dans_l_annee = v.len() == 8 && &v[4..] == an,
-            "S21.G00.78.004" if code == "03" && dans_l_annee => {
-                total = add(total, v.parse::<Decimal>().map_err(|_| format!("S21.G00.78.004 illisible : {}", v))?);
-            }
-            _ => {}
-        }
-    }
-    Ok(total)
-}
-
 /// L'assiette de la PEEC de l'etablissement : les remunerations de l'annee qui servent de base aux cotisations de
 /// securite sociale, la base 03 de chaque contrat (celle que la DSN de chaque mois a declaree ou declare).
-fn assiette_peec(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, an: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
+fn assiette_peec(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, annee: &[MoisDeLAnnee]) -> Resultat<Decimal> {
     let mut total = Decimal::ZERO;
     for m in annee {
         match m {
@@ -601,7 +526,6 @@ fn assiette_peec(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, an: &str,
                     }
                 }
             }
-            MoisDeLAnnee::Depose(_, texte) => total = add(total, bases_03_deposees(texte, an)?),
             MoisDeLAnnee::Contrats(_) => return Err("assiette de la PEEC : un mois sans montants".into()),
         }
     }
@@ -730,7 +654,7 @@ pas son assiette. Rien n'est ecrit.",
 
     // La PEEC : CCH L. 313-1, cinquante salaries.
     out.push(if peec {
-        Bloc44 { code: "005", montant: Some(assiette_peec(ctx, ent, orgs, nic, an_txt, &annee)?), motif: None }
+        Bloc44 { code: "005", montant: Some(assiette_peec(ctx, ent, orgs, nic, &annee)?), motif: None }
     } else {
         Bloc44 { code: "006", montant: None, motif: None }
     });
@@ -787,15 +711,5 @@ mod tests {
         assert_eq!(fractions_majorees(d("10000"), s1, s2), (d("853"), Decimal::ZERO));
         // L'exemple du BOFiP (BOI-TPS-TS-30, § 240), seuils 2020 : 180 000 -> 7 977 et 164 019.
         assert_eq!(fractions_majorees(d("180000"), d("8004"), d("15981")), (d("7977"), d("164019")));
-    }
-
-    #[test]
-    fn une_dsn_deposee_donne_ses_contrats_et_ses_bases_03_de_l_annee() {
-        let t = "S21.G00.40.001,'01122025'\r\nS21.G00.40.007,'02'\r\nS21.G00.40.008,'99'\r\nS21.G00.40.009,'C1'\r\n\
-S21.G00.40.021,'05'\r\nS21.G00.78.001,'03'\r\nS21.G00.78.002,'01122025'\r\nS21.G00.78.003,'31122025'\r\n\
-S21.G00.78.004,'1000.00'\r\nS21.G00.78.001,'03'\r\nS21.G00.78.002,'01112024'\r\nS21.G00.78.003,'30112024'\r\n\
-S21.G00.78.004,'-50.00'\r\nS21.G00.78.001,'02'\r\nS21.G00.78.002,'01122025'\r\nS21.G00.78.004,'900.00'\r\n";
-        assert_eq!(contrats_deposes(t), vec![("C1".into(), "02".into(), "99".into(), "05".into())]);
-        assert_eq!(bases_03_deposees(t, "2025").unwrap(), d("1000.00"), "la regularisation de 2024 et la base 02 n'en sont pas");
     }
 }

@@ -88,6 +88,17 @@ impl Fichier {
         Ok(())
     }
 
+    /// Les rubriques ecrites, `(rubrique, valeur)`, dans l'ordre.
+    pub fn rubriques(&self) -> Vec<(String, String)> {
+        self.lignes
+            .iter()
+            .map(|l| match l.split_once(',') {
+                Some((k, v)) => (k.to_string(), v.strip_prefix('\'').and_then(|v| v.strip_suffix('\'')).unwrap_or(v).to_string()),
+                None => (l.clone(), String::new()),
+            })
+            .collect()
+    }
+
     pub fn texte(&self) -> String {
         let mut t = self.lignes.join("\r\n");
         t.push_str("\r\n");
@@ -2255,11 +2266,17 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     Ok(())
 }
 
+/// Un versement tel que la mensuelle l'ecrit pour un contrat : les affiliations du contrat (S21.G00.70.012, 70.013) et
+/// les rubriques de son versement (blocs 50 a 81), dans l'ordre ou elles s'ecrivent.
+pub(crate) struct VersementEcrit {
+    pub affiliations: Vec<(String, String)>,
+    pub rubriques: Vec<(String, String)>,
+}
+
 /// CE QU'UNE DSN A DECLARE POUR UN CONTRAT, ecrit depuis la paie qu'elle a declaree (`engagement::etats::paies_declarees`)
-/// comme la mensuelle de `mois` l'ecrit : l'individu (S21.G00.30.001), le contrat (S21.G00.40.001, 40.009) et ses
-/// affiliations (S21.G00.70.012, 70.013), puis son versement (blocs 50 a 81, `bloc_versement`), qu'une regularisation
-/// annule (`versement_declare::de_la_paie`).
-pub(crate) fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<String> {
+/// par les fonctions qui ecrivent la mensuelle de `mois` : ses affiliations (`rattachements`) et son versement
+/// (`bloc_versement`), qu'une regularisation annule (`versement_declare::de_la_paie`).
+pub(crate) fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<VersementEcrit> {
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
@@ -2267,17 +2284,14 @@ pub(crate) fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let ent_e = fiche_de(ent, &nic)?;
     let e = &p.engagement;
-    let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(mois)?);
-    f.add("S21.G00.30.001", p.salarie.get("nir").and_then(Value::as_str).unwrap_or(""));
-    f.add("S21.G00.40.001", e.debut.jjmmaaaa());
-    f.add_opt("S21.G00.40.009", e.numero.clone())?;
     let refs = affiliations(&orgs, &*e.nat()?, g(&bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
-    for a in rattachements(p, &orgs, bareme::entreprise_du(&bar, &ent_e), refs)? {
-        f.add("S21.G00.70.012", 202 + a.place as i64);
-        f.add("S21.G00.70.013", a.reference);
-    }
+    let affiliations = rattachements(p, &orgs, bareme::entreprise_du(&bar, &ent_e), refs)?
+        .into_iter()
+        .map(|a| ((202 + a.place as i64).to_string(), a.reference))
+        .collect();
+    let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(mois)?);
     bloc_versement(&mut f, p, &bar, 1, None)?;
-    Ok(f.texte())
+    Ok(VersementEcrit { affiliations, rubriques: f.rubriques() })
 }
 
 /// Les affiliations que CE fichier a deja ecrites pour le contrat `numero` de l'individu en cours :
@@ -3824,45 +3838,58 @@ pub struct SoldeTa {
     pub org: String,
 }
 
-/// Les assiettes du CTP 992 d'une DSN deposee.
-fn assiettes_992(texte: &str) -> Decimal {
-    assiettes_du_ctp(texte, "992")
-}
-
-/// Les assiettes (23.004) d'un CTP dans une DSN deposee : celles de la taxe d'apprentissage (992, 993) pour le solde
-/// d'avril et la contribution supplementaire de mars (`csa`).
-pub(crate) fn assiettes_du_ctp(texte: &str, code: &str) -> Decimal {
-    let lignes: Vec<&str> = texte.split('\n').map(|l| l.strip_suffix('\r').unwrap_or(l)).collect();
-    let valeur = |l: &str, rub: &str| -> Option<String> {
-        let reste = l.strip_prefix(rub)?.strip_prefix(",'")?;
-        let v = reste.strip_suffix('\'')?;
-        Some(v.to_string())
-    };
-    let mut total = Decimal::ZERO;
-    let mut i = 0;
-    while i < lignes.len() {
-        if valeur(lignes[i], "S21.G00.23.001").as_deref() == Some(code) {
-            let mut j = i + 1;
-            let q = lignes.get(j).and_then(|l| valeur(l, "S21.G00.23.002"));
-            if q.as_deref().map_or(false, |q| !q.is_empty() && q.chars().all(|c| c.is_ascii_digit())) {
-                j += 1;
-                if lignes.get(j).and_then(|l| valeur(l, "S21.G00.23.003")).map_or(false, |v| !v.contains('\'')) {
-                    j += 1;
-                }
-                if let Some(a) = lignes.get(j).and_then(|l| valeur(l, "S21.G00.23.004")) {
-                    if !a.is_empty() && a.chars().all(|c| c.is_ascii_digit() || c == '.') {
-                        if let Ok(x) = a.parse::<Decimal>() {
-                            total = add(total, x);
-                            i = j + 1;
-                            continue;
-                        }
-                    }
-                }
+/// CE QUI A ETE DECLARE D'UN MOIS : pour chaque engagement valide de `mois`, dans l'ordre de l'ecran, la paie que la
+/// derniere DSN qui a declare ce mois a portee (`engagement::etats::paie_declaree`, regle 4 : ce qui est declare se lit
+/// dans la version sur laquelle la DSN est partie), ou sa paie ecrite si aucune DSN ne l'a encore declaree. Un
+/// engagement en saisie n'y est pas : rien ne part de lui. `nic` : les seuls salaries de cet etablissement.
+pub(crate) fn paies_declarees_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> Resultat<Vec<Paie>> {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
+    let departs = crate::journal::departs(&ctx.racine)?;
+    let ctx_m = ctx.du_mois(mois)?;
+    let mut out = Vec::new();
+    for (i, e) in engagement::etats::du_mois(ctx, mois)?.iter().enumerate() {
+        let Some(v) = e.valide() else { continue };
+        let p = match engagement::etats::paie_declaree(&ctx_m, v.objet(), &departs, mois)? {
+            Some(p) => p,
+            None => v.paie(ctx, &data, i)?,
+        };
+        if let Some(n) = nic {
+            if bareme::etablissement_du_salarie(&ctx_m.entreprise, &p.salarie)? != n {
+                continue;
             }
         }
-        i += 1;
+        out.push(p);
     }
-    total
+    Ok(out)
+}
+
+/// LES ASSIETTES DES CTP `codes` que le bordereau Urssaf de `mois` porte pour l'etablissement `nic` sur les paies
+/// `paies`, une par code, tirees par la fonction qui ecrit le bordereau de la DSN (`lignes_bordereau`) : la taxe
+/// d'apprentissage (992, 993) que lisent le solde d'avril et la contribution supplementaire de mars (`csa`).
+pub(crate) fn assiettes_des_ctp(ctx: &Contexte, paies: &[Paie], mois: &str, nic: &str, codes: &[&str]) -> Resultat<Vec<Decimal>> {
+    if paies.is_empty() {
+        return Ok(vec![zero(); codes.len()]);
+    }
+    let ctx = &ctx.du_mois(mois)?;
+    let ent = &ctx.entreprise;
+    let orgs = ctx.organismes_exiges()?;
+    let bar = bar_du(ctx, ent, &orgs, nic, mois)?;
+    let refs: Vec<&Paie> = paies.iter().flat_map(|p| p.elementaires()).collect();
+    let lignes = lignes_bordereau(&refs, &orgs, ent, &bar, None, None, None, mois, &Seuils::du_mois(ctx, mois)?)?;
+    Ok(codes.iter().map(|c| lignes.iter().filter(|l| l.code == *c).filter_map(|l| l.assiette).fold(zero(), add)).collect())
+}
+
+/// Les assiettes des CTP `codes` que les DSN de l'annee `annee` declarent pour l'etablissement `nic`, une par code.
+pub(crate) fn assiettes_de_l_annee(ctx: &Contexte, annee: i32, nic: &str, codes: &[&str]) -> Resultat<Vec<Decimal>> {
+    let mut total = vec![zero(); codes.len()];
+    for m in 1..=12 {
+        let mois = format!("{}-{:02}", annee, m);
+        let paies = paies_declarees_du_mois(ctx, &mois, Some(nic))?;
+        for (t, a) in total.iter_mut().zip(assiettes_des_ctp(ctx, &paies, &mois, nic, codes)?) {
+            *t = add(*t, a);
+        }
+    }
+    Ok(total)
 }
 
 fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Value, nic: &str) -> Resultat<Option<SoldeTa>> {
@@ -3878,14 +3905,7 @@ fn solde_taxe_apprentissage(ctx: &Contexte, mois: &str, orgs: &Value, bar: &Valu
     if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, annee)? {
         return Ok(None);
     }
-    let mut assiette = Decimal::ZERO;
-    for m in 1..=12 {
-        if let Some(chemin) = crate::casc::dsn_deposee(ctx, &format!("{}-{:02}", annee, m), Some(nic))? {
-            let octets = std::fs::read(&chemin).map_err(|e| format!("{} illisible ({})", chemin.display(), e))?;
-            let texte: String = octets.iter().map(|&b| b as char).collect();
-            assiette = add(assiette, assiettes_992(&texte));
-        }
-    }
+    let assiette = assiettes_de_l_annee(ctx, annee, nic, &["992"])?[0];
     if assiette.is_zero() {
         return Ok(None);
     }
