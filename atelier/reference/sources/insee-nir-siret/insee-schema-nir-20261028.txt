@@ -1,0 +1,968 @@
+1.Introduction
+
+Ce document présente une bibliothèque de types, d'éléments et d'attributs XML permettant de représenter les données d'identification NIR et NIRAvecCle.
+
+La définition formelle de cette bibliothèque est réalisée sous la forme d'un schéma W3C XML Schema.
+
+Certains types présentés ici ont été introduits dans la première version de l'espace de noms, et obéissent à des règles de nommage qui ont été depuis abandonnées. Ils ont été remplacés par des types équivalents respectant les nouvelles règles et sont indiqués ci-dessous comme d'usage déconseillés. Ils seront supprimés dans les prochaines versions de l'expace de noms.
+
+NIR et NIRAvecCle constituent un système d'identification des personnes physiques.
+
+1.1.Espace de noms INSEE
+
+Les types, éléments et attributs décrits décrit dans ce module font partie de l'espace de noms INSEE : http://xml.insee.fr/schema
+
+1.2.Conditions d'utilisation
+
+Cette documentation et les ressources qui en dépendent (schémas, exemples, transformations XSLT) sont soumises aux conditions d'utilisation des informations publiées sur le site de l'INSEE.
+
+2.Table des matières
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+-   
+
+3.Numéro d'identification NIR
+
+3.1.Description
+
+RNIPP
+    L'INSEE gère le répertoire national d'identification des personnes physiques depuis 1946.
+
+NIR
+    Le numéro d'inscription au répertoire (NIR) est l'identifiant unique des individus inscrits au RNIPP.
+
+Le NIR est un numéro à treize caractères dont la composition est précisée dans l'article 4 du décret n° 82-103 du 22 janvier 1982 : "Le numéro attribué à chaque personne inscrite au répertoire comporte 13 chiffres. Ce numéro indique successivement et exclusivement le sexe (1 chiffre), l'année de naissance (2 chiffres), le mois de naissance (2 chiffres), et le lieu de naissance (5 chiffres ou caractères) de la personne concernée. Les trois chiffres suivants permettent de distinguer les personnes nées au même lieu, à la même période."
+
+On notera également l'article 6 du décret n° 82-103 du 22 janvier 1982 relatif au répertoire national d'identification des personnes physiques (RNIPP), "le numéro d'inscription au répertoire d'une personne n'est modifié que dans le cas où les informations qu'il décrit ne sont pas, ou ne sont plus, conformes aux registres de l'état civil".
+
+Les éléments constitutifs du NIR ont été valués de la manière suivante :
+
+rang 1
+    le sexe (1 pour les hommes et 2 pour les femmes).
+
+rangs 2 et 3
+    les deux derniers chiffres de l'année de naissance ; à noter que ces chiffres sont insuffisants pour déterminer, à un siècle près, l'année de naissance exacte.
+
+rangs 4 et 5
+    les deux chiffres du mois de naissance (de 01 à 12) ; en cas de mois de naissance inconnu, d'autres codes spécifiques sont attribués.
+
+rangs 6 à 10
+    le lieu de naissance : il s'appuie sur le code officiel géographique de l'INSEE. Personnes nées en métropole : les deux chiffres du département suivis des trois chiffres du code commune. Pour la Corse la numérotation 2A, 2B a pris effet en 1976. Personnes nées dans les DOM : les trois chiffres du département suivi des 2 chiffres de la commune. Personnes nées à l'étranger : le code 99 suivi des trois chiffres désignant le pays. Au cas où le nombre de naissances dépasse 999 pour une commune et un mois donné, un "code commune extension" est utilisé pour garantir l'unicité du NIR.
+
+rangs 11 à 13
+    un numéro d'ordre non significatif
+
+Compte tenu des aménagements décrits plus haut et de ceux qui pourraient survenir dans le futur, il est conseillé aux applications informatiques de ne pas s'appuyer sur la structure du NIR pour en déduire les caractéristiques des personnes mais de le considérer comme un identifiant "opaque".
+
+3.2.Contraintes juridiques
+
+L'utilisation du NIR dans les applications informatiques est soumise à de fortes contraintes juridiques, dont (la liste n'étant pas exhaustive) :
+
+-   la loi n° 78-17 du 6 janvier 1978 relative à l'informatique, aux fichiers et aux libertés dont l'article 18 subordonne l'utilisation du NIR à une autorisation par décret en Conseil d'État pris après avis de la CNIL. L'utilisation du NIR sans cette autorisation peut être sanctionnée pénalement d'une peine de 5 ans d'emprisonnement et 2 000 000 francs d'amende.
+-   Le décret n° 82-103 du 22 janvier 1982 modifié précise les modalités de constitution par l'INSEE du RNIPP et du NIR et leurs conditions d'utilisation.
+-   Le décret n° 85-420 du 3 avril 1985 donne la liste des organismes liés à la sécurité sociale et aux caisses de retraites pouvant utiliser le NIR et dans quelles conditions.
+-   Le décret n° 91-1404 du 27 décembre 1991 autorise employeurs publics et privés "à utiliser le NIR dans les traitements automatisés de données relatives à la paie et à la gestion de leur personnel pour la réalisation d'opérations résultant de dispositions légales ou réglementaires et de conventions collectives concernant les déclarations, les calculs de cotisations et de versements destinés aux organismes mentionnés à l'article 1er du décret du 3 avril 1985 susvisé".
+-   La délibération n° 83-058 du 29 novembre 1983 de la CNIL recommande "que l'emploi du numéro d'inscription au répertoire comme identifiant des personnes dans les fichiers, ne soit ni systématique, ni généralisé" et "qu'en conséquence, les responsables de la conception d'applications informatiques se dotent d'identifiants diversifiés et adaptés à leurs besoins propres".
+
+3.3.Type NIRType
+
+La définition d'un numéro NIR sous forme d'un type simple est la suivante:
+
+§1.
+
+              <xs:simpleType name="NIRType">
+                <xs:restriction base="ie:ChaineNumeriqueEtAsciiMajusculeType">
+                  <xs:length value="13"/>
+                  <xs:pattern value="[0-9]{6}[0-9AB][0-9]{6}"/>
+                </xs:restriction>
+              </xs:simpleType>
+            
+
+Ce type peut être affecté dans un schéma pour définir des éléments ou attributs contenant des numéros NIR, par exemple :
+
+§2.
+
+              <xs:element name="mon-element-nir"
+                          type="ie:NIRType"/>
+            
+
+Les éléments ou attributs ainsi définis peuvent ensuite être utilisés dans des documents XML, par exemple :
+
+§3.
+
+              <ex:mon-element-nir>1510246102043</ex:mon-element-nir>
+            
+
+3.4.Élément NIR
+
+La définition de l'élément NIR est la suivante:
+
+§4.
+
+              <xs:element name="NIR"
+                          type="ie:NIRType"/>
+            
+
+Les éléments NIR peuvent être utilisés directement dans des documents XML, par exemple :
+
+§5.
+
+              <ex:personne>
+                <ie:NIR>278112B050002</ie:NIR>
+                <ex:nom>X</ex:nom>
+              </ex:personne>
+            
+
+3.5.Attribut nir
+
+La définition de l'attribut nir est la suivante:
+
+§6.
+
+              <xs:attribute name="nir"
+                            type="ie:NIRType"/>
+            
+
+Les attributs nir peuvent être utilisés directement dans des documents XML, par exemple :
+
+§7.
+
+              <ex:personne ie:nir="1111111111111">
+                <ex:nom>X</ex:nom>
+              </ex:personne>
+            
+
+4.Clé de contrôle du NIR CleNIR
+
+4.1.Description
+
+La clé de contrôle du NIR est un nombre à deux chiffres dont la valeur est le complément à 97 du reste de la division du nombre formé par le NIR par 97. Cette formule a été adaptée aux numéros de départements alphabétiques (2A et 2B) de la manière suivante :
+
+-   Les caractères alphabétiques sont remplacés par des "0".
+-   On soustrait du nombre à 13 chiffres ainsi obtenu la valeur 1000000 si le caractère alphabétique remplacé par un zéro était la lettre A, ou la valeur 2000000 si c'était la lettre B.
+
+4.2.Type CleNIRType
+
+Définition d'une clé de contrôle du NIR sous forme d'un type simple :
+
+§8.
+
+              <xs:simpleType name="CleNIRType">
+                <xs:restriction base="ie:ChaineNumeriqueType">
+                  <xs:length value="2"/>
+                </xs:restriction>
+              </xs:simpleType>
+            
+
+Ce type peut être affecté dans un schéma pour définir des éléments ou attributs contenant des clés de contrôle, par exemple :
+
+§9.
+
+              <xs:element name="mon-element-cle-nir"
+                          type="ie:CleNIRType"/>
+            
+
+Les éléments ou attributs ainsi définis peuvent ensuite être utilisés dans des documents XML, par exemple :
+
+§10.
+
+              <ex:mon-element-cle-nir>11</ex:mon-element-cle-nir>
+            
+
+4.3.Élément CleNIR
+
+La définition de l'élément CleNIR est la suivante:
+
+§11.
+
+              <xs:element name="CleNIR"
+                          type="ie:CleNIRType"/>
+            
+
+Les éléments CleNIR peuvent être utilisés directement dans des documents XML, par exemple :
+
+§12.
+
+              <ex:personne>
+                <ie:NIR>1510246102043</ie:NIR>
+                <ie:CleNIR>25</ie:CleNIR>
+                <ex:nom>...</ex:nom>
+              </ex:personne>
+            
+
+4.4.Attribut cleNIR
+
+La définition de l'attribut cleNIR est la suivante:
+
+§13.
+
+              <xs:attribute name="cleNIR"
+                            type="ie:CleNIRType"/>
+            
+
+Les attributs cleNIR peuvent être utilisés directement dans des documents XML, par exemple :
+
+§14.
+
+              <ex:personne ie:cleNIR="86"
+                           ie:nir="278112B050002">
+                <ex:nom>...</ex:nom>
+              </ex:personne>
+            
+
+5.Numéro d'identification NIR avec clé
+
+5.1.Description
+
+Numéro NIRAvecCle
+    Le numéro NIRAvecCle est un identifiant numérique de 15 chiffres composé du NIR (13 chiffres) et de sa clé (2 chiffres). Il permet de réduire les erreurs de saisie ou de transmission des identifiants NIR et est couramment utilisé dans le domaine médical, notamment dans les déclarations de sécurité sociale.
+
+5.2.Type NIRAvecCleStructureType
+
+On pourra utiliser ce type complexe lorsque l'on souhaitera isoler le NIR et sa clé dans deux éléments séparés :
+
+§15.
+
+              <xs:complexType name="NIRAvecCleStructureType">
+                <xs:sequence>
+                  <xs:element ref="ie:NIR"/>
+                  <xs:element ref="ie:CleNIR"/>
+                </xs:sequence>
+              </xs:complexType>
+            
+
+Ce type peut être affecté dans un schéma pour définir des éléments ou attributs contenant des numéros NIRAvecCle, par exemple :
+
+§16.
+
+              <xs:element name="mon-element-nir-avec-cle"
+                          type="ie:NIRAvecCleStructureType"/>
+            
+
+Les éléments ou attributs ainsi définis peuvent ensuite être utilisés dans des documents XML, par exemple :
+
+§17.
+
+              <ex:mon-element-nir-avec-cle>
+                <ie:NIR>1111111111111</ie:NIR>
+                <ie:CleNIR>20</ie:CleNIR>
+              </ex:mon-element-nir-avec-cle>
+            
+
+On notera que l'utilisation de ce type complexe impose l'utilisation de l'espace de noms INSEE dans les documents XML.
+
+5.3.Élément NIRAvecCleStructure
+
+La définition de l'élément NIRAvecCleStructure est la suivante :
+
+§18.
+
+              <xs:element name="NIRAvecCleStructure"
+                          type="ie:NIRAvecCleStructureType"/>
+            
+
+Les éléments NIRAvecCleStructure peuvent être utilisés directement dans des documents XML, par exemple :
+
+§19.
+
+              <ex:personne>
+                <ie:NIRAvecCleStructure>
+                  <ie:NIR>1510246102043</ie:NIR>
+                  <ie:CleNIR>25</ie:CleNIR>
+                </ie:NIRAvecCleStructure>
+                <ex:nom>...</ex:nom>
+              </ex:personne>
+            
+
+5.4.Type NIRAvecCleType
+
+Lorsqu'il n'est pas possible ou souhaitable de séparer le NIR et sa clé en deux sous éléments (notamment lorsque le numéro NIR avec clé est codé sous forme d'attribut ou lorsqu'il n'est pas possible d'insérer des éléments appartenant à l'espace de noms INSEE dans les documents XML), on pourra concaténer ces deux identifiants et utiliser le type simple suivant :
+
+§20.
+
+              <xs:simpleType name="NIRAvecCleType">
+                <xs:restriction base="ie:ChaineNumeriqueEtAsciiMajusculeType">
+                  <xs:length value="15"/>
+                  <xs:pattern value="[0-9]{6}[0-9AB][0-9]{8}"/>
+                </xs:restriction>
+              </xs:simpleType>
+            
+
+Ce type peut être affecté dans un schéma pour définir des éléments ou attributs contenant des numéros NIR avec leur clé, par exemple :
+
+§21.
+
+              <xs:element name="personne">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="nom"
+                                type="xs:token"/>
+                  </xs:sequence>
+                  <xs:attribute name="mon-attribut-nir-avec-cle"
+                                type="ie:NIRAvecCleType"/>
+                </xs:complexType>
+              </xs:element>
+            
+
+Les éléments ou attributs ainsi définis peuvent ensuite être utilisés dans des documents XML, par exemple :
+
+§22.
+
+              <ex:personne mon-attribut-nir-avec-cle="278112B05000286">
+                <ex:nom>...</ex:nom>
+              </ex:personne>
+            
+
+5.5.Élément NIRAvecCle
+
+La définition de l'élément NIRAvecCle est basée sur le type simple défini ci-dessus :
+
+§23.
+
+              <xs:element name="NIRAvecCle"
+                          type="ie:NIRAvecCleType"/>
+            
+
+Les éléments NIRAvecCle peuvent être utilisés directement dans des documents XML, par exemple :
+
+§24.
+
+              <ex:personne ie:nirAvecCle="111111111111120">
+                <ex:nom>....</ex:nom>
+              </ex:personne>
+            
+
+5.6.Attribut nirAvecCle
+
+La définition de l'attribut nirAvecCle est basée sur le type simple défini ci-dessus :
+
+§25.
+
+              <xs:attribute name="nirAvecCle"
+                            type="ie:NIRAvecCleType"/>
+            
+
+Les attributs nirAvecCle peuvent être utilisés directement dans des documents XML, par exemple :
+
+§26.
+
+              <ex:personne ie:nirAvecCle="111111111111120">
+                <ex:nom>....</ex:nom>
+              </ex:personne>
+            
+
+6.Objets d'usage déconseillé
+
+6.1.Type NIR_stype
+
+§27.
+
+              <xs:simpleType name="NIR_stype"
+                             ie:obsolete="true">
+                <xs:restriction base="ie:Chaîne_Numérique_et_ASCII_Majuscule_stype">
+                  <xs:length value="13"/>
+                  <xs:pattern value="[0-9]{6}[0-9AB][0-9]{6}"/>
+                </xs:restriction>
+              </xs:simpleType>
+            
+
+6.2.Type Clé_NIR_stype
+
+§28.
+
+              <xs:simpleType name="Clé_NIR_stype"
+                             ie:obsolete="true">
+                <xs:restriction base="ie:Chaîne_Numérique_stype">
+                  <xs:length value="2"/>
+                </xs:restriction>
+              </xs:simpleType>
+            
+
+6.3.Élément Clé_NIR
+
+§29.
+
+              <xs:element name="Clé_NIR"
+                          type="ie:Clé_NIR_stype"
+                          ie:obsolete="true"/>
+            
+
+6.4.Attribut Clé_NIR
+
+§30.
+
+              <xs:attribute name="Clé_NIR"
+                            type="ie:Clé_NIR_stype"
+                            ie:obsolete="true"/>
+            
+
+6.5.Type NIR_Avec_Clé_ctype
+
+§31.
+
+              <xs:complexType name="NIR_Avec_Clé_ctype"
+                              ie:obsolete="true">
+                <xs:sequence>
+                  <xs:element ref="ie:NIR"/>
+                  <xs:element ref="ie:Clé_NIR"/>
+                </xs:sequence>
+              </xs:complexType>
+            
+
+6.6.Élément NIR_Avec_Clé
+
+§32.
+
+              <xs:element name="NIR_Avec_Clé"
+                          type="ie:NIR_Avec_Clé_ctype"
+                          ie:obsolete="true"/>
+            
+
+6.7.Type NIR_Avec_Clé_stype
+
+§33.
+
+              <xs:simpleType name="NIR_Avec_Clé_stype"
+                             ie:obsolete="true">
+                <xs:restriction base="ie:Chaîne_Numérique_et_ASCII_Majuscule_stype">
+                  <xs:length value="15"/>
+                  <xs:pattern value="[0-9]{6}[0-9AB][0-9]{8}"/>
+                </xs:restriction>
+              </xs:simpleType>
+            
+
+6.8.Attribut NIR_Avec_Clé
+
+§34.
+
+              <xs:attribute name="NIR_Avec_Clé"
+                            type="ie:NIR_Avec_Clé_stype"
+                            ie:obsolete="true"/>
+            
+
+6.9.Attribut NIR
+
+§35.
+
+              <xs:attribute name="NIR"
+                            type="ie:NIR_stype"
+                            ie:obsolete="true"/>
+            
+
+7.Conseils d'utilisation
+
+7.1.Quand utiliser les types?
+
+L'utilisation des éléments et attributs définis dans ce schéma permet de se baser directement sur leur nom (et espace de nom) pour les identifier et les valider.
+
+L'utilisation des types simples définis dans ce schéma permet au contraire d'utiliser des noms d'attributs et d'éléments quelconques (et appartenant à des espaces de noms quelconques).
+
+L'attribution de types à ces éléments et attributs permet de les valider en suivant les définitions de ce schéma.
+
+Ces attributions sont également transmises aux applications supportant W3C XML Schema et son "Post Schema Validation Infoset" (PSVI) qui peuvent reconnaître qu'il s'agit des données d'identification définies par ce schéma.
+
+L'utilisation de types complexes se situe à un niveau intermédiaire puisqu'elle permet d'utiliser des noms et espaces de noms quelconques pour les éléments racines de ces types de données mais qu'elle impose l'utilisation des éléments (et de l'espace de noms) définis par ce schéma pour les éléments inclus dans le type de données (voir exemple concernant le type NIR_Avec_Clé_ctype).
+
+7.2.Utilisation individuelle de NIR et CleNIR
+
+Si l'utilisation individuelle de numéros NIR et CleNIR pour former un numéro NIRAvecCle est techniquement correcte, elle présente l'inconvénient pour les applications de ne pas lier ces deux informations de manière explicite dans un schéma. Les applications ne peuvent donc pas trouver dans le seul schéma le lien permettant de constituer un numéro NIRAvecCle identifiant une personne à partir de ces deux informations isolées et doit se reposer sur des conventions définies de manière informelle ci-dessous.
+
+L'utilisation des éléments, attributs et types NIRAvecCle qui évite ce problème est recommandée pour identifier une personne physique.
+
+Lorsqu'ils ne peuvent pas utiliser des éléments, attributs ou types NIRAvecCle, les vocabulaires XML souhaitant utiliser de manière individuelle les numéros NIR et CleNIR sont invités à respecter les règles suivantes :
+
+Noeud NIR
+    On appelle "noeud NIR" tout attribut ou élément ie:NIR ainsi que tout élément ou attribut ayant un type ie:NIRType.
+
+Règle de liaison entre NIR et CleNIR
+    Tout attribut ou élément "ie:CleNIR" (ou élément ou attribut ayant un type ie:CleNIRType) est implicitement lié au noeud NIR trouvé dans le plus proche de ses ancêtres ayant un noeud NIR parmi ses fils.
+
+Unicité de liaison implicite entre NIR et CleNIR
+    Pour que la règle de liaison entre NIR et CleNIR puisse être appliquée de manière déterministe, il est déconseillé d'autoriser un élément à accepter plusieurs noeuds NIR parmi ses fils.
+
+8.Contrôles de clés sur NIRAvecCle
+
+8.1.Description
+
+Les numéros NIRAvecCle intègrent un mécanisme de contrôle de parité puisque, par définition, la CleNIR représente le complément à 97 du reste de la division par 97 du nombre déduit du numéro NIR.
+
+8.2.Implémentation XSLT
+
+Le contrôle de la clé du NIR peut être implémenté en XSLT de la manière suivante :
+
+§36.
+
+              <xsl:template name="controle_clé_nir">
+                <xsl:param name="NIR"
+                           select="substring(., 1, 13)"/>
+                <xsl:param name="clé"
+                           select="substring(., 14, 2)"/>
+                <xsl:variable name="NIR-ajusté">
+                  <xsl:choose>
+                    <xsl:when test="contains($NIR, 'A')">
+                      <xsl:value-of select="number(translate($NIR, 'A', '0')) - 1000000"/>
+                    </xsl:when>
+                    <xsl:when test="contains($NIR, 'B')">
+                      <xsl:value-of select="number(translate($NIR, 'B', '0')) - 2000000"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                      <xsl:value-of select="$NIR"/>
+                    </xsl:otherwise>
+                  </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="clé_calculée"
+                              select="97 - ($NIR-ajusté mod 97)"/>
+                <xsl:choose>
+                  <xsl:when test="$clé = $clé_calculée">
+                    <xsl:text> Correct</xsl:text>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <xsl:text> Erreur, la clé devrait être : </xsl:text>
+                    <xsl:value-of select="$clé_calculée"/>
+                    <xsl:text> (et non </xsl:text>
+                    <xsl:value-of select="$clé"/>
+                    <xsl:text>). </xsl:text>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </xsl:template>
+            
+
+9.Téléchargement
+
+Les documents suivants sont disponibles pour téléchargement.
+
+9.1.Schéma
+
+[Document]
+
+§37.
+
+              <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                         xmlns:ie="http://xml.insee.fr/schema"
+                         attributeFormDefault="qualified"
+                         elementFormDefault="qualified"
+                         targetNamespace="http://xml.insee.fr/schema"
+                         version="2.0">
+                <xs:include schemaLocation="insee-commun.xsd"/>
+                §1.Type NIRType
+                §4.Élément NIR
+                §6.Attribut nir
+                §8.Type CleNIRType
+                §11.Élément CleNIR
+                §13.Attribut cleNIR
+                §15.Type NIRAvecCleStructureType
+                §18.Élément NIRAvecCleStructure
+                §20.Type NIRAvecCleType
+                §23.Élément NIRAvecCle
+                §25.Attribut nirAvecCle
+                <xs:annotation ie:obsolete="true">
+                  <xs:documentation>Les objets qui suivent sont obsolètes et seront supprimés dans les prochaines versions.</xs:documentation>
+                </xs:annotation>
+                §27.Type NIR_stype
+                §28.Type Clé_NIR_stype
+                §29.Élément Clé_NIR
+                §30.Attribut Clé_NIR
+                §31.Type NIR_Avec_Clé_ctype
+                §32.Élément NIR_Avec_Clé
+                §33.Type NIR_Avec_Clé_stype
+                §34.Attribut NIR_Avec_Clé
+                §35.Attribut NIR
+              </xs:schema>
+            
+
+9.2.Transformation XSLT validant le calcul de la clé du NIR.
+
+[Document]
+
+§38.
+
+              <xsl:transform xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                             xmlns:ie="http://xml.insee.fr/schema"
+                             version="1.0">
+                <xsl:output method="text"/>
+                <xsl:template match="*|@*">
+                  <xsl:apply-templates select="*|@*"/>
+                </xsl:template>
+                <xsl:template match="*[ie:NIR and ie:CleNIR]">
+                  <xsl:text> Contrôle NIRAvecCle, élément </xsl:text>
+                  <xsl:value-of select="name()"/>
+                  <xsl:call-template name="controle_clé_nir">
+                    <xsl:with-param name="NIR"
+                                    select="ie:NIR"/>
+                    <xsl:with-param name="clé"
+                                    select="ie:CleNIR"/>
+                  </xsl:call-template>
+                  <xsl:text/>
+                </xsl:template>
+                <xsl:template match="*[@ie:nir and @ie:cleNIR]">
+                  <xsl:text> Contrôle NIRAvecCle, élément </xsl:text>
+                  <xsl:value-of select="name()"/>
+                  <xsl:call-template name="controle_clé_nir">
+                    <xsl:with-param name="NIR"
+                                    select="@ie:nir"/>
+                    <xsl:with-param name="clé"
+                                    select="@ie:clNIR"/>
+                  </xsl:call-template>
+                  <xsl:text/>
+                </xsl:template>
+                <xsl:template match="@ie:nirAvecCle">
+                  <xsl:text> Contrôle NIR_Avec_Clé, élément </xsl:text>
+                  <xsl:value-of select="name()"/>
+                  <xsl:call-template name="controle_clé_nir"/>
+                  <xsl:text/>
+                </xsl:template>
+                §36.Implémentation XSLT
+              </xsl:transform>
+            
+
+9.3.Exemples utilisant les types - schéma
+
+Schéma validant les exemples utilisant les définitions de types simples et complexes :
+
+[Document]
+
+§39.
+
+              <xs:schema xmlns:ex="http://dyomedea.com/ns/example"
+                         xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                         xmlns:ie="http://xml.insee.fr/schema"
+                         attributeFormDefault="unqualified"
+                         elementFormDefault="qualified"
+                         targetNamespace="http://dyomedea.com/ns/example"
+                         version="1.0">
+                <xs:import namespace="http://xml.insee.fr/schema"
+                           schemaLocation="nir.xsd"/>
+                §2.Type NIRType
+                §9.Type CleNIRType
+                §16.Type NIRAvecCleStructureType
+                §21.Type NIRAvecCleType
+                <xs:element name="exemples">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:any maxOccurs="unbounded"
+                              minOccurs="0"
+                              namespace="##targetNamespace"
+                              processContents="strict"/>
+                    </xs:sequence>
+                  </xs:complexType>
+                </xs:element>
+              </xs:schema>
+            
+
+9.4.Exemples utilisant les types - document
+
+Document XML regroupant les exemples utilisant les définitions de types simples et complexes :
+
+[Document]
+
+§40.
+
+              <ex:exemples xmlns:ex="http://dyomedea.com/ns/example"
+                           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                           xsi:schemaLocation="http://dyomedea.com/ns/example exemples-nir-types.xsd">
+                §3.Type NIRType
+                §10.Type CleNIRType
+                §17.Type NIRAvecCleStructureType
+                §22.Type NIRAvecCleType
+              </ex:exemples>
+            
+
+9.5.Exemples utilisant les éléments et attributs
+
+Document XML regroupant les exemples utilisant les éléments et attributs :
+
+[Document]
+
+§41.
+
+              <ex:exemples xmlns:ex="http://dyomedea.com/ns/example"
+                           xmlns:ie="http://xml.insee.fr/schema">
+                §5.Élément NIR
+                §7.Attribut nir
+                §12.Élément CleNIR
+                §14.Attribut cleNIR
+                §19.Élément NIRAvecCleStructure
+                §24.Élément NIRAvecCle
+                §26.Attribut nirAvecCle
+              </ex:exemples>
+            
+
+10.Références
+
+Les documents et sites de référence suivants ont été utilisés pour la constitution de ce vocabulaire XML.
+
+10.1.Décret n° 82-103 du 22 janvier 1982
+
+Le Décret n° 82-103 du 22 janvier 1982 relatif au répertoire national d'identification des personnes physiques confirme la mission de l'INSEE concernant le répertoire national d'identification des personnes physiques et en précise certaines modalités.
+
+10.2.Le NIR : numéro d'inscription au RNIPP
+
+Publié sur le site de l'INSEE, cet article donne un aperçu de la composition, de l'historique et de l'utilisation du NIR.
+
+11.Ressources
+
+Les ressources suivantes sont définies ou référencées dans ce document :
+
+11.1.Liste alphabétique
+
+Attribut Clé_NIR
+    Fonction : référence normative
+    Nature : XHTML
+
+Attribut NIR
+    Fonction : référence normative
+    Nature : XHTML
+
+Attribut NIR_Avec_Clé
+    Fonction : référence normative
+    Nature : XHTML
+
+Attribut cleNIR
+    Fonction : référence normative
+    Nature : XHTML
+
+Attribut nir
+    Fonction : référence normative
+    Nature : XHTML
+
+Attribut nirAvecCle
+    Fonction : référence normative
+    Nature : XHTML
+
+Conditions d'utilisation
+    Fonction : référence normative
+    Nature : HTML
+    [Lien externe]
+
+Décret n° 82-103 du 22 janvier 1982
+    Fonction : référence non normative
+    Nature : HTML
+    [Lien externe]
+
+Espace de noms INSEE
+    Fonction : espace de noms
+    Nature : XHTML
+    [Lien externe]
+
+Exemples utilisant les types - document
+    Fonction : référence non normative
+    Nature : XML
+
+Exemples utilisant les types - schéma
+    Fonction : référence non normative
+    Nature : W3C XML Schema
+
+Exemples utilisant les éléments et attributs
+    Fonction : référence non normative
+    Nature : XML
+
+Implémentation XSLT
+    Fonction : référence non normative
+    Nature : XHTML
+
+Le NIR : numéro d'inscription au RNIPP
+    Fonction : référence non normative
+    Nature : HTML
+    [Lien externe]
+
+Schéma
+    Fonction : validation par schéma
+    Nature : W3C XML Schema
+
+Transformation XSLT validant le calcul de la clé du NIR.
+    Fonction : validation par schéma
+    Nature : Transformation XSLT
+
+Type CleNIRType
+    Fonction : référence normative
+    Nature : XHTML
+
+Type Clé_NIR_stype
+    Fonction : référence normative
+    Nature : XHTML
+
+Type NIRAvecCleStructureType
+    Fonction : référence normative
+    Nature : XHTML
+
+Type NIRAvecCleType
+    Fonction : référence normative
+    Nature : XHTML
+
+Type NIRType
+    Fonction : référence normative
+    Nature : XHTML
+
+Type NIR_Avec_Clé_ctype
+    Fonction : référence normative
+    Nature : XHTML
+
+Type NIR_Avec_Clé_stype
+    Fonction : référence normative
+    Nature : XHTML
+
+Type NIR_stype
+    Fonction : référence normative
+    Nature : XHTML
+
+Élément CleNIR
+    Fonction : référence normative
+    Nature : XHTML
+
+Élément Clé_NIR
+    Fonction : référence normative
+    Nature : XHTML
+
+Élément NIR
+    Fonction : référence normative
+    Nature : XHTML
+
+Élément NIRAvecCle
+    Fonction : référence normative
+    Nature : XHTML
+
+Élément NIRAvecCleStructure
+    Fonction : référence normative
+    Nature : XHTML
+
+Élément NIR_Avec_Clé
+    Fonction : référence normative
+    Nature : XHTML
+
+11.2.Par catégories
+
+Ressources internes
+
+référence normative
+
+-   XHTML
+    -   Attribut Clé_NIR
+    -   Attribut NIR
+    -   Attribut NIR_Avec_Clé
+    -   Attribut cleNIR
+    -   Attribut nir
+    -   Attribut nirAvecCle
+    -   Type CleNIRType
+    -   Type Clé_NIR_stype
+    -   Type NIRAvecCleStructureType
+    -   Type NIRAvecCleType
+    -   Type NIRType
+    -   Type NIR_Avec_Clé_ctype
+    -   Type NIR_Avec_Clé_stype
+    -   Type NIR_stype
+    -   Élément CleNIR
+    -   Élément Clé_NIR
+    -   Élément NIR
+    -   Élément NIRAvecCle
+    -   Élément NIRAvecCleStructure
+    -   Élément NIR_Avec_Clé
+
+référence non normative
+
+-   XHTML
+    -   Implémentation XSLT
+
+Ressources externes
+
+espace de noms
+
+-   XHTML
+    -   Espace de noms INSEE
+
+référence normative
+
+-   HTML
+    -   Conditions d'utilisation
+
+référence non normative
+
+-   XML
+    -   Exemples utilisant les types - document
+    -   Exemples utilisant les éléments et attributs
+-   HTML
+    -   Décret n° 82-103 du 22 janvier 1982
+    -   Le NIR : numéro d'inscription au RNIPP
+-   W3C XML Schema
+    -   Exemples utilisant les types - schéma
+
+validation par schéma
+
+-   W3C XML Schema
+    -   Schéma
+-   Transformation XSLT
+    -   Transformation XSLT validant le calcul de la clé du NIR.
