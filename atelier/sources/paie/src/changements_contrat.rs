@@ -149,7 +149,7 @@ fn ddmmaaaa(v: &str) -> Option<Jour> {
 fn changements_dates(brute: &Value, champs: &[&str]) -> Resultat<Vec<(Jour, String)>> {
     let mut out = Vec::new();
     for c in champs {
-        out.extend(droit::contexte::valeurs_datees(brute, c)?.into_iter().skip(1).map(|(j, _)| (j, c.to_string())));
+        out.extend(droit::contexte::valeurs_datees(brute, c)?.into_iter().skip(1).filter_map(|(j, _)| j.map(|j| (j, c.to_string()))));
     }
     Ok(out)
 }

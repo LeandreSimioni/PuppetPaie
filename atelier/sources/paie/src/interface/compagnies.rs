@@ -388,11 +388,10 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     let mut ent = serde_json::Map::new();
     ent.insert("nom_affichage".into(), Value::String(nom.clone()));
     crate::routes_fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
-    // LA PREMIERE VALEUR D'UNE COMPAGNIE NEUVE VAUT DEPUIS SA CREATION : toute sa configuration est datee
-    // (`contexte::fiche_au`), et ce jour est celui de `creation.json`.
-    // Le plus tot des deux jours (Paris, et celui du moteur, en UTC) : le contexte d'aujourd'hui la lit des sa creation.
+    // Toute la configuration est datee (`contexte::fiche_au`) : la premiere valeur vaut de tout temps.
+    // Le jour d'ajout : le plus tot des deux jours (Paris, et celui du moteur, en UTC).
     let creation = socle::temps::jour_de_paris().min(droit::contexte::jour_reel());
-    ecrire(&cfg.join("entreprise.json"), &Value::Object(droit::contexte::fiche_datee(&ent, &creation)))?;
+    ecrire(&cfg.join("entreprise.json"), &Value::Object(droit::contexte::fiche_datee(&ent)))?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
     ecrire(

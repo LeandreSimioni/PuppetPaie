@@ -365,8 +365,9 @@ fn avec_historique(fiche: &Value, brute: Option<&Value>) -> R<Value> {
         let liste = brute.and_then(|b| b.get(champ)).and_then(Value::as_array).cloned().unwrap_or_default();
         let valeurs = droit::contexte::valeurs_datees(brute.unwrap(), champ).map_err(Echec::from)?;
         for paire in valeurs.windows(2) {
-            let note = liste.iter().find(|e| e.get("depuis").and_then(Value::as_str) == Some(paire[1].0.iso().as_str())).and_then(|e| e.get("note")).cloned();
-            let veille = paire[1].0.plus_jours(-1).map_err(Echec::from)?;
+            let Some(depuis) = paire[1].0 else { continue };
+            let note = liste.iter().find(|e| e.get("depuis").and_then(Value::as_str) == Some(depuis.iso().as_str())).and_then(|e| e.get("note")).cloned();
+            let veille = depuis.plus_jours(-1).map_err(Echec::from)?;
             lignes.push(json!({"champ": champ, "valeur": paire[0].1, "jusqu_au": veille.iso(), "note": note.unwrap_or(Value::Null)}));
         }
     }

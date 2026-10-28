@@ -6,8 +6,9 @@ use std::path::Path;
 
 /// TOUTE LA CONFIGURATION EST DATEE : une valeur changee a une date ne touche pas ce qui precede. La compagnie passe de la
 /// 3090 a la 1285 et demenage le 01/11/2026 : octobre se lit sous la 3090 et l'ancienne adresse (la fiche, le contexte
-/// du mois, la convention que le bareme applique), novembre sous les nouvelles ; un salarie n'existe pas avant sa
-/// premiere valeur ; une valeur non datee se refuse.
+/// du mois, la convention que le bareme applique), novembre sous les nouvelles ; la premiere valeur vaut de tout temps
+/// (un salarie saisi le 15/10 se trouve pour un contrat d'avant), meme ecrite avec une date ; une valeur non datee se
+/// refuse.
 #[test]
 fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     use droit::contexte::{dater, fiche_au, fiche_datee};
@@ -18,11 +19,12 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     let j = |s: &str| Jour::lire(s).unwrap();
     let plate = json!({"raison_sociale": "CIE DATEE", "idcc": "3090", "annexe_convention": "4", "adresse": "21 RUE DU PORT",
                        "premiere_embauche": "2026-01-01"});
-    let mut ent = fiche_datee(plate.as_object().unwrap(), &j("2026-01-01"));
-    dater(&mut ent, "idcc", json!("1285"), &j("2026-11-01"), Some("passage en CCNEAC"));
-    dater(&mut ent, "annexe_convention", json!(""), &j("2026-11-01"), None);
-    dater(&mut ent, "adresse", json!("8 PLACE DU MARCHE"), &j("2026-11-01"), None);
-    let sal = fiche_datee(json!({"nom": "BRIOCHE", "prenom": "FANCHON"}).as_object().unwrap(), &j("2026-10-15"));
+    let mut ent = fiche_datee(plate.as_object().unwrap());
+    dater(&mut ent, "idcc", json!("1285"), Some(&j("2026-11-01")), Some("passage en CCNEAC"));
+    dater(&mut ent, "annexe_convention", json!(""), Some(&j("2026-11-01")), None);
+    dater(&mut ent, "adresse", json!("8 PLACE DU MARCHE"), Some(&j("2026-11-01")), None);
+    let mut sal = fiche_datee(json!({"nom": "BRIOCHE", "prenom": "FANCHON"}).as_object().unwrap());
+    dater(&mut sal, "emploi", json!("COMEDIENNE"), Some(&j("2026-10-15")), None);
     let ecrire = |rel: &str, v: Value| std::fs::write(racine.join("config").join(rel), v.to_string()).unwrap();
     ecrire("entreprise.json", Value::Object(ent));
     ecrire("salaries.json", json!({ "BRIOCHE": sal }));
@@ -39,10 +41,10 @@ fn une_valeur_changee_a_une_date_ne_touche_pas_ce_qui_precede() {
     // La convention que le bareme applique est celle du jour lu, quel que soit le contexte qui le lit.
     let convention = |jour: &str| ctx.bareme(&j(jour)).unwrap()["_entreprise"]["idcc"].clone();
     assert_eq!((convention("2026-10-31"), convention("2026-11-01")), (json!("3090"), json!("1285")));
-    // Un salarie n'existe qu'a partir de sa premiere valeur.
-    assert!(ctx.au(&j("2026-10-14")).unwrap().salaries.is_empty());
-    assert_eq!(ctx.salarie_au("BRIOCHE", &j("2026-10-15")).unwrap()["nom"], json!("BRIOCHE"));
-    assert!(ctx.salarie_au("BRIOCHE", &j("2026-10-14")).is_err());
+    // La premiere valeur vaut de tout temps, meme ecrite avec une date.
+    assert_eq!(ctx.salarie_au("BRIOCHE", &j("2020-03-01")).unwrap()["nom"], json!("BRIOCHE"));
+    assert_eq!(ctx.au(&j("2020-03-01")).unwrap().salaries["BRIOCHE"]["emploi"], json!("COMEDIENNE"));
+    assert_eq!(ctx.entreprise_au(&j("2019-01-01")).unwrap()["idcc"], json!("3090"));
     // Une valeur non datee se refuse, et la phrase dit quoi faire.
     let e = fiche_au(&json!({"idcc": "3090"}), &j("2026-10-01"), "config/entreprise.json").unwrap_err();
     assert!(e.contains("`idcc`") && e.contains("Ajouter une compagnie"), "{}", e);

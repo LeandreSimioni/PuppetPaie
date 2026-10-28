@@ -283,8 +283,10 @@ fn date_d_effet(brute: &Value, champ: &str, declaree: &str, fin: &Jour) -> Resul
     let mut meilleur: Option<Jour> = None;
     for paire in valeurs.windows(2) {
         let ((_, v), (suivant, _)) = (&paire[0], &paire[1]);
-        if ecrite(champ, Some(v)).as_deref() == Some(declaree) && suivant <= fin {
-            meilleur = Some(*suivant);
+        if let Some(suivant) = suivant.filter(|s| s <= fin) {
+            if ecrite(champ, Some(v)).as_deref() == Some(declaree) {
+                meilleur = Some(suivant);
+            }
         }
     }
     Ok(meilleur)
@@ -369,11 +371,11 @@ mod tests {
         Jour::lire("2026-09-30").unwrap()
     }
 
-    /// Une fiche datee : chaque valeur depuis le 01/01/2026, puis `apres` (champ, depuis, valeur).
+    /// Une fiche datee : chaque valeur de tout temps, puis `apres` (champ, depuis, valeur).
     fn fiche(valeurs: Value, apres: &[(&str, &str, &str)]) -> Value {
-        let mut f = droit::contexte::fiche_datee(valeurs.as_object().unwrap(), &Jour::lire("2026-01-01").unwrap());
+        let mut f = droit::contexte::fiche_datee(valeurs.as_object().unwrap());
         for (champ, depuis, v) in apres {
-            droit::contexte::dater(&mut f, champ, json!(v), &Jour::lire(depuis).unwrap(), None);
+            droit::contexte::dater(&mut f, champ, json!(v), Some(&Jour::lire(depuis).unwrap()), None);
         }
         Value::Object(f)
     }

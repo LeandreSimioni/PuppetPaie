@@ -163,8 +163,8 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     for (cle, v) in propres {
         cfg.insert(cle.to_string(), Value::String(v));
     }
-    // Les identifiants du compte valent a partir du jour ou on les pose : ils servent aux DPAE a venir.
-    droit::contexte::dater(entreprise, "api_dpae", Value::Object(cfg), &ctx.aujourdhui, None);
+    // Les identifiants du compte valent a partir du jour ou on les pose (les premiers, de tout temps).
+    droit::contexte::dater(entreprise, "api_dpae", Value::Object(cfg), Some(&ctx.aujourdhui), None);
     crate::routes_contrats::sauver_avant(&chemin)?;
     socle::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
     // L'etat se lit sur la fiche qu'on vient d'ecrire : `ctx` l'a lue avant.

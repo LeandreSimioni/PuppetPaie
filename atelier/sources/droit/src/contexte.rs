@@ -152,9 +152,10 @@ pub fn archivee(fiche: &Value) -> bool {
 /// LA CONFIGURATION DE LA COMPAGNIE EST DATEE, comme les baremes : chaque valeur d'une fiche (l'entreprise et sa
 /// convention, ses etablissements, un salarie, un spectacle) s'ecrit en liste datee `[{"depuis": "AAAA-MM-JJ",
 /// "valeur": ...}, ...]` et se lit a la date de la periode payee, jamais « telle qu'aujourd'hui » : une valeur changee
-/// a une date ne touche pas ce qui precede. Les cles `_...` sont des notes, sans date. Avant la premiere valeur d'un
-/// champ, la fiche ne disait rien : le champ est absent. Une valeur non datee se refuse (`non_datee`) : la date
-/// d'une valeur ne se devine pas.
+/// a une date ne touche pas ce qui precede. La premiere valeur d'un champ s'ecrit sans `depuis` : elle vaut DE TOUT
+/// TEMPS, jusqu'a la suivante (un contrat commence avant que la fiche soit saisie, un mois repris d'un autre logiciel
+/// trouvent la fiche). Les cles `_...` sont des notes, sans date. Un champ dont toutes les valeurs sont datees ne dit
+/// rien avant la premiere : il est absent. Une valeur hors liste se refuse (`non_datee`).
 pub fn fiche_au(fiche: &Value, jour: &Jour, ou: &str) -> Resultat<Value> {
     let o = fiche.as_object().ok_or_else(|| format!("{} : un objet JSON est attendu.", ou))?;
     let mut out = Map::new();
@@ -182,24 +183,34 @@ pub fn fiche_vide(fiche: &Value) -> bool {
 pub fn non_datee(ou: &str, cle: &str) -> String {
     format!(
         "{}, `{}` : cette valeur n'est pas datee. La configuration de la compagnie se lit a la date de la periode payee : \
-chaque valeur s'ecrit [{{\"depuis\": \"AAAA-MM-JJ\", \"valeur\": ...}}], comme les baremes. Une compagnie ecrite a \
-l'ancienne forme ne se lit plus : l'ajouter a nouveau (Ajouter une compagnie) et ressaisir ses fiches, ou dater chaque \
-valeur de ce fichier a la main.",
+chaque valeur s'ecrit [{{\"valeur\": ...}}, {{\"depuis\": \"AAAA-MM-JJ\", \"valeur\": ...}}], la premiere de tout temps, \
+les suivantes a partir de leur date, comme les baremes. Une compagnie ecrite a l'ancienne forme ne se lit plus : \
+l'ajouter a nouveau (Ajouter une compagnie) et ressaisir ses fiches, ou ecrire chaque valeur de ce fichier sous cette \
+forme a la main.",
         ou, cle
     )
 }
 
-/// Les valeurs d'un champ d'une fiche datee, du plus ancien `depuis` au plus recent. Un champ absent : aucune.
-pub fn valeurs_datees<'a>(fiche: &'a Value, champ: &str) -> Resultat<Vec<(Jour, &'a Value)>> {
+/// Le `depuis` d'une entree de liste datee : `None` pour la valeur de tout temps.
+fn depuis_entree(e: &Value) -> Resultat<Option<Jour>> {
+    match e.get("depuis") {
+        None | Some(Value::Null) => Ok(None),
+        Some(j) => d(j).map(Some),
+    }
+}
+
+/// Les valeurs d'un champ d'une fiche datee, de la plus ancienne a la plus recente : `None` pour celle de tout temps.
+/// Un champ absent : aucune.
+pub fn valeurs_datees<'a>(fiche: &'a Value, champ: &str) -> Resultat<Vec<(Option<Jour>, &'a Value)>> {
     let Some(v) = fiche.get(champ) else { return Ok(Vec::new()) };
     if !est_liste_datee(v) {
         return Err(non_datee("fiche", champ));
     }
     let mut out = Vec::new();
     for e in v.as_array().into_iter().flatten() {
-        out.push((d(&e["depuis"])?, &e["valeur"]));
+        out.push((depuis_entree(e)?, &e["valeur"]));
     }
-    out.sort_by_key(|(j, _)| *j); // stable : a meme date, la derniere ecrite gagne
+    out.sort_by_key(|(j, _)| *j); // stable ; `None` d'abord : a meme date, la derniere ecrite gagne
     Ok(out)
 }
 
@@ -213,33 +224,38 @@ pub fn toutes_les_valeurs(v: Option<&Value>) -> Vec<&Value> {
     }
 }
 
-/// ECRIRE UNE VALEUR DATEE : `valeur` vaut pour `champ` a partir de `depuis` ; ce qui precede reste ce qu'il etait. Une
-/// valeur deja ecrite au meme jour est remplacee (une correction du meme jour d'effet). `note` dit pourquoi.
-pub fn dater(fiche: &mut Map<String, Value>, champ: &str, valeur: Value, depuis: &Jour, note: Option<&str>) {
+/// ECRIRE UNE VALEUR DATEE : `valeur` vaut pour `champ` a partir de `depuis` (`None` : de tout temps) ; ce qui precede
+/// reste ce qu'il etait. La premiere valeur d'un champ vaut de tout temps, quel que soit `depuis` : avant elle, la fiche
+/// ne disait rien d'autre. Une valeur deja ecrite au meme jour est remplacee (une correction du meme jour d'effet).
+/// `note` dit pourquoi.
+pub fn dater(fiche: &mut Map<String, Value>, champ: &str, valeur: Value, depuis: Option<&Jour>, note: Option<&str>) {
     let mut liste: Vec<Value> = match fiche.get(champ) {
         Some(v) if est_liste_datee(v) => v.as_array().cloned().unwrap_or_default(),
         _ => Vec::new(),
     };
-    liste.retain(|e| d(&e["depuis"]).map_or(true, |j| j != *depuis));
+    let depuis = if liste.is_empty() { None } else { depuis };
+    liste.retain(|e| depuis_entree(e).map_or(true, |j| j.as_ref() != depuis));
     let mut e = Map::new();
-    e.insert("depuis".into(), Value::String(depuis.iso()));
+    if let Some(j) = depuis {
+        e.insert("depuis".into(), Value::String(j.iso()));
+    }
     e.insert("valeur".into(), valeur);
     if let Some(n) = note.filter(|n| !n.trim().is_empty()) {
         e.insert("note".into(), Value::String(n.trim().to_string()));
     }
     liste.push(Value::Object(e));
-    liste.sort_by_key(|e| en_texte(&e["depuis"]));
+    liste.sort_by_key(|e| depuis_entree(e).ok().flatten());
     fiche.insert(champ.to_string(), Value::Array(liste));
 }
 
-/// Une fiche neuve, chaque valeur de `plate` ecrite a partir de `depuis` (les notes `_...` telles quelles).
-pub fn fiche_datee(plate: &Map<String, Value>, depuis: &Jour) -> Map<String, Value> {
+/// Une fiche neuve : chaque valeur de `plate` vaut de tout temps (les notes `_...` telles quelles).
+pub fn fiche_datee(plate: &Map<String, Value>) -> Map<String, Value> {
     let mut out = Map::new();
     for (k, v) in plate {
         if k.starts_with('_') {
             out.insert(k.clone(), v.clone());
         } else {
-            dater(&mut out, k, v.clone(), depuis, None);
+            dater(&mut out, k, v.clone(), None, None);
         }
     }
     out
@@ -1067,28 +1083,29 @@ fn controler(bareme: &Value, fiche: &Value, eff: &Effectif, ou: &str) -> Resulta
 }
 // ----------------------------------------------------- les listes datees
 
-/// Une liste datee : `[{depuis, valeur}, ...]`. La forme des baremes et de toute la configuration de la compagnie.
+/// Une liste datee : `[{depuis, valeur}, ...]`, dont une entree au plus sans `depuis` (la valeur de tout temps). La forme
+/// des baremes et de toute la configuration de la compagnie.
 fn est_liste_datee(v: &Value) -> bool {
     match v {
         Value::Array(a) => {
-            !a.is_empty() && a.iter().all(|e| e.is_object() && e.get("depuis").is_some() && e.get("valeur").is_some())
+            !a.is_empty()
+                && a.iter().all(|e| e.is_object() && e.get("valeur").is_some())
+                && a.iter().filter(|e| e.get("depuis").map_or(true, Value::is_null)).count() <= 1
         }
         _ => false,
     }
 }
 
 /// LA LECTURE D'UNE LISTE DATEE, pour les baremes comme pour la configuration : la valeur dont le `depuis` est le plus
-/// recent sans depasser `jour` (a meme date, la derniere ecrite) ; `None` avant la premiere.
+/// recent sans depasser `jour` (a meme date, la derniere ecrite ; la valeur sans `depuis` vaut de tout temps) ; `None`
+/// avant la premiere.
 fn valeur_au<'a>(liste: &'a Value, jour: &Jour) -> Resultat<Option<&'a Value>> {
-    let mut entrees: Vec<&Value> = liste.as_array().into_iter().flatten().collect();
-    entrees.sort_by_key(|e| en_texte(&e["depuis"]));
-    let mut retenu = None;
-    for e in entrees {
-        if d(&e["depuis"])? <= *jour {
-            retenu = Some(&e["valeur"]);
-        }
+    let mut entrees: Vec<(Option<Jour>, &Value)> = Vec::new();
+    for e in liste.as_array().into_iter().flatten() {
+        entrees.push((depuis_entree(e)?, &e["valeur"]));
     }
-    Ok(retenu)
+    entrees.sort_by_key(|(j, _)| *j);
+    Ok(entrees.into_iter().filter(|(j, _)| j.map_or(true, |j| j <= *jour)).last().map(|(_, v)| v))
 }
 
 /// Remplace chaque liste datee `[{depuis, valeur}]` par
@@ -1371,7 +1388,7 @@ impl Contexte {
             if est_liste_datee(v) {
                 let mut retenu: Option<Jour> = None;
                 for e in v.as_array().into_iter().flatten() {
-                    let depuis = d(&e["depuis"])?;
+                    let Some(depuis) = depuis_entree(e)? else { continue };
                     if depuis <= *jour && retenu.map_or(true, |r| depuis > r) {
                         retenu = Some(depuis);
                     }

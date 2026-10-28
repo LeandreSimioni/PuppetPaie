@@ -145,7 +145,11 @@ pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -
     let mut contenu = objet_du_fichier(&chemin)?;
     match contenu.get_mut(cle) {
         Some(Value::Object(f)) => {
-            droit::contexte::dater(f, "actif", Value::Bool(actif), &ctx.aujourdhui, None);
+            // Une fiche sans `actif` etait active de tout temps.
+            if !f.contains_key("actif") {
+                droit::contexte::dater(f, "actif", Value::Bool(true), None, None);
+            }
+            droit::contexte::dater(f, "actif", Value::Bool(actif), Some(&ctx.aujourdhui), None);
         }
         Some(_) => return Err(erreur("TypeError", format!("la fiche {} n'est pas un objet", cle))),
         None => return Err(refus(format!("Fiche introuvable : {}.", cle))),
@@ -466,16 +470,6 @@ fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
 
 // ------------------------------------------------ ecrire une valeur datee
 
-/// Le jour ou la compagnie a ete ajoutee (`config/creation.json`) : la premiere valeur d'un champ vaut depuis lui.
-pub(crate) fn creation(ctx: &Contexte) -> R<Jour> {
-    crate::interface::compagnies::cree_le(&ctx.racine).ok_or_else(|| {
-        refus(
-            "Cette compagnie ne dit pas le jour de sa creation (config/creation.json) : la premiere valeur d'une fiche vaut \
-             depuis lui, et il ne se devine pas. L'ajouter a nouveau (Ajouter une compagnie). Rien n'a ete enregistre.",
-        )
-    })
-}
-
 fn vide(v: Option<&Value>) -> bool {
     v.map_or(true, |v| v.is_null() || v.as_str() == Some(""))
 }
@@ -525,17 +519,17 @@ pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depui
     let mut contenu = objet_du_fichier(&chemin)?;
     let mut donnees = Map::new();
     donnees.insert(champ.to_string(), valeur);
-    ecrire_datee(&mut contenu, "entreprise", &ctx.entreprise, &donnees, depuis, None, creation(ctx)?, &ctx.lue_au)?;
+    ecrire_datee(&mut contenu, "entreprise", &ctx.entreprise, &donnees, depuis, None, &ctx.lue_au)?;
     sauver_avant(&chemin)?;
     ecrire(&chemin, Value::Object(contenu))
 }
 
 /// ECRIRE UNE FICHE DATEE : chaque valeur de `donnees` qui differe de `ancienne` (la fiche lue a `lue_au`, celle que
 /// l'ecran a montree) s'ecrit dans la fiche datee `brute` (`contexte::dater`). Ce qui change une valeur existante vaut a
-/// partir de `depuis`, et sans lui se refuse : ce qui precede garde l'ancienne valeur. Une premiere valeur (champ vide
-/// ou absent) vaut depuis `depuis`, a defaut depuis la valeur vide qu'elle remplit, a defaut depuis la creation de la
-/// compagnie. Les notes `_...` s'ecrivent telles quelles.
-#[allow(clippy::too_many_arguments)]
+/// partir de `depuis`, et sans lui se refuse : ce qui precede garde l'ancienne valeur. La premiere valeur d'un champ
+/// (absent de la fiche) vaut de tout temps ; celle qui remplit un champ vide vaut depuis `depuis`, a defaut depuis la
+/// valeur vide qu'elle remplit. Le NIR qui arrive : la fiche disait « sans NIR » de tout temps, le NIR vaut depuis
+/// `depuis`. Les notes `_...` s'ecrivent telles quelles.
 pub(crate) fn ecrire_datee(
     brute: &mut Map<String, Value>,
     nom: &str,
@@ -543,7 +537,6 @@ pub(crate) fn ecrire_datee(
     donnees: &Map<String, Value>,
     depuis: Option<Jour>,
     note: Option<&str>,
-    creation: Jour,
     lue_au: &Jour,
 ) -> R<()> {
     let a_dater = changements_a_dater(ancienne, donnees);
@@ -565,23 +558,21 @@ pub(crate) fn ecrire_datee(
         if (vide(avant) && vide(Some(v))) || avant.is_some_and(|a| meme(a, v)) {
             continue;
         }
-        let jour = match depuis {
-            Some(j) => j,
-            None => {
-                let en_vigueur = droit::contexte::valeurs_datees(&Value::Object(brute.clone()), k)
-                    .map_err(plain)?
-                    .into_iter()
-                    .filter(|(j, _)| j <= lue_au)
-                    .last()
-                    .map(|(j, _)| j);
-                en_vigueur.unwrap_or(creation)
-            }
+        let nir_qui_arrive = k == "nir" && !brute.contains_key("nir") && depuis.is_some();
+        let jour = if depuis.is_some() {
+            depuis
+        } else {
+            droit::contexte::valeurs_datees(&Value::Object(brute.clone()), k)
+                .map_err(plain)?
+                .into_iter()
+                .filter(|(j, _)| j.map_or(true, |j| j <= *lue_au))
+                .last()
+                .and_then(|(j, _)| j)
         };
-        // Le NIR qui arrive : la fiche disait « sans NIR » jusque-la (`changements_a_dater`).
-        if k == "nir" && !brute.contains_key("nir") && jour > creation {
-            droit::contexte::dater(brute, k, Value::String(String::new()), &creation, None);
+        if nir_qui_arrive {
+            droit::contexte::dater(brute, k, Value::String(String::new()), None, None);
         }
-        droit::contexte::dater(brute, k, v.clone(), &jour, note);
+        droit::contexte::dater(brute, k, v.clone(), jour.as_ref(), note);
     }
     Ok(())
 }
@@ -736,11 +727,10 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     }
 
     let (depuis, note) = (depuis_de(depuis)?, Some(valeur_en_texte(note)).filter(|n| vrai(note) && !n.trim().is_empty()));
-    let creation = creation(ctx)?;
     let mut contenu = objet_du_fichier(&chemin)?;
     if nom == "entreprise" {
         // La fiche entreprise est le fichier entier.
-        ecrire_datee(&mut contenu, nom, ancienne, &donnees, depuis, note.as_deref(), creation, &ctx.lue_au)?;
+        ecrire_datee(&mut contenu, nom, ancienne, &donnees, depuis, note.as_deref(), &ctx.lue_au)?;
         return finir_fiche(None, &chemin, contenu, donnees, anomalies, derives);
     }
     if cle.as_deref().map_or(true, str::is_empty) {
@@ -752,21 +742,20 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
         Some(Value::Object(m)) => m.clone(),
         _ => Map::new(),
     };
-    ecrire_datee(&mut brute, nom, ancienne, &donnees, depuis, note.as_deref(), creation, &ctx.lue_au)?;
+    ecrire_datee(&mut brute, nom, ancienne, &donnees, depuis, note.as_deref(), &ctx.lue_au)?;
     contenu.insert(k, Value::Object(brute));
     finir_fiche(cle, &chemin, contenu, donnees, anomalies, derives)
 }
 
 /// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (lot I2, `importation_completer`) : chaque champ de `champs` va dans la fiche
 /// telle qu'elle est sur le disque, s'il y est vide ou « A COMPLETER » -- et seulement alors : un champ rempli depuis
-/// l'apercu reste ce qu'il est. Une case vide n'avait rien declare : la valeur qui la remplit vaut depuis elle (a defaut,
-/// depuis la creation de la compagnie) ; rien d'autre ne bouge ; l'ancien fichier est sauvegarde comme pour une fiche
+/// l'apercu reste ce qu'il est. Une case vide n'avait rien declare : la valeur qui la remplit vaut depuis elle (un champ
+/// absent : de tout temps) ; rien d'autre ne bouge ; l'ancien fichier est sauvegarde comme pour une fiche
 /// de l'ecran. Rend les champs ecrits.
 pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, champs: &Map<String, Value>) -> R<Map<String, Value>> {
     let Some(fichier) = fichier_de(nom) else {
         return Err(refus(format!("Fiche inconnue : {}", socle::fichiers::repr(nom))));
     };
-    let creation = creation(ctx)?;
     let chemin = ctx.racine.join("config").join(fichier);
     let mut contenu = objet_du_fichier(&chemin)?;
     let cible: &mut Map<String, Value> = if nom == "entreprise" {
@@ -782,11 +771,11 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
         let en_vigueur = droit::contexte::valeurs_datees(&Value::Object(cible.clone()), k)
             .map_err(plain)?
             .into_iter()
-            .filter(|(j, _)| *j <= ctx.lue_au)
+            .filter(|(j, _)| j.map_or(true, |j| j <= ctx.lue_au))
             .last()
             .map(|(j, v)| (j, v.clone()));
         if crate::importation_completer::vide(en_vigueur.as_ref().map(|(_, v)| v)) {
-            droit::contexte::dater(cible, k, v.clone(), &en_vigueur.map_or(creation, |(j, _)| j), None);
+            droit::contexte::dater(cible, k, v.clone(), en_vigueur.and_then(|(j, _)| j).as_ref(), None);
             ecrits.insert(k.clone(), v.clone());
         }
     }

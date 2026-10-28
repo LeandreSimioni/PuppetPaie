@@ -229,17 +229,12 @@ impl Identite {
 
     /// La fiche de la fictive, sous cette identite : les cles de la variable posees, ce qui en derive recompose (le SIRET, le
     /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire. Chaque valeur posee vaut
-    /// depuis la premiere date de la fiche, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
+    /// de tout temps, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
     pub fn appliquer(&self, fiche: &Value) -> Result<Value, String> {
         let mut brute = fiche.as_object().cloned().ok_or_else(|| "config/entreprise.json de la fictive n'est pas un objet.".to_string())?;
         for k in RETIREES {
             brute.remove(k);
         }
-        let mut premier: Option<socle::date::Jour> = None;
-        for k in brute.keys().filter(|k| !k.starts_with('_')) {
-            premier = premier.into_iter().chain(droit::contexte::valeurs_datees(fiche, k)?.first().map(|(j, _)| *j)).min();
-        }
-        let premier = premier.ok_or_else(|| "config/entreprise.json de la fictive ne porte aucune valeur datee.".to_string())?;
         let mut f = Map::new();
         let (siren, nic) = (self.texte("siren")?, self.texte("nic")?);
         let siret = format!("{}{}", siren, nic);
@@ -275,7 +270,7 @@ impl Identite {
             if k.starts_with('_') {
                 brute.insert(k, v);
             } else {
-                droit::contexte::dater(&mut brute, &k, v, &premier, None);
+                droit::contexte::dater(&mut brute, &k, v, None, None);
             }
         }
         Ok(Value::Object(brute))
@@ -600,9 +595,9 @@ mod tests {
             "declarant_dsn": {"nom_prenom": "SAND GEORGE", "tel": "0100000092"},
         });
         let jour = |j: &str| socle::date::Jour::lire(j).unwrap();
-        let mut fiche = droit::contexte::fiche_datee(plate.as_object().unwrap(), &jour("2024-01-01"));
-        droit::contexte::dater(&mut fiche, "raison_sociale", json!("CIE FICTIVE"), &jour("2026-01-02"), None);
-        droit::contexte::dater(&mut fiche, "idcc", json!("3090"), &jour("2026-01-02"), None);
+        let mut fiche = droit::contexte::fiche_datee(plate.as_object().unwrap());
+        droit::contexte::dater(&mut fiche, "raison_sociale", json!("CIE FICTIVE"), Some(&jour("2026-01-02")), None);
+        droit::contexte::dater(&mut fiche, "idcc", json!("3090"), Some(&jour("2026-01-02")), None);
         let datee = id.appliquer(&Value::Object(fiche)).unwrap();
         let f = droit::contexte::fiche_au(&datee, &jour("2026-06-01"), "essai").unwrap();
         assert_eq!(droit::contexte::fiche_au(&datee, &jour("2025-06-01"), "essai").unwrap()["idcc"], json!("1285"));

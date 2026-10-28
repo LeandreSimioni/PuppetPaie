@@ -164,7 +164,7 @@ pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Re
             continue;
         }
         let brute = ctx.salarie_brut(cle).unwrap_or(&Value::Null);
-        let le = valeurs_datees(brute, c)?.into_iter().map(|(j, _)| j).filter(|j| j > debut && j <= fin).last();
+        let le = valeurs_datees(brute, c)?.into_iter().filter_map(|(j, _)| j).filter(|j| j > debut && j <= fin).last();
         let premier = Jour { jour: 1, ..*debut };
         let suivant = Jour { jour: 1, ..premier.plus_jours(31)? };
         let texte = |v: &Value| if v.is_null() { "(vide)".to_string() } else { repr_valeur(v) };
@@ -198,7 +198,7 @@ pub fn jours_de_changement(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) 
     let brute = ctx.salarie_brut(cle).unwrap_or(&Value::Null);
     let mut jours: Vec<Jour> = Vec::new();
     for c in UNE_VALEUR_PAR_MOIS {
-        jours.extend(valeurs_datees(brute, c)?.into_iter().map(|(j, _)| j).filter(|j| j > debut && j <= fin));
+        jours.extend(valeurs_datees(brute, c)?.into_iter().filter_map(|(j, _)| j).filter(|j| j > debut && j <= fin));
     }
     jours.sort();
     jours.dedup();

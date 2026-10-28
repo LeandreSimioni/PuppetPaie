@@ -132,7 +132,7 @@ pub fn depuis_quand_le_nir(brute: &Value) -> Resultat<Option<Jour>> {
     Ok(valeurs
         .windows(2)
         .find(|p| strip(&socle::date::en_texte(p[0].1)).is_empty() && !strip(&socle::date::en_texte(p[1].1)).is_empty())
-        .map(|p| p[1].0))
+        .and_then(|p| p[1].0))
 }
 
 /// Cette declaration-ci doit-elle porter le NTT a cote du NIR ?

@@ -319,18 +319,21 @@ entrée est un refus, pas un zéro.
 **La configuration de la compagnie est datée de même.** Chaque valeur d'une
 fiche — `config/entreprise.json` (convention, annexe, adresse, établissements…),
 chaque salarié de `salaries.json`, chaque spectacle de `spectacles.json` —
-s'écrit `[{"depuis": "AAAA-MM-JJ", "valeur": …}]` ; les clés `_…` sont des
-notes. Une seule lecture, `contexte::fiche_au`, sur la même `valeur_au` que les
-barèmes : avant la première valeur, le champ est absent ; une valeur non datée
-se refuse avec la phrase qui dit quoi faire (`contexte::non_datee`). Le
+s'écrit `[{"valeur": …}, {"depuis": "AAAA-MM-JJ", "valeur": …}]` : la première
+valeur, sans `depuis`, vaut **de tout temps** (un contrat commencé avant la
+saisie de la fiche, un mois repris d'un autre logiciel la trouvent), chacune des
+suivantes à partir de sa date ; les clés `_…` sont des notes. Une seule
+lecture, `contexte::fiche_au`, sur la même `valeur_au` que les barèmes ; une
+valeur non datée se refuse avec la phrase qui dit quoi faire
+(`contexte::non_datee`). Le
 `Contexte` garde les fiches datées et les lit à `lue_au` ; `Contexte::au(jour)`
 et `du_mois(mois)` donnent le contexte d'une période. Le calcul d'une période
 lit tout à sa fin (`calculer_periode`), la DSN d'un mois et ses documents à son
 dernier jour (`dsn::generer`, `entreprise_du_mois`, et toute route qui porte un
 `mois`, `routes::dans_la_fenetre`), et le barème d'un jour applique la
-convention de ce jour. On écrit par `contexte::dater` : la première valeur d'une
-compagnie neuve vaut depuis sa création (`config/creation.json`, écrite par
-« Ajouter une compagnie ») ; changer une valeur existante exige sa date d'effet
+convention de ce jour. On écrit par `contexte::dater`, et seulement par lui : la
+première valeur d'un champ s'y écrit de tout temps, quelle que soit la date
+donnée ; changer une valeur existante exige sa date d'effet
 (`routes_ecritures::ecrire_datee`, l'écran la demande alors) ; ce qui précède
 garde l'ancienne valeur.
 
