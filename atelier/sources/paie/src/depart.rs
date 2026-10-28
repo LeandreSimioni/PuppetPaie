@@ -715,7 +715,8 @@ fn numero_en_nom(n: &str) -> String {
 }
 
 /// LES DOCUMENTS DU MOIS, FABRIQUES A LEUR ENVOI, pour les salaries `cles` : depuis les paies ecrites des engagements
-/// valides, un `Bulletin_<cle>_<Mois>.pdf` (tous ses bulletins du mois) et un `CertificatCS_<cle>_<Mois>.pdf` par salarie,
+/// valides (chaque contrat sous le numero que sa validation lui a ecrit), un `Bulletin_<cle>_<Mois>.pdf` (tous ses
+/// bulletins du mois) et un `CertificatCS_<cle>_<Mois>.pdf` par salarie,
 /// dans `sorties/<mois>/envoi/`. Un bulletin parti garde son numero ; un bulletin qui part pour la premiere fois prend le
 /// suivant de l'annee ; une paie partie puis refaite part sous un nouveau numero, imprimee comme le rectificatif de celle
 /// qui est partie, et le bulletin d'origine se garde a cote (`sorties/<mois>/Bulletin_<cle>_<Mois>_<numero>.pdf`). Les N CE
@@ -724,11 +725,9 @@ fn numero_en_nom(n: &str) -> String {
 pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], qui: &str) -> R<DocumentsFabriques> {
     let verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let mut faits = DocumentsFabriques { _verrou: verrou, reserves: Reserves::default(), a_poser: Vec::new(), avertissements: Vec::new() };
-    let Some((_data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)? else { return Ok(faits) };
+    let Some((_data, paies)) = engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)? else { return Ok(faits) };
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois).map_err(Echec::from)?;
     let an = annee_de(mois)?;
-    // Les numeros de bulletin que le compteur propose ; chaque contrat porte deja le sien.
-    documents::ecrire_documents::numeroter(ctx, &mut paies, an as i32)?;
     let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
     let dossier = sortie.join("envoi");

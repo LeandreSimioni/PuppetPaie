@@ -1,8 +1,8 @@
 {
-  "_source": "COMPAGNIE FICTIVE de l'apercu du bulletin (lot R11) : titre et numero d'objet fabriques.",
+  "_source": "COMPAGNIE FICTIVE de l'apercu du bulletin : titre et numero d'objet fabriques. Chaque valeur vaut de tout temps (configuration datee).",
   "apercu": {
-    "titre": "Spectacle fictif",
-    "numero_objet": "266Z00900011",
-    "alias": ["spectacle fictif"]
+    "titre": [{"valeur": "Spectacle fictif"}],
+    "numero_objet": [{"valeur": "266Z00900011"}],
+    "alias": [{"valeur": ["spectacle fictif"]}]
   }
 }

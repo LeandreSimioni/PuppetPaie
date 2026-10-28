@@ -48,7 +48,7 @@ use crate::{empreinte, relire};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::fichiers::vrai;
-use socle::num::Resultat;
+use socle::num::{dec_avec_echelle, pct, Decimal, Resultat};
 
 /// La raison d'un recalcul : le taux de prelevement a la source a change.
 pub const TAUX_DE_PAS: &str = "taux de PAS reçu";
@@ -585,6 +585,63 @@ pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pa
     droit::pas::du_versement(taux.as_ref(), &bareme, p.net_imposable, Some(fin), court, droit::pas::ZONE_DEFAUT)
         .map(Some)
         .map_err(|e| e.message().to_string())
+}
+
+/// Le prelevement a la source du versement d'une correction, verse avec le mois `mois_du_versement` : la difference de
+/// net imposable entre la paie corrigee `apres` et ce qui a ete declare (`net_imposable_declare`).
+///
+/// BOFiP, BOI-IR-PAS-30-10-50 (`atelier/reference/sources/bofip/BOI-IR-PAS-30-10-50-extrait-regularisation.md`) :
+/// - § 1 : un rappel de paie « ne donne pas lieu a regularisation, mais doit etre soumis au prelevement a la source et
+///   porte dans la declaration souscrite au titre du mois au cours duquel est intervenu le versement du rappel » : la
+///   difference qui monte se preleve comme un versement de ce mois-la, datee de sa fin (S21.G00.50.001), au taux DGFiP
+///   qui vaut alors, sinon a la grille de l'article 204 H, avec l'abattement d'un contrat court ;
+/// - § 90 : un trop-verse qui ne se compense pas (le versement de la correction est negatif) se regularise « au taux de
+///   prelevement initialement utilise » : `taux_origine`, le taux du versement declare (S21.G00.56.006). Sans lui, pas
+///   de prelevement (`None`) : la DSN refuse, le bulletin le dit. Son versement porte un montant soumis nul (fiche
+///   1810, `droit::pas::du_versement`).
+///
+/// Un bareme sans grille refuse, comme pour une paie (regle 1).
+pub fn prelevement_de_la_correction(
+    ctx: &Contexte, apres: &Paie, net_imposable_declare: Decimal, taux_origine: Option<&str>, mois_du_versement: &str,
+) -> Resultat<PrelevementDeLaCorrection> {
+    let debut = Jour::lire(&format!("{}-01", mois_du_versement))?;
+    let fin = Jour::nouveau(debut.an, debut.mois, socle::date::jours_du_mois(debut.an, debut.mois))
+        .ok_or_else(|| socle::date::date_impossible(debut.an, debut.mois, 1))?;
+    let difference = socle::num::sub(apres.net_imposable, net_imposable_declare);
+    let e = &apres.engagement;
+    let cle = en_texte(apres.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
+    let taux = droit::pas::taux_dgfip(ctx, &cle, Some(fin))?;
+    let bareme = ctx.bareme(&debut)?;
+    let t = |j: Jour| (j.an, j.mois, j.jour);
+    let court = droit::natures::contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));
+    let versement = droit::pas::du_versement(taux.as_ref(), &bareme, difference, Some(fin), court, droit::pas::ZONE_DEFAUT)
+        .map_err(|e| e.message().to_string())?;
+    let prelevement = if difference < Decimal::ZERO {
+        match taux_origine.filter(|t| !t.is_empty()) {
+            Some(t) => Some(pct(difference, dec_avec_echelle(&Value::String(t.to_string()))?)),
+            None => None,
+        }
+    } else {
+        Some(pct(versement.montant_soumis, dec_avec_echelle(&versement.taux)?))
+    };
+    Ok(PrelevementDeLaCorrection { difference, versement, prelevement })
+}
+
+/// Ce que `prelevement_de_la_correction` rend.
+pub struct PrelevementDeLaCorrection {
+    /// La difference de net imposable (S21.G00.50.002 du versement de la correction).
+    pub difference: Decimal,
+    /// Le taux, son type, son identifiant et le montant soumis du versement (S21.G00.50.006 a .008, .013).
+    pub versement: droit::pas::Versement,
+    /// Ce que la correction preleve (positif) ou rend (negatif) ; `None` : un trop-verse sans taux d'origine.
+    pub prelevement: Option<Decimal>,
+}
+
+impl PrelevementDeLaCorrection {
+    /// Un trop-verse : la difference baisse.
+    pub fn indu(&self) -> bool {
+        self.difference < Decimal::ZERO
+    }
 }
 
 /// La paie de l'engagement `o` pour `mois`, calculee maintenant : `{"paie", "fiches", "pas", "empreinte"}`.

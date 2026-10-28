@@ -1,5 +1,4 @@
-//! Le modele du bulletin (lot R11, 11/10/2026 ; PLAN-CONTRATS, C, points 9 et 11, decides le 30/09/2026) : ce que la
-//! page de Configuration montre et enregistre. La decision vit dans `bulletin::Modele` et `bulletin::modele_du_bulletin`
+//! Le modele du bulletin : ce que la page de Configuration montre et enregistre. La decision vit dans `bulletin::Modele` et `bulletin::modele_du_bulletin`
 //! (regle 2) ; ces routes ne font que la lire, l'apercevoir et poser le choix de la compagnie.
 //!
 //! - `bulletin-modeles` (lecture) : les modeles, celui que la compagnie a choisi, les salaries dont la fiche en demande
@@ -120,7 +119,9 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     o.insert(CASE_MODELE.into(), json!(modele.cle()));
     // Ni le logo ni la signature du poste sur une paie fictive : ses gabarits sont un dossier qui n'existe pas.
     o.insert("_gabarits".into(), json!(racine.join("gabarits").to_string_lossy()));
-    let numeros: Vec<Option<String>> = s.paies.iter().map(|p| p.numero_bulletin.clone()).collect();
+    // Une paie de l'ecran n'a pas de numero de bulletin (il se reserve au depart) : l'apercu montre celui d'un premier
+    // bulletin de l'annee.
+    let numeros: Vec<Option<String>> = (1..=s.paies.len()).map(|n| Some(format!("{}/{}", n, &mois[..4]))).collect();
     jeux_et_description(&ctx, &s.paies, &numeros, &ent, &mois, None, false, &HashMap::new())
 }
 
