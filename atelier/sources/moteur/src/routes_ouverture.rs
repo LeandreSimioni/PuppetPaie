@@ -1369,7 +1369,44 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
         }
         Ok(q2(t))
     };
-    let (total_brut, total_cout) = (somme("brut")?, somme("cout_employeur")?);
+    let (total_brut, total_cout, total_net) = (somme("brut")?, somme("cout_employeur")?, somme("net_a_payer")?);
+    // LES TROIS NOMBRES, sommes ici : par bloc de l'ecran (`blocs` : combien d'engagements chaque carte porte, dans
+    // l'ordre ; sans lui, une carte par engagement) et par salarie (la colonne « Le mois »).
+    let trois = |vs: &[&Value]| -> R<Value> {
+        let mut t = [Decimal::new(0, 2), Decimal::new(0, 2), Decimal::new(0, 2)];
+        for v in vs {
+            for (k, cle) in ["net_a_payer", "brut", "cout_employeur"].iter().enumerate() {
+                t[k] += dec(v.get(*cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
+            }
+        }
+        Ok(json!({"net_a_payer": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "paies": vs.len()}))
+    };
+    let tailles: Vec<usize> = match charge.get("blocs").and_then(Value::as_array) {
+        Some(a) => a.iter().map(|x| x.as_u64().unwrap_or(0) as usize).collect(),
+        None => vec![1; vues.len()],
+    };
+    let mut blocs = Vec::new();
+    let mut rang = 0;
+    for n in tailles {
+        let fin = (rang + n).min(vues.len());
+        blocs.push(trois(&vues[rang..fin].iter().collect::<Vec<_>>())?);
+        rang = fin;
+    }
+    let mut salaries: Vec<(String, Value, Vec<&Value>)> = Vec::new();
+    for v in &vues {
+        let s = v.get("salarie").cloned().unwrap_or(Value::Null);
+        let cle = format!("{}|{}", en_texte(s.get("nom").unwrap_or(&Value::Null)), en_texte(s.get("prenom").unwrap_or(&Value::Null)));
+        match salaries.iter_mut().find(|(c, _, _)| *c == cle) {
+            Some((_, _, vs)) => vs.push(v),
+            None => salaries.push((cle, s, vec![v])),
+        }
+    }
+    let mut par_salarie = Vec::new();
+    for (_, s, vs) in &salaries {
+        let mut t = trois(vs)?;
+        t["salarie"] = s.clone();
+        par_salarie.push(t);
+    }
     let mut a_regarder = avert;
     a_regarder.extend(archives_employees(&paies)?);
     let mut informations = Vec::new();
@@ -1383,7 +1420,8 @@ fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
         "mois": mois,
         "libelle": format!("{} {}", socle::date::nom_du_mois(n as i64, socle::date::Graphie::Titre)?, annee),
         "paies": vues,
-        "total_brut": total_brut.to_string(), "total_cout": total_cout.to_string(),
+        "total_brut": total_brut.to_string(), "total_cout": total_cout.to_string(), "total_net": total_net.to_string(),
+        "blocs": blocs, "par_salarie": par_salarie,
         "urssaf": urssaf,
         "avertissements": a_regarder,
         "informations": informations,

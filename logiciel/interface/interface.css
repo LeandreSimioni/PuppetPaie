@@ -1100,6 +1100,27 @@ pre.reponse {
 .etat-acte.cliquable:hover { text-decoration: underline dotted; }
 #config-nouvelle { float: right; font-size: 13px; padding: 4px 10px; }
 .etat-acte.orange { color: var(--texte); }
+/* Le contrat parti, pas revenu : moitié faite, moitié attendue, comme la case du mois. */
+.etat-acte.en-attente .carre { background: linear-gradient(135deg, var(--succes) 50%, var(--alerte) 50%); }
+.etat-acte.en-attente { color: var(--texte); }
+.etat-acte.cliquable:focus-visible { outline: 2px solid var(--alerte); outline-offset: 2px; }
+.message-annuler { margin-left: 4px; color: inherit; text-decoration: underline; }
+
+/* La ligne d'un engagement modifié après un envoi, qui ouvre la frise de ses versions. */
+.carte-versions { grid-column: 1 / -1; justify-self: start; text-align: left; font-size: 12px; margin: 4px 10px 0; }
+.frise { list-style: none; padding: 0; margin: 10px 0; border-left: 2px solid var(--bord); }
+.frise > li { position: relative; padding: 0 0 12px 14px; }
+.frise > li::before { content: ""; position: absolute; left: -6px; top: 4px; width: 10px; height: 10px;
+  border-radius: 50%; background: var(--fond, #fff); border: 2px solid var(--discret); }
+.frise > li:last-child::before { border-color: var(--succes); background: var(--succes); }
+.frise-changements { margin: 4px 0 0; padding-left: 18px; }
+.frise-partis { margin: 4px 0 0; font-size: 12px; color: var(--discret); }
+
+/* Un engagement non actif : la ligne fermée, en retrait, qui se lit sans se modifier. */
+.engagement-non-actif { margin: 6px 0 6px 22px; padding: 8px 10px; border: 1px dashed var(--bord);
+  border-radius: 6px; opacity: .8; font-size: 13px; }
+.engagement-non-actif .na-ligne { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.engagement-non-actif .na-mot { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--discret); }
 
 /* --------------------------------------------- une paie validée est verte
    « On valide, c'est vert, normalement on n'y revient pas, édition bloquée

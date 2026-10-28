@@ -187,7 +187,7 @@ async function calculerApercu(lu) {
   // un CDI saisi en entier restait devant « ajouter des jours joués »
   // pendant que sa paie, elle, était calculable.
   const aDeQuoiPayer = (e) => aDesJours(e) || e.salaire_mensuel != null;
-  document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "calculé, rien n'est écrit";
+  document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "";
   if (IMPORTE) {
     // Un mois tenu avant PuppetPaie ne se calcule pas ici : ses paies sont celles de l'ancien logiciel (#215).
     const n = IMPORTE.paies.length;
@@ -205,17 +205,20 @@ async function calculerApercu(lu) {
   }
   cible.classList.add("attente");
   try {
-    const a = lu ? structuredClone(lireReponse(lu)) : await api("apercu", { saisie });
+    // Les trois nombres de chaque carte, sommés par le moteur (`blocs` : combien d'engagements chaque carte porte) ;
+    // la lecture du mois les rend pour une carte par engagement.
+    const blocs = [...document.querySelectorAll(".engagement")];
+    const tailles = blocs.map((div) => salariesDuBloc(div).length);
+    const a = lu && tailles.every((n) => n === 1) ? structuredClone(lireReponse(lu))
+      : await api("apercu", { saisie, blocs: tailles });
     cible.innerHTML = vueApercu(a);
     // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
-    const blocs = [...document.querySelectorAll(".engagement")];
     const parBloc = paiesParBloc(a, blocs);
     blocs.forEach((div, i) => {
       const part = parBloc[i];
       const p = part[0];
-      // Les trois nombres du bloc — sommés quand il porte plusieurs salariés,
-      // parce que l'enveloppe qu'on y vise est celle du bloc entier.
-      peindreChiffres(div, part);
+      div._total = part.length ? (a.blocs || [])[i] : null;
+      peindreChiffres(div, div._total);
       div._paies = part;
       peindreCarte(div);
       // Ce qui a été numéroté : un contrat en cours garde le numéro de son
@@ -353,9 +356,7 @@ function peindreCarte(div) {
   const paye = p ? designation(p).toLowerCase() : "";
   // Un contrat sur plusieurs mois porte sa pastille à côté du nom (#127).
   poserChevrons(div, ligne.contrat, ligne.debut, ligne.fin);
-  const net = ps.length
-    ? euros(ps.reduce((t, x) => t + Number(x.net_a_payer || 0), 0))
-    : "";
+  const net = div._total ? euros(div._total.net_a_payer) : "";
   const detail = [p && p.numero_bulletin ? `bulletin ${p.numero_bulletin}` : "",
                   p && p.numero_contrat ? `contrat ${p.numero_contrat}` : "",
                   `validée le ${quand(ligne.valide)}`].filter(Boolean).join(" · ");
@@ -369,7 +370,7 @@ function peindreCarte(div) {
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>
-    ${recalculDe(ligne)}
+    ${recalculDe(ligne)}${versionsDe(ligne)}
     <span class="carte-modifier">
       <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
         aria-label="Un imprévu">&hellip;</button></span>`;
@@ -383,12 +384,38 @@ function peindreCarte(div) {
   const porte = cible.querySelector(".carte-imprevu");
   porte.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); menuImprevu(porte, { div }); };
   brancherRecu(cible);
+  const frise = cible.querySelector(".carte-versions");
+  if (frise) frise.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); boiteFrise(ligne); };
 }
 
 /* UNE PAIE VALIDÉE QUI S'EST RECALCULÉE D'ELLE-MÊME : le moteur dit quand et pourquoi (`recalcul` de
  * `etat-par-engagement`) ; la carte le montre tel quel. */
 function recalculDe(ligne) {
   return ligne && ligne.recalcul ? `<div class="encart carte-recalcul">${echapper(ligne.recalcul)}</div>` : "";
+}
+
+/* UN ENGAGEMENT MODIFIÉ APRÈS UN ENVOI : la ligne que le moteur écrit (« Modifié le 12/11, après l'envoi du contrat »,
+ * `versions.phrase` d'`etat-par-engagement`) ouvre la frise de ses versions. Jamais modifié après un envoi : rien. */
+function versionsDe(ligne) {
+  return ligne && ligne.versions
+    ? `<button class="lien carte-versions">${echapper(ligne.versions.phrase)}</button>` : "";
+}
+
+/** La frise : par version, sa date, ce qui a changé depuis la précédente, et ce qui est parti sur elle. */
+function boiteFrise(ligne) {
+  const vs = ligne.versions.versions || [];
+  ouvrirBoite(`
+    <h3>${echapper(ligne.nom)}</h3>
+    <p class="discret">${echapper(pourQuoi(ligne))}, ${echapper(periodeEnClair(ligne.debut, ligne.fin))}</p>
+    <ol class="frise">${vs.map((v) => `
+      <li>
+        <b>Version ${echapper(v.version)}</b> <span class="discret">— le ${echapper(v.jour)}</span>
+        ${v.changements.length ? `<ul class="frise-changements">${v.changements.map((c) =>
+          `<li>${echapper(c)}</li>`).join("")}</ul>` : ""}
+        ${v.partis.length ? `<p class="frise-partis">Parti : ${v.partis.map(echapper).join(" ; ")}</p>` : ""}
+      </li>`).join("")}
+    </ol>
+    <div class="actions"><button class="secondaire" onclick="fermerBoite()">Fermer</button></div>`);
 }
 
 /** Un jour d'une ligne, nu ou avec son propre lieu (`{"jour", "lieu"}`). */
@@ -451,34 +478,36 @@ function boiteDetail(ligne, ps) {
     ${recalculDe(ligne)}
     ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
     <div class="actions">
+      <button class="lien d-pieces" data-acte="dpae">La DPAE partie</button>
+      <button class="lien d-pieces" data-acte="signature">Le contrat parti</button>
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      <button class="modifier" id="d-modifier">${CRAYON}Modifier…</button>
+      <button class="modifier" id="d-modifier">${CRAYON}Modifier l'engagement…</button>
     </div>`);
   const m = document.getElementById("d-modifier");
-  if (m) m.onclick = () => { fermerBoite(); boiteRouvrir(ligne); };
+  if (m) m.onclick = () => { fermerBoite(); boiteModifier(ligne); };
+  document.querySelectorAll(".d-pieces").forEach((b) => {
+    b.onclick = () => { fermerBoite(); boitePieces(ligne, b.dataset.acte); };
+  });
 }
 
 /** Les trois nombres du bloc. Une case en cours de frappe ne se repeint pas :
  *  l'aperçu revient 350 ms après la dernière touche, et il écraserait le
  *  montant qu'on est justement en train de viser. */
-function peindreChiffres(div, paies) {
+function peindreChiffres(div, total) {
   const champs = { net: "net_a_payer", brut: "brut", cout: "cout_employeur" };
   const net = div.querySelector(".e-net");
   if (net) {
-    // Le net (ce qu'on vire) et le coût employeur (ce que la compagnie sort) :
-    // les deux nombres qui décident d'une paie. Le brut reste dans l'aperçu.
-    const somme = (k) => euros(paies.reduce((t, p) => t + Number(p[k] || 0), 0));
-    net.innerHTML = paies.length
-      ? `Net <b>${echapper(somme("net_a_payer"))}</b>
-         <span class="e-cout">Coût employeur <b>${echapper(somme("cout_employeur"))}</b></span>${paies.length > 1
-          ? ` <span class="discret">pour ${paies.length} salariés</span>` : ""}`
-      : `<span class="discret">Le net s'affiche dès que la paie est complète.</span>`;
+    // Le net (ce qu'on vire) et le coût employeur (ce que la compagnie sort), tels que le moteur les somme pour la
+    // carte (`blocs` de l'aperçu). Le brut reste dans l'aperçu.
+    net.innerHTML = total
+      ? `Net <b>${echapper(euros(total.net_a_payer))}</b>
+         <span class="e-cout">Coût employeur <b>${echapper(euros(total.cout_employeur))}</b></span>${total.paies > 1
+          ? ` <span class="discret">pour ${total.paies} salariés</span>` : ""}`
+      : `<span class="discret">Le net s'affiche dès que l'engagement est complet.</span>`;
   }
   div.querySelectorAll(".e-vise").forEach((c) => {
     if (c === document.activeElement) return;
-    c.value = paies.length
-      ? paies.reduce((t, p) => t + Number(p[champs[c.dataset.cible]] || 0), 0).toFixed(2)
-      : "";
+    c.value = total ? total[champs[c.dataset.cible]] : "";
   });
 }
 
@@ -574,40 +603,21 @@ function designation(p) {
   return r.length ? r.map((l) => l.designation).join(", ") : "—";
 }
 
-/* PAR SALARIÉ, UNE LIGNE. « C'est plus facile ensuite pour faire les paies :
- * j'ai juste à mettre le montant du net » ; puis, devant
- * le détail paie par paie : « pas de détail dans l'aperçu ! ». Donc une ligne
- * par salarié, sommée, et le net est ce qu'on vire. Les sommes se font ici,
- * sur les chaînes du moteur, à deux décimales — ce n'est qu'un aperçu, le
- * bulletin fait foi. */
+/* LE MOIS, EN DEUX NOMBRES : ce qu'on vire (le net) et ce que le mois coûte à la compagnie, puis une ligne par salarié,
+ * son net, le coût et le brut au survol. Le moteur les somme (`total_net`, `total_cout`, `par_salarie` de l'aperçu). */
 function vueApercu(a) {
-  /* LE MOIS, EN DEUX NOMBRES (23/09/2026). Ce qu'on tire de l'aperçu, c'est
-     ce qu'on vire à chacun et ce que le mois coûte à la compagnie. Le brut
-     et le détail des cachets sont dans les paies, les bulletins et les
-     exports : les répéter ici faisait un tableau à cinq colonnes qu'on ne
-     lisait qu'en partie. Une ligne par salarié, son net ; le coût au survol. */
-  const somme = (xs) => xs.reduce((t, x) => t + Number(x || 0), 0);
-  const eur = euros;
-  const groupes = [];
-  a.paies.forEach((p) => {
-    const cle = p.salarie.nom + "|" + p.salarie.prenom;
-    let g = groupes.find((x) => x.cle === cle);
-    if (!g) { g = { cle, salarie: p.salarie, paies: [] }; groupes.push(g); }
-    g.paies.push(p);
-  });
+  const groupes = a.par_salarie || [];
   if (!groupes.length) return `<p class="discret">Aucune paie ce mois-ci.</p>`;
-  const net = somme(a.paies.map((p) => p.net_a_payer));
-  const cout = somme(a.paies.map((p) => p.cout_employeur));
   return `
     <div class="mois-chiffres">
-      <div><span>Net à virer</span><b>${eur(net)}</b></div>
-      <div><span>Coût employeur</span><b>${eur(cout)}</b></div>
+      <div><span>Net à virer</span><b>${euros(a.total_net)}</b></div>
+      <div><span>Coût employeur</span><b>${euros(a.total_cout)}</b></div>
     </div>
     <ul class="mois-salaries">${groupes.map((g) => `
-      <li title="coût employeur ${echapper(eur(somme(g.paies.map((p) => p.cout_employeur))))} · brut ${echapper(eur(somme(g.paies.map((p) => p.brut))))}">
+      <li title="coût employeur ${echapper(euros(g.cout_employeur))} · brut ${echapper(euros(g.brut))}">
         <span>${echapper(g.salarie.nom)} ${echapper(g.salarie.prenom)}
-          <span class="discret">· ${g.paies.length} paie${g.paies.length > 1 ? "s" : ""}</span></span>
-        <b>${eur(somme(g.paies.map((p) => p.net_a_payer)))}</b>
+          <span class="discret">· ${g.paies} paie${g.paies > 1 ? "s" : ""}</span></span>
+        <b>${euros(g.net_a_payer)}</b>
       </li>`).join("")}
     </ul>`;
 }

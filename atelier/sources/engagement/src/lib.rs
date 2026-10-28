@@ -26,6 +26,7 @@ pub mod solde;
 pub mod numeros;
 pub mod stock;
 #[cfg(feature = "ecran")]
+pub mod versions;
 pub mod viser;
 
 use std::collections::{BTreeMap, BTreeSet};

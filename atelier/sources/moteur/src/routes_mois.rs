@@ -692,6 +692,7 @@ impl<'a> Moteur<'a> {
         let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
         let actes = etats::etat_du_mois(&lignes, mois)?;
         let depot_dsn = actes.get(DSN).cloned().unwrap_or(Value::Null);
+        let departs = envois::journal::departs(&self.ctx.racine).map_err(Echec::from)?;
 
         let mut out = Vec::new();
         for (i, p) in s.paies.iter().enumerate() {
@@ -830,6 +831,11 @@ impl<'a> Moteur<'a> {
             let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
             let dsn = json!({"fait": if vrai(&depot_dsn) { get(&depot_dsn, "quand")?.clone() } else { Value::Null }, "maille": "mois"});
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents, "dsn": dsn}));
+            let carres = carres(&Value::Object(ligne.clone()));
+            ligne.insert("carres".into(), carres);
+            // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
+            let frise = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| engagement::versions::frise(self.ctx, v, &departs));
+            ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
             out.push(Value::Object(ligne));
         }
         Ok(out)
@@ -1536,6 +1542,63 @@ impl<'a> Moteur<'a> {
 /// LES DOCUMENTS PARTIS DU MOIS, par salarie : ce que l'engagement sait de ce qui est parti (`journal::departs`, une
 /// seule source) -- `quand` le dernier envoi des documents du mois l'a atteint --, et ce que ses documents disaient
 /// (`resume`, lu dans la ligne de cet envoi). `etats` : les engagements que le mois montre.
+/// « le 05/11/2026 » d'un instant du journal.
+fn le_jour(v: &Value) -> String {
+    let t = valeur_en_texte(v);
+    Jour::lire(t.get(..10).unwrap_or(&t)).map(|j| format!("le {}", j.jj_mm_aaaa())).unwrap_or(t)
+}
+
+/// LES TROIS CARRES DE LA LIGNE D'UN ENGAGEMENT VALIDE (DPAE, Contrat, Documents), lus comme les cases du panneau
+/// (`Point::de`) : chacun son nom, son etat (`fait`, `a_faire`, `en_attente`, `refuse`), sa phrase (l'infobulle) et le
+/// geste qu'ouvre un clic. Le contrat parti et pas revenu se note signe d'un clic (`contrat_recu`).
+fn carres(p: &Value) -> Value {
+    let pt = Point::de(p, 0);
+    let d = &p["etats"]["dpae"];
+    let s = &p["etats"]["signature"];
+    let o = &p["etats"]["documents"];
+    let embauche = vrai(&p["contrat"]["premier_mois"]);
+    let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
+
+    let (etat, phrase, geste) = match pt.dpae {
+        "refuse" => {
+            let motifs: Vec<String> = d["anomalies"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
+            let motif = if motifs.is_empty() { "motif non lu".to_string() } else { motifs.join(" ; ") };
+            ("refuse", format!("DPAE refusée {} : {}", le_jour(&d["fait"]), motif), action("historique", "Voir le bilan…".into()))
+        }
+        "a_faire" => ("a_faire", "DPAE à déposer".to_string(), action("declarer_embauches", "Envoyer les DPAE…".into())),
+        _ if !embauche => ("fait", format!("DPAE faite en {}, à l'embauche", depuis), Value::Null),
+        _ if vrai(&d["passee"]) => ("fait", format!("DPAE déposée {}, passée", le_jour(&d["fait"])), Value::Null),
+        _ => ("fait", format!("DPAE déposée {}, retour pas encore arrivé", le_jour(&d["fait"])), Value::Null),
+    };
+    let dpae = json!({"cle": DPAE, "nom": "DPAE", "etat": etat, "phrase": phrase, "action": geste});
+
+    let cdi = &s["cdi_en_cours"];
+    let nom_contrat = if vrai(cdi) { format!("CDI, signé en {}", engagement::libelle_mois(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
+    let (etat, phrase, geste) = match pt.contrat {
+        "a_envoyer" => ("a_faire", "Contrat à envoyer".to_string(), action("faire_signer", "Demander la signature…".into())),
+        "a_refaire" => ("a_faire", format!("Contrat parti {} : {}", le_jour(&s["fait"]), valeur_en_texte(&s["pourquoi"])), action("faire_signer", "Demander la signature…".into())),
+        "en_attente" if vrai(&s["avenant_attendu"]) => (
+            "en_attente",
+            format!("Avenant n° {} parti {}, pas encore revenu signé", valeur_en_texte(&s["avenant"]["numero"]), le_jour(&s["avenant"]["quand"])),
+            action("faire_signer", "Relancer…".into()),
+        ),
+        "en_attente" => ("en_attente", format!("Contrat parti {}, pas encore revenu signé", le_jour(&s["fait"])), action("contrat_recu", "Noter le contrat signé".into())),
+        _ if vrai(cdi) => ("fait", format!("CDI en cours depuis {}, sans terme : rien à envoyer", depuis), Value::Null),
+        _ if !embauche => ("fait", format!("Contrat signé en {}", depuis), Value::Null),
+        _ if !vrai(&p["spectacle"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),
+        _ => ("fait", format!("Contrat signé {}", le_jour(&s["recu"])), Value::Null),
+    };
+    let contrat = json!({"cle": SIGNATURE, "nom": nom_contrat, "etat": etat, "phrase": phrase, "action": geste});
+
+    let (etat, phrase, geste) = match pt.documents {
+        "a_renvoyer" => ("a_faire", format!("Documents à renvoyer : {}", valeur_en_texte(&o["pourquoi"])), action("envoyer_documents", "Renvoyer les documents corrigés…".into())),
+        "a_envoyer" => ("a_faire", "Documents à envoyer".to_string(), action("envoyer_documents", "Envoyer les documents…".into())),
+        _ => ("fait", format!("Documents partis {}", le_jour(&o["fait"])), Value::Null),
+    };
+    let documents = json!({"cle": DOCUMENTS, "nom": "Documents", "etat": etat, "phrase": phrase, "action": geste});
+    json!([dpae, contrat, documents])
+}
+
 pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::etats::Etat], lignes: &[Value]) -> R<HashMap<String, Value>> {
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     let resumes = etats::resumes_des_documents(lignes, mois)?;
