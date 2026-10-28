@@ -772,7 +772,8 @@ function signeLe(quandRecu, par) {
 /** LE PDF À IMPRIMER s'ouvre : le moteur l'a écrit (`impression`), la fenêtre l'ouvre. */
 async function ouvrirImpression(mois, fichier) {
   try {
-    await api("ouvrir-piece", { impression: mois, fichier });
+    const r = await api("ouvrir-piece", { impression: mois, fichier });
+    if (r && r.phrase) dire(r.phrase);
   } catch (e) { dire(e.message, "erreur"); }
 }
 

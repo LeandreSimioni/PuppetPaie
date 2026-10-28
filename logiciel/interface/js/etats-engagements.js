@@ -168,8 +168,9 @@ async function boitePieces(ligne, acte) {
   document.querySelectorAll(".p-ouvrir").forEach((b) => {
     b.onclick = async () => {
       try {
-        await api("ouvrir-piece", { salarie: ligne.salarie, debut: ligne.debut,
-                                    fichier: pieces[+b.dataset.i].fichier });
+        const o = await api("ouvrir-piece", { salarie: ligne.salarie, debut: ligne.debut,
+                                              fichier: pieces[+b.dataset.i].fichier });
+        if (o && o.phrase) dire(o.phrase);
       } catch (err) { dire(err.message, "erreur"); }
     };
   });

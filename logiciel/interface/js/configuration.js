@@ -408,7 +408,7 @@ async function dessinerImportation(cible) {
       try {
         const r = await api("ouvrir-import", { dossier: document.getElementById("import-dossier").value.trim() });
         // Le dossier ouvert se dit (#141) : l'explorateur peut s'ouvrir derrière la fenêtre.
-        if (r && r.dossier) dire(`Dossier ouvert : ${r.dossier}`);
+        if (r && r.phrase) dire(r.phrase);
       } catch (err) { dire(err.message, "erreur"); }
     };
   }

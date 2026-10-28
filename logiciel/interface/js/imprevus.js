@@ -995,7 +995,7 @@ async function boitePapiersDeFin(mois, salarie) {
   document.getElementById("fp-dossier").onclick = async () => {
     try {
       const d = await api("ouvrir-dossier", { mois });
-      if (d && d.dossier) dire(`Dossier ouvert : ${d.dossier}`);
+      if (d && d.phrase) dire(d.phrase);
     } catch (e) { dire(e.message, "erreur"); }
   };
 }

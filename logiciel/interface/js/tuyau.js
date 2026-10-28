@@ -470,7 +470,7 @@ window.addEventListener("unhandledrejection", (ev) => {
 async function ouvrirEtDire(route, charge = {}) {
   try {
     const r = await api(route, charge);
-    if (r && r.dossier) dire(`Dossier ouvert : ${r.dossier}`);
+    if (r && r.phrase) dire(r.phrase);
   } catch (e) { dire(e.message, "erreur"); }
 }
 
