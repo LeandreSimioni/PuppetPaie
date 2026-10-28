@@ -833,8 +833,9 @@ impl<'a> Moteur<'a> {
             let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
             let dsn = json!({"fait": if vrai(&depot_dsn) { get(&depot_dsn, "quand")?.clone() } else { Value::Null }, "maille": "mois"});
             ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents, "dsn": dsn}));
-            let carres = carres(&Value::Object(ligne.clone()));
-            ligne.insert("carres".into(), carres);
+            let vue = Value::Object(ligne.clone());
+            ligne.insert("carres".into(), carres(&vue));
+            ligne.insert("dpae_choix".into(), choix_dpae(&vue));
             // LA FRISE : un engagement modifie apres un envoi dit quand, et ce qui a change de version en version.
             let frise = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| engagement::versions::frise(self.ctx, v, &departs));
             ligne.insert("versions".into(), frise.unwrap_or(Value::Null));
@@ -1563,8 +1564,7 @@ fn carres(p: &Value) -> Value {
 
     let (etat, phrase, geste) = match pt.dpae {
         "refuse" => {
-            let motifs: Vec<String> = d["anomalies"].as_array().into_iter().flatten().map(valeur_en_texte).collect();
-            let motif = if motifs.is_empty() { "motif non lu".to_string() } else { motifs.join(" ; ") };
+            let motif = motif_dpae(d);
             ("refuse", format!("DPAE refusée {} : {}", le_jour(&d["fait"]), motif), action("historique", "Voir le bilan…".into()))
         }
         "a_faire" => ("a_faire", "DPAE à déposer".to_string(), action("declarer_embauches", "Envoyer les DPAE…".into())),
@@ -1572,7 +1572,8 @@ fn carres(p: &Value) -> Value {
         _ if vrai(&d["passee"]) => ("fait", format!("DPAE déposée {}, passée", le_jour(&d["fait"])), Value::Null),
         _ => ("fait", format!("DPAE déposée {}, retour pas encore arrivé", le_jour(&d["fait"])), Value::Null),
     };
-    let dpae = json!({"cle": DPAE, "nom": "DPAE", "etat": etat, "phrase": phrase, "action": geste});
+    let pieces = json!({"vide": "Aucune DPAE déposée pour cette embauche.", "encart": null, "gestes": []});
+    let dpae = json!({"cle": DPAE, "nom": "DPAE", "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces});
 
     let cdi = &s["cdi_en_cours"];
     let nom_contrat = if vrai(cdi) { format!("CDI, signé en {}", engagement::libelle_mois(&valeur_en_texte(&cdi["signe_en"]))) } else { "Contrat".to_string() };
@@ -1590,7 +1591,7 @@ fn carres(p: &Value) -> Value {
         _ if !vrai(&p["spectacle"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),
         _ => ("fait", format!("Contrat signé {}", le_jour(&s["recu"])), Value::Null),
     };
-    let contrat = json!({"cle": SIGNATURE, "nom": nom_contrat, "etat": etat, "phrase": phrase, "action": geste});
+    let contrat = json!({"cle": SIGNATURE, "nom": nom_contrat, "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces_du_contrat(s)});
 
     let (etat, phrase, geste) = match pt.documents {
         "a_renvoyer" => ("a_faire", format!("Documents à renvoyer : {}", valeur_en_texte(&o["pourquoi"])), action("envoyer_documents", "Renvoyer les documents corrigés…".into())),
@@ -1599,6 +1600,85 @@ fn carres(p: &Value) -> Value {
     };
     let documents = json!({"cle": DOCUMENTS, "nom": "Documents", "etat": etat, "phrase": phrase, "action": geste});
     json!([dpae, contrat, documents])
+}
+
+/// CE QUE MONTRE LE DETAIL DU CONTRAT d'un engagement (les pieces parties, ouvertes depuis la ligne) : la phrase quand
+/// aucune piece n'est passee par le logiciel, l'encart d'un contrat qui n'est plus le bon, et les gestes, chacun son
+/// libelle, son geste et s'il est le principal. Un contrat parti ou recu se note signe (ou ne l'est plus) ; un contrat
+/// parti se modifie par un avenant ; un contrat a envoyer, ou parti et plus le bon sans etre signe, part a la signature.
+fn pieces_du_contrat(s: &Value) -> Value {
+    let (fait, recu, caduc) = (vrai(&s["fait"]), vrai(&s["recu"]), vrai(&s["caduc"]));
+    let vide = if recu { "Le contrat a été noté signé à la main : aucun fichier n'est passé par le logiciel." } else { "Aucun contrat n'est parti à la signature pour cet engagement." };
+    let encart = caduc.then(|| {
+        let pourquoi = valeur_en_texte(&s["pourquoi"]);
+        let mut c = pourquoi.chars();
+        let pourquoi = match c.next() {
+            Some(p) => format!("{}{}.", p.to_uppercase(), c.as_str()),
+            None => "L'engagement a changé depuis qu'il est parti.".to_string(),
+        };
+        let suite = if recu { "Il est signé : il se modifie par un avenant, que le salarié signe à son tour." } else { "Le salarié doit recevoir le contrat à jour, et le signer à nouveau." };
+        json!({"titre": "Ce contrat n'est plus le bon", "texte": format!("{} {}", pourquoi, suite)})
+    });
+    let mut gestes = Vec::new();
+    if fait || recu {
+        let libelle = if recu { "Retirer la mention « signé »" } else { "Noter le contrat signé reçu" };
+        gestes.push(json!({"libelle": libelle, "action": {"geste": "contrat_recu", "recu": !recu}, "principal": false}));
+    }
+    if fait {
+        gestes.push(json!({"libelle": "Avenant…", "titre": "Modifier le contrat parti : l'ancien texte et le nouveau, article par article", "action": {"geste": "avenant"}, "principal": caduc && recu}));
+    }
+    if (caduc || !fait) && !(caduc && recu) {
+        let libelle = if caduc { "Renvoyer le contrat à jour…" } else { "Envoyer à la signature…" };
+        gestes.push(json!({"libelle": libelle, "action": {"geste": "faire_signer"}, "principal": true}));
+    }
+    json!({"vide": vide, "encart": encart, "gestes": gestes})
+}
+
+/// CE QUE LA BOITE DES DPAE DIT D'UN ENGAGEMENT : s'il se coche (une embauche du mois), s'il est coche d'avance (pas de
+/// DPAE, ou une DPAE refusee : c'est la seule raison de redeposer ; une DPAE passee ne se redeclare pas), et son etat
+/// (`fait`, `a_faire`, `en_attente`, `refuse`) avec sa phrase.
+fn choix_dpae(p: &Value) -> Value {
+    let d = &p["etats"]["dpae"];
+    let choix = |cochable: bool, cochee: bool, etat: &str, phrase: String| json!({"cochable": cochable, "cochee": cochee, "etat": etat, "phrase": phrase});
+    if !vrai(&p["contrat"]["premier_mois"]) {
+        let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
+        return choix(false, false, "fait", format!("contrat en cours depuis {} — sa DPAE a été faite ce mois-là", depuis));
+    }
+    if !vrai(&d["fait"]) {
+        return choix(true, true, "a_faire", "à déclarer".into());
+    }
+    let le = le_jour(&d["fait"]);
+    if vrai(&d["refusee"]) {
+        let motif = motif_dpae(d);
+        return choix(true, true, "refuse", format!("refusée {} — {} — à redéclarer", le, motif));
+    }
+    if vrai(&d["passee"]) {
+        let dossier = if vrai(&d["deja_existante"]) {
+            " (déjà existante à l'Urssaf, rien de créé)".to_string()
+        } else if vrai(&d["dossier"]) {
+            format!(" (dossier {})", valeur_en_texte(&d["dossier"]))
+        } else {
+            String::new()
+        };
+        return choix(true, false, "fait", format!("déclarée {} — passée{}", le, dossier));
+    }
+    choix(true, false, "en_attente", format!("déclarée {} — retour pas encore arrivé : on attend, on ne renvoie pas", le))
+}
+
+/// Les motifs d'un refus de DPAE, lus des anomalies du retour : « E99 : anomalie fictive », ou « motif non lu ».
+fn motif_dpae(d: &Value) -> String {
+    let motifs: Vec<String> = d["anomalies"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|a| match (a.get("code").map(valeur_en_texte).filter(|c| !c.is_empty()), a.get("message").map(valeur_en_texte).filter(|m| !m.is_empty())) {
+            (Some(c), Some(m)) => format!("{} : {}", c, m),
+            (None, Some(m)) => m,
+            (Some(c), None) => c,
+            (None, None) => valeur_en_texte(a),
+        })
+        .collect();
+    if motifs.is_empty() { "motif non lu".to_string() } else { motifs.join(" ; ") }
 }
 
 pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::etats::Etat], lignes: &[Value]) -> R<HashMap<String, Value>> {

@@ -1026,7 +1026,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
     ev.preventDefault();
     fermerBoite();
     boitePieces({ salarie, debut, numero, nom: a.nom, fin: a.fin, spectacle: a.spectacle,
-                  etats: { signature: { fait: a.date_contrat, recu: a.signe } } }, "signature");
+                }, "contrat-signature");
   };
   const envoyer = document.getElementById("av-envoyer");
   if (envoyer) envoyer.onclick = async () => {
