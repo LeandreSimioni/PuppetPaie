@@ -146,7 +146,7 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// chercher maintenant. Une LECTURE : rien ne part. Rend `journal.repetition`, plus `incident` si le releve n'a
 /// pas pu se faire (le test reste ce qu'il est ; on le redira au passage suivant).
 fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mut r = crate::routes_apercus::bilan_repetition(ctx, charge)?;
+    let mut r = crate::routes::apercus::bilan_repetition(ctx, charge)?;
     if vrai(&r["conforme"]) && etats::est(&r["compte_rendu"], "attendu") {
         let (debut, fin) = releve_retours::derniere_journee();
         let quoi = requis(charge, "quoi")?;
@@ -160,7 +160,7 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
             Err(e) => phrase_de(&e),
         };
-        r = crate::routes_apercus::bilan_repetition(ctx, charge)?;
+        r = crate::routes::apercus::bilan_repetition(ctx, charge)?;
         r["incident"] = json!(incident);
     }
     Ok(r)
@@ -248,7 +248,7 @@ fn tester_les_dpae(
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
     if !crate::bridage::branchement(&ctx.racine).joue() {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
-        let dispo = client.is_some() || crate::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes_etats::vers_route)?;
+        let dispo = client.is_some() || crate::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes::etats::vers_route)?;
         if copie || !dispo {
             return Ok(None);
         }
@@ -288,7 +288,7 @@ fn tester_les_dpae(
         let mut fichier: Option<String> = None;
         let mut erreur_texte = String::new();
         let mut essai = |fichier: &mut Option<String>| -> R<()> {
-            let r = crate::routes_actes_h1::dpae(ctx, &json!({"mois": mois, "paies": selection}))?;
+            let r = crate::routes::actes_h1::dpae(ctx, &json!({"mois": mois, "paies": selection}))?;
             let f = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             // Le fichier est note des qu'il est ecrit : un depot qui echoue garde sa trace (`fichier = r.fichiers[0]`).
             *fichier = Some(f.clone());

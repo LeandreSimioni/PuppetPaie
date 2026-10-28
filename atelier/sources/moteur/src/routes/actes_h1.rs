@@ -62,7 +62,7 @@ fn plain(m: String) -> Echec {
 
 /// `charge["cle"]` : un texte requis.
 fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
-    crate::routes_fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
+    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
 }
 
 /// `charge.get(cle)` quand il est vrai (`or None`).
@@ -117,7 +117,7 @@ fn mois_dit(mois: &str) -> String {
 /// La cle de la fiche que `nom` designe, comme partout dans le moteur (`Contexte::salarie` : la casse, les accents, le
 /// prenom, le NIR ne comptent pas). Un nom qui ne designe personne se refuse avec la phrase de `Contexte::salarie`.
 fn cle_du_salarie(ctx: &Contexte, nom: &str) -> R<String> {
-    let fiche = crate::routes_dossiers::salarie(ctx, &json!(nom))?;
+    let fiche = crate::routes::dossiers::salarie(ctx, &json!(nom))?;
     fiche.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))
 }
 
@@ -283,7 +283,7 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `fctu.FinDeContrat` (en dictionnaire) que le signalement declarera, batie sur la saisie
 /// (`operations_permanents.fin_de_contrat_declaree`).
 fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<declarations::fctu::FinDeContrat> {
-    let manque = crate::routes_listes::ce_qui_manque(ctx, e)?;
+    let manque = crate::routes::listes::ce_qui_manque(ctx, e)?;
     if !manque.is_empty() {
         let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_else(|| "?".to_string());
         let liste: Vec<String> = manque.iter().map(valeur_en_texte).collect();
@@ -358,7 +358,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     // tires du magasin des imprevus ; ses suspensions (bloc 65) en viennent deja (`imprevus::suspensions_du_mois`).
     let (debut_p, fin_p) = (paie.engagement.debut_periode().map_err(plain)?, paie.engagement.fin_periode().map_err(plain)?);
     let arrets: Vec<declarations::dsn::Arret> = engagement::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
-        .map_err(crate::routes_listes::refus_magasin)?
+        .map_err(crate::routes::listes::refus_magasin)?
         .into_iter()
         .map(|v| declarations::dsn::Arret { v })
         .collect();
@@ -382,8 +382,8 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
     let cle = ctx.salarie(salarie).map_err(|m| erreur("KeyError", m))?;
     let cle = cle.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
     if vrai(dernier_jour) {
-        let jour = crate::routes_imprevus::jour(dernier_jour)?;
-        if let Some((i, liste)) = crate::routes_imprevus::trouver(ctx, engagement::imprevus::ARRET, &cle, &jour)? {
+        let jour = crate::routes::imprevus::jour(dernier_jour)?;
+        if let Some((i, liste)) = crate::routes::imprevus::trouver(ctx, engagement::imprevus::ARRET, &cle, &jour)? {
             return Ok(liste[i].clone());
         }
     }
@@ -413,8 +413,8 @@ pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
 /// n'est depose : le depot est un acte a part.
 fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     use declarations::signalement::{self, Echec as Ech};
-    let salarie = en_texte(crate::routes_fiches::exiger(charge, "salarie")?);
-    let dernier_jour = crate::routes_fiches::exiger(charge, "dernier_jour")?;
+    let salarie = en_texte(crate::routes::fiches::exiger(charge, "salarie")?);
+    let dernier_jour = crate::routes::fiches::exiger(charge, "dernier_jour")?;
     let nature = facultatif(charge, "nature").map(en_texte).unwrap_or_else(|| signalement::ARRET.to_string());
     let remplace: Option<String> = facultatif(charge, "remplace").map(en_texte);
     let envoi_test = facultatif(charge, "test").is_some();
@@ -459,7 +459,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let texte = signalement::generer(ctx, &dsn_arret, &options).map_err(echec)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
-    let nomenclatures = crate::routes_listes::nomenclatures(ctx)?;
+    let nomenclatures = crate::routes::listes::nomenclatures(ctx)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
         "nom": nom,
@@ -467,7 +467,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         "type": type_declaration,
         "ordre": ordre,
         "avertissements": avertissements,
-        "arret": crate::routes_listes::resume_arret(&nomenclatures, &arret)?,
+        "arret": crate::routes::listes::resume_arret(&nomenclatures, &arret)?,
     }))
 }
 
@@ -555,7 +555,7 @@ fn code_urssaf(ent: &Value) -> R<String> {
     if !ecrit.is_empty() {
         return Ok(ecrit.to_string());
     }
-    let territoire = crate::routes_fiches::urssaf_du_code_postal(ent.get("code_postal"))?;
+    let territoire = crate::routes::fiches::urssaf_du_code_postal(ent.get("code_postal"))?;
     Ok(if territoire.is_empty() { "117".to_string() } else { territoire })
 }
 

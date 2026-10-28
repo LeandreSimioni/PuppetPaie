@@ -764,7 +764,7 @@ impl<'a> Moteur<'a> {
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
             // CE QUE CE SALARIE RECOIT POUR CETTE PAIE (#236) : le bulletin s'il y a une paie, le certificat Conges Spectacles
-            // du contrat d'usage qui finit (`routes_dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
+            // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
             // (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
             let mut pieces: Vec<&str> = Vec::new();
             if !p.engagement.sans_paie() {
@@ -779,12 +779,12 @@ impl<'a> Moteur<'a> {
             ligne.insert("pieces".into(), json!(pieces));
             let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
             // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie (`ARefaire::Dpae`) : la DPAE de
-            // l'ancienne date vaut-elle (`routes_regularisation::dpae_d_une_date_changee`) ?
+            // l'ancienne date vaut-elle (`crate::routes::regularisation::dpae_d_une_date_changee`) ?
             let mut date_changee = Value::Null;
             if !vrai(dpae_v) {
                 let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
                 if let Some((avant, deposee)) = ancienne.and_then(|a| g.dpae.get(&(cle.clone(), a.clone())).filter(|v| vrai(v)).map(|v| (a, v))) {
-                    let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&avant, &debut);
+                    let (vaut, phrase) = crate::routes::regularisation::dpae_d_une_date_changee(&avant, &debut);
                     if vaut {
                         dpae_v = deposee;
                     }
@@ -1495,7 +1495,7 @@ impl<'a> Moteur<'a> {
                 let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
                 let pourquoi = match ancienne.filter(|a| faites.contains(&(cle.clone(), a.clone()))) {
                     Some(a) => {
-                        let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&a, &debut);
+                        let (vaut, phrase) = crate::routes::regularisation::dpae_d_une_date_changee(&a, &debut);
                         if vaut {
                             continue;
                         }
@@ -1795,7 +1795,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             "debut": engagement::debut_brut(&b),
             "fin": b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or_else(|| engagement::dates_engagement(&b).iter().map(|d| d.get("jour").map_or_else(|| valeur_en_texte(d), valeur_en_texte)).max().map_or(Value::Null, Value::String)),
             "non_actif": n.le(),
-            "a_faire": crate::routes_ecritures_g4::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
+            "a_faire": crate::routes::ecritures_g4::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
         }));
     }
     Ok(out)

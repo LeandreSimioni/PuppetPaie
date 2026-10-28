@@ -298,7 +298,7 @@ impl Drop for Derivation {
 /// La cle d'un mois au memo de la derivation : la compagnie, le mois, le registre de lectures ouvert sur ce fil
 /// (`fichiers::generation`, 0 sans registre) et l'etat de la validation en cours (`etats::marque_de_validation`). Un
 /// calcul suivi ne se sert ainsi que des mois relus par lui-meme (leurs lectures se notent), meme dans une derivation
-/// ouverte avant lui (`routes_mois::mois_a_ouvrir`, ticket #244).
+/// ouverte avant lui (`moteur::routes::mois::mois_a_ouvrir`, ticket #244).
 fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
     (
         ctx.racine.display().to_string(),

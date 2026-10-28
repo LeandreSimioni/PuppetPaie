@@ -36,7 +36,7 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
         "exporter" => exporter(ctx, charge),
         "journal-reprise" => crate::incidents::noter_ceux_des_retours(
             &ctx.racine,
-            envois::reprise_journal::reprise(ctx, charge.get("ecrire").is_some_and(vrai), &crate::routes_ecritures_g2::qui_de(charge), &maintenant()),
+            envois::reprise_journal::reprise(ctx, charge.get("ecrire").is_some_and(vrai), &crate::routes::ecritures_g2::qui_de(charge), &maintenant()),
         ),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
@@ -56,7 +56,7 @@ fn en_echec(r: Refus) -> Echec {
 
 /// `charge["cle"]` : un texte requis.
 fn texte_requis<'a>(charge: &'a Value, cle: &str) -> R<&'a str> {
-    crate::routes_fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
+    crate::routes::fiches::exiger(charge, cle)?.as_str().ok_or_else(|| erreur("TypeError", format!("`{}` : un texte est attendu", cle)))
 }
 
 /// `bool(charge.get(cle, defaut))`.
@@ -94,7 +94,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let rendu = if valide {
         match deja {
             Some(le) => le,
-            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &data, m)))?.le().to_string()),
+            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| Echec::from(crate::routes::ouverture::refus_du_calcul(ctx, &data, m)))?.le().to_string()),
         }
     } else {
         if !confirme {
@@ -117,7 +117,7 @@ fn engagement_designe(ctx: &Contexte, charge: &Value) -> R<(Value, usize)> {
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Err(refus(format!("Le mois {} n'est pas enregistre : il n'y a pas d'engagement a designer. Enregistrer la saisie d'abord.", mois)));
     };
-    let rangs = crate::routes_ecritures::identifiants(ctx, &data).map_err(Echec::from)?;
+    let rangs = crate::routes::ecritures::identifiants(ctx, &data).map_err(Echec::from)?;
     // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie peuvent commencer le meme jour.
     let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
     let rang = charge.get("rang").and_then(Value::as_u64);
@@ -241,7 +241,7 @@ pub(crate) fn contrat_recu_avec(
     // LE CONTRAT, pas le salarie : `numero` est celui sous lequel le journal le connait (la releve), ou celui que l'ecran affiche.
     let numero = numero.filter(|n| !n.is_empty());
     let lignes = envois::etats::charger(&ctx.racine)?;
-    let tous = crate::routes_mois::contrats_des_paies(&paies);
+    let tous = crate::routes::mois::contrats_des_paies(&paies);
     let cles = envois::etats::cles_des_paies(&lignes, &tous)?;
     let du_jour: Vec<usize> = (0..paies.len()).filter(|&i| tous[i].0 == salarie && tous[i].1 == debut).collect();
     let trouvee = match numero {
@@ -346,16 +346,16 @@ fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
         "analytique": analytique,
     });
     ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
-    crate::routes_dossiers::etat_logiciel(ctx).map_err(Echec::from)
+    crate::routes::dossiers::etat_logiciel(ctx).map_err(Echec::from)
 }
 
 // ------------------------------------------------------------------ casc-regularise
 
 /// `operations_casc.marquer_regularise` : note qu'une annee de CASC-SVP est regularisee (apres le virement).
 fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let annee = crate::routes_fiches::exiger(charge, "annee")?;
-    let vire_le = crate::routes_fiches::exiger(charge, "vire_le")?;
-    let montant = crate::routes_fiches::exiger(charge, "montant")?;
+    let annee = crate::routes::fiches::exiger(charge, "annee")?;
+    let vire_le = crate::routes::fiches::exiger(charge, "vire_le")?;
+    let montant = crate::routes::fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
     let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
     declarations::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
@@ -413,7 +413,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         analytique: charge.get("analytique").map(vrai),
     };
     if etat == "regularisation-casc-svp" {
-        let demande = declarations::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes_accueil::boite_liee(ctx).unwrap_or(false), ..Default::default() };
+        let demande = declarations::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes::accueil::boite_liee(ctx).unwrap_or(false), ..Default::default() };
         let mut r = declarations::casc_regularisation::regularisation(ctx, &demande)?;
         if d.ecrire {
             declarations::casc_regularisation::ecrire(ctx, &mut r)?;

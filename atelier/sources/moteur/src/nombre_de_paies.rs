@@ -21,7 +21,7 @@
 //! `parti_le`) ; une annee qui y est ne repart pas. Ce fichier est propre au poste (`compagnies::PROPRES_AU_POSTE`) : une
 //! remise a zero de la compagnie ne fait pas renvoyer l'annee. Un envoi qui echoue (hors ligne, serveur en panne) n'ecrit
 //! rien : le passage suivant le refait. L'ecran « Ce qui est parti chez l'editeur » le montre avec les incidents
-//! (`routes_incidents::diagnostic_etat`).
+//! (`crate::routes::incidents::diagnostic_etat`).
 //!
 //! JAMAIS : depuis une compagnie fictive ni depuis la copie de developpement (le marqueur `COPIE-DE-DEVELOPPEMENT.json`,
 //! `compagnies::est_copie`, que portent l'une et l'autre) ; depuis un logiciel bride (`bridage::est_bride`), ce qui couvre une
@@ -64,7 +64,7 @@ pub fn compter(ctx: &Contexte, annee: i32) -> R<usize> {
 /// Les annees deja parties, telles que `config/diagnostic.json` les retient.
 pub fn parties(racine: &Path) -> Map<String, Value> {
     let p = racine.join("config").join("diagnostic.json");
-    match crate::routes_fiches::lire_tolerant(&p) {
+    match crate::routes::fiches::lire_tolerant(&p) {
         Ok(Some(d)) => d.get(CLE).and_then(Value::as_object).cloned().unwrap_or_default(),
         _ => Map::new(),
     }
@@ -73,7 +73,7 @@ pub fn parties(racine: &Path) -> Map<String, Value> {
 /// Retient que `annee` est partie, sans toucher au reste du fichier (l'identite du poste, l'interrupteur).
 fn retenir(racine: &Path, annee: i32, paies: usize, poste: &str) -> Result<(), String> {
     let p = racine.join("config").join("diagnostic.json");
-    let mut d = match crate::routes_fiches::lire_tolerant(&p) {
+    let mut d = match crate::routes::fiches::lire_tolerant(&p) {
         Ok(Some(Value::Object(o))) => o,
         _ => Map::new(),
     };

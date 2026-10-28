@@ -160,14 +160,14 @@ pub(crate) fn entier(v: &Value) -> R<i64> {
             };
             let c: Vec<char> = chiffres.chars().collect();
             let bien_forme = !c.is_empty()
-                && crate::routes_ecrites::chiffre_py(c[0]).is_some()
-                && crate::routes_ecrites::chiffre_py(c[c.len() - 1]).is_some()
-                && c.iter().all(|x| crate::routes_ecrites::chiffre_py(*x).is_some() || *x == '_')
+                && crate::routes::ecrites::chiffre_py(c[0]).is_some()
+                && crate::routes::ecrites::chiffre_py(c[c.len() - 1]).is_some()
+                && c.iter().all(|x| crate::routes::ecrites::chiffre_py(*x).is_some() || *x == '_')
                 && !chiffres.contains("__");
             if !bien_forme {
                 return Err(illisible());
             }
-            let ascii: String = c.iter().filter(|x| **x != '_').filter_map(|x| crate::routes_ecrites::chiffre_py(*x)).map(|d| char::from(b'0' + d as u8)).collect();
+            let ascii: String = c.iter().filter(|x| **x != '_').filter_map(|x| crate::routes::ecrites::chiffre_py(*x)).map(|d| char::from(b'0' + d as u8)).collect();
             let n: i64 = ascii.parse().map_err(|_| trop_grand())?;
             Ok(if neg { -n } else { n })
         }
@@ -201,7 +201,7 @@ fn taux_atmp(ctx: &Contexte, charge: &Value) -> R<Value> {
     // `valeur` donnee : on POSE d'abord (`routes_ecrites`), puis on relit.
     if let Some(v) = charge.get("valeur").filter(|v| !v.is_null() && v.as_str() != Some("")) {
         let vide = json!("");
-        crate::routes_ecrites::poser_taux_atmp(ctx, an, v, charge.get("code_risque").unwrap_or(&vide))?;
+        crate::routes::ecrites::poser_taux_atmp(ctx, an, v, charge.get("code_risque").unwrap_or(&vide))?;
     }
     let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
     let taux = match lire_tolerant(&p)? {
@@ -683,7 +683,7 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 /// Le coeur de `changements_declares` : la fiche `ancienne` (telle que l'ecran l'a montree) et les `donnees` qui la
-/// remplaceraient ; chaque valeur existante qui changerait (`routes_ecritures::changements_a_dater`), celles-la memes
+/// remplaceraient ; chaque valeur existante qui changerait (`crate::routes::ecritures::changements_a_dater`), celles-la memes
 /// dont l'enregistrement exigera la date d'effet. Un champ declare dit aussi ce que sa valeur sortante a deja servi a
 /// declarer.
 pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>) -> R<Vec<Value>> {
@@ -694,7 +694,7 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
     };
     let champs_fiche = champs::fiche(nom)?;
     let mut sortie = Vec::new();
-    let a_dater = crate::routes_ecritures::changements_a_dater(ancienne, &donnees);
+    let a_dater = crate::routes::ecritures::changements_a_dater(ancienne, &donnees);
     for cle in &a_dater {
         let cle = cle.clone();
         let avant = anc.get(&cle).cloned().unwrap_or(Value::Null);

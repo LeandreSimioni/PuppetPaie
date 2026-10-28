@@ -31,7 +31,7 @@
 //! reference. Rien de
 //! cela ne se devine : sans connaissance saisie, le moteur prend le point de depart le plus exigeant et dit lequel
 //! (`depart.presume`) ; sans declaration dite, l'accident n'est pas declare. Le fichier des arrets eux-memes
-//! (`imprevus/AAAA-MM.json`, les imprevus de genre arret) n'est pas touche : ce module le lit par `routes_listes::tous_les_arrets`.
+//! (`imprevus/AAAA-MM.json`, les imprevus de genre arret) n'est pas touche : ce module le lit par `crate::routes::listes::tous_les_arrets`.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -412,7 +412,7 @@ fn envoi(a: &Value, nature: &str) -> Option<Fait> {
     })
 }
 
-/// LE SIGNALEMENT RECTIFICATIF EST-IL DU ? Quand un avis de prolongation (`prolongations`, `routes_imprevus::arret_prolonger`)
+/// LE SIGNALEMENT RECTIFICATIF EST-IL DU ? Quand un avis de prolongation (`prolongations`, `crate::routes::imprevus::arret_prolonger`)
 /// a change la fin de subrogation APRES le premier depot du signalement d'arret (04) : la subrogation partie etait
 /// « insuffisante », et « l'employeur doit alors transmettre un nouveau signalement de nature " arret de travail " de type
 /// annule et remplace, dans lequel une nouvelle date de fin de subrogation sera renseignee » (fiche net-entreprises 1983,
@@ -715,7 +715,7 @@ fn refus(m: impl Into<String>) -> socle::echec::Echec {
 }
 
 fn requis<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
-    crate::routes_fiches::exiger(charge, k)
+    crate::routes::fiches::exiger(charge, k)
 }
 
 /// L'arret de ce salarie a ce dernier jour travaille : (la cle du salarie, l'arret).
@@ -724,7 +724,7 @@ fn l_arret(ctx: &Contexte, charge: &Value) -> R<(String, Value)> {
     let dernier = en_texte(requis(charge, "dernier_jour")?);
     let fiche = ctx.salarie(&nom).map_err(|m| erreur("KeyError", m))?;
     let cle = fiche.get("_cle").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
-    for a in crate::routes_listes::tous_les_arrets(ctx)? {
+    for a in crate::routes::listes::tous_les_arrets(ctx)? {
         if texte(&a, "salarie") == cle && texte(&a, "dernier_jour_travaille") == dernier {
             return Ok((cle, a));
         }
@@ -795,7 +795,7 @@ fn arret_connaissance(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let valeur = match j {
         None => Value::Null,
-        Some(j) => json!({"jour": j.iso(), "heure": heure, "saisi_le": crate::routes_ecritures_g2::maintenant()}),
+        Some(j) => json!({"jour": j.iso(), "heure": heure, "saisi_le": crate::routes::ecritures_g2::maintenant()}),
     };
     let mut suivi = Suivi::lire(ctx)?;
     suivi.ecrire(ctx, &cle, &texte(&a, "dernier_jour_travaille"), champ, valeur)?;
@@ -891,7 +891,7 @@ fn dire_faite(ctx: &Contexte, charge: &Value, f: &Faite) -> R<Value> {
                 "heure": heure_saisie(charge)?,
                 "depot": depot,
                 "reference": charge.get("reference").map(en_texte).unwrap_or_default(),
-                "saisi_le": crate::routes_ecritures_g2::maintenant(),
+                "saisi_le": crate::routes::ecritures_g2::maintenant(),
             })
         }
     };

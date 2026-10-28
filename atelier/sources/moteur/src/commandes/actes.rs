@@ -155,7 +155,7 @@ pub fn mois_du_fichier(cadre: &super::Cadre, texte: &str, sujet: &str) -> Result
     let mois = if est_un_mois(texte) {
         texte.to_string()
     } else {
-        let chemin = std::path::PathBuf::from(crate::routes_apercus::resoudre(&cadre.racine, &serde_json::json!(texte))?);
+        let chemin = std::path::PathBuf::from(crate::routes::apercus::resoudre(&cadre.racine, &serde_json::json!(texte))?);
         let mois = chemin.file_stem().map(|s| s.to_string_lossy().into_owned()).filter(|s| est_un_mois(s)).unwrap_or_default();
         let attendu = engagement::stock::chemin(&cadre.racine, &mois);
         let meme = matches!((std::fs::canonicalize(&chemin), std::fs::canonicalize(&attendu)), (Ok(a), Ok(b)) if a == b);

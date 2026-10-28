@@ -5,7 +5,7 @@
 //!
 //! - Le verificateur PKCE (64 octets aleatoires du systeme, base64 URL), le `state` (24 octets) ne sont ecrits nulle part et ne
 //!   sortent pas : seuls le defi (SHA-256 du verificateur) et le `state` figurent dans l'URL.
-//! - Le jeton de rafraichissement va du corps de la reponse de Google a l'appelant (`JetonGoogle`), qui le scelle (`routes_google::sceller_le_jeton`,
+//! - Le jeton de rafraichissement va du corps de la reponse de Google a l'appelant (`JetonGoogle`), qui le scelle (`moteur::routes::google::sceller_le_jeton`,
 //!   cle du poste) sans passer par une sortie, un journal ni un message d'erreur ; le secret de l'application ne sert que dans
 //!   le corps du POST. Une phrase d'erreur ne cite jamais un jeton ni un code.
 //! - L'attente est un fil + `mpsc::recv_timeout` : jamais de `sleep`.
@@ -306,7 +306,7 @@ pub fn autoriser(
 }
 
 /// Ce que l'autorisation obtient : le jeton de rafraichissement, l'adresse du compte, les permissions accordees.
-/// L'appelant le scelle (`routes_google::sceller_le_jeton`) : ce flux n'ouvre jamais le coffre.
+/// L'appelant le scelle (`moteur::routes::google::sceller_le_jeton`) : ce flux n'ouvre jamais le coffre.
 pub struct JetonGoogle {
     pub rafraichissement: String,
     pub compte: String,

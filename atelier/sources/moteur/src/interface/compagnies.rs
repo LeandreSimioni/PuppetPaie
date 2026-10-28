@@ -382,12 +382,12 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     }
     let cfg = dossier.join("config");
     std::fs::create_dir_all(&cfg).map_err(|e| e.to_string())?;
-    // La raison sociale se deduit du nom comme a chaque enregistrement de la fiche (`routes_fiches::deriver` : majuscules
+    // La raison sociale se deduit du nom comme a chaque enregistrement de la fiche (`crate::routes::fiches::deriver` : majuscules
     // SANS ACCENTS, la forme declaree). `to_uppercase` gardait les accents : la fiche neuve naissait avec une erreur de
     // configuration, et le premier enregistrement datait la correction comme un changement declare (#236).
     let mut ent = serde_json::Map::new();
     ent.insert("nom_affichage".into(), Value::String(nom.clone()));
-    crate::routes_fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
+    crate::routes::fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
     // Toute la configuration est datee (`contexte::fiche_au`) : la premiere valeur vaut de tout temps.
     // Le jour d'ajout : le plus tot des deux jours (Paris, et celui du moteur, en UTC).
     let creation = socle::temps::jour_de_paris().min(droit::contexte::jour_reel());

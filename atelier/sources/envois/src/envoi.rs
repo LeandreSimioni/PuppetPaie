@@ -283,13 +283,13 @@ pub const CORPS_RENVOI: &str = "Bonjour {prenom},\n\nTa paie {de_mois} {annee} a
 pub struct Renvoi {
     pub envoye_le: String,
     pub changements: Vec<String>,
-    /// La phrase de la declaration de la correction, son paragraphe compris, ou rien (`routes_envois::choisir`).
+    /// La phrase de la declaration de la correction, son paragraphe compris, ou rien (`moteur::routes::envois::choisir`).
     pub declaration: String,
 }
 
 /// Le resume de la paie d'UN salarie pour le mois, tel que ses documents la disent : par contrat, ses bornes, son
 /// spectacle, ses jours travailles, ses cachets, ses heures, son brut et son net a payer ; et les totaux. Le journal le
-/// garde a chaque envoi des documents (`routes_envois::expedier_envoi`) : c'est l'« ancien » que le courriel de renvoi
+/// garde a chaque envoi des documents (`moteur::routes::envois::expedier_envoi`) : c'est l'« ancien » que le courriel de renvoi
 /// compare a la paie refaite. Les montants et les heures s'ecrivent comme le bulletin les ecrit.
 pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
     let mut contrats: Vec<Value> = Vec::new();

@@ -35,7 +35,7 @@ use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use socle::num::Decimal;
 use socle::echec::Echec;
-use crate::routes_mois::Moteur;
+use crate::routes::mois::Moteur;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 3] = ["arrets", "fins-de-contrat", "regularisations"];
@@ -180,7 +180,7 @@ pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
 }
 
 /// La route `arrets` : les arrets de travail du magasin des imprevus, chacun resume comme `imprevus` le resume
-/// (`routes_imprevus::resume`), ceux qu'aucun signalement n'a annonces, et les nomenclatures du bloc 60.
+/// (`crate::routes::imprevus::resume`), ceux qu'aucun signalement n'a annonces, et les nomenclatures du bloc 60.
 fn arrets(ctx: &Contexte) -> R<Value> {
     let tous = tous_les_arrets(ctx)?;
     let n = nomenclatures(ctx)?;
@@ -189,7 +189,7 @@ fn arrets(ctx: &Contexte) -> R<Value> {
     let mut resumes = Vec::new();
     let mut a_signaler = Vec::new();
     for a in &tous {
-        let mut r = crate::routes_imprevus::resume(ctx, &n, a)?;
+        let mut r = crate::routes::imprevus::resume(ctx, &n, a)?;
         r["obligations"] = Value::Array(crate::obligations::de_l_arret(ctx, a, &suivi, ctx.aujourdhui)?);
         if !r["signale"].as_bool().unwrap_or(false) && r["signalement_du"].as_bool().unwrap_or(true) {
             a_signaler.push(r.clone());
@@ -357,12 +357,12 @@ fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------ regularisations
 
-/// Par mois d'origine, les corrections que la page montre (`routes_regularisation::corrections_du_mois`) : celles a
+/// Par mois d'origine, les corrections que la page montre (`crate::routes::regularisation::corrections_du_mois`) : celles a
 /// porter (`etat` « à porter ») et celles deja portees par la DSN d'un mois suivant (« portée »).
 fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
     let mut out = Vec::new();
-    for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
-        let (a_porter, portees) = crate::routes_regularisation::corrections_du_mois(ctx, &mois)?;
+    for mois in crate::routes::mois::mois_saisis(&ctx.racine) {
+        let (a_porter, portees) = crate::routes::regularisation::corrections_du_mois(ctx, &mois)?;
         let mut corrections: Vec<Value> = portees
             .into_iter()
             .map(|mut c| {
@@ -428,7 +428,7 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
 fn mois_a_corriger(ctx: &Contexte) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
     let mut etats = Vec::new();
-    for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
+    for mois in crate::routes::mois::mois_saisis(&ctx.racine) {
         etats.push(etat_mois(&mut m, ctx, &mois)?);
     }
     let choisis = |f: &dyn Fn(&Value) -> bool| -> Vec<Value> { etats.iter().filter(|e| f(e)).cloned().collect() };

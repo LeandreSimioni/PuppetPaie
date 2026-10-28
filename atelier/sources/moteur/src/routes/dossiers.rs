@@ -112,14 +112,14 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
     let cle_texte = valeur_en_texte(cle);
     let mut sorties: Vec<(String, Value)> = Vec::new();
     let mut vus: Dico<()> = Dico::nouveau();
-    let mut mois = crate::routes_contrats::mois_saisis(ctx)?;
+    let mut mois = crate::routes::contrats::mois_saisis(ctx)?;
     mois.reverse();
     for m in mois {
-        for (c, e) in crate::routes_contrats::engagements_du_mois(ctx, &m)? {
+        for (c, e) in crate::routes::contrats::engagements_du_mois(ctx, &m)? {
             if c != cle_texte {
                 continue;
             }
-            let (debut, fin) = crate::routes_contrats::bornes_brutes(&e)?;
+            let (debut, fin) = crate::routes::contrats::bornes_brutes(&e)?;
             // Un contrat paye au mois sans fin ecrite (un CDI qui court) couvre tout jour depuis son debut : c'est sur lui
             // qu'un arret ou une suspension se pose. Le mois le plus recent qui le saisit fait foi (une fin ecrite plus
             // tard l'emporte) : il est retenu, couvrant ou non, avant les mois plus anciens.
@@ -166,7 +166,7 @@ pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Valu
 /// Les mois qu'il y a matiere a exporter : ceux que des engagements touchent, du plus ancien au plus recent, chacun
 /// marque `saisie` (ses paies se lisent dans ses engagements valides).
 pub(crate) fn mois_disponibles(ctx: &Contexte) -> R<Vec<(String, &'static str)>> {
-    let mut mois: Vec<(String, &'static str)> = crate::routes_contrats::mois_saisis(ctx)?.into_iter().map(|m| (m, "saisie")).collect();
+    let mut mois: Vec<(String, &'static str)> = crate::routes::contrats::mois_saisis(ctx)?.into_iter().map(|m| (m, "saisie")).collect();
     mois.sort();
     mois.dedup();
     Ok(mois)
@@ -206,7 +206,7 @@ fn dossier_formes(ctx: &Contexte) -> R<Value> {
     let mois: Vec<&String> = dispo.iter().map(|(m, _)| m).collect();
     let annees = annees_de(&dispo);
     etat_logiciel(ctx)?;
-    let boite = crate::routes_accueil::boite_liee(ctx)?;
+    let boite = crate::routes::accueil::boite_liee(ctx)?;
     Ok(json!({
         "salaries": salaries,
         "categories": [

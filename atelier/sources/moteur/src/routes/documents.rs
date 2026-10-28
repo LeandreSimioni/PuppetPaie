@@ -16,7 +16,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
-use crate::routes_mois::{dans_l_ensemble, premier, Moteur, SaisieMois};
+use crate::routes::mois::{dans_l_ensemble, premier, Moteur, SaisieMois};
 
 type R<T> = Result<T, Echec>;
 
@@ -73,9 +73,9 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur numero.
     let uniques: Vec<(String, String)> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
     let saisie = SaisieMois { data, paies: Vec::new() };
-    let avenants = crate::routes_mois::avenants_a_faire(ctx, &mois)?;
+    let avenants = crate::routes::mois::avenants_a_faire(ctx, &mois)?;
     let saisis = Moteur::numeros_saisis(&saisie, &uniques);
-    let cles_paies = etats::cles_des_paies(&lignes, &crate::routes_mois::contrats_des_paies(&paies))?;
+    let cles_paies = etats::cles_des_paies(&lignes, &crate::routes::mois::contrats_des_paies(&paies))?;
 
     // Quand chaque CONTRAT a ete demande (ce mois-ci).
     let mut demandes: HashMap<etats::Cle3, Value> = HashMap::new();
@@ -91,7 +91,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
     let aujourdhui = ctx.aujourdhui.iso();
-    let boite_liee = crate::routes_accueil::boite_liee(ctx)?;
+    let boite_liee = crate::routes::accueil::boite_liee(ctx)?;
     let mut contrats = Vec::new();
     for (i, p) in paies.iter().enumerate() {
         // UN PERMANENT N'A PAS DE CONTRAT D'USAGE A SIGNER ICI.
@@ -100,7 +100,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
         let (cle_s, debut) = rangs[i].clone();
         let cles = &cles_paies[i];
-        let etat = crate::routes_mois::etat_signature(
+        let etat = crate::routes::mois::etat_signature(
             premier(&g.contrats, cles).unwrap_or(nul()),
             premier(&g.par, cles).unwrap_or(nul()),
             premier(&g.recus, cles).unwrap_or(nul()),
@@ -377,7 +377,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "avenants": deja,
         "remplacable": debut > ctx.aujourdhui.iso(),
         // Sans boite courriel, l'avenant s'imprime avec les contrats (`contrats-imprimer`) : rien ne part d'ici.
-        "boite_liee": crate::routes_accueil::boite_liee(ctx)?,
+        "boite_liee": crate::routes::accueil::boite_liee(ctx)?,
         "destinataire": sal.get("email").cloned().unwrap_or_else(|| json!("")),
     }))
 }
@@ -454,7 +454,7 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
     let mut vues: HashMap<(String, String), Vec<Attestation>> = HashMap::new();
     for nom in fichiers {
         let chemin = dossier.join(&nom);
-        let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;
+        let octets = crate::routes::apercus::lire_octets(&chemin.to_string_lossy())?;
         let atts = envois::retours::aer_spectacle(&octets)?;
         let liste = atts.as_array().cloned().unwrap_or_default();
         let cles = if liste.is_empty() {
@@ -726,7 +726,7 @@ fn documents_prets(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &[engageme
     r.insert("pret".into(), json!(empechements.is_empty()));
     r.insert("empechements".into(), json!(empechements));
     r.insert("informations".into(), json!(informations));
-    r.insert("boite_liee".into(), json!(crate::routes_accueil::boite_liee(ctx)?));
+    r.insert("boite_liee".into(), json!(crate::routes::accueil::boite_liee(ctx)?));
     r.insert("dossier".into(), json!(dossier.to_string_lossy()));
     Ok(r)
 }
@@ -862,8 +862,8 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
     let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
-    // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`routes_envois::choisir`).
-    let choix = crate::routes_envois::choisir(ctx, &mois, &paies)?;
+    // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`crate::routes::envois::choisir`).
+    let choix = crate::routes::envois::choisir(ctx, &mois, &paies)?;
     // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`routes_envois`).
     let messages = if prets.get("pret").is_some_and(vrai) {
         let mut cles: Vec<String> = Vec::new();

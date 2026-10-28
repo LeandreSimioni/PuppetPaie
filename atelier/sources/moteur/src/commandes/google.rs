@@ -120,7 +120,7 @@ fn autoriser(cadre: &Cadre, json: bool) -> i32 {
                     dire!("{}", t);
                 }
             };
-            crate::routes_google::autoriser(&cadre.racine, envois::google_autorisation::DELAI_AUTORISATION, &url, &attention)
+            crate::routes::google::autoriser(&cadre.racine, envois::google_autorisation::DELAI_AUTORISATION, &url, &attention)
         });
     match r {
         Ok(compte) => {

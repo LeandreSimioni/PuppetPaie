@@ -5,7 +5,7 @@
 //! rend, pour un mois :
 //!
 //! - `documents` : chaque fichier de `sorties/<mois>/` et de `sorties/<mois>/envoi/` (les memes listes que
-//!   l'Historique et `documents-liste` : `routes_accueil::mois_connus`, `routes_apercus::documents_du_mois`), range
+//!   l'Historique et `documents-liste` : `crate::routes::accueil::mois_connus`, `crate::routes::apercus::documents_du_mois`), range
 //!   par sorte, chacun avec le chemin que `ouvrir-piece` ouvre ;
 //! - `envois` : chaque ligne du journal des depots du mois (DPAE, DSN, signalements, documents, contrats), TESTS
 //!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`,
@@ -107,7 +107,7 @@ fn nature_dsn(nature: &str, type_: &str) -> String {
 }
 
 /// Le salarie d'une ligne de contrat : le nom que la ligne porte (`detail.nom`, « NOM Prenom », ecrit par
-/// `routes_ecritures_g4::contrat_recu_avec` et `releve_signatures`), sinon celui de sa fiche (`detail.salarie` est sa cle),
+/// `crate::routes::ecritures_g4::contrat_recu_avec` et `releve_signatures`), sinon celui de sa fiche (`detail.salarie` est sa cle),
 /// sinon la cle elle-meme.
 fn qui_du_contrat(ctx: &Contexte, d: &Value) -> String {
     let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
@@ -217,12 +217,12 @@ fn sorte_de(nom: &str) -> &'static str {
 /// `sorties/<mois>/envoi/` (`documents_du_mois`, celle de `documents-liste`). Une archive `.zip` n'est que l'emballage
 /// du fichier de meme nom qui part au depot : elle ne se liste pas.
 fn documents(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    let noms = crate::routes_accueil::mois_connus(&ctx.racine).into_iter().find(|(m, _)| m == mois).map(|(_, n)| n).unwrap_or_default();
+    let noms = crate::routes::accueil::mois_connus(&ctx.racine).into_iter().find(|(m, _)| m == mois).map(|(_, n)| n).unwrap_or_default();
     let mut out: Vec<Value> = Vec::new();
     for nom in noms.iter().filter(|n| !n.ends_with(".zip")) {
         out.push(json!({"nom": nom, "sorte": sorte_de(nom), "salarie": "", "chemin": format!("sorties/{}/{}", mois, nom)}));
     }
-    let envoi = crate::routes_apercus::documents_du_mois(ctx, &json!(mois), &json!("tout"))?;
+    let envoi = crate::routes::apercus::documents_du_mois(ctx, &json!(mois), &json!("tout"))?;
     for d in envoi.as_array().into_iter().flatten() {
         let nom = valeur_en_texte(&d["nom"]);
         out.push(json!({"nom": nom, "sorte": sorte_de(&nom), "salarie": d["salarie"], "chemin": format!("sorties/{}/envoi/{}", mois, nom)}));

@@ -34,8 +34,8 @@ use socle::echec::erreur;
 use socle::fichiers::{repr, repr_valeur, vrai};
 use droit::jumeaux;
 use socle::echec::Echec;
-use crate::routes_accueil::{metier_visible, preferences_metiers, rubrique_json};
-use crate::routes_saisie::lire_saisie;
+use crate::routes::accueil::{metier_visible, preferences_metiers, rubrique_json};
+use crate::routes::saisie::lire_saisie;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 5] = ["contrats-en-cours", "contrats-passes", "emploi", "rubriques-actives", "metiers-catalogue"];
@@ -565,7 +565,7 @@ fn engagement_de_reprise(ctx: &Contexte, c: &EnCours, mois: &str) -> R<Value> {
         let taux = if vrai(&c.taux_cachet) {
             c.taux_cachet.clone()
         } else {
-            crate::routes_saisie::dernier_taux(ctx).ok().flatten().map_or(Value::Null, |t| json!(t))
+            crate::routes::saisie::dernier_taux(ctx).ok().flatten().map_or(Value::Null, |t| json!(t))
         };
         lignes.push(json!({"rubrique": "cachet", "quantite": 0, "taux": taux, "dates": []}));
     }

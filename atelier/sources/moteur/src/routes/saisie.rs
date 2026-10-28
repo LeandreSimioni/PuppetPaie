@@ -23,7 +23,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::echec::Echec;
-use crate::routes_ouverture::{self as ouverture, Etat};
+use crate::routes::ouverture::{self as ouverture, Etat};
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 2] = ["saisie", "echeancier"];
@@ -78,7 +78,7 @@ pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
 
 /// UN MOIS D'AVANT LA PREMIERE EMBAUCHE N'A PAS DE DSN DUE (#236, banc du Petit Castelet : ajoutee le 06/01/2025, premiere
 /// embauche le 25/01, la compagnie voyait decembre 2024 « Rouvrir ce mois (DSN en retard) — sa DSN était due le
-/// 15/01/2025 »). La DSN est due par l'employeur pour les salaries qu'il emploie (`routes_ouverture::premier_mois_declarable`,
+/// 15/01/2025 »). La DSN est due par l'employeur pour les salaries qu'il emploie (`crate::routes::ouverture::premier_mois_declarable`,
 /// la borne que l'echeancier et les rappels lisent deja) : un mois passe, sans saisie, ni tenu avant ce logiciel, qui
 /// precede le mois de la premiere embauche (`premiere_embauche` de la fiche Entreprise) n'est pas en retard, il n'a rien
 /// a declarer. Rend la premiere embauche (`AAAA-MM-JJ`), ou `None`.
@@ -399,9 +399,9 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
     // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE (21/10/2026) n'est pas ferme : sa paie se modifie, en le
-    // confirmant a la premiere modification (`routes_regularisation::modification_de_la_paie`) -- il n'est pas en retard.
-    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
-    let dsn_deposee = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
+    // confirmant a la premiere modification (`crate::routes::regularisation::modification_de_la_paie`) -- il n'est pas en retard.
+    let mut m = crate::routes::mois::Moteur::nouveau(ctx);
+    let dsn_deposee = crate::routes::regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
     let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
@@ -445,7 +445,7 @@ struct Echeance {
     /// La DSN seule : `echeance_dsn::Echeance::en_json` (le jour, midi, la date nominale, le report et ses textes).
     echeance_depot: Option<Value>,
     /// DITE PAR UN RAPPEL DE L'OUVERTURE (ticket #244) : la DSN d'un mois que la route `rappels` reclame
-    /// (`routes_ouverture::mois_a_declarer`, la meme lecture), avec son geste (« Verifier et envoyer »). La boite de
+    /// (`crate::routes::ouverture::mois_a_declarer`, la meme lecture), avec son geste (« Verifier et envoyer »). La boite de
     /// l'ouverture ne la dit qu'une fois, par ce rappel ; l'echeance reste ici pour sa date (l'etape DSN du mois la lit).
     rappel: bool,
 }

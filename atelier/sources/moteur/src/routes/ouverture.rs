@@ -460,7 +460,7 @@ pub(crate) fn premier_mois_declarable(st: &Etat) -> Option<String> {
         return Some(embauche);
     }
     // Une compagnie qui a deja des engagements a deja declare.
-    if !crate::routes_mois::mois_saisis(st.racine()).is_empty() {
+    if !crate::routes::mois::mois_saisis(st.racine()).is_empty() {
         return None;
     }
     // DES FICHES NE SONT PAS UN PASSE (09/10/2026) : une compagnie neuve remplit ses salaries avant sa premiere paie ;
@@ -498,7 +498,7 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
 }
 
 /// `fichiers_deposables(ctx, mois)["dsn"]` : `(nom,
-/// chemin)` de la DSN mensuelle du dossier du mois, dans l'ordre de `routes_mois::ordre_de_depot`.
+/// chemin)` de la DSN mensuelle du dossier du mois, dans l'ordre de `crate::routes::mois::ordre_de_depot`.
 fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
     // Le mois n'est ecrit que si le moteur a note sa DSN mensuelle (`depart::mois_ecrit`, le critere de l'horloge
     // et de l'accueil) : un fichier DSN qu'il n'a pas note ne fait pas « le mois est ecrit ».
@@ -513,7 +513,7 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
         // le meme dossier, devenait « la DSN a deposer » du rappel.
         .filter(|(_, c)| std::fs::read(c).map(|o| !envois::depot::lire(&o).est_signalement()).unwrap_or(false))
         .collect();
-    fichiers.sort_by_cached_key(|(nom, c)| crate::routes_mois::ordre_de_depot(nom, c));
+    fichiers.sort_by_cached_key(|(nom, c)| crate::routes::mois::ordre_de_depot(nom, c));
     fichiers.into_iter().next().map(|(nom, c)| (nom, c.to_string_lossy().into_owned()))
 }
 
@@ -620,11 +620,11 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
 fn rappels_obligations(st: &Etat) -> R<Vec<Rappel>> {
     let mut out = Vec::new();
 
-    // LES FINS DE CONTRAT : celles du mois passe et du mois en cours, deja finies (`routes_listes::fins_a_signaler`, la
+    // LES FINS DE CONTRAT : celles du mois passe et du mois en cours, deja finies (`crate::routes::listes::fins_a_signaler`, la
     // meme liste que la colonne du mois). Un CDD d'usage du spectacle arrive a son terme (031) n'en fait pas partie.
     let mois = mois_de(&st.aujourdhui);
     for m in [mois_precedent(&mois), mois.clone()] {
-        for f in crate::routes_listes::fins_a_signaler(st.ctx, &m, st.aujourdhui)? {
+        for f in crate::routes::listes::fins_a_signaler(st.ctx, &m, st.aujourdhui)? {
             let fin = Jour::lire(&en_texte(&f["fin"]))?;
             if fin > st.aujourdhui {
                 continue; // il n'a pas encore pris fin
@@ -653,18 +653,18 @@ fn rappels_obligations(st: &Etat) -> R<Vec<Rappel>> {
         }
     }
 
-    // CE QU'UN ARRET FAIT NAITRE : tous les arrets du magasin des imprevus (`routes_listes::tous_les_arrets`), leurs
+    // CE QU'UN ARRET FAIT NAITRE : tous les arrets du magasin des imprevus (`crate::routes::listes::tous_les_arrets`), leurs
     // obligations comptees par `obligations::de_l_arret` au jour du rappel.
-    let arrets = crate::routes_listes::tous_les_arrets(st.ctx)?;
+    let arrets = crate::routes::listes::tous_les_arrets(st.ctx)?;
     if !arrets.is_empty() {
-        let n = crate::routes_listes::nomenclatures(st.ctx)?;
+        let n = crate::routes::listes::nomenclatures(st.ctx)?;
         let suivi = crate::obligations::Suivi::lire(st.ctx)?;
         for a in &arrets {
             let obligations = crate::obligations::de_l_arret(st.ctx, a, &suivi, st.aujourdhui)?;
             if !obligations.iter().any(du) {
                 continue;
             }
-            let mut resume = crate::routes_imprevus::resume(st.ctx, &n, a)?;
+            let mut resume = crate::routes::imprevus::resume(st.ctx, &n, a)?;
             resume["obligations"] = Value::Array(obligations.clone());
             let salarie = nom_affiche(st.ctx, &en_texte(&a["salarie"]));
             for o in obligations.iter().filter(|o| du(o)) {

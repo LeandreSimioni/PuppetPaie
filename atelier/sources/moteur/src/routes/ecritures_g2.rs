@@ -26,9 +26,9 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
-use crate::routes_dossiers::salarie;
-use crate::routes_ecrites::marquer_echeance;
-use crate::routes_listes::nomenclatures;
+use crate::routes::dossiers::salarie;
+use crate::routes::ecrites::marquer_echeance;
+use crate::routes::listes::nomenclatures;
 use declarations::signalement::{self, ARRET};
 
 /// Les routes que ce module sert.
@@ -131,7 +131,7 @@ fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value
 /// Ecrit le fichier d'un mois du magasin des imprevus (`imprevus/AAAA-MM.json`) : les arrets ET les suspensions qu'il
 /// range, tels que la liste les donne.
 pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) -> R<()> {
-    crate::routes_imprevus::ecrire(ctx, mois, imprevus)
+    crate::routes::imprevus::ecrire(ctx, mois, imprevus)
 }
 
 /// `signalement.verifier(arret, ARRET)` : ce que la norme refuse (`SignalementImpossible`, une
@@ -153,7 +153,7 @@ fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
 pub(crate) fn trouver(ctx: &Contexte, nom: &Value, dernier_jour: &Value) -> R<(usize, Vec<Value>)> {
     let cle = cle_du_salarie(ctx, nom)?;
     if vrai(dernier_jour) {
-        if let Some(t) = crate::routes_imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &jour(dernier_jour)?)? {
+        if let Some(t) = crate::routes::imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &jour(dernier_jour)?)? {
             return Ok(t);
         }
     }
@@ -165,16 +165,16 @@ pub(crate) fn trouver(ctx: &Contexte, nom: &Value, dernier_jour: &Value) -> R<(u
     )))
 }
 
-/// `{"arret": resume}` : l'arret tel que la page le lit (`routes_imprevus::resume`, avec les cachets qui tombent dedans).
+/// `{"arret": resume}` : l'arret tel que la page le lit (`crate::routes::imprevus::resume`, avec les cachets qui tombent dedans).
 fn reponse_arret(ctx: &Contexte, arret: &Value) -> R<Value> {
     let n = nomenclatures(ctx)?;
-    Ok(json!({"arret": crate::routes_imprevus::resume(ctx, &n, arret)?}))
+    Ok(json!({"arret": crate::routes::imprevus::resume(ctx, &n, arret)?}))
 }
 
 /// `arret-enregistrer` : `{salarie, dernier_jour, fin, motif, subrogation?, subrogation_debut?, subrogation_fin?,
 /// date_accident?, jours_deja_indemnises?, contrat?, note?}` -> `{"arret": resume}`. Les controles de la norme sont ceux
 /// du signalement (`signalement::verifier`, nature 04), avant toute ecriture ; un arret ne chevauche pas un autre imprevu
-/// du meme contrat (`routes_imprevus::sans_chevauchement`).
+/// du meme contrat (`crate::routes::imprevus::sans_chevauchement`).
 fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom = exiger(charge, "salarie")?;
     let dernier_jour = exiger(charge, "dernier_jour")?;
@@ -182,7 +182,7 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let motif = exiger(charge, "motif")?;
     let cle = cle_du_salarie(ctx, nom)?;
     let dernier = jour(dernier_jour)?;
-    let choisi = crate::routes_imprevus::contrat_suspendu(ctx, &valeur_en_texte(&cle), &dernier, &ou_rien(optionnel(charge, "contrat")))?;
+    let choisi = crate::routes::imprevus::contrat_suspendu(ctx, &valeur_en_texte(&cle), &dernier, &ou_rien(optionnel(charge, "contrat")))?;
 
     let jour_ou_rien = |k: &str| -> R<Value> {
         let v = optionnel(charge, k);
@@ -202,9 +202,9 @@ fn arret_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     // Les jours deja indemnises (D1226-4) ne se disent que pour un arret qu'un maintien de salaire peut suivre : un contrat
     // paye au mois, et un motif de maladie ou d'accident (L1226-1 ; `maintien_legal` dans arrets-base.json).
-    let deja = crate::routes_imprevus::jours_ou_rien(optionnel(charge, "jours_deja_indemnises"), "Jours deja indemnises")?;
+    let deja = crate::routes::imprevus::jours_ou_rien(optionnel(charge, "jours_deja_indemnises"), "Jours deja indemnises")?;
     if !deja.is_null() {
-        let m = engagement::imprevus::motif_d_arret(&valeur_en_texte(motif)).map_err(crate::routes_listes::refus_magasin)?.unwrap_or(Value::Null);
+        let m = engagement::imprevus::motif_d_arret(&valeur_en_texte(motif)).map_err(crate::routes::listes::refus_magasin)?.unwrap_or(Value::Null);
         if choisi["mensuel"] != json!(true) || !m.get("maintien_legal").is_some_and(vrai) {
             return Err(refus(
                 "Les jours deja indemnises (D1226-4) ne servent qu'au maintien de salaire d'un permanent arrete pour maladie \
@@ -238,15 +238,15 @@ ou accident (L1226-1) : cet arret n'en appelle pas. Rien n'est ecrit.",
     verifier(&arret)?;
 
     let mois = dernier.mois_iso();
-    if crate::routes_imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &dernier)?.is_some() {
+    if crate::routes::imprevus::trouver(ctx, engagement::imprevus::ARRET, &valeur_en_texte(&cle), &dernier)?.is_some() {
         return Err(refus(format!(
             "Un arret de {} au {} est deja enregistre. Le modifier plutot que d'en saisir un second : deux arrets au meme dernier jour travaille, ce sont deux declarations qui se contredisent.",
             valeur_en_texte(&cle),
             dernier.jj_mm_aaaa()
         )));
     }
-    crate::routes_imprevus::sans_chevauchement(ctx, &arret, None)?;
-    let mut liste = engagement::imprevus::du_fichier(&ctx.racine, &mois).map_err(crate::routes_listes::refus_magasin)?;
+    crate::routes::imprevus::sans_chevauchement(ctx, &arret, None)?;
+    let mut liste = engagement::imprevus::du_fichier(&ctx.racine, &mois).map_err(crate::routes::listes::refus_magasin)?;
     liste.push(arret.clone());
     ecrire_arrets(ctx, &mois, liste)?;
     reponse_arret(ctx, &arret)

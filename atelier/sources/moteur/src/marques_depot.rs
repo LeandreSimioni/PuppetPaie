@@ -18,7 +18,7 @@ use socle::echec::erreur;
 
 /// `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
 fn maintenant() -> String {
-    crate::routes_ecritures_g2::maintenant()
+    crate::routes::ecritures_g2::maintenant()
 }
 
 /// Un fichier lu comme `Path.read_text(encoding="latin-1")` : un octet, un caractere, et les fins de ligne
@@ -58,7 +58,7 @@ fn cle_du_nir(ctx: &Contexte, nir: &str) -> Option<String> {
 /// declare (`imprevus::du_mois`).
 pub(crate) fn arrets_pour(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
-    engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::ARRET)).map_err(crate::routes_listes::refus_magasin)
+    engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::ARRET)).map_err(crate::routes::listes::refus_magasin)
 }
 
 /// `operations_arrets._mois_de` : le mois ou l'arret commence.
@@ -68,7 +68,7 @@ fn mois_de(arret: &Value) -> String {
 
 /// `_trouver`, avec `ArretIntrouvable` rendu en `None`.
 fn trouver_ou_rien(ctx: &Contexte, salarie: &Value, dernier_jour: &Value) -> R<Option<(usize, Vec<Value>)>> {
-    match crate::routes_ecritures_g2::trouver(ctx, salarie, dernier_jour) {
+    match crate::routes::ecritures_g2::trouver(ctx, salarie, dernier_jour) {
         Ok(t) => Ok(Some(t)),
         Err(e) if e.classe == Some("ErreurOperation") && e.message.starts_with("Aucun arret de ") => Ok(None),
         Err(e) => Err(e),
@@ -103,7 +103,7 @@ pub(crate) fn marquer_envoye_depuis(
             "identifiant": "",
         }));
     let arret = liste[i].clone();
-    crate::routes_ecritures_g2::ecrire_arrets(ctx, &mois_de(&arret), liste)?;
+    crate::routes::ecritures_g2::ecrire_arrets(ctx, &mois_de(&arret), liste)?;
     Ok(Some(arret))
 }
 
@@ -111,10 +111,10 @@ pub(crate) fn marquer_envoye_depuis(
 /// (un envoi de nature 01) : un imprevu declare ne s'oublie plus.
 pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand: &str) -> R<()> {
     socle::date::premier_du_mois(mois).map_err(|m| erreur("ValueError", m))?;
-    for a in engagement::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes_listes::refus_magasin)? {
+    for a in engagement::imprevus::du_mois(&ctx.racine, mois, None).map_err(crate::routes::listes::refus_magasin)? {
         let genre = engagement::imprevus::genre(&a).to_string();
         let rangement = engagement::imprevus::jour_de_rangement(&a).map_err(|m| erreur("ValueError", m))?;
-        let Some((i, mut liste)) = crate::routes_imprevus::trouver(ctx, &genre, &valeur_en_texte(&a["salarie"]), &rangement)? else {
+        let Some((i, mut liste)) = crate::routes::imprevus::trouver(ctx, &genre, &valeur_en_texte(&a["salarie"]), &rangement)? else {
             return Err(erreur("ErreurOperation", format!("Aucun imprevu ({}) de {} au {}.", genre, valeur_en_texte(&a["salarie"]), rangement.jj_mm_aaaa())));
         };
         let deja = liste[i]["envois"].as_array().is_some_and(|e| {
@@ -128,7 +128,7 @@ pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand
             "nature": "01", "type": "01", "ordre": 0, "mois": mois,
             "fichier": fichier.to_string_lossy(), "quand": quand, "identifiant": "",
         }));
-        crate::routes_ecritures_g2::ecrire_arrets(ctx, &rangement.mois_iso(), liste)?;
+        crate::routes::ecritures_g2::ecrire_arrets(ctx, &rangement.mois_iso(), liste)?;
     }
     Ok(())
 }

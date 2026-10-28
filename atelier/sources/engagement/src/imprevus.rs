@@ -40,7 +40,7 @@ pub const DOSSIER: &str = "imprevus";
 /// norme (motif, dernier jour travaille, fin previsionnelle, subrogation, reprise, accident) sont ceux du bloc 60 et du
 /// signalement (`signalement::verifier`) ; `jours_deja_indemnises` et `maintien` sont ceux du maintien de salaire d'un
 /// permanent (D1226-4 ; le complement verse, mois par mois : `{"AAAA-MM": montant}`) ; `prolongations` garde chaque avis de
-/// prolongation saisi (`routes_imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
+/// prolongation saisi (`moteur::routes::imprevus::arret_prolonger` : quand, la fin et la fin de subrogation d'avant et d'apres),
 /// dont le moteur tire le signalement rectificatif qu'une subrogation prolongee appelle (`obligations::de_l_arret`).
 pub const CHAMPS_ARRET: [&str; 20] = [
     "genre", "salarie", "contrat_debut", "contrat_numero", "motif", "dernier_jour_travaille", "fin_previsionnelle",

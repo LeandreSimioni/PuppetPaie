@@ -960,7 +960,7 @@ impl Fenetre {
             return interdit;
         }
         let demande = r.params.get("modele").map(String::as_str).unwrap_or_default();
-        let Some(modele) = crate::routes_bulletin_modele::modele_de_l_adresse(demande) else {
+        let Some(modele) = crate::routes::bulletin_modele::modele_de_l_adresse(demande) else {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         };
         let pdf = api::route(&racine, "bulletin-modele-apercu", &json!({"modele": modele.cle()}))

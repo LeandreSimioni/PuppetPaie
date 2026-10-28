@@ -45,7 +45,7 @@ pub const FORMAT: u64 = 1;
 #[cfg(feature = "atelier")]
 const CLES_DE_DEPOT: [&str; 4] = ["dossier", "export", "fichier", "chemin"];
 
-/// Les routes dont la cle `dossier` vide (ou absente) veut dire `import/` de la compagnie (`routes_importation::dossier_import`).
+/// Les routes dont la cle `dossier` vide (ou absente) veut dire `import/` de la compagnie (`crate::routes::importation::dossier_import`).
 #[cfg(feature = "atelier")]
 fn lit_la_boite_aux_lettres(route: &str) -> bool {
     route.starts_with("importation") || route == "importer"
@@ -618,7 +618,7 @@ mod enregistreur {
                 let valeur = charge.get(cle).and_then(Value::as_str).map(str::trim);
                 let chemin = match valeur {
                     Some(s) if !s.is_empty() => {
-                        let p = PathBuf::from(crate::routes_apercus::normaliser(s));
+                        let p = PathBuf::from(crate::routes::apercus::normaliser(s));
                         if p.is_absolute() {
                             p
                         } else {

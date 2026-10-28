@@ -5,7 +5,7 @@
 //! contrat et sans aucun service tiers : la demande part avec un bouton « Remplir ma fiche » (un lien `mailto:` vers la
 //! boite de la compagnie, les questions deja ecrites) et un CODE (`FIC-XXXXXX`) garde au journal ; la releve cherche ce
 //! code dans la boite, lit ce que la personne a ECRIT (la citation exclue) et CREE la fiche salarie avec ce qu'elle a
-//! repondu, par le meme code que `enregistrer-fiche` (`routes_ecritures::ecrire_fiche`, `forcer`).
+//! repondu, par le meme code que `enregistrer-fiche` (`crate::routes::ecritures::ecrire_fiche`, `forcer`).
 //!
 //! - `demander_fiche` part chez quelqu'un : la PREUVE (le mot de passe du logiciel, retape), comme les contrats. Dans
 //!   une compagnie fictive, la boite simulee ecrit le message dans `courriels-simules/`. Le journal garde l'echec comme la
@@ -35,7 +35,7 @@ use socle::fichiers::vrai;
 use documents::fiche_questionnaire as fq;
 use envois::journal::{self, Note};
 use socle::echec::Echec;
-use crate::routes_envois::{client_courriel, preuve_de, refus, vrai_ou, R};
+use crate::routes::envois::{client_courriel, preuve_de, refus, vrai_ou, R};
 use envois::ligne_d_envoi::{echec_d_envoi, noter};
 use socle::html::{html_echapper, mailto};
 use socle::texte::capitaliser;
@@ -342,7 +342,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
                 d
             }
         };
-        let f = crate::routes_ecritures::ecrire_fiche(ctx, "salarie", existante.clone(), &Value::Object(donnees.clone()), crate::routes_ecritures::Forcer::Tout, &Value::Null, &Value::Null)?;
+        let f = crate::routes::ecritures::ecrire_fiche(ctx, "salarie", existante.clone(), &Value::Object(donnees.clone()), crate::routes::ecritures::Forcer::Tout, &Value::Null, &Value::Null)?;
         let texte_de = |cle: &str| donnees.get(cle).map(valeur_en_texte).unwrap_or_default();
         let nom = format!("{} {}", texte_de("prenom_affichage"), texte_de("nom_affichage"));
         let erreurs = f.anomalies.iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).count();

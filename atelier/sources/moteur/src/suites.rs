@@ -29,7 +29,7 @@ pub fn faire(ctx: &Contexte, s: Suites) -> R<Faites> {
         marquer_depot_reel(ctx, d)?;
     }
     if !s.aer.is_empty() {
-        match crate::routes_documents::ranger_aer(ctx, None, Some(&s.aer)) {
+        match crate::routes::documents::ranger_aer(ctx, None, Some(&s.aer)) {
             Ok(a_faire) => faites.a_faire.extend(a_faire),
             Err(e) => faites.incidents.push(format!("Attestations France Travail recues mais non rangees : {}", e.message)),
         }

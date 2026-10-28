@@ -135,7 +135,7 @@ pub fn apercu_pdf(modele: Modele) -> Result<Vec<u8>, String> {
 fn choisir(ctx: &Contexte, charge: &Value) -> R<Value> {
     let modele = modele_demande(charge)?;
     // Le modele vaut pour les documents faits a partir d'aujourd'hui ; ceux d'avant gardent le leur.
-    crate::routes_ecritures::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
+    crate::routes::ecritures::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(refus)?;
     modeles(&neuf)
 }

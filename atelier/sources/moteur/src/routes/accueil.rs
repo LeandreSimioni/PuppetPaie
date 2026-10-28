@@ -32,7 +32,7 @@ use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use droit::permanents;
 use socle::echec::Echec;
-use crate::routes_mois::{mois_saisis, Moteur};
+use crate::routes::mois::{mois_saisis, Moteur};
 
 type R<T> = Result<T, Echec>;
 
@@ -484,7 +484,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
         // LES AER DE FRANCE TRAVAIL (#236) : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
         // racine du mois ; elles se nomment avec les autres sortes.
-        if crate::routes_documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
+        if crate::routes::documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }

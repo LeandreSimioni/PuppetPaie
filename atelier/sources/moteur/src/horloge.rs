@@ -20,7 +20,7 @@
 //!   secret, aucun coffre n'est lu.
 //! - Les courriels ne passent que par `BoiteMuette` : un client du trait `Courriel` qui rend un identifiant et ne garde
 //!   rien -- ni `courriels-simules/` (qui montre au visiteur ce que SES gestes envoient), ni la vraie boite. Ce module
-//!   n'appelle jamais `routes_envois::client_courriel`.
+//!   n'appelle jamais `crate::routes::envois::client_courriel`.
 //!
 //! Elle ne leve jamais pour un PAS : un pas en echec devient sa phrase (« Le jj/mm/aaaa : ... — non joue (...) ») et les
 //! autres continuent. Seuls les refus du decor (une fiche entreprise illisible, une echeance introuvable) remontent.
@@ -40,7 +40,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::echec::Echec;
-use crate::routes_mois::Moteur;
+use crate::routes::mois::Moteur;
 
 /// Qui signe, au journal, ce que l'horloge joue.
 pub const QUI_HORLOGE: &str = "horloge";
@@ -257,7 +257,7 @@ fn deposer_dpae_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bo
 
 /// LES DSN DU MOIS QUI NE SONT PAS PARTIES et que `garder` retient (sur ce que le fichier declare), deposees chacune en
 /// test puis en reel -- le bilan du test lu avant le reel (tickets #221, #222 : `depot_acte::exiger_repetition`) --, dans
-/// l'ordre de `routes_mois::ordre_de_depot`. Rend vrai si l'une est partie ; `a_faire` recoit ce que le rangement des AER
+/// l'ordre de `crate::routes::mois::ordre_de_depot`. Rend vrai si l'une est partie ; `a_faire` recoit ce que le rangement des AER
 /// jouees laisse a faire (`rattacher`).
 fn deposer_les_dsn(
     d: &HorlogeFictive,
@@ -351,7 +351,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         memoire.get("annees_faites").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_i64).collect()).unwrap_or_default();
     let mut fait: Vec<String> = Vec::new();
 
-    let saisis = crate::routes_mois::mois_saisis(racine);
+    let saisis = crate::routes::mois::mois_saisis(racine);
     for mois in &saisis {
         let premier = socle::date::premier_du_mois(mois).map_err(Echec::from)?;
         if jour < premier {
@@ -460,7 +460,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
 
     // Les contrats de spectacle du mois qui ne sont pas revenus signes : (salarie, debut, numero, demande).
     let signables = |ctx: &Contexte| -> R<Vec<(String, String, String, bool)>> {
-        let a = crate::routes_documents::signature_apercu(ctx, &json!({"mois": mois}))?;
+        let a = crate::routes::documents::signature_apercu(ctx, &json!({"mois": mois}))?;
         Ok(a["contrats"]
             .as_array()
             .map(|c| {
@@ -489,7 +489,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
             }
             // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
             let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-            crate::routes_envois::demander_signature(ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
+            crate::routes::envois::demander_signature(ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
             Ok(true)
         });
         fait.extend(faits);
@@ -512,7 +512,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
                 return Ok(false);
             }
             let paies: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "debut": e["debut"]})).collect();
-            let r = crate::routes_actes_h1::dpae(ctx, &json!({"mois": mois, "paies": paies}))?;
+            let r = crate::routes::actes_h1::dpae(ctx, &json!({"mois": mois, "paies": paies}))?;
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             for reel in [false, true] {
                 deposer_dpae_joue(d, ctx, &fichier, reel)?;
@@ -520,7 +520,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
                 rattacher(d, ctx)?;
             }
             // LE SIGNALEMENT D'AMORCAGE (nature 08, motif 01 « embauche effective ») part AVEC LA DPAE, dans le meme
-            // geste (atelier/README.md, « Demander un taux » ; `routes_actes_h1::dpae` produit les deux) : pas a
+            // geste (atelier/README.md, « Demander un taux » ; `crate::routes::actes_h1::dpae` produit les deux) : pas a
             // l'echeance de la DSN.
             // Un signalement ne recoit pas d'AER : son rangement n'a rien a dire.
             deposer_les_dsn(d, ctx, mois, |a| a.champ("nature") == "08", &mut Vec::new())?;
@@ -539,14 +539,14 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
                 .map(|(salarie, db, numero, _)| json!({"salarie": salarie, "debut": db, "numero": if numero.is_empty() { Value::Null } else { json!(numero) }}))
                 .collect();
             if !a_imprimer.is_empty() {
-                crate::routes_envois::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
+                crate::routes::envois::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
             }
             let manquent: Vec<(String, String, String, bool)> = signables(ctx)?.into_iter().filter(|(_, db, _, _)| db == debut).collect();
             if manquent.is_empty() {
                 return Ok(false);
             }
             for (salarie, db, numero, _) in &manquent {
-                crate::routes_ecritures_g4::contrat_recu_par(ctx, mois, salarie, db, Some(numero.as_str()), true, QUI_HORLOGE)?;
+                crate::routes::ecritures_g4::contrat_recu_par(ctx, mois, salarie, db, Some(numero.as_str()), true, QUI_HORLOGE)?;
             }
             Ok(true)
         });
@@ -571,7 +571,7 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
         d.reverifier()?;
         crate::depart::fabriquer_dsn(ctx, mois, QUI_HORLOGE)?;
         // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES (#236, trouve au banc d'essai), dans l'ordre de
-        // `routes_mois::ordre_de_depot` : la mensuelle, puis les signalements. L'horloge ne prenait que la plus recente --
+        // `crate::routes::mois::ordre_de_depot` : la mensuelle, puis les signalements. L'horloge ne prenait que la plus recente --
         // un signalement d'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
         deposer_les_dsn(d, ctx, mois, |_| true, &mut a_faire)
     }));
@@ -581,7 +581,7 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
     fait.extend(pas(d, &format!("documents de {} envoyés aux salariés", mois_fr(mois)), &format!("{}T11:00:00", jour), |ctx| {
         let lignes = Moteur::nouveau(ctx).lignes()?;
         let engagements = engagement::etats::du_mois(ctx, mois).map_err(Echec::from)?;
-        if !crate::routes_mois::documents_partis(ctx, mois, &engagements, &lignes)?.is_empty() {
+        if !crate::routes::mois::documents_partis(ctx, mois, &engagements, &lignes)?.is_empty() {
             return Ok(false);
         }
         // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas (#236, trouve sur la demo Les Faisceaux : un mois que
@@ -591,7 +591,7 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
         }
         // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
         let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-        match crate::routes_envois::envoyer_documents_de(ctx, mois, &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
+        match crate::routes::envois::envoyer_documents_de(ctx, mois, &Preuve::de_la_charge(&json!({})), QUI_HORLOGE, &mut ouvrir) {
             Ok(_) => Ok(true),
             // Un mois sans documents a remettre.
             Err(e) if est_une_erreur_d_operation(&e) => Ok(false),
@@ -612,8 +612,8 @@ fn l_annee(d: &HorlogeFictive, annee: i32, jour: Jour) -> R<Vec<String>> {
     let fin_janvier = Jour::nouveau(annee, 1, 31).ok_or_else(|| erreur("ValueError", "date impossible"))?;
     if jour >= fin_janvier {
         fait.extend(pas(d, &format!("exercice {} clos", precedente), &format!("{}T10:00:00", fin_janvier.iso()), |ctx| {
-            // Une annee qui a des engagements se clot ; les mois saisis sont ceux de `routes_mois::mois_saisis`.
-            let a_des_paies = crate::routes_mois::mois_saisis(&ctx.racine).iter().any(|m| m.starts_with(&format!("{}-", precedente)));
+            // Une annee qui a des engagements se clot ; les mois saisis sont ceux de `crate::routes::mois::mois_saisis`.
+            let a_des_paies = crate::routes::mois::mois_saisis(&ctx.racine).iter().any(|m| m.starts_with(&format!("{}-", precedente)));
             if Moteur::nouveau(ctx).exercice_clos(&precedente.to_string())? || !a_des_paies {
                 return Ok(false);
             }
@@ -633,7 +633,7 @@ fn l_annee(d: &HorlogeFictive, annee: i32, jour: Jour) -> R<Vec<String>> {
     // qu'elles ne le sont pas.
     let base = socle::fichiers::lire_json(&dossier_du_code().join("echeancier-base.json")).map_err(Echec::from)?;
     let ctx = d.contexte()?;
-    for e in crate::routes_saisie::annuelles_de(&base, ctx.entreprise.get("idcc"))? {
+    for e in crate::routes::saisie::annuelles_de(&base, ctx.entreprise.get("idcc"))? {
         if e.get("fait_par").and_then(Value::as_str) != Some("coche") {
             continue;
         }
@@ -659,7 +659,7 @@ fn l_annee(d: &HorlogeFictive, annee: i32, jour: Jour) -> R<Vec<String>> {
             .replace("{annee_precedente}", &(annee - 1).to_string())
             .replace("{jour_dsn}", "");
         fait.extend(pas(d, &format!("« {} » coché", titre), &format!("{}T10:00:00", fin.iso()), |ctx| {
-            crate::routes_ecrites::marquer_echeance(ctx, &cle, true, QUI_HORLOGE)?;
+            crate::routes::ecrites::marquer_echeance(ctx, &cle, true, QUI_HORLOGE)?;
             Ok(true)
         }));
     }
@@ -848,13 +848,13 @@ mod tests {
         let r = racine_d_essai(true);
         let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-03-01"));
         let ctx = d.contexte().unwrap();
-        crate::routes_ecrites::marquer_echeance(&ctx, "at-mp:2027", true, QUI_HORLOGE).unwrap();
+        crate::routes::ecrites::marquer_echeance(&ctx, "at-mp:2027", true, QUI_HORLOGE).unwrap();
         let e: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join("echeancier.json")).unwrap()).unwrap();
         assert_eq!(e["fait"]["at-mp:2027"], json!({"le": "2027-03-01", "qui": "horloge"}));
         // L'interface, elle, garde le jour du contexte (reel).
         let mut ctx = Contexte::nouveau(&r, None).unwrap();
         ctx.aujourdhui = jour("2026-10-07");
-        crate::routes_ecrites::marquer_echeance(&ctx, "at-mp:2026", true, "interface").unwrap();
+        crate::routes::ecrites::marquer_echeance(&ctx, "at-mp:2026", true, "interface").unwrap();
         let e: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join("echeancier.json")).unwrap()).unwrap();
         assert_eq!(e["fait"]["at-mp:2026"]["le"], "2026-10-07");
     }

@@ -149,7 +149,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
         .filter_map(|(cle, s)| s.get("nir").filter(|n| socle::fichiers::vrai(n)).map(|n| (super::rendu::texte(n), cle.clone())))
         .collect();
     let mut fichiers = Vec::new();
-    crate::routes_fiches::fichiers_dsn(dossier, &mut fichiers);
+    crate::routes::fiches::fichiers_dsn(dossier, &mut fichiers);
     fichiers.sort();
     // salarie -> mois -> releve (dans l'ordre d'insertion des salaries, mois tries).
     let mut trouve: Vec<(String, std::collections::BTreeMap<String, Value>)> = Vec::new();
@@ -208,7 +208,7 @@ fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Ech
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let ctx = &cadre.ctx;
     if args.drapeau("amorcer") {
-        let export = crate::routes_fiches::declarations_coolpaie(ctx).join("DSN");
+        let export = crate::routes::fiches::declarations_coolpaie(ctx).join("DSN");
         if !export.exists() {
             dire!("Dossier introuvable : {}", export.display());
             return Ok(1);
@@ -293,7 +293,7 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
             }
             m.to_string()
         }
-        None => match crate::routes_mois::mois_saisis(&ctx.racine).into_iter().filter(|m| super::actes::mois_valide(m)).last() {
+        None => match crate::routes::mois::mois_saisis(&ctx.racine).into_iter().filter(|m| super::actes::mois_valide(m)).last() {
             Some(m) => m,
             None => {
                 dire!("Aucun mois saisi : un signalement d'amorcage declare un CONTRAT (bloc 40, cardinalite (1,1)), et il n'y en a aucun a declarer.");

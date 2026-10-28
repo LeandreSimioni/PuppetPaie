@@ -8,7 +8,7 @@
 //! cachets et les memes heures que la paie du mois, la commande REFUSE de signer et dit lequel (art. L. 5429-1). `--forcer` signe
 //! quand meme : l'ecart est alors connu et assume.
 //!
-//! Le travail est `routes_documents::ranger_aer_detail` (la meme version que la releve des retours, qui ne force jamais).
+//! Le travail est `crate::routes::documents::ranger_aer_detail` (la meme version que la releve des retours, qui ne force jamais).
 //! Le Python ignore `--json` ici ; le Rust aussi.
 //!
 //! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : une erreur d'un autre genre qu'un ecart (PDF illisible, fabrique) y donnait une trace
@@ -46,7 +46,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
 
     let mois = args.texte("mois");
-    let fait = crate::routes_documents::ranger_aer_detail(&cadre.ctx, mois, None, args.drapeau("forcer"))?;
+    let fait = crate::routes::documents::ranger_aer_detail(&cadre.ctx, mois, None, args.drapeau("forcer"))?;
     if fait.ecrits.is_empty() && fait.a_ranger.is_empty() && fait.refusees.is_empty() {
         dire!(
             "Aucune attestation{} dans les archives de nature {}.",

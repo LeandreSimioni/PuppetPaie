@@ -13,7 +13,7 @@
 //! contrat sur plusieurs mois y porte tous ses mois (« 1 AE CS éditée à la fin du dernier mois concerné par le contrat »,
 //! `aer::due`, sources citees la) ; cinq periodes au plus par PDF (les colonnes 01 a 05 du formulaire). Puis l'archive
 //! suit LE MEME CHEMIN qu'une vraie (`releve_retours::rattacher_simulation` : l'archive dans `retours/`, puis
-//! `routes_documents::ranger_aer`, qui signe le cadre 5 et la pose ou l'envoi la prend).
+//! `moteur::routes::documents::ranger_aer`, qui signe le cadre 5 et la pose ou l'envoi la prend).
 //!
 //! LE GABARIT est celui du formulaire de France Travail -- trois pages A4, les cadres 1 (employeur) a 5
 //! (authentification), et les NOMS DE CHAMPS AcroForm qu'il porte : `ENTETE_*`, `EMP_*`, `ADR_EMP_*`, `SALARIE_*`,

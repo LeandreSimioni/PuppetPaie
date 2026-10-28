@@ -80,7 +80,7 @@ pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
             }
             d
         }
-        Some(Value::String(s)) => PathBuf::from(crate::routes_apercus::normaliser(s)),
+        Some(Value::String(s)) => PathBuf::from(crate::routes::apercus::normaliser(s)),
         Some(autre) => return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(autre)))),
     })
 }
@@ -202,7 +202,7 @@ pub(crate) fn export_de(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
     let export_v = charge.get("export").filter(|v| vrai(v));
     Ok(match export_v {
         None => trouver_export(&ctx.racine),
-        Some(Value::String(s)) => PathBuf::from(crate::routes_apercus::normaliser(s)),
+        Some(Value::String(s)) => PathBuf::from(crate::routes::apercus::normaliser(s)),
         Some(autre) => {
             return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(autre))));
         }
@@ -291,7 +291,7 @@ pub(crate) type CleEngagement = (String, String, String, String, i128, i128, i12
 /// `deja = {_cle_engagement(e) ...}` : les contrats que `historique/engagements.json` porte deja. Une valeur qui
 /// n'est pas un texte ne peut egaler un texte : l'entree ne retrouvera aucun contrat.
 pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
-    let historique = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("engagements.json"))?;
+    let historique = crate::routes::etats::lire_json_ou_vide(&ctx.racine.join("historique").join("engagements.json"))?;
     // `lire_historique` : `data.setdefault("engagements", [])` leve sur ce qui n'est pas un objet.
     if !historique.is_object() {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&historique))));
@@ -327,7 +327,7 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
 
 /// Les lignes de `historique/paies.json` telles qu'elles sont (`lire_paies_declarees` : meme `setdefault`).
 pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
-    let fichier_paies = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
+    let fichier_paies = crate::routes::etats::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
     if !fichier_paies.is_object() {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&fichier_paies))));
     }
@@ -381,7 +381,7 @@ pub(crate) fn apercu_lu(
     if !lecture.entreprise.is_empty() {
         let e = fiche_entreprise(&lecture)?;
         if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !valeur_en_texte(s).trim().is_empty()) {
-            let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
+            let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             entreprise = fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e));
@@ -423,7 +423,7 @@ pub(crate) fn apercu_lu(
             continue;
         }
         let donnees = fiche_salarie(decl)?;
-        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
+        let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
         a_creer_liste.push(ACreer { nom: "salarie", rang: Some(salaries.len()), donnees: donnees.clone() });
         salaries.push(fiche_importee("salarie", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(donnees)));
         cles_a_venir.insert(decl.nir.clone());
@@ -491,7 +491,7 @@ pub(crate) fn apercu_lu(
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(o.dernier >= seuil));
         donnees.insert("_vu_dans".into(), json!(format!("{} de {} a {} ({} contrat(s))", source, o.premier, o.dernier, o.contrats)));
-        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
+        let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         a_creer_liste.push(ACreer { nom: "spectacle", rang: Some(spectacles.len()), donnees: donnees.clone() });
         spectacles.push(fiche_importee(
             "spectacle",

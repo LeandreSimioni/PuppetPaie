@@ -27,7 +27,7 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use engagement::imprevus::{self, ARRET, SUSPENSION};
 use socle::echec::Echec;
-use crate::routes_listes::refus_magasin;
+use crate::routes::listes::refus_magasin;
 
 /// Les routes que ce module sert ; toutes sauf `imprevus` ecrivent.
 pub const ROUTES: [&str; 6] =
@@ -71,16 +71,16 @@ fn magasin<T>(r: Result<T, String>) -> R<T> {
 
 /// La cle de la fiche que `nom` designe (`KeyError` si aucune).
 pub(crate) fn cle_du_salarie(ctx: &Contexte, nom: &Value) -> R<String> {
-    let fiche = crate::routes_dossiers::salarie(ctx, nom)?;
+    let fiche = crate::routes::dossiers::salarie(ctx, nom)?;
     Ok(valeur_en_texte(fiche.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?))
 }
 
-/// LE CONTRAT QU'UN IMPREVU SUSPEND : parmi ceux du salarie qui couvrent `jour` (`routes_dossiers::contrats_au`), celui
+/// LE CONTRAT QU'UN IMPREVU SUSPEND : parmi ceux du salarie qui couvrent `jour` (`crate::routes::dossiers::contrats_au`), celui
 /// que la charge nomme (`contrat`), sinon le seul. Un imprevu designe son contrat par son numero et sa date de debut
 /// (S21.G00.40.009 et .001) ; sans contrat, il n'y a rien a suspendre, et a deux, le cahier technique laisse le choix au
 /// declarant : on le lui demande.
 pub(crate) fn contrat_suspendu(ctx: &Contexte, cle: &str, jour: &Jour, voulu: &Value) -> R<Value> {
-    let candidats = crate::routes_dossiers::contrats_au(ctx, &json!(cle), &jour.iso())?;
+    let candidats = crate::routes::dossiers::contrats_au(ctx, &json!(cle), &jour.iso())?;
     let texte_de = |c: &Value, k: &str| valeur_en_texte(&c[k]);
     if vrai(voulu) {
         return match candidats.iter().find(|c| valeurs_egales(&c["numero"], voulu)) {
@@ -123,7 +123,7 @@ contrat.",
 /// que plus aucune saisie ne porte ne l'est pas.
 fn mensuel(ctx: &Contexte, imp: &Value) -> R<bool> {
     let debut = valeur_en_texte(&imp["contrat_debut"]);
-    let contrats = crate::routes_dossiers::contrats_au(ctx, &imp["salarie"], &debut)?;
+    let contrats = crate::routes::dossiers::contrats_au(ctx, &imp["salarie"], &debut)?;
     Ok(contrats.iter().any(|c| valeur_en_texte(&c["debut"]) == debut && c["mensuel"] == json!(true)))
 }
 
@@ -225,7 +225,7 @@ pub(crate) fn en_cours(ctx: &Contexte, imp: &Value) -> R<bool> {
 
 // ------------------------------------------------------------------ le resume
 
-/// UN IMPREVU TEL QUE LA PAGE LE LIT. Un arret : le resume de toujours (`routes_listes::resume_arret` : salarie, contrat,
+/// UN IMPREVU TEL QUE LA PAGE LE LIT. Un arret : le resume de toujours (`crate::routes::listes::resume_arret` : salarie, contrat,
 /// motif et son libelle, les dates de la norme, signale, signalements, reporte_par, etat), plus `genre`, `premier_jour`,
 /// `dernier_jour`, `jours_deja_indemnises`, `maintien`, `maintien_legal`, `origine`, `maintien_ouvert`,
 /// `mois_du_maintien`, `jours_deja_indemnises_attendus`, `cachets`. Une suspension : `genre`, `salarie`, `contrat`,
@@ -236,7 +236,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
     let premier = magasin(imprevus::premier_jour(imp))?.iso();
     let dernier = magasin(imprevus::dernier_jour(imp))?.iso();
     if imprevus::est_un_arret(imp) {
-        let mut r = crate::routes_listes::resume_arret(n, imp)?;
+        let mut r = crate::routes::listes::resume_arret(n, imp)?;
         let motif = magasin(imprevus::motif_d_arret(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
         let maintien_legal = motif.get("maintien_legal").is_some_and(vrai);
         let ouvert = mensuel(ctx, imp)?;
@@ -304,7 +304,7 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
         )),
         None => None,
     };
-    let n = crate::routes_listes::nomenclatures(ctx)?;
+    let n = crate::routes::listes::nomenclatures(ctx)?;
     let suivi = crate::obligations::Suivi::lire(ctx)?;
     let mut out = Vec::new();
     for imp in magasin(imprevus::tous(&ctx.racine))? {
@@ -327,8 +327,8 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     Ok(json!({
         "imprevus": out,
-        "motifs_arret": crate::routes_listes::saisissables(&n, "motifs_arret")?,
-        "motifs_reprise": crate::routes_listes::saisissables(&n, "motifs_reprise")?,
+        "motifs_arret": crate::routes::listes::saisissables(&n, "motifs_arret")?,
+        "motifs_reprise": crate::routes::listes::saisissables(&n, "motifs_reprise")?,
         "subrogation": n["subrogation"]["codes"],
         "motifs_suspension": motifs_de_suspension()?,
     }))
@@ -407,7 +407,7 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
     }
     liste[i] = nouveau.clone();
     ecrire(ctx, &dernier.mois_iso(), liste)?;
-    let n = crate::routes_listes::nomenclatures(ctx)?;
+    let n = crate::routes::listes::nomenclatures(ctx)?;
     Ok(json!({"arret": resume(ctx, &n, &nouveau)?}))
 }
 
@@ -441,7 +441,7 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
 /// CE QUI REFUSE, sans rien ecrire : un arret deja repris (« se prolonge sans interruption », ameli : un arret apres la
 /// reprise est un nouvel arret) ; une fin qui n'est pas apres la fin prescrite (une fin plus tot est une reprise
 /// anticipee, qui se signale : `arret-reprise`) ; une fin de subrogation sur un arret qui n'est pas subroge (CCH-11 de
-/// S21.G00.60.006) ; ce que la norme refuse au signalement d'arret (`routes_ecritures_g2::verifier`) ; un chevauchement.
+/// S21.G00.60.006) ; ce que la norme refuse au signalement d'arret (`crate::routes::ecritures_g2::verifier`) ; un chevauchement.
 fn arret_prolonger(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = cle_du_salarie(ctx, exiger(charge, "salarie")?)?;
     let dernier = jour(exiger(charge, "dernier_jour")?)?;
@@ -494,14 +494,14 @@ CCH-11). Rien n'est changé.",
         }
         a["subrogation_fin"] = json!(sf.iso());
     }
-    crate::routes_ecritures_g2::verifier(&a)?;
+    crate::routes::ecritures_g2::verifier(&a)?;
     sans_chevauchement(ctx, &a, Some(&avant))?;
 
     // La trace de l'avis : le jour ou la compagnie l'a su (le jour du moteur), l'heure de la saisie, et ce qui a change.
     let trace = json!({
         "le": ctx.aujourdhui.iso(),
-        "saisi_le": crate::routes_ecritures_g2::maintenant(),
-        "qui": crate::routes_ecritures_g2::qui_de(charge),
+        "saisi_le": crate::routes::ecritures_g2::maintenant(),
+        "qui": crate::routes::ecritures_g2::qui_de(charge),
         "fin_avant": avant["fin_previsionnelle"], "fin": a["fin_previsionnelle"],
         "subrogation_fin_avant": avant["subrogation_fin"], "subrogation_fin": a["subrogation_fin"],
     });
@@ -541,7 +541,7 @@ remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). 
         ));
     }
     let (revoir, phrase) = subrogation_a_revoir(&a)?;
-    let n = crate::routes_listes::nomenclatures(ctx)?;
+    let n = crate::routes::listes::nomenclatures(ctx)?;
     Ok(json!({
         "arret": resume(ctx, &n, &a)?,
         "subrogation_a_revoir": revoir,
@@ -608,7 +608,7 @@ fn verifier_suspension(s: &Value, contrat_fin: &str) -> R<()> {
 /// La fin du contrat d'une suspension deja ecrite, lue dans les saisies (vide : un contrat qui court).
 fn fin_du_contrat(ctx: &Contexte, s: &Value) -> R<String> {
     let debut = valeur_en_texte(&s["contrat_debut"]);
-    let contrats = crate::routes_dossiers::contrats_au(ctx, &s["salarie"], &debut)?;
+    let contrats = crate::routes::dossiers::contrats_au(ctx, &s["salarie"], &debut)?;
     Ok(contrats.iter().find(|c| valeur_en_texte(&c["debut"]) == debut).map(|c| valeur_en_texte(&c["fin"])).unwrap_or_default())
 }
 
@@ -636,8 +636,8 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     s.insert("motif".into(), json!(motif));
     s.insert("debut".into(), json!(debut.iso()));
     s.insert("fin".into(), json!(fin.iso()));
-    s.insert("saisi_le".into(), json!(crate::routes_ecritures_g2::maintenant()));
-    s.insert("qui".into(), json!(crate::routes_ecritures_g2::qui_de(charge)));
+    s.insert("saisi_le".into(), json!(crate::routes::ecritures_g2::maintenant()));
+    s.insert("qui".into(), json!(crate::routes::ecritures_g2::qui_de(charge)));
     s.insert("note".into(), note_de(charge));
     s.insert("envois".into(), json!([]));
     let s = Value::Object(s);
@@ -654,7 +654,7 @@ fn suspension_enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut liste = magasin(imprevus::du_fichier(&ctx.racine, &mois))?;
     liste.push(s.clone());
     ecrire(ctx, &mois, liste)?;
-    let n = crate::routes_listes::nomenclatures(ctx)?;
+    let n = crate::routes::listes::nomenclatures(ctx)?;
     Ok(json!({"suspension": resume(ctx, &n, &s)?}))
 }
 
@@ -681,7 +681,7 @@ fn suspension_modifier(ctx: &Contexte, charge: &Value) -> R<Value> {
     sans_chevauchement(ctx, &s, Some(&avant))?;
     liste[i] = s.clone();
     ecrire(ctx, &debut.mois_iso(), liste)?;
-    let n = crate::routes_listes::nomenclatures(ctx)?;
+    let n = crate::routes::listes::nomenclatures(ctx)?;
     Ok(json!({"suspension": resume(ctx, &n, &s)?}))
 }
 
@@ -703,6 +703,6 @@ reprendre (une fin plus tot), ou corriger les DSN deposees.",
     }
     let s = liste.remove(i);
     ecrire(ctx, &debut.mois_iso(), liste)?;
-    let n = crate::routes_listes::nomenclatures(ctx)?;
+    let n = crate::routes::listes::nomenclatures(ctx)?;
     Ok(json!({"suspension": resume(ctx, &n, &s)?}))
 }

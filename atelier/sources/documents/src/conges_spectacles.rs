@@ -28,7 +28,7 @@ pub const CLE_ADHERENT: &str = "congesspectacles_adherent";
 /// LA FORME ECRITE DU NUMERO D'ADHERENT : la meme valeur, « accolés, sans espaces, ni tiret » et la lettre en capitale,
 /// comme l'exemple de la fiche (970000000001A ; `audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81).
 /// Rien ne s'ajoute ni ne se devine : on ote les blancs et les tirets, on met en majuscules. Le seul endroit qui le fait ;
-/// `routes_fiches::deriver` l'applique avant de controler et d'enregistrer la fiche, `adherent` avant de declarer.
+/// `moteur::routes::fiches::deriver` l'applique avant de controler et d'enregistrer la fiche, `adherent` avant de declarer.
 pub fn forme_adherent(v: &str) -> String {
     v.chars().filter(|c| !c.is_whitespace() && *c != '-').flat_map(char::to_uppercase).collect()
 }

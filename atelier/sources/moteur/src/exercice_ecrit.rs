@@ -25,10 +25,10 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::{zero2, Decimal};
 use socle::echec::Echec;
-use crate::routes_dossier_salarie::{entree_ecrite, entree_fichier, zip, Entree};
+use crate::routes::dossier_salarie::{entree_ecrite, entree_fichier, zip, Entree};
 use documents::ecritures_comptables::{csv_compta, ecritures_du_mois, Ecriture};
 use documents::plan_comptable::plan_comptable;
-use crate::routes_ouverture::{mois_de_l_annee, nic_principal};
+use crate::routes::ouverture::{mois_de_l_annee, nic_principal};
 
 type R<T> = Result<T, Echec>;
 
@@ -185,12 +185,12 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
 }
 
 /// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE (#236) : `{"AAAA-MM": empreinte}` pour chaque mois saisi de l'annee
-/// (`routes_mois::empreinte_de` de la saisie du mois, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut
+/// (`crate::routes::mois::empreinte_de` de la saisie du mois, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut
 /// `null`. L'export compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
 pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
     let mut m = Map::new();
     for mois in engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().filter(|x| x.starts_with(annee)) {
-        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes_mois::empreinte_de(&v)));
+        let e = engagement::stock::vue_du_mois(racine, &mois).ok().flatten().map_or(Value::Null, |v| json!(crate::routes::mois::empreinte_de(&v)));
         m.insert(mois, e);
     }
     Value::Object(m)
@@ -238,7 +238,7 @@ pub(crate) fn export_compta_charge(ctx: &Contexte, charge: &Value) -> R<ExportCo
 
 /// `operations_socle.exercices` : `config/exercices.json`, sans les cles qui commencent par `_`.
 fn lire_exercices(ctx: &Contexte) -> R<Map<String, Value>> {
-    match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    match crate::routes::etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => Ok(o),
         autre => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre)))),
     }
@@ -388,7 +388,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 
     let empreinte: String = Sha256::digest(&octets).iter().map(|b| format!("{:02x}", b)).collect();
     let le = maintenant();
-    let mut tous = match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    let mut tous = match crate::routes::etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => o,
         autre => return Err(erreur("TypeError", socle::fichiers::non_modifiable(socle::valeur::nom_type(&autre)))),
     };
@@ -411,7 +411,7 @@ pub(crate) fn cloturer(ctx: &Contexte, annee: &str, forcer: bool, qui: &str) -> 
 /// `operations_exercice.rouvrir_exercice` : retire la cloture. L'archive reste sur le disque : elle dit ce
 /// qu'etait l'annee au moment ou on l'a fermee.
 fn rouvrir_exercice(ctx: &Contexte, annee: &str, qui: &str) -> R<Value> {
-    let mut tous = match crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
+    let mut tous = match crate::routes::etats::lire_json_ou_vide(&ctx.racine.join("config").join("exercices.json"))? {
         Value::Object(o) => o,
         autre => return Err(erreur("TypeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
     };

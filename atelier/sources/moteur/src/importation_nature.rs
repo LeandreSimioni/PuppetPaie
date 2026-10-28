@@ -21,7 +21,7 @@
 //! (`demande` : `debut`, `numero`, le salaire mensuel et la duree du travail du contrat, `fin` s'il a un terme),
 //! s'ecrivent sur ses contrats repris (`contrat_debut`, `contrat_fin`, `numero`, `contrat_salaire_mensuel`,
 //! `contrat_quotite`), et le contrat se reprend au mois suivant (`repris_en_cours`, lu par
-//! `routes_contrats::contrats_en_cours`) avec son numero, que l'engagement relit (`engagement::suivre_permanent`).
+//! `crate::routes::contrats::contrats_en_cours`) avec son numero, que l'engagement relit (`engagement::suivre_permanent`).
 //!
 //! Un salarie, une reponse : les bulletins d'un permanent attestent un contrat par mois, tous du meme contrat.
 
@@ -68,7 +68,7 @@ fn texte(e: &Value, k: &str) -> String {
 }
 
 fn engagements(racine: &Path) -> Vec<Value> {
-    crate::routes_etats::lire_json_ou_vide(&chemin(racine))
+    crate::routes::etats::lire_json_ou_vide(&chemin(racine))
         .ok()
         .and_then(|h| h.get("engagements").and_then(Value::as_array).cloned())
         .unwrap_or_default()
@@ -91,7 +91,7 @@ fn mois_suivant(m: &str) -> String {
 
 /// Le nom d'un salarie, tel que la fiche le montre ; sa cle a defaut.
 fn nom_du_salarie(racine: &Path, cle: &str) -> String {
-    let fiches = crate::routes_etats::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
+    let fiches = crate::routes::etats::lire_json_ou_vide(&racine.join("config").join("salaries.json")).unwrap_or(Value::Null);
     let Some(f) = fiches.get(cle).filter(|f| f.is_object()) else { return cle.to_string() };
     let t = |k: &str| texte(f, k);
     let prenom = if t("prenom_affichage").is_empty() { t("prenom") } else { t("prenom_affichage") };
@@ -164,7 +164,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(refus(format!("« {} » n'est pas la nature d'un contrat de permanent ({}) : rien n'a été écrit.", nature, noms.join(", "))));
     };
     let p = chemin(&ctx.racine);
-    let mut h = crate::routes_etats::lire_json_ou_vide(&p)?;
+    let mut h = crate::routes::etats::lire_json_ou_vide(&p)?;
     let engs = h.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     let qui = nom_du_salarie(&ctx.racine, &salarie);
     let Some((_, du, au)) = a_dire_par_salarie(&engs).remove(&salarie) else {
@@ -234,7 +234,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
             ecrits += 1;
         }
     }
-    crate::routes_contrats::sauver_avant(&p)?;
+    crate::routes::contrats::sauver_avant(&p)?;
     socle::ecriture::ecrire_json(&p, &h, 1).map_err(|m| erreur("OSError", m))?;
     // LA COMPAGNIE EMPLOIE UN PERMANENT : c'est ce qu'on vient de dire (une nature payee au mois). La case « La
     // compagnie emploie aussi des salaries au mois » de la fiche Entreprise (`contexte::emploie_des_permanents`) se
@@ -245,7 +245,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
     if permanents_declares {
         // A partir du premier jour que les bulletins repris paient.
         let depuis = Jour::lire(&du).map_err(|m| refus(format!("{} : la case des permanents n'a pas ete cochee.", m)))?;
-        crate::routes_ecritures::poser_entreprise(ctx, "emploie_des_permanents", json!(true), Some(depuis))?;
+        crate::routes::ecritures::poser_entreprise(ctx, "emploie_des_permanents", json!(true), Some(depuis))?;
     }
     Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares}))
 }

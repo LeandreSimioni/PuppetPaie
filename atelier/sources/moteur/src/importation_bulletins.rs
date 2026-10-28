@@ -3,7 +3,7 @@
 //!
 //! 1. Le tri (`importation_tri`) : chaque fichier recoit sa sorte, par le contenu.
 //! 2. Les DSN et AEM trouvees, ou qu'elles soient (sous-dossier, zip), sont copiees dans un `export/` du dossier de
-//!    travail (temporaire, efface avant de rendre) et passent par `routes_importation::apercu_lu` : le meme code que
+//!    travail (temporaire, efface avant de rendre) et passent par `crate::routes::importation::apercu_lu` : le meme code que
 //!    l'import d'un export de CoolPaie, inchange -- celles d'une autre entreprise exceptees (lot G1) : devant le Siren de
 //!    la compagnie (`importation::siren_de_reference`, etape 3), elles prennent le sort `incoherent` et rien n'en est lu.
 //! 3. Les bulletins (`bulletin_lu`), page par page, completent cet apercu : les fiches qu'ils creent (salaries par NIR,
@@ -56,7 +56,7 @@ use socle::fichiers::vrai;
 use crate::importation_completer as completer;
 use crate::importation_tri::Sorte;
 use socle::num::Decimal;
-use crate::routes_importation::{self as ri, ACreer, Apercu, CleEngagement};
+use crate::routes::importation::{self as ri, ACreer, Apercu, CleEngagement};
 
 /// Les sorts du compte rendu, dans l'ordre ou il les compte.
 ///
@@ -259,7 +259,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
 
     // 2. Les bulletins, page par page.
     let table = Table::livree().map_err(|m| erreur("ErreurOperation", format!("La table des gabarits de bulletins ne se lit pas : {}", m)))?;
-    let saisis: HashSet<String> = crate::routes_mois::mois_saisis(&ctx.racine).into_iter().collect();
+    let saisis: HashSet<String> = crate::routes::mois::mois_saisis(&ctx.racine).into_iter().collect();
     let mut pages: BTreeMap<usize, Vec<PageCr>> = BTreeMap::new();
     let mut illisibles: BTreeMap<usize, String> = BTreeMap::new();
     let mut lus: Vec<Lu> = Vec::new();
@@ -532,7 +532,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             continue;
         }
         let donnees = fiche_salarie(nir, &siens)?;
-        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
+        let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
         let libelle = format!("{} {}", donnees.get("nom").map_or(String::new(), valeur_en_texte), ri::titre_de(donnees.get("prenom")));
         let liste = reponse.get_mut("salaries").and_then(Value::as_array_mut).expect("une liste");
         ap.a_creer.push(ACreer { nom: "salarie", rang: Some(liste.len()), donnees: donnees.clone() });
@@ -559,7 +559,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             completer_a_creer(&mut ap.a_creer, &mut reponse, "entreprise", None, &proposees)?;
         } else if reponse.get("entreprise").is_none_or(Value::is_null) {
             let e = fiche_entreprise(&lus, dernier)?;
-            let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
+            let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             ap.a_creer.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             reponse.insert("entreprise".into(), ri::fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e)));
@@ -634,7 +634,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             if let Some(x) = &analytique {
                 a.donnees.entry("code_analytique").or_insert_with(|| json!(x));
             }
-            let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("spectacle", &a.donnees)?;
+            let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &a.donnees)?;
             liste[rang]["donnees"] = ri::brut(&Value::Object(a.donnees.clone()));
             liste[rang]["anomalies"] = ri::brut(&Value::Array(anomalies));
             continue;
@@ -650,7 +650,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(dernier >= seuil));
         donnees.insert("_vu_dans".into(), json!(format!("bulletins de {} a {} ({} bulletin(s))", premier, dernier, rangs.len())));
-        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
+        let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         let libelle = match &titre {
             Some(t) => format!("{} ({})", t, numero),
             None => format!("numéro d'objet {}, sans titre (bulletins de {} à {})", numero, premier, dernier),
@@ -1067,7 +1067,7 @@ fn completer_a_creer(a_creer: &mut [ACreer], reponse: &mut Map<String, Value>, n
         return Ok(());
     }
     a.donnees.extend(champs);
-    let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture(nom, &a.donnees)?;
+    let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture(nom, &a.donnees)?;
     let entree = match (nom, a.rang) {
         ("entreprise", _) => reponse.get_mut("entreprise"),
         (_, Some(i)) => reponse.get_mut("salaries").and_then(|l| l.get_mut(i)),

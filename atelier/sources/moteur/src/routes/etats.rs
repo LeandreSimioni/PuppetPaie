@@ -32,8 +32,8 @@ use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::echec::Echec;
-use crate::routes_accueil::{identite, mois_connus};
-use crate::routes_mois::Moteur;
+use crate::routes::accueil::{identite, mois_connus};
+use crate::routes::mois::Moteur;
 
 type R<T> = Result<T, Echec>;
 
@@ -547,7 +547,7 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
 pub(crate) fn mois_saisis_non_deposes(ctx: &Contexte) -> R<Vec<Value>> {
     let mut m = Moteur::nouveau(ctx);
     let mut out = Vec::new();
-    for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
+    for mois in crate::routes::mois::mois_saisis(&ctx.racine) {
         let Some(d) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? else {
             continue;
         };

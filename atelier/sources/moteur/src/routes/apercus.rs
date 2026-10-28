@@ -231,7 +231,7 @@ pub(crate) fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
     let chemin = resoudre(&ctx.racine, fichier)?;
     let empreinte = empreinte_du_fichier(&chemin)?;
     let nom = nom_du_chemin(&chemin);
-    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
+    let mut m = crate::routes::mois::Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let Some(quoi) = quoi.as_str() else {
         return Err(Echec { classe: None, message: "demande illisible : il faut `quoi`".to_string() });
@@ -273,7 +273,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let contenu = lire_octets(&chemin)?;
     let texte: String = contenu.iter().map(|&b| b as char).collect();
     let enrs = declarations::dpae::relire(&texte);
-    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
+    let mut m = crate::routes::mois::Moteur::nouveau(ctx);
     let lignes_journal = m.lignes()?;
     let faites = etats::embauches_par_depot(&lignes_journal)?;
     let mut par_nir: HashMap<String, (&String, &Value)> = HashMap::new();

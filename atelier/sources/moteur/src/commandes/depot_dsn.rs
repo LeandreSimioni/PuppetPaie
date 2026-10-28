@@ -142,8 +142,8 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     } else {
         fichier
     };
-    let chemin = crate::routes_apercus::resoudre(&cadre.racine, &json!(fichier))?;
-    let octets = match crate::routes_apercus::lire_octets(&chemin) {
+    let chemin = crate::routes::apercus::resoudre(&cadre.racine, &json!(fichier))?;
+    let octets = match crate::routes::apercus::lire_octets(&chemin) {
         Ok(o) => o,
         Err(e) => {
             dire!("Fichier illisible : {}", e.message);

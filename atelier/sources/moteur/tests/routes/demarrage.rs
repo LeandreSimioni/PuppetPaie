@@ -6,7 +6,7 @@
 //!   `dsn::type_du_contact`, prouve dans `tests/dsn/contact_declare.rs`) ; le code du service de sante au travail se
 //!   demande par sa case des que la DPAE l'exigerait (`dpae::employeur_manques`), meme quand le SIRET manque aussi.
 //!   La reponse sur la TVA (la taxe sur les salaires de la DSN de decembre) se demande d'avance.
-//! - Le SIREN et le NIC se deduisent du SIRET a l'enregistrement de la fiche (`routes_fiches::deriver`) : un SIRET est un
+//! - Le SIREN et le NIC se deduisent du SIRET a l'enregistrement de la fiche (`crate::routes::fiches::deriver`) : un SIRET est un
 //!   SIREN de 9 chiffres suivi d'un NIC de 5.
 //! - La rubrique d'une ligne de paie neuve (`etat.rubrique_par_defaut`, `catalogue::par_defaut`) : une rubrique de
 //!   salaire, jamais la premiere du catalogue trie (« Absence » dans une compagnie ou rien n'est coche).

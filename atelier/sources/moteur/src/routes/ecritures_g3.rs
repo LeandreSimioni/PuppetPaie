@@ -25,7 +25,7 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::filet::exiger_mot_de_passe;
 use socle::echec::Echec;
-use crate::routes_etats::{coffre_etat_de, version};
+use crate::routes::etats::{coffre_etat_de, version};
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 13] = [
@@ -151,7 +151,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
         // `json.loads(chemin.read_text())` : le fichier doit etre la.
         return Err(erreur("FileNotFoundError", format!("{} : fichier introuvable", chemin.display())));
     }
-    let mut contenu = crate::routes_etats::lire_json_ou_vide(&chemin)?;
+    let mut contenu = crate::routes::etats::lire_json_ou_vide(&chemin)?;
     let Value::Object(entreprise) = &mut contenu else {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&contenu))));
     };
@@ -165,7 +165,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     // Les identifiants du compte valent a partir du jour ou on les pose (les premiers, de tout temps).
     droit::contexte::dater(entreprise, "api_dpae", Value::Object(cfg), Some(&ctx.aujourdhui), None);
-    crate::routes_contrats::sauver_avant(&chemin)?;
+    crate::routes::contrats::sauver_avant(&chemin)?;
     socle::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
     // L'etat se lit sur la fiche qu'on vient d'ecrire : `ctx` l'a lue avant.
     let relue = droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)?;
@@ -238,7 +238,7 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `maj/prete.json` de l'installation ; la reponse est celle de `maj-etat`.
 fn maj_malgre_calcul(ctx: &Contexte) -> R<Value> {
     let inst = socle::fichiers::dossier_du_code().join("..").join("..");
-    let Some(mut p) = crate::routes_etats::prete(&inst)? else {
+    let Some(mut p) = crate::routes::etats::prete(&inst)? else {
         return Err(refus("Aucune version prete."));
     };
     let Value::Object(m) = &mut p else {

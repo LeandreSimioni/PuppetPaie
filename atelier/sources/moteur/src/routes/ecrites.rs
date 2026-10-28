@@ -29,8 +29,8 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::echec::Echec;
-use crate::routes_fiches::{entier, exiger};
-use crate::routes_saisie::lire_saisie;
+use crate::routes::fiches::{entier, exiger};
+use crate::routes::saisie::lire_saisie;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 1] = ["revue-spectacles"];
@@ -88,13 +88,13 @@ fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
     }
     let archives: Vec<String> = actifs.iter().filter(|c| !garder.iter().any(|g| g.as_str() == Some(c))).map(|c| c.to_string()).collect();
     for cle in &archives {
-        crate::routes_ecritures::activer_fiche(ctx, "spectacle", cle, false)?;
+        crate::routes::ecritures::activer_fiche(ctx, "spectacle", cle, false)?;
     }
     marquer_echeance(ctx, &format!("revue-spectacles:{}", annee), true, "interface")?;
     let mut continuent: Vec<String> = garder.iter().filter_map(|g| g.as_str().map(String::from)).collect();
     continuent.sort();
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(plain)?;
-    let configuration = crate::routes_accueil::route(o, &neuf, "configuration", &json!({}))?;
+    let configuration = crate::routes::accueil::route(o, &neuf, "configuration", &json!({}))?;
     Ok(json!({"annee": annee, "archives": archives, "continuent": continuent, "configuration": configuration}))
 }
 
@@ -353,7 +353,7 @@ pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risq
         creer_dossier(parent)?;
     }
     if p.exists() {
-        crate::routes_contrats::sauver_avant(&p)?;
+        crate::routes::contrats::sauver_avant(&p)?;
     }
     ecrire_json(&p, &data, 2).map_err(en_os)
 }
