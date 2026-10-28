@@ -1210,12 +1210,15 @@ impl<'a> Moteur<'a> {
                         .map(|(p, _)| p)
                         .collect();
                     let recus = partis.iter().filter(|p| vrai(&sig(p)["recu"]) && !vrai(&sig(p)["avenant_attendu"])).count();
+                    // L'echeance est celle des contrats attendus (L. 1242-13) ; un avenant attendu n'en a pas (aucun texte
+                    // depose ne date sa remise).
+                    let contrats_attendus: Vec<&Value> = siens.iter().copied().filter(|p| !vrai(&sig(p)["avenant_attendu"])).collect();
                     groupe(
                         "en_attente",
                         json!({"recus": recus, "partis": partis.len()}),
                         format!("{}/{}", recus, partis.len()),
                         format!("reçu{}", plur(recus, "", "s")),
-                        echeance_de(&siens, "contrat"),
+                        echeance_de(&contrats_attendus, "contrat"),
                         action("contrats_en_attente", "Reçus ou à relancer…".into()),
                     )
                 }
