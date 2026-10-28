@@ -1098,7 +1098,8 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     };
     let fin = socle::date::dernier_du_mois(&m).map_err(|x| erreur("ValueError", x))?;
     let mut avert: Vec<String> = Vec::new();
-    let saisie = engagement::saisie_du_mois(&ctx.racine, &m).map_err(|x| refus(x))?;
+    // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
+    let (saisie, paies) = charger_mois(ctx, &m)?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
     let livre: Vec<_> = lignes_livre(ctx, &toutes, &mut Vec::new())?.into_iter().filter(|l| l.source == SAISIE).collect();
     let zero = zero2();
@@ -1106,29 +1107,22 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut vus: BTreeSet<String> = BTreeSet::new();
     let vide = Vec::new();
     let engagements = saisie.get("engagements").and_then(Value::as_array).unwrap_or(&vide);
-    for e in engagements {
-        let nat = droit::natures::nature(e.get("nature").and_then(Value::as_str)).map_err(|x| refus(x))?;
+    let cle_de = |p: &engagement::calcul::Paie| p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_else(|| p.engagement.salarie.clone());
+    for (e, pa) in engagements.iter().zip(paies.iter()) {
+        let nat = pa.engagement.nat().map_err(|x| refus(x))?;
         if !nat.mensuelle() {
             continue;
         }
-        if e.get("fin").is_some_and(vrai) {
-            let jour_fin = socle::date::d(&e["fin"]).map_err(|x| erreur("ValueError", x))?;
-            if jour_fin <= fin {
-                // Un contrat fini ce mois-ci a eu son solde de tout compte : les conges non pris y sont payes, il n'y a plus de dette.
-                continue;
-            }
+        if pa.engagement.fin.is_some_and(|f| f <= fin) {
+            // Un contrat fini ce mois-ci a eu son solde de tout compte : les conges non pris y sont payes, il n'y a plus de dette.
+            continue;
         }
-        let nom_salarie = e.get("salarie").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("salarie")))?;
-        let nom_txt = valeur_en_texte(nom_salarie);
-        let cle = match ctx.salarie(&nom_txt) {
-            Ok(f) => f.get("_cle").map(valeur_en_texte).unwrap_or_else(|| nom_txt.clone()),
-            Err(_) => nom_txt.clone(),
-        };
+        let cle = cle_de(pa);
         if !vus.insert(cle.clone()) {
             continue;
         }
-        // Le compteur lit les saisies, qui nomment le salarie comme l'ecran l'a ecrit : il recoit ce nom-la.
-        let cpt = crate::service::provision_conges_de(ctx, &nom_txt, &m, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)?;
+        let brut_du_mois = paies.iter().filter(|q| cle_de(q) == cle).fold(zero, |a, q| add(a, q.brut));
+        let cpt = crate::service::provision_conges_de(ctx, pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)?;
         for a in &cpt.avertissements {
             avert.push(format!("{} : {}", cle, a.texte));
         }

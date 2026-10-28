@@ -490,7 +490,7 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
         }
         let paies_e: Vec<Paie> = lot.paies.iter().map(|i| paies[*i].clone()).collect();
         let regs_e: Vec<&Reg> = lot.regs.iter().map(|i| &regs[*i]).collect();
-        let regs_dsn = regularisations::pour_la_dsn(ctx, &regs_e)?;
+        let regs_dsn = regularisations::pour_la_dsn(&regs_e);
         let arrets_e: Vec<crate::dsn::Arret> = lot.arrets.iter().map(|v| crate::dsn::Arret { v: v.clone() }).collect();
         let f_dsn = sortie.join(&nom);
         let generer = |constitution: socle::date::Jour| -> R<String> {

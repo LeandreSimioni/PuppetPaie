@@ -675,11 +675,11 @@ pub fn indemnite_des_jours(
     Ok(droit::conges::la_plus_forte(dixieme, maintien))
 }
 
-/// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant,
-/// plus ce que ce mois acquiert et prend.
+/// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant, plus ce que ce mois acquiert et prend. Le
+/// salarie se nomme comme la saisie de l'engagement le nomme : c'est ainsi que le compteur lit les saisies.
 pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<CompteurConges> {
     let eng = &paie.engagement;
-    let cle = paie.salarie.get("_cle").and_then(|c| c.as_str()).ok_or_else(|| socle::fichiers::absent("_cle"))?;
+    let cle = eng.salarie.as_str();
     let fin_du_mois = fin_mois_de(mois)?;
     let mut cpt = compteur_conges(ctx, cle, &fin_du_mois, Some(mois))?;
     let (debut, fin) = periode_de_reference(&fin_du_mois, Some(&ctx.entreprise))?;

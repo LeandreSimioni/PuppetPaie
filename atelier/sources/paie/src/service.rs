@@ -99,15 +99,17 @@ pub(crate) struct Provision {
     pub indemnite: Option<droit::conges::IndemniteDesJours>,
 }
 
-/// Le calcul de `provision-conges`, pour un contexte deja lu : le compteur d'un permanent a la fin de `mois`, et
-/// l'indemnite de son solde (le dixieme ou le maintien, L3141-24) quand il est positif. `salaire_mensuel` : la
-/// valeur de l'engagement (`None` ou fausse = 0).
-pub(crate) fn provision_conges_de(ctx: &Contexte, salarie: &str, mois: &str, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
+/// La provision de conges d'un permanent a la fin de `mois`, lue dans la paie ecrite `paie` de ce mois : le compteur
+/// que son bulletin montre (`conges::compteur_au_bulletin`), dont l'assiette du dixieme compte aussi le brut du mois
+/// (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (le dixieme ou le maintien,
+/// L3141-24) quand il est positif. `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0).
+pub(crate) fn provision_conges_de(ctx: &Contexte, paie: &engagement::calcul::Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
     use droit::conges::jours_ouvrables;
-    use engagement::conges::{compteur_conges, indemnite_des_jours};
-    use socle::num::{dec, div, eur, mul, Decimal};
+    use engagement::conges::{compteur_au_bulletin, indemnite_des_jours};
+    use socle::num::{add, dec, div, eur, mul, Decimal};
     let fin = socle::date::dernier_du_mois(mois)?;
-    let cpt = compteur_conges(ctx, salarie, &fin, Some(&fin.mois_suivant()))?;
+    let mut cpt = compteur_au_bulletin(ctx, paie, mois)?;
+    cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
     let solde = cpt.solde();
     let salaire = match salaire_mensuel {
         Some(v) if socle::fichiers::vrai(v) => dec(v)?,

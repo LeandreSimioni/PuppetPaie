@@ -2,9 +2,9 @@
 //! `regularisations_pour`, `resume_regularisations`, `versement_de_la_correction`, `numero_du_bulletin_rectifie` et
 //! `ecrire_rectificatifs`.
 //!
-//! Ce qui a ete declare et verse se lit dans les versions de l'engagement (`versement_declare_de`). `avant` et `apres`
-//! sortent du calcul (`paie_de_json`) : ce sont elles que les phrases et le numero lisent. Ce que la DSN et le bulletin
-//! IMPRIMENT se refait depuis la saisie (`a_imprimer`, `charger_donnees`), aux numeros de la paie du calcul.
+//! Ce qui a ete declare et verse se lit dans les versions de l'engagement (`versement_declare_de`) : la paie d'avant
+//! (`Reg::avant`) est la derniere paie declaree du contrat, elle ne se recalcule pas (regle 4). La paie d'apres est le
+//! calcul de l'engagement corrige ; la DSN et le bulletin rectificatif impriment ces deux paies telles quelles.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -34,9 +34,9 @@ pub(crate) struct Reg {
     pub(crate) correction: Map<String, Value>,
     pub(crate) mois: String,
     pub(crate) numero: i64,
-    /// La paie d'avant refaite par le moteur du jour : elle ne donne plus que le contrat (bornes, nature, statut, pile de
-    /// bareme), aucun montant calcule. Ce que la correction annule, au nominatif comme a l'agrege, se lit dans
-    /// `declare` ; ce qui a ete paye, dans `net_deja_verse`.
+    /// La paie d'avant : la derniere paie declaree du contrat, telle que la version de l'engagement sur laquelle la DSN
+    /// est partie la porte (`versement_declare_de`) ; ce qui s'en imprime et le contrat qu'elle declare. Ce que la correction
+    /// annule, au nominatif comme a l'agrege, se lit dans `declare` ; ce qui a ete paye, dans `net_deja_verse`.
     pub(crate) avant: Paie,
     /// Le dernier etat declare du contrat : le versement de la paie declaree, celle de la DSN du mois d'origine ou de la
     /// derniere correction deja portee (`versement_declare_de`).
@@ -44,12 +44,9 @@ pub(crate) struct Reg {
     /// Le net a payer avant impot deja verse au salarie pour le contrat, lu dans la derniere paie declaree : celle du
     /// mois d'origine, ou celle de la derniere correction deja portee (`versement_declare_de`).
     pub(crate) net_deja_verse: Decimal,
+    /// La paie corrigee, calculee depuis la saisie declaree du mois d'origine ou l'engagement corrige remplace le declare,
+    /// au numero du contrat declare.
     pub(crate) apres: Paie,
-    /// La saisie du mois d'origine, et les deux engagements (declare, corrige) : ce qui permet de refaire
-    /// les paies a imprimer.
-    pub(crate) donnees: Value,
-    pub(crate) declare_saisi: Value,
-    pub(crate) corrige: Value,
     pub(crate) taux_pas_origine: Option<String>,
 }
 
@@ -87,13 +84,12 @@ pub(crate) fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<
             out.push(ajout(ctx, c.clone(), mois, numero, corrige)?);
             continue;
         }
-        let (donnees, declare, _fiche) = regul::engagement_declare(ctx, &mois, &salarie, &debut)?;
-        let avant = regul::paie_d_un_engagement(ctx, &donnees, &declare)?;
+        let (donnees, _declare, _fiche) = regul::engagement_declare(ctx, &mois, &salarie, &debut)?;
         let apres = regul::paie_d_un_engagement(ctx, &donnees, &corrige)?;
-        let (lu, net_deja_verse) = versement_declare_de(ctx, &c, &mois, mois_courant, &apres)?;
+        let (lu, net_deja_verse, avant) = versement_declare_de(ctx, &c, &mois, mois_courant, &apres)?;
         // Le taux du bloc 56 : celui de la paie declaree du mois d'origine.
         let taux_pas_origine = lu.taux_pas.clone();
-        out.push(Reg { correction: c, mois, numero, avant, declare: lu, net_deja_verse, apres, donnees, declare_saisi: declare, corrige, taux_pas_origine });
+        out.push(Reg { correction: c, mois, numero, avant, declare: lu, net_deja_verse, apres, taux_pas_origine });
     }
     Ok(out)
 }
@@ -135,9 +131,6 @@ fn ajout(ctx: &Contexte, c: Map<String, Value>, mois: String, numero: i64, corri
         declare,
         net_deja_verse: Decimal::ZERO,
         apres,
-        donnees,
-        declare_saisi: corrige.clone(),
-        corrige,
         taux_pas_origine: None,
     })
 }
@@ -155,8 +148,8 @@ fn ajout(ctx: &Contexte, c: Map<String, Value>, mois: String, numero: i64, corri
 ///
 /// Rend aussi le net a payer avant impot deja verse au salarie pour le contrat : celui de la derniere paie declaree,
 /// celle du mois d'origine ou celle qu'une correction deja portee a fait payer (son bulletin rectificatif l'imprime tel
-/// quel). Il ne se reconstitue pas depuis la DSN, qui ne declare pas le net a payer.
-fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois_courant: &str, apres: &Paie) -> R<(VersementDeclare, Decimal)> {
+/// quel). Il ne se reconstitue pas depuis la DSN, qui ne declare pas le net a payer. Et rend cette derniere paie declaree.
+fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois_courant: &str, apres: &Paie) -> R<(VersementDeclare, Decimal, Paie)> {
     let nom = valeur_en_texte(apres.salarie.get("nom").unwrap_or(&Value::Null));
     let numero = apres.engagement.numero.clone().unwrap_or_default();
     let refus = |quoi: String| {
@@ -207,7 +200,7 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
     if let Some(d) = engagement::etats::debut_declare(ctx, &objet, &departs, mois_courant).map_err(refus)? {
         etat.debut_contrat = Some(Jour::lire(&d).map_err(|e| refus(e))?.jjmmaaaa());
     }
-    Ok((etat, derniere_paie.paie.net_a_payer))
+    Ok((etat, derniere_paie.paie.net_a_payer, derniere_paie.paie.clone()))
 }
 
 fn prenom_de(sal: &Value) -> String {
@@ -239,36 +232,20 @@ pub(crate) fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
     Ok(out)
 }
 
-/// Ce que la DSN et le bulletin IMPRIMENT : la paie d'un engagement, refaite depuis la saisie du mois
-/// d'origine comme le moteur la refait (`paie_rust.bulletin`, `paie_rust.dsn`), aux numeros donnes.
-pub(crate) fn a_imprimer(ctx: &Contexte, donnees: &Value, engagement: &Value, numero_contrat: Option<&String>, numero_bulletin: Option<String>) -> R<Paie> {
-    let mut seule = donnees.clone();
-    if let Some(obj) = seule.as_object_mut() {
-        obj.insert("engagements".into(), Value::Array(vec![engagement.clone()]));
-    }
-    let s = engagement::charger_donnees(ctx, &seule).map_err(|msg| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &seule, msg)))?;
-    let mut p = s.paies.into_iter().next().ok_or_else(|| erreur("IndexError", socle::fichiers::trop_courte("la paie de l'engagement")))?;
-    p.engagement.numero = numero_contrat.cloned();
-    p.numero_bulletin = numero_bulletin;
-    Ok(p)
-}
-
-/// Les regularisations de la DSN (`dsn::Regularisation`), avec les paies que le moteur imprime.
-pub(crate) fn pour_la_dsn(ctx: &Contexte, regs: &[&Reg]) -> R<Vec<crate::dsn::Regularisation>> {
-    let mut out = Vec::new();
-    for r in regs {
-        out.push(crate::dsn::Regularisation {
+/// Les regularisations de la DSN (`dsn::Regularisation`) : la paie declaree et la paie corrigee.
+pub(crate) fn pour_la_dsn(regs: &[&Reg]) -> Vec<crate::dsn::Regularisation> {
+    regs.iter()
+        .map(|r| crate::dsn::Regularisation {
             mois: r.mois.clone(),
-            avant: a_imprimer(ctx, &r.donnees, &r.declare_saisi, r.avant.engagement.numero.as_ref(), None)?,
+            avant: r.avant.clone(),
             declare: r.declare.clone(),
-            apres: a_imprimer(ctx, &r.donnees, &r.corrige, r.apres.engagement.numero.as_ref(), None)?,
+            apres: r.apres.clone(),
             taux_pas_origine: r.taux_pas_origine.clone(),
             net_deja_verse: r.net_deja_verse,
             // « AAAA-MM-JJ HH:MM » (`routes_ecritures_g2::maintenant`) : le jour seul.
             decidee_le: r.correction.get("decidee_le").and_then(Value::as_str).and_then(|t| t.get(..10)).and_then(|t| Jour::lire(t).ok()),
-        });
-    }
-    Ok(out)
+        })
+        .collect()
 }
 
 fn refus_valeur(m: String) -> Echec {
@@ -424,7 +401,8 @@ pub(crate) fn ecrire_rectificatifs(
         let cle = valeur_en_texte(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let etiq = crate::envoi::etiquette(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_c{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.numero));
-        let imprimee = a_imprimer(ctx, &r.donnees, &r.corrige, r.apres.engagement.numero.as_ref(), Some(numero_bulletin))?;
+        let mut imprimee = r.apres.clone();
+        imprimee.numero_bulletin = Some(numero_bulletin);
         let rectifs: HashMap<usize, Value> = HashMap::from([(0, rectif.clone())]);
         let description = crate::bulletin::jeux_et_description(ctx, std::slice::from_ref(&imprimee), &ent, "", None, false, &rectifs).map_err(refus_valeur)?;
         ecrire_le_pdf(&description, &archive)?;
