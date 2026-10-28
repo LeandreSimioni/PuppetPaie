@@ -208,7 +208,7 @@ const NOIR: &str = "#000000";
 // ---------------------------------------------------------------- chiffres
 
 /// `arrondi_euro` : a l'euro le plus proche, moitie superieure.
-pub(crate) fn arrondi_euro(x: Decimal) -> i64 {
+pub fn arrondi_euro(x: Decimal) -> i64 {
     use rust_decimal::prelude::ToPrimitive;
     x.round_dp_with_strategy(0, RoundingStrategy::MidpointAwayFromZero).to_i64().unwrap_or(0)
 }
@@ -228,7 +228,7 @@ fn base_conge(brut: Decimal, salarie: &Value) -> R<Decimal> {
 
 /// Ce que `decouper` et `certificats` lisent d'un engagement.
 #[derive(Debug, Clone)]
-pub(crate) struct ContratCs {
+pub struct ContratCs {
     pub debut: Jour,
     pub fin: Jour,
     pub dates_travail: Vec<Jour>,
@@ -263,7 +263,7 @@ impl ContratCs {
 
 /// Ce que `certificats` lit d'une paie : son contrat, son brut, la fiche du salarie.
 #[derive(Debug, Clone)]
-pub(crate) struct PaieCs {
+pub struct PaieCs {
     pub engagement: ContratCs,
     pub brut: Decimal,
     pub salarie: Value,
@@ -278,10 +278,10 @@ fn bornes_31_mars(debut: Jour, fin: Jour) -> Vec<Jour> {
 }
 
 /// Une periode de certificat : (debut, fin, dates, nb, jours).
-pub(crate) type Periode = (Jour, Jour, Vec<Jour>, i64, i64);
+pub type Periode = (Jour, Jour, Vec<Jour>, i64, i64);
 
 /// `decouper` : un contrat -> une ou plusieurs periodes de certificat.
-pub(crate) fn decouper(eng: &ContratCs) -> R<Vec<Periode>> {
+pub fn decouper(eng: &ContratCs) -> R<Vec<Periode>> {
     let bornes = bornes_31_mars(eng.debut, eng.fin);
     if bornes.is_empty() {
         let nb = if eng.cachets != 0 { eng.cachets } else { eng.jours };
@@ -326,7 +326,7 @@ pub(crate) fn decouper(eng: &ContratCs) -> R<Vec<Periode>> {
 // -------------------------------------------------------------- le certificat
 
 #[derive(Debug, Clone)]
-pub(crate) struct Certificat {
+pub struct Certificat {
     pub numero: i64,
     pub debut: Jour,
     pub fin: Jour,
@@ -337,7 +337,7 @@ pub(crate) struct Certificat {
 }
 
 /// `certificats` : les certificats dus au titre d'une paie, dans l'ordre des periodes.
-pub(crate) fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
+pub fn certificats(paie: &PaieCs, premier_numero: i64) -> R<Vec<Certificat>> {
     let e = &paie.engagement;
     let parts = decouper(e)?;
     let mut out = Vec::new();
@@ -521,12 +521,12 @@ fn blocs_certificat(c: &Certificat, p: &PaieCs, ent: &Value) -> R<Vec<Value>> {
 }
 
 /// `str(Path(...))`.
-pub(crate) fn chemin_texte(p: &std::path::Path) -> String {
+pub fn chemin_texte(p: &std::path::Path) -> String {
     p.components().collect::<std::path::PathBuf>().to_string_lossy().into_owned()
 }
 
 /// `description` : un document par page, sans marge.
-pub(crate) fn description(certs: &[(Certificat, &PaieCs)], ent: &Value) -> R<Value> {
+pub fn description(certs: &[(Certificat, &PaieCs)], ent: &Value) -> R<Value> {
     let mut documents = Vec::new();
     for (c, p) in certs {
         documents.push(json!({"blocs": blocs_certificat(c, p, ent)?}));
@@ -540,7 +540,7 @@ pub(crate) fn description(certs: &[(Certificat, &PaieCs)], ent: &Value) -> R<Val
 }
 
 /// `ecrire_numerotes` : chaque paie vient avec le N CE qui EST le sien ; la description du PDF.
-pub(crate) fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &Value) -> R<Value> {
+pub fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &Value) -> R<Value> {
     if !ent.get("congesspectacles_adherent").map_or(false, vrai) {
         return Err(Refus {
             classe: Some("ValueError"),
@@ -558,7 +558,7 @@ pub(crate) fn description_numerotee(paires: &[(&PaieCs, i64)], ent: &Value) -> R
 
 /// `recapitulatif` : le meme contenu en texte, ce qui va etre imprime et sous quels numeros (la trace des N CE
 /// consommes).
-pub(crate) fn recapitulatif(paires: &[(&PaieCs, i64)], ent: &Value) -> R<String> {
+pub fn recapitulatif(paires: &[(&PaieCs, i64)], ent: &Value) -> R<String> {
     let adherent = match ent.get("congesspectacles_adherent") {
         Some(v) if vrai(v) => valeur_en_texte(v),
         _ => "?".to_string(),

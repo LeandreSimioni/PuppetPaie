@@ -13,7 +13,7 @@ use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
 
-use crate::bulletin::FORMAT;
+use documents::bulletin::FORMAT;
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
@@ -472,7 +472,7 @@ impl<'a> Recapitulatifs<'a> {
     /// `_lignes_du_mois` : les bulletins d'un mois saisi, recalcules.
     fn lignes_du_mois(&mut self, mois: &str) -> R<Vec<LigneLivre>> {
         let paies = self.paies(mois)?;
-        let pas = crate::prelevement::des_paies(self.ctx, &paies).map_err(Refus::from)?;
+        let pas = documents::prelevement::des_paies(self.ctx, &paies).map_err(Refus::from)?;
         let mut out = Vec::new();
         for (p, r) in paies.iter().zip(pas) {
             if p.engagement.sans_paie() {
@@ -851,7 +851,7 @@ impl<'a> Recapitulatifs<'a> {
             return Ok(None);
         }
         let chemin = tmp.join(format!("R_{}.pdf", cle));
-        let octets = crate::fabrique::fusion_octets(&morceaux, tmp)?;
+        let octets = documents::fabrique::fusion_octets(&morceaux, tmp)?;
         std::fs::write(&chemin, octets).map_err(|e| Refus::from(format!("ecriture impossible de {} : {}", chemin.display(), e)))?;
         Ok(Some(chemin))
     }

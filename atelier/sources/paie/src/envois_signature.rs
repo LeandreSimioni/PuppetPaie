@@ -83,7 +83,7 @@ fn et_fr(morceaux: &[String]) -> String {
 /// `code_signature` : `SIG-` puis six signes tires au hasard, sans 0/O ni 1/I/L, pour qu'il se relise sans
 /// hesiter s'il faut le recopier a la main.
 pub(crate) fn code_signature() -> String {
-    crate::fiche_questionnaire::code_au_hasard("SIG-")
+    documents::fiche_questionnaire::code_au_hasard("SIG-")
 }
 
 /// `signataire` et `raison` des courriels : le prenom d'affichage du signataire (sinon son prenom, capitalise), et
@@ -121,7 +121,7 @@ fn nom_complet_de(sal: &Value) -> R<String> {
 /// `_clauses_du_contrat` : ce que le contrat dit, clause par clause (l'avenant qui le modifiera doit citer l'ancien
 /// texte a cote du nouveau). `{}` si le contrat ne s'ecrit pas.
 fn clauses_du_contrat(ctx: &Contexte, p: &Paie, ent: &Value) -> Value {
-    match crate::contrat::valeurs_de_paie(ctx, ent, p) {
+    match documents::contrat::valeurs_de_paie(ctx, ent, p) {
         Ok(v) => {
             let mut m = Map::new();
             for k in CLAUSES_MODIFIABLES {
@@ -293,11 +293,11 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
     }
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
-    let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
+    let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;
     let (mut fichiers, mut contrats) = (Vec::new(), Vec::new());
     for (cle, ps, _) in &par_salarie {
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, ""));
-        crate::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &[])?;
+        documents::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &[])?;
         fichiers.push(json!(pdf.to_string_lossy()));
         for p in ps.iter() {
             contrats.push(Value::Object(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, &ent)));
@@ -342,7 +342,7 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
 
     let (an, nom_mois) = an_et_nom_du_mois(&s_mois)?;
-    let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
+    let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;
     let par_salarie = contrats_choisis(charge, &mois, &paies)?;
 
     // Le journal, lu une fois : chaque paie y retrouve SON contrat (salarie, debut, numero), pas celui de son jumeau du meme jour.
@@ -396,7 +396,7 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
         let code = code_signature();
         // Le contrat qui en remplace un autre porte son propre nom : le PDF parti avant lui reste sur le disque.
         let pdf = dossier.join(nom_du_pdf(cle, ps, &etiq, if remplace { "_remplace" } else { "" }));
-        crate::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &remplacements)?;
+        documents::contrat::ecrire_et_garder(ctx, ps, &ent, &pdf, &remplacements)?;
         let mut spectacles: Vec<String> = Vec::new();
         let mut titres: Vec<String> = Vec::new();
         for p in ps {
@@ -690,7 +690,7 @@ fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &crate::depot_acte
             };
             let p = &paies[rang_p];
             sal = Some(p.salarie.clone());
-            let ent = crate::avenant::ent_du_mois(ctx, &mois_a)?;
+            let ent = documents::avenant::ent_du_mois(ctx, &mois_a)?;
             let pdf = ctx.racine.join("sorties").join(&mois_a).join("envoi").join(format!(
                 "Avenant{}_{}_{}_{}.pdf",
                 a.numero(),
@@ -698,7 +698,7 @@ fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &crate::depot_acte
                 if vrai(&a.apercu["contrat"]) { valeur_en_texte(&a.apercu["contrat"]) } else { "sans-numero".to_string() },
                 socle::date::etiquette_du_mois(&mois_a).map_err(|m| erreur("ValueError", m))?
             ));
-            crate::contrat::ecrire_avenant(
+            documents::contrat::ecrire_avenant(
                 ctx,
                 p,
                 &ent,

@@ -899,6 +899,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "documents"
+version = "0.1.0"
+dependencies = [
+ "droit",
+ "engagement",
+ "fabrique-pdf",
+ "rust_decimal",
+ "serde_json",
+ "sha2",
+ "socle",
+]
+
+[[package]]
 name = "dom_query"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2740,6 +2753,7 @@ name = "paie"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "documents",
  "droit",
  "ed25519-dalek",
  "engagement",

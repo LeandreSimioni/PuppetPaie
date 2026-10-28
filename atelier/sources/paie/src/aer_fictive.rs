@@ -503,7 +503,7 @@ fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Peri
         "titre": format!("Attestation employeur annexes 8 et 10 (compagnie fictive) — {} {}", ind.nom, ind.prenoms),
         "documents": [{"blocs": p1}, {"blocs": p2}, {"blocs": p3}]
     });
-    let dessin = crate::fabrique::fabriquer_octets(&description)?;
+    let dessin = documents::fabrique::fabriquer_octets(&description)?;
     let champs = json!({"format": fabrique_pdf::FORMAT, "champs": f.0});
     fabrique_pdf::formulaire::ajouter_champs(&dessin, &champs.to_string()).map_err(|r| r.0.replace('\n', " "))
 }

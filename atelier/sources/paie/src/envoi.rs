@@ -50,7 +50,7 @@ use std::path::{Path, PathBuf};
 use rust_decimal::Decimal;
 use serde_json::Value;
 
-use crate::bulletin::{fmt_eur, fmt_heures};
+use documents::bulletin::{fmt_eur, fmt_heures};
 use engagement::calcul::Paie;
 use crate::courriel::Courriel;
 use socle::date::{en_texte, repr_flottant};
@@ -548,8 +548,8 @@ pub fn preparer_avec(
         };
         let (mut aer_due, mut fctu) = (false, false);
         for p in &siennes {
-            aer_due |= crate::aer::due(&p.engagement)?;
-            fctu |= crate::aer::attestation_fctu(&p.engagement)?;
+            aer_due |= documents::aer::due(&p.engagement)?;
+            fctu |= documents::aer::attestation_fctu(&p.engagement)?;
         }
         if aer_due && !presents.contains(&"aer") {
             notes.push(NOTE_SANS_AER);

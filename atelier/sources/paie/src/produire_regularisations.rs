@@ -398,7 +398,7 @@ pub(crate) fn ecrire_rectificatifs(
         let mut imprimee = r.apres.clone();
         imprimee.numero_bulletin = Some(numero_bulletin);
         let rectifs: HashMap<usize, Value> = HashMap::from([(0, rectif.clone())]);
-        let description = crate::bulletin::jeux_et_description(ctx, std::slice::from_ref(&imprimee), &ent, "", None, false, &rectifs).map_err(refus_valeur)?;
+        let description = documents::bulletin::jeux_et_description(ctx, std::slice::from_ref(&imprimee), &ent, "", None, false, &rectifs).map_err(refus_valeur)?;
         ecrire_le_pdf(&description, &archive)?;
         out.fichiers.push(archive);
         match par_salarie.iter_mut().find(|(c, _)| *c == cle) {
@@ -414,7 +414,7 @@ pub(crate) fn ecrire_rectificatifs(
         let chemin = dossier.join(format!("{}_{}_{}.pdf", PREFIXE_ENVOI, cle, etiq));
         let paies: Vec<Paie> = siens.iter().map(|(p, _, _)| p.clone()).collect();
         let rectifs: HashMap<usize, Value> = siens.iter().enumerate().map(|(i, (_, x, _))| (i, x.clone())).collect();
-        let description = crate::bulletin::jeux_et_description(ctx, &paies, &siens[0].2, "", None, false, &rectifs).map_err(refus_valeur)?;
+        let description = documents::bulletin::jeux_et_description(ctx, &paies, &siens[0].2, "", None, false, &rectifs).map_err(refus_valeur)?;
         ecrire_le_pdf(&description, &chemin)?;
     }
     reserves.enregistrer(an, "bulletin", n - 1);

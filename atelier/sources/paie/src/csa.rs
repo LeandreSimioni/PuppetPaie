@@ -259,7 +259,7 @@ assiette (L. 6242-1, III). Rien n'est ecrit.",
     // VI : 52 % des taux en Alsace-Moselle ; VII : le montant a l'euro (L. 133-10 CSS).
     let cinquante_deux = Decimal::new(52, 2);
     let brut = div(add(mul(assiette, t), mul(mul(alsace, t), cinquante_deux)), Decimal::ONE_HUNDRED);
-    let mut montant = crate::bordereau::euro(brut);
+    let mut montant = documents::bordereau::euro(brut);
     montant.rescale(2);
     Ok(Some(Csa {
         millesime: n,

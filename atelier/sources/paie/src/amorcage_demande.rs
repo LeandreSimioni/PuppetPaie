@@ -57,7 +57,7 @@ fn gauche(t: &str, n: usize) -> String {
 
 /// `jj_mm_aaaa` d'une cle de la demande (`quand`, `reponse_attendue_avant`).
 fn jj(demande: &Value, cle: &str) -> Result<String, String> {
-    crate::bulletin::jj_mm_aaaa(demande.get(cle).unwrap_or(&Value::Null))
+    documents::bulletin::jj_mm_aaaa(demande.get(cle).unwrap_or(&Value::Null))
 }
 
 /// `a_combler` : qui a besoin d'un taux, et par quel contrat on le demanderait. Rend la liste ENTIERE, ecartes compris : chacun dit

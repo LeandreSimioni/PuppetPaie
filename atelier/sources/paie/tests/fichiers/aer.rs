@@ -1,4 +1,4 @@
-//! L'AER remplie et signee par la fabrique : `paie::aer` et `engagement::cachet`, sur une attestation FICTIVE. On refuse de
+//! L'AER remplie et signee par la fabrique : `documents::aer` et `engagement::cachet`, sur une attestation FICTIVE. On refuse de
 //! signer une attestation qui ne concorde pas avec la paie, on ne retouche pas un chiffre de France Travail, la signature
 //! est deterministe. La lecture d'une date, d'un entier et le cadre de la signature : `src/aer.rs`.
 //!
@@ -9,7 +9,7 @@
 //! cachet) -- sans emprunter un octet a une vraie attestation. La compagnie est
 //! inventee de bout en bout.
 
-use paie::aer::{self, Authentification, Echec, PaieAer};
+use documents::aer::{self, Authentification, Echec, PaieAer};
 use engagement::cachet;
 use socle::date::Jour;
 use serde_json::{json, Value};

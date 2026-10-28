@@ -13,7 +13,7 @@ use rust_decimal::RoundingStrategy;
 use serde_json::{Map, Value};
 
 use droit::bareme::{self, bareme_applique_au_contrat};
-use crate::bordereau::{self, Destinataire, LigneBordereau};
+use documents::bordereau::{self, Destinataire, LigneBordereau};
 use engagement::calcul::{au_dela_du_seuil, Paie};
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::{contrat_court, Nature};
@@ -1703,7 +1703,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     } else {
         f.add_opt("S21.G00.40.016", nat.code("S21.G00.40.016"))?;
     }
-    f.add("S21.G00.40.017", crate::bulletin::convention_du_contrat(ent, &p.spectacle, s)?.0);
+    f.add("S21.G00.40.017", documents::bulletin::convention_du_contrat(ent, &p.spectacle, s)?.0);
     f.add_opt("S21.G00.40.018", nat.code("S21.G00.40.018"))?;
     f.add_v("S21.G00.40.019", req(ent, "siret")?)?;
     f.add_opt("S21.G00.40.020", nat.code("S21.G00.40.020"))?;
@@ -1718,7 +1718,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     // des Conges Spectacles (`caisse_conges::affilie`), et aucun autre -- ni un CDI, ni un contrat de douze mois ou plus.
     let caisse_conges = nat.ecrit("S21.G00.40.022") && engagement::calcul::declaree_a_la_caisse_des_conges(p)?;
     if caisse_conges {
-        f.add("S21.G00.40.022", crate::conges_spectacles::code_dsn(ent)?);
+        f.add("S21.G00.40.022", documents::conges_spectacles::code_dsn(ent)?);
     }
     // La deduction forfaitaire specifique que la fiche exerce (`calcul::deduction_forfaitaire`) : « Taux de deduction
     // forfaitaire specifique pour frais professionnels - S21.G00.40.023 », « Abattement pour frais professionnels applique

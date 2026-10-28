@@ -24,7 +24,7 @@ type R<T> = Result<T, Refus>;
 const MODELE: &str = "contrat-cddu.modele";
 
 /// `contrat.enveloppe` : le haut d'une description : le format, le style, le logo de la compagnie.
-pub(crate) fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
+pub fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
     let mut d = Map::new();
     d.insert("format".into(), json!(FORMAT));
     d.insert("style".into(), json!(style));
@@ -39,7 +39,7 @@ pub(crate) fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
 }
 
 /// `fabrique.figer` pour un modele : le fichier lu en texte. Les refus sont ceux de Python.
-pub(crate) fn lire_modele_texte(chemin: &Path) -> R<String> {
+pub fn lire_modele_texte(chemin: &Path) -> R<String> {
     let octets = std::fs::read(chemin).map_err(|e| {
         let classe = if e.kind() == std::io::ErrorKind::NotFound { "FileNotFoundError" } else { "OSError" };
         Refus { classe: Some(classe), message: socle::fichiers::panne_fichier(&e, chemin) }
@@ -94,7 +94,7 @@ const ORDRE_MARQUEURS: [&str; 37] = [
 
 /// Les valeurs d'un modele en JSON, dans l'ordre du Python : celles de `marqueurs` d'abord, puis les autres
 /// (l'avenant ajoute les siennes) dans l'ordre ou elles sont donnees.
-pub(crate) fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value {
+pub fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value {
     let mut m = Map::new();
     for k in ORDRE_MARQUEURS.iter() {
         if let Some(x) = v.get(*k) {
@@ -114,7 +114,7 @@ pub(crate) fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value 
 
 /// `contrat.marqueurs(p, ent)` : les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
 /// Python les ecrit (`ECHELLE_GARDEE`).
-pub(crate) fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeurs> {
+pub fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeurs> {
     socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
     let r = (|| -> R<Valeurs> {
         let canon = p.canon(ctx)?;
@@ -125,12 +125,12 @@ pub(crate) fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeur
 }
 
 /// Les contrats qui en annulent un autre : `{(salarie, premier jour, numero du contrat): (numero remplace, date)}`.
-pub(crate) type Remplacements = [((String, String, String), (String, String))];
+pub type Remplacements = [((String, String, String), (String, String))];
 
 /// `contrat.description` puis `fabrique.figer` : la description de ces contrats, un document par
 /// paie, le modele en texte. `remplacements` : ces contrats-la annulent et remplacent celui qui est parti avant
 /// eux, et le disent en tete.
-pub(crate) fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &Remplacements) -> R<Value> {
+pub fn description(ctx: &Contexte, paies: &[Paie], ent: &Value, remplacements: &Remplacements) -> R<Value> {
     let modele = socle::fichiers::modele_de(MODELE, ent, &ctx.gabarits());
     let mut d = enveloppe("contrat", ent);
     let signature = identite_de(ent, "signature");
@@ -218,7 +218,7 @@ fn refuser_ce_que_le_modele_tairait(modele: &Path, texte: &str, valeurs: &Value)
 }
 
 /// `contrat.mention_signature` : ce que le logiciel depose dans la case de l'artiste, quatre lignes.
-pub(crate) fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &str) -> String {
+pub fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &str) -> String {
     format!("Signé électroniquement le {}\npar {}\n{}\ncode de signature {}", quand, nom, adresse, code)
 }
 
@@ -227,7 +227,7 @@ pub(crate) fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &st
 /// de l'artiste dans sa case, puis verrouille (AES-256, impression et copie seules). Sans description valide (absente,
 /// illisible, ne decrivant plus ce PDF) on REFUSE au lieu de deviner : il faut renvoyer le contrat. Il refuse aussi si
 /// la fabrique refuse la mention. `Err` : la phrase du refus.
-pub(crate) fn contresigner(source: &Path, sortie: &Path, nom: &str, quand: &str, adresse: &str, code: &str) -> Result<(), String> {
+pub fn contresigner(source: &Path, sortie: &Path, nom: &str, quand: &str, adresse: &str, code: &str) -> Result<(), String> {
     let fichier = source.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let texte = mention_signature(nom, quand, adresse, code);
     let Some(gardee) = crate::fabrique::description_gardee(source) else {
@@ -247,7 +247,7 @@ pub(crate) fn contresigner(source: &Path, sortie: &Path, nom: &str, quand: &str,
 }
 
 /// `contrat.ecrire` sans la description gardee : un contrat par page, dans `chemin`.
-pub(crate) fn ecrire(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path) -> R<()> {
+pub fn ecrire(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path) -> R<()> {
     let d = description(ctx, paies, ent, &[])?;
     crate::fabrique::ecrire(&d, chemin)
         .map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
@@ -256,7 +256,7 @@ pub(crate) fn ecrire(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path)
 
 /// `contrat.ecrire` : le contrat, puis sa description gardee a cote (`fabrique.garder_description`) : la
 /// contresignature refait le contrat depuis elle, octet pour octet.
-pub(crate) fn ecrire_et_garder(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
+pub fn ecrire_et_garder(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
     let d = description(ctx, paies, ent, remplacements)?;
     crate::fabrique::ecrire(&d, chemin)
         .map_err(|m| Refus { classe: Some("FabriqueRefus"), message: m.replace('\n', " ").trim().to_string() })?;
@@ -298,7 +298,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
 /// `avenant.ecrire` : l'avenant en PDF, a l'identite de la compagnie, la signature de l'employeur posee comme sur
 /// le contrat, puis sa description gardee. Les dates en JJ/MM/AAAA. `modifs` : ce que `avenant-apercu` rend.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn ecrire_avenant(
+pub fn ecrire_avenant(
     ctx: &Contexte,
     p: &Paie,
     ent: &Value,

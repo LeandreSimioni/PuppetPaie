@@ -167,7 +167,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // Un champ a plusieurs cases (le declarant : civilite, nom, telephone, courriel) fait UNE ligne, qui nomme ce qui manque.
     let mut vus: Vec<String> = Vec::new();
     for (cle, bloque) in FICHE {
-        if cle == crate::conges_spectacles::CLE_ADHERENT && !intermittents {
+        if cle == documents::conges_spectacles::CLE_ADHERENT && !intermittents {
             continue;
         }
         if cle.starts_with("contact_sante_travail.") && !champ_exige(ent, "contact_sante_travail") {

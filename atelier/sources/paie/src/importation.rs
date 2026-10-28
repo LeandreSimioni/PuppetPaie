@@ -178,8 +178,8 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
         } else if k == "S21.G00.40.022" {
             // La DSN declare « 97 puis le numero d'adherent » (`conges_spectacles::code_dsn`) : la fiche ne garde que le
             // numero d'adherent, et seulement s'il a la forme que dit la fiche d'Audiens. Autre chose ne se reprend pas.
-            if let Some(n) = v.strip_prefix("97").filter(|n| crate::conges_spectacles::faute_adherent(n).is_none()) {
-                entreprise.entry(crate::conges_spectacles::CLE_ADHERENT.to_string()).or_insert_with(|| texte(n));
+            if let Some(n) = v.strip_prefix("97").filter(|n| documents::conges_spectacles::faute_adherent(n).is_none()) {
+                entreprise.entry(documents::conges_spectacles::CLE_ADHERENT.to_string()).or_insert_with(|| texte(n));
             }
         } else if k == "S21.G00.40.049" {
             entreprise.entry("licence".to_string()).or_insert_with(|| texte(v));

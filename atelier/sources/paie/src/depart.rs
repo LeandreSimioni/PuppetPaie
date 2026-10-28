@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::conges_spectacles::{self, PaieCs};
+use documents::conges_spectacles::{self, PaieCs};
 use crate::produire_regularisations::{self as regularisations, Reg};
 use crate::routes_mois::Moteur;
 use droit::contexte::Contexte;
@@ -530,7 +530,7 @@ pub fn dsn_a_deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Refus : un mois dont aucun engagement n'est valide alors qu'il en a (rien ne part d'un engagement en saisie) ; un mois
 /// deja declare dont l'annule-et-remplace n'est plus admis.
 pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabriquee> {
-    let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
+    let _verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
     crate::routes_ecritures::refuser_si_clos(ctx, mois)?;
@@ -612,7 +612,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     // LES ARRETS DE TRAVAIL : la DSN mensuelle doit REPORTER ceux dont la periode croise le mois, signales ou non.
     let arrets = crate::marques_depot::arrets_pour(ctx, mois)?;
     let nomenclature = crate::routes_listes::nomenclatures(ctx)?;
-    let jour = |v: &Value| -> R<String> { crate::bulletin::jj_mm_aaaa(v).map_err(valeur) };
+    let jour = |v: &Value| -> R<String> { documents::bulletin::jj_mm_aaaa(v).map_err(valeur) };
     let mut non_signales = 0;
     for a in &arrets {
         let resume = crate::routes_listes::resume_arret(&nomenclature, a)?;
@@ -786,7 +786,7 @@ fn numero_en_nom(n: &str) -> String {
 /// suivent la sequence continue des certificats. L'archive du mois (`Bulletins_<Mois>.pdf`, `CertificatsCS_<Mois>.pdf` et
 /// son recapitulatif) porte tous les documents numerotes du mois.
 pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], qui: &str) -> R<DocumentsFabriques> {
-    let verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
+    let verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let mut faits = DocumentsFabriques { _verrou: verrou, reserves: Reserves::default(), a_poser: Vec::new(), avertissements: Vec::new() };
     let Some((_data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois).map_err(Echec::from)? else { return Ok(faits) };
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois).map_err(Echec::from)?;
@@ -841,7 +841,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             None if part(&paies[i]) => {
                 let n = match prochain_ce {
                     Some(n) => n,
-                    None => crate::ecrire_documents::prochain_continu(ctx, "certificat_cs", 1)?,
+                    None => documents::ecrire_documents::prochain_continu(ctx, "certificat_cs", 1)?,
                 };
                 let combien = conges_spectacles::decouper(&pc.engagement)?.len() as i64;
                 prochain_ce = Some(n + combien);
@@ -883,7 +883,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             }
             let imprimees: Vec<Paie> = siennes.iter().map(|i| paies[*i].clone()).collect();
             let rectifs: HashMap<usize, Value> = siennes.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
-            let description = crate::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, Some(&paies), false, &rectifs).map_err(valeur)?;
+            let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, Some(&paies), false, &rectifs).map_err(valeur)?;
             crate::routes_dossier_salarie::ecrire_pdf(&description, &piece)?;
         }
         let ses_certificats: Vec<(&PaieCs, i64)> = certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
@@ -898,7 +898,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     if !archivees.is_empty() {
         let imprimees: Vec<Paie> = archivees.iter().map(|i| paies[*i].clone()).collect();
         let rectifs: HashMap<usize, Value> = archivees.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
-        let description = crate::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, None, false, &rectifs).map_err(valeur)?;
+        let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, None, false, &rectifs).map_err(valeur)?;
         crate::routes_dossier_salarie::ecrire_pdf(&description, &sortie.join(format!("Bulletins_{}.pdf", etiq)))?;
     }
     if !certificats.is_empty() {

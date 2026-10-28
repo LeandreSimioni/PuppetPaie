@@ -12,7 +12,7 @@ use socle::verrou::Verrou;
 
 /// `Contexte.prochain_continu` : une sequence qui ne repart pas a 1 chaque an. La LECTURE balaie toutes les
 /// annees de `compteurs.json` et retient le maximum.
-pub(crate) fn prochain_continu(ctx: &Contexte, cle: &str, defaut: i64) -> R<i64> {
+pub fn prochain_continu(ctx: &Contexte, cle: &str, defaut: i64) -> R<i64> {
     let p = ctx.racine.join("config").join("compteurs.json");
     let mut vu = defaut - 1;
     if p.exists() {
@@ -36,7 +36,7 @@ pub(crate) fn prochain_continu(ctx: &Contexte, cle: &str, defaut: i64) -> R<i64>
 }
 
 /// `verrou_compteurs(ctx, qui=...)` : refuse si un autre tient les compteurs.
-pub(crate) fn prendre_le_verrou(ctx: &Contexte, qui: &str) -> R<Verrou> {
+pub fn prendre_le_verrou(ctx: &Contexte, qui: &str) -> R<Verrou> {
     let chemin = socle::verrou::chemin_compteurs(&ctx.racine);
     let maintenant = socle::paris::iso_secondes(socle::temps::secondes()).replace('T', " ");
     let marque = socle::verrou::marque(qui, std::process::id(), &maintenant);

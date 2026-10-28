@@ -315,7 +315,7 @@ pub struct QuestionFranchise {
 /// Un montant entier, ecrit comme sur l'ecran : « 37 500 € », en espaces insecables (ticket #245 : un montant ne se coupe
 /// pas en fin de ligne, « 85 / 000 € »).
 fn euros(x: Decimal) -> String {
-    let s = crate::bulletin::fmt_eur(x);
+    let s = documents::bulletin::fmt_eur(x);
     format!("{} €", s.strip_suffix(",00").unwrap_or(&s)).replace(' ', "\u{a0}")
 }
 

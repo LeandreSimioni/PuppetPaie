@@ -1,7 +1,7 @@
 //! Les formats du bulletin contre `bulletin.json`. `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{lire_oracle, oracle};
-use paie::bulletin::{fmt_eur, fmt_heures, fmt_taux, jj_mm_aaaa, jours};
+use documents::bulletin::{fmt_eur, fmt_heures, fmt_taux, jj_mm_aaaa, jours};
 use serde_json::json;
 use socle::num::{dec, Decimal};
 

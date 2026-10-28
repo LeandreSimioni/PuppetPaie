@@ -19,7 +19,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Map, Value};
 
-use crate::bulletin::{jeux_et_description, Modele, CASE_MODELE};
+use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::R;
@@ -125,7 +125,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
 
 /// Le PDF de la paie fictive sous `modele`.
 pub fn apercu_pdf(modele: Modele) -> Result<Vec<u8>, String> {
-    crate::fabrique::fabriquer_octets(&apercu_description(modele)?)
+    documents::fabrique::fabriquer_octets(&apercu_description(modele)?)
 }
 
 // ------------------------------------------------------------------ bulletin-modele-choisir

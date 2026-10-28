@@ -741,7 +741,7 @@ pub(crate) fn description_pdf(
         blocs.push(json!({"type": "paragraphe", "taille": 6, "couleur": "#999999", "espace_avant": 2, "morceaux": [{"texte": format!("Source : {}", src)}]}));
     }
     json!({
-        "format": crate::bulletin::FORMAT,
+        "format": documents::bulletin::FORMAT,
         "page": {"largeur": PAGE_LARGEUR, "hauteur": PAGE_HAUTEUR, "marges": {"haut": 40, "droite": 34, "bas": 40, "gauche": 34}},
         "police": {"taille": 7, "interligne": 1.25, "couleur": ENCRE},
         "titre": format!("{} — {}", titre, periode),

@@ -49,7 +49,7 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::bordereau::{self, Destinataire};
+use documents::bordereau::{self, Destinataire};
 use socle::date::Jour;
 use socle::num::Resultat;
 

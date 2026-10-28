@@ -1,7 +1,7 @@
 //! `avenant` : le texte qu'on compare (`nfkc` contre 174 paires de `unicodedata.normalize`, `donnees/nfkc.json` ;
 //! `normaliser`).
 
-use paie::avenant::normaliser;
+use documents::avenant::normaliser;
 use socle::nfkc::nfkc;
 use serde_json::Value;
 use std::path::Path;

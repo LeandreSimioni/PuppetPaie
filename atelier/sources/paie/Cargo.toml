@@ -45,6 +45,8 @@ md-5 = { version = "0.10", default-features = false }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 # Le bulletin : la description part a la fabrique dans le meme processus.
 fabrique-pdf = { path = "../fabrique-pdf" }
+# Les documents que fabrique un engagement valide.
+documents = { path = "../documents" }
 # Le transport vers net-entreprises et l'Urssaf (`transport.rs`) : HTTP/1.1
 # synchrone, TLS par rustls, racines du systeme (`SSL_CERT_FILE` honore),
 # proxy lu dans l'environnement. Ni gzip (flate2 s'en charge), ni cookies, ni json.

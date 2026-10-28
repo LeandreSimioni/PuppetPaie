@@ -452,7 +452,7 @@ pub fn modifications(m: &Modele, avant: &Valeurs, apres: &Valeurs) -> Resultat<V
 }
 
 /// `operations_documents._ent_du_mois` : la fiche entreprise, avec la licence du mois et les gabarits de la compagnie.
-pub(crate) fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
+pub fn ent_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Value> {
     let licence = ctx.licence(&Jour::lire(&format!("{}-01", mois.get(..7).ok_or("mois illisible")?))?)?;
     let mut ent = ctx.entreprise.clone();
     let o = ent.as_object_mut().ok_or("fiche entreprise : un objet est attendu")?;
@@ -499,7 +499,7 @@ pub fn valeurs_du_rang(ctx: &Contexte, mois: &str, salarie: &str, debut: &str, r
 /// `contrat.marqueurs(p, ent)` pour une paie calculee (`paie`, sa forme JSON). `numero` : le numero
 /// de contrat que la paie porte VRAIMENT (lu dans l'archive, ou celui de l'engagement), quand il
 /// differe de celui de la reponse du calcul.
-pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Option<&Option<String>>) -> Resultat<Valeurs> {
+pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Option<&Option<String>>) -> Resultat<Valeurs> {
     let nul = Value::Null;
     let nom_spectacle = paie.pointer("/engagement/spectacle").and_then(Value::as_str).ok_or("la paie n'est pas celle d'un spectacle")?;
     let mut e = Eng::lire(requis(paie, "engagement")?)?;
@@ -525,7 +525,7 @@ pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, nume
 }
 
 /// `contrat.lire_modele(modele_de(contrat.MODELE.name, ent))` pour le contrat d'engagement.
-pub(crate) fn modele_du_contrat(ent: &Value, gabarits: &Path) -> Resultat<Modele> {
+pub fn modele_du_contrat(ent: &Value, gabarits: &Path) -> Resultat<Modele> {
     modele::lire_fichier(&socle::fichiers::modele_de(MODELE, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
 }
 

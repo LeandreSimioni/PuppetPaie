@@ -5,7 +5,7 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit.
 
 use crate::outils::{dec, egal, lire_oracle, oracle_selon, reecrire_oracles};
-use paie::bordereau::{montant, montant_ligne, LigneBordereau};
+use documents::bordereau::{montant, montant_ligne, LigneBordereau};
 use socle::date::Jour;
 use serde_json::Value;
 
@@ -29,7 +29,7 @@ fn l(code: &str, qualifiant: &str, assiette: &str, taux_at: &str) -> LigneBorder
 #[test]
 fn la_fraction_d_euro_egale_a_cinquante_centimes_est_comptee_pour_un() {
     for (avant, apres) in [("0.50", "1"), ("1.50", "2"), ("2.50", "3"), ("2.49", "2"), ("2.51", "3"), ("1000.50", "1001"), ("0.49", "0")] {
-        assert_eq!(paie::bordereau::euro(dec(avant)), dec(apres), "{} EUR", avant);
+        assert_eq!(documents::bordereau::euro(dec(avant)), dec(apres), "{} EUR", avant);
     }
 }
 
@@ -39,8 +39,8 @@ fn un_montant_negatif_s_arrondit_comme_son_oppose_par_inference() {
     // est comptee pour 1 » sans dire le signe, et aucun texte depose ne le dit. Le moteur arrondit -2,50 comme 2,50, au
     // signe pres : une regularisation qui retire ce qu'un mois a declare retire le meme euro.
     for (avant, apres) in [("-0.50", "-1"), ("-2.50", "-3"), ("-2.49", "-2"), ("-2.51", "-3")] {
-        assert_eq!(paie::bordereau::euro(dec(avant)), dec(apres), "{} EUR", avant);
-        assert_eq!(paie::bordereau::euro(dec(avant)), -paie::bordereau::euro(-dec(avant)), "{} EUR", avant);
+        assert_eq!(documents::bordereau::euro(dec(avant)), dec(apres), "{} EUR", avant);
+        assert_eq!(documents::bordereau::euro(dec(avant)), -documents::bordereau::euro(-dec(avant)), "{} EUR", avant);
     }
 }
 

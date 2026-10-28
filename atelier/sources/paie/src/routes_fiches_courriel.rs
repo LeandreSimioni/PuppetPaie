@@ -32,7 +32,7 @@ use crate::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::fiche_questionnaire as fq;
+use documents::fiche_questionnaire as fq;
 use crate::journal::{self, Note};
 use socle::echec::Echec;
 use crate::routes_envois::{capitaliser, client_courriel, echec_d_envoi, html_echapper, mailto, maintenant, noter, preuve_de, refus, vrai_ou, R};

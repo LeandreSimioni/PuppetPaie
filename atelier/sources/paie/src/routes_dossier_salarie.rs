@@ -29,7 +29,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
-use crate::conges_spectacles::{self, ContratCs, PaieCs};
+use documents::conges_spectacles::{self, ContratCs, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use engagement::{self, Engagement};
@@ -38,7 +38,7 @@ use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use crate::fiche_recapitulative::Recapitulatifs;
 use socle::fichiers::vrai;
-use crate::fabrique::{fusion_octets, fusion_pieces, Temporaire};
+use documents::fabrique::{fusion_octets, fusion_pieces, Temporaire};
 use socle::num::{eur2, Decimal};
 use socle::echec::Echec;
 use socle::echec::Refus;
@@ -131,7 +131,7 @@ fn compter(octets: &[u8]) -> R<usize> {
 
 /// `fabrique.ecrire`.
 pub(crate) fn ecrire_pdf(description: &Value, chemin: &Path) -> R<()> {
-    crate::fabrique::ecrire(description, chemin).map(|_| ()).map_err(refus_fabrique)
+    documents::fabrique::ecrire(description, chemin).map(|_| ()).map_err(refus_fabrique)
 }
 
 /// `_marquer` : le pied « reedite » sur chaque page d'un PDF du dossier de travail, en place.
@@ -604,7 +604,7 @@ fn mois_puppetpaie(
                 continue;
             }
             let chemin = tmp.join(format!("C_{}_{}.pdf", cle, mois));
-            crate::contrat::ecrire(ctx, &a_lui, &ent, &chemin)?;
+            documents::contrat::ecrire(ctx, &a_lui, &ent, &chemin)?;
             marquer(&chemin, aujourdhui)?;
             for i in 0..pages_pdf(&chemin)? {
                 pages.push(Page { categorie: CONTRATS, cle: cle.clone(), tri: format!("{}-01", mois), source: chemin.clone(), numero: i });

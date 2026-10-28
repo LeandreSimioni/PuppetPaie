@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 
 use crate::outils::oracle;
 use paie::courriel_lecture::{adresse_de, date_de, identifiant_de, texte_propre};
-use paie::fiche_questionnaire as fq;
+use documents::fiche_questionnaire as fq;
 use paie::retours::base64_lire;
 use serde_json::{json, Map, Value};
 

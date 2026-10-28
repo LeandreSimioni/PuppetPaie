@@ -182,7 +182,7 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>
     poser("salarie.nom_complet", format!("{} {}", req(s, "prenom")?, req(s, "nom")?));
     poser(
         "salarie.date_naissance",
-        crate::bulletin::jj_mm_aaaa(s.get("date_naissance").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("date_naissance")))?).map_err(|m| erreur("ValueError", m))?,
+        documents::bulletin::jj_mm_aaaa(s.get("date_naissance").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("date_naissance")))?).map_err(|m| erreur("ValueError", m))?,
     );
     poser("salarie.lieu_naissance", ou_vide(s, "lieu_naissance"));
     poser("salarie.adresse", req(s, "adresse")?);
@@ -202,12 +202,12 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>
 fn inventaire(p: &Paie) -> String {
     let mut lignes = Vec::new();
     for l in &p.remuneration {
-        lignes.push(format!("{} : {}", l.libelle, crate::bulletin::fmt_eur(eur2(l.montant))));
+        lignes.push(format!("{} : {}", l.libelle, documents::bulletin::fmt_eur(eur2(l.montant))));
     }
     for l in &p.lignes {
         let m = eur2(l.montant_sal);
         if m != socle::num::Decimal::ZERO {
-            lignes.push(format!("{} : -{}", l.libelle, crate::bulletin::fmt_eur(m)));
+            lignes.push(format!("{} : -{}", l.libelle, documents::bulletin::fmt_eur(m)));
         }
     }
     lignes.join("\n")
@@ -216,18 +216,18 @@ fn inventaire(p: &Paie) -> String {
 /// `documents_fin._ecrire` : le papier de fin de contrat de `modele`, par la fabrique (style
 /// « attestation »). `signe` : le certificat s'etablit SIGNE de l'employeur.
 fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent: &Value, signe: bool) -> R<()> {
-    let texte = crate::contrat::lire_modele_texte(modele).map_err(en_echec)?;
-    let mut d = crate::contrat::enveloppe("attestation", ent);
+    let texte = documents::contrat::lire_modele_texte(modele).map_err(en_echec)?;
+    let mut d = documents::contrat::enveloppe("attestation", ent);
     let mut un = Map::new();
     un.insert("texte".into(), json!(texte));
     un.insert("valeurs".into(), Value::Object(valeurs));
     if signe {
-        if let Some(s) = crate::bulletin::identite_de(ent, "signature") {
-            un.insert("signature_employeur".into(), json!(crate::conges_spectacles::chemin_texte(&s)));
+        if let Some(s) = documents::bulletin::identite_de(ent, "signature") {
+            un.insert("signature_employeur".into(), json!(documents::conges_spectacles::chemin_texte(&s)));
         }
     }
     d.insert("documents".into(), json!([{ "modele": Value::Object(un) }]));
-    crate::fabrique::ecrire(&Value::Object(d), chemin).map_err(|m| erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))?;
+    documents::fabrique::ecrire(&Value::Object(d), chemin).map_err(|m| erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))?;
     Ok(())
 }
 
@@ -262,7 +262,7 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom_recu = format!("RecuSoldeToutCompte_{}_{}.pdf", cle, fin_jj);
     let mut valeurs = marqueurs_communs(&date, &p, &ent)?;
     valeurs.insert("solde.inventaire".into(), json!(inventaire(&p)));
-    valeurs.insert("solde.net".into(), json!(crate::bulletin::fmt_eur(eur2(p.net_a_payer))));
+    valeurs.insert("solde.net".into(), json!(documents::bulletin::fmt_eur(eur2(p.net_a_payer))));
     let modele = socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", &ent, &poste);
     ecrire_papier(&modele, valeurs, &sortie.join(&nom_recu), &ent, false)?;
 
@@ -388,7 +388,7 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
         }
     }
     let lisible = if vrai(dernier_jour) {
-        crate::bulletin::jj_mm_aaaa(dernier_jour).map_err(|m| erreur("ValueError", m))?
+        documents::bulletin::jj_mm_aaaa(dernier_jour).map_err(|m| erreur("ValueError", m))?
     } else {
         "?".to_string()
     };
@@ -490,7 +490,7 @@ fn libelle_embauche_declaree(cle: &str, debut: &str, e: &Value) -> R<String> {
             }
         }
     };
-    let debut_lisible = crate::bulletin::jj_mm_aaaa(&json!(debut)).map_err(|m| erreur("ValueError", m))?;
+    let debut_lisible = documents::bulletin::jj_mm_aaaa(&json!(debut)).map_err(|m| erreur("ValueError", m))?;
     if e.get("refusee").map_or(false, vrai) {
         let mut vus: Vec<String> = Vec::new();
         for a in e.get("anomalies").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {

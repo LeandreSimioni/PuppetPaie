@@ -1,7 +1,9 @@
 # L'espace Cargo du moteur : une crate par partie, chaque flèche descend.
 #
-#     paie        la ligne de commande `paie` et les parties du dessus (documents, déclarations, envois, interface,
-#                 compagnie, import, atelier)
+#     paie        la ligne de commande `paie` et les parties du dessus (déclarations, envois, interface, compagnie,
+#                 import, atelier)
+#     documents   ce qu'un engagement validé fait imprimer, signer ou envoyer (contrat, avenant, bulletin, certificat
+#                 Congés Spectacles, AER, questionnaire, bordereau, prélèvement, fabrique de PDF) ; ne recalcule rien
 #     engagement  la saisie, le calcul de ses paies, la validation, le recalcul ; lit ce qui est parti ; ne fabrique
 #                 aucun document
 #     droit       barèmes datés, conventions, natures de contrat, règles ; lit tout à une date ; ne connaît pas l'engagement
@@ -11,7 +13,7 @@
 # sont pas de l'espace (la fenêtre prend `paie` par son chemin).
 
 [workspace]
-members = ["socle", "droit", "engagement", "paie"]
+members = ["socle", "droit", "engagement", "documents", "paie"]
 exclude = ["fenetre", "fabrique-pdf"]
 resolver = "2"
 

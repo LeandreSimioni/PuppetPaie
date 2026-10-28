@@ -42,7 +42,7 @@ fn la_fiche_dit_l_ancien_03_avant_la_dsn() {
 
 #[test]
 fn le_questionnaire_lit_le_pays_dans_la_liste_et_en_deduit_la_codification() {
-    use paie::fiche_questionnaire::{fiche_depuis_reponses, pays_lu};
+    use documents::fiche_questionnaire::{fiche_depuis_reponses, pays_lu};
     let lire = |cle: &'static str, reponse: &str| fiche_depuis_reponses(&[(cle, reponse.to_string())].into_iter().collect());
     for (reponse, pays, code) in [("norvégienne", "NO", "03"), ("Marocain", "MA", "04"), ("italienne", "IT", "02"), ("liechtensteinoise", "LI", "03"), ("britannique", "GB", "04"), ("Suisse", "CH", "04"), ("Islande", "IS", "03"), ("française", "FR", "01")] {
         let (d, illisible) = lire("nationalite", reponse);
