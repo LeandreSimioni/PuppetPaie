@@ -687,11 +687,34 @@ pub fn declarant(ent: &Value) -> Result<Value, Value> {
     Ok(Value::Object(m))
 }
 
-/// `Client.authentifier`. Le mot de passe, deja prepare par l'appelant, ne
-/// survit pas a cet appel.
-fn authentifier(d: &Value) -> Resultat {
-    let variable = d.get("variable").and_then(Value::as_str).unwrap_or("NET_ENTREPRISES_MOTDEPASSE");
-    let mdp = match d.get("motdepasse").and_then(Value::as_str) {
+/// Ce qu'une authentification envoie : le declarant inscrit au service, le mot de passe deja prepare par l'appelant, le
+/// service, et le jeton d'une session deja ouverte.
+pub struct Authentification<'a> {
+    pub url: &'a str,
+    pub declarant: &'a Value,
+    pub motdepasse: Option<&'a str>,
+    /// La variable d'environnement que le refus nomme quand le mot de passe manque.
+    pub variable: &'a str,
+    pub service: Option<&'a str>,
+    pub jeton: Option<&'a str>,
+}
+
+fn authentifier_op(d: &Value) -> Resultat {
+    authentifier(&Authentification {
+        url: texte(d, "url")?,
+        declarant: d.get("declarant").unwrap_or(&Value::Null),
+        motdepasse: d.get("motdepasse").and_then(Value::as_str),
+        variable: d.get("variable").and_then(Value::as_str).unwrap_or("NET_ENTREPRISES_MOTDEPASSE"),
+        service: d.get("service").and_then(Value::as_str),
+        jeton: d.get("jeton").and_then(Value::as_str),
+    })
+}
+
+/// L'authentification du guide de l'API DSN : `{"ok", "jeton", "expire_le"}`. Sans mot de passe ou sans declarant
+/// complet, rien ne part. Le mot de passe ne survit pas a cet appel et n'entre dans aucun message.
+pub fn authentifier(a: &Authentification) -> Resultat {
+    let variable = a.variable;
+    let mdp = match a.motdepasse {
         Some(m) if !m.is_empty() => m,
         _ => {
             return Err(echec(
@@ -711,7 +734,7 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
             ))
         }
     };
-    let decl = d.get("declarant").cloned().unwrap_or(Value::Null);
+    let decl = a.declarant;
     let manquants: Vec<&str> = ["siret", "nom", "prenom"].into_iter().filter(|c| !vrai(decl.get(*c))).collect();
     if !manquants.is_empty() {
         return Err(echec(
@@ -727,7 +750,7 @@ sur net-entreprises.fr (sans accent).",
             Some(0),
         ));
     }
-    let service = d.get("service").and_then(Value::as_str).filter(|s| !s.is_empty());
+    let service = a.service.filter(|s| !s.is_empty());
     let corps = format!(
         "<identifiants><siret>{}</siret><nom>{}</nom><prenom>{}</prenom><motdepasse>{}</motdepasse>{}</identifiants>",
         en_texte(&decl["siret"]),
@@ -736,10 +759,10 @@ sur net-entreprises.fr (sans accent).",
         echapper(mdp),
         service.map(|s| format!("<service>{}</service>", s)).unwrap_or_default()
     );
-    let url = texte(d, "url")?;
+    let url = a.url;
     let r = Requete {
         url,
-        jeton: d.get("jeton").and_then(Value::as_str),
+        jeton: a.jeton,
         donnees: Some(corps.as_bytes()),
         content_type: Some("application/xml"),
         corps_gzip: false,
@@ -966,7 +989,7 @@ pub fn operation(d: &Value) -> Resultat {
         "constantes" => Ok(constantes()),
         "appel" => appel(d),
         "consulter" => consulter(d),
-        "authentifier" => authentifier(d),
+        "authentifier" => authentifier_op(d),
         "depot" => depot_op(d),
         "declarant" => Ok(json!({"ok": true, "declarant": declarant(d.get("entreprise").unwrap_or(&Value::Null))?})),
         "dossier_archive" => Ok(json!({"ok": true, "chemin": chemin_texte(&dossier_archive(&racine(d)?, canal(d))?)})),

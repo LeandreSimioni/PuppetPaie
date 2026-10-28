@@ -1,21 +1,11 @@
-//! LA FICTIVE AJOUTEE (ticket #236, Leandre 22/10/2026) : le « + » d'un logiciel bride ajoute une compagnie fictive
-//! (`compagnies::ajouter_dans`) qui porte sa marque (`compagnies::est_ajoutee`). Tout s'y fait ; ce qui partirait vers un
-//! organisme ou une personne est refuse par le moteur (`bridage::branchement` : le message), toujours avec la meme phrase, et rien
-//! n'est ecrit au journal des depots. Les memes gestes depuis une fictive livree restent joues.
+//! LA FICTIVE AJOUTEE : le « + » d'un logiciel bride ajoute une compagnie fictive (`compagnies::ajouter_dans`) qui porte
+//! sa marque (`compagnies::est_ajoutee`) ; ce qui partirait d'elle recoit le message du branchement
+//! (`tests/fichiers/bridage.rs`). Debloque, le meme geste ajoute une compagnie reelle.
 
-use envois::branchement::Branchement;
-use paie::bridage::{branchement, REFUS_D_ENVOI};
 use paie::interface::compagnies::{ajouter_dans, est_ajoutee, est_fictive, est_fictive_livree, liste_de};
 use serde_json::{json, Value};
 
 use crate::outils::{dossier_de_test, lire};
-
-
-
-
-
-
-
 
 #[test]
 fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
@@ -25,7 +15,6 @@ fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
     assert_eq!(c.racine, inst.join("fictives/ajoutee-les-pupazzi"));
     assert_eq!((c.id.as_str(), c.reelle, c.nom.as_str()), ("fictive:ajoutee-les-pupazzi", false, "Les Pupazzi"));
     assert!(est_fictive(&c.racine) && est_ajoutee(&c.racine) && !est_fictive_livree(&c.racine));
-    assert_eq!(branchement(&c.racine).refus().map(|r| r.phrase), Some(REFUS_D_ENVOI), "ses envois ne sont pas joues, ils sont refuses");
     // L'accueil bride la propose, parmi les fictives ; rien n'est ecrit sous `compagnies/`.
     assert!(liste_de(&inst).iter().any(|x| x.id == c.id && !x.reelle));
     assert!(!inst.join("compagnies").exists());
@@ -34,7 +23,7 @@ fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
     assert_eq!(homonyme.racine, inst.join("fictives/ajoutee-fictive-3090-petite"));
     // Son marqueur retire, un dossier de `fictives/` reste refuse : rien n'en part, rien n'en est joue.
     std::fs::remove_file(homonyme.racine.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
-    assert!(!est_fictive(&homonyme.racine) && branchement(&homonyme.racine).refus().is_some());
+    assert!(!est_fictive(&homonyme.racine) && est_ajoutee(&homonyme.racine));
     assert_eq!(ajouter_dans(&inst, "Les Pupazzi").unwrap().racine, inst.join("fictives/ajoutee-les-pupazzi-2"));
     // Pas de photo d'origine (donc pas de remise a zero).
     paie::interface::compagnies::figer_origine(&c.racine).unwrap();
@@ -43,7 +32,7 @@ fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
     crate::outils::debloquer(&inst);
     let reelle = ajouter_dans(&inst, "Les Pupazzi").unwrap();
     assert_eq!((reelle.racine.clone(), reelle.reelle), (inst.join("compagnies/les-pupazzi"), true));
-    assert!(!est_fictive(&reelle.racine) && branchement(&reelle.racine) == Branchement::Monde);
+    assert!(!est_fictive(&reelle.racine) && !est_ajoutee(&reelle.racine));
 }
 
 /// LA FICHE NEE DU « + » EST DANS LA FORME QUE LE MOTEUR RELIT (#236) : la raison sociale (S10.G00.01.003) en
@@ -64,8 +53,4 @@ fn le_plus_ecrit_la_raison_sociale_dans_sa_forme_declaree() {
         .collect();
     assert!(fautes.is_empty(), "{:?}", fautes);
 }
-
-
-
-
 

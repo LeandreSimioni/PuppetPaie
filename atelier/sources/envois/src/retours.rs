@@ -1387,7 +1387,7 @@ fn extraire_taux_pas(e: &Entree) -> Resultat<Value> {
 
 /// `releves_vers_salaries` : chaque releve a une fiche par le NIR ; `nirs` est la
 /// liste `[cle, nir]` des fiches qui en ont un, dans l'ordre du fichier.
-fn releves_vers_salaries(releves: &[Value], nirs: &[Value]) -> Value {
+pub fn releves_vers_salaries(releves: &[Value], nirs: &[Value]) -> Value {
     let mut par_nir: std::collections::HashMap<&str, &str> = std::collections::HashMap::new();
     for p in nirs {
         if let (Some(c), Some(n)) = (p.get(0).and_then(Value::as_str), p.get(1).and_then(Value::as_str)) {
@@ -2119,6 +2119,16 @@ pub fn anomalies_codees_d_octets(o: &[u8]) -> Result<Vec<Value>, Echec> {
     anomalies_codees(&Entree::Octets(o.to_vec()))
 }
 
+/// Les taux de PAS d'un compte rendu de nature 94 : `{"strategie", "releves"}`.
+pub fn taux_pas_d_octets(o: &[u8]) -> Result<Value, Echec> {
+    extraire_taux_pas(&Entree::Octets(o.to_vec()))
+}
+
+/// Une fiche de parametrage d'un organisme complementaire.
+pub fn fiche_d_octets(o: &[u8]) -> Result<Value, Echec> {
+    fiche_parametrage(&Entree::Octets(o.to_vec()))
+}
+
 // --------------------------------------------- un rapport au format harmonise, lu pour l'Historique
 
 /// Les types de rapport que la specification du schema des bilans nomme (« Modele conceptuel » : AEE, certificat de
@@ -2492,18 +2502,4 @@ fn mois_de_jjmmaaaa(brut: &str) -> String {
         return format!("{}-{}", c[4..8].iter().collect::<String>(), c[2..4].iter().collect::<String>());
     }
     brut.to_string()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn le_blanc_de_python_est_celui_d_unicode_plus_les_separateurs_1c_a_1f() {
-        // La table de `blanc` et la forme que reprenaient ses anciennes copies (`is_whitespace`, plus 0x1C-0x1F) disent
-        // la meme chose, caractere pour caractere.
-        for c in (0..=0x10FFFFu32).filter_map(char::from_u32) {
-            assert_eq!(blanc(c), c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c), "U+{:04X}", c as u32);
-        }
-    }
 }

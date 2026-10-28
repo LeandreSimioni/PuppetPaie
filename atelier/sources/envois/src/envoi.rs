@@ -1833,27 +1833,3 @@ fn plier_libre(nom: &str, valeur: &str) -> Result<String, String> {
     }
     Ok(lignes.join("\n") + "\n")
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn de_s_elide_devant_avril_aout_et_octobre_seulement() {
-        let d: Vec<String> = (1..=12).map(|i| de_mois(socle::date::nom_du_mois(i, socle::date::Graphie::Accentuee).unwrap())).collect();
-        assert_eq!(d.iter().filter(|x| x.starts_with("d'")).count(), 3, "{:?}", d);
-        for (i, attendu) in [(3, "d'avril"), (7, "d'août"), (9, "d'octobre"), (0, "de janvier"), (1, "de février"), (11, "de décembre")] {
-            assert_eq!(d[i], attendu);
-        }
-    }
-
-    #[test]
-    fn le_mois_00_n_est_aucun_mois_et_se_refuse() {
-        // Le mois d'une saisie va de 01 a 12 : ni la date du premier jour (`date::premier_du_mois`) ni celle du dernier
-        // (`date::dernier_du_mois`) ne lisent « 00 », et `envois_signature::an_et_mois` le refuse aussi. Seul le Python le
-        // lisait decembre, par l'indice -1 d'une liste : un accident, pas une regle.
-        assert!(socle::date::premier_du_mois("2026-00").is_err() && socle::date::dernier_du_mois("2026-00").is_err());
-        assert_eq!(socle::date::etiquette_du_mois("2026-00").unwrap_err(), socle::date::mois_impossible(0));
-        assert_eq!(socle::date::etiquette_du_mois("2026-12").unwrap(), "Decembre2026");
-    }
-}

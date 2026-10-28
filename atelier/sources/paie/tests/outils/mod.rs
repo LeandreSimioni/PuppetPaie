@@ -1,22 +1,19 @@
 //! Les aides des tests, écrites une fois : les dossiers, les oracles, les compagnies, la route en sous-processus et son
-//! bac à sable, les lecteurs de DSN, l'AEM, le faux serveur HTTP, le faux mandataire, le faux `Courriel`.
+//! bac à sable, les lecteurs de DSN, l'AEM, le faux serveur HTTP, le faux mandataire.
 //!
 //! Déclaré par chaque `main.rs` de groupe (`#[path = "../outils/mod.rs"] mod outils;`) et par les fichiers seuls
 //! (`#[path = "outils/mod.rs"] mod outils;`).
 
 #![allow(dead_code)]
 
-use std::cell::RefCell;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpListener;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use envois::courriel::{Courriel, ErreurCourriel};
 use rust_decimal::Decimal;
 use serde_json::{json, Value};
 
@@ -301,110 +298,10 @@ pub fn aem(zones: &[(usize, &str)], nir: &str, debut: &str, fin: &str, objet: &s
 
 // ------------------------------------------------------------------ le faux serveur HTTP
 
-/// Une requête reçue. Le corps d'une authentification (un chemin qui contient `authentifier`) n'est jamais gardé : il porte
-/// un mot de passe.
-#[derive(Clone, Debug)]
-pub struct Requete {
-    /// L'adresse du serveur (`http://127.0.0.1:port`), pour écrire des liens absolus.
-    pub base: String,
-    pub methode: String,
-    pub chemin: String,
-    pub requete: String,
-    /// Les en-têtes, noms en minuscules.
-    pub entetes: Vec<(String, String)>,
-    pub corps: Vec<u8>,
-}
-
-impl Requete {
-    pub fn entete(&self, nom: &str) -> &str {
-        self.entetes.iter().find(|(k, _)| k.eq_ignore_ascii_case(nom)).map(|(_, v)| v.as_str()).unwrap_or("")
-    }
-    pub fn json(&self) -> Value {
-        serde_json::from_slice(&self.corps).unwrap_or(Value::Null)
-    }
-}
-
-pub type Recu = Arc<Mutex<Vec<Requete>>>;
-
-fn lire_requete(s: &mut TcpStream, base: &str) -> Option<Requete> {
-    let mut tampon = Vec::new();
-    let mut un = [0u8; 8192];
-    let fin = loop {
-        if let Some(i) = tampon.windows(4).position(|w| w == b"\r\n\r\n") {
-            break i;
-        }
-        match s.read(&mut un) {
-            Ok(0) | Err(_) => return None,
-            Ok(n) => tampon.extend_from_slice(&un[..n]),
-        }
-    };
-    let tete = String::from_utf8_lossy(&tampon[..fin]).into_owned();
-    let mut lignes = tete.split("\r\n");
-    let mut mots = lignes.next()?.split(' ');
-    let (methode, cible) = (mots.next()?.to_string(), mots.next()?.to_string());
-    let entetes: Vec<(String, String)> = lignes.filter_map(|l| l.split_once(": ")).map(|(k, v)| (k.to_lowercase(), v.to_string())).collect();
-    let longueur = entetes.iter().find(|(k, _)| k == "content-length").and_then(|(_, v)| v.parse::<usize>().ok()).unwrap_or(0);
-    let mut corps = tampon[fin + 4..].to_vec();
-    while corps.len() < longueur {
-        match s.read(&mut un) {
-            Ok(0) | Err(_) => break,
-            Ok(n) => corps.extend_from_slice(&un[..n]),
-        }
-    }
-    let (chemin, requete) = cible.split_once('?').map(|(c, q)| (c.to_string(), q.to_string())).unwrap_or((cible.clone(), String::new()));
-    if chemin.contains("authentifier") {
-        corps.clear();
-    }
-    Some(Requete { base: base.to_string(), methode, chemin, requete, entetes, corps })
-}
-
-/// Une réponse HTTP entière.
-pub fn http(statut: u16, type_: &str, corps: &[u8]) -> Vec<u8> {
-    let mut r = format!("HTTP/1.1 {} X\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", statut, type_, corps.len()).into_bytes();
-    r.extend_from_slice(corps);
-    r
-}
-
-pub fn http_json(statut: u16, v: &Value) -> Vec<u8> {
-    http(statut, "application/json", v.to_string().as_bytes())
-}
-
-/// Un serveur local (127.0.0.1, un fil par connexion) : `f` rend les octets de la réponse, ou `None` pour couper la
-/// connexion sans répondre. Rend son adresse et ce qu'il a reçu, dans l'ordre.
-pub fn serveur(f: impl Fn(&Requete) -> Option<Vec<u8>> + Send + Sync + 'static) -> (String, Recu) {
-    let ecoute = TcpListener::bind("127.0.0.1:0").unwrap();
-    let base = format!("http://127.0.0.1:{}", ecoute.local_addr().unwrap().port());
-    let recu: Recu = Arc::new(Mutex::new(Vec::new()));
-    let (f, r2, b2) = (Arc::new(f), recu.clone(), base.clone());
-    std::thread::spawn(move || {
-        for flux in ecoute.incoming() {
-            let Ok(mut s) = flux else { continue };
-            let (f, r2, b2) = (f.clone(), r2.clone(), b2.clone());
-            std::thread::spawn(move || {
-                let Some(q) = lire_requete(&mut s, &b2) else { return };
-                r2.lock().unwrap().push(q.clone());
-                match f(&q) {
-                    None => {
-                        let _ = s.shutdown(std::net::Shutdown::Both);
-                    }
-                    Some(octets) => {
-                        let _ = s.write_all(&octets);
-                        let _ = s.flush();
-                    }
-                }
-            });
-        }
-    });
-    (base, recu)
-}
-
-/// Un port où personne n'écoute (« réseau injoignable »).
-pub fn port_ferme() -> String {
-    let l = TcpListener::bind("127.0.0.1:0").unwrap();
-    let u = format!("http://127.0.0.1:{}", l.local_addr().unwrap().port());
-    drop(l);
-    u
-}
+#[path = "../../../envois/tests/outils/serveur.rs"]
+mod serveur;
+#[allow(unused_imports)]
+pub use serveur::*;
 
 /// Un faux mandataire, que l'essai nomme comme seule porte du garde-fou reseau (`socle::garde_reseau::VARIABLE`) : il
 /// note la première ligne de chaque demande (`CONNECT hote:port HTTP/1.1`) et refuse ; rien ne sort de la machine.
@@ -431,148 +328,8 @@ pub fn mandataire() -> (String, Arc<Mutex<Vec<String>>>) {
     (base, vus)
 }
 
-// ------------------------------------------------------------------ le faux courriel
-
-/// Une boîte en mémoire : elle garde ce qu'on lui envoie, peut refuser un envoi, rend à la recherche les messages qu'on lui
-/// a préparés (ceux posés avec un code ne répondent qu'à ce code), et peut échouer à chercher ou à lire.
-#[derive(Clone)]
-pub struct FauxCourriel {
-    pub compte: String,
-    pub recus: Rc<RefCell<Vec<Vec<u8>>>>,
-    /// L'envoi de ce rang seulement est refusé.
-    pub refuse_le: Option<usize>,
-    /// Tout envoi à partir de ce rang est refusé.
-    pub refuse_a_partir_de: Option<usize>,
-    /// (code, identifiant, message).
-    pub boite: Rc<RefCell<Vec<(Option<String>, String, Vec<u8>)>>>,
-    pub recherche_en_echec: bool,
-    /// Les codes dont la recherche échoue.
-    pub recherche_en_echec_pour: Vec<String>,
-    pub lecture_en_echec: Vec<String>,
-    pub requetes: Rc<RefCell<Vec<String>>>,
-    pub fermetures: Rc<RefCell<usize>>,
-}
-
-impl Default for FauxCourriel {
-    fn default() -> FauxCourriel {
-        FauxCourriel {
-            compte: "boite@exemple.invalid".into(),
-            recus: Rc::default(),
-            refuse_le: None,
-            refuse_a_partir_de: None,
-            boite: Rc::default(),
-            recherche_en_echec: false,
-            recherche_en_echec_pour: Vec::new(),
-            lecture_en_echec: Vec::new(),
-            requetes: Rc::default(),
-            fermetures: Rc::default(),
-        }
-    }
-}
-
-impl FauxCourriel {
-    pub fn nouveau() -> FauxCourriel {
-        FauxCourriel::default()
-    }
-    /// Une boîte qui rend ces messages à toute recherche.
-    pub fn avec(messages: Vec<(&str, Vec<u8>)>) -> FauxCourriel {
-        let f = FauxCourriel::default();
-        *f.boite.borrow_mut() = messages.into_iter().map(|(i, m)| (None, i.to_string(), m)).collect();
-        f
-    }
-    /// Un message que seule la recherche du `code` rend, sous l'identifiant `id`.
-    pub fn pose(&self, code: &str, id: &str, octets: Vec<u8>) {
-        self.boite.borrow_mut().push((Some(code.to_string()), id.to_string(), octets));
-    }
-    pub fn partis(&self) -> usize {
-        self.recus.borrow().len()
-    }
-}
-
-impl Courriel for FauxCourriel {
-    fn compte(&self) -> &str {
-        &self.compte
-    }
-    fn envoyer(&mut self, m: &[u8]) -> Result<String, ErreurCourriel> {
-        let n = self.recus.borrow().len();
-        if self.refuse_le == Some(n) || self.refuse_a_partir_de.is_some_and(|a| n >= a) {
-            return Err(ErreurCourriel("le serveur refuse ce message".into()));
-        }
-        self.recus.borrow_mut().push(m.to_vec());
-        Ok(format!("<faux-{}@exemple.invalid>", n))
-    }
-    fn rechercher(&mut self, requete: &str, _: usize) -> Result<Vec<String>, ErreurCourriel> {
-        self.requetes.borrow_mut().push(requete.to_string());
-        let code = requete.trim_matches('"');
-        if self.recherche_en_echec || self.recherche_en_echec_pour.iter().any(|c| c == code) {
-            return Err(ErreurCourriel("la recherche echoue".into()));
-        }
-        Ok(self.boite.borrow().iter().filter(|(c, _, _)| c.as_deref().is_none_or(|c| c == code)).map(|(_, i, _)| i.clone()).collect())
-    }
-    fn message_brut(&mut self, id: &str) -> Result<Vec<u8>, ErreurCourriel> {
-        if self.lecture_en_echec.iter().any(|i| i == id) {
-            return Err(ErreurCourriel("la lecture echoue".into()));
-        }
-        Ok(self.boite.borrow().iter().find(|(_, i, _)| i == id).map(|(_, _, m)| m.clone()).unwrap_or_default())
-    }
-    fn fermer(&mut self) {
-        *self.fermetures.borrow_mut() += 1;
-    }
-}
-
 // ------------------------------------------------------------------ les oracles (communs aux trois crates)
 
 #[path = "../../../socle/tests/outils/oracles.rs"]
 mod oracles;
 pub use oracles::*;
-
-/// Un message parti, lu comme une messagerie le lit.
-pub struct Mail(pub Vec<u8>);
-
-impl Mail {
-    fn lu(&self) -> mailparse::ParsedMail<'_> {
-        mailparse::parse_mail(&self.0).unwrap()
-    }
-    pub fn entete(&self, nom: &str) -> String {
-        mailparse::MailHeaderMap::get_first_value(self.lu().headers.as_slice(), nom).unwrap_or_default()
-    }
-    fn jointes(&self) -> Vec<(String, Vec<u8>)> {
-        fn parcourir(m: &mailparse::ParsedMail, out: &mut Vec<(String, Vec<u8>)>) {
-            let d = m.get_content_disposition();
-            if d.disposition == mailparse::DispositionType::Attachment {
-                out.push((d.params.get("filename").cloned().unwrap_or_default(), m.get_body_raw().unwrap()));
-            }
-            m.subparts.iter().for_each(|s| parcourir(s, out));
-        }
-        let mut out = Vec::new();
-        parcourir(&self.lu(), &mut out);
-        out
-    }
-    /// Les noms des pièces jointes.
-    pub fn pieces(&self) -> Vec<String> {
-        self.jointes().into_iter().map(|(n, _)| n).collect()
-    }
-    /// Le texte de la première partie `text/plain` et celui de la première `text/html`, en fins de ligne `\n`.
-    pub fn textes(&self) -> (String, String) {
-        fn parcourir(m: &mailparse::ParsedMail, plain: &mut Option<String>, html: &mut Option<String>) {
-            match m.ctype.mimetype.as_str() {
-                "text/plain" if plain.is_none() => *plain = m.get_body().ok(),
-                "text/html" if html.is_none() => *html = m.get_body().ok(),
-                _ => {}
-            }
-            m.subparts.iter().for_each(|s| parcourir(s, plain, html));
-        }
-        let (mut p, mut h) = (None, None);
-        parcourir(&self.lu(), &mut p, &mut h);
-        (p.unwrap_or_default().replace("\r\n", "\n"), h.unwrap_or_default().replace("\r\n", "\n"))
-    }
-}
-
-impl FauxCourriel {
-    /// Le message parti de rang `n`.
-    pub fn message(&self, n: usize) -> Mail {
-        Mail(self.recus.borrow()[n].clone())
-    }
-}
-
-
