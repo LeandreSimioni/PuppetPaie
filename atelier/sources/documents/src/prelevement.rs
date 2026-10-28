@@ -1,13 +1,12 @@
-//! Le prelevement a la source des paies d'un mois : celui de la paie declaree, sinon celui que la validation a ecrit
-//! dans la paie, sinon le taux de chacune (`droit::pas`).
+//! Le prelevement a la source des paies d'un mois : celui de la paie declaree, sinon celui que l'engagement a ecrit
+//! dans la paie (`engagement::etats`). Rien ne s'y calcule.
 
 use serde_json::Value;
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use droit::natures::contrat_court;
-use droit::pas::{du_versement, taux_dgfip, ErreurPas, Triplet, Versement, ZONE_DEFAUT};
-use socle::date::{en_texte, Jour};
+use droit::pas::Versement;
+use socle::date::en_texte;
 
 /// Le prelevement de la paie declaree (`engagement::etats::paie_declaree`), ou `None` : aucune DSN partie n'a declare
 /// le mois de sa paie pour son engagement (une paie ajoutee apres le depot, que la correction du mois suivant
@@ -47,18 +46,14 @@ struct Lus {
     objets: std::collections::HashMap<String, Vec<engagement::stock::Objet>>,
 }
 
-/// Ce que `du_versement` dit de chaque paie, par POSITION dans `paies` (`None` :
-/// paie sans bulletin, ou bareme sans grille -- on n'imprime pas un impot qu'on
-/// ne sait pas calculer). Une paie deja declaree garde le prelevement de la paie declaree (`deja_declare`) ; une paie
-/// validee, celui qu'elle a ecrit (`Paie::pas`). Sinon le taux DGFiP se lit une fois par
-/// salarie, et l'abattement se calcule une fois par versement.
+/// Le prelevement de chaque paie, par POSITION dans `paies` (`None` : un mois sans paie, sans bulletin). Une paie deja
+/// declaree garde le prelevement de la paie declaree (`deja_declare`) ; une autre, celui que l'engagement a ecrit ou
+/// calcule pour elle (`Paie::pas`). Aucun ne se calcule ici : une paie qui n'en porte pas se refuse.
 pub fn des_paies(ctx: &Contexte, paies: &[Paie]) -> Result<Vec<Option<Versement>>, String> {
-    let mut taux: Vec<(String, Option<Triplet>)> = Vec::new();
     let mut lus = Lus::default();
     let mut out = Vec::new();
     for pa in paies {
-        let e = &pa.engagement;
-        if e.sans_paie() {
+        if pa.engagement.sans_paie() {
             out.push(None);
             continue;
         }
@@ -66,27 +61,14 @@ pub fn des_paies(ctx: &Contexte, paies: &[Paie]) -> Result<Vec<Option<Versement>
             out.push(Some(v));
             continue;
         }
-        if let Some(v) = &pa.pas {
-            out.push(Some(v.clone()));
-            continue;
-        }
-        let cle = en_texte(pa.salarie.get("_cle").ok_or_else(|| socle::fichiers::absent("_cle"))?);
-        let i = match taux.iter().position(|(c, _)| *c == cle) {
-            Some(i) => i,
-            None => {
-                taux.push((cle.clone(), taux_dgfip(ctx, &cle, None)?));
-                taux.len() - 1
-            }
-        };
-        let fin = e.fin_periode()?;
-        let bareme = ctx.bareme(&Jour { an: fin.an, mois: fin.mois, jour: 1 })?;
-        let t = |j: Jour| (j.an, j.mois, j.jour);
-        let court = contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));
-        match du_versement(taux[i].1.as_ref(), &bareme, pa.net_imposable, Some(fin), court, ZONE_DEFAUT) {
-            Ok(v) => out.push(Some(v)),
-            Err(ErreurPas::SansGrille(_)) => out.push(None),
-            Err(autre) => return Err(autre.message().to_string()),
-        }
+        let v = pa.pas.clone().ok_or_else(|| {
+            format!(
+                "{} : la paie de {} ne porte pas de prelevement a la source (paie ecrite illisible : `pas`). Revalider l'engagement.",
+                en_texte(pa.salarie.get("_cle").unwrap_or(&Value::Null)),
+                pa.engagement.mois
+            )
+        })?;
+        out.push(Some(v));
     }
     Ok(out)
 }
