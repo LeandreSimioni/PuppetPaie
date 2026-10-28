@@ -1,45 +1,10 @@
-/* L'ecran par paie. */
+/* L'écran de l'engagement : la carte en saisie, la ligne validée et ses trois carrés, le non actif.
+
+   L'état est celui des engagements enregistrés (`etat-par-engagement`) : un engagement qu'on vient d'ajouter ou de
+   changer n'en a pas encore, et sa carte n'en montre pas. Les carrés, leurs phrases et leurs gestes viennent du
+   moteur ; un clic ouvre l'envoi que le moteur nomme, rien ne part d'un clic sans sa boîte. */
 "use strict";
 
-/* =======================================================================
-   L'ÉCRAN PAR PAIE
-   =======================================================================
-   Demandé en regardant l'écran :
-
-     « pour les contrats à signer, il pourrait y avoir plusieurs cases dans
-       chaque paie, pour voir en un coup d'œil si la DPAE est faite, si le
-       contrat est envoyé… »
-     « et une case pour sélectionner, pour pouvoir en sélectionner plusieurs
-       pour envoyer plusieurs contrats d'un coup, ou plusieurs DPAE d'un coup »
-
-   Le moteur sait répondre depuis le 11/09 au soir (`operations.etat_par_paie`,
-   `produire_dpae(paies=[…])`) ; ces deux fonctions n'avaient pas d'écran, et
-   une fonction sans écran est une fonction que personne n'utilise.
-
-   TROIS RÈGLES, ET LA PREMIÈRE EST TOUT LE SUJET :
-
-   1. CHAQUE PASTILLE DIT À QUELLE MAILLE ELLE EST CONNUE. Les quatre actes ne
-      se déclarent pas au même grain : une DPAE déclare une embauche, un
-      contrat se signe par engagement, les documents partent par salarié, et
-      une DSN est mensuelle — il n'existe pas de DSN d'une paie. Écrire « DSN
-      déposée » sur un bloc de paie sans dire qu'on parle du mois promettrait
-      une précision que le journal n'a pas. D'où le « du mois », le « de
-      <nom> », sous la pastille — et la maille vient du moteur, pas d'ici.
-   2. L'ÉTAT EST CELUI DE LA SAISIE ENREGISTRÉE, pas de ce qui est à l'écran.
-      `etat-par-engagement` lit les engagements enregistrés (`engagements/`). Un engagement qu'on vient
-      d'ajouter ou de changer n'a donc pas d'état, et le bloc le DIT au lieu
-      de montrer celui d'à côté. Une pastille verte sur une paie modifiée
-      serait le pire mensonge possible ici.
-   3. RIEN NE PART D'UN CLIC. Les deux actions groupées ouvrent les mêmes
-      récapitulatifs que la colonne de droite, avec le même mot de passe du
-      logiciel. Elles ne font que RESTREINDRE ce qui part à ce qui est coché.
-
-   Ce qui n'est pas là, et qu'il ne faut pas croire oublié : le bouton
-   « valider » par paie, et le bloc qui devient vert. « Valider » est un état
-   de la SAISIE, pas un acte — rien ne part — et le moteur ne sait pas encore
-   l'écrire. Le dessiner d'abord aurait fait une case à cocher qui ne se
-   souvient de rien. Voir ETAT.md §19.12.
-*/
 let ETATS_PAIES = null;      // "clé|début|rang" → les quatre actes ; null = pas lu
 
 /* LES JUMEAUX (09/10/2026) : deux contrats du même salarié qui commencent le
@@ -93,186 +58,60 @@ function etatDePaie(p) {
 const contratDe = (l) => ({ salarie: l.salarie, debut: l.debut,
                             numero: l.numero || "", rang: l.rang || 0 });
 
-/* LES TROIS ACTES D'UNE PAIE. Ils étaient quatre — la DSN en faisait partie,
-   avec un « du mois » sous la pastille pour prévenir du contresens. La demande : « la DSN, elle ne doit pas être liée à la sélection, elle
-   fait obligatoirement tout le mois, pas comme les DPAE ». Une mention sous
-   une pastille ne rattrape pas une pastille mal placée : posée dans un bloc de
-   paie, à côté d'une case à cocher qui sert à restreindre ce qui part, elle se
-   lisait comme « la DSN de cette paie-ci ». Il n'existe pas de DSN d'une paie.
-   Elle vit désormais dans la colonne du mois, et là seulement. */
-const ACTES_PAIE = [
-  { cle: "dpae", titre: "DPAE" },
-  { cle: "signature", titre: "Contrat" },
-  { cle: "documents", titre: "Documents" },
-];
+/* LES TROIS CARRÉS DE LA LIGNE VALIDÉE : DPAE, Contrat, Documents. Le moteur
+   rend chacun (`etat-par-engagement`, `carres`) : son nom, son état, sa phrase
+   et le geste qu'ouvre un clic. La page les dessine aux couleurs des cases du
+   mois ; un carré qui a un geste est un bouton. */
+const CARRE_DE_L_ETAT = { fait: "vert", a_faire: "orange", en_attente: "en-attente", refuse: "rouge" };
 
-/** « de Favart » : ce que la pastille couvre AU JUSTE, quand ce n'est pas
- *  cette paie-ci. Reste utile pour les documents, qui partent par salarié. */
-function ditLaMaille(maille, ligne) {
-  if (maille === "mois") return "du mois";
-  if (maille === "salarie") {
-    return "de " + String(ligne.nom || "ce salarié").split(" ")[0];
-  }
-  return "";
-}
-
-/* TROIS COULEURS, ET UN PETIT CARRÉ. La demande, devant les
-   anciennes vignettes : « j'imaginais ça en petit, juste un petit carré qui
-   est gris, qui passe au vert ou orange si problème ou pas encore arrivé — ça
-   prend trop de place comme ça ».
-
-   Elles prenaient en effet quatre encadrés sur toute la largeur du bloc, alors
-   qu'on ne leur demande qu'un coup d'œil. Une ligne, trois carrés, trois
-   libellés. Le détail — la date, la maille, l'état du retour — passe dans
-   l'infobulle : il se lit quand on le cherche, et il ne se lit que là.
-
-     gris     rien n'est parti ;
-     orange   parti, mais l'accusé n'est pas arrivé (ou a refusé) ;
-     vert     parti, et attesté.
-
-   L'orange n'est pas décoratif : « envoyé » et « accepté » sont deux choses,
-   et les confondre fait tenir pour faite une déclaration en attente. Pour les
-   contrats et les documents, il n'existe pas d'accusé — un envoi est un envoi,
-   et le vert est alors la vérité entière. */
-function couleurPastille(cle, e) {
-  // Le contrat a son accusé à lui : le papier signé qui revient, et c'est un
-  // humain qui le dit d'un clic (contrat-recu). « Envoyé on passe à orange,
-  // signé on passe au vert ». Un contrat signé sur
-  // place, jamais envoyé, se marque reçu quand même : vert.
-  if (cle === "signature") {
-    // Un CDI en cours (30/09/2026) : signé à l'embauche, rien à envoyer ni à
-    // comparer chaque mois — la pastille dit « CDI, signé en <mois> ».
-    if (e && e.cdi_en_cours) return "vert";
-    // La paie a changé depuis que le contrat est parti : il n'est plus le
-    // bon, signé ou non. Rouge, comme une DPAE refusée : il faut le refaire.
-    // Signé, mais il ne dit plus ce que dit la paie : orange, un avenant
-    // est à faire (30/09/2026). Rouge reste pour un contrat pas signé qui a
-    // changé : c'est lui qu'il faut renvoyer.
-    if (e && e.caduc && e.recu) return "orange";
-    if (e && e.caduc) return "rouge";
-    // Un avenant parti, pas encore revenu signé : le contrat est signé, sa
-    // modification non (30/09/2026).
-    if (e && e.avenant_attendu) return "orange";
-    if (e && e.recu) return "vert";
-    return (e && e.fait) ? "orange" : "gris";
-  }
-  if (!e || !e.fait) return "gris";
-  // Des documents partis, puis une paie qui a changé (ticket #240) : ils ne
-  // sont plus les bons, le moteur le dit (`caduc`) — à renvoyer.
-  if (cle === "documents" && e.caduc) return "orange";
-  if (cle !== "dpae") return "vert";          // pas d'accusé pour ces envois-là
-  // La DPAE, elle, reçoit un certificat de conformité — et le moteur le dit
-  // PAR PAIE (`passee`), sur le dépôt qui porte cette embauche-là. Refusée :
-  // rouge, et c'est la seule pastille qui demande de REFAIRE quelque chose.
-  if (e.refusee) return "rouge";
-  return e.passee ? "vert" : "orange";
-}
-
-function infobulle(cle, titre, e, ligne) {
-  // Un contrat en cours depuis un mois précédent : sa DPAE et sa signature
-  // sont celles de ce mois-là. La pastille les montre (le journal les
-  // connaît par salarié et début de contrat), et dit d'où elles viennent.
-  // Les documents, eux, partent chaque mois : la mention ne les concerne pas.
-  const enCours = cle !== "documents" && ligne && ligne.contrat && !ligne.contrat.premier_mois
-    ? " (contrat en cours depuis " + moisEnClair(ligne.contrat.depuis) + ")" : "";
-  if (cle === "signature") {
-    if (e && e.cdi_en_cours) {
-      return titre + " — " + libelleCdiEnCours(e) + " — en cours depuis "
-        + moisEnClair(e.cdi_en_cours.depuis) + ", sans terme : rien à envoyer ce mois-ci";
-    }
-    const envoi = (e && e.fait) ? "envoyé le " + quand(e.fait) : "pas envoyé";
-    if (e && e.caduc && e.recu) {
-      return titre + " — " + signeLe(e.recu, e.recu_par) + enCours + " — "
-        + (e.pourquoi || "la paie a changé depuis") + " : cliquer pour faire l'avenant";
-    }
-    if (e && e.caduc) {
-      return titre + " — " + envoi + enCours + " — " + (e.pourquoi || "la paie a changé depuis")
-        + " : ce contrat n'est plus le bon, à renvoyer au salarié";
-    }
-    if (e && e.avenant_attendu) {
-      return titre + " — " + envoi + enCours + " — avenant n° " + e.avenant.numero
-        + " envoyé le " + quand(e.avenant.quand) + ", pas encore revenu signé";
-    }
-    if (e && e.recu) {
-      return titre + " — " + envoi + enCours + " — " + signeLe(e.recu, e.recu_par)
-        + (e.avenant && e.avenant.signe ? " — avenant n° " + e.avenant.numero
-           + " signé le " + quand(e.avenant.signe) : "");
-    }
-    return titre + " — " + envoi + enCours
-      + (e && e.fait ? " — pas encore revenu signé" : "");
-  }
-  if (!e || !e.fait) return titre + " — rien n'est parti" + enCours;
-  const maille = ditLaMaille(e.maille, ligne);
-  if (cle === "documents" && e.caduc) {
-    return titre + " — envoyés le " + quand(e.fait) + (maille ? " (" + maille + ")" : "")
-      + " — à renvoyer : " + e.pourquoi;
-  }
-  const couleur = couleurPastille(cle, e);
-  if (couleur === "rouge") {
-    return titre + " — envoyé le " + quand(e.fait) + " — REFUSÉ : "
-      + ((e.anomalies || []).join(" ; ") || "motif non lu")
-      + " — à corriger et à renvoyer";
-  }
-  return titre + " — envoyé le " + quand(e.fait) + enCours
-    + (maille ? " (" + maille + ")" : "")
-    + (couleur === "orange" ? " — accusé pas encore arrivé, on attend"
-       : cle === "dpae" ? " — passée, rien à faire" + dossierUrssaf(e) : "");
-}
-
-/** La référence sous laquelle l'Urssaf a enregistré la DPAE (certificat de
- *  conformité, R_DOSSIER), quand elle est arrivée ; ou « déjà existante »
- *  quand l'Urssaf n'a rien créé parce qu'une DPAE identique était là. */
-function dossierUrssaf(e) {
-  if (!e) return "";
-  if (e.deja_existante) return " (déjà existante à l'Urssaf, rien de créé)";
-  return e.dossier ? " (dossier " + e.dossier + ")" : "";
-}
-
-/** « CDI, signé en septembre 2026 » : ce que la pastille Contrat écrit d'un
- *  CDI en cours à la place de « Contrat » (le moteur donne le mois). */
-function libelleCdiEnCours(e) {
-  return "CDI, signé en " + moisEnClair(e.cdi_en_cours.signe_en);
-}
-
-/** Le bandeau d'un bloc : une ligne, un carré par acte. */
+/** Le bandeau d'une ligne : un carré par acte. */
 function bandeauEtats(ligne) {
-  return `<div class="etats-actes">` + ACTES_PAIE.map((a) => {
-    const e = ligne.etats[a.cle] || {};
-    // DPAE et Contrat se cliquent : on voit CE QUI EST PARTI, les fichiers
-    // eux-mêmes (29/09/2026), et c'est là qu'on dit « reçu signé ».
-    const clic = a.cle !== "documents"
-      ? ` cliquable" data-acte="${a.cle}"`
-      : `"`;
-    return `<span class="etat-acte ${couleurPastille(a.cle, e)}${clic}
-        title="${echapper(infobulle(a.cle, a.titre, e, ligne)
-          + (a.cle !== "documents" ? " — cliquer pour voir ce qui est parti" : ""))}">
-      <i class="carre"></i>${echapper(a.cle === "signature" && e.cdi_en_cours
-        ? libelleCdiEnCours(e) : a.titre)}${e.recu && !e.caduc ? " ✓" : ""}</span>`;
+  return `<div class="etats-actes">` + (ligne.carres || []).map((c, i) => {
+    const clic = !!c.action;
+    return `<span class="etat-acte ${CARRE_DE_L_ETAT[c.etat] || "orange"}${clic ? " cliquable" : ""}"
+        ${clic ? `data-carre="${i}" tabindex="0" role="button"` : ""}
+        title="${echapper(c.phrase + (clic ? " — " + c.action.libelle : ""))}">
+      <i class="carre"></i>${echapper(c.nom)}</span>`;
   }).join("") + `</div>`;
 }
 
-/** Le clic sur la pastille DPAE ou Contrat : VOIR CE QUI EST PARTI
- *  (l'utilisateur, 29/09/2026 : « on voit le journal, pas ce qui est parti »).
- *  Les fichiers eux-mêmes — la DPAE déposée, le contrat envoyé, le contrat
- *  revenu signé — chacun s'ouvre dans le lecteur du poste. La mention
- *  « reçu signé » se pose ici, réversible d'un second clic ; le journal
- *  garde les deux. */
+/** Le clic sur un carré : le geste que le moteur lui donne. Le contrat parti
+ *  et pas revenu se note signé d'un clic, et le message permet de revenir. */
 function brancherRecu(div) {
   div.querySelectorAll(".etat-acte.cliquable").forEach((s) => {
-    s.onclick = (ev) => {
+    const agir = (ev) => {
       ev.preventDefault();
+      ev.stopPropagation();
       const ligne = (s.closest(".engagement") || div)._ligne;
-      if (!ligne) return;
-      // Un contrat signé qui ne dit plus ce que dit la paie : le clic
-      // propose tout de suite l'avenant (30/09/2026, « simple »).
-      const e = (ligne.etats || {})[s.dataset.acte] || {};
-      if (s.dataset.acte === "signature" && e.caduc && e.recu) {
-        boiteAvenant(document.getElementById("mois").value, ligne.salarie, ligne.debut, ligne.numero);
-        return;
-      }
-      boitePieces(ligne, s.dataset.acte);
+      const c = ligne && (ligne.carres || [])[+s.dataset.carre];
+      if (!c || !c.action) return;
+      const mois = document.getElementById("mois").value;
+      if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, true);
+      ouvrirGeste(c.action, mois);
     };
+    s.onclick = agir;
+    s.onkeydown = (ev) => { if (ev.key === "Enter" || ev.key === " ") agir(ev); };
   });
+}
+
+/** « Reçu signé » (`contrat-recu`), ou son annulation ; le message dit ce qui
+ *  est noté et porte « Annuler », qui rappelle la même route à l'envers. */
+async function noterSigne(mois, ligne, recu) {
+  try {
+    await api("contrat-recu", { mois, salarie: ligne.salarie, debut: ligne.debut,
+                                numero: ligne.numero || "", recu });
+  } catch (e) { dire(e.message, "erreur"); return; }
+  const prenom = String(ligne.nom || "").split(" ").slice(1).join(" ") || ligne.nom;
+  await dessinerEtatsDesPaies(mois);
+  await rafraichirActions();
+  if (!recu) { dire(`Contrat de ${prenom} : la mention « signé » est retirée.`); return; }
+  dire(`Contrat de ${prenom} noté signé`);
+  const el = document.getElementById("message");
+  const annuler = document.createElement("button");
+  annuler.className = "lien message-annuler";
+  annuler.textContent = "Annuler";
+  annuler.onclick = () => { el.classList.add("cachee"); noterSigne(mois, ligne, false); };
+  el.append(" — ", annuler);
 }
 
 async function boitePieces(ligne, acte) {
@@ -281,7 +120,8 @@ async function boitePieces(ligne, acte) {
   try {
     r = await api("pieces-parties", { salarie: ligne.salarie, debut: ligne.debut });
   } catch (e) { dire(e.message, "erreur"); return; }
-  const e = ligne.etats[acte] || {};
+  const e = (ligne.etats || {})[acte] || {};
+  const carre = (ligne.carres || []).find((c) => c.cle === acte);
   const titre = acte === "dpae" ? "DPAE" : "Contrat";
   const pieces = (acte === "dpae" ? r.dpae : r.contrat) || [];
   const liste = pieces.length
@@ -300,7 +140,7 @@ async function boitePieces(ligne, acte) {
     <h3>${titre} — ${echapper(ligne.nom)}</h3>
     <p class="discret">${echapper(pourQuoi(ligne))},
       ${echapper(periodeEnClair(ligne.debut, ligne.fin))}</p>
-    <p>${echapper(infobulle(acte, titre, e, ligne))}</p>
+    ${carre ? `<p>${echapper(carre.phrase)}</p>` : ""}
     ${e.caduc ? `<div class="encart attention"><b>Ce contrat n'est plus le bon</b>
       ${echapper(e.pourquoi ? e.pourquoi.charAt(0).toUpperCase() + e.pourquoi.slice(1) + "."
                             : "La paie a changé depuis qu'il est parti.")}
@@ -327,17 +167,7 @@ async function boitePieces(ligne, acte) {
     };
   });
   const recu = document.getElementById("p-recu");
-  if (recu) recu.onclick = async () => {
-    const oui = !e.recu;
-    try {
-      await api("contrat-recu", { mois, salarie: ligne.salarie, debut: ligne.debut, numero: ligne.numero || "", recu: oui });
-      fermerBoite();
-      dire(oui ? "Contrat signé reçu — noté au journal."
-               : "Mention retirée : le contrat signé n'est pas là.");
-      await dessinerEtatsDesPaies(mois);
-      await rafraichirActions();
-    } catch (err) { dire(err.message, "erreur"); }
-  };
+  if (recu) recu.onclick = () => { fermerBoite(); noterSigne(mois, ligne, !e.recu); };
   const signer = document.getElementById("p-signer");
   if (signer) signer.onclick = () => { fermerBoite(); boiteSignature(mois, [ligne.salarie]); };
 }
@@ -521,7 +351,7 @@ function bandeauValidation(ligne) {
       <span><b>Engagement validé</b> le ${echapper(quand(ligne.valide))}</span>
       <span class="boutons">
         ${BOUTON_RETIRER}
-        <button class="modifier v-basculer" data-valide="0">${CRAYON}Modifier…</button>
+        <button class="modifier v-basculer" data-valide="0">${CRAYON}Modifier l'engagement…</button>
       </span>
     </div>`;
   }
@@ -539,7 +369,7 @@ function brancherValidation(div, ligne) {
   if (b) b.onclick = (ev) => {
     ev.preventDefault();
     if (b.dataset.valide === "1") return basculerValidation(ligne, true);
-    boiteRouvrir(ligne);
+    boiteModifier(ligne);
   };
   brancherRetirer(div);
 }
@@ -596,11 +426,15 @@ function peindreNonActifs(liste) {
   cible.querySelectorAll(".engagement-non-actif").forEach((d) => d.remove());
   (liste || []).forEach((n) => {
     const d = document.createElement("div");
-    d.className = "engagement-non-actif encart";
-    d.innerHTML = `<b>${echapper(n.nom)}</b>
-      <span class="discret">— contrat ${echapper(n.numero || "sans numéro")}
-        du ${echapper(n.debut)}, non actif depuis le ${quand(n.non_actif)}</span>
-      ${n.a_faire?.length ? `<p>À faire : ${n.a_faire.map(echapper).join(", ")}.</p>` : ""}`;
+    d.className = "engagement-non-actif";
+    d.innerHTML = `<div class="na-ligne">
+        <span><b>${echapper(n.nom)}</b>
+          <span class="discret">· contrat ${echapper(n.numero || "sans numéro")},
+            ${echapper(periodeEnClair(n.debut, n.fin))}</span></span>
+        <span class="mot-etat" title="non actif depuis le ${echapper(quand(n.non_actif))}">non actif</span>
+      </div>
+      ${n.a_faire?.length ? `<div class="etats-actes">${n.a_faire.map((x) =>
+        `<span class="etat-acte orange"><i class="carre"></i>${echapper(x)}</span>`).join("")}</div>` : ""}`;
     cible.appendChild(d);
   });
 }
@@ -629,7 +463,7 @@ async function basculerValidation(ligne, valide) {
   const mois = document.getElementById("mois").value;
   try {
     if (await validerEngagement(mois, ligne, valide) === null) return;
-    dire(valide ? "Engagement validé." : "Engagement rouvert.");
+    dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
     await dessinerEtatsDesPaies(mois);
   } catch (e) { dire(e.message, "erreur"); }
 }
@@ -641,7 +475,7 @@ async function basculerValidation(ligne, valide) {
  * validées à la même seconde. Un même salarié n'est qu'une fois dans un
  * bloc : son jumeau (un autre contrat du même jour, #139) n'est jamais une
  * sœur, même validé à la même seconde. */
-function paiesSoeurs(ligne) {
+function engagementsSoeurs(ligne) {
   const toutes = Object.values(ETATS_PAIES || {});
   const soeurs = toutes.filter((l) => l.valide && l.valide === ligne.valide
     && l.spectacle === ligne.spectacle && l.debut === ligne.debut && l.fin === ligne.fin
@@ -649,31 +483,26 @@ function paiesSoeurs(ligne) {
   return soeurs.length ? soeurs : [ligne];
 }
 
-async function rouvrirPaies(lignes) {
+async function modifierEngagements(lignes) {
   const mois = document.getElementById("mois").value;
   try {
     for (const l of lignes) {
       if (await validerEngagement(mois, l, false) === null) return;
     }
-    dire(lignes.length > 1 ? `Ces ${lignes.length} engagements sont rouverts.`
-                           : "Engagement rouvert.");
+    dire(lignes.length > 1 ? `Ces ${lignes.length} engagements sont ouverts à la modification.`
+                           : "Engagement ouvert à la modification : le revalider ensuite.");
   } catch (e) { dire(e.message, "erreur"); }
   await dessinerEtatsDesPaies(mois);
 }
 
-/* Rouvrir demande un mot, pas un clic — QUAND IL Y A QUELQUE CHOSE À DIRE.
- * Depuis le 24/09/2026, une paie dont rien n'est parti se rouvre
- * directement. Depuis le 30/09/2026, la boîte ne parle plus de la DPAE
- * (l'utilisateur : « seulement quand on change les DATES ») : changer le cachet ou
- * les heures ne touche pas la DPAE, c'est LE CONTRAT qui devient caduc, et
- * qu'il faut renvoyer au salarié. La boîte n'est donc là que pour un contrat
- * parti ; la DPAE se dit au moment où l'on change vraiment le premier jour
- * ou le salarié (`avisDpaeDeplacee`). */
-function boiteRouvrir(ligne) {
-  const lignes = paiesSoeurs(ligne);
+/* MODIFIER L'ENGAGEMENT : un engagement dont aucun contrat n'est parti se rouvre d'un clic ; un contrat parti se dit
+ * d'abord, parce que changer ce qu'il porte fait un avenant à faire signer. La DPAE se dit quand on change le premier
+ * jour ou le salarié (`avisDpaeDeplacee`). */
+function boiteModifier(ligne) {
+  const lignes = engagementsSoeurs(ligne);
   const partis = lignes.filter((l) => l.etats && l.etats.signature
     && (l.etats.signature.fait || l.etats.signature.recu));
-  if (!partis.length) return rouvrirPaies(lignes);
+  if (!partis.length) return modifierEngagements(lignes);
   const noms = lignes.map((l) => l.nom).join(", ");
   const etat = (l) => {
     const s = l.etats.signature;
@@ -688,18 +517,18 @@ function boiteRouvrir(ligne) {
       <b>${partis.length > 1 ? "Les contrats sont déjà partis" : "Le contrat est déjà parti"}</b>
       ${partis.map((l) => `${lignes.length > 1 ? echapper(l.nom) + " : c" : "C"}ontrat ${echapper(etat(l))}.`).join(" ")}
       Il porte les dates, les heures, les cachets et la rémunération : si
-      l'un d'eux change, ce contrat n'est plus le bon. Sa pastille passera au
-      rouge, et il faudra renvoyer le contrat à jour au salarié.
+      l'un d'eux change, ce contrat n'est plus le bon : son carré passe à
+      l'orange, et un avenant est à faire signer au salarié.
     </div>
     <p class="note">Modifier n'annule rien et ne défait rien : ça remet les
       champs en écriture. On revalide ensuite.</p>
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Annuler</button>
-      <button class="primaire" id="v-rouvrir">Modifier ${lignes.length > 1 ? "les paies" : "la paie"}</button>
+      <button class="primaire" id="v-rouvrir">Modifier ${lignes.length > 1 ? "les engagements…" : "l'engagement…"}</button>
     </div>`);
   document.getElementById("v-rouvrir").onclick = async () => {
     fermerBoite();
-    await rouvrirPaies(lignes);
+    await modifierEngagements(lignes);
   };
 }
 

@@ -384,7 +384,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             }
             r
         }
-        "apercu" => route(racine, nom, &json!({"saisie": charge.get("saisie").cloned().unwrap_or(Value::Null), "lignes": charge.get("lignes").cloned().unwrap_or(Value::Bool(false)), "urssaf": charge.get("urssaf").cloned().unwrap_or(Value::Bool(false))})),
+        "apercu" => route(racine, nom, &json!({"saisie": charge.get("saisie").cloned().unwrap_or(Value::Null), "lignes": charge.get("lignes").cloned().unwrap_or(Value::Bool(false)), "urssaf": charge.get("urssaf").cloned().unwrap_or(Value::Bool(false)), "blocs": charge.get("blocs").cloned().unwrap_or(Value::Null)})),
         "rappels" => route(racine, nom, &json!({})),
         // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS (PLAN-MOIS-INSTANTANE.md, ticket #212) : le dernier etat connu du
         // mois, tout de suite, meme perime (marque `perime`, et refait en fond) ; `attendre` : l'etat frais.

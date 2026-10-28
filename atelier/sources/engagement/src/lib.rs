@@ -25,6 +25,7 @@ pub mod relire;
 pub mod solde;
 pub mod numeros;
 pub mod stock;
+pub mod versions;
 #[cfg(feature = "ecran")]
 pub mod viser;
 
