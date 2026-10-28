@@ -1,45 +1,24 @@
-/* Ce qui part : actions, DSN, DPAE, depot, repetition, envoi, signature, avenant. */
+/* Ce qui part : les étapes du mois, et les boîtes qui déposent, envoient et font signer. */
 "use strict";
 
 /* =======================================================================
-   LE MOIS : CE QUI PART D'ICI
+   LES ÉTAPES DU MOIS
    =======================================================================
-   Quatre actes, un seul écran pour les quatre : déposer la DSN, déposer la
-   DPAE, envoyer les documents aux salariés, demander la signature des
-   contrats. Le moteur sait les faire depuis le 11/09/2026 ; ils n'avaient
-   pas d'écran, et un bouton qui n'existe pas est une fonction qui n'existe
-   pas.
+   Le moteur rend (`etat-du-mois`) les colonnes du mois et, étape par étape
+   (DPAE, Contrats, DSN, Documents), les groupes à dessiner : chacun son état
+   (`fait`, `a_faire`, `en_attente`, `refuse`), les colonnes qu'il couvre, ce
+   qu'il écrit (`compte_texte` en gras, `quoi`, `echeance.court`) et le geste
+   qu'ouvre un clic. La page en fait des cases alignées sur les colonnes — la
+   première, la grande, porte ce qui est fait ; ce qui reste sort à côté — et
+   relie les cases d'une étape à la suivante par des traits droits (l'arbre).
+   Elle ne choisit ni une couleur hors de l'état, ni une phrase, ni un geste.
 
-   TROIS RÈGLES, ET AUCUNE N'EST TENUE ICI — c'est tout le sujet :
-
-   1. La phrase d'état vient du JOURNAL, par le moteur (`journal.resume`).
-      Elle distingue trois choses qu'un écran confondrait vite : jamais
-      parti, parti sans réponse, parti et répondu. « En attente » affiché
-      comme « conforme », c'est une déclaration qu'on croit faite.
-   2. Rien ne part d'un clic. Chaque bouton ouvre un RÉCAPITULATIF, et le
-      récapitulatif demande le mot de passe DU LOGICIEL — pas celui de
-      l'organisme, que cette page ne voit jamais, ne demande jamais et ne
-      reçoit jamais. Le moteur va le chercher lui-même au coffre.
-   3. Le mois déclaré y est écrit EN GROS. Ce n'est pas de la décoration :
-      recopier le mois était le seul geste qu'on ne peut pas faire sans
-      regarder l'écran, et il a été retiré du parcours. Un mot de passe se
-      tape de mémoire, les yeux ailleurs — donc c'est ce bloc-là qui porte
-      désormais toute la lecture (docstring d'`operations.Preuve`).
-
-   La séance se voit AVANT le clic, et pourtant les boutons restent actifs.
-   Un garde-fou posé dans un front est un garde-fou qu'on contourne par
-   l'autre face : c'est `operations` qui refuse, et lui seul. La page
-   prévient, parce que découvrir un refus après avoir tapé son mot de passe
-   est une mauvaise façon d'apprendre qu'il fallait ouvrir la séance.
+   RIEN NE PART D'UN CLIC : une case ouvre un récapitulatif, qui demande le
+   mot de passe DU LOGICIEL, jamais celui de l'organisme (le moteur va le
+   chercher lui-même au coffre). C'est le moteur qui refuse un acte, et lui
+   seul : un garde-fou posé dans un front se contourne par l'autre.
 */
 let MOIS_ACTES = null;          // le dernier /api/etat-du-mois lu
-
-/* LE FIL DES ENVOIS N'EST PLUS ICI (20/10/2026, tickets #219, #220) : tous les envois du mois et tous leurs retours, lus,
- * sont dans l'Historique (js/historique.js, route `historique-mois`). L'étape garde son état et son bouton ; un lien
- * mène au mois dans l'Historique. */
-/* LES ÉTAPES DU MOIS (#257) : le moteur rend, étape par étape, les groupes à dessiner (`etat-du-mois`, `etapes`) —
- * chacun son état (fait, a_faire, en_attente, refuse), son compte, sa phrase courte, son échéance et le geste qu'ouvre
- * un clic — et laquelle est la suivante. La page ne décide rien : elle dessine ce que disent les groupes. */
 
 /** Le geste d'un groupe, tel que le moteur le nomme. */
 function ouvrirGeste(action, mois) {
@@ -48,6 +27,7 @@ function ouvrirGeste(action, mois) {
   switch (action.geste) {
     case "declarer_embauches": return boiteDpae(m);
     case "faire_signer": return boiteSignature(m);
+    case "contrats_en_attente": return boiteSignature(m);
     case "deposer_dsn": return deposerLaDsn(m);
     case "deposer_fichier": return boiteDepot(action.quoi, action.fichier);
     case "envoyer_documents": return boiteEnvoi(m);
@@ -55,10 +35,43 @@ function ouvrirGeste(action, mois) {
   }
 }
 
-/** La classe d'un état, pour la couleur que la feuille de style donne déjà. */
-const COULEUR_ETAT = { fait: "bien", a_faire: "alerte", en_attente: "alerte", refuse: "refus" };
+/** La classe d'une case, d'après l'état du groupe (la feuille de style en fait la couleur). */
+const CASE_DE_L_ETAT = { fait: "vert", a_faire: "orange", en_attente: "en-attente", refuse: "rouge" };
 
-/* -------------------------------------------- la colonne des quatre étapes */
+/** Les colonnes déjà dessinées pour un mois : une colonne qui apparaît entre en glissant. */
+const COLONNES_VUES = new Map();
+
+/** Une case : un groupe d'une étape (`k`, son rang), placé sur ses colonnes. */
+function dessinerCase(et, k, g, colonnes, neuves, gestes) {
+  const de = colonnes.indexOf(g.colonnes[0]) + 1;
+  const a = colonnes.indexOf(g.colonnes[g.colonnes.length - 1]) + 2;
+  const classe = CASE_DE_L_ETAT[g.etat] || "orange";
+  const fini = g.etat === "fait";
+  const cote = g.colonnes[0] !== colonnes[0];
+  const neuf = g.colonnes.some((c) => neuves.has(c));
+  const ech = g.echeance && g.echeance.court;
+  const titre = [et.nom, g.phrase, g.echeance && g.echeance.texte && `— ${g.echeance.texte}`, et.phrase]
+    .filter(Boolean).join(" ");
+  let bouton = "";
+  if (!fini && g.action) {
+    gestes.push(g.action);
+    bouton = `data-geste="${gestes.length - 1}" tabindex="0" role="button"`;
+  }
+  const quoi = `<span class="quoi">${g.compte_texte
+    ? `<span class="compte">${echapper(g.compte_texte)}</span> ` : ""}${echapper(g.quoi || "")}</span>`;
+  const limite = ech ? `<span class="ech">${echapper(ech)}</span>` : "";
+  const corps = g.etat === "en_attente" ? `
+      <span class="moitie faite"><span class="etape-rond">✓</span><b>${echapper(et.nom)}</b></span>
+      <span class="moitie attend"><span class="kase-texte">${quoi}${limite}</span></span>` : `
+      <span class="etape-rond">${fini ? "✓" : k + 1}</span>
+      <span class="kase-texte">
+        <span class="ligne1"><b>${echapper(et.nom)}</b></span>${fini ? "" : quoi}${limite}
+      </span>`;
+  return `<div class="kase ${classe}${cote ? " cote" : ""}${neuf ? " neuf" : ""}${bouton ? " cliquable" : ""}"
+      data-k="${k}" style="grid-column:${de} / ${a}" title="${echapper(titre)}" ${bouton}>${corps}</div>`;
+}
+
+/* -------------------------------------------- le panneau des quatre étapes */
 async function dessinerActions(mois) {
   const cible = document.getElementById("actions-mois");
   if (!mois) { cible.innerHTML = ""; return; }
@@ -71,50 +84,73 @@ async function dessinerActions(mois) {
     return;
   }
   MOIS_ACTES = e;
+  const colonnes = e.colonnes && e.colonnes.length ? e.colonnes : ["G"];
+  const vues = COLONNES_VUES.get(mois);
+  const neuves = new Set(vues ? colonnes.filter((c) => !vues.includes(c)) : []);
+  COLONNES_VUES.set(mois, colonnes);
+  const gabarit = colonnes.map((c, i) => i === 0 ? "minmax(0, 1.4fr)" : "minmax(0, 1fr)").join(" ");
   const gestes = [];
-  cible.innerHTML = `<ol class="etapes">` + (e.etapes || []).map((et, i) => {
-    const groupes = et.groupes || [];
-    const ouverts = groupes.filter((g) => g.etat !== "fait");
-    const fini = ouverts.length === 0;
-    const pire = ouverts.find((g) => g.etat === "refuse") || ouverts[0];
-    const couleur = pire ? COULEUR_ETAT[pire.etat] : "bien";
-    const courte = ouverts.map((g) => g.phrase).filter(Boolean).join(" · ");
-    const echeance = ouverts.map((g) => g.echeance && g.echeance.texte).find(Boolean);
-    const nEnvois = (e.lignes || []).filter((x) => x.quoi === et.cle).length;
-    const boutons = ouverts.filter((g) => g.action).map((g) => {
-      gestes.push(g.action);
-      return `<button class="${et.suivante ? "primaire" : "secondaire"}" data-geste="${gestes.length - 1}">${echapper(g.action.libelle)}</button>`;
-    });
+  cible.innerHTML = `<ol class="etapes">` + (e.etapes || []).map((et, k) => {
+    const cases = (et.groupes || []).map((g) => dessinerCase(et, k, g, colonnes, neuves, gestes)).join("");
+    let second = "";
     if (et.second) {
       gestes.push(et.second);
-      boutons.push(`<button class="secondaire" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`);
+      second = `<button class="lien etape-second" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`;
     }
-    return `
-      <li class="etape ${echapper(couleur)} ${fini ? "faite" : ""} ${et.suivante ? "suivante" : ""}">
-        <details ${et.suivante ? "open" : ""}>
-          <summary>
-            <span class="etape-rond">${fini ? "✓" : i + 1}</span>
-            <span class="etape-nom">${echapper(et.nom)}</span>
-            <span class="etape-court">${echapper(courte)}</span>${echeance
-              ? ` <span class="etape-limite"><b>${echapper(echeance)}</b></span>` : ""}
-          </summary>
-          <div class="etape-corps">
-            ${et.phrase ? `<div class="etape-phrase">${echapper(et.phrase)}</div>` : ""}
-            ${et.detail ? `<div class="discret etape-detail">${echapper(et.detail)}</div>` : ""}
-            ${boutons.join("")}
-            ${nEnvois ? `<button class="lien etape-envois" data-historique="${echapper(mois)}">voir ${nEnvois > 1
-              ? `les ${nEnvois} envois` : "l'envoi"} et leurs retours dans l'Historique</button>` : ""}
-          </div>
-        </details>
-      </li>`;
-  }).join("") + `</ol>`;
+    return `<li class="rangee${second ? " avec-second" : ""}">
+        <div class="kases" style="grid-template-columns:${gabarit}">${cases}</div>${second}</li>`;
+  }).join("") + `<svg class="arbre" aria-hidden="true"></svg></ol>`;
 
-  cible.querySelectorAll("[data-geste]").forEach((b) => {
-    b.onclick = () => ouvrirGeste(gestes[Number(b.dataset.geste)], mois);
+  cible.querySelectorAll("[data-geste]").forEach((d) => {
+    const ouvrir = (ev) => { ev.preventDefault(); ouvrirGeste(gestes[Number(d.dataset.geste)], mois); };
+    d.addEventListener("click", ouvrir);
+    if (d.getAttribute("role") === "button") {
+      d.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") ouvrir(ev); });
+    }
   });
-  cible.querySelectorAll("[data-historique]").forEach((b) => {
-    b.onclick = () => ouvrirMoisHistorique(b.dataset.historique);
+  dessinerArbre(cible.querySelector(".etapes"));
+  if (!dessinerActions.observe) {
+    // L'arbre suit la largeur du panneau (fenêtre redimensionnée, colonne qui réapparaît).
+    dessinerActions.observe = new ResizeObserver(() => dessinerArbre(cible.querySelector(".etapes")));
+    dessinerActions.observe.observe(cible);
+  }
+}
+
+/* L'ARBRE : un trait droit relie une case d'une étape à une case de la suivante. Chaque case du haut a le sien vers le
+ * bas si son milieu tombe dans une case ; chaque case du bas qu'aucun trait n'atteint a le sien vers le haut. Un trait
+ * est orange si ses deux bouts restent à faire (le rouge compte comme l'orange, l'attente aussi), vert sinon. */
+function dessinerArbre(liste) {
+  const svg = liste && liste.querySelector(".arbre");
+  if (!svg) return;
+  const base = liste.getBoundingClientRect();
+  if (!base.width) return;
+  const rangs = [...new Set([...liste.querySelectorAll(".kase")].map((el) => el.dataset.k))];
+  const boites = (k) => [...liste.querySelectorAll(`.kase[data-k="${k}"]`)].map((el) => {
+    // Le trait d'une case coupée tombe dans sa moitié qui attend.
+    const r = el.getBoundingClientRect();
+    const attend = el.querySelector(".moitie.attend");
+    const a = attend ? attend.getBoundingClientRect() : r;
+    return { el, r, x: a.left + a.width / 2 };
   });
+  const ouvert = (el) => !el.classList.contains("vert");
+  const couleur = (h, b) => ouvert(h) && ouvert(b) ? "orange" : "vert";
+  const traits = [];
+  for (let i = 0; i < rangs.length - 1; i++) {
+    const dessus = boites(rangs[i]), dessous = boites(rangs[i + 1]);
+    const dedans = (x, b) => x >= b.r.left && x <= b.r.right;
+    dessous.forEach((d) => {
+      const haut = dessus.find((h) => dedans(d.x, h));
+      const deja = dessus.some((h) => dedans(h.x, d));
+      if (haut && !deja) traits.push({ c: couleur(haut.el, d.el), x: d.x, y1: haut.r.bottom, y2: d.r.top });
+    });
+    dessus.forEach((h) => {
+      const bas = dessous.find((d) => dedans(h.x, d));
+      if (bas) traits.push({ c: couleur(h.el, bas.el), x: h.x, y1: h.r.bottom, y2: bas.r.top });
+    });
+  }
+  const ordre = { vert: 1, orange: 2 };
+  svg.innerHTML = traits.sort((a, b) => ordre[a.c] - ordre[b.c]).map((t) =>
+    `<path class="${t.c}" d="M${t.x - base.left},${t.y1 - base.top} V${t.y2 - base.top}"/>`).join("");
 }
 
 /* Ce qu'il faut relire après avoir déposé ou envoyé : l'état du mois affiché,

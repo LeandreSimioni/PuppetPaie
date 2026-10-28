@@ -43,15 +43,22 @@ pub(crate) use envois::etats::Cle3;
 /// Les quatre etapes du mois, dans l'ordre de l'habitude (aucun texte n'impose d'ordre).
 const ORDRE: [(&str, &str); 4] = [(DPAE, "DPAE"), (SIGNATURE, "Contrats"), (DSN, "DSN"), (DOCUMENTS, "Documents")];
 
-/// Un groupe d'une etape : son etat (`fait`, `a_faire`, `en_attente`, `refuse`), son compte, sa phrase courte, son
-/// echeance et le geste qu'ouvre un clic.
-fn groupe(etat: &str, compte: Value, phrase: Option<String>, echeance: Value, action: Value) -> Value {
-    json!({"etat": etat, "compte": compte, "phrase": phrase, "echeance": echeance, "action": action})
+/// Un groupe d'une etape : son etat (`fait`, `a_faire`, `en_attente`, `refuse`), son compte, ce qu'une case en ecrit
+/// (`compte_texte` en gras : « 2 », « 1/2 », « Lyon », ou rien ; `quoi` : « à déposer », « reçu »), les deux joints
+/// (`phrase`), son echeance et le geste qu'ouvre un clic.
+fn groupe(etat: &str, compte: Value, compte_texte: String, quoi: String, echeance: Value, action: Value) -> Value {
+    let phrase = if compte_texte.is_empty() { quoi.clone() } else { format!("{} {}", compte_texte, quoi) };
+    json!({"etat": etat, "compte": compte, "compte_texte": compte_texte, "quoi": quoi, "phrase": phrase, "echeance": echeance, "action": action})
 }
 
 /// Ce qui est fait : le nom de l'etape et la coche, rien d'autre.
 fn fait() -> Value {
-    groupe("fait", Value::Null, None, Value::Null, Value::Null)
+    json!({"etat": "fait", "compte": null, "compte_texte": "", "quoi": "", "phrase": null, "echeance": null, "action": null})
+}
+
+/// L'echeance d'un depot de DSN : `mots` le `jour` a `heure`, d'apres `source`.
+fn echeance_dsn(jour: Jour, heure: &'static str, source: &str) -> Value {
+    droit::echeances::Echeance { jour, mots: "avant le", heure, source: source.into() }.en_json()
 }
 
 /// Le geste d'un clic : ce que la page ouvre (`geste`) et ce que dit le bouton (`libelle`).
@@ -1117,9 +1124,9 @@ impl<'a> Moteur<'a> {
     }
 
     /// `bilan_du_mois` : LES ETAPES DU MOIS (#257), dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
-    /// avec les groupes que le panneau dessine : `{etat, compte, phrase, echeance, action}`, `etat` parmi `fait`,
+    /// avec les groupes que le panneau dessine : `{etat, compte, compte_texte, quoi, phrase, echeance, action}` (`groupe`), `etat` parmi `fait`,
     /// `a_faire`, `en_attente`, `refuse`. Un groupe `fait` n'a ni compte ni phrase ; un groupe qui reste compte en nombre
-    /// simple, avec son echeance et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
+    /// simple, avec son echeance (`texte`, et `court` sans l'annee, que la case ecrit) et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
     /// chaque groupe nomme celles qu'il couvre, les memes d'une etape a l'autre. L'etape `suivante` est la premiere qui a
     /// quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
     pub fn bilan_du_mois(&mut self, mois: &str) -> R<Value> {
@@ -1133,7 +1140,7 @@ impl<'a> Moteur<'a> {
                     let mut g = if est(&x["couleur"], "bien") {
                         fait()
                     } else {
-                        groupe(if est(&x["couleur"], "refus") { "refuse" } else { "a_faire" }, Value::Null, Some(valeur_en_texte(&x["courte"])), Value::Null, Value::Null)
+                        groupe(if est(&x["couleur"], "refus") { "refuse" } else { "a_faire" }, Value::Null, String::new(), valeur_en_texte(&x["courte"]), Value::Null, Value::Null)
                     };
                     g["colonnes"] = json!(["G"]);
                     json!({"cle": cle, "nom": nom, "groupes": [g], "phrase": x["phrase"].clone()})
@@ -1167,11 +1174,11 @@ impl<'a> Moteur<'a> {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].dpae == point).map(|(p, _)| p).collect();
             let n = siens.len();
             let g = match point.as_str() {
-                "refuse" => groupe("refuse", json!(n), Some(format!("{} refusée{} · l'éditeur est prévenu", n, plur(n, "", "s"))), echeance_de(&siens, DPAE), action("historique", "Voir le bilan…".into())),
+                "refuse" => groupe("refuse", json!(n), n.to_string(), format!("refusée{} · l'éditeur est prévenu", plur(n, "", "s")), echeance_de(&siens, DPAE), action("historique", "Voir le bilan…".into())),
                 "a_faire" => {
                     let (a, refus) = self.action_de_depot(mois, DPAE, &Value::Null, action("declarer_embauches", "Envoyer les DPAE…".into()))?;
-                    let phrase = refus.map_or_else(|| format!("{} à déposer", n), |r| format!("{} à déposer · {}", n, r));
-                    groupe("a_faire", json!(n), Some(phrase), echeance_de(&siens, DPAE), a)
+                    let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
+                    groupe("a_faire", json!(n), n.to_string(), quoi, echeance_de(&siens, DPAE), a)
                 }
                 _ => fait(),
             };
@@ -1200,15 +1207,16 @@ impl<'a> Moteur<'a> {
                     groupe(
                         "en_attente",
                         json!({"recus": recus, "partis": partis.len()}),
-                        Some(format!("{}/{} reçu{}", recus, partis.len(), plur(recus, "", "s"))),
+                        format!("{}/{}", recus, partis.len()),
+                        format!("reçu{}", plur(recus, "", "s")),
                         echeance_de(&siens, "contrat"),
                         action("faire_signer", "Relancer…".into()),
                     )
                 }
                 // L'AVENANT n'a pas d'echeance : L. 1242-13 date la remise du contrat a l'embauche, aucun texte depose ne
                 // date celle d'un avenant (regle 1 : rien ne se devine).
-                "a_refaire" => groupe("a_faire", json!(n), Some(format!("{} à refaire signer", n)), Value::Null, action("faire_signer", "Demander la signature…".into())),
-                "a_envoyer" => groupe("a_faire", json!(n), Some(format!("{} à envoyer", n)), echeance_de(&siens, "contrat"), action("faire_signer", "Demander la signature…".into())),
+                "a_refaire" => groupe("a_faire", json!(n), n.to_string(), "à refaire signer".into(), Value::Null, action("faire_signer", "Demander la signature…".into())),
+                "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), echeance_de(&siens, "contrat"), action("faire_signer", "Demander la signature…".into())),
                 _ => fait(),
             };
             contrats.push(avec(g, &noms));
@@ -1223,8 +1231,8 @@ impl<'a> Moteur<'a> {
             let siens: Vec<&Value> = de(&m).into_iter().zip(m.iter()).filter(|(_, i)| points[**i].documents == point).map(|(p, _)| p).collect();
             let n = siens.iter().map(|p| valeur_en_texte(&p["salarie"])).collect::<BTreeSet<String>>().len();
             let g = match point.as_str() {
-                "a_renvoyer" => groupe("a_faire", json!(n), Some(format!("{} à renvoyer", n)), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))),
-                "a_envoyer" => groupe("a_faire", json!(n), Some(format!("{} à envoyer", n)), echeance_de(&siens, DOCUMENTS), action("envoyer_documents", "Envoyer les documents…".into())),
+                "a_renvoyer" => groupe("a_faire", json!(n), n.to_string(), "à renvoyer".into(), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))),
+                "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), echeance_de(&siens, DOCUMENTS), action("envoyer_documents", "Envoyer les documents…".into())),
                 _ => fait(),
             };
             documents.push(avec(g, &noms));
@@ -1275,7 +1283,8 @@ impl<'a> Moteur<'a> {
         if classes.len() > 1 {
             for (nics, g) in classes.iter_mut().filter(|(_, g)| !est(&g["etat"], "fait")) {
                 let noms: Vec<String> = nics.iter().map(|n| nom_de_l_etablissement(&ent, n)).collect();
-                g["phrase"] = json!(format!("{} {}", noms.join(", "), valeur_en_texte(&g["phrase"])));
+                g["compte_texte"] = json!(noms.join(", "));
+                g["phrase"] = json!(format!("{} {}", noms.join(", "), valeur_en_texte(&g["quoi"])));
             }
         }
         Ok((classes, second))
@@ -1291,32 +1300,32 @@ impl<'a> Moteur<'a> {
     /// l'annule-et-remplace, puisqu'il n'y a rien a annuler ; l'echeance de la reprise est celle du depot initial.
     fn groupes_dsn_de(&mut self, mois: &str, nic: &Value) -> R<(Value, Value)> {
         let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
-        let au_depot = json!({"jour": echeance.jour.iso(), "texte": format!("avant le {} à midi", echeance.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)"});
+        let au_depot = echeance_dsn(echeance.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)");
         let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
         if !vrai(&e) {
             if !self.dsn_a_declarer(mois, nic)? {
                 return Ok((fait(), Value::Null));
             }
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
-            let phrase = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
-            return Ok((groupe("a_faire", json!(1), Some(phrase), au_depot, a), Value::Null));
+            let quoi = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
+            return Ok((groupe("a_faire", Value::Null, String::new(), quoi, au_depot, a), Value::Null));
         }
         if vrai(get(&e, "refusee")?) {
             return Ok((
-                groupe("refuse", json!(1), Some("refusée · l'éditeur est prévenu".into()), au_depot, action("historique", "Voir le bilan…".into())),
+                groupe("refuse", Value::Null, String::new(), "refusée · l'éditeur est prévenu".into(), au_depot, action("historique", "Voir le bilan…".into())),
                 Value::Null,
             ));
         }
         // Partie : faite, tant qu'aucun retour ne revient KO. Ce qui la rouvre : une paie modifiee depuis.
         let r = self.etat_remplacement(mois, nic)?;
         let libelle = format!("Refaire la DSN (annule-et-remplace, ordre {})…", r["prochain_ordre"]);
-        let veille = json!({"jour": r["limite"].clone(), "texte": format!("avant le {} à minuit", socle::date::Jour::lire(&valeur_en_texte(&r["limite"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default()), "source": "Cahier technique DSN 2026.1, § 1.4.2 (atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt)"});
+        let veille = Jour::lire(&valeur_en_texte(&r["limite"])).map_or(Value::Null, |j| echeance_dsn(j, "à minuit", "Cahier technique DSN 2026.1, § 1.4.2 (atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt)"));
         if vrai(&r["saisie_modifiee"]) && vrai(&r["a_envoyer"]) {
             // Un annule-et-remplace deja ecrit montre son chemin ; sinon, le refaire.
             let ecrit = self.chemin_de_depot(mois, DSN, nic)?.is_some();
             let (a, refus) = if ecrit { self.action_de_depot(mois, DSN, nic, Value::Null)? } else { (action("deposer_dsn", libelle), None) };
-            let phrase = refus.map_or_else(|| "à refaire".to_string(), |x| format!("à refaire · {}", x));
-            return Ok((groupe("a_faire", json!(1), Some(phrase), veille, a), Value::Null));
+            let quoi = refus.map_or_else(|| "à refaire".to_string(), |x| format!("à refaire · {}", x));
+            return Ok((groupe("a_faire", Value::Null, String::new(), quoi, veille, a), Value::Null));
         }
         if vrai(&r["saisie_modifiee"]) {
             // Apres la veille : la correction part dans la DSN du mois suivant, qui la porte d'elle-meme.
@@ -1327,9 +1336,10 @@ impl<'a> Moteur<'a> {
             return Ok((
                 groupe(
                     "a_faire",
-                    json!(1),
-                    Some(format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee))),
-                    json!({"jour": e2.jour.iso(), "texte": format!("avant le {} à midi", e2.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"}),
+                    Value::Null,
+                    String::new(),
+                    format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)),
+                    echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"),
                     a,
                 ),
                 Value::Null,

@@ -17,18 +17,37 @@ use serde_json::{json, Value};
 use socle::date::Jour;
 use socle::num::Resultat;
 
-/// Une echeance : le jour, et le texte depose qui la donne.
+/// Une echeance : le jour, ce qui le precede (« avant le », « au plus tard le »), l'heure s'il y en a une (« à midi »),
+/// et le texte depose qui la donne.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Echeance {
     pub jour: Jour,
-    /// « avant le 14/11/2026 », « au plus tard le 16/11/2026 ».
-    pub texte: String,
+    pub mots: &'static str,
+    pub heure: &'static str,
     pub source: String,
 }
 
 impl Echeance {
+    /// « avant le 14/11/2026 », « avant le 15/12/2026 à midi ».
+    pub fn texte(&self) -> String {
+        self.dire(&self.jour.jj_mm_aaaa())
+    }
+
+    /// Sans l'annee : « avant le 14/11 », « avant le 15/12 à midi ». C'est ce qu'ecrit une case du panneau.
+    pub fn court(&self) -> String {
+        self.dire(&self.jour.jj_mm())
+    }
+
+    fn dire(&self, jour: &str) -> String {
+        if self.heure.is_empty() {
+            format!("{} {}", self.mots, jour)
+        } else {
+            format!("{} {} {}", self.mots, jour, self.heure)
+        }
+    }
+
     pub fn en_json(&self) -> Value {
-        json!({"jour": self.jour.iso(), "texte": self.texte, "source": self.source})
+        json!({"jour": self.jour.iso(), "texte": self.texte(), "court": self.court(), "source": self.source})
     }
 }
 
@@ -49,7 +68,8 @@ pub fn jour_ouvrable(depuis: &Jour, n: i64, entreprise: Option<&Value>) -> Resul
 pub fn dpae(debut: &Jour) -> Echeance {
     Echeance {
         jour: *debut,
-        texte: format!("avant le {}", debut.jj_mm_aaaa()),
+        mots: "avant le",
+        heure: "",
         source: "Code du travail, art. L. 1221-10 (atelier/reference/sources/code-du-travail/xml/L1221-10.xml)".into(),
     }
 }
@@ -60,7 +80,8 @@ pub fn remise_du_contrat(debut: &Jour, idcc: &Value, code_emploi: &str, entrepri
     let loi = jour_ouvrable(debut, 2, entreprise)?;
     let mut e = Echeance {
         jour: loi,
-        texte: format!("au plus tard le {}", loi.jj_mm_aaaa()),
+        mots: "au plus tard le",
+        heure: "",
         source: "Code du travail, art. L. 1242-13 (atelier/reference/sources/code-du-travail/xml/L1242-13.xml)".into(),
     };
     let Some(conv) = crate::clauses::releve(idcc)? else { return Ok(e) };
@@ -72,7 +93,8 @@ pub fn remise_du_contrat(debut: &Jour, idcc: &Value, code_emploi: &str, entrepri
         if jour < e.jour {
             e = Echeance {
                 jour,
-                texte: format!("au plus tard le {}", jour.jj_mm_aaaa()),
+                mots: "au plus tard le",
+                heure: "",
                 source: format!(
                     "{}, art. {} ({})",
                     crate::clauses::nom(idcc),
@@ -93,7 +115,8 @@ pub fn remise_du_contrat(debut: &Jour, idcc: &Value, code_emploi: &str, entrepri
 pub fn remise_du_bulletin(paiement: &Jour) -> Echeance {
     Echeance {
         jour: *paiement,
-        texte: format!("au plus tard le {}", paiement.jj_mm_aaaa()),
+        mots: "au plus tard le",
+        heure: "",
         source: "Code du travail, art. L. 3243-2 (atelier/reference/sources/code-du-travail/xml/L3243-2.xml) ; le jour du paiement de l'engagement".into(),
     }
 }
