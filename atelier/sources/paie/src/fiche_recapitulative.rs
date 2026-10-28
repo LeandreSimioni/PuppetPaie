@@ -851,7 +851,7 @@ impl<'a> Recapitulatifs<'a> {
             return Ok(None);
         }
         let chemin = tmp.join(format!("R_{}.pdf", cle));
-        let octets = crate::routes_dossier_salarie::fusion_octets(&morceaux, tmp)?;
+        let octets = crate::fabrique::fusion_octets(&morceaux, tmp)?;
         std::fs::write(&chemin, octets).map_err(|e| Refus::from(format!("ecriture impossible de {} : {}", chemin.display(), e)))?;
         Ok(Some(chemin))
     }

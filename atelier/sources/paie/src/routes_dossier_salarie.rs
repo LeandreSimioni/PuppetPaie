@@ -38,6 +38,7 @@ use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use crate::fiche_recapitulative::Recapitulatifs;
 use socle::fichiers::vrai;
+use crate::fabrique::{fusion_octets, fusion_pieces, Temporaire};
 use socle::num::{eur2, Decimal};
 use socle::echec::Echec;
 use socle::echec::Refus;
@@ -140,55 +141,6 @@ fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
     let pied = PIED_REEDITE.replace("{}", &aujourdhui.jj_mm_aaaa());
     let marque = fabrique_pdf::marquage::marquer(&octets, &pied).map_err(|r| refus_fabrique(format!("{} : {}", nom, r.0)))?;
     std::fs::write(chemin, marque).map_err(|e| refus_fabrique(format!("écriture impossible de {} : {}", nom, e)))
-}
-
-/// `_fusion_fabrique` : des pieces (un PDF, ses pages 0-based ou toutes) fusionnees par la fabrique ;
-/// un refus est une `ErreurOperation`, aucun PDF n'est assemble autrement.
-fn fusion_pieces(pieces: &[(PathBuf, Option<Vec<usize>>)]) -> R<Vec<u8>> {
-    let liste: Vec<Value> = pieces
-        .iter()
-        .map(|(f, pages)| match pages {
-            Some(p) => json!({"fichier": f.to_string_lossy(), "pages": p.iter().map(|n| n + 1).collect::<Vec<_>>()}),
-            None => json!({"fichier": f.to_string_lossy()}),
-        })
-        .collect();
-    let description = json!({"format": 1, "pieces": liste});
-    fabrique_pdf::assemblage::assembler(&description.to_string()).map_err(|r| {
-        erreur_operation(format!(
-            "Assemblage impossible : la fabrique de PDF refuse la fusion ({}). Aucun PDF n'est assemblé autrement.",
-            r.0.replace('\n', " ").trim()
-        ))
-    })
-}
-
-/// `_fusion_fabrique` de PDF en memoire : chacun va dans un fichier de `tmp` le temps de la fusion.
-pub(crate) fn fusion_octets(morceaux: &[Vec<u8>], tmp: &Path) -> R<Vec<u8>> {
-    let dossier = Temporaire::nouveau_dans(tmp, "assemblage")?;
-    let mut pieces = Vec::new();
-    for (i, octets) in morceaux.iter().enumerate() {
-        let f = dossier.0.join(format!("piece{}.pdf", i));
-        std::fs::write(&f, octets).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
-        pieces.push((f, None));
-    }
-    fusion_pieces(&pieces)
-}
-
-/// Un dossier temporaire, retire quand on a fini (`tempfile.mkdtemp` puis `shutil.rmtree`).
-struct Temporaire(PathBuf);
-
-impl Temporaire {
-    fn nouveau_dans(parent: &Path, prefixe: &str) -> R<Temporaire> {
-        static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-        let p = parent.join(format!("{}-{}-{}", prefixe, std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::SeqCst)));
-        std::fs::create_dir_all(&p).map_err(|e| avec("OSError", format!("{} : {}", p.display(), e)))?;
-        Ok(Temporaire(p))
-    }
-}
-
-impl Drop for Temporaire {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
 }
 
 // ------------------------------------------------------------------ la periode

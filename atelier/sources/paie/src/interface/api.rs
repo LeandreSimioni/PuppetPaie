@@ -240,7 +240,7 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     for p in pieces {
         if p.get("fichier").and_then(Value::as_str) == Some(fichier.as_str()) {
             let mois = p.get("mois").cloned().unwrap_or(Value::Null);
-            return match crate::avenant::chemin_piece(racine, &mois, &Value::String(fichier.clone())) {
+            return match crate::etats::chemin_piece(racine, &mois, &Value::String(fichier.clone())) {
                 Some(f) => {
                     ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
                     Ok(json!({"fichier": fichier}))

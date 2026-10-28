@@ -49,7 +49,6 @@ const SUJET_SIGNATURE: &str = "Contrat d'engagement {spectacle} - {mois} {annee}
 const SUJET_SIGNATURE_PLURIEL: &str = "Contrats d'engagement - {mois} {annee}";
 const PREFIXE_RELANCE: &str = "Rappel - ";
 const RAPPEL_RELANCE: &str = "Petit rappel : ta signature n'est pas encore arrivée. C'est le même contrat que la dernière fois.\n\n";
-const ALPHABET_CODE: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CORPS_SIGNATURE: &str = "Bonjour {prenom},\n\n{contrats}\n\nPour {le_signer}, un clic suffit : appuie sur le bouton « Je signe » de ce message, puis envoie la réponse qui s'ouvre, sans la modifier. Si ta messagerie n'affiche pas le bouton, réponds simplement à ce message en écrivant « Je signe » suivi de ce code : {code}\n\nTu recevras aussitôt {exemplaire} signé des deux parties, à conserver.{avant_travail}\n\nSi quelque chose ne correspond pas à ce qui était convenu, dis-le avant de signer plutôt qu'après : c'est plus simple à corriger.\n\nBien à toi,\n{signataire}\n{raison_sociale}\n";
 const HTML_SIGNATURE: &str = "<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#2C3E50\">\n<p>Bonjour {prenom},</p>\n<p>{contrats}</p>\n<p>Pour {le_signer}, un clic suffit : appuie sur le bouton, puis envoie la réponse qui s'ouvre, sans la modifier.</p>\n<p style=\"margin:26px 0\">\n<a href=\"{mailto}\" style=\"display:inline-block;background:#B22222;color:#ffffff;padding:14px 26px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:16px\">Je signe</a>\n</p>\n<p style=\"font-size:13px;color:#555\">Si le bouton ne fait rien, réponds simplement à ce message en écrivant « Je signe » suivi de ce code : <b>{code}</b></p>\n<p>Tu recevras aussitôt {exemplaire} signé des deux parties, à conserver.{avant_travail}</p>\n<p>Si quelque chose ne correspond pas à ce qui était convenu, dis-le avant de signer plutôt qu'après : c'est plus simple à corriger.</p>\n<p>Bien à toi,<br>{signataire}<br>{raison_sociale}</p>\n</div>\n";
 pub(crate) const CORPS_REPONSE: &str = "Je soussigné(e) {nom} déclare avoir lu et accepter {quoi}.\n\nCode de signature : {code}\n";
@@ -84,25 +83,7 @@ fn et_fr(morceaux: &[String]) -> String {
 /// `code_signature` : `SIG-` puis six signes tires au hasard, sans 0/O ni 1/I/L, pour qu'il se relise sans
 /// hesiter s'il faut le recopier a la main.
 pub(crate) fn code_signature() -> String {
-    code_au_hasard("SIG-")
-}
-
-/// Un code a six signes derriere son prefixe (`SIG-` d'une signature, `FIC-` d'une fiche demandee a la personne).
-pub(crate) fn code_au_hasard(prefixe: &str) -> String {
-    let alphabet = ALPHABET_CODE.as_bytes();
-    let limite = 256 - 256 % alphabet.len();
-    let mut code = String::from(prefixe);
-    while code.len() < prefixe.len() + 6 {
-        let mut b = [0u8; 1];
-        if socle::temps::aleas(&mut b).is_err() {
-            let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_nanos()).unwrap_or(7);
-            b[0] = (t >> (code.len() % 3)) as u8;
-        }
-        if (b[0] as usize) < limite {
-            code.push(alphabet[b[0] as usize % alphabet.len()] as char);
-        }
-    }
-    code
+    crate::fiche_questionnaire::code_au_hasard("SIG-")
 }
 
 /// `signataire` et `raison` des courriels : le prenom d'affichage du signataire (sinon son prenom, capitalise), et
@@ -383,7 +364,7 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
             for (p, r) in ps.iter().zip(rs) {
                 let debut = p.engagement.debut.iso();
                 // Le contrat qui part est remplace, lui : le jumeau du meme jour qui n'est pas parti n'a rien a remplacer.
-                let Some(parti) = crate::avenant::contrat_parti(&lignes, k, &debut, Some(cles_j[*r][0].2.as_str()))? else {
+                let Some(parti) = crate::etats::contrat_parti(&lignes, k, &debut, Some(cles_j[*r][0].2.as_str()))? else {
                     return Err(refus(format!("Le contrat de {} du {} n'est jamais parti : il n'a rien à remplacer, il s'envoie. Rien n'est parti.", k, jj(&debut)?)));
                 };
                 if debut <= aujourdhui {

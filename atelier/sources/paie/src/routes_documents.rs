@@ -279,7 +279,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             if numero_voulu.is_some() && j.is_none() {
                 None
             } else {
-                crate::avenant::contrat_parti(&lignes, s, d, j.as_deref())?
+                crate::etats::contrat_parti(&lignes, s, d, j.as_deref())?
             }
         }
         _ => None,
@@ -305,7 +305,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let p = &paies[i];
     let g = m.globales()?;
-    let deja = crate::avenant::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
+    let deja = crate::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
     let ent = crate::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = crate::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;

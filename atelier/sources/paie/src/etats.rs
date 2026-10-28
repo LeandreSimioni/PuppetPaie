@@ -1767,6 +1767,107 @@ pub(crate) fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R
 }
 
 // Les etats et resumes sur un journal invente (noms et numeros fictifs).
+// ------------------------------------------------------ le journal
+
+/// Le dernier contrat parti a la signature pour cette paie (`operations_documents.contrat_parti`) :
+/// le mois, le numero, le fichier, la date d'envoi et, s'il est revenu, celle de la signature.
+/// Un avenant n'en est pas un.
+pub(crate) struct Parti {
+    pub(crate) mois: Value,
+    pub(crate) numero: Value,
+    pub(crate) fichier: Value,
+    pub(crate) quand: Value,
+    pub(crate) signe: Value,
+}
+
+impl Parti {
+    /// `(signe or quand or "")[:10]` : le jour qui date le contrat dans un avenant.
+    pub(crate) fn date(&self) -> String {
+        let t = if vrai(&self.signe) {
+            socle::date::en_texte(&self.signe)
+        } else if vrai(&self.quand) {
+            socle::date::en_texte(&self.quand)
+        } else {
+            String::new()
+        };
+        t.chars().take(10).collect()
+    }
+}
+
+/// `operations_documents.contrat_parti`. `numero` : le numero SOUS LEQUEL LE JOURNAL parle du contrat (Retours Windows, B,
+/// suite : deux contrats du meme salarie qui commencent le meme jour sont deux contrats) ; `None` : tous ceux de ce salarie a
+/// ce debut (le dernier l'emporte), comme avant.
+pub(crate) fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
+    let du_contrat = |l: &Value| -> Result<bool, Echec> {
+        Ok(numero.map_or(true, |n| valeur_en_texte(&numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
+    };
+    let mut parti: Option<Parti> = None;
+    for l in lignes {
+        if !accepte(l)? {
+            continue;
+        }
+        let d = ou(get(l, "detail")?, objet_vide());
+        let quoi = get(l, "quoi")?;
+        if est(quoi, SIGNATURE) {
+            for c in items(getd(d, "contrats", &LISTE_VIDE)?)? {
+                if !(est(get(&c, "salarie")?, salarie) && est(get(&c, "debut")?, debut) && du_contrat(&c)?) {
+                    continue;
+                }
+                if est(get(&c, "acte")?, "avenant") {
+                    continue;
+                }
+                parti = Some(Parti {
+                    mois: ou(get(&c, "mois")?, get(l, "mois")?).clone(),
+                    numero: get(&c, "numero")?.clone(),
+                    fichier: get(&c, "fichier")?.clone(),
+                    quand: get(l, "quand")?.clone(),
+                    signe: Value::Null,
+                });
+            }
+        } else if est(quoi, CONTRAT_RECU) {
+            if let Some(p) = parti.as_mut() {
+                if vrai(get(d, "recu")?) && est(get(d, "salarie")?, salarie) && est(get(d, "debut")?, debut) && du_contrat(d)? && p.signe.is_null() {
+                    p.signe = get(l, "quand")?.clone();
+                }
+            }
+        }
+    }
+    Ok(parti)
+}
+
+/// `operations_documents._chemin_piece` : le fichier d'une piece partie, dans `sorties/<mois>/` ou
+/// son `envoi/`. Un NOM, jamais un chemin : ce qui porte un separateur ne se resout pas.
+pub(crate) fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Option<PathBuf> {
+    if !vrai(mois) || !vrai(fichier) {
+        return None;
+    }
+    let nom = socle::date::en_texte(fichier);
+    if ["/", "\\", ".."].iter().any(|x| nom.contains(x)) {
+        return None;
+    }
+    let base = racine.join("sorties").join(socle::date::en_texte(mois));
+    [base.join("envoi").join(&nom), base.join(&nom)].into_iter().find(|f| f.is_file())
+}
+
+/// `operations_documents._avenants_du_contrat` : les avenants du contrat parti -- pas ceux d'un
+/// contrat qu'il a remplace. `tous` : ce que `journal.avenants` dit pour cette paie (la liste, ou rien).
+pub(crate) fn avenants_du_contrat(tous: Option<&Value>, parti: &Parti) -> Vec<Value> {
+    let depuis = if vrai(&parti.quand) { socle::date::en_texte(&parti.quand) } else { String::new() };
+    tous.and_then(Value::as_array)
+        .map(Vec::as_slice)
+        .unwrap_or(&[])
+        .iter()
+        .filter(|x| {
+            let quand = match x.get("quand") {
+                Some(v) if vrai(v) => socle::date::en_texte(v),
+                _ => String::new(),
+            };
+            quand >= depuis
+        })
+        .cloned()
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

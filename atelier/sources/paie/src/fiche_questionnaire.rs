@@ -22,9 +22,27 @@ use socle::date::Jour;
 
 pub const ALPHABET_CODE: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
+/// Un code a six signes derriere son prefixe (`SIG-` d'une signature, `FIC-` d'une fiche demandee a la personne).
+pub fn code_au_hasard(prefixe: &str) -> String {
+    let alphabet = ALPHABET_CODE.as_bytes();
+    let limite = 256 - 256 % alphabet.len();
+    let mut code = String::from(prefixe);
+    while code.len() < prefixe.len() + 6 {
+        let mut b = [0u8; 1];
+        if socle::temps::aleas(&mut b).is_err() {
+            let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.subsec_nanos()).unwrap_or(7);
+            b[0] = (t >> (code.len() % 3)) as u8;
+        }
+        if (b[0] as usize) < limite {
+            code.push(alphabet[b[0] as usize % alphabet.len()] as char);
+        }
+    }
+    code
+}
+
 /// `code_fiche` : `FIC-` puis six signes tires au hasard dans `ALPHABET_CODE`.
 pub fn code_fiche() -> String {
-    crate::envois_signature::code_au_hasard("FIC-")
+    code_au_hasard("FIC-")
 }
 
 /// Les questions : (cle de la reponse, libelle, facultatif).
