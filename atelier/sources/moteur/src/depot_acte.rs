@@ -33,7 +33,7 @@ pub use envois::depot_acte::{phrase_de, DepotFait};
 use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
-/// voyagent ensemble dans le message, que `routes.rs` redresse en `{"erreur", "classe", <cle>}`.
+/// voyagent ensemble dans le message, que `routes::commande` redresse en `{"erreur", "classe", <cle>}`.
 pub(crate) fn avec_donnee(classe: &'static str, message: impl Into<String>, cle: &str, donnee: Value) -> Echec {
     Echec { classe: Some(classe), message: json!({"message": message.into(), cle: donnee}).to_string() }
 }

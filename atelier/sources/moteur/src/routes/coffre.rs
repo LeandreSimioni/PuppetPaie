@@ -1,16 +1,10 @@
-//! Les routes qui ECRIVENT du lot G3 (`moteur/web.py`, `operations_ouverture`, `operations_exercice`,
-//! `operations_importation`) : le coffre (`coffre-poser`, `coffre-compte-dpae`, `coffre-oublier`), le mot de
-//! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`), `google-oublier`, `maj-malgre-calcul`,
-//! `cloture` (et `rouvrir`), `export-compta` et `importer`.
+//! Les routes du coffre et des mots de passe : ce qui est pose (`coffre-etat`, `google-etat`), poser ou oublier un
+//! secret (`coffre-poser`, `coffre-compte-dpae`, `coffre-oublier`, `google-oublier`), changer ou retirer le mot de
+//! passe du logiciel (`mot-de-passe-changer`, `mot-de-passe-retirer`).
 //!
-//! Memes fichiers ecrits, aux memes octets, memes reponses que le Python ; un refus garde sa phrase quand
-//! elle est utile a la page, la classe de l'exception peut differer (`ErreurCoffre` devient
-//! `ErreurOperation`, `ExerciceOuvert` et `ClotureRefusee` aussi).
-//!
-//! - Le coffre : ce que `moteur coffre` faisait deja (`coffre.rs`) ; ces routes y ajoutent la porte, le mot de
-//!   passe du logiciel s'il est pose (`filet::exiger_mot_de_passe`). Aucune valeur de secret ne sort : la
-//!   reponse est l'etat du coffre, des presences et des dates.
-//! - `cloture`, `export-compta` : `exercice_ecrit.rs`. `importer` : `importation_ecrite.rs`.
+//! Aucune valeur de secret ne sort : la reponse est l'etat du coffre, des presences et des dates. Ces routes passent
+//! par la porte du mot de passe du logiciel s'il est pose (`filet::exiger_mot_de_passe`) ; le coffre lui-meme est
+//! `coffre.rs`.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -253,8 +247,7 @@ fn erreur_google(message: impl Into<String>) -> Echec {
 pub(crate) fn identifiants(racine: &Path) -> R<(Value, Value, String)> {
     let p = config(racine).join(FICHIER_IDENTIFIANTS);
     if p.exists() {
-        // Un `google.json` illisible est un refus, pas un plantage (le Python laissait passer une trace : `JSONDecodeError`,
-        // `UnicodeDecodeError`, `AttributeError`). Decision de Leandre : un defaut du Python ne se reproduit pas.
+        // Un `google.json` illisible est un refus, pas un plantage (`JSONDecodeError`, `UnicodeDecodeError`, `AttributeError`).
         let illisible = |raison: String| erreur_google(format!("{} est illisible : {}.\nLe corriger, ou le supprimer pour revenir a l'application du logiciel.", p.display(), raison));
         let octets = std::fs::read(&p).map_err(|e| illisible(e.to_string()))?;
         let texte = String::from_utf8(octets).map_err(|e| illisible(e.to_string()))?;

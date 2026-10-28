@@ -332,7 +332,7 @@ fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
 }
 
 /// `etat-par-engagement`, `etat-du-mois` et `mois`, servis par l'etat du mois : pour les deux premiers, le meme JSON que
-/// `routes_mois`.
+/// `routes::etapes`.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let (brut, mois) = crate::routes::etapes::mois_de(charge)?;
     let etat = lire(o, ctx, &mois)?;

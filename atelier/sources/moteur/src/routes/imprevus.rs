@@ -1,18 +1,18 @@
-//! Les routes des IMPREVUS d'un salarie (`imprevus`, 15/10/2026) : la liste (`imprevus`), le maintien de salaire d'un
-//! arret (`arret-maintien`), l'avis de prolongation d'un arret (`arret-prolonger`, 21/10/2026), et la suspension du
-//! bloc 65 saisie une fois (`suspension-enregistrer`, `-modifier`, `-oublier`). Les arrets se saisissent, se
-//! reprennent, se signalent et s'oublient par leurs routes de toujours (`routes_ecritures_g2`, `routes_actes_h1`), dans le
-//! meme magasin.
+//! Les routes des IMPREVUS d'un salarie : la liste (`imprevus`, `arrets`, `fins-de-contrat`, `arret-contrats`), l'arret
+//! saisi, repris, prolonge, signale ou oublie (`arret-enregistrer`, `arret-reprise`, `arret-prolonger`,
+//! `arret-signaler`, `arret-oublier`), son maintien de salaire (`arret-maintien`), la suspension du bloc 65
+//! (`suspension-enregistrer`, `-modifier`, `-oublier`), et la fin d'un contrat signalee, avec ses documents
+//! (`fin-contrat-signaler`, `fin-contrat-documents`).
 //!
 //! RIEN NE PART D'ICI : un imprevu s'ecrit dans `imprevus/AAAA-MM.json`, et c'est la production du mois qui en tire la
-//! ligne de paie et le bloc de la DSN. Les refus sont des `ErreurOperation` (la page les montre tels quels) ; un refus
-//! n'ecrit rien.
+//! ligne de paie et le bloc de la DSN ; un signalement s'ecrit en fichier, il ne s'envoie pas. Les refus sont des
+//! `ErreurOperation` (la page les montre tels quels) ; un refus n'ecrit rien.
 //!
-//! CE QUI S'Y SAISIT, ET CE QUI L'APPELLE (regle de Leandre, 15/10/2026 : rien de remplissable s'il n'y a pas a le
-//! remplir). Le moteur dit, sur chaque imprevu resume (`resume`), ce que ses faits ouvrent : `maintien_ouvert` (le
-//! contrat est paye au mois : un complement de salaire peut s'y verser, mois par mois, `mois_du_maintien`) et
-//! `jours_deja_indemnises_attendus` (et le motif est une maladie ou un accident, L1226-1 : D1226-4 compte les jours deja
-//! indemnises dans les douze mois). La page n'ouvre que cela.
+//! CE QUI S'Y SAISIT, ET CE QUI L'APPELLE (rien de remplissable s'il n'y a pas a le remplir). Le moteur dit, sur chaque
+//! imprevu resume (`resume`), ce que ses faits ouvrent : `maintien_ouvert` (le contrat est paye au mois : un complement
+//! de salaire peut s'y verser, mois par mois, `mois_du_maintien`) et `jours_deja_indemnises_attendus` (et le motif est
+//! une maladie ou un accident, L1226-1 : D1226-4 compte les jours deja indemnises dans les douze mois). La page n'ouvre
+//! que cela.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -1543,7 +1543,7 @@ mensuelle et le signalement le declarent tous deux."
 
 /// `operations_permanents.fins_a_signaler` : les contrats qui finissent dans `mois` et dont la fin SE SIGNALE, chacun avec
 /// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
-/// colonne du mois) et les rappels de l'ouverture (`routes_ouverture`) la lisent.
+/// colonne du mois) et les rappels de l'ouverture (`rappels`) la lisent.
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
     let Some(saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Ok(Vec::new());

@@ -10,7 +10,7 @@
  * formulaire et ne se modifie pas : elle écrit les engagements du fichier
  * qu'elle montre, tels quels (`engagementsLus`). Ce que le moteur tient seul —
  * la validation et sa carte figée, la réouverture, `_origine` — il le reprend
- * du fichier (`fusionner`, routes_ecritures.rs), quoi que la page envoie. */
+ * du fichier (`moteur/src/routes/mois.rs`), quoi que la page envoie. */
 
 /** Les engagements de la saisie lue qu'une carte montre (`data-rangs`). */
 function engagementsLus(div) {

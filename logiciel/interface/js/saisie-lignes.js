@@ -901,7 +901,7 @@ function construireCarte(div, e) {
          Sécurité sociale, tranches de retraite, abattement, réduction
          générale — le taux effectif dépend du montant lui-même. C'est le
          moteur qui cherche, en rejouant la paie entière (route « ajuster »,
-         moteur/src/routes_ecritures.rs), et la note dit ce qui est ATTEINT,
+         moteur/src/routes/mois.rs), et la note dit ce qui est ATTEINT,
          jamais ce qui a été demandé : deux cachets ne tombent pas toujours
          sur 500,00 € pile, et à égalité c'est le taux qui ne dépasse PAS
          l'enveloppe qui gagne. -->

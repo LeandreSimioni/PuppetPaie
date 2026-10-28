@@ -1,13 +1,6 @@
-//! Les routes qui ECRIVENT du lot G4 : `valider-engagement`, `retirer-engagement`, `contrat-recu`, `journal-reprise`, `ecrire-documents`,
-//! `exporter`, `retenir-logiciel`, `casc-regularise` et `courriels-fictifs`. Un refus garde sa phrase quand elle est
-//! utile a la page.
-//!
-//! - `valider-engagement` valide un engagement (ses paies s'ecrivent) ou le remet en saisie (« Modifier… »).
-//! - `retirer-engagement` supprime un engagement dont rien n'est parti, ou le rend non actif.
-//! - `contrat-recu` note au journal qu'un contrat signe est revenu (ou retire la note).
-//! - `exporter` route vers tous les etats (`etats_paie`, `etats_organismes`, `etats_personnel`, `etats_compta`,
-//!   `casc_regularisation`) et rend le tableau en JSON (`tableaux_export::brut_tableau`).
-//! - `retenir-logiciel` ecrit `config/compta.json` et rend le controle du plan pour ce logiciel.
+//! Les routes de l'engagement : le valider, ou le remettre en saisie (« Modifier l'engagement… ») (`valider-engagement`),
+//! et le retirer (`retirer-engagement` : supprime s'il n'en est rien parti, sinon rendu non actif). Un refus garde sa
+//! phrase quand elle est utile a la page.
 
 
 use std::collections::HashMap;
@@ -88,7 +81,7 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let rendu = if valide {
         match deja {
             Some(le) => le,
-            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| Echec::from(crate::routes::rappels::refus_du_calcul(ctx, &data, m)))?.le().to_string()),
+            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string()),
         }
     } else {
         if !confirme {

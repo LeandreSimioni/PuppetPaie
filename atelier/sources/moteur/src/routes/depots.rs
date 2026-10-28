@@ -1,16 +1,10 @@
-//! Les routes du lot H1 : produire des fichiers, sans rien envoyer (`moteur/web.py`,
-//! `operations_declarations.produire_dpae`, `operations_arrets.produire`,
-//! `operations_permanents.produire_fctu` et `documents_de_fin`, `documents_fin`) :
-//! `dpae`, `arret-signaler`, `fin-contrat-signaler` et `fin-contrat-documents`.
+//! Les routes des declarations : produire la DPAE (`dpae`), montrer et deposer la DSN du mois (`depot-apercu`,
+//! `dsn-a-deposer`, `deposer`), suivre un depot (`suivre-depot`), le bilan d'une repetition (`bilan-repetition`), et
+//! preparer le filet DPAE (`filet-preparer`).
 //!
-//! Les formats sont ailleurs (`dpae`, `signalement`, `fctu`, `amorcage`, la fabrique de PDF) : ce
-//! module ne fait que l'enchainement -- charger, choisir, refuser, nommer, ecrire. Memes fichiers
-//! ecrits, memes reponses que le Python (ce qui compte, ce sont les VALEURS) ; une phrase de refus
-//! garde sa forme quand elle est utile a la page, la classe de l'exception peut differer.
-//!
-//! AUCUN DEPOT, AUCUN RESEAU : rien ne part d'ici. Le jour est celui du contexte
-//! (`PUPPETPAIE_AUJOURDHUI`, que `paie_rust` pose a la date du jour) ; l'horodatage d'un fichier
-//! partiel de DPAE est la minute de l'horloge, a l'heure de Paris.
+//! Les formats sont ailleurs (`dpae`, la DSN de `declarations`, la fabrique de PDF) : ce module enchaine -- charger,
+//! choisir, refuser, nommer, ecrire, et passer a `envois` ce qui part. Le jour est celui du contexte
+//! (`PUPPETPAIE_AUJOURDHUI`) ; l'horodatage d'un fichier partiel de DPAE est la minute de l'horloge, a l'heure de Paris.
 
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -322,10 +316,9 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         )));
     }
 
-    // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche. Le Python ne le
-    // voyait pas (une embauche par paie retenue). Decision du 07/10/2026 : la DPAE ne se produit pas ; le refus dit
-    // lesquelles (salarie, jour) et qu'il faut corriger la saisie. Ni le numero de contrat ni la validation ne distinguent
-    // deux lignes.
+    // RETOURS WINDOWS, D : DEUX LIGNES IDENTIQUES d'une saisie declareraient deux fois la meme embauche : la DPAE ne se
+    // produit pas, le refus dit lesquelles (salarie, jour) et qu'il faut corriger la saisie. Ni le numero de contrat ni
+    // la validation ne distinguent deux lignes.
     if let Some(brutes) = data.get("engagements").and_then(Value::as_array).filter(|b| b.len() == paies.len()) {
         let sans_numero = |v: &Value| -> Value {
             match v {
@@ -419,7 +412,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             f = Some(choisi);
         }
     }
-    // JAMAIS PAR-DESSUS UN AUTRE (lot I1 : deux DPAE jouees dans la meme minute s'ecrasaient ; l'ancien Python aussi) : si le
+    // JAMAIS PAR-DESSUS UN AUTRE (deux DPAE jouees dans la meme minute s'ecraseraient) : si le
     // nom a la minute est pris par une declaration DIFFERENTE, le fichier prend `-2`, `-3`... ; le nom ordinaire ne change pas.
     if f.is_none() && !marque.is_empty() {
         marque = nom_libre_du_partiel(&sortie, &etiq, &marque);
@@ -530,8 +523,8 @@ mod tests_dpae_partielles {
 
     #[test]
     fn deux_dpae_dans_la_meme_minute_ne_s_ecrasent_jamais() {
-        // Defaut de l'ancien Python (lot I1) : le nom `DPAE_<mois>_<AAAAMMJJ-HHMM>.txt` est a la minute, et la seconde
-        // declaration ecrasait la premiere ; le depot du premier jour n'etait plus relisible tel qu'il avait ete depose.
+        // Le nom `DPAE_<mois>_<AAAAMMJJ-HHMM>.txt` est a la minute : la seconde declaration de la minute ecraserait la
+        // premiere, et le depot du premier jour ne serait plus relisible tel qu'il a ete depose.
         let d = dossier();
         let marque = "_20261007-1815";
         // Cas ordinaire : le nom ne change pas.

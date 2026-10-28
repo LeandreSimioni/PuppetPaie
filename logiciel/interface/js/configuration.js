@@ -1007,7 +1007,7 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET (le moteur, `routes_fiches::deriver`, #236) ;
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`, #236) ;
  *    `convention_collective`,
  *    `code_convention_dsn` : l'IDCC (`brancherConvention`) ;
  *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,

@@ -1,6 +1,6 @@
 //! `bulletin_lu` (lot B du plan d'import des bulletins) : une page de PDF devient un bulletin lu, tel qu'il est.
 //!
-//! LES PDF SONT FICTIFS, fabriques par la fabrique (`bulletins_fictifs/mod.rs`, partage avec `routes_importation`) (`texte_fixe`, positions du haut-gauche de la page) aux
+//! LES PDF SONT FICTIFS, fabriques par la fabrique (`bulletins_fictifs/mod.rs`, partage avec `routes::import`) (`texte_fixe`, positions du haut-gauche de la page) aux
 //! positions des deux gabarits de la table livree : CoolPaie (A) et sPAIEctacle (B). Noms, adresses, NIR, Siret,
 //! numeros d'objet, titres et montants sont inventes ; rien de `prive/`, aucun des PDF reels de `import/`.
 //!

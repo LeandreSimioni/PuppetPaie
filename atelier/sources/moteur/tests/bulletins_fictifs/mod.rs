@@ -1,4 +1,4 @@
-//! Les PDF FICTIFS de bulletins, communs aux tests (`bulletin_lu`, `routes_importation`). La fabrique elle-meme (les
+//! Les PDF FICTIFS de bulletins, communs aux tests (`bulletin_lu`, `routes::import`). La fabrique elle-meme (les
 //! gabarits CoolPaie (A) et sPAIEctacle (B), le PDF) est celle de l'outil d'atelier `moteur-atelier fabriquer-bulletins` :
 //! `src/atelier/bulletins_fictifs.rs`, inclus ici tel quel (un seul code). Ici, les exemples des tests : noms, adresses,
 //! NIR, Siret, numeros d'objet, titres et montants inventes ; rien de `prive/`, aucun des PDF reels de `import/`.

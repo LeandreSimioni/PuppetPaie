@@ -1,9 +1,9 @@
-//! Les apercus des documents du mois : `signature-apercu`, `avenant-apercu`,
-//! `envoi-apercu` -- ce que la page montre AVANT qu'on envoie un contrat, un avenant ou les
-//! documents du mois.
+//! Les routes des documents du mois : ce que la boite montre avant l'envoi (`envoi-apercu`), les envoyer par courriel
+//! (`envoyer-documents`) ou les imprimer (`documents-imprimer`) ; l'un et l'autre sont un depart (bulletins et
+//! certificats numerotes, une ligne au journal, la paie figee). Et ce que les envois partagent avec `contrats` et
+//! `archives` : la boite qui envoie (`client_courriel`), la preuve (`preuve_de`), les lectures de la charge.
 //!
-//! Aucun reseau, aucun mot de passe. La seule ecriture de ce module : le rangement des AER revenues (`ranger_aer`) dans
-//! `sorties/<mois>/envoi/`, pour `envoi-apercu`.
+//! La seule ecriture de l'apercu : le rangement des AER revenues (`ranger_aer`) dans `sorties/<mois>/envoi/`.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -12,6 +12,7 @@ use serde_json::{json, Map, Value};
 
 use crate::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::etapes::Moteur;
+use crate::routes::qui_de;
 use droit::contexte::Contexte;
 use envois::courriel::{BoiteSimulee, Courriel};
 use envois::envoi;
@@ -545,7 +546,7 @@ fn capitaliser(t: &str) -> String {
 }
 
 /// Ce qui peut partir de `mois` (`engagement::etats::validees_du_mois` : la saisie des engagements valides et leurs paies
-/// ecrites), numerote. L'envoi des documents (`routes_envois`) prepare ses messages sur les memes paies que l'apercu.
+/// ecrites), numerote. L'envoi des documents (`envoyer_documents`) prepare ses messages sur les memes paies que l'apercu.
 pub(crate) fn charger_le_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<engagement::calcul::Paie>)> {
     let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
         return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
@@ -570,7 +571,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`crate::routes::documents::choisir`).
     let choix = crate::routes::documents::choisir(ctx, &mois, &paies)?;
-    // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`routes_envois`).
+    // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`envoyer_documents`).
     let messages = if prets.get("pret").is_some_and(vrai) {
         let mut cles: Vec<String> = Vec::new();
         for p in &paies {
@@ -716,11 +717,6 @@ pub(crate) fn vrai_ou(d: &Value, cle: &str) -> Option<String> {
 /// `charge[cle]` en texte (`KeyError` si elle manque).
 pub(crate) fn charge_texte(charge: &Value, cle: &str) -> R<String> {
     Ok(valeur_en_texte(requis(charge, cle)?))
-}
-
-/// Le `qui` du journal : celui que la charge donne (la ligne de commande : `ligne de commande`), sinon « interface ».
-pub(crate) fn qui_de(charge: &Value) -> String {
-    vrai_ou(charge, "qui").unwrap_or_else(|| "interface".to_string())
 }
 
 /// `Preuve(motdepasse=charge.get("motdepasse"))`.

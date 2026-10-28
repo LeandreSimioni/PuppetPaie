@@ -1,28 +1,23 @@
-//! Les deux routes de l'ouverture : `rappels` et `apercu`.
-//!
-//! `rappels` : ce que le logiciel propose en ouvrant une compagnie (la DSN des mois passes, ce qui est du -- les fins
-//! de contrat qui se signalent et ce qu'un arret fait naitre, de `obligations.rs` --, les DPAE, la cloture de
+//! La route `rappels` : ce que le logiciel propose en ouvrant une compagnie (la DSN des mois passes, ce qui est du -- les
+//! fins de contrat qui se signalent et ce qu'un arret fait naitre, de `obligations.rs` --, les DPAE, la cloture de
 //! l'exercice, l'export compta, la revue des spectacles). Aucun calcul de paie : les engagements se lisent sans
-//! chiffrer, et leur etat (`engagement::etats`), le journal par `etats`.
+//! chiffrer, et leur etat (`engagement::etats`), le journal par `etats`. Ses lectures servent aussi le panneau et le
+//! filet (`mois_a_declarer`, `embauches_suivies`, `exercice_clos`).
 //!
-//! `apercu` : le mois pour l'ecran, rien d'ecrit. Un engagement valide montre la paie qu'il a ecrite ; un engagement
-//! en saisie se calcule en memoire (`paies_de_l_ecran`) ; les numeros se reservent sans rien ecrire.
-//!
-//! Un refus porte sa `classe` : voir `encoder` et `decoder`, que `routes.rs` utilise.
+//! Un refus porte sa `classe` : voir `encoder` et `decoder`, que `mod.rs` utilise.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use engagement::calcul::Paie;
 use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
-use engagement::{self, Avis, Engagement};
+use engagement::{self, Engagement};
 use envois::etats;
 use socle::fichiers::{lire_json, vrai};
-use socle::num::{dec, flottant, Decimal, Resultat};
+use socle::num::Resultat;
 
 // ------------------------------------------------------------------ les refus
 
@@ -59,7 +54,6 @@ pub fn decoder(erreur: &str) -> (Option<&str>, &str) {
 pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Option<Resultat<Value>> {
     let r = match route {
         "rappels" => rappels(o, charge),
-        "apercu" => apercu(o, charge),
         _ => return None,
     };
     Some(r.map_err(encoder))
@@ -69,7 +63,7 @@ pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Opti
 
 
 /// `str(x)` d'une valeur facultative (`None` si absente).
-fn texte(v: Option<&Value>) -> String {
+pub(super) fn texte(v: Option<&Value>) -> String {
     v.map_or("None".to_string(), en_texte)
 }
 
@@ -223,7 +217,7 @@ impl Rappel {
 }
 
 /// `sortie_json.brut` d'un JSON : les cles qui commencent par `_` s'en vont.
-fn brut_valeur(v: &Value) -> Value {
+pub(super) fn brut_valeur(v: &Value) -> Value {
     match v {
         Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), brut_valeur(x))).collect()),
         Value::Array(a) => Value::Array(a.iter().map(brut_valeur).collect()),
@@ -708,7 +702,7 @@ fn rappel_d_obligation(o: &Value, cle: String, titre: String, question: String, 
     r
 }
 
-/// Le nom d'un salarie tel que les listes le montrent (`routes_accueil` : « NOM Prenom ») ; sa cle a defaut.
+/// Le nom d'un salarie tel que les listes le montrent (`ouverture` : « NOM Prenom ») ; sa cle a defaut.
 fn nom_affiche(ctx: &Contexte, cle: &str) -> String {
     let Ok(f) = ctx.salarie(cle) else { return cle.to_string() };
     let prenom = f.get("prenom_affichage").filter(|p| vrai(p)).or(f.get("prenom")).map(en_texte).unwrap_or_default();
@@ -1023,416 +1017,3 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
     }
     Ok(out)
 }
-
-// ============================================================== l'apercu
-
-/// Le refus du calcul d'une saisie : le moteur refuse avec sa phrase, mais
-/// quand la saisie elle-meme est encore incomplete (un spectacle pas encore
-/// choisi, des jours ou des heures pas encore saisis :
-/// `engagement::saisie_incomplete`) c'est cette phrase-la, sous son nom
-/// (`SaisieIncomplete`), qui monte (`operations_paies.charger`). La page les
-/// dit sobrement ; l'ecran enregistre a chaque frappe, donc ce ne sont pas des
-/// defauts du logiciel.
-pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> Refus {
-    if engagement::saisie_incomplete(&message) {
-        return avec_classe("SaisieIncomplete", message);
-    }
-    if let Some(m) = engagement::refus_de_saisie_incomplete(ctx, data) {
-        return avec_classe("SaisieIncomplete", m);
-    }
-    Refus::from(message)
-}
-
-/// Une saisie recue : un dictionnaire (l'ecran), ou un mois (`AAAA-MM`, la saisie que ses engagements montrent).
-fn saisie_recue(ctx: &Contexte, charge: &Value) -> R<Value> {
-    match charge.get("saisie") {
-        None => Err(avec_classe("KeyError", socle::fichiers::absent("saisie"))),
-        Some(d) if d.is_object() => Ok(d.clone()),
-        Some(Value::String(s)) => {
-            let mut v = engagement::saisie_du_mois(&ctx.racine, s).map_err(|m| avec_classe("FileNotFoundError", m))?;
-            v["mois"] = Value::String(s.clone());
-            Ok(v)
-        }
-        Some(autre) => Err(avec_classe("TypeError", format!("saisie illisible : {}", autre))),
-    }
-}
-
-/// Une paie que l'ecran montre, et pourquoi elle s'est recalculee d'elle-meme (`{"le", "raison"}`), s'il y a lieu.
-pub(crate) struct PaieMontree {
-    pub(crate) paie: Paie,
-    pub(crate) recalcul: Option<Value>,
-}
-
-/// LES PAIES QUE L'ECRAN MONTRE POUR LA SAISIE `data` : un engagement valide se lit (sa paie ecrite, `etats::Valide::paie`),
-/// un engagement en saisie se calcule, sans rien ecrire. Un mois tout valide ne calcule rien.
-///
-/// L'ecran rend chaque engagement valide tel que le moteur le lui a montre (`valide` pose) : il retrouve le sien, sur le
-/// disque, par le salarie et le premier jour, dans l'ordre.
-pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Vec<PaieMontree>> {
-    let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let disque = engagement::stock::vue_du_mois(&ctx.racine, mois)?;
-    let etats = if disque.is_some() { engagement::etats::du_mois(ctx, mois)? } else { Vec::new() };
-    let mut pris = vec![false; etats.len()];
-    let mut lues: Vec<Option<PaieMontree>> = Vec::new();
-    for e in &tous {
-        let mut lue = None;
-        if engagement::etats::est_validee(e) {
-            let qui = (e.get("salarie").map(en_texte), engagement::debut_brut(e));
-            let trouve = etats.iter().enumerate().find(|(j, x)| {
-                let b = Value::Object(x.objet().brut.clone());
-                !pris[*j] && x.valide().is_some() && (b.get("salarie").map(en_texte), engagement::debut_brut(&b)) == qui
-            });
-            if let (Some((j, x)), Some(d)) = (trouve, disque.as_ref()) {
-                let v = x.valide().ok_or("engagement en saisie")?;
-                pris[j] = true;
-                lue = Some(PaieMontree { paie: v.paie(ctx, d, j)?, recalcul: v.recalcul(mois).cloned() });
-            }
-        }
-        lues.push(lue);
-    }
-    let calculees = if lues.iter().any(Option::is_none) {
-        engagement::pour_l_ecran(ctx, data).map_err(|m| refus_du_calcul(ctx, data, m))?.paies
-    } else {
-        Vec::new()
-    };
-    let mut out = Vec::new();
-    for (i, l) in lues.into_iter().enumerate() {
-        match l {
-            Some(l) => out.push(l),
-            None => out.push(PaieMontree { paie: calculees.get(i).cloned().ok_or("le calcul du mois n'a pas cette paie")?, recalcul: None }),
-        }
-    }
-    Ok(out)
-}
-
-/// `Decimal.quantize(Decimal("0.01"))` : deux decimales, la moitie au pair.
-pub(crate) fn q2(x: Decimal) -> Decimal {
-    let mut r = x.round_dp(2);
-    r.rescale(2);
-    r
-}
-
-fn nombre_f(x: f64) -> Value {
-    serde_json::Number::from_f64(x).map_or(Value::Null, Value::Number)
-}
-
-/// `sortie_json._ligne_saisie` : une ligne de la saisie, avec ce que la rubrique en dit.
-fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
-    let rubrique = l.get("rubrique");
-    let infos = || -> Option<(String, String, f64)> {
-        let r = droit::catalogue::rubrique(&ctx.racine, l.get("rubrique")?.as_str()?, &ctx.lue_au).ok()?;
-        let quantite = match l.get("quantite") {
-            None | Some(Value::Null) => 0.0,
-            Some(q) if !vrai(q) => 0.0,
-            Some(q) => flottant(q).ok()?,
-        };
-        let saisies = match l.get("heures") {
-            None | Some(Value::Null) => None,
-            Some(Value::Number(n)) => n.as_f64(),
-            Some(_) => return None,
-        };
-        let total = r.heures(quantite, saisies);
-        Some((r.libelle, r.unite, total))
-    };
-    let (libelle, unite, total) = match infos() {
-        Some((l, u, t)) => (Value::String(l), Value::String(u), Some(t)),
-        None => (rubrique.cloned().unwrap_or(Value::Null), Value::Null, None),
-    };
-    let jours = |cle: &str| -> Value {
-        Value::Array(l.get(cle).and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().map(brut_valeur).collect()))
-    };
-    json!({
-        "rubrique": rubrique.cloned().unwrap_or(Value::Null),
-        "libelle": libelle, "unite": unite,
-        "quantite": l.get("quantite").cloned().unwrap_or(Value::Null),
-        "taux": l.get("taux").cloned().unwrap_or(Value::Null),
-        "heures_par_unite": l.get("heures").cloned().unwrap_or(Value::Null),
-        "heures": total.filter(|t| *t != 0.0).map_or(Value::Null, nombre_f),
-        "lieu": match l.get("lieu") { Some(x) if vrai(x) => x.clone(), _ => Value::String(String::new()) },
-        "dates": jours("dates"),
-        "planning": jours("planning"),
-    })
-}
-
-/// `sortie_json.paie` : une paie pour l'ecran. `brut` : l'engagement tel qu'il
-/// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
-/// `taux_cachet`, que Python garde tels qu'ecrits).
-pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, avec_lignes: bool) -> R<Value> {
-    let e = &p.engagement;
-    let nat = e.nat()?;
-    let iso = |j: &Jour| Value::String(j.iso());
-    let s = &p.salarie;
-    let requis = |v: &Value, k: &str| v.get(k).cloned().ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(k)));
-    let sal_vue = json!({
-        "cle": s.get("_cle").cloned().unwrap_or(Value::Null),
-        "nom": requis(s, "nom")?,
-        "prenom": match s.get("prenom_affichage") { Some(x) if vrai(x) => x.clone(), _ => requis(s, "prenom")? },
-    });
-    let spectacle = if vrai(&p.spectacle) {
-        json!({ "titre": requis(&p.spectacle, "titre")?, "numero_objet": p.spectacle.get("numero_objet").cloned().unwrap_or(Value::Null) })
-    } else {
-        Value::Null
-    };
-    let mois_du_contrat = e.mois_du_contrat()?;
-    // Le taux du cachet, tel que le contrat l'imprime : celui de la premiere
-    // ligne a l'unite << cachet >> ; sans cachet, la valeur ecrite, telle quelle,
-    // et rien quand rien n'est ecrit (regle 1, lot F1 : plus de 130 EUR).
-    let premier_cachet = e
-        .lignes
-        .iter()
-        .find(|l| l.get("rubrique").and_then(Value::as_str).and_then(|c| droit::catalogue::rubrique(&ctx.racine, c, &ctx.lue_au).ok()).map_or(false, |r| r.unite == "cachet"));
-    let taux_cachet = match premier_cachet {
-        Some(l) => nombre_f(flottant(l.get("taux").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("taux")))?)?),
-        None => brut.get("taux_cachet").or_else(|| data.get("taux_cachet")).cloned().unwrap_or(Value::Null),
-    };
-    let jours = match brut.get("jours") {
-        Some(j) if !j.is_null() => j.clone(),
-        _ => Value::from(e.jours),
-    };
-    let lieu = brut.get("lieu").or_else(|| data.get("lieu")).cloned().unwrap_or_else(|| Value::String(String::new()));
-    let avis: Vec<&Avis> = p.avertissements.iter().collect();
-    let mut d = json!({
-        "numero_bulletin": p.numero_bulletin.clone().map_or(Value::Null, Value::String),
-        "numero_contrat": e.numero.clone().map_or(Value::Null, Value::String),
-        "salarie": sal_vue,
-        // UN PERMANENT N'A PAS DE SPECTACLE, et `None` est la reponse juste.
-        "spectacle": spectacle,
-        "nature": { "cle": nat.cle, "libelle": nat.libelle, "mensuelle": nat.mensuelle() },
-        "debut": iso(&e.debut), "fin": e.fin.as_ref().map_or(Value::Null, iso),
-        // Le contrat par rapport au mois : un contrat qui deborde n'a pas de
-        // DPAE ni de contrat imprime hors de son premier mois.
-        "contrat": {
-            "premier_mois": e.premier_mois()?, "dernier_mois": e.dernier_mois()?, "a_cheval": e.a_cheval()?,
-            "sans_paie": e.sans_paie(),
-            "depuis": mois_du_contrat.first().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
-            "jusqu_a": mois_du_contrat.last().cloned().ok_or_else(|| socle::fichiers::trop_courte("les mois du contrat"))?,
-            "periode": { "debut": iso(&e.debut_periode()?), "fin": iso(&e.fin_periode()?) },
-        },
-        "dates_travail": e.dates_travail.iter().map(iso).collect::<Vec<_>>(),
-        "cachets": e.cachets, "taux_cachet": taux_cachet,
-        "heures": e.heures.map_or(Value::Null, nombre_f),
-        "remuneration": p.remuneration.iter().map(|l| json!({
-            "rubrique": l.code, "designation": l.designation(),
-            "quantite": l.quantite.to_string(), "taux": l.taux.to_string(), "montant": q2(l.montant).to_string(),
-        })).collect::<Vec<_>>(),
-        "lignes_saisies": e.lignes.iter().map(|l| ligne_saisie(ctx, l)).collect::<Vec<_>>(),
-        "jours": jours, "lieu": lieu,
-        "brut": q2(p.brut).to_string(), "base_csg": q2(p.base_csg).to_string(),
-        "plafond": q2(p.plafond).to_string(), "smic": nombre_f(p.smic),
-        "total_patronal": q2(p.total_pat).to_string(), "total_salarial": q2(p.total_sal).to_string(),
-        "net_social": q2(p.net_social).to_string(), "net_a_payer": q2(p.net_a_payer).to_string(),
-        "net_imposable": q2(p.net_imposable).to_string(), "cout_employeur": q2(p.cout_employeur).to_string(),
-        "avertissements": avis.iter().filter(|a| !a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
-        "informations": avis.iter().filter(|a| a.info).map(|a| a.texte.clone()).collect::<Vec<_>>(),
-        "emploi": {
-            "libelle": s.get("emploi").cloned().unwrap_or(Value::Null),
-            "code_emploi_ft": s.get("code_emploi_ft").cloned().unwrap_or(Value::Null),
-            "statut": s.get("statut").cloned().unwrap_or(Value::Null),
-            "cadre": s.get("statut_categoriel_rc").and_then(Value::as_str) == Some("01"),
-        },
-    });
-    if avec_lignes {
-        let taux = |t: Option<f64>| t.map_or(Value::Null, nombre_f);
-        d["lignes"] = Value::Array(
-            p.lignes
-                .iter()
-                .map(|l| {
-                    json!({
-                        "id": l.id, "famille": l.famille, "libelle": l.libelle, "base": q2(l.base).to_string(),
-                        "taux_pat": taux(l.taux_pat), "montant_pat": q2(l.montant_pat).to_string(),
-                        "taux_sal": taux(l.taux_sal), "montant_sal": q2(l.montant_sal).to_string(),
-                        "masquer_base_et_taux": l.masquer_base_et_taux,
-                    })
-                })
-                .collect(),
-        );
-    }
-    Ok(d)
-}
-
-/// `operations_paies._archives_employees` : ce qui, dans ce mois, porte sur une
-/// fiche archivee. On n'INTERDIT pas : rejouer une paie passee, reimprimer un
-/// bulletin perdu, cela doit marcher. Mais une paie NEUVE sur une fiche mise de
-/// cote est presque toujours une erreur, et elle ne se verrait nulle part ailleurs.
-pub(crate) fn archives_employees(paies: &[Paie]) -> R<Vec<String>> {
-    let mut out = Vec::new();
-    for p in paies {
-        if archivee(&p.salarie) {
-            let nom = p.salarie.get("nom").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("nom")))?;
-            let prenom = match p.salarie.get("prenom_affichage") {
-                Some(x) if vrai(x) => x.clone(),
-                _ => p.salarie.get("prenom").cloned().ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("prenom")))?,
-            };
-            out.push(format!(
-                "{} {} : sa fiche est archivee. Pour refaire une paie passee, rien a faire ; pour une nouvelle embauche, la \
-                 reactiver (Configuration › Salaries, « Reactiver »).",
-                en_texte(nom),
-                en_texte(&prenom)
-            ));
-        }
-        // Un permanent n'a pas de spectacle -- le numero d'objet lui est interdit
-        // (CCH-11) -- donc rien a verifier de ce cote.
-        if vrai(&p.spectacle) && archivee(&p.spectacle) {
-            let titre = p.spectacle.get("titre").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("titre")))?;
-            out.push(format!(
-                "Le spectacle « {} » (objet {}) est archive : pour le jouer a nouveau, le reactiver (Configuration › Spectacles).",
-                en_texte(titre),
-                texte(p.spectacle.get("numero_objet"))
-            ));
-        }
-    }
-    Ok(out)
-}
-
-/// Le bordereau Urssaf que l'apercu montre (celui du PRINCIPAL quand la compagnie a plusieurs etablissements ;
-/// chacun des autres a le sien, dans sa DSN), et l'avertissement quand il ne se calcule pas. Partage avec `produire`.
-pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> R<(Value, Vec<String>)> {
-    // Le bordereau montre est celui du PRINCIPAL quand la compagnie a plusieurs
-    // etablissements ; chacun des autres a le sien, dans sa DSN.
-    let principal = droit::bareme::nic_principal(&ctx.entreprise);
-    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
-    let mut paies_p: Vec<Paie> = Vec::new();
-    for p in paies {
-        if !plusieurs || droit::bareme::etablissement_du_salarie(&ctx.entreprise, &p.salarie).map_err(|m| avec_classe("ValueError", m))? == principal {
-            paies_p.push(p.clone());
-        }
-    }
-    let mut avert: Vec<String> = Vec::new();
-    // L'apercu n'a pas a refuser : c'est la production qui le fera.
-    let urssaf = if !ctx.racine.join("config").join("organismes.json").is_file() {
-        // Une compagnie neuve n'a pas encore ses organismes : le bordereau
-        // attend, la paie non.
-        avert.push(
-            "Bordereau Urssaf pas encore calculable : les organismes de la compagnie (France Travail, Audiens, Urssaf) ne sont pas encore renseignés."
-                .to_string(),
-        );
-        Value::Null
-    } else {
-        match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
-            Ok(m) => Value::String(m.to_string()),
-            Err(e) => {
-                avert.push(format!("Bordereau Urssaf non calculable : {}", e));
-                Value::Null
-            }
-        }
-    };
-
-    Ok((urssaf, avert))
-}
-
-fn annee_de(mois: &str) -> R<i32> {
-    Ok(mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| format!("mois illisible : {}", socle::fichiers::repr(mois)))?)
-}
-
-/// `apercu` : le mois tel que l'ecran le montre, rien d'ecrit -- ni fichier, ni compteur. Charge : `saisie` (le mois tel
-/// que l'ecran le tient), `lignes` (vrai : les lignes de cotisation de chaque paie, pour le bulletin affiche), `urssaf`
-/// (vrai : le bordereau Urssaf du mois, que la boite « Fermer le mois » montre ; il ne se calcule que la).
-///
-/// Un engagement valide montre la paie qu'il a ecrite, avec ses numeros du moment ; s'il s'est recalcule de lui-meme,
-/// ses informations disent quand et pourquoi (`etats::phrase_du_recalcul`). Un engagement en saisie se calcule, et
-/// porte ses conseils de saisie.
-fn apercu(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
-    let ctx = crate::service::contexte(o)?;
-    let data = saisie_recue(&ctx, charge)?;
-    let avec_lignes = vrai_opt(charge.get("lignes"));
-    let avec_urssaf = vrai_opt(charge.get("urssaf"));
-    let mois = data.get("mois").map(en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee = annee_de(&mois)?;
-    let montrees = paies_de_l_ecran(&ctx, &data, &mois)?;
-    let mut paies: Vec<Paie> = montrees.iter().map(|m| m.paie.clone()).collect();
-    documents::ecrire_documents::numeroter(&ctx, &mut paies, annee)?;
-    let tous = data.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
-    let mut vues = Vec::new();
-    for (i, p) in paies.iter().enumerate() {
-        vues.push(vue_paie(&ctx, p, tous.get(i).unwrap_or(&Value::Null), &data, avec_lignes)?);
-    }
-    // LES CONSEILS DE SAISIE (ticket 224) : au plus un par carte, quand l'option de la compagnie est cochee, pour un
-    // engagement en saisie seulement. Ils ne vivent qu'ici, dans la vue de l'ecran : ni dans les avertissements de la
-    // paie, ni au bulletin, ni a `produire`.
-    for (i, (v, c)) in vues.iter_mut().zip(crate::conseils::de_saisie(&ctx, &paies)?).enumerate() {
-        if let Some(c) = c.filter(|_| !tous.get(i).is_some_and(engagement::etats::est_validee)) {
-            v["conseil"] = c;
-        }
-    }
-    for (v, m) in vues.iter_mut().zip(&montrees) {
-        if let Some(phrase) = m.recalcul.as_ref().and_then(engagement::etats::phrase_du_recalcul) {
-            if let Some(Value::Array(a)) = v.get_mut("informations") {
-                a.insert(0, Value::String(phrase));
-            }
-        }
-    }
-    let (urssaf, avert) = if avec_urssaf { urssaf_de_l_apercu(&ctx, &paies, &mois)? } else { (Value::Null, Vec::new()) };
-    let somme = |cle: &str| -> R<Decimal> {
-        let mut t = Decimal::new(0, 2);
-        for v in &vues {
-            t += dec(v.get(cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
-        }
-        Ok(q2(t))
-    };
-    let (total_brut, total_cout, total_net) = (somme("brut")?, somme("cout_employeur")?, somme("net_a_payer")?);
-    // LES TROIS NOMBRES, sommes ici : par bloc de l'ecran (`blocs` : combien d'engagements chaque carte porte, dans
-    // l'ordre ; sans lui, une carte par engagement) et par salarie (la colonne « Le mois »).
-    let trois = |vs: &[&Value]| -> R<Value> {
-        let mut t = [Decimal::new(0, 2), Decimal::new(0, 2), Decimal::new(0, 2)];
-        for v in vs {
-            for (k, cle) in ["net_a_payer", "brut", "cout_employeur"].iter().enumerate() {
-                t[k] += dec(v.get(*cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
-            }
-        }
-        Ok(json!({"net_a_payer": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "paies": vs.len()}))
-    };
-    let tailles: Vec<usize> = match charge.get("blocs").and_then(Value::as_array) {
-        Some(a) => a.iter().map(|x| x.as_u64().unwrap_or(0) as usize).collect(),
-        None => vec![1; vues.len()],
-    };
-    let mut blocs = Vec::new();
-    let mut rang = 0;
-    for n in tailles {
-        let fin = (rang + n).min(vues.len());
-        blocs.push(trois(&vues[rang..fin].iter().collect::<Vec<_>>())?);
-        rang = fin;
-    }
-    let mut salaries: Vec<(String, Value, Vec<&Value>)> = Vec::new();
-    for v in &vues {
-        let s = v.get("salarie").cloned().unwrap_or(Value::Null);
-        let cle = format!("{}|{}", en_texte(s.get("nom").unwrap_or(&Value::Null)), en_texte(s.get("prenom").unwrap_or(&Value::Null)));
-        match salaries.iter_mut().find(|(c, _, _)| *c == cle) {
-            Some((_, _, vs)) => vs.push(v),
-            None => salaries.push((cle, s, vec![v])),
-        }
-    }
-    let mut par_salarie = Vec::new();
-    for (_, s, vs) in &salaries {
-        let mut t = trois(vs)?;
-        t["salarie"] = s.clone();
-        par_salarie.push(t);
-    }
-    let mut a_regarder = avert;
-    a_regarder.extend(archives_employees(&paies)?);
-    let mut informations = Vec::new();
-    for v in &vues {
-        let textes = |k: &str| v.get(k).and_then(Value::as_array).cloned().unwrap_or_default();
-        a_regarder.extend(textes("avertissements").iter().map(en_texte));
-        informations.extend(textes("informations").iter().map(en_texte));
-    }
-    let n: usize = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", socle::fichiers::repr(&mois)))?;
-    Ok(json!({
-        "mois": mois,
-        "libelle": format!("{} {}", socle::date::nom_du_mois(n as i64, socle::date::Graphie::Titre)?, annee),
-        "paies": vues,
-        "total_brut": total_brut.to_string(), "total_cout": total_cout.to_string(), "total_net": total_net.to_string(),
-        "blocs": blocs, "par_salarie": par_salarie,
-        "urssaf": urssaf,
-        "avertissements": a_regarder,
-        "informations": informations,
-    }))
-}
-
-
-
-
-
-
-
-
-

@@ -1,12 +1,10 @@
-//! `importation-apercu` : ce que l'import d'un export CoolPaie ferait. Rien n'est ecrit.
+//! Les routes de l'import d'un export CoolPaie : ce qu'il ferait, rien d'ecrit (`importation-apercu`), ou en est la
+//! boite aux lettres (`importation-etat`), l'import lui-meme (`importer`, `importation_ecrite.rs`) et la nature d'un
+//! contrat importe (`importation-nature`).
 //!
-//! C'est le Python de `operations_importation.apercu_importation` (et `_fiche_salarie`,
-//! `_fiche_spectacle`, `_fiche_entreprise`, `_ecarts`, `_paies_declarees`, `lire_historique`,
-//! `lire_paies_declarees`) et de `sortie_json.importation`, porte a l'identique : meme JSON, memes
-//! refus. La lecture de l'export (DSN et AEM) est dans `importation.rs`.
-//!
-//! `{"dossier": ...}` : la boite aux lettres `import/` entiere (`importation_bulletins`) : le tri, les DSN et AEM
-//! qu'il trouve passees par `apercu_lu` (le meme code que pour l'export), puis les bulletins de paie.
+//! `importation-apercu` lit l'export (DSN et AEM) par `importation.rs`. `{"dossier": ...}` : la boite aux lettres
+//! `import/` entiere (`importation_bulletins`) : le tri, les DSN et AEM qu'il trouve passees par `apercu_lu` (le meme
+//! code que pour l'export), puis les bulletins de paie.
 //!
 //! `contrats_nouveaux` : un contrat atteste que l'historique (`historique/engagements.json`) porte deja
 //! -- meme salarie, memes dates, meme objet, memes heures, cachets, jours et meme brut (`str`) -- n'est
@@ -225,7 +223,7 @@ pub(crate) struct Apercu {
 
 /// `apercu_importation(ctx, dossier, aujourdhui)`.
 ///
-/// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE (lot G1) : `importation::garder_export` les ecarte devant le
+/// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE : `importation::garder_export` les ecarte devant le
 /// Siren de la compagnie (`importation::siren_de_reference`, le meme que pour les bulletins) ; l'apercu lit alors une
 /// copie de l'export sans elles (un dossier de travail, efface avant de rendre), et chacune est un avertissement.
 pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socle::date::Jour) -> R<Apercu> {

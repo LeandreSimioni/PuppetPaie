@@ -8,7 +8,8 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use crate::depot_acte::{verifier_preuve, Preuve};
-use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, qui_de, refus, requis, vrai_ou, Ouvrir};
+use crate::routes::qui_de;
+use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
 use crate::routes::ouverture::marquer_echeance;
 use crate::routes::lire_json_ou_vide;
@@ -446,7 +447,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let vire_le = crate::routes::fiches::exiger(charge, "vire_le")?;
     let montant = crate::routes::fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
-    let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
+    let qui = qui_de(charge);
     declarations::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
 }
 

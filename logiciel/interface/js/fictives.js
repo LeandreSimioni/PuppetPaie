@@ -1,7 +1,7 @@
 /* La compagnie fictive : les notes de l'envoi simule, les signatures jouees, les courriels expliques. */
 "use strict";
 
-/* LA COMPAGNIE FICTIVE (le moteur : routes_accueil::simulation_active, interface/compagnies.rs) : même interface, mêmes étapes,
+/* LA COMPAGNIE FICTIVE (le moteur : `simulation` de la route `etat`, interface/compagnies.rs) : même interface, mêmes étapes,
    mais ce qui part est joué — dépôts, retours, courriels, signatures. Le
    moteur le dit dans `etat` ; la page ne fait que ne pas demander de mot de
    passe, et le dire au moment de l'acte. */

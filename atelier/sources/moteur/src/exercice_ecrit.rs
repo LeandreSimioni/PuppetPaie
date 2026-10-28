@@ -5,7 +5,7 @@
 //!   (`documents::ecritures_comptables`).
 //! - La cloture : fige l'annee (`config/exercices.json`) et reunit ce qu'il faut garder en un zip
 //!   (`sorties/exercices/Exercice_AAAA.zip`) : saisies, sorties, retours des organismes, journal des depots,
-//!   fiches, bareme, export compta, LISEZ-MOI. Le zip est ecrit par le zip de `routes_dossier_salarie` (deflate,
+//!   fiches, bareme, export compta, LISEZ-MOI. Le zip est ecrit par le zip de `routes::dossier_salarie` (deflate,
 //!   CRC-32, entrees dans l'ordre du Python) : la liste des fichiers et chacun d'eux, octet pour octet, sont ceux
 //!   de l'ancien Python ; les octets COMPRESSES (donc l'empreinte et la taille de l'archive) dependent du
 //!   compresseur, et l'empreinte rendue est celle de l'archive que ce programme a reellement ecrite.
@@ -196,7 +196,7 @@ pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
     Value::Object(m)
 }
 
-/// L'EXPORT COMPTA DE L'ANNEE EST-IL A JOUR ? (#236) Un seul critere, celui des rappels (`routes_ouverture`) et de
+/// L'EXPORT COMPTA DE L'ANNEE EST-IL A JOUR ? (#236) Un seul critere, celui des rappels (`routes::rappels`) et de
 /// l'horloge d'une fictive (`horloge::l_annee`) : `Compta_<annee>.csv` existe, et les saisies de l'annee sont celles
 /// qu'il a lues -- les empreintes notees au journal des ecritures en l'ecrivant (`empreintes_des_saisies`). Jamais la
 /// date des fichiers : une fictive decompressee chez un visiteur a des dates qui ne disent rien. Un export dont le

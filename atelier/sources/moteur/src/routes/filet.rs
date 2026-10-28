@@ -1,24 +1,16 @@
-//! Les routes du lot « Incidents et canal editeur » (`moteur/web.py`,
-//! `moteur/operations_filet.py`, `moteur/commandes_incidents.py`) :
+//! Les routes du filet et du canal de l'editeur :
 //!
-//! - `incident-navigateur` : ce qui casse dans la page (la page poste, le journal
-//!   des incidents ecrit, et c'est tout ; ne leve jamais) ;
-//! - `diagnostic-etat`, `diagnostic-envoyer` : ce qui est parti chez l'editeur, et
-//!   l'envoi de ce qui attend ;
-//! - `signalement-apercu`, `signalement-envoyer` (enregistre, ne part pas),
-//!   `signalements-partir` (le depart, en fond), `signalements-lus` : « Un
-//!   probleme, une idee ? » ;
-//! - `filet-verifier`, `filet-activer`, `filet-desactiver` : le filet DPAE (activer
-//!   et desactiver exigent le mot de passe du logiciel s'il est pose : le moteur
-//!   le verifie, jamais la page).
+//! - `incident-navigateur` : ce qui casse dans la page (le journal des incidents ecrit, et c'est tout ; ne leve jamais) ;
+//! - `diagnostic-etat`, `diagnostic-envoyer`, `diagnostic-regler` : ce qui est parti chez l'editeur, et l'envoi de ce
+//!   qui attend ;
+//! - `signalements`, `signalement-apercu`, `signalement-envoyer` (enregistre, ne part pas), `signalements-partir` (le
+//!   depart, en fond), `signalements-lus`, `signalements-reponses` : « Un probleme, une idee ? » ;
+//! - `filet-etat`, `filet-verifier`, `filet-activer`, `filet-desactiver`, `filet-suivies` : le filet DPAE (activer et
+//!   desactiver exigent le mot de passe du logiciel s'il est pose : le moteur le verifie, jamais la page) ;
+//! - `incidents-lire`, `incidents-regrouper`, `incidents-oublier`, `incidents-envoyer` : les incidents gardes, pour la
+//!   veille et la ligne de commande.
 //!
-//! Et celles que le Python encore appele (la veille, la ligne de commande, les
-//! depots) utilise pour ne plus rien faire lui-meme : `incidents-lire`,
-//! `incidents-regrouper`, `incidents-oublier`, `incidents-envoyer`,
-//! `signalements-reponses`, `filet-suivies`.
-//!
-//! Le canal de l'editeur est `editeur.rs` ; jamais d'autre serveur que celui de la
-//! configuration.
+//! Le canal de l'editeur est `editeur.rs` ; jamais d'autre serveur que celui de la configuration.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -230,8 +222,8 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
 pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
     let mut e = lire_json_tolerant(&racine.join("config").join("filet-dpae.json"))?.unwrap_or_else(|| Value::Object(Map::new()));
     let Value::Object(m) = &mut e else {
-        // Le Python plantait (`AttributeError: ... 'setdefault'`, trace) : un refus avec sa phrase (decision de Leandre : un defaut du Python ne
-        // se reproduit pas). `commandes/filet.rs` le dit en « ! ... », code 1.
+        // Un fichier qui n'est pas un objet JSON est un refus avec sa phrase, jamais un plantage.
+        // `commandes/filet.rs` le dit en « ! ... », code 1.
         return Err(erreur("ErreurOperation", format!("{} est illisible : ce n'est pas un objet JSON.\nLe deplacer suffit a repartir de zero (le filet sera a reactiver).", racine.join("config").join("filet-dpae.json").display())));
     };
     for (cle, defaut) in [("compte", Value::Null), ("tests", json!({})), ("reveils", json!({}))] {

@@ -32,11 +32,11 @@ seul validateur (règle de fond 10).
    une phrase, ou engagements/AAAA-MM.json (des engagements, leurs lignes de paie datées)
               │
               ▼
-   routes.rs ── les routes du moteur (`moteur route`) : l'orchestration et les
+   routes/ ──── les routes du moteur (`moteur route`) : l'orchestration et les
               │    garde-fous, seules à décider ; la ligne de commande
               │    (commandes/) et l'interface (logiciel/interface/, par
-              │    `moteur route`) ne font que les appeler. Un aiguillage, un
-              │    module par lot de routes derrière (routes_*.rs)
+              │    `moteur route`) ne font que les appeler. Un aiguillage (mod.rs), un
+              │    fichier par geste de l'écran derrière (mois, etapes…)
               ▼
    contexte.rs ── config/entreprise.json, salaries.json, spectacles.json,
               │   organismes.json, baremes/AAAA.json, compteurs.json
@@ -340,7 +340,7 @@ dernier jour (`dsn::generer`, `entreprise_du_mois`, et toute route qui porte un
 convention de ce jour. On écrit par `contexte::dater`, et seulement par lui : la
 première valeur d'un champ s'y écrit de tout temps, quelle que soit la date
 donnée ; changer une valeur existante exige sa date d'effet
-(`routes_ecritures::ecrire_datee`, l'écran la demande alors) ; ce qui précède
+(`routes::fiches::ecrire_datee`, l'écran la demande alors) ; ce qui précède
 garde l'ancienne valeur.
 
 Trois subtilités, chacune trouvée en cherchant pourquoi un centime manquait.
@@ -513,7 +513,7 @@ pour l'identité, l'emploi, les numéros d'objet et l'entreprise ; les AEM pour
 les contrats ; l'`export/` de CoolPaie avant le 10/10/2026, `atelier/README.md`,
 « Reprendre l'historique ») ;
 `moteur/src/importation_ecrite.rs` décide quoi écrire, par les mêmes fiches que
-l'écran (`routes_ecritures::ecrire_fiche` : même clé, même matricule, même vérification,
+l'écran (`routes::fiches::ecrire_fiche` : même clé, même matricule, même vérification,
 même filet). Une fiche existante n'est jamais modifiée : ce que la DSN disait
 autrement est rendu dans `ecarts`, et c'est à l'humain de dater un
 changement. La dernière DSN où un salarié figure fait foi pour son identité ;
@@ -682,7 +682,7 @@ temporaire** `S21.G00.30.020` (CCH-12), et le moteur le fabrique :
 | ce qui l'écrit | `ntt::poser_nir` / `ntt::poser_ntt`, appelés par les émetteurs de bloc 30 — `dsn.rs`, `fctu.rs`, `signalement.rs`, `amorcage.rs` |
 | les règles | CSL-11 (commence par 1 ou 2), CSL-12 (aucun espace), CCH-13 (caractères 2 à 10 = le SIREN), longueur [11,40] — trois d'entre elles ne sont **pas** dans le relevé des formats, comme pour le NIR |
 | quand les deux partent ensemble | la déclaration du mois où le NIR a pris effet : « le NTT doit être renseigné sur la première DSN où le NIR est attribué », pour raccorder les deux identités |
-| ce qui le date | l'arrivée du NIR sur une fiche qui existait est un changement daté (`routes_ecritures::changements_a_dater`) : la fiche dit « sans NIR » jusqu'à la veille — seule case qui, en se remplissant, demande sa date |
+| ce qui le date | l'arrivée du NIR sur une fiche qui existait est un changement daté (`routes::fiches::changements_a_dater`) : la fiche dit « sans NIR » jusqu'à la veille — seule case qui, en se remplissant, demande sa date |
 | ce qu'il n'est pas | une donnée de gestion : il n'ouvre **aucun droit**, et ne s'imprime ni sur un bulletin, ni sur un contrat, ni sur un certificat |
 
 Deux conséquences hors DSN : la **DPAE** part alors avec sa zone NIR à blanc,
@@ -1053,8 +1053,8 @@ permanents, un seul CTP 992.
 ### Ce que la loi doit à un permanent
 
 `logiciel/donnees/permanents-base.json` porte les nombres, chacun avec son article ;
-`droit/src/permanents.rs` porte la règle ; les routes portées d'`operations_permanents.py`
-(`moteur/src/routes_actes_h1.rs`, `routes_listes.rs`)
+`droit/src/permanents.rs` porte la règle ; les routes
+(`moteur/src/routes/imprevus.rs`)
 décident. Les articles sont relevés et datés dans
 `atelier/reference/sources/code-du-travail/`.
 
@@ -1178,7 +1178,7 @@ décident. Les articles sont relevés et datés dans
   saisissent (D1226-5) ;
 - **certificat de travail** (L1234-19, D1234-6) et **reçu pour solde de tout
   compte** (L1234-20, D1234-7, D1234-8) : produits par
-  `moteur/src/routes_actes_h1.rs` (porté de `documents_fin.py`), leur texte en donnée dans `gabarits/*.modele`.
+  `moteur/src/routes/imprevus.rs`, leur texte en donnée dans `gabarits/*.modele`.
   Le certificat est le seul document du logiciel dont le contenu soit
   **plafonné** par la loi — D1234-6 dit « exclusivement ».
 
@@ -1615,7 +1615,7 @@ et `maj/journal.log` le dit.
 ## L'exercice : rappels, clôture, export compta
 
 Porté d'`operations_exercice.py` (16/09/2026) : `moteur/src/exercice_ecrit.rs` (la clôture,
-l'export compta) et `moteur/src/routes_ouverture.rs` (les rappels). Trois choses qui regardent plus loin
+l'export compta) et `moteur/src/routes/rappels.rs` (les rappels). Trois choses qui regardent plus loin
 que le mois affiché.
 
 **Les rappels** (`rappels(ctx, aujourdhui)`) rendent une liste de `Rappel`,

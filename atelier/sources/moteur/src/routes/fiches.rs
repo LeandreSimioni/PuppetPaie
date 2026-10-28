@@ -1,13 +1,11 @@
-//! Les routes de la fiche (`moteur/web.py`, `operations_fiches`, `champs`) :
-//! `verifier-fiche`, `changements-declares`, `taux-atmp`.
+//! Les routes des fiches : l'identite de la compagnie (`identite`, `poser-identite`, `retirer-identite`), les fiches des
+//! salaries, des spectacles et des permanents (`permanents`, `verifier-fiche`, `activer-fiche`, `enregistrer-fiche`,
+//! `changements-declares`), leur demande par courriel (`fiche-demander`, `fiches-relever`, `fiche-oublier-demande`),
+//! les metiers (`metiers-catalogue`, `metier-retenu`, `metiers-ajoutes`), le taux AT/MP (`taux-atmp`), le regime de la
+//! taxe sur les salaires, et le modele du bulletin (`bulletin-modeles`, `bulletin-modele-apercu`,
+//! `bulletin-modele-choisir`).
 //!
-//! Aucune ecriture. `revue-spectacles` n'est pas ici : elle archive des fiches
-//! et note l'echeance, elle reste en Python. `taux-atmp` ne LIT que : quand la
-//! page donne une `valeur`, c'est `web.py` qui la pose (Python) avant d'appeler
-//! cette lecture.
-//!
-//! Les refus gardent la classe d'exception du Python (`KeyError`, `TypeError`,
-//! `ErreurOperation`...), que `paie_rust.route` releve sous le meme nom.
+//! Les refus portent leur classe (`KeyError`, `TypeError`, `ErreurOperation`...), que la page releve.
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -236,7 +234,7 @@ pub(crate) fn lire_tolerant(p: &Path) -> R<Option<Value>> {
 /// `taux_atmp` : le taux AT/MP d'une annee, lu ; pose d'abord si `valeur` est donnee.
 fn taux_atmp(ctx: &Contexte, charge: &Value) -> R<Value> {
     let an = entier(exiger(charge, "annee")?)?;
-    // `valeur` donnee : on POSE d'abord (`routes_ecrites`), puis on relit.
+    // `valeur` donnee : on POSE d'abord (`poser_taux_atmp`), puis on relit.
     if let Some(v) = charge.get("valeur").filter(|v| !v.is_null() && v.as_str() != Some("")) {
         let vide = json!("");
         crate::routes::fiches::poser_taux_atmp(ctx, an, v, charge.get("code_risque").unwrap_or(&vide))?;
@@ -1875,7 +1873,7 @@ pub struct Attendue {
 }
 
 /// `fiches_attendues` : les demandes parties et pas encore revenues, les plus anciennes d'abord. Une demande a
-/// laquelle on renonce se retire (`fiche-oublier-demande`, `routes_ecritures`).
+/// laquelle on renonce se retire (`fiche-oublier-demande`, `fiches`).
 pub fn fiches_attendues(ctx: &Contexte) -> R<Vec<Attendue>> {
     let lignes = envois::etats::charger(&ctx.racine)?;
     let detail = |l: &Value| -> Value { l.get("detail").filter(|d| vrai(d)).cloned().unwrap_or_else(|| json!({})) };

@@ -22,7 +22,7 @@
 //!
 //! LE TABLEAU DE BORD (Leandre, 22/10/2026) : pour chaque compagnie rattachee, les declarations obligatoires, triees par
 //! urgence avec leur date limite -- la DSN mensuelle, les signalements (arret, reprise anticipee, fin de contrat) et ce que
-//! `obligations.rs` fait naitre, les DPAE. Tout vient des RAPPELS de la compagnie (`routes_ouverture`, route `rappels` :
+//! `obligations.rs` fait naitre, les DPAE. Tout vient des RAPPELS de la compagnie (`routes::rappels`, route `rappels` :
 //! les mois a declarer et leur echeance, `obligations::de_l_arret` et `de_la_fin` pour les delais et leur etat) : ce module
 //! n'en recalcule aucun. Il y ajoute, pour ce qui part par la DSN, ou en est le fichier ecrit (a tester, en test, teste,
 //! refuse) : la meme lecture du journal que l'etape de depot du mois (`etats::repetition`, `etats::deja_depose`). Le
@@ -58,7 +58,7 @@ pub const FICHIER: &str = "administrateur.json";
 /// Le dernier tableau connu d'une compagnie (hors de l'empreinte des etats des mois : `etat_garde::HORS_DE_L_ECRAN`).
 pub const TABLEAU: &str = "config/.tableau.json";
 
-/// Les routes de l'administrateur (servies par `routes_ecritures_g3`).
+/// Les routes de l'administrateur (servies par `routes::commande`).
 pub const ROUTES: [&str; 2] = ["administrateur-tableau", "administrateur-deposer"];
 
 // ------------------------------------------------------------------ le poste
@@ -453,7 +453,7 @@ fn fichier_ecrit(racine: &Path, mois: &str, nom: &str) -> Option<PathBuf> {
     std::fs::read_dir(&dossier).ok()?.flatten().map(|e| e.path()).find(|p| p.is_file() && p.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(nom)))
 }
 
-/// Le fichier que l'ecriture d'un signalement pose pour cette obligation (`routes_actes_h1` : `arret-signaler`,
+/// Le fichier que l'ecriture d'un signalement pose pour cette obligation (`routes::imprevus` : `arret-signaler`,
 /// `fin-contrat-signaler`), d'apres la cle du rappel (`<obligation>:<salarie>:<jour>`, `fin-contrat:<salarie>:<fin>`).
 fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
     let cle = rappel.get("cle").and_then(Value::as_str)?;

@@ -3,7 +3,7 @@
 //! structures `A` et `B`), la fabrique la dessine (`texte_fixe`, positions du haut-gauche de la page), et le lecteur
 //! (`bulletin_lu`) la relit comme un vrai bulletin.
 //!
-//! UN SEUL CODE POUR DEUX USAGES : les tests (`bulletin_lu`, `routes_importation`) l'incluent tel quel
+//! UN SEUL CODE POUR DEUX USAGES : les tests (`bulletin_lu`, `routes::import`) l'incluent tel quel
 //! (`tests/bulletins_fictifs/mod.rs`, par `#[path]`), et l'outil d'atelier `moteur-atelier fabriquer-bulletins`
 //! (`fabriquer_bulletins.rs`, a cote) le compile sous `--features atelier`. Ce fichier ne depend donc que de
 //! `serde_json`, `fabrique_pdf` et `std` (rien de `crate::`), et le binaire livre ne le contient pas.

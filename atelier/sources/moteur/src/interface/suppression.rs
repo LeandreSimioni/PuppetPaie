@@ -34,7 +34,7 @@
 //!
 //! LES PAIES FAITES EN DEMO n'ont ete ni declarees ni envoyees : en demo, tout envoi est refuse avant d'ecrire au journal
 //! des depots (`bridage::branchement`). La page d'un mois les montre donc a faire (une DPAE « rien n'est parti », meme
-//! pour une embauche passee : `routes_mois`, `etats.dpae.fait` nul) ; la mention de demo le dit en plus, sur chaque mois
+//! pour une embauche passee : `routes::etapes`, `etats.dpae.fait` nul) ; la mention de demo le dit en plus, sur chaque mois
 //! saisi en demo (`mention`, lue par la route `etat`). ELLES COMPTENT au nombre de paies annuel (`nombre_de_paies`) si
 //! elles sont validees : ce sont des paies que le logiciel a faites, la regle du compte (une paie validee) ne regarde pas
 //! si elle est partie ; une paie non validee ne compte pas, en demo comme ailleurs.

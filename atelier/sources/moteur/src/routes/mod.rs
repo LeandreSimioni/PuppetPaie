@@ -1,15 +1,17 @@
-//! `moteur route` : les routes de l'interface. La fenetre les sert dans son processus (`dans_la_fenetre`, ticket #244) ;
-//! `moteur route`, une par processus, reste pour la ligne de commande et les tests.
+//! `moteur route` : les routes de l'interface. La fenetre les sert dans son processus (`dans_la_fenetre`) ; `moteur
+//! route`, une par processus, sert la ligne de commande et les tests.
 //!
 //! Demande sur l'entree standard : `{"route": "...", "charge": {...}}`, avec `--racine` et `--date`. Reponse :
 //! `{"ok": true, "resultat": ...}` ; un refus rend `{"ok": false, "erreur": "...", "classe": "..."}` avec sa classe
 //! (`ErreurOperation`, `FileNotFoundError`, `KeyError`...), que la page releve.
 //!
-//! L'aiguillage ne fait rien d'autre : chaque lot de routes vit dans son
-//! module et s'ajoute ici d'une ligne. Les routes de l'ouverture
-//! (`routes_ouverture`, `rappels` et `apercu`) font leur propre Contexte, et
-//! leur refus classe voyage dans le texte de l'erreur
-//! (`crate::routes::rappels::decoder`).
+//! UN FICHIER PAR GESTE DE L'ECRAN : `mois` (la saisie et l'apercu), `etapes` (le panneau et les carres de
+//! l'engagement), `engagement` (valider, modifier, retirer), `contrats`, `documents`, `depots`, `imprevus`, `fiches`,
+//! `coffre`, `filet`, `import`, `archives` (l'Historique, les exports, la cloture), `dossier_salarie`, `ouverture`,
+//! `rappels`. Chacun dit ses routes (`ROUTES`) et celles qui ecrivent (`ECRITURES`) ; l'aiguillage ne fait rien
+//! d'autre que les servir, avec les routes des autres modules (le banc, l'horloge, les obligations...). `rappels` fait
+//! son propre Contexte, et son refus classe voyage dans le texte de l'erreur (`rappels::decoder`). Ce que les routes
+//! partagent (lire un fichier, le salarie d'une charge, `qui_de`) est ici.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -106,7 +108,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         crate::coffre::retenir_mot_de_passe_tape(m);
     }
     // UNE ROUTE QUI TOMBE, pour les essais seulement (`garde_reseau::en_essai`, que Cargo pose) : la fenetre doit rendre
-    // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes_dans_la_fenetre.rs`). Le fil est laisse sale
+    // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes/`). Le fil est laisse sale
     // expres, comme un calcul qui tombe le laisserait.
     if route == ROUTE_QUI_TOMBE && socle::garde_reseau::en_essai() {
         socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
@@ -192,8 +194,8 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         }
         autre => autre,
     };
-    // Les etats des mois ne se refont plus ici : c'est la fenetre qui les refait, dans son processus, apres chaque
-    // ecriture (`etat_garde::FileDesEtats`, ticket #212). Hors de la fenetre, un etat perime se refait a sa lecture.
+    // Les etats des mois se refont dans la fenetre, dans son processus, apres chaque ecriture
+    // (`etat_garde::FileDesEtats`) ; hors de la fenetre, un etat perime se refait a sa lecture.
     match rendu {
         Ok(v) => Ok(json!({"ok": true, "resultat": v})),
         // Une fiche refusee porte ses anomalies : la page les montre.
@@ -224,7 +226,7 @@ pub(crate) fn maintenant() -> String {
 }
 
 /// QUI ECRIT. Les routes inscrivent `interface` : c'est la fenetre. La ligne de commande (`moteur ...`) ajoute `qui` a la charge
-/// (`cli`, ou `ligne de commande` selon la commande, comme le Python les ecrit) : une valeur ecrite reste identique d'une face a
+/// (`cli`, ou `ligne de commande` selon la commande) : une valeur ecrite reste identique d'une face a
 /// l'autre. Absent, vide ou pas un texte : `interface` -- la fenetre ne change pas.
 pub(crate) fn qui_de(charge: &Value) -> String {
     match charge.get("qui") {

@@ -105,7 +105,7 @@ pub(crate) fn journal_des_ecritures(racine: &Path) -> Map<String, Value> {
 /// LA DSN DU MOIS EST-ELLE ECRITE ? Une DSN mensuelle du mois notee au journal des ecritures, et toujours la ou le moteur
 /// l'a ecrite (`sorties/<mois>/`). Un fichier DSN que le moteur n'a pas note (pose a la main) ne compte pas. C'est le
 /// critere de l'accueil (`crate::routes::ouverture::bilan_des_mois`), des rappels (`crate::routes::rappels::dsn_deposable`) et de
-/// l'etape de depot (`routes_mois`).
+/// l'etape de depot (`routes::etapes`).
 pub(crate) fn mois_ecrit(racine: &Path, mois: &str) -> bool {
     let prefixe = format!("{}/", mois);
     let sorties = racine.join("sorties");
@@ -496,9 +496,9 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         )));
     }
     let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None)?;
-    let (_urssaf, avert) = crate::routes::rappels::urssaf_de_l_apercu(ctx, &paies, mois)?;
+    let (_urssaf, avert) = crate::routes::mois::urssaf_de_l_apercu(ctx, &paies, mois)?;
     avertissements.extend(avert.into_iter().map(avertissement));
-    avertissements.extend(crate::routes::rappels::archives_employees(&paies)?.into_iter().map(avertissement));
+    avertissements.extend(crate::routes::mois::archives_employees(&paies)?.into_iter().map(avertissement));
     for p in &paies {
         avertissements.extend(p.avertissements.iter().cloned());
     }

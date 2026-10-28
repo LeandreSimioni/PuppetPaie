@@ -1,27 +1,18 @@
-//! La route `dossier-salarie` (`moteur/web.py`, `operations_dossier.dossier_salarie` et
-//! `dossier_json`) : tous les documents d'un salarie sur une periode, en un PDF par categorie,
-//! ou en un ZIP.
+//! La route `dossier-salarie` : tous les documents d'un salarie sur une periode, en un PDF par categorie, ou en un ZIP,
+//! ecrits dans `exports/dossiers/`.
 //!
-//! Meme JSON que la route Python, memes refus sous la meme classe d'exception
-//! (`paie_rust.route` les releve), memes fichiers ecrits dans `exports/dossiers/`.
+//! UN DOCUMENT REMIS NE SE REGENERE PAS (regle 4) : les bulletins d'un mois ecrit sont les pages memes de
+//! `sorties/<mois>/Bulletins_<Mois>.pdf`, les certificats Conges Spectacles celles de `CertificatsCS_<Mois>.pdf` -- a
+//! chaque salarie les siennes, rien de recalcule ni de reimprime ; ce qui ne se lit pas refuse. Les contrats, eux, se
+//! recreent depuis la saisie (aucun compteur n'avance ; les numeros se lisent dans le fichier groupe archive ou dans la
+//! saisie quand ils y sont figes) et portent en pied la mention « Reedite ». Le contrat signe, l'AER, les documents de
+//! fin et les PDF de CoolPaie se prennent tels quels, page a page, dedoublonnes.
 //!
-//! UN DOCUMENT REMIS NE SE REGENERE PAS (regle 4 ; Leandre, 10/10/2026, lot V1p) : les bulletins
-//! d'un mois ecrit sont les pages memes de `sorties/<mois>/Bulletins_<Mois>.pdf`, les certificats
-//! Conges Spectacles celles de `CertificatsCS_<Mois>.pdf` -- a chaque salarie les siennes, rien de
-//! recalcule ni de reimprime ; ce qui ne se lit pas refuse. Les contrats, eux, se recreent encore
-//! depuis la saisie (aucun compteur n'avance ; les numeros se lisent dans le fichier groupe archive
-//! ou dans la saisie quand ils y sont figes) et portent en pied la mention « Reedite ». Le contrat
-//! signe, l'AER, les documents de fin et les PDF de CoolPaie se prennent tels quels, page a page,
-//! dedoublonnes.
+//! `dossier-envoyer` (`archives`) envoie ce dossier-ci, construit par `construire`.
 //!
-//! `dossier-envoyer` (`routes_envois`) envoie ce dossier-ci, construit par `construire`.
-//!
-//! Ecarts assumes :
-//! - le texte de CoolPaie se normalise (`_sans_accents`) par la table latine de
-//!   `contexte::sans_accent` (Latin-1 et Latin etendu A), pas par la normalisation NFD complete
-//!   de Python : un accent hors de cette table (vietnamien, par exemple) n'est pas retire ;
-//! - les chiffres des motifs de date et de nom de fichier sont les chiffres ASCII ;
-//! - un mois saisi est un mois que des engagements touchent (`engagements/`).
+//! Le texte de CoolPaie se normalise par la table latine de `contexte::sans_accent` (Latin-1 et Latin etendu A) : un
+//! accent hors de cette table n'est pas retire. Les chiffres des motifs de date et de nom de fichier sont les chiffres
+//! ASCII. Un mois saisi est un mois que des engagements touchent (`engagements/`).
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -1388,7 +1379,7 @@ fn dossier_salarie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     construire(ctx, charge).map(|d| dossier_json(&d))
 }
 
-/// `operations_dossier.dossier_salarie` : le dossier construit (et ecrit, sauf `apercu`). L'envoi (`routes_envois`)
+/// `operations_dossier.dossier_salarie` : le dossier construit (et ecrit, sauf `apercu`). L'envoi (`archives`, `dossier-envoyer`)
 /// en a besoin tel quel : ses salaries, ses fichiers, ses pages.
 pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     let salaries = vraie(charge, "salaries")?;

@@ -1,6 +1,6 @@
 //! `moteur extraire urssaf <table-des-urssaf.csv> <liste-des-sites.csv> <cog-2015.zip> <sortie.json>` : les organismes de
 //! recouvrement, leur code a trois chiffres et le departement dont chacun releve, pour `logiciel/donnees/urssaf-dpae-base.json`
-//! (que lisent `dpae.rs`, `champs.rs`, `routes_fiches.rs`, `routes_accueil.rs`).
+//! (que lisent `dpae.rs`, `champs.rs`, `routes/fiches.rs`, `routes/ouverture.rs`).
 //!
 //! LA SOURCE : la « Table des Urssaf », publiee par l'Urssaf Caisse nationale sur
 //! https://fichierdirect.declaration.urssaf.fr/TablesReference.htm parmi les tables de reference « proposees pour le

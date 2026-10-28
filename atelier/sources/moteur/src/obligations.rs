@@ -1,6 +1,6 @@
 //! LES OBLIGATIONS QU'UN ARRET ET UNE FIN DE CONTRAT FONT NAITRE (15/10/2026) : ce qu'il faut faire, ou, dans quel delai,
 //! a compter de quoi, jusqu'a quand, et ou on en est. UN SEUL ENDROIT les calcule ; les routes `arrets` et
-//! `fins-de-contrat` (`routes_listes`) et le rappel de l'accueil (`routes_ouverture`) ne font que les rendre, l'ecran ne
+//! `fins-de-contrat` (`routes::imprevus`) et le rappel de l'accueil (`routes::rappels`) ne font que les rendre, l'ecran ne
 //! fait que les afficher (regle 2).
 //!
 //! Les regles sont des donnees : `logiciel/donnees/obligations-base.json` dit chaque obligation, son delai, son point de

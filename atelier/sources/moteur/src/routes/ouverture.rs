@@ -1,16 +1,6 @@
-//! L'accueil : la route `etat` (`moteur route`), tout le JSON que la page lit en
-//! s'ouvrant -- la configuration verifiee, l'historique des mois, les listes
-//! ou l'on choisit, les referentiels livres avec le logiciel.
-//!
-//! C'est le Python de `moteur/web.py` (`_traiter`, route `etat`, avec
-//! `_configuration`, `_historique`, `_natures`, `_niveaux_sante`,
-//! `_conventions`) et ce qu'il appelait : `operations_fiches.configuration`,
-//! `salaries_au_mois`, `identite`, `operations_documents.boite_liee`,
-//! `operations_questionnaire.fiches_attendues_json`,
-//! `operations_exercice.bilan_des_mois`, `operations_catalogues` (`metiers`,
-//! `metiers_autres_conventions`, `rubriques`), `operations_permanents.
-//! faits_de_rupture`, `urssaf`, `simulation.active` -- portes a l'identique :
-//! meme JSON, memes refus.
+//! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
+//! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
+//! `maj-etat`, `maj-malgre-calcul`, `sauvegarde-derniere`, `echeance-faite`, `journal-reprise` et `courriels-fictifs`.
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
