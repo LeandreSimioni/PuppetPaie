@@ -394,7 +394,7 @@ fn matricule_suivant(salaries: &Map<String, Value>) -> i64 {
 fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Value>) -> R<String> {
     let propre = |texte: &str, bas: bool| -> String {
         let t = champs::sans_accents(texte).replace(['\'', '\u{2019}'], "");
-        let t: String = t.chars().map(|c| if envois::etats::alnum_py(c) { c } else { '-' }).collect();
+        let t: String = t.chars().map(|c| if envois::etats::lettre_ou_chiffre(c) { c } else { '-' }).collect();
         let t = t.split('-').filter(|m| !m.is_empty()).collect::<Vec<_>>().join("-");
         if bas {
             t.to_lowercase()

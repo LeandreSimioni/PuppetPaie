@@ -68,7 +68,7 @@ pub fn s(t: &str) -> Value {
 
 /// La cle de hachage d'une valeur : `1`, `1.0` et `True` ne font qu'une ;
 /// une liste ou un dictionnaire ne se hache pas.
-fn cle_py(v: &Value) -> R<String> {
+fn cle_de_hachage(v: &Value) -> R<String> {
     match v {
         Value::Null => Ok("N".into()),
         Value::String(t) => Ok(format!("s{}:{}", t.len(), t)),
@@ -96,7 +96,7 @@ impl<V> Dico<V> {
     pub fn cle(k: &[Value]) -> R<String> {
         let mut t = String::new();
         for x in k {
-            t.push_str(&cle_py(x)?);
+            t.push_str(&cle_de_hachage(x)?);
             t.push('\u{1f}');
         }
         Ok(t)
@@ -470,7 +470,7 @@ fn meme_nom(cle: &Value, nom: &Value) -> R<bool> {
             autre if !vrai(autre) => "",
             autre => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
         };
-        Ok(t.to_uppercase().chars().filter(|&c| alnum_py(c)).collect())
+        Ok(t.to_uppercase().chars().filter(|&c| lettre_ou_chiffre(c)).collect())
     }
     let a = plat(cle)?;
     if a.is_empty() {
@@ -479,8 +479,8 @@ fn meme_nom(cle: &Value, nom: &Value) -> R<bool> {
     Ok(a == plat(nom)?)
 }
 
-/// Vrai pour une lettre ou un chiffre Unicode.
-pub fn alnum_py(c: char) -> bool {
+/// Vrai pour une lettre ou un chiffre Unicode (lettres Lu, Ll, Lt, Lm, Lo et Numeric_Type, d'apres la table deposee : `tables_journal`).
+pub fn lettre_ou_chiffre(c: char) -> bool {
     let c = c as u32;
     ALNUM
         .binary_search_by(|&(a, b)| {
@@ -793,7 +793,7 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
                     let fiche = match salarie {
                         Value::String(nom) => salaries.get(nom).unwrap_or(vide),
                         autre => {
-                            cle_py(autre)?;
+                            cle_de_hachage(autre)?;
                             vide
                         }
                     };
@@ -1550,9 +1550,9 @@ fn incident(racine: &Path, ligne: &Value, r: &Value, verdict: &Value, contenus: 
             let mut p: Vec<(&String, &Value)> = o.iter().collect();
             p.sort_by(|x, y| x.0.cmp(y.0));
             for (_, v) in &p {
-                cle_py(v)?;
+                cle_de_hachage(v)?;
             }
-            let k = p.iter().map(|(k, v)| format!("{}={}", k, cle_py(v).unwrap_or_default())).collect::<Vec<_>>().join("\u{1e}");
+            let k = p.iter().map(|(k, v)| format!("{}={}", k, cle_de_hachage(v).unwrap_or_default())).collect::<Vec<_>>().join("\u{1e}");
             if !vus.contains(&k) {
                 vus.push(k);
                 uniques.push(Value::Object(p.into_iter().map(|(k, v)| (k.clone(), v.clone())).collect()));

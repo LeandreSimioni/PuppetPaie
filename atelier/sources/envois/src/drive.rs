@@ -367,24 +367,11 @@ fn echapper(nom: &str) -> String {
     nom.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
-/// Le nom du type d'une valeur JSON (`NoneType`, `bool`, `int`, `float`, `str`, `list`, `dict`), pour les messages d'erreur.
-fn type_py(v: &Value) -> &'static str {
-    match v {
-        Value::Null => "NoneType",
-        Value::Bool(_) => "bool",
-        Value::Number(n) if n.is_f64() => "float",
-        Value::Number(_) => "int",
-        Value::String(_) => "str",
-        Value::Array(_) => "list",
-        Value::Object(_) => "dict",
-    }
-}
-
 /// `x.get(...)` : `x` doit etre un objet JSON (`AttributeError` sinon).
 fn en_dict(v: &Value) -> Result<&serde_json::Map<String, Value>, ErreurGoogle> {
     match v {
         Value::Object(o) => Ok(o),
-        autre => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("un objet", type_py(autre)))),
+        autre => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     }
 }
 
@@ -395,42 +382,37 @@ fn texte_requis(v: &Value, cle: &str) -> Result<String, ErreurGoogle> {
             Some(x) => Ok(en_texte(x)),
             None => Err(ErreurGoogle::nouvelle("KeyError", socle::fichiers::absent(cle))),
         },
-        autre => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("un objet", type_py(autre)))),
+        autre => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     }
 }
 
-/// `r.get("files", [])` parcouru : les elements du listage. Les formes que Drive ne rend jamais sont refusees.
+/// Les elements du listage (`files`, une liste ; absent : aucun).
 fn elements_de(r: &Value) -> Result<Vec<&Value>, ErreurGoogle> {
     let o = en_dict(r)?;
     match o.get("files") {
         None => Ok(Vec::new()),
         Some(Value::Array(a)) => Ok(a.iter().collect()),
-        // parcourir un texte ou un objet donne des chaines : `f.get(...)` leve sur la premiere
-        Some(autre @ Value::String(t)) if !t.is_empty() => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("une liste", type_py(autre)))),
-        Some(autre @ Value::Object(m)) if !m.is_empty() => Err(ErreurGoogle::nouvelle("AttributeError", socle::fichiers::attendu("une liste", type_py(autre)))),
-        Some(Value::String(_)) | Some(Value::Object(_)) => Ok(Vec::new()),
-        Some(autre) => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
+        Some(autre) => Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     }
 }
 
-/// `int(f.get("size") or 0)` pour une taille vraie.
+/// La taille d'un fichier (`size`, que Drive ecrit en texte).
 fn octets_de(t: &Value) -> Result<u64, ErreurGoogle> {
     match t {
         Value::Number(n) => Ok(n.as_u64().or_else(|| n.as_f64().map(|f| f.trunc().max(0.0) as u64)).unwrap_or(0)),
-        Value::Bool(_) => Ok(1),
         Value::String(x) => x
             .trim()
             .parse::<u64>()
             .map_err(|_| ErreurGoogle::nouvelle("ValueError", format!("nombre entier illisible : '{}'", x))),
         autre => Err(ErreurGoogle::nouvelle(
             "TypeError",
-            socle::fichiers::attendu("un nombre entier", type_py(autre)),
+            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
         )),
     }
 }
 
-/// `trouves["files"][0]["id"]` si `strict`, sinon `(trouves.get("files") or [{}])[0].get("id")` : l'identifiant du
-/// premier fichier trouve, `None` s'il n'y en a pas. Les formes que Drive ne rend jamais sont refusees.
+/// L'identifiant du premier fichier trouve, `None` s'il n'y en a pas ; `strict` : le premier doit porter un `id`. Les
+/// formes que Drive ne rend jamais sont refusees.
 fn premier_de(trouves: &Value, strict: bool) -> Result<Option<String>, ErreurGoogle> {
     let o = en_dict(trouves)?;
     let files = match o.get("files") {
@@ -439,10 +421,7 @@ fn premier_de(trouves: &Value, strict: bool) -> Result<Option<String>, ErreurGoo
     };
     let premier: &Value = match files {
         Value::Array(a) => &a[0],
-        // "abc"[0] est une chaine
-        Value::String(_) => return Err(ErreurGoogle::nouvelle(if strict { "TypeError" } else { "AttributeError" }, socle::fichiers::attendu("une liste", "str"))),
-        Value::Object(_) => return Err(ErreurGoogle::nouvelle("KeyError", socle::fichiers::attendu("une liste", "dict"))),
-        autre => return Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
+        autre => return Err(ErreurGoogle::nouvelle("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     };
     if strict {
         return Ok(Some(texte_requis(premier, "id")?));

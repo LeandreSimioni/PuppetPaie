@@ -124,24 +124,6 @@ fn faux(v: &Value) -> bool {
     }
 }
 
-/// Le nom de type d'une valeur, tel que les refus l'ecrivent (`NoneType`, `str`, `list`, `dict`...).
-fn type_py(v: &Value) -> &'static str {
-    match v {
-        Value::Null => "NoneType",
-        Value::Bool(_) => "bool",
-        Value::Number(n) => {
-            if n.is_f64() {
-                "float"
-            } else {
-                "int"
-            }
-        }
-        Value::String(_) => "str",
-        Value::Array(_) => "list",
-        Value::Object(_) => "dict",
-    }
-}
-
 // ------------------------------------------------------------------ le XML
 
 /// Un element, comme ElementTree le range.
@@ -985,69 +967,35 @@ fn json_lire(texte: &str) -> Resultat<Value> {
     serde_json::from_str(texte).map_err(|e| echec("JSONDecodeError", e.to_string()))
 }
 
-fn attribut_inconnu(v: &Value) -> Echec {
-    echec("AttributeError", socle::fichiers::attendu("un objet", type_py(v)))
-}
-
-/// `d.get(cle, d)` puis `.get(...)` : un non-dictionnaire est refuse.
+/// La valeur de `cle` dans un objet JSON ; une autre forme est refusee.
 fn lire_cle<'a>(v: &'a Value, cle: &str) -> Resultat<Option<&'a Value>> {
     match v {
         Value::Object(m) => Ok(m.get(cle)),
-        autre => Err(attribut_inconnu(autre)),
+        autre => Err(echec("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
     }
 }
 
-/// `x` si c'est un dictionnaire, la liste de ses elements si c'est une liste ; ce
-/// qu'une boucle lit sinon.
-fn elements(v: &Value) -> Resultat<Vec<Value>> {
+/// Un element seul (un objet) ou une liste d'elements : la reponse JSON de la plate-forme ecrit un objet quand il n'y
+/// en a qu'un. Rien (`null`) n'en fait aucun.
+fn un_ou_plusieurs(v: Option<&Value>) -> Resultat<Vec<Value>> {
     match v {
-        Value::Array(a) => Ok(a.clone()),
-        Value::String(s) => Ok(s.chars().map(|c| Value::String(c.to_string())).collect()),
-        Value::Object(m) => Ok(m.keys().map(|k| Value::String(k.clone())).collect()),
-        autre => Err(echec("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
+        None | Some(Value::Null) => Ok(Vec::new()),
+        Some(o @ Value::Object(_)) => Ok(vec![o.clone()]),
+        Some(Value::Array(a)) => Ok(a.clone()),
+        Some(autre) => Err(echec("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
     }
-}
-
-/// `dict(r)` : un dictionnaire tel quel, une suite de paires (deux caracteres ou
-/// deux elements) sinon.
-fn dict_de(r: &Value) -> Resultat<Map<String, Value>> {
-    let elements: Vec<Value> = match r {
-        Value::Object(m) => return Ok(m.clone()),
-        Value::Array(a) => a.clone(),
-        Value::String(s) => s.chars().map(|c| Value::String(c.to_string())).collect(),
-        autre => return Err(echec("TypeError", socle::fichiers::attendu("une liste", type_py(autre)))),
-    };
-    let mut m = Map::new();
-    for (i, e) in elements.iter().enumerate() {
-        let paire: Vec<Value> = match e {
-            Value::Array(a) => a.clone(),
-            Value::String(s) => s.chars().map(|c| Value::String(c.to_string())).collect(),
-            Value::Object(o) => o.keys().map(|k| Value::String(k.clone())).collect(),
-            _ => return Err(echec("TypeError", socle::fichiers::pas_une_paire(i, type_py(e)))),
-        };
-        if paire.len() != 2 {
-            return Err(echec("ValueError", socle::fichiers::paire_attendue(i, paire.len())));
-        }
-        let Value::String(k) = &paire[0] else {
-            return Err(echec("TypeError", "unsupported dictionary key"));
-        };
-        m.insert(k.clone(), paire[1].clone());
-    }
-    Ok(m)
 }
 
 fn liste_retours_json(d: &Value) -> Resultat<Vec<Value>> {
     let racine = lire_cle(d, "retours")?.unwrap_or(d);
-    let flux = lire_cle(racine, "flux")?.cloned().unwrap_or(json!([]));
-    let flux = if flux.is_object() { vec![flux] } else { elements(&flux)? };
     let mut out = Vec::new();
-    for f in &flux {
+    for f in &un_ou_plusieurs(lire_cle(racine, "flux")?)? {
         let idf = lire_cle(f, "id")?.cloned().unwrap_or(Value::Null);
-        let retours = lire_cle(f, "retour")?.cloned().unwrap_or(json!([]));
-        let retours = if retours.is_object() { vec![retours] } else { elements(&retours)? };
-        for r in &retours {
-            // `dict(r, flux=idf)`
-            let mut m = dict_de(r)?;
+        for r in &un_ou_plusieurs(lire_cle(f, "retour")?)? {
+            let Value::Object(m) = r else {
+                return Err(echec("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(r))));
+            };
+            let mut m = m.clone();
             m.insert("flux".into(), idf.clone());
             out.push(Value::Object(m));
         }
@@ -1115,8 +1063,7 @@ fn parse_liste_depots(o: &[u8]) -> Resultat<Vec<Value>> {
         let d = json_lire(texte)?;
         let depots = lire_cle(&d, "depots")?.unwrap_or(&d);
         let decl = lire_cle(depots, "declarant")?.cloned().unwrap_or(json!({}));
-        let depot = lire_cle(&decl, "depot")?.cloned().unwrap_or(json!([]));
-        return if depot.is_object() { Ok(vec![depot]) } else { elements(&depot) };
+        return un_ou_plusieurs(lire_cle(&decl, "depot")?);
     }
     let arbre = lire_texte(texte)?;
     Ok(arbre.tous().filter(|el| local(&el.tag) == "depot").map(|el| Value::Object(enfants_en_dict(&arbre, el))).collect())
@@ -1520,28 +1467,6 @@ fn nom_zip(o: &[u8], drapeaux: usize) -> Resultat<String> {
     }
 }
 
-/// Un texte cite entre guillemets (les cas que les noms d'archive rencontrent).
-fn repr_py(s: &str) -> String {
-    let guill = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
-    let mut r = String::from(guill);
-    for c in s.chars() {
-        match c {
-            '\\' => r.push_str("\\\\"),
-            '\n' => r.push_str("\\n"),
-            '\r' => r.push_str("\\r"),
-            '\t' => r.push_str("\\t"),
-            c if c == guill => {
-                r.push('\\');
-                r.push(c)
-            }
-            c if (c as u32) < 0x20 || c as u32 == 0x7f => r.push_str(&format!("\\x{:02x}", c as u32)),
-            c => r.push(c),
-        }
-    }
-    r.push(guill);
-    r
-}
-
 struct Membre {
     nom: String,
     original: String,
@@ -1748,26 +1673,13 @@ fn lire_membre(b: &[u8], m: &Membre) -> Resultat<Vec<u8>> {
     }
     let nom_en_tete = nom_zip(nom_brut, u16_le(h, 6))?;
     if nom_en_tete != m.original {
-        let mut brut = String::from("b'");
-        for &o in nom_brut {
-            match o {
-                b'\\' => brut.push_str("\\\\"),
-                b'\'' => brut.push_str("\\'"),
-                0x20..=0x7e => brut.push(o as char),
-                b'\n' => brut.push_str("\\n"),
-                b'\r' => brut.push_str("\\r"),
-                b'\t' => brut.push_str("\\t"),
-                _ => brut.push_str(&format!("\\x{:02x}", o)),
-            }
-        }
-        brut.push('\'');
-        return Err(mauvais(format!("File name in directory {} and header {} differ.", repr_py(&m.original), brut)));
+        return Err(mauvais(format!("File name in directory « {} » and header « {} » differ.", m.original, nom_en_tete)));
     }
     if (debut_donnees as i128).saturating_add(m.taille_comp as i128) > m.fin {
-        return Err(mauvais(format!("Overlapped entries: {} (possible zip bomb)", repr_py(&m.original))));
+        return Err(mauvais(format!("Overlapped entries: « {} » (possible zip bomb)", m.original)));
     }
     if m.drapeaux & 1 != 0 {
-        return Err(echec("RuntimeError", format!("File {} is encrypted, password required for extraction", repr_py(&m.nom))));
+        return Err(echec("RuntimeError", format!("File « {} » is encrypted, password required for extraction", m.nom)));
     }
     let comprime = &b[debut_donnees.min(b.len())..(debut_donnees.saturating_add(m.taille_comp as usize)).min(b.len())];
     let donnees = match m.methode {
@@ -1808,7 +1720,7 @@ fn lire_membre(b: &[u8], m: &Membre) -> Resultat<Vec<u8>> {
         }
     };
     if crc32(&donnees) != m.crc {
-        return Err(mauvais(format!("Bad CRC-32 for file {}", repr_py(&m.nom))));
+        return Err(mauvais(format!("Bad CRC-32 for file « {} »", m.nom)));
     }
     Ok(donnees)
 }
@@ -2321,7 +2233,7 @@ pub fn lire_crm_oc(o: &[u8]) -> Option<Value> {
                 .filter(|x| local(&x.tag) == "ContexteRetourMetier")
                 .map(|c| json!({"rubrique": at(c, "Rubrique"), "libelle": at(c, "Libelle"), "valeur": at(c, "Valeur"), "libelle_valeur": at(c, "LibelVal")}))
                 .collect();
-            let du_contexte = |r: &str| contexte.iter().find(|c| c["rubrique"] == json!(r)).map(|c| py_texte(&c["valeur"])).unwrap_or_default();
+            let du_contexte = |r: &str| contexte.iter().find(|c| c["rubrique"] == json!(r)).map(|c| texte_ou_vide(&c["valeur"])).unwrap_or_default();
             let salarie = [du_contexte("S21.G00.30.002"), du_contexte("S21.G00.30.004")].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join(" ");
             retours.push(json!({
                 "code": at(rm, "CodeRetourMetier"), "libelle": at(rm, "LibelCodeRetourMetier"), "description": at(rm, "DescriptionRetour"),
@@ -2345,7 +2257,7 @@ pub fn lire_crm_oc(o: &[u8]) -> Option<Value> {
     Some(json!({"type_crm": at(racine, "TypCRM"), "essai_reel": at(racine, "CodeEnvoi"), "version": at(racine, "VersionCRM"), "declarations": declarations}))
 }
 
-fn py_texte(v: &Value) -> String {
+fn texte_ou_vide(v: &Value) -> String {
     v.as_str().unwrap_or("").to_string()
 }
 

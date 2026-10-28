@@ -1516,7 +1516,7 @@ pub(crate) fn est_une_dsn_mensuelle(nom: &str) -> bool {
     let Some(reste) = nom.strip_prefix("DSN_") else { return false };
     let Some(reste) = reste.strip_suffix(".dsn") else { return false };
     let c: Vec<char> = reste.chars().collect();
-    let lettres = c.iter().take_while(|x| etats::alnum_py(**x) && !x.is_ascii_digit() && **x != '_' && !x.is_numeric()).count();
+    let lettres = c.iter().take_while(|x| etats::lettre_ou_chiffre(**x) && !x.is_ascii_digit() && **x != '_' && !x.is_numeric()).count();
     if lettres == 0 {
         return false;
     }

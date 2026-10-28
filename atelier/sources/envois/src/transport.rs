@@ -91,11 +91,8 @@ fn echec_brut(p: Panne) -> Value {
 
 use socle::texte::blanc as blanc;
 
-fn py_strip(s: &str) -> &str {
-    s.trim_matches(blanc)
-}
-
-fn py_split(s: &str) -> Vec<&str> {
+/// Les mots d'un texte, separes par du blanc.
+fn mots(s: &str) -> Vec<&str> {
     s.split(blanc).filter(|m| !m.is_empty()).collect()
 }
 
@@ -336,7 +333,7 @@ fn mandataire(url: &str) -> Option<ureq::Proxy> {
     }
     if let Some(np) = var("no_proxy") {
         for e in np.split(',') {
-            let e = py_strip(e).trim_start_matches('.').to_lowercase();
+            let e = socle::texte::strip(e).trim_start_matches('.').to_lowercase();
             if e == "*" {
                 return None;
             }
@@ -589,7 +586,7 @@ fn en_erreur_api(url: &str, p: Panne) -> Value {
         Panne::Statut { code, corps } => {
             let corps = corps.map(|c| debut(&utf8_remplace(&c), 400)).unwrap_or_default();
             let mut m = format!("HTTP {} sur {}\n  {}", code, sans_secret(url), message_du_statut(code));
-            if !py_strip(&corps).is_empty() {
+            if !socle::texte::strip(&corps).is_empty() {
                 m.push_str("\n  ");
                 m.push_str(&corps);
             }
@@ -633,7 +630,7 @@ pub fn declarant(ent: &Value) -> Result<Value, Value> {
             Some(_) => return Err(echec("AttributeError", "`nom_prenom` n'est pas un texte".into(), None)),
         };
     }
-    let morceaux = py_split(py_strip(brut));
+    let morceaux = mots(socle::texte::strip(brut));
     let siret = ent.get("siret").cloned().unwrap_or(Value::Null);
     let mut m = Map::new();
     m.insert("siret".into(), siret);
@@ -718,7 +715,7 @@ sur net-entreprises.fr (sans accent).",
     };
     let (brut, entetes) = envoyer(&r).map_err(|p| en_erreur_api(url, p))?;
     let jeton: String = brut.iter().map(|&b| if b < 0x80 { b as char } else { '\u{fffd}' }).collect();
-    Ok(json!({"ok": true, "jeton": py_strip(&jeton), "expire_le": entete(&entetes, "Expires")}))
+    Ok(json!({"ok": true, "jeton": socle::texte::strip(&jeton), "expire_le": entete(&entetes, "Expires")}))
 }
 
 /// L'envoi du corps d'un depot (deja prepare : octets gzip) : POST `text/plain`,
@@ -750,7 +747,7 @@ pub fn depot(url: &str, jeton: &str, corps_gzip: &[u8], forme: &str, delai: u64)
         (_, Panne::Statut { code, corps }) => {
             let c = corps.map(|c| debut(&utf8_remplace(&c), 400)).unwrap_or_default();
             let mut m = format!("HTTP {} au depot sur {}\n  {}", code, sans_secret(url), message_du_statut(code));
-            if !py_strip(&c).is_empty() {
+            if !socle::texte::strip(&c).is_empty() {
                 m.push_str("\n  ");
                 m.push_str(&c);
             }

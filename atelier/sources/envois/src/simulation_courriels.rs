@@ -82,7 +82,7 @@ pub fn texte_de(f: &ParsedMail) -> String {
     if let Body::Base64(b) = f.get_body_encoded() {
         // Un corps base64 se decode avec indulgence, et n'est JAMAIS vide faute de base64 valide (le
         // texte brut, lignes jointes, si la longueur est impossible) : `mailparse` rendrait une erreur.
-        let octets = decoder_b64_python(b.get_raw());
+        let octets = decoder_base64_indulgent(b.get_raw());
         let synthetique = [format!("Content-Type: text/plain; charset=\"{}\"\r\nContent-Transfer-Encoding: binary\r\n\r\n", f.ctype.charset).into_bytes(), octets].concat();
         return parse_mail(&synthetique).ok().and_then(|m| m.get_body().ok()).unwrap_or_default();
     }
@@ -101,9 +101,9 @@ pub fn texte_de(f: &ParsedMail) -> String {
 
 const ALPHABET_B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-/// `binascii.a2b_base64` : `strict` = `validate=True` (tout signe hors alphabet est une erreur) ; sinon les signes hors alphabet
-/// sont ignores. `None` = `binascii.Error`.
-fn a2b_base64(donnees: &[u8], strict: bool) -> Option<Vec<u8>> {
+/// Le base64 lu octet par octet : `strict`, tout signe hors alphabet et toute donnee apres le bourrage sont refuses ; sinon les
+/// signes hors alphabet sont ignores. `None` : la longueur ou le signe ne se lit pas.
+fn base64_vers_octets(donnees: &[u8], strict: bool) -> Option<Vec<u8>> {
     let valeur = |c: u8| ALPHABET_B64.iter().position(|x| *x == c).map(|v| v as u32);
     let (mut sortie, mut tampon, mut bits, mut quad, mut pads) = (Vec::new(), 0u32, 0u32, 0usize, 0usize);
     let mut fini = false;
@@ -141,24 +141,24 @@ fn a2b_base64(donnees: &[u8], strict: bool) -> Option<Vec<u8>> {
     Some(sortie)
 }
 
-/// `email._header_value_parser.decode_b` (ce que `get_payload(decode=True)` fait d'un corps base64) : d'abord strict avec le
-/// bourrage complete, puis indulgent, puis indulgent avec `==` ; si la longueur est impossible, le texte lui-meme.
-pub fn decoder_b64_python(brut: &[u8]) -> Vec<u8> {
+/// Un corps de courriel en base64, lu avec indulgence (les corps recus ne sont pas toujours bien formes) : d'abord strict avec le
+/// bourrage complete, puis sans les signes hors alphabet, puis avec `==` ; si la longueur est impossible, le texte lui-meme.
+fn decoder_base64_indulgent(brut: &[u8]) -> Vec<u8> {
     let encode: Vec<u8> = brut.iter().copied().filter(|c| *c != b'\n' && *c != b'\r').collect();
     let reste = encode.len() % 4;
     let mut complete = encode.clone();
     if reste != 0 {
         complete.extend_from_slice(&b"==="[..4 - reste]);
     }
-    if let Some(o) = a2b_base64(&complete, true) {
+    if let Some(o) = base64_vers_octets(&complete, true) {
         return o;
     }
-    if let Some(o) = a2b_base64(&encode, false) {
+    if let Some(o) = base64_vers_octets(&encode, false) {
         return o;
     }
     let mut deux = encode.clone();
     deux.extend_from_slice(b"==");
-    if let Some(o) = a2b_base64(&deux, false) {
+    if let Some(o) = base64_vers_octets(&deux, false) {
         return o;
     }
     encode
