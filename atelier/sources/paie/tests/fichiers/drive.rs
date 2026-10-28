@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use paie::drive::{corps_multipart, passagere, Adresses, Client, Distant, Drive};
+use envois::drive::{corps_multipart, passagere, Adresses, Client, Distant, Drive};
 use paie::sauvegarde::hors_ligne;
 
 use crate::outils::{http, Recu, Requete};
@@ -502,7 +502,7 @@ fn une_copie_de_developpement_est_refusee_a_la_construction() {
 /// `&mut dyn Drive`.
 #[test]
 fn le_trait_drive_n_a_pas_de_suppression() {
-    let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join("drive.rs")).unwrap();
+    let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../envois/src/drive.rs")).unwrap();
     let debut = source.find("pub trait Drive {").expect("le trait Drive");
     let corps = &source[debut..];
     let fin = corps.find("\n}\n").expect("fin du trait");

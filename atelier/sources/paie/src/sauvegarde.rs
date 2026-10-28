@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use md5::{Digest, Md5};
 use serde_json::{json, Map, Value};
 
-use crate::drive::{Client, Drive, ErreurGoogle};
+use envois::drive::{Client, Drive, ErreurGoogle};
 
 pub const RACINE_DRIVE: &str = "PuppetPaie";
 pub const DOSSIER_DRIVE: &str = "sauvegarde";
@@ -138,7 +138,7 @@ const FICHIER_ILLISIBLE: &str = "fichier illisible sur ce poste";
 /// La cause d'une erreur, en clair : passagere chez Google (`drive::passagere`, deja retentee par le client), un delai
 /// depasse, un refus de Google, ou un fichier du poste qui ne se lit pas.
 pub fn cause_de(e: &ErreurGoogle) -> &'static str {
-    if crate::drive::passagere(e) {
+    if envois::drive::passagere(e) {
         GOOGLE_INDISPONIBLE
     } else if e.classe == "TimeoutError" || e.message.to_lowercase().contains("timed out") {
         GOOGLE_MUET
@@ -511,7 +511,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
             en_echec.extend(fichiers.iter().cloned());
             continue;
         }
-        let essai: Result<(String, BTreeMap<String, crate::drive::Distant>), ErreurGoogle> = (|| {
+        let essai: Result<(String, BTreeMap<String, envois::drive::Distant>), ErreurGoogle> = (|| {
             let connu = dossiers.get(&cle).and_then(Value::as_str).filter(|p| !p.is_empty()).map(str::to_string);
             let parent = match connu {
                 Some(p) => p,

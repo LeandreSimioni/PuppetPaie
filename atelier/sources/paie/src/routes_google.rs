@@ -20,19 +20,12 @@ use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
-use envois::transport::{envoyer, Panne, Requete};
+use envois::google::{champ, en_texte, jeton_par_rafraichissement, DELAI, PERMISSIONS};
 
 type R<T> = Result<T, Echec>;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 1] = ["google-etat"];
-
-/// `google.JETONS`.
-pub(crate) const JETONS: &str = "https://oauth2.googleapis.com/token";
-
-/// `google.PERMISSIONS`.
-pub(crate) const PERMISSIONS: [&str; 2] =
-    ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/userinfo.email"];
 
 /// `google.APPLICATION` : l'application Google du logiciel, livree avec lui
 /// dans `google-application.json` (a cote du code), `client_id` et
@@ -48,9 +41,6 @@ pub(crate) const DESCRIPTION: &str = "moteur de paie - jeton Google";
 
 /// `compagnies.MARQUEUR`.
 use socle::fichiers::MARQUEUR_COPIE;
-
-/// `urlopen(..., timeout=60)`.
-pub(crate) const DELAI: u64 = 60;
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, _charge: &Value) -> R<Value> {
@@ -68,13 +58,6 @@ fn config(racine: &Path) -> PathBuf {
 #[track_caller]
 fn erreur_google(message: impl Into<String>) -> Echec {
     erreur("ErreurGoogle", message)
-}
-
-
-/// `AttributeError` de `x.get(...)` sur ce qui n'est pas un dict.
-#[track_caller]
-fn sans_get(v: &Value) -> Echec {
-    erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v)))
 }
 
 /// `google.identifiants` : (client_id, client_secret, origine).
@@ -170,29 +153,47 @@ pub fn compte_autorise(racine: &Path) -> Option<String> {
 }
 
 /// Les adresses de Google ; dans l'atelier, un faux Google local (`atelier.rs`).
-pub fn adresses_du_poste() -> crate::drive::Adresses {
+pub fn adresses_du_poste() -> envois::drive::Adresses {
     #[cfg(feature = "atelier")]
     if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
-        return crate::drive::Adresses::de_la_base(&b);
+        return envois::drive::Adresses::de_la_base(&b);
     }
-    crate::drive::Adresses::default()
+    envois::drive::Adresses::default()
 }
 
 /// LE CLIENT DU DRIVE DE LA COMPAGNIE : refuse une copie de developpement (qui ecrirait dans le Drive de la VRAIE
 /// compagnie), lit l'application (`google.json` ou celle du logiciel), le jeton scelle par la cle du poste et l'adresse
 /// du compte, et les passe au client (`drive::Client::nouveau`). Aucun appel reseau.
-pub fn client_drive(racine: &Path) -> Result<crate::drive::Client, crate::drive::ErreurGoogle> {
+pub fn client_drive(racine: &Path) -> Result<envois::drive::Client, envois::drive::ErreurGoogle> {
     if let Some(refus) = refus_de_copie(racine) {
         return Err(refus.into());
     }
     let (id, secret, _origine) = identifiants(racine)?;
-    let autorisation = crate::drive::Autorisation { identifiants: (id, secret), jeton: lire_jeton_dit(racine), compte: compte_autorise(racine) };
-    Ok(crate::drive::Client::nouveau(autorisation, adresses_du_poste()))
+    let autorisation = envois::drive::Autorisation { identifiants: (id, secret), jeton: lire_jeton_dit(racine), compte: compte_autorise(racine) };
+    Ok(envois::drive::Client::nouveau(autorisation, adresses_du_poste()))
+}
+
+/// LIER LE COMPTE GOOGLE : lit l'application et les adresses du poste, mene l'autorisation
+/// (`google_autorisation::autoriser`), puis scelle le jeton obtenu. Rend l'adresse du compte lie.
+pub(crate) fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn Fn(&str)) -> R<String> {
+    let (id, secret, _) = identifiants(racine).map_err(|e| Echec { classe: Some("ErreurOperation"), message: e.message })?;
+    let adresses = {
+        #[cfg(feature = "atelier")]
+        if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
+            envois::google_autorisation::Adresses::de_la_base(&b)
+        } else {
+            envois::google_autorisation::Adresses::default()
+        }
+        #[cfg(not(feature = "atelier"))]
+        envois::google_autorisation::Adresses::default()
+    };
+    let jeton = envois::google_autorisation::autoriser((id, secret), &adresses, delai, dire_url, dire)?;
+    sceller_le_jeton(racine, &jeton)
 }
 
 /// Le jeton que l'autorisation a obtenu (`google_autorisation::autoriser`) et l'adresse du compte, dans un seul fichier
 /// scelle par la cle du poste. Rend l'adresse du compte lie.
-pub(crate) fn sceller_le_jeton(racine: &Path, jeton: &crate::google_autorisation::JetonGoogle) -> R<String> {
+fn sceller_le_jeton(racine: &Path, jeton: &envois::google_autorisation::JetonGoogle) -> R<String> {
     let brut = socle::json_ascii::dumps(
         &serde_json::json!({"rafraichissement": jeton.rafraichissement, "compte": jeton.compte, "permissions": jeton.permissions}),
         None,
@@ -207,17 +208,6 @@ pub(crate) fn sceller_le_jeton(racine: &Path, jeton: &crate::google_autorisation
     let chemin = dossier.join(FICHIER_JETON);
     std::fs::write(&chemin, scelle).map_err(|e| erreur_google(format!("{} : {}", chemin.display(), e)))?;
     Ok(jeton.compte.clone())
-}
-
-/// `(j or {}).get(cle)` : `Null` pour un jeton faux en Python.
-pub(crate) fn champ(j: &Value, cle: &str) -> R<Value> {
-    if !vrai(j) {
-        return Ok(Value::Null);
-    }
-    match j {
-        Value::Object(o) => Ok(o.get(cle).cloned().unwrap_or(Value::Null)),
-        autre => Err(sans_get(autre)),
-    }
 }
 
 /// `p.rsplit("/", 1)[-1]` sur chaque permission.
@@ -240,70 +230,6 @@ fn liste(v: &Value) -> R<Vec<Value>> {
     }
 }
 
-/// `urllib.parse.urlencode` : `quote_plus` des cles et des valeurs.
-pub(crate) fn encoder(champs: &[(&str, String)]) -> String {
-    let q = |s: &str| -> String {
-        s.bytes()
-            .map(|b| match b {
-                b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_' | b'.' | b'-' | b'~' => (b as char).to_string(),
-                b' ' => "+".into(),
-                _ => format!("%{:02X}", b),
-            })
-            .collect()
-    };
-    champs.iter().map(|(k, v)| format!("{}={}", q(k), q(v))).collect::<Vec<_>>().join("&")
-}
-
-/// `str(x)` d'une valeur que `urlencode` recoit.
-pub(crate) fn en_texte(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        autre => socle::valeur::valeur_en_texte(autre),
-    }
-}
-
-/// `google._traduire` : le message lisible d'une reponse d'erreur de Google.
-pub(crate) fn traduire(code: u16, corps: &str) -> String {
-    let mut detail: String = corps.chars().take(500).collect();
-    let mut code_g = String::new();
-    if let Ok(Value::Object(o)) = serde_json::from_str::<Value>(corps) {
-        match o.get("error") {
-            Some(Value::String(s)) => {
-                code_g = s.clone();
-                match o.get("error_description") {
-                    Some(d) if vrai(d) => detail = en_texte(d),
-                    _ => {}
-                }
-            }
-            Some(Value::Object(e)) => {
-                code_g = e.get("status").map(en_texte).unwrap_or_default();
-                match e.get("message") {
-                    Some(m) if vrai(m) => detail = en_texte(m),
-                    _ => {}
-                }
-            }
-            _ => {}
-        }
-    }
-    if code_g == "invalid_grant" || corps.contains("invalid_grant") {
-        return "Autorisation Google perdue ou expiree.\n\
-                \x20 Cause la plus frequente : l'ecran de consentement est reste\n\
-                \x20 en mode « Test », ou Google revoque le jeton au bout de 7\n\
-                \x20 jours. Le passer « En production » dans la console, puis\n\
-                \x20 relier le Drive (Configuration > Mots de passe, ou\n\
-                \x20 `paie google autoriser`)."
-            .into();
-    }
-    if code == 403 && corps.to_lowercase().contains("insufficient") {
-        return "Permission refusee : l'autorisation en cours ne couvre pas\n\
-                \x20 cette action. Relier le Drive (Configuration > Mots de\n\
-                \x20 passe, ou `paie google autoriser`) pour\n\
-                \x20 redemander les permissions."
-            .into();
-    }
-    format!("HTTP {} : {}", code, detail)
-}
-
 /// `compagnies.refuser_si_copie` : une copie de developpement n'ecrit jamais
 /// dans le Drive de la vraie compagnie. Le refus, sous la classe du Python.
 pub(crate) fn refus_de_copie(racine: &Path) -> Option<Echec> {
@@ -314,82 +240,6 @@ pub(crate) fn refus_de_copie(racine: &Path) -> Option<Echec> {
              test ; pour le faire en vrai, ouvrir la vraie compagnie.",
         )
     })
-}
-
-/// Une panne du transport, comme `google._poster` et `Client.appel` la
-/// traduisaient : `Ok(phrase)` pour une `ErreurGoogle` (statut traduit, reseau
-/// injoignable), `Err((classe, message))` pour ce qu'urllib laissait passer
-/// brut (delai depasse, connexion fermee...).
-pub(crate) fn phrase_de_panne(p: Panne) -> Result<String, (&'static str, String)> {
-    match p {
-        Panne::Statut { code, corps } => {
-            // Le moteur demande `gzip` (urllib ne le demandait pas) : une reponse
-            // d'erreur peut arriver compressee.
-            let corps = corps
-                .ok()
-                .map(|o| if o.starts_with(&[0x1f, 0x8b]) { envois::transport::gunzip(&o).unwrap_or(o) } else { o })
-                .map(|o| String::from_utf8_lossy(&o).into_owned())
-                .unwrap_or_default();
-            Ok(traduire(code, &corps))
-        }
-        Panne::Reseau(raison) => Ok(format!("Reseau injoignable : {}", raison)),
-        Panne::Brute { classe, message, .. } => Err((classe, message)),
-    }
-}
-
-/// Le jeton d'acces que Google rend pour un jeton de rafraichissement
-/// (`google.Client.jeton_acces`, le POST seul) : `Ok(Ok(jeton))`,
-/// `Ok(Err(phrase))` pour une `ErreurGoogle`, `Err` pour ce que Python
-/// laissait passer. `adresse` : `JETONS`, ou un serveur local a la preuve.
-pub(crate) fn jeton_par_rafraichissement(
-    adresse: &str,
-    client_id: &Value,
-    client_secret: &Value,
-    rafraichissement: &Value,
-    delai: u64,
-) -> R<Result<String, String>> {
-    let corps = encoder(&[
-        ("client_id", en_texte(client_id)),
-        ("client_secret", en_texte(client_secret)),
-        ("refresh_token", en_texte(rafraichissement)),
-        ("grant_type", "refresh_token".into()),
-    ]);
-    let requete = Requete {
-        url: adresse,
-        jeton: None,
-        donnees: Some(corps.as_bytes()),
-        content_type: Some("application/x-www-form-urlencoded"),
-        corps_gzip: false,
-        post: true,
-        delai,
-        ..Default::default()
-    };
-    match envoyer(&requete) {
-        Ok((brut, _)) => {
-            // Une reponse 200 sans jeton d'acces (ou illisible) : le Python plantait (`KeyError: 'access_token'`, `JSONDecodeError`,
-            // `TypeError`). Ici, une phrase, comme tout autre refus de Google (decision de Leandre).
-            let Some(v) = String::from_utf8(brut).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
-                return Ok(Err("Google a rendu une reponse illisible a la demande de jeton. Reessayer plus tard.".into()));
-            };
-            match &v {
-                Value::Object(o) if o.get("access_token").is_some_and(|t| t.is_string() && vrai(t)) => Ok(Ok(en_texte(&o["access_token"]))),
-                _ => Ok(Err("Google n'a pas rendu de jeton d'acces (reponse sans `access_token`). Reessayer plus tard ; si cela dure, lier de nouveau le compte.".into())),
-            }
-        }
-        Err(panne) => match phrase_de_panne(panne) {
-            Ok(phrase) => Ok(Err(phrase)),
-            Err((classe, message)) => Err(erreur(classe, message)),
-        },
-    }
-}
-
-/// L'adresse des jetons : celle de Google ; dans l'atelier seulement, le faux Google local (`atelier.rs`).
-fn adresse_des_jetons() -> String {
-    #[cfg(feature = "atelier")]
-    if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
-        return format!("{}/token", b);
-    }
-    JETONS.to_string()
 }
 
 /// `Client(ctx).jeton_acces()` : `Ok(None)` si Google rend un jeton d'acces,
@@ -412,7 +262,7 @@ fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Opt
                 .into(),
         ));
     }
-    Ok(jeton_par_rafraichissement(&adresse_des_jetons(), client_id, client_secret, &rafraichissement, DELAI)?.err())
+    Ok(jeton_par_rafraichissement(&adresses_du_poste().jetons, client_id, client_secret, &rafraichissement, DELAI)?.err())
 }
 
 /// `operations_ouverture.google_etat`, rendu par `sortie_json.etat_google`.
@@ -464,46 +314,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn urlencode_comme_python() {
-        assert_eq!(encoder(&[("a b", "x/y+z=é".into()), ("k", "~-._".into())]), "a+b=x%2Fy%2Bz%3D%C3%A9&k=~-._");
-    }
-
-    /// Un faux Google local (127.0.0.1) : repond 200 avec `corps` a la premiere demande, puis s'arrete.
-    fn faux_google(corps: &'static str) -> String {
-        use std::io::{Read, Write};
-        let ecoute = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = ecoute.local_addr().unwrap().port();
-        std::thread::spawn(move || {
-            if let Ok((mut s, _)) = ecoute.accept() {
-                let mut tete = Vec::new();
-                let mut octet = [0u8; 1];
-                while !tete.ends_with(b"\r\n\r\n") {
-                    match s.read(&mut octet) {
-                        Ok(1) => tete.push(octet[0]),
-                        _ => break,
-                    }
-                }
-                // Le corps de la demande (le jeton de rafraichissement) n'est ni lu ni garde.
-                let _ = s.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", corps.len(), corps).as_bytes());
-            }
-        });
-        format!("http://127.0.0.1:{}/token", port)
-    }
-
-    #[test]
-    fn google_200_sans_jeton_d_acces_est_une_phrase_pas_un_plantage() {
-        // Le Python plantait : `KeyError: 'access_token'`.
-        for corps in [r#"{"expires_in": 3599}"#, r#"{"access_token": ""}"#, "[]", "ceci n'est pas du json", ""] {
-            let adresse = faux_google(corps);
-            let r = jeton_par_rafraichissement(&adresse, &json!("id"), &json!("secret"), &json!("rafraichissement"), 5).expect("pas de plantage");
-            let phrase = r.expect_err("pas de jeton");
-            assert!(phrase.contains("Google") && phrase.contains("Reessayer"), "{}", phrase);
-        }
-        let ok = faux_google(r#"{"access_token": "JETON-FICTIF", "expires_in": 3599}"#);
-        assert_eq!(jeton_par_rafraichissement(&ok, &json!("id"), &json!("secret"), &json!("rf"), 5).unwrap().unwrap(), "JETON-FICTIF");
-    }
-
-    #[test]
     fn un_google_json_illisible_est_un_refus_de_google() {
         // Le Python plantait : `JSONDecodeError`, `UnicodeDecodeError`, `AttributeError`.
         let dossier = std::env::temp_dir().join(format!("google-json-illisible-{}", std::process::id()));
@@ -516,13 +326,5 @@ mod tests {
             assert!(e.message.contains("est illisible"), "{}", e.message);
         }
         let _ = std::fs::remove_dir_all(&dossier);
-    }
-
-    #[test]
-    fn traduire_les_deux_formes() {
-        assert!(traduire(400, r#"{"error": "invalid_grant", "error_description": "Bad Request"}"#).starts_with("Autorisation Google perdue"));
-        assert!(traduire(403, r#"{"error": {"status": "PERMISSION_DENIED", "message": "Insufficient scope"}}"#).starts_with("Permission refusee"));
-        assert_eq!(traduire(401, r#"{"error": "invalid_client", "error_description": "The OAuth client was not found."}"#), "HTTP 401 : The OAuth client was not found.");
-        assert_eq!(traduire(500, "pas du json"), "HTTP 500 : pas du json");
     }
 }

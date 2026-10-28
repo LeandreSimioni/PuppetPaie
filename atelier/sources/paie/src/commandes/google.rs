@@ -120,8 +120,7 @@ fn autoriser(cadre: &Cadre, json: bool) -> i32 {
                     dire!("{}", t);
                 }
             };
-            crate::google_autorisation::autoriser(&cadre.racine, crate::google_autorisation::DELAI_AUTORISATION, &url, &attention)
-                .and_then(|jeton| crate::routes_google::sceller_le_jeton(&cadre.racine, &jeton))
+            crate::routes_google::autoriser(&cadre.racine, envois::google_autorisation::DELAI_AUTORISATION, &url, &attention)
         });
     match r {
         Ok(compte) => {

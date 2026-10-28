@@ -19,7 +19,6 @@
 
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
@@ -28,8 +27,8 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use socle::echec::Echec;
-use crate::routes_google::{en_texte, encoder, identifiants, phrase_de_panne, JETONS, PERMISSIONS};
-use envois::transport::{envoyer, Requete};
+use crate::google::{en_texte, encoder, phrase_de_panne, DELAI, JETONS, PERMISSIONS};
+use crate::transport::{envoyer, Requete};
 
 /// `google.AUTORISATION`, `google.USERINFO`, `google.DELAI_AUTORISATION`.
 const AUTORISATION: &str = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -54,13 +53,25 @@ fn refus(message: impl Into<String>) -> Echec {
     Echec { classe: Some("ErreurOperation"), message: message.into() }
 }
 
-/// Les adresses de Google : les vraies ; dans l'atelier seulement, le faux Google local (`atelier.rs`).
-fn adresses() -> (String, String) {
-    #[cfg(feature = "atelier")]
-    if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
-        return (format!("{}/token", b), format!("{}/userinfo", b));
+/// Les deux adresses que l'autorisation appelle : les jetons et l'adresse du compte. Les vraies par defaut ; l'appelant
+/// peut pointer sur un serveur local (`de_la_base`).
+#[derive(Debug, Clone)]
+pub struct Adresses {
+    pub jetons: String,
+    pub compte: String,
+}
+
+impl Default for Adresses {
+    fn default() -> Self {
+        Adresses { jetons: JETONS.to_string(), compte: USERINFO.to_string() }
     }
-    (JETONS.to_string(), USERINFO.to_string())
+}
+
+impl Adresses {
+    /// Les adresses d'un Google qui repond a `base` (un serveur local).
+    pub fn de_la_base(base: &str) -> Adresses {
+        Adresses { jetons: format!("{}/token", base), compte: format!("{}/userinfo", base) }
+    }
 }
 
 /// `secrets.token_urlsafe(n)` : `n` octets du systeme, base64 URL sans `=`.
@@ -174,11 +185,18 @@ fn appeler(requete: &Requete) -> Result<Value, Echec> {
     }
 }
 
-/// `google.autoriser` sans navigateur. `dire_url` recoit l'URL de la fenetre de consentement (la personne l'ouvre), `dire` les
-/// avertissements. Rend le jeton obtenu, que l'appelant scelle. `delai` : l'attente de la reponse de Google, en secondes.
-pub fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn Fn(&str)) -> Result<JetonGoogle, Echec> {
-    let (jetons, userinfo) = adresses();
-    let (client_id, client_secret, _) = identifiants(racine).map_err(|e| refus(e.message))?;
+/// L'autorisation sans navigateur. `identifiants` : l'application (client_id, client_secret), lue par l'appelant ;
+/// `adresses` : celles de Google, ou d'un serveur local. `dire_url` recoit l'URL de la fenetre de consentement (la personne
+/// l'ouvre), `dire` les avertissements. Rend le jeton obtenu, que l'appelant scelle. `delai` : l'attente de la reponse de
+/// Google, en secondes.
+pub fn autoriser(
+    identifiants: (Value, Value),
+    adresses: &Adresses,
+    delai: u64,
+    dire_url: &dyn Fn(&str),
+    dire: &dyn Fn(&str),
+) -> Result<JetonGoogle, Echec> {
+    let (client_id, client_secret) = identifiants;
     let verificateur = aleatoire_url(64)?;
     let defi = base64_url(&Sha256::digest(verificateur.as_bytes()));
     let etat = aleatoire_url(24)?;
@@ -249,11 +267,11 @@ pub fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn 
         ("redirect_uri", redirection),
     ]);
     let reponse = appeler(&Requete {
-        url: &jetons,
+        url: &adresses.jetons,
         donnees: Some(corps.as_bytes()),
         content_type: Some("application/x-www-form-urlencoded"),
         post: true,
-        delai: crate::routes_google::DELAI,
+        delai: DELAI,
         ..Default::default()
     })?;
     let texte_de = |cle: &str| reponse.get(cle).filter(|v| v.is_string()).map(en_texte).unwrap_or_default();
@@ -280,7 +298,7 @@ pub fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn 
 
     let autorisation = format!("Bearer {}", acces);
     let entetes = [("Authorization", autorisation.as_str())];
-    let infos = appeler(&Requete { url: &userinfo, entetes: &entetes, delai: crate::routes_google::DELAI, ..Default::default() })?;
+    let infos = appeler(&Requete { url: &adresses.compte, entetes: &entetes, delai: DELAI, ..Default::default() })?;
     let compte = infos.get("email").filter(|v| v.is_string()).map(en_texte).unwrap_or_default();
     if compte.is_empty() {
         return Err(refus("Google n'a pas donne l'adresse du compte : aucune autorisation enregistree. Recommencer."));

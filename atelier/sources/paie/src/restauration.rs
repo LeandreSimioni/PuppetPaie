@@ -35,7 +35,7 @@ use md5::{Digest, Md5};
 use serde_json::{json, Map, Value};
 
 use crate::coffre::{Coffre, SERVICES};
-use crate::drive::{Drive, ErreurGoogle};
+use envois::drive::{Drive, ErreurGoogle};
 use crate::sauvegarde::{ecarte, ecrire_index, empreinte, hors_ligne, inventaire, DOSSIER_DRIVE};
 
 /// Un fichier redescendu.

@@ -2,7 +2,7 @@
 //!
 //! Les appels passent par `transport::envoyer`. Le client recoit ce que l'appelant a lu
 //! sur le poste (`Autorisation` : les identifiants de l'application, le jeton scelle,
-//! l'adresse du compte ; `routes_google::client_drive`) : il n'ouvre jamais le coffre.
+//! l'adresse du compte ; `paie::routes_google::client_drive`) : il n'ouvre jamais le coffre.
 //!
 //! LE TRAIT `Drive` : la sauvegarde et l'archivage ne connaissent que lui (comme
 //! `Courriel` pour la messagerie). Le vrai `Client` l'implemente ; la preuve met a sa
@@ -21,8 +21,8 @@ use std::path::Path;
 use serde_json::{json, Value};
 
 use socle::fichiers::vrai;
-use crate::routes_google::{champ, en_texte, encoder, jeton_par_rafraichissement, phrase_de_panne, JETONS};
-use envois::transport::{envoyer, Requete};
+use crate::google::{champ, en_texte, encoder, jeton_par_rafraichissement, phrase_de_panne, JETONS};
+use crate::transport::{envoyer, Requete};
 
 /// `google.DRIVE_FICHIERS`.
 pub const DRIVE_FICHIERS: &str = "https://www.googleapis.com/drive/v3/files";
@@ -321,7 +321,7 @@ impl Client {
             Ok((brut, _)) => Ok(brut),
             Err(panne) => {
                 let statut = match &panne {
-                    envois::transport::Panne::Statut { code, .. } => Some(*code),
+                    crate::transport::Panne::Statut { code, .. } => Some(*code),
                     _ => None,
                 };
                 let mut e = match phrase_de_panne(panne) {
@@ -542,7 +542,7 @@ impl Drive for Client {
             Some(n) => n.to_string(),
             None => fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
         };
-        let type_mime = envois::envoi::type_devine(&nom).unwrap_or("application/octet-stream");
+        let type_mime = crate::envoi::type_devine(&nom).unwrap_or("application/octet-stream");
 
         if let Some(distant) = connu {
             let url = format!(

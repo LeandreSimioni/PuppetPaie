@@ -12,7 +12,7 @@
 
 use std::path::Path;
 
-use crate::drive::{Client, Drive, ErreurGoogle};
+use envois::drive::{Client, Drive, ErreurGoogle};
 
 /// `FichierArchive`.
 #[derive(Debug, Clone, PartialEq)]

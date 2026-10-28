@@ -11,7 +11,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use paie::drive::{Depose, Distant, Drive, ErreurGoogle};
+use envois::drive::{Depose, Distant, Drive, ErreurGoogle};
 use paie::sauvegarde::empreinte;
 
 pub struct FichierDrive {

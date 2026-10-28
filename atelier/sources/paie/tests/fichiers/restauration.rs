@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 
 use faux_drive::{ecrire, FauxDrive, Panne};
 use paie::coffre::{oublier_mot_de_passe_tape, retenir_mot_de_passe_tape, Coffre, CONSULTATION};
-use paie::drive::{Drive, ErreurGoogle};
+use envois::drive::{Drive, ErreurGoogle};
 use paie::maj::{generer_cle_au_poste, signature_valide, signer_par_la_cle};
 use paie::restauration::{a_faire, restaurer};
 use paie::sauvegarde::{inventaire, rien_n_a_bouge, sauvegarder};
