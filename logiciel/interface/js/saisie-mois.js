@@ -479,7 +479,7 @@ function boiteDetail(ligne, ps) {
     ${ps.length ? ps.map(bloc).join("") : `<p class="discret">Le détail n'est pas encore calculé.</p>`}
     <div class="actions">
       <button class="lien d-pieces" data-acte="dpae">La DPAE partie</button>
-      <button class="lien d-pieces" data-acte="signature">Le contrat parti</button>
+      <button class="lien d-pieces" data-acte="contrat-signature">Le contrat parti</button>
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
       <button class="modifier" id="d-modifier">${CRAYON}Modifier l'engagement…</button>
     </div>`);

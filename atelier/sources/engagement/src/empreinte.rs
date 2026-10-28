@@ -118,12 +118,25 @@ pub fn regles(ctx: &Contexte, jour: &Jour) -> Resultat<Vec<String>> {
     Ok(ctx.regles_datees(jour)?.into_iter().map(|j| j.iso()).collect())
 }
 
-/// L'empreinte telle qu'elle s'ecrit : les entrees, et les regles datees.
-pub fn en_json(entrees: &BTreeMap<String, String>, regles: &[String]) -> Value {
+/// Les valeurs datees de la compagnie qui s'appliquent au jour `jour` a l'engagement de `salarie` sur `spectacle`
+/// (`Contexte::configuration_datee`), en AAAA-MM-JJ. Elles ne font pas recalculer (les fiches sont deja dans les
+/// entrees) : elles disent a quelle date s'applique une valeur nouvelle.
+pub fn configuration(ctx: &Contexte, jour: &Jour, salarie: &str, spectacle: Option<&str>) -> Resultat<Vec<String>> {
+    Ok(ctx.configuration_datee(jour, salarie, spectacle)?.into_iter().map(|j| j.iso()).collect())
+}
+
+/// L'empreinte telle qu'elle s'ecrit : les entrees, les regles datees, et les valeurs datees de la compagnie.
+pub fn en_json(entrees: &BTreeMap<String, String>, regles: &[String], configuration: &[String]) -> Value {
     let mut m = Map::new();
     m.insert("entrees".into(), Value::Object(entrees.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect()));
     m.insert("regles".into(), Value::Array(regles.iter().cloned().map(Value::String).collect()));
+    m.insert("configuration".into(), Value::Array(configuration.iter().cloned().map(Value::String).collect()));
     Value::Object(m)
+}
+
+/// Les valeurs datees de la compagnie d'une empreinte ecrite.
+pub fn configuration_de(v: &Value) -> Vec<String> {
+    v.get("configuration").and_then(Value::as_array).map_or_else(Vec::new, |a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
 }
 
 /// Les entrees d'une empreinte ecrite ; `None` si elle ne se lit pas.

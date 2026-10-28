@@ -18,7 +18,6 @@
    chercher lui-même au coffre). C'est le moteur qui refuse un acte, et lui
    seul : un garde-fou posé dans un front se contourne par l'autre.
 */
-let MOIS_ACTES = null;          // le dernier /api/etat-du-mois lu
 
 /** Le geste d'un groupe, tel que le moteur le nomme. */
 function ouvrirGeste(action, mois) {
@@ -83,23 +82,22 @@ async function dessinerActions(mois) {
     cible.innerHTML = `<p class="discret">${echapper(err.message)}</p>`;
     return;
   }
-  MOIS_ACTES = e;
   const colonnes = e.colonnes && e.colonnes.length ? e.colonnes : ["G"];
   const vues = COLONNES_VUES.get(mois);
   const neuves = new Set(vues ? colonnes.filter((c) => !vues.includes(c)) : []);
   COLONNES_VUES.set(mois, colonnes);
   const gabarit = colonnes.map((c, i) => i === 0 ? "minmax(0, 1.4fr)" : "minmax(0, 1fr)").join(" ");
   const gestes = [];
-  cible.innerHTML = `<ol class="etapes">` + (e.etapes || []).map((et, k) => {
+  const rangees = (e.etapes || []).map((et, k) => {
     const cases = (et.groupes || []).map((g) => dessinerCase(et, k, g, colonnes, neuves, gestes)).join("");
-    let second = "";
-    if (et.second) {
-      gestes.push(et.second);
-      second = `<button class="lien etape-second" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`;
-    }
-    return `<li class="rangee${second ? " avec-second" : ""}">
-        <div class="kases" style="grid-template-columns:${gabarit}">${cases}</div>${second}</li>`;
-  }).join("") + `<svg class="arbre" aria-hidden="true"></svg></ol>`;
+    return `<li class="rangee"><div class="kases" style="grid-template-columns:${gabarit}">${cases}</div></li>`;
+  }).join("");
+  // Le geste second d'une étape (l'annule-et-remplace sans nécessité) : un lien sous le panneau, hors de l'arbre.
+  const seconds = (e.etapes || []).filter((et) => et.second).map((et) => {
+    gestes.push(et.second);
+    return `<button class="lien etape-second" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`;
+  }).join("");
+  cible.innerHTML = `<ol class="etapes">${rangees}<svg class="arbre" aria-hidden="true"></svg></ol>${seconds}`;
 
   cible.querySelectorAll("[data-geste]").forEach((d) => {
     const ouvrir = (ev) => { ev.preventDefault(); ouvrirGeste(gestes[Number(d.dataset.geste)], mois); };
@@ -1028,7 +1026,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
     ev.preventDefault();
     fermerBoite();
     boitePieces({ salarie, debut, numero, nom: a.nom, fin: a.fin, spectacle: a.spectacle,
-                  etats: { signature: { fait: a.date_contrat, recu: a.signe } } }, "signature");
+                }, "contrat-signature");
   };
   const envoyer = document.getElementById("av-envoyer");
   if (envoyer) envoyer.onclick = async () => {

@@ -743,7 +743,9 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 }
 @media (max-width: 760px) {
   main { padding: 12px; }
-  .bandeau { flex-wrap: wrap; gap: 12px; }
+  .bandeau { flex-wrap: wrap; gap: 12px; padding: 10px 12px; }
+  .onglets { flex-wrap: wrap; gap: 2px; }
+  .onglets button { padding: 7px 9px; }
   .etat { margin-left: 0; text-align: left; width: 100%; }
   .grille-mois { grid-template-columns: 1fr; }
   .engagement .ligne1 { grid-template-columns: 1fr 1fr; }
@@ -1111,7 +1113,7 @@ pre.reponse {
 .message-annuler { margin-left: 4px; color: inherit; text-decoration: underline; }
 
 /* La ligne d'un engagement modifié après un envoi, qui ouvre la frise de ses versions. */
-.carte-versions { grid-column: 1 / -1; justify-self: start; text-align: left; font-size: 12px; margin: 4px 10px 0; }
+.carte-versions { grid-column: 2 / -1; justify-self: start; text-align: left; font-size: 12px; margin: 0; }
 .frise { list-style: none; padding: 0; margin: 10px 0; border-left: 2px solid var(--bord); }
 .frise > li { position: relative; padding: 0 0 12px 14px; }
 .frise > li::before { content: ""; position: absolute; left: -6px; top: 4px; width: 10px; height: 10px;
@@ -1524,6 +1526,13 @@ section.bloc > .encart { margin-bottom: 10px; }
 .moitie.attend { flex: 1 1 0; background: var(--alerte-fond); border-color: var(--alerte); border-left-style: dashed;
                  border-radius: 0 6px 6px 0; }
 .moitie.attend .compte, .moitie.attend .quoi, .moitie.attend .ech { color: var(--alerte); }
+/* écran étroit : une case coupée sur une colonne n'a que la place d'un mot par ligne ; les marges se resserrent pour
+   que « jusqu'au » tienne entier. */
+@media (max-width: 480px) {
+  .moitie.faite { padding: 4px 3px; }
+  .moitie.attend { padding: 6px 4px; }
+  .moitie.attend .ech { overflow-wrap: normal; }
+}
 .kase.cliquable { cursor: pointer; }
 .kase.orange.cliquable:hover { box-shadow: inset 0 0 0 1px var(--alerte); }
 .kase.rouge.cliquable:hover { box-shadow: inset 0 0 0 1px var(--erreur); }
@@ -1537,10 +1546,8 @@ section.bloc > .encart { margin-bottom: 10px; }
 .etapes .arbre path { fill: none; stroke-width: 1.5; }
 .etapes .arbre .vert { stroke: var(--succes); }
 .etapes .arbre .orange { stroke: var(--alerte); }
-/* l'annule-et-remplace qu'aucune modification n'exige : un lien discret sous la ligne DSN, au-dessus des traits. */
-.etapes .rangee.avec-second + .rangee { margin-top: 12px; }
-.etape-second { position: relative; z-index: 1; display: block; margin: 4px 0 0; padding: 0 2px; font-size: 12px;
-                text-align: left; background: var(--carte); }
+/* l'annule-et-remplace qu'aucune modification n'exige : un lien discret sous le panneau, hors de l'arbre. */
+.etape-second { display: block; margin: -10px 0 18px; padding: 0 2px; font-size: 12px; text-align: left; }
 .reprise { margin: 0 0 14px; font-size: 12px; }
 .reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
                      border-top: 1px solid var(--bord); }

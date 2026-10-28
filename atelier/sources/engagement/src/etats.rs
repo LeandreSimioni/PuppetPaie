@@ -22,10 +22,10 @@
 //! paie validee : l'ecran, les exports, les declarations, les documents, les envois), la paie de chaque engagement
 //! valide se compare a son empreinte. Si elle ne tient plus, la paie se recalcule et se reecrit ; si un chiffre a change,
 //! elle dit pourquoi (`raison`) : « taux de PAS reçu » (seul le prelevement change), « règle du JJ/MM/AAAA » (une regle
-//! datee s'applique), « calcul corrigé » (le code qui calcule a change), « un autre engagement du mois a changé » (un
+//! datee s'applique : du bareme, ou une valeur datee de la compagnie, son taux AT/MP de l'annee), « calcul corrigé » (le code qui calcule a change), « un autre engagement du mois a changé » (un
 //! engagement que son calcul lit), « saisie du mois modifiée » (le taux du cachet, la date de paiement), « la paie de
 //! <mois> a changé » (une paie validee d'un autre mois que son calcul lit : conges, cumuls), « configuration de la
-//! compagnie modifiée » (fiches, taux, contrats). Un changement qui ne change aucun chiffre ne laisse aucune trace.
+//! compagnie modifiée » (une fiche corrigee sans date nouvelle, les contrats d'organismes). Un changement qui ne change aucun chiffre ne laisse aucune trace.
 //! Un mois dont les documents sont partis ne se recalcule que par une decision de l'editeur (« calcul corrigé », une
 //! regle datee) : le recalcul fait alors une version datee, comme une modification, et la paie refaite rectifie le
 //! bulletin parti.
@@ -59,7 +59,8 @@ pub const AUTRE_ENGAGEMENT: &str = "un autre engagement du mois a changé";
 /// La raison d'un recalcul : ce que la saisie du mois pose pour tous ses engagements (taux du cachet, date de paiement) a
 /// change.
 pub const SAISIE_DU_MOIS: &str = "saisie du mois modifiée";
-/// La raison d'un recalcul : la configuration de la compagnie (fiches, taux, contrats d'organismes) a change.
+/// La raison d'un recalcul : la configuration de la compagnie a change sans valeur datee nouvelle (une fiche corrigee, les
+/// contrats d'organismes).
 pub const CONFIGURATION: &str = "configuration de la compagnie modifiée";
 
 /// La question que le moteur pose avant de modifier un engagement dont des documents sont partis.
@@ -675,16 +676,17 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
             .map(|i| {
                 let p = s.paies.get(*i).ok_or("le calcul du mois n'a pas cette paie")?;
                 let conges = crate::conges::compteur_ecrit(ctx, p, mois)?;
-                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?))
+                let config = empreinte::configuration(ctx, &p.engagement.fin_periode()?, &p.engagement.salarie, p.engagement.spectacle.as_deref())?;
+                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?, config))
             })
             .collect::<Resultat<Vec<_>>>()
     })?;
     let mois_lu = mois_lu(&data);
     calculees
         .into_iter()
-        .map(|(paie, fiches, pas, conges, fin)| {
+        .map(|(paie, fiches, pas, conges, fin, config)| {
             let regles = empreinte::regles(ctx, &fin)?;
-            let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&entrees, &regles) });
+            let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&entrees, &regles, &config) });
             if let Some(pas) = pas {
                 v["pas"] = pas;
             }
@@ -748,6 +750,16 @@ fn raison(avant: &Value, apres: &Value) -> String {
     mois.sort();
     if let Some(m) = mois.first() {
         return format!("la paie {} a changé", de_mois(m));
+    }
+    // La configuration de la compagnie : une valeur datee de ses fiches qui s'applique, ou son bareme de l'annee
+    // (`config/baremes/<annee>.json` : le taux AT/MP, qui vaut pour toute l'annee).
+    let config_avant = empreinte::configuration_de(avant.get("empreinte").unwrap_or(&Value::Null));
+    let config_nouvelle = empreinte::configuration_de(apres.get("empreinte").unwrap_or(&Value::Null)).into_iter().filter(|r| !config_avant.contains(r)).max();
+    let annee_du_bareme = changees.iter().find_map(|k| {
+        k.split_once(' ').and_then(|(_, c)| c.strip_prefix("racine:config/baremes/")).and_then(|f| f.strip_suffix(".json")).filter(|an| an.len() == 4 && an.bytes().all(|b| b.is_ascii_digit()))
+    });
+    if let Some(jour) = config_nouvelle.or_else(|| annee_du_bareme.map(|an| format!("{}-01-01", an))) {
+        return format!("règle du {}", Jour::lire(&jour).map(|j| j.jj_mm_aaaa()).unwrap_or(jour));
     }
     CONFIGURATION.to_string()
 }

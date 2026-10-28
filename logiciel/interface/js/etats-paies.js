@@ -114,14 +114,19 @@ async function noterSigne(mois, ligne, recu) {
   el.append(" — ", annuler);
 }
 
+/** Les pièces parties d'un engagement pour un acte (`dpae`, `contrat-signature` : la clé de son carré). */
 async function boitePieces(ligne, acte) {
   const mois = document.getElementById("mois").value;
-  let r;
+  let r, lu;
   try {
     r = await api("pieces-parties", { salarie: ligne.salarie, debut: ligne.debut });
+    lu = await api("etat-par-engagement", { mois });
   } catch (e) { dire(e.message, "erreur"); return; }
-  const e = (ligne.etats || {})[acte] || {};
-  const carre = (ligne.carres || []).find((c) => c.cle === acte);
+  // Le moteur rend, avec le carré (`carres[].pieces`), ce que le détail montre : la phrase sans pièce, l'encart d'un
+  // contrat qui n'est plus le bon, et les gestes.
+  const sienne = (lu.engagements || []).find((l) => l.salarie === ligne.salarie && l.debut === ligne.debut) || ligne;
+  const carre = (sienne.carres || []).find((c) => c.cle === acte) || {};
+  const montre = carre.pieces || { gestes: [] };
   const titre = acte === "dpae" ? "DPAE" : "Contrat";
   const pieces = (acte === "dpae" ? r.dpae : r.contrat) || [];
   const liste = pieces.length
@@ -131,33 +136,29 @@ async function boitePieces(ligne, acte) {
             : " — n'est plus dans le dossier du mois"}</span></span>
         <button class="secondaire p-ouvrir" data-i="${i}" ${p.existe ? "" : "disabled"}>Ouvrir</button>
       </li>`).join("")}</ul>`
-    : `<p class="discret">${acte === "dpae"
-        ? "Aucune DPAE déposée pour cette embauche."
-        : e.recu ? "Le contrat a été noté signé à la main : aucun fichier n'est passé par le logiciel."
-        : "Aucun contrat n'est parti à la signature pour cet engagement."}</p>`;
-  const signature = acte === "signature";
+    : `<p class="discret">${echapper(montre.vide || "")}</p>`;
   ouvrirBoite(`
     <h3>${titre} — ${echapper(ligne.nom)}</h3>
     <p class="discret">${echapper(pourQuoi(ligne))},
       ${echapper(periodeEnClair(ligne.debut, ligne.fin))}</p>
-    ${carre ? `<p>${echapper(carre.phrase)}</p>` : ""}
-    ${e.caduc ? `<div class="encart attention"><b>Ce contrat n'est plus le bon</b>
-      ${echapper(e.pourquoi ? e.pourquoi.charAt(0).toUpperCase() + e.pourquoi.slice(1) + "."
-                            : "La paie a changé depuis qu'il est parti.")}
-      ${e.recu ? "Il est signé : il se modifie par un avenant, que le salarié signe à son tour."
-               : "Le salarié doit recevoir le contrat à jour, et le signer à nouveau."}</div>` : ""}
+    ${carre.phrase ? `<p>${echapper(carre.phrase)}</p>` : ""}
+    ${montre.encart ? `<div class="encart attention"><b>${echapper(montre.encart.titre)}</b>
+      ${echapper(montre.encart.texte)}</div>` : ""}
     ${liste}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
-      ${signature && (e.fait || e.recu) ? `<button class="secondaire" id="p-recu">${e.recu
-        ? "Retirer la mention « signé »" : "Noter le contrat signé reçu"}</button>` : ""}
-      ${signature && e.fait ? `<button class="${e.caduc && e.recu ? "primaire" : "secondaire"}" id="p-avenant"
-        title="Modifier le contrat parti : l'ancien texte et le nouveau, article par article">Avenant…</button>` : ""}
-      ${signature && (e.caduc || !e.fait) && !(e.caduc && e.recu) ? `<button class="primaire" id="p-signer">${e.caduc
-        ? "Renvoyer le contrat à jour…" : "Envoyer à la signature…"}</button>` : ""}
+      ${montre.gestes.map((g, i) => `<button class="${g.principal ? "primaire" : "secondaire"} p-geste" data-i="${i}"
+        ${g.titre ? `title="${echapper(g.titre)}"` : ""}>${echapper(g.libelle)}</button>`).join("")}
     </div>`);
-  const avenantB = document.getElementById("p-avenant");
-  if (avenantB) avenantB.onclick = () => { fermerBoite(); boiteAvenant(mois, ligne.salarie, ligne.debut, ligne.numero); };
+  document.querySelectorAll(".p-geste").forEach((b) => {
+    const a = montre.gestes[+b.dataset.i].action;
+    b.onclick = () => {
+      fermerBoite();
+      if (a.geste === "contrat_recu") noterSigne(mois, ligne, a.recu);
+      else if (a.geste === "avenant") boiteAvenant(mois, ligne.salarie, ligne.debut, ligne.numero);
+      else if (a.geste === "faire_signer") boiteSignature(mois, [ligne.salarie]);
+    };
+  });
   document.querySelectorAll(".p-ouvrir").forEach((b) => {
     b.onclick = async () => {
       try {
@@ -166,10 +167,6 @@ async function boitePieces(ligne, acte) {
       } catch (err) { dire(err.message, "erreur"); }
     };
   });
-  const recu = document.getElementById("p-recu");
-  if (recu) recu.onclick = () => { fermerBoite(); noterSigne(mois, ligne, !e.recu); };
-  const signer = document.getElementById("p-signer");
-  if (signer) signer.onclick = () => { fermerBoite(); boiteSignature(mois, [ligne.salarie]); };
 }
 
 /** Peint les états sur les blocs. Rappelée après chaque frappe : changer le
@@ -624,10 +621,9 @@ async function boiteDpae(mois) {
   }
   const lignes = r.engagements || [];
   if (!lignes.length) { dire("Aucune paie enregistrée en " + moisEnClair(mois) + "."); return; }
-  const embauche = (l) => !l.contrat || l.contrat.premier_mois;
-  // Déjà partie ET pas refusée : elle ne repart pas. Une refusée, si — c'est
-  // même la seule raison de redéposer.
-  const aFaire = (l) => embauche(l) && (!l.etats.dpae.fait || l.etats.dpae.refusee);
+  // Le moteur dit, par engagement (`dpae_choix`), s'il se coche, s'il est coché
+  // d'avance, et son état en mots ; la pastille prend la couleur de l'état.
+  const PASTILLE = { fait: "bien", a_faire: "alerte", en_attente: "alerte", refuse: "erreur" };
 
   ouvrirBoite(`
     <h3>Envoyer les DPAE</h3>
@@ -642,22 +638,11 @@ async function boiteDpae(mois) {
     <div class="liste-choix">
       ${lignes.map((l, i) => {
         const e = l.etats.dpae;
-        const etat = !embauche(l)
-          ? `<br><span class="pastille">contrat en cours depuis
-               ${echapper(moisEnClair(l.contrat.depuis))} — sa DPAE a été faite ce mois-là</span>`
-          : !e.fait ? `<br><span class="pastille alerte">à déclarer</span>`
-          : e.refusee
-          ? `<br><span class="pastille erreur">refusée le ${echapper(quand(e.fait))}
-               — ${echapper((e.anomalies || []).join(" ; ") || "motif non lu")}
-               — à redéclarer</span>`
-          : e.passee
-          ? `<br><span class="pastille bien">déclarée le ${echapper(quand(e.fait))}
-               — passée${echapper(dossierUrssaf(e))}</span>`
-          : `<br><span class="pastille alerte">déclarée le ${echapper(quand(e.fait))}
-               — retour pas encore arrivé : on attend, on ne renvoie pas</span>`;
-        return `<label class="choix ${embauche(l) ? "" : "grise"}">
-          <input type="checkbox" class="d-qui" data-i="${i}" ${aFaire(l) ? "checked" : ""}
-                 ${embauche(l) ? "" : "disabled"}>
+        const c = l.dpae_choix || {};
+        const etat = `<br><span class="pastille ${PASTILLE[c.etat] || ""}">${echapper(c.phrase || "")}</span>`;
+        return `<label class="choix ${c.cochable ? "" : "grise"}">
+          <input type="checkbox" class="d-qui" data-i="${i}" ${c.cochee ? "checked" : ""}
+                 ${c.cochable ? "" : "disabled"}>
           <span><b>${echapper(l.nom)}</b> — ${l.spectacle ? `${echapper(l.spectacle)}, ` : ""}embauche le
             ${echapper(jjmmaaaa(l.debut))}${l.numero
               ? ` <span class="discret">(contrat n° ${echapper(l.numero)})</span>` : ""}

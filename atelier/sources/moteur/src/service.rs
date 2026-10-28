@@ -95,6 +95,11 @@ pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
         return None;
     }
     let o = options(args)?;
+    // `--date D` est l'aujourd'hui de la route : le jour du contexte, et celui de l'horloge (`socle::temps`, le jour pose)
+    // qui date ce qu'elle ecrit. Une seule horloge : chaque ligne du journal porte le jour de la route.
+    if let Some(d) = o.get("date").filter(|d| Jour::lire(d).is_ok()) {
+        std::env::set_var("PUPPETPAIE_AUJOURDHUI", d);
+    }
     let mut entree = String::new();
     let corps = match std::io::stdin().read_to_string(&mut entree) {
         Ok(_) => crate::routes::commande(&o, entree.trim_start_matches('\u{feff}')),

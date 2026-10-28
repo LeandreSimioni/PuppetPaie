@@ -60,6 +60,24 @@ fn jours(s: &Map<String, Value>) -> Vec<String> {
     j
 }
 
+/// Ce qui change dans les jours d'une ligne, et seulement cela : « Jours : + 16/11 », « Jours : − 14/11 »,
+/// « Jours : + 16/11 · − 14/11 ». `None` si la ligne a les memes jours.
+fn jours_changes(x: &Value, y: &Value) -> Option<String> {
+    let js = |l: &Value| {
+        let mut j: Vec<String> = l.get("dates").and_then(Value::as_array).into_iter().flatten().map(jour_de).filter(|d| !d.is_empty()).collect();
+        j.sort();
+        j.dedup();
+        j
+    };
+    let (a, b) = (js(x), js(y));
+    let dire = |signe: &str, xs: Vec<&String>| (!xs.is_empty()).then(|| format!("{} {}", signe, xs.iter().map(|d| jour_court(d)).collect::<Vec<_>>().join(", ")));
+    let parts: Vec<String> = [dire("+", b.iter().filter(|d| !a.contains(d)).collect()), dire("−", a.iter().filter(|d| !b.contains(d)).collect())]
+        .into_iter()
+        .flatten()
+        .collect();
+    (!parts.is_empty()).then(|| format!("Jours : {}", parts.join(" · ")))
+}
+
 /// Le premier et le dernier jour d'une saisie : ses bornes dites, sinon ses jours.
 fn bornes(s: &Map<String, Value>) -> (String, String) {
     let j = jours(s);
@@ -176,9 +194,8 @@ fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, V
                     if euros(&tx) != euros(&ty) {
                         out.push(format!("{} : {} → {}", nom_du_taux(&lib, &unite), euros(&tx), euros(&ty)));
                     }
-                    let js = |l: &Value| l.get("dates").and_then(Value::as_array).into_iter().flatten().map(|d| jour_court(&jour_de(d))).collect::<Vec<_>>().join(", ");
-                    if js(x) != js(y) && !(js(x).is_empty() && js(y).is_empty()) {
-                        out.push(format!("Jours : {} → {}", js(x), js(y)));
+                    if let Some(j) = jours_changes(x, y) {
+                        out.push(j);
                     }
                     let (lx, ly) = (en_mots("lieu", x.get("lieu")), en_mots("lieu", y.get("lieu")));
                     if lx != ly {
