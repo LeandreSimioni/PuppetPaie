@@ -106,12 +106,24 @@ fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
 /// correction qui annule tout ce qui avait ete declare pour lui, et rien a la place (cahier technique DSN 2027.1,
 /// `atelier/reference/norme-dsn/texte-2027/chapitre-2-principes-de-constitution.txt`, §2.1.2.1 et §2.1.3.6). Partie,
 /// elle ne se porte plus.
+///
+/// La ligne DSN de decembre : sans engagement valide dans le mois ni correction a porter, rien n'est a declarer (#257 :
+/// « à déposer dès qu'il y a des engagements validés dans le mois ») ; la correction de novembre a porter la rend a
+/// deposer (§2.1.2.1 : une correction « donne lieu à la déclaration d'une correction dans la DSN suivante »).
 #[test]
 fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
     use engagement::etats::ARefaire;
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "non-actif"));
+    let dsn_de_decembre = || -> Vec<String> {
+        let r = outils::route(&racine, "etat-du-mois", json!({"mois": "2026-12"}), "2026-12-16");
+        let etapes = outils::reussi(&r)["etapes"].as_array().unwrap().clone();
+        let dsn = etapes.iter().find(|e| e["cle"] == json!("dsn")).expect("la ligne DSN").clone();
+        dsn["groupes"].as_array().unwrap().iter().map(|g| g["etat"].as_str().unwrap().to_string()).collect()
+    };
+    assert_eq!(dsn_de_decembre(), ["fait"], "un mois sans rien a declarer");
     let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01", "non_actif": true});
     outils::reussi(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
+    assert_eq!(dsn_de_decembre(), ["a_faire"], "la DSN de decembre porte la correction de novembre");
 
     let ctx = |jour: &str| droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     let na = engagement::etats::non_actifs_du_mois(&ctx("2026-12-16"), "2026-11").unwrap().pop().expect("l'engagement non actif");

@@ -1294,6 +1294,9 @@ impl<'a> Moteur<'a> {
         let au_depot = json!({"jour": echeance.jour.iso(), "texte": format!("avant le {} à midi", echeance.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)"});
         let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
         if !vrai(&e) {
+            if !self.dsn_a_declarer(mois, nic)? {
+                return Ok((fait(), Value::Null));
+            }
             let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
             let phrase = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
             return Ok((groupe("a_faire", json!(1), Some(phrase), au_depot, a), Value::Null));
@@ -1335,6 +1338,47 @@ impl<'a> Moteur<'a> {
         let second = if vrai(&r["admis"]) { action("deposer_dsn", libelle) } else { Value::Null };
         Ok((fait(), second))
     }
+
+    /// LA DSN DE `mois` A-T-ELLE QUELQUE CHOSE A DECLARER pour l'etablissement `nic` (`Null` : le seul) ? Elle est a
+    /// deposer des qu'un engagement valide touche le mois (ticket #257 ; « le dépôt initial de la DSN "normale" peut
+    /// être émis jusqu'à 1 mois à l'avance et 3 mois en retard », cahier technique DSN 2026.1, § 1.4.2,
+    /// `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt`), ou qu'elle porte la correction d'un mois passe
+    /// dont l'annule-et-remplace n'est plus admis (§ 2.1.2.1, `chapitre-2-principes-de-constitution.txt` : « Une
+    /// correction est un évènement connu après la date de clôture de la paie. Il donne lieu à la déclaration d'une
+    /// correction dans la DSN suivante » ; `produire_regularisations::regularisations_pour`). Sinon, rien n'est a faire.
+    /// Ne lit que ce qui est ecrit.
+    fn dsn_a_declarer(&mut self, mois: &str, nic: &Value) -> R<bool> {
+        let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise).is_empty();
+        let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
+        let de_l_etablissement = |ctx: &Contexte, m: &str, brut: &Value| !plusieurs || nic_de_l_engagement_ecrit(ctx, m, brut).as_deref() == Some(voulu.as_str());
+        for e in self.etats_du_mois(mois)? {
+            if e.valide().is_some() && de_l_etablissement(self.ctx, mois, &Value::Object(e.objet().brut.clone())) {
+                return Ok(true);
+            }
+        }
+        let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
+        for m in mois_saisis(self.racine()) {
+            if m.as_str() >= mois {
+                break;
+            }
+            if !declarations::produire_regularisations::se_corrige_ailleurs(self.ctx, &departs, &m)? {
+                continue;
+            }
+            for e in self.etats_du_mois(&m)? {
+                let Some(v) = e.valide() else { continue };
+                if de_l_etablissement(self.ctx, &m, &Value::Object(e.objet().brut.clone())) && engagement::etats::correction_due(self.ctx, v, &departs, &m, mois).map_err(plain)?.is_some() {
+                    return Ok(true);
+                }
+            }
+            for n in engagement::etats::non_actifs_du_mois(self.ctx, &m).map_err(plain)? {
+                if de_l_etablissement(self.ctx, &m, &Value::Object(n.objet().brut.clone())) && n.correction_due(self.ctx, &departs, &m, mois).map_err(plain)?.is_some() {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
     // ------------------------------------------------------- les autres routes
 
     /// `exercice_clos` : la cloture de l'annee de ce mois, ou `None`.
@@ -1413,6 +1457,13 @@ impl<'a> Moteur<'a> {
             for (i, p) in s.paies.iter().enumerate() {
                 let cle = texte_de(requis(&p.salarie, "_cle")?);
                 let debut = p.engagement.debut.iso();
+                // UNE DPAE PAR EMBAUCHE, reconnue a sa date : « L'embauche d'un salarié ne peut intervenir qu'après
+                // déclaration nominative » (code du travail, L. 1221-10), et la DPAE porte la « Date et heure
+                // d'embauche » (R. 1221-1, 3°) ; `atelier/reference/sources/code-du-travail/xml/L1221-10.xml` et
+                // `R1221-1.xml`. INFERENCE : un cachet ajoute a une date nouvelle d'un engagement deja declare prolonge le
+                // meme engagement (un avenant) ; l'embauche et sa date ne changent pas, aucune DPAE ne ressort -- aucun texte
+                // depose n'en demande une nouvelle quand la duree (R. 1221-1, 4°) s'allonge. Une date d'embauche avancee,
+                // elle, en appelle une (`dpae_d_une_date_changee`, plus bas).
                 if faites.contains(&(cle.clone(), debut.clone())) {
                     continue;
                 }
