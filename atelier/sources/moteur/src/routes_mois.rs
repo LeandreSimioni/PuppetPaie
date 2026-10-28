@@ -732,15 +732,13 @@ impl<'a> Moteur<'a> {
             let nic = etats_eng.get(i).and_then(|e| nic_de_l_engagement(self.ctx, mois, e));
             ligne.insert("etablissement".into(), nic.map_or(Value::Null, Value::String));
             // LES ECHEANCES de l'engagement : sa DPAE (L. 1221-10) et la remise de son contrat (L. 1242-13, ou la couche
-            // de la convention), `droit::echeances`. Un mois passe lu a l'ouverture (`ecrit`) ne les demande pas.
+            // de la convention), `droit::echeances`. Les documents n'en ont pas : chaque compagnie les envoie quand elle
+            // veut, souvent apres la DSN qui fait remonter l'AER. Un mois passe lu a l'ouverture (`ecrit`) ne les demande pas.
             if !self.ecrit {
                 let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.get("code_emploi_ft").map(valeur_en_texte).unwrap_or_default());
                 let idcc = self.ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
                 let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
-                // Le bulletin, le jour du paiement que l'engagement ecrit (L. 3243-2) ; sans ce jour, aucune echeance.
-                let paiement = p.engagement.date_paiement.as_deref().and_then(|d| Jour::lire(d).ok());
-                let bulletin = paiement.filter(|_| !p.engagement.sans_paie()).map_or(Value::Null, |j| droit::echeances::remise_du_bulletin(&j).en_json());
-                ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json(), "documents": bulletin}));
+                ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json()}));
             }
             if let Some(b) = &bruts {
                 // Une paie par engagement de la saisie : qu'il en manque une est un defaut du logiciel, jamais la saisie de
@@ -1242,7 +1240,7 @@ impl<'a> Moteur<'a> {
             let n = siens.iter().map(|p| valeur_en_texte(&p["salarie"])).collect::<BTreeSet<String>>().len();
             let g = match point.as_str() {
                 "a_renvoyer" => groupe("a_faire", json!(n), n.to_string(), "à renvoyer".into(), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))),
-                "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), echeance_de(&siens, DOCUMENTS), action("envoyer_documents", "Envoyer les documents…".into())),
+                "a_envoyer" => groupe("a_faire", json!(n), n.to_string(), "à envoyer".into(), Value::Null, action("envoyer_documents", "Envoyer les documents…".into())),
                 _ => fait(),
             };
             documents.push(avec(g, &noms));

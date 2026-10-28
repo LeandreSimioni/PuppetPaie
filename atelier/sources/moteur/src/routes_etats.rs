@@ -673,16 +673,17 @@ fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
         if !vrai(get(l, "accepte")?) {
             continue;
         }
+        let parti = if l.pointer("/detail/main_propre").is_some_and(vrai) { "imprimé" } else { "envoyé à la signature" };
         for c in items(getd(ou(get(l, "detail")?, objet_vide()), "contrats", &etats::LISTE_VIDE)?)? {
             if !(est_cette_paie(&c, salarie, debut)? && vrai(get(&c, "fichier")?)) {
                 continue;
             }
             let quoi = if est(get(&c, "acte")?, "avenant") {
-                format!("Avenant n° {} envoyé à la signature", valeur_en_texte(get(&c, "avenant")?))
+                format!("Avenant n° {} {}", valeur_en_texte(get(&c, "avenant")?), parti)
             } else if est(get(&c, "acte")?, "remplace") {
-                format!("Contrat qui annule et remplace le n° {}, envoyé à la signature", valeur_en_texte(get(&c, "remplace")?))
+                format!("Contrat qui annule et remplace le n° {}, {}", valeur_en_texte(get(&c, "remplace")?), parti)
             } else {
-                "Contrat envoyé à la signature".to_string()
+                format!("Contrat {}", parti)
             };
             let mois = ou(get(&c, "mois")?, get(l, "mois")?);
             contrat.push(piece(racine, &quoi, get(l, "quand")?, mois, get(&c, "fichier")?)?);

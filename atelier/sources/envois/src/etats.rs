@@ -721,6 +721,10 @@ pub fn contrats_recus(lignes: &[Value], m: Maille) -> R<Dico<Value>> {
             continue;
         }
         let d = getd(l, "detail", objet_vide())?;
+        // La note d'un avenant (signe, ou defait) ne dit rien du contrat lui-meme.
+        if vrai(get(d, "avenant")?) {
+            continue;
+        }
         let k = cle_contrat(d, m)?;
         let v = if vrai(get(d, "recu")?) { get(l, "quand")?.clone() } else { Value::Null };
         etat.poser(k, v)?;
@@ -746,6 +750,10 @@ pub fn contrats_recus_comment(lignes: &[Value], m: Maille) -> R<Value> {
             continue;
         }
         let d = getd(l, "detail", objet_vide())?;
+        // La note d'un avenant (signe, ou defait) ne dit rien du contrat lui-meme.
+        if vrai(get(d, "avenant")?) {
+            continue;
+        }
         let k = cle_contrat(d, m)?;
         let main = s("main");
         let v = if vrai(get(d, "recu")?) { ou(get(d, "origine")?, &main).clone() } else { Value::Null };
@@ -902,11 +910,19 @@ pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
                     "numero": numero, "quand": get(l, "quand")?,
                     "mois": ou(get(&c, "mois")?, get(l, "mois")?),
                     "fichier": get(&c, "fichier")?, "code": get(&c, "code")?,
+                    "contrat": get(&c, "numero")?, "effet": get(&c, "effet")?,
                     "modifications": ou(get(&c, "modifications")?, &LISTE_VIDE),
                     "signe": null,
                 }));
             }
-        } else if est(get(l, "quoi")?, CONTRAT_RECU) && vrai(get(d, "recu")?) {
+        } else if est(get(l, "quoi")?, CONTRAT_RECU) {
+            let recu = vrai(get(d, "recu")?);
+            // La note d'UN avenant (`detail.avenant`) ne vaut que pour lui, et se defait (`recu: false`) ; sans numero
+            // d'avenant, « recu » vaut pour tous ceux qui attendent.
+            let un = get(d, "avenant")?;
+            if !recu && !vrai(un) {
+                continue;
+            }
             let k = cle_contrat(d, m)?;
             // Une ligne sans numero (d'avant les numeros) vaut pour tous les contrats du salarie a ce debut.
             let cibles: Vec<Vec<Value>> = if m == Maille::Contrat && !vrai(&k[2]) {
@@ -916,8 +932,10 @@ pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
             };
             for k in cibles {
                 if let Some(liste) = out.get_mut(&k)? {
-                    for a in liste.iter_mut() {
-                        if a["signe"].is_null() {
+                    for a in liste.iter_mut().filter(|a| !vrai(un) || valeurs_egales(&a["numero"], un)) {
+                        if !recu {
+                            a["signe"] = Value::Null;
+                        } else if a["signe"].is_null() {
                             a["signe"] = get(l, "quand")?.clone();
                         }
                     }
@@ -1023,7 +1041,8 @@ pub fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
         };
         return Ok(format!("envoi du {} refusé au dépôt — {}", quand, debut));
     }
-    let prefixe = format!("envoyé {}", if quand.starts_with("en TEST") { quand.clone() } else { format!("le {}", quand) });
+    let parti = if ligne.pointer("/detail/main_propre").is_some_and(vrai) { "imprimé" } else { "envoyé" };
+    let prefixe = format!("{} {}", parti, if quand.starts_with("en TEST") { quand.clone() } else { format!("le {}", quand) });
     let quoi = get(ligne, "quoi")?;
     if est(quoi, SIGNATURE) {
         let contrats = items(ou(get(getd(ligne, "detail", objet_vide())?, "contrats")?, &LISTE_VIDE))?;

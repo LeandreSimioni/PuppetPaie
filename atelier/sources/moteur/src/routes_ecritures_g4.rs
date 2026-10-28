@@ -198,7 +198,12 @@ fn contrat_recu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let recu = booleen(charge, "recu", true);
     // `numero` (facultatif) dit QUEL contrat du jour : deux contrats du meme salarie peuvent commencer le meme jour.
     let numero = charge.get("numero").filter(|v| vrai(v)).map(valeur_en_texte);
-    contrat_recu_avec(ctx, mois, salarie, debut, numero.as_deref(), recu, "interface", None)
+    // `avenant` (facultatif) : le numero de l'avenant revenu signe, quand c'est lui et non le contrat.
+    let avenant = match charge.get("avenant").filter(|v| vrai(v)) {
+        None => Value::Null,
+        Some(v) => json!(valeur_en_texte(v).trim().parse::<i64>().map_err(|_| refus(format!("Numéro d'avenant illisible : {}.", valeur_en_texte(v))))?),
+    };
+    contrat_recu_avec(ctx, mois, salarie, debut, numero.as_deref(), recu, &avenant, "interface", None)
 }
 
 /// `contrat_recu(ctx, mois, salarie, debut, recu=..., qui=...)` : la meme note, `qui` donne (l'horloge d'une
@@ -212,7 +217,7 @@ pub(crate) fn contrat_recu_par(
     recu: bool,
     qui: &str,
 ) -> R<Value> {
-    contrat_recu_avec(ctx, mois, salarie, debut, numero, recu, qui, None)
+    contrat_recu_avec(ctx, mois, salarie, debut, numero, recu, &Value::Null, qui, None)
 }
 
 /// `contrat_recu(..., courriel=...)` : quand la releve des signatures a trouve la reponse « Je signe », elle passe
@@ -227,6 +232,7 @@ pub(crate) fn contrat_recu_avec(
     debut: &str,
     numero: Option<&str>,
     recu: bool,
+    avenant: &Value,
     qui: &str,
     courriel: Option<&Map<String, Value>>,
 ) -> R<Value> {
@@ -261,6 +267,10 @@ pub(crate) fn contrat_recu_avec(
         "salarie": salarie, "debut": debut, "recu": recu,
         "numero": numero_note, "nom": nom,
     });
+    if vrai(avenant) {
+        detail["avenant"] = avenant.clone();
+    }
+    let ce = if vrai(avenant) { format!("avenant n° {}", valeur_en_texte(avenant)) } else { "contrat".to_string() };
     let courriel = courriel.filter(|c| !c.is_empty());
     let texte_du_courriel = |cle: &str, defaut: &str| courriel.and_then(|c| c.get(cle)).map_or_else(|| defaut.to_string(), valeur_en_texte);
     let (reponse, quand, origine) = match courriel {
@@ -276,7 +286,7 @@ pub(crate) fn contrat_recu_avec(
             )
         }
         None => (
-            (if recu { "contrat signe recu, range a la main" } else { "mention retiree : le contrat signe n'est pas la" }).to_string(),
+            if recu { format!("{} signe recu, range a la main", ce) } else { format!("mention retiree : le {} signe n'est pas la", ce) },
             String::new(),
             String::new(),
         ),
@@ -298,11 +308,19 @@ pub(crate) fn contrat_recu_avec(
         origine: &origine,
     };
     let ligne = journal::noter(&ctx.racine, &note, &maintenant()).map_err(Echec::from)?;
+    // Ce que l'ecran dit de la note.
+    let phrase = format!(
+        "{} de {} {}.",
+        socle::texte::capitaliser(&ce),
+        format!("{} {}", prenom, texte("nom_affichage").or_else(|| texte("nom")).unwrap_or_default()).trim(),
+        if recu { "noté reçu signé" } else { "de nouveau en attente" }
+    );
     Ok(json!({
         "salarie": salarie, "debut": debut,
+        "phrase": phrase,
         "recu": if recu { ligne["quand"].clone() } else { Value::Null },
         // De quoi revenir sur la note : la meme route, le mot contraire.
-        "annuler": {"route": "contrat-recu", "charge": {"mois": mois, "salarie": salarie, "debut": debut, "numero": numero_note, "recu": !recu}},
+        "annuler": {"route": "contrat-recu", "charge": {"mois": mois, "salarie": salarie, "debut": debut, "numero": numero_note, "avenant": avenant, "recu": !recu}},
         "ligne": ligne,
     }))
 }
