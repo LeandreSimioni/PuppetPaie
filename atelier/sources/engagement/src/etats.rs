@@ -928,7 +928,7 @@ pub fn ce_qui_est_parti(ctx: &Contexte, o: &Objet, departs: &Departs) -> Vec<Str
     let jour = |le: &str| Jour::lire(le.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| le.to_string());
     let mut out: Vec<String> = ses_departs(ctx, o, departs)
         .iter()
-        .map(|d| format!("{}, le {}", crate::versions::quoi_du_depart(d.envoi, d.mois.as_deref()), jour(&d.le)))
+        .map(|d| format!("{}, le {}", crate::versions::quoi_du_depart(d), jour(&d.le)))
         .collect();
     out.dedup();
     if out.is_empty() && o.brut.get(VERSIONS).and_then(Value::as_array).is_some_and(|v| !v.is_empty()) {
