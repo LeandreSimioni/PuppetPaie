@@ -113,9 +113,6 @@ const MODALITES: [Modalite; 20] = [
     d("S21.G00.40.084", "S21.G00.41.066", true, &["statut"], &["plafond_temps_partiel"]),
 ];
 
-/// Les rubriques que `dsn::bloc_contrat` ecrit telles que la nature les donne, quand elle en donne une.
-const FIXEES_PAR_LA_NATURE: [&str; 5] = ["S21.G00.40.005", "S21.G00.40.007", "S21.G00.40.008", "S21.G00.40.014", "S21.G00.40.021"];
-
 /// Le bloc 40 d'un contrat tel qu'une DSN partie l'a declare (`dsn::bloc_40_declare`).
 pub struct Declare {
     /// Le mois de cette DSN (AAAA-MM).
@@ -354,8 +351,6 @@ mutation (cahier technique DSN, p. 21) ; la fiche du salarie {} . Dater le chang
         identifiants.push(vec![("S21.G00.41.001".to_string(), date.jjmmaaaa()), ("S21.G00.41.012".to_string(), decl.siret.clone())]);
     }
     // LES MODALITES : une par bloc, l'ancienne valeur, sa date, la profondeur de recalcul.
-    let nat = e.nat()?;
-    let meme_nature = valeur(&decl.bloc, "S21.G00.40.007") == valeur(ecrit, "S21.G00.40.007");
     let mut modalites = Vec::new();
     for md in &MODALITES {
         let Some(avant) = valeur(&decl.bloc, md.r40) else {
@@ -366,14 +361,6 @@ mutation (cahier technique DSN, p. 21) ; la fiche du salarie {} . Dater le chang
         let apres = valeur(ecrit, md.r40).unwrap_or("");
         // A la casse pres : « 353b » (le catalogue, la nomenclature de l'Insee) et « 353B » (une fiche) sont un meme code.
         if avant.eq_ignore_ascii_case(apres) {
-            continue;
-        }
-        // Une valeur que la nature fixe (`contrats-base.json`) ne change pas tant que la nature reste : un declare
-        // different vient d'une version anterieure du logiciel (40.005 = 999SPT des permanents),
-        // pas d'un changement du contrat. INFERENCE : la norme ne dit rien d'une valeur corrigee par le logiciel.
-        // Pas 40.016 : la nature y met 99, que le regime local d'Alsace-Moselle remplace (`dsn::bloc_contrat`), et une
-        // mutation qui en sort est un vrai changement.
-        if meme_nature && FIXEES_PAR_LA_NATURE.contains(&md.r40) && nat.code(md.r40).filter(|c| !c.is_empty()).as_deref() == Some(apres) {
             continue;
         }
         let date = date_du_changement(ctx, p, md, &decl, mois, avant, apres)?;

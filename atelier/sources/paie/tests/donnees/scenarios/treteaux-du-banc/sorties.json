@@ -544,7 +544,7 @@
                 "105"
               ],
               "_libelle_coolpaie": "Versement Audiens",
-              "_note": "Audiens est le groupe de retraite complementaire du spectacle : les deux noms designent le meme organisme. Code 131 = cotisation regime unifie Agirc-Arrco, 132 = cotisation Apec, 106 = reduction generale (part retraite). Le 105 (<< y compris Apec >>) ne s'ecrit plus que pour regulariser une periode anterieure a 2025 (cahier technique 2026.1 p. 302, atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt lignes 79-81) : il reste ici pour ce qui a ete DEPOSE en 105 avant le 10/10/2026, qu'une regularisation annule tel quel. Un fichier compose avant cette date, qui ne nomme que le 105, porte aussi les 131 et 132 (`dsn::codes_du_versement`)."
+              "_note": "Audiens est le groupe de retraite complementaire du spectacle : les deux noms designent le meme organisme. Code 131 = cotisation regime unifie Agirc-Arrco, 132 = cotisation Apec, 106 = reduction generale (part retraite). Le 105 (<< y compris Apec >>) ne s'ecrit plus que pour regulariser une periode anterieure a 2025 (cahier technique 2026.1 p. 302, atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt lignes 79-81) : il reste ici pour cette regularisation (`dsn::codes_du_versement`)."
             },
             {
               "siret": "P0983",
