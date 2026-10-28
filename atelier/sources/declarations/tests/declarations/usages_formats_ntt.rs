@@ -1,5 +1,6 @@
 //! Les controles avant depot (regle 7) contre `usages-formats-ntt.json` : le tableau des usages (P26V01), le moteur
-//! d'expressions des formats (motif par motif), la mauvaise valeur et les caracteres refuses d'une rubrique.
+//! d'expressions des formats (motif par motif), la mauvaise valeur et les caracteres refuses d'une rubrique
+//! (`atelier/reference/norme-dsn/dsn-cahier-technique-2026.1-usages.txt`, `dsn-cahier-technique-2026.1-formats.txt`).
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{lire_oracle, oracle};
@@ -15,9 +16,6 @@ const NATURES: [&str; 7] = ["01", "04", "05", "07", "08", "09", "10"];
 fn p26() -> declarations::norme::Norme {
     declarations::norme::Norme::connue("P26V01").unwrap()
 }
-
-
-
 
 #[test]
 fn tableau_des_usages() {

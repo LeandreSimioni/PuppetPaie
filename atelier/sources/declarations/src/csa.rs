@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn les_taux_suivent_les_tranches_du_quotient() {
-        // L. 6242-1, IV ; fiches net-entreprises 2588 et 2963.
+        // L. 6242-1, IV (`atelier/reference/sources/code-du-travail/xml/L6242-1.xml`) ; fiches net-entreprises 2588 et 2963.
         assert_eq!(taux(d("0.5"), false), Some(d("0.4")));
         assert_eq!(taux(d("0.5"), true), Some(d("0.6")));
         assert_eq!(taux(d("1"), true), Some(d("0.2")), "le 0,6 % ne vaut que sous 1 %");

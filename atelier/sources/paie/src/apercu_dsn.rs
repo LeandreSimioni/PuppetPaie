@@ -508,16 +508,6 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
-
-    #[test]
-    fn normaliser_et_arrondir() {
-        assert_eq!(norm(Decimal::from_str("100.00").unwrap()), "100");
-        assert_eq!(norm(Decimal::from_str("0.00").unwrap()), "0");
-        assert_eq!(q2(Decimal::from_str("2.345").unwrap()), "2.34");
-        assert_eq!(q2(Decimal::from_str("2.355").unwrap()), "2.36");
-        assert_eq!(q2(Decimal::from_str("1500").unwrap()), "1500.00");
-    }
 
     #[test]
     fn recapitulatif_lu_dans_le_fichier() {

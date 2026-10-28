@@ -22,7 +22,7 @@ use serde_json::{json, Value};
 
 #[test]
 fn la_fiche_salarie_dit_une_profession_et_son_accord_la_fiche_entreprise_l_option() {
-    // Lot R9 : la fiche salarie dit la PROFESSION de l'article 5 de l'annexe IV du CGI (plus une categorie, « 20 » ou
+    // La fiche salarie dit la PROFESSION de l'article 5 de l'annexe IV du CGI (plus une categorie, « 20 » ou
     // « 25 »), et l'accord du salarie quand l'option repose sur lui ; la fiche entreprise dit l'option de l'employeur
     // (arrete du 4 septembre 2025, art. 9, I, al. 2 et 3). Le moteur verifie les valeurs (`champs::verifier_fiche`).
     let erreur = |nom: &str, cle: &str, v: &str| -> bool {

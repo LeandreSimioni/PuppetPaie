@@ -36,10 +36,6 @@ fn la_fiche_dit_l_ancien_03_avant_la_dsn() {
 
 // ------------------------------------------------------------------ la liste des pays
 
-
-
-
-
 #[test]
 fn le_questionnaire_lit_le_pays_dans_la_liste_et_en_deduit_la_codification() {
     use documents::fiche_questionnaire::{fiche_depuis_reponses, pays_lu};
