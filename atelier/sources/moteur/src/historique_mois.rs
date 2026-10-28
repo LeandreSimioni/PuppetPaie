@@ -17,6 +17,7 @@
 //!
 //! Lecture seule : rien ne s'ecrit, rien ne part.
 
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
@@ -129,11 +130,44 @@ fn contrat_en_mots(d: &Value) -> String {
     format!("contrat{}{}", numero, debut)
 }
 
-/// L'acte d'une ligne du journal, en mots ; un contrat qui revient ou repart dit de qui il est.
-fn acte(ctx: &Contexte, l: &Value) -> String {
+/// La piece qu'une ligne `contrat-recu` note recue (ou plus) : le salarie, le contrat, son debut, l'avenant.
+fn piece_de_la_mention(l: &Value) -> Option<String> {
+    if l.get("quoi").and_then(Value::as_str) != Some("contrat-recu") {
+        return None;
+    }
+    let d = &l["detail"];
+    Some(["salarie", "numero", "debut", "avenant"].iter().map(|k| d.get(*k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).collect::<Vec<_>>().join("|"))
+}
+
+/// Les lignes `contrat-recu` (leurs rangs dans `lignes`) dont la mention « reçu » a ete retiree ensuite : la mention qui
+/// suit, pour la meme piece, est un retrait (`recu: false`).
+fn mentions_defaites(lignes: &[Value]) -> HashSet<usize> {
+    let mut ordre: Vec<usize> = (0..lignes.len()).filter(|i| piece_de_la_mention(&lignes[*i]).is_some()).collect();
+    ordre.sort_by(|a, b| valeur_en_texte(&lignes[*a]["quand"]).cmp(&valeur_en_texte(&lignes[*b]["quand"])).then(a.cmp(b)));
+    let mut derniere: HashMap<String, usize> = HashMap::new();
+    let mut defaites = HashSet::new();
+    for i in ordre {
+        let piece = piece_de_la_mention(&lignes[i]).unwrap_or_default();
+        let retrait = lignes[i]["detail"]["recu"] == json!(false);
+        if let Some(&avant) = derniere.get(&piece) {
+            if retrait && lignes[avant]["detail"]["recu"] != json!(false) {
+                defaites.insert(avant);
+            }
+        }
+        derniere.insert(piece, i);
+    }
+    defaites
+}
+
+/// L'acte d'une ligne du journal, en mots ; un contrat qui revient ou repart dit de qui il est. Une mention « reçu »
+/// retiree ensuite (`defaite`), ou son retrait, ne dit pas « revenu signé » : la piece ne l'est pas.
+fn acte(ctx: &Contexte, l: &Value, defaite: bool) -> String {
     let d = l.get("detail").cloned().unwrap_or(Value::Null);
     let t = |k: &str| d.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let piece = if t("avenant").is_empty() { "Contrat".to_string() } else { format!("Avenant n° {}", t("avenant")) };
     match l.get("quoi").and_then(Value::as_str).unwrap_or("") {
+        "contrat-recu" if d["recu"] == json!(false) => format!("{} : mention « signé » retirée — {}", piece, qui_du_contrat(ctx, &d)),
+        "contrat-recu" if defaite => format!("{} noté signé, mention retirée ensuite — {}", piece, qui_du_contrat(ctx, &d)),
         "dsn" => nature_dsn(&t("nature"), &t("type")),
         "dpae" => "DPAE".into(),
         "documents" => "Documents aux salariés".into(),
@@ -736,7 +770,8 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
         cles.poser(k.clone(), ())?;
     }
     let mut envois = Vec::new();
-    for l in &lignes {
+    let defaites = mentions_defaites(&lignes);
+    for (rang, l) in lignes.iter().enumerate() {
         let mut retours: Vec<Value> = l["retours"].as_array().into_iter().flatten().map(|r| retour_lu(&ctx.racine, l, r)).collect();
         retours.sort_by(|a, b| valeur_en_texte(&a["quand"]).cmp(&valeur_en_texte(&b["quand"])));
         let t = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
@@ -761,7 +796,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
             _ => etats::resume(l, &cles, etats::Maille::Contrat)?,
         };
         envois.push(json!({
-            "quoi": t("quoi"), "acte": acte(ctx, l), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
+            "quoi": t("quoi"), "acte": acte(ctx, l, defaites.contains(&rang)), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),
             "destinataire": t("destinataire"), "accepte": vrai(&l["accepte"]), "resume": resume,
             "attend_retour": !recu && !t("flux").is_empty(), "retours": retours,
         }));
