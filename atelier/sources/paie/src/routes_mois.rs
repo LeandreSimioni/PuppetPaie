@@ -401,11 +401,24 @@ pub struct Moteur<'a> {
     journal: Option<Result<std::sync::Arc<Vec<Value>>, Echec>>,
     globales: Option<Rc<Globales>>,
     fichiers: HashMap<String, Value>,
+    /// LES ENGAGEMENTS TELS QU'ILS SONT ECRITS, sans recalcul d'eux-memes (`engagement::etats::tels_qu_ecrits`) : ce que
+    /// lit `mois_a_ouvrir`, qui regarde chaque mois passe a l'ouverture et ne calcule rien.
+    ecrit: bool,
 }
 
 impl<'a> Moteur<'a> {
     pub fn nouveau(ctx: &'a Contexte) -> Moteur<'a> {
-        Moteur { ctx, journal: None, globales: None, fichiers: HashMap::new() }
+        Moteur { ctx, journal: None, globales: None, fichiers: HashMap::new(), ecrit: false }
+    }
+
+    /// Les engagements de `mois`, dans l'ordre de l'ecran : recalcules d'eux-memes s'il le faut (`du_mois`), ou tels
+    /// qu'ils sont ecrits (`ecrit`).
+    pub(crate) fn etats_du_mois(&self, mois: &str) -> R<Vec<engagement::etats::Etat>> {
+        if self.ecrit {
+            let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
+            return engagement::etats::tels_qu_ecrits(self.ctx, mois, &departs).map_err(plain);
+        }
+        engagement::etats::du_mois(self.ctx, mois).map_err(plain)
     }
 
     fn racine(&self) -> &Path {
@@ -511,7 +524,7 @@ impl<'a> Moteur<'a> {
         let bruts = if avec_brut { Some(self.brut_du_mois(mois, &s)?) } else { None };
         let rangs = s.rangs()?;
         // Valide, ou parti : la date de la validation (`engagement::etats`), engagement par engagement.
-        let etats_eng = engagement::etats::du_mois(self.ctx, mois).map_err(plain)?;
+        let etats_eng = self.etats_du_mois(mois)?;
         let g = self.globales()?;
         // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur empreinte et leur numero.
         let uniques: Vec<Paire> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
@@ -783,18 +796,31 @@ impl<'a> Moteur<'a> {
         // Ce que la DSN a emporte, compare au present des engagements du mois (`dsn_a_refaire`).
         let mut modifiee = false;
         if derniere.get("versions").is_some() {
-            let etats_eng = engagement::etats::du_mois(self.ctx, mois).map_err(plain)?;
+            let etats_eng = self.etats_du_mois(mois)?;
             let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
             modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &refaire);
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
         // Apres la limite : les contrats dont la paie validee n'est plus celle que la DSN a declaree ; la DSN suivante
-        // porte leur correction d'elle-meme (`produire_regularisations::corrections_dues`).
+        // porte leur correction d'elle-meme (`engagement::etats::correction_due`, comme
+        // `produire_regularisations::corrections_dues`), ceux de cet etablissement seuls.
         let corriges = if admis {
             0
         } else {
             let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
-            declarations::produire_regularisations::corrections_dues(self.ctx, mois, "9999-12", &departs)?.len()
+            let plusieurs = !droit::bareme::secondaires(&self.ctx.entreprise).is_empty();
+            let voulu = if vrai(nic) { valeur_en_texte(nic) } else { self.nic() };
+            let mut n = 0;
+            for e in self.etats_du_mois(mois)? {
+                let Some(v) = e.valide() else { continue };
+                if plusieurs && nic_de_l_engagement(self.ctx, mois, &e).as_deref() != Some(voulu.as_str()) {
+                    continue;
+                }
+                if engagement::etats::correction_due(self.ctx, v, &departs, mois, "9999-12").map_err(plain)?.is_some() {
+                    n += 1;
+                }
+            }
+            n
         };
         if corriges > 0 {
             modifiee = true;
@@ -1137,6 +1163,8 @@ impl<'a> Moteur<'a> {
     /// verte, sinon le mois du calendrier.
     pub fn mois_a_ouvrir(&mut self) -> R<Value> {
         let courant = self.ctx.aujourdhui.mois_iso();
+        // A L'OUVERTURE, RIEN NE SE CALCULE : les groupes d'un mois passe se tirent de ce qui est ecrit.
+        self.ecrit = true;
         for m in mois_saisis(self.racine()) {
             if m >= courant || self.exercice_clos(&m)? {
                 continue;
