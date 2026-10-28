@@ -14,10 +14,10 @@
 //! RIEN N'EST REECRIT : chaque acte est celui qui existe deja, appele tel quel --
 //! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}` (lot H2),
 //! `releve_signatures::{relever_signatures, relever_signatures_fictive}` (lot I2a),
-//! `crate::routes::fiches_courriel::relever_fiches` (H4a), `horloge::{rattraper, dernier_rattrapage}` (I1),
-//! `pas::avertissements`, `crate::routes::actes_h2::filet_preparer` (le passage du filet DPAE, ouvert en `pub(crate)`),
+//! `crate::routes::fiches::relever_fiches` (H4a), `horloge::{rattraper, dernier_rattrapage}` (I1),
+//! `pas::avertissements`, `crate::routes::depots::filet_preparer` (le passage du filet DPAE, ouvert en `pub(crate)`),
 //! `incidents::envoyer` et `problemes::relever_reponses` (le canal de l'editeur), `sauvegarde::{sauvegarder,
-//! rien_n_a_bouge, hors_ligne}` (H4b), `crate::routes::google::autorise` (ouvert ici), `coffre::Coffre`.
+//! rien_n_a_bouge, hors_ligne}` (H4b), `crate::routes::coffre::autorise` (ouvert ici), `coffre::Coffre`.
 //!
 //! CHAQUE CLIENT RESEAU PEUT ETRE REMPLACE (`Clients`) : le compte net-entreprises, le compte Urssaf (DPAE), la boite
 //! courriel (signatures et fiches), le Drive. Un client donne est utilise a la place du vrai, SANS regarder le coffre.
@@ -46,7 +46,7 @@ use socle::fichiers::vrai;
 use envois::releve_retours::{Client, Releve};
 use crate::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
-use crate::routes::fiches_courriel::ReleveFiches;
+use crate::routes::fiches::ReleveFiches;
 use crate::sauvegarde::{self, Sauvegarde};
 
 /// Les routes de ce module.
@@ -606,7 +606,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         if let Err(e) = releve_signatures::relever_signatures_fictive(ctx, releve_signatures::DELAI_FICTIVE) {
             r.incidents.push(format!("Signatures : {}", e.message));
         }
-        match crate::routes::fiches_courriel::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {
+        match crate::routes::fiches::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {
             // Les incidents de la relève des fiches jouée ne sont pas repris : le Python non plus.
             Ok(f) => r.fiches = Some(f),
             Err(e) => r.incidents.push(format!("Fiches salariés : {}", e.message)),
@@ -640,7 +640,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         }
         // Les fiches demandees aux salaries (23/09/2026) : la meme boite, le meme passage, la meme regle.
         dire_l_etape(ctx, "Boîte courriel : fiches des salariés…");
-        match crate::routes::fiches_courriel::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), "veille") {
+        match crate::routes::fiches::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), "veille") {
             Ok(f) => {
                 r.incidents.extend(f.incidents.iter().cloned());
                 r.fiches = Some(f);
@@ -653,7 +653,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     // lit a jour. Le test ne declare rien -- la veille ne DEPOSE toujours rien de reel.
     if opt.filet {
         dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
-        match crate::routes::actes_h2::filet_preparer_avec(ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
+        match crate::routes::depots::filet_preparer_avec(ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
             Ok(f) => {
                 r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(valeur_en_texte));
                 r.filet = Some(f);
@@ -793,7 +793,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
 /// La sauvegarde, en dernier : un compte Google non lie est un manque ; rien de neuf sur le disque, en veille, est un
 /// silence (aucun appel) ; une panne est un incident.
 fn sauvegarder_le_dossier(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>, r: &mut Ouverture) {
-    let pret = clients.drive.is_some() || crate::routes::google::autorise(&ctx.racine);
+    let pret = clients.drive.is_some() || crate::routes::coffre::autorise(&ctx.racine);
     if !pret {
         r.a_poser.push("google".to_string());
         r.manque_coffre(

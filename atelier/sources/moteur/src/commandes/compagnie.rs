@@ -112,7 +112,7 @@ pub fn racine(dev: bool) -> Result<PathBuf, String> {
         std::env::set_var("PUPPETPAIE_DONNEES", &d);
         return Ok(d);
     }
-    Ok(crate::routes::accueil::racine_du_poste())
+    Ok(crate::routes::ouverture::racine_du_poste())
 }
 
 /// La compagnie est-elle une copie (developpement ou compagnie fictive) ?

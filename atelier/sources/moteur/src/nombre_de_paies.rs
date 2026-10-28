@@ -21,7 +21,7 @@
 //! `parti_le`) ; une annee qui y est ne repart pas. Ce fichier est propre au poste (`compagnies::PROPRES_AU_POSTE`) : une
 //! remise a zero de la compagnie ne fait pas renvoyer l'annee. Un envoi qui echoue (hors ligne, serveur en panne) n'ecrit
 //! rien : le passage suivant le refait. L'ecran « Ce qui est parti chez l'editeur » le montre avec les incidents
-//! (`crate::routes::incidents::diagnostic_etat`).
+//! (`crate::routes::filet::diagnostic_etat`).
 //!
 //! JAMAIS : depuis une compagnie fictive ni depuis la copie de developpement (le marqueur `COPIE-DE-DEVELOPPEMENT.json`,
 //! `compagnies::est_copie`, que portent l'une et l'autre) ; depuis un logiciel bride (`bridage::est_bride`), ce qui couvre une

@@ -64,10 +64,10 @@ fn cle_de_version(v: &str) -> Vec<i64> {
 /// La version prete est celle de l'INSTALLATION du contexte (`<installation>/logiciel/donnees` = `ctx.code`, lot U1).
 pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
     let code = ctx.code.parent().map(Path::to_path_buf).unwrap_or_default();
-    let Some(p) = crate::routes::etats::prete(&code.join(".."))? else { return Ok(String::new()) };
+    let Some(p) = crate::routes::ouverture::prete(&code.join(".."))? else { return Ok(String::new()) };
     let exigee = p.get("exigee").filter(|e| vrai(e)).map(valeur_en_texte).unwrap_or_default();
     let version = p.get("version").map(valeur_en_texte).unwrap_or_default();
-    if exigee.is_empty() || cle_de_version(&version) <= cle_de_version(&crate::routes::etats::courante(&code)?) {
+    if exigee.is_empty() || cle_de_version(&version) <= cle_de_version(&crate::routes::ouverture::courante(&code)?) {
         return Ok(String::new());
     }
     Ok(format!(
@@ -117,7 +117,7 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
         return Err(erreur("VersionExigee", format!("Rien n'est parti : {}.", presse)));
     }
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
-    let vers = crate::routes::etats::vers_route;
+    let vers = crate::routes::vers_route;
     if !coffre.ouverture_exigee().map_err(vers)? {
         return Err(erreur(
             "PreuveInsuffisante",
@@ -156,7 +156,7 @@ pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Opt
         }
     }
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
-    let vers = crate::routes::etats::vers_route;
+    let vers = crate::routes::vers_route;
     if !coffre.pose(service).map_err(vers)? {
         return Err(erreur(
             "ErreurOperation",
@@ -390,7 +390,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
 /// norme. `Ok(true)` : un annule-et-remplace en regle (rien a forcer) ; `Ok(false)` : une premiere DSN ou une
 /// normale (`DsnDejaDeposee` tranche) ; un refus sinon.
 fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
-    let mut m = crate::routes::mois::Moteur::nouveau(ctx);
+    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
     let faits = m.depots_reels(mois, nic)?;
     let mut dernier: Option<i64> = None;
     for l in &faits {
@@ -483,8 +483,8 @@ pub fn deposer_dsn_dans(
             format!("L'environnement '{}' est la plate-forme d'essai de l'editeur : rien n'y est declare. Un depot REEL ne part que sur 'production' ; pour essayer, utiliser --test. Rien n'est parti.", environnement),
         ));
     }
-    let chemin = PathBuf::from(crate::routes::apercus::resoudre(&ctx.racine, fichier)?);
-    let octets = crate::routes::apercus::lire_octets(&chemin.to_string_lossy())?;
+    let chemin = PathBuf::from(crate::routes::depots::resoudre(&ctx.racine, fichier)?);
+    let octets = crate::routes::depots::lire_octets(&chemin.to_string_lossy())?;
     let apercu = depot::lire(&octets);
     // 2. le mode contre le fichier ; `presence_prouvee` : c'est ICI qu'on la prouve, jamais le transport.
     depot::verifier(&apercu, reel, None, true)?;
@@ -556,7 +556,7 @@ pub fn deposer_dsn_dans(
         let change = if apercu.est_signalement() {
             None
         } else {
-            crate::routes::mois::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(&mois, &chemin)?
+            crate::routes::etapes::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(&mois, &chemin)?
         };
         if let Some(c) = change {
             return Err(erreur(
@@ -595,7 +595,7 @@ pub fn deposer_dsn_dans(
         versions_du_signalement(ctx, &mois, &octets)?
     } else {
         let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-        let mut v = envois::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes::mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+        let mut v = envois::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes::etapes::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
         // Et la version presente de l'engagement de chaque mois passe dont la DSN porte la correction.
         if let Value::Array(a) = &mut v {
@@ -642,9 +642,9 @@ pub fn deposer_dpae_avec(
 ) -> R<DepotFait> {
     let branchement = crate::bridage::branchement(&ctx.racine);
     branchement.ouvrir()?;
-    let chemin = PathBuf::from(crate::routes::apercus::resoudre(&ctx.racine, fichier)?);
-    let apercu = crate::routes::apercus::apercu_depot_dpae(ctx, &json!(chemin.to_string_lossy()))?;
-    let octets = crate::routes::apercus::lire_octets(&chemin.to_string_lossy())?;
+    let chemin = PathBuf::from(crate::routes::depots::resoudre(&ctx.racine, fichier)?);
+    let apercu = crate::routes::depots::apercu_depot_dpae(ctx, &json!(chemin.to_string_lossy()))?;
+    let octets = crate::routes::depots::lire_octets(&chemin.to_string_lossy())?;
     let mois = valeur_en_texte(&apercu["mois"]);
 
     if reel && !vrai(&apercu["reel"]) {

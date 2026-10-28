@@ -53,9 +53,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         cadre.route("metiers-ajoutes", json!({"codes": codes, "retirer": retirer}))?;
     }
     let liste = if args.drapeau("autres") {
-        crate::routes::accueil::metiers_autres_conventions(&cadre.ctx)?
+        crate::routes::ouverture::metiers_autres_conventions(&cadre.ctx)?
     } else {
-        crate::routes::accueil::metiers(&cadre.ctx)?
+        crate::routes::ouverture::metiers(&cadre.ctx)?
     };
     let mut liste: Vec<Value> = liste.as_array().cloned().unwrap_or_default();
     if let Some(q) = args.texte("chercher").filter(|q| !q.is_empty()) {

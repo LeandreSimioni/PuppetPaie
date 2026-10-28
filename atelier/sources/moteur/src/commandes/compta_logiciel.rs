@@ -39,7 +39,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             let logiciel = if l == "aucun" { Value::Null } else { json!(l) };
             cadre.route("retenir-logiciel", json!({"logiciel": logiciel, "analytique": args.drapeau("analytique")}))?
         }
-        None => crate::routes::dossiers::etat_logiciel(&cadre.ctx)?,
+        None => crate::routes::archives::etat_logiciel(&cadre.ctx)?,
     };
     let retenu = e.get("logiciel").and_then(Value::as_str).unwrap_or("");
     let nom = e.get("logiciels").and_then(Value::as_array).and_then(|l| l.iter().find(|x| x.get("logiciel").and_then(Value::as_str) == Some(retenu)));

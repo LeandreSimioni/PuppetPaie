@@ -106,7 +106,7 @@ pub fn question(racine: &Path) -> Result<Value, String> {
     let mut v = json!({"nom": compagnies::nom_de(racine), "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);
-        let liee = racine.join("config").join(crate::routes::google::FICHIER_JETON).is_file();
+        let liee = racine.join("config").join(crate::routes::coffre::FICHIER_JETON).is_file();
         v["sauvegarde"] = json!({"liee": liee, "derniere": crate::sauvegarde::derniere(racine).quand});
     }
     Ok(v)
@@ -206,7 +206,7 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
     let mention = json!({
         "creee_le": creee_le,
         "gardee_le": socle::paris::maintenant(),
-        "mois": crate::routes::mois::mois_saisis(racine),
+        "mois": crate::routes::etapes::mois_saisis(racine),
         "_quoi": "Cette compagnie a ete creee dans la version demo de PuppetPaie, puis gardee au deblocage : rien de ce qui y a ete fait avant n'est parti (ni DPAE, ni contrat a la signature, ni DSN, ni document).",
     });
     socle::ecriture::ecrire_json(&racine.join(FICHIER_DEMO), &mention, 2)?;
@@ -291,7 +291,7 @@ pub fn mois_de_demo(racine: &Path) -> Vec<String> {
 }
 
 /// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree, une paie validee ou modifiee :
-/// `crate::routes::ecritures::ecrire_saisie_confirmee`, le seul endroit ou la saisie d'un mois s'ecrit) est un mois qu'on entend
+/// `crate::routes::mois::ecrire_saisie_confirmee`, le seul endroit ou la saisie d'un mois s'ecrit) est un mois qu'on entend
 /// declarer : il sort de la mention (`config/demo.json`, `mois`), retient une version qui change un calcul comme tout mois
 /// reel, et la page ne le dit plus « fait en demo ». Rien a faire pour une compagnie sans mention, ni pour un mois qui n'y
 /// est pas.

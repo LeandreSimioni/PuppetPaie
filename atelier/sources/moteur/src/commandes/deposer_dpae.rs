@@ -70,7 +70,7 @@ fn jour_de(t: &str, quoi: &str) -> Result<socle::date::Jour, Echec> {
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let (test, reel) = (args.drapeau("test"), args.drapeau("reel"));
     let fichier = args.texte("fichier").unwrap_or("");
-    let chemin = match crate::routes::apercus::resoudre(&cadre.racine, &json!(fichier)) {
+    let chemin = match crate::routes::depots::resoudre(&cadre.racine, &json!(fichier)) {
         Ok(c) => c,
         Err(e) => {
             dire!("Fichier introuvable : {}", e.message);
@@ -87,7 +87,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         dire!("Le SI DPAE refuse les archives : deposer le .txt, pas le .zip.");
         return Ok(1);
     }
-    let contenu = match crate::routes::apercus::lire_octets(&chemin) {
+    let contenu = match crate::routes::depots::lire_octets(&chemin) {
         Ok(c) => c,
         Err(e) => {
             dire!("Fichier illisible : {}", e.message);

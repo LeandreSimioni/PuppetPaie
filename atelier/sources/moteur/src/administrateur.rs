@@ -408,7 +408,7 @@ fn jj_mm_aaaa(iso: &str) -> String {
 /// Ou en est un fichier DSN ecrit (mensuelle ou signalement), lu du journal : `deposee` (un depot reel accepte de ce
 /// contenu), `paie_changee` (une mensuelle qui ne declare plus la paie), `testee` (test conforme, bilan lu), `en_test`
 /// (test parti, bilan attendu), `test_refuse`, `a_tester`. Les memes lectures que l'etape de depot du mois
-/// (`crate::routes::mois::etape_de_depot`).
+/// (`crate::routes::etapes::etape_de_depot`).
 fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let empreinte = envois::journal::empreinte(&octets);
@@ -416,7 +416,7 @@ fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: 
         return Ok("deposee");
     }
     if let Some(m) = mensuelle {
-        if crate::routes::mois::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(m, chemin)?.is_some() {
+        if crate::routes::etapes::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(m, chemin)?.is_some() {
             return Ok("paie_changee");
         }
     }
@@ -581,10 +581,10 @@ pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value
     // L'EMPREINTE DE TOUTE LA COMPAGNIE, prise avant (celle de l'etat d'ouverture, `etat_garde::empreinte_de`) : le fil de
     // la fenetre ne le refait pas tant qu'elle n'a pas bouge (ticket #244, `FileDesEtats::faire_le_tableau`).
     let empreinte = crate::etat_garde::empreinte_de(&ctx.racine, crate::etat_garde::OUVERTURE, &ctx.aujourdhui.iso());
-    let rappels = match crate::routes::ouverture::traiter(o, "rappels", &json!({})) {
+    let rappels = match crate::routes::rappels::traiter(o, "rappels", &json!({})) {
         Some(Ok(v)) => v,
         Some(Err(m)) => {
-            let (_, message) = crate::routes::ouverture::decoder(&m);
+            let (_, message) = crate::routes::rappels::decoder(&m);
             return Err(erreur("ErreurOperation", message.to_string()));
         }
         None => Value::Null,
@@ -790,7 +790,7 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
                 sortie["classe"] = v.get("classe").cloned().unwrap_or(Value::Null);
             }
             Err(m) => {
-                let (classe, message) = crate::routes::ouverture::decoder(&m);
+                let (classe, message) = crate::routes::rappels::decoder(&m);
                 sortie["parti"] = json!(false);
                 sortie["refus"] = json!(message);
                 sortie["classe"] = json!(classe);

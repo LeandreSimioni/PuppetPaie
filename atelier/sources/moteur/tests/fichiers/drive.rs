@@ -58,7 +58,7 @@ fn compte_pas_lie_est_refuse_avant_tout_reseau() {
     let (base, recu) = serveur(|_| json_ok(json!({})));
     let r = racine("pas-lie");
     std::fs::write(r.join("config").join("google.json"), r#"{"client_id": "i", "client_secret": "s"}"#).unwrap();
-    let mut c = moteur::routes::google::client_drive(&r).unwrap().avec_adresses(adresses(&base));
+    let mut c = moteur::routes::coffre::client_drive(&r).unwrap().avec_adresses(adresses(&base));
     assert_eq!(c.compte(), None);
     assert!(c.lister("P").is_err());
     assert!(recu.lock().unwrap().is_empty());
@@ -69,7 +69,7 @@ fn une_copie_de_developpement_est_refusee_a_la_construction() {
     let r = racine("copie");
     std::fs::write(r.join("config").join("google.json"), r#"{"client_id": "i", "client_secret": "s"}"#).unwrap();
     std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), "{}").unwrap();
-    assert!(moteur::routes::google::client_drive(&r).is_err());
+    assert!(moteur::routes::coffre::client_drive(&r).is_err());
 }
 
 // ------------------------------------------------------------ « ne supprime jamais »

@@ -198,7 +198,7 @@ fn choisir_dossier(charge: &Value) -> Result<Value, Refus> {
 fn ouvrir_import(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     let choisi = charge.get("dossier").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
     let import = racine.join("import");
-    let dossier = choisi.map_or_else(|| import.clone(), |s| PathBuf::from(crate::routes::apercus::normaliser(s)));
+    let dossier = choisi.map_or_else(|| import.clone(), |s| PathBuf::from(crate::routes::depots::normaliser(s)));
     if dossier == import {
         std::fs::create_dir_all(&import)
             .map_err(|e| Refus::simple("ErreurOperation", format!("Le dossier {} ne se cree pas : {}.", import.display(), e)))?;
@@ -315,7 +315,7 @@ fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     let url = |u: &str| {
         let _ = ouvrir_adresse(u);
     };
-    let compte = crate::routes::google::autoriser(racine, envois::google_autorisation::DELAI_AUTORISATION, &url, &|_| {}).map_err(vers)?;
+    let compte = crate::routes::coffre::autoriser(racine, envois::google_autorisation::DELAI_AUTORISATION, &url, &|_| {}).map_err(vers)?;
     Ok(json!({"compte": compte}))
 }
 
@@ -417,7 +417,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
                 v["veille"] = etat_veille.unwrap_or_else(|| json!({"minutes": 0, "dernier": {}, "en_cours": false}));
                 v["maj"] = crate::maj::RECHERCHE.etat();
                 v["signalements"] = en_page(
-                    crate::routes::etats::signalements_route(racine).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
+                    crate::routes::filet::signalements_route(racine).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
                 );
             }
             Ok(v)

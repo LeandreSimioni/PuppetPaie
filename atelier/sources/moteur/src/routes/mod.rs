@@ -9,43 +9,37 @@
 //! module et s'ajoute ici d'une ligne. Les routes de l'ouverture
 //! (`routes_ouverture`, `rappels` et `apercu`) font leur propre Contexte, et
 //! leur refus classe voyage dans le texte de l'erreur
-//! (`crate::routes::ouverture::decoder`).
+//! (`crate::routes::rappels::decoder`).
 
 use std::collections::HashMap;
+use std::path::Path;
 
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
+use socle::date::repr_texte;
+use socle::echec::{erreur, Echec, R};
+use socle::fichiers::vrai;
+use droit::contexte::Contexte;
 use socle::num::Resultat;
-use socle::echec::Echec;
+use socle::valeur::{nom_type, valeur_ecrite, valeur_en_texte};
 use crate::service::contexte;
-pub mod accueil;
-pub mod actes_h1;
-pub mod actes_h2;
-pub mod apercus;
-pub mod bulletin_modele;
-pub mod contrats;
+
+
+pub mod ouverture;
+pub mod depots;
+pub mod archives;
 pub mod documents;
 pub mod dossier_salarie;
-pub mod dossiers;
-pub mod ecrites;
-pub mod ecritures;
-pub mod ecritures_g2;
-pub mod ecritures_g3;
-pub mod ecritures_g4;
-pub mod envois;
-pub mod etats;
+pub mod coffre;
+pub mod engagement;
+pub mod contrats;
 pub mod fiches;
-pub mod fiches_courriel;
-pub mod google;
-pub mod importation;
+pub mod import;
 pub mod imprevus;
-pub mod incidents;
-pub mod listes;
+pub mod filet;
+pub mod etapes;
+pub mod rappels;
 pub mod mois;
-pub mod ouverture;
-pub mod regularisation;
-pub mod saisie;
-pub mod sauvegarde;
 
 /// La pile d'un fil qui sert des routes dans la fenetre : 8 Mo, celle du fil principal d'un `moteur route` sous Linux (un
 /// fil neuf n'en a que 2). Un calcul qui remonte les mois d'avant s'y empile ; un debordement de pile ne se rattrape pas
@@ -118,10 +112,10 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
         panic!("la route d'essai tombe expres");
     }
-    if let Some(r) = crate::routes::ouverture::traiter(o, route, &charge) {
+    if let Some(r) = crate::routes::rappels::traiter(o, route, &charge) {
         return match r {
             Ok(v) => Ok(json!({"ok": true, "resultat": v})),
-            Err(e) => match crate::routes::ouverture::decoder(&e) {
+            Err(e) => match crate::routes::rappels::decoder(&e) {
                 (Some(c), message) => Ok(json!({"ok": false, "erreur": message, "classe": c})),
                 (None, message) => Err(message.to_string()),
             },
@@ -134,113 +128,65 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         None => contexte(o)?,
     };
     let rendu: Result<Value, Echec> = match route {
-        // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
-        declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx),
-        // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
-        crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx, &charge),
-        crate::organismes::ROUTE_ECRIRE => crate::organismes::enregistrer(&ctx, &charge),
         // L'etat d'un mois : l'etat garde, ecrit apres chaque ecriture, lu tel quel (`etat_garde`).
         r if crate::etat_garde::ROUTES.contains(&r) => crate::etat_garde::route(o, &ctx, route, &charge),
-        // Le mois, sans calcul de paie.
-        "embauches-a-declarer" | "mois-a-ouvrir" => {
-            crate::routes::mois::route(o, &ctx, route, &charge)
-        }
-        // L'accueil : la page lit tout en s'ouvrant.
-        "etat" | "configuration" => crate::routes::accueil::route(o, &ctx, route, &charge),
-        // Supprimer la compagnie : ce que la boite demande (`interface::suppression::question`) ; la suppression elle-meme
-        // est un geste de la fenetre, qui lache d'abord ce qu'elle tient de la compagnie.
-        "compagnie-suppression" => crate::interface::suppression::question(&ctx.racine).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m }),
-        // La saisie d'un mois et l'echeancier : la page les lit en s'ouvrant.
-        "saisie" | "echeancier" => crate::routes::saisie::route(o, &ctx, route, &charge),
-        // Les petites lectures de l'ouverture : identite, exercices, coffre, filet, importation, mise a jour, signalements, pieces parties.
-        "identite" | "exercices" | "coffre-etat" | "filet-etat" | "importation-etat" | "maj-etat" | "signalements" | "pieces-parties" => {
-            crate::routes::etats::route(o, &ctx, route, &charge)
-        }
-        // Les listes de l'ouverture : arrets, fins de contrat a signaler, mois a regulariser.
-        "arrets" | "fins-de-contrat" | "regularisations" => crate::routes::listes::route(o, &ctx, route, &charge),
-        // Les contrats en cours et passes, l'emploi, les rubriques cochees, le catalogue des metiers.
-        "contrats-en-cours" | "contrats-passes" | "emploi" | "metiers-catalogue" => {
-            crate::routes::contrats::route(o, &ctx, route, &charge)
-        }
-        // Les exports et les dossiers : les contrats qu un arret suspendrait, les formes du dossier salarie.
-        "arret-contrats" | "dossier-formes" | "exports-periodes" => crate::routes::dossiers::route(o, &ctx, route, &charge),
-        // Les apercus : ce que la page montre avant d'agir (lecture seule).
-        "depot-apercu" => crate::routes::apercus::route(o, &ctx, route, &charge),
-        // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
-        crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),
-        // Les apercus des documents du mois : le contrat a signer, l'avenant, l'envoi.
-        "signature-apercu" | "avenant-apercu" | "envoi-apercu" => crate::routes::documents::route(o, &ctx, route, &charge),
-        // L'import d'un export CoolPaie : ce qu'il ferait ; le tri de la boite aux lettres `import/` (rien n'est ecrit).
-        "importation-apercu" => crate::routes::importation::route(o, &ctx, route, &charge),
-        // Les fichiers que l'import n'a pas repris : le message caviarde qui partirait chez l'editeur (rien n'est ecrit),
-        // et son envoi, sur le seul clic de la personne (`importation_incident`).
-        r if crate::importation_incident::ROUTES.contains(&r) => crate::importation_incident::route(&ctx, route, &charge),
-        // Le dossier d'un salarie : ses documents, recrees ou pris tels quels, en un PDF ou un ZIP.
-        "dossier-salarie" => crate::routes::dossier_salarie::route(o, &ctx, route, &charge),
-        // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
-        r if crate::conseils::ROUTES.contains(&r) => crate::conseils::route(&ctx, route, &charge),
-        // Les routes qui ecrivent : la revue des spectacles, la correction d'un mois depose.
-        "revue-spectacles" => crate::routes::ecrites::route(o, &ctx, route, &charge),
-        // Les ecritures de l'ecran : fiches, identite, metiers, saisie d'un mois, total vise.
-        r if crate::routes::ecritures::ROUTES.contains(&r) => crate::routes::ecritures::route(o, &ctx, route, &charge),
-        // Les ecritures du lot G2 : corrections d'un mois depose, arrets, echeances cochees ; et le cout de l'annee.
-        r if crate::routes::ecritures_g2::ROUTES.contains(&r) => crate::routes::ecritures_g2::route(o, &ctx, route, &charge),
-        // Les imprevus d'un salarie : la liste, le maintien d'un arret, la suspension du bloc 65 saisie une fois.
-        r if crate::routes::imprevus::ROUTES.contains(&r) => crate::routes::imprevus::route(o, &ctx, route, &charge),
-        // Les ecritures du lot G3 : coffre, mot de passe du logiciel, jeton Google, mise a jour, cloture, export compta, import.
-        r if crate::routes::ecritures_g3::ROUTES.contains(&r) => crate::routes::ecritures_g3::route(o, &ctx, route, &charge),
-        // Les ecritures du lot G4 : valider ou modifier un engagement, le contrat recu, les reglages et reprises locales.
-        r if crate::routes::ecritures_g4::ROUTES.contains(&r) => crate::routes::ecritures_g4::route(&ctx, route, &charge),
-        // Les obligations d'un arret (15/10/2026) : le jour ou la compagnie l'a su, la declaration d'accident faite.
-        r if crate::obligations::ROUTES.contains(&r) || crate::obligations::ROUTES_LECTURE.contains(&r) => crate::obligations::route(&ctx, route, &charge),
-        // Les productions du lot H1 : la DPAE, le signalement d'arret, la fin de contrat et ses papiers (rien ne part).
-        r if crate::routes::actes_h1::ROUTES.contains(&r) => crate::routes::actes_h1::route(&ctx, route, &charge),
-        // Les actes du lot H2 : deposer, suivre un depot, le bilan d'une repetition, le filet. Un refus qui porte une
-        // donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
-        r if crate::routes::actes_h2::ROUTES.contains(&r) => match crate::routes::actes_h2::route(o, &ctx, route, &charge) {
+        // Un geste de l'ecran, une route : un module par geste.
+        r if mois::ROUTES.contains(&r) => mois::route(o, &ctx, route, &charge),
+        r if etapes::ROUTES.contains(&r) => etapes::route(o, &ctx, route, &charge),
+        r if engagement::ROUTES.contains(&r) => engagement::route(o, &ctx, route, &charge),
+        r if contrats::ROUTES.contains(&r) => contrats::route(o, &ctx, route, &charge),
+        r if documents::ROUTES.contains(&r) => documents::route(o, &ctx, route, &charge),
+        // Un refus du depot qui porte une donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
+        r if depots::ROUTES.contains(&r) => match depots::route(o, &ctx, route, &charge) {
             Err(Echec { classe: Some(c), message }) if matches!(c, "RepetitionManquante" | "DsnDejaDeposee") => {
                 let d: Value = serde_json::from_str(&message).unwrap_or_else(|_| json!({"message": message}));
                 return Ok(json!({"ok": false, "erreur": d["message"], "classe": c, "etat": d["etat"]}));
             }
             autre => autre,
         },
-        // Les envois du lot H3b : les documents du mois, un contrat ou un avenant a la signature, un dossier, les courriels
-        // de la regularisation CASC. Le mot de passe du logiciel, retape ; la boite simulee dans une compagnie fictive. Le filet DPAE
-        // en fond de `demander-signature` n'est pas ici : `web.py` le lance apres l'appel.
-        r if crate::routes::envois::ROUTES.contains(&r) => crate::routes::envois::route(o, &ctx, route, &charge),
-        // Les fiches par courriel et la verification des comptes du lot H4a : la fiche remplie par le salarie lui-meme
-        // (la demande part avec le mot de passe du logiciel ; la releve ne fait rien partir), et le secret pose ouvre-t-il
-        // une session chez l'organisme (UNE seule tentative).
-        r if crate::routes::fiches_courriel::ROUTES.contains(&r) => crate::routes::fiches_courriel::route(o, &ctx, route, &charge),
-        // La releve des reponses « Je signe » du lot I2a : cherche les codes attendus dans la boite (la vraie, ou celle d'une
-        // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat. N'a de sens, hors d'une
-        // compagnie fictive, que pour relever pour de bon : une vraie boite est lue.
+        r if imprevus::ROUTES.contains(&r) => imprevus::route(o, &ctx, route, &charge),
+        // Les obligations d'un arret : le jour ou la compagnie l'a su, la declaration d'accident faite.
+        r if crate::obligations::ROUTES.contains(&r) || crate::obligations::ROUTES_LECTURE.contains(&r) => crate::obligations::route(&ctx, route, &charge),
+        r if fiches::ROUTES.contains(&r) => fiches::route(o, &ctx, route, &charge),
+        // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
+        crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx, &charge),
+        crate::organismes::ROUTE_ECRIRE => crate::organismes::enregistrer(&ctx, &charge),
+        r if coffre::ROUTES.contains(&r) => coffre::route(o, &ctx, route, &charge),
+        crate::coffre_verifier::ROUTE => crate::coffre_verifier::route(&ctx, &charge),
+        r if filet::ROUTES.contains(&r) || r == filet::ROUTE_OUBLIER => filet::route(o, &ctx, route, &charge),
+        r if import::ROUTES.contains(&r) => import::route(o, &ctx, route, &charge),
+        // Les fichiers que l'import n'a pas repris : le message caviarde qui partirait chez l'editeur (rien n'est ecrit),
+        // et son envoi, sur le seul clic de la personne (`importation_incident`).
+        r if crate::importation_incident::ROUTES.contains(&r) => crate::importation_incident::route(&ctx, route, &charge),
+        r if archives::ROUTES.contains(&r) => archives::route(o, &ctx, route, &charge),
+        // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
+        crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),
+        r if dossier_salarie::ROUTES.contains(&r) => dossier_salarie::route(o, &ctx, route, &charge),
+        r if ouverture::ROUTES.contains(&r) => ouverture::route(o, &ctx, route, &charge),
+        // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
+        declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx),
+        // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
+        r if crate::conseils::ROUTES.contains(&r) => crate::conseils::route(&ctx, route, &charge),
+        // Supprimer la compagnie : ce que la boite demande (`interface::suppression::question`) ; la suppression elle-meme
+        // est un geste de la fenetre, qui lache d'abord ce qu'elle tient de la compagnie.
+        "compagnie-suppression" => crate::interface::suppression::question(&ctx.racine).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m }),
+        // La releve des reponses « Je signe » : cherche les codes attendus dans la boite (la vraie, ou celle d'une
+        // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat.
         r if crate::releve_signatures::ROUTES.contains(&r) => crate::releve_signatures::route(&ctx, route, &charge),
-        // L'ouverture du logiciel et la veille (lot I2b) : sauvegarder, relever les retours, les signatures et les fiches, sans
+        // L'ouverture du logiciel et la veille : sauvegarder, relever les retours, les signatures et les fiches, sans
         // jamais echouer. ATTENTION : hors d'une compagnie fictive, cette route va au reseau (net-entreprises, Urssaf,
         // boite courriel, Drive, serveur des incidents).
         r if crate::ouverture::ROUTES.contains(&r) => crate::ouverture::route(o, &ctx, route, &charge),
-        crate::coffre_verifier::ROUTE => crate::coffre_verifier::route(&ctx, &charge),
-        // La veille lit la sauvegarde sans reseau : ce que l'index dit du dernier passage, et si le disque n'a pas bouge (lot H4b).
-        r if crate::routes::sauvegarde::ROUTES.contains(&r) => crate::routes::sauvegarde::route(o, &ctx, route, &charge),
-        // L'horloge de la compagnie fictive (lot I1) : rattraper ce qui etait du, et ce que le bandeau « pendant votre absence »
-        // lit. Elle ne joue que dans une compagnie fictive (`horloge::HorlogeFictive`).
+        // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
+        // absence » lit ; `horloge::HorlogeFictive`) et la fenetre de l'administrateur (le tableau de ses compagnies, le
+        // depot groupe).
         r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
-        // Le compte Google : le jeton se rafraichit reellement aupres de Google.
-        "google-etat" => crate::routes::google::route(o, &ctx, route, &charge),
-        // Le modele du bulletin (lot R11) : les modeles, l'apercu d'une paie fictive sous chacun, le choix de la compagnie.
-        r if crate::routes::bulletin_modele::ROUTES.contains(&r) => crate::routes::bulletin_modele::route(&ctx, route, &charge),
-        // La fiche : ce qu elle dirait, ce qu elle changerait, la forme d'une case, le taux AT/MP.
-        "taux-atmp" | "verifier-fiche" | "changements-declares" | "taxe-sur-les-salaires-regime" | "permanents" => crate::routes::fiches::route(o, &ctx, route, &charge),
-        // Les incidents et le canal vers l'editeur : le journal, « Un probleme, une idee ? », le filet DPAE.
-        r if crate::routes::incidents::ROUTES.contains(&r) || r == crate::routes::incidents::ROUTE_OUBLIER => {
-            crate::routes::incidents::route(o, &ctx, route, &charge)
-        }
+        r if crate::administrateur::ROUTES.contains(&r) => crate::administrateur::route(o, &ctx, r, &charge),
         autre => return Err(format!("route inconnue : {}", autre)),
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::ecritures_g4::CLASSE_DOCUMENTS_PARTIS) && classe != Some(crate::routes::ecritures_g4::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::engagement::CLASSE_DOCUMENTS_PARTIS) && classe != Some(crate::routes::engagement::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
             let suite = declarations::demarrage::a_la_suite(&ctx).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }
@@ -263,16 +209,130 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// Les routes qui ecrivent (les lots d'ecritures, d'actes, d'envois et de releves) : apres elles, la fenetre verifie les
 /// etats des mois (`interface/api.rs`).
 pub fn est_une_ecriture(route: &str) -> bool {
-    matches!(route, "revue-spectacles")
-        || crate::routes::ecritures::ROUTES.contains(&route)
-        || crate::routes::ecritures_g2::ROUTES.contains(&route)
-        || (crate::routes::imprevus::ROUTES.contains(&route) && route != "imprevus")
-        || crate::routes::ecritures_g3::ROUTES.contains(&route)
-        || crate::routes::ecritures_g4::ROUTES.contains(&route)
-        || crate::routes::actes_h1::ROUTES.contains(&route)
+    [mois::ECRITURES, engagement::ECRITURES, contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES, imprevus::ECRITURES]
+        .iter()
+        .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES])
+        .any(|l| l.contains(&route))
         || crate::obligations::ROUTES.contains(&route)
-        || crate::routes::actes_h2::ROUTES.contains(&route)
-        || crate::routes::envois::ROUTES.contains(&route)
-        || crate::routes::fiches_courriel::ROUTES.contains(&route)
         || crate::releve_signatures::ROUTES.contains(&route)
+        || crate::administrateur::ROUTES.contains(&route)
+}
+
+/// `socle::paris::maintenant` a la minute, `AAAA-MM-JJ HH:MM` : l'heure d'une saisie.
+pub(crate) fn maintenant() -> String {
+    socle::paris::maintenant()[..16].replacen('T', " ", 1)
+}
+
+/// QUI ECRIT. Les routes inscrivent `interface` : c'est la fenetre. La ligne de commande (`moteur ...`) ajoute `qui` a la charge
+/// (`cli`, ou `ligne de commande` selon la commande, comme le Python les ecrit) : une valeur ecrite reste identique d'une face a
+/// l'autre. Absent, vide ou pas un texte : `interface` -- la fenetre ne change pas.
+pub(crate) fn qui_de(charge: &Value) -> String {
+    match charge.get("qui") {
+        Some(Value::String(s)) if !s.trim().is_empty() => s.clone(),
+        _ => "interface".to_string(),
+    }
+}
+
+/// `Contexte.salarie(nom)` : le refus est un `KeyError`. Rust rend le texte
+/// du refus tel quel pour une phrase (`Salarie ...`), et deja entre guillemets
+/// pour une cle manquante d'une fiche ; `str(KeyError(phrase))` est la phrase
+/// entre guillemets. Un `nom` qui n'est pas un texte se lit `str(nom)` et se
+/// montre `repr(nom)` dans la phrase.
+pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
+    let texte = valeur_en_texte(nom);
+    ctx.salarie(&texte).map_err(|m| {
+        let m = if m.starts_with("Salarie ") {
+            let m = match nom {
+                Value::String(_) => m,
+                autre => m.replacen(&repr_texte(&texte), &valeur_ecrite(autre), 1),
+            };
+            m
+        } else {
+            m
+        };
+        erreur("KeyError", m)
+    })
+}
+
+/// `sortie_json.brut` d'une valeur lue d'un fichier : un dictionnaire perd ses
+/// cles qui commencent par `_`.
+pub(crate) fn brut(v: &Value) -> Value {
+    match v {
+        Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), brut(x))).collect()),
+        Value::Array(a) => Value::Array(a.iter().map(brut).collect()),
+        autre => autre.clone(),
+    }
+}
+
+fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
+    let classe = match e.kind() {
+        std::io::ErrorKind::NotFound => "FileNotFoundError",
+        std::io::ErrorKind::PermissionDenied => "PermissionError",
+        _ => "OSError",
+    };
+    erreur(classe, format!("{} : {}", p.display(), e))
+}
+
+/// `p.read_text(encoding="utf-8")`.
+fn lire_texte(p: &Path) -> R<String> {
+    let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
+    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
+}
+
+/// `json.loads(p.read_text(encoding="utf-8"))`.
+fn lire_json(p: &Path) -> R<Value> {
+    serde_json::from_str(&lire_texte(p)?).map_err(|e| erreur("JSONDecodeError", e.to_string()))
+}
+
+/// `_lire_json(p)` : `{}` si le fichier n'existe pas.
+pub(crate) fn lire_json_ou_vide(p: &Path) -> R<Value> {
+    if p.exists() {
+        lire_json(p)
+    } else {
+        Ok(Value::Object(Map::new()))
+    }
+}
+
+/// `try: json.loads(p.read_text(...)) except ValueError: ...` : `None` quand le
+/// fichier est absent, illisible comme texte ou comme JSON ; un autre refus du
+/// disque (`OSError`) se leve.
+fn lire_json_tolerant(p: &Path) -> R<Option<Value>> {
+    if !p.exists() {
+        return Ok(None);
+    }
+    let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
+    Ok(String::from_utf8(octets).ok().and_then(|t| serde_json::from_str(&t).ok()))
+}
+
+/// `len(v)`.
+fn longueur(v: &Value) -> R<usize> {
+    match v {
+        Value::Array(a) => Ok(a.len()),
+        Value::Object(o) => Ok(o.len()),
+        Value::String(s) => Ok(s.chars().count()),
+        autre => Err(erreur("TypeError", socle::fichiers::attendu("un texte ou une liste", nom_type(autre)))),
+    }
+}
+
+/// `v.get(...)` sur un dictionnaire ; sinon `AttributeError`.
+fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
+    v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
+}
+
+fn valeur<'a>(m: &'a Map<String, Value>, cle: &str) -> &'a Value {
+    static NUL: Value = Value::Null;
+    m.get(cle).unwrap_or(&NUL)
+}
+
+/// `x or ""`.
+fn ou_texte(v: &Value) -> Value {
+    if vrai(v) {
+        v.clone()
+    } else {
+        json!("")
+    }
+}
+
+pub(crate) fn vers_route(x: crate::coffre::Echec) -> Echec {
+    Echec { classe: Some(x.classe), message: x.message }
 }

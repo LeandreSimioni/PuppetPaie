@@ -78,7 +78,7 @@ fn serveur_a_jetons(valides: &'static [&'static str]) -> (String, Recu) {
 fn defaut_1_un_401_renouvelle_le_jeton_et_recommence_une_fois() {
     let (base, recu) = serveur_a_jetons(&["t2"]);
     let r = compagnie_liee("jeton-401");
-    let mut c = moteur::routes::google::client_drive(&r).unwrap().avec_adresses(adresses(&base));
+    let mut c = moteur::routes::coffre::client_drive(&r).unwrap().avec_adresses(adresses(&base));
     assert_eq!(c.compte().as_deref(), Some("compte@exemple.invalid"));
     // Le premier jeton (t1) n'est plus bon : 401, un second rafraichissement (t2), et la requete passe.
     assert!(c.lister("P").unwrap().is_empty());
@@ -110,7 +110,7 @@ fn defaut_1_un_401_renouvelle_le_jeton_et_recommence_une_fois() {
 fn jeton_revoque_au_rafraichissement_rien_ne_part_vers_drive() {
     let (base, recu) = serveur(|_| reponse(400, br#"{"error": "invalid_grant", "error_description": "Token has been expired or revoked."}"#));
     let r = compagnie_liee("revoque");
-    let mut c = moteur::routes::google::client_drive(&r).unwrap().avec_adresses(adresses(&base));
+    let mut c = moteur::routes::coffre::client_drive(&r).unwrap().avec_adresses(adresses(&base));
     assert!(c.lister("P").is_err());
     assert_eq!(recu.lock().unwrap().len(), 1);
 }

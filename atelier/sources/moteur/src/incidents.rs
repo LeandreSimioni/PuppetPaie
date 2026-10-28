@@ -484,7 +484,7 @@ fn entier_py(v: &Value) -> Option<String> {
                 None => (false, u.strip_prefix('+').unwrap_or(u)),
             };
             let c: Vec<char> = reste.chars().collect();
-            let chiffre = |x: char| crate::routes::ecrites::chiffre_py(x);
+            let chiffre = |x: char| crate::routes::fiches::chiffre_py(x);
             let bien_forme = !c.is_empty()
                 && chiffre(c[0]).is_some()
                 && chiffre(c[c.len() - 1]).is_some()

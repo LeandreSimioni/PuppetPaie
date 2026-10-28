@@ -142,7 +142,7 @@ fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
 
 /// Un chiffre pour Python (`\d`, `int`) : ASCII, arabe, devanagari, pleine chasse.
 fn chiffre(c: char) -> Option<u32> {
-    crate::routes::ecrites::chiffre_py(c)
+    crate::routes::fiches::chiffre_py(c)
 }
 
 /// Un mois, une annee, ou tout. Les bornes servent aux pages CoolPaie, qui n'ont qu'une date.
@@ -1082,7 +1082,7 @@ fn pages_coolpaie(ctx: &Contexte, cles: &HashSet<String>, categories: &HashSet<&
 /// dans la periode par le mois de la paie. Une copie qui manque se dit ; rien d'autre ne se devine.
 fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut Dossier) -> Vec<Page> {
     let chemin = ctx.racine.join("historique").join("paies.json");
-    let Ok(Value::Object(f)) = crate::routes::etats::lire_json_ou_vide(&chemin) else { return Vec::new() };
+    let Ok(Value::Object(f)) = crate::routes::lire_json_ou_vide(&chemin) else { return Vec::new() };
     let dossier = ctx.racine.join("historique").join("bulletins");
     let texte = |x: &Value, k: &str| x.get(k).and_then(Value::as_str).unwrap_or("").to_string();
     let (mut pages, mut manquent): (Vec<Page>, Vec<String>) = (Vec::new(), Vec::new());

@@ -25,8 +25,8 @@ use socle::num::Decimal;
 use socle::num::{decimal_py, int_py, q2};
 
 use socle::echec::Echec;
-use crate::routes::apercus::{lire_octets, nom_du_chemin, resoudre};
-use crate::routes::mois::Moteur;
+use crate::routes::depots::{lire_octets, nom_du_chemin, resoudre};
+use crate::routes::etapes::Moteur;
 use documents::ecrire_documents::paies_aux_numeros_declares;
 use declarations::recap_dsn::{lire_recap, norm};
 

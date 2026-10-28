@@ -3,7 +3,7 @@
 //!
 //! 1. Le tri (`importation_tri`) : chaque fichier recoit sa sorte, par le contenu.
 //! 2. Les DSN et AEM trouvees, ou qu'elles soient (sous-dossier, zip), sont copiees dans un `export/` du dossier de
-//!    travail (temporaire, efface avant de rendre) et passent par `crate::routes::importation::apercu_lu` : le meme code que
+//!    travail (temporaire, efface avant de rendre) et passent par `crate::routes::import::apercu_lu` : le meme code que
 //!    l'import d'un export de CoolPaie, inchange -- celles d'une autre entreprise exceptees (lot G1) : devant le Siren de
 //!    la compagnie (`importation::siren_de_reference`, etape 3), elles prennent le sort `incoherent` et rien n'en est lu.
 //! 3. Les bulletins (`bulletin_lu`), page par page, completent cet apercu : les fiches qu'ils creent (salaries par NIR,
@@ -56,7 +56,7 @@ use socle::fichiers::vrai;
 use crate::importation_completer as completer;
 use crate::importation_tri::Sorte;
 use socle::num::Decimal;
-use crate::routes::importation::{self as ri, ACreer, Apercu, CleEngagement};
+use crate::routes::import::{self as ri, ACreer, Apercu, CleEngagement};
 
 /// Les sorts du compte rendu, dans l'ordre ou il les compte.
 ///
@@ -259,7 +259,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
 
     // 2. Les bulletins, page par page.
     let table = Table::livree().map_err(|m| erreur("ErreurOperation", format!("La table des gabarits de bulletins ne se lit pas : {}", m)))?;
-    let saisis: HashSet<String> = crate::routes::mois::mois_saisis(&ctx.racine).into_iter().collect();
+    let saisis: HashSet<String> = crate::routes::etapes::mois_saisis(&ctx.racine).into_iter().collect();
     let mut pages: BTreeMap<usize, Vec<PageCr>> = BTreeMap::new();
     let mut illisibles: BTreeMap<usize, String> = BTreeMap::new();
     let mut lus: Vec<Lu> = Vec::new();

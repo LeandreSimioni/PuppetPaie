@@ -6,7 +6,7 @@
 //! `exports/dossiers/` sauf `--apercu` (le compte des pages, rien sur le disque).
 //!
 //! `--envoyer` envoie a chaque salarie SON dossier : un envoi qui ne se rattrape pas. Il passe par
-//! `crate::routes::envois::envoyer_dossier` (celui de la route `dossier-envoyer`), donc par les garde-fous du moteur : la boite est ouverte
+//! `crate::routes::archives::envoyer_dossier` (celui de la route `dossier-envoyer`), donc par les garde-fous du moteur : la boite est ouverte
 //! (le coffre par la cle du poste ou une seance), puis le moteur demande LUI-MEME le mot de passe du logiciel
 //! (`depot_acte::verifier_preuve` : fenetre, terminal sans echo, sinon refus) ; dans `moteur-atelier` tout envoi reel est refuse
 //! (`ActeReelRefuse`). Aucun mot de passe en option ni dans une sortie ; `--fenetre` est accepte et sans effet. `qui` = `ligne de
@@ -97,7 +97,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
     ouvrir_la_boite(cadre);
     let ctx = &cadre.ctx;
-    let envoi = crate::routes::envois::envoyer_dossier(ctx, &d, &Preuve::default(), "ligne de commande", &mut || crate::routes::envois::client_courriel(ctx))?;
+    let envoi = crate::routes::archives::envoyer_dossier(ctx, &d, &Preuve::default(), "ligne de commande", &mut || crate::routes::documents::client_courriel(ctx))?;
     dire!("{} dossier(s) envoye(s) depuis {}, a {}.", champ(&envoi, "messages"), champ(&envoi, "expediteur"), textes_de(&envoi, "partis").join(", "));
     Ok(0)
 }

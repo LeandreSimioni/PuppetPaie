@@ -377,7 +377,7 @@ pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     if let Some(parent) = p.parent() {
         std::fs::create_dir_all(parent).map_err(|e| plain(e.to_string()))?;
     }
-    crate::routes::contrats::sauver_avant(&p)?;
+    crate::routes::mois::sauver_avant(&p)?;
     ecrire_json(&p, &Value::Object(date), 2).map_err(plain)?;
     lire(ctx, charge)
 }

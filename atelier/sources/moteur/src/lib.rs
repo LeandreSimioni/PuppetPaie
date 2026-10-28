@@ -48,6 +48,7 @@ pub mod historique_mois;
 pub mod depot_acte;
 pub mod marques_depot;
 pub mod ouverture;
+pub mod regularisation;
 pub mod releve;
 pub mod releve_codes;
 pub mod releve_conventions;

@@ -26,7 +26,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         dire!("! {}", e.message);
         return 2;
     }
-    if !crate::routes::google::autorise(&cadre.racine) {
+    if !crate::routes::coffre::autorise(&cadre.racine) {
         dire!("Compte Google non autorise.\n  moteur google autoriser");
         return 2;
     }

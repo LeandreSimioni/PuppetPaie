@@ -21,21 +21,25 @@
 //! configuration.
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use droit::contexte::Contexte;
-use envois::etats::{get};
-use socle::valeur::valeurs_egales;
-use socle::valeur::valeur_en_texte;
-use socle::echec::R;
-use socle::fichiers::vrai;
 use crate::incidents::{self, DEPOSE, EN_ATTENTE};
-use socle::echec::Echec;
 use crate::{filet, problemes};
+use droit::contexte::Contexte;
+use super::{lire_json_tolerant, longueur, objet, valeur};
+use envois::etats::{get, objet_vide};
+use socle::echec::{erreur, Echec, R};
+use socle::fichiers::vrai;
+use socle::valeur::{valeur_en_texte, valeurs_egales};
+
+
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 16] = [
+pub const ROUTES: &[&str] = &[
+    "filet-etat",
+    "signalements",
     "incident-navigateur",
     "diagnostic-etat",
     "diagnostic-envoyer",
@@ -61,6 +65,8 @@ pub const ROUTE_OUBLIER: &str = "incidents-oublier";
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let racine = ctx.racine.as_path();
     match nom {
+        "filet-etat" => etat_filet(racine),
+        "signalements" => signalements_route(racine),
         "incident-navigateur" => {
             let vide = json!({});
             let rapport = if charge.is_object() { charge } else { &vide };
@@ -217,4 +223,46 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
         "paies_annuelles": annees,
         "groupes": liste.into_iter().map(Value::Object).collect::<Vec<_>>(),
     }))
+}
+
+/// `etat_filet` : le compte (sans sa cle), et le nombre de reveils. Lit
+/// `config/filet-dpae.json` : rien ne part vers le serveur.
+pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
+    let mut e = lire_json_tolerant(&racine.join("config").join("filet-dpae.json"))?.unwrap_or_else(|| Value::Object(Map::new()));
+    let Value::Object(m) = &mut e else {
+        // Le Python plantait (`AttributeError: ... 'setdefault'`, trace) : un refus avec sa phrase (decision de Leandre : un defaut du Python ne
+        // se reproduit pas). `commandes/filet.rs` le dit en « ! ... », code 1.
+        return Err(erreur("ErreurOperation", format!("{} est illisible : ce n'est pas un objet JSON.\nLe deplacer suffit a repartir de zero (le filet sera a reactiver).", racine.join("config").join("filet-dpae.json").display())));
+    };
+    for (cle, defaut) in [("compte", Value::Null), ("tests", json!({})), ("reveils", json!({}))] {
+        m.entry(cle).or_insert(defaut);
+    }
+    let compte = valeur(m, "compte");
+    let c = if vrai(compte) { compte } else { objet_vide() };
+    let c = objet(c)?;
+    let actif = !c.is_empty();
+    let adresse = c.get("adresse").cloned().unwrap_or_else(|| json!(""));
+    let confirme = vrai(valeur(c, "confirme"));
+    // Le serveur auquel `filet-activer` s'inscrirait : celui du compte, de la racine, sinon celui du moteur (lot S1).
+    let serveur = json!(crate::filet::serveur(&Value::Object(m.clone())));
+    let inscrit_le = c.get("inscrit_le").cloned().unwrap_or_else(|| json!(""));
+    let erreur_c = c.get("erreur").cloned().unwrap_or_else(|| json!(""));
+    let reveils = longueur(valeur(m, "reveils"))?;
+    Ok(json!({
+        "actif": actif, "adresse": adresse, "confirme": confirme, "serveur": serveur,
+        "inscrit_le": inscrit_le, "erreur": erreur_c, "reveils": reveils,
+    }))
+}
+
+/// La route `signalements` : `{"signalements", "non_lues"}`.
+pub(crate) fn signalements_route(racine: &Path) -> R<Value> {
+    let liste = crate::problemes::signalements(racine);
+    // `reponses_non_lues` : les reponses que la boite n'a pas encore montrees.
+    let mut non_lues = 0;
+    for l in &liste {
+        if vrai(get(l, "reponse")?) && !vrai(get(l, "lu")?) {
+            non_lues += 1;
+        }
+    }
+    Ok(json!({"signalements": liste, "non_lues": non_lues}))
 }

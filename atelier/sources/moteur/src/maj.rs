@@ -476,7 +476,7 @@ fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
 /// DSN acceptee, hors ceux qu'elle a saisis en demo avant d'etre gardee.
 pub(crate) fn mois_qui_retiennent_la_compagnie(ctx: &droit::contexte::Contexte) -> socle::echec::R<Vec<Value>> {
     let demo = crate::interface::suppression::mois_de_demo(&ctx.racine);
-    let mut mois = crate::routes::etats::mois_saisis_non_deposes(ctx)?;
+    let mut mois = crate::routes::ouverture::mois_saisis_non_deposes(ctx)?;
     mois.retain(|m| !m.as_str().is_some_and(|m| demo.iter().any(|d| d == m)));
     Ok(mois)
 }
@@ -2072,7 +2072,7 @@ pub fn commande(args: &[String]) -> i32 {
             }
         };
     }
-    let racine = crate::routes::accueil::racine_du_poste();
+    let racine = crate::routes::ouverture::racine_du_poste();
     let r = if drapeau("--cle") {
         generer_cle(&racine, drapeau("--remplacer")).map(|r| {
             let ecrite = if r["existante"] == json!(true) {

@@ -19,7 +19,7 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::{q2, Decimal};
 use socle::echec::Echec;
-use crate::routes::mois::Moteur;
+use crate::routes::etapes::Moteur;
 
 #[track_caller]
 fn non_regularisable(message: impl Into<String>) -> Echec {
@@ -209,7 +209,7 @@ fn mois_des_bornes(b: &Bornes) -> R<Vec<String>> {
 // ------------------------------------------------- modifier la paie d'un mois deja declare
 
 /// LA PAIE D'UN MOIS DEJA DECLARE SE MODIFIE EN LE SACHANT (Leandre, 21/10/2026). La cle de la charge qui confirme, pour
-/// `enregistrer-saisie` (et toute route qui ecrit la saisie d'un mois, `crate::routes::ecritures::ecrire_saisie`).
+/// `enregistrer-saisie` (et toute route qui ecrit la saisie d'un mois, `crate::routes::fiches::ecrire_saisie`).
 pub const CONFIRMATION: &str = "modifier_apres_echeance";
 
 /// La classe du refus : la page la reconnait et montre l'avertissement, avec « Modifier quand meme » et « Annuler ».
@@ -290,7 +290,7 @@ pub(crate) fn bornes_en_clair(b: &Bornes) -> String {
 
 /// Les engagements d'une saisie, identifies (`jumeaux`) ; `None` s'ils ne s'identifient pas.
 fn identifies(ctx: &Contexte, d: &Value) -> Option<Vec<Option<droit::jumeaux::Ident>>> {
-    crate::routes::ecritures::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
+    crate::routes::fiches::identifiants(ctx, d).ok().map(|v| v.into_iter().map(Some).collect())
 }
 
 /// Ce qui a change dans LA PAIE de `mois` depuis que sa DSN est partie : pour chaque engagement du mois, la paie que la
@@ -331,7 +331,7 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
     Ok(None)
 }
 
-/// La DPAE d'un contrat dont la date d'embauche a change (`crate::routes::mois::debut_declare`), deposee pour l'ancienne date `avant` :
+/// La DPAE d'un contrat dont la date d'embauche a change (`crate::routes::etapes::debut_declare`), deposee pour l'ancienne date `avant` :
 /// vaut-elle pour la nouvelle `apres`, et la phrase qui le dit. Code du travail, `atelier/reference/sources/code-du-travail/`
 /// (`xml/L1221-10.xml`, `xml/R1221-1.xml`, `xml/R1221-4.xml`) : « L'embauche d'un salarie ne peut intervenir qu'apres
 /// declaration nominative » (L. 1221-10) ; la DPAE porte la « Date et heure d'embauche » (R. 1221-1, 3°) et part au plus

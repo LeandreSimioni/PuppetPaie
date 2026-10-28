@@ -105,7 +105,7 @@ fn date(args: &Args, nom: &str) -> Result<Option<String>, Echec> {
 
 /// `_oui_non` : « oui »/« non » -> le code de la norme, lu dans `arrets-base.json`.
 fn oui_non(cadre: &Cadre, v: &str) -> Result<Value, Echec> {
-    let n = crate::routes::listes::nomenclatures(&cadre.ctx)?;
+    let n = crate::routes::imprevus::nomenclatures(&cadre.ctx)?;
     let codes: Vec<Value> = n.get("subrogation").and_then(|s| s.get("codes")).and_then(Value::as_array).cloned().unwrap_or_default();
     let table: Vec<(String, String)> = codes.iter().map(|c| (champ(c, "libelle"), champ(c, "code"))).collect();
     let v = v.trim_matches(socle::texte::blanc).to_lowercase();
@@ -186,7 +186,7 @@ fn rendre_json(resultat: &Value) -> i32 {
 
 /// Les codes saisissables d'une nomenclature (`signalement.motifs_arret()`, `motifs_reprise()`).
 fn saisissables(cadre: &Cadre, quoi: &str) -> Result<Vec<Value>, Echec> {
-    let n = crate::routes::listes::nomenclatures(&cadre.ctx)?;
+    let n = crate::routes::imprevus::nomenclatures(&cadre.ctx)?;
     let codes = n.get(quoi).and_then(|s| s.get("codes")).and_then(Value::as_array).cloned().unwrap_or_default();
     Ok(codes.into_iter().filter(|c| c.get("saisissable").is_some_and(vrai)).collect())
 }
@@ -199,7 +199,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let arret = saisissables(cadre, "motifs_arret")?;
         let reprise = saisissables(cadre, "motifs_reprise")?;
         if json {
-            let n = crate::routes::listes::nomenclatures(&cadre.ctx)?;
+            let n = crate::routes::imprevus::nomenclatures(&cadre.ctx)?;
             let subrogation = n.get("subrogation").and_then(|s| s.get("codes")).cloned().unwrap_or(Value::Null);
             return Ok(rendre_json(&json!({"motifs_arret": arret, "motifs_reprise": reprise, "subrogation": subrogation})));
         }
