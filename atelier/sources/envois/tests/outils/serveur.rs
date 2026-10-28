@@ -1,5 +1,5 @@
-//! Le faux serveur HTTP des essais : local (127.0.0.1), un fil par connexion. Ecrit une fois ; les aides de `paie`
-//! l'incluent (`paie/tests/outils/mod.rs`).
+//! Le faux serveur HTTP des essais : local (127.0.0.1), un fil par connexion. Ecrit une fois ; les aides de `moteur`
+//! l'incluent (`moteur/tests/outils/mod.rs`).
 
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};

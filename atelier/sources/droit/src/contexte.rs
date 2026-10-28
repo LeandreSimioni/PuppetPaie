@@ -360,7 +360,7 @@ premiere embauche (Configuration > Entreprise), et c'est tout.\n\
 consecutives au-dessus (art. L. 130-1, II, CSS), et il manque \
 l'effectif de {}. L'Urssaf le calcule et le renvoie en \
 compte-rendu metier de nature 118 : relever les retours \
-(`paie retours --depuis JJ/MM/AAAA`), le moteur \
+(`moteur retours --depuis JJ/MM/AAAA`), le moteur \
 l'ecrit seul dans config/effectifs.json.\n\
 \x20 Une compagnie qui a embauche pour la premiere fois il y a moins \
 de cinq ans n'a qu'a le dire : la date de sa premiere embauche \
@@ -1563,7 +1563,7 @@ PSS_H_METROP).",
     }
 
     /// LES ORGANISMES ET CONTRATS DE LA DSN (`config/organismes.json`), lus a `lue_au` : un fichier date comme les
-    /// fiches, chaque cle une liste `{depuis, valeur}` (`paie::organismes` l'ecrit, par `dater`). `None` : la compagnie
+    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::organismes` l'ecrit, par `dater`). `None` : la compagnie
     /// ne les a pas encore enregistres.
     pub fn organismes(&self) -> Resultat<Option<Value>> {
         let p = self.racine.join("config").join(ORGANISMES);

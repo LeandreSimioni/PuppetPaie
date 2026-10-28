@@ -3,12 +3,12 @@
 #  PuppetPaie (Linux, et Mac par PuppetPaie.command)
 #  Ouvre la fenetre PuppetPaie : le programme Rust de ce systeme,
 #  dans logiciel/linux/ ou logiciel/mac/ (ce que le flux « Publier »
-#  livre depuis le 15/10/2026 : `puppetpaie` et `paie`, chaque systeme
-#  dans son dossier ; paie/src/maj.rs, `dossier_programmes_de`), sinon
-#  dans atelier/sources/paie/bin/<systeme>/ (un depot de travail).
+#  livre depuis le 15/10/2026 : `puppetpaie` et `moteur`, chaque systeme
+#  dans son dossier ; moteur/src/maj.rs, `dossier_programmes_de`), sinon
+#  dans atelier/sources/moteur/bin/<systeme>/ (un depot de travail).
 #  Plus de Python (lot J5).
 #  Sans la fenetre native (un Linux sans WebKitGTK), la meme page
-#  s'ouvre dans le navigateur : `paie interface`.
+#  s'ouvre dans le navigateur : `moteur interface`.
 #  La premiere fois : clic droit > « Lancer comme un programme »,
 #  ou ./PuppetPaie.sh dans un terminal.
 # ---------------------------------------------------------------
@@ -17,7 +17,7 @@ case "$(uname)" in
     Darwin) SYSTEME=mac ;;
     *)      SYSTEME=linux ;;
 esac
-BIN="$ICI/sources/paie/bin/$SYSTEME"
+BIN="$ICI/sources/moteur/bin/$SYSTEME"
 LOGICIEL="$ICI/../logiciel/$SYSTEME"
 for D in "$LOGICIEL" "$BIN"; do
     if [ -x "$D/puppetpaie" ] && "$D/puppetpaie" --peut-ouvrir >/dev/null 2>&1; then
@@ -25,8 +25,8 @@ for D in "$LOGICIEL" "$BIN"; do
     fi
 done
 for D in "$LOGICIEL" "$BIN"; do
-    if [ -x "$D/paie" ]; then
-        exec "$D/paie" interface "$@"
+    if [ -x "$D/moteur" ]; then
+        exec "$D/moteur" interface "$@"
     fi
 done
 

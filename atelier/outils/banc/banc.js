@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /* LE BANC D'ESSAI DATÉ (#236, phase 2) : une installation bridée neuve, sa fenêtre lancée à un jour donné, chaque geste
- * enregistré dans un scénario rejouable sans navigateur (`paie/src/scenario.rs`), et le calendrier qui avance.
+ * enregistré dans un scénario rejouable sans navigateur (`moteur/src/scenario.rs`), et le calendrier qui avance.
  *
  * Ligne de commande (la notice : LISEZ-MOI.md, à côté) :
- *   node banc.js lancer   <banc> --jour AAAA-MM-JJ [--paie <paie-atelier>] [--depot <dépôt public>]
+ *   node banc.js lancer   <banc> --jour AAAA-MM-JJ [--paie <moteur-atelier>] [--depot <dépôt public>]
  *   node banc.js jour     <banc> AAAA-MM-JJ
  *   node banc.js simuler  <banc>
  *   node banc.js etat     <banc>
@@ -19,7 +19,7 @@
  *   await banc.capture(page, "/chemin/de/la/capture.png");
  *   await fermer();
  *
- * Le banc ne fait rien que le moteur ne fasse : il lance `paie-atelier interface` (le binaire de l'atelier, qui refuse
+ * Le banc ne fait rien que le moteur ne fasse : il lance `moteur-atelier interface` (le binaire de l'atelier, qui refuse
  * tout acte réel) et lui parle par `/atelier/<geste>` (`interface/mod.rs`, `Fenetre::atelier`). */
 "use strict";
 
@@ -31,8 +31,8 @@ const { spawn, execSync } = require("child_process");
 const DEPOT = path.resolve(__dirname, "../../..");
 const PAIE_PAR_DEFAUT = [
   process.env.PUPPETPAIE_ATELIER,
-  process.env.CARGO_TARGET_DIR && path.join(process.env.CARGO_TARGET_DIR, "essais/paie-atelier"),
-  path.join(DEPOT, "atelier/sources/target/essais/paie-atelier"),
+  process.env.CARGO_TARGET_DIR && path.join(process.env.CARGO_TARGET_DIR, "essais/moteur-atelier"),
+  path.join(DEPOT, "atelier/sources/target/essais/moteur-atelier"),
 ].filter(Boolean);
 // Les secrets du poste ne vont jamais à la fenêtre du banc.
 const RETIREES = ["NET_ENTREPRISES_MOTDEPASSE", "URSSAF_MOTDEPASSE", "COURRIEL_COMPTE", "COURRIEL_MOTDEPASSE",
@@ -83,8 +83,8 @@ async function lancer(banc, { jour, paie, depot } = {}) {
   }
   const binaire = paie || PAIE_PAR_DEFAUT.find((p) => fs.existsSync(p));
   if (!binaire || !fs.existsSync(binaire)) {
-    throw new Error("paie-atelier introuvable : --paie <chemin>, ou le construire : cd atelier/sources/paie && "
-      + "cargo build --profile essais --features atelier --bin paie-atelier");
+    throw new Error("moteur-atelier introuvable : --paie <chemin>, ou le construire : cd atelier/sources/moteur && "
+      + "cargo build --profile essais --features atelier --bin moteur-atelier");
   }
   const env = { ...process.env };
   for (const v of RETIREES) delete env[v];
@@ -200,13 +200,13 @@ function arreter(banc) {
 }
 
 /* VÉRIFIER UN BANC, à la fin d'une partie : son scénario se rejoue dans `<banc>/verification/` et la compagnie qui en sort
- * se compare, fichier par fichier, à celle du banc (`paie-atelier scenario verifier`, `scenario::verifier`). Le banc tire
+ * se compare, fichier par fichier, à celle du banc (`moteur-atelier scenario verifier`, `scenario::verifier`). Le banc tire
  * les mêmes aléas que le rejeu : une différence est un geste qui a écrit sans être enregistré, et elle nomme le fichier.
  * Rend { ok, sortie }. */
 function verifier(banc, { paie } = {}) {
   banc = path.resolve(banc);
   const binaire = paie || (() => { try { return lireEtat(banc).binaire; } catch (e) { return null; } })() || PAIE_PAR_DEFAUT.find((p) => fs.existsSync(p));
-  if (!binaire) throw new Error("paie-atelier introuvable : --paie <chemin>, ou PUPPETPAIE_ATELIER.");
+  if (!binaire) throw new Error("moteur-atelier introuvable : --paie <chemin>, ou PUPPETPAIE_ATELIER.");
   const env = { ...process.env, PUPPETPAIE_ESSAIS_HORS_RESEAU: "1" };
   for (const v of RETIREES) delete env[v];
   const r = require("child_process").spawnSync(binaire,

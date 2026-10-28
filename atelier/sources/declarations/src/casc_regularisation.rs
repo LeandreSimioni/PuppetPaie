@@ -414,7 +414,7 @@ pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         "Envoyer à {} (objet : {}) le courriel au CASC-SVP, avec en pièce jointe CASC-SVP_liste-nominative.xlsx — leur modèle, déjà rempli.",
         courriel_casc.a, courriel_casc.objet
     ));
-    a_faire.push("Une fois les virements faits, le noter dans le logiciel : Exports, bouton « Noter comme régularisé », ou `paie casc-regularise ANNEE --vire-le AAAA-MM-JJ --montant X` — les mois sortent alors des dossiers suivants.".to_string());
+    a_faire.push("Une fois les virements faits, le noter dans le logiciel : Exports, bouton « Noter comme régularisé », ou `moteur casc-regularise ANNEE --vire-le AAAA-MM-JJ --montant X` — les mois sortent alors des dossiers suivants.".to_string());
     a_faire.push("Vérifier que la fiche de paramétrage Audiens porte les deux lignes CASC-SVP, pour que les DSN suivantes la déclarent.".to_string());
 
     let boite = d.boite_liee;

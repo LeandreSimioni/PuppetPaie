@@ -1,4 +1,4 @@
-//! DEPOSER UNE DSN OU UNE DPAE, une fois que `paie` a tout verifie (le fichier lu, la preuve d'un humain pour un reel,
+//! DEPOSER UNE DSN OU UNE DPAE, une fois que `moteur` a tout verifie (le fichier lu, la preuve d'un humain pour un reel,
 //! la repetition, le mot de passe de l'organisme pris au coffre, les versions des engagements que le depot emporte) :
 //! le depot lui-meme, selon le branchement (le monde, ou le simulateur qui rend un flux `FICTIF-…`), la reponse archivee
 //! dans `retours/depots/`, et la ligne au journal des depots, quoi qu'il arrive. Ce que le depot laisse a faire a la
@@ -47,7 +47,7 @@ pub fn phrase_de(e: &Echec) -> String {
     serde_json::from_str::<Value>(&e.message).ok().and_then(|d| d.get("message").and_then(Value::as_str).map(str::to_string)).unwrap_or_else(|| e.message.clone())
 }
 
-/// Ce que `paie` a verifie et prepare avant le depot.
+/// Ce que `moteur` a verifie et prepare avant le depot.
 pub struct Depot<'a> {
     /// Le fichier depose, tel qu'il est sur le disque.
     pub chemin: &'a Path,

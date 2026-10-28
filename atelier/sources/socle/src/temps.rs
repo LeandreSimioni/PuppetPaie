@@ -12,7 +12,7 @@
 //!
 //! DEUX USAGES DE L'ATELIER SIMULENT le temps, et passent devant le jour pose (aucune commande du binaire livre ne le
 //! fait) :
-//! - LE BANC D'ESSAI (`paie-atelier interface --jour J`, `scenario::banc`) : le temps COULE depuis le jour J a 9 h (Paris), au
+//! - LE BANC D'ESSAI (`moteur-atelier interface --jour J`, `scenario::banc`) : le temps COULE depuis le jour J a 9 h (Paris), au
 //!   pas de la montre ; « avancer au jour J' » le repose. Pendant chaque route servie, il est FIGE a l'instant ou elle a
 //!   commence (`figer`) : la route lit une seule heure du debut a la fin, comme au rejeu. Les aleas y suivent la meme suite
 //!   fixe qu'au rejeu (le banc n'est jamais un poste) : `scenario::verifier` compare la compagnie du banc a son rejeu.

@@ -2,7 +2,7 @@
 
 Pour les années passées sous CoolPaie, PuppetPaie n'a que les **DSN** : elles
 disent ce qui a été versé, pas le bulletin tel qu'il a été remis. Le dossier
-d'un salarié (`paie dossier`, onglet Exports) reprend donc **tels
+d'un salarié (`moteur dossier`, onglet Exports) reprend donc **tels
 quels** les PDF que CoolPaie a écrits — bulletins, contrats, attestations. Ce
 qui n'a jamais été sorti de CoolPaie n'y sera pas.
 
@@ -47,8 +47,8 @@ qu'il faut déposer à la racine d'`export/`.
 ## Puis importer
 
 ```bash
-paie importer            # l'aperçu : rien n'est écrit
-paie importer --ecrire   # le reprend
+moteur importer            # l'aperçu : rien n'est écrit
+moteur importer --ecrire   # le reprend
 ```
 
 Depuis le 10/10/2026, l'import lit **un seul dossier**, `import/` de la

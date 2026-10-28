@@ -1,4 +1,4 @@
-//! Lire une feuille d'un classeur .xlsx, pour les releves de l'atelier (`paie extraire`, `extraire/`).
+//! Lire une feuille d'un classeur .xlsx, pour les releves de l'atelier (`moteur extraire`, `extraire/`).
 //!
 //! Depuis la norme 2027.1.2, net-entreprises ne sert plus le tableau des usages et les formats des rubriques que dans des
 //! classeurs (fiches 3357 et 3358 de la base de connaissances : `atelier/reference/norme-dsn/dsn-tableau-des-usages-*.xlsx`,

@@ -835,7 +835,7 @@ Poppler.
 
 ### Ajouter des champs (bibliothèque seulement : `formulaire::ajouter_champs`)
 
-Le moteur fabrique la fausse attestation d'une compagnie fictive (`paie/src/aer_fictive.rs`) : un document de blocs fixes,
+Le moteur fabrique la fausse attestation d'une compagnie fictive (`moteur/src/aer_fictive.rs`) : un document de blocs fixes,
 puis des **champs texte AcroForm** posés dessus, que `--champs` relit et que `--remplir` remplit comme ceux d'un vrai
 formulaire. Pas de mode en ligne de commande.
 

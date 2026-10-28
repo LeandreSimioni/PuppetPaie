@@ -25,7 +25,7 @@ Le plan du 08/10 avait quatre étapes. Deux seulement ont été faites (PR #157)
 | Étape | Où on en est |
 |---|---|
 | (1) Les valeurs du contrat envoyé gardées en JSON | faite |
-| (2) `paies/AAAA-MM.etat.json` écrit après chaque écriture (`paie/src/etat_garde.rs`) | faite, **mais elle ne couvre que 2 des 9 lectures** |
+| (2) `paies/AAAA-MM.etat.json` écrit après chaque écriture (`moteur/src/etat_garde.rs`) | faite, **mais elle ne couvre que 2 des 9 lectures** |
 | (3) Une route `mois` qui rend tout d'un coup, **servie dans la fenêtre sans lancer de processus** | **pas faite** |
 | (4) L'écran qui ne lit que cette route | **pas faite** |
 
@@ -53,7 +53,7 @@ total : 1,3 à 1,5 s. Pendant les 600 premières ms, l'écran porte le nom du
 nouveau mois au-dessus des cartes de l'ancien (c'est le « je reste sur septembre »).
 ```
 
-**Un processus qui ne fait rien coûte déjà 0,19 à 0,20 s** (`paie route veille`,
+**Un processus qui ne fait rien coûte déjà 0,19 à 0,20 s** (`moteur route veille`,
 mesuré trois fois). Neuf processus, c'est donc au moins 1,8 s de CPU, avant même
 la moindre lecture. Lire `etat.json` ne coûte rien. Ce qui coûte, c'est :
 
@@ -211,7 +211,7 @@ Dans `logiciel/interface/interface.js` :
    et on vérifie, à chaque instant, que le nom affiché correspond aux cartes ou
    à « chargement… ».
 5. `cargo test` vert, puis exe Windows refaits par mingw et commités dans
-   `logiciel/paie/bin/windows/` (jamais le workflow GitHub « Moteur Rust »).
+   `logiciel/moteur/bin/windows/` (jamais le workflow GitHub « Moteur Rust »).
 
 ## 9. L'ordre de travail conseillé
 

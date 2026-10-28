@@ -86,7 +86,7 @@ const CIRCUITS_FICTIFS = {
    que fait une compagnie réelle, et pourquoi il voit ce qu'il voit. La mise à
    jour, elle, est celle du logiciel (une par installation, lot U1) : elle se
    fait partout. Les phrases disent le logiciel tel qu'il est (sauvegarde.rs,
-   maj.rs, pas.rs, amorcage_demande.rs, dans atelier/sources/paie/src/), rien de plus. */
+   maj.rs, pas.rs, amorcage_demande.rs, dans atelier/sources/moteur/src/), rien de plus. */
 const EXPLICATIONS_FICTIVES = {
   coulisses: {
     titre: "Les coulisses de la compagnie fictive",

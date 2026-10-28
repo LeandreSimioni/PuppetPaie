@@ -1684,7 +1684,7 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
 }
 
 /// Ce qu'un rattachement rend : le nombre de retours ranges (ou l'erreur qui l'a arrete), et les incidents qu'il a
-/// releves, que `paie` note au journal des incidents, meme quand le rattachement s'est arrete sur une erreur.
+/// releves, que `moteur` note au journal des incidents, meme quand le rattachement s'est arrete sur une erreur.
 pub struct AvecIncidents<T> {
     pub resultat: R<T>,
     /// `{"canal": "dsn"|"dpae", "ou", "quoi", "resume", "detail"}`, dans l'ordre.

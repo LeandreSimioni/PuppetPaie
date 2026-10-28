@@ -11,7 +11,7 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
 fi
 
 # On ne developpe que dans le nuage (22/10/2026) : le garde des donnees reelles (`atelier/.githooks/pre-commit`) y juge
-# chaque commit, avec le `paie` que la compilation d'avance produit (profil `essais`).
+# chaque commit, avec le `moteur` que la compilation d'avance produit (profil `essais`).
 git -C "$CLAUDE_PROJECT_DIR" config core.hooksPath atelier/.githooks || true
 
 ESPACE="$CLAUDE_PROJECT_DIR/atelier/sources"

@@ -348,7 +348,7 @@ function pastilleSort(sort) {
 }
 
 /* « Ouvrir le dossier » n'a de sens que si la page tourne sur le poste,
-   servie par sa fenêtre (Tauri, ou `paie interface` dans le navigateur du
+   servie par sa fenêtre (Tauri, ou `moteur interface` dans le navigateur du
    poste) : c'est elle qui pose `window.pywebview` (la cale de
    `interface/mod.rs`, avant le premier script) et qui sait la route
    `ouvrir-import` (`interface/api.rs`). Sans elle, le bouton n'apparaît pas. */

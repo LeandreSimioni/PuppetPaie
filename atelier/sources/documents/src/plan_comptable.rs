@@ -228,7 +228,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
                 return Refus::Autre(erreur(
                     "ErreurOperation",
                     format!(
-                        "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `paie route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement.",
+                        "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `moteur route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement.",
                         valeur_en_texte(modele),
                         message
                     ),

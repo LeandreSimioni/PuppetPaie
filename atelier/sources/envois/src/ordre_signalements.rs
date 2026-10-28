@@ -115,7 +115,7 @@ fn dernier_ordre_des_essais(racine: &Path) -> Result<i64, Echec> {
 /// Le plus grand ordre de signalement connu, la plate-forme faisant foi : la releve des retours des trois derniers mois
 /// (`releve_retours::relever_retours`, qui archive avant toute lecture), puis le plus grand de ce que disent les bilans
 /// archives et le journal (reels, `journal::dernier_ordre_des_signalements`, qui refuse une ligne reelle sans son
-/// ordre ; essais). `client` : le client net-entreprises, avec le mot de passe de consultation que `paie` a pris (un test
+/// ordre ; essais). `client` : le client net-entreprises, avec le mot de passe de consultation que `moteur` a pris (un test
 /// le pointe sur un faux serveur) ; `None` : aucun mot de passe, la plate-forme ne se lit pas et cela se dit.
 pub fn dernier_ordre_connu(ctx: &Contexte, branchement: Branchement, client: Option<Client>, suites: &mut Suites) -> Result<OrdreConnu, Echec> {
     let reels = crate::journal::dernier_ordre_des_signalements(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
@@ -140,7 +140,7 @@ pub fn dernier_ordre_connu(ctx: &Contexte, branchement: Branchement, client: Opt
     let dernier = journal.max(plateforme);
     if let Err(pourquoi) = lue {
         avertissements.push(format!(
-            "La plate-forme n'a pas pu etre consultee ({}) : l'ordre {} suit le journal de ce dossier et les retours deja archives, qui ne savent que ce que ce dossier a depose et releve. Un signalement depose d'ailleurs sous le meme SIREN (un autre poste, une copie, un essai) peut avoir pris cet ordre : la plate-forme le refuserait (B1-208-10). Pour en etre sur : relever les retours (`paie retours`), puis refaire le signalement.",
+            "La plate-forme n'a pas pu etre consultee ({}) : l'ordre {} suit le journal de ce dossier et les retours deja archives, qui ne savent que ce que ce dossier a depose et releve. Un signalement depose d'ailleurs sous le meme SIREN (un autre poste, une copie, un essai) peut avoir pris cet ordre : la plate-forme le refuserait (B1-208-10). Pour en etre sur : relever les retours (`moteur retours`), puis refaire le signalement.",
             pourquoi.trim_end_matches('.'),
             dernier + 1
         ));

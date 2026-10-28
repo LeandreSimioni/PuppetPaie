@@ -1,7 +1,7 @@
 # Comment ce dépôt est rangé (15/10/2026)
 
 **PuppetPaie est un logiciel de paie du spectacle vivant, pour toute compagnie qui emploie des artistes et des
-techniciens**, intermittents au cachet comme salariés permanents. Moteur Rust (`paie`) et fenêtre (`puppetpaie`),
+techniciens**, intermittents au cachet comme salariés permanents. Moteur Rust (`moteur`) et fenêtre (`puppetpaie`),
 multiplateforme. Les consignes complètes d'un agent sont dans `CLAUDE.md`, à côté.
 
 Deux dépôts, et une frontière à retenir : **le code est public, les données d'une compagnie ne sont dans aucun dépôt.**
@@ -15,7 +15,7 @@ PuppetPaie/  (ce dépôt, public)
 ├── maj/                (poste seulement) la mise à jour de l'installation
 ├── prive/              (poste seulement, jamais dans Git) la compagnie du poste : config, paies, sorties, retours
 └── atelier/            tout le reste :
-    ├── sources/        paie/ (le moteur ; exécutables dans paie/bin/<système>/), fenetre/ (Tauri), fabrique-pdf/
+    ├── sources/        paie/ (le moteur ; exécutables dans moteur/bin/<système>/), fenetre/ (Tauri), fabrique-pdf/
     ├── reference/      les textes qui fondent chaque règle (un LISEZ-MOI par dossier)
     ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIES-FICTIVES, COMPAGNIE-D-ESSAI
     ├── outils/         les outils d'atelier (relevés, extracteurs, garde-fou de publication)

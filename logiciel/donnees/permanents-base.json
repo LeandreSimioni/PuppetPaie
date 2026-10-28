@@ -237,7 +237,7 @@
 
   "rupture_conventionnelle": {
     "_quoi": "La rupture d'un commun accord d'un CDI. Ni licenciement, ni démission, et elle n'existe que pour un contrat à durée indéterminée : ses articles sont au titre III du livre II, « Rupture du contrat de travail à durée indéterminée ».",
-    "_source": "L1237-11 à L1237-16, relevés le 19/09/2026 dans la base LEGI de la DILA par `paie releve-codes`. Copie dans `atelier/reference/sources/code-du-travail/`.",
+    "_source": "L1237-11 à L1237-16, relevés le 19/09/2026 dans la base LEGI de la DILA par `moteur releve-codes`. Copie dans `atelier/reference/sources/code-du-travail/`.",
     "motif_rupture": "043",
     "dsn_bloc52": "001",
     "rubrique": "indemnite_rupture_conventionnelle",
@@ -331,7 +331,7 @@
 
   "maintien_de_salaire": {
     "_quoi": "L'indemnite complementaire que l'employeur verse pendant un arret de travail, en plus des indemnites journalieres de la Securite sociale.",
-    "_source": "Code du travail L1226-1 et D1226-1 a D1226-8, releves le 19/09/2026 dans la base LEGI de la DILA par `paie releve-codes`. Le §38.9 les disait non releves : ils le sont.",
+    "_source": "Code du travail L1226-1 et D1226-1 a D1226-8, releves le 19/09/2026 dans la base LEGI de la DILA par `moteur releve-codes`. Le §38.9 les disait non releves : ils le sont.",
     "_qui_y_a_droit": "L1226-1 : tout salarie ayant UNE ANNEE d'anciennete dans l'entreprise, appreciee au PREMIER JOUR de l'absence (D1226-8). Ces dispositions << ne s'appliquent pas aux salaries travaillant a domicile, aux salaries saisonniers, aux salaries INTERMITTENTS et aux salaries temporaires >> : c'est une regle de permanent, et le moteur la refuse a un CDDU.",
     "_et_depuis_le_29_06_2026": "L1226-1 (`LEGIARTI000054331868`, en vigueur depuis le 27/06/2026) porte un alinea de plus, releve le 19/09/2026 au passage des 433 livraisons : ces dispositions << ne s'appliquent pas EN CAS DE FRAUDE AVEREE DU SALARIE afin d'obtenir le versement des indemnites journalieres >> mentionnees a L321-1 ou au 2° de L431-1 du code de la securite sociale, << dont l'employeur a ete informe en application du VI de l'article L. 114-9 >>. Le moteur ne le verifie pas et ne le peut pas : c'est la caisse qui informe l'employeur, et cela ne se lit dans aucune saisie. Ecrit ici pour que le cas ne se redecouvre pas comme un bogue.",
     "anciennete_mois_minimum": 12,

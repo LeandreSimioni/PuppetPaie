@@ -52,7 +52,7 @@ fn lire_fichier(chemin: &str) -> Result<Vec<u8>, ExitCode> {
     std::fs::read(chemin).map_err(|e| echec(&format!("{} illisible ({})", chemin, e), 1))
 }
 
-/// La ligne de commande de la fabrique, sans le nom du programme : `fabrique-pdf` et `paie pdf`
+/// La ligne de commande de la fabrique, sans le nom du programme : `fabrique-pdf` et `moteur pdf`
 /// la servent toutes deux.
 pub fn executer(args: &[String]) -> ExitCode {
     match args {

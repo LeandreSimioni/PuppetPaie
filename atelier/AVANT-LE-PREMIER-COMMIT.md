@@ -27,7 +27,7 @@
   signature le portait, corrigé).
 
 **Ce que le garde-fou relève** (alors `python3 atelier/outils/verifier_avant_commit.py`, porté en Rust
-le 15/10/2026 : `paie verifier-avant-commit` ;
+le 15/10/2026 : `moteur verifier-avant-commit` ;
 réveillé le 14/10/2026, lot N1) : il lit désormais tout ce que Git emporterait
 hors de `prive/` (`demo/`, les `config/`, `.dsn` et `.xml` compris), reconnaît
 un NIR inventé à la marque du verrou de la suite (`999`, `123456`, `000`) et
@@ -38,12 +38,12 @@ dépôt public, Léandre tranche), 5 672 occurrences dans 954 fichiers, dont
 `salaries.json` (un ancien salarié) ne serait reconnu que par le motif
 générique ; les PDF (`import/`) ne se lisent pas.
 
-**Ce qui pèse** : `paie/bin/` (65 Mo, les programmes compilés commités),
-`paie/tests/donnees/` (6 Mo, sans copie figée des fictives). Sur un dépôt
+**Ce qui pèse** : `moteur/bin/` (65 Mo, les programmes compilés commités),
+`moteur/tests/donnees/` (6 Mo, sans copie figée des fictives). Sur un dépôt
 public, les programmes se livrent par des *releases* et non dans l'historique.
 
 **Le produit et l'atelier ne sont pas encore séparés** : la mise à jour
-(`paie maj --publier`, `maj::archiver`) emporte tout `logiciel/`, sources,
+(`moteur maj --publier`, `maj::archiver`) emporte tout `logiciel/`, sources,
 tests et outils compris. La forme visée (`PLAN-DEPOT-PUBLIC.md` : `produit/`,
 `atelier/`) reste à faire.
 
@@ -94,7 +94,7 @@ le piège à éviter.
 
 Les valeurs fabriquées ont **des clés qui se vérifient** : un test ne doit pas
 pouvoir passer sur un numéro impossible. Elles sont listées, avec leur raison
-d'être, dans `FICTIVES` de `paie/src/verifier_avant_commit.rs` (en tête de
+d'être, dans `FICTIVES` de `moteur/src/verifier_avant_commit.rs` (en tête de
 `outils/verifier_avant_commit.py` avant le 15/10/2026).
 
 Vérifié après nettoyage : **117 tests verts**, et `python -m moteur calibrer`
@@ -102,7 +102,7 @@ rend exactement le même rapport qu'avant.
 
 ## 2. Le garde-fou, en place
 
-`paie verifier-avant-commit` (`paie/src/verifier_avant_commit.rs`, porté le 15/10/2026 depuis
+`moteur verifier-avant-commit` (`moteur/src/verifier_avant_commit.rs`, porté le 15/10/2026 depuis
 `outils/verifier_avant_commit.py`) cherche NIR, IBAN, BIC, SIRET, identités et
 adresses dans tout ce qui partirait. Il **ne contient aucune donnée
 sensible** : il lit ce qu'il faut protéger dans `prive/config/`, hors du
@@ -114,7 +114,7 @@ ne pas l'être :
 
 ```bash
 git config core.hooksPath atelier/.githooks     # refuse le commit fautif
-paie verifier-avant-commit                       # à la demande, sur ce qui part
+moteur verifier-avant-commit                       # à la demande, sur ce qui part
 ```
 
 Le dépôt de travail est public depuis le 14/10/2026 : le crochet se pose sur chaque

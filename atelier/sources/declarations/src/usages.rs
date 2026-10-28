@@ -192,7 +192,7 @@ mod tests {
         assert!(e.contains("Version de la norme DSN « P25V01 » inconnue du logiciel (versions livrees : P26V01, P27V01"), "{}", e);
     }
 
-    /// Le releve de `paie extraire usages`, sur le PDF 2027.1.1 puis sur les classeurs
+    /// Le releve de `moteur extraire usages`, sur le PDF 2027.1.1 puis sur les classeurs
     /// 2027.1.2 (fiches 3357 et 3358) : 20 rubriques ajoutees, 2 retirees, 11.024 qui change d'usage en
     /// mensuelle (N9) ; le 2027.1.2 passe 40.084 de O a C en mensuelle (journal de maintenance, evolution 21).
     /// `atelier/reference/norme-dsn/dsn-tableau-des-usages-2027.1.2-20251224.xlsx`, `dsn-journal-maintenance-2027.1.2-20260615.txt`.

@@ -32,7 +32,7 @@
 # fichiers `.dsn`, et tout ce qui est compare octet pour octet ou dont on
 # calcule une empreinte. Sont aussi laisses tels quels, volontairement : le
 # `.csv` de l'Urssaf (copie d'une source dont `sources.json` verifie le sha256),
-# les `.modele` et les `.txt`, les fixtures de `atelier/sources/paie/tests/donnees/`,
+# les `.modele` et les `.txt`, les fixtures de `atelier/sources/moteur/tests/donnees/`,
 # et tout ce qui est hors du perimetre. Un fichier hors regle garde sa fin de
 # ligne : on le lit et on l'ecrit en `newline=''`.
 logiciel/**/*.py text eol=lf
@@ -63,7 +63,7 @@ prive/journal/*.md text eol=lf
 prive/journal/archives/*.md text eol=lf
 
 # Les fixtures des tests de la paie restent des donnees, sans conversion.
-atelier/sources/paie/tests/donnees/** -text
+atelier/sources/moteur/tests/donnees/** -text
 
 # Windows lit ces fichiers : CRLF, et Git n'y touche pas.
 *.cmd -text
@@ -71,7 +71,7 @@ atelier/sources/paie/tests/donnees/** -text
 
 # LES TEXTES DE REFERENCE (`atelier/reference/`, 15/10/2026) : des copies de ce
 # qui a ete lu, telles que servies -- lois, conventions, norme DSN, BOFiP, BOSS.
-# `sources.json` en verifie l'empreinte (`paie sources`), la norme est a largeur
+# `sources.json` en verifie l'empreinte (`moteur sources`), la norme est a largeur
 # fixe par endroits : Git n'y convertit RIEN, `.md` compris (cette ligne vient
 # apres les autres et l'emporte sur elles).
 atelier/reference/** -text

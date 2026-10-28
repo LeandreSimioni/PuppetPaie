@@ -1,4 +1,4 @@
-//! LE BRANCHEMENT : ou part ce qu'un envoi fait partir. Trois branches, et un seul point d'entree que `paie` choisit
+//! LE BRANCHEMENT : ou part ce qu'un envoi fait partir. Trois branches, et un seul point d'entree que `moteur` choisit
 //! pour la compagnie et passe aux envois :
 //! - **le monde** : les organismes et les personnes, pour de vrai (net-entreprises, l'Urssaf, la boite courriel) ;
 //! - **le simulateur** : la compagnie fictive, dont chaque envoi est joue sans quitter le poste (le depot rend un flux

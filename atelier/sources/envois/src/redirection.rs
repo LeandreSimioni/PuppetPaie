@@ -1,4 +1,4 @@
-//! LA REDIRECTION DE L'ATELIER : dans la construction `--features atelier` (le binaire `paie-atelier`, jamais livre),
+//! LA REDIRECTION DE L'ATELIER : dans la construction `--features atelier` (le binaire `moteur-atelier`, jamais livre),
 //! trois variables d'environnement pointent le client de la DSN (net-entreprises), celui de la DPAE (Urssaf) et celui
 //! de Google (jetons et Drive) vers un faux serveur LOCAL. Une adresse qui n'est pas locale (`http://127.0.0.1:`,
 //! `http://localhost:` ou `http://[::1]:`) est refusee : jamais une redirection vers l'exterieur. La construction

@@ -2443,6 +2443,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "moteur"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "declarations",
+ "documents",
+ "droit",
+ "ed25519-dalek",
+ "engagement",
+ "envois",
+ "fabrique-pdf",
+ "flate2",
+ "getrandom 0.3.4",
+ "icu_normalizer",
+ "imap-proto",
+ "lettre",
+ "mailparse",
+ "md-5",
+ "regex",
+ "roxmltree 0.20.0",
+ "rpassword",
+ "rust_decimal",
+ "rustls",
+ "rustls-platform-verifier",
+ "scrypt",
+ "serde_json",
+ "sha2",
+ "socle",
+ "ureq",
+ "zip 2.4.2",
+]
+
+[[package]]
 name = "muda"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2790,39 +2823,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "paie"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "declarations",
- "documents",
- "droit",
- "ed25519-dalek",
- "engagement",
- "envois",
- "fabrique-pdf",
- "flate2",
- "getrandom 0.3.4",
- "icu_normalizer",
- "imap-proto",
- "lettre",
- "mailparse",
- "md-5",
- "regex",
- "roxmltree 0.20.0",
- "rpassword",
- "rust_decimal",
- "rustls",
- "rustls-platform-verifier",
- "scrypt",
- "serde_json",
- "sha2",
- "socle",
- "ureq",
- "zip 2.4.2",
-]
-
-[[package]]
 name = "pango"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3166,7 +3166,7 @@ name = "puppetpaie"
 version = "0.1.0"
 dependencies = [
  "fabrique-pdf",
- "paie",
+ "moteur",
  "tauri",
  "tauri-build",
 ]

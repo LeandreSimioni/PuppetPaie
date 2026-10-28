@@ -5,7 +5,7 @@
 > le dépôt de travail ; le privé ne garde que `journal/`, `reference-privee/` et les
 > tickets ; les tests tournent sur compagnies fictives seules (règle de fond 9) ; on
 > dépose en test depuis le nuage avec la compagnie d'essai (`docs/COMPAGNIE-D-ESSAI.md`) ;
-> `paie restaurer` rend `prive/` depuis le Drive. Ne restent ici que les décisions que
+> `moteur restaurer` rend `prive/` depuis le Drive. Ne restent ici que les décisions que
 > le code cite (« La forme du dépôt public », « D'où vient la vérité », § 4).
 
 ---
@@ -48,7 +48,7 @@ compagnies/  à côté : un dossier par compagnie
 ```
 
 - **Corriger l'interface ne touche jamais le moteur.** Son empreinte
-  (`PAIE_SOURCES`, qui couvre `paie/src` et `Cargo.lock`) reste la même :
+  (`PAIE_SOURCES`, qui couvre `moteur/src` et `Cargo.lock`) reste la même :
   aucun mois n'est recalculé, aucune déclaration ne peut en être affectée.
 - **L'interface et les données déclarent la version minimale du moteur**
   qu'elles exigent.
@@ -101,8 +101,8 @@ redevient fictive avant.
 **Toutes les anomalies remontent, et toutes sont pertinentes.** Aucun tri à
 la source : une anomalie non bloquante, un avertissement, un code « autre
 erreur » sur une déclaration enregistrée en disent autant qu'un rejet. Ce qui
-existe (`paie/src/incidents.rs`, et l'incident d'un retour, `incident` dans
-`paie/src/etats.rs`) ne fait pas encore cela ; deux trous relevés le
+existe (`moteur/src/incidents.rs`, et l'incident d'un retour, `incident` dans
+`moteur/src/etats.rs`) ne fait pas encore cela ; deux trous relevés le
 03/10/2026, toujours vrais le 15/10/2026 :
 
 - **seuls les retours rejetés partent** (`verdict == "KO"`) : un retour
@@ -132,7 +132,7 @@ voyage.
 
 ### Trois trous, et le troisième est le plus gênant
 
-**Comblés depuis** : le premier par `paie restaurer` (`restauration.rs`, 13/10/2026) ;
+**Comblés depuis** : le premier par `moteur restaurer` (`restauration.rs`, 13/10/2026) ;
 le troisième par la sauvegarde, qui emporte le coffre (`sauvegarde.rs` : Léandre,
 13/10/2026, redit le 14/10).
 

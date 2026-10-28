@@ -84,13 +84,13 @@ pub fn traduire(code: u16, corps: &str) -> String {
                 \x20 en mode « Test », ou Google revoque le jeton au bout de 7\n\
                 \x20 jours. Le passer « En production » dans la console, puis\n\
                 \x20 relier le Drive (Configuration > Mots de passe, ou\n\
-                \x20 `paie google autoriser`)."
+                \x20 `moteur google autoriser`)."
             .into();
     }
     if code == 403 && corps.to_lowercase().contains("insufficient") {
         return "Permission refusee : l'autorisation en cours ne couvre pas\n\
                 \x20 cette action. Relier le Drive (Configuration > Mots de\n\
-                \x20 passe, ou `paie google autoriser`) pour\n\
+                \x20 passe, ou `moteur google autoriser`) pour\n\
                 \x20 redemander les permissions."
             .into();
     }

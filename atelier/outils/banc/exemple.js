@@ -1,7 +1,7 @@
 /* LE MODÈLE D'UNE PARTIE AU BANC (#236, phase 2) : le petit scénario de la preuve, joué dans la page comme un testeur, du
- * « + » à la DSN de novembre. Il a donné `paie/tests/donnees/scenarios/treteaux-du-banc/`.
+ * « + » à la DSN de novembre. Il a donné `moteur/tests/donnees/scenarios/treteaux-du-banc/`.
  *
- *   PUPPETPAIE_ATELIER=<cible>/essais/paie-atelier node atelier/outils/banc/exemple.js /tmp/banc-treteaux
+ *   PUPPETPAIE_ATELIER=<cible>/essais/moteur-atelier node atelier/outils/banc/exemple.js /tmp/banc-treteaux
  *
  * Les captures vont dans `<banc>/captures/`. */
 const path = require("path");

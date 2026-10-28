@@ -670,7 +670,7 @@ Trois facons de le fournir, dans cet ordre de priorite :\n\n\
 \x20 2. la variable d'environnement {v} ;\n\
 \x20    PowerShell :  $env:{v} = (Read-Host \"mot de passe\")\n\
 \x20 3. le coffre, pour les lectures automatiques :\n\
-\x20    paie coffre poser net-entreprises\n",
+\x20    moteur coffre poser net-entreprises\n",
                     v = variable
                 ),
                 Some(0),

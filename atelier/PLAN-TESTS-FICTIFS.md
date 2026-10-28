@@ -105,7 +105,7 @@ compagnie. C'est l'étape 1 qui tranche, fichier par fichier.
 5. **Le verrou** : un test qui échoue si un fichier de `logiciel/tests/`
    contient un NIR plausible, le SIREN de la compagnie du poste, ou ouvre `prive/`. Il
    remplace le vieux `outils/verifier_avant_commit.py` (porté en Rust le
-   15/10/2026 : `paie verifier-avant-commit`), qui ne juge plus rien.
+   15/10/2026 : `moteur verifier-avant-commit`), qui ne juge plus rien.
 6. **La preuve finale** : `outils/exporter.py complete`, puis la suite lancée
    **dans le paquet exporté**, qui n'a pas de `prive/`. Si elle passe là-bas,
    le paquet se donne. Retirer alors l'avertissement de l'export.
@@ -224,7 +224,7 @@ marque d'invention (`999`, `123456` ou `000`), le SIREN de la compagnie du poste
 chemin construit vers `prive/`. Il vérifie aussi que la racine de la suite
 n'est pas `prive/`. `outils/verifier_avant_commit.py` n'est pas supprimé :
 il sert encore au dépôt public (`AVANT-LE-PREMIER-COMMIT.md`). Il est porté
-en Rust le 15/10/2026 (`paie verifier-avant-commit`), et le script retiré.
+en Rust le 15/10/2026 (`moteur verifier-avant-commit`), et le script retiré.
 
 ### Ce que la bascule ne couvre pas
 

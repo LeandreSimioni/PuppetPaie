@@ -1,6 +1,6 @@
 //! LE JOURNAL DE CE QUI EST PARTI : `journal/depots.json`, une liste a laquelle on n'ajoute qu'a la fin (`noter`) et
 //! qu'on relit filtree (`lire`), l'empreinte d'un fichier, et ce qui est parti de chaque engagement, sur quelle version
-//! (`departs`), que `paie` passe a l'engagement. Les etats du mois, les resumes et le rattachement des retours sont dans
+//! (`departs`), que `moteur` passe a l'engagement. Les etats du mois, les resumes et le rattachement des retours sont dans
 //! `etats`.
 
 use std::path::{Path, PathBuf};

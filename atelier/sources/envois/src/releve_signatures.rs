@@ -1,7 +1,7 @@
 //! LA RELEVE DES REPONSES « JE SIGNE », cote boite : ce que la releve rend (`ReleveSignatures`, `SignatureRecue`), la
 //! reponse a un code attendu cherchee dans la boite et triee strictement (`chercher_reponse`), et le contrat contresigne
 //! renvoye au salarie, note au journal (`renvoyer_contresigne`). Ce qui se passe entre les deux (la preuve archivee, le
-//! contrat contresigne, la ligne `contrat-recu`) est fabrique et note par `paie`.
+//! contrat contresigne, la ligne `contrat-recu`) est fabrique et note par `moteur`.
 //!
 //! LE TRI STRICT. La boite cherche le code partout (objet, corps, pieces jointes) ; on trie ensuite :
 //! - notre propre envoi est ecarte par son identifiant (le `Message-ID` note avec la demande, relu dans chaque message), et

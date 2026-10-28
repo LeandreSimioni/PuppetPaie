@@ -5,7 +5,7 @@
 //! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (CLAUDE.md, regle 5).
 //!
 //! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, ou lit la variable d'environnement
-//! du service ; c'est `paie` qui le prend au coffre. Le mot de passe sert le temps de l'authentification
+//! du service ; c'est `moteur` qui le prend au coffre. Le mot de passe sert le temps de l'authentification
 //! (`transport::authentifier`), n'est ni journalise, ni affiche, ni renvoye.
 //!
 //! La releve obeit au branchement : le simulateur pose les retours des depots joues, sans reseau (`rattacher_simulation`) ;
@@ -446,7 +446,7 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
     if faits > 0 {
         socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
     }
-    // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement (par `paie`), qui signe le cadre 5 et la
+    // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement (par `moteur`), qui signe le cadre 5 et la
     // pose dans `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
     for (retour, archive) in &a_archiver {
         suites.aer.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
@@ -505,7 +505,7 @@ pub fn relever_retours(
     }
     let Some(mut client) = client else {
         releve.incidents.push(
-            "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `paie coffre poser net-entreprises`.".into(),
+            "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `moteur coffre poser net-entreprises`.".into(),
         );
         return Ok(releve);
     };
@@ -635,7 +635,7 @@ pub fn relever_retours_dpae(
     }
     let Some(mut client) = client else {
         let mut r = Releve::default();
-        r.incidents.push("Mot de passe DPAE absent : ni dans l'environnement, ni dans le coffre. `paie coffre poser urssaf`.".into());
+        r.incidents.push("Mot de passe DPAE absent : ni dans l'environnement, ni dans le coffre. `moteur coffre poser urssaf`.".into());
         return Ok(r);
     };
     if flux.is_empty() {
