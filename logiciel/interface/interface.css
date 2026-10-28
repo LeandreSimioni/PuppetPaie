@@ -1457,38 +1457,65 @@ section.bloc > .encart { margin-bottom: 10px; }
                     padding: 6px 0; border-top: 1px solid var(--bord); font-size: 13px; }
 .mois-salaries li b { white-space: nowrap; }
 
+/* LES ÉTAPES DU MOIS : une rangée par étape, des cases sur les colonnes du mois (la première, la grande, à 1,4 ; les
+   autres à 1), et l'arbre des traits droits qui les relie. Rien ne se coupe : le texte fait la hauteur de la case. */
 .etapes { list-style: none; margin: 4px 0 18px; padding: 0; position: relative; }
-.etape { position: relative; padding: 0 0 4px 0; }
-.etape:not(:last-child)::before {          /* le fil entre deux étapes */
-  content: ""; position: absolute; left: 13px; top: 30px; bottom: -2px;
-  width: 2px; background: var(--bord);
-}
-.etape.faite:not(:last-child)::before { background: var(--succes-trait); }
-.etape > details > summary {
-  list-style: none; display: flex; align-items: center; gap: 10px;
-  cursor: pointer; padding: 4px 0; flex-wrap: wrap;
-}
-.etape > details > summary::-webkit-details-marker { display: none; }
-.etape-rond {
-  flex: none; width: 28px; height: 28px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: bold; background: var(--carte);
-  border: 2px solid var(--bord); color: var(--discret);
-}
-.etape.faite .etape-rond { background: var(--succes); border-color: var(--succes); color: var(--blanc); }
-.etape.alerte .etape-rond { border-color: var(--alerte); color: var(--alerte); }
-.etape.refus .etape-rond { border-color: var(--erreur); color: var(--erreur); }
-.etape.suivante .etape-rond { border-color: var(--action); color: var(--action); }
-.etape-nom { font-weight: bold; font-size: 14px; }
-.etape-court { font-size: 12px; color: var(--discret); }
-.etape.faite .etape-nom { font-weight: normal; }
-.etape.refus .etape-court { color: var(--erreur); font-weight: bold; }
-.etape-limite { font-size: 12px; color: var(--alerte); margin-left: auto; }
-.etape-corps { margin: 4px 0 10px 38px; }
-.etape-phrase { font-size: 13px; margin-bottom: 2px; }
-.etape-detail { font-size: 12px; margin-bottom: 8px; }
-.etape-corps > button { width: 100%; margin-top: 4px; }
-.etape-corps > button.etape-envois { width: auto; display: block; margin-top: 10px; font-size: 12px; text-align: left; }
+.etapes .rangee { position: relative; }
+.etapes .rangee + .rangee { margin-top: 30px; }
+.kases { display: grid; gap: 4px; min-height: 60px; position: relative; z-index: 1; }
+.kase { min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px;
+        border: 1px solid transparent; }
+.etape-rond { flex: none; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center;
+              justify-content: center; font-size: 12px; font-weight: bold; background: var(--carte);
+              border: 2px solid var(--bord); color: var(--discret); }
+.kase-texte { min-width: 0; line-height: 1.25; overflow-wrap: anywhere; }
+.kase .ligne1 { display: flex; align-items: baseline; gap: 6px; }
+.kase .ligne1 b { font-size: 13px; }
+.kase .compte { font-weight: 700; font-variant-numeric: tabular-nums; }
+.kase .quoi, .kase .ech { display: block; font-size: 12px; }
+.kase .ech { font-weight: 700; }
+
+.kase.vert { background: var(--succes-fond); border-color: var(--succes-trait); }
+.kase.vert .etape-rond { background: var(--succes); border-color: var(--succes); color: var(--blanc); }
+.kase.vert b { font-weight: 500; }
+.kase.orange { background: var(--alerte-fond); border-color: var(--alerte); }
+.kase.orange .etape-rond { border-color: var(--alerte); color: var(--alerte); }
+.kase.orange .compte, .kase.orange .quoi, .kase.orange .ech { color: var(--alerte); }
+/* rouge : un retour KO ; l'éditeur est prévenu. */
+.kase.rouge { background: var(--erreur-fond); border-color: var(--erreur); }
+.kase.rouge .etape-rond { border-color: var(--erreur); color: var(--erreur); }
+.kase.rouge .compte, .kase.rouge .quoi, .kase.rouge .ech { color: var(--erreur); }
+/* sur le côté, la place manque : le nom de l'étape est déjà dans la grande case ; restent le compte et l'échéance. */
+.kase.cote .ligne1, .kase.cote .etape-rond { display: none; }
+.kase.cote { gap: 6px; }
+/* en attente : à gauche, notre part, faite, la coche et le nom dessous, à la largeur de son contenu ; à droite, ce
+   qu'on attend, en orange. Le trait qui arrive au milieu de la case tombe dans l'orange. */
+.kase.en-attente { padding: 0; border: none; gap: 0; align-items: stretch; }
+.moitie { min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid; }
+.moitie.faite { flex: none; flex-direction: column; justify-content: center; gap: 3px; padding: 4px 8px;
+                background: var(--succes-fond); border-color: var(--succes-trait); border-radius: 6px 0 0 6px; }
+.moitie.faite .etape-rond { background: var(--succes); border-color: var(--succes); color: var(--blanc); }
+.moitie.faite b { font-weight: 500; font-size: 12px; }
+.moitie.attend { flex: 1 1 0; background: var(--alerte-fond); border-color: var(--alerte); border-left-style: dashed;
+                 border-radius: 0 6px 6px 0; }
+.moitie.attend .compte, .moitie.attend .quoi, .moitie.attend .ech { color: var(--alerte); }
+.kase.cliquable { cursor: pointer; }
+.kase.orange.cliquable:hover { box-shadow: inset 0 0 0 1px var(--alerte); }
+.kase.rouge.cliquable:hover { box-shadow: inset 0 0 0 1px var(--erreur); }
+.kase.en-attente.cliquable:hover .moitie.attend { box-shadow: inset 0 0 0 1px var(--alerte); }
+.kase:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+.kase.neuf { animation: kase-entree .4s ease-out; }
+@keyframes kase-entree { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .kase.neuf { animation: none; } }
+.etapes .arbre { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible;
+                 z-index: 0; }
+.etapes .arbre path { fill: none; stroke-width: 1.5; }
+.etapes .arbre .vert { stroke: var(--succes); }
+.etapes .arbre .orange { stroke: var(--alerte); }
+/* l'annule-et-remplace qu'aucune modification n'exige : un lien discret sous la ligne DSN, au-dessus des traits. */
+.etapes .rangee.avec-second + .rangee { margin-top: 12px; }
+.etape-second { position: relative; z-index: 1; display: block; margin: 4px 0 0; padding: 0 2px; font-size: 12px;
+                text-align: left; background: var(--carte); }
 .reprise { margin: 0 0 14px; font-size: 12px; }
 .reprise > summary { cursor: pointer; color: var(--discret); padding: 6px 0;
                      border-top: 1px solid var(--bord); }
