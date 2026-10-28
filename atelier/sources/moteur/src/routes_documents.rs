@@ -756,16 +756,6 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
             continue;
         }
         vus.push(cle.clone());
-        if !s.get("email").is_some_and(vrai) {
-            return Err(erreur(
-                "ValueError",
-                format!(
-                    "Pas d'adresse e-mail pour {} {} : completer config/salaries.json avant d'envoyer.",
-                    valeur_en_texte(get_requis(s, "nom")?),
-                    valeur_en_texte(get_requis(s, "prenom")?)
-                ),
-            ));
-        }
         let (mut pieces, mut courts) = (Vec::new(), Vec::new());
         for (_, prefixe, court) in PIECES {
             let chemin = dossier.join(nom_fichier(prefixe, &cle, &etiq));
@@ -794,7 +784,8 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
         );
         messages.push(Message {
             nom: format!("{} {}", valeur_en_texte(get_requis(s, "prenom_affichage")?), valeur_en_texte(get_requis(s, "nom")?)),
-            destinataire: valeur_en_texte(get_requis(s, "email")?).to_lowercase(),
+            // Une fiche sans courriel se montre : ses documents s'impriment ; c'est l'envoi par courriel qui la refuse.
+            destinataire: s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase(),
             cle,
             sujet,
             pieces,
