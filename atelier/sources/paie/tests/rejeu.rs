@@ -102,7 +102,7 @@ fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
 }
 
 /// #271 : l'engagement des Treteaux, sa DPAE et sa DSN de novembre parties, devient non actif apres la veille de
-/// l'echeance de novembre. Ressortent la DPAE a annuler et la DSN de novembre a corriger ; la DSN de decembre porte la
+/// l'echeance de novembre. Ressort la DSN de novembre a corriger ; la DSN de decembre porte la
 /// correction qui annule tout ce qui avait ete declare pour lui, et rien a la place (cahier technique DSN 2027.1,
 /// `atelier/reference/norme-dsn/texte-2027/chapitre-2-principes-de-constitution.txt`, §2.1.2.1 et §2.1.3.6). Partie,
 /// elle ne se porte plus.
@@ -116,7 +116,6 @@ fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
     let ctx = |jour: &str| droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     let na = engagement::etats::non_actifs_du_mois(&ctx("2026-12-16"), "2026-11").unwrap().pop().expect("l'engagement non actif");
     let a_refaire = na.a_refaire(&ctx("2026-12-16"), &envois::journal::departs(&racine).unwrap());
-    assert!(a_refaire.iter().any(|a| matches!(a, ARefaire::DpaeAAnnuler { .. })), "{:?}", a_refaire);
     assert!(a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { mois, .. } if mois == "2026-11")), "{:?}", a_refaire);
 
     // La DSN de decembre : le versement de la correction annule celui de novembre, montant pour montant.

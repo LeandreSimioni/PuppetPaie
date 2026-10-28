@@ -341,7 +341,7 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
         let debut = socle::date::Jour::lire(&id.1).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| id.1.clone());
         if j.is_none() {
             return Ok(Some(format!(
-                "Le contrat de {} du {} est déclaré dans la DSN {}, dont l'annule-et-remplace est passé : il ne se retire plus. La norme DSN n'annule pas un contrat déclaré (seule une fin de contrat s'annule, motif 099, fiche net-entreprises 1722). S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : la DSN suivante déclarera l'annulation de ses montants dans la DSN suivante (rappel de paie, cahier technique DSN §2.1.3.6) ; sa DPAE s'annule auprès de l'Urssaf. Rien n'est enregistré.",
+                "Le contrat de {} du {} est déclaré dans la DSN {}, dont l'annule-et-remplace est passé : il ne se retire plus. La norme DSN n'annule pas un contrat déclaré (seule une fin de contrat s'annule, motif 099, fiche net-entreprises 1722). S'il n'a pas eu lieu, gardez-le et mettez ses quantités à zéro : la DSN suivante déclarera l'annulation de ses montants (rappel de paie, cahier technique DSN §2.1.3.6). Rien n'est enregistré.",
                 nom, debut, de
             )));
         }
@@ -356,7 +356,9 @@ pub(crate) fn refus_non_declarable(ctx: &Contexte, mois: &str, base: &Value, nou
 /// tot huit jours avant « la date previsible de l'embauche » (R. 1221-4). INFERENCE : reculee, l'embauche a eu lieu apres
 /// la declaration, qui portait sa date previsible -- elle vaut ; avancee, l'embauche a precede la declaration -- une DPAE
 /// a la date vraie est a deposer. La DPAE n'a pas d'annule-et-remplace (guide de l'API DPAE de l'Urssaf,
-/// `atelier/reference/norme-dpae/5491-API-DPAE-Fonctionnement.pdf`, p. 3).
+/// `atelier/reference/norme-dpae/5491-API-DPAE-Fonctionnement.pdf`, p. 3) et ne s'annule pas : une correction est une
+/// nouvelle declaration (fiche net-entreprises 3300, `atelier/reference/sources/net-entreprises-base-connaissances/
+/// net-entreprises-fiche3300-dpae-en-dsn-20261015.txt`, l. 451).
 pub(crate) fn dpae_d_une_date_changee(avant: &str, apres: &str) -> (bool, String) {
     let jour = |t: &str| socle::date::Jour::lire(t).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| t.to_string());
     if avant < apres {

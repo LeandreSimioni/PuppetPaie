@@ -983,17 +983,17 @@ impl NonActif {
         &self.le
     }
 
-    /// CE QUE SA DESACTIVATION REND FAUX, tire de ce qui est parti (`departs`) comparé a son present, qui est : rien. La
-    /// derniere DPAE partie est a annuler (`DpaeAAnnuler`) ; chaque mois que la derniere DSN qui l'a declare a declare
-    /// sur une autre version que la sienne est a corriger (`Dsn`) : la couche des declarations dit comment
-    /// (l'annule-et-remplace du mois qui ne le porte plus, ou la correction qui annule ce qui a ete declare). Un contrat,
-    /// des documents, un signalement partis ne demandent rien.
+    /// CE QUE SA DESACTIVATION REND FAUX, tire de ce qui est parti (`departs`) comparé a son present, qui est : rien.
+    /// Chaque mois que la derniere DSN qui l'a declare a declare sur une autre version que la sienne est a corriger
+    /// (`Dsn`) : la couche des declarations dit comment (l'annule-et-remplace du mois qui ne le porte plus, ou la
+    /// correction qui annule ce qui a ete declare). Un contrat, des documents, un signalement partis ne demandent rien.
+    /// Une DPAE partie non plus : aucun texte ne l'annule, une DPAE se corrige par une nouvelle declaration (fiche
+    /// net-entreprises 3300, `atelier/reference/sources/net-entreprises-base-connaissances/
+    /// net-entreprises-fiche3300-dpae-en-dsn-20261015.txt`, l. 451 ; guide de l'API DPAE,
+    /// `atelier/reference/norme-dpae/5491-API-DPAE-Fonctionnement.pdf`, p. 3 : pas d'annule-et-remplace).
     pub fn a_refaire(&self, ctx: &Contexte, departs: &Departs) -> Vec<ARefaire> {
         let siens = ses_departs(ctx, &self.objet, departs);
         let mut out = Vec::new();
-        if let Some(d) = siens.iter().rev().find(|d| d.envoi == Envoi::Dpae) {
-            out.push(ARefaire::DpaeAAnnuler { depuis: d.version });
-        }
         let mut mois: BTreeMap<String, u64> = BTreeMap::new();
         for d in siens.iter().filter(|d| d.envoi == Envoi::Dsn) {
             if let Some(m) = &d.mois {
@@ -1195,8 +1195,6 @@ pub enum ARefaire {
     /// La DSN de `mois` est partie sur la version `depuis`, et sa paie a change : un annule-et-remplace, ou la correction
     /// dans une DSN suivante (la couche des declarations tranche, a l'echeance).
     Dsn { mois: String, depuis: u64 },
-    /// L'engagement n'est plus actif et sa DPAE est partie sur la version `depuis` : elle est a annuler.
-    DpaeAAnnuler { depuis: u64 },
 }
 
 /// LA VERSION EN VIGUEUR AU DEPART de chaque envoi, comparee au present de l'engagement valide `v` : ce qui est a

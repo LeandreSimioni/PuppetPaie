@@ -529,11 +529,15 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
 
     // LES CORRECTIONS DES MOIS DEJA DECLARES : la DSN de ce mois les porte, datees de leur mois d'origine.
     let regs = regularisations::regularisations_pour(ctx, mois)?;
-    for ligne in regularisations::resume_regularisations(&regs)? {
-        avertissements.push(info(format!(
-            "Regularisation embarquee dans la DSN : {}. La difference de net se paie -- ou se retient -- ce mois-ci, par un bulletin rectificatif.",
-            ligne
-        )));
+    // Une correction a zero (la paie d'apres est `sans_paie`) n'a pas de bulletin rectificatif : ce qui part est la
+    // retenue du net deja verse, que `ecrire_rectificatifs` signale.
+    for (r, ligne) in regs.iter().zip(regularisations::resume_regularisations(&regs)?) {
+        let suite = if r.apres.engagement.sans_paie() {
+            "La paie est retiree : aucun bulletin rectificatif ne s'imprime, le net deja verse se retient ce mois-ci."
+        } else {
+            "La difference de net se paie -- ou se retient -- ce mois-ci, par un bulletin rectificatif."
+        };
+        avertissements.push(info(format!("Regularisation embarquee dans la DSN : {}. {}", ligne, suite)));
     }
     if paies.is_empty() && regs.is_empty() {
         avertissements.push(info(format!(
