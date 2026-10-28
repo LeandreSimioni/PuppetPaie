@@ -298,8 +298,7 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
 /// JAMAIS UNE FICTIVE AJOUTEE (ticket #236, `compagnies::est_ajoutee`), meme dans le paquet soude : ses envois ne sont pas
 /// joues, ils sont refuses (`bridage::refus_d_envoi`).
 pub fn simulation_active(racine: &Path) -> bool {
-    use crate::interface::compagnies::{est_ajoutee, est_fictive};
-    !est_ajoutee(racine) && (crate::bridage::paquet_soude() || est_fictive(racine))
+    crate::bridage::branchement(racine).joue()
 }
 
 /// `boite_liee` : peut-on envoyer, et les signatures reviennent-elles seules ?

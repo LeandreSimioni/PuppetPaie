@@ -7,6 +7,7 @@
 //! chemin (un incident, ce qu'il faut marquer) se rend a l'appelant, qui le note. L'engagement ne lit pas le journal :
 //! `paie` lui passe ce qui est parti (`journal::departs`).
 
+pub mod branchement;
 pub mod etats;
 pub mod journal;
 pub mod ligne_d_envoi;
