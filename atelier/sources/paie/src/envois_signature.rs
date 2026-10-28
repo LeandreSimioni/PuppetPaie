@@ -504,6 +504,8 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     if messages.is_empty() {
         return Err(refus(format!("Aucun contrat a envoyer pour {}.", mois)));
     }
+    // La version de l'engagement sur laquelle chaque contrat part, lue avant l'envoi.
+    let versions = crate::journal::versions_des_contrats(ctx, &contrats).map_err(Echec::from)?;
     let mut identifiants: Vec<String> = Vec::new();
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client.as_mut(), Some(&mut identifiants), None) {
         Ok(p) => p,
@@ -521,7 +523,6 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
         }
     }
     let detail = json!({"contrats": contrats, "expediteur": expediteur, "relance": relance});
-    let versions = crate::journal::versions_des_contrats(ctx, &contrats).map_err(Echec::from)?;
     let ligne = noter_envoi(
         ctx,
         "contrat-signature",
@@ -821,6 +822,7 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
                 m.insert("code".into(), json!(code));
             }
         }
+        let versions = crate::journal::versions_des_contrats(ctx, &lignes_contrats).map_err(Echec::from)?;
         let mut identifiants: Vec<String> = Vec::new();
         let partis_ici = match envoi::envoyer_suivi(std::slice::from_ref(&message), &expediteur, client.as_mut(), Some(&mut identifiants), None) {
             Ok(p) => p,
@@ -839,7 +841,6 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
             aa.iter().map(|a| format!("avenant n° {} au contrat {}", a.numero(), valeur_en_texte(&a.apercu["contrat"]))).collect::<Vec<_>>().join("; ")
         );
         let detail = json!({"contrats": lignes_contrats, "expediteur": expediteur, "relance": false, "acte": "avenant"});
-        let versions = crate::journal::versions_des_contrats(ctx, &lignes_contrats).map_err(Echec::from)?;
         lignes.push(noter_envoi(ctx, "contrat-signature", Some(&mois), "interface", true, &partis_ici.join(", "), &reponse, Some(&detail), Some(&versions))?);
         partis.extend(partis_ici);
         for (a, pdf) in aa.iter().zip(&pdfs) {

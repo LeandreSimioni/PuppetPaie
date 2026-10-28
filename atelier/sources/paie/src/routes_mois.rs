@@ -196,16 +196,15 @@ pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str, etats: &[engagemen
 }
 
 /// L'etablissement (NIC) dont releve l'engagement `e` pour `mois` : celui de la fiche de son salarie telle que le calcul
-/// de sa paie du mois l'a lue (`fiches`), sinon de sa fiche d'aujourd'hui.
+/// de sa paie du mois l'a lue (`fiches`) ; sans paie ecrite du mois, de sa fiche d'aujourd'hui.
 pub(crate) fn nic_de_l_engagement(ctx: &Contexte, mois: &str, e: &engagement::etats::Etat) -> Option<String> {
     nic_de_l_engagement_ecrit(ctx, mois, &Value::Object(e.objet().brut.clone()))
 }
 
 /// `nic_de_l_engagement`, sur l'engagement tel qu'il est ecrit (`brut`).
 pub(crate) fn nic_de_l_engagement_ecrit(ctx: &Contexte, mois: &str, brut: &Value) -> Option<String> {
-    let lue = brut.pointer(&format!("/valide/paies/{}/fiches/paie", mois)).filter(|f| f.is_object()).cloned();
-    let fiche = match lue {
-        Some(f) => f,
+    let fiche = match brut.pointer(&format!("/valide/paies/{}", mois)) {
+        Some(ecrite) => ecrite.pointer("/fiches/paie").filter(|f| f.is_object()).cloned()?,
         None => ctx.salarie(&engagement::cle_de_l_engagement(ctx, brut)?).ok()?,
     };
     droit::bareme::etablissement_du_salarie(&ctx.entreprise, &fiche).ok()

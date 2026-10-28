@@ -444,6 +444,9 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<En
 pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, preuve: &Preuve, qui: &str) -> R<Value> {
     let EnvoiPrepare { mois_saisie, messages, expediteur, avertissements, choix, documents, mut client, preparation_ms } = prepare;
     let a_qui = format!("{} salarie(s) : {}", messages.len(), messages.iter().map(|m| m.nom.as_str()).collect::<Vec<_>>().join(", "));
+    // LA VERSION SUR LAQUELLE ILS PARTENT, engagement par engagement des salaries servis.
+    let servis: Vec<&str> = messages.iter().map(|m| m.cle.as_str()).collect();
+    let versions = journal::versions_du_mois(ctx, mois, |cle, _, _| servis.contains(&cle)).map_err(Echec::from)?;
     // LA DUREE DE CHAQUE ETAPE (08/10/2026 : un envoi de deux courriels a pris quatre minutes, sans qu'on sache ou).
     let t_preuve = std::time::Instant::now();
     verifier_preuve(ctx, Some(preuve), mois, "envoi des documents du mois aux salaries", &a_qui)?;
@@ -468,9 +471,6 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
         "expediteur": expediteur,
         "durees_ms": {"preparation": preparation_ms as u64, "mot_de_passe": preuve_ms as u64, "envoi": envoi_ms as u64},
     });
-    // LA VERSION SUR LAQUELLE ILS PARTENT, engagement par engagement des salaries servis.
-    let servis: Vec<&str> = messages.iter().map(|m| m.cle.as_str()).collect();
-    let versions = journal::versions_du_mois(ctx, mois, |cle, _, _| servis.contains(&cle)).map_err(Echec::from)?;
     let reponse = format!("{} message(s) envoye(s)", partis.len());
     let ligne = noter_envoi(ctx, "documents", Some(mois), qui, true, &partis.join(", "), &reponse, Some(&detail), Some(&versions))?;
     // LES DOCUMENTS SONT PARTIS : leurs numeros s'ecrivent dans les paies des engagements.

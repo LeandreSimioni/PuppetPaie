@@ -130,9 +130,17 @@ impl Valide {
         &self.le
     }
 
-    /// Le numero de sa version (1 tant qu'aucune modification n'a suivi un envoi).
-    pub fn version(&self) -> u64 {
+    /// Le numero de sa version (1 tant qu'aucune modification n'a suivi un envoi) ; `None` pour une validation qui ne le
+    /// porte pas (`a_revalider`).
+    pub fn version(&self) -> Option<u64> {
         version_de(self.objet.brut.get("valide"))
+    }
+
+    /// CE QUI PART SE LIT DANS LES VERSIONS : une validation sans son numero de version ou sans sa saisie, ou une paie
+    /// ecrite sans la fiche ni la saisie du mois que son calcul a lues (`fiches`, `MOIS_LU`), ne dit pas ce qu'un envoi
+    /// emporterait. Rien ne part d'elle et rien ne s'y relit : la phrase du refus ; `None` quand elle dit tout.
+    pub fn a_revalider(&self) -> Option<String> {
+        a_revalider(&self.objet, self.objet.brut.get("valide")?)
     }
 
     /// Ses versions passees, de la plus ancienne a la plus recente : `{"version", "valide_le", "remplacee_le", "saisie",
@@ -143,10 +151,10 @@ impl Valide {
 
     /// La version `n`, passee ou presente, telle qu'elle est ecrite (`saisie`, `paies`).
     pub fn version_numero(&self, n: u64) -> Option<&Value> {
-        if n == self.version() {
+        if Some(n) == self.version() {
             return self.objet.brut.get("valide");
         }
-        self.versions().iter().find(|v| version_de(Some(v)) == n)
+        self.versions().iter().find(|v| version_de(Some(v)) == Some(n))
     }
 
     /// La paie ecrite de `mois` (`{"paie", "fiches", "pas"?, "empreinte", "recalcul"?}`), si elle l'est.
@@ -292,9 +300,33 @@ pub fn tels_qu_ecrits(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat
     Ok(stock::objets_du_mois(&ctx.racine, mois)?.into_iter().map(|o| etat(ctx, o, mois, departs)).collect())
 }
 
-/// Le numero de version d'une validation ou d'une version ecrite (1 quand elle ne le dit pas).
-fn version_de(v: Option<&Value>) -> u64 {
-    v.and_then(|v| v.get("version")).and_then(Value::as_u64).unwrap_or(1)
+/// Le numero de version d'une validation ou d'une version ecrite.
+fn version_de(v: Option<&Value>) -> Option<u64> {
+    v.and_then(|v| v.get("version")).and_then(Value::as_u64)
+}
+
+/// Ce qui manque a la validation (ou a la version ecrite) `v` de `o` pour qu'un envoi en parte et qu'on y relise ce qui
+/// est parti, dit en une phrase ; `None` quand rien ne manque.
+fn a_revalider(o: &Objet, v: &Value) -> Option<String> {
+    let mut manque = Vec::new();
+    if version_de(Some(v)).is_none() {
+        manque.push("son numero de version".to_string());
+    }
+    if !v.get("saisie").is_some_and(Value::is_object) {
+        manque.push("sa saisie".to_string());
+    }
+    for (m, p) in v.get("paies").and_then(Value::as_object).into_iter().flatten() {
+        if !p.get("fiches").is_some_and(Value::is_object) || !p.get(MOIS_LU).is_some_and(Value::is_object) {
+            manque.push(format!("la fiche et la saisie du mois que la paie de {} a lues", m));
+        }
+    }
+    (!manque.is_empty()).then(|| {
+        format!(
+            "{} : sa validation ne porte pas {}. Cet engagement est a revalider (« Modifier… », puis « Valider l'engagement ») ; rien n'est ecrit.",
+            qui_de(o),
+            manque.join(", ni ")
+        )
+    })
 }
 
 /// LA LECTURE DE L'ENGAGEMENT VALIDE : l'etat de chaque engagement que `mois` montre, dans l'ordre de l'ecran, apres le
@@ -595,15 +627,14 @@ fn memes_chiffres(a: Option<&Value>, b: Option<&Value>) -> bool {
 
 /// LA VERSION QUE PREND LE PRESENT quand la validation `actuelle` de `o` est remplacee le `le` : si un envoi est parti
 /// sur elle (`siens`), elle se garde, datee, dans les versions de l'engagement, et le present prend le numero suivant ;
-/// sinon le present garde son numero, sans historique.
-fn nouvelle_version(o: &mut Objet, actuelle: &Value, siens: &[Depart], le: &str) -> u64 {
-    let n = version_de(Some(actuelle));
+/// sinon le present garde son numero `n`, sans historique.
+fn nouvelle_version(o: &mut Objet, actuelle: &Value, n: u64, siens: &[Depart], le: &str) -> u64 {
     if !siens.iter().any(|d| d.version == n) {
         return n;
     }
     let passee = json!({
         "version": n, "valide_le": actuelle.get("le").cloned().unwrap_or(Value::Null), "remplacee_le": le,
-        "saisie": actuelle.get("saisie").cloned().unwrap_or(Value::Null), "paies": actuelle.get("paies").cloned().unwrap_or(Value::Null),
+        "saisie": actuelle["saisie"], "paies": actuelle["paies"],
     });
     match o.brut.get_mut(VERSIONS).and_then(Value::as_array_mut) {
         Some(v) => v.push(passee),
@@ -632,7 +663,9 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
     }
     let departs = departs::lire(&ctx.racine)?;
     let siens = ses_departs(ctx, &o, &departs).to_vec();
-    let precedente = o.brut.get(PRECEDENTE).or_else(|| o.brut.get("valide")).cloned();
+    // Une validation qui ne dit pas sa version, sa saisie ou ce que ses paies ont lu (`a_revalider`) ne se reprend pas :
+    // celle-ci s'ecrit entiere, en version 1.
+    let precedente = o.brut.get(PRECEDENTE).or_else(|| o.brut.get("valide")).filter(|p| a_revalider(&o, p).is_none()).cloned();
     let paies = match paies_a_valider(ctx, &o, mois, precedente.as_ref(), &siens) {
         Ok(p) => p,
         Err(e) => {
@@ -644,9 +677,9 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
     };
     let saisie = saisie_de(&o);
     let paies = Value::Object(paies);
-    let version = match &precedente {
-        Some(p) if p.get("saisie") != Some(&saisie) || !memes_chiffres(p.get("paies"), Some(&paies)) => nouvelle_version(&mut o, p, &siens, &le),
-        Some(p) => version_de(Some(p)),
+    let version = match precedente.as_ref().and_then(|p| Some((p, version_de(Some(p))?))) {
+        Some((p, n)) if p.get("saisie") != Some(&saisie) || !memes_chiffres(p.get("paies"), Some(&paies)) => nouvelle_version(&mut o, p, n, &siens, &le),
+        Some((_, n)) => n,
         None => 1,
     };
     o.brut.remove(PRECEDENTE);
@@ -697,11 +730,7 @@ pub fn question_avant_de_modifier(ctx: &Contexte, mois: &str, rang: usize) -> Re
 /// « MODIFIER… » : l'engagement repasse en saisie. Sa validation se garde (`precedente`) pour la suivante.
 pub fn modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<EnSaisie> {
     let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
-    if let Some(mut v) = o.brut.remove("valide") {
-        // Un engagement valide ne change pas par la saisie : la sienne est encore celle qui a ete validee.
-        if v.get("saisie").is_none() {
-            v["saisie"] = saisie_de(&o);
-        }
+    if let Some(v) = o.brut.remove("valide") {
         o.brut.insert(PRECEDENTE.into(), v);
         stock::reecrire(&ctx.racine, &o)?;
     }
@@ -798,10 +827,13 @@ fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
                 .filter(|d| matches!(d.envoi, Envoi::Documents | Envoi::Dsn) && d.mois.as_deref() == Some(mois))
                 .cloned()
                 .collect();
-            let actuelle = o.brut.get("valide").cloned().unwrap_or(Value::Null);
-            let n = nouvelle_version(&mut o, &actuelle, &emportee, &le);
-            if let Some(v) = o.brut.get_mut("valide").and_then(Value::as_object_mut) {
-                v.insert("version".into(), json!(n));
+            // Une validation a revalider (`a_revalider`) n'a rien emporte : sa paie se refait, sans version.
+            let actuelle = o.brut.get("valide").cloned().filter(|v| a_revalider(&o, v).is_none());
+            if let Some((actuelle, n)) = actuelle.as_ref().and_then(|a| Some((a, version_de(Some(a))?))) {
+                let n = nouvelle_version(&mut o, actuelle, n, &emportee, &le);
+                if let Some(v) = o.brut.get_mut("valide").and_then(Value::as_object_mut) {
+                    v.insert("version".into(), json!(n));
+                }
             }
         }
         if let Some(Value::Object(paies)) = o.brut.get_mut("valide").and_then(|x| x.get_mut("paies")) {
@@ -874,7 +906,7 @@ pub fn a_refaire(ctx: &Contexte, v: &Valide, departs: &Departs) -> Vec<ARefaire>
     let mensuel = v.objet.mensuel();
     let mut out = Vec::new();
     for d in derniers.into_values() {
-        if d.version == present {
+        if Some(d.version) == present {
             continue;
         }
         let Some(passee) = v.version_numero(d.version) else { continue };
@@ -917,23 +949,32 @@ pub fn version_au_depart<'a>(ctx: &Contexte, v: &'a Valide, departs: &Departs, e
 }
 
 /// La version `n` de l'engagement `o`, telle qu'elle est ecrite (`saisie`, `paies`) : le present, la validation que
-/// « Modifier… » a mise de cote, ou une version passee.
-fn version_ecrite(o: &Objet, n: u64) -> Option<&Value> {
+/// « Modifier… » a mise de cote, ou une version passee ; `None` si l'engagement n'a pas de version `n`. Refus : une
+/// version qui ne dit pas tout ce qu'un envoi a emporte (`a_revalider`).
+fn version_ecrite(o: &Objet, n: u64) -> Resultat<Option<&Value>> {
     let passees = o.brut.get(VERSIONS).and_then(Value::as_array).into_iter().flatten();
-    [o.brut.get("valide"), o.brut.get(PRECEDENTE)].into_iter().flatten().chain(passees).find(|v| version_de(Some(v)) == n)
+    let Some(v) = [o.brut.get("valide"), o.brut.get(PRECEDENTE)].into_iter().flatten().chain(passees).find(|v| version_de(Some(v)) == Some(n)) else {
+        return Ok(None);
+    };
+    match a_revalider(o, v) {
+        Some(phrase) => Err(phrase),
+        None => Ok(Some(v)),
+    }
 }
 
 /// La version de l'engagement `o` sur laquelle la derniere DSN qui a declare `mois` est partie (celle du mois, ou celle
 /// d'un mois suivant qui a porte sa correction), telle qu'elle est ecrite ; `None` si aucune DSN n'a declare ce mois
 /// pour lui.
-fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: &str) -> Option<&'a Value> {
-    let d = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois))?;
-    version_ecrite(o, d.version)
+fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: &str) -> Resultat<Option<&'a Value>> {
+    match ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois)) {
+        Some(d) => version_ecrite(o, d.version),
+        None => Ok(None),
+    }
 }
 
 /// Ce que la version `version` dit de `mois` (`Objet::vue` de sa saisie).
 fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Map<String, Value>>> {
-    let Some(Value::Object(saisie)) = version.get("saisie") else { return Ok(None) };
+    let saisie = version.get("saisie").and_then(Value::as_object).ok_or("version ecrite illisible : `saisie`")?;
     let mut declare = o.clone();
     declare.brut = saisie.clone();
     declare.vue(mois)
@@ -942,7 +983,7 @@ fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<
 /// L'ENGAGEMENT DECLARE pour `mois` : ce que la saisie de la version sur laquelle la derniere DSN qui a declare ce mois
 /// est partie dit de ce mois (`Objet::vue`) ; `None` si aucune DSN n'a declare ce mois pour l'engagement `o`.
 pub fn engagement_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Map<String, Value>>> {
-    match version_de_la_dsn(ctx, o, departs, mois) {
+    match version_de_la_dsn(ctx, o, departs, mois)? {
         Some(v) => vue_de_la_version(o, v, mois),
         None => Ok(None),
     }
@@ -951,8 +992,9 @@ pub fn engagement_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &s
 /// LA SAISIE DU MOIS DECLAREE : ce que la saisie de `mois` posait pour tous ses engagements (le taux du cachet, la date
 /// de paiement) quand la paie que la derniere DSN de ce mois a declaree pour `o` a ete calculee (`MOIS_LU`) ; `None` si
 /// aucune DSN n'a declare ce mois pour lui.
-pub fn mois_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Option<Value> {
-    version_de_la_dsn(ctx, o, departs, mois)?.get("paies")?.get(mois)?.get(MOIS_LU).filter(|m| m.is_object()).cloned()
+pub fn mois_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Value>> {
+    let Some(v) = version_de_la_dsn(ctx, o, departs, mois)? else { return Ok(None) };
+    Ok(v.get("paies").and_then(|p| p.get(mois)).and_then(|p| p.get(MOIS_LU)).cloned())
 }
 
 /// La paie de `mois` que la version `version` de `o` a ecrite, relue (`relire`) sur la saisie de cette version, la fiche
@@ -962,17 +1004,12 @@ fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) ->
     let Some(ecrite) = version.get("paies").and_then(|p| p.get(mois)) else { return Ok(None) };
     let paie = ecrite.get("paie").ok_or("paie ecrite illisible : `paie`")?;
     let Some(vue) = vue_de_la_version(o, version, mois)? else { return Ok(None) };
-    let mut data = match ecrite.get(MOIS_LU).filter(|m| m.is_object()) {
-        Some(lu) => lu.clone(),
-        None => stock::vue_du_mois(&ctx.racine, mois)?.unwrap_or_else(|| json!({})),
-    };
+    let mut data = ecrite.get(MOIS_LU).filter(|m| m.is_object()).cloned().ok_or_else(|| format!("paie ecrite illisible : `{}`", MOIS_LU))?;
     data["mois"] = json!(mois);
     data["engagements"] = json!([vue]);
     let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or("paie ecrite illisible")?;
-    let mut p = match ecrite.get("fiches").filter(|f| f.is_object()) {
-        Some(fiches) => relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?,
-        None => relire::paie(ctx, eng, paie)?,
-    };
+    let fiches = ecrite.get("fiches").filter(|f| f.is_object()).ok_or("paie ecrite illisible : `fiches`")?;
+    let mut p = relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?;
     p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
     Ok(Some(p))
 }
@@ -981,7 +1018,7 @@ fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) ->
 /// ecrite (`paie_de_la_version`) (regle 4 : ce qui est declare se lit, il ne se recalcule pas) ; `None` si aucune DSN
 /// n'a declare ce mois pour l'engagement `o`.
 pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Paie>> {
-    match version_de_la_dsn(ctx, o, departs, mois) {
+    match version_de_la_dsn(ctx, o, departs, mois)? {
         Some(v) => paie_de_la_version(ctx, o, v, mois),
         None => Ok(None),
     }
@@ -1021,7 +1058,7 @@ pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str,
     }
     let mut out = Vec::new();
     for (par, n) in chaine {
-        let paie = version_ecrite(o, n)
+        let paie = version_ecrite(o, n)?
             .map(|v| paie_de_la_version(ctx, o, v, mois))
             .transpose()?
             .flatten()
@@ -1034,13 +1071,11 @@ pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str,
 /// LA DERNIERE DATE DE DEBUT DECLAREE de l'engagement `o` (AAAA-MM-JJ) par une DSN d'un mois anterieur a `avant` : celle
 /// de la saisie de la version sur laquelle la derniere est partie, quel que soit le mois qu'elle declarait (la correction
 /// d'un autre mois d'un contrat sur plusieurs mois a pu la changer). `None` : aucune.
-pub fn debut_declare(ctx: &Contexte, o: &Objet, departs: &Departs, avant: &str) -> Option<String> {
-    let d = ses_departs(ctx, o, departs)
-        .iter()
-        .rev()
-        .find(|d| d.envoi == Envoi::Dsn && d.par.as_deref().or(d.mois.as_deref()).is_some_and(|m| m < avant))?;
-    let saisie = version_ecrite(o, d.version)?.get("saisie")?;
-    Some(crate::debut_brut(saisie)).filter(|d| !d.is_empty())
+pub fn debut_declare(ctx: &Contexte, o: &Objet, departs: &Departs, avant: &str) -> Resultat<Option<String>> {
+    let Some(d) = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.par.as_deref().or(d.mois.as_deref()).is_some_and(|m| m < avant)) else {
+        return Ok(None);
+    };
+    Ok(version_ecrite(o, d.version)?.and_then(|v| v.get("saisie")).map(crate::debut_brut).filter(|d| !d.is_empty()))
 }
 
 /// La phrase d'un recalcul, pour l'ecran : « Recalculé le JJ/MM/AAAA : taux de PAS reçu. »

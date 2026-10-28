@@ -200,19 +200,25 @@ pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     for o in engagement::stock::objets_du_mois(&ctx.racine, mois)? {
         if let Some(e) = engagement::etats::engagement_declare(ctx, &o, &departs, mois)? {
             declares.push(Value::Object(e));
-            lu = lu.or_else(|| engagement::etats::mois_declare(ctx, &o, &departs, mois));
+            if lu.is_none() {
+                lu = engagement::etats::mois_declare(ctx, &o, &departs, mois)?;
+            }
         }
     }
     if declares.is_empty() {
         return Ok(None);
     }
-    if let Some(Value::Object(lu)) = lu {
-        let origine = saisie.get("_origine").cloned();
-        saisie = Value::Object(lu);
-        saisie["mois"] = json!(mois);
-        if let Some(o) = origine {
-            saisie["_origine"] = o;
-        }
+    let Some(Value::Object(lu)) = lu else {
+        return Err(non_regularisable(format!(
+            "{} : la version sur laquelle la DSN de ce mois est partie ne porte pas la saisie du mois que sa paie a lue. Revalider les engagements du mois.",
+            mois
+        )));
+    };
+    let origine = saisie.get("_origine").cloned();
+    saisie = Value::Object(lu);
+    saisie["mois"] = json!(mois);
+    if let Some(o) = origine {
+        saisie["_origine"] = o;
     }
     saisie["engagements"] = Value::Array(declares);
     Ok(Some(saisie))

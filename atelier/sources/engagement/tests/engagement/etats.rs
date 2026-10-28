@@ -361,7 +361,7 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
     etats::modifier(&ctx(&r), "2026-11", 0).unwrap();
     valider(&r, "2026-11");
     let v = lire_le_mois(&r, "2026-11")[0].valide().cloned().unwrap();
-    assert_eq!((v.version(), v.versions().len()), (1, 0));
+    assert_eq!((v.version(), v.versions().len()), (Some(1), 0));
     let departs = departs_du_test(&r).unwrap();
     assert_eq!(etats::a_refaire(&ctx(&r), &v, &departs), vec![]);
     // Un autre taux : la version 1 se garde, datee, et la 2 est le present.
@@ -372,7 +372,7 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
     enregistrer(&r, "2026-11", json!([encore])).unwrap();
     valider(&r, "2026-11");
     let v = lire_le_mois(&r, "2026-11")[0].valide().cloned().unwrap();
-    assert_eq!(v.version(), 2);
+    assert_eq!(v.version(), Some(2));
     let passee = &v.versions()[0];
     assert_eq!(passee["version"], json!(1));
     assert!(passee["remplacee_le"].as_str().is_some_and(|t| t.len() >= 10), "{}", passee);
@@ -396,12 +396,12 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
     assert!(email.is_string());
     assert_eq!(declaree.salarie["email"], email);
     // Ce que le mois posait pour tous (`saisie_du_mois`) se relit tel que le calcul declare l'a lu, pas aujourd'hui.
-    let lu = etats::mois_declare(&ctx(&r), v.objet(), &departs_du_test(&r).unwrap(), "2026-11").unwrap();
+    let lu = etats::mois_declare(&ctx(&r), v.objet(), &departs_du_test(&r).unwrap(), "2026-11").unwrap().unwrap();
     assert_eq!(lu, paie_partie["saisie_du_mois"]);
     let mut f = fichier(&r, "2026-11");
     f["date_paiement"] = json!("2026-11-27");
     ecrire(&r, "engagements/2026-11.json", &f);
-    assert_eq!(etats::mois_declare(&ctx(&r), v.objet(), &departs_du_test(&r).unwrap(), "2026-11").unwrap(), lu);
+    assert_eq!(etats::mois_declare(&ctx(&r), v.objet(), &departs_du_test(&r).unwrap(), "2026-11").unwrap().unwrap(), lu);
     // La DSN de decembre porte la correction de novembre sur la version 2 : novembre n'est plus a redeclarer, et ce qui a
     // ete declare pour novembre se lit dans l'ordre (la DSN de novembre, puis la correction), jusqu'au mois qui la porte.
     let mut d = lire(&r, "departs.json");
@@ -416,4 +416,10 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
     assert_eq!(bruts, vec![(None, paie_partie["paie"]["brut"].as_str().unwrap().to_string()), (Some("2026-12".into()), present)]);
     assert_eq!(etats::paies_declarees(&ctx(&r), v.objet(), &departs, "2026-11", "2026-12").unwrap().len(), 1, "la DSN qui se refait ne compte pas sa correction");
     assert!(etats::paies_declarees(&ctx(&r), v.objet(), &departs, "2026-11", "2026-11").is_err(), "une correction deja portee plus tard refuse");
+    // Une version qui ne dit pas la fiche que sa paie a lue ne se relit pas sur la fiche du jour : refus.
+    let mut f = fichier(&r, "2026-11");
+    f["engagements"][0]["versions"][0]["paies"]["2026-11"].as_object_mut().unwrap().remove("fiches");
+    ecrire(&r, "engagements/2026-11.json", &f);
+    let o = lire_le_mois(&r, "2026-11")[0].objet().clone();
+    assert!(etats::paies_declarees(&ctx(&r), &o, &departs, "2026-11", "2027-01").is_err());
 }

@@ -192,7 +192,8 @@ pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
 }
 
 /// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du
-/// salarie, le numero du contrat, l'engagement), `{"salarie", "numero", "version"}`. Ce que la ligne du journal de l'envoi porte.
+/// salarie, le numero du contrat, l'engagement), `{"salarie", "numero", "version"}`. Ce que la ligne du journal de l'envoi
+/// porte : elles se lisent AVANT l'envoi, qui ne part pas d'un engagement a revalider (`Valide::a_revalider`).
 pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
     let mut out = Vec::new();
     for e in engagement::etats::du_mois(ctx, mois)? {
@@ -200,7 +201,11 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: imp
         let brut = Value::Object(v.objet().brut.clone());
         let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
         if garder(&cle, numero, &brut) {
-            out.push(json!({"salarie": cle, "numero": numero, "version": v.version()}));
+            if let Some(phrase) = v.a_revalider() {
+                return Err(phrase);
+            }
+            let version = v.version().ok_or("validation illisible : `version`")?;
+            out.push(json!({"salarie": cle, "numero": numero, "version": version}));
         }
     }
     Ok(Value::Array(out))

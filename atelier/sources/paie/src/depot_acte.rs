@@ -740,6 +740,23 @@ pub fn deposer_dsn_dans(
     let ordre_test = ordre_test.max(ordre_d_essai);
     let ordre_test = ordre_d_essai_du_fichier(ordre_test, &chemin)?;
 
+    // LA PAIE DECLAREE : la version de chaque engagement que la DSN emporte -- pour la mensuelle, ceux du mois qui relevent
+    // de son etablissement (S21.G00.11.001 ; une paie qui change ensuite appelle un annule-et-remplace,
+    // `engagement::etats::a_refaire`) ; pour un signalement, celui dont il cite le contrat (S21.G00.40.009) dans le mois
+    // de son evenement.
+    let versions = if apercu.est_signalement() {
+        versions_du_signalement(ctx, &mois, &octets)?
+    } else {
+        let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+        let mut v = crate::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+            .map_err(Echec::from)?;
+        // Et la version de l'engagement de chaque mois passe dont le fichier porte la correction.
+        let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if let Value::Array(a) = &mut v {
+            a.extend(crate::journal::versions_des_corrections(ctx, &mois, &nom)?);
+        }
+        v
+    };
     let envoi = || -> R<String> {
         if joue {
             return reponse_fictive("dsn", reel);
@@ -790,23 +807,6 @@ pub fn deposer_dsn_dans(
         "repetition": repetition, "ordre_test": ordre_test,
         "etablissement": apercu.champ("etablissement"),
     });
-    // LA PAIE DECLAREE : la version de chaque engagement que la DSN emporte -- pour la mensuelle, ceux du mois qui relevent
-    // de son etablissement (S21.G00.11.001 ; une paie qui change ensuite appelle un annule-et-remplace,
-    // `engagement::etats::a_refaire`) ; pour un signalement, celui dont il cite le contrat (S21.G00.40.009) dans le mois
-    // de son evenement.
-    let versions = if apercu.est_signalement() {
-        versions_du_signalement(ctx, &mois, &octets)?
-    } else {
-        let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-        let mut v = crate::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
-            .map_err(Echec::from)?;
-        // Et la version de l'engagement de chaque mois passe dont le fichier porte la correction.
-        let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if let Value::Array(a) = &mut v {
-            a.extend(crate::journal::versions_des_corrections(ctx, &mois, &nom)?);
-        }
-        v
-    };
     let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
     let quand = ligne.get("quand").and_then(Value::as_str).unwrap_or("").to_string();
     if reel && apercu.est_signalement() {
@@ -940,6 +940,9 @@ pub fn deposer_dpae_avec(
         .as_array()
         .map(|a| a.iter().map(|l| json!({"salarie": l["salarie"], "debut": l["debut"], "fin": l["fin"]})).collect())
         .unwrap_or_default();
+    // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
+    let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
+    let versions = crate::journal::versions_du_mois(ctx, &mois, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
     let reponse = match envoi() {
         Ok(r) => r,
         Err(e) => {
@@ -959,9 +962,6 @@ pub fn deposer_dpae_avec(
     // Ce que ce depot a REELLEMENT declare, a la maille de l'embauche : c'est ce qui repondra ensuite a
     // « lesquelles restent a faire ».
     let detail = json!({"preuve": forme, "repetition": repetition, "embauches": embauches});
-    // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
-    let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
-    let versions = crate::journal::versions_du_mois(ctx, &mois, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
     let ligne = noter(ctx, "dpae", &mois, &chemin, reel, qui, true, "urssaf", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
     // LE REVEIL SE TAIT (27/09/2026) : la DPAE est partie, le filet n'a plus a sonner pour ces embauches.
     if reel && !joue {

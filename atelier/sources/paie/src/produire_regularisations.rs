@@ -205,7 +205,7 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
         etat.rappels_net_social = rappels;
     }
     etat.taux_pas = origine.paie.pas.as_ref().map(|p| valeur_en_texte(&p.taux)).filter(|t| !t.is_empty());
-    if let Some(d) = engagement::etats::debut_declare(ctx, &objet, &departs, mois_courant) {
+    if let Some(d) = engagement::etats::debut_declare(ctx, &objet, &departs, mois_courant).map_err(refus)? {
         etat.debut_contrat = Some(Jour::lire(&d).map_err(|e| refus(e))?.jjmmaaaa());
     }
     Ok((etat, derniere_paie.paie.net_a_payer))
