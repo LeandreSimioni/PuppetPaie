@@ -21,8 +21,8 @@
 **Ce qui est prêt**
 - Le produit est en Rust seul : `paie/` (moteur), `fenetre/` (Tauri),
   `donnees/` (référentiels), `interface/` (la page). Suite : `cargo test` vert.
-- Les tests ne lisent plus `prive/` ni `demo/` : compagnies fictives et copie
-  figée des démos (`paie/tests/donnees/fictives/`).
+- Les tests ne lisent plus `prive/` ni `demo/` : ils montent leurs propres
+  compagnies de test.
 - Le nom de la compagnie réelle n'apparaît plus dans le code (un test de
   signature le portait, corrigé).
 
