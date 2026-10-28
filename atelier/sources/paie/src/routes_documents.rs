@@ -61,7 +61,7 @@ fn nul() -> &'static Value {
 pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
-    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?;
     let mut m = Moteur::nouveau(ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
@@ -252,7 +252,7 @@ pub(crate) fn numero_du_contrat(
         return Ok(Some(n.to_string()));
     }
     if let Some(m) = mois.filter(|m| !m.is_empty()) {
-        let (_d, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, m, None)?;
+        let (_d, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, m, None)?;
         let propres = numeros_du_jour(&paies, salarie, debut)?;
         if let Some(i) = propres.iter().position(|x| x == n) {
             return Ok(etats::apparier(&propres, &parti)[i].clone());
@@ -293,7 +293,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (salarie, debut) = (valeur_en_texte(salarie_v), valeur_en_texte(debut_v));
     // `_paie_du_contrat(ctx, parti["mois"], salarie, debut)`.
     let mois_parti = valeur_en_texte(&parti.mois);
-    let (_data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois_parti, None)?;
+    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_parti, None)?;
     // La paie de CE contrat : celle dont le journal connait le numero (`apparier`), sinon celle qui le porte.
     let numero_parti = valeur_en_texte(&etats::numero_de_cle(&parti.numero));
     let trouvee = paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
@@ -488,9 +488,9 @@ fn aer_manquantes(ctx: &Contexte, mois: &str) -> R<Vec<String>> {
 }
 
 /// Les paies de `periode`, sous les numeros de contrat que la DSN a DECLARES (regle 4 : un numero se lit --
-/// `apercu_dsn::paies_aux_numeros_declares`), sans rien dire de ce qui les fait echouer (vide).
+/// `ecrire_documents::paies_aux_numeros_declares`), sans rien dire de ce qui les fait echouer (vide).
 fn paies_de_la_periode(ctx: &Contexte, periode: &str) -> Vec<engagement::calcul::Paie> {
-    crate::apercu_dsn::paies_aux_numeros_declares(ctx, periode, None).map(|t| t.1).unwrap_or_default()
+    documents::ecrire_documents::paies_aux_numeros_declares(ctx, periode, None).map(|t| t.1).unwrap_or_default()
 }
 
 /// `mois_suivant("2026-12")` = `"2027-01"`.
@@ -836,7 +836,7 @@ pub(crate) fn charger_le_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<engag
         return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
     let annee: i32 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
-    crate::routes_ouverture::numeroter(ctx, &mut paies, annee)?;
+    documents::ecrire_documents::numeroter(ctx, &mut paies, annee)?;
     Ok((data, paies))
 }
 

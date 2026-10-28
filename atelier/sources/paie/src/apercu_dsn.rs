@@ -5,7 +5,7 @@
 //!
 //! Les pieces reprises du reste du moteur : `Moteur::etat_remplacement` (l'annule-et-
 //! remplace d'un etablissement), `engagement::etats::validees_du_mois` et
-//! `routes_ouverture::numeroter` (les paies validees, numerotees), `depot::lire` (la lecture du
+//! `ecrire_documents::paies_aux_numeros_declares` (les paies validees, numerotees), `depot::lire` (la lecture du
 //! fichier), `etats::{deja_depose, repetition}` (le journal).
 //!
 //! Un nombre `NaN`, `Infinity`, ou dont l'exposant sortirait des 28 chiffres de `rust_decimal`, se refuse comme un
@@ -27,8 +27,7 @@ use socle::texte::{blanc, lignes_py, texte_latin1};
 use socle::echec::Echec;
 use crate::routes_apercus::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes_mois::Moteur;
-use crate::routes_ouverture::numeroter;
-use socle::echec::Refus;
+use documents::ecrire_documents::paies_aux_numeros_declares;
 
 type R<T> = Result<T, Echec>;
 
@@ -252,26 +251,6 @@ pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
         }
     }
     Ok(sals)
-}
-
-// ------------------------------------------------------------------ la saisie aux numeros declares
-
-/// LA SAISIE DU MOIS AUX NUMEROS DECLARES : ce qui peut partir de `mois` (`etats::validees_du_mois` : la saisie reduite
-/// aux engagements valides, et leurs paies ecrites), chaque contrat sous le numero que son engagement porte depuis sa
-/// validation (`engagement::numeros`), chaque bulletin sous le sien (ecrit dans la paie a son depart, ou celui que le
-/// compteur propose). `reserves` : les numeros de bulletin qu'un envoi propose, que la route d'envoi ecrit plus loin. Un
-/// mois sans engagement valide n'a rien.
-pub(crate) fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&mut crate::depart::Reserves>) -> Result<(Value, Vec<Paie>), Refus> {
-    let Some((data, mut paies)) = engagement::etats::validees_du_mois(ctx, mois)? else {
-        return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
-    };
-    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
-    match reserves {
-        Some(r) => r.numeroter(ctx, &mut paies, annee)?,
-        None => numeroter(ctx, &mut paies, annee)?,
-    }
-    Ok((data, paies))
 }
 
 /// La meme, sans le detail du refus : le moindre refus, quel qu'il soit, rend `Err`.

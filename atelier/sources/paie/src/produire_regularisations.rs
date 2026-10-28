@@ -346,7 +346,7 @@ pub(crate) fn ecrire_rectificatifs(
     regs: &[Reg],
     mois_courant: &str,
     sortie_courante: &Path,
-    reserves: &mut crate::depart::Reserves,
+    reserves: &mut documents::ecrire_documents::Reserves,
 ) -> R<Rectificatifs> {
     let mut out = Rectificatifs { fichiers: Vec::new(), avertissements: Vec::new() };
     let payes: Vec<&Reg> = regs.iter().filter(|r| !r.apres.engagement.sans_paie()).collect();

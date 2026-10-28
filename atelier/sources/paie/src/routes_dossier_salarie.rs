@@ -376,7 +376,7 @@ fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut Has
     let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
     let annee = socle::num::int_py(&mois.chars().take(4).collect::<String>())
         .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
-    crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee as i32, attente)
+    documents::ecrire_documents::numeroter_en_attente(ctx, paies, annee as i32, attente)
 }
 
 /// `etiquette(mois)`, ses refus sous leur classe.

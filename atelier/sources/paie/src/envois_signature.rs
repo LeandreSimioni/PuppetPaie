@@ -4,7 +4,7 @@
 //! Un courriel par salarie, un PDF par courriel (le contrat, ou les avenants), le bouton « Je signe » (un lien `mailto:`
 //! vers la boite de la compagnie, objet et corps deja ecrits) et un CODE UNIQUE (`SIG-XXXXXX`) par courriel, garde au
 //! journal avec la demande : c'est par lui que la releve des signatures reconnait la reponse. Les messages sont ceux que
-//! `signature-apercu` et `avenant-apercu` ont montres : les paies (`apercu_dsn::paies_aux_numeros_declares`), les
+//! `signature-apercu` et `avenant-apercu` ont montres : les paies (`ecrire_documents::paies_aux_numeros_declares`), les
 //! articles modifies (`avenant-apercu` lui-meme, appele ici), les etats (`signature-apercu`, pour la relance).
 //!
 //! Tout se verifie avant que rien ne parte, puis la preuve (le mot de passe du logiciel) ; les PDF s'ecrivent apres
@@ -285,7 +285,7 @@ pub(crate) fn contrats_imprimer(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// La meme, `qui` donne (l'horloge d'une compagnie fictive passe le sien).
 pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
-    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let par_salarie = contrats_choisis(charge, &mois, &paies)?;
     if par_salarie.is_empty() {
@@ -327,7 +327,7 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     let relance = charge.get("relance").is_some_and(vrai);
     let remplace = charge.get("remplace").is_some_and(vrai);
     // Chaque contrat sous le numero qu'il porte, ou celui qui lui serait donne : c'est celui-la qui part.
-    let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
+    let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
     let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
@@ -678,7 +678,7 @@ fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &crate::depot_acte
         for a in aa {
             let mois_a = a.texte("mois");
             if !saisies.contains_key(&mois_a) {
-                let (d, p) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois_a, None)?;
+                let (d, p) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_a, None)?;
                 saisies.insert(mois_a.clone(), (d, p));
             }
             let (_, paies) = &saisies[&mois_a];

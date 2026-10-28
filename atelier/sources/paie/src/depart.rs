@@ -27,8 +27,9 @@ use engagement::Avis;
 use socle::echec::erreur;
 use socle::echec::Echec;
 use socle::echec::R;
-use socle::ecriture::{ecrire_json, json_indente};
-use socle::fichiers::{lire_json, vrai};
+use socle::ecriture::ecrire_json;
+use socle::fichiers::vrai;
+use documents::ecrire_documents::Reserves;
 use socle::valeur::valeur_en_texte;
 
 fn info(texte: impl Into<String>) -> Avis {
@@ -60,71 +61,6 @@ fn prenom_de(sal: &Value) -> String {
 
 fn annee_de(mois: &str) -> R<i64> {
     mois.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois))))
-}
-
-// ------------------------------------------------------------- les numeros reserves
-
-/// Les numeros reserves par ce processus, dans leur ordre d'arrivee. Rien n'est ecrit avant `valider`.
-#[derive(Default)]
-pub(crate) struct Reserves {
-    valeurs: HashMap<(String, String), i64>,
-    ordre: Vec<(String, String)>,
-}
-
-impl Reserves {
-    /// Le suivant de ce qui est reserve, sinon de ce que `compteurs.json` porte.
-    pub(crate) fn prochain(&self, ctx: &Contexte, cle: &str, annee: i64) -> R<i64> {
-        let an = annee.to_string();
-        if let Some(v) = self.valeurs.get(&(an.clone(), cle.to_string())) {
-            return Ok(v + 1);
-        }
-        let p = ctx.racine.join("config").join("compteurs.json");
-        let c = if p.exists() { lire_json(&p).map_err(valeur)? } else { Value::Null };
-        let lu = match c.get(&an).and_then(|a| a.get(cle)) {
-            None => 0,
-            Some(Value::Number(n)) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)).unwrap_or(0),
-            Some(Value::String(s)) => s.trim().parse().map_err(|_| valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(s))))?,
-            Some(Value::Bool(b)) => *b as i64,
-            Some(_) => 0,
-        };
-        Ok(lu + 1)
-    }
-
-    /// Reserve, sans ecrire.
-    pub(crate) fn enregistrer(&mut self, annee: i64, cle: &str, v: i64) {
-        let k = (annee.to_string(), cle.to_string());
-        if !self.valeurs.contains_key(&k) {
-            self.ordre.push(k.clone());
-        }
-        self.valeurs.insert(k, v);
-    }
-
-    /// Les numeros de bulletin des paies, reserves ; leurs numeros de contrat, ceux qu'elles porteraient.
-    pub(crate) fn numeroter(&mut self, ctx: &Contexte, paies: &mut [Paie], annee: i32) -> R<()> {
-        crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee, &mut self.valeurs)?;
-        let k = (annee.to_string(), "bulletin".to_string());
-        if !self.ordre.contains(&k) {
-            self.ordre.push(k);
-        }
-        Ok(())
-    }
-
-    /// Ecrit les numeros reserves dans `config/compteurs.json`.
-    pub(crate) fn valider(&self, ctx: &Contexte) -> R<()> {
-        if self.ordre.is_empty() {
-            return Ok(());
-        }
-        let p = ctx.racine.join("config").join("compteurs.json");
-        let mut c = if p.exists() { lire_json(&p).map_err(valeur)? } else { json!({}) };
-        let lu = socle::valeur::nom_type(&c);
-        let racine = c.as_object_mut().ok_or_else(|| erreur("AttributeError", format!("config/compteurs.json : {}", socle::fichiers::attendu("un objet", lu))))?;
-        for (an, cle) in &self.ordre {
-            let annee = racine.entry(an.clone()).or_insert_with(|| json!({}));
-            let annee = annee.as_object_mut().ok_or_else(|| erreur("AttributeError", "l'annee des compteurs n'est pas un dictionnaire"))?;
-            annee.insert(cle.clone(), json!(self.valeurs[&(an.clone(), cle.clone())]));
-        }
-        std::fs::write(&p, json_indente(&c, 2)).map_err(|e| os(&p, e))
-    }
 }
 
 // ------------------------------------------------------------- le journal des pieces ecrites
@@ -280,7 +216,7 @@ fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<(crate::
             None => Ok(true),
         }
     };
-    let (_data, toutes) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None)?;
+    let (_data, toutes) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None)?;
     let mut paies: Vec<Paie> = Vec::new();
     for p in toutes {
         if du_nic(&p.salarie)? {
@@ -555,7 +491,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             engagement::libelle_mois(mois)
         )));
     }
-    let (_data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None)?;
+    let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None)?;
     let (_urssaf, avert) = crate::routes_ouverture::urssaf_de_l_apercu(ctx, &paies, mois)?;
     avertissements.extend(avert.into_iter().map(avertissement));
     avertissements.extend(crate::routes_ouverture::archives_employees(&paies)?.into_iter().map(avertissement));
@@ -792,7 +728,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     let ecrits = engagement::etats::numeros_des_documents(ctx, mois).map_err(Echec::from)?;
     let an = annee_de(mois)?;
     // Les numeros de bulletin que le compteur propose ; chaque contrat porte deja le sien.
-    crate::routes_ouverture::numeroter(ctx, &mut paies, an as i32)?;
+    documents::ecrire_documents::numeroter(ctx, &mut paies, an as i32)?;
     let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
     let dossier = sortie.join("envoi");

@@ -180,7 +180,7 @@ pub(crate) fn contrat_recu_avec(
     courriel: Option<&Map<String, Value>>,
 ) -> R<Value> {
     // Les paies telles que la DSN les a declarees, sans rien ecrire.
-    let paies = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
+    let paies = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
     // LE CONTRAT, pas le salarie : `numero` est celui sous lequel le journal le connait (la releve), ou celui que l'ecran affiche.
     let numero = numero.filter(|n| !n.is_empty());
     let lignes = crate::etats::charger(&ctx.racine)?;

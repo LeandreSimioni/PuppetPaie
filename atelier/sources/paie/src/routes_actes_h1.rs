@@ -142,7 +142,7 @@ fn engagement_qui_finit<'a>(ctx: &Contexte, saisie: &'a Value, cle: &str, nom: &
 fn paie_de_l_engagement(ctx: &Contexte, paies: &[Paie], rang: usize, cle: &str, nom: &str, mois: &str) -> R<Paie> {
     let annee = mois.chars().take(4).collect::<String>().parse::<i32>().map_err(|_| erreur("ValueError", format!("mois illisible : {}", repr_texte(mois))))?;
     let mut paies = paies.to_vec();
-    crate::routes_ouverture::numeroter(ctx, &mut paies, annee).map_err(en_echec)?;
+    documents::ecrire_documents::numeroter(ctx, &mut paies, annee).map_err(en_echec)?;
     paies
         .into_iter()
         .nth(rang)
