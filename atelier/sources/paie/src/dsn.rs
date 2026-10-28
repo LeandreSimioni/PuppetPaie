@@ -3402,27 +3402,31 @@ determinee de moins de douze mois d'un artiste) : son FNAL se paie sur la tranch
     Ok(lignes)
 }
 
-/// Le bordereau Urssaf d'un mois, tel que la DSN le portera (22.005) : ses
-/// lignes 23, valorisees a la table des CTP. Pour l'apercu, avant de
-/// produire ; les corrections des mois deposes n'y sont pas, elles ont leurs
-/// propres bordereaux. `etablissement` : le NIC, le principal sans lui.
-pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>) -> Resultat<Decimal> {
+/// LE BORDEREAU URSSAF D'UN MOIS, tel que la DSN le porte, tire des paies `paies` par les fonctions qui l'y ecrivent
+/// (`lignes_bordereau`, `bordereau::montant`) : ses lignes 23, valorisees a la table des CTP, et son total (22.005). Les
+/// corrections des mois deja declares n'y sont pas : elles ont leurs propres bordereaux. `etablissement` : le NIC, le
+/// principal sans lui.
+pub fn bordereau_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>) -> Resultat<(Vec<LigneBordereau>, Decimal)> {
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let principal = bareme::nic_principal(ent);
     let nic = etablissement.filter(|n| !n.is_empty()).map_or_else(|| principal.clone(), str::to_string);
     let orgs = ctx.organismes_exiges()?;
     let debut = premier(mois)?;
-    let bar = bareme_du_nic(ctx, ent, &nic, mois)?;
+    let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let doeth = if nic == principal { crate::oeth::declaration(ctx, mois)? } else { None };
     let csa = if nic == principal { crate::csa::declaration(ctx, mois)? } else { None };
     let solde_ta = solde_taxe_apprentissage(ctx, mois, &orgs, &bar, &nic)?;
     let refs: Vec<&Paie> = paies.iter().flat_map(|p| p.elementaires()).collect();
     let effectif = Seuils::du_mois(ctx, mois)?;
-    bordereau::montant(
-        &lignes_bordereau(&refs, &orgs, ent, &bar, solde_ta.as_ref(), doeth.as_ref(), csa.as_ref(), mois, &effectif)?,
-        &debut,
-    )
+    let lignes = lignes_bordereau(&refs, &orgs, ent, &bar, solde_ta.as_ref(), doeth.as_ref(), csa.as_ref(), mois, &effectif)?;
+    let total = bordereau::montant(&lignes, &debut)?;
+    Ok((lignes, total))
+}
+
+/// Le total du bordereau Urssaf d'un mois (22.005), pour l'apercu, avant de produire (`bordereau_du_mois`).
+pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>) -> Resultat<Decimal> {
+    Ok(bordereau_du_mois(ctx, paies, mois, etablissement)?.1)
 }
 
 /// Le bordereau Urssaf d'un mois d'origine que la DSN courante regularise : par CTP, la difference « corrige moins
