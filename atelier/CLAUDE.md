@@ -64,6 +64,10 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
   ticket** (ce qui est fait, où, comment le voir) et le **fermer** : corrigé sur la branche, c'est fermé, avec la phrase « ce sera
   réglé dans la nouvelle version » (Léandre, 15/10) ; on n'attend pas la version publiée. Ce qu'un ticket
   demande se fait entier ; ce qu'il ne demande pas ne se fait pas sans le dire.
+- **Un manque va dans un ticket, jamais dans un plan ni une consigne** (Léandre, 28/10/2026). Un plan, une règle,
+  `ARCHITECTURE.md` disent ce qui doit être ; ce qui ne l'est pas encore (un trou constaté, un reste à faire) s'ouvre en
+  ticket du privé, avec ses cases à cocher, et se ferme quand c'est fait. Un constat laissé dans un plan resterait vrai
+  aux yeux de la séance suivante une fois réparé.
 - **La branche** : chaque séance part de `main` du public sur sa branche ; PR en brouillon tant que ce n'est pas fini ;
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).
 - **La fin de séance, c'est Léandre qui la dit** : la passe de tests ne se lance pas avant. Puis : le récit dans
