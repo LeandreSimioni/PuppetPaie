@@ -1,8 +1,9 @@
-//! Les routes qui ECRIVENT du lot G4 : `valider-engagement`, `contrat-recu`, `journal-reprise`, `ecrire-documents`,
+//! Les routes qui ECRIVENT du lot G4 : `valider-engagement`, `retirer-engagement`, `contrat-recu`, `journal-reprise`, `ecrire-documents`,
 //! `exporter`, `retenir-logiciel`, `casc-regularise` et `courriels-fictifs`. Un refus garde sa phrase quand elle est
 //! utile a la page.
 //!
 //! - `valider-engagement` valide un engagement (ses paies s'ecrivent) ou le remet en saisie (« Modifier… »).
+//! - `retirer-engagement` supprime un engagement dont rien n'est parti, ou le rend non actif.
 //! - `contrat-recu` note au journal qu'un contrat signe est revenu (ou retire la note).
 //! - `exporter` route vers tous les etats (`etats_paie`, `etats_organismes`, `etats_personnel`, `etats_compta`,
 //!   `casc_regularisation`) et rend le tableau en JSON (`tableaux_export::brut_tableau`).
@@ -22,12 +23,13 @@ use socle::echec::Echec;
 use socle::echec::Refus;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 7] = ["valider-engagement", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "exporter"];
+pub const ROUTES: [&str; 8] = ["valider-engagement", "retirer-engagement", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "exporter"];
 
 /// Une route de ce module.
 pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "valider-engagement" => valider_engagement(ctx, charge),
+        "retirer-engagement" => retirer_engagement(ctx, charge),
         "contrat-recu" => contrat_recu(ctx, charge),
         "retenir-logiciel" => retenir_logiciel(ctx, charge),
         "casc-regularise" => casc_regularise(ctx, charge),
@@ -87,8 +89,33 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
     let valide = booleen(charge, "valide", true);
     let confirme = booleen(charge, "confirme", false);
+    let (data, i) = engagement_designe(ctx, charge)?;
+    let deja = data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned();
+    let rendu = if valide {
+        match deja {
+            Some(le) => le,
+            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &data, m)))?.le().to_string()),
+        }
+    } else {
+        if !confirme {
+            if let Some(q) = engagement::etats::question_avant_de_modifier(ctx, mois, i).map_err(Echec::from)? {
+                return Err(erreur(CLASSE_DOCUMENTS_PARTIS, q));
+            }
+        }
+        engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
+        Value::Null
+    };
+    Ok(json!({"salarie": salarie, "debut": debut, "valide": rendu}))
+}
+
+/// L'ENGAGEMENT QUE LA PAGE DESIGNE dans la saisie enregistree de `mois` : `salarie`, `debut`, et, si deux contrats du
+/// salarie commencent ce jour-la, `numero` ou `rang` (son rang parmi eux). Rend la saisie du mois et son rang dans
+/// l'ecran. Refus : un engagement absent de la saisie enregistree (agir sur ce qui n'est pas enregistre poserait un etat
+/// sur un formulaire qu'un rechargement effacerait).
+fn engagement_designe(ctx: &Contexte, charge: &Value) -> R<(Value, usize)> {
+    let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
-        return Err(refus(format!("Le mois {} n'est pas enregistre : il n'y a rien a valider. Enregistrer la saisie d'abord.", mois)));
+        return Err(refus(format!("Le mois {} n'est pas enregistre : il n'y a pas d'engagement a designer. Enregistrer la saisie d'abord.", mois)));
     };
     let rangs = crate::routes_ecritures::identifiants(ctx, &data).map_err(Echec::from)?;
     // LE CONTRAT, PAS LE SALARIE DU JOUR (`jumeaux`) : deux contrats du meme salarie peuvent commencer le meme jour.
@@ -122,22 +149,44 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
             }
         },
     };
-    let deja = data["engagements"][i].get("valide").and_then(|v| v.get("le")).cloned();
-    let rendu = if valide {
-        match deja {
-            Some(le) => le,
-            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &data, m)))?.le().to_string()),
-        }
-    } else {
-        if !confirme {
-            if let Some(q) = engagement::etats::question_avant_de_modifier(ctx, mois, i).map_err(Echec::from)? {
-                return Err(erreur(CLASSE_DOCUMENTS_PARTIS, q));
-            }
-        }
-        engagement::etats::modifier(ctx, mois, i).map_err(Echec::from)?;
-        Value::Null
-    };
-    Ok(json!({"salarie": salarie, "debut": debut, "valide": rendu}))
+    Ok((data, i))
+}
+
+// ------------------------------------------------------------------ retirer-engagement
+
+/// La classe du refus de supprimer un engagement dont quelque chose est parti : la page montre la phrase, et renvoie la
+/// demande avec `non_actif` si l'utilisateur veut qu'il ne soit plus actif.
+pub const CLASSE_ENGAGEMENT_PARTI: &str = "EngagementParti";
+
+/// « Retirer cet engagement » : l'engagement se designe comme pour `valider-engagement` (`engagement_designe`). Tant
+/// que rien n'est parti de lui, il se supprime, meme valide, et rend son numero (`engagement::etats::supprimer`). Des
+/// qu'un envoi est parti, le moteur refuse (`CLASSE_ENGAGEMENT_PARTI`, la phrase dit ce qui est parti) ; avec
+/// `non_actif`, il devient non actif (`engagement::etats::desactiver`) et la reponse dit ce que cela rend a faire
+/// (`a_faire`, en phrases : la DPAE a annuler, la DSN d'un mois a corriger). Rien ne part de lui-meme.
+fn retirer_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let mois = texte_requis(charge, "mois")?;
+    let (_, i) = engagement_designe(ctx, charge)?;
+    if !booleen(charge, "non_actif", false) {
+        return match engagement::etats::supprimer(ctx, mois, i) {
+            Ok(()) => Ok(json!({"retire": "supprime"})),
+            Err(m) => Err(erreur(CLASSE_ENGAGEMENT_PARTI, m)),
+        };
+    }
+    let n = engagement::etats::desactiver(ctx, mois, i).map_err(Echec::from)?;
+    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    Ok(json!({"retire": "non_actif", "le": n.le(), "a_faire": a_faire_en_phrases(&n.a_refaire(ctx, &departs))}))
+}
+
+/// Ce qu'un engagement non actif rend a faire, en phrases pour l'ecran.
+pub(crate) fn a_faire_en_phrases(a: &[engagement::etats::ARefaire]) -> Vec<String> {
+    use engagement::etats::ARefaire;
+    a.iter()
+        .filter_map(|x| match x {
+            ARefaire::DpaeAAnnuler { .. } => Some("DPAE à annuler".to_string()),
+            ARefaire::Dsn { mois, .. } => Some(format!("DSN de {} à corriger", engagement::libelle_mois(mois))),
+            _ => None,
+        })
+        .collect()
 }
 
 // ------------------------------------------------------------------ contrat-recu

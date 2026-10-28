@@ -41,8 +41,9 @@ use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
 
-/// Le format du fichier : un autre se refait avant de se montrer. 3 : le moteur qui l'a ecrit (`moteur`).
-const FORMAT: u64 = 3;
+/// Le format du fichier : un autre se refait avant de se montrer. 3 : le moteur qui l'a ecrit (`moteur`) ; 4 : les
+/// engagements non actifs (`non_actifs`).
+const FORMAT: u64 = 4;
 
 /// Les routes que l'etat d'un mois sert.
 pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois"];
@@ -263,6 +264,7 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
                 "mois": mois,
                 "empreinte": avant,
                 "engagements": par_engagement.get("engagements").cloned().unwrap_or(Value::Null),
+                "non_actifs": par_engagement.get("non_actifs").cloned().unwrap_or(Value::Null),
                 "du_mois": du_mois,
                 "lectures": lus,
             })
@@ -321,7 +323,7 @@ fn du_mois(racine: &Path, etat: &Value) -> R<Value> {
 fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
     use crate::interface::api::{en_page, Refus};
     let mut l = etat.get("lectures").and_then(Value::as_object).cloned().unwrap_or_default();
-    l.insert("etat-par-engagement".into(), en_page(Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null) }))));
+    l.insert("etat-par-engagement".into(), en_page(Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) }))));
     l.insert(
         "etat-du-mois".into(),
         en_page(du_mois(racine, etat).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))),
@@ -335,7 +337,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
     let (brut, mois) = crate::routes_mois::mois_de(charge)?;
     let etat = lire(o, ctx, &mois)?;
     match nom {
-        "etat-par-engagement" => Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null) })),
+        "etat-par-engagement" => Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) })),
         "mois" => Ok(pour_la_page(&ctx.racine, &etat, &brut)),
         _ => du_mois(&ctx.racine, &etat),
     }

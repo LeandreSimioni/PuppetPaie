@@ -309,6 +309,19 @@ impl Paie {
         })
     }
 
+    /// LA MEME PAIE, ANNULEE : son contrat, sa fiche et son spectacle, sans aucune ligne, aucune activite ni aucun
+    /// montant. Ce qu'est la paie d'un engagement qui n'est plus actif (`etats::NonActif`) : une correction qui la porte
+    /// annule tout ce qui a ete declare, et ne declare rien a la place.
+    pub fn annulee(&self) -> Paie {
+        let mut engagement = self.engagement.clone();
+        engagement.lignes.clear();
+        (engagement.jours, engagement.cachets, engagement.heures) = (0, 0, None);
+        let zero = Decimal::new(0, 2);
+        let mut p = Paie::nouveau(engagement, self.salarie.clone(), self.spectacle.clone(), zero, zero, zero, self.smic, zero, self.plafond_temps_partiel);
+        p.0.bases = self.bases.keys().map(|k| (k.clone(), zero)).collect();
+        p
+    }
+
     /// Ce que la paie porte, a ecrire : le calcul, la relecture, la validation.
     pub(crate) fn ecrire(&mut self) -> &mut Contenu {
         &mut self.0

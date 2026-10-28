@@ -1439,13 +1439,39 @@ pub(crate) fn mois_de(charge: &Value) -> R<(Value, String)> {
     Ok((v.clone(), valeur_en_texte(v)))
 }
 
+/// LES ENGAGEMENTS NON ACTIFS que `mois` montrerait (`engagement::etats::non_actifs_du_mois`), pour qu'ils se lisent :
+/// le salarie, son nom, le contrat, depuis quand, et ce que leur desactivation rend a faire (`a_faire`).
+fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
+    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
+    let mut out = Vec::new();
+    for n in engagement::etats::non_actifs_du_mois(ctx, mois).map_err(plain)? {
+        let b = Value::Object(n.objet().brut.clone());
+        let cle = engagement::cle_de_l_engagement(ctx, &b).unwrap_or_else(|| b.get("salarie").map(valeur_en_texte).unwrap_or_default());
+        let nom = ctx
+            .salarie(&cle)
+            .ok()
+            .map(|f| format!("{} {}", f.get("nom").map(valeur_en_texte).unwrap_or_default(), f.get("prenom").map(valeur_en_texte).unwrap_or_default()))
+            .unwrap_or_else(|| cle.clone());
+        out.push(json!({
+            "salarie": cle,
+            "nom": nom.trim(),
+            "numero": b.get("numero").cloned().unwrap_or(Value::Null),
+            "debut": engagement::debut_brut(&b),
+            "fin": b.get("fin").cloned().unwrap_or(Value::Null),
+            "non_actif": n.le(),
+            "a_faire": crate::routes_ecritures_g4::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
+        }));
+    }
+    Ok(out)
+}
+
 /// Une route de ce module. `charge` : ce que la page envoie (`mois`).
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
     match nom {
         "etat-par-engagement" => {
             let (brut, mois) = mois_de(charge)?;
-            Ok(json!({"mois": brut, "engagements": m.etat_par_engagement(&mois, true)?}))
+            Ok(json!({"mois": brut, "engagements": m.etat_par_engagement(&mois, true)?, "non_actifs": non_actifs(ctx, &mois)?}))
         }
         "etat-du-mois" => {
             let (_, mois) = mois_de(charge)?;

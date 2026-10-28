@@ -905,6 +905,150 @@ pub fn modifier(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<EnSaisie> {
     Ok(EnSaisie { objet: o })
 }
 
+// ------------------------------------------------------------------ supprimer, ou ne plus etre actif
+
+/// CE QUI EST PARTI de l'engagement `o`, dit en mots (« la DPAE, le 02/03/2026 ») : ce que la couche des envois dit
+/// (`departs`), et une version gardee parce qu'un envoi l'avait emportee. Vide : rien n'est parti, il se supprime.
+pub fn ce_qui_est_parti(ctx: &Contexte, o: &Objet, departs: &Departs) -> Vec<String> {
+    let jour = |le: &str| Jour::lire(le.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| le.to_string());
+    let mut out: Vec<String> = ses_departs(ctx, o, departs)
+        .iter()
+        .map(|d| {
+            let quoi = match (d.envoi, d.mois.as_deref()) {
+                (Envoi::Contrat, _) => "le contrat".to_string(),
+                (Envoi::Dpae, _) => "la DPAE".to_string(),
+                (Envoi::Documents, Some(m)) => format!("les documents de {}", crate::libelle_mois(m)),
+                (Envoi::Dsn, Some(m)) => format!("la DSN de {}", crate::libelle_mois(m)),
+                (Envoi::Signalement, _) => "un signalement".to_string(),
+                (_, None) => "un envoi".to_string(),
+            };
+            format!("{}, le {}", quoi, jour(&d.le))
+        })
+        .collect();
+    out.dedup();
+    if out.is_empty() && o.brut.get(VERSIONS).and_then(Value::as_array).is_some_and(|v| !v.is_empty()) {
+        out.push("une version qu'un envoi a emportee".to_string());
+    }
+    out
+}
+
+/// SUPPRIMER L'ENGAGEMENT de rang `rang` dans l'ecran de `mois` : tant que rien n'est parti de lui (`ce_qui_est_parti`
+/// vide), il s'efface, meme valide, et rend son numero (`numeros` : le suivant se tire de ce que portent les
+/// engagements et ce qui est parti). Refus des qu'un envoi est parti : il ne se supprime plus, il peut ne plus etre
+/// actif (`desactiver`) ; rien n'est ecrit.
+pub fn supprimer(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<()> {
+    let o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    let partis = ce_qui_est_parti(ctx, &o, &departs::lire(&ctx.racine)?);
+    if !partis.is_empty() {
+        return Err(format!(
+            "{} : déjà parti : {}. Il ne se supprime plus ; il peut devenir non actif : il reste dans la compagnie, avec ses versions, et ne compte plus dans aucune paie ni aucune déclaration. Rien n'est effacé.",
+            qui_de(&o),
+            partis.join(" ; "),
+        ));
+    }
+    stock::effacer(&ctx.racine, &o)?;
+    Ok(())
+}
+
+/// Un engagement qui n'est plus actif (`stock::NON_ACTIF`) : il garde ses versions, ne se calcule plus, n'entre dans
+/// aucun document ni aucune declaration ; il se lit.
+#[derive(Debug, Clone)]
+pub struct NonActif {
+    objet: Objet,
+    le: String,
+    version: u64,
+}
+
+impl NonActif {
+    /// L'engagement non actif `o`, tel qu'il est ecrit ; `None` s'il est actif.
+    pub fn de(objet: Objet) -> Option<NonActif> {
+        let na = objet.brut.get(stock::NON_ACTIF)?;
+        let le = na.get("le").map(en_texte)?;
+        let version = na.get("version").and_then(Value::as_u64)?;
+        Some(NonActif { objet, le, version })
+    }
+
+    /// Sa version : celle qui suit la derniere validee. Son present est : rien de paye ; une correction qui le declare
+    /// part sur elle.
+    pub fn version(&self) -> u64 {
+        self.version
+    }
+
+    pub fn objet(&self) -> &Objet {
+        &self.objet
+    }
+
+    /// Depuis quand.
+    pub fn le(&self) -> &str {
+        &self.le
+    }
+
+    /// CE QUE SA DESACTIVATION REND FAUX, tire de ce qui est parti (`departs`) comparé a son present, qui est : rien. La
+    /// derniere DPAE partie est a annuler (`DpaeAAnnuler`) ; chaque mois que la derniere DSN qui l'a declare a declare
+    /// sur une autre version que la sienne est a corriger (`Dsn`) : la couche des declarations dit comment
+    /// (l'annule-et-remplace du mois qui ne le porte plus, ou la correction qui annule ce qui a ete declare). Un contrat,
+    /// des documents, un signalement partis ne demandent rien.
+    pub fn a_refaire(&self, ctx: &Contexte, departs: &Departs) -> Vec<ARefaire> {
+        let siens = ses_departs(ctx, &self.objet, departs);
+        let mut out = Vec::new();
+        if let Some(d) = siens.iter().rev().find(|d| d.envoi == Envoi::Dpae) {
+            out.push(ARefaire::DpaeAAnnuler { depuis: d.version });
+        }
+        let mut mois: BTreeMap<String, u64> = BTreeMap::new();
+        for d in siens.iter().filter(|d| d.envoi == Envoi::Dsn) {
+            if let Some(m) = &d.mois {
+                mois.insert(m.clone(), d.version);
+            }
+        }
+        out.extend(mois.into_iter().filter(|(_, depuis)| *depuis != self.version).map(|(mois, depuis)| ARefaire::Dsn { mois, depuis }));
+        out
+    }
+
+    /// LA CORRECTION de `mois` que la DSN de `porteur` doit porter pour lui : ce qui a ete declare pour ce mois par les
+    /// DSN anterieures a `porteur` (`paies_declarees`), quand la derniere ne l'a pas declare non actif ; `None` sinon.
+    pub fn correction_due(&self, ctx: &Contexte, departs: &Departs, mois: &str, porteur: &str) -> Resultat<Option<Vec<Declaree>>> {
+        let declarees = paies_declarees(ctx, &self.objet, departs, mois, porteur)?;
+        let due = declarees.last().is_some_and(|d| d.version != self.version);
+        Ok(due.then_some(declarees))
+    }
+}
+
+/// « NE PLUS ETRE ACTIF » : l'engagement de rang `rang` dans l'ecran de `mois`, dont quelque chose est parti, garde sa
+/// validation parmi ses versions (datee du `le` de la desactivation) et devient non actif. Refus quand rien n'est parti :
+/// il se supprime (`supprimer`) ; rien n'est ecrit.
+pub fn desactiver(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<NonActif> {
+    let mut o = stock::objet_du_mois(&ctx.racine, mois, rang)?.ok_or_else(|| format!("{} : pas d'engagement de rang {}", mois, rang + 1))?;
+    if ce_qui_est_parti(ctx, &o, &departs::lire(&ctx.racine)?).is_empty() {
+        return Err(format!("{} : rien n'est parti de cet engagement ; il se supprime, il ne devient pas non actif. Rien n'est écrit.", qui_de(&o)));
+    }
+    let le = maintenant();
+    // La validation presente, ou celle que « Modifier… » a mise de cote : la derniere version, gardee telle quelle.
+    let derniere = o.brut.remove("valide").or_else(|| o.brut.remove(PRECEDENTE));
+    o.brut.remove(PRECEDENTE);
+    // Sa version suit la derniere validee : son present, rien de paye, est une version de plus.
+    let version = o.brut.get(VERSIONS).and_then(Value::as_array).into_iter().flatten().chain(derniere.as_ref()).filter_map(|v| version_de(Some(v))).max().unwrap_or(0) + 1;
+    if let Some(v) = derniere.filter(|v| version_de(Some(v)).is_some()) {
+        let gardee = json!({
+            "version": v["version"], "valide_le": v.get("le").cloned().unwrap_or(Value::Null), "remplacee_le": le,
+            "saisie": v.get("saisie").cloned().unwrap_or(Value::Null), "paies": v.get("paies").cloned().unwrap_or(Value::Null),
+        });
+        match o.brut.get_mut(VERSIONS).and_then(Value::as_array_mut) {
+            Some(vs) => vs.push(gardee),
+            None => {
+                o.brut.insert(VERSIONS.into(), json!([gardee]));
+            }
+        }
+    }
+    o.brut.insert(stock::NON_ACTIF.into(), json!({ "le": le, "version": version }));
+    stock::reecrire(&ctx.racine, &o)?;
+    NonActif::de(o).ok_or_else(|| "desactivation illisible".to_string())
+}
+
+/// Les engagements non actifs que `mois` montrerait, tels qu'ils sont ecrits.
+pub fn non_actifs_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<NonActif>> {
+    Ok(stock::non_actifs_du_mois(&ctx.racine, mois)?.into_iter().filter_map(NonActif::de).collect())
+}
+
 /// Une raison de recalcul qui est une decision de l'editeur : le code qui calcule, ou une regle datee.
 fn decision_de_l_editeur(raison: &str) -> bool {
     raison == CALCUL_CORRIGE || raison.starts_with("règle du ")
@@ -1051,6 +1195,8 @@ pub enum ARefaire {
     /// La DSN de `mois` est partie sur la version `depuis`, et sa paie a change : un annule-et-remplace, ou la correction
     /// dans une DSN suivante (la couche des declarations tranche, a l'echeance).
     Dsn { mois: String, depuis: u64 },
+    /// L'engagement n'est plus actif et sa DPAE est partie sur la version `depuis` : elle est a annuler.
+    DpaeAAnnuler { depuis: u64 },
 }
 
 /// LA VERSION EN VIGUEUR AU DEPART de chaque envoi, comparee au present de l'engagement valide `v` : ce qui est a
@@ -1229,8 +1375,16 @@ pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str,
             },
         }
     }
-    let mut out = Vec::new();
+    let mut out: Vec<Declaree> = Vec::new();
+    let non_actif = o.brut.get(stock::NON_ACTIF).and_then(|n| n.get("version")).and_then(Value::as_u64);
     for (par, n) in chaine {
+        // Une correction partie sur la version d'un non actif a declare la paie d'avant, annulee.
+        if Some(n) == non_actif {
+            if let Some(avant) = out.last().map(|d| d.paie.annulee()) {
+                out.push(Declaree { par, version: n, paie: avant });
+                continue;
+            }
+        }
         let paie = version_ecrite(o, n)?
             .map(|v| paie_de_la_version(ctx, o, v, mois))
             .transpose()?

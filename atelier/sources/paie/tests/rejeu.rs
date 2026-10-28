@@ -89,3 +89,59 @@ fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
     assert_eq!(documents, 0, "des documents sont partis pour un mois sans DSN : {}", depots);
     assert!(!r.horloge.iter().any(|p| p.contains("documents")), "{:?}", r.horloge);
 }
+
+/// #271 : un engagement dont un envoi reel accepte est parti (la DPAE, la DSN de novembre des Treteaux) ne se supprime
+/// plus. La route refuse et rien n'est ecrit : l'engagement reste tel qu'il etait.
+#[test]
+fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
+    let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "parti"));
+    let avant = std::fs::read(racine.join("engagements/2026-11.json")).unwrap();
+    let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01"});
+    outils::refus(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
+    assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "le refus a ecrit l'engagement");
+}
+
+/// #271 : l'engagement des Treteaux, sa DPAE et sa DSN de novembre parties, devient non actif apres la veille de
+/// l'echeance de novembre. Ressortent la DPAE a annuler et la DSN de novembre a corriger ; la DSN de decembre porte la
+/// correction qui annule tout ce qui avait ete declare pour lui, et rien a la place (cahier technique DSN 2027.1,
+/// `atelier/reference/norme-dsn/texte-2027/chapitre-2-principes-de-constitution.txt`, §2.1.2.1 et §2.1.3.6). Partie,
+/// elle ne se porte plus.
+#[test]
+fn un_engagement_non_actif_fait_annuler_ce_qui_a_ete_declare_pour_lui() {
+    use engagement::etats::ARefaire;
+    let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "non-actif"));
+    let charge = json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-20", "numero": "FU1.26.01", "non_actif": true});
+    outils::reussi(&outils::route(&racine, "retirer-engagement", charge, "2026-12-16"));
+
+    let ctx = |jour: &str| droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
+    let na = engagement::etats::non_actifs_du_mois(&ctx("2026-12-16"), "2026-11").unwrap().pop().expect("l'engagement non actif");
+    let a_refaire = na.a_refaire(&ctx("2026-12-16"), &envois::journal::departs(&racine).unwrap());
+    assert!(a_refaire.iter().any(|a| matches!(a, ARefaire::DpaeAAnnuler { .. })), "{:?}", a_refaire);
+    assert!(a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { mois, .. } if mois == "2026-11")), "{:?}", a_refaire);
+
+    // La DSN de decembre : le versement de la correction annule celui de novembre, montant pour montant.
+    outils::reussi(&outils::route(&racine, "dsn-a-deposer", json!({"mois": "2026-12"}), "2026-12-16"));
+    let lire = |rel: &str| std::fs::read(racine.join(rel)).unwrap().iter().map(|&o| o as char).collect::<String>();
+    let (novembre, decembre) = (lire("sorties/2026-11/DSN_Novembre2026.dsn"), lire("sorties/2026-12/DSN_Decembre2026.dsn"));
+    let montants = |dsn: &str, rubriques: &[&str]| -> Vec<rust_decimal::Decimal> {
+        outils::individu(dsn, "FULLER").into_iter().filter(|(k, _)| rubriques.contains(&k.as_str())).map(|(_, v)| outils::dec(&v)).collect()
+    };
+    let annules = |r: &[&str]| montants(&novembre, r).into_iter().map(|m| -m).collect::<Vec<_>>();
+    for r in [&["S21.G00.50.002", "S21.G00.50.004"][..], &["S21.G00.78.004"], &["S21.G00.81.004"]] {
+        assert!(!annules(r).is_empty(), "{:?}", r);
+        assert_eq!(montants(&decembre, r), annules(r), "{:?}", r);
+    }
+    let brut = |dsn: &str| montants(dsn, &["S21.G00.51.013"]).into_iter().filter(|m| !m.is_zero()).collect::<Vec<_>>();
+    assert_eq!(brut(&decembre), brut(&novembre).into_iter().map(|m| -m).collect::<Vec<_>>());
+
+    // Partie sur la version du non actif, la correction ne ressort plus et ne se porte plus en janvier.
+    let mut journal = outils::lire(&racine, "journal/depots.json");
+    journal.as_array_mut().unwrap().push(json!({
+        "quoi": "dsn", "quand": "2027-01-05T10:00:00", "mois": "2026-12", "fichier": "DSN_Decembre2026.dsn", "mode": "reel", "accepte": true,
+        "versions": [{"salarie": "FULLER", "numero": "FU1.26.01", "version": na.version(), "mois": "2026-11"}],
+    }));
+    outils::ecrire(&racine, "journal/depots.json", &journal);
+    let a_refaire = na.a_refaire(&ctx("2027-01-20"), &envois::journal::departs(&racine).unwrap());
+    assert!(!a_refaire.iter().any(|a| matches!(a, ARefaire::Dsn { .. })), "{:?}", a_refaire);
+    assert!(declarations::produire_regularisations::regularisations_pour(&ctx("2027-01-20"), "2027-01").unwrap().is_empty());
+}

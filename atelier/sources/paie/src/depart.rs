@@ -265,10 +265,11 @@ pub(crate) fn refabriquer(ctx: &Contexte, chemin: &Path, mois: &str, nic: Option
     Ok((declarations::dsn::en_latin1(&f.texte).ok().as_deref() == Some(octets.as_slice())).then_some(f))
 }
 
-/// L'engagement de `mois` du salarie `cle` au contrat `numero`.
+/// L'engagement de `mois` du salarie `cle` au contrat `numero`, actif ou non.
 fn engagement_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str) -> R<engagement::stock::Objet> {
     engagement::stock::objets_du_mois(&ctx.racine, mois)?
         .into_iter()
+        .chain(engagement::stock::non_actifs_du_mois(&ctx.racine, mois)?)
         .find(|o| {
             let b = Value::Object(o.brut.clone());
             engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle) && b.get("numero").map(valeur_en_texte).as_deref() == Some(numero)
@@ -327,10 +328,13 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
         };
         let ctx_c = ctx.du_mois(&c).map_err(valeur)?;
         let o = engagement_de(ctx, &c, &cle, &numero)?;
-        let apres = paie_de_la_version(&ctx_c, &o, &cle, &numero, &c, version)?;
         let dernier = declarations::versement_declare::dernier_declare(&ctx_c, &o, &avant, &c, &mois).map_err(valeur)?;
-        // Le jour de la correction : celui ou la version qu'elle emporte a ete validee.
-        let decidee_le = valide_le(&o, version);
+        // La version d'un non actif : la correction annulait ce qui avait ete declare (`Paie::annulee`), le jour ou il
+        // a cesse d'etre actif. Sinon, le jour ou la version qu'elle emporte a ete validee.
+        let (apres, decidee_le) = match (engagement::etats::NonActif::de(o.clone()).filter(|n| n.version() == version), &dernier) {
+            (Some(n), Some(d)) => (d.avant.annulee(), n.le().get(..10).and_then(|t| socle::date::Jour::lire(t).ok())),
+            _ => (paie_de_la_version(&ctx_c, &o, &cle, &numero, &c, version)?, valide_le(&o, version)),
+        };
         regs.push(match dernier {
             Some(d) => declarations::dsn::Regularisation {
                 mois: c,

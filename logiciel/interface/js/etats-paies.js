@@ -454,6 +454,7 @@ async function dessinerEtatsDesPaies(mois) {
     const r = await api("etat-par-engagement", { mois });
     ETATS_PAIES = {};
     r.engagements.forEach((l) => { ETATS_PAIES[clePaie(l.salarie, l.debut, l.rang)] = l; });
+    peindreNonActifs(r.non_actifs);
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
     // rien à peindre, et rien d'alarmant à dire. La saisie, elle, marche.
@@ -543,43 +544,65 @@ function brancherValidation(div, ligne) {
   brancherRetirer(div);
 }
 
-/** Le bouton « Retirer cette paie » d'un bloc, quel que soit son état. */
+/** Le bouton « Retirer cette paie » d'un bloc, quel que soit son état. Le moteur
+ *  décide (`retirer-engagement`) : rien de parti, l'engagement s'efface ; un
+ *  envoi parti, il refuse (`EngagementParti`), la page montre sa phrase et
+ *  propose de rendre l'engagement non actif. Un bloc pas encore enregistré
+ *  n'a rien dans le moteur : il s'efface de l'écran. */
 function brancherRetirer(div) {
   const b = div.querySelector(".retirer-paie");
   if (!b) return;
-  b.onclick = (ev) => {
+  b.onclick = async (ev) => {
     ev.preventDefault();
-    const lignes = paiesDuBloc(div)
-      .map(etatDePaie)
-      .filter(Boolean);
-    const risques = [];
-    lignes.forEach((l) => {
-      const qui = l.nom;
-      if (l.valide) risques.push(`${qui} : paie validée le ${quand(l.valide)}`);
-      const s = l.etats.signature || {};
-      if (s.recu) risques.push(`${qui} : contrat ${signeLe(s.recu, s.recu_par)}`);
-      else if (s.fait) risques.push(`${qui} : contrat envoyé à la signature le ${quand(s.fait)}`);
-      const d = l.etats.dpae || {};
-      if (d.fait && !d.refusee) risques.push(`${qui} : DPAE déposée le ${quand(d.fait)}`);
-    });
-    const retirer = () => { div.remove(); rafraichirApercu(); dire("Engagement retiré."); };
-    if (!risques.length) return retirer();
+    const mois = document.getElementById("mois").value;
+    const lignes = paiesDuBloc(div).map(etatDePaie).filter(Boolean);
+    if (!lignes.length) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
+    try {
+      for (const l of lignes) {
+        try {
+          await api("retirer-engagement", { mois, ...contratDe(l) });
+        } catch (e) {
+          if (e.detail?.type !== "EngagementParti") throw e;
+          if (!await boiteNonActif(e.message)) return;
+          const r = await api("retirer-engagement", { mois, ...contratDe(l), non_actif: true });
+          if (r.a_faire?.length) dire(`${l.nom} : non actif. À faire : ${r.a_faire.join(", ")}.`);
+        }
+      }
+      await chargerMois(mois, true);
+    } catch (e) { dire(e.message, "erreur"); }
+  };
+}
+
+/** La phrase du moteur, et le choix : rendre l'engagement non actif, ou le garder. */
+function boiteNonActif(phrase) {
+  return new Promise((resoudre) => {
     ouvrirBoite(`
       <h3>Retirer cet engagement ?</h3>
-      <div class="encart attention">
-        <b>Quelque chose est déjà parti ou acté pour cet engagement</b>
-        <ul>${risques.map((r) => `<li>${echapper(r)}</li>`).join("")}</ul>
-      </div>
-      <p class="note">Retirer l'engagement ne défait rien de tout cela : une DPAE
-        déposée reste déposée à l'Urssaf, un contrat envoyé reste envoyé. Si
-        l'embauche n'a pas lieu, c'est une annulation de DPAE qu'il faut faire,
-        pas un retrait à l'écran. Le journal garde ce qui est parti.</p>
+      <div class="encart attention">${echapper(phrase)}</div>
       <div class="actions">
-        <button class="secondaire" onclick="fermerBoite()">Garder la paie</button>
-        <button class="primaire" id="r-retirer">Retirer quand même</button>
-      </div>`);
-    document.getElementById("r-retirer").onclick = () => { fermerBoite(); retirer(); };
-  };
+        <button class="secondaire" id="r-garder">Garder l'engagement</button>
+        <button class="primaire" id="r-non-actif">Le rendre non actif</button>
+      </div>`, () => resoudre(false));
+    document.getElementById("r-garder").onclick = () => { fermerBoite(); resoudre(false); };
+    document.getElementById("r-non-actif").onclick = () => { fermerBoite(); resoudre(true); };
+  });
+}
+
+/** Les engagements non actifs du mois (`etat-par-engagement`, `non_actifs`) : une
+ *  carte qui se lit, sans « Modifier… », et ce que leur désactivation rend à faire. */
+function peindreNonActifs(liste) {
+  const cible = document.getElementById("engagements");
+  if (!cible) return;
+  cible.querySelectorAll(".engagement-non-actif").forEach((d) => d.remove());
+  (liste || []).forEach((n) => {
+    const d = document.createElement("div");
+    d.className = "engagement-non-actif encart";
+    d.innerHTML = `<b>${echapper(n.nom)}</b>
+      <span class="discret">— contrat ${echapper(n.numero || "sans numéro")}
+        du ${echapper(n.debut)}, non actif depuis le ${quand(n.non_actif)}</span>
+      ${n.a_faire?.length ? `<p>À faire : ${n.a_faire.map(echapper).join(", ")}.</p>` : ""}`;
+    cible.appendChild(d);
+  });
 }
 
 /** « Valider l'engagement » ou « Modifier… ». Si des documents d'un de ses mois sont partis, le moteur pose sa
