@@ -941,10 +941,9 @@ pub fn supprimer(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<()> {
     let partis = ce_qui_est_parti(ctx, &o, &departs::lire(&ctx.racine)?);
     if !partis.is_empty() {
         return Err(format!(
-            "{} : {} {} déjà parti. Il ne se supprime plus ; il peut devenir non actif : il reste dans la compagnie, avec ses versions, et ne compte plus dans aucune paie ni aucune déclaration. Rien n'est effacé.",
+            "{} : déjà parti : {}. Il ne se supprime plus ; il peut devenir non actif : il reste dans la compagnie, avec ses versions, et ne compte plus dans aucune paie ni aucune déclaration. Rien n'est effacé.",
             qui_de(&o),
             partis.join(" ; "),
-            if partis.len() > 1 { "sont" } else { "est" }
         ));
     }
     stock::effacer(&ctx.racine, &o)?;
