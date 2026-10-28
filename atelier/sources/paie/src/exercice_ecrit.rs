@@ -175,7 +175,7 @@ fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
 /// (une dette envers l'Etat, au compte `pas` du plan), le net par salarie -- le net PAYE, apres l'impot, celui du
 /// bulletin. Un identifiant de ligne absent du plan fait refuser : on ne devine pas un compte.
 pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) -> R<Vec<Ecriture>> {
-    let (_, paies) = crate::etats_paie::charger_mois(ctx, mois)?;
+    let (_, paies) = documents::etats_paie::charger_mois(ctx, mois)?;
     let (date, lib_mois) = date_et_libelle(mois)?;
     let jrn = ou_texte(plan.get("journal"), "OD");
     let jrn = if plan.contains_key("journal") { valeur_en_texte(&plan["journal"]) } else { jrn };

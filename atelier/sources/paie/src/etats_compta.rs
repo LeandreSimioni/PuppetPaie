@@ -14,11 +14,11 @@ use serde_json::{Map, Value};
 use droit::contexte::{archivee, Contexte};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use crate::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
+use documents::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
 use crate::exercice_ecrit::{ecritures_du_mois, Ecriture};
 use socle::fichiers::vrai;
 use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
-use crate::tableaux_export::{
+use documents::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, nom_compagnie, refus, totaliser, Ligne, Section, Tableau, Val,
     FORMATS_TABLEAU, R, TOTAL_GENERAL,
 };
@@ -1065,7 +1065,7 @@ pub(crate) fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 /// `_taux_patronal` : le taux REEL des cotisations patronales d'un salarie -- ses cotisations patronales sur son
 /// brut, sur les douze mois qui finissent a `jusqu_a`. Rend (taux en %, nombre de bulletins lus).
-fn taux_patronal(lignes: &[crate::etats_paie::LigneLivre], cle: &str, jusqu_a: &str) -> R<(Option<Decimal>, i64)> {
+fn taux_patronal(lignes: &[documents::etats_paie::LigneLivre], cle: &str, jusqu_a: &str) -> R<(Option<Decimal>, i64)> {
     let annee: i64 = debut(jusqu_a, 4).parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
     let depart = format!("{:04}-{}", annee - 1, tranche(jusqu_a, 5, 7));
     let (mut brut, mut pat, mut n) = (zero2(), zero2(), 0i64);
@@ -1296,7 +1296,7 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             let cle = pa.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
             if !par.contains_key(&cle) {
                 ordre.push(cle.clone());
-                par.insert(cle.clone(), (crate::tableaux_export::qui_souple(&pa.salarie), zero, zero, BTreeSet::new()));
+                par.insert(cle.clone(), (documents::tableaux_export::qui_souple(&pa.salarie), zero, zero, BTreeSet::new()));
             }
             let x = par.get_mut(&cle).expect("insere");
             // L'assiette de la CSG, sans la reduction de 1,75 % (CGI 231) : la meme que la DSN de decembre declare

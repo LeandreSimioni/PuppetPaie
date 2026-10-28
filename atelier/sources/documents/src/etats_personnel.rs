@@ -85,7 +85,7 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
 }
 
 /// `operations_etats.liste_des_contrats`.
-pub(crate) fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let mut lecture = Lecture::nouvelle(ctx);
@@ -147,7 +147,7 @@ fn sexe(nir: Option<&Value>) -> &'static str {
 
 /// `operations_etats.registre_du_personnel` : une ligne par embauche, dans l'ordre des embauches, avec les mentions
 /// obligatoires. Un intermittent est embauche a chaque contrat : chaque CDDU est une entree et une sortie.
-pub(crate) fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let mut vus: BTreeSet<(String, String, String, String)> = BTreeSet::new();
@@ -225,7 +225,7 @@ pub(crate) fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 /// `operations_etats.fichier_du_personnel` : chaque fiche de salarie, coordonnees comprises -- ce que le comptable
 /// demande a l'ouverture du dossier. Pas de periode : ce sont les fiches d'aujourd'hui.
-pub(crate) fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut fiches: Vec<(&String, &Value)> = ctx.salaries.iter().collect();
     fiches.sort_by(|a, b| a.0.cmp(b.0));
     let mut lignes = Vec::new();
@@ -313,10 +313,10 @@ fn reponse(r: Option<&Value>) -> String {
 
 /// `operations_etats.journal_des_declarations` : chaque acte qui a engage la compagnie -- DSN, DPAE, envois,
 /// signatures --, avec sa date, son mode, son issue et son fichier : la piste d'audit.
-pub(crate) fn journal_des_declarations(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn journal_des_declarations(ctx: &Contexte, d: &Demande, journal: &[Value]) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;
     let mut lignes = Vec::new();
-    for l in crate::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))? {
+    for l in journal {
         // Un acte porte le mois qu'il declare ; un acte annuel se range au mois ou il a eu lieu.
         let texte = |k: &str| l.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
         let mut m = texte("mois");

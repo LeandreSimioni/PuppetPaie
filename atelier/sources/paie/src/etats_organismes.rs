@@ -16,10 +16,10 @@ use serde_json::{Map, Value};
 use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use crate::etats_paie::{ecarter_declares, finir, lignes_livre, Demande, Lecture, Periode};
+use documents::etats_paie::{ecarter_declares, finir, lignes_livre, Demande, Lecture, Periode};
 use socle::fichiers::vrai;
 use socle::num::{add, div, eur2, mul, zero2, Decimal};
-use crate::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, montant, qui, refus, sections_de, Ligne, Section, Tableau, R};
+use documents::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, montant, qui, refus, sections_de, Ligne, Section, Tableau, R};
 
 // ------------------------------------------------------------------ outils
 
@@ -167,8 +167,8 @@ pub(crate) fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tablea
                     manque.insert(format!("{} ({})", c.id, c.libelle));
                     continue;
                 };
-                let ts = c.taux_sal.map(crate::etats_paie::dec_taux).transpose()?;
-                let tp = c.taux_pat.map(crate::etats_paie::dec_taux).transpose()?;
+                let ts = c.taux_sal.map(documents::etats_paie::dec_taux).transpose()?;
+                let tp = c.taux_pat.map(documents::etats_paie::dec_taux).transpose()?;
                 if c.id == "reduction_generale" {
                     if let Some(rg) = &paie.reduction_generale {
                         let mut reparti = zero;

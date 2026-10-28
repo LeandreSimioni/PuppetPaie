@@ -13,7 +13,7 @@ use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
 
-use documents::bulletin::FORMAT;
+use crate::bulletin::FORMAT;
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
@@ -193,7 +193,7 @@ fn rangees(t: &Tableau) -> Vec<(&Ligne, &'static str)> {
 // ------------------------------------------------------------------ le PDF
 
 /// `tableaux._fractions` : la largeur de chaque colonne, en fraction de la largeur utile.
-pub(crate) fn fractions(entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], utile: f64) -> Vec<f64> {
+pub fn fractions(entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], utile: f64) -> Vec<f64> {
     let n = entetes.len();
     let mut plus_long = vec![0.0f64; n];
     let mut plus_long_mot = vec![0.0f64; n];
@@ -311,7 +311,7 @@ fn description(t: &Tableau, nom: &str) -> Value {
 }
 
 /// `_nom_compagnie` : le nom de la compagnie, ou rien.
-pub(crate) fn nom_compagnie(ctx: &Contexte) -> String {
+pub fn nom_compagnie(ctx: &Contexte) -> String {
     // `fiche(ctx)` lit aussi les compteurs : un fichier abime fait rendre « ».
     let compteurs = ctx.racine.join("config").join("compteurs.json");
     if compteurs.exists() && socle::fichiers::lire_json(&compteurs).is_err() {
@@ -387,12 +387,12 @@ fn qui(fiche: &Value) -> R<String> {
 }
 
 /// Les mois que la saisie a touches (`engagement::stock::mois_saisis`).
-pub(crate) fn mois_saisis(ctx: &Contexte) -> Vec<String> {
+pub fn mois_saisis(ctx: &Contexte) -> Vec<String> {
     engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default()
 }
 
 /// Ce que les deux etats lisent, une fois chacun.
-pub(crate) struct Recapitulatifs<'a> {
+pub struct Recapitulatifs<'a> {
     ctx: &'a Contexte,
     mois: Option<String>,
     annee: Option<String>,
@@ -402,7 +402,7 @@ pub(crate) struct Recapitulatifs<'a> {
 }
 
 impl<'a> Recapitulatifs<'a> {
-    pub(crate) fn nouveau(ctx: &'a Contexte, mois: Option<String>, annee: Option<String>, toutes: bool) -> Self {
+    pub fn nouveau(ctx: &'a Contexte, mois: Option<String>, annee: Option<String>, toutes: bool) -> Self {
         Recapitulatifs { ctx, mois, annee, toutes, saisies: HashMap::new(), etats: [None, None] }
     }
 
@@ -472,7 +472,7 @@ impl<'a> Recapitulatifs<'a> {
     /// `_lignes_du_mois` : les bulletins d'un mois saisi, recalcules.
     fn lignes_du_mois(&mut self, mois: &str) -> R<Vec<LigneLivre>> {
         let paies = self.paies(mois)?;
-        let pas = documents::prelevement::des_paies(self.ctx, &paies).map_err(Refus::from)?;
+        let pas = crate::prelevement::des_paies(self.ctx, &paies).map_err(Refus::from)?;
         let mut out = Vec::new();
         for (p, r) in paies.iter().zip(pas) {
             if p.engagement.sans_paie() {
@@ -512,7 +512,7 @@ impl<'a> Recapitulatifs<'a> {
     /// `operations_etats.couts_de_l_annee` : ce qu'un spectacle, ou un salarie, a coute dans
     /// l'annee (`self.annee`), jusqu'au mois de `ctx.aujourdhui` ; ce qui est seulement saisi pour
     /// plus tard se dit a part (`prevu`). Sans annee, ou sans mois cette annee-la : rien.
-    pub(crate) fn couts_de_l_annee(&mut self) -> R<Value> {
+    pub fn couts_de_l_annee(&mut self) -> R<Value> {
         let annee = self.annee.clone().unwrap_or_default();
         let courant: String = self.ctx.aujourdhui.iso().chars().take(7).collect();
         let mut out = Map::new();
@@ -792,7 +792,7 @@ impl<'a> Recapitulatifs<'a> {
 
     /// `_recapitulatif` : les deux etats reduits au salarie `cle`, en un PDF dans `tmp`. `None` quand
     /// aucun des deux n'a rien a dire de lui.
-    pub(crate) fn pdf(&mut self, cle: &str, tmp: &Path) -> R<Option<std::path::PathBuf>> {
+    pub fn pdf(&mut self, cle: &str, tmp: &Path) -> R<Option<std::path::PathBuf>> {
         let fiche = self.ctx.salaries.get(cle).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(cle)))?;
         let lui = format!(
             "{} {}",
@@ -851,7 +851,7 @@ impl<'a> Recapitulatifs<'a> {
             return Ok(None);
         }
         let chemin = tmp.join(format!("R_{}.pdf", cle));
-        let octets = documents::fabrique::fusion_octets(&morceaux, tmp)?;
+        let octets = crate::fabrique::fusion_octets(&morceaux, tmp)?;
         std::fs::write(&chemin, octets).map_err(|e| Refus::from(format!("ecriture impossible de {} : {}", chemin.display(), e)))?;
         Ok(Some(chemin))
     }

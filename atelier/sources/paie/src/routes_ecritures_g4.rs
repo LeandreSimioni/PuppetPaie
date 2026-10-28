@@ -304,7 +304,7 @@ fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(match exporter_objet(ctx, charge)? {
         Exporte::Casc(v) => v,
         Exporte::Livre(l) => l.json(),
-        Exporte::Tableau(t) => crate::tableaux_export::brut_tableau(&t),
+        Exporte::Tableau(t) => documents::tableaux_export::brut_tableau(&t),
     })
 }
 
@@ -312,14 +312,14 @@ fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// Python le faisait (le chemin ecrit en entier, les montants en `Decimal`).
 pub(crate) enum Exporte {
     Casc(Value),
-    Livre(crate::etats_paie::LivreDePaie),
-    Tableau(crate::tableaux_export::Tableau),
+    Livre(documents::etats_paie::LivreDePaie),
+    Tableau(documents::tableaux_export::Tableau),
 }
 
 /// `exporter`, avant la mise en JSON. La charge peut porter `format_du_logiciel_retenu` : sans `format`, les ecritures comptables laissent
 /// le logiciel retenu (`compta-logiciel`) choisir leur format (la ligne de commande), au lieu du CSV (la page, qui envoie son format).
 pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
-    use crate::etats_paie::Demande;
+    use documents::etats_paie::Demande;
     let etat = texte_ou_rien(charge, "etat").unwrap_or_else(|| "livre-de-paie".to_string());
     let tables = crate::routes_dossiers::tables();
     let etats = tables["etats"].as_array().map(Vec::as_slice).unwrap_or(&[]);
@@ -350,7 +350,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         return Ok(Exporte::Casc(crate::casc_regularisation::vers_json(&r)));
     }
     if etat == "livre-de-paie" {
-        return Ok(Exporte::Livre(crate::etats_paie::livre_de_paie(ctx, &d)?));
+        return Ok(Exporte::Livre(documents::etats_paie::livre_de_paie(ctx, &d)?));
     }
     // Ce que l'etat ne demande pas ne lui est pas passe : un regroupement par defaut (« salarie ») n'a pas de
     // sens pour les cotisations.
@@ -367,25 +367,25 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         d.coordonnees = false;
     }
     let tableau = match etat.as_str() {
-        "livre-de-paie-detaille" => crate::etats_paie::livre_detaille(ctx, &d),
-        "recapitulatif-annuel" => crate::etats_paie::recapitulatif_annuel(ctx, &d),
-        "masse-salariale" => crate::etats_paie::masse_salariale(ctx, &d),
-        "etat-des-virements" => crate::etats_paie::etat_des_virements(ctx, &d),
-        "prelevement-a-la-source" => crate::etats_paie::prelevement_a_la_source(ctx, &d),
+        "livre-de-paie-detaille" => documents::etats_paie::livre_detaille(ctx, &d),
+        "recapitulatif-annuel" => documents::etats_paie::recapitulatif_annuel(ctx, &d),
+        "masse-salariale" => documents::etats_paie::masse_salariale(ctx, &d),
+        "etat-des-virements" => documents::etats_paie::etat_des_virements(ctx, &d),
+        "prelevement-a-la-source" => documents::etats_paie::prelevement_a_la_source(ctx, &d),
         "cotisations-par-organisme" => crate::etats_organismes::cotisations_par_organisme(ctx, &d),
         "versements-organismes" => crate::etats_organismes::versements_organismes(ctx, &d),
         "bordereau-urssaf" => crate::etats_organismes::bordereau_urssaf(ctx, &d),
         "fcap-svp" => crate::etats_organismes::fcap_svp(ctx, &d),
         "afdas-2642" => crate::etats_organismes::afdas_2642(ctx, &d),
         "paritarisme-branche" => crate::etats_organismes::paritarisme_branche(ctx, &d),
-        "reduction-generale" => crate::etats_paie::reduction_generale(ctx, &d),
-        "assiettes" => crate::etats_paie::assiettes(ctx, &d),
-        "heures-et-cachets" => crate::etats_paie::heures_et_cachets(ctx, &d),
-        "cout-par-spectacle" => crate::etats_paie::cout_par_spectacle(ctx, &d),
-        "contrats" => crate::etats_personnel::liste_des_contrats(ctx, &d),
-        "registre-du-personnel" => crate::etats_personnel::registre_du_personnel(ctx, &d),
-        "fichier-du-personnel" => crate::etats_personnel::fichier_du_personnel(ctx, &d),
-        "journal-des-declarations" => crate::etats_personnel::journal_des_declarations(ctx, &d),
+        "reduction-generale" => documents::etats_paie::reduction_generale(ctx, &d),
+        "assiettes" => documents::etats_paie::assiettes(ctx, &d),
+        "heures-et-cachets" => documents::etats_paie::heures_et_cachets(ctx, &d),
+        "cout-par-spectacle" => documents::etats_paie::cout_par_spectacle(ctx, &d),
+        "contrats" => documents::etats_personnel::liste_des_contrats(ctx, &d),
+        "registre-du-personnel" => documents::etats_personnel::registre_du_personnel(ctx, &d),
+        "fichier-du-personnel" => documents::etats_personnel::fichier_du_personnel(ctx, &d),
+        "journal-des-declarations" => documents::etats_personnel::journal_des_declarations(ctx, &d, &crate::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?),
         "ecritures-comptables" => crate::etats_compta::ecritures_comptables(ctx, &d),
         "grand-livre-paie" => crate::etats_compta::grand_livre(ctx, &d),
         "balance-paie" => crate::etats_compta::balance(ctx, &d),

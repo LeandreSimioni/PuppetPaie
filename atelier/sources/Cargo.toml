@@ -3,7 +3,8 @@
 #     paie        la ligne de commande `paie` et les parties du dessus (déclarations, envois, interface, compagnie,
 #                 import, atelier)
 #     documents   ce qu'un engagement validé fait imprimer, signer ou envoyer (contrat, avenant, bulletin, certificat
-#                 Congés Spectacles, AER, questionnaire, bordereau, prélèvement, fabrique de PDF) ; ne recalcule rien
+#                 Congés Spectacles, AER, questionnaire, récapitulatif annuel, bordereau, prélèvement, états de paie et
+#                 du personnel, fabrique de PDF) ; ne recalcule rien
 #     engagement  la saisie, le calcul de ses paies, la validation, le recalcul ; lit ce qui est parti ; ne fabrique
 #                 aucun document
 #     droit       barèmes datés, conventions, natures de contrat, règles ; lit tout à une date ; ne connaît pas l'engagement

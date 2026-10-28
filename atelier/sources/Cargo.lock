@@ -452,6 +452,7 @@ dependencies = [
  "engagement",
  "fabrique-pdf",
  "rust_decimal",
+ "rust_xlsxwriter",
  "serde_json",
  "sha2",
  "socle",

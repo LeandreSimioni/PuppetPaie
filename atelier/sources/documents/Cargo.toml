@@ -16,3 +16,5 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 # Le PDF : la description part a la fabrique dans le meme processus.
 fabrique-pdf = { path = "../fabrique-pdf" }
+# Les classeurs .xlsx des etats : ecriture seule.
+rust_xlsxwriter = "0.90"

@@ -29,37 +29,37 @@ use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
 
-pub(crate) type R<T> = Result<T, Echec>;
+pub type R<T> = Result<T, Echec>;
 
 /// Une `ErreurOperation`.
-pub(crate) fn refus(m: impl Into<String>) -> Echec {
+pub fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
 
 /// `FORMATS_TABLEAU` : les six formats de la machinerie, dans l'ordre de Python.
-pub(crate) const FORMATS_TABLEAU: [&str; 6] = ["csv", "tsv", "xlsx", "pdf", "html", "json"];
+pub const FORMATS_TABLEAU: [&str; 6] = ["csv", "tsv", "xlsx", "pdf", "html", "json"];
 
 // ------------------------------------------------------------------ valeurs
 
 /// Une valeur de cellule : un `Decimal`, un nombre JSON tel que Python l'ecrit (entier, flottant), un texte.
 #[derive(Clone, Debug)]
-pub(crate) enum Val {
+pub enum Val {
     Dec(Decimal),
     Num(Value),
     Txt(String),
 }
 
 impl Val {
-    pub(crate) fn txt(s: impl Into<String>) -> Val {
+    pub fn txt(s: impl Into<String>) -> Val {
         Val::Txt(s.into())
     }
 
-    pub(crate) fn entier(n: i64) -> Val {
+    pub fn entier(n: i64) -> Val {
         Val::Num(Value::from(n))
     }
 
     /// `str(v)`.
-    pub(crate) fn str_py(&self) -> String {
+    pub fn str_py(&self) -> String {
         match self {
             Val::Dec(d) => d.to_string(),
             Val::Num(v) => forme_ecrite(v),
@@ -68,7 +68,7 @@ impl Val {
     }
 
     /// `Decimal(str(v))`.
-    pub(crate) fn decimal(&self) -> R<Decimal> {
+    pub fn decimal(&self) -> R<Decimal> {
         let t = match self {
             Val::Dec(d) => return Ok(*d),
             Val::Num(v) => return socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
@@ -78,7 +78,7 @@ impl Val {
     }
 
     /// `dict_tableau._v` / `sortie_json.brut` : un `Decimal` devient son texte.
-    pub(crate) fn json(&self) -> Value {
+    pub fn json(&self) -> Value {
         match self {
             Val::Dec(d) => Value::String(d.to_string()),
             Val::Num(v) => v.clone(),
@@ -89,17 +89,17 @@ impl Val {
 
 /// Une ligne : un dictionnaire ordonne (l'ordre d'insertion de Python compte pour le JSON).
 #[derive(Clone, Debug, Default)]
-pub(crate) struct Ligne {
-    pub(crate) champs: Vec<(String, Option<Val>)>,
+pub struct Ligne {
+    pub champs: Vec<(String, Option<Val>)>,
 }
 
 impl Ligne {
-    pub(crate) fn nouvelle() -> Ligne {
+    pub fn nouvelle() -> Ligne {
         Ligne::default()
     }
 
     /// `d[k] = v` : remplace en gardant la place, ou ajoute a la fin.
-    pub(crate) fn poser(&mut self, k: &str, v: Option<Val>) -> &mut Ligne {
+    pub fn poser(&mut self, k: &str, v: Option<Val>) -> &mut Ligne {
         match self.champs.iter_mut().find(|(c, _)| c == k) {
             Some(x) => x.1 = v,
             None => self.champs.push((k.to_string(), v)),
@@ -107,42 +107,42 @@ impl Ligne {
         self
     }
 
-    pub(crate) fn t(&mut self, k: &str, s: impl Into<String>) -> &mut Ligne {
+    pub fn t(&mut self, k: &str, s: impl Into<String>) -> &mut Ligne {
         self.poser(k, Some(Val::Txt(s.into())))
     }
 
-    pub(crate) fn d(&mut self, k: &str, v: Decimal) -> &mut Ligne {
+    pub fn d(&mut self, k: &str, v: Decimal) -> &mut Ligne {
         self.poser(k, Some(Val::Dec(v)))
     }
 
-    pub(crate) fn od(&mut self, k: &str, v: Option<Decimal>) -> &mut Ligne {
+    pub fn od(&mut self, k: &str, v: Option<Decimal>) -> &mut Ligne {
         self.poser(k, v.map(Val::Dec))
     }
 
-    pub(crate) fn n(&mut self, k: &str, v: i64) -> &mut Ligne {
+    pub fn n(&mut self, k: &str, v: i64) -> &mut Ligne {
         self.poser(k, Some(Val::entier(v)))
     }
 
-    pub(crate) fn rien(&mut self, k: &str) -> &mut Ligne {
+    pub fn rien(&mut self, k: &str) -> &mut Ligne {
         self.poser(k, None)
     }
 
     /// `d.get(k)` distinguant l'absente (`None`) de la presente a `None` (`Some(None)`).
-    pub(crate) fn get(&self, k: &str) -> Option<&Option<Val>> {
+    pub fn get(&self, k: &str) -> Option<&Option<Val>> {
         self.champs.iter().find(|(c, _)| c == k).map(|(_, v)| v)
     }
 
     /// `d.get(k)` : la valeur, ou rien.
-    pub(crate) fn val(&self, k: &str) -> Option<&Val> {
+    pub fn val(&self, k: &str) -> Option<&Val> {
         self.get(k).and_then(|v| v.as_ref())
     }
 
     /// Le texte d'une cle (vide si absente ou `None`).
-    pub(crate) fn texte(&self, k: &str) -> String {
+    pub fn texte(&self, k: &str) -> String {
         self.val(k).map(Val::str_py).unwrap_or_default()
     }
 
-    pub(crate) fn decimal(&self, k: &str) -> Option<Decimal> {
+    pub fn decimal(&self, k: &str) -> Option<Decimal> {
         match self.val(k) {
             Some(Val::Dec(d)) => Some(*d),
             _ => None,
@@ -153,7 +153,7 @@ impl Ligne {
 // ------------------------------------------------------------------ le tableau
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub(crate) enum Genre {
+pub enum Genre {
     Montant,
     Nombre,
     Taux,
@@ -161,7 +161,7 @@ pub(crate) enum Genre {
 }
 
 impl Genre {
-    pub(crate) fn nom(self) -> &'static str {
+    pub fn nom(self) -> &'static str {
         match self {
             Genre::Montant => "montant",
             Genre::Nombre => "nombre",
@@ -172,75 +172,75 @@ impl Genre {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct Colonne {
-    pub(crate) cle: String,
-    pub(crate) libelle: String,
-    pub(crate) genre: Genre,
+pub struct Colonne {
+    pub cle: String,
+    pub libelle: String,
+    pub genre: Genre,
 }
 
 impl Colonne {
-    pub(crate) fn totalisee(&self) -> bool {
+    pub fn totalisee(&self) -> bool {
         matches!(self.genre, Genre::Montant | Genre::Nombre)
     }
 
-    pub(crate) fn a_droite(&self) -> bool {
+    pub fn a_droite(&self) -> bool {
         matches!(self.genre, Genre::Montant | Genre::Nombre | Genre::Taux)
     }
 }
 
 /// Une colonne de texte.
-pub(crate) fn col_t(cle: &str, libelle: &str) -> Colonne {
+pub fn col_t(cle: &str, libelle: &str) -> Colonne {
     Colonne { cle: cle.into(), libelle: libelle.into(), genre: Genre::Texte }
 }
 
 /// Une colonne de montant.
-pub(crate) fn col_m(cle: &str, libelle: &str) -> Colonne {
+pub fn col_m(cle: &str, libelle: &str) -> Colonne {
     Colonne { cle: cle.into(), libelle: libelle.into(), genre: Genre::Montant }
 }
 
 /// Une colonne de quantite.
-pub(crate) fn col_n(cle: &str, libelle: &str) -> Colonne {
+pub fn col_n(cle: &str, libelle: &str) -> Colonne {
     Colonne { cle: cle.into(), libelle: libelle.into(), genre: Genre::Nombre }
 }
 
 /// Une colonne de taux (a droite, jamais totalisee).
-pub(crate) fn col_x(cle: &str, libelle: &str) -> Colonne {
+pub fn col_x(cle: &str, libelle: &str) -> Colonne {
     Colonne { cle: cle.into(), libelle: libelle.into(), genre: Genre::Taux }
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct Section {
-    pub(crate) libelle: String,
-    pub(crate) lignes: Vec<Ligne>,
-    pub(crate) total: Option<Ligne>,
+pub struct Section {
+    pub libelle: String,
+    pub lignes: Vec<Ligne>,
+    pub total: Option<Ligne>,
 }
 
 impl Section {
-    pub(crate) fn nouvelle(libelle: impl Into<String>, lignes: Vec<Ligne>) -> Section {
+    pub fn nouvelle(libelle: impl Into<String>, lignes: Vec<Ligne>) -> Section {
         Section { libelle: libelle.into(), lignes, total: None }
     }
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct Tableau {
-    pub(crate) etat: String,
-    pub(crate) titre: String,
-    pub(crate) periode: String,
-    pub(crate) colonnes: Vec<Colonne>,
-    pub(crate) sections: Vec<Section>,
-    pub(crate) total: Option<Ligne>,
-    pub(crate) avertissements: Vec<String>,
-    pub(crate) sources: Vec<String>,
-    pub(crate) mois: Vec<String>,
-    pub(crate) format: String,
-    pub(crate) fichier: Option<PathBuf>,
-    pub(crate) sous_totaux: bool,
-    pub(crate) avec_total: bool,
-    pub(crate) donnees_personnelles: bool,
+pub struct Tableau {
+    pub etat: String,
+    pub titre: String,
+    pub periode: String,
+    pub colonnes: Vec<Colonne>,
+    pub sections: Vec<Section>,
+    pub total: Option<Ligne>,
+    pub avertissements: Vec<String>,
+    pub sources: Vec<String>,
+    pub mois: Vec<String>,
+    pub format: String,
+    pub fichier: Option<PathBuf>,
+    pub sous_totaux: bool,
+    pub avec_total: bool,
+    pub donnees_personnelles: bool,
 }
 
 impl Tableau {
-    pub(crate) fn nouveau(etat: &str, titre: impl Into<String>, periode: impl Into<String>) -> Tableau {
+    pub fn nouveau(etat: &str, titre: impl Into<String>, periode: impl Into<String>) -> Tableau {
         Tableau {
             etat: etat.to_string(),
             titre: titre.into(),
@@ -263,7 +263,7 @@ impl Tableau {
 
 /// `_sections(lignes, cle, libelle, tri)` : les lignes en sections, une par cle, les cles dans l'ordre de Python
 /// (`sorted(paquets.items())`), les lignes de chaque section triees par `tri` s'il y en a un (tri stable).
-pub(crate) fn sections_de<K: Ord + Clone>(
+pub fn sections_de<K: Ord + Clone>(
     lignes: Vec<Ligne>, cle: impl Fn(&Ligne) -> K, libelle: impl Fn(&K) -> String, tri: Option<&dyn Fn(&Ligne) -> Vec<String>>,
 ) -> Vec<Section> {
     let mut paquets: BTreeMap<K, Vec<Ligne>> = BTreeMap::new();
@@ -299,7 +299,7 @@ fn somme(lignes: &[&Ligne], cle: &str) -> R<Option<Val>> {
 
 /// `tableaux.totaliser` : pose le sous-total de chaque section et le total general. La premiere colonne de
 /// texte porte le libelle (« Total ... »), les colonnes totalisees leur somme, les autres restent vides.
-pub(crate) fn totaliser(t: &mut Tableau, libelle_total: &str) -> R<()> {
+pub fn totaliser(t: &mut Tableau, libelle_total: &str) -> R<()> {
     let porte = t.colonnes.iter().find(|c| c.genre == Genre::Texte).map(|c| c.cle.clone());
     let ligne = |colonnes: &[Colonne], lignes: &[&Ligne], libelle: &str| -> R<Ligne> {
         let mut d = Ligne::nouvelle();
@@ -334,12 +334,12 @@ pub(crate) fn totaliser(t: &mut Tableau, libelle_total: &str) -> R<()> {
 }
 
 /// Le libelle du total general : « TOTAL GÉNÉRAL ».
-pub(crate) const TOTAL_GENERAL: &str = "TOTAL GÉNÉRAL";
+pub const TOTAL_GENERAL: &str = "TOTAL GÉNÉRAL";
 
 // ------------------------------------------------------------ mise en forme
 
 /// `tableaux.texte` : une cellule en texte francais, virgule decimale, rien pour `None`.
-pub(crate) fn texte(v: Option<&Val>, c: &Colonne) -> String {
+pub fn texte(v: Option<&Val>, c: &Colonne) -> String {
     match v {
         None => String::new(),
         Some(Val::Dec(d)) if c.a_droite() => d.to_string().replace('.', ","),
@@ -379,7 +379,7 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
 }
 
 /// `tableaux._nom_compagnie` : le nom de la compagnie, ou rien.
-pub(crate) fn nom_compagnie(ctx: &Contexte) -> String {
+pub fn nom_compagnie(ctx: &Contexte) -> String {
     crate::fiche_recapitulative::nom_compagnie(ctx)
 }
 
@@ -398,7 +398,7 @@ fn lire_nom(ctx: Option<&Contexte>) -> String {
 // ---------------------------------------------------------------------- csv
 
 /// `csv_tableau` : point-virgule, virgule decimale, UTF-8 avec BOM.
-pub(crate) fn csv_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
+pub fn csv_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut s = String::from("\u{feff}");
     let ligne = |s: &mut String, c: &[String]| s.push_str(&socle::csv::ligne(c, ';'));
     for x in entete_texte(t, &lire_nom(ctx)) {
@@ -433,7 +433,7 @@ pub(crate) fn csv_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
 // ---------------------------------------------------------------------- tsv
 
 /// `tsv_tableau` : les donnees seules. Une colonne « Groupe » en tete quand il y a plusieurs sections.
-pub(crate) fn tsv_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
+pub fn tsv_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let groupe = t.sections.len() > 1;
     let mut s = String::new();
     let mut entete: Vec<String> = if groupe { vec!["Groupe".to_string()] } else { Vec::new() };
@@ -461,7 +461,7 @@ fn ligne_json_brute(l: &Ligne) -> Value {
 }
 
 /// `tableaux.dict_tableau` : ce que le fichier JSON porte.
-pub(crate) fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
+pub fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
     let sections: Vec<Value> = t
         .sections
         .iter()
@@ -482,12 +482,12 @@ pub(crate) fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
 }
 
 /// `json_tableau` : `json.dumps(dict_tableau(t), ensure_ascii=False, indent=1)`. Le fichier n'est pas encore nomme quand il s'ecrit.
-pub(crate) fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
+pub fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
     Ok(socle::ecriture::json_indente(&dict_tableau(t, false), 1).into_bytes())
 }
 
 /// `sortie_json.brut(Tableau)` : la reponse de la route.
-pub(crate) fn brut_tableau(t: &Tableau) -> Value {
+pub fn brut_tableau(t: &Tableau) -> Value {
     let mut m = Map::new();
     m.insert("etat".into(), json!(t.etat));
     m.insert("titre".into(), json!(t.titre));
@@ -579,7 +579,7 @@ fn nom_de_feuille(t: &str) -> String {
 }
 
 /// `xlsx_tableau`.
-pub(crate) fn xlsx_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
+pub fn xlsx_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut wb = Workbook::new();
     let ws = wb.add_worksheet();
     ws.set_name(nom_de_feuille(&t.titre)).map_err(xl)?;
@@ -643,7 +643,7 @@ fn echapper(v: &str) -> String {
 }
 
 /// `html_tableau`.
-pub(crate) fn html_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
+pub fn html_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let mut corps = String::new();
     for (d, genre) in rangees(t) {
         let mut cel = String::new();
@@ -695,7 +695,7 @@ fn filets(couleur: &str, epaisseur: f64) -> Value {
 /// notes. `entetes` : (libelle, a droite) ; `rangees` : (cellules en texte, genre) avec `genre` dans « », « total »
 /// ou « general ».
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn description_pdf(
+pub fn description_pdf(
     titre: &str, periode: &str, nom: &str, sous_titre: &str, pied: &str, entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], notes: &[String],
     sources: &[String],
 ) -> Value {
@@ -741,7 +741,7 @@ pub(crate) fn description_pdf(
         blocs.push(json!({"type": "paragraphe", "taille": 6, "couleur": "#999999", "espace_avant": 2, "morceaux": [{"texte": format!("Source : {}", src)}]}));
     }
     json!({
-        "format": documents::bulletin::FORMAT,
+        "format": crate::bulletin::FORMAT,
         "page": {"largeur": PAGE_LARGEUR, "hauteur": PAGE_HAUTEUR, "marges": {"haut": 40, "droite": 34, "bas": 40, "gauche": 34}},
         "police": {"taille": 7, "interligne": 1.25, "couleur": ENCRE},
         "titre": format!("{} — {}", titre, periode),
@@ -752,13 +752,13 @@ pub(crate) fn description_pdf(
 }
 
 /// `pdf_fabrique` : les octets du PDF mis en page par la fabrique. Un refus de la fabrique est une `ErreurOperation`.
-pub(crate) fn pdf_fabrique(description: &Value) -> R<Vec<u8>> {
+pub fn pdf_fabrique(description: &Value) -> R<Vec<u8>> {
     let texte = serde_json::to_string(description).map_err(|e| refus(e.to_string()))?;
     fabrique_pdf::fabriquer(&texte).map_err(|r| refus(format!("PDF impossible : la fabrique de PDF refuse cet état ({}). Aucun PDF n'est fait autrement.", r.0.replace('\n', " "))))
 }
 
 /// `pdf_tableau` : A4 paysage, l'en-tete des colonnes a chaque page, un pied numerote.
-pub(crate) fn pdf_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
+pub fn pdf_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     let sous = format!("{}{}", t.periode, if t.donnees_personnelles { " — porte des données personnelles" } else { "" });
     let rangs: Vec<(Vec<String>, &str)> = rangees(t).into_iter().map(|(d, genre)| (t.colonnes.iter().map(|c| cellule_lisible(d, c, genre)).collect(), genre)).collect();
     let entetes: Vec<(String, bool)> = t.colonnes.iter().map(|c| (c.libelle.clone(), c.a_droite())).collect();
@@ -769,7 +769,7 @@ pub(crate) fn pdf_tableau(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
 // ------------------------------------------------------------------ l'ecriture
 
 /// Les octets d'un tableau dans son format.
-pub(crate) fn octets(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
+pub fn octets(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     match t.format.as_str() {
         "csv" => csv_tableau(t, ctx),
         "tsv" => tsv_tableau(t, ctx),
@@ -783,7 +783,7 @@ pub(crate) fn octets(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
 
 /// `tableaux.format_possible` : le format demande, s'il est l'un de `formats`. (Le XLSX et le PDF sont toujours
 /// disponibles : ni openpyxl ni la fabrique externe ne sont plus en jeu.)
-pub(crate) fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
+pub fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
     if !formats.contains(&fmt) {
         return Err(refus(format!("Format inconnu pour cet état : « {} ». Les formats possibles sont {}.", fmt, formats.join(", "))));
     }
@@ -791,7 +791,7 @@ pub(crate) fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
 }
 
 /// `tableaux.ecrire` : ecrit le tableau dans `dossier/nom.<ext>` (`tsv` s'ecrit `.txt`) et rend le chemin.
-pub(crate) fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<PathBuf> {
+pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<PathBuf> {
     std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
     let ext = if t.format == "tsv" { "txt" } else { t.format.as_str() };
     let chemin = dossier.join(format!("{}.{}", nom, ext));
@@ -804,19 +804,19 @@ pub(crate) fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte)
 // ------------------------------------------------------------------ petits outils
 
 /// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
-pub(crate) fn nom_du_mois(m: &str) -> R<&'static str> {
+pub fn nom_du_mois(m: &str) -> R<&'static str> {
     let tranche: String = m.chars().skip(5).take(2).collect();
     let n = socle::num::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
     socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
 /// `_libelle_mois` : « Septembre 2026 ».
-pub(crate) fn libelle_mois(m: &str) -> R<String> {
+pub fn libelle_mois(m: &str) -> R<String> {
     Ok(format!("{} {}", nom_du_mois(m)?, m.chars().take(4).collect::<String>()))
 }
 
 /// `_jj` : AAAA-MM-JJ -> JJ/MM/AAAA ; le reste tel quel.
-pub(crate) fn jj(iso: &str) -> String {
+pub fn jj(iso: &str) -> String {
     let c: Vec<char> = iso.chars().collect();
     if c.len() >= 10 && c[4] == '-' {
         format!("{}/{}/{}", c[8..10].iter().collect::<String>(), c[5..7].iter().collect::<String>(), c[..4].iter().collect::<String>())
@@ -826,7 +826,7 @@ pub(crate) fn jj(iso: &str) -> String {
 }
 
 /// `_qui` : « NOM Prenom ».
-pub(crate) fn qui(fiche: &Value) -> R<String> {
+pub fn qui(fiche: &Value) -> R<String> {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
         Some(v) => valeur_en_texte(v),
         None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
@@ -836,7 +836,7 @@ pub(crate) fn qui(fiche: &Value) -> R<String> {
 }
 
 /// `_qui` d'une fiche qui n'a peut-etre pas de nom (`.get("nom", "")`).
-pub(crate) fn qui_souple(fiche: &Value) -> String {
+pub fn qui_souple(fiche: &Value) -> String {
     let prenom = match fiche.get("prenom_affichage").filter(|v| vrai(v)) {
         Some(v) => valeur_en_texte(v),
         None => fiche.get("prenom").map(valeur_en_texte).unwrap_or_default(),
@@ -845,7 +845,7 @@ pub(crate) fn qui_souple(fiche: &Value) -> String {
 }
 
 /// `_montant` : un montant declare, ou `None` quand il ne l'a pas ete (une chaine vide n'est pas un zero).
-pub(crate) fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
+pub fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
     match v {
         None | Some(Value::Null) => Ok(None),
         Some(x) => {

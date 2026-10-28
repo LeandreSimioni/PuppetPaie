@@ -122,7 +122,7 @@ fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
 fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let _ = o;
     let annee = valeur_en_texte(exiger(charge, "annee")?);
-    let mut r = crate::fiche_recapitulative::Recapitulatifs::nouveau(ctx, None, Some(annee), false);
+    let mut r = documents::fiche_recapitulative::Recapitulatifs::nouveau(ctx, None, Some(annee), false);
     r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
