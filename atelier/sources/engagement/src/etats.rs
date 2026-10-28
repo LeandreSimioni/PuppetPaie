@@ -477,12 +477,12 @@ impl Drop for EnValidation {
 /// au dernier, comme `paies_a_valider`), si bien que l'indemnite de conges montree est celle qui sera retenue. Rien ne
 /// s'ecrit. Pendant une validation, rien de plus : elle tient deja ses mois. Un mois d'avant qui ne se calcule pas ne
 /// compte pas (sa validation le refusera).
-pub struct CommeALaValidation {
+pub(crate) struct CommeALaValidation {
     _garde: Option<EnValidation>,
 }
 
 impl CommeALaValidation {
-    pub fn ouvrir(ctx: &Contexte, mois: &str) -> CommeALaValidation {
+    pub(crate) fn ouvrir(ctx: &Contexte, mois: &str) -> CommeALaValidation {
         if EN_VALIDATION.with(|e| e.borrow().is_some()) {
             return CommeALaValidation { _garde: None };
         }
@@ -509,7 +509,7 @@ impl CommeALaValidation {
 
 /// Ce qui distingue l'etat de la validation en cours (les engagements et les mois deja calcules) : ce que lit
 /// `paies_validees` en depend.
-pub fn marque_de_validation() -> String {
+pub(crate) fn marque_de_validation() -> String {
     EN_VALIDATION.with(|e| match e.borrow().as_ref() {
         Some(v) => v.iter().map(|(f, r, paies)| format!("{}#{}#{}", f, r, paies.len())).collect::<Vec<_>>().join(";"),
         None => String::new(),
@@ -588,7 +588,7 @@ fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<Value>> {
 }
 
 /// La paie de l'engagement `o` pour `mois`, calculee maintenant : `{"paie", "fiches", "pas", "empreinte"}`.
-pub fn calculer(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Value> {
+pub(crate) fn calculer(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Value> {
     let i = rang_dans(&ctx.racine, o, mois)?;
     calculer_les_rangs(ctx, mois, &[i])?.pop().ok_or_else(|| "le calcul du mois n'a pas cette paie".to_string())
 }

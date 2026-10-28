@@ -14,8 +14,6 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use declarations::amorcage;
-use engagement::calcul::lignes_brut;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, jours_du_mois, Jour};
 use engagement::{self, Engagement};
@@ -180,25 +178,6 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
     flottant_py(taux).ok()
 }
 
-/// La saisie chargee SANS calculer : `engagement::charger_donnees` jusqu'au
-/// contrat qui deborde, plus les lignes de remuneration de chaque engagement
-/// paye au cachet (elles ne dependent que de l'engagement). `None` quand le
-/// Python aurait refuse la saisie (la page la montre alors telle quelle).
-fn charger_sans_calcul(ctx: &Contexte, data: &Value) -> Option<Vec<engagement::calcul::Paie>> {
-    let _derivation = engagement::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, data, &engagement::conges::lignes_du_mois).ok()?;
-    let mut paies = Vec::new();
-    for e in &engs {
-        paies.push(amorcage::embauche(ctx, e).ok()?);
-    }
-    for p in paies.iter_mut() {
-        engagement::suivre_contrat(ctx, &mut p.engagement).ok()?;
-        if !p.engagement.nat().ok()?.mensuelle() {
-            p.remuneration = lignes_brut(&p.engagement, ctx).ok()?;
-        }
-    }
-    Some(paies)
-}
 
 /// `float(Decimal)` : la valeur la plus proche, par sa representation.
 fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
@@ -209,7 +188,7 @@ fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
 /// du fichier. Une saisie qui ne se charge pas se rend telle quelle.
 fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
     let Some(objet) = saisie.as_object() else { return Ok(saisie.clone()) };
-    let Some(paies) = charger_sans_calcul(ctx, saisie) else { return Ok(saisie.clone()) };
+    let Ok(paies) = engagement::lue_sans_paie(ctx, saisie) else { return Ok(saisie.clone()) };
     let mut sortie = objet.clone();
     // Le spectacle du MOIS n'est resolu que si la saisie en nommait un.
     if vrai_opt(objet.get("spectacle")) {

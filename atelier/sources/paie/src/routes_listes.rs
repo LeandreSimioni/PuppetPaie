@@ -280,7 +280,7 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
         // Ce que dit la convention, a cote, par le moteur (le calcul de `paie preavis`) ; pas pour un motif sans preavis
         // ni pour la rupture d'un CDD par le salarie (L1243-2), que la convention du licenciement ne regle pas.
         if duree != Some(Decimal::ZERO) && regle.is_none() {
-            let tout = engagement::solde::duree_du_preavis(ctx, e, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
+            let tout = engagement::preavis(ctx, e, anciennete, e.get("motif_rupture").and_then(Value::as_str)).map_err(plain)?;
             if let (Some(conv), true) = (tout.convention, tout.qui != "la loi (L1234-1)") {
                 dit.push_str(&format!(" {} en donne {} : c'est elle qui s'applique.", tout.qui, conv));
             } else if tout.mois.is_none() {

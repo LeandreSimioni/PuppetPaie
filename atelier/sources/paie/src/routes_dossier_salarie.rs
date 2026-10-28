@@ -460,7 +460,7 @@ pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec
     for p in paies {
         // Un permanent n'a pas de certificat Conges Spectacles ; un CDDU de douze mois ou plus non plus : il n'est pas
         // declare a la caisse (`caisse_conges::affilie`, code du travail D. 7121-41).
-        if p.engagement.nat()?.mensuelle() || !engagement::calcul::declaree_a_la_caisse_des_conges(p)? {
+        if p.engagement.nat()?.mensuelle() || !p.declaree_a_la_caisse_des_conges()? {
             continue;
         }
         let (cle, debut) = (cle_de(p), p.engagement.debut.iso());

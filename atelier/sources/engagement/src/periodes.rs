@@ -8,7 +8,8 @@ use std::collections::BTreeMap;
 
 use serde_json::{json, Value};
 
-use crate::calcul::{ligne_de_reduction, pile_de_la_paie, reduction_au_coefficient, reduction_generale, LigneCotisation, Paie, ReductionGenerale};
+use crate::calcul::{ligne_de_reduction, pile_de_la_paie, LigneCotisation, Paie, ReductionGenerale};
+use droit::reduction::{reduction_au_coefficient, reduction_generale};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use crate::{Avis, Engagement};
@@ -29,7 +30,7 @@ fn jour_de_l_avenant(eng: &Engagement) -> Resultat<Option<Jour>> {
 /// jours ou sa fiche change une valeur qui choisit la pile ou que le bloc 40 porte avec une rubrique en bloc 41
 /// (`emplois::jours_de_changement`), et au jour de l'avenant que la saisie date en cours de mois avec ses termes
 /// d'avant (`jour_de_l_avenant`).
-pub fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jour)>> {
+pub(crate) fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jour)>> {
     let (debut, fin) = (eng.debut_periode()?, eng.fin_periode()?);
     if eng.periode.is_some() || !eng.nat()?.mensuelle() {
         return Ok(vec![(debut, fin)]);
@@ -49,7 +50,7 @@ pub fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jour)>> {
 /// Refus : une paie qui porte autre chose que son salaire mensuel. Une prime, un conge, une absence, une prime
 /// d'anciennete ou un solde de tout compte se rattachent a une periode, ou a l'autre, ou aux deux, et rien ne le dit
 /// encore ; le logiciel ne choisit pas.
-pub fn engagements_des_periodes(ctx: &Contexte, eng: &Engagement, bornes: &[(Jour, Jour)]) -> Resultat<Vec<Engagement>> {
+pub(crate) fn engagements_des_periodes(ctx: &Contexte, eng: &Engagement, bornes: &[(Jour, Jour)]) -> Resultat<Vec<Engagement>> {
     let ligne = match eng.lignes.as_slice() {
         [l] if l.get("rubrique").and_then(Value::as_str) == Some("mois") => l,
         _ => {
@@ -132,7 +133,7 @@ fn statut(p: &Paie) -> String {
 ///
 /// Refus : un statut artiste / technicien qui change en cours de mois (deux regimes d'assiette, L. 242-10 ; pas un cas
 /// que le lot porte).
-pub fn assembler(ctx: &Contexte, eng: &Engagement, mut parts: Vec<Paie>) -> Resultat<Paie> {
+pub(crate) fn assembler(ctx: &Contexte, eng: &Engagement, mut parts: Vec<Paie>) -> Resultat<Paie> {
     let derniere = parts.last().ok_or("assembler : aucune periode")?;
     let statut_du_mois = statut(derniere);
     if let Some(p) = parts.iter().find(|p| statut(p) != statut_du_mois) {

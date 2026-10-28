@@ -22,7 +22,7 @@ use serde_json::{json, Map, Value};
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
-use engagement::{self, LignesPermanent};
+use engagement;
 use engagement::etats::ARefaire;
 use crate::etats::{self, est, get, getd, joindre, objet_vide, ou, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
 use socle::valeur::valeur_en_texte;
@@ -428,16 +428,14 @@ impl<'a> Moteur<'a> {
     /// `operations_paies.charger(ctx, fichier)` sans calculer la paie.
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
         let data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
-        let _derivation = engagement::conges::Derivation::ouvrir();
-        let lignes: LignesPermanent = &engagement::conges::lignes_du_mois;
-        let (engs, _) = engagement::engagements(self.ctx, &data, lignes).map_err(classer_saisie)?;
+        let engs = engagement::engagements_de_la_saisie(self.ctx, &data).map_err(classer_saisie)?;
         let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
         // Le salarie, son emploi et son spectacle d'abord, pour tous les
         // engagements (ce que le calcul lit avant de suivre les contrats) ; puis
         // le contrat qui deborde du mois reprend le numero de son premier mois.
         let mut paies = Vec::new();
         for e in &engs {
-            paies.push(declarations::amorcage::embauche(self.ctx, e).map_err(plain)?);
+            paies.push(engagement::embauche(self.ctx, e).map_err(plain)?);
         }
         for p in paies.iter_mut() {
             engagement::suivre_contrat(self.ctx, &mut p.engagement).map_err(classer_saisie)?;
@@ -511,7 +509,7 @@ impl<'a> Moteur<'a> {
             .map(|e| e.valide().and_then(|v| v.paie_ecrite(mois)).and_then(|p| p.pointer("/paie/brut")).cloned())
             .collect();
         let calcules = if ecrits.iter().any(Option::is_none) {
-            let c = engagement::charger_donnees(self.ctx, &s.data).map_err(classer_saisie)?;
+            let c = engagement::pour_l_ecran(self.ctx, &s.data).map_err(classer_saisie)?;
             c.paies.iter().map(|p| Some(Value::String(p.brut.to_string()))).collect()
         } else {
             vec![None; ecrits.len()]
@@ -608,7 +606,7 @@ impl<'a> Moteur<'a> {
             if !p.engagement.sans_paie() {
                 pieces.push("bulletin");
             }
-            if !nat.mensuelle() && dernier_mois && engagement::calcul::declaree_a_la_caisse_des_conges(p).map_err(plain)? {
+            if !nat.mensuelle() && dernier_mois && p.declaree_a_la_caisse_des_conges().map_err(plain)? {
                 pieces.push("certificat_cs");
             }
             if documents::aer::due(&p.engagement).map_err(plain)? {

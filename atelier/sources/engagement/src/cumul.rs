@@ -50,7 +50,7 @@ fn ligne_historique(e: &Value) -> Resultat<Option<Declare>> {
 
 /// Les contrats attestes avant ce logiciel (`historique/engagements.json`).
 /// Vide tant qu'on n'a rien importe.
-pub fn lire_historique(ctx: &Contexte) -> Resultat<Vec<Declare>> {
+pub(crate) fn lire_historique(ctx: &Contexte) -> Resultat<Vec<Declare>> {
     let p = ctx.racine.join("historique").join("engagements.json");
     if !socle::fichiers::existe(&p) {
         return Ok(Vec::new());
@@ -91,7 +91,7 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
 /// Ce que les engagements valides declarent : (engagements, mois couverts). Chaque mois se lit dans les paies ecrites
 /// de ses engagements valides (`etats::validees_du_mois`) : ce qui est en saisie n'est pas paye, il n'entre dans aucun
 /// cumul. `paies_courantes` : les paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois.
-pub fn engagements_des_paies(
+pub(crate) fn engagements_des_paies(
     ctx: &Contexte,
     paies_courantes: Option<&[Paie]>,
 ) -> Resultat<(Vec<Declare>, BTreeSet<String>)> {

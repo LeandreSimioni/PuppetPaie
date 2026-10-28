@@ -104,7 +104,7 @@ fn heures_texte(x: Decimal) -> String {
     t.trim_end_matches('0').trim_end_matches('.').replace('.', ",")
 }
 
-pub fn qui(sal: &Value) -> String {
+pub(crate) fn qui(sal: &Value) -> String {
     let nom = sal.get("nom").map(en_texte).unwrap_or_default();
     let prenom = match g(sal, "prenom_affichage") {
         p if vrai(p) => en_texte(p),
@@ -994,7 +994,7 @@ fn minimum_dans(cx: &Cx, l: &LigneBrut, saisie: &Value) -> Resultat<Option<Minim
 }
 
 /// Les lignes saisies de cette paie, une par ligne de remuneration ; `Null` quand elles ne se correspondent pas.
-pub fn saisies_de(paie: &Paie) -> Vec<&Value> {
+pub(crate) fn saisies_de(paie: &Paie) -> Vec<&Value> {
     let lignes = &paie.remuneration;
     if paie.engagement.lignes.len() == lignes.len() {
         paie.engagement.lignes.iter().collect()
@@ -1005,7 +1005,7 @@ pub fn saisies_de(paie: &Paie) -> Vec<&Value> {
 
 /// Le minimum conventionnel de la ligne `i` de la remuneration de cette paie, tel que `avertissements` le compare
 /// (les conseils de saisie s'en servent pour ne jamais proposer moins que lui ; `conseils::de_saisie`).
-pub fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resultat<Option<Minimum>> {
+pub(crate) fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resultat<Option<Minimum>> {
     let Some(l) = paie.remuneration.get(i) else { return Ok(None) };
     let saisie = saisies_de(paie)[i];
     avec_cx(ctx, paie, |cx| minimum_dans(cx, l, saisie))
@@ -1022,7 +1022,7 @@ pub fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resultat<Op
 /// pour une autre convention (la CCNEAC paie la repetition par service : `kali-1285-x3-remuneration-artistes-20260929.md`).
 /// L'annexe de l'entreprise inconnue : le plus HAUT des cachets possibles, pour qu'un conseil ne propose jamais moins
 /// que le minimum de la bonne annexe.
-pub fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Option<Minimum>> {
+pub(crate) fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Option<Minimum>> {
     avec_cx(ctx, paie, |cx| {
         if cx.idcc != "3090" || texte_de(cx.m, "statut") != "artiste" {
             return Ok(None);
@@ -1051,7 +1051,7 @@ pub fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Option<Mini
 
 /// Les lignes de cette paie payees sous un minimum conventionnel : une phrase
 /// par ligne fautive, qui dit le paye, le minimum, et la grille lue.
-pub fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
+pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
     let avis = avec_cx(ctx, paie, |cx| {
         let t = cx.t;
         let idcc = cx.idcc;
@@ -1134,7 +1134,7 @@ pub fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
 /// aucune convention, aucun statut, aucun catalogue de metiers n'entre ici.
 /// Les lignes visees portent des heures reellement faites (pas un forfait) ;
 /// la comparaison porte sur le total, pas sur un taux reconstitue.
-pub fn sous_le_smic(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
+pub(crate) fn sous_le_smic(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
     let qui = qui(&paie.salarie);
     let jour = paie.engagement.fin_periode()?;
     let smic = dec_f64(ctx.smic(&jour)?)?;

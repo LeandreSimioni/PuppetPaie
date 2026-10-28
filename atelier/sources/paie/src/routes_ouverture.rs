@@ -821,8 +821,7 @@ pub(crate) fn embauches_suivies(st: &Etat) -> R<Vec<(Embauche, bool)>> {
         });
         // Une saisie en cours d'ecriture : le passage suivant.
         let Ok(Some(data)) = engagement::stock::vue_du_mois(&st.ctx.racine, &mois) else { continue };
-        let _derivation = engagement::conges::Derivation::ouvrir();
-        let Ok((engs, _)) = engagement::engagements(st.ctx, &data, &engagement::conges::lignes_du_mois) else { continue };
+        let Ok(engs) = engagement::engagements_de_la_saisie(st.ctx, &data) else { continue };
         let mut du_mois = Vec::new();
         let mut illisible = false;
         for e in &engs {
@@ -1038,11 +1037,8 @@ pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> 
     if engagement::saisie_incomplete(&message) {
         return avec_classe("SaisieIncomplete", message);
     }
-    let vide: engagement::LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new()));
-    if let Err(m) = engagement::engagements(ctx, data, vide) {
-        if engagement::saisie_incomplete(&m) {
-            return avec_classe("SaisieIncomplete", m);
-        }
+    if let Some(m) = engagement::refus_de_saisie_incomplete(ctx, data) {
+        return avec_classe("SaisieIncomplete", m);
     }
     Refus::from(message)
 }
@@ -1095,7 +1091,7 @@ pub(crate) fn paies_de_l_ecran(ctx: &Contexte, data: &Value, mois: &str) -> R<Ve
         lues.push(lue);
     }
     let calculees = if lues.iter().any(Option::is_none) {
-        engagement::charger_donnees(ctx, data).map_err(|m| refus_du_calcul(ctx, data, m))?.paies
+        engagement::pour_l_ecran(ctx, data).map_err(|m| refus_du_calcul(ctx, data, m))?.paies
     } else {
         Vec::new()
     };

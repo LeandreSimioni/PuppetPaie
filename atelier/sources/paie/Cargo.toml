@@ -29,7 +29,7 @@ atelier = []
 # (baremes dates, conventions, natures de contrat, regles).
 socle = { path = "../socle" }
 droit = { path = "../droit" }
-engagement = { path = "../engagement" }
+engagement = { path = "../engagement", features = ["ecran"] }
 rust_decimal = { workspace = true }
 serde_json = { workspace = true }
 # Deflate et CRC-32 (zip des exports, gzip du transport), deja lies par la fabrique de PDF.

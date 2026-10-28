@@ -14,7 +14,8 @@ use serde_json::{Map, Value};
 
 use droit::bareme::{self, bareme_applique_au_contrat};
 use documents::bordereau::{self, Destinataire, LigneBordereau};
-use engagement::calcul::{au_dela_du_seuil, Paie};
+use droit::reduction::au_dela_du_seuil;
+use engagement::calcul::Paie;
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::{contrat_court, Nature};
 use socle::date::{en_texte, Jour};
@@ -299,7 +300,7 @@ fn emploi_declare(p: &Paie) -> (String, String, String) {
 /// saisie. Ils completent ceux qu'une declaration porte : la DSN d'un etablissement ne porte pas les contrats d'un
 /// autre, un signalement n'en porte qu'un.
 pub fn contrats_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    Ok(crate::amorcage::paies_du_mois(ctx, mois)?.unwrap_or_default())
+    Ok(engagement::embauches_du_mois(ctx, mois)?.unwrap_or_default())
 }
 
 /// `S21.G00.40.036` (code emplois multiples) du contrat `p` : « 02 - emplois multiples » si le salarie tient plus
@@ -666,7 +667,7 @@ fn bareme_de(p: &Paie, bar: &Value) -> Resultat<Value> {
         p.engagement.motif_recours.as_deref(),
         &format!("Contrat {} de {}", p.engagement.numero.as_deref().unwrap_or("sans numero"), p.engagement.salarie),
     )?;
-    bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), engagement::calcul::declaree_a_la_caisse_des_conges(p)?, cpf_cdd)
+    bareme_applique_au_contrat(bar.clone(), &p.salarie, &nat, Some(&fin), p.declaree_a_la_caisse_des_conges()?, cpf_cdd)
 }
 
 /// Les cotisations d'un versement, dans l'ordre du bareme.
@@ -771,7 +772,7 @@ pub fn cotisations(p: &Paie, bar: &Value) -> Resultat<Vec<Cotisation>> {
             let urssaf = org_de("075");
             let ft = org_de("040");
             // Sous la base 03 : abattue sous deduction forfaitaire specifique (`cle_abattue`), comme la reduction
-            // elle-meme se calcule sur le brut abattu (`calcul::reduction_generale_sous_dfs`).
+            // elle-meme se calcule sur le brut abattu (`droit::reduction::reduction_generale_sous_dfs`).
             let brut_03 = bases[&cle_abattue(p, "03", "brut")?];
             for (code, org, part, cle) in [
                 (par("code81_urssaf", "018"), urssaf, rg.urssaf, par("cle_total_urssaf", "018:urssaf")),
@@ -853,16 +854,16 @@ fn sans_la_cet(p: &Paie, l: &engagement::calcul::LigneCotisation, r: &Value) -> 
         return Ok((l.montant_pat, None));
     }
     let cet_pat = socle::num::flottant(req(cet, "pat")?)?;
-    let comp = match engagement::calcul::taux_liste(r.get("composants_pat"))? {
+    let comp = match droit::bareme::taux_liste(r.get("composants_pat"))? {
         Some(c) => c,
         None => vec![socle::num::flottant(req(r, "taux_pat")?)?],
     };
-    let sans = engagement::calcul::somme_pct(l.base, &comp)?;
+    let sans = droit::bareme::somme_pct(l.base, &comp)?;
     let mut avec = comp;
     if let Some(dernier) = avec.last_mut() {
         *dernier += cet_pat;
     }
-    if engagement::calcul::somme_pct(l.base, &avec)? != l.montant_pat {
+    if droit::bareme::somme_pct(l.base, &avec)? != l.montant_pat {
         return Err(format!(
             "La ligne « {} » du bulletin ({} EUR de part patronale sur {} EUR) ne se refait pas, CET comprise, a partir de \
 ses taux : la part de la CET (146 en 2026, 148 en 2027) ne s'en separe pas sans deviner. Rien n'est ecrit.",
@@ -1714,7 +1715,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     }
     // « dans le cas ou les indemnites ne sont pas versees par l'employeur » (p. 195) : un contrat declare a la caisse
     // des Conges Spectacles (`caisse_conges::affilie`), et aucun autre -- ni un CDI, ni un contrat de douze mois ou plus.
-    let caisse_conges = nat.ecrit("S21.G00.40.022") && engagement::calcul::declaree_a_la_caisse_des_conges(p)?;
+    let caisse_conges = nat.ecrit("S21.G00.40.022") && p.declaree_a_la_caisse_des_conges()?;
     if caisse_conges {
         f.add("S21.G00.40.022", documents::conges_spectacles::code_dsn(ent)?);
     }
@@ -1870,7 +1871,7 @@ fn proratisation_du_plafond(f: &mut Fichier, p: &Paie, ent: &Value, nature_dsn: 
     if usage != "O" && usage != "C" {
         return Ok(());
     }
-    let valeur = match engagement::calcul::plafond_temps_partiel(ent, &p.engagement, &p.salarie)? {
+    let valeur = match p.plafond_temps_partiel(ent)? {
         P::Proratise => Some("01"),
         P::Entier | P::Exclu => Some("02"),
         P::NonConcerne => None,
@@ -2773,7 +2774,7 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Res
     let mensuelle = p.engagement.nat()?.mensuelle();
     // Un permanent declare a la caisse des Conges Spectacles a declare sa taxe d'apprentissage et son FNAL
     // sur des assiettes majorees ; les autres, sur le brut et la tranche 1.
-    let caisse = mensuelle && engagement::calcul::declaree_a_la_caisse_des_conges(p)?;
+    let caisse = mensuelle && p.declaree_a_la_caisse_des_conges()?;
     let tech = !mensuelle && statut(p) == "technicien";
     let art = !mensuelle && !tech;
     let l = lecture(p, bar)?;

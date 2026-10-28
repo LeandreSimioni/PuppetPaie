@@ -114,7 +114,7 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
     let jour = saisie.get("date_paiement").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas sa date de paiement.")?;
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire(jour)?))?;
-    let s = engagement::charger_donnees(&ctx, &saisie)?;
+    let s = engagement::pour_l_ecran(&ctx, &saisie)?;
     let mut ent = ctx.entreprise.clone();
     let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;
     o.insert(CASE_MODELE.into(), json!(modele.cle()));

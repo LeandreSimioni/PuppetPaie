@@ -124,7 +124,7 @@ pub struct Preavis {
     pub pourquoi: Option<String>,
 }
 
-pub fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
+pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
     let idcc = idcc(ctx);
     let cdd = !nature_de(e.get("nature"))?.duree_indeterminee;
     let legal = permanents::preavis_mois(anciennete, motif, cdd)?;
@@ -216,7 +216,7 @@ pub fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: O
 
 /// Les lignes du dernier bulletin : conges non pris, precarite, preavis,
 /// indemnite de rupture. `deja` : les lignes de CE mois deja construites.
-pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value]) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value]) -> Resultat<(Vec<Value>, Vec<Avis>)> {
     let nat = nature_de(e.get("nature"))?;
     let mut stc = Solde::default();
     let Some(fin) = e.get("fin").filter(|x| vrai(x)) else {

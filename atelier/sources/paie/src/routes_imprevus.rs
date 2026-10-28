@@ -394,7 +394,7 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
         match valeur {
             Some(v) if v < socle::num::Decimal::ZERO => return Err(refus("Un maintien de salaire ne se verse pas en negatif.")),
             Some(v) if v > socle::num::Decimal::ZERO => {
-                table.insert(mois, json!(engagement::conges::flot(socle::num::eur2(v))));
+                table.insert(mois, json!(socle::num::eur2(v).to_string().parse::<f64>().unwrap_or(0.0)));
             }
             _ => {
                 table.remove(&mois);
