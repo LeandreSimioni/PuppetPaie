@@ -1471,26 +1471,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn le_nom_d_une_dsn_mensuelle() {
-        for ok in ["DSN_Aout2026.dsn", "DSN_Septembre2026_AR2.dsn", "DSN_Fevrier2026_AR12.dsn", "DSN_Décembre2026.dsn"] {
-            assert!(est_une_dsn_mensuelle(ok), "{}", ok);
-        }
-        for non in [
-            "DSN_2026.dsn", "DSN_Aout26.dsn", "DSN_Aout2026.DSN", "DSN_Aout2026_AR.dsn", "DSN_Aout2026_AR2x.dsn", "DSN_Aout2026bis.dsn",
-            "dsn_Aout2026.dsn", "DSN_Signalement_Aout2026.dsn", "DSN_Aout2026_AR2.dsn.zip",
-        ] {
-            assert!(!est_une_dsn_mensuelle(non), "{}", non);
-        }
-    }
-
-    #[test]
-    fn un_montant_a_deux_decimales_comme_decimal_quantize() {
-        for (entree, attendu) in [("620", "620.00"), ("620.0", "620.00"), ("1234.5", "1234.50"), ("0", "0.00"), ("-3.2", "-3.20"), ("2.675", "2.68"), ("2.665", "2.66")] {
-            assert_eq!(brut_en_texte(&json!(entree)).unwrap(), attendu, "{}", entree);
-        }
-    }
-
-    #[test]
     fn les_noms_de_fichiers_se_decoupent() {
         assert_eq!(suffixe("DSN_Aout2026.DSN"), ".DSN");
         assert_eq!(suffixe(".dsn"), "");

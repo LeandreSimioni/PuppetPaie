@@ -523,7 +523,8 @@ mod tests {
 
     /// Le releve de `paie extraire formats` sur les classeurs 2027.1.2 : les CSL de 40.070 et 41.045 s'elargissent
     /// (evolutions 15 et 18) ; la date de naissance perd les annees 18xx en 2027 (p. 172). Une saisie se controle dans
-    /// toutes les versions livrees, un fichier dans la sienne.
+    /// toutes les versions livrees, un fichier dans la sienne
+    /// (`atelier/reference/norme-dsn/dsn-tableaux-categories-controles-datatypes-usages-2027.1.2-20251224.xlsx`).
     #[test]
     fn les_formats_2027_sont_ceux_du_cahier_2027() {
         let (p26, p27) = (Norme::connue("P26V01").unwrap(), Norme::connue("P27V01").unwrap());

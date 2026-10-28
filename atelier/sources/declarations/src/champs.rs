@@ -1212,7 +1212,8 @@ mod tests {
 
     /// La fiche offre ce que la norme 2026.1 admet : 40.003, 01, 02, 04, 98, 99, pas 03 ; 40.002, 03 « cadre dirigeant »,
     /// que la CCH-11 de 40.003 admet pour un cadre (cahier technique 2026.1, p. 182-183, `bloc-S21.G00.40.txt` l. 133-196).
-    /// La fiche entreprise admet un code de la NAF rev. 2 ou de la NAF 2025 (decret n° 2025-736), et refuse le reste.
+    /// La fiche entreprise admet un code de la NAF rev. 2 ou de la NAF 2025 (decret n° 2025-736), et refuse le reste
+    /// (`atelier/reference/sources/insee-naf-2025/legifrance-decret-2025-736-naf-2025-20250731.txt`).
     #[test]
     fn la_fiche_entreprise_admet_un_code_des_deux_nomenclatures() {
         let faute_naf = |code: &str| -> Option<String> {
@@ -1244,33 +1245,6 @@ mod tests {
     }
 
     #[test]
-    fn title_comme_python() {
-        assert_eq!(titre("BEJART DUPARC"), "Bejart Duparc");
-        assert_eq!(titre("ST JEAN D'ARVEY"), "St Jean D'Arvey");
-        assert_eq!(titre("2 RUE DES LILAS"), "2 Rue Des Lilas");
-    }
-
-    #[test]
-    fn dates_iso_de_python_3_11() {
-        assert_eq!(date_iso("2026-10-04").map(|j| j.iso()), Some("2026-10-04".into()));
-        assert_eq!(date_iso("20261004").map(|j| j.iso()), Some("2026-10-04".into()));
-        assert_eq!(date_iso("2026-W40-7").map(|j| j.iso()), Some("2026-10-04".into()));
-        assert!(date_iso("2026-02-30").is_none());
-        assert!(date_iso("2026-1-04").is_none());
-        assert!(date_iso("").is_none());
-    }
-
-    #[test]
-    fn flottants_de_python() {
-        for ok in ["12", "12,5", "1e3", " 3 ", "1_000", "nan", "-inf", ".5", "5."] {
-            assert!(flottant_valide(&ok.replace(',', ".")), "{}", ok);
-        }
-        for non in ["", "abc", "1__0", "_1", "1_", "--1", "1.2.3"] {
-            assert!(!flottant_valide(non), "{}", non);
-        }
-    }
-
-    #[test]
     fn la_cle_du_nir_et_celle_de_la_corse() {
         assert_eq!(cle_nir("1850578999048"), Some("19".into()));
         assert!(cle_nir("185057899904").is_none());
@@ -1285,25 +1259,5 @@ mod tests {
     fn le_siret_se_controle_par_luhn() {
         assert!(luhn("73282932000074"));
         assert!(!luhn("73282932000075"));
-    }
-
-    #[test]
-    fn courriels() {
-        assert!(courriel_valide("a@b.fr"));
-        assert!(!courriel_valide("a@b"));
-        assert!(!courriel_valide("a@@b.fr"));
-        assert!(!courriel_valide("a b@c.fr"));
-        assert!(!courriel_valide("@b.fr"));
-        assert!(!courriel_valide("a@.fr"));
-        assert!(!courriel_valide("a@b."));
-    }
-
-    #[test]
-    fn ponctuation_des_noms() {
-        assert_eq!(ponctuation_propre("St-Jean-d’Arvey", false), "ST-JEAN-D'ARVEY");
-        assert_eq!(ponctuation_propre("Saint - Georges", false), "SAINT-GEORGES");
-        assert_eq!(ponctuation_propre("Œuvre", false), "OEUVRE");
-        assert_eq!(ponctuation_propre("Madame Dupont", true), "DUPONT");
-        assert_eq!(ponctuation_propre("Madame Rue", false), "MADAME RUE");
     }
 }

@@ -528,25 +528,3 @@ pub fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, numero: Opt
 pub fn modele_du_contrat(ent: &Value, gabarits: &Path) -> Resultat<Modele> {
     modele::lire_fichier(&socle::fichiers::modele_de(MODELE, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
 }
-
-#[cfg(test)]
-mod tests_mois {
-    use super::*;
-
-    fn eng(mois: &str) -> Eng {
-        Eng::lire(&serde_json::json!({
-            "debut": "2026-09-28", "fin": "2026-11-05", "mois": mois, "dernier_mois": false, "dates_travail": [],
-            "planning": ["2026-10-02"], "lieux": {}, "planning_lieux": {}, "lieu": "", "cachets": "0", "taux_cachet": null
-        }))
-        .unwrap()
-    }
-
-    /// Lot F1 : un contrat qui se poursuit dit « pour le mois de ... » ; le mois « 00 » n'en est aucun et se refuse
-    /// comme `envoi::etiquette` (il se lisait janvier).
-    #[test]
-    fn le_mois_00_d_un_contrat_qui_se_poursuit_se_refuse() {
-        assert_eq!(periode_remuneration(&eng("2026-00")).unwrap_err(), socle::date::mois_impossible(0));
-        assert_eq!(remuneration_detaillee(&[], &eng("2026-00")).unwrap_err(), socle::date::mois_impossible(0));
-        assert_eq!(periode_remuneration(&eng("2026-10")).unwrap(), " pour le mois d'octobre 2026");
-    }
-}

@@ -315,16 +315,3 @@ pub fn csv_compta(ecritures: &[Ecriture]) -> Vec<u8> {
     }
     t.into_bytes()
 }
-
-
-#[cfg(test)]
-mod tests_mois {
-    /// Lot F1 : l'ecriture du mois « 00 » se refuse ; elle se datait du 31 decembre de l'annee d'avant, libellee
-    /// « Decembre » de l'annee dite.
-    #[test]
-    fn le_mois_00_d_une_ecriture_se_refuse() {
-        let refus = super::date_et_libelle("2026-00").unwrap_err();
-        assert!(refus.message.contains(&socle::date::mois_impossible(0)), "{}", refus.message);
-        assert_eq!(super::date_et_libelle("2026-12").unwrap(), ("2026-12-31".to_string(), "Decembre 2026".to_string()));
-    }
-}

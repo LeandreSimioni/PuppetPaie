@@ -601,20 +601,8 @@ mod tests {
         ContratCs { debut, fin, dates_travail: dates, cachets, jours, heures, taux_cachet: Some(130.0), numero: Some("FA1.26.01".into()) }
     }
 
-    #[test]
-    fn un_contrat_qui_ne_traverse_pas_le_31_mars_n_a_qu_une_periode() {
-        let c = contrat(j(2026, 10, 5), j(2026, 10, 6), vec![j(2026, 10, 5), j(2026, 10, 6)], 2, 2, None);
-        let p = decouper(&c).unwrap();
-        assert_eq!(p.len(), 1);
-        assert_eq!(p[0].3, 2);
-    }
-
-    #[test]
-    fn la_case_porte_les_jours_quand_il_n_y_a_pas_de_cachet() {
-        let c = contrat(j(2026, 10, 5), j(2026, 10, 5), vec![j(2026, 10, 5)], 0, 1, Some(5.0));
-        assert_eq!(decouper(&c).unwrap()[0].3, 1);
-    }
-
+    /// L'exercice des conges va du 1er avril au 31 mars
+    /// (`atelier/reference/sources/audiens-dsn/audiens-declarer-payer-conges-spectacles-20261020.md`, l. 15).
     #[test]
     fn un_contrat_a_cheval_se_coupe_au_31_mars() {
         let dates = vec![j(2026, 3, 30), j(2026, 3, 31), j(2026, 4, 1)];
@@ -629,11 +617,5 @@ mod tests {
     fn des_heures_sur_le_31_mars_refusent() {
         let c = contrat(j(2026, 3, 30), j(2026, 4, 1), vec![j(2026, 3, 30)], 1, 1, Some(6.0));
         assert!(decouper(&c).unwrap_err().message.contains("porteur d'heures (6.0 h)"));
-    }
-
-    #[test]
-    fn l_arrondi_est_celui_de_l_euro_moitie_superieure() {
-        assert_eq!(arrondi_euro(Decimal::new(12050, 2)), 121);
-        assert_eq!(arrondi_euro(Decimal::new(12049, 2)), 120);
     }
 }

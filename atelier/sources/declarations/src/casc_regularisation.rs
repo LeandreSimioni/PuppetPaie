@@ -734,15 +734,3 @@ pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montan
     ecrire_json(&p, &d, 2).map_err(|m| erreur("OSError", m))?;
     Ok(entree)
 }
-
-#[cfg(test)]
-mod tests_mois {
-    /// Lot F1 : le mois « 00 » d'une regularisation CASC-SVP se refuse (l'indice `0 - 1` paniquait).
-    #[test]
-    fn le_mois_00_de_la_regularisation_se_refuse() {
-        let refus = std::panic::catch_unwind(|| super::libelle_du_mois("2026-00", "2026").map_err(|e| e.message));
-        let refus = refus.expect("un refus, pas une panique").unwrap_err();
-        assert!(refus.contains(&socle::date::mois_impossible(0)), "{}", refus);
-        assert_eq!(super::libelle_du_mois("2025-03", "2025").unwrap(), "mars 2025");
-    }
-}

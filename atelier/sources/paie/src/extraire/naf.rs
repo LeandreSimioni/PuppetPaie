@@ -84,7 +84,7 @@ pub fn relever(structure: &Path, correspondances: &Path, jour: &Jour) -> Resulta
                   La fiche entreprise porte le code APE sans point (`9020Y`). Le moteur s'en sert pour reconnaitre un \
                   code saisi et pour refuser, dans un fichier DSN P27V01, un code NAF rev. 2 qui n'a plus cours, en \
                   disant vers quels codes NAF 2025 il passe : il ne choisit jamais entre eux, c'est l'INSEE qui \
-                  attribue le code (`paie/src/naf.rs`).",
+                  attribue le code (`declarations/src/naf.rs`).",
         "_source": format!(
             "INSEE, page « NAF 2025 » (https://www.insee.fr/fr/information/8181066) : {} (structure, feuille \
              « Sous-classes ») et {} (feuille « NAF rév. 2 vers NAF 2025 »), deposes dans \

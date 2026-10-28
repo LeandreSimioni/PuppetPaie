@@ -153,7 +153,8 @@ mod tests {
     use super::*;
 
     /// La table livree (`logiciel/donnees/naf-base.json`, correspondance de l'INSEE) : 9001Z est de la NAF rev. 2, et passe
-    /// en 9020Y ou 9039G, de la NAF 2025.
+    /// en 9020Y ou 9039G, de la NAF 2025
+    /// (`atelier/reference/sources/insee-naf-2025/insee-naf-2025-correspondances-divisions-59-60-90-91-20260107.txt`).
     #[test]
     fn la_table_livree_dit_vers_quels_codes_passe_le_9001z() {
         assert!(en_naf_rev2("9001Z").unwrap() && !en_naf_2025("9001Z").unwrap());

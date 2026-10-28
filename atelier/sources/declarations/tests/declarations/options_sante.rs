@@ -19,7 +19,6 @@
 
 use serde_json::json;
 
-
 /// La fiche propose la dispense et ses bornes aux permanents des deux conventions qui en ont (1285, 3090).
 #[test]
 fn la_fiche_propose_la_dispense_de_sante_en_ccneac_et_en_3090() {
@@ -29,7 +28,3 @@ fn la_fiche_propose_la_dispense_de_sante_en_ccneac_et_en_3090() {
         assert_eq!(c["si_entreprise"], json!({"idcc": ["1285", "3090"]}), "{}", cle);
     }
 }
-
-
-
-

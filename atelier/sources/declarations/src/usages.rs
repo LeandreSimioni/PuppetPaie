@@ -192,9 +192,10 @@ mod tests {
         assert!(e.contains("Version de la norme DSN « P25V01 » inconnue du logiciel (versions livrees : P26V01, P27V01"), "{}", e);
     }
 
-    /// Le releve de `paie extraire usages`, sur le PDF 2027.1.1 (lot V4a) puis sur les classeurs
-    /// 2027.1.2 (lot R5b, fiches 3357 et 3358) : 20 rubriques ajoutees, 2 retirees, 11.024 qui change d'usage en
+    /// Le releve de `paie extraire usages`, sur le PDF 2027.1.1 puis sur les classeurs
+    /// 2027.1.2 (fiches 3357 et 3358) : 20 rubriques ajoutees, 2 retirees, 11.024 qui change d'usage en
     /// mensuelle (N9) ; le 2027.1.2 passe 40.084 de O a C en mensuelle (journal de maintenance, evolution 21).
+    /// `atelier/reference/norme-dsn/dsn-tableau-des-usages-2027.1.2-20251224.xlsx`, `dsn-journal-maintenance-2027.1.2-20260615.txt`.
     #[test]
     fn les_usages_2027_sont_ceux_du_cahier_2027() {
         let (p26, p27) = (Norme::connue("P26V01").unwrap(), Norme::connue("P27V01").unwrap());

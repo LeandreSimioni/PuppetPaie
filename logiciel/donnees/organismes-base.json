@@ -78,7 +78,7 @@
         "040:urssaf",
         "048:urssaf"
       ],
-      "_montant": "CALCULE : le bordereau Urssaf (22.005, recopie en 20.005) est la somme des lignes 23, chacune valorisee a la table des CTP de l'Urssaf et arrondie a l'euro (paie/src/bordereau.rs). Rejoue sur les 75 DSN de CoolPaie : 74 au centime.",
+      "_montant": "CALCULE : le bordereau Urssaf (22.005, recopie en 20.005) est la somme des lignes 23, chacune valorisee a la table des CTP de l'Urssaf et arrondie a l'euro (documents/src/bordereau.rs). Rejoue sur les 75 DSN de CoolPaie : 74 au centime.",
       "_libelle_coolpaie": "Bordereau Urssaf",
       "_correction": "Libelle corrige le 10/09/2026. Il etait faux : verifie sur l'export lisible de CoolPaie du meme jour, qui nomme lui-meme chaque bloc S21.G00.20, et confirme par les codes de cotisation portes. C'est cet organisme qui porte le bordereau S21.G00.22 et les CTP S21.G00.23, notions propres a l'URSSAF.",
       "_chomage_des_permanents": "Les cles 040:urssaf et 048:urssaf sont le chomage et l'AGS d'un SALARIE PERMANENT : meme code de cotisation qu'un intermittent (040, 048), mais recouvres par l'Urssaf et non par France Travail. C'est le bareme qui pose la cle (par_nature.permanent.cotisations_dsn), et la reduction generale suit le meme chemin (018:urssaf porte alors ses deux parts)."

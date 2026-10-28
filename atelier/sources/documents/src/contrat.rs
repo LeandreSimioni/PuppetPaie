@@ -333,7 +333,7 @@ pub fn ecrire_avenant(
 mod tests {
     use super::*;
 
-    /// Lot F1 : un modele qui cite le taux du cachet d'un contrat qui n'en a aucun se refuse, en disant quoi ecrire ;
+    /// Un modele qui cite le taux du cachet d'un contrat qui n'en a aucun se refuse, en disant quoi ecrire ;
     /// le meme marqueur en commentaire, ou un contrat qui a son taux, passent.
     #[test]
     fn un_modele_qui_cite_le_taux_d_un_contrat_sans_cachet_se_refuse() {

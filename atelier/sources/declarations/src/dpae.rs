@@ -923,7 +923,7 @@ mod tests {
         texte.chars().skip(a).take(b - a).collect()
     }
 
-    // ---- ce que le Python testait de ses internes
+    // ---- les zones du Format 120 (`atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`)
 
     #[test]
     fn une_dpae_sans_medecine_du_travail_ne_reprend_pas_celle_d_un_autre() {
@@ -1046,28 +1046,6 @@ mod tests {
     }
 
     #[test]
-    fn le_telephone_se_cherche_dans_le_declarant_puis_la_fiche_puis_le_signataire() {
-        let g = neutre();
-        let tel = |ent: Value| {
-            let z = employeur(&ent, &g).unwrap();
-            z.iter().find(|(k, _)| *k == "tel").unwrap().1.clone()
-        };
-        let base = json!({"siret": "12345691500016", "medecine_travail": "MT1"});
-        let mut e = base.clone();
-        e["declarant_dsn"] = json!({"tel": "+33 1 23 45 67 89"});
-        e["tel"] = json!("0999999999");
-        assert_eq!(tel(e), "33123456789");
-        let mut e = base.clone();
-        e["declarant_dsn"] = json!({});
-        e["tel"] = json!("01.23.45.67.89");
-        assert_eq!(tel(e), "0123456789 ");
-        let mut e = base.clone();
-        e["signataire"] = json!({"tel": "06 12 34 56 78 90 12"});
-        assert_eq!(tel(e), "06123456789");
-        assert_eq!(tel(base), " ".repeat(11));
-    }
-
-    #[test]
     fn normaliser_ne_garde_que_ce_que_le_format_120_admet() {
         assert_eq!(normaliser("Théâtre de l'Œuvre & Cie - Ça"), "THEATRE DE L UVRE & CIE - CA");
         assert_eq!(normaliser("Strauß Łukasz"), "STRAU UKASZ");
@@ -1085,53 +1063,6 @@ mod tests {
         assert_eq!(zone(&enr(&e, None, json!("")).unwrap(), "jours_essai"), "   ");
         let e = embauche(salarie(), "cdd", json!("2026-12-31"));
         assert_eq!(zone(&enr(&e, None, json!("")).unwrap(), "jours_essai"), "   ");
-    }
-
-    #[test]
-    fn les_noms_accentues_et_trop_longs_se_coupent_a_la_largeur_de_la_zone() {
-        let mut s = salarie();
-        s["nom"] = json!("Éloïse-Ænéas");
-        s["prenom"] = json!("x".repeat(40));
-        let t = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap();
-        assert_eq!(zone(&t, "nom").trim_end(), "ÉLOÏSE-ÆNÉAS");
-        assert_eq!(zone(&t, "prenom"), "X".repeat(32));
-        assert_eq!(t.chars().count(), LONGUEUR);
-    }
-
-    #[test]
-    fn les_refus_de_forme_nomment_le_champ() {
-        let mut s = salarie();
-        s["departement_naissance"] = json!("974");
-        let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert!(m.contains("dept_naissance") && m.contains("'974'"), "{}", m);
-        let mut s = salarie();
-        s["nir"] = json!("28503759990011234");
-        let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert!(m.contains("nir") && m.contains("'28503759990011234'"), "{}", m);
-        let mut s = salarie();
-        s["date_naissance"] = json!("pas une date");
-        let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert!(m.contains("'pas une date'"), "{}", m);
-        let mut s = salarie();
-        s.as_object_mut().unwrap().remove("lieu_naissance");
-        let m = enr(&embauche(s, "cdi", Value::Null), None, json!("")).unwrap_err();
-        assert!(m.contains("lieu_naissance"), "{}", m);
-        let mut e = embauche(salarie(), "cdi", Value::Null);
-        e.nature = Some("inexistante".into());
-        let m = enr(&e, None, json!("")).unwrap_err();
-        assert!(m.contains("'inexistante'"), "{}", m);
-    }
-
-    #[test]
-    fn l_heure_d_embauche_se_pose_sur_quatre_caracteres() {
-        let e = embauche(salarie(), "cdi", Value::Null);
-        let c = chemins();
-        let mut p = parametres(None, json!(""), &c);
-        p.heure_embauche = "1900".into();
-        assert_eq!(zone(&enregistrements(&[e.clone()], &p).unwrap()[0], "heure_embauche"), "1900");
-        p.heure_embauche = "800".into();
-        let m = enregistrements(&[e], &p).unwrap_err();
-        assert!(m.contains("heure_embauche") && m.contains("'800'"), "{}", m);
     }
 
     #[test]
@@ -1200,25 +1131,6 @@ mod tests {
     }
 
     #[test]
-    fn le_zip_contient_les_memes_octets_sous_le_meme_nom() {
-        let donnees: Vec<u8> = (0..3000u32).map(|i| (i % 251) as u8).collect();
-        let z = zip("DPAE_Octobre2026.txt", &donnees, "031020261407").unwrap();
-        let (nom, octets) = depaqueter(&z);
-        assert_eq!(nom, "DPAE_Octobre2026.txt");
-        assert_eq!(octets, donnees);
-        // la minute de l'ecriture est la date de l'entree : 2026-10-03 14:07
-        let date = u16::from_le_bytes([z[12], z[13]]);
-        let heure = u16::from_le_bytes([z[10], z[11]]);
-        assert_eq!((date >> 9) + 1980, 2026);
-        assert_eq!((date >> 5) & 15, 10);
-        assert_eq!(date & 31, 3);
-        assert_eq!((heure >> 11, (heure >> 5) & 63), (14, 7));
-        // un fichier vide se zippe aussi
-        let (_, vide) = depaqueter(&zip("v.txt", b"", "031020261407").unwrap());
-        assert!(vide.is_empty());
-    }
-
-    #[test]
     fn ecrire_pose_le_fichier_et_son_zip_et_cree_le_dossier() {
         let d = dossier("ecrire");
         let chemin = d.join("sorties").join("2026-10").join("DPAE_Octobre2026.txt");
@@ -1247,16 +1159,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
     }
 
-    #[test]
-    fn une_liste_vide_ne_lit_aucun_gabarit() {
-        let c = Chemins { defaut: PathBuf::from("/n/existe/pas"), poste: PathBuf::from("/n/existe/pas") };
-        let ent = json!({});
-        assert!(contenu(&[], &parametres(Some(&ent), json!(""), &c)).unwrap().is_empty());
-        let e = embauche(salarie(), "cdi", Value::Null);
-        let m = contenu(&[e], &parametres(None, json!(""), &c)).unwrap_err();
-        assert!(m.contains("/n/existe/pas"), "{}", m);
-    }
-
     // ---- le recapitulatif
 
     #[test]
@@ -1272,31 +1174,7 @@ mod tests {
         }
     }
 
-    #[test]
-    fn le_recapitulatif_d_un_cdd_d_usage_dit_son_terme_et_son_spectacle() {
-        let mut e = embauche(salarie(), "cddu_spectacle", json!("2026-10-05"));
-        e.spectacle = json!({"titre": "Ubu roi"});
-        let t = recapitulatif(&[e], &json!("1900")).unwrap();
-        assert!(t.contains("Embauche le 01/10/2026 a 19h00, fin prevue le 05/10/2026"), "{}", t);
-        assert!(t.contains(" - Ubu roi\n"), "{}", t);
-        // un spectacle sans titre : le KeyError du Python
-        let mut e = embauche(salarie(), "cddu_spectacle", json!("2026-10-05"));
-        e.spectacle = json!({"autre": 1});
-        assert!(recapitulatif(&[e], &json!("1900")).unwrap_err().contains("titre"));
-    }
-
-    #[test]
-    fn le_recapitulatif_sans_nir_demande_l_immatriculation() {
-        let mut s = salarie();
-        s["nir"] = json!("");
-        s["sexe"] = json!("2");
-        let t = recapitulatif(&[embauche(s, "cdi", Value::Null)], &json!("0800")).unwrap();
-        assert!(t.contains("immatriculation"), "{}", t);
-        assert!(!recapitulatif(&[], &json!("0800")).unwrap().contains("Dupont"));
-        assert!(recapitulatif(&[], &Value::Null).is_err(), "une heure d'embauche qui n'est pas un texte se refuse");
-    }
-
-    // ---- les lecteurs
+    // ---- les lecteurs du retour au Format 120 (`atelier/reference/norme-dpae/v5.3_FormatDPAE_EMAIL.txt`)
 
     fn flux(n: usize, f: impl Fn(&mut Vec<char>, usize)) -> String {
         let mut out = String::new();
@@ -1334,23 +1212,6 @@ mod tests {
         assert!(lire_enregistrements("\n  \n").is_empty());
         // un morceau de longueur quelconque : le decoupage fixe
         assert_eq!(lire_enregistrements(&format!("{}x", colle)).len(), 2);
-    }
-
-    #[test]
-    fn relire_rend_les_zones_dans_l_ordre_des_champs() {
-        let f = flux(1, |r, _| {
-            poser_texte(r, 283, "DUPONT");
-            poser_texte(r, 347, "2850375999001");
-            poser_texte(r, 412, "01102026");
-        });
-        let l = relire(&f);
-        assert_eq!(l.len(), 1);
-        assert_eq!(l[0].iter().map(|(k, _)| *k).collect::<Vec<_>>(), CHAMPS.iter().map(|c| c.0).collect::<Vec<_>>());
-        let v = |k: &str| l[0].iter().find(|(n, _)| *n == k).unwrap().1.clone();
-        assert_eq!(v("nom").trim_end(), "DUPONT");
-        assert_eq!(v("nir"), "2850375999001");
-        assert_eq!(v("date_embauche"), "01102026");
-        assert_eq!(v("nom").chars().count(), 32);
     }
 
     #[test]

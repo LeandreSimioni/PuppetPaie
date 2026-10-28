@@ -5054,6 +5054,7 @@ mod tests {
                                            "permanent": {"references": ["100", "101"]}}})
     }
 
+    // La CASC-SVP de la 3090 (`atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt`).
     #[test]
     fn la_dsn_de_la_3090_porte_la_casc_en_troisieme_affiliation() {
         let c = casc_svp(&ctx_dsn("a", &[]), &json!({"idcc": "3090"}), &orgs_casc(), "2026-09").unwrap().unwrap();
@@ -5063,6 +5064,7 @@ mod tests {
         assert_eq!(c["natures"], json!({"intermittent": "204"}));
     }
 
+    // `atelier/reference/sources/casc-svp-fiche-codification-dsn-202606.txt`.
     #[test]
     fn pas_de_casc_hors_3090_avant_2025_ni_sur_un_mois_regularise() {
         let o = orgs_casc();
@@ -5079,10 +5081,7 @@ mod tests {
         assert!(e.contains("CASCSVP"), "{}", e);
     }
 
-
-
-
-
+    // S21.G00.20.002 de France Travail (`atelier/reference/sources/francetravail-100-dsn/net-entreprises-fiche-3344-intermittents-20251113.html`).
     #[test]
     fn le_dossier_france_travail_de_la_fiche_part_dans_la_dsn() {
         let ft = json!({"siret": SIRET_FRANCE_TRAVAIL, "reference": "CS00012345"});
@@ -5107,14 +5106,13 @@ mod tests {
         assert_eq!(SIRET_FRANCE_TRAVAIL, "13000548100010");
     }
 
+    // Le tableau des usages (`atelier/reference/norme-dsn/dsn-cahier-technique-2026.1-usages.txt`).
     #[test]
     fn statut_boeth_admis_en_mensuelle() {
         assert!(usage_admet(&Fichier::en_norme(crate::norme::Norme::connue("P26V01").unwrap()), "S21.G00.40.072", "01").unwrap());
     }
 
-
-
-
+    // `atelier/reference/norme-dsn/texte/bloc-S21.G00.50.txt`, `bloc-S21.G00.56.txt` (la somme est une inference, `pas_retenu`).
     #[test]
     fn le_pas_retenu_compte_les_50_009_et_les_regularisations_d_indu() {
         let l: Vec<String> = ["S21.G00.50.009,'187.18'", "S21.G00.50.013,'2000.00'", "S21.G00.50.009,'12.40'", "S21.G00.56.007,'-30.08'"]
@@ -5124,6 +5122,7 @@ mod tests {
         assert_eq!(pas_retenu(&l).unwrap(), Decimal::from_str_exact("169.50").unwrap());
     }
 
+    // `atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1931-situations-creditrices-versement-20250323.txt`.
     #[test]
     fn le_versement_dgfip_s_arrondit_a_l_euro_et_verse_zero_pour_un_pas_negatif() {
         let banque = json!({"bic": "BANQFRPPXXX", "iban": "FR7630001007941234567890185"});
@@ -5140,8 +5139,6 @@ mod tests {
         // Un PAS negatif : un versement a 0.00, que la fiche net-entreprises 1931 admet « par commodite » (l. 13).
         assert_eq!(montant("-3.10"), Some("'0.00'".into()));
     }
-
-
 
     // ------------------------------------------------------------ les composants du versement (bloc 55)
 
