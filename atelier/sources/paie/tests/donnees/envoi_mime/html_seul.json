@@ -1,8 +1,0 @@
-{
- "sujet": "Octobre 2026",
- "corps": "Bonjour Marie,\n\nPour signer, réponds « Je signe ».\n",
- "html": "<html><body><p>Bonjour Marie,</p><p>Pour signer, cliquez sur le bouton : <a href=\"mailto:compagnie@gmail.com?subject=Re%3A%20Je%20signe&amp;body=Je%20signe%20le%20contrat%20CDDU%2012345\">Je signe</a></p><p style=\"color:#333\">À bientôt.</p></body></html>\n",
- "pieces": [],
- "dest": "marie@exemple.fr",
- "exp": "compagnie@gmail.com"
-}

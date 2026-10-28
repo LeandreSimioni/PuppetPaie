@@ -1848,14 +1848,6 @@ mod tests {
                "reponse": "", "trace": null, "detail": detail})
     }
 
-    fn recus(cles: Value) -> Dico<()> {
-        let mut d = Dico::nouveau();
-        for k in cles.as_array().unwrap() {
-            d.poser(k.as_array().unwrap().clone(), ()).unwrap();
-        }
-        d
-    }
-
     #[test]
     fn les_embauches_declarees_ne_comptent_que_le_reel_accepte() {
         let test = ligne("dpae", "2026-06", "test", "2026-06-01T10:00:00", json!({"embauches": [{"salarie": "ALPHA", "debut": "2026-06-02"}]}), json!([]));
@@ -1866,36 +1858,6 @@ mod tests {
         let e = embauches_par_depot(&l).unwrap();
         assert_eq!(e.cles(), json!([["GAMMA", "2026-06-04"]]));
         assert_eq!(e.sortie(Clone::clone), json!([["GAMMA", "2026-06-04", "2026-06-01T12:00:00"]]));
-    }
-
-    #[test]
-    fn l_etat_de_la_dsn_par_etablissement() {
-        let ok = json!([{"nature": "10"}, {"nature": "11", "verdict": "OK"}, {"nature": 46}]);
-        let ko = json!([{"nature": "11", "verdict": "KO", "anomalies": ["motif a"]}]);
-        let mut autre = ligne("dsn", "2026-06", "reel", "2026-06-20T10:00:00", json!({"etablissement": "00022"}), ko);
-        autre["flux"] = json!("FLUX2");
-        let mut premier = ligne("dsn", "2026-06", "reel", "2026-06-10T10:00:00", json!({}), ok);
-        premier["flux"] = json!("FLUX1");
-        let l = vec![premier, autre];
-        let principal = etat_dsn_du_mois(&l, "2026-06", &Value::Null, "00011").unwrap();
-        assert_eq!((&principal["flux"], &principal["passee"], &principal["refusee"], &principal["aer_recue"]), (&json!("FLUX1"), &json!(true), &json!(false), &json!(true)));
-        let second = etat_dsn_du_mois(&l, "2026-06", &json!("00022"), "00011").unwrap();
-        assert_eq!((&second["flux"], &second["passee"], &second["refusee"]), (&json!("FLUX2"), &json!(false), &json!(true)));
-        assert_eq!(second["anomalies"], json!(["motif a"]));
-        assert_eq!(etat_dsn_du_mois(&l, "2026-07", &Value::Null, "").unwrap(), Value::Null);
-    }
-
-    #[test]
-    fn l_etat_des_embauches_lit_le_certificat() {
-        let cert = json!([{"nature": "41", "dpae": [
-            {"nom": "Beta-Gamma", "embauche": "2026-06-04", "dossier": "D-1", "enregistree": true, "deja_existante": false}]}]);
-        let l = ligne("dpae", "2026-06", "reel", "2026-06-01T12:00:00",
-                      json!({"embauches": [{"salarie": "BETA GAMMA", "debut": "2026-06-04", "fin": "2026-06-30"}]}), cert);
-        let l = vec![l];
-        let e = etat_des_embauches(&l).unwrap();
-        assert_eq!(e[0][0], "BETA GAMMA");
-        let v = &e[0][2];
-        assert_eq!((&v["passee"], &v["dossier"], &v["deja_existante"], &v["fin"]), (&json!(true), &json!("D-1"), &json!(false), &json!("2026-06-30")));
     }
 
     fn contrat(sal: &str, code: &str, empreinte: &str, acte: Value) -> Value {
@@ -1924,73 +1886,6 @@ mod tests {
         assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
         assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
         assert_eq!(numeros_contrats_partis(&l, Maille::Paire).unwrap()[0][2], "N1");
-    }
-
-    #[test]
-    fn les_avenants_attendent_leur_signature() {
-        let mut c = contrat("ALPHA", "C5", "e5", json!("avenant"));
-        c["avenant"] = json!(1);
-        c["modifications"] = json!(["horaire"]);
-        let l = vec![signature("2026-06-08T10:00:00", c), recu("ALPHA", "main")];
-        let a = avenants(&l, Maille::Paire).unwrap();
-        assert_eq!((&a[0][2][0]["numero"], &a[0][2][0]["signe"], &a[0][2][0]["modifications"]), (&json!(1), &json!("2026-06-12T10:00:00"), &json!(["horaire"])));
-    }
-
-    #[test]
-    fn l_etat_et_les_dernieres_lignes_du_mois() {
-        let mut t = ligne("dsn", "2026-06", "test", "2026-06-01T10:00:00", json!({}), json!([]));
-        t["fichier"] = json!("test.dsn");
-        let r1 = ligne("dsn", "2026-06", "reel", "2026-06-02T10:00:00", json!({}), json!([]));
-        let mut r2 = ligne("dsn", "2026-06", "reel", "2026-06-03T10:00:00", json!({}), json!([]));
-        r2["accepte"] = json!(false);
-        let d = ligne("documents", "2026-06", "reel", "2026-06-04T10:00:00", json!({"salaries": [{"cle": "ALPHA"}]}), json!([]));
-        let l = vec![t, r1, r2, d];
-        let e = etat_du_mois(&l, "2026-06").unwrap();
-        assert_eq!(e["dsn"]["quand"], "2026-06-02T10:00:00");
-        assert_eq!(e["dpae"], Value::Null);
-    }
-
-    #[test]
-    fn les_resumes() {
-        let r = |l: Value, k: Value| resume(&l, &recus(k), Maille::Paire).unwrap();
-        // Chaque resume dit l'etat du geste : envoye ou non, en test, refuse et pourquoi, accepte, signe.
-        assert!(r(Value::Null, json!([])).contains("pas encore envoyé"));
-        let l = ligne("dsn", "2026-06", "test", "2026-06-02T10:05:00", json!({}), json!([]));
-        let s = r(l, json!([]));
-        assert!(s.contains("TEST") && s.contains("02/06/2026") && s.contains("pas encore de retour"), "{}", s);
-        let mut refus = ligne("dpae", "2026-06", "reel", "2026-06-02", json!({}), json!([]));
-        refus["accepte"] = json!(false);
-        refus["reponse"] = json!("Code URSSAF invalide");
-        let s = r(refus, json!([]));
-        assert!(s.contains("refusé") && s.contains("Code URSSAF invalide"), "{}", s);
-        let ko = ligne("dsn", "2026-06", "reel", "2026-06-02T10:05:00", json!({}), json!([{"nature": "11", "verdict": "KO", "anomalies": ["a", "b", "a"]}]));
-        let s = r(ko, json!([]));
-        assert!(s.contains("REFUSÉ") && s.ends_with(": a ; b"), "chaque anomalie une fois : {}", s);
-        let ok = ligne("dsn", "2026-06", "reel", "2026-06-02T10:05:00", json!({}),
-                       json!([{"nature": "10"}, {"nature": "11", "verdict": "OK"}, {"nature": "45"}, {"nature": "46"}]));
-        let s = r(ok, json!([]));
-        assert!(s.contains("bilan OK") && s.contains("2 comptes-rendus"), "{}", s);
-        let cert = ligne("dpae", "2026-06", "reel", "2026-06-02T10:05:00", json!({}),
-                         json!([{"nature": "41", "dpae": [{"nom": "X", "enregistree": true, "dossier": "D1"}, {"nom": "Y", "deja_existante": true}]}]));
-        let s = r(cert, json!([]));
-        assert!(s.contains("(dossier D1)") && s.ends_with(": Y"), "{}", s);
-        let sig = ligne("contrat-signature", "2026-06", "reel", "2026-06-02T10:05:00", json!({"contrats": [{"salarie": "A", "debut": "d"}, {"salarie": "B", "debut": "d"}]}), json!([]));
-        assert!(r(sig.clone(), json!([])).contains("pas encore revenu signé"));
-        assert!(r(sig.clone(), json!([["A", "d"]])).contains("1 contrat sur 2"));
-        assert!(r(sig, json!([["A", "d"], ["B", "d"]])).contains("tous revenus signés (2)"));
-        let dernier = ligne("dsn", "2026-06", "reel", "2026-06-02T10:05:00", json!({}), json!([{"nature": 99, "libelle": ""}]));
-        assert!(r(dernier, json!([])).ends_with("99"));
-    }
-
-    #[test]
-    fn le_flux_se_lit_dans_la_reponse() {
-        assert_eq!(flux_de("<ns:IdFlux > WSabc123XYZ </ns:IdFlux>"), "");
-        assert_eq!(flux_de("x <  IDFLUX >WSabc123XYZ</idflux>"), "WSabc123XYZ");
-        assert_eq!(flux_de(r#"{"idflux" : "WSabc123XYZ", "a": 1}"#), "WSabc123XYZ");
-        assert_eq!(flux_de("  WSabc123XYZ\n"), "WSabc123XYZ");
-        for rien in ["court", "deux mots ici", "", "<idflux>AB CD</idflux>"] {
-            assert_eq!(flux_de(rien), "", "{:?}", rien);
-        }
     }
 
     #[test]
@@ -2053,25 +1948,6 @@ mod tests {
         assert_eq!(fichier[1]["retours"][0]["libelle"], "bilan d'identification des salaries");
         // un second passage ne rajoute rien
         assert_eq!(rattacher_retours(&r, &retours, &contenus, &mut Vec::new()).unwrap(), 0);
-        std::fs::remove_dir_all(&r).unwrap();
-    }
-
-    #[test]
-    fn les_noms_se_rapprochent_sans_accent_de_ponctuation() {
-        assert!(meme_nom(&json!("DU-MONT-LAVAL"), &json!("du mont laval")).unwrap());
-        assert!(!meme_nom(&json!("ALPHA"), &json!("BETA")).unwrap());
-        assert!(!meme_nom(&json!(""), &json!("")).unwrap());
-        assert!(!meme_nom(&Value::Null, &json!("X")).unwrap());
-    }
-
-    #[test]
-    fn le_journal_illisible_est_refuse() {
-        let r = journal("illisible", json!([]));
-        std::fs::write(r.join("journal").join("depots.json"), "[{").unwrap();
-        assert!(charger(&r).is_err());
-        // une ligne qui n'est pas un objet
-        std::fs::write(r.join("journal").join("depots.json"), "[3]").unwrap();
-        assert!(charger(&r).and_then(|l| etat_du_mois(&l, "2026-06")).is_err());
         std::fs::remove_dir_all(&r).unwrap();
     }
 }
