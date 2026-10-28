@@ -107,3 +107,32 @@ fn une_charge_incomplete_ou_sans_reponse_a_la_question_refuse_sans_rien_ecrire()
     }
     assert_eq!(std::fs::read(r.join("engagements/2026-11.json")).unwrap(), avant, "rien ne bouge sans la reponse");
 }
+
+/// UNE DSN EST CELLE D'UN ETABLISSEMENT (cahier technique DSN 2026.1 : une declaration par SIRET, bloc S21.G00.11) :
+/// Seraphin releve d'un second etablissement ; la DSN du principal, partie avec le seul engagement de Brioche, ne se
+/// refait pas parce que celui de Seraphin existe.
+#[test]
+fn la_dsn_d_un_etablissement_ne_compte_que_ses_engagements() {
+    let r = compagnie("etablissements");
+    let mut ent = lire(&r, "config/entreprise.json");
+    ent["etablissements"] = json!([{"nic": "00028", "naf": ent["naf"].clone(), "adresse": "1 RUE DE L'ESSAI", "code_postal": "69002",
+        "commune": "LYON", "taux_atmp": {"valeur": 1.1, "code_risque": "923AC"}}]);
+    ecrire(&r, "config/entreprise.json", &ent);
+    let mut s = lire(&r, "config/salaries.json");
+    s["SERAPHIN"]["etablissement"] = json!("00028");
+    ecrire(&r, "config/salaries.json", &s);
+    let jours = ["2026-11-02", "2026-11-03"];
+    reussi(&enregistrer(&r, "2026-11", json!([contrat("Brioche", "2026-11-02", "2026-11-03", &jours, &[]), contrat("Seraphin", "2026-11-02", "2026-11-03", &jours, &[])])));
+    reussi(&valider(&r, "2026-11", "BRIOCHE", "2026-11-02", true));
+    reussi(&valider(&r, "2026-11", "SERAPHIN", "2026-11-02", true));
+    let brioche = fichier(&r, "2026-11")["engagements"].as_array().unwrap().iter().find(|e| e["salarie"] == "Brioche").unwrap()["numero"].clone();
+    let mut j = lire(&r, "journal/depots.json");
+    j.as_array_mut().unwrap().push(json!({"quoi": "dsn", "quand": "2026-11-05T10:00:00", "origine": "", "mois": "2026-11", "fichier": null,
+        "mode": "reel", "qui": "interface", "accepte": true, "destinataire": "net-entreprises", "flux": "WSX",
+        "retours": [{"nature": "11", "verdict": "OK", "anomalies": []}], "reponse": "", "trace": null,
+        "detail": {"type": "01", "ordre": "1", "etablissement": ent["nic"].clone()},
+        "versions": [{"salarie": "BRIOCHE", "numero": brioche, "version": 1}]}));
+    ecrire(&r, "journal/depots.json", &j);
+    let b = reussi(&route(&r, "bilan-du-mois", json!({"mois": "2026-11"}))).clone();
+    assert_eq!(b["dsn"]["remplacement"]["saisie_modifiee"], json!(false), "{}", b["dsn"]);
+}
