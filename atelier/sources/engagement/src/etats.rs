@@ -999,7 +999,7 @@ pub fn mois_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) ->
 
 /// La paie de `mois` que la version `version` de `o` a ecrite, relue (`relire`) sur la saisie de cette version, la fiche
 /// du salarie et la saisie du mois telles que son calcul les a lues (`fiches`, `MOIS_LU`) ; `None` si cette version n'a
-/// pas de paie pour ce mois.
+/// pas de paie pour ce mois. Elle porte le numero de son bulletin quand ses documents sont partis.
 fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Paie>> {
     let Some(ecrite) = version.get("paies").and_then(|p| p.get(mois)) else { return Ok(None) };
     let paie = ecrite.get("paie").ok_or("paie ecrite illisible : `paie`")?;
@@ -1011,6 +1011,7 @@ fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) ->
     let fiches = ecrite.get("fiches").filter(|f| f.is_object()).ok_or("paie ecrite illisible : `fiches`")?;
     let mut p = relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?;
     p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
+    p.numero_bulletin = ecrite.get(BULLETIN).and_then(Value::as_str).map(String::from);
     Ok(Some(p))
 }
 

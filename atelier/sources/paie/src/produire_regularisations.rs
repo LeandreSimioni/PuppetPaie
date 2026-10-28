@@ -200,7 +200,10 @@ fn versement_declare_de(ctx: &Contexte, c: &Map<String, Value>, mois: &str, mois
     if let Some(d) = engagement::etats::debut_declare(ctx, &objet, &departs, mois_courant).map_err(refus)? {
         etat.debut_contrat = Some(Jour::lire(&d).map_err(|e| refus(e))?.jjmmaaaa());
     }
-    Ok((etat, derniere_paie.paie.net_a_payer, derniere_paie.paie.clone()))
+    // Le bulletin que la correction rectifie : le dernier qu'une paie declaree de ce contrat porte.
+    let mut avant = derniere_paie.paie.clone();
+    avant.numero_bulletin = declarees.iter().rev().find_map(|d| d.paie.numero_bulletin.clone());
+    Ok((etat, derniere_paie.paie.net_a_payer, avant))
 }
 
 fn prenom_de(sal: &Value) -> String {
@@ -311,20 +314,10 @@ pub(crate) fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: 
     }))
 }
 
-/// `numero_du_bulletin_rectifie` : le numero du bulletin d'origine, LU dans le fichier groupe archive du mois
-/// d'origine, par le numero de contrat declare. `None` s'il ne s'y lit pas : l'appelant le dit, il ne le devine
-/// pas. Un fichier illisible ne se devine pas non plus.
-fn numero_du_bulletin_rectifie(ctx: &Contexte, r: &Reg) -> Option<String> {
-    let etiq = crate::envoi::etiquette(&r.mois).ok()?;
-    let groupe = ctx.racine.join("sorties").join(&r.mois).join(format!("Bulletins_{}.pdf", etiq));
-    if !groupe.exists() {
-        return None;
-    }
-    let lus = crate::apercu_dsn::numeros_archives(&groupe).ok()?;
-    let e = &r.avant.engagement;
-    let numero = e.numero.as_deref()?;
-    let (debut, fin) = (e.debut_periode().ok()?.iso(), e.fin_periode().ok()?.iso());
-    lus.into_iter().find(|lu| lu.contrat == numero && lu.debut <= fin && lu.fin >= debut).map(|lu| lu.bulletin)
+/// `numero_du_bulletin_rectifie` : le numero du bulletin d'origine, tel que la paie declaree le porte (`Reg::avant`).
+/// `None` s'il n'y est pas : l'appelant le dit, il ne le devine pas.
+fn numero_du_bulletin_rectifie(r: &Reg) -> Option<String> {
+    r.avant.numero_bulletin.clone().filter(|n| !n.is_empty())
 }
 
 /// Ce que `ecrire_rectificatifs` rend : les fichiers ecrits, les avertissements (de simples phrases).
@@ -378,13 +371,13 @@ pub(crate) fn ecrire_rectificatifs(
         let numero_bulletin = format!("{}/{}", n, an);
         n += 1;
         let mut rectif = versement_de_la_correction(ctx, r, mois_courant)?;
-        let rectifie = numero_du_bulletin_rectifie(ctx, r);
+        let rectifie = numero_du_bulletin_rectifie(r);
         rectif["rectifie"] = rectifie.clone().map_or(Value::Null, Value::String);
         let contrat = r.apres.engagement.numero.as_deref().unwrap_or("None");
         // Un contrat ajoute n'a pas de bulletin d'origine : son bulletin est celui-ci.
         if rectifie.is_none() && !r.correction.get("ajout").is_some_and(vrai) {
             out.avertissements.push(format!(
-                "Bulletin rectificatif {} ({}, contrat {}) : le numero du bulletin d'origine ne se lit pas dans sorties/{}/ -- le rectificatif cite le contrat a la place.",
+                "Bulletin rectificatif {} ({}, contrat {}) : la paie declaree ne porte pas le numero du bulletin d'origine de {} -- le rectificatif cite le contrat a la place.",
                 numero_bulletin,
                 engagement::libelle_mois(&r.mois),
                 contrat,

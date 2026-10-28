@@ -2,8 +2,6 @@
 //! `fabrique-pdf`) : des blocs JSON que la fabrique met en page. Ce module
 //! s'arrete a la `Value` de la description ; l'ecriture du PDF est
 //! `fabrique::ecrire`.
-//!
-//! Hors de ce module : la relecture d'un PDF ecrit (`apercu_dsn::numeros_archives`).
 
 use engagement::calcul::Paie;
 use engagement::conges::{compteur_au_bulletin, CompteurConges};
@@ -435,8 +433,7 @@ const LARGEURS_ANNEXE: [f64; 6] = [0.46, 0.11, 0.09, 0.11, 0.11, 0.12];
 ///   certaines rubriques (cotisations statutaires, autres charges dues, complémentaire garantie frais de santé
 ///   obligatoire, etc.) au verso du bulletin de paie ou bien sur un document annexe ». Jusqu'au lot D2, le complet
 ///   ajoutait une colonne « Taux employeur » et des lignes « dont ... » DANS la rubrique : c'est ce que Q 10 refuse.
-///   L'annexe ne porte pas la marque « Bulletin de paie n° » : le lecteur des archives (`apercu_dsn::numeros_archives`)
-///   la range dans les pages du bulletin qu'elle suit.
+///   L'annexe est une page qui suit celle du bulletin.
 ///
 /// QUI CHOISIT : la compagnie, pour tous (`modele_bulletin` de la fiche entreprise, pose par le selecteur de
 /// Configuration) ; un salarie qui demande l'autre modele l'obtient par la case `modele_bulletin` de sa fiche (Avance),
@@ -787,8 +784,7 @@ fn tableau_modele(p: &Paie) -> Resultat<Vec<Value>> {
 /// L'annexe du modele complet (voir `Modele`) : une page qui suit le bulletin et detaille chacune de ses lignes de
 /// cotisation -- chaque ligne du bareme sous la ligne (ou le groupe) du bulletin qui la porte, avec sa base, le taux et
 /// le montant de la part salariale et de la part employeur --, puis les trois totaux du bulletin, aux memes montants.
-/// Elle ne dit rien que la paie ne dise : chaque ligne de la paie s'y imprime une fois. Ni « Bulletin de paie n° », ni
-/// « Contrat n° », ni « Période : » : ce sont les marques que lit `apercu_dsn::numeros_archives`.
+/// Elle ne dit rien que la paie ne dise : chaque ligne de la paie s'y imprime une fois.
 fn blocs_annexe(p: &Paie) -> Resultat<Vec<Value>> {
     let sal = &p.salarie;
     let mut blocs = vec![

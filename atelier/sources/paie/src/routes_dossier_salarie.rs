@@ -573,10 +573,11 @@ fn mois_puppetpaie(
     let mut pages = Vec::new();
     let sortie = ctx.racine.join("sorties").join(mois);
     let etiq = etiquette(mois)?;
-    let groupe = sortie.join(format!("Bulletins_{}.pdf", etiq));
     let envoi_dir = sortie.join("envoi");
-    let ecrit = groupe.exists();
-    let (_, mut paies) = charger(ctx, mois)?;
+    let (_, paies) = charger(ctx, mois)?;
+    // Les documents du mois sont partis quand une paie porte le numero de son bulletin (ecrit a son depart).
+    let numerote = |p: &Paie| p.numero_bulletin.as_deref().is_some_and(|n| !n.is_empty());
+    let ecrit = paies.iter().any(numerote);
     let siennes: Vec<usize> = (0..paies.len()).filter(|i| cles.contains(&cle_de(&paies[*i]))).collect();
     if siennes.is_empty() {
         return Ok(pages);
@@ -584,16 +585,11 @@ fn mois_puppetpaie(
     let ent = ctx.entreprise_du_mois(mois)?;
     let lib = engagement::libelle_mois(mois);
 
-    let mut lus: HashMap<usize, crate::apercu_dsn::Lu> = HashMap::new();
     // Les paies dont on tire les contrats d'un mois pas encore ecrit : celles de la saisie
     // dont chaque engagement porte son numero.
     let mut paies_contrats: Vec<Paie> = Vec::new();
     let mut siennes_contrats: Vec<usize> = Vec::new();
-    if ecrit {
-        let (l, avert) = crate::apercu_dsn::numeroter_et_lire(ctx, &mut paies, &groupe)?;
-        lus = l;
-        d.avertissements.extend(avert.into_iter().map(|a| format!("{} : {}", lib, a)));
-    } else {
+    if !ecrit {
         if categories.contains(BULLETINS) || categories.contains(CERTIFICATS_CS) {
             d.avertissements.push(format!(
                 "{} : aucun document n'est encore parti, ni bulletin ni certificat à rééditer.",
@@ -618,54 +614,29 @@ fn mois_puppetpaie(
     cles_des_siennes.sort();
     cles_des_siennes.dedup();
 
-    // 1. Les bulletins : ceux de l'archive, tels qu'ils sont partis (regle 4 : un document remis ne se regenere pas ;
-    // Leandre, 10/10/2026). Le fichier du mois porte tous les salaries : chacun n'en recoit que SES pages, celles que
-    // `numeroter_et_lire` a rattachees a sa paie (son salarie, sa periode). Rien ne se recalcule ni ne se reimprime : un
-    // moteur qui a change de calcul depuis la production envoie quand meme ce que le salarie a recu. Ce qui ne se lit
-    // pas refuse, sans repli.
+    // 1. Les bulletins, tels qu'ils sont partis (regle 4 : un document remis ne se regenere pas) : la piece que le
+    // salarie a recue pour le mois (`depart::fabriquer_documents`, `envoi/Bulletin_<cle>_<Mois>.pdf`), qui porte tous ses
+    // bulletins numerotes. Rien ne se recalcule ni ne se reimprime : un moteur qui a change de calcul depuis envoie quand
+    // meme ce que le salarie a recu. Une piece qui manque refuse, sans repli.
     if categories.contains(BULLETINS) && ecrit {
-        let nom_archive = groupe.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         for cle in &cles_des_siennes {
-            let mut ses_pages: Vec<usize> = Vec::new();
-            for i in siennes.iter().filter(|i| cle_de(&paies[**i]) == *cle && !paies[**i].engagement.sans_paie()) {
-                let p = &paies[*i];
-                // Un bulletin pas encore parti n'a rien a redonner.
-                if !lus.contains_key(i) && p.numero_bulletin.as_deref().map_or(true, str::is_empty) {
-                    continue;
-                }
-                let Some(lu) = lus.get(i).filter(|lu| !lu.pages.is_empty()) else {
-                    return Err(erreur_operation(format!(
-                        "{}, {} : aucune page de sorties/{}/{} ne porte son bulletin du {} au {}. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
-                        lib,
-                        p.salarie.get("nom").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
-                        mois,
-                        nom_archive,
-                        p.engagement.debut_periode().map_err(|m| avec("ValueError", m))?.jj_mm_aaaa(),
-                        p.engagement.fin_periode().map_err(|m| avec("ValueError", m))?.jj_mm_aaaa()
-                    )));
-                };
-                if lu.partage {
-                    return Err(erreur_operation(format!(
-                        "{}, {} : le bulletin n° {} partage une page de sorties/{}/{} avec un autre bulletin. Cette page porte la paie d'un autre salarié, elle ne se donne pas ; et un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
-                        lib,
-                        p.salarie.get("nom").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("nom")))?,
-                        lu.bulletin,
-                        mois,
-                        nom_archive
-                    )));
-                }
-                ses_pages.extend(lu.pages.iter().copied());
+            if !siennes.iter().any(|i| cle_de(&paies[*i]) == *cle && numerote(&paies[*i])) {
+                continue;
             }
-            // Dans l'ordre du fichier, comme il les a recus.
-            ses_pages.sort_unstable();
-            ses_pages.dedup();
-            for n in ses_pages {
-                pages.push(Page { categorie: BULLETINS, cle: cle.clone(), tri: format!("{}-00", mois), source: groupe.clone(), numero: n });
+            let piece = envoi_dir.join(crate::envoi::nom_fichier("Bulletin", cle, &etiq));
+            if !piece.is_file() {
+                return Err(erreur_operation(format!(
+                    "{}, {} : son bulletin n'est pas dans sorties/{}/envoi/. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",
+                    lib, cle, mois
+                )));
+            }
+            for n in 0..pages_pdf(&piece)? {
+                pages.push(Page { categorie: BULLETINS, cle: cle.clone(), tri: format!("{}-00", mois), source: piece.clone(), numero: n });
             }
         }
     }
 
-    // 2. Les contrats : ceux du mois ecrit portent les numeros de l'archive.
+    // 2. Les contrats : ceux du mois ecrit portent les numeros de leur engagement valide.
     if categories.contains(CONTRATS) {
         let (source, indices): (&Vec<Paie>, &Vec<usize>) = if ecrit { (&paies, &siennes) } else { (&paies_contrats, &siennes_contrats) };
         let mut cles_contrats: Vec<String> = indices.iter().map(|i| cle_de(&source[*i])).collect();
