@@ -300,6 +300,7 @@ pub fn aem(zones: &[(usize, &str)], nir: &str, debut: &str, fin: &str, objet: &s
 
 #[path = "../../../envois/tests/outils/serveur.rs"]
 mod serveur;
+#[allow(unused_imports)]
 pub use serveur::*;
 
 /// Un faux mandataire, que l'essai nomme comme seule porte du garde-fou reseau (`socle::garde_reseau::VARIABLE`) : il

@@ -53,8 +53,8 @@ ses conditions appellent (`CONDITIONS_TARIFAIRES`, la règle de la spécificatio
 Inférences écrites dans le code : 01, 02 et 90 n'appellent aucun compteur (diapositives 16-17) ; 92 (« chaque ayant
 droit ») se range avec les nombres (70.009). Une condition hors des deux formats refuse (les compteurs ne se devinent pas).
 Le lecteur ne contrôle pas les combinaisons OC.39 (c'est le concentrateur qui les contrôle à réception).
-Fixtures fictives validées contre les deux XSD (`xmllint --schema`) : `paie/tests/donnees/fiches-parametrage/
-fiche-fictive-139.xml` et `fiche-fictive-140.xml` ; tests : `paie/tests/retours.rs`, `une_fiche_1_3_9_se_lit_avec_ses_conditions_tarifaires`,
-`une_fiche_1_4_0_se_lit_avec_ses_planchers_et_plafonds`, `une_condition_tarifaire_inconnue_refuse`.
+Fixture fictive validée contre les deux XSD (`xmllint --schema`) : `envois/tests/donnees/fiches-parametrage/
+fiche-fictive-140.xml` ; tests : `envois/tests/envois/retours.rs`, `une_fiche_1_4_0_se_lit_avec_ses_planchers_et_plafonds`,
+`une_condition_tarifaire_inconnue_refuse`, `les_octets_d_une_fiche_se_lisent_en_latin_1`.
 **Reste à faire** (hors du lecteur) : que la DSN d'un permanent santé déclare autant de bases 79 et les compteurs que la
 fiche dit (Q14) ; aujourd'hui elle ne lit pas la fiche (V3e : une base 79 type 18).

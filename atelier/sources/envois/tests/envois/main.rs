@@ -10,5 +10,6 @@ mod courriel;
 mod courriel_lecture;
 mod depot;
 mod envoi;
+mod journal;
 mod retours;
 mod transport;
