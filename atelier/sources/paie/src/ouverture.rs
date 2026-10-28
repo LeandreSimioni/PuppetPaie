@@ -37,7 +37,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::courriel::Courriel;
+use envois::courriel::Courriel;
 use crate::drive::Drive;
 use envois::etats;
 use socle::valeur::valeur_en_texte;

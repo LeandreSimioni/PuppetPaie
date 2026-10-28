@@ -31,7 +31,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::courriel::{Courriel, ErreurCourriel};
+use envois::courriel::{Courriel, ErreurCourriel};
 use socle::date::{jours_du_mois, Jour};
 use crate::depot_acte::{self, Preuve};
 use envois::etats;
@@ -116,7 +116,7 @@ impl Courriel for BoiteMuette {
     }
 
     fn envoyer(&mut self, _message_mime: &[u8]) -> Result<String, ErreurCourriel> {
-        Ok(format!("<{}@fictive.puppetpaie>", crate::courriel::hexa_au_hasard(8)))
+        Ok(format!("<{}@fictive.puppetpaie>", envois::courriel::hexa_au_hasard(8)))
     }
 
     fn rechercher(&mut self, _requete: &str, _maximum: usize) -> Result<Vec<String>, ErreurCourriel> {
@@ -489,7 +489,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
             }
             // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
             let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-            crate::envois_signature::demander_signature(ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
+            crate::routes_envois::demander_signature(ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
             Ok(true)
         });
         fait.extend(faits);
@@ -539,7 +539,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
                 .map(|(salarie, db, numero, _)| json!({"salarie": salarie, "debut": db, "numero": if numero.is_empty() { Value::Null } else { json!(numero) }}))
                 .collect();
             if !a_imprimer.is_empty() {
-                crate::envois_signature::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
+                crate::routes_envois::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
             }
             let manquent: Vec<(String, String, String, bool)> = signables(ctx)?.into_iter().filter(|(_, db, _, _)| db == debut).collect();
             if manquent.is_empty() {
@@ -580,8 +580,8 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
 
     fait.extend(pas(d, &format!("documents de {} envoyés aux salariés", mois_fr(mois)), &format!("{}T11:00:00", jour), |ctx| {
         let lignes = Moteur::nouveau(ctx).lignes()?;
-        let envoyes = etats::documents_envoyes(&lignes, mois)?;
-        if envoyes.as_array().is_some_and(|a| !a.is_empty()) {
+        let engagements = engagement::etats::du_mois(ctx, mois).map_err(Echec::from)?;
+        if !crate::routes_mois::documents_partis(ctx, mois, &engagements, &lignes)?.is_empty() {
             return Ok(false);
         }
         // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas (#236, trouve sur la demo Les Faisceaux : un mois que

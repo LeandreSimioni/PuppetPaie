@@ -18,7 +18,7 @@ fn le_resume_et_le_json_d_une_releve_vide_ou_sans_arrivee() {
 
 #[test]
 fn un_bloc_d_entetes_rompu_se_recoupe_avant_la_ligne_rompue() {
-    use paie::courriel_lecture::lisible_comme_python;
+    use envois::courriel_lecture::lisible_comme_python;
     // Sain : lu tel quel.
     let sain = b"From: a@x.invalid\nSubject: x\n\nbonjour\n";
     assert_eq!(&*lisible_comme_python(sain), &sain[..]);
@@ -39,7 +39,7 @@ fn un_bloc_d_entetes_rompu_se_recoupe_avant_la_ligne_rompue() {
 
 #[test]
 fn un_corps_base64_abime_se_decode_au_mieux_ou_reste_tel_quel() {
-    use paie::simulation_courriels::decoder_b64_python as d;
+    use envois::simulation_courriels::decoder_b64_python as d;
     assert_eq!(d(b"Q29kZSBTSUc="), b"Code SIG");
     assert_eq!(d(b"Q29k\r\nZSBT\r\nSUc="), b"Code SIG", "les lignes se joignent");
     assert_eq!(d(b"Q29kZSBTSUc"), b"Code SIG", "bourrage manquant : complete");

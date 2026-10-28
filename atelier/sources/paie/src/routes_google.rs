@@ -159,6 +159,56 @@ pub(crate) fn lire_jeton_dit(racine: &Path) -> Result<Value, String> {
     serde_json::from_str(&texte).map_err(|e| e.to_string())
 }
 
+/// `google.compte_autorise` : l'adresse du compte, sans reseau ; `None` si pas autorise.
+pub fn compte_autorise(racine: &Path) -> Option<String> {
+    let j = lire_jeton_dit(racine).ok()?;
+    match champ(&j, "compte").ok()? {
+        Value::Null => None,
+        Value::String(s) => Some(s),
+        autre => Some(en_texte(&autre)),
+    }
+}
+
+/// Les adresses de Google ; dans l'atelier, un faux Google local (`atelier.rs`).
+pub fn adresses_du_poste() -> crate::drive::Adresses {
+    #[cfg(feature = "atelier")]
+    if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
+        return crate::drive::Adresses::de_la_base(&b);
+    }
+    crate::drive::Adresses::default()
+}
+
+/// LE CLIENT DU DRIVE DE LA COMPAGNIE : refuse une copie de developpement (qui ecrirait dans le Drive de la VRAIE
+/// compagnie), lit l'application (`google.json` ou celle du logiciel), le jeton scelle par la cle du poste et l'adresse
+/// du compte, et les passe au client (`drive::Client::nouveau`). Aucun appel reseau.
+pub fn client_drive(racine: &Path) -> Result<crate::drive::Client, crate::drive::ErreurGoogle> {
+    if let Some(refus) = refus_de_copie(racine) {
+        return Err(refus.into());
+    }
+    let (id, secret, _origine) = identifiants(racine)?;
+    let autorisation = crate::drive::Autorisation { identifiants: (id, secret), jeton: lire_jeton_dit(racine), compte: compte_autorise(racine) };
+    Ok(crate::drive::Client::nouveau(autorisation, adresses_du_poste()))
+}
+
+/// Le jeton que l'autorisation a obtenu (`google_autorisation::autoriser`) et l'adresse du compte, dans un seul fichier
+/// scelle par la cle du poste. Rend l'adresse du compte lie.
+pub(crate) fn sceller_le_jeton(racine: &Path, jeton: &crate::google_autorisation::JetonGoogle) -> R<String> {
+    let brut = socle::json_ascii::dumps(
+        &serde_json::json!({"rafraichissement": jeton.rafraichissement, "compte": jeton.compte, "permissions": jeton.permissions}),
+        None,
+        false,
+        false,
+    );
+    let scelle = crate::coffre::Coffre::du_poste(racine, "")
+        .proteger(brut.as_bytes(), DESCRIPTION)
+        .map_err(|e| erreur_google(format!("Le jeton n'a pas pu etre scelle, rien n'est enregistre : {}", e.message)))?;
+    let dossier = config(racine);
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur_google(format!("{} : {}", dossier.display(), e)))?;
+    let chemin = dossier.join(FICHIER_JETON);
+    std::fs::write(&chemin, scelle).map_err(|e| erreur_google(format!("{} : {}", chemin.display(), e)))?;
+    Ok(jeton.compte.clone())
+}
+
 /// `(j or {}).get(cle)` : `Null` pour un jeton faux en Python.
 pub(crate) fn champ(j: &Value, cle: &str) -> R<Value> {
     if !vrai(j) {

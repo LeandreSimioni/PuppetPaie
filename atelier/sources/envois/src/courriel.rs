@@ -1,10 +1,6 @@
-//! `moteur/courriel.py` et `BoiteSimulee` de `moteur/simulation.py` : la boite courriel par IMAP et SMTP, avec un
-//! mot de passe d'application (lot H3a, ecrit, non prouve).
-//!
-//! POURQUOI IMAP ET SMTP (17/09/2026) : l'API Gmail demandait des permissions RESTREINTES (audit de securite CASA,
-//! plafond de 100 comptes) ; la boite s'ouvre par un MOT DE PASSE D'APPLICATION que chaque compagnie fabrique dans
-//! son compte Google : zero permission, zero audit, zero plafond. Le compte Google autorise ne sert plus qu'au
-//! Drive.
+//! La boite courriel par IMAP et SMTP, avec un mot de passe d'application : la boite s'ouvre par un MOT DE PASSE
+//! D'APPLICATION que chaque compagnie fabrique dans son compte Google (aucune permission Google, aucun audit). Le compte
+//! Google autorise ne sert qu'au Drive.
 //!
 //! CE QUE CE MODULE OFFRE : le trait `Courriel` (`compte`, `envoyer(mime) -> identifiant`, `rechercher`,
 //! `message_brut`, `fermer`), avec DEUX realisations : `Client`, le vrai (IMAP ecrit ici sur un flux rustls, SMTP par
@@ -12,10 +8,8 @@
 //! identifiant de message ENVOYE est son en-tete `Message-ID` ; celui d'un message RECU est son UID IMAP. La
 //! recherche est celle du serveur (`UID SEARCH TEXT`), dans la boite de reception seule.
 //!
-//! LE SECRET vit dans le coffre (service `courriel`, avec l'ADRESSE de la boite). Lu en CONSULTATION pour l'IMAP
-//! comme pour le SMTP : un courriel n'est pas une declaration, le garde-fou d'un envoi est ailleurs (le mot de passe
-//! du logiciel exige avant que `envoyer` soit appele, et la page de relecture). Les espaces du mot de passe
-//! d'application (quatre groupes de quatre lettres) sont retires.
+//! LE SECRET : `Client::nouveau` recoit l'adresse et le mot de passe de la boite ; ce module n'ouvre jamais le coffre
+//! (regle 3). Les espaces du mot de passe d'application (quatre groupes de quatre lettres) sont retires.
 //!
 //! LES SERVEURS : Gmail par defaut (`imap.gmail.com:993`, `smtp.gmail.com:465`, TLS implicite) ; une autre messagerie
 //! se dit dans `config/courriel.json` (`{"imap": ..., "smtp": ..., "port_smtp": 465}`). Le port SMTP 587 declenche
@@ -45,15 +39,12 @@ use std::time::Duration;
 use imap_proto::{AttributeValue, MailboxDatum, Response, Status};
 use serde_json::{json, Value};
 
-use crate::coffre::{Coffre, CONSULTATION};
 use droit::contexte::Contexte;
 
 pub const FICHIER_SERVEURS: &str = "courriel.json";
 /// Secondes, par connexion.
 pub const DELAI: u64 = 60;
 pub const DOSSIER_RECEPTION: &str = "INBOX";
-/// Le service du coffre qui porte le mot de passe de la boite et son adresse.
-pub const SERVICE: &str = "courriel";
 pub const DOSSIER_COURRIELS: &str = "courriels-simules";
 
 /// La boite refuse, ou le reseau. Jamais un mot de passe dedans.
@@ -146,42 +137,6 @@ pub fn serveurs(racine: &Path) -> Result<Serveurs, ErreurCourriel> {
         s.port_smtp = port_de(v)?;
     }
     Ok(s)
-}
-
-fn coffre_de(racine: &Path) -> Coffre {
-    Coffre::du_poste(racine, "")
-}
-
-/// L'adresse de la boite, posee avec le mot de passe (`COURRIEL_COMPTE`, puis le coffre). "" si rien.
-pub fn adresse(racine: &Path) -> Result<String, ErreurCourriel> {
-    if let Ok(v) = std::env::var("COURRIEL_COMPTE") {
-        if !v.is_empty() {
-            return Ok(v.trim().to_lowercase());
-        }
-    }
-    let du_coffre = coffre_de(racine).compte(SERVICE).map_err(|e| erreur(e.message))?;
-    Ok(du_coffre.trim().to_lowercase())
-}
-
-/// Peut-on ouvrir la boite sans rien demander ? Adresse ET secret.
-pub fn disponible(racine: &Path) -> bool {
-    match adresse(racine) {
-        Ok(a) if !a.is_empty() => coffre_de(racine).disponible(SERVICE).unwrap_or(false),
-        _ => false,
-    }
-}
-
-/// Le mot de passe, lu en CONSULTATION, sans ses espaces.
-pub(crate) fn mot_de_passe(racine: &Path) -> Result<String, ErreurCourriel> {
-    let lu = coffre_de(racine)
-        .lire(&Value::String(SERVICE.into()), &Value::String(CONSULTATION.into()), false, None)
-        .map_err(|e| erreur(e.message))?;
-    match lu {
-        Some(m) if !m.is_empty() => Ok(m.replace(' ', "")),
-        _ => Err(erreur(
-            "Aucun mot de passe de boite courriel dans le coffre.\n  paie coffre poser courriel --compte adresse@...",
-        )),
-    }
 }
 
 /// Le message du serveur, en francais quand on le reconnait.
@@ -427,24 +382,28 @@ impl<F: Read + Write> Imap<F> {
 pub struct Client {
     racine: PathBuf,
     compte: String,
+    mot_de_passe: String,
     pub serveurs: Serveurs,
     imap: Option<Imap<Box<dyn Flux>>>,
 }
 
 impl Client {
-    pub fn nouveau(racine: &Path) -> Result<Client, ErreurCourriel> {
-        Ok(Client { racine: racine.to_path_buf(), compte: adresse(racine)?, serveurs: serveurs(racine)?, imap: None })
-    }
-
-    pub fn du_contexte(ctx: &Contexte) -> Result<Client, ErreurCourriel> {
-        Client::nouveau(&ctx.racine)
+    /// `compte` : l'adresse de la boite ; `mot_de_passe` : celui que l'appelant a lu au coffre (les espaces d'un mot de
+    /// passe d'application se retirent ici). Les serveurs se lisent dans `config/courriel.json` de `racine`.
+    pub fn nouveau(racine: &Path, compte: &str, mot_de_passe: &str) -> Result<Client, ErreurCourriel> {
+        Ok(Client {
+            racine: racine.to_path_buf(),
+            compte: compte.trim().to_lowercase(),
+            mot_de_passe: mot_de_passe.replace(' ', ""),
+            serveurs: serveurs(racine)?,
+            imap: None,
+        })
     }
 
     fn boite(&mut self) -> Result<&mut Imap<Box<dyn Flux>>, ErreurCourriel> {
         if self.imap.is_none() {
-            let mdp = mot_de_passe(&self.racine)?;
             let flux = ouvrir_tls(&self.serveurs.imap, self.serveurs.port_imap)?;
-            self.imap = Some(Imap::ouvrir(flux, &self.compte, &mdp, DOSSIER_RECEPTION)?);
+            self.imap = Some(Imap::ouvrir(flux, &self.compte, &self.mot_de_passe, DOSSIER_RECEPTION)?);
         }
         Ok(self.imap.as_mut().expect("boite ouverte"))
     }
@@ -541,7 +500,7 @@ impl Courriel for Client {
         let adresses = adresses.map_err(|e| erreur(format!("adresse de destinataire illisible : {}", e)))?;
         let expediteur: Address = self.compte.parse().map_err(|e| erreur(format!("adresse de la boite illisible : {}", e)))?;
         let enveloppe = Envelope::new(Some(expediteur), adresses).map_err(|e| erreur(e.to_string()))?;
-        let mdp = mot_de_passe(&self.racine)?;
+        let mdp = self.mot_de_passe.clone();
         let (hote, port) = (self.serveurs.smtp.clone(), self.serveurs.port_smtp);
         // En essai, le garde-fou reseau : aucun serveur d'envoi reel.
         socle::garde_reseau::directe(&hote).map_err(injoignable)?;
@@ -574,26 +533,18 @@ impl Courriel for Client {
 
 // ----------------------------------------------------------------------------------------------- la verification
 
-/// La boite s'ouvre-t-elle avec ce qui est pose ? UNE tentative IMAP. Rend `{"ok", "message", "conseil"}` --
-/// jamais le mot de passe.
-pub fn verifier(racine: &Path) -> Result<Value, ErreurCourriel> {
-    if adresse(racine)?.is_empty() {
-        return Ok(json!({
-            "ok": false,
-            "message": "Aucune adresse posee avec le mot de passe.",
-            "conseil": "paie coffre poser courriel --compte adresse@..."
-        }));
-    }
-    let mut c = Client::nouveau(racine)?;
+/// La boite s'ouvre-t-elle avec ce client ? UNE tentative IMAP. Rend `{"ok", "message", "conseil"}` -- jamais le mot
+/// de passe.
+pub fn verifier(mut c: Client) -> Value {
     let ouverture = c.boite().map(|_| ());
     c.fermer();
     match ouverture {
-        Err(e) => Ok(json!({"ok": false, "message": e.0.lines().next().unwrap_or(""), "conseil": ""})),
-        Ok(()) => Ok(json!({
+        Err(e) => json!({"ok": false, "message": e.0.lines().next().unwrap_or(""), "conseil": ""}),
+        Ok(()) => json!({
             "ok": true,
             "message": format!("boite {} ouverte ({}).", c.compte, c.serveurs.imap),
             "conseil": ""
-        })),
+        }),
     }
 }
 
@@ -648,7 +599,7 @@ fn message_id_de(brut: &[u8]) -> Option<String> {
     }
 }
 
-pub(crate) fn hexa_au_hasard(octets: usize) -> String {
+pub fn hexa_au_hasard(octets: usize) -> String {
     let mut o = vec![0u8; octets];
     if socle::temps::aleas(&mut o).is_err() {
         let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(1);

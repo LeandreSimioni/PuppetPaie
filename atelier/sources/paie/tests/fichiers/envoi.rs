@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use paie::envoi::{self, Message};
+use envois::envoi::{self, Message};
 
 use crate::outils::FauxCourriel;
 

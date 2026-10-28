@@ -1,28 +1,27 @@
 //! Le client Drive (`google.Client`) : les dossiers, le listage, le televersement.
 //!
-//! Ecrit au lot H4b, non prouve. Ce que le Python faisait par `urllib`, ici par
-//! `transport::envoyer` ; ce que `routes_google.rs` sait deja (les identifiants de
-//! l'application, le jeton scelle lu par le coffre, le rafraichissement du jeton, la
-//! traduction des erreurs de Google) est repris de la, pas recopie.
+//! Les appels passent par `transport::envoyer`. Le client recoit ce que l'appelant a lu
+//! sur le poste (`Autorisation` : les identifiants de l'application, le jeton scelle,
+//! l'adresse du compte ; `routes_google::client_drive`) : il n'ouvre jamais le coffre.
 //!
 //! LE TRAIT `Drive` : la sauvegarde et l'archivage ne connaissent que lui (comme
 //! `Courriel` pour la messagerie). Le vrai `Client` l'implemente ; la preuve met a sa
 //! place un faux, ou le vrai `Client` pointe sur un serveur local (`Adresses`).
 //!
-//! Ce module ne parle jamais a Google tout seul : `Client::nouveau` ne fait rien d'autre
-//! que lire des fichiers du poste ; le premier appel reseau est `jeton_acces`, au premier
+//! Ce module ne parle jamais a Google tout seul : `Client::nouveau` ne fait aucun appel
+//! reseau ; le premier est `jeton_acces`, au premier
 //! `appel`.
 //!
 //! `drive.file` ne laisse voir que ce que l'application a cree : la recherche d'un dossier
 //! ne retrouvera jamais un dossier fait a la main, meme du meme nom. C'est voulu.
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{json, Value};
 
 use socle::fichiers::vrai;
-use crate::routes_google::{champ, en_texte, encoder, identifiants, jeton_par_rafraichissement, lire_jeton_dit, phrase_de_panne, refus_de_copie, JETONS};
+use crate::routes_google::{champ, en_texte, encoder, jeton_par_rafraichissement, phrase_de_panne, JETONS};
 use envois::transport::{envoyer, Requete};
 
 /// `google.DRIVE_FICHIERS`.
@@ -163,19 +162,31 @@ pub struct Adresses {
 
 impl Default for Adresses {
     fn default() -> Self {
-        // L'atelier seulement : un faux Google local (`atelier.rs`).
-        #[cfg(feature = "atelier")]
-        if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
-            return Adresses { jetons: format!("{}/token", b), fichiers: format!("{}/drive/v3/files", b), televersement: format!("{}/upload/drive/v3/files", b) };
-        }
         Adresses { jetons: JETONS.into(), fichiers: DRIVE_FICHIERS.into(), televersement: DRIVE_TELEVERSEMENT.into() }
     }
 }
 
+impl Adresses {
+    /// Les adresses d'un Google qui repond a `base` (un serveur local).
+    pub fn de_la_base(base: &str) -> Adresses {
+        Adresses { jetons: format!("{}/token", base), fichiers: format!("{}/drive/v3/files", base), televersement: format!("{}/upload/drive/v3/files", base) }
+    }
+}
+
+/// CE QUE LE CLIENT RECOIT de l'appelant, qui l'a lu sur le poste (le coffre, la cle du poste) : les identifiants de
+/// l'application, le jeton de rafraichissement scelle (ou la phrase qui dit pourquoi il ne se lit pas), l'adresse du
+/// compte. Ce module n'ouvre jamais le coffre.
+pub struct Autorisation {
+    pub identifiants: (Value, Value),
+    /// Le jeton enregistre (`Null` s'il n'y en a pas), ou la phrase du refus de sa lecture.
+    pub jeton: Result<Value, String>,
+    pub compte: Option<String>,
+}
+
 /// `google.Client` : le jeton d'acces ne vit qu'en memoire.
 pub struct Client {
-    racine: PathBuf,
     identifiants: Option<(Value, Value)>,
+    jeton: Result<Value, String>,
     compte: Option<String>,
     acces: Option<String>,
     adresses: Adresses,
@@ -185,42 +196,26 @@ pub struct Client {
     attente_ms: u64,
 }
 
-/// `google.compte_autorise` : l'adresse du compte, sans reseau ; `None` si pas autorise.
-pub fn compte_autorise(racine: &Path) -> Option<String> {
-    let j = lire_jeton_dit(racine).ok()?;
-    match champ(&j, "compte").ok()? {
-        Value::Null => None,
-        Value::String(s) => Some(s),
-        autre => Some(en_texte(&autre)),
-    }
-}
-
 impl Client {
-    /// `google.Client(ctx)` : refuse une copie de developpement (qui ecrirait dans le Drive de la
-    /// VRAIE compagnie), lit l'application (`google.json` ou celle du logiciel) et l'adresse du
-    /// compte. Aucun appel reseau.
-    pub fn nouveau(racine: &Path) -> Result<Client, ErreurGoogle> {
-        if let Some(refus) = refus_de_copie(racine) {
-            return Err(refus.into());
-        }
-        let (id, secret, _origine) = identifiants(racine)?;
-        Ok(Client {
-            racine: racine.to_path_buf(),
-            identifiants: Some((id, secret)),
-            compte: compte_autorise(racine),
+    /// Le client du Drive, avec ce que l'appelant a lu (`Autorisation`). Aucun appel reseau.
+    pub fn nouveau(autorisation: Autorisation, adresses: Adresses) -> Client {
+        Client {
+            identifiants: Some(autorisation.identifiants),
+            jeton: autorisation.jeton,
+            compte: autorisation.compte,
             acces: None,
-            adresses: Adresses::default(),
+            adresses,
             delai: DELAI_APPEL,
             attente_ms: ATTENTE_DE_BASE_MS,
-        })
+        }
     }
 
     /// Pour la preuve : un client sans coffre ni jeton scelle, qui parle a `adresses` avec un jeton
     /// d'acces deja donne. Ne refuse rien : n'a de sens que sur des adresses locales.
-    pub fn pour_essai(racine: &Path, adresses: Adresses, acces: &str, compte: Option<&str>) -> Client {
+    pub fn pour_essai(adresses: Adresses, acces: &str, compte: Option<&str>) -> Client {
         Client {
-            racine: racine.to_path_buf(),
             identifiants: None,
+            jeton: Ok(Value::Null),
             compte: compte.map(str::to_string),
             acces: Some(acces.to_string()),
             adresses,
@@ -254,7 +249,7 @@ impl Client {
         if let Some(a) = self.acces.as_ref().filter(|a| !a.is_empty()) {
             return Ok(a.clone());
         }
-        let enregistre = lire_jeton_dit(&self.racine).map_err(ErreurGoogle::google)?;
+        let enregistre = self.jeton.clone().map_err(ErreurGoogle::google)?;
         let rafraichissement = champ(&enregistre, "rafraichissement")?;
         if !vrai(&rafraichissement) {
             return Err(ErreurGoogle::google(
@@ -547,7 +542,7 @@ impl Drive for Client {
             Some(n) => n.to_string(),
             None => fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
         };
-        let type_mime = crate::envoi::type_devine(&nom).unwrap_or("application/octet-stream");
+        let type_mime = envois::envoi::type_devine(&nom).unwrap_or("application/octet-stream");
 
         if let Some(distant) = connu {
             let url = format!(

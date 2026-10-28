@@ -196,31 +196,6 @@ pub(crate) fn numeros_du_jour(paies: &[engagement::calcul::Paie], salarie: &str,
     Ok(v)
 }
 
-/// L'indice, dans `paies`, de la paie du contrat que le journal connait sous `numero_j` : celle qui lui est appariee
-/// (`etats::apparier`), sinon celle qui porte ce numero ; sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
-pub(crate) fn paie_du_contrat(
-    paies: &[engagement::calcul::Paie],
-    lignes: &[Value],
-    salarie: &str,
-    debut: &str,
-    numero_j: &str,
-    a_defaut_la_premiere: bool,
-) -> R<Option<usize>> {
-    let mut des_jours: Vec<(usize, String)> = Vec::new();
-    for (i, x) in paies.iter().enumerate() {
-        if est(get_requis(&x.salarie, "_cle")?, salarie) && x.engagement.debut.iso() == debut && vrai(&x.spectacle) {
-            des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
-        }
-    }
-    let propres: Vec<String> = des_jours.iter().map(|(_, n)| n.clone()).collect();
-    let appariees = etats::apparier(&propres, &etats::numeros_demandes(lignes, salarie, debut)?);
-    Ok((0..des_jours.len())
-        .find(|&k| appariees[k].as_deref() == Some(numero_j))
-        .or_else(|| (0..des_jours.len()).find(|&k| propres[k] == numero_j))
-        .or(if a_defaut_la_premiere && !des_jours.is_empty() { Some(0) } else { None })
-        .map(|k| des_jours[k].0))
-}
-
 /// Le numero SOUS LEQUEL LE JOURNAL parle du contrat que la page vise (Retours Windows, B, suite : deux contrats du meme salarie
 /// qui commencent le meme jour sont deux contrats). `numero` : celui que l'ecran affiche (`signature-apercu`), `mois` : le mois de
 /// l'ecran, qui donne les paies jumelles. `None` : ce contrat n'est jamais parti. Sans `numero`, le contrat est celui qui est
@@ -296,7 +271,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_parti, None)?;
     // La paie de CE contrat : celle dont le journal connait le numero (`apparier`), sinon celle qui le porte.
     let numero_parti = valeur_en_texte(&etats::numero_de_cle(&parti.numero));
-    let trouvee = paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
+    let trouvee = etats::paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
     let Some(i) = trouvee else {
         return Err(erreur(
             "ErreurOperation",
@@ -732,7 +707,7 @@ impl Message {
 /// `envoi.preparer` : un message par salarie, a partir des pieces individuelles deja ecrites. Le texte
 /// du corps, que l'apercu ne montre pas, n'est pas compose : seuls ses refus (`KeyError` d'une fiche
 /// sans nom d'affichage ou sans signataire) sont gardes.
-fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, crate::envoi::Renvoi>) -> R<Vec<Message>> {
+fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, envois::envoi::Renvoi>) -> R<Vec<Message>> {
     const PIECES: [(&str, &str, &str); 4] = [
         ("bulletin", "Bulletin", "bulletin"),
         ("rectificatif", "BulletinRectificatif", "bulletin rectificatif"),
@@ -911,7 +886,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                            "renvoi": renvoi.is_some(),
                            "envoye_le": renvoi.map(|r| r.envoye_le.clone()),
                            "changements": renvoi.map(|r| if r.changements.is_empty() {
-                               vec![crate::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
+                               vec![envois::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
                            } else {
                                r.changements.iter().map(|l| l.trim_start().trim_start_matches("- ").to_string()).collect()
                            }).unwrap_or_default()})

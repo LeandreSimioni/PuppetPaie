@@ -225,6 +225,32 @@ pub fn apparier(propres: &[String], demandes: &[String]) -> Vec<Option<String>> 
     sortie
 }
 
+/// L'indice, dans `paies`, de la paie du contrat que le journal connait sous `numero_j` : celle qui lui est appariee
+/// (`apparier`), sinon celle qui porte ce numero ; sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
+pub fn paie_du_contrat(
+    paies: &[engagement::calcul::Paie],
+    lignes: &[Value],
+    salarie: &str,
+    debut: &str,
+    numero_j: &str,
+    a_defaut_la_premiere: bool,
+) -> R<Option<usize>> {
+    let mut des_jours: Vec<(usize, String)> = Vec::new();
+    for (i, x) in paies.iter().enumerate() {
+        let cle = x.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
+        if est(cle, salarie) && x.engagement.debut.iso() == debut && vrai(&x.spectacle) {
+            des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
+        }
+    }
+    let propres: Vec<String> = des_jours.iter().map(|(_, n)| n.clone()).collect();
+    let appariees = apparier(&propres, &numeros_demandes(lignes, salarie, debut)?);
+    Ok((0..des_jours.len())
+        .find(|&k| appariees[k].as_deref() == Some(numero_j))
+        .or_else(|| (0..des_jours.len()).find(|&k| propres[k] == numero_j))
+        .or(if a_defaut_la_premiere && !des_jours.is_empty() { Some(0) } else { None })
+        .map(|k| des_jours[k].0))
+}
+
 /// Les cles sous lesquelles chaque paie (salarie, debut, numero propre) d'un mois retrouve son contrat dans le journal :
 /// d'abord celle du contrat demande qui lui correspond (`apparier`), puis la sienne, puis celle d'une ligne sans numero.
 pub fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
@@ -884,19 +910,6 @@ pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
         }
     }
     Ok(out.sortie(|v| Value::Array(v.clone())))
-}
-
-pub fn documents_envoyes(lignes: &[Value], mois: &str) -> R<Value> {
-    let mut quand: Dico<Value> = Dico::nouveau();
-    for l in filtrer(lignes, Some(DOCUMENTS), Some(mois), false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for sal in detail_liste(l, "salaries")? {
-            quand.poser(vec![get(&sal, "cle")?.clone()], get(l, "quand")?.clone())?;
-        }
-    }
-    Ok(quand.sortie(Clone::clone))
 }
 
 /// CE QUE LES DOCUMENTS DU MOIS DISAIENT, par salarie : le resume de sa paie (`envoi::resume_de`) dans la derniere ligne
@@ -1935,7 +1948,6 @@ mod tests {
         let e = etat_du_mois(&l, "2026-06").unwrap();
         assert_eq!(e["dsn"]["quand"], "2026-06-02T10:00:00");
         assert_eq!(e["dpae"], Value::Null);
-        assert_eq!(documents_envoyes(&l, "2026-06").unwrap(), json!([["ALPHA", "2026-06-04T10:00:00"]]));
     }
 
     #[test]

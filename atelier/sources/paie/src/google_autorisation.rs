@@ -6,8 +6,8 @@
 //!
 //! - Le verificateur PKCE (64 octets aleatoires du systeme, base64 URL), le `state` (24 octets) ne sont ecrits nulle part et ne
 //!   sortent pas : seuls le defi (SHA-256 du verificateur) et le `state` figurent dans l'URL, comme en Python.
-//! - Le jeton de rafraichissement va du corps de la reponse de Google au fichier scelle `config/google-jeton.bin` (cle du poste,
-//!   `Coffre::proteger`) sans passer par une sortie, un journal ni un message d'erreur ; le secret de l'application ne sert que dans
+//! - Le jeton de rafraichissement va du corps de la reponse de Google a l'appelant (`JetonGoogle`), qui le scelle (`routes_google::sceller_le_jeton`,
+//!   cle du poste) sans passer par une sortie, un journal ni un message d'erreur ; le secret de l'application ne sert que dans
 //!   le corps du POST. Une phrase d'erreur ne cite jamais un jeton ni un code.
 //! - L'attente est un fil + `mpsc::recv_timeout` : jamais de `sleep`.
 //!
@@ -24,11 +24,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use socle::echec::Echec;
-use crate::routes_google::{en_texte, encoder, identifiants, phrase_de_panne, DESCRIPTION, FICHIER_JETON, JETONS, PERMISSIONS};
+use crate::routes_google::{en_texte, encoder, identifiants, phrase_de_panne, JETONS, PERMISSIONS};
 use envois::transport::{envoyer, Requete};
 
 /// `google.AUTORISATION`, `google.USERINFO`, `google.DELAI_AUTORISATION`.
@@ -175,8 +175,8 @@ fn appeler(requete: &Requete) -> Result<Value, Echec> {
 }
 
 /// `google.autoriser` sans navigateur. `dire_url` recoit l'URL de la fenetre de consentement (la personne l'ouvre), `dire` les
-/// avertissements. Rend l'adresse du compte lie. `delai` : l'attente de la reponse de Google, en secondes.
-pub fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn Fn(&str)) -> Result<String, Echec> {
+/// avertissements. Rend le jeton obtenu, que l'appelant scelle. `delai` : l'attente de la reponse de Google, en secondes.
+pub fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn Fn(&str)) -> Result<JetonGoogle, Echec> {
     let (jetons, userinfo) = adresses();
     let (client_id, client_secret, _) = identifiants(racine).map_err(|e| refus(e.message))?;
     let verificateur = aleatoire_url(64)?;
@@ -286,18 +286,13 @@ pub fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire: &dyn 
         return Err(refus("Google n'a pas donne l'adresse du compte : aucune autorisation enregistree. Recommencer."));
     }
 
-    ecrire_le_jeton(racine, &rafraichissement, &compte, &accordees)?;
-    Ok(compte)
+    Ok(JetonGoogle { rafraichissement, compte, permissions: accordees })
 }
 
-/// `google._ecrire_jeton` : le jeton et l'adresse du compte, dans un seul fichier scelle par la cle du poste.
-fn ecrire_le_jeton(racine: &Path, rafraichissement: &str, compte: &str, permissions: &[String]) -> Result<(), Echec> {
-    let brut = socle::json_ascii::dumps(&json!({"rafraichissement": rafraichissement, "compte": compte, "permissions": permissions}), None, false, false);
-    let scelle = crate::coffre::Coffre::du_poste(racine, "")
-        .proteger(brut.as_bytes(), DESCRIPTION)
-        .map_err(|e| refus(format!("Le jeton n'a pas pu etre scelle, rien n'est enregistre : {}", e.message)))?;
-    let dossier = racine.join("config");
-    std::fs::create_dir_all(&dossier).map_err(|e| refus(format!("{} : {}", dossier.display(), e)))?;
-    let chemin = dossier.join(FICHIER_JETON);
-    std::fs::write(&chemin, scelle).map_err(|e| refus(format!("{} : {}", chemin.display(), e)))
+/// Ce que l'autorisation obtient : le jeton de rafraichissement, l'adresse du compte, les permissions accordees.
+/// L'appelant le scelle (`routes_google::sceller_le_jeton`) : ce flux n'ouvre jamais le coffre.
+pub struct JetonGoogle {
+    pub rafraichissement: String,
+    pub compte: String,
+    pub permissions: Vec<String>,
 }

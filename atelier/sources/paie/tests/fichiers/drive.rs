@@ -101,7 +101,7 @@ fn corps_multipart_un_nom_accentue_arrive_entier() {
 #[test]
 fn dossier_trouve_l_echappement_de_q_apostrophe_et_barre_oblique_inverse() {
     let (base, recu) = serveur(|_| json_ok(json!({"files": [{"id": "D1", "name": "x"}]})));
-    let mut c = Client::pour_essai(&racine("q"), adresses(&base), "jeton", Some("c@exemple.invalid"));
+    let mut c = Client::pour_essai(adresses(&base), "jeton", Some("c@exemple.invalid"));
     assert_eq!(c.dossier("l'an \\ 2026", "root").unwrap(), "D1");
     let r = recu.lock().unwrap();
     assert_eq!(r.len(), 1);
@@ -118,7 +118,7 @@ fn dossier_trouve_l_echappement_de_q_apostrophe_et_barre_oblique_inverse() {
 #[test]
 fn dossier_absent_est_cree_par_un_post_json() {
     let (base, recu) = serveur(|v| if v.methode == "GET" { json_ok(json!({"files": []})) } else { json_ok(json!({"id": "NEUF"})) });
-    let mut c = Client::pour_essai(&racine("cree"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     assert_eq!(c.dossier("2026-06", "P1").unwrap(), "NEUF");
     let r = recu.lock().unwrap();
     assert_eq!(r.len(), 2);
@@ -137,7 +137,7 @@ fn chemin_cree_toute_la_suite_a_partir_de_root() {
             json_ok(json!({"id": format!("id-{}", nom)}))
         }
     });
-    let mut c = Client::pour_essai(&racine("chemin"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     assert_eq!(c.chemin(&["PuppetPaie", "sauvegarde", "config"]).unwrap(), "id-config");
     let r = recu.lock().unwrap();
     let parents: Vec<String> = r.iter().filter(|v| v.methode == "POST").map(|v| serde_json::from_slice::<Value>(&v.corps).unwrap()["parents"][0].as_str().unwrap().to_string()).collect();
@@ -157,7 +157,7 @@ fn lister_pagine_ecarte_les_dossiers_et_lit_md5_et_taille() {
         Some("SUITE 1/&") => json_ok(json!({"files": [{"id": "3", "name": "doc"}, {"id": "4", "name": "b.txt", "md5Checksum": "m4", "size": "0"}]})),
         Some(autre) => panic!("jeton de page inattendu : {}", autre),
     });
-    let mut c = Client::pour_essai(&racine("lister"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let l = c.lister("PAR'ENT").unwrap();
     assert_eq!(l.keys().cloned().collect::<Vec<_>>(), ["a.txt", "b.txt", "doc"]);
     assert_eq!(l["a.txt"], Distant { id: "1".into(), md5: Some("m1".into()), octets: 12 });
@@ -180,7 +180,7 @@ fn sous_dossiers_pagine_ne_demande_que_des_dossiers_et_garde_les_homonymes() {
         Some("P2") => json_ok(json!({"files": [{"id": "D3", "name": "paies"}]})),
         Some(autre) => panic!("jeton de page inattendu : {}", autre),
     });
-    let mut c = Client::pour_essai(&racine("sous-dossiers"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let l = c.sous_dossiers("root").unwrap();
     assert_eq!(l, [("config".to_string(), "D1".to_string()), ("paies".into(), "D2".into()), ("paies".into(), "D3".into())]);
     let r = recu.lock().unwrap();
@@ -197,7 +197,7 @@ fn telecharger_rend_les_octets_tels_quels_par_alt_media() {
     let contenu: Vec<u8> = vec![0x00, 0xFF, b'{', 0xC3, 0x28, b'\r', b'\n'];
     let servi = contenu.clone();
     let (base, recu) = serveur(move |_| http(200, "application/octet-stream", &servi));
-    let mut c = Client::pour_essai(&racine("telecharger"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     assert_eq!(c.telecharger("F-1_a").unwrap(), contenu);
     let r = recu.lock().unwrap();
     assert_eq!((r[0].methode.as_str(), r[0].chemin.as_str()), ("GET", "/drive/v3/files/F-1_a"));
@@ -208,7 +208,7 @@ fn telecharger_rend_les_octets_tels_quels_par_alt_media() {
 #[test]
 fn telecharger_un_refus_de_google_est_une_erreur_et_un_identifiant_ne_fabrique_pas_de_chemin() {
     let (base, recu) = serveur(|_| reponse(404, br#"{"error": {"code": 404, "message": "File not found: X."}}"#));
-    let mut c = Client::pour_essai(&racine("telecharger-404"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let e = c.telecharger("../x?y").unwrap_err();
     assert_eq!(e.statut, Some(404));
     assert_eq!(recu.lock().unwrap()[0].chemin, "/drive/v3/files/..%2Fx%3Fy");
@@ -217,7 +217,7 @@ fn telecharger_un_refus_de_google_est_une_erreur_et_un_identifiant_ne_fabrique_p
 #[test]
 fn lister_doublons_le_dernier_gagne() {
     let (base, _) = serveur(|_| json_ok(json!({"files": [{"id": "1", "name": "x", "md5Checksum": "a"}, {"id": "2", "name": "x", "md5Checksum": "b"}]})));
-    let mut c = Client::pour_essai(&racine("doublons"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let l = c.lister("P").unwrap();
     assert_eq!(l.len(), 1);
     assert_eq!(l["x"].id, "2");
@@ -231,7 +231,7 @@ fn televerser_cree_par_un_multipart_related() {
     let r = racine("creer");
     let f = r.join("note.txt");
     std::fs::write(&f, "contenu\n").unwrap();
-    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let d = c.televerser(&f, "PARENT", None, None).unwrap();
     assert_eq!((d.id.as_deref(), d.nom.as_deref(), d.lien.as_deref(), d.remplace), (Some("F1"), Some("note.txt"), Some("https://exemple.invalid/f1"), false));
     let v = recu.lock().unwrap()[0].clone();
@@ -250,7 +250,7 @@ fn televerser_deux_fois_deux_frontieres_differentes() {
     let r = racine("frontieres");
     let f = r.join("a.txt");
     std::fs::write(&f, "x").unwrap();
-    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     c.televerser(&f, "P", None, None).unwrap();
     c.televerser(&f, "P", None, None).unwrap();
     let v = recu.lock().unwrap();
@@ -263,7 +263,7 @@ fn televerser_un_nom_donne_remplace_celui_du_fichier() {
     let r = racine("nom-donne");
     let f = r.join("local.pdf");
     std::fs::write(&f, "%PDF").unwrap();
-    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     c.televerser(&f, "P", Some("autre.pdf"), None).unwrap();
     let v = recu.lock().unwrap()[0].clone();
     let texte = String::from_utf8_lossy(&v.corps).into_owned();
@@ -276,7 +276,7 @@ fn televerser_remplace_par_un_patch_sur_l_identifiant_connu() {
     let r = racine("patch");
     let f = r.join("a.json");
     std::fs::write(&f, "{\"a\": 1}").unwrap();
-    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let connu = Distant { id: "EXIST".into(), md5: Some("zz".into()), octets: 3 };
     let d = c.televerser(&f, "PARENT", None, Some(&connu)).unwrap();
     assert!(d.remplace);
@@ -297,7 +297,7 @@ fn patch_d_un_fichier_vide_part_avec_un_corps_vide() {
     let r = racine("patch-vide");
     let f = r.join("vide.txt");
     std::fs::write(&f, "").unwrap();
-    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let connu = Distant { id: "E".into(), md5: None, octets: 0 };
     assert!(c.televerser(&f, "P", None, Some(&connu)).unwrap().remplace);
     let v = recu.lock().unwrap()[0].clone();
@@ -310,7 +310,7 @@ fn patch_d_un_fichier_vide_part_avec_un_corps_vide() {
 fn televerser_un_fichier_disparu_est_une_file_not_found() {
     let (base, recu) = serveur(|_| json_ok(json!({"id": "E"})));
     let r = racine("disparu");
-    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     let e = c.televerser(&r.join("absent.txt"), "P", None, None).unwrap_err();
     assert_eq!(e.classe, "FileNotFoundError");
     assert!(recu.lock().unwrap().is_empty(), "rien ne part pour un fichier absent");
@@ -321,7 +321,7 @@ fn televerser_un_fichier_disparu_est_une_file_not_found() {
 #[test]
 fn reponse_vide_est_un_objet_vide_et_sans_id_est_une_erreur() {
     let (base, _) = serveur(|_| reponse(200, b""));
-    let mut c = Client::pour_essai(&racine("vide"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     assert_eq!(c.appel(&format!("{}/drive/v3/files", base), None, None, None).unwrap(), json!({}));
     // Un dossier cree sans `id` est une erreur.
     assert!(c.dossier("x", "root").is_err());
@@ -338,7 +338,7 @@ fn erreurs_de_google_traduites_et_statut_garde() {
         },
         _ => json_ok(json!({})),
     });
-    let mut c = Client::pour_essai(&racine("erreurs"), adresses(&base), "jeton", None).avec_attente(1);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(1);
     let e = c.lister("403").unwrap_err();
     assert_eq!((e.classe, e.statut), ("ErreurGoogle", Some(403)));
     assert!(e.message.starts_with("Permission refusee"), "{}", e.message);
@@ -367,7 +367,7 @@ fn un_500_puis_200_passe_sans_erreur() {
     // « 500, 502, 503, 504 errors [...] use exponential backoff to retry the request »
     // (atelier/reference/sources/google-drive-api/google-drive-api-gerer-les-erreurs-20261020.txt).
     let (base, recu) = serveur_capricieux(vec![(500, b"Internal Error")], json!({"files": [{"id": "F1", "name": "a.json", "md5Checksum": "m", "size": "3"}]}));
-    let mut c = Client::pour_essai(&racine("500-puis-200"), adresses(&base), "jeton", None).avec_attente(1);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(1);
     let l = c.lister("P").unwrap();
     assert_eq!(l["a.json"].id, "F1");
     assert_eq!(recu.lock().unwrap().len(), 2, "une seule nouvelle tentative a suffi");
@@ -376,14 +376,14 @@ fn un_500_puis_200_passe_sans_erreur() {
 #[test]
 fn trois_nouvelles_tentatives_au_plus_puis_l_erreur_est_rendue() {
     let (base, recu) = serveur_capricieux(vec![(503, b"a"), (502, b"b"), (504, b"c"), (500, b"Internal Error")], json!({}));
-    let mut c = Client::pour_essai(&racine("quatre-5xx"), adresses(&base), "jeton", None).avec_attente(1);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(1);
     let e = c.lister("P").unwrap_err();
     assert_eq!((e.statut, e.message.as_str()), (Some(500), "HTTP 500 : Internal Error"));
     assert_eq!(recu.lock().unwrap().len(), 4, "le premier appel et trois nouvelles tentatives (NOUVELLES_TENTATIVES)");
     assert!(passagere(&e));
     // Le meme client, au prochain appel, repart de zero : trois 5xx puis un 200 passent.
     let (base, recu) = serveur_capricieux(vec![(503, b"a"), (500, b"b"), (500, b"c")], json!({}));
-    let mut c = Client::pour_essai(&racine("trois-5xx"), adresses(&base), "jeton", None).avec_attente(1);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(1);
     assert!(c.lister("P").is_ok());
     assert_eq!(recu.lock().unwrap().len(), 4);
 }
@@ -393,7 +393,7 @@ fn l_attente_croit_entre_les_tentatives() {
     // « wait 1 + random_number_milliseconds [...] wait 2 + random_number_milliseconds » : l'attente double (base de 40 ms ici,
     // hasard d'au plus 40 ms), donc trois nouvelles tentatives attendent au moins 40 + 80 + 160 = 280 ms.
     let (base, _) = serveur_capricieux(vec![(500, b"a"), (500, b"b"), (500, b"c")], json!({}));
-    let mut c = Client::pour_essai(&racine("attente"), adresses(&base), "jeton", None).avec_attente(40);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(40);
     let debut = std::time::Instant::now();
     assert!(c.lister("P").is_ok());
     let duree = debut.elapsed();
@@ -405,13 +405,13 @@ fn un_429_et_un_403_de_debit_se_retentent_pas_un_refus() {
     // 429 : « use exponential backoff to retry the request » ; 403 de limite de debit : « retry the upload »
     // (google-drive-api-televerser-20261020.txt, « Handle media upload errors »).
     let (base, recu) = serveur_capricieux(vec![(429, br#"{"error": {"message": "Rate Limit Exceeded"}}"#), (403, br#"{"error": {"message": "User rate limit exceeded."}}"#)], json!({}));
-    let mut c = Client::pour_essai(&racine("debit"), adresses(&base), "jeton", None).avec_attente(1);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(1);
     assert!(c.lister("P").is_ok());
     assert_eq!(recu.lock().unwrap().len(), 3);
     // Un refus (404, 403 de permission, 400) ne se retente pas : une seule requete.
     for (code, corps) in [(404u16, &br#"{"error": {"message": "File not found: P."}}"#[..]), (403, br#"{"error": {"message": "The user does not have sufficient permissions"}}"#), (400, b"Bad Request")] {
         let (base, recu) = serveur_capricieux(vec![(code, corps)], json!({}));
-        let mut c = Client::pour_essai(&racine(&format!("refus-{}", code)), adresses(&base), "jeton", None).avec_attente(1);
+        let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(1);
         let e = c.lister("P").unwrap_err();
         assert_eq!(e.statut, Some(code));
         assert!(!passagere(&e));
@@ -426,7 +426,7 @@ fn un_televersement_refuse_une_fois_repart_avec_le_meme_corps() {
     let r = racine("televerser-500");
     let f = r.join("a.json");
     std::fs::write(&f, b"{\"x\": 1}").unwrap();
-    let mut c = Client::pour_essai(&r, adresses(&base), "jeton", None).avec_attente(1);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_attente(1);
     let connu = Distant { id: "F1".into(), md5: None, octets: 0 };
     let d = c.televerser(&f, "P", None, Some(&connu)).unwrap();
     assert!(d.remplace);
@@ -440,7 +440,7 @@ fn un_televersement_refuse_une_fois_repart_avec_le_meme_corps() {
 #[test]
 fn json_illisible_dans_une_reponse_ok() {
     let (base, _) = serveur(|_| reponse(200, b"<html>"));
-    let mut c = Client::pour_essai(&racine("illisible"), adresses(&base), "jeton", None);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None);
     assert!(c.lister("P").is_err());
 }
 
@@ -453,7 +453,7 @@ fn defaut_2_un_delai_de_lecture_est_un_incident_pas_une_absence_de_reseau() {
         std::thread::sleep(Duration::from_millis(2500));
         json_ok(json!({}))
     });
-    let mut c = Client::pour_essai(&racine("delai"), adresses(&base), "jeton", None).avec_delai(1);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_delai(1);
     let debut = std::time::Instant::now();
     let e = c.lister("P").unwrap_err();
     assert!(debut.elapsed() < Duration::from_millis(2400), "le delai de 1 s doit couper l'appel");
@@ -465,7 +465,7 @@ fn defaut_2_un_delai_de_lecture_est_un_incident_pas_une_absence_de_reseau() {
 fn reseau_absent_est_hors_ligne() {
     // Un port libre, sans personne : la connexion est refusee (aucune sortie de la machine).
     let base = crate::outils::port_ferme();
-    let mut c = Client::pour_essai(&racine("refuse"), adresses(&base), "jeton", None).avec_delai(5);
+    let mut c = Client::pour_essai(adresses(&base), "jeton", None).avec_delai(5);
     let e = c.lister("P").unwrap_err();
     assert!(e.message.starts_with("Reseau injoignable"), "{}", e.message);
     assert!(hors_ligne(&e.message));
@@ -478,7 +478,7 @@ fn compte_pas_lie_est_refuse_avant_tout_reseau() {
     let (base, recu) = serveur(|_| json_ok(json!({})));
     let r = racine("pas-lie");
     std::fs::write(r.join("config").join("google.json"), r#"{"client_id": "i", "client_secret": "s"}"#).unwrap();
-    let mut c = Client::nouveau(&r).unwrap().avec_adresses(adresses(&base));
+    let mut c = paie::routes_google::client_drive(&r).unwrap().avec_adresses(adresses(&base));
     assert_eq!(c.compte(), None);
     let e = c.lister("P").unwrap_err();
     assert!(e.message.starts_with("Compte Google pas encore lie"), "{}", e.message);
@@ -490,7 +490,7 @@ fn une_copie_de_developpement_est_refusee_a_la_construction() {
     let r = racine("copie");
     std::fs::write(r.join("config").join("google.json"), r#"{"client_id": "i", "client_secret": "s"}"#).unwrap();
     std::fs::write(r.join("COPIE-DE-DEVELOPPEMENT.json"), "{}").unwrap();
-    let e = Client::nouveau(&r).err().expect("refus attendu");
+    let e = paie::routes_google::client_drive(&r).err().expect("refus attendu");
     assert_eq!(e.classe, "CopieDeDeveloppement");
 }
 

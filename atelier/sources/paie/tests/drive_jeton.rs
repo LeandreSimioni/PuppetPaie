@@ -78,7 +78,7 @@ fn serveur_a_jetons(valides: &'static [&'static str]) -> (String, Recu) {
 fn defaut_1_un_401_renouvelle_le_jeton_et_recommence_une_fois() {
     let (base, recu) = serveur_a_jetons(&["t2"]);
     let r = compagnie_liee("jeton-401");
-    let mut c = Client::nouveau(&r).unwrap().avec_adresses(adresses(&base));
+    let mut c = paie::routes_google::client_drive(&r).unwrap().avec_adresses(adresses(&base));
     assert_eq!(c.compte().as_deref(), Some("compte@exemple.invalid"));
     // Le premier jeton (t1) n'est plus bon : 401, un second rafraichissement (t2), et la requete passe.
     assert!(c.lister("P").unwrap().is_empty());
@@ -110,7 +110,7 @@ fn defaut_1_un_401_renouvelle_le_jeton_et_recommence_une_fois() {
 fn defaut_1_un_second_401_est_rendu_sans_boucle() {
     let (base, recu) = serveur_a_jetons(&[]);
     let r = compagnie_liee("jeton-401-deux");
-    let mut c = Client::nouveau(&r).unwrap().avec_adresses(adresses(&base));
+    let mut c = paie::routes_google::client_drive(&r).unwrap().avec_adresses(adresses(&base));
     let e = c.lister("P").unwrap_err();
     assert_eq!((e.classe, e.statut), ("ErreurGoogle", Some(401)));
     // Exactement : jeton, requete, jeton, requete. Pas une troisieme tentative.
@@ -121,7 +121,7 @@ fn defaut_1_un_second_401_est_rendu_sans_boucle() {
 #[test]
 fn defaut_1_un_client_sans_identifiants_ne_peut_pas_renouveler() {
     let (base, recu) = serveur_a_jetons(&[]);
-    let mut c = Client::pour_essai(&racine("jeton-essai"), adresses(&base), "fige", None);
+    let mut c = Client::pour_essai(adresses(&base), "fige", None);
     assert_eq!(c.lister("P").unwrap_err().statut, Some(401));
     assert_eq!(recu.lock().unwrap().len(), 1, "un seul appel : pas de rafraichissement possible");
 }
@@ -130,7 +130,7 @@ fn defaut_1_un_client_sans_identifiants_ne_peut_pas_renouveler() {
 fn jeton_revoque_au_rafraichissement_dit_la_phrase_et_rien_ne_part_vers_drive() {
     let (base, recu) = serveur(|_| reponse(400, br#"{"error": "invalid_grant", "error_description": "Token has been expired or revoked."}"#));
     let r = compagnie_liee("revoque");
-    let mut c = Client::nouveau(&r).unwrap().avec_adresses(adresses(&base));
+    let mut c = paie::routes_google::client_drive(&r).unwrap().avec_adresses(adresses(&base));
     let e = c.lister("P").unwrap_err();
     assert!(e.message.starts_with("Autorisation Google perdue"), "{}", e.message);
     assert_eq!(recu.lock().unwrap().len(), 1);

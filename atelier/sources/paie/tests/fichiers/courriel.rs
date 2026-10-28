@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use paie::courriel::{self, BoiteSimulee, Courriel, Imap, Serveurs};
+use envois::courriel::{self, BoiteSimulee, Courriel, Imap, Serveurs};
 use serde_json::{json, Value};
 
 fn racine(nom: &str) -> PathBuf {

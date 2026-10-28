@@ -696,8 +696,9 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
 pub(crate) struct DocumentsFabriques {
     _verrou: socle::verrou::Verrou,
     reserves: Reserves,
-    /// `(cle du salarie, debut, jumeau, numero de bulletin, premier N CE)` : ce qui s'ecrit dans les paies au depart.
-    a_poser: Vec<(String, String, usize, Option<String>, Option<i64>)>,
+    /// `(cle du salarie, debut, jumeau, numero de bulletin, premier et dernier N CE)` : ce qui s'ecrit dans les paies au
+    /// depart.
+    a_poser: Vec<(String, String, usize, Option<String>, Option<(i64, i64)>)>,
     pub(crate) avertissements: Vec<String>,
 }
 
@@ -707,9 +708,34 @@ impl DocumentsFabriques {
     pub(crate) fn engager(self, ctx: &Contexte, mois: &str) -> R<()> {
         self.reserves.valider(ctx)?;
         for (cle, debut, jumeau, bulletin, ce) in &self.a_poser {
-            engagement::etats::poser_numeros_des_documents(ctx, mois, cle, debut, *jumeau, bulletin.as_deref(), *ce).map_err(Echec::from)?;
+            engagement::etats::poser_numeros_des_documents(ctx, mois, cle, debut, *jumeau, bulletin.as_deref(), ce.map(|c| c.0)).map_err(Echec::from)?;
         }
         Ok(())
+    }
+
+    /// UN ENVOI COUPE EN ROUTE : seuls les salaries `servis` ont recu leurs documents, eux seuls ont leurs numeros. Les
+    /// compteurs passent au-dessus du plus grand numero servi ; ceux des autres se rendent, ils les reprendront a leur
+    /// depart.
+    pub(crate) fn engager_servis(self, ctx: &Contexte, mois: &str, servis: &[&str]) -> R<()> {
+        let mut bornes = Reserves::default();
+        let (mut bulletin_max, mut ce_max): (Option<(i64, i64)>, Option<i64>) = (None, None);
+        let an = annee_de(mois)?;
+        for (cle, debut, jumeau, bulletin, ce) in self.a_poser.iter().filter(|a| servis.contains(&a.0.as_str())) {
+            if let Some(n) = bulletin.as_deref().and_then(|b| b.split('/').next()).and_then(|n| n.trim().parse::<i64>().ok()) {
+                bulletin_max = Some((an, bulletin_max.map_or(n, |(_, m)| m.max(n))));
+            }
+            if let Some((_, dernier)) = ce {
+                ce_max = Some(ce_max.map_or(*dernier, |m| m.max(*dernier)));
+            }
+            engagement::etats::poser_numeros_des_documents(ctx, mois, cle, debut, *jumeau, bulletin.as_deref(), ce.map(|c| c.0)).map_err(Echec::from)?;
+        }
+        if let Some((an, n)) = bulletin_max {
+            bornes.enregistrer(an, "bulletin", n);
+        }
+        if let Some(n) = ce_max {
+            bornes.enregistrer(an, "certificat_cs", n);
+        }
+        bornes.valider(ctx)
     }
 }
 
@@ -740,7 +766,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     let part = |p: &Paie| cles.contains(&cle_de(p));
     let jumeau = |i: usize| (0..i).filter(|j| cle_de(&paies[*j]) == cle_de(&paies[i]) && paies[*j].engagement.debut == paies[i].engagement.debut).count();
     let jumeaux: Vec<usize> = (0..paies.len()).map(jumeau).collect();
-    let mut a_poser: HashMap<usize, (Option<String>, Option<i64>)> = HashMap::new();
+    let mut a_poser: HashMap<usize, (Option<String>, Option<(i64, i64)>)> = HashMap::new();
 
     // LES BULLETINS : un numero par paie qui a des cachets, ecrit dans la paie a son depart.
     // Le numero de chaque bulletin, a cote de sa paie : celui que la paie ecrite porte, sinon celui que ce depart reserve.
@@ -787,7 +813,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
                 let combien = conges_spectacles::decouper(&pc.engagement)?.len() as i64;
                 prochain_ce = Some(n + combien);
                 faits.reserves.enregistrer(an, "certificat_cs", n + combien - 1);
-                a_poser.entry(i).or_default().1 = Some(n);
+                a_poser.entry(i).or_default().1 = Some((n, n + combien - 1));
                 if ctx.salarie(cle).map_err(valeur)?.get("nir").filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
                     faits.avertissements.push(format!(
                         "{} {} : certificat Conges Spectacles emis SANS numero de securite sociale -- Audiens ne pourra pas le rattacher.",
@@ -812,7 +838,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         vus.push(cle.clone());
         let siennes: Vec<usize> = (0..paies.len()).filter(|i| cle_de(&paies[*i]) == cle && numerotees[*i]).collect();
         if !siennes.is_empty() {
-            let piece = dossier.join(crate::envoi::nom_fichier("Bulletin", &cle, &etiq));
+            let piece = dossier.join(envois::envoi::nom_fichier("Bulletin", &cle, &etiq));
             // LE BULLETIN D'ORIGINE RESTE : une paie refaite part sous un nouveau numero, et ce qui est parti se garde.
             for i in &siennes {
                 if let (Some(r), true) = (ecrits[*i].rectifie.as_deref(), a_poser.get(i).is_some_and(|x| x.0.is_some())) {
@@ -831,7 +857,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         let ses_certificats: Vec<(&PaieCs, i64)> = certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
         if !ses_certificats.is_empty() {
             let description = conges_spectacles::description_numerotee(&ses_certificats, &ent).map_err(Echec::from)?;
-            documents::fabrique::ecrire_pdf(&description, &dossier.join(crate::envoi::nom_fichier("CertificatCS", &cle, &etiq)))?;
+            documents::fabrique::ecrire_pdf(&description, &dossier.join(envois::envoi::nom_fichier("CertificatCS", &cle, &etiq)))?;
         }
     }
 
@@ -853,7 +879,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         let texte = conges_spectacles::recapitulatif(&paires, &ent).map_err(Echec::from)?;
         std::fs::write(&recap, texte).map_err(|e| os(&recap, e))?;
     }
-    let mut poses: Vec<(usize, (Option<String>, Option<i64>))> = a_poser.into_iter().collect();
+    let mut poses: Vec<(usize, (Option<String>, Option<(i64, i64)>))> = a_poser.into_iter().collect();
     poses.sort_by_key(|(i, _)| *i);
     faits.a_poser = poses.into_iter().map(|(i, (b, ce))| (cle_de(&paies[i]), paies[i].engagement.debut.iso(), jumeaux[i], b, ce)).collect();
     Ok(faits)

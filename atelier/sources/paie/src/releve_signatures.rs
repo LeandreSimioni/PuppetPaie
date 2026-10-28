@@ -1,132 +1,41 @@
-//! La releve des reponses « Je signe » (`moteur/operations_documents.py` : `relever_signatures`, `SignatureRecue`,
-//! `ReleveSignatures` ; `moteur/simulation.py` : `relever_signatures`, `BoiteDesSignatures`). Lot I2a.
-//!
-//! ECRIT, NON PROUVE, NON BRANCHE. La demande de signature (`envois_signature::demander_signature`) a garde, au journal,
-//! un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite et fait tout ce qui
-//! suit : le tri strict, le journal (une ligne `contrat-recu` par contrat, datee de la SIGNATURE), la preuve archivee
-//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (refait depuis la description gardee a l'envoi) et son
-//! renvoi au salarie, avec sa ligne `contrat-contresigne`.
-//!
-//! UNE RECHERCHE PAR CODE ATTENDU. La boite cherche le code partout (objet, corps, pieces jointes) ; c'est nous qui trions
-//! ensuite, et strictement :
-//! - notre propre envoi est ecarte par son identifiant (le `Message-ID` note avec la demande, relu dans chaque message), et
-//!   par sa phrase (« bouton « Je signe » ») -- pas par son expediteur : en test le salarie, c'est nous ;
-//! - le code doit figurer dans la partie ECRITE de la reponse, avant la citation du message d'origine
-//!   (`courriel_lecture::texte_propre`) ;
-//! - elle doit venir de l'adresse a laquelle le contrat a ete envoye : une reponse venue d'ailleurs est signalee, pas
-//!   retenue.
+//! La releve des reponses « Je signe ». La demande de signature (`envois::envois_signature::demander_signature`) a garde,
+//! au journal, un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite
+//! (`envois::releve_signatures::chercher_reponse`, le tri strict) et fait tout ce qui suit : la preuve archivee
+//! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`documents::contrat::contresigner`), le journal (une ligne
+//! `contrat-recu` par contrat, datee de la SIGNATURE, `routes_ecritures_g4::contrat_recu_avec`), et le renvoi du
+//! contresigne au salarie (`envois::releve_signatures::renvoyer_contresigne`).
 //!
 //! NE LEVE PAS pour une boite absente : c'est un travail de fond, il dit ce qui l'empeche dans `incidents` et rend la
-//! main. C'est UNE FONCTION, que l'ouverture (lot I2b) appellera avec son `qui` et son client.
+//! main.
 //!
-//! Dans une compagnie fictive, les salaries « signent » (`boite_des_signatures`) : chaque demande partie depuis `delai` secondes
-//! recoit sa reponse -- celle que le bouton du courriel prepare --, et c'est la VRAIE releve qui la lit.
-//! `relever_signatures_fictive` est `simulation.relever_signatures`, avec la garde de l'horloge (rien ne se joue
-//! dans une compagnie qui n'est pas une compagnie fictive : le Python laissait ce garde a ses appelants).
-//!
-//! Reutilise : `etats::signatures_attendues` (le journal), `courriel_lecture` (adresse, identifiant, date, texte ecrit),
-//! `routes_ecritures_g4::contrat_recu_avec` (la ligne `contrat-recu`), `contrat::contresigner`, `envoi::envoyer`,
-//! `simulation_courriels::BoiteQuiRepond` (la boite de la compagnie fictive, aussi celle des fiches).
-//!
-//! Les phrases des incidents sont celles du Python ; la classe d'un refus peut differer.
+//! Dans une compagnie fictive, les salaries « signent » (`boite_des_signatures`) : chaque demande partie depuis `delai`
+//! secondes recoit sa reponse -- celle que le bouton du courriel prepare --, et c'est la VRAIE releve qui la lit.
+//! `relever_signatures_fictive` ne joue rien dans une compagnie qui n'est pas une compagnie fictive (la garde de
+//! l'horloge).
 
 use std::path::PathBuf;
 
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::courriel::{self, Client, Courriel};
-use crate::courriel_lecture as lecture;
-use crate::envoi::{self, Message};
+use envois::courriel::Courriel;
+use envois::envoi;
 use envois::etats;
+use envois::releve_signatures::{chercher_reponse, identifiants_de, renvoyer_contresigne, Contresigne, Reponse};
+pub use envois::releve_signatures::{ReleveSignatures, SignatureRecue};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
-use envois::journal::{self, Note};
 use socle::echec::Echec;
-use socle::paris::maintenant;
-use crate::simulation_courriels::BoiteQuiRepond;
+use envois::simulation_courriels::BoiteQuiRepond;
 
 /// Les routes de ce module.
 pub const ROUTES: [&str; 1] = ["signatures-relever"];
 
-/// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la compagnie fictive
-/// (`simulation.DELAI_SIGNATURE`).
+/// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la compagnie fictive.
 pub const DELAI_FICTIVE: i64 = crate::routes_fiches_courriel::DELAI_FICTIVE;
-
-const SUJET_CONTRESIGNE: &str = "Ton contrat signé - {spectacle}";
-const SUJET_CONTRESIGNE_PLURIEL: &str = "Tes contrats signés - {mois} {annee}";
-const CORPS_CONTRESIGNE: &str = "Bonjour {prenom},\n\nNous avons bien reçu ta signature le {quand}. Ci-joint {quoi}, signé des deux parties : c'est l'exemplaire à conserver.\n\nBien à toi,\n{signataire}\n{raison_sociale}\n";
-
-// ------------------------------------------------------------------ ce que la releve rend
-
-/// `SignatureRecue` : une signature trouvee, notee, contresignee (si elle a pu l'etre).
-#[derive(Debug, Clone)]
-pub struct SignatureRecue {
-    pub mois: String,
-    pub salarie: String,
-    pub nom: String,
-    pub code: String,
-    pub adresse: String,
-    /// ISO, la date du message.
-    pub quand: String,
-    /// `[{salarie, debut, fin, numero, spectacle, fichier, avenant, mois}]`, tels que le journal les donne.
-    pub contrats: Vec<Value>,
-    pub fichier_signe: String,
-    pub preuve: String,
-    pub renvoye: bool,
-}
-
-impl SignatureRecue {
-    /// Ce que `commandes_ouverture._signatures_json` en lit.
-    pub fn en_json(&self) -> Value {
-        json!({
-            "mois": self.mois, "salarie": self.salarie, "nom": self.nom, "code": self.code, "adresse": self.adresse,
-            "quand": self.quand, "contrats": self.contrats, "fichier_signe": self.fichier_signe, "preuve": self.preuve,
-            "renvoye": self.renvoye,
-        })
-    }
-}
-
-/// `ReleveSignatures` : combien de signatures attendaient, celles qui sont arrivees, ce qui a empeche le reste.
-#[derive(Debug, Clone)]
-pub struct ReleveSignatures {
-    pub quand: String,
-    pub attendues: usize,
-    pub recues: Vec<SignatureRecue>,
-    pub incidents: Vec<String>,
-}
-
-impl ReleveSignatures {
-    fn nouvelle() -> ReleveSignatures {
-        ReleveSignatures { quand: maintenant(), attendues: 0, recues: Vec::new(), incidents: Vec::new() }
-    }
-
-    /// `ReleveSignatures.resume` : la phrase de la veille, vide quand rien n'etait attendu ni arrive.
-    pub fn resume(&self) -> String {
-        if self.attendues == 0 && self.recues.is_empty() {
-            return String::new();
-        }
-        if self.recues.is_empty() {
-            return format!("{} signature(s) attendue(s), aucune arrivée", self.attendues);
-        }
-        let noms: Vec<&str> = self.recues.iter().map(|r| r.nom.as_str()).collect();
-        format!("{} signature(s) reçue(s) : {}", self.recues.len(), noms.join(", "))
-    }
-
-    /// `commandes_ouverture._signatures_json`, avec le resume en plus (celui que l'ouverture met dans son bilan).
-    pub fn en_json(&self) -> Value {
-        json!({
-            "quand": self.quand,
-            "attendues": self.attendues,
-            "recues": self.recues.iter().map(SignatureRecue::en_json).collect::<Vec<_>>(),
-            "incidents": self.incidents,
-            "resume": self.resume(),
-        })
-    }
-}
 
 // ------------------------------------------------------------------ la route
 
@@ -161,7 +70,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     let attendues = etats::signatures_attendues(&lignes, None, &crate::routes_documents::salaries_d_identite(ctx))?;
     let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
-    let envoyes = crate::simulation_courriels::courriels_par_identifiant(&ctx.racine);
+    let envoyes = envois::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues.as_array().into_iter().flatten() {
         let quand = a.get("quand").map(valeur_en_texte).unwrap_or_default();
         let age = socle::paris::naif_de_iso(&quand).map_or(0, |t| maintenant_naif - t);
@@ -170,17 +79,17 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
         }
         let code = texte_de(a, "code");
         let nom = texte_de(a, "nom");
-        let (sujet, corps) = match crate::simulation_courriels::bouton_de_la_demande(&envoyes, &identifiants_de(a)) {
+        let (sujet, corps) = match envois::simulation_courriels::bouton_de_la_demande(&envoyes, &identifiants_de(a)) {
             Some(b) => b,
             None => (
                 "Re: contrat".to_string(),
                 envoi::formater(
-                    crate::envois_signature::CORPS_REPONSE,
+                    envois::envois_signature::CORPS_REPONSE,
                     &[("nom", nom), ("quoi", "le contrat d'engagement".to_string()), ("code", code.clone())],
                 ),
             ),
         };
-        let brut = crate::simulation_courriels::reponse_jouee(&texte_de(a, "adresse"), Courriel::compte(&boite), &sujet, &corps, &format!("signature-{}", code))
+        let brut = envois::simulation_courriels::reponse_jouee(&texte_de(a, "adresse"), Courriel::compte(&boite), &sujet, &corps, &format!("signature-{}", code))
             .map_err(|m| erreur("ValueError", m))?;
         boite.repondre(&code, brut);
     }
@@ -198,15 +107,9 @@ pub fn relever_signatures_fictive(ctx: &Contexte, delai: i64) -> R<ReleveSignatu
     relever_signatures(ctx, Some(&mut boite), None, QUI_HORLOGE)
 }
 
-// ------------------------------------------------------------------ la releve
 
 fn texte_de(d: &Value, cle: &str) -> String {
     d.get(cle).map(valeur_en_texte).unwrap_or_default()
-}
-
-/// `a["envoyes"]` : les `Message-ID` de NOS envois pour cette demande.
-fn identifiants_de(a: &Value) -> Vec<String> {
-    a.get("envoyes").and_then(Value::as_array).map(|l| l.iter().map(valeur_en_texte).collect()).unwrap_or_default()
 }
 
 /// `x.get(cle) or y` : la valeur de `x` quand elle est vraie, sinon celle de `y` (ou `null`).
@@ -227,14 +130,32 @@ fn os(m: String) -> Echec {
     erreur("OSError", m)
 }
 
-/// `operations_documents.relever_signatures` : cherche dans la boite les reponses « Je signe » encore attendues, et fait
-/// tout ce qui suit.
+/// La boite ou chercher les reponses, quand l'appelant n'en donne pas : celle de la compagnie fictive (les salaries
+/// fictifs repondent), sinon la vraie. `Err` : l'incident qui dit pourquoi rien ne se releve.
+fn boite_de_la_releve(ctx: &Contexte) -> R<Result<Box<dyn Courriel>, String>> {
+    if crate::routes_accueil::simulation_active(&ctx.racine) {
+        return Ok(Ok(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?)));
+    }
+    // UNE FICTIVE AJOUTEE : la releve renverrait le contrat contresigne au salarie -- un envoi. Rien ne se releve.
+    if let Some(m) = crate::bridage::refus_d_envoi(&ctx.racine) {
+        return Ok(Err(m.to_string()));
+    }
+    if !crate::boite::disponible(&ctx.racine) {
+        return Ok(Err(
+            "Aucune boite courriel : les signatures ne peuvent pas etre relevees. Poser le mot de passe d'application de la boite (Configuration > Mots de passe)."
+                .to_string(),
+        ));
+    }
+    let vrai_client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+    Ok(Ok(Box::new(vrai_client)))
+}
+
+/// Cherche dans la boite les reponses « Je signe » encore attendues, et fait tout ce qui suit.
 ///
-/// `client` : la boite, ouverte ici quand l'appelant n'en donne pas -- celle de la compagnie fictive (les salaries
-/// fictifs repondent) ou la vraie ; sans boite, un incident et rien d'autre. `mois` : seulement les demandes de ce mois.
-/// `qui` : `veille`, `interface`, `ligne de commande`, `horloge`. Une erreur de transport ou de lecture se dit dans
-/// `incidents` ; seul un refus que le Python laissait lever (la paie du contrat n'est plus dans la saisie, un fichier qui
-/// ne s'ecrit pas) remonte en `Err`.
+/// `client` : la boite, ouverte ici quand l'appelant n'en donne pas (`boite_de_la_releve`) ; sans boite, un incident et
+/// rien d'autre. `mois` : seulement les demandes de ce mois. `qui` : `veille`, `interface`, `ligne de commande`,
+/// `horloge`. Une erreur de transport ou de lecture se dit dans `incidents` ; seul un fichier qui ne s'ecrit pas remonte
+/// en `Err`.
 pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, mois: Option<&str>, qui: &str) -> R<ReleveSignatures> {
     let mut r = ReleveSignatures::nouvelle();
     let lignes = etats::charger(&ctx.racine)?;
@@ -247,89 +168,30 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
     let mut ouverte: Option<Box<dyn Courriel>> = None;
     let client: &mut dyn Courriel = match client {
         Some(c) => c,
-        None if crate::routes_accueil::simulation_active(&ctx.racine) => {
-            // LA COMPAGNIE FICTIVE : les reponses « Je signe » sont jouees, et tout ce qui suit est le vrai circuit.
-            ouverte.insert(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?)).as_mut()
-        }
-        None => {
-            // UNE FICTIVE AJOUTEE (ticket #236) : la releve renverrait le contrat contresigne au salarie -- un envoi. Rien
-            // ne se releve, et le refus se dit (`bridage::refus_d_envoi`).
-            if let Some(m) = crate::bridage::refus_d_envoi(&ctx.racine) {
-                r.incidents.push(m.to_string());
+        None => match boite_de_la_releve(ctx)? {
+            Ok(b) => ouverte.insert(b).as_mut(),
+            Err(incident) => {
+                r.incidents.push(incident);
                 return Ok(r);
             }
-            if !courriel::disponible(&ctx.racine) {
-                r.incidents.push(
-                    "Aucune boite courriel : les signatures ne peuvent pas etre relevees. Poser le mot de passe d'application de la boite (Configuration > Mots de passe)."
-                        .to_string(),
-                );
-                return Ok(r);
-            }
-            let vrai_client = Client::du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
-            ouverte.insert(Box::new(vrai_client)).as_mut()
-        }
+        },
     };
 
-    let (signataire, raison) = crate::envois_signature::signataire_et_raison(ctx)?;
+    let (signataire, raison) = envois::envois_signature::signataire_et_raison(ctx)?;
     let expediteur = client.compte().to_lowercase();
 
     for a in &attendues {
         let code = texte_de(a, "code");
         let a_mois = texte_de(a, "mois");
         let a_nom = texte_de(a, "nom");
-        let a_adresse = texte_de(a, "adresse");
         let a_salarie = texte_de(a, "salarie");
-        let envoyes = identifiants_de(a);
         let contrats: Vec<Value> = a.get("contrats").and_then(Value::as_array).cloned().unwrap_or_default();
-        let identifiants = match client.rechercher(&format!("\"{}\"", code), 10) {
-            Ok(i) => i,
-            Err(e) => {
-                r.incidents.push(format!("Recherche de {} : {}", code, e));
-                // Une erreur de transport ne se corrige pas en essayant le code suivant, et repeter le meme message dix
-                // fois n'aide personne.
-                break;
-            }
+        let retenue = match chercher_reponse(client, a, &expediteur, &mut r.incidents) {
+            Ok(x) => x,
+            // Une erreur de transport ne se corrige pas en essayant le code suivant.
+            Err(()) => break,
         };
-
-        // Le tri strict : (identifiant, message brut, adresse de l'auteur, date du message).
-        let mut retenu: Option<(String, Vec<u8>, String, String)> = None;
-        for ident in identifiants {
-            if envoyes.contains(&ident) {
-                continue; // notre propre demande
-            }
-            let brut = match client.message_brut(&ident) {
-                Ok(b) => b,
-                Err(e) => {
-                    r.incidents.push(format!("Lecture du message {} : {}", ident, e));
-                    continue;
-                }
-            };
-            // Le Python lit tout message (`email` ne refuse jamais) : un bloc d'en-tetes rompu se recoupe comme lui.
-            let lu = lecture::lisible_comme_python(&brut);
-            let Ok(m) = mailparse::parse_mail(&lu) else { continue };
-            if envoyes.contains(&lecture::identifiant_de(&m)) {
-                continue; // notre propre demande, par son en-tete
-            }
-            let texte = lecture::texte_propre(&m);
-            if !texte.to_uppercase().contains(code.as_str()) {
-                continue; // le code n'est que dans la citation
-            }
-            if texte.contains("bouton « Je signe »") {
-                continue; // notre demande elle-meme (envoyee avant que son identifiant soit note)
-            }
-            let de = lecture::adresse_de(&m);
-            if de == expediteur && de != a_adresse {
-                continue; // un autre de nos envois (le contresigne)
-            }
-            if de != a_adresse {
-                r.incidents.push(format!("{} : une reponse portant {} vient de {} et non de {} ; elle n'est pas retenue.", a_nom, code, de, a_adresse));
-                continue;
-            }
-            let quand = lecture::date_de(&m, &maintenant());
-            retenu = Some((ident, brut.clone(), de, quand));
-            break;
-        }
-        let Some((ident, brut, de, quand)) = retenu else { continue };
+        let Some(Reponse { identifiant: ident, brut, de, quand }) = retenue else { continue };
 
         // La preuve archivee : le message tel qu'il est arrive.
         let dossier = ctx.racine.join("sorties").join(&a_mois).join("envoi");
@@ -375,13 +237,10 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         let fichier_signe = noms_signes.join(", ");
 
         // LE JOURNAL D'ABORD : une fois la ligne ecrite, la releve suivante n'attend plus ce code, et le renvoi ne se fera
-        // pas deux fois.
+        // pas deux fois. Un contrat que `contrat_recu` refuse (la paie n'est plus dans la saisie du mois...) devient un
+        // incident NOMME (le salarie, le contrat, la raison) et la releve continue.
         let acte = a.get("acte").cloned().unwrap_or_else(|| json!("contrat"));
         let est_avenant = acte == json!("avenant");
-        // DEFAUT DU PYTHON, CORRIGE (decision de l'utilisateur, 07/10/2026) : chez lui, un contrat signe que `contrat_recu` refuse
-        // (la paie n'est plus dans la saisie du mois...) faisait lever TOUTE la releve, apres la preuve et le PDF mais avant la
-        // ligne du journal : les signatures suivantes n'etaient pas relevees, et la releve suivante retombait sur le meme refus,
-        // pour toujours. Ici le refus devient un incident NOMME (le salarie, le contrat, la raison) et la releve continue.
         let mut notes = 0usize;
         for c in &contrats {
             let sien = signes.iter().find(|(n, _)| *n == texte_ou(c, "fichier", &a_fichier)).map(|(_, p)| socle::fichiers::nom_du(p));
@@ -398,7 +257,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             }
             let debut = texte_de(c, "debut");
             // Le contrat que cette reponse signe, par son numero : le jumeau du meme jour garde sa propre attente.
-            let numero = envois::etats::numero_de_cle(c.get("numero").unwrap_or(&Value::Null));
+            let numero = etats::numero_de_cle(c.get("numero").unwrap_or(&Value::Null));
             match crate::routes_ecritures_g4::contrat_recu_avec(ctx, &a_mois, &texte_de(c, "salarie"), &debut, numero.as_str(), true, qui, Some(&courriel)) {
                 Ok(_) => notes += 1,
                 Err(e) => r.incidents.push(format!(
@@ -428,75 +287,27 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         }
 
         // Le contrat contresigne, renvoye au salarie.
-        let (an, nom_mois) = crate::envois_signature::an_et_nom_du_mois(&a_mois)?;
-        let nb = contrats.len();
-        let mut spectacles: Vec<String> = Vec::new();
-        for c in &contrats {
-            let s = texte_de(c, "spectacle");
-            if !spectacles.contains(&s) {
-                spectacles.push(s);
+        let (an, nom_mois) = envois::envois_signature::an_et_nom_du_mois(&a_mois)?;
+        let pdfs: Vec<PathBuf> = signes.iter().map(|(_, p)| p.clone()).collect();
+        let contresigne = Contresigne {
+            a,
+            contrats: &contrats,
+            est_avenant,
+            de: &de,
+            quand_lisible: &quand_lisible,
+            signes: &pdfs,
+            signataire: &signataire,
+            raison: &raison,
+            expediteur: &expediteur,
+            an,
+            nom_mois,
+        };
+        match renvoyer_contresigne(&ctx.racine, client, &contresigne, qui) {
+            Ok(()) => {
+                let dernier = r.recues.len() - 1;
+                r.recues[dernier].renvoye = true;
             }
-        }
-        let numeros: Vec<String> = contrats.iter().map(|c| valeur_en_texte(&ou_valeur(c, a, "avenant"))).collect();
-        let (sujet, quoi) = if est_avenant {
-            (
-                format!("{} - {}", if nb == 1 { "Ton avenant signé" } else { "Tes avenants signés" }, spectacles[0]),
-                if nb == 1 { format!("l'avenant n° {} à ton contrat", numeros[0]) } else { format!("tes {} avenants (un document chacun)", nb) },
-            )
-        } else {
-            (
-                if nb == 1 || spectacles.len() == 1 {
-                    envoi::formater(SUJET_CONTRESIGNE, &[("spectacle", spectacles[0].clone())])
-                } else {
-                    envoi::formater(SUJET_CONTRESIGNE_PLURIEL, &[("mois", nom_mois.to_string()), ("annee", an.to_string())])
-                },
-                if nb == 1 { "ton contrat d'engagement".to_string() } else { format!("tes {} contrats d'engagement (un par page)", nb) },
-            )
-        };
-        let message = Message {
-            cle: a_salarie.clone(),
-            nom: a_nom.clone(),
-            destinataire: de.clone(),
-            sujet,
-            corps: envoi::formater(
-                CORPS_CONTRESIGNE,
-                &[
-                    ("prenom", texte_de(a, "prenom")),
-                    ("quand", quand_lisible.clone()),
-                    ("quoi", quoi),
-                    ("signataire", signataire.clone()),
-                    ("raison_sociale", raison.clone()),
-                ],
-            ),
-            pieces: signes.iter().map(|(_, p)| p.clone()).collect(),
-            html: String::new(),
-        };
-        let envoi_fait = envoi::envoyer(&[message], &expediteur, client, None, None);
-        let dernier = r.recues.len() - 1;
-        let suite = envoi_fait.and_then(|_| {
-            r.recues[dernier].renvoye = true;
-            let detail = json!({"salarie": a_salarie, "nom": a_nom, "code": code, "contrats": contrats, "fichiers": noms_signes});
-            let premier = signes[0].1.to_string_lossy().into_owned();
-            let note = Note {
-                quoi: "contrat-contresigne",
-                mois: Some(&a_mois),
-                fichier: Some(&premier),
-                mode: journal::REEL,
-                qui,
-                accepte: true,
-                destinataire: &de,
-                flux: "",
-                reponse: "contrat contresigne renvoye au salarie",
-                trace: None,
-                detail: Some(&detail),
-                versions: None,
-                quand: "",
-                origine: "",
-            };
-            journal::noter(&ctx.racine, &note, &maintenant()).map(|_| ())
-        });
-        if let Err(e) = suite {
-            r.incidents.push(format!("{} : le contrat contresigne n'a pas pu etre renvoye ({}). Il est dans {}.", a_nom, e, fichier_signe));
+            Err(e) => r.incidents.push(format!("{} : le contrat contresigne n'a pas pu etre renvoye ({}). Il est dans {}.", a_nom, e.message, fichier_signe)),
         }
     }
     client.fermer();
