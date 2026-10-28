@@ -105,7 +105,7 @@ pub(crate) fn contrat_recu_avec(
     };
     let Some(rang) = trouvee else {
         return Err(refus(format!(
-            "Aucune paie de {} commencant le {}{} dans la saisie enregistree de {}.",
+            "Aucun engagement de {} commençant le {}{} dans la saisie enregistrée de {}.",
             salarie,
             debut,
             numero.map_or(String::new(), |n| format!(" (n° {})", n)),
@@ -286,7 +286,7 @@ fn avenants_voulus(ctx: &Contexte, voulus: &[Value], par_courriel: bool) -> R<Ve
             let nom = apercu.get("nom").map(valeur_en_texte).unwrap_or_default();
             if modifications == 0 {
                 return Err(refus(format!(
-                    "{}, contrat du {} : le contrat parti dit déjà ce que dit la paie, pas d'avenant à faire. Rien n'est parti.",
+                    "{}, contrat du {} : le contrat parti dit déjà ce que dit l'engagement, pas d'avenant à faire. Rien n'est parti.",
                     nom,
                     jj(&valeur_en_texte(debut_v))?
                 )));
@@ -441,6 +441,9 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         };
         let jour = valeur_en_texte(&depuis);
         let jj_mm = if jour.len() >= 10 { format!("{}/{}", &jour[8..10], &jour[5..7]) } else { jour };
+        let attente = format!("{}{} le {}", ce, if est(&par, "imprime") { "imprimé" } else { "envoyé" }, jj_mm);
+        // Ce que la demande du mot de passe dit avant une relance.
+        let pourquoi = format!("relancer la signature : {}, {}", valeur_en_texte(&l["nom"]), attente);
         let numero_charge = p.engagement.numero.clone().map_or(json!(""), Value::String);
         let (recu_g, relancer) = if en_attente {
             let avenant = if avenant_en_attente { etat["avenant"]["numero"].clone() } else { Value::Null };
@@ -448,9 +451,9 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             let relancer = if !(est(&par, "courriel") && boite_liee) {
                 Value::Null
             } else if avenant_en_attente {
-                json!({"route": "avenants-envoyer", "charge": {"avenants": [{"salarie": cle_s, "debut": debut, "numero": numero_charge, "mois": mois, "relance": true}]}})
+                json!({"route": "avenants-envoyer", "pourquoi": pourquoi, "charge": {"avenants": [{"salarie": cle_s, "debut": debut, "numero": numero_charge, "mois": mois, "relance": true}]}})
             } else {
-                json!({"route": "demander-signature", "charge": {"mois": mois, "relance": true, "contrats": [{"salarie": cle_s, "debut": debut, "numero": numero_charge}]}})
+                json!({"route": "demander-signature", "pourquoi": pourquoi, "charge": {"mois": mois, "relance": true, "contrats": [{"salarie": cle_s, "debut": debut, "numero": numero_charge}]}})
             };
             (recu_g, relancer)
         } else {
@@ -462,7 +465,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("en_attente".into(), json!(en_attente));
         l.insert(
             "attente".into(),
-            if en_attente { json!(format!("{}{} le {}", ce, if est(&par, "imprime") { "imprimé" } else { "envoyé" }, jj_mm)) } else { Value::Null },
+            if en_attente { json!(attente) } else { Value::Null },
         );
         l.insert("recu".into(), recu_g);
         l.insert("relancer".into(), relancer);
@@ -601,7 +604,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let Some(i) = trouvee else {
         return Err(erreur(
             "ErreurOperation",
-            format!("Aucun contrat de {} commençant le {} dans la paie de {}.", salarie, jj_mm_aaaa(debut_v)?, mois_parti),
+            format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, jj_mm_aaaa(debut_v)?, mois_parti),
         ));
     };
     let p = &paies[i];

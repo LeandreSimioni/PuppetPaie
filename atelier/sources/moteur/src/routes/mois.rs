@@ -2287,7 +2287,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                 t[k] += dec(v.get(*cle).ok_or_else(|| socle::fichiers::absent(cle))?)?;
             }
         }
-        Ok(json!({"net_a_payer": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "paies": vs.len()}))
+        Ok(json!({"net_a_payer": q2(t[0]).to_string(), "brut": q2(t[1]).to_string(), "cout_employeur": q2(t[2]).to_string(), "engagements": vs.len()}))
     };
     let tailles: Vec<usize> = match charge.get("blocs").and_then(Value::as_array) {
         Some(a) => a.iter().map(|x| x.as_u64().unwrap_or(0) as usize).collect(),

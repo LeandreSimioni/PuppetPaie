@@ -670,7 +670,7 @@ fn avenant_ecrit(
     let debut = a.texte("debut");
     let numero_j = valeur_en_texte(&crate::etats::numero_de_cle(&a.apercu["contrat"]));
     let Some(rang_p) = crate::etats::paie_du_contrat(paies, lignes_j, salarie, &debut, &numero_j, false)? else {
-        return Err(refus(format!("Aucun contrat de {} commençant le {} dans la paie de {}.", salarie, jj(&debut)?, mois_a)));
+        return Err(refus(format!("Aucun contrat de {} commençant le {} dans les engagements de {}.", salarie, jj(&debut)?, mois_a)));
     };
     let p = &paies[rang_p];
     let ent = documents::avenant::ent_du_mois(ctx, &mois_a)?;

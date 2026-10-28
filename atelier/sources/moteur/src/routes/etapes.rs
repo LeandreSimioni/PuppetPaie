@@ -693,8 +693,6 @@ impl<'a> Moteur<'a> {
         // CE QUI EST A REFAIRE, engagement par engagement : le present compare a la version sur laquelle chaque envoi est parti.
         let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
         let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
-        let actes = etats::etat_du_mois(&lignes, mois)?;
-        let depot_dsn = actes.get(DSN).cloned().unwrap_or(Value::Null);
         let departs = envois::journal::departs(&self.ctx.racine).map_err(Echec::from)?;
 
         let mut out = Vec::new();
@@ -831,8 +829,7 @@ impl<'a> Moteur<'a> {
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
             }
             let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
-            let dsn = json!({"fait": if vrai(&depot_dsn) { get(&depot_dsn, "quand")?.clone() } else { Value::Null }, "maille": "mois"});
-            ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents, "dsn": dsn}));
+            ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents}));
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
             ligne.insert("dpae_choix".into(), choix_dpae(&vue));
@@ -1053,7 +1050,7 @@ impl<'a> Moteur<'a> {
             let notee = get(note, "empreinte_saisie")?;
             let maintenant = self.empreinte_saisie(mois)?;
             if maintenant.map_or(true, |m| !est(notee, &m)) {
-                return Ok(Some(format!("la paie a change depuis que ce fichier a ete ecrit (le {})", quand_lisible(get(note, "quand")?))));
+                return Ok(Some(format!("l'engagement a changé depuis que ce fichier a été écrit (le {})", quand_lisible(get(note, "quand")?))));
             }
             return Ok(None);
         }
@@ -1756,7 +1753,7 @@ pub fn etat_signature(
     // LE NUMERO : le contrat signe porte le sien, la DSN declarera celui de l'engagement. S'ils different, ce n'est pas
     // celui qui est declare.
     if vrai(fait) && vrai(numero_parti) && vrai(numero_saisi) && !socle::valeur::valeurs_egales(numero_parti, numero_saisi) {
-        pourquoi.push(format!("il porte le n° {}, la paie déclare le n° {}", valeur_en_texte(numero_parti), valeur_en_texte(numero_saisi)));
+        pourquoi.push(format!("il porte le n° {}, l'engagement dit le n° {}", valeur_en_texte(numero_parti), valeur_en_texte(numero_saisi)));
     }
     // L'AVENANT : le dernier parti. Pas encore revenu, il laisse la pastille orange.
     let dernier = avenants.as_array().and_then(|a| a.last()).cloned().unwrap_or(Value::Null);

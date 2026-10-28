@@ -5,7 +5,7 @@
    moteur ; un clic ouvre l'envoi que le moteur nomme, rien ne part d'un clic sans sa boîte. */
 "use strict";
 
-let ETATS_PAIES = null;      // "clé|début|rang" → les quatre actes ; null = pas lu
+let ETATS_ENGAGEMENTS = null;      // "clé|début|rang" → les quatre actes ; null = pas lu
 
 /* LES JUMEAUX (09/10/2026) : deux contrats du même salarié qui commencent le
    même jour ne se confondent pas. Le moteur les identifie par leur numéro
@@ -13,7 +13,7 @@ let ETATS_PAIES = null;      // "clé|début|rang" → les quatre actes ; null =
    même jour, dans l'ordre du fichier (`jumeaux.rs`) — et le fichier suit
    l'ordre des blocs à l'écran (`saisieCourante`). Chaque ligne
    d'`etat-par-engagement` porte ce rang ; la page le rend à `valider-engagement`. */
-const clePaie = (salarie, debut, rang) => salarie + "|" + debut + "|" + (rang || 0);
+const cleEngagement = (salarie, debut, rang) => salarie + "|" + debut + "|" + (rang || 0);
 
 /** Les (salarié, premier jour) d'un bloc, sans leur rang.
  *  Le moteur trie les dates et prend la première (`Engagement.debut`) : on
@@ -28,10 +28,10 @@ function identitesDuBloc(div) {
   return salariesDuBloc(div).map((salarie) => ({ salarie, debut }));
 }
 
-/** Les paies d'un bloc, telles qu'elles sont SAISIES à l'écran : (salarié,
+/** Les engagements d'un bloc, tels qu'ils sont SAISIS à l'écran : (salarié,
  *  premier jour), le numéro du contrat s'il est figé, et le rang du bloc
  *  parmi ceux du même salarié et du même jour qui le précèdent. */
-function paiesDuBloc(div) {
+function engagementsSaisisDuBloc(div) {
   const blocs = [...document.querySelectorAll(".engagement")];
   const avant = blocs.slice(0, Math.max(0, blocs.indexOf(div))).flatMap(identitesDuBloc);
   const numero = div.dataset.numero || "";
@@ -39,17 +39,17 @@ function paiesDuBloc(div) {
     rang: avant.filter((a) => a.salarie === p.salarie && a.debut === p.debut).length }));
 }
 
-/** La ligne d'`etat-par-engagement` d'une paie de l'écran : par son numéro s'il est
+/** La ligne d'`etat-par-engagement` d'un engagement de l'écran : par son numéro s'il est
  *  posé, sinon par son rang — jamais une ligne qui porte un autre numéro que
  *  le sien (la règle de `valider-engagement`). */
-function etatDePaie(p) {
-  if (!ETATS_PAIES) return undefined;
+function etatDEngagement(p) {
+  if (!ETATS_ENGAGEMENTS) return undefined;
   if (p.numero) {
-    const n = Object.values(ETATS_PAIES).find((l) => l.salarie === p.salarie
+    const n = Object.values(ETATS_ENGAGEMENTS).find((l) => l.salarie === p.salarie
       && l.debut === p.debut && l.numero === p.numero);
     if (n) return n;
   }
-  const l = ETATS_PAIES[clePaie(p.salarie, p.debut, p.rang)];
+  const l = ETATS_ENGAGEMENTS[cleEngagement(p.salarie, p.debut, p.rang)];
   if (l && p.numero && l.numero && l.numero !== p.numero) return undefined;
   return l;
 }
@@ -102,7 +102,7 @@ async function noterSigne(mois, ligne, recu) {
                                 numero: ligne.numero || "", recu });
   } catch (e) { dire(e.message, "erreur"); return; }
   const prenom = String(ligne.nom || "").split(" ").slice(1).join(" ") || ligne.nom;
-  await dessinerEtatsDesPaies(mois);
+  await dessinerEtatsDesEngagements(mois);
   await rafraichirActions();
   if (!recu) { dire(`Contrat de ${prenom} : la mention « signé » est retirée.`); return; }
   dire(`Contrat de ${prenom} noté signé`);
@@ -176,14 +176,14 @@ function peindreEtats() {
   document.querySelectorAll(".engagement").forEach((div) => {
     const cible = div.querySelector(".etats");
     if (!cible) return;
-    const ps = paiesDuBloc(div);
-    const lignes = ETATS_PAIES
-      ? ps.map(etatDePaie).filter(Boolean)
+    const ps = engagementsSaisisDuBloc(div);
+    const lignes = ETATS_ENGAGEMENTS
+      ? ps.map(etatDEngagement).filter(Boolean)
       : [];
     avisDpaeDeplacee(div, ps, lignes.length === 1 ? lignes[0] : null);
     const connue = ps.length > 0 && lignes.length === ps.length;
     div.classList.toggle("enregistree", connue);
-    if (!ETATS_PAIES) { cible.innerHTML = ""; return; }
+    if (!ETATS_ENGAGEMENTS) { cible.innerHTML = ""; return; }
     if (!connue) {
       fermerEdition(div, false);
       if (!salariesDuBloc(div).length) {
@@ -270,17 +270,17 @@ async function validerPlusieurs(div, lignes) {
          "erreur");
   }
   if (faites) dedoubler(div);
-  await dessinerEtatsDesPaies(mois);
+  await dessinerEtatsDesEngagements(mois);
 }
 
 /** Lit `etat-par-engagement` et repeint. */
-async function dessinerEtatsDesPaies(mois) {
-  ETATS_PAIES = null;
+async function dessinerEtatsDesEngagements(mois) {
+  ETATS_ENGAGEMENTS = null;
   if (!mois) { peindreEtats(); return; }
   try {
     const r = await api("etat-par-engagement", { mois });
-    ETATS_PAIES = {};
-    r.engagements.forEach((l) => { ETATS_PAIES[clePaie(l.salarie, l.debut, l.rang)] = l; });
+    ETATS_ENGAGEMENTS = {};
+    r.engagements.forEach((l) => { ETATS_ENGAGEMENTS[cleEngagement(l.salarie, l.debut, l.rang)] = l; });
     peindreNonActifs(r.non_actifs);
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
@@ -288,7 +288,7 @@ async function dessinerEtatsDesPaies(mois) {
     // On ne sait rien des paies : les cartes restent comme elles sont (#253).
     // Un état vide les ouvrait TOUTES en formulaire, validées comprises, et le
     // refus du moteur (dit dans « Les étapes ») se lisait « tout s'est ouvert ».
-    ETATS_PAIES = null;
+    ETATS_ENGAGEMENTS = null;
   }
   peindreEtats();
 }
@@ -321,7 +321,7 @@ function fermerEdition(div, ferme) {
   div.classList.toggle("validee", ferme);
   peindreCarte(div);
   div.querySelectorAll("input, select, button").forEach((c) => {
-    if (c.classList.contains("v-basculer") || c.classList.contains("retirer-paie")) return;
+    if (c.classList.contains("v-basculer") || c.classList.contains("retirer-engagement")) return;
     if (c.classList.contains("verrou")) return;    // un contrat en cours
     if (c.closest(".e-resume")) return;            // la ligne de la paie validée
     if (c.closest(".e-imprevus")) return;          // ses imprévus : la reprise, le maintien se disent après la paie
@@ -339,7 +339,7 @@ function fermerEdition(div, ferme) {
    L'avertissement n'est là que quand il y a quelque chose à perdre : une
    paie validée, un contrat envoyé à la signature ou revenu signé, une DPAE
    partie. Sinon le bloc s'en va, et l'enregistrement suit. */
-const BOUTON_RETIRER = `<button class="lien retirer-paie" title="retirer cet engagement de la saisie">Retirer cet engagement</button>`;
+const BOUTON_RETIRER = `<button class="lien retirer-engagement" title="retirer cet engagement de la saisie">Retirer cet engagement</button>`;
 
 /** Le bandeau de validation d'un bloc, sous les quatre pastilles. */
 function bandeauValidation(ligne) {
@@ -377,12 +377,12 @@ function brancherValidation(div, ligne) {
  *  propose de rendre l'engagement non actif. Un bloc pas encore enregistré
  *  n'a rien dans le moteur : il s'efface de l'écran. */
 function brancherRetirer(div) {
-  const b = div.querySelector(".retirer-paie");
+  const b = div.querySelector(".retirer-engagement");
   if (!b) return;
   b.onclick = async (ev) => {
     ev.preventDefault();
     const mois = document.getElementById("mois").value;
-    const lignes = paiesDuBloc(div).map(etatDePaie).filter(Boolean);
+    const lignes = engagementsSaisisDuBloc(div).map(etatDEngagement).filter(Boolean);
     if (!lignes.length) { div.remove(); rafraichirApercu(); dire("Engagement retiré."); return; }
     try {
       for (const l of lignes) {
@@ -461,7 +461,7 @@ async function basculerValidation(ligne, valide) {
   try {
     if (await validerEngagement(mois, ligne, valide) === null) return;
     dire(valide ? "Engagement validé." : "Engagement ouvert à la modification : le revalider ensuite.");
-    await dessinerEtatsDesPaies(mois);
+    await dessinerEtatsDesEngagements(mois);
   } catch (e) { dire(e.message, "erreur"); }
 }
 
@@ -473,7 +473,7 @@ async function basculerValidation(ligne, valide) {
  * bloc : son jumeau (un autre contrat du même jour, #139) n'est jamais une
  * sœur, même validé à la même seconde. */
 function engagementsSoeurs(ligne) {
-  const toutes = Object.values(ETATS_PAIES || {});
+  const toutes = Object.values(ETATS_ENGAGEMENTS || {});
   const soeurs = toutes.filter((l) => l.valide && l.valide === ligne.valide
     && l.spectacle === ligne.spectacle && l.debut === ligne.debut && l.fin === ligne.fin
     && (l.salarie !== ligne.salarie || l.rang === ligne.rang));
@@ -489,7 +489,7 @@ async function modifierEngagements(lignes) {
     dire(lignes.length > 1 ? `Ces ${lignes.length} engagements sont ouverts à la modification.`
                            : "Engagement ouvert à la modification : le revalider ensuite.");
   } catch (e) { dire(e.message, "erreur"); }
-  await dessinerEtatsDesPaies(mois);
+  await dessinerEtatsDesEngagements(mois);
 }
 
 /* MODIFIER L'ENGAGEMENT : un engagement dont aucun contrat n'est parti se rouvre d'un clic ; un contrat parti se dit
@@ -558,7 +558,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
   const dp = ligne && ligne.etats && ligne.etats.dpae;
   if (dp && dp.fait && !dp.refusee && dp.fin_declaree && dp.fin_declaree !== ligne.fin) {
     ecarts.push(`fin du contrat : la DPAE déclare le ${jjmmaaaa(dp.fin_declaree)},
-      la paie dit le ${jjmmaaaa(ligne.fin)}`);
+      l'engagement dit le ${jjmmaaaa(ligne.fin)}`);
   }
   if (!ecarts.length) { if (avis) avis.remove(); return; }
   if (!avis) {
@@ -567,7 +567,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
     cible.parentNode.insertBefore(avis, cible);
   }
   const quandDpae = d ? d.quand : dp.fait;
-  avis.innerHTML = `<b>La paie ne correspond plus à la DPAE déposée le ${echapper(quand(quandDpae))}</b>
+  avis.innerHTML = `<b>L'engagement ne correspond plus à la DPAE déposée le ${echapper(quand(quandDpae))}</b>
     <ul>${ecarts.map((x) => `<li>${echapper(x)}</li>`).join("")}</ul>
     Selon l'Urssaf, les informations relatives au contrat de travail se
     modifient dans son espace en ligne (Compte › Embauche › Modifier une
@@ -620,7 +620,7 @@ async function boiteDpae(mois) {
     return;
   }
   const lignes = r.engagements || [];
-  if (!lignes.length) { dire("Aucune paie enregistrée en " + moisEnClair(mois) + "."); return; }
+  if (!lignes.length) { dire("Aucun engagement enregistré en " + moisEnClair(mois) + "."); return; }
   // Le moteur dit, par engagement (`dpae_choix`), s'il se coche, s'il est coché
   // d'avance, et son état en mots ; la pastille prend la couleur de l'état.
   const PASTILLE = { fait: "bien", a_faire: "alerte", en_attente: "alerte", refuse: "erreur" };

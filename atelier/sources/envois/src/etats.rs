@@ -18,7 +18,7 @@ use serde_json::{json, Map, Value};
 
 use socle::ecriture::ecrire_json;
 use socle::fichiers::vrai;
-use crate::journal::{chemin, ACTES, REEL};
+use crate::journal::{chemin, REEL};
 use crate::retours;
 use socle::echec::{erreur, Echec, R};
 use socle::valeur::{valeurs_egales, nom_type, nombre, valeur_ecrite, valeur_en_texte};
@@ -887,6 +887,12 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
 }
 
 pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
+    Ok(avenants_par_contrat(lignes, m)?.sortie(|v| Value::Array(v.clone())))
+}
+
+/// Les avenants de chaque contrat (sa cle, `cle_contrat`), dans l'ordre du journal : chacun son numero, et `signe` (le
+/// jour ou il est note revenu signe, ou nul).
+pub fn avenants_par_contrat(lignes: &[Value], m: Maille) -> R<Dico<Vec<Value>>> {
     let lignes = &*normalisees(lignes, m);
     let mut out: Dico<Vec<Value>> = Dico::nouveau();
     for l in lignes {
@@ -943,7 +949,7 @@ pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
             }
         }
     }
-    Ok(out.sortie(|v| Value::Array(v.clone())))
+    Ok(out)
 }
 
 /// CE QUE LES DOCUMENTS DU MOIS DISAIENT, par salarie : le resume de sa paie (`envoi::resume_de`) dans la derniere ligne
@@ -957,20 +963,6 @@ pub fn resumes_des_documents(lignes: &[Value], mois: &str) -> R<std::collections
         }
     }
     Ok(out)
-}
-
-pub fn etat_du_mois(lignes: &[Value], mois: &str) -> R<Value> {
-    let mut etat = Map::new();
-    for acte in ACTES {
-        let mut derniere = Value::Null;
-        for l in filtrer(lignes, Some(acte), Some(mois), true)? {
-            if accepte(l)? {
-                derniere = l.clone();
-            }
-        }
-        etat.insert(acte.to_string(), derniere);
-    }
-    Ok(Value::Object(etat))
 }
 
 pub fn flux_de_test(lignes: &[Value]) -> R<Value> {
@@ -1023,7 +1015,10 @@ pub fn joindre(sep: &str, v: &[Value]) -> R<String> {
     Ok(out.join(sep))
 }
 
-pub fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
+/// LA PHRASE D'UN ENVOI DU JOURNAL : quand il est parti, et ce qui en est revenu. Un contrat est revenu signe quand le
+/// journal le note recu (`contrats_recus`) ; un avenant, quand sa propre note le dit (`avenants_par_contrat`) -- les
+/// memes lectures que l'etat de l'engagement.
+pub fn resume(ligne: &Value, recus: &Dico<()>, avenants: &Dico<Vec<Value>>, m: Maille) -> R<String> {
     if !vrai(ligne) {
         return Ok("pas encore envoyé".into());
     }
@@ -1048,7 +1043,13 @@ pub fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
         let contrats = items(ou(get(getd(ligne, "detail", objet_vide())?, "contrats")?, &LISTE_VIDE))?;
         let mut revenus = 0;
         for c in &contrats {
-            if avec_repli(recus, &cle_contrat(c, m)?)?.is_some() {
+            let revenu = if est(get(c, "acte")?, "avenant") {
+                let numero = get(c, "avenant")?;
+                avenants.get(&cle_contrat(c, m)?)?.is_some_and(|l| l.iter().any(|a| valeurs_egales(&a["numero"], numero) && vrai(&a["signe"])))
+            } else {
+                avec_repli(recus, &cle_contrat(c, m)?)?.is_some()
+            };
+            if revenu {
                 revenus += 1;
             }
         }

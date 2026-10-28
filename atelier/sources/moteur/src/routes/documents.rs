@@ -16,7 +16,6 @@ use crate::routes::qui_de;
 use droit::contexte::Contexte;
 use envois::courriel::{BoiteSimulee, Courriel};
 use envois::envoi;
-use envois::etats::{self, get};
 use envois::journal;
 use envois::ligne_d_envoi::{echec_d_envoi, noter_echec_d_envoi, noter_envoi};
 use socle::date::jour_iso;
@@ -608,7 +607,9 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
     let lignes = m.lignes()?;
-    let deja = etats::etat_du_mois(&lignes, &mois)?;
+    // Ce qui est deja parti : la meme lecture que la case Documents de l'engagement (`etapes::documents_partis`).
+    let partis = crate::routes::etapes::documents_partis(ctx, &mois, &m.etats_du_mois(&mois)?, &lignes)?;
+    let deja = messages.iter().filter_map(|x| partis.get(&x.cle)).filter_map(|p| p["quand"].as_str()).max().map(|q| json!({"quand": q}));
     let mut r = Map::new();
     r.insert("mois".into(), mois_v.clone());
     r.insert("expediteur".into(), json!(expediteur));
@@ -637,7 +638,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     );
     // « Deja envoye » ne se dit que d'un renvoi voulu, a l'identique : tous ont deja leurs documents, et leur paie n'a
     // pas change. Un renvoi de documents corriges ou un premier envoi n'envoie rien une seconde fois.
-    r.insert("deja".into(), if tous_a_jour { get(&deja, "documents")?.clone() } else { Value::Null });
+    r.insert("deja".into(), if tous_a_jour { json!(deja) } else { Value::Null });
     let renvois = messages.iter().filter(|x| choix.renvois.contains_key(&x.cle)).count();
     let n = messages.len();
     r.insert("renvois".into(), json!(renvois));

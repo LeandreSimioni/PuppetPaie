@@ -765,6 +765,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let lignes = envois::journal::lire(&ctx.racine, None, Some(mois), false).map_err(|m| erreur("OSError", m))?;
     let recus = etats::contrats_recus(&lignes, etats::Maille::Contrat)?;
+    let avenants = etats::avenants_par_contrat(&lignes, etats::Maille::Contrat)?;
     let mut cles: etats::Dico<()> = etats::Dico::nouveau();
     for (k, _) in &recus.items {
         cles.poser(k.clone(), ())?;
@@ -793,7 +794,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
                 format!("{} — {}", contrat_en_mots(d), comment)
             }
             _ if recu => format!("reçu le {}", quand),
-            _ => etats::resume(l, &cles, etats::Maille::Contrat)?,
+            _ => etats::resume(l, &cles, &avenants, etats::Maille::Contrat)?,
         };
         envois.push(json!({
             "quoi": t("quoi"), "acte": acte(ctx, l, defaites.contains(&rang)), "mode": t("mode"), "quand": t("quand"), "fichier": t("fichier"), "flux": t("flux"),

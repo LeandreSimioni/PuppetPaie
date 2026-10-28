@@ -951,7 +951,7 @@ fn engagement_qui_finit<'a>(ctx: &Contexte, saisie: &'a Value, cle: &str, nom: &
     let siens: Vec<(usize, &Value)> =
         eng.iter().enumerate().filter(|(_, x)| engagement::cle_de_l_engagement(ctx, x).as_deref() == Some(cle)).collect();
     if siens.is_empty() {
-        return Err(refus(format!("{} n'a aucune paie en {} : aucun contrat ne s'y termine.", nom, mois_dit(mois))));
+        return Err(refus(format!("{} n'a aucun engagement en {} : aucun contrat ne s'y termine.", nom, mois_dit(mois))));
     }
     siens.into_iter().find(|(_, x)| x.get("fin").map_or(false, vrai)).ok_or_else(|| {
         refus(format!("{} n'a aucun contrat qui se termine en {} (la saisie ne dit pas de `fin`).", nom, mois_dit(mois)))
