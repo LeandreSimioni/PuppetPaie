@@ -3,9 +3,7 @@
 //! s'arrete a la `Value` de la description ; l'ecriture du PDF est
 //! `fabrique::ecrire`.
 //!
-//! Hors de ce module : le HTML de reference (`_html_un`, `_bloc_*`), qui ne
-//! sert plus qu'aux tests du Python, `numeros_archives` et `_montant_lu`
-//! (relecture d'un PDF ecrit).
+//! Hors de ce module : la relecture d'un PDF ecrit (`apercu_dsn::numeros_archives`).
 
 use engagement::calcul::Paie;
 use engagement::conges::{compteur_au_bulletin, CompteurConges};
@@ -790,7 +788,7 @@ fn tableau_modele(p: &Paie) -> Resultat<Vec<Value>> {
 /// cotisation -- chaque ligne du bareme sous la ligne (ou le groupe) du bulletin qui la porte, avec sa base, le taux et
 /// le montant de la part salariale et de la part employeur --, puis les trois totaux du bulletin, aux memes montants.
 /// Elle ne dit rien que la paie ne dise : chaque ligne de la paie s'y imprime une fois. Ni « Bulletin de paie n° », ni
-/// « Contrat n° », ni « Période : », ni « NET A PAYER » : ce sont les marques que lit `apercu_dsn::numeros_archives`.
+/// « Contrat n° », ni « Période : » : ce sont les marques que lit `apercu_dsn::numeros_archives`.
 fn blocs_annexe(p: &Paie) -> Resultat<Vec<Value>> {
     let sal = &p.salarie;
     let mut blocs = vec![

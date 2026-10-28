@@ -440,8 +440,8 @@ pub struct Regularisation {
     pub declare: crate::versement_declare::VersementDeclare,
     pub apres: Paie,
     pub taux_pas_origine: Option<String>,
-    /// Le net a payer avant impot deja verse au salarie pour ce contrat, lu sur le bulletin recu
-    /// (`produire_regularisations::net_deja_verse_lu`) : ce qui dit si la correction verse ou reprend quelque chose,
+    /// Le net a payer avant impot deja verse au salarie pour ce contrat, lu dans la derniere paie declaree
+    /// (`produire_regularisations::versement_declare_de`) : ce qui dit si la correction verse ou reprend quelque chose,
     /// et a quel montant net social correspondait ce qui a ete paye (`blocs_58_de_la_correction`).
     pub net_deja_verse: Decimal,
     /// Le jour ou la correction a ete ecrite (`decidee_le`) : la date de la modification (S21.G00.41.001) quand elle
