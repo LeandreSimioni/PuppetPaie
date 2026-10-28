@@ -4,7 +4,7 @@
 //! `fabrique::ecrire`.
 
 use engagement::calcul::Paie;
-use engagement::conges::{compteur_au_bulletin, CompteurConges};
+use engagement::conges::CompteurConges;
 use droit::contexte::Contexte;
 use droit::cumul::{tableau_cumul, Colonne};
 use engagement::cumul::lire_engagements;
@@ -1231,7 +1231,6 @@ pub fn jeux_et_description(
     }
     let pas_par_paie = crate::prelevement::des_paies(ctx, paies)?;
     let mut colonnes_par_salarie: HashMap<String, Vec<Colonne>> = HashMap::new();
-    let mut conges_par_paie: HashMap<usize, CompteurConges> = HashMap::new();
     if !mois.is_empty() {
         // Tout ce que la compagnie a declare, ce mois-ci compris : les paies
         // qu'on imprime remplacent le fichier de leur mois.
@@ -1241,16 +1240,11 @@ pub fn jeux_et_description(
             let fin = dernier_du_mois(mois)?;
             engagements.retain(|e| e.debut <= fin);
         }
-        for (i, pa) in paies.iter().enumerate() {
+        for pa in paies {
             let cle = texte(&pa.salarie, "_cle")?;
-            // Le compteur de conges est par contrat, le cumul des 507 h par salarie. Un contrat paye au mois et
-            // declare a la caisse des Conges Spectacles (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'a pas de compteur
-            // de l'employeur : c'est la caisse qui lui paie ses conges (#132).
-            if pa.engagement.nat()?.mensuelle() {
-                if !engagement::calcul::declaree_a_la_caisse_des_conges(pa)? {
-                    conges_par_paie.insert(i, compteur_au_bulletin(ctx, pa, mois)?);
-                }
-            } else if !colonnes_par_salarie.contains_key(&cle) {
+            // Le compteur de conges est par contrat, ecrit dans la paie a la validation (`Paie::conges`) ; le cumul des
+            // 507 h par salarie.
+            if !pa.engagement.nat()?.mensuelle() && !colonnes_par_salarie.contains_key(&cle) {
                 colonnes_par_salarie.insert(cle.clone(), tableau_cumul(ctx, &cle, mois, &engagements)?);
             }
         }
@@ -1265,7 +1259,7 @@ pub fn jeux_et_description(
             paie: p,
             colonnes: colonnes_par_salarie.get(&cle).map(Vec::as_slice),
             plafond: Some(p.plafond_urssaf(ctx)?),
-            conges: conges_par_paie.get(&i),
+            conges: p.conges.as_ref(),
             pas: pas_par_paie[i].as_ref(),
             rectificatif: rectificatifs.get(&i),
             remboursements: remboursements(ctx, p)?,

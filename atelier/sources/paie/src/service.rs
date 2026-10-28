@@ -100,15 +100,26 @@ pub(crate) struct Provision {
 }
 
 /// La provision de conges d'un permanent a la fin de `mois`, lue dans la paie ecrite `paie` de ce mois : le compteur
-/// que son bulletin montre (`conges::compteur_au_bulletin`), dont l'assiette du dixieme compte aussi le brut du mois
-/// (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (le dixieme ou le maintien,
-/// L3141-24) quand il est positif. `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0).
-pub(crate) fn provision_conges_de(ctx: &Contexte, paie: &engagement::calcul::Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
+/// que son bulletin montre (`Paie::conges`, ecrit a la validation), dont l'assiette du dixieme compte aussi le brut du
+/// mois (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (le dixieme ou le maintien,
+/// L3141-24) quand il est positif. `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un
+/// contrat sans compteur de l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne
+/// porte pas le compteur qu'elle devrait.
+pub(crate) fn provision_conges_de(paie: &engagement::calcul::Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> Resultat<Option<Provision>> {
     use droit::conges::jours_ouvrables;
-    use engagement::conges::{compteur_au_bulletin, indemnite_des_jours};
+    use engagement::conges::indemnite_des_jours;
     use socle::num::{add, dec, div, eur, mul, Decimal};
+    let Some(ecrit) = paie.conges.as_ref() else {
+        if engagement::calcul::declaree_a_la_caisse_des_conges(paie)? {
+            return Ok(None);
+        }
+        return Err(format!(
+            "{} : la paie validee de {} ne porte pas le compteur de conges que son bulletin montre. Revalider l'engagement.",
+            paie.engagement.salarie, mois
+        ));
+    };
     let fin = socle::date::dernier_du_mois(mois)?;
-    let mut cpt = compteur_au_bulletin(ctx, paie, mois)?;
+    let mut cpt = ecrit.clone();
     cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
     let solde = cpt.solde();
     let salaire = match salaire_mensuel {
@@ -120,11 +131,11 @@ pub(crate) fn provision_conges_de(ctx: &Contexte, paie: &engagement::calcul::Pai
         n => Decimal::from(n),
     };
     let indemnite = if solde > Decimal::ZERO {
-        Some(indemnite_des_jours(ctx, &cpt, solde, eur(mul(div(salaire, ouvrables), solde)))?)
+        Some(indemnite_des_jours(&cpt, solde, eur(mul(div(salaire, ouvrables), solde)))?)
     } else {
         None
     };
-    Ok(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite })
+    Ok(Some(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite }))
 }
 
 /// `paie route [--racine R] [--date D]` : la demande sur l'entree standard. `None` : usage.

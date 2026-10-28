@@ -1122,7 +1122,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             continue;
         }
         let brut_du_mois = paies.iter().filter(|q| cle_de(q) == cle).fold(zero, |a, q| add(a, q.brut));
-        let cpt = crate::service::provision_conges_de(ctx, pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)?;
+        let Some(cpt) = crate::service::provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
         for a in &cpt.avertissements {
             avert.push(format!("{} : {}", cle, a.texte));
         }

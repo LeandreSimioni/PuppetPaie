@@ -247,7 +247,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
         let entame = min_py(pris_ce_mois, cpt.report_restant());
         let mut cpt2 = cpt.clone();
         cpt2.reports = sub(cpt.reports, entame);
-        let ind = indemnite_des_jours(ctx, &cpt2, solde, maintien)?;
+        let ind = indemnite_des_jours(&cpt2, solde, maintien)?;
         stc.lignes.push(json!({
             "rubrique": "indemnite_compensatrice_conges",
             "quantite": flot(solde),

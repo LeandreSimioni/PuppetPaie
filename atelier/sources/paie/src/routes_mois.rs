@@ -1299,8 +1299,8 @@ impl<'a> Moteur<'a> {
     /// `embauches_a_declarer` : les contrats dont la DPAE n'est pas encore partie.
     pub fn embauches_a_declarer(&mut self, mois: Option<&str>) -> R<Value> {
         // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
-        // permanent y relisent les paies des mois d'avant (`conges::paies_du_mois_memorisees`) ; sans elle, chaque mois les
-        // recalculait toutes. Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
+        // permanent y lisent les paies validees des mois d'avant (`conges::paies_du_mois`) une fois pour toute la route.
+        // Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
         let _derivation = engagement::conges::Derivation::ouvrir();
         let lignes = self.lignes()?;
         let faites = cles_en_ensemble(etats::embauches_par_depot(&lignes)?.cles());

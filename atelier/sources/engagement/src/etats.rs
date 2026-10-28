@@ -34,6 +34,7 @@
 //! change, et qui en fait une version si quelque chose est parti sur elle. Si les documents d'un de ses mois sont partis,
 //! le moteur pose d'abord la question (`question_avant_de_modifier`).
 
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -177,6 +178,7 @@ impl Valide {
         let une = relire::saisie_d_un_engagement(data, i);
         let mut p = relire::paies(ctx, &une, &[ecrite])?.pop().ok_or("paie ecrite illisible")?;
         p.pas = self.paie_ecrite(mois).and_then(|x| x.get("pas")).filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
+        p.conges = self.paie_ecrite(mois).and_then(|x| x.get(CONGES)).filter(|x| x.is_object()).map(crate::conges::CompteurConges::lire).transpose()?;
         p.numero_bulletin = self.bulletin(mois).map(String::from);
         Ok(p)
     }
@@ -204,6 +206,9 @@ pub const RECTIFIE: &str = "rectifie";
 /// Dans une paie ecrite : ce que la saisie du mois posait pour tous ses engagements quand elle a ete calculee (le taux du
 /// cachet, la date de paiement), tel que son calcul l'a lu.
 pub const MOIS_LU: &str = "saisie_du_mois";
+/// Dans une paie ecrite : le compteur de conges payes que son bulletin montre (`conges::compteur_au_bulletin`), calcule
+/// avec elle.
+pub const CONGES: &str = "conges";
 
 /// LES NUMEROS DES DOCUMENTS QUI PARTENT, ecrits dans la paie de `mois` de l'engagement du salarie `cle` qui commence le
 /// `debut` (le `jumeau`-ieme de ceux-la, dans l'ordre de l'ecran) : le numero de son bulletin, le premier N CE de son
@@ -407,49 +412,90 @@ pub fn validees_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<(Value, V
     Ok(Some((reduite, paies)))
 }
 
-/// LES PAIES ECRITES DE `mois`, quand chaque engagement qu'il montre est valide et a la sienne : ce que lisent les calculs
-/// des mois d'apres (le brut de la periode des conges, la deduction forfaitaire de l'annee, les cumuls), sans recalculer
-/// le mois. `None` quand un engagement du mois est en saisie, n'a pas de paie ecrite pour lui, ou que sa paie ecrite
-/// n'est plus juste (son empreinte ne tient plus, et ses documents ne sont pas partis) : le mois se calcule, comme sa
-/// lecture (`du_mois`) le recalculerait. Un calcul ne reecrit rien.
+/// LES PAIES VALIDEES DE `mois` QU'UN CALCUL LIT (le compteur de conges, le brut de sa periode, la deduction forfaitaire
+/// de l'annee) : la paie ecrite de chaque engagement valide du mois, telle qu'elle est ecrite, dans l'ordre de l'ecran.
+/// Un engagement en saisie n'y est pas : ce qui n'est pas valide n'est pas paye. Rien ne se calcule ni ne se reecrit.
+/// Pendant une validation, les mois que son engagement a deja calcules s'y lisent comme ecrits (`EnValidation`).
 ///
-/// Le calcul qui les lit note leur empreinte (`paies <mois>`, `empreinte_des_paies_ecrites`) : une paie ecrite qui change
-/// fait recalculer les mois qui l'ont lue.
-pub fn paies_ecrites(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Paie>>> {
-    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let Some(valides) = valides_justes(ctx, mois)? else { return Ok(None) };
+/// Le calcul qui les lit note leur empreinte (`paies <mois>`, `empreinte_des_paies_validees`) : une paie validee qui
+/// change fait recalculer les mois qui l'ont lue.
+pub fn paies_validees(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
+    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
+    let valides = valides_lues(ctx, mois)?;
     socle::fichiers::noter_valeur(&format!("paies {}", mois), empreinte_des_paies(&valides, mois));
-    valides.iter().enumerate().map(|(i, v)| v.paie(ctx, &data, i)).collect::<Resultat<Vec<_>>>().map(Some)
+    valides.iter().map(|(i, v)| v.paie(ctx, &data, *i)).collect()
 }
 
-/// L'empreinte des paies ecrites de `mois` telles qu'un calcul les lirait (`paies_ecrites`) ; `None` s'il les calculerait.
-pub fn empreinte_des_paies_ecrites(ctx: &Contexte, mois: &str) -> Option<String> {
-    valides_justes(ctx, mois).ok().flatten().map(|v| empreinte_des_paies(&v, mois))
+/// L'empreinte des paies validees de `mois` telles qu'un calcul les lit (`paies_validees`) ; `None` si elles ne se lisent pas.
+pub fn empreinte_des_paies_validees(ctx: &Contexte, mois: &str) -> Option<String> {
+    valides_lues(ctx, mois).ok().map(|v| empreinte_des_paies(&v, mois))
 }
 
-fn empreinte_des_paies(valides: &[Valide], mois: &str) -> String {
-    let paies: Vec<Value> = valides.iter().map(|v| v.paie_ecrite(mois).and_then(|p| p.get("paie")).cloned().unwrap_or(Value::Null)).collect();
+fn empreinte_des_paies(valides: &[(usize, Valide)], mois: &str) -> String {
+    let paies: Vec<Value> = valides.iter().map(|(_, v)| v.paie_ecrite(mois).and_then(|p| p.get("paie")).cloned().unwrap_or(Value::Null)).collect();
     socle::fichiers::sha256_hex(Value::Array(paies).to_string().as_bytes())
 }
 
-/// Les engagements valides de `mois` dont la paie ecrite est juste, si tous le sont.
-fn valides_justes(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Valide>>> {
-    let mut relues = empreinte::Relues::default();
-    let mut valides = Vec::new();
-    for e in ecrits(ctx, mois)? {
-        let (v, partis) = match e {
-            Etat::EnSaisie(_) => return Ok(None),
-            Etat::Valide(v) => (v, false),
-            Etat::Partis(p) => (p.valide, true),
-        };
-        let Some(ecrite) = v.paie_ecrite(mois).filter(|p| p.get("paie").is_some()) else { return Ok(None) };
-        let juste = partis || ecrite.get("empreinte").and_then(empreinte::entrees_de).is_some_and(|en| empreinte::tient(ctx, &en, &mut relues));
-        if !juste {
-            return Ok(None);
-        }
-        valides.push(v);
+thread_local! {
+    /// L'engagement en cours de validation (`fichier`, `rang`) et les paies deja calculees de ses mois.
+    static EN_VALIDATION: RefCell<Option<(String, usize, Map<String, Value>)>> = const { RefCell::new(None) };
+}
+
+/// UNE VALIDATION EN COURS : ses mois se calculent du premier au dernier, et chacun lit ceux d'avant (`paies_validees`)
+/// tels qu'elle vient de les calculer. Elle se ferme quand elle tombe.
+struct EnValidation(Option<(String, usize, Map<String, Value>)>);
+
+impl EnValidation {
+    fn ouvrir(o: &Objet) -> EnValidation {
+        EnValidation(EN_VALIDATION.with(|e| e.replace(Some((o.fichier.clone(), o.rang, Map::new())))))
     }
-    Ok(Some(valides))
+
+    fn calculee(&self, mois: &str, paie: &Value) {
+        EN_VALIDATION.with(|e| {
+            if let Some((_, _, paies)) = e.borrow_mut().as_mut() {
+                paies.insert(mois.to_string(), paie.clone());
+            }
+        });
+    }
+}
+
+impl Drop for EnValidation {
+    fn drop(&mut self) {
+        let avant = self.0.take();
+        EN_VALIDATION.with(|e| *e.borrow_mut() = avant);
+    }
+}
+
+/// Ce qui distingue l'etat de la validation en cours (l'engagement et les mois deja calcules) : ce que lit
+/// `paies_validees` en depend.
+pub fn marque_de_validation() -> String {
+    EN_VALIDATION.with(|e| match e.borrow().as_ref() {
+        Some((f, r, paies)) => format!("{}#{}#{}", f, r, paies.len()),
+        None => String::new(),
+    })
+}
+
+/// Les engagements valides de `mois` qui ont une paie ecrite pour lui, avec leur rang a l'ecran ; l'engagement en cours
+/// de validation y porte les paies qu'elle a deja calculees, et seulement elles.
+fn valides_lues(ctx: &Contexte, mois: &str) -> Resultat<Vec<(usize, Valide)>> {
+    let en_cours = EN_VALIDATION.with(|e| e.borrow().clone());
+    let mut out = Vec::new();
+    for (i, e) in ecrits(ctx, mois)?.into_iter().enumerate() {
+        let o = e.objet();
+        let v = match &en_cours {
+            Some((f, r, paies)) if o.fichier == *f && o.rang == *r => {
+                let Some(p) = paies.get(mois) else { continue };
+                let mut lue = o.clone();
+                lue.brut.insert("valide".into(), json!({ "le": "", "paies": { mois: p } }));
+                Valide::de(lue)
+            }
+            _ => e.valide().cloned(),
+        };
+        if let Some(v) = v.filter(|v| v.paie_ecrite(mois).is_some_and(|p| p.get("paie").is_some())) {
+            out.push((i, v));
+        }
+    }
+    Ok(out)
 }
 
 /// Les numeros des documents de chaque engagement valide de `mois`, au meme rang que `validees_du_mois` : le numero de
@@ -527,18 +573,22 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
             .iter()
             .map(|i| {
                 let p = s.paies.get(*i).ok_or("le calcul du mois n'a pas cette paie")?;
-                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?, p.engagement.fin_periode()?))
+                let conges = crate::conges::compteur_ecrit(ctx, p, mois)?;
+                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?, conges, p.engagement.fin_periode()?))
             })
             .collect::<Resultat<Vec<_>>>()
     })?;
     let mois_lu = mois_lu(&data);
     calculees
         .into_iter()
-        .map(|(paie, fiches, pas, fin)| {
+        .map(|(paie, fiches, pas, conges, fin)| {
             let regles = empreinte::regles(ctx, &fin)?;
             let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&entrees, &regles) });
             if let Some(pas) = pas {
                 v["pas"] = pas;
+            }
+            if let Some(c) = conges {
+                v[CONGES] = c.en_json();
             }
             Ok(v)
         })
@@ -547,7 +597,8 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
 
 /// Les chiffres d'une paie ecrite : tout sauf ce qu'elle dit en mots.
 fn chiffres(v: &Value) -> Value {
-    let mut x = json!({ "paie": v.get("paie").cloned().unwrap_or(Value::Null), "pas": v.get("pas").cloned().unwrap_or(Value::Null) });
+    let champ = |k: &str| v.get(k).cloned().unwrap_or(Value::Null);
+    let mut x = json!({ "paie": champ("paie"), "pas": champ("pas"), CONGES: champ(CONGES) });
     fn sans_avis(v: &mut Value) {
         if let Some(m) = v.as_object_mut() {
             m.remove("avertissements");
@@ -559,6 +610,7 @@ fn chiffres(v: &Value) -> Value {
         }
     }
     sans_avis(&mut x["paie"]);
+    sans_avis(&mut x[CONGES]);
     x
 }
 
@@ -566,7 +618,7 @@ fn chiffres(v: &Value) -> Value {
 /// (le moteur ou ce qu'il livre), la saisie d'un autre engagement, ou la configuration de la compagnie.
 fn raison(avant: &Value, apres: &Value) -> String {
     let (a, b) = (chiffres(avant), chiffres(apres));
-    if a["paie"] == b["paie"] && a["pas"] != b["pas"] {
+    if a["paie"] == b["paie"] && a[CONGES] == b[CONGES] && a["pas"] != b["pas"] {
         return TAUX_DE_PAS.to_string();
     }
     let vieilles = empreinte::regles_de(avant.get("empreinte").unwrap_or(&Value::Null));
@@ -693,6 +745,7 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
 fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, precedente: Option<&Value>, siens: &[Depart]) -> Resultat<Map<String, Value>> {
     let anciennes = precedente.and_then(|p| p.get("paies")).and_then(Value::as_object).cloned().unwrap_or_default();
     let mut paies = Map::new();
+    let en_cours = EnValidation::ouvrir(o);
     for m in o.mois_couverts(mois)? {
         let partis = documents_partis(siens, &m).is_some();
         let garde = anciennes.get(&m).filter(|f| {
@@ -713,6 +766,7 @@ fn paies_a_valider(ctx: &Contexte, o: &Objet, mois: &str, precedente: Option<&Va
                 p
             }
         };
+        en_cours.calculee(&m, &p);
         paies.insert(m, p);
     }
     Ok(paies)
@@ -1011,6 +1065,7 @@ fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) ->
     let fiches = ecrite.get("fiches").filter(|f| f.is_object()).ok_or("paie ecrite illisible : `fiches`")?;
     let mut p = relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?;
     p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
+    p.conges = ecrite.get(CONGES).filter(|x| x.is_object()).map(crate::conges::CompteurConges::lire).transpose()?;
     p.numero_bulletin = ecrite.get(BULLETIN).and_then(Value::as_str).map(String::from);
     Ok(Some(p))
 }

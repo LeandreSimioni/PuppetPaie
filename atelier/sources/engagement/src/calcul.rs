@@ -339,6 +339,9 @@ pub struct Paie {
     /// Le prelevement a la source de la paie, tel que la validation l'a calcule au taux qu'elle avait (`etats::valider`) ;
     /// `None` pour une paie que rien n'a encore validee.
     pub pas: Option<droit::pas::Versement>,
+    /// Le compteur de conges payes que le bulletin montre (`conges::compteur_au_bulletin`), tel que la validation l'a
+    /// ecrit ; `None` pour une paie que rien n'a encore validee, et pour un contrat sans compteur de l'employeur.
+    pub conges: Option<crate::conges::CompteurConges>,
 }
 
 impl Paie {
@@ -355,7 +358,7 @@ impl Paie {
             bases: BTreeMap::new(), remuneration: Vec::new(), reduction_generale: None,
             deduction_forfaitaire: None, avertissements: Vec::new(), salaire_de_base: zero,
             salaire_retabli: zero, assiette_chomage: zero, heures_travaillees: zero,
-            heures_absence: zero, periodes: Vec::new(), pas: None,
+            heures_absence: zero, periodes: Vec::new(), pas: None, conges: None,
         }
     }
 
