@@ -471,8 +471,6 @@ pub struct Options {
     pub ordre: i64,
     pub remplace: Option<String>,
     pub etablissement: Option<String>,
-    /// Les taux imposes : cle -> triplet, ou `None` (la grille).
-    pub pas_par_salarie: HashMap<String, Option<Triplet>>,
     /// Sur un annule et remplace (type 03 ou 05) : la declaration remplacee portait-elle un versement DGFiP
     /// (S21.G00.20.002 = DGFIP_PAS) ? `None` : on ne sait pas, et la DSN refuse s'il n'y a rien a reverser ce mois-ci.
     pub remplacee_versait_pas: Option<bool>,
@@ -488,7 +486,6 @@ impl Default for Options {
             ordre: 1,
             remplace: None,
             etablissement: None,
-            pas_par_salarie: HashMap::new(),
             remplacee_versait_pas: None,
         }
     }
@@ -3979,7 +3976,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// La DSN mensuelle de `mois` (AAAA-MM) : toutes les paies du mois de cet etablissement.
 ///
 /// Ce que la norme et les depots de test nous ont appris. Les parametres sont `o.etablissement`, `arrets`,
-/// `regs`, `o.pas_par_salarie`, `o.envoi_test`, `o.remplace`, `o.ordre`.
+/// `regs`, `o.envoi_test`, `o.remplace`, `o.ordre`.
 ///
 /// `mois` au format AAAA-MM ; `paies` : toutes les paies du mois.
 ///
@@ -4019,8 +4016,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// Le prelevement d'une paie est celui qu'elle a ecrit a la validation (`Paie::pas`), celui du versement d'une
 /// correction celui que l'engagement rend (`engagement::etats::prelevement_de_la_correction`) : la DSN n'en calcule
 /// aucun. Seul le versement nul d'un mois sans paie porte le taux qui vaut pour le salarie, lu ici :
-/// `pas_par_salarie` : {cle_salarie: (taux, type, identifiant)}, un taux impose de l'exterieur, ecrit tel quel ;
-/// a defaut, le magasin config/pas.json, tant que son taux est VALIDE (`pas.situation`) ; faute d'un taux valide, la
+/// le magasin config/pas.json, tant que son taux est VALIDE (`pas.situation`) ; faute d'un taux valide, la
 /// grille de taux par defaut de l'article 204 H du CGI (`pas_du_versement`, ci-dessous).
 ///
 /// `envoi_test` met S10.G00.00.005 a '01' : controles executes et bilan rendu,
@@ -4287,7 +4283,7 @@ certificat de conformite du depot precedent.",
         ));
     }
 
-    let mut pas_par_salarie = o.pas_par_salarie.clone();
+    let mut pas_par_salarie: HashMap<String, Option<Triplet>> = HashMap::new();
     for cle in paies.iter().filter(|p| p.engagement.sans_paie()).map(cle_salarie) {
         if !pas_par_salarie.contains_key(&cle) {
             let t = pas::taux_dgfip(ctx, &cle, None)?;
