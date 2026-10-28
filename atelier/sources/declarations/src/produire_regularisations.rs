@@ -53,6 +53,9 @@ pub struct Reg {
     /// La paie corrigee : celle que la version presente de l'engagement valide a ecrite pour le mois d'origine.
     pub apres: Paie,
     pub taux_pas_origine: Option<String>,
+    /// Le numero du bulletin que la correction rectifie : le dernier qu'une paie declaree du contrat porte ; pour un
+    /// contrat ajoute, celui de la paie corrigee s'il est parti.
+    pub bulletin_rectifie: Option<String>,
 }
 
 /// UN MOIS SE CORRIGE DANS UNE DSN SUIVANTE quand sa DSN reelle est partie (un depart DSN du mois lui-meme, `departs`)
@@ -145,6 +148,7 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
                 decidee_le,
                 ajout: false,
                 avant: lu.avant,
+                bulletin_rectifie: lu.bulletin,
                 declare: lu.versement,
                 net_deja_verse: lu.net_deja_verse,
                 apres,
@@ -206,7 +210,8 @@ fn ajout(mois: String, version: u64, decidee_le: Option<Jour>, apres: Paie) -> R
         taux_pas: None,
         debut_contrat: None,
     };
-    Ok(Reg { mois, version, decidee_le, ajout: true, avant: apres.clone(), declare, net_deja_verse: Decimal::ZERO, apres, taux_pas_origine: None })
+    let bulletin_rectifie = apres.numero_bulletin.clone();
+    Ok(Reg { mois, version, decidee_le, ajout: true, avant: apres.clone(), declare, net_deja_verse: Decimal::ZERO, apres, taux_pas_origine: None, bulletin_rectifie })
 }
 
 fn prenom_de(sal: &Value) -> String {
@@ -314,10 +319,10 @@ pub fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: &str) -
     }))
 }
 
-/// `numero_du_bulletin_rectifie` : le numero du bulletin d'origine, tel que la paie declaree le porte (`Reg::avant`).
+/// `numero_du_bulletin_rectifie` : le numero du bulletin d'origine, tel que les paies declarees le portent (`Reg::bulletin_rectifie`).
 /// `None` s'il n'y est pas : l'appelant le dit, il ne le devine pas.
 fn numero_du_bulletin_rectifie(r: &Reg) -> Option<String> {
-    r.avant.numero_bulletin.clone().filter(|n| !n.is_empty())
+    r.bulletin_rectifie.clone().filter(|n| !n.is_empty())
 }
 
 /// Ce que `ecrire_rectificatifs` rend : les fichiers ecrits, les avertissements (de simples phrases).
@@ -365,8 +370,8 @@ pub fn ecrire_rectificatifs(
     }
     let an: i64 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
     let mut n = reserves.prochain(ctx, "bulletin", an)?;
-    // Par salarie, dans l'ordre ou on les rencontre : (cle, [(paie imprimee, rectificatif, ent)]).
-    let mut par_salarie: Vec<(String, Vec<(Paie, Value, Value)>)> = Vec::new();
+    // Par salarie, dans l'ordre ou on les rencontre : (cle, [(paie imprimee, numero de son bulletin, rectificatif, ent)]).
+    let mut par_salarie: Vec<(String, Vec<(&Paie, String, Value, Value)>)> = Vec::new();
     for r in &payes {
         let numero_bulletin = format!("{}/{}", n, an);
         n += 1;
@@ -394,14 +399,14 @@ pub fn ecrire_rectificatifs(
         let cle = valeur_en_texte(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let etiq = socle::date::etiquette_du_mois(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_v{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.version));
-        let imprimee = r.apres.sous_le_bulletin(Some(numero_bulletin));
         let rectifs: HashMap<usize, Value> = HashMap::from([(0, rectif.clone())]);
-        let description = documents::bulletin::jeux_et_description(ctx, std::slice::from_ref(&imprimee), &ent, "", None, false, &rectifs).map_err(refus_valeur)?;
+        let numeros = [Some(numero_bulletin.clone())];
+        let description = documents::bulletin::jeux_et_description(ctx, std::slice::from_ref(&r.apres), &numeros, &ent, "", None, false, &rectifs).map_err(refus_valeur)?;
         ecrire_le_pdf(&description, &archive)?;
         out.fichiers.push(archive);
         match par_salarie.iter_mut().find(|(c, _)| *c == cle) {
-            Some((_, v)) => v.push((imprimee, rectif, ent)),
-            None => par_salarie.push((cle, vec![(imprimee, rectif, ent)])),
+            Some((_, v)) => v.push((&r.apres, numero_bulletin, rectif, ent)),
+            None => par_salarie.push((cle, vec![(&r.apres, numero_bulletin, rectif, ent)])),
         }
     }
     let dossier = sortie_courante.join("envoi");
@@ -410,9 +415,10 @@ pub fn ecrire_rectificatifs(
         // Un fichier par salarie, tous ses rectificatifs dedans, comme ses bulletins du mois. Un seul `ent` par
         // fichier : la licence du premier mois d'origine (les archives, elles, ont chacune la leur).
         let chemin = dossier.join(format!("{}_{}_{}.pdf", PREFIXE_ENVOI, cle, etiq));
-        let paies: Vec<Paie> = siens.iter().map(|(p, _, _)| p.clone()).collect();
-        let rectifs: HashMap<usize, Value> = siens.iter().enumerate().map(|(i, (_, x, _))| (i, x.clone())).collect();
-        let description = documents::bulletin::jeux_et_description(ctx, &paies, &siens[0].2, "", None, false, &rectifs).map_err(refus_valeur)?;
+        let paies: Vec<Paie> = siens.iter().map(|(p, _, _, _)| (*p).clone()).collect();
+        let numeros: Vec<Option<String>> = siens.iter().map(|(_, n, _, _)| Some(n.clone())).collect();
+        let rectifs: HashMap<usize, Value> = siens.iter().enumerate().map(|(i, (_, _, x, _))| (i, x.clone())).collect();
+        let description = documents::bulletin::jeux_et_description(ctx, &paies, &numeros, &siens[0].3, "", None, false, &rectifs).map_err(refus_valeur)?;
         ecrire_le_pdf(&description, &chemin)?;
     }
     reserves.enregistrer(an, "bulletin", n - 1);

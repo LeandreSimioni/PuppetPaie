@@ -196,8 +196,10 @@ pub struct DernierDeclare {
     pub versement: VersementDeclare,
     /// Le net a payer avant impot de la derniere paie declaree : ce qui a ete paye au salarie.
     pub net_deja_verse: Decimal,
-    /// La derniere paie declaree, au numero du dernier bulletin qu'une paie declaree de ce contrat porte.
+    /// La derniere paie declaree.
     pub avant: Paie,
+    /// Le numero du dernier bulletin qu'une paie declaree de ce contrat porte : celui qu'une correction rectifie.
+    pub bulletin: Option<String>,
 }
 
 /// LE DERNIER ETAT DECLARE de l'engagement `o` pour `mois`, par les DSN des mois anterieurs a `mois_courant` (`departs` :
@@ -241,6 +243,8 @@ pub fn dernier_declare(
     if let Some(d) = engagement::etats::debut_declare(ctx, o, departs, mois_courant)? {
         etat.debut_contrat = Some(socle::date::Jour::lire(&d)?.jjmmaaaa());
     }
-    let avant = derniere.paie.sous_le_bulletin(declarees.iter().rev().find_map(|d| d.paie.numero_bulletin.clone()));
-    Ok(Some(DernierDeclare { versement: etat, net_deja_verse: derniere.paie.net_a_payer, avant }))
+    let bulletin = declarees.iter().rev().find_map(|d| d.paie.numero_bulletin.clone());
+    let net_deja_verse = derniere.paie.net_a_payer;
+    let avant = declarees.into_iter().next_back().map(|d| d.paie).ok_or_else(|| "aucune paie declaree".to_string())?;
+    Ok(Some(DernierDeclare { versement: etat, net_deja_verse, avant, bulletin }))
 }

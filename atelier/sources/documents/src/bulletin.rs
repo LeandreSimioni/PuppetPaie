@@ -783,7 +783,7 @@ fn tableau_modele(p: &Paie) -> Resultat<Vec<Value>> {
 /// cotisation -- chaque ligne du bareme sous la ligne (ou le groupe) du bulletin qui la porte, avec sa base, le taux et
 /// le montant de la part salariale et de la part employeur --, puis les trois totaux du bulletin, aux memes montants.
 /// Elle ne dit rien que la paie ne dise : chaque ligne de la paie s'y imprime une fois.
-fn blocs_annexe(p: &Paie) -> Resultat<Vec<Value>> {
+fn blocs_annexe(p: &Paie, numero: Option<&str>) -> Resultat<Vec<Value>> {
     let sal = &p.salarie;
     let mut blocs = vec![
         para(vec![m("Détail des cotisations et contributions", true, None)], 11.0, Some(ROUGE), 0.0, 1.0),
@@ -793,7 +793,7 @@ fn blocs_annexe(p: &Paie) -> Resultat<Vec<Value>> {
                  qui les regroupe, les cotisations et contributions de la paie : leur base, le taux et le montant de la \
                  part salariale et de la part employeur. Il ne remplace aucune ligne du bulletin ; les totaux sont les \
                  siens.",
-                p.numero_bulletin.clone().unwrap_or_default(),
+                numero.unwrap_or_default(),
                 texte(sal, "nom")?,
                 texte(sal, "prenom")?,
                 p.engagement.debut_periode()?.jj_mm_aaaa(),
@@ -869,6 +869,9 @@ fn blocs_annexe(p: &Paie) -> Resultat<Vec<Value>> {
 /// Les arguments de `_blocs_un` pour une paie : ce que le bulletin dit en plus d'elle.
 pub struct Jeu<'a> {
     pub paie: &'a Paie,
+    /// Le numero du bulletin (`N/AAAA`), tel que l'engagement le porte (`engagement::numeros`) ou que le depart le
+    /// reserve : il se donne a cote de la paie, qui ne se copie pas sous un autre numero.
+    pub numero: Option<&'a str>,
     pub colonnes: Option<&'a [Colonne]>,
     pub plafond: Option<Decimal>,
     pub conges: Option<&'a CompteurConges>,
@@ -916,7 +919,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let titre_rectif = if j.rectificatif.is_some() { " — RECTIFICATIF" } else { "" };
     blocs.push(para(
         vec![m(
-            format!("Bulletin de paie n° {}{}", p.numero_bulletin.clone().unwrap_or_default(), titre_rectif),
+            format!("Bulletin de paie n° {}{}", j.numero.unwrap_or_default(), titre_rectif),
             true,
             None,
         )],
@@ -1183,7 +1186,7 @@ pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
         let modele = modele_du_bulletin(ent, &j.paie.salarie)?;
         documents.push(json!({"blocs": blocs_un(j, ent)?}));
         if modele == Modele::Complet {
-            documents.push(json!({"blocs": blocs_annexe(j.paie)?}));
+            documents.push(json!({"blocs": blocs_annexe(j.paie, j.numero)?}));
         }
     }
     d.insert("documents".into(), Value::Array(documents));
@@ -1207,10 +1210,12 @@ pub fn remboursements(ctx: &Contexte, p: &Paie) -> Resultat<Vec<usize>> {
 /// plafond ; les mois sans paie sont ecartes. `paies_du_mois` : TOUTES les
 /// paies du mois quand on n'en imprime qu'une ; `borne_au_mois` : les cumuls
 /// ne lisent que les contrats commences avant la fin du mois ; `rectificatifs` :
-/// indice dans `paies` -> ce que `_bloc_rectificatif` imprime.
+/// indice dans `paies` -> ce que `_bloc_rectificatif` imprime ; `numeros` : le numero du bulletin de chaque paie, au
+/// meme rang.
 pub fn jeux_et_description(
     ctx: &Contexte,
     paies: &[Paie],
+    numeros: &[Option<String>],
     ent: &Value,
     mois: &str,
     paies_du_mois: Option<&[Paie]>,
@@ -1226,6 +1231,9 @@ pub fn jeux_et_description(
                 forme_ecrite(l)
             ));
         }
+    }
+    if numeros.len() != paies.len() {
+        return Err(format!("{} numeros de bulletin pour {} paies.", numeros.len(), paies.len()));
     }
     let pas_par_paie = crate::prelevement::des_paies(ctx, paies)?;
     let mut colonnes_par_salarie: HashMap<String, Vec<Colonne>> = HashMap::new();
@@ -1255,6 +1263,7 @@ pub fn jeux_et_description(
         let cle = texte(&p.salarie, "_cle")?;
         jeux.push(Jeu {
             paie: p,
+            numero: numeros[i].as_deref(),
             colonnes: colonnes_par_salarie.get(&cle).map(Vec::as_slice),
             plafond: Some(p.plafond_urssaf(ctx)?),
             conges: p.conges.as_ref(),

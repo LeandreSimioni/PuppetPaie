@@ -314,14 +314,6 @@ impl Paie {
         &mut self.0
     }
 
-    /// La meme paie sous le numero de bulletin `numero` : celui du document qui l'imprime (un bulletin rectificatif,
-    /// la paie declaree sous le numero de son bulletin d'origine). Rien d'autre ne change.
-    pub fn sous_le_bulletin(&self, numero: Option<String>) -> Paie {
-        let mut p = self.clone();
-        p.0.numero_bulletin = numero;
-        p
-    }
-
     /// S21.G00.50.004, le montant net verse : « la remuneration nette fiscale (S21.G00.50.002), de laquelle sont
     /// deduits le montant de la CSG non deductible, le montant de la CRDS et le montant des contributions des employeurs
     /// destinees a financer des garanties « frais de sante » reintegrees dans la base fiscale » (norme DSN 2026.1,
