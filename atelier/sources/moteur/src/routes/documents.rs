@@ -852,7 +852,7 @@ pub(crate) struct EnvoiPrepare {
 /// * ses documents ne sont jamais partis : ils partent, avec le premier courriel ;
 /// * ils sont partis, et la paie d'un de ses engagements a change depuis la version sur laquelle ils sont partis
 ///   (`engagement::etats::a_refaire`, un bulletin rectificatif) : ils repartent refaits, avec le courriel qui dit ce qui
-///   a change (`envoi::CORPS_RENVOI`, `envoi::ce_qui_a_change` sur le resume note a l'envoi) ;
+///   a change (`envoi::CORPS_RENVOI`, `envoi::ce_qui_a_change` : ce que dit la frise, puis le brut et le net) ;
 /// * ils sont partis et sa paie n'a pas bouge : ils ne repartent pas.
 ///
 /// Quand TOUS sont a jour, l'envoi est un renvoi voulu, a l'identique : tous repartent, avec le premier courriel.
@@ -876,23 +876,37 @@ impl Choix {
     }
 }
 
-/// Les salaries de `mois` dont un engagement a un bulletin a refaire : la paie de ce mois a change depuis la version sur
-/// laquelle ses documents sont partis (`engagement::etats::a_refaire`).
-pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<std::collections::HashSet<String>> {
+/// Les salaries de `mois` dont un engagement a un bulletin a refaire (la paie de ce mois a change depuis la version sur
+/// laquelle ses documents sont partis, `engagement::etats::a_refaire`), et ce qui a change dans leurs engagements depuis
+/// cette version (`engagement::versions::depuis`, ce que dit la frise) ; un salarie a plusieurs engagements nomme
+/// chacun par son contrat.
+pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<HashMap<String, Vec<String>>> {
     let departs = envois::journal::departs(&ctx.racine)?;
-    let mut out = std::collections::HashSet::new();
+    let mut par_salarie: HashMap<String, Vec<(String, Vec<String>)>> = HashMap::new();
     for e in engagement::etats::du_mois(ctx, mois)? {
         let Some(v) = e.valide() else { continue };
-        let refaire = engagement::etats::a_refaire(ctx, v, &departs)
-            .into_iter()
-            .any(|a| matches!(a, engagement::etats::ARefaire::Bulletin { mois: ref m, .. } if m == mois));
-        if refaire {
-            if let Some(c) = engagement::cle_de_l_engagement(ctx, &Value::Object(v.objet().brut.clone())) {
-                out.insert(c);
-            }
+        let depuis = engagement::etats::a_refaire(ctx, v, &departs).into_iter().find_map(|a| match a {
+            engagement::etats::ARefaire::Bulletin { mois: m, depuis } if m == mois => Some(depuis),
+            _ => None,
+        });
+        let Some(depuis) = depuis else { continue };
+        let brut = Value::Object(v.objet().brut.clone());
+        if let Some(c) = engagement::cle_de_l_engagement(ctx, &brut) {
+            let contrat = brut.get("numero").map(valeur_en_texte).unwrap_or_default();
+            par_salarie.entry(c).or_default().push((contrat, engagement::versions::depuis(ctx, v, depuis)));
         }
     }
-    Ok(out)
+    Ok(par_salarie
+        .into_iter()
+        .map(|(c, engs)| {
+            let plusieurs = engs.len() > 1;
+            let faits = engs
+                .into_iter()
+                .flat_map(|(contrat, faits)| faits.into_iter().map(move |f| if plusieurs { format!("contrat n° {} : {}", contrat, f) } else { f }))
+                .collect();
+            (c, faits)
+        })
+        .collect())
 }
 
 /// Le choix, pour le mois `mois`, sur ses paies validees (`crate::routes::documents::charger_le_mois`).
@@ -912,14 +926,14 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::P
     let mut choix = Choix { resumes, ..Choix::default() };
     let declaration = declaration_de_la_correction(ctx, mois)?;
     for (cle, parti) in &partis {
-        if !changes.contains(cle) {
+        let Some(faits) = changes.get(cle) else {
             choix.a_jour.insert(cle.clone());
             continue;
-        }
+        };
         let quand = parti.get("quand").map(valeur_en_texte).unwrap_or_default();
         let envoye_le = jour_iso(quand.get(..10).unwrap_or("")).map(|j| j.jj_mm_aaaa()).unwrap_or(quand);
         let ancien = parti.get("resume").cloned().unwrap_or(Value::Null);
-        let changements = envoi::ce_qui_a_change(&ancien, choix.resumes.get(cle).unwrap_or(&Value::Null));
+        let changements = envoi::ce_qui_a_change(faits, &ancien, choix.resumes.get(cle).unwrap_or(&Value::Null));
         let declaration = declaration.as_ref().map(|d| d(cle)).unwrap_or_default();
         choix.renvois.insert(cle.clone(), envoi::Renvoi { envoye_le, changements, declaration });
     }

@@ -319,132 +319,22 @@ pub fn resume_de(paies: &[&Paie]) -> Result<Value, String> {
     Ok(serde_json::json!({"contrats": contrats, "brut": fmt_eur(brut), "net": fmt_eur(net)}))
 }
 
-/// « 19/08 » d'un « 2026-08-19 ».
-fn jj_mm(iso: &str) -> String {
-    match (iso.get(8..10), iso.get(5..7)) {
-        (Some(j), Some(m)) => format!("{}/{}", j, m),
-        _ => iso.to_string(),
-    }
-}
-
-/// « 19/08/2026 » d'un « 2026-08-19 ».
-fn jj_mm_aaaa(iso: &str) -> String {
-    match iso.get(..4) {
-        Some(a) => format!("{}/{}", jj_mm(iso), a),
-        None => iso.to_string(),
-    }
-}
-
 fn texte_de(v: &Value, cle: &str) -> String {
     v.get(cle).filter(|x| vrai(x)).map(en_texte).unwrap_or_default()
 }
 
-/// Les jours travailles d'un contrat du resume : « 19/08, 20/08 et 21/08 » ; au-dela de huit, la periode et le compte.
-fn jours_en_clair(c: &Value) -> String {
-    let jours: Vec<String> = c.get("jours").and_then(Value::as_array).map(|l| l.iter().map(en_texte).collect()).unwrap_or_default();
-    match jours.len() {
-        0 => "aucun".to_string(),
-        n if n > 8 => format!("du {} au {} ({} jours)", jj_mm(&jours[0]), jj_mm(&jours[n - 1]), n),
-        _ => {
-            let l: Vec<String> = jours.iter().map(|j| jj_mm(j)).collect();
-            enumerer(&l.iter().map(String::as_str).collect::<Vec<_>>())
-        }
-    }
-}
-
-/// « contrat du 19/08/2026 au 22/08/2026 (Le Spectacle) ».
-fn intitule(c: &Value) -> String {
-    let debut = texte_de(c, "debut");
-    let fin = texte_de(c, "fin");
-    let bornes = if fin.is_empty() || fin == debut { format!("du {}", jj_mm_aaaa(&debut)) } else { format!("du {} au {}", jj_mm_aaaa(&debut), jj_mm_aaaa(&fin)) };
-    let spectacle = texte_de(c, "spectacle");
-    if spectacle.is_empty() {
-        format!("contrat {}", bornes)
-    } else {
-        format!("contrat {} ({})", bornes, spectacle)
-    }
-}
-
-/// Un contrat du resume en une ligne : ses bornes, ses cachets et ses heures, son brut et son net a payer.
-fn decrire(c: &Value) -> String {
-    let mut morceaux = vec![intitule(c)];
-    let cachets = c.get("cachets").and_then(Value::as_i64).unwrap_or(0);
-    if cachets != 0 {
-        morceaux.push(format!("{} cachet{}", cachets, if cachets > 1 { "s" } else { "" }));
-    }
-    let heures = texte_de(c, "heures");
-    if !heures.is_empty() {
-        morceaux.push(format!("{} heure(s)", heures));
-    }
-    morceaux.push(format!("{} € brut", texte_de(c, "brut")));
-    morceaux.push(format!("{} € net à payer", texte_de(c, "net")));
-    morceaux.join(", ")
-}
-
-/// Ce qui differe entre deux contrats du resume, une ligne par fait (« cachets : 1 → 2 »).
-fn differences(a: &Value, n: &Value) -> Vec<String> {
-    let mut out = Vec::new();
-    if intitule(a) != intitule(n) {
-        out.push(format!("{} → {}", intitule(a), intitule(n)));
-    }
-    if a.get("jours") != n.get("jours") {
-        out.push(format!("jours travaillés : {} → {}", jours_en_clair(a), jours_en_clair(n)));
-    }
-    let cachets = |c: &Value| c.get("cachets").and_then(Value::as_i64).unwrap_or(0);
-    if cachets(a) != cachets(n) {
-        out.push(format!("cachets : {} → {}", cachets(a), cachets(n)));
-    }
-    let heures = |c: &Value| Some(texte_de(c, "heures")).filter(|h| !h.is_empty()).unwrap_or_else(|| "0".to_string());
-    if heures(a) != heures(n) {
-        out.push(format!("heures : {} → {}", heures(a), heures(n)));
-    }
-    if texte_de(a, "brut") != texte_de(n, "brut") {
-        out.push(format!("salaire brut : {} € → {} €", texte_de(a, "brut"), texte_de(n, "brut")));
-    }
-    if texte_de(a, "net") != texte_de(n, "net") {
-        out.push(format!("net à payer : {} € → {} €", texte_de(a, "net"), texte_de(n, "net")));
-    }
-    out
-}
-
-/// CE QUI A CHANGE entre la paie envoyee (`ancien`, le resume note au journal) et la paie refaite (`nouveau`), en
-/// lignes pretes pour le courriel : « heures : 32 → 40 », « salaire brut : 576,00 € → 720,00 € »... Un contrat a la
-/// fois quand le salarie en a plusieurs, les totaux ensuite ; un contrat ajoute ou retire se dit avant/maintenant.
-/// Vide quand rien de ce que le resume porte n'a bouge (le detail du bulletin seul a change).
-pub fn ce_qui_a_change(ancien: &Value, nouveau: &Value) -> Vec<String> {
-    let liste = |v: &Value| v.get("contrats").and_then(Value::as_array).cloned().unwrap_or_default();
-    let (a, n) = (liste(ancien), liste(nouveau));
-    let mut out: Vec<String> = Vec::new();
-    if a.len() == n.len() {
-        let plusieurs = n.len() > 1;
-        for (x, y) in a.iter().zip(&n) {
-            let d = differences(x, y);
-            if d.is_empty() {
-                continue;
-            }
-            if plusieurs {
-                out.push(format!("  - {} :", intitule(y)));
-                out.extend(d.into_iter().map(|l| format!("      {}", l)));
-            } else {
-                out.extend(d.into_iter().map(|l| format!("  - {}", l)));
-            }
-        }
-        if !plusieurs {
-            return out;
-        }
-    } else {
-        for x in &a {
-            out.push(format!("  - avant : {}", decrire(x)));
-        }
-        for y in &n {
-            out.push(format!("  - maintenant : {}", decrire(y)));
-        }
-    }
+/// CE QUI A CHANGE depuis l'envoi des documents, en lignes pretes pour le courriel : ce qui a change dans les
+/// engagements du salarie depuis la version sur laquelle ils sont partis (`faits`, dits par l'engagement :
+/// « Cachets : 2 → 3 », « Jours : + 22/11 »), puis ce que sa paie en tire, du resume note a l'envoi (`ancien`) a celui
+/// de la paie refaite (`nouveau`) : « salaire brut : 576,00 € → 720,00 € ». Vide quand rien de cela n'a bouge (le
+/// detail du bulletin seul a change).
+pub fn ce_qui_a_change(faits: &[String], ancien: &Value, nouveau: &Value) -> Vec<String> {
+    let mut out: Vec<String> = faits.iter().map(|f| format!("  - {}", f)).collect();
     if texte_de(ancien, "brut") != texte_de(nouveau, "brut") {
-        out.push(format!("  - total brut du mois : {} € → {} €", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
+        out.push(format!("  - salaire brut : {} € → {} €", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
     }
     if texte_de(ancien, "net") != texte_de(nouveau, "net") {
-        out.push(format!("  - total net à payer : {} € → {} €", texte_de(ancien, "net"), texte_de(nouveau, "net")));
+        out.push(format!("  - net à payer : {} € → {} €", texte_de(ancien, "net"), texte_de(nouveau, "net")));
     }
     out
 }

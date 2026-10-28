@@ -156,6 +156,18 @@ pub fn changements(ctx: &Contexte, avant: &Value, apres: &Value) -> Vec<String> 
     out
 }
 
+/// CE QUI A CHANGE DEPUIS LA VERSION `n` de l'engagement valide `v` jusqu'a son present, en mots (`changements`) : ce
+/// que dit la frise, et ce que dit le renvoi des documents partis sur la version `n`. Vide si `n` est le present ou ne se
+/// lit pas.
+pub fn depuis(ctx: &Contexte, v: &Valide, n: u64) -> Vec<String> {
+    match (v.version_numero(n), v.objet().brut.get("valide")) {
+        (Some(passee), Some(present)) if v.version() != Some(n) => {
+            changements(ctx, passee.get("saisie").unwrap_or(&Value::Null), present.get("saisie").unwrap_or(&Value::Null))
+        }
+        _ => Vec::new(),
+    }
+}
+
 fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, Value>) -> Vec<String> {
     let mut out = Vec::new();
     let ((da, fa), (db, fb)) = (bornes(a), bornes(b));
