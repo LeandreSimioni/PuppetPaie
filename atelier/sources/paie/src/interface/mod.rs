@@ -656,7 +656,7 @@ impl Fenetre {
                 "secondes": socle::temps::secondes(),
                 "scenario": enr.map(|e| e.dossier().display().to_string()),
                 "compagnie": ouverte.as_ref().map(|r| r.display().to_string()),
-                "simulee": ouverte.as_ref().is_some_and(|r| crate::routes_accueil::simulation_active(r)),
+                "simulee": ouverte.as_ref().is_some_and(|r| crate::bridage::branchement(r).joue()),
                 "ajoutee": ouverte.as_ref().is_some_and(|r| compagnies::est_ajoutee(r))}),
             "jour" => {
                 if !socle::temps::simule() {
@@ -927,7 +927,7 @@ impl Fenetre {
     fn piece_fictive(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
         let Phase::Ouverte { racine, .. } = self.phase() else { return interdit };
-        if !self.autorise(r) || !crate::routes_accueil::simulation_active(&racine) {
+        if !self.autorise(r) || !crate::bridage::branchement(&racine).joue() {
             return interdit;
         }
         let nom = r.params.get("c").cloned().unwrap_or_default();

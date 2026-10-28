@@ -576,14 +576,14 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     // UNE FICTIVE AJOUTEE (#236) : rien n'en part (`bridage::refus_d_envoi`), donc rien n'y revient -- ni retour de DSN ou de
     // DPAE, ni contrat signe. La veille ne les releve pas, et ne demande pas les mots de passe qui serviraient a les relever :
     // le bandeau ne presente pas comme une panne ce qui est voulu. Le coffre, lui, s'y pose comme ailleurs (Configuration).
-    if crate::bridage::refus_d_envoi(&ctx.racine).is_some() {
+    if crate::bridage::branchement(&ctx.racine).refus().is_some() {
         retours = false;
         signatures = false;
     }
 
     // LA COMPAGNIE FICTIVE : les retours des depots joues et les signatures demandees arrivent d'ici, sans coffre ni reseau --
     // et rien ne manque au coffre, puisqu'il n'y a rien a y poser.
-    if crate::routes_accueil::simulation_active(&ctx.racine) {
+    if crate::bridage::branchement(&ctx.racine).joue() {
         // L'HORLOGE D'ABORD : ce qui etait du avant aujourd'hui se joue, a sa date.
         dire_l_etape(ctx, "Compagnie fictive : l'administrateur fictif fait ce qui tombait…");
         let jouee = crate::horloge::rattraper(&ctx.racine, None, true).and_then(|fait| if fait.is_empty() { crate::horloge::dernier_rattrapage(&ctx.racine, None) } else { Ok(fait) });
@@ -696,7 +696,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
 /// `sauvegarde_seule` : la seconde moitie de la veille. La copie de developpement et la compagnie fictive ne sauvegardent pas
 /// (rien a faire, la trace n'est pas touchee) ; sinon la sauvegarde, en dernier, et la trace du premier appel completee.
 fn sauvegarder_seulement(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut r: Ouverture, debut: std::time::Instant, precedente: &Value) -> Ouverture {
-    let ne_sauvegarde_pas = !opt.sauvegarder || est_copie(&ctx.racine) || crate::routes_accueil::simulation_active(&ctx.racine);
+    let ne_sauvegarde_pas = !opt.sauvegarder || est_copie(&ctx.racine) || crate::bridage::branchement(&ctx.racine).joue();
     if ne_sauvegarde_pas {
         return r;
     }

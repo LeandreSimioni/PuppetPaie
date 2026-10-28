@@ -10,6 +10,7 @@
 pub mod aer_fictive;
 pub mod branchement;
 pub mod depot;
+pub mod depot_acte;
 pub mod etats;
 pub mod journal;
 pub mod ligne_d_envoi;

@@ -157,9 +157,7 @@ pub fn serveur(etat: &Value) -> String {
 /// envoye. Remplace un compte precedent (qui est efface chez le serveur).
 pub fn activer(racine: &Path, adresse: &Value, motdepasse: &Value) -> R<Value> {
     // UNE FICTIVE AJOUTEE (ticket #236) : le serveur du filet ecrirait a l'adresse (confirmation, rappels) -- un envoi.
-    if let Some(m) = crate::bridage::refus_d_envoi(racine) {
-        return Err(erreur(crate::bridage::CLASSE_REFUS_D_ENVOI, m));
-    }
+    crate::bridage::branchement(racine).ouvrir()?;
     exiger_mot_de_passe(racine, motdepasse, "activer le filet de sécurité DPAE")?;
     let adresse = match adresse {
         Value::String(s) => s.trim_matches(|c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)).to_lowercase(),

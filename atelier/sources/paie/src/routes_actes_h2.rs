@@ -246,7 +246,7 @@ fn tester_les_dpae(
     // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
     // COMPAGNIE FICTIVE, elle, teste (27/09/2026) : son depot est joue.
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
-    if !crate::routes_accueil::simulation_active(&ctx.racine) {
+    if !crate::bridage::branchement(&ctx.racine).joue() {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
         let dispo = client.is_some() || crate::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes_etats::vers_route)?;
         if copie || !dispo {

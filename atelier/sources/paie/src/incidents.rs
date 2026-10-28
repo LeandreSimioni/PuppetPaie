@@ -252,7 +252,7 @@ fn lignes(p: &Path) -> Vec<Value> {
 /// rien n'a pu etre ecrit.
 pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
     let nature = if nature_connue(n.nature) { n.nature } else { LOGICIEL };
-    if (nature == DPAE || nature == DSN) && crate::routes_accueil::simulation_active(racine) {
+    if (nature == DPAE || nature == DSN) && crate::bridage::branchement(racine).joue() {
         // LES FAUX ENVOIS NE SONT PAS DES INCIDENTS : une fictive joue ses depots.
         return None;
     }

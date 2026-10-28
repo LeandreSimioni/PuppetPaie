@@ -68,7 +68,7 @@ pub struct HorlogeFictive<'a> {
 impl<'a> HorlogeFictive<'a> {
     /// `simulation.active(ctx)` : `None` si les envois de cette racine ne sont pas joues.
     pub fn verifier(racine: &'a Path) -> Option<HorlogeFictive<'a>> {
-        crate::routes_accueil::simulation_active(racine).then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
+        crate::bridage::branchement(racine).joue().then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
     }
 
     /// Le jour que cette compagnie fictive joue.
@@ -90,7 +90,7 @@ impl<'a> HorlogeFictive<'a> {
 
     /// Relit le marqueur : refuse tout geste si la racine a cesse d'etre une compagnie fictive.
     fn reverifier(&self) -> R<()> {
-        if crate::routes_accueil::simulation_active(self.racine) {
+        if crate::bridage::branchement(self.racine).joue() {
             Ok(())
         } else {
             Err(erreur("ErreurOperation", "Ce dossier n'est pas une compagnie fictive : l'horloge ne joue rien ici."))
