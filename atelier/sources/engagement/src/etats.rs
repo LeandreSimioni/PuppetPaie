@@ -858,10 +858,11 @@ pub fn valider(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<Valide> {
     };
     let saisie = saisie_de(&o);
     let paies = Value::Object(paies);
-    let version = match precedente.as_ref().and_then(|p| Some((p, version_de(Some(p))?))) {
-        Some((p, n)) if p.get("saisie") != Some(&saisie) || !memes_chiffres(p.get("paies"), Some(&paies)) => nouvelle_version(&mut o, p, n, &siens, &le),
-        Some((_, n)) => n,
-        None => 1,
+    // Une validation qui ne change rien garde sa version et la date de celle-ci : la version est la meme.
+    let (version, le) = match precedente.as_ref().and_then(|p| Some((p, version_de(Some(p))?))) {
+        Some((p, n)) if p.get("saisie") != Some(&saisie) || !memes_chiffres(p.get("paies"), Some(&paies)) => (nouvelle_version(&mut o, p, n, &siens, &le), le),
+        Some((p, n)) => (n, p.get("le").and_then(Value::as_str).map_or(le, String::from)),
+        None => (1, le),
     };
     o.brut.remove(PRECEDENTE);
     o.brut.insert("valide".into(), json!({ "le": le, "version": version, "saisie": saisie, "paies": paies }));
