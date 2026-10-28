@@ -60,8 +60,8 @@ fn optionnel<'a>(charge: &'a Value, cle: &str) -> &'a Value {
     charge.get(cle).unwrap_or(&Value::Null)
 }
 
-/// Le refus du coffre sous le nom que la route Python lui donnait : `ErreurCoffre` devient `ErreurOperation`
-/// (`operations_ouverture` l'attrapait), tout le reste (`OSError`...) garde sa classe.
+/// Le refus du coffre : `ErreurCoffre` se rend `ErreurOperation` (la page le montre tel quel), tout le reste
+/// (`OSError`...) garde sa classe.
 fn en_operation(x: EchecCoffre) -> Echec {
     Echec { classe: Some(if x.classe == "ErreurCoffre" { "ErreurOperation" } else { x.classe }), message: x.message }
 }
@@ -93,7 +93,7 @@ fn chaine<'a>(charge: &'a Value, cle: &str) -> Option<&'a str> {
 
 // ------------------------------------------------------------------ le coffre
 
-/// `operations_ouverture.poser_secret` : range le mot de passe d'un organisme, ou de la boite courriel avec
+/// Range le mot de passe d'un organisme, ou de la boite courriel avec
 /// son adresse (`compte`). Rend l'etat du coffre, sans valeur.
 fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "poser un mot de passe")?;
@@ -103,7 +103,7 @@ fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     etat_du_coffre(ctx)
 }
 
-/// `operations_ouverture.oublier_secret`.
+/// `coffre-oublier` : retire un secret du coffre.
 fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "retirer un mot de passe")?;
     let service = crate::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
@@ -111,7 +111,7 @@ fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     etat_du_coffre(ctx)
 }
 
-/// `operations_ouverture.poser_compte_dpae` : le nom et le prenom du compte Urssaf qui depose les DPAE.
+/// Le nom et le prenom du compte Urssaf qui depose les DPAE.
 /// SANS ACCENTS, DANS LA CASSE TAPEE : la DUE MtoM refuse les accents. Les autres cles d'`api_dpae` sont gardees.
 fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "changer le compte qui depose les DPAE")?;
@@ -157,7 +157,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------ le mot de passe du logiciel
 
-/// `operations_ouverture.changer_mot_de_passe_logiciel` : pose ou change le mot de passe du logiciel. L'actuel
+/// Pose ou change le mot de passe du logiciel. L'actuel
 /// est exige s'il existe, et il ouvre aussi le coffre quand la cle de ce poste ne l'ouvre plus.
 fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let actuel = optionnel(charge, "motdepasse");
@@ -190,7 +190,7 @@ fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
     etat_du_coffre(ctx)
 }
 
-/// `operations_ouverture.retirer_mot_de_passe_logiciel` : plus de mot de passe du logiciel. L'actuel est exige.
+/// Plus de mot de passe du logiciel. L'actuel est exige.
 fn mot_de_passe_retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
     if crate::administrateur::est_rattachee(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine) {
         return Err(refus("Cette compagnie est geree par l'administrateur : son mot de passe ouvre aussi les autres. La detacher d'abord (elle recoit alors son propre mot de passe), puis le retirer. Rien n'a ete modifie."));
@@ -202,7 +202,7 @@ fn mot_de_passe_retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------ Google
 
-/// `operations_ouverture.google_oublier` : efface le jeton local, sans reseau. L'acces reste accorde cote
+/// Efface le jeton local, sans reseau. L'acces reste accorde cote
 /// Google, et se retire sur myaccount.google.com.
 fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "oublier le compte Google")?;
@@ -447,7 +447,7 @@ fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Opt
     Ok(jeton_par_rafraichissement(&adresses_du_poste().jetons, client_id, client_secret, &rafraichissement, DELAI)?.err())
 }
 
-/// `operations_ouverture.google_etat`, rendu par `sortie_json.etat_google`.
+/// `google-etat` : ce que la page dit du compte Google (lie, a quelle date), jamais le jeton.
 fn google_etat(ctx: &Contexte) -> R<Value> {
     // L'application ne sert qu'a rafraichir un jeton : sans Drive lie, son absence (une copie de travail du depot) n'est
     // pas un refus, et l'etat dit seulement « pas lie » (#235 du prive). Un `config/google.json` pose mais illisible ou

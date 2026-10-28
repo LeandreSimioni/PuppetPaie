@@ -45,7 +45,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
     }
 }
 
-/// `operations_documents.contrat_recu` : un humain dit que le contrat signe est revenu (ou retire la note).
+/// Un humain dit que le contrat signe est revenu (ou retire la note).
 /// Une ligne de journal, pas un etat de la saisie : elle date un fait du monde. Rien ne part, aucun compteur ne
 /// bouge.
 fn contrat_recu(ctx: &Contexte, charge: &Value) -> R<Value> {

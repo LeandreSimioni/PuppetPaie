@@ -1043,7 +1043,7 @@ fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent:
     Ok(())
 }
 
-/// `operations_permanents.documents_de_fin` : le certificat de travail et le recu pour solde de
+/// Le certificat de travail et le recu pour solde de
 /// tout compte. Deux PAPIERS : rien ne part nulle part.
 fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?);
@@ -1091,7 +1091,7 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 /// `fctu.FinDeContrat` (en dictionnaire) que le signalement declarera, batie sur la saisie
-/// (`operations_permanents.fin_de_contrat_declaree`).
+/// (`fin-contrat-signaler`).
 fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<declarations::fctu::FinDeContrat> {
     let manque = crate::routes::imprevus::ce_qui_manque(ctx, e)?;
     if !manque.is_empty() {
@@ -1129,7 +1129,7 @@ fn echec_fctu(e: declarations::fctu::Echec) -> Echec {
     }
 }
 
-/// `operations_permanents.produire_fctu` : ecrit le signalement dans `sorties/AAAA-MM/`. Rien n'est
+/// Ecrit le signalement dans `sorties/AAAA-MM/`. Rien n'est
 /// depose : le depot est un acte a part.
 fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (mois, salarie) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?);
@@ -1217,7 +1217,7 @@ pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
     Ok((connu.dernier + 1, connu.avertissements))
 }
 
-/// `operations_arrets.produire` : ecrit le fichier du signalement dans `sorties/AAAA-MM/`. Rien
+/// Ecrit le fichier du signalement dans `sorties/AAAA-MM/`. Rien
 /// n'est depose : le depot est un acte a part.
 fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     use declarations::signalement::{self, Echec as Ech};
@@ -1367,7 +1367,7 @@ fn envois(a: &Value) -> R<Vec<std::borrow::Cow<'_, Value>>> {
     }
 }
 
-/// `operations_arrets.resume`.
+/// Un arret resume pour la liste des imprevus.
 pub(crate) fn resume_arret(n: &Value, a: &Value) -> R<Value> {
     let mut signalements = Vec::new();
     for e in envois(a)? {
@@ -1541,7 +1541,7 @@ mensuelle et le signalement le declarent tous deux."
     Ok(manque)
 }
 
-/// `operations_permanents.fins_a_signaler` : les contrats qui finissent dans `mois` et dont la fin SE SIGNALE, chacun avec
+/// Les contrats qui finissent dans `mois` et dont la fin SE SIGNALE, chacun avec
 /// son obligation (`obligations::de_la_fin`) comptee au jour `aujourdhui`. UN SEUL ENDROIT : la route `fins-de-contrat` (la
 /// colonne du mois) et les rappels de l'ouverture (`rappels`) la lisent.
 pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R<Vec<Value>> {
@@ -1597,7 +1597,7 @@ fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 
 
-/// `{"contrats": brut(operations_arrets.contrats_au(ctx, salarie, jour))}` : les
+/// `{"contrats": [...]}` : les
 /// contrats d'un salarie qui couvrent un jour, lus dans les saisies.
 fn arret_contrats(ctx: &Contexte, charge: &Value) -> R<Value> {
     let sal = exiger(charge, "salarie")?;
@@ -1610,7 +1610,7 @@ fn arret_contrats(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"contrats": contrats_au(ctx, &cle, &jour)?}))
 }
 
-/// `operations_arrets.contrats_au` : les contrats de la fiche `cle` qui couvrent `jour` (AAAA-MM-JJ),
+/// Les contrats de la fiche `cle` qui couvrent `jour` (AAAA-MM-JJ),
 /// lus dans les saisies, du plus ancien debut au plus recent. Chacun : salarie, nom, numero, debut,
 /// fin, mois, spectacle.
 pub(crate) fn contrats_au(ctx: &Contexte, cle: &Value, jour: &str) -> R<Vec<Value>> {

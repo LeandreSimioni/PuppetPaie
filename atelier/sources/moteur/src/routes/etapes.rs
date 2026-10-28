@@ -434,7 +434,7 @@ fn brut_en_texte(v: &Value) -> R<String> {
     Ok(d.to_string())
 }
 
-/// `json.dumps(_sans_bruit(x))` de `operations_remplacement` : sans les cles
+/// La saisie en JSON, sans les cles
 /// `_...`, ni `valide` ni `rouverte` -- ce qui change dans une saisie sans
 /// changer la paie.
 pub(crate) fn sans_bruit(x: &Value) -> Value {
@@ -605,7 +605,7 @@ impl<'a> Moteur<'a> {
 
     // ------------------------------------------------------ la saisie du mois
 
-    /// `operations_paies.charger(ctx, fichier)` sans calculer la paie.
+    /// La saisie d'un mois, chargee sans calculer la paie.
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
         let data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
         let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
@@ -934,7 +934,7 @@ impl<'a> Moteur<'a> {
         Ok(out)
     }
 
-    /// `operations_remplacement.etat` : ou en est le mois vis-a-vis de
+    /// Ou en est le mois vis-a-vis de
     /// l'annule-et-remplace.
     /// `nic` : l'etablissement dont on parle (`Null` : le principal).
     pub(crate) fn etat_remplacement(&mut self, mois: &str, nic: &Value) -> R<Value> {

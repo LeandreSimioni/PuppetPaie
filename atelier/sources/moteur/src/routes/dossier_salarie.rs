@@ -1379,7 +1379,7 @@ fn dossier_salarie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     construire(ctx, charge).map(|d| dossier_json(&d))
 }
 
-/// `operations_dossier.dossier_salarie` : le dossier construit (et ecrit, sauf `apercu`). L'envoi (`archives`, `dossier-envoyer`)
+/// Le dossier construit (et ecrit, sauf `apercu`). L'envoi (`archives`, `dossier-envoyer`)
 /// en a besoin tel quel : ses salaries, ses fichiers, ses pages.
 pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     let salaries = vraie(charge, "salaries")?;

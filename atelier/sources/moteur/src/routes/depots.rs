@@ -185,7 +185,7 @@ fn code_urssaf(ent: &Value) -> R<String> {
     Ok(if territoire.is_empty() { "117".to_string() } else { territoire })
 }
 
-/// `Embauche` de la DPAE, lue d'une paie sans montants (`paie_rust._embauche_dpae`).
+/// `Embauche` de la DPAE, lue d'une paie sans montants.
 fn embauche_dpae(p: &Paie, spectacle: bool) -> Embauche {
     Embauche {
         salarie: p.salarie.clone(),
@@ -203,7 +203,7 @@ struct Amorcage {
     lignes: Vec<(String, String)>,
 }
 
-/// `operations_amorcage.produire(motif=EMBAUCHE, ...)` : un fichier de signalement par individu dont le taux manque (le travail est
+/// Un fichier de signalement par individu dont le taux manque (le travail est
 /// celui de `amorcage_demande`, que `moteur pas --demander` generalise). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
 fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution: Jour, ecrits: &mut Vec<PathBuf>) -> Result<Amorcage, String> {
     let demande = crate::amorcage_demande::Demande {
@@ -224,7 +224,7 @@ fn fichier_json(f: &Path) -> Value {
     json!({"nom": f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(), "chemin": f.to_string_lossy(), "octets": octets})
 }
 
-/// `operations_declarations.produire_dpae` : la DPAE seule, due AVANT le premier jour travaille.
+/// La DPAE seule, due AVANT le premier jour travaille.
 /// Tout le mois, ou une sélection d embauches (`paies`) dans un fichier horodate a cote du complet. `forcer` : reecrire meme
 /// une embauche deja declaree (un depot rejete, a refaire).
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
@@ -672,7 +672,7 @@ fn cle_du_test(salarie: &str, debut: &str) -> String {
     format!("{}|{}", salarie, debut)
 }
 
-/// `operations_filet.preparer` : un passage -- tester ce qui doit l'etre, armer, desarmer. Rend `{"testees",
+/// Un passage -- tester ce qui doit l'etre, armer, desarmer. Rend `{"testees",
 /// "armes", "desarmes", "incidents", "occupe"}`. Ne leve jamais pour une panne : elle devient un incident, et le
 /// passage suivant reessaie. `tester` (vrai par defaut) ; `qui` (`filet` par defaut) ; `maintenant`
 /// (`AAAA-MM-JJTHH:MM`, que l'appelant peut fixer).
@@ -959,7 +959,7 @@ fn chiffre_py(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}')
 }
 
-/// `operations_declarations._iso_depuis_jjmmaaaa`.
+/// Un jour JJ/MM/AAAA en ISO.
 fn iso_depuis_jjmmaaaa(v: &str) -> String {
     let t: Vec<char> = v.trim_matches(socle::texte::blanc).chars().collect();
     if t.len() != 8 || !t.iter().all(|c| chiffre_py(*c)) {

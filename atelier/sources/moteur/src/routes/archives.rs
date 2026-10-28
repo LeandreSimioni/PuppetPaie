@@ -64,7 +64,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
     }
 }
 
-/// `operations_etats.couts_de_l_annee(ctx, charge["annee"], ctx.aujourdhui)`.
+/// `couts` : le cout de l'annee `charge["annee"]`, au jour du contexte.
 fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let _ = o;
     let annee = valeur_en_texte(exiger(charge, "annee")?);
@@ -281,7 +281,7 @@ fn salaries_de_la_page(ctx: &Contexte) -> Vec<Value> {
         .collect()
 }
 
-/// `operations_dossier.formes_dossier` : ce que la page propose -- les salaries,
+/// Ce que la page propose -- les salaries,
 /// les categories a cocher, les periodes, et si l'envoi est possible.
 fn dossier_formes(ctx: &Contexte) -> R<Value> {
     let salaries = salaries_de_la_page(ctx);
@@ -311,7 +311,7 @@ fn dossier_formes(ctx: &Contexte) -> R<Value> {
 
 // ------------------------------------------------- le logiciel du comptable
 
-/// `operations_ecritures.etat_logiciel` : ce que la page montre -- les logiciels,
+/// Ce que la page montre -- les logiciels,
 /// celui retenu (`config/compta.json`), et ce que le plan comptable ne tiendrait
 /// pas dans son format.
 pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
@@ -335,7 +335,7 @@ pub(crate) fn etat_logiciel(ctx: &Contexte) -> R<Value> {
     Ok(json!({"logiciels": tables()["logiciels"], "logiciel": retenu, "analytique": analytique, "controle": controle}))
 }
 
-/// `operations_exports._etat_concerne` : la page ne propose pas la CASC-SVP de la
+/// La page ne propose pas la CASC-SVP de la
 /// 3090 a une compagnie de la 1285, ni la dette de conges a qui n'emploie pas de
 /// permanents.
 fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
@@ -352,10 +352,10 @@ fn etat_concerne(ctx: &Contexte, etat: &str) -> bool {
     true
 }
 
-/// `operations_exports.periodes_exportables` : les mois et les annees qu'il y a
+/// Les mois et les annees qu'il y a
 /// matiere a exporter, les etats, les formats, et le logiciel du comptable. `xlsx`
-/// (`import openpyxl` reussit-il ?) et `pdf` (la fabrique est-elle installee ?)
-/// sont deux faits de l'interprete et du poste, que `web.py` dit dans la charge.
+/// (la bibliotheque est-elle la ?) et `pdf` (la fabrique est-elle installee ?)
+/// sont deux faits du poste, que la page dit dans la charge.
 fn exports_periodes(ctx: &Contexte, charge: &Value) -> R<Value> {
     let dispo = mois_disponibles(ctx)?;
     let t = tables();
@@ -376,7 +376,7 @@ fn exports_periodes(ctx: &Contexte, charge: &Value) -> R<Value> {
     }))
 }
 
-/// `operations_exercice.revue_spectacles` : archive les spectacles actifs qui ne sont pas dans
+/// Archive les spectacles actifs qui ne sont pas dans
 /// `continuent`, note la revue de l'annee faite, rend la configuration.
 fn revue_spectacles(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let annee = entier(exiger(charge, "annee")?)?;
@@ -419,7 +419,7 @@ fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
-/// `operations_ecritures.retenir_logiciel` : le logiciel du comptable, et l'analytique, retenus une fois pour
+/// Le logiciel du comptable, et l'analytique, retenus une fois pour
 /// toutes. Rend le controle du plan pour ce logiciel. Ce n'est pas un export : un reglage, pas une donnee de paie.
 fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
     let logiciel = charge.get("logiciel").filter(|v| vrai(v));
@@ -441,7 +441,7 @@ fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
     crate::routes::archives::etat_logiciel(ctx).map_err(Echec::from)
 }
 
-/// `operations_casc.marquer_regularise` : note qu'une annee de CASC-SVP est regularisee (apres le virement).
+/// Note qu'une annee de CASC-SVP est regularisee (apres le virement).
 fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let annee = crate::routes::fiches::exiger(charge, "annee")?;
     let vire_le = crate::routes::fiches::exiger(charge, "vire_le")?;
@@ -456,7 +456,7 @@ fn texte_ou_rien(charge: &Value, cle: &str) -> Option<String> {
     charge.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
 }
 
-/// `operations_exports.exporter` : le verbe unique, `exporter <etat>`. Lit la charge (etat, mois, annee,
+/// Le verbe unique, `exporter <etat>`. Lit la charge (etat, mois, annee,
 /// toutes_les_annees, regroupement, format, coordonnees, apercu, logiciel, analytique), refuse un etat inconnu,
 /// ne passe a l'etat que ce que sa forme demande, puis rend l'etat tel que `js.brut` le rend.
 fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
@@ -582,7 +582,7 @@ fn dossier_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     Ok(r)
 }
 
-/// `operations_dossier.envoyer_dossier` : envoie a chaque salarie SON dossier, par la boite de la compagnie.
+/// Envoie a chaque salarie SON dossier, par la boite de la compagnie.
 /// Irreversible : la meme preuve que les pieces du mois, le meme journal. Un dossier `ensemble` ne part a personne.
 pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie::Dossier, preuve: &Preuve, qui: &str, ouvrir: Ouvrir) -> R<Value> {
     if d.fichiers.iter().any(|f| nom_du(f).starts_with("Dossiers_")) {
@@ -659,7 +659,7 @@ pub(crate) fn envoyer_dossier(ctx: &Contexte, d: &crate::routes::dossier_salarie
     Ok(json!({"partis": partis, "messages": messages.len(), "expediteur": expediteur, "ligne": ligne}))
 }
 
-/// `operations_casc._jjmmaaaa`.
+/// Un jour ISO en JJ/MM/AAAA.
 fn jjmmaaaa(iso: &str) -> String {
     if iso.is_empty() {
         return String::new();
@@ -669,7 +669,7 @@ fn jjmmaaaa(iso: &str) -> String {
     format!("{}/{}/{}", t(8, 10), t(5, 7), t(0, 4))
 }
 
-/// `operations_casc.envoyer_regularisation` : envoie les deux courriels de la regularisation, APRES les virements.
+/// Envoie les deux courriels de la regularisation, APRES les virements.
 /// Irreversible. `vire_le` : {annee: AAAA-MM-JJ}, une date par virement fait ; le dossier envoye est celui de ces
 /// annees-la, exactement.
 ///
@@ -803,7 +803,7 @@ fn d_en_repr(d: &Value) -> String {
     valeur_en_texte(d)
 }
 
-/// `operations_socle.exercices` : les clotures, sans les cles `_...`.
+/// Les clotures, sans les cles `_...`.
 fn exercices_clos(racine: &Path) -> R<Map<String, Value>> {
     let v = lire_json_ou_vide(&racine.join("config").join("exercices.json"))?;
     match v {

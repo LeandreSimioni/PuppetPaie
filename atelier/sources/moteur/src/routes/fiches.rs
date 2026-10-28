@@ -512,7 +512,7 @@ fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     Ok(Value::Object(propose))
 }
 
-/// `operations_fiches.verifier_fiche` : les anomalies de la fiche APRES derivation, sur une copie.
+/// Les anomalies de la fiche APRES derivation, sur une copie.
 pub(crate) fn verifier(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> {
     let mut copie = donnees.clone();
     deriver(nom, &mut copie, false)?;
@@ -858,7 +858,7 @@ fn aujourdhui_jj_mm_aaaa() -> String {
     format!("{}/{}/{}", &iso[8..10], &iso[5..7], &iso[..4])
 }
 
-/// `operations_fiches.poser_taux_atmp` : pose le taux AT/MP de l'annee dans la surcouche de la
+/// Pose le taux AT/MP de l'annee dans la surcouche de la
 /// compagnie (`config/baremes/<annee>.json`), le reste de la surcouche est garde.
 pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risque: &Value) -> R<()> {
     let brut = valeur_en_texte(valeur).replace(',', ".").replace('%', "");
@@ -979,7 +979,7 @@ impl Dec {
     }
 }
 
-/// `operations_catalogues.catalogue_metiers` et `emplois.familles` : l'onglet
+/// L'onglet
 /// Metiers, tout le catalogue, chaque metier coche ou non.
 fn metiers_catalogue(ctx: &Contexte) -> R<Value> {
     let familles = emplois::familles().map_err(plain)?;
@@ -1075,7 +1075,7 @@ fn fichier_de(nom: &str) -> Option<&'static str> {
     }
 }
 
-/// `operations_fiches.activer_fiche` : seul `actif` change, a partir d.aujourd.hui (archiver, c.est ne plus proposer a
+/// Seul `actif` change, a partir d.aujourd.hui (archiver, c.est ne plus proposer a
 /// partir de ce jour ; ce qui precede reste ce qu.il etait) ; la copie horodatee du fichier est faite avant.
 pub(crate) fn activer_fiche(ctx: &Contexte, nom: &str, cle: &str, actif: bool) -> R<()> {
     let fichier = match nom {
@@ -1589,7 +1589,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
 }
 
-/// `operations_fiches.enregistrer_fiche` : verifie, date ce qui change, sauvegarde l'ancien fichier et
+/// Verifie, date ce qui change, sauvegarde l'ancien fichier et
 /// ecrit. Rend ce qui a ete ecrit, sans la page : l'import s'en sert fiche par fiche.
 pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donnees: &Value, forcer: Forcer, depuis: &Value, note: &Value) -> R<FicheEcrite> {
     let mut cle = cle;
@@ -1791,7 +1791,7 @@ pub struct FicheDemandee {
     pub ligne: Value,
 }
 
-/// `operations_questionnaire.demander_fiche` : envoie a `adresse` le courriel « Remplir ma fiche ». Le journal garde
+/// Envoie a `adresse` le courriel « Remplir ma fiche ». Le journal garde
 /// le code : c'est par lui que la releve reconnaitra la reponse. `client` : la boite, ouverte ici (boite simulee dans une
 /// compagnie fictive, sinon refus « boite absente ») quand l'appelant n'en donne pas.
 pub fn demander_fiche(ctx: &Contexte, adresse: &str, prenom: &str, preuve: &Preuve, qui: &str, client: Option<&mut dyn Courriel>) -> R<FicheDemandee> {
@@ -1923,7 +1923,7 @@ fn os(m: String) -> Echec {
     erreur("OSError", m)
 }
 
-/// `operations_questionnaire.relever_fiches` : cherche les reponses aux demandes de fiche et cree chaque fiche.
+/// Cherche les reponses aux demandes de fiche et cree chaque fiche.
 ///
 /// `client` : la boite, ouverte ici quand l'appelant n'en donne pas -- la personne fictive de la compagnie fictive, ou la
 /// vraie boite ; sans boite, un incident et rien d'autre. `qui` : `interface`, ou `veille`.

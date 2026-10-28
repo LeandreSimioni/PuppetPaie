@@ -945,7 +945,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
     }))
 }
 
-/// `operations_echeancier.marquer_echeance(ctx, charge["cle"], fait=..., qui="interface")`.
+/// `echeance-faite` : coche (`fait`) ou decoche l'echeance `charge["cle"]`, au nom de `qui`.
 fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = exiger(charge, "cle")?;
     let fait = charge.get("fait") != Some(&Value::Bool(false));
@@ -956,7 +956,7 @@ fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"cle": texte, "fait": fait}))
 }
 
-/// `operations_echeancier.marquer_echeance` : coche (ou decoche) une echeance que seul
+/// Coche (ou decoche) une echeance que seul
 /// l'utilisateur peut dire faite.
 pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str) -> R<()> {
     let (quoi, annee) = match cle.split_once(':') {
@@ -984,7 +984,7 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
     let Value::Object(m) = &mut d else {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&d))));
     };
-    m.entry("_origine").or_insert_with(|| json!("Les echeances que l'utilisateur a dites faites (operations_echeancier.marquer_echeance)."));
+    m.entry("_origine").or_insert_with(|| json!("Les echeances que l'utilisateur a dites faites."));
     let faits = m.entry("fait").or_insert_with(|| json!({}));
     let Value::Object(faits) = faits else {
         return Err(match (faits, fait) {
@@ -1004,7 +1004,7 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
     ecrire_json(&p, &d, 2).map_err(en_os)
 }
 
-/// `operations_ouverture.appliquer_maj_malgre_calcul` : decider, depuis l'interface, qu'une version qui change
+/// Decider, depuis l'interface, qu'une version qui change
 /// un calcul s'appliquera au prochain demarrage meme si un mois saisi n'a pas sa DSN. La decision s'ecrit dans
 /// `maj/prete.json` de l'installation ; la reponse est celle de `maj-etat`.
 fn maj_malgre_calcul(ctx: &Contexte) -> R<Value> {
@@ -1070,7 +1070,7 @@ pub(crate) fn mois_saisis_non_deposes(ctx: &Contexte) -> R<Vec<Value>> {
     Ok(out)
 }
 
-/// `operations_ouverture.version` : la version du logiciel, ce qui est pret, ce
+/// La version du logiciel, ce qui est pret, ce
 /// qui est configure. Ne va voir aucun depot.
 pub(crate) fn version(ctx: &Contexte) -> R<Value> {
     let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();

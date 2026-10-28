@@ -751,7 +751,7 @@ pub(super) fn expediteur_de(client: &dyn Courriel) -> String {
 
 // ------------------------------------------------------------------ envoyer-documents
 
-/// `operations_documents.envoyer_documents` : envoie a chaque salarie ses documents du mois. Irreversible.
+/// Envoie a chaque salarie ses documents du mois. Irreversible.
 fn envoyer_documents(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
     let prepare = preparer_envoi(ctx, &mois, salaries_choisis(charge)?.as_deref(), ouvrir)?;
@@ -832,7 +832,7 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
     Ok(json!({"impression": nom_du(&impression), "salaries": cles, "avertissements": avertissements, "ligne": ligne}))
 }
 
-/// `operations_documents.EnvoiPrepare` : les messages, le compte verifie -- rien n'est parti.
+/// Les messages, le compte verifie -- rien n'est parti.
 pub(crate) struct EnvoiPrepare {
     pub(crate) mois_saisie: String,
     pub(crate) messages: Vec<envoi::Message>,
@@ -958,7 +958,7 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
     })))
 }
 
-/// `operations_documents.preparer_envoi` : la saisie du mois, les messages, puis la boite -- une boite absente se voit
+/// La saisie du mois, les messages, puis la boite -- une boite absente se voit
 /// avant la preuve. Rien n'est parti.
 pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[String]>, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
     let debut = std::time::Instant::now();

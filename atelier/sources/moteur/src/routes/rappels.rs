@@ -272,7 +272,7 @@ fn rappels(o: &HashMap<String, String>, charge: &Value) -> R<Value> {
     Ok(json!({ "rappels": out.iter().map(Rappel::json).collect::<Vec<_>>() }))
 }
 
-/// `operations_exercice.rappels` : ce que le logiciel doit proposer a
+/// Ce que le logiciel doit proposer a
 /// l'ouverture, dans l'ordre ou ca se fait.
 ///
 /// D'abord la DSN des mois passes qui n'en ont pas. Puis, si on est en janvier
@@ -354,7 +354,7 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
 
 // -------------------------------------------------------------- l'exercice
 
-/// `operations_socle.exercice_clos` : la cloture de l'annee (ou `None`).
+/// La cloture de l'annee (ou `None`).
 pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
     let p = ctx.racine.join("config").join("exercices.json");
     if !socle::fichiers::existe(&p) {
@@ -367,7 +367,7 @@ pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
     }
 }
 
-/// `operations_paies.mois_connus` : `(mois, saisie, dossier)` du plus recent au plus ancien.
+/// `(mois, saisie, dossier)` du plus recent au plus ancien.
 fn mois_connus(ctx: &Contexte) -> Vec<(String, Option<PathBuf>, Option<PathBuf>)> {
     let mut vus: BTreeMap<String, (Option<PathBuf>, Option<PathBuf>)> = BTreeMap::new();
     let est_un_mois = |n: &str| {
@@ -387,7 +387,7 @@ fn mois_connus(ctx: &Contexte) -> Vec<(String, Option<PathBuf>, Option<PathBuf>)
     vus.into_iter().rev().map(|(m, (s, d))| (m, s, d)).collect()
 }
 
-/// `operations_exercice.mois_de_l_annee` : les mois de l'annee connus du dossier.
+/// Les mois de l'annee connus du dossier.
 pub(crate) fn mois_de_l_annee(ctx: &Contexte, annee: &str) -> Vec<String> {
     let mut v: Vec<String> = mois_connus(ctx).into_iter().map(|m| m.0).filter(|m| m.starts_with(annee)).collect();
     v.sort();
@@ -737,11 +737,11 @@ pub(crate) struct Embauche {
     pub(crate) fin: String,
     pub(crate) nom: String,
     pub(crate) spectacle: String,
-    /// `operations_filet._empreinte` : ce que la DPAE de l'embauche declare.
+    /// Ce que la DPAE de l'embauche declare.
     pub(crate) empreinte: String,
 }
 
-/// `operations_filet._empreinte` : ce que la DPAE d'une embauche declare -- si
+/// Ce que la DPAE d'une embauche declare -- si
 /// cela change, le test fait ne vaut plus. L'identite du salarie, les bornes du
 /// contrat, le spectacle ; pas les taux ni les cachets. `sha256(repr(tuple))[:16]`.
 fn empreinte_de_l_embauche(e: &Engagement, sal: &Value) -> String {
@@ -780,7 +780,7 @@ fn fiche_pour(ctx: &Contexte, e: &Engagement) -> Resultat<Value> {
     emploi_de(&ctx.salarie_au(cle, &e.debut)?, &emploi)
 }
 
-/// `operations_filet.embauches_suivies` : les embauches sans trace de DPAE,
+/// Les embauches sans trace de DPAE,
 /// d'une semaine en arriere a l'infini. Chacune dit si son CONTRAT EST PARTI --
 /// envoye a la signature, revenu signe, ou ecrit avec le mois (le contrat qu'on
 /// imprime). << Sans trace >> et non << non declaree >> : le journal ne connait

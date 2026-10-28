@@ -90,7 +90,7 @@ pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
 
 // ============================================================ la saisie
 
-/// `operations_socle.mois_hors_delai` : la date limite de depot depassee (`echeance_dsn`, reportee), ou `None`.
+/// La date limite de depot depassee (`echeance_dsn`, reportee), ou `None`.
 pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
     let limite = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?.jour;
     Ok(if ctx.aujourdhui > limite { Some(limite) } else { None })
@@ -113,7 +113,7 @@ pub(crate) fn avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<Option
     Ok(Some(embauche))
 }
 
-/// `operations_paies.squelette(mois, ctx)` : un mois neuf s'ouvre VIDE, avec le
+/// Un mois neuf s'ouvre VIDE, avec le
 /// dernier taux saisi -- `null` quand le dossier n'a encore aucun cachet (R12 :
 /// aucun texte ne fixe un taux de cachet, la compagnie le saisit).
 pub(crate) fn squelette(ctx: &Contexte, mois: &str) -> R<Value> {
@@ -450,7 +450,7 @@ const INFORMATION: &str = "information";
 
 const JOURS: [&str; 7] = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
 
-/// Une echeance (`operations_echeancier.Echeance`).
+/// Une echeance.
 struct Echeance {
     cle: String,
     quoi: String,
@@ -590,7 +590,7 @@ fn cochees(ctx: &Contexte) -> R<Map<String, Value>> {
     }
 }
 
-/// `operations_fiches.taux_atmp(ctx, annee)` est-il pose ?
+/// Le taux AT/MP de l'annee est-il pose ?
 fn atmp_pose(ctx: &Contexte, annee: i32) -> R<bool> {
     let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", annee));
     if !p.exists() {
@@ -921,9 +921,9 @@ fn entier_py(v: &Value) -> R<i64> {
 
 // ------------------------------------------------------- les jours d'un engagement
 
-/// `operations_paies.dates_engagement` (`cle` = "dates") et
+/// Les jours d'un engagement (`cle` = "dates") et
 /// `planning_engagement` (`cle` = "planning") : les jours des lignes, sans
-/// doublon, nus ou detailles `{jour, lieu}`. Les refus sont ceux de Python :
+/// doublon, nus ou detailles `{jour, lieu}`. Les refus :
 /// une ligne qui n'est pas un dictionnaire (`AttributeError`), un jour qui ne se
 /// hache pas (`TypeError`), un jour detaille sans `jour` (`KeyError`).
 fn jours_des_lignes(e: &Map<String, Value>, cle: &str) -> R<Vec<Value>> {
@@ -962,7 +962,7 @@ fn jour_de(j: &Value) -> Value {
     }
 }
 
-/// `operations_paies._bornes_brutes` : (debut, fin) d'un engagement brut,
+/// (debut, fin) d'un engagement brut,
 /// AAAA-MM-JJ, comme `Engagement` les deduirait ; vides sans aucun jour.
 pub(crate) fn bornes_brutes(e: &Map<String, Value>) -> R<(String, String)> {
     let jours = trier(jours_des_lignes(e, "dates")?.iter().map(jour_de).collect())?;
@@ -1009,7 +1009,7 @@ pub(crate) fn engagements_du_mois(ctx: &Contexte, mois: &str) -> R<Vec<(String, 
 
 // ------------------------------------------------------------- contrats en cours
 
-/// `operations_paies.ContratEnCours` : un contrat ouvert un mois precedent et
+/// Un contrat ouvert un mois precedent et
 /// qui court encore sur celui-ci.
 struct EnCours {
     salarie: String,
@@ -1069,7 +1069,7 @@ impl EnCours {
     }
 }
 
-/// `operations_paies.contrats_en_cours` : les contrats des mois precedents dont
+/// Les contrats des mois precedents dont
 /// la fin depasse le 1er de `mois`. Lu dans les fichiers de saisie des mois qui
 /// precedent, jamais dans la DSN.
 fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
@@ -1243,7 +1243,7 @@ fn jour_de_planning(x: &Value) -> R<Value> {
     }
 }
 
-/// `operations_paies.engagement_de_reprise` : l'engagement d'un contrat en
+/// L'engagement d'un contrat en
 /// cours, pour le fichier de `mois`. Le contrat tel qu'il a ete signe, et ses
 /// lignes de paie : les jours de `mois` du planning deviennent les dates de la
 /// ligne (au meme taux, au meme lieu), ceux des mois d'apres restent en
@@ -1351,7 +1351,7 @@ fn contrats_en_cours_route(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 const TITRE_A_COMPLETER: &str = "A COMPLETER";
 
-/// `operations_paies.ContratPasse` et `sortie_json.brut` : un contrat qui touche
+/// Un contrat qui touche
 /// un mois passe, tel que le calendrier le montre. LECTURE SEULE, ET UN
 /// PLANCHER : c'est ce que la compagnie a declare, pas la position du salarie.
 struct Passe {
@@ -1485,7 +1485,7 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
     Ok(cachets)
 }
 
-/// `operations_paies.contrats_passes` : les contrats qui touchent `mois`, pour
+/// Les contrats qui touchent `mois`, pour
 /// le calendrier des mois passes. Deux sources, la meme regle que
 /// `cumul.lire_engagements` : un mois qui a son fichier de paie est lu la (avec
 /// ses jours exacts), l'historique importe des AEM parle pour les autres.
@@ -1628,7 +1628,7 @@ fn texte_ou(mois: &Value, texte: &str) -> String {
     }
 }
 
-/// `operations_importation.lire_historique` : les contrats de l'historique
+/// Les contrats de l'historique
 /// importe, ou rien.
 fn historique(ctx: &Contexte) -> R<Vec<Value>> {
     let p = ctx.racine.join("historique").join("engagements.json");
@@ -1690,7 +1690,7 @@ fn emploi(charge: &Value) -> R<Value> {
 
 const GARDER_COPIES: usize = 20;
 
-/// `operations_socle._sauver_avant` : la copie horodatee du fichier, avant de le
+/// La copie horodatee du fichier, avant de le
 /// remplacer (l'heure de Paris), et seulement les `GARDER_COPIES` dernieres.
 pub(crate) fn sauver_avant(chemin: &Path) -> R<()> {
     if !chemin.exists() {
@@ -1943,7 +1943,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// quand la saisie elle-meme est encore incomplete (un spectacle pas encore
 /// choisi, des jours ou des heures pas encore saisis :
 /// `engagement::saisie_incomplete`) c'est cette phrase-la, sous son nom
-/// (`SaisieIncomplete`), qui monte (`operations_paies.charger`). La page les
+/// (`SaisieIncomplete`), qui monte. La page les
 /// dit sobrement ; l'ecran enregistre a chaque frappe, donc ce ne sont pas des
 /// defauts du logiciel.
 pub(crate) fn refus_du_calcul(ctx: &Contexte, data: &Value, message: String) -> Echec {
@@ -2159,7 +2159,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
     Ok(d)
 }
 
-/// `operations_paies._archives_employees` : ce qui, dans ce mois, porte sur une
+/// Ce qui, dans ce mois, porte sur une
 /// fiche archivee. On n'INTERDIT pas : rejouer une paie passee, reimprimer un
 /// bulletin perdu, cela doit marcher. Mais une paie NEUVE sur une fiche mise de
 /// cote est presque toujours une erreur, et elle ne se verrait nulle part ailleurs.
