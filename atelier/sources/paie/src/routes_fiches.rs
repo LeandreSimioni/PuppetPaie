@@ -699,11 +699,17 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
     };
     let champs_fiche = champs::fiche(nom)?;
     let mut sortie = Vec::new();
-    for cle in crate::routes_ecritures::changements_a_dater(ancienne, &donnees) {
+    let a_dater = crate::routes_ecritures::changements_a_dater(ancienne, &donnees);
+    for cle in &a_dater {
+        let cle = cle.clone();
         let avant = anc.get(&cle).cloned().unwrap_or(Value::Null);
         let apres = donnees[&cle].clone();
         // La forme lisible d'une personne ne se declare pas, mais elle change : elle se date comme le reste.
         let c = champs_fiche.iter().find(|c| c.cle == cle);
+        // Un champ calcule qui change avec la case d'ou il derive est le meme fait : la case le dit seule.
+        if c.filter(|c| c.calcule()).and_then(|c| c.derive_de.as_ref()).is_some_and(|s| a_dater.contains(s)) {
+            continue;
+        }
         let mut entree = json!({
             "champ": cle, "libelle": c.map_or(cle.as_str(), |c| c.libelle.as_str()), "avant": avant, "apres": apres,
         });
