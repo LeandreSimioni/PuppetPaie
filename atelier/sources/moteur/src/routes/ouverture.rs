@@ -586,8 +586,7 @@ pub(crate) fn rubrique_json(r: &Rubrique) -> Value {
         "aem": r.aem, "dsn_type": r.dsn_type, "dsn_autres_bruts": r.dsn_autres_bruts, "annexe": r.annexe,
         "soumis": r.soumis, "imposable": r.imposable, "conges_spectacles": r.conges_spectacles,
         "compte_pour": r.compte_pour, "plafond_mensuel": r.plafond_mensuel,
-        "plafond_annuel_heures": r.plafond_annuel_heures, "origine": r.origine, "active": r.active,
-        "usages": r.usages,
+        "plafond_annuel_heures": r.plafond_annuel_heures, "origine": r.origine,
         // A quelle forme de paie elle s'adresse (« mensuelle », « activite », ou
         // rien = les deux).
         "reservee_a": r.reservee_a(),

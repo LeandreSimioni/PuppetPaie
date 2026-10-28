@@ -17,10 +17,10 @@ const cleEngagement = (salarie, debut, rang) => salarie + "|" + debut + "|" + (r
 
 /** Les (salarié, premier jour) d'un bloc, sans leur rang.
  *  Le moteur trie les dates et prend la première (`Engagement.debut`) : on
- *  fait pareil, sans quoi une paie saisie « 12 3 » ne se retrouverait pas. */
+ *  fait pareil, sans quoi un engagement saisi « 12 3 » ne se retrouverait pas. */
 function identitesDuBloc(div) {
-  // Les jours sont sur les lignes de paie depuis le 12/09/2026 : le premier
-  // jour de la paie est le plus petit de TOUTES ses lignes -- sauf si le
+  // Les jours sont sur les lignes de paie : le premier
+  // jour de l'engagement est le plus petit de TOUTES ses lignes -- sauf si le
   // contrat dit son début (un contrat en cours depuis octobre s'identifie
   // par le 12/10, pas par son premier cachet de novembre).
   const debut = debutDuBloc(div);
@@ -75,7 +75,7 @@ function bandeauEtats(ligne) {
   }).join("") + `</div>`;
 }
 
-/** Le clic sur un carré : le geste que le moteur lui donne. Le contrat parti
+/** Le clic sur un carré : le geste que le moteur lui donne. Le contrat ou l'avenant parti
  *  et pas revenu se note signé d'un clic, et le message permet de revenir. */
 function brancherRecu(div) {
   div.querySelectorAll(".etat-acte.cliquable").forEach((s) => {
@@ -86,7 +86,7 @@ function brancherRecu(div) {
       const c = ligne && (ligne.carres || [])[+s.dataset.carre];
       if (!c || !c.action) return;
       const mois = document.getElementById("mois").value;
-      if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, true);
+      if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, c.action.recu, c.action.avenant);
       ouvrirGeste(c.action, mois);
     };
     s.onclick = agir;
@@ -94,23 +94,29 @@ function brancherRecu(div) {
   });
 }
 
-/** « Reçu signé » (`contrat-recu`), ou son annulation ; le message dit ce qui
- *  est noté et porte « Annuler », qui rappelle la même route à l'envers. */
-async function noterSigne(mois, ligne, recu) {
+/** « Reçu signé » (`contrat-recu`) du contrat, ou de l'avenant que le geste
+ *  nomme (`avenant`), ou son annulation. Le message est la phrase du moteur ;
+ *  une note posée porte « Annuler », qui rappelle la charge que le moteur
+ *  rend pour la défaire (`annuler`). */
+async function noterSigne(mois, ligne, recu, avenant) {
+  await noterRecu(mois, { mois, salarie: ligne.salarie, debut: ligne.debut,
+                          numero: ligne.numero || "", avenant: avenant ?? null, recu });
+}
+
+async function noterRecu(mois, charge) {
+  let r;
   try {
-    await api("contrat-recu", { mois, salarie: ligne.salarie, debut: ligne.debut,
-                                numero: ligne.numero || "", recu });
+    r = await api("contrat-recu", charge);
   } catch (e) { dire(e.message, "erreur"); return; }
-  const prenom = String(ligne.nom || "").split(" ").slice(1).join(" ") || ligne.nom;
   await dessinerEtatsDesEngagements(mois);
   await rafraichirActions();
-  if (!recu) { dire(`Contrat de ${prenom} : la mention « signé » est retirée.`); return; }
-  dire(`Contrat de ${prenom} noté signé`);
+  dire(r.phrase);
+  if (!charge.recu || !r.annuler) return;
   const el = document.getElementById("message");
   const annuler = document.createElement("button");
   annuler.className = "lien message-annuler";
   annuler.textContent = "Annuler";
-  annuler.onclick = () => { el.classList.add("cachee"); noterSigne(mois, ligne, false); };
+  annuler.onclick = () => { el.classList.add("cachee"); noterRecu(mois, r.annuler.charge); };
   el.append(" — ", annuler);
 }
 
@@ -170,7 +176,7 @@ async function boitePieces(ligne, acte) {
 }
 
 /** Peint les états sur les blocs. Rappelée après chaque frappe : changer le
- *  salarié ou les jours change la paie que le bloc désigne. */
+ *  salarié ou les jours change l'engagement que le bloc désigne. */
 function peindreEtats() {
   let refaire = false;
   document.querySelectorAll(".engagement").forEach((div) => {
@@ -187,7 +193,7 @@ function peindreEtats() {
     if (!connue) {
       fermerEdition(div, false);
       if (!salariesDuBloc(div).length) {
-        // Sans salarié, ce bloc n'est pas une paie : il n'est même pas
+        // Sans salarié, ce bloc n'est pas un engagement : il n'est même pas
         // enregistré. Le dire, plutôt que de laisser un bloc muet qu'on
         // ne peut ni valider ni faire partir.
         cible.innerHTML = `<p class="etats-absent">Choisir qui est engagé.</p>
@@ -195,7 +201,7 @@ function peindreEtats() {
         brancherRetirer(div);
         return;
       }
-      // Le cas courant et normal : une paie qu'on vient d'ajouter ou de
+      // Le cas courant et normal : un engagement qu'on vient d'ajouter ou de
       // changer. Pas de pastille grise — une pastille, même grise, se lit
       // comme un état connu. Le message ne dit plus « Enregistrer la saisie
       // d'abord » : le bouton n'existe plus, l'enregistrement se fait tout
@@ -225,7 +231,7 @@ function peindreEtats() {
       fermerEdition(div, !!ligne.valide);
       return;
     }
-    // PLUSIEURS PAIES DANS UN BLOC : pas encore validées, sinon le bloc
+    // PLUSIEURS ENGAGEMENTS DANS UN BLOC : pas encore validées, sinon le bloc
     // aurait été démultiplié. Si l'une l'a été ailleurs (un autre onglet),
     // on démultiplie maintenant et on repeint.
     if (lignes.some((l) => l.valide)) { dedoubler(div); refaire = true; return; }
@@ -251,7 +257,7 @@ function peindreEtats() {
   if (refaire) return peindreEtats();
 }
 
-/** Valide chaque paie du bloc, PUIS le démultiplie : « il faut le bouton
+/** Valide chaque engagement du bloc, PUIS le démultiplie : « il faut le bouton
  *  valider, et une fois validé ça se démultiplie ».
  *  Chaque bloc né ici se repeint validé, fermé, avec son propre
  *  « Modifier… ». Si une validation échoue, on s'arrête là : ce qui est
@@ -285,7 +291,7 @@ async function dessinerEtatsDesEngagements(mois) {
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
     // rien à peindre, et rien d'alarmant à dire. La saisie, elle, marche.
-    // On ne sait rien des paies : les cartes restent comme elles sont (#253).
+    // On ne sait rien des engagements : les cartes restent comme elles sont (#253).
     // Un état vide les ouvrait TOUTES en formulaire, validées comprises, et le
     // refus du moteur (dit dans « Les étapes ») se lisait « tout s'est ouvert ».
     ETATS_ENGAGEMENTS = null;
@@ -293,7 +299,7 @@ async function dessinerEtatsDesEngagements(mois) {
   peindreEtats();
 }
 
-/* ------------------------------------------------ valider une paie
+/* ------------------------------------------------ valider un engagement
    « On valide, c'est vert, normalement on n'y revient pas, édition bloquée
    temporairement avec un bouton pour modifier avec avertissement » —
    11 et 12/09/2026.
@@ -304,13 +310,13 @@ async function dessinerEtatsDesEngagements(mois) {
       milieu des quatre autres ; c'est le bloc qui change d'état, pas un
       détail dedans.
    2. ÉDITION FERMÉE. Les champs passent en lecture seule pour de vrai
-      (`disabled`), pas seulement grisés : une paie validée qu'on peut encore
-      modifier par distraction n'est pas validée.
+      (`disabled`), pas seulement grisés : un engagement validé qu'on peut encore
+      modifier par distraction n'est pas validé.
    3. L'AVERTISSEMENT DIT CE QUE L'ÉDITEUR A DIT. Pas « êtes-vous sûr ? », qui
       ne renseigne personne — mais la conséquence exacte qu'il a lui-même
-      nommée : modifier une paie validée peut obliger à refaire la DPAE. Et
-      quand la DPAE est DÉJÀ partie pour cette paie, l'écran le sait
-      (`etat_par_paie`) et le dit avec sa date. C'est la différence entre un
+      nommée : modifier un engagement validé peut obliger à refaire la DPAE. Et
+      quand la DPAE est DÉJÀ partie pour cet engagement, l'écran le sait
+      (`etat-par-engagement`) et le dit avec sa date. C'est la différence entre un
       avertissement qu'on lit et un avertissement qu'on clique. */
 
 /** Ferme ou rouvre les champs d'un bloc. Le bouton de validation, lui, reste
@@ -323,21 +329,19 @@ function fermerEdition(div, ferme) {
   div.querySelectorAll("input, select, button").forEach((c) => {
     if (c.classList.contains("v-basculer") || c.classList.contains("retirer-engagement")) return;
     if (c.classList.contains("verrou")) return;    // un contrat en cours
-    if (c.closest(".e-resume")) return;            // la ligne de la paie validée
+    if (c.closest(".e-resume")) return;            // la ligne de l'engagement validé
     if (c.closest(".e-imprevus")) return;          // ses imprévus : la reprise, le maintien se disent après la paie
     if (c.classList.contains("chevron-pluri")) return;  // le chevron du contrat sur plusieurs mois (#127)
     c.disabled = ferme;
   });
-  // Ses imprévus se redisent : sur une paie validée, un jour payé pendant
+  // Ses imprévus se redisent : sur un engagement validé, un jour payé pendant
   // l'arrêt ne se retire plus d'un clic (js/imprevus.js).
   peindreImprevusDesCartes();
 }
 
-/* RETIRER UNE PAIE : un vrai bouton, en bas à droite, à côté de « Valider »
-   — et non plus une petite croix à côté du métier (l'éditeur, 15/09/2026 :
-   « plus clair, une case comme valider la paie, avec un avertissement »).
-   L'avertissement n'est là que quand il y a quelque chose à perdre : une
-   paie validée, un contrat envoyé à la signature ou revenu signé, une DPAE
+/* RETIRER UN ENGAGEMENT : un vrai bouton, en bas à droite, à côté de « Valider ».
+   L'avertissement n'est là que quand il y a quelque chose à perdre : un
+   engagement validé, un contrat envoyé à la signature ou revenu signé, une DPAE
    partie. Sinon le bloc s'en va, et l'enregistrement suit. */
 const BOUTON_RETIRER = `<button class="lien retirer-engagement" title="retirer cet engagement de la saisie">Retirer cet engagement</button>`;
 
@@ -371,7 +375,7 @@ function brancherValidation(div, ligne) {
   brancherRetirer(div);
 }
 
-/** Le bouton « Retirer cette paie » d'un bloc, quel que soit son état. Le moteur
+/** Le bouton « Retirer cet engagement » d'un bloc, quel que soit son état. Le moteur
  *  décide (`retirer-engagement`) : rien de parti, l'engagement s'efface ; un
  *  envoi parti, il refuse (`EngagementParti`), la page montre sa phrase et
  *  propose de rendre l'engagement non actif. Un bloc pas encore enregistré
@@ -465,11 +469,11 @@ async function basculerValidation(ligne, valide) {
   } catch (e) { dire(e.message, "erreur"); }
 }
 
-/* LES PAIES VALIDÉES ENSEMBLE SE ROUVRENT ENSEMBLE (24/09/2026). « Valider
- * ces 2 paies » les valide d'un geste, au même instant, puis l'écran les
+/* LES ENGAGEMENTS VALIDÉS ENSEMBLE SE ROUVRENT ENSEMBLE. « Valider
+ * ces 2 engagements » les valide d'un geste, au même instant, puis l'écran les
  * sépare en un bloc par salarié. Les rouvrir demandait autant de boîtes que
- * de salariés, pour la même paie. Sœurs : même spectacle, mêmes bornes,
- * validées à la même seconde. Un même salarié n'est qu'une fois dans un
+ * de salariés, pour le même spectacle. Sœurs : même spectacle, mêmes bornes,
+ * validés à la même seconde. Un même salarié n'est qu'une fois dans un
  * bloc : son jumeau (un autre contrat du même jour, #139) n'est jamais une
  * sœur, même validé à la même seconde. */
 function engagementsSoeurs(ligne) {
@@ -598,7 +602,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
 async function boiteDpae(mois) {
   if (!mois) { dire("Choisir un mois."); return; }
   // LA SAISIE À L'ÉCRAN D'ABORD (ticket #105, 02/10/2026). Cette boîte lit la
-  // saisie ENREGISTRÉE : une paie tapée il y a moins d'une seconde, ou qu'un
+  // saisie ENREGISTRÉE : un engagement tapé il y a moins d'une seconde, ou qu'un
   // spectacle manquant empêche d'enregistrer, n'y figurerait pas -- et sa
   // DPAE ne partirait pas, sans que rien ne le dise.
   let pasEnregistre = "";
@@ -615,7 +619,7 @@ async function boiteDpae(mois) {
   try {
     r = await api("etat-par-engagement", { mois });
   } catch (e) {
-    // Un mois sans paie rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel (#253).
+    // Un mois sans engagement rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel (#253).
     dire(e.message, "erreur");
     return;
   }
@@ -629,7 +633,7 @@ async function boiteDpae(mois) {
     <h3>Envoyer les DPAE</h3>
     ${moisEnGros(mois)}
     ${pasEnregistre ? `<div class="encart attention"><b>Une partie de l'écran
-      n'est pas enregistrée</b> ${echapper(pasEnregistre)} Les paies qui ne
+      n'est pas enregistrée</b> ${echapper(pasEnregistre)} Les engagements qui ne
       figurent pas ci-dessous n'auront pas leur DPAE : compléter la saisie,
       puis rouvrir cette fenêtre.</div>` : ""}
     <p class="note">Cochées d'avance : les embauches sans DPAE, ou dont la

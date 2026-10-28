@@ -66,6 +66,12 @@ fn action(geste: &str, libelle: String) -> Value {
     json!({"geste": geste, "libelle": libelle})
 }
 
+/// Le geste d'un carre Contrat en attente : noter revenu signe le contrat, ou l'avenant `avenant` (son numero) ;
+/// la route `contrat-recu` rend la phrase qui le dit et de quoi l'annuler.
+fn noter_recu(libelle: &str, avenant: Value) -> Value {
+    json!({"geste": "contrat_recu", "libelle": libelle, "recu": true, "avenant": avenant})
+}
+
 /// Marque `suivante` la premiere etape qui a quelque chose a faire de notre cote (a faire, ou refuse).
 fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
     let i = etapes.iter().position(|e| e["groupes"].as_array().is_some_and(|g| g.iter().any(|x| est(&x["etat"], "a_faire") || est(&x["etat"], "refuse"))));
@@ -1210,12 +1216,15 @@ impl<'a> Moteur<'a> {
                         .map(|(p, _)| p)
                         .collect();
                     let recus = partis.iter().filter(|p| vrai(&sig(p)["recu"]) && !vrai(&sig(p)["avenant_attendu"])).count();
+                    // L'echeance est celle des contrats attendus (L. 1242-13) ; un avenant attendu n'en a pas (aucun texte
+                    // depose ne date sa remise).
+                    let contrats_attendus: Vec<&Value> = siens.iter().copied().filter(|p| !vrai(&sig(p)["avenant_attendu"])).collect();
                     groupe(
                         "en_attente",
                         json!({"recus": recus, "partis": partis.len()}),
                         format!("{}/{}", recus, partis.len()),
                         format!("reçu{}", plur(recus, "", "s")),
-                        echeance_de(&siens, "contrat"),
+                        echeance_de(&contrats_attendus, "contrat"),
                         action("contrats_en_attente", "Reçus ou à relancer…".into()),
                     )
                 }
@@ -1550,7 +1559,7 @@ fn le_jour(v: &Value) -> String {
 
 /// LES TROIS CARRES DE LA LIGNE D'UN ENGAGEMENT VALIDE (DPAE, Contrat, Documents), lus comme les cases du panneau
 /// (`Point::de`) : chacun son nom, son etat (`fait`, `a_faire`, `en_attente`, `refuse`), sa phrase (l'infobulle) et le
-/// geste qu'ouvre un clic. Le contrat parti et pas revenu se note signe d'un clic (`contrat_recu`).
+/// geste qu'ouvre un clic. Le contrat ou l'avenant parti et pas revenu se note signe d'un clic (`contrat_recu`).
 fn carres(p: &Value) -> Value {
     let pt = Point::de(p, 0);
     let d = &p["etats"]["dpae"];
@@ -1577,12 +1586,23 @@ fn carres(p: &Value) -> Value {
     let (etat, phrase, geste) = match pt.contrat {
         "a_envoyer" => ("a_faire", "Contrat à envoyer".to_string(), action("faire_signer", "Demander la signature…".into())),
         "a_refaire" => ("a_faire", format!("Contrat parti {} : {}", le_jour(&s["fait"]), valeur_en_texte(&s["pourquoi"])), action("faire_signer", "Demander la signature…".into())),
+        // Un avenant parti, imprime ou par courriel, se note signe d'un clic, comme le contrat ; la relance est dans la
+        // boite des contrats en attente. `par` est celui du dernier depart, l'avenant attendu.
         "en_attente" if vrai(&s["avenant_attendu"]) => (
             "en_attente",
-            format!("Avenant n° {} parti {}, pas encore revenu signé", valeur_en_texte(&s["avenant"]["numero"]), le_jour(&s["avenant"]["quand"])),
-            action("faire_signer", "Relancer…".into()),
+            format!(
+                "Avenant n° {} {} {}",
+                valeur_en_texte(&s["avenant"]["numero"]),
+                if s["par"].as_str() == Some("imprime") { "imprimé" } else { "envoyé" },
+                le_jour(&s["avenant"]["quand"])
+            ),
+            noter_recu("Noter l'avenant signé", s["avenant"]["numero"].clone()),
         ),
-        "en_attente" => ("en_attente", format!("Contrat parti {}, pas encore revenu signé", le_jour(&s["fait"])), action("contrat_recu", "Noter le contrat signé".into())),
+        "en_attente" => (
+            "en_attente",
+            format!("Contrat {} {}", if s["par"].as_str() == Some("imprime") { "imprimé" } else { "envoyé" }, le_jour(&s["fait"])),
+            noter_recu("Noter le contrat signé", Value::Null),
+        ),
         _ if vrai(cdi) => ("fait", format!("CDI en cours depuis {}, sans terme : rien à envoyer", depuis), Value::Null),
         _ if !embauche => ("fait", format!("Contrat signé en {}", depuis), Value::Null),
         _ if !vrai(&p["spectacle"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),

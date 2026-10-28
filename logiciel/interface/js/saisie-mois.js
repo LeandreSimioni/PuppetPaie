@@ -169,7 +169,7 @@ function rafraichirApercu() {
   // s'assurer qu'aucune frappe ne reste dans la page seulement.
   enregistrerPlusTard();
   // Les etats, eux, ne coutent rien : ils sont deja lus. On les repeint tout
-  // de suite, parce que changer le salarie ou les jours change la paie que ce
+  // de suite, parce que changer le salarie ou les jours change l'engagement que ce
   // bloc DESIGNE -- et laisser 350 ms l'ancien etat sous le nouveau nom, c'est
   // exactement le mensonge qu'on veut eviter.
   peindreEtats();
@@ -247,7 +247,7 @@ async function calculerApercu(lu) {
              ? ` · ${echapper(p.emploi.libelle.toLowerCase())}${p.emploi.cadre ? " (cadre)" : ""}` : ""}
            · brut <b>${echapper(euros(p.brut))}</b>`
         : "";
-      // Ce que le moteur a à dire de CETTE paie, en deux tons (24/09/2026,
+      // Ce que le moteur a à dire de CET engagement, en deux tons (24/09/2026,
       // engagement.rs, Avis) : en orange ce qui demande quelque chose -- un
       // taux sous le SMIC --, en gris ce qui renseigne seulement -- un
       // contrat qui se poursuit le mois suivant, ou le minimum que notre
@@ -305,7 +305,7 @@ function avisDuBloc(part, liste = "avertissements") {
   });
 }
 
-/* LES PAIES D'UN APERÇU, RENDUES À LEUR BLOC. Un bloc qui porte trois
+/* LES ENGAGEMENTS D'UN APERÇU, RENDUES À LEUR BLOC. Un bloc qui porte trois
  * salariés cochés a produit TROIS engagements — `saisieCourante` les
  * démultiplie, parce que le moteur ne connaît qu'un salarié par engagement.
  * Compter un par bloc décalait donc tout ce qui suit dès le deuxième, et
@@ -320,10 +320,10 @@ function engagementsParBloc(a, blocs) {
   });
 }
 
-/* LA PAIE VALIDÉE, EN UNE LIGNE D'AGENDA (23/09/2026).
+/* L'ENGAGEMENT VALIDÉ, EN UNE LIGNE D'AGENDA.
  *
- * Validée, une paie ne se remplit plus : elle se PARCOURT. On y cherche,
- * dans cet ordre, quand (les jours travaillés, le repère d'une paie), qui
+ * Validé, un engagement ne se remplit plus : il se PARCOURT. On y cherche,
+ * dans cet ordre, quand (les jours travaillés, le repère d'un engagement), qui
  * et pour quoi, ce qui reste à faire (DPAE, contrat signé, documents), et
  * combien — le net seulement, ce qu'on vire ; brut et coût sont dans
  * l'aperçu à droite de l'écran, les répéter ici serait du bruit. Numéros
@@ -331,7 +331,7 @@ function engagementsParBloc(a, blocs) {
  * « Modifier… » rouvre la saisie entière (et « Retirer » avec elle).
  *
  * Deux sources, qui n'arrivent pas au même moment : l'aperçu du moteur
- * (`div._paies` : jours, ce qui est payé, net) et l'état de la paie
+ * (`div._paies` : jours, ce qui est payé, net) et l'état de l'engagement
  * (`div._ligne` : actes, validation). La ligne se repeint à l'arrivée de
  * chacune ; ce qui manque encore se tait. */
 function peindreCarte(div) {
@@ -375,11 +375,11 @@ function peindreCarte(div) {
       <button class="lien carte-imprevu" title="Un imprévu : un arrêt de travail, une absence…"
         aria-label="Un imprévu">&hellip;</button></span>`;
   // VOIR SANS MODIFIER (l'utilisateur, 29/09/2026) : relire les heures d'un
-  // service de répétition ne doit pas demander de rouvrir la paie. LA CARTE
+  // service de répétition ne doit pas demander de rouvrir l'engagement. LA CARTE
   // S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de « Voir le détail ».
   // « Modifier » est dans la boîte du détail.
   rendreOuvrable(cible, () => boiteDetail(div._ligne, div._paies || []), "Ouvrir le détail de la paie");
-  // LA PORTE DES IMPRÉVUS sur une paie validée (15/10/2026) : un arrêt ou
+  // LA PORTE DES IMPRÉVUS sur un engagement validé : un arrêt ou
   // une absence arrive souvent après la paie. js/imprevus.js.
   const porte = cible.querySelector(".carte-imprevu");
   porte.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); menuImprevu(porte, { div }); };
@@ -388,7 +388,7 @@ function peindreCarte(div) {
   if (frise) frise.onclick = (ev) => { ev.preventDefault(); ev.stopPropagation(); boiteFrise(ligne); };
 }
 
-/* UNE PAIE VALIDÉE QUI S'EST RECALCULÉE D'ELLE-MÊME : le moteur dit quand et pourquoi (`recalcul` de
+/* UN ENGAGEMENT VALIDÉ DONT LA PAIE S'EST RECALCULÉE D'ELLE-MÊME : le moteur dit quand et pourquoi (`recalcul` de
  * `etat-par-engagement`) ; la carte le montre tel quel. */
 function recalculDe(ligne) {
   return ligne && ligne.recalcul ? `<div class="encart carte-recalcul">${echapper(ligne.recalcul)}</div>` : "";
@@ -421,7 +421,7 @@ function boiteFrise(ligne) {
 /** Un jour d'une ligne, nu ou avec son propre lieu (`{"jour", "lieu"}`). */
 const jourEnClair = (x) => jjmmaaaa(jourDe(x)) + (x && typeof x === "object" && x.lieu ? ` (${x.lieu})` : "");
 
-/** Le détail d'une paie validée, en lecture : ce qui est payé ligne par
+/** Le détail d'un engagement validé, en lecture : ce qui est payé ligne par
  *  ligne, les jours, les montants. « Modifier… » dedans. */
 function boiteDetail(ligne, ps) {
   const nombre = (x) => (x === null || x === undefined || x === "") ? ""
@@ -625,7 +625,7 @@ function vueApercu(a) {
 /* ------------------------------------------------------- charger un mois */
 let MOIS_AFFICHE = null;        // le mois REELLEMENT charge dans l'ecran
 let AVANT_EMBAUCHE = null;      // la premiere embauche, quand ce mois passe la precede (rien n'y est dû), ou null
-/* UN MOIS DONT LA DSN NE SE REMPLACE PLUS (Léandre, 21/10/2026) : sa paie se modifie, mais la première modification
+/* UN MOIS DONT LA DSN NE SE REMPLACE PLUS : ses engagements se modifient, mais la première modification
  * demande confirmation, une fois par séance d'édition du mois. Le moteur refuse l'enregistrement sans elle
  * (`ModificationApresEcheance`) et dit ce qu'il faut savoir (`dsn_deposee` de la route `saisie`). */
 let DSN_DEPOSEE = null;         // ce que le moteur dit du mois déclaré (`dsn_deposee`), ou null
@@ -634,15 +634,15 @@ let CONFIRMATION_OUVERTE = null; // le mois dont la boîte de confirmation est o
 
 /** Le fichier en blocs : ce qui a été saisi d'un coup pour plusieurs
  *  salariés (saisieCourante) revient d'un coup — même spectacle, mêmes
- *  lignes, qui se suivent, et AUCUN validé. Une paie validée, elle, est
- *  déjà démultipliée : elle a son bloc, fermé, et n'absorbe rien. */
+ *  lignes, qui se suivent, et AUCUN validé. Un engagement validé, lui, est
+ *  déjà démultiplié : il a son bloc, fermé, et n'absorbe rien. */
 function regrouper(engagements) {
   const groupes = [];
   // UN BLOC NE REGROUPE QUE DES ENGAGEMENTS IDENTIQUES, au salarié près : le
   // formulaire montre un engagement et l'écrit pour chaque salarié coché.
   // Deux engagements qui diffèrent en quoi que ce soit — le motif de
   // recours de deux CDD aux mêmes bornes, un salaire, un numéro, un lieu
-  // propre à un jour — ont chacun leur bloc. Ni une paie validée.
+  // propre à un jour — ont chacun leur bloc. Ni un engagement validé.
   const empreinteDe = (e) => {
     const { salarie, ...reste } = e;
     return JSON.stringify(Object.keys(reste).sort().map((k) => [k, reste[k]]));
@@ -709,15 +709,15 @@ async function chargerMois(mois, repeint = false) {
   // ON PRÉCHARGE, PUIS ON AFFICHE (ticket #113, 02/10/2026) : « quand on
   // change de mois on arrive sur cette version toute ouverte alors que les
   // paies sont fermées en vert ». Un bloc naît ouvert ; il ne se replie
-  // qu'à l'arrivée de l'état de sa paie (`etat-par-engagement`). Le démarrage
+  // qu'à l'arrivée de l'état de son engagement (`etat-par-engagement`). Le démarrage
   // l'attendait déjà sous son voile (22/09/2026) ; un changement de mois ne
   // l'attendait pas. Les blocs restent donc cachés jusque-là, et l'on
   // arrive directement sur les cartes. La page ne devine pas elle-même ce
-  // qui est validé : une paie se lit validée aussi quand la DSN réelle du
+  // qui est validé : un engagement se lit validé aussi quand la DSN réelle du
   // mois est partie, et c'est le moteur qui le sait.
   //
-  // LES CARTES NAISSENT FERMÉES (16/10/2026) : une coque, que l'état de sa
-  // paie ouvre si elle n'est pas validée (`fermerEdition`, `ouvrirCarte`).
+  // LES CARTES NAISSENT FERMÉES (16/10/2026) : une coque, que l'état de son
+  // engagement ouvre s'il n'est pas validé (`fermerEdition`, `ouvrirCarte`).
   // Un repeint garde ouvertes celles qui l'étaient, et leurs dépliants.
   const avant = repeint ? [...cible.querySelectorAll(".engagement")] : [];
   const deplies = repeint ? avant.map((div) =>
@@ -763,7 +763,7 @@ async function chargerMois(mois, repeint = false) {
     cible.classList.remove("en-lecture");
   };
   setTimeout(montrer, 5000);
-  // Les contrats qui courent encore arrivent AVANT les etats des paies :
+  // Les contrats qui courent encore arrivent AVANT les etats des engagements :
   // ceux-ci se posent sur les blocs, et un bloc absent n'aurait rien ou se
   // poser.
   try {
@@ -790,7 +790,7 @@ async function chargerMois(mois, repeint = false) {
     // Les imprévus et les fins de contrat : ce qui est dû, et la ligne de
     // chaque imprévu sous sa carte (js/imprevus.js).
     dessinerImprevus(mois),
-    // Ou en est CHAQUE paie. Se lit apres le chargement des blocs : les etats
+    // Ou en est CHAQUE engagement. Se lit apres le chargement des blocs : les etats
     // se posent sur eux, et un bloc absent n'aurait rien ou se poser.
     dessinerEtatsDesEngagements(mois).finally(montrer),
   ];
@@ -802,7 +802,7 @@ async function chargerMois(mois, repeint = false) {
 }
 
 /** L'ÉTAT FRAIS D'UN MOIS DÉJÀ AFFICHÉ (ticket #212). Rien n'a changé : rien ne bouge. Sinon on repeint ce qui vient
- *  du moteur — les états des paies, les actes, les embauches, les imprévus, l'aperçu — sans refaire les
+ *  du moteur — les états des engagements, les actes, les embauches, les imprévus, l'aperçu — sans refaire les
  *  blocs ; ceux-ci ne se refont que si la saisie lue elle-même a changé (un fichier modifié hors de cette page), et
  *  jamais par-dessus une saisie en cours, qui reste ce qu'elle est et s'enregistre comme d'habitude. */
 async function repeindreLeMois(mois, ancien, frais) {
@@ -879,7 +879,7 @@ function majAvisDsn(mois) {
 }
 
 /** UN MOIS SAISI EN DÉMO, dans une compagnie gardée au déblocage (ticket #236) : la mention du moteur (route `etat`,
- *  `demo`) — ses paies n'ont été ni déclarées ni envoyées. Les pastilles disent ce qui reste à faire. */
+ *  `demo`) — ses engagements n'ont été ni déclarées ni envoyées. Les pastilles disent ce qui reste à faire. */
 function majAvisDemo(mois) {
   const avis = document.getElementById("avis-demo");
   const d = ETAT && ETAT.demo;
@@ -925,7 +925,7 @@ function confirmerModification(mois, texte, renvoyer) {
  * allaient avoir toutes les infos pour avoir les cases, qu'est-ce qui
  * manque ? »). Un mois tenu avant PuppetPaie n'a pas de fichier de paie : le
  * moteur le rend depuis l'historique importé (`importe` de la route `saisie`,
- * `mois_importe.rs`) — une carte par paie, comme celle d'une paie validée :
+ * `mois_importe.rs`) — une carte par paie, comme celle d'un engagement validé :
  * quand, qui et pour quoi, ses états, son net ; un clic sur la carte montre
  * chaque case remplie de ce que l'import a lu, avec d'où elle vient. Ce que
  * l'import n'a pas pu lire se dit sur la carte, case par case, et pourquoi —
@@ -1259,8 +1259,8 @@ async function enregistrerSaisieSeule(silencieux) {
     ETAT.historique = await api("etat").then((e) => e.historique);
     // Ce qui vient d'etre enregistre devient declarable : les blocs qui
     // disaient << pas dans la saisie enregistree >> doivent cesser de le dire,
-    // et la colonne << ce qui part >> compte desormais cette paie (elle
-    // disait << aucune paie ce mois-ci >> tant qu'on ne rechargeait pas).
+    // et la colonne << ce qui part >> compte cet engagement (elle
+    // dirait << aucun engagement ce mois-ci >> jusqu'au rechargement).
     await rafraichirActions();
     // La fin d'un contrat se lit sur la saisie ENREGISTRÉE : tant qu'elle
     // n'était pas relue ici, on tapait le motif de rupture et le bloc
@@ -1269,7 +1269,7 @@ async function enregistrerSaisieSeule(silencieux) {
     await dessinerImprevus(s.mois);
     return true;
   } catch (e) {
-    // Une paie dont on n'a pas encore choisi les jours n'est pas une faute :
+    // Un engagement dont on n'a pas encore choisi les jours n'est pas une faute :
     // c'est la saisie en cours. On le dit en une ligne, sans la règle du
     // fichier (« lignes: [] ») ni d'alerte (30/09/2026).
     // Ce que la norme ne permet pas de déclarer après la limite (un contrat déclaré retiré, des dates qui le sortent

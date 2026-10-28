@@ -196,7 +196,19 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
                 Some(c) => (Some(c), mois.clone()),
                 None => (mois.clone(), None),
             };
-            d.noter(cle, numero, Depart { envoi, mois: m, par, version, le: le.clone() });
+            // Un avenant : la ligne du journal le dit (`acte`), et son contrat porte son numero.
+            let avenant = (envoi == Envoi::Contrat && l.pointer("/detail/acte").and_then(Value::as_str) == Some("avenant"))
+                .then(|| {
+                    l.pointer("/detail/contrats")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                        .find(|c| c.get("salarie").and_then(Value::as_str) == Some(cle) && c.get("numero").and_then(Value::as_str) == Some(numero))
+                        .and_then(|c| c.get("avenant"))
+                        .map(socle::valeur::valeur_en_texte)
+                })
+                .flatten();
+            d.noter(cle, numero, Depart { envoi, mois: m, par, avenant, version, le: le.clone() });
         }
     }
     d

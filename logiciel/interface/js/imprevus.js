@@ -12,7 +12,7 @@
    LA FORME, EN TROIS ENDROITS, ET PAS UN DE PLUS :
 
    - LA PORTE est sur la carte de l'engagement : « Un imprévu… » (et « … »
-     sur une paie validée). Elle propose un arrêt de travail, une absence
+     sur un engagement validé). Elle propose un arrêt de travail, une absence
      (congé parental, sans solde, sabbatique… : une suspension du contrat,
      bloc 65), et, quand la carte sait déjà dire une fin, la rupture avant
      terme — qui n'est pas une boîte de plus : elle ouvre le « Contrat » de
@@ -247,8 +247,8 @@ function brancherFin(r, mois, f) {
 /* --------------------------------------------------------- LA PORTE
    Sur la carte d'un engagement, quand elle porte UN salarié (plusieurs
    cochés, c'est une saisie en cours : on ne sait pas encore de qui on
-   parle). « Un imprévu… » au pied d'une carte ouverte, « … » sur une paie
-   validée. */
+   parle). « Un imprévu… » au pied d'une carte ouverte, « … » sur un engagement
+   validé. */
 function majPorteImprevu(div) {
   const b = div.querySelector(".e-imprevu-btn");
   if (b) b.hidden = salariesDuBloc(div).length !== 1;
@@ -266,9 +266,9 @@ function carteDe(div) {
 
 /** La rupture a-t-elle un sens d'ici ? Seulement quand la carte sait déjà la dire : une nature qui a des motifs de
  *  rupture (le moteur les donne, `natures`), une fin qu'on peut écrire (un contrat payé au mois, ou des bornes déjà
- *  écrites), et une paie ouverte. Sinon on ne l'invente pas. */
+ *  écrites), et un engagement ouvert. Sinon on ne l'invente pas. */
 function ruptureOuverte(div) {
-  if (carteFermee(div) || div.classList.contains("validee")) return null;    // une carte fermée, une paie validée
+  if (carteFermee(div) || div.classList.contains("validee")) return null;    // une carte fermée, un engagement validé
   const nat = natureDe(div.querySelector(".e-nature").value);
   if (!(nat.motifs_rupture || []).length) return null;
   if (!nat.mensuelle && !div.querySelector(".e-fin").value) return null;

@@ -297,7 +297,7 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 /* Un mois ferme (DSN due) : on lit, on ne touche pas. */
 #engagements.lecture-seule { pointer-events: none; }
 #engagements.lecture-seule .engagement:not(.validee) { opacity: .75; }
-/* ... mais la carte d'une paie se LIT : elle s'ouvre d'un clic, et les pastilles
+/* ... mais la carte d'un engagement se LIT : elle s'ouvre d'un clic, et les pastilles
    répondent (30/09/2026). Sans ça, rien d'un mois passé ne s'ouvrait, ni le
    contrat ni la DPAE ; « Modifier… », dans le détail, reste caché tant que
    le mois n'est pas rouvert. */
@@ -327,7 +327,7 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .engagement .e-cadre-bloc { display: flex; align-items: center; height: 30px; white-space: nowrap; font-size: 12px; gap: 4px; }
 .engagement .e-cadre-bloc input { width: auto; margin: 0; }
 .engagement .e-cadre-bloc[hidden] { display: none; }
-/* L'avis du moteur sur CETTE paie (minimum conventionnel...) : un encart
+/* L'avis du moteur sur CET engagement (minimum conventionnel...) : un encart
    orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
 .engagement .avis .avis-engagement { margin-top: 6px; font-size: 12px; }
 .engagement.validee .avis { display: none; }
@@ -385,7 +385,7 @@ tr.total td { font-weight: bold; border-top: 2px solid var(--texte); border-bott
 /* CE QUI RENSEIGNE SANS RIEN DEMANDER (24/09/2026, engagement.rs, Avis) : un
    contrat qui se poursuit le mois suivant n'est pas une alerte. En gris. */
 .encart.info { color: var(--discret); }
-/* UN AVERTISSEMENT QUI DEMANDE UNE RÉPONSE (21/10/2026 : modifier la paie d'un mois dont la DSN ne se remplace plus) :
+/* UN AVERTISSEMENT QUI DEMANDE UNE RÉPONSE (modifier un engagement d'un mois dont la DSN ne se remplace plus) :
    il se voit, il ne se lit pas en passant. */
 .encart.grave {
   border-left: 6px solid var(--alerte); background: var(--alerte-fond); color: var(--texte);
@@ -719,7 +719,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .message {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
   background: var(--texte); color: var(--blanc); padding: 10px 20px;
-  border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw;
+  border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw; overflow-wrap: anywhere;
 }
 .message.erreur { background: var(--erreur); }
 /* Ce qui est parti : en vert, coché. */
@@ -1066,7 +1066,7 @@ pre.reponse {
 .choix .gestes-contrat { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 480px) { .choix:has(.gestes-contrat) { flex-wrap: wrap; } .choix .gestes-contrat { margin-left: 0; } }
 
-/* ------------------------------------------------------- l'écran par paie
+/* ------------------------------------------------------- l'écran par engagement
    Chaque engagement porte désormais son état. Le bandeau est SOUS la ligne
    résolue, et pas au-dessus : on lit d'abord ce qu'on saisit, puis ce qui en
    est parti. L'ordre inverse ferait d'un formulaire un tableau de bord, et
@@ -1133,7 +1133,7 @@ pre.reponse {
 .engagement-non-actif .na-ligne { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .mot-etat { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--discret); }
 
-/* --------------------------------------------- une paie validée est verte
+/* --------------------------------------------- un engagement validé est vert
    « On valide, c'est vert, normalement on n'y revient pas, édition bloquée
    temporairement avec un bouton pour modifier avec avertissement. »
 
@@ -1161,7 +1161,7 @@ pre.reponse {
 .validation.faite { border-top-color: var(--succes-trait); color: var(--succes); }
 .validation.faite b { color: var(--succes); }
 
-/* LA SAISIE D'UNE PAIE (23/09/2026), dans l'ordre où l'on remplit :
+/* LA SAISIE D'UN ENGAGEMENT, dans l'ordre où l'on remplit :
    qui et quel spectacle en tête, les lignes de paie (jours d'abord), le net
    en une ligne ; viser un montant et « Plus d'options » repliés ; en bas,
    les pastilles, « Retirer » et « Valider ». Voir ligneEngagement(). */
@@ -1230,7 +1230,7 @@ pre.reponse {
 .rubrique .r-lieu-jour-l[hidden] { display: none; }
 .rubrique .r-lieu-jour-l { display: inline-flex; align-items: baseline; gap: 4px; }
 .rubrique .r-lieu-jour { display: inline-block; width: 10rem; padding: .2rem .4rem; }
-/* UNE PAIE VALIDÉE QUI S'EST RECALCULÉE D'ELLE-MÊME : la carte dit quand et pourquoi. */
+/* UN ENGAGEMENT VALIDÉ DONT LA PAIE S'EST RECALCULÉE D'ELLE-MÊME : la carte dit quand et pourquoi. */
 .carte-recalcul { grid-column: 1 / -1; margin-top: 4px; }
 .engagement:not(.validee) .resolu,
 .engagement:not(.validee) .etats-qui { display: none; }
@@ -1239,7 +1239,7 @@ pre.reponse {
   .engagement:not(.validee) .rubrique { grid-template-columns: 1fr 1fr; }
 }
 
-/* LA PAIE VALIDÉE, EN UNE LIGNE D'AGENDA (23/09/2026) -- voir peindreCarte().
+/* L'ENGAGEMENT VALIDÉ, EN UNE LIGNE D'AGENDA -- voir peindreCarte().
    Quand | qui et pour quoi | ce qui reste à faire | le net | Modifier.
    Toute la saisie se replie, les états aussi : la ligne les porte. */
 .engagement.validee { padding: 0; background: var(--carte); }
@@ -1290,7 +1290,7 @@ pre.reponse {
 .acte-derniers { margin: 4px 0 6px; padding-left: 8px; border-left: 2px solid var(--bord); }
 .acte-dernier { font-size: 12px; color: var(--discret); margin: 2px 0; }
 
-/* Une paie validée ne répète pas sa saisie : la ligne « bulletin 34/2026 ·
+/* Un engagement validé ne répète pas sa saisie : la ligne « bulletin 34/2026 ·
    contrat … · 1 Cachet · brut 130,00 € » dit déjà tout, et les champs fermés
    au-dessus alourdissaient la page (l'éditeur, 13/09/2026). Ils sont masqués,
    pas retirés : « Modifier… » retire la classe et ils reviennent tels quels. */

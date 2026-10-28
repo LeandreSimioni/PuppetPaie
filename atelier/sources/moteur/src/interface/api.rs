@@ -114,7 +114,22 @@ pub fn ouvrir(chemin: &Path) -> Result<(), String> {
     let r = Command::new("open").arg(chemin).spawn();
     #[cfg(all(unix, not(target_os = "macos")))]
     let r = Command::new("xdg-open").arg(chemin).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
-    r.map(|_| ()).map_err(|e| format!("Impossible d'ouvrir {} : {}.", chemin.display(), e))
+    r.map(|_| ()).map_err(|e| pas_ouvert(chemin, &e))
+}
+
+/// Ce que dit un fichier qu'aucun programme du poste n'a ouvert : s'il est ecrit, ou il est ; sinon, qu'il manque.
+fn pas_ouvert(chemin: &Path, e: &std::io::Error) -> String {
+    if !chemin.exists() {
+        return format!("{} n'existe pas : rien à ouvrir ({}).", chemin.display(), e);
+    }
+    let quoi = if chemin.is_dir() {
+        "Le dossier"
+    } else if chemin.extension().is_some_and(|x| x.eq_ignore_ascii_case("pdf")) {
+        "Le PDF"
+    } else {
+        "Le fichier"
+    };
+    format!("{} est là : {}. Aucun programme du poste ne l'a ouvert.", quoi, chemin.display())
 }
 
 /// Un chemin tel que l'explorateur de Windows le comprend : rien que des barres inverses.

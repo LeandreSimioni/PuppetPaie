@@ -1,5 +1,5 @@
 //! Le catalogue des rubriques contre `catalogue.json` : le catalogue de chaque racine de `tests/donnees/racines/` (ce que
-//! la compagnie ajuste, ajoute, ordonne ; ses rubriques datees, lues a la date), ses refus, les heures d'une rubrique,
+//! la compagnie ajuste et ajoute ; ses rubriques datees, lues a la date), ses refus, les heures d'une rubrique,
 //! les annexes.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
@@ -24,7 +24,7 @@ fn en_json(r: &Rubrique) -> Value {
         "salaire_de_base": r.salaire_de_base, "retabli": r.retabli,
         "suspension": r.suspension, "arret_de_travail": r.arret_de_travail,
         "conges_pris": r.conges_pris, "dsn_bloc52": r.dsn_bloc52,
-        "origine": r.origine, "usages": r.usages, "active": r.active,
+        "origine": r.origine,
     })
 }
 

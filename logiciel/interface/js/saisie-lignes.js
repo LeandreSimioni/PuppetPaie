@@ -9,8 +9,7 @@ function rubriqueDe(code) {
   return (ETAT.rubriques || []).find((r) => r.code === code);
 }
 
-/** Le déroulant des rubriques : les cochées d'abord, le moteur a déjà trié.
- *  Un trait sépare ce que la compagnie utilise du reste, qui reste offert. */
+/** Le déroulant des rubriques, dans l'ordre où le moteur les rend. */
 function optionsRubriques(choisie, nat) {
   // CE QUI S'APPLIQUE À LA NATURE DU CONTRAT (30/09/2026, « si compagnie
   // simple, interface simple »). Le moteur dit à quelle forme de paie chaque
@@ -20,13 +19,8 @@ function optionsRubriques(choisie, nat) {
   // reste toujours offerte : une saisie ne change pas sous les doigts.
   const forme = nat ? (nat.mensuelle ? "mensuelle" : "activite") : null;
   const propose = (r) => !forme || !r.reservee_a || r.reservee_a === forme || r.code === choisie;
-  const actives = (ETAT.rubriques || []).filter((r) => r.active && propose(r));
-  const autres = (ETAT.rubriques || []).filter((r) => !r.active && propose(r));
-  const opt = (r) => `<option value="${echapper(r.code)}" ${r.code === choisie ? "selected" : ""}>
-      ${echapper(r.libelle)}</option>`;
-  if (!actives.length) return autres.map(opt).join("");
-  return actives.map(opt).join("")
-    + `<optgroup label="── autres rubriques ──">` + autres.map(opt).join("") + `</optgroup>`;
+  return (ETAT.rubriques || []).filter(propose).map((r) => `<option value="${echapper(r.code)}" ${r.code === choisie ? "selected" : ""}>
+      ${echapper(r.libelle)}</option>`).join("");
 }
 
 /* LES LISTES COMMUNES SE FABRIQUENT UNE FOIS (16/10/2026). Les rubriques, les
@@ -103,7 +97,7 @@ function ligneRubrique(l = {}, nat) {
      sont une constante du règlement. Ce qui reste en mots : « à » et « € »,
      les deux seuls qui disent lequel des nombres est le taux. */
   div.innerHTML = `
-    <!-- LES JOURS D'ABORD (23/09/2026) : ce sont eux qui situent la paie et
+    <!-- LES JOURS D'ABORD (23/09/2026) : ce sont eux qui situent l'engagement et
          qui comptent les cachets. -->
     <button type="button" class="r-jours-btn" title="cocher les jours dans le calendrier">—</button>
     <input class="r-quantite" type="number" min="0" step="0.5" placeholder="qté"
@@ -719,20 +713,20 @@ function poserSpectacles(select) {
  *  deux lieux dans le même mois.
  *
  *  LE SPECTACLE N'EST PAS TRAITÉ COMME LES AUTRES, et c'est délibéré. Le lieu
- *  et le taux se répètent d'une paie à l'autre : ils ont un défaut de mois, et
+ *  et le taux se répètent d'un engagement à l'autre : ils ont un défaut de mois, et
  *  l'engagement s'en écarte quand il le faut. Le spectacle, lui, EST la raison
- *  d'avoir plusieurs paies — un contrat porte un numéro d'objet, donc un
+ *  d'avoir plusieurs engagements — un contrat porte un numéro d'objet, donc un
  *  spectacle, et le mois en compte plusieurs. Il est donc une case de cet
  *  engagement, toujours visible, sans défaut et sans héritage. */
 /* LA CARTE NAÎT FERMÉE (Léandre, 16/10/2026 : « la base, ça doit être la carte
  * fermée, pas ouverte ; on affiche l'ouverte que quand on clique dessus »).
  * Une carte lue dans le fichier du mois (`chargerMois`) naît COQUE : ce qui se
- * voit d'une paie validée (`.e-resume`, ses imprévus, ses états) et ce que
- * l'aperçu y peint — la carte figée que le moteur rend pour une paie validée.
+ * voit d'un engagement validé (`.e-resume`, ses imprévus, ses états) et ce que
+ * l'aperçu y peint — la carte figée que le moteur rend pour un engagement validé.
  * Elle sait seulement quels engagements du fichier elle montre (`data-rangs`) :
  * tant que son formulaire n'existe pas, rien ne la modifie, et elle les écrit
  * tels quels (`engagementsDuBloc`). Son formulaire se construit à la première
- * occasion qui l'ouvre — l'état de sa paie dit qu'elle n'est pas validée, on
+ * occasion qui l'ouvre — l'état de son engagement dit qu'il n'est pas validé, on
  * la rouvre par « Modifier… », les états tardent (`fermerEdition`,
  * `ouvrirCarte`) — et il reste construit tant que la carte vit ; dès lors
  * c'est lui qui écrit. Naissent ouvertes : une carte neuve (« Ajouter un
@@ -743,17 +737,17 @@ function ligneEngagement(e = {}, { fermee = false } = {}) {
   div.className = "engagement";
   div.innerHTML = `
     <div class="resolu"></div>
-    <!-- LA PAIE VALIDÉE, EN UNE LIGNE (23/09/2026) : quand, qui, pour
+    <!-- L'ENGAGEMENT VALIDÉ, EN UNE LIGNE : quand, qui, pour
          quoi, ce qui reste à faire, le net. Voir peindreCarte(). -->
     <div class="e-resume"></div>
     <!-- SES IMPRÉVUS DU MOIS (15/10/2026) : une ligne par arrêt ou absence
          qui touche ce contrat, avec ses gestes et les jours payés pendant
-         l'imprévu. Vide le plus souvent. Visible aussi sur une paie validée. -->
+         l'imprévu. Vide le plus souvent. Visible aussi sur un engagement validé. -->
     <div class="e-imprevus"></div>
     <div class="avis"></div>
     <div class="etats"></div>`;
-  // Le numéro et ce qu'il faut pour reconnaître la paie de la carte : posés
-  // dès la coque, l'état de la paie s'y retrouve avant toute ouverture.
+  // Le numéro et ce qu'il faut pour reconnaître l'engagement de la carte : posés
+  // dès la coque, l'état de l'engagement s'y retrouve avant toute ouverture.
   div.dataset.numero = e.numero || "";
   // À qui ce numéro appartient : un salarié coché en plus n'en hérite pas.
   div.dataset.numeroDe = e.numero ? (e.salarie || "") : "";
@@ -779,7 +773,7 @@ function ouvrirCarte(div) {
 
 /** Les salariés à cocher d'une carte : la liste commune, cochée pour `voulus`,
  *  et un salarié du fichier absent des actifs (fiche mise de côté) garde sa
- *  case, cochée : on ne perd pas une paie parce qu'on a archivé quelqu'un. */
+ *  case, cochée : on ne perd pas un engagement parce qu'on a archivé quelqu'un. */
 function poserQui(liste, voulus) {
   const actifs = ETAT.salaries || [];
   const connus = new Set(actifs.map((s) => s.cle));
@@ -812,7 +806,7 @@ function construireCarte(div, e) {
   div.insertAdjacentHTML("afterbegin", `
     <div class="ligne1">
       <!-- Pas de « + » ici : une fiche neuve se crée dans Configuration.
-           La saisie d'une paie doit rester simple et agréable ; on y choisit,
+           La saisie d'un engagement doit rester simple et agréable ; on y choisit,
            on n'y administre pas (13/09/2026). -->
       <div class="champ">Salarié
         <details class="e-qui">
@@ -1624,8 +1618,8 @@ async function poserContratsEnCours(mois) {
       + (auMois ? "." : ` — poser leurs jours de ${moisEnClair(mois)}.`));
 }
 
-/** Ce qu'une paie dit d'elle-même en une ligne : son spectacle, ou — quand
- *  elle n'en a pas, parce que c'est un permanent — la nature de son contrat.
+/** Ce qu'un engagement dit de lui-même en une ligne : son spectacle, ou — quand
+ *  il n'en a pas, parce que c'est un permanent — la nature de son contrat.
  *  « — » tout seul derrière un nom, c'est un écran qui a l'air cassé. */
 function pourQuoi(ligne) {
   return ligne.spectacle || ligne.nature || "";
@@ -1636,7 +1630,7 @@ function pourQuoi(ligne) {
  * exemple 3 petits points ou une flèche ». Une pastille : les mois du
  * contrat, et une flèche du côté où il déborde du mois affiché — à gauche
  * s'il a commencé avant, à droite s'il se poursuit après ; ses dates en
- * infobulle. Tout vient du moteur, `contrat` d'une paie de l'aperçu ou d'une
+ * infobulle. Tout vient du moteur, `contrat` d'un engagement de l'aperçu ou d'une
  * ligne des états du mois (`premier_mois`, `dernier_mois`, `depuis`,
  * `jusqu_a`), avec le début et la fin du contrat : la page ne compare aucune
  * date. Un contrat sans terme (un CDI) n'en porte pas : il dure, il n'est

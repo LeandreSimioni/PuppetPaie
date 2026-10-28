@@ -5,7 +5,7 @@
 
 use serde_json::{json, Map, Value};
 
-use crate::departs::{Departs, Envoi};
+use crate::departs::{Depart, Departs, Envoi};
 use crate::etats::{ses_departs, Valide};
 use crate::stock::SUITE;
 use droit::contexte::Contexte;
@@ -156,6 +156,18 @@ pub fn changements(ctx: &Contexte, avant: &Value, apres: &Value) -> Vec<String> 
     out
 }
 
+/// CE QUI A CHANGE DEPUIS LA VERSION `n` de l'engagement valide `v` jusqu'a son present, en mots (`changements`) : ce
+/// que dit la frise, et ce que dit le renvoi des documents partis sur la version `n`. Vide si `n` est le present ou ne se
+/// lit pas.
+pub fn depuis(ctx: &Contexte, v: &Valide, n: u64) -> Vec<String> {
+    match (v.version_numero(n), v.objet().brut.get("valide")) {
+        (Some(passee), Some(present)) if v.version() != Some(n) => {
+            changements(ctx, passee.get("saisie").unwrap_or(&Value::Null), present.get("saisie").unwrap_or(&Value::Null))
+        }
+        _ => Vec::new(),
+    }
+}
+
 fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, Value>) -> Vec<String> {
     let mut out = Vec::new();
     let ((da, fa), (db, fb)) = (bornes(a), bornes(b));
@@ -215,9 +227,10 @@ fn changements_du_mois(ctx: &Contexte, a: &Map<String, Value>, b: &Map<String, V
     out
 }
 
-/// Un depart en mots, sans sa date : « le contrat », « la DPAE », « les documents de novembre 2026 ».
-pub(crate) fn quoi_du_depart(envoi: Envoi, mois: Option<&str>) -> String {
-    match (envoi, mois) {
+/// Un depart en mots, sans sa date : « le contrat », « l'avenant n° 1 », « la DPAE », « les documents de novembre 2026 ».
+pub(crate) fn quoi_du_depart(d: &Depart) -> String {
+    match (d.envoi, d.mois.as_deref()) {
+        (Envoi::Contrat, _) if d.avenant.is_some() => format!("l'avenant n° {}", d.avenant.as_deref().unwrap_or_default()),
         (Envoi::Contrat, _) => "le contrat".to_string(),
         (Envoi::Dpae, _) => "la DPAE".to_string(),
         (Envoi::Documents, Some(m)) => format!("les documents de {}", crate::libelle_mois(m)),
@@ -227,12 +240,15 @@ pub(crate) fn quoi_du_depart(envoi: Envoi, mois: Option<&str>) -> String {
     }
 }
 
-/// « du contrat », « de la DPAE », « des documents de novembre 2026 » : le complement d'« après l'envoi ».
+/// « du contrat », « de la DPAE », « des documents de novembre 2026 », « d'un signalement », « de l'avenant n° 1 » :
+/// le complement d'« après l'envoi », élidé devant une voyelle.
 fn complement(quoi: &str) -> String {
     if let Some(r) = quoi.strip_prefix("le ") {
         format!("du {}", r)
     } else if let Some(r) = quoi.strip_prefix("les ") {
         format!("des {}", r)
+    } else if quoi.starts_with(['a', 'e', 'i', 'o', 'u', 'é', 'h']) {
+        format!("d'{}", quoi)
     } else {
         format!("de {}", quoi)
     }
@@ -270,7 +286,7 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs) -> Option<Value> {
         let mut partis: Vec<String> = siens
             .iter()
             .filter(|d| Some(d.version) == n)
-            .map(|d| format!("{}, le {}", quoi_du_depart(d.envoi, d.mois.as_deref()), jour_court(&d.le)))
+            .map(|d| format!("{}, le {}", quoi_du_depart(d), jour_court(&d.le)))
             .collect();
         partis.dedup();
         let changes = precedente.map_or_else(Vec::new, |p| changements(ctx, p.get("saisie").unwrap_or(&Value::Null), x.get("saisie").unwrap_or(&Value::Null)));
@@ -279,7 +295,7 @@ pub fn frise(ctx: &Contexte, v: &Valide, departs: &Departs) -> Option<Value> {
     }
     // CE QUI ETAIT PARTI quand l'engagement a change pour la derniere fois : les envois de la version d'avant.
     let avant = numero(toutes[toutes.len() - 2].0);
-    let mut quoi: Vec<String> = siens.iter().filter(|d| Some(d.version) == avant).map(|d| complement(&quoi_du_depart(d.envoi, d.mois.as_deref()))).collect();
+    let mut quoi: Vec<String> = siens.iter().filter(|d| Some(d.version) == avant).map(|d| complement(&quoi_du_depart(d))).collect();
     quoi.dedup();
     let phrase = if quoi.is_empty() {
         format!("Modifié le {}", jour_court(v.le()))
