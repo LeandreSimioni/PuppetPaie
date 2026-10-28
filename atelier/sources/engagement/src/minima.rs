@@ -1005,6 +1005,7 @@ pub(crate) fn saisies_de(paie: &Paie) -> Vec<&Value> {
 
 /// Le minimum conventionnel de la ligne `i` de la remuneration de cette paie, tel que `avertissements` le compare
 /// (les conseils de saisie s'en servent pour ne jamais proposer moins que lui ; `conseils::de_saisie`).
+#[cfg(feature = "ecran")]
 pub(crate) fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resultat<Option<Minimum>> {
     let Some(l) = paie.remuneration.get(i) else { return Ok(None) };
     let saisie = saisies_de(paie)[i];
@@ -1022,6 +1023,7 @@ pub(crate) fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resu
 /// pour une autre convention (la CCNEAC paie la repetition par service : `kali-1285-x3-remuneration-artistes-20260929.md`).
 /// L'annexe de l'entreprise inconnue : le plus HAUT des cachets possibles, pour qu'un conseil ne propose jamais moins
 /// que le minimum de la bonne annexe.
+#[cfg(feature = "ecran")]
 pub(crate) fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Option<Minimum>> {
     avec_cx(ctx, paie, |cx| {
         if cx.idcc != "3090" || texte_de(cx.m, "statut") != "artiste" {

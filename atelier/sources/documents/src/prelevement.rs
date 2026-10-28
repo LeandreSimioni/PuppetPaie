@@ -37,7 +37,7 @@ fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus) -> Result<Option<Verse
         engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle.as_str()) && b.get("numero").map(en_texte).as_deref() == Some(numero.as_str())
     });
     let Some(o) = objet else { return Ok(None) };
-    Ok(engagement::etats::paie_declaree(ctx, o, departs, &mois)?.and_then(|p| p.pas))
+    Ok(engagement::etats::paie_declaree(ctx, o, departs, &mois)?.and_then(|p| p.pas.clone()))
 }
 
 /// Ce que `deja_declare` a lu une fois pour toutes les paies : ce qui est parti, et les engagements de chaque mois.

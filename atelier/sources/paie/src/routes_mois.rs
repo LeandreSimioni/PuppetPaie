@@ -428,43 +428,13 @@ impl<'a> Moteur<'a> {
     /// `operations_paies.charger(ctx, fichier)` sans calculer la paie.
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
         let data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
-        let engs = engagement::engagements_de_la_saisie(self.ctx, &data).map_err(classer_saisie)?;
         let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
-        // Le salarie, son emploi et son spectacle d'abord, pour tous les
-        // engagements (ce que le calcul lit avant de suivre les contrats) ; puis
-        // le contrat qui deborde du mois reprend le numero de son premier mois.
-        let mut paies = Vec::new();
-        for e in &engs {
-            paies.push(engagement::embauche(self.ctx, e).map_err(plain)?);
-        }
-        for p in paies.iter_mut() {
-            engagement::suivre_contrat(self.ctx, &mut p.engagement).map_err(classer_saisie)?;
-        }
+        let mut paies = engagement::embauches_suivies(self.ctx, &data).map_err(classer_saisie)?;
         let annee: i32 = mois_dit.get(..4).and_then(|a| a.parse().ok()).ok_or_else(|| {
             erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(mois_dit.get(..4).unwrap_or(&mois_dit))))
         })?;
-        self.numeroter(&mut paies, annee)?;
+        engagement::numeros::numeroter_les_contrats(self.ctx, &mut paies, annee).map_err(plain)?;
         Ok(SaisieMois { data, paies })
-    }
-
-    /// `engagement.numeroter`, la part des numeros de CONTRAT : un engagement qui porte deja son numero le garde ; les
-    /// autres prennent la suite des numeros deja pris pour leur salarie (`engagement::numeros::derniers_pris`), en
-    /// memoire (rien n'est ecrit). Un mois qui n'est pas le premier du contrat n'en recoit pas : son numero est celui de
-    /// l'engagement, ecrit a sa validation (`engagement::refus_sans_numero`).
-    fn numeroter(&mut self, paies: &mut [Paie], annee: i32) -> R<()> {
-        let mut pris: Option<HashMap<String, i64>> = None;
-        for p in paies.iter_mut() {
-            if p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) || !p.engagement.premier_mois().map_err(plain)? {
-                continue;
-            }
-            if pris.is_none() {
-                pris = Some(engagement::numeros::derniers_pris(self.ctx, annee).map_err(plain)?);
-            }
-            let dernier = pris.as_mut().unwrap().entry(texte_de(requis(&p.salarie, "_cle")?)).or_insert(0);
-            *dernier += 1;
-            p.engagement.numero = Some(engagement::numeros::former(&p.salarie, annee, *dernier).map_err(plain)?);
-        }
-        Ok(())
     }
 
     // --------------------------------------------- ce que le journal et la saisie disent

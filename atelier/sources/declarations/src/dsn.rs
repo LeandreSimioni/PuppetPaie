@@ -1746,7 +1746,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     if vrai(g(s, "statut_boeth")) {
         si_admise(f, nature_dsn, "S21.G00.40.072", Some(en_texte(&s["statut_boeth"])))?;
     }
-    proratisation_du_plafond(f, p, ent, nature_dsn)?;
+    proratisation_du_plafond(f, p, nature_dsn)?;
     // S21.G00.40.086 (« Adhesion a une caisse de conges payes a titre obligatoire ») ne s'ecrit pas : « A ne pas
     // renseigner pour la version de norme P27V01 » (journal de maintenance 2027.1.2, evolution 17,
     // `atelier/reference/norme-dsn/dsn-journal-maintenance-2027.1.2-20260615.txt` l. 368-381), absente de P26V01. Le lot
@@ -1856,22 +1856,22 @@ declare {} h ; ses quatre heures sont des heures supplementaires, payees comme t
 /// (`dsn-journal-maintenance-2027.1.2-20260615.txt`) la rend CONDITIONNELLE en DSN mensuelle (evolution 21, l. 433-452 :
 /// O -> C) et retire sa CCH-12 (evolution 16, l. 347-366) : elle ne s'ecrit plus pour un temps plein ni pour un contrat
 /// d'usage. Interdite en FCTU (I), conditionnelle en amorcage (C),
-/// absente de la table P26V01 : la table de la version du fichier decide. Elle dit ce que le calcul fait
-/// (`calcul::plafond_temps_partiel`, la meme lecture) :
+/// absente de la table P26V01 : la table de la version du fichier decide. Elle dit ce que le calcul a fait, tel que la
+/// paie le porte (`Paie::plafond_temps_partiel`) :
 /// - temps partiel, plafond proratise (la regle, fiche net-entreprises 3369) : 01 ;
 /// - temps partiel, l'etablissement renonce (fiche entreprise, `plafond_temps_partiel` = « entier ») : 02 (fiche 3369) ;
 /// - temps partiel d'un artiste, exclu de la proratisation (L. 242-10, 1° ; BOSS § 1090) : 02. INFERENCE : la norme ne
 ///   dit rien d'un salarie que la loi exclut ; 02 (« Non ») est ce que le calcul fait, le plafond entier ;
 /// - temps plein, contrat d'usage : rien.
 /// Le forfait jour reduit (40.011 = 20) n'existe pas dans le moteur (aucune nature ne l'a) : un cas a porter.
-fn proratisation_du_plafond(f: &mut Fichier, p: &Paie, ent: &Value, nature_dsn: &str) -> Resultat<()> {
+fn proratisation_du_plafond(f: &mut Fichier, p: &Paie, nature_dsn: &str) -> Resultat<()> {
     use engagement::calcul::PlafondTempsPartiel as P;
     let r = "S21.G00.40.084";
     let usage = crate::usages::usage_en(f.norme()?, r, nature_dsn)?;
     if usage != "O" && usage != "C" {
         return Ok(());
     }
-    let valeur = match p.plafond_temps_partiel(ent)? {
+    let valeur = match p.plafond_temps_partiel {
         P::Proratise => Some("01"),
         P::Entier | P::Exclu => Some("02"),
         P::NonConcerne => None,

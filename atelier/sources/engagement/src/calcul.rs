@@ -226,8 +226,21 @@ fn reintegrations(lignes: &[LigneCotisation]) -> Decimal {
     csg_nd + lignes.iter().filter(|l| l.id == "mutuelle").fold(zero, |a, l| a + l.montant_pat)
 }
 
+/// Une paie d'un engagement : ce que son calcul a produit, ou sa forme ecrite relue (`relire`). Elle se lit partout, ce
+/// qu'elle porte a travers `Contenu` ; elle ne se construit et ne s'ecrit que dans cette crate, qui seule calcule.
 #[derive(Debug, Clone)]
-pub struct Paie {
+pub struct Paie(Contenu);
+
+impl std::ops::Deref for Paie {
+    type Target = Contenu;
+    fn deref(&self) -> &Contenu {
+        &self.0
+    }
+}
+
+/// Ce qu'une paie porte. Se lit a travers `Paie` ; un `Contenu` construit hors de cette crate ne devient jamais une paie.
+#[derive(Debug, Clone)]
+pub struct Contenu {
     pub engagement: Engagement,
     pub salarie: Value,
     pub spectacle: Value,
@@ -273,24 +286,41 @@ pub struct Paie {
     /// Le compteur de conges payes que le bulletin montre (`conges::compteur_au_bulletin`), tel que la validation l'a
     /// ecrit ; `None` pour une paie que rien n'a encore validee, et pour un contrat sans compteur de l'employeur.
     pub conges: Option<crate::conges::CompteurConges>,
+    /// Le plafond d'un salarie a temps partiel (`plafond_temps_partiel`), tel que le calcul l'a applique : ce que la DSN
+    /// declare en S21.G00.40.084.
+    pub plafond_temps_partiel: PlafondTempsPartiel,
 }
 
 impl Paie {
     /// Les champs sans valeur par defaut ; les autres partent a zero ou vides.
-    pub fn nouveau(
+    pub(crate) fn nouveau(
         engagement: Engagement, salarie: Value, spectacle: Value, brut: Decimal,
         base_csg: Decimal, plafond: Decimal, smic: f64, heures: Decimal,
+        plafond_temps_partiel: PlafondTempsPartiel,
     ) -> Paie {
         let zero = Decimal::new(0, 2);
-        Paie {
+        Paie(Contenu {
             engagement, salarie, spectacle, brut, base_csg, plafond, smic, heures,
             lignes: Vec::new(), total_pat: zero, total_sal: zero, net_a_payer: zero, net_social: zero,
             net_imposable: zero, cout_employeur: zero, numero_bulletin: None,
             bases: BTreeMap::new(), remuneration: Vec::new(), reduction_generale: None,
             deduction_forfaitaire: None, avertissements: Vec::new(), salaire_de_base: zero,
             salaire_retabli: zero, assiette_chomage: zero, heures_travaillees: zero,
-            heures_absence: zero, periodes: Vec::new(), pas: None, conges: None,
-        }
+            heures_absence: zero, periodes: Vec::new(), pas: None, conges: None, plafond_temps_partiel,
+        })
+    }
+
+    /// Ce que la paie porte, a ecrire : le calcul, la relecture, la validation.
+    pub(crate) fn ecrire(&mut self) -> &mut Contenu {
+        &mut self.0
+    }
+
+    /// La meme paie sous le numero de bulletin `numero` : celui du document qui l'imprime (un bulletin rectificatif,
+    /// la paie declaree sous le numero de son bulletin d'origine). Rien d'autre ne change.
+    pub fn sous_le_bulletin(&self, numero: Option<String>) -> Paie {
+        let mut p = self.clone();
+        p.0.numero_bulletin = numero;
+        p
     }
 
     /// S21.G00.50.004, le montant net verse : « la remuneration nette fiscale (S21.G00.50.002), de laquelle sont
@@ -306,23 +336,20 @@ impl Paie {
         declaree_a_la_caisse_des_conges(self)
     }
 
-    /// Le plafond de securite sociale de cette paie a temps partiel, d'apres la fiche entreprise `ent`
-    /// (`plafond_temps_partiel`) : ce que la DSN declare en S21.G00.40.084.
-    pub fn plafond_temps_partiel(&self, ent: &Value) -> Resultat<PlafondTempsPartiel> {
-        plafond_temps_partiel(ent, &self.engagement, &self.salarie)
-    }
-
     /// Les lignes saisies de cette paie, une par ligne de remuneration (`minima::saisies_de`).
+    #[cfg(feature = "ecran")]
     pub fn saisies(&self) -> Vec<&Value> {
         crate::minima::saisies_de(self)
     }
 
     /// Le minimum conventionnel de la ligne `i` de la remuneration (`minima::minimum_de_la_ligne`).
+    #[cfg(feature = "ecran")]
     pub fn minimum_de_la_ligne(&self, ctx: &Contexte, i: usize) -> Resultat<Option<droit::minima::Minimum>> {
         crate::minima::minimum_de_la_ligne(ctx, self, i)
     }
 
     /// Le cachet de repetition de la convention pour ce metier, s'il en a un (`minima::cachet_de_repetition`).
+    #[cfg(feature = "ecran")]
     pub fn cachet_de_repetition(&self, ctx: &Contexte) -> Resultat<Option<droit::minima::Minimum>> {
         crate::minima::cachet_de_repetition(ctx, self)
     }
@@ -1389,7 +1416,9 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
         let chomage = brut - lb.iter().filter(|l| l.dsn_bloc52.is_some() && l.soumis).fold(zero, |a, l| a + l.montant);
         (base_51, retabli, chomage)
     };
-    let mut p = Paie::nouveau(eng.clone(), sal, spec, brut, base_csg, plafond, smic, heures);
+    let tp = plafond_temps_partiel(&ctx.entreprise, eng, &sal)?;
+    let mut paie = Paie::nouveau(eng.clone(), sal, spec, brut, base_csg, plafond, smic, heures, tp);
+    let p = paie.ecrire();
     p.heures_absence = -lb.iter().filter(|l| l.heures_annexes < Decimal::ZERO).fold(Decimal::ZERO, |a, l| a + l.heures_annexes);
     p.lignes = lignes;
     p.total_pat = tot_pat;
@@ -1407,7 +1436,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     p.assiette_chomage = chomage_51;
     p.heures_travaillees = Decimal::ZERO.max(heures_annexes);
     p.remuneration = lb;
-    Ok(p)
+    Ok(paie)
 }
 
 /// Le plafond de securite sociale d'un engagement (`plafond::pour_paie`) : celui que le bas du bulletin imprime, et
@@ -1498,6 +1527,29 @@ pub enum PlafondTempsPartiel {
     /// Temps partiel d'un artiste du spectacle : exclu de la proratisation (L. 242-10, 1° ; BOSS § 1090), le plafond
     /// entier quel que soit le choix de l'etablissement.
     Exclu,
+}
+
+impl PlafondTempsPartiel {
+    const CODES: [(PlafondTempsPartiel, &'static str); 4] = [
+        (PlafondTempsPartiel::NonConcerne, "non_concerne"),
+        (PlafondTempsPartiel::Proratise, "proratise"),
+        (PlafondTempsPartiel::Entier, "entier"),
+        (PlafondTempsPartiel::Exclu, "exclu"),
+    ];
+
+    /// Sa forme ecrite dans une paie (`relire::PLAFOND_TEMPS_PARTIEL`).
+    pub fn code(self) -> &'static str {
+        Self::CODES.iter().find(|(p, _)| *p == self).map_or("", |(_, c)| c)
+    }
+
+    /// Depuis sa forme ecrite ; une autre valeur est une paie illisible.
+    pub(crate) fn lire(code: &str) -> Resultat<PlafondTempsPartiel> {
+        Self::CODES
+            .iter()
+            .find(|(_, c)| *c == code)
+            .map(|(p, _)| *p)
+            .ok_or_else(|| format!("paie ecrite illisible : `plafond_temps_partiel` = {}", code))
+    }
 }
 
 /// Les valeurs de `plafond_temps_partiel` (fiche entreprise, `logiciel/donnees/champs-base.json`). Vide : la regle, le

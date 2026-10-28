@@ -394,8 +394,7 @@ pub fn ecrire_rectificatifs(
         let cle = valeur_en_texte(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
         let etiq = socle::date::etiquette_du_mois(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_v{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.version));
-        let mut imprimee = r.apres.clone();
-        imprimee.numero_bulletin = Some(numero_bulletin);
+        let imprimee = r.apres.sous_le_bulletin(Some(numero_bulletin));
         let rectifs: HashMap<usize, Value> = HashMap::from([(0, rectif.clone())]);
         let description = documents::bulletin::jeux_et_description(ctx, std::slice::from_ref(&imprimee), &ent, "", None, false, &rectifs).map_err(refus_valeur)?;
         ecrire_le_pdf(&description, &archive)?;
