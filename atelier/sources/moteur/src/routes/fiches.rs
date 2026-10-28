@@ -1,5 +1,5 @@
 //! Les routes de la fiche (`moteur/web.py`, `operations_fiches`, `champs`) :
-//! `verifier-fiche`, `changements-declares`, `normaliser`, `taux-atmp`.
+//! `verifier-fiche`, `changements-declares`, `taux-atmp`.
 //!
 //! Aucune ecriture. `revue-spectacles` n'est pas ici : elle archive des fiches
 //! et note l'echeance, elle reste en Python. `taux-atmp` ne LIT que : quand la
@@ -28,7 +28,6 @@ use socle::echec::Echec;
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "normaliser" => normaliser(charge),
         "taux-atmp" => taux_atmp(ctx, charge),
         "verifier-fiche" => verifier_fiche(charge),
         "changements-declares" => changements_declares(ctx, charge),
@@ -115,22 +114,6 @@ pub(crate) fn nom_de_fiche(v: &Value) -> R<&str> {
         Value::Object(_) => Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
         autre => Err(erreur("KeyError", format!("fiche inconnue : {}", autre))),
     }
-}
-
-// --------------------------------------------------------------- normaliser
-
-/// `normaliser` : la forme que la case devrait avoir ; une case inconnue de la
-/// fiche rend la valeur telle quelle.
-fn normaliser(charge: &Value) -> R<Value> {
-    let nom = nom_de_fiche(exiger(charge, "nom")?)?;
-    let cle = exiger(charge, "champ")?;
-    let champ = champs::fiche(nom)?.into_iter().find(|c| cle.as_str() == Some(c.cle.as_str()));
-    let valeur = exiger(charge, "valeur")?;
-    let rendu = match champ {
-        Some(c) => champs::normaliser(&c, valeur)?,
-        None => valeur.clone(),
-    };
-    Ok(json!({ "valeur": rendu }))
 }
 
 // ------------------------------------------------------------------ taux-atmp
@@ -723,26 +706,4 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
         sortie.push(entree);
     }
     Ok(sortie)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// La forme declaree d'une case : majuscules sans accent, civilite retiree, apostrophe typographique, chiffres seuls
-    /// du SIREN ; ce qui n'est pas un texte, ou une case inconnue, revient tel quel.
-    #[test]
-    fn normaliser_rend_la_forme_declaree_d_une_case() {
-        let v = |nom: &str, champ: &str, valeur: Value| normaliser(&json!({"nom": nom, "champ": champ, "valeur": valeur})).unwrap()["valeur"].clone();
-        assert_eq!(v("salarie", "nom", json!(" Béjart Duparc ")), json!("BEJART DUPARC"));
-        assert_eq!(v("salarie", "nom", json!("Madame Dupont")), json!("DUPONT"));
-        assert_eq!(v("salarie", "adresse", json!("2 rue d’Arvey")), json!("2 RUE D'ARVEY"));
-        assert_eq!(v("entreprise", "siren", json!(" 732 829 320 ")), json!("732829320"));
-        assert_eq!(v("salarie", "email", json!(" a@b.fr ")), json!("a@b.fr"));
-        assert_eq!(v("salarie", "nom", json!(12)), json!(12));
-        assert_eq!(v("salarie", "inconnue", json!(" x ")), json!(" x "));
-        for charge in [json!({}), json!({"nom": "salarie"}), json!({"nom": "salarie", "champ": "nom"}), json!({"nom": "autre", "champ": "nom", "valeur": "x"})] {
-            assert!(normaliser(&charge).is_err(), "{}", charge);
-        }
-    }
 }

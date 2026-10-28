@@ -1,15 +1,10 @@
 //! Les routes de la saisie qui LISENT les contrats et les referentiels
 //! (`moteur/web.py`, `operations_paies`, `operations_catalogues`, `emplois`) :
-//! `contrats-en-cours`, `contrats-passes`, `emploi`, `rubriques-actives`,
-//! `metiers-catalogue`.
+//! `contrats-en-cours`, `contrats-passes`, `emploi`, `metiers-catalogue`.
 //!
 //! AUCUN CALCUL DE PAIE : ni les contrats en cours ni les contrats passes n'ont besoin d'un brut. Les bornes et les
 //! quantites sont dans les engagements (`engagements/`) ; l'historique importe parle pour les autres
 //! (`historique/engagements.json`).
-//!
-//! `rubriques-actives` n'est pas une lecture : elle ecrit la preference
-//! `config/rubriques-actives.json`, avec la copie horodatee que le Python en
-//! gardait (`operations_socle._sauver_avant`, l'heure de Paris par `paris.rs`).
 //!
 //! Les refus gardent la classe d'exception du Python (`KeyError`, `TypeError`,
 //! `AttributeError`, `ValueError`, `ErreurOperation`...), que `paie_rust.route`
@@ -23,7 +18,6 @@ use serde_json::{json, Map, Value};
 
 use droit::catalogue;
 use droit::contexte::Contexte;
-use socle::ecriture::ecrire_json;
 use droit::emplois;
 use envois::etats::{self, get, items, ou, Dico};
 use socle::valeur::nombre;
@@ -34,11 +28,11 @@ use socle::echec::erreur;
 use socle::fichiers::{repr, repr_valeur, vrai};
 use droit::jumeaux;
 use socle::echec::Echec;
-use crate::routes::accueil::{metier_visible, preferences_metiers, rubrique_json};
+use crate::routes::accueil::{metier_visible, preferences_metiers};
 use crate::routes::saisie::lire_saisie;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 5] = ["contrats-en-cours", "contrats-passes", "emploi", "rubriques-actives", "metiers-catalogue"];
+pub const ROUTES: [&str; 4] = ["contrats-en-cours", "contrats-passes", "emploi", "metiers-catalogue"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -46,7 +40,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "contrats-en-cours" => contrats_en_cours_route(ctx, charge),
         "contrats-passes" => contrats_passes_route(ctx, charge),
         "emploi" => emploi(charge),
-        "rubriques-actives" => rubriques_actives(ctx, charge),
         "metiers-catalogue" => metiers_catalogue(ctx),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -955,98 +948,6 @@ pub(crate) fn sauver_avant(chemin: &Path) -> R<()> {
         }
     }
     Ok(())
-}
-
-/// Ce que `catalogue._construire_catalogue` refuse dans les fichiers de la
-/// compagnie, sous le nom de l'exception de Python (`JSONDecodeError`,
-/// `AttributeError`, `TypeError`) : un fichier abime, qui n'est pas un
-/// dictionnaire, des `usages` qui n'en sont pas, des `actives` qui ne se
-/// parcourent pas ou ne se hachent pas. Le catalogue Rust, lui, les tolere.
-fn verifier_les_fichiers_du_catalogue(racine: &Path) -> R<()> {
-    for nom in ["rubriques-compagnie.json", "rubriques-actives.json"] {
-        let p = racine.join("config").join(nom);
-        if !p.exists() {
-            continue;
-        }
-        let v = lire_saisie(&p)?;
-        let Value::Object(o) = &v else {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&v))));
-        };
-        if nom == "rubriques-actives.json" {
-            if let Some(a) = o.get("actives") {
-                for c in items(a)? {
-                    if matches!(c.as_ref(), Value::Array(_) | Value::Object(_)) {
-                        return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&c))));
-                    }
-                }
-            }
-            if let Some(u) = o.get("usages").filter(|u| !u.is_object()) {
-                return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(u))));
-            }
-        }
-    }
-    Ok(())
-}
-
-/// `operations_catalogues.choisir_rubriques` : cocher les rubriques que la
-/// compagnie veut voir dans le deroulant. Une preference d'affichage : cela
-/// change l'ordre du deroulant de saisie, jamais un calcul. Une rubrique
-/// inconnue est refusee plutot qu'ignoree.
-fn rubriques_actives(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let brut = exiger(charge, "actives")?;
-    verifier_les_fichiers_du_catalogue(&ctx.racine)?;
-    let cat = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?;
-    // `for c in actives` : une liste, les cles d'un dictionnaire, les caracteres d'un texte.
-    let actives: Vec<Value> = items(brut)?.into_iter().map(|c| c.into_owned()).collect();
-    let mut connus: Vec<&str> = cat.iter().map(|r| r.code.as_str()).collect();
-    let mut inconnues: Vec<&Value> = Vec::new();
-    for c in &actives {
-        // `c not in connus` : le code se hache.
-        if matches!(c, Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(c))));
-        }
-        if !c.as_str().is_some_and(|s| connus.contains(&s)) {
-            inconnues.push(c);
-        }
-    }
-    connus.sort();
-    if !inconnues.is_empty() {
-        if let Some((i, autre)) = inconnues.iter().enumerate().find(|(_, c)| !c.is_string()) {
-            return Err(erreur("TypeError", socle::fichiers::element(i, &socle::fichiers::attendu("un texte", nom_type(autre)))));
-        }
-        let noms: Vec<&str> = inconnues.iter().filter_map(|c| c.as_str()).collect();
-        return Err(erreur(
-            "ErreurOperation",
-            format!("Rubrique(s) inconnue(s) : {}. Connues : {}.", noms.join(", "), connus.join(", ")),
-        ));
-    }
-    let p = ctx.racine.join("config").join("rubriques-actives.json");
-    let mut donnees = if p.exists() { lire_saisie(&p)? } else { json!({}) };
-    let Value::Object(d) = &mut donnees else {
-        return Err(erreur("TypeError", format!("config/rubriques-actives.json : {}", socle::fichiers::attendu("un objet", nom_type(&donnees)))));
-    };
-    let mut uniques: Vec<Value> = Vec::new();
-    for c in actives {
-        if !uniques.contains(&c) {
-            uniques.push(c);
-        }
-    }
-    d.insert("actives".into(), Value::Array(uniques));
-    d.entry("usages").or_insert_with(|| json!({}));
-    d.insert(
-        "_quoi".into(),
-        json!(
-            "Les rubriques que cette compagnie a cochees, et combien de fois \
-             chacune a servi. Preference d'affichage : cela change l'ordre du \
-             deroulant de saisie, jamais un calcul. Le catalogue lui-meme est \
-             livre avec le logiciel (donnees/rubriques-base.json)."
-        ),
-    );
-    std::fs::create_dir_all(p.parent().unwrap_or(Path::new("."))).map_err(|e| erreur("OSError", e.to_string()))?;
-    sauver_avant(&p)?;
-    ecrire_json(&p, &donnees, 2).map_err(plain)?;
-    let rubriques: Vec<Value> = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?.iter().map(rubrique_json).collect();
-    Ok(json!({"rubriques": rubriques}))
 }
 
 // ------------------------------------------------------------------ le catalogue des metiers

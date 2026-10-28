@@ -1,5 +1,5 @@
 //! Les routes du mois : `etat-par-engagement`, `etat-du-mois`, `embauches-a-declarer`, `mois-a-ouvrir`, et les lectures
-//! qu'elles partagent (`bilan-du-mois`, `fichiers-deposables`) : l'etat de chaque engagement (sa validation, sa DPAE,
+//! qu'elles partagent (`bilan_du_mois`, `fichiers_deposables`) : l'etat de chaque engagement (sa validation, sa DPAE,
 //! son contrat, ses documents, la DSN du mois), l'etat du mois, et l'annule-et-remplace.
 //!
 //! UN PROCESSUS PAR ROUTE, ET CHAQUE FICHIER LU UNE FOIS : le journal des
@@ -10,7 +10,7 @@
 //! AUCUN CALCUL D'UN ENGAGEMENT VALIDE. La saisie se charge sans calculer (`charger_saisie` : les engagements, le
 //! contrat qui deborde, les numeros attribues en memoire). Le seul montant affiche, le `brut` de `etat-par-engagement`,
 //! se lit dans la paie ecrite d'un engagement valide ; il ne se calcule que pour un engagement en saisie, et seulement si
-//! la route le demande (`bilan-du-mois` et `mois-a-ouvrir` ne le demandent jamais).
+//! la route le demande (`etat-du-mois` et `mois-a-ouvrir` ne le demandent jamais).
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -33,7 +33,7 @@ use socle::num::Decimal;
 use socle::echec::Echec;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 6] = ["etat-par-engagement", "etat-du-mois", "embauches-a-declarer", "mois-a-ouvrir", "bilan-du-mois", "fichiers-deposables"];
+pub const ROUTES: [&str; 4] = ["etat-par-engagement", "etat-du-mois", "embauches-a-declarer", "mois-a-ouvrir"];
 
 pub(crate) type Paire = (String, String);
 pub(crate) use envois::etats::Cle3;
@@ -459,7 +459,7 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
     engagement::stock::mois_saisis(racine).unwrap_or_default()
 }
 
-/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers-deposables`), le meme partout (#236) : plus jamais la date de
+/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers_deposables`), le meme partout (#236) : plus jamais la date de
 /// modification du fichier, que deux machines -- ou deux rejeux -- ne donnent pas pareille.
 /// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
 ///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent. D'un meme
@@ -1813,8 +1813,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let (_, mois) = mois_de(charge)?;
             m.etat_du_mois(&mois)
         }
-        "bilan-du-mois" => m.bilan_du_mois(&mois_de(charge)?.1),
-        "fichiers-deposables" => m.fichiers_deposables(&mois_de(charge)?.1),
         "embauches-a-declarer" => {
             let mois = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
             Ok(json!({"embauches": m.embauches_a_declarer(mois.as_deref())?}))

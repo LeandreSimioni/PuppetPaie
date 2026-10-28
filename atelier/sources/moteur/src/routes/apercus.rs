@@ -4,7 +4,6 @@
 //! l'identique : meme JSON (l'enveloppe de `web.py` comprise), memes refus sous
 //! la meme classe d'exception. Aucun sous-processus, aucun reseau, AUCUNE ecriture.
 //!
-//! - `documents-liste` : `operations_documents.documents_du_mois`.
 //! - `bilan-repetition` : `operations_declarations.bilan_de_la_repetition`, SANS le
 //!   releve des retours : quand le compte rendu du test est « attendu », la fonction
 //!   Python va le chercher chez l'organisme (reseau) et l'archive (ecriture) avant
@@ -27,13 +26,11 @@ use socle::echec::Echec;
 type R<T> = Result<T, Echec>;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 3] = ["documents-liste", "bilan-repetition", "depot-apercu"];
+pub const ROUTES: [&str; 1] = ["depot-apercu"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "documents-liste" => documents_liste(ctx, charge),
-        "bilan-repetition" => bilan_repetition(ctx, charge),
         "depot-apercu" => depot_apercu(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
@@ -58,7 +55,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     erreur(classe, socle::fichiers::panne_fichier(e, p))
 }
 
-// ------------------------------------------------------------------ documents-liste
+// ------------------------------------------------------------------ les documents du mois
 
 /// `ctx.racine / "sorties" / mois` : `mois` doit etre un texte (`TypeError` sinon,
 /// avec la phrase de `PosixPath.__truediv__`).
@@ -133,12 +130,6 @@ pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R
         }
     }
     Ok(Value::Array(out))
-}
-
-fn documents_liste(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = cle(charge, "mois")?;
-    let quoi = charge.get("quoi").unwrap_or(&Value::Null);
-    Ok(json!({"mois": mois, "fichiers": documents_du_mois(ctx, mois, quoi)?}))
 }
 
 // ------------------------------------------------------------------ les chemins de Python

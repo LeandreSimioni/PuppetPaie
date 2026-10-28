@@ -871,8 +871,7 @@ du mois (`envoi/BulletinRectificatif_…pdf`).
 
 Dans la fenêtre, **Historique › Les corrections** montre, mois par mois,
 chaque contrat corrigé : la paie déclarée, la paie validée, et la DSN qui
-l'a portée ou la prochaine qui la portera. Les routes `regularisation-mois`
-et `regularisation-apercu` disent la même chose pour un mois ou un contrat.
+l'a portée ou la prochaine qui la portera.
 
 Un mois **fermé** (échéance passée, DSN jamais partie) se rouvre depuis
 l'onglet Paie : le bouton « Ce mois est fermé — le rouvrir » ouvre

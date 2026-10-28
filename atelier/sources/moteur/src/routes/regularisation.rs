@@ -1,13 +1,11 @@
-//! Les corrections des mois deja declares, telles que la page les montre : `regularisation-mois` (l'etat d'un mois et
-//! ses corrections), `regularisation-apercu` (un contrat : avant, apres, difference), la liste des corrections
-//! (`corrections_par_mois`, route `regularisations`) ; et ce que la saisie d'un mois declare en dit
-//! (`modification_de_la_paie`). Rien n'est ecrit.
+//! Les corrections des mois deja declares : l'etat d'un mois depose (`etat_mois` : se corrige-t-il par regularisation),
+//! la liste des corrections (`corrections_par_mois`, route `regularisations`) ; et ce que la saisie d'un mois declare
+//! en dit (`modification_de_la_paie`). Rien n'est ecrit.
 //!
 //! Corriger, c'est modifier l'engagement et le revalider. Ce qui est a corriger se tire de la comparaison entre la
 //! version presente de l'engagement valide et celle sur laquelle la DSN est partie
-//! (`produire_regularisations::corrections_dues`) ; l'apercu montre ces deux paies ecrites.
+//! (`produire_regularisations::corrections_dues`).
 
-use std::collections::HashMap;
 use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
@@ -22,22 +20,6 @@ use socle::fichiers::vrai;
 use socle::num::{q2, Decimal};
 use socle::echec::Echec;
 use crate::routes::mois::Moteur;
-
-/// Les routes que ce module sert.
-pub const ROUTES: [&str; 2] = ["regularisation-apercu", "regularisation-mois"];
-
-/// Une route de ce module.
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    match nom {
-        "regularisation-apercu" => apercu_correction(ctx, charge),
-        "regularisation-mois" => regularisation_mois(ctx, charge),
-        autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
-    }
-}
-
-fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
-    charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
-}
 
 #[track_caller]
 fn non_regularisable(message: impl Into<String>) -> Echec {
@@ -472,35 +454,3 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
     Ok((a_porter, portees))
 }
 
-/// `regularisation-apercu` : la correction d'un contrat de `mois` (`salarie`, `debut`) : la paie declaree, la paie
-/// validee presente, la difference. Refus : le mois ne se corrige pas ainsi, ou ce contrat n'a rien a corriger.
-pub(crate) fn apercu_correction(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois_v = cle(charge, "mois")?;
-    let (salarie, debut) = (valeur_en_texte(cle(charge, "salarie")?), valeur_en_texte(cle(charge, "debut")?));
-    let mut m = Moteur::nouveau(ctx);
-    let etat = etat_mois(&mut m, ctx, mois_v)?;
-    if !etat["regularisable"].as_bool().unwrap_or(false) {
-        return Err(non_regularisable(valeur_en_texte(&etat["raison"])));
-    }
-    let mois = valeur_en_texte(mois_v);
-    let (a_porter, _) = corrections_du_mois(ctx, &mois)?;
-    let Some(mut c) = a_porter.into_iter().find(|c| c["salarie"] == json!(salarie) && c["debut"] == json!(debut)) else {
-        return Err(non_regularisable(format!(
-            "Rien a corriger pour {} (contrat du {}) en {} : sa paie validee est celle que la DSN a declaree. Corriger, c'est modifier l'engagement et le revalider.",
-            salarie, debut, mois
-        )));
-    };
-    c["mois"] = mois_v.clone();
-    c["etat"] = etat;
-    Ok(c)
-}
-
-/// `regularisation-mois` : l'etat du mois (`etat_mois`), et quand il se corrige, ses corrections a porter et celles deja
-/// portees (`corrections_du_mois`).
-fn regularisation_mois(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois_v = cle(charge, "mois")?;
-    let mut m = Moteur::nouveau(ctx);
-    let etat = etat_mois(&mut m, ctx, mois_v)?;
-    let (a_porter, portees) = corrections_du_mois(ctx, &valeur_en_texte(mois_v))?;
-    Ok(json!({"mois": mois_v, "etat": etat, "a_porter": a_porter, "portees": portees}))
-}

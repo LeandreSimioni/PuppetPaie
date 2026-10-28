@@ -5,7 +5,7 @@
 //! rend, pour un mois :
 //!
 //! - `documents` : chaque fichier de `sorties/<mois>/` et de `sorties/<mois>/envoi/` (les memes listes que
-//!   l'Historique et `documents-liste` : `crate::routes::accueil::mois_connus`, `crate::routes::apercus::documents_du_mois`), range
+//!   l'Historique : `crate::routes::accueil::mois_connus`, `crate::routes::apercus::documents_du_mois`), range
 //!   par sorte, chacun avec le chemin que `ouvrir-piece` ouvre ;
 //! - `envois` : chaque ligne du journal des depots du mois (DPAE, DSN, signalements, documents, contrats), TESTS
 //!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`,
@@ -214,7 +214,7 @@ fn sorte_de(nom: &str) -> &'static str {
 }
 
 /// Les documents du mois : les fichiers de `sorties/<mois>/` (`mois_connus`, la liste de l'Historique) et les PDF de
-/// `sorties/<mois>/envoi/` (`documents_du_mois`, celle de `documents-liste`). Une archive `.zip` n'est que l'emballage
+/// `sorties/<mois>/envoi/` (`documents_du_mois`). Une archive `.zip` n'est que l'emballage
 /// du fichier de meme nom qui part au depot : elle ne se liste pas.
 fn documents(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
     let noms = crate::routes::accueil::mois_connus(&ctx.racine).into_iter().find(|(m, _)| m == mois).map(|(_, n)| n).unwrap_or_default();

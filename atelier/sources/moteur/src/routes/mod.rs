@@ -142,7 +142,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // L'etat d'un mois : l'etat garde, ecrit apres chaque ecriture, lu tel quel (`etat_garde`).
         r if crate::etat_garde::ROUTES.contains(&r) => crate::etat_garde::route(o, &ctx, route, &charge),
         // Le mois, sans calcul de paie.
-        "embauches-a-declarer" | "mois-a-ouvrir" | "bilan-du-mois" | "fichiers-deposables" => {
+        "embauches-a-declarer" | "mois-a-ouvrir" => {
             crate::routes::mois::route(o, &ctx, route, &charge)
         }
         // L'accueil : la page lit tout en s'ouvrant.
@@ -159,24 +159,22 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Les listes de l'ouverture : arrets, fins de contrat a signaler, mois a regulariser.
         "arrets" | "fins-de-contrat" | "regularisations" => crate::routes::listes::route(o, &ctx, route, &charge),
         // Les contrats en cours et passes, l'emploi, les rubriques cochees, le catalogue des metiers.
-        "contrats-en-cours" | "contrats-passes" | "emploi" | "rubriques-actives" | "metiers-catalogue" => {
+        "contrats-en-cours" | "contrats-passes" | "emploi" | "metiers-catalogue" => {
             crate::routes::contrats::route(o, &ctx, route, &charge)
         }
         // Les exports et les dossiers : les contrats qu un arret suspendrait, les formes du dossier salarie.
         "arret-contrats" | "dossier-formes" | "exports-periodes" => crate::routes::dossiers::route(o, &ctx, route, &charge),
         // Les apercus : ce que la page montre avant d'agir (lecture seule).
-        "documents-liste" | "depot-apercu" => crate::routes::apercus::route(o, &ctx, route, &charge),
+        "depot-apercu" => crate::routes::apercus::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
         crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),
         // Les apercus des documents du mois : le contrat a signer, l'avenant, l'envoi.
         "signature-apercu" | "avenant-apercu" | "envoi-apercu" => crate::routes::documents::route(o, &ctx, route, &charge),
         // L'import d'un export CoolPaie : ce qu'il ferait ; le tri de la boite aux lettres `import/` (rien n'est ecrit).
-        "importation-apercu" | "importation-tri" => crate::routes::importation::route(o, &ctx, route, &charge),
+        "importation-apercu" => crate::routes::importation::route(o, &ctx, route, &charge),
         // Les fichiers que l'import n'a pas repris : le message caviarde qui partirait chez l'editeur (rien n'est ecrit),
         // et son envoi, sur le seul clic de la personne (`importation_incident`).
         r if crate::importation_incident::ROUTES.contains(&r) => crate::importation_incident::route(&ctx, route, &charge),
-        // Les corrections d'un mois depose : ce que la page en montre.
-        "regularisation-apercu" | "regularisation-mois" => crate::routes::regularisation::route(o, &ctx, route, &charge),
         // Le dossier d'un salarie : ses documents, recrees ou pris tels quels, en un PDF ou un ZIP.
         "dossier-salarie" => crate::routes::dossier_salarie::route(o, &ctx, route, &charge),
         // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
@@ -233,7 +231,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Le modele du bulletin (lot R11) : les modeles, l'apercu d'une paie fictive sous chacun, le choix de la compagnie.
         r if crate::routes::bulletin_modele::ROUTES.contains(&r) => crate::routes::bulletin_modele::route(&ctx, route, &charge),
         // La fiche : ce qu elle dirait, ce qu elle changerait, la forme d'une case, le taux AT/MP.
-        "normaliser" | "taux-atmp" | "verifier-fiche" | "changements-declares" | "taxe-sur-les-salaires-regime" | "permanents" => crate::routes::fiches::route(o, &ctx, route, &charge),
+        "taux-atmp" | "verifier-fiche" | "changements-declares" | "taxe-sur-les-salaires-regime" | "permanents" => crate::routes::fiches::route(o, &ctx, route, &charge),
         // Les incidents et le canal vers l'editeur : le journal, « Un probleme, une idee ? », le filet DPAE.
         r if crate::routes::incidents::ROUTES.contains(&r) || r == crate::routes::incidents::ROUTE_OUBLIER => {
             crate::routes::incidents::route(o, &ctx, route, &charge)

@@ -28,7 +28,7 @@ use crate::importation::{self, SalarieDeclare};
 use socle::echec::Echec;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 2] = ["importation-apercu", "importation-tri"];
+pub const ROUTES: [&str; 1] = ["importation-apercu"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -45,25 +45,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let export = export_de(ctx, charge)?;
             Ok(Value::Object(apercu_importation(ctx, &export, ctx.aujourdhui)?.reponse))
         }
-        "importation-tri" => tri(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
-}
-
-/// `importation-tri` : le tri de la boite aux lettres (`importation_tri`), `{"dossier": "..."}` ; sans dossier,
-/// `import/` a la racine de la compagnie. Rien n'est ecrit dans les donnees de la compagnie.
-///
-/// LE DOSSIER DE TRAVAIL (ou s'ouvrent les zip) EST UN DOSSIER TEMPORAIRE DU SYSTEME, propre a cet appel, efface
-/// avant de rendre : sous `import/.travail`, il se retrouverait dans la sauvegarde et dans le depot de la
-/// compagnie, en double des archives qu'il copie, et garderait d'un tri a l'autre ce qu'une archive retiree
-/// avait rendu. Le tri rend du JSON, pas des chemins a relire : un lot qui lira ces fichiers trie dans son
-/// propre appel, et les lit avant d'effacer.
-fn tri(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let dossier = dossier_import(ctx, charge)?;
-    let travail = dossier_de_travail();
-    let rendu = crate::importation_tri::trier(&dossier, &travail).map(|t| t.json());
-    let _ = std::fs::remove_dir_all(&travail);
-    rendu
 }
 
 /// Le dossier a trier : `charge.dossier`, ou `import/` a la racine de la compagnie s'il est vide ou absent.

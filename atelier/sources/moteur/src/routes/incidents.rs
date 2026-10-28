@@ -15,7 +15,7 @@
 //! Et celles que le Python encore appele (la veille, la ligne de commande, les
 //! depots) utilise pour ne plus rien faire lui-meme : `incidents-lire`,
 //! `incidents-regrouper`, `incidents-oublier`, `incidents-envoyer`,
-//! `signalements-reponses`, `filet-suivies`, `filet-passage`, `filet-desarmer`.
+//! `signalements-reponses`, `filet-suivies`.
 //!
 //! Le canal de l'editeur est `editeur.rs` ; jamais d'autre serveur que celui de la
 //! configuration.
@@ -35,7 +35,7 @@ use socle::echec::Echec;
 use crate::{filet, problemes};
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 18] = [
+pub const ROUTES: [&str; 16] = [
     "incident-navigateur",
     "diagnostic-etat",
     "diagnostic-envoyer",
@@ -49,8 +49,6 @@ pub const ROUTES: [&str; 18] = [
     "filet-activer",
     "filet-desactiver",
     "filet-suivies",
-    "filet-passage",
-    "filet-desarmer",
     "incidents-lire",
     "incidents-regrouper",
     "incidents-envoyer",
@@ -100,8 +98,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "filet-activer" => filet::activer(racine, &ou_vide(charge, "adresse"), &champ(charge, "motdepasse")),
         "filet-desactiver" => filet::desactiver(racine, &champ(charge, "motdepasse")),
         "filet-suivies" => Ok(json!({"suivies": filet::suivies(ctx)?})),
-        "filet-passage" => filet::passage(ctx, &champ(charge, "tests"), &champ(charge, "vivantes"), &champ(charge, "maintenant")),
-        "filet-desarmer" => Ok(json!({"desarme": filet::desarmer(racine, &filet::cle_du_reveil(charge))?})),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
