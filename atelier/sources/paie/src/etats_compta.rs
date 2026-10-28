@@ -14,7 +14,7 @@ use serde_json::{Map, Value};
 use droit::contexte::{archivee, Contexte};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use crate::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode, SAISIE};
+use crate::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
 use crate::exercice_ecrit::{ecritures_du_mois, Ecriture};
 use socle::fichiers::vrai;
 use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
@@ -1101,7 +1101,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // Ce qui a ete paye ce mois-la : les paies ecrites de ses engagements valides, la saisie au meme rang.
     let (saisie, paies) = charger_mois(ctx, &m)?;
     let toutes = Periode::nouvelle(ctx, None, None, true, true)?;
-    let livre: Vec<_> = lignes_livre(ctx, &toutes, &mut Vec::new())?.into_iter().filter(|l| l.source == SAISIE).collect();
+    let livre = lignes_livre(ctx, &toutes, &mut Vec::new())?;
     let zero = zero2();
     let mut lignes: Vec<Ligne> = Vec::new();
     let mut vus: BTreeSet<String> = BTreeSet::new();
@@ -1206,7 +1206,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("charges", "Charges patronales"),
         col_m("total", "Provision"),
     ];
-    t.sources = vec!["compteur de congés dérivé des paies (operations_permanents), indemnité L3141-24 comme au solde de tout compte, taux patronal = cotisations patronales / brut des bulletins des douze derniers mois".to_string()];
+    t.sources = vec!["compteur de congés écrit dans la paie validée du mois, indemnité L3141-24 comme au solde de tout compte, taux patronal = cotisations patronales / brut des bulletins des douze derniers mois".to_string()];
     finir(ctx, &mut t, Some(&p), "provision-conges", &d.format, false)?;
     for s in t.sections.iter_mut() {
         if let Some(tot) = s.total.as_mut() {

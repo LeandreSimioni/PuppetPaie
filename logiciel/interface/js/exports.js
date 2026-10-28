@@ -567,7 +567,6 @@ function dessinerLivre(r, apercu) {
       <td>${echapper(l.mois)}</td>
       <td>${echapper(l.salarie)}</td>
       <td class="discret">${echapper(l.spectacle || l.nature)}</td>
-      <td class="discret">${echapper(l.source)}</td>
       <td class="r">${eur(l.brut)}</td>
       <td class="r">${eur(l.cotisations_salariales)}</td>
       <td class="r">${eur(l.cotisations_patronales)}</td>
@@ -580,7 +579,6 @@ function dessinerLivre(r, apercu) {
     <tr class="${classe}">
       <td></td><td><b>${echapper(titre)}</b></td>
       <td class="discret">${t.bulletins} bulletin${t.bulletins === 1 ? "" : "s"}</td>
-      <td></td>
       <td class="r"><b>${eur(t.brut)}</b></td>
       <td class="r"><b>${eur(t.cotisations_salariales)}</b></td>
       <td class="r"><b>${eur(t.cotisations_patronales)}</b></td>
@@ -608,7 +606,7 @@ function dessinerLivre(r, apercu) {
     ${(r.avertissements || []).map((a) =>
         `<div class="encart info">${echapperLiens(a)}</div>`).join("")}
     <div class="tableau-compta"><table class="compta">
-      <tr><th>Mois</th><th>Salarié</th><th>Spectacle</th><th>Source</th><th>Brut</th>
+      <tr><th>Mois</th><th>Salarié</th><th>Spectacle</th><th>Brut</th>
           <th>Cot. sal.</th><th>Cot. pat.</th><th>Net imposable</th>
           <th>Net à payer</th><th>PAS</th><th>Coût employeur</th></tr>
       ${corps}

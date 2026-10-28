@@ -276,7 +276,8 @@ pub(crate) struct LigneLivre {
     pub net_a_payer: Option<Decimal>,
     pub pas: Option<Decimal>,
     pub cout_employeur: Option<Decimal>,
-    pub source: &'static str,
+    /// Le jour du versement (`date_paiement` de la paie), JJ/MM/AAAA ; vide s'il n'est pas dit.
+    pub verse_le: String,
     pub nir: String,
     pub date_naissance: String,
     pub adresse: String,
@@ -386,7 +387,7 @@ impl LivreDePaie {
                 "spectacle": l.spectacle, "brut": m(l.brut), "cotisations_salariales": m(l.cotisations_salariales),
                 "cotisations_patronales": m(l.cotisations_patronales), "net_imposable": m(l.net_imposable),
                 "net_a_payer": m(l.net_a_payer), "pas": m(l.pas), "cout_employeur": m(l.cout_employeur),
-                "source": l.source, "nir": l.nir, "date_naissance": l.date_naissance, "adresse": l.adresse,
+                "verse_le": l.verse_le, "nir": l.nir, "date_naissance": l.date_naissance, "adresse": l.adresse,
             })
         };
         json!({
@@ -413,7 +414,7 @@ fn regroupement_lisible(r: &str) -> &'static str {
 }
 
 /// `_lignes_du_mois` : les lignes du livre pour un mois SAISI, ce qu'il a fallu taire, et si ses numeros de
-/// contrat sont tous ecrits. Les bulletins sont RECALCULES ; aucun numero n'est invente.
+/// contrat sont tous ecrits. Les paies sont celles que la validation a ecrites ; aucun numero n'est invente.
 fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<LigneLivre>, Vec<String>, bool)> {
     let (_, toutes) = charger_mois(ctx, mois)?;
     let paies: Vec<Paie> = toutes.into_iter().filter(|p| !p.engagement.sans_paie()).collect();
@@ -438,7 +439,7 @@ fn lignes_du_mois(ctx: &Contexte, mois: &str, coordonnees: bool) -> R<(Vec<Ligne
             net_a_payer: Some(eur2(p.net_a_payer)),
             pas: r.as_ref().map(|v| eur2(v.prelevement)),
             cout_employeur: Some(eur2(p.cout_employeur)),
-            source: SAISIE,
+            verse_le: p.engagement.date_paiement.as_deref().map(jj).unwrap_or_default(),
             nir: if coordonnees { fiche_texte(s, "nir") } else { String::new() },
             date_naissance: if coordonnees { fiche_texte(s, "date_naissance") } else { String::new() },
             adresse: if coordonnees {
@@ -592,7 +593,7 @@ fn colonnes_livre(livre: &LivreDePaie) -> Vec<&'static str> {
     if livre.coordonnees {
         c.extend(["NIR", "Date de naissance", "Adresse"]);
     }
-    c.extend(["Contrat", "Nature", "Spectacle", "Brut", "Cotisations salariales", "Cotisations patronales", "Net imposable", "Net a payer", "PAS", "Cout employeur", "Source"]);
+    c.extend(["Contrat", "Nature", "Spectacle", "Brut", "Cotisations salariales", "Cotisations patronales", "Net imposable", "Net a payer", "PAS", "Cout employeur"]);
     c
 }
 
@@ -611,7 +612,6 @@ fn cellules(l: &LigneLivre, coordonnees: bool) -> Vec<CelL> {
     }
     c.extend([t(&l.contrat), t(&l.nature), t(&l.spectacle)]);
     c.extend(CUMULABLES.iter().map(|ch| CelL::M(l.montant(ch))));
-    c.push(t(l.source));
     c
 }
 
@@ -621,9 +621,8 @@ fn cellules_totaux(tot: &Totaux, libelle: &str, coordonnees: bool) -> Vec<CelL> 
     if coordonnees {
         c.extend([t(""), t(""), t("")]);
     }
-    c.extend([t(""), t(""), t("")]);
+    c.extend([CelL::T(format!("{} bulletin(s)", tot.bulletins)), t(""), t("")]);
     c.extend(CUMULABLES.iter().map(|ch| CelL::M(tot.total(ch))));
-    c.push(CelL::T(format!("{} bulletin(s)", tot.bulletins)));
     c
 }
 
@@ -918,7 +917,7 @@ pub(crate) fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut avert = Vec::new();
     let lignes = lignes_livre(ctx, &p, &mut avert)?;
     let mut ordre: Vec<(String, String)> = Vec::new();
-    let mut par: HashMap<(String, String), (Ligne, BTreeSet<&'static str>, i64)> = HashMap::new();
+    let mut par: HashMap<(String, String), (Ligne, i64)> = HashMap::new();
     let zero = zero2();
     for l in &lignes {
         let cle = (annee_de(&l.mois), l.salarie.clone());
@@ -926,9 +925,9 @@ pub(crate) fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             ordre.push(cle.clone());
             let mut n = Ligne::nouvelle();
             n.t("annee", cle.0.clone()).t("salarie", cle.1.clone()).n("bulletins", 0);
-            par.insert(cle.clone(), (n, BTreeSet::new(), 0));
+            par.insert(cle.clone(), (n, 0));
         }
-        let (ligne, sources, n) = par.get_mut(&cle).expect("insere");
+        let (ligne, n) = par.get_mut(&cle).expect("insere");
         *n += 1;
         ligne.n("bulletins", *n);
         let k = format!("m{}", l.mois.chars().skip(5).take(2).collect::<String>());
@@ -947,13 +946,10 @@ pub(crate) fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
                 ligne.d(champ, socle::num::add(avant, v));
             }
         }
-        sources.insert(l.source);
-        ligne.poser("sources", None);
     }
     let mut a_trier = Vec::new();
     for cle in ordre {
-        let (mut ligne, sources, _) = par.remove(&cle).expect("present");
-        ligne.t("sources", sources.into_iter().collect::<Vec<_>>().join(" + "));
+        let (ligne, _) = par.remove(&cle).expect("present");
         a_trier.push(ligne);
     }
     let mut cols = vec![col_t("salarie", "Salarié")];
@@ -967,7 +963,6 @@ pub(crate) fn recapitulatif_annuel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("net_a_payer", "Net payé"),
         col_m("cout_employeur", "Coût employeur"),
         col_n("bulletins", "Bulletins"),
-        col_t("sources", "Source"),
     ]);
     let mut t = Tableau::nouveau("recapitulatif-annuel", "Récapitulatif annuel par salarié", p.libelle.clone());
     t.mois = p.mois.clone();
@@ -992,7 +987,7 @@ pub(crate) fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         if !par.contains_key(&l.mois) {
             ordre.push(l.mois.clone());
             let mut n = Ligne::nouvelle();
-            n.t("mois", l.mois.clone()).t("libelle", libelle_mois(&l.mois)?).n("bulletins", 0).t("source", l.source);
+            n.t("mois", l.mois.clone()).t("libelle", libelle_mois(&l.mois)?).n("bulletins", 0);
             par.insert(l.mois.clone(), (n, BTreeSet::new(), 0));
         }
         let (ligne, salaries, n) = par.get_mut(&l.mois).expect("insere");
@@ -1035,7 +1030,6 @@ pub(crate) fn masse_salariale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("pas", "PAS"),
         col_m("net_a_payer", "Net à payer"),
         col_m("cout_employeur", "Coût employeur"),
-        col_t("source", "Source"),
     ];
     t.sources = vec!["cumuls des bulletins du mois".to_string()];
     finir(ctx, &mut t, Some(&p), "masse-salariale", &d.format, false)?;
@@ -1061,15 +1055,21 @@ pub(crate) fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let mut lignes = Vec::new();
+    let mut sans_date = BTreeSet::new();
     for l in lignes_livre(ctx, &p, &mut avert)? {
+        if l.verse_le.is_empty() {
+            sans_date.insert(l.mois.clone());
+        }
         let mut x = Ligne::nouvelle();
         x.t("mois", l.mois.clone()).t("salarie", l.salarie.clone()).t("contrat", l.contrat.clone()).t("spectacle", l.spectacle.clone());
-        x.od("net_a_payer", l.net_a_payer).t("verse_le", String::new()).t("source", l.source);
+        x.od("net_a_payer", l.net_a_payer).t("verse_le", l.verse_le);
         lignes.push(x);
     }
-    let saisis = p.saisis();
-    if !saisis.is_empty() {
-        avert.push(format!("Mois saisis ({}) : la date du virement n'est pas dans PuppetPaie, la colonne reste vide.", saisis.join(", ")));
+    if !sans_date.is_empty() {
+        avert.push(format!(
+            "Mois sans date de paiement ({}) : la saisie du mois ne la dit pas, la colonne « Versé le » reste vide.",
+            sans_date.into_iter().collect::<Vec<_>>().join(", ")
+        ));
     }
     let mut t = Tableau::nouveau("etat-des-virements", "État des virements de salaires", p.libelle.clone());
     t.mois = p.mois.clone();
@@ -1082,9 +1082,8 @@ pub(crate) fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("spectacle", "Spectacle"),
         col_m("net_a_payer", "Net à payer"),
         col_t("verse_le", "Versé le"),
-        col_t("source", "Source"),
     ];
-    t.sources = vec!["net à payer du bulletin ; date de versement : DSN, rubrique S21.G00.50.001".to_string()];
+    t.sources = vec!["net à payer et date de paiement de la paie validée (la date de versement que la DSN déclare, S21.G00.50.001)".to_string()];
     finir(ctx, &mut t, Some(&p), "etat-des-virements", &d.format, d.ecrire)?;
     Ok(t)
 }
@@ -1134,7 +1133,6 @@ pub(crate) fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau>
                     l.rien("abattement").rien("assiette").t("type", "").rien("taux").rien("prelevement");
                 }
             }
-            l.t("source", SAISIE);
             lignes.push(l);
         }
     }
@@ -1156,7 +1154,6 @@ pub(crate) fn prelevement_a_la_source(ctx: &Contexte, d: &Demande) -> R<Tableau>
         col_t("type", "Type de taux"),
         col_x("taux", "Taux %"),
         col_m("prelevement", "Prélevé"),
-        col_t("source", "Source"),
     ]);
     let mut t = Tableau::nouveau("prelevement-a-la-source", "Prélèvement à la source", p.libelle.clone());
     t.mois = p.mois.clone();
@@ -1317,7 +1314,7 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("salarie", qui(&paie.salarie)?).t("contrat", e.numero.clone().unwrap_or_default());
             l.t("spectacle", titre_spectacle(paie)).t("emploi", emploi).t("debut", jj(&debut)).t("fin", jj(&fin));
-            l.d("cachets", cachets).d("heures", heures).n("jours", e.dates_travail.len() as i64).d("brut", eur2(paie.brut)).t("source", SAISIE);
+            l.d("cachets", cachets).d("heures", heures).n("jours", e.dates_travail.len() as i64).d("brut", eur2(paie.brut));
             lignes.push(l);
         }
     }
@@ -1339,7 +1336,6 @@ pub(crate) fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_n("heures", "Heures (annexes)"),
         col_n("jours", "Jours"),
         col_m("brut", "Brut"),
-        col_t("source", "Source"),
     ];
     t.sources = vec![
         "règlement d'assurance chômage, annexes VIII et X (décret n° 2019-797 modifié) : un cachet compte pour les heures que la rubrique déclare (heures_annexes) ; AEM : attestation employeur mensuelle déposée à France Travail".to_string(),
@@ -1355,7 +1351,7 @@ pub(crate) fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let mut ordre: Vec<(String, String)> = Vec::new();
-    let mut par: HashMap<(String, String), (Ligne, BTreeSet<&'static str>, i64)> = HashMap::new();
+    let mut par: HashMap<(String, String), (Ligne, i64)> = HashMap::new();
     let zero = zero2();
     for l in lignes_livre(ctx, &p, &mut avert)? {
         let sp = if l.spectacle.is_empty() { "(sans spectacle)".to_string() } else { l.spectacle.clone() };
@@ -1364,12 +1360,11 @@ pub(crate) fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             ordre.push(cle.clone());
             let mut n = Ligne::nouvelle();
             n.t("spectacle", sp).t("salarie", l.salarie.clone()).n("bulletins", 0);
-            par.insert(cle.clone(), (n, BTreeSet::new(), 0));
+            par.insert(cle.clone(), (n, 0));
         }
-        let (ligne, sources, n) = par.get_mut(&cle).expect("insere");
+        let (ligne, n) = par.get_mut(&cle).expect("insere");
         *n += 1;
         ligne.n("bulletins", *n);
-        sources.insert(l.source);
         for (champ, v) in [("brut", l.brut), ("cotisations_patronales", l.cotisations_patronales), ("cout_employeur", l.cout_employeur), ("net_a_payer", l.net_a_payer)] {
             if let Some(v) = v {
                 let avant = ligne.decimal(champ).unwrap_or(zero);
@@ -1379,8 +1374,7 @@ pub(crate) fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     }
     let mut a_trier = Vec::new();
     for cle in ordre {
-        let (mut ligne, sources, _) = par.remove(&cle).expect("present");
-        ligne.t("source", sources.into_iter().collect::<Vec<_>>().join(" + "));
+        let (ligne, _) = par.remove(&cle).expect("present");
         a_trier.push(ligne);
     }
     let mut t = Tableau::nouveau("cout-par-spectacle", "Coût employeur par spectacle", p.libelle.clone());
@@ -1395,9 +1389,8 @@ pub(crate) fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("cotisations_patronales", "Charges patronales"),
         col_m("cout_employeur", "Coût employeur"),
         col_m("net_a_payer", "Net versé"),
-        col_t("source", "Source"),
     ];
-    t.sources = vec!["bulletins rattachés à leur spectacle par la saisie ou, avant PuppetPaie, par le numéro d'objet déclaré en DSN (S21.G00.40.050)".to_string()];
+    t.sources = vec!["bulletins rattachés au spectacle de leur engagement".to_string()];
     finir(ctx, &mut t, Some(&p), "cout-par-spectacle", &d.format, d.ecrire)?;
     Ok(t)
 }

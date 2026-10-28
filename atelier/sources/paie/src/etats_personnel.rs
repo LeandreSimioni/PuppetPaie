@@ -12,7 +12,7 @@ use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use crate::etats_paie::{
-    dossier_exports, ecrire_fini, fiche_texte, finir, titre_spectacle, Demande, Lecture, Periode, SAISIE,
+    dossier_exports, ecrire_fini, fiche_texte, finir, titre_spectacle, Demande, Lecture, Periode,
 };
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
@@ -48,7 +48,6 @@ struct ContratMois {
     debut: String,
     fin: String,
     brut: Option<Decimal>,
-    source: &'static str,
 }
 
 /// `_contrats` : chaque contrat de la periode, une ligne par mois de paie, lu dans la paie ecrite de son engagement
@@ -79,7 +78,6 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
                     None => dates.last().cloned().unwrap_or_default(),
                 },
                 brut: Some(eur2(paie.brut)),
-                source: SAISIE,
             });
         }
     }
@@ -97,7 +95,7 @@ pub(crate) fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let mut l = Ligne::nouvelle();
         l.t("mois", c.mois.clone()).t("cle", c.cle.clone()).t("salarie", c.salarie.clone()).t("contrat", c.contrat.clone()).t("nature", c.nature.clone());
         l.t("emploi", c.emploi.clone()).t("spectacle", c.spectacle.clone()).t("objet", c.objet.clone()).t("debut", jj(&c.debut)).t("fin", jj(&c.fin));
-        l.od("brut", c.brut).t("source", c.source);
+        l.od("brut", c.brut);
         lignes.push(l);
     }
     if contrats.iter().any(|c| c.contrat.is_empty()) {
@@ -118,7 +116,6 @@ pub(crate) fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("debut", "Début"),
         col_t("fin", "Fin"),
         col_m("brut", "Brut du mois"),
-        col_t("source", "Source"),
     ];
     t.sources = vec!["paies écrites des engagements validés".to_string()];
     finir(ctx, &mut t, Some(&p), "contrats", &d.format, d.ecrire)?;
