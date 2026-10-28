@@ -38,7 +38,7 @@ fn est_un_fichier_d_engagements(cle: &str) -> bool {
 }
 
 /// `f`, qui calcule depuis la saisie `data` d'un mois, et tout ce qu'il a lu.
-pub fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
+pub(crate) fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
     fichiers::suivre(&ctx.racine, &dossier_du_code());
     if let Some(m) = data.get("mois").and_then(Value::as_str) {
         fichiers::noter_valeur(&stock::cle_de_saisie(m), stock::empreinte_de_saisie(data));

@@ -24,7 +24,6 @@ use droit::bareme::{somme_pct, taux_liste};
 use droit::reduction::{au_dela_du_seuil, reduction_generale, reduction_generale_sous_dfs};
 use droit::plafond::{plafond_permanent, pour_paie, EngagementPlafond};
 
-pub use crate::ligne_en_pourcentage;
 
 /// La valeur de `cle`, ou le refus qui nomme la cle absente.
 fn requis<'a>(o: &'a Value, cle: &str) -> Resultat<&'a Value> {

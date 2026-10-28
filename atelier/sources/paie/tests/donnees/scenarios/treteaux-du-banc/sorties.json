@@ -579,7 +579,7 @@
                 "040:urssaf",
                 "048:urssaf"
               ],
-              "_montant": "CALCULE : le bordereau Urssaf (22.005, recopie en 20.005) est la somme des lignes 23, chacune valorisee a la table des CTP de l'Urssaf et arrondie a l'euro (paie/src/bordereau.rs). Rejoue sur les 75 DSN de CoolPaie : 74 au centime.",
+              "_montant": "CALCULE : le bordereau Urssaf (22.005, recopie en 20.005) est la somme des lignes 23, chacune valorisee a la table des CTP de l'Urssaf et arrondie a l'euro (documents/src/bordereau.rs). Rejoue sur les 75 DSN de CoolPaie : 74 au centime.",
               "_libelle_coolpaie": "Bordereau Urssaf",
               "_correction": "Libelle corrige le 10/09/2026. Il etait faux : verifie sur l'export lisible de CoolPaie du meme jour, qui nomme lui-meme chaque bloc S21.G00.20, et confirme par les codes de cotisation portes. C'est cet organisme qui porte le bordereau S21.G00.22 et les CTP S21.G00.23, notions propres a l'URSSAF.",
               "_chomage_des_permanents": "Les cles 040:urssaf et 048:urssaf sont le chomage et l'AGS d'un SALARIE PERMANENT : meme code de cotisation qu'un intermittent (040, 048), mais recouvres par l'Urssaf et non par France Travail. C'est le bareme qui pose la cle (par_nature.permanent.cotisations_dsn), et la reduction generale suit le meme chemin (018:urssaf porte alors ses deux parts)."
@@ -1458,14 +1458,14 @@
                     "existe racine:config/rubriques-actives.json": "non",
                     "existe racine:config/rubriques-compagnie.json": "non",
                     "fiches": "72ea01484cb360864a5a837c8d52011c72b0378ae62875afe78cfa676a554cfb",
-                    "fichier code:baremes/2026.json": "a57af8d9d2132d5c4f979f785d766e3df53e729912b9d5a9c13ecf277417ca8f",
+                    "fichier code:baremes/2026.json": "93339d7f83ce9114e248a143ea955a58bf85e4c75cee448011f2a31d9f11fcc2",
                     "fichier code:contrats-base.json": "a881fb6ed4fa89b72c3912e3f6ac5a1be537eb3842f11855971097750e4a3de8",
                     "fichier code:emplois-base.json": "18fa6cbb9d595636973a3689eac9964b5f9781448f7ef0e043124028bb8572ad",
                     "fichier code:minima-conventionnels.json": "52a5712b31f9ce263f273dc49dcf8aa817a69bd81535f7c483e9fb21f11db5ee",
                     "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
                     "fichier racine:config/baremes/2026.json": "aa67ef6e2d998751b6bc3bf9e8ab7f6a334747edcbad4688a7d7ebb09d697d61",
                     "fichier racine:config/pas.json": "369e7ddb77a5d443cd25a0ae2ccff0df37a0dd3981c84b47943aa9ec87214484",
-                    "moteur": "0.1.0+511f1f8cd97725e8",
+                    "moteur": "0.1.0+0ee1f0dee095a795",
                     "saisie 2026-11": "f28d3244c6199dbe6399317ea93818581c2939f2a97fc35f21ed8e39db950417:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
                   },
                   "regles": [

@@ -146,8 +146,8 @@ fn ou(a: Option<&Value>, b: Option<&Value>) -> Option<String> {
     }
 }
 
-/// `_ligne_en_pourcentage` : `base` x `taux_majoration` % -> `quantite` x `taux`.
-pub fn ligne_en_pourcentage(l: &Value) -> Resultat<Value> {
+/// Une ligne saisie en pourcentage (`base` x `taux_majoration` %) rendue en `quantite` x `taux`.
+pub(crate) fn ligne_en_pourcentage(l: &Value) -> Resultat<Value> {
     let o = match l {
         Value::Object(o) if o.contains_key("base") || o.contains_key("taux_majoration") => o,
         _ => return Ok(l.clone()),
