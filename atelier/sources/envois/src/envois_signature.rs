@@ -288,9 +288,22 @@ fn nom_du_pdf(cle: &str, ps: &[Paie], etiq: &str, suffixe: &str) -> String {
 }
 
 // ------------------------------------------------------------------ contrats-imprimer
+/// LE PDF A IMPRIMER : les pieces `pieces`, dans leur ordre, reunies en un seul fichier `<dossier>/Impression_<quoi>_<etiq>.pdf`
+/// (une impression d'un mois remplace la precedente : les pieces parties gardent chacune leur fichier).
+/// Le debut du nom du PDF a imprimer : ce fichier n'est la piece de personne, il ne se liste pas parmi les documents.
+pub const PREFIXE_IMPRESSION: &str = "Impression_";
+
+pub fn reunir_pour_imprimer(dossier: &std::path::Path, quoi: &str, etiq: &str, pieces: &[std::path::PathBuf]) -> R<std::path::PathBuf> {
+    let octets = documents::fabrique::fusion_pieces(&pieces.iter().map(|p| (p.clone(), None)).collect::<Vec<_>>())?;
+    let f = dossier.join(format!("{}{}_{}.pdf", PREFIXE_IMPRESSION, quoi, etiq));
+    std::fs::write(&f, octets).map_err(|e| erreur("OSError", format!("{} : {}", f.display(), e)))?;
+    Ok(f)
+}
+
 
 /// La route `contrats-imprimer` : les contrats choisis (comme `demander-signature`), un PDF par salarie dans
-/// `sorties/<mois>/envoi/`, a imprimer et a remettre en main propre. L'IMPRESSION EST UN DEPART : chaque contrat y
+/// `sorties/<mois>/envoi/` (la piece partie de chacun), et tous reunis en un seul PDF a imprimer (`impression`), a
+/// remettre en main propre. L'IMPRESSION EST UN DEPART : chaque contrat y
 /// part sous son numero, et le journal le note (`contrat-signature`, `main_propre`) ; le contrat
 /// revenu signe se note ensuite d'un clic (`contrat-recu`). Rien ne quitte le poste : aucun mot de passe. `qui` : la
 /// ligne du journal.
@@ -314,11 +327,13 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: &Choisis, qui: &st
             contrats.push(Value::Object(entree_du_contrat(ctx, p, cle, &pdf, &p.titre()?, &s_mois, &ent)));
         }
     }
+    let pdfs: Vec<std::path::PathBuf> = fichiers.iter().filter_map(Value::as_str).map(std::path::PathBuf::from).collect();
+    let impression = reunir_pour_imprimer(&dossier, "contrats", &etiq, &pdfs)?;
     let detail = json!({"contrats": contrats, "main_propre": true});
     let versions = crate::journal::versions_des_contrats(ctx, &contrats).map_err(Echec::from)?;
     let reponse = format!("{} contrat(s) imprime(s) pour une remise en main propre", contrats.len());
     let ligne = noter_envoi(ctx, "contrat-signature", Some(&mois), qui, true, "", &reponse, Some(&detail), Some(&versions))?;
-    Ok(json!({"fichiers": fichiers, "contrats": contrats, "ligne": ligne}))
+    Ok(json!({"fichiers": fichiers, "impression": nom_du(&impression), "contrats": contrats, "ligne": ligne}))
 }
 
 // ------------------------------------------------------------------ demander-signature
@@ -542,7 +557,7 @@ pub struct DemandeDeSignature<'a> {
     pub etats_des_contrats: Vec<Value>,
 }
 
-/// `_verifier_relance` : une relance ne vaut que pour un contrat demande, pas revenu, a jour.
+/// Une relance ne vaut que pour un contrat demande par courriel, pas revenu, a jour.
 fn verifier_relance(etats: &[Value], cles: &[(String, String, String)]) -> R<()> {
     for (salarie, debut, numero) in cles {
         // Le contrat, pas son jumeau du meme jour : (salarie, debut, numero), comme l'ecran.
@@ -556,6 +571,8 @@ fn verifier_relance(etats: &[Value], cles: &[(String, String, String)]) -> R<()>
             Some(c) if !vrai(&c["demande_le"]) => "n'a jamais ete demande : il s'envoie",
             Some(c) if vrai(&c["caduc"]) => "a change depuis son envoi : il se renvoie a jour",
             Some(c) if vrai(&c["recu_le"]) => "est deja revenu signe",
+            // Un contrat imprime n'a pas de courriel a renvoyer : il se remet en main propre.
+            Some(c) if c["par"].as_str() == Some("imprime") => "est parti imprime, a remettre en main propre",
             Some(_) => continue,
         };
         return Err(refus(format!("Le contrat de {} du {} {}, il ne se relance pas. Rien n'est parti.", salarie, debut, pb)));

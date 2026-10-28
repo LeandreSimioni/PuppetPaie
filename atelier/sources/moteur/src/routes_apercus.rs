@@ -112,6 +112,10 @@ pub(crate) fn documents_du_mois(ctx: &Contexte, mois: &Value, quoi: &Value) -> R
             continue;
         }
         for nom in pdf_de(d)? {
+            // Le PDF a imprimer reunit les pieces de plusieurs salaries : chacune se liste seule, lui jamais.
+            if nom.starts_with(envois::envois_signature::PREFIXE_IMPRESSION) {
+                continue;
+            }
             if let Some(p) = prefixes {
                 if !p.iter().any(|x| nom.starts_with(x)) {
                     continue;

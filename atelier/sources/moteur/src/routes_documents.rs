@@ -77,9 +77,8 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let saisis = Moteur::numeros_saisis(&saisie, &uniques);
     let cles_paies = etats::cles_des_paies(&lignes, &crate::routes_mois::contrats_des_paies(&paies))?;
 
-    // Quand chaque CONTRAT a ete demande (ce mois-ci), et s'il est parti imprime, pour une remise en main propre.
+    // Quand chaque CONTRAT a ete demande (ce mois-ci).
     let mut demandes: HashMap<etats::Cle3, Value> = HashMap::new();
-    let mut en_main_propre: HashMap<etats::Cle3, bool> = HashMap::new();
     for l in etats::filtrer(&lignes, Some(SIGNATURE), Some(&mois), false)? {
         if !etats::accepte(l)? {
             continue;
@@ -88,11 +87,11 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         for c in items(contrats)? {
             if let [Value::String(a), Value::String(b), Value::String(n)] = etats::cle_contrat(&c, etats::Maille::Contrat)?.as_slice() {
                 demandes.insert((a.clone(), b.clone(), n.clone()), get(l, "quand")?.clone());
-                en_main_propre.insert((a.clone(), b.clone(), n.clone()), l.pointer("/detail/main_propre").is_some_and(vrai));
             }
         }
     }
     let aujourdhui = ctx.aujourdhui.iso();
+    let boite_liee = crate::routes_accueil::boite_liee(ctx)?;
     let mut contrats = Vec::new();
     for (i, p) in paies.iter().enumerate() {
         // UN PERMANENT N'A PAS DE CONTRAT D'USAGE A SIGNER ICI.
@@ -103,6 +102,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         let cles = &cles_paies[i];
         let etat = crate::routes_mois::etat_signature(
             premier(&g.contrats, cles).unwrap_or(nul()),
+            premier(&g.par, cles).unwrap_or(nul()),
             premier(&g.recus, cles).unwrap_or(nul()),
             premier(&g.recus_par, cles).unwrap_or(nul()),
             dans_l_ensemble(&g.renvoyes, cles),
@@ -127,7 +127,15 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("fin".into(), json!(fin));
         l.insert("numero".into(), numero);
         l.insert("demande_le".into(), premier(&demandes, cles).cloned().unwrap_or(Value::Null));
-        l.insert("main_propre".into(), json!(premier(&en_main_propre, cles).copied().unwrap_or(false)));
+        // CE QUE LA BOITE EN FAIT : un contrat a envoyer (jamais parti, ou caduc) se coche ; un contrat parti et pas
+        // revenu attend, et seul celui parti par courriel se relance, quand la boite est posee.
+        let parti = l["demande_le"].clone();
+        let (recu, caduc) = (vrai(&etat["recu"]), vrai(&etat["caduc"]));
+        let en_attente = vrai(&parti) && !recu && !caduc;
+        l.insert("par".into(), etat["par"].clone());
+        l.insert("a_envoyer".into(), json!(caduc || (!recu && !vrai(&parti))));
+        l.insert("en_attente".into(), json!(en_attente));
+        l.insert("relancer".into(), json!(en_attente && est(&etat["par"], "courriel") && boite_liee));
         l.insert("recu_le".into(), etat["recu"].clone());
         l.insert("recu_par".into(), etat["recu_par"].clone());
         l.insert("caduc".into(), etat["caduc"].clone());
@@ -151,7 +159,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({
         "mois": mois_v,
         "contrats": contrats,
-        "boite_liee": crate::routes_accueil::boite_liee(ctx)?,
+        "boite_liee": boite_liee,
         "attendues": n_attendues,
         "dossier": dossier.to_string_lossy(),
         "produit": produit,
@@ -748,16 +756,6 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
             continue;
         }
         vus.push(cle.clone());
-        if !s.get("email").is_some_and(vrai) {
-            return Err(erreur(
-                "ValueError",
-                format!(
-                    "Pas d'adresse e-mail pour {} {} : completer config/salaries.json avant d'envoyer.",
-                    valeur_en_texte(get_requis(s, "nom")?),
-                    valeur_en_texte(get_requis(s, "prenom")?)
-                ),
-            ));
-        }
         let (mut pieces, mut courts) = (Vec::new(), Vec::new());
         for (_, prefixe, court) in PIECES {
             let chemin = dossier.join(nom_fichier(prefixe, &cle, &etiq));
@@ -786,7 +784,8 @@ fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, doss
         );
         messages.push(Message {
             nom: format!("{} {}", valeur_en_texte(get_requis(s, "prenom_affichage")?), valeur_en_texte(get_requis(s, "nom")?)),
-            destinataire: valeur_en_texte(get_requis(s, "email")?).to_lowercase(),
+            // Une fiche sans courriel se montre : ses documents s'impriment ; c'est l'envoi par courriel qui la refuse.
+            destinataire: s.get("email").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().to_lowercase(),
             cle,
             sujet,
             pieces,

@@ -230,6 +230,21 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
         ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
         return Ok(json!({"fichier": chemin}));
     }
+    // LE PDF A IMPRIMER que `contrats-imprimer` ou `documents-imprimer` vient d'ecrire dans `sorties/<mois>/envoi/` : son
+    // nom seul, et seulement un nom d'impression.
+    if let Some(mois) = charge.get("impression").and_then(Value::as_str) {
+        let fichier = texte(charge, "fichier")?;
+        let nom_sur = |t: &str| !t.is_empty() && !t.contains(['/', '\\']) && !t.contains("..");
+        if !nom_sur(mois) || !nom_sur(&fichier) || !fichier.starts_with(envois::envois_signature::PREFIXE_IMPRESSION) || !fichier.ends_with(".pdf") {
+            return Err(Refus::simple("ErreurOperation", format!("{} n'est pas une impression de {}.", fichier, mois)));
+        }
+        let f = racine.join("sorties").join(mois).join("envoi").join(&fichier);
+        if !f.is_file() {
+            return Err(Refus::simple("ErreurOperation", format!("{} a été déplacé ou effacé.", fichier)));
+        }
+        ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
+        return Ok(json!({"fichier": f.display().to_string()}));
+    }
     let fichier = texte(charge, "fichier")?;
     let parties = route(racine, "pieces-parties", charge)?;
     let pieces: Vec<&Value> = match &parties {
