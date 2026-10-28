@@ -300,7 +300,8 @@ fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     let url = |u: &str| {
         let _ = ouvrir_adresse(u);
     };
-    let compte = crate::google_autorisation::autoriser(racine, crate::google_autorisation::DELAI_AUTORISATION, &url, &|_| {}).map_err(vers)?;
+    let jeton = crate::google_autorisation::autoriser(racine, crate::google_autorisation::DELAI_AUTORISATION, &url, &|_| {}).map_err(vers)?;
+    let compte = crate::routes_google::sceller_le_jeton(racine, &jeton).map_err(vers)?;
     Ok(json!({"compte": compte}))
 }
 

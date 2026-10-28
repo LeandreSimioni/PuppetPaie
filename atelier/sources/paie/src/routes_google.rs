@@ -159,6 +159,25 @@ pub(crate) fn lire_jeton_dit(racine: &Path) -> Result<Value, String> {
     serde_json::from_str(&texte).map_err(|e| e.to_string())
 }
 
+/// Le jeton que l'autorisation a obtenu (`google_autorisation::autoriser`) et l'adresse du compte, dans un seul fichier
+/// scelle par la cle du poste. Rend l'adresse du compte lie.
+pub(crate) fn sceller_le_jeton(racine: &Path, jeton: &crate::google_autorisation::JetonGoogle) -> R<String> {
+    let brut = socle::json_ascii::dumps(
+        &serde_json::json!({"rafraichissement": jeton.rafraichissement, "compte": jeton.compte, "permissions": jeton.permissions}),
+        None,
+        false,
+        false,
+    );
+    let scelle = crate::coffre::Coffre::du_poste(racine, "")
+        .proteger(brut.as_bytes(), DESCRIPTION)
+        .map_err(|e| erreur_google(format!("Le jeton n'a pas pu etre scelle, rien n'est enregistre : {}", e.message)))?;
+    let dossier = config(racine);
+    std::fs::create_dir_all(&dossier).map_err(|e| erreur_google(format!("{} : {}", dossier.display(), e)))?;
+    let chemin = dossier.join(FICHIER_JETON);
+    std::fs::write(&chemin, scelle).map_err(|e| erreur_google(format!("{} : {}", chemin.display(), e)))?;
+    Ok(jeton.compte.clone())
+}
+
 /// `(j or {}).get(cle)` : `Null` pour un jeton faux en Python.
 pub(crate) fn champ(j: &Value, cle: &str) -> R<Value> {
     if !vrai(j) {

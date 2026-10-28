@@ -121,6 +121,7 @@ fn autoriser(cadre: &Cadre, json: bool) -> i32 {
                 }
             };
             crate::google_autorisation::autoriser(&cadre.racine, crate::google_autorisation::DELAI_AUTORISATION, &url, &attention)
+                .and_then(|jeton| crate::routes_google::sceller_le_jeton(&cadre.racine, &jeton))
         });
     match r {
         Ok(compte) => {
