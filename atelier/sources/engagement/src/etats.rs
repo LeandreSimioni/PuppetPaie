@@ -956,13 +956,22 @@ pub fn supprimer(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<()> {
 pub struct NonActif {
     objet: Objet,
     le: String,
+    version: u64,
 }
 
 impl NonActif {
     /// L'engagement non actif `o`, tel qu'il est ecrit ; `None` s'il est actif.
     pub fn de(objet: Objet) -> Option<NonActif> {
-        let le = objet.brut.get(stock::NON_ACTIF)?.get("le").map(en_texte)?;
-        Some(NonActif { objet, le })
+        let na = objet.brut.get(stock::NON_ACTIF)?;
+        let le = na.get("le").map(en_texte)?;
+        let version = na.get("version").and_then(Value::as_u64)?;
+        Some(NonActif { objet, le, version })
+    }
+
+    /// Sa version : celle qui suit la derniere validee. Son present est : rien de paye ; une correction qui le declare
+    /// part sur elle.
+    pub fn version(&self) -> u64 {
+        self.version
     }
 
     pub fn objet(&self) -> &Objet {
@@ -975,9 +984,10 @@ impl NonActif {
     }
 
     /// CE QUE SA DESACTIVATION REND FAUX, tire de ce qui est parti (`departs`) comparé a son present, qui est : rien. La
-    /// derniere DPAE partie est a annuler (`DpaeAAnnuler`) ; chaque mois qu'une DSN a declare pour lui est a corriger
-    /// (`Dsn`) : la couche des declarations dit comment (l'annule-et-remplace du mois qui ne le porte plus, ou la
-    /// correction qui annule ce qui a ete declare). Un contrat, des documents, un signalement partis ne demandent rien.
+    /// derniere DPAE partie est a annuler (`DpaeAAnnuler`) ; chaque mois que la derniere DSN qui l'a declare a declare
+    /// sur une autre version que la sienne est a corriger (`Dsn`) : la couche des declarations dit comment
+    /// (l'annule-et-remplace du mois qui ne le porte plus, ou la correction qui annule ce qui a ete declare). Un contrat,
+    /// des documents, un signalement partis ne demandent rien.
     pub fn a_refaire(&self, ctx: &Contexte, departs: &Departs) -> Vec<ARefaire> {
         let siens = ses_departs(ctx, &self.objet, departs);
         let mut out = Vec::new();
@@ -990,8 +1000,16 @@ impl NonActif {
                 mois.insert(m.clone(), d.version);
             }
         }
-        out.extend(mois.into_iter().map(|(mois, depuis)| ARefaire::Dsn { mois, depuis }));
+        out.extend(mois.into_iter().filter(|(_, depuis)| *depuis != self.version).map(|(mois, depuis)| ARefaire::Dsn { mois, depuis }));
         out
+    }
+
+    /// LA CORRECTION de `mois` que la DSN de `porteur` doit porter pour lui : ce qui a ete declare pour ce mois par les
+    /// DSN anterieures a `porteur` (`paies_declarees`), quand la derniere ne l'a pas declare non actif ; `None` sinon.
+    pub fn correction_due(&self, ctx: &Contexte, departs: &Departs, mois: &str, porteur: &str) -> Resultat<Option<Vec<Declaree>>> {
+        let declarees = paies_declarees(ctx, &self.objet, departs, mois, porteur)?;
+        let due = declarees.last().is_some_and(|d| d.version != self.version);
+        Ok(due.then_some(declarees))
     }
 }
 
@@ -1007,7 +1025,8 @@ pub fn desactiver(ctx: &Contexte, mois: &str, rang: usize) -> Resultat<NonActif>
     // La validation presente, ou celle que « Modifier… » a mise de cote : la derniere version, gardee telle quelle.
     let derniere = o.brut.remove("valide").or_else(|| o.brut.remove(PRECEDENTE));
     o.brut.remove(PRECEDENTE);
-    let version = version_de(derniere.as_ref());
+    // Sa version suit la derniere validee : son present, rien de paye, est une version de plus.
+    let version = o.brut.get(VERSIONS).and_then(Value::as_array).into_iter().flatten().chain(derniere.as_ref()).filter_map(|v| version_de(Some(v))).max().unwrap_or(0) + 1;
     if let Some(v) = derniere.filter(|v| version_de(Some(v)).is_some()) {
         let gardee = json!({
             "version": v["version"], "valide_le": v.get("le").cloned().unwrap_or(Value::Null), "remplacee_le": le,
@@ -1356,8 +1375,16 @@ pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str,
             },
         }
     }
-    let mut out = Vec::new();
+    let mut out: Vec<Declaree> = Vec::new();
+    let non_actif = o.brut.get(stock::NON_ACTIF).and_then(|n| n.get("version")).and_then(Value::as_u64);
     for (par, n) in chaine {
+        // Une correction partie sur la version d'un non actif a declare la paie d'avant, annulee.
+        if Some(n) == non_actif {
+            if let Some(avant) = out.last().map(|d| d.paie.annulee()) {
+                out.push(Declaree { par, version: n, paie: avant });
+                continue;
+            }
+        }
         let paie = version_ecrite(o, n)?
             .map(|v| paie_de_la_version(ctx, o, v, mois))
             .transpose()?
