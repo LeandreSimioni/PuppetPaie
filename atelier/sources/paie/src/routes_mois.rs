@@ -817,7 +817,7 @@ impl<'a> Moteur<'a> {
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
         // Apres la limite : ce que la paie d'aujourd'hui change a ce que la DSN a declare, et ce qui en est deja ecrit.
-        let couverture = if admis { None } else { crate::routes_regularisation::couverture(self.o, self.ctx, mois)? };
+        let couverture = if admis { None } else { crate::routes_regularisation::couverture(self.ctx, mois)? };
         if couverture.as_ref().is_some_and(|c| c.changes > 0) {
             modifiee = true;
             out.insert("saisie_modifiee".into(), json!(true));

@@ -379,7 +379,7 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
 
     // LES CORRECTIONS DES MOIS DEJA DECLARES : la DSN de ce mois les porte, datees de leur mois d'origine.
     corrections_dues(o, ctx, mois)?;
-    let regs = regularisations::regularisations_pour(ctx, &mut m, mois)?;
+    let regs = regularisations::regularisations_pour(ctx, mois)?;
     for ligne in regularisations::resume_regularisations(&regs)? {
         avertissements.push(info(format!(
             "Regularisation embarquee dans la DSN : {}. La difference de net se paie -- ou se retient -- ce mois-ci, par un bulletin rectificatif.",
@@ -556,7 +556,7 @@ fn corrections_dues(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> 
         if m.depots_reels(&anterieur, &Value::Null)?.is_empty() || ctx.aujourdhui <= m.limite(&anterieur)? {
             continue;
         }
-        let Some(c) = crate::routes_regularisation::couverture(o, ctx, &anterieur)? else { continue };
+        let Some(c) = crate::routes_regularisation::couverture(ctx, &anterieur)? else { continue };
         for (salarie, debut, engagement) in c.a_corriger {
             crate::routes_ecritures_g2::ecrire_une_correction(o, ctx, &json!(anterieur), &json!(salarie), &json!(debut), &engagement, MOTIF_DE_LA_CORRECTION, "moteur", true)?;
         }

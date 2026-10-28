@@ -3,18 +3,17 @@
 //!
 //! C'est le Python de `operations_regularisation.apercu_correction` et de ce qu'il appelle
 //! (`etat_mois`, `engagements_d_origine`, `_engagement_declare`, `_paie_d_un_engagement`,
-//! `_poser_numeros`, `numeros_declares`, `_dsn_deposees`, `lire_corrections`, `_normaliser`,
+//! `exiger_les_numeros`, `lire_corrections`, `_normaliser`,
 //! `_resume`), porte a l'identique : meme JSON, memes refus.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::str::FromStr;
 
 use serde_json::{json, Map, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use crate::etats::{self, get};
+use crate::etats;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::R;
@@ -113,70 +112,18 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     Ok(Value::Object(out))
 }
 
-/// `_dsn_deposees` : les DSN de `mois` sur le disque, lues -- celle que le journal nomme d'abord, les
-/// autres ensuite.
-pub(crate) fn dsn_deposees(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    let dossier = ctx.racine.join("sorties").join(mois);
-    if !dossier.exists() {
-        return Ok(Vec::new());
-    }
-    let lignes = m.lignes()?;
-    let mut fichiers: Vec<PathBuf> = Vec::new();
-    for l in etats::filtrer(&lignes, Some("dsn"), Some(mois), false)? {
-        if etats::est(get(l, "mode")?, "reel") && vrai(get(l, "fichier")?) {
-            let p = dossier.join(valeur_en_texte(get(l, "fichier")?));
-            if p.exists() {
-                fichiers.push(p);
-            }
+/// LE NUMERO SOUS LEQUEL CHAQUE CONTRAT A ETE DECLARE : l'engagement le porte depuis sa validation (regle 4 : un numero de
+/// contrat se lit, il ne se recalcule pas). Refus : une paie dont l'engagement n'en porte pas ; rien n'est ecrit.
+pub(crate) fn exiger_les_numeros(mois: &str, paies: &[Paie]) -> R<()> {
+    for p in paies {
+        if !p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
+            return Err(non_regularisable(format!(
+                "{} (contrat du {}) : l'engagement declare pour {} ne porte pas de numero de contrat (S21.G00.40.009). Cet engagement est a revalider ; rien n'est ecrit.",
+                p.salarie.get("nom").map(valeur_en_texte).unwrap_or_default(),
+                p.engagement.debut.iso(),
+                mois
+            )));
         }
-    }
-    let mut autres: Vec<PathBuf> = match std::fs::read_dir(&dossier) {
-        Ok(l) => l.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "dsn")).collect(),
-        Err(_) => Vec::new(),
-    };
-    autres.sort();
-    for f in autres {
-        if !fichiers.contains(&f) {
-            fichiers.push(f);
-        }
-    }
-    let mut out = Vec::new();
-    for f in fichiers {
-        if let Some(lu) = crate::importation::lire_une_dsn(&f) {
-            if lu.get("mois").and_then(Value::as_str) == Some(mois) {
-                out.push(lu);
-            }
-        }
-    }
-    Ok(out)
-}
-
-/// `numeros_declares` : (NIR, premier jour) -> numero de contrat, LUS DANS LA DSN DEPOSEE.
-fn numeros_declares(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<HashMap<(String, String), String>> {
-    let mut out = HashMap::new();
-    for lu in dsn_deposees(m, ctx, mois)? {
-        for c in lu["contrats"].as_array().map(Vec::as_slice).unwrap_or(&[]) {
-            let t = |k: &str| c.get(k).and_then(Value::as_str).filter(|v| !v.is_empty());
-            if let (Some(numero), Some(nir), Some(debut)) = (t("numero"), t("nir"), t("debut")) {
-                out.insert((nir.to_string(), debut.to_string()), numero.to_string());
-            }
-        }
-    }
-    Ok(out)
-}
-
-/// `_poser_numeros` : rend a chaque paie le numero sous lequel son contrat a ete declare.
-pub(crate) fn poser_numeros(m: &mut Moteur, ctx: &Contexte, mois: &str, paies: &mut [Paie]) -> R<()> {
-    let mut declares: Option<HashMap<(String, String), String>> = None;
-    for p in paies.iter_mut() {
-        if p.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
-            continue;
-        }
-        if declares.is_none() {
-            declares = Some(numeros_declares(m, ctx, mois)?);
-        }
-        let nir = p.salarie.get("nir").and_then(Value::as_str).unwrap_or("").to_string();
-        p.engagement.numero = declares.as_ref().and_then(|d| d.get(&(nir, p.engagement.debut.iso())).cloned());
     }
     Ok(())
 }
@@ -236,10 +183,10 @@ pub(crate) fn saisie_d_origine(ctx: &Contexte, mois: &str) -> R<Value> {
 
 /// `engagements_d_origine`, puis `_engagement_declare` : l'engagement du contrat tel que DECLARE, la
 /// saisie du mois, et ce que la page montre du contrat (nom, spectacle, numero).
-pub(crate) fn engagement_declare(m: &mut Moteur, ctx: &Contexte, mois: &str, salarie: &Value, debut: &Value) -> R<(Value, Value, Value)> {
+pub(crate) fn engagement_declare(ctx: &Contexte, mois: &str, salarie: &Value, debut: &Value) -> R<(Value, Value, Value)> {
     let donnees = saisie_d_origine(ctx, mois)?;
-    let mut paies = paies_de(ctx, &donnees)?;
-    poser_numeros(m, ctx, mois, &mut paies)?;
+    let paies = paies_de(ctx, &donnees)?;
+    exiger_les_numeros(mois, &paies)?;
     let engs = donnees.get("engagements").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("engagements")))?;
     let engs = etats::items(engs)?;
     let mut trouve: Option<(Value, Value)> = None;
@@ -274,14 +221,14 @@ pub(crate) fn engagement_declare(m: &mut Moteur, ctx: &Contexte, mois: &str, sal
 
 /// `_paie_d_un_engagement` : la paie d'UN engagement, calculee comme le mois l'a calculee, avec le
 /// numero de contrat DECLARE.
-pub(crate) fn paie_d_un_engagement(m: &mut Moteur, ctx: &Contexte, donnees: &Value, engagement: &Value) -> R<Paie> {
+pub(crate) fn paie_d_un_engagement(ctx: &Contexte, donnees: &Value, engagement: &Value) -> R<Paie> {
     let mut seule = donnees.clone();
     if let Some(obj) = seule.as_object_mut() {
         obj.insert("engagements".into(), Value::Array(vec![engagement.clone()]));
     }
     let mut paies = paies_de(ctx, &seule)?;
     let mois = valeur_en_texte(requis(donnees, "mois")?);
-    poser_numeros(m, ctx, &mois, &mut paies)?;
+    exiger_les_numeros(&mois, &paies)?;
     if paies.is_empty() {
         return Err(erreur("IndexError", socle::fichiers::trop_courte("la paie corrigée")));
     }
@@ -374,12 +321,12 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
         _ => None,
     };
     if let Some(c) = change.as_ref().filter(|c| c.ajoute) {
-        return apercu_d_un_ajout(&mut m, ctx, charge, etat, &c.engagement);
+        return apercu_d_un_ajout(ctx, charge, etat, &c.engagement);
     }
     // SES DATES CHANGEES DANS LA SAISIE (21/10/2026) : la correction les reprend (`phrase_des_dates` dit ce que la DSN suivante en declare).
     let nouvelles = change.filter(|c| c.dates_changees).map(|c| c.bornes);
-    let (donnees, declare, fiche) = engagement_declare(&mut m, ctx, &mois, salarie, debut)?;
-    let avant = paie_d_un_engagement(&mut m, ctx, &donnees, &declare)?;
+    let (donnees, declare, fiche) = engagement_declare(ctx, &mois, salarie, debut)?;
+    let avant = paie_d_un_engagement(ctx, &donnees, &declare)?;
     if !avant.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
         // Sans le numero sous lequel le contrat a ete DECLARE, la correction ne designe rien.
         return Err(non_regularisable(format!(
@@ -409,7 +356,7 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
     if let Some(n) = &nouvelles {
         poser_les_bornes(&mut corrige, n);
     }
-    let apres = paie_d_un_engagement(&mut m, ctx, &donnees, &corrige)?;
+    let apres = paie_d_un_engagement(ctx, &donnees, &corrige)?;
     if bornes(&apres) != cible {
         return Err(non_regularisable(format!(
             "La correction deplace les bornes du contrat {} ({} -> {}). Le contrat garde les dates de la saisie : seules ses lignes se corrigent ici.",
@@ -744,11 +691,10 @@ pub(crate) struct Couverture {
 /// annulee (en attente, preparee ou portee) : sa paie, et celle que la meme correction aurait avec les lignes saisies
 /// aujourd'hui (`normaliser` : l'identite du contrat declare, les lignes de la saisie), calculees de la meme facon
 /// (`paie_d_un_engagement`) et comparees par ce qu'elles declarent (`resume`). `None` : aucune DSN du mois n'est partie.
-pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Option<Couverture>> {
+pub(crate) fn couverture(ctx: &Contexte, mois: &str) -> R<Option<Couverture>> {
     let Some(ch) = ce_qui_a_change(ctx, mois)? else { return Ok(None) };
     let ecrites = crate::routes_ecrites::lire_corrections(ctx, mois)?;
     let donnees = saisie_d_origine(ctx, mois)?;
-    let mut m = Moteur::nouveau(o, ctx);
     let mut c = Couverture { changes: ch.contrats.len(), a_ecrire: 0, a_refaire: 0, a_corriger: Vec::new() };
     for x in &ch.contrats {
         let derniere = ecrites.iter().rev().find(|e| {
@@ -765,8 +711,8 @@ pub(crate) fn couverture(o: &HashMap<String, String>, ctx: &Contexte, mois: &str
         let a_jour = normaliser(&corrige, &x.engagement).ok().and_then(|mut aujourdhui| {
             // Les dates d'aujourd'hui aussi : une correction ecrite a d'autres dates ne declare plus la saisie.
             poser_les_bornes(&mut aujourdhui, &x.bornes);
-            let p1 = paie_d_un_engagement(&mut m, ctx, &donnees, &corrige).ok()?;
-            let p2 = paie_d_un_engagement(&mut m, ctx, &donnees, &aujourdhui).ok()?;
+            let p1 = paie_d_un_engagement(ctx, &donnees, &corrige).ok()?;
+            let p2 = paie_d_un_engagement(ctx, &donnees, &aujourdhui).ok()?;
             Some((resume(&p1), bornes(&p1)) == (resume(&p2), bornes(&p2)))
         });
         if a_jour != Some(true) {
@@ -809,13 +755,13 @@ fn resume_nul() -> Value {
 /// mois d'origine (S21.G00.51.001/002, S21.G00.78.002/003) : `dsn::bloc_regularisation`, sur un declare vide. Rien
 /// n'a ete declare, rien n'a ete verse : l'« avant » est nul.
 fn apercu_d_un_ajout(
-    m: &mut Moteur, ctx: &Contexte, charge: &Value, etat: Value, saisi: &Value,
+    ctx: &Contexte, charge: &Value, etat: Value, saisi: &Value,
 ) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
     let donnees = saisie_d_origine(ctx, &mois)?;
     let corrige = normaliser(saisi, cle(charge, "engagement")?)?;
-    let apres = paie_d_un_engagement(m, ctx, &donnees, &corrige)?;
+    let apres = paie_d_un_engagement(ctx, &donnees, &corrige)?;
     let (r_avant, r_apres) = (resume_nul(), resume(&apres));
     let mut delta = Map::new();
     let mut tout_nul = true;
