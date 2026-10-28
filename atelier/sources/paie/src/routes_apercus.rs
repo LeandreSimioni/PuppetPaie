@@ -21,7 +21,7 @@ use droit::contexte::Contexte;
 use crate::etats;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::vrai;
 use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
@@ -263,30 +263,6 @@ fn iso_depuis_jjmmaaaa(v: &str) -> String {
     format!("{}-{}-{}", s(4, 8), s(2, 4), s(0, 2))
 }
 
-/// `pas_avant_dpae` : huit jours avant l'embauche la plus lointaine.
-fn pas_avant_dpae(debuts: &[String]) -> R<String> {
-    let mut dates: Vec<&String> = debuts.iter().filter(|x| !x.is_empty()).collect();
-    dates.sort();
-    let Some(derniere) = dates.last() else { return Ok(String::new()) };
-    // `date.fromisoformat` : AAAA-MM-JJ, en chiffres ASCII.
-    let c: Vec<char> = derniere.chars().collect();
-    if c.len() != 10 || !c.iter().enumerate().all(|(i, x)| if i == 4 || i == 7 { *x == '-' } else { x.is_ascii_digit() }) {
-        return Err(erreur("ValueError", format!("date illisible : {}", repr(derniere))));
-    }
-    let n = |a: usize, b: usize| c[a..b].iter().collect::<String>().parse::<i32>().unwrap_or(0);
-    let (an, mo, jo) = (n(0, 4), n(5, 7), n(8, 10));
-    if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", socle::date::annee_impossible(an)));
-    }
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", socle::date::mois_impossible(mo)));
-    }
-    let Some(j) = socle::date::Jour::nouveau(an, mo as u32, jo as u32) else {
-        return Err(erreur("ValueError", socle::date::jour_impossible(an, mo, jo)));
-    };
-    j.plus_jours(-8).map(|x| x.iso()).map_err(|m| erreur("OverflowError", m))
-}
-
 /// `apercu_depot_dpae` : ce que le fichier DPAE declare, enregistrement par enregistrement.
 pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fichier: &Value) -> R<Value> {
     let chemin = resoudre(&ctx.racine, fichier)?;
@@ -349,14 +325,12 @@ pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fic
     let mois: std::collections::BTreeSet<String> =
         debuts.iter().filter(|d| !d.is_empty()).map(|d| d.chars().take(7).collect()).collect();
     let mois: Vec<String> = mois.into_iter().collect();
-    let pas_avant = pas_avant_dpae(&debuts)?;
     let empreinte = crate::journal::empreinte(&contenu);
     let nom_fichier = nom_du_chemin(&chemin);
     let deja_depose = etats::deja_depose(&lignes_journal, "dpae", &empreinte)?;
     let repetition = etats::repetition(&lignes_journal, "dpae", &empreinte, &nom_fichier)?;
     Ok(json!({
         "fichier": chemin, "nom": nom_fichier,
-        "pas_avant": pas_avant,
         "enregistrements": enrs.len(), "octets": contenu.len(),
         "reel": crate::depot::est_reel(&contenu),
         "indicateur": crate::depot::indicateur(&contenu),

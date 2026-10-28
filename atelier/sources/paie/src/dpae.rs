@@ -2,9 +2,8 @@
 //!
 //! Format teletransmission (Format 120) : enregistrements a largeur fixe de
 //! 990 caracteres, saut de ligne compris (989 + LF), encodage latin-1. Le
-//! fichier se depose sur net-entreprises.fr (rubrique DPAE), au plus tard
-//! dans les 8 jours qui precedent l'embauche - et au minimum avant le debut
-//! du travail.
+//! fichier se depose sur net-entreprises.fr (rubrique DPAE) des que l'engagement
+//! est valide, et au plus tard avant le debut du travail.
 //!
 //! Comme pour l'AEM, on part d'un enregistrement reel
 //! (`gabarits/due_tel_gabarit.txt`) et on ne remplace que les zones variables.
