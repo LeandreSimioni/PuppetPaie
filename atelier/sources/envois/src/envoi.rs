@@ -326,15 +326,15 @@ fn texte_de(v: &Value, cle: &str) -> String {
 /// CE QUI A CHANGE depuis l'envoi des documents, en lignes pretes pour le courriel : ce qui a change dans les
 /// engagements du salarie depuis la version sur laquelle ils sont partis (`faits`, dits par l'engagement :
 /// « Cachets : 2 → 3 », « Jours : + 22/11 »), puis ce que sa paie en tire, du resume note a l'envoi (`ancien`) a celui
-/// de la paie refaite (`nouveau`) : « salaire brut : 576,00 € → 720,00 € ». Vide quand rien de cela n'a bouge (le
+/// de la paie refaite (`nouveau`) : « Salaire brut : 576,00 € → 720,00 € ». Vide quand rien de cela n'a bouge (le
 /// detail du bulletin seul a change).
 pub fn ce_qui_a_change(faits: &[String], ancien: &Value, nouveau: &Value) -> Vec<String> {
     let mut out: Vec<String> = faits.iter().map(|f| format!("  - {}", f)).collect();
     if texte_de(ancien, "brut") != texte_de(nouveau, "brut") {
-        out.push(format!("  - salaire brut : {} € → {} €", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
+        out.push(format!("  - Salaire brut : {} € → {} €", texte_de(ancien, "brut"), texte_de(nouveau, "brut")));
     }
     if texte_de(ancien, "net") != texte_de(nouveau, "net") {
-        out.push(format!("  - net à payer : {} € → {} €", texte_de(ancien, "net"), texte_de(nouveau, "net")));
+        out.push(format!("  - Net à payer : {} € → {} €", texte_de(ancien, "net"), texte_de(nouveau, "net")));
     }
     out
 }
