@@ -719,7 +719,7 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
 .message {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
   background: var(--texte); color: var(--blanc); padding: 10px 20px;
-  border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw;
+  border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw; overflow-wrap: anywhere;
 }
 .message.erreur { background: var(--erreur); }
 /* Ce qui est parti : en vert, coché. */
