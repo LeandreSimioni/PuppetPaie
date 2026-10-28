@@ -38,9 +38,9 @@ pub const SUITE: &str = "mois_suivants";
 /// (`numeros`), et qu'il n'est plus actif (`NON_ACTIF`).
 pub const TENUS_PAR_LE_MOTEUR: [&str; 6] = [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF];
 
-/// Dans un engagement qui n'est plus actif (`etats::desactiver`) : `{"le", "version"}`, quand, et la derniere de ses
-/// versions. Il ne touche plus aucun mois (`Objet::couvre`) : il ne se calcule plus, n'entre dans aucun document ni
-/// aucune declaration ; il se lit (`non_actifs_du_mois`).
+/// Dans un engagement qui n'est plus actif (`etats::desactiver`) : `{"le", "version"}`, quand, et sa version (celle qui
+/// suit la derniere validee : rien de paye). Il ne touche plus aucun mois (`Objet::couvre`) : il ne se calcule plus,
+/// n'entre dans aucun document ni aucune declaration ; il se lit (`non_actifs_du_mois`).
 pub const NON_ACTIF: &str = "non_actif";
 
 /// Ce que la vue d'un mois porte et que le moteur deduit : les jours du contrat entier (son premier mois et son
