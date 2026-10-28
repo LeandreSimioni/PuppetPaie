@@ -251,10 +251,10 @@ fn changer_rubrique(c: &Path, relatif: &str, rubrique: &str, valeur: &str) {
     std::fs::write(&p, format!("{}{}{}", &t[..debut], valeur, &t[fin..])).unwrap();
 }
 
-fn depot_reel(ordre: &str, saisie: &str) -> Value {
+fn depot_reel(ordre: &str) -> Value {
     json!({"quoi": "dsn", "mode": "reel", "accepte": true, "quand": "2026-09-10T10:00:00", "mois": "2026-08",
            "fichier": "DSN_Aout2026.dsn", "empreinte": "0000000000000000",
-           "detail": {"type": "01", "ordre": ordre, "empreinte_saisie": saisie, "etablissement": "00010"}})
+           "detail": {"type": "01", "ordre": ordre, "etablissement": "00010"}})
 }
 
 #[test]
@@ -317,11 +317,10 @@ fn depot_apercu_dsn_un_signalement_n_a_ni_recapitulatif_ni_remplacement() {
 fn depot_apercu_dsn_l_annule_et_remplace_se_lit_dans_le_journal() {
     let c = &compagnie("dsn-remplacement");
     let f = poser_dsn(c);
-    ecrire(c, "journal/depots.json", &json!([depot_reel("1", "dead")]));
+    ecrire(c, "journal/depots.json", &json!([depot_reel("1")]));
     let r = lire(c, "depot-apercu", json!({"quoi": "dsn", "fichier": f}));
     let rem = &r["remplacement"];
     assert_eq!((rem["deposee"].as_bool(), rem["dernier_ordre"].as_i64(), rem["prochain_ordre"].as_i64()), (Some(true), Some(1), Some(2)));
-    assert_eq!(rem["saisie_modifiee"], json!(true));
     assert_eq!(rem["fichier_remplace"], json!(false));
     // Un annule-et-remplace d'ordre 2 au-dessus du depot d'ordre 1 le remplace.
     changer_rubrique(c, &f, "S20.G00.05.002", "03");

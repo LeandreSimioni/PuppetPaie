@@ -153,7 +153,7 @@ fn le_bilan_dit_l_etat_de_chaque_acte() {
 #[test]
 fn une_dsn_reelle_ferme_le_mois_et_une_paie_modifiee_la_rouvre_tant_que_la_norme_l_admet() {
     let c = &compagnie("annule-remplace");
-    // La paie du mois n'a pas bouge depuis la DSN : l'empreinte notee est la sienne.
+    // La DSN est partie ; rien ne dit encore que la paie a change.
     journal(c, &[dsn_reelle(MOIS, Some("OK"), json!({"type": "01", "ordre": "1"}))]);
     let r = rendu(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-09-10");
     for p in r["engagements"].as_array().unwrap() {
@@ -177,8 +177,11 @@ fn une_dsn_reelle_ferme_le_mois_et_une_paie_modifiee_la_rouvre_tant_que_la_norme
     let r = rendu(c, "etat-par-engagement", json!({"mois": MOIS}), "2026-09-10");
     assert_eq!(r["engagements"][1]["valide"], Value::Null);
     assert!(r["engagements"][0]["valide"].is_string());
-    // La paie a change depuis la DSN : annule-et-remplace a envoyer, puis plus admis.
-    journal(c, &[dsn_reelle(MOIS, Some("OK"), json!({"type": "01", "ordre": 3, "empreinte_saisie": "0000000000000000"}))]);
+    // La paie a change depuis la DSN (elle a emporte les trois engagements, l'un n'est plus valide) : annule-et-remplace
+    // a envoyer, puis plus admis.
+    let mut dsn = dsn_reelle(MOIS, Some("OK"), json!({"type": "01", "ordre": 3}));
+    dsn["versions"] = r["engagements"].as_array().unwrap().iter().map(|e| json!({"salarie": e["salarie"], "numero": e["numero"], "version": 1})).collect();
+    journal(c, &[dsn]);
     let b = rendu(c, "bilan-du-mois", json!({"mois": MOIS}), "2026-09-10");
     assert_eq!(b["dsn"]["couleur"], "alerte");
     assert_eq!(b["dsn"]["attente"], false);

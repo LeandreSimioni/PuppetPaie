@@ -1,11 +1,11 @@
 //! MODIFIER LA PAIE D'UN MOIS DONT LA DSN EST DEPOSEE. Tant que l'annule-et-remplace est admis
 //! (jusqu'a la veille de l'echeance, minuit : cahier technique DSN §1.4.2, `echeance_dsn::Echeance::veille`), la paie se
 //! modifie sans rien confirmer, et le moteur dit qu'un annule-et-remplace partira. Apres, la DSN deposee ne se remplace
-//! plus : une ecriture qui change la paie se refuse sans confirmation explicite, et rien n'est ecrit ; avec, elle s'ecrit,
-//! la saisie telle que declaree est gardee, et la DSN suivante porte la correction. Sur
+//! plus : une ecriture qui change la paie se refuse sans confirmation explicite, et rien n'est ecrit ; avec, elle s'ecrit
+//! et la DSN suivante porte la correction. Sur
 //! `fictive-3090-petite` (aout 2026, DSN reelle deposee et acceptee).
 
-use crate::outils::{compagnie, dossier_de_test, lire, refus, reussi};
+use crate::outils::{compagnie, dossier_de_test, refus, reussi};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -51,7 +51,6 @@ fn lemercier(racine: &Path) -> Value {
 fn apres_la_limite_une_modification_se_refuse_sans_confirmation_et_rien_n_est_ecrit() {
     let racine = compagnie("apres-la-limite");
     let saisie = format!("engagements/{}.json", MOIS);
-    let copie = format!("regularisations/{}.saisie-declaree.json", MOIS);
 
     // Le mois n'est pas ferme : il se modifie, en le confirmant. Le moteur le dit avant toute frappe.
     let s = route(&racine, "saisie", json!({"mois": MOIS}), APRES);
@@ -61,28 +60,21 @@ fn apres_la_limite_une_modification_se_refuse_sans_confirmation_et_rien_n_est_ec
 
     // Sans confirmation : refuse, avec l'avertissement, et rien n'est ecrit.
     let avant = octets(&racine, &saisie).unwrap();
-    let declaree = crate::outils::saisie(&racine, MOIS);
     let r = route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 40)}), APRES);
     let (classe, texte) = refus(&r);
     assert_eq!(classe, "ModificationApresEcheance", "{}", r);
     assert!(texte.starts_with("La limite de la DSN d'août 2026 est passée : l'annule-et-remplace n'est plus admis depuis le "), "{}", texte);
     assert!(texte.ends_with("Êtes-vous sûr de vouloir modifier cette paie ?"), "{}", texte);
     assert_eq!(octets(&racine, &saisie).unwrap(), avant);
-    assert!(!racine.join(&copie).exists());
 
     // Ce qui ne change pas la paie (la meme saisie) n'a rien a confirmer.
     let meme = crate::outils::saisie(&racine, MOIS);
     reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": meme}), APRES));
-    assert!(!racine.join(&copie).exists());
 
-    // Avec la confirmation : ecrite, et la saisie telle que declaree est gardee.
+    // Avec la confirmation : ecrite.
     let r = route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 40), "modifier_apres_echeance": true}), APRES);
     assert_eq!(reussi(&r)["dsn_deposee"]["confirmer"], json!(true), "{}", r);
     assert_ne!(octets(&racine, &saisie).unwrap(), avant);
-    assert_eq!(lire(&racine, &copie), declaree);
-    // Une seconde modification ne la remplace pas : elle reste la paie declaree.
-    reussi(&route(&racine, "enregistrer-saisie", json!({"mois": MOIS, "saisie": saisie_modifiee(&racine, 41), "modifier_apres_echeance": true}), APRES));
-    assert_eq!(lire(&racine, &copie), declaree);
 }
 
 /// UN CONTRAT DECLARE NE SE RETIRE PAS APRES LA LIMITE : la norme DSN n'annule pas un contrat declare (seule une fin
