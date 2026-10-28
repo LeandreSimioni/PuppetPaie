@@ -88,7 +88,7 @@ fn nom_de_l_etablissement(ent: &Value, nic: &str) -> String {
 }
 
 fn plur(k: usize, un: &'static str, des: &'static str) -> &'static str {
-    if k == 1 {
+    if k <= 1 {
         un
     } else {
         des
@@ -577,14 +577,16 @@ impl<'a> Moteur<'a> {
             ligne.insert("emploi".into(), sal.get("emploi").cloned().unwrap_or(Value::Null));
             ligne.insert("statut".into(), sal.get("statut").cloned().unwrap_or(Value::Null));
             // LES ECHEANCES de l'engagement : sa DPAE (L. 1221-10) et la remise de son contrat (L. 1242-13, ou la couche
-            // de la convention), `droit::echeances`.
-            let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.get("code_emploi_ft").map(valeur_en_texte).unwrap_or_default());
-            let idcc = self.ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
-            let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
-            // Le bulletin, le jour du paiement que l'engagement ecrit (L. 3243-2) ; sans ce jour, aucune echeance.
-            let paiement = p.engagement.date_paiement.as_deref().and_then(|d| Jour::lire(d).ok());
-            let bulletin = paiement.filter(|_| !p.engagement.sans_paie()).map_or(Value::Null, |j| droit::echeances::remise_du_bulletin(&j).en_json());
-            ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json(), "documents": bulletin}));
+            // de la convention), `droit::echeances`. Un mois passe lu a l'ouverture (`ecrit`) ne les demande pas.
+            if !self.ecrit {
+                let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.get("code_emploi_ft").map(valeur_en_texte).unwrap_or_default());
+                let idcc = self.ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
+                let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
+                // Le bulletin, le jour du paiement que l'engagement ecrit (L. 3243-2) ; sans ce jour, aucune echeance.
+                let paiement = p.engagement.date_paiement.as_deref().and_then(|d| Jour::lire(d).ok());
+                let bulletin = paiement.filter(|_| !p.engagement.sans_paie()).map_or(Value::Null, |j| droit::echeances::remise_du_bulletin(&j).en_json());
+                ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json(), "documents": bulletin}));
+            }
             if let Some(b) = &bruts {
                 // Une paie par engagement de la saisie : qu'il en manque une est un defaut du logiciel, jamais la saisie de
                 // l'utilisateur, et la phrase le lui dit.
@@ -909,8 +911,9 @@ impl<'a> Moteur<'a> {
     /// S21.G00.11.001) ; `Null` : le premier fichier, quel qu'il soit.
     fn chemin_de_depot(&mut self, mois: &str, quoi: &str, nic: &Value) -> R<Option<(&'static str, Value, Option<String>)>> {
         // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`depart::mois_ecrit`,
-        // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`.
-        if quoi == DSN && !crate::depart::mois_ecrit(self.racine(), mois) {
+        // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`. Un mois passe lu a
+        // l'ouverture (`ecrit`) ne demande que ce qui reste, pas le geste qui l'ouvre.
+        if self.ecrit || (quoi == DSN && !crate::depart::mois_ecrit(self.racine(), mois)) {
             return Ok(None);
         }
         let fichiers = self.fichiers_deposables(mois)?;
