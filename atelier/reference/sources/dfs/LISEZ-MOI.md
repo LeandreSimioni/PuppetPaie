@@ -70,7 +70,7 @@ remboursement au réel n'est pas une « indemnité journalière ».
 chorégraphiques : 25 %. Artistes musiciens. Choristes. Chefs d'orchestre. Régisseurs de théâtre : 20 %. » → les huit
 professions de la fiche salarié et leur catégorie.
 
-**Arrêté du 4 décembre 2019, art. 1er** (rédaction du 07/09/2025 ; `calcul::reduction_generale_sous_dfs`) : « Le montant
+**Arrêté du 4 décembre 2019, art. 1er** (rédaction du 07/09/2025 ; `droit::reduction::reduction_generale_sous_dfs`) : « Le montant
 de la réduction générale […] calculé pour les rémunérations après application de l'abattement forfaitaire […] ne peut
 excéder, pour ces rémunérations, 130 % du montant la réduction calculé sans application du même abattement. » CSS
 L. 241-13, III, y renvoie (« que dans des limites et conditions fixées par arrêté »).

@@ -48,23 +48,6 @@ pub fn libelle_motif(motif: &str) -> Resultat<String> {
         .unwrap_or_else(|| "?".to_string()))
 }
 
-/// Une embauche (`operations_paies.Embauche`) : un engagement et sa fiche
-/// salarie, sans paie. C'est ce que la DPAE declare, et tout ce que lit un
-/// signalement d'amorcage ; les montants de la `Paie` rendue sont a zero.
-pub fn embauche(ctx: &Contexte, eng: &engagement::Engagement) -> Resultat<Paie> {
-    let nat = eng.nat()?;
-    // La fiche telle que la paie la lit (`calcul::fiche_de_l_engagement`) : au premier jour d'un contrat d'usage, au
-    // mois paye d'un contrat paye au mois.
-    let sal = engagement::calcul::fiche_de_l_engagement(ctx, eng)?;
-    let spec = if nat.mensuelle() {
-        Value::Null
-    } else {
-        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
-    };
-    let zero = socle::num::Decimal::new(0, 2);
-    Ok(Paie::nouveau(eng.clone(), sal, spec, zero, zero, zero, 0.0, zero))
-}
-
 /// Les parametres de `generer`, avec les defauts du Python.
 pub struct Options {
     pub motif: String,
@@ -305,14 +288,4 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
     crate::formats::verifier_fichier(&texte)?;
     crate::ntt::verifier_fichier(&texte)?;
     Ok(texte)
-}
-
-/// Les paies d'un mois de saisie, SANS montants : l'engagement et sa fiche (`amorcage::embauche`), ce que lit un signalement.
-/// `None` : aucun engagement ne touche le mois.
-pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Result<Option<Vec<Paie>>, String> {
-    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let _derivation = engagement::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois)?;
-    let paies = engs.iter().map(|e| embauche(ctx, e)).collect::<Result<Vec<_>, _>>()?;
-    Ok(Some(paies))
 }

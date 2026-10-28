@@ -20,6 +20,7 @@ pub mod relire;
 pub mod solde;
 pub mod numeros;
 pub mod stock;
+pub mod viser;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -883,7 +884,7 @@ pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(
 /// construits avant tout calcul. `lignes_permanent` fournit les lignes d'un
 /// engagement paye au mois ; les avertissements rendus vont avec, un jeu par
 /// engagement (vide hors des permanents).
-pub fn engagements(
+pub(crate) fn engagements(
     ctx: &Contexte,
     data: &Value,
     lignes_permanent: LignesPermanent,
@@ -1280,7 +1281,7 @@ pub fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Value> {
 
 /// Les engagements de `mois` lus et ses paies calculees, sans numeroter les contrats ; les minima et le SMIC y portent
 /// leurs avertissements.
-pub fn charger(ctx: &Contexte, mois: &str) -> Resultat<Saisie> {
+pub(crate) fn charger(ctx: &Contexte, mois: &str) -> Resultat<Saisie> {
     charger_donnees(ctx, &saisie_du_mois(&ctx.racine, mois)?)
 }
 
@@ -1312,7 +1313,7 @@ fn un_numero_un_salarie(paies: &[crate::calcul::Paie], mois: &str) -> Resultat<(
 }
 
 /// `charger` d'une saisie deja lue (l'interface calcule un formulaire non enregistre).
-pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
+pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
     // Une derivation pour tout le mois : le brut d'un mois anterieur se
     // recalcule une fois, pas une fois par salarie (meme resultat).
     let _derivation = crate::conges::Derivation::ouvrir();
@@ -1368,4 +1369,80 @@ pub fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
         p.avertissements.extend(avis);
     }
     Ok(Saisie { mois, paies })
+}
+
+// ------------------------------------------------------------------ les gestes de l'ecran
+
+/// LE CALCUL D'UNE SAISIE POUR L'ECRAN : les paies de la saisie `data` (un formulaire, enregistre ou non) telles que
+/// la validation les calculera, avec leurs avertissements (minima, SMIC, contrat qui deborde du mois). Rien ne s'ecrit
+/// et rien ne part d'elles : un document ne lit que les paies ecrites d'un engagement valide (`etats`).
+pub fn pour_l_ecran(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
+    charger_donnees(ctx, data)
+}
+
+/// `pour_l_ecran` de la saisie de `mois` telle que ses engagements la montrent.
+pub fn mois_pour_l_ecran(ctx: &Contexte, mois: &str) -> Resultat<Saisie> {
+    charger(ctx, mois)
+}
+
+/// Les engagements de la saisie `data`, lus tels que l'ecran les montre (les lignes d'un permanent deduites de ses
+/// conges et de sa fin de contrat), sans paie.
+pub fn engagements_de_la_saisie(ctx: &Contexte, data: &Value) -> Resultat<Vec<Engagement>> {
+    let _derivation = conges::Derivation::ouvrir();
+    Ok(engagements(ctx, data, &conges::lignes_du_mois)?.0)
+}
+
+/// Le refus que donne la lecture de la saisie `data` quand elle est encore incomplete (`saisie_incomplete`), lignes
+/// d'un permanent mises a part ; `None` si elle se lit, ou si elle refuse pour une autre raison.
+pub fn refus_de_saisie_incomplete(ctx: &Contexte, data: &Value) -> Option<String> {
+    let vide: LignesPermanent = &|_, _, _| Ok((Vec::new(), Vec::new()));
+    match engagements(ctx, data, vide) {
+        Err(m) if saisie_incomplete(&m) => Some(m),
+        _ => None,
+    }
+}
+
+/// UNE EMBAUCHE : un engagement et la fiche du salarie telle que sa paie la lit (`calcul::fiche_de_l_engagement`),
+/// sans paie ; les montants de la `Paie` rendue sont a zero. C'est ce que la DPAE declare et ce que lit un signalement.
+pub fn embauche(ctx: &Contexte, eng: &Engagement) -> Resultat<calcul::Paie> {
+    let nat = eng.nat()?;
+    let sal = calcul::fiche_de_l_engagement(ctx, eng)?;
+    let spec = if nat.mensuelle() {
+        Value::Null
+    } else {
+        ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
+    };
+    let zero = Decimal::new(0, 2);
+    Ok(calcul::Paie::nouveau(eng.clone(), sal, spec, zero, zero, zero, 0.0, zero))
+}
+
+/// Les embauches (`embauche`) de la saisie de `mois`, dans l'ordre de l'ecran ; `None` : aucun engagement ne touche le
+/// mois.
+pub fn embauches_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<calcul::Paie>>> {
+    let Some(data) = stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
+    let engs = engagements_de_la_saisie(ctx, &data)?;
+    Ok(Some(engs.iter().map(|e| embauche(ctx, e)).collect::<Resultat<Vec<_>>>()?))
+}
+
+/// LA SAISIE LUE SANS PAIE, pour l'ecran : les embauches de la saisie `data` (`embauche`), chaque contrat qui deborde du
+/// mois suivi (`suivre_contrat`), et les lignes de remuneration de chaque engagement paye au cachet telles que le calcul
+/// les comprend (elles ne dependent que de l'engagement). Rien ne se calcule au-dela.
+pub fn lue_sans_paie(ctx: &Contexte, data: &Value) -> Resultat<Vec<calcul::Paie>> {
+    let mut paies = Vec::new();
+    for e in &engagements_de_la_saisie(ctx, data)? {
+        paies.push(embauche(ctx, e)?);
+    }
+    for p in paies.iter_mut() {
+        suivre_contrat(ctx, &mut p.engagement)?;
+        if !p.engagement.nat()?.mensuelle() {
+            p.remuneration = calcul::lignes_brut(&p.engagement, ctx)?;
+        }
+    }
+    Ok(paies)
+}
+
+/// Le preavis de l'engagement `e` (sa saisie), pour une anciennete et un motif de rupture : la loi (L1234-1) et la
+/// convention, et laquelle s'applique (`solde::duree_du_preavis`).
+pub fn preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<solde::Preavis> {
+    solde::duree_du_preavis(ctx, e, anciennete, motif)
 }

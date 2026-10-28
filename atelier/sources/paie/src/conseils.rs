@@ -36,7 +36,7 @@ use socle::date::{en_texte, Jour};
 use droit::emplois;
 use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use droit::minima::Par;
-use engagement::minima;
+
 use socle::num::{div, Decimal, Resultat};
 use socle::echec::Echec;
 
@@ -453,8 +453,8 @@ struct GainRepetition {
 }
 
 fn gain_repetition(ctx: &Contexte, p: &Paie, heures_cachet: Decimal) -> Resultat<Option<GainRepetition>> {
-    let Some(min) = minima::cachet_de_repetition(ctx, p)? else { return Ok(None) };
-    let saisies = minima::saisies_de(p);
+    let Some(min) = p.cachet_de_repetition(ctx)? else { return Ok(None) };
+    let saisies = p.saisies();
     let (mut heures_avant, mut gain, mut jours, mut montant) = (Decimal::ZERO, Decimal::ZERO, 0i64, Decimal::ZERO);
     for (l, s) in p.remuneration.iter().zip(saisies) {
         if l.code != "repetition" || l.heures_annexes.is_zero() {
@@ -511,7 +511,7 @@ fn gain_heures(ctx: &Contexte, p: &Paie, seuil: Decimal) -> Resultat<Option<Gain
         if l.heures_annexes <= Decimal::ZERO || l.montant <= Decimal::ZERO {
             continue;
         }
-        let Some(m) = minima::minimum_de_la_ligne(ctx, p, i)? else { continue };
+        let Some(m) = p.minimum_de_la_ligne(ctx, i)? else { continue };
         if m.par != Par::Heure || m.montant <= Decimal::ZERO {
             continue;
         }
@@ -723,7 +723,7 @@ fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, ann
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
     for mois in socle::date::mois_entre(debut, fin) {
-        let Ok(saisie) = engagement::charger(ctx, &mois) else { continue };
+        let Ok(saisie) = engagement::mois_pour_l_ecran(ctx, &mois) else { continue };
         for p in &saisie.paies {
             let e = &p.engagement;
             if texte(&p.salarie, "_cle") != cle || e.sans_paie() || e.nat()?.mensuelle() {

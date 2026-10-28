@@ -158,6 +158,39 @@ pub fn indemnite_conges(
     }))
 }
 
+
+/// Des jours de conges acquis sur une periode de reference, et la remuneration de cette periode.
+#[derive(Debug, Clone, Copy)]
+pub struct Acquisition {
+    pub jours: Decimal,
+    pub remuneration: Decimal,
+}
+
+/// L'indemnite de `jours` de conges (L3141-24), chaque jour au dixieme DE LA PERIODE OU IL A ETE ACQUIS : les
+/// `report_restant` jours du report d'abord (au dixieme de `report`), puis la periode `en_cours`. Le maintien se
+/// compare au TOTAL.
+pub fn indemnite_des_jours(
+    jours: Decimal,
+    report_restant: Decimal,
+    report: Acquisition,
+    en_cours: Acquisition,
+    maintien: Decimal,
+) -> Resultat<crate::conges::IndemniteDesJours> {
+    let sur_report = jours.min(report_restant);
+    let reste = sub(jours, sur_report);
+    let mut dixieme = zero2();
+    let dixieme_de = |jours: Decimal, a: Acquisition| -> Resultat<Decimal> {
+        let v = indemnite_conges(jours, a.remuneration, if a.jours != Decimal::ZERO { a.jours } else { jours }, Decimal::ZERO)?;
+        dec(v.get("dixieme").ok_or_else(|| socle::fichiers::absent("dixieme"))?)
+    };
+    if sur_report != Decimal::ZERO {
+        dixieme += dixieme_de(sur_report, report)?;
+    }
+    if reste != Decimal::ZERO {
+        dixieme += dixieme_de(reste, en_cours)?;
+    }
+    Ok(crate::conges::la_plus_forte(dixieme, maintien))
+}
 // ------------------------------------------------------- la fin du contrat
 /// `None` si l'indemnite de fin de CDD est due, sinon pourquoi elle ne l'est pas.
 pub fn precarite_due(nature: &Nature, motif_rupture: Option<&str>) -> Resultat<Option<String>> {

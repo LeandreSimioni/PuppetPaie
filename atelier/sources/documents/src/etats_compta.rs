@@ -1419,10 +1419,10 @@ pub struct Provision {
 /// porte pas le compteur qu'elle devrait.
 pub fn provision_conges_de(paie: &engagement::calcul::Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> socle::num::Resultat<Option<Provision>> {
     use droit::conges::jours_ouvrables;
-    use engagement::conges::indemnite_des_jours;
+
     use socle::num::{add, dec, div, eur, mul, Decimal};
     let Some(ecrit) = paie.conges.as_ref() else {
-        if engagement::calcul::declaree_a_la_caisse_des_conges(paie)? {
+        if paie.declaree_a_la_caisse_des_conges()? {
             return Ok(None);
         }
         return Err(format!(
@@ -1443,7 +1443,7 @@ pub fn provision_conges_de(paie: &engagement::calcul::Paie, mois: &str, brut_du_
         n => Decimal::from(n),
     };
     let indemnite = if solde > Decimal::ZERO {
-        Some(indemnite_des_jours(&cpt, solde, eur(mul(div(salaire, ouvrables), solde)))?)
+        Some(cpt.indemnite_des_jours(solde, eur(mul(div(salaire, ouvrables), solde)))?)
     } else {
         None
     };

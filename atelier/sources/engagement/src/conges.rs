@@ -25,7 +25,7 @@ use socle::feries;
 use socle::fichiers::{repr, vrai};
 use socle::num::{add, dec, dec_f64, dec_avec_echelle, div, eur2, mul, zero2, Decimal, Resultat};
 use droit::conges::{heures_par_jour_oeuvre, jours_oeuvres, jours_ouvrables, IndemniteDesJours};
-use droit::permanents::{arrondir_jours, indemnite_conges, jours_acquis, periode_de_reference, plafonner};
+use droit::permanents::{arrondir_jours, jours_acquis, periode_de_reference, plafonner, Acquisition};
 
 // ------------------------------------------------------------ les aides
 
@@ -34,29 +34,29 @@ fn requis<'a>(v: &'a Value, k: &str) -> Resultat<&'a Value> {
 }
 
 /// `e.get("numero") or "?"`.
-pub fn numero(e: &Value) -> String {
+pub(crate) fn numero(e: &Value) -> String {
     e.get("numero").filter(|x| vrai(x)).map_or_else(|| "?".to_string(), en_texte)
 }
 
 /// `float(Decimal)` : l'arrondi correct de CPython, par le texte.
-pub fn flot(x: Decimal) -> f64 {
+pub(crate) fn flot(x: Decimal) -> f64 {
     x.to_string().parse().unwrap_or(0.0)
 }
 
-pub fn info(texte: String) -> Avis {
+pub(crate) fn info(texte: String) -> Avis {
     Avis { info: true, texte }
 }
 
-pub fn avertir(texte: String) -> Avis {
+pub(crate) fn avertir(texte: String) -> Avis {
     Avis { info: false, texte }
 }
 
-pub fn sub(a: Decimal, b: Decimal) -> Decimal {
+pub(crate) fn sub(a: Decimal, b: Decimal) -> Decimal {
     add(a, -b)
 }
 
 /// `Decimal(str(x))` d'une valeur ou, si elle est fausse, de `defaut`.
-pub fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
+pub(crate) fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
     match v {
         Some(x) if vrai(x) => dec_avec_echelle(x),
         _ => Ok(defaut),
@@ -64,7 +64,7 @@ pub fn dec_ou(v: Option<&Value>, defaut: Decimal) -> Resultat<Decimal> {
 }
 
 /// `int(x)` d'une valeur JSON.
-pub fn entier(v: &Value) -> Resultat<i64> {
+pub(crate) fn entier(v: &Value) -> Resultat<i64> {
     match v {
         Value::Number(n) => n
             .as_i64()
@@ -79,7 +79,7 @@ pub fn entier(v: &Value) -> Resultat<i64> {
     }
 }
 
-pub fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
+pub(crate) fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
     let cle = match v {
         None | Some(Value::Null) => None,
         Some(x) => Some(en_texte(x)),
@@ -90,7 +90,7 @@ pub fn nature_de(v: Option<&Value>) -> Resultat<std::sync::Arc<Nature>> {
 // -------------------------------------------------- les jours ouvrables
 
 /// Les jours ouvrables d'un conge pris (`{"debut", "fin"}`) dans l'entreprise `ent` (`droit::conges::jours_ouvrables`).
-pub fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
+pub(crate) fn jours_ouvrables_de(c: &Value, ent: &Value) -> Resultat<i64> {
     jours_ouvrables(&d(requis(c, "debut")?)?, &d(requis(c, "fin")?)?, Some(ent))
 }
 
@@ -129,6 +129,14 @@ impl CompteurConges {
     pub fn report_restant(&self) -> Decimal {
         let pris_fifo = sub(self.pris, self.pris_sur_la_periode).max(Decimal::ZERO);
         sub(self.reports, pris_fifo).max(Decimal::ZERO)
+    }
+
+    /// L'indemnite de `jours` de conges pris sur ce compteur, le maintien `maintien` compare au total : la regle de
+    /// `droit::permanents::indemnite_des_jours` (L3141-24) sur ce que le compteur a acquis.
+    pub fn indemnite_des_jours(&self, jours: Decimal, maintien: Decimal) -> Resultat<IndemniteDesJours> {
+        let report = Acquisition { jours: self.acquis_report, remuneration: self.remuneration_report };
+        let en_cours = Acquisition { jours: self.acquis, remuneration: self.remuneration_periode };
+        droit::permanents::indemnite_des_jours(jours, self.report_restant(), report, en_cours, maintien)
     }
 
     pub fn solde(&self) -> Decimal {
@@ -301,7 +309,7 @@ fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
 /// Le compteur de conges d'un salarie, tire des paies validees des mois de ses contrats payes au mois
 /// (`etats::paies_validees`) : ce qui n'est pas valide n'est pas paye, et aucun mois ne se calcule.
 /// `jusqu_au_mois` : ne lire que les mois strictement anterieurs a celui-la.
-pub fn compteur_conges(
+pub(crate) fn compteur_conges(
     ctx: &Contexte,
     cle_salarie: &str,
     a_la_date: &Jour,
@@ -529,7 +537,7 @@ pub struct Reprise {
 
 /// Le solde repris de l'ancien logiciel, ou `None`. Un montant illisible
 /// refuse : un solde de conges ne se devine pas.
-pub fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Reprise>> {
+pub(crate) fn reprise_conges(ctx: &Contexte, cle_salarie: &str) -> Resultat<Option<Reprise>> {
     let fiche = match ctx.salaries.get(cle_salarie) {
         Some(f) => Some(f.clone()),
         None => ctx.salarie(cle_salarie).ok(),
@@ -653,7 +661,7 @@ fn cle_de_fiche(ctx: &Contexte, cle: &str) -> String {
 }
 
 /// Le brut d'un salarie sur un mois anterieur -- l'assiette du dixieme -- tel que ses paies validees le portent.
-pub fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
+pub(crate) fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
     let cle_fiche = cle_de_fiche(ctx, cle);
     Ok(paies_du_mois(ctx, mois)?.iter().filter(|p| p.cle == cle_fiche).fold(zero2(), |a, p| add(a, p.brut)))
 }
@@ -662,7 +670,7 @@ pub fn remuneration_du_mois(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<D
 /// avant `mois` (AAAA-MM), telle que ses paies validees la portent (`calcul::dfs_deja_deduite` ; arrete du 4 septembre
 /// 2025, art. 9 : << dans la limite de 7 600 euros par annee civile >>). Une paie validee qui ne se lit pas refuse : le
 /// cumul de l'annee ne se devine pas.
-pub fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
+pub(crate) fn dfs_des_mois_anterieurs(ctx: &Contexte, mois: &str, cle: &str) -> Resultat<Decimal> {
     let _derivation = Derivation::ouvrir();
     let annee: String = mois.chars().take(4).collect();
     let cle_fiche = cle_de_fiche(ctx, cle);
@@ -686,28 +694,13 @@ connait pas. Rien n'est calcule.",
 
 // ------------------------------------------------------ l'indemnite
 
-/// L'indemnite de `jours` de conges (L3141-24), chaque jour au dixieme DE LA
-/// PERIODE OU IL A ETE ACQUIS : le report d'abord, puis la periode en cours.
-/// Le maintien se compare au TOTAL.
-pub fn indemnite_des_jours(cpt: &CompteurConges, jours: Decimal, maintien: Decimal) -> Resultat<IndemniteDesJours> {
-    let sur_report = jours.min(cpt.report_restant());
-    let en_cours = sub(jours, sur_report);
-    let mut dixieme = zero2();
-    let dixieme_de = |jours: Decimal, brut: Decimal, acquis: Decimal| -> Resultat<Decimal> {
-        let v = indemnite_conges(jours, brut, if acquis != Decimal::ZERO { acquis } else { jours }, Decimal::ZERO)?;
-        dec(requis(&v, "dixieme")?)
-    };
-    if sur_report != Decimal::ZERO {
-        dixieme += dixieme_de(sur_report, cpt.remuneration_report, cpt.acquis_report)?;
-    }
-    if en_cours != Decimal::ZERO {
-        dixieme += dixieme_de(en_cours, cpt.remuneration_periode, cpt.acquis)?;
-    }
-    Ok(droit::conges::la_plus_forte(dixieme, maintien))
+/// L'indemnite de `jours` de conges du compteur `cpt` (`droit::permanents::indemnite_des_jours`, L3141-24).
+pub(crate) fn indemnite_des_jours(cpt: &CompteurConges, jours: Decimal, maintien: Decimal) -> Resultat<IndemniteDesJours> {
+    cpt.indemnite_des_jours(jours, maintien)
 }
 
 /// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant, plus ce que ce mois acquiert et prend.
-pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<CompteurConges> {
+pub(crate) fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<CompteurConges> {
     let eng = &paie.engagement;
     let cle = eng.salarie.as_str();
     let fin_du_mois = fin_mois_de(mois)?;
@@ -730,7 +723,7 @@ pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat
 /// (`compteur_au_bulletin`), pour un contrat paye au mois dont l'employeur tient les conges. Un contrat declare a la
 /// caisse des Conges Spectacles (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'en a pas : la caisse lui paie
 /// ses conges (#132).
-pub fn compteur_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Option<CompteurConges>> {
+pub(crate) fn compteur_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Option<CompteurConges>> {
     if !p.engagement.nat()?.mensuelle() || crate::calcul::declaree_a_la_caisse_des_conges(p)? {
         return Ok(None);
     }
@@ -739,7 +732,7 @@ pub fn compteur_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Option<C
 
 /// Les jours de conges que CETTE paie decompte, lus sur ses lignes : le
 /// catalogue marque la rubrique.
-pub fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Decimal> {
+pub(crate) fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Decimal> {
     let jour = &paie.engagement.fin_periode()?;
     let mut total = Decimal::ZERO;
     for l in &paie.engagement.lignes {
@@ -755,7 +748,7 @@ pub fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Decimal> {
 /// Les lignes de paie d'un mois de permanent, et ce qu'il y a a en dire.
 /// L'ordre des lignes est celui du bulletin : le salaire de base, les
 /// absences, les indemnites, les primes, puis le solde de tout compte.
-pub fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Value>, Vec<Avis>)> {
     let nat = nature_de(e.get("nature"))?;
     if !nat.mensuelle() {
         return Err(format!("{} n'est pas un contrat paye au mois : ses lignes se saisissent.", nat.libelle));
