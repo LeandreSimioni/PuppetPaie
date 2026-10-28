@@ -45,15 +45,15 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 }
 
 /// Une route d'envoi, la boite venant de `ouvrir`.
-pub fn route_avec(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+pub fn route_avec(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     match nom {
         "envoyer-documents" => envoyer_documents(ctx, charge, ouvrir),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, ouvrir),
         "casc-envoyer" => casc_envoyer(ctx, charge, ouvrir),
-        "demander-signature" => crate::envois_signature::demander_signature(o, ctx, charge, ouvrir),
+        "demander-signature" => crate::envois_signature::demander_signature(ctx, charge, ouvrir),
         "contrats-imprimer" => crate::envois_signature::contrats_imprimer(ctx, charge),
-        "avenant-envoyer" => crate::envois_signature::avenant_envoyer(o, ctx, charge, ouvrir),
-        "avenants-envoyer" => crate::envois_signature::avenants_envoyer(o, ctx, charge, ouvrir),
+        "avenant-envoyer" => crate::envois_signature::avenant_envoyer(ctx, charge, ouvrir),
+        "avenants-envoyer" => crate::envois_signature::avenants_envoyer(ctx, charge, ouvrir),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -364,30 +364,25 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::P
 }
 
 
-/// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE (Leandre, 21/10/2026 : « le courriel de renvoi, dans ce
-/// cas, ajoute une phrase : la correction sera declaree avec la paie du mois suivant »). La DSN deposee ne se refait plus ;
-/// la correction part dans la DSN d'un mois suivant, celle qui embarque les corrections ECRITES (`depart::corrections_dues`,
-/// `produire_regularisations::corrections_a_porter`) : celle du mois courant pour une correction en attente, celle qui
-/// l'a preparee ou portee sinon. Le paragraphe nomme ce mois quand la correction du salarie est ecrite ; sans elle, il ne
-/// dit que « une paie suivante » (l'etape DSN du mois reste orange tant qu'elle ne l'est pas). `None` : le mois n'en est
-/// pas la (pas de DSN deposee, ou son annule-et-remplace encore admis).
+/// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE : le courriel de renvoi ajoute une phrase, la correction
+/// sera declaree avec la paie d'un mois suivant. La DSN deposee ne se refait plus ; la correction part dans la DSN qui la
+/// porte (`routes_regularisation::corrections_du_mois` : celle d'un mois suivant deja partie, ou la DSN du mois
+/// courant). `None` : le mois n'en est pas la (pas de DSN deposee, ou son annule-et-remplace encore admis).
 #[allow(clippy::type_complexity)]
 fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn Fn(&str) -> String>>> {
-    let o = HashMap::new();
-    let mut m = crate::routes_mois::Moteur::nouveau(&o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let etat = crate::routes_regularisation::etat_mois(&mut m, ctx, &json!(mois))?;
     if !vrai(&etat["regularisable"]) {
         return Ok(None);
     }
     let courant = valeur_en_texte(&etat["mois_courant"]);
+    let (a_porter, portees) = crate::routes_regularisation::corrections_du_mois(ctx, mois)?;
     let mut porteurs: HashMap<String, String> = HashMap::new();
-    for c in crate::routes_ecrites::lire_corrections(ctx, mois)? {
-        if c.get("annulee_le").is_some_and(vrai) {
-            continue;
-        }
-        let par = |k: &str| c.get(k).filter(|p| vrai(p)).and_then(|p| p.get("mois")).map(valeur_en_texte);
-        let porteur = par("portee_par").or_else(|| par("preparee_par")).unwrap_or_else(|| courant.clone());
-        porteurs.insert(c.get("salarie").map(valeur_en_texte).unwrap_or_default(), porteur);
+    for c in &portees {
+        porteurs.insert(valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["portee_par"]));
+    }
+    for c in &a_porter {
+        porteurs.insert(valeur_en_texte(&c["salarie"]), courant.clone());
     }
     let de = crate::routes_regularisation::de_mois_en_clair(mois);
     Ok(Some(Box::new(move |cle: &str| match porteurs.get(cle) {
@@ -654,7 +649,7 @@ fn jjmmaaaa(iso: &str) -> String {
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
-    use crate::casc_regularisation::{ecrire, marquer_regularise, regularisation, Demande};
+    use declarations::casc_regularisation::{ecrire, marquer_regularise, regularisation, Demande};
     // `charge.get("vire_le") or {}`.
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),

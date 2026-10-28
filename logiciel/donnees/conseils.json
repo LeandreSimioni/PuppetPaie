@@ -2400,11 +2400,11 @@
       "domaine": "logiciel",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Si vous découvrez un cachet oublié sur un mois déjà déclaré, PuppetPaie ne modifie pas l'ancien mois : il garde la saisie d'origine, enregistre la correction à part, la fait partir dans la DSN du mois courant et produit un bulletin rectificatif qui reprend le numéro du bulletin corrigé. Vous voyez l'avant et l'après avant de valider.",
+      "texte": "Si vous découvrez un cachet oublié sur un mois déjà déclaré, modifiez l'engagement et revalidez-le : PuppetPaie compare sa paie à celle que la DSN a déclarée, fait partir la correction dans la DSN suivante et produit un bulletin rectificatif qui reprend le numéro du bulletin corrigé. L'historique montre la paie déclarée et la paie validée.",
       "source": {
         "fichier": "atelier/README.md",
         "article": "§ « Corriger un mois déjà déposé »",
-        "citation": "La correction est un objet à part […] : la saisie déposée ne bouge jamais, et la DSN du mois courant l'embarque d'elle-même"
+        "citation": "Rien ne s'écrit à côté de lui : la version présente de l'engagement est comparée à celle sur laquelle la DSN est partie"
       },
       "ciblage": "quand un mois est déposé",
       "certitude": "sourcé (doc du dépôt)"

@@ -136,7 +136,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
     let fabriquee;
     let fichier = if est_un_mois(fichier) {
-        let dsn = crate::depart::fabriquer_dsn(&cadre.o, &cadre.ctx, fichier, "cli")?;
+        let dsn = crate::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
         fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
         fabriquee.as_str()
     } else {
@@ -201,7 +201,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let contournement = args.texte("sans-repetition").unwrap_or("");
     let preuve = Preuve::default();
     let resultat = depot_acte::deposer_dsn_dans(
-        &cadre.o,
         &cadre.ctx,
         &json!(chemin),
         reel,

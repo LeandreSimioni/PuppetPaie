@@ -22,7 +22,7 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::champs::strip;
+use socle::texte::strip;
 use droit::contexte::Contexte;
 use crate::courriel::{self, Client, Courriel};
 use crate::simulation_courriels::BoiteQuiRepond;
@@ -32,7 +32,7 @@ use crate::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::fiche_questionnaire as fq;
+use documents::fiche_questionnaire as fq;
 use crate::journal::{self, Note};
 use socle::echec::Echec;
 use crate::routes_envois::{capitaliser, client_courriel, echec_d_envoi, html_echapper, mailto, maintenant, noter, preuve_de, refus, vrai_ou, R};
@@ -69,7 +69,7 @@ pub fn route_avec(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charg
 
 /// `re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", adresse)`.
 fn adresse_valide(adresse: &str) -> bool {
-    let blanc = crate::champs::espace;
+    let blanc = socle::texte::blanc;
     if adresse.chars().any(blanc) || adresse.matches('@').count() != 1 {
         return false;
     }

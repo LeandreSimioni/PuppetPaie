@@ -378,7 +378,7 @@ mois incomplet se déclare au bloc 51 par deux types : **028** « Rémunération
 (numérateur) et **029** « Rémunération habituelle mois complet hors […] » (dénominateur), tous deux « **avant déduction forfaitaire
 spécifique (DFS)** » ; SMIC du mois = SMIC mensuel × 028 / 029. Contraste avec la fiche 484 : le type 001 est abattu, les 028 et 029
 ne le sont pas. Le moteur : `grep -rn '"028"\|"029"' atelier/sources logiciel/donnees` ne trouve rien, il n'écrit pas ces types (pas de
-proratisation du SMIC par ces rubriques ; `calcul::reduction_generale_sous_dfs` calcule sur le brut abattu). Rien n'est modifié ici.
+proratisation du SMIC par ces rubriques ; `droit::reduction::reduction_generale_sous_dfs` calcule sur le brut abattu). Rien n'est modifié ici.
 
 ## La contribution supplémentaire à l'apprentissage : fiches 2588, 2963 et 2624 (lot D2, 13/10/2026)
 

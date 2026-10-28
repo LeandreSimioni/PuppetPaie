@@ -409,14 +409,14 @@ fn jj_mm_aaaa(iso: &str) -> String {
 /// contenu), `paie_changee` (une mensuelle qui ne declare plus la paie), `testee` (test conforme, bilan lu), `en_test`
 /// (test parti, bilan attendu), `test_refuse`, `a_tester`. Les memes lectures que l'etape de depot du mois
 /// (`routes_mois::etape_de_depot`).
-fn etape_du_fichier(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
+fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let empreinte = crate::journal::empreinte(&octets);
     if vrai(&etats::deja_depose(lignes, "dsn", &empreinte)?) {
         return Ok("deposee");
     }
     if let Some(m) = mensuelle {
-        if crate::routes_mois::Moteur::nouveau(o, ctx).paie_changee_depuis_l_ecriture(m, chemin)?.is_some() {
+        if crate::routes_mois::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(m, chemin)?.is_some() {
             return Ok("paie_changee");
         }
     }
@@ -474,7 +474,7 @@ fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
 }
 
 /// Une declaration du tableau, a partir d'un rappel de la compagnie.
-fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> {
+fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> {
     let texte = |k: &str| r.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     let quoi = texte("quoi");
     let mut d = Map::new();
@@ -554,7 +554,7 @@ fn declaration(o: &HashMap<String, String>, ctx: &Contexte, lignes: &[Value], r:
     let mut pret_test = false;
     let mut pret_reel = false;
     if let Some(f) = fichier.filter(|f| f.is_file()) {
-        let etape = etape_du_fichier(o, ctx, lignes, &f, mensuelle.as_deref())?;
+        let etape = etape_du_fichier(ctx, lignes, &f, mensuelle.as_deref())?;
         if etape == "deposee" {
             // Le depot reel de ce contenu est deja note : le rappel se taira au prochain releve.
             return Ok(None);
@@ -592,7 +592,7 @@ pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value
     let lignes = etats::charger(&ctx.racine)?;
     let mut declarations = Vec::new();
     for r in rappels.get("rappels").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
-        if let Some(d) = declaration(o, ctx, &lignes, r)? {
+        if let Some(d) = declaration(ctx, &lignes, r)? {
             declarations.push(d);
         }
     }

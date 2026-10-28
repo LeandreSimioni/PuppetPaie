@@ -196,7 +196,7 @@ fn nir_lu(b: &BulletinLu) -> Result<Option<(String, Option<String>)>, String> {
         13 => Ok(Some((n, None))),
         15 => {
             let (nir, cle): (String, String) = (n.chars().take(13).collect(), n.chars().skip(13).collect());
-            if crate::champs::cle_nir(&nir).as_deref() != Some(cle.as_str()) {
+            if declarations::champs::cle_nir(&nir).as_deref() != Some(cle.as_str()) {
                 return Err("la clé du NIR imprimé ne correspond pas à son numéro".into());
             }
             Ok(Some((nir, Some(cle))))
@@ -1182,7 +1182,7 @@ fn ecarts_entreprise(fiche: &Value, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
 /// fait comme ailleurs (`champs::combler_affichage`). Sans cela, « La Fanfare des Toits » devenait « La Fanfare Des
 /// Toits ».
 fn lisibles_de_la_piece(nom: &str, f: &mut Map<String, Value>) -> R<()> {
-    for c in crate::champs::fiche(nom)? {
+    for c in declarations::champs::fiche(nom)? {
         let Some(source) = c.derive_de.as_deref().filter(|d| !d.is_empty()) else { continue };
         if f.get(source).is_some_and(vrai) {
             continue;
@@ -1210,7 +1210,7 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
         f.insert("commune".into(), json!(commune));
     }
     f.insert("nir".into(), json!(nir));
-    let cle = ls.iter().rev().find_map(|l| l.cle_nir.clone()).or_else(|| crate::champs::cle_nir(nir)).unwrap_or_default();
+    let cle = ls.iter().rev().find_map(|l| l.cle_nir.clone()).or_else(|| declarations::champs::cle_nir(nir)).unwrap_or_default();
     f.insert("nir_cle".into(), json!(cle));
     // CE QUE LE STATUT IMPRIME DIT, EN TOUTES LETTRES (#236), et rien de plus : « Artiste » ou « Technicien » font
     // la case « Artiste ou technicien » ; « Cadre » ou « Non cadre », la case « Cadre ou non cadre » (S21.G00.40.003 :
@@ -1248,7 +1248,7 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
         f.insert("date_anciennete".into(), json!(premier.iso()));
     }
     lisibles_de_la_piece("salarie", &mut f)?;
-    let mut f = crate::champs::combler_affichage("salarie", &f)?;
+    let mut f = declarations::champs::combler_affichage("salarie", &f)?;
     f.insert("actif".into(), json!(true));
     Ok(f)
 }
@@ -1294,7 +1294,7 @@ fn fiche_entreprise(lus: &[Lu], l: &Lu) -> R<Map<String, Value>> {
         f.insert("licence_spectacle".into(), Value::Array(l));
     }
     lisibles_de_la_piece("entreprise", &mut f)?;
-    let mut f = crate::champs::combler_affichage("entreprise", &f)?;
+    let mut f = declarations::champs::combler_affichage("entreprise", &f)?;
     if f.get("raison_sociale").is_some_and(vrai) && !f.get("nom_affichage").is_some_and(vrai) {
         let t = ri::titre_de(f.get("raison_sociale"));
         f.insert("nom_affichage".into(), json!(t));
@@ -1312,7 +1312,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
         let Some(v) = v else { continue };
         let avant = ligne.get(champ).map(valeur_en_texte).unwrap_or_default();
         let vide = avant.trim().is_empty();
-        let differe = !vide && crate::apercu_dsn::decimal_py(avant.trim()).is_none_or(|a| a != v);
+        let differe = !vide && socle::num::decimal_py(avant.trim()).is_none_or(|a| a != v);
         if differe {
             ecarts.push((champ, avant, true, v.to_string()));
         }

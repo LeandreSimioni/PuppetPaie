@@ -1,9 +1,9 @@
 //! Ce qu'un depot REEL laisse derriere lui, hors du journal des depots (`moteur/operations_arrets.py`
 //! `marquer_envoye_depuis` et `marquer_reportes`, `operations_amorcage.marquer_demande_depuis`,
-//! `operations_regularisation.marquer_portees` et `marquer_preparees`, `pas.enregistrer_demande`) -- lot H2.
+//! `pas.enregistrer_demande`) -- lot H2.
 //!
 //! Chaque fonction ecrit la trace d'un acte parti : la DSN qui a reporte un arret, le signalement d'un
-//! arret, la demande d'un taux de PAS a la DGFiP, la correction portee. Rien d'ici ne fait partir quoi que ce
+//! arret, la demande d'un taux de PAS a la DGFiP. Rien d'ici ne fait partir quoi que ce
 //! soit ; un depot de TEST n'y laisse rien (l'appelant ne les appelle qu'apres un reel).
 
 use std::path::Path;
@@ -15,7 +15,6 @@ use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
-use socle::fichiers::vrai;
 
 /// `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
 fn maintenant() -> String {
@@ -189,58 +188,4 @@ pub(crate) fn marquer_demande_depuis(ctx: &Contexte, chemin: &Path, quand: &str)
     };
     let Some(cle) = cle_du_nir(ctx, &nir) else { return Ok(()) };
     enregistrer_demande(ctx, &[cle], &motif, Some(quand), "")
-}
-
-// ------------------------------------------------------------------ la regularisation
-
-/// `operations_regularisation.marquer_portees` : la DSN de `mois_courant` (ce fichier) vient d'etre DEPOSEE
-/// en reel -- les corrections qu'elle avait preparees sont portees.
-pub(crate) fn marquer_portees(ctx: &Contexte, mois_courant: &str, fichier: &Path, quand: &str) -> R<()> {
-    let nom = fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut mois: Vec<String> = crate::routes_ecrites::toutes_les_corrections(ctx)?.iter().map(|c| valeur_en_texte(&c["mois"])).collect();
-    mois.sort();
-    mois.dedup();
-    for m in mois {
-        let mut corrections = crate::routes_ecrites::lire_corrections(ctx, &m)?;
-        let mut touche = false;
-        for c in corrections.iter_mut() {
-            let prep = c.get("preparee_par").cloned().unwrap_or(Value::Null);
-            let preparee_ici = vrai(&prep)
-                && prep.get("mois").and_then(Value::as_str) == Some(mois_courant)
-                && prep.get("fichier").and_then(Value::as_str) == Some(nom.as_str());
-            if preparee_ici && !c.get("annulee_le").is_some_and(vrai) {
-                let q = if quand.is_empty() { maintenant() } else { quand.to_string() };
-                c.insert("portee_par".into(), json!({"mois": mois_courant, "fichier": nom, "quand": q}));
-                touche = true;
-            }
-        }
-        if touche {
-            crate::routes_ecritures_g2::ecrire_corrections(ctx, &m, corrections)?;
-        }
-    }
-    Ok(())
-}
-
-/// `operations_regularisation.marquer_preparees` : la DSN de `mois_courant` vient d'etre ECRITE avec ces
-/// corrections ((mois d'origine, numero) de chacune).
-pub(crate) fn marquer_preparees(ctx: &Contexte, corrections: &[(String, i64)], mois_courant: &str, fichier: &Path) -> R<()> {
-    let q = maintenant();
-    let nom = fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let mut par_mois: Vec<(String, Vec<i64>)> = Vec::new();
-    for (m, n) in corrections {
-        match par_mois.iter_mut().find(|(x, _)| x == m) {
-            Some((_, v)) => v.push(*n),
-            None => par_mois.push((m.clone(), vec![*n])),
-        }
-    }
-    for (m, numeros) in par_mois {
-        let mut lues = crate::routes_ecrites::lire_corrections(ctx, &m)?;
-        for c in lues.iter_mut() {
-            if c.get("numero").and_then(Value::as_i64).is_some_and(|n| numeros.contains(&n)) {
-                c.insert("preparee_par".into(), json!({"mois": mois_courant, "fichier": nom, "quand": q}));
-            }
-        }
-        crate::routes_ecritures_g2::ecrire_corrections(ctx, &m, lues)?;
-    }
-    Ok(())
 }

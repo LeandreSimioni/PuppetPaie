@@ -281,7 +281,7 @@ pub(crate) fn sha256(chemin: &Path) -> Resultat<String> {
 
 /// `" ".join(texte.split())` : les blancs (au sens de Python) ramenes a un, sans blanc au bord.
 pub(crate) fn blancs_ramenes(texte: &str) -> String {
-    texte.split(crate::usages::espace).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
+    texte.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
 /// `unicodedata.normalize("NFC", texte)`.

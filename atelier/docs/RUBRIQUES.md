@@ -282,7 +282,7 @@ Et les trois branchés le 20/09/2026, qui ne sont plus dans cette liste :
 
 | champ | ce qu'il fait maintenant |
 |---|---|
-| `dsn_autres_bruts` | un bloc 54 par ligne qui le porte, code vérifié contre la norme (`paie/src/calcul.rs`, `paie/src/dsn.rs`) |
+| `dsn_autres_bruts` | un bloc 54 par ligne qui le porte, code vérifié contre la norme (`paie/src/calcul.rs`, `declarations/src/dsn.rs`) |
 | `conges_spectacles` | l'assiette `brut_cs`, un sous-ensemble du brut ligne par ligne, que le barème nomme |
 | `arret_de_travail` | `dsn.generer` refuse de produire le mois quand la ligne est là et l'arrêt absent ; depuis le 15/10/2026, la ligne d'un permanent se tire de l'arrêt saisi (`paie/src/imprevus.rs`), et le refus ne vise plus qu'une ligne écrite à la main |
 

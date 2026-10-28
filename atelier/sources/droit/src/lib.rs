@@ -23,3 +23,4 @@ pub mod permanents;
 pub mod periodes;
 pub mod plafond;
 pub mod preavis;
+pub mod reduction;

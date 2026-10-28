@@ -214,6 +214,38 @@ fn libelle_casc(m: &str) -> R<String> {
     Ok(format!("{} {}", nom, m.chars().take(4).collect::<String>()))
 }
 
+/// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois
+/// (`historique/paies.json`), sous `historique/coolpaie/DSN/` ou dans le dossier d'ou il a ete repris. `None` : un mois
+/// que l'import n'a pas retenu ; un fichier retenu introuvable refuse.
+fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
+    let chemin = ctx.racine.join("historique").join("paies.json");
+    let decl = if chemin.exists() { socle::fichiers::lire_json(&chemin)? } else { Value::Object(Default::default()) };
+    let noms: Vec<String> = decl
+        .get("paies")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|x| x.get("mois").and_then(Value::as_str) == Some(mois))
+        .filter_map(|x| x.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte))
+        .collect();
+    let Some(nom) = noms.last() else { return Ok(None) };
+    let source = match decl.get("source") {
+        Some(v) if vrai(v) => PathBuf::from(valeur_en_texte(v)),
+        _ => ctx.racine.clone(),
+    };
+    for d in [
+        ctx.racine.join("historique").join("coolpaie").join("DSN"),
+        ctx.racine.join("export-coolpaie").join("DSN"),
+        ctx.racine.join("export-coolpaie"),
+        source.join("DSN"),
+    ] {
+        if d.join(nom).exists() {
+            return Ok(Some(d.join(nom)));
+        }
+    }
+    Err(format!("La DSN de {} ({}) a ete reprise de l'historique, mais le fichier n'est plus sous historique/coolpaie/DSN/.", mois, nom))
+}
+
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a
 /// l'adhesion que la DSN nomme `contrat` en bloc 15). `None` : illisible.
 fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
@@ -221,7 +253,7 @@ fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
     let octets = std::fs::read(chemin).ok()?;
     let (mut refs, mut rattachees): (HashSet<String>, HashSet<String>) = (HashSet::new(), HashSet::new());
     let mut libelle: Option<String> = None;
-    for ligne in crate::apercu_dsn::lignes_py(&crate::apercu_dsn::texte_latin1(&octets)) {
+    for ligne in socle::texte::lignes_py(&socle::texte::texte_latin1(&octets)) {
         let (k, v) = ligne.split_once(',').unwrap_or((&ligne, ""));
         let v = v.trim_matches(socle::texte::blanc).trim_matches('\'');
         if k == "S21.G00.15.001" {
@@ -241,7 +273,7 @@ fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
 /// `ErreurOperation` de la regularisation (`regularisation_casc_svp(ecrire=False)`) vaut « rien ». Seuls comptent
 /// le nombre de mois, la periode et le total, que cette fonction calcule comme la regularisation.
 fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
-    let base = crate::casc::base().map_err(Echec::from)?;
+    let base = declarations::casc::base().map_err(Echec::from)?;
     let ent = &ctx.entreprise;
     let idcc = ent.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     if idcc != valeur_en_texte(&base["idcc"]) {
@@ -250,7 +282,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     if !matches!(droit::bareme::casc_exemptee(ent), Ok(false)) {
         return Ok(None);
     }
-    let faits: HashSet<String> = crate::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
+    let faits: HashSet<String> = declarations::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
     // `mois_disponibles` : les mois des paies declarees, et les mois saisis.
     let mut dispo: BTreeSet<String> = BTreeSet::new();
     let declarees = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
@@ -268,7 +300,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
     let mut par_mois: Vec<(String, Decimal)> = Vec::new();
     for m in dispo.iter().filter(|m| **m >= depuis && !faits.contains(*m)) {
-        let chemin = match crate::casc::dsn_deposee(ctx, m, None) {
+        let chemin = match dsn_importee(ctx, m) {
             Ok(Some(c)) => c,
             Ok(None) => continue,
             Err(_) => return Ok(None),
@@ -281,7 +313,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
         for v in d["versements"].as_array().into_iter().flatten() {
             let Some(brut) = v.get("brut").filter(|b| vrai(b)) else { continue };
             let tb = valeur_en_texte(brut);
-            let b = crate::apercu_dsn::decimal_py(&tb).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&tb)))?;
+            let b = socle::num::decimal_py(&tb).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&tb)))?;
             masse += b;
         }
         let an: String = m.chars().take(4).collect();
@@ -320,7 +352,7 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
         match &v {
             Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
             Value::Bool(b) => Ok(i128::from(*b)),
-            Value::String(s) => crate::apercu_dsn::int_py(s).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
+            Value::String(s) => socle::num::int_py(s).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
             autre => Err(erreur("TypeError", socle::fichiers::attendu("un nombre entier", nom_type(autre)))),
         }
     };

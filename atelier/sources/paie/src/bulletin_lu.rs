@@ -63,7 +63,7 @@ const INTERVALLE_MAX: i64 = 366;
 /// comme un espace, deux-points colle retire (un « : » isole reste un jeton).
 pub fn jetons(texte: &str) -> Vec<String> {
     let t = texte.replace(['\u{2019}', '\u{2018}'], "'");
-    crate::dpae::ascii_nfkd(&t)
+    socle::texte::ascii_nfkd(&t)
         .to_lowercase()
         .replace('-', " ")
         .split_whitespace()

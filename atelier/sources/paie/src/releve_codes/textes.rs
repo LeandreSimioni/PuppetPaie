@@ -387,13 +387,13 @@ pub static TEXTES: &[Texte] = &[
         ],
     },
     // ------------------------------------------------------------------
-    // LA REDUCTION GENERALE SOUS DFS (lot R9). CSS L241-13, III : elle << ne
+    // LA REDUCTION GENERALE SOUS DFS. CSS L241-13, III : elle << ne
     // tient compte des deductions au titre de frais professionnels
     // calculees forfaitairement [...] que dans des limites et conditions
     // fixees par arrete >>. C'est celui-ci (article 1er dans la redaction
     // de l'arrete du 4 septembre 2025, art. 11) : la reduction calculee
     // apres l'abattement ne peut exceder 130 % de celle calculee sans.
-    // `paie/src/calcul.rs` (`reduction_generale_sous_dfs`).
+    // `droit/src/reduction.rs` (`reduction_generale_sous_dfs`).
     Texte {
         cle: "reduction-generale-dfs-2019",
         legitext: "JORFTEXT000039626366",

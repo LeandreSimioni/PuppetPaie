@@ -2362,3 +2362,21 @@ pub enum AffiliationPrevoyance {
 pub fn affiliation_prevoyance(ent: &Value, sal: &Value, fin: &Jour) -> Resultat<AffiliationPrevoyance> {
     prevoyance::affiliation(g(ent, "idcc"), sal, est_cadre(sal), fin, ent)
 }
+
+/// Les taux d'une liste du bareme (`composants_pat`…), `None` si elle est absente ou vide.
+pub fn taux_liste(v: Option<&Value>) -> Resultat<Option<Vec<f64>>> {
+    match v {
+        Some(Value::Array(a)) if !a.is_empty() => Ok(Some(a.iter().map(socle::num::flottant).collect::<Resultat<_>>()?)),
+        _ => Ok(None),
+    }
+}
+
+/// La somme des parts d'une base `a` a chacun des taux `taux` (en pourcent), chacune arrondie au centime : une ligne
+/// dont la part se compose de plusieurs taux.
+pub fn somme_pct(a: Decimal, taux: &[f64]) -> Resultat<Decimal> {
+    let mut m = Decimal::new(0, 2);
+    for t in taux {
+        m += socle::num::pct(a, socle::num::dec_f64(*t)?);
+    }
+    Ok(m)
+}

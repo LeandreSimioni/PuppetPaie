@@ -58,7 +58,7 @@ fn le_plus_ecrit_la_raison_sociale_dans_sa_forme_declaree() {
     let ent = crate::outils::fiche_au(&lire(&c.racine, "config/entreprise.json"), "2026-11-02");
     assert_eq!(ent["nom_affichage"], json!("Les Tréteaux de l'Été"));
     assert_eq!(ent["raison_sociale"], json!("LES TRETEAUX DE L'ETE"));
-    let fautes: Vec<Value> = paie::champs::verifier_fiche("entreprise", ent.as_object().unwrap())
+    let fautes: Vec<Value> = declarations::champs::verifier_fiche("entreprise", ent.as_object().unwrap())
         .unwrap()
         .into_iter()
         .filter(|a| a["gravite"] == json!("erreur") && a["message"] != json!("obligatoire"))

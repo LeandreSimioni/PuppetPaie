@@ -10,11 +10,11 @@
 
 use serde_json::Value;
 
-use crate::dpae::ascii_nfkd;
+use socle::texte::ascii_nfkd;
 use socle::fichiers::vrai;
 use crate::retours::{est_chiffre};
 use socle::echec::Echec;
-use crate::usages::{lignes, strip};
+use socle::texte::{lignes_py as lignes, strip};
 
 type Resultat<T> = Result<T, Echec>;
 
@@ -246,7 +246,7 @@ pub fn lire(octets: &[u8]) -> Apercu {
     let types = valeurs_de(&texte, "S21.G00.50.007");
     Apercu {
         champs,
-        salaries: crate::ntt::individus(&texte).len(),
+        salaries: declarations::ntt::individus(&texte).len(),
         versements: valeurs_de(&texte, "S21.G00.20.005"),
         lignes: lignes(&texte).len(),
         pas_versements: types.len(),

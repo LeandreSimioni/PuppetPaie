@@ -57,13 +57,13 @@ fn gauche(t: &str, n: usize) -> String {
 
 /// `jj_mm_aaaa` d'une cle de la demande (`quand`, `reponse_attendue_avant`).
 fn jj(demande: &Value, cle: &str) -> Result<String, String> {
-    crate::bulletin::jj_mm_aaaa(demande.get(cle).unwrap_or(&Value::Null))
+    documents::bulletin::jj_mm_aaaa(demande.get(cle).unwrap_or(&Value::Null))
 }
 
 /// `a_combler` : qui a besoin d'un taux, et par quel contrat on le demanderait. Rend la liste ENTIERE, ecartes compris : chacun dit
 /// pourquoi il part ou ne part pas. Le premier contrat de chaque individu, et un seul : le signalement en porte un (1,1).
 fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>, String> {
-    use crate::amorcage as am;
+    use declarations::amorcage as am;
     let mut par_salarie: Vec<(String, usize)> = Vec::new();
     for (i, p) in paies.iter().enumerate() {
         let cle = p.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
@@ -93,8 +93,8 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
             _ => {
                 if let Err(e) = am::verifier(p, am::CHANGEMENT_DE_LOGICIEL, am::NORMALE, None) {
                     match e {
-                        crate::fctu::Echec::Impossible(m) => l.pourquoi_pas = m,
-                        crate::fctu::Echec::Autre(m) => return Err(m),
+                        declarations::fctu::Echec::Impossible(m) => l.pourquoi_pas = m,
+                        declarations::fctu::Echec::Autre(m) => return Err(m),
                     }
                 }
             }
@@ -107,7 +107,7 @@ fn a_combler(ctx: &Contexte, paies: &[Paie], forcer: bool) -> Result<Vec<Ligne>,
 /// `produire` : ecrit un fichier de signalement par individu, dans `sorties/AAAA-MM/`, et son recapitulatif. Un refus est une phrase
 /// (`ErreurOperation` ou `AmorcageImpossible` du Python). `ecrits` : les fichiers poses, au fur et a mesure.
 pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<PathBuf>) -> Result<Lot, String> {
-    use crate::amorcage as am;
+    use declarations::amorcage as am;
     let mut lignes = a_combler(ctx, paies, d.forcer)?;
     if let Some(voulus) = d.salaries {
         let mut inconnus: Vec<&String> = voulus.iter().filter(|v| !lignes.iter().any(|l| &l.salarie == *v)).collect();
@@ -145,7 +145,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
         };
         let texte = am::generer(ctx, &paies[l.indice], &options).map_err(|e| e.message().to_string())?;
         let cible = dossier.join(&nom);
-        crate::dsn::ecrire(&texte, &cible)?;
+        declarations::dsn::ecrire(&texte, &cible)?;
         crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None).map_err(|e| e.message)?;
         ecrits.push(cible.clone());
         fichiers.push(cible);
@@ -176,14 +176,4 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
     let recap = dossier.join(format!("Amorcage{}_{}_recapitulatif.txt", d.motif, jour));
     std::fs::write(&recap, format!("{}\n", out.join("\n"))).map_err(|e| format!("{} : {}", recap.display(), e))?;
     Ok(Lot { motif: d.motif.to_string(), dossier, fichiers, lignes: retenus, ecartes, recapitulatif: recap })
-}
-
-/// Les paies d'un mois de saisie, SANS montants : l'engagement et sa fiche (`amorcage::embauche`), ce que lit un signalement.
-/// `None` : aucun engagement ne touche le mois.
-pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Result<Option<Vec<Paie>>, String> {
-    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let _derivation = engagement::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois)?;
-    let paies = engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<Vec<_>, _>>()?;
-    Ok(Some(paies))
 }

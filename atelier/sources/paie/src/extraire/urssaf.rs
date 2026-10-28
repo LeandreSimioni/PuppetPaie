@@ -41,7 +41,7 @@ use super::{date_du_releve, nom_de, Releve};
 use socle::date::Jour;
 use socle::fichiers::repr;
 use socle::num::Resultat;
-use crate::usages::strip;
+use socle::texte::strip;
 
 /// Les caracteres de windows-1252 de 0x80 a 0x9F (`None` : non attribue, que le codec de Python refuse).
 const CP1252: [Option<char>; 32] = [

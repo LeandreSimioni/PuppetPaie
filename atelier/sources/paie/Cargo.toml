@@ -2,7 +2,7 @@
 name = "paie"
 version = "0.1.0"
 edition = "2021"
-description = "Le moteur de PuppetPaie au-dessus du socle et du droit : la ligne de commande paie, du fichier de mois au bulletin et a la DSN."
+description = "Le moteur de PuppetPaie au-dessus des documents et des déclarations : la ligne de commande paie, les routes, les envois, les retours."
 license = "EUPL-1.2"
 publish = false
 
@@ -29,10 +29,10 @@ atelier = []
 # (baremes dates, conventions, natures de contrat, regles).
 socle = { path = "../socle" }
 droit = { path = "../droit" }
-engagement = { path = "../engagement" }
+engagement = { path = "../engagement", features = ["ecran"] }
 rust_decimal = { workspace = true }
 serde_json = { workspace = true }
-# Le .zip de la DPAE : deflate et CRC-32, deja lies par la fabrique de PDF.
+# Deflate et CRC-32 (zip des exports, gzip du transport), deja lies par la fabrique de PDF.
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 # Les retours DSN sont du XML : lecture seule, Rust pur (`retours.rs`).
 roxmltree = { workspace = true }
@@ -45,6 +45,10 @@ md-5 = { version = "0.10", default-features = false }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 # Le bulletin : la description part a la fabrique dans le meme processus.
 fabrique-pdf = { path = "../fabrique-pdf" }
+# Les documents que fabrique un engagement valide.
+documents = { path = "../documents" }
+# Les déclarations que fabrique un engagement valide.
+declarations = { path = "../declarations" }
 # Le transport vers net-entreprises et l'Urssaf (`transport.rs`) : HTTP/1.1
 # synchrone, TLS par rustls, racines du systeme (`SSL_CERT_FILE` honore),
 # proxy lu dans l'environnement. Ni gzip (flate2 s'en charge), ni cookies, ni json.
@@ -56,8 +60,6 @@ scrypt = { version = "0.11", default-features = false }
 getrandom = { workspace = true }
 # Les courriels joués de la démonstration (`simulation_courriels.rs`) : lecture MIME, bibliothèque éprouvée.
 mailparse = "0.16"
-# Les classeurs .xlsx de `exporter` et la liste nominative du CASC-SVP : ecriture seule, bibliotheque eprouvee.
-rust_xlsxwriter = "0.90"
 # La messagerie (`courriel.rs`, `envoi.rs`) : SMTP par `lettre` (sans son batisseur de messages : on lui passe nos
 # octets, `send_raw`), TLS par rustls et verificateur de la plate-forme (la racine d'un antivirus installee dans le
 # magasin du systeme passe, comme pour l'Urssaf) ; IMAP ecrit sur un flux rustls, reponses lues par `imap-proto`.

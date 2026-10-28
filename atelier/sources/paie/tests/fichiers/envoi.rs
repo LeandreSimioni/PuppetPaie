@@ -110,11 +110,11 @@ fn le_message_pese_ses_pieces() {
 
 #[test]
 fn etiquette_et_nom_de_fichier() {
-    assert_eq!(envoi::etiquette("2026-08").unwrap(), "Aout2026");
-    assert_eq!(envoi::etiquette("2026-02").unwrap(), "Fevrier2026");
-    assert_eq!(envoi::etiquette("2026-12").unwrap(), "Decembre2026");
-    assert!(envoi::etiquette("2026-13").is_err());
-    assert!(envoi::etiquette("pas un mois").is_err());
+    assert_eq!(socle::date::etiquette_du_mois("2026-08").unwrap(), "Aout2026");
+    assert_eq!(socle::date::etiquette_du_mois("2026-02").unwrap(), "Fevrier2026");
+    assert_eq!(socle::date::etiquette_du_mois("2026-12").unwrap(), "Decembre2026");
+    assert!(socle::date::etiquette_du_mois("2026-13").is_err());
+    assert!(socle::date::etiquette_du_mois("pas un mois").is_err());
     assert_eq!(envoi::nom_fichier("Bulletin", "DUPONT", "Aout2026"), "Bulletin_DUPONT_Aout2026.pdf");
 }
 

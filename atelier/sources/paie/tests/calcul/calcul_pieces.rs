@@ -4,7 +4,9 @@
 
 use crate::outils::{dec, dossier_de_test, lire_oracle, oracle, sceller};
 use droit::catalogue::rubrique;
-use engagement::calcul::{au_dela_du_seuil, code_54, reduction_generale, LigneBrut};
+use droit::catalogue::code_54;
+use droit::reduction::{au_dela_du_seuil, reduction_generale};
+use engagement::calcul::LigneBrut;
 use engagement::canon_valeur;
 use socle::num::Decimal;
 use serde_json::{json, Value};

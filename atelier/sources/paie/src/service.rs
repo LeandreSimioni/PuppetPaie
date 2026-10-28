@@ -89,42 +89,6 @@ pub(crate) fn droits(o: &HashMap<String, String>, entree: &str) -> Resultat<Valu
     Ok(Value::Object(m))
 }
 
-/// Le compteur d'un permanent a la fin du mois et l'indemnite de son solde.
-pub(crate) struct Provision {
-    pub report_restant: socle::num::Decimal,
-    pub acquis: socle::num::Decimal,
-    pub pris: socle::num::Decimal,
-    pub solde: socle::num::Decimal,
-    pub avertissements: Vec<engagement::Avis>,
-    pub indemnite: Option<droit::conges::IndemniteDesJours>,
-}
-
-/// Le calcul de `provision-conges`, pour un contexte deja lu : le compteur d'un permanent a la fin de `mois`, et
-/// l'indemnite de son solde (le dixieme ou le maintien, L3141-24) quand il est positif. `salaire_mensuel` : la
-/// valeur de l'engagement (`None` ou fausse = 0).
-pub(crate) fn provision_conges_de(ctx: &Contexte, salarie: &str, mois: &str, salaire_mensuel: Option<&Value>) -> Resultat<Provision> {
-    use droit::conges::jours_ouvrables;
-    use engagement::conges::{compteur_conges, indemnite_des_jours};
-    use socle::num::{dec, div, eur, mul, Decimal};
-    let fin = socle::date::dernier_du_mois(mois)?;
-    let cpt = compteur_conges(ctx, salarie, &fin, Some(&fin.mois_suivant()))?;
-    let solde = cpt.solde();
-    let salaire = match salaire_mensuel {
-        Some(v) if socle::fichiers::vrai(v) => dec(v)?,
-        _ => Decimal::ZERO,
-    };
-    let ouvrables = match jours_ouvrables(&socle::date::premier_du_mois(mois)?, &fin, None)? {
-        0 => Decimal::ONE,
-        n => Decimal::from(n),
-    };
-    let indemnite = if solde > Decimal::ZERO {
-        Some(indemnite_des_jours(ctx, &cpt, solde, eur(mul(div(salaire, ouvrables), solde)))?)
-    } else {
-        None
-    };
-    Ok(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite })
-}
-
 /// `paie route [--racine R] [--date D]` : la demande sur l'entree standard. `None` : usage.
 pub fn commande(quoi: &str, args: &[String]) -> Option<i32> {
     if quoi != "route" {

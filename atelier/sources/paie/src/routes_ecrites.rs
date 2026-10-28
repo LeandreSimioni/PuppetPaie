@@ -1,7 +1,7 @@
 //! Les routes qui ECRIVENT, et celles qui relevent chez l'organisme
 //! (`moteur/web.py`, `operations_exercice`, `operations_fiches`,
-//! `operations_regularisation`, `operations_declarations`) :
-//! `revue-spectacles`, la pose de `taux-atmp`, `regularisation-mois`,
+//! `operations_declarations`) :
+//! `revue-spectacles`, la pose de `taux-atmp`,
 //! `bilan-repetition` quand le compte rendu est « attendu ».
 //!
 //! Meme JSON que la route Python, memes refus sous la meme classe d'exception
@@ -11,8 +11,6 @@
 //!   (`activer_fiche`, avec la copie horodatee de `spectacles.json`) et coche
 //!   l'echeance de la revue (`marquer_echeance`).
 //! - `taux-atmp` : la POSE (`poser_taux_atmp`) ; la lecture est dans `routes_fiches`.
-//! - `regularisation-mois` : l'etat du mois, ses corrections ecrites, et les
-//!   engagements tels que declares (calcul de chaque paie, sans numero neuf).
 //! - `bilan-repetition` : la lecture seulement ; le releve des retours (la part qui
 //!   releve chez l'organisme et ecrit) reste en Python, a porter plus tard.
 
@@ -32,18 +30,15 @@ use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::echec::Echec;
 use crate::routes_fiches::{entier, exiger};
-use crate::routes_mois::Moteur;
-use crate::routes_regularisation as regul;
 use crate::routes_saisie::lire_saisie;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 2] = ["revue-spectacles", "regularisation-mois"];
+pub const ROUTES: [&str; 1] = ["revue-spectacles"];
 
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "revue-spectacles" => revue_spectacles(o, ctx, charge),
-        "regularisation-mois" => regularisation_mois(o, ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -367,232 +362,4 @@ pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risq
 fn code_risque_valide(code: &str) -> bool {
     let c: Vec<char> = code.chars().collect();
     c.len() == 5 && c[..3].iter().all(|x| x.is_ascii_digit()) && c[3..].iter().all(|x| x.is_ascii_digit() || x.is_ascii_uppercase())
-}
-
-// ------------------------------------------------------- les corrections ecrites
-
-/// Les champs d'une `Correction`, dans l'ordre de la classe.
-const CHAMPS_CORRECTION: [&str; 11] =
-    ["mois", "numero", "salarie", "debut", "motif", "engagement", "decidee_le", "qui", "preparee_par", "portee_par", "annulee_le"];
-
-/// Les champs qu'une correction ne porte que s'ils disent quelque chose (21/10/2026) : `ajout` (un contrat ajoute apres
-/// la limite, `routes_regularisation::apercu_d_un_ajout`), `remplacee_par` (le numero de la correction qui l'a
-/// remplacee, en attente, quand la paie a encore change).
-const CHAMPS_SI_PRESENTS: [&str; 2] = ["ajout", "remplacee_par"];
-
-/// Une `Correction` : les champs, dans l'ordre, ceux qui manquent a `None` ; une cle inconnue ou
-/// une cle obligatoire absente est un `TypeError`.
-fn correction_de(c: &Value) -> R<Map<String, Value>> {
-    let Value::Object(o) = c else {
-        return Err(erreur("TypeError", format!("Correction : un objet est attendu, pas {}", nom_type(c))));
-    };
-    if let Some(k) = o.keys().find(|k| !CHAMPS_CORRECTION.contains(&k.as_str()) && !CHAMPS_SI_PRESENTS.contains(&k.as_str())) {
-        return Err(erreur("TypeError", format!("Correction : champ inconnu {}", repr(k))));
-    }
-    let manque: Vec<String> = CHAMPS_CORRECTION[..8].iter().filter(|k| !o.contains_key(**k)).map(|k| repr(k)).collect();
-    if !manque.is_empty() {
-        return Err(erreur("TypeError", format!("Correction : champ manquant {}", manque.join(", "))));
-    }
-    let mut c: Map<String, Value> = CHAMPS_CORRECTION.iter().map(|k| (k.to_string(), o.get(*k).cloned().unwrap_or(Value::Null))).collect();
-    for k in CHAMPS_SI_PRESENTS {
-        if let Some(v) = o.get(k) {
-            c.insert(k.to_string(), v.clone());
-        }
-    }
-    Ok(c)
-}
-
-/// `lire_corrections(ctx, mois)`.
-pub(crate) fn lire_corrections(ctx: &Contexte, mois: &str) -> R<Vec<Map<String, Value>>> {
-    let p = ctx.racine.join("regularisations").join(format!("{}.json", mois));
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let d = lire_saisie(&p)?;
-    let corrections = getd(&d, "corrections", &etats::LISTE_VIDE)?;
-    items(corrections)?.iter().map(|c| correction_de(c)).collect()
-}
-
-/// `toutes_les_corrections(ctx)` : un fichier `AAAA-MM.json` apres l'autre.
-pub(crate) fn toutes_les_corrections(ctx: &Contexte) -> R<Vec<Map<String, Value>>> {
-    let dossier = ctx.racine.join("regularisations");
-    if !dossier.exists() {
-        return Ok(Vec::new());
-    }
-    let mut noms: Vec<String> = match std::fs::read_dir(&dossier) {
-        Ok(l) => l.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect(),
-        Err(_) => Vec::new(),
-    };
-    noms.retain(|n| {
-        let c: Vec<char> = n.chars().collect();
-        c.len() == 12 && c[4] == '-' && n.ends_with(".json")
-    });
-    noms.sort();
-    let mut out = Vec::new();
-    for n in noms {
-        out.extend(lire_corrections(ctx, &n[..n.len() - 5])?);
-    }
-    Ok(out)
-}
-
-/// `Correction.etat()`.
-pub(crate) fn etat_correction(c: &Map<String, Value>) -> &'static str {
-    let vrai_de = |k: &str| c.get(k).is_some_and(vrai);
-    if vrai_de("annulee_le") {
-        "annulee"
-    } else if vrai_de("portee_par") {
-        "portee"
-    } else if vrai_de("preparee_par") {
-        "preparee"
-    } else {
-        "en attente"
-    }
-}
-
-/// `corrections_par_mois(ctx)`, reduit au mois voulu : les corrections dont le mois d'origine est
-/// `mois`, chacune avec son etat.
-fn corrections_du_mois(ctx: &Contexte, mois: &Value) -> R<Vec<Value>> {
-    let mut out = Vec::new();
-    for c in toutes_les_corrections(ctx)? {
-        let m = c.get("mois").cloned().unwrap_or(Value::Null);
-        if matches!(m, Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&m))));
-        }
-        if valeurs_egales(&m, mois) {
-            let etat = etat_correction(&c);
-            let mut v = c;
-            v.insert("etat".into(), json!(etat));
-            out.push(Value::Object(v));
-        }
-    }
-    Ok(out)
-}
-
-// ----------------------------------------------------------- regularisation-mois
-
-/// `engagements_d_origine` : les engagements du mois d'origine tels que DECLARES -- ou tels que la
-/// derniere correction PORTEE les a laisses --, avec leur cle (salarie, debut) et l'etat de leur
-/// correction en cours s'il y en a une.
-fn engagements_d_origine(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
-    let donnees = regul::saisie_d_origine(ctx, mois)?;
-    let paies = regul::paies_de(ctx, &donnees)?;
-    regul::exiger_les_numeros(mois, &paies)?;
-    let mut portees: Vec<((Value, Value), Map<String, Value>)> = Vec::new();
-    let mut en_cours: Vec<((Value, Value), Map<String, Value>)> = Vec::new();
-    let poser = |liste: &mut Vec<((Value, Value), Map<String, Value>)>, cle: (Value, Value), c: Map<String, Value>| {
-        match liste.iter_mut().find(|(k, _)| valeurs_egales(&k.0, &cle.0) && valeurs_egales(&k.1, &cle.1)) {
-            Some(existant) => existant.1 = c,
-            None => liste.push((cle, c)),
-        }
-    };
-    for c in lire_corrections(ctx, mois)? {
-        let cle = (c["salarie"].clone(), c["debut"].clone());
-        if matches!(cle.0, Value::Array(_) | Value::Object(_)) || matches!(cle.1, Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(if cle.0.is_array() || cle.0.is_object() { &cle.0 } else { &cle.1 }))));
-        }
-        if c.get("portee_par").is_some_and(vrai) {
-            poser(&mut portees, cle, c);
-        } else if !c.get("annulee_le").is_some_and(vrai) {
-            poser(&mut en_cours, cle, c);
-        }
-    }
-    let engs = donnees.get("engagements").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("engagements")))?;
-    let engs = items(engs)?;
-    let trouve = |liste: &'_ [((Value, Value), Map<String, Value>)], cle: &(Value, Value)| -> Option<usize> {
-        liste.iter().position(|(k, _)| valeurs_egales(&k.0, &cle.0) && valeurs_egales(&k.1, &cle.1))
-    };
-    // LA SAISIE MODIFIEE APRES LA LIMITE (21/10/2026) : la correction d'un contrat dont la paie a change part de la saisie
-    // d'aujourd'hui (`engagement_saisi`), la page s'en sert pour preremplir ; le declare reste ce qui est declare.
-    let modifies = regul::ce_qui_a_change(ctx, mois)?.map(|c| c.contrats).unwrap_or_default();
-    let mut out = Vec::new();
-    for (p, e) in paies.iter().zip(engs.iter()) {
-        let cle_s = valeur_en_texte(regul::requis(&p.salarie, "_cle")?);
-        let modifie = modifies.iter().find(|c| !c.ajoute && c.salarie == cle_s && c.debut == p.engagement.debut.iso());
-        let saisi = modifie.map(|c| c.engagement.clone());
-        // SES DATES CHANGEES DANS LA SAISIE (21/10/2026) : la correction les reprend, la page le dit.
-        let dates_saisies = modifie.filter(|c| c.dates_changees).map(|c| json!(regul::bornes_en_clair(&c.bornes))).unwrap_or(Value::Null);
-        let cle = (Value::String(cle_s.clone()), Value::String(p.engagement.debut.iso()));
-        let portee = trouve(&portees, &cle);
-        let declare = match portee {
-            Some(i) => portees[i].1["engagement"].clone(),
-            None => e.as_ref().clone(),
-        };
-        let sal = &p.salarie;
-        let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => valeur_en_texte(v),
-            None => valeur_en_texte(regul::requis(sal, "prenom")?),
-        };
-        let en_cours_ici = trouve(&en_cours, &cle).map(|i| Value::Object(en_cours[i].1.clone())).unwrap_or(Value::Null);
-        out.push(json!({
-            "salarie": cle_s,
-            "debut": p.engagement.debut.iso(),
-            "nom": format!("{} {}", valeur_en_texte(regul::requis(sal, "nom")?), prenom),
-            "spectacle": p.titre()?,
-            "numero": p.engagement.numero,
-            "fin": p.engagement.fin.map(|f| f.iso()),
-            "engagement": declare,
-            "brut": regul::q2(p.brut),
-            "net_a_payer": regul::q2(p.net_a_payer),
-            "deja_corrige": portee.is_some(),
-            "correction_en_cours": en_cours_ici,
-            "engagement_saisi": saisi.unwrap_or(Value::Null),
-            "dates_saisies": dates_saisies,
-            "ajoute": false,
-        }));
-    }
-    // LES CONTRATS AJOUTES APRES LA LIMITE (un contrat oublie) : rien de declare ; leur correction les declare en entier
-    // dans la DSN suivante (`routes_regularisation::apercu_correction`).
-    for a in modifies.iter().filter(|c| c.ajoute) {
-        let p = regul::paie_d_un_engagement(ctx, &donnees, &a.engagement)?;
-        let sal = &p.salarie;
-        let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
-            Some(v) => valeur_en_texte(v),
-            None => valeur_en_texte(regul::requis(sal, "prenom")?),
-        };
-        let cle = (Value::String(a.salarie.clone()), Value::String(a.debut.clone()));
-        let en_cours_ici = trouve(&en_cours, &cle).map(|i| Value::Object(en_cours[i].1.clone())).unwrap_or(Value::Null);
-        out.push(json!({
-            "salarie": a.salarie,
-            "debut": a.debut,
-            "nom": format!("{} {}", valeur_en_texte(regul::requis(sal, "nom")?), prenom),
-            "spectacle": p.titre()?,
-            "numero": p.engagement.numero,
-            "fin": p.engagement.fin.map(|f| f.iso()),
-            "engagement": a.engagement,
-            "brut": "0.00",
-            "net_a_payer": "0.00",
-            "deja_corrige": false,
-            "correction_en_cours": en_cours_ici,
-            "engagement_saisi": a.engagement,
-            "ajoute": true,
-        }));
-    }
-    Ok(out)
-}
-
-/// `regularisation-mois` : l'etat du mois, ses corrections ecrites, les engagements declares
-/// quand le mois se corrige.
-fn regularisation_mois(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois_v = exiger(charge, "mois")?;
-    let mut m = Moteur::nouveau(o, ctx);
-    let etat = regul::etat_mois(&mut m, ctx, mois_v)?;
-    let ecrites = corrections_du_mois(ctx, mois_v)?;
-    let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
-    let mot_de_passe_pose = coffre.ouverture_exigee().map_err(crate::routes_etats::vers_route)?;
-    let engagements = if etat["regularisable"].as_bool().unwrap_or(false) {
-        engagements_d_origine(ctx, &valeur_en_texte(mois_v))?
-    } else {
-        Vec::new()
-    };
-    let corrections = match ecrites.first() {
-        Some(Value::Object(_)) => Value::Array(ecrites),
-        _ => json!([]),
-    };
-    Ok(json!({
-        "mois": mois_v,
-        "etat": etat,
-        "mot_de_passe_pose": mot_de_passe_pose,
-        "engagements": engagements,
-        "corrections": corrections,
-    }))
 }

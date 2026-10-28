@@ -1,5 +1,4 @@
-//! Le modele du bulletin (lot R11, 11/10/2026 ; PLAN-CONTRATS, C, points 9 et 11, decides le 30/09/2026) : ce que la
-//! page de Configuration montre et enregistre. La decision vit dans `bulletin::Modele` et `bulletin::modele_du_bulletin`
+//! Le modele du bulletin : ce que la page de Configuration montre et enregistre. La decision vit dans `bulletin::Modele` et `bulletin::modele_du_bulletin`
 //! (regle 2) ; ces routes ne font que la lire, l'apercevoir et poser le choix de la compagnie.
 //!
 //! - `bulletin-modeles` (lecture) : les modeles, celui que la compagnie a choisi, les salaries dont la fiche en demande
@@ -19,7 +18,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Map, Value};
 
-use crate::bulletin::{jeux_et_description, Modele, CASE_MODELE};
+use documents::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::echec::R;
@@ -114,18 +113,21 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     let mois = saisie.get("mois").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas son mois.")?.to_string();
     let jour = saisie.get("date_paiement").and_then(Value::as_str).ok_or("La paie de l'aperçu ne dit pas sa date de paiement.")?;
     let ctx = Contexte::nouveau(&racine, Some(Jour::lire(jour)?))?;
-    let s = engagement::charger_donnees(&ctx, &saisie)?;
+    let s = engagement::pour_l_ecran(&ctx, &saisie)?;
     let mut ent = ctx.entreprise.clone();
     let o: &mut Map<String, Value> = ent.as_object_mut().ok_or("La fiche de la compagnie de l'aperçu n'est pas un objet.")?;
     o.insert(CASE_MODELE.into(), json!(modele.cle()));
     // Ni le logo ni la signature du poste sur une paie fictive : ses gabarits sont un dossier qui n'existe pas.
     o.insert("_gabarits".into(), json!(racine.join("gabarits").to_string_lossy()));
-    jeux_et_description(&ctx, &s.paies, &ent, &mois, None, false, &HashMap::new())
+    // Une paie de l'ecran n'a pas de numero de bulletin (il se reserve au depart) : l'apercu montre celui d'un premier
+    // bulletin de l'annee.
+    let numeros: Vec<Option<String>> = (1..=s.paies.len()).map(|n| Some(format!("{}/{}", n, &mois[..4]))).collect();
+    jeux_et_description(&ctx, &s.paies, &numeros, &ent, &mois, None, false, &HashMap::new())
 }
 
 /// Le PDF de la paie fictive sous `modele`.
 pub fn apercu_pdf(modele: Modele) -> Result<Vec<u8>, String> {
-    crate::fabrique::fabriquer_octets(&apercu_description(modele)?)
+    documents::fabrique::fabriquer_octets(&apercu_description(modele)?)
 }
 
 // ------------------------------------------------------------------ bulletin-modele-choisir

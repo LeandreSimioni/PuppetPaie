@@ -93,7 +93,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
-| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
+| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
 | `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `paie`), les docs, les versions publiées, l'installeur, le site |
 
@@ -237,16 +237,19 @@ fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas d
 binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
-cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, paie ; les dossiers de travail des tests (~3 Go)
-cargo nextest run --cargo-profile essais --no-fail-fast                  # les quatre crates ; la fenêtre n'a pas de tests
+cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, documents, declarations, paie ; les dossiers de travail des tests (~3 Go)
+cargo nextest run --cargo-profile essais --no-fail-fast                  # les six crates ; la fenêtre n'a pas de tests
 ```
 
 - La suite de l'atelier (`--features atelier`, sa propre cible `<cible>-atelier`), seulement quand on touche à ce qui est sous
   `#[cfg(feature = "atelier")]` : `CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo-profile
   essais -p paie --features atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'`.
-- **Quatre binaires par domaine** (`tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`) ; un fichier qui pose une
+- **Quatre binaires par domaine dans `paie/tests/`** (`tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`) ; un fichier qui pose une
   variable d'environnement reste seul dans `tests/`. Les aides sont dans `tests/outils/` (un fichier n'en recopie aucune) ;
-  un test se monte dans `outils::dossier_de_test`. Un fichier seul : `-E 'binary(calcul) & test(/^clauses::/)'`.
+  un test se monte dans `outils::dossier_de_test`. Un test qui monte une compagnie passe par le moteur entier et reste dans
+  `paie/tests/` ; un test qui n'appelle que les fonctions de `documents` ou de `declarations` sur des valeurs vit dans sa crate
+  (`<crate>/tests/`, ou son `#[cfg(test)]`). Un fichier seul : `-E 'binary(calcul) & test(/^clauses::/)'` ; les tests d'une
+  crate : `-p declarations`.
 - **Ce qu'un test prouve** : une règle qui cite son texte déposé, ou un contrat (une route refuse et rien n'est écrit ; un
   fichier a la forme que le moteur relit). Jamais une forme (classe d'exception, message, ordre des clés). Un oracle de
   `tests/donnees/` se réécrit par le test qui le lit (`PUPPETPAIE_REECRIRE_ORACLES=1`, jamais posée par un test) ; une grille
@@ -276,7 +279,7 @@ un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de d
    au cachet comme permanents. La compagnie du poste est le banc d'essai, pas le destinataire : ce qu'elle ne fait pas, d'autres
    le font ; un cas qu'aucune donnée n'éprouve reste un cas à porter.
 1. **Rien ne se devine.** Un taux de PAS, un identifiant DGFiP se *lisent* (du compte rendu) ; un bordereau Urssaf se *calcule*
-   depuis la table des CTP (`paie/src/bordereau.rs`). Le moteur refuse plutôt que d'inventer ; on ne « débogue » pas un refus
+   depuis la table des CTP (`documents/src/bordereau.rs`). Le moteur refuse plutôt que d'inventer ; on ne « débogue » pas un refus
    avec une valeur plausible.
 2. **Toute décision vit dans le moteur, jamais dans un front.** Ligne de commande et interface ne font qu'afficher ; un
    garde-fou dans un front se contourne par l'autre. Plus de Python neuf : ce qui s'écrit s'écrit en Rust.

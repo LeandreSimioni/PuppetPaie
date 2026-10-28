@@ -14,8 +14,6 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::amorcage;
-use engagement::calcul::lignes_brut;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, jours_du_mois, Jour};
 use engagement::{self, Engagement};
@@ -33,7 +31,7 @@ pub const ROUTES: [&str; 2] = ["saisie", "echeancier"];
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "saisie" => saisie(_o, ctx, charge),
+        "saisie" => saisie(ctx, charge),
         "echeancier" => echeancier(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -53,7 +51,7 @@ fn nombre_f(x: f64) -> Value {
     serde_json::Number::from_f64(x).map_or(Value::Null, Value::Number)
 }
 
-/// `int(texte)` de Python, a quelques ecarts de forme pres.
+/// Un entier ecrit en texte (blancs autour admis).
 fn entier(t: &str) -> R<i32> {
     t.trim().parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))))
 }
@@ -63,8 +61,7 @@ fn tranche(t: &str, a: usize, b: usize) -> String {
     t.chars().skip(a).take(b - a).collect()
 }
 
-/// `operations_paies.lire_saisie` : le fichier, avec la classe d'exception que
-/// Python levait pour un fichier illisible.
+/// Le fichier d'une saisie, lu en JSON ; un fichier illisible refuse en le nommant.
 pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", chemin.display(), e)))?;
@@ -75,7 +72,7 @@ pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
 
 /// `operations_socle.mois_hors_delai` : la date limite de depot depassee (`echeance_dsn`, reportee), ou `None`.
 pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
-    let limite = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?.jour;
+    let limite = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?.jour;
     Ok(if ctx.aujourdhui > limite { Some(limite) } else { None })
 }
 
@@ -127,9 +124,9 @@ fn flottant_py(v: &Value) -> R<f64> {
     }
 }
 
-/// Les elements qu'une boucle Python verrait dans `valeur or []` : une liste, ou
-/// ce que `reversed` accepte d'autre (une chaine, un dictionnaire : leurs
-/// cles, des textes sans `.get`).
+/// Les elements de `valeur` (vide ou absente : aucun) : une liste, ou
+/// les caracteres d'une chaine, les cles d'un dictionnaire (des textes sans
+/// `.get`) ; autre chose refuse.
 fn elements(v: Option<&Value>) -> R<Vec<Value>> {
     match v {
         None => Ok(Vec::new()),
@@ -180,25 +177,6 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
     flottant_py(taux).ok()
 }
 
-/// La saisie chargee SANS calculer : `engagement::charger_donnees` jusqu'au
-/// contrat qui deborde, plus les lignes de remuneration de chaque engagement
-/// paye au cachet (elles ne dependent que de l'engagement). `None` quand le
-/// Python aurait refuse la saisie (la page la montre alors telle quelle).
-fn charger_sans_calcul(ctx: &Contexte, data: &Value) -> Option<Vec<engagement::calcul::Paie>> {
-    let _derivation = engagement::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, data, &engagement::conges::lignes_du_mois).ok()?;
-    let mut paies = Vec::new();
-    for e in &engs {
-        paies.push(amorcage::embauche(ctx, e).ok()?);
-    }
-    for p in paies.iter_mut() {
-        engagement::suivre_contrat(ctx, &mut p.engagement).ok()?;
-        if !p.engagement.nat().ok()?.mensuelle() {
-            p.remuneration = lignes_brut(&p.engagement, ctx).ok()?;
-        }
-    }
-    Some(paies)
-}
 
 /// `float(Decimal)` : la valeur la plus proche, par sa representation.
 fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
@@ -209,7 +187,7 @@ fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
 /// du fichier. Une saisie qui ne se charge pas se rend telle quelle.
 fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
     let Some(objet) = saisie.as_object() else { return Ok(saisie.clone()) };
-    let Some(paies) = charger_sans_calcul(ctx, saisie) else { return Ok(saisie.clone()) };
+    let Ok(paies) = engagement::lue_sans_paie(ctx, saisie) else { return Ok(saisie.clone()) };
     let mut sortie = objet.clone();
     // Le spectacle du MOIS n'est resolu que si la saisie en nommait un.
     if vrai_opt(objet.get("spectacle")) {
@@ -408,7 +386,7 @@ fn descendre_le_mois(saisie: Value) -> Value {
 }
 
 /// La route `saisie`.
-fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let mois = en_texte(brut);
     let existe = engagement::stock::a_une_saisie(&ctx.racine, &mois).map_err(Echec::from)?;
@@ -422,7 +400,7 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
     }
     // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE (21/10/2026) n'est pas ferme : sa paie se modifie, en le
     // confirmant a la premiere modification (`routes_regularisation::modification_de_la_paie`) -- il n'est pas en retard.
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let dsn_deposee = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
     let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);
@@ -545,7 +523,7 @@ fn date_en_clair(j: &Jour) -> String {
 
 /// La DSN de `mois`, due dans le mois suivant, a midi, le jour que dit `echeance_dsn` (reporte au jour ouvre).
 fn dsn(st: &Etat, jour_dsn: u32, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
-    let echeance = crate::echeance_dsn::du_mois(mois, jour_dsn).map_err(|m| erreur("ValueError", m))?;
+    let echeance = declarations::echeance_dsn::du_mois(mois, jour_dsn).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let e = st.etat_dsn(mois).map_err(en_echec)?;
     let etat = if vrai(&e) && !vrai_opt(e.get("refusee")) {
@@ -668,7 +646,7 @@ fn annuelle(
         }
     }
     // `{jour_dsn}` : le jour de janvier ou la DSN de decembre de l'annee d'avant est due, reporte (`echeance_dsn`).
-    let jour_dsn = crate::echeance_dsn::du_mois(&format!("{:04}-12", annee - 1), jour_dsn).map_err(|m| erreur("ValueError", m))?.jour.jour;
+    let jour_dsn = declarations::echeance_dsn::du_mois(&format!("{:04}-12", annee - 1), jour_dsn).map_err(|m| erreur("ValueError", m))?.jour.jour;
     let valeurs = [("annee", annee.to_string()), ("annee_precedente", (annee - 1).to_string()), ("jour_dsn", jour_dsn.to_string())];
     let mois = format!("{}-{:02}", annee, mois_de_l_echeance(e, Some(0))?);
     let courant = format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois);

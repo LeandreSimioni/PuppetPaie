@@ -50,7 +50,7 @@ use std::path::{Path, PathBuf};
 use rust_decimal::Decimal;
 use serde_json::Value;
 
-use crate::bulletin::{fmt_eur, fmt_heures};
+use documents::bulletin::{fmt_eur, fmt_heures};
 use engagement::calcul::Paie;
 use crate::courriel::Courriel;
 use socle::date::{en_texte, repr_flottant};
@@ -258,12 +258,6 @@ fn heures_en_decimal(h: f64) -> Result<Decimal, String> {
     t.parse::<Decimal>().or_else(|_| Decimal::from_scientific(&t)).map_err(|e| format!("heures illisibles ({}) : {}", t, e))
 }
 
-/// « Aout2026 » a partir de « 2026-08 » : l'etiquette des noms de fichier, sans accent.
-pub fn etiquette(mois: &str) -> Result<String, String> {
-    let (an, mo) = an_mois(mois)?;
-    let nom = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Titre)?;
-    Ok(format!("{}{}", nom, an))
-}
 
 pub fn nom_fichier(prefixe: &str, cle: &str, etiq: &str) -> String {
     format!("{}_{}_{}.pdf", prefixe, cle, etiq)
@@ -489,7 +483,7 @@ pub fn preparer_avec(
     renvois: &std::collections::HashMap<String, Renvoi>,
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
-    let etiq = etiquette(mois)?;
+    let etiq = socle::date::etiquette_du_mois(mois)?;
     let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
@@ -554,8 +548,8 @@ pub fn preparer_avec(
         };
         let (mut aer_due, mut fctu) = (false, false);
         for p in &siennes {
-            aer_due |= crate::aer::due(&p.engagement)?;
-            fctu |= crate::aer::attestation_fctu(&p.engagement)?;
+            aer_due |= documents::aer::due(&p.engagement)?;
+            fctu |= documents::aer::attestation_fctu(&p.engagement)?;
         }
         if aer_due && !presents.contains(&"aer") {
             notes.push(NOTE_SANS_AER);
@@ -889,7 +883,7 @@ fn couper_extension(nom: &str) -> (&str, &str) {
 /// `mimetypes.guess_type(nom)[0]`, sans les fichiers du systeme.
 pub(crate) fn type_devine(nom: &str) -> Option<&'static str> {
     let (mut base, mut ext) = couper_extension(nom);
-    let mut dernier = String::new();
+    let mut dernier: String;
     loop {
         let minuscule = ext.to_lowercase();
         let Some((_, remplace)) = SUFFIXES.iter().find(|(s, _)| *s == minuscule) else { break };
@@ -1859,7 +1853,7 @@ mod tests {
         // (`date::dernier_du_mois`) ne lisent « 00 », et `envois_signature::an_et_mois` le refuse aussi. Seul le Python le
         // lisait decembre, par l'indice -1 d'une liste : un accident, pas une regle.
         assert!(socle::date::premier_du_mois("2026-00").is_err() && socle::date::dernier_du_mois("2026-00").is_err());
-        assert_eq!(etiquette("2026-00").unwrap_err(), socle::date::mois_impossible(0));
-        assert_eq!(etiquette("2026-12").unwrap(), "Decembre2026");
+        assert_eq!(socle::date::etiquette_du_mois("2026-00").unwrap_err(), socle::date::mois_impossible(0));
+        assert_eq!(socle::date::etiquette_du_mois("2026-12").unwrap(), "Decembre2026");
     }
 }

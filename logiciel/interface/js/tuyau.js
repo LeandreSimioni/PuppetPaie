@@ -126,7 +126,7 @@ let VERIF = null;         // { mois, promesse } : la vérification en route
 const GESTES_QUI_ENGAGENT = new Set(["valider-engagement", "contrat-recu", "contrats-imprimer", "dsn-a-deposer", "deposer", "dpae",
   "demander-signature", "envoyer-documents", "avenant-envoyer", "avenants-envoyer",
   "dossier-envoyer", "casc-envoyer", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents",
-  "regularisation-mois", "regularisation-ecrire", "cloture"]);
+  "cloture"]);
 
 function marquerMiseAJour(oui) {
   const el = document.getElementById("mois-maj");

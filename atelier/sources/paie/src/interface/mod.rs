@@ -968,7 +968,7 @@ impl Fenetre {
             .and_then(|v| v.get("pdf").and_then(Value::as_str).and_then(|b| crate::retours::base64_lire(b).ok()));
         match pdf {
             Some(octets) if octets.starts_with(b"%PDF") => Reponse::nouvelle(200, "application/pdf", octets)
-                .avec("Content-Disposition", format!("inline; filename=\"apercu-bulletin-{}.pdf\"", if modele == crate::bulletin::Modele::Complet { "complet" } else { "simplifie" }))
+                .avec("Content-Disposition", format!("inline; filename=\"apercu-bulletin-{}.pdf\"", if modele == documents::bulletin::Modele::Complet { "complet" } else { "simplifie" }))
                 .avec("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'"),
             _ => Reponse::nouvelle(500, "text/plain; charset=utf-8", "L'aperçu du bulletin ne s'est pas fait."),
         }

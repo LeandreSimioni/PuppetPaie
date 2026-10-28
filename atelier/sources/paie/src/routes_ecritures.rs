@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::champs;
+use declarations::champs;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::ecriture::ecrire_json;
@@ -30,7 +30,6 @@ use socle::fichiers::vrai;
 use crate::journal;
 use droit::jumeaux::{numero_pose, Ident};
 use socle::num::{dec, Decimal};
-use engagement::calcul::Paie;
 use socle::echec::Echec;
 use crate::routes_accueil;
 use crate::routes_contrats::sauver_avant;
@@ -58,7 +57,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge),
         "poser-identite" => poser_identite(ctx, charge),
         "retirer-identite" => retirer_identite(ctx, charge),
-        "enregistrer-saisie" => enregistrer_saisie(o, ctx, charge),
+        "enregistrer-saisie" => enregistrer_saisie(ctx, charge),
         "ajuster" => ajuster(ctx, charge),
         "metier-retenu" => metier_retenu(ctx, charge),
         "metiers-ajoutes" => metiers_ajoutes(ctx, charge),
@@ -846,8 +845,7 @@ pub(crate) fn refuser_si_avant_la_premiere_embauche(ctx: &Contexte, mois: &str) 
 /// Le contrat de chaque engagement : (cle du salarie, premier jour, numero POSE dans la saisie) -- l'identite de
 /// `jumeaux` : deux contrats du meme salarie qui commencent le meme jour ne se confondent pas.
 pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, String> {
-    let lignes: engagement::LignesPermanent = &engagement::conges::lignes_du_mois;
-    let (engs, _) = engagement::engagements(ctx, data, lignes)?;
+    let engs = engagement::engagements_de_la_saisie(ctx, data)?;
     let bruts = data.get("engagements").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]);
     let mut out = Vec::new();
     for (i, e) in engs.iter().enumerate() {
@@ -857,15 +855,15 @@ pub(crate) fn identifiants(ctx: &Contexte, data: &Value) -> Result<Vec<Ident>, S
     Ok(out)
 }
 
-fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn enregistrer_saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = texte_requis(charge, "mois")?;
     let confirme = charge.get(crate::routes_regularisation::CONFIRMATION).is_some_and(vrai);
     let Value::Object(brute) = exiger(charge, "saisie")? else {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     };
-    let p = ecrire_saisie_confirmee(o, ctx, mois, brute, confirme)?;
+    let p = ecrire_saisie_confirmee(ctx, mois, brute, confirme)?;
     // Ce que la page dit du mois deja declare, a jour apres l'ecriture (`routes_regularisation::modification_de_la_paie`).
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let dsn = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     // « Enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
     Ok(json!({"chemin": p.display().to_string(), "dsn_deposee": dsn, "enregistre_a": maintenant()}))
@@ -874,31 +872,31 @@ fn enregistrer_saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Valu
 /// LA SAISIE D'UN MOIS DONT LA DSN EST DEPOSEE ET L'ANNULE-ET-REMPLACE PASSE : une ecriture qui en change la paie
 /// (`routes_mois::empreinte_de` : ni la validation ni ce que le moteur tient seul) se refuse sans `confirme`
 /// (`routes_regularisation::CONFIRMATION` dans la charge), sous `CLASSE_A_CONFIRMER`, avec l'avertissement que la page
-/// montre ; rien n'est ecrit. Avec, elle s'ecrit -- et la saisie telle que declaree est gardee d'abord
-/// (`garder_la_saisie_declaree`) : la correction que la DSN d'un mois suivant portera en part (`depart::corrections_dues`).
+/// montre ; rien n'est ecrit. Avec, elle s'ecrit ; revalide, l'engagement fait partir sa correction dans la DSN d'un
+/// mois suivant (`produire_regularisations::corrections_dues`).
 ///
 /// UNE SAISIE S'ECRIT A LA FOIS : la fenetre sert ses routes en parallele, et la page enregistre une seconde apres la
 /// derniere frappe, meme si l'enregistrement d'avant n'a pas fini. Deux ecritures du meme mois passent l'une apres
 /// l'autre, dans ce processus (`SAISIE_EN_COURS`).
-pub(crate) fn ecrire_saisie_confirmee(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
+pub(crate) fn ecrire_saisie_confirmee(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     static SAISIE_EN_COURS: std::sync::Mutex<()> = std::sync::Mutex::new(());
     let _une_a_la_fois = SAISIE_EN_COURS.lock().unwrap_or_else(|e| e.into_inner());
-    ecrire_saisie_seule(o, ctx, mois, brute, confirme)
+    ecrire_saisie_seule(ctx, mois, brute, confirme)
 }
 
 /// `ecrire_saisie_confirmee`, la seule ecriture en cours.
-fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
+fn ecrire_saisie_seule(ctx: &Contexte, mois: &str, brute: &Map<String, Value>, confirme: bool) -> R<PathBuf> {
     let mut donnees = brute.clone();
     donnees.insert("mois".into(), Value::String(mois.to_string()));
     let donnees = Value::Object(donnees);
     refuser_si_importe(ctx, mois)?;
     refuser_si_clos(ctx, mois)?;
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let declaree = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, mois)?;
     let a_confirmer = declaree.get("confirmer").is_some_and(vrai);
     refuser_si_avant_la_premiere_embauche(ctx, mois)?;
     // Le calcul valide la saisie : un nom de salarie ou un spectacle inconnu refuse, et rien n'est ecrit.
-    engagement::charger_donnees(ctx, &donnees).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &donnees, m)))?;
+    engagement::pour_l_ecran(ctx, &donnees).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &donnees, m)))?;
     if a_confirmer {
         // Ce qui change LA PAIE (`sans_bruit`) ; un mois sans saisie n'a rien de declare a changer.
         let actuelle = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(plain)?;
@@ -926,41 +924,15 @@ fn ecrire_saisie_seule(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, 
 
 // ----------------------------------------------------------------------- ajuster
 
-const TOURS: usize = 12;
-
 fn centimes(x: Decimal) -> Decimal {
     let mut r = x.round_dp(2);
     r.rescale(2);
     r
 }
 
-/// Un taux ou un total, tel que Python l'ecrit : `float(Decimal)`.
-fn flottant(x: Decimal) -> Value {
-    x.to_string().parse::<f64>().ok().and_then(serde_json::Number::from_f64).map_or(Value::Null, Value::Number)
-}
-
-/// `valeur not in (None, "")`.
+/// Une valeur saisie : ni absente, ni `null`, ni vide.
 fn rempli(v: Option<&Value>) -> bool {
     !matches!(v, None | Some(Value::Null)) && v.and_then(Value::as_str) != Some("")
-}
-
-/// `valeur in (None, "", 0)`.
-fn absent_ou_zero(v: Option<&Value>) -> bool {
-    !rempli(v) || v.is_some_and(|x| socle::valeur::nombre(x) == Some(0.0))
-}
-
-fn rubrique_de(ctx: &Contexte, ligne: &Value) -> Option<droit::catalogue::Rubrique> {
-    let code = match ligne.get("rubrique") {
-        None => "cachet",
-        Some(Value::String(s)) => s.as_str(),
-        Some(_) => return None,
-    };
-    droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).ok()
-}
-
-/// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.
-fn ligne_ajustable(ctx: &Contexte, ligne: &Value) -> bool {
-    rubrique_de(ctx, ligne).is_some_and(|r| r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && !absent_ou_zero(ligne.get("taux")))
 }
 
 fn lignes_de(e: &Value) -> Vec<Value> {
@@ -968,84 +940,6 @@ fn lignes_de(e: &Value) -> Vec<Value> {
         Some(Value::Array(a)) => a.clone(),
         _ => Vec::new(),
     }
-}
-
-fn taux_vide(l: &Value) -> bool {
-    matches!(l.get("taux"), Some(Value::Null)) || l.get("taux").and_then(Value::as_str) == Some("")
-}
-
-/// Une ligne de salaire SANS TAUX recoit un taux provisoire de 1 EUR.
-fn poser_taux_provisoires(ctx: &Contexte, data: &mut Value, rangs: &[usize]) -> R<()> {
-    for &i in rangs {
-        let e = &mut data["engagements"][i];
-        let lignes = lignes_de(e);
-        if rempli(e.get("salaire_mensuel")) || lignes.iter().any(|l| ligne_ajustable(ctx, l)) {
-            continue;
-        }
-        let mut sans_taux: Vec<(usize, String)> = Vec::new();
-        for (k, ligne) in lignes.iter().enumerate() {
-            let Some(r) = rubrique_de(ctx, ligne) else { continue };
-            if r.nature == "salaire" && r.saisie.iter().any(|s| s == "taux") && absent_ou_zero(ligne.get("taux")) && rempli(ligne.get("quantite")) && !absent_ou_zero(ligne.get("quantite")) {
-                sans_taux.push((k, r.libelle));
-            }
-        }
-        if sans_taux.len() > 1 {
-            let qui = e.get("salarie").filter(|v| vrai(v)).map_or_else(|| "cet engagement".to_string(), valeur_en_texte);
-            let noms: Vec<&str> = sans_taux.iter().map(|(_, l)| l.as_str()).collect();
-            return Err(refus(format!(
-                "{} : {} lignes de salaire sans taux ({}). Le montant vise ne dit pas comment le partager entre elles : saisir un taux \
-                 sur chacune, meme approximatif, et l'ajustement gardera leurs proportions.",
-                qui,
-                sans_taux.len(),
-                noms.join(", ")
-            )));
-        }
-        if let Some((k, _)) = sans_taux.first() {
-            e["lignes"][*k]["taux"] = json!(1.0);
-        }
-    }
-    // Les AUTRES blocs du mois repartent comme la page les enverrait d'ordinaire : sans leurs lignes incompletes.
-    let Some(Value::Array(tous)) = data.get_mut("engagements") else { return Ok(()) };
-    for (i, e) in tous.iter_mut().enumerate() {
-        let lignes = lignes_de(e);
-        if rangs.contains(&i) {
-            if let Some(Value::Array(ls)) = e.get_mut("lignes") {
-                for l in ls.iter_mut().filter(|l| taux_vide(l)) {
-                    l["taux"] = json!(0);
-                }
-            }
-        } else if lignes.iter().any(taux_vide) {
-            e["lignes"] = Value::Array(lignes.into_iter().filter(|l| !taux_vide(l)).collect());
-        }
-    }
-    Ok(())
-}
-
-/// `Decimal(str(x)) * facteur`, au centime, en flottant.
-fn mis_a_l_echelle(x: &Value, facteur: Decimal) -> R<Value> {
-    let a = dec(x).map_err(|m| erreur("InvalidOperation", m))?;
-    let p = a.checked_mul(facteur).ok_or_else(|| refus("Montant trop grand pour l'ajustement."))?;
-    Ok(flottant(centimes(p)))
-}
-
-/// L'engagement recopie, ses salaires multiplies -- et rien d'autre. Rend aussi s'il y avait quelque chose a multiplier.
-fn a_l_echelle(ctx: &Contexte, e: &Value, facteur: Decimal) -> R<(Value, bool)> {
-    let mut out = e.clone();
-    let mut touche = false;
-    if rempli(out.get("salaire_mensuel")) {
-        out["salaire_mensuel"] = mis_a_l_echelle(&out["salaire_mensuel"], facteur)?;
-        touche = true;
-    }
-    if let Some(Value::Array(lignes)) = out.get_mut("lignes") {
-        for l in lignes.iter_mut() {
-            if !ligne_ajustable(ctx, l) {
-                continue;
-            }
-            l["taux"] = mis_a_l_echelle(&l["taux"], facteur)?;
-            touche = true;
-        }
-    }
-    Ok((out, touche))
 }
 
 /// Ce qui a change, engagement par engagement.
@@ -1077,29 +971,16 @@ fn ce_qui_a_change(avant: &Value, apres: &Value, index: usize) -> Value {
     Value::Object(d)
 }
 
-fn somme(paies: &[Paie], rangs: &[usize], champ: &str) -> R<Decimal> {
-    let mut total = Decimal::new(0, 2);
-    for &i in rangs {
-        let p = paies.get(i).ok_or_else(|| plain("le calcul du mois n'a pas cette paie"))?;
-        total += match champ {
-            "net_a_payer" => p.net_a_payer,
-            "brut" => p.brut,
-            _ => p.cout_employeur,
-        };
-    }
-    Ok(total)
-}
-
 /// Le taux qu'il faudrait, pour que ces engagements coutent CE montant. N'ecrit rien.
 fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     let source = exiger(charge, "saisie")?;
     let engagements = exiger(charge, "engagements")?;
     let cible = texte_requis(charge, "cible")?;
     let montant = exiger(charge, "montant")?;
-    let champ = match cible {
-        "net" => "net_a_payer",
-        "brut" => "brut",
-        "cout" => "cout_employeur",
+    let cible_visee = match cible {
+        "net" => engagement::viser::Cible::Net,
+        "brut" => engagement::viser::Cible::Brut,
+        "cout" => engagement::viser::Cible::Cout,
         _ => return Err(refus(format!("Cible inconnue : {}. Les trois qui se visent sont brut, cout, net.", socle::fichiers::repr(cible)))),
     };
     let vise = centimes(dec(montant).map_err(|m| erreur("InvalidOperation", m))?);
@@ -1109,7 +990,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !source.is_object() {
         return Err(erreur("TypeError", "`saisie` : un objet est attendu"));
     }
-    let mut data = source.clone();
+    let data = source.clone();
     let mut rangs: Vec<i64> = Vec::new();
     for i in crate::etats::items(engagements)? {
         rangs.push(entier(&i)?);
@@ -1126,73 +1007,24 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
         )));
     }
     let rangs: Vec<usize> = rangs.into_iter().map(|i| i as usize).collect();
-    let origine = data.clone();
-    poser_taux_provisoires(ctx, &mut data, &rangs)?;
-
-    let essai = |facteur: Decimal| -> R<(Value, Vec<Paie>, Decimal)> {
-        let mut d = data.clone();
-        let mut touche = false;
-        for &i in &rangs {
-            let (e, t) = a_l_echelle(ctx, &d["engagements"][i], facteur)?;
-            d["engagements"][i] = e;
-            touche |= t;
-        }
-        if !touche {
-            return Err(refus(
-                "Rien a ajuster : cet engagement ne porte aucune ligne de salaire avec une quantite. Un defraiement, une prime ou un \
-                 acompte ne se recalcule pas depuis une enveloppe -- c'est un montant, pas un taux. Poser d'abord une ligne de paie \
-                 (cachet, service, heure, journee...) avec sa quantite ; le taux, lui, peut rester vide.",
-            ));
-        }
-        let paies = engagement::charger_donnees(ctx, &d).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &d, m)))?.paies;
-        let atteint = somme(&paies, &rangs, champ)?;
-        Ok((d, paies, atteint))
-    };
-
-    let (_, _, depart) = essai(Decimal::ONE)?;
-    if depart <= Decimal::ZERO {
-        return Err(refus(format!(
-            "Cet engagement paie {} EUR : il n'y a pas de taux a faire varier. Poser d'abord une quantite et un taux, puis viser le total.",
-            centimes(depart)
-        )));
-    }
-    // On ne divise pas, on approche : on garde le MEILLEUR essai, jamais le dernier ; a egale distance,
-    // celui qui NE DEPASSE PAS gagne.
-    let rang_essai = |atteint: Decimal| ((atteint - vise).abs(), atteint > vise);
-    let mut facteur = (vise / depart).round_dp(20);
-    let mut vus = vec![facteur];
-    let mut meilleur: Option<(Value, Vec<Paie>, Decimal, Decimal, usize)> = None;
-    for tour in 1..=TOURS {
-        let (d, paies, atteint) = essai(facteur)?;
-        if meilleur.as_ref().map_or(true, |m| rang_essai(atteint) < rang_essai(m.2)) {
-            meilleur = Some((d, paies, atteint, facteur, tour));
-        }
-        if atteint == vise || atteint <= Decimal::ZERO {
-            break;
-        }
-        let suivant = facteur.checked_mul(vise).and_then(|x| x.checked_div(atteint)).ok_or_else(|| refus("Ajustement impossible : montants trop grands."))?.round_dp(20);
-        if vus.contains(&suivant) {
-            break;
-        }
-        vus.push(suivant);
-        facteur = suivant;
-    }
-    let (d, paies, atteint, facteur, tours) = meilleur.expect("au moins un essai");
-
+    let v = engagement::viser::viser(ctx, &data, &rangs, cible_visee, vise).map_err(|r| match r {
+        engagement::viser::RefusVisee::Refus(m) => refus(m),
+        engagement::viser::RefusVisee::Calcul(m) => Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, &data, m)),
+    })?;
     // Les paies de ces engagements, telles que la page les montre.
     let mut vues = Vec::new();
     for &i in &rangs {
-        vues.push(crate::routes_ouverture::vue_paie(ctx, &paies[i], &d["engagements"][i], &d, false).map_err(Echec::from)?);
+        vues.push(crate::routes_ouverture::vue_paie(ctx, &v.paies[i], &v.saisie["engagements"][i], &v.saisie, false).map_err(Echec::from)?);
     }
-    let atteint = centimes(atteint);
-    let mut f = facteur.round_dp(6);
+    let atteint = centimes(v.atteint);
+    let mut f = v.facteur.round_dp(6);
     f.rescale(6);
     Ok(json!({
         "cible": cible,
-        "vise": vise.to_string(), "atteint": atteint.to_string(), "depart": centimes(depart).to_string(),
+        "vise": vise.to_string(), "atteint": atteint.to_string(), "depart": centimes(v.depart).to_string(),
         "ecart": (atteint - vise).to_string(),
-        "facteur": f.to_string(), "tours": tours,
-        "engagements": rangs.iter().map(|&i| ce_qui_a_change(&origine["engagements"][i], &d["engagements"][i], i)).collect::<Vec<_>>(),
+        "facteur": f.to_string(), "tours": v.tours,
+        "engagements": rangs.iter().map(|&i| ce_qui_a_change(&data["engagements"][i], &v.saisie["engagements"][i], i)).collect::<Vec<_>>(),
         "paies": vues,
     }))
 }

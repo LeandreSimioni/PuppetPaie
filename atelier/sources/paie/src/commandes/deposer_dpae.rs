@@ -94,19 +94,19 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Ok(1);
         }
     };
-    if contenu.is_empty() || contenu.len() % crate::dpae::LONGUEUR != 0 {
-        dire!("Ce fichier ne fait pas un multiple de {} octets : ce n'est pas un\nflux DPAE a plat. Rien n'est envoye.", crate::dpae::LONGUEUR);
+    if contenu.is_empty() || contenu.len() % declarations::dpae::LONGUEUR != 0 {
+        dire!("Ce fichier ne fait pas un multiple de {} octets : ce n'est pas un\nflux DPAE a plat. Rien n'est envoye.", declarations::dpae::LONGUEUR);
         return Ok(1);
     }
     let texte: String = contenu.iter().map(|&b| b as char).collect();
-    let enregistrements = crate::dpae::relire(&texte);
+    let enregistrements = declarations::dpae::relire(&texte);
     let champ = |e: &Vec<(&'static str, String)>, k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.clone()).unwrap_or_default();
 
     // ------------------------------------------------------------- relecture
     let nom_fichier = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     dire!("\n{} -- {} declaration(s), {} octets\n{}", nom_fichier, enregistrements.len(), contenu.len(), "-".repeat(66));
     let aujourdhui = cadre.aujourdhui;
-    let (mut hors_delai, mut trop_tot) = (0usize, 0usize);
+    let mut hors_delai = 0usize;
     for e in &enregistrements {
         let debut = match jour_de(&champ(e, "date_embauche"), "Date d'embauche") {
             Ok(j) => j,
@@ -120,9 +120,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         let etat = if reste < 0 {
             hors_delai += 1;
             "EMBAUCHE PASSEE - hors delai".to_string()
-        } else if reste > 8 {
-            trop_tot += 1;
-            format!("dans {} jours - trop tot pour declarer", reste)
         } else if reste > 0 {
             format!("dans {} jour(s)", reste)
         } else {
@@ -161,13 +158,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     if test && reel {
         dire!("\nARRET - --test et --reel s'excluent. Choisir l'un des deux.");
-        return Ok(2);
-    }
-    if trop_tot > 0 && !test {
-        dire!("\nARRET - {} embauche(s) a plus de 8 jours.", trop_tot);
-        dire!("La DPAE ne s'envoie que dans les 8 jours qui precedent l'embauche.");
-        dire!("Produire un fichier pour les seules dates proches, et deposer plus");
-        dire!("tard pour les autres.");
         return Ok(2);
     }
     // Les mois des embauches, AAAA-MM.
@@ -236,7 +226,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let contournement = args.texte("sans-repetition").unwrap_or("");
     let preuve = Preuve::default();
     let fait = match depot_acte::deposer_dpae(
-        &cadre.o,
         &cadre.ctx,
         &json!(chemin),
         reel,

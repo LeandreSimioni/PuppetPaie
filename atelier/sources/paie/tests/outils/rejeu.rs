@@ -109,7 +109,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
             "dsn" | "txt" | "csv" | "eml" => lignes(&octets.iter().map(|&o| o as char).collect::<String>(), &r),
             "pdf" => {
                 let (pages, _) = fabrique_pdf::lecture::texte(&p.to_string_lossy()).unwrap_or_else(|m| panic!("{} : {}", rel, m.0));
-                lignes(&paie::avenant::normaliser(&pages.join("\n")), &r)
+                lignes(&documents::avenant::normaliser(&pages.join("\n")), &r)
             }
             _ => json!({"empreinte": socle::fichiers::sha256_hex(&octets)}),
         };
@@ -119,7 +119,7 @@ pub fn sorties(racine: &Path, jour: &str) -> Value {
     let mut paies = Map::new();
     let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
     for mois in engagement::stock::mois_saisis(&racine).unwrap() {
-        let calcul = engagement::charger(&ctx, &mois)
+        let calcul = engagement::mois_pour_l_ecran(&ctx, &mois)
             .and_then(|s| s.paies.iter().map(|p| p.canon(&ctx)).collect::<Result<Vec<_>, _>>())
             .map_or_else(|m| json!({"refus": m}), |v| json!({"paies": v}));
         paies.insert(mois.to_string(), masquer(calcul, &r));

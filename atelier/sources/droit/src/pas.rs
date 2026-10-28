@@ -14,8 +14,8 @@ use socle::num::{dec_avec_echelle, eur, pct, sub, Decimal, Resultat};
 
 const FICHIER: &str = "pas.json";
 
-/// Un refus du module. `SansGrille` est `BaremeSansGrille`, que `des_paies`
-/// sait taire ; `Inconnu` est `PasInconnu`.
+/// Un refus du module. `SansGrille` est `BaremeSansGrille` (un bareme sans la grille de l'article 204 H : le prelevement
+/// ne se devine pas, le calcul refuse) ; `Inconnu` est `PasInconnu`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ErreurPas {
     SansGrille(String),

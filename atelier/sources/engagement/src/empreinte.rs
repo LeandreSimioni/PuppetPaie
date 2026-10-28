@@ -2,8 +2,8 @@
 //! fichier (baremes du socle et de la compagnie, catalogues livres, fiches, effectifs, imprevus, taux de prelevement a la
 //! source...), les fichiers absents, les dossiers parcourus, les fiches telles qu'elles valent a la date du calcul, le
 //! jour s'il le lit, la saisie de chaque mois qu'il lit (`stock::vue_du_mois`, la saisie, pas le fichier : ecrire la
-//! validation d'un engagement ne change rien a ce que les autres lisent) et les paies ecrites des mois valides qu'il lit
-//! (`paies <mois>`, `etats::paies_ecrites`). S'y ajoutent la marque du code qui calcule
+//! validation d'un engagement ne change rien a ce que les autres lisent) et les paies validees des mois qu'il lit
+//! (`paies <mois>`, `etats::paies_validees`). S'y ajoutent la marque du code qui calcule
 //! (`MOTEUR`) et les regles datees qui s'appliquent a la periode payee (`regles`).
 //!
 //! L'empreinte TIENT quand chacune de ses entrees vaut encore ce qu'elle valait (`tient`) : aucun calcul, une relecture
@@ -38,7 +38,7 @@ fn est_un_fichier_d_engagements(cle: &str) -> bool {
 }
 
 /// `f`, qui calcule depuis la saisie `data` d'un mois, et tout ce qu'il a lu.
-pub fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
+pub(crate) fn suivre<T>(ctx: &Contexte, data: &Value, f: impl FnOnce() -> Resultat<T>) -> Resultat<(T, BTreeMap<String, String>)> {
     fichiers::suivre(&ctx.racine, &dossier_du_code());
     if let Some(m) = data.get("mois").and_then(Value::as_str) {
         fichiers::noter_valeur(&stock::cle_de_saisie(m), stock::empreinte_de_saisie(data));
@@ -94,7 +94,7 @@ fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
         "aujourdhui" => droit::contexte::aujourdhui_sans_note().is_ok_and(|j| v == j.iso()),
         _ => {
             if let Some(mois) = k.strip_prefix("paies ") {
-                return crate::etats::empreinte_des_paies_ecrites(ctx, mois).is_some_and(|e| v == e);
+                return crate::etats::empreinte_des_paies_validees(ctx, mois).is_some_and(|e| v == e);
             }
             if let Some(mois) = k.strip_prefix("saisie ") {
                 return stock::vue_du_mois(racine, mois).ok().flatten().is_some_and(|vue| v == stock::empreinte_de_saisie(&vue));

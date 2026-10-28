@@ -527,7 +527,7 @@ chiffrée : on ne la lit pas.
 Norme NEODeS P26V01, puis P27V01 : la version se choisit **par fichier**
 (lot V4a, 10/10/2026), depuis `logiciel/donnees/norme-dsn-base.json` — le mois
 principal déclaré pour une mensuelle, le jour de constitution pour un
-signalement (`paie/src/norme.rs`). Cette règle de bascule est une **inférence**
+signalement (`declarations/src/norme.rs`). Cette règle de bascule est une **inférence**
 (`_inference` de la donnée) : le cahier technique ne la donne pas. Chaque
 version a ses tables d'usages et de formats ; `usages` et `formats` prennent
 celles de la version que le fichier porte (`S10.G00.00.006`), et le fichier en
@@ -540,8 +540,8 @@ sous la base 78 du `131` (type 23), à l'Urssaf (fiche net-entreprises 2556 ;
 `cotisation_cet_patronale` de la donnée). Le code APE de la fiche entreprise se
 saisit en NAF rév. 2 ou en NAF 2025 (`logiciel/donnees/naf-base.json`, relevé
 de l'INSEE) ; un fichier P27V01 refuse un code NAF rév. 2 et dit vers quels codes
-NAF 2025 il passe, sans choisir (`paie/src/naf.rs`).
-`paie/src/dsn.rs` émet les blocs dans l'ordre observé chez CoolPaie : le
+NAF 2025 il passe, sans choisir (`declarations/src/naf.rs`).
+`declarations/src/dsn.rs` émet les blocs dans l'ordre observé chez CoolPaie : le
 générateur Python dont il est le portage reproduisait juillet 2026 à la ligne
 près (997 lignes identiques). Il s'en écarte depuis, là où la relecture de la
 norme l'a corrigé (`prive/journal/RELECTURE-NORME-DSN.md`).
@@ -645,7 +645,7 @@ bulletin. Établi par trois dépôts de test le 15/09/2026 (ETAT.md §26.9).
 
 ### L'échéance de dépôt : le 5 ou le 15, reportée au jour ouvré, à midi
 
-Depuis le 15/10/2026, **un seul endroit** la donne : `paie/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
+Depuis le 15/10/2026, **un seul endroit** la donne : `declarations/src/echeance_dsn.rs` (`du_mois`, `de_la_compagnie`).
 Le jour est celui de R. 243-6, II (le 5 du mois suivant à partir de cinquante salariés quand la paie est faite dans le
 mois, le 15 sinon ; `Contexte::echeance_dsn` choisit selon l'effectif) ; R. 133-14, I le **reporte** : « Si le délai
 imparti pour effectuer la déclaration sociale nominative expire un jour férié ou non ouvré, il est prorogé jusqu'au jour
@@ -675,7 +675,7 @@ aucun report, et aucun texte déposé ne dit qu'un prélèvement se reporte.
 déclarer quelqu'un qui n'est pas encore immatriculé — une première embauche,
 un artiste étranger. En son absence, la norme exige le **numéro technique
 temporaire** `S21.G00.30.020` (CCH-12), et le moteur le fabrique :
-`sexe + SIREN + matricule`, jamais saisi (`paie/src/ntt.rs`).
+`sexe + SIREN + matricule`, jamais saisi (`declarations/src/ntt.rs`).
 
 | | |
 |---|---|
@@ -705,7 +705,7 @@ Le bordereau Urssaf d'une DSN (22.005, recopié en 20.005) est la somme de ses
 lignes 23, chacune valorisée au taux de la table des CTP de l'Urssaf pour la
 période (plafonné pour le qualifiant 921, déplafonné pour le 920, le taux AT
 arrondi à part, les réductions de format F en déduction), arrondie à l'euro
-ligne par ligne : `paie/src/bordereau.rs`, table
+ligne par ligne : `documents/src/bordereau.rs`, table
 `moteur/urssaf-codes-types-personnel.csv`.
 Rejouée sur les 75 DSN de CoolPaie, la règle en retrouve 74 au centime
 (octobre 2025 : 394 pour 393). Un code absent de la table fait refuser : le
@@ -975,7 +975,7 @@ un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — e
 - Le même module refuse une **adhésion à une organisation patronale** dont la
   couche n'est pas relevée (`par_organisation_patronale`) et un **second
   établissement** incomplet (adresse, taux AT/MP) ; complet, il a sa propre DSN
-  depuis le 25/09/2026 (`droit/src/contexte.rs`, `paie/src/dsn.rs`). Le contrôle est appelé dans
+  depuis le 25/09/2026 (`droit/src/contexte.rs`, `declarations/src/dsn.rs`). Le contrôle est appelé dans
   `Contexte._bareme_brut`, seul endroit que les deux fronts traversent.
 
 ### Le barème a deux axes, pas un
@@ -1043,8 +1043,7 @@ les compléments abattus 432 et 636 ne portent que le brut des **artistes**
 (`"statut": "artiste"`), et un technicien intermittent relève des compléments au
 taux plein 430 et 635 (`"statut": "technicien"`, depuis le 11/10/2026 : « Les
 techniciens ne sont pas concernés » par les taux réduits, page Urssaf déposée dans
-`atelier/reference/sources/urssaf-taux-reduits-artistes/` ; un fichier des organismes
-composé avant se relit ainsi sans être recomposé, `dsn::ctp_urssaf`). Une ligne de
+`atelier/reference/sources/urssaf-taux-reduits-artistes/`). Une ligne de
 `ctp_urssaf` peut dépendre de l'effectif (`effectif_au_moins`, `effectif_sous`, lus
 par `dsn::Seuils` dans `config/effectifs.json`) : le FNAL des artistes passe du 334
 plafonné au 316 « totalité » à cinquante salariés. L'assiette de la taxe d'apprentissage se
@@ -1196,10 +1195,10 @@ Le moteur en écrit quatre, dans trois modules :
 
 | `S20.G00.05.001` | message | écrit par |
 |---|---|---|
-| `04` | signalement d'arrêt de travail | `paie/src/signalement.rs` |
-| `05` | signalement de reprise suite à arrêt de travail | `paie/src/signalement.rs` |
-| `07` | **fin de contrat de travail unique** (FCTU) | `paie/src/fctu.rs` |
-| `08` | **amorçage des données variables** (SADV) | `paie/src/amorcage.rs` |
+| `04` | signalement d'arrêt de travail | `declarations/src/signalement.rs` |
+| `05` | signalement de reprise suite à arrêt de travail | `declarations/src/signalement.rs` |
+| `07` | **fin de contrat de travail unique** (FCTU) | `declarations/src/fctu.rs` |
+| `08` | **amorçage des données variables** (SADV) | `declarations/src/amorcage.rs` |
 
 **Trois modules et non un**, parce qu'ils ne portent pas la même chose. Les
 deux premiers ne portent pas de paie ; le FCTU ne porte que ça — il déclare le
@@ -1368,7 +1367,7 @@ arrêt.
 
 Enregistrements de 990 caractères, **saut de ligne compris** : 989 caractères
 puis `LF`, comme le dit le Format 120 (« 990 en incluant le saut de ligne »).
-Un enregistrement par contrat, encodage latin-1. Zones dans `paie/src/dpae.rs` :
+Un enregistrement par contrat, encodage latin-1. Zones dans `declarations/src/dpae.rs` :
 
 | Position | Contenu |
 |---|---|
@@ -1376,7 +1375,7 @@ Un enregistrement par contrat, encodage latin-1. Zones dans `paie/src/dpae.rs` :
 | 133-136 | `C_URSSAF`, code de l'Urssaf réceptrice (117 Île-de-France), lu dans `entreprise.json` → `code_urssaf` |
 | 283-315 | nom (32 c.) |
 | 315-347 | prénom (32 c.) |
-| 347-360 | NIR (13 c., sans la clé) — **facultatif** : à blanc, la DPAE vaut demande d'immatriculation (formalité `IMMA`, transmise à la CPAM). C'est par elle que le NIR arrive, et la DSN déclare l'individu sous son NTT en attendant (`paie/src/ntt.rs`) |
+| 347-360 | NIR (13 c., sans la clé) — **facultatif** : à blanc, la DPAE vaut demande d'immatriculation (formalité `IMMA`, transmise à la CPAM). C'est par elle que le NIR arrive, et la DSN déclare l'individu sous son NTT en attendant (`declarations/src/ntt.rs`) |
 | 360-368 | date de naissance `JJMMAAAA` |
 | 368-412 | lieu de naissance (44 c.) |
 | 412-420 | date d'embauche `JJMMAAAA` |
@@ -1410,7 +1409,7 @@ face : la DPAE d'un permanent est conforme au dessin et aux tests, pas à une
 réponse de l'Urssaf.
 
 **Ce que l'Urssaf répond** (onglet « Codes retour » du Format 120, tables dans
-`paie/src/dpae.rs`) : le bilan de conformité (nature 11, XML) porte un `<code>`
+`declarations/src/dpae.rs`) : le bilan de conformité (nature 11, XML) porte un `<code>`
 par anomalie, et le certificat de conformité (nature 41) est **notre
 enregistrement renvoyé** avec ses zones de retour remplies — `C_RET_AR_LOT`
 (76-77, le traitement du message), `R_DOSSIER` (425-429, la référence sous
@@ -1627,7 +1626,7 @@ seul mois d'avant. Chaque rappel porte l'état du mois — `a_saisir` (pas de
 fichier de paie : la DSN « néant » passe par l'écriture d'un mois vide),
 `a_produire` (saisi, jamais écrit), `a_deposer` (le fichier DSN, choisi par
 `fichiers_deposables`), `a_corriger` (bilan KO) — et `en_retard` passé
-l'échéance de dépôt (`paie/src/echeance_dsn.rs` : le 5 ou le 15 du mois suivant,
+l'échéance de dépôt (`declarations/src/echeance_dsn.rs` : le 5 ou le 15 du mois suivant,
 reporté au jour ouvré, à midi ; le rappel la rend dans `echeance_depot`). Puis, quand l'année d'avant n'est pas close et a des mois :
 la clôture (seulement si la DSN de décembre est au journal — sinon c'est son
 rappel qui parle), l'export compta (absent, ou plus vieux que la dernière

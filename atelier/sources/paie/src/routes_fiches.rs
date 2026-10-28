@@ -14,7 +14,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::champs;
+use declarations::champs;
 use droit::contexte::Contexte;
 use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_ecrite;
@@ -55,11 +55,11 @@ fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
 // ------------------------------------------------------- taxe-sur-les-salaires-regime
 
 /// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
-/// lui, celle de la compagnie. Rend la conclusion du moteur (`assujettissement::regime_taxe_sur_les_salaires`, CGI art.
+/// lui, celle de la compagnie. Rend la conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art.
 /// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien
 /// (ticket #216).
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = crate::assujettissement::CHAMP_TAXE_SUR_LES_SALAIRES;
+    let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.get(cle) {
         Some(v @ (Value::Object(_) | Value::Null)) => json!({ cle: v }),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
@@ -75,9 +75,9 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         },
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
-    let q = crate::assujettissement::question_franchise(bar.as_ref(), annee);
+    let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_ref(), annee);
     // La conclusion nomme les deux plafonds (ticket #245).
-    let r = crate::assujettissement::regime_taxe_sur_les_salaires(&ent, q.plafonds);
+    let r = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ent, q.plafonds);
     Ok(json!({
         "franchise": {
             "aide": q.aide,
@@ -270,7 +270,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
         return Ok(champs::faute_de_norme(c, s)?.is_some());
     }
     let Some(rubrique) = c.rubrique.as_deref().filter(|r| !r.is_empty()) else { return Ok(false) };
-    let format = crate::formats::format_de(rubrique)?;
+    let format = declarations::formats::format_de(rubrique)?;
     if format.as_object().map_or(true, |o| o.is_empty()) {
         return Ok(false);
     }
@@ -298,7 +298,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
 /// `champs._capitales` : sans accents, en capitales, espaces resserrees.
 fn capitales(v: &Value) -> String {
     let t: String = champs::sans_accents(&valeur_en_texte(v)).chars().flat_map(char::to_uppercase).collect();
-    t.split(champs::espace).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
+    t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
 /// `champs.deriver_personnes` : les formes declarees du signataire et du contact DSN ;
@@ -384,9 +384,9 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
     if nom == "entreprise" {
         // Le numero d'adherent Conges Spectacles s'ecrit dans sa forme (`conges_spectacles::forme_adherent`), avant d'etre
         // controle et enregistre : « 0123 450001-f » est la meme valeur que « 0123450001F ».
-        let cle = crate::conges_spectacles::CLE_ADHERENT;
+        let cle = documents::conges_spectacles::CLE_ADHERENT;
         if let Some(Value::String(brut)) = donnees.get(cle).cloned() {
-            let forme = crate::conges_spectacles::forme_adherent(&brut);
+            let forme = documents::conges_spectacles::forme_adherent(&brut);
             if forme != brut {
                 faits.insert(cle.into(), json!([brut, forme.clone()]));
                 donnees.insert(cle.into(), Value::String(forme));
@@ -395,7 +395,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
-    if nom == "salarie" && champs::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
+    if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
         let lettres: String = texte_ou_vide(donnees.get("nom")).chars().filter(|c| c.is_ascii_uppercase()).collect();
         if !lettres.is_empty() {
             let deux: String = lettres.chars().take(2).collect();
@@ -424,7 +424,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
 /// `urssaf.pour_departement` : l'organisme du territoire, ou "".
 fn urssaf_du_departement(dep: &str) -> R<String> {
     let table = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).map_err(|m| Echec::from(m))?;
-    let d = champs::strip(dep).to_uppercase();
+    let d = socle::texte::strip(dep).to_uppercase();
     let par = table.get("par_departement");
     let lire = |k: &str| par.and_then(|p| p.get(k)).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
     Ok(lire(&d).or_else(|| if d == "2A" || d == "2B" { lire("20") } else { None }).unwrap_or_default())
@@ -445,7 +445,7 @@ pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
     if nom == "salarie" {
-        let nir = champs::strip(&texte_ou_vide(donnees.get("nir"))).to_string();
+        let nir = socle::texte::strip(&texte_ou_vide(donnees.get("nir"))).to_string();
         let c: Vec<char> = nir.chars().collect();
         if c.len() == 13 && champs::tous_chiffres(&nir) && (c[0] == '1' || c[0] == '2') {
             let dep: String = c[5..7].iter().collect();
@@ -455,13 +455,13 @@ fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
                     trouvees.push(("pays_naissance", "FR".to_string()));
                 }
                 for (cle, valeur) in trouvees {
-                    if champs::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
+                    if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
                         propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
                     }
                 }
             }
         }
-    } else if nom == "entreprise" && champs::strip(&texte_ou_vide(donnees.get("code_urssaf"))).is_empty() {
+    } else if nom == "entreprise" && socle::texte::strip(&texte_ou_vide(donnees.get("code_urssaf"))).is_empty() {
         let code = urssaf_du_code_postal(donnees.get("code_postal"))?;
         if !code.is_empty() {
             propose.insert(
@@ -618,7 +618,7 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
                 continue;
             }
             fichiers += 1;
-            for l in crate::usages::lignes(&texte) {
+            for l in socle::texte::lignes_py(&texte) {
                 if let Some(reste) = l.strip_prefix(prefixe) {
                     let mp: Vec<char> = reste.trim_matches('\'').chars().collect();
                     if mp.len() == 8 {

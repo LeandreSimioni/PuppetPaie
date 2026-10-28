@@ -10,10 +10,4 @@
 mod outils;
 
 mod agirc_arrco;
-mod changements_individu;
-mod fctu_amorcage;
-mod nationalite;
-mod oeth_casc;
-mod options_sante;
 mod preavis;
-mod usages_formats_ntt;

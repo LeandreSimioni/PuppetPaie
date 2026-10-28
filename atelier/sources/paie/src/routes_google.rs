@@ -47,7 +47,7 @@ pub(crate) const FICHIER_JETON: &str = "google-jeton.bin";
 pub(crate) const DESCRIPTION: &str = "moteur de paie - jeton Google";
 
 /// `compagnies.MARQUEUR`.
-const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
+use socle::fichiers::MARQUEUR_COPIE;
 
 /// `urlopen(..., timeout=60)`.
 pub(crate) const DELAI: u64 = 60;
@@ -70,14 +70,6 @@ fn erreur_google(message: impl Into<String>) -> Echec {
     erreur("ErreurGoogle", message)
 }
 
-fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
-    let classe = match e.kind() {
-        std::io::ErrorKind::NotFound => "FileNotFoundError",
-        std::io::ErrorKind::PermissionDenied => "PermissionError",
-        _ => "OSError",
-    };
-    erreur(classe, format!("{} : {}", p.display(), e))
-}
 
 /// `AttributeError` de `x.get(...)` sur ce qui n'est pas un dict.
 #[track_caller]

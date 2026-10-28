@@ -21,7 +21,7 @@ use droit::contexte::Contexte;
 use crate::etats;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
-use socle::fichiers::{repr, vrai};
+use socle::fichiers::vrai;
 use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
@@ -30,11 +30,11 @@ type R<T> = Result<T, Echec>;
 pub const ROUTES: [&str; 3] = ["documents-liste", "bilan-repetition", "depot-apercu"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "documents-liste" => documents_liste(ctx, charge),
-        "bilan-repetition" => bilan_repetition(o, ctx, charge),
-        "depot-apercu" => depot_apercu(o, ctx, charge),
+        "bilan-repetition" => bilan_repetition(ctx, charge),
+        "depot-apercu" => depot_apercu(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
@@ -221,13 +221,13 @@ fn empreinte_du_fichier(chemin: &str) -> R<String> {
 
 // ------------------------------------------------------------------ bilan-repetition
 
-pub(crate) fn bilan_repetition(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+pub(crate) fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = cle(charge, "quoi")?;
     let fichier = cle(charge, "fichier")?;
     let chemin = resoudre(&ctx.racine, fichier)?;
     let empreinte = empreinte_du_fichier(&chemin)?;
     let nom = nom_du_chemin(&chemin);
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
     let Some(quoi) = quoi.as_str() else {
         return Err(Echec { classe: None, message: "demande illisible : il faut `quoi`".to_string() });
@@ -263,37 +263,13 @@ fn iso_depuis_jjmmaaaa(v: &str) -> String {
     format!("{}-{}-{}", s(4, 8), s(2, 4), s(0, 2))
 }
 
-/// `pas_avant_dpae` : huit jours avant l'embauche la plus lointaine.
-fn pas_avant_dpae(debuts: &[String]) -> R<String> {
-    let mut dates: Vec<&String> = debuts.iter().filter(|x| !x.is_empty()).collect();
-    dates.sort();
-    let Some(derniere) = dates.last() else { return Ok(String::new()) };
-    // `date.fromisoformat` : AAAA-MM-JJ, en chiffres ASCII.
-    let c: Vec<char> = derniere.chars().collect();
-    if c.len() != 10 || !c.iter().enumerate().all(|(i, x)| if i == 4 || i == 7 { *x == '-' } else { x.is_ascii_digit() }) {
-        return Err(erreur("ValueError", format!("date illisible : {}", repr(derniere))));
-    }
-    let n = |a: usize, b: usize| c[a..b].iter().collect::<String>().parse::<i32>().unwrap_or(0);
-    let (an, mo, jo) = (n(0, 4), n(5, 7), n(8, 10));
-    if !(1..=9999).contains(&an) {
-        return Err(erreur("ValueError", socle::date::annee_impossible(an)));
-    }
-    if !(1..=12).contains(&mo) {
-        return Err(erreur("ValueError", socle::date::mois_impossible(mo)));
-    }
-    let Some(j) = socle::date::Jour::nouveau(an, mo as u32, jo as u32) else {
-        return Err(erreur("ValueError", socle::date::jour_impossible(an, mo, jo)));
-    };
-    j.plus_jours(-8).map(|x| x.iso()).map_err(|m| erreur("OverflowError", m))
-}
-
 /// `apercu_depot_dpae` : ce que le fichier DPAE declare, enregistrement par enregistrement.
-pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fichier: &Value) -> R<Value> {
+pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let chemin = resoudre(&ctx.racine, fichier)?;
     let contenu = lire_octets(&chemin)?;
     let texte: String = contenu.iter().map(|&b| b as char).collect();
-    let enrs = crate::dpae::relire(&texte);
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let enrs = declarations::dpae::relire(&texte);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let lignes_journal = m.lignes()?;
     let faites = etats::embauches_par_depot(&lignes_journal)?;
     let mut par_nir: HashMap<String, (&String, &Value)> = HashMap::new();
@@ -349,14 +325,12 @@ pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fic
     let mois: std::collections::BTreeSet<String> =
         debuts.iter().filter(|d| !d.is_empty()).map(|d| d.chars().take(7).collect()).collect();
     let mois: Vec<String> = mois.into_iter().collect();
-    let pas_avant = pas_avant_dpae(&debuts)?;
     let empreinte = crate::journal::empreinte(&contenu);
     let nom_fichier = nom_du_chemin(&chemin);
     let deja_depose = etats::deja_depose(&lignes_journal, "dpae", &empreinte)?;
     let repetition = etats::repetition(&lignes_journal, "dpae", &empreinte, &nom_fichier)?;
     Ok(json!({
         "fichier": chemin, "nom": nom_fichier,
-        "pas_avant": pas_avant,
         "enregistrements": enrs.len(), "octets": contenu.len(),
         "reel": crate::depot::est_reel(&contenu),
         "indicateur": crate::depot::indicateur(&contenu),
@@ -368,11 +342,11 @@ pub(crate) fn apercu_depot_dpae(o: &HashMap<String, String>, ctx: &Contexte, fic
     }))
 }
 
-fn depot_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn depot_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = cle(charge, "quoi")?;
     let fichier = cle(charge, "fichier")?;
     if etats::est(quoi, "dsn") {
-        return crate::apercu_dsn::apercu_depot_dsn(o, ctx, fichier);
+        return crate::apercu_dsn::apercu_depot_dsn(ctx, fichier);
     }
-    apercu_depot_dpae(o, ctx, fichier)
+    apercu_depot_dpae(ctx, fichier)
 }

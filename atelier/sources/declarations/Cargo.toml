@@ -1,0 +1,20 @@
+[package]
+name = "declarations"
+version = "0.1.0"
+edition = "2021"
+description = "Les déclarations de PuppetPaie : DSN mensuelle et signalements, DPAE, régularisations, et ce qui les contrôle (norme, usages, formats) ; chacune se fabrique depuis l'engagement validé, aucune ne recalcule."
+license = "EUPL-1.2"
+publish = false
+
+[dependencies]
+socle = { path = "../socle" }
+droit = { path = "../droit" }
+engagement = { path = "../engagement" }
+# Le bordereau, le bulletin et le certificat Congés Spectacles que la DSN reprend.
+documents = { path = "../documents" }
+rust_decimal = { workspace = true }
+serde_json = { workspace = true }
+# Le .zip de la DPAE : deflate et CRC-32.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# La liste nominative du CASC-SVP : ecriture seule.
+rust_xlsxwriter = "0.90"

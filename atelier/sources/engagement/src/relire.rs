@@ -8,7 +8,7 @@ use std::cell::Cell;
 
 use serde_json::{json, Map, Value};
 
-use crate::calcul::{fiche_de_l_engagement, DeductionForfaitaire, LigneBrut, LigneCotisation, Paie, ReductionGenerale};
+use crate::calcul::{fiche_de_l_engagement, DeductionForfaitaire, LigneBrut, LigneCotisation, Paie, PlafondTempsPartiel, ReductionGenerale};
 use crate::{Avis, Engagement};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
@@ -21,14 +21,20 @@ pub fn ecrire(ctx: &Contexte, p: &Paie) -> Resultat<Value> {
     let mut v = p.canon(ctx)?;
     v["avertissements"] = avis(&p.avertissements);
     v["engagement"]["lignes"] = Value::Array(p.engagement.lignes.clone());
+    v[PLAFOND_TEMPS_PARTIEL] = json!(p.plafond_temps_partiel.code());
     if let Some(Value::Array(periodes)) = v.get_mut("periodes") {
         for (x, q) in periodes.iter_mut().zip(&p.periodes) {
             x["avertissements"] = avis(&q.avertissements);
             x["engagement"]["lignes"] = Value::Array(q.engagement.lignes.clone());
+            x[PLAFOND_TEMPS_PARTIEL] = json!(q.plafond_temps_partiel.code());
         }
     }
     Ok(v)
 }
+
+/// Dans une paie ecrite : le plafond d'un salarie a temps partiel tel que le calcul l'a applique
+/// (`calcul::PlafondTempsPartiel`), que la DSN declare en S21.G00.40.084.
+pub const PLAFOND_TEMPS_PARTIEL: &str = "plafond_temps_partiel";
 
 fn avis(v: &[Avis]) -> Value {
     Value::Array(v.iter().map(|a| json!({ "texte": a.texte, "info": a.info })).collect())
@@ -132,7 +138,9 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) 
         ctx.spectacle(eng.spectacle.as_deref().ok_or_else(|| socle::fichiers::absent("spectacle"))?)?
     };
     let smic = flottant(v.get("smic").ok_or("paie ecrite illisible : `smic`")?)?;
-    let mut p = Paie::nouveau(eng.clone(), sal, spectacle, decimal_de(v, "brut")?, decimal_de(v, "base_csg")?, decimal_de(v, "plafond")?, smic, decimal_de(v, "heures")?);
+    let tp = PlafondTempsPartiel::lire(v.get(PLAFOND_TEMPS_PARTIEL).and_then(Value::as_str).ok_or_else(|| format!("paie ecrite illisible : `{}`", PLAFOND_TEMPS_PARTIEL))?)?;
+    let mut paie = Paie::nouveau(eng.clone(), sal, spectacle, decimal_de(v, "brut")?, decimal_de(v, "base_csg")?, decimal_de(v, "plafond")?, smic, decimal_de(v, "heures")?, tp);
+    let p = paie.ecrire();
     p.total_pat = decimal_de(v, "total_pat")?;
     p.total_sal = decimal_de(v, "total_sal")?;
     p.net_a_payer = decimal_de(v, "net_a_payer")?;
@@ -223,7 +231,7 @@ fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) 
         let sienne = fiches.and_then(|f| f.get("periodes")).and_then(|p| p.get(n)).map(|f| json!({ "paie": f }));
         p.periodes.push(paie_lue(ctx, sub, x, sienne.as_ref())?);
     }
-    Ok(p)
+    Ok(paie)
 }
 
 /// Les paies ecrites d'une saisie de mois, dans son ordre : `ecrites[i]` est la forme ecrite de l'engagement `i`.

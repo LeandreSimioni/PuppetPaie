@@ -212,7 +212,7 @@ fn nombre(v: &Value, cle: &str, ou: &str) -> Resultat<Decimal> {
 }
 
 fn verifier_nir(nir: &str, ou: &str) -> Resultat<()> {
-    let ok = nir.len() == 15 && nir.is_ascii() && crate::champs::cle_nir(&nir[..13]).as_deref() == Some(&nir[13..]);
+    let ok = nir.len() == 15 && nir.is_ascii() && declarations::champs::cle_nir(&nir[..13]).as_deref() == Some(&nir[13..]);
     if ok {
         Ok(())
     } else {
@@ -430,7 +430,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         texte(&e, cle, "entreprise")?;
     }
     let siret = texte(&e, "siret", "entreprise")?;
-    if siret.len() != 14 || !crate::champs::luhn(&siret) {
+    if siret.len() != 14 || !declarations::champs::luhn(&siret) {
         return Err(format!("entreprise : le Siret {} n'a pas quatorze chiffres ou sa clé de Luhn est fausse", siret));
     }
     let conv = e.get("convention").ok_or("entreprise : `convention` manque ({\"idcc\": …, \"libelle\": …})")?;

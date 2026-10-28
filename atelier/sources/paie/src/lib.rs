@@ -1,44 +1,26 @@
-//! Le moteur de PuppetPaie au-dessus du socle et du droit (`socle`, `droit`).
-//!
-//! Le chemin, de bout en bout : les engagements (`engagements/AAAA-MM.json`) -> `engagement` (les contrats, et leurs
-//! refus) -> `calcul` (la paie, au centime) -> `bulletin` (la description) -> la fabrique (`fabrique-pdf`, le PDF) ;
-//! et, depuis les paies, la DSN, la DPAE, les envois.
+//! Le moteur de PuppetPaie au-dessus des documents et des declarations (`documents`, `declarations`) : la ligne de
+//! commande `paie`, les routes de l'interface, les envois et leur journal, les retours des organismes, la compagnie,
+//! l'import et l'atelier.
 //!
 //! Les fichiers de donnees se lisent en `serde_json::Value` : une cle inconnue survit, rien a migrer.
 
 pub mod administrateur;
-pub mod aer;
 pub mod aer_fictive;
 #[cfg(feature = "atelier")]
 pub mod atelier;
-pub mod amorcage;
 pub mod amorcage_demande;
 pub mod apercu_dsn;
 pub mod archivage;
-pub mod assujettissement;
-pub mod avenant;
-pub mod bordereau;
 pub mod bridage;
-pub mod bulletin;
-pub mod changements_individu;
-pub mod casc;
-pub mod changements_contrat;
-pub mod champs;
 pub mod coffre;
 pub mod commandes;
 pub mod courriel;
 pub mod courriel_lecture;
 pub mod coffre_verifier;
-pub mod conges_spectacles;
-pub mod contrat;
 pub mod conseils;
 pub mod demande;
 pub mod depot;
-pub mod demarrage;
-pub mod dpae;
 pub mod drive;
-pub mod dsn;
-pub mod echeance_dsn;
 pub mod diagnostic;
 pub mod editeur;
 pub mod entrepot_dila;
@@ -48,31 +30,19 @@ pub mod envois_signature;
 pub mod etat_garde;
 pub mod etats;
 pub mod extraire;
-pub mod fabrique;
-pub mod fiche_questionnaire;
-pub mod fiche_recapitulative;
-pub mod fctu;
 pub mod filet;
 pub mod generer_tables;
 pub mod google_autorisation;
 pub mod guet;
 pub mod horloge;
-pub mod formats;
 pub mod interface;
 pub mod journal;
 pub mod kali;
 pub mod maj;
 pub mod mois_importe;
-pub mod naf;
-pub mod norme;
-pub mod ntt;
-pub mod csa;
 pub mod obligations;
-pub mod oeth;
-pub mod ordres_paiement;
 pub mod organismes;
 pub mod ordre_signalements;
-pub mod prelevement;
 pub mod problemes;
 pub mod retours;
 pub mod routes;
@@ -99,7 +69,6 @@ pub mod routes_ecritures;
 pub mod routes_ecritures_g2;
 pub mod routes_imprevus;
 pub mod routes_ecritures_g3;
-pub mod ecrire_documents;
 pub mod depot_acte;
 pub mod marques_depot;
 pub mod ouverture;
@@ -110,17 +79,9 @@ pub mod releve_signatures;
 pub mod routes_actes_h1;
 pub mod routes_actes_h2;
 pub mod depart;
-pub mod produire_regularisations;
 pub mod routes_ecritures_g4;
-pub mod tableaux_export;
-pub mod etats_paie;
-pub mod etats_organismes;
-pub mod etats_personnel;
-pub mod etats_compta;
 pub mod reprise_journal;
 pub mod simulation_courriels;
-pub mod casc_regularisation;
-pub mod versement_declare;
 pub mod exercice_ecrit;
 pub mod importation_ecrite;
 pub mod importation_nature;
@@ -141,10 +102,8 @@ pub mod scenario;
 pub mod restauration;
 pub mod signature_courriel;
 pub mod service;
-pub mod signalement;
 pub mod sources;
 pub mod tables_journal;
 pub mod tables_retours;
-pub mod usages;
 pub mod verifier_avant_commit;
 pub mod transport;

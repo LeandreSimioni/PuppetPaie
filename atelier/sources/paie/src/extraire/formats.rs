@@ -47,14 +47,14 @@ use super::{date_du_releve, en_transcription, nom_de, sha256, Releve, Transcript
 use socle::date::Jour;
 use socle::lecture_xlsx::{self, Cellule};
 use socle::num::Resultat;
-use crate::usages::{espace, strip};
+use socle::texte::{blanc as espace, strip};
 
 /// Une expression ecartee : (rubrique, expression).
 type Ecartee = (String, String);
 
 /// L'expression est-elle de celles que le moteur sait compiler ?
 fn compile(expression: &str) -> bool {
-    crate::formats::Regex::compiler(expression).is_ok()
+    declarations::formats::Regex::compiler(expression).is_ok()
 }
 
 /// Les groupes de `CSL\s*\d*\s*:\s*(.*?)(?=\n[ \t]*\n)` (drapeau `S` : `.` prend aussi le saut de ligne), cherches de

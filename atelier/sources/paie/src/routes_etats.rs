@@ -45,16 +45,16 @@ pub const ROUTES: [&str; 8] =
 const CONTRAT_RECU: &str = "contrat-recu";
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "identite" => Ok(json!({"identite": identite(ctx, &ctx.gabarits())?})),
-        "exercices" => exercices_route(o, ctx),
+        "exercices" => exercices_route(ctx),
         "coffre-etat" => coffre_etat(ctx),
         "filet-etat" => etat_filet(&ctx.racine),
         "importation-etat" => etat_importation(&ctx.racine),
-        "maj-etat" => version(o, ctx),
+        "maj-etat" => version(ctx),
         "signalements" => signalements_route(&ctx.racine),
-        "pieces-parties" => pieces_parties(o, ctx, charge),
+        "pieces-parties" => pieces_parties(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
@@ -142,19 +142,19 @@ fn exercices_clos(racine: &Path) -> R<Map<String, Value>> {
 }
 
 /// La route `exercices` : `{"exercices": etat_exercices, "dossier": ...}`.
-fn exercices_route(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
-    let liste = etat_exercices(o, ctx)?;
+fn exercices_route(ctx: &Contexte) -> R<Value> {
+    let liste = etat_exercices(ctx)?;
     Ok(json!({"exercices": liste, "dossier": ctx.racine.join("sorties").join("exercices").display().to_string()}))
 }
 
 /// `etat_exercices` : chaque annee connue du dossier -- ses mois, sa cloture,
 /// son export.
-fn etat_exercices(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
+fn etat_exercices(ctx: &Contexte) -> R<Value> {
     let clos = exercices_clos(&ctx.racine)?;
     let mois_tous: Vec<String> = mois_connus(&ctx.racine).into_iter().map(|(m, _)| m).collect();
     let mut annees: BTreeSet<String> = mois_tous.iter().map(|m| m.chars().take(4).collect()).collect();
     annees.extend(clos.keys().cloned());
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for a in annees.iter().rev() {
         let mut mois: Vec<&String> = mois_tous.iter().filter(|x| x.starts_with(a.as_str())).collect();
@@ -544,8 +544,8 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
 /// `maj.mois_saisis_non_deposes` : les mois qui montrent au
 /// moins un engagement et dont aucune DSN reelle n'est acceptee (ou dont la
 /// derniere est refusee).
-pub(crate) fn mois_saisis_non_deposes(o: &HashMap<String, String>, ctx: &Contexte) -> R<Vec<Value>> {
-    let mut m = Moteur::nouveau(o, ctx);
+pub(crate) fn mois_saisis_non_deposes(ctx: &Contexte) -> R<Vec<Value>> {
+    let mut m = Moteur::nouveau(ctx);
     let mut out = Vec::new();
     for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
         let Some(d) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? else {
@@ -564,7 +564,7 @@ pub(crate) fn mois_saisis_non_deposes(o: &HashMap<String, String>, ctx: &Context
 
 /// `operations_ouverture.version` : la version du logiciel, ce qui est pret, ce
 /// qui est configure. Ne va voir aucun depot.
-pub(crate) fn version(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
+pub(crate) fn version(ctx: &Contexte) -> R<Value> {
     let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     // La mise a jour est celle de l'INSTALLATION (lot U1) : son reglage (`maj::reglage`), sa version prete.
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
@@ -578,7 +578,7 @@ pub(crate) fn version(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let attend: Vec<Value> = match &prete {
         _ if crate::interface::compagnies::est_copie(&ctx.racine) => Vec::new(),
         Some(pr) if vrai(get(pr, "malgre_calcul")?) => Vec::new(),
-        Some(pr) if vrai(get(pr, "calcul")?) => crate::maj::mois_qui_retiennent_la_compagnie(o, ctx)?,
+        Some(pr) if vrai(get(pr, "calcul")?) => crate::maj::mois_qui_retiennent_la_compagnie(ctx)?,
         _ => Vec::new(),
     };
     let avant = if code.join(".avant").join("donnees").is_dir() { json!(courante(&code.join(".avant"))?) } else { Value::Null };
@@ -642,12 +642,12 @@ fn est_cette_paie(c: &Value, salarie: &Value, debut: &Value) -> R<bool> {
 /// `pieces_parties` : les FICHIERS partis pour une paie -- la DPAE deposee, le
 /// contrat envoye a la signature, le contrat revenu signe et la preuve de la
 /// signature. Lu au journal ; rien ne part.
-fn pieces_parties(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn pieces_parties(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = |k: &str| charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
     let salarie = cle("salarie")?;
     let debut = cle("debut")?;
     let racine = ctx.racine.as_path();
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
 
     let mut dpae = Vec::new();

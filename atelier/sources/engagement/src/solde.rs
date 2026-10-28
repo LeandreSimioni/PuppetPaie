@@ -45,7 +45,7 @@ fn decimal(v: &Value) -> Resultat<Decimal> {
     dec(v)
 }
 
-/// `max(a, b)` de Python : le premier a egalite.
+/// Le plus grand de `a` et `b` : `a` a egalite.
 fn max_py(a: Decimal, b: Decimal) -> Decimal {
     if b > a {
         b
@@ -54,7 +54,7 @@ fn max_py(a: Decimal, b: Decimal) -> Decimal {
     }
 }
 
-/// `min(a, b)` de Python : le premier a egalite.
+/// Le plus petit de `a` et `b` : `a` a egalite.
 fn min_py(a: Decimal, b: Decimal) -> Decimal {
     if b < a {
         b
@@ -124,7 +124,7 @@ pub struct Preavis {
     pub pourquoi: Option<String>,
 }
 
-pub fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
+pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: Option<&str>) -> Resultat<Preavis> {
     let idcc = idcc(ctx);
     let cdd = !nature_de(e.get("nature"))?.duree_indeterminee;
     let legal = permanents::preavis_mois(anciennete, motif, cdd)?;
@@ -216,7 +216,7 @@ pub fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, motif: O
 
 /// Les lignes du dernier bulletin : conges non pris, precarite, preavis,
 /// indemnite de rupture. `deja` : les lignes de CE mois deja construites.
-pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value]) -> Resultat<(Vec<Value>, Vec<Avis>)> {
+pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value]) -> Resultat<(Vec<Value>, Vec<Avis>)> {
     let nat = nature_de(e.get("nature"))?;
     let mut stc = Solde::default();
     let Some(fin) = e.get("fin").filter(|x| vrai(x)) else {
@@ -247,7 +247,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
         let entame = min_py(pris_ce_mois, cpt.report_restant());
         let mut cpt2 = cpt.clone();
         cpt2.reports = sub(cpt.reports, entame);
-        let ind = indemnite_des_jours(ctx, &cpt2, solde, maintien)?;
+        let ind = indemnite_des_jours(&cpt2, solde, maintien)?;
         stc.lignes.push(json!({
             "rubrique": "indemnite_compensatrice_conges",
             "quantite": flot(solde),
@@ -399,13 +399,13 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
         }
     }
 
-    // --- le delai de prevenance d'une fin d'essai a l'initiative de l'employeur (L1221-25, lot P2)
+    // --- le delai de prevenance d'une fin d'essai a l'initiative de l'employeur (L1221-25)
     delai_de_prevenance(e, &fin, salaire, motif, &nat, &numero, &mut stc)?;
 
     // --- l'indemnite de rupture, et laquelle depend du motif
     indemnite_de_rupture(ctx, e, mois, anciennete, motif, &nat, &mut stc)?;
 
-    // --- le type de preavis que le signalement declarera (S21.G00.63.001) et ce que ce solde verse (lot P2) : le
+    // --- le type de preavis que le signalement declarera (S21.G00.63.001) et ce que ce solde verse : le
     // signalement refuse un desaccord (`fctu::generer`) ; le solde le dit des la saisie.
     if let Some(type_preavis) = e.get("preavis").and_then(|p| p.get("type")).filter(|t| vrai(t)).map(t) {
         let codes = droit::preavis::codes_52_de_l_indemnite_de_preavis()?;

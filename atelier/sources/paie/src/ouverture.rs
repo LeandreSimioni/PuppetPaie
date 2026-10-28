@@ -53,7 +53,7 @@ use crate::sauvegarde::{self, Sauvegarde};
 pub const ROUTES: [&str; 2] = ["ouverture", "ouverture-derniere"];
 
 /// `compagnies.MARQUEUR`.
-const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
+use socle::fichiers::MARQUEUR_COPIE;
 
 /// La trace de la derniere ouverture : `config/.ouverture.json`.
 const TRACE: &str = ".ouverture.json";
@@ -290,9 +290,9 @@ impl Ouverture {
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
 /// - `ouverture-derniere` : la trace de la derniere ouverture (`config/.ouverture.json`), `{}` si elle manque ou ne se lit
 ///   pas. Sans reseau.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "ouverture" => Ok(ouverture(o, ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json()),
+        "ouverture" => Ok(ouverture(ctx, &Options::de_la_charge(charge), Clients::default(), None).en_json()),
         "ouverture-derniere" => Ok(derniere_ouverture(ctx)),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -544,7 +544,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
 ///
 /// LA COMPAGNIE FICTIVE : l'horloge d'abord, les retours des depots joues, les signatures et les fiches qui repondent, le filet,
 /// et rien d'autre (ni coffre, ni reseau, ni sauvegarde).
-pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut apres_releve: Option<&mut dyn FnMut()>) -> Ouverture {
+pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut apres_releve: Option<&mut dyn FnMut()>) -> Ouverture {
     let debut = std::time::Instant::now();
     let mut r = Ouverture { quand: quand_maintenant(), ..Ouverture::default() };
     let mut sauvegarder = opt.sauvegarder;
@@ -653,7 +653,7 @@ pub fn ouverture(o: &HashMap<String, String>, ctx: &Contexte, opt: &Options, mut
     // lit a jour. Le test ne declare rien -- la veille ne DEPOSE toujours rien de reel.
     if opt.filet {
         dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
-        match crate::routes_actes_h2::filet_preparer_avec(o, ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
+        match crate::routes_actes_h2::filet_preparer_avec(ctx, &json!({"qui": "veille"}), clients.depot_dpae.as_mut()) {
             Ok(f) => {
                 r.incidents.extend(f.get("incidents").and_then(Value::as_array).into_iter().flatten().map(valeur_en_texte));
                 r.filet = Some(f);

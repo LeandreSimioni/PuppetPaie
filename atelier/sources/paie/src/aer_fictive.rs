@@ -67,12 +67,12 @@ struct Complement {
 }
 
 fn complements(octets: &[u8]) -> HashMap<String, Complement> {
-    let texte = crate::apercu_dsn::texte_latin1(octets);
+    let texte = socle::texte::texte_latin1(octets);
     let mut out: HashMap<String, Complement> = HashMap::new();
     let mut nir = String::new();
     let mut contrat = String::new();
     let mut en_attente: HashMap<String, String> = HashMap::new();
-    for ligne in crate::apercu_dsn::lignes_py(&texte) {
+    for ligne in socle::texte::lignes_py(&texte) {
         let Some((k, v)) = ligne.split_once(',') else { continue };
         let v = v.trim().trim_matches('\'').to_string();
         let (bloc, champ) = (k.get(..10).unwrap_or(""), k.get(11..).unwrap_or(""));
@@ -503,7 +503,7 @@ fn attestation(ent: &Value, ind: &Individu, plus: &Complement, periodes: &[&Peri
         "titre": format!("Attestation employeur annexes 8 et 10 (compagnie fictive) — {} {}", ind.nom, ind.prenoms),
         "documents": [{"blocs": p1}, {"blocs": p2}, {"blocs": p3}]
     });
-    let dessin = crate::fabrique::fabriquer_octets(&description)?;
+    let dessin = documents::fabrique::fabriquer_octets(&description)?;
     let champs = json!({"format": fabrique_pdf::FORMAT, "champs": f.0});
     fabrique_pdf::formulaire::ajouter_champs(&dessin, &champs.to_string()).map_err(|r| r.0.replace('\n', " "))
 }
@@ -535,9 +535,9 @@ pub(crate) fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) ->
     let individus = lire_recap(dsn)?;
     let plus = complements(dsn);
     // Le type et l'ordre de la declaration (S20.G00.05.002 et .004) : 03 et 05 annulent et remplacent.
-    let texte = crate::apercu_dsn::texte_latin1(dsn);
+    let texte = socle::texte::texte_latin1(dsn);
     let rubrique = |r: &str| {
-        crate::apercu_dsn::lignes_py(&texte)
+        socle::texte::lignes_py(&texte)
             .into_iter()
             .find_map(|l| l.strip_prefix(r).and_then(|v| v.strip_prefix(',')).map(|v| v.trim().trim_matches('\'').to_string()))
             .unwrap_or_default()
