@@ -4765,7 +4765,7 @@ certificat de conformite du depot precedent.",
             let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
             f.add_v(rub, &v)?;
         }
-        // L'identite DECLAREE (vague 3d), relue dans la derniere DSN deposee qui le porte. Declare sans NIR, sous un NTT :
+        // L'identite DECLAREE, relue dans la derniere paie declaree qui le porte. Declare sans NIR, sous un NTT :
         // la premiere DSN qui porte son NIR porte aussi ce NTT, quel que soit le mois ou le NIR est arrive (fiche N4).
         let declaree = declarations.derniere(&ident, &brute)?;
         let ntt_declare = declaree.as_ref().filter(|d| d.nir.is_empty()).map(|d| d.ntt.as_str());
