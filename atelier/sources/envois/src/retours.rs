@@ -1,4 +1,4 @@
-//! La lecture des retours DSN (`moteur/retours.py`) : ce que les organismes
+//! La lecture des retours DSN : ce que les organismes
 //! repondent apres un depot.
 //!
 //! Des octets ou du XML en entree, des valeurs JSON en sortie : les bilans de
@@ -7,11 +7,10 @@
 //! nature 46 (une archive .zip, lue ici a la main), les fiches de
 //! parametrage des organismes complementaires.
 //!
-//! Le XML se lit comme ElementTree : un arbre d'elements dont le texte est
+//! Le XML se lit en arbre d'elements dont le texte est
 //! celui d'avant le premier enfant (commentaires et instructions ignores), les
 //! balises et les attributs a espace de noms ecrits `{uri}nom`. Un XML qui ne se
-//! lit pas est une `ParseError` (la phrase est celle de `roxmltree`, pas celle
-//! d'expat). Le Python reste a ses portes : `retours.py` appelle `paie retours`.
+//! lit pas est une `ParseError` (la phrase est celle de `roxmltree`).
 
 use serde_json::{json, Map, Value};
 
@@ -85,14 +84,14 @@ pub fn libelle_nature(code: &str) -> String {
     }
 }
 
-// ------------------------------------------------------ le texte, a la Python
+// ------------------------------------------------------ le texte
 
 /// `str.strip()`.
 fn nettoye(s: &str) -> &str {
     s.trim_matches(blanc)
 }
 
-/// `\d` d'une expression reguliere de Python sur du texte : un chiffre decimal Unicode.
+/// Un chiffre decimal Unicode (le `\d` d'une expression reguliere sur du texte).
 pub fn est_chiffre(c: char) -> bool {
     dans(DECIMAUX, c)
 }
@@ -113,7 +112,7 @@ fn texte_ou_null(t: &Option<String>) -> Value {
     t.as_ref().map(|s| Value::String(s.clone())).unwrap_or(Value::Null)
 }
 
-/// Les valeurs JSON que Python tient pour fausses.
+/// Les valeurs JSON tenues pour fausses : `null`, `false`, `0`, `""`, `[]`, `{}`.
 fn faux(v: &Value) -> bool {
     match v {
         Value::Null => true,
@@ -125,7 +124,7 @@ fn faux(v: &Value) -> bool {
     }
 }
 
-/// Le nom de type d'une valeur, tel que Python l'ecrit dans ses refus.
+/// Le nom de type d'une valeur, tel que les refus l'ecrivent (`NoneType`, `str`, `list`, `dict`...).
 fn type_py(v: &Value) -> &'static str {
     match v {
         Value::Null => "NoneType",
@@ -671,12 +670,12 @@ enum Codage {
     Cp1252,
     /// `UTF-16` (`None`), `UTF-16LE` (`Some(true)`), `UTF-16BE` (`Some(false)`).
     Utf16(Option<bool>),
-    /// Un nom que Python connait mais qui n'est pas sur 256 caracteres (multi-octets) :
-    /// `pyexpat` leve une `ValueError`.
+    /// Un nom d'encodage connu mais qui n'est pas sur 256 caracteres (multi-octets) : refuse
+    /// (`ValueError`).
     Refuse,
     /// Une autre table sur 256 caracteres, que ce moteur ne porte pas : `ParseError`.
     Autre,
-    /// Un nom que Python ne connait pas : `LookupError`.
+    /// Un nom d'encodage inconnu : `LookupError`.
     Introuvable,
 }
 
@@ -891,7 +890,7 @@ fn parse_bilan_depot_lu(e: &Entree) -> Resultat<Value> {
 /// une par `declaration` : `nature`, `type`, `ordre` (S20.G00.05.001, .002, .004), `siren`, `nic` (d'affectation),
 /// `etat`, `essai_reel` (de l'envoi : 01 essai, 02 reel) et les `codes` de ses anomalies. C'est TOUT ce que la plate-forme
 /// dit d'une declaration : ni salarie, ni contrat, ni date d'evenement (schema des bilans `v01r08`, ceux qu'elle rend ;
-/// specification VT2.2, `atelier/reference/sources/gip-mds-api-dsn/` ; PASSATION-O1, point 1). Un XML illisible, ou qui
+/// specification VT2.2, `atelier/reference/sources/gip-mds-api-dsn/`). Un XML illisible, ou qui
 /// n'est pas un rapport de depot, n'en identifie aucune.
 pub fn declarations_du_bilan(o: &[u8]) -> Vec<Value> {
     let Ok(arbre) = lire_octets(o) else { return Vec::new() };
@@ -1037,7 +1036,7 @@ fn attribut_inconnu(v: &Value) -> Echec {
     echec("AttributeError", socle::fichiers::attendu("un objet", type_py(v)))
 }
 
-/// `d.get(cle, d)` puis `.get(...)` : Python refuse un non-dictionnaire.
+/// `d.get(cle, d)` puis `.get(...)` : un non-dictionnaire est refuse.
 fn lire_cle<'a>(v: &'a Value, cle: &str) -> Resultat<Option<&'a Value>> {
     match v {
         Value::Object(m) => Ok(m.get(cle)),
@@ -1046,7 +1045,7 @@ fn lire_cle<'a>(v: &'a Value, cle: &str) -> Resultat<Option<&'a Value>> {
 }
 
 /// `x` si c'est un dictionnaire, la liste de ses elements si c'est une liste ; ce
-/// qu'un `for` de Python lit sinon.
+/// qu'une boucle lit sinon.
 fn elements(v: &Value) -> Resultat<Vec<Value>> {
     match v {
         Value::Array(a) => Ok(a.clone()),
@@ -1415,7 +1414,7 @@ pub fn releves_vers_salaries(releves: &[Value], nirs: &[Value]) -> Value {
 /// XSD, enumeration `139` en R1.3.9, `140` en R1.4.0 ; `atelier/reference/sources/fpoc-format/fpoc-r1.3.9.xsd`,
 /// `fpoc-r1.4.0.xsd`). La 1.4.0 ajoute un plancher et un plafond facultatifs aux bases et montants specifiques
 /// (`BasePlancher`, `BasePlafond`) et admet une condition tarifaire seule (specification R1.4.0, onglet Versions ;
-/// `fpoc-specification-r1.4.0-20260721.txt` l. 49-75). Une autre valeur se lit comme avant, sans format nomme.
+/// `fpoc-specification-r1.4.0-20260721.txt` l. 49-75). Une autre valeur se lit sans format nomme.
 const FORMATS_FICHE: [(&str, &str); 2] = [("139", "1.3.9"), ("140", "1.4.0")];
 
 const COMPTEURS_PAR_TYPE: &[&str] = &["S21.G00.70.008", "S21.G00.70.010", "S21.G00.70.011"];
@@ -1568,7 +1567,7 @@ fn nom_zip(o: &[u8], drapeaux: usize) -> Resultat<String> {
     }
 }
 
-/// `repr()` d'un `str` Python (les cas que les noms d'archive rencontrent).
+/// Un texte cite entre guillemets (les cas que les noms d'archive rencontrent).
 fn repr_py(s: &str) -> String {
     let guill = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
     let mut r = String::from(guill);
@@ -2013,7 +2012,7 @@ fn operation(d: &Value) -> Resultat<Value> {
             m.insert("natures".into(), Value::Object(NATURES.iter().map(|(c, l)| ((*c).to_string(), json!(l))).collect()));
         }
         "constantes" => {
-            // Ce que `retours.py` garde en constantes : un test Python verifie qu'elles sont celles-ci.
+            // Les constantes de la lecture des retours.
             for (k, v) in [
                 ("NATURE_TAUX_PAS", NATURE_TAUX_PAS),
                 ("NATURE_TAUX_ATMP", NATURE_TAUX_ATMP),

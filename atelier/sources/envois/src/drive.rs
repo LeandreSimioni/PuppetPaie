@@ -34,8 +34,7 @@ pub const DOSSIER_DRIVE: &str = "application/vnd.google-apps.folder";
 /// `urlopen(..., timeout=120)` des appels Drive.
 const DELAI_APPEL: u64 = 120;
 
-/// LES NOUVELLES TENTATIVES (tickets #231 et #232, 20/10/2026 : un « HTTP 500 : Internal Error » de Google montait tel quel
-/// dans le bandeau, et le passage suivant passait). Google le dit pour l'API Drive
+/// LES NOUVELLES TENTATIVES (un « HTTP 500 : Internal Error » passager ne doit pas remonter a la personne). Google le dit pour l'API Drive
 /// (`atelier/reference/sources/google-drive-api/`, LISEZ-MOI.md) : sur 500, 502, 503, 504 et 429, « use exponential backoff to
 /// retry the request » (`google-drive-api-gerer-les-erreurs-20261020.txt`, « 429 errors », « 500, 502, 503, 504 errors ») ;
 /// sur un 403 de limite de debit, « retry the upload » (`google-drive-api-televerser-20261020.txt`, « Handle media upload

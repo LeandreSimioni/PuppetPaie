@@ -63,7 +63,7 @@ const CLAUSES_MODIFIABLES: [&str; 8] = [
     "remuneration.hors_brut",
 ];
 
-// ------------------------------------------------------------------ les textes (ceux de `operations_documents.py`)
+// ------------------------------------------------------------------ les textes
 
 const SUJET_SIGNATURE: &str = "Contrat d'engagement {spectacle} - {mois} {annee}";
 const SUJET_SIGNATURE_PLURIEL: &str = "Contrats d'engagement - {mois} {annee}";
@@ -154,7 +154,7 @@ fn nom_complet_de(sal: &Value) -> R<String> {
     Ok(format!("{} {}", prenom_de(sal)?, nom))
 }
 
-/// `_clauses_du_contrat` : ce que le contrat dit, clause par clause (l'avenant qui le modifiera doit citer l'ancien
+/// Ce que le contrat dit, clause par clause (l'avenant qui le modifiera doit citer l'ancien
 /// texte a cote du nouveau). `{}` si le contrat ne s'ecrit pas.
 fn clauses_du_contrat(ctx: &Contexte, p: &Paie, ent: &Value) -> Value {
     match documents::contrat::valeurs_de_paie(ctx, ent, p) {

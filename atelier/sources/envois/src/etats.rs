@@ -1,14 +1,14 @@
 //! CE QUE DIT LE JOURNAL DES ENVOIS : les etats du mois, les resumes, la repetition d'un depot, le rattachement des
 //! retours, les contrats partis, les signatures attendues, les embauches declarees. Rien n'y calcule de paie.
 //!
-//! Les lignes du journal restent des `serde_json::Value`, lues comme Python
-//! lit des dictionnaires : une cle absente vaut `None`, une valeur fausse
-//! (`None`, `0`, `""`, `[]`, `{}`) cede sa place a un `or`, et ce que Python
-//! refuserait (un `.get` sur autre chose qu'un dictionnaire, une boucle sur
-//! `None`) est refuse sous le meme nom d'exception (`AttributeError`,
-//! `TypeError`, `KeyError`). Les cles de dictionnaire Python (`(salarie,
+//! Les lignes du journal restent des `serde_json::Value`, lues comme des
+//! dictionnaires : une cle absente vaut `None`, une valeur fausse
+//! (`None`, `0`, `""`, `[]`, `{}`) cede sa place a un `or`, et ce qui n'a pas la
+//! forme attendue (un `.get` sur autre chose qu'un objet, une boucle sur
+//! `None`) est refuse sous un nom d'exception (`AttributeError`,
+//! `TypeError`, `KeyError`). Les cles de dictionnaire (`(salarie,
 //! debut)`) se rendent en listes `[salarie, debut, valeur]`, dans l'ordre
-//! d'insertion de Python.
+//! d'insertion.
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -64,7 +64,7 @@ pub fn s(t: &str) -> Value {
     Value::String(t.to_string())
 }
 
-// ---------------------------------------------------- les dictionnaires Python
+// ---------------------------------------------------- les dictionnaires
 
 /// La cle de hachage d'une valeur : `1`, `1.0` et `True` ne font qu'une ;
 /// une liste ou un dictionnaire ne se hache pas.
@@ -149,10 +149,9 @@ fn paire(l: &Value, a: &str, b: &str) -> R<Vec<Value>> {
     Ok(vec![get(l, a)?.clone(), get(l, b)?.clone()])
 }
 
-/// Sous quelle cle le journal range un contrat. `Paire` : (salarie, premier jour), la maille historique, que les
-/// operations offertes au Python gardent. `Contrat` : (salarie, premier jour, numero), la maille des ecrans (Retours Windows,
-/// B, suite) : deux contrats du meme salarie qui commencent le meme jour ont chacun leur etat, leur relance, leur
-/// avenant. Le numero vaut `""` quand la ligne n'en porte pas (une ligne d'avant les numeros).
+/// Sous quelle cle le journal range un contrat. `Paire` : (salarie, premier jour), la maille du salarie. `Contrat` : (salarie, premier jour, numero), la maille des ecrans : deux
+/// contrats du meme salarie qui commencent le meme jour ont chacun leur etat, leur relance, leur
+/// avenant. Le numero vaut `""` quand la ligne n'en porte pas.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Maille {
     Paire,
@@ -303,7 +302,7 @@ pub fn charger(racine: &Path) -> R<Vec<Value>> {
 
 /// Les lignes de `journal/depots.json`, PARTAGEES : lues une fois tant que le fichier ne change pas (chemin, date,
 /// taille ; il s'ecrit toujours d'un coup, `ecriture::ecrire_json`), et servies a chaque route qui les relit -- la
-/// fenetre garde le moteur charge (ticket #244). Un refus ne se garde pas.
+/// fenetre garde le moteur charge. Un refus ne se garde pas.
 pub fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
     type Cache = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (Option<(u128, u64)>, std::sync::Arc<Vec<Value>>)>>;
     static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
@@ -445,7 +444,7 @@ pub fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, principal: &s
             anomalies.push(a.into_owned());
         }
     }
-    // UN DEPOT REPRIS DES RETOURS (`reprise_journal`, ticket #215) : sa piece EST le bilan de la plate-forme, et la ligne
+    // UN DEPOT REPRIS DES RETOURS (`reprise_journal`) : sa piece EST le bilan de la plate-forme, et la ligne
     // en garde le verdict (`detail.etat_declaration`) -- tant qu'aucun retour n'est range en face, c'est lui qui dit.
     let detail = ou(get(l, "detail")?, objet_vide());
     let repris = if verdicts.is_empty() && vrai(getd(detail, "reconstruit", &Value::Null)?) {
@@ -480,7 +479,7 @@ fn meme_nom(cle: &Value, nom: &Value) -> R<bool> {
     Ok(a == plat(nom)?)
 }
 
-/// `str.isalnum()` de Python.
+/// Vrai pour une lettre ou un chiffre Unicode.
 pub fn alnum_py(c: char) -> bool {
     let c = c as u32;
     ALNUM
@@ -1158,9 +1157,9 @@ pub fn refuse_par_un_retour(ligne: &Value) -> R<bool> {
 /// Le compte rendu d'un depot : `ko` des qu'un retour refuse ; `ok` seulement quand LE BILAN le dit -- la nature 11
 /// (certificat de conformite ou bilan d'anomalies) pour une DSN, le certificat 41 pour une DPAE ; `attendu` sinon.
 /// L'ACCUSE D'ENREGISTREMENT (nature 10) NE COMPTE PAS : il dit « envoi recu », `etat_envoi` OK, pas « declaration
-/// conforme » (regle 5 ; `retours::NATURES` : « 10 - Accuse d'enregistrement electronique »). Le 19/10/2026 sur le
-/// poste, un test dont seul l'accuse etait la s'affichait « testee — conforme » alors que l'essai precedent du meme
-/// contenu venait de prendre B1-208-11 (tickets #221, #222 du depot prive).
+/// conforme » (regle 5 ; `retours::NATURES` : « 10 - Accuse d'enregistrement electronique »). Un test dont seul
+/// l'accuse est la ne doit pas s'afficher « testee — conforme » quand l'essai precedent du meme contenu a pris
+/// B1-208-11.
 fn compte_rendu_du_depot(ligne: &Value) -> R<&'static str> {
     let mut ok = false;
     for r in items(ou(get(ligne, "retours")?, &LISTE_VIDE))? {
@@ -1755,9 +1754,8 @@ impl Parti {
     }
 }
 
-/// `operations_documents.contrat_parti`. `numero` : le numero SOUS LEQUEL LE JOURNAL parle du contrat (Retours Windows, B,
-/// suite : deux contrats du meme salarie qui commencent le meme jour sont deux contrats) ; `None` : tous ceux de ce salarie a
-/// ce debut (le dernier l'emporte), comme avant.
+/// Le contrat parti. `numero` : le numero SOUS LEQUEL LE JOURNAL parle du contrat (deux contrats du meme salarie qui
+/// commencent le meme jour sont deux contrats) ; `None` : tous ceux de ce salarie a ce debut (le dernier l'emporte).
 pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
     let du_contrat = |l: &Value| -> Result<bool, Echec> {
         Ok(numero.map_or(true, |n| valeur_en_texte(&numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))

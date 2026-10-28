@@ -5,14 +5,13 @@
 //! Idempotente : un flux deja au journal est saute. Une ligne reprise porte la date du depot (lue dans la piece)
 //! et sa `origine` (`retours/<piece>`) : c'est une reconstitution, pas un acte de ce logiciel.
 //!
-//! Une piece qui ne se lit pas (fichier inaccessible, XML mal forme) est NOMMEE dans `illisibles`, « nom (classe) »
-//! comme le Python, et les autres passent (reste 164) ; un XML bien forme qui n'est pas un bilan de depot est saute sans
+//! Une piece qui ne se lit pas (fichier inaccessible, XML mal forme) est NOMMEE dans `illisibles`, « nom (classe) »,
+//! et les autres passent (reste 164) ; un XML bien forme qui n'est pas un bilan de depot est saute sans
 //! bruit : le dossier melange des retours de toutes natures.
 //!
-//! UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (ticket #215, Leandre, 20/10/2026 : un mois importe « se dit en
-//! retard alors qu'il est deja declare » -- « 19 depots retrouves dans les retours, absents du journal ») : le releve des
-//! retours et l'import remettent d'eux-memes au journal ce que les bilans archives attestent (`reprendre_les_depots`),
-//! comme l'effectif se refait seul des retours 118. Un test que ce logiciel n'a pas envoye reste dehors (voir `reprise`).
+//! UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (sinon un mois importe se dit en retard alors qu'il est deja
+//! declare) : le releve des retours et l'import remettent d'eux-memes au journal ce que les bilans archives attestent
+//! (`reprendre_les_depots`), comme l'effectif se refait seul des retours 118. Un test que ce logiciel n'a pas envoye reste dehors (voir `reprise`).
 
 use serde_json::{json, Map, Value};
 
@@ -110,7 +109,7 @@ fn reprise_et_incidents(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &st
     for d in &attestes {
         let b = &d.bilan;
         let reel = texte(b, "essai_reel") == "02";
-        // UN TEST QUE CE LOGICIEL N'A PAS ENVOYE NE S'AFFICHE PAS ET NE SE REPREND PAS (Leandre, 20/10/2026) : sous le
+        // UN TEST QUE CE LOGICIEL N'A PAS ENVOYE NE S'AFFICHE PAS ET NE SE REPREND PAS : sous le
         // meme compte net-entreprises, les essais de l'atelier (ligne de commande, `paie --dev`, seances du nuage)
         // reviennent dans les retours de la compagnie. Un test n'engage rien : absent du journal, il vient d'ailleurs.
         // Il compte pourtant pour l'ordre (`ordre_signalements::dernier_ordre_des_mensuelles`, lu en silence). Un REEL
@@ -214,8 +213,7 @@ pub fn reprendre_les_depots(ctx: &Contexte, qui: &str, maintenant: &str) -> Avec
 
 // ------------------------------------------------------------- la reprise du canal DPAE
 
-/// `_salarie_par_nir` : le NIR (sans espaces autour) -> la cle de la fiche. Si deux fiches portent le meme NIR, la derniere gagne
-/// (comme le dictionnaire du Python).
+/// Le NIR (sans espaces autour) -> la cle de la fiche. Si deux fiches portent le meme NIR, la derniere gagne.
 fn salarie_par_nir(ctx: &Contexte) -> Vec<(String, String)> {
     let mut v: Vec<(String, String)> = Vec::new();
     for (cle, s) in &ctx.salaries {

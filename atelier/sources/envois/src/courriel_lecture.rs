@@ -1,16 +1,14 @@
-//! Lire un message RECU (`moteur/operations_documents.py` : `_texte_propre`, `_adresse_de`, `_date_de`). Lot H4a.
+//! Lire un message RECU : le texte propre, l'adresse de l'expediteur, la date.
 //!
-//! ECRIT, NON PROUVE. Ce que la personne a ECRIT elle-meme dans sa reponse (la citation du message d'origine
+//! Ce que la personne a ECRIT elle-meme dans sa reponse (la citation du message d'origine
 //! exclue), l'adresse dont elle vient, la date a laquelle elle l'a ecrite : la releve des fiches s'en sert
-//! (`routes_fiches_courriel`), celle des signatures s'en servira. Lecture MIME par `mailparse`, a la place de
-//! `email` de Python : ecarts possibles, notes dans la passation (charset inconnu, en-tete `Date` sans fuseau,
-//! entites HTML hors du latin courant).
+//! (`routes_fiches_courriel`), celle des signatures s'en sert aussi. Lecture MIME par `mailparse`
+//! (charset inconnu, en-tete `Date` sans fuseau, entites HTML hors du latin courant : voir les fonctions concernees).
 //!
 //! La citation commence a la premiere ligne qui ressemble a l'une des formes de `_DEBUT_CITATION` : `>`,
 //! « Le ... a ecrit : », « On ... wrote: », une ligne de tirets, « De : », « From: », une ligne de soulignes.
-//! UN ECART VOLONTAIRE avec le Python : sa forme `-{3,}.*-{3,}$` ne reconnait pas « -----Original Message----- »
-//! quand le message a des fins de ligne CRLF (le `$` d'`re` ne passe pas devant `\r`), c'est-a-dire presque
-//! toujours en sortie d'IMAP. Ici le `\r` final ne compte pas ; a faire trancher (passation).
+//! Le `\r` final d'une ligne ne compte pas : un message qui sort d'IMAP a des fins de ligne CRLF, et
+//! « -----Original Message----- » doit encore etre reconnu.
 
 use mailparse::{MailHeaderMap, ParsedMail};
 
@@ -33,9 +31,9 @@ pub fn adresse_de(m: &ParsedMail) -> String {
     String::new()
 }
 
-/// `email.message_from_bytes` ne refuse jamais un message : quand le bloc d'en-tetes se rompt (une ligne qui n'est ni `Nom: valeur`,
-/// ni une suite de ligne, ni `From `), le Python termine les en-tetes AVANT cette ligne et lit tout le reste comme corps ;
-/// `mailparse` prend cette ligne pour un en-tete (corps vide) ou refuse le message. Ce qu'il faut lire est le message ainsi recoupe
+/// Un message se lit toujours : quand le bloc d'en-tetes se rompt (une ligne qui n'est ni `Nom: valeur`,
+/// ni une suite de ligne, ni `From `), les en-tetes s'arretent AVANT cette ligne et tout le reste est le corps ;
+/// `mailparse` prendrait cette ligne pour un en-tete (corps vide) ou refuserait le message. Ce qu'il faut lire est le message ainsi recoupe
 /// (les en-tetes valides, une ligne vide, le reste). `Borrowed` quand les en-tetes sont sains.
 pub fn lisible_comme_python(brut: &[u8]) -> std::borrow::Cow<'_, [u8]> {
     let est_entete = |l: &[u8]| -> bool {
@@ -86,7 +84,7 @@ pub fn identifiant_de(m: &ParsedMail) -> String {
 /// militaire valent `-0000` (§ 4.3). Un en-tete sans fuseau se lit comme une heure de Paris : une INFERENCE du moteur,
 /// pas un texte. La RFC exige la zone (`time = time-of-day zone`, l. 808 ; `obs-zone`, l. 1838) et laisse a
 /// l'implementation ce qu'elle fait d'une forme qu'elle ne decrit pas, pourvu qu'elle ne perde pas le message (§ 4,
-/// l. 1711-1718 : « It is up to the implementation to deal with messages robustly ») ; relu au lot F1. Un champ hors
+/// l. 1711-1718 : « It is up to the implementation to deal with messages robustly »). Un champ hors
 /// limites (31 fevrier, 24 h, 60 s, decalage de 24 h) est illisible.
 pub fn date_de(m: &ParsedMail, maintenant: &str) -> String {
     let brut = m.headers.get_first_value("Date").unwrap_or_default();
@@ -102,7 +100,7 @@ const MOIS: [&str; 24] = [
     "july", "august", "september", "october", "november", "december",
 ];
 
-/// `int(texte)` : un entier signe en chiffres ASCII (le Python lit aussi les chiffres d'autres ecritures et les `_`).
+/// Un entier signe en chiffres ASCII (ni autres ecritures de chiffres, ni `_`).
 fn entier(t: &str) -> Option<i64> {
     let chiffres = t.strip_prefix(['+', '-']).unwrap_or(t);
     if chiffres.is_empty() || !chiffres.bytes().all(|b| b.is_ascii_digit()) || chiffres.len() > 15 {
@@ -224,8 +222,7 @@ fn parsedate_tz(donnees: &str) -> Option<(i64, i64, i64, i64, i64, i64, Option<i
     Some((an, mois, jour, heure, minute, seconde, decalage))
 }
 
-/// `parsedate_to_datetime(...)` puis `astimezone()` et `replace(tzinfo=None)` : l'heure locale naive en secondes, ou
-/// `None` quand Python leve `ValueError`.
+/// L'en-tete `Date` lu, converti en heure locale naive en secondes, ou `None` quand il est illisible.
 fn date_lue(brut: &str) -> Option<i64> {
     let (an, mois, jour, h, mi, s, decalage) = parsedate_tz(brut)?;
     let j = socle::date::Jour::nouveau(i32::try_from(an).ok()?, u32::try_from(mois).ok()?, u32::try_from(jour).ok()?)?;
@@ -407,7 +404,7 @@ fn caractere_numerique(n: u32) -> String {
     }
 }
 
-/// `html.unescape`, pour ce qu'un courriel en francais porte (voir les tables) : `&nbsp;`, `&eacute;`, `&#233;`...
+/// Le texte HTML rendu en clair, pour ce qu'un courriel en francais porte (voir les tables) : `&nbsp;`, `&eacute;`, `&#233;`...
 fn html_desechapper(t: &str) -> String {
     let c: Vec<char> = t.chars().collect();
     let mut sortie = String::with_capacity(t.len());

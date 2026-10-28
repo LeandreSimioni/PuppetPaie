@@ -1,13 +1,12 @@
-//! Le numero d'ordre (S20.G00.05.004) du prochain signalement, LA PLATE-FORME FAISANT FOI (lot O1, decision de Leandre
-//! du 14/10/2026 : pas de regle « commiter le journal » a la place).
+//! Le numero d'ordre (S20.G00.05.004) du prochain signalement, LA PLATE-FORME FAISANT FOI.
 //!
 //! POURQUOI. Le journal d'un dossier (`journal/depots.json`) ne connait que ce que CE dossier a depose ; la plate-forme se
 //! souvient de tout, par SIRET, essais compris. Cahier technique DSN 2026.1, §1.4.3.2, p. 14 : « Quand un signalement
 //! d'evenement de type normal a ete accepte pour un SIRET employeur et un numero d'ordre de la declaration donne, il n'est
 //! pas possible d'emettre un deuxieme signalement d'evenement de type normal avec le meme SIRET employeur et le meme
 //! numero d'ordre » ; p. 136 : pour un signalement, l'ordre « ne doit pas etre remis a zero afin qu'il soit unique quel
-//! que soit le mois d'emission ». Le 14/10/2026, deux normales d'essai a l'ordre 1, parties d'une copie dont le journal
-//! etait vide, ont pris B1-208-10 : l'ordre 1 etait deja pris dans la base d'essai (PASSATION-O1, point 1).
+//! que soit le mois d'emission ». Un dossier au journal vide peut donc proposer un ordre deja pris : la plate-forme le
+//! refuse alors (B1-208-10).
 //!
 //! CE QUE LA PLATE-FORME DIT. Seul le bilan de nature 11 (certificat ou bilan d'anomalies) porte l'ordre, avec la nature,
 //! le type, le SIREN ; ni salarie, ni contrat (`retours::declarations_du_bilan`). Les documents se purgent a TROIS MOIS
@@ -19,8 +18,8 @@
 //! (archives §17.6). L'ordre doit donc etre libre dans les deux : on prend le plus grand de tous. Qu'une sequence reelle
 //! saute des numeros, aucun texte ne l'interdit : p. 15, « Il ne sera pas possible d'integrer une annule et remplace de
 //! rang inferieur au precedent envoi », et le rang se compare (B1-208-11, « inferieur (ou egal) au dernier ordre
-//! accepte ») ; trop grand ne coute rien, trop petit est refuse (INFERENCE de ces deux textes, ecrite comme telle dans
-//! PASSATION-O1). Tous SIRET de l'entreprise confondus, comme le journal le faisait : trop grand ne coute rien.
+//! accepte ») ; trop grand ne coute rien, trop petit est refuse (INFERENCE de ces deux textes). Tous SIRET de l'entreprise
+//! confondus : trop grand ne coute rien.
 //!
 //! SANS RESEAU, OU SANS MOT DE PASSE, le journal et les bilans deja archives decident, et l'avertissement le dit : jamais
 //! en silence. Une compagnie fictive n'a pas de plate-forme : ses envois sont joues, son journal est la seule
@@ -159,7 +158,7 @@ pub fn dernier_ordre_connu(ctx: &Contexte, branchement: Branchement, client: Opt
 }
 
 /// La conduite a tenir devant un signalement refuse B1-208-10, ou `None` si ce bilan n'en est pas un. Le bilan ne dit
-/// pas QUEL signalement tient deja cet ordre (PASSATION-O1, point 1) : la phrase donne les deux cas.
+/// pas QUEL signalement tient deja cet ordre : la phrase donne les deux cas.
 pub fn conduite_b1_208_10(declaration: &Value, flux: &str) -> Option<String> {
     let texte = |k: &str| declaration.get(k).and_then(Value::as_str).unwrap_or("").to_string();
     let nature = texte("nature");
@@ -183,9 +182,8 @@ pub fn conduite_b1_208_10(declaration: &Value, flux: &str) -> Option<String> {
 
 // ------------------------------------------------------------------ et l'ordre des mensuelles
 
-/// Ce que les bilans archives disent des DSN MENSUELLES d'une base (essai ou reel), lu en silence (tickets #221, #222,
-/// regle de Leandre du 20/10/2026 : « le compteur d'ordre lit tous les retours, en arriere-plan, sans rien montrer, y
-/// compris ceux des tests faits ailleurs »).
+/// Ce que les bilans archives disent des DSN MENSUELLES d'une base (essai ou reel), lu en silence : le compteur d'ordre
+/// lit tous les retours, sans rien montrer, y compris ceux des tests faits ailleurs.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct MensuellesVues {
     /// Le plus grand ordre de mensuelle vu pour ce mois de constitution, 0 si aucun.

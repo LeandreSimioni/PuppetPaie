@@ -1,10 +1,10 @@
-//! L'AER d'une COMPAGNIE FICTIVE (tickets #225-#227, repris par #236) : ce que France Travail renverrait.
+//! L'AER d'une COMPAGNIE FICTIVE : ce que France Travail renverrait.
 //!
 //! Chez une vraie compagnie, France Travail edite l'« Attestation employeur pour les activites relevant des annexes 8
 //! et 10 » (AER Cinema Spectacle) a partir des DSN deposees, et la publie en retour de nature 46 : une archive .zip d'un
 //! PDF par salarie (`retours::aer_spectacle`). Le logiciel la range, en remplit et signe le cadre 5
 //! (`aer::authentifier`), et elle part au salarie avec ses documents. Une compagnie fictive ne depose rien nulle part :
-//! sans ce module, son AER n'existait pas, et ses intermittents ne la recevaient jamais.
+//! ce module lui fabrique son AER, pour que ses intermittents la recoivent.
 //!
 //! Ici, on FABRIQUE cette archive a la place de France Travail, depuis les DSN que la compagnie fictive a jouees -- ce
 //! que France Travail lit, et rien d'autre : le salarie (bloc 30), l'employeur et ses contrats d'usage (bloc 40) dont la

@@ -50,8 +50,8 @@ impl Panne {
         self.classe == "ErreurApi" || self.classe == "DepotRefuse"
     }
 
-    /// Une panne du RESEAU (injoignable, coupe, delai depasse) : le Python la laissait passer en plantage avec une trace
-    /// (`URLError`, `RemoteDisconnected`, `TimeoutError`...). Les commandes la disent en une phrase.
+    /// Une panne du RESEAU (injoignable, coupe, delai depasse : `URLError`, `RemoteDisconnected`, `TimeoutError`...).
+    /// Les commandes la disent en une phrase.
     pub fn est_reseau(&self) -> bool {
         matches!(self.classe.as_str(), "URLError" | "TimeoutError" | "RemoteDisconnected" | "IncompleteRead" | "HTTPException")
     }
@@ -586,7 +586,7 @@ pub fn relever_retours(
                         chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
                     ));
                 }
-                // UN SIGNALEMENT REFUSE B1-208-10 (lot O1) : l'ordre etait deja pris ; la conduite a tenir se dit.
+                // UN SIGNALEMENT REFUSE B1-208-10 : l'ordre etait deja pris ; la conduite a tenir se dit.
                 if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some("11") {
                     let flux = r.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
                     for d in crate::retours::declarations_du_bilan(&contenu) {
@@ -617,7 +617,7 @@ pub fn relever_retours(
         releve.rattaches = suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(releve.trouves.clone()), &contenus))?;
     }
 
-    // UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (ticket #215) : ce qu'un autre logiciel a depose sous le meme compte
+    // UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT : ce qu'un autre logiciel a depose sous le meme compte
     // entre au journal de lui-meme, et le mois qu'il declare n'est plus « en retard ».
     if canal.is_empty() {
         let maintenant = socle::paris::maintenant()[..16].replacen('T', " ", 1);

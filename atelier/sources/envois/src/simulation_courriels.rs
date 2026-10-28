@@ -1,10 +1,9 @@
-//! `courriels-fictifs` (`moteur/simulation.courriels_json`) : les courriels joues de la compagnie fictive
+//! `courriels-fictifs` : les courriels joues de la compagnie fictive
 //! (`courriels-simules/*.eml`), tels que le salarie les recoit -- et, s'ils portent un bouton, la reponse toute
 //! ecrite que ce bouton prepare. `dernier` : le repere a redonner la fois suivante.
 //!
-//! Lecture MIME par `mailparse` (bibliotheque eprouvee) a la place de `email` de Python. Ecarts possibles, notes :
-//! un en-tete `From`/`To` est rendu tel que `mailparse` le decode (le Python le re-serialise : guillemets autour
-//! d'un nom a point ou virgule) ; les pieces jointes sont les feuilles du message qui ne sont ni le texte ni le HTML
+//! Lecture MIME par `mailparse` : un en-tete `From`/`To` est rendu tel que `mailparse` le decode, sans guillemets
+//! autour d'un nom a point ou virgule ; les pieces jointes sont les feuilles du message qui ne sont ni le texte ni le HTML
 //! du corps (`iter_attachments`).
 
 use std::collections::HashMap;
@@ -81,8 +80,8 @@ pub fn texte_de(f: &ParsedMail) -> String {
     use mailparse::body::Body;
     let charset = f.ctype.charset.to_lowercase();
     if let Body::Base64(b) = f.get_body_encoded() {
-        // Un corps base64 se decode comme `get_payload(decode=True)` : indulgent, et JAMAIS vide faute de base64 valide (le
-        // texte brut, lignes jointes, si la longueur est impossible). `mailparse` rend une erreur la ou le Python rend un texte.
+        // Un corps base64 se decode avec indulgence, et n'est JAMAIS vide faute de base64 valide (le
+        // texte brut, lignes jointes, si la longueur est impossible) : `mailparse` rendrait une erreur.
         let octets = decoder_b64_python(b.get_raw());
         let synthetique = [format!("Content-Type: text/plain; charset=\"{}\"\r\nContent-Transfer-Encoding: binary\r\n\r\n", f.ctype.charset).into_bytes(), octets].concat();
         return parse_mail(&synthetique).ok().and_then(|m| m.get_body().ok()).unwrap_or_default();
@@ -94,7 +93,7 @@ pub fn texte_de(f: &ParsedMail) -> String {
     }
     let t = f.get_body().unwrap_or_default();
     match f.get_body_encoded() {
-        // `mailparse` rend CRLF les fins de ligne d'un corps quoted-printable ; Python garde celles du fichier.
+        // `mailparse` rend CRLF les fins de ligne d'un corps quoted-printable ; on garde celles du fichier.
         Body::QuotedPrintable(b) if !b.get_raw().contains(&b'\r') => t.replace("\r\n", "\n"),
         _ => t,
     }
@@ -277,7 +276,7 @@ fn pages(f: &ParsedMail) -> usize {
     fabrique_pdf::lecture::charger(&octets).map(|d| d.get_pages().len()).unwrap_or(0)
 }
 
-/// `str(m["From"])` : les adresses comme Python les re-serialise (un nom a point, virgule, arobase... entre guillemets).
+/// Les adresses d'un champ, un nom a point, virgule ou arobase entre guillemets.
 fn adresses(m: &ParsedMail, champ: &str) -> String {
     let brut = m.headers.get_first_value(champ).unwrap_or_default();
     let Some(h) = m.headers.get_first_header(champ) else { return brut };
@@ -364,9 +363,9 @@ pub fn bouton_de_la_demande(envoyes: &HashMap<String, Vec<u8>>, identifiants: &[
 /// `simulation._reponse` : le courriel que la personne fictive renvoie a la boite (de `de` a `a`), date de maintenant,
 /// identifiant `<ident@fictive.puppetpaie>`.
 pub fn reponse_jouee(de: &str, a: &str, sujet: &str, corps: &str, ident: &str) -> Result<Vec<u8>, String> {
-    // CHOIX DE L'UTILISATEUR (07/10/2026) : dans une compagnie fictive, une adresse de salarie AVEC NOM D'AFFICHAGE (`Nom <adresse>`) est
-    // acceptee, comme chez le Python (`EmailMessage` ecrit l'en-tete tel quel). `envoi::en_mime_avec` n'ecrit que des adresses
-    // simples (H3a) : le message se fabrique avec l'adresse nue, puis l'en-tete `From` est remis tel que le Python l'ecrit.
+    // Dans une compagnie fictive, une adresse de salarie AVEC NOM D'AFFICHAGE (`Nom <adresse>`) est
+    // acceptee. `envoi::en_mime_avec` n'ecrit que des adresses simples : le message se fabrique avec l'adresse nue,
+    // puis l'en-tete `From` est remis avec son nom d'affichage.
     let (nu, rendu) = adresse_d_affichage(de);
     let message = crate::envoi::Message {
         cle: ident.to_string(),
@@ -394,9 +393,9 @@ pub fn reponse_jouee(de: &str, a: &str, sujet: &str, corps: &str, ident: &str) -
     }
 }
 
-/// `Nom <adresse>` -> (l'adresse nue, l'en-tete `From` tel que le Python l'ecrit) ; une adresse simple -> (elle-meme, `None`). Le
-/// nom d'affichage ASCII s'ecrit tel quel ; un nom qui ne l'est pas, en mot encode `=?utf-8?b?...?=` (court : le Python choisit
-/// `q` ou `b` et plie les longs noms, ce que cette fonction ne fait pas).
+/// `Nom <adresse>` -> (l'adresse nue, l'en-tete `From` avec son nom d'affichage) ; une adresse simple -> (elle-meme, `None`). Le
+/// nom d'affichage ASCII s'ecrit tel quel ; un nom qui ne l'est pas, en mot encode `=?utf-8?b?...?=` (court : pas de choix
+/// entre `q` et `b`, pas de pliage des longs noms).
 fn adresse_d_affichage(de: &str) -> (String, Option<String>) {
     let de = de.trim();
     let (Some(debut), true) = (de.rfind('<'), de.ends_with('>')) else { return (de.to_string(), None) };

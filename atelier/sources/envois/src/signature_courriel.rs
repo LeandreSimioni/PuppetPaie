@@ -1,4 +1,4 @@
-//! LA SIGNATURE DES COURRIELS (Leandre, 08/10/2026).
+//! LA SIGNATURE DES COURRIELS.
 //!
 //! Une seule signature pour tous les courriels du logiciel (documents, contrats, avenants, demandes de fiche, CASC),
 //! et un nom affiche devant l'adresse de la boite. Les deux se posent dans la fiche Entreprise :

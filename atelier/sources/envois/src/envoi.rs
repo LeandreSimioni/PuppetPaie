@@ -1,48 +1,42 @@
-//! `moteur/envoi.py` : l'envoi aux salaries, un message par salarie et par mois (lot H3a, ecrit, non prouve).
+//! L'envoi aux salaries, un message par salarie et par mois.
 //!
 //! Bulletin, certificat d'emploi Conges Spectacles et attestation France Travail dans un seul message. Rien ne
 //! part sans un clic : le garde-fou est a l'appelant (le mot de passe du logiciel, la page de relecture de
 //! l'interface) ; ce module prepare (`preparer`), assemble (`en_mime`) et envoie un par un (`envoyer`) par le
 //! client `courriel::Courriel` qu'on lui passe -- le vrai (IMAP/SMTP) ou la boite simulee de la compagnie fictive.
 //!
-//! Hors perimetre, renvoye au lot J avec le tri de la ligne de commande : `relire_et_agir`, `_page` et `PAGE`
-//! (la page de relecture servie en local ; l'interface a son propre ecran et passe par `envoyer`).
+//! L'OCTET PRES. `en_mime` rend toujours les memes octets, a `Date`, `Message-ID` et frontieres pres. Les regles :
 //!
-//! L'OCTET PRES. `en_mime` rend les memes octets que `EmailMessage` de Python 3.13 (`policy.default`,
-//! `as_bytes()`) une fois masques `Date`, `Message-ID` et les frontieres. Chaque regle reproduite, et sa source
-//! dans `email` (bibliotheque standard) :
-//!
-//! * ORDRE DES EN-TETES (`message.py`, `_make_multipart`, `EmailMessage.set_content`) : `From`, `To`, `Subject`,
+//! * ORDRE DES EN-TETES : `From`, `To`, `Subject`,
 //!   `Date`, `Message-ID`, puis, texte seul : `Content-Type`, `Content-Transfer-Encoding`, `MIME-Version` ;
 //!   multipart : `MIME-Version`, `Content-Type: multipart/...` (les en-tetes `Content-*` partent dans la premiere
-//!   sous-partie, `MIME-Version` reste a la racine). Une sous-partie creee par `set_content` finit par
+//!   sous-partie, `MIME-Version` reste a la racine). Une sous-partie finit par
 //!   `MIME-Version` ; la partie `alternative` imbriquee dans un `mixed` ne porte que son `Content-Type`.
-//! * TEXTE (`contentmanager._encode_text`) : lignes d'octets coupees sur \n, \r\n, \r ; toutes <= 78 octets :
-//!   `7bit` si ASCII, `8bit` sinon (`cte_type == '8bit'`) ; sinon on regarde les 10 premieres lignes : quoted-
-//!   printable (`quoprimime.body_encode`, 78 colonnes) sauf si sa longueur depasse celle du base64 d'un seul
-//!   bloc (`b2a_base64`), auquel cas base64 a 76 colonnes (`_encode_base64`, 57 octets par ligne). Au plus 10
-//!   lignes et quoted-printable : le corps de l'echantillon est le corps. Fin de ligne \n partout (`linesep`).
-//! * PIECES (`set_bytes_content`, `_finalize_set`) : `Content-Type`, `Content-Transfer-Encoding: base64`,
-//!   `Content-Disposition: attachment; filename=...` (`Message.set_param` : toujours entre guillemets, `utils.quote`
-//!   pour \ et " ; non ASCII : RFC 2231, `filename*=utf-8''` et `%XX` de `urllib.parse.quote(safe='')`).
-//! * GENERATEUR (`generator.py`, `BytesGenerator`, `mangle_from_=False`) : `--b\n` partie1 (`\n--b\n` partie)*
+//! * TEXTE : lignes d'octets coupees sur \n, \r\n, \r ; toutes <= 78 octets :
+//!   `7bit` si ASCII, `8bit` sinon ; sinon on regarde les 10 premieres lignes : quoted-
+//!   printable (78 colonnes) sauf si sa longueur depasse celle du base64 d'un seul
+//!   bloc, auquel cas base64 a 76 colonnes (57 octets par ligne). Au plus 10
+//!   lignes et quoted-printable : le corps de l'echantillon est le corps. Fin de ligne \n partout.
+//! * PIECES : `Content-Type`, `Content-Transfer-Encoding: base64`,
+//!   `Content-Disposition: attachment; filename=...` (toujours entre guillemets, `\` et `"` echappes ;
+//!   non ASCII : RFC 2231, `filename*=utf-8''` et `%XX` pour tout octet hors des caracteres non reserves).
+//! * ASSEMBLAGE : `--b\n` partie1 (`\n--b\n` partie)*
 //!   `\n--b--\n` ; frontiere `=` x15, 19 chiffres, `==`, redemandee tant qu'une ligne `--b` ou `--b--` existe dans
 //!   le texte (`.0`, `.1`...) ; les en-tetes d'une partie multipart s'ecrivent APRES son corps (la frontiere).
-//! * PLIAGE DES EN-TETES (`_header_value_parser._refold_parse_tree`, maxlen 78) : en-tete libre (`Subject`) :
-//!   `get_unstructured` en blancs et mots, mots non ASCII en mots codes RFC 2047 (`_encoded_words.encode` : `q`
-//!   sauf si `b` est plus court de 5 caracteres ou plus), recombinaison avec le mot code precedent de la ligne
-//!   (`_fold_as_ew`), un sujet ASCII qui tient sur une ligne seule passe en entier a la ligne ; en-tete a
+//! * PLIAGE DES EN-TETES (maxlen 78) : en-tete libre (`Subject`) :
+//!   decoupe en blancs et mots, mots non ASCII en mots codes RFC 2047 (`q`
+//!   sauf si `b` est plus court de 5 caracteres ou plus), recombinaison avec le mot code precedent de la ligne,
+//!   un sujet ASCII qui tient sur une ligne seule passe en entier a la ligne ; en-tete a
 //!   parametres (`Content-Type`, `Content-Disposition`) : en une ligne si le tout tient en 78, sinon un
-//!   parametre par ligne (`_fold_mime_parameters`), continuations RFC 2231 `nom*0*=` au-dela ; adresses et
+//!   parametre par ligne, continuations RFC 2231 `nom*0*=` au-dela ; adresses et
 //!   `Message-ID` : une ligne, ou la valeur seule sur la ligne suivante si elle y tient.
-//! * `Date` : `formatdate(localtime=True)`, heure de Paris (`TZ=Europe/Paris` pose par le moteur) ; `Message-ID` :
-//!   `make_msgid` (`<centiemes.pid.alea64@domaine>`).
+//! * `Date` : heure de Paris (`TZ=Europe/Paris` pose par le moteur) ; `Message-ID` :
+//!   `<centiemes.pid.alea64@domaine>`.
 //!
-//! Ecarts admis, notes : une adresse qui n'est pas une adresse simple (`nom@domaine`, ASCII) est refusee la ou le
-//! Python la plierait avec ses defauts ; un sujet qui contient un mot code RFC 2047 deja ecrit n'est pas decode ;
-//! le type d'une piece vient de `GENRES` puis de la table de `mimetypes` de Python 3.13 sans les fichiers du systeme (le
-//! Python lit aussi `/etc/mime.types` ou le registre de Windows : un `.docx` y a son type, ici `octet-stream`) ; `Date` d'avant
-//! 1996 : la regle de l'heure d'ete est celle de l'Union europeenne (`paris.rs`) ; les phrases d'erreur different du Python.
+//! Limites : une adresse qui n'est pas une adresse simple (`nom@domaine`, ASCII) est refusee ; un sujet qui contient un
+//! mot code RFC 2047 deja ecrit n'est pas decode ; le type d'une piece vient de `GENRES` puis de la table `MIMETYPES`
+//! (sans les fichiers du systeme : un `.docx` y a son type, ici `octet-stream`) ; `Date` d'avant
+//! 1996 : la regle de l'heure d'ete est celle de l'Union europeenne (`paris.rs`).
 
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
@@ -252,7 +246,7 @@ pub fn recap_france_travail(paies: &[&Paie], mois: &str, employeur: &str) -> Res
     ))
 }
 
-/// `Decimal(str(x))` d'un nombre d'heures : le flottant tel que Python l'ecrit.
+/// Un nombre d'heures en decimal : le flottant tel qu'il s'ecrit (`repr_flottant`).
 fn heures_en_decimal(h: f64) -> Result<Decimal, String> {
     let t = repr_flottant(h);
     t.parse::<Decimal>().or_else(|_| Decimal::from_scientific(&t)).map_err(|e| format!("heures illisibles ({}) : {}", t, e))
@@ -273,13 +267,13 @@ fn enumerer(mots: &[&str]) -> String {
     }
 }
 
-// ------------------------------------------------------------------------------------------- le renvoi (#240)
+// ------------------------------------------------------------------------------------------- le renvoi
 
-/// LE RENVOI DES DOCUMENTS CORRIGES (ticket #240, 21/10/2026 : « si on change une DSN, les documents ne sont plus
-/// valables », et le courriel doit « dire ce qui a change »). Le salarie dont la paie a change depuis l'envoi de ses
+/// LE RENVOI DES DOCUMENTS CORRIGES (des documents d'une paie changee ne sont plus valables, et le courriel doit
+/// dire ce qui a change). Le salarie dont la paie a change depuis l'envoi de ses
 /// documents recoit ses documents refaits avec ce message-ci, qui dit l'ancien et le nouveau, et que les documents
 /// precedents sont remplaces. Les champs : ceux de `CORPS`, plus `{de_mois}`, `{envoye_le}`, `{changements}` et
-/// `{declaration}` : vide, ou -- la DSN du mois deposee et son annule-et-remplace passe (21/10/2026) -- la phrase qui dit
+/// `{declaration}` : vide, ou -- la DSN du mois deposee et son annule-et-remplace passe -- la phrase qui dit
 /// avec quelle paie la correction sera declaree (`Renvoi::declaration`).
 pub const CORPS_RENVOI: &str = "Bonjour {prenom},\n\nTa paie {de_mois} {annee} a été modifiée depuis l'envoi de tes documents le {envoye_le}. Ce qui a changé :\n\n{changements}\n\nTu trouveras ci-joint tes documents refaits :\n\n{liste}\n\nIls remplacent ceux que tu as reçus le {envoye_le} : ne garde que ceux-ci.\n\n{declaration}{notes}{france_travail}\nBien à toi,\n{signataire}\n{raison_sociale}\n";
 
@@ -643,7 +637,7 @@ pub fn envoyer_suivi(
     mut copies: Option<&mut Vec<Vec<u8>>>,
 ) -> Result<Vec<String>, ErreurEnvoi> {
     let mut faits: Vec<String> = Vec::new();
-    // LA SIGNATURE DE LA COMPAGNIE (08/10/2026) : tout courriel passe ici, il la prend ici. Trop lourde, rien ne part.
+    // LA SIGNATURE DE LA COMPAGNIE : tout courriel passe ici, il la prend ici. Trop lourde, rien ne part.
     let signature = match client.racine().map(crate::signature_courriel::du_poste) {
         Some(Ok(s)) => s,
         Some(Err(m)) => {
@@ -699,8 +693,8 @@ const GENRES: [(&str, &str); 2] = [
     (".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
 ];
 
-/// La table de `mimetypes` de Python 3.13 sans les fichiers du systeme (`/etc/mime.types`, le registre Windows) : les
-/// 154 suffixes que la bibliotheque connait d'elle-meme.
+/// La table des types de pieces, sans les fichiers du systeme (`/etc/mime.types`, le registre Windows) : 154 suffixes,
+/// les memes sur tous les postes.
 const MIMETYPES: [(&str, &str); 154] = [
     (".3g2", "audio/3gpp2"),
     (".3gp", "audio/3gpp"),
@@ -1445,7 +1439,7 @@ fn plier_params(nom: &str, principal: &str, params: &[(String, String)]) -> Stri
         range.push_str("; ");
         range.push_str(&parametre_range(n, v));
     }
-    // Un parametre RFC 2231 (non ASCII) pese un caractere de plus dans l'arbre de Python : le tout doit tenir en 77.
+    // Un parametre RFC 2231 (non ASCII) pese un caractere de plus dans le pliage : le tout doit tenir en 77.
     let limite = if params.iter().any(|(_, v)| !v.is_ascii()) { MAXLEN - 1 } else { MAXLEN };
     if nom.len() + 2 + range.len() <= limite || params.is_empty() {
         return format!("{}: {}\n", nom, range);

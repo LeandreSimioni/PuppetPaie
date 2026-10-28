@@ -20,15 +20,14 @@
 //! s'intercale sur les ports 993 et 465) installee dans le magasin Windows passe, comme chez Thunderbird ou Outlook.
 //! Delai de 60 s par connexion.
 //!
-//! L'IMAP : le Python ne fait que `LOGIN`, `EXAMINE` (lecture seule), `UID SEARCH TEXT`, `UID FETCH BODY.PEEK[]`,
+//! L'IMAP : le moteur ne fait que `LOGIN`, `EXAMINE` (lecture seule), `UID SEARCH TEXT`, `UID FETCH BODY.PEEK[]`,
 //! `LOGOUT`. Ce dialogue est ecrit ici sur un flux quelconque (`Read + Write` : un faux serveur en memoire dans les
 //! tests), et les reponses sont lues par `imap-proto` ; seuls les litteraux `{n}` se lisent a la main, par leur
 //! longueur.
 //!
-//! Ecarts admis, notes : les phrases d'erreur different du Python ; un mot de passe d'un caractere de controle est
-//! refuse ; le message envoye part avec des fins de ligne CRLF sur le fil (le Python envoyait les octets tels quels,
-//! LF seul) -- le message archive reste celui d'`envoi::en_mime`. La ligne vide que `smtplib` ajoutait avant le point
-//! final (le message finit par LF, pas CRLF) est reproduite : au CRLF pres, les octets du fil sont ceux du Python.
+//! Un mot de passe d'un caractere de controle est refuse ; le message envoye part avec des fins de ligne CRLF sur le
+//! fil -- le message archive reste celui d'`envoi::en_mime`, en LF. Une ligne vide precede le point final quand le
+//! message ne finit pas par CRLF (`en_mime` finit par LF).
 
 use std::io::{Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
@@ -433,9 +432,9 @@ fn crlf(o: &[u8]) -> Vec<u8> {
 }
 
 /// Ce que `lettre::send_raw` recoit : le message en CRLF. `lettre` ajoute lui-meme la fin de ligne avant le point final.
-/// `smtplib.data` en ajoutait une quand le message ne finissait pas par CRLF (et les octets d'`en_mime` finissent par un
-/// LF seul : le Python envoyait donc une ligne vide de plus avant le point). On fait de meme : on ne retire la fin de
-/// ligne que si le message en avait deja une, CRLF.
+/// Le protocole en veut une quand le message ne finit pas par CRLF (et les octets d'`en_mime` finissent par un
+/// LF seul : une ligne vide precede donc le point). On ne retire la fin de ligne que si le message en avait deja une,
+/// CRLF.
 pub fn donnees_du_fil(brut: &[u8]) -> Vec<u8> {
     let mut sur_le_fil = crlf(brut);
     if brut.ends_with(b"\r\n") && sur_le_fil.ends_with(b"\r\n") {
