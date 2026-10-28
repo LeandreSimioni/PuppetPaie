@@ -18,5 +18,6 @@ pub mod courriel;
 pub mod courriel_lecture;
 pub mod envoi;
 pub mod envois_signature;
+pub mod releve_signatures;
 pub mod signature_courriel;
 pub mod simulation_courriels;
