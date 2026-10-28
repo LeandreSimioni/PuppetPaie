@@ -91,6 +91,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
     let aujourdhui = ctx.aujourdhui.iso();
+    let boite_liee = crate::routes_accueil::boite_liee(ctx)?;
     let mut contrats = Vec::new();
     for (i, p) in paies.iter().enumerate() {
         // UN PERMANENT N'A PAS DE CONTRAT D'USAGE A SIGNER ICI.
@@ -127,14 +128,14 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         l.insert("numero".into(), numero);
         l.insert("demande_le".into(), premier(&demandes, cles).cloned().unwrap_or(Value::Null));
         // CE QUE LA BOITE EN FAIT : un contrat a envoyer (jamais parti, ou caduc) se coche ; un contrat parti et pas
-        // revenu attend, et seul celui parti par courriel se relance.
+        // revenu attend, et seul celui parti par courriel se relance, quand la boite est posee.
         let parti = l["demande_le"].clone();
         let (recu, caduc) = (vrai(&etat["recu"]), vrai(&etat["caduc"]));
         let en_attente = vrai(&parti) && !recu && !caduc;
         l.insert("par".into(), etat["par"].clone());
         l.insert("a_envoyer".into(), json!(caduc || (!recu && !vrai(&parti))));
         l.insert("en_attente".into(), json!(en_attente));
-        l.insert("relancer".into(), json!(en_attente && est(&etat["par"], "courriel")));
+        l.insert("relancer".into(), json!(en_attente && est(&etat["par"], "courriel") && boite_liee));
         l.insert("recu_le".into(), etat["recu"].clone());
         l.insert("recu_par".into(), etat["recu_par"].clone());
         l.insert("caduc".into(), etat["caduc"].clone());
@@ -158,7 +159,7 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({
         "mois": mois_v,
         "contrats": contrats,
-        "boite_liee": crate::routes_accueil::boite_liee(ctx)?,
+        "boite_liee": boite_liee,
         "attendues": n_attendues,
         "dossier": dossier.to_string_lossy(),
         "produit": produit,
