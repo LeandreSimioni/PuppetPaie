@@ -20,7 +20,7 @@ use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
-use crate::transport::{envoyer, Panne, Requete};
+use envois::transport::{envoyer, Panne, Requete};
 
 type R<T> = Result<T, Echec>;
 
@@ -277,7 +277,7 @@ pub(crate) fn phrase_de_panne(p: Panne) -> Result<String, (&'static str, String)
             // d'erreur peut arriver compressee.
             let corps = corps
                 .ok()
-                .map(|o| if o.starts_with(&[0x1f, 0x8b]) { crate::transport::gunzip(&o).unwrap_or(o) } else { o })
+                .map(|o| if o.starts_with(&[0x1f, 0x8b]) { envois::transport::gunzip(&o).unwrap_or(o) } else { o })
                 .map(|o| String::from_utf8_lossy(&o).into_owned())
                 .unwrap_or_default();
             Ok(traduire(code, &corps))

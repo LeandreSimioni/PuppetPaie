@@ -196,7 +196,7 @@ pub(crate) fn vers_route(x: crate::coffre::Echec) -> Echec {
 fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
     match service {
         "net-entreprises" => {
-            let d = crate::transport::declarant(ent).map_err(|v| Echec {
+            let d = envois::transport::declarant(ent).map_err(|v| Echec {
                 classe: match v.get("classe").and_then(Value::as_str) {
                     Some("AttributeError") => Some("AttributeError"),
                     _ => None,

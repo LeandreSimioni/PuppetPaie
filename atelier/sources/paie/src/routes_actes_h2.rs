@@ -26,7 +26,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::releve_retours;
+use envois::releve_retours;
 use socle::echec::Echec;
 
 /// Les routes que ce module sert.
@@ -98,9 +98,9 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let dpae = etats::est(quoi, "dpae");
     let (debut, fin) = releve_retours::derniere_journee();
     let releve = if dpae {
-        releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
+        crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
     } else {
-        releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
+        crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
@@ -152,9 +152,9 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
             let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-            releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
+            crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
         } else {
-            releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
+            crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
@@ -185,7 +185,7 @@ pub(crate) fn filet_preparer(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `filet_preparer` avec, au besoin, le client Urssaf que l'appelant donne pour le test automatique des DPAE (la preuve de
 /// l'ouverture, lot I2b : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
-pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut crate::releve_retours::Client>) -> R<Value> {
+pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut envois::releve_retours::Client>) -> R<Value> {
     let tester = charge.get("tester").map_or(true, vrai);
     let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
     let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
@@ -241,12 +241,12 @@ fn tester_les_dpae(
     qui: &str,
     testees: &mut Vec<Value>,
     incidents: &mut Vec<Value>,
-    mut client: Option<&mut crate::releve_retours::Client>,
+    mut client: Option<&mut envois::releve_retours::Client>,
 ) -> R<Option<Value>> {
     // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
     // COMPAGNIE FICTIVE, elle, teste (27/09/2026) : son depot est joue.
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
-    if !crate::routes_accueil::simulation_active(&ctx.racine) {
+    if !crate::bridage::branchement(&ctx.racine).joue() {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
         let dispo = client.is_some() || crate::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes_etats::vers_route)?;
         if copie || !dispo {

@@ -10,7 +10,7 @@ use super::analyse::{Args, Opt, Spec};
 use super::retours::{fenetre, jour_de, ko};
 use super::rendu::texte;
 use super::Cadre;
-use crate::releve_retours::{Client, Panne};
+use envois::releve_retours::{Client, Panne};
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
@@ -35,7 +35,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // Le Python ne passe pas par la seance ici (`coffre.lire` sans ouverture) ; le moteur, lui, ouvre le coffre comme pour
     // `retours` s'il est ferme.
     cadre.ouvrir_le_coffre();
-    let Some(mdp) = crate::releve_retours::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")? else {
+    let Some(mdp) = crate::releve::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")? else {
         dire!("Mot de passe absent. Le poser une fois : `paie coffre poser net-entreprises`.");
         return Ok(2);
     };

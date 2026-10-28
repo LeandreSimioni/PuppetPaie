@@ -23,7 +23,7 @@ use serde_json::{json, Value};
 
 use socle::fichiers::vrai;
 use crate::routes_google::{champ, en_texte, encoder, identifiants, jeton_par_rafraichissement, lire_jeton_dit, phrase_de_panne, refus_de_copie, JETONS};
-use crate::transport::{envoyer, Requete};
+use envois::transport::{envoyer, Requete};
 
 /// `google.DRIVE_FICHIERS`.
 pub const DRIVE_FICHIERS: &str = "https://www.googleapis.com/drive/v3/files";
@@ -326,7 +326,7 @@ impl Client {
             Ok((brut, _)) => Ok(brut),
             Err(panne) => {
                 let statut = match &panne {
-                    crate::transport::Panne::Statut { code, .. } => Some(*code),
+                    envois::transport::Panne::Statut { code, .. } => Some(*code),
                     _ => None,
                 };
                 let mut e = match phrase_de_panne(panne) {

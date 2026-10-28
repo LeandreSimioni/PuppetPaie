@@ -17,7 +17,8 @@ use serde_json::{json, Value};
 use crate::coffre::{Coffre, CONSULTATION};
 use droit::contexte::Contexte;
 use socle::echec::erreur;
-use crate::releve_retours::{mot_de_passe_de_consultation, Client, Panne};
+use crate::releve::mot_de_passe_de_consultation;
+use envois::releve_retours::{Client, Panne};
 use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;

@@ -29,7 +29,7 @@ use sha2::{Digest, Sha256};
 
 use socle::echec::Echec;
 use crate::routes_google::{en_texte, encoder, identifiants, phrase_de_panne, DESCRIPTION, FICHIER_JETON, JETONS, PERMISSIONS};
-use crate::transport::{envoyer, Requete};
+use envois::transport::{envoyer, Requete};
 
 /// `google.AUTORISATION`, `google.USERINFO`, `google.DELAI_AUTORISATION`.
 const AUTORISATION: &str = "https://accounts.google.com/o/oauth2/v2/auth";

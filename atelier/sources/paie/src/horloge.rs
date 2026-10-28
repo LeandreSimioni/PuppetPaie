@@ -68,7 +68,7 @@ pub struct HorlogeFictive<'a> {
 impl<'a> HorlogeFictive<'a> {
     /// `simulation.active(ctx)` : `None` si les envois de cette racine ne sont pas joues.
     pub fn verifier(racine: &'a Path) -> Option<HorlogeFictive<'a>> {
-        crate::routes_accueil::simulation_active(racine).then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
+        crate::bridage::branchement(racine).joue().then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
     }
 
     /// Le jour que cette compagnie fictive joue.
@@ -90,7 +90,7 @@ impl<'a> HorlogeFictive<'a> {
 
     /// Relit le marqueur : refuse tout geste si la racine a cesse d'etre une compagnie fictive.
     fn reverifier(&self) -> R<()> {
-        if crate::routes_accueil::simulation_active(self.racine) {
+        if crate::bridage::branchement(self.racine).joue() {
             Ok(())
         } else {
             Err(erreur("ErreurOperation", "Ce dossier n'est pas une compagnie fictive : l'horloge ne joue rien ici."))
@@ -263,7 +263,7 @@ fn deposer_les_dsn(
     d: &HorlogeFictive,
     ctx: &Contexte,
     mois: &str,
-    garder: impl Fn(&crate::depot::Apercu) -> bool,
+    garder: impl Fn(&envois::depot::Apercu) -> bool,
     a_faire: &mut Vec<String>,
 ) -> R<bool> {
     let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
@@ -277,7 +277,7 @@ fn deposer_les_dsn(
     let mut fait = false;
     for chemin in chemins {
         let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if parties.contains(&nom) || !std::fs::read(&chemin).is_ok_and(|o| garder(&crate::depot::lire(&o))) {
+        if parties.contains(&nom) || !std::fs::read(&chemin).is_ok_and(|o| garder(&envois::depot::lire(&o))) {
             continue;
         }
         for reel in [false, true] {
@@ -290,10 +290,10 @@ fn deposer_les_dsn(
 }
 
 /// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
-/// des AER jouees laisse a faire (`releve_retours::rattacher_simulation_detail`), comme les autres chemins de la releve.
+/// des AER jouees laisse a faire (`crate::releve::rattacher_simulation`), comme les autres chemins de la releve.
 fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
     d.reverifier()?;
-    Ok(crate::releve_retours::rattacher_simulation_detail(ctx, 0)?.1)
+    Ok(crate::releve::rattacher_simulation(ctx, 0)?.1)
 }
 
 // ------------------------------------------------------------------ dernier_rattrapage

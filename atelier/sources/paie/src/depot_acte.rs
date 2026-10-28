@@ -1,18 +1,18 @@
-//! Deposer une DSN ou une DPAE (`moteur/operations_declarations.py` : `deposer_dsn`, `deposer_dpae`,
-//! `_verifier_preuve`, `_exiger_repetition`, `_motdepasse_organisme`, `prochain_ordre_de_test`...) -- lot H2.
+//! DEPOSER UNE DSN OU UNE DPAE, du cote de la compagnie : tout ce que `paie` verifie avant que le depot parte
+//! (`envois::depot_acte`), et les suites qu'il fait ensuite (`suites::faire`).
 //!
 //! DEPOSER EST L'UN DES RARES GESTES DU LOGICIEL QUI ENGAGENT L'EMPLOYEUR -- jusqu'a des ordres de
 //! telepaiement reellement preleves. L'ordre est donc toujours le meme, et c'est le moteur qui le tient (jamais
-//! la page) : lire le fichier ; verifier que le mode demande colle a ce qu'il code (un fichier `02` depose
-//! << pour voir >> EST une declaration) ; exiger la preuve (le mot de passe du logiciel, retape au moment de
-//! l'acte) ; exiger la REPETITION (ce contenu exact est deja passe en test, ou un motif ECRIT) ; seulement
+//! la page) : ouvrir la porte du branchement ; lire le fichier ; verifier que le mode demande colle a ce qu'il code (un
+//! fichier `02` depose << pour voir >> EST une declaration) ; exiger la preuve (le mot de passe du logiciel, retape au
+//! moment de l'acte) ; exiger la REPETITION (ce contenu exact est deja passe en test, ou un motif ECRIT) ; seulement
 //! alors chercher le secret de l'organisme ; deposer ; NOTER, quoi qu'il arrive -- succes comme echec.
 //!
 //! Le secret de l'organisme ne sort pas d'ici que pour le client (`releve_retours::Client`) : il n'est ni
 //! journalise, ni affiche, ni renvoye. Un depot de test ne part jamais avec la nature `02` ni l'indicateur
 //! `120` : la bascule se fait en memoire (`depot::basculer_*`), jamais sur le disque.
 //!
-//! La COMPAGNIE FICTIVE (`simulation.active`) joue le depot -- un flux `FICTIF-...` -- et rien ne quitte le poste ;
+//! Le SIMULATEUR (`bridage::branchement`) joue le depot -- un flux `FICTIF-...` -- et rien ne quitte le poste ;
 //! le reste (repetition, journal) se deroule comme en vrai.
 
 use std::path::{Path, PathBuf};
@@ -20,24 +20,22 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
-use crate::depot::{self, Apercu};
+use envois::depot::{self, Apercu};
 use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::releve_retours::{Client, Panne};
+use envois::releve_retours::Client;
+use envois::suites::Suites;
+
+pub use envois::depot_acte::{phrase_de, DepotFait};
 use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
 /// voyagent ensemble dans le message, que `routes.rs` redresse en `{"erreur", "classe", <cle>}`.
 pub(crate) fn avec_donnee(classe: &'static str, message: impl Into<String>, cle: &str, donnee: Value) -> Echec {
     Echec { classe: Some(classe), message: json!({"message": message.into(), cle: donnee}).to_string() }
-}
-
-/// Le texte d'un refus qui porte une donnee (`avec_donnee`) : sa phrase seule.
-pub(crate) fn phrase_de(e: &Echec) -> String {
-    serde_json::from_str::<Value>(&e.message).ok().and_then(|d| d.get("message").and_then(Value::as_str).map(str::to_string)).unwrap_or_else(|| e.message.clone())
 }
 
 /// `Preuve` : ce qui prouve qu'un humain veut CET acte, MAINTENANT. Le mot de passe DU LOGICIEL, retape.
@@ -50,32 +48,6 @@ pub struct Preuve {
 impl Preuve {
     pub fn de_la_charge(charge: &Value) -> Preuve {
         Preuve { motdepasse: charge.get("motdepasse").filter(|m| vrai(m)).map(valeur_en_texte), mois_recopie: None }
-    }
-}
-
-/// Ce qui vient de partir, et ce que l'organisme a repondu.
-pub struct DepotFait {
-    pub quoi: String,
-    pub mois: String,
-    pub reel: bool,
-    pub reponse: String,
-    pub flux: String,
-    pub trace: Option<PathBuf>,
-    pub ligne: Value,
-    /// Le depot PRECEDENT du meme fichier, s'il y en a eu un (`Null` sinon).
-    pub deja: Value,
-    /// La repetition qui a ouvert ce depot reel (`Null` pour un test : il EST la repetition).
-    pub repetition: Value,
-}
-
-impl DepotFait {
-    /// La reponse de la route `deposer`.
-    pub fn en_json(&self) -> Value {
-        json!({
-            "quoi": self.quoi, "mois": self.mois, "reel": self.reel, "reponse": self.reponse, "flux": self.flux,
-            "trace": self.trace.as_ref().map(|t| t.to_string_lossy().into_owned()),
-            "ligne": self.ligne, "deja": self.deja, "repetition": self.repetition,
-        })
     }
 }
 
@@ -127,7 +99,7 @@ fn refus_atelier(ctx: &Contexte, _preuve: Option<&Preuve>, _mois_attendu: &str, 
     // UNE COMPAGNIE FICTIVE AUX ENVOIS SIMULES : son « acte reel » est joue (`FICTIF-…`), rien ne part -- comme dans le
     // binaire livre (`verifier_preuve_du_logiciel`). Le banc d'essai (#236) en vit : l'horloge y depose la DSN et la DPAE
     // « en reel ». Toute autre compagnie : refuse, mot de passe ou non (la commande `signatures` fait de meme).
-    if crate::routes_accueil::simulation_active(&ctx.racine) {
+    if crate::bridage::branchement(&ctx.racine).joue() {
         return Ok("fictive".into());
     }
     Err(erreur("ActeReelRefuse", crate::atelier::REFUS_ACTE_REEL.to_string()))
@@ -136,7 +108,7 @@ fn refus_atelier(ctx: &Contexte, _preuve: Option<&Preuve>, _mois_attendu: &str, 
 #[cfg_attr(feature = "atelier", allow(dead_code))]
 fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_attendu: &str, quoi: &str, a_qui: &str) -> R<String> {
     // LA COMPAGNIE FICTIVE : rien ne part, il n'y a rien a prouver.
-    if crate::routes_accueil::simulation_active(&ctx.racine) {
+    if crate::bridage::branchement(&ctx.racine).joue() {
         return Ok("fictive".into());
     }
     // Une version EXIGEE attend d'etre appliquee : l'ancienne ferait une declaration fausse.
@@ -177,7 +149,7 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
 /// fenetre, il vaut confirmation), puis le coffre. Ce qui autorise a y puiser pour un depot REEL, c'est la
 /// preuve verifiee juste avant par l'appelant. Ce qui SORT d'ici est un secret : il va directement au client.
 pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Option<&str>) -> R<Option<String>> {
-    let variable = if service == "net-entreprises" { crate::releve_retours::VARIABLE_MOTDEPASSE } else { crate::releve_retours::VARIABLE_MOTDEPASSE_DPAE };
+    let variable = if service == "net-entreprises" { envois::releve_retours::VARIABLE_MOTDEPASSE } else { envois::releve_retours::VARIABLE_MOTDEPASSE_DPAE };
     if let Ok(v) = std::env::var(variable) {
         if !v.is_empty() {
             return Ok(Some(v));
@@ -294,53 +266,6 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
     Err(avec_donnee("RepetitionManquante", phrase_repetition(ctx, quoi, chemin, &etat), "etat", etat))
 }
 
-// -------------------------------------------------------------- les incidents et la trace
-
-/// `_noter_incident_depot` : un depot refuse s'ecrit au journal des incidents, test comme reel. LE CAS URGENT
-/// SE DISTINGUE ICI : un refus en REEL alors que la repetition etait conforme.
-fn noter_incident_depot(ctx: &Contexte, quoi: &str, reel: bool, classe: &str, message: &str, repetition: &Value) {
-    let apres_test = reel && repetition.get("test").is_some_and(vrai);
-    let _ = crate::incidents::noter(
-        &ctx.racine,
-        &crate::incidents::Note {
-            nature: if quoi == "dsn" { crate::incidents::DSN } else { crate::incidents::DPAE },
-            ou: &format!("depot-{}", quoi),
-            quoi: classe,
-            resume: message,
-            detail: json!({"reel": reel, "apres_test_conforme": apres_test, "repetition": if vrai(repetition) { repetition.clone() } else { json!({}) }}),
-            ..Default::default()
-        },
-    );
-}
-
-/// `_archiver_reponse` : garde la reponse de l'organisme a cote du journal, en clair, datee. Le nom doit
-/// tenir sur tous les systemes (un `?` est impossible sous Windows).
-fn archiver_reponse(ctx: &Contexte, quoi: &str, mois: &str, reponse: &str) -> R<PathBuf> {
-    let dossier = ctx.racine.join("retours").join("depots");
-    std::fs::create_dir_all(&dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
-    let etiquette: String = mois.replace('-', "").chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')).collect();
-    let etiquette = if etiquette.is_empty() { "sans-date".to_string() } else { etiquette };
-    let iso = socle::paris::maintenant();
-    let horo = format!("{}{}{}-{}{}{}", &iso[0..4], &iso[5..7], &iso[8..10], &iso[11..13], &iso[14..16], &iso[17..19]);
-    // JAMAIS PAR-DESSUS UN AUTRE (lot I1 : un depot de test puis le reel, joues a la suite par l'horloge de la compagnie fictive dans
-    // la meme seconde, portaient le meme nom, et la reponse du test disparaissait ; l'ancien Python aussi). Le nom ordinaire ne
-    // change pas ; en cas de collision le fichier prend `-2`, `-3`... avant `.txt`.
-    let mut rang = 1;
-    loop {
-        let nom = if rang == 1 { format!("{}_{}_{}.txt", horo, quoi, etiquette) } else { format!("{}_{}_{}-{}.txt", horo, quoi, etiquette, rang) };
-        let p = dossier.join(nom);
-        match std::fs::OpenOptions::new().write(true).create_new(true).open(&p) {
-            Ok(mut f) => {
-                use std::io::Write;
-                f.write_all(reponse.as_bytes()).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-                return Ok(p);
-            }
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => rang += 1,
-            Err(e) => return Err(erreur("OSError", format!("{} : {}", p.display(), e))),
-        }
-    }
-}
-
 /// LES ENGAGEMENTS QU'UN SIGNALEMENT COUVRE : un signalement porte un individu, un contrat, un evenement
 /// (`signalement`) ; l'engagement du mois de son evenement (`evenement`, AAAA-MM-JJ) dont il cite le numero
 /// (S21.G00.40.009), a sa version (`journal::versions_du_mois`).
@@ -352,75 +277,9 @@ fn versions_du_signalement(ctx: &Contexte, evenement: &str, octets: &[u8]) -> R<
     envois::journal::versions_du_mois(ctx, mois, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
 }
 
-/// `journal.noter` : ajoute la ligne et la rend.
-#[allow(clippy::too_many_arguments)]
-fn noter(
-    ctx: &Contexte,
-    quoi: &str,
-    mois: &str,
-    fichier: &Path,
-    reel: bool,
-    qui: &str,
-    accepte: bool,
-    destinataire: &str,
-    flux: &str,
-    reponse: &str,
-    trace: Option<&Path>,
-    detail: &Value,
-    versions: Option<&Value>,
-) -> R<Value> {
-    let fichier = fichier.to_string_lossy().into_owned();
-    // LA TRACE, RELATIVE A LA COMPAGNIE (#236 : une compagnie change de dossier -- gardee de `fictives/` a `compagnies/`
-    // --, et un chemin absolu ne mene plus nulle part) ; `journal::trace_de` la relit, et lit tel quel un absolu d'avant.
-    let trace = trace.map(|t| t.strip_prefix(&ctx.racine).unwrap_or(t).to_string_lossy().replace('\\', "/"));
-    let n = envois::journal::Note {
-        quoi,
-        mois: Some(mois),
-        fichier: Some(&fichier),
-        mode: if reel { "reel" } else { "test" },
-        qui,
-        accepte,
-        destinataire,
-        flux,
-        reponse,
-        trace: trace.as_deref(),
-        detail: Some(detail),
-        versions,
-        quand: "",
-        origine: "",
-    };
-    envois::journal::noter(&ctx.racine, &n, &socle::paris::maintenant()).map_err(|m| erreur("OSError", m))
-}
-
-// ----------------------------------------------------------------- la compagnie fictive
-
-/// Le flux d'un depot joue par une compagnie fictive : `FICTIF-` et douze chiffres hexadecimaux. Les depots joues avant le
-/// lot U1 portent `DEMO-` (`ANCIEN_PREFIXE_FLUX_FICTIF`) : leurs retours se jouent encore (`releve_retours`).
-pub(crate) const PREFIXE_FLUX_FICTIF: &str = "FICTIF-";
-pub(crate) const ANCIEN_PREFIXE_FLUX_FICTIF: &str = "DEMO-";
-
-/// `simulation.reponse_depot` : ce que le point de depot aurait repondu -- un flux, et la mention.
-fn reponse_fictive(quoi: &str, reel: bool) -> R<String> {
-    let mut o = [0u8; 6];
-    socle::temps::aleas(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
-    let flux = format!("{}{}", PREFIXE_FLUX_FICTIF, o.iter().map(|b| format!("{:02X}", b)).collect::<String>());
-    Ok(format!(
-        "<idflux>{}</idflux>\nCompagnie fictive : {} {} jouee, rien n'a quitte le poste.",
-        flux,
-        if quoi == "dsn" { "DSN" } else { "DPAE" },
-        if reel { "reelle" } else { "de test" }
-    ))
-}
-
-/// LA PORTE DES ORGANISMES POUR UNE FICTIVE AJOUTEE (ticket #236, `bridage::refus_d_envoi`) : la premiere chose que font
-/// `deposer_dsn_dans` et `deposer_dpae_avec`, seuls chemins vers `Client::deposer_octets` -- donc tout depot, test et
-/// reel, signalements compris, d'ou qu'il vienne. Avant elle rien n'est lu ni ecrit : pas de ligne au journal des depots,
-/// pas d'incident, pas de preuve demandee.
+/// La porte du branchement de la compagnie (`envois::branchement::Branchement::ouvrir`), pour les envois de courriels.
 pub(crate) fn refuser_l_envoi(ctx: &Contexte) -> R<()> {
-    match crate::bridage::refus_d_envoi(&ctx.racine) {
-        Some(m) => Err(erreur(crate::bridage::CLASSE_REFUS_D_ENVOI, m)),
-        None => Ok(()),
-    }
+    crate::bridage::branchement(&ctx.racine).ouvrir()
 }
 
 /// `compagnies.refuser_si_copie` : la derniere porte -- une copie de developpement ne declare rien en reel.
@@ -507,7 +366,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
         .into_iter()
         .filter(|l| l.get("mode").and_then(Value::as_str) == Some("test"))
         .collect();
-    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), true, constitution, mois)?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), true, constitution, mois)?;
     if essais.is_empty() && !vues.du_mois_acceptee {
         return Ok(None);
     }
@@ -550,7 +409,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : une mensuelle reelle envoyee d'un autre poste compte, comme
     // a la production (`depart::forme_a_produire`).
     let constitution = mois_de_constitution(a.champ("constitution"), &ctx.aujourdhui);
-    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
     let dernier = match dernier {
         Some(d) => d.max(vues.ordre),
         None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
@@ -621,7 +480,8 @@ pub fn deposer_dsn_dans(
     contournement: &str,
     ordre_d_essai: Option<i64>,
 ) -> R<DepotFait> {
-    refuser_l_envoi(ctx)?;
+    let branchement = crate::bridage::branchement(&ctx.racine);
+    branchement.ouvrir()?;
     if reel && environnement != "production" {
         return Err(erreur(
             "ErreurOperation",
@@ -717,12 +577,13 @@ pub fn deposer_dsn_dans(
         repetition = exiger_repetition(ctx, &lignes, "dsn", &chemin, contournement)?;
     }
 
-    let empreinte = envois::journal::empreinte(&octets);
-    let deja = etats::deja_depose(&lignes, "dsn", &empreinte)?;
-    let joue = crate::routes_accueil::simulation_active(&ctx.racine);
+    let joue = branchement.joue();
     let mut mdp: Option<String> = None;
     if !joue {
         mdp = motdepasse_organisme(ctx, "net-entreprises", preuve.and_then(|p| p.motdepasse.as_deref()))?;
+    }
+    if reel && !joue {
+        refuser_si_copie(ctx, "une DSN reelle")?;
     }
 
     // UN ESSAI DE PLUS SUR UN MOIS DEJA ESSAYE part en annule-et-remplace, a l'ordre suivant : la base de test
@@ -747,84 +608,11 @@ pub fn deposer_dsn_dans(
         }
         v
     };
-    let envoi = || -> R<String> {
-        if joue {
-            return reponse_fictive("dsn", reel);
-        }
-        let mut client = Client::dsn(ctx, environnement, mdp.clone()).map_err(Panne::en_echec)?;
-        client.authentifier().map_err(Panne::en_echec)?;
-        // La verification est refaite ici : la derniere porte avant le reseau.
-        let a = depot::lire(&octets);
-        depot::verifier(&a, reel, None, true)?;
-        let mut contenu = octets.clone();
-        if reel {
-            refuser_si_copie(ctx, "une DSN reelle")?;
-        } else {
-            contenu = depot::basculer_dsn(&contenu)?;
-            if let Some(n) = ordre_test.filter(|n| *n != 0) {
-                contenu = depot::renumeroter(&contenu, &n.to_string())?;
-            }
-        }
-        let url = client.adresses.depot.clone();
-        let (reponse, _type) = client.deposer_octets(&url, &contenu, "dsn").map_err(Panne::en_echec)?;
-        Ok(reponse)
-    };
-    let reponse = match envoi() {
-        Ok(r) => r,
-        Err(e) => {
-            let classe = e.classe.unwrap_or("Exception");
-            let phrase = phrase_de(&e);
-            let _ = noter(
-                ctx, "dsn", &mois, &chemin, reel, qui, false, "net-entreprises", "", &phrase.chars().take(600).collect::<String>(), None,
-                &json!({"preuve": forme, "erreur": classe, "repetition": repetition, "nature": apercu.champ("nature"), "ordre": apercu.champ("ordre")}), None,
-            );
-            noter_incident_depot(ctx, "dsn", reel, classe, &phrase, &repetition);
-            return Err(e);
-        }
-    };
-
-    let flux = etats::flux_de(&reponse);
-    let trace = archiver_reponse(ctx, "depot-dsn", &mois, &reponse)?;
-    let detail = json!({
-        "preuve": forme, "type": apercu.champ("type_declaration"),
-        // LA NATURE : un signalement se numerote a la suite de tous ceux deja partis (`journal::dernier_ordre_des_signalements`).
-        "nature": apercu.champ("nature"),
-        // LE RANG DECLARE : le prochain annule-et-remplace se numerote au-dessus de cet ordre.
-        "ordre": apercu.champ("ordre"),
-        "versements": apercu.versements, "salaries": apercu.salaries,
-        // CE QUI A ETE PRELEVE SUR LA GRILLE, et non sur le taux du salarie : la seule trace qui reste.
-        "pas_bareme": apercu.pas_bareme,
-        "repetition": repetition, "ordre_test": ordre_test,
-        "etablissement": apercu.champ("etablissement"),
-    });
-    let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
-    let quand = ligne.get("quand").and_then(Value::as_str).unwrap_or("").to_string();
-    if reel && apercu.est_signalement() {
-        // LA TRACE SUR L'ARRET LUI-MEME : ce qui est parti, quand, avec quel numero d'ordre.
-        crate::marques_depot::marquer_envoye_depuis(
-            ctx,
-            &chemin,
-            apercu.champ("nature"),
-            apercu.champ("ordre"),
-            apercu.champ("type_declaration"),
-            &apercu.evenement_lisible(),
-            &quand,
-        )?;
-        // ET LA TRACE D'UNE DEMANDE DE TAUX, quand c'est un signalement d'amorcage : sans elle, le moteur
-        // redirait << aucun taux connu, il faut demander >> a chaque ouverture.
-        if apercu.champ("nature") == declarations::amorcage::NATURE {
-            crate::marques_depot::marquer_demande_depuis(ctx, &chemin, &quand)?;
-        }
-    }
-    if reel && !apercu.est_signalement() && !joue {
-        // LE REVEIL DE LA DSN SE TAIT (30/09/2026). Ne leve jamais.
-        let _ = crate::filet::desarmer(&ctx.racine, &format!("dsn|{}", mois));
-    }
-    if reel && !apercu.est_signalement() {
-        // Les arrets que la DSN a reportes le savent.
-        crate::marques_depot::marquer_reportes(ctx, &mois, &chemin, &quand)?;
-    }
-    Ok(DepotFait { quoi: "dsn".into(), mois, reel, reponse, flux, trace: Some(trace), ligne, deja, repetition })
+    let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: mdp, versions: &versions };
+    let mut suites = Suites::default();
+    let fait = envois::depot_acte::deposer_dsn(ctx, branchement, &d, &apercu, environnement, ordre_test, &mut suites);
+    crate::suites::faire(ctx, suites)?;
+    fait
 }
 
 // ----------------------------------------------------------------------- la DPAE
@@ -857,7 +645,8 @@ pub fn deposer_dpae_avec(
     contournement: &str,
     client_donne: Option<&mut Client>,
 ) -> R<DepotFait> {
-    refuser_l_envoi(ctx)?;
+    let branchement = crate::bridage::branchement(&ctx.racine);
+    branchement.ouvrir()?;
     let chemin = PathBuf::from(crate::routes_apercus::resoudre(&ctx.racine, fichier)?);
     let apercu = crate::routes_apercus::apercu_depot_dpae(ctx, &json!(chemin.to_string_lossy()))?;
     let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;
@@ -887,7 +676,7 @@ pub fn deposer_dpae_avec(
         contenu = depot::basculer_dpae(&contenu, depot::LONGUEUR_DPAE)?;
     }
 
-    let joue = crate::routes_accueil::simulation_active(&ctx.racine);
+    let joue = branchement.joue();
     let mut client: Option<Client> = None;
     let mut donne = client_donne;
     if !joue {
@@ -904,24 +693,11 @@ pub fn deposer_dpae_avec(
         if !soucis.is_empty() {
             return Err(erreur("ErreurOperation", format!("Ces points feraient echouer la connexion MtoM. Rien n'est envoye :\n  {}", soucis.join("\n  "))));
         }
-    }
-
-    let mut envoi = || -> R<String> {
-        if joue {
-            return reponse_fictive("dpae", reel);
-        }
-        let c: &mut Client = match donne.as_deref_mut() {
-            Some(c) => c,
-            None => client.as_mut().ok_or_else(|| erreur("ErreurOperation", "client absent"))?,
-        };
-        c.authentifier().map_err(Panne::en_echec)?;
         if depot::est_reel(&contenu) {
             refuser_si_copie(ctx, "une DPAE reelle")?;
         }
-        let url = c.adresses.depot.clone();
-        let (reponse, _type) = c.deposer_octets(&url, &contenu, "dpae").map_err(Panne::en_echec)?;
-        Ok(reponse)
-    };
+    }
+
     let embauches: Vec<Value> = apercu["embauches"]
         .as_array()
         .map(|a| a.iter().map(|l| json!({"salarie": l["salarie"], "debut": l["debut"], "fin": l["fin"]})).collect())
@@ -929,60 +705,13 @@ pub fn deposer_dpae_avec(
     // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
     let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
     let versions = envois::journal::versions_du_mois(ctx, &mois, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
-    let reponse = match envoi() {
-        Ok(r) => r,
-        Err(e) => {
-            let classe = e.classe.unwrap_or("Exception");
-            let phrase = phrase_de(&e);
-            let _ = noter(
-                ctx, "dpae", &mois, &chemin, reel, qui, false, "urssaf", "", &phrase.chars().take(600).collect::<String>(), None,
-                &json!({"preuve": forme, "erreur": classe, "repetition": repetition}), None,
-            );
-            noter_incident_depot(ctx, "dpae", reel, classe, &phrase, &repetition);
-            return Err(e);
-        }
+    let d = envois::depot_acte::Depot { chemin: &chemin, octets: &octets, mois: &mois, reel, qui, preuve: &forme, repetition: &repetition, motdepasse: None, versions: &versions };
+    let c = match donne.as_deref_mut() {
+        Some(c) => Some(c),
+        None => client.as_mut(),
     };
-
-    let trace = archiver_reponse(ctx, "depot-dpae", &mois, &reponse)?;
-    let flux = etats::flux_de(&reponse);
-    // Ce que ce depot a REELLEMENT declare, a la maille de l'embauche : c'est ce qui repondra ensuite a
-    // « lesquelles restent a faire ».
-    let detail = json!({"preuve": forme, "repetition": repetition, "embauches": embauches});
-    let ligne = noter(ctx, "dpae", &mois, &chemin, reel, qui, true, "urssaf", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
-    // LE REVEIL SE TAIT (27/09/2026) : la DPAE est partie, le filet n'a plus a sonner pour ces embauches.
-    if reel && !joue {
-        for e in &embauches {
-            let _ = crate::filet::desarmer(&ctx.racine, &crate::filet::cle_du_reveil(&json!({"salarie": e["salarie"], "debut": e["debut"]})));
-        }
-    }
-    Ok(DepotFait { quoi: "dpae".into(), mois, reel, reponse, flux, trace: Some(trace), ligne, deja: apercu["deja_depose"].clone(), repetition })
-}
-
-#[cfg(test)]
-mod tests_archives {
-    use super::*;
-
-    #[test]
-    fn la_reponse_d_un_depot_n_en_ecrase_jamais_une_autre() {
-        // Defaut de l'ancien Python (lot I1) : un depot de test puis le reel, dans la meme seconde, portaient le meme nom
-        // `<horodatage>_depot-dsn_<mois>.txt` et la reponse du test disparaissait.
-        let r = crate::horloge::racine_d_essai(false);
-        let ctx = Contexte::nouveau(&r, None).unwrap();
-        let mut chemins = Vec::new();
-        for i in 0..6 {
-            chemins.push(archiver_reponse(&ctx, "depot-dsn", "2026-09", &format!("reponse {}", i)).unwrap());
-        }
-        let mut tous = chemins.clone();
-        tous.sort();
-        tous.dedup();
-        assert_eq!(tous.len(), 6, "{:?}", chemins);
-        for (i, c) in chemins.iter().enumerate() {
-            assert_eq!(std::fs::read_to_string(c).unwrap(), format!("reponse {}", i), "{}", c.display());
-            let nom = c.file_name().unwrap().to_string_lossy().into_owned();
-            assert!(nom.ends_with("_depot-dsn_202609.txt") || nom.contains("_depot-dsn_202609-"), "{}", nom);
-        }
-        // Le nom ordinaire (premier de la seconde) ne change pas : `AAAAMMJJ-HHMMSS_depot-dsn_AAAAMM.txt`.
-        let ordinaire = chemins.iter().filter(|c| c.to_string_lossy().ends_with("_depot-dsn_202609.txt")).count();
-        assert!(ordinaire >= 1);
-    }
+    let mut suites = Suites::default();
+    let fait = envois::depot_acte::deposer_dpae(ctx, branchement, &d, &contenu, embauches, c, apercu["deja_depose"].clone(), &mut suites);
+    crate::suites::faire(ctx, suites)?;
+    fait
 }

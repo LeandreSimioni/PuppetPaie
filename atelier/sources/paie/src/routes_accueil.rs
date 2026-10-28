@@ -298,15 +298,14 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
 /// JAMAIS UNE FICTIVE AJOUTEE (ticket #236, `compagnies::est_ajoutee`), meme dans le paquet soude : ses envois ne sont pas
 /// joues, ils sont refuses (`bridage::refus_d_envoi`).
 pub fn simulation_active(racine: &Path) -> bool {
-    use crate::interface::compagnies::{est_ajoutee, est_fictive};
-    !est_ajoutee(racine) && (crate::bridage::paquet_soude() || est_fictive(racine))
+    crate::bridage::branchement(racine).joue()
 }
 
 /// `boite_liee` : peut-on envoyer, et les signatures reviennent-elles seules ?
 /// Une seule reponse aux deux : le mot de passe de la boite est pose. Ne lit
 /// jamais ce mot de passe : l'adresse (`compte`), et si un secret existe.
 pub fn boite_liee(ctx: &Contexte) -> R<bool> {
-    if simulation_active(&ctx.racine) {
+    if crate::bridage::branchement(&ctx.racine).joue() {
         return Ok(true);
     }
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
@@ -900,10 +899,10 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "configuration": configuration,
         // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
         // mot de passe.
-        "simulation": simulation_active(&ctx.racine),
+        "simulation": crate::bridage::branchement(&ctx.racine).joue(),
         // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::refus_d_envoi`) ; la page
         // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
-        "envois_refuses": crate::bridage::refus_d_envoi(&ctx.racine).is_some(),
+        "envois_refuses": crate::bridage::branchement(&ctx.racine).refus().is_some(),
         // SUPPRIMER LA COMPAGNIE (ticket #236) : la Configuration ne le propose que si elle se supprime -- jamais une
         // fictive livree, qui se remet a zero (`interface::suppression::genre`).
         "supprimable": crate::interface::suppression::genre(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),

@@ -332,8 +332,8 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     Ok(json!({
         "fichier": chemin, "nom": nom_fichier,
         "enregistrements": enrs.len(), "octets": contenu.len(),
-        "reel": crate::depot::est_reel(&contenu),
-        "indicateur": crate::depot::indicateur(&contenu),
+        "reel": envois::depot::est_reel(&contenu),
+        "indicateur": envois::depot::indicateur(&contenu),
         "mois": mois.first().cloned().unwrap_or_default(),
         "tous_les_mois": mois,
         "embauches": lignes,

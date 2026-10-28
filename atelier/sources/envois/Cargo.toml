@@ -41,3 +41,7 @@ lettre = { version = "0.11", default-features = false, features = ["smtp-transpo
 imap-proto = "0.17"
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-platform-verifier = "0.7"
+
+[features]
+# La redirection de l'atelier vers un faux serveur local (`redirection`), pour `paie-atelier` seulement.
+atelier = []

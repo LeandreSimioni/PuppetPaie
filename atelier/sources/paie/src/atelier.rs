@@ -19,36 +19,11 @@
 
 pub mod bulletins_fictifs;
 pub mod fabriquer_bulletins;
-
-/// Le faux net-entreprises : `BASE/authentifier/`, `BASE/lister-retours-declarant/1.0/`, `BASE/lister-retours-flux/1.0/`, `BASE/deposer-dsn/1.0/`.
-pub const VARIABLE_DSN: &str = "PUPPETPAIE_ATELIER_DSN";
-/// Le faux Urssaf : `BASE/authentifier_dpae`, et les mêmes services que la DSN.
-pub const VARIABLE_DPAE: &str = "PUPPETPAIE_ATELIER_DPAE";
-/// Le faux Google : `BASE/token`, `BASE/drive/v3/files`, `BASE/upload/drive/v3/files`.
-pub const VARIABLE_GOOGLE: &str = "PUPPETPAIE_ATELIER_GOOGLE";
-
-/// Ce que dit une redirection refusee : l'adresse qui n'est pas locale n'est jamais appelee.
-pub const ADRESSE_REFUSEE: &str = "http://127.0.0.1:9/adresse-non-locale-refusee-par-l-atelier/";
+pub use envois::redirection::{base, est_locale, ADRESSE_REFUSEE, VARIABLE_DPAE, VARIABLE_DSN, VARIABLE_GOOGLE};
 
 /// La phrase du refus d'un acte reel.
 pub const REFUS_ACTE_REEL: &str =
     "Ceci est le binaire de l'atelier (paie-atelier) : il refuse tout acte reel (depot reel, envoi, signature), mot de passe ou non. Rien n'est parti.";
-
-/// Une adresse locale : le seul endroit ou l'atelier accepte d'aller.
-pub fn est_locale(adresse: &str) -> bool {
-    ["http://127.0.0.1:", "http://localhost:", "http://[::1]:"].iter().any(|p| adresse.starts_with(p))
-}
-
-/// La base d'une variable de redirection, sans barre finale ; `None` si elle n'est pas posee (ou vide). Une valeur qui
-/// n'est pas locale rend `ADRESSE_REFUSEE`, qui n'aboutit nulle part.
-pub fn base(variable: &str) -> Option<String> {
-    let v = std::env::var(variable).ok()?;
-    let v = v.trim().trim_end_matches('/').to_string();
-    if v.is_empty() {
-        return None;
-    }
-    Some(if est_locale(&v) { v } else { ADRESSE_REFUSEE.trim_end_matches('/').to_string() })
-}
 
 /// Au demarrage de `paie-atelier` : une variable posee sur autre chose qu'un serveur local arrete tout.
 pub fn verifier_environnement() -> Result<(), String> {

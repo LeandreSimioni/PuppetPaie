@@ -32,7 +32,7 @@ use serde_json::{json, Value};
 
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
-use crate::depot::{self, Apercu};
+use envois::depot::{self, Apercu};
 use crate::depot_acte::{self, DepotFait, Preuve};
 use socle::echec::Echec;
 

@@ -143,16 +143,16 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     dire!("{}", "-".repeat(66));
 
     // --------------------------------------------------------------- controles
-    let indicateur = crate::depot::indicateur(&contenu);
-    if !crate::depot::est_reel(&contenu) {
+    let indicateur = envois::depot::indicateur(&contenu);
+    if !envois::depot::est_reel(&contenu) {
         dire!(
             "\nARRET - champ C_VERSION {} en position {}-{}, attendu {}.\n\nLe fichier produit par le moteur porte toujours {}. Un flux dont on ignore\ns'il sera traite comme un test ou comme une declaration ne part pas d'ici.\nPour un depot de test, ne pas bricoler le fichier : utiliser --test, qui\nbascule C_VERSION en {} en memoire, au moment de l'envoi.\n",
             socle::fichiers::repr(&indicateur),
-            crate::depot::INDICATEUR.0,
-            crate::depot::INDICATEUR.1,
-            socle::fichiers::repr(crate::depot::INDICATEUR_REEL),
-            socle::fichiers::repr(crate::depot::INDICATEUR_REEL),
-            socle::fichiers::repr(crate::depot::INDICATEUR_TEST)
+            envois::depot::INDICATEUR.0,
+            envois::depot::INDICATEUR.1,
+            socle::fichiers::repr(envois::depot::INDICATEUR_REEL),
+            socle::fichiers::repr(envois::depot::INDICATEUR_REEL),
+            socle::fichiers::repr(envois::depot::INDICATEUR_TEST)
         );
         return Ok(2);
     }
@@ -177,14 +177,14 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
     // ------------------------------------------------------------ essai a blanc
     if !reel && !test {
-        let adresses = crate::releve_retours::Client::dpae(&cadre.ctx, false, None).adresses;
+        let adresses = envois::releve_retours::Client::dpae(&cadre.ctx, false, None).adresses;
         dire!(
             "\nESSAI A BLANC - rien n'a ete envoye.\n\nCe qui partirait :\n  {} declaration(s), {} octets, gzip\n  POST {}\n  authentification {}\n\nLe depot de TEST d'abord -- il est EXIGE avant le reel, et rien n'y est\ndeclare (C_VERSION bascule en {}, le fichier n'est pas modifie) :\n  paie deposer-dpae {} --test\n\nPuis, le meme fichier, pour de vrai :\n  paie deposer-dpae {} --reel\n",
             enregistrements.len(),
             contenu.len(),
             adresses.depot,
             adresses.authentification,
-            crate::depot::INDICATEUR_TEST,
+            envois::depot::INDICATEUR_TEST,
             fichier,
             fichier
         );
@@ -205,8 +205,8 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     if test {
         dire!(
             "\nDEPOT DE TEST - C_VERSION bascule de {} en {} sur les {} enregistrement(s).\n\nLe service de production accepte les depots de test : la FAQ de l'Urssaf le\nprevoit explicitement. Rien ne sera declare, et les retours porteront la\nmention de test. Le fichier sur le disque n'est pas modifie.\n",
-            crate::depot::INDICATEUR_REEL,
-            crate::depot::INDICATEUR_TEST,
+            envois::depot::INDICATEUR_REEL,
+            envois::depot::INDICATEUR_TEST,
             enregistrements.len()
         );
     }

@@ -137,7 +137,7 @@ pub fn est_refus_d_envoi(classe: Option<&str>) -> bool {
 /// une seance (`Cadre::ouvrir_le_coffre`). La compagnie fictive n'a ni boite ni coffre a ouvrir. Ceci n'AUTORISE rien : l'envoi reel
 /// reste soumis a la preuve du moteur (`depot_acte::verifier_preuve`), qui demande elle-meme le mot de passe a un humain.
 pub fn ouvrir_la_boite(cadre: &super::Cadre) {
-    if !crate::routes_accueil::simulation_active(&cadre.racine) {
+    if !crate::bridage::branchement(&cadre.racine).joue() {
         cadre.ouvrir_le_coffre();
     }
 }
@@ -196,7 +196,7 @@ pub fn pas_redirige(cadre: &super::Cadre, organisme: Organisme) -> bool {
         Organisme::Dpae => crate::atelier::VARIABLE_DPAE,
         Organisme::Google => crate::atelier::VARIABLE_GOOGLE,
     };
-    crate::atelier::base(variable).is_none() && !crate::routes_accueil::simulation_active(&cadre.racine)
+    crate::atelier::base(variable).is_none() && !crate::bridage::branchement(&cadre.racine).joue()
 }
 
 #[cfg(not(feature = "atelier"))]
@@ -207,7 +207,7 @@ pub fn pas_redirige(_cadre: &super::Cadre, _organisme: Organisme) -> bool {
 /// Dans `paie-atelier`, hors compagnie fictive : la boite courriel n'est pas redirigee, donc rien ne la lit ni ne l'ouvre.
 #[cfg(feature = "atelier")]
 pub fn boite_interdite(cadre: &super::Cadre) -> bool {
-    !crate::routes_accueil::simulation_active(&cadre.racine)
+    !crate::bridage::branchement(&cadre.racine).joue()
 }
 
 #[cfg(not(feature = "atelier"))]
@@ -220,7 +220,7 @@ pub fn boite_interdite(_cadre: &super::Cadre) -> bool {
 /// poste, que l'atelier ne touche pas. `quoi` dit ce qui est refuse (« de poser un mot de passe »). Dans `paie` : rien n'est refuse ici.
 #[cfg(feature = "atelier")]
 pub fn refuser_dans_l_atelier(cadre: &super::Cadre, quoi: &str) -> Result<(), Echec> {
-    if crate::routes_accueil::simulation_active(&cadre.racine) {
+    if crate::bridage::branchement(&cadre.racine).joue() {
         return Ok(());
     }
     Err(Echec {

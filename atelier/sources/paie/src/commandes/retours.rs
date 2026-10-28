@@ -1,6 +1,6 @@
 //! `paie retours [--dpae] [--flux IDFLUX] [--depuis JJ/MM/AAAA] [--jusqu-a JJ/MM/AAAA] [--environnement production|editeur]
 //! [--tout] [--appliquer]` : recuperer les retours des organismes (`moteur/commandes_retours.py`, `cmd_retours`,
-//! `cmd_retours_dpae`). Le releve lui-meme est celui du moteur (`releve_retours::relever_retours`) ; ici ne reste que ce
+//! `cmd_retours_dpae`). Le releve lui-meme est celui du moteur (`crate::releve::relever_retours`) ; ici ne reste que ce
 //! qui s'affiche -- et le traitement du taux de PAS, qui demande un oeil humain.
 //!
 //! ATTENTION : cette commande va au RESEAU (net-entreprises, ou le service DPAE de l'Urssaf avec `--dpae`). Sur une
@@ -17,7 +17,7 @@ use super::analyse::{Args, Opt, Spec};
 use super::rendu::{champ, debut as debut_de, texte};
 use super::Cadre;
 use socle::date::Jour;
-use crate::releve_retours::{self, Client, Releve};
+use envois::releve_retours::{self, Client, Releve};
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
@@ -135,8 +135,8 @@ pub fn retours_dpae(cadre: &Cadre, args: &Args, client: Option<Client>) -> Resul
     let (debut, fin) = fenetre(args)?;
     let flux = args.texte("flux").unwrap_or("");
     let r: Releve = match client {
-        Some(c) if flux.is_empty() => releve_retours::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
-        _ => releve_retours::relever_retours_dpae(&cadre.ctx, debut, fin, args.drapeau("tout"), flux)?,
+        Some(c) if flux.is_empty() => crate::releve::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
+        _ => crate::releve::relever_retours_dpae(&cadre.ctx, debut, fin, args.drapeau("tout"), flux)?,
     };
     for i in &r.incidents {
         dire!("{}", i);
@@ -158,7 +158,7 @@ pub fn retours_dpae(cadre: &Cadre, args: &Args, client: Option<Client>) -> Resul
         dire!("  {}  nature {:<3} {:<45} flux {}", debut_de(&publication, 14), n, libelle, champ(&x, "flux"));
     }
     if !r.archives.is_empty() {
-        let dossier = crate::transport::dossier_archive(&cadre.racine, "dpae").map_err(|v| ko(texte(&v)))?;
+        let dossier = envois::transport::dossier_archive(&cadre.racine, "dpae").map_err(|v| ko(texte(&v)))?;
         dire!("\n{} fichier(s) archives dans {}", r.archives.len(), dossier.display());
     }
     Ok(0)
@@ -172,7 +172,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // La cle de ce poste peut ne plus ouvrir le coffre (poste d'un agent, sauvegarde restauree) : le mot de passe du
     // logiciel l'ouvre, le temps de la releve.
     cadre.ouvrir_le_coffre();
-    let mdp = releve_retours::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")?;
+    let mdp = crate::releve::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")?;
     if mdp.is_none() {
         dire!(
             "\nLe mot de passe net-entreprises n'est nulle part : ni dans l'environnement,\nni dans le coffre.\n\nLe poser une fois pour toutes -- chiffre par le compte Windows, jamais\naffiche, et c'est lui qui permet au logiciel de relever les retours seul :\n\n      paie coffre poser net-entreprises\n\nOu, pour cette fenetre seulement, sans rien ecrire :\n\n      $env:{} = (Read-Host \"mot de passe net-entreprises\")\n      paie retours\n",
@@ -189,7 +189,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
     let environnement = args.texte("environnement").unwrap_or("production");
     let (debut, fin) = fenetre(args)?;
     dire!("Consultation des retours {}, du {} au {}.", environnement, jour_de(debut), jour_de(fin));
-    let releve = releve_retours::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), environnement, client, "")?;
+    let releve = crate::releve::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), environnement, client, "")?;
     if !releve.session_jusqu_a.is_empty() {
         dire!("Session ouverte (valide jusqu'a {}).\n", releve.session_jusqu_a);
     }
@@ -219,7 +219,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
         dire!("\n  A FAIRE : {}", quoi);
     }
     if !releve.archives.is_empty() {
-        let dossier = crate::transport::dossier_archive(&cadre.racine, "").map_err(|v| ko(texte(&v)))?;
+        let dossier = envois::transport::dossier_archive(&cadre.racine, "").map_err(|v| ko(texte(&v)))?;
         dire!("\n{} fichier(s) archive(s) dans {} :", releve.archives.len(), dossier.display());
         for a in &releve.archives {
             dire!("  {}", a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default());

@@ -139,7 +139,7 @@ fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : le rang se compte « au cours du mois courant » (cahier
     // technique DSN, p. 136), toutes declarations du SIREN confondues, d'ou qu'elles soient parties (un autre poste).
     let constitution: String = ctx.aujourdhui.iso().chars().take(7).collect();
-    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
     let dernier = match dernier {
         Some(d) => d.max(vues.ordre),
         // Une mensuelle du mois acceptee en reel que le journal ignore : la suivante la remplace.
@@ -174,7 +174,7 @@ fn verse_a_la_dgfip(f: &declarations::dsn::Fabriquee) -> bool {
 /// Le jour de constitution (S20.G00.05.007, `JJMMAAAA`) d'une DSN deja ecrite.
 fn constitution_de(chemin: &Path) -> Option<socle::date::Jour> {
     let octets = std::fs::read(chemin).ok()?;
-    let t = crate::depot::lire(&octets).champ("constitution").to_string();
+    let t = envois::depot::lire(&octets).champ("constitution").to_string();
     let (j, m, a) = (t.get(0..2)?, t.get(2..4)?, t.get(4..8)?);
     socle::date::Jour::lire(&format!("{}-{}-{}", a, m, j)).ok()
 }
@@ -248,7 +248,7 @@ fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<(declara
 pub(crate) fn refabriquer(ctx: &Contexte, chemin: &Path, mois: &str, nic: Option<&str>) -> R<Option<declarations::dsn::Fabriquee>> {
     let Ok(octets) = std::fs::read(chemin) else { return Ok(None) };
     let Some(constitution) = constitution_de(chemin) else { return Ok(None) };
-    let entete = crate::depot::lire(&octets);
+    let entete = envois::depot::lire(&octets);
     let type_dsn = entete.champ("type_declaration").to_string();
     let Ok(ordre) = entete.champ("ordre").trim().parse::<i64>() else { return Ok(None) };
     let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();

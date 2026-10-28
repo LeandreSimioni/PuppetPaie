@@ -92,7 +92,24 @@ pub const CLASSE_REFUS_D_ENVOI: &str = "EnvoiBride";
 /// l'adresse). Ce qui va a l'editeur (incidents, « Un probleme, une idee ? ») et la verification d'un mot de passe ne
 /// sont pas des envois : ils restent permis.
 pub fn refus_d_envoi(racine: &Path) -> Option<&'static str> {
-    crate::interface::compagnies::est_ajoutee(racine).then_some(REFUS_D_ENVOI)
+    branchement(racine).refus().map(|r| r.phrase)
+}
+
+/// LE BRANCHEMENT DE LA COMPAGNIE `racine` (`envois::branchement`), choisi ici et nulle part ailleurs :
+/// - une FICTIVE AJOUTEE (`compagnies::est_ajoutee`) n'envoie rien : le message, `REFUS_D_ENVOI` ;
+/// - une compagnie FICTIVE (son marqueur, `compagnies::est_fictive`), ou toute compagnie du PAQUET SOUDE
+///   (`paquet_soude`) : le simulateur ;
+/// - toute autre : le monde. Le logiciel simplement bride ne joue rien.
+pub fn branchement(racine: &Path) -> envois::branchement::Branchement {
+    use crate::interface::compagnies::{est_ajoutee, est_fictive};
+    use envois::branchement::{Branchement, Refus};
+    if est_ajoutee(racine) {
+        Branchement::Message(Refus { classe: CLASSE_REFUS_D_ENVOI, phrase: REFUS_D_ENVOI })
+    } else if paquet_soude() || est_fictive(racine) {
+        Branchement::Simulateur
+    } else {
+        Branchement::Monde
+    }
 }
 
 /// Le mot qui le dit (le journal des incidents, la description du poste) : `bride` ou `debloque`.

@@ -25,7 +25,7 @@
 use serde_json::Value;
 
 use socle::echec::Echec;
-use crate::transport::{envoyer, Panne, Requete};
+use envois::transport::{envoyer, Panne, Requete};
 
 /// `editeur.ACTIONS_DEMO` du Python : ce que le paquet soude (bride pour toujours) peut poster.
 pub const ACTIONS_BRIDEES: [&str; 4] = ["poste", "rapport", "retour", "reponses"];

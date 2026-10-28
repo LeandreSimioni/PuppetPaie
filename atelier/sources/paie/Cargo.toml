@@ -22,7 +22,7 @@ path = "src/main.rs"
 required-features = ["atelier"]
 
 [features]
-atelier = []
+atelier = ["envois/atelier"]
 
 [dependencies]
 # Les deux parties du dessous : le socle (dates, nombres, fichiers, echecs, temps, garde-fou reseau) et le droit
