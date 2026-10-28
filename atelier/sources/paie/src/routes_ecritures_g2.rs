@@ -1,18 +1,14 @@
-//! Les routes qui ECRIVENT du lot G2 (`moteur/web.py`, `operations_regularisation`,
-//! `operations_arrets`, `operations_echeancier`, `operations_etats`) :
-//! `regularisation-ecrire`, `regularisation-annuler`, `arret-enregistrer`, `arret-reprise`,
+//! Les routes qui ECRIVENT du lot G2 (`moteur/web.py`, `operations_arrets`, `operations_echeancier`,
+//! `operations_etats`) : `arret-enregistrer`, `arret-reprise`,
 //! `arret-oublier`, `echeance-faite` ; et `couts`, qui ne fait que lire.
 //!
-//! Memes fichiers ecrits, aux memes octets (`regularisations/AAAA-MM.json`, `imprevus/AAAA-MM.json` (le magasin des
+//! Memes fichiers ecrits, aux memes octets (`imprevus/AAAA-MM.json` (le magasin des
 //! imprevus, `imprevus`),
 //! `config/echeancier.json`), memes reponses que le Python. Un refus garde sa phrase quand elle est
 //! utile a la page ; la classe de l'exception peut differer (`ContratIntrouvable`,
-//! `ArretIntrouvable`, `MoisNonRegularisable` sont des `ErreurOperation` ; `SignalementImpossible`
+//! `ArretIntrouvable` sont des `ErreurOperation` ; `SignalementImpossible`
 //! une `ValueError`).
 //!
-//! - Une correction (`regularisation-ecrire`, `-annuler`) arme ou desarme la prochaine DSN d'un
-//!   mois deja declare : le mot de passe du logiciel, s'il est pose, vient dans le corps
-//!   (`motdepasse`) et se confronte au coffre (`filet::exiger_mot_de_passe`).
 //! - Un arret se saisit, se reprend, s'oublie sans mot de passe : rien ne part ; il vit dans le magasin des imprevus
 //!   (`imprevus`), qui en tire la ligne de paie d'un permanent et le bloc 60 de chaque DSN. Les controles de la
 //!   norme sont ceux de `signalement::verifier`, les memes que ceux du signalement.
@@ -20,28 +16,23 @@
 //!   (`fiche_recapitulative::Recapitulatifs::couts_de_l_annee`).
 
 use std::collections::HashMap;
-use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::{d, Jour};
-use socle::ecriture::ecrire_json;
-use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::echec::Echec;
-use crate::routes_dossiers::{brut, salarie};
-use crate::routes_ecrites::{etat_correction, lire_corrections, marquer_echeance};
+use crate::routes_dossiers::salarie;
+use crate::routes_ecrites::marquer_echeance;
 use crate::routes_listes::nomenclatures;
 use crate::signalement::{self, ARRET};
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 7] = [
-    "regularisation-ecrire",
-    "regularisation-annuler",
+pub const ROUTES: [&str; 5] = [
     "arret-enregistrer",
     "arret-reprise",
     "arret-oublier",
@@ -52,8 +43,6 @@ pub const ROUTES: [&str; 7] = [
 /// Une route de ce module.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "regularisation-ecrire" => regularisation_ecrire(o, ctx, charge),
-        "regularisation-annuler" => regularisation_annuler(ctx, charge),
         "arret-enregistrer" => arret_enregistrer(ctx, charge),
         "arret-reprise" => arret_reprise(ctx, charge),
         "arret-oublier" => arret_oublier(ctx, charge),
@@ -67,10 +56,6 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
-}
-
-fn en_os(m: String) -> Echec {
-    erreur("OSError", m)
 }
 
 /// `charge["cle"]` : `KeyError` si elle manque.
@@ -96,13 +81,6 @@ fn ou_rien(v: &Value) -> Value {
 pub(crate) fn maintenant() -> String {
     let t = socle::temps::secondes();
     socle::paris::iso_minutes(t).replacen('T', " ", 1)
-}
-
-fn ecrire_fichier(chemin: &Path, v: Value) -> R<()> {
-    if let Some(parent) = chemin.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| erreur("OSError", format!("{} : {}", parent.display(), e)))?;
-    }
-    ecrire_json(chemin, &v, 2).map_err(en_os)
 }
 
 /// `d(v)` : une date lisible, sinon `ValueError`.
@@ -148,135 +126,6 @@ fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value
     r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
-// --------------------------------------------------------------- les corrections
-
-/// `Correction` -> son fichier : `{"_origine", "mois", "corrections": [asdict(c)]}`.
-pub(crate) fn ecrire_corrections(ctx: &Contexte, mois: &str, corrections: Vec<Map<String, Value>>) -> R<()> {
-    let chemin = ctx.racine.join("regularisations").join(format!("{}.json", mois));
-    ecrire_fichier(
-        &chemin,
-        json!({
-            "_origine": format!(
-                "Corrections du mois {m} apres son echeance DSN : chacune part dans la DSN d'un mois suivant, datee de {m}. La paie de {m} telle que deposee fait foi : la version de chaque engagement sur laquelle la DSN de {m} est partie (engagements/).",
-                m = mois
-            ),
-            "mois": mois,
-            "corrections": corrections.into_iter().map(Value::Object).collect::<Vec<_>>(),
-        }),
-    )
-}
-
-/// `{"correction": js.brut(c), "etat": c.etat()}`.
-fn reponse_correction(c: &Map<String, Value>) -> Value {
-    json!({"correction": brut(&Value::Object(c.clone())), "etat": etat_correction(c)})
-}
-
-/// `operations_regularisation.enregistrer_correction` : ecrit la correction. Une seule en cours par
-/// engagement ; le mot de passe du logiciel est exige s'il est pose.
-fn regularisation_ecrire(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = exiger(charge, "mois")?;
-    let salarie_v = exiger(charge, "salarie")?;
-    let debut = exiger(charge, "debut")?;
-    let engagement = exiger(charge, "engagement")?;
-    crate::filet::exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "corriger un mois deja declare")?;
-    let motif = match optionnel(charge, "motif") {
-        v if !vrai(v) => String::new(),
-        Value::String(t) => t.clone(),
-        autre => {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(autre))));
-        }
-    };
-    let motif = motif.trim_matches(socle::texte::blanc).to_string();
-    if motif.is_empty() {
-        return Err(refus("Une correction se motive : dire ce qui etait faux."));
-    }
-    ecrire_une_correction(o, ctx, mois, salarie_v, debut, engagement, &motif, &qui_de(charge), false)
-}
-
-/// ECRIT LA CORRECTION d'un engagement d'un mois deja declare, que la DSN d'un mois suivant portera. Une seule en cours
-/// par engagement : une correction en attente se remplace. Ce que fait `regularisation-ecrire`, et ce que la DSN d'un
-/// mois suivant ecrit d'elle-meme pour un engagement modifie apres la limite (`depart::corrections_dues`). `remplacer_preparee` :
-/// la DSN qui se fabrique remplace celle, pas encore deposee, qui portait la correction en cours.
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn ecrire_une_correction(
-    o: &HashMap<String, String>,
-    ctx: &Contexte,
-    mois: &Value,
-    salarie_v: &Value,
-    debut: &Value,
-    engagement: &Value,
-    motif: &str,
-    qui: &str,
-    remplacer_preparee: bool,
-) -> R<Value> {
-    let a = crate::routes_regularisation::apercu_correction(
-        o,
-        ctx,
-        &json!({"mois": mois, "salarie": salarie_v, "debut": debut, "engagement": engagement}),
-    )?;
-    if a["rien_ne_change"].as_bool().unwrap_or(false) {
-        return Err(refus("La correction ne change rien a la paie declaree : rien n'est ecrit."));
-    }
-    let nom_du_mois = valeur_en_texte(mois);
-    let mut corrections = lire_corrections(ctx, &nom_du_mois)?;
-    let ajout = a.get("ajout").is_some_and(vrai);
-    // UNE CORRECTION EN ATTENTE SE REMPLACE (21/10/2026) : la paie a encore change depuis qu'elle a ete ecrite, et rien
-    // n'est parti -- la nouvelle la remplace, l'ancienne est annulee. Une correction deja dans une DSN ecrite (preparee)
-    // attend son depot, ou que la DSN se refasse.
-    let mut remplacee: Option<usize> = None;
-    for (i, c) in corrections.iter().enumerate() {
-        let meme = valeurs_egales(&c["salarie"], salarie_v) && valeurs_egales(&c["debut"], debut);
-        if meme && !vrai(&c["portee_par"]) && !vrai(&c["annulee_le"]) {
-            if vrai(&c["preparee_par"]) && !remplacer_preparee {
-                return Err(refus(format!(
-                    "Une correction de cet engagement est deja dans une DSN ecrite, pas encore deposee (n° {}, {}). La deposer, ou l'annuler d'abord.",
-                    valeur_en_texte(&c["numero"]),
-                    valeur_en_texte(&c["motif"])
-                )));
-            }
-            remplacee = Some(i);
-        }
-        // Un contrat ajoute deja declare par une DSN suivante n'est plus un ajout : ce qu'il a de declare est dans la DSN
-        // qui l'a porte, pas dans celle de son mois.
-        if meme && ajout && vrai(&c["portee_par"]) && !vrai(&c["annulee_le"]) {
-            return Err(refus(format!(
-                "Ce contrat ajoute a deja ete declare par la DSN de {} (correction n° {}). Le corriger encore n'est pas porte par le logiciel. Rien n'est ecrit.",
-                valeur_en_texte(&c["portee_par"]["mois"]),
-                valeur_en_texte(&c["numero"])
-            )));
-        }
-    }
-    let mut engagement_ecrit = a["engagement"].clone();
-    if ajout && !engagement_ecrit.get("numero").is_some_and(vrai) {
-        let n = crate::routes_regularisation::numero_du_contrat(ctx, &nom_du_mois, &valeur_en_texte(salarie_v), &valeur_en_texte(debut))?;
-        engagement_ecrit["numero"] = json!(n);
-    }
-    if let Some(i) = remplacee {
-        let n = corrections.len() + 1;
-        corrections[i].insert("annulee_le".into(), json!(maintenant()));
-        corrections[i].insert("remplacee_par".into(), json!(n));
-    }
-    let mut c = Map::new();
-    c.insert("mois".into(), mois.clone());
-    c.insert("numero".into(), json!(corrections.len() + 1));
-    c.insert("salarie".into(), salarie_v.clone());
-    c.insert("debut".into(), debut.clone());
-    c.insert("motif".into(), json!(motif));
-    c.insert("engagement".into(), engagement_ecrit);
-    if ajout {
-        c.insert("ajout".into(), json!(true));
-    }
-    c.insert("decidee_le".into(), json!(maintenant()));
-    c.insert("qui".into(), json!(qui));
-    c.insert("preparee_par".into(), Value::Null);
-    c.insert("portee_par".into(), Value::Null);
-    c.insert("annulee_le".into(), Value::Null);
-    let reponse = reponse_correction(&c);
-    corrections.push(c);
-    ecrire_corrections(ctx, &nom_du_mois, corrections)?;
-    Ok(reponse)
-}
-
 /// `int(x)`, comme Python le lit d'une valeur JSON.
 fn entier_py(v: &Value) -> R<i64> {
     match v {
@@ -295,46 +144,6 @@ fn entier_py(v: &Value) -> R<i64> {
             socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
         )),
     }
-}
-
-/// `operations_regularisation.annuler_correction` : une correction pas encore portee s'annule.
-fn regularisation_annuler(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mois = exiger(charge, "mois")?;
-    let numero = exiger(charge, "numero")?;
-    crate::filet::exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "annuler une correction")?;
-    let nom_du_mois = valeur_en_texte(mois);
-    let mut corrections = lire_corrections(ctx, &nom_du_mois)?;
-    let mut trouve: Option<usize> = None;
-    for (i, c) in corrections.iter().enumerate() {
-        if valeurs_egales(&c["numero"], &json!(entier_py(numero)?)) {
-            trouve = Some(i);
-            break;
-        }
-    }
-    let Some(i) = trouve else {
-        return Err(refus(format!("Pas de correction n° {} pour {}.", valeur_en_texte(numero), nom_du_mois)));
-    };
-    let c = &mut corrections[i];
-    if vrai(&c["portee_par"]) {
-        let portee = c["portee_par"].clone();
-        let mois_porteur = portee.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
-        let quand = portee.get("quand").cloned().unwrap_or_else(|| json!("?"));
-        return Err(refus(format!(
-            "La correction n° {} de {} a ete PORTEE par la DSN de {} (deposee le {}) : elle ne s'annule plus. Une nouvelle correction peut la contredire.",
-            valeur_en_texte(&c["numero"]),
-            nom_du_mois,
-            valeur_en_texte(mois_porteur),
-            valeur_en_texte(&quand)
-        )));
-    }
-    if vrai(&c["annulee_le"]) {
-        return Err(refus(format!("La correction n° {} de {} est deja annulee.", valeur_en_texte(&c["numero"]), nom_du_mois)));
-    }
-    c.insert("annulee_le".into(), json!(maintenant()));
-    c.insert("qui".into(), json!(qui_de(charge)));
-    let reponse = reponse_correction(c);
-    ecrire_corrections(ctx, &nom_du_mois, corrections)?;
-    Ok(reponse)
 }
 
 // ------------------------------------------------------------------------ arrets

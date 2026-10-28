@@ -13,8 +13,7 @@
 //! openpyxl` reussit-il, la fabrique est-elle installee ? deux faits de
 //! l'interprete et du poste, pas du disque), `dossier-salarie` (il compose des
 //! PDF dans un dossier temporaire par la fabrique, meme sans rien ecrire dans le
-//! dossier de la compagnie) et `regularisation-mois` (quand le mois se corrige,
-//! il calcule la paie de chaque engagement et relit les DSN deposees).
+//! dossier de la compagnie).
 //!
 //! `formes_dossier` ne garde de `periodes_exportables` que les mois et les
 //! annees, mais Python calcule aussi `etat_logiciel` (le logiciel du comptable

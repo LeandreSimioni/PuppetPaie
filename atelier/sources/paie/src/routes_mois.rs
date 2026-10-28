@@ -797,8 +797,8 @@ impl<'a> Moteur<'a> {
         out.insert("saisie_modifiee".into(), Value::Null);
         out.insert("a_envoyer".into(), json!(false));
         out.insert("phrase".into(), json!(""));
-        // Apres la limite : la correction de chaque contrat modifie est ecrite pour la DSN suivante.
-        out.insert("correction_ecrite".into(), json!(false));
+        // Apres la limite : la DSN suivante corrige chaque contrat dont la paie validee a change.
+        out.insert("corrigee_par_la_suivante".into(), json!(false));
         let Some(derniere) = faits.last() else {
             return Ok(Value::Object(out));
         };
@@ -816,35 +816,30 @@ impl<'a> Moteur<'a> {
             modifiee = dsn_a_refaire(self.ctx, mois, derniere, &etats_eng, &refaire);
             out.insert("saisie_modifiee".into(), json!(modifiee));
         }
-        // Apres la limite : ce que la paie d'aujourd'hui change a ce que la DSN a declare, et ce qui en est deja ecrit.
-        let couverture = if admis { None } else { crate::routes_regularisation::couverture(self.ctx, mois)? };
-        if couverture.as_ref().is_some_and(|c| c.changes > 0) {
+        // Apres la limite : les contrats dont la paie validee n'est plus celle que la DSN a declaree ; la DSN suivante
+        // porte leur correction d'elle-meme (`produire_regularisations::corrections_dues`).
+        let corriges = if admis {
+            0
+        } else {
+            let departs = crate::journal::departs(&self.ctx.racine).map_err(plain)?;
+            crate::produire_regularisations::corrections_dues(self.ctx, mois, "9999-12", &departs)?.len()
+        };
+        if corriges > 0 {
             modifiee = true;
             out.insert("saisie_modifiee".into(), json!(true));
         }
         let quand = quand_lisible(get(derniere, "quand")?);
         let jour = lim.jj_mm_aaaa();
-        if let (true, Some(c)) = (modifiee && !admis, &couverture) {
-            // CE QUI EST ECRIT POUR LA DSN SUIVANTE : une correction par contrat dont la paie a
-            // change ou qui est ajoute, et qui declare la paie d'AUJOURD'HUI (`routes_regularisation::couverture`).
-            let pluriel = |n: usize| if n > 1 { "s" } else { "" };
-            let mut phrase = format!("Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit)", quand, jour);
-            if c.a_ecrire == 0 && c.a_refaire == 0 {
-                out.insert("correction_ecrite".into(), json!(true));
-                phrase.push_str(" — la correction est écrite, elle part dans la DSN suivante");
-            } else {
-                if c.a_ecrire > 0 {
-                    phrase.push_str(&format!(" — {} contrat{} corrigé{} par la DSN suivante, quand elle se fabrique", c.a_ecrire, pluriel(c.a_ecrire), pluriel(c.a_ecrire)));
-                }
-                if c.a_refaire > 0 {
-                    phrase.push_str(&format!(
-                        " — la paie a encore changé depuis la correction écrite : la DSN suivante la refait ({} contrat{})",
-                        c.a_refaire,
-                        pluriel(c.a_refaire)
-                    ));
-                }
-            }
-            out.insert("phrase".into(), json!(phrase));
+        if corriges > 0 {
+            let pluriel = if corriges > 1 { "s" } else { "" };
+            out.insert("corrigee_par_la_suivante".into(), json!(true));
+            out.insert(
+                "phrase".into(),
+                json!(format!(
+                    "Paie modifiée depuis la DSN du {}, après la limite de l'annule-et-remplace ({} à minuit) — {} contrat{} corrigé{} par la DSN suivante",
+                    quand, jour, corriges, pluriel, pluriel
+                )),
+            );
             return Ok(Value::Object(out));
         }
         if modifiee {
@@ -1139,8 +1134,8 @@ impl<'a> Moteur<'a> {
         if vrai(&e) && !vrai(get(&e, "refusee")?) {
             let r = self.etat_remplacement(mois, &Value::Null)?;
             b.insert("remplacement".into(), r.clone());
-            if vrai(&r["saisie_modifiee"]) && vrai(&r["correction_ecrite"]) {
-                // Modifiee apres la limite, et sa correction est ecrite : rien a faire ici, la DSN suivante l'embarque.
+            if vrai(&r["saisie_modifiee"]) && vrai(&r["corrigee_par_la_suivante"]) {
+                // Modifiee apres la limite et revalidee : rien a faire ici, la DSN suivante porte la correction.
                 b.insert("phrase".into(), r["phrase"].clone());
                 b.insert("courte".into(), json!("corrigée — part dans la DSN suivante"));
             } else if vrai(&r["saisie_modifiee"]) {
@@ -1170,7 +1165,7 @@ impl<'a> Moteur<'a> {
                     }
                 }
             }
-            if vrai(&r["a_envoyer"]) || (vrai(&r["saisie_modifiee"]) && !vrai(&r["admis"]) && !vrai(&r["correction_ecrite"])) {
+            if vrai(&r["a_envoyer"]) || (vrai(&r["saisie_modifiee"]) && !vrai(&r["admis"]) && !vrai(&r["corrigee_par_la_suivante"])) {
                 b.remove("vide");
             }
             if vrai(b.get("etape").unwrap_or(&Value::Null)) {
@@ -1290,7 +1285,7 @@ impl<'a> Moteur<'a> {
             let derniere = self.depots_reels(mois, &nul)?.last().cloned().unwrap_or(Value::Null);
             if derniere.get("versions").is_none() || dsn_a_refaire(self.ctx, mois, &derniere, &etats_eng, &refaire) {
                 let r = self.etat_remplacement(mois, &nul)?;
-                dsn = !(vrai(&r["saisie_modifiee"]) && !vrai(&r["correction_ecrite"]));
+                dsn = !(vrai(&r["saisie_modifiee"]) && !vrai(&r["corrigee_par_la_suivante"]));
             }
         }
         Ok([(DPAE, dpae), (SIGNATURE, signature), (DOCUMENTS, documents), (DSN, dsn)].into_iter().filter(|(_, fait)| !fait).map(|(k, _)| k.to_string()).collect())

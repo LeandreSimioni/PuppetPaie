@@ -23,8 +23,9 @@
 //! valide se compare a son empreinte. Si elle ne tient plus, la paie se recalcule et se reecrit ; si un chiffre a change,
 //! elle dit pourquoi (`raison`) : « taux de PAS reçu » (seul le prelevement change), « règle du JJ/MM/AAAA » (une regle
 //! datee s'applique), « calcul corrigé » (le code qui calcule a change), « un autre engagement du mois a changé » (un
-//! engagement que son calcul lit), « saisie du mois modifiée » (le taux du cachet, la date de paiement), « configuration
-//! de la compagnie modifiée » (fiches, taux, contrats). Un changement qui ne change aucun chiffre ne laisse aucune trace.
+//! engagement que son calcul lit), « saisie du mois modifiée » (le taux du cachet, la date de paiement), « la paie de
+//! <mois> a changé » (une paie validee d'un autre mois que son calcul lit : conges, cumuls), « configuration de la
+//! compagnie modifiée » (fiches, taux, contrats). Un changement qui ne change aucun chiffre ne laisse aucune trace.
 //! Un mois dont les documents sont partis ne se recalcule que par une decision de l'editeur (« calcul corrigé », une
 //! regle datee) : le recalcul fait alors une version datee, comme une modification, et la paie refaite rectifie le
 //! bulletin parti.
@@ -437,26 +438,31 @@ fn empreinte_des_paies(valides: &[(usize, Valide)], mois: &str) -> String {
 }
 
 thread_local! {
-    /// L'engagement en cours de validation (`fichier`, `rang`) et les paies deja calculees de ses mois.
-    static EN_VALIDATION: RefCell<Option<(String, usize, Map<String, Value>)>> = const { RefCell::new(None) };
+    /// Les engagements en cours de validation (`fichier`, `rang`) et les paies deja calculees de leurs mois.
+    static EN_VALIDATION: RefCell<Option<Vec<(String, usize, Map<String, Value>)>>> = const { RefCell::new(None) };
 }
 
-/// UNE VALIDATION EN COURS : ses mois se calculent du premier au dernier, et chacun lit ceux d'avant (`paies_validees`)
-/// tels qu'elle vient de les calculer. Elle se ferme quand elle tombe.
-struct EnValidation(Option<(String, usize, Map<String, Value>)>);
+/// UNE VALIDATION EN COURS : les mois d'un engagement se calculent du premier au dernier, et chacun lit ceux d'avant
+/// (`paies_validees`) tels qu'elle vient de les calculer. Elle se ferme quand elle tombe.
+struct EnValidation(Option<Vec<(String, usize, Map<String, Value>)>>);
 
 impl EnValidation {
     fn ouvrir(o: &Objet) -> EnValidation {
-        EnValidation(EN_VALIDATION.with(|e| e.replace(Some((o.fichier.clone(), o.rang, Map::new())))))
+        EnValidation(EN_VALIDATION.with(|e| e.replace(Some(vec![(o.fichier.clone(), o.rang, Map::new())]))))
     }
 
     fn calculee(&self, mois: &str, paie: &Value) {
-        EN_VALIDATION.with(|e| {
-            if let Some((_, _, paies)) = e.borrow_mut().as_mut() {
-                paies.insert(mois.to_string(), paie.clone());
-            }
-        });
+        noter_calculee(mois, paie);
     }
+}
+
+/// La paie de `mois` que le dernier engagement ouvert dans la validation en cours vient de calculer.
+fn noter_calculee(mois: &str, paie: &Value) {
+    EN_VALIDATION.with(|e| {
+        if let Some((_, _, paies)) = e.borrow_mut().as_mut().and_then(|v| v.last_mut()) {
+            paies.insert(mois.to_string(), paie.clone());
+        }
+    });
 }
 
 impl Drop for EnValidation {
@@ -466,30 +472,65 @@ impl Drop for EnValidation {
     }
 }
 
-/// Ce qui distingue l'etat de la validation en cours (l'engagement et les mois deja calcules) : ce que lit
+/// UN ENGAGEMENT EN SAISIE SE CALCULE POUR L'ECRAN COMME SA VALIDATION LE CALCULERA : le calcul de `mois` y lit les mois
+/// d'avant de chaque engagement en saisie qui les couvre tels que sa validation les calculerait (`calculer`, du premier
+/// au dernier, comme `paies_a_valider`), si bien que l'indemnite de conges montree est celle qui sera retenue. Rien ne
+/// s'ecrit. Pendant une validation, rien de plus : elle tient deja ses mois. Un mois d'avant qui ne se calcule pas ne
+/// compte pas (sa validation le refusera).
+pub struct CommeALaValidation {
+    _garde: Option<EnValidation>,
+}
+
+impl CommeALaValidation {
+    pub fn ouvrir(ctx: &Contexte, mois: &str) -> CommeALaValidation {
+        if EN_VALIDATION.with(|e| e.borrow().is_some()) {
+            return CommeALaValidation { _garde: None };
+        }
+        let Ok(objets) = stock::objets_du_mois(&ctx.racine, mois) else { return CommeALaValidation { _garde: None } };
+        let en_saisie: Vec<Objet> = objets.into_iter().filter(|o| !o.est_valide() && o.fichier.as_str() < mois).collect();
+        if en_saisie.is_empty() {
+            return CommeALaValidation { _garde: None };
+        }
+        let garde = EnValidation(EN_VALIDATION.with(|e| e.replace(Some(Vec::new()))));
+        for o in &en_saisie {
+            EN_VALIDATION.with(|e| {
+                if let Some(v) = e.borrow_mut().as_mut() {
+                    v.push((o.fichier.clone(), o.rang, Map::new()));
+                }
+            });
+            for m in o.mois_couverts(mois).unwrap_or_default().into_iter().filter(|m| m.as_str() < mois) {
+                let Ok(p) = calculer(ctx, o, &m) else { break };
+                noter_calculee(&m, &p);
+            }
+        }
+        CommeALaValidation { _garde: Some(garde) }
+    }
+}
+
+/// Ce qui distingue l'etat de la validation en cours (les engagements et les mois deja calcules) : ce que lit
 /// `paies_validees` en depend.
 pub fn marque_de_validation() -> String {
     EN_VALIDATION.with(|e| match e.borrow().as_ref() {
-        Some((f, r, paies)) => format!("{}#{}#{}", f, r, paies.len()),
+        Some(v) => v.iter().map(|(f, r, paies)| format!("{}#{}#{}", f, r, paies.len())).collect::<Vec<_>>().join(";"),
         None => String::new(),
     })
 }
 
-/// Les engagements valides de `mois` qui ont une paie ecrite pour lui, avec leur rang a l'ecran ; l'engagement en cours
+/// Les engagements valides de `mois` qui ont une paie ecrite pour lui, avec leur rang a l'ecran ; un engagement en cours
 /// de validation y porte les paies qu'elle a deja calculees, et seulement elles.
 fn valides_lues(ctx: &Contexte, mois: &str) -> Resultat<Vec<(usize, Valide)>> {
-    let en_cours = EN_VALIDATION.with(|e| e.borrow().clone());
+    let en_cours = EN_VALIDATION.with(|e| e.borrow().clone()).unwrap_or_default();
     let mut out = Vec::new();
     for (i, e) in ecrits(ctx, mois)?.into_iter().enumerate() {
         let o = e.objet();
-        let v = match &en_cours {
-            Some((f, r, paies)) if o.fichier == *f && o.rang == *r => {
+        let v = match en_cours.iter().find(|(f, r, _)| o.fichier == *f && o.rang == *r) {
+            Some((_, _, paies)) => {
                 let Some(p) = paies.get(mois) else { continue };
                 let mut lue = o.clone();
                 lue.brut.insert("valide".into(), json!({ "le": "", "paies": { mois: p } }));
                 Valide::de(lue)
             }
-            _ => e.valide().cloned(),
+            None => e.valide().cloned(),
         };
         if let Some(v) = v.filter(|v| v.paie_ecrite(mois).is_some_and(|p| p.get("paie").is_some())) {
             out.push((i, v));
@@ -642,7 +683,23 @@ fn raison(avant: &Value, apres: &Value) -> String {
     if !saisies.is_empty() {
         return SAISIE_DU_MOIS.to_string();
     }
+    // Les paies validees d'un autre mois que le calcul lit (conges, cumuls) : `paies <le mois>` (`paies_validees`).
+    let mut mois: Vec<&str> = changees.iter().filter_map(|k| k.strip_prefix("paies ")).collect();
+    mois.sort();
+    if let Some(m) = mois.first() {
+        return format!("la paie {} a changé", de_mois(m));
+    }
     CONFIGURATION.to_string()
+}
+
+/// « de septembre 2026 », « d'octobre 2026 ».
+fn de_mois(mois: &str) -> String {
+    let nom = socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee);
+    if nom.starts_with(['a', 'o']) {
+        format!("d'{}", nom)
+    } else {
+        format!("de {}", nom)
+    }
 }
 
 /// Le moment d'un geste, a l'heure du moteur.
@@ -1083,6 +1140,8 @@ pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -
 /// Une paie declaree pour un mois, et le mois de la DSN qui l'a portee quand ce n'est pas la sienne (une correction).
 pub struct Declaree {
     pub par: Option<String>,
+    /// La version de l'engagement sur laquelle la DSN est partie.
+    pub version: u64,
     pub paie: Paie,
 }
 
@@ -1119,9 +1178,28 @@ pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str,
             .transpose()?
             .flatten()
             .ok_or_else(|| format!("{} : la version {} sur laquelle une DSN a declare {} n'a pas de paie de ce mois", qui_de(o), n, mois))?;
-        out.push(Declaree { par, paie });
+        out.push(Declaree { par, version: n, paie });
     }
     Ok(out)
+}
+
+/// LA CORRECTION DUE pour `mois` de l'engagement valide `v`, dans la DSN de `avant` : ce qui a ete declare pour ce mois
+/// par les DSN anterieures a `avant` (`paies_declarees`) quand la paie presente de `mois` n'est plus celle que la
+/// derniere a declaree (la paie elle-meme, pas le prelevement ni le compteur de conges, que la DSN ne corrige pas) ; vide
+/// quand aucune DSN n'a declare ce mois pour lui. `None` : rien a corriger, ou pas de paie presente de ce mois. La couche
+/// des declarations dit si le mois se corrige ainsi (sa DSN partie, son annule-et-remplace passe).
+pub fn correction_due(ctx: &Contexte, v: &Valide, departs: &Departs, mois: &str, avant: &str) -> Resultat<Option<Vec<Declaree>>> {
+    let Some(presente) = v.paie_ecrite(mois).filter(|p| p.get("paie").is_some()) else { return Ok(None) };
+    let declarees = paies_declarees(ctx, &v.objet, departs, mois, avant)?;
+    let Some(derniere) = declarees.last() else { return Ok(Some(declarees)) };
+    if Some(derniere.version) == v.version() {
+        return Ok(None);
+    }
+    let ecrite = version_ecrite(&v.objet, derniere.version)?.and_then(|x| x.get("paies")).and_then(|p| p.get(mois));
+    if ecrite.is_some_and(|e| chiffres(e)["paie"] == chiffres(presente)["paie"]) {
+        return Ok(None);
+    }
+    Ok(Some(declarees))
 }
 
 /// LA DERNIERE DATE DE DEBUT DECLAREE de l'engagement `o` (AAAA-MM-JJ) par une DSN d'un mois anterieur a `avant` : celle

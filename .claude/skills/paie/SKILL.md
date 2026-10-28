@@ -65,5 +65,5 @@ les chemins `paies/…` et `sorties/…` se lisent depuis elle, et un mois nu (`
 3. **Envoi aux salariés** : `paie envoi 2026-12` montre ce qui partirait ; l'envoi demande le mot de passe du
    logiciel, tapé par l'utilisateur.
 
-Un arrêt de travail (`paie arret`), un mois déjà déposé à corriger (`paie corriger`), la fin d'un permanent
+Un arrêt de travail (`paie arret`), un mois déjà déposé à corriger, la fin d'un permanent
 (`paie fin-contrat`) : compétence `declarations`. Ne jamais reproduire un mois déjà déposé pour le corriger.

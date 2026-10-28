@@ -147,14 +147,14 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Les fichiers que l'import n'a pas repris : le message caviarde qui partirait chez l'editeur (rien n'est ecrit),
         // et son envoi, sur le seul clic de la personne (`importation_incident`).
         r if crate::importation_incident::ROUTES.contains(&r) => crate::importation_incident::route(&ctx, route, &charge),
-        // La regularisation : ce que la correction d'un mois depose changerait.
-        "regularisation-apercu" => crate::routes_regularisation::route(o, &ctx, route, &charge),
+        // Les corrections d'un mois depose : ce que la page en montre.
+        "regularisation-apercu" | "regularisation-mois" => crate::routes_regularisation::route(o, &ctx, route, &charge),
         // Le dossier d'un salarie : ses documents, recrees ou pris tels quels, en un PDF ou un ZIP.
         "dossier-salarie" => crate::routes_dossier_salarie::route(o, &ctx, route, &charge),
         // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
         r if crate::conseils::ROUTES.contains(&r) => crate::conseils::route(&ctx, route, &charge),
         // Les routes qui ecrivent : la revue des spectacles, la correction d'un mois depose.
-        "revue-spectacles" | "regularisation-mois" => crate::routes_ecrites::route(o, &ctx, route, &charge),
+        "revue-spectacles" => crate::routes_ecrites::route(o, &ctx, route, &charge),
         // Les ecritures de l'ecran : fiches, identite, metiers, saisie d'un mois, total vise.
         r if crate::routes_ecritures::ROUTES.contains(&r) => crate::routes_ecritures::route(o, &ctx, route, &charge),
         // Les ecritures du lot G2 : corrections d'un mois depose, arrets, echeances cochees ; et le cout de l'annee.
@@ -237,7 +237,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 /// Les routes qui ecrivent (les lots d'ecritures, d'actes, d'envois et de releves) : apres elles, la fenetre verifie les
 /// etats des mois (`interface/api.rs`).
 pub fn est_une_ecriture(route: &str) -> bool {
-    matches!(route, "revue-spectacles" | "regularisation-mois")
+    matches!(route, "revue-spectacles")
         || crate::routes_ecritures::ROUTES.contains(&route)
         || crate::routes_ecritures_g2::ROUTES.contains(&route)
         || (crate::routes_imprevus::ROUTES.contains(&route) && route != "imprevus")

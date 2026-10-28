@@ -21,13 +21,13 @@
 //! texte (fichier abime a la main) n'est range que pour les cas simples.
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use socle::date::{d, Jour};
-use crate::etats::{get, getd, items, objet_vide, ou, LISTE_VIDE};
+use crate::etats::{get, getd, items, objet_vide, ou};
 use socle::valeur::valeur_ecrite;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -58,20 +58,6 @@ fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
-/// Un refus du coffre, sous la classe que Python levait : une `OSError` se
-/// releve sous la sous-classe que son errno designe (`IsADirectoryError`...).
-pub(crate) fn vers_route(x: crate::coffre::Echec) -> Echec {
-    let classe = match (x.classe, x.os.as_ref().map(|o| o.0)) {
-        ("OSError", Some(1)) | ("OSError", Some(13)) => "PermissionError",
-        ("OSError", Some(2)) => "FileNotFoundError",
-        ("OSError", Some(17)) => "FileExistsError",
-        ("OSError", Some(20)) => "NotADirectoryError",
-        ("OSError", Some(21)) => "IsADirectoryError",
-        (c, _) => c,
-    };
-    Echec { classe: Some(classe), message: x.message }
-}
-
 /// `p.read_text(encoding="utf-8")`.
 pub(crate) fn lire_texte(p: &Path) -> R<String> {
     let octets = std::fs::read(p).map_err(|e| {
@@ -94,41 +80,9 @@ pub(crate) fn lire_json(p: &Path) -> R<Value> {
     serde_json::from_str(&lire_texte(p)?).map_err(|e| erreur("JSONDecodeError", e.to_string()))
 }
 
-/// `sorted(dossier.glob("????-??.json"))` : les (radical, chemin) des fichiers
-/// d'un mois, dans l'ordre des noms. Un dossier absent, ou qui n'en est pas
-/// un, ne donne rien.
-fn fichiers_de_mois(dossier: &Path) -> Vec<(String, PathBuf)> {
-    let Ok(lecture) = std::fs::read_dir(dossier) else { return Vec::new() };
-    let mut out = Vec::new();
-    for e in lecture.flatten() {
-        let Some(nom) = e.file_name().to_str().map(str::to_string) else { continue };
-        let c: Vec<char> = nom.chars().collect();
-        if c.len() == 12 && c[4] == '-' && nom.ends_with(".json") {
-            out.push((c[..7].iter().collect::<String>(), e.path()));
-        }
-    }
-    out.sort();
-    out
-}
-
 /// `int(texte)` pour un morceau de nom de mois.
 fn entier(t: &str) -> R<i64> {
     t.trim().parse::<i64>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", repr(t))))
-}
-
-/// Refuse `c` quand ce n'est pas un objet, qu'il porte une cle inconnue ou qu'il oublie un champ obligatoire.
-fn construire(classe: &str, c: &Value, champs: &[&str], requis: usize) -> R<()> {
-    let Value::Object(m) = c else {
-        return Err(erreur("TypeError", format!("{} : un objet est attendu, pas {}", classe, nom_type(c))));
-    };
-    if let Some(k) = m.keys().find(|k| !champs.contains(&k.as_str())) {
-        return Err(erreur("TypeError", format!("{} : champ inconnu {}", classe, repr(k))));
-    }
-    let manque: Vec<String> = champs[..requis].iter().filter(|k| !m.contains_key(**k)).map(|k| repr(k)).collect();
-    if !manque.is_empty() {
-        return Err(erreur("TypeError", format!("{} : champ manquant {}", classe, manque.join(", "))));
-    }
-    Ok(())
 }
 
 /// `dict.get(cle)` d'une dataclass construite : `None` pour un champ absent.
@@ -426,134 +380,28 @@ fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------ regularisations
 
-const CHAMPS_CORRECTION: [&str; 11] =
-    ["mois", "numero", "salarie", "debut", "motif", "engagement", "decidee_le", "qui", "preparee_par", "portee_par", "annulee_le"];
-
-/// `Correction.etat`.
-fn etat_de_la_correction(c: &Value) -> &'static str {
-    if vrai(&c["annulee_le"]) {
-        "annulee"
-    } else if vrai(&c["portee_par"]) {
-        "portee"
-    } else if vrai(&c["preparee_par"]) {
-        "preparee"
-    } else {
-        "en attente"
-    }
-}
-
-/// `a == b` pour deux cles de dictionnaire Python : `1 == 1.0 == True`.
-fn memes_cles(a: &Value, b: &Value) -> bool {
-    match (a, b) {
-        (Value::String(x), Value::String(y)) => x == y,
-        (Value::Null, Value::Null) => true,
-        (x, y) => match (nombre_py(x), nombre_py(y)) {
-            (Some(x), Some(y)) => x == y,
-            _ => false,
-        },
-    }
-}
-
-fn nombre_py(v: &Value) -> Option<f64> {
-    match v {
-        Value::Bool(b) => Some(*b as i64 as f64),
-        Value::Number(n) => n.as_f64(),
-        _ => None,
-    }
-}
-
-fn nom_python(v: &Value) -> &'static str {
-    match v {
-        Value::Bool(_) => "bool",
-        Value::Number(n) if n.is_f64() => "float",
-        Value::Number(_) => "int",
-        autre => nom_type(autre),
-    }
-}
-
-/// `a < b` pour deux cles : deux textes, ou deux nombres ; le reste est le
-/// `TypeError` de Python.
-fn avant(a: &Value, b: &Value) -> R<bool> {
-    match (a, b) {
-        (Value::String(x), Value::String(y)) => Ok(x < y),
-        (x, y) => match (nombre_py(x), nombre_py(y)) {
-            (Some(x), Some(y)) => Ok(x < y),
-            _ => Err(erreur("TypeError", socle::fichiers::incomparables(nom_python(a), nom_python(b)))),
-        },
-    }
-}
-
-/// `sorted(out.items())` : le tri de Python (une course montante ou
-/// descendante, puis l'insertion dichotomique des suivants), pour que le
-/// premier couple de cles qui ne se compare pas soit celui que Python nomme
-/// dans son `TypeError`.
-fn trier_comme_python(g: &mut Vec<(Value, Vec<Value>)>) -> R<()> {
-    let n = g.len();
-    if n < 2 {
-        return Ok(());
-    }
-    let mut k = 2;
-    if avant(&g[1].0, &g[0].0)? {
-        while k < n && avant(&g[k].0, &g[k - 1].0)? {
-            k += 1;
-        }
-        g[..k].reverse();
-    } else {
-        while k < n && !avant(&g[k].0, &g[k - 1].0)? {
-            k += 1;
+/// Par mois d'origine, les corrections que la page montre (`routes_regularisation::corrections_du_mois`) : celles a
+/// porter (`etat` « à porter ») et celles deja portees par la DSN d'un mois suivant (« portée »).
+fn corrections_par_mois(m: &mut Moteur, ctx: &Contexte) -> R<Vec<Value>> {
+    let mut out = Vec::new();
+    for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
+        let (a_porter, portees) = crate::routes_regularisation::corrections_du_mois(m, ctx, &mois)?;
+        let mut corrections: Vec<Value> = portees
+            .into_iter()
+            .map(|mut c| {
+                c["etat"] = json!("portée");
+                c
+            })
+            .collect();
+        corrections.extend(a_porter.into_iter().map(|mut c| {
+            c["etat"] = json!("à porter");
+            c
+        }));
+        if !corrections.is_empty() {
+            out.push(json!({"mois": mois, "corrections": corrections}));
         }
     }
-    for debut in k..n {
-        let (mut l, mut r) = (0, debut);
-        while l < r {
-            let p = l + ((r - l) >> 1);
-            if avant(&g[debut].0, &g[p].0)? {
-                r = p;
-            } else {
-                l = p + 1;
-            }
-        }
-        let pivot = g.remove(debut);
-        g.insert(l, pivot);
-    }
-    Ok(())
-}
-
-/// `operations_regularisation.corrections_par_mois` : par mois d'origine, les
-/// corrections et leur etat.
-fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
-    let dossier = ctx.racine.join("regularisations");
-    let mut toutes: Vec<Value> = Vec::new();
-    if dossier.exists() {
-        for (_, chemin) in fichiers_de_mois(&dossier) {
-            let contenu = lire_json(&chemin)?;
-            let liste = getd(&contenu, "corrections", &LISTE_VIDE)?;
-            for c in items(liste)? {
-                construire("Correction", &c, &CHAMPS_CORRECTION, 8)?;
-                let mut m = Map::new();
-                for k in CHAMPS_CORRECTION {
-                    m.insert(k.to_string(), champ(&c, k, Value::Null));
-                }
-                let etat = etat_de_la_correction(&Value::Object(m.clone()));
-                m.insert("etat".into(), json!(etat));
-                toutes.push(Value::Object(m));
-            }
-        }
-    }
-    // `out.setdefault(c.mois, []).append(...)`, puis `sorted(out.items())`.
-    let mut groupes: Vec<(Value, Vec<Value>)> = Vec::new();
-    for c in toutes {
-        let mois = c["mois"].clone();
-        if matches!(mois, Value::Array(_) | Value::Object(_)) {
-            return Err(erreur("TypeError", socle::fichiers::pas_une_cle(nom_type(&mois))));
-        }
-        match groupes.iter_mut().find(|(m, _)| memes_cles(m, &mois)) {
-            Some((_, cs)) => cs.push(c),
-            None => groupes.push((mois, vec![c])),
-        }
-    }
-    trier_comme_python(&mut groupes)?;
-    Ok(groupes.into_iter().map(|(m, cs)| json!({"mois": m, "corrections": cs})).collect())
+    Ok(out)
 }
 
 /// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
@@ -616,7 +464,6 @@ fn mois_a_corriger(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
 /// La route `regularisations`.
 fn regularisations(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let mois = mois_a_corriger(o, ctx)?;
-    // `coffre.ouverture_exigee` : le refus du coffre garde sa classe et sa phrase.
-    let pose = crate::coffre::Coffre::du_poste(&ctx.racine, "").ouverture_exigee().map_err(vers_route)?;
-    Ok(json!({"mois": mois, "mot_de_passe_pose": pose, "corrections": corrections_par_mois(ctx)?}))
+    let mut m = Moteur::nouveau(o, ctx);
+    Ok(json!({"mois": mois, "corrections": corrections_par_mois(&mut m, ctx)?}))
 }

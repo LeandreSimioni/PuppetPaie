@@ -85,8 +85,8 @@ signalement parti : `--remplace <identifiant du certificat de conformité>`, jam
   contrat. Son N° CE est une suite continue de l'employeur, jamais remise à 1.
 
 ## Un mois déjà déposé, un rejet
-
-- Avant l'échéance : refaire le mois et redéposer (annule-et-remplace). Après : `paie corriger <mois>` (aperçu sans
+- Avant la veille de l'échéance : modifier l'engagement, le revalider et redéposer (annule-et-remplace). Après : modifier
+  l'engagement et le revalider suffit, la DSN du mois suivant porte la correction d'elle-même. **Jamais** reproduire un mois déposé.
   `--motif`) ; écrire la correction demande le mot de passe du logiciel. **Jamais** reproduire un mois déposé.
 - Un rejet : lire le message de net-entreprises, trouver la donnée (`config/` ou la saisie), régénérer, redéposer en
   test. Ne jamais corriger un `.dsn` à la main. Les échecs vus par le logiciel : `paie incidents`.

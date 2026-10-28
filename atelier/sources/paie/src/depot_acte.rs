@@ -750,10 +750,9 @@ pub fn deposer_dsn_dans(
         let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
         let mut v = crate::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
-        // Et la version de l'engagement de chaque mois passe dont le fichier porte la correction.
-        let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        // Et la version presente de l'engagement de chaque mois passe dont la DSN porte la correction.
         if let Value::Array(a) = &mut v {
-            a.extend(crate::journal::versions_des_corrections(ctx, &mois, &nom)?);
+            a.extend(crate::produire_regularisations::versions_portees(ctx, &mois, &nic)?);
         }
         v
     };
@@ -831,9 +830,7 @@ pub fn deposer_dsn_dans(
         let _ = crate::filet::desarmer(&ctx.racine, &format!("dsn|{}", mois));
     }
     if reel && !apercu.est_signalement() {
-        // Les corrections de mois anterieurs que ce fichier portait sont PORTEES ; et les arrets que la DSN a
-        // reportes le savent.
-        crate::marques_depot::marquer_portees(ctx, &mois, &chemin, &quand)?;
+        // Les arrets que la DSN a reportes le savent.
         crate::marques_depot::marquer_reportes(ctx, &mois, &chemin, &quand)?;
     }
     Ok(DepotFait { quoi: "dsn".into(), mois, reel, reponse, flux, trace: Some(trace), ligne, deja, repetition })
