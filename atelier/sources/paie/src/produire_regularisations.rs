@@ -385,7 +385,7 @@ pub(crate) fn ecrire_rectificatifs(
         }
         let ent = ctx.entreprise_du_mois(&r.mois).map_err(Echec::from)?;
         let cle = valeur_en_texte(r.apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
-        let etiq = crate::envoi::etiquette(&r.mois).map_err(refus_valeur)?;
+        let etiq = socle::date::etiquette_du_mois(&r.mois).map_err(refus_valeur)?;
         let archive = ctx.racine.join("sorties").join(&r.mois).join(format!("{}_{}_{}_v{}.pdf", PREFIXE_ARCHIVE, cle, etiq, r.version));
         let mut imprimee = r.apres.clone();
         imprimee.numero_bulletin = Some(numero_bulletin);
@@ -399,7 +399,7 @@ pub(crate) fn ecrire_rectificatifs(
         }
     }
     let dossier = sortie_courante.join("envoi");
-    let etiq = crate::envoi::etiquette(mois_courant).map_err(refus_valeur)?;
+    let etiq = socle::date::etiquette_du_mois(mois_courant).map_err(refus_valeur)?;
     for (cle, siens) in &par_salarie {
         // Un fichier par salarie, tous ses rectificatifs dedans, comme ses bulletins du mois. Un seul `ent` par
         // fichier : la licence du premier mois d'origine (les archives, elles, ont chacune la leur).

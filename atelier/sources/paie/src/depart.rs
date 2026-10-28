@@ -584,7 +584,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     for nic in &nics {
         forme_de_la_dsn(ctx, &mut m, mois, nic)?;
     }
-    let etiq = crate::envoi::etiquette(mois).map_err(valeur)?;
+    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
 
     // LES CORRECTIONS DES MOIS DEJA DECLARES : la DSN de ce mois les porte, datees de leur mois d'origine.
@@ -793,7 +793,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     let an = annee_de(mois)?;
     // Les numeros de bulletin que le compteur propose ; chaque contrat porte deja le sien.
     crate::routes_ouverture::numeroter(ctx, &mut paies, an as i32)?;
-    let etiq = crate::envoi::etiquette(mois).map_err(valeur)?;
+    let etiq = socle::date::etiquette_du_mois(mois).map_err(valeur)?;
     let sortie = ctx.racine.join("sorties").join(mois);
     let dossier = sortie.join("envoi");
     std::fs::create_dir_all(&dossier).map_err(|e| os(&dossier, e))?;

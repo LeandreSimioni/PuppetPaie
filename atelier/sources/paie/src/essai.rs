@@ -220,7 +220,7 @@ impl Identite {
         // La DUE MtoM refuse les accents (`depot::identifiants`, qui citerait la valeur : on refuse ici, avant).
         for k in ["api_dpae.nom", "api_dpae.prenom"] {
             let t = self.texte(k)?;
-            if t != crate::dpae::ascii_nfkd(&t) {
+            if t != socle::texte::ascii_nfkd(&t) {
                 return refus(k, "sans accent, tel que le compte DPAE est ouvert sur urssaf.fr (la DUE MtoM refuse les accents)");
             }
         }

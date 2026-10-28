@@ -311,7 +311,7 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
         return Err(refus(format!("Aucun contrat a imprimer pour {}.", mois)));
     }
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
-    let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
+    let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
     let ent = crate::avenant::ent_du_mois(ctx, &s_mois)?;
     let (mut fichiers, mut contrats) = (Vec::new(), Vec::new());
     for (cle, ps, _) in &par_salarie {
@@ -349,7 +349,7 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&s_mois).join("envoi");
-    let etiq = envoi::etiquette(&s_mois).map_err(|m| erreur("ValueError", m))?;
+    let etiq = socle::date::etiquette_du_mois(&s_mois).map_err(|m| erreur("ValueError", m))?;
 
     let voulus: Option<Vec<String>> = liste_de(charge, "salaries")?.map(|l| l.iter().map(valeur_en_texte).collect());
     let mut client = ouvrir()?;
@@ -715,7 +715,7 @@ fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &crate::depot_acte
                 a.numero(),
                 salarie,
                 if vrai(&a.apercu["contrat"]) { valeur_en_texte(&a.apercu["contrat"]) } else { "sans-numero".to_string() },
-                envoi::etiquette(&mois_a).map_err(|m| erreur("ValueError", m))?
+                socle::date::etiquette_du_mois(&mois_a).map_err(|m| erreur("ValueError", m))?
             ));
             crate::contrat::ecrire_avenant(
                 ctx,

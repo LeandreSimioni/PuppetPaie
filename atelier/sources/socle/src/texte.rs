@@ -108,6 +108,39 @@ pub fn texte_latin1(o: &[u8]) -> String {
 }
 
 
+/// `unicodedata.normalize("NFKD", v).encode("ascii", "ignore").decode("ascii")`.
+pub fn ascii_nfkd(v: &str) -> String {
+    let mut ascii = String::new();
+    for c in v.chars() {
+        if c.is_ascii() {
+            ascii.push(c);
+            continue;
+        }
+        let cp = c as u32;
+        if let Some((a, _, t, avance)) = crate::nfkd_ascii::TABLE
+            .binary_search_by(|(a, b, _, _)| {
+                if cp < *a {
+                    std::cmp::Ordering::Greater
+                } else if cp > *b {
+                    std::cmp::Ordering::Less
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            })
+            .ok()
+            .map(|i| crate::nfkd_ascii::TABLE[i])
+        {
+            if avance {
+                let base = t.chars().next().unwrap_or(' ') as u32;
+                ascii.push(char::from_u32(base + (cp - a)).unwrap_or(' '));
+            } else {
+                ascii.push_str(t);
+            }
+        }
+    }
+    ascii
+}
+
 #[cfg(test)]
 mod tests_lignes {
     use super::*;

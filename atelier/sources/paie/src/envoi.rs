@@ -258,12 +258,6 @@ fn heures_en_decimal(h: f64) -> Result<Decimal, String> {
     t.parse::<Decimal>().or_else(|_| Decimal::from_scientific(&t)).map_err(|e| format!("heures illisibles ({}) : {}", t, e))
 }
 
-/// « Aout2026 » a partir de « 2026-08 » : l'etiquette des noms de fichier, sans accent.
-pub fn etiquette(mois: &str) -> Result<String, String> {
-    let (an, mo) = an_mois(mois)?;
-    let nom = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Titre)?;
-    Ok(format!("{}{}", nom, an))
-}
 
 pub fn nom_fichier(prefixe: &str, cle: &str, etiq: &str) -> String {
     format!("{}_{}_{}.pdf", prefixe, cle, etiq)
@@ -489,7 +483,7 @@ pub fn preparer_avec(
     renvois: &std::collections::HashMap<String, Renvoi>,
 ) -> Result<Vec<Message>, String> {
     let (an, mo) = an_mois(mois)?;
-    let etiq = etiquette(mois)?;
+    let etiq = socle::date::etiquette_du_mois(mois)?;
     let nom_mois = socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee)?;
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
@@ -1859,7 +1853,7 @@ mod tests {
         // (`date::dernier_du_mois`) ne lisent « 00 », et `envois_signature::an_et_mois` le refuse aussi. Seul le Python le
         // lisait decembre, par l'indice -1 d'une liste : un accident, pas une regle.
         assert!(socle::date::premier_du_mois("2026-00").is_err() && socle::date::dernier_du_mois("2026-00").is_err());
-        assert_eq!(etiquette("2026-00").unwrap_err(), socle::date::mois_impossible(0));
-        assert_eq!(etiquette("2026-12").unwrap(), "Decembre2026");
+        assert_eq!(socle::date::etiquette_du_mois("2026-00").unwrap_err(), socle::date::mois_impossible(0));
+        assert_eq!(socle::date::etiquette_du_mois("2026-12").unwrap(), "Decembre2026");
     }
 }

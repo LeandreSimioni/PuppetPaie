@@ -10,7 +10,7 @@
 
 use serde_json::Value;
 
-use crate::dpae::ascii_nfkd;
+use socle::texte::ascii_nfkd;
 use socle::fichiers::vrai;
 use crate::retours::{est_chiffre};
 use socle::echec::Echec;

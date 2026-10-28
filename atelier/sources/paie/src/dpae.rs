@@ -29,12 +29,9 @@ use socle::fichiers::{dossier_du_code, json_en_cache, modele_de, repr, repr_vale
 use socle::fichiers::MARQUEUR_COPIE;
 use crate::ntt;
 use socle::num::Resultat;
+use socle::texte::ascii_nfkd;
 use crate::usages::strip;
 
-// Ce que `unicodedata.normalize("NFKD", c).encode("ascii", "ignore")` laisse
-// de chaque caractere (ecrit par `paie generer-tables`, `generer_tables.rs`, depuis la base Unicode deposee).
-#[path = "nfkd_ascii.rs"]
-mod nfkd_ascii;
 
 pub const LONGUEUR: usize = 990;
 
@@ -164,39 +161,6 @@ pub fn normaliser(v: &str) -> String {
         .collect()
 }
 
-/// `unicodedata.normalize("NFKD", v).encode("ascii", "ignore").decode("ascii")`.
-pub fn ascii_nfkd(v: &str) -> String {
-    let mut ascii = String::new();
-    for c in v.chars() {
-        if c.is_ascii() {
-            ascii.push(c);
-            continue;
-        }
-        let cp = c as u32;
-        if let Some((a, _, t, avance)) = nfkd_ascii::TABLE
-            .binary_search_by(|(a, b, _, _)| {
-                if cp < *a {
-                    std::cmp::Ordering::Greater
-                } else if cp > *b {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Equal
-                }
-            })
-            .ok()
-            .map(|i| nfkd_ascii::TABLE[i])
-        {
-            if avance {
-                let base = t.chars().next().unwrap_or(' ') as u32;
-                ascii.push(char::from_u32(base + (cp - a)).unwrap_or(' '));
-            } else {
-                ascii.push_str(t);
-            }
-        }
-    }
-    ascii
-}
-
 /// `(v or "").upper()[:largeur].ljust(largeur)`.
 fn txt(v: &Value, largeur: usize) -> String {
     let t = if vrai(v) { en_texte(v).to_uppercase() } else { String::new() };
@@ -206,7 +170,7 @@ fn txt(v: &Value, largeur: usize) -> String {
 /// `c.isdigit()` de Python.
 fn est_chiffre(c: char) -> bool {
     let n = c as u32;
-    nfkd_ascii::CHIFFRES.binary_search_by(|(a, b)| {
+    socle::nfkd_ascii::CHIFFRES.binary_search_by(|(a, b)| {
         if n < *a {
             std::cmp::Ordering::Greater
         } else if n > *b {

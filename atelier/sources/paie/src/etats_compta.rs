@@ -278,7 +278,7 @@ impl Envoi<'_> {
 
 /// `_code` : un titre en code -- lettres et chiffres, sans accent, en majuscules, coupe a la largeur de la zone.
 fn code_du_titre(titre: &str, n: usize) -> String {
-    let ascii = crate::dpae::ascii_nfkd(titre);
+    let ascii = socle::texte::ascii_nfkd(titre);
     debut(&ascii.to_uppercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>(), n)
 }
 

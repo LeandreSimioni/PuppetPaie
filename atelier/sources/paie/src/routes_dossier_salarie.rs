@@ -429,7 +429,7 @@ fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut Has
 
 /// `etiquette(mois)`, ses refus sous leur classe.
 pub(crate) fn etiquette(mois: &str) -> R<String> {
-    crate::envoi::etiquette(mois).map_err(|m| {
+    socle::date::etiquette_du_mois(mois).map_err(|m| {
         if m.starts_with("mois impossible") {
             avec("IndexError", m)
         } else {

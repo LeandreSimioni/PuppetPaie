@@ -1,4 +1,4 @@
-//! Les tables Unicode du moteur (`socle/src/tables_nfkc.rs`, `paie/src/nfkd_ascii.rs`, `paie/src/tables_retours.rs`,
+//! Les tables Unicode du moteur (`socle/src/tables_nfkc.rs`, `socle/src/nfkd_ascii.rs`, `paie/src/tables_retours.rs`,
 //! `paie/src/tables_journal.rs`) sont celles que `paie generer-tables` (`src/generer_tables.rs`) ecrit depuis les textes
 //! deposes : `atelier/reference/sources/unicode/` (base de caracteres Unicode, pages de code cp437 et cp1252),
 //! `python/` (les proprietes que `str.isdigit`, `str.isalnum` et `\d` traduisent ; le releve des encodages de `pyexpat`),
