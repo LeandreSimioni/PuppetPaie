@@ -17,233 +17,26 @@ use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use crate::depot::{self, Apercu};
+use envois::depot::{self, Apercu};
 use envois::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::num::Decimal;
 use socle::num::{decimal_py, int_py, q2};
-use socle::texte::{blanc, lignes_py, texte_latin1};
+
 use socle::echec::Echec;
 use crate::routes_apercus::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes_mois::Moteur;
 use documents::ecrire_documents::paies_aux_numeros_declares;
+use declarations::recap_dsn::{lire_recap, norm};
 
 type R<T> = Result<T, Echec>;
 
 const TYPES: [(&str, &str); 5] = depot::TYPES;
 
-// ------------------------------------------------------------------ les petits outils de Python
-
-/// `format(d.normalize(), "f")`, avec `0` pour zero.
-fn norm(d: Decimal) -> String {
-    if d.is_zero() {
-        "0".to_string()
-    } else {
-        d.normalize().to_string()
-    }
-}
-
 /// `float(d)`.
 fn flottant(d: Decimal) -> f64 {
     d.to_string().parse::<f64>().unwrap_or(0.0)
-}
-
-// ------------------------------------------------------------------ dsn_recap.lire
-
-/// `dsn_recap._date` : JJMMAAAA -> AAAA-MM-JJ.
-fn date_dsn(v: &str) -> String {
-    let c: Vec<char> = v.chars().collect();
-    if c.len() == 8 {
-        let t = |a: usize, b: usize| c[a..b].iter().collect::<String>();
-        format!("{}-{}-{}", t(4, 8), t(2, 4), t(0, 2))
-    } else {
-        v.to_string()
-    }
-}
-
-#[derive(Default)]
-pub(crate) struct Contrat {
-    pub(crate) numero: String,
-    pub(crate) debut: String,
-    pub(crate) fin: String,
-    pub(crate) emploi: String,
-    pub(crate) nature: String,
-    pub(crate) objet: String,
-    pub(crate) brut: Decimal,
-    pub(crate) jours: Decimal,
-    pub(crate) cachets: Decimal,
-    pub(crate) heures: Decimal,
-    pub(crate) fin_declaree: String,
-    pub(crate) motif_fin: String,
-    pub(crate) remunere: bool,
-}
-
-#[derive(Default)]
-pub(crate) struct Versement {
-    pub(crate) date: String,
-    pub(crate) net_verse: String,
-    pub(crate) net_fiscal: String,
-    pub(crate) taux_pas: String,
-    pub(crate) montant_pas: String,
-}
-
-#[derive(Default)]
-pub(crate) struct Individu {
-    pub(crate) nir: String,
-    pub(crate) nom: String,
-    pub(crate) prenoms: String,
-    pub(crate) contrats: Vec<Contrat>,
-    pub(crate) versements: Vec<Versement>,
-    pub(crate) par_numero: HashMap<String, (usize, usize)>,
-}
-
-/// Les sorties de `dsn_recap.lire` sous la forme que le recapitulatif complete : les montants
-/// en texte, comme le Python les rend.
-impl Contrat {
-    fn brut_texte(&self) -> String {
-        q2(self.brut)
-    }
-    fn mesure_texte(&self, cle: &str) -> String {
-        norm(match cle {
-            "jours" => self.jours,
-            "cachets" => self.cachets,
-            _ => self.heures,
-        })
-    }
-}
-
-/// `dsn_recap.lire` : les salaries du fichier, leurs contrats, leurs versements.
-pub(crate) fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
-    let texte = texte_latin1(octets);
-    let mut sals: Vec<Individu> = Vec::new();
-    let mut contrat: Option<(usize, usize)> = None;
-    let mut versement: Option<(usize, usize)> = None;
-    let mut fin: Option<(usize, usize)> = None;
-    // (numero de contrat, type) de la remuneration en cours
-    let mut remu: Option<(String, String)> = None;
-    // (type, mesure) de l'activite en cours
-    let mut activite: Option<(String, Decimal)> = None;
-    for ligne in lignes_py(&texte) {
-        let Some((k, v)) = ligne.split_once(',') else { continue };
-        let v = v.trim_matches(blanc).trim_matches('\'');
-        let kc: Vec<char> = k.chars().collect();
-        let bloc: String = kc.iter().take(10).collect();
-        let champ: String = kc.iter().skip(11).collect();
-        if bloc == "S21.G00.30" {
-            if champ == "001" || sals.is_empty() {
-                sals.push(Individu::default());
-            }
-            let s = sals.last_mut().unwrap();
-            match champ.as_str() {
-                "001" => s.nir = v.to_string(),
-                "002" => s.nom = v.to_string(),
-                "004" => s.prenoms = v.to_string(),
-                _ => {}
-            }
-            continue;
-        }
-        if sals.is_empty() {
-            continue;
-        }
-        let si = sals.len() - 1;
-        match bloc.as_str() {
-            "S21.G00.40" => {
-                if champ == "001" {
-                    sals[si].contrats.push(Contrat { debut: date_dsn(v), ..Contrat::default() });
-                    contrat = Some((si, sals[si].contrats.len() - 1));
-                } else if let Some((cs, cc)) = contrat {
-                    match champ.as_str() {
-                        "006" => sals[cs].contrats[cc].emploi = v.to_string(),
-                        "007" => sals[cs].contrats[cc].nature = v.to_string(),
-                        "009" => {
-                            sals[cs].contrats[cc].numero = v.to_string();
-                            sals[si].par_numero.insert(v.to_string(), (cs, cc));
-                        }
-                        "010" => sals[cs].contrats[cc].fin = date_dsn(v),
-                        "050" => sals[cs].contrats[cc].objet = v.to_string(),
-                        _ => {}
-                    }
-                }
-            }
-            "S21.G00.62" => {
-                if champ == "001" && contrat.is_some() {
-                    fin = contrat;
-                    let (fs, fc) = fin.unwrap();
-                    sals[fs].contrats[fc].fin_declaree = date_dsn(v);
-                } else if champ == "002" {
-                    if let Some((fs, fc)) = fin {
-                        sals[fs].contrats[fc].motif_fin = v.to_string();
-                    }
-                }
-            }
-            "S21.G00.50" => {
-                if champ == "001" {
-                    sals[si].versements.push(Versement { date: date_dsn(v), ..Versement::default() });
-                    versement = Some((si, sals[si].versements.len() - 1));
-                } else if let Some((vs, vi)) = versement {
-                    let x = &mut sals[vs].versements[vi];
-                    match champ.as_str() {
-                        "002" => x.net_fiscal = v.to_string(),
-                        "004" => x.net_verse = v.to_string(),
-                        "006" => x.taux_pas = v.to_string(),
-                        "009" => x.montant_pas = v.to_string(),
-                        _ => {}
-                    }
-                }
-            }
-            "S21.G00.51" => {
-                if champ == "001" {
-                    remu = Some((String::new(), String::new()));
-                } else if let Some(r) = remu.as_mut() {
-                    match champ.as_str() {
-                        "010" => r.0 = v.to_string(),
-                        "011" => r.1 = v.to_string(),
-                        "013" => {
-                            let montant = decimal_py(v).ok_or_else(|| socle::num::illisible(v))?;
-                            let (numero, genre) = (r.0.clone(), r.1.clone());
-                            if let Some(&(cs, cc)) = sals[si].par_numero.get(&numero) {
-                                let c = &mut sals[cs].contrats[cc];
-                                c.remunere = true;
-                                if genre == "001" {
-                                    c.brut += montant;
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            "S21.G00.53" => {
-                if champ == "001" {
-                    activite = Some((v.to_string(), Decimal::ZERO));
-                } else if activite.is_some() && champ == "002" {
-                    activite.as_mut().unwrap().1 = decimal_py(v).ok_or_else(|| socle::num::illisible(v))?;
-                } else if activite.is_some() && champ == "003" {
-                    let (genre, mesure) = activite.clone().unwrap();
-                    let c = remu.as_ref().and_then(|r| sals[si].par_numero.get(&r.0).copied());
-                    let unite = match v {
-                        "10" | "35" => Some("heures"),
-                        "12" => Some("jours"),
-                        "37" => Some("cachets"),
-                        _ => None,
-                    };
-                    if let (Some((cs, cc)), Some(u)) = (c, unite) {
-                        if genre == "01" {
-                            let c = &mut sals[cs].contrats[cc];
-                            match u {
-                                "jours" => c.jours += mesure,
-                                "cachets" => c.cachets += mesure,
-                                _ => c.heures += mesure,
-                            }
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-    Ok(sals)
 }
 
 /// La meme, sans le detail du refus : le moindre refus, quel qu'il soit, rend `Err`.
@@ -503,22 +296,4 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "recapitulatif": recapitulatif,
         "repetition": repetition,
     }))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn recapitulatif_lu_dans_le_fichier() {
-        let f = "S21.G00.30.001,'1850'\nS21.G00.30.002,'FAVART'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'FA1.26.13'\n\
-                 S21.G00.51.001,'01082026'\nS21.G00.51.010,'FA1.26.13'\nS21.G00.51.011,'001'\nS21.G00.51.013,'150.5'\nS21.G00.51.013,'49.5'\n\
-                 S21.G00.53.001,'01'\nS21.G00.53.002,'2'\nS21.G00.53.003,'37'\nS21.G00.62.001,'31082026'\n";
-        let s = lire_recap(f.as_bytes()).unwrap();
-        assert_eq!(s.len(), 1);
-        let c = &s[0].contrats[0];
-        assert_eq!((c.brut_texte().as_str(), c.mesure_texte("cachets").as_str()), ("200.00", "2"));
-        assert_eq!((c.debut.as_str(), c.fin_declaree.as_str(), c.remunere), ("2026-08-01", "2026-08-31", true));
-        assert_eq!(lire_recap(b"S21.G00.30.001,'1'\nS21.G00.40.001,'01082026'\nS21.G00.40.009,'A'\nS21.G00.51.001,'x'\nS21.G00.51.010,'A'\nS21.G00.51.013,'12,5'\n").err(), Some(socle::num::illisible("12,5")));
-    }
 }

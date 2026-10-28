@@ -559,7 +559,7 @@ fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> 
             // Le depot reel de ce contenu est deja note : le rappel se taira au prochain releve.
             return Ok(None);
         }
-        let reel_code = std::fs::read(&f).map(|o| crate::depot::lire(&o).reel()).unwrap_or(false);
+        let reel_code = std::fs::read(&f).map(|o| envois::depot::lire(&o).reel()).unwrap_or(false);
         pret_test = etape == "a_tester";
         pret_reel = etape == "testee" && reel_code;
         d.insert("fichier".into(), json!(f.to_string_lossy()));

@@ -20,13 +20,13 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
-use crate::depot::{self, Apercu};
+use envois::depot::{self, Apercu};
 use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::releve_retours::{Client, Panne};
+use envois::releve_retours::{Client, Panne};
 use socle::echec::Echec;
 
 /// Une erreur qui porte une donnee de plus pour la page (`etat`, `manques`...) : sa phrase et la donnee
@@ -177,7 +177,7 @@ fn verifier_preuve_du_logiciel(ctx: &Contexte, preuve: Option<&Preuve>, mois_att
 /// fenetre, il vaut confirmation), puis le coffre. Ce qui autorise a y puiser pour un depot REEL, c'est la
 /// preuve verifiee juste avant par l'appelant. Ce qui SORT d'ici est un secret : il va directement au client.
 pub(crate) fn motdepasse_organisme(ctx: &Contexte, service: &str, ouverture: Option<&str>) -> R<Option<String>> {
-    let variable = if service == "net-entreprises" { crate::releve_retours::VARIABLE_MOTDEPASSE } else { crate::releve_retours::VARIABLE_MOTDEPASSE_DPAE };
+    let variable = if service == "net-entreprises" { envois::releve_retours::VARIABLE_MOTDEPASSE } else { envois::releve_retours::VARIABLE_MOTDEPASSE_DPAE };
     if let Ok(v) = std::env::var(variable) {
         if !v.is_empty() {
             return Ok(Some(v));
@@ -392,26 +392,6 @@ fn noter(
     envois::journal::noter(&ctx.racine, &n, &socle::paris::maintenant()).map_err(|m| erreur("OSError", m))
 }
 
-// ----------------------------------------------------------------- la compagnie fictive
-
-/// Le flux d'un depot joue par une compagnie fictive : `FICTIF-` et douze chiffres hexadecimaux. Les depots joues avant le
-/// lot U1 portent `DEMO-` (`ANCIEN_PREFIXE_FLUX_FICTIF`) : leurs retours se jouent encore (`releve_retours`).
-pub(crate) const PREFIXE_FLUX_FICTIF: &str = "FICTIF-";
-pub(crate) const ANCIEN_PREFIXE_FLUX_FICTIF: &str = "DEMO-";
-
-/// `simulation.reponse_depot` : ce que le point de depot aurait repondu -- un flux, et la mention.
-fn reponse_fictive(quoi: &str, reel: bool) -> R<String> {
-    let mut o = [0u8; 6];
-    socle::temps::aleas(&mut o).map_err(|e| erreur("OSError", format!("pas d'alea du systeme : {}", e)))?;
-    let flux = format!("{}{}", PREFIXE_FLUX_FICTIF, o.iter().map(|b| format!("{:02X}", b)).collect::<String>());
-    Ok(format!(
-        "<idflux>{}</idflux>\nCompagnie fictive : {} {} jouee, rien n'a quitte le poste.",
-        flux,
-        if quoi == "dsn" { "DSN" } else { "DPAE" },
-        if reel { "reelle" } else { "de test" }
-    ))
-}
-
 /// LA PORTE DES ORGANISMES POUR UNE FICTIVE AJOUTEE (ticket #236, `bridage::refus_d_envoi`) : la premiere chose que font
 /// `deposer_dsn_dans` et `deposer_dpae_avec`, seuls chemins vers `Client::deposer_octets` -- donc tout depot, test et
 /// reel, signalements compris, d'ou qu'il vienne. Avant elle rien n'est lu ni ecrit : pas de ligne au journal des depots,
@@ -507,7 +487,7 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
         .into_iter()
         .filter(|l| l.get("mode").and_then(Value::as_str) == Some("test"))
         .collect();
-    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), true, constitution, mois)?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), true, constitution, mois)?;
     if essais.is_empty() && !vues.du_mois_acceptee {
         return Ok(None);
     }
@@ -550,7 +530,7 @@ fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Val
     // (`ordre_signalements::dernier_ordre_des_mensuelles`) : une mensuelle reelle envoyee d'un autre poste compte, comme
     // a la production (`depart::forme_a_produire`).
     let constitution = mois_de_constitution(a.champ("constitution"), &ctx.aujourdhui);
-    let vues = crate::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &crate::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
+    let vues = envois::ordre_signalements::dernier_ordre_des_mensuelles(&ctx.racine, &envois::ordre_signalements::siren_de(ctx), false, &constitution, mois)?;
     let dernier = match dernier {
         Some(d) => d.max(vues.ordre),
         None if vues.du_mois_acceptee || vues.ordre > 0 => vues.ordre,
@@ -749,7 +729,7 @@ pub fn deposer_dsn_dans(
     };
     let envoi = || -> R<String> {
         if joue {
-            return reponse_fictive("dsn", reel);
+            return envois::branchement::reponse_fictive("dsn", reel);
         }
         let mut client = Client::dsn(ctx, environnement, mdp.clone()).map_err(Panne::en_echec)?;
         client.authentifier().map_err(Panne::en_echec)?;
@@ -908,7 +888,7 @@ pub fn deposer_dpae_avec(
 
     let mut envoi = || -> R<String> {
         if joue {
-            return reponse_fictive("dpae", reel);
+            return envois::branchement::reponse_fictive("dpae", reel);
         }
         let c: &mut Client = match donne.as_deref_mut() {
             Some(c) => c,

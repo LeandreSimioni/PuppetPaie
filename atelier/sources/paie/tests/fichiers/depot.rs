@@ -1,7 +1,7 @@
-//! La preparation des depots (`paie::depot`) : lecture d'une DSN, bascule en test, annule-et-remplace, preuve d'un depot
+//! La preparation des depots (`envois::depot`) : lecture d'une DSN, bascule en test, annule-et-remplace, preuve d'un depot
 //! reel, indicateur DPAE, identifiants du declarant ; sur des fichiers fabriques (NIR et SIREN inventes), sans reseau.
 
-use paie::depot::{basculer_dpae, basculer_dsn, est_reel, identifiants, indicateur, lire, renumeroter, verifier, INDICATEUR_REEL, INDICATEUR_TEST};
+use envois::depot::{basculer_dpae, basculer_dsn, est_reel, identifiants, indicateur, lire, renumeroter, verifier, INDICATEUR_REEL, INDICATEUR_TEST};
 use serde_json::json;
 
 fn dsn(nature_envoi: &str) -> Vec<u8> {

@@ -585,7 +585,7 @@ mod tests {
     }
 
     fn le_poste_n_ouvre_pas(m: &Monde) -> bool {
-        let r = crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises");
+        let r = crate::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises");
         r.is_err()
     }
 
@@ -607,7 +607,7 @@ mod tests {
     fn la_consultation_s_ouvre_au_mot_de_passe_tape() {
         let m = monde();
         crate::coffre::retenir_mot_de_passe_tape(LOGICIEL);
-        let lu = crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
+        let lu = crate::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
         assert_eq!(lu.as_deref(), Some(NET));
     }
 
@@ -634,7 +634,7 @@ mod tests {
     fn la_variable_du_logiciel_ouvre_le_coffre_comme_un_mot_de_passe_tape() {
         let m = monde();
         std::env::set_var("PUPPETPAIE_MOTDEPASSE", LOGICIEL);
-        let lu = crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
+        let lu = crate::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
         assert_eq!(lu.as_deref(), Some(NET));
         assert_eq!(crate::courriel::mot_de_passe(&m.racine).unwrap(), BOITE);
     }
@@ -645,7 +645,7 @@ mod tests {
         let mauvais = "Pas-le-bon-mot-de-passe-77";
         crate::coffre::retenir_mot_de_passe_tape(mauvais);
         for r in [
-            crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").map(|_| ()).map_err(|e| e.message),
+            crate::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").map(|_| ()).map_err(|e| e.message),
             crate::courriel::mot_de_passe(&m.racine).map(|_| ()).map_err(|e| e.to_string()),
             crate::depot_acte::motdepasse_organisme(&m.ctx(), "net-entreprises", None).map(|_| ()).map_err(|e| e.message),
         ] {
@@ -756,7 +756,7 @@ mod tests {
         assert!(f.questions()[0].seance);
         // Plus rien de retenu en memoire : c'est la seance GARDEE (12 h) qui ouvre, dans un processus neuf.
         oublier_mot_de_passe_tape();
-        let lu = crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
+        let lu = crate::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
         assert_eq!(lu.as_deref(), Some(NET));
         assert_eq!(crate::courriel::mot_de_passe(&m.racine).unwrap(), BOITE);
         // Mais un acte reel, lui, redemande -- et sans humain, refuse.

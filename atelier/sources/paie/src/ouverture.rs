@@ -43,7 +43,7 @@ use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::fichiers::vrai;
-use crate::releve_retours::{self, Client, Releve};
+use envois::releve_retours::{Client, Releve};
 use crate::releve_signatures::{self, ReleveSignatures};
 use socle::echec::Echec;
 use crate::routes_fiches_courriel::{self, ReleveFiches};
@@ -594,7 +594,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         if retours {
             dire_l_etape(ctx, "Compagnie fictive : retours des dépôts joués…");
             let mut releve = Releve::default();
-            match releve_retours::rattacher_simulation_detail(ctx, DELAI_RETOURS_FICTIVE) {
+            match crate::releve::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
                 Ok((n, a_faire)) => (releve.rattaches, releve.a_faire) = (n, a_faire),
                 // Le Python ne rattrapait rien ici : l'ouverture ne doit pas tomber (lot I2b).
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),
@@ -738,7 +738,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
         Some(true) => {
             dire_l_etape(ctx, "net-entreprises : retours des DSN…");
             let fin = socle::paris::maintenant_naif();
-            match releve_retours::relever_retours(ctx, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
+            match crate::releve::relever_retours(ctx, fin - opt.jours * 86_400, fin, false, "production", client_dsn, "") {
                 Ok(rel) => {
                     r.incidents.extend(rel.incidents.iter().cloned());
                     r.manquants.extend(rel.a_faire.iter().cloned());
@@ -775,8 +775,8 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
             // Un client donne passe par la meme releve que le vrai (canal `dpae`) ; sans client, `relever_retours_dpae`
             // cherche le mot de passe de consultation et construit le sien.
             let rel = match client_dpae {
-                Some(c) => releve_retours::relever_retours(ctx, debut, fin, false, "production", Some(c), "dpae"),
-                None => releve_retours::relever_retours_dpae(ctx, debut, fin, false, ""),
+                Some(c) => crate::releve::relever_retours(ctx, debut, fin, false, "production", Some(c), "dpae"),
+                None => crate::releve::relever_retours_dpae(ctx, debut, fin, false, ""),
             };
             match rel {
                 Ok(rel) => {

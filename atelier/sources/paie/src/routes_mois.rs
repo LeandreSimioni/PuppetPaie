@@ -309,7 +309,7 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
 ///   `DPAE_<Mois>.txt` : l'ordre inverse des noms).
 pub(crate) fn ordre_de_depot(nom: &str, chemin: &Path) -> (u8, i64, String, std::cmp::Reverse<String>) {
     if suffixe(nom).to_lowercase() == ".dsn" {
-        let apercu = std::fs::read(chemin).map(|o| crate::depot::lire(&o)).ok();
+        let apercu = std::fs::read(chemin).map(|o| envois::depot::lire(&o)).ok();
         let signalement = apercu.as_ref().is_some_and(|a| a.est_signalement());
         let lu = apercu.as_ref().and_then(|a| a.champ("ordre").trim().parse::<i64>().ok());
         if signalement {
@@ -1107,7 +1107,7 @@ impl<'a> Moteur<'a> {
             // chemin a montrer, et jamais hors delai (§1.4.2).
             let ecrits = self.fichiers_deposables(mois)?;
             let premier = ecrits.get(DSN).and_then(Value::as_array).and_then(|l| l.first()).cloned();
-            let apercu = premier.and_then(|f| std::fs::read(valeur_en_texte(&f["chemin"])).ok()).map(|o| crate::depot::lire(&o));
+            let apercu = premier.and_then(|f| std::fs::read(valeur_en_texte(&f["chemin"])).ok()).map(|o| envois::depot::lire(&o));
             if let Some(a) = apercu {
                 if vrai(&r["admis"]) && ["03", "05"].contains(&a.champ("type_declaration")) {
                     let ordre = a.champ("ordre");

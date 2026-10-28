@@ -12,7 +12,7 @@
 //! chaque mois du contrat (heures, cachets, jours, brut, date de paiement). Une attestation par salarie et par mois ; un
 //! contrat sur plusieurs mois y porte tous ses mois (« 1 AE CS éditée à la fin du dernier mois concerné par le contrat »,
 //! `aer::due`, sources citees la) ; cinq periodes au plus par PDF (les colonnes 01 a 05 du formulaire). Puis l'archive
-//! suit LE MEME CHEMIN qu'une vraie (`releve_retours::rattacher_simulation_detail` : l'archive dans `retours/`, puis
+//! suit LE MEME CHEMIN qu'une vraie (`releve_retours::rattacher_simulation` : l'archive dans `retours/`, puis
 //! `routes_documents::ranger_aer`, qui signe le cadre 5 et la pose ou l'envoi la prend).
 //!
 //! LE GABARIT est celui du formulaire de France Travail -- trois pages A4, les cadres 1 (employeur) a 5
@@ -33,7 +33,7 @@ use std::io::Write;
 
 use serde_json::{json, Value};
 
-use crate::apercu_dsn::{lire_recap, Contrat, Individu};
+use declarations::recap_dsn::{lire_recap, Contrat, Individu};
 use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use socle::num::{Decimal, Resultat};
@@ -52,7 +52,7 @@ const BLANC: &str = "#FFFFFF";
 
 // ------------------------------------------------------------------ ce que la DSN dit, en plus de `lire_recap`
 
-/// Ce que `apercu_dsn::lire_recap` ne lit pas et que l'attestation imprime : le salarie (naissance, adresse), et par
+/// Ce que `recap_dsn::lire_recap` ne lit pas et que l'attestation imprime : le salarie (naissance, adresse), et par
 /// contrat l'IDCC (40.017), la caisse de conges payes (40.022) et la licence (40.049) ; la date du premier versement.
 #[derive(Default, Clone)]
 struct Complement {
@@ -142,7 +142,7 @@ fn mois_suivant(m: &str) -> String {
 
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
-    let l = envois::etats::dsn_du_mois(lignes, &ctx.entreprise, m).ok()?;
+    let l = crate::etats::dsn_du_mois(lignes, &ctx.entreprise, m).ok()?;
     let fichier = l.get("fichier").map(socle::valeur::valeur_en_texte).filter(|f| !f.is_empty() && f != "None")?;
     let p = std::path::Path::new(&fichier);
     let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m).join(&fichier) };
@@ -531,7 +531,7 @@ fn nom_dans_l_archive(siret: &str, mois: &str, edite_le: Jour, ind: &Individu, r
 /// L'archive de nature 46 que France Travail publierait pour la DSN `dsn` du mois `mois` : un PDF par salarie dont la
 /// DSN declare la fin d'un contrat d'usage (cinq periodes par PDF, les mois anterieurs du contrat lus dans les DSN
 /// reelles deposees). `None` : aucune AER Cinema Spectacle n'est due ce mois-ci, France Travail ne publie rien.
-pub(crate) fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Resultat<Option<Vec<u8>>> {
+pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Resultat<Option<Vec<u8>>> {
     let individus = lire_recap(dsn)?;
     let plus = complements(dsn);
     // Le type et l'ordre de la declaration (S20.G00.05.002 et .004) : 03 et 05 annulent et remplacent.
@@ -544,7 +544,7 @@ pub(crate) fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) ->
     };
     let ordre = rubrique("S20.G00.05.004");
     let remplace = matches!(rubrique("S20.G00.05.002").as_str(), "03" | "05").then_some(ordre.as_str());
-    let lignes = envois::etats::charger(&ctx.racine).map_err(|e| e.message)?;
+    let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
     let ent = &ctx.entreprise;
     let siret = ent.get("siret").map(en_texte).unwrap_or_default();
     let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();

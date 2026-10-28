@@ -1,18 +1,16 @@
-//! La releve des retours (`moteur/operations_retours.py` : `relever_retours`, `relever_retours_dpae`),
-//! et le client qui parle aux organismes (`moteur/netentreprises.py` : `Client`, `moteur/dpae_api.py` :
-//! `ClientDpae`) -- ce que le Python gardait derriere `paie transport` (lot H2).
+//! La releve des retours des organismes et le client qui leur parle (net-entreprises pour la DSN, l'Urssaf pour la DPAE).
 //!
 //! RELEVER EST UNE LECTURE : on archive sans rien demander a personne, aucune seance n'est exigee, rien
 //! n'est applique. L'archive brute est la piece justificative : elle est ecrite avant toute analyse. Un 404
 //! sur une tranche veut dire << rien sur cette tranche >>, tout autre refus arrete (CLAUDE.md, regle 5).
 //!
-//! CE MODULE NE CHERCHE JAMAIS UN SECRET POUR LE TRANSPORT : `Client` en recoit un, ou lit la variable
-//! d'environnement du service, comme `netentreprises.Client` ; c'est la releve (couche qui a vu l'humain)
-//! qui puise au coffre pour une consultation. Le mot de passe sert le temps de l'authentification
+//! CE MODULE NE CHERCHE JAMAIS UN SECRET (regle 3) : `Client` recoit le mot de passe, ou lit la variable d'environnement
+//! du service ; c'est `paie` qui le prend au coffre. Le mot de passe sert le temps de l'authentification
 //! (`transport::operation`), n'est ni journalise, ni affiche, ni renvoye.
 //!
-//! Le reseau passe par `transport::operation` (le meme JSON que `paie transport`) : rien n'est reecrit.
-//! La compagnie fictive (`simulation.rattacher`) pose les retours des depots joues, sans reseau.
+//! La releve obeit au branchement : le simulateur pose les retours des depots joues, sans reseau (`rattacher_simulation`) ;
+//! le message ne releve rien. Ce qu'elle trouve en chemin et qui touche a la compagnie (les incidents des retours, les
+//! attestations France Travail a ranger) va dans les suites (`suites::Suites`).
 
 use std::path::{Path, PathBuf};
 
@@ -26,6 +24,9 @@ use socle::fichiers::vrai;
 use socle::base64::{ecrire as base64_ecrire, lire as base64_lire};
 use socle::echec::Echec;
 use socle::paris::{iso_de_naif, maintenant_naif, naif_de_iso};
+
+use crate::branchement::{Branchement, ANCIEN_PREFIXE_FLUX_FICTIF, PREFIXE_FLUX_FICTIF};
+use crate::suites::Suites;
 
 /// `strftime("%Y%m%d-%H%M%S")` d'une heure locale naive.
 fn horodatage_archive(local: i64) -> String {
@@ -113,9 +114,9 @@ pub struct Adresses {
 }
 
 fn adresses_dsn(environnement: &str) -> Result<Adresses, Panne> {
-    // L'atelier seulement : un faux net-entreprises local (`atelier.rs`). Le service reste celui de l'environnement.
+    // L'atelier seulement : un faux net-entreprises local (`redirection`). Le service reste celui de l'environnement.
     #[cfg(feature = "atelier")]
-    if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_DSN) {
+    if let Some(b) = crate::redirection::base(crate::redirection::VARIABLE_DSN) {
         let service = if environnement == "editeur" { SERVICE_DSN_REGIME_GENERAL_TEST } else { SERVICE_DSN_REGIME_GENERAL };
         return Ok(Adresses {
             authentification: format!("{}/authentifier/", b),
@@ -155,9 +156,9 @@ fn adresses_dpae(ent: &Value) -> Adresses {
         .and_then(|c| c.get("service"))
         .filter(|s| vrai(s))
         .map(valeur_en_texte);
-    // L'atelier seulement : un faux Urssaf local (`atelier.rs`).
+    // L'atelier seulement : un faux Urssaf local (`redirection`).
     #[cfg(feature = "atelier")]
-    if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_DPAE) {
+    if let Some(b) = crate::redirection::base(crate::redirection::VARIABLE_DPAE) {
         return Adresses {
             authentification: format!("{}/authentifier_dpae", b),
             retours: format!("{}/lister-retours-declarant/1.0/", b),
@@ -274,7 +275,7 @@ impl Client {
     pub fn lister_retours(&mut self, debut: i64, fin: i64) -> Result<Vec<Value>, Panne> {
         let base = self.adresses.retours.clone();
         let brut = self.consulter(&base, debut, Some(fin))?;
-        envois::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
+        crate::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
     }
 
     /// `Client.lister_depots` : les depots que net-entreprises a vus sur une plage. L'adresse est celle de la consultation
@@ -282,13 +283,13 @@ impl Client {
     pub fn lister_depots(&mut self, debut: i64, fin: i64) -> Result<Vec<Value>, Panne> {
         let base = self.adresses.retours.replace("lister-retours-declarant", "lister-depots");
         let brut = self.consulter(&base, debut, Some(fin))?;
-        envois::retours::liste_depots_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
+        crate::retours::liste_depots_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
     }
 
     pub fn lister_retours_du_flux(&mut self, idflux: &str) -> Result<Vec<Value>, Panne> {
         self.assurer_session()?;
         let (brut, _) = self.appel(&format!("{}{}", self.adresses.retours_flux, idflux))?;
-        envois::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
+        crate::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
     }
 
     /// Recupere un retour : (contenu brut, type de contenu).
@@ -318,15 +319,6 @@ fn gzip(donnees: &[u8]) -> Result<Vec<u8>, Panne> {
     let mut e = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
     e.write_all(donnees).map_err(|x| Panne { classe: "OSError".into(), message: x.to_string(), code: 0 })?;
     e.finish().map_err(|x| Panne { classe: "OSError".into(), message: x.to_string(), code: 0 })
-}
-
-// -------------------------------------------------------------------- le coffre
-
-/// Le mot de passe d'un service, pour une CONSULTATION : l'environnement d'abord, puis le coffre ; `None`
-/// quand rien n'est pose. Un coffre qui ne s'ouvre pas est un refus, pas une absence.
-pub fn mot_de_passe_de_consultation(ctx: &Contexte, service: &str) -> R<Option<String>> {
-    let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
-    coffre.lire(&json!(service), &json!(crate::coffre::CONSULTATION), false, None).map_err(crate::routes_etats::vers_route)
 }
 
 // ------------------------------------------------------------------ la releve
@@ -421,44 +413,16 @@ fn tranches(debut: i64, fin: i64) -> Vec<(i64, i64)> {
     v
 }
 
-/// `simulation.rattacher` : pose les retours des depots joues qui les attendent depuis `delai` secondes.
-/// Rend le nombre de depots completes. Ne touche a aucune autre ligne : un vrai depot (flux sans le
-/// prefixe) garde ses vrais retours.
-pub fn rattacher_simulation(ctx: &Contexte, delai: i64) -> R<i64> {
-    rattacher_simulation_detail(ctx, delai).map(|(n, _)| n)
-}
-
-/// L'AER Cinema Spectacle qu'une DSN mensuelle REELLE jouee appelle (`aer_fictive::archive`) : l'archive de nature 46,
-/// ou `None` quand aucune n'est due (France Travail ne publie rien). Seulement la ou la simulation est active
-/// (`routes_accueil::simulation_active` : une fictive livree ou le paquet soude) ; une signalement (nature 04, 05, 07)
-/// n'en appelle pas. Le fichier deposé est relu la ou le depot l'a pris (`sorties/<mois>/<fichier>`).
-fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
-    if !crate::routes_accueil::simulation_active(&ctx.racine) || l.get("mode").and_then(Value::as_str) != Some("reel") {
-        return Ok(None);
-    }
-    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
-    if !nature.is_empty() && nature != "01" {
-        return Ok(None);
-    }
-    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
-    let fichier = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-    if mois.is_empty() || fichier.is_empty() {
-        return Ok(None);
-    }
-    let chemin = if Path::new(&fichier).is_absolute() { PathBuf::from(&fichier) } else { ctx.racine.join("sorties").join(&mois).join(&fichier) };
-    let Ok(octets) = std::fs::read(&chemin) else { return Ok(None) };
-    crate::aer_fictive::archive(ctx, &octets, &mois, ctx.aujourdhui).map_err(Echec::from)
-}
-
-/// `rattacher_simulation`, avec ce que le rangement des AER jouees laisse a faire (`routes_documents::ranger_aer`) :
-/// une attestation que la paie ne confirme pas, un nom qu'aucune fiche ne porte.
-pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<String>)> {
-    let p = envois::journal::chemin(&ctx.racine);
+/// LE SIMULATEUR : pose les retours des depots joues qui les attendent depuis `delai` secondes, et rend le nombre de
+/// depots completes. Ne touche a aucune autre ligne : un vrai depot (flux sans le prefixe) garde ses vrais retours. Les
+/// attestations France Travail jouees s'archivent dans `retours/` comme les vraies, et vont dans les suites, a ranger.
+pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> R<i64> {
+    let p = crate::journal::chemin(&ctx.racine);
     if !p.exists() {
-        return Ok((0, Vec::new()));
+        return Ok(0);
     }
     let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
-    let mut lignes = envois::etats::charger(&ctx.racine)?;
+    let mut lignes = crate::etats::charger(&ctx.racine)?;
     let maintenant = maintenant_naif();
     let pub_ = horodatage_archive(maintenant).replace('-', "");
     let mut faits = 0;
@@ -468,7 +432,7 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
         let age = l.get("quand").and_then(Value::as_str).and_then(naif_de_iso).map_or(0, |t| maintenant - t);
         if (quoi == "dsn" || quoi == "dpae")
             && l.get("accepte").is_some_and(vrai)
-            && (flux.starts_with(crate::depot_acte::PREFIXE_FLUX_FICTIF) || flux.starts_with(crate::depot_acte::ANCIEN_PREFIXE_FLUX_FICTIF))
+            && (flux.starts_with(PREFIXE_FLUX_FICTIF) || flux.starts_with(ANCIEN_PREFIXE_FLUX_FICTIF))
             && !l.get("retours").is_some_and(vrai)
             && age >= delai
         {
@@ -509,45 +473,68 @@ pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<St
     if faits > 0 {
         socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
     }
-    // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement, qui signe le cadre 5 et la pose dans
-    // `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
-    let mut chemins: Vec<PathBuf> = Vec::new();
+    // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement (par `paie`), qui signe le cadre 5 et la
+    // pose dans `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
     for (retour, archive) in &a_archiver {
-        chemins.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
+        suites.aer.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
     }
-    let a_faire = if chemins.is_empty() { Vec::new() } else { crate::routes_documents::ranger_aer(ctx, None, Some(&chemins))? };
-    Ok((faits, a_faire))
+    Ok(faits)
 }
 
-/// `operations_retours.relever_retours` : telecharge et archive ce que les organismes ont publie. `debut`
-/// et `fin` : heures locales naives (`maintenant_naif`). `client` : un client deja construit (le canal DPAE
-/// passe le sien, avec `canal = "dpae"`).
+/// L'AER Cinema Spectacle qu'une DSN mensuelle REELLE jouee appelle (`aer_fictive::archive`) : l'archive de nature 46,
+/// ou `None` quand aucune n'est due (France Travail ne publie rien) ; un signalement (nature 04, 05, 07) n'en appelle pas.
+/// Le fichier depose est relu la ou le depot l'a pris (`sorties/<mois>/<fichier>`).
+fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
+    if l.get("mode").and_then(Value::as_str) != Some("reel") {
+        return Ok(None);
+    }
+    let nature = l.get("detail").and_then(|d| d.get("nature")).filter(|n| vrai(n)).map(valeur_en_texte).unwrap_or_default();
+    if !nature.is_empty() && nature != "01" {
+        return Ok(None);
+    }
+    let mois = l.get("mois").map(valeur_en_texte).unwrap_or_default();
+    let fichier = l.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
+    if mois.is_empty() || fichier.is_empty() {
+        return Ok(None);
+    }
+    let chemin = if Path::new(&fichier).is_absolute() { PathBuf::from(&fichier) } else { ctx.racine.join("sorties").join(&mois).join(&fichier) };
+    let Ok(octets) = std::fs::read(&chemin) else { return Ok(None) };
+    crate::aer_fictive::archive(ctx, &octets, &mois, ctx.aujourdhui).map_err(Echec::from)
+}
+
+/// Le delai, en secondes, au bout duquel le simulateur rend les retours d'un depot joue a la releve.
+pub const DELAI_RETOURS_JOUES: i64 = 6;
+
+/// Telecharge et archive ce que les organismes ont publie. `debut` et `fin` : heures locales naives
+/// (`maintenant_naif`). `client` : le client du service, avec son mot de passe (le canal DPAE passe le sien, avec
+/// `canal = "dpae"`) ; `None` dans le monde : aucun mot de passe n'est pose, et cela se dit.
+#[allow(clippy::too_many_arguments)]
 pub fn relever_retours(
     ctx: &Contexte,
+    branchement: Branchement,
     debut: i64,
     fin: i64,
     tout: bool,
-    environnement: &str,
     client: Option<Client>,
     canal: &str,
+    suites: &mut Suites,
 ) -> R<Releve> {
     let mut releve = Releve::default();
-    // LA COMPAGNIE FICTIVE : les retours des depots joues arrivent d'ici, sans reseau ni mot de passe.
-    if client.is_none() && crate::routes_accueil::simulation_active(&ctx.racine) {
-        (releve.rattaches, releve.a_faire) = rattacher_simulation_detail(ctx, 6)?;
-        return Ok(releve);
-    }
-    let mut client = match client {
-        Some(c) => c,
-        None => {
-            let Some(mdp) = mot_de_passe_de_consultation(ctx, "net-entreprises")? else {
-                releve.incidents.push(
-                    "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `paie coffre poser net-entreprises`.".into(),
-                );
-                return Ok(releve);
-            };
-            Client::dsn(ctx, environnement, Some(mdp)).map_err(en_echec)?
+    match branchement {
+        // Rien n'est parti, rien ne revient.
+        Branchement::Message(_) => return Ok(releve),
+        // Les retours des depots joues arrivent d'ici, sans reseau ni mot de passe.
+        Branchement::Simulateur if client.is_none() => {
+            releve.rattaches = rattacher_simulation(ctx, DELAI_RETOURS_JOUES, suites)?;
+            return Ok(releve);
         }
+        _ => {}
+    }
+    let Some(mut client) = client else {
+        releve.incidents.push(
+            "Mot de passe net-entreprises absent : ni dans l'environnement, ni dans le coffre. `paie coffre poser net-entreprises`.".into(),
+        );
+        return Ok(releve);
     };
     match client.authentifier() {
         Ok(()) => releve.session_jusqu_a = client.expire_le.clone().unwrap_or_default(),
@@ -592,7 +579,7 @@ pub fn relever_retours(
         match client.telecharger(&url) {
             Ok((contenu, ctype)) => {
                 let chemin = archiver(ctx, &r, &contenu, &ctype, canal).map_err(en_echec)?;
-                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(envois::retours::NATURE_TAUX_ATMP) {
+                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_ATMP) {
                     releve.a_faire.push(format!(
                         "Notification du taux AT/MP recue le {} (retour de nature 34, archive {}) : le taux se reporte dans config/baremes/<annee>.json (`taux_atmp`), avec sa source.",
                         date_publication(&r),
@@ -602,7 +589,7 @@ pub fn relever_retours(
                 // UN SIGNALEMENT REFUSE B1-208-10 (lot O1) : l'ordre etait deja pris ; la conduite a tenir se dit.
                 if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some("11") {
                     let flux = r.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-                    for d in envois::retours::declarations_du_bilan(&contenu) {
+                    for d in crate::retours::declarations_du_bilan(&contenu) {
                         releve.a_faire.extend(crate::ordre_signalements::conduite_b1_208_10(&d, &flux));
                     }
                 }
@@ -627,48 +614,59 @@ pub fn relever_retours(
         // Un depot n'est fini que quand sa reponse est la : chaque retour se range en face du depot qui l'a
         // provoque -- par le flux, et par rien d'autre.
         let contenus: Vec<([Value; 3], Vec<u8>)> = releve.archives.iter().map(|a| (cle_de_retour(&a.retour), a.contenu.clone())).collect();
-        releve.rattaches = crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(releve.trouves.clone()), &contenus))?;
+        releve.rattaches = suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(releve.trouves.clone()), &contenus))?;
     }
 
     // UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (ticket #215) : ce qu'un autre logiciel a depose sous le meme compte
     // entre au journal de lui-meme, et le mois qu'il declare n'est plus « en retard ».
     if canal.is_empty() {
-        crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::reprise_journal::reprendre_les_depots(ctx, "releve", &crate::routes_ecritures_g2::maintenant()))?;
+        let maintenant = socle::paris::maintenant()[..16].replacen('T', " ", 1);
+        suites.garder(crate::reprise_journal::reprendre_les_depots(ctx, "releve", &maintenant))?;
     }
 
-    // L'AER SE RANGE DES QU'ELLE ARRIVE (01/10/2026) : la boite d'envoi la voit.
-    let aer: Vec<PathBuf> = releve
-        .archives
-        .iter()
-        .filter(|a| a.retour.get("nature").map(valeur_en_texte).as_deref() == Some(envois::retours::NATURE_AER_SPECTACLE))
-        .map(|a| a.chemin.clone())
-        .collect();
-    if !aer.is_empty() && canal.is_empty() {
-        match crate::routes_documents::ranger_aer(ctx, None, Some(&aer)) {
-            Ok(a_faire) => releve.a_faire.extend(a_faire),
-            Err(e) => releve.incidents.push(format!("Attestations France Travail recues mais non rangees : {}", e.message)),
-        }
+    // L'AER SE RANGE DES QU'ELLE ARRIVE : la boite d'envoi la voit (les suites).
+    if canal.is_empty() {
+        suites.aer.extend(
+            releve
+                .archives
+                .iter()
+                .filter(|a| a.retour.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_AER_SPECTACLE))
+                .map(|a| a.chemin.clone()),
+        );
     }
     Ok(releve)
 }
 
-/// `operations_retours.relever_retours_dpae` : les retours de l'API DPAE -- UN AUTRE SERVICE que celui de
-/// la DSN, ses archives sont dans `retours/dpae/`. `flux` : le seul chemin documente (la FAQ) quand on
-/// connait l'idflux ; sinon la consultation par plage, sur le canal `dpae`.
-pub fn relever_retours_dpae(ctx: &Contexte, debut: i64, fin: i64, tout: bool, flux: &str) -> R<Releve> {
-    if crate::routes_accueil::simulation_active(&ctx.racine) {
-        let mut r = Releve::default();
-        (r.rattaches, r.a_faire) = rattacher_simulation_detail(ctx, 6)?;
-        return Ok(r);
+/// Les retours de l'API DPAE -- UN AUTRE SERVICE que celui de la DSN, ses archives sont dans `retours/dpae/`. `flux` : le
+/// seul chemin documente (la FAQ) quand on connait l'idflux ; sinon la consultation par plage, sur le canal `dpae`.
+/// `client` : le client Urssaf, avec son mot de passe ; `None` dans le monde : aucun mot de passe n'est pose.
+#[allow(clippy::too_many_arguments)]
+pub fn relever_retours_dpae(
+    ctx: &Contexte,
+    branchement: Branchement,
+    debut: i64,
+    fin: i64,
+    tout: bool,
+    flux: &str,
+    client: Option<Client>,
+    suites: &mut Suites,
+) -> R<Releve> {
+    match branchement {
+        Branchement::Message(_) => return Ok(Releve::default()),
+        Branchement::Simulateur => {
+            let mut r = Releve::default();
+            r.rattaches = rattacher_simulation(ctx, DELAI_RETOURS_JOUES, suites)?;
+            return Ok(r);
+        }
+        Branchement::Monde => {}
     }
-    let Some(mdp) = mot_de_passe_de_consultation(ctx, "urssaf")? else {
+    let Some(mut client) = client else {
         let mut r = Releve::default();
         r.incidents.push("Mot de passe DPAE absent : ni dans l'environnement, ni dans le coffre. `paie coffre poser urssaf`.".into());
         return Ok(r);
     };
-    let mut client = Client::dpae(ctx, false, Some(mdp));
     if flux.is_empty() {
-        return relever_retours(ctx, debut, fin, tout, "production", Some(client), "dpae");
+        return relever_retours(ctx, branchement, debut, fin, tout, Some(client), "dpae", suites);
     }
     let mut r = Releve::default();
     let trouves = client.authentifier().and_then(|_| client.lister_retours_du_flux(flux));
@@ -693,9 +691,9 @@ pub fn relever_retours_dpae(ctx: &Contexte, debut: i64, fin: i64, tout: bool, fl
     }
     if !r.trouves.is_empty() {
         noter_vus(ctx, &r.trouves, "dpae").map_err(en_echec)?;
-        // Le chemin par flux n'accrochait pas ce qu'il trouvait au journal (vu le 12/09/2026).
+        // Le chemin par flux accroche aussi ce qu'il trouve au journal.
         let contenus: Vec<([Value; 3], Vec<u8>)> = r.archives.iter().map(|a| (cle_de_retour(&a.retour), a.contenu.clone())).collect();
-        r.rattaches = crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(r.trouves.clone()), &contenus))?;
+        r.rattaches = suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(r.trouves.clone()), &contenus))?;
     }
     Ok(r)
 }
@@ -712,7 +710,7 @@ pub fn derniere_journee() -> (i64, i64) {
 /// (`RO.B008`) que lit le lecteur des comptes rendus NEOReS (`retours::lire_neores`, d'apres le cahier technique NEOReS
 /// 2026.1.2, `atelier/reference/sources/neores/`) ; un XML qui ne se lit pas ne dit rien.
 fn lire_crm118(contenu: &[u8]) -> R<Option<Vec<(String, f64, String, String, String)>>> {
-    let Some(crm) = envois::retours::lire_neores(contenu) else { return Ok(None) };
+    let Some(crm) = crate::retours::lire_neores(contenu) else { return Ok(None) };
     let mut out = Vec::new();
     for p in crm["parametres"].as_array().into_iter().flatten() {
         let t = |k: &str| p[k].as_str().unwrap_or("").to_string();
