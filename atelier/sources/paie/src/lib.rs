@@ -102,7 +102,6 @@ pub mod depart;
 pub mod produire_regularisations;
 pub mod routes_ecritures_g4;
 pub mod etats_organismes;
-pub mod etats_compta;
 pub mod reprise_journal;
 pub mod simulation_courriels;
 pub mod casc_regularisation;

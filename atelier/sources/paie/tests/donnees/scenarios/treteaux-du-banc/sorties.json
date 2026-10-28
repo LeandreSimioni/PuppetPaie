@@ -1465,7 +1465,7 @@
                     "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
                     "fichier racine:config/baremes/2026.json": "aa67ef6e2d998751b6bc3bf9e8ab7f6a334747edcbad4688a7d7ebb09d697d61",
                     "fichier racine:config/pas.json": "369e7ddb77a5d443cd25a0ae2ccff0df37a0dd3981c84b47943aa9ec87214484",
-                    "moteur": "0.1.0+b30c2dad0fc8dee3",
+                    "moteur": "0.1.0+3644adeabcce551a",
                     "saisie 2026-11": "f28d3244c6199dbe6399317ea93818581c2939f2a97fc35f21ed8e39db950417:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
                   },
                   "regles": [

@@ -59,7 +59,7 @@ fn chaque_chose_que_demande_une_compagnie_neuve_se_remplit_dans_un_champ_montre(
     assert_eq!(mt.len(), 1, "le code du service de sante au travail, par sa case, meme sans SIRET : {:?}", m);
     assert_eq!(mt[0]["bloque"], json!("la DPAE"));
     // La DSN de decembre declare la taxe sur les salaires (bloc S21.G00.44) et ne se fait pas sans reponse : demandee
-    // d'avance, par sa case (`assujettissement::regime_taxe_sur_les_salaires`).
+    // d'avance, par sa case (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`).
     assert_eq!(par_champ(&m, "taxe_sur_les_salaires").len(), 1, "{:?}", m);
 }
 

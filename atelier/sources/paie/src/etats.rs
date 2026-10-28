@@ -14,7 +14,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 
 use serde_json::{json, Map, Value};
 
@@ -24,6 +23,7 @@ use crate::journal::{chemin, ACTES, REEL};
 use crate::retours;
 use socle::echec::{erreur, Echec, R};
 use socle::valeur::{valeurs_egales, nom_type, nombre, valeur_ecrite, valeur_en_texte};
+pub(crate) use socle::valeur::{get, getd, objet_vide, ou, texte_vide};
 use crate::tables_journal::ALNUM;
 
 pub(crate) const DSN: &str = "dsn";
@@ -46,38 +46,6 @@ pub const NATURES_DPAE: [(&str, &str); 4] = [
 
 static NUL: Value = Value::Null;
 pub(crate) static LISTE_VIDE: Value = Value::Array(Vec::new());
-
-pub(crate) fn objet_vide() -> &'static Value {
-    static V: OnceLock<Value> = OnceLock::new();
-    V.get_or_init(|| Value::Object(Map::new()))
-}
-
-pub(crate) fn texte_vide() -> &'static Value {
-    static V: OnceLock<Value> = OnceLock::new();
-    V.get_or_init(|| Value::String(String::new()))
-}
-
-/// `v.get(k)`.
-pub(crate) fn get<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
-    getd(v, k, &NUL)
-}
-
-/// `v.get(k, defaut)`.
-pub(crate) fn getd<'a>(v: &'a Value, k: &str, defaut: &'a Value) -> R<&'a Value> {
-    match v {
-        Value::Object(o) => Ok(o.get(k).unwrap_or(defaut)),
-        _ => Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v)))),
-    }
-}
-
-/// `v or defaut`.
-pub(crate) fn ou<'a>(v: &'a Value, defaut: &'a Value) -> &'a Value {
-    if vrai(v) {
-        v
-    } else {
-        defaut
-    }
-}
 
 pub(crate) fn est(v: &Value, s: &str) -> bool {
     v.as_str() == Some(s)

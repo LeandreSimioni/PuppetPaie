@@ -3,7 +3,7 @@
 //! comptabilite importent (fec, ximport, oxygene, sage, quadra, ebp, pennylane), le grand livre, la balance, la
 //! provision pour conges payes des permanents, la taxe sur les salaires.
 //!
-//! Les ecritures sont celles de `exercice_ecrit::ecritures_du_mois` (le meme plan, le meme refus d'un compte
+//! Les ecritures sont celles de `ecritures_comptables::ecritures_du_mois` (le meme plan, le meme refus d'un compte
 //! devine) ; chaque mois fait une piece (`PAIE-AAAA-MM`) et un numero d'ecriture. Les fichiers de logiciel sont
 //! ecrits en cp1252 avec remplacement (`encode("cp1252", errors="replace")`) quand le format est « Windows ».
 
@@ -14,11 +14,11 @@ use serde_json::{Map, Value};
 use droit::contexte::{archivee, Contexte};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
-use documents::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
-use crate::exercice_ecrit::{ecritures_du_mois, Ecriture};
+use crate::etats_paie::{ecarter_declares, ecrire_fini, finir, lignes_livre, charger_mois, Demande, Periode};
+use crate::ecritures_comptables::{ecritures_du_mois, Ecriture};
 use socle::fichiers::vrai;
 use socle::num::{add, div, dec_avec_echelle, eur, eur2, mul, sub, zero2, Decimal};
-use documents::tableaux_export::{
+use crate::tableaux_export::{
     col_m, col_n, col_t, col_x, ecrire as ecrire_tableau, format_possible, jj, libelle_mois, nom_compagnie, refus, totaliser, Ligne, Section, Tableau, Val,
     FORMATS_TABLEAU, R, TOTAL_GENERAL,
 };
@@ -26,7 +26,7 @@ use documents::tableaux_export::{
 // ------------------------------------------------------------------ les tables
 
 /// `FORMATS_ECRITURES` : les six formats de la machinerie, puis les sept des logiciels.
-pub(crate) const FORMATS_ECRITURES: [&str; 13] =
+pub const FORMATS_ECRITURES: [&str; 13] =
     ["csv", "tsv", "xlsx", "pdf", "html", "json", "fec", "ximport", "oxygene", "sage", "quadra", "ebp", "pennylane"];
 
 const SOURCES: &str = "plan comptable : plan-comptable-base.json (plan comptable général, classes 64, 42, 43, 44), remplacé clé par clé par config/plan-comptable.json";
@@ -42,7 +42,7 @@ const ESSAI: &str = " Faire un premier import d'essai sur un dossier de test ava
 
 /// `LOGICIELS[logiciel]` : (nom, format, pourquoi), lus dans `exports_tables.json`.
 fn logiciel_connu(logiciel: &str) -> Option<(String, String, String)> {
-    let t = crate::routes_dossiers::tables();
+    let t = crate::plan_comptable::tables();
     t["logiciels"].as_array()?.iter().find(|l| l["logiciel"].as_str() == Some(logiciel)).map(|l| {
         (
             l["nom"].as_str().unwrap_or("").to_string(),
@@ -54,7 +54,7 @@ fn logiciel_connu(logiciel: &str) -> Option<(String, String, String)> {
 
 /// Les logiciels connus, dans l'ordre de `LOGICIELS`.
 fn logiciels_dits() -> Vec<String> {
-    crate::routes_dossiers::logiciels_connus().iter().map(|s| s.to_string()).collect()
+    crate::plan_comptable::logiciels_connus().iter().map(|s| s.to_string()).collect()
 }
 
 // ------------------------------------------------------------------ petits outils de texte
@@ -239,7 +239,7 @@ fn ligne_de(e: &Ecriture, plan: &Map<String, Value>) -> R<Ligne> {
 /// `_ecritures` : les ecritures de la periode, numerotees -- une ecriture (une piece) par mois, ses lignes dans
 /// l'ordre de `ecritures_du_mois`.
 fn ecritures_de(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<(Vec<Ecriture>, Map<String, Value>, &'static str)> {
-    let (plan, origine) = crate::etats_organismes::plan(ctx)?;
+    let (plan, origine) = crate::plan_comptable::plan(ctx)?;
     let mut out = Vec::new();
     let mois = ecarter_declares(p, avert, "la répartition des cotisations — donc pas d'écriture équilibrée")?;
     for (n, m) in mois.iter().enumerate() {
@@ -462,7 +462,7 @@ fn virgule(v: Decimal) -> String {
 
 /// `LIMITES[format]` : (nom, largeur du compte, largeur du journal).
 fn limites(format: &str) -> Option<(String, usize, usize)> {
-    let l = crate::routes_dossiers::tables()["limites"].get(format)?;
+    let l = crate::plan_comptable::tables()["limites"].get(format)?;
     Some((l["nom"].as_str()?.to_string(), l["compte"].as_u64()? as usize, l["journal"].as_u64()? as usize))
 }
 
@@ -859,7 +859,7 @@ fn choix_compta(ctx: &Contexte) -> R<Value> {
 
 /// `ecritures_comptables` : le journal de paie, une piece par mois, equilibree, dans le format choisi -- tableau
 /// (CSV, texte tabule, XLSX, PDF, HTML, JSON), ou celui d'un logiciel de comptabilite.
-pub(crate) fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn ecritures_comptables(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert: Vec<String> = Vec::new();
     let retenu = choix_compta(ctx)?;
@@ -974,7 +974,7 @@ fn solde(d: &Ligne) -> String {
 }
 
 /// `grand_livre` : les ecritures de paie rangees par compte, un sous-total par compte.
-pub(crate) fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
@@ -1015,7 +1015,7 @@ pub(crate) fn grand_livre(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 // ------------------------------------------------------------------ la balance
 
 /// `balance` : une ligne par compte -- total debit, total credit, solde. Le total general tombe a zero.
-pub(crate) fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let (ecr, plan, origine) = ecritures_de(ctx, &p, &mut avert)?;
@@ -1065,7 +1065,7 @@ pub(crate) fn balance(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 /// `_taux_patronal` : le taux REEL des cotisations patronales d'un salarie -- ses cotisations patronales sur son
 /// brut, sur les douze mois qui finissent a `jusqu_a`. Rend (taux en %, nombre de bulletins lus).
-fn taux_patronal(lignes: &[documents::etats_paie::LigneLivre], cle: &str, jusqu_a: &str) -> R<(Option<Decimal>, i64)> {
+fn taux_patronal(lignes: &[crate::etats_paie::LigneLivre], cle: &str, jusqu_a: &str) -> R<(Option<Decimal>, i64)> {
     let annee: i64 = debut(jusqu_a, 4).parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
     let depart = format!("{:04}-{}", annee - 1, tranche(jusqu_a, 5, 7));
     let (mut brut, mut pat, mut n) = (zero2(), zero2(), 0i64);
@@ -1086,7 +1086,7 @@ fn taux_patronal(lignes: &[documents::etats_paie::LigneLivre], cle: &str, jusqu_
 
 /// `provision_conges` : la dette de conges payes des salaries au mois a la fin de la periode -- ce que la compagnie
 /// devrait s'ils partaient ce jour-la. Un salarie, une ligne ; les intermittents n'y sont pas.
-pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     use droit::permanents::arrondir_jours;
     if d.toutes {
         return Err(refus("La provision de congés se calcule à UNE date : demander un mois (la fin du mois) ou une année (la fin du dernier mois produit)."));
@@ -1122,7 +1122,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             continue;
         }
         let brut_du_mois = paies.iter().filter(|q| cle_de(q) == cle).fold(zero, |a, q| add(a, q.brut));
-        let Some(cpt) = crate::service::provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
+        let Some(cpt) = provision_conges_de(pa, &m, brut_du_mois, e.get("salaire_mensuel")).map_err(socle::echec::Echec::from)? else { continue };
         for a in &cpt.avertissements {
             avert.push(format!("{} : {}", cle, a.texte));
         }
@@ -1162,7 +1162,7 @@ pub(crate) fn provision_conges(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             jj(&fin.iso())
         ));
     }
-    let (plan, _origine) = crate::etats_organismes::plan(ctx)?;
+    let (plan, _origine) = crate::plan_comptable::plan(ctx)?;
     let pc = plan.get("provision_conges").filter(|v| vrai(v)).cloned().unwrap_or(Value::Object(Map::new()));
     let indemnites = lignes.iter().fold(zero, |a, l| add(a, l.decimal("indemnite").unwrap_or(zero)));
     let charges = lignes.iter().fold(zero, |a, l| add(a, l.decimal("charges").filter(|c| !c.is_zero()).unwrap_or(zero)));
@@ -1240,7 +1240,7 @@ fn du_bareme<'a>(ts: &'a Value, cle: &str) -> R<&'a Value> {
 
 /// `taxe_sur_les_salaires` : la taxe sur les salaires d'une annee (CGI art. 231), salarie par salarie, et ce qui
 /// reste a payer apres franchise, decote et abattement. Se calcule sur une ANNEE (ses seuils sont annuels).
-pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let Some(annee) = d.annee.as_deref().filter(|a| !a.is_empty()) else {
         return Err(refus("La taxe sur les salaires se calcule sur une ANNÉE (ses seuils sont annuels) : --annee AAAA."));
     };
@@ -1248,8 +1248,8 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // NE PAS SAVOIR N'EST PAS UNE ERREUR : l'etat le dit, et dit quoi repondre.
     let jour = socle::date::Jour::lire(&format!("{}-01-01", annee)).map_err(|x| erreur("ValueError", x))?;
     // Les plafonds de la franchise, que la conclusion nomme (ticket #245) : ceux du bareme de l'annee.
-    let plafonds = crate::assujettissement::plafonds_franchise(ctx.bareme(&jour).ok().as_ref());
-    let regime = crate::assujettissement::regime_taxe_sur_les_salaires(&ctx.entreprise, plafonds);
+    let plafonds = crate::taxe_sur_les_salaires::plafonds_franchise(ctx.bareme(&jour).ok().as_ref());
+    let regime = crate::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ctx.entreprise, plafonds);
     let p = Periode::nouvelle(ctx, None, Some(annee), false, true)?;
     let mut avert: Vec<String> = Vec::new();
     let part = match &regime.decision {
@@ -1296,13 +1296,13 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
             let cle = pa.salarie.get("_cle").map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
             if !par.contains_key(&cle) {
                 ordre.push(cle.clone());
-                par.insert(cle.clone(), (documents::tableaux_export::qui_souple(&pa.salarie), zero, zero, BTreeSet::new()));
+                par.insert(cle.clone(), (crate::tableaux_export::qui_souple(&pa.salarie), zero, zero, BTreeSet::new()));
             }
             let x = par.get_mut(&cle).expect("insere");
             // L'assiette de la CSG, sans la reduction de 1,75 % (CGI 231) : la meme que la DSN de decembre declare
             // (`assujettissement`, bloc S21.G00.44).
             x.1 = add(x.1, pa.brut);
-            x.2 = add(x.2, crate::assujettissement::assiette_taxe_sur_les_salaires(pa, abatt));
+            x.2 = add(x.2, crate::taxe_sur_les_salaires::assiette_taxe_sur_les_salaires(pa, abatt));
             x.3.insert(m.clone());
         }
     }
@@ -1320,7 +1320,7 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let (nom, brut, base, mois) = &par[cle];
         let b = *base;
         let normal = eur(div(mul(b, taux_normal), cent));
-        let (au_dela_1, au_dela_2) = crate::assujettissement::fractions_majorees(b, s1, s2);
+        let (au_dela_1, au_dela_2) = crate::taxe_sur_les_salaires::fractions_majorees(b, s1, s2);
         let m1 = eur(div(mul(au_dela_1, maj_1), cent));
         let m2 = eur(div(mul(au_dela_2, maj_2), cent));
         let taxe = add(add(normal, m1), m2);
@@ -1399,4 +1399,53 @@ pub(crate) fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 #[allow(dead_code)]
 fn _inutilises() {
     let _ = Val::txt("");
+}
+
+/// Le compteur d'un permanent a la fin du mois et l'indemnite de son solde.
+pub struct Provision {
+    pub report_restant: socle::num::Decimal,
+    pub acquis: socle::num::Decimal,
+    pub pris: socle::num::Decimal,
+    pub solde: socle::num::Decimal,
+    pub avertissements: Vec<engagement::Avis>,
+    pub indemnite: Option<droit::conges::IndemniteDesJours>,
+}
+
+/// La provision de conges d'un permanent a la fin de `mois`, lue dans la paie ecrite `paie` de ce mois : le compteur
+/// que son bulletin montre (`Paie::conges`, ecrit a la validation), dont l'assiette du dixieme compte aussi le brut du
+/// mois (`brut_du_mois`, celui des paies ecrites du salarie), et l'indemnite de son solde (le dixieme ou le maintien,
+/// L3141-24) quand il est positif. `salaire_mensuel` : la valeur de l'engagement (`None` ou fausse = 0). `None` : un
+/// contrat sans compteur de l'employeur (declare a la caisse des Conges Spectacles). Refus : une paie validee qui ne
+/// porte pas le compteur qu'elle devrait.
+pub fn provision_conges_de(paie: &engagement::calcul::Paie, mois: &str, brut_du_mois: socle::num::Decimal, salaire_mensuel: Option<&Value>) -> socle::num::Resultat<Option<Provision>> {
+    use droit::conges::jours_ouvrables;
+    use engagement::conges::indemnite_des_jours;
+    use socle::num::{add, dec, div, eur, mul, Decimal};
+    let Some(ecrit) = paie.conges.as_ref() else {
+        if engagement::calcul::declaree_a_la_caisse_des_conges(paie)? {
+            return Ok(None);
+        }
+        return Err(format!(
+            "{} : la paie validee de {} ne porte pas le compteur de conges que son bulletin montre. Revalider l'engagement.",
+            paie.engagement.salarie, mois
+        ));
+    };
+    let fin = socle::date::dernier_du_mois(mois)?;
+    let mut cpt = ecrit.clone();
+    cpt.remuneration_periode = add(cpt.remuneration_periode, brut_du_mois);
+    let solde = cpt.solde();
+    let salaire = match salaire_mensuel {
+        Some(v) if socle::fichiers::vrai(v) => dec(v)?,
+        _ => Decimal::ZERO,
+    };
+    let ouvrables = match jours_ouvrables(&socle::date::premier_du_mois(mois)?, &fin, None)? {
+        0 => Decimal::ONE,
+        n => Decimal::from(n),
+    };
+    let indemnite = if solde > Decimal::ZERO {
+        Some(indemnite_des_jours(&cpt, solde, eur(mul(div(salaire, ouvrables), solde)))?)
+    } else {
+        None
+    };
+    Ok(Some(Provision { report_restant: cpt.report_restant(), acquis: cpt.acquis, pris: cpt.pris, solde, avertissements: cpt.avertissements.clone(), indemnite }))
 }

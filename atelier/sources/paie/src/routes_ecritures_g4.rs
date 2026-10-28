@@ -263,7 +263,7 @@ fn retenir_logiciel(ctx: &Contexte, charge: &Value) -> R<Value> {
     let analytique = booleen(charge, "analytique", false);
     let nom = logiciel.map(valeur_en_texte).unwrap_or_default();
     if logiciel.is_some() {
-        let connus = crate::routes_dossiers::logiciels_connus();
+        let connus = documents::plan_comptable::logiciels_connus();
         if !connus.iter().any(|l| *l == nom) {
             return Err(refus(format!("Logiciel inconnu : « {} ».", nom)));
         }
@@ -321,7 +321,7 @@ pub(crate) enum Exporte {
 pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
     use documents::etats_paie::Demande;
     let etat = texte_ou_rien(charge, "etat").unwrap_or_else(|| "livre-de-paie".to_string());
-    let tables = crate::routes_dossiers::tables();
+    let tables = documents::plan_comptable::tables();
     let etats = tables["etats"].as_array().map(Vec::as_slice).unwrap_or(&[]);
     let Some(forme) = etats.iter().find(|e| e["etat"].as_str() == Some(etat.as_str())) else {
         let mut noms: Vec<&str> = etats.iter().filter_map(|e| e["etat"].as_str()).collect();
@@ -386,11 +386,11 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         "registre-du-personnel" => documents::etats_personnel::registre_du_personnel(ctx, &d),
         "fichier-du-personnel" => documents::etats_personnel::fichier_du_personnel(ctx, &d),
         "journal-des-declarations" => documents::etats_personnel::journal_des_declarations(ctx, &d, &crate::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?),
-        "ecritures-comptables" => crate::etats_compta::ecritures_comptables(ctx, &d),
-        "grand-livre-paie" => crate::etats_compta::grand_livre(ctx, &d),
-        "balance-paie" => crate::etats_compta::balance(ctx, &d),
-        "provision-conges" => crate::etats_compta::provision_conges(ctx, &d),
-        "taxe-sur-les-salaires" => crate::etats_compta::taxe_sur_les_salaires(ctx, &d),
+        "ecritures-comptables" => documents::etats_compta::ecritures_comptables(ctx, &d),
+        "grand-livre-paie" => documents::etats_compta::grand_livre(ctx, &d),
+        "balance-paie" => documents::etats_compta::balance(ctx, &d),
+        "provision-conges" => documents::etats_compta::provision_conges(ctx, &d),
+        "taxe-sur-les-salaires" => documents::etats_compta::taxe_sur_les_salaires(ctx, &d),
         autre => Err(refus(format!("État inconnu : « {} ».", autre))),
     }?;
     Ok(Exporte::Tableau(tableau))

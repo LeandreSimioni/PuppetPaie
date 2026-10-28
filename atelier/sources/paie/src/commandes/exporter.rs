@@ -122,7 +122,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
 /// Sans etat : ce que le logiciel sait exporter.
 fn liste(json_: bool) -> i32 {
-    let t = crate::routes_dossiers::tables();
+    let t = documents::plan_comptable::tables();
     let etats: Vec<Value> = t["etats"]
         .as_array()
         .map(|a| a.iter().map(|e| json!({"etat": e["etat"], "quoi": e["quoi"], "famille": e["famille"], "formats": e.get("formats").cloned().unwrap_or(json!([]))})).collect())

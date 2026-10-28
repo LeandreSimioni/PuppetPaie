@@ -1,10 +1,13 @@
 //! Une valeur JSON lue telle que les fichiers la portent : son nom de type, son egalite (`1 == 1.0 == true`), sa forme
 //! ecrite dans une phrase de refus.
 
-use serde_json::Value;
+use std::sync::OnceLock;
+
+use serde_json::{Map, Value};
 
 use crate::ecriture::repr_flottant;
-use crate::fichiers::repr;
+use crate::echec::{erreur, R};
+use crate::fichiers::{repr, vrai};
 
 /// Le nom du type d'une valeur, tel que les phrases de refus le disent (`fichiers::attendu`).
 pub fn nom_type(v: &Value) -> &'static str {
@@ -67,5 +70,41 @@ pub fn valeur_en_texte(v: &Value) -> String {
     match v {
         Value::String(s) => s.clone(),
         autre => valeur_ecrite(autre),
+    }
+}
+
+static NUL: Value = Value::Null;
+
+/// `{}`, a rendre par reference.
+pub fn objet_vide() -> &'static Value {
+    static V: OnceLock<Value> = OnceLock::new();
+    V.get_or_init(|| Value::Object(Map::new()))
+}
+
+/// `""`, a rendre par reference.
+pub fn texte_vide() -> &'static Value {
+    static V: OnceLock<Value> = OnceLock::new();
+    V.get_or_init(|| Value::String(String::new()))
+}
+
+/// `v.get(k)`.
+pub fn get<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
+    getd(v, k, &NUL)
+}
+
+/// `v.get(k, defaut)` : sur autre chose qu'un dictionnaire, `AttributeError`.
+pub fn getd<'a>(v: &'a Value, k: &str, defaut: &'a Value) -> R<&'a Value> {
+    match v {
+        Value::Object(o) => Ok(o.get(k).unwrap_or(defaut)),
+        _ => Err(erreur("AttributeError", crate::fichiers::attendu("un objet", nom_type(v)))),
+    }
+}
+
+/// `v or defaut`.
+pub fn ou<'a>(v: &'a Value, defaut: &'a Value) -> &'a Value {
+    if vrai(v) {
+        v
+    } else {
+        defaut
     }
 }

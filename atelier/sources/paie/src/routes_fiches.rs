@@ -55,11 +55,11 @@ fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
 // ------------------------------------------------------- taxe-sur-les-salaires-regime
 
 /// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
-/// lui, celle de la compagnie. Rend la conclusion du moteur (`assujettissement::regime_taxe_sur_les_salaires`, CGI art.
+/// lui, celle de la compagnie. Rend la conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art.
 /// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien
 /// (ticket #216).
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let cle = crate::assujettissement::CHAMP_TAXE_SUR_LES_SALAIRES;
+    let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.get(cle) {
         Some(v @ (Value::Object(_) | Value::Null)) => json!({ cle: v }),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
@@ -75,9 +75,9 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         },
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
-    let q = crate::assujettissement::question_franchise(bar.as_ref(), annee);
+    let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_ref(), annee);
     // La conclusion nomme les deux plafonds (ticket #245).
-    let r = crate::assujettissement::regime_taxe_sur_les_salaires(&ent, q.plafonds);
+    let r = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ent, q.plafonds);
     Ok(json!({
         "franchise": {
             "aide": q.aide,

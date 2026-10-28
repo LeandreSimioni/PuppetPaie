@@ -9,9 +9,10 @@
 //! Les montants annuels hors DSN (FCAP-SVP, Afdas, paritarisme) se calculent sur le brut du livre de paie ou sur la
 //! tranche A declaree, avec les taux du bareme.
 
+use documents::plan_comptable::plan;
 use std::collections::BTreeSet;
 
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use droit::contexte::Contexte;
 use socle::valeur::valeur_en_texte;
@@ -46,12 +47,6 @@ fn dec_de(v: &Value) -> R<Decimal> {
     socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m))
 }
 
-/// `plan_comptable(ctx)` : le plan livre recouvert par `config/plan-comptable.json`, et d'ou il vient.
-pub(crate) fn plan(ctx: &Contexte) -> R<(Map<String, Value>, &'static str)> {
-    let p = crate::routes_dossiers::plan_comptable(ctx)?;
-    let origine = if ctx.racine.join("config").join("plan-comptable.json").exists() { "config/plan-comptable.json" } else { "plan livré avec le logiciel (plan-comptable-base.json)" };
-    Ok((p, origine))
-}
 
 /// `_organismes` : identifiant de ligne -> nom de l'organisme, lu dans le plan comptable (le meme endroit que
 /// l'export compta : l'etat des cotisations et le credit des comptes 43 ne peuvent pas diverger).
