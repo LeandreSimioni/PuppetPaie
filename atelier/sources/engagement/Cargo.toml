@@ -12,3 +12,9 @@ droit = { path = "../droit" }
 rust_decimal = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
+
+[features]
+# Les gestes de l'ecran : le calcul d'une saisie pour l'afficher (`pour_l_ecran`), viser un montant (`viser`), la saisie
+# lue sans paie, le preavis. Seul `paie` (les routes) les demande : `documents` et `declarations` ne les voient pas, et
+# ne lisent que les paies ecrites d'un engagement valide.
+ecran = []
