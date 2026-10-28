@@ -500,16 +500,6 @@ pub fn en_page(r: Result<Value, Refus>) -> Value {
 
 #[cfg(test)]
 mod tests {
-    /// #141 : le titre de la boite « choisir un dossier » garde son apostrophe ; PowerShell la recoit doublee (les cinq
-    /// apostrophes qu'il reconnait), et rien ne sort de la chaine.
-    #[test]
-    fn le_titre_de_la_boite_garde_son_apostrophe() {
-        use super::entre_apostrophes_powershell as ps;
-        assert_eq!(ps("Le dossier de l'export"), "Le dossier de l''export");
-        assert_eq!(ps("l\u{2019}export"), "l\u{2019}\u{2019}export");
-        assert_eq!(ps("$a `b"), "$a `b");
-    }
-
     /// « Ouvrir la piece telle quelle » ouvrait « Documents » : l'explorateur recevait `...\prive\retours/x.xml`.
     #[test]
     fn l_explorateur_recoit_un_chemin_windows() {

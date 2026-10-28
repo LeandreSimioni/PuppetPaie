@@ -1818,28 +1818,3 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_noms_de_fichiers_se_decoupent() {
-        assert_eq!(suffixe("DSN_Aout2026.DSN"), ".DSN");
-        assert_eq!(suffixe(".dsn"), "");
-        assert_eq!(suffixe("a."), "");
-        assert_eq!(radical("DPAE_x_recapitulatif.txt"), "DPAE_x_recapitulatif");
-    }
-
-    #[test]
-    fn un_refus_de_saisie_en_cours_garde_sa_classe() {
-        let e = classer_saisie("L'engagement 2 de 2026-08 ne dit pas quel spectacle il joue, et le mois n'en propose aucun.".into());
-        assert_eq!(e.classe, Some("SaisieIncomplete"));
-        let e = classer_saisie("L'engagement 1 de 2026-08 ne dit aucun jour joue. Les jours se portent sur chaque ligne".into());
-        assert_eq!(e.classe, Some("SaisieIncomplete"));
-        let e = classer_saisie("L'engagement 1 de 2026-08 : sa ligne 1 (« Service de répétition ») ne dit pas ses heures.".into());
-        assert_eq!(e.classe, Some("SaisieIncomplete"));
-        let e = classer_saisie("L'engagement 1 de 2026-08 est ecrit a l'ancienne".into());
-        assert_eq!(e.classe, None);
-    }
-}

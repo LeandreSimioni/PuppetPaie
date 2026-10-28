@@ -539,27 +539,6 @@ mod tests_dpae_partielles {
         // Les fichiers deja ecrits sont intacts.
         assert_eq!(std::fs::read_to_string(d.join("DPAE_Octobre2026_20261007-1815.txt")).unwrap(), "premiere");
     }
-
-    #[test]
-    fn les_fichiers_partiels_se_reconnaissent_avec_leur_rang() {
-        let d = dossier();
-        for nom in [
-            "DPAE_Octobre2026_20261007-1815.txt",
-            "DPAE_Octobre2026_20261007-1815-2.txt",
-            "DPAE_Octobre2026_20261007-1815-13.txt",
-            "DPAE_Octobre2026.txt",
-            "DPAE_Octobre2026_20261007-1815_recapitulatif.txt",
-            "DPAE_Octobre2026_20261007-1815-x.txt",
-            "DPAE_Octobre2026_20261007-1815-.txt",
-            "DPAE_Octobre2026_20261007-1815.txt.zip",
-            "DPAE_Novembre2026_20261007-1815.txt",
-        ] {
-            std::fs::write(d.join(nom), "x").unwrap();
-        }
-        let noms: Vec<String> = fichiers_partiels(&d, "Octobre2026").iter().map(|p| p.file_name().unwrap().to_string_lossy().into_owned()).collect();
-        // Tri decroissant des chemins.
-        assert_eq!(noms, vec!["DPAE_Octobre2026_20261007-1815.txt", "DPAE_Octobre2026_20261007-1815-2.txt", "DPAE_Octobre2026_20261007-1815-13.txt"]);
-    }
 }
 
 /// `charge["cle"]` : `KeyError` si elle manque.

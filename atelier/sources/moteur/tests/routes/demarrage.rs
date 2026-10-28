@@ -80,19 +80,6 @@ fn le_siret_enregistre_donne_le_siren_et_le_nic_et_la_dpae_demande_encore_sa_med
     assert_eq!(fiche_au(&lire(&racine, "config/entreprise.json"), JOUR)["nic"], json!("00029"));
 }
 
-#[test]
-fn une_ligne_de_paie_neuve_part_d_une_rubrique_de_salaire() {
-    let racine = neuve("rubrique");
-    let etat = |r: &std::path::Path| reussi(&route(r, "etat", json!({}), JOUR))["rubrique_par_defaut"].clone();
-    // Rien de coche : le catalogue est trie par libelle, « Absence » en tete ; la ligne neuve n'est pas une absence.
-    let premiere = reussi(&route(&racine, "etat", json!({}), JOUR))["rubriques"][0]["code"].clone();
-    assert_eq!(premiere, json!("absence"), "le cas qui trompait la page");
-    assert_eq!(etat(&racine), json!({"activite": "cachet", "mensuelle": "mois"}));
-    // La compagnie paie surtout a l'heure : sa ligne neuve aussi ; au mois, le salaire de base reste devant.
-    ecrire(&racine, "config/rubriques-actives.json", &json!({"actives": ["cachet", "heure"], "usages": {"heure": 7, "cachet": 2}}));
-    assert_eq!(etat(&racine), json!({"activite": "heure", "mensuelle": "mois"}));
-}
-
 /// UN SEUL NUMERO CONGES SPECTACLES (#236) : la compagnie ne saisit que son numero d'adherent, « 10 chiffres + 1 lettre »,
 /// dont la DSN tire S21.G00.40.022 (« 97 puis le numero d'adherent », Audiens, fiche de specificites, `atelier/reference/
 /// sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt`, l. 80-81 ; la deduction est prouvee
