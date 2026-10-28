@@ -35,8 +35,13 @@ pub const SUITE: &str = "mois_suivants";
 
 /// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, la validation
 /// qu'une modification va remplacer, ses versions passees (`etats`), pour qui son numero de contrat a ete donne
-/// (`numeros`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 5] = [SUITE, "valide", "precedente", "versions", "numero_pour"];
+/// (`numeros`), et qu'il n'est plus actif (`NON_ACTIF`).
+pub const TENUS_PAR_LE_MOTEUR: [&str; 6] = [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF];
+
+/// Dans un engagement qui n'est plus actif (`etats::desactiver`) : `{"le", "version"}`, quand, et la derniere de ses
+/// versions. Il ne touche plus aucun mois (`Objet::couvre`) : il ne se calcule plus, n'entre dans aucun document ni
+/// aucune declaration ; il se lit (`non_actifs_du_mois`).
+pub const NON_ACTIF: &str = "non_actif";
 
 /// Ce que la vue d'un mois porte et que le moteur deduit : les jours du contrat entier (son premier mois et son
 /// planning), que la DSN declare chaque mois (S21.G00.40.013). Il ne s'ecrit pas.
@@ -176,7 +181,18 @@ impl Objet {
     }
 
     /// L'engagement touche-t-il `mois` ? Du premier mois a celui de sa fin ; sans terme, de son premier mois a toujours.
+    /// Un engagement non actif ne touche plus aucun mois.
     pub fn couvre(&self, mois: &str) -> Resultat<bool> {
+        Ok(!self.est_non_actif() && self.dans_ses_bornes(mois)?)
+    }
+
+    /// N'est-il plus actif (`NON_ACTIF`) ?
+    pub fn est_non_actif(&self) -> bool {
+        self.brut.get(NON_ACTIF).is_some_and(Value::is_object)
+    }
+
+    /// `mois` est-il entre son premier mois et celui de sa fin, qu'il soit actif ou non ?
+    fn dans_ses_bornes(&self, mois: &str) -> Resultat<bool> {
         if mois < self.fichier.as_str() {
             return Ok(false);
         }
@@ -211,9 +227,9 @@ impl Objet {
     }
 
     /// Ce que l'engagement dit de `mois` : la saisie de ce mois-la, telle que l'ecran la montre et que le calcul la lit
-    /// (`None` s'il ne le touche pas).
+    /// (`None` s'il ne le touche pas). Un engagement non actif dit encore ce qu'il etait, pour qu'il se lise.
     pub fn vue(&self, mois: &str) -> Resultat<Option<Map<String, Value>>> {
-        if !self.couvre(mois)? {
+        if !self.dans_ses_bornes(mois)? {
             return Ok(None);
         }
         let premiere = self.premiere_vue();
@@ -346,6 +362,33 @@ pub fn objets_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
         }
     }
     Ok(out)
+}
+
+/// Les engagements non actifs (`NON_ACTIF`) qui toucheraient `mois` s'ils l'etaient encore : ce qui se lit d'eux.
+pub fn non_actifs_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
+    let mut out = Vec::new();
+    for o in objets(racine)? {
+        if o.est_non_actif() && o.fichier.as_str() <= mois && o.dans_ses_bornes(mois)? {
+            out.push(o);
+        }
+    }
+    Ok(out)
+}
+
+/// Efface l'objet `o` de son fichier (meme fichier, meme rang), apres une copie dans `avant/`.
+pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
+    let mut contenu = lire_fichier(racine, &o.fichier)?.ok_or_else(|| format!("{} : le fichier de l'engagement a disparu", o.fichier))?;
+    let Some(Value::Array(es)) = contenu.get_mut("engagements") else {
+        return Err(format!("{} : `engagements` manque", o.fichier));
+    };
+    if o.rang >= es.len() || es[o.rang] != Value::Object(o.brut.clone()) {
+        return Err(format!("{} : l'engagement {} a change sur le disque ; rien n'est efface", o.fichier, o.rang + 1));
+    }
+    es.remove(o.rang);
+    let p = chemin(racine, &o.fichier);
+    sauver_avant(&p)?;
+    socle::ecriture::ecrire_json(&p, &Value::Object(contenu), 2)?;
+    Ok(p)
 }
 
 /// LE MOIS DE L'ECRAN : `{"mois", <defauts du mois>, "engagements": [la vue de chacun]}`, ou `None` quand aucun

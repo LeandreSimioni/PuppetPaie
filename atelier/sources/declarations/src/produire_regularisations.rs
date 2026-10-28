@@ -110,6 +110,25 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
         if !se_corrige_ailleurs(ctx, &departs, &mois)? {
             continue;
         }
+        // Un engagement qui n'est plus actif et que la DSN de ce mois a declare : sa correction annule tout ce qui a ete
+        // declare (cahier technique DSN 2027.1, §2.1.2.1, `norme-dsn/texte-2027/chapitre-2-principes-de-constitution.txt` :
+        // « une correction ... donne lieu a la declaration d'une correction dans la DSN suivante »). Elle ne s'ecrit pas
+        // encore : la DSN refuse plutot que de taire ce qui est a corriger (regle 1).
+        for n in engagement::etats::non_actifs_du_mois(ctx, &mois).map_err(refus_valeur)? {
+            if n.a_refaire(ctx, &departs).iter().any(|a| matches!(a, engagement::etats::ARefaire::Dsn { mois: m, .. } if *m == mois)) {
+                return Err(erreur(
+                    "MoisNonRegularisable",
+                    format!(
+                        "{} : l'engagement de {} (contrat {}) n'est plus actif, et la DSN de ce mois l'a declare. Ce qui a ete declare pour lui est a annuler dans la DSN de {}, et cette correction ne s'ecrit pas encore. La DSN de {} ne se produit pas tant que ce n'est pas regle.",
+                        engagement::libelle_mois(&mois),
+                        valeur_en_texte(n.objet().brut.get("salarie").unwrap_or(&Value::Null)),
+                        valeur_en_texte(n.objet().brut.get("numero").unwrap_or(&Value::Null)),
+                        mois_courant,
+                        mois_courant
+                    ),
+                ));
+            }
+        }
         let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, &mois)? else { continue };
         for d in corrections_dues(ctx, &mois, mois_courant, &departs)? {
             let apres = d.valide.paie(ctx, &data, d.rang)?;
