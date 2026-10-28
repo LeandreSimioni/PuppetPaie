@@ -299,7 +299,7 @@ fn emploi_declare(p: &Paie) -> (String, String, String) {
 /// saisie. Ils completent ceux qu'une declaration porte : la DSN d'un etablissement ne porte pas les contrats d'un
 /// autre, un signalement n'en porte qu'un.
 pub(crate) fn contrats_du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Paie>> {
-    Ok(crate::amorcage_demande::paies_du_mois(ctx, mois)?.unwrap_or_default())
+    Ok(crate::amorcage::paies_du_mois(ctx, mois)?.unwrap_or_default())
 }
 
 /// `S21.G00.40.036` (code emplois multiples) du contrat `p` : « 02 - emplois multiples » si le salarie tient plus
@@ -4642,7 +4642,7 @@ certificat de conformite du depot precedent.",
             echeance_mois_suivant(
                 an,
                 mo,
-                crate::organismes::jour_de_paiement("P0983")?.ok_or("donnees/organismes-base.json : P0983 n'a pas de jour_de_paiement")?,
+                crate::ordres_paiement::jour_de_paiement("P0983")?.ok_or("donnees/organismes-base.json : P0983 n'a pas de jour_de_paiement")?,
             ),
         ),
     ]

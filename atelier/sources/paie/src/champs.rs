@@ -817,8 +817,8 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     }
     let Some(Value::String(brut)) = valeur else { return Ok(None) };
     // La signature des courriels est du HTML colle : sa seule regle est son poids (150 Ko, images comprises).
-    if c.cle == crate::signature_courriel::CLE_SIGNATURE {
-        return Ok(crate::signature_courriel::trop_lourde(brut));
+    if c.cle == CLE_SIGNATURE {
+        return Ok(trop_lourde(brut));
     }
     if c.forme == "structure" || c.forme == "booleen" {
         return Ok(None);
@@ -961,7 +961,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !choisi.is_empty() {
             if let Ok(base) = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("urssaf-dpae-base.json")) {
-                let deduit = crate::routes_accueil::urssaf_du_code_postal(&base, d.get("code_postal"));
+                let deduit = urssaf_du_code_postal(&base, d.get("code_postal"));
                 if !deduit.is_empty() && deduit != choisi {
                     out.push(anomalie(
                         "code_urssaf",
@@ -1166,6 +1166,44 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         }
     }
     Ok(anomalies)
+}
+
+/// `urssaf.pour_departement` : l'organisme du TERRITOIRE de ce departement. Une
+/// suggestion, pas une decision.
+fn urssaf_du_departement(base: &Value, dep: &str) -> String {
+    let d = dep.trim().to_uppercase();
+    let table = base.get("par_departement").and_then(Value::as_object);
+    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(valeur_en_texte);
+    lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
+}
+
+/// `urssaf.pour_code_postal` : idem, depuis un code postal francais. L'outre-mer
+/// se lit sur TROIS chiffres (97139 -> 971), la metropole sur deux.
+pub fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String {
+    let v: Vec<char> = cp.filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default().chars().filter(|c| c.is_ascii_digit()).collect();
+    if v.len() < 2 {
+        return String::new();
+    }
+    let n = if v[0] == '9' && (v[1] == '7' || v[1] == '8') { 3 } else { 2 };
+    urssaf_du_departement(base, &v.iter().take(n).collect::<String>())
+}
+
+/// La signature des courriels de la fiche Entreprise : du HTML colle, dont la seule regle est le poids.
+pub const CLE_SIGNATURE: &str = "courriel_signature";
+/// 150 Ko, tout le HTML compris (Leandre, 08/10/2026).
+pub const LIMITE_OCTETS: usize = 150 * 1024;
+
+/// La phrase d'une signature trop lourde, ou rien.
+pub fn trop_lourde(html: &str) -> Option<String> {
+    let n = html.len();
+    if n > LIMITE_OCTETS {
+        Some(format!(
+            "la signature pese {} Ko, 150 Ko au plus, images comprises. Une image collee dans la signature pese tout son poids ; un lien vers une image en ligne presque rien",
+            (n + 1023) / 1024
+        ))
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]

@@ -13,7 +13,7 @@
 //!   (`sauf_motifs` : le deuil d'enfant, 19 ; le temps partiel therapeutique, 15 a 18, non saisissable) : la page du compte
 //!   entreprise de net-entreprises (`atelier/reference/sources/accident-du-travail/net-entreprises-compte-entreprise-dat-20260331.txt`)
 //!   dit que l'Assurance Maladie n'en tire rien. La norme admet pourtant le motif 19 dans un signalement : `arret-signaler`
-//!   ne le refuse pas, il avertit (`avertissement_hors_dsn`, appele par `signalement::verifier`) ;
+//!   ne le refuse pas, il avertit (`signalement::avertissement_hors_dsn`, appele par `signalement::verifier`) ;
 //! - l'attestation de salaire pour les indemnites journalieres (DSIJ), HORS DSN, pour le deuil d'enfant (motif 19) : la
 //!   meme page, « obligatoire pour tout arret de travail, quel qu'en soit le motif », « des reception de l'avis d'arret de
 //!   travail », sur net-entreprises (ecran ou EDI) ; CSS L. 331-9 (`.../code-de-la-securite-sociale/xml/L331-9.xml`) pour les
@@ -44,6 +44,7 @@ use socle::date::{en_texte, Jour};
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use crate::signalement::sauf_motifs;
 
 /// Les routes qui ecrivent ce que la compagnie dit d'une obligation.
 pub const ROUTES: [&str; 3] = ["arret-connaissance", "accident-declare", "attestation-declare"];
@@ -96,32 +97,10 @@ pub fn motif_appelle_la_declaration(motif: &str) -> R<bool> {
     motif_appelle("declaration_accident", motif)
 }
 
-/// Les motifs pour lesquels un signalement DSN ne nait pas (`sauf_motifs.codes`) : ceux que la DSN ne couvre pas.
-fn sauf_motifs(o: &Value) -> Vec<String> {
-    o.get("sauf_motifs").and_then(|s| s.get("codes")).and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default()
-}
-
 /// Un signalement d'arret (04) est-il du pour ce motif ? Non pour ceux que la DSN ne couvre pas
 /// (`signalement_arret.sauf_motifs`). La liste des arrets s'en sert pour ne pas dire « a signaler » ce qui ne se signale pas.
 pub fn signalement_du(motif: &str) -> R<bool> {
     Ok(!sauf_motifs(&obligation(&*base()?, "signalement_arret")?).iter().any(|m| m == motif))
-}
-
-/// L'avertissement d'un signalement de nature `nature` (04 ou 05) dont le motif n'est pas couvert par la DSN
-/// (`sauf_motifs.avertissement`) : la norme l'admet, le moteur ne le refuse pas (regle 7), il dit que l'Assurance Maladie
-/// ne le traite pas et ce qui se fait a la place. `None` pour un motif couvert. Appele par `signalement::verifier`.
-pub fn avertissement_hors_dsn(nature: &str, motif: &str) -> Result<Option<String>, String> {
-    let cle = match nature {
-        crate::signalement::ARRET => "signalement_arret",
-        crate::signalement::REPRISE => "signalement_reprise",
-        _ => return Ok(None),
-    };
-    let n = json_en_cache(&dossier_du_code().join("obligations-base.json"))?;
-    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| format!("obligations-base.json : l'obligation {} manque", repr(cle)))?;
-    if !sauf_motifs(o).iter().any(|m| m == motif) {
-        return Ok(None);
-    }
-    Ok(o["sauf_motifs"].get("avertissement").and_then(Value::as_str).filter(|t| !t.is_empty()).map(str::to_string))
 }
 
 /// Le code « oui » de la subrogation (`arrets-base.json`, S21.G00.60.004).

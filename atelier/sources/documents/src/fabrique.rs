@@ -25,6 +25,11 @@ pub fn ecrire(description: &Value, chemin: &Path) -> Resultat<PathBuf> {
     Ok(chemin.to_path_buf())
 }
 
+/// Le PDF de `description` ecrit a `chemin` ; un refus de la fabrique, sur une ligne, sous la classe `FabriqueRefus`.
+pub fn ecrire_pdf(description: &Value, chemin: &Path) -> socle::echec::R<()> {
+    ecrire(description, chemin).map(|_| ()).map_err(|m| socle::echec::erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))
+}
+
 /// `fabrique.chemin_description` : `X.pdf` -> `X.description.json`.
 pub fn chemin_description(pdf: &Path) -> PathBuf {
     let souche = pdf.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();

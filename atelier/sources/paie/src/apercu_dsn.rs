@@ -22,7 +22,7 @@ use crate::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::num::Decimal;
-use socle::num::{decimal_py, int_py};
+use socle::num::{decimal_py, int_py, q2};
 use socle::texte::{blanc, lignes_py, texte_latin1};
 use socle::echec::Echec;
 use crate::routes_apercus::{lire_octets, nom_du_chemin, resoudre};
@@ -42,13 +42,6 @@ fn norm(d: Decimal) -> String {
     } else {
         d.normalize().to_string()
     }
-}
-
-/// `str(d.quantize(Decimal("0.01")))` : deux decimales, la moitie au pair.
-fn q2(d: Decimal) -> String {
-    let mut r = d.round_dp(2);
-    r.rescale(2);
-    r.to_string()
 }
 
 /// `float(d)`.

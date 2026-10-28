@@ -21,10 +21,9 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use socle::num::{dec_avec_echelle, pct, Decimal};
+use socle::num::{dec_avec_echelle, pct, q2, Decimal};
 use droit::pas::{self, ErreurPas, ZONE_DEFAUT};
 use socle::echec::Echec;
-use crate::routes_regularisation as regul;
 use crate::versement_declare::{self, VersementDeclare};
 
 /// Le prefixe de l'archive d'un bulletin rectificatif, a cote du bulletin rectifie.
@@ -229,10 +228,10 @@ pub(crate) fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
             prenom_de(s),
             r.apres.engagement.numero.as_deref().unwrap_or("None"),
             engagement::libelle_mois(&r.mois),
-            regul::q2(r.declare.brut),
-            regul::q2(r.apres.brut),
-            regul::q2(r.net_deja_verse),
-            regul::q2(r.apres.net_a_payer),
+            q2(r.declare.brut),
+            q2(r.apres.brut),
+            q2(r.net_deja_verse),
+            q2(r.apres.net_a_payer),
         ));
     }
     Ok(out)
@@ -331,7 +330,7 @@ fn ecrire_le_pdf(description: &Value, chemin: &Path) -> R<()> {
     if let Some(parent) = chemin.parent() {
         std::fs::create_dir_all(parent).map_err(|e| erreur("OSError", format!("{} : {}", parent.display(), e)))?;
     }
-    crate::routes_dossier_salarie::ecrire_pdf(description, chemin).map_err(Echec::from)
+    documents::fabrique::ecrire_pdf(description, chemin)
 }
 
 /// `ecrire_rectificatifs` : les bulletins rectificatifs des corrections que la DSN de `mois_courant` embarque.
@@ -357,7 +356,7 @@ pub(crate) fn ecrire_rectificatifs(
                 valeur_en_texte(r.apres.salarie.get("nom").unwrap_or(&Value::Null)),
                 r.apres.engagement.numero.as_deref().unwrap_or("None"),
                 engagement::libelle_mois(&r.mois),
-                regul::q2(r.net_deja_verse)
+                q2(r.net_deja_verse)
             ));
         }
     }

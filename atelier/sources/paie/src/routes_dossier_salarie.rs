@@ -129,11 +129,6 @@ fn compter(octets: &[u8]) -> R<usize> {
     fabrique_pdf::lecture::charger(octets).map(|d| d.get_pages().len()).map_err(|r| refus_fabrique(r.0))
 }
 
-/// `fabrique.ecrire`.
-pub(crate) fn ecrire_pdf(description: &Value, chemin: &Path) -> R<()> {
-    documents::fabrique::ecrire(description, chemin).map(|_| ()).map_err(refus_fabrique)
-}
-
 /// `_marquer` : le pied « reedite » sur chaque page d'un PDF du dossier de travail, en place.
 fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
     let nom = chemin.to_string_lossy().into_owned();

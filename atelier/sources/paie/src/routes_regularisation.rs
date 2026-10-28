@@ -19,7 +19,7 @@ use socle::valeur::nom_type;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use socle::num::Decimal;
+use socle::num::{q2, Decimal};
 use socle::echec::Echec;
 use crate::routes_mois::Moteur;
 
@@ -145,13 +145,6 @@ pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     }
     saisie["engagements"] = Value::Array(declares);
     Ok(Some(saisie))
-}
-
-/// `paie_rust._euros` : deux decimales, la moitie au pair.
-pub(crate) fn q2(d: Decimal) -> String {
-    let mut r = d.round_dp(2);
-    r.rescale(2);
-    r.to_string()
 }
 
 /// `_resume`.

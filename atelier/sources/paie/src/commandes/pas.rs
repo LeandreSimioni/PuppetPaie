@@ -280,7 +280,8 @@ pub fn appliquer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<
 /// acte a part (`paie depot-dsn`), avec sa preuve et son mot de passe -- et c'est lui qui fait courir les cinq jours ouvres, donc lui
 /// qui note la demande. Un refus de la norme ou de la demande est une phrase (code 1), jamais une trace.
 fn demander(cadre: &Cadre, args: &Args) -> i32 {
-    use crate::amorcage_demande::{paies_du_mois, produire, Demande};
+    use crate::amorcage::paies_du_mois;
+    use crate::amorcage_demande::{produire, Demande};
     let ctx = &cadre.ctx;
     let motif = args.texte("motif").unwrap_or("07");
     // Le mois : celui qu'on dit, sinon le dernier saisi (c'est le contrat que la derniere DSN a declare, et ce que le motif 07 reprend).

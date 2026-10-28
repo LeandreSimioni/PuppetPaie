@@ -18,12 +18,10 @@ use std::path::Path;
 use regex::Regex;
 use serde_json::Value;
 
+use crate::champs::{trop_lourde, CLE_SIGNATURE};
 use crate::envoi::Message;
 
-/// 150 Ko, tout le HTML compris (Leandre, 08/10/2026).
-pub const LIMITE_OCTETS: usize = 150 * 1024;
 pub const CLE_NOM: &str = "courriel_nom";
-pub const CLE_SIGNATURE: &str = "courriel_signature";
 
 /// Les formules qui closent nos modeles : ce qui les suit est la signature.
 const FORMULES: [&str; 2] = ["Bien à toi,", "Bien cordialement,"];
@@ -36,19 +34,6 @@ pub struct Signature {
     pub html: String,
     /// La meme en texte, pour les messageries sans HTML.
     pub texte: String,
-}
-
-/// La phrase d'une signature trop lourde, ou rien.
-pub fn trop_lourde(html: &str) -> Option<String> {
-    let n = html.len();
-    if n > LIMITE_OCTETS {
-        Some(format!(
-            "la signature pese {} Ko, 150 Ko au plus, images comprises. Une image collee dans la signature pese tout son poids ; un lien vers une image en ligne presque rien",
-            (n + 1023) / 1024
-        ))
-    } else {
-        None
-    }
 }
 
 /// La signature d'une fiche Entreprise. `Err` : elle est posee mais trop lourde.
@@ -207,6 +192,7 @@ pub fn signer(message: &Message, s: &Signature) -> Message {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::champs::LIMITE_OCTETS;
 
     fn sig(html: &str) -> Signature {
         let h = nettoyer(html);

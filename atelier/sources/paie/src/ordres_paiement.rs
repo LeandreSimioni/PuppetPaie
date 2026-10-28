@@ -6,7 +6,7 @@
 //! CE QUI SE LIT (regle 1 : rien ne se devine) :
 //!
 //! - L'ORGANISME : S21.G00.20.001 du fichier. Son nom propre et ce que couvre son versement (`nom`, `objet`) se lisent
-//!   dans la base livree, `donnees/organismes-base.json` (`organismes::versement_normatif`), qui cite pour chacun la
+//!   dans la base livree, `donnees/organismes-base.json` (`versement_normatif`), qui cite pour chacun la
 //!   table IVO des nomenclatures DSN et Audiens ; a defaut, le libelle de `config/organismes.json`. « DGFIP » est la
 //!   valeur que la norme donne a la DGFiP (cahier technique 2026.1, `norme-dsn/texte/bloc-S21.G00.20.txt`, l. 47). Un
 //!   identifiant que ni la base ni la configuration ne connaissent se dit tel quel, sans nom invente.
@@ -124,7 +124,7 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
     let mut out = Vec::new();
     for o in ordres {
         let config = versement_de(organismes, &o.organisme);
-        let norme = crate::organismes::versement_normatif(&o.organisme)?;
+        let norme = versement_normatif(&o.organisme)?;
         let norme = norme.as_ref();
         let dgfip = o.destinataire == Destinataire::Dgfip;
         let est_urssaf = o.destinataire == Destinataire::Urssaf;
@@ -190,4 +190,21 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
         }));
     }
     Ok(out)
+}
+
+/// LE VERSEMENT NORMATIF D'UN ORGANISME (ticket #223) : l'entree de `donnees/organismes-base.json` dont `siret` est
+/// `identifiant` (S21.G00.20.001), ou `None`. On y lit son `nom` propre, ce que couvre son versement (`objet`) et son
+/// `jour_de_paiement` dans le mois qui suit, chacun avec sa source (`_source_*`). Lu dans la base livree, pas dans
+/// `config/organismes.json` : c'est la norme, la meme pour toute compagnie.
+pub fn versement_normatif(identifiant: &str) -> Result<Option<Value>, String> {
+    let b = socle::fichiers::lire_json(&socle::fichiers::dossier_du_code().join("organismes-base.json"))?;
+    Ok(b.get("versements")
+        .and_then(Value::as_array)
+        .and_then(|vs| vs.iter().find(|v| v.get("siret").map(socle::date::en_texte).as_deref() == Some(identifiant)))
+        .cloned())
+}
+
+/// Le jour du mois suivant ou l'organisme `identifiant` preleve (`jour_de_paiement` de la base), ou `None`.
+pub fn jour_de_paiement(identifiant: &str) -> Result<Option<u32>, String> {
+    Ok(versement_normatif(identifiant)?.and_then(|v| v.get("jour_de_paiement").and_then(Value::as_u64)).map(|j| j as u32))
 }

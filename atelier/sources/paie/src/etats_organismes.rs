@@ -258,16 +258,20 @@ fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec
     Ok(out)
 }
 
+/// La DSN d'un mois et d'un etablissement (`None` : le principal) : celle qui est partie, telle qu'elle est partie, ou
+/// celle qui partirait, et si elle est partie. La fournit qui lit le journal des envois (`paie::depart::dsn_du_mois`).
+pub type DsnDuMois<'a> = &'a dyn Fn(&Contexte, &str, Option<&str>) -> socle::echec::R<Option<(crate::dsn::Fabriquee, bool)>>;
+
 /// LA DSN DE CHAQUE MOIS DE LA PERIODE, par etablissement (le principal d'abord) : celle qui est partie telle qu'elle est
-/// partie, ou celle qui partirait (`depart::dsn_du_mois`) : `(mois, nic, la DSN, partie)`. Un mois sans DSN est dit.
-fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, String, crate::dsn::Fabriquee, bool)>> {
+/// partie, ou celle qui partirait (`dsn_du_mois`) : `(mois, nic, la DSN, partie)`. Un mois sans DSN est dit.
+fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>, dsn_du_mois: DsnDuMois) -> R<Vec<(String, String, crate::dsn::Fabriquee, bool)>> {
     let (mut out, mut sans) = (Vec::new(), Vec::new());
     let principal = droit::bareme::nic_principal(&ctx.entreprise);
     for m in &p.mois {
         let mut une = false;
         for nic in crate::dsn::nics(&ctx.entreprise) {
             let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
-            if let Some((f, partie)) = crate::depart::dsn_du_mois(ctx, m, etablissement).map_err(|e| refus(e.message))? {
+            if let Some((f, partie)) = dsn_du_mois(ctx, m, etablissement).map_err(|e| refus(e.message))? {
                 out.push((m.clone(), nic, f, partie));
                 une = true;
             }
@@ -308,12 +312,12 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
 
 /// `operations_etats.versements_organismes` : chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20), partie
 /// ou a deposer (`dsn_des_mois`).
-pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let noms = libelles_organismes(ctx)?;
     let mut lignes = Vec::new();
-    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert)? {
+    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert, dsn_du_mois)? {
         for o in &f.ordres {
             let organisme = match noms.iter().find(|(k, _)| *k == o.organisme).map(|(_, v)| v.clone()).filter(|v| !v.is_empty()) {
                 Some(n) => n,
@@ -444,7 +448,7 @@ fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
 
 /// `operations_etats.bordereau_urssaf` : le bordereau Urssaf de chaque mois, CTP par CTP, tel que la DSN le porte, partie ou a deposer (`dsn_des_mois`), avec ceux des mois que ses corrections regularisent. Les taux ne sont
 /// pas appliques ici : c'est l'Urssaf qui calcule depuis les assiettes, et un export ne calcule pas.
-pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let ctp = libelles_ctp(ctx)?;
@@ -452,7 +456,7 @@ pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         avert.push("La table des codes de l'Urssaf manque au logiciel : les codes sont donnés sans libellé.".to_string());
     }
     let mut lignes = Vec::new();
-    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert)? {
+    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert, dsn_du_mois)? {
         for bordereau in f.bordereaux {
             let mut l = Ligne::nouvelle();
             l.t("mois", m.clone()).t("ctp", "").t("libelle", format!("Total dû à l'Urssaf (bloc 22), {}", nom_de_la_dsn(&m, partie)));

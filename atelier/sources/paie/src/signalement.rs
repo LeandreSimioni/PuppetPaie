@@ -317,7 +317,7 @@ signale sans bloquer -- un evenement deja survenu ne se date pas dans le futur."
     // UN MOTIF QUE LA DSN NE COUVRE PAS (le deuil d'enfant, 19) : la norme l'admet dans un signalement (S21.G00.60.001,
     // aucune regle CCH ne l'en exclut), donc rien ne se refuse (regle 7) ; mais l'Assurance Maladie ne le traite pas, et
     // l'attestation de salaire se fait sur net-entreprises. La phrase est dans `obligations-base.json` (`sauf_motifs`).
-    if let Some(a) = crate::obligations::avertissement_hors_dsn(nature, &m_s)? {
+    if let Some(a) = avertissement_hors_dsn(nature, &m_s)? {
         avertissements.push(a);
     }
     Ok(avertissements)
@@ -476,4 +476,26 @@ annule-et-remplace (type 03)."
     crate::usages::verifier_fichier(&texte)?;
     crate::formats::verifier_fichier(&texte)?;
     Ok(texte)
+}
+
+/// Les motifs pour lesquels un signalement DSN ne nait pas (`sauf_motifs.codes`) : ceux que la DSN ne couvre pas.
+pub fn sauf_motifs(o: &Value) -> Vec<String> {
+    o.get("sauf_motifs").and_then(|s| s.get("codes")).and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default()
+}
+
+/// L'avertissement d'un signalement de nature `nature` (04 ou 05) dont le motif n'est pas couvert par la DSN
+/// (`sauf_motifs.avertissement`) : la norme l'admet, le moteur ne le refuse pas (regle 7), il dit que l'Assurance Maladie
+/// ne le traite pas et ce qui se fait a la place. `None` pour un motif couvert. Appele par `verifier`.
+pub fn avertissement_hors_dsn(nature: &str, motif: &str) -> Result<Option<String>, String> {
+    let cle = match nature {
+        ARRET => "signalement_arret",
+        REPRISE => "signalement_reprise",
+        _ => return Ok(None),
+    };
+    let n = json_en_cache(&dossier_du_code().join("obligations-base.json"))?;
+    let o = n.get("obligations").and_then(|o| o.get(cle)).ok_or_else(|| format!("obligations-base.json : l'obligation {} manque", repr(cle)))?;
+    if !sauf_motifs(o).iter().any(|m| m == motif) {
+        return Ok(None);
+    }
+    Ok(o["sauf_motifs"].get("avertissement").and_then(Value::as_str).filter(|t| !t.is_empty()).map(str::to_string))
 }

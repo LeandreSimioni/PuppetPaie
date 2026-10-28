@@ -177,13 +177,3 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
     std::fs::write(&recap, format!("{}\n", out.join("\n"))).map_err(|e| format!("{} : {}", recap.display(), e))?;
     Ok(Lot { motif: d.motif.to_string(), dossier, fichiers, lignes: retenus, ecartes, recapitulatif: recap })
 }
-
-/// Les paies d'un mois de saisie, SANS montants : l'engagement et sa fiche (`amorcage::embauche`), ce que lit un signalement.
-/// `None` : aucun engagement ne touche le mois.
-pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Result<Option<Vec<Paie>>, String> {
-    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let _derivation = engagement::conges::Derivation::ouvrir();
-    let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois)?;
-    let paies = engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<Vec<_>, _>>()?;
-    Ok(Some(paies))
-}

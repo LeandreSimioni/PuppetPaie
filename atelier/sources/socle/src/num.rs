@@ -249,6 +249,13 @@ pub fn int_py(t: &str) -> Option<i128> {
     Some(if neg { -n } else { n })
 }
 
+/// `str(d.quantize(Decimal("0.01")))` : deux decimales, la moitie au pair.
+pub fn q2(d: Decimal) -> String {
+    let mut r = d.round_dp(2);
+    r.rescale(2);
+    r.to_string()
+}
+
 /// `Decimal(texte)` : le signe, les chiffres avec un point et des tirets bas entre deux
 /// chiffres, un exposant. `None` quand Python leve `InvalidOperation`.
 pub fn decimal_py(t: &str) -> Option<Decimal> {

@@ -131,6 +131,8 @@ pub(crate) struct Demande {
     pub annees: Vec<String>,
     /// {annee: AAAA-MM-JJ}
     pub vire_le: Vec<(String, String)>,
+    /// La boite courriel de la compagnie est-elle liee ? Le dossier le recopie (`Regularisation::boite_liee`).
+    pub boite_liee: bool,
 }
 
 /// « mars 2025 » : le nom d'un mois de la regularisation. « 00 » n'est aucun mois et se refuse
@@ -181,9 +183,8 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     }
     let faits = crate::casc::mois_regularises(ctx).map_err(|m| erreur("OSError", m))?;
     let depuis = valeur_en_texte(&base["depuis"]);
-    let mut candidats: Vec<String> = crate::routes_dossiers::mois_disponibles(ctx)?
+    let mut candidats: Vec<String> = engagement::stock::mois_saisis(&ctx.racine).map_err(|m| erreur("ValueError", m))?
         .into_iter()
-        .map(|(m, _)| m)
         .filter(|m| m.as_str() >= depuis.as_str() && !faits.contains(m))
         .collect();
     if let Some(m) = d.mois.as_ref().filter(|m| !m.is_empty()) {
@@ -416,7 +417,7 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     a_faire.push("Une fois les virements faits, le noter dans le logiciel : Exports, bouton « Noter comme régularisé », ou `paie casc-regularise ANNEE --vire-le AAAA-MM-JJ --montant X` — les mois sortent alors des dossiers suivants.".to_string());
     a_faire.push("Vérifier que la fiche de paramétrage Audiens porte les deux lignes CASC-SVP, pour que les DSN suivantes la déclarent.".to_string());
 
-    let boite = crate::routes_accueil::boite_liee(ctx).unwrap_or(false);
+    let boite = d.boite_liee;
     Ok(Regularisation {
         periode,
         mois: par_mois,

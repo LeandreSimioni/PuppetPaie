@@ -832,26 +832,6 @@ fn conventions(ctx: &Contexte) -> R<Value> {
     ))
 }
 
-/// `urssaf.pour_departement` : l'organisme du TERRITOIRE de ce departement. Une
-/// suggestion, pas une decision.
-fn urssaf_du_departement(base: &Value, dep: &str) -> String {
-    let d = dep.trim().to_uppercase();
-    let table = base.get("par_departement").and_then(Value::as_object);
-    let lu = |k: &str| table.and_then(|t| t.get(k)).filter(|v| vrai(v)).map(valeur_en_texte);
-    lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
-}
-
-/// `urssaf.pour_code_postal` : idem, depuis un code postal francais. L'outre-mer
-/// se lit sur TROIS chiffres (97139 -> 971), la metropole sur deux.
-pub(crate) fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String {
-    let v: Vec<char> = texte_ou_vide(cp).chars().filter(|c| c.is_ascii_digit()).collect();
-    if v.len() < 2 {
-        return String::new();
-    }
-    let n = if v[0] == '9' && (v[1] == '7' || v[1] == '8') { 3 } else { 2 };
-    urssaf_du_departement(base, &v.iter().take(n).collect::<String>())
-}
-
 // -------------------------------------------------------------------- l'etat
 
 /// La route `etat` : tout ce que la page lit en s'ouvrant.
@@ -914,7 +894,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         .iter()
         .map(|x| json!({"code": x.get("code").cloned().unwrap_or(Value::Null), "nom": x.get("nom").cloned().unwrap_or(Value::Null)}))
         .collect();
-    let deduit = urssaf_du_code_postal(&urssaf, ctx.entreprise.get("code_postal"));
+    let deduit = crate::champs::urssaf_du_code_postal(&urssaf, ctx.entreprise.get("code_postal"));
 
     Ok(json!({
         "configuration": configuration,

@@ -820,12 +820,12 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             let imprimees: Vec<Paie> = siennes.iter().map(|i| paies[*i].clone()).collect();
             let rectifs: HashMap<usize, Value> = siennes.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
             let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, Some(&paies), false, &rectifs).map_err(valeur)?;
-            crate::routes_dossier_salarie::ecrire_pdf(&description, &piece)?;
+            documents::fabrique::ecrire_pdf(&description, &piece)?;
         }
         let ses_certificats: Vec<(&PaieCs, i64)> = certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
         if !ses_certificats.is_empty() {
             let description = conges_spectacles::description_numerotee(&ses_certificats, &ent).map_err(Echec::from)?;
-            crate::routes_dossier_salarie::ecrire_pdf(&description, &dossier.join(crate::envoi::nom_fichier("CertificatCS", &cle, &etiq)))?;
+            documents::fabrique::ecrire_pdf(&description, &dossier.join(crate::envoi::nom_fichier("CertificatCS", &cle, &etiq)))?;
         }
     }
 
@@ -835,13 +835,13 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         let imprimees: Vec<Paie> = archivees.iter().map(|i| paies[*i].clone()).collect();
         let rectifs: HashMap<usize, Value> = archivees.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
         let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, None, false, &rectifs).map_err(valeur)?;
-        crate::routes_dossier_salarie::ecrire_pdf(&description, &sortie.join(format!("Bulletins_{}.pdf", etiq)))?;
+        documents::fabrique::ecrire_pdf(&description, &sortie.join(format!("Bulletins_{}.pdf", etiq)))?;
     }
     if !certificats.is_empty() {
         let mut paires: Vec<(&PaieCs, i64)> = certificats.iter().map(|(_, pc, n)| (*pc, *n)).collect();
         paires.sort_by_key(|(_, n)| *n);
         let description = conges_spectacles::description_numerotee(&paires, &ent).map_err(Echec::from)?;
-        crate::routes_dossier_salarie::ecrire_pdf(&description, &sortie.join(format!("CertificatsCS_{}.pdf", etiq)))?;
+        documents::fabrique::ecrire_pdf(&description, &sortie.join(format!("CertificatsCS_{}.pdf", etiq)))?;
         let recap = sortie.join(format!("CertificatsCS_{}_recapitulatif.txt", etiq));
         let texte = conges_spectacles::recapitulatif(&paires, &ent).map_err(Echec::from)?;
         std::fs::write(&recap, texte).map_err(|e| os(&recap, e))?;

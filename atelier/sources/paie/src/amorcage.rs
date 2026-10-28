@@ -306,3 +306,13 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
     crate::ntt::verifier_fichier(&texte)?;
     Ok(texte)
 }
+
+/// Les paies d'un mois de saisie, SANS montants : l'engagement et sa fiche (`amorcage::embauche`), ce que lit un signalement.
+/// `None` : aucun engagement ne touche le mois.
+pub fn paies_du_mois(ctx: &Contexte, mois: &str) -> Result<Option<Vec<Paie>>, String> {
+    let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
+    let _derivation = engagement::conges::Derivation::ouvrir();
+    let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois)?;
+    let paies = engs.iter().map(|e| embauche(ctx, e)).collect::<Result<Vec<_>, _>>()?;
+    Ok(Some(paies))
+}
