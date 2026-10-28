@@ -459,10 +459,10 @@ impl Default for Options {
     }
 }
 
-/// Le fichier d'un FCTU, pret a deposer. `suspensions` : les suspensions a
-/// ecrire (bloc 65) ; `arrets` : les arrets a reporter (bloc 60).
+/// Le fichier d'un FCTU, pret a deposer : les suspensions de l'engagement de la paie (bloc 65) ;
+/// `arrets` : les arrets a reporter (bloc 60).
 pub fn generer(
-    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, suspensions: &[Value], arrets: &[Arret],
+    ctx: &Contexte, paie: &engagement::calcul::Paie, fin: &FinDeContrat, o: &Options, arrets: &[Arret],
 ) -> Result<String, Echec> {
     let type_declaration = o.type_declaration.as_str();
     let libelle_type = match type_de_declaration(type_declaration) {
@@ -494,10 +494,6 @@ ou un annule."
         )));
     }
 
-    // Les suspensions que l'appelant donne, et elles seules (bloc 65).
-    let mut paie = paie.clone();
-    paie.engagement.suspensions = suspensions.to_vec();
-    let paie = &paie;
     let e = &paie.engagement;
 
     let fin_jour = d(&fin.fin)?;

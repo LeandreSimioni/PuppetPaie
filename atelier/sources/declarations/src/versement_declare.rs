@@ -241,7 +241,6 @@ pub fn dernier_declare(
     if let Some(d) = engagement::etats::debut_declare(ctx, o, departs, mois_courant)? {
         etat.debut_contrat = Some(socle::date::Jour::lire(&d)?.jjmmaaaa());
     }
-    let mut avant = derniere.paie.clone();
-    avant.numero_bulletin = declarees.iter().rev().find_map(|d| d.paie.numero_bulletin.clone());
+    let avant = derniere.paie.sous_le_bulletin(declarees.iter().rev().find_map(|d| d.paie.numero_bulletin.clone()));
     Ok(Some(DernierDeclare { versement: etat, net_deja_verse: derniere.paie.net_a_payer, avant }))
 }

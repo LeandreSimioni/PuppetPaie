@@ -123,3 +123,53 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Result
     o.brut.insert(POUR.into(), json!({"salarie": cle, "debut": debut, "le": le}));
     Ok(())
 }
+
+/// Le numero de contrat que la paie `p`, sans numero, porterait : la suite des numeros `pris` pour son salarie
+/// (`derniers_pris`, lus une fois), en memoire.
+fn proposer(ctx: &Contexte, p: &mut crate::calcul::Contenu, annee: i32, pris: &mut Option<HashMap<String, i64>>) -> Resultat<()> {
+    let pris = match pris {
+        Some(x) => x,
+        None => pris.insert(derniers_pris(ctx, annee)?),
+    };
+    let cle = p.salarie.get("_cle").map(en_texte).ok_or_else(|| socle::fichiers::absent("_cle"))?;
+    let dernier = pris.entry(cle).or_insert(0);
+    *dernier += 1;
+    p.engagement.numero = Some(former(&p.salarie, annee, *dernier)?);
+    Ok(())
+}
+
+/// LES NUMEROS DE CONTRAT QUE DES PAIES PORTERAIENT, en memoire : un engagement qui porte deja le sien le garde ; au
+/// premier mois de son contrat, un autre prend la suite des numeros pris pour son salarie (`derniers_pris`). Un mois qui
+/// n'est pas le premier n'en recoit pas : son numero est celui de l'engagement, ecrit a sa validation.
+pub fn numeroter_les_contrats(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32) -> Resultat<()> {
+    let mut pris = None;
+    for paie in paies.iter_mut() {
+        if paie.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) || !paie.engagement.premier_mois()? {
+            continue;
+        }
+        proposer(ctx, paie.ecrire(), annee, &mut pris)?;
+    }
+    Ok(())
+}
+
+/// LES NUMEROS QUE DES PAIES PORTERAIENT, en memoire : les numeros de contrat (`numeroter_les_contrats`, et un mois qui
+/// n'est pas le premier de son contrat, sans numero, refuse : `refus_sans_numero`) ; une paie dont le bulletin est parti
+/// garde son numero de bulletin, une autre recoit le `prochain` (`N/AAAA`), puis le suivant. Un mois sans paie n'a pas de
+/// bulletin. Rend le prochain numero de bulletin libre.
+pub fn numeroter(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32, prochain: i64) -> Resultat<i64> {
+    let mut n_bull = prochain;
+    let mut pris = None;
+    for paie in paies.iter_mut() {
+        let p = paie.ecrire();
+        if p.engagement.numero.as_deref().map_or(true, str::is_empty) {
+            crate::refus_sans_numero(ctx, &p.engagement)?;
+            proposer(ctx, p, annee, &mut pris)?;
+        }
+        if p.engagement.sans_paie() || p.numero_bulletin.as_deref().is_some_and(|n| !n.is_empty()) {
+            continue;
+        }
+        p.numero_bulletin = Some(format!("{}/{}", n_bull, annee));
+        n_bull += 1;
+    }
+    Ok(n_bull)
+}

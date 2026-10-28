@@ -89,7 +89,7 @@ fn euros_f(x: f64) -> String {
     format!("{:.2}", x).replace('.', ",")
 }
 
-/// `round(x, 2)` d'un flottant, comme CPython.
+/// Un flottant arrondi a deux decimales, par son texte.
 fn arrondi2(x: f64) -> f64 {
     format!("{:.2}", x).parse().unwrap_or(x)
 }
@@ -131,8 +131,8 @@ fn permanent(paie: &Paie) -> bool {
     paie.engagement.nat().map_or(false, |n| n.mensuelle())
 }
 
-/// `entreprise.convention_du_contrat` : la convention dont ce contrat lit les
-/// minima. Un refus du Python retombe sur la convention de l'entreprise.
+/// La convention dont ce contrat lit les minima : celle de l'entreprise, sauf l'artiste d'une emission de television
+/// (`emission_tv_1734`) d'une entreprise 2642 ou 3241, qui lit la 1734.
 fn idcc_du_contrat(ent: &Value, paie: &Paie) -> Resultat<String> {
     let idcc = texte_de(ent, "idcc");
     if (idcc != "2642" && idcc != "3241") || !vrai(g(&paie.spectacle, "emission_tv_1734")) {
@@ -1005,6 +1005,7 @@ pub(crate) fn saisies_de(paie: &Paie) -> Vec<&Value> {
 
 /// Le minimum conventionnel de la ligne `i` de la remuneration de cette paie, tel que `avertissements` le compare
 /// (les conseils de saisie s'en servent pour ne jamais proposer moins que lui ; `conseils::de_saisie`).
+#[cfg(feature = "ecran")]
 pub(crate) fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resultat<Option<Minimum>> {
     let Some(l) = paie.remuneration.get(i) else { return Ok(None) };
     let saisie = saisies_de(paie)[i];
@@ -1022,6 +1023,7 @@ pub(crate) fn minimum_de_la_ligne(ctx: &Contexte, paie: &Paie, i: usize) -> Resu
 /// pour une autre convention (la CCNEAC paie la repetition par service : `kali-1285-x3-remuneration-artistes-20260929.md`).
 /// L'annexe de l'entreprise inconnue : le plus HAUT des cachets possibles, pour qu'un conseil ne propose jamais moins
 /// que le minimum de la bonne annexe.
+#[cfg(feature = "ecran")]
 pub(crate) fn cachet_de_repetition(ctx: &Contexte, paie: &Paie) -> Resultat<Option<Minimum>> {
     avec_cx(ctx, paie, |cx| {
         if cx.idcc != "3090" || texte_de(cx.m, "statut") != "artiste" {

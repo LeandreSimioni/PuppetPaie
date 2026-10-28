@@ -104,6 +104,7 @@ fn cumuler(m: &mut BTreeMap<String, Decimal>, cle: &str, x: Decimal) {
 
 /// Remplace la reduction generale de la periode `p` par `rg` : sa ligne, le total patronal et le cout employeur.
 fn poser_reduction(p: &mut Paie, rg: Option<ReductionGenerale>) {
+    let p = p.ecrire();
     if let Some(i) = p.lignes.iter().position(|l| l.id == "reduction_generale") {
         let l = p.lignes.remove(i);
         p.total_pat -= l.montant_pat;
@@ -146,7 +147,7 @@ Dater le changement au premier jour d'un mois sur la fiche.",
             statut_du_mois
         ));
     }
-    // Sous deduction forfaitaire specifique (lot R9), la reduction se calcule sur le brut abattu et se borne a 130 % de
+    // Sous deduction forfaitaire specifique, la reduction se calcule sur le brut abattu et se borne a 130 % de
     // celle du brut entier, et le plafond de 7 600 EUR se suit contrat par contrat : le partage d'un tel mois entre
     // periodes n'est porte par aucun texte depose. `calcul::dfs_applicable` refuse deja la DFS d'un contrat paye au
     // mois ; ce refus-ci la garde si cela changeait.
@@ -182,7 +183,7 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
     let heures: f64 = parts.iter().filter_map(|p| p.engagement.heures).sum();
     e.heures = if heures != 0.0 { Some(heures) } else { None };
     let somme = |f: &dyn Fn(&Paie) -> Decimal| parts.iter().fold(zero, |a, p| a + f(p));
-    let mut m = Paie::nouveau(
+    let mut paie = Paie::nouveau(
         e,
         derniere.salarie.clone(),
         derniere.spectacle.clone(),
@@ -191,7 +192,9 @@ partagent entre periodes d'apres un texte depose. Rien n'est calcule.",
         somme(&|p| p.plafond),
         derniere.smic,
         parts.iter().fold(Decimal::ZERO, |a, p| a + p.heures),
+        derniere.plafond_temps_partiel,
     );
+    let m = paie.ecrire();
     // Les lignes de cotisation : une par identifiant et par taux, dans l'ordre ou elles paraissent ; deux periodes au
     // meme taux font une ligne (base et montants ajoutes), un taux qui change en fait deux (le bulletin dit les deux).
     // Une ligne qu'une periode est seule a porter se range apres celle de meme identifiant, sinon apres celle qui la
@@ -286,5 +289,5 @@ chacune (norme DSN, § 2.1.3.2).",
         ),
     });
     m.periodes = parts;
-    Ok(m)
+    Ok(paie)
 }

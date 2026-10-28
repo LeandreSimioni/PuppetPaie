@@ -1043,8 +1043,7 @@ les compléments abattus 432 et 636 ne portent que le brut des **artistes**
 (`"statut": "artiste"`), et un technicien intermittent relève des compléments au
 taux plein 430 et 635 (`"statut": "technicien"`, depuis le 11/10/2026 : « Les
 techniciens ne sont pas concernés » par les taux réduits, page Urssaf déposée dans
-`atelier/reference/sources/urssaf-taux-reduits-artistes/` ; un fichier des organismes
-composé avant se relit ainsi sans être recomposé, `dsn::ctp_urssaf`). Une ligne de
+`atelier/reference/sources/urssaf-taux-reduits-artistes/`). Une ligne de
 `ctp_urssaf` peut dépendre de l'effectif (`effectif_au_moins`, `effectif_sous`, lus
 par `dsn::Seuils` dans `config/effectifs.json`) : le FNAL des artistes passe du 334
 plafonné au 316 « totalité » à cinquante salariés. L'assiette de la taxe d'apprentissage se

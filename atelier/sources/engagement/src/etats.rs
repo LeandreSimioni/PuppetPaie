@@ -177,11 +177,12 @@ impl Valide {
             format!("{} : l'engagement valide le {} n'a pas de paie ecrite pour {}. Le revalider.", qui_de(&self.objet), self.le, mois)
         })?;
         let une = relire::saisie_d_un_engagement(data, i);
-        let mut p = relire::paies(ctx, &une, &[ecrite])?.pop().ok_or("paie ecrite illisible")?;
+        let mut paie = relire::paies(ctx, &une, &[ecrite])?.pop().ok_or("paie ecrite illisible")?;
+        let p = paie.ecrire();
         p.pas = self.paie_ecrite(mois).and_then(|x| x.get("pas")).filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
         p.conges = self.paie_ecrite(mois).and_then(|x| x.get(CONGES)).filter(|x| x.is_object()).map(crate::conges::CompteurConges::lire).transpose()?;
         p.numero_bulletin = self.bulletin(mois).map(String::from);
-        Ok(p)
+        Ok(paie)
     }
 
     /// Le numero du bulletin de `mois` (`N/AAAA`), ecrit quand ses documents sont partis (`poser_numeros_des_documents`).
@@ -1120,11 +1121,12 @@ fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) ->
     data["engagements"] = json!([vue]);
     let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or("paie ecrite illisible")?;
     let fiches = ecrite.get("fiches").filter(|f| f.is_object()).ok_or("paie ecrite illisible : `fiches`")?;
-    let mut p = relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?;
+    let mut lue = relire::paie_sur_ses_fiches(ctx, eng, paie, fiches)?;
+    let p = lue.ecrire();
     p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
     p.conges = ecrite.get(CONGES).filter(|x| x.is_object()).map(crate::conges::CompteurConges::lire).transpose()?;
     p.numero_bulletin = ecrite.get(BULLETIN).and_then(Value::as_str).map(String::from);
-    Ok(Some(p))
+    Ok(Some(lue))
 }
 
 /// LA PAIE DECLAREE de `mois` : celle que la version sur laquelle la derniere DSN qui a declare ce mois est partie a

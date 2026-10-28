@@ -746,13 +746,13 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             continue;
         }
         if let Some(b) = ecrits.get(i).and_then(|e| e.bulletin.clone()) {
-            paies[i].numero_bulletin = Some(b);
+            paies[i] = paies[i].sous_le_bulletin(Some(b));
             numerotees[i] = true;
         } else if part(&paies[i]) {
             let n = faits.reserves.prochain(ctx, "bulletin", an)?;
             faits.reserves.enregistrer(an, "bulletin", n);
             let numero = format!("{}/{}", n, an);
-            paies[i].numero_bulletin = Some(numero.clone());
+            paies[i] = paies[i].sous_le_bulletin(Some(numero.clone()));
             a_poser.entry(i).or_default().0 = Some(numero);
             numerotees[i] = true;
         }

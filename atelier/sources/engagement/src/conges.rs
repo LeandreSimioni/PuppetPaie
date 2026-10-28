@@ -38,7 +38,7 @@ pub(crate) fn numero(e: &Value) -> String {
     e.get("numero").filter(|x| vrai(x)).map_or_else(|| "?".to_string(), en_texte)
 }
 
-/// `float(Decimal)` : l'arrondi correct de CPython, par le texte.
+/// Le flottant d'un decimal, correctement arrondi, par le texte.
 pub(crate) fn flot(x: Decimal) -> f64 {
     x.to_string().parse().unwrap_or(0.0)
 }

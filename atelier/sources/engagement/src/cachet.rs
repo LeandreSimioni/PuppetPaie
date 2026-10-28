@@ -63,8 +63,7 @@ pub fn licence_du_jour(ent: &Value, date_ref: Option<&Jour>) -> Option<String> {
     if let Value::String(s) = val {
         return Some(s.clone());
     }
-    // Tout ce qui s'ecarte de la liste attendue leve en Python, et le
-    // `except Exception` rend None : ici `?` fait le meme.
+    // Une licence qui n'est ni un texte ni la liste attendue : aucune.
     let liste = val.as_array()?;
     let mut tries: Vec<&Value> = liste.iter().collect();
     for e in &tries {

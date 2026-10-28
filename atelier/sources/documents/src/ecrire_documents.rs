@@ -12,7 +12,6 @@ use socle::echec::Echec;
 use socle::echec::R;
 use socle::fichiers::lire_json;
 use socle::verrou::Verrou;
-use socle::date::en_texte;
 use socle::echec::Refus;
 use socle::ecriture::json_indente;
 use socle::fichiers::repr;
@@ -66,12 +65,7 @@ pub fn prendre_le_verrou(ctx: &Contexte, qui: &str) -> R<Verrou> {
 
 // ------------------------------------------------------------------ les numeros des contrats et des bulletins
 
-fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
-    Refus { classe: Some(classe), message: message.into() }
-}
-
-
-/// `engagement.numeroter` : les numeros de contrat (FA1.26.13) et de bulletin (17/2026) que les paies porteraient, en
+/// Les numeros de contrat (FA1.26.13) et de bulletin (17/2026) que les paies porteraient (`engagement::numeros::numeroter`), en
 /// memoire : l'apercu n'ecrit rien. Un engagement qui PORTE DEJA son numero de contrat le garde (`engagement::numeros`),
 /// une paie partie son numero de bulletin (`engagement::etats::Valide::bulletin`).
 pub fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32) -> Result<(), Refus> {
@@ -79,13 +73,12 @@ pub fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32) -> Result<(), R
 }
 
 /// La meme, avec les numeros de bulletin deja RESERVES par un appel precedent du meme processus : `(annee, "bulletin")
-/// -> dernier numero`. Le contrat sans numero prend la suite des numeros deja pris pour son salarie
-/// (`engagement::numeros::derniers_pris`).
+/// -> dernier numero`, sinon a la suite du compteur de l'annee (`config/compteurs.json`).
 pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, attente: &mut HashMap<(String, String), i64>) -> Result<(), Refus> {
     let p = ctx.racine.join("config").join("compteurs.json");
     let compteurs = if p.exists() { lire_json(&p)? } else { Value::Null };
     let an = annee.to_string();
-    let mut n_bull = match attente.get(&(an.clone(), "bulletin".to_string())) {
+    let n_bull = match attente.get(&(an.clone(), "bulletin".to_string())) {
         Some(v) => v + 1,
         None => compteurs.get(&an).and_then(|c| c.get("bulletin")).and_then(|v| match v {
             Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)),
@@ -93,31 +86,7 @@ pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, atte
             _ => None,
         }).unwrap_or(0) + 1,
     };
-    let mut pris: Option<HashMap<String, i64>> = None;
-    let manque = |s: &Value, k: &str| s.get(k).map(en_texte).ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent(k)));
-    for p in paies.iter_mut() {
-        let sans_paie = p.engagement.sans_paie();
-        if p.engagement.numero.as_deref().map_or(true, str::is_empty) {
-            engagement::refus_sans_numero(ctx, &p.engagement)?;
-            if pris.is_none() {
-                pris = Some(engagement::numeros::derniers_pris(ctx, annee)?);
-            }
-            let dernier = pris.as_mut().unwrap().entry(manque(&p.salarie, "_cle")?).or_insert(0);
-            *dernier += 1;
-            p.engagement.numero = Some(engagement::numeros::former(&p.salarie, annee, *dernier)?);
-        }
-        // Un mois sans cachet n'a pas de bulletin : rien n'est paye, aucun
-        // numero de bulletin ne se reserve.
-        if sans_paie {
-            continue;
-        }
-        // Un bulletin parti garde son numero, ecrit dans la paie a son depart.
-        if p.numero_bulletin.as_deref().is_some_and(|n| !n.is_empty()) {
-            continue;
-        }
-        p.numero_bulletin = Some(format!("{}/{}", n_bull, annee));
-        n_bull += 1;
-    }
+    let n_bull = engagement::numeros::numeroter(ctx, paies, annee, n_bull)?;
     attente.insert((an, "bulletin".to_string()), n_bull - 1);
     Ok(())
 }

@@ -524,36 +524,19 @@ fn opt_txt(v: &Value) -> Option<String> {
     }
 }
 
-/// `_bases` : les assiettes du calcul, pas un recalcul.
+/// Les assiettes que le calcul a ecrites dans la paie, telles quelles : rien ne se recalcule.
 pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
     let b = &p.bases;
     let mut out = HashMap::new();
-    let ou = |cle: &str, defaut: Resultat<Decimal>| -> Resultat<Decimal> {
-        match b.get(cle) {
-            Some(x) => Ok(*x),
-            None => defaut,
-        }
-    };
+    let lue = |cle: &str| -> Resultat<Decimal> { b.get(cle).copied().ok_or_else(|| format!("paie ecrite illisible : la base `{}`", cle)) };
     out.insert("brut".into(), p.brut);
-    out.insert("brut_cs".into(), ou("brut_cs", Ok(p.brut))?);
+    out.insert("brut_cs".into(), lue("brut_cs")?);
     out.insert("csg".into(), p.base_csg);
-    if !b.contains_key("brut_x115") {
-        out.insert("brut_x115".into(), eur(mul(p.brut, dec_avec_echelle(req(bar, "majoration_conges_115")?)?)));
-    } else {
-        out.insert("brut_x115".into(), b["brut_x115"]);
-    }
-    if !b.contains_key("brut_x110") {
-        out.insert("brut_x110".into(), eur(mul(p.brut, dec_avec_echelle(req(bar, "majoration_conges_110")?)?)));
-    } else {
-        out.insert("brut_x110".into(), b["brut_x110"]);
-    }
+    out.insert("brut_x115".into(), lue("brut_x115")?);
+    out.insert("brut_x110".into(), lue("brut_x110")?);
     out.insert("zero".into(), zero());
     if vrai(g(bar, "plafond_journalier")) {
-        let v = match b.get("t1_journaliere") {
-            Some(x) => *x,
-            None => p.brut.min(eur(mul(dec_avec_echelle(&bar["plafond_journalier"])?, Decimal::from(p.engagement.jours)))),
-        };
-        out.insert("t1_journaliere".into(), v);
+        out.insert("t1_journaliere".into(), lue("t1_journaliere")?);
     }
     // Les assiettes plafonnees d'un intermittent (`calcul::calculer`, 7.6) : les bases 02 et 07 portent ce que le
     // bulletin a calcule, sur le meme plafond (point 22).
@@ -573,24 +556,6 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
                 out.insert(cle.into(), *x);
             }
         }
-    }
-    // Un calcul de permanent sans `t1_mensuelle_x115` declare son FNAL sur la tranche 1, sans majoration (aucune caisse).
-    if !out.contains_key("t1_mensuelle_x115") {
-        if let Some(x) = b.get("t1_mensuelle") {
-            out.insert("t1_mensuelle_x115".into(), *x);
-        }
-    }
-    // Une paie d'intermittent ecrite avant le point 22 (celle d'un mois parti, qui ne se recalcule plus) n'a
-    // pas ces cles : le moteur qui l'a fait assiait la vieillesse plafonnee, le FNAL et le chomage sur le brut entier, et
-    // c'est ce que son bulletin a retenu. On relit ce calcul-la, on ne le refait pas.
-    if !p.engagement.nat()?.mensuelle() && !b.contains_key("brut_plafonne") {
-        out.insert("brut_plafonne".into(), p.brut);
-        out.insert("brut_x115_plafonne".into(), out["brut_x115"]);
-        out.insert("brut_chomage".into(), p.brut);
-    }
-    // De meme pour le chomage d'un permanent sans `brut_chomage` : le brut entier.
-    if p.engagement.nat()?.mensuelle() && !b.contains_key("brut_chomage") {
-        out.insert("brut_chomage".into(), p.brut);
     }
     Ok(out)
 }
@@ -1746,7 +1711,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     if vrai(g(s, "statut_boeth")) {
         si_admise(f, nature_dsn, "S21.G00.40.072", Some(en_texte(&s["statut_boeth"])))?;
     }
-    proratisation_du_plafond(f, p, ent, nature_dsn)?;
+    proratisation_du_plafond(f, p, nature_dsn)?;
     // S21.G00.40.086 (« Adhesion a une caisse de conges payes a titre obligatoire ») ne s'ecrit pas : « A ne pas
     // renseigner pour la version de norme P27V01 » (journal de maintenance 2027.1.2, evolution 17,
     // `atelier/reference/norme-dsn/dsn-journal-maintenance-2027.1.2-20260615.txt` l. 368-381), absente de P26V01. Le lot
@@ -1856,22 +1821,22 @@ declare {} h ; ses quatre heures sont des heures supplementaires, payees comme t
 /// (`dsn-journal-maintenance-2027.1.2-20260615.txt`) la rend CONDITIONNELLE en DSN mensuelle (evolution 21, l. 433-452 :
 /// O -> C) et retire sa CCH-12 (evolution 16, l. 347-366) : elle ne s'ecrit plus pour un temps plein ni pour un contrat
 /// d'usage. Interdite en FCTU (I), conditionnelle en amorcage (C),
-/// absente de la table P26V01 : la table de la version du fichier decide. Elle dit ce que le calcul fait
-/// (`calcul::plafond_temps_partiel`, la meme lecture) :
+/// absente de la table P26V01 : la table de la version du fichier decide. Elle dit ce que le calcul a fait, tel que la
+/// paie le porte (`Contenu::plafond_temps_partiel`) :
 /// - temps partiel, plafond proratise (la regle, fiche net-entreprises 3369) : 01 ;
 /// - temps partiel, l'etablissement renonce (fiche entreprise, `plafond_temps_partiel` = « entier ») : 02 (fiche 3369) ;
 /// - temps partiel d'un artiste, exclu de la proratisation (L. 242-10, 1° ; BOSS § 1090) : 02. INFERENCE : la norme ne
 ///   dit rien d'un salarie que la loi exclut ; 02 (« Non ») est ce que le calcul fait, le plafond entier ;
 /// - temps plein, contrat d'usage : rien.
 /// Le forfait jour reduit (40.011 = 20) n'existe pas dans le moteur (aucune nature ne l'a) : un cas a porter.
-fn proratisation_du_plafond(f: &mut Fichier, p: &Paie, ent: &Value, nature_dsn: &str) -> Resultat<()> {
+fn proratisation_du_plafond(f: &mut Fichier, p: &Paie, nature_dsn: &str) -> Resultat<()> {
     use engagement::calcul::PlafondTempsPartiel as P;
     let r = "S21.G00.40.084";
     let usage = crate::usages::usage_en(f.norme()?, r, nature_dsn)?;
     if usage != "O" && usage != "C" {
         return Ok(());
     }
-    let valeur = match p.plafond_temps_partiel(ent)? {
+    let valeur = match p.plafond_temps_partiel {
         P::Proratise => Some("01"),
         P::Entier | P::Exclu => Some("02"),
         P::NonConcerne => None,
@@ -2594,12 +2559,6 @@ fn lecture(p: &Paie, bar: &Value) -> Resultat<Lecture> {
         let code = en_texte(&c["code81"]);
         l.roles.push((code.clone(), org, Role81::Cotisation { cle: cle_total.unwrap_or(code), base }));
     }
-    // Une DSN deposee avant le 10/10/2026 declare Agirc-Arrco en 105 (« y compris Apec ») ce que le bareme declare
-    // aujourd'hui en 131 et 132 : la ligne deposee se relit sous sa propre cle, que le versement Agirc-Arrco porte
-    // (`codes_du_versement`). Elle ne se repartit pas entre 131 et 132 : la DSN deposee ne dit pas la part de l'Apec.
-    if l.roles.iter().any(|(c, _, _)| AGIRC_ARRCO_DEPUIS_2025.contains(&c.as_str())) && !l.roles.iter().any(|(c, _, _)| c == AGIRC_ARRCO_AVANT_2025) {
-        l.roles.push((AGIRC_ARRCO_AVANT_2025.into(), String::new(), Role81::Cotisation { cle: AGIRC_ARRCO_AVANT_2025.into(), base: None }));
-    }
     let nature = p.engagement.nat()?.bareme.clone().unwrap_or_else(|| "intermittent".into());
     for contrib in &contribs {
         if g(contrib, "natures").get(&nature).is_some() {
@@ -2834,28 +2793,12 @@ fn sert_a_un_versement(orgs: &Value, code: &str) -> bool {
     })
 }
 
-/// « 105 - Montant de cotisation Regime Unifie Agirc-Arrco, y compris Apec » : la modalite Agirc-Arrco de la norme
-/// 2026.1 ne le garde que « pour regularisation des periodes anterieures a 2025 » (cahier technique 2026.1, p. 302 ;
+/// Les cles de totalisation d'un versement 20 (`codes81` de `config/organismes.json`). Agirc-Arrco y porte 131 et 132
+/// (« Cotisation regime unifie Agirc-Arrco », « Cotisation Apec »), et 105 (« y compris Apec »), que la norme 2026.1 ne
+/// garde que « pour regularisation des periodes anterieures a 2025 » (cahier technique 2026.1, p. 302 et 305 ;
 /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.81.txt`, lignes 79-81).
-pub const AGIRC_ARRCO_AVANT_2025: &str = "105";
-/// Ce que la meme modalite attend a sa place : « 131 - Cotisation regime unifie Agirc-Arrco » et « 132 - Cotisation
-/// Apec » (p. 302 et 305 ; CCH-12 de 81.004, p. 309).
-pub const AGIRC_ARRCO_DEPUIS_2025: [&str; 2] = ["131", "132"];
-
-/// Les cles de totalisation d'un versement 20 (`codes81` de `config/organismes.json`). Un fichier compose avant le
-/// 10/10/2026 nomme Agirc-Arrco par le seul 105 ; ce 105 couvrait la retraite ET l'Apec, que la norme 2026.1 declare en
-/// 131 et 132 : le versement qui porte le 105 porte aussi les 131 et 132, sans quoi il perdrait en silence ce que le
-/// bareme declare sous ces codes. Le 105 y reste pour ce qui a ete DEPOSE en 105 (une regularisation).
 pub fn codes_du_versement(v: &Value) -> Vec<String> {
-    let mut codes: Vec<String> = liste(g(v, "codes81")).iter().map(en_texte).collect();
-    if codes.iter().any(|c| c == AGIRC_ARRCO_AVANT_2025) {
-        for c in AGIRC_ARRCO_DEPUIS_2025 {
-            if !codes.iter().any(|x| x == c) {
-                codes.push(c.to_string());
-            }
-        }
-    }
-    codes
+    liste(g(v, "codes81")).iter().map(en_texte).collect()
 }
 
 /// `cumuler_totaux` de ce qui a ete DECLARE pour le contrat d'une regularisation : ses lignes 81 deposees, chacune a sa
@@ -3128,33 +3071,8 @@ fn cle_ctp(ctp: &Value) -> Resultat<(String, bool)> {
     Ok((if txt(g(ctp, "qualifiant")) == QUALIFIANT_PLAFONNEE { plafonnee(&k) } else { k }, false))
 }
 
-/// Les CTP du chomage et de l'AGS d'un permanent, que le tableau d'equivalence de l'Urssaf rattache a la base 07
-/// (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv : 772 -> 07/040, 937 -> 07/048,
-/// qualifiant 920).
-const CTP_CHOMAGE_PERMANENT: [&str; 2] = ["772", "937"];
-
 fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Value) -> Resultat<(Decimal, bool)> {
     let (k, par_montant) = cle_ctp(ctp)?;
-    // Un config/organismes.json qui met 772 et 937 sur `brut_permanent`, le brut entier. Il reste
-    // juste tant qu'aucun permanent ne depasse quatre plafonds ; au-dela, il paierait le chomage sur un brut que le
-    // nominatif (base 07) ne declare plus. On ne le corrige pas en silence : on refuse, et on dit comment recomposer.
-    let code = txt(g(ctp, "code"));
-    if k == "brut_permanent" && CTP_CHOMAGE_PERMANENT.contains(&code.as_str()) {
-        if let (Some(brut), Some(chomage)) = (somme.get("brut_permanent"), somme.get("chomage_permanent")) {
-            if brut != chomage {
-                return Err(format!(
-                    "config/organismes.json : le CTP {} (chomage ou AGS des permanents) lit l'assiette « brut_permanent », \
-le brut entier ({} EUR), alors que le chomage d'un permanent s'assied dans la limite de quatre plafonds de la securite \
-sociale ({} EUR declares en base 07 ; reglement general d'assurance chomage, art. 49). Le fichier a ete compose avant ce \
-changement : recomposez-le (Configuration › Organismes et contrats, Enregistrer), il lira « chomage_permanent ». Rien \
-n'est ecrit.",
-                    code,
-                    mt(*brut),
-                    mt(*chomage)
-                ));
-            }
-        }
-    }
     match somme.get(&k) {
         Some(v) => Ok((*v, par_montant)),
         None if k.starts_with(&plafonnee("")) => Err(format!(
@@ -3168,80 +3086,19 @@ lit l'assiette « {} », qui n'a pas de forme plafonnee. Rien n'est ecrit.",
     }
 }
 
-/// Les complements maladie et allocations familiales au taux abattu de 30 % (« COMPLT MALADIE 30% », « COMPLT AF
-/// ABATT.30 % ») : des CTP d'ARTISTES (tableau DIDA de l'Urssaf, « Ce CTP artistes »,
-/// atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, l. 838, 1410 et 1450 ; « Les
-/// techniciens ne sont pas concernes », atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 24 du .txt).
-const CTP_ABATTUS: [&str; 2] = ["636", "432"];
-
-/// La contribution CPF-CDD au bordereau (table des CTP de l'Urssaf : « CONTRIBUTION CPF CDD », 1 %).
-const CTP_CPF_CDD: &str = "987";
-/// Sa cotisation au nominatif (norme DSN 2026.1, S21.G00.81.001 : « 129 - Contribution dediee au financement du Compte
-/// Personnel de Formation pour les titulaires de CDD (CPF-CDD) »).
+/// La contribution CPF-CDD : sa cotisation au nominatif (norme DSN 2026.1, S21.G00.81.001 : « 129 - Contribution dediee
+/// au financement du Compte Personnel de Formation pour les titulaires de CDD (CPF-CDD) »).
 const CODE81_CPF_CDD: &str = "129";
 /// La contribution a la formation professionnelle au nominatif (« 128 - Contribution a la formation professionnelle
-/// (CFP) », fiche net-entreprises 2503) ; ses CTP de droit commun (959 sous onze salaries, 971 au-dela), dont l'assiette
+/// (CFP) », fiche net-entreprises 2503) ; l'assiette de ses CTP de droit commun (959 sous onze salaries, 971 au-dela)
 /// est la somme de ses 81.003 chez les permanents (`ASSIETTE_CFP_PERMANENT`).
 const CODE81_CFP: &str = "128";
-const CTP_CFP: [&str; 2] = ["959", "971"];
 const ASSIETTE_CFP_PERMANENT: &str = "cfp_permanent";
 
-/// La table des CTP de `config/organismes.json`. Un fichier compose avant le 11/10/2026 met les CTP abattus (636, 432)
-/// sur `brut_intermittent`, techniciens compris, et n'a pas les complements au taux plein des techniciens (635, 430) :
-/// il se lit comme `donnees/organismes-base.json` les ecrit aujourd'hui (les lignes abattues sur le brut des artistes,
-/// les lignes des techniciens en plus, a la place que le fichier livre leur donne : apres leur CTP 100), sans etre recompose -- comme `codes_du_versement`
-/// pour le 105. Un fichier recompose est lu tel quel.
+/// La table des CTP de `config/organismes.json`, telle que `organismes::composer` l'ecrit depuis
+/// `donnees/organismes-base.json`.
 fn ctp_urssaf(orgs: &Value) -> Resultat<Vec<Value>> {
-    let mut ctps = liste(req(orgs, "ctp_urssaf")?).to_vec();
-    // La contribution CPF-CDD (CTP 987) : un fichier compose avant ne l'a pas ; elle se lit comme le fichier livre
-    // l'ecrit, apres le CTP de formation des permanents.
-    if !ctps.iter().any(|c| txt(g(c, "code")) == CTP_CPF_CDD) {
-        let base = json_en_cache(&dossier_du_code().join("organismes-base.json"))?;
-        if let Some(l) = liste(g(&base, "ctp_urssaf")).iter().find(|c| txt(g(c, "code")) == CTP_CPF_CDD) {
-            let i = ctps.iter().rposition(|c| txt(g(c, "code")) == "959").map_or(ctps.len(), |i| i + 1);
-            ctps.insert(i, l.clone());
-        }
-    }
-    // La formation des permanents (CTP 959, 971) : un fichier qui la met sur `brut_permanent`, le brut ;
-    // elle se lit sur la somme des 81.003 de la 128 (`cfp_permanent`), comme le fichier livre l'ecrit -- le brut, sauf
-    // pour un contrat declare a la caisse des Conges Spectacles, dont l'assiette est majoree.
-    for c in ctps.iter_mut() {
-        if CTP_CFP.contains(&txt(g(c, "code")).as_str()) && txt(g(c, "assiette")) == "brut_permanent" {
-            if let Some(m) = c.as_object_mut() {
-                m.insert("assiette".into(), Value::from(ASSIETTE_CFP_PERMANENT));
-            }
-        }
-    }
-    let ancien = |c: &Value| CTP_ABATTUS.contains(&txt(g(c, "code")).as_str()) && txt(g(c, "assiette")) == "brut_intermittent";
-    if !ctps.iter().any(ancien) {
-        return Ok(ctps);
-    }
-    let base = json_en_cache(&dossier_du_code().join("organismes-base.json"))?;
-    let livres = liste(g(&base, "ctp_urssaf"));
-    let livre = |code: &str, statut: &str| -> Resultat<Value> {
-        livres
-            .iter()
-            .find(|c| txt(g(c, "code")) == code && txt(g(c, "statut")) == statut)
-            .cloned()
-            .ok_or_else(|| format!("donnees/organismes-base.json n'a pas de CTP {} des {}s. Rien n'est ecrit.", code, statut))
-    };
-    for c in ctps.iter_mut().filter(|c| ancien(c)) {
-        *c = livre(&txt(g(c, "code")), "artiste")?;
-    }
-    let technicien = |c: &Value| txt(g(c, "statut")) == "technicien";
-    let mut apres = ctps
-        .iter()
-        .rposition(|c| technicien(c) && txt(g(c, "code")) == "100")
-        .or_else(|| ctps.iter().rposition(technicien))
-        .map_or(ctps.len(), |i| i + 1);
-    for code in ["635", "430"] {
-        let l = livre(code, "technicien")?;
-        if !ctps.iter().any(|c| txt(g(c, "code")) == code && txt(g(c, "assiette")) == txt(g(&l, "assiette"))) {
-            ctps.insert(apres, l);
-            apres += 1;
-        }
-    }
-    Ok(ctps)
+    Ok(liste(req(orgs, "ctp_urssaf")?).to_vec())
 }
 
 /// Les seuils d'effectif d'un mois, pour les CTP qui en dependent (`effectif_au_moins`, `effectif_sous` d'une ligne de
@@ -3277,23 +3134,6 @@ impl Seuils {
     }
 }
 
-/// Le FNAL des artistes : CTP 334 « FNAL ARTISTES PLAFONNE » sous cinquante salaries, 316 « FNAL ARTISTES TOTALITE » a
-/// partir de cinquante (Urssaf, « Les taux reduits cas particuliers », 15/07/2026 : « Effectif de moins de 50 salaries :
-/// 0,07 % dans la limite du plafond ; Effectif 50 salaries et plus : 0,35 % » ; « CTP 316 : FNAL artistes totalite ;
-/// CTP 334 : FNAL artistes plafonne » ; atelier/reference/sources/urssaf-taux-reduits-artistes/, l. 89-92 et 148-149 du
-/// .txt). Un fichier des organismes compose avant le 11/10/2026 n'a pas le 316 : a cinquante salaries, il declarerait le
-/// FNAL de l'artiste sous le CTP plafonne. On refuse, et on dit comment recomposer (comme pour 772 et 937).
-fn fnal_des_artistes(ctps: &[Value], somme: &HashMap<String, Decimal>, effectif: &Seuils, mois: &str) -> Resultat<()> {
-    let artistes = somme.get("brut_x115_artiste").copied().unwrap_or_else(zero);
-    if artistes.is_zero() || !effectif.atteint(50) || ctps.iter().any(|c| txt(g(c, "code")) == "316") {
-        return Ok(());
-    }
-    Err(format!(
-        "Bordereau Urssaf de {} : l'entreprise a franchi le seuil de cinquante salaries (config/effectifs.json), et le FNAL des artistes se declare alors sous le CTP 316 « FNAL artistes totalite » (0,35 %), non sous le 334 plafonne. config/organismes.json n'a pas de CTP 316 : il a ete compose avant. Recomposez-le (Configuration › Organismes et contrats, Enregistrer). Rien n'est ecrit.",
-        mois
-    ))
-}
-
 /// `assujettissement::taxe_apprentissage_non_due_au_mois` pour un mois `AAAA-MM`.
 fn taxe_apprentissage_non_due_du_mois(ent: &Value, mois: &str) -> Resultat<bool> {
     let m: u32 = mois.get(5..7).and_then(|m| m.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))?;
@@ -3308,7 +3148,6 @@ fn lignes_bordereau(
     let somme = assiettes_ctp(paies, bar)?;
     let ctps = crate::assujettissement::ctp_sans_la_taxe_non_due(ctp_urssaf(orgs)?, taxe_apprentissage_non_due_du_mois(ent, mois)?);
     let ctps = ctps.as_slice();
-    fnal_des_artistes(ctps, &somme, effectif, mois)?;
     if !somme["brut_permanent"].is_zero() && !ctps.iter().any(|c| txt(g(c, "nature")) == "permanent") {
         return Err(format!(
             "La DSN de {} porte {} EUR de brut de salaries permanents, et config/organismes.json n'a aucun CTP marque \
@@ -3317,23 +3156,6 @@ suivants) et son assurance chomage est recouvree par l'Urssaf, contrairement a c
 CTP dans la table de l'Urssaf et les ajouter avant de declarer. Rien n'est ecrit.",
             mois,
             mt(somme["brut_permanent"])
-        ));
-    }
-    // Un permanent declare a la caisse des Conges Spectacles a un FNAL majore (CSS L. 243-1-3) : son CTP 332 lit
-    // `t1_x115_permanent` (donnees/organismes-base.json). Un config/organismes.json qui ne
-    // le lit pas declarerait la tranche 1 nue.
-    if somme["t1_x115_permanent"] != somme["t1_permanent"]
-        && !ctps.iter().any(|c| txt(g(c, "assiette")) == "t1_x115_permanent")
-    {
-        return Err(format!(
-            "La DSN de {} porte un salarie permanent declare a la caisse des Conges Spectacles (contrat a duree \
-determinee de moins de douze mois d'un artiste) : son FNAL se paie sur la tranche 1 majoree de \
-11,5 % (CSS L. 243-1-3), {} EUR au lieu de {}. Aucun CTP de config/organismes.json ne lit cette assiette \
-(`t1_x115_permanent`, le 332 sous 921 des permanents) : il a ete compose avant. L'enregistrer de nouveau \
-(Configuration > Organismes et contrats) le recompose. Rien n'est ecrit.",
-            mois,
-            mt(somme["t1_x115_permanent"]),
-            mt(somme["t1_permanent"])
         ));
     }
     for ctp in ctps {
@@ -3442,7 +3264,6 @@ fn lignes_regularisees(
     let apres = assiettes_ctp(&siens.iter().map(|r| &r.apres).collect::<Vec<_>>(), bar_o)?;
     let mut lignes = Vec::new();
     let ctps = crate::assujettissement::ctp_sans_la_taxe_non_due(ctp_urssaf(orgs)?, taxe_apprentissage_non_due_du_mois(ent, mois_o)?);
-    fnal_des_artistes(&ctps, &apres, effectif, mois_o)?;
     for ctp in &ctps {
         if !effectif.retient(ctp)? {
             continue;
