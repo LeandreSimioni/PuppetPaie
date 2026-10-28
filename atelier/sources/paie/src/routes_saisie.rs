@@ -51,7 +51,7 @@ fn nombre_f(x: f64) -> Value {
     serde_json::Number::from_f64(x).map_or(Value::Null, Value::Number)
 }
 
-/// `int(texte)` de Python, a quelques ecarts de forme pres.
+/// Un entier ecrit en texte (blancs autour admis).
 fn entier(t: &str) -> R<i32> {
     t.trim().parse::<i32>().map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))))
 }
@@ -61,8 +61,7 @@ fn tranche(t: &str, a: usize, b: usize) -> String {
     t.chars().skip(a).take(b - a).collect()
 }
 
-/// `operations_paies.lire_saisie` : le fichier, avec la classe d'exception que
-/// Python levait pour un fichier illisible.
+/// Le fichier d'une saisie, lu en JSON ; un fichier illisible refuse en le nommant.
 pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let texte = String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", chemin.display(), e)))?;
@@ -125,9 +124,9 @@ fn flottant_py(v: &Value) -> R<f64> {
     }
 }
 
-/// Les elements qu'une boucle Python verrait dans `valeur or []` : une liste, ou
-/// ce que `reversed` accepte d'autre (une chaine, un dictionnaire : leurs
-/// cles, des textes sans `.get`).
+/// Les elements de `valeur` (vide ou absente : aucun) : une liste, ou
+/// les caracteres d'une chaine, les cles d'un dictionnaire (des textes sans
+/// `.get`) ; autre chose refuse.
 fn elements(v: Option<&Value>) -> R<Vec<Value>> {
     match v {
         None => Ok(Vec::new()),

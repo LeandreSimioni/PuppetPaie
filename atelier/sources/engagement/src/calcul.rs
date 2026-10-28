@@ -133,7 +133,7 @@ pub(crate) fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<Lign
             quantite: q,
             taux,
             montant: signe * eur(mul(taux, q)),
-            // `Decimal("-1") * Decimal("0.0")` garde l'echelle en Python.
+            // Des heures nulles gardent le signe de la ligne et leur echelle.
             heures_annexes: if h.is_zero() { if signe.is_sign_negative() { -h } else { h } } else { signe * h },
             soumis: r.soumis,
             imposable: r.imposable,
@@ -189,8 +189,7 @@ impl LigneCotisation {
 pub struct DeductionForfaitaire {
     /// « 20 » ou « 25 » : le taux de l'article 5 de l'annexe IV du CGI (redaction du 31/12/2000) que la profession porte.
     pub categorie: String,
-    /// La profession de la fiche (`deduction_forfaitaire.professions` du bareme) ; vide pour un calcul stocke avant le
-    /// lot R9, qui ne gardait que la categorie.
+    /// La profession de la fiche (`deduction_forfaitaire.professions` du bareme).
     pub profession: String,
     /// Le taux de l'annee (bareme), en pourcent.
     pub taux: Decimal,
@@ -276,7 +275,7 @@ pub struct Contenu {
     pub assiette_chomage: Decimal,
     pub heures_travaillees: Decimal,
     pub heures_absence: Decimal,
-    /// Les periodes elementaires de paie d'un mois decoupe (lot R10, `periodes`), chacune une paie calculee sur ses
+    /// Les periodes elementaires de paie d'un mois decoupe (`periodes`), chacune une paie calculee sur ses
     /// bornes, sa fiche et sa pile ; vide pour un mois d'un seul tenant. La paie du mois en est la somme ; la DSN declare
     /// leurs remunerations (51) et leurs bases (78, 79, 81) une par une.
     pub periodes: Vec<Paie>,
@@ -672,8 +671,8 @@ pub struct AbattementDfs {
     pub avis: Vec<String>,
 }
 
-/// La deduction d'un contrat : chaque rubrique de salaire abattue du taux de l'annee (arrondie au centime, comme
-/// avant le lot R9), puis
+/// La deduction d'un contrat : chaque rubrique de salaire abattue du taux de l'annee (arrondie au centime),
+/// puis
 /// - le plafond annuel : << dans la limite de 7 600 euros par annee civile >> (arrete du 4 septembre 2025, art. 9, I,
 ///   al. 1) ;
 ///   `deja` est ce que l'annee a deja deduit ;
@@ -811,9 +810,9 @@ pub(crate) fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resulta
         statut_categoriel_rc: eng.statut_categoriel_rc.clone(),
     };
     if nat.mensuelle() {
-        // La fiche de la derniere periode elementaire : un mois decoupe (lot R10) declare la derniere valeur connue
+        // La fiche de la derniere periode elementaire : un mois decoupe declare la derniere valeur connue
         // (norme DSN 2026.1, § 2.1.2.4, p. 22) ; un mois d'un seul tenant, la periode de paie entiere. La dispense de
-        // sante se lit sur ces memes bornes (`dispense_de_la_periode`, lot R7).
+        // sante se lit sur ces memes bornes (`dispense_de_la_periode`).
         let (debut, fin) = *crate::periodes::bornes(ctx, eng)?.last().ok_or("aucune periode de paie")?;
         let du_mois = droit::emplois::emploi_du_mois(ctx, &cle, &debut, &fin)?;
         let fiche = dispense_de_la_periode(emploi_de(&du_mois, &emploi)?, &debut, &fin)?;
@@ -871,7 +870,7 @@ fn date_de_la_fiche(fiche: &Value, cle: &str) -> Resultat<Option<Jour>> {
     }
 }
 
-/// LA DISPENSE DE SANTE A DES BORNES (Q13, tranchee par Leandre le 11/10/2026). Les accords de branche deposes en
+/// LA DISPENSE DE SANTE A DES BORNES. Les accords de branche deposes en
 /// donnent : la dispense de l'assure individuel « ne peut jouer que jusqu'a l'echeance du contrat individuel », celle
 /// d'une couverture collective se justifie chaque annee, et le salarie « cessant de justifier » de son cas adhere
 /// (CCN 3090, art. 9.2 et 9.2.2 b et d, `atelier/reference/sources/kali-3090-accord-sante-permanents-20240719-20261011.md` ;
@@ -1013,7 +1012,7 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     // Le contrat est-il declare a la caisse des Conges Spectacles ? (`caisse_conges::affilie` : un CDDU de moins de
     // douze mois, un CDD de droit commun de moins de douze mois d'un artiste.)
     let caisse = droit::caisse_conges::affilie(&nat, &sal, &eng.debut, eng.fin.as_ref())?;
-    // Le contrat ouvre-t-il la contribution CPF-CDD (C. trav. L. 6331-6 ; lot R2) ? Un CDD de droit commun, ni saisonnier,
+    // Le contrat ouvre-t-il la contribution CPF-CDD (C. trav. L. 6331-6) ? Un CDD de droit commun, ni saisonnier,
     // ni contrat aide (`droit::cpf_cdd`, la regle du bloc 44).
     let cpf_cdd = droit::cpf_cdd::contrat_ouvre_cpf_cdd(
         &nat,
@@ -1481,7 +1480,7 @@ pub(crate) fn plafond_de_l_engagement(ctx: &Contexte, e: &Engagement, sal: &Valu
 
 /// Le plafond sur lequel se pose le forfait de sante d'un salarie au mois (`pss_periode`, la rubrique `mutuelle` et la
 /// base 18 du bloc 79) : celui de la periode de paie, reduit au prorata des jours quand le contrat ne la couvre pas
-/// (`plafond::plafond_permanent`), mais SANS la correction du temps partiel (lot D1, 13/10/2026).
+/// (`plafond::plafond_permanent`), mais SANS la correction du temps partiel.
 ///
 /// LES TEXTES. Les accords de sante fixent une cotisation « au titre de la couverture du seul salarie » en pourcentage
 /// du « plafond mensuel de la securite sociale » (IDCC 1285, accord du 30/01/2026, art. 6 ; IDCC 3090, accord du
@@ -1503,7 +1502,7 @@ pub(crate) fn plafond_de_la_sante(ctx: &Contexte, e: &Engagement) -> Resultat<De
 
 /// Le plafond d'un salarie a temps partiel, et ce que S21.G00.40.084 en declare.
 ///
-/// LA PRORATISATION EST LA REGLE, Y RENONCER EST LE CHOIX (11/10/2026, lot R5a ; le lot V4b avait code l'inverse).
+/// LA PRORATISATION EST LA REGLE, Y RENONCER EST LE CHOIX.
 /// - CSS L. 242-8 : pour un salarie a temps partiel (L. 3123-1 C. trav.), « il est opere un abattement d'assiette »
 ///   destine a compenser l'ecart avec un temps complet -- un imperatif ; R. 242-2, I, dernier alinea, en donne la
 ///   mesure (`plafond::plafond_permanent`) ;
@@ -1561,11 +1560,8 @@ pub(crate) const PLAFOND_ENTIER: &str = "entier";
 /// d'apres la fiche entreprise `ent` (`plafond_temps_partiel`). Le temps partiel est celui que la DSN declare en
 /// S21.G00.40.014 (20) : une duree du contrat inferieure a la duree de reference (L. 3123-1 du code du travail,
 /// `engagement::modalite_temps_travail`). Sans reponse dans la fiche, la regle : proratise (L. 242-8, fiche 3369). Un
-/// artiste est exclu (L. 242-10, 1° ; BOSS § 1090) : la reponse de la fiche ne le concerne pas.
-///
-/// UNE DONNEE QUI A CHANGE DE SENS SANS CHANGER DE VALEURS : « proratisé » et « entier » disent la meme chose qu'au lot
-/// V4b ; seule l'absence de reponse change (V4b : « l'employeur n'a pas choisi », le plafond entier et la DSN de 2027
-/// refusee ; desormais : la regle, le plafond proratise). Rien n'est a convertir dans une fiche.
+/// artiste est exclu (L. 242-10, 1° ; BOSS § 1090) : la reponse de la fiche ne le concerne pas. Le calcul l'ecrit dans
+/// la paie (`Contenu::plafond_temps_partiel`), que la DSN lit.
 pub(crate) fn plafond_temps_partiel(ent: &Value, e: &Engagement, sal: &Value) -> Resultat<PlafondTempsPartiel> {
     if !e.nat()?.mensuelle() || e.modalite_temps_travail()? != "20" {
         return Ok(PlafondTempsPartiel::NonConcerne);
@@ -1681,7 +1677,7 @@ impl Paie {
         m.insert("plafond".into(), n(self.plafond));
         let urssaf = self.plafond_urssaf(ctx)?;
         m.insert("plafond_urssaf".into(), n(urssaf));
-        // Un mois decoupe (lot R10) : ses periodes elementaires, chacune une paie. Absent d'un mois d'un seul tenant.
+        // Un mois decoupe : ses periodes elementaires, chacune une paie. Absent d'un mois d'un seul tenant.
         if !self.periodes.is_empty() {
             m.insert("periodes".into(), Value::Array(self.periodes.iter().map(|p| p.canon(ctx)).collect::<Resultat<_>>()?));
         }

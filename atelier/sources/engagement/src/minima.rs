@@ -89,7 +89,7 @@ fn euros_f(x: f64) -> String {
     format!("{:.2}", x).replace('.', ",")
 }
 
-/// `round(x, 2)` d'un flottant, comme CPython.
+/// Un flottant arrondi a deux decimales, par son texte.
 fn arrondi2(x: f64) -> f64 {
     format!("{:.2}", x).parse().unwrap_or(x)
 }
@@ -131,8 +131,8 @@ fn permanent(paie: &Paie) -> bool {
     paie.engagement.nat().map_or(false, |n| n.mensuelle())
 }
 
-/// `entreprise.convention_du_contrat` : la convention dont ce contrat lit les
-/// minima. Un refus du Python retombe sur la convention de l'entreprise.
+/// La convention dont ce contrat lit les minima : celle de l'entreprise, sauf l'artiste d'une emission de television
+/// (`emission_tv_1734`) d'une entreprise 2642 ou 3241, qui lit la 1734.
 fn idcc_du_contrat(ent: &Value, paie: &Paie) -> Resultat<String> {
     let idcc = texte_de(ent, "idcc");
     if (idcc != "2642" && idcc != "3241") || !vrai(g(&paie.spectacle, "emission_tv_1734")) {

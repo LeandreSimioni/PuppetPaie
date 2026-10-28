@@ -1857,7 +1857,7 @@ declare {} h ; ses quatre heures sont des heures supplementaires, payees comme t
 /// O -> C) et retire sa CCH-12 (evolution 16, l. 347-366) : elle ne s'ecrit plus pour un temps plein ni pour un contrat
 /// d'usage. Interdite en FCTU (I), conditionnelle en amorcage (C),
 /// absente de la table P26V01 : la table de la version du fichier decide. Elle dit ce que le calcul a fait, tel que la
-/// paie le porte (`Paie::plafond_temps_partiel`) :
+/// paie le porte (`Contenu::plafond_temps_partiel`) :
 /// - temps partiel, plafond proratise (la regle, fiche net-entreprises 3369) : 01 ;
 /// - temps partiel, l'etablissement renonce (fiche entreprise, `plafond_temps_partiel` = « entier ») : 02 (fiche 3369) ;
 /// - temps partiel d'un artiste, exclu de la proratisation (L. 242-10, 1° ; BOSS § 1090) : 02. INFERENCE : la norme ne

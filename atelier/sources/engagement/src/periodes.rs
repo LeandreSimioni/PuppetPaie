@@ -147,7 +147,7 @@ Dater le changement au premier jour d'un mois sur la fiche.",
             statut_du_mois
         ));
     }
-    // Sous deduction forfaitaire specifique (lot R9), la reduction se calcule sur le brut abattu et se borne a 130 % de
+    // Sous deduction forfaitaire specifique, la reduction se calcule sur le brut abattu et se borne a 130 % de
     // celle du brut entier, et le plafond de 7 600 EUR se suit contrat par contrat : le partage d'un tel mois entre
     // periodes n'est porte par aucun texte depose. `calcul::dfs_applicable` refuse deja la DFS d'un contrat paye au
     // mois ; ce refus-ci la garde si cela changeait.

@@ -59,7 +59,7 @@ pub struct Engagement {
     pub jours_contrat: i64,
     pub date_paiement: Option<String>,
     /// Le taux de la premiere ligne de cachet ; sans cachet, celui que l'engagement ou son mois ecrit ; sinon `None`
-    /// (regle 1 : le moteur prenait 130 EUR, un chiffre qu'aucun texte ne fixe ; lot F1).
+    /// (regle 1 : aucun taux par defaut, aucun texte n'en fixe).
     pub taux_cachet: Option<f64>,
     pub cachets: i64,
     pub heures: Option<f64>,
@@ -94,9 +94,9 @@ pub struct Engagement {
     pub suspensions: Vec<Value>,
     /// Les termes du contrat AVANT l'avenant que `date_modification` date en cours de mois (`salaire_mensuel`,
     /// `quotite_contrat`), quand la saisie les dit : la paie du mois se decoupe alors au jour de l'avenant
-    /// (`periodes::bornes`, lot R10). Comme `date_modification`, il ne se recopie pas d'un mois a l'autre.
+    /// (`periodes::bornes`). Comme `date_modification`, il ne se recopie pas d'un mois a l'autre.
     pub avant: Option<Value>,
-    /// Une periode elementaire de paie (lot R10) : les bornes de CE calcul quand la paie du mois est decoupee
+    /// Une periode elementaire de paie : les bornes de CE calcul quand la paie du mois est decoupee
     /// (`periodes`) ; `None` : la periode de paie entiere (le contrat borne au mois).
     pub periode: Option<(Jour, Jour)>,
 }
@@ -756,7 +756,7 @@ impl Engagement {
         m.insert("lieu".into(), Value::String(self.lieu.clone()));
         m.insert("lieux".into(), lieux(&self.lieux));
         m.insert("emploi".into(), texte(&self.emploi));
-        // Absent du releve Python, qui ne le portait pas : ecrit seulement quand il est dit.
+        // Ecrit seulement quand il est dit.
         if let Some(a) = &self.emploi_affichage {
             m.insert("emploi_affichage".into(), Value::String(a.clone()));
         }
@@ -875,8 +875,7 @@ pub fn jours_du_contrat(e: &Value) -> usize {
     vus.len()
 }
 
-/// `Engagement.nature` par `e.get("nature")`, avec le `KeyError` rendu comme
-/// le Python l'ecrit dans le message d'un refus (`%s` d'un `KeyError`).
+/// La nature de l'engagement `e` (`e.get("nature")`) ; un refus nomme l'engagement et son mois.
 fn nature_de(e: &Value, rang: usize, mois: &str) -> Resultat<Arc<Nature>> {
     natures::nature(chaine(e.get("nature")).as_deref())
         .map_err(|m| format!("Engagement {} de {} : {}", rang, mois, m))
@@ -896,7 +895,7 @@ pub(crate) fn engagements(
     lignes_permanent: LignesPermanent,
 ) -> Resultat<(Vec<Engagement>, Vec<Vec<Avis>>)> {
     let mois_dit = data.get("mois").map_or("?".to_string(), en_texte);
-    // Le taux du mois, s'il en ecrit un ; sinon rien (regle 1, lot F1 : plus de 130 EUR).
+    // Le taux du mois, s'il en ecrit un ; sinon rien (regle 1).
     let defaut_taux = data.get("taux_cachet").cloned().unwrap_or(Value::Null);
     let (mut out, mut dits) = (Vec::new(), Vec::new());
     let tous = data.get("engagements").ok_or_else(|| socle::fichiers::absent("engagements"))?;
