@@ -75,7 +75,7 @@ function bandeauEtats(ligne) {
   }).join("") + `</div>`;
 }
 
-/** Le clic sur un carré : le geste que le moteur lui donne. Le contrat parti
+/** Le clic sur un carré : le geste que le moteur lui donne. Le contrat ou l'avenant parti
  *  et pas revenu se note signé d'un clic, et le message permet de revenir. */
 function brancherRecu(div) {
   div.querySelectorAll(".etat-acte.cliquable").forEach((s) => {
@@ -86,7 +86,7 @@ function brancherRecu(div) {
       const c = ligne && (ligne.carres || [])[+s.dataset.carre];
       if (!c || !c.action) return;
       const mois = document.getElementById("mois").value;
-      if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, true);
+      if (c.action.geste === "contrat_recu") return noterSigne(mois, ligne, c.action.recu, c.action.avenant);
       ouvrirGeste(c.action, mois);
     };
     s.onclick = agir;
@@ -94,23 +94,29 @@ function brancherRecu(div) {
   });
 }
 
-/** « Reçu signé » (`contrat-recu`), ou son annulation ; le message dit ce qui
- *  est noté et porte « Annuler », qui rappelle la même route à l'envers. */
-async function noterSigne(mois, ligne, recu) {
+/** « Reçu signé » (`contrat-recu`) du contrat, ou de l'avenant que le geste
+ *  nomme (`avenant`), ou son annulation. Le message est la phrase du moteur ;
+ *  une note posée porte « Annuler », qui rappelle la charge que le moteur
+ *  rend pour la défaire (`annuler`). */
+async function noterSigne(mois, ligne, recu, avenant) {
+  await noterRecu(mois, { mois, salarie: ligne.salarie, debut: ligne.debut,
+                          numero: ligne.numero || "", avenant: avenant ?? null, recu });
+}
+
+async function noterRecu(mois, charge) {
+  let r;
   try {
-    await api("contrat-recu", { mois, salarie: ligne.salarie, debut: ligne.debut,
-                                numero: ligne.numero || "", recu });
+    r = await api("contrat-recu", charge);
   } catch (e) { dire(e.message, "erreur"); return; }
-  const prenom = String(ligne.nom || "").split(" ").slice(1).join(" ") || ligne.nom;
   await dessinerEtatsDesEngagements(mois);
   await rafraichirActions();
-  if (!recu) { dire(`Contrat de ${prenom} : la mention « signé » est retirée.`); return; }
-  dire(`Contrat de ${prenom} noté signé`);
+  dire(r.phrase);
+  if (!charge.recu || !r.annuler) return;
   const el = document.getElementById("message");
   const annuler = document.createElement("button");
   annuler.className = "lien message-annuler";
   annuler.textContent = "Annuler";
-  annuler.onclick = () => { el.classList.add("cachee"); noterSigne(mois, ligne, false); };
+  annuler.onclick = () => { el.classList.add("cachee"); noterRecu(mois, r.annuler.charge); };
   el.append(" — ", annuler);
 }
 
