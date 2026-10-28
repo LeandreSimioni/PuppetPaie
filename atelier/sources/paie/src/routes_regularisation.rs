@@ -192,7 +192,7 @@ pub(crate) fn paies_de(ctx: &Contexte, data: &Value) -> R<Vec<Paie>> {
 /// engagement dont aucune DSN de ce mois n'est partie n'y est pas. `None` : aucune DSN du mois n'est partie.
 pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let Some(mut saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let departs = engagement::departs::lire(&ctx.racine)?;
+    let departs = crate::journal::departs(&ctx.racine)?;
     let mut declares = Vec::new();
     for o in engagement::stock::objets_du_mois(&ctx.racine, mois)? {
         if let Some(e) = engagement::etats::engagement_declare(ctx, &o, &departs, mois)? {
@@ -634,7 +634,7 @@ pub(crate) fn ce_qui_a_change(ctx: &Contexte, mois: &str) -> R<Option<Changement
         return Ok(None);
     }
     let Some(actuelle) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let departs = engagement::departs::lire(&ctx.racine)?;
+    let departs = crate::journal::departs(&ctx.racine)?;
     let etats = engagement::etats::du_mois(ctx, mois)?;
     let calculees = if etats.iter().any(|e| e.valide().is_none()) {
         match paies_de(ctx, &actuelle) {

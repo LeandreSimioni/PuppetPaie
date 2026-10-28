@@ -283,10 +283,10 @@ fn ecrits(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
     Ok(stock::objets_du_mois(&ctx.racine, mois)?.into_iter().map(|o| etat(ctx, o, mois, &departs)).collect())
 }
 
-/// L'etat de chaque engagement que `mois` montre, tel qu'il est ecrit, sans le recalcul de lui-meme : ce que lit un
-/// bilan qui ne lit aucune paie.
-pub fn tels_qu_ecrits(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
-    ecrits(ctx, mois)
+/// L'etat de chaque engagement que `mois` montre, tel qu'il est ecrit, sans le recalcul de lui-meme, d'apres ce qui est
+/// parti (`departs`, que la couche du dessus lit) : ce que lit un bilan qui ne lit aucune paie.
+pub fn tels_qu_ecrits(ctx: &Contexte, mois: &str, departs: &Departs) -> Resultat<Vec<Etat>> {
+    Ok(stock::objets_du_mois(&ctx.racine, mois)?.into_iter().map(|o| etat(ctx, o, mois, departs)).collect())
 }
 
 /// Le numero de version d'une validation ou d'une version ecrite (1 quand elle ne le dit pas).

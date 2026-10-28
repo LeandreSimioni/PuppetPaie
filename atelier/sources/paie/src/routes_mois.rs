@@ -157,7 +157,7 @@ pub(crate) fn contrats_des_paies(paies: &[Paie]) -> Vec<Cle3> {
 /// Ce qui est a refaire pour chaque engagement de `etats` (ceux d'un mois, dans l'ordre de l'ecran) : le present compare
 /// a la version sur laquelle chaque envoi est parti (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
 pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat]) -> R<Vec<Vec<ARefaire>>> {
-    let departs = engagement::departs::lire(&ctx.racine).map_err(plain)?;
+    let departs = crate::journal::departs(&ctx.racine).map_err(plain)?;
     Ok(etats.iter().map(|e| e.valide().map(|v| engagement::etats::a_refaire(ctx, v, &departs)).unwrap_or_default()).collect())
 }
 
@@ -1255,7 +1255,7 @@ impl<'a> Moteur<'a> {
         let s = SaisieMois { data: vue.clone(), paies: Vec::new() };
         let uniques: Vec<Paire> = contrats.iter().enumerate().map(|(i, (c, d, _))| (c.clone(), format!("{}#{}", d, i))).collect();
         let saisis = Self::numeros_saisis(&s, &uniques);
-        let etats_eng = engagement::etats::tels_qu_ecrits(self.ctx, mois).map_err(plain)?;
+        let etats_eng = engagement::etats::tels_qu_ecrits(self.ctx, mois, &crate::journal::departs(&self.ctx.racine).map_err(plain)?).map_err(plain)?;
         let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
         let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
         let nul = Value::Null;
@@ -1318,7 +1318,7 @@ impl<'a> Moteur<'a> {
                 continue;
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
-            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m).map_err(plain)?;
+            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &crate::journal::departs(&self.ctx.racine).map_err(plain)?).map_err(plain)?;
             let refaire = a_refaire_du_mois(self.ctx, &etats_m)?;
             for (i, p) in s.paies.iter().enumerate() {
                 let cle = texte_de(requis(&p.salarie, "_cle")?);

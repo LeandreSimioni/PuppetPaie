@@ -316,7 +316,7 @@ impl Choix {
 /// Les salaries de `mois` dont un engagement a un bulletin a refaire : la paie de ce mois a change depuis la version sur
 /// laquelle ses documents sont partis (`engagement::etats::a_refaire`).
 pub(crate) fn bulletins_a_refaire(ctx: &Contexte, mois: &str) -> R<std::collections::HashSet<String>> {
-    let departs = engagement::departs::lire(&ctx.racine)?;
+    let departs = crate::journal::departs(&ctx.racine)?;
     let mut out = std::collections::HashSet::new();
     for e in engagement::etats::du_mois(ctx, mois)? {
         let Some(v) = e.valide() else { continue };

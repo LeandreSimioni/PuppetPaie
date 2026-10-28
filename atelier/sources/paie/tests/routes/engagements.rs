@@ -93,9 +93,11 @@ fn une_charge_incomplete_ou_sans_reponse_a_la_question_refuse_sans_rien_ecrire()
     // Les documents de novembre sont partis : « Modifier… » sans la reponse a la question du moteur se refuse, depuis
     // chacun des mois de l'engagement, et rien ne bouge.
     reussi(&valider(&r, "2026-11", "BRIOCHE", "2026-11-28", true));
+    let numero = lire(&r, "engagements/2026-11.json")["engagements"][0]["numero"].clone();
     let mut j = lire(&r, "journal/depots.json");
     j.as_array_mut().unwrap().push(json!({"quoi": "documents", "quand": "2026-12-03T10:00:00", "mois": "2026-11", "mode": "reel",
-        "accepte": true, "detail": {"salaries": [{"cle": "BRIOCHE", "nom": "Fanchon BRIOCHE", "pieces": []}]}}));
+        "accepte": true, "detail": {"salaries": [{"cle": "BRIOCHE", "nom": "Fanchon BRIOCHE", "pieces": []}]},
+        "versions": [{"salarie": "BRIOCHE", "numero": numero, "version": 1}]}));
     ecrire(&r, "journal/depots.json", &j);
     let avant = std::fs::read(r.join("engagements/2026-11.json")).unwrap();
     for mois in ["2026-11", "2026-12"] {

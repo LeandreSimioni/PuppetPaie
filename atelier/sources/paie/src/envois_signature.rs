@@ -640,6 +640,8 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
     if voulus.is_empty() {
         return Err(refus("Aucun avenant coché. Rien n'est parti."));
     }
+    // La porte des organismes d'une fictive ajoutee, avant de rien lire (`depot_acte::refuser_l_envoi`).
+    crate::depot_acte::refuser_l_envoi(ctx)?;
     let mut par_salarie: Vec<(String, Vec<UnAvenant>)> = Vec::new();
     for v in voulus {
         let salarie_v = requis(v, "salarie")?;

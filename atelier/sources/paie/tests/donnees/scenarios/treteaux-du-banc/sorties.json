@@ -852,6 +852,24 @@
           },
           "valide": {
             "le": "2026-11-20T05:00:00",
+            "version": 1,
+            "saisie": {
+              "salarie": "FULLER",
+              "spectacle": "le-banc-des-menteurs",
+              "lignes": [
+                {
+                  "rubrique": "cachet",
+                  "quantite": 2,
+                  "taux": 150,
+                  "lieu": "Salle fictive de Rezé",
+                  "dates": [
+                    "2026-11-20",
+                    "2026-11-21"
+                  ]
+                }
+              ],
+              "numero": "FU1.26.01"
+            },
             "paies": {
               "2026-11": {
                 "paie": {
@@ -1143,6 +1161,73 @@
                   "plafond": "172.34",
                   "plafond_urssaf": "720"
                 },
+                "fiches": {
+                  "paie": {
+                    "prenom_affichage": "Loïe",
+                    "nom_affichage": "Fuller",
+                    "nir": "2820144999002",
+                    "nir_cle": "46",
+                    "date_naissance": "1982-01-15",
+                    "sexe": "",
+                    "lieu_naissance_affichage": "Villeneuve-sur-Loire",
+                    "departement_naissance": "44",
+                    "pays_naissance": "FR",
+                    "pays_nationalite": "",
+                    "pays_nationalite_hors_liste": "",
+                    "code_nationalite_dsn": "01",
+                    "adresse_affichage": "7 rue de la Paix",
+                    "code_postal": "44000",
+                    "commune_affichage": "Nantes",
+                    "email": "loie.fuller@exemple.invalid",
+                    "emploi_affichage": "Comédien",
+                    "num_conges_spectacles": "",
+                    "anniversaire_droits": "",
+                    "sante_dispense": "",
+                    "sante_dispense_depuis": "",
+                    "sante_dispense_jusqu_au": "",
+                    "prevoyance_branche_depuis": "",
+                    "categorie_conventionnelle": "",
+                    "forfait_jours": true,
+                    "statut": "artiste",
+                    "statut_categoriel_rc": "04",
+                    "pcs_ese": "354c",
+                    "code_emploi_ft": "COM010",
+                    "date_anciennete": "2026-11-02",
+                    "code_salarie": "1",
+                    "initiales_contrat": "FU",
+                    "statut_conventionnel": "05",
+                    "deduction_forfaitaire": "",
+                    "deduction_forfaitaire_accord": "",
+                    "statut_boeth": "",
+                    "echelon_ccneac": "",
+                    "classement_conventionnel": "",
+                    "poste_depuis": "",
+                    "experimente_3241": true,
+                    "stagiaire_ccneac": "",
+                    "etablissement": "",
+                    "actif": true,
+                    "sante_svp": null,
+                    "taux_pas": "",
+                    "modele_bulletin": "",
+                    "conges_reprise": {
+                      "date": "",
+                      "report": "",
+                      "acquis_report": "",
+                      "remuneration_report": "",
+                      "acquis": "",
+                      "pris": "",
+                      "remuneration_periode": ""
+                    },
+                    "nom": "FULLER",
+                    "prenom": "LOIE",
+                    "lieu_naissance": "VILLENEUVE-SUR-LOIRE",
+                    "adresse": "7 RUE DE LA PAIX",
+                    "commune": "NANTES",
+                    "emploi": "COMEDIEN",
+                    "_cle": "FULLER"
+                  },
+                  "periodes": []
+                },
                 "empreinte": {
                   "entrees": {
                     "dossier racine:imprevus": "absent",
@@ -1163,7 +1248,7 @@
                     "fichier code:rubriques-base.json": "454424ef9fe1615ce85b858ce6b31a7fdded6d738eb5499ff154ac1a9c696c36",
                     "fichier racine:config/baremes/2026.json": "aa67ef6e2d998751b6bc3bf9e8ab7f6a334747edcbad4688a7d7ebb09d697d61",
                     "fichier racine:config/pas.json": "369e7ddb77a5d443cd25a0ae2ccff0df37a0dd3981c84b47943aa9ec87214484",
-                    "moteur": "0.1.0+643db81896157cb4",
+                    "moteur": "0.1.0+baae4efde0148578",
                     "saisie 2026-11": "f28d3244c6199dbe6399317ea93818581c2939f2a97fc35f21ed8e39db950417:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
                   },
                   "regles": [
@@ -1212,7 +1297,6 @@
               "fichier": "Contrat_FULLER_FU1.26.01_Novembre2026.pdf",
               "spectacle": "Le Banc des menteurs",
               "mois": "2026-11",
-              "empreinte": "e802dd20588dbd9d",
               "clauses": {
                 "salarie.emploi": "comédien",
                 "contrat.debut": "20/11/2026",
@@ -1231,7 +1315,14 @@
           ],
           "expediteur": "fictive@puppetpaie.invalid",
           "relance": false
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       },
       {
         "quoi": "dpae",
@@ -1276,7 +1367,14 @@
               "fin": "2026-11-21"
             }
           ]
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       },
       {
         "quoi": "dpae",
@@ -1326,7 +1424,14 @@
               "fin": "2026-11-21"
             }
           ]
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       },
       {
         "quoi": "dsn",
@@ -1365,14 +1470,20 @@
           "type": "01",
           "nature": "08",
           "ordre": "1",
-          "empreinte_saisie": null,
           "versements": [],
           "salaries": 1,
           "pas_bareme": 0,
           "repetition": null,
           "ordre_test": null,
           "etablissement": "00011"
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       },
       {
         "quoi": "dsn",
@@ -1411,7 +1522,6 @@
           "type": "01",
           "nature": "08",
           "ordre": "1",
-          "empreinte_saisie": null,
           "versements": [],
           "salaries": 1,
           "pas_bareme": 0,
@@ -1423,7 +1533,14 @@
           },
           "ordre_test": null,
           "etablissement": "00011"
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       },
       {
         "quoi": "contrat-recu",
@@ -1485,7 +1602,6 @@
           "type": "01",
           "nature": "01",
           "ordre": "1",
-          "empreinte_saisie": "17e96082c6f1f2ec",
           "versements": [
             "46.50",
             "36.45",
@@ -1498,7 +1614,14 @@
           "repetition": null,
           "ordre_test": null,
           "etablissement": "00011"
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       },
       {
         "quoi": "dsn",
@@ -1544,7 +1667,6 @@
           "type": "01",
           "nature": "01",
           "ordre": "1",
-          "empreinte_saisie": "17e96082c6f1f2ec",
           "versements": [
             "46.50",
             "36.45",
@@ -1562,7 +1684,14 @@
           },
           "ordre_test": null,
           "etablissement": "00011"
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       },
       {
         "quoi": "documents",
@@ -1589,7 +1718,6 @@
                 "CertificatCS_FULLER_Novembre2026.pdf",
                 "AER_FULLER_Novembre2026.pdf"
               ],
-              "empreinte": "f075fb643b72b015",
               "resume": {
                 "contrats": [
                   {
@@ -1618,7 +1746,14 @@
             "mot_de_passe": 0,
             "envoi": 0
           }
-        }
+        },
+        "versions": [
+          {
+            "salarie": "FULLER",
+            "numero": "FU1.26.01",
+            "version": 1
+          }
+        ]
       }
     ],
     "journal/dsn-ecrites.json": {

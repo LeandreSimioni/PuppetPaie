@@ -313,7 +313,7 @@ pub(crate) fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge
     let vals = crate::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
     // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)
     // est parti, ecrit du modele avec les valeurs de cette version.
-    let departs = engagement::departs::lire(&ctx.racine)?;
+    let departs = crate::journal::departs(&ctx.racine)?;
     let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
         let b = Value::Object(v.objet().brut.clone());

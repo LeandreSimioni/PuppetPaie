@@ -3986,7 +3986,7 @@ fn bloc_40_declare(ctx: &Contexte, p: &Paie, mois: &str, etats: &[engagement::et
         if let Some(declaree) = engagement::etats::paie_declaree(&ctx_m, v.objet(), departs, &m)? {
             // Les autres contrats du salarie declares ce mois-la : le code emplois multiples (40.036) s'ecrit avec eux.
             let mut autres = Vec::new();
-            for e in engagement::etats::tels_qu_ecrits(ctx, &m)? {
+            for e in engagement::etats::tels_qu_ecrits(ctx, &m, departs)? {
                 let Some(w) = e.valide() else { continue };
                 if w.objet().fichier == v.objet().fichier && w.objet().rang == v.objet().rang {
                     continue;
@@ -4229,8 +4229,8 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // Les etablissements, celui de cette DSN d'abord : un contrat declare ailleurs a change d'etablissement (bloc 41).
     let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(nics(&ent0).into_iter().filter(|n| *n != nic)).collect();
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
-    let departs = engagement::departs::lire(&ctx.racine)?;
-    let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois)?;
+    let departs = crate::journal::departs(&ctx.racine)?;
+    let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, &departs)?;
     let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
     let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
