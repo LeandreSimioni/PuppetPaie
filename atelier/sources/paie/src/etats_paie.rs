@@ -1062,7 +1062,9 @@ pub(crate) fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         }
         let mut x = Ligne::nouvelle();
         x.t("mois", l.mois.clone()).t("salarie", l.salarie.clone()).t("contrat", l.contrat.clone()).t("spectacle", l.spectacle.clone());
-        x.od("net_a_payer", l.net_a_payer).t("verse_le", l.verse_le);
+        // Ce qui part au salarie : le net a payer du bulletin, son prelevement a la source deduit quand il en porte un.
+        let verse = l.net_a_payer.map(|n| l.pas.map_or(n, |p| socle::num::sub(n, p)));
+        x.od("net_a_payer", verse).t("verse_le", l.verse_le);
         lignes.push(x);
     }
     if !sans_date.is_empty() {
@@ -1080,10 +1082,10 @@ pub(crate) fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("salarie", "Salarié"),
         col_t("contrat", "Contrat"),
         col_t("spectacle", "Spectacle"),
-        col_m("net_a_payer", "Net à payer"),
+        col_m("net_a_payer", "Net versé"),
         col_t("verse_le", "Versé le"),
     ];
-    t.sources = vec!["net à payer et date de paiement de la paie validée (la date de versement que la DSN déclare, S21.G00.50.001)".to_string()];
+    t.sources = vec!["net à payer du bulletin, prélèvement à la source déduit, et date de paiement de la paie validée (la date de versement que la DSN déclare, S21.G00.50.001)".to_string()];
     finir(ctx, &mut t, Some(&p), "etat-des-virements", &d.format, d.ecrire)?;
     Ok(t)
 }
