@@ -42,7 +42,7 @@ pub(crate) type R<T> = Result<T, Echec>;
 pub type Ouvrir<'a> = &'a mut dyn FnMut() -> R<Box<dyn Courriel>>;
 
 /// Les routes de ce module (les trois autres sont dans `envois_signature`).
-pub const ROUTES: [&str; 7] = ["envoyer-documents", "dossier-envoyer", "casc-envoyer", "demander-signature", "contrats-imprimer", "avenant-envoyer", "avenants-envoyer"];
+pub const ROUTES: [&str; 8] = ["envoyer-documents", "documents-imprimer", "dossier-envoyer", "casc-envoyer", "demander-signature", "contrats-imprimer", "avenant-envoyer", "avenants-envoyer"];
 
 /// Une route d'envoi, avec la vraie boite (ou la simulee).
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -53,6 +53,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 pub fn route_avec(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     match nom {
         "envoyer-documents" => envoyer_documents(ctx, charge, ouvrir),
+        "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, ouvrir),
         "casc-envoyer" => casc_envoyer(ctx, charge, ouvrir),
         "demander-signature" => demander_signature(ctx, charge, ouvrir),
@@ -261,14 +262,82 @@ fn expediteur_de(client: &dyn Courriel) -> String {
 /// `operations_documents.envoyer_documents` : envoie a chaque salarie ses documents du mois. Irreversible.
 fn envoyer_documents(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
-    envoyer_documents_de(ctx, &mois, &preuve_de(charge), &qui_de(charge), ouvrir)
+    let prepare = preparer_envoi(ctx, &mois, salaries_choisis(charge)?.as_deref(), ouvrir)?;
+    expedier_envoi(ctx, prepare, &mois, &preuve_de(charge), &qui_de(charge))
 }
 
 /// `envoyer_documents(ctx, mois, preuve=..., qui=...)` : la meme operation, `qui` et la preuve donnes (l'horloge de
 /// la compagnie fictive passe `horloge` et une boite muette).
 pub(crate) fn envoyer_documents_de(ctx: &Contexte, mois: &str, preuve: &Preuve, qui: &str, ouvrir: Ouvrir) -> R<Value> {
-    let prepare = preparer_envoi(ctx, mois, ouvrir)?;
+    let prepare = preparer_envoi(ctx, mois, None, ouvrir)?;
     expedier_envoi(ctx, prepare, mois, preuve, qui)
+}
+
+/// Les salaries que la charge choisit (`salaries`), ou tous quand elle n'en dit rien.
+fn salaries_choisis(charge: &Value) -> R<Option<Vec<String>>> {
+    Ok(liste_de(charge, "salaries")?.map(|l| l.iter().map(valeur_en_texte).collect()))
+}
+
+/// Les pieces d'un salarie, dans l'ordre ou elles s'impriment : bulletin, bulletin rectificatif, certificat Conges
+/// Spectacles, attestation France Travail (celles qui sont ecrites).
+const PIECES_A_IMPRIMER: [&str; 4] = ["Bulletin", "BulletinRectificatif", "CertificatCS", "AER"];
+
+/// La route `documents-imprimer` : les documents du mois des salaries choisis (`salaries`, tous sinon), fabriques comme
+/// pour l'envoi par courriel (`depart::fabriquer_documents`), reunis en un seul PDF a imprimer, salarie par salarie, et
+/// remis en main propre. L'IMPRESSION EST UN DEPART : ce qui est remis au salarie est parti. Les numeros des bulletins et
+/// des certificats s'ecrivent dans les paies, le journal note `documents` (`main_propre`) avec la version de chaque
+/// engagement, et la paie est figee comme par le courriel. Rien ne quitte le poste : aucun mot de passe.
+pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R<Value> {
+    let mois = charge_texte(charge, "mois")?;
+    let seulement = salaries_choisis(charge)?;
+    let (data, paies) = crate::routes_documents::charger_le_mois(ctx, &mois)?;
+    if paies.is_empty() {
+        return Err(erreur(
+            "AucunDocument",
+            format!("{} : aucun engagement valide, aucun document a imprimer. Rien ne part d'un engagement en saisie.", engagement::libelle_mois(&mois)),
+        ));
+    }
+    let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
+    let mut cles: Vec<String> = Vec::new();
+    let mut noms: HashMap<String, String> = HashMap::new();
+    for p in &paies {
+        let cle = p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default();
+        if cles.contains(&cle) || seulement.as_ref().is_some_and(|s| !s.contains(&cle)) {
+            continue;
+        }
+        let prenom = vrai_ou(&p.salarie, "prenom_affichage").or_else(|| vrai_ou(&p.salarie, "prenom")).unwrap_or_default();
+        noms.insert(cle.clone(), format!("{} {}", prenom, vrai_ou(&p.salarie, "nom").unwrap_or_default()).trim().to_string());
+        cles.push(cle);
+    }
+    if cles.is_empty() {
+        return Err(refus("Aucun salarié coché. Rien n'est imprimé."));
+    }
+    let choix = choisir(ctx, &mois, &paies)?;
+    let documents = crate::depart::fabriquer_documents(ctx, &mois_saisie, &cles, qui)?;
+    let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
+    let etiq = socle::date::etiquette_du_mois(&mois_saisie).map_err(|m| erreur("ValueError", m))?;
+    let mut pieces: Vec<std::path::PathBuf> = Vec::new();
+    let mut salaries: Vec<Value> = Vec::new();
+    for cle in &cles {
+        let siennes: Vec<std::path::PathBuf> =
+            PIECES_A_IMPRIMER.iter().map(|prefixe| dossier.join(format!("{}_{}_{}.pdf", prefixe, cle, etiq))).filter(|f| f.is_file()).collect();
+        salaries.push(json!({
+            "cle": cle, "nom": noms.get(cle), "pieces": siennes.iter().map(|p| nom_du(p)).collect::<Vec<_>>(),
+            "resume": choix.resumes.get(cle), "renvoi": choix.renvois.contains_key(cle),
+        }));
+        pieces.extend(siennes);
+    }
+    if pieces.is_empty() {
+        return Err(refus(format!("Aucun document écrit pour {} : rien à imprimer.", engagement::libelle_mois(&mois))));
+    }
+    let versions = journal::versions_du_mois(ctx, &mois, |cle, _, _| cles.iter().any(|c| c == cle)).map_err(Echec::from)?;
+    let impression = envois::envois_signature::reunir_pour_imprimer(&dossier, "documents", &etiq, &pieces)?;
+    let avertissements = documents.avertissements.clone();
+    documents.engager(ctx, &mois_saisie)?;
+    let detail = json!({"salaries": salaries, "main_propre": true});
+    let reponse = format!("documents de {} salarie(s) imprimes pour une remise en main propre", cles.len());
+    let ligne = noter_envoi(ctx, "documents", Some(&mois), qui, true, "", &reponse, Some(&detail), Some(&versions))?;
+    Ok(json!({"impression": nom_du(&impression), "salaries": cles, "avertissements": avertissements, "ligne": ligne}))
 }
 
 /// `operations_documents.EnvoiPrepare` : les messages, le compte verifie -- rien n'est parti.
@@ -399,7 +468,7 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
 
 /// `operations_documents.preparer_envoi` : la saisie du mois, les messages, puis la boite -- une boite absente se voit
 /// avant la preuve. Rien n'est parti.
-pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
+pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[String]>, ouvrir: Ouvrir) -> R<EnvoiPrepare> {
     let debut = std::time::Instant::now();
     let (data, paies) = crate::routes_documents::charger_le_mois(ctx, mois)?;
     if paies.is_empty() {
@@ -420,10 +489,13 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, ouvrir: Ouvrir) -> R<En
             cles.push(cle);
         }
     }
-    let cles = choix.garder(cles, |c| c.as_str());
+    let cles: Vec<String> = choix.garder(cles, |c| c.as_str()).into_iter().filter(|c| seulement.is_none_or(|s| s.contains(c))).collect();
+    if cles.is_empty() {
+        return Err(refus("Aucun salarié coché. Rien n'est parti."));
+    }
     let documents = crate::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
     let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, Some(&fiche), &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
-    let messages = choix.garder(messages, |m| m.cle.as_str());
+    let messages: Vec<Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());
     let mut avertissements: Vec<String> = documents.avertissements.clone();

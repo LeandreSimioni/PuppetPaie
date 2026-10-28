@@ -541,6 +541,8 @@ pub(crate) struct Globales {
     pub(crate) renvoyes: HashSet<Cle3>,
     pub(crate) numeros_partis: HashMap<Cle3, Value>,
     pub(crate) avenants: HashMap<Cle3, Value>,
+    /// Comment chaque contrat est parti la derniere fois : `imprime` ou `courriel`.
+    pub(crate) par: HashMap<Cle3, Value>,
 }
 
 /// Tout ce qu'une route lit, lu une fois.
@@ -624,7 +626,8 @@ impl<'a> Moteur<'a> {
         let renvoyes = cles_en_ensemble3(etats::renvoyes_depuis_la_signature(&lignes, c)?.cles());
         let numeros_partis = en_table3(etats::numeros_contrats_partis(&lignes, c)?);
         let avenants = en_table3(etats::avenants(&lignes, c)?);
-        let g = Rc::new(Globales { dpae, contrats, recus, recus_par, renvoyes, numeros_partis, avenants });
+        let par = en_table3(etats::contrats_partis_par(&lignes, c)?);
+        let g = Rc::new(Globales { dpae, contrats, recus, recus_par, renvoyes, numeros_partis, avenants, par });
         self.globales = Some(g.clone());
         Ok(g)
     }
@@ -802,6 +805,7 @@ impl<'a> Moteur<'a> {
             let avenant = refaire.get(i).is_some_and(|r| r.iter().any(|a| matches!(a, ARefaire::Avenant { .. })));
             let mut signature = etat_signature(
                 premier(&g.contrats, cles).unwrap_or(&nul),
+                premier(&g.par, cles).unwrap_or(&nul),
                 premier(&g.recus, cles).unwrap_or(&nul),
                 premier(&g.recus_par, cles).unwrap_or(&nul),
                 dans_l_ensemble(&g.renvoyes, cles),
@@ -1202,7 +1206,7 @@ impl<'a> Moteur<'a> {
                         json!({"recus": recus, "partis": partis.len()}),
                         Some(format!("{}/{} reçu{}", recus, partis.len(), plur(recus, "", "s"))),
                         echeance_de(&siens, "contrat"),
-                        action("faire_signer", "Relancer…".into()),
+                        action("contrats_en_attente", "Reçus ou à relancer…".into()),
                     )
                 }
                 // L'AVENANT n'a pas d'echeance : L. 1242-13 date la remise du contrat a l'embauche, aucun texte depose ne
@@ -1589,7 +1593,7 @@ pub(crate) const CONTRAT_A_REFAIRE: &str = "l'engagement a changé depuis l'envo
 /// que celui que la DSN declare. Un contrat renvoye attend une NOUVELLE signature : celle de l'ancien ne compte plus.
 #[allow(clippy::too_many_arguments)]
 pub fn etat_signature(
-    fait: &Value, recu: &Value, recu_par: &Value, renvoye: bool, numero_parti: &Value, numero_saisi: &Value, avenants: &Value,
+    fait: &Value, par: &Value, recu: &Value, recu_par: &Value, renvoye: bool, numero_parti: &Value, numero_saisi: &Value, avenants: &Value,
     a_refaire_signer: bool,
 ) -> Value {
     let (recu, recu_par) = if renvoye { (&Value::Null, &Value::Null) } else { (recu, recu_par) };
@@ -1606,7 +1610,7 @@ pub fn etat_signature(
     // L'AVENANT : le dernier parti. Pas encore revenu, il laisse la pastille orange.
     let dernier = avenants.as_array().and_then(|a| a.last()).cloned().unwrap_or(Value::Null);
     let attendu = vrai(&dernier) && !vrai(dernier.get("signe").unwrap_or(&nul));
-    json!({"fait": fait, "recu": recu, "recu_par": recu_par,
+    json!({"fait": fait, "par": if vrai(fait) { par } else { &nul }, "recu": recu, "recu_par": recu_par,
            "caduc": !pourquoi.is_empty(), "pourquoi": pourquoi.join(" ; "),
            "numero_parti": numero_parti, "maille": "paie",
            "avenant": dernier,

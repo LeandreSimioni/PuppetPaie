@@ -301,6 +301,8 @@ pub(crate) fn contrat_recu_avec(
     Ok(json!({
         "salarie": salarie, "debut": debut,
         "recu": if recu { ligne["quand"].clone() } else { Value::Null },
+        // De quoi revenir sur la note : la meme route, le mot contraire.
+        "annuler": {"route": "contrat-recu", "charge": {"mois": mois, "salarie": salarie, "debut": debut, "numero": numero_note, "recu": !recu}},
         "ligne": ligne,
     }))
 }

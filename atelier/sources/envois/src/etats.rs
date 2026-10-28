@@ -628,6 +628,23 @@ pub fn contrats_demandes(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(d.sortie(Clone::clone))
 }
 
+/// Comment chaque contrat est parti la derniere fois : `imprime` (remis en main propre, `detail.main_propre`) ou
+/// `courriel`. Un contrat imprime ne se relance pas : il n'y a pas de courriel a renvoyer.
+pub fn contrats_partis_par(lignes: &[Value], m: Maille) -> R<Value> {
+    let lignes = &*normalisees(lignes, m);
+    let mut d = Dico::nouveau();
+    for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
+        if !accepte(l)? {
+            continue;
+        }
+        let par = if l.pointer("/detail/main_propre").is_some_and(vrai) { "imprime" } else { "courriel" };
+        for c in detail_liste(l, "contrats")? {
+            d.poser(cle_contrat(&c, m)?, s(par))?;
+        }
+    }
+    Ok(d.sortie(Clone::clone))
+}
+
 pub fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
     let lignes = &*normalisees(lignes, m);
     let mut d = Dico::nouveau();
