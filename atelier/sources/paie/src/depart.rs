@@ -3,7 +3,7 @@
 //! - la DSN du mois, quand on la depose (`fabriquer_dsn`, la route `dsn-a-deposer`) : des qu'un engagement du mois est
 //!   valide, sans attendre ni DPAE ni contrat. Le moteur dit si c'est un depot initial ou un annule-et-remplace ; apres la
 //!   veille de l'echeance, un mois deja declare ne se redepose plus (`AnnuleRemplaceHorsDelai`, cahier technique DSN
-//!   §1.4.2) : sa correction part dans la DSN d'un mois suivant (`corrections_dues`, puis `produire_regularisations`) ;
+//!   §1.4.2) : sa correction part dans la DSN d'un mois suivant (`produire_regularisations::regularisations_pour`) ;
 //! - le bulletin et le certificat Conges Spectacles, quand les documents partent au salarie (`fabriquer_documents`, la
 //!   route `envoyer-documents`). Le numero du bulletin (`N/AAAA`, suite de l'annee) et le premier N CE du certificat
 //!   s'ecrivent alors dans la paie de l'engagement (`DocumentsFabriques::engager`) et se relisent ensuite. Une paie partie
@@ -378,7 +378,6 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
     let sortie = ctx.racine.join("sorties").join(mois);
 
     // LES CORRECTIONS DES MOIS DEJA DECLARES : la DSN de ce mois les porte, datees de leur mois d'origine.
-    corrections_dues(o, ctx, mois)?;
     let regs = regularisations::regularisations_pour(ctx, mois)?;
     for ligne in regularisations::resume_regularisations(&regs)? {
         avertissements.push(info(format!(
@@ -464,7 +463,7 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
     } else {
         lots.push(Lot { nic: None, paies: (0..paies.len()).collect(), regs: (0..regs.len()).collect(), arrets: arrets.clone() });
     }
-    let mut a_ecrire: Vec<(PathBuf, String, Vec<(String, i64)>)> = Vec::new();
+    let mut a_ecrire: Vec<(PathBuf, String)> = Vec::new();
     let mut fichiers: Vec<PathBuf> = Vec::new();
     let (mut type_principal, mut ordre_principal) = ("01".to_string(), 1);
     for (rang, lot) in lots.iter().enumerate() {
@@ -508,8 +507,7 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
         // LE FICHIER DEJA ECRIT QUI DIT LA MEME CHOSE se reprend : meme declaration, au jour ou il a ete constitue.
         let deja = constitution_de(&f_dsn).and_then(|jour| generer(jour).ok()).filter(|t| std::fs::read(&f_dsn).ok() == crate::dsn::en_latin1(t).ok());
         if deja.is_none() {
-            let cles: Vec<(String, i64)> = regs_e.iter().map(|r| (r.mois.clone(), r.numero)).collect();
-            a_ecrire.push((f_dsn.clone(), generer(ctx.aujourdhui)?, cles));
+            a_ecrire.push((f_dsn.clone(), generer(ctx.aujourdhui)?));
         }
         fichiers.push(f_dsn);
     }
@@ -517,11 +515,8 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
     let mut rectificatifs = Vec::new();
     if !reprise {
         std::fs::create_dir_all(&sortie).map_err(|e| os(&sortie, e))?;
-        for (f, texte, cles) in &a_ecrire {
+        for (f, texte) in &a_ecrire {
             crate::dsn::ecrire(texte, f).map_err(|m| erreur("OSError", m))?;
-            if !cles.is_empty() {
-                crate::marques_depot::marquer_preparees(ctx, cles, mois, f)?;
-            }
         }
         if !regs.is_empty() {
             let mut reserves = Reserves::default();
@@ -532,36 +527,11 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
         }
         // La paie que chaque DSN declare : l'ecran dira si elle change avant l'envoi.
         let empreinte = m.empreinte_saisie(mois)?;
-        for (f, _, _) in &a_ecrire {
+        for (f, _) in &a_ecrire {
             noter_piece_ecrite(&ctx.racine, &cle_de_piece(f), Some(json!(empreinte)))?;
         }
     }
     Ok(DsnFabriquee { fichiers, rectificatifs, type_dsn: type_principal, ordre: ordre_principal, reprise, avertissements })
-}
-
-/// LES CORRECTIONS QUE LA NORME MET DANS LA DSN D'UN MOIS SUIVANT. Un engagement d'un mois deja declare, modifie apres la
-/// veille de l'echeance de ce mois, ne refait plus sa DSN (cahier technique DSN §1.4.2) : ce qui a change part dans la DSN
-/// d'un mois suivant, en correction datee du mois d'origine (§2.2.2.5). Avant de fabriquer la DSN de `mois`, chaque mois
-/// anterieur dont la paie a change depuis sa DSN recoit la correction de chaque contrat qui n'en a pas encore une qui
-/// declare sa paie d'aujourd'hui (`routes_regularisation::couverture`).
-const MOTIF_DE_LA_CORRECTION: &str = "engagement modifié après la DSN de son mois";
-
-fn corrections_dues(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<()> {
-    for anterieur in crate::routes_mois::mois_saisis(&ctx.racine) {
-        if anterieur.as_str() >= mois {
-            break;
-        }
-        // Seul un mois declare dont l'annule-et-remplace n'est plus admis se corrige ailleurs que dans sa propre DSN.
-        let mut m = Moteur::nouveau(o, ctx);
-        if m.depots_reels(&anterieur, &Value::Null)?.is_empty() || ctx.aujourdhui <= m.limite(&anterieur)? {
-            continue;
-        }
-        let Some(c) = crate::routes_regularisation::couverture(ctx, &anterieur)? else { continue };
-        for (salarie, debut, engagement) in c.a_corriger {
-            crate::routes_ecritures_g2::ecrire_une_correction(o, ctx, &json!(anterieur), &json!(salarie), &json!(debut), &engagement, MOTIF_DE_LA_CORRECTION, "moteur", true)?;
-        }
-    }
-    Ok(())
 }
 
 // ------------------------------------------------------------- les documents, a leur envoi
