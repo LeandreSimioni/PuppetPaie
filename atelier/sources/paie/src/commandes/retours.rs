@@ -212,7 +212,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
             date_lisible(r.get("publication")),
             nature_de(&r),
             champ(&r, "statut"),
-            crate::retours::libelle_nature(&nature_de(&r))
+            envois::retours::libelle_nature(&nature_de(&r))
         );
     }
     for quoi in &releve.a_faire {
@@ -227,17 +227,17 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
     }
 
     // ----------------------------------------------- France Travail, spectacle
-    let spectacle: Vec<_> = releve.archives.iter().filter(|a| matches!(nature_de(&a.retour).as_str(), crate::retours::NATURE_CRM_SPECTACLE | crate::retours::NATURE_AER_SPECTACLE)).collect();
+    let spectacle: Vec<_> = releve.archives.iter().filter(|a| matches!(nature_de(&a.retour).as_str(), envois::retours::NATURE_CRM_SPECTACLE | envois::retours::NATURE_AER_SPECTACLE)).collect();
     if !spectacle.is_empty() {
         dire!("\nFrance Travail, cinema-spectacle :");
     }
     for a in spectacle {
         let nom = a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if nature_de(&a.retour) == crate::retours::NATURE_CRM_SPECTACLE {
+        if nature_de(&a.retour) == envois::retours::NATURE_CRM_SPECTACLE {
             dire!("  compte-rendu metier recu ({}) : nos contrats spectacle ont ete pris en compte.", nom);
             continue;
         }
-        let att: Vec<Value> = crate::retours::aer_spectacle(&a.contenu).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default();
+        let att: Vec<Value> = envois::retours::aer_spectacle(&a.contenu).ok().and_then(|v| v.as_array().cloned()).unwrap_or_default();
         if att.is_empty() {
             dire!("  {} : archive illisible. Le fichier brut est garde, on peut recommencer.", nom);
             continue;
@@ -250,7 +250,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
     }
 
     // ------------------------------------------------------------ taux de PAS
-    let crm: Vec<_> = releve.archives.iter().filter(|a| nature_de(&a.retour) == crate::retours::NATURE_TAUX_PAS).collect();
+    let crm: Vec<_> = releve.archives.iter().filter(|a| nature_de(&a.retour) == envois::retours::NATURE_TAUX_PAS).collect();
     if crm.is_empty() {
         dire!("\nAucun compte-rendu DGFiP de nature 94 (taux du PAS) dans ce lot.\nC'est le retour le plus tardif de la chaine : il arrive apres l'accuse, le\ncertificat de conformite et les bilans. Relancer quelques jours apres un depot.\n");
         return Ok(0);
@@ -259,7 +259,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
 }
 
 fn appel(op: Value) -> Result<Value, Echec> {
-    let rep = crate::retours::commande(&op.to_string()).map_err(ko)?;
+    let rep = envois::retours::commande(&op.to_string()).map_err(ko)?;
     if rep.get("ok").and_then(Value::as_bool) != Some(true) {
         return Err(ko(champ(&rep, "erreur")));
     }

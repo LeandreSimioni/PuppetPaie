@@ -1,8 +1,7 @@
-//! `moteur/journal.py`, la part qui lit et ecrit le fichier : `depots.json`,
-//! une liste a laquelle on n'ajoute qu'a la fin (`noter`) et qu'on relit
-//! filtree (`lire`), et l'empreinte d'un fichier. Le reste du module Python
-//! (les etats du mois, les resumes, le rattachement des retours) est de la
-//! logique sur ces lignes : il se portera avec les routes.
+//! LE JOURNAL DE CE QUI EST PARTI : `journal/depots.json`, une liste a laquelle on n'ajoute qu'a la fin (`noter`) et
+//! qu'on relit filtree (`lire`), l'empreinte d'un fichier, et ce qui est parti de chaque engagement, sur quelle version
+//! (`departs`), que `paie` passe a l'engagement. Les etats du mois, les resumes et le rattachement des retours sont dans
+//! `etats`.
 
 use std::path::{Path, PathBuf};
 
@@ -168,13 +167,19 @@ pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
             Some("contrat-signature") => Envoi::Contrat,
             Some("dpae") => Envoi::Dpae,
             Some("documents") => Envoi::Documents,
-            Some("dsn") if l.get("detail").and_then(|d| d.get("nature")).and_then(Value::as_str).is_some_and(|n| crate::depot::SIGNALEMENTS.contains(&n)) => {
+            Some("dsn") if l.get("detail").and_then(|d| d.get("nature")).and_then(Value::as_str).is_some_and(|n| declarations::norme::SIGNALEMENTS.contains(&n)) => {
                 Envoi::Signalement
             }
             Some("dsn") => Envoi::Dsn,
             _ => continue,
         };
-        if l.get("accepte") == Some(&Value::Bool(false)) || l.get("mode").and_then(Value::as_str) != Some(REEL) {
+        if l.get("mode").and_then(Value::as_str) != Some(REEL) {
+            continue;
+        }
+        // Un depot refuse n'a rien depose. Un courriel coupe en route a servi ceux qui l'ont recu : la ligne ne porte que
+        // leurs versions (`ligne_d_envoi::noter_echec_d_envoi`), et ce qui a atteint le salarie est parti.
+        let au_salarie = matches!(envoi, Envoi::Documents | Envoi::Contrat);
+        if l.get("accepte") == Some(&Value::Bool(false)) && !au_salarie {
             continue;
         }
         let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.get("mois").and_then(Value::as_str).map(String::from)).flatten();
@@ -253,7 +258,7 @@ pub fn dernier_ordre_des_signalements(racine: &Path) -> Resultat<i64> {
     for l in lire(racine, Some("dsn"), None, true)? {
         let detail = l.get("detail").cloned().unwrap_or(Value::Null);
         let signalement = match detail.get("nature").and_then(Value::as_str).filter(|n| !n.is_empty()) {
-            Some(n) => crate::depot::SIGNALEMENTS.contains(&n),
+            Some(n) => declarations::norme::SIGNALEMENTS.contains(&n),
             None => {
                 let m: Vec<char> = l.get("mois").and_then(Value::as_str).unwrap_or("").chars().collect();
                 !(m.len() == 7 && m[4] == '-' && m.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit()))

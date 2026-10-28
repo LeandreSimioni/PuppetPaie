@@ -75,7 +75,7 @@ pub fn dernier_ordre_des_bilans(racine: &Path, siren: &str) -> Result<Option<(i6
         }
         let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
         let flux = nom.split_once("_nature11_").map(|(_, f)| f.rsplit_once('.').map_or(f, |(x, _)| x)).unwrap_or("").to_string();
-        for d in crate::retours::declarations_du_bilan(&octets) {
+        for d in envois::retours::declarations_du_bilan(&octets) {
             let texte = |k: &str| d.get(k).and_then(Value::as_str).unwrap_or("").to_string();
             if !crate::depot::SIGNALEMENTS.contains(&texte("nature").as_str()) || texte("siren") != siren {
                 continue;
@@ -93,7 +93,7 @@ pub fn dernier_ordre_des_bilans(racine: &Path, siren: &str) -> Result<Option<(i6
 /// Le plus grand ordre des signalements d'ESSAI que ce dossier a deposes (`detail.ordre` des lignes `dsn` en test) :
 /// la base d'essai les garde, et le meme fichier part ensuite en reel. Une ligne qui ne dit pas son ordre n'en donne pas.
 fn dernier_ordre_des_essais(racine: &Path) -> Result<i64, Echec> {
-    let lignes = crate::journal::lire(racine, Some("dsn"), None, false).map_err(|m| erreur("ErreurOperation", m))?;
+    let lignes = envois::journal::lire(racine, Some("dsn"), None, false).map_err(|m| erreur("ErreurOperation", m))?;
     let mut dernier = 0;
     for l in lignes.iter().filter(|l| l.get("mode").and_then(Value::as_str) == Some("test")) {
         let detail = l.get("detail").cloned().unwrap_or(Value::Null);
@@ -117,7 +117,7 @@ fn dernier_ordre_des_essais(racine: &Path) -> Result<i64, Echec> {
 /// ordre ; essais). `client` : un client donne (un test le pointe sur un faux serveur) ; sans lui, net-entreprises,
 /// avec le mot de passe de consultation.
 pub fn dernier_ordre_connu(ctx: &Contexte, client: Option<Client>) -> Result<OrdreConnu, Echec> {
-    let reels = crate::journal::dernier_ordre_des_signalements(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
+    let reels = envois::journal::dernier_ordre_des_signalements(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
     let journal = reels.max(dernier_ordre_des_essais(&ctx.racine)?);
     let mut avertissements = Vec::new();
 
@@ -168,7 +168,7 @@ pub fn conduite_b1_208_10(declaration: &Value, flux: &str) -> Option<String> {
     if !codes.iter().any(|c| c.as_str() == Some("B1-208-10")) {
         return None;
     }
-    let essai = if texte("essai_reel") == crate::retours::ESSAI_TEST { "essai" } else { "reel" };
+    let essai = if texte("essai_reel") == envois::retours::ESSAI_TEST { "essai" } else { "reel" };
     Some(format!(
         "Signalement {} de nature {} (flux {}, ordre {}) refuse B1-208-10, << il existe deja une declaration normale >> : pour un signalement, la plate-forme n'en accepte qu'un normal par SIRET et par numero d'ordre (cahier technique DSN 2026.1, §1.4.3.2, p. 14), et l'ordre {} etait deja pris -- par un depot que ce dossier ne connaissait peut-etre pas (un autre poste, une copie, un essai ; la base d'essai a sa propre memoire). Le bilan ne dit pas lequel. Si l'evenement n'est pas encore declare : refaire le signalement sans `--ordre`, il prend le suivant du plus grand ordre que la plate-forme et le journal connaissent. S'il l'est deja (un signalement accepte pour le meme salarie et le meme contrat) : il n'y a rien a renvoyer ; pour le corriger, c'est un annule-et-remplace (`--remplace`, S20.G00.05.006 = date de constitution et ordre du signalement accepte), a un ordre superieur (§1.4.3.4, p. 15).",
         essai,
@@ -215,7 +215,7 @@ pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, con
     let Ok(lecture) = std::fs::read_dir(&dossier) else { return Ok(MensuellesVues::default()) };
     let mut noms: Vec<String> = lecture.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.contains("_nature11_")).collect();
     noms.sort();
-    let base = if essai { crate::retours::ESSAI_TEST } else { "02" }; // `essai_reel` : 01 essai, 02 reel
+    let base = if essai { envois::retours::ESSAI_TEST } else { "02" }; // `essai_reel` : 01 essai, 02 reel
     let aaaamm = constitution.replace('-', "");
     let cite = regex::Regex::new(r"ordre (?:accept\S* )?(\d{7,})").map_err(|e| erreur("ValueError", e.to_string()))?;
     let mut vues = MensuellesVues::default();
@@ -225,7 +225,7 @@ pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, con
             continue;
         }
         let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-        let bilan = crate::retours::bilan_d_octets(&octets);
+        let bilan = envois::retours::bilan_d_octets(&octets);
         if bilan.is_null() {
             continue;
         }
@@ -234,7 +234,7 @@ pub fn dernier_ordre_des_mensuelles(racine: &Path, siren: &str, essai: bool, con
             continue;
         }
         let mut du_siren = false;
-        for d in crate::retours::declarations_du_bilan(&octets) {
+        for d in envois::retours::declarations_du_bilan(&octets) {
             let texte = |k: &str| d.get(k).and_then(Value::as_str).unwrap_or("").to_string();
             if texte("nature") != crate::depot::MENSUELLE || texte("siren") != siren {
                 continue;

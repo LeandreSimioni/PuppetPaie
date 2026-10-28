@@ -22,7 +22,7 @@ fn fichiers_rs(dossier: &Path, o: &mut Vec<PathBuf>) {
     }
 }
 
-/// L'espace `atelier/sources/` : le socle, le droit et le moteur.
+/// L'espace `atelier/sources/` : ses crates, du socle aux envois et au moteur.
 fn espace() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")
 }
@@ -30,23 +30,26 @@ fn espace() -> PathBuf {
 /// Ce qui ouvre une connexion (ou un navigateur) vers une adresse.
 const SORTIES: [&str; 8] = ["ureq::Agent", "ureq::get(", "ureq::post(", "TcpStream::connect", "SmtpTransport::", "UdpSocket", "\"xdg-open\"", "rundll32"];
 
-/// Les fichiers qui n'ouvrent de connexion que vers la machine elle-meme.
+/// Les crates de l'espace, dont les envois, ou vivent les transports.
+const CRATES: [&str; 7] = ["socle", "droit", "engagement", "documents", "declarations", "envois", "paie"];
+
+/// Les fichiers qui n'ouvrent de connexion que vers la machine elle-meme, nommes dans leur crate (`src/...`), ou qu'elle soit.
 const LOCAUX: [(&str, &str); 2] = [
-    ("paie/src/interface/instance.rs", "le verrou d'une installation : la fenetre deja ouverte, sur 127.0.0.1"),
-    ("paie/src/google_autorisation.rs", "reveille son propre ecouteur local (127.0.0.1) ; l'echange de jetons passe par `transport`"),
+    ("src/interface/instance.rs", "le verrou d'une installation : la fenetre deja ouverte, sur 127.0.0.1"),
+    ("src/google_autorisation.rs", "reveille son propre ecouteur local (127.0.0.1) ; l'echange de jetons passe par `transport`"),
 ];
 
 #[test]
 fn chaque_sortie_du_moteur_passe_par_le_garde_fou() {
     let racine = espace();
     let mut fichiers = Vec::new();
-    for c in ["socle", "droit", "engagement", "documents", "declarations", "paie"] {
+    for c in CRATES {
         fichiers_rs(&racine.join(c).join("src"), &mut fichiers);
     }
     let mut fautifs = Vec::new();
     for f in fichiers {
         let rel = f.strip_prefix(&racine).unwrap().to_string_lossy().replace('\\', "/");
-        if rel == "socle/src/garde_reseau.rs" || LOCAUX.iter().any(|(l, _)| *l == rel) {
+        if rel == "socle/src/garde_reseau.rs" || LOCAUX.iter().any(|(l, _)| rel.ends_with(l)) {
             continue;
         }
         let texte = std::fs::read_to_string(&f).unwrap();
@@ -58,7 +61,8 @@ fn chaque_sortie_du_moteur_passe_par_le_garde_fou() {
     assert!(fautifs.is_empty(), "ces fichiers ouvrent une connexion sans passer par `garde_reseau` : {:?}", fautifs);
     // Les fichiers locaux le restent : aucune autre sortie n'y est apparue.
     for (l, _) in LOCAUX {
-        let texte = std::fs::read_to_string(racine.join(l)).unwrap();
+        let f = CRATES.iter().map(|c| racine.join(c).join(l)).find(|p| p.exists()).unwrap_or_else(|| panic!("{} : dans aucune crate de l'espace", l));
+        let texte = std::fs::read_to_string(f).unwrap();
         assert!(!texte.contains("ureq::") && !texte.contains("SmtpTransport"), "{} : une sortie HTTP ou SMTP, hors du garde-fou", l);
     }
 }
@@ -67,7 +71,7 @@ fn chaque_sortie_du_moteur_passe_par_le_garde_fou() {
 fn chaque_environnement_vide_d_un_essai_repose_le_garde_fou() {
     let racine = espace();
     let mut fichiers = Vec::new();
-    for c in ["socle", "droit", "engagement", "documents", "declarations", "paie"] {
+    for c in CRATES {
         if racine.join(c).join("tests").is_dir() {
             fichiers_rs(&racine.join(c).join("tests"), &mut fichiers);
         }

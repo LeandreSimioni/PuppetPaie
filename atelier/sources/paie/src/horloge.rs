@@ -34,7 +34,7 @@ use droit::contexte::Contexte;
 use crate::courriel::{Courriel, ErreurCourriel};
 use socle::date::{jours_du_mois, Jour};
 use crate::depot_acte::{self, Preuve};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -148,14 +148,14 @@ fn le(iso: &str) -> String {
 
 /// `_n_lignes` : combien de lignes le journal des depots porte (0 sans journal).
 fn n_lignes(racine: &Path) -> usize {
-    let p = crate::journal::chemin(racine);
+    let p = envois::journal::chemin(racine);
     std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).and_then(|v| v.as_array().map(Vec::len)).unwrap_or(0)
 }
 
 /// `_dater` : date les lignes du journal ecrites depuis la `depuis`-ieme : un pas joue se lit a la date ou il aurait eu
 /// lieu, et la ligne le dit (`origine`).
 fn dater(racine: &Path, depuis: usize, quand: &str) {
-    let p = crate::journal::chemin(racine);
+    let p = envois::journal::chemin(racine);
     let Some(Value::Array(mut lignes)) = std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
         return;
     };
@@ -467,7 +467,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
                 c.iter()
                     .filter(|x| !x.get("recu_le").is_some_and(vrai))
                     .map(|x| {
-                        (valeur_en_texte(&x["salarie"]), valeur_en_texte(&x["debut"]), valeur_en_texte(&crate::etats::numero_de_cle(&x["numero"])), x.get("demande_le").is_some_and(vrai))
+                        (valeur_en_texte(&x["salarie"]), valeur_en_texte(&x["debut"]), valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"])), x.get("demande_le").is_some_and(vrai))
                     })
                     .collect()
             })
@@ -899,7 +899,7 @@ mod tests {
     #[test]
     fn dater_ne_date_que_les_lignes_ecrites_depuis() {
         let r = racine_d_essai(true);
-        let p = crate::journal::chemin(&r);
+        let p = envois::journal::chemin(&r);
         // Sans journal : rien, et rien n'est cree.
         dater(&r, 0, "2026-10-13T07:00:00");
         assert!(!p.exists());
@@ -935,7 +935,7 @@ mod tests {
         let p = pas(&d, "DSN de octobre 2026 déposée", "2026-11-15T10:00:00", |_| Err(Echec { classe: Some("KeyError"), message: "'nom'\nsuite".into() }));
         assert_eq!(p, vec!["Le 15/11/2026 : DSN de octobre 2026 déposée — non joué ('nom')"]);
         // Les lignes de journal que le geste ecrit sont datees a la date du pas.
-        let jp = crate::journal::chemin(&r);
+        let jp = envois::journal::chemin(&r);
         std::fs::create_dir_all(jp.parent().unwrap()).unwrap();
         std::fs::write(&jp, "[]").unwrap();
         pas(&d, "ecrit", "2026-10-13T07:00:00", |_| {

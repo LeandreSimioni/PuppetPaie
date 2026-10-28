@@ -21,7 +21,7 @@ use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, repr_texte, Jour};
 use declarations::dpae::{Chemins, Embauche, Parametres};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -773,7 +773,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         }
         let mut repetes = Vec::new();
         for x in &pareils {
-            let empreinte = crate::journal::empreinte_fichier(x).map_err(plain)?;
+            let empreinte = envois::journal::empreinte_fichier(x).map_err(plain)?;
             let nom = x.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
             let r = etats::repetition(&lignes_journal, etats::DPAE, &empreinte, &nom)?;
             if vrai(&r["conforme"]) {

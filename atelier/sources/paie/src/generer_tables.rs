@@ -5,9 +5,9 @@
 //! - `socle/src/tables_nfkc.rs` (pour `nfkc.rs`) : la decomposition de compatibilite complete, les classes de combinaison et les
 //!   compositions canoniques ;
 //! - `socle/src/nfkd_ascii.rs` (pour `socle::texte::ascii_nfkd` et la DPAE) : ce que la decomposition de compatibilite laisse d'ASCII, et `str.isdigit` ;
-//! - `paie/src/tables_retours.rs` (pour `retours.rs`) : `\d`, cp437, windows-1252, les noms d'encodage que `pyexpat` connait, les
+//! - `envois/src/tables_retours.rs` (pour `retours.rs`) : `\d`, cp437, windows-1252, les noms d'encodage que `pyexpat` connait, les
 //!   caracteres d'un nom XML qu'expat admet ;
-//! - `paie/src/tables_journal.rs` (pour `etats.rs`) : `str.isalnum`.
+//! - `envois/src/tables_journal.rs` (pour `etats.rs`) : `str.isalnum`.
 //!
 //! Les textes (`LISEZ-MOI.md` de chaque dossier) :
 //! - `unicode/` : la base de caracteres Unicode (`UnicodeData.txt`, `DerivedNormalizationProps.txt`,
@@ -36,7 +36,7 @@ pub const XML_4E: &str = "w3c/w3c-xml-1.0-quatrieme-edition-20060816.html";
 pub const CODECS: &str = "python/python-releve-codecs-pyexpat-3.11.17-20261015.txt";
 
 /// Les quatre fichiers ecrits, dans l'ordre.
-pub const FICHIERS: [&str; 4] = ["socle/src/tables_nfkc.rs", "socle/src/nfkd_ascii.rs", "paie/src/tables_retours.rs", "paie/src/tables_journal.rs"];
+pub const FICHIERS: [&str; 4] = ["socle/src/tables_nfkc.rs", "socle/src/nfkd_ascii.rs", "envois/src/tables_retours.rs", "envois/src/tables_journal.rs"];
 
 const FIN: u32 = 0x110000;
 

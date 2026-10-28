@@ -17,7 +17,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::journal::{self, Note};
+use envois::journal::{self, Note};
 use socle::echec::Echec;
 use socle::echec::Refus;
 
@@ -32,7 +32,10 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
         "retenir-logiciel" => retenir_logiciel(ctx, charge),
         "casc-regularise" => casc_regularise(ctx, charge),
         "exporter" => exporter(ctx, charge),
-        "journal-reprise" => crate::reprise_journal::reprise(ctx, charge, &maintenant()),
+        "journal-reprise" => crate::incidents::noter_ceux_des_retours(
+            &ctx.racine,
+            envois::reprise_journal::reprise(ctx, charge.get("ecrire").is_some_and(vrai), &crate::routes_ecritures_g2::qui_de(charge), &maintenant()),
+        ),
         "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -183,9 +186,9 @@ pub(crate) fn contrat_recu_avec(
     let paies = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None).map_err(en_echec)?.1;
     // LE CONTRAT, pas le salarie : `numero` est celui sous lequel le journal le connait (la releve), ou celui que l'ecran affiche.
     let numero = numero.filter(|n| !n.is_empty());
-    let lignes = crate::etats::charger(&ctx.racine)?;
+    let lignes = envois::etats::charger(&ctx.racine)?;
     let tous = crate::routes_mois::contrats_des_paies(&paies);
-    let cles = crate::etats::cles_des_paies(&lignes, &tous)?;
+    let cles = envois::etats::cles_des_paies(&lignes, &tous)?;
     let du_jour: Vec<usize> = (0..paies.len()).filter(|&i| tous[i].0 == salarie && tous[i].1 == debut).collect();
     let trouvee = match numero {
         None => du_jour.first().copied(),
@@ -385,7 +388,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         "contrats" => documents::etats_personnel::liste_des_contrats(ctx, &d),
         "registre-du-personnel" => documents::etats_personnel::registre_du_personnel(ctx, &d),
         "fichier-du-personnel" => documents::etats_personnel::fichier_du_personnel(ctx, &d),
-        "journal-des-declarations" => documents::etats_personnel::journal_des_declarations(ctx, &d, &crate::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?),
+        "journal-des-declarations" => documents::etats_personnel::journal_des_declarations(ctx, &d, &envois::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?),
         "ecritures-comptables" => documents::etats_compta::ecritures_comptables(ctx, &d),
         "grand-livre-paie" => documents::etats_compta::grand_livre(ctx, &d),
         "balance-paie" => documents::etats_compta::balance(ctx, &d),

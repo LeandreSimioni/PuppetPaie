@@ -1,6 +1,5 @@
-//! `moteur/journal.py`, la part qui LIT le journal des depots : les etats du
-//! mois, les resumes, la repetition, le rattachement des retours. Rien n'y
-//! calcule de paie.
+//! CE QUE DIT LE JOURNAL DES ENVOIS : les etats du mois, les resumes, la repetition d'un depot, le rattachement des
+//! retours, les contrats partis, les signatures attendues, les embauches declarees. Rien n'y calcule de paie.
 //!
 //! Les lignes du journal restent des `serde_json::Value`, lues comme Python
 //! lit des dictionnaires : une cle absente vaut `None`, une valeur fausse
@@ -23,14 +22,14 @@ use crate::journal::{chemin, ACTES, REEL};
 use crate::retours;
 use socle::echec::{erreur, Echec, R};
 use socle::valeur::{valeurs_egales, nom_type, nombre, valeur_ecrite, valeur_en_texte};
-pub(crate) use socle::valeur::{get, getd, objet_vide, ou, texte_vide};
+pub use socle::valeur::{get, getd, objet_vide, ou, texte_vide};
 use crate::tables_journal::ALNUM;
 
-pub(crate) const DSN: &str = "dsn";
-pub(crate) const DPAE: &str = "dpae";
-pub(crate) const DOCUMENTS: &str = "documents";
-pub(crate) const SIGNATURE: &str = "contrat-signature";
-pub(crate) const CONTRAT_RECU: &str = "contrat-recu";
+pub const DSN: &str = "dsn";
+pub const DPAE: &str = "dpae";
+pub const DOCUMENTS: &str = "documents";
+pub const SIGNATURE: &str = "contrat-signature";
+pub const CONTRAT_RECU: &str = "contrat-recu";
 const CONTRESIGNE: &str = "contrat-contresigne";
 const CASC: &str = "regularisation-casc";
 const TEST: &str = "test";
@@ -45,14 +44,14 @@ pub const NATURES_DPAE: [(&str, &str); 4] = [
 ];
 
 static NUL: Value = Value::Null;
-pub(crate) static LISTE_VIDE: Value = Value::Array(Vec::new());
+pub static LISTE_VIDE: Value = Value::Array(Vec::new());
 
-pub(crate) fn est(v: &Value, s: &str) -> bool {
+pub fn est(v: &Value, s: &str) -> bool {
     v.as_str() == Some(s)
 }
 
 /// `for x in v` : une liste, les cles d'un dictionnaire, les caracteres d'un texte.
-pub(crate) fn items(v: &Value) -> R<Vec<Cow<'_, Value>>> {
+pub fn items(v: &Value) -> R<Vec<Cow<'_, Value>>> {
     match v {
         Value::Array(a) => Ok(a.iter().map(Cow::Borrowed).collect()),
         Value::Object(o) => Ok(o.keys().map(|k| Cow::Owned(Value::String(k.clone()))).collect()),
@@ -61,7 +60,7 @@ pub(crate) fn items(v: &Value) -> R<Vec<Cow<'_, Value>>> {
     }
 }
 
-pub(crate) fn s(t: &str) -> Value {
+pub fn s(t: &str) -> Value {
     Value::String(t.to_string())
 }
 
@@ -84,17 +83,17 @@ fn cle_py(v: &Value) -> R<String> {
 
 /// Un `dict` (ou un `set`) a cle composee, dans l'ordre d'insertion : reposer
 /// une cle change la valeur et garde la place.
-pub(crate) struct Dico<V> {
-    pub(crate) index: HashMap<String, usize>,
-    pub(crate) items: Vec<(Vec<Value>, V)>,
+pub struct Dico<V> {
+    pub index: HashMap<String, usize>,
+    pub items: Vec<(Vec<Value>, V)>,
 }
 
 impl<V> Dico<V> {
-    pub(crate) fn nouveau() -> Self {
+    pub fn nouveau() -> Self {
         Dico { index: HashMap::new(), items: Vec::new() }
     }
 
-    pub(crate) fn cle(k: &[Value]) -> R<String> {
+    pub fn cle(k: &[Value]) -> R<String> {
         let mut t = String::new();
         for x in k {
             t.push_str(&cle_py(x)?);
@@ -103,20 +102,20 @@ impl<V> Dico<V> {
         Ok(t)
     }
 
-    pub(crate) fn get(&self, k: &[Value]) -> R<Option<&V>> {
+    pub fn get(&self, k: &[Value]) -> R<Option<&V>> {
         Ok(self.index.get(&Self::cle(k)?).map(|&i| &self.items[i].1))
     }
 
-    pub(crate) fn get_mut(&mut self, k: &[Value]) -> R<Option<&mut V>> {
+    pub fn get_mut(&mut self, k: &[Value]) -> R<Option<&mut V>> {
         let i = self.index.get(&Self::cle(k)?).copied();
         Ok(i.map(move |i| &mut self.items[i].1))
     }
 
-    pub(crate) fn contient(&self, k: &[Value]) -> R<bool> {
+    pub fn contient(&self, k: &[Value]) -> R<bool> {
         Ok(self.index.contains_key(&Self::cle(k)?))
     }
 
-    pub(crate) fn poser(&mut self, k: Vec<Value>, v: V) -> R<()> {
+    pub fn poser(&mut self, k: Vec<Value>, v: V) -> R<()> {
         let c = Self::cle(&k)?;
         match self.index.get(&c) {
             Some(&i) => self.items[i].1 = v,
@@ -128,7 +127,7 @@ impl<V> Dico<V> {
         Ok(())
     }
 
-    pub(crate) fn sortie(&self, f: impl Fn(&V) -> Value) -> Value {
+    pub fn sortie(&self, f: impl Fn(&V) -> Value) -> Value {
         Value::Array(
             self.items
                 .iter()
@@ -141,7 +140,7 @@ impl<V> Dico<V> {
         )
     }
 
-    pub(crate) fn cles(&self) -> Value {
+    pub fn cles(&self) -> Value {
         Value::Array(self.items.iter().map(|(k, _)| Value::Array(k.clone())).collect())
     }
 }
@@ -155,21 +154,21 @@ fn paire(l: &Value, a: &str, b: &str) -> R<Vec<Value>> {
 /// B, suite) : deux contrats du meme salarie qui commencent le meme jour ont chacun leur etat, leur relance, leur
 /// avenant. Le numero vaut `""` quand la ligne n'en porte pas (une ligne d'avant les numeros).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum Maille {
+pub enum Maille {
     Paire,
     Contrat,
 }
 
 /// (salarie, premier jour, numero) : la cle d'un contrat, hors du journal.
-pub(crate) type Cle3 = (String, String, String);
+pub type Cle3 = (String, String, String);
 
 /// Le numero d'une ligne de contrat, tel qu'il sert de cle : son texte, ou `""`.
-pub(crate) fn numero_de_cle(v: &Value) -> Value {
+pub fn numero_de_cle(v: &Value) -> Value {
     Value::String(if vrai(v) { valeur_en_texte(v) } else { String::new() })
 }
 
 /// La cle d'une ligne de contrat (une entree de `detail.contrats`, ou le `detail` d'un `contrat-recu`).
-pub(crate) fn cle_contrat(l: &Value, m: Maille) -> R<Vec<Value>> {
+pub fn cle_contrat(l: &Value, m: Maille) -> R<Vec<Value>> {
     let mut k = paire(l, "salarie", "debut")?;
     if m == Maille::Contrat {
         k.push(numero_de_cle(get(l, "numero")?));
@@ -179,7 +178,7 @@ pub(crate) fn cle_contrat(l: &Value, m: Maille) -> R<Vec<Value>> {
 
 /// Les numeros distincts, dans l'ordre du journal, sous lesquels le journal connait un contrat de ce salarie et de ce debut : parti
 /// a la signature (avenants compris : un avenant porte le numero de son contrat) ou note recu.
-pub(crate) fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> R<Vec<String>> {
+pub fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> R<Vec<String>> {
     let mut out: Vec<String> = Vec::new();
     for l in lignes {
         // Un contrat note « recu » a la main sans avoir ete demande par courriel est connu du journal sous son numero aussi.
@@ -214,7 +213,7 @@ pub(crate) fn numeros_demandes(lignes: &[Value], salarie: &str, debut: &str) -> 
 /// 2. les paies restantes et les numeros demandes que personne ne reclame se jumellent dans l'ordre, SI elles sont aussi
 ///    nombreuses (un contrat renumerote depuis son envoi retrouve ainsi sa demande) ;
 /// 3. sinon une paie reste sans demande : le contrat jumeau qui n'est pas parti ne prend pas la place de celui qui est parti.
-pub(crate) fn apparier(propres: &[String], demandes: &[String]) -> Vec<Option<String>> {
+pub fn apparier(propres: &[String], demandes: &[String]) -> Vec<Option<String>> {
     let mut sortie: Vec<Option<String>> = propres.iter().map(|n| demandes.contains(n).then(|| n.clone())).collect();
     let libres: Vec<&String> = demandes.iter().filter(|d| !propres.contains(d)).collect();
     let restantes: Vec<usize> = (0..propres.len()).filter(|&i| sortie[i].is_none()).collect();
@@ -228,7 +227,7 @@ pub(crate) fn apparier(propres: &[String], demandes: &[String]) -> Vec<Option<St
 
 /// Les cles sous lesquelles chaque paie (salarie, debut, numero propre) d'un mois retrouve son contrat dans le journal :
 /// d'abord celle du contrat demande qui lui correspond (`apparier`), puis la sienne, puis celle d'une ligne sans numero.
-pub(crate) fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
+pub fn cles_des_paies(lignes: &[Value], paies: &[Cle3]) -> R<Vec<Vec<Cle3>>> {
     let mut sortie: Vec<Vec<Cle3>> = vec![Vec::new(); paies.len()];
     let mut vus: Vec<(String, String)> = Vec::new();
     for (s, d, _) in paies {
@@ -272,14 +271,14 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 }
 
 /// Toutes les lignes de `journal/depots.json` (aucune si le fichier n'existe pas).
-pub(crate) fn charger(racine: &Path) -> R<Vec<Value>> {
+pub fn charger(racine: &Path) -> R<Vec<Value>> {
     Ok((*charger_partage(racine)?).clone())
 }
 
 /// Les lignes de `journal/depots.json`, PARTAGEES : lues une fois tant que le fichier ne change pas (chemin, date,
 /// taille ; il s'ecrit toujours d'un coup, `ecriture::ecrire_json`), et servies a chaque route qui les relit -- la
 /// fenetre garde le moteur charge (ticket #244). Un refus ne se garde pas.
-pub(crate) fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
+pub fn charger_partage(racine: &Path) -> R<std::sync::Arc<Vec<Value>>> {
     type Cache = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (Option<(u128, u64)>, std::sync::Arc<Vec<Value>>)>>;
     static CACHE: std::sync::OnceLock<Cache> = std::sync::OnceLock::new();
     let cache = CACHE.get_or_init(Default::default);
@@ -308,7 +307,7 @@ fn charger_du_disque(p: &Path) -> R<Vec<Value>> {
 }
 
 /// `journal.lire` sur des lignes deja lues.
-pub(crate) fn filtrer<'a>(lignes: &'a [Value], quoi: Option<&str>, mois: Option<&str>, reel: bool) -> R<Vec<&'a Value>> {
+pub fn filtrer<'a>(lignes: &'a [Value], quoi: Option<&str>, mois: Option<&str>, reel: bool) -> R<Vec<&'a Value>> {
     let mut v: Vec<&Value> = lignes.iter().collect();
     if let Some(q) = quoi.filter(|q| !q.is_empty()) {
         let mut k = Vec::new();
@@ -340,7 +339,7 @@ pub(crate) fn filtrer<'a>(lignes: &'a [Value], quoi: Option<&str>, mois: Option<
     Ok(v)
 }
 
-pub(crate) fn accepte(l: &Value) -> R<bool> {
+pub fn accepte(l: &Value) -> R<bool> {
     Ok(vrai(get(l, "accepte")?))
 }
 
@@ -356,7 +355,7 @@ fn detail_ou_liste<'a>(l: &'a Value, k: &str) -> R<Vec<Cow<'a, Value>>> {
 
 // ------------------------------------------------------------ les embauches
 
-pub(crate) fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
+pub fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
         if !accepte(l)? {
@@ -370,7 +369,7 @@ pub(crate) fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
 }
 
 /// `journal.de_l_etablissement` : `principal` est le NIC de la fiche entreprise.
-pub(crate) fn de_l_etablissement(lignes: &[Value], nic: &Value, principal: &str) -> R<Vec<Value>> {
+pub fn de_l_etablissement(lignes: &[Value], nic: &Value, principal: &str) -> R<Vec<Value>> {
     let voulu = if vrai(nic) { valeur_en_texte(nic) } else { principal.to_string() };
     let mut out = Vec::new();
     for l in lignes {
@@ -383,7 +382,7 @@ pub(crate) fn de_l_etablissement(lignes: &[Value], nic: &Value, principal: &str)
     Ok(out)
 }
 
-pub(crate) fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, principal: &str) -> R<Value> {
+pub fn etat_dsn_du_mois(lignes: &[Value], mois: &str, nic: &Value, principal: &str) -> R<Value> {
     let du_mois: Vec<Value> = filtrer(lignes, Some(DSN), Some(mois), true)?.into_iter().cloned().collect();
     let mut faites = Vec::new();
     for l in de_l_etablissement(&du_mois, nic, principal)? {
@@ -456,7 +455,7 @@ fn meme_nom(cle: &Value, nom: &Value) -> R<bool> {
 }
 
 /// `str.isalnum()` de Python.
-pub(crate) fn alnum_py(c: char) -> bool {
+pub fn alnum_py(c: char) -> bool {
     let c = c as u32;
     ALNUM
         .binary_search_by(|&(a, b)| {
@@ -484,7 +483,7 @@ fn dossiers_urssaf(retours: &[Cow<'_, Value>]) -> R<Dico<Value>> {
     Ok(out)
 }
 
-pub(crate) fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
+pub fn etat_des_embauches(lignes: &[Value]) -> R<Value> {
     let mut etat: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(DPAE), None, true)? {
         if !accepte(l)? {
@@ -580,7 +579,7 @@ fn normalisees(lignes: &[Value], m: Maille) -> Cow<'_, [Value]> {
 }
 
 /// `d[cle]`, ou, a defaut, la ligne du meme contrat sans numero (une ligne d'avant les numeros).
-pub(crate) fn avec_repli<'a, V>(d: &'a Dico<V>, k: &[Value]) -> R<Option<&'a V>> {
+pub fn avec_repli<'a, V>(d: &'a Dico<V>, k: &[Value]) -> R<Option<&'a V>> {
     if let Some(v) = d.get(k)? {
         return Ok(Some(v));
     }
@@ -590,7 +589,7 @@ pub(crate) fn avec_repli<'a, V>(d: &'a Dico<V>, k: &[Value]) -> R<Option<&'a V>>
     Ok(None)
 }
 
-pub(crate) fn contrats_demandes(lignes: &[Value], m: Maille) -> R<Value> {
+pub fn contrats_demandes(lignes: &[Value], m: Maille) -> R<Value> {
     let lignes = &*normalisees(lignes, m);
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
@@ -604,7 +603,7 @@ pub(crate) fn contrats_demandes(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(d.sortie(Clone::clone))
 }
 
-pub(crate) fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
+pub fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
     let lignes = &*normalisees(lignes, m);
     let mut d = Dico::nouveau();
     for l in filtrer(lignes, Some(SIGNATURE), None, false)? {
@@ -622,7 +621,7 @@ pub(crate) fn numeros_contrats_partis(lignes: &[Value], m: Maille) -> R<Value> {
 
 /// Les contrats repartis apres leur signature sur une autre version de l'engagement que celle signee : ils attendent une
 /// nouvelle signature. Un avenant n'en fait pas un.
-pub(crate) fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> {
+pub fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dico<()>> {
     let lignes = &*normalisees(lignes, m);
     let mut envoye: Dico<Value> = Dico::nouveau();
     let mut signe: Dico<Value> = Dico::nouveau();
@@ -672,7 +671,7 @@ pub(crate) fn renvoyes_depuis_la_signature(lignes: &[Value], m: Maille) -> R<Dic
 }
 
 /// `contrats_recus` : (salarie, debut) -> quand, pour ceux dont le dernier mot est « recu ».
-pub(crate) fn contrats_recus(lignes: &[Value], m: Maille) -> R<Dico<Value>> {
+pub fn contrats_recus(lignes: &[Value], m: Maille) -> R<Dico<Value>> {
     let lignes = &*normalisees(lignes, m);
     let mut etat: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(CONTRAT_RECU), None, false)? {
@@ -697,7 +696,7 @@ fn garder_vrais(d: Dico<Value>) -> R<Dico<Value>> {
     Ok(out)
 }
 
-pub(crate) fn contrats_recus_comment(lignes: &[Value], m: Maille) -> R<Value> {
+pub fn contrats_recus_comment(lignes: &[Value], m: Maille) -> R<Value> {
     let lignes = &*normalisees(lignes, m);
     let mut etat: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(CONTRAT_RECU), None, false)? {
@@ -713,7 +712,7 @@ pub(crate) fn contrats_recus_comment(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(garder_vrais(etat)?.sortie(Clone::clone))
 }
 
-pub(crate) fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Value) -> R<Value> {
+pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Value) -> R<Value> {
     // Par CONTRAT (salarie, debut, numero) : une reponse ne releve que le contrat qu'elle signe (Retours Windows, B, suite).
     let lignes = &*normalisees(lignes, Maille::Contrat);
     let recus = contrats_recus(lignes, Maille::Contrat)?;
@@ -837,7 +836,7 @@ pub(crate) fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salarie
     Ok(Value::Array(out))
 }
 
-pub(crate) fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
+pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
     let lignes = &*normalisees(lignes, m);
     let mut out: Dico<Vec<Value>> = Dico::nouveau();
     for l in lignes {
@@ -887,7 +886,7 @@ pub(crate) fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(out.sortie(|v| Value::Array(v.clone())))
 }
 
-pub(crate) fn documents_envoyes(lignes: &[Value], mois: &str) -> R<Value> {
+pub fn documents_envoyes(lignes: &[Value], mois: &str) -> R<Value> {
     let mut quand: Dico<Value> = Dico::nouveau();
     for l in filtrer(lignes, Some(DOCUMENTS), Some(mois), false)? {
         if !accepte(l)? {
@@ -900,27 +899,20 @@ pub(crate) fn documents_envoyes(lignes: &[Value], mois: &str) -> R<Value> {
     Ok(quand.sortie(Clone::clone))
 }
 
-/// CE QUI EST PARTI A CHAQUE SALARIE avec ses documents du mois (ticket #240) : cle -> `{quand, empreinte, resume}` du
-/// dernier envoi accepte. `empreinte` : la paie du salarie quand ses documents sont partis
-/// (`routes_mois::empreintes_documents`) ; `resume` : ce que ses documents disaient (`envoi::resume_de`). Un envoi
-/// d'avant le 21/10/2026 n'a ni l'un ni l'autre : `null`.
-pub(crate) fn documents_partis(lignes: &[Value], mois: &str) -> R<std::collections::HashMap<String, Value>> {
+/// CE QUE LES DOCUMENTS DU MOIS DISAIENT, par salarie : le resume de sa paie (`envoi::resume_de`) dans la derniere ligne
+/// d'envoi de documents qui l'a servi (un envoi coupe en route ne porte que ceux qu'il a servis). Qu'ils soient partis,
+/// c'est l'engagement qui le sait (`journal::departs`) ; ceci n'en dit que le contenu.
+pub fn resumes_des_documents(lignes: &[Value], mois: &str) -> R<std::collections::HashMap<String, Value>> {
     let mut out = std::collections::HashMap::new();
     for l in filtrer(lignes, Some(DOCUMENTS), Some(mois), false)? {
-        if !accepte(l)? {
-            continue;
-        }
         for sal in detail_liste(l, "salaries")? {
-            out.insert(
-                valeur_en_texte(get(&sal, "cle")?),
-                json!({"quand": get(l, "quand")?, "empreinte": get(&sal, "empreinte")?, "resume": get(&sal, "resume")?}),
-            );
+            out.insert(valeur_en_texte(get(&sal, "cle")?), get(&sal, "resume")?.clone());
         }
     }
     Ok(out)
 }
 
-pub(crate) fn etat_du_mois(lignes: &[Value], mois: &str) -> R<Value> {
+pub fn etat_du_mois(lignes: &[Value], mois: &str) -> R<Value> {
     let mut etat = Map::new();
     for acte in ACTES {
         let mut derniere = Value::Null;
@@ -934,7 +926,7 @@ pub(crate) fn etat_du_mois(lignes: &[Value], mois: &str) -> R<Value> {
     Ok(Value::Object(etat))
 }
 
-pub(crate) fn flux_de_test(lignes: &[Value]) -> R<Value> {
+pub fn flux_de_test(lignes: &[Value]) -> R<Value> {
     let mut d: Dico<()> = Dico::nouveau();
     for l in lignes {
         if est(get(l, "mode")?, TEST) && vrai(get(l, "flux")?) {
@@ -947,7 +939,7 @@ pub(crate) fn flux_de_test(lignes: &[Value]) -> R<Value> {
 // ------------------------------------------------------------------- resume
 
 /// `util.quand_lisible` avec sa liaison par defaut.
-pub(crate) fn quand_lisible(iso: &Value) -> String {
+pub fn quand_lisible(iso: &Value) -> String {
     let t = if vrai(iso) { valeur_en_texte(iso) } else { String::new() };
     let c: Vec<char> = t.chars().collect();
     if c.len() < 10 || c[4] != '-' || c[7] != '-' {
@@ -971,7 +963,7 @@ fn pluriel(n: usize) -> &'static str {
 }
 
 /// `", ".join(liste)` : chaque element doit etre un texte.
-pub(crate) fn joindre(sep: &str, v: &[Value]) -> R<String> {
+pub fn joindre(sep: &str, v: &[Value]) -> R<String> {
     let mut out = Vec::new();
     for (i, x) in v.iter().enumerate() {
         match x {
@@ -984,7 +976,7 @@ pub(crate) fn joindre(sep: &str, v: &[Value]) -> R<String> {
     Ok(out.join(sep))
 }
 
-pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
+pub fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
     if !vrai(ligne) {
         return Ok("pas encore envoyé".into());
     }
@@ -1141,7 +1133,7 @@ pub(crate) fn resume(ligne: &Value, recus: &Dico<()>, m: Maille) -> R<String> {
 
 // ------------------------------------------------------ la repetition avant l'acte
 
-pub(crate) fn refuse_par_un_retour(ligne: &Value) -> R<bool> {
+pub fn refuse_par_un_retour(ligne: &Value) -> R<bool> {
     for r in items(ou(get(ligne, "retours")?, &LISTE_VIDE))? {
         if est(ou(get(&r, "verdict")?, texte_vide()), "KO") {
             return Ok(true);
@@ -1169,7 +1161,7 @@ fn compte_rendu_du_depot(ligne: &Value) -> R<&'static str> {
     Ok(if ok { "ok" } else { "attendu" })
 }
 
-pub(crate) fn deja_depose(lignes: &[Value], quoi: &str, empreinte: &str) -> R<Value> {
+pub fn deja_depose(lignes: &[Value], quoi: &str, empreinte: &str) -> R<Value> {
     for l in filtrer(lignes, Some(quoi), None, true)?.into_iter().rev() {
         if accepte(l)? && est(get(l, "empreinte")?, empreinte) {
             return Ok(l.clone());
@@ -1178,7 +1170,7 @@ pub(crate) fn deja_depose(lignes: &[Value], quoi: &str, empreinte: &str) -> R<Va
     Ok(Value::Null)
 }
 
-pub(crate) fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R<Value> {
+pub fn repetition(lignes: &[Value], quoi: &str, empreinte: &str, nom: &str) -> R<Value> {
     let mut conforme: Option<&Value> = None;
     let (mut ratees, mut perimees) = (Vec::new(), Vec::new());
     for l in filtrer(lignes, Some(quoi), None, false)? {
@@ -1285,7 +1277,7 @@ fn flux_json(c: &[char]) -> Option<String> {
     None
 }
 
-pub(crate) fn flux_de(reponse: &str) -> String {
+pub fn flux_de(reponse: &str) -> String {
     if reponse.is_empty() {
         return String::new();
     }
@@ -1403,19 +1395,13 @@ fn correspond(j: &[Jeton], nom: &[char]) -> bool {
     ji == j.len()
 }
 
-fn echec_de_valeur(v: Value) -> Echec {
-    let classe = match v.get("classe").and_then(Value::as_str) {
-        Some("FileNotFoundError") => "FileNotFoundError",
-        Some("PermissionError") => "PermissionError",
-        _ => "OSError",
-    };
-    erreur(classe, v.get("erreur").and_then(Value::as_str).unwrap_or(""))
-}
-
 /// `journal._archive_du_retour`.
 fn archive_du_retour(racine: &Path, r: &Value, quoi: &Value) -> R<Option<PathBuf>> {
     let canal = if est(quoi, DPAE) { "dpae" } else { "" };
-    let dossier = crate::transport::dossier_archive(racine, canal).map_err(echec_de_valeur)?;
+    let dossier = if canal.is_empty() { racine.join("retours") } else { racine.join("retours").join(canal) };
+    if !dossier.is_dir() {
+        return Ok(None);
+    }
     let sans_flux = s("sansflux");
     let flux = match ou(get(r, "flux")?, &sans_flux) {
         Value::String(t) => t.chars().take(24).collect::<String>(),
@@ -1685,43 +1671,37 @@ fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, i
     Ok(ajoutes)
 }
 
-/// `journal.rattacher_retours(ctx, retours)` sans contenus : le nombre ajoute. Les incidents que le
-/// rattachement releve s'ecrivent au journal des incidents (`_ecrire_incident` : ne leve jamais), meme si le
-/// rattachement s'arrete sur une erreur, qui remonte ensuite.
-pub(crate) fn rattacher_retours_ecrits(racine: &Path, retours: &Value) -> R<i64> {
-    rattacher_retours_avec_contenus(racine, retours, &[])
+/// Ce qu'un rattachement rend : le nombre de retours ranges (ou l'erreur qui l'a arrete), et les incidents qu'il a
+/// releves, que `paie` note au journal des incidents, meme quand le rattachement s'est arrete sur une erreur.
+pub struct AvecIncidents<T> {
+    pub resultat: R<T>,
+    /// `{"canal": "dsn"|"dpae", "ou", "quoi", "resume", "detail"}`, dans l'ordre.
+    pub incidents: Vec<Value>,
 }
 
-/// `journal.rattacher_retours(ctx, retours, contenus)` : `contenus` donne, pour chaque `(flux, nature,
-/// publication)` telecharge, les octets du retour (le verdict se lit dedans).
-pub(crate) fn rattacher_retours_avec_contenus(racine: &Path, retours: &Value, contenus: &[([Value; 3], Vec<u8>)]) -> R<i64> {
+/// Range les retours `retours` en face des lignes du journal qu'ils concernent (par le flux). `contenus` donne, pour
+/// chaque `(flux, nature, publication)` telecharge, les octets du retour : le verdict se lit dedans.
+pub fn rattacher_retours_avec_contenus(racine: &Path, retours: &Value, contenus: &[([Value; 3], Vec<u8>)]) -> AvecIncidents<i64> {
     let mut incidents: Vec<Value> = Vec::new();
     let mut dico: Dico<Vec<u8>> = Dico::nouveau();
     for (k, o) in contenus {
-        dico.poser(k.to_vec(), o.clone())?;
+        if let Err(e) = dico.poser(k.to_vec(), o.clone()) {
+            return AvecIncidents { resultat: Err(e), incidents };
+        }
     }
-    let r = rattacher_retours(racine, retours, &dico, &mut incidents);
-    for i in &incidents {
-        let canal = if i.get("canal").and_then(Value::as_str) == Some("dpae") { crate::incidents::DPAE } else { crate::incidents::DSN };
-        let _ = crate::incidents::noter(
-            racine,
-            &crate::incidents::Note {
-                nature: canal,
-                ou: i.get("ou").and_then(Value::as_str).unwrap_or(""),
-                quoi: i.get("quoi").and_then(Value::as_str).unwrap_or(""),
-                resume: i.get("resume").and_then(Value::as_str).unwrap_or(""),
-                detail: i.get("detail").cloned().unwrap_or(Value::Null),
-                ..Default::default()
-            },
-        );
-    }
-    r
+    let resultat = rattacher_retours(racine, retours, &dico, &mut incidents);
+    AvecIncidents { resultat, incidents }
+}
+
+/// `rattacher_retours_avec_contenus` sans contenus : les retours deja archives.
+pub fn rattacher_retours_ecrits(racine: &Path, retours: &Value) -> AvecIncidents<i64> {
+    rattacher_retours_avec_contenus(racine, retours, &[])
 }
 
 // ----------------------------------------------------- le mois est-il parti ?
 
 /// `journal._nic_principal` : le NIC de la fiche entreprise, ou `""`.
-pub(crate) fn nic_principal(entreprise: &Value) -> String {
+pub fn nic_principal(entreprise: &Value) -> String {
     match entreprise.get("nic") {
         Some(v) if vrai(v) => valeur_en_texte(v),
         _ => String::new(),
@@ -1730,7 +1710,7 @@ pub(crate) fn nic_principal(entreprise: &Value) -> String {
 
 /// Le dernier depot REEL accepte de DSN du mois (`etat_dsn_du_mois`), `Null`
 /// si rien de reel n'est parti : le mois est « parti » des qu'il existe.
-pub(crate) fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R<Value> {
+pub fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R<Value> {
     etat_dsn_du_mois(lignes, mois, &Value::Null, &nic_principal(entreprise))
 }
 
@@ -1740,17 +1720,17 @@ pub(crate) fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R
 /// Le dernier contrat parti a la signature pour cette paie (`operations_documents.contrat_parti`) :
 /// le mois, le numero, le fichier, la date d'envoi et, s'il est revenu, celle de la signature.
 /// Un avenant n'en est pas un.
-pub(crate) struct Parti {
-    pub(crate) mois: Value,
-    pub(crate) numero: Value,
-    pub(crate) fichier: Value,
-    pub(crate) quand: Value,
-    pub(crate) signe: Value,
+pub struct Parti {
+    pub mois: Value,
+    pub numero: Value,
+    pub fichier: Value,
+    pub quand: Value,
+    pub signe: Value,
 }
 
 impl Parti {
     /// `(signe or quand or "")[:10]` : le jour qui date le contrat dans un avenant.
-    pub(crate) fn date(&self) -> String {
+    pub fn date(&self) -> String {
         let t = if vrai(&self.signe) {
             socle::date::en_texte(&self.signe)
         } else if vrai(&self.quand) {
@@ -1765,7 +1745,7 @@ impl Parti {
 /// `operations_documents.contrat_parti`. `numero` : le numero SOUS LEQUEL LE JOURNAL parle du contrat (Retours Windows, B,
 /// suite : deux contrats du meme salarie qui commencent le meme jour sont deux contrats) ; `None` : tous ceux de ce salarie a
 /// ce debut (le dernier l'emporte), comme avant.
-pub(crate) fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
+pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Option<&str>) -> Result<Option<Parti>, Echec> {
     let du_contrat = |l: &Value| -> Result<bool, Echec> {
         Ok(numero.map_or(true, |n| valeur_en_texte(&numero_de_cle(get(l, "numero").unwrap_or(&Value::Null))) == n))
     };
@@ -1805,7 +1785,7 @@ pub(crate) fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero
 
 /// `operations_documents._chemin_piece` : le fichier d'une piece partie, dans `sorties/<mois>/` ou
 /// son `envoi/`. Un NOM, jamais un chemin : ce qui porte un separateur ne se resout pas.
-pub(crate) fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Option<PathBuf> {
+pub fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Option<PathBuf> {
     if !vrai(mois) || !vrai(fichier) {
         return None;
     }
@@ -1819,7 +1799,7 @@ pub(crate) fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Opti
 
 /// `operations_documents._avenants_du_contrat` : les avenants du contrat parti -- pas ceux d'un
 /// contrat qu'il a remplace. `tous` : ce que `journal.avenants` dit pour cette paie (la liste, ou rien).
-pub(crate) fn avenants_du_contrat(tous: Option<&Value>, parti: &Parti) -> Vec<Value> {
+pub fn avenants_du_contrat(tous: Option<&Value>, parti: &Parti) -> Vec<Value> {
     let depuis = if vrai(&parti.quand) { socle::date::en_texte(&parti.quand) } else { String::new() };
     tous.and_then(Value::as_array)
         .map(Vec::as_slice)

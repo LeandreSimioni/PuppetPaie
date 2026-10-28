@@ -265,7 +265,7 @@ pub fn mention(racine: &Path) -> Option<Value> {
     let v: Value = serde_json::from_str(&std::fs::read_to_string(racine.join(FICHIER_DEMO)).ok()?).ok()?;
     let jour = |cle: &str| {
         let t = v.get(cle).and_then(Value::as_str).unwrap_or("");
-        crate::etats::quand_lisible(&json!(t.chars().take(10).collect::<String>()))
+        envois::etats::quand_lisible(&json!(t.chars().take(10).collect::<String>()))
     };
     let (creee, gardee) = (jour("creee_le"), jour("gardee_le"));
     let depuis = if creee.is_empty() { String::new() } else { format!(" le {}", creee) };

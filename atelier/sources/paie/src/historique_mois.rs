@@ -22,11 +22,11 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::retours;
+use envois::retours;
 use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
@@ -726,7 +726,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !(b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())) {
         return Err(erreur("ErreurOperation", format!("Mois illisible : {}.", mois)));
     }
-    let lignes = crate::journal::lire(&ctx.racine, None, Some(mois), false).map_err(|m| erreur("OSError", m))?;
+    let lignes = envois::journal::lire(&ctx.racine, None, Some(mois), false).map_err(|m| erreur("OSError", m))?;
     let recus = etats::contrats_recus(&lignes, etats::Maille::Contrat)?;
     let mut cles: etats::Dico<()> = etats::Dico::nouveau();
     for (k, _) in &recus.items {

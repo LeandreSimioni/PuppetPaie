@@ -61,7 +61,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 /// Un horodatage ISO a la francaise, avec ` a ` (`util.quand_lisible(x, " a ")`).
 pub(crate) fn quand_a(v: &Value) -> String {
-    crate::etats::quand_lisible(v).replace(" à ", " a ")
+    envois::etats::quand_lisible(v).replace(" à ", " a ")
 }
 
 fn afficher_apercu(chemin: &str, a: &Apercu, essai: bool) {

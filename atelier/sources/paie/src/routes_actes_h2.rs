@@ -21,7 +21,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use crate::depot_acte::{self, phrase_de, Preuve};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -296,7 +296,7 @@ fn tester_les_dpae(
             let octets = std::fs::read(p).map_err(|x| erreur("OSError", format!("{} : {}", p.display(), x)))?;
             let nom = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
             let lignes = etats::charger(&ctx.racine)?;
-            let deja = etats::repetition(&lignes, "dpae", &crate::journal::empreinte(&octets), &nom)?;
+            let deja = etats::repetition(&lignes, "dpae", &envois::journal::empreinte(&octets), &nom)?;
             if !vrai(&deja["conforme"]) {
                 depot_acte::deposer_dpae_avec(ctx, &json!(f), false, None, qui, false, "", client.as_deref_mut())?;
             }

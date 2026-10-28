@@ -117,7 +117,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
 /// mois n'y est pas. `None` : aucune DSN n'a declare ce mois.
 pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let Some(mut saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
-    let departs = crate::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::departs(&ctx.racine)?;
     let mut declares = Vec::new();
     let mut lu: Option<Value> = None;
     for o in engagement::stock::objets_du_mois(&ctx.racine, mois)? {
@@ -445,7 +445,7 @@ fn avant_apres(mois: &str, avant: Option<&Paie>, apres: &Paie) -> R<Value> {
 /// celles deja portees par la DSN d'un mois suivant (chaque paie declaree par une correction, comparee a celle qu'elle
 /// corrigeait). Vide quand le mois ne se corrige pas ailleurs que dans sa DSN (`se_corrige_ailleurs`).
 pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, Vec<Value>)> {
-    let departs = crate::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::departs(&ctx.racine)?;
     if !declarations::produire_regularisations::se_corrige_ailleurs(ctx, &departs, mois)? {
         return Ok((Vec::new(), Vec::new()));
     }

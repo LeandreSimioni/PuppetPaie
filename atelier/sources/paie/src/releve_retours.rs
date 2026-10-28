@@ -274,7 +274,7 @@ impl Client {
     pub fn lister_retours(&mut self, debut: i64, fin: i64) -> Result<Vec<Value>, Panne> {
         let base = self.adresses.retours.clone();
         let brut = self.consulter(&base, debut, Some(fin))?;
-        crate::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
+        envois::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
     }
 
     /// `Client.lister_depots` : les depots que net-entreprises a vus sur une plage. L'adresse est celle de la consultation
@@ -282,13 +282,13 @@ impl Client {
     pub fn lister_depots(&mut self, debut: i64, fin: i64) -> Result<Vec<Value>, Panne> {
         let base = self.adresses.retours.replace("lister-retours-declarant", "lister-depots");
         let brut = self.consulter(&base, debut, Some(fin))?;
-        crate::retours::liste_depots_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
+        envois::retours::liste_depots_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
     }
 
     pub fn lister_retours_du_flux(&mut self, idflux: &str) -> Result<Vec<Value>, Panne> {
         self.assurer_session()?;
         let (brut, _) = self.appel(&format!("{}{}", self.adresses.retours_flux, idflux))?;
-        crate::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
+        envois::retours::liste_retours_d_octets(&brut).map_err(|e| Panne { classe: e.classe.unwrap_or("ValueError").into(), message: e.message, code: 0 })
     }
 
     /// Recupere un retour : (contenu brut, type de contenu).
@@ -453,12 +453,12 @@ fn aer_jouee(ctx: &Contexte, l: &Value) -> R<Option<Vec<u8>>> {
 /// `rattacher_simulation`, avec ce que le rangement des AER jouees laisse a faire (`routes_documents::ranger_aer`) :
 /// une attestation que la paie ne confirme pas, un nom qu'aucune fiche ne porte.
 pub fn rattacher_simulation_detail(ctx: &Contexte, delai: i64) -> R<(i64, Vec<String>)> {
-    let p = crate::journal::chemin(&ctx.racine);
+    let p = envois::journal::chemin(&ctx.racine);
     if !p.exists() {
         return Ok((0, Vec::new()));
     }
     let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
-    let mut lignes = crate::etats::charger(&ctx.racine)?;
+    let mut lignes = envois::etats::charger(&ctx.racine)?;
     let maintenant = maintenant_naif();
     let pub_ = horodatage_archive(maintenant).replace('-', "");
     let mut faits = 0;
@@ -592,7 +592,7 @@ pub fn relever_retours(
         match client.telecharger(&url) {
             Ok((contenu, ctype)) => {
                 let chemin = archiver(ctx, &r, &contenu, &ctype, canal).map_err(en_echec)?;
-                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_ATMP) {
+                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(envois::retours::NATURE_TAUX_ATMP) {
                     releve.a_faire.push(format!(
                         "Notification du taux AT/MP recue le {} (retour de nature 34, archive {}) : le taux se reporte dans config/baremes/<annee>.json (`taux_atmp`), avec sa source.",
                         date_publication(&r),
@@ -602,7 +602,7 @@ pub fn relever_retours(
                 // UN SIGNALEMENT REFUSE B1-208-10 (lot O1) : l'ordre etait deja pris ; la conduite a tenir se dit.
                 if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some("11") {
                     let flux = r.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-                    for d in crate::retours::declarations_du_bilan(&contenu) {
+                    for d in envois::retours::declarations_du_bilan(&contenu) {
                         releve.a_faire.extend(crate::ordre_signalements::conduite_b1_208_10(&d, &flux));
                     }
                 }
@@ -627,20 +627,20 @@ pub fn relever_retours(
         // Un depot n'est fini que quand sa reponse est la : chaque retour se range en face du depot qui l'a
         // provoque -- par le flux, et par rien d'autre.
         let contenus: Vec<([Value; 3], Vec<u8>)> = releve.archives.iter().map(|a| (cle_de_retour(&a.retour), a.contenu.clone())).collect();
-        releve.rattaches = crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(releve.trouves.clone()), &contenus)?;
+        releve.rattaches = crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(releve.trouves.clone()), &contenus))?;
     }
 
     // UN DEPOT QUE LES RETOURS ATTESTENT EST UN DEPOT (ticket #215) : ce qu'un autre logiciel a depose sous le meme compte
     // entre au journal de lui-meme, et le mois qu'il declare n'est plus « en retard ».
     if canal.is_empty() {
-        crate::reprise_journal::reprendre_les_depots(ctx, "releve", &crate::routes_ecritures_g2::maintenant())?;
+        crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::reprise_journal::reprendre_les_depots(ctx, "releve", &crate::routes_ecritures_g2::maintenant()))?;
     }
 
     // L'AER SE RANGE DES QU'ELLE ARRIVE (01/10/2026) : la boite d'envoi la voit.
     let aer: Vec<PathBuf> = releve
         .archives
         .iter()
-        .filter(|a| a.retour.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_AER_SPECTACLE))
+        .filter(|a| a.retour.get("nature").map(valeur_en_texte).as_deref() == Some(envois::retours::NATURE_AER_SPECTACLE))
         .map(|a| a.chemin.clone())
         .collect();
     if !aer.is_empty() && canal.is_empty() {
@@ -695,7 +695,7 @@ pub fn relever_retours_dpae(ctx: &Contexte, debut: i64, fin: i64, tout: bool, fl
         noter_vus(ctx, &r.trouves, "dpae").map_err(en_echec)?;
         // Le chemin par flux n'accrochait pas ce qu'il trouvait au journal (vu le 12/09/2026).
         let contenus: Vec<([Value; 3], Vec<u8>)> = r.archives.iter().map(|a| (cle_de_retour(&a.retour), a.contenu.clone())).collect();
-        r.rattaches = crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(r.trouves.clone()), &contenus)?;
+        r.rattaches = crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(r.trouves.clone()), &contenus))?;
     }
     Ok(r)
 }
@@ -712,7 +712,7 @@ pub fn derniere_journee() -> (i64, i64) {
 /// (`RO.B008`) que lit le lecteur des comptes rendus NEOReS (`retours::lire_neores`, d'apres le cahier technique NEOReS
 /// 2026.1.2, `atelier/reference/sources/neores/`) ; un XML qui ne se lit pas ne dit rien.
 fn lire_crm118(contenu: &[u8]) -> R<Option<Vec<(String, f64, String, String, String)>>> {
-    let Some(crm) = crate::retours::lire_neores(contenu) else { return Ok(None) };
+    let Some(crm) = envois::retours::lire_neores(contenu) else { return Ok(None) };
     let mut out = Vec::new();
     for p in crm["parametres"].as_array().into_iter().flatten() {
         let t = |k: &str| p[k].as_str().unwrap_or("").to_string();

@@ -25,7 +25,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::etats::{self, est, get, getd, items, joindre, objet_vide, ou, DPAE, SIGNATURE};
+use envois::etats::{self, est, get, getd, items, joindre, objet_vide, ou, DPAE, SIGNATURE};
 use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;

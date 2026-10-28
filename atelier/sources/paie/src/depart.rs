@@ -311,7 +311,7 @@ fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, rem
     let quand = valeur_en_texte(l.get("quand").unwrap_or(&Value::Null));
     let constitution = socle::date::Jour::lire(quand.get(..10).unwrap_or_default()).map_err(valeur)?;
     let forme = Forme { type_dsn, ordre: m.ordre_de_la_ligne(&mois, l)?, etablissement: plusieurs.then_some(nic), constitution, remplacee_versait_pas };
-    let avant = crate::journal::departs_des_lignes(&lignes[..rang]);
+    let avant = envois::journal::departs_des_lignes(&lignes[..rang]);
     let ctx_m = ctx.du_mois(&mois).map_err(valeur)?;
     let mut paies: Vec<Paie> = Vec::new();
     let mut regs: Vec<declarations::dsn::Regularisation> = Vec::new();

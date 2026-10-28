@@ -93,7 +93,7 @@ fn nettoye(s: &str) -> &str {
 }
 
 /// `\d` d'une expression reguliere de Python sur du texte : un chiffre decimal Unicode.
-pub(crate) fn est_chiffre(c: char) -> bool {
+pub fn est_chiffre(c: char) -> bool {
     dans(DECIMAUX, c)
 }
 
@@ -1146,12 +1146,12 @@ fn parse_liste_retours(e: &Entree) -> Resultat<Vec<Value>> {
 }
 
 /// `parse_liste_retours(octets)` : les retours que la plate-forme liste.
-pub(crate) fn liste_retours_d_octets(o: &[u8]) -> Resultat<Vec<Value>> {
+pub fn liste_retours_d_octets(o: &[u8]) -> Resultat<Vec<Value>> {
     parse_liste_retours(&Entree::Octets(o.to_vec()))
 }
 
 /// `parse_liste_depots(octets)` : les depots que la plate-forme liste.
-pub(crate) fn liste_depots_d_octets(o: &[u8]) -> Resultat<Vec<Value>> {
+pub fn liste_depots_d_octets(o: &[u8]) -> Resultat<Vec<Value>> {
     parse_liste_depots(&Entree::Octets(o.to_vec()))
 }
 
@@ -1952,7 +1952,7 @@ fn nom_aer(nom: &str) -> Option<(String, String)> {
 
 /// `aer_spectacle` : les attestations d'une archive de nature 46 ; liste vide si
 /// le contenu n'est pas une archive lisible.
-pub(crate) fn aer_spectacle(o: &[u8]) -> Resultat<Value> {
+pub fn aer_spectacle(o: &[u8]) -> Resultat<Value> {
     let membres = match repertoire_zip(o) {
         Ok(m) => m,
         Err(e) if e.classe == Some("BadZipFile") => return Ok(json!([])),
@@ -1980,7 +1980,7 @@ pub(crate) fn aer_spectacle(o: &[u8]) -> Resultat<Value> {
 
 /// `rattacher` : pour chaque nom d'attestation, la cle du salarie ou `null`. `index`
 /// est la liste `[cle, "NOM PRENOM"]` des fiches, dans l'ordre du fichier.
-pub(crate) fn rattacher(quis: &[Value], index: &[Value]) -> Value {
+pub fn rattacher(quis: &[Value], index: &[Value]) -> Value {
     let mut idx: Vec<(String, &str)> = index
         .iter()
         .filter_map(|p| Some((socle::texte::cle_recherche(p.get(1)?.as_str()?), p.get(0)?.as_str()?)))

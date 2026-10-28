@@ -33,9 +33,10 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use documents::fiche_questionnaire as fq;
-use crate::journal::{self, Note};
+use envois::journal::{self, Note};
 use socle::echec::Echec;
-use crate::routes_envois::{client_courriel, echec_d_envoi, noter, preuve_de, refus, vrai_ou, R};
+use crate::routes_envois::{client_courriel, preuve_de, refus, vrai_ou, R};
+use envois::ligne_d_envoi::{echec_d_envoi, noter};
 use socle::html::{html_echapper, mailto};
 use socle::texte::capitaliser;
 use socle::paris::maintenant;
@@ -172,11 +173,11 @@ pub struct Attendue {
 /// `fiches_attendues` : les demandes parties et pas encore revenues, les plus anciennes d'abord. Une demande a
 /// laquelle on renonce se retire (`fiche-oublier-demande`, `routes_ecritures`).
 pub fn fiches_attendues(ctx: &Contexte) -> R<Vec<Attendue>> {
-    let lignes = crate::etats::charger(&ctx.racine)?;
+    let lignes = envois::etats::charger(&ctx.racine)?;
     let detail = |l: &Value| -> Value { l.get("detail").filter(|d| vrai(d)).cloned().unwrap_or_else(|| json!({})) };
-    let closes: Vec<Value> = crate::etats::filtrer(&lignes, Some("fiche-recue"), None, false)?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
+    let closes: Vec<Value> = envois::etats::filtrer(&lignes, Some("fiche-recue"), None, false)?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
     let mut sortie = Vec::new();
-    for l in crate::etats::filtrer(&lignes, Some("fiche-demande"), None, false)? {
+    for l in envois::etats::filtrer(&lignes, Some("fiche-demande"), None, false)? {
         let d = detail(l);
         let code = d.get("code").cloned().unwrap_or(Value::Null);
         if !l.get("accepte").is_some_and(vrai) || !vrai(&code) || closes.contains(&code) {

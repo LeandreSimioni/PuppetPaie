@@ -38,13 +38,13 @@ use droit::contexte::Contexte;
 use crate::courriel::{self, Client, Courriel};
 use crate::courriel_lecture as lecture;
 use crate::envoi::{self, Message};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
-use crate::journal::{self, Note};
+use envois::journal::{self, Note};
 use socle::echec::Echec;
 use socle::paris::maintenant;
 use crate::simulation_courriels::BoiteQuiRepond;
@@ -398,7 +398,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             }
             let debut = texte_de(c, "debut");
             // Le contrat que cette reponse signe, par son numero : le jumeau du meme jour garde sa propre attente.
-            let numero = crate::etats::numero_de_cle(c.get("numero").unwrap_or(&Value::Null));
+            let numero = envois::etats::numero_de_cle(c.get("numero").unwrap_or(&Value::Null));
             match crate::routes_ecritures_g4::contrat_recu_avec(ctx, &a_mois, &texte_de(c, "salarie"), &debut, numero.as_str(), true, qui, Some(&courriel)) {
                 Ok(_) => notes += 1,
                 Err(e) => r.incidents.push(format!(

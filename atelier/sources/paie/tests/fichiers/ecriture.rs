@@ -3,7 +3,7 @@
 //! est commite, et la changer ferait un diff sur tous ses fichiers deja ecrits.
 
 use socle::ecriture::{ecrire_json, json_indente, repr_flottant};
-use paie::journal::{self, Note};
+use envois::journal::{self, Note};
 use socle::verrou;
 use serde_json::{json, Value};
 use std::path::PathBuf;

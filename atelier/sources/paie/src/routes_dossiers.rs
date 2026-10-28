@@ -32,7 +32,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use socle::date::{d, repr_texte};
-use crate::etats::{getd, ou, texte_vide, Dico};
+use envois::etats::{getd, ou, texte_vide, Dico};
 use documents::plan_comptable::{controler_plan, tables};
 use socle::valeur::valeur_ecrite;
 use socle::valeur::valeur_en_texte;

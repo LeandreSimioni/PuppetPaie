@@ -37,8 +37,8 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let (quoi, mois) = (args.texte("quoi"), args.texte("mois"));
-    let toutes = crate::etats::charger(&cadre.racine)?;
-    let lignes = crate::etats::filtrer(&toutes, quoi, mois, false)?;
+    let toutes = envois::etats::charger(&cadre.racine)?;
+    let lignes = envois::etats::filtrer(&toutes, quoi, mois, false)?;
     if lignes.is_empty() {
         if quoi.is_some() || mois.is_some() {
             dire!("Le journal est vide pour ce filtre.");
@@ -84,7 +84,7 @@ fn liste_de(v: &Value, cle: &str) -> Vec<Value> {
 fn reprendre(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let ecrire = args.drapeau("ecrire");
     let maintenant = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
-    let d = crate::reprise_journal::reprise_dpae(&cadre.ctx, ecrire, "cli", &maintenant)?;
+    let d = envois::reprise_journal::reprise_dpae(&cadre.ctx, ecrire, "cli", &maintenant)?;
     let (d_trouves, d_ajoutes, d_inconnus) = (liste_de(&d, "trouves"), liste_de(&d, "ajoutes"), liste_de(&d, "inconnus"));
     if !d_trouves.is_empty() {
         dire!("DPAE attestees par les certificats de l'Urssaf : {}", d_trouves.len());

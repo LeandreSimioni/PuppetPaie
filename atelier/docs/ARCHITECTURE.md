@@ -1415,7 +1415,7 @@ enregistrement renvoyé** avec ses zones de retour remplies — `C_RET_AR_LOT`
 (76-77, le traitement du message), `R_DOSSIER` (425-429, la référence sous
 laquelle la DPAE est enregistrée), `C_RETOUR_AR` (430-431, le code par DPAE)
 et les formalités déclenchées (`I_CERTIF`, `I_IMMA`, `I_MT`, `I_PMF5`,
-971-976). `paie/src/etats.rs` lit le certificat (`dpae::lire_certificat`) et pose sur
+971-976). `envois/src/etats.rs` lit le certificat (`dpae::lire_certificat`) et pose sur
 chaque embauche sa référence de dossier.
 
 Deux lectures à connaître, observées sur les 16 enregistrements reçus de juin
@@ -1472,10 +1472,10 @@ Trois garde-fous, tous dans le moteur (`paie/src/depot_acte.rs`, porté d'`opera
   refusée (`DpaeDejaDeclaree`), `deposer_dsn` une DSN réelle déjà partie pour
   le mois (`DsnDejaDeposee`). Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
-- **Un dépôt n'est pas fini quand il est parti.** `paie/src/journal.rs` écrit une ligne
+- **Un dépôt n'est pas fini quand il est parti.** `envois/src/journal.rs` écrit une ligne
   par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de
   signature), avec le `flux` rendu par le point de dépôt ; les retours relevés
-  à l'ouverture s'y rattachent. `verdict_du_retour` (`paie/src/etats.rs`) lit les bilans (natures
+  à l'ouverture s'y rattachent. `verdict_du_retour` (`envois/src/etats.rs`) lit les bilans (natures
   10/11) : une DPAE est **passée quand son bilan est OK**, le certificat 41
   confirme, il ne décide plus. `resume` dit « REFUSÉ : motif », « bilan OK »,
   « en TEST ».

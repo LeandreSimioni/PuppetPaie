@@ -12,7 +12,7 @@ use serde_json::Value;
 
 use socle::texte::ascii_nfkd;
 use socle::fichiers::vrai;
-use crate::retours::{est_chiffre};
+use envois::retours::{est_chiffre};
 use socle::echec::Echec;
 use socle::texte::{lignes_py as lignes, strip};
 
@@ -22,7 +22,7 @@ pub const NATURE_TEST: &str = "01";
 pub const NATURE_REEL: &str = "02";
 pub const RUB_NATURE: &str = "S10.G00.00.005";
 pub const MENSUELLE: &str = "01";
-pub const SIGNALEMENTS: [&str; 4] = ["04", "05", "07", "08"];
+pub use declarations::norme::SIGNALEMENTS;
 
 /// Les rubriques relues dans le fichier, dans l'ordre des champs de l'apercu.
 /// `dernier_jour`, `fin_contrat` et `debut_contrat` datent un signalement

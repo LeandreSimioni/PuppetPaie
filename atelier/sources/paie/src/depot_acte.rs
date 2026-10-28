@@ -21,7 +21,7 @@ use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use crate::depot::{self, Apercu};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -266,7 +266,7 @@ fn phrase_repetition(ctx: &Contexte, quoi: &str, chemin: &Path, etat: &Value) ->
 fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path, contournement: &str) -> R<Value> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let etat = etats::repetition(lignes, quoi, &crate::journal::empreinte(&octets), &nom)?;
+    let etat = etats::repetition(lignes, quoi, &envois::journal::empreinte(&octets), &nom)?;
     // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST (tickets #221, #222, 19/10/2026) : l'accuse d'enregistrement dit
     // « envoi recu », pas « conforme » (regle 5). Pour une DSN, c'est le bilan de nature 11 du test, qui arrive « en
     // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
@@ -349,7 +349,7 @@ fn versions_du_signalement(ctx: &Contexte, evenement: &str, octets: &[u8]) -> R<
     let texte = String::from_utf8_lossy(octets);
     let numeros: Vec<String> =
         texte.lines().filter_map(|l| l.strip_prefix("S21.G00.40.009,")).map(|v| v.trim().trim_matches('\'').to_string()).collect();
-    crate::journal::versions_du_mois(ctx, mois, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
+    envois::journal::versions_du_mois(ctx, mois, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
 }
 
 /// `journal.noter` : ajoute la ligne et la rend.
@@ -373,7 +373,7 @@ fn noter(
     // LA TRACE, RELATIVE A LA COMPAGNIE (#236 : une compagnie change de dossier -- gardee de `fictives/` a `compagnies/`
     // --, et un chemin absolu ne mene plus nulle part) ; `journal::trace_de` la relit, et lit tel quel un absolu d'avant.
     let trace = trace.map(|t| t.strip_prefix(&ctx.racine).unwrap_or(t).to_string_lossy().replace('\\', "/"));
-    let n = crate::journal::Note {
+    let n = envois::journal::Note {
         quoi,
         mois: Some(mois),
         fichier: Some(&fichier),
@@ -389,7 +389,7 @@ fn noter(
         quand: "",
         origine: "",
     };
-    crate::journal::noter(&ctx.racine, &n, &socle::paris::maintenant()).map_err(|m| erreur("OSError", m))
+    envois::journal::noter(&ctx.racine, &n, &socle::paris::maintenant()).map_err(|m| erreur("OSError", m))
 }
 
 // ----------------------------------------------------------------- la compagnie fictive
@@ -502,7 +502,7 @@ fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
 /// acceptee dans la base d'essai, meme venue d'ailleurs, fait partir l'essai en annule-et-remplace. Trop grand ne coute
 /// rien ; trop petit, c'est B1-208-11. `constitution` : le mois de constitution du fichier (`AAAA-MM`, S20.G00.05.007).
 fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution: &str) -> R<Option<i64>> {
-    let du_mois = crate::journal::lire(&ctx.racine, Some("dsn"), Some(mois), false).map_err(|m| erreur("OSError", m))?;
+    let du_mois = envois::journal::lire(&ctx.racine, Some("dsn"), Some(mois), false).map_err(|m| erreur("OSError", m))?;
     let essais: Vec<Value> = etats::de_l_etablissement(&du_mois, nic, &etats::nic_principal(&ctx.entreprise))?
         .into_iter()
         .filter(|l| l.get("mode").and_then(Value::as_str) == Some("test"))
@@ -660,7 +660,7 @@ pub fn deposer_dsn_dans(
     // (p. 14). Deux signalements ecrits avant que le premier parte portent le meme : le second se refait. Refuse
     // avant la preuve : aucun mot de passe n'y change rien.
     if reel && apercu.est_signalement() {
-        let dernier = crate::journal::dernier_ordre_des_signalements(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
+        let dernier = envois::journal::dernier_ordre_des_signalements(&ctx.racine).map_err(|m| erreur("ErreurOperation", m))?;
         let ordre: i64 = apercu.champ("ordre").trim().parse().unwrap_or(0);
         if ordre <= dernier {
             return Err(erreur(
@@ -717,7 +717,7 @@ pub fn deposer_dsn_dans(
         repetition = exiger_repetition(ctx, &lignes, "dsn", &chemin, contournement)?;
     }
 
-    let empreinte = crate::journal::empreinte(&octets);
+    let empreinte = envois::journal::empreinte(&octets);
     let deja = etats::deja_depose(&lignes, "dsn", &empreinte)?;
     let joue = crate::routes_accueil::simulation_active(&ctx.racine);
     let mut mdp: Option<String> = None;
@@ -739,7 +739,7 @@ pub fn deposer_dsn_dans(
         versions_du_signalement(ctx, &mois, &octets)?
     } else {
         let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-        let mut v = crate::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+        let mut v = envois::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
             .map_err(Echec::from)?;
         // Et la version presente de l'engagement de chaque mois passe dont la DSN porte la correction.
         if let Value::Array(a) = &mut v {
@@ -928,7 +928,7 @@ pub fn deposer_dpae_avec(
         .unwrap_or_default();
     // La version de chaque engagement dont l'embauche part : une date d'embauche qui change ensuite le dit.
     let declare = |cle: &str, e: &Value| embauches.iter().any(|x| x["salarie"].as_str() == Some(cle) && x["debut"].as_str() == Some(engagement::debut_brut(e).as_str()));
-    let versions = crate::journal::versions_du_mois(ctx, &mois, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
+    let versions = envois::journal::versions_du_mois(ctx, &mois, |cle, _, e| declare(cle, e)).map_err(Echec::from)?;
     let reponse = match envoi() {
         Ok(r) => r,
         Err(e) => {

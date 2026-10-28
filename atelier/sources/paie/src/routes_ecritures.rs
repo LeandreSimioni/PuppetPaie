@@ -27,7 +27,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::journal;
+use envois::journal;
 use droit::jumeaux::{numero_pose, Ident};
 use socle::num::{dec, Decimal};
 use socle::echec::Echec;
@@ -167,7 +167,7 @@ fn activer_fiche_route(o: &HashMap<String, String>, ctx: &Contexte, charge: &Val
 
 fn oublier_demande(_o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let code = charge.get("code").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
-    let lignes = crate::etats::charger(&ctx.racine)?;
+    let lignes = envois::etats::charger(&ctx.racine)?;
     let attendues = routes_accueil::attendues(&lignes)?;
     if !attendues.iter().any(|a| a.get("code").and_then(Value::as_str) == Some(code.as_str())) {
         return Err(refus(format!("Aucune demande de fiche en attente sous le code {}.", code)));
@@ -394,7 +394,7 @@ fn matricule_suivant(salaries: &Map<String, Value>) -> i64 {
 fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Value>) -> R<String> {
     let propre = |texte: &str, bas: bool| -> String {
         let t = champs::sans_accents(texte).replace(['\'', '\u{2019}'], "");
-        let t: String = t.chars().map(|c| if crate::etats::alnum_py(c) { c } else { '-' }).collect();
+        let t: String = t.chars().map(|c| if envois::etats::alnum_py(c) { c } else { '-' }).collect();
         let t = t.split('-').filter(|m| !m.is_empty()).collect::<Vec<_>>().join("-");
         if bas {
             t.to_lowercase()
@@ -992,7 +992,7 @@ fn ajuster(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     let data = source.clone();
     let mut rangs: Vec<i64> = Vec::new();
-    for i in crate::etats::items(engagements)? {
+    for i in envois::etats::items(engagements)? {
         rangs.push(entier(&i)?);
     }
     rangs.sort_unstable();

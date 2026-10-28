@@ -39,7 +39,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use crate::courriel::Courriel;
 use crate::drive::Drive;
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::fichiers::vrai;
@@ -242,7 +242,7 @@ impl Ouverture {
                     "chemin": a.chemin.to_string_lossy(),
                     "fichier": a.chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
                     "nature": a.retour.get("nature").cloned().unwrap_or(Value::Null),
-                    "libelle": crate::retours::libelle_nature(&a.retour.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".to_string())),
+                    "libelle": envois::retours::libelle_nature(&a.retour.get("nature").map(valeur_en_texte).unwrap_or_else(|| "None".to_string())),
                 })).collect::<Vec<_>>(),
                 "rattaches": r.rattaches,
             })

@@ -142,7 +142,7 @@ fn mois_suivant(m: &str) -> String {
 
 /// La DSN reelle deposee pour `m` (le journal), lue ; `None` si le mois n'en a pas.
 fn dsn_deposee(ctx: &Contexte, lignes: &[Value], m: &str) -> Option<Vec<Individu>> {
-    let l = crate::etats::dsn_du_mois(lignes, &ctx.entreprise, m).ok()?;
+    let l = envois::etats::dsn_du_mois(lignes, &ctx.entreprise, m).ok()?;
     let fichier = l.get("fichier").map(socle::valeur::valeur_en_texte).filter(|f| !f.is_empty() && f != "None")?;
     let p = std::path::Path::new(&fichier);
     let chemin = if p.is_absolute() { p.to_path_buf() } else { ctx.racine.join("sorties").join(m).join(&fichier) };
@@ -544,7 +544,7 @@ pub(crate) fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) ->
     };
     let ordre = rubrique("S20.G00.05.004");
     let remplace = matches!(rubrique("S20.G00.05.002").as_str(), "03" | "05").then_some(ordre.as_str());
-    let lignes = crate::etats::charger(&ctx.racine).map_err(|e| e.message)?;
+    let lignes = envois::etats::charger(&ctx.racine).map_err(|e| e.message)?;
     let ent = &ctx.entreprise;
     let siret = ent.get("siret").map(en_texte).unwrap_or_default();
     let idcc = ent.get("idcc").map(en_texte).unwrap_or_default();

@@ -330,7 +330,7 @@ fn fiches_attendues(m: &mut Moteur) -> R<Value> {
 
 /// Les demandes de fiche parties et pas encore revenues, d'apres les lignes du journal.
 pub(crate) fn attendues(lignes: &[Value]) -> R<Vec<Value>> {
-    let filtrees = |quoi: &str| -> R<Vec<&Value>> { crate::etats::filtrer(&lignes, Some(quoi), None, false) };
+    let filtrees = |quoi: &str| -> R<Vec<&Value>> { envois::etats::filtrer(&lignes, Some(quoi), None, false) };
     let detail = |l: &Value| -> Value { ou_vide(l.get("detail")).clone() };
     let closes: Vec<Value> = filtrees("fiche-recue")?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
     let mut out = Vec::new();

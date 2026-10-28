@@ -11,7 +11,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::etats::{self, est, get, getd, items, objet_vide, LISTE_VIDE, SIGNATURE};
+use envois::etats::{self, est, get, getd, items, objet_vide, LISTE_VIDE, SIGNATURE};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -279,7 +279,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             if numero_voulu.is_some() && j.is_none() {
                 None
             } else {
-                crate::etats::contrat_parti(&lignes, s, d, j.as_deref())?
+                envois::etats::contrat_parti(&lignes, s, d, j.as_deref())?
             }
         }
         _ => None,
@@ -305,7 +305,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let p = &paies[i];
     let g = m.globales()?;
-    let deja = crate::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
+    let deja = envois::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
     let ent = documents::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = documents::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;
@@ -313,7 +313,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let vals = documents::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
     // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)
     // est parti, ecrit du modele avec les valeurs de cette version.
-    let departs = crate::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::departs(&ctx.racine)?;
     let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
         let b = Value::Object(v.objet().brut.clone());
@@ -437,13 +437,13 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
     for nom in fichiers {
         let chemin = dossier.join(&nom);
         let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;
-        let atts = crate::retours::aer_spectacle(&octets)?;
+        let atts = envois::retours::aer_spectacle(&octets)?;
         let liste = atts.as_array().cloned().unwrap_or_default();
         let cles = if liste.is_empty() {
             Value::Array(Vec::new())
         } else {
             let quis: Vec<Value> = liste.iter().map(|a| a["qui"].clone()).collect();
-            crate::retours::rattacher(&quis, &index)
+            envois::retours::rattacher(&quis, &index)
         };
         let mut de_ce_retour: HashMap<(String, String), Vec<Attestation>> = HashMap::new();
         for (a, c) in liste.iter().zip(cles.as_array().map(Vec::as_slice).unwrap_or(&[])) {

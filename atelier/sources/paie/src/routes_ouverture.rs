@@ -20,7 +20,7 @@ use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use engagement::{self, Avis, Engagement};
-use crate::etats;
+use envois::etats;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::{dec, flottant, Decimal, Resultat};
 
@@ -967,7 +967,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
             if vrai(&f) {
                 let f = en_texte(&f);
                 if Path::new(&f).exists() {
-                    let empreinte = crate::journal::empreinte_fichier(Path::new(&f))?;
+                    let empreinte = envois::journal::empreinte_fichier(Path::new(&f))?;
                     let nom = Path::new(&f).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
                     let rep = etats::repetition(&st.journal, DPAE, &empreinte, &nom)?;
                     if vrai_opt(rep.get("conforme")) {

@@ -26,7 +26,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::fichiers::vrai;
@@ -409,7 +409,7 @@ pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let contrats = contrats_du_mois(&ctx.racine, mois)?;
     let lignes = etats::charger(&ctx.racine)?;
     let embauches = etats::embauches_par_depot(&lignes)?;
-    let (certifiees, _) = crate::reprise_journal::embauches_attestees(ctx);
+    let (certifiees, _) = envois::reprise_journal::embauches_attestees(ctx);
     let mut pris = vec![false; contrats.len()];
     let mut cartes = Vec::new();
     for p in &paies {

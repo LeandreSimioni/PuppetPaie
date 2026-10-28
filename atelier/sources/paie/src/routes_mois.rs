@@ -24,7 +24,7 @@ use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use engagement;
 use engagement::etats::ARefaire;
-use crate::etats::{self, est, get, getd, joindre, objet_vide, ou, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
+use envois::etats::{self, est, get, getd, joindre, objet_vide, ou, quand_lisible, texte_vide, Dico, DOCUMENTS, DPAE, DSN, LISTE_VIDE, SIGNATURE};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -36,7 +36,7 @@ use socle::echec::Echec;
 pub const ROUTES: [&str; 6] = ["etat-par-engagement", "etat-du-mois", "embauches-a-declarer", "mois-a-ouvrir", "bilan-du-mois", "fichiers-deposables"];
 
 pub(crate) type Paire = (String, String);
-pub(crate) use crate::etats::Cle3;
+pub(crate) use envois::etats::Cle3;
 
 /// `ETAPES_DEPOT` : le chemin d'un depot, dans l'ordre ou il se fait.
 const ETAPES_DEPOT: [(&str, &str, &str); 5] = [
@@ -157,7 +157,7 @@ pub(crate) fn contrats_des_paies(paies: &[Paie]) -> Vec<Cle3> {
 /// Ce qui est a refaire pour chaque engagement de `etats` (ceux d'un mois, dans l'ordre de l'ecran) : le present compare
 /// a la version sur laquelle chaque envoi est parti (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
 pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat]) -> R<Vec<Vec<ARefaire>>> {
-    let departs = crate::journal::departs(&ctx.racine).map_err(plain)?;
+    let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
     Ok(etats.iter().map(|e| e.valide().map(|v| engagement::etats::a_refaire(ctx, v, &departs)).unwrap_or_default()).collect())
 }
 
@@ -508,7 +508,7 @@ impl<'a> Moteur<'a> {
         let saisis = Self::numeros_saisis(&s, &uniques);
         let lignes = self.lignes()?;
         let cles_paies = etats::cles_des_paies(&lignes, &contrats_des_paies(&s.paies))?;
-        let docs = etats::documents_partis(&lignes, mois)?;
+        let docs = documents_partis(self.ctx, mois, &etats_eng, &lignes)?;
         // CE QUI EST A REFAIRE, engagement par engagement : le present compare a la version sur laquelle chaque envoi est parti.
         let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
         let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
@@ -777,7 +777,7 @@ impl<'a> Moteur<'a> {
         let corriges = if admis {
             0
         } else {
-            let departs = crate::journal::departs(&self.ctx.racine).map_err(plain)?;
+            let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
             declarations::produire_regularisations::corrections_dues(self.ctx, mois, "9999-12", &departs)?.len()
         };
         if corriges > 0 {
@@ -864,7 +864,7 @@ impl<'a> Moteur<'a> {
         };
         let chemin = PathBuf::from(valeur_en_texte(&premier["chemin"]));
         let lignes = self.lignes()?;
-        let empreinte = crate::journal::empreinte_fichier(&chemin).map_err(|m| erreur("FileNotFoundError", m))?;
+        let empreinte = envois::journal::empreinte_fichier(&chemin).map_err(|m| erreur("FileNotFoundError", m))?;
         if vrai(&etats::deja_depose(&lignes, quoi, &empreinte)?) {
             return Ok(());
         }
@@ -1201,12 +1201,12 @@ impl<'a> Moteur<'a> {
             })
             .collect();
         let cles = etats::cles_des_paies(&lignes, &contrats)?;
-        let docs = etats::documents_partis(&lignes, mois)?;
         // Ce qui est a refaire, comme `etat_par_engagement` le dit, sur les engagements tels qu'ils sont ecrits.
         let s = SaisieMois { data: vue.clone(), paies: Vec::new() };
         let uniques: Vec<Paire> = contrats.iter().enumerate().map(|(i, (c, d, _))| (c.clone(), format!("{}#{}", d, i))).collect();
         let saisis = Self::numeros_saisis(&s, &uniques);
-        let etats_eng = engagement::etats::tels_qu_ecrits(self.ctx, mois, &crate::journal::departs(&self.ctx.racine).map_err(plain)?).map_err(plain)?;
+        let etats_eng = engagement::etats::tels_qu_ecrits(self.ctx, mois, &envois::journal::departs(&self.ctx.racine).map_err(plain)?).map_err(plain)?;
+        let docs = documents_partis(self.ctx, mois, &etats_eng, &lignes)?;
         let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
         let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
         let nul = Value::Null;
@@ -1269,7 +1269,7 @@ impl<'a> Moteur<'a> {
                 continue;
             }
             let Ok(s) = self.charger_saisie(&m) else { continue };
-            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &crate::journal::departs(&self.ctx.racine).map_err(plain)?).map_err(plain)?;
+            let etats_m = engagement::etats::tels_qu_ecrits(self.ctx, &m, &envois::journal::departs(&self.ctx.racine).map_err(plain)?).map_err(plain)?;
             let refaire = a_refaire_du_mois(self.ctx, &etats_m)?;
             for (i, p) in s.paies.iter().enumerate() {
                 let cle = texte_de(requis(&p.salarie, "_cle")?);
@@ -1341,10 +1341,38 @@ impl<'a> Moteur<'a> {
     }
 }
 
+
+/// LES DOCUMENTS PARTIS DU MOIS, par salarie : ce que l'engagement sait de ce qui est parti (`journal::departs`, une
+/// seule source) -- `quand` le dernier envoi des documents du mois l'a atteint --, et ce que ses documents disaient
+/// (`resume`, lu dans la ligne de cet envoi). `etats` : les engagements que le mois montre.
+pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::etats::Etat], lignes: &[Value]) -> R<HashMap<String, Value>> {
+    let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
+    let resumes = etats::resumes_des_documents(lignes, mois)?;
+    let mut out: HashMap<String, Value> = HashMap::new();
+    for e in etats {
+        if !matches!(e, engagement::etats::Etat::Partis(_)) {
+            continue;
+        }
+        let brut = Value::Object(e.objet().brut.clone());
+        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").filter(|n| vrai(n)).map(valeur_en_texte)) else { continue };
+        let dernier = departs
+            .de(&cle, &numero)
+            .iter()
+            .filter(|d| d.envoi == engagement::departs::Envoi::Documents && d.mois.as_deref() == Some(mois) && d.par.is_none())
+            .map(|d| d.le.clone())
+            .max();
+        let Some(quand) = dernier else { continue };
+        let plus_recent = out.get(&cle).and_then(|v| v["quand"].as_str()).is_some_and(|q| q >= quand.as_str());
+        if !plus_recent {
+            out.insert(cle.clone(), json!({"quand": quand, "resume": resumes.get(&cle).cloned().unwrap_or(Value::Null)}));
+        }
+    }
+    Ok(out)
+}
 /// La phrase de la pastille Documents d'un salarie dont la paie a change depuis l'envoi.
 pub(crate) const DOCUMENTS_CADUCS: &str = "la paie a changé depuis l'envoi";
 
-/// LA PASTILLE DOCUMENTS d'un salarie. `parti` : ce que le journal garde de son dernier envoi (`etats::documents_partis`) ;
+/// LA PASTILLE DOCUMENTS d'un salarie. `parti` : son dernier envoi de documents (`documents_partis`) ;
 /// `caduc` : ses documents sont partis, et la paie d'un de ses engagements a change depuis la version sur laquelle ils
 /// sont partis (`engagement::etats::a_refaire`) -- ils ne sont plus les bons, ils sont a renvoyer.
 pub(crate) fn etat_documents(parti: Option<&Value>, caduc: bool) -> Value {

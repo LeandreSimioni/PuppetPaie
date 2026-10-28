@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::depot::{self, Apercu};
-use crate::etats;
+use envois::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::num::Decimal;
@@ -452,7 +452,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let a = depot::lire(&contenu);
     let mut m = Moteur::nouveau(ctx);
     let lignes = m.lignes()?;
-    let empreinte = crate::journal::empreinte(&contenu);
+    let empreinte = envois::journal::empreinte(&contenu);
     let deja = etats::deja_depose(&lignes, "dsn", &empreinte)?;
     let nom = nom_du_chemin(&chemin);
     let signalement = a.est_signalement();

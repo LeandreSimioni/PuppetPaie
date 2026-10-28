@@ -1062,6 +1062,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "envois"
+version = "0.1.0"
+dependencies = [
+ "declarations",
+ "documents",
+ "droit",
+ "engagement",
+ "fabrique-pdf",
+ "flate2",
+ "getrandom 0.3.4",
+ "imap-proto",
+ "lettre",
+ "mailparse",
+ "regex",
+ "roxmltree 0.20.0",
+ "rust_decimal",
+ "rustls",
+ "rustls-platform-verifier",
+ "serde_json",
+ "sha2",
+ "socle",
+ "ureq",
+ "zip 2.4.2",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2773,6 +2799,7 @@ dependencies = [
  "droit",
  "ed25519-dalek",
  "engagement",
+ "envois",
  "fabrique-pdf",
  "flate2",
  "getrandom 0.3.4",

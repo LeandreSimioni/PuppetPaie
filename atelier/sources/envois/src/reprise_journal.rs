@@ -1,4 +1,4 @@
-//! `journal-reprise` (`moteur/operations_retours.reconstruire_journal`) : remet au journal les depots DSN que
+//! `journal-reprise` : remet au journal les depots DSN que
 //! les retours archives (`retours/*.xml`) attestent. `ecrire` absent : elle DIT ce qu'elle ferait. Aucun reseau,
 //! aucun depot ; pas de mot de passe (rien ne part).
 //!
@@ -20,6 +20,7 @@ use droit::contexte::Contexte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
+use crate::etats::AvecIncidents;
 use crate::journal::{self, Note};
 
 fn texte(b: &Value, cle: &str) -> String {
@@ -95,10 +96,15 @@ fn depots_attestes(ctx: &Contexte) -> R<(Vec<Atteste>, Vec<String>)> {
     Ok((out, illisibles))
 }
 
-/// La route `journal-reprise`.
-pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
-    let ecrire = charge.get("ecrire").is_some_and(vrai);
-    let qui = crate::routes_ecritures_g2::qui_de(charge);
+/// `journal-reprise` : `ecrire` absent, elle dit ce qu'elle ferait ; `qui` signe les lignes reprises. Rend le rapport, et les
+/// incidents que le rattachement des retours a releves (`paie` les note).
+pub fn reprise(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -> AvecIncidents<Value> {
+    let mut incidents = Vec::new();
+    let resultat = reprise_et_incidents(ctx, ecrire, qui, maintenant, &mut incidents);
+    AvecIncidents { resultat, incidents }
+}
+
+fn reprise_et_incidents(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str, incidents: &mut Vec<Value>) -> R<Value> {
     let (attestes, illisibles) = depots_attestes(ctx)?;
     let (mut trouves, mut ajoutes, mut deja, mut sans_mois) = (vec![], vec![], vec![], vec![]);
     for d in &attestes {
@@ -172,7 +178,7 @@ pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
             mois: if mois.is_empty() { None } else { Some(&mois) },
             fichier: None,
             mode: if reel { "reel" } else { "test" },
-            qui: &qui,
+            qui,
             accepte: accepte(b),
             destinataire: "net-entreprises",
             flux: &d.flux,
@@ -190,7 +196,9 @@ pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
     if p.exists() {
         let texte_j = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
         let retours: Value = serde_json::from_slice(&texte_j).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
-        let n = crate::etats::rattacher_retours_ecrits(&ctx.racine, &retours)?;
+        let r = crate::etats::rattacher_retours_ecrits(&ctx.racine, &retours);
+        incidents.extend(r.incidents);
+        let n = r.resultat?;
         rapport.insert("rattaches".into(), json!(n));
     }
     Ok(Value::Object(rapport))
@@ -199,9 +207,9 @@ pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
 /// Remet au journal, sans qu'on le demande, les depots DSN que les retours archives attestent et que le journal ignore :
 /// la reprise ecrite (`reprise` avec `ecrire`), par le releve des retours et par l'import. Rend le nombre de lignes
 /// ajoutees. Idempotente (par le flux).
-pub fn reprendre_les_depots(ctx: &Contexte, qui: &str, maintenant: &str) -> R<usize> {
-    let r = reprise(ctx, &json!({"ecrire": true, "qui": qui}), maintenant)?;
-    Ok(r.get("ajoutes").and_then(Value::as_array).map_or(0, Vec::len))
+pub fn reprendre_les_depots(ctx: &Contexte, qui: &str, maintenant: &str) -> AvecIncidents<usize> {
+    let r = reprise(ctx, true, qui, maintenant);
+    AvecIncidents { resultat: r.resultat.map(|v| v.get("ajoutes").and_then(Value::as_array).map_or(0, Vec::len)), incidents: r.incidents }
 }
 
 // ------------------------------------------------------------- la reprise du canal DPAE
@@ -229,7 +237,7 @@ fn flux_du_nom(nom: &str) -> String {
 
 /// `operations_retours.embauches_attestees` : les DPAE dont `retours/dpae/` porte le certificat (nature 41). Une entree par FLUX, avec
 /// les embauches qu'il declare ; les NIR qu'on ne sait rattacher a aucune fiche sont DITS, jamais devines. LECTURE PURE.
-pub(crate) fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
+pub fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
     let dossier = ctx.racine.join("retours").join("dpae");
     let par_nir = salarie_par_nir(ctx);
     let mut noms: Vec<String> = std::fs::read_dir(&dossier)
