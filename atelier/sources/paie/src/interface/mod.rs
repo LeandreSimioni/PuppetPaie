@@ -932,19 +932,19 @@ impl Fenetre {
         }
         let nom = r.params.get("c").cloned().unwrap_or_default();
         let rang: usize = r.params.get("p").and_then(|p| p.parse().ok()).unwrap_or(0);
-        let Some(brut) = crate::simulation_courriels::courriels(&racine).into_iter().find(|(n, _)| *n == nom).map(|(_, o)| o) else {
+        let Some(brut) = envois::simulation_courriels::courriels(&racine).into_iter().find(|(n, _)| *n == nom).map(|(_, o)| o) else {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         };
         let Ok(m) = mailparse::parse_mail(&brut) else { return Reponse::nouvelle(404, "text/plain", Vec::new()) };
         let mut feuilles = Vec::new();
-        crate::simulation_courriels::feuilles(&m, &mut feuilles);
-        let pieces: Vec<_> = feuilles.into_iter().filter(|f| crate::simulation_courriels::nom_de_fichier(f).is_some()).collect();
+        envois::simulation_courriels::feuilles(&m, &mut feuilles);
+        let pieces: Vec<_> = feuilles.into_iter().filter(|f| envois::simulation_courriels::nom_de_fichier(f).is_some()).collect();
         let Some(piece) = pieces.get(rang) else { return Reponse::nouvelle(404, "text/plain", Vec::new()) };
         let octets = piece.get_body_raw().unwrap_or_default();
         if piece.ctype.mimetype != "application/pdf" || !octets.starts_with(b"%PDF") {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         }
-        let nom_pdf = crate::simulation_courriels::nom_de_fichier(piece).unwrap_or_else(|| "piece.pdf".into());
+        let nom_pdf = envois::simulation_courriels::nom_de_fichier(piece).unwrap_or_else(|| "piece.pdf".into());
         let sur: String = nom_pdf.chars().map(|c| if c.is_alphanumeric() || "._-".contains(c) { c } else { '_' }).collect();
         Reponse::nouvelle(200, "application/pdf", octets)
             .avec("Content-Disposition", format!("inline; filename=\"{}\"", sur))

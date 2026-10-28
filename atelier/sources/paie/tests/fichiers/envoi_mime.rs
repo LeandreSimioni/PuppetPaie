@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::outils::{dossier_de_test, reecrire_oracles};
-use paie::envoi::{self, Hasards, Message};
+use envois::envoi::{self, Hasards, Message};
 use serde_json::Value;
 
 fn dossier() -> PathBuf {

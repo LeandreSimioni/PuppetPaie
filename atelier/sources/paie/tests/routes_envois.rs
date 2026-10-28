@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 #[test]
 fn le_courriel_de_renvoi_dit_ce_qui_a_change_contrat_par_contrat() {
-    use paie::envoi::ce_qui_a_change;
+    use envois::envoi::ce_qui_a_change;
     let contrat = |debut: &str, jours: &[&str], cachets: i64, heures: &str, brut: &str, net: &str| {
         json!({"debut": debut, "fin": jours.last(), "spectacle": "Le Spectacle", "jours": jours, "cachets": cachets, "heures": heures, "brut": brut, "net": net})
     };

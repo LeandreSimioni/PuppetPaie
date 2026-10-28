@@ -547,7 +547,7 @@ impl Drive for Client {
             Some(n) => n.to_string(),
             None => fichier.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
         };
-        let type_mime = crate::envoi::type_devine(&nom).unwrap_or("application/octet-stream");
+        let type_mime = envois::envoi::type_devine(&nom).unwrap_or("application/octet-stream");
 
         if let Some(distant) = connu {
             let url = format!(

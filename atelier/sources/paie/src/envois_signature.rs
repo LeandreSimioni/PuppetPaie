@@ -21,7 +21,7 @@ use serde_json::{json, Map, Value};
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use crate::depot_acte::verifier_preuve;
-use crate::envoi::{self, Message};
+use envois::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};

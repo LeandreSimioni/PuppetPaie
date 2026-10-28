@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use paie::courriel;
+use paie::boite as courriel;
 use serde_json::json;
 
 fn racine(nom: &str) -> PathBuf {

@@ -244,7 +244,7 @@ fn mois_en_clair(mois: &str) -> String {
 
 /// `de septembre 2026`, `d'octobre 2026`.
 pub(crate) fn de_mois_en_clair(mois: &str) -> String {
-    crate::envoi::de_mois(&mois_en_clair(mois))
+    envois::envoi::de_mois(&mois_en_clair(mois))
 }
 
 /// Ce que la page dit d'un mois dont la DSN reelle est deposee, avant qu'on en modifie la paie (`saisie`,

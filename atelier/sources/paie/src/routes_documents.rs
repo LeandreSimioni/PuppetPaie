@@ -732,7 +732,7 @@ impl Message {
 /// `envoi.preparer` : un message par salarie, a partir des pieces individuelles deja ecrites. Le texte
 /// du corps, que l'apercu ne montre pas, n'est pas compose : seuls ses refus (`KeyError` d'une fiche
 /// sans nom d'affichage ou sans signataire) sont gardes.
-fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, crate::envoi::Renvoi>) -> R<Vec<Message>> {
+fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, envois::envoi::Renvoi>) -> R<Vec<Message>> {
     const PIECES: [(&str, &str, &str); 4] = [
         ("bulletin", "Bulletin", "bulletin"),
         ("rectificatif", "BulletinRectificatif", "bulletin rectificatif"),
@@ -911,7 +911,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                            "renvoi": renvoi.is_some(),
                            "envoye_le": renvoi.map(|r| r.envoye_le.clone()),
                            "changements": renvoi.map(|r| if r.changements.is_empty() {
-                               vec![crate::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
+                               vec![envois::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
                            } else {
                                r.changements.iter().map(|l| l.trim_start().trim_start_matches("- ").to_string()).collect()
                            }).unwrap_or_default()})

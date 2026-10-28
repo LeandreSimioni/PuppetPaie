@@ -35,9 +35,9 @@ use std::path::PathBuf;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::courriel::{self, Client, Courriel};
-use crate::courriel_lecture as lecture;
-use crate::envoi::{self, Message};
+use envois::courriel::Courriel;
+use envois::courriel_lecture as lecture;
+use envois::envoi::{self, Message};
 use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -47,7 +47,7 @@ use crate::horloge::{HorlogeFictive, QUI_HORLOGE};
 use envois::journal::{self, Note};
 use socle::echec::Echec;
 use socle::paris::maintenant;
-use crate::simulation_courriels::BoiteQuiRepond;
+use envois::simulation_courriels::BoiteQuiRepond;
 
 /// Les routes de ce module.
 pub const ROUTES: [&str; 1] = ["signatures-relever"];
@@ -161,7 +161,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     let attendues = etats::signatures_attendues(&lignes, None, &crate::routes_documents::salaries_d_identite(ctx))?;
     let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
-    let envoyes = crate::simulation_courriels::courriels_par_identifiant(&ctx.racine);
+    let envoyes = envois::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues.as_array().into_iter().flatten() {
         let quand = a.get("quand").map(valeur_en_texte).unwrap_or_default();
         let age = socle::paris::naif_de_iso(&quand).map_or(0, |t| maintenant_naif - t);
@@ -170,7 +170,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
         }
         let code = texte_de(a, "code");
         let nom = texte_de(a, "nom");
-        let (sujet, corps) = match crate::simulation_courriels::bouton_de_la_demande(&envoyes, &identifiants_de(a)) {
+        let (sujet, corps) = match envois::simulation_courriels::bouton_de_la_demande(&envoyes, &identifiants_de(a)) {
             Some(b) => b,
             None => (
                 "Re: contrat".to_string(),
@@ -180,7 +180,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
                 ),
             ),
         };
-        let brut = crate::simulation_courriels::reponse_jouee(&texte_de(a, "adresse"), Courriel::compte(&boite), &sujet, &corps, &format!("signature-{}", code))
+        let brut = envois::simulation_courriels::reponse_jouee(&texte_de(a, "adresse"), Courriel::compte(&boite), &sujet, &corps, &format!("signature-{}", code))
             .map_err(|m| erreur("ValueError", m))?;
         boite.repondre(&code, brut);
     }
@@ -258,14 +258,14 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
                 r.incidents.push(m.to_string());
                 return Ok(r);
             }
-            if !courriel::disponible(&ctx.racine) {
+            if !crate::boite::disponible(&ctx.racine) {
                 r.incidents.push(
                     "Aucune boite courriel : les signatures ne peuvent pas etre relevees. Poser le mot de passe d'application de la boite (Configuration > Mots de passe)."
                         .to_string(),
                 );
                 return Ok(r);
             }
-            let vrai_client = Client::du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+            let vrai_client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
             ouverte.insert(Box::new(vrai_client)).as_mut()
         }
     };

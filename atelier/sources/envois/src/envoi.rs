@@ -78,7 +78,7 @@ impl Message {
 }
 
 /// « de » devant un nom de mois, elide devant une voyelle : « de mars », « d'avril », « d'août », « d'octobre ».
-pub(crate) fn de_mois(nom: &str) -> String {
+pub fn de_mois(nom: &str) -> String {
     if nom.starts_with(['a', 'e', 'é', 'i', 'o', 'u']) {
         format!("d'{}", nom)
     } else {
@@ -161,7 +161,7 @@ fn capitaliser(s: &str) -> String {
 }
 
 /// `str.format` a champs nommes : chaque `{nom}` est remplace, une seule fois (la valeur n'est pas relue).
-pub(crate) fn formater(modele: &str, champs: &[(&str, String)]) -> String {
+pub fn formater(modele: &str, champs: &[(&str, String)]) -> String {
     let mut sortie = String::new();
     let mut reste = modele;
     while let Some(i) = reste.find('{') {
@@ -881,7 +881,7 @@ fn couper_extension(nom: &str) -> (&str, &str) {
 }
 
 /// `mimetypes.guess_type(nom)[0]`, sans les fichiers du systeme.
-pub(crate) fn type_devine(nom: &str) -> Option<&'static str> {
+pub fn type_devine(nom: &str) -> Option<&'static str> {
     let (mut base, mut ext) = couper_extension(nom);
     let mut dernier: String;
     loop {
@@ -1127,7 +1127,7 @@ fn frontiere_au_hasard() -> String {
 }
 
 /// `utils.make_msgid(domain=...)`.
-pub(crate) fn nouveau_message_id(domaine: &str) -> String {
+pub fn nouveau_message_id(domaine: &str) -> String {
     let maintenant = std::time::Duration::from_secs_f64(socle::temps::secondes());
     let centiemes = maintenant.as_millis() / 10;
     let mut o = [0u8; 8];
@@ -1321,7 +1321,7 @@ pub fn quoted_printable(corps: &[u8], max: usize) -> Vec<u8> {
 
 const BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-pub(crate) fn base64_brut(o: &[u8]) -> String {
+pub fn base64_brut(o: &[u8]) -> String {
     let mut s = String::with_capacity(o.len().div_ceil(3) * 4);
     for bloc in o.chunks(3) {
         let n = (bloc[0] as u32) << 16 | (*bloc.get(1).unwrap_or(&0) as u32) << 8 | *bloc.get(2).unwrap_or(&0) as u32;

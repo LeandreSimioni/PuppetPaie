@@ -22,9 +22,9 @@ use std::collections::HashMap;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::courriel::{self, BoiteSimulee, Client, Courriel};
+use envois::courriel::{BoiteSimulee, Courriel};
 use crate::depot_acte::{verifier_preuve, Preuve};
-use crate::envoi::{self, Message};
+use envois::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
@@ -106,13 +106,13 @@ pub(crate) fn client_courriel(ctx: &Contexte) -> R<Box<dyn Courriel>> {
     if crate::routes_accueil::simulation_active(&ctx.racine) {
         return Ok(Box::new(BoiteSimulee::du_contexte(ctx)));
     }
-    if !courriel::disponible(&ctx.racine) {
+    if !crate::boite::disponible(&ctx.racine) {
         return Err(erreur(
             "BoiteAbsente",
             "Aucune boite courriel : poser le mot de passe d'application de la boite (Configuration > Mots de passe, ou `paie coffre poser courriel --compte adresse@...`).",
         ));
     }
-    let client = Client::du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+    let client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
     Ok(Box::new(client))
 }
 

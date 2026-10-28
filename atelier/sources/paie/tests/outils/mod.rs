@@ -16,7 +16,7 @@ use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use paie::courriel::{Courriel, ErreurCourriel};
+use envois::courriel::{Courriel, ErreurCourriel};
 use rust_decimal::Decimal;
 use serde_json::{json, Value};
 

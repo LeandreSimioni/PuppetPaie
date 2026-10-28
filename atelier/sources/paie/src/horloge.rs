@@ -31,7 +31,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::courriel::{Courriel, ErreurCourriel};
+use envois::courriel::{Courriel, ErreurCourriel};
 use socle::date::{jours_du_mois, Jour};
 use crate::depot_acte::{self, Preuve};
 use envois::etats;
@@ -116,7 +116,7 @@ impl Courriel for BoiteMuette {
     }
 
     fn envoyer(&mut self, _message_mime: &[u8]) -> Result<String, ErreurCourriel> {
-        Ok(format!("<{}@fictive.puppetpaie>", crate::courriel::hexa_au_hasard(8)))
+        Ok(format!("<{}@fictive.puppetpaie>", envois::courriel::hexa_au_hasard(8)))
     }
 
     fn rechercher(&mut self, _requete: &str, _maximum: usize) -> Result<Vec<String>, ErreurCourriel> {

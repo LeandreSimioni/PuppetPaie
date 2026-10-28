@@ -14,3 +14,8 @@ pub mod reprise_journal;
 pub mod retours;
 pub mod tables_journal;
 pub mod tables_retours;
+pub mod courriel;
+pub mod courriel_lecture;
+pub mod envoi;
+pub mod signature_courriel;
+pub mod simulation_courriels;

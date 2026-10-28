@@ -834,7 +834,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         vus.push(cle.clone());
         let siennes: Vec<usize> = (0..paies.len()).filter(|i| cle_de(&paies[*i]) == cle && numerotees[*i]).collect();
         if !siennes.is_empty() {
-            let piece = dossier.join(crate::envoi::nom_fichier("Bulletin", &cle, &etiq));
+            let piece = dossier.join(envois::envoi::nom_fichier("Bulletin", &cle, &etiq));
             // LE BULLETIN D'ORIGINE RESTE : une paie refaite part sous un nouveau numero, et ce qui est parti se garde.
             for i in &siennes {
                 if let (Some(r), true) = (ecrits[*i].rectifie.as_deref(), a_poser.get(i).is_some_and(|x| x.0.is_some())) {
@@ -853,7 +853,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         let ses_certificats: Vec<(&PaieCs, i64)> = certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
         if !ses_certificats.is_empty() {
             let description = conges_spectacles::description_numerotee(&ses_certificats, &ent).map_err(Echec::from)?;
-            documents::fabrique::ecrire_pdf(&description, &dossier.join(crate::envoi::nom_fichier("CertificatCS", &cle, &etiq)))?;
+            documents::fabrique::ecrire_pdf(&description, &dossier.join(envois::envoi::nom_fichier("CertificatCS", &cle, &etiq)))?;
         }
     }
 

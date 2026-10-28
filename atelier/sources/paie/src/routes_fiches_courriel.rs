@@ -24,11 +24,11 @@ use serde_json::{json, Map, Value};
 
 use socle::texte::strip;
 use droit::contexte::Contexte;
-use crate::courriel::{self, Client, Courriel};
-use crate::simulation_courriels::BoiteQuiRepond;
-use crate::courriel_lecture as lecture;
+use envois::courriel::Courriel;
+use envois::simulation_courriels::BoiteQuiRepond;
+use envois::courriel_lecture as lecture;
 use crate::depot_acte::{verifier_preuve, Preuve};
-use crate::envoi::{self, Message};
+use envois::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -240,11 +240,11 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
             ouverte.insert(Box::new(boite_des_fiches(ctx, &attendues, DELAI_FICTIVE)?)).as_mut()
         }
         None => {
-            if !courriel::disponible(&ctx.racine) {
+            if !crate::boite::disponible(&ctx.racine) {
                 r.incidents.push("Aucune boite courriel : les fiches demandees ne peuvent pas etre relevees.".to_string());
                 return Ok(r);
             }
-            let vrai_client = Client::du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+            let vrai_client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
             ouverte.insert(Box::new(vrai_client)).as_mut()
         }
     };
@@ -400,7 +400,7 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
     lignes.push(String::new());
     lignes.push(format!("Code (ne pas modifier) : {}", code));
     let sujet = bouton.map(|b| b.0.clone()).unwrap_or_else(|| "Re: fiche".to_string());
-    crate::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
+    envois::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
 }
 
 /// `simulation.BoiteDesFiches` : la boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
@@ -410,13 +410,13 @@ pub fn boite_des_fiches(ctx: &Contexte, attendues: &[Attendue], delai: i64) -> R
     let mut boite = BoiteQuiRepond::nouvelle(ctx);
     let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
-    let envoyes = crate::simulation_courriels::courriels_par_identifiant(&ctx.racine);
+    let envoyes = envois::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues {
         let age = socle::paris::naif_de_iso(&a.quand).map_or(0, |t| maintenant_naif - t);
         if age < delai {
             continue;
         }
-        let bouton = crate::simulation_courriels::bouton_de_la_demande(&envoyes, &a.envoyes);
+        let bouton = envois::simulation_courriels::bouton_de_la_demande(&envoyes, &a.envoyes);
         let brut = reponse_de_fiche(a, Courriel::compte(&boite), bouton.as_ref()).map_err(|m| erreur("ValueError", m))?;
         boite.repondre(&a.code, brut);
     }

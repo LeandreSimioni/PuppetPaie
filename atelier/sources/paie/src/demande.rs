@@ -599,7 +599,7 @@ mod tests {
     fn sans_mot_de_passe_tape_la_cle_d_un_autre_poste_n_ouvre_rien() {
         let m = monde();
         assert!(le_poste_n_ouvre_pas(&m));
-        assert!(crate::courriel::mot_de_passe(&m.racine).is_err());
+        assert!(crate::boite::mot_de_passe(&m.racine).is_err());
         assert!(crate::depot_acte::motdepasse_organisme(&m.ctx(), "net-entreprises", None).is_err());
     }
 
@@ -615,7 +615,7 @@ mod tests {
     fn la_messagerie_s_ouvre_au_mot_de_passe_tape() {
         let m = monde();
         crate::coffre::retenir_mot_de_passe_tape(LOGICIEL);
-        assert_eq!(crate::courriel::mot_de_passe(&m.racine).unwrap(), BOITE);
+        assert_eq!(crate::boite::mot_de_passe(&m.racine).unwrap(), BOITE);
     }
 
     #[test]
@@ -636,7 +636,7 @@ mod tests {
         std::env::set_var("PUPPETPAIE_MOTDEPASSE", LOGICIEL);
         let lu = crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
         assert_eq!(lu.as_deref(), Some(NET));
-        assert_eq!(crate::courriel::mot_de_passe(&m.racine).unwrap(), BOITE);
+        assert_eq!(crate::boite::mot_de_passe(&m.racine).unwrap(), BOITE);
     }
 
     #[test]
@@ -646,7 +646,7 @@ mod tests {
         crate::coffre::retenir_mot_de_passe_tape(mauvais);
         for r in [
             crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").map(|_| ()).map_err(|e| e.message),
-            crate::courriel::mot_de_passe(&m.racine).map(|_| ()).map_err(|e| e.to_string()),
+            crate::boite::mot_de_passe(&m.racine).map(|_| ()).map_err(|e| e.to_string()),
             crate::depot_acte::motdepasse_organisme(&m.ctx(), "net-entreprises", None).map(|_| ()).map_err(|e| e.message),
         ] {
             let dit = r.expect_err("un mauvais mot de passe ne doit rien ouvrir");
@@ -758,7 +758,7 @@ mod tests {
         oublier_mot_de_passe_tape();
         let lu = crate::releve_retours::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
         assert_eq!(lu.as_deref(), Some(NET));
-        assert_eq!(crate::courriel::mot_de_passe(&m.racine).unwrap(), BOITE);
+        assert_eq!(crate::boite::mot_de_passe(&m.racine).unwrap(), BOITE);
         // Mais un acte reel, lui, redemande -- et sans humain, refuse.
         assert!(proteger_un_acte(&m).unwrap_err().contains("aucun humain"));
     }
