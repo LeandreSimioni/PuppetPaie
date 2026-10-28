@@ -3863,7 +3863,7 @@ pub struct SoldeTa {
 /// engagement en saisie n'y est pas : rien ne part de lui. `nic` : les seuls salaries de cet etablissement.
 pub(crate) fn paies_declarees_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> Resultat<Vec<Paie>> {
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(Vec::new()) };
-    let departs = crate::journal::departs(&ctx.racine)?;
+    let departs = engagement::departs::lire(&ctx.racine)?;
     let ctx_m = ctx.du_mois(mois)?;
     let mut out = Vec::new();
     for (i, e) in engagement::etats::du_mois(ctx, mois)?.iter().enumerate() {
@@ -4334,7 +4334,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // Les etablissements, celui de cette DSN d'abord : un contrat declare ailleurs a change d'etablissement (bloc 41).
     let nics_courant_d_abord: Vec<String> = std::iter::once(nic.clone()).chain(nics(&ent0).into_iter().filter(|n| *n != nic)).collect();
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
-    let departs = crate::journal::departs(&ctx.racine)?;
+    let departs = engagement::departs::lire(&ctx.racine)?;
     let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, &departs)?;
     let orgs = ctx.organismes_exiges()?;
     let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;

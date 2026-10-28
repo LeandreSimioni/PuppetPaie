@@ -56,10 +56,19 @@ pub(crate) struct Reg {
     pub(crate) taux_pas_origine: Option<String>,
 }
 
-/// UN MOIS SE CORRIGE DANS UNE DSN SUIVANTE quand sa DSN reelle est partie et que son annule-et-remplace n'est plus admis
-/// (la veille de l'echeance passee, cahier technique DSN §1.4.2) ; avant, sa propre DSN se refait.
-pub(crate) fn se_corrige_ailleurs(m: &mut crate::routes_mois::Moteur, ctx: &Contexte, mois: &str) -> R<bool> {
-    Ok(!m.depots_reels(mois, &Value::Null)?.is_empty() && ctx.aujourdhui > m.limite(mois)?)
+/// UN MOIS SE CORRIGE DANS UNE DSN SUIVANTE quand sa DSN reelle est partie (un depart DSN du mois lui-meme, `departs`)
+/// et que son annule-et-remplace n'est plus admis (la veille de l'echeance passee, cahier technique DSN §1.4.2) ; avant,
+/// sa propre DSN se refait.
+pub(crate) fn se_corrige_ailleurs(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &str) -> R<bool> {
+    use engagement::departs::Envoi;
+    let partie = departs
+        .engagements()
+        .any(|(c, n)| departs.de(c, n).iter().any(|d| d.envoi == Envoi::Dsn && d.par.is_none() && d.mois.as_deref() == Some(mois)));
+    if !partie {
+        return Ok(false);
+    }
+    let limite = crate::echeance_dsn::de_la_compagnie(ctx, mois).and_then(|e| e.veille()).map_err(refus_valeur)?;
+    Ok(ctx.aujourdhui > limite)
 }
 
 /// Une correction due d'un mois (`corrections_dues`) : l'engagement valide, son rang dans l'ecran du mois, et ce qui a
@@ -91,14 +100,13 @@ pub(crate) fn corrections_dues(ctx: &Contexte, mois: &str, porteur: &str, depart
 /// d'avant (telle que declaree, ou telle que la correction portee precedente l'a laissee) et sa paie d'apres (la paie
 /// ecrite de la version presente).
 pub(crate) fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
-    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
-    let departs = crate::journal::departs(&ctx.racine)?;
+    let departs = engagement::departs::lire(&ctx.racine)?;
     let mut out = Vec::new();
-    for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).map_err(refus_valeur)? {
         if mois.as_str() >= mois_courant {
             break;
         }
-        if !se_corrige_ailleurs(&mut m, ctx, &mois)? {
+        if !se_corrige_ailleurs(ctx, &departs, &mois)? {
             continue;
         }
         let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, &mois)? else { continue };

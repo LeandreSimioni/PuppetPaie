@@ -451,12 +451,12 @@ fn avant_apres(mois: &str, avant: Option<&Paie>, apres: &Paie) -> R<Value> {
 /// partie ne declare plus la paie, `produire_regularisations::corrections_dues`, comparee a la derniere declaree) et
 /// celles deja portees par la DSN d'un mois suivant (chaque paie declaree par une correction, comparee a celle qu'elle
 /// corrigeait). Vide quand le mois ne se corrige pas ailleurs que dans sa DSN (`se_corrige_ailleurs`).
-pub(crate) fn corrections_du_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<(Vec<Value>, Vec<Value>)> {
-    if !crate::produire_regularisations::se_corrige_ailleurs(m, ctx, mois)? {
+pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, Vec<Value>)> {
+    let departs = crate::journal::departs(&ctx.racine)?;
+    if !crate::produire_regularisations::se_corrige_ailleurs(ctx, &departs, mois)? {
         return Ok((Vec::new(), Vec::new()));
     }
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok((Vec::new(), Vec::new())) };
-    let departs = crate::journal::departs(&ctx.racine)?;
     let refus = |m: String| non_regularisable(m);
     let mut a_porter = Vec::new();
     for d in crate::produire_regularisations::corrections_dues(ctx, mois, "9999-12", &departs)? {
@@ -488,7 +488,7 @@ pub(crate) fn apercu_correction(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(non_regularisable(valeur_en_texte(&etat["raison"])));
     }
     let mois = valeur_en_texte(mois_v);
-    let (a_porter, _) = corrections_du_mois(&mut m, ctx, &mois)?;
+    let (a_porter, _) = corrections_du_mois(ctx, &mois)?;
     let Some(mut c) = a_porter.into_iter().find(|c| c["salarie"] == json!(salarie) && c["debut"] == json!(debut)) else {
         return Err(non_regularisable(format!(
             "Rien a corriger pour {} (contrat du {}) en {} : sa paie validee est celle que la DSN a declaree. Corriger, c'est modifier l'engagement et le revalider.",
@@ -506,6 +506,6 @@ fn regularisation_mois(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mut m = Moteur::nouveau(ctx);
     let etat = etat_mois(&mut m, ctx, mois_v)?;
-    let (a_porter, portees) = corrections_du_mois(&mut m, ctx, &valeur_en_texte(mois_v))?;
+    let (a_porter, portees) = corrections_du_mois(ctx, &valeur_en_texte(mois_v))?;
     Ok(json!({"mois": mois_v, "etat": etat, "a_porter": a_porter, "portees": portees}))
 }

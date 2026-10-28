@@ -376,7 +376,7 @@ fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn 
         return Ok(None);
     }
     let courant = valeur_en_texte(&etat["mois_courant"]);
-    let (a_porter, portees) = crate::routes_regularisation::corrections_du_mois(&mut m, ctx, mois)?;
+    let (a_porter, portees) = crate::routes_regularisation::corrections_du_mois(ctx, mois)?;
     let mut porteurs: HashMap<String, String> = HashMap::new();
     for c in &portees {
         porteurs.insert(valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["portee_par"]));

@@ -359,10 +359,10 @@ fn fins_de_contrat(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// Par mois d'origine, les corrections que la page montre (`routes_regularisation::corrections_du_mois`) : celles a
 /// porter (`etat` « à porter ») et celles deja portees par la DSN d'un mois suivant (« portée »).
-fn corrections_par_mois(m: &mut Moteur, ctx: &Contexte) -> R<Vec<Value>> {
+fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
     let mut out = Vec::new();
     for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
-        let (a_porter, portees) = crate::routes_regularisation::corrections_du_mois(m, ctx, &mois)?;
+        let (a_porter, portees) = crate::routes_regularisation::corrections_du_mois(ctx, &mois)?;
         let mut corrections: Vec<Value> = portees
             .into_iter()
             .map(|mut c| {
@@ -441,6 +441,5 @@ fn mois_a_corriger(ctx: &Contexte) -> R<Value> {
 /// La route `regularisations`.
 fn regularisations(ctx: &Contexte) -> R<Value> {
     let mois = mois_a_corriger(ctx)?;
-    let mut m = Moteur::nouveau(ctx);
-    Ok(json!({"mois": mois, "corrections": corrections_par_mois(&mut m, ctx)?}))
+    Ok(json!({"mois": mois, "corrections": corrections_par_mois(ctx)?}))
 }

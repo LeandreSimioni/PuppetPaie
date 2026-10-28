@@ -26,7 +26,7 @@ fn deja_declare(ctx: &Contexte, pa: &Paie, lus: &mut Lus) -> Result<Option<Verse
     let fin = e.fin_periode()?;
     let mois = format!("{:04}-{:02}", fin.an, fin.mois);
     if lus.departs.is_none() {
-        lus.departs = Some(crate::journal::departs(&ctx.racine)?);
+        lus.departs = Some(engagement::departs::lire(&ctx.racine)?);
     }
     if !lus.objets.contains_key(&mois) {
         lus.objets.insert(mois.clone(), engagement::stock::objets_du_mois(&ctx.racine, &mois)?);
