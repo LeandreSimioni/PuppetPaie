@@ -1,5 +1,5 @@
-//! LES ECHEANCES D'UN ENGAGEMENT, tirees des textes deposes : la DPAE et la remise du contrat. Celle de la DSN est dans
-//! `declarations::echeance_dsn`.
+//! LES ECHEANCES D'UN ENGAGEMENT, tirees des textes deposes : la DPAE, la remise du contrat et celle du bulletin. Celle
+//! de la DSN est dans `declarations::echeance_dsn`.
 //!
 //! - LA DPAE : « L'embauche d'un salarié ne peut intervenir qu'après déclaration nominative » (code du travail, L. 1221-10,
 //!   `atelier/reference/sources/code-du-travail/articles-20261028.md`, `xml/L1221-10.xml`) : elle se fait avant le
@@ -83,4 +83,17 @@ pub fn remise_du_contrat(debut: &Jour, idcc: &Value, code_emploi: &str, entrepri
         }
     }
     Ok(e)
+}
+
+/// La remise du bulletin d'une paie versee le `paiement` : « Lors du paiement du salaire, l'employeur remet [...] une
+/// pièce justificative dite bulletin de paie » (L. 3243-2, `atelier/reference/sources/code-du-travail/xml/L3243-2.xml`).
+/// Le jour du paiement est celui que l'engagement (ou son mois) ecrit, `date_paiement` : sans lui, aucune echeance ne se
+/// dit (la mensualisation de L. 3242-1, « une fois par mois », ne s'applique pas aux intermittents et ne donne pas de
+/// jour).
+pub fn remise_du_bulletin(paiement: &Jour) -> Echeance {
+    Echeance {
+        jour: *paiement,
+        texte: format!("au plus tard le {}", paiement.jj_mm_aaaa()),
+        source: "Code du travail, art. L. 3243-2 (atelier/reference/sources/code-du-travail/xml/L3243-2.xml) ; le jour du paiement de l'engagement".into(),
+    }
 }

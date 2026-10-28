@@ -80,6 +80,13 @@ fn plain(m: impl Into<String>) -> Echec {
 }
 
 /// `un if k == 1 else des` : le pluriel de `_pluriel`, qui compte zero au pluriel.
+/// Le nom d'un etablissement dans une case : sa commune (celle de la fiche entreprise pour le principal), sinon son NIC.
+fn nom_de_l_etablissement(ent: &Value, nic: &str) -> String {
+    let fiche = if nic == etats::nic_principal(ent) { Some(ent.clone()) } else { droit::bareme::entree(ent, nic) };
+    let commune = fiche.and_then(|f| ["commune_affichage", "commune"].iter().filter_map(|c| f[*c].as_str()).map(str::trim).find(|c| !c.is_empty()).map(String::from));
+    commune.unwrap_or_else(|| format!("NIC {}", nic))
+}
+
 fn plur(k: usize, un: &'static str, des: &'static str) -> &'static str {
     if k == 1 {
         un
@@ -574,7 +581,10 @@ impl<'a> Moteur<'a> {
             let code_emploi = p.engagement.code_emploi_ft.clone().unwrap_or_else(|| sal.get("code_emploi_ft").map(valeur_en_texte).unwrap_or_default());
             let idcc = self.ctx.entreprise.get("idcc").cloned().unwrap_or(Value::Null);
             let remise = droit::echeances::remise_du_contrat(&p.engagement.debut, &idcc, &code_emploi, Some(&self.ctx.entreprise)).map_err(plain)?;
-            ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json()}));
+            // Le bulletin, le jour du paiement que l'engagement ecrit (L. 3243-2) ; sans ce jour, aucune echeance.
+            let paiement = p.engagement.date_paiement.as_deref().and_then(|d| Jour::lire(d).ok());
+            let bulletin = paiement.filter(|_| !p.engagement.sans_paie()).map_or(Value::Null, |j| droit::echeances::remise_du_bulletin(&j).en_json());
+            ligne.insert("echeances".into(), json!({"dpae": droit::echeances::dpae(&p.engagement.debut).en_json(), "contrat": remise.en_json(), "documents": bulletin}));
             if let Some(b) = &bruts {
                 // Une paie par engagement de la saisie : qu'il en manque une est un defaut du logiciel, jamais la saisie de
                 // l'utilisateur, et la phrase le lui dit.
@@ -895,14 +905,23 @@ impl<'a> Moteur<'a> {
 
     /// LE CHEMIN DU FICHIER A DEPOSER (`quoi` : DPAE ou DSN) : ou il en est (ecrite, en test, testee, test refuse,
     /// paie changee), le fichier, et ce qu'un test refuse a dit ; `None` sans fichier a deposer, ou s'il est deja parti.
-    fn chemin_de_depot(&mut self, mois: &str, quoi: &str) -> R<Option<(&'static str, Value, Option<String>)>> {
+    /// `nic` : pour la DSN d'une compagnie a plusieurs etablissements, celle de cet etablissement (son en-tete,
+    /// S21.G00.11.001) ; `Null` : le premier fichier, quel qu'il soit.
+    fn chemin_de_depot(&mut self, mois: &str, quoi: &str, nic: &Value) -> R<Option<(&'static str, Value, Option<String>)>> {
         // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`depart::mois_ecrit`,
         // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`.
         if quoi == DSN && !crate::depart::mois_ecrit(self.racine(), mois) {
             return Ok(None);
         }
         let fichiers = self.fichiers_deposables(mois)?;
-        let Some(premier) = fichiers.get(quoi).and_then(Value::as_array).and_then(|l| l.first()).cloned() else {
+        let de_l_etablissement = |f: &&Value| -> bool {
+            if quoi != DSN || !vrai(nic) {
+                return true;
+            }
+            let octets = std::fs::read(valeur_en_texte(&f["chemin"])).unwrap_or_default();
+            envois::depot::lire(&octets).champ("etablissement") == valeur_en_texte(nic)
+        };
+        let Some(premier) = fichiers.get(quoi).and_then(Value::as_array).and_then(|l| l.iter().find(de_l_etablissement)).cloned() else {
             return Ok(None);
         };
         let chemin = PathBuf::from(valeur_en_texte(&premier["chemin"]));
@@ -935,8 +954,8 @@ impl<'a> Moteur<'a> {
     }
 
     /// LE GESTE d'une case orange qui depose (DPAE, DSN) : le chemin du fichier deja ecrit s'il y en a un, sinon `defaut`.
-    fn action_de_depot(&mut self, mois: &str, quoi: &str, defaut: Value) -> R<(Value, Option<String>)> {
-        let Some((etape, fichier, refus)) = self.chemin_de_depot(mois, quoi)? else { return Ok((defaut, None)) };
+    fn action_de_depot(&mut self, mois: &str, quoi: &str, nic: &Value, defaut: Value) -> R<(Value, Option<String>)> {
+        let Some((etape, fichier, refus)) = self.chemin_de_depot(mois, quoi, nic)? else { return Ok((defaut, None)) };
         let nom = if quoi == DSN { "la DSN" } else { "la DPAE" };
         let action = match etape {
             // Le fichier ecrit ne declare plus la paie : la DSN se refait depuis les engagements valides, et repasse par
@@ -992,7 +1011,7 @@ impl<'a> Moteur<'a> {
         }
         if !reste.is_empty() {
             let n = reste.len();
-            let (a, refus) = self.action_de_depot(mois, DPAE, action("declarer_embauches", "Envoyer les DPAE…".into()))?;
+            let (a, refus) = self.action_de_depot(mois, DPAE, &Value::Null, action("declarer_embauches", "Envoyer les DPAE…".into()))?;
             let phrase = refus.map_or_else(|| format!("{} à déposer", n), |r| format!("{} à déposer · {}", n, r));
             dpae.push(groupe("a_faire", json!(n), Some(phrase), echeance_de(&reste, DPAE), a));
         }
@@ -1062,7 +1081,8 @@ impl<'a> Moteur<'a> {
             documents.push(groupe("a_faire", json!(n), Some(format!("{} à renvoyer", n)), Value::Null, action("envoyer_documents", format!("Renvoyer les documents corrigés ({})…", n))));
         }
         if a_envoyer > 0 {
-            documents.push(groupe("a_faire", json!(a_envoyer), Some(format!("{} à envoyer", a_envoyer)), Value::Null, action("envoyer_documents", "Envoyer les documents…".into())));
+            let restants: Vec<&Value> = paies.iter().filter(|p| !servis.contains(&valeur_en_texte(&p["salarie"])) && !caducs.contains(&valeur_en_texte(&p["salarie"]))).collect();
+            documents.push(groupe("a_faire", json!(a_envoyer), Some(format!("{} à envoyer", a_envoyer)), echeance_de(&restants, DOCUMENTS), action("envoyer_documents", "Envoyer les documents…".into())));
         }
         // CE QUI PART CE MOIS-CI, NOMME PAR LE MOTEUR : les pieces des paies du mois, dans l'ordre de l'envoi.
         let noms_pieces = [("bulletin", "bulletin"), ("certificat_cs", "certificat Congés Spectacles"), ("aer", "AER")];
@@ -1081,20 +1101,63 @@ impl<'a> Moteur<'a> {
         Ok(json!({"mois": mois, "etapes": suivante(etapes)}))
     }
 
-    /// LES GROUPES DE LA DSN du mois, et le geste de plus qu'elle offre (un annule-et-remplace encore admis alors que rien
-    /// ne l'exige). L'echeance : celle du depot (`echeance_dsn`, le jour meme a midi) ; la veille a minuit pour un
+    /// LES GROUPES DE LA DSN du mois. Elle « est mensuelle et produite par établissement employeur » (cahier technique
+    /// DSN 2026.1, § 2.4, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`) : chaque etablissement a la
+    /// sienne (`groupes_dsn_de`). Tant qu'ils en sont tous au meme point, une seule case ; ceux qui divergent sortent a
+    /// cote, nommes (« Lyon refusée · l'éditeur est prévenu »), ce qui est fait restant dans la case verte. Le geste de
+    /// plus (un annule-et-remplace admis sans necessite) est celui du principal.
+    fn groupes_dsn(&mut self, mois: &str) -> R<(Vec<Value>, Value)> {
+        let ent = self.ctx.entreprise.clone();
+        if droit::bareme::secondaires(&ent).is_empty() {
+            return self.groupes_dsn_de(mois, &Value::Null);
+        }
+        // Par etablissement : ses groupes, rassembles avec ceux des etablissements au meme point (meme etat, meme
+        // phrase, meme echeance).
+        let point = |g: &[Value]| -> Vec<(String, String, String)> {
+            g.iter().map(|x| (valeur_en_texte(&x["etat"]), valeur_en_texte(&x["phrase"]), valeur_en_texte(&x["echeance"]["jour"]))).collect()
+        };
+        let mut classes: Vec<(Vec<String>, Vec<Value>)> = Vec::new();
+        let mut second = Value::Null;
+        for (rang, nic) in declarations::dsn::nics(&ent).into_iter().enumerate() {
+            let (groupes, s) = self.groupes_dsn_de(mois, &json!(nic))?;
+            if rang == 0 {
+                second = s;
+            }
+            match classes.iter_mut().find(|(_, g)| point(g) == point(&groupes)) {
+                Some((noms, _)) => noms.push(nom_de_l_etablissement(&ent, &nic)),
+                None => classes.push((vec![nom_de_l_etablissement(&ent, &nic)], groupes)),
+            }
+        }
+        if classes.len() == 1 {
+            return Ok((classes.remove(0).1, second));
+        }
+        let mut out = Vec::new();
+        if classes.iter().any(|(_, g)| g.iter().any(|x| est(&x["etat"], "fait"))) {
+            out.push(fait());
+        }
+        for (noms, groupes) in classes {
+            for mut g in groupes.into_iter().filter(|x| !est(&x["etat"], "fait")) {
+                g["phrase"] = json!(format!("{} {}", noms.join(", "), valeur_en_texte(&g["phrase"])));
+                out.push(g);
+            }
+        }
+        Ok((out, second))
+    }
+
+    /// LES GROUPES DE LA DSN de l'etablissement `nic` (`Null` : la compagnie n'en a qu'un), et le geste de plus qu'elle
+    /// offre (un annule-et-remplace encore admis alors que rien ne l'exige). L'echeance : celle du depot (`echeance_dsn`, le jour meme a midi) ; la veille a minuit pour un
     /// annule-et-remplace ; apres un refus, celle du depot qui la reprend.
     ///
     /// LA DSN REFUSEE n'est pas integree : celle qui la reprend est un depot initial (cahier technique DSN 2026.1,
     /// § 1.4.2, `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt` : le depot initial va jusqu'au jour de
     /// l'echeance a midi, l'annule-et-remplace jusqu'a la veille a minuit). INFERENCE : un depot refuse n'ouvre pas
     /// l'annule-et-remplace, puisqu'il n'y a rien a annuler ; l'echeance de la reprise est celle du depot initial.
-    fn groupes_dsn(&mut self, mois: &str) -> R<(Vec<Value>, Value)> {
+    fn groupes_dsn_de(&mut self, mois: &str, nic: &Value) -> R<(Vec<Value>, Value)> {
         let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         let au_depot = json!({"jour": echeance.jour.iso(), "texte": format!("avant le {} à midi", echeance.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)"});
-        let e = self.dsn_du_mois(mois)?;
+        let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
         if !vrai(&e) {
-            let (a, refus) = self.action_de_depot(mois, DSN, action("deposer_dsn", "Déposer la DSN…".into()))?;
+            let (a, refus) = self.action_de_depot(mois, DSN, nic, action("deposer_dsn", "Déposer la DSN…".into()))?;
             let phrase = refus.map_or_else(|| "à déposer".to_string(), |r| format!("à déposer · {}", r));
             return Ok((vec![groupe("a_faire", json!(1), Some(phrase), au_depot, a)], Value::Null));
         }
@@ -1105,13 +1168,13 @@ impl<'a> Moteur<'a> {
             ));
         }
         // Partie : faite, tant qu'aucun retour ne revient KO. Ce qui la rouvre : une paie modifiee depuis.
-        let r = self.etat_remplacement(mois, &Value::Null)?;
+        let r = self.etat_remplacement(mois, nic)?;
         let libelle = format!("Refaire la DSN (annule-et-remplace, ordre {})…", r["prochain_ordre"]);
         let veille = json!({"jour": r["limite"].clone(), "texte": format!("avant le {} à minuit", socle::date::Jour::lire(&valeur_en_texte(&r["limite"])).map(|j| j.jj_mm_aaaa()).unwrap_or_default()), "source": "Cahier technique DSN 2026.1, § 1.4.2 (atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt)"});
         if vrai(&r["saisie_modifiee"]) && vrai(&r["a_envoyer"]) {
             // Un annule-et-remplace deja ecrit montre son chemin ; sinon, le refaire.
-            let ecrit = self.chemin_de_depot(mois, DSN)?.is_some();
-            let (a, refus) = if ecrit { self.action_de_depot(mois, DSN, Value::Null)? } else { (action("deposer_dsn", libelle), None) };
+            let ecrit = self.chemin_de_depot(mois, DSN, nic)?.is_some();
+            let (a, refus) = if ecrit { self.action_de_depot(mois, DSN, nic, Value::Null)? } else { (action("deposer_dsn", libelle), None) };
             let phrase = refus.map_or_else(|| "à refaire".to_string(), |x| format!("à refaire · {}", x));
             return Ok((vec![fait(), groupe("a_faire", json!(1), Some(phrase), veille, a)], Value::Null));
         }
