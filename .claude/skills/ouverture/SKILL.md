@@ -21,7 +21,7 @@ L'ouverture **n'échoue jamais** : sans réseau, sans compte Google, sans secret
 
 ```
 moteur retours          # le détail des retours DSN (moteur retours --dpae : ceux des DPAE)
-paie pas              # les taux de prélèvement à la source, et ceux à demander
+moteur pas              # les taux de prélèvement à la source, et ceux à demander
 moteur incidents        # ce que le logiciel n'a pas su faire : plantages, refus, rejets
 moteur journal          # les dépôts faits
 moteur sauvegarder --point   # où en est la dernière sauvegarde, sans réseau

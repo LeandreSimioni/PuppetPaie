@@ -1,6 +1,6 @@
 # L'espace Cargo du moteur : une crate par partie, chaque flèche descend.
 #
-#     paie          la ligne de commande `moteur` et les parties du dessus (interface, compagnie, import, atelier) ;
+#     moteur        la ligne de commande `moteur` et les parties du dessus (interface, compagnie, import, atelier) ;
 #                   choisit le branchement des envois, ouvre le coffre, note les incidents
 #     envois        ce qui part et revient (net-entreprises, DPAE, signature, courriel, Drive, retours et bilans) et le
 #                   journal de ce qui est parti ; recoit des pieces fabriquees et un mot de passe, ne fabrique rien,

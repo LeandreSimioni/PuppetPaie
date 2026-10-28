@@ -19,7 +19,7 @@
 ## 0. Le terrain au 09/10/2026
 
 **Ce qui est prêt**
-- Le produit est en Rust seul : `paie/` (moteur), `fenetre/` (Tauri),
+- Le produit est en Rust seul : `moteur/`, `fenetre/` (Tauri),
   `donnees/` (référentiels), `interface/` (la page). Suite : `cargo test` vert.
 - Les tests ne lisent plus `prive/` ni `demo/` : ils montent leurs propres
   compagnies de test.

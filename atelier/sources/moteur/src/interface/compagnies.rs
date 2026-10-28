@@ -19,7 +19,7 @@ const PROPRES_AU_POSTE: [&str; 4] =
 
 /// Le dossier du logiciel (`logiciel/`) : le `CODE` du Python.
 pub fn logiciel() -> PathBuf {
-    // Le dossier du code peut porter un `..` (`paie/../donnees`) : on le resout avant d'en prendre le parent.
+    // Le dossier du code peut porter un `..` (`moteur/../donnees`) : on le resout avant d'en prendre le parent.
     let code = dossier_du_code();
     // Sous Windows, `canonicalize` rend un chemin `\\?\C:\...` que l'explorateur ne sait pas ouvrir : on retire le prefixe.
     let code = std::fs::canonicalize(&code)

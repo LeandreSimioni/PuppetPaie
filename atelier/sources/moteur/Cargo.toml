@@ -2,7 +2,7 @@
 name = "moteur"
 version = "0.1.0"
 edition = "2021"
-description = "Le moteur de PuppetPaie au-dessus des envois, des documents et des déclarations : la ligne de commande paie, les routes, la compagnie."
+description = "Le moteur de PuppetPaie au-dessus des envois, des documents et des déclarations : la ligne de commande `moteur`, les routes, la compagnie."
 license = "EUPL-1.2"
 publish = false
 

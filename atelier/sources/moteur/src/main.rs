@@ -2,7 +2,7 @@
 
 fn usage() -> ! {
     eprintln!(
-        "usage : moteur [--dev] COMMANDE [options]   (la ligne de commande du produit : paie aide)\n\
+        "usage : moteur [--dev] COMMANDE [options]   (la ligne de commande du produit : moteur aide)\n\
          \x20       moteur route [--racine R] [--date D]   (route et charge en JSON sur l entree standard : les routes de l interface)\n\
          \x20       moteur pdf ...   (la ligne de commande de la fabrique : moteur pdf --aide)\n\
          \x20       moteur fabrique DESCRIPTION.json SORTIE.pdf   (outil d'atelier)\n\

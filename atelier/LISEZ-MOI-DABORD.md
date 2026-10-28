@@ -15,7 +15,7 @@ PuppetPaie/  (ce dépôt, public)
 ├── maj/                (poste seulement) la mise à jour de l'installation
 ├── prive/              (poste seulement, jamais dans Git) la compagnie du poste : config, paies, sorties, retours
 └── atelier/            tout le reste :
-    ├── sources/        paie/ (le moteur ; exécutables dans moteur/bin/<système>/), fenetre/ (Tauri), fabrique-pdf/
+    ├── sources/        moteur/ (le moteur ; exécutables dans moteur/bin/<système>/), fenetre/ (Tauri), fabrique-pdf/
     ├── reference/      les textes qui fondent chaque règle (un LISEZ-MOI par dossier)
     ├── docs/           ARCHITECTURE, RUBRIQUES, COMPAGNIES-FICTIVES, COMPAGNIE-D-ESSAI
     ├── outils/         les outils d'atelier (relevés, extracteurs, garde-fou de publication)

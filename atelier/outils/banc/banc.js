@@ -3,7 +3,7 @@
  * enregistré dans un scénario rejouable sans navigateur (`moteur/src/scenario.rs`), et le calendrier qui avance.
  *
  * Ligne de commande (la notice : LISEZ-MOI.md, à côté) :
- *   node banc.js lancer   <banc> --jour AAAA-MM-JJ [--paie <moteur-atelier>] [--depot <dépôt public>]
+ *   node banc.js lancer   <banc> --jour AAAA-MM-JJ [--moteur <moteur-atelier>] [--depot <dépôt public>]
  *   node banc.js jour     <banc> AAAA-MM-JJ
  *   node banc.js simuler  <banc>
  *   node banc.js etat     <banc>
@@ -29,7 +29,7 @@ const http = require("http");
 const { spawn, execSync } = require("child_process");
 
 const DEPOT = path.resolve(__dirname, "../../..");
-const PAIE_PAR_DEFAUT = [
+const MOTEUR_PAR_DEFAUT = [
   process.env.PUPPETPAIE_ATELIER,
   process.env.CARGO_TARGET_DIR && path.join(process.env.CARGO_TARGET_DIR, "essais/moteur-atelier"),
   path.join(DEPOT, "atelier/sources/target/essais/moteur-atelier"),
@@ -70,7 +70,7 @@ function appeler(etat, chemin, charge, delaiMs = 600000) {
 
 /* LANCER : l'installation (copie de `logiciel/` et `fictives/` du dépôt, bridée : aucun `.edition.json`) si elle n'existe
  * pas encore, puis sa fenêtre au jour donné, enregistreur en marche. Un banc déjà commencé reprend son scénario. */
-async function lancer(banc, { jour, paie, depot } = {}) {
+async function lancer(banc, { jour, moteur, depot } = {}) {
   banc = path.resolve(banc);
   const ancien = (() => { try { return lireEtat(banc); } catch (e) { return null; } })();
   if (ancien && vivant(ancien.pid)) throw new Error(`Le banc ${banc} tourne déjà (pid ${ancien.pid}) : node banc.js arreter ${banc}.`);
@@ -81,9 +81,9 @@ async function lancer(banc, { jour, paie, depot } = {}) {
     fs.cpSync(path.join(source, "logiciel"), path.join(inst, "logiciel"), { recursive: true });
     fs.cpSync(path.join(source, "fictives"), path.join(inst, "fictives"), { recursive: true });
   }
-  const binaire = paie || PAIE_PAR_DEFAUT.find((p) => fs.existsSync(p));
+  const binaire = moteur || MOTEUR_PAR_DEFAUT.find((p) => fs.existsSync(p));
   if (!binaire || !fs.existsSync(binaire)) {
-    throw new Error("moteur-atelier introuvable : --paie <chemin>, ou le construire : cd atelier/sources/moteur && "
+    throw new Error("moteur-atelier introuvable : --moteur <chemin>, ou le construire : cd atelier/sources/moteur && "
       + "cargo build --profile essais --features atelier --bin moteur-atelier");
   }
   const env = { ...process.env };
@@ -203,10 +203,10 @@ function arreter(banc) {
  * se compare, fichier par fichier, à celle du banc (`moteur-atelier scenario verifier`, `scenario::verifier`). Le banc tire
  * les mêmes aléas que le rejeu : une différence est un geste qui a écrit sans être enregistré, et elle nomme le fichier.
  * Rend { ok, sortie }. */
-function verifier(banc, { paie } = {}) {
+function verifier(banc, { moteur } = {}) {
   banc = path.resolve(banc);
-  const binaire = paie || (() => { try { return lireEtat(banc).binaire; } catch (e) { return null; } })() || PAIE_PAR_DEFAUT.find((p) => fs.existsSync(p));
-  if (!binaire) throw new Error("moteur-atelier introuvable : --paie <chemin>, ou PUPPETPAIE_ATELIER.");
+  const binaire = moteur || (() => { try { return lireEtat(banc).binaire; } catch (e) { return null; } })() || MOTEUR_PAR_DEFAUT.find((p) => fs.existsSync(p));
+  if (!binaire) throw new Error("moteur-atelier introuvable : --moteur <chemin>, ou PUPPETPAIE_ATELIER.");
   const env = { ...process.env, PUPPETPAIE_ESSAIS_HORS_RESEAU: "1" };
   for (const v of RETIREES) delete env[v];
   const r = require("child_process").spawnSync(binaire,
@@ -234,7 +234,7 @@ async function principal() {
   if (!commande || !banc) mourir("node banc.js lancer|jour|simuler|etat|capture|arreter|verifier <banc> ... (voir LISEZ-MOI.md)");
   switch (commande) {
     case "lancer": {
-      const r = await lancer(banc, { jour: option(args, "--jour"), paie: option(args, "--paie"), depot: option(args, "--depot") });
+      const r = await lancer(banc, { jour: option(args, "--jour"), moteur: option(args, "--moteur"), depot: option(args, "--depot") });
       dire(`Banc lancé : ${r.url}\nJour simulé : ${r.jour} (${r.heure})\nScénario : ${r.scenario}`);
       break;
     }
@@ -258,7 +258,7 @@ async function principal() {
     }
     case "arreter": arreter(banc); dire("Banc arrêté."); break;
     case "verifier": {
-      const r = verifier(banc, { paie: option(args, "--paie") });
+      const r = verifier(banc, { moteur: option(args, "--moteur") });
       dire(r.sortie.trim());
       if (!r.ok) process.exit(1);
       break;

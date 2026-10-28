@@ -93,7 +93,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
-| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `moteur` choisit : le monde, le simulateur ou le message), `paie/` (le reste du moteur, programme `moteur` ; exécutables livrés dans `moteur/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
+| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `moteur` choisit : le monde, le simulateur ou le message), `moteur/` (le reste du moteur, programme `moteur` ; exécutables livrés dans `moteur/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
 | `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `moteur`), les docs, les versions publiées, l'installeur, le site |
 
@@ -165,7 +165,7 @@ montre que celui qui a lieu.
   l'espace et les croit à jour d'après les dates : une crate compilée depuis l'autre checkout masque le code présent.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
-- **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
+- **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `moteur/` ; ce qui ne se porte pas proprement remonte à Léandre.
   **Pas de Python non plus comme outil** (Léandre, 21/10/2026, devant « a Python patch script ») : le code se modifie avec
   Edit/Write, fonction par fonction (`sed` pour un remplacement mécanique simple) ; un texte se lit avec `pandoc`/`grep` ;
   Playwright se pilote en Node. Aucun script de patch, dans aucun langage.
@@ -240,7 +240,7 @@ fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas d
 binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
-cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, documents, declarations, envois, paie ; les dossiers de travail des tests (~3 Go)
+cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, documents, declarations, envois, moteur ; les dossiers de travail des tests (~3 Go)
 cargo nextest run --cargo-profile essais --no-fail-fast                  # les sept crates ; la fenêtre n'a pas de tests
 ```
 
