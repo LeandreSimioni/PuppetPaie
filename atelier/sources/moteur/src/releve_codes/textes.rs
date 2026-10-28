@@ -370,7 +370,7 @@ pub static TEXTES: &[Texte] = &[
     // civile), a quels taux d'annee en annee (II : le spectacle vivant
     // jusqu'a zero en 2032), ce que l'assiette garde (les remboursements
     // de frais, sauf l'annexe 2) et ce qu'elle ne peut pas entamer
-    // (R242-1, al. 6). `moteur/src/calcul.rs` (`deduction_forfaitaire`,
+    // (R242-1, al. 6). `engagement/src/calcul.rs` (`deduction_forfaitaire`,
     // `abattement_dfs`) ; les taux, `deduction_forfaitaire` des baremes.
     // Les deux annexes (les professions et leurs taux ; les frais qui
     // restent hors assiette) n'ont pas de <NUM> dans la base : ce

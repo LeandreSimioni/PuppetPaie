@@ -956,7 +956,7 @@ phrase par raison**, pas par ligne.
 
 La commande `minima` du Python — ce qui est comparé, ce qui ne l'est pas, et
 ce qui est relevé sans être lu — **n'est pas portée** en Rust ; les
-avertissements, eux, sortent avec chaque paie (`moteur/src/minima.rs`). Elle
+avertissements, eux, sortent avec chaque paie (`engagement/src/minima.rs`). Elle
 était la réponse à « est-ce que mes paies sont vérifiées ? ». Elle distinguait une grille **relevée** d'une grille **appliquée** : les
 cachets d'artistes de la CCNEAC sont relevés et servent, et depuis le
 23/09/2026 ses emplois autres qu'artistiques aussi — groupe de l'article XI.3
@@ -986,7 +986,7 @@ C'est un **outil de l'éditeur**, lancé avant chaque publication (`atelier/CLAU
 ne figure pas dans l'aide. Une installation ne fait que recevoir la mise à jour
 signée ; la publication ne vérifie pas d'elle-même que les sources l'ont été.
 
-**Les tables Unicode du moteur** (`socle/src/tables_nfkc.rs`, `moteur/src/nfkd_ascii.rs`,
+**Les tables Unicode du moteur** (`socle/src/tables_nfkc.rs`, `socle/src/nfkd_ascii.rs`,
 `tables_retours.rs`, `tables_journal.rs` : la normalisation NFKC/NFKD, les
 chiffres et lettres de `str.isdigit`/`str.isalnum`/`\d`, cp437 et cp1252, les
 encodages qu'un XML de retour peut déclarer, les caractères d'un nom XML)
@@ -1461,7 +1461,7 @@ Quatre choses à savoir :
     sur combien de bulletins chaque total porte.
 
   Un mois qui a une saisie est lu là, jamais dans l'historique — même règle
-  que pour les droits (le moteur Rust, `moteur/src/cumul.rs`).
+  que pour les droits (le moteur Rust, `engagement/src/cumul.rs`).
 
 Un export **lit** : il ne calcule aucune paie, ne dépose rien, ne consomme
 aucun numéro. Un mois qui n'a pas été produit n'a pas de numéro de contrat

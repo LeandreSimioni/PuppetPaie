@@ -52,7 +52,7 @@ compagnie fictive a été reproduite ce jour-là.
   **Ne pas le retirer.**
 - Le montant Urssaf de chaque DSN est **calculé** par le moteur, comme pour
   une vraie compagnie : la somme des lignes 23, chacune valorisée à la table
-  des CTP de l'Urssaf (journal §162, `moteur/src/bordereau.rs`).
+  des CTP de l'Urssaf (journal §162, `documents/src/bordereau.rs`).
 - **Les taux d'impôt (prélèvement à la source) sont fabriqués**, comme
   s'ils venaient des comptes-rendus de la DGFiP (`config/pas.json`, journal
   §115). Chaque salarié a le sien (27/09/2026 : une compagnie de

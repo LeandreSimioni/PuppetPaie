@@ -10,7 +10,7 @@ rejouant les mêmes mois et en comparant caractère par caractère.
 D'où trois règles de conception.
 
 **Le calcul est du code, pas du langage.** Un modèle de langage ne doit jamais
-calculer une cotisation. `moteur/src/calcul.rs` applique un barème JSON versionné ;
+calculer une cotisation. `engagement/src/calcul.rs` applique un barème JSON versionné ;
 Claude ne fait que traduire une phrase en fichier de saisie et lancer la
 commande.
 
@@ -124,7 +124,7 @@ bulletin, une AEM. Le format est dans le `README.md`.
 
 Ce que ça impose au moteur :
 
-- `dates_engagement` (`moteur/src/engagement.rs`) est le **seul endroit** qui sache où
+- `dates_engagement` (`engagement/src/lib.rs`) est le **seul endroit** qui sache où
   chercher les jours d'un engagement : dans ses lignes, et nulle part
   ailleurs. `charger` passe par lui, et le décompte des droits (`cumul.rs`) lit ce qu'il a chargé.
 - **Une seule écriture** depuis le 13/09/2026. `Engagement` exige
@@ -138,7 +138,7 @@ Ce que ça impose au moteur :
 - `date::d` (`socle/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
-- La construction d'un `Engagement` (`moteur/src/engagement.rs`) réunit les deux écritures et n'en
+- La construction d'un `Engagement` (`engagement/src/lib.rs`) réunit les deux écritures et n'en
   laisse qu'une : `dates_travail` reste une liste de dates triées, le lieu part
   dans `lieux` (`lieu_de()`, `lieux_joues()`). Le contrat groupe les dates par
   lieu ; le lieu ne se déclare nulle part ailleurs (ni DSN, ni AEM, ni DPAE).
@@ -146,7 +146,7 @@ Ce que ça impose au moteur :
   `taux_horaire` sur l'engagement). On l'avait voulue lue sans
   conversion le 13/09/2026 ; la règle d'une seule écriture l'a remplacée le
   soir même. Le moteur refuse un tel engagement et dit ce qu'une
-  saisie porte (`moteur/src/engagement.rs`, à la
+  saisie porte (`engagement/src/lib.rs`, à la
   lecture d'un engagement sans `lignes` et à la lecture du mois). Ce qui reste
   lu tel quel, ce sont les dates d'une ligne écrites sans lieu (une chaîne) à
   côté des dates détaillées.
@@ -449,7 +449,7 @@ salarié, et un mois payé en compte au moins un. Un mois du contrat sans paye
 
 ## Les droits (annexes 8 et 10), et d'où viennent les contrats
 
-`moteur/src/cumul.rs` compte les 507 heures sur 12 mois (un cachet = 12 h, les
+`droit/src/cumul.rs` compte les 507 heures sur 12 mois (un cachet = 12 h, les
 heures d'enseignement plafonnées) et imprime le bloc de cumul du bulletin.
 Depuis le 15/09/2026 il ne lit qu'**une source, la nôtre**, en deux fichiers :
 
@@ -1133,7 +1133,7 @@ décident. Les articles sont relevés et datés dans
   que le 007 et le posait sur **toute** fin de CDI — une rupture
   conventionnelle serait partie avec, et CCH-24 l'aurait fait rejeter ;
 - **suspensions** (bloc S21.G00.65) : congé sans solde, parental, sabbatique…
-  Saisies une fois comme **imprévus** du salarié (`moteur/src/imprevus.rs`) : chaque mois
+  Saisies une fois comme **imprévus** du salarié (`engagement/src/imprevus.rs`) : chaque mois
   traversé en tire sa ligne et son bloc 65, entier, sans recopie. Un **congé payé n'en est pas une** — il est payé, le contrat n'est pas
   suspendu, et le moteur refuse d'écrire le motif « 200 - COP ».
 
@@ -1343,7 +1343,7 @@ fils du bloc 40, il n'aurait rien où s'accrocher.
 
 ### Le magasin, et la trace des envois
 
-`imprevus/AAAA-MM.json` sous les données (depuis le 15/10/2026, `moteur/src/imprevus.rs`) :
+`imprevus/AAAA-MM.json` sous les données (depuis le 15/10/2026, `engagement/src/imprevus.rs`) :
 le magasin des **imprévus** d'un salarié, arrêts de travail (`"genre": "arret"`, au mois du
 dernier jour travaillé) et suspensions du bloc 65 (`"genre": "suspension"`, au mois de leur
 premier jour). Un imprévu se saisit une fois ; le moteur en tire la ligne de paie d'un
