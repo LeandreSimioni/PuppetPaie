@@ -291,16 +291,6 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
     Ok(Value::Object(out))
 }
 
-/// `simulation.active` : les envois de ce contexte sont-ils joues ? Le paquet
-/// soude (`bridage::paquet_soude`), ou une COMPAGNIE FICTIVE (son marqueur le
-/// dit, `compagnies::est_fictive`). Le logiciel simplement bride, lui, ne joue rien.
-///
-/// JAMAIS UNE FICTIVE AJOUTEE (ticket #236, `compagnies::est_ajoutee`), meme dans le paquet soude : ses envois ne sont pas
-/// joues, ils sont refuses (`bridage::refus_d_envoi`).
-pub fn simulation_active(racine: &Path) -> bool {
-    crate::bridage::branchement(racine).joue()
-}
-
 /// `boite_liee` : peut-on envoyer, et les signatures reviennent-elles seules ?
 /// Une seule reponse aux deux : le mot de passe de la boite est pose. Ne lit
 /// jamais ce mot de passe : l'adresse (`compte`), et si un secret existe.
@@ -900,7 +890,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
         // mot de passe.
         "simulation": crate::bridage::branchement(&ctx.racine).joue(),
-        // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::refus_d_envoi`) ; la page
+        // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::branchement`) ; la page
         // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
         "envois_refuses": crate::bridage::branchement(&ctx.racine).refus().is_some(),
         // SUPPRIMER LA COMPAGNIE (ticket #236) : la Configuration ne le propose que si elle se supprime -- jamais une

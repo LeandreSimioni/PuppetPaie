@@ -573,7 +573,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         sauvegarder = false;
         signatures = false;
     }
-    // UNE FICTIVE AJOUTEE (#236) : rien n'en part (`bridage::refus_d_envoi`), donc rien n'y revient -- ni retour de DSN ou de
+    // UNE FICTIVE AJOUTEE (#236) : rien n'en part (`bridage::branchement`), donc rien n'y revient -- ni retour de DSN ou de
     // DPAE, ni contrat signe. La veille ne les releve pas, et ne demande pas les mots de passe qui serviraient a les relever :
     // le bandeau ne presente pas comme une panne ce qui est voulu. Le coffre, lui, s'y pose comme ailleurs (Configuration).
     if crate::bridage::branchement(&ctx.racine).refus().is_some() {

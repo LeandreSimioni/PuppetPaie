@@ -155,8 +155,8 @@ fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve, ouvrir: O
     if voulus.is_empty() {
         return Err(refus("Aucun avenant coché. Rien n'est parti."));
     }
-    // La porte des organismes d'une fictive ajoutee, avant de rien lire.
-    crate::depot_acte::refuser_l_envoi(ctx)?;
+    // La porte du branchement, avant de rien lire.
+    crate::bridage::branchement(&ctx.racine).ouvrir()?;
     let mut par_salarie: Vec<(String, Vec<UnAvenant>)> = Vec::new();
     for v in voulus {
         let salarie_v = requis(v, "salarie")?;
@@ -232,13 +232,13 @@ pub(crate) fn preuve_de(charge: &Value) -> Preuve {
     Preuve::de_la_charge(charge)
 }
 
-/// `operations_documents._client_courriel` : la boite qui envoie. La compagnie fictive ecrit les messages, elle ne
-/// les envoie pas ; sans mot de passe d'application au coffre, il n'y en a pas (`BoiteAbsente`).
+/// La boite qui envoie, selon le branchement de la compagnie (`bridage::branchement`) : le simulateur ecrit les messages
+/// sans les envoyer ; le message refuse, avant la preuve et avant toute ligne au journal des depots ; le monde prend la
+/// vraie boite, et sans mot de passe d'application au coffre, il n'y en a pas (`BoiteAbsente`).
 pub(crate) fn client_courriel(ctx: &Contexte) -> R<Box<dyn Courriel>> {
-    // UNE FICTIVE AJOUTEE n'a pas de boite qui envoie (ticket #236, `bridage::refus_d_envoi`) : la route s'arrete ici,
-    // avant la preuve et avant toute ligne au journal des depots (pas meme `noter_echec_d_envoi`).
-    crate::depot_acte::refuser_l_envoi(ctx)?;
-    if crate::routes_accueil::simulation_active(&ctx.racine) {
+    let branchement = crate::bridage::branchement(&ctx.racine);
+    branchement.ouvrir()?;
+    if branchement.joue() {
         return Ok(Box::new(BoiteSimulee::du_contexte(ctx)));
     }
     if !crate::boite::disponible(&ctx.racine) {

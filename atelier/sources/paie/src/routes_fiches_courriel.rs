@@ -233,13 +233,19 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         return Ok(r);
     }
     let mut ouverte: Option<Box<dyn Courriel>> = None;
+    let branchement = crate::bridage::branchement(&ctx.racine);
     let client: &mut dyn Courriel = match client {
         Some(c) => c,
-        None if crate::routes_accueil::simulation_active(&ctx.racine) => {
+        None if branchement.joue() => {
             // LA COMPAGNIE FICTIVE : la personne fictive repond, et c'est la vraie lecture qui suit.
             ouverte.insert(Box::new(boite_des_fiches(ctx, &attendues, DELAI_FICTIVE)?)).as_mut()
         }
         None => {
+            // Le message : rien n'est parti, rien ne revient.
+            if let Some(refus) = branchement.refus() {
+                r.incidents.push(refus.phrase.to_string());
+                return Ok(r);
+            }
             if !crate::boite::disponible(&ctx.racine) {
                 r.incidents.push("Aucune boite courriel : les fiches demandees ne peuvent pas etre relevees.".to_string());
                 return Ok(r);

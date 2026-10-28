@@ -130,15 +130,15 @@ fn os(m: String) -> Echec {
     erreur("OSError", m)
 }
 
-/// La boite ou chercher les reponses, quand l'appelant n'en donne pas : celle de la compagnie fictive (les salaries
-/// fictifs repondent), sinon la vraie. `Err` : l'incident qui dit pourquoi rien ne se releve.
+/// La boite ou chercher les reponses, quand l'appelant n'en donne pas, selon le branchement de la compagnie
+/// (`bridage::branchement`) : le simulateur (les salaries fictifs repondent) ; le message, rien ne se releve (la releve
+/// renverrait le contrat contresigne au salarie : un envoi) ; le monde, la vraie boite. `Err` : l'incident qui dit
+/// pourquoi rien ne se releve.
 fn boite_de_la_releve(ctx: &Contexte) -> R<Result<Box<dyn Courriel>, String>> {
-    if crate::routes_accueil::simulation_active(&ctx.racine) {
-        return Ok(Ok(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?)));
-    }
-    // UNE FICTIVE AJOUTEE : la releve renverrait le contrat contresigne au salarie -- un envoi. Rien ne se releve.
-    if let Some(m) = crate::bridage::refus_d_envoi(&ctx.racine) {
-        return Ok(Err(m.to_string()));
+    match crate::bridage::branchement(&ctx.racine) {
+        envois::branchement::Branchement::Simulateur => return Ok(Ok(Box::new(boite_des_signatures(ctx, DELAI_FICTIVE)?))),
+        envois::branchement::Branchement::Message(r) => return Ok(Err(r.phrase.to_string())),
+        envois::branchement::Branchement::Monde => {}
     }
     if !crate::boite::disponible(&ctx.racine) {
         return Ok(Err(

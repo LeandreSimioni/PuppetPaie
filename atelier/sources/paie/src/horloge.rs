@@ -10,7 +10,7 @@
 //! reste au visiteur. Ce qu'il a deja fait lui-meme n'est pas refait : chaque pas regarde d'abord le journal.
 //!
 //! ELLE NE JOUE QUE DANS UNE COMPAGNIE FICTIVE, ET LE CODE LE DIT A CHAQUE ENDROIT QUI AGIT.
-//! - `rattraper` commence par `HorlogeFictive::verifier` : sans compagnie fictive active (`simulation_active` : le paquet
+//! - `rattraper` commence par `HorlogeFictive::verifier` : sans compagnie fictive active (`bridage::branchement` : le paquet
 //!   soude, ou une compagnie dont le marqueur dit « compagnie fictive »), elle rend une liste vide et ne
 //!   touche a rien -- pas meme `config/horloge.json`.
 //! - Tout geste qui agit recoit la `HorlogeFictive` et la RE-VERIFIE avant d'agir (`pas`, `deposer_*_joue`) : un marqueur
@@ -55,7 +55,7 @@ const QUOI: &str = "L'horloge de la compagnie fictive (moteur/simulation.py) : l
 // ------------------------------------------------------------------ la garde
 
 /// LA GARDE : la preuve que la racine est une COMPAGNIE FICTIVE, exigee de tout ce qui agit. Elle ne se fabrique
-/// que par `verifier`, qui lit `simulation_active` ; `reverifier` la relit avant chaque geste.
+/// que par `verifier`, qui lit `bridage::branchement` ; `reverifier` la relit avant chaque geste.
 pub struct HorlogeFictive<'a> {
     racine: &'a Path,
     /// LE JOUR JOUE : celui que l'horloge rattrape. Chaque contexte qu'elle ouvre porte ce jour (`aujourdhui` ET `date`),

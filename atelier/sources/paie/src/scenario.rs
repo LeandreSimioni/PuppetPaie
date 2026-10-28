@@ -53,7 +53,7 @@ fn lit_la_boite_aux_lettres(route: &str) -> bool {
 
 /// LE MARQUEUR D'UNE FICTIVE AUX ENVOIS SIMULES, pose sur une fictive ajoutee (le geste `simuler`) : `copie_de` dit
 /// « compagnie fictive … » (`compagnies::est_fictive`) sans la marque `ajoutee` -- ses envois sont joues
-/// (`routes_accueil::simulation_active`) et son horloge joue ce qui etait du (`horloge`). Le nom (« … sur le banc
+/// (`bridage::branchement`) et son horloge joue ce qui etait du (`horloge`). Le nom (« … sur le banc
 /// d'essai ») n'est celui d'aucune fictive livree : la livraison des fictives (`maj.rs`) ne la prend jamais pour une
 /// des siennes. Refuse hors d'une fictive ajoutee.
 pub fn rendre_simulee(racine: &Path) -> Result<(), String> {

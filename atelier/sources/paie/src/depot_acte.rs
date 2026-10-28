@@ -277,11 +277,6 @@ fn versions_du_signalement(ctx: &Contexte, evenement: &str, octets: &[u8]) -> R<
     envois::journal::versions_du_mois(ctx, mois, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
 }
 
-/// La porte du branchement de la compagnie (`envois::branchement::Branchement::ouvrir`), pour les envois de courriels.
-pub(crate) fn refuser_l_envoi(ctx: &Contexte) -> R<()> {
-    crate::bridage::branchement(&ctx.racine).ouvrir()
-}
-
 /// `compagnies.refuser_si_copie` : la derniere porte -- une copie de developpement ne declare rien en reel.
 fn refuser_si_copie(ctx: &Contexte, quoi: &str) -> R<()> {
     if ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file() {
