@@ -14,8 +14,8 @@ use socle::num::{dec_avec_echelle, eur, pct, sub, Decimal, Resultat};
 
 const FICHIER: &str = "pas.json";
 
-/// Un refus du module. `SansGrille` est `BaremeSansGrille`, que `des_paies`
-/// sait taire ; `Inconnu` est `PasInconnu`.
+/// Un refus du module. `SansGrille` est `BaremeSansGrille`, que le prelevement d'une correction sait taire
+/// (`produire_regularisations::versement_de_la_correction`) ; `Inconnu` est `PasInconnu`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum ErreurPas {
     SansGrille(String),

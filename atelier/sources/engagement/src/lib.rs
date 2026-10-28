@@ -1376,11 +1376,17 @@ pub(crate) fn charger_donnees(ctx: &Contexte, data: &Value) -> Resultat<Saisie> 
 // ------------------------------------------------------------------ les gestes de l'ecran
 
 /// LE CALCUL D'UNE SAISIE POUR L'ECRAN : les paies de la saisie `data` (un formulaire, enregistre ou non) telles que
-/// la validation les calculera, avec leurs avertissements (minima, SMIC, contrat qui deborde du mois). Rien ne s'ecrit
-/// et rien ne part d'elles : un document ne lit que les paies ecrites d'un engagement valide (`etats`).
+/// la validation les calculera, avec leurs avertissements (minima, SMIC, contrat qui deborde du mois), et chacune son
+/// prelevement a la source (`etats::prelevement`). Rien ne s'ecrit et rien ne part d'elles : un document ne lit que les
+/// paies ecrites d'un engagement valide (`etats`), sauf le bulletin modele de l'ecran, qui imprime celles-ci.
 #[cfg(feature = "ecran")]
 pub fn pour_l_ecran(ctx: &Contexte, data: &Value) -> Resultat<Saisie> {
-    charger_donnees(ctx, data)
+    let mut s = charger_donnees(ctx, data)?;
+    for p in s.paies.iter_mut() {
+        let pas = etats::prelevement(ctx, p)?;
+        p.ecrire().pas = pas;
+    }
+    Ok(s)
 }
 
 /// `pour_l_ecran` de la saisie de `mois` telle que ses engagements la montrent.

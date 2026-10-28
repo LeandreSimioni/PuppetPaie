@@ -120,7 +120,8 @@ pub fn apercu_description(modele: Modele) -> Result<Value, String> {
     o.insert(CASE_MODELE.into(), json!(modele.cle()));
     // Ni le logo ni la signature du poste sur une paie fictive : ses gabarits sont un dossier qui n'existe pas.
     o.insert("_gabarits".into(), json!(racine.join("gabarits").to_string_lossy()));
-    jeux_et_description(&ctx, &s.paies, &ent, &mois, None, false, &HashMap::new())
+    let numeros: Vec<Option<String>> = s.paies.iter().map(|p| p.numero_bulletin.clone()).collect();
+    jeux_et_description(&ctx, &s.paies, &numeros, &ent, &mois, None, false, &HashMap::new())
 }
 
 /// Le PDF de la paie fictive sous `modele`.

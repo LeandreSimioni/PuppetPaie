@@ -103,10 +103,9 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
     let mut frais_par_spectacle: BTreeMap<String, Decimal> = BTreeMap::new();
     let mut charge: BTreeMap<(String, String), Decimal> = BTreeMap::new();
     let mut tiers: BTreeMap<String, Decimal> = BTreeMap::new();
-    // LE PRELEVEMENT A LA SOURCE : celui du bulletin (`prelevement::des_paies`, le meme calcul, la meme position), retenu sur
+    // LE PRELEVEMENT A LA SOURCE : celui du bulletin (`prelevement::des_paies`, la meme lecture, la meme position), retenu sur
     // le net et du a la DGFiP (compte 4421 « Prelevements a la source (Impot sur le revenu) » du plan
-    // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md). Une paie dont le prelevement
-    // ne se calcule pas (bareme sans grille) n'en a pas : le bulletin imprime 0,00 et paie le net entier. Le PAS d'un
+    // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md), tel que la paie le porte. Le PAS d'un
     // mois declare est celui de la paie declaree (`engagement::etats::paie_declaree`), lu et non recalcule au taux du
     // jour (CGI art. 1671 : `prelevement::des_paies`).
     let pas_des_paies = crate::prelevement::des_paies(ctx, &paies).map_err(refus)?;

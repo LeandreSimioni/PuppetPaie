@@ -569,8 +569,9 @@ fn rang_dans(racine: &Path, o: &Objet, mois: &str) -> Resultat<usize> {
 }
 
 /// Le prelevement a la source de la paie `p`, au taux que la DGFiP a transmis et qui vaut a la fin de sa periode
-/// (`droit::pas::taux_dgfip`), sinon a la grille de l'article 204 H ; `None` pour un mois sans paie ou un bareme sans grille.
-fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<Value>> {
+/// (`droit::pas::taux_dgfip`), sinon a la grille de l'article 204 H ; `None` pour un mois sans paie. Un bareme sans
+/// grille refuse le calcul : un prelevement ne se devine pas (regle 1), et aucun document ne le calcule a la place.
+pub(crate) fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<droit::pas::Versement>> {
     let e = &p.engagement;
     if e.sans_paie() {
         return Ok(None);
@@ -581,11 +582,9 @@ fn prelevement(ctx: &Contexte, p: &Paie) -> Resultat<Option<Value>> {
     let bareme = ctx.bareme(&Jour { an: fin.an, mois: fin.mois, jour: 1 })?;
     let t = |j: Jour| (j.an, j.mois, j.jour);
     let court = droit::natures::contrat_court(&*e.nat()?, t(e.debut), e.fin.map(t), t(fin));
-    match droit::pas::du_versement(taux.as_ref(), &bareme, p.net_imposable, Some(fin), court, droit::pas::ZONE_DEFAUT) {
-        Ok(v) => Ok(Some(v.canon())),
-        Err(droit::pas::ErreurPas::SansGrille(_)) => Ok(None),
-        Err(autre) => Err(autre.message().to_string()),
-    }
+    droit::pas::du_versement(taux.as_ref(), &bareme, p.net_imposable, Some(fin), court, droit::pas::ZONE_DEFAUT)
+        .map(Some)
+        .map_err(|e| e.message().to_string())
 }
 
 /// La paie de l'engagement `o` pour `mois`, calculee maintenant : `{"paie", "fiches", "pas", "empreinte"}`.
@@ -616,7 +615,7 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
             .map(|i| {
                 let p = s.paies.get(*i).ok_or("le calcul du mois n'a pas cette paie")?;
                 let conges = crate::conges::compteur_ecrit(ctx, p, mois)?;
-                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?, conges, p.engagement.fin_periode()?))
+                Ok((relire::ecrire(ctx, p)?, relire::fiches_du_calcul(p), prelevement(ctx, p)?.map(|v| v.canon()), conges, p.engagement.fin_periode()?))
             })
             .collect::<Resultat<Vec<_>>>()
     })?;

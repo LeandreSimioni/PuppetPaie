@@ -740,19 +740,21 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     let mut a_poser: HashMap<usize, (Option<String>, Option<i64>)> = HashMap::new();
 
     // LES BULLETINS : un numero par paie qui a des cachets, ecrit dans la paie a son depart.
+    // Le numero de chaque bulletin, a cote de sa paie : celui que la paie ecrite porte, sinon celui que ce depart reserve.
+    let mut numeros: Vec<Option<String>> = vec![None; paies.len()];
     let mut numerotees: Vec<bool> = vec![false; paies.len()];
     for i in 0..paies.len() {
         if paies[i].engagement.sans_paie() {
             continue;
         }
         if let Some(b) = ecrits.get(i).and_then(|e| e.bulletin.clone()) {
-            paies[i] = paies[i].sous_le_bulletin(Some(b));
+            numeros[i] = Some(b);
             numerotees[i] = true;
         } else if part(&paies[i]) {
             let n = faits.reserves.prochain(ctx, "bulletin", an)?;
             faits.reserves.enregistrer(an, "bulletin", n);
             let numero = format!("{}/{}", n, an);
-            paies[i] = paies[i].sous_le_bulletin(Some(numero.clone()));
+            numeros[i] = Some(numero.clone());
             a_poser.entry(i).or_default().0 = Some(numero);
             numerotees[i] = true;
         }
@@ -819,7 +821,8 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             }
             let imprimees: Vec<Paie> = siennes.iter().map(|i| paies[*i].clone()).collect();
             let rectifs: HashMap<usize, Value> = siennes.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
-            let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, Some(&paies), false, &rectifs).map_err(valeur)?;
+            let leurs_numeros: Vec<Option<String>> = siennes.iter().map(|i| numeros[*i].clone()).collect();
+            let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, &ent, mois, Some(&paies), false, &rectifs).map_err(valeur)?;
             documents::fabrique::ecrire_pdf(&description, &piece)?;
         }
         let ses_certificats: Vec<(&PaieCs, i64)> = certificats.iter().filter(|(i, _, _)| cle_de(&paies[*i]) == cle).map(|(_, pc, n)| (*pc, *n)).collect();
@@ -834,7 +837,8 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
     if !archivees.is_empty() {
         let imprimees: Vec<Paie> = archivees.iter().map(|i| paies[*i].clone()).collect();
         let rectifs: HashMap<usize, Value> = archivees.iter().enumerate().filter_map(|(k, i)| rectificatifs.get(i).map(|r| (k, r.clone()))).collect();
-        let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &ent, mois, None, false, &rectifs).map_err(valeur)?;
+        let leurs_numeros: Vec<Option<String>> = archivees.iter().map(|i| numeros[*i].clone()).collect();
+        let description = documents::bulletin::jeux_et_description(ctx, &imprimees, &leurs_numeros, &ent, mois, None, false, &rectifs).map_err(valeur)?;
         documents::fabrique::ecrire_pdf(&description, &sortie.join(format!("Bulletins_{}.pdf", etiq)))?;
     }
     if !certificats.is_empty() {

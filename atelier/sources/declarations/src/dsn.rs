@@ -2183,10 +2183,18 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     // Le versement du mois a le rang de son contrat : un contrat paye ce mois, un versement (`generer`).
     f.add("S21.G00.50.003", numero_de_versement(rang)?);
     f.add("S21.G00.50.004", mt(p.net_verse()));
-    // Le prelevement d'une paie validee est celui qu'elle a ecrit (`Paie::pas`) : la DSN ne le recalcule pas.
+    // Le prelevement d'une paie validee est celui qu'elle a ecrit (`Paie::pas`) : la DSN ne le recalcule pas. Un mois
+    // sans paie n'en a pas : son versement nul porte le taux qui vaut pour le salarie.
     let (taux, type_taux, identifiant, soumis) = match &p.pas {
         Some(v) => (v.taux.clone(), v.type_taux.clone(), v.identifiant.clone(), v.montant_soumis),
-        None => pas_du_versement(taux_pas, bar, p.net_imposable, fin, court(p, fin)?)?,
+        None if e.sans_paie() => pas_du_versement(taux_pas, bar, p.net_imposable, fin, court(p, fin)?)?,
+        None => {
+            return Err(format!(
+                "La paie de {} pour {} ne porte pas de prelevement a la source (paie ecrite illisible : `pas`). Revalider l'engagement.",
+                en_texte(p.salarie.get("_cle").unwrap_or(&Value::Null)),
+                e.mois
+            ))
+        }
     };
     f.add_v("S21.G00.50.006", &taux)?;
     f.add_v("S21.G00.50.007", &type_taux)?;
