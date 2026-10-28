@@ -1,5 +1,5 @@
-//! Le prelevement a la source des paies d'un mois : le taux de chacune (`droit::pas`), ou ce qu'une DSN a deja
-//! declare pour elle.
+//! Le prelevement a la source des paies d'un mois : celui de la paie declaree, sinon celui que la validation a ecrit
+//! dans la paie, sinon le taux de chacune (`droit::pas`).
 
 use serde_json::Value;
 
@@ -9,9 +9,9 @@ use droit::natures::contrat_court;
 use droit::pas::{du_versement, taux_dgfip, ErreurPas, Triplet, Versement, ZONE_DEFAUT};
 use socle::date::{en_texte, Jour};
 
-/// Le prelevement d'une paie qu'une DSN a deja declare, ou `None` : aucune DSN partie n'a declare le mois de sa paie
-/// pour son engagement (une paie ajoutee apres le depot, que la correction du mois suivant declarera), ou la paie n'a
-/// pas de numero de contrat.
+/// Le prelevement de la paie declaree (`engagement::etats::paie_declaree`), ou `None` : aucune DSN partie n'a declare
+/// le mois de sa paie pour son engagement (une paie ajoutee apres le depot, que la correction du mois suivant
+/// declarera), ou la paie n'a pas de numero de contrat.
 ///
 /// LE PAS D'UN MOIS DECLARE SE LIT, IL NE SE RECALCULE PAS (regles 1 et 4). CGI art. 1671, 1 et 2
 /// (`atelier/reference/sources/code-general-des-impots/articles-20261013.md`, l. 99 et 102) : la retenue « est effectuée
@@ -49,8 +49,8 @@ struct Lus {
 
 /// Ce que `du_versement` dit de chaque paie, par POSITION dans `paies` (`None` :
 /// paie sans bulletin, ou bareme sans grille -- on n'imprime pas un impot qu'on
-/// ne sait pas calculer). Une paie qu'une DSN deposee a deja declaree garde le prelevement que la DSN dit
-/// (`deja_declare`) ; une paie validee, celui qu'elle a ecrit (`Paie::pas`). Sinon le taux DGFiP se lit une fois par
+/// ne sait pas calculer). Une paie deja declaree garde le prelevement de la paie declaree (`deja_declare`) ; une paie
+/// validee, celui qu'elle a ecrit (`Paie::pas`). Sinon le taux DGFiP se lit une fois par
 /// salarie, et l'abattement se calcule une fois par versement.
 pub fn des_paies(ctx: &Contexte, paies: &[Paie]) -> Result<Vec<Option<Versement>>, String> {
     let mut taux: Vec<(String, Option<Triplet>)> = Vec::new();

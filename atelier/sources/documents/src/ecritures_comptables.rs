@@ -107,8 +107,8 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
     // le net et du a la DGFiP (compte 4421 « Prelevements a la source (Impot sur le revenu) » du plan
     // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md). Une paie dont le prelevement
     // ne se calcule pas (bareme sans grille) n'en a pas : le bulletin imprime 0,00 et paie le net entier. Le PAS d'un
-    // mois DEPOSE est celui que sa DSN a declare (S21.G00.50.009), lu et non recalcule au taux du jour (CGI
-    // art. 1671 : `prelevement::des_paies`).
+    // mois declare est celui de la paie declaree (`engagement::etats::paie_declaree`), lu et non recalcule au taux du
+    // jour (CGI art. 1671 : `prelevement::des_paies`).
     let pas_des_paies = crate::prelevement::des_paies(ctx, &paies).map_err(refus)?;
     let mut pas_du_mois = zero;
     // LES RETENUES (une ligne hors assiette de nature `retenue` : acompte, avance, saisie) ne sont pas une charge : un
