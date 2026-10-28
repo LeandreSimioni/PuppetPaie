@@ -265,7 +265,7 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
         let (bic, iban) = comptes.iter().next().copied().unwrap_or_default();
         entreprise.entry("banque").or_insert_with(|| json!({"bic": bic, "iban": iban}));
     }
-    if let Some(b) = blocs20.iter().find(|b| b[0] == crate::dsn::SIRET_FRANCE_TRAVAIL && !b[1].is_empty()) {
+    if let Some(b) = blocs20.iter().find(|b| b[0] == declarations::dsn::SIRET_FRANCE_TRAVAIL && !b[1].is_empty()) {
         entreprise.entry("france_travail_dossier_recouvrement").or_insert_with(|| texte(&b[1]));
     }
     let versements: Vec<Value> = versements
@@ -670,7 +670,7 @@ pub(crate) fn employeur_aem(chemin: &Path) -> Employeur {
             continue;
         }
         let s = tranche(&l, AEM_SIRET.0, AEM_SIRET.1);
-        if s.len() == 14 && s.chars().all(|c| c.is_ascii_digit()) && crate::champs::luhn(&s) {
+        if s.len() == 14 && s.chars().all(|c| c.is_ascii_digit()) && declarations::champs::luhn(&s) {
             e.sirens.insert(s[..9].to_string());
         } else {
             e.illisibles += 1;

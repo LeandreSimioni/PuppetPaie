@@ -260,7 +260,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("en_cours".into(), json!(cours));
         o.insert("peut_prolonger".into(), json!(cours));
         o.insert("peut_reprendre_plus_tot".into(), json!(cours));
-        o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(imp, crate::signalement::REPRISE)));
+        o.insert("reprise_corrigeable".into(), json!(vrai(&imp["reprise"]) && !envoye(imp, declarations::signalement::REPRISE)));
         return Ok(r);
     }
     let motif = magasin(imprevus::motif_de_suspension(&valeur_en_texte(&imp["motif"])))?.unwrap_or(Value::Null);
@@ -534,7 +534,7 @@ tombent, est à corriger.",
         }
     }
     let sub_change = sub_fin.is_some() && a["subrogation_fin"] != avant["subrogation_fin"];
-    if sub_change && envoye(&avant, crate::signalement::ARRET) {
+    if sub_change && envoye(&avant, declarations::signalement::ARRET) {
         avertissements.push(json!(
             "Le signalement d'arrêt est déjà parti avec l'ancienne fin de subrogation : un signalement d'arrêt annule et \
 remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). Il paraît dans ce qui est dû."
@@ -552,7 +552,7 @@ remplace porte la nouvelle, le plus vite possible (fiche net-entreprises 1983). 
 
 /// L'arret est-il subroge (S21.G00.60.004 = oui) ?
 fn signalement_subroge(a: &Value) -> R<bool> {
-    crate::signalement::avec_subrogation(&crate::dsn::Arret { v: a.clone() }).map_err(|m| erreur("ValueError", m))
+    declarations::signalement::avec_subrogation(&declarations::dsn::Arret { v: a.clone() }).map_err(|m| erreur("ValueError", m))
 }
 
 /// UNE SUBROGATION QUI S'ARRETE AVANT L'ARRET : `(true, la question)` quand l'arret est subroge et que sa fin de subrogation

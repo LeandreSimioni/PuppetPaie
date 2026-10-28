@@ -31,7 +31,7 @@ Ce qui reste à faire : `paie rappels`, `paie echeancier`. Ce qui est parti : `p
 ## DSN mensuelle
 
 - **Quand** : le 15 du mois suivant ; le 5 à partir de cinquante salariés (déduit de l'effectif des retours), **à midi** ;
-  un samedi, un dimanche ou un jour férié reporte au jour ouvré suivant (R. 133-14, I ; `paie/src/echeance_dsn.rs`, que
+  un samedi, un dimanche ou un jour férié reporte au jour ouvré suivant (R. 133-14, I ; `declarations/src/echeance_dsn.rs`, que
   l'échéancier et les rappels disent). Due aussi les mois sans paie (envoi néant).
 - **Fichier** : `sorties/<mois>/DSN_<Mois><Année>.dsn`, écrit par `paie mois`.
 - `paie depot-dsn <fichier> --apercu` : ce qui partirait, sans réseau ni écriture. Puis `--test`, lire le bilan.

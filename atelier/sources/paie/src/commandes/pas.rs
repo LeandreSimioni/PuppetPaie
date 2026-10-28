@@ -280,7 +280,7 @@ pub fn appliquer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<
 /// acte a part (`paie depot-dsn`), avec sa preuve et son mot de passe -- et c'est lui qui fait courir les cinq jours ouvres, donc lui
 /// qui note la demande. Un refus de la norme ou de la demande est une phrase (code 1), jamais une trace.
 fn demander(cadre: &Cadre, args: &Args) -> i32 {
-    use crate::amorcage::paies_du_mois;
+    use declarations::amorcage::paies_du_mois;
     use crate::amorcage_demande::{produire, Demande};
     let ctx = &cadre.ctx;
     let motif = args.texte("motif").unwrap_or("07");
@@ -331,7 +331,7 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
     };
     let nom = |p: &std::path::Path| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     dire!("Signalements d'amorcage des donnees variables (nature 08)");
-    dire!("Motif {} - {}\n{}", lot.motif, crate::amorcage::libelle_motif(&lot.motif).unwrap_or_else(|_| "?".into()), "-".repeat(62));
+    dire!("Motif {} - {}\n{}", lot.motif, declarations::amorcage::libelle_motif(&lot.motif).unwrap_or_else(|_| "?".into()), "-".repeat(62));
     for (ligne, f) in lot.lignes.iter().zip(&lot.fichiers) {
         dire!("  {:<12} {:<24} {}", ligne.salarie, ligne.libelle, nom(f));
     }

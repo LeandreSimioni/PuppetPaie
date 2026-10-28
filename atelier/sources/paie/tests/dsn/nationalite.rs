@@ -16,7 +16,7 @@ use std::collections::HashMap;
 #[test]
 fn la_fiche_dit_l_ancien_03_avant_la_dsn() {
     let erreurs = |v: Value| -> Vec<Value> {
-        paie::champs::verifier_fiche("salarie", v.as_object().unwrap())
+        declarations::champs::verifier_fiche("salarie", v.as_object().unwrap())
             .unwrap()
             .into_iter()
             .filter(|a| a["champ"] == "code_nationalite_dsn" && a["gravite"] == "erreur")

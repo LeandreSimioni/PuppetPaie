@@ -251,7 +251,7 @@ pub(crate) fn ce_qui_manque(ctx: &Contexte, e: &Value) -> R<Vec<Value>> {
         ));
     }
     // CCH-12 de S21.G00.62.003 : la date de notification, obligatoire pour ces motifs (`fctu::notification_exigee`).
-    if vrai(motif) && !vrai(get(e, "notification_rupture")?) && crate::fctu::notification_exigee(&valeur_en_texte(motif)).map_err(plain)? {
+    if vrai(motif) && !vrai(get(e, "notification_rupture")?) && declarations::fctu::notification_exigee(&valeur_en_texte(motif)).map_err(plain)? {
         manque.push(json!(format!(
             "`notification_rupture` : la date de notification de la rupture (S21.G00.62.003) est obligatoire pour le motif {} \
 (CCH-12, cahier technique DSN p. 275) : l'envoi de la lettre de licenciement ou de rupture, la remise de la demission, la \
@@ -295,7 +295,7 @@ notification de la fin de la periode d'essai. Le signalement ne s'ecrit pas sans
              preavis applicable >>. {}",
             dit
         )));
-    } else if crate::fctu::preavis_non_effectue(&valeur_en_texte(get(preavis, "type")?)).map_err(plain)? && !vrai(get(e, "dernier_jour_paye")?) {
+    } else if declarations::fctu::preavis_non_effectue(&valeur_en_texte(get(preavis, "type")?)).map_err(plain)? && !vrai(get(e, "dernier_jour_paye")?) {
         manque.push(json!(
             "`dernier_jour_paye` : sur un preavis non effectue, le dernier jour travaille et paye au salaire habituel \
 (S21.G00.62.006) n'est pas la fin du contrat, il precede le debut du preavis (CCH-12, cahier technique DSN p. 275). La \
@@ -384,7 +384,7 @@ fn corrections_par_mois(ctx: &Contexte) -> R<Vec<Value>> {
 /// `etat_mois` : ce mois se corrige-t-il par regularisation, et sinon, quoi faire.
 fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
     let e = m.dsn_du_mois(mois)?;
-    let echeance = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
+    let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let passee = ctx.aujourdhui > limite;
     let deposee = vrai(&e);

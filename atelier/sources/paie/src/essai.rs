@@ -183,15 +183,15 @@ impl Identite {
             return Err(format!("{} : vide(s) : {}. Rien n'est ecrit.", VARIABLE, vides.join(", ")));
         }
         let siren = self.texte("siren")?;
-        if !chiffres(&siren, 9) || !crate::champs::luhn(&siren) {
+        if !chiffres(&siren, 9) || !declarations::champs::luhn(&siren) {
             return refus("siren", "9 chiffres attendus, cle de Luhn juste");
         }
         let nic = self.texte("nic")?;
-        if !chiffres(&nic, 5) || !crate::champs::luhn(&format!("{}{}", siren, nic)) {
+        if !chiffres(&nic, 5) || !declarations::champs::luhn(&format!("{}{}", siren, nic)) {
             return refus("nic", "5 chiffres attendus, et le SIRET (siren + nic) a cle de Luhn juste");
         }
         let siret_dpae = self.texte("api_dpae.siret")?;
-        if !siret_dpae.is_empty() && (!chiffres(&siret_dpae, 14) || !crate::champs::luhn(&siret_dpae)) {
+        if !siret_dpae.is_empty() && (!chiffres(&siret_dpae, 14) || !declarations::champs::luhn(&siret_dpae)) {
             return refus("api_dpae.siret", "14 chiffres attendus, cle de Luhn juste (ou vide : le SIRET de la compagnie)");
         }
         if !chiffres(&self.texte("code_postal")?, 5) {
@@ -207,7 +207,7 @@ impl Identite {
         for (cle, rubriques) in RUBRIQUES {
             let t = self.texte(cle)?;
             for r in rubriques {
-                let pourquoi = crate::formats::mauvaise(r, &t)?;
+                let pourquoi = declarations::formats::mauvaise(r, &t)?;
                 if !pourquoi.is_empty() {
                     return refus(cle, &format!("ne tient pas dans {} de la DSN : {}", r, pourquoi));
                 }

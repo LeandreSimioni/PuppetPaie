@@ -545,7 +545,7 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
     // L'echeance : `echeance_dsn`, le 5 ou le 15 du mois suivant selon l'effectif, reporte au jour ouvre suivant un
     // samedi, un dimanche ou un jour ferie (R. 133-14, I), a midi. Passee, ce n'est plus un rappel, c'est un retard --
     // et on le dit.
-    let echeance = crate::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
+    let echeance = declarations::echeance_dsn::de_la_compagnie(st.ctx, mois)?;
     r.en_retard = st.aujourdhui > echeance.jour;
     r.echeance_depot = Some(echeance.en_json());
 
@@ -1312,7 +1312,7 @@ pub(crate) fn urssaf_de_l_apercu(ctx: &Contexte, paies: &[Paie], mois: &str) -> 
         );
         Value::Null
     } else {
-        match crate::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
+        match declarations::dsn::montant_urssaf(ctx, &paies_p, mois, None) {
             Ok(m) => Value::String(m.to_string()),
             Err(e) => {
                 avert.push(format!("Bordereau Urssaf non calculable : {}", e));

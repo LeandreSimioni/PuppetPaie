@@ -23,7 +23,7 @@ use serde_json::json;
 /// La fiche propose la dispense et ses bornes aux permanents des deux conventions qui en ont (1285, 3090).
 #[test]
 fn la_fiche_propose_la_dispense_de_sante_en_ccneac_et_en_3090() {
-    let d = paie::champs::description("salarie").unwrap();
+    let d = declarations::champs::description("salarie").unwrap();
     for cle in ["sante_dispense", "sante_dispense_depuis", "sante_dispense_jusqu_au"] {
         let c = d.as_array().unwrap().iter().find(|c| c["cle"] == json!(cle)).unwrap_or_else(|| panic!("{}", cle));
         assert_eq!(c["si_entreprise"], json!({"idcc": ["1285", "3090"]}), "{}", cle);

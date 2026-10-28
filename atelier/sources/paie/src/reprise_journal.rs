@@ -247,7 +247,7 @@ pub(crate) fn embauches_attestees(ctx: &Contexte) -> (Vec<Value>, Vec<String>) {
         };
         let texte: String = octets.iter().map(|&b| b as char).collect();
         let (mut embauches, mut quand, mut mois) = (Vec::<Value>::new(), String::new(), String::new());
-        for ligne in crate::dpae::relire(&texte) {
+        for ligne in declarations::dpae::relire(&texte) {
             let champ = |k: &str| ligne.iter().find(|(n, _)| *n == k).map(|(_, v)| v.trim().to_string()).unwrap_or_default();
             let (nir, emb) = (champ("nir"), champ("date_embauche"));
             let e: Vec<char> = emb.chars().collect();

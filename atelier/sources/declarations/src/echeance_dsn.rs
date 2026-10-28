@@ -69,7 +69,7 @@ pub struct Echeance {
 }
 
 /// Pourquoi `j` n'est pas un jour ouvre du point de depot, ou `None` s'il l'est.
-pub(crate) fn non_ouvre(j: &Jour) -> Resultat<Option<String>> {
+pub fn non_ouvre(j: &Jour) -> Resultat<Option<String>> {
     match j.jour_de_la_semaine() {
         5 => return Ok(Some("samedi".into())),
         6 => return Ok(Some("dimanche".into())),

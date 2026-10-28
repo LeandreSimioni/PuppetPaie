@@ -175,7 +175,7 @@ fn parsedate_tz(donnees: &str) -> Option<(i64, i64, i64, i64, i64, i64, Option<i
             return None;
         }
     }
-    if !yy.chars().next().is_some_and(|c| crate::champs::est_chiffre(c)) {
+    if !yy.chars().next().is_some_and(|c| declarations::champs::est_chiffre(c)) {
         std::mem::swap(&mut yy, &mut tz);
     }
     if tm.ends_with(',') {

@@ -327,7 +327,7 @@ fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let mut out = Vec::new();
     for m in mois_a_declarer(&st).map_err(socle::echec::Echec::from)? {
         // Le jour de depot, reporte au jour ouvre (`echeance_dsn`) : le reveil sonne la veille et le jour meme, avant midi.
-        let jour = crate::echeance_dsn::du_mois(&m, echeance).map_err(socle::echec::Echec::from)?.jour;
+        let jour = declarations::echeance_dsn::du_mois(&m, echeance).map_err(socle::echec::Echec::from)?.jour;
         out.push((m, jour.iso()));
     }
     Ok(out)

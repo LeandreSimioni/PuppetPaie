@@ -749,7 +749,7 @@ pub fn deposer_dsn_dans(
             .map_err(Echec::from)?;
         // Et la version presente de l'engagement de chaque mois passe dont la DSN porte la correction.
         if let Value::Array(a) = &mut v {
-            a.extend(crate::produire_regularisations::versions_portees(ctx, &mois, &nic)?);
+            a.extend(declarations::produire_regularisations::versions_portees(ctx, &mois, &nic)?);
         }
         v
     };
@@ -818,7 +818,7 @@ pub fn deposer_dsn_dans(
         )?;
         // ET LA TRACE D'UNE DEMANDE DE TAUX, quand c'est un signalement d'amorcage : sans elle, le moteur
         // redirait << aucun taux connu, il faut demander >> a chaque ouverture.
-        if apercu.champ("nature") == crate::amorcage::NATURE {
+        if apercu.champ("nature") == declarations::amorcage::NATURE {
             crate::marques_depot::marquer_demande_depuis(ctx, &chemin, &quand)?;
         }
     }

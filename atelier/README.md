@@ -1239,7 +1239,7 @@ signature.
 1. **Le montant Urssaf** du bloc `S21.G00.20` de la DSN. C'est un ordre de
    télépaiement, et il se **calcule** depuis le 29/09/2026 : c'est la somme des
    lignes du bordereau (bloc 23), chacune valorisée à la table des CTP de
-   l'Urssaf et arrondie à l'euro (`paie/src/bordereau.rs`) — 74 des 75
+   l'Urssaf et arrondie à l'euro (`documents/src/bordereau.rs`) — 74 des 75
    DSN de CoolPaie retrouvées au centime. Rien à recopier :
 
    ```
@@ -1473,7 +1473,7 @@ figé, et la colonne reste vide plutôt que de porter un numéro qui n'a jamais
 `paie exporter` sans argument les liste, rangés par famille comme
 dans le menu de l'onglet. Chacun se demande pour un mois, une année ou toutes
 les années (sauf mention), et s'écrit en **CSV, texte tabulé, XLSX, PDF, HTML
-ou JSON** — la machinerie commune `paie/src/tableaux_export.rs`, que chaque état suit
+ou JSON** — la machinerie commune `documents/src/tableaux_export.rs`, que chaque état suit
 sans rien avoir à dire. Chaque fichier porte en pied ses avertissements et
 ses **sources** (l'article, la norme ou le format qui le fonde).
 
@@ -1518,7 +1518,7 @@ reconstitué. **Ce qui lit « DSN déposée » lit le fichier parti** (règle du
 §74.2) : un mois sans DSN réelle acceptée n'y est pas, et un état sans aucune
 DSN refuse.
 
-**Les formats de comptabilité** (`paie/src/etats_compta.rs`) :
+**Les formats de comptabilité** (`documents/src/etats_compta.rs`) :
 
 - **`fec`** — un *extrait* du journal de paie aux 18 zones du Fichier des
   Écritures Comptables (art. A47 A-1 du LPF) : tabulation, dates AAAAMMJJ,

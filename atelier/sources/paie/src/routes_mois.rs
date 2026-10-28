@@ -437,7 +437,7 @@ impl<'a> Moteur<'a> {
         // le contrat qui deborde du mois reprend le numero de son premier mois.
         let mut paies = Vec::new();
         for e in &engs {
-            paies.push(crate::amorcage::embauche(self.ctx, e).map_err(plain)?);
+            paies.push(declarations::amorcage::embauche(self.ctx, e).map_err(plain)?);
         }
         for p in paies.iter_mut() {
             engagement::suivre_contrat(self.ctx, &mut p.engagement).map_err(classer_saisie)?;
@@ -732,7 +732,7 @@ impl<'a> Moteur<'a> {
     /// `limite` : le dernier jour ou un annule-et-remplace est admis, jusqu'a minuit : la veille de l'echeance de depot
     /// (`echeance_dsn::Echeance::veille`, reportee comme elle).
     pub(crate) fn limite(&self, mois: &str) -> R<Jour> {
-        let e = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+        let e = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         e.veille().map_err(plain)
     }
 
@@ -810,7 +810,7 @@ impl<'a> Moteur<'a> {
             0
         } else {
             let departs = crate::journal::departs(&self.ctx.racine).map_err(plain)?;
-            crate::produire_regularisations::corrections_dues(self.ctx, mois, "9999-12", &departs)?.len()
+            declarations::produire_regularisations::corrections_dues(self.ctx, mois, "9999-12", &departs)?.len()
         };
         if corriges > 0 {
             modifiee = true;
@@ -940,7 +940,7 @@ impl<'a> Moteur<'a> {
         // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) : ses etapes se sont faites ailleurs ; elles le disent, sans geste.
         if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
             let mut b = crate::mois_importe::etapes(&vue);
-            let echeance = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+            let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
             b[DSN]["echeance_depot"] = echeance.en_json();
             return Ok(b);
         }
@@ -1165,7 +1165,7 @@ impl<'a> Moteur<'a> {
             }
         }
         // L'echeance de depot du mois (`echeance_dsn` : le 5 ou le 15, reporte au jour ouvre, a midi).
-        let echeance = crate::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
+        let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         b.insert("echeance_depot".into(), echeance.en_json());
         out.insert(DSN.into(), Value::Object(b));
         Ok(Value::Object(out))

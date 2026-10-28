@@ -29,7 +29,7 @@ use socle::echec::Echec;
 use crate::routes_dossiers::salarie;
 use crate::routes_ecrites::marquer_echeance;
 use crate::routes_listes::nomenclatures;
-use crate::signalement::{self, ARRET};
+use declarations::signalement::{self, ARRET};
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 5] = [
@@ -138,7 +138,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
 /// `signalement.verifier(arret, ARRET)` : ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
 pub(crate) fn verifier(arret: &Value) -> R<()> {
-    match signalement::verifier(&crate::dsn::Arret { v: arret.clone() }, ARRET, None) {
+    match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, ARRET, None) {
         Ok(_) => Ok(()),
         Err(signalement::Echec::Impossible(m)) => Err(erreur("ValueError", m)),
         Err(signalement::Echec::Autre(m)) => Err(Echec { classe: None, message: m }),

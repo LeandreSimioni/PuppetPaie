@@ -14,7 +14,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::amorcage;
+use declarations::amorcage;
 use engagement::calcul::lignes_brut;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, jours_du_mois, Jour};
@@ -75,7 +75,7 @@ pub(crate) fn lire_saisie(chemin: &Path) -> R<Value> {
 
 /// `operations_socle.mois_hors_delai` : la date limite de depot depassee (`echeance_dsn`, reportee), ou `None`.
 pub(crate) fn mois_hors_delai(ctx: &Contexte, mois: &str) -> R<Option<Jour>> {
-    let limite = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?.jour;
+    let limite = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?.jour;
     Ok(if ctx.aujourdhui > limite { Some(limite) } else { None })
 }
 
@@ -545,7 +545,7 @@ fn date_en_clair(j: &Jour) -> String {
 
 /// La DSN de `mois`, due dans le mois suivant, a midi, le jour que dit `echeance_dsn` (reporte au jour ouvre).
 fn dsn(st: &Etat, jour_dsn: u32, mois: &str, modele: &Value, aujourdhui: &Jour) -> R<Echeance> {
-    let echeance = crate::echeance_dsn::du_mois(mois, jour_dsn).map_err(|m| erreur("ValueError", m))?;
+    let echeance = declarations::echeance_dsn::du_mois(mois, jour_dsn).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let e = st.etat_dsn(mois).map_err(en_echec)?;
     let etat = if vrai(&e) && !vrai_opt(e.get("refusee")) {
@@ -668,7 +668,7 @@ fn annuelle(
         }
     }
     // `{jour_dsn}` : le jour de janvier ou la DSN de decembre de l'annee d'avant est due, reporte (`echeance_dsn`).
-    let jour_dsn = crate::echeance_dsn::du_mois(&format!("{:04}-12", annee - 1), jour_dsn).map_err(|m| erreur("ValueError", m))?.jour.jour;
+    let jour_dsn = declarations::echeance_dsn::du_mois(&format!("{:04}-12", annee - 1), jour_dsn).map_err(|m| erreur("ValueError", m))?.jour.jour;
     let valeurs = [("annee", annee.to_string()), ("annee_precedente", (annee - 1).to_string()), ("jour_dsn", jour_dsn.to_string())];
     let mois = format!("{}-{:02}", annee, mois_de_l_echeance(e, Some(0))?);
     let courant = format!("{:04}-{:02}", aujourdhui.an, aujourdhui.mois);

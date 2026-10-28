@@ -14,7 +14,7 @@ use std::sync::Arc;
 pub(crate) use socle::texte::{blanc as espace, lignes_py as lignes, strip};
 
 /// `ligne.partition(",")` puis la valeur sans espaces ni apostrophes.
-pub(crate) fn rubrique_valeur(ligne: &str) -> (&str, &str) {
+pub fn rubrique_valeur(ligne: &str) -> (&str, &str) {
     match ligne.split_once(',') {
         Some((r, v)) => (r, strip(v).trim_matches('\'')),
         None => (ligne, ""),
@@ -27,7 +27,7 @@ pub fn table_de(norme: &Norme) -> Resultat<Arc<Value>> {
 }
 
 /// `S\d\d\.G00\.\d\d\.\d\d\d`, en entier.
-pub(crate) fn est_rubrique(r: &str) -> bool {
+pub fn est_rubrique(r: &str) -> bool {
     let c: Vec<char> = r.chars().collect();
     c.len() == 14
         && c[0] == 'S'

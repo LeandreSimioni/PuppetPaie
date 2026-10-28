@@ -117,7 +117,7 @@ struct Cumul {
 }
 
 /// `operations_etats.cotisations_par_organisme` : ce qui est du a chaque organisme, rubrique par rubrique.
-pub(crate) fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let regroupement = d.regroupement.as_str();
     if !["organisme", "mois"].contains(&regroupement) {
         return Err(refus(format!("Regroupement inconnu pour les cotisations : « {} » (organisme ou mois).", regroupement)));
@@ -312,7 +312,7 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
 
 /// `operations_etats.versements_organismes` : chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20), partie
 /// ou a deposer (`dsn_des_mois`).
-pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
+pub fn versements_organismes(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let noms = libelles_organismes(ctx)?;
@@ -448,7 +448,7 @@ fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
 
 /// `operations_etats.bordereau_urssaf` : le bordereau Urssaf de chaque mois, CTP par CTP, tel que la DSN le porte, partie ou a deposer (`dsn_des_mois`), avec ceux des mois que ses corrections regularisent. Les taux ne sont
 /// pas appliques ici : c'est l'Urssaf qui calcule depuis les assiettes, et un export ne calcule pas.
-pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
+pub fn bordereau_urssaf(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let ctp = libelles_ctp(ctx)?;
@@ -511,7 +511,7 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 
 /// `operations_etats.fcap_svp` : 0,1 % de la tranche A de l'annee, plancher 80 EUR, plafond 300 EUR, paye HORS
 /// DSN en debut d'annee. La tranche A est la base 02 que la DSN declare (S21.G00.78), tiree des paies declarees.
-pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
     let idcc = idcc_de(ctx);
     let table = socle::fichiers::lire_json_echec(&socle::fichiers::dossier_du_code().join("prevoyance-conventionnelle-base.json"))?;
@@ -596,7 +596,7 @@ pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 /// avant le 28 fevrier. La production cinematographique (3097) paie les memes, aux memes taux ; les espaces de
 /// loisirs (1790) la formation conventionnelle de leurs permanents. La masse se lit dans le livre de paie,
 /// bulletin par bulletin, avec la nature du contrat : un CDDU est un intermittent.
-pub(crate) fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Les contributions Afdas de la 2642 sont annuelles : elles se demandent pour une année, ou pour toutes.", d)?;
     let idcc = idcc_de(ctx);
     let branche = match idcc.as_str() {
@@ -702,7 +702,7 @@ pub(crate) fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 /// `operations_etats.paritarisme_branche` : le financement du paritarisme d'une branche qui le collecte une fois
 /// l'an, hors DSN, sur la masse salariale de l'annee ecoulee (3252, 3241, et toute couche qui porte
 /// `hors_bulletin.financement_paritarisme`). La masse se lit dans le livre de paie.
-pub(crate) fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
+pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le paritarisme de branche est annuel : il se demande pour une année, ou pour toutes.", d)?;
     let idcc = idcc_de(ctx);
     let p = Periode::de(ctx, d, true)?;

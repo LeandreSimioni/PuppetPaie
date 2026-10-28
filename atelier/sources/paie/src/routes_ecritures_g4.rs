@@ -287,7 +287,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let montant = crate::routes_fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
     let qui = charge.get("qui").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "interface".to_string());
-    crate::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
+    declarations::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
 }
 
 // ------------------------------------------------------------------ exporter
@@ -342,12 +342,12 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         analytique: charge.get("analytique").map(vrai),
     };
     if etat == "regularisation-casc-svp" {
-        let demande = crate::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes_accueil::boite_liee(ctx).unwrap_or(false), ..Default::default() };
-        let mut r = crate::casc_regularisation::regularisation(ctx, &demande)?;
+        let demande = declarations::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes_accueil::boite_liee(ctx).unwrap_or(false), ..Default::default() };
+        let mut r = declarations::casc_regularisation::regularisation(ctx, &demande)?;
         if d.ecrire {
-            crate::casc_regularisation::ecrire(ctx, &mut r)?;
+            declarations::casc_regularisation::ecrire(ctx, &mut r)?;
         }
-        return Ok(Exporte::Casc(crate::casc_regularisation::vers_json(&r)));
+        return Ok(Exporte::Casc(declarations::casc_regularisation::vers_json(&r)));
     }
     if etat == "livre-de-paie" {
         return Ok(Exporte::Livre(documents::etats_paie::livre_de_paie(ctx, &d)?));
@@ -372,12 +372,12 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         "masse-salariale" => documents::etats_paie::masse_salariale(ctx, &d),
         "etat-des-virements" => documents::etats_paie::etat_des_virements(ctx, &d),
         "prelevement-a-la-source" => documents::etats_paie::prelevement_a_la_source(ctx, &d),
-        "cotisations-par-organisme" => crate::etats_organismes::cotisations_par_organisme(ctx, &d),
-        "versements-organismes" => crate::etats_organismes::versements_organismes(ctx, &d, &crate::depart::dsn_du_mois),
-        "bordereau-urssaf" => crate::etats_organismes::bordereau_urssaf(ctx, &d, &crate::depart::dsn_du_mois),
-        "fcap-svp" => crate::etats_organismes::fcap_svp(ctx, &d),
-        "afdas-2642" => crate::etats_organismes::afdas_2642(ctx, &d),
-        "paritarisme-branche" => crate::etats_organismes::paritarisme_branche(ctx, &d),
+        "cotisations-par-organisme" => declarations::etats_organismes::cotisations_par_organisme(ctx, &d),
+        "versements-organismes" => declarations::etats_organismes::versements_organismes(ctx, &d, &crate::depart::dsn_du_mois),
+        "bordereau-urssaf" => declarations::etats_organismes::bordereau_urssaf(ctx, &d, &crate::depart::dsn_du_mois),
+        "fcap-svp" => declarations::etats_organismes::fcap_svp(ctx, &d),
+        "afdas-2642" => declarations::etats_organismes::afdas_2642(ctx, &d),
+        "paritarisme-branche" => declarations::etats_organismes::paritarisme_branche(ctx, &d),
         "reduction-generale" => documents::etats_paie::reduction_generale(ctx, &d),
         "assiettes" => documents::etats_paie::assiettes(ctx, &d),
         "heures-et-cachets" => documents::etats_paie::heures_et_cachets(ctx, &d),

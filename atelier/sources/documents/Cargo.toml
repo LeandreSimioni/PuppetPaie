@@ -2,7 +2,7 @@
 name = "documents"
 version = "0.1.0"
 edition = "2021"
-description = "Les documents de PuppetPaie : contrat, avenant, bulletin, certificat Congés Spectacles, AER, questionnaire, bordereau, prélèvement à la source, et la fabrique de PDF ; chacun se fabrique depuis l'engagement validé, aucun ne recalcule."
+description = "Les documents de PuppetPaie : contrat, avenant, bulletin, certificat Congés Spectacles, AER, questionnaire, récapitulatif annuel, bordereau, prélèvement à la source, états de paie, du personnel et de comptabilité, plan comptable, numéros des pièces, et la fabrique de PDF ; chacun se fabrique depuis l'engagement validé, aucun ne recalcule."
 license = "EUPL-1.2"
 publish = false
 

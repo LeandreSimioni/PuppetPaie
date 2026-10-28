@@ -14,7 +14,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::champs;
+use declarations::champs;
 use droit::contexte::Contexte;
 use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_ecrite;
@@ -270,7 +270,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
         return Ok(champs::faute_de_norme(c, s)?.is_some());
     }
     let Some(rubrique) = c.rubrique.as_deref().filter(|r| !r.is_empty()) else { return Ok(false) };
-    let format = crate::formats::format_de(rubrique)?;
+    let format = declarations::formats::format_de(rubrique)?;
     if format.as_object().map_or(true, |o| o.is_empty()) {
         return Ok(false);
     }
@@ -618,7 +618,7 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
                 continue;
             }
             fichiers += 1;
-            for l in crate::usages::lignes(&texte) {
+            for l in socle::texte::lignes_py(&texte) {
                 if let Some(reste) = l.strip_prefix(prefixe) {
                     let mp: Vec<char> = reste.trim_matches('\'').chars().collect();
                     if mp.len() == 8 {

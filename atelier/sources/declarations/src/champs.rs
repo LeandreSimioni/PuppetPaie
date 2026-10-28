@@ -166,16 +166,16 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
 pub(crate) use socle::texte::{blanc as espace, strip};
 
 /// `str.isdigit()` : les chiffres, et ceux que Unicode range avec eux.
-pub(crate) fn est_chiffre(c: char) -> bool {
+pub fn est_chiffre(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}') || (c.is_numeric() && !c.is_alphabetic() && !matches!(c, '\u{bc}'..='\u{be}' | '\u{2150}'..='\u{218f}'))
 }
 
-pub(crate) fn tous_chiffres(s: &str) -> bool {
+pub fn tous_chiffres(s: &str) -> bool {
     !s.is_empty() && s.chars().all(est_chiffre)
 }
 
 /// `str.title()`.
-pub(crate) fn titre(s: &str) -> String {
+pub fn titre(s: &str) -> String {
     let mut out = String::new();
     let mut precedent_cased = false;
     for c in s.chars() {
@@ -195,7 +195,7 @@ pub(crate) fn titre(s: &str) -> String {
 }
 
 /// `sans_accents` : NFD, marques retirees.
-pub(crate) fn sans_accents(s: &str) -> String {
+pub fn sans_accents(s: &str) -> String {
     sans_accent(s)
 }
 
@@ -664,7 +664,7 @@ fn explication_nir(nir: &str) -> R<Option<String>> {
 
 /// `cle_nir` : 97 - (NIR mod 97), sur deux chiffres. La Corse fait exception :
 /// 2A et 2B au 6e-7e rang valent 19 et 18.
-pub(crate) fn cle_nir(nir: &str) -> Option<String> {
+pub fn cle_nir(nir: &str) -> Option<String> {
     let mut n = strip(nir).to_uppercase();
     if n.chars().count() != 13 {
         return None;
@@ -700,7 +700,7 @@ fn valeur_decimale(c: char) -> Option<u32> {
 }
 
 /// `luhn` : la cle du SIRET.
-pub(crate) fn luhn(numero: &str) -> bool {
+pub fn luhn(numero: &str) -> bool {
     if !tous_chiffres(numero) {
         return false;
     }
@@ -732,7 +732,7 @@ fn forme_declarative(c: &Champ, valeur: &str) -> String {
 }
 
 /// `faute_de_norme` : ce que la norme reproche a cette valeur -- `None` si elle passe.
-pub(crate) fn faute_de_norme(c: &Champ, valeur: &str) -> R<Option<String>> {
+pub fn faute_de_norme(c: &Champ, valeur: &str) -> R<Option<String>> {
     let Some(rubrique) = c.rubrique.as_deref().filter(|r| !r.is_empty()) else { return Ok(None) };
     if valeur.is_empty() {
         return Ok(None);

@@ -74,7 +74,7 @@ fn decrire(eff: &droit::contexte::Effectif, an: i32) -> String {
 
 fn erreurs(nom: &str, fiche: &Value) -> Result<Vec<Value>, Echec> {
     let m = fiche.as_object().cloned().unwrap_or_default();
-    let anomalies = crate::champs::verifier_fiche(nom, &m)?;
+    let anomalies = declarations::champs::verifier_fiche(nom, &m)?;
     Ok(anomalies.into_iter().filter(|a| a.get("gravite").and_then(Value::as_str) == Some("erreur")).collect())
 }
 

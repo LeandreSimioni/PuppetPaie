@@ -12,7 +12,7 @@ cargo build --release --locked      # target/release/fabrique-pdf[.exe]
 ```
 
 Le moteur ne lance pas ce programme : `paie` lie la fabrique comme
-bibliothèque (`paie/Cargo.toml`, `paie/src/fabrique.rs`), dans le même
+bibliothèque (`paie/Cargo.toml`, `documents/src/fabrique.rs`), dans le même
 processus, et sa ligne de commande est **`paie pdf …`** (les mêmes modes que
 ci-dessous ; `paie pdf --aide`). Le programme `fabrique-pdf` reste pour
 l'atelier.

@@ -94,12 +94,12 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Ok(1);
         }
     };
-    if contenu.is_empty() || contenu.len() % crate::dpae::LONGUEUR != 0 {
-        dire!("Ce fichier ne fait pas un multiple de {} octets : ce n'est pas un\nflux DPAE a plat. Rien n'est envoye.", crate::dpae::LONGUEUR);
+    if contenu.is_empty() || contenu.len() % declarations::dpae::LONGUEUR != 0 {
+        dire!("Ce fichier ne fait pas un multiple de {} octets : ce n'est pas un\nflux DPAE a plat. Rien n'est envoye.", declarations::dpae::LONGUEUR);
         return Ok(1);
     }
     let texte: String = contenu.iter().map(|&b| b as char).collect();
-    let enregistrements = crate::dpae::relire(&texte);
+    let enregistrements = declarations::dpae::relire(&texte);
     let champ = |e: &Vec<(&'static str, String)>, k: &str| e.iter().find(|(n, _)| *n == k).map(|(_, v)| v.clone()).unwrap_or_default();
 
     // ------------------------------------------------------------- relecture

@@ -230,7 +230,7 @@ fn effectif_atteint(ctx: &Contexte, seuil: i64, annee_paie: i32, quoi: &str) -> 
 /// Les CTP du bordereau (`ctp_urssaf` du fichier des organismes), sans ceux de la taxe d'apprentissage (992, 993) quand
 /// elle n'est pas due (`non_due` : `taxe_apprentissage_non_due_au_mois` pour le bordereau d'un mois,
 /// `taxe_apprentissage_non_due` pour le bloc 44 d'un millesime).
-pub(crate) fn ctp_sans_la_taxe_non_due(ctps: Vec<Value>, non_due: bool) -> Vec<Value> {
+pub fn ctp_sans_la_taxe_non_due(ctps: Vec<Value>, non_due: bool) -> Vec<Value> {
     if !non_due {
         return ctps;
     }
@@ -282,7 +282,7 @@ n'est ecrit.",
 /// decembre (la norme ne les demande qu'une fois l'an, « au plus tard » en decembre ; le moteur ne connait pas la
 /// cessation d'activite, seul autre cas de la p. 58). `ent` : la fiche entreprise ; `ent_e` : vue depuis
 /// l'etablissement ; `bar` : le bareme du mois pour l'etablissement ; `paies` : celles que la DSN declare.
-pub(crate) fn blocs(
+pub fn blocs(
     ctx: &Contexte, ent: &Value, ent_e: &Value, orgs: &Value, bar: &Value, nic: &str, mois: &str, paies: &[Paie],
 ) -> Resultat<Vec<Bloc44>> {
     if mois.len() != 7 || &mois[5..7] != "12" {

@@ -728,6 +728,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "declarations"
+version = "0.1.0"
+dependencies = [
+ "documents",
+ "droit",
+ "engagement",
+ "flate2",
+ "rust_decimal",
+ "rust_xlsxwriter",
+ "serde_json",
+ "socle",
+]
+
+[[package]]
 name = "defmt"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2754,6 +2768,7 @@ name = "paie"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
+ "declarations",
  "documents",
  "droit",
  "ed25519-dalek",
@@ -2770,7 +2785,6 @@ dependencies = [
  "roxmltree 0.20.0",
  "rpassword",
  "rust_decimal",
- "rust_xlsxwriter",
  "rustls",
  "rustls-platform-verifier",
  "scrypt",

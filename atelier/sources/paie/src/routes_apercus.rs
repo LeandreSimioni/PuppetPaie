@@ -268,7 +268,7 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let chemin = resoudre(&ctx.racine, fichier)?;
     let contenu = lire_octets(&chemin)?;
     let texte: String = contenu.iter().map(|&b| b as char).collect();
-    let enrs = crate::dpae::relire(&texte);
+    let enrs = declarations::dpae::relire(&texte);
     let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let lignes_journal = m.lignes()?;
     let faites = etats::embauches_par_depot(&lignes_journal)?;

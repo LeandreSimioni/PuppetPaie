@@ -1,4 +1,4 @@
-//! L'echeance de depot d'une DSN mensuelle (`paie/src/echeance_dsn.rs`), contre ses textes deposes :
+//! L'echeance de depot d'une DSN mensuelle (`declarations/src/echeance_dsn.rs`), contre ses textes deposes :
 //!
 //! - le jour : CSS R. 243-6, II (`atelier/reference/sources/echeances-dsn/legi-securite-sociale-R243-6-LEGIARTI000034668597.xml`),
 //!   le 5 ou le 15 du mois suivant ;
@@ -9,7 +9,7 @@
 //! - les fetes legales : L. 3133-1 (`logiciel/donnees/feries-base.json`).
 
 use socle::date::Jour;
-use paie::echeance_dsn::{du_mois, reporter, HEURE_LIMITE};
+use declarations::echeance_dsn::{du_mois, reporter, HEURE_LIMITE};
 
 fn j(s: &str) -> Jour {
     Jour::lire(s).unwrap()

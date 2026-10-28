@@ -52,7 +52,7 @@ pub(crate) fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois_v: &Value) -> R<Val
     let Some(mois) = mois_v.as_str() else {
         return Err(erreur("TypeError", format!("'mois' : {}", socle::fichiers::attendu("un texte", nom_type(mois_v)))));
     };
-    let echeance = crate::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
+    let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, mois).map_err(|m| erreur("ValueError", m))?;
     let limite = echeance.jour;
     let passee = ctx.aujourdhui > limite;
     let deposee = vrai(&e);
@@ -446,13 +446,13 @@ fn avant_apres(mois: &str, avant: Option<&Paie>, apres: &Paie) -> R<Value> {
 /// corrigeait). Vide quand le mois ne se corrige pas ailleurs que dans sa DSN (`se_corrige_ailleurs`).
 pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, Vec<Value>)> {
     let departs = crate::journal::departs(&ctx.racine)?;
-    if !crate::produire_regularisations::se_corrige_ailleurs(ctx, &departs, mois)? {
+    if !declarations::produire_regularisations::se_corrige_ailleurs(ctx, &departs, mois)? {
         return Ok((Vec::new(), Vec::new()));
     }
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok((Vec::new(), Vec::new())) };
     let refus = |m: String| non_regularisable(m);
     let mut a_porter = Vec::new();
-    for d in crate::produire_regularisations::corrections_dues(ctx, mois, "9999-12", &departs)? {
+    for d in declarations::produire_regularisations::corrections_dues(ctx, mois, "9999-12", &departs)? {
         let apres = d.valide.paie(ctx, &data, d.rang)?;
         a_porter.push(avant_apres(mois, d.declarees.last().map(|x| &x.paie), &apres)?);
     }

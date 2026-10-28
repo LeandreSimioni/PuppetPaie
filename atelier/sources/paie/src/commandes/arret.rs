@@ -355,7 +355,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
     if quoi == "signaler" {
         let salarie = exiger(args, "signaler", &["dernier-jour"])?;
-        let nature = if args.drapeau("reprise") { crate::signalement::REPRISE } else { crate::signalement::ARRET };
+        let nature = if args.drapeau("reprise") { declarations::signalement::REPRISE } else { declarations::signalement::ARRET };
         let mut charge = json!({"salarie": salarie, "dernier_jour": date(args, "dernier-jour")?, "nature": nature});
         if let Some(r) = opt(args, "remplace") {
             charge["remplace"] = json!(r);
@@ -377,7 +377,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             })));
         }
         dire!("Ecrit : {}", champ(&r, "fichier"));
-        let nom_nature = if nature == crate::signalement::ARRET { "signalement arret de travail" } else { "signalement reprise suite a arret de travail" };
+        let nom_nature = if nature == declarations::signalement::ARRET { "signalement arret de travail" } else { "signalement reprise suite a arret de travail" };
         dire!(
             "Nature {} ({}), type {}, ordre {}{}.",
             nature,

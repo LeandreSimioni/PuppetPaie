@@ -18,7 +18,7 @@ use std::path::Path;
 use regex::Regex;
 use serde_json::Value;
 
-use crate::champs::{trop_lourde, CLE_SIGNATURE};
+use declarations::champs::{trop_lourde, CLE_SIGNATURE};
 use crate::envoi::Message;
 
 pub const CLE_NOM: &str = "courriel_nom";
@@ -192,7 +192,7 @@ pub fn signer(message: &Message, s: &Signature) -> Message {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::champs::LIMITE_OCTETS;
+    use declarations::champs::LIMITE_OCTETS;
 
     fn sig(html: &str) -> Signature {
         let h = nettoyer(html);

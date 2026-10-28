@@ -273,7 +273,7 @@ fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
 /// `ErreurOperation` de la regularisation (`regularisation_casc_svp(ecrire=False)`) vaut « rien ». Seuls comptent
 /// le nombre de mois, la periode et le total, que cette fonction calcule comme la regularisation.
 fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
-    let base = crate::casc::base().map_err(Echec::from)?;
+    let base = declarations::casc::base().map_err(Echec::from)?;
     let ent = &ctx.entreprise;
     let idcc = ent.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     if idcc != valeur_en_texte(&base["idcc"]) {
@@ -282,7 +282,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     if !matches!(droit::bareme::casc_exemptee(ent), Ok(false)) {
         return Ok(None);
     }
-    let faits: HashSet<String> = crate::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
+    let faits: HashSet<String> = declarations::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
     // `mois_disponibles` : les mois des paies declarees, et les mois saisis.
     let mut dispo: BTreeSet<String> = BTreeSet::new();
     let declarees = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;

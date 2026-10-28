@@ -42,7 +42,7 @@ const JAMAIS: [&str; 3] = ["actif", "historique", "taux_pas"];
 /// d'elle a l'ecriture : il n'est pas complete. La forme lisible (`*_affichage`) d'un champ complete suit, quand elle
 /// est vide : celle que la piece donne, sinon celle que l'ecran en ferait (`champs::combler_affichage`).
 pub(crate) fn champs_a_completer(nom: &str, fiche: &Value, proposees: &Map<String, Value>) -> R<Map<String, Value>> {
-    let champs = crate::champs::fiche(nom)?;
+    let champs = declarations::champs::fiche(nom)?;
     let mut out = Map::new();
     for c in &champs {
         if c.cle.ends_with("_affichage") || JAMAIS.contains(&c.cle.as_str()) {
@@ -64,7 +64,7 @@ pub(crate) fn champs_a_completer(nom: &str, fiche: &Value, proposees: &Map<Strin
     for (k, v) in &out {
         fusion.insert(k.clone(), v.clone());
     }
-    let comble = crate::champs::combler_affichage(nom, &fusion)?;
+    let comble = declarations::champs::combler_affichage(nom, &fusion)?;
     for c in &champs {
         let Some(src) = c.derive_de.as_deref().filter(|d| !d.is_empty()) else { continue };
         if !out.contains_key(&c.cle) || !vide(fiche.get(src)) {

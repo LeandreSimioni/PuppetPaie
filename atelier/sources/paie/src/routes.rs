@@ -107,7 +107,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     };
     let rendu: Result<Value, Echec> = match route {
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
-        crate::demarrage::ROUTE => crate::demarrage::route(&ctx),
+        declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx),
         // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
         crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx, &charge),
         crate::organismes::ROUTE_ECRIRE => crate::organismes::enregistrer(&ctx, &charge),
@@ -215,7 +215,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
         Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes_ecritures_g4::CLASSE_DOCUMENTS_PARTIS) && !message.trim_start().starts_with('{') => {
-            let suite = crate::demarrage::a_la_suite(&ctx).unwrap_or_default();
+            let suite = declarations::demarrage::a_la_suite(&ctx).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }
         autre => autre,

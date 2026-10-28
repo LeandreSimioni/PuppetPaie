@@ -376,7 +376,7 @@ pub fn rattraper(racine: &Path, aujourdhui: Option<Jour>, retenir: bool) -> R<Ve
         // Le jour ou la DSN est due (`echeance_dsn`, reporte au jour ouvre) : elle part ce matin-la, avant midi.
         let echeance = {
             let ctx = d.contexte()?;
-            crate::echeance_dsn::de_la_compagnie(&ctx, mois).map_err(Echec::from)?.jour
+            declarations::echeance_dsn::de_la_compagnie(&ctx, mois).map_err(Echec::from)?.jour
         };
         if jour >= echeance {
             fait.extend(a_l_echeance(&d, mois, echeance));

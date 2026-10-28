@@ -28,7 +28,7 @@ fn la_fiche_salarie_dit_une_profession_et_son_accord_la_fiche_entreprise_l_optio
     let erreur = |nom: &str, cle: &str, v: &str| -> bool {
         let mut f = serde_json::Map::new();
         f.insert(cle.into(), json!(v));
-        paie::champs::verifier_fiche(nom, &f).unwrap().iter().any(|a| a["champ"] == cle && a["gravite"] == "erreur")
+        declarations::champs::verifier_fiche(nom, &f).unwrap().iter().any(|a| a["champ"] == cle && a["gravite"] == "erreur")
     };
     assert!(erreur("salarie", "deduction_forfaitaire", "25"), "une categorie n'est plus une profession");
     for profession in ["musicien", "choriste", "chef_orchestre", "regisseur_theatre", "artiste_dramatique", "artiste_lyrique",
@@ -47,7 +47,7 @@ fn la_fiche_salarie_dit_une_profession_et_son_accord_la_fiche_entreprise_l_optio
     let bar: Value = lire(&crate::outils::code_livre(), "baremes/2026.json");
     let mut du_bareme: Vec<String> = bar["deduction_forfaitaire"]["professions"].as_object().unwrap().keys().cloned().collect();
     du_bareme.sort();
-    let champs = paie::champs::fiche("salarie").unwrap();
+    let champs = declarations::champs::fiche("salarie").unwrap();
     let c = champs.iter().find(|c| c.cle == "deduction_forfaitaire").unwrap();
     let mut de_la_fiche: Vec<String> = c.choix.iter().filter_map(|x| x.as_str()).filter(|x| !x.is_empty()).map(String::from).collect();
     de_la_fiche.sort();

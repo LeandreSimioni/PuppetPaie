@@ -3,8 +3,8 @@
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{lire_oracle, oracle};
-use paie::formats::{self, Regex};
-use paie::usages;
+use declarations::formats::{self, Regex};
+use declarations::usages;
 use serde_json::{json, Value};
 
 const ORACLE: &str = "usages-formats-ntt.json";
@@ -12,8 +12,8 @@ const NATURES: [&str; 7] = ["01", "04", "05", "07", "08", "09", "10"];
 
 /// L'oracle est celui des tables 2026 : ses comparaisons se font dans la version P26V01 (la table se choisit par version
 /// de la norme).
-fn p26() -> paie::norme::Norme {
-    paie::norme::Norme::connue("P26V01").unwrap()
+fn p26() -> declarations::norme::Norme {
+    declarations::norme::Norme::connue("P26V01").unwrap()
 }
 
 
@@ -49,7 +49,7 @@ fn expressions_des_formats() {
 fn toutes_les_expressions_de_la_table_se_compilent() {
     // Les tables de toutes les versions livrees (`norme-dsn-base.json`) : celle de 2027 porte des expressions que celle
     // de 2026 n'avait pas (S89.G00.88.008, entiere en 2027).
-    for norme in paie::norme::versions().unwrap() {
+    for norme in declarations::norme::versions().unwrap() {
         let t = socle::fichiers::lire_json(&socle::fichiers::dossier_du_code().join(norme.table_formats().unwrap())).unwrap();
         let mut n = 0;
         for (_, f) in t["formats"].as_object().unwrap() {

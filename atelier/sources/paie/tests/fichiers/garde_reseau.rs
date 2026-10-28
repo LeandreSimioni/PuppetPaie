@@ -40,7 +40,7 @@ const LOCAUX: [(&str, &str); 2] = [
 fn chaque_sortie_du_moteur_passe_par_le_garde_fou() {
     let racine = espace();
     let mut fichiers = Vec::new();
-    for c in ["socle", "droit", "engagement", "documents", "paie"] {
+    for c in ["socle", "droit", "engagement", "documents", "declarations", "paie"] {
         fichiers_rs(&racine.join(c).join("src"), &mut fichiers);
     }
     let mut fautifs = Vec::new();
@@ -67,7 +67,7 @@ fn chaque_sortie_du_moteur_passe_par_le_garde_fou() {
 fn chaque_environnement_vide_d_un_essai_repose_le_garde_fou() {
     let racine = espace();
     let mut fichiers = Vec::new();
-    for c in ["socle", "droit", "engagement", "documents", "paie"] {
+    for c in ["socle", "droit", "engagement", "documents", "declarations", "paie"] {
         if racine.join(c).join("tests").is_dir() {
             fichiers_rs(&racine.join(c).join("tests"), &mut fichiers);
         }

@@ -649,7 +649,7 @@ fn jjmmaaaa(iso: &str) -> String {
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
-    use crate::casc_regularisation::{ecrire, marquer_regularise, regularisation, Demande};
+    use declarations::casc_regularisation::{ecrire, marquer_regularise, regularisation, Demande};
     // `charge.get("vire_le") or {}`.
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),

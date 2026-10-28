@@ -31,7 +31,7 @@ fn dec(t: &str) -> R<Decimal> {
 }
 
 /// `_eur` : `1 234,50 €` (deux decimales, espace des milliers, virgule).
-pub(crate) fn eur(v: Decimal) -> String {
+pub fn eur(v: Decimal) -> String {
     let r = v.round_dp_with_strategy(2, RoundingStrategy::MidpointNearestEven);
     let mut s = format!("{:.2}", r);
     let negatif = s.starts_with('-');
@@ -59,7 +59,7 @@ fn jjmmaaaa(iso: &str) -> String {
 }
 
 /// Un mois du dossier.
-pub(crate) struct MoisReg {
+pub struct MoisReg {
     pub mois: String,
     pub libelle: String,
     pub masse: Decimal,
@@ -68,7 +68,7 @@ pub(crate) struct MoisReg {
     pub source: String,
 }
 
-pub(crate) struct AnneeReg {
+pub struct AnneeReg {
     pub annee: String,
     pub masse: Decimal,
     pub taux: Decimal,
@@ -76,7 +76,7 @@ pub(crate) struct AnneeReg {
     pub libelle_virement: String,
 }
 
-pub(crate) struct SalarieReg {
+pub struct SalarieReg {
     pub annee: String,
     pub salarie: String,
     pub nir: Option<String>,
@@ -85,7 +85,7 @@ pub(crate) struct SalarieReg {
     pub masse: Decimal,
 }
 
-pub(crate) struct EmploiReg {
+pub struct EmploiReg {
     pub annee: String,
     pub mois: String,
     pub individu: Value,
@@ -97,7 +97,7 @@ pub(crate) struct EmploiReg {
     pub fichier: String,
 }
 
-pub(crate) struct Courriel {
+pub struct Courriel {
     pub a: String,
     pub objet: String,
     pub corps: String,
@@ -105,7 +105,7 @@ pub(crate) struct Courriel {
 }
 
 /// `operations_casc.Regularisation`.
-pub(crate) struct Regularisation {
+pub struct Regularisation {
     pub periode: String,
     pub mois: Vec<MoisReg>,
     pub annees: Vec<AnneeReg>,
@@ -123,7 +123,7 @@ pub(crate) struct Regularisation {
 
 /// Les demandes de `regularisation_casc_svp`.
 #[derive(Default)]
-pub(crate) struct Demande {
+pub struct Demande {
     pub mois: Option<String>,
     pub annee: Option<String>,
     pub toutes_les_annees: bool,
@@ -162,7 +162,7 @@ fn plafond_mensuel(annee: &str) -> R<Option<Decimal>> {
 }
 
 /// `operations_casc.regularisation_casc_svp` (sans l'ecriture des fichiers : `ecrire`).
-pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
+pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     let base = crate::casc::base().map_err(|m| erreur("OSError", m))?;
     let ent = &ctx.entreprise;
     let idcc = ent.get("idcc").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
@@ -454,7 +454,7 @@ fn deja_faites(ctx: &Contexte) -> String {
 }
 
 /// `Regularisation` en JSON, tel que `sortie_json.brut` le rend (Decimal en texte).
-pub(crate) fn vers_json(r: &Regularisation) -> Value {
+pub fn vers_json(r: &Regularisation) -> Value {
     let courriel = |c: &Courriel| {
         let mut m = Map::new();
         m.insert("a".into(), json!(c.a));
@@ -496,7 +496,7 @@ pub(crate) fn vers_json(r: &Regularisation) -> Value {
 }
 
 /// `operations_casc._ecrire` : `exports/casc-svp/` -- les CSV, les deux courriels, la liste des gestes.
-pub(crate) fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
+pub fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
     let dossier = ctx.racine.join("exports").join("casc-svp");
     let io = |p: &Path, e: std::io::Error| erreur("OSError", format!("{} : {}", p.display(), e));
     std::fs::create_dir_all(&dossier).map_err(|e| io(&dossier, e))?;
@@ -705,7 +705,7 @@ fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path,
 
 /// `operations_casc.marquer_regularise` (route `casc-regularise`) : note qu'une annee est regularisee. S'ecrit
 /// APRES le virement, jamais avant.
-pub(crate) fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montant: &Value, qui: &str, aujourd_hui: &str) -> R<Value> {
+pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montant: &Value, qui: &str, aujourd_hui: &str) -> R<Value> {
     let annee_t = valeur_en_texte(annee);
     let r = regularisation(ctx, &Demande { annee: Some(annee_t.clone()), ..Default::default() })?;
     let p = fichier_suivi(ctx);

@@ -246,7 +246,7 @@ pub fn lire(octets: &[u8]) -> Apercu {
     let types = valeurs_de(&texte, "S21.G00.50.007");
     Apercu {
         champs,
-        salaries: crate::ntt::individus(&texte).len(),
+        salaries: declarations::ntt::individus(&texte).len(),
         versements: valeurs_de(&texte, "S21.G00.20.005"),
         lignes: lignes(&texte).len(),
         pas_versements: types.len(),

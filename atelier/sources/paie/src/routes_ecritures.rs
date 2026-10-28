@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::champs;
+use declarations::champs;
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use socle::ecriture::ecrire_json;

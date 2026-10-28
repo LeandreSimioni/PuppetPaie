@@ -1442,7 +1442,7 @@ fn lire_archive(f: &Path) -> R<Vec<u8>> {
 /// `journal._verdict_du_certificat`.
 fn verdict_du_certificat(contenu: &[u8]) -> Value {
     let texte: String = contenu.iter().map(|&b| b as char).collect();
-    let lignes = crate::dpae::lire_certificat(&texte);
+    let lignes = declarations::dpae::lire_certificat(&texte);
     if lignes.is_empty() {
         return json!({});
     }
@@ -1451,7 +1451,7 @@ fn verdict_du_certificat(contenu: &[u8]) -> Value {
     for l in &lignes {
         let lot = texte_de(l, "lot");
         if lot != "00" && !lot.is_empty() {
-            if let Some((_, nom)) = crate::dpae::CODES_RET_AR_LOT.iter().find(|(c, _)| *c == lot) {
+            if let Some((_, nom)) = declarations::dpae::CODES_RET_AR_LOT.iter().find(|(c, _)| *c == lot) {
                 anomalies.push(format!("{} (lot)", nom));
             }
         }

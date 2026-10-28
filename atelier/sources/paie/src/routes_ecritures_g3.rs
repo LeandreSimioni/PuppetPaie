@@ -136,7 +136,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     for cle in ["nom", "prenom"] {
         let v = optionnel(charge, cle);
         let brut = if vrai(v) { valeur_en_texte(v) } else { String::new() };
-        let sans = crate::champs::sans_accents(&brut);
+        let sans = declarations::champs::sans_accents(&brut);
         let net = sans.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ");
         if net.is_empty() {
             return Err(refus(format!(

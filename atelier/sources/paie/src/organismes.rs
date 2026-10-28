@@ -77,7 +77,7 @@ fn attendus(ctx: &Contexte, base: &Value) -> R<Vec<Value>> {
     let idcc = txt(g(ent, "idcc"));
     let contrats = g(base, "contrats");
     let mut out = liste(g(contrats, "tous"));
-    let casc = crate::casc::base().map_err(plain)?;
+    let casc = declarations::casc::base().map_err(plain)?;
     if idcc == txt(g(&casc, "idcc")) && !droit::bareme::casc_exemptee(ent).map_err(plain)? {
         out.push(json!({
             "cle": "casc", "libelle": txt(g(g(&casc, "dsn"), "contrat")), "reference": "100", "type": "02",

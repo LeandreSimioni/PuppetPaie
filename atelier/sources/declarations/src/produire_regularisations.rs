@@ -33,32 +33,32 @@ const PREFIXE_ENVOI: &str = "BulletinRectificatif";
 
 /// Une correction embarquee : un contrat d'un mois deja declare dont la paie validee presente n'est plus celle que les
 /// DSN parties ont declaree, et les deux paies.
-pub(crate) struct Reg {
-    pub(crate) mois: String,
+pub struct Reg {
+    pub mois: String,
     /// La version presente de l'engagement, que la correction declare, et le jour ou elle a ete validee.
-    pub(crate) version: u64,
-    pub(crate) decidee_le: Option<Jour>,
+    pub version: u64,
+    pub decidee_le: Option<Jour>,
     /// Un contrat qu'aucune DSN n'a declare pour son mois : ajoute apres elle.
-    pub(crate) ajout: bool,
+    pub ajout: bool,
     /// La paie d'avant : la derniere paie declaree du contrat, telle que la version de l'engagement sur laquelle la DSN
     /// est partie la porte (`versement_declare::dernier_declare`) ; ce qui s'en imprime et le contrat qu'elle declare. Ce que la correction
     /// annule, au nominatif comme a l'agrege, se lit dans `declare` ; ce qui a ete paye, dans `net_deja_verse`.
-    pub(crate) avant: Paie,
+    pub avant: Paie,
     /// Le dernier etat declare du contrat : le versement de la paie declaree, celle de la DSN du mois d'origine ou de la
     /// derniere correction deja portee (`versement_declare::dernier_declare`).
-    pub(crate) declare: VersementDeclare,
+    pub declare: VersementDeclare,
     /// Le net a payer avant impot deja verse au salarie pour le contrat, lu dans la derniere paie declaree : celle du
     /// mois d'origine, ou celle de la derniere correction deja portee (`versement_declare::dernier_declare`).
-    pub(crate) net_deja_verse: Decimal,
+    pub net_deja_verse: Decimal,
     /// La paie corrigee : celle que la version presente de l'engagement valide a ecrite pour le mois d'origine.
-    pub(crate) apres: Paie,
-    pub(crate) taux_pas_origine: Option<String>,
+    pub apres: Paie,
+    pub taux_pas_origine: Option<String>,
 }
 
 /// UN MOIS SE CORRIGE DANS UNE DSN SUIVANTE quand sa DSN reelle est partie (un depart DSN du mois lui-meme, `departs`)
 /// et que son annule-et-remplace n'est plus admis (la veille de l'echeance passee, cahier technique DSN §1.4.2) ; avant,
 /// sa propre DSN se refait.
-pub(crate) fn se_corrige_ailleurs(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &str) -> R<bool> {
+pub fn se_corrige_ailleurs(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &str) -> R<bool> {
     use engagement::departs::Envoi;
     let partie = departs
         .engagements()
@@ -72,17 +72,17 @@ pub(crate) fn se_corrige_ailleurs(ctx: &Contexte, departs: &engagement::departs:
 
 /// Une correction due d'un mois (`corrections_dues`) : l'engagement valide, son rang dans l'ecran du mois, et ce qui a
 /// ete declare pour lui (vide : rien).
-pub(crate) struct Due {
-    pub(crate) valide: engagement::etats::Valide,
-    pub(crate) rang: usize,
-    pub(crate) declarees: Vec<engagement::etats::Declaree>,
+pub struct Due {
+    pub valide: engagement::etats::Valide,
+    pub rang: usize,
+    pub declarees: Vec<engagement::etats::Declaree>,
 }
 
 /// LES CORRECTIONS DUES DE `mois` dans la DSN de `porteur` : chaque engagement valide du mois dont la paie presente n'est
 /// plus celle que les DSN anterieures a `porteur` ont declaree, ou qu'aucune n'a declare (`engagement::etats::
 /// correction_due`). Corriger, c'est modifier l'engagement et le revalider : rien ne s'ecrit a cote de lui, et un
 /// engagement en saisie n'est pas encore une correction (ce qui n'est pas valide n'est pas paye).
-pub(crate) fn corrections_dues(ctx: &Contexte, mois: &str, porteur: &str, departs: &engagement::departs::Departs) -> R<Vec<Due>> {
+pub fn corrections_dues(ctx: &Contexte, mois: &str, porteur: &str, departs: &engagement::departs::Departs) -> R<Vec<Due>> {
     let refus = |m: String| erreur("MoisNonRegularisable", m);
     let mut out = Vec::new();
     for (rang, e) in engagement::etats::du_mois(ctx, mois)?.into_iter().enumerate() {
@@ -98,7 +98,7 @@ pub(crate) fn corrections_dues(ctx: &Contexte, mois: &str, porteur: &str, depart
 /// ailleurs que dans sa DSN (`se_corrige_ailleurs`), chacune avec le versement DECLARE (`versement_declare::dernier_declare`), sa paie
 /// d'avant (telle que declaree, ou telle que la correction portee precedente l'a laissee) et sa paie d'apres (la paie
 /// ecrite de la version presente).
-pub(crate) fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
+pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
     let departs = engagement::departs::lire(&ctx.racine)?;
     let mut out = Vec::new();
     for mois in engagement::stock::mois_saisis(&ctx.racine).map_err(refus_valeur)? {
@@ -158,7 +158,7 @@ pub(crate) fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<
 /// LES VERSIONS QUE PORTENT LES CORRECTIONS de la DSN de `mois` pour l'etablissement `nic` : pour chaque correction
 /// qu'elle porte (`regularisations_pour`), la version presente de l'engagement du mois corrige, `{"salarie", "numero",
 /// "version", "mois": <le mois corrige>}`. Ce que la ligne du journal de son depot emporte.
-pub(crate) fn versions_portees(ctx: &Contexte, mois: &str, nic: &str) -> R<Vec<Value>> {
+pub fn versions_portees(ctx: &Contexte, mois: &str, nic: &str) -> R<Vec<Value>> {
     let fiche = &ctx.entreprise;
     let plusieurs = !droit::bareme::secondaires(fiche).is_empty();
     let mut out = Vec::new();
@@ -217,7 +217,7 @@ fn prenom_de(sal: &Value) -> String {
 }
 
 /// `resume_regularisations` : une ligne lisible par correction embarquee.
-pub(crate) fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
+pub fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
     let mut out = Vec::new();
     for r in regs {
         let s = &r.apres.salarie;
@@ -238,7 +238,7 @@ pub(crate) fn resume_regularisations(regs: &[Reg]) -> R<Vec<String>> {
 }
 
 /// Les regularisations de la DSN (`dsn::Regularisation`) : la paie declaree et la paie corrigee.
-pub(crate) fn pour_la_dsn(regs: &[&Reg]) -> Vec<crate::dsn::Regularisation> {
+pub fn pour_la_dsn(regs: &[&Reg]) -> Vec<crate::dsn::Regularisation> {
     regs.iter()
         .map(|r| crate::dsn::Regularisation {
             mois: r.mois.clone(),
@@ -263,7 +263,7 @@ fn refus_valeur(m: String) -> Echec {
 /// Due au salarie : le taux du mois ou l'on paie, sur le bareme de ce mois. Trop-verse (net imposable qui
 /// baisse) : le taux du mois de l'erreur, lu dans la DSN deposee (bloc 56). Un bareme sans grille ne rend pas de
 /// prelevement : on ne l'invente pas.
-pub(crate) fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: &str) -> R<Value> {
+pub fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: &str) -> R<Value> {
     // Ce qui a ete verse et declare se lit dans la paie declaree, pas dans un recalcul : le net imposable en 50.002, le
     // net deja verse.
     let (avant, apres) = (&r.declare, &r.apres);
@@ -321,9 +321,9 @@ fn numero_du_bulletin_rectifie(r: &Reg) -> Option<String> {
 }
 
 /// Ce que `ecrire_rectificatifs` rend : les fichiers ecrits, les avertissements (de simples phrases).
-pub(crate) struct Rectificatifs {
-    pub(crate) fichiers: Vec<PathBuf>,
-    pub(crate) avertissements: Vec<String>,
+pub struct Rectificatifs {
+    pub fichiers: Vec<PathBuf>,
+    pub avertissements: Vec<String>,
 }
 
 fn ecrire_le_pdf(description: &Value, chemin: &Path) -> R<()> {
@@ -340,7 +340,7 @@ fn ecrire_le_pdf(description: &Value, chemin: &Path) -> R<()> {
 /// produit. Deux fichiers par correction, jamais a la place d'un autre :
 /// `sorties/<mois d'origine>/Rectificatif_<cle>_<Mois>_v<version>.pdf`, a cote du bulletin rectifie ; et, pour
 /// l'envoi, un fichier par salarie dans `sorties/<mois courant>/envoi/`.
-pub(crate) fn ecrire_rectificatifs(
+pub fn ecrire_rectificatifs(
     ctx: &Contexte,
     regs: &[Reg],
     mois_courant: &str,

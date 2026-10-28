@@ -22,7 +22,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use droit::catalogue::{self, Rubrique};
-use crate::champs;
+use declarations::champs;
 use droit::contexte::Contexte;
 use droit::natures::{self, Nature};
 use droit::emplois;
@@ -468,7 +468,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
     let mut out = Vec::new();
     for (nom, noms) in mois {
         let e = m.dsn_du_mois(nom)?;
-        let echeance = crate::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
+        let echeance = declarations::echeance_dsn::de_la_compagnie(ctx, nom).map_err(|m| erreur("ValueError", m))?;
         let limite = echeance.jour;
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
         let drapeau = |k: &str| e.get(k).is_some_and(vrai);
@@ -706,7 +706,7 @@ fn faits_de_rupture(n: &Nature, motif: &Value) -> R<Vec<&'static str>> {
     // SIGNATURE de la convention ; la TRANSACTION suit un litige.
     // Et toujours quand le signalement l'exige (CCH-12 de S21.G00.62.003, `fctu::notification_exigee`) : la force majeure
     // (083) est de la table ci-dessus, et sa date de notification est pourtant obligatoire dans un FCTU.
-    if !SANS_NOTIFICATION.contains(&m.as_str()) || crate::fctu::notification_exigee(&m).map_err(plain)? {
+    if !SANS_NOTIFICATION.contains(&m.as_str()) || declarations::fctu::notification_exigee(&m).map_err(plain)? {
         faits.push("notification_rupture");
     }
     if LICENCIEMENTS.contains(&m.as_str()) {
@@ -894,7 +894,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         .iter()
         .map(|x| json!({"code": x.get("code").cloned().unwrap_or(Value::Null), "nom": x.get("nom").cloned().unwrap_or(Value::Null)}))
         .collect();
-    let deduit = crate::champs::urssaf_du_code_postal(&urssaf, ctx.entreprise.get("code_postal"));
+    let deduit = declarations::champs::urssaf_du_code_postal(&urssaf, ctx.entreprise.get("code_postal"));
 
     Ok(json!({
         "configuration": configuration,

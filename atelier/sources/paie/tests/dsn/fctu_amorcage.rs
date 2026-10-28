@@ -1,6 +1,6 @@
 //! Les controles propres au signalement de fin de contrat (nature 07) : CCH-14 et CCH-15 de `fctu::verifier_controles_07`.
 
-use paie::fctu::{self, Echec};
+use declarations::fctu::{self, Echec};
 
 #[test]
 fn cch_14_la_base_31_est_interdite() {

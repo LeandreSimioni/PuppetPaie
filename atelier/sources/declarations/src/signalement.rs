@@ -80,7 +80,7 @@ fn code_subrogation_oui() -> Resultat<String> {
     Err("subrogation : pas de code « oui » dans arrets-base.json".into())
 }
 
-pub(crate) fn avec_subrogation(a: &Arret) -> Resultat<bool> {
+pub fn avec_subrogation(a: &Arret) -> Resultat<bool> {
     let sub = if vrai(g(&a.v, "subrogation")) { s(&a.v, "subrogation") } else { String::new() };
     Ok(sub == code_subrogation_oui()?)
 }

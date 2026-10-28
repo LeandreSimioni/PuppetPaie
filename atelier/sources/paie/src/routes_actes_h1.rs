@@ -20,7 +20,7 @@ use serde_json::{json, Map, Value};
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, repr_texte, Jour};
-use crate::dpae::{Chemins, Embauche, Parametres};
+use declarations::dpae::{Chemins, Embauche, Parametres};
 use crate::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -282,7 +282,7 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `fctu.FinDeContrat` (en dictionnaire) que le signalement declarera, batie sur la saisie
 /// (`operations_permanents.fin_de_contrat_declaree`).
-fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<crate::fctu::FinDeContrat> {
+fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<declarations::fctu::FinDeContrat> {
     let manque = crate::routes_listes::ce_qui_manque(ctx, e)?;
     if !manque.is_empty() {
         let numero = e.get("numero").filter(|n| vrai(n)).map(en_texte).unwrap_or_else(|| "?".to_string());
@@ -308,14 +308,14 @@ fn fin_de_contrat_declaree(ctx: &Contexte, e: &Value, mois: &str) -> R<crate::fc
         "engagement_licenciement": cle("engagement_licenciement"),
         "transaction": cle("transaction"),
     });
-    crate::fctu::FinDeContrat::lire(&v).map_err(plain)
+    declarations::fctu::FinDeContrat::lire(&v).map_err(plain)
 }
 
 /// L'echec d'un signalement de fin de contrat ou d'amorcage : une regle de la norme qui s'oppose
 /// (`FctuImpossible`, `AmorcageImpossible`, des `ValueError`) ou autre chose.
-fn echec_fctu(e: crate::fctu::Echec) -> Echec {
+fn echec_fctu(e: declarations::fctu::Echec) -> Echec {
     match e {
-        crate::fctu::Echec::Impossible(m) | crate::fctu::Echec::Autre(m) => erreur("ValueError", m),
+        declarations::fctu::Echec::Impossible(m) | declarations::fctu::Echec::Autre(m) => erreur("ValueError", m),
     }
 }
 
@@ -341,13 +341,13 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (rang, e) = engagement_qui_finit(ctx, &saisie, &cle, salarie, mois)?;
     let fin = fin_de_contrat_declaree(ctx, e, mois)?;
     let paie = paie_de_l_engagement(ctx, &paies, rang, &cle, salarie, mois)?;
-    let type_declaration = if remplace.is_some() { crate::fctu::ANNULE_ET_REMPLACE } else { crate::fctu::NORMALE };
-    let mut avertissements = crate::fctu::verifier(&fin, &paie.engagement, type_declaration).map_err(echec_fctu)?;
+    let type_declaration = if remplace.is_some() { declarations::fctu::ANNULE_ET_REMPLACE } else { declarations::fctu::NORMALE };
+    let mut avertissements = declarations::fctu::verifier(&fin, &paie.engagement, type_declaration).map_err(echec_fctu)?;
     let (ordre, plate_forme) = if ordre != 0 { (ordre, Vec::new()) } else { prochain_ordre(ctx)? };
     avertissements.extend(plate_forme);
     let nom = format!("SignalementFinContrat_{}_{}.dsn", cle, fin.fin.replace('-', ""));
     let cible = ctx.racine.join("sorties").join(mois).join(&nom);
-    let options = crate::fctu::Options {
+    let options = declarations::fctu::Options {
         type_declaration: type_declaration.to_string(),
         ordre,
         remplace: remplace.clone(),
@@ -357,20 +357,20 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     // Les arrets du contrat qui croisent la periode du signalement : le FCTU les reporte (bloc 60), comme la mensuelle,
     // tires du magasin des imprevus ; ses suspensions (bloc 65) en viennent deja (`imprevus::suspensions_du_mois`).
     let (debut_p, fin_p) = (paie.engagement.debut_periode().map_err(plain)?, paie.engagement.fin_periode().map_err(plain)?);
-    let arrets: Vec<crate::dsn::Arret> = engagement::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
+    let arrets: Vec<declarations::dsn::Arret> = engagement::imprevus::arrets_du_contrat(ctx, &paie, &debut_p, &fin_p)
         .map_err(crate::routes_listes::refus_magasin)?
         .into_iter()
-        .map(|v| crate::dsn::Arret { v })
+        .map(|v| declarations::dsn::Arret { v })
         .collect();
-    let texte = crate::fctu::generer(ctx, &paie, &fin, &options, &paie.engagement.suspensions, &arrets).map_err(echec_fctu)?;
-    crate::dsn::ecrire(&texte, &cible).map_err(plain)?;
+    let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &paie.engagement.suspensions, &arrets).map_err(echec_fctu)?;
+    declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
         "nom": nom,
         "type": type_declaration,
         "ordre": ordre,
-        "preavis": crate::fctu::libelle_preavis(&fin.type_preavis).map_err(plain)?,
+        "preavis": declarations::fctu::libelle_preavis(&fin.type_preavis).map_err(plain)?,
         "avertissements": avertissements,
     }))
 }
@@ -412,7 +412,7 @@ pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
 /// `operations_arrets.produire` : ecrit le fichier du signalement dans `sorties/AAAA-MM/`. Rien
 /// n'est depose : le depot est un acte a part.
 fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
-    use crate::signalement::{self, Echec as Ech};
+    use declarations::signalement::{self, Echec as Ech};
     let salarie = en_texte(crate::routes_fiches::exiger(charge, "salarie")?);
     let dernier_jour = crate::routes_fiches::exiger(charge, "dernier_jour")?;
     let nature = facultatif(charge, "nature").map(en_texte).unwrap_or_else(|| signalement::ARRET.to_string());
@@ -431,7 +431,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         None => 0,
     };
     let constitution: Jour = jour_le(charge)?.unwrap_or(ctx.aujourdhui);
-    let dsn_arret = crate::dsn::Arret { v: arret.clone() };
+    let dsn_arret = declarations::dsn::Arret { v: arret.clone() };
     let echec = |e: Ech| match e {
         Ech::Impossible(m) | Ech::Autre(m) => erreur("ValueError", m),
     };
@@ -457,7 +457,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         date_constitution: Some(constitution),
     };
     let texte = signalement::generer(ctx, &dsn_arret, &options).map_err(echec)?;
-    crate::dsn::ecrire(&texte, &cible).map_err(plain)?;
+    declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
     crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
     let nomenclatures = crate::routes_listes::nomenclatures(ctx)?;
     Ok(json!({
@@ -581,7 +581,7 @@ struct Amorcage {
 /// celui de `amorcage_demande`, que `paie pas --demander` generalise). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
 fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution: Jour, ecrits: &mut Vec<PathBuf>) -> Result<Amorcage, String> {
     let demande = crate::amorcage_demande::Demande {
-        motif: crate::amorcage::EMBAUCHE,
+        motif: declarations::amorcage::EMBAUCHE,
         mois,
         salaries: None,
         envoi_test: false,
@@ -624,7 +624,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let paies: Vec<Paie> = {
         let _derivation = engagement::conges::Derivation::ouvrir();
         let (engs, _) = engagement::engagements(ctx, &data, &engagement::conges::lignes_du_mois).map_err(plain)?;
-        engs.iter().map(|e| crate::amorcage::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
+        engs.iter().map(|e| declarations::amorcage::embauche(ctx, e)).collect::<Result<_, _>>().map_err(plain)?
     };
     let mois = data.get("mois").map(en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let (etiq, libelle) = mois_en_toutes_lettres(&mois)?;
@@ -763,12 +763,12 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let mut f: Option<PathBuf> = None;
     if !marque.is_empty() {
         let h = horodatage(&maintenant_iso());
-        let voulu = crate::dpae::contenu(&embauches, &parametres_de(&h, &heure_texte, &code, &ent, &chemins)).map_err(plain)?;
+        let voulu = declarations::dpae::contenu(&embauches, &parametres_de(&h, &heure_texte, &code, &ent, &chemins)).map_err(plain)?;
         let voulu = latin1(&voulu);
         let mut pareils = Vec::new();
         for x in fichiers_partiels(&sortie, &etiq) {
             let contenu = std::fs::read(&x).map_err(|e| erreur("OSError", format!("{} : {}", x.display(), e)))?;
-            if crate::dpae::meme_declaration(&latin1(&contenu), &voulu) {
+            if declarations::dpae::meme_declaration(&latin1(&contenu), &voulu) {
                 pareils.push(x);
             }
         }
@@ -799,10 +799,10 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         None => {
             let cible = sortie.join(format!("DPAE_{}{}.txt", etiq, marque));
             let h = horodatage(&maintenant_iso());
-            crate::dpae::ecrire(&embauches, &cible, &parametres_de(&h, &heure_texte, &code, &ent, &chemins), true).map_err(plain)?;
+            declarations::dpae::ecrire(&embauches, &cible, &parametres_de(&h, &heure_texte, &code, &ent, &chemins), true).map_err(plain)?;
             crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
             let pour_recap: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, true)).collect();
-            ecrire_texte(&recap, &crate::dpae::recapitulatif(&pour_recap, &heure).map_err(plain)?)?;
+            ecrire_texte(&recap, &declarations::dpae::recapitulatif(&pour_recap, &heure).map_err(plain)?)?;
             cible
         }
     };

@@ -477,7 +477,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         let nic = a.champ("etablissement");
         let nic = Some(nic).filter(|n| !n.is_empty());
         match crate::depart::refabriquer(ctx, std::path::Path::new(&chemin), &mois, nic)? {
-            Some(f) => (crate::ordres_paiement::decrire(&f.ordres, &mois, &organismes, ctx.echeance_dsn()?)?, Value::Null),
+            Some(f) => (declarations::ordres_paiement::decrire(&f.ordres, &mois, &organismes, ctx.echeance_dsn()?)?, Value::Null),
             None => (Vec::new(), json!("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
         }
     };

@@ -48,9 +48,9 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         _ => return Err(refus(format!("--montant attend le montant vire, en euros (un nombre positif), recu {}.", socle::fichiers::repr(montant)))),
     }
     // Rien a regulariser : le Python notait quand meme une ligne sans mois.
-    let r = crate::casc_regularisation::regularisation(
+    let r = declarations::casc_regularisation::regularisation(
         &cadre.ctx,
-        &crate::casc_regularisation::Demande { annee: Some(annee.to_string()), ..Default::default() },
+        &declarations::casc_regularisation::Demande { annee: Some(annee.to_string()), ..Default::default() },
     )?;
     if r.mois.is_empty() {
         return Err(refus(format!("Rien a regulariser pour {} (deja fait, ou aucune DSN deposee). Rien n'est note.", annee)));
