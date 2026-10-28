@@ -889,7 +889,7 @@ fn couper_extension(nom: &str) -> (&str, &str) {
 /// `mimetypes.guess_type(nom)[0]`, sans les fichiers du systeme.
 pub(crate) fn type_devine(nom: &str) -> Option<&'static str> {
     let (mut base, mut ext) = couper_extension(nom);
-    let mut dernier = String::new();
+    let mut dernier: String;
     loop {
         let minuscule = ext.to_lowercase();
         let Some((_, remplace)) = SUFFIXES.iter().find(|(s, _)| *s == minuscule) else { break };

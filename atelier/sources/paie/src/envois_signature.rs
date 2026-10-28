@@ -341,7 +341,7 @@ pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -
 /// LA SELECTION EST PAR CONTRAT, pas par salarie (`contrats`). `salaries` reste accepte (tous les contrats de ces
 /// salaries). UN COURRIEL PAR SALARIE, UN PDF PAR COURRIEL, tous ses contrats dedans (une page par contrat), ecrit
 /// dans `sorties/<mois>/envoi/` avec les MEMES numeros que le fichier groupe.
-pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let mois = charge_texte(charge, "mois")?;
     let relance = charge.get("relance").is_some_and(vrai);
     let remplace = charge.get("remplace").is_some_and(vrai);
@@ -370,7 +370,7 @@ pub(crate) fn demander_signature(o: &HashMap<String, String>, ctx: &Contexte, ch
     let cles_j = crate::etats::cles_des_paies(&lignes_j, &tous)?;
     if relance {
         let cles: Vec<(String, String, String)> = par_salarie.iter().flat_map(|(_, ps, rs)| rs.iter().zip(ps).map(|(r, _)| tous[*r].clone())).collect();
-        verifier_relance(o, ctx, &mois, &cles)?;
+        verifier_relance(ctx, &mois, &cles)?;
     }
     let aujourdhui = ctx.aujourdhui.iso();
     let mut remplacements: Vec<((String, String, String), (String, String))> = Vec::new();
@@ -550,8 +550,8 @@ pub(crate) fn an_et_nom_du_mois(mois: &str) -> R<(i32, &'static str)> {
 }
 
 /// `_verifier_relance` : une relance ne vaut que pour un contrat demande, pas revenu, a jour.
-fn verifier_relance(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, cles: &[(String, String, String)]) -> R<()> {
-    let apercu = crate::routes_documents::signature_apercu(o, ctx, &json!({"mois": mois}))?;
+fn verifier_relance(ctx: &Contexte, mois: &str, cles: &[(String, String, String)]) -> R<()> {
+    let apercu = crate::routes_documents::signature_apercu(ctx, &json!({"mois": mois}))?;
     let etats: Vec<&Value> = apercu.get("contrats").and_then(Value::as_array).map(|l| l.iter().collect()).unwrap_or_default();
     for (salarie, debut, numero) in cles {
         // Le contrat, pas son jumeau du meme jour : (salarie, debut, numero), comme l'ecran.
@@ -602,24 +602,24 @@ impl UnAvenant {
 
 /// `operations_documents.envoyer_avenant` : un seul avenant. La reponse de la route : `partis`, `fichier`,
 /// `numero`, `ligne`.
-pub(crate) fn avenant_envoyer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+pub(crate) fn avenant_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let voulu = json!({
         "salarie": requis(charge, "salarie")?, "debut": requis(charge, "debut")?, "effet": charge.get("effet").cloned().unwrap_or(Value::Null),
         "numero": charge.get("numero").cloned().unwrap_or(Value::Null), "mois": charge.get("mois").cloned().unwrap_or(Value::Null),
     });
-    let r = envoyer_avenants(o, ctx, &[voulu], &preuve_de(charge), ouvrir)?;
+    let r = envoyer_avenants(ctx, &[voulu], &preuve_de(charge), ouvrir)?;
     let a = r.avenants.first().ok_or_else(|| erreur("ValueError", "aucun avenant n'est parti"))?;
     Ok(json!({"partis": r.partis, "fichier": a["fichier"], "numero": a["numero"], "ligne": r.lignes.first().cloned().unwrap_or(Value::Null)}))
 }
 
 /// La route `avenants-envoyer` : les avenants coches, UN COURRIEL PAR SALARIE. La reponse : `partis`, `avenants`.
-pub(crate) fn avenants_envoyer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+pub(crate) fn avenants_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let voulus: Vec<Value> = match requis(charge, "avenants")? {
         Value::Array(a) => a.clone(),
         Value::Null => Vec::new(),
         autre => return Err(erreur("TypeError", format!("`avenants` : une liste est attendue, pas {}", socle::valeur::nom_type(autre)))),
     };
-    let r = envoyer_avenants(o, ctx, &voulus, &preuve_de(charge), ouvrir)?;
+    let r = envoyer_avenants(ctx, &voulus, &preuve_de(charge), ouvrir)?;
     Ok(json!({"partis": r.partis, "avenants": r.avenants}))
 }
 
@@ -637,7 +637,7 @@ struct Avenants {
 ///
 /// Le journal `contrat-signature` porte une ligne par courriel, `acte: "avenant"` et le numero de chacun ;
 /// la version de chaque engagement y est notee, et c'est elle qui dit ensuite que le contrat est a jour.
-fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value], preuve: &crate::depot_acte::Preuve, ouvrir: Ouvrir) -> R<Avenants> {
+fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &crate::depot_acte::Preuve, ouvrir: Ouvrir) -> R<Avenants> {
     if voulus.is_empty() {
         return Err(refus("Aucun avenant coché. Rien n'est parti."));
     }
@@ -649,7 +649,6 @@ fn envoyer_avenants(o: &HashMap<String, String>, ctx: &Contexte, voulus: &[Value
         let debut_v = requis(v, "debut")?;
         // `numero` (celui que `signature-apercu` rend) et `mois` (celui de l'ecran) disent QUEL contrat du jour : facultatifs.
         let apercu = crate::routes_documents::avenant_apercu(
-            o,
             ctx,
             &json!({"salarie": salarie_v, "debut": debut_v, "numero": v.get("numero").cloned().unwrap_or(Value::Null), "mois": v.get("mois").cloned().unwrap_or(Value::Null)}),
         )?;

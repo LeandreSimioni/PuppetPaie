@@ -24,11 +24,11 @@ type R<T> = Result<T, Echec>;
 pub const ROUTES: [&str; 3] = ["signature-apercu", "avenant-apercu", "envoi-apercu"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "signature-apercu" => signature_apercu(o, ctx, charge),
-        "avenant-apercu" => avenant_apercu(o, ctx, charge),
-        "envoi-apercu" => envoi_apercu(o, ctx, charge),
+        "signature-apercu" => signature_apercu(ctx, charge),
+        "avenant-apercu" => avenant_apercu(ctx, charge),
+        "envoi-apercu" => envoi_apercu(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
@@ -58,11 +58,11 @@ fn nul() -> &'static Value {
 // ------------------------------------------------------------------ signature-apercu
 
 /// `apercu_signature` : les contrats du mois et l'etat de leur demande de signature.
-pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
     let (data, paies) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, &mois, None)?;
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
     // `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
@@ -263,10 +263,10 @@ pub(crate) fn numero_du_contrat(
 
 /// `apercu_avenant` : ce que l'avenant d'un contrat parti modifierait, article par article, l'ancien
 /// texte (celui de la version sur laquelle il est parti) et le nouveau (la paie validee). Rien n'est ecrit.
-pub(crate) fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let salarie_v = cle(charge, "salarie")?;
     let debut_v = cle(charge, "debut")?;
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     // `contrat_parti` : le dernier contrat parti a la signature pour cette paie.
     let lignes = m.lignes()?;
     // Le contrat que la page vise : son numero (que `signature-apercu` rend) et le mois de l'ecran, facultatifs.
@@ -841,7 +841,7 @@ pub(crate) fn charger_le_mois(ctx: &Contexte, mois: &str) -> R<(Value, Vec<engag
 }
 
 /// `apercu_envoi` : ce que chaque salarie recevrait, sans rien envoyer.
-fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let mois = valeur_en_texte(mois_v);
     // LE RATTRAPAGE : une AER relevee avant que la releve ne sache la ranger se range ici.
@@ -850,7 +850,7 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     }
     // Ce qui peut partir du mois, numerote.
     let (data, paies) = charger_le_mois(ctx, &mois)?;
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`routes_envois::choisir`).

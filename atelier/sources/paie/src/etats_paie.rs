@@ -374,9 +374,6 @@ pub(crate) struct LivreDePaie {
 }
 
 impl LivreDePaie {
-    pub(crate) fn lignes(&self) -> Vec<&LigneLivre> {
-        self.groupes.iter().flat_map(|g| g.lignes.iter()).collect()
-    }
 
     /// `sortie_json.brut(LivreDePaie)`.
     pub(crate) fn json(&self) -> Value {

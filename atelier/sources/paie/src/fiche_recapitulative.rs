@@ -58,7 +58,6 @@ fn copie(r: &Refus) -> Refus {
 enum Genre {
     Montant,
     Nombre,
-    Taux,
     Texte,
 }
 
@@ -77,7 +76,7 @@ impl Colonne {
         matches!(self.genre, Genre::Montant | Genre::Nombre)
     }
     fn a_droite(&self) -> bool {
-        matches!(self.genre, Genre::Montant | Genre::Nombre | Genre::Taux)
+        matches!(self.genre, Genre::Montant | Genre::Nombre)
     }
 }
 

@@ -224,26 +224,15 @@ fn forme_de_la_dsn(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R
     Ok(("03".into(), dernier + 1, true))
 }
 
-/// La declaration qu'un annule-et-remplace remplace (le dernier depot reel accepte du mois, au plus grand ordre)
-/// portait-elle un versement du prelevement a la source (S21.G00.20.002 = DGFIP_PAS) ? Elle se relit dans
-/// `sorties/<mois>/` ; introuvable, `None` : `dsn::generer` refuse alors s'il n'y a rien a reverser (norme p. 157).
+/// La declaration qu'un annule-et-remplace remplace (la derniere DSN mensuelle partie du mois, `dsn_parties`)
+/// portait-elle un versement du prelevement a la source (S21.G00.20.002 = DGFIP_PAS) ? `None` : aucune n'est partie.
 fn remplacee_versait_pas_de(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<Option<bool>> {
-    let faits = m.depots_reels(mois, nic)?;
-    let mut dernier: Option<(i64, Value)> = None;
-    for l in faits {
-        let n = m.ordre_de_la_ligne(mois, &l)?;
-        if dernier.as_ref().map_or(true, |(d, _)| n > *d) {
-            dernier = Some((n, l));
-        }
-    }
-    let Some((_, l)) = dernier else { return Ok(None) };
-    let nom = l.get("fichier").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
-    if nom.is_empty() {
-        return Ok(None);
-    }
-    let Ok(octets) = std::fs::read(ctx.racine.join("sorties").join(mois).join(&nom)) else { return Ok(None) };
-    let cherche = format!("S21.G00.20.002,'{}'", crate::dsn::DGFIP_PAS);
-    Ok(Some(octets.windows(cherche.len()).any(|w| w == cherche.as_bytes())))
+    Ok(dsn_parties(ctx, m, mois, nic)?.last().map(verse_a_la_dgfip))
+}
+
+/// La DSN porte-t-elle un versement du prelevement a la source ?
+fn verse_a_la_dgfip(f: &crate::dsn::Fabriquee) -> bool {
+    f.ordres.iter().any(|o| o.reference.as_deref() == Some(crate::dsn::DGFIP_PAS))
 }
 
 /// Le jour de constitution (S20.G00.05.007, `JJMMAAAA`) d'une DSN deja ecrite.
@@ -254,7 +243,234 @@ fn constitution_de(chemin: &Path) -> Option<socle::date::Jour> {
     socle::date::Jour::lire(&format!("{}-{}-{}", a, m, j)).ok()
 }
 
-/// Un etablissement et ce qu'il declare ce mois-ci : `(nic, paies, corrections, arrets)`.
+// ------------------------------------------------------------- ce qu'une DSN porte
+
+/// La forme d'une DSN mensuelle : son en-tete, l'etablissement qu'elle declare, et le jour de sa constitution.
+struct Forme {
+    type_dsn: String,
+    ordre: i64,
+    /// Le NIC de l'etablissement ; `None` : la compagnie n'en a qu'un.
+    etablissement: Option<String>,
+    constitution: socle::date::Jour,
+    remplacee_versait_pas: Option<bool>,
+}
+
+impl Forme {
+    fn options(&self) -> crate::dsn::Options {
+        crate::dsn::Options {
+            date_constitution: Some(self.constitution),
+            envoi_test: false,
+            type_declaration: self.type_dsn.clone(),
+            ordre: self.ordre,
+            etablissement: self.etablissement.clone(),
+            remplacee_versait_pas: self.remplacee_versait_pas,
+            ..Default::default()
+        }
+    }
+}
+
+/// LA DSN DE `mois` TELLE QU'ELLE PARTIRAIT, sous la forme `forme` : depuis les paies ecrites des engagements valides du
+/// mois de son etablissement, avec ce que `fabriquer_dsn` lui donne (les corrections a porter, les arrets du mois).
+fn fabriquer_du_present(ctx: &Contexte, mois: &str, forme: &Forme) -> R<(crate::dsn::Fabriquee, bool)> {
+    let fiche = ctx.entreprise.clone();
+    let nic = forme.etablissement.clone();
+    let du_nic = |sal: &Value| -> R<bool> {
+        match &nic {
+            Some(n) => Ok(droit::bareme::etablissement_du_salarie(&fiche, sal).map_err(valeur)? == *n),
+            None => Ok(true),
+        }
+    };
+    let (_data, toutes) = crate::apercu_dsn::paies_aux_numeros_declares(ctx, mois, None)?;
+    let mut paies: Vec<Paie> = Vec::new();
+    for p in toutes {
+        if du_nic(&p.salarie)? {
+            paies.push(p);
+        }
+    }
+    let regs = regularisations::regularisations_pour(ctx, mois)?;
+    let mut regs_e: Vec<&Reg> = Vec::new();
+    for r in &regs {
+        if du_nic(&r.apres.salarie)? {
+            regs_e.push(r);
+        }
+    }
+    let regs_dsn = regularisations::pour_la_dsn(&regs_e);
+    let mut arrets: Vec<crate::dsn::Arret> = Vec::new();
+    for a in crate::marques_depot::arrets_pour(ctx, mois)? {
+        let sal = ctx.salarie(&valeur_en_texte(a.get("salarie").unwrap_or(&Value::Null))).map_err(valeur)?;
+        if du_nic(&sal)? {
+            arrets.push(crate::dsn::Arret { v: a });
+        }
+    }
+    let vide = paies.is_empty() && regs_dsn.is_empty();
+    Ok((crate::dsn::fabriquer(ctx, &paies, mois, &regs_dsn, &arrets, &forme.options()).map_err(valeur)?, vide))
+}
+
+/// LA DSN QUE PORTE LE FICHIER `chemin` (mois principal `mois`, etablissement `nic` ; le principal sans lui), fabriquee
+/// de nouveau depuis les paies des engagements qu'elle couvre (`fabriquer_du_present`), sous la forme que son en-tete
+/// dit, au jour ou elle a ete constituee. `None` : le fichier ne dit plus ce que disent les paies, il se refait.
+pub(crate) fn refabriquer(ctx: &Contexte, chemin: &Path, mois: &str, nic: Option<&str>) -> R<Option<crate::dsn::Fabriquee>> {
+    let Ok(octets) = std::fs::read(chemin) else { return Ok(None) };
+    let Some(constitution) = constitution_de(chemin) else { return Ok(None) };
+    let entete = crate::depot::lire(&octets);
+    let type_dsn = entete.champ("type_declaration").to_string();
+    let Ok(ordre) = entete.champ("ordre").trim().parse::<i64>() else { return Ok(None) };
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+    let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };
+    let remplacee_versait_pas = if type_dsn == "03" || type_dsn == "05" {
+        let mut m = Moteur::nouveau(ctx);
+        remplacee_versait_pas_de(ctx, &mut m, mois, &nic_v)?
+    } else {
+        None
+    };
+    let forme = Forme { type_dsn, ordre, etablissement: plusieurs.then_some(nic), constitution, remplacee_versait_pas };
+    let (f, _) = fabriquer_du_present(ctx, mois, &forme)?;
+    Ok((crate::dsn::en_latin1(&f.texte).ok().as_deref() == Some(octets.as_slice())).then_some(f))
+}
+
+/// L'engagement de `mois` du salarie `cle` au contrat `numero`.
+fn engagement_de(ctx: &Contexte, mois: &str, cle: &str, numero: &str) -> R<engagement::stock::Objet> {
+    engagement::stock::objets_du_mois(&ctx.racine, mois)?
+        .into_iter()
+        .find(|o| {
+            let b = Value::Object(o.brut.clone());
+            engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(cle) && b.get("numero").map(valeur_en_texte).as_deref() == Some(numero)
+        })
+        .ok_or_else(|| valeur(format!("{} : aucun engagement de {} ne porte le contrat {} qu'une DSN partie a declare.", cle, engagement::libelle_mois(mois), numero)))
+}
+
+/// La paie de `mois` que la version `version` de l'engagement `o` (salarie `cle`, contrat `numero`) a ecrite
+/// (`engagement::etats::paie_declaree`, sur ce seul depart).
+fn paie_de_la_version(ctx: &Contexte, o: &engagement::stock::Objet, cle: &str, numero: &str, mois: &str, version: u64) -> R<Paie> {
+    use engagement::departs::{Depart, Departs, Envoi};
+    let mut seul = Departs::default();
+    seul.noter(cle, numero, Depart { envoi: Envoi::Dsn, mois: Some(mois.to_string()), par: None, version, le: String::new() });
+    engagement::etats::paie_declaree(ctx, o, &seul, mois)?
+        .ok_or_else(|| valeur(format!("{} : la version {} du contrat {} n'a pas de paie de {}.", cle, version, numero, engagement::libelle_mois(mois))))
+}
+
+/// Le jour ou la version `n` de l'engagement `o` a ete validee (`le` de la presente, `valide_le` d'une passee).
+fn valide_le(o: &engagement::stock::Objet, n: u64) -> Option<socle::date::Jour> {
+    let passees = o.brut.get("versions").and_then(Value::as_array).into_iter().flatten();
+    let v = [o.brut.get("valide"), o.brut.get("precedente")].into_iter().flatten().chain(passees).find(|v| v.get("version").and_then(Value::as_u64) == Some(n))?;
+    let le = v.get("valide_le").or_else(|| v.get("le")).and_then(Value::as_str)?;
+    socle::date::Jour::lire(le.get(..10)?).ok()
+}
+
+/// LA DSN MENSUELLE PARTIE que dit la ligne `lignes[rang]` du journal, fabriquee de nouveau par la fonction qui l'a
+/// fabriquee (`dsn::fabriquer`) depuis les versions qu'elle a emportees (`versions` de sa ligne) : les paies de son mois,
+/// et les corrections des mois passes qu'elle portait -- leur paie d'apres, la version emportee ; ce qu'elles annulaient,
+/// le dernier etat declare par ce qui etait parti avant elle (`versement_declare::dernier_declare` sur les lignes qui la
+/// precedent). Les arrets n'y sont pas : ils ne portent aucun montant. `remplacee_versait_pas` : sur un
+/// annule-et-remplace, si la DSN remplacee versait a la DGFiP.
+fn dsn_partie(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize, remplacee_versait_pas: Option<bool>) -> R<crate::dsn::Fabriquee> {
+    let l = &lignes[rang];
+    let mois = valeur_en_texte(l.get("mois").unwrap_or(&Value::Null));
+    let detail = l.get("detail").cloned().unwrap_or(Value::Null);
+    let champ = |k: &str| detail.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let type_dsn = Some(champ("type")).filter(|t| !t.is_empty()).unwrap_or_else(|| "01".into());
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let nic = Some(champ("etablissement")).filter(|n| !n.is_empty()).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+    let quand = valeur_en_texte(l.get("quand").unwrap_or(&Value::Null));
+    let constitution = socle::date::Jour::lire(quand.get(..10).unwrap_or_default()).map_err(valeur)?;
+    let forme = Forme { type_dsn, ordre: m.ordre_de_la_ligne(&mois, l)?, etablissement: plusieurs.then_some(nic), constitution, remplacee_versait_pas };
+    let avant = crate::journal::departs_des_lignes(&lignes[..rang]);
+    let ctx_m = ctx.du_mois(&mois).map_err(valeur)?;
+    let mut paies: Vec<Paie> = Vec::new();
+    let mut regs: Vec<crate::dsn::Regularisation> = Vec::new();
+    for v in l.get("versions").and_then(Value::as_array).into_iter().flatten() {
+        let texte = |k: &str| v.get(k).map(valeur_en_texte).unwrap_or_default();
+        let (cle, numero) = (texte("salarie"), texte("numero"));
+        let version = v.get("version").and_then(Value::as_u64).ok_or_else(|| valeur(format!("journal : une version illisible dans la DSN de {}", mois)))?;
+        let corrige = Some(texte("mois")).filter(|c| !c.is_empty() && *c != mois);
+        let Some(c) = corrige else {
+            let o = engagement_de(ctx, &mois, &cle, &numero)?;
+            paies.push(paie_de_la_version(&ctx_m, &o, &cle, &numero, &mois, version)?);
+            continue;
+        };
+        let ctx_c = ctx.du_mois(&c).map_err(valeur)?;
+        let o = engagement_de(ctx, &c, &cle, &numero)?;
+        let apres = paie_de_la_version(&ctx_c, &o, &cle, &numero, &c, version)?;
+        let dernier = crate::versement_declare::dernier_declare(&ctx_c, &o, &avant, &c, &mois).map_err(valeur)?;
+        // Le jour de la correction : celui ou la version qu'elle emporte a ete validee.
+        let decidee_le = valide_le(&o, version);
+        regs.push(match dernier {
+            Some(d) => crate::dsn::Regularisation {
+                mois: c,
+                avant: d.avant,
+                taux_pas_origine: d.versement.taux_pas.clone(),
+                declare: d.versement,
+                apres,
+                net_deja_verse: d.net_deja_verse,
+                decidee_le,
+            },
+            // Un contrat ajoute apres la limite : rien n'etait declare ni verse pour lui.
+            None => crate::dsn::Regularisation {
+                mois: c.clone(),
+                avant: apres.clone(),
+                declare: crate::versement_declare::VersementDeclare {
+                    fichier: String::new(),
+                    net_imposable: socle::num::Decimal::ZERO,
+                    net_verse: socle::num::Decimal::ZERO,
+                    net_social: socle::num::Decimal::ZERO,
+                    rappels_net_social: socle::num::Decimal::ZERO,
+                    frais: socle::num::Decimal::ZERO,
+                    brut: socle::num::Decimal::ZERO,
+                    lignes: Vec::new(),
+                    affiliations: Vec::new(),
+                    taux_pas: None,
+                    debut_contrat: None,
+                },
+                apres,
+                taux_pas_origine: None,
+                net_deja_verse: socle::num::Decimal::ZERO,
+                decidee_le,
+            },
+        });
+    }
+    crate::dsn::fabriquer(ctx, &paies, &mois, &regs, &[], &forme.options()).map_err(valeur)
+}
+
+/// LES DSN MENSUELLES PARTIES de `mois` pour l'etablissement `nic` (`Null` : le principal), reelles et acceptees, dans
+/// l'ordre de leur rang, chacune fabriquee de nouveau telle qu'elle est partie (`dsn_partie`) ; un annule-et-remplace
+/// sait ainsi si celle qu'il remplacait versait a la DGFiP.
+fn dsn_parties(ctx: &Contexte, m: &mut Moteur, mois: &str, nic: &Value) -> R<Vec<crate::dsn::Fabriquee>> {
+    let lignes = m.lignes()?;
+    let mut faits: Vec<(i64, usize)> = Vec::new();
+    for l in m.depots_reels(mois, nic)? {
+        let Some(rang) = lignes.iter().position(|x| *x == l) else { continue };
+        faits.push((m.ordre_de_la_ligne(mois, &l)?, rang));
+    }
+    faits.sort();
+    let mut out: Vec<crate::dsn::Fabriquee> = Vec::new();
+    for (_, rang) in faits {
+        let versait = out.last().map(verse_a_la_dgfip);
+        out.push(dsn_partie(ctx, m, &lignes, rang, versait)?);
+    }
+    Ok(out)
+}
+
+/// CE QU'UNE DSN DE `mois` FAIT VERSER, pour l'etablissement `nic` (le principal sans lui) : la derniere DSN mensuelle
+/// partie du mois, telle qu'elle est partie (ses paies et les corrections d'autres mois qu'elle portait, `dsn_parties`) ;
+/// si aucune n'est partie, celle qui partirait aujourd'hui (`fabriquer_du_present`). Rend aussi si elle est partie.
+/// `None` : rien n'est parti et rien n'est a declarer pour cet etablissement (ni paie validee, ni correction).
+pub(crate) fn dsn_du_mois(ctx: &Contexte, mois: &str, nic: Option<&str>) -> R<Option<(crate::dsn::Fabriquee, bool)>> {
+    let mut m = Moteur::nouveau(ctx);
+    let plusieurs = !droit::bareme::secondaires(&ctx.entreprise).is_empty();
+    let nic = nic.filter(|n| !n.is_empty()).map(str::to_string).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
+    let nic_v = if plusieurs { Value::String(nic.clone()) } else { Value::Null };
+    if let Some(f) = dsn_parties(ctx, &mut m, mois, &nic_v)?.pop() {
+        return Ok(Some((f, true)));
+    }
+    let forme = Forme { type_dsn: "01".into(), ordre: 1, etablissement: plusieurs.then_some(nic), constitution: ctx.aujourdhui, remplacee_versait_pas: None };
+    let (f, vide) = fabriquer_du_present(ctx, mois, &forme)?;
+    if vide {
+        return Ok(None);
+    }
+    Ok(Some((f, false)))
+}
+
 struct Lot {
     nic: Option<String>,
     paies: Vec<usize>,
@@ -300,9 +516,9 @@ impl DsnFabriquee {
 }
 
 /// La route `dsn-a-deposer` : `{"mois"}`. La DSN du mois, fabriquee depuis ses engagements valides, prete a deposer.
-pub fn dsn_a_deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+pub fn dsn_a_deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois = valeur_en_texte(charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?);
-    Ok(fabriquer_dsn(o, ctx, &mois, "interface")?.en_json(&mois))
+    Ok(fabriquer_dsn(ctx, &mois, "interface")?.en_json(&mois))
 }
 
 /// LA DSN DU MOIS, A SON DEPOT : une par etablissement, depuis les paies ecrites des engagements valides du mois, avec
@@ -313,7 +529,7 @@ pub fn dsn_a_deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
 ///
 /// Refus : un mois dont aucun engagement n'est valide alors qu'il en a (rien ne part d'un engagement en saisie) ; un mois
 /// deja declare dont l'annule-et-remplace n'est plus admis.
-pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabriquee> {
+pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabriquee> {
     let _verrou = crate::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
@@ -346,12 +562,6 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
     for p in &paies {
         avertissements.extend(p.avertissements.iter().cloned());
     }
-    if paies.is_empty() {
-        avertissements.push(info(format!(
-            "Aucun salarie en {} : la DSN part quand meme, sans individu (envoi neant) -- une DSN est due chaque mois.",
-            engagement::libelle_mois(mois)
-        )));
-    }
     for p in &paies {
         if p.engagement.sans_paie() {
             avertissements.push(info(format!(
@@ -368,7 +578,7 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
     let principal = droit::bareme::nic_principal(&fiche);
     let secondaires: Vec<String> = droit::bareme::secondaires(&fiche).iter().map(|e| valeur_en_texte(e.get("nic").unwrap_or(&Value::Null))).collect();
     let plusieurs = !secondaires.is_empty();
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     // Un mois deja declare dont l'annule-et-remplace n'est plus admis : refuse AVANT d'ecrire quoi que ce soit.
     let nics: Vec<Value> = if plusieurs { std::iter::once(principal.clone()).chain(secondaires.iter().cloned()).map(Value::String).collect() } else { vec![Value::Null] };
     for nic in &nics {
@@ -383,6 +593,12 @@ pub(crate) fn fabriquer_dsn(o: &HashMap<String, String>, ctx: &Contexte, mois: &
         avertissements.push(info(format!(
             "Regularisation embarquee dans la DSN : {}. La difference de net se paie -- ou se retient -- ce mois-ci, par un bulletin rectificatif.",
             ligne
+        )));
+    }
+    if paies.is_empty() && regs.is_empty() {
+        avertissements.push(info(format!(
+            "Aucun salarie en {} : la DSN part quand meme, sans individu (envoi neant) -- une DSN est due chaque mois.",
+            engagement::libelle_mois(mois)
         )));
     }
     // LA DECLARATION OETH D'AVRIL : elle ajoute au bordereau Urssaf une contribution (CTP 730 ou 740).

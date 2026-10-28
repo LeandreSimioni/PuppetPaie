@@ -42,11 +42,11 @@ use crate::routes_mois::Moteur;
 pub const ROUTES: [&str; 3] = ["arrets", "fins-de-contrat", "regularisations"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "arrets" => arrets(ctx),
         "fins-de-contrat" => fins_de_contrat(ctx, charge),
-        "regularisations" => regularisations(o, ctx),
+        "regularisations" => regularisations(ctx),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
@@ -448,8 +448,8 @@ fn etat_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
 }
 
 /// `mois_a_corriger` : les mois qui appellent une decision.
-fn mois_a_corriger(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
-    let mut m = Moteur::nouveau(o, ctx);
+fn mois_a_corriger(ctx: &Contexte) -> R<Value> {
+    let mut m = Moteur::nouveau(ctx);
     let mut etats = Vec::new();
     for mois in crate::routes_mois::mois_saisis(&ctx.racine) {
         etats.push(etat_mois(&mut m, ctx, &mois)?);
@@ -462,8 +462,8 @@ fn mois_a_corriger(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
 }
 
 /// La route `regularisations`.
-fn regularisations(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
-    let mois = mois_a_corriger(o, ctx)?;
-    let mut m = Moteur::nouveau(o, ctx);
+fn regularisations(ctx: &Contexte) -> R<Value> {
+    let mois = mois_a_corriger(ctx)?;
+    let mut m = Moteur::nouveau(ctx);
     Ok(json!({"mois": mois, "corrections": corrections_par_mois(&mut m, ctx)?}))
 }

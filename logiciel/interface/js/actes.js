@@ -371,6 +371,7 @@ function corpsDsn(a) {
       <summary>Ordres de télépaiement (${v.length}) — la conséquence de ce que
         la DSN déclare ; un dépôt réel les déclenche tous</summary>
       <div class="encart ${enFictive() ? "info" : "attention"}">
+      ${a.ordres_erreur ? `<p><b>${echapper(a.ordres_erreur)}</b></p>` : ""}
       ${v.length
         ? `<table class="ordres">
              <tr><th>À qui</th><th>Pour quoi</th><th class="nombre">Montant</th><th>Prélevé</th></tr>
@@ -391,22 +392,9 @@ function corpsDsn(a) {
     </details>`;
 }
 
-/** Avant ce jour, la DPAE est plus tôt que ne le dit le texte (R1221-4 : au
- *  plus tôt huit jours avant l'embauche). L'Urssaf l'enregistre quand même
- *  (test du 02/10/2026) : on prévient, on ne bloque pas. */
-function dpaeTropTot(a) {
-  // Le jour du moteur (#236), pas l'horloge du navigateur.
-  return !!(a && a.pas_avant && aujourdhuiIso() && a.pas_avant > aujourdhuiIso());
-}
-
 function corpsDpae(a) {
   const deja = (a.embauches || []).filter((x) => x.deja_declaree).length;
   return `
-    ${dpaeTropTot(a) ? `<div class="encart attention"><b>Plus de huit jours avant
-      l'embauche</b> Le code du travail dit « au plus tôt dans les huit jours
-      précédant l'embauche » (art. R1221-4) : à la lettre, à partir du
-      ${echapper(jjmmaaaa(a.pas_avant))}. L'Urssaf l'enregistre quand même —
-      elle ne contrôle pas ce délai.</div>` : ""}
     <p class="discret">${echapper(a.nom)} — ${a.enregistrements}
       enregistrement(s), ${a.octets} octets, indicateur
       ${echapper(a.indicateur)}.</p>

@@ -55,7 +55,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "mot-de-passe-changer" => mot_de_passe_changer(ctx, charge),
         "mot-de-passe-retirer" => mot_de_passe_retirer(ctx, charge),
         "google-oublier" => google_oublier(ctx, charge),
-        "maj-malgre-calcul" => maj_malgre_calcul(o, ctx),
+        "maj-malgre-calcul" => maj_malgre_calcul(ctx),
         "cloture" => crate::exercice_ecrit::cloture_route(ctx, charge),
         "export-compta" => crate::exercice_ecrit::export_compta_route(ctx, charge),
         "importer" => crate::importation_ecrite::importer(ctx, charge),
@@ -236,7 +236,7 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `operations_ouverture.appliquer_maj_malgre_calcul` : decider, depuis l'interface, qu'une version qui change
 /// un calcul s'appliquera au prochain demarrage meme si un mois saisi n'a pas sa DSN. La decision s'ecrit dans
 /// `maj/prete.json` de l'installation ; la reponse est celle de `maj-etat`.
-fn maj_malgre_calcul(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
+fn maj_malgre_calcul(ctx: &Contexte) -> R<Value> {
     let inst = socle::fichiers::dossier_du_code().join("..").join("..");
     let Some(mut p) = crate::routes_etats::prete(&inst)? else {
         return Err(refus("Aucune version prete."));
@@ -248,5 +248,5 @@ fn maj_malgre_calcul(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     let chemin = crate::maj::dossier_maj(&inst).join("prete.json");
     // `write_text(json.dumps(p, ensure_ascii=False, indent=1))` : sans saut de ligne final.
     std::fs::write(&chemin, socle::ecriture::json_indente(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
-    version(o, ctx)
+    version(ctx)
 }

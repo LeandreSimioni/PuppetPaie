@@ -15,7 +15,6 @@
 //! La COMPAGNIE FICTIVE (`simulation.active`) joue le depot -- un flux `FICTIF-...` -- et rien ne quitte le poste ;
 //! le reste (repetition, journal) se deroule comme en vrai.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
@@ -542,8 +541,8 @@ fn prochain_ordre_de_test(ctx: &Contexte, mois: &str, nic: &Value, constitution:
 /// `operations_remplacement.verifier_depot` : le garde-fou du depot REEL d'une mensuelle, ecrit depuis la
 /// norme. `Ok(true)` : un annule-et-remplace en regle (rien a forcer) ; `Ok(false)` : une premiere DSN ou une
 /// normale (`DsnDejaDeposee` tranche) ; un refus sinon.
-fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+fn verifier_depot_remplacement(ctx: &Contexte, mois: &str, a: &Apercu, nic: &Value) -> R<bool> {
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let faits = m.depots_reels(mois, nic)?;
     let mut dernier: Option<i64> = None;
     for l in &faits {
@@ -596,7 +595,6 @@ fn verifier_depot_remplacement(o: &HashMap<String, String>, ctx: &Contexte, mois
 /// 3. exiger la preuve (reel) ; 4. exiger la REPETITION (reel, `contournement` pour la sortie de secours) ;
 /// 5. seulement alors chercher le secret de l'organisme ; 6. deposer ; 7. NOTER, quoi qu'il arrive.
 pub fn deposer_dsn(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     fichier: &Value,
     reel: bool,
@@ -605,7 +603,7 @@ pub fn deposer_dsn(
     forcer: bool,
     contournement: &str,
 ) -> R<DepotFait> {
-    deposer_dsn_dans(o, ctx, fichier, reel, preuve, qui, "production", forcer, contournement, None)
+    deposer_dsn_dans(ctx, fichier, reel, preuve, qui, "production", forcer, contournement, None)
 }
 
 /// `deposer_dsn` avec l'ENVIRONNEMENT du point de depot (`production` ou `editeur`, comme `Client(ctx, environnement)` du Python). La
@@ -619,7 +617,6 @@ pub fn deposer_dsn(
 /// plate-forme a son ecriture : `ordre_signalements`).
 #[allow(clippy::too_many_arguments)]
 pub fn deposer_dsn_dans(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     fichier: &Value,
     reel: bool,
@@ -690,7 +687,7 @@ pub fn deposer_dsn_dans(
         if !apercu.est_signalement() {
             let mut etat_mois = etats::etat_dsn_du_mois(&lignes, &mois, &nic, &principal)?;
             // L'ANNULE-ET-REMPLACE EN REGLE PART SANS QU'ON FORCE RIEN (30/09/2026).
-            if verifier_depot_remplacement(o, ctx, &mois, &apercu, &nic)? {
+            if verifier_depot_remplacement(ctx, &mois, &apercu, &nic)? {
                 etat_mois = Value::Null;
             }
             if vrai(&etat_mois) && !vrai(&etat_mois["refusee"]) && !forcer {
@@ -710,7 +707,7 @@ pub fn deposer_dsn_dans(
         let change = if apercu.est_signalement() {
             None
         } else {
-            crate::routes_mois::Moteur::nouveau(o, ctx).paie_changee_depuis_l_ecriture(&mois, &chemin)?
+            crate::routes_mois::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(&mois, &chemin)?
         };
         if let Some(c) = change {
             return Err(erreur(
@@ -841,7 +838,6 @@ pub fn deposer_dsn_dans(
 /// `operations_declarations.deposer_dpae` : depose une DPAE. Meme ordre, memes regles que la DSN. La DPAE
 /// declare des EMBAUCHES, et le journal retient lesquelles (salarie, premier jour).
 pub fn deposer_dpae(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     fichier: &Value,
     reel: bool,
@@ -850,7 +846,7 @@ pub fn deposer_dpae(
     majuscules: bool,
     contournement: &str,
 ) -> R<DepotFait> {
-    deposer_dpae_avec(o, ctx, fichier, reel, preuve, qui, majuscules, contournement, None)
+    deposer_dpae_avec(ctx, fichier, reel, preuve, qui, majuscules, contournement, None)
 }
 
 /// `deposer_dpae` avec, au besoin, le client Urssaf que l'appelant donne a la place du vrai (la preuve : un client pointe sur
@@ -858,7 +854,6 @@ pub fn deposer_dpae(
 /// d'un client construit ici. Sans client, rien ne change.
 #[allow(clippy::too_many_arguments)]
 pub fn deposer_dpae_avec(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     fichier: &Value,
     reel: bool,
@@ -870,7 +865,7 @@ pub fn deposer_dpae_avec(
 ) -> R<DepotFait> {
     refuser_l_envoi(ctx)?;
     let chemin = PathBuf::from(crate::routes_apercus::resoudre(&ctx.racine, fichier)?);
-    let apercu = crate::routes_apercus::apercu_depot_dpae(o, ctx, &json!(chemin.to_string_lossy()))?;
+    let apercu = crate::routes_apercus::apercu_depot_dpae(ctx, &json!(chemin.to_string_lossy()))?;
     let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;
     let mois = valeur_en_texte(&apercu["mois"]);
 

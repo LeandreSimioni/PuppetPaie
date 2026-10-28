@@ -45,15 +45,15 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 }
 
 /// Une route d'envoi, la boite venant de `ouvrir`.
-pub fn route_avec(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+pub fn route_avec(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     match nom {
         "envoyer-documents" => envoyer_documents(ctx, charge, ouvrir),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, ouvrir),
         "casc-envoyer" => casc_envoyer(ctx, charge, ouvrir),
-        "demander-signature" => crate::envois_signature::demander_signature(o, ctx, charge, ouvrir),
+        "demander-signature" => crate::envois_signature::demander_signature(ctx, charge, ouvrir),
         "contrats-imprimer" => crate::envois_signature::contrats_imprimer(ctx, charge),
-        "avenant-envoyer" => crate::envois_signature::avenant_envoyer(o, ctx, charge, ouvrir),
-        "avenants-envoyer" => crate::envois_signature::avenants_envoyer(o, ctx, charge, ouvrir),
+        "avenant-envoyer" => crate::envois_signature::avenant_envoyer(ctx, charge, ouvrir),
+        "avenants-envoyer" => crate::envois_signature::avenants_envoyer(ctx, charge, ouvrir),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -370,8 +370,7 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::P
 /// courant). `None` : le mois n'en est pas la (pas de DSN deposee, ou son annule-et-remplace encore admis).
 #[allow(clippy::type_complexity)]
 fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn Fn(&str) -> String>>> {
-    let o = HashMap::new();
-    let mut m = crate::routes_mois::Moteur::nouveau(&o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let etat = crate::routes_regularisation::etat_mois(&mut m, ctx, &json!(mois))?;
     if !vrai(&etat["regularisable"]) {
         return Ok(None);

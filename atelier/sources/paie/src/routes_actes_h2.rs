@@ -33,13 +33,13 @@ use socle::echec::Echec;
 pub const ROUTES: [&str; 5] = ["deposer", "suivre-depot", "bilan-repetition", "filet-preparer", "dsn-a-deposer"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "deposer" => deposer(o, ctx, charge),
+        "deposer" => deposer(ctx, charge),
         "suivre-depot" => suivre_depot(ctx, charge),
-        "bilan-repetition" => bilan_repetition(o, ctx, charge),
-        "filet-preparer" => filet_preparer(o, ctx, charge),
-        "dsn-a-deposer" => crate::depart::dsn_a_deposer(o, ctx, charge),
+        "bilan-repetition" => bilan_repetition(ctx, charge),
+        "filet-preparer" => filet_preparer(ctx, charge),
+        "dsn-a-deposer" => crate::depart::dsn_a_deposer(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -55,14 +55,14 @@ fn requis<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
 /// corps du POST, il n'est ni journalise ni renvoye. `contournement` : le motif ECRIT d'un depot reel sans
 /// repetition. `forcer` : l'annule-et-remplace voulu, apres l'avertissement que la page affiche sur
 /// `DsnDejaDeposee` -- jamais par defaut.
-fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
     // LA DSN DU MOIS SE NOMME PAR SON MOIS : elle se fabrique ici, depuis l'engagement valide, et c'est elle qui part
     // (celle de l'etablissement `etablissement`, le principal sinon).
     let fabriquee;
     let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
         (None, Some(mois)) if etats::est(quoi, "dsn") => {
-            let dsn = crate::depart::fabriquer_dsn(o, ctx, &valeur_en_texte(mois), "interface")?;
+            let dsn = crate::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
             let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
             let chemin = match nic {
                 Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
@@ -79,9 +79,9 @@ fn deposer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Val
     let reel = charge.get("reel").is_some_and(vrai);
     let fait = if etats::est(quoi, "dsn") {
         let forcer = charge.get("forcer").is_some_and(vrai);
-        depot_acte::deposer_dsn(o, ctx, fichier, reel, Some(&preuve), "interface", forcer, &contournement)?
+        depot_acte::deposer_dsn(ctx, fichier, reel, Some(&preuve), "interface", forcer, &contournement)?
     } else {
-        depot_acte::deposer_dpae(o, ctx, fichier, reel, Some(&preuve), "interface", false, &contournement)?
+        depot_acte::deposer_dpae(ctx, fichier, reel, Some(&preuve), "interface", false, &contournement)?
     };
     Ok(fait.en_json())
 }
@@ -145,8 +145,8 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `bilan_de_la_repetition` : ou en est le test de CE fichier -- et, s'il attend son compte rendu, aller le
 /// chercher maintenant. Une LECTURE : rien ne part. Rend `journal.repetition`, plus `incident` si le releve n'a
 /// pas pu se faire (le test reste ce qu'il est ; on le redira au passage suivant).
-fn bilan_repetition(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    let mut r = crate::routes_apercus::bilan_repetition(o, ctx, charge)?;
+fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let mut r = crate::routes_apercus::bilan_repetition(ctx, charge)?;
     if vrai(&r["conforme"]) && etats::est(&r["compte_rendu"], "attendu") {
         let (debut, fin) = releve_retours::derniere_journee();
         let quoi = requis(charge, "quoi")?;
@@ -160,7 +160,7 @@ fn bilan_repetition(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value)
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
             Err(e) => phrase_de(&e),
         };
-        r = crate::routes_apercus::bilan_repetition(o, ctx, charge)?;
+        r = crate::routes_apercus::bilan_repetition(ctx, charge)?;
         r["incident"] = json!(incident);
     }
     Ok(r)
@@ -179,13 +179,13 @@ fn cle_du_test(salarie: &str, debut: &str) -> String {
 /// "armes", "desarmes", "incidents", "occupe"}`. Ne leve jamais pour une panne : elle devient un incident, et le
 /// passage suivant reessaie. `tester` (vrai par defaut) ; `qui` (`filet` par defaut) ; `maintenant`
 /// (`AAAA-MM-JJTHH:MM`, que l'appelant peut fixer).
-pub(crate) fn filet_preparer(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
-    filet_preparer_avec(o, ctx, charge, None)
+pub(crate) fn filet_preparer(ctx: &Contexte, charge: &Value) -> R<Value> {
+    filet_preparer_avec(ctx, charge, None)
 }
 
 /// `filet_preparer` avec, au besoin, le client Urssaf que l'appelant donne pour le test automatique des DPAE (la preuve de
 /// l'ouverture, lot I2b : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
-pub(crate) fn filet_preparer_avec(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value, mut client: Option<&mut crate::releve_retours::Client>) -> R<Value> {
+pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut crate::releve_retours::Client>) -> R<Value> {
     let tester = charge.get("tester").map_or(true, vrai);
     let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
     let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
@@ -199,7 +199,7 @@ pub(crate) fn filet_preparer_avec(o: &HashMap<String, String>, ctx: &Contexte, c
     demande.insert("maintenant".into(), json!(maintenant_iso));
     if tester {
         let etat = crate::filet::lire_etat(&ctx.racine)?;
-        if let Some(tests) = tester_les_dpae(o, ctx, &etat, &suivies, &maintenant_iso, &qui, &mut bilan_testees, &mut bilan_incidents, client.as_deref_mut())? {
+        if let Some(tests) = tester_les_dpae(ctx, &etat, &suivies, &maintenant_iso, &qui, &mut bilan_testees, &mut bilan_incidents, client.as_deref_mut())? {
             demande.insert("tests".into(), tests);
             demande.insert(
                 "vivantes".into(),
@@ -234,7 +234,6 @@ pub(crate) fn filet_preparer_avec(o: &HashMap<String, String>, ctx: &Contexte, c
 /// teste sur ce poste.
 #[allow(clippy::too_many_arguments)]
 fn tester_les_dpae(
-    o: &HashMap<String, String>,
     ctx: &Contexte,
     etat: &Value,
     suivies: &[Value],
@@ -299,7 +298,7 @@ fn tester_les_dpae(
             let lignes = etats::charger(&ctx.racine)?;
             let deja = etats::repetition(&lignes, "dpae", &crate::journal::empreinte(&octets), &nom)?;
             if !vrai(&deja["conforme"]) {
-                depot_acte::deposer_dpae_avec(o, ctx, &json!(f), false, None, qui, false, "", client.as_deref_mut())?;
+                depot_acte::deposer_dpae_avec(ctx, &json!(f), false, None, qui, false, "", client.as_deref_mut())?;
             }
             Ok(())
         };

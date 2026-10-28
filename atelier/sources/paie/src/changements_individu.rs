@@ -11,23 +11,22 @@
 //! `chapitre-2-principes-de-constitution.txt` (p. 18-21), `chapitre-4-controles.txt` (§ 4.4.12, p. 99 : 31.001 ne
 //! depasse pas le dernier jour du mois principal declare).
 //!
-//! CE QUI A ETE DECLARE SE RELIT, IL NE SE RECALCULE PAS (regles 1 et 4) : l'identite de reference est le bloc 30 de
-//! l'individu dans la derniere DSN mensuelle reelle acceptee qui le porte, d'un mois anterieur au mois declare (le
-//! fichier que `casc::dsn_deposee` designe, comme pour une regularisation, vague 0b). La date du changement est celle
-//! que la fiche datee porte : le `depuis` de la valeur qui suit la derniere qui porte l'ancienne valeur declaree
-//! (`contexte::dater`). Une fiche qui ne date pas le changement refuse : la date ne se devine pas.
+//! CE QUI A ETE DECLARE SE RELIT, IL NE SE RECALCULE PAS (regles 1 et 4) : l'identite de reference est celle de la fiche
+//! que lit la paie declaree la plus recente du salarie, d'un mois anterieur au mois declare (`dsn::paies_declarees_du_mois`,
+//! la version de l'engagement sur laquelle sa DSN est partie). La date du changement est celle que la fiche datee porte :
+//! le `depuis` de la valeur qui suit la derniere qui porte l'ancienne valeur declaree (`contexte::dater`). Une fiche qui
+//! ne date pas le changement refuse : la date ne se devine pas.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::PathBuf;
+use std::collections::BTreeMap;
 
 use serde_json::Value;
 
 use droit::contexte::{fiche_au, valeurs_datees, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::Fichier;
-use socle::fichiers::{lire_json, vrai};
+use socle::fichiers::vrai;
 use socle::num::Resultat;
-use crate::usages::{lignes, rubrique_valeur, strip};
+use crate::usages::strip;
 
 /// Les champs de la fiche que le bloc 30 ecrit et que le bloc 31 peut porter : (champ, rubrique 30, rubrique 31,
 /// libelle). L'ordre est celui du bloc 31 (p. 177).
@@ -70,51 +69,6 @@ impl Declaree {
     }
 }
 
-/// Les individus (bloc 30) d'un fichier DSN : un individu commence a 30.001, ou a 30.002 s'il n'a pas de NIR (comme
-/// `ntt::individus`).
-pub fn individus(texte: &str, mois: &str, fichier: &str) -> Vec<Declaree> {
-    let vide = || Declaree {
-        mois: mois.to_string(),
-        fichier: fichier.to_string(),
-        nir: String::new(),
-        nom: String::new(),
-        prenoms: String::new(),
-        naissance: String::new(),
-        ntt: String::new(),
-        matricule: String::new(),
-    };
-    let mut out: Vec<Declaree> = Vec::new();
-    for ligne in lignes(texte) {
-        let (r, v) = rubrique_valeur(ligne);
-        let v = strip(v).to_string();
-        match r {
-            "S21.G00.30.001" => {
-                let mut d = vide();
-                d.nir = v;
-                out.push(d);
-            }
-            "S21.G00.30.002" => {
-                if out.last().map_or(true, |d| !d.nom.is_empty()) {
-                    out.push(vide());
-                }
-                out.last_mut().unwrap().nom = v;
-            }
-            "S21.G00.30.004" | "S21.G00.30.006" | "S21.G00.30.019" | "S21.G00.30.020" => {
-                if let Some(d) = out.last_mut() {
-                    match r {
-                        "S21.G00.30.004" => d.prenoms = v,
-                        "S21.G00.30.006" => d.naissance = v,
-                        "S21.G00.30.019" => d.matricule = v,
-                        _ => d.ntt = v,
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-    out
-}
-
 fn texte(v: Option<&Value>) -> String {
     match v {
         Some(x) if vrai(x) => strip(&en_texte(x)).to_string(),
@@ -154,74 +108,41 @@ pub fn identite_du_mois(salarie: &Value, brute: &Value, fin: &Jour) -> Resultat<
     Ok(sortie)
 }
 
-/// Les DSN mensuelles reelles acceptees des mois anterieurs au mois declare, lues a la demande, du plus recent au plus
-/// ancien.
+/// Les identites declarees des mois anterieurs au mois declare, lues a la demande, du plus recent au plus ancien.
 pub struct Declarations<'a> {
     ctx: &'a Contexte,
-    /// (mois, etablissements dont le journal a une DSN reelle acceptee ; vide : celle que l'import CoolPaie a retenue).
-    mois: Vec<(String, BTreeSet<String>)>,
+    mois: Vec<String>,
     lus: BTreeMap<usize, Vec<Declaree>>,
 }
 
 impl<'a> Declarations<'a> {
-    /// Les mois declares avant `mois` : le journal des depots (`journal/depots.json`, DSN reelles acceptees) et
-    /// l'historique importe de CoolPaie (`historique/paies.json`).
+    /// Les mois saisis avant `mois`.
     pub fn avant(ctx: &'a Contexte, mois: &str) -> Resultat<Declarations<'a>> {
-        let mut par_mois: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-        let principal = texte(ctx.entreprise.get("nic"));
-        let journal = ctx.racine.join("journal").join("depots.json");
-        if journal.exists() {
-            for l in lire_json(&journal)?.as_array().into_iter().flatten() {
-                let m = texte(l.get("mois"));
-                if l.get("quoi").and_then(Value::as_str) != Some("dsn")
-                    || l.get("mode").and_then(Value::as_str) != Some("reel")
-                    || !l.get("accepte").is_some_and(vrai)
-                    || m.as_str() >= mois
-                    || m.len() != 7
-                {
-                    continue;
-                }
-                let e = texte(l.get("detail").and_then(|d| d.get("etablissement")));
-                par_mois.entry(m).or_default().insert(if e.is_empty() { principal.clone() } else { e });
-            }
-        }
-        let historique = ctx.racine.join("historique").join("paies.json");
-        if historique.exists() {
-            for p in lire_json(&historique)?.get("paies").and_then(Value::as_array).into_iter().flatten() {
-                let m = texte(p.get("mois"));
-                if m.len() == 7 && m.as_str() < mois && !texte(p.get("fichier")).is_empty() {
-                    par_mois.entry(m).or_default();
-                }
-            }
-        }
-        Ok(Declarations { ctx, mois: par_mois.into_iter().rev().collect(), lus: BTreeMap::new() })
+        let mut avant: Vec<String> = engagement::stock::mois_saisis(&ctx.racine)?.into_iter().filter(|m| m.as_str() < mois).collect();
+        avant.sort();
+        avant.reverse();
+        Ok(Declarations { ctx, mois: avant, lus: BTreeMap::new() })
     }
 
-    /// Les individus des DSN qui font foi pour le `i`-ieme mois.
+    /// Les individus que les paies declarees du `i`-ieme mois portent (`dsn::paies_declarees_du_mois`), avec la fiche
+    /// que leur calcul a lue : l'identite que leur DSN a ecrite.
     fn lire(&mut self, i: usize) -> Resultat<&Vec<Declaree>> {
         if !self.lus.contains_key(&i) {
-            let (mois, etabs) = &self.mois[i];
-            let mut chemins: Vec<PathBuf> = Vec::new();
-            let nics: Vec<Option<&str>> = if etabs.is_empty() { vec![None] } else { etabs.iter().map(|e| Some(e.as_str())).collect() };
-            for nic in nics {
-                if let Some(p) = crate::casc::dsn_deposee(self.ctx, mois, nic).map_err(|m| {
-                    format!(
-                        "{} (L'identite des salaries se relit aussi dans les DSN deposees : le bloc S21.G00.31 compare a ce qui a ete declare.)",
-                        m
-                    )
-                })? {
-                    if !chemins.contains(&p) {
-                        chemins.push(p);
-                    }
-                }
-            }
+            let mois = &self.mois[i];
             let mut tous = Vec::new();
-            for p in chemins {
-                let octets = std::fs::read(&p).map_err(|e| format!("{} : {}", p.display(), e))?;
-                // Latin-1, comme la DSN s'ecrit (`dsn::ecrire`).
-                let t: String = octets.iter().map(|b| *b as char).collect();
-                let nom = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-                tous.extend(individus(&t, mois, &nom));
+            for p in crate::dsn::paies_declarees_du_mois(self.ctx, mois, None)? {
+                let s = &p.salarie;
+                let nir = crate::ntt::nir_de(s);
+                tous.push(Declaree {
+                    mois: mois.clone(),
+                    fichier: "la paie declaree".to_string(),
+                    ntt: if nir.is_empty() { crate::ntt::numero(&self.ctx.entreprise, s).unwrap_or_default() } else { String::new() },
+                    nir,
+                    nom: texte(s.get("nom")),
+                    prenoms: texte(s.get("prenom")),
+                    naissance: ecrite("date_naissance", s.get("date_naissance")).unwrap_or_default(),
+                    matricule: texte(s.get("code_salarie")),
+                });
             }
             self.lus.insert(i, tous);
         }
@@ -359,12 +280,16 @@ mod tests {
     use serde_json::json;
 
     fn declaree() -> Declaree {
-        individus(
-            "S21.G00.30.001,'2901075999009'\r\nS21.G00.30.002,'CLAIRON'\r\nS21.G00.30.004,'LUCILE'\r\nS21.G00.30.006,'02101990'\r\nS21.G00.30.019,'6'\r\n",
-            "2026-07",
-            "DSN_Juillet2026.dsn",
-        )
-        .remove(0)
+        Declaree {
+            mois: "2026-07".into(),
+            fichier: "la paie declaree".into(),
+            nir: "2901075999009".into(),
+            nom: "CLAIRON".into(),
+            prenoms: "LUCILE".into(),
+            naissance: "02101990".into(),
+            ntt: String::new(),
+            matricule: "6".into(),
+        }
     }
 
     fn fin() -> Jour {

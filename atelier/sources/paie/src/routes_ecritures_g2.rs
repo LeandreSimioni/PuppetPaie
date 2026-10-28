@@ -126,25 +126,6 @@ fn couts(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value
     r.couts_de_l_annee().map_err(|e| Echec { classe: e.classe, message: e.message })
 }
 
-/// `int(x)`, comme Python le lit d'une valeur JSON.
-fn entier_py(v: &Value) -> R<i64> {
-    match v {
-        Value::Number(n) => match n.as_i64() {
-            Some(i) => Ok(i),
-            None => Ok(n.as_f64().unwrap_or(0.0).trunc() as i64),
-        },
-        Value::Bool(b) => Ok(*b as i64),
-        Value::String(t) => {
-            let net = t.trim_matches(socle::texte::blanc);
-            net.parse::<i64>()
-                .map_err(|_| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(t))))
-        }
-        autre => Err(erreur(
-            "TypeError",
-            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
-        )),
-    }
-}
 
 // ------------------------------------------------------------------------ arrets
 
@@ -314,15 +295,6 @@ fn arret_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn un_entier_se_lit_comme_python() {
-        assert_eq!(entier_py(&json!(3)).unwrap(), 3);
-        assert_eq!(entier_py(&json!(" 4 ")).unwrap(), 4);
-        assert_eq!(entier_py(&json!(2.9)).unwrap(), 2);
-        assert!(entier_py(&json!("x")).is_err());
-        assert!(entier_py(&Value::Null).is_err());
-    }
 
     #[test]
     fn l_heure_a_la_forme_du_python() {

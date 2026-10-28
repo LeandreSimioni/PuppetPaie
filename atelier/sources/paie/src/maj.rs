@@ -463,7 +463,7 @@ fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
         let o = std::collections::HashMap::from([("racine".to_string(), racine.display().to_string())]);
         let nom = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         // Une compagnie qu'on ne lit pas retient la version : on ne sait pas si ses mois ont leur DSN.
-        let lus = crate::service::contexte(&o).and_then(|ctx| mois_qui_retiennent_la_compagnie(&o, &ctx).map_err(|e| e.message));
+        let lus = crate::service::contexte(&o).and_then(|ctx| mois_qui_retiennent_la_compagnie(&ctx).map_err(|e| e.message));
         match lus {
             Ok(mois) => out.extend(mois.iter().map(|m| format!("{} ({})", m.as_str().unwrap_or_default(), nom))),
             Err(e) => out.push(format!("? ({} illisible : {})", nom, e)),
@@ -474,9 +474,9 @@ fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
 
 /// Les mois d'UNE compagnie qui retiennent une version qui change un calcul (`mois_qui_retiennent`) : ses mois saisis sans
 /// DSN acceptee, hors ceux qu'elle a saisis en demo avant d'etre gardee.
-pub(crate) fn mois_qui_retiennent_la_compagnie(o: &std::collections::HashMap<String, String>, ctx: &droit::contexte::Contexte) -> socle::echec::R<Vec<Value>> {
+pub(crate) fn mois_qui_retiennent_la_compagnie(ctx: &droit::contexte::Contexte) -> socle::echec::R<Vec<Value>> {
     let demo = crate::interface::suppression::mois_de_demo(&ctx.racine);
-    let mut mois = crate::routes_etats::mois_saisis_non_deposes(o, ctx)?;
+    let mut mois = crate::routes_etats::mois_saisis_non_deposes(ctx)?;
     mois.retain(|m| !m.as_str().is_some_and(|m| demo.iter().any(|d| d == m)));
     Ok(mois)
 }

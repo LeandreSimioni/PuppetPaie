@@ -33,7 +33,7 @@ pub const ROUTES: [&str; 2] = ["saisie", "echeancier"];
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "saisie" => saisie(_o, ctx, charge),
+        "saisie" => saisie(ctx, charge),
         "echeancier" => echeancier(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
@@ -408,7 +408,7 @@ fn descendre_le_mois(saisie: Value) -> Value {
 }
 
 /// La route `saisie`.
-fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = charge.get("mois").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let mois = en_texte(brut);
     let existe = engagement::stock::a_une_saisie(&ctx.racine, &mois).map_err(Echec::from)?;
@@ -422,7 +422,7 @@ fn saisie(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Valu
     }
     // UN MOIS DECLARE DONT L'ANNULE-ET-REMPLACE EST PASSE (21/10/2026) n'est pas ferme : sa paie se modifie, en le
     // confirmant a la premiere modification (`routes_regularisation::modification_de_la_paie`) -- il n'est pas en retard.
-    let mut m = crate::routes_mois::Moteur::nouveau(o, ctx);
+    let mut m = crate::routes_mois::Moteur::nouveau(ctx);
     let dsn_deposee = crate::routes_regularisation::modification_de_la_paie(&mut m, ctx, &mois)?;
     let avant_embauche = avant_la_premiere_embauche(ctx, &mois)?;
     let saisie = descendre_le_mois(saisie);

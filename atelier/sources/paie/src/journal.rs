@@ -155,9 +155,15 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
 /// engagement qu'elle couvre, la version sur laquelle elle est partie (`versions` : `[{"salarie", "numero",
 /// "version", "mois"?}]` ; `mois`, pour la correction d'un mois passe qu'une DSN porte : le mois corrige). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
 pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
+    Ok(departs_des_lignes(&lire(racine, None, None, false)?))
+}
+
+/// Ce que les lignes `lignes` du journal disent de ce qui est parti (`departs`) : les lignes qui precedent un envoi
+/// disent ce qui etait parti avant lui.
+pub fn departs_des_lignes(lignes: &[Value]) -> engagement::departs::Departs {
     use engagement::departs::{Depart, Departs, Envoi};
     let mut d = Departs::default();
-    for l in lire(racine, None, None, false)? {
+    for l in lignes {
         let envoi = match l.get("quoi").and_then(Value::as_str) {
             Some("contrat-signature") => Envoi::Contrat,
             Some("dpae") => Envoi::Dpae,
@@ -188,7 +194,7 @@ pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
             d.noter(cle, numero, Depart { envoi, mois: m, par, version, le: le.clone() });
         }
     }
-    Ok(d)
+    d
 }
 
 /// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du

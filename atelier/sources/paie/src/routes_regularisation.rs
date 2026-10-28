@@ -27,10 +27,10 @@ use crate::routes_mois::Moteur;
 pub const ROUTES: [&str; 2] = ["regularisation-apercu", "regularisation-mois"];
 
 /// Une route de ce module.
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
-        "regularisation-apercu" => apercu_correction(o, ctx, charge),
-        "regularisation-mois" => regularisation_mois(o, ctx, charge),
+        "regularisation-apercu" => apercu_correction(ctx, charge),
+        "regularisation-mois" => regularisation_mois(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
@@ -479,10 +479,10 @@ pub(crate) fn corrections_du_mois(m: &mut Moteur, ctx: &Contexte, mois: &str) ->
 
 /// `regularisation-apercu` : la correction d'un contrat de `mois` (`salarie`, `debut`) : la paie declaree, la paie
 /// validee presente, la difference. Refus : le mois ne se corrige pas ainsi, ou ce contrat n'a rien a corriger.
-pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+pub(crate) fn apercu_correction(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
     let (salarie, debut) = (valeur_en_texte(cle(charge, "salarie")?), valeur_en_texte(cle(charge, "debut")?));
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     let etat = etat_mois(&mut m, ctx, mois_v)?;
     if !etat["regularisable"].as_bool().unwrap_or(false) {
         return Err(non_regularisable(valeur_en_texte(&etat["raison"])));
@@ -502,9 +502,9 @@ pub(crate) fn apercu_correction(o: &HashMap<String, String>, ctx: &Contexte, cha
 
 /// `regularisation-mois` : l'etat du mois (`etat_mois`), et quand il se corrige, ses corrections a porter et celles deja
 /// portees (`corrections_du_mois`).
-fn regularisation_mois(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
+fn regularisation_mois(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mois_v = cle(charge, "mois")?;
-    let mut m = Moteur::nouveau(o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     let etat = etat_mois(&mut m, ctx, mois_v)?;
     let (a_porter, portees) = corrections_du_mois(&mut m, ctx, &valeur_en_texte(mois_v))?;
     Ok(json!({"mois": mois_v, "etat": etat, "a_porter": a_porter, "portees": portees}))

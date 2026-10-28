@@ -70,14 +70,6 @@ fn erreur_google(message: impl Into<String>) -> Echec {
     erreur("ErreurGoogle", message)
 }
 
-fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
-    let classe = match e.kind() {
-        std::io::ErrorKind::NotFound => "FileNotFoundError",
-        std::io::ErrorKind::PermissionDenied => "PermissionError",
-        _ => "OSError",
-    };
-    erreur(classe, format!("{} : {}", p.display(), e))
-}
 
 /// `AttributeError` de `x.get(...)` sur ce qui n'est pas un dict.
 #[track_caller]

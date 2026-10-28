@@ -42,9 +42,9 @@ fn plain(m: impl Into<String>) -> Echec {
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (rien ici).
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, _charge: &Value) -> R<Value> {
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, _charge: &Value) -> R<Value> {
     match nom {
-        "etat" => etat(o, ctx),
+        "etat" => etat(ctx),
         // La part « configuration » de l'etat, pour les routes qui la rendent
         // apres un enregistrement (`web._configuration`).
         "configuration" => configuration(ctx),
@@ -352,8 +352,7 @@ pub(crate) fn attendues(lignes: &[Value]) -> R<Vec<Value>> {
 /// `_configuration` : toute la configuration, verifiee, et ce que la page en
 /// tire sans un appel de plus.
 fn configuration(ctx: &Contexte) -> R<Value> {
-    let o = HashMap::new();
-    let mut m = Moteur::nouveau(&o, ctx);
+    let mut m = Moteur::nouveau(ctx);
     configuration_de(ctx, &mut m)
 }
 
@@ -856,8 +855,8 @@ pub(crate) fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String 
 // -------------------------------------------------------------------- l'etat
 
 /// La route `etat` : tout ce que la page lit en s'ouvrant.
-pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
-    let mut m = Moteur::nouveau(o, ctx);
+pub fn etat(ctx: &Contexte) -> R<Value> {
+    let mut m = Moteur::nouveau(ctx);
     let configuration = configuration_de(ctx, &mut m)?;
     let historique = historique(&mut m, ctx);
 

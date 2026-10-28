@@ -214,6 +214,38 @@ fn libelle_casc(m: &str) -> R<String> {
     Ok(format!("{} {}", nom, m.chars().take(4).collect::<String>()))
 }
 
+/// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois
+/// (`historique/paies.json`), sous `historique/coolpaie/DSN/` ou dans le dossier d'ou il a ete repris. `None` : un mois
+/// que l'import n'a pas retenu ; un fichier retenu introuvable refuse.
+fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
+    let chemin = ctx.racine.join("historique").join("paies.json");
+    let decl = if chemin.exists() { socle::fichiers::lire_json(&chemin)? } else { Value::Object(Default::default()) };
+    let noms: Vec<String> = decl
+        .get("paies")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|x| x.get("mois").and_then(Value::as_str) == Some(mois))
+        .filter_map(|x| x.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte))
+        .collect();
+    let Some(nom) = noms.last() else { return Ok(None) };
+    let source = match decl.get("source") {
+        Some(v) if vrai(v) => PathBuf::from(valeur_en_texte(v)),
+        _ => ctx.racine.clone(),
+    };
+    for d in [
+        ctx.racine.join("historique").join("coolpaie").join("DSN"),
+        ctx.racine.join("export-coolpaie").join("DSN"),
+        ctx.racine.join("export-coolpaie"),
+        source.join("DSN"),
+    ] {
+        if d.join(nom).exists() {
+            return Ok(Some(d.join(nom)));
+        }
+    }
+    Err(format!("La DSN de {} ({}) a ete reprise de l'historique, mais le fichier n'est plus sous historique/coolpaie/DSN/.", mois, nom))
+}
+
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a
 /// l'adhesion que la DSN nomme `contrat` en bloc 15). `None` : illisible.
 fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
@@ -268,7 +300,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
     let mut par_mois: Vec<(String, Decimal)> = Vec::new();
     for m in dispo.iter().filter(|m| **m >= depuis && !faits.contains(*m)) {
-        let chemin = match crate::casc::dsn_deposee(ctx, m, None) {
+        let chemin = match dsn_importee(ctx, m) {
             Ok(Some(c)) => c,
             Ok(None) => continue,
             Err(_) => return Ok(None),

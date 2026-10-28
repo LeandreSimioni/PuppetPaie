@@ -387,7 +387,6 @@ pub(crate) struct Globales {
 
 /// Tout ce qu'une route lit, lu une fois.
 pub struct Moteur<'a> {
-    o: &'a HashMap<String, String>,
     ctx: &'a Contexte,
     journal: Option<Result<std::sync::Arc<Vec<Value>>, Echec>>,
     globales: Option<Rc<Globales>>,
@@ -395,8 +394,8 @@ pub struct Moteur<'a> {
 }
 
 impl<'a> Moteur<'a> {
-    pub fn nouveau(o: &'a HashMap<String, String>, ctx: &'a Contexte) -> Moteur<'a> {
-        Moteur { o, ctx, journal: None, globales: None, fichiers: HashMap::new() }
+    pub fn nouveau(ctx: &'a Contexte) -> Moteur<'a> {
+        Moteur { ctx, journal: None, globales: None, fichiers: HashMap::new() }
     }
 
     fn racine(&self) -> &Path {
@@ -737,28 +736,17 @@ impl<'a> Moteur<'a> {
         e.veille().map_err(plain)
     }
 
-    /// `_ordre_de_la_ligne` : le rang d'un depot reel du journal.
+    /// Le rang d'un depot reel du journal : l'ordre que sa ligne porte (S20.G00.05.004 du fichier parti, noté au depot).
     pub(crate) fn ordre_de_la_ligne(&self, mois: &str, l: &Value) -> R<i64> {
         let d = ou(get(l, "detail")?, objet_vide());
         let ordre = get(d, "ordre")?;
         let t = if vrai(ordre) { valeur_en_texte(ordre) } else { String::new() };
-        if !t.is_empty() && t.chars().all(|c| c.is_ascii_digit()) {
-            if let Ok(n) = t.parse::<i64>() {
-                return Ok(n);
-            }
-        }
-        let nom = get(l, "fichier")?;
-        if vrai(nom) {
-            let p = self.racine().join("sorties").join(mois).join(valeur_en_texte(nom));
-            if p.exists() {
-                let octets = std::fs::read(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-                if let Some(n) = rang_dans_le_fichier(&octets) {
-                    return Ok(n);
-                }
-            }
-        }
-        // Une ligne reconstituee sans fichier : une normale porte l'ordre 1.
-        Ok(1)
+        t.trim().parse::<i64>().map_err(|_| {
+            erreur(
+                "ValueError",
+                format!("journal/depots.json : un depot reel de la DSN de {} ne porte pas son ordre (S20.G00.05.004). Le rang d'un annule-et-remplace ne se devine pas.", mois),
+            )
+        })
     }
 
     /// `depots_reels` : les depots REELS de DSN mensuelle du mois que la
@@ -1397,23 +1385,6 @@ pub(crate) fn etat_documents(parti: Option<&Value>, caduc: bool) -> Value {
     json!({"fait": fait, "maille": "salarie", "caduc": caduc, "pourquoi": if caduc { DOCUMENTS_CADUCS } else { "" }})
 }
 
-/// `S20\.G00\.05\.004,'(\d+)'` cherche dans les octets d'un fichier DSN.
-fn rang_dans_le_fichier(octets: &[u8]) -> Option<i64> {
-    let motif = b"S20.G00.05.004,'";
-    let mut i = 0;
-    while i + motif.len() <= octets.len() {
-        if &octets[i..i + motif.len()] == motif {
-            let debut = i + motif.len();
-            let fin = debut + octets[debut..].iter().take_while(|c| c.is_ascii_digit()).count();
-            if fin > debut && octets.get(fin) == Some(&b'\'') {
-                return std::str::from_utf8(&octets[debut..fin]).ok()?.parse().ok();
-            }
-        }
-        i += 1;
-    }
-    None
-}
-
 /// `DSN_[^\W\d_]+\d{4}(_AR\d+)?\.dsn` : le nom d'une DSN mensuelle.
 pub(crate) fn est_une_dsn_mensuelle(nom: &str) -> bool {
     let Some(reste) = nom.strip_prefix("DSN_") else { return false };
@@ -1473,8 +1444,8 @@ pub(crate) fn mois_de(charge: &Value) -> R<(Value, String)> {
 }
 
 /// Une route de ce module. `charge` : ce que la page envoie (`mois`).
-pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let mut m = Moteur::nouveau(o, ctx);
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
+    let mut m = Moteur::nouveau(ctx);
     match nom {
         "etat-par-engagement" => {
             let (brut, mois) = mois_de(charge)?;
@@ -1510,15 +1481,6 @@ mod tests {
         ] {
             assert!(!est_une_dsn_mensuelle(non), "{}", non);
         }
-    }
-
-    #[test]
-    fn le_rang_d_un_fichier_dsn_se_lit_dans_la_rubrique_s20_g00_05_004() {
-        assert_eq!(rang_dans_le_fichier(b"S20.G00.05.002,'03'\nS20.G00.05.004,'12'\n"), Some(12));
-        // Un premier motif sans chiffres n'arrete pas la recherche.
-        assert_eq!(rang_dans_le_fichier(b"S20.G00.05.004,'x'\nS20.G00.05.004,'3'\n"), Some(3));
-        assert_eq!(rang_dans_le_fichier(b"S20.G00.05.004,''\n"), None);
-        assert_eq!(rang_dans_le_fichier(b"rien"), None);
     }
 
     #[test]

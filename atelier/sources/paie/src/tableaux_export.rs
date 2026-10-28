@@ -259,10 +259,6 @@ impl Tableau {
         }
     }
 
-    /// `Tableau.lignes` : toutes les lignes, section apres section.
-    pub(crate) fn lignes(&self) -> Vec<&Ligne> {
-        self.sections.iter().flat_map(|s| s.lignes.iter()).collect()
-    }
 }
 
 /// `_sections(lignes, cle, libelle, tri)` : les lignes en sections, une par cle, les cles dans l'ordre de Python

@@ -438,23 +438,6 @@ pub(crate) fn etiquette(mois: &str) -> R<String> {
     })
 }
 
-/// Le `UnicodeDecodeError` d'un `bytes.decode("utf-8")`, avec la phrase de Python.
-fn erreur_utf8(octets: &[u8], e: std::str::Utf8Error) -> Refus {
-    let debut = e.valid_up_to();
-    let (fin, raison) = match e.error_len() {
-        None => (octets.len(), "unexpected end of data"),
-        Some(n) => {
-            let b = octets[debut];
-            (debut + n, if (0x80..=0xC1).contains(&b) || b >= 0xF5 { "invalid start byte" } else { "invalid continuation byte" })
-        }
-    };
-    let message = if fin == debut + 1 {
-        format!("'utf-8' codec can't decode byte 0x{:02x} in position {}: {}", octets[debut], debut, raison)
-    } else {
-        format!("'utf-8' codec can't decode bytes in position {}-{}: {}", debut, fin - 1, raison)
-    };
-    avec("UnicodeDecodeError", message)
-}
 
 /// `Paie` -> ce que le certificat en lit : le brut est celui du calcul, a deux decimales.
 pub(crate) fn paie_cs(p: &Paie) -> R<PaieCs> {
