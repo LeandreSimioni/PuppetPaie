@@ -662,8 +662,8 @@ fn explication_nir(nir: &str) -> R<Option<String>> {
     Ok(None)
 }
 
-/// `cle_nir` : 97 - (NIR mod 97), sur deux chiffres. La Corse fait exception :
-/// 2A et 2B au 6e-7e rang valent 19 et 18.
+/// `cle_nir` : 97 - (NIR mod 97), sur deux chiffres (`reference/sources/insee-nir-siret/`, INSEE, schema NIR, 4.1). En Corse,
+/// 2A et 2B au 6e-7e rang valent 19 et 18 (equivalent, par inference, au zero moins 1 000 000 ou 2 000 000 du texte).
 pub fn cle_nir(nir: &str) -> Option<String> {
     let mut n = strip(nir).to_uppercase();
     if n.chars().count() != 13 {
@@ -675,7 +675,7 @@ pub fn cle_nir(nir: &str) -> Option<String> {
     if tranche(&n, 5, 7) == "2B" {
         n = n.replacen("2B", "18", 1);
     }
-    // `str.isdigit()` puis `int()` : Python lit aussi les chiffres des autres ecritures.
+    // Les chiffres decimaux de toutes les ecritures comptent comme des chiffres.
     let mut x: u64 = 0;
     for c in n.chars() {
         x = x * 10 + valeur_decimale(c)? as u64;
@@ -683,7 +683,7 @@ pub fn cle_nir(nir: &str) -> Option<String> {
     Some(format!("{:02}", 97 - x % 97))
 }
 
-/// La valeur d'un chiffre decimal Unicode (categorie Nd), comme `int()` de Python.
+/// La valeur d'un chiffre decimal Unicode (categorie Nd).
 fn valeur_decimale(c: char) -> Option<u32> {
     if let Some(d) = c.to_digit(10) {
         return Some(d);
@@ -699,7 +699,7 @@ fn valeur_decimale(c: char) -> Option<u32> {
     ZEROS.iter().find(|z| (**z..**z + 10).contains(&p)).map(|z| p - z).or_else(|| (0x1FBF0..0x1FBFA).contains(&p).then(|| p - 0x1FBF0))
 }
 
-/// `luhn` : la cle du SIRET.
+/// `luhn` : la cle du SIRET (`reference/sources/insee-nir-siret/`, INSEE, schema SIRET, 8.1) : somme des chiffres, multiple de 10.
 pub fn luhn(numero: &str) -> bool {
     if !tous_chiffres(numero) {
         return false;
@@ -1246,6 +1246,7 @@ mod tests {
 
     #[test]
     fn la_cle_du_nir_et_celle_de_la_corse() {
+        // insee-nir-siret : le complement a 97, 2A et 2B retranches de 1 000 000 et 2 000 000.
         assert_eq!(cle_nir("1850578999048"), Some("19".into()));
         assert!(cle_nir("185057899904").is_none());
         // 2A vaut 19 et 2B vaut 18 : un NIR corse a sa cle.
@@ -1257,6 +1258,7 @@ mod tests {
 
     #[test]
     fn le_siret_se_controle_par_luhn() {
+        // insee-nir-siret : la somme des chiffres (rang impair doubles) est un multiple de 10.
         assert!(luhn("73282932000074"));
         assert!(!luhn("73282932000075"));
     }
