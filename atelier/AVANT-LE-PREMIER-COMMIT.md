@@ -39,10 +39,8 @@ dépôt public, Léandre tranche), 5 672 occurrences dans 954 fichiers, dont
 générique ; les PDF (`import/`) ne se lisent pas.
 
 **Ce qui pèse** : `paie/bin/` (65 Mo, les programmes compilés commités),
-`paie/tests/donnees/` (47 Mo, dont 28 Mo de démos figées). Sur un dépôt
-public, les programmes se livrent par des *releases* et non dans l'historique ;
-les démos figées se remplacent par des démos rejouées par `vie_fictive` quand
-elles seront refaites.
+`paie/tests/donnees/` (6 Mo, sans copie figée des fictives). Sur un dépôt
+public, les programmes se livrent par des *releases* et non dans l'historique.
 
 **Le produit et l'atelier ne sont pas encore séparés** : la mise à jour
 (`paie maj --publier`, `maj::archiver`) emporte tout `logiciel/`, sources,
