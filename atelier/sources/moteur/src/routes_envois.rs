@@ -105,13 +105,10 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
     let relance = charge.get("relance").is_some_and(vrai);
     let remplace = charge.get("remplace").is_some_and(vrai);
     let choisis = choisis_de(charge)?;
-    let mut client = ouvrir()?;
     let a_qui = match &choisis.salaries {
         Some(l) if !l.is_empty() => format!("{} salarie(s) : {}", l.len(), l.join(", ")),
         _ => "les salaries du mois qui ont un contrat a signer".to_string(),
     };
-    let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
-    verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
     let etats_des_contrats = if relance {
         let apercu = crate::routes_documents::signature_apercu(ctx, &json!({"mois": mois}))?;
         apercu.get("contrats").and_then(Value::as_array).cloned().unwrap_or_default()
@@ -119,6 +116,11 @@ pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir)
         Vec::new()
     };
     let demande = envois::envois_signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
+    // Un refus se dit d'abord : la boite et la preuve ne se demandent que pour ce qui part.
+    envois::envois_signature::verifier_demande(ctx, &demande)?;
+    let mut client = ouvrir()?;
+    let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
+    verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
     envois::envois_signature::demander_signature(ctx, &demande, client.as_mut())
 }
 

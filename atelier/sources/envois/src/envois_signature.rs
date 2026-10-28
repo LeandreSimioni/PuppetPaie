@@ -343,7 +343,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: &Choisis, qui: &st
 /// `remplace` : le contrat refait EN ENTIER, qui annule et remplace celui qui est deja parti -- une phrase en tete
 /// le dit. Refuse pour un contrat jamais parti, ou dont l'execution a commence : celui-la se modifie par un
 /// avenant. `relance` : redemander un contrat deja demande et pas revenu, TEL QUEL -- objet « Rappel », une ligne
-/// de rappel, et le journal le dit. Refuse pour un contrat jamais demande, deja signe ou caduc.
+/// de rappel, et le journal le dit ; ce qu'elle refuse, `verifier_demande` le dit avant le mot de passe.
 ///
 /// LA SELECTION EST PAR CONTRAT, pas par salarie (`contrats`). `salaries` reste accepte (tous les contrats de ces
 /// salaries). UN COURRIEL PAR SALARIE, UN PDF PAR COURRIEL, tous ses contrats dedans (une page par contrat), ecrit
@@ -364,16 +364,9 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     let lignes_j = crate::etats::charger(&ctx.racine)?;
     let tous: Vec<(String, String, String)> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default())).collect();
     let cles_j = crate::etats::cles_des_paies(&lignes_j, &tous)?;
-    if relance {
-        let cles: Vec<(String, String, String)> = par_salarie.iter().flat_map(|(_, ps, rs)| rs.iter().zip(ps).map(|(r, _)| tous[*r].clone())).collect();
-        verifier_relance(&d.etats_des_contrats, &cles)?;
-    }
     let aujourdhui = ctx.aujourdhui.iso();
     let mut remplacements: Vec<((String, String, String), (String, String))> = Vec::new();
     if remplace {
-        if relance {
-            return Err(refus("Une relance renvoie le même contrat : elle n'en remplace aucun."));
-        }
         let lignes = crate::journal::lire(&ctx.racine, None, None, false).map_err(Echec::from)?;
         for (k, ps, rs) in &par_salarie {
             for (p, r) in ps.iter().zip(rs) {
@@ -555,6 +548,23 @@ pub struct DemandeDeSignature<'a> {
     pub remplace: bool,
     pub choisis: Choisis,
     pub etats_des_contrats: Vec<Value>,
+}
+
+/// CE QUE LA DEMANDE REFUSE D'ELLE-MEME, avant la boite et avant le mot de passe : la preuve ne se demande que pour ce
+/// qui part. Une relance renvoie le meme contrat (elle n'en remplace aucun), et seulement un contrat demande par courriel,
+/// pas revenu, a jour. Rien n'est ecrit.
+pub fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
+    if !d.relance {
+        return Ok(());
+    }
+    if d.remplace {
+        return Err(refus("Une relance renvoie le même contrat : elle n'en remplace aucun."));
+    }
+    let (_, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, d.mois, None)?;
+    let par_salarie = contrats_choisis(&d.choisis, d.mois, &paies)?;
+    let tous: Vec<(String, String, String)> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default())).collect();
+    let cles: Vec<(String, String, String)> = par_salarie.iter().flat_map(|(_, _, rs)| rs.iter().map(|r| tous[*r].clone())).collect();
+    verifier_relance(&d.etats_des_contrats, &cles)
 }
 
 /// Une relance ne vaut que pour un contrat demande par courriel, pas revenu, a jour.
