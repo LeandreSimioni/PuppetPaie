@@ -886,19 +886,6 @@ pub fn avenants(lignes: &[Value], m: Maille) -> R<Value> {
     Ok(out.sortie(|v| Value::Array(v.clone())))
 }
 
-pub fn documents_envoyes(lignes: &[Value], mois: &str) -> R<Value> {
-    let mut quand: Dico<Value> = Dico::nouveau();
-    for l in filtrer(lignes, Some(DOCUMENTS), Some(mois), false)? {
-        if !accepte(l)? {
-            continue;
-        }
-        for sal in detail_liste(l, "salaries")? {
-            quand.poser(vec![get(&sal, "cle")?.clone()], get(l, "quand")?.clone())?;
-        }
-    }
-    Ok(quand.sortie(Clone::clone))
-}
-
 /// CE QUE LES DOCUMENTS DU MOIS DISAIENT, par salarie : le resume de sa paie (`envoi::resume_de`) dans la derniere ligne
 /// d'envoi de documents qui l'a servi (un envoi coupe en route ne porte que ceux qu'il a servis). Qu'ils soient partis,
 /// c'est l'engagement qui le sait (`journal::departs`) ; ceci n'en dit que le contenu.
@@ -1935,7 +1922,6 @@ mod tests {
         let e = etat_du_mois(&l, "2026-06").unwrap();
         assert_eq!(e["dsn"]["quand"], "2026-06-02T10:00:00");
         assert_eq!(e["dpae"], Value::Null);
-        assert_eq!(documents_envoyes(&l, "2026-06").unwrap(), json!([["ALPHA", "2026-06-04T10:00:00"]]));
     }
 
     #[test]

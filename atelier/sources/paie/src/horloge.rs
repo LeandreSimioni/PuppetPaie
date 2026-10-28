@@ -580,8 +580,8 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
 
     fait.extend(pas(d, &format!("documents de {} envoyés aux salariés", mois_fr(mois)), &format!("{}T11:00:00", jour), |ctx| {
         let lignes = Moteur::nouveau(ctx).lignes()?;
-        let envoyes = etats::documents_envoyes(&lignes, mois)?;
-        if envoyes.as_array().is_some_and(|a| !a.is_empty()) {
+        let engagements = engagement::etats::du_mois(ctx, mois).map_err(Echec::from)?;
+        if !crate::routes_mois::documents_partis(ctx, mois, &engagements, &lignes)?.is_empty() {
             return Ok(false);
         }
         // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas (#236, trouve sur la demo Les Faisceaux : un mois que

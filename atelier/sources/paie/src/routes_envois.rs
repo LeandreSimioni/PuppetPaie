@@ -330,12 +330,13 @@ pub(crate) fn expedier_envoi(ctx: &Contexte, prepare: EnvoiPrepare, mois: &str, 
         Ok(p) => p,
         Err(e) => {
             // CE QUI A ATTEINT LE SALARIE EST PARTI : les messages partent dans l'ordre, les premiers sont servis. Leurs
-            // numeros s'ecrivent d'abord ; la ligne porte ensuite la version de leurs engagements, et seulement les leurs.
+            // numeros, et seulement les leurs, s'ecrivent d'abord ; la ligne porte ensuite la version de leurs
+            // engagements, et seulement les leurs.
             let servis = &messages[..e.partis.len().min(messages.len())];
             let mut versions_servies = Value::Array(Vec::new());
             if !servis.is_empty() {
-                documents.engager(ctx, &mois_saisie)?;
                 let cles: Vec<&str> = servis.iter().map(|m| m.cle.as_str()).collect();
+                documents.engager_servis(ctx, &mois_saisie, &cles)?;
                 versions_servies = json!(versions.as_array().into_iter().flatten().filter(|v| v["salarie"].as_str().is_some_and(|c| cles.contains(&c))).collect::<Vec<_>>());
             }
             let detail = json!({"salaries": salaries(servis), "expediteur": expediteur, "durees_ms": durees});
