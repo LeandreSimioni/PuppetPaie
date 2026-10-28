@@ -209,7 +209,7 @@ fn mois_des_bornes(b: &Bornes) -> R<Vec<String>> {
 // ------------------------------------------------- modifier la paie d'un mois deja declare
 
 /// LA PAIE D'UN MOIS DEJA DECLARE SE MODIFIE EN LE SACHANT (Leandre, 21/10/2026). La cle de la charge qui confirme, pour
-/// `enregistrer-saisie` (et toute route qui ecrit la saisie d'un mois, `crate::routes::fiches::ecrire_saisie`).
+/// `enregistrer-saisie` (et toute route qui ecrit la saisie d'un mois, `crate::routes::mois::ecrire_saisie_confirmee`).
 pub const CONFIRMATION: &str = "modifier_apres_echeance";
 
 /// La classe du refus : la page la reconnait et montre l'avertissement, avec « Modifier quand meme » et « Annuler ».

@@ -1050,7 +1050,7 @@ pub(crate) fn engagements(
 
 /// Les phrases des refus qui disent une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore
 /// choisi, des jours pas encore coches, des heures pas encore dites. L'ecran enregistre a chaque frappe, et ces refus
-/// montent sous `SaisieIncomplete` (`moteur::routes::etapes::classer_saisie`, `moteur::routes::rappels::refus_du_calcul`) ; leur message
+/// montent sous `SaisieIncomplete` (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message
 /// commence par « L'engagement N de AAAA-MM ».
 const SAISIE_INCOMPLETE: [&str; 3] = [" ne dit pas quel spectacle il joue", " ne dit aucun jour joue", " ne dit pas ses heures"];
 

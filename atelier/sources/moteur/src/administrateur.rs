@@ -408,7 +408,7 @@ fn jj_mm_aaaa(iso: &str) -> String {
 /// Ou en est un fichier DSN ecrit (mensuelle ou signalement), lu du journal : `deposee` (un depot reel accepte de ce
 /// contenu), `paie_changee` (une mensuelle qui ne declare plus la paie), `testee` (test conforme, bilan lu), `en_test`
 /// (test parti, bilan attendu), `test_refuse`, `a_tester`. Les memes lectures que l'etape de depot du mois
-/// (`crate::routes::etapes::etape_de_depot`).
+/// (`crate::routes::etapes`, la route `etat-du-mois`).
 fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let empreinte = envois::journal::empreinte(&octets);
