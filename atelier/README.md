@@ -1731,9 +1731,8 @@ mois. Il est parti avec le Python (lot K, 09/10/2026) et **n'est pas porté** :
 `docs/COMPAGNIES-FICTIVES.md` et `docs/COMPAGNIES-FICTIVES-DEPOT.md` gardent
 son dernier bilan (21/09/2026), qui n'est plus régénéré.
 
-Les tests du moteur Rust montent leurs propres compagnies fictives
-(`sources/paie/tests/donnees/racines/`, et celles que les tests écrivent) et
-lisent la copie figée des compagnies fictives (`sources/paie/tests/donnees/fictives/`).
+Les tests du moteur Rust montent leurs propres compagnies de test (`outils::dossier_de_test`, `compagnies::ajouter_dans`),
+et les règles se prouvent sur les compagnies fictives livrées (`fictives/`).
 Les identités y sont inventées et **leurs clés se vérifient** : clé de NIR
 calculée, clé de Luhn du SIRET, IBAN de forme juste. Un test ne doit pas
 pouvoir passer sur un numéro impossible.

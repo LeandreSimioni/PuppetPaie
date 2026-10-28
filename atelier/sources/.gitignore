@@ -19,14 +19,6 @@ gabarits/
 reference/
 prive/
 
-# SAUF la copie figee des compagnies fictives sur laquelle tournent les tests Rust
-# (09/10/2026) : des compagnies FICTIVES, figees a l'etat ou les sorties de
-# l'ancien moteur ont ete relevees. `fictives/`, lui, vit (le poste le fait jouer).
-!/paie/tests/donnees/fictives/*/config/
-!/paie/tests/donnees/fictives/*/paies/
-!/paie/tests/donnees/fictives/*/sorties/
-!/paie/tests/donnees/fictives/*/retours/
-!/paie/tests/donnees/fictives/*/gabarits/
 
 # Le compte Google : identifiant de l'application et jeton de rafraichissement.
 # Deja couverts par config/, repetes ici pour que la regle reste vraie si
@@ -42,10 +34,6 @@ config/google-jeton.bin
 *.dsn
 DPAE_*.txt
 AEM_*.txt
-# (sauf celles des compagnies fictives figees des tests)
-!/paie/tests/donnees/fictives/**/*.dsn
-!/paie/tests/donnees/fictives/**/DPAE_*.txt
-!/paie/tests/donnees/fictives/**/AEM_*.txt
 
 # La version d avant, gardee par la mise a jour (moteur/maj.py) : jamais du code a versionner.
 .avant/

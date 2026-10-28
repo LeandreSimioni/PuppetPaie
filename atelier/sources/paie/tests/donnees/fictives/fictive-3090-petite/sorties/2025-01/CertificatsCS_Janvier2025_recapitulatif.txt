@@ -1,9 +1,0 @@
-Certificats d'emploi Conges Spectacles
-Compte (adherent Audiens) : 0000000000F
-----------------------------------------------------------------------------
-  N CE 1      BRIOCHE Fanchon        21/01/2025 -> 24/01/2025   4 jour(s)/cachet(s)  brut   600  base   600
-  N CE 2      SERAPHIN Valentin      21/01/2025 -> 24/01/2025   4 jour(s)/cachet(s)  brut   600  base   600
-  N CE 3      LEMERCIER Nicole       21/01/2025 -> 24/01/2025   4 jour(s)/cachet(s)  brut   490  base   490
-----------------------------------------------------------------------------
-A remettre au salarie a la fin de son contrat. Rien a envoyer a
-Audiens : la cotisation part deja par la DSN (S21.G00.78 type 27).

@@ -4915,18 +4915,6 @@ mod tests {
         Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap()
     }
 
-    /// Le contexte d'une compagnie fictive 1285, pour son bareme.
-    fn fictive_1285() -> Contexte {
-        let racine = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives/fictive-1285-petite");
-        Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap()
-    }
-
-    fn bar_1285() -> Value {
-        let mut b = fictive_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
-        b["_entreprise"] = json!({"idcc": "1285", "effectif": 3});
-        b
-    }
-
     fn orgs_casc() -> Value {
         json!({"adhesions_prevoyance": [{"libelle": "CASCSVP", "reference": "100"},
                                         {"libelle": "INTERBRANCHE", "reference": "102"}],
@@ -4959,46 +4947,9 @@ mod tests {
         assert!(e.contains("CASCSVP"), "{}", e);
     }
 
-    fn orgs_fnas() -> Value {
-        json!({"adhesions_prevoyance": [
-                {"libelle": "INTERBRANCHE", "reference": "102"},
-                {"libelle": "TSINTERMITTENTS", "reference": "103"},
-                {"libelle": "FNAS", "contribution": "FNAS", "reference": "104"},
-                {"libelle": "FCAP EAC", "contribution": "FCAP", "reference": "105"}],
-               "affiliations_par_nature": {"intermittent": {"references": ["103", "102"]}}})
-    }
 
-    #[test]
-    fn fnas_et_fcap_prennent_les_places_204_et_205() {
-        let b = bar_1285();
-        assert_eq!(places_par_contrat(&b), 4);
-        let c = contributions_dsn(&fictive_1285(), &json!({"idcc": "1285"}), &orgs_fnas(), "2026-09", &b).unwrap();
-        let vu: Vec<(Value, Value, Value)> =
-            c.iter().map(|x| (x["reference"].clone(), x["lignes"].clone(), x["natures"].clone())).collect();
-        assert_eq!(
-            vu,
-            vec![
-                (json!("104"), json!(["ccn"]), json!({"intermittent": "204"})),
-                (json!("105"), json!(["fcap"]), json!({"intermittent": "205"})),
-            ]
-        );
-    }
 
-    #[test]
-    fn avant_juillet_2025_le_fnas_n_est_pas_en_dsn() {
-        let c = contributions_dsn(&fictive_1285(), &json!({"idcc": "1285"}), &orgs_fnas(), "2025-06", &bar_1285()).unwrap();
-        let refs: Vec<Value> = c.iter().map(|x| x["reference"].clone()).collect();
-        assert_eq!(refs, vec![json!("105")]);
-    }
 
-    #[test]
-    fn sans_adhesion_fnas_la_dsn_refuse() {
-        let mut o = orgs_fnas();
-        o["adhesions_prevoyance"] = json!([{"libelle": "INTERBRANCHE", "reference": "102"},
-                                           {"libelle": "TSINTERMITTENTS", "reference": "103"}]);
-        let e = contributions_dsn(&fictive_1285(), &json!({"idcc": "1285"}), &o, "2026-09", &bar_1285()).unwrap_err();
-        assert!(e.contains("FNAS") && e.contains("organismes.json"), "{}", e);
-    }
 
     #[test]
     fn le_dossier_france_travail_de_la_fiche_part_dans_la_dsn() {
@@ -5029,176 +4980,8 @@ mod tests {
         assert!(usage_admet(&Fichier::en_norme(crate::norme::Norme::connue("P26V01").unwrap()), "S21.G00.40.072", "01").unwrap());
     }
 
-    #[test]
-    fn la_dsn_porte_les_trois_parts_de_la_reduction() {
-        use engagement::Engagement;
-        let jour = |s: &str| d(&json!(s)).unwrap();
-        let eng = Engagement {
-            salarie: "X".into(),
-            spectacle: None,
-            dates_travail: vec![],
-            lignes: vec![],
-            debut: jour("2026-10-01"),
-            fin: None,
-            numero: None,
-            mois: "2026-10".into(),
-            planning: vec![],
-            planning_lieux: Default::default(),
-            jours: 1,
-            jours_contrat: 1,
-            date_paiement: None,
-            taux_cachet: None,
-            cachets: 1,
-            heures: None,
-            lieu: String::new(),
-            lieux: Default::default(),
-            emploi: None,
-            emploi_affichage: None,
-            pcs_ese: None,
-            code_emploi_ft: None,
-            statut: None,
-            statut_conventionnel: None,
-            statut_categoriel_rc: None,
-            nature: Some("cddu_spectacle".into()),
-            quotite_contrat: None,
-            quotite_reference_saisie: None,
-            modalite_temps_travail_saisie: None,
-            motif_recours: None,
-            motif_rupture: None,
-            notification_rupture: None,
-            preavis: None,
-            dernier_jour_paye: None,
-            date_modification: None,
-            transaction: None,
-            suspensions: vec![],
-            avant: None,
-            periode: None,
-        };
-        let dec = |s: &str| Decimal::from_str_exact(s).unwrap();
-        let mut p = Paie::nouveau(eng, json!({"statut": "artiste"}), json!({}), dec("56.00"), dec("55.02"), dec("0"), 11.88, dec("0"));
-        p.reduction_generale = Some(engagement::calcul::ReductionGenerale {
-            coefficient: dec("0"),
-            montant: dec("15.07"),
-            smic_reference: dec("0"),
-            heures: dec("0"),
-            urssaf: dec("11.28"),
-            chomage: dec("1.51"),
-            agirc_arrco: dec("2.28"),
-        });
-        let bar = fictive_1285().bareme(&jour("2026-09-13")).unwrap();
-        let lignes = cotisations(&p, &bar).unwrap();
-        let parts: Vec<(String, Option<String>, Option<Decimal>, Option<String>)> = lignes
-            .iter()
-            .filter(|c| c.cle_total.is_some())
-            .map(|c| (c.code81.clone(), c.org.clone(), c.montant, c.cle_total.clone()))
-            .collect();
-        assert_eq!(
-            parts,
-            vec![
-                ("018".into(), Some("78861779300013".into()), Some(dec("-11.28")), Some("018:urssaf".into())),
-                ("018".into(), Some("13000548100010".into()), Some(dec("-1.51")), Some("018:chomage".into())),
-                ("106".into(), None, Some(dec("-2.28")), Some("106".into())),
-            ]
-        );
-        assert!(lignes.iter().filter(|c| c.cle_total.is_some()).all(|c| c.bloc78 == "03" && c.base81 == Some(dec("56.00"))));
-        // Sans reduction, pas de ligne : le chemin artiste est intact.
-        p.reduction_generale = None;
-        assert!(cotisations(&p, &bar).unwrap().iter().all(|c| c.cle_total.is_none()));
-    }
 
-    /// Une paie de 56 EUR de brut avec reduction generale, de la nature et du statut donnes.
-    fn paie_avec_reduction(nature: &str, statut: &str) -> Paie {
-        use engagement::Engagement;
-        let eng = Engagement {
-            salarie: "X".into(),
-            spectacle: None,
-            dates_travail: vec![],
-            lignes: vec![],
-            debut: d(&json!("2026-09-01")).unwrap(),
-            fin: None,
-            numero: Some("X.26.01".into()),
-            mois: "2026-09".into(),
-            planning: vec![],
-            planning_lieux: Default::default(),
-            jours: 1,
-            jours_contrat: 1,
-            date_paiement: None,
-            taux_cachet: None,
-            cachets: 1,
-            heures: None,
-            lieu: String::new(),
-            lieux: Default::default(),
-            emploi: None,
-            emploi_affichage: None,
-            pcs_ese: None,
-            code_emploi_ft: None,
-            statut: None,
-            statut_conventionnel: None,
-            statut_categoriel_rc: None,
-            nature: Some(nature.into()),
-            quotite_contrat: None,
-            quotite_reference_saisie: None,
-            modalite_temps_travail_saisie: None,
-            motif_recours: None,
-            motif_rupture: None,
-            notification_rupture: None,
-            preavis: None,
-            dernier_jour_paye: None,
-            date_modification: None,
-            transaction: None,
-            suspensions: vec![],
-            avant: None,
-            periode: None,
-        };
-        let dec = |s: &str| Decimal::from_str_exact(s).unwrap();
-        let mut p = Paie::nouveau(eng, json!({"statut": statut}), json!({}), dec("56.00"), dec("55.02"), dec("0"), 11.88, dec("0"));
-        p.reduction_generale = Some(engagement::calcul::ReductionGenerale {
-            coefficient: dec("0"),
-            montant: dec("15.07"),
-            smic_reference: dec("0"),
-            heures: dec("0"),
-            urssaf: dec("11.28"),
-            chomage: dec("1.51"),
-            agirc_arrco: dec("2.28"),
-        });
-        p
-    }
 
-    #[test]
-    fn la_reduction_que_l_urssaf_recouvre_se_relit_sans_departager_les_018_d_un_permanent() {
-        // Vague 3a. Le CTP 668 « reduction generale etendue » porte la somme des 018 de l'Urssaf (guide declaratif Urssaf,
-        // § 8.2, atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt, lignes 1289-1290 et 1300-1311) :
-        // la part securite sociale et, pour un permanent, la part chomage. Avant, le bordereau ne prenait que la premiere,
-        // et la relecture d'une DSN deposee refusait de departager les deux lignes.
-        let bar = fictive_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
-        let dec = |s: &str| Decimal::from_str_exact(s).unwrap();
-        // Un technicien intermittent : la part chomage va a France Travail ; l'Urssaf ne recouvre que sa part (671).
-        let tech = paie_avec_reduction("cddu_spectacle", "technicien");
-        let l = lecture(&tech, &bar).unwrap();
-        let lignes = lignes_81(&tech, &bar).unwrap();
-        assert_eq!(l.reduction_a_l_urssaf(&lignes), Ok(dec("11.28")));
-        assert_eq!(reduction_a_l_urssaf(&tech, &bar), Ok(dec("11.28")));
-        assert_eq!(l.base("brut", &[("03".into(), Decimal::from(56))], &lignes), Ok(Decimal::from(56)));
-        // Un permanent : les parts Urssaf et chomage partent sous 018 chez l'Urssaf toutes les deux ; le 668 les porte
-        // ensemble, sans avoir a dire laquelle est laquelle.
-        let mut perm = paie_avec_reduction("cdi", "technicien");
-        for (k, v) in [("t1_mensuelle", 56), ("t2_mensuelle", 0), ("apec_mensuelle", 0), ("cet_mensuelle", 0), ("pss_periode", 4005), ("t2_conventionnelle", 0)] {
-            perm.bases.insert(k.into(), Decimal::from(v));
-        }
-        let lignes = lignes_81(&perm, &bar).unwrap();
-        assert_eq!(lignes.iter().filter(|x| x.code == "018" && x.org == "78861779300013").count(), 2);
-        assert_eq!(lecture(&perm, &bar).unwrap().reduction_a_l_urssaf(&lignes), Ok(dec("12.79")));
-        assert_eq!(reduction_a_l_urssaf(&perm, &bar), Ok(dec("12.79")), "11,28 + 1,51 : la part Agirc-Arrco (106) n'y est pas");
-        // Une cotisation du bareme sous le meme code et le meme organisme que la reduction ne s'en separe pas : refus.
-        let mut melee = lecture(&perm, &bar).unwrap();
-        melee.roles.push(("018".into(), "78861779300013".into(), Role81::Cotisation { cle: "018".into(), base: None }));
-        let e = melee.reduction_a_l_urssaf(&lignes).unwrap_err();
-        assert!(e.contains("ne disent pas laquelle"), "{}", e);
-        // Une base que deux lignes deposees portent a des montants differents ne se choisit pas. (Le bloc 07 d'un
-        // intermittent porte `brut_chomage` depuis le point 22, plus `brut` : c'est le 23 qui porte le brut a cote du 03.)
-        let e = l.base("brut", &[("03".into(), Decimal::from(56)), ("23".into(), Decimal::from(57))], &[]).unwrap_err();
-        assert!(e.contains("montants differents"), "{}", e);
-    }
 
     #[test]
     fn le_pas_retenu_compte_les_50_009_et_les_regularisations_d_indu() {
@@ -5226,51 +5009,7 @@ mod tests {
         assert_eq!(montant("-3.10"), Some("'0.00'".into()));
     }
 
-    /// Les blocs 78 que `bases_et_cotisations` ecrit pour cette paie : (78.001, 78.004), dans l'ordre.
-    fn blocs_78_ecrits(p: &Paie, bar: &Value) -> Vec<(String, String)> {
-        // Un fichier de septembre 2026 : sa version (P26V01) decide des rubriques admises (`usage_admet`).
-        let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle("2026-09").unwrap());
-        let (debut, fin) = (d(&json!("2026-09-01")).unwrap(), d(&json!("2026-09-30")).unwrap());
-        bases_et_cotisations(&mut f, p, bar, 1, &debut, &fin, 1, "01", &[]).unwrap();
-        let mut out = Vec::new();
-        for l in &f.lignes {
-            if let Some(v) = l.strip_prefix("S21.G00.78.001,'") {
-                out.push((v.trim_end_matches('\'').to_string(), String::new()));
-            } else if let Some(v) = l.strip_prefix("S21.G00.78.004,'") {
-                out.last_mut().unwrap().1 = v.trim_end_matches('\'').to_string();
-            }
-        }
-        out
-    }
 
-    /// Une base est une somme (norme p. 291) : la reduction generale (018, 106) ne rouvre pas un second bloc 03 apres
-    /// les bases 31 et 43. Rouge avant la vague 1e : deux blocs 03 a 56,00 sous le meme versement.
-    #[test]
-    fn la_reduction_generale_s_ecrit_sous_l_unique_base_03_du_versement() {
-        let bar = fictive_1285().bareme(&d(&json!("2026-09-13")).unwrap()).unwrap();
-        let mut perm = paie_avec_reduction("cdi", "technicien");
-        for (k, v) in [("t1_mensuelle", 56), ("t2_mensuelle", 0), ("apec_mensuelle", 0), ("cet_mensuelle", 0), ("pss_periode", 4005), ("t2_conventionnelle", 0)] {
-            perm.bases.insert(k.into(), Decimal::from(v));
-        }
-        for p in [paie_avec_reduction("cddu_spectacle", "technicien"), perm] {
-            let blocs = blocs_78_ecrits(&p, &bar);
-            let b03: Vec<&(String, String)> = blocs.iter().filter(|(b, _)| b == "03").collect();
-            assert_eq!(b03.len(), 1, "{:?}", blocs);
-            assert_eq!(b03[0].1, "56.00");
-            // Les lignes de la reduction suivent le 78 de la base 03 : elles sont toutes ecrites sous lui.
-            let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle("2026-09").unwrap());
-            let (debut, fin) = (d(&json!("2026-09-01")).unwrap(), d(&json!("2026-09-30")).unwrap());
-            bases_et_cotisations(&mut f, &p, &bar, 1, &debut, &fin, 1, "01", &[]).unwrap();
-            let mut base = String::new();
-            for l in &f.lignes {
-                if let Some(v) = l.strip_prefix("S21.G00.78.001,'") {
-                    base = v.trim_end_matches('\'').to_string();
-                } else if l == "S21.G00.81.001,'018'" || l == "S21.G00.81.001,'106'" {
-                    assert_eq!(base, "03", "{}", l);
-                }
-            }
-        }
-    }
 
     // ------------------------------------------------------------ les composants du versement (bloc 55)
 

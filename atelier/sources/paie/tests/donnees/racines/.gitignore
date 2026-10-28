@@ -1,3 +1,0 @@
-# Des racines de compagnie FICTIVES pour les tests : leur `config/` se versionne
-# (la regle de logiciel/.gitignore protege les vraies installations).
-!config/

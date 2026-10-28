@@ -1,17 +1,11 @@
 //! `envoi` sans reseau : `envoyer` contre un faux client (l'ordre, l'echec au troisieme, `identifiants`, `copies`),
-//! `preparer` et `recap_france_travail` sur la compagnie fictive, `etiquette`, `nom_fichier`, `Message`.
-//! L'octet pres d'`en_mime` est dans `envoi_mime.rs`.
+//! `etiquette`, `nom_fichier`, `Message`. L'octet pres d'`en_mime` est dans `envoi_mime.rs`.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use engagement::calcul::{calculer, Paie};
-use droit::contexte::Contexte;
-use socle::date::d;
-use engagement::LignesPermanent;
 use paie::envoi::{self, Message};
-use serde_json::{json, Value};
 
-use crate::outils::{lire_oracle, oracle, FauxCourriel};
+use crate::outils::FauxCourriel;
 
 /// Un faux client dont l'envoi de rang `refuse` (a partir de 0) echoue.
 fn faux(refuse: Option<usize>) -> FauxCourriel {
@@ -124,131 +118,15 @@ fn etiquette_et_nom_de_fichier() {
     assert_eq!(envoi::nom_fichier("Bulletin", "DUPONT", "Aout2026"), "Bulletin_DUPONT_Aout2026.pdf");
 }
 
-// -------------------------------------------------------------------------------------- preparer, sur la fictive
 
-const MOIS: &str = "2025-10";
 
-fn fictive() -> (PathBuf, Contexte) {
-    let racine = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives/fictive-3090-grande");
-    let ctx = Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap();
-    (racine, ctx)
-}
 
-fn paies_du_mois(racine: &Path, ctx: &Contexte) -> Vec<Paie> {
-    let lignes: LignesPermanent = &engagement::conges::lignes_du_mois;
-    let (engs, _) = engagement::engagements(ctx, &engagement::saisie_du_mois(racine, MOIS).unwrap(), lignes).unwrap();
-    engs.iter().map(|e| calculer(ctx, e).unwrap()).collect()
-}
 
-fn salarie<'a>(paies: &'a [Paie], cle: &str) -> Vec<&'a Paie> {
-    paies.iter().filter(|p| p.salarie["_cle"] == cle).collect()
-}
 
-#[test]
-fn recap_france_travail_par_contrat() {
-    let (racine, ctx) = fictive();
-    let paies = paies_du_mois(&racine, &ctx);
-    let ent = "Les Marées hautes (démonstration)";
-    let r = envoi::recap_france_travail(&salarie(&paies, "BIANCOLELLI"), MOIS, ent).unwrap();
-    // « d'octobre » : « de » s'elide devant une voyelle (avril, aout, octobre).
-    assert_eq!(
-        r,
-        "Pour ton actualisation France Travail d'octobre 2025, employeur Les Marées hautes (démonstration) :\n\
-         \x20 - du 07/10/2025 au 08/10/2025 : 2 cachets, 370,00 € brut\n\
-         Ce sont les chiffres de ton bulletin ; vérifie que ce que France Travail pré-remplit est identique.\n"
-    );
-    // Des heures plutot que des cachets.
-    let r = envoi::recap_france_travail(&salarie(&paies, "CHAMINADE"), MOIS, ent).unwrap();
-    assert!(r.contains("  - du 07/10/2025 au 08/10/2025 : 16 heures, 304,00 € brut\n"), "{}", r);
-    // Un permanent : rien.
-    assert_eq!(envoi::recap_france_travail(&salarie(&paies, "MONTANSIER"), MOIS, ent).unwrap(), "");
-    assert_eq!(envoi::recap_france_travail(&[], MOIS, ent).unwrap(), "");
-}
 
-fn pieces_ecrites(dossier: &Path, cle: &str, noms: &[&str]) {
-    for (prefixe, ok) in [("Bulletin", noms.contains(&"bulletin")), ("CertificatCS", noms.contains(&"cs")), ("AER", noms.contains(&"aer")), ("BulletinRectificatif", noms.contains(&"rectificatif"))] {
-        if ok {
-            std::fs::write(dossier.join(envoi::nom_fichier(prefixe, cle, "Octobre2025")), b"%PDF-1.4\n").unwrap();
-        }
-    }
-}
 
-#[test]
-fn preparer_un_message_par_salarie() {
-    let (racine, ctx) = fictive();
-    let paies = paies_du_mois(&racine, &ctx);
-    let t = travail("preparer");
-    pieces_ecrites(&t, "BIANCOLELLI", &["bulletin", "cs"]);
-    pieces_ecrites(&t, "MONTANSIER", &["bulletin", "aer"]);
-    let messages = envoi::preparer(&paies, &ctx.entreprise, MOIS, &t, None).unwrap();
-    // Un par salarie (sept, avec leurs cles), dans l'ordre de la saisie.
-    let cles: Vec<&str> = messages.iter().map(|m| m.cle.as_str()).collect();
-    assert_eq!(cles, ["MONTANSIER", "NICOLET", "AUDINOT", "BIANCOLELLI", "DEBURAU", "CLAIRON", "CHAMINADE"]);
-    let m = &messages[3];
-    assert_eq!(m.nom, "Dominique BIANCOLELLI");
-    assert_eq!(m.destinataire, "dominique.biancolelli@exemple.invalid");
-    assert_eq!(m.sujet, "Octobre 2025 — bulletin et certificat Congés Spectacles");
-    assert_eq!(m.pieces, vec![t.join("Bulletin_BIANCOLELLI_Octobre2025.pdf"), t.join("CertificatCS_BIANCOLELLI_Octobre2025.pdf")]);
-    assert!(m.html.is_empty());
-    // « d'octobre » : « de » s'elide devant une voyelle (avril, aout, octobre).
-    assert_eq!(
-        m.corps,
-        "Bonjour Dominique,\n\nTu trouveras ci-joint tes documents pour octobre 2025 :\n\n\
-         \x20 - le bulletin de paie\n  - le certificat d'emploi Congés Spectacles\n\n\
-         Le bulletin est à conserver sans limitation de durée.\n\n\
-         Le certificat d'emploi Congés Spectacles te sert à faire valoir tes droits à congé auprès d'Audiens : garde-le, c'est la pièce qu'ils demandent.\n\n\
-         Ton attestation employeur France Travail (AER Cinéma Spectacle) de ce mois n'est pas jointe : France Travail l'édite à partir de notre déclaration, et elle n'était pas encore revenue au moment de cet envoi.\n\n\
-         Pour ton actualisation France Travail d'octobre 2025, employeur Les Marées hautes (démonstration) :\n\
-         \x20 - du 07/10/2025 au 08/10/2025 : 2 cachets, 370,00 € brut\n\
-         Ce sont les chiffres de ton bulletin ; vérifie que ce que France Travail pré-remplit est identique.\n\n\
-         Bien à toi,\nAdrienne\nLes Marées hautes (démonstration)\n"
-    );
-    // Un permanent avec son AER : pas de note « pas encore revenue », pas de recapitulatif.
-    let p = &messages[0];
-    assert_eq!(p.sujet, "Octobre 2025 — bulletin et attestation France Travail");
-    assert!(!p.corps.contains("pas encore revenue") && !p.corps.contains("actualisation"));
-    assert!(p.corps.contains("Elle est éditée par France Travail"));
-    // Rien de joint : l'objet ne promet que des « documents » ; ce salarie permanent n'a aucune AER due, donc pas de note.
-    let nu = &messages[1];
-    assert!(nu.pieces.is_empty());
-    assert_eq!(nu.sujet, "Octobre 2025 — documents");
-    assert!(!nu.corps.contains(paie::envoi::NOTE_SANS_AER), "{:?}", nu.corps);
-}
 
-#[test]
-fn preparer_refuse_un_salarie_sans_adresse() {
-    let (racine, ctx) = fictive();
-    let mut paies = paies_du_mois(&racine, &ctx);
-    for p in paies.iter_mut() {
-        if p.salarie["_cle"] == "CLAIRON" {
-            p.salarie["email"] = json!("");
-        }
-    }
-    let e = envoi::preparer(&paies, &ctx.entreprise, MOIS, &travail("sans-adresse"), None).unwrap_err();
-    assert_eq!(e, "Pas d'adresse e-mail pour CLAIRON LUCILE : completer config/salaries.json avant d'envoyer.");
-}
 
-#[test]
-fn preparer_ramasse_le_rectificatif_de_qui_n_a_pas_de_paie() {
-    let (racine, ctx) = fictive();
-    let paies = paies_du_mois(&racine, &ctx);
-    let t = travail("rectificatif");
-    pieces_ecrites(&t, "JACQUET", &["rectificatif"]);
-    // Un rectificatif d'un salarie qui a deja une paie : pas de second message.
-    pieces_ecrites(&t, "AUDINOT", &["bulletin", "rectificatif"]);
-    let fiches = ctx.salaries.clone();
-    let fiche = |cle: &str| -> Value { fiches[cle].clone() };
-    let messages = envoi::preparer(&paies, &ctx.entreprise, MOIS, &t, Some(&fiche)).unwrap();
-    assert_eq!(messages.len(), 8);
-    let m = messages.last().unwrap();
-    assert_eq!(m.cle, "JACQUET");
-    assert_eq!(m.destinataire, "isabelle.jacquet@exemple.invalid");
-    assert_eq!(m.sujet, "Octobre 2025 — bulletin rectificatif");
-    assert!(m.corps.contains("Le bulletin rectificatif remplace, pour le mois qu'il indique"));
-    let audinot = messages.iter().find(|m| m.cle == "AUDINOT").unwrap();
-    assert_eq!(audinot.sujet, "Octobre 2025 — bulletin et bulletin rectificatif");
-    assert_eq!(messages.iter().filter(|m| m.cle == "AUDINOT").count(), 1);
-}
 
 
 // ------------------------------------------------------------------------- `Date`, aux changements d'heure
@@ -287,35 +165,3 @@ fn date_de_rend_l_heure_de_paris_aux_changements_d_heure() {
 
 // ------------------------------------------------------------- preparer sur des compagnies fictives (lot H3a, la preuve)
 
-/// `tests/donnees/preparer_fictives.json` : les messages de deux mois de deux compagnies fictives, avec les fiches (un bulletin
-/// rectificatif, des AER, un salarie sans paie) ; le dossier ne porte que les noms de fichiers listes. (Le mois 2025-10 de
-/// `fictive-3090-grande` est prouve plus haut, a la main.) L'elision (« d'octobre », « d'avril », « d'aout ») est dans
-/// `src/envoi.rs` (`de_mois`) et dans `recap_france_travail_par_contrat`.
-/// `PUPPETPAIE_REECRIRE_ORACLES=1` le reecrit depuis le moteur.
-#[test]
-fn preparer_rend_les_messages_attendus_sur_deux_fictives() {
-    let mut cas: Value = lire_oracle("preparer_fictives.json");
-    for un in cas.as_array_mut().unwrap() {
-        let (nom_fictive, mois) = (un["fictive"].as_str().unwrap().to_string(), un["mois"].as_str().unwrap().to_string());
-        let racine = crate::outils::fictive(&nom_fictive);
-        let ctx = Contexte::nouveau(&racine, Some(d(&json!("2026-09-27")).unwrap())).unwrap();
-        let lignes: LignesPermanent = &engagement::conges::lignes_du_mois;
-        let (engs, _) = engagement::engagements(&ctx, &engagement::saisie_du_mois(&racine, &mois).unwrap(), lignes).unwrap();
-        let paies: Vec<Paie> = engs.iter().map(|e| calculer(&ctx, e).unwrap()).collect();
-        let t = travail(&format!("fictive-{}-{}", nom_fictive, mois));
-        for f in un["fichiers"].as_array().unwrap() {
-            std::fs::write(t.join(f.as_str().unwrap()), b"%PDF-1.4\n").unwrap();
-        }
-        let fiches = ctx.salaries.clone();
-        let fiche = |cle: &str| -> Value { fiches[cle].clone() };
-        let messages = envoi::preparer(&paies, &ctx.entreprise, &mois, &t, Some(&fiche)).unwrap();
-        un["messages"] = messages
-            .iter()
-            .map(|m| {
-                let pieces: Vec<String> = m.pieces.iter().map(|p| p.file_name().unwrap().to_string_lossy().into_owned()).collect();
-                json!({"cle": m.cle, "nom": m.nom, "dest": m.destinataire, "sujet": m.sujet, "corps": m.corps, "html": m.html, "pieces": pieces})
-            })
-            .collect();
-    }
-    oracle("preparer_fictives.json", "", &cas);
-}
