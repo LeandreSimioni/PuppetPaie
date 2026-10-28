@@ -542,7 +542,7 @@ fn engagement_de_reprise(ctx: &Contexte, c: &EnCours, mois: &str) -> R<Value> {
         // Un cachet, une journee ou un service par date cochee ; les autres
         // unites (des heures) ne se deduisent pas d'un nombre de jours.
         let unite = match l["rubrique"].as_str() {
-            Some(code) => catalogue::rubrique(&ctx.racine, code).map(|r| r.unite).unwrap_or_default(),
+            Some(code) => catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).map(|r| r.unite).unwrap_or_default(),
             None => String::new(),
         };
         let par_date = matches!(unite.as_str(), "cachet" | "jour" | "service") && !dedans.is_empty();
@@ -699,7 +699,7 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
     let mut cachets = 0;
     for l in parcourir(e.get("lignes"))? {
         let Some(code) = l.get("rubrique").and_then(Value::as_str) else { continue };
-        let Ok(r) = catalogue::rubrique(&ctx.racine, code) else { continue };
+        let Ok(r) = catalogue::rubrique(&ctx.racine, code, &ctx.lue_au) else { continue };
         if r.unite != "cachet" {
             continue;
         }
@@ -995,7 +995,7 @@ fn verifier_les_fichiers_du_catalogue(racine: &Path) -> R<()> {
 fn rubriques_actives(ctx: &Contexte, charge: &Value) -> R<Value> {
     let brut = exiger(charge, "actives")?;
     verifier_les_fichiers_du_catalogue(&ctx.racine)?;
-    let cat = catalogue::catalogue(&ctx.racine).map_err(plain)?;
+    let cat = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?;
     // `for c in actives` : une liste, les cles d'un dictionnaire, les caracteres d'un texte.
     let actives: Vec<Value> = items(brut)?.into_iter().map(|c| c.into_owned()).collect();
     let mut connus: Vec<&str> = cat.iter().map(|r| r.code.as_str()).collect();
@@ -1045,7 +1045,7 @@ fn rubriques_actives(ctx: &Contexte, charge: &Value) -> R<Value> {
     std::fs::create_dir_all(p.parent().unwrap_or(Path::new("."))).map_err(|e| erreur("OSError", e.to_string()))?;
     sauver_avant(&p)?;
     ecrire_json(&p, &donnees, 2).map_err(plain)?;
-    let rubriques: Vec<Value> = catalogue::catalogue(&ctx.racine).map_err(plain)?.iter().map(rubrique_json).collect();
+    let rubriques: Vec<Value> = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?.iter().map(rubrique_json).collect();
     Ok(json!({"rubriques": rubriques}))
 }
 

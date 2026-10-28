@@ -132,7 +132,7 @@ impl LigneBrut {
 pub fn lignes_brut(eng: &Engagement, ctx: &Contexte) -> Resultat<Vec<LigneBrut>> {
     let mut out = Vec::new();
     for l in &eng.lignes {
-        let r = rubrique(&ctx.racine, &en_texte(requis(l, "rubrique")?))?;
+        let r = rubrique(&ctx.racine, &en_texte(requis(l, "rubrique")?), &ctx.lue_au)?;
         let q = dec(requis(l, "quantite")?)?;
         let taux = dec(requis(l, "taux")?)?;
         let heures = match l.get("heures") {
@@ -732,6 +732,7 @@ section verifiee.",
 ///   propre regle) s'y reintegre : refus (regle 1). Un acompte, un mouvement de tresorerie, n'est rien de tout cela.
 fn dfs_applicable(
     eng: &Engagement, nat: &Nature, sal: &Value, o: &OptionDfs, lb: &[LigneBrut], rubriques_bulletin: &[&Value], racine: &std::path::Path,
+    jour: &Jour,
 ) -> Resultat<()> {
     let qui = format!("Contrat {} de {}", eng.numero.clone().unwrap_or_else(|| "?".into()), qui_salarie(sal));
     if nat.mensuelle() {
@@ -753,7 +754,7 @@ ne la devine pas. Rien n'est calcule.",
         ));
     }
     for l in lb.iter().filter(|l| !l.soumis && !l.montant.is_zero()) {
-        let genre = rubrique(racine, &l.code)?.hors_assiette()?;
+        let genre = rubrique(racine, &l.code, jour)?.hors_assiette()?;
         if genre == HorsAssiette::Revenu {
             return Err(format!(
                 "{} : la ligne << {} >> est hors assiette et n'est pas un remboursement de frais, pour un salarie sous \
@@ -1336,7 +1337,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // et sans descendre sous l'assiette minimum ; les assiettes majorees partent du brut abattu (Acoss 2013-019, R6).
     let mut dfs: Option<DeductionForfaitaire> = None;
     if let Some(o) = deduction_forfaitaire(&bar, &sal, &ctx.entreprise)? {
-        dfs_applicable(eng, &nat, &sal, &o, &lb, &rubriques_bulletin, &ctx.racine)?;
+        dfs_applicable(eng, &nat, &sal, &o, &lb, &rubriques_bulletin, &ctx.racine, &ctx.lue_au)?;
         let deja = dfs_deja_deduite(ctx, eng, &sal, precedentes)?;
         let montants: Vec<Decimal> = soumises.iter().map(|l| l.montant).collect();
         let a = abattement_dfs(&o, &montants, brut, deja, plafond);
@@ -1562,7 +1563,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // (`Rubrique::hors_assiette`). Pas de prelevement a la source : un net SOCIAL.
     let mut hors_assiette_revenu = zero;
     for l in lb.iter().filter(|l| !l.soumis) {
-        if rubrique(&ctx.racine, &l.code)?.hors_assiette()? == HorsAssiette::Revenu {
+        if rubrique(&ctx.racine, &l.code, &ctx.lue_au)?.hors_assiette()? == HorsAssiette::Revenu {
             hors_assiette_revenu += l.montant;
         }
     }

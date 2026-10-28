@@ -355,7 +355,11 @@ qui compte pour une journée de travail.
 
 Elle l'écrit dans **son** fichier, `config/rubriques-compagnie.json`, et non
 dans le catalogue livré : celui-ci ne décrit aucune compagnie, il décrit ce
-que la réglementation permet de payer. Si le filage relevait d'un texte de
+que la réglementation permet de payer. Ce fichier est daté comme toute la
+configuration de la compagnie : chaque champ s'y écrit
+`[{"valeur": …}, {"depuis": "AAAA-MM-JJ", "valeur": …}]` (la première valeur
+de tout temps, chaque suivante à partir de sa date), et le calcul lit la
+rubrique à la date de la période payée (`catalogue::catalogue(racine, jour)`). Si le filage relevait d'un texte de
 branche, sa place serait dans `moteur/rubriques-base.json` — même partage que
 le barème.
 

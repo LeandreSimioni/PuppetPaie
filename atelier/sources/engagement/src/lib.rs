@@ -332,10 +332,18 @@ impl Engagement {
         let mut cachets_somme = 0.0;
         let mut autres = 0.0;
         let mut premier_cachet: Option<&Value> = None;
+        // Les rubriques se lisent a la fin du mois paye (le mois dit, sinon celui de la premiere date jouee).
+        let mois_lu = match jours_joues.first() {
+            _ if !mois_saisi.is_empty() => Some(mois_saisi.clone()),
+            Some(j) => Some(j.mois_iso()),
+            None => None,
+        };
+        let jour_lu = mois_lu.map(|m| dernier_du_mois(&m)).transpose()?;
         for l in &lignes {
             let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
             let code = code.as_str().map_or_else(|| en_texte(code), String::from);
-            let r = rubrique(racine, &code)?;
+            let jour = jour_lu.ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?;
+            let r = rubrique(racine, &code, &jour)?;
             let q = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
             if r.unite == "cachet" {
                 cachets_somme += q;
@@ -1054,7 +1062,7 @@ pub fn saisie_incomplete(message: &str) -> bool {
 fn heures_dites(ctx: &Contexte, eng: &Engagement, rang: usize, mois: &str) -> Resultat<()> {
     for (i, l) in eng.lignes.iter().enumerate() {
         let Some(code) = l.get("rubrique") else { continue };
-        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from))?;
+        let r = rubrique(&ctx.racine, &code.as_str().map_or_else(|| en_texte(code), String::from), &ctx.lue_au)?;
         if !r.heures_a_saisir() {
             continue;
         }

@@ -766,8 +766,8 @@ fn dates_de_ligne(l: &Value) -> Vec<Jour> {
 }
 
 /// Le libelle d'une rubrique, ou son code si le catalogue ne la connait pas.
-fn libelle_rubrique(racine: &Path, code: &str) -> String {
-    droit::catalogue::rubrique(racine, code).map(|r| r.libelle).unwrap_or_else(|_| code.to_string())
+fn libelle_rubrique(racine: &Path, code: &str, jour: &Jour) -> String {
+    droit::catalogue::rubrique(racine, code, jour).map(|r| r.libelle).unwrap_or_else(|_| code.to_string())
 }
 
 /// LES CACHETS ET SERVICES DE LA SAISIE QUI TOMBENT DANS UN IMPREVU : pour chaque mois saisi qu'il croise, les lignes des
@@ -803,7 +803,7 @@ fn cachets_de_la_saisie(ctx: &Contexte, data: &Value, mois: &str, cle: &str, pre
             let rubrique = s(l, "rubrique");
             out.push(json!({
                 "mois": mois, "engagement": i, "numero": g(e, "numero"), "spectacle": g(e, "spectacle"),
-                "ligne": j, "rubrique": rubrique, "libelle": libelle_rubrique(&ctx.racine, &rubrique),
+                "ligne": j, "rubrique": rubrique, "libelle": libelle_rubrique(&ctx.racine, &rubrique, &ctx.lue_au),
                 "dates": dedans, "quantite": g(l, "quantite"), "taux": g(l, "taux"),
             }));
         }

@@ -36,8 +36,8 @@ fn entier_de(v: &Value) -> i64 {
 }
 
 impl Constantes {
-    pub fn lire(racine: &Path) -> Resultat<Constantes> {
-        let cachet = rubrique(racine, "cachet")?;
+    pub fn lire(racine: &Path, jour: &Jour) -> Resultat<Constantes> {
+        let cachet = rubrique(racine, "cachet", jour)?;
         let a = annexes()?;
         Ok(Constantes {
             heures_par_cachet: cachet.heures_forfait.unwrap_or(0.0) as i64,
@@ -51,7 +51,7 @@ impl Constantes {
 /// `plafond_enseignement` : 70 h, ou 120 h a partir de 50 ans a la date
 /// donnee ; sans date de naissance, le plafond bas.
 pub fn plafond_enseignement(racine: &Path, date_naissance: Option<Jour>, a_la_date: Jour) -> Resultat<i64> {
-    let r = rubrique(racine, "enseignement")?;
+    let r = rubrique(racine, "enseignement", &a_la_date)?;
     let p = r.plafond_annuel_heures.filter(|p| socle::fichiers::vrai(p)).unwrap_or(Value::Object(Map::new()));
     let bas = p.get("moins_de_50_ans").map_or(0, entier_de);
     let haut = p.get("50_ans_et_plus").map_or(bas, entier_de);
@@ -270,7 +270,7 @@ pub fn heures_enseignement(ctx: &Contexte, lignes: &[Value]) -> Resultat<i64> {
             Value::String(s) => s.clone(),
             autre => socle::date::en_texte(autre),
         };
-        let r = rubrique(&ctx.racine, &code)?;
+        let r = rubrique(&ctx.racine, &code, &ctx.lue_au)?;
         if r.compte_pour != "ouverture_des_droits" {
             continue;
         }
@@ -363,7 +363,7 @@ pub fn position_droits(
     anniversaire: Option<Jour>,
     a_la_date: Option<Jour>,
 ) -> Resultat<Position> {
-    let c = Constantes::lire(&ctx.racine)?;
+    let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let f = match anniversaire {
         Some(a) => fenetre_anniversaire(&c, a)?,
         None => {
@@ -426,7 +426,7 @@ pub fn tableau_cumul(
     mois: &str,
     engagements: &[Declare],
 ) -> Resultat<Vec<Colonne>> {
-    let c = Constantes::lire(&ctx.racine)?;
+    let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let tranche = |a: usize, b: usize| -> String { mois.chars().skip(a).take(b - a).collect() };
     let annee = entier_du_mois(&tranche(0, 4))?;
     let mo = entier_du_mois(&tranche(5, 7))?;

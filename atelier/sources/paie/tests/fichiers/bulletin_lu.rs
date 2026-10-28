@@ -583,7 +583,7 @@ fn bulletin_lu_la_table_ne_nomme_que_des_rubriques_du_catalogue() {
     for g in &t.gabarits {
         for l in g.lignes() {
             let Some(code) = &l.rubrique else { continue };
-            let rub = droit::catalogue::rubrique(&r, code).unwrap_or_else(|e| panic!("{} / {} : {}", g.nom, l.libelle, e));
+            let rub = droit::catalogue::rubrique(&r, code, &socle::date::Jour::lire("2026-10-28").unwrap()).unwrap_or_else(|e| panic!("{} / {} : {}", g.nom, l.libelle, e));
             if l.heures.is_some() {
                 assert!(rub.saisie.iter().any(|s| s == "heures") && rub.heures_forfait.is_none(), "{} / {}", g.nom, l.libelle);
             }
@@ -607,8 +607,8 @@ fn bulletin_lu_la_table_ne_nomme_que_des_rubriques_du_catalogue() {
         assert!(vues.contains(&attendu), "{:?}", attendu);
     }
     // Les rubriques que les compteurs lisent : l'unite, le forfait du cachet, l'enseignement.
-    assert_eq!(droit::catalogue::rubrique(&r, "cachet").unwrap().heures_forfait, Some(12.0));
-    assert_eq!(droit::catalogue::rubrique(&r, "enseignement").unwrap().compte_pour, "ouverture_des_droits");
+    assert_eq!(droit::catalogue::rubrique(&r, "cachet", &socle::date::Jour::lire("2026-10-28").unwrap()).unwrap().heures_forfait, Some(12.0));
+    assert_eq!(droit::catalogue::rubrique(&r, "enseignement", &socle::date::Jour::lire("2026-10-28").unwrap()).unwrap().compte_pour, "ouverture_des_droits");
 
     // Une valeur de `lignes` mal formee est un refus de la table, qui la nomme.
     for (valeur, erreur) in [

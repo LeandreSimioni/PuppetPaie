@@ -173,7 +173,7 @@ pub(crate) fn dernier_taux(ctx: &Contexte) -> R<Option<f64>> {
 /// leve est une ligne qui ne dit rien.
 fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
     let code = l.get("rubrique")?.as_str()?;
-    if droit::catalogue::rubrique(&ctx.racine, code).ok()?.unite != "cachet" {
+    if droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).ok()?.unite != "cachet" {
         return None;
     }
     let taux = l.get("taux").filter(|t| vrai(t))?;
@@ -321,7 +321,7 @@ fn jours_sur_les_lignes(
     let cachet = |l: &Map<String, Value>| {
         l.get("rubrique")
             .and_then(Value::as_str)
-            .map_or(false, |c| droit::catalogue::rubrique(&ctx.racine, c).map_or(false, |r| r.unite == "cachet"))
+            .map_or(false, |c| droit::catalogue::rubrique(&ctx.racine, c, &ctx.lue_au).map_or(false, |r| r.unite == "cachet"))
     };
     let jours: Vec<Value> = eng.dates_travail.iter().map(|j| Value::String(j.iso())).collect();
     let Some(i) = lignes.iter().position(cachet) else {

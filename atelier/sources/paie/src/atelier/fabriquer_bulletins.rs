@@ -471,7 +471,8 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         let code = connu.rubrique.clone().ok_or_else(|| {
             format!("{} : « {} » n'a pas de rubrique sûre dans la table : la page se lirait sans contrat", ou, connu.libelle)
         })?;
-        let r = droit::catalogue::rubrique(racine_catalogue, &code)?;
+        // Le dossier de fabrication n'a pas de rubriques de la compagnie : le catalogue livre, le meme a toute date.
+        let r = droit::catalogue::rubrique(racine_catalogue, &code, &droit::contexte::jour_reel())?;
         if r.soumis != soumise {
             return Err(format!(
                 "{} : « {} » ({}) est une ligne {} : mettez-la dans `{}`",

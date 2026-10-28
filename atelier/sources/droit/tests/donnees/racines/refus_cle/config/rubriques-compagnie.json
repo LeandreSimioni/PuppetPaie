@@ -1,7 +1,7 @@
 {
  "rubriques": {
   "maison": {
-   "libelle": "Sans unite"
+   "libelle": [{"valeur": "Sans unite"}]
   }
  }
 }

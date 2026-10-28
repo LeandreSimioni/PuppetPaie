@@ -888,7 +888,7 @@ pub fn etat(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
         .collect::<R<Vec<Value>>>()?;
 
     // Le catalogue qui paie, deja dans l'ordre ou le proposer.
-    let cat = catalogue::catalogue(&ctx.racine).map_err(plain)?;
+    let cat = catalogue::catalogue(&ctx.racine, &ctx.lue_au).map_err(plain)?;
     let rubriques: Vec<Value> = cat.iter().map(rubrique_json).collect();
     // La rubrique d'une ligne neuve, par forme de paie : le moteur la choisit (`catalogue::par_defaut`), la page la pose.
     let par_defaut = |forme: &str| catalogue::par_defaut(&cat, forme).map_or(Value::Null, |r| json!(r.code));

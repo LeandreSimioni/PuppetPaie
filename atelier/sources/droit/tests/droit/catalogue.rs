@@ -1,10 +1,16 @@
 //! Le catalogue des rubriques contre `catalogue.json` : le catalogue de chaque racine de `tests/donnees/racines/` (ce que
-//! la compagnie ajuste, ajoute, ordonne), ses refus, les heures d'une rubrique, les annexes.
+//! la compagnie ajuste, ajoute, ordonne ; ses rubriques datees, lues a la date), ses refus, les heures d'une rubrique,
+//! les annexes.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, egal, lire_oracle, oracle_selon};
 use droit::catalogue::{catalogue, rubrique, Rubrique};
 use serde_json::{json, Value};
+use socle::date::Jour;
+
+fn jour(s: &str) -> Jour {
+    Jour::lire(s).unwrap()
+}
 
 fn en_json(r: &Rubrique) -> Value {
     json!({
@@ -29,19 +35,23 @@ fn les_catalogues_et_les_refus() {
     let mut refus = 0;
     for (nom, attendu) in cas.as_object_mut().unwrap() {
         let racine = chemin_oracle("racines").join(nom);
-        *attendu = match catalogue(&racine) {
+        *attendu = match catalogue(&racine, &jour("2026-10-28")) {
             Err(e) => {
                 refus += 1;
                 json!({ "refus": e })
             }
             Ok(cat) => json!({
                 "catalogue": cat.iter().map(en_json).collect::<Vec<_>>(),
-                "inconnue": rubrique(&racine, "zzz").unwrap_err(),
+                "inconnue": rubrique(&racine, "zzz", &jour("2026-10-28")).unwrap_err(),
                 "reservee_a": cat.iter().map(|r| (r.code.clone(), json!(r.reservee_a()))).collect::<serde_json::Map<_, _>>(),
             }),
         };
     }
     assert_eq!(refus, 9);
+    // Une rubrique de la compagnie changee a une date : la nouvelle valeur a partir d'elle, l'ancienne avant.
+    let a = chemin_oracle("racines").join("a");
+    let libelle = |j: &str| rubrique(&a, "cachet", &jour(j)).unwrap().libelle;
+    assert_eq!((libelle("2026-12-31"), libelle("2027-01-01")), ("Cachet maison".to_string(), "Cachet maison 2027".to_string()));
     oracle_selon("catalogue.json", "/cas", &cas, egal);
 }
 
@@ -50,7 +60,7 @@ fn les_heures() {
     let racine = chemin_oracle("racines/a");
     let mut heures = lire_oracle("catalogue.json")["heures"].clone();
     for h in heures.as_array_mut().unwrap() {
-        let r = rubrique(&racine, h[0].as_str().unwrap()).unwrap();
+        let r = rubrique(&racine, h[0].as_str().unwrap(), &jour("2026-10-28")).unwrap();
         h[3] = json!(r.heures(h[1].as_f64().unwrap(), h[2].as_f64()));
     }
     assert!(heures.as_array().unwrap().len() > 600);

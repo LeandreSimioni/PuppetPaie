@@ -570,7 +570,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
     }
     let b = banque()?;
     let d = Donnees::de_l_annee(&ctx.code, ctx.aujourdhui.an);
-    let c = Constantes::lire(&ctx.racine)?;
+    let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let ordre: Vec<String> = b.get("ordre_saisie").and_then(Value::as_array).map(|a| a.iter().map(en_texte).collect()).unwrap_or_default();
     // Le mois de chaque salarie, chez nous : ses heures (cachets a 12 h) et ses cachets, toutes ses paies de l'ecran.
     let mut du_mois: HashMap<String, (i64, i64)> = HashMap::new();
@@ -683,7 +683,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
                 "saisie:enseignement" => {
                     let mut trouve = None;
                     for l in &p.remuneration {
-                        let r = droit::catalogue::rubrique(&ctx.racine, &l.code)?;
+                        let r = droit::catalogue::rubrique(&ctx.racine, &l.code, &ctx.lue_au)?;
                         if r.compte_pour != "ouverture_des_droits" {
                             continue;
                         }
@@ -718,7 +718,7 @@ pub fn de_saisie(ctx: &Contexte, paies: &[Paie]) -> Resultat<Vec<Option<Value>>>
 /// avant arrondi). Chaque mois saisi de la fenetre se recharge (`engagement::charger`) ; un mois qui ne se charge pas
 /// est laisse de cote.
 fn gains_sur_la_fenetre(ctx: &Contexte, cle: &str, f: &Fenetre, a30: &Art30, annexe: &str) -> Resultat<(Decimal, Decimal)> {
-    let c = Constantes::lire(&ctx.racine)?;
+    let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let (debut, fin, _) = f;
     let mut gain = Decimal::ZERO;
     let mut jours = Decimal::ZERO;
@@ -755,7 +755,7 @@ pub fn du_salarie(ctx: &Contexte, cle: &str) -> Resultat<Vec<Value>> {
     let b = banque()?;
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
-    let c = Constantes::lire(&ctx.racine)?;
+    let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let engs = engagement::cumul::lire_engagements(ctx, None)?;
     let (pos, anniv) = position(ctx, cle, &engs, jour)?;
     if pos.engagements.is_empty() {
@@ -849,7 +849,7 @@ pub fn resume(ctx: &Contexte) -> Resultat<Vec<Value>> {
     let b = banque()?;
     let jour = ctx.aujourdhui;
     let d = Donnees::de_l_annee(&ctx.code, jour.an);
-    let c = Constantes::lire(&ctx.racine)?;
+    let c = Constantes::lire(&ctx.racine, &ctx.lue_au)?;
     let engs = engagement::cumul::lire_engagements(ctx, None)?;
     let cles: BTreeSet<&str> = engs.iter().map(|e| e.salarie.as_str()).collect();
     // Les salaries par leur prenom ; deux du meme prenom, par leur prenom et leur nom (sinon on ne saurait lequel).

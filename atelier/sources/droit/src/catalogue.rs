@@ -2,7 +2,11 @@
 //!
 //! Trois fichiers : `donnees/rubriques-base.json` (le logiciel),
 //! `config/rubriques-compagnie.json` et `config/rubriques-actives.json` (les
-//! donnees, sous la racine de la compagnie).
+//! donnees, sous la racine de la compagnie). Les rubriques de la compagnie sont
+//! des regles du calcul : datees comme toute la configuration, lues a la date de
+//! la periode. `rubriques-actives.json` est une preference d'affichage (l'ordre
+//! du deroulant de saisie, les rubriques cochees, combien de fois chacune a
+//! servi) : aucun calcul ne la lit, elle ne depend d'aucune periode.
 
 use socle::fichiers::{dossier_du_code, lire_json, repr, signature, vrai};
 use socle::num::Resultat;
@@ -10,6 +14,7 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
+use socle::date::Jour;
 
 /// Les unites que le moteur sait compter.
 pub const UNITES: [&str; 8] =
@@ -368,7 +373,41 @@ fn construire(code: &str, d: &Map<String, Value>, origine: &str, usages: i64, ac
     Ok(r)
 }
 
-fn construire_catalogue(racine: &Path) -> Resultat<Vec<Rubrique>> {
+/// Les rubriques propres a la compagnie (`config/rubriques-compagnie.json`, `{"rubriques": {code: fiche}}`), chacune une
+/// fiche datee comme toute la configuration (`contexte::fiche_au`), lues a `jour` : une rubrique changee a une date ne
+/// change pas les paies d'avant. Une fiche qui ne dit encore rien a `jour` n'existe pas.
+fn propres_au(racine: &Path, jour: &Jour) -> Resultat<Vec<(String, Map<String, Value>)>> {
+    let propres = lire(&racine.join("config").join(RUBRIQUES_COMPAGNIE))?;
+    let mut out = Vec::new();
+    if let Some(Value::Object(m)) = propres.get("rubriques") {
+        for (c, v) in m {
+            let f = crate::contexte::fiche_au(v, jour, &format!("config/{}, {}", RUBRIQUES_COMPAGNIE, c))?;
+            if crate::contexte::fiche_vide(&f) {
+                continue;
+            }
+            out.push((c.clone(), f.as_object().cloned().unwrap_or_default()));
+        }
+    }
+    Ok(out)
+}
+
+/// Le fichier des rubriques propres a la compagnie, sous `config/`.
+pub const RUBRIQUES_COMPAGNIE: &str = "rubriques-compagnie.json";
+
+/// Une rubrique de la compagnie a-t-elle une valeur datee ? Sinon le catalogue est le meme a toute date.
+fn rubriques_datees(racine: &Path) -> Resultat<bool> {
+    let propres = lire(&racine.join("config").join(RUBRIQUES_COMPAGNIE))?;
+    Ok(propres.get("rubriques").and_then(Value::as_object).is_some_and(|m| {
+        m.values()
+            .filter_map(Value::as_object)
+            .flat_map(|f| f.values())
+            .filter_map(Value::as_array)
+            .flatten()
+            .any(|e| e.get("depuis").is_some_and(|d| !d.is_null()))
+    }))
+}
+
+fn construire_catalogue(racine: &Path, jour: &Jour) -> Resultat<Vec<Rubrique>> {
     let b = base_json()?;
     // code -> (champs, propre a la compagnie)
     let mut brut: Vec<(String, Map<String, Value>, bool)> = Vec::new();
@@ -380,18 +419,14 @@ fn construire_catalogue(racine: &Path) -> Resultat<Vec<Rubrique>> {
     let mut choix: Vec<String> = Vec::new();
     let mut usages = Map::new();
     if socle::fichiers::est_dossier(racine) {
-        let propres = lire(&racine.join("config").join("rubriques-compagnie.json"))?;
-        if let Some(Value::Object(m)) = propres.get("rubriques") {
-            for (c, v) in m {
-                let v = v.as_object().cloned().unwrap_or_default();
-                if let Some(e) = brut.iter_mut().find(|e| &e.0 == c) {
-                    // ajustement d'une rubrique de base
-                    for (k, x) in v {
-                        e.1.insert(k, x);
-                    }
-                } else {
-                    brut.push((c.clone(), v, true));
+        for (c, v) in propres_au(racine, jour)? {
+            if let Some(e) = brut.iter_mut().find(|e| e.0 == c) {
+                // ajustement d'une rubrique de base
+                for (k, x) in v {
+                    e.1.insert(k, x);
                 }
+            } else {
+                brut.push((c, v, true));
             }
         }
         let actives = lire(&racine.join("config").join("rubriques-actives.json"))?;
@@ -425,20 +460,29 @@ fn empreinte(p: &Path) -> String {
     format!("{}:{:?}", p.display(), signature(p))
 }
 
-static CATALOGUES: OnceLock<Mutex<HashMap<String, Arc<Vec<Rubrique>>>>> = OnceLock::new();
+/// Un catalogue construit, et si les rubriques de la compagnie y sont datees (il depend alors du jour lu).
+type EnCache = (bool, Arc<Vec<Rubrique>>);
+static CATALOGUES: OnceLock<Mutex<HashMap<String, EnCache>>> = OnceLock::new();
 
-/// Les rubriques disponibles : les actives d'abord (la plus utilisee en tete),
-/// puis les autres par libelle. `racine` est la racine des donnees de la
-/// compagnie (`ctx.racine`). Construit une fois par etat des trois fichiers.
-pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
-    let cle = format!(
+/// Les rubriques disponibles a `jour` (la date de la periode payee : les rubriques de la compagnie sont datees) : les
+/// actives d'abord (la plus utilisee en tete), puis les autres par libelle. `racine` est la racine des donnees de la
+/// compagnie (`ctx.racine`). Construit une fois par etat des trois fichiers (et par jour, si la compagnie a date une
+/// de ses rubriques).
+pub fn catalogue(racine: &Path, jour: &Jour) -> Resultat<Arc<Vec<Rubrique>>> {
+    let fichiers = format!(
         "{}|{}|{}",
         empreinte(&dossier_du_code().join("rubriques-base.json")),
-        empreinte(&racine.join("config").join("rubriques-compagnie.json")),
+        empreinte(&racine.join("config").join(RUBRIQUES_COMPAGNIE)),
         empreinte(&racine.join("config").join("rubriques-actives.json")),
     );
     let cache = CATALOGUES.get_or_init(|| Mutex::new(HashMap::new()));
-    if let Some(c) = cache.lock().unwrap().get(&cle) {
+    let connue = cache.lock().unwrap().get(&fichiers).map(|(datee, _)| *datee);
+    let datee = match connue {
+        Some(d) => d,
+        None => rubriques_datees(racine)?,
+    };
+    let cle = if datee { format!("{}|{}", fichiers, jour.iso()) } else { fichiers.clone() };
+    if let Some((_, c)) = cache.lock().unwrap().get(&cle) {
         // Un catalogue servi par le cache a lu ses fichiers quand meme, pour l'empreinte du calcul -- seulement quand un
         // calcul suivi les note (sinon, autant de lectures du disque pour rien a chaque rubrique).
         if !socle::fichiers::registre_ouvert() {
@@ -447,7 +491,7 @@ pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
         socle::fichiers::est_dossier(racine);
         for p in [
             dossier_du_code().join("rubriques-base.json"),
-            racine.join("config").join("rubriques-compagnie.json"),
+            racine.join("config").join(RUBRIQUES_COMPAGNIE),
             racine.join("config").join("rubriques-actives.json"),
         ] {
             if socle::fichiers::existe(&p) {
@@ -456,12 +500,13 @@ pub fn catalogue(racine: &Path) -> Resultat<Arc<Vec<Rubrique>>> {
         }
         return Ok(c.clone());
     }
-    let c = Arc::new(construire_catalogue(racine)?);
+    let c = Arc::new(construire_catalogue(racine, jour)?);
     let mut g = cache.lock().unwrap();
     if g.len() > 64 {
         g.clear();
     }
-    g.insert(cle, c.clone());
+    g.insert(fichiers, (datee, c.clone()));
+    g.insert(cle, (datee, c.clone()));
     Ok(c)
 }
 
@@ -477,10 +522,10 @@ pub fn par_defaut<'a>(cat: &'a [Rubrique], forme: &str) -> Option<&'a Rubrique> 
     base.or_else(|| cat.iter().filter(proposee).find(salaire))
 }
 
-/// Une rubrique par son code. Refuse un code inconnu : mieux vaut s'arreter
-/// que payer une ligne dont on ignore le regime.
-pub fn rubrique(racine: &Path, code: &str) -> Resultat<Rubrique> {
-    let cat = catalogue(racine)?;
+/// Une rubrique par son code, telle qu'elle vaut a `jour`. Refuse un code inconnu : mieux vaut s'arreter que payer une
+/// ligne dont on ignore le regime.
+pub fn rubrique(racine: &Path, code: &str, jour: &Jour) -> Resultat<Rubrique> {
+    let cat = catalogue(racine, jour)?;
     if let Some(r) = cat.iter().find(|r| r.code == code) {
         return Ok(r.clone());
     }

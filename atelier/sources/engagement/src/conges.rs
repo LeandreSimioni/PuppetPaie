@@ -711,9 +711,10 @@ pub fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat
 /// Les jours de conges que CETTE paie decompte, lus sur ses lignes : le
 /// catalogue marque la rubrique.
 pub fn conges_pris_de_la_paie(racine: &Path, paie: &Paie) -> Resultat<Decimal> {
+    let jour = &paie.engagement.fin_periode()?;
     let mut total = Decimal::ZERO;
     for l in &paie.engagement.lignes {
-        if rubrique(racine, &en_texte(requis(l, "rubrique")?))?.conges_pris {
+        if rubrique(racine, &en_texte(requis(l, "rubrique")?), jour)?.conges_pris {
             total += dec_avec_echelle(requis(l, "quantite")?)?;
         }
     }

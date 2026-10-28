@@ -955,7 +955,7 @@ fn rubrique_de(ctx: &Contexte, ligne: &Value) -> Option<droit::catalogue::Rubriq
         Some(Value::String(s)) => s.as_str(),
         Some(_) => return None,
     };
-    droit::catalogue::rubrique(&ctx.racine, code).ok()
+    droit::catalogue::rubrique(&ctx.racine, code, &ctx.lue_au).ok()
 }
 
 /// Un SALAIRE se hausse ; un defraiement, une prime, un acompte, non.

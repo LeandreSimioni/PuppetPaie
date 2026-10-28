@@ -225,7 +225,7 @@ pub(crate) fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, V
         let qui = format!("{} {}", valeur_en_texte(p.salarie.get("nom").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("nom")))?), prenom);
         let mut retenu = zero;
         for l in p.remuneration.iter().filter(|l| !l.soumis) {
-            if catalogue::rubrique(&ctx.racine, &l.code).and_then(|r| r.hors_assiette()).map_err(refus)? != HorsAssiette::Mouvement {
+            if catalogue::rubrique(&ctx.racine, &l.code, &ctx.lue_au).and_then(|r| r.hors_assiette()).map_err(refus)? != HorsAssiette::Mouvement {
                 continue;
             }
             let Some(regle) = plan.get("retenues").and_then(|t| t.get(&l.code)).filter(|r| vrai(r)) else {

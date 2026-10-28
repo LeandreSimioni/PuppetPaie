@@ -1201,7 +1201,7 @@ pub fn description(jeux: &[Jeu], ent: &Value) -> Resultat<Value> {
 pub fn remboursements(ctx: &Contexte, p: &Paie) -> Resultat<Vec<usize>> {
     let mut out = Vec::new();
     for (i, l) in p.remuneration.iter().enumerate() {
-        if !l.soumis && droit::catalogue::rubrique(&ctx.racine, &l.code)?.hors_assiette()? != droit::catalogue::HorsAssiette::Revenu {
+        if !l.soumis && droit::catalogue::rubrique(&ctx.racine, &l.code, &ctx.lue_au)?.hors_assiette()? != droit::catalogue::HorsAssiette::Revenu {
             out.push(i);
         }
     }

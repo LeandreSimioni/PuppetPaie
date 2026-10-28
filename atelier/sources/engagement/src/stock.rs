@@ -262,7 +262,7 @@ fn reconduire(racine: &Path, v: &Map<String, Value>, mensuel: bool, mois: &str) 
             continue;
         }
         let rubrique = l.get("rubrique").map(en_texte).unwrap_or_else(|| "cachet".into());
-        let unite = droit::catalogue::rubrique(racine, &rubrique).map(|r| r.unite).unwrap_or_default();
+        let unite = socle::date::dernier_du_mois(mois).and_then(|j| droit::catalogue::rubrique(racine, &rubrique, &j)).map(|r| r.unite).unwrap_or_default();
         let par_date = matches!(unite.as_str(), "cachet" | "jour" | "service");
         let mut n = Map::new();
         n.insert("rubrique".into(), Value::String(rubrique));

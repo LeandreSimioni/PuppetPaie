@@ -45,7 +45,7 @@ fn le_code_du_bloc_54() {
     let racine = dossier_de_test("calcul_pieces", "code_54");
     let mut refus = 0;
     for c in cas.as_array_mut().unwrap() {
-        let r = rubrique(&racine, c[0].as_str().unwrap()).unwrap();
+        let r = rubrique(&racine, c[0].as_str().unwrap(), &socle::date::Jour::lire("2026-10-28").unwrap()).unwrap();
         let vu = code_54(&r, &c[1]);
         refus += vu.is_err() as usize;
         c[2] = essai(vu.map(|o| o.map_or(Value::Null, Value::String)));

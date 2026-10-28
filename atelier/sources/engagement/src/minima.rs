@@ -1144,7 +1144,7 @@ pub fn sous_le_smic(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
         if heures <= Decimal::ZERO {
             continue;
         }
-        if rubrique(&ctx.racine, &l.code)?.heures_forfait.is_some() {
+        if rubrique(&ctx.racine, &l.code, &ctx.lue_au)?.heures_forfait.is_some() {
             continue;
         }
         let du = pair(mul(smic, heures));

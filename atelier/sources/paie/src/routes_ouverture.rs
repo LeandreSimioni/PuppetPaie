@@ -1185,7 +1185,7 @@ fn nombre_f(x: f64) -> Value {
 fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
     let rubrique = l.get("rubrique");
     let infos = || -> Option<(String, String, f64)> {
-        let r = droit::catalogue::rubrique(&ctx.racine, l.get("rubrique")?.as_str()?).ok()?;
+        let r = droit::catalogue::rubrique(&ctx.racine, l.get("rubrique")?.as_str()?, &ctx.lue_au).ok()?;
         let quantite = match l.get("quantite") {
             None | Some(Value::Null) => 0.0,
             Some(q) if !vrai(q) => 0.0,
@@ -1245,7 +1245,7 @@ pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, ave
     let premier_cachet = e
         .lignes
         .iter()
-        .find(|l| l.get("rubrique").and_then(Value::as_str).and_then(|c| droit::catalogue::rubrique(&ctx.racine, c).ok()).map_or(false, |r| r.unite == "cachet"));
+        .find(|l| l.get("rubrique").and_then(Value::as_str).and_then(|c| droit::catalogue::rubrique(&ctx.racine, c, &ctx.lue_au).ok()).map_or(false, |r| r.unite == "cachet"));
     let taux_cachet = match premier_cachet {
         Some(l) => nombre_f(flottant(l.get("taux").ok_or_else(|| avec_classe("KeyError", socle::fichiers::absent("taux")))?)?),
         None => brut.get("taux_cachet").or_else(|| data.get("taux_cachet")).cloned().unwrap_or(Value::Null),
