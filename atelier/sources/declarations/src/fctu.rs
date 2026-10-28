@@ -1,11 +1,9 @@
-//! Le signalement de fin de contrat de travail unique, nature 07
-//! (`moteur/fctu.py`).
+//! Le signalement de fin de contrat de travail unique, nature 07.
 //!
 //! Il porte l'evenement ET la paie du solde de tout compte (cahier technique
 //! 2026.1 p. 107) : un individu, un contrat, un bloc 62 et un bloc 63
 //! obligatoires, ni bordereau ni ordre de telepaiement. Les controles qui lui
-//! sont propres (CCH-14, CCH-15, CCH-11) sont tenus ici, avec les phrases du
-//! Python : `Echec::Impossible` est ce qui devient `FctuImpossible` cote Python.
+//! sont propres (CCH-14, CCH-15, CCH-11) sont tenus ici ; `Echec::Impossible` est la regle de la norme qui s'oppose.
 
 use serde_json::Value;
 
@@ -28,8 +26,7 @@ pub const ANNULE_ET_REMPLACE: &str = "03";
 pub const ANNULE: &str = "04";
 const TYPES: [(&str, &str); 3] = [(NORMALE, "normale"), (ANNULE_ET_REMPLACE, "annule et remplace integral"), (ANNULE, "annule")];
 
-/// Un refus : `Impossible` est la regle de la norme qui s'oppose (la classe
-/// `FctuImpossible` ou `AmorcageImpossible` du Python), `Autre` tout le reste.
+/// Un refus : `Impossible` est la regle de la norme qui s'oppose, `Autre` tout le reste.
 #[derive(Debug, Clone)]
 pub enum Echec {
     Impossible(String),
@@ -447,7 +444,7 @@ pub fn bloc_62_63(f: &mut Fichier, fin: &FinDeContrat, e: &Engagement) -> Result
 
 // ---------------------------------------------------------------- generation
 
-/// Les parametres de `generer`, avec les defauts du Python.
+/// Les parametres de `generer`, avec leurs defauts.
 pub struct Options {
     pub type_declaration: String,
     pub ordre: i64,
@@ -488,7 +485,7 @@ ou un annule."
         ));
     }
     verifier(fin, &paie.engagement, type_declaration)?;
-    // Le type de preavis (63.001) et l'indemnite que la paie du solde verse (52.001) disent la meme chose (lot P2).
+    // Le type de preavis (63.001) et l'indemnite que la paie du solde verse (52.001) disent la meme chose.
     if let Some(pourquoi) = droit::preavis::desaccord_du_preavis(&fin.type_preavis, &indemnites_de_preavis_versees(paie)?)? {
         return Err(Echec::Impossible(format!(
             "Contrat {} : {}",
@@ -613,7 +610,7 @@ ou un annule."
         ("S21.G00.30.015", "pays_naissance"),
         ("S21.G00.30.019", "code_salarie"),
     ] {
-        // Le pays de naissance se lit dans la liste livree (`pays.rs`, vague 1k) : un code inconnu refuse.
+        // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
@@ -631,7 +628,7 @@ ou un annule."
     f.add("S21.G00.50.001", fin_p.jjmmaaaa());
     f.add("S21.G00.50.003", "01");
     f.add("S21.G00.50.020", defaut("rattachement_versement")?);
-    // Un mois decoupe en periodes elementaires (lot R10) : les remunerations et les bases de chacune, datees de ses bornes.
+    // Un mois decoupe en periodes elementaires : les remunerations et les bases de chacune, datees de ses bornes.
     let bornes = |q: &engagement::calcul::Paie| -> Resultat<(Jour, Jour)> {
         if paie.periodes.is_empty() { Ok((debut_p, fin_p)) } else { Ok((q.engagement.debut_periode()?, q.engagement.fin_periode()?)) }
     };

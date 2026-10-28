@@ -49,8 +49,8 @@ plus comme le net à payer.
 assiette qui sont des **revenus** (indemnités, imposables ou non) ; **sans** les remboursements de frais professionnels
 (défraiements), **sans** les mouvements (acompte). La part patronale santé et prévoyance (Fonds santé des intermittents
 compris) n'y entre pas : CSS R. 844-1, II, 1°, auquel renvoie le 9° bis de R. 3243-1 du code du travail (dernière
-section). Le net à payer ne change pas. Où : `atelier/sources/paie/src/calcul.rs`, `calculer`, section 7.10
-(`Paie::net_social`) ; `dsn.rs::net_social` (58.004) ; `bulletin.rs` (« MONTANT NET SOCIAL » ; depuis la vague 1o, le bas
+section). Le net à payer ne change pas. Où : `atelier/sources/engagement/src/calcul.rs`, `calculer`, section 7.10
+(`Paie::net_social`) ; `atelier/sources/declarations/src/dsn.rs::net_social` (58.004) ; `atelier/sources/documents/src/bulletin.rs` (« MONTANT NET SOCIAL » ; depuis la vague 1o, le bas
 du bulletin suit le modèle de l'arrêté du 25/02/2016, art. 1, I, rédaction du 25/06/2024, `legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml` :
 MONTANT NET SOCIAL, REMBOURSEMENTS ET DÉDUCTIONS DIVERSES — défraiements et acompte, Q 39 —, MONTANT NET A PAYER AVANT IMPOT SUR
 LE REVENU, IMPOT SUR LE REVENU, MONTANT NET A PAYER (en Euros) ; plus de ligne fusionnée « NET SOCIAL / NET A PAYER AVANT IMPÔT ») ; notes `_source` des
@@ -215,7 +215,7 @@ ligne `prevoyance` des intermittents, le Fonds santé (santé) du décès (prév
 
 ### Ce que le moteur en fait
 
-`atelier/sources/paie/src/bulletin.rs`, `tableau_modele` (le rang de chaque ligne de cotisation par son identifiant :
+`atelier/sources/documents/src/bulletin.rs`, `tableau_modele` (le rang de chaque ligne de cotisation par son identifiant :
 `rang`, `libelle_du_modele`) et `blocs_un` : « MONTANT BRUT » ; les colonnes du modèle, un seul taux, celui du salarié
 (R. 3243-1, 8°, a ne l'exige que pour lui ; le modèle met « - » au taux des lignes que l'employeur paie seul) ; les
 lignes dans l'ordre et sous les libellés du modèle ; les autres charges en une ligne ; le total des obligatoires AVANT
@@ -264,8 +264,8 @@ domaine « bulletin ») : ils se déposeront au prochain `moissonner`.
 
 ### Ce que le moteur en fait
 
-`bulletin::Modele` et `bulletin::modele_du_bulletin` : le **simplifié** est le bulletin de V2g, inchangé (oracles
-`tests/donnees/bulletin.json`). Le **complet** garde chaque ligne du modèle, son libellé, sa place, son regroupement et
+`bulletin::Modele` et `bulletin::modele_du_bulletin` : le **simplifié** est le bulletin de V2g, inchangé
+Le **complet** garde chaque ligne du modèle, son libellé, sa place, son regroupement et
 ses montants ; il ajoute, **sans rien retirer**, une colonne « Taux employeur » et, **sous** la ligne regroupée « Autres
 charges dues par l'employeur », une ligne « dont … » par contribution (libellé, base, taux et montant du barème). Que ce
 détail ajouté sous le regroupement ne le défasse pas est une **inférence** (le regroupement reste, au même montant ; le
@@ -288,7 +288,7 @@ texte n'interdit pas d'en dire plus). La CSG et la CRDS non déductibles restent
   l'employeur » ; conventionnelles hors protection sociale → « Cotisations statutaires ou prévues par la convention
   collective » ; prévoyance → facultatives. Q 18 (l. 192-196) : obligatoires = rendues obligatoires par la loi ; une
   contribution rendue obligatoire par un accord de branche est facultative.
-- **Où le moteur s'en sert** (lot D2, 13/10/2026) : `atelier/sources/paie/src/bulletin.rs`. **Q 10** : le modèle
+- **Où le moteur s'en sert** (lot D2, 13/10/2026) : `atelier/sources/documents/src/bulletin.rs`. **Q 10** : le modèle
   *complet* n'ajoute plus rien dans la rubrique des obligatoires (ni la colonne « Taux employeur » ni les lignes « dont … »
   de R11, que Q 10 refuse) ; son bulletin est celui du simplifié, à l'octet près, suivi d'une page annexe
   (`blocs_annexe`, document à part dans la description, sans la marque « Bulletin de paie n° ») qui détaille chaque ligne
@@ -298,8 +298,7 @@ texte n'interdit pas d'en dire plus). La CSG et la CRDS non déductibles restent
   « Autres charges dues par l'employeur » (`rang`) ; elle n'a plus de ligne à elle. **Q 18** : la prévoyance de branche
   reste dans les facultatives (déjà le cas depuis V2g). Tests : `tests/calcul/bulletin_modeles.rs`
   (`le_complet_imprime_la_meme_paie_que_le_simplifie_*`, `la_caisse_des_conges_spectacles_est_une_autre_charge_due_par_l_employeur`),
-  `tests/routes/routes_bulletin_modele.rs` ; oracle `tests/donnees/bulletin.json` réécrit (seule la ligne des autres
-  charges absorbe la caisse).
+  `tests/routes/routes_bulletin_modele.rs`.
 
 ## Dans le dépôt public (15/10/2026)
 

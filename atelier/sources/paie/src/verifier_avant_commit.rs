@@ -80,7 +80,7 @@ pub const FICTIVES: [(&str, &str); 8] = [
 /// Le verrou de la suite tient sa propre liste (`donnees_reelles.rs`, `EXEMPLES_DES_TEXTES`) : elle excuse ce que SON
 /// détecteur de NIR trouve, qui n'est pas ce que trouvent les trois motifs d'ici (il ne lit pas un NIR dans une adresse
 /// web, mais il en lit un à mois 20-99) ; une liste commune excuserait chez l'un ce que seul l'autre trouve.
-pub const EXEMPLES_DES_TEXTES: [(&str, &str); 7] = [
+pub const EXEMPLES_DES_TEXTES: [(&str, &str); 9] = [
     (
         "atelier/reference/sources/gip-mds-api-dsn/ctip-dsn-crm-oc-phases-2-3-20160601.txt",
         "les salariés et les comptes d'exemple des comptes rendus métier OC imprimés par le CTIP (présentation de juin 2016)",
@@ -108,6 +108,14 @@ pub const EXEMPLES_DES_TEXTES: [(&str, &str); 7] = [
     (
         "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche2956-bloc-41-changement-modalites-contrat-20250429.txt",
         "le salarié d'exemple de la fiche net-entreprises 2956",
+    ),
+    (
+        "atelier/reference/sources/insee-nir-siret/insee-schema-nir-20261028.html",
+        "les NIR d'exemple du schéma des identifiants d'individus de l'INSEE",
+    ),
+    (
+        "atelier/reference/sources/insee-nir-siret/insee-schema-nir-20261028.txt",
+        "les NIR d'exemple du schéma des identifiants d'individus de l'INSEE",
     ),
 ];
 

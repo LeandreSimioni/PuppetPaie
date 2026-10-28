@@ -1,11 +1,10 @@
-//! Ce qu'est une fiche (`moteur/champs.py`) : les champs, leur forme, et ce qui
+//! Ce qu'est une fiche : les champs, leur forme, et ce qui
 //! les rend valides. Seule la part que l'accueil lit est portee : la
 //! description des champs, la forme lisible comblee, la forme declaree qui en
 //! decoule (`apercu_derive`) et les anomalies d'une fiche (`verifier_fiche`).
 //!
-//! La table des champs est `donnees/champs-base.json`, la MEME que le Python
-//! lit : une seule source pour les deux faces. Chaque champ y porte, en
-//! `_note`, le commentaire qu'il portait dans `champs.py`.
+//! La table des champs est `donnees/champs-base.json` : une seule source. Chaque champ y porte, en
+//! `_note`, son commentaire.
 //!
 //! **Les majuscules sans accents ne se saisissent PAS.** Les formats
 //! declaratifs (AEM, DPAE, DSN) sont a largeur fixe et n'acceptent pas les
@@ -204,7 +203,7 @@ fn tranche(s: &str, a: usize, b: usize) -> String {
     s.chars().skip(a).take(b.saturating_sub(a)).collect()
 }
 
-/// `float(texte)` : est-ce un nombre pour Python ? (`nan`, `inf`, `1e5`,
+/// `float(texte)` : est-ce un nombre ? (`nan`, `inf`, `1e5`,
 /// `1_000` en sont ; une virgule non.)
 fn flottant_valide(t: &str) -> bool {
     let t = strip(t);
@@ -230,7 +229,7 @@ fn flottant_valide(t: &str) -> bool {
     !net.is_empty() && net.parse::<f64>().is_ok() && !net.starts_with(['+', '-'])
 }
 
-/// `date.fromisoformat` de Python 3.11 : AAAA-MM-JJ, AAAAMMJJ, et les semaines ISO.
+/// Une date ISO : AAAA-MM-JJ, AAAAMMJJ, et les semaines ISO.
 fn date_iso(s: &str) -> Option<Jour> {
     if !s.is_ascii() {
         return None;
@@ -431,13 +430,13 @@ pub fn normaliser(c: &Champ, valeur: &Value) -> R<Value> {
             v.trim_matches(|x| " '.-".contains(x)).to_string()
         }
         "chiffres" => v.chars().filter(|x| !espace(*x)).collect(),
-        // Un pays se garde par son code ISO, en capitales (vague 1k).
+        // Un pays se garde par son code ISO, en capitales.
         "pays" => v.to_uppercase(),
         _ => v,
     }))
 }
 
-// Plus de defauts (vague V2b, 10/10/2026) : `statut_conventionnel` et `statut_categoriel_rc` se montraient a 05 et
+// Plus de defauts (10/10/2026) : `statut_conventionnel` et `statut_categoriel_rc` se montraient a 05 et
 // 04 sur une fiche qui ne les portait pas, et l'import les ecrivait ainsi. Ils se lisent du metier ou se saisissent ;
 // la DSN refuse ce qui ne se lit pas (`dsn::statuts_du_contrat`).
 
@@ -662,8 +661,8 @@ fn explication_nir(nir: &str) -> R<Option<String>> {
     Ok(None)
 }
 
-/// `cle_nir` : 97 - (NIR mod 97), sur deux chiffres. La Corse fait exception :
-/// 2A et 2B au 6e-7e rang valent 19 et 18.
+/// `cle_nir` : 97 - (NIR mod 97), sur deux chiffres (`reference/sources/insee-nir-siret/`, INSEE, schema NIR, 4.1). En Corse,
+/// 2A et 2B au 6e-7e rang valent 19 et 18 (equivalent, par inference, au zero moins 1 000 000 ou 2 000 000 du texte).
 pub fn cle_nir(nir: &str) -> Option<String> {
     let mut n = strip(nir).to_uppercase();
     if n.chars().count() != 13 {
@@ -675,7 +674,7 @@ pub fn cle_nir(nir: &str) -> Option<String> {
     if tranche(&n, 5, 7) == "2B" {
         n = n.replacen("2B", "18", 1);
     }
-    // `str.isdigit()` puis `int()` : Python lit aussi les chiffres des autres ecritures.
+    // Les chiffres decimaux de toutes les ecritures comptent comme des chiffres.
     let mut x: u64 = 0;
     for c in n.chars() {
         x = x * 10 + valeur_decimale(c)? as u64;
@@ -683,7 +682,7 @@ pub fn cle_nir(nir: &str) -> Option<String> {
     Some(format!("{:02}", 97 - x % 97))
 }
 
-/// La valeur d'un chiffre decimal Unicode (categorie Nd), comme `int()` de Python.
+/// La valeur d'un chiffre decimal Unicode (categorie Nd).
 fn valeur_decimale(c: char) -> Option<u32> {
     if let Some(d) = c.to_digit(10) {
         return Some(d);
@@ -699,7 +698,7 @@ fn valeur_decimale(c: char) -> Option<u32> {
     ZEROS.iter().find(|z| (**z..**z + 10).contains(&p)).map(|z| p - z).or_else(|| (0x1FBF0..0x1FBFA).contains(&p).then(|| p - 0x1FBF0))
 }
 
-/// `luhn` : la cle du SIRET.
+/// `luhn` : la cle du SIRET (`reference/sources/insee-nir-siret/`, INSEE, schema SIRET, 8.1) : somme des chiffres, multiple de 10.
 pub fn luhn(numero: &str) -> bool {
     if !tous_chiffres(numero) {
         return false;
@@ -858,9 +857,9 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
         let liste: Vec<String> = c.choix.iter().map(valeur_en_texte).collect();
         return Ok(Some(format!("valeur attendue parmi : {}", liste.join(", "))));
     }
-    // UN PAYS SE CHOISIT DANS LA LISTE LIVREE (`pays.rs`, vague 1k) : un code qu'elle ne connait pas refuse.
-    // Hors de la liste (vague 2h) : un pays de nationalite s'ecrit a part. Le pays de naissance se lit dans la table
-    // « Pays » de la DSN (lot R2, `pays::de_la_table_dsn`), le Kosovo et les Etats disparus compris.
+    // UN PAYS SE CHOISIT DANS LA LISTE LIVREE (`pays.rs`) : un code qu'elle ne connait pas refuse.
+    // Hors de la liste : un pays de nationalite s'ecrit a part. Le pays de naissance se lit dans la table
+    // « Pays » de la DSN (`pays::de_la_table_dsn`), le Kosovo et les Etats disparus compris.
     let connu = if c.cle == "pays_naissance" {
         socle::pays::de_la_table_dsn(v).map_err(plain)?.is_some()
     } else {
@@ -881,7 +880,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
             return Ok(Some(faute));
         }
     }
-    // LE CODE APE SE RECONNAIT DANS LA NAF REV. 2 OU LA NAF 2025 (`naf.rs`, lot R5b) : les deux sont admises a la saisie,
+    // LE CODE APE SE RECONNAIT DANS LA NAF REV. 2 OU LA NAF 2025 (`naf.rs`) : les deux sont admises a la saisie,
     // un code qu'aucune ne connait refuse.
     if c.cle == "naf" {
         if let Some(faute) = crate::naf::faute_de_saisie(v).map_err(plain)? {
@@ -898,7 +897,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     faute_de_norme(c, v)
 }
 
-/// `a[debut:fin]` de Python sur ce qu'un JSON porte : un texte et une liste se
+/// `a[debut:fin]` sur ce qu'un JSON porte : un texte et une liste se
 /// tranchent, un dictionnaire ne se tranche pas, le reste n'est pas indicable.
 fn tranche_py(v: &Value, a: usize, b: usize) -> R<Value> {
     match v {
@@ -909,12 +908,12 @@ fn tranche_py(v: &Value, a: usize, b: usize) -> R<Value> {
     }
 }
 
-/// `tranche == texte` de Python, pour une tranche (texte ou liste).
+/// `tranche == texte`, pour une tranche (texte ou liste).
 fn eq_py_texte(t: &Value, texte: &str) -> bool {
     t.as_str() == Some(texte)
 }
 
-/// `a + b` de Python sur ce qu'un JSON porte.
+/// `a + b` sur ce qu'un JSON porte.
 fn additionner(a: &Value, b: &Value) -> R<Value> {
     use socle::valeur::nom_type;
     match (a, b) {
@@ -955,7 +954,7 @@ fn anomalie(champ: &str, gravite: &str, message: impl Into<String>) -> Value {
 fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     let mut out = Vec::new();
 
-    // UNE AUTRE URSSAF QUE CELLE DE L'ADRESSE (Leandre, 08/10/2026) : permis, mais dit, et par le moteur, pour que la
+    // UNE AUTRE URSSAF QUE CELLE DE L'ADRESSE : permis, mais dit, et par le moteur, pour que la
     // ligne de commande l'entende comme la fenetre. C'est l'Urssaf du territoire qui recoit DPAE et DSN.
     if nom == "entreprise" {
         let choisi = strip(&d.get("code_urssaf").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
@@ -1051,10 +1050,10 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
                 ));
             }
         }
-        // LA CODIFICATION UE (S21.G00.30.013, vague 1j) : un ancien 03 sans pays de nationalite, ou un pays qui contredit
+        // LA CODIFICATION UE (S21.G00.30.013) : un ancien 03 sans pays de nationalite, ou un pays qui contredit
         // la case, se dit ici, avant la DSN qui le refuserait. La regle est dans `codification_ue`, pas ici.
         // Un pays de nationalite hors de la liste se dit sur sa propre case (forme « pays »), pas deux fois.
-        // Un pays ecrit « hors de la liste » (vague 2h) qui n'en est pas un, ou a cote d'un pays de la liste, se dit sur
+        // Un pays ecrit « hors de la liste » qui n'en est pas un, ou a cote d'un pays de la liste, se dit sur
         // sa case a lui ; sinon c'est la nationalite choisie qui manque ou qui ne va pas, sur la sienne.
         let fiche = Value::Object(d.clone());
         let pays_inconnu = match d.get("pays_nationalite").filter(|v| vrai(v)) {
@@ -1190,7 +1189,7 @@ pub fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String {
 
 /// La signature des courriels de la fiche Entreprise : du HTML colle, dont la seule regle est le poids.
 pub const CLE_SIGNATURE: &str = "courriel_signature";
-/// 150 Ko, tout le HTML compris (Leandre, 08/10/2026).
+/// 150 Ko, tout le HTML compris.
 pub const LIMITE_OCTETS: usize = 150 * 1024;
 
 /// La phrase d'une signature trop lourde, ou rien.
@@ -1246,6 +1245,7 @@ mod tests {
 
     #[test]
     fn la_cle_du_nir_et_celle_de_la_corse() {
+        // insee-nir-siret : le complement a 97, 2A et 2B retranches de 1 000 000 et 2 000 000.
         assert_eq!(cle_nir("1850578999048"), Some("19".into()));
         assert!(cle_nir("185057899904").is_none());
         // 2A vaut 19 et 2B vaut 18 : un NIR corse a sa cle.
@@ -1257,6 +1257,7 @@ mod tests {
 
     #[test]
     fn le_siret_se_controle_par_luhn() {
+        // insee-nir-siret : la somme des chiffres (rang impair doubles) est un multiple de 10.
         assert!(luhn("73282932000074"));
         assert!(!luhn("73282932000075"));
     }

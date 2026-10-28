@@ -1,6 +1,6 @@
 //! L'obligation d'emploi des travailleurs handicapes (OETH) : la declaration
-//! annuelle que la DSN d'avril porte pour l'annee precedente
-//! (`moteur/oeth.py`). Les chiffres viennent de `config/oeth.json`, par
+//! annuelle que la DSN d'avril porte pour l'annee precedente.
+//! Les chiffres viennent de `config/oeth.json`, par
 //! millesime ; le calcul applique D5212-2, -20 a -24.
 
 use droit::contexte::Contexte;
@@ -105,7 +105,7 @@ impl Declaration {
     }
 }
 
-/// `Decimal(str(v))` d'une valeur JSON ; `None` si Python lèverait `InvalidOperation`.
+/// `Decimal(str(v))` d'une valeur JSON ; `None` si elle n'est pas un nombre.
 fn decimal_de(v: &Value) -> Option<Decimal> {
     match v {
         Value::Number(_) | Value::String(_) => dec_avec_echelle(v).ok(),

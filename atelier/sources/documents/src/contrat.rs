@@ -1,4 +1,4 @@
-//! `moteur/contrat.py` : le contrat d'engagement a duree determinee d'usage, tel qu'il s'ecrit.
+//! Le contrat d'engagement a duree determinee d'usage, tel qu'il s'ecrit.
 //!
 //! Le texte du contrat n'est PAS dans ce module : il vit dans `contrat-cddu.modele`, un fichier de
 //! donnees. Ce module envoie a la fabrique le TEXTE du modele (lu maintenant : `fabrique.figer`)
@@ -38,7 +38,7 @@ pub fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
     d
 }
 
-/// `fabrique.figer` pour un modele : le fichier lu en texte. Les refus sont ceux de Python.
+/// `fabrique.figer` pour un modele : le fichier lu en texte.
 pub fn lire_modele_texte(chemin: &Path) -> R<String> {
     let octets = std::fs::read(chemin).map_err(|e| {
         let classe = if e.kind() == std::io::ErrorKind::NotFound { "FileNotFoundError" } else { "OSError" };
@@ -50,8 +50,8 @@ pub fn lire_modele_texte(chemin: &Path) -> R<String> {
     })
 }
 
-/// L'ordre des cles de `contrat.marqueurs` : celui du dictionnaire Python. `Valeurs` est trie ; la description
-/// gardee a cote du PDF (`fabrique.garder_description`) se relit, mais elle doit s'ecrire comme le Python l'ecrit.
+/// L'ordre des cles de `contrat.marqueurs` : celui du modele. `Valeurs` est trie ; la description
+/// gardee a cote du PDF (`fabrique.garder_description`) se relit, et s'ecrit dans le meme ordre.
 const ORDRE_MARQUEURS: [&str; 37] = [
     "employeur.raison_sociale",
     "employeur.adresse",
@@ -92,7 +92,7 @@ const ORDRE_MARQUEURS: [&str; 37] = [
     "spectacle.numero_objet",
 ];
 
-/// Les valeurs d'un modele en JSON, dans l'ordre du Python : celles de `marqueurs` d'abord, puis les autres
+/// Les valeurs d'un modele en JSON, dans l'ordre du modele : celles de `marqueurs` d'abord, puis les autres
 /// (l'avenant ajoute les siennes) dans l'ordre ou elles sont donnees.
 pub fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value {
     let mut m = Map::new();
@@ -113,7 +113,7 @@ pub fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value {
 }
 
 /// `contrat.marqueurs(p, ent)` : les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
-/// Python les ecrit (`ECHELLE_GARDEE`).
+/// le modele les imprime (`ECHELLE_GARDEE`).
 pub fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeurs> {
     socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
     let r = (|| -> R<Valeurs> {
@@ -181,7 +181,7 @@ fn cite(texte: &str, cle: &str) -> bool {
 /// (un marqueur INCONNU, la fabrique le refuse deja ; c'est l'inverse : une valeur sans sa place). Une valeur vide
 /// passe : le modele qui l'omet dit alors tout ce qu'il y a a dire.
 ///
-/// L'inverse aussi, pour le taux du cachet (REGLE 1, lot F1) : un contrat qui ne paie aucun cachet, et dont ni
+/// L'inverse aussi, pour le taux du cachet (REGLE 1) : un contrat qui ne paie aucun cachet, et dont ni
 /// l'engagement ni le mois n'ecrivent de taux, n'en a pas ; le moteur prenait 130 EUR, un chiffre qu'aucun texte ne fixe.
 /// Un modele qui cite `{{remuneration.taux_cachet}}` ne fait pas ce contrat-la (la fabrique dirait « marqueur
 /// inconnu », sans dire pourquoi).

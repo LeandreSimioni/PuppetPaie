@@ -1,6 +1,6 @@
 //! La fabrique de PDF, dans le meme processus : une description -> un fichier PDF.
 //!
-//! Meme contrat que `moteur/fabrique.py::ecrire` : le dossier parent est cree, un refus de
+//! Le dossier parent est cree, un refus de
 //! la fabrique est une `Err` portant sa ligne de francais telle quelle.
 
 use std::path::{Path, PathBuf};
@@ -69,7 +69,7 @@ pub fn description_gardee(pdf: &Path) -> Option<Value> {
 
 /// `fabrique.avec_mention_artiste` : la description, avec la mention de signature de l'artiste dans la case de chaque
 /// document (`modele.mention_artiste`). `Err` si la description n'a pas de `documents` ou un document pas de `modele`
-/// (`KeyError` du Python).
+/// (refus sous la forme `'cle'`).
 pub fn avec_mention_artiste(description: &Value, mention: &str) -> Result<Value, String> {
     let mut nouvelle = description.clone();
     let documents = nouvelle.get_mut("documents").and_then(Value::as_array_mut).ok_or_else(|| socle::fichiers::absent("documents"))?;
@@ -80,7 +80,7 @@ pub fn avec_mention_artiste(description: &Value, mention: &str) -> Result<Value,
     Ok(nouvelle)
 }
 
-/// Les octets du PDF de `description`, sans fichier (`contrat._regenerer` : le Python passe par un dossier temporaire).
+/// Les octets du PDF de `description`, sans fichier (`contrat._regenerer`).
 pub fn fabriquer_octets(description: &Value) -> Result<Vec<u8>, String> {
     let texte = serde_json::to_string(description).map_err(|e| e.to_string())?;
     fabrique_pdf::fabriquer(&texte).map_err(|r| r.0.replace('\n', " "))

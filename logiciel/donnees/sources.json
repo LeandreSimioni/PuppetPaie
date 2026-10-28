@@ -208,7 +208,7 @@
       "verification_comment": "La table bouge a chaque changement de taux : un condensat qui ne colle plus ne veut pas dire que NOS codes ont change, seulement que la table a ete republiee. Ce qu'il faut relire alors, ce sont les lignes des CTP que config/organismes.json declare.",
       "nourrit": [
         "config/organismes.json",
-        "moteur/urssaf-codes-types-personnel.csv (copie livree avec le logiciel : les taux du bordereau Urssaf calcule, paie/src/bordereau.rs ; a recopier quand la source change)"
+        "moteur/urssaf-codes-types-personnel.csv (copie livree avec le logiciel : les taux du bordereau Urssaf calcule, documents/src/bordereau.rs ; a recopier quand la source change)"
       ]
     },
     "legifrance-3090-prevoyance-titre12": {
@@ -565,7 +565,7 @@
       "editeur": "Unedic",
       "url": "https://www.unedic.org/ged/documents/regulatory_texts/pdf/TXT-RG-Reglement_general_annexe_a_la_convention.pdf",
       "page": "https://www.unedic.org/la-reglementation/conventions-d-assurance-chomage/reglement-general-annexe-a-la-convention-du-15-novembre-2024-relative-a-l-assurance-chomage",
-      "contenu": "Art. 49 (p. 34), section << Assiette >> : al. 1, les contributions sont assises sur les remunerations brutes entrant dans l'assiette des cotisations de securite sociale ; al. 2, << dans la limite d'un plafond fixe a quatre fois le plafond mentionne a l'article L. 241-3 du code de la securite sociale >>. Art. 50-1, § 1er (p. 35) : la contribution employeur, 4 %. C'est le plafond du chomage et de l'AGS d'un permanent (`brut_chomage`, paie/src/calcul.rs : le brut dans la limite de quatre plafonds de la periode). 50 pages. Le detail, et ce qui est infere (le plafond d'une periode incomplete), dans chomage-permanents/LISEZ-MOI.md.",
+      "contenu": "Art. 49 (p. 34), section << Assiette >> : al. 1, les contributions sont assises sur les remunerations brutes entrant dans l'assiette des cotisations de securite sociale ; al. 2, << dans la limite d'un plafond fixe a quatre fois le plafond mentionne a l'article L. 241-3 du code de la securite sociale >>. Art. 50-1, § 1er (p. 35) : la contribution employeur, 4 %. C'est le plafond du chomage et de l'AGS d'un permanent (`brut_chomage`, engagement/src/calcul.rs : le brut dans la limite de quatre plafonds de la periode). 50 pages. Le detail, et ce qui est infere (le plafond d'une periode incomplete), dans chomage-permanents/LISEZ-MOI.md.",
       "version": "2025-03-12",
       "version_lue_dans": "les proprietes du PDF (creation 12/03/2025) ; le texte est celui de la convention du 15/11/2024",
       "releve_le": "2026-10-10",

@@ -1,4 +1,4 @@
-//! Le bloc S21.G00.31 « Changements individu » (corrections DSN, vague 3d).
+//! Le bloc S21.G00.31 « Changements individu » (corrections DSN).
 //!
 //! Le NIR, le nom de famille, les prenoms et la date de naissance sont des donnees IDENTIFIANTES : elles se reportent
 //! a l'identique d'une DSN mensuelle a la suivante, et tout changement se signale par le bloc changement « des la

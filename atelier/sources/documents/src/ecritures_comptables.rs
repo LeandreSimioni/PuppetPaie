@@ -55,7 +55,7 @@ fn dernier_jour(annee: i64, mois: i64) -> R<String> {
 }
 
 /// La date de l'ecriture d'un mois (son dernier jour) et son libelle (« Decembre 2026 »). « 00 » n'est aucun mois et se
-/// refuse (`date::numero_du_mois`, lot F1 ; il se datait du 31 decembre de l'annee d'avant, libelle « Decembre »).
+/// refuse (`date::numero_du_mois`).
 fn date_et_libelle(mois: &str) -> R<(String, String)> {
     let annee: i64 = mois.chars().take(4).collect::<String>().parse().map_err(|_| erreur("ValueError", "mois illisible"))?;
     let mo = i64::from(socle::date::numero_du_mois(mois).map_err(|e| erreur("ValueError", e))?);
@@ -107,9 +107,8 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
     // le net et du a la DGFiP (compte 4421 « Prelevements a la source (Impot sur le revenu) » du plan
     // comptable general, atelier/reference/sources/plan-comptable-general/LISEZ-MOI.md). Une paie dont le prelevement
     // ne se calcule pas (bareme sans grille) n'en a pas : le bulletin imprime 0,00 et paie le net entier. Le PAS d'un
-    // mois DEPOSE est celui que sa DSN a declare (S21.G00.50.009), lu et non recalcule au taux du jour (lot D2 ; CGI
-    // art. 1671 : `prelevement::des_paies`) ; jusque-la (limite du lot R3), il s'en ecartait quand la DGFiP avait transmis un
-    // autre taux depuis.
+    // mois DEPOSE est celui que sa DSN a declare (S21.G00.50.009), lu et non recalcule au taux du jour (CGI
+    // art. 1671 : `prelevement::des_paies`).
     let pas_des_paies = crate::prelevement::des_paies(ctx, &paies).map_err(refus)?;
     let mut pas_du_mois = zero;
     // LES RETENUES (une ligne hors assiette de nature `retenue` : acompte, avance, saisie) ne sont pas une charge : un
@@ -161,8 +160,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
             ajouter(&mut frais_par_spectacle, titre.clone(), hors_brut);
         }
         // Le net paye est le net a payer moins l'impot retenu (le « MONTANT NET A PAYER » du bulletin) ; l'impot va
-        // a l'Etat. (Jusqu'au lot R3, l'export portait tout le net au 421 et rien au 4421 : l'ancien
-        // `getattr(p, "pas", 0)` du Python valait toujours 0, et le Rust l'avait recopie.)
+        // a l'Etat.
         let prelevement = eur2(pas.as_ref().map_or(zero, |v| v.prelevement));
         pas_du_mois += prelevement;
         ajouter(&mut net_par_salarie, qui.clone(), eur2(p.net_a_payer) - prelevement);

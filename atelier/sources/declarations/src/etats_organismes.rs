@@ -1,4 +1,4 @@
-//! Les etats des cotisations et des organismes de `moteur/operations_etats.py` : les cotisations par organisme,
+//! Les etats des cotisations et des organismes : les cotisations par organisme,
 //! les versements aux organismes (bloc 20), le bordereau Urssaf (blocs 22 et 23), le FCAP-SVP de la 3090, les
 //! contributions Afdas, le paritarisme de branche.
 //!
@@ -24,7 +24,7 @@ use documents::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, monta
 
 // ------------------------------------------------------------------ outils
 
-/// `min(a, b)` de Python : le premier des deux quand ils sont egaux.
+/// `min(a, b)` : le premier des deux quand ils sont egaux.
 fn py_min(a: Decimal, b: Decimal) -> Decimal {
     if b < a {
         b
@@ -33,7 +33,7 @@ fn py_min(a: Decimal, b: Decimal) -> Decimal {
     }
 }
 
-/// `max(a, b)` de Python : le premier des deux quand ils sont egaux.
+/// `max(a, b)` : le premier des deux quand ils sont egaux.
 fn py_max(a: Decimal, b: Decimal) -> Decimal {
     if b > a {
         b
@@ -359,7 +359,7 @@ pub fn versements_organismes(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois
 
 // ===================================== 8. le bordereau Urssaf (blocs 22 et 23)
 
-/// Un lecteur CSV a la maniere de Python (`csv.reader(delimiter=";")`) : guillemets doubles, fins de ligne CR LF.
+/// Un lecteur CSV : guillemets doubles, fins de ligne CR LF.
 fn lire_csv(texte: &str, delim: char) -> Vec<Vec<String>> {
     let (mut rangs, mut rang, mut champ): (Vec<Vec<String>>, Vec<String>, String) = (Vec::new(), Vec::new(), String::new());
     let (mut guillemets, mut commence) = (false, true);
@@ -411,9 +411,8 @@ fn lire_csv(texte: &str, delim: char) -> Vec<Vec<String>> {
 }
 
 /// `_libelles_ctp` : code CTP -> libelle, lu dans la table de l'Urssaf livree avec le logiciel
-/// (`donnees/urssaf-codes-types-personnel.csv`, celle de `bordereau.rs`). Avant le 15/10/2026, on la cherchait dans
-/// `reference/sources/` de la compagnie, qui n'existait que chez l'editeur ; les textes de reference vivent desormais
-/// dans le depot (`atelier/reference/`), et la table livree en est la copie conforme (`sources.json`).
+/// (`donnees/urssaf-codes-types-personnel.csv`, celle de `bordereau.rs`). Les textes de reference vivent dans le depot
+/// (`atelier/reference/`), et la table livree en est la copie conforme (`sources.json`).
 fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let p = ctx.code.join("urssaf-codes-types-personnel.csv");
     if !p.exists() {

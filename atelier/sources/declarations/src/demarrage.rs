@@ -1,9 +1,7 @@
-//! POUR DEMARRER (Leandre, 09/10/2026 : « regarde si tu aurais aime des avertissements, et ou configurer, avec les
-//! endroits ou les trouver pour les cies »).
+//! POUR DEMARRER : ce qui manque a une compagnie neuve, d'un coup.
 //!
-//! Une compagnie neuve decouvrait ce qui lui manquait un refus apres l'autre, au moment d'agir : le mois refuse (le taux
-//! AT/MP), puis encore (l'effectif), la DPAE refusee (la medecine du travail), le bulletin (le compte Urssaf)... La fiche,
-//! elle, ne disait rien. Ici, tout ce qui manque, d'un coup : ce que chaque manque BLOQUE, OU il se saisit, et ou la
+//! Une compagnie neuve ne decouvre pas ce qui lui manque un refus apres l'autre (le taux AT/MP, l'effectif, la medecine
+//! du travail, le compte Urssaf...) : tout ce qui manque se dit d'un coup, ce que chaque manque BLOQUE, OU il se saisit, et ou la
 //! compagnie TROUVE la valeur (l'aide du champ, `champs-base.json`).
 //!
 //! Les regles ne sont pas recopiees : le bareme de l'annee se demande au contexte (`Contexte::bareme` : le taux AT/MP,

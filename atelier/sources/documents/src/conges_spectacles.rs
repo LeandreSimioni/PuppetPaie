@@ -1,8 +1,8 @@
-//! `moteur/conges_spectacles.py` : le certificat d'emploi Conges Spectacles.
+//! Le certificat d'emploi Conges Spectacles.
 //!
 //! Ce module ne met pas en page : il compose la DESCRIPTION (des blocs a position fixe, relevee
 //! sur le certificat Frappaz) que la fabrique dessine. Les coordonnees, les libelles et les cases
-//! sont ceux du Python, au point pres. `decouper` coupe un contrat au 31 mars, `certificats` dit
+//! sont ceux du certificat releve. `decouper` coupe un contrat au 31 mars, `certificats` dit
 //! ce qui est du, `valeurs` ce qui va dans chaque case.
 
 use rust_decimal::RoundingStrategy;

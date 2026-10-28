@@ -1,11 +1,9 @@
-//! Le signalement d'amorcage des donnees variables (SADV), nature 08
-//! (`moteur/amorcage.py`).
+//! Le signalement d'amorcage des donnees variables (SADV), nature 08.
 //!
 //! La seule facon de DEMANDER a la DGFiP le taux de prelevement a la source
 //! d'un salarie. Un signalement, un individu : l'envoi, la declaration,
 //! l'entreprise, l'etablissement, l'individu, le contrat -- et rien de ce qui
-//! se paye. Les refus gardent les phrases du Python ; `Echec::Impossible` est
-//! ce qui devient `AmorcageImpossible` cote Python.
+//! se paye. `Echec::Impossible` est la regle de la norme qui s'oppose.
 
 use std::collections::HashSet;
 
@@ -65,7 +63,7 @@ pub fn embauche(ctx: &Contexte, eng: &engagement::Engagement) -> Resultat<Paie> 
     Ok(Paie::nouveau(eng.clone(), sal, spec, zero, zero, zero, 0.0, zero))
 }
 
-/// Les parametres de `generer`, avec les defauts du Python.
+/// Les parametres de `generer`, avec leurs defauts.
 pub struct Options {
     pub motif: String,
     pub type_declaration: String,
@@ -280,7 +278,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
         ("S21.G00.30.018", "email"),
         ("S21.G00.30.019", "code_salarie"),
     ] {
-        // Le pays de naissance se lit dans la liste livree (`pays.rs`, vague 1k) : un code inconnu refuse.
+        // Le pays de naissance se lit dans la liste livree (`pays.rs`) : un code inconnu refuse.
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }

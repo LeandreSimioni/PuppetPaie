@@ -1,4 +1,4 @@
-//! Les etats du personnel et du controle de `moteur/operations_etats.py` : la liste des contrats, le registre
+//! Les etats du personnel et du controle : la liste des contrats, le registre
 //! unique du personnel (L1221-13, D1221-23), le fichier du personnel, le journal des declarations.
 //!
 //! Le registre et le fichier du personnel SONT des fichiers du personnel : ils portent le NIR, la date de
@@ -353,7 +353,7 @@ pub fn journal_des_declarations(ctx: &Contexte, d: &Demande, journal: &[Value]) 
         col_t("reponse", "Réponse"),
         col_t("origine", "Reconstitué depuis"),
     ];
-    t.sources = vec!["journal des actes de PuppetPaie (journal.py) : une ligne écrite après chaque acte, jamais avant".to_string()];
+    t.sources = vec!["journal des actes de PuppetPaie : une ligne écrite après chaque acte, jamais avant".to_string()];
     finir(ctx, &mut t, Some(&p), "journal-des-declarations", &d.format, d.ecrire)?;
     Ok(t)
 }

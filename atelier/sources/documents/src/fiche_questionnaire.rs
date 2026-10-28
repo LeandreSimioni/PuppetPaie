@@ -1,15 +1,13 @@
 //! Le questionnaire de la fiche salarie remplie par la personne elle-meme, par courriel
-//! (`moteur/operations_questionnaire.py` : `QUESTIONS`, `questionnaire`, `code_fiche`, `lire_reponses`, `_date`,
-//! `_pays`, `fiche_depuis_reponses`). Lot H4a.
+//! Les `QUESTIONS`, `questionnaire`, `code_fiche`, `lire_reponses`, `fiche_depuis_reponses`.
 //!
-//! ECRIT, NON PROUVE. Les textes (questions, objet, corps, HTML) et les deux tables (pays, nationalites) sont
-//! extraits MOT POUR MOT du Python par script. Depuis la vague 1j (10/10/2026), les deux tables ne portent plus que le code
-//! ISO : la codification UE (quatre valeurs) se deduit dans `codification_ue`. Depuis la vague 1k, les pays se
+//! Les textes (questions, objet, corps, HTML) et les deux tables (pays, nationalites) sont ecrits mot pour mot du questionnaire. Les deux tables ne portent que le code
+//! ISO : la codification UE (quatre valeurs) se deduit dans `codification_ue`. Les pays se
 //! lisent dans la liste livree (`pays.rs`, COG de l'INSEE) ; seule la table des nationalites (adjectifs) reste ici. Ce que la personne a repondu se lit, et ce qu'on ne sait pas lire
 //! laisse la case VIDE et le dit (`illisible`) : rien n'est complete au hasard. Le departement et le pays de
 //! naissance se lisent dans le NIR.
 //!
-//! Ecarts de lecture connus avec `re` / `str` de Python (notes dans la passation) : `\d` et `int()` ne lisent ici que
+//! Lecture des chiffres : `\d` et `int()` ne lisent ici que
 //! les chiffres ASCII pour les dates ; la decomposition NFD des accents est celle de `contexte::sans_accent` (latin
 //! courant).
 
@@ -134,8 +132,8 @@ const NATIONALITES: [(&str, &str); 60] = [
 ];
 
 /// Les nationalites d'un pays que la liste livree n'a pas (`pays-base.json`, COG de l'INSEE : le Kosovo n'y a pas de
-/// code ISO, vague 2h) : (mot sans accent, nom du pays). Le nom va dans `pays_nationalite_hors_liste` ; la zone
-/// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit (Leandre, 10/10/2026, PASSATION-V2h). Reste
+/// code ISO) : (mot sans accent, nom du pays). Le nom va dans `pays_nationalite_hors_liste` ; la zone
+/// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit. Reste
 /// R1 #147.
 const NATIONALITES_HORS_LISTE: [(&str, &str); 3] = [("kosovare", "Kosovo"), ("kosovar", "Kosovo"), ("kosovo", "Kosovo")];
 /// `FORME_CODE` : un code de fiche bien forme.
@@ -202,8 +200,7 @@ pub fn lire_reponses(texte: &str) -> HashMap<&'static str, String> {
     let libelles: Vec<(String, &'static str)> = QUESTIONS.iter().map(|(cle, lib, _)| (cle_libelle(lib), *cle)).collect();
     let mut sortie: HashMap<&'static str, String> = HashMap::new();
     // Un libelle qui porte lui-meme un deux-points (« Sans numero de securite sociale : femme ou homme ? ») : la reponse
-    // est derriere le dernier. UN ECART VOLONTAIRE avec le Python, qui coupait au premier deux-points et prenait
-    // « femme ou homme ? (facultatif) : homme » pour la reponse (« femme », sans NIR) -- voir la passation.
+    // est derriere le dernier (« femme ou homme ? (facultatif) : homme » a pour reponse « homme », pas « femme »).
     let avec_deux_points: Vec<(usize, String, &'static str)> =
         QUESTIONS.iter().filter(|(_, lib, _)| lib.contains(':')).map(|(cle, lib, _)| (lib.matches(':').count(), cle_libelle(lib), *cle)).collect();
     for ligne in socle::texte::lignes_py(texte) {
@@ -238,8 +235,8 @@ pub fn lire_reponses(texte: &str) -> HashMap<&'static str, String> {
     sortie
 }
 
-/// Le premier chiffre (le zero) de chaque ecriture decimale d'Unicode (categorie `Nd`) : `\d` de `re` et `int()` de
-/// Python les lisent toutes. Chaque ecriture compte dix chiffres consecutifs.
+/// Le premier chiffre (le zero) de chaque ecriture decimale d'Unicode (categorie `Nd`). Chaque ecriture compte dix
+/// chiffres consecutifs.
 const ZEROS: [u32; 68] = [
     0x30, 0x660, 0x6F0, 0x7C0, 0x966, 0x9E6, 0xA66, 0xAE6, 0xB66, 0xBE6, 0xC66, 0xCE6, 0xD66, 0xDE6, 0xE50, 0xED0, 0xF20, 0x1040, 0x1090, 0x17E0,
     0x1810, 0x1946, 0x19D0, 0x1A80, 0x1A90, 0x1B50, 0x1BB0, 0x1C40, 0x1C50, 0xA620, 0xA8D0, 0xA900, 0xA9D0, 0xA9F0, 0xAA50, 0xABF0, 0xFF10,
@@ -303,8 +300,8 @@ pub fn date_lue(texte: &str) -> Option<String> {
     Jour::nouveau(nombre(&a)? as i32, nombre(&mo)?, nombre(&j)?).map(|j| j.iso())
 }
 
-// LES PAYS QUE LA RELEVE SAIT NOMMER : ceux de la liste livree (`pays.rs`, Code officiel geographique de l'INSEE,
-// vague 1k), par leur nom (celui du COG ou le nom officiel, sans accents) ou leur code ISO a deux lettres. Un nom ou un
+// LES PAYS QUE LA RELEVE SAIT NOMMER : ceux de la liste livree (`pays.rs`, Code officiel geographique de l'INSEE),
+// par leur nom (celui du COG ou le nom officiel, sans accents) ou leur code ISO a deux lettres. Un nom ou un
 // code que la liste ne connait pas laisse la case vide et la note le dit.
 
 /// `_pays` : (code ISO, codification UE) d'un pays de la liste nomme en francais, ou de son code a deux lettres ;
@@ -320,7 +317,7 @@ pub fn pays_lu(texte: &str) -> Option<(String, Option<&'static str>)> {
 }
 
 /// `fiche_depuis_reponses` : (donnees de fiche, ce qui n'a pas pu se lire). Rien n'est suppose. Les cles se posent
-/// dans l'ordre du Python : c'est l'ordre du fichier de la fiche.
+/// dans l'ordre du fichier de la fiche.
 pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String, Value>, Vec<String>) {
     let mut d: Map<String, Value> = Map::new();
     let mut illisible: Vec<String> = Vec::new();
@@ -380,7 +377,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
         }
     }
     if !reponse("pays").is_empty() {
-        // Le pays de naissance se lit aussi dans la table « Pays » de la DSN (lot R2, `pays::naissance_du_nom`) : le
+        // Le pays de naissance se lit aussi dans la table « Pays » de la DSN (`pays::naissance_du_nom`) : le
         // Kosovo, l'URSS, que le COG n'a pas.
         let lu = pays_lu(reponse("pays"))
             .map(|(code, _)| code)
@@ -399,7 +396,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
             None => illisible.push(format!("pays de naissance : « {} »", reponse("pays"))),
         }
     }
-    // LA NATIONALITE : le pays se garde (`pays_nationalite`), la codification UE s'en deduit (vague 1j).
+    // LA NATIONALITE : le pays se garde (`pays_nationalite`), la codification UE s'en deduit.
     if !reponse("nationalite").is_empty() {
         let t = sans_accents(reponse("nationalite"));
         let pays = NATIONALITES
