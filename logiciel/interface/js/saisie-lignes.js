@@ -97,7 +97,7 @@ function ligneRubrique(l = {}, nat) {
      sont une constante du règlement. Ce qui reste en mots : « à » et « € »,
      les deux seuls qui disent lequel des nombres est le taux. */
   div.innerHTML = `
-    <!-- LES JOURS D'ABORD (23/09/2026) : ce sont eux qui situent la paie et
+    <!-- LES JOURS D'ABORD (23/09/2026) : ce sont eux qui situent l'engagement et
          qui comptent les cachets. -->
     <button type="button" class="r-jours-btn" title="cocher les jours dans le calendrier">—</button>
     <input class="r-quantite" type="number" min="0" step="0.5" placeholder="qté"

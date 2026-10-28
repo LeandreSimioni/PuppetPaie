@@ -633,7 +633,7 @@ async function boiteDpae(mois) {
     <h3>Envoyer les DPAE</h3>
     ${moisEnGros(mois)}
     ${pasEnregistre ? `<div class="encart attention"><b>Une partie de l'écran
-      n'est pas enregistrée</b> ${echapper(pasEnregistre)} Les paies qui ne
+      n'est pas enregistrée</b> ${echapper(pasEnregistre)} Les engagements qui ne
       figurent pas ci-dessous n'auront pas leur DPAE : compléter la saisie,
       puis rouvrir cette fenêtre.</div>` : ""}
     <p class="note">Cochées d'avance : les embauches sans DPAE, ou dont la
