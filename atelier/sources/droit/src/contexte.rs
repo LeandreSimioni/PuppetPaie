@@ -1195,6 +1195,8 @@ pub struct Contexte {
 }
 
 const ENTREPRISE: &str = "config/entreprise.json";
+/// Le fichier des organismes et contrats de la DSN, sous `config/`.
+pub const ORGANISMES: &str = "organismes.json";
 
 /// Les fiches d'un fichier (`salaries.json`, `spectacles.json`) a `jour` : celles qui existaient ce jour-la.
 fn fiches_au(bruts: &Map<String, Value>, jour: &Jour, fichier: &str) -> Resultat<Map<String, Value>> {
@@ -1558,6 +1560,28 @@ PSS_H_METROP).",
     /// La fiche spectacle `cle` telle qu'ecrite, datee, `None` si la cle est inconnue.
     pub fn spectacle_brut(&self, cle: &str) -> Option<&Value> {
         self.spectacles_bruts.get(cle)
+    }
+
+    /// LES ORGANISMES ET CONTRATS DE LA DSN (`config/organismes.json`), lus a `lue_au` : un fichier date comme les
+    /// fiches, chaque cle une liste `{depuis, valeur}` (`paie::organismes` l'ecrit, par `dater`). `None` : la compagnie
+    /// ne les a pas encore enregistres.
+    pub fn organismes(&self) -> Resultat<Option<Value>> {
+        let p = self.racine.join("config").join(ORGANISMES);
+        if !p.is_file() {
+            return Ok(None);
+        }
+        fiche_au(&lire_json(&p)?, &self.lue_au, &format!("config/{}", ORGANISMES)).map(Some)
+    }
+
+    /// `organismes`, exiges : la DSN et les signalements ne se font pas sans eux.
+    pub fn organismes_exiges(&self) -> Resultat<Value> {
+        self.organismes()?.ok_or_else(|| {
+            format!(
+                "config/{} manque : les organismes et contrats de la compagnie s'enregistrent dans Configuration › \
+Organismes et contrats. Rien n'est ecrit.",
+                ORGANISMES
+            )
+        })
     }
 
     // -------------------------------------------------------------- recherche

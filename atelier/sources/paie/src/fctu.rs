@@ -16,7 +16,7 @@ use crate::dsn::{
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use engagement::Engagement;
-use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use socle::num::Resultat;
 
 pub const NATURE: &str = "07";
@@ -582,7 +582,7 @@ ou un annule."
     }
     // Les adhesions prevoyance, sans S21.G00.15.004 : la rubrique « personnel
     // couvert » est interdite dans un signalement.
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
     let mut ent_licence = etab.as_object().cloned().unwrap_or_default();
     ent_licence.insert("licence_spectacle".into(), Value::String(ctx.licence(&fin_jour)?));

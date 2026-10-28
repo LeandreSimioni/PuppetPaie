@@ -18,7 +18,7 @@ use engagement::calcul::{au_dela_du_seuil, Paie};
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::{contrat_court, Nature};
 use socle::date::{en_texte, Jour};
-use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use socle::num::{add, dec, dec_avec_echelle, div, eur, mul, pct, sub, Decimal, Resultat};
 use droit::pas::{self, Triplet, ZONE_DEFAUT};
 
@@ -2263,7 +2263,7 @@ pub(crate) fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<
     let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
     let ent_e = fiche_de(ent, &nic)?;
     let e = &p.engagement;
@@ -3382,7 +3382,7 @@ pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement:
     let ent = &ctx.entreprise;
     let principal = bareme::nic_principal(ent);
     let nic = etablissement.filter(|n| !n.is_empty()).map_or_else(|| principal.clone(), str::to_string);
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     let debut = premier(mois)?;
     let bar = bareme_du_nic(ctx, ent, &nic, mois)?;
     let doeth = if nic == principal { crate::oeth::declaration(ctx, mois)? } else { None };
@@ -4258,7 +4258,7 @@ par periode, n'est pas faite par le logiciel. Rien n'est ecrit.",
     // Ce qui est parti, et les engagements du mois : le bloc 40 declare de chaque contrat se lit dans sa version (`bloc_40_declare`).
     let departs = crate::journal::departs(&ctx.racine)?;
     let etats_du_mois = engagement::etats::tels_qu_ecrits(ctx, mois, &departs)?;
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     let an: i32 = mois[..4].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let mo: u32 = mois[5..7].parse().map_err(|_| format!("mois illisible : {}", mois))?;
     let debut_mois = premier(mois)?;

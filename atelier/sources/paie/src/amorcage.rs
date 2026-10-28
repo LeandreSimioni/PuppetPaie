@@ -18,7 +18,7 @@ use crate::dsn::{
     affiliations, bloc_anciennete, bloc_contrat, g, jj, jour, liste, req, usage_admet, Fichier, LOGICIEL, VERSION,
 };
 use crate::fctu::Echec;
-use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use socle::num::Resultat;
 
 pub const NATURE: &str = "08";
@@ -241,7 +241,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
 
     // Les adhesions prevoyance que le contrat designe, et elles seules -- sauf
     // au changement de logiciel, qui n'affilie rien.
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     let rattachees: HashSet<String> = if changement {
         HashSet::new()
     } else {

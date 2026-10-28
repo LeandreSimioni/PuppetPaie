@@ -875,8 +875,7 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
     };
     let repetition = etats::repetition(&lignes, "dsn", &empreinte, &nom)?;
     // LES ORDRES DE PAIEMENT EN CLAIR (ticket #223) : a qui, pour quoi, combien, pour quand.
-    let chemin_orgs = ctx.racine.join("config").join("organismes.json");
-    let organismes = if chemin_orgs.is_file() { socle::fichiers::lire_json(&chemin_orgs)? } else { Value::Null };
+    let organismes = ctx.du_mois(&mois)?.organismes()?.unwrap_or(Value::Null);
     let ordres = crate::ordres_paiement::decrire(&texte_latin1(&contenu), &mois, &organismes, ctx.echeance_dsn()?)?;
     let genre = a.champ("type_declaration");
     let nature = a.champ("nature");

@@ -14,7 +14,7 @@ use serde_json::Value;
 use droit::contexte::{aujourdhui, Contexte};
 use socle::date::{d, en_texte, Jour};
 use crate::dsn::{self, Arret, Fichier, LOGICIEL, VERSION};
-use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, repr_valeur, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
 use socle::num::Resultat;
 
 pub const ARRET: &str = "04";
@@ -435,7 +435,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.11.005", req(&etab, "commune")?)?;
 
     // Les adhesions qui valent le dernier jour travaille (`droit::adhesions`).
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     let jour = jours(a, "dernier_jour_travaille")?;
     for ad in req(&orgs, "adhesions_prevoyance")?.as_array().map(Vec::as_slice).unwrap_or(&[]) {
         if !droit::adhesions::en_vigueur(ad, &jour, &jour)? {
