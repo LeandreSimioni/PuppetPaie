@@ -1,9 +1,8 @@
 # TOUS LES TESTS, LANCES AILLEURS QUE SUR LE POSTE QUI DEPOSE.
 #
 # La suite du moteur : `cargo nextest run` dans l'espace `atelier/sources/` : le socle, le droit, l'engagement et le moteur (puis la suite de l'atelier,
-# dans sa cible). Elle tourne sur les compagnies
-# fictives et sur leur copie figee
-# (`paie/tests/donnees/fictives/`), jamais sur `prive/`.
+# dans sa cible). Elle tourne sur des compagnies
+# de test que les tests montent eux-memes, jamais sur `prive/`.
 #
 # ROUGE = ON NE FUSIONNE PAS.
 

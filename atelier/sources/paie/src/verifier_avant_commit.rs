@@ -241,12 +241,13 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
     }
     if let Some(ent) = lire_config(&cfg, "entreprise.json")? {
         let ent = objet(&ent, "prive/config/entreprise.json")?;
+        // Toute valeur qu'une fiche datee a portee, a quelque date que ce soit (`contexte::toutes_les_valeurs`).
         for cle in CLES_ENTREPRISE {
-            if let Some(v) = ent.get(cle).and_then(valeur_py) {
+            for v in droit::contexte::toutes_les_valeurs(ent.get(cle)).into_iter().filter_map(valeur_py) {
                 poser(v, cle.to_string());
             }
         }
-        if let Some(banque) = ent.get("banque").filter(|b| valeur_py(b).is_some()) {
+        for banque in droit::contexte::toutes_les_valeurs(ent.get("banque")).into_iter().filter(|b| valeur_py(b).is_some()) {
             let banque = objet(banque, "prive/config/entreprise.json : banque")?;
             for cle in ["iban", "bic"] {
                 if let Some(v) = banque.get(cle).and_then(valeur_py) {
@@ -262,13 +263,15 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
             }
             let s = objet(s, "une fiche de prive/config/salaries.json")?;
             for cle in CLES_SALARIE {
-                if let Some(v) = s.get(cle).and_then(valeur_py) {
+                for v in droit::contexte::toutes_les_valeurs(s.get(cle)).into_iter().filter_map(valeur_py) {
                     poser(v, format!("salarie.{}", cle));
                 }
             }
             // Le nom seul est trop courant pour être un motif ; le nom ET le prénom collés le sont beaucoup moins.
-            if let (Some(nom), Some(prenom)) = (s.get("nom").and_then(valeur_py), s.get("prenom").and_then(valeur_py)) {
-                poser(format!("{} {}", nom, prenom), "salarie (identite)".to_string());
+            for nom in droit::contexte::toutes_les_valeurs(s.get("nom")).into_iter().filter_map(valeur_py) {
+                for prenom in droit::contexte::toutes_les_valeurs(s.get("prenom")).into_iter().filter_map(valeur_py) {
+                    poser(format!("{} {}", nom, prenom), "salarie (identite)".to_string());
+                }
             }
         }
     }

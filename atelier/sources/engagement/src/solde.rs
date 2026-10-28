@@ -411,7 +411,7 @@ pub fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: &[Value
         let codes = droit::preavis::codes_52_de_l_indemnite_de_preavis()?;
         let mut versees = Vec::new();
         for l in &stc.lignes {
-            let r = rubrique(&ctx.racine, &t(cle(l, "rubrique")?))?;
+            let r = rubrique(&ctx.racine, &t(cle(l, "rubrique")?), &ctx.lue_au)?;
             if let Some(c) = r.dsn_bloc52.filter(|c| codes.contains(c)) {
                 versees.push((c, r.libelle));
             }
@@ -1028,7 +1028,7 @@ fn indemnite_de_licenciement(
 
 /// Le nom qu'un administrateur voit dans la liste des rubriques.
 fn libelle_rubrique(ctx: &Contexte, code: &str) -> String {
-    rubrique(&ctx.racine, code).map(|r| r.libelle).unwrap_or_else(|_| code.to_string())
+    rubrique(&ctx.racine, code, &ctx.lue_au).map(|r| r.libelle).unwrap_or_else(|_| code.to_string())
 }
 
 /// L'indemnite de licenciement de la convention de la compagnie.
@@ -1137,7 +1137,7 @@ fn bruts_precedents(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<(Vec<Deci
 fn brut_des_lignes(ctx: &Contexte, lignes: &[Value]) -> Resultat<Decimal> {
     let mut total = zero2();
     for l in lignes {
-        let r = rubrique(&ctx.racine, &t(cle(l, "rubrique")?))?;
+        let r = rubrique(&ctx.racine, &t(cle(l, "rubrique")?), &ctx.lue_au)?;
         if !r.soumis {
             continue;
         }

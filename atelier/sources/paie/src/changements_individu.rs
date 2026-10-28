@@ -14,15 +14,15 @@
 //! CE QUI A ETE DECLARE SE RELIT, IL NE SE RECALCULE PAS (regles 1 et 4) : l'identite de reference est le bloc 30 de
 //! l'individu dans la derniere DSN mensuelle reelle acceptee qui le porte, d'un mois anterieur au mois declare (le
 //! fichier que `casc::dsn_deposee` designe, comme pour une regularisation, vague 0b). La date du changement est celle
-//! que la fiche porte : l'entree d'`historique` qui garde l'ancienne valeur declaree finit la veille du jour d'effet
-//! (`routes_ecritures::dater`). Une fiche qui ne date pas le changement refuse : la date ne se devine pas.
+//! que la fiche datee porte : le `depuis` de la valeur qui suit la derniere qui porte l'ancienne valeur declaree
+//! (`contexte::dater`). Une fiche qui ne date pas le changement refuse : la date ne se devine pas.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
 use serde_json::Value;
 
-use droit::contexte::{telle_qu_au, Contexte};
+use droit::contexte::{fiche_au, valeurs_datees, Contexte};
 use socle::date::{en_texte, Jour};
 use crate::dsn::Fichier;
 use socle::fichiers::{lire_json, vrai};
@@ -133,15 +133,11 @@ fn ecrite(champ: &str, v: Option<&Value>) -> Option<String> {
 }
 
 /// La fiche telle que le bloc 30 doit la lire pour le mois declare : ses identifiants tels qu'ils valaient le dernier
-/// jour du mois (`fin`), le reste tel quel. Les fiches du contexte sont deja lues a la date du contexte (le jour ou
-/// l'on produit) : un changement d'identite date APRES le mois declare n'entre pas dans sa DSN, sans quoi 31.001
-/// depasserait le dernier jour du mois principal declare (§ 4.4.12, p. 99) -- il ira dans la DSN du mois ou il prend
-/// effet.
-pub fn identite_du_mois(salarie: &Value, fin: &Jour) -> Resultat<Value> {
-    if !salarie.get("historique").is_some_and(vrai) {
-        return Ok(salarie.clone());
-    }
-    let au = telle_qu_au(salarie, fin)?;
+/// jour du mois (`fin`), lus dans la fiche datee (`brute`), le reste tel quel. Un changement d'identite date APRES le
+/// mois declare n'entre pas dans sa DSN, sans quoi 31.001 depasserait le dernier jour du mois principal declare
+/// (§ 4.4.12, p. 99) -- il ira dans la DSN du mois ou il prend effet.
+pub fn identite_du_mois(salarie: &Value, brute: &Value, fin: &Jour) -> Resultat<Value> {
+    let au = fiche_au(brute, fin, "config/salaries.json")?;
     let mut sortie = salarie.clone();
     if let Some(o) = sortie.as_object_mut() {
         for (champ, ..) in IDENTIFIANTS {
@@ -233,15 +229,11 @@ impl<'a> Declarations<'a> {
     }
 
     /// L'identite que la derniere DSN qui le porte a declaree pour ce salarie, ou `None` s'il n'a jamais ete declare.
-    /// Il se reconnait a un NIR que sa fiche a porte (aujourd'hui ou dans son historique), sinon a son matricule
+    /// Il se reconnait a un NIR que sa fiche (`brute`, datee) a porte, sinon a son matricule
     /// (30.019 ; il finit le NTT et ne change pas sans NIR, `routes_ecritures::ecrire_fiche`).
-    pub fn derniere(&mut self, salarie: &Value) -> Resultat<Option<Declaree>> {
+    pub fn derniere(&mut self, salarie: &Value, brute: &Value) -> Resultat<Option<Declaree>> {
         let mut nirs: Vec<String> = vec![texte(salarie.get("nir"))];
-        for e in salarie.get("historique").and_then(Value::as_array).into_iter().flatten() {
-            if e.get("champ").and_then(Value::as_str) == Some("nir") {
-                nirs.push(texte(e.get("valeur")));
-            }
-        }
+        nirs.extend(valeurs_datees(brute, "nir")?.into_iter().map(|(_, v)| texte(Some(v))));
         nirs.retain(|n| !n.is_empty());
         let matricule = texte(salarie.get("code_salarie"));
         for i in 0..self.mois.len() {
@@ -284,21 +276,20 @@ fn decrire(d: &Declaree) -> String {
     )
 }
 
-/// Le jour d'effet que la fiche donne au changement de `champ` depuis la valeur `declaree` : le lendemain de la
-/// derniere entree d'historique qui garde cette valeur et finit avant la fin du mois declare (`fin`).
-fn date_d_effet(salarie: &Value, champ: &str, declaree: &str, fin: &Jour) -> Resultat<Option<Jour>> {
+/// Le jour d'effet que la fiche datee `brute` donne au changement de `champ` depuis la valeur `declaree` : le `depuis`
+/// de la valeur qui suit la derniere qui la porte, au plus tard la fin du mois declare (`fin`).
+fn date_d_effet(brute: &Value, champ: &str, declaree: &str, fin: &Jour) -> Resultat<Option<Jour>> {
+    let valeurs = valeurs_datees(brute, champ)?;
     let mut meilleur: Option<Jour> = None;
-    for e in salarie.get("historique").and_then(Value::as_array).into_iter().flatten() {
-        if e.get("champ").and_then(Value::as_str) != Some(champ) || ecrite(champ, e.get("valeur")).as_deref() != Some(declaree) {
-            continue;
-        }
-        let Some(j) = e.get("jusqu_au") else { continue };
-        let jusqu_au = socle::date::d(j)?;
-        if jusqu_au < *fin && meilleur.map_or(true, |m| jusqu_au > m) {
-            meilleur = Some(jusqu_au);
+    for paire in valeurs.windows(2) {
+        let ((_, v), (suivant, _)) = (&paire[0], &paire[1]);
+        if let Some(suivant) = suivant.filter(|s| s <= fin) {
+            if ecrite(champ, Some(v)).as_deref() == Some(declaree) {
+                meilleur = Some(suivant);
+            }
         }
     }
-    meilleur.map(|j| j.plus_jours(1)).transpose()
+    Ok(meilleur)
 }
 
 /// Ecrit, apres le bloc 30 de `salarie` (sa fiche telle que le bloc 30 l'a lue, `identite_du_mois`), les blocs 31 de
@@ -307,7 +298,7 @@ fn date_d_effet(salarie: &Value, champ: &str, declaree: &str, fin: &Jour) -> Res
 ///
 /// Le NIR qui ARRIVE (declare sans NIR, sous un NTT) n'a pas d'« ancien NIR » : la norme fait le lien par le NTT porte
 /// a cote du NIR (30.020, p. 175 ; `ntt.rs`), pas par le bloc 31.
-pub fn ecrire(f: &mut Fichier, salarie: &Value, declaree: Option<&Declaree>, mois: &str, fin: &Jour) -> Resultat<()> {
+pub fn ecrire(f: &mut Fichier, salarie: &Value, brute: &Value, declaree: Option<&Declaree>, mois: &str, fin: &Jour) -> Resultat<()> {
     let Some(d) = declaree else { return Ok(()) };
     let mut par_date: BTreeMap<Jour, Vec<(&str, String)>> = BTreeMap::new();
     let mut sans_date: Vec<String> = Vec::new();
@@ -333,7 +324,7 @@ dans la fiche, ou le remplacer par le NIR corrige, date. Rien n'est ecrit.",
                 ));
             }
         }
-        match date_d_effet(salarie, champ, avant, fin)? {
+        match date_d_effet(brute, champ, avant, fin)? {
             Some(j) => par_date.entry(j).or_default().push((r31, avant.to_string())),
             None => sans_date.push(format!(
                 "  - {} : declare(e) \u{ab} {} \u{bb} dans la DSN de {} ({}), \u{ab} {} \u{bb} dans la fiche",
@@ -380,43 +371,51 @@ mod tests {
         Jour::lire("2026-09-30").unwrap()
     }
 
+    /// Une fiche datee : chaque valeur de tout temps, puis `apres` (champ, depuis, valeur).
+    fn fiche(valeurs: Value, apres: &[(&str, &str, &str)]) -> Value {
+        let mut f = droit::contexte::fiche_datee(valeurs.as_object().unwrap());
+        for (champ, depuis, v) in apres {
+            droit::contexte::dater(&mut f, champ, json!(v), Some(&Jour::lire(depuis).unwrap()), None);
+        }
+        Value::Object(f)
+    }
+
     #[test]
     fn rien_ne_change_rien_ne_s_ecrit() {
         let s = json!({"nir": "2901075999009", "nom": "CLAIRON", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6"});
+        let b = fiche(s.clone(), &[]);
         let mut f = Fichier::nouveau();
-        ecrire(&mut f, &s, Some(&declaree()), "2026-09", &fin()).unwrap();
+        ecrire(&mut f, &s, &b, Some(&declaree()), "2026-09", &fin()).unwrap();
         assert!(f.lignes.is_empty());
-        ecrire(&mut f, &s, None, "2026-09", &fin()).unwrap();
+        ecrire(&mut f, &s, &b, None, "2026-09", &fin()).unwrap();
         assert!(f.lignes.is_empty());
     }
 
     #[test]
     fn un_changement_date_porte_l_ancienne_valeur_et_un_non_date_refuse() {
-        let s = json!({"nir": "2901075999009", "nom": "DUVAL", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6",
-            "historique": [{"champ": "nom", "valeur": "CLAIRON", "jusqu_au": "2026-09-14"}]});
+        let s = json!({"nir": "2901075999009", "nom": "DUVAL", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6"});
+        let b = fiche(json!({"nom": "CLAIRON"}), &[("nom", "2026-09-15", "DUVAL")]);
         let mut f = Fichier::nouveau();
-        ecrire(&mut f, &s, Some(&declaree()), "2026-09", &fin()).unwrap();
+        ecrire(&mut f, &s, &b, Some(&declaree()), "2026-09", &fin()).unwrap();
         assert_eq!(f.lignes, vec!["S21.G00.31.001,'15092026'", "S21.G00.31.009,'CLAIRON'"]);
-        // Une entree d'historique qui ne garde pas la valeur declaree ne date rien.
-        let s = json!({"nir": "2901075999009", "nom": "DUVAL", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6",
-            "historique": [{"champ": "nom", "valeur": "AUTRE", "jusqu_au": "2026-09-14"}]});
-        let e = ecrire(&mut Fichier::nouveau(), &s, Some(&declaree()), "2026-09", &fin()).unwrap_err();
+        // Une fiche qui n'a jamais porte la valeur declaree ne date rien.
+        let b = fiche(json!({"nom": "AUTRE"}), &[("nom", "2026-09-15", "DUVAL")]);
+        let e = ecrire(&mut Fichier::nouveau(), &s, &b, Some(&declaree()), "2026-09", &fin()).unwrap_err();
         assert!(e.contains("nom de famille") && e.contains("CLAIRON") && e.contains("DUVAL"), "{}", e);
     }
 
     #[test]
     fn un_nir_declare_ne_disparait_pas() {
         let s = json!({"nir": "", "nom": "CLAIRON", "prenom": "LUCILE", "date_naissance": "1990-10-02", "code_salarie": "6"});
-        let e = ecrire(&mut Fichier::nouveau(), &s, Some(&declaree()), "2026-09", &fin()).unwrap_err();
+        let e = ecrire(&mut Fichier::nouveau(), &s, &fiche(s.clone(), &[]), Some(&declaree()), "2026-09", &fin()).unwrap_err();
         assert!(e.contains("n'a plus de NIR"), "{}", e);
     }
 
     #[test]
     fn l_identite_du_mois_ignore_un_changement_posterieur() {
-        let s = json!({"nom": "DUVAL", "adresse": "NOUVELLE", "historique": [
-            {"champ": "nom", "valeur": "CLAIRON", "jusqu_au": "2026-10-01"},
-            {"champ": "adresse", "valeur": "ANCIENNE", "jusqu_au": "2026-10-01"}]});
-        let m = identite_du_mois(&s, &fin()).unwrap();
+        let s = json!({"nom": "DUVAL", "adresse": "NOUVELLE"});
+        let b = fiche(json!({"nom": "CLAIRON", "adresse": "ANCIENNE"}), &[("nom", "2026-10-02", "DUVAL"), ("adresse", "2026-10-02", "NOUVELLE")]);
+        let m = identite_du_mois(&s, &b, &fin()).unwrap();
         assert_eq!(m["nom"], json!("CLAIRON"));
         // Ce qui n'identifie pas se lit tel quel (la derniere valeur connue, § 2.1.2.4.2 par analogie).
         assert_eq!(m["adresse"], json!("NOUVELLE"));

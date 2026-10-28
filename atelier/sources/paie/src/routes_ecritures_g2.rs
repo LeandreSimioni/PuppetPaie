@@ -157,7 +157,7 @@ pub(crate) fn ecrire_corrections(ctx: &Contexte, mois: &str, corrections: Vec<Ma
         &chemin,
         json!({
             "_origine": format!(
-                "Corrections du mois {m} apres son echeance DSN : chacune part dans la DSN d'un mois suivant, datee de {m}. La saisie de {m} telle que deposee fait foi : paies/{m}.json, ou regularisations/{m}.saisie-declaree.json quand la paie a ete modifiee apres la limite de l'annule-et-remplace.",
+                "Corrections du mois {m} apres son echeance DSN : chacune part dans la DSN d'un mois suivant, datee de {m}. La paie de {m} telle que deposee fait foi : la version de chaque engagement sur laquelle la DSN de {m} est partie (engagements/).",
                 m = mois
             ),
             "mois": mois,

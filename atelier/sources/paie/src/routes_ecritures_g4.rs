@@ -242,6 +242,7 @@ pub(crate) fn contrat_recu_avec(
         reponse: &reponse,
         trace: None,
         detail: Some(&detail),
+        versions: None,
         quand: &quand,
         origine: &origine,
     };

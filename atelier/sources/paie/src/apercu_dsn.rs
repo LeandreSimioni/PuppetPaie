@@ -489,10 +489,6 @@ pub(crate) struct Lu {
     pub(crate) contrat: String,
     pub(crate) debut: String,
     pub(crate) fin: String,
-    /// Le net a payer avant impot, quand il se lit (`_FORME_NET`) : une correction y lit le net deja verse. (Le brut ne
-    /// se lit plus : seul le dossier du salarie le confrontait a la paie recalculee, et il envoie l'archive depuis le lot
-    /// V1p.)
-    pub(crate) net: Option<Decimal>,
     /// Les pages du fichier qui portent ce bulletin (0 = la premiere) : de celle ou il commence a celle qui precede le
     /// bulletin suivant. Le dossier du salarie n'envoie que celles-la.
     pub(crate) pages: Vec<usize>,
@@ -502,57 +498,9 @@ pub(crate) struct Lu {
     pub(crate) partage: bool,
 }
 
-/// `\s*\n\s*(-?[\d\u00a0\u202f .]+,\d\d)` a partir de `p` : le montant ecrit, tel quel.
-fn montant_apres(m: &[char], p: usize) -> Option<String> {
-    let blancs = suite_de(m, p, blanc);
-    if !m[p..p + blancs].contains(&'\n') {
-        return None;
-    }
-    let debut = p + blancs;
-    let mut q = debut;
-    if m.get(q) == Some(&'-') {
-        q += 1;
-    }
-    let n = suite_de(m, q, |c| c.is_ascii_digit() || c == '\u{a0}' || c == '\u{202f}' || c == ' ' || c == '.');
-    let r = q + n;
-    if n == 0 || m.get(r) != Some(&',') || !m.get(r + 1).is_some_and(char::is_ascii_digit) || !m.get(r + 2).is_some_and(char::is_ascii_digit) {
-        return None;
-    }
-    Some(m[debut..r + 3].iter().collect())
-}
-
-/// `_montant_lu` : « 1 234,56 » -> 1234.56.
-fn montant_lu(t: &str) -> Option<Decimal> {
-    let net: String = t.chars().filter(|c| !blanc(*c) && *c != '\u{a0}' && *c != '\u{202f}' && *c != '.').map(|c| if c == ',' { '.' } else { c }).collect();
-    Decimal::from_str(&net).ok()
-}
-
-/// Les positions de `marque` dans `m`.
-fn occurrences(m: &[char], marque: &str) -> Vec<usize> {
-    (0..m.len()).filter(|&i| commence_par(m, i, marque)).collect()
-}
-
-/// `_FORME_NET.search(m)` : le premier « NET A PAYER AVANT IMP... » ou « NET À PAYER AVANT IMP... » suivi d'un montant.
-/// Le bulletin imprime le net a payer avant impot sur la ligne « MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU » depuis
-/// la vague 1o (le modele de l'arrete du 25/02/2016) ; avant, sur « NET SOCIAL / NET A PAYER AVANT IMPÔT » quand il etait
-/// egal au montant net social (et sur tout bulletin d'avant la vague 1b), sinon sur « NET À PAYER AVANT IMPÔT », sous
-/// « MONTANT NET SOCIAL » (vague 1b). Tous se lisent ; le montant net social, non.
-fn forme_net(m: &[char]) -> Option<Decimal> {
-    const MARQUES: [&str; 3] = ["NET A PAYER AVANT IMP", "NET À PAYER AVANT IMP", "NET A PAYER AVANT IMPOT SUR LE REVENU"];
-    let mut trouvees: Vec<(usize, usize)> = MARQUES
-        .iter()
-        .flat_map(|marque| {
-            let n = marque.chars().count();
-            occurrences(m, marque).into_iter().map(move |i| (i, n))
-        })
-        .collect();
-    trouvees.sort_unstable();
-    trouvees.into_iter().find_map(|(i, n)| montant_apres(m, i + n + suite_de(m, i + n, |c| !blanc(c)))).and_then(|t| montant_lu(&t))
-}
-
 /// `bulletin.numeros_archives` : les numeros que porte un `Bulletins_<Mois>.pdf` ecrit (ou un bulletin rectificatif),
-/// avec le net a payer avant impot quand il se lit et les pages de chacun : le recapitulatif ne les emploie pas ; une
-/// correction y lit le net deja verse (`produire_regularisations`), le dossier du salarie y prend SES pages.
+/// avec les pages de chacun : le dossier du salarie y prend SES pages, un bulletin rectificatif y lit le numero du
+/// bulletin qu'il rectifie.
 pub(crate) fn numeros_archives(chemin: &Path) -> Result<Vec<Lu>, Refus> {
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let (pages, _) = fabrique_pdf::lecture::texte(&chemin.to_string_lossy())
@@ -593,7 +541,6 @@ pub(crate) fn numeros_archives(chemin: &Path) -> Result<Vec<Lu>, Refus> {
             contrat,
             debut: jour(&debut)?,
             fin: jour(&fin)?,
-            net: forme_net(&m),
             pages: (premiere..=derniere).collect(),
             partage,
         });
@@ -928,8 +875,7 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
     };
     let repetition = etats::repetition(&lignes, "dsn", &empreinte, &nom)?;
     // LES ORDRES DE PAIEMENT EN CLAIR (ticket #223) : a qui, pour quoi, combien, pour quand.
-    let chemin_orgs = ctx.racine.join("config").join("organismes.json");
-    let organismes = if chemin_orgs.is_file() { socle::fichiers::lire_json(&chemin_orgs)? } else { Value::Null };
+    let organismes = ctx.du_mois(&mois)?.organismes()?.unwrap_or(Value::Null);
     let ordres = crate::ordres_paiement::decrire(&texte_latin1(&contenu), &mois, &organismes, ctx.echeance_dsn()?)?;
     let genre = a.champ("type_declaration");
     let nature = a.champ("nature");

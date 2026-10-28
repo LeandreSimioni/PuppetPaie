@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use serde_json::{json, Value};
 
 use crate::calcul::{ligne_de_reduction, pile_de_la_paie, reduction_au_coefficient, reduction_generale, LigneCotisation, Paie, ReductionGenerale};
-use droit::contexte::{telle_qu_au, Contexte};
+use droit::contexte::Contexte;
 use socle::date::{en_texte, Jour};
 use crate::{Avis, Engagement};
 use socle::fichiers::vrai;
@@ -34,10 +34,8 @@ pub fn bornes(ctx: &Contexte, eng: &Engagement) -> Resultat<Vec<(Jour, Jour)>> {
     if eng.periode.is_some() || !eng.nat()?.mensuelle() {
         return Ok(vec![(debut, fin)]);
     }
-    let fiche = ctx.salarie(&eng.salarie)?;
-    let brute = fiche.get("_cle").and_then(Value::as_str).and_then(|c| ctx.salarie_brut(c));
-    let tqa = |f: &Value, j: &str| telle_qu_au(f, &Jour::lire(j)?);
-    let mut jours = droit::emplois::jours_de_changement(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
+    let cle = crate::calcul::cle_du_salarie(ctx, eng)?;
+    let mut jours = droit::emplois::jours_de_changement(ctx, &cle, &debut, &fin)?;
     jours.extend(jour_de_l_avenant(eng)?);
     droit::periodes::decouper(debut, fin, jours)
 }
@@ -91,7 +89,7 @@ mensuel. Refus : la reporter sur le mois suivant, ou dater le changement au prem
         e.lignes = vec![json!({"rubrique": "mois", "quantite": q, "taux": crate::conges::flot(salaire), "heures": h})];
         // Les heures que la DSN mesure (S21.G00.53, « heures » d'un contrat paye au mois) : celles de la ligne de la
         // periode, comme `Engagement::nouveau` les tire des lignes du mois.
-        let heures = droit::catalogue::rubrique(&ctx.racine, "mois")?.heures(q, Some(h));
+        let heures = droit::catalogue::rubrique(&ctx.racine, "mois", &ctx.lue_au)?.heures(q, Some(h));
         e.heures = if heures != 0.0 { Some(heures) } else { None };
         out.push(e);
     }

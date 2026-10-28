@@ -351,6 +351,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
             reponse: &reponse,
             trace: None,
             detail: Some(&detail),
+            versions: None,
             quand: &quand,
             origine: &origine,
         };

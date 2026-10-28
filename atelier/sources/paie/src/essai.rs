@@ -28,7 +28,7 @@
 //! CE QU'ON PREND DE LA FICTIVE, ET CE QU'ON N'EN PREND PAS. Tout ce qui n'est pas l'identite vient d'elle : salaries (NIR
 //! inventes, cles justes), contrats, paies, spectacles, `organismes.json`, `banque`, bareme, convention. On n'en prend ni
 //! son marqueur, ni ses retours (ce sont ceux de SON SIREN), ni son horloge (elle ne joue que dans une fictive), ni ses PDF ;
-//! de sa fiche, tout ce qui dit son identite est remplace ou retire (`historique` compris : il pourrait redonner, a une
+//! de sa fiche, tout ce qui dit son identite est remplace ou retire (toutes ses valeurs datees : une ancienne pourrait redonner, a une
 //! date passee, la raison sociale de la fictive). Les DSN deja ecrites sont gardees : celle d'un mois relit celles des mois
 //! d'avant (numeros de contrat, regle 4). Le journal est garde SAUF ses depots de DSN : ceux-la ont ete joues sous le SIREN
 //! de la fictive, la plate-forme ne les connait pas sous celui de la variable, et ils feraient refuser la DSN du mois
@@ -228,16 +228,14 @@ impl Identite {
     }
 
     /// La fiche de la fictive, sous cette identite : les cles de la variable posees, ce qui en derive recompose (le SIRET, le
-    /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire.
+    /// declarant net-entreprises, le compte DPAE), ce qui disait l'identite de la fictive retire. Chaque valeur posee vaut
+    /// de tout temps, seule : une valeur datee de l'ancienne identite la redonnerait a une date passee.
     pub fn appliquer(&self, fiche: &Value) -> Result<Value, String> {
-        let mut f = fiche.as_object().cloned().ok_or_else(|| "config/entreprise.json de la fictive n'est pas un objet.".to_string())?;
+        let mut brute = fiche.as_object().cloned().ok_or_else(|| "config/entreprise.json de la fictive n'est pas un objet.".to_string())?;
         for k in RETIREES {
-            f.remove(k);
+            brute.remove(k);
         }
-        // `historique` : une valeur datee d'un champ d'identite redonnerait celle de la fictive a une date passee.
-        if let Some(Value::Array(h)) = f.get_mut("historique") {
-            h.retain(|e| e.get("champ").and_then(Value::as_str).is_none_or(|c| !CLES.contains(&c) && !RETIREES.contains(&c)));
-        }
+        let mut f = Map::new();
         let (siren, nic) = (self.texte("siren")?, self.texte("nic")?);
         let siret = format!("{}{}", siren, nic);
         for k in &CLES[..8] {
@@ -267,7 +265,15 @@ impl Identite {
             "_source".into(),
             json!(format!("COMPAGNIE D'ESSAI (paie essai monter) : l'identite vient de {} ; le reste, de la compagnie fictive copiee. Ne se commite jamais.", VARIABLE)),
         );
-        Ok(Value::Object(f))
+        for (k, v) in f {
+            brute.remove(&k);
+            if k.starts_with('_') {
+                brute.insert(k, v);
+            } else {
+                droit::contexte::dater(&mut brute, &k, v, None, None);
+            }
+        }
+        Ok(Value::Object(brute))
     }
 }
 
@@ -577,22 +583,24 @@ mod tests {
     }
 
     /// La fiche de la fictive sous l'identite : les cles posees, le SIRET compose, le service DPAE pose s'il est dit, et ce que
-    /// la fiche datait de son ancienne identite retire, le reste de son historique garde.
+    /// la fiche datait de son ancienne identite retire, le reste de ses valeurs datees garde.
     #[test]
     fn appliquer_pose_l_identite_et_retire_celle_de_la_fictive() {
         let mut v = juste();
         v["api_dpae"]["service"] = json!("25");
         let id = Identite::lire(&v.to_string()).unwrap();
-        let fiche = json!({
-            "siren": "123456915", "siret": "12345691500010", "raison_sociale": "CIE FICTIVE", "nom_affichage": "Fictive",
-            "complement_adresse": "BAT A", "tel": "0100000001", "idcc": "3090", "etablissements": null,
+        let plate = json!({
+            "siren": "123456915", "siret": "12345691500010", "raison_sociale": "ANCIENNE FICTIVE", "nom_affichage": "Fictive",
+            "complement_adresse": "BAT A", "tel": "0100000001", "idcc": "1285", "etablissements": null,
             "declarant_dsn": {"nom_prenom": "SAND GEORGE", "tel": "0100000092"},
-            "historique": [
-                {"champ": "raison_sociale", "valeur": "ANCIENNE FICTIVE", "jusqu_au": "2026-01-01"},
-                {"champ": "idcc", "valeur": "1285", "jusqu_au": "2026-01-01"}
-            ]
         });
-        let f = id.appliquer(&fiche).unwrap();
+        let jour = |j: &str| socle::date::Jour::lire(j).unwrap();
+        let mut fiche = droit::contexte::fiche_datee(plate.as_object().unwrap());
+        droit::contexte::dater(&mut fiche, "raison_sociale", json!("CIE FICTIVE"), Some(&jour("2026-01-02")), None);
+        droit::contexte::dater(&mut fiche, "idcc", json!("3090"), Some(&jour("2026-01-02")), None);
+        let datee = id.appliquer(&Value::Object(fiche)).unwrap();
+        let f = droit::contexte::fiche_au(&datee, &jour("2026-06-01"), "essai").unwrap();
+        assert_eq!(droit::contexte::fiche_au(&datee, &jour("2025-06-01"), "essai").unwrap()["idcc"], json!("1285"));
         assert_eq!(f["siret"], json!("98765432400019"));
         assert_eq!(f["idcc"], json!("3090"));
         assert_eq!(f["api_dpae"], json!({"nom": "NOMDPAE", "prenom": "PRENOMDPAE", "siret": "98765432400019", "service": "25"}));
@@ -600,7 +608,6 @@ mod tests {
         for k in ["complement_adresse", "tel", "etablissements"] {
             assert!(f.get(k).is_none(), "{}", k);
         }
-        assert_eq!(f["historique"], json!([{"champ": "idcc", "valeur": "1285", "jusqu_au": "2026-01-01"}]));
-        assert!(!f.to_string().contains("FICTIVE") && !f.to_string().contains("SAND"), "{}", f);
+        assert!(!datee.to_string().contains("FICTIVE") && !datee.to_string().contains("SAND"), "{}", datee);
     }
 }

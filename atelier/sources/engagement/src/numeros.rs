@@ -4,7 +4,7 @@
 //!
 //! Il s'ecrit dans l'engagement a sa validation (`a_la_validation`, que seule `etats::valider` appelle), puis tout ce qui
 //! part -- le contrat a la signature ou imprime, la DPAE, la DSN, le bulletin -- le lit la. Le numero donne est le suivant
-//! du plus haut que portent, pour le meme salarie et la meme annee, les engagements et les envois du journal
+//! du plus haut que portent, pour le meme salarie et la meme annee, les engagements et ce qui est parti (`departs`)
 //! (`derniers_pris`) : un engagement supprime avant tout envoi rend le sien.
 //!
 //! Une revalidation garde le numero. Tant que rien n'est parti sous lui, un engagement dont le salarie ou le debut a
@@ -12,7 +12,7 @@
 //! repris d'un autre logiciel) reste le sien, sauf sur la copie d'un engagement plus ancien qui le porte deja.
 
 use std::collections::HashMap;
-use std::path::Path;
+
 
 use serde_json::{json, Value};
 
@@ -47,7 +47,7 @@ pub fn former(fiche: &Value, annee: i32, seq: i64) -> Resultat<String> {
 }
 
 /// Le dernier rang pris en `annee`, par salarie (la cle de sa fiche) : le plus grand des numeros de cette annee que
-/// portent ses engagements, ou que le journal des envois dit partis pour lui.
+/// portent ses engagements, ou sous lesquels quelque chose est parti pour lui (`departs`).
 pub fn derniers_pris(ctx: &Contexte, annee: i32) -> Resultat<HashMap<String, i64>> {
     derniers_pris_sauf(ctx, annee, None)
 }
@@ -71,65 +71,21 @@ fn derniers_pris_sauf(ctx: &Contexte, annee: i32, sauf: Option<(&str, usize)>) -
         let (Some(cle), Some(n)) = (crate::cle_de_l_engagement(ctx, &e), o.brut.get("numero").filter(|n| vrai(n))) else { continue };
         noter(&cle, &en_texte(n));
     }
-    for (cle, n) in numeros_du_journal(&lignes_du_journal(&ctx.racine)?) {
-        noter(&cle, &n);
+    for (cle, n) in crate::departs::lire(&ctx.racine)?.engagements() {
+        noter(cle, n);
     }
     Ok(pris)
 }
 
-/// Les numeros de contrat que le journal des envois dit partis : `(cle du salarie, numero)`, d'une ligne acceptee qui
-/// porte des contrats (`detail.contrats`) ou un contrat (`detail`).
-fn numeros_du_journal(lignes: &[Value]) -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    for l in lignes {
-        if l.get("accepte") == Some(&Value::Bool(false)) {
-            continue;
-        }
-        let Some(d) = l.get("detail") else { continue };
-        let contrats = d.get("contrats").and_then(Value::as_array).cloned().unwrap_or_else(|| vec![d.clone()]);
-        for c in &contrats {
-            if let (Some(cle), Some(n)) = (c.get("salarie").and_then(Value::as_str), c.get("numero").and_then(Value::as_str)) {
-                out.push((cle.to_string(), n.to_string()));
-            }
-        }
-    }
-    out
-}
-
-fn lignes_du_journal(racine: &Path) -> Resultat<Vec<Value>> {
-    let p = racine.join("journal").join("depots.json");
-    match std::fs::read(&p) {
-        Ok(o) => match serde_json::from_slice::<Value>(&o).map_err(|e| format!("{} : {}", p.display(), e))? {
-            Value::Array(a) => Ok(a),
-            _ => Ok(Vec::new()),
-        },
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
-        Err(e) => Err(socle::fichiers::panne_fichier(&e, &p)),
-    }
-}
-
-/// Un envoi a-t-il porte le numero `n` de l'engagement `o` (du salarie `cle`) ? Le contrat parti sous lui (a la
-/// signature, imprime, revenu signe), les documents d'un de ses mois partis pendant qu'on le modifiait (`figees`), une
-/// DSN reelle d'un mois qu'il couvre deposee depuis que le numero lui a ete donne.
-fn porte_par_un_envoi(o: &Objet, cle: &str, n: &str, lignes: &[Value]) -> Resultat<bool> {
-    if o.brut.get("figees").and_then(Value::as_object).is_some_and(|f| !f.is_empty()) {
+/// Un envoi a-t-il porte le numero `n` de l'engagement `o` (du salarie `cle`) ? Ce qui est parti sous lui (`departs`),
+/// ou une version de lui gardee parce qu'un envoi l'avait emportee.
+fn porte_par_un_envoi(ctx: &Contexte, o: &Objet, cle: &str, n: &str) -> Resultat<bool> {
+    if o.brut.get("versions").and_then(Value::as_array).is_some_and(|v| !v.is_empty()) {
         return Ok(true);
     }
-    if numeros_du_journal(lignes).iter().any(|(c, x)| c == cle && x == n) {
-        return Ok(true);
-    }
-    let donne_le = o.brut.get(POUR).and_then(|p| p.get("le")).map(en_texte).unwrap_or_default();
-    for l in lignes {
-        let texte = |k: &str| l.get(k).map(en_texte).unwrap_or_default();
-        if texte("quoi") != "dsn" || texte("mode") != "reel" || l.get("accepte") == Some(&Value::Bool(false)) || texte("quand") < donne_le {
-            continue;
-        }
-        if o.couvre(&texte("mois"))? {
-            return Ok(true);
-        }
-    }
-    Ok(false)
+    Ok(!crate::departs::lire(&ctx.racine)?.de(cle, n).is_empty())
 }
+
 
 /// Un engagement ecrit avant `o` (plus ancien fichier, ou plus haut dans le meme) porte-t-il deja le numero `n` ? Une
 /// copie d'engagement emporte le numero de l'original : il reste a l'original.
@@ -151,7 +107,7 @@ pub(crate) fn a_la_validation(ctx: &Contexte, o: &mut Objet, le: &str) -> Result
         let garde = match o.brut.get(POUR) {
             Some(p) => {
                 let meme = p.get("salarie").map(en_texte).as_deref() == Some(cle.as_str()) && p.get("debut").map(en_texte) == Some(debut.clone());
-                meme || porte_par_un_envoi(o, &cle, &n, &lignes_du_journal(&ctx.racine)?)?
+                meme || porte_par_un_envoi(ctx, o, &cle, &n)?
             }
             // Un numero venu avec la saisie (un contrat repris d'un autre logiciel, sous la forme qu'il avait) : le sien,
             // sauf s'il est la copie d'un engagement plus ancien.

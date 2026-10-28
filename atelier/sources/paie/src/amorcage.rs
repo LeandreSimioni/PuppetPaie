@@ -18,7 +18,7 @@ use crate::dsn::{
     affiliations, bloc_anciennete, bloc_contrat, g, jj, jour, liste, req, usage_admet, Fichier, LOGICIEL, VERSION,
 };
 use crate::fctu::Echec;
-use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use socle::num::Resultat;
 
 pub const NATURE: &str = "08";
@@ -156,6 +156,7 @@ un manque du logiciel.",
 /// Le fichier d'un signalement d'amorcage, pret a deposer.
 pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec> {
     verifier(paie, &o.motif, &o.type_declaration, o.remplace.as_deref())?;
+    let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
     let s = &paie.salarie;
     let ent = &ctx.entreprise;
@@ -240,7 +241,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
 
     // Les adhesions prevoyance que le contrat designe, et elles seules -- sauf
     // au changement de logiciel, qui n'affilie rien.
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     let rattachees: HashSet<String> = if changement {
         HashSet::new()
     } else {
@@ -283,7 +284,7 @@ pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, ent, s, &e.debut)?;
+    crate::ntt::poser_ntt(&mut f, ent, s, &crate::ntt::brute(ctx, s), &e.debut)?;
 
     // ------------------------------------------------------------ S21 contrat
     if !changement {

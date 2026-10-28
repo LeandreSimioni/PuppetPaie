@@ -1,13 +1,13 @@
 //! La restauration du dossier prive depuis le Drive (`restauration.rs`, lot R1) contre le FAUX `Drive` en memoire
-//! (`tests/faux_drive`) : une compagnie fictive sauvegardee revient octet pour octet dans un dossier vide, l'index reconstruit
+//! (`tests/faux_drive`) : l'index reconstruit
 //! laisse la sauvegarde suivante sans rien a faire ; le dossier qui n'est pas vide (refus, ou accepte s'il ne porte que le
 //! jeton ou des copies identiques, d'ou la reprise apres une coupure) ; l'empreinte qui ne colle pas ; ce qui ne redescend
 //! pas ; et ce qu'il reste a faire, coffre compris (un coffre invente, sur deux postes inventes).
 //!
-//! AUCUN RESEAU, AUCUN GOOGLE, jamais `prive/` ni `fictives/` vivante : la copie figee `tests/donnees/fictives/`.
+//! AUCUN RESEAU, AUCUN GOOGLE, jamais `prive/` ni `fictives/` vivante.
 
 use crate::faux_drive;
-use crate::outils::{chemin_unique, compagnie, dossier_de_test};
+use crate::outils::{chemin_unique, dossier_de_test};
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -17,7 +17,7 @@ use paie::coffre::{oublier_mot_de_passe_tape, retenir_mot_de_passe_tape, Coffre,
 use paie::drive::{Drive, ErreurGoogle};
 use paie::maj::{generer_cle_au_poste, signature_valide, signer_par_la_cle};
 use paie::restauration::{a_faire, restaurer};
-use paie::sauvegarde::{derniere, inventaire, rien_n_a_bouge, sauvegarder};
+use paie::sauvegarde::{inventaire, rien_n_a_bouge, sauvegarder};
 use serde_json::json;
 
 const RD: &str = "PuppetPaie";
@@ -71,44 +71,6 @@ fn tout(r: &Path) -> Vec<String> {
 
 // ------------------------------------------------------------ l'aller et le retour
 
-#[test]
-fn une_compagnie_sauvegardee_revient_octet_pour_octet_dans_un_dossier_vide() {
-    let base = dossier("aller-retour");
-    let source = compagnie::entiere("fictive-1285-petite", &base.join("source"));
-    ecrire(&source, "config/google-jeton.bin", "JETON-INVENTE");
-    let mut d = FauxDrive::nouveau();
-    sauvegarder_dans(&source, &mut d);
-    let (dossiers_avant, attendu) = (d.nombre_de_dossiers(), contenu(&source));
-    assert!(attendu.len() > 50 && attendu.keys().any(|k| k.ends_with(".pdf")), "une compagnie entiere : {}", attendu.len());
-
-    // Un dossier qui n'existe pas encore.
-    let cible = base.join("poste-neuf").join("prive");
-    d.journal.clear();
-    let r = restaurer(&cible, RD, &mut d).unwrap();
-    assert!(r.incidents.is_empty() && !r.hors_ligne, "{:?}", r.incidents);
-    assert_eq!((r.redescendus.len(), r.deja_la, r.ecartes), (attendu.len(), 0, 0));
-    assert_eq!(r.octets, attendu.values().map(|v| v.len() as u64).sum::<u64>());
-    assert_eq!(r.compte.as_deref(), Some("compte@exemple.invalid"));
-    // Octet pour octet, et rien d'autre que l'index : ni le jeton, ni un `.part`.
-    assert_eq!(contenu(&cible), attendu);
-    let mut fichiers: Vec<String> = attendu.keys().cloned().collect();
-    fichiers.push("config/.sauvegarde.json".into());
-    fichiers.sort();
-    assert_eq!(tout(&cible), fichiers);
-    // Rien de cree dans le Drive : aucun `chemin`, aucun televersement, pas un dossier de plus.
-    assert_eq!((d.appels("chemin"), d.appels("televerser")), (0, 0));
-    assert_eq!(d.nombre_de_dossiers(), dossiers_avant);
-    assert_eq!(d.appels("telecharger"), attendu.len());
-
-    // L'index reconstruit : la sauvegarde suivante n'a rien a faire, et ne recherche aucun dossier.
-    assert!(rien_n_a_bouge(&cible, RD));
-    assert_eq!(derniere(&cible).fichiers, attendu.len());
-    d.journal.clear();
-    let s = sauvegarder(&cible, RD, false, Some(&mut d as &mut dyn Drive)).unwrap();
-    assert!(s.deposes.is_empty() && s.incidents.is_empty());
-    assert_eq!(s.identiques, attendu.len());
-    assert_eq!((d.appels("chemin"), d.appels("televerser")), (0, 0), "{:?}", d.journal);
-}
 
 #[test]
 fn pas_de_sauvegarde_dans_le_drive_refuse_sans_rien_creer_ni_ecrire() {

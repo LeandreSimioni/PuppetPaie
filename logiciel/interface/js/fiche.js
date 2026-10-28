@@ -1356,17 +1356,13 @@ function aRemplir(a) {
  */
 async function enregistrerFiche(fiche) {
   const donnees = lireFormulaire();
+  // Le moteur dit ce qui change une valeur existante : chacune demande sa
+  // date d'effet, et le moteur refuse sans elle (toute la configuration est
+  // datée). Une fiche neuve, une case vide qu'on remplit : rien à demander.
   const { changements } = await api("changements-declares",
     { nom: FICHE_ACTIVE, cle: fiche.cle, donnees });
-  // Ce que le moteur a seul remis en forme ne se demande pas : il le date
-  // au jour de l'enregistrement (voir `changements_declares`).
-  // Et une valeur qui n'est jamais partie dans une déclaration n'a rien à
-  // dater non plus : la boîte « à partir de quand » s'ouvrait sur une fiche
-  // qu'on venait de créer (30/09/2026). Elle se date au jour, en silence.
-  const aDemander = changements.filter((c) => !c.silencieux
-    && ((c.deja_declare || {}).declarations || 0) > 0);
-  if (aDemander.length) {
-    const daté = await demanderDateDEffet(aDemander);
+  if (changements.length) {
+    const daté = await demanderDateDEffet(changements);
     if (!daté) return;                       // annulé : rien n'est écrit
     return ecrireFiche(fiche, donnees, daté);
   }

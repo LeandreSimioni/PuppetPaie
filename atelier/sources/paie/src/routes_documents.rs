@@ -65,15 +65,15 @@ pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, char
     let mut m = Moteur::nouveau(o, ctx);
     let g = m.globales()?;
     let lignes = m.lignes()?;
-    // `empreintes_engagements` et `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
+    // `numeros_saisis` : `{}` quand le mois ne se lit pas ; ici il s'est lu.
     let rangs: Vec<(String, String)> = paies
         .iter()
         .map(|p| Ok((valeur_en_texte(get(&p.salarie, "_cle")?), p.engagement.debut.iso())))
         .collect::<R<_>>()?;
-    // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur empreinte et leur numero.
+    // Par RANG dans la saisie : deux contrats du meme salarie et du meme jour ont chacun leur numero.
     let uniques: Vec<(String, String)> = rangs.iter().enumerate().map(|(i, (c, d))| (c.clone(), format!("{}#{}", d, i))).collect();
     let saisie = SaisieMois { data, paies: Vec::new() };
-    let actuelles = Moteur::empreintes_engagements(&saisie, &uniques);
+    let avenants = crate::routes_mois::avenants_a_faire(ctx, &mois)?;
     let saisis = Moteur::numeros_saisis(&saisie, &uniques);
     let cles_paies = etats::cles_des_paies(&lignes, &crate::routes_mois::contrats_des_paies(&paies))?;
 
@@ -101,20 +101,15 @@ pub(crate) fn signature_apercu(o: &HashMap<String, String>, ctx: &Contexte, char
         }
         let (cle_s, debut) = rangs[i].clone();
         let cles = &cles_paies[i];
-        let rang_du_jour = rangs[..i].iter().filter(|r| **r == rangs[i]).count();
-        let ecart = crate::avenant::ecart_du_contrat(ctx, &mois, &cle_s, &debut, Some(cles[0].2.as_str()), rang_du_jour);
         let etat = crate::routes_mois::etat_signature(
             premier(&g.contrats, cles).unwrap_or(nul()),
             premier(&g.recus, cles).unwrap_or(nul()),
             premier(&g.recus_par, cles).unwrap_or(nul()),
-            premier(&g.partis, cles).unwrap_or(nul()),
-            actuelles.get(&uniques[i]).map(String::as_str),
-            &mois,
             dans_l_ensemble(&g.renvoyes, cles),
             premier(&g.numeros_partis, cles).unwrap_or(nul()),
             saisis.get(&uniques[i]).unwrap_or(nul()),
             premier(&g.avenants, cles).unwrap_or(nul()),
-            &ecart,
+            avenants.contains(&(cle_s.clone(), p.engagement.numero.clone().unwrap_or_default())),
         );
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
@@ -267,7 +262,7 @@ pub(crate) fn numero_du_contrat(
 }
 
 /// `apercu_avenant` : ce que l'avenant d'un contrat parti modifierait, article par article, l'ancien
-/// texte (lu dans le PDF parti) et le nouveau (la paie validee). Rien n'est ecrit.
+/// texte (celui de la version sur laquelle il est parti) et le nouveau (la paie validee). Rien n'est ecrit.
 pub(crate) fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> R<Value> {
     let salarie_v = cle(charge, "salarie")?;
     let debut_v = cle(charge, "debut")?;
@@ -309,27 +304,33 @@ pub(crate) fn avenant_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge
         ));
     };
     let p = &paies[i];
-    let Some(pdf) = crate::avenant::chemin_piece(&ctx.racine, &parti.mois, &parti.fichier) else {
-        return Err(erreur(
-            "ErreurOperation",
-            format!("Le contrat parti ({}) n'est plus dans sorties/{} : l'avenant ne peut pas citer son texte.", valeur_en_texte(&parti.fichier), mois_parti),
-        ));
-    };
     let g = m.globales()?;
     let deja = crate::avenant::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
-    // Ce que les avenants SIGNES ont deja ecrit fait foi, paragraphe par paragraphe.
-    let texte_signe = crate::avenant::textes_des_avenants_de(&deja, true)?;
     let ent = crate::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = crate::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;
     let numero_porte = Some(p.engagement.numero.clone().unwrap_or_else(|| "None".to_string()));
     let vals = crate::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
-    let texte_pdf = crate::avenant::texte_du_pdf(&pdf)?;
-    let modifs = match crate::avenant::modifications(&modele, &vals, &texte_pdf, &numero_parti, &texte_signe) {
-        Ok(v) => v,
-        Err(crate::avenant::ErrAvenant::Impossible(msg)) => return Err(erreur("ErreurOperation", msg)),
-        Err(crate::avenant::ErrAvenant::Autre(msg)) => return Err(Echec::from(msg)),
-    };
+    // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)
+    // est parti, ecrit du modele avec les valeurs de cette version.
+    let departs = crate::journal::departs(&ctx.racine)?;
+    let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
+        let v = e.valide()?.clone();
+        let b = Value::Object(v.objet().brut.clone());
+        (engagement::cle_de_l_engagement(ctx, &b).as_deref() == Some(salarie.as_str()) && b.get("numero").map(valeur_en_texte) == p.engagement.numero).then_some(v)
+    });
+    let ancienne = siens
+        .as_ref()
+        .and_then(|v| engagement::etats::version_au_depart(ctx, v, &departs, engagement::departs::Envoi::Contrat))
+        .and_then(|x| x.get("paies")?.get(&mois_parti)?.get("paie").cloned())
+        .ok_or_else(|| {
+            erreur(
+                "ErreurOperation",
+                format!("Le journal ne dit pas sur quelle version de l'engagement le contrat n° {} est parti : l'avenant ne peut pas citer son ancien texte.", numero_parti),
+            )
+        })?;
+    let avant = crate::avenant::valeurs_de_la_paie(ctx, &ent, &ancienne, Some(&numero_porte))?;
+    let modifs = crate::avenant::modifications(&modele, &avant, &vals)?;
     let mut signes: Vec<i64> = Vec::new();
     for a in deja.iter().filter(|a| a.get("signe").is_some_and(vrai)) {
         signes.push(a.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("TypeError", "un numero d'avenant n'est pas un entier"))?);
@@ -853,7 +854,7 @@ fn envoi_apercu(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value) -> 
     let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
     // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`routes_envois::choisir`).
-    let choix = crate::routes_envois::choisir(ctx, &mois, &data, &paies)?;
+    let choix = crate::routes_envois::choisir(ctx, &mois, &paies)?;
     // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`routes_envois`).
     let messages = if prets.get("pret").is_some_and(vrai) {
         let mut cles: Vec<String> = Vec::new();

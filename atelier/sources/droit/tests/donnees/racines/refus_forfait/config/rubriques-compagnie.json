@@ -1,35 +1,29 @@
 {
  "rubriques": {
   "maison": {
-   "libelle": "Prime maison",
-   "unite": "heure",
-   "nature": "prime",
-   "saisie": [
-    "quantite",
-    "montant"
-   ],
-   "soumis": true,
-   "imposable": true,
-   "conges_spectacles": true,
-   "source": "Accord d'entreprise du test.",
-   "sens": "+",
-   "heures_forfait": 7,
-   "plafond": "cachet",
-   "aem": "cachet",
-   "dsn_type": "prime",
-   "dsn_autres_bruts": "25",
-   "annexe": "X",
-   "plafond_mensuel": 28,
-   "plafond_annuel_heures": {
-    "moins_de_50_ans": 507,
-    "50_ans_et_plus": 600
-   },
-   "compte_pour": "ouverture_des_droits",
-   "retabli": true,
-   "suspension": false,
-   "arret_de_travail": true,
-   "conges_pris": false,
-   "dsn_bloc52": "05"
+   "libelle": [{"valeur": "Prime maison"}],
+   "unite": [{"valeur": "heure"}],
+   "nature": [{"valeur": "prime"}],
+   "saisie": [{"valeur": ["quantite", "montant"]}],
+   "soumis": [{"valeur": true}],
+   "imposable": [{"valeur": true}],
+   "conges_spectacles": [{"valeur": true}],
+   "source": [{"valeur": "Accord d'entreprise du test."}],
+   "sens": [{"valeur": "+"}],
+   "heures_forfait": [{"valeur": 7}],
+   "plafond": [{"valeur": "cachet"}],
+   "aem": [{"valeur": "cachet"}],
+   "dsn_type": [{"valeur": "prime"}],
+   "dsn_autres_bruts": [{"valeur": "25"}],
+   "annexe": [{"valeur": "X"}],
+   "plafond_mensuel": [{"valeur": 28}],
+   "plafond_annuel_heures": [{"valeur": {"moins_de_50_ans": 507, "50_ans_et_plus": 600}}],
+   "compte_pour": [{"valeur": "ouverture_des_droits"}],
+   "retabli": [{"valeur": true}],
+   "suspension": [{"valeur": false}],
+   "arret_de_travail": [{"valeur": true}],
+   "conges_pris": [{"valeur": false}],
+   "dsn_bloc52": [{"valeur": "05"}]
   }
  }
 }

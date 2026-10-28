@@ -263,9 +263,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     // LES CONTRATS DES PERMANENTS (#236) : une compagnie qui dit employer des salaries au mois APRES avoir enregistre ses
     // organismes n'a pas leurs adhesions de prevoyance et de sante, et le mois d'un permanent se refuse alors
     // (`dsn::affiliations`, « affiliations_par_nature.permanent.references est null »). Rien ne le disait d'avance.
-    let orgs_f = ctx.racine.join("config").join("organismes.json");
-    if ctx.emploie_des_permanents() && orgs_f.is_file() {
-        let orgs = std::fs::read(&orgs_f).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok()).unwrap_or(Value::Null);
+    if let (true, Ok(Some(orgs))) = (ctx.emploie_des_permanents(), ctx.organismes()) {
         if !orgs.pointer("/affiliations_par_nature/permanent/references").is_some_and(vrai) {
             out.push(manque(
                 "organismes_permanents",
@@ -277,8 +275,8 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
             ));
         }
     }
-    // Les organismes de la DSN : aucun ecran ne les ecrit encore.
-    if !orgs_f.is_file() {
+    // Les organismes de la DSN : la compagnie ne les a pas encore enregistres.
+    if !ctx.racine.join("config").join(droit::contexte::ORGANISMES).is_file() {
         out.push(manque(
             "organismes",
             "Les organismes et les contrats de la DSN".into(),

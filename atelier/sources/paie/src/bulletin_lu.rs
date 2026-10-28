@@ -1644,7 +1644,7 @@ pub fn compteurs(b: &BulletinLu, racine: &Path) -> Resultat<Compteurs> {
             avertissements.push(format!("« {} » : sans rubrique du catalogue, la ligne n'entre dans aucun compteur", l.libelle));
             continue;
         };
-        let r = droit::catalogue::rubrique(racine, code)?;
+        let r = droit::catalogue::rubrique(racine, code, &b.fin)?;
         let cachet = r.unite == "cachet";
         let forfait = r.heures_forfait.map(socle::num::dec_f64).transpose()?;
         let par_unite = forfait.or(l.heures).or_else(|| (r.unite == "heure").then_some(Decimal::ONE));
@@ -1701,7 +1701,7 @@ pub fn compteurs(b: &BulletinLu, racine: &Path) -> Resultat<Compteurs> {
         if cachets == Some(zero) {
             confronter("heures", "ses lignes", x, &mut heures);
         } else {
-            let forfait = droit::catalogue::rubrique(racine, "cachet")?.heures_forfait.map(socle::num::dec_f64).transpose()?;
+            let forfait = droit::catalogue::rubrique(racine, "cachet", &b.fin)?.heures_forfait.map(socle::num::dec_f64).transpose()?;
             let ensemble = match (heures, cachets, forfait) {
                 (Some(h), Some(c), Some(f)) => Some(h + c * f),
                 _ => None,

@@ -1,18 +1,23 @@
-//! LES ORGANISMES ET LES CONTRATS DE LA DSN (09/10/2026). `config/organismes.json` n'avait aucun ecran : une compagnie
-//! neuve ne pouvait pas faire sa premiere DSN, et le fichier recopiait des valeurs qui vivent ailleurs (le taux AT/MP,
-//! fige quand il changeait ; le compte France Travail, deja dans la fiche Entreprise).
+//! LES ORGANISMES ET LES CONTRATS DE LA DSN : `config/organismes.json`, ce que la DSN, les signalements et l'amorcage
+//! lisent des organismes de la compagnie.
 //!
-//! Le fichier se COMPOSE ici, une fois, quand la compagnie enregistre ses contrats, et la DSN le lit tel quel :
+//! Le fichier se COMPOSE ici, pour une periode, quand la compagnie enregistre ses contrats :
 //! - la partie normative (organismes, CTP, bloc 08) vient de `donnees/organismes-base.json`, la meme pour toutes ;
-//! - les contrats attendus aussi (`contrats` : ceux de toutes les compagnies, puis ceux de la convention), plus la
-//!   CASC-SVP (`casc-svp-base.json`) et les contributions de branche en DSN (`contributions_dsn` du bareme) : les regles
-//!   ne sont pas recopiees ;
+//! - les contrats attendus aussi (`contrats` : ceux de toutes les compagnies, puis ceux de la convention de la
+//!   periode), plus la CASC-SVP (`casc-svp-base.json`) et les contributions de branche en DSN (`contributions_dsn` du
+//!   bareme) : les regles ne sont pas recopiees ;
 //! - la compagnie ne saisit que ce qui est a elle : la reference de ses contrats chez l'organisme, et l'organisme quand
 //!   la branche n'en designe pas.
 //!
-//! Les identifiants d'adhesion deja declares (S21.G00.15.005) ne bougent jamais : relus dans le fichier en place. Un
-//! contrat des permanents (`si_permanents`) n'est exige que le jour ou la compagnie en emploie un : sans lui, la DSN
-//! refuse le permanent (`dsn::affiliations`), pas la compagnie.
+//! LE FICHIER EST DATE comme toute la configuration (`contexte::fiche_au`) : chaque cle est une liste `{depuis,
+//! valeur}`, lue par `Contexte::organismes` a la date de la periode. Enregistrer pour un mois ecrit ce qui change a
+//! partir du premier jour de ce mois (`contexte::dater`) ; ce qui precede garde ses contrats (une compagnie qui change
+//! de convention garde ceux de l'ancienne pour les mois d'avant). La premiere composition vaut de tout temps.
+//!
+//! Les identifiants d'adhesion deja declares (S21.G00.15.005) ne bougent jamais : relus dans le fichier en place, et un
+//! identifiant nouveau n'en reprend aucun qu'une autre periode porte. Un contrat des permanents (`si_permanents`) n'est
+//! exige que le jour ou la compagnie en emploie un : sans lui, la DSN refuse le permanent (`dsn::affiliations`), pas la
+//! compagnie.
 
 use serde_json::{json, Map, Value};
 
@@ -99,7 +104,7 @@ fn attendus(ctx: &Contexte, base: &Value) -> R<Vec<Value>> {
     }
     // Les contributions de branche en DSN : le bareme dit lesquelles. Un bareme illisible (taux AT/MP manquant...) se
     // signale ailleurs (`pour-demarrer`) ; ici, il ne fait que taire ces lignes.
-    if let Ok(bar) = ctx.bareme(&ctx.aujourdhui) {
+    if let Ok(bar) = ctx.bareme(&ctx.lue_au) {
         for c in liste(g(&bar, "contributions_dsn")) {
             let nom = txt(g(&c, "contribution"));
             if nom.is_empty() {
@@ -176,13 +181,31 @@ fn ligne(spec: &Value, fichier: &Value) -> Value {
     })
 }
 
+/// Le fichier en place, tel qu'il vaut a la date du contexte (`Contexte::organismes`) ; `{}` s'il n'est pas compose.
 fn fichier_en_place(ctx: &Contexte) -> R<Value> {
+    Ok(ctx.organismes().map_err(plain)?.unwrap_or_else(|| json!({})))
+}
+
+/// Le fichier date tel qu'il est sur le disque ; vide s'il n'est pas compose.
+fn fichier_date(ctx: &Contexte) -> R<Map<String, Value>> {
     let p = chemin(ctx);
-    if p.is_file() {
-        lire_json(&p).map_err(plain)
-    } else {
-        Ok(json!({}))
+    if !p.is_file() {
+        return Ok(Map::new());
     }
+    match lire_json(&p).map_err(plain)? {
+        Value::Object(m) => Ok(m),
+        _ => Err(plain("config/organismes.json : un objet est attendu.")),
+    }
+}
+
+/// Les identifiants d'adhesion qu'une periode quelconque du fichier porte : un identifiant nouveau n'en reprend aucun.
+fn references_prises(ctx: &Contexte) -> R<Vec<u32>> {
+    let date = fichier_date(ctx)?;
+    Ok(droit::contexte::toutes_les_valeurs(date.get("adhesions_prevoyance"))
+        .into_iter()
+        .flat_map(liste)
+        .filter_map(|a| txt(g(&a, "reference")).parse::<u32>().ok())
+        .collect())
 }
 
 /// Une ligne se montre-t-elle a cette compagnie ? Un contrat des permanents (`role` : prevoyance ou sante, les
@@ -215,8 +238,9 @@ fn couvre(spec: &Value, (debut, fin): &(Jour, Jour)) -> R<bool> {
 /// regardee (`couvre`).
 pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     let base = base()?;
-    let fichier = fichier_en_place(ctx)?;
     let periode = periode(ctx, charge)?;
+    let ctx = &ctx.au(&periode.1).map_err(plain)?;
+    let fichier = fichier_en_place(ctx)?;
     let mut lignes: Vec<Value> = Vec::new();
     for s in attendus(ctx, &base)? {
         if se_montre(ctx, &s) && couvre(&s, &periode)? {
@@ -231,14 +255,14 @@ pub fn lire(ctx: &Contexte, charge: &Value) -> R<Value> {
     }))
 }
 
-/// Compose `config/organismes.json` depuis la base, les contrats attendus et ce que la compagnie a saisi
-/// (`saisies` : cle -> {libelle, organisme}). Chaque contrat garde ses dates (`depuis`, `jusqu_a`) : la DSN de chaque
-/// mois ne lit que ceux qui le couvrent. Un contrat a saisir que la periode regardee ne couvre pas ne se reclame pas :
-/// l'ecran ne l'a pas propose.
+/// Compose les organismes de la periode (`ctx` : le contexte de la periode) depuis la base, les contrats attendus et ce
+/// que la compagnie a saisi (`saisies` : cle -> {libelle, organisme}). Chaque contrat garde ses dates (`depuis`,
+/// `jusqu_a`) : la DSN de chaque mois ne lit que ceux qui le couvrent. Un contrat a saisir que la periode regardee ne
+/// couvre pas ne se reclame pas : l'ecran ne l'a pas propose.
 pub fn composer(ctx: &Contexte, saisies: &Map<String, Value>, periode: &(Jour, Jour)) -> R<Value> {
     let base = base()?;
     let fichier = fichier_en_place(ctx)?;
-    let mut prises: Vec<u32> = Vec::new();
+    let mut prises: Vec<u32> = references_prises(ctx)?;
     let mut retenus: Vec<(Value, Value)> = Vec::new();
     for spec in attendus(ctx, &base)? {
         let l = ligne(&spec, &fichier);
@@ -330,7 +354,8 @@ Organismes et contrats) : un permanent est refusé tant qu'elles manquent.",
     out.insert(
         "_quoi".into(),
         json!("Compose par PuppetPaie (Configuration › Organismes et contrats) depuis donnees/organismes-base.json et les \
-contrats saisis. Ne pas modifier a la main : un nouvel enregistrement le recompose."),
+contrats saisis, date comme toute la configuration : chaque cle est une liste {depuis, valeur}. Ne pas modifier a la \
+main : un nouvel enregistrement le recompose a partir du mois enregistre."),
     );
     // Une reference de versement deja posee (le compte France Travail d'un fichier d'avant) est gardee : la DSN refuse
     // si elle contredit la fiche Entreprise (`dsn::reference_versement`).
@@ -348,16 +373,28 @@ contrats saisis. Ne pas modifier a la main : un nouvel enregistrement le recompo
     Ok(Value::Object(out))
 }
 
-/// `organismes-enregistrer` : `{"contrats": {cle: {libelle, organisme}}, "mois": "AAAA-MM"}` ; compose, ecrit, et rend
-/// la lecture.
+/// `organismes-enregistrer` : `{"contrats": {cle: {libelle, organisme}}, "mois": "AAAA-MM"}` ; compose les organismes
+/// du mois (sous la configuration du mois), ecrit ce qui change a partir de son premier jour (`contexte::dater` : la
+/// premiere composition vaut de tout temps), et rend la lecture. Ce qui precede le mois ne change pas.
 pub fn enregistrer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let saisies = g(charge, "contrats").as_object().cloned().unwrap_or_default();
-    let compose = composer(ctx, &saisies, &periode(ctx, charge)?)?;
+    let periode = periode(ctx, charge)?;
+    let du_mois = ctx.au(&periode.1).map_err(plain)?;
+    let compose = composer(&du_mois, &saisies, &periode)?;
+    let en_vigueur = du_mois.au(&periode.0).map_err(plain)?.organismes().map_err(plain)?.unwrap_or_else(|| json!({}));
+    let mut date = fichier_date(ctx)?;
+    for (k, v) in compose.as_object().into_iter().flatten() {
+        if k.starts_with('_') {
+            date.insert(k.clone(), v.clone());
+        } else if en_vigueur.get(k) != Some(v) {
+            droit::contexte::dater(&mut date, k, v.clone(), Some(&periode.0), None);
+        }
+    }
     let p = chemin(ctx);
     if let Some(parent) = p.parent() {
         std::fs::create_dir_all(parent).map_err(|e| plain(e.to_string()))?;
     }
     crate::routes_contrats::sauver_avant(&p)?;
-    ecrire_json(&p, &compose, 2).map_err(plain)?;
+    ecrire_json(&p, &Value::Object(date), 2).map_err(plain)?;
     lire(ctx, charge)
 }

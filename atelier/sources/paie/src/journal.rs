@@ -94,6 +94,8 @@ pub struct Note<'a> {
     pub reponse: &'a str,
     pub trace: Option<&'a str>,
     pub detail: Option<&'a Value>,
+    /// Pour une ligne d'envoi : la version de chaque engagement qu'elle couvre (`versions_du_mois`).
+    pub versions: Option<&'a Value>,
     /// L'heure de la ligne (ISO, a la seconde) ; `origine` doit alors la justifier.
     pub quand: &'a str,
     pub origine: &'a str,
@@ -138,12 +140,121 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
         Some(d) if vrai(d) => d.clone(),
         _ => json!({}),
     });
+    if let Some(v) = n.versions {
+        l.insert("versions".into(), v.clone());
+    }
     let ligne = Value::Object(l);
     let p = chemin(racine);
     let mut lignes = if p.exists() { lignes_du_fichier(&p)? } else { Vec::new() };
     lignes.push(ligne.clone());
     ecrire_json(&p, &Value::Array(lignes), 2)?;
     Ok(ligne)
+}
+
+/// CE QUI EST PARTI, pour l'engagement (`engagement::departs`) : chaque ligne d'envoi acceptee porte, pour chaque
+/// engagement qu'elle couvre, la version sur laquelle elle est partie (`versions` : `[{"salarie", "numero",
+/// "version", "mois"?}]` ; `mois`, pour la correction d'un mois passe qu'une DSN porte : le mois corrige). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
+pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
+    use engagement::departs::{Depart, Departs, Envoi};
+    let mut d = Departs::default();
+    for l in lire(racine, None, None, false)? {
+        let envoi = match l.get("quoi").and_then(Value::as_str) {
+            Some("contrat-signature") => Envoi::Contrat,
+            Some("dpae") => Envoi::Dpae,
+            Some("documents") => Envoi::Documents,
+            Some("dsn") if l.get("detail").and_then(|d| d.get("nature")).and_then(Value::as_str).is_some_and(|n| crate::depot::SIGNALEMENTS.contains(&n)) => {
+                Envoi::Signalement
+            }
+            Some("dsn") => Envoi::Dsn,
+            _ => continue,
+        };
+        if l.get("accepte") == Some(&Value::Bool(false)) || l.get("mode").and_then(Value::as_str) != Some(REEL) {
+            continue;
+        }
+        let mois = matches!(envoi, Envoi::Documents | Envoi::Dsn).then(|| l.get("mois").and_then(Value::as_str).map(String::from)).flatten();
+        let le = l.get("quand").and_then(Value::as_str).unwrap_or_default().to_string();
+        for v in l.get("versions").and_then(Value::as_array).into_iter().flatten() {
+            let (Some(cle), Some(numero), Some(version)) =
+                (v.get("salarie").and_then(Value::as_str), v.get("numero").and_then(Value::as_str), v.get("version").and_then(Value::as_u64))
+            else {
+                continue;
+            };
+            // La correction d'un mois passe que la DSN porte : sa version est celle de l'engagement du mois corrige.
+            let corrige = (envoi == Envoi::Dsn).then(|| v.get("mois").and_then(Value::as_str).map(String::from)).flatten().filter(|m| Some(m) != mois.as_ref());
+            let (m, par) = match corrige {
+                Some(c) => (Some(c), mois.clone()),
+                None => (mois.clone(), None),
+            };
+            d.noter(cle, numero, Depart { envoi, mois: m, par, version, le: le.clone() });
+        }
+    }
+    Ok(d)
+}
+
+/// LES VERSIONS QU'UN ENVOI EMPORTE : pour chaque engagement valide que `mois` montre et que `garder` retient (la cle du
+/// salarie, le numero du contrat, l'engagement), `{"salarie", "numero", "version"}`. Ce que la ligne du journal de l'envoi
+/// porte : elles se lisent AVANT l'envoi, qui ne part pas d'un engagement a revalider (`Valide::a_revalider`).
+pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: impl Fn(&str, &str, &Value) -> bool) -> Resultat<Value> {
+    let mut out = Vec::new();
+    for e in engagement::etats::du_mois(ctx, mois)? {
+        let Some(v) = e.valide() else { continue };
+        let brut = Value::Object(v.objet().brut.clone());
+        let (Some(cle), Some(numero)) = (engagement::cle_de_l_engagement(ctx, &brut), brut.get("numero").and_then(Value::as_str)) else { continue };
+        if garder(&cle, numero, &brut) {
+            if let Some(phrase) = v.a_revalider() {
+                return Err(phrase);
+            }
+            let version = v.version().ok_or("validation illisible : `version`")?;
+            out.push(json!({"salarie": cle, "numero": numero, "version": version}));
+        }
+    }
+    Ok(Value::Array(out))
+}
+
+/// LES VERSIONS QUE PORTENT LES CORRECTIONS d'une DSN mensuelle : pour chaque correction d'un mois passe que le fichier
+/// `fichier` de `mois` porte (`preparee_par`), la version de l'engagement du mois corrige qu'elle declare,
+/// `{"salarie", "numero", "version", "mois": <le mois corrige>}`.
+pub fn versions_des_corrections(ctx: &droit::contexte::Contexte, mois: &str, fichier: &str) -> socle::echec::R<Vec<Value>> {
+    let mut out = Vec::new();
+    for c in crate::routes_ecrites::toutes_les_corrections(ctx)? {
+        let prep = c.get("preparee_par").filter(|p| vrai(p));
+        let ici = prep.is_some_and(|p| p.get("mois").and_then(Value::as_str) == Some(mois) && p.get("fichier").and_then(Value::as_str) == Some(fichier));
+        if !ici || c.get("annulee_le").is_some_and(vrai) {
+            continue;
+        }
+        let corrige = socle::valeur::valeur_en_texte(c.get("mois").unwrap_or(&Value::Null));
+        let cle = c.get("salarie").and_then(Value::as_str).unwrap_or_default().to_string();
+        let numero = c.get("engagement").and_then(|e| e.get("numero")).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+        let siens = versions_du_mois(ctx, &corrige, |k, n, _| k == cle && n == numero)?;
+        for mut v in siens.as_array().cloned().unwrap_or_default() {
+            v["mois"] = json!(corrige);
+            if !out.contains(&v) {
+                out.push(v);
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// `versions_du_mois` des contrats qui partent (`[{"salarie", "numero", "mois"}]`, chacun lu dans le mois qu'il nomme).
+pub fn versions_des_contrats(ctx: &droit::contexte::Contexte, contrats: &[Value]) -> Resultat<Value> {
+    let mut mois: Vec<String> = contrats.iter().filter_map(|c| c.get("mois").and_then(Value::as_str).map(String::from)).collect();
+    mois.sort();
+    mois.dedup();
+    let mut out = Vec::new();
+    for m in mois {
+        let siens = |cle: &str, n: &str, _: &Value| {
+            contrats.iter().any(|c| c["mois"].as_str() == Some(m.as_str()) && c["salarie"].as_str() == Some(cle) && c["numero"].as_str() == Some(n))
+        };
+        if let Value::Array(v) = versions_du_mois(ctx, &m, siens)? {
+            for x in v {
+                if !out.contains(&x) {
+                    out.push(x);
+                }
+            }
+        }
+    }
+    Ok(Value::Array(out))
 }
 
 /// Le plus grand numero d'ordre (`S20.G00.05.004`) des signalements REELS deja envoyes par la compagnie, tous

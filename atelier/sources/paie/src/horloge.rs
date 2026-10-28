@@ -871,7 +871,7 @@ mod tests {
     fn une_echeance_d_avant_l_ajout_de_la_compagnie_ne_se_coche_pas() {
         let cochees = |cree: Option<&str>| {
             let r = racine_d_essai(true);
-            std::fs::write(r.join("config/entreprise.json"), r#"{"idcc": "3090"}"#).unwrap();
+            std::fs::write(r.join("config/entreprise.json"), r#"{"idcc": [{"depuis": "2026-01-01", "valeur": "3090"}]}"#).unwrap();
             if let Some(c) = cree {
                 std::fs::write(r.join("config").join(crate::interface::compagnies::FICHIER_CREATION), format!(r#"{{"le": "{}"}}"#, c)).unwrap();
             }

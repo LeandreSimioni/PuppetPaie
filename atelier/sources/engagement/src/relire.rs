@@ -105,7 +105,26 @@ pub fn engagements_ecrits(ctx: &Contexte, data: &Value, paies: &[&Value]) -> Res
 
 /// Une `Paie` du moteur, sur l'engagement `eng`, depuis sa forme ecrite `v`.
 pub fn paie(ctx: &Contexte, eng: Engagement, v: &Value) -> Resultat<Paie> {
-    let sal = fiche_de_l_engagement(ctx, &eng)?;
+    paie_lue(ctx, eng, v, None)
+}
+
+/// Une `Paie` du moteur, sur l'engagement `eng`, depuis sa forme ecrite `v`, sur les fiches du salarie telles que son
+/// calcul les a lues (`fiches`, `fiches_du_calcul`) plutot que sur la fiche d'aujourd'hui.
+pub fn paie_sur_ses_fiches(ctx: &Contexte, eng: Engagement, v: &Value, fiches: &Value) -> Resultat<Paie> {
+    paie_lue(ctx, eng, v, Some(fiches))
+}
+
+/// Les fiches du salarie telles que le calcul de `p` les a lues : `{"paie": <fiche>, "periodes": [<fiche de chaque
+/// periode elementaire>]}`. Elles s'ecrivent a cote de la paie, et ce qui relit ce qui a ete declare les relit.
+pub fn fiches_du_calcul(p: &Paie) -> Value {
+    json!({ "paie": p.salarie, "periodes": p.periodes.iter().map(|q| q.salarie.clone()).collect::<Vec<_>>() })
+}
+
+fn paie_lue(ctx: &Contexte, eng: Engagement, v: &Value, fiches: Option<&Value>) -> Resultat<Paie> {
+    let sal = match fiches.and_then(|f| f.get("paie")).filter(|f| f.is_object()) {
+        Some(f) => f.clone(),
+        None => fiche_de_l_engagement(ctx, &eng)?,
+    };
     let nat = eng.nat()?;
     let spectacle = if nat.mensuelle() {
         Value::Null
@@ -190,7 +209,7 @@ pub fn paie(ctx: &Contexte, eng: Engagement, v: &Value) -> Resultat<Paie> {
         .and_then(Value::as_array)
         .map_or_else(Vec::new, |a| a.iter().map(|x| Avis { info: drapeau(x, "info"), texte: texte_ou_vide(x, "texte") }).collect());
     // Les periodes elementaires d'un mois decoupe : chacune sur l'engagement borne a sa periode, aux termes qu'elle porte.
-    for x in v.get("periodes").and_then(Value::as_array).map_or(&[][..], |a| &a[..]) {
+    for (n, x) in v.get("periodes").and_then(Value::as_array).map_or(&[][..], |a| &a[..]).iter().enumerate() {
         let e = x.get("engagement").ok_or("paie ecrite illisible : `periodes.engagement`")?;
         let lire = |k: &str| e.get(k).filter(|j| !j.is_null()).map(|j| Jour::lire(&en_texte(j))).transpose();
         let (Some(debut), Some(fin)) = (lire("debut_periode")?, lire("fin_periode")?) else {
@@ -201,7 +220,8 @@ pub fn paie(ctx: &Contexte, eng: Engagement, v: &Value) -> Resultat<Paie> {
         sub.lignes = e.get("lignes").and_then(Value::as_array).cloned().unwrap_or_default();
         sub.quotite_contrat = decimal_opt(e.get("quotite"))?;
         sub.heures = decimal_opt(e.get("heures"))?;
-        p.periodes.push(paie(ctx, sub, x)?);
+        let sienne = fiches.and_then(|f| f.get("periodes")).and_then(|p| p.get(n)).map(|f| json!({ "paie": f }));
+        p.periodes.push(paie_lue(ctx, sub, x, sienne.as_ref())?);
     }
     Ok(p)
 }

@@ -16,7 +16,7 @@ use crate::dsn::{
     remunerations, req, usage_admet, Arret, Fichier, LOGICIEL, VERSION,
 };
 use engagement::Engagement;
-use socle::fichiers::{dossier_du_code, json_en_cache, lire_json, repr, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
 use socle::num::Resultat;
 
 pub const NATURE: &str = "07";
@@ -503,9 +503,10 @@ ou un annule."
     let paie = &paie;
     let e = &paie.engagement;
 
+    let fin_jour = d(&fin.fin)?;
+    let ctx = &ctx.au(&fin_jour)?;
     let ent0 = &ctx.entreprise;
     let s = &paie.salarie;
-    let fin_jour = d(&fin.fin)?;
     let bar = ctx.bareme(&fin_jour)?;
     let constitution = match o.date_constitution {
         Some(j) => j,
@@ -581,7 +582,7 @@ ou un annule."
     }
     // Les adhesions prevoyance, sans S21.G00.15.004 : la rubrique « personnel
     // couvert » est interdite dans un signalement.
-    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let orgs = ctx.organismes_exiges()?;
     // Le numero de licence EN VIGUEUR a la fin du contrat, pas la liste.
     let mut ent_licence = etab.as_object().cloned().unwrap_or_default();
     ent_licence.insert("licence_spectacle".into(), Value::String(ctx.licence(&fin_jour)?));
@@ -616,7 +617,7 @@ ou un annule."
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, &ent_l, s, &fin_jour)?;
+    crate::ntt::poser_ntt(&mut f, &ent_l, s, &crate::ntt::brute(ctx, s), &fin_jour)?;
 
     // ------------------------------------------------------------ S21 contrat
     let siens: Vec<&Arret> = arrets.iter().collect();

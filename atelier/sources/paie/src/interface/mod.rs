@@ -1207,6 +1207,7 @@ fn poser_le_banc(args: &[String]) -> Result<Vec<String>, String> {
 /// `paie interface [--port N] [--sans-navigateur] [--veille MINUTES]` : la fenetre dans le navigateur du poste.
 pub fn commande(args: &[String]) -> i32 {
     crate::commandes::compagnie::fixer_le_code();
+    crate::incidents::brancher_l_engagement();
     #[cfg(feature = "atelier")]
     let args = &match poser_le_banc(args) {
         Ok(reste) => reste,

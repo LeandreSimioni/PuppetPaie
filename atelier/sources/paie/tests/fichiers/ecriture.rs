@@ -121,6 +121,7 @@ fn note<'a>(quoi: &'a str) -> Note<'a> {
         reponse: "",
         trace: None,
         detail: None,
+        versions: None,
         quand: "",
         origine: "",
     }

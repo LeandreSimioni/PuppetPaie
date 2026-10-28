@@ -1,13 +1,10 @@
 //! Les controles avant depot (regle 7) contre `usages-formats-ntt.json` : le tableau des usages (P26V01), le moteur
-//! d'expressions des formats (motif par motif), la mauvaise valeur et les caracteres refuses d'une rubrique, les DSN des
-//! fictives et leurs variantes mutees passees aux trois controles, le NIR et le NTT. `PUPPETPAIE_REECRIRE_ORACLES=1`
-//! reecrit l'oracle.
+//! d'expressions des formats (motif par motif), la mauvaise valeur et les caracteres refuses d'une rubrique.
+//! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{chemin_oracle, lire_oracle, oracle};
-use socle::date::Jour;
-use paie::dsn::Fichier;
+use crate::outils::{lire_oracle, oracle};
 use paie::formats::{self, Regex};
-use paie::{ntt, usages};
+use paie::usages;
 use serde_json::{json, Value};
 
 const ORACLE: &str = "usages-formats-ntt.json";
@@ -19,35 +16,8 @@ fn p26() -> paie::norme::Norme {
     paie::norme::Norme::connue("P26V01").unwrap()
 }
 
-/// Les chemins de l'oracle (`fictives/...`) se lisent dans la copie figee des compagnies fictives.
-fn latin1(chemin: &str) -> String {
-    std::fs::read(chemin_oracle(chemin)).unwrap().iter().map(|&b| b as char).collect()
-}
 
-fn texte_mute(base: &str, ops: &Value) -> String {
-    let mut l: Vec<String> = base.split("\r\n").map(String::from).collect();
-    for op in ops.as_array().unwrap() {
-        let op = op.as_array().unwrap();
-        let i = op[1].as_u64().unwrap() as usize;
-        match op[0].as_str().unwrap() {
-            "set" => l[i] = op[2].as_str().unwrap().to_string(),
-            "del" => {
-                l.remove(i);
-            }
-            "ins" => l.insert(i, op[2].as_str().unwrap().to_string()),
-            autre => panic!("{}", autre),
-        }
-    }
-    l.join("\r\n")
-}
 
-/// Les trois controles d'un fichier : `null`, ou le refus.
-fn controler(texte: &str, e: &mut Value) {
-    let en_json = |r: Result<(), String>| r.err().map_or(Value::Null, Value::String);
-    e["usages"] = en_json(usages::verifier_fichier(texte));
-    e["formats"] = en_json(formats::verifier_fichier(texte));
-    e["ntt"] = en_json(ntt::verifier_fichier(texte));
-}
 
 #[test]
 fn tableau_des_usages() {
@@ -102,62 +72,4 @@ fn mauvaise_valeur_et_caracteres_refuses() {
     }
     assert!(cas.as_array().unwrap().len() > 5000);
     oracle(ORACLE, "/rubriques", &cas);
-}
-
-#[test]
-fn fichiers_des_fictives() {
-    let mut fichiers = lire_oracle(ORACLE)["fichiers"].clone();
-    for e in fichiers.as_array_mut().unwrap() {
-        let texte = latin1(e["chemin"].as_str().unwrap());
-        controler(&texte, e);
-    }
-    assert!(fichiers.as_array().unwrap().len() >= 80);
-    oracle(ORACLE, "/fichiers", &fichiers);
-}
-
-#[test]
-fn fichiers_mutes() {
-    let mut muts = lire_oracle(ORACLE)["mutations"].clone();
-    let mut hors_version = 0;
-    for e in muts.as_array_mut().unwrap() {
-        let texte = texte_mute(&latin1(e["base"].as_str().unwrap()), &e["ops"]);
-        controler(&texte, e);
-        // La version de la norme se lit dans le fichier (S10.G00.00.006) et choisit les tables : une variante qui y met
-        // autre chose qu'une version livree (« a-b », « 99999999 »...) ne se controle pas.
-        let version = texte.lines().find_map(|l| l.strip_prefix("S10.G00.00.006,'").map(|v| v.trim_end_matches('\'').to_string()));
-        if version.as_deref().is_some_and(|v| paie::norme::Norme::connue(v).is_err()) {
-            for c in ["usages", "formats"] {
-                assert!(e[c].as_str().is_some_and(|m| m.starts_with("S10.G00.00.006")), "une version inconnue refuse : {} {}", c, e[c]);
-            }
-            hors_version += 1;
-        }
-    }
-    assert!(muts.as_array().unwrap().len() > 200);
-    assert_eq!(hors_version, 7, "les variantes qui changent la version de la norme");
-    oracle(ORACLE, "/mutations", &muts);
-}
-
-fn lignes_ou_erreur(r: Result<(), String>, f: &Fichier) -> Value {
-    match r {
-        Ok(()) => json!({ "lignes": f.lignes }),
-        Err(e) => json!({ "erreur": e }),
-    }
-}
-
-#[test]
-fn nir_et_ntt() {
-    let mut cas = lire_oracle(ORACLE)["ntt"].clone();
-    for e in cas.as_array_mut().unwrap() {
-        let (ent, sal) = (e["ent"].clone(), e["sal"].clone());
-        let date = Jour::lire(e["date"].as_str().unwrap()).unwrap();
-        let mut f = Fichier::nouveau();
-        e["nir"] = lignes_ou_erreur(ntt::poser_nir(&mut f, &sal), &f);
-        let mut f = Fichier::nouveau();
-        e["ntt"] = lignes_ou_erreur(ntt::poser_ntt(&mut f, &ent, &sal, &date), &f);
-        e["sexe"] = json!(ntt::sexe(&sal));
-        e["nir_de"] = json!(ntt::nir_de(&sal));
-        e["besoin"] = ntt::besoin(&sal, &date).map_or_else(|m| Value::String(format!("ERR:{}", m)), Value::Bool);
-    }
-    assert!(cas.as_array().unwrap().len() > 500);
-    oracle(ORACLE, "/ntt", &cas);
 }

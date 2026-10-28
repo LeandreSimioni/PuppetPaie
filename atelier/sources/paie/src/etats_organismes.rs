@@ -322,11 +322,7 @@ fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(
 
 /// `_libelles_organismes` : SIRET -> libelle, lu dans `config/organismes.json`.
 fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
-    let p = ctx.racine.join("config").join("organismes.json");
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let d = crate::routes_listes::lire_json(&p)?;
+    let Some(d) = ctx.organismes()? else { return Ok(Vec::new()) };
     let mut out: Vec<(String, String)> = Vec::new();
     for v in d.get("versements").and_then(Value::as_array).into_iter().flatten() {
         if let Some(siret) = v.get("siret").filter(|s| vrai(s)) {

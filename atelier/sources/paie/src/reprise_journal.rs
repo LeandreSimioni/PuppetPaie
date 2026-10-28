@@ -179,6 +179,7 @@ pub fn reprise(ctx: &Contexte, charge: &Value, maintenant: &str) -> R<Value> {
             reponse: &reponse,
             trace: None,
             detail: Some(&detail),
+            versions: None,
             quand: &quand,
             origine: &origine,
         };
@@ -350,6 +351,7 @@ pub fn reprise_dpae(ctx: &Contexte, ecrire: bool, qui: &str, maintenant: &str) -
                 reponse: "",
                 trace: None,
                 detail: Some(&detail),
+                versions: None,
                 quand: &texte(vue, "quand"),
                 origine: &origine,
             };

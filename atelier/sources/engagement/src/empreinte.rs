@@ -69,6 +69,22 @@ pub fn tient(ctx: &Contexte, entrees: &BTreeMap<String, String>, relues: &mut Re
     })
 }
 
+/// Une decision de l'editeur rend-elle l'empreinte ecrite `ecrite` (d'une paie de `mois`) fausse ? Le code qui calcule
+/// a change (`MOTEUR`, ou un fichier livre avec le code), ou une regle datee s'applique au mois qu'elle n'avait pas.
+/// Rien ne se calcule.
+pub fn code_ou_regle_change(ctx: &Contexte, ecrite: &Value, mois: &str, relues: &mut Relues) -> bool {
+    let code = |k: &str| k == "moteur" || k.split_once(' ').is_some_and(|(_, c)| c.starts_with("code:"));
+    let entrees: BTreeMap<String, String> = entrees_de(ecrite).unwrap_or_default().into_iter().filter(|(k, _)| code(k)).collect();
+    if !tient(ctx, &entrees, relues) {
+        return true;
+    }
+    let ecrites = regles_de(ecrite);
+    socle::date::dernier_du_mois(mois)
+        .ok()
+        .and_then(|fin| regles(ctx, &fin).ok())
+        .is_some_and(|r| r.iter().any(|x| !ecrites.contains(x)))
+}
+
 fn entree_tient(ctx: &Contexte, k: &str, v: &str) -> bool {
     let (racine, code) = (&ctx.racine, dossier_du_code());
     match k {

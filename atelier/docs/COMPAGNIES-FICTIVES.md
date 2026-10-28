@@ -3,8 +3,8 @@
 Deux sortes de compagnies fictives (lot U1, 14/10/2026 : le mot « demonstration » a quitte le logiciel) :
 - **celles livrees avec le logiciel**, dans `fictives/` (`fictive-1285-grande`, `fictive-1285-petite`,
   `fictive-3090-grande`, `fictive-3090-petite`), payees de janvier 2025 a decembre 2026 ; leur marqueur
-  (`COPIE-DE-DEVELOPPEMENT.json`, `"copie_de": "compagnie fictive …"`) fait jouer leurs envois. Les tests en lisent la
-  copie figee, `atelier/sources/paie/tests/donnees/fictives/`. Une installation posee avant le lot U1 les a sous
+  (`COPIE-DE-DEVELOPPEMENT.json`, `"copie_de": "compagnie fictive …"`) fait jouer leurs envois. Les tests montent leurs propres
+  compagnies de test ; les regles se prouvent sur celles-ci. Une installation posee avant le lot U1 les a sous
   `demo/demo-*` : le logiciel renomme ce dossier au lancement (`interface::compagnies::ranger_les_fictives`) ;
 - **celles qu'on ajoute sur un logiciel bride** (ticket #236) : le « + » de l'accueil, apres un message, pose
   `fictives/ajoutee-<nom>` avec la marque `"ajoutee": true` dans son marqueur (`interface::compagnies::est_ajoutee`, lue

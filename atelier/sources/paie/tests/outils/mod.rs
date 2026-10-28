@@ -7,7 +7,6 @@
 #![allow(dead_code)]
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
@@ -23,17 +22,13 @@ use serde_json::{json, Value};
 
 // ------------------------------------------------------------------ les dossiers
 
-/// La copie figée d'une compagnie fictive (`tests/donnees/fictives/<nom>`), qu'aucun test n'écrit.
-pub fn fictive(nom: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees/fictives").join(nom)
-}
-
 /// Les données livrées (`logiciel/donnees`).
 pub fn code_livre() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees")
 }
 
 pub fn copier(src: &Path, dst: &Path) {
+    paie::incidents::brancher_l_engagement();
     std::fs::create_dir_all(dst).unwrap();
     for e in std::fs::read_dir(src).unwrap().flatten() {
         let (s, d) = (e.path(), dst.join(e.file_name()));
@@ -67,6 +62,8 @@ pub fn code_de(installation: &Path) -> String {
 }
 
 fn neuf(d: PathBuf) -> PathBuf {
+    // Ce que pose toute commande du moteur avant de toucher a un engagement : le lecteur de ce qui est parti.
+    paie::incidents::brancher_l_engagement();
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d
@@ -101,6 +98,16 @@ pub fn ecrire(racine: &Path, rel: &str, v: &Value) {
     std::fs::write(p, serde_json::to_vec_pretty(v).unwrap()).unwrap();
 }
 
+/// Une fiche de la configuration datee (`contexte::fiche_au`), lue a `jour` (AAAA-MM-JJ).
+pub fn fiche_au(datee: &Value, jour: &str) -> Value {
+    droit::contexte::fiche_au(datee, &socle::date::Jour::lire(jour).unwrap(), "test").unwrap()
+}
+
+/// La fiche datee d'une compagnie de test : chaque valeur de `plate` de tout temps (`contexte::fiche_datee`).
+pub fn datee(plate: &Value) -> Value {
+    Value::Object(droit::contexte::fiche_datee(plate.as_object().unwrap()))
+}
+
 /// Les noms des fichiers d'un dossier, triés (vide s'il n'existe pas).
 pub fn noms(dossier: &Path) -> Vec<String> {
     let mut v: Vec<String> = std::fs::read_dir(dossier).map(|d| d.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect()).unwrap_or_default();
@@ -112,77 +119,6 @@ pub fn noms(dossier: &Path) -> Vec<String> {
 
 pub mod compagnie {
     use super::*;
-
-    /// La compagnie fictive entière, copiée dans `racine`.
-    pub fn entiere(fictive: &str, racine: &Path) -> PathBuf {
-        copier(&super::fictive(fictive), racine);
-        racine.to_path_buf()
-    }
-
-    /// La compagnie fictive entière sans ses PDF (les bulletins, les contrats : le gros de `sorties/`), pour un cas qui relit
-    /// le journal et les DSN déposées.
-    pub fn sans_les_pdf(fictive: &str, racine: &Path) -> PathBuf {
-        fn copier_sans_pdf(src: &Path, dst: &Path) {
-            std::fs::create_dir_all(dst).unwrap();
-            for e in std::fs::read_dir(src).unwrap().flatten() {
-                let (s, d) = (e.path(), dst.join(e.file_name()));
-                if s.is_dir() {
-                    copier_sans_pdf(&s, &d);
-                } else if s.extension().is_none_or(|x| x != "pdf") {
-                    std::fs::copy(&s, &d).unwrap();
-                }
-            }
-        }
-        copier_sans_pdf(&super::fictive(fictive), racine);
-        racine.to_path_buf()
-    }
-
-    /// Les engagements que les `mois` montrent : le fichier de chaque mois ou l'un d'eux commence
-    /// (`engagements/AAAA-MM.json`), copie tel quel.
-    fn copier_les_engagements(d: &Path, mois: &[&str], racine: &Path) {
-        std::fs::create_dir_all(racine.join(engagement::stock::DOSSIER)).unwrap();
-        let mut fichiers: Vec<String> = Vec::new();
-        for m in mois {
-            for o in engagement::stock::objets_du_mois(d, m).unwrap() {
-                if !fichiers.contains(&o.fichier) {
-                    fichiers.push(o.fichier.clone());
-                }
-            }
-            if engagement::stock::chemin(d, m).is_file() && !fichiers.contains(&m.to_string()) {
-                fichiers.push(m.to_string());
-            }
-        }
-        for f in fichiers {
-            std::fs::copy(engagement::stock::chemin(d, &f), engagement::stock::chemin(racine, &f)).unwrap();
-        }
-    }
-
-    /// `config/`, `journal/`, les saisies des `mois` et leurs `sorties/<mois>/` quand il y en a.
-    pub fn config_et_mois(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
-        let d = super::fictive(fictive);
-        for sous in ["config", "journal"] {
-            if d.join(sous).is_dir() {
-                copier(&d.join(sous), &racine.join(sous));
-            }
-        }
-        copier_les_engagements(&d, mois, racine);
-        for m in mois {
-            let sorties = format!("sorties/{}", m);
-            if d.join(&sorties).is_dir() {
-                copier(&d.join(&sorties), &racine.join(&sorties));
-            }
-        }
-        racine.to_path_buf()
-    }
-
-    /// `config/`, les saisies des `mois` et un journal vide : ni sorties, ni dépôts.
-    pub fn saisies(fictive: &str, mois: &[&str], racine: &Path) -> PathBuf {
-        let d = super::fictive(fictive);
-        copier(&d.join("config"), &racine.join("config"));
-        copier_les_engagements(&d, mois, racine);
-        ecrire(racine, "journal/depots.json", &json!([]));
-        racine.to_path_buf()
-    }
 
     /// La compagnie réduite aux engagements de `salaries` (leur nom dans la saisie), dans chaque mois : un cas qui ne
     /// regarde qu'eux ne calcule pas les autres.
@@ -197,75 +133,9 @@ pub mod compagnie {
         }
     }
 
-    /// La compagnie fictive sans les pièces de `sorties/` (bulletins, contrats, DPAE, certificats) : ses DSN déposées, que
-    /// relit la DSN d'un mois suivant ; les mois `entiers` gardent tout.
-    pub fn ses_dsn(fictive: &str, entiers: &[&str], racine: &Path) -> PathBuf {
-        let d = super::fictive(fictive);
-        std::fs::create_dir_all(racine).unwrap();
-        for e in std::fs::read_dir(&d).unwrap().flatten() {
-            let (s, nom) = (e.path(), e.file_name());
-            if nom == "sorties" {
-                continue;
-            }
-            if s.is_dir() {
-                copier(&s, &racine.join(&nom));
-            } else {
-                std::fs::copy(&s, racine.join(&nom)).unwrap();
-            }
-        }
-        for e in std::fs::read_dir(d.join("sorties")).unwrap().flatten() {
-            let (s, dst) = (e.path(), racine.join("sorties").join(e.file_name()));
-            if entiers.iter().any(|m| e.file_name() == *m) {
-                copier(&s, &dst);
-                continue;
-            }
-            std::fs::create_dir_all(&dst).unwrap();
-            for f in std::fs::read_dir(&s).unwrap().flatten().filter(|f| f.path().extension().is_some_and(|x| x == "dsn")) {
-                std::fs::copy(f.path(), dst.join(f.file_name())).unwrap();
-            }
-        }
-        racine.to_path_buf()
-    }
 
-    /// Les données livrées copiées à côté de la compagnie (`<racine>/../donnees`), pour un cas qui les modifie ; `route`
-    /// les prend alors pour `PUPPETPAIE_CODE`. Rend le dossier du code.
-    pub fn avec_le_code(racine: &Path, sans_baremes: bool) -> PathBuf {
-        let code = racine.parent().unwrap().join("donnees");
-        copier(&code_livre(), &code);
-        if sans_baremes {
-            std::fs::remove_dir_all(code.join("baremes")).unwrap();
-        }
-        code
-    }
-
-    /// Une compagnie fictive devenue compagnie ordinaire : marqueur retiré, déclarant net-entreprises et compte Urssaf posés.
-    pub fn ordinaire(racine: &Path) {
-        let _ = std::fs::remove_file(racine.join("COPIE-DE-DEVELOPPEMENT.json"));
-        let mut e = lire(racine, "config/entreprise.json");
-        let siret = e["siret"].clone();
-        for cle in ["declarant", "api_dpae"] {
-            if e.get(cle).is_none() {
-                e[cle] = json!({"siret": siret, "nom": "FICTIF", "prenom": "Declarant"});
-            }
-        }
-        ecrire(racine, "config/entreprise.json", &e);
-    }
 }
 
-/// Pose des champs sur des fiches salariés (`config/salaries.json`) : (clé, champs) ; un champ `null` s'efface.
-pub fn retoucher_fiches(racine: &Path, retouches: &[(&str, Value)]) {
-    let mut sal = lire(racine, "config/salaries.json");
-    for (cle, champs) in retouches {
-        for (k, v) in champs.as_object().unwrap() {
-            if v.is_null() {
-                sal[*cle].as_object_mut().unwrap().remove(k);
-            } else {
-                sal[*cle][k] = v.clone();
-            }
-        }
-    }
-    ecrire(racine, "config/salaries.json", &sal);
-}
 
 /// La saisie de `mois` telle que ses engagements la montrent (`engagement::saisie_du_mois`).
 pub fn saisie(racine: &Path, mois: &str) -> Value {
@@ -274,218 +144,11 @@ pub fn saisie(racine: &Path, mois: &str) -> Value {
     v
 }
 
-/// « Modifier… » pour les engagements valides de `mois` (`numero` : celui de ce contrat seulement) : ils repassent en
-/// saisie, et ce que l'ecran enregistre ensuite s'ecrit.
-pub fn remettre_en_saisie(racine: &Path, mois: &str, numero: Option<&str>) {
-    let ctx = droit::contexte::Contexte::nouveau(racine, None).unwrap();
-    let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
-    for (i, o) in objets.iter().enumerate() {
-        let son_numero = o.brut.get("numero").and_then(Value::as_str);
-        if o.est_valide() && numero.map_or(true, |n| son_numero == Some(n)) {
-            engagement::etats::modifier(&ctx, mois, i).unwrap();
-        }
-    }
-}
 
-/// Ecrit la saisie de `mois` comme l'ecran l'enregistre (`engagement::stock::ecrire_vue_du_mois`) : chaque engagement
-/// valide que `v` change repasse d'abord en saisie (« Modifier… »), puis tout engagement du mois en saisie se valide
-/// comme l'ecran (« Valider l'engagement ») : ce qu'un test retouche s'ecrit, et part. Un engagement dont le calcul
-/// refuse reste en saisie.
-pub fn poser_saisie(racine: &Path, mois: &str, v: &Value) {
-    let ctx = droit::contexte::Contexte::nouveau(racine, None).unwrap();
-    let sans_validation = |e: &Value| {
-        let mut e = e.clone();
-        if let Some(m) = e.as_object_mut() {
-            m.remove("valide");
-        }
-        e
-    };
-    let avant = engagement::stock::vue_du_mois(racine, mois).ok().flatten().unwrap_or(Value::Null);
-    let objets = engagement::stock::objets_du_mois(racine, mois).unwrap();
-    for (i, o) in objets.iter().enumerate() {
-        let change = v["engagements"].get(i).map(sans_validation) != avant["engagements"].get(i).map(sans_validation);
-        if o.est_valide() && change {
-            engagement::etats::modifier(&ctx, mois, i).unwrap();
-        }
-    }
-    engagement::stock::ecrire_vue_du_mois(&ctx, mois, v).unwrap();
-    for (i, o) in engagement::stock::objets_du_mois(racine, mois).unwrap().iter().enumerate() {
-        if !o.est_valide() {
-            let _ = engagement::etats::valider(&ctx, mois, i);
-        }
-    }
-}
 
-/// La DSN mensuelle de `mois`, produite au `jour` depuis ses engagements, sans rien écrire.
-pub fn dsn_du_mois(racine: &Path, mois: &str, jour: &str) -> Result<String, String> {
-    let ctx = droit::contexte::Contexte::nouveau(racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
-    let s = engagement::charger(&ctx, mois)?;
-    paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
-}
 
-/// Les changements datés d'un permanent sur une copie de `fictive-1285-grande` (deux CDI, NADAR cadre depuis 2022,
-/// DORVAL non cadre depuis le 01/04/2025 ; toutes les DSN déposées jusqu'à août 2026) : `tests/dsn/bloc_41.rs` et
-/// `tests/calcul/periodes.rs`.
-pub mod permanents {
-    use super::*;
-    use droit::contexte::Contexte;
-    use socle::date::Jour;
-    use engagement::{charger, Saisie};
 
-    /// Pose des champs sur l'engagement de `salarie` dans la saisie du mois.
-    pub fn retoucher_saisie(racine: &Path, mois: &str, salarie: &str, champs: Value) {
-        let mut s = super::saisie(racine, mois);
-        for e in s["engagements"].as_array_mut().unwrap() {
-            if e["salarie"] == salarie {
-                for (k, v) in champs.as_object().unwrap() {
-                    e[k] = v.clone();
-                }
-            }
-        }
-        poser_saisie(racine, mois, &s);
-    }
 
-    /// Le contexte du jour où l'on produit `mois` : le 5 du mois suivant.
-    pub fn contexte(racine: &Path, mois: &str) -> Contexte {
-        let (an, mo): (i32, u32) = (mois[..4].parse().unwrap(), mois[5..7].parse().unwrap());
-        let (an, mo) = if mo == 12 { (an + 1, 1) } else { (an, mo + 1) };
-        Contexte::nouveau(racine, Some(Jour::lire(&format!("{:04}-{:02}-05", an, mo)).unwrap())).unwrap()
-    }
-
-    /// La saisie de `mois`, lue au 5 du mois suivant.
-    pub fn saisie(racine: &Path, mois: &str) -> Result<Saisie, String> {
-        charger(&contexte(racine, mois), mois)
-    }
-
-    /// La DSN de `mois`, produite au 5 du mois suivant, sans rien écrire.
-    pub fn dsn(racine: &Path, mois: &str) -> Result<String, String> {
-        let ctx = contexte(racine, mois);
-        let s = charger(&ctx, mois)?;
-        paie::dsn::generer(&ctx, &s.paies, mois, &[], &[], &paie::dsn::Options::default())
-    }
-
-    /// DORVAL (CDI depuis le 01/04/2025, chargée de production, 05 / 04) passe cadre le lendemain de `veille`, changement
-    /// saisi et daté sur sa fiche comme l'écran le fait (`historique` : l'ancienne valeur jusqu'à la veille).
-    pub fn dorval_cadre_au(racine: &Path, veille: &str) {
-        retoucher_fiches(
-            racine,
-            &[(
-                "DORVAL",
-                json!({
-                    "statut_conventionnel": "04",
-                    "statut_categoriel_rc": "01",
-                    "historique": [
-                        {"champ": "statut_categoriel_rc", "valeur": "04", "jusqu_au": veille, "note": ""},
-                        {"champ": "statut_conventionnel", "valeur": "05", "jusqu_au": veille, "note": ""}
-                    ]
-                }),
-            )],
-        );
-    }
-
-    /// Les blocs S21.G00.41 d'un individu, chacun ouvert par son 41.001.
-    pub fn blocs_41(lignes: &[(String, String)]) -> Vec<Vec<(String, String)>> {
-        let mut out: Vec<Vec<(String, String)>> = Vec::new();
-        for (k, v) in lignes {
-            if k == "S21.G00.41.001" {
-                out.push(Vec::new());
-            }
-            if k.starts_with("S21.G00.41.") {
-                out.last_mut().unwrap().push((k.clone(), v.clone()));
-            }
-        }
-        out
-    }
-
-    /// Un bloc attendu, en paires (rubrique, valeur).
-    pub fn bloc(paires: &[(&str, &str)]) -> Vec<(String, String)> {
-        paires.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
-    }
-
-    /// Le mois est déposé : la DSN produite remplace le fichier du mois dans la copie et le journal la dit acceptée en
-    /// réel (ce que `casc::dsn_deposee` relit).
-    pub fn deposer(racine: &Path, mois: &str, nom: &str, texte: &str) {
-        paie::dsn::ecrire(texte, &racine.join("sorties").join(mois).join(nom)).unwrap();
-        dsn_deposee(racine, mois, nom, &format!("{}-28T12:00:00", mois));
-    }
-}
-
-/// Le mois est prêt à produire : les DPAE des engagements qui y commencent sont parties et leurs contrats sont revenus
-/// signés (des lignes de journal comme celles de la compagnie fictive).
-pub fn mois_pret(racine: &Path, mois: &str) {
-    let saisie = saisie(racine, mois);
-    let mut j = lire(racine, "journal/depots.json");
-    let l = j.as_array_mut().unwrap();
-    let modele = l.iter().find(|x| x["quoi"] == json!("dpae") && x["mode"] == json!("reel")).unwrap().clone();
-    let contrat = l.iter().find(|x| x["quoi"] == json!("contrat-recu")).unwrap().clone();
-    let gens: Vec<(String, String)> = saisie["engagements"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|e| e.get("spectacle").is_some() && e["debut"].as_str().unwrap().starts_with(mois))
-        .map(|e| (e["salarie"].as_str().unwrap().to_uppercase(), e["debut"].as_str().unwrap().to_string()))
-        .collect();
-    let mut d = modele;
-    d["mois"] = json!(mois);
-    d["detail"]["embauches"] = json!(gens.iter().map(|(g, deb)| json!({"salarie": g, "debut": deb, "fin": deb})).collect::<Vec<_>>());
-    l.push(d);
-    for (g, deb) in &gens {
-        let mut c = contrat.clone();
-        c["mois"] = json!(mois);
-        c["detail"]["salarie"] = json!(g);
-        c["detail"]["debut"] = json!(deb);
-        l.push(c);
-    }
-    ecrire(racine, "journal/depots.json", &j);
-}
-
-/// La DSN `fichier` de `mois` est déposée en réel et acceptée le `quand` : une ligne de journal comme la dernière DSN
-/// réelle du journal.
-pub fn dsn_deposee(racine: &Path, mois: &str, fichier: &str, quand: &str) {
-    let mut j = lire(racine, "journal/depots.json");
-    let l = j.as_array_mut().unwrap();
-    let mut d = l.iter().rev().find(|x| x["quoi"] == json!("dsn") && x["mode"] == json!("reel")).expect("une DSN reelle au journal").clone();
-    d["mois"] = json!(mois);
-    d["fichier"] = json!(fichier);
-    d["quand"] = json!(quand);
-    l.push(d);
-    ecrire(racine, "journal/depots.json", &j);
-}
-
-/// Une copie d'une compagnie fictive, retouchée par le test, qui s'efface quand elle sort de portée.
-pub struct Copie(pub PathBuf);
-
-impl Copie {
-    fn dossier(fictive: &str) -> PathBuf {
-        static N: AtomicUsize = AtomicUsize::new(0);
-        let d = Path::new(env!("CARGO_TARGET_TMPDIR")).join("copies").join(format!("{}-{}-{}", fictive, std::process::id(), N.fetch_add(1, Ordering::SeqCst)));
-        let _ = std::fs::remove_dir_all(&d);
-        d
-    }
-
-    pub fn de(fictive: &str) -> Copie {
-        let d = Copie::dossier(fictive);
-        copier(&self::fictive(fictive), &d);
-        Copie(d)
-    }
-
-    /// La seule config de la compagnie fictive : ni journal, ni engagements, ni sorties.
-    pub fn config_de(fictive: &str) -> Copie {
-        let d = Copie::dossier(fictive);
-        copier(&self::fictive(fictive).join("config"), &d.join("config"));
-        Copie(d)
-    }
-
-    pub fn contexte(&self, jour: &str) -> droit::contexte::Contexte {
-        droit::contexte::Contexte::nouveau(&self.0, Some(socle::date::Jour::lire(jour).unwrap())).unwrap()
-    }
-}
-
-impl Drop for Copie {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
 
 /// Le rejeu d'un scenario du banc d'essai et le releve de ses sorties (#236, phase 2).
 pub mod rejeu;
@@ -526,19 +189,6 @@ pub fn route_avec(racine: &Path, nom: &str, charge: Value, jour: &str, env: &[(&
     serde_json::from_slice(&sortie).unwrap_or_else(|e| panic!("reponse illisible ({}) : {}", e, String::from_utf8_lossy(&sortie)))
 }
 
-/// La même route, dans le processus du test (`paie::routes::commande`) : même forme de réponse.
-pub fn route_en_processus(racine: &Path, nom: &str, charge: Value, jour: &str) -> Value {
-    let mut o = HashMap::new();
-    o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
-    o.insert("date".to_string(), jour.to_string());
-    match paie::routes::commande(&o, &json!({"route": nom, "charge": charge}).to_string()) {
-        Ok(r) => r,
-        Err(m) => {
-            let (classe, message) = paie::routes_ouverture::decoder(&m);
-            json!({"ok": false, "classe": classe, "erreur": message})
-        }
-    }
-}
 
 pub fn reussi(r: &Value) -> &Value {
     assert_eq!(r["ok"], json!(true), "une reussite etait attendue : {}", r);
@@ -614,119 +264,10 @@ pub fn versement(dsn: &str, numero: &str) -> Vec<(String, String)> {
     panic!("aucun versement du contrat {} dans la DSN", numero)
 }
 
-/// Les 78.004 des blocs 78 de code `code`.
-pub fn base78(v: &[(String, String)], code: &str) -> Vec<Decimal> {
-    let mut courant = String::new();
-    let mut out = Vec::new();
-    for (k, x) in v {
-        if k == "S21.G00.78.001" {
-            courant = x.clone();
-        } else if k == "S21.G00.78.004" && courant == code {
-            out.push(dec(x));
-        }
-    }
-    out
-}
 
-/// Le 81.003 de la première cotisation `code81`.
-pub fn base81(v: &[(String, String)], code81: &str) -> Option<Decimal> {
-    let i = v.iter().position(|(k, x)| k == "S21.G00.81.001" && x == code81)?;
-    let suite = v[i + 1..].iter().take_while(|(k, _)| k != "S21.G00.81.001" && !k.starts_with("S21.G00.78."));
-    suite.into_iter().find(|(k, _)| k == "S21.G00.81.003").map(|(_, x)| dec(x))
-}
 
-/// L'assiette (23.004) du CTP `code` sous le qualifiant `qualifiant`.
-pub fn ctp(dsn: &str, code: &str, qualifiant: &str) -> Option<Decimal> {
-    let (mut c, mut q) = (String::new(), String::new());
-    for (k, v) in paires(dsn) {
-        match k.as_str() {
-            "S21.G00.23.001" => c = v,
-            "S21.G00.23.002" => q = v,
-            "S21.G00.23.004" if c == code && q == qualifiant => return Some(dec(&v)),
-            _ => {}
-        }
-    }
-    None
-}
 
-/// Les cotisations (81.004) d'une DSN par contrat de prévoyance, relues sans le moteur : une base qui cite une affiliation
-/// (78.005) que son contrat de travail déclare (70.012) va à la référence d'adhésion (70.013) dont le bloc 15 donne le
-/// contrat chez l'organisme (15.005 -> 15.001), le code d'affectation du bloc 55 (norme 2026.1 p. 260). Le contrat d'une
-/// base : 78.006, ou le 40.009 de l'individu qui n'en a qu'un (cahier technique 2026.1 p. 298).
-pub fn par_contrat_de_prevoyance(lignes: &[(String, String)]) -> std::collections::BTreeMap<String, Decimal> {
-    let adhesions: HashMap<&str, &str> = lignes
-        .iter()
-        .scan("", |libelle, (k, v)| {
-            if k == "S21.G00.15.001" {
-                *libelle = v.as_str();
-            }
-            Some((k == "S21.G00.15.005").then(|| (v.as_str(), *libelle)))
-        })
-        .flatten()
-        .collect();
-    let mut out = std::collections::BTreeMap::new();
-    let mut individu: Vec<&[(String, String)]> = Vec::new();
-    let mut debut = 0;
-    for (i, (k, _)) in lignes.iter().enumerate() {
-        if k == "S21.G00.30.001" {
-            individu.push(&lignes[debut..i]);
-            debut = i;
-        }
-    }
-    individu.push(&lignes[debut..]);
-    for bloc in individu {
-        let (mut contrat40, mut id70) = ("", "");
-        let mut affiliations: HashMap<(&str, &str), &str> = HashMap::new();
-        let (mut contrat78, mut aff) = ("", None::<&str>);
-        let mut cotisations = Vec::new();
-        for (k, v) in bloc {
-            match k.as_str() {
-                "S21.G00.40.009" => contrat40 = v.as_str(),
-                "S21.G00.70.012" => id70 = v.as_str(),
-                "S21.G00.70.013" => {
-                    affiliations.insert((contrat40, id70), v.as_str());
-                }
-                "S21.G00.78.001" => (contrat78, aff) = (contrat40, None),
-                "S21.G00.78.005" => aff = Some(v.as_str()),
-                "S21.G00.78.006" => contrat78 = v.as_str(),
-                "S21.G00.81.004" => {
-                    if let Some(a) = aff {
-                        cotisations.push((contrat78, a, dec(v)));
-                    }
-                }
-                _ => {}
-            }
-        }
-        for (contrat, a, montant) in cotisations {
-            let reference = affiliations.get(&(contrat, a)).unwrap_or_else(|| panic!("78.005 {} sans affiliation du contrat {}", a, contrat));
-            let libelle = adhesions.get(reference).unwrap_or_else(|| panic!("l'adhesion {} sans bloc 15", reference));
-            *out.entry(libelle.to_string()).or_insert(Decimal::ZERO) += montant;
-        }
-    }
-    out
-}
 
-/// Les blocs 58 : (001, 002, 003, le reste).
-pub fn blocs_58(v: &[(String, String)]) -> Vec<(String, String, String, String)> {
-    let mut out: Vec<(String, String, String, String)> = Vec::new();
-    for (k, x) in v.iter().filter(|(k, _)| k.starts_with("S21.G00.58.")) {
-        let nouveau = match out.last() {
-            None => true,
-            Some(c) => k == "S21.G00.58.001" || (k == "S21.G00.58.003" && !c.2.is_empty()),
-        };
-        if nouveau {
-            out.push(Default::default());
-        }
-        let c = out.last_mut().unwrap();
-        match &k[11..] {
-            "001" => c.0 = x.clone(),
-            "002" => c.1 = x.clone(),
-            "003" => c.2 = x.clone(),
-            _ => c.3 = x.clone(),
-        }
-    }
-    out
-}
 
 /// Un enregistrement AEM de 1000 caractères aux offsets que lit `importation.rs` ; `zones` : ce que le cas ajoute
 /// (`(0, "AEMEDIC2")`, `(36, "000123")`, le Siret en 50…).
@@ -946,9 +487,6 @@ impl FauxCourriel {
     pub fn partis(&self) -> usize {
         self.recus.borrow().len()
     }
-    pub fn recherches(&self) -> usize {
-        self.requetes.borrow().len()
-    }
 }
 
 impl Courriel for FauxCourriel {
@@ -1014,10 +552,6 @@ impl Mail {
     pub fn pieces(&self) -> Vec<String> {
         self.jointes().into_iter().map(|(n, _)| n).collect()
     }
-    /// Les octets des pièces jointes, décodés.
-    pub fn pieces_octets(&self) -> Vec<Vec<u8>> {
-        self.jointes().into_iter().map(|(_, o)| o).collect()
-    }
     /// Le texte de la première partie `text/plain` et celui de la première `text/html`, en fins de ligne `\n`.
     pub fn textes(&self) -> (String, String) {
         fn parcourir(m: &mailparse::ParsedMail, plain: &mut Option<String>, html: &mut Option<String>) {
@@ -1041,17 +575,4 @@ impl FauxCourriel {
     }
 }
 
-/// Les paies d'une saisie ecrite dans un fichier de test (`engagement::charger_donnees`).
-pub fn charger_fichier(ctx: &droit::contexte::Contexte, chemin: &Path) -> Result<engagement::Saisie, String> {
-    let v: Value = serde_json::from_slice(&std::fs::read(chemin).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
-    engagement::charger_donnees(ctx, &v)
-}
 
-/// « Valider l'engagement » pour chaque engagement de `mois` encore en saisie, comme l'ecran le fait au `jour`.
-pub fn tout_valider(racine: &Path, mois: &str, jour: &str) {
-    let etat = route_en_processus(racine, "etat-par-engagement", json!({"mois": mois}), jour);
-    for e in reussi(&etat)["engagements"].as_array().unwrap().iter().filter(|e| e["valide"].is_null()) {
-        let charge = json!({"mois": mois, "salarie": e["salarie"], "debut": e["debut"], "numero": e["numero"], "rang": e["rang"], "valide": true});
-        reussi(&route_en_processus(racine, "valider-engagement", charge, jour));
-    }
-}
