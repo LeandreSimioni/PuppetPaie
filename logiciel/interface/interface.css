@@ -1055,6 +1055,7 @@ pre.reponse {
 .tableau-detail tfoot td { border-bottom: 0; }
 .liste-pieces { list-style: none; margin: 12px 0; padding: 0; }
 .liste-pieces li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--bord); }
+.liste-pieces li > span { min-width: 0; overflow-wrap: anywhere; }
 .choix {
   display: flex; align-items: flex-start; gap: 9px;
   padding: 8px 10px; margin-bottom: 6px; font-size: 13px; color: var(--texte);

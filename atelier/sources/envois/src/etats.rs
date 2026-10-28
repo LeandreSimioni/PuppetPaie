@@ -774,6 +774,23 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
             derniere_recue.poser(cle_contrat(d, Maille::Contrat)?, i)?;
         }
     }
+    // Les reponses deja relevees, par envoi (son code) et par contrat ou avenant : une reponse ne se note qu'une fois.
+    // La mention « signe » retiree a la main l'emporte sur la reponse deja lue ; seul un nouvel envoi (un autre code)
+    // attend une nouvelle reponse.
+    let releve = |code: &Value, d: &Value| -> R<Vec<Value>> {
+        let mut k = vec![s(&valeur_en_texte(code))];
+        k.extend(cle_contrat(d, Maille::Contrat)?);
+        let avenant = get(d, "avenant")?;
+        k.push(s(&if vrai(avenant) { valeur_en_texte(avenant) } else { String::new() }));
+        Ok(k)
+    };
+    let mut deja_releves: Dico<()> = Dico::nouveau();
+    for l in lignes {
+        let d = ou(get(l, "detail")?, objet_vide());
+        if est(get(l, "quoi")?, CONTRAT_RECU) && accepte(l)? && vrai(get(d, "recu")?) && est(get(d, "origine")?, "courriel") && vrai(get(d, "code")?) {
+            deja_releves.poser(releve(get(d, "code")?, d)?, ())?;
+        }
+    }
     struct Demande {
         code: Value,
         mois: Value,
@@ -863,7 +880,12 @@ pub fn signatures_attendues(lignes: &[Value], mois: Option<&str>, salaries: &Val
         let mut attendue = false;
         for c in &e.contrats {
             let k = cle_contrat(c, Maille::Contrat)?;
-            let revenu = if e.apres_signature {
+            let mut lu = releve(&e.code, c)?;
+            let deja_lu = deja_releves.contient(&lu)? || {
+                lu[3] = s("");
+                deja_releves.contient(&lu)?
+            };
+            let revenu = deja_lu || if e.apres_signature {
                 avec_repli(&derniere_recue, &k)?.is_some_and(|&rang| rang > e.rang)
             } else {
                 avec_repli(&recus, &k)?.is_some()
@@ -1921,6 +1943,18 @@ mod tests {
         assert_eq!(contrats_recus_comment(&l, Maille::Paire).unwrap(), json!([["ALPHA", "2026-06-04", "courriel"]]));
         assert_eq!(contrats_demandes(&l, Maille::Paire).unwrap().as_array().unwrap().len(), 2);
         assert_eq!(numeros_contrats_partis(&l, Maille::Paire).unwrap()[0][2], "N1");
+    }
+
+    #[test]
+    fn une_reponse_deja_relevee_ne_se_renote_pas_apres_la_mention_retiree() {
+        let mut lue = recu("ALPHA", "courriel");
+        lue["detail"]["code"] = json!("C1");
+        let mut retiree = recu("ALPHA", "");
+        retiree["detail"]["recu"] = json!(false);
+        let mut l = vec![signature("2026-06-05T10:00:00", contrat("ALPHA", "C1", "e1", Value::Null)), lue, retiree];
+        assert_eq!(signatures_attendues(&l, None, &json!({})).unwrap(), json!([]));
+        l.push(signature("2026-06-13T10:00:00", contrat("ALPHA", "C3", "e1", Value::Null)));
+        assert_eq!(signatures_attendues(&l, None, &json!({})).unwrap()[0]["code"], "C3");
     }
 
     #[test]

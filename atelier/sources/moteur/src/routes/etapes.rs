@@ -1625,7 +1625,13 @@ fn carres(p: &Value) -> Value {
 /// parti se modifie par un avenant ; un contrat a envoyer, ou parti et plus le bon sans etre signe, part a la signature.
 fn pieces_du_contrat(s: &Value) -> Value {
     let (fait, recu, caduc) = (vrai(&s["fait"]), vrai(&s["recu"]), vrai(&s["caduc"]));
-    let vide = if recu { "Le contrat a été noté signé à la main : aucun fichier n'est passé par le logiciel." } else { "Aucun contrat n'est parti à la signature pour cet engagement." };
+    // Un contrat ou un avenant parti (`fait`, imprime ou par courriel) est une piece : le detail la nomme, il n'a pas de
+    // phrase « sans piece ».
+    let vide = match (fait, recu) {
+        (true, _) => Value::Null,
+        (false, true) => json!("Le contrat a été noté signé à la main : aucun fichier n'est passé par le logiciel."),
+        (false, false) => json!("Aucun contrat n'est parti à la signature pour cet engagement."),
+    };
     let encart = caduc.then(|| {
         let pourquoi = valeur_en_texte(&s["pourquoi"]);
         let mut c = pourquoi.chars();

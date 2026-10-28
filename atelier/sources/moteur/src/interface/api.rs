@@ -104,23 +104,29 @@ pub fn depuis_reponse(rep: Value) -> Result<Value, Refus> {
     Err(Refus { classe, message, plus })
 }
 
-/// Ouvre un fichier ou un dossier dans le programme du poste (l'explorateur, le lecteur PDF).
-pub fn ouvrir(chemin: &Path) -> Result<(), String> {
+/// Ouvre un fichier ou un dossier dans le programme du poste (l'explorateur, le lecteur PDF), et rend ce que l'ecran en
+/// dit : « Dossier ouvert : … » (l'explorateur peut s'ouvrir derriere la fenetre), rien pour un fichier ouvert, ou, quand
+/// aucun programme ne l'a ouvert, ou il est (une information : il est ecrit). `Err` : il n'existe pas.
+pub fn ouvrir(chemin: &Path) -> Result<String, String> {
     // Une piece de l'Historique arrive en `retours/...` (barres droites) jointe a la racine : Windows lit le fichier,
-    // mais l'explorateur ne reconnait pas le chemin et ouvre « Documents » a la place (Leandre, 21/10/2026).
+    // mais l'explorateur ne reconnait pas le chemin et ouvre « Documents » a la place.
     #[cfg(windows)]
     let r = Command::new("explorer").arg(separateurs_windows(&chemin.to_string_lossy())).spawn();
     #[cfg(target_os = "macos")]
     let r = Command::new("open").arg(chemin).spawn();
     #[cfg(all(unix, not(target_os = "macos")))]
     let r = Command::new("xdg-open").arg(chemin).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
-    r.map(|_| ()).map_err(|e| pas_ouvert(chemin, &e))
+    match r {
+        Ok(_) if chemin.is_dir() => Ok(format!("Dossier ouvert : {}", chemin.display())),
+        Ok(_) => Ok(String::new()),
+        Err(e) => pas_ouvert(chemin, &e),
+    }
 }
 
 /// Ce que dit un fichier qu'aucun programme du poste n'a ouvert : s'il est ecrit, ou il est ; sinon, qu'il manque.
-fn pas_ouvert(chemin: &Path, e: &std::io::Error) -> String {
+fn pas_ouvert(chemin: &Path, e: &std::io::Error) -> Result<String, String> {
     if !chemin.exists() {
-        return format!("{} n'existe pas : rien à ouvrir ({}).", chemin.display(), e);
+        return Err(format!("{} n'existe pas : rien à ouvrir ({}).", chemin.display(), e));
     }
     let quoi = if chemin.is_dir() {
         "Le dossier"
@@ -129,7 +135,7 @@ fn pas_ouvert(chemin: &Path, e: &std::io::Error) -> String {
     } else {
         "Le fichier"
     };
-    format!("{} est là : {}. Aucun programme du poste ne l'a ouvert.", quoi, chemin.display())
+    Ok(format!("{} est là : {}. Aucun programme du poste ne l'a ouvert.", quoi, chemin.display()))
 }
 
 /// Un chemin tel que l'explorateur de Windows le comprend : rien que des barres inverses.
@@ -221,8 +227,8 @@ fn ouvrir_import(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     if !dossier.is_dir() {
         return Err(Refus::simple("ErreurOperation", format!("Le dossier {} n'existe pas.", dossier.display())));
     }
-    ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
-    Ok(json!({"dossier": dossier.display().to_string()}))
+    let phrase = ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
+    Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
 }
 
 fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
@@ -242,8 +248,8 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
         if !f.is_file() {
             return Err(Refus::simple("ErreurOperation", format!("{} a été déplacé ou effacé.", chemin)));
         }
-        ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
-        return Ok(json!({"fichier": chemin}));
+        let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
+        return Ok(json!({"fichier": chemin, "phrase": phrase}));
     }
     // LE PDF A IMPRIMER que `contrats-imprimer` ou `documents-imprimer` vient d'ecrire dans `sorties/<mois>/envoi/` : son
     // nom seul, et seulement un nom d'impression.
@@ -257,8 +263,8 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
         if !f.is_file() {
             return Err(Refus::simple("ErreurOperation", format!("{} a été déplacé ou effacé.", fichier)));
         }
-        ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
-        return Ok(json!({"fichier": f.display().to_string()}));
+        let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
+        return Ok(json!({"fichier": f.display().to_string(), "phrase": phrase}));
     }
     let fichier = texte(charge, "fichier")?;
     let parties = route(racine, "pieces-parties", charge)?;
@@ -272,8 +278,8 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
             let mois = p.get("mois").cloned().unwrap_or(Value::Null);
             return match envois::etats::chemin_piece(racine, &mois, &Value::String(fichier.clone())) {
                 Some(f) => {
-                    ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
-                    Ok(json!({"fichier": fichier}))
+                    let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
+                    Ok(json!({"fichier": fichier, "phrase": phrase}))
                 }
                 None => Err(Refus::simple(
                     "ErreurOperation",
@@ -311,16 +317,16 @@ fn ouvrir_dossier(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     if !dossier.exists() {
         return Err(Refus::simple("ErreurOperation", format!("Rien n'est encore ecrit pour {}.", mois)));
     }
-    ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
-    Ok(json!({"dossier": dossier.display().to_string()}))
+    let phrase = ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
+    Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
 }
 
 fn ouvrir_sous(dossier: PathBuf, absent: &str) -> Result<Value, Refus> {
     if !dossier.exists() {
         return Err(Refus::simple("ErreurOperation", absent));
     }
-    ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
-    Ok(json!({"dossier": dossier.display().to_string()}))
+    let phrase = ouvrir(&dossier).map_err(|m| Refus::simple("ErreurOperation", m))?;
+    Ok(json!({"dossier": dossier.display().to_string(), "phrase": phrase}))
 }
 
 fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
