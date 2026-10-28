@@ -1,5 +1,4 @@
-//! Le numero technique temporaire : declarer quelqu'un qui n'a pas de NIR
-//! (`moteur/ntt.py`).
+//! Le numero technique temporaire : declarer quelqu'un qui n'a pas de NIR.
 //!
 //! Il se fabrique (sexe + SIREN + matricule), il ne se saisit pas. Les
 //! regles de forme CSL-11, CSL-12, CCH-13 et la longueur [11,40] sont ici.
@@ -165,7 +164,7 @@ pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &Value, brute: &Value, d
     Ok(())
 }
 
-/// S21.G00.30.020 d'une DSN mensuelle, ou l'on sait ce qui a ete DECLARE pour ce salarie (vague 3d) : `ntt_declare`
+/// S21.G00.30.020 d'une DSN mensuelle, ou l'on sait ce qui a ete DECLARE pour ce salarie : `ntt_declare`
 /// est le NTT de sa derniere declaration quand elle ne portait pas de NIR. Si la fiche a maintenant un NIR, c'est la
 /// premiere DSN qui le porte : le NTT declare l'accompagne, quel que soit le mois ou le NIR a pris effet (« Le NTT doit
 /// etre renseigne sur la premiere DSN ou le NIR est attribue. Ceci permettra de faire le lien entre les deux

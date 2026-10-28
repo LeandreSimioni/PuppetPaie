@@ -1,5 +1,5 @@
-//! Le tableau des usages de la norme : ce qu'une nature de declaration admet
-//! (`moteur/usages.py`). Un releve par version de la norme : le JSON que
+//! Le tableau des usages de la norme : ce qu'une nature de declaration admet.
+//! Un releve par version de la norme : le JSON que
 //! `norme-dsn-base.json` nomme (`usages-dsn-base.json` pour P26V01,
 //! `usages-dsn-p27v01-base.json` pour P27V01), choisi d'apres
 //! `S10.G00.00.006` du fichier controle (`norme::du_fichier`).

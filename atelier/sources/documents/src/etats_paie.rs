@@ -1212,7 +1212,7 @@ pub fn reduction_generale(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("chomage", "dont chômage"),
         col_m("retraite", "dont retraite"),
     ];
-    t.sources = vec!["art. L241-13 et D241-7 du Code de la sécurité sociale ; le calcul est celui du bulletin (calcul.py)".to_string()];
+    t.sources = vec!["art. L241-13 et D241-7 du Code de la sécurité sociale ; le calcul est celui du bulletin".to_string()];
     finir(ctx, &mut t, Some(&p), "reduction-generale", &d.format, false)?;
     // Un SMIC de reference ne s'additionne pas.
     for tot in t.sections.iter_mut().map(|s| &mut s.total).chain(std::iter::once(&mut t.total)) {

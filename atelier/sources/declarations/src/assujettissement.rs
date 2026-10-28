@@ -1,5 +1,4 @@
-//! Le bloc S21.G00.44 « Assujettissement fiscal » de la DSN de decembre (corrections DSN, lot V3b ; point 11 de
-//! `prive/journal/RELECTURE-NORME-DSN.md`, fiche N8 de `prive/journal/norme/fiches-N8.md`).
+//! Le bloc S21.G00.44 « Assujettissement fiscal » de la DSN de decembre.
 //!
 //! LA NORME (cahier technique DSN 2026.1, `atelier/reference/norme-dsn/texte/`) :
 //! - § 2.3.1, p. 58 (`chapitre-2-principes-de-constitution.txt`, lignes 1954-1967 ; taxe par taxe, p. 58-59, lignes
@@ -14,7 +13,7 @@
 //!   l'ensemble des salariés », et « autant de blocs [...] que nécessaire » pour les assiettes aux taux majores ;
 //!   CCH-11 de 44.001 : montant obligatoire pour 005, 009, 015, 016 ; CCH-12 : montant interdit pour 002, 004, 006, 008,
 //!   010, 014 ; 44.003, le millesime ; 44.004 obligatoire pour 002, interdit sinon (CCH-11, p. 241), « Table MNATA »
-//!   (livree depuis le lot R2 : `logiciel/donnees/mnata-base.json`).
+//!   (livree : `logiciel/donnees/mnata-base.json`).
 //!
 //! CE QUI SE DEDUIT ET CE QUI SE SAISIT (regle 1 : rien ne se devine ; ce que le moteur sait deja ne se saisit pas une
 //! seconde fois). Les textes sont deposes sous `atelier/reference/sources/` (LISEZ-MOI de `bloc-44-assujettissement/`) :
@@ -23,7 +22,7 @@
 //!   compose depuis `donnees/organismes-base.json`). Le bloc 44 dit ce que le bordereau paie : 001 si le CTP 992 ou 993
 //!   y est, 007 si un CTP de formation y est (008 sinon). Sans la taxe d'apprentissage au bordereau : 002, avec le motif
 //!   de la table MNATA (44.004) que la fiche entreprise dit (`taxe_apprentissage_motif_non_assujettissement`), sinon
-//!   refus (lot R2). Le motif 007 « Associations sans but lucratif » ne vaut que jusqu'au millesime 2025 : L. 6241-1,
+//!   refus. Le motif 007 « Associations sans but lucratif » ne vaut que jusqu'au millesime 2025 : L. 6241-1,
 //!   dans sa redaction du 21/02/2026, rend redevables « les associations [...] a activites non lucratives » ; celle du
 //!   16/02/2025 ne les nommait pas (les deux deposees, `atelier/reference/sources/code-du-travail/`).
 //! - contribution supplementaire a l'apprentissage (003/004) : code du travail L. 6242-1 (entreprises d'au moins 250
@@ -31,7 +30,7 @@
 //!   A 250 et plus, le quotient des contrats d'alternance ne se calcule pas ici : la fiche le dit
 //!   (`contribution_supplementaire_apprentissage`, « due » ou « non_due »), sinon refus. (En decembre, l'Urssaf ne
 //!   l'a pas encore calcule : il arrive debut mars en CRM 118, codes A05 et A07, et la DSN de mars N+1 declare la
-//!   contribution elle-meme, calculee : `csa`, lot D2.)
+//!   contribution elle-meme, calculee : `csa`.)
 //! - PEEC (005/006) : CCH L. 313-1 et norme p. 58 (« les employeurs occupant au minimum cinquante salariés »), quelle
 //!   que soit la TVA (BOFiP BOI-TPS-PEEC-10, § 40). Sous 50 (effectif de l'annee du millesime, regle des cinq ans) :
 //!   006 ; a 50 et plus, 005 avec l'assiette (CCH-11) : les remunerations de l'annee qui servent de base aux cotisations
@@ -44,7 +43,7 @@
 //!   L. 6331-55 (« par dérogation [...] à l'article L. 6331-6 »). 013 si l'etablissement a eu dans l'annee un CDD de
 //!   droit commun qui y est soumis, 014 sinon.
 //!
-//! INFERENCES, ecrites comme telles dans la passation du lot (`prive/journal/norme/corrections/PASSATION-V3b.md`) :
+//! INFERENCES :
 //! 015 et 016 sont les assiettes au premier et au second taux majore (8,50 % et 13,60 %) ; le montant du 005 est
 //! l'assiette de l'annee du millesime, et l'effectif qui le declenche celui de cette annee-la ; la part assujettie a la
 //! taxe sur les salaires s'applique aux montants 009, 015 et 016 ; un CDDU (motif 05) est un contrat d'intermittent au
@@ -208,7 +207,7 @@ fn assiette_peec(ctx: &Contexte, ent: &Value, orgs: &Value, nic: &str, annee: &[
                     continue;
                 }
                 let bar = crate::dsn::bar_du(ctx, ent, orgs, nic, mois)?;
-                // Les periodes elementaires d'un mois decoupe (lot R10) : chacune a sa base 03.
+                // Les periodes elementaires d'un mois decoupe : chacune a sa base 03.
                 for p in ps.iter().flat_map(|p| p.elementaires()) {
                     if let Some(c) = crate::dsn::cotisations(p, &bar)?.into_iter().find(|c| c.bloc78 == "03") {
                         total = add(total, c.base78);
@@ -337,7 +336,7 @@ pas son assiette. Rien n'est ecrit.",
     }
     // L'effectif est celui de l'annee du millesime, comme pour la contribution supplementaire : la PEEC declaree ici est
     // assise sur les salaires de cette annee-la et s'investit l'annee d'apres (BOFiP BOI-TPS-PEEC-20, § 10), et L. 313-1
-    // renvoie a L. 130-1 CSS, qui retient l'effectif de l'annee civile precedant l'obligation (INFERENCE, passation).
+    // renvoie a L. 130-1 CSS, qui retient l'effectif de l'annee civile precedant l'obligation (INFERENCE).
     let peec = effectif_atteint(ctx, 50, an + 1, "participation des employeurs a l'effort de construction")?;
     let annee = mois_de_l_annee(ctx, ent, nic, mois, paies, ts.is_some() || peec)?;
 

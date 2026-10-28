@@ -1,4 +1,4 @@
-//! La machinerie commune des etats exportes (`moteur/tableaux.py`) : un tableau, six facons de l'ecrire --
+//! La machinerie commune des etats exportes : un tableau, six facons de l'ecrire --
 //! CSV, texte tabule, XLSX, PDF, HTML, JSON --, et les ecrivains du livre de paie, qui a les siens
 //! (`operations_exports.csv_livre`, `xlsx_livre`, `pdf_livre`).
 //!
@@ -36,12 +36,12 @@ pub fn refus(m: impl Into<String>) -> Echec {
     erreur("ErreurOperation", m)
 }
 
-/// `FORMATS_TABLEAU` : les six formats de la machinerie, dans l'ordre de Python.
+/// `FORMATS_TABLEAU` : les six formats de la machinerie, dans l'ordre du format.
 pub const FORMATS_TABLEAU: [&str; 6] = ["csv", "tsv", "xlsx", "pdf", "html", "json"];
 
 // ------------------------------------------------------------------ valeurs
 
-/// Une valeur de cellule : un `Decimal`, un nombre JSON tel que Python l'ecrit (entier, flottant), un texte.
+/// Une valeur de cellule : un `Decimal`, un nombre JSON (entier, flottant), un texte.
 #[derive(Clone, Debug)]
 pub enum Val {
     Dec(Decimal),
@@ -87,7 +87,7 @@ impl Val {
     }
 }
 
-/// Une ligne : un dictionnaire ordonne (l'ordre d'insertion de Python compte pour le JSON).
+/// Une ligne : un dictionnaire ordonne (l'ordre d'insertion compte pour le JSON).
 #[derive(Clone, Debug, Default)]
 pub struct Ligne {
     pub champs: Vec<(String, Option<Val>)>,
@@ -261,7 +261,7 @@ impl Tableau {
 
 }
 
-/// `_sections(lignes, cle, libelle, tri)` : les lignes en sections, une par cle, les cles dans l'ordre de Python
+/// `_sections(lignes, cle, libelle, tri)` : les lignes en sections, une par cle, les cles triees
 /// (`sorted(paquets.items())`), les lignes de chaque section triees par `tri` s'il y en a un (tri stable).
 pub fn sections_de<K: Ord + Clone>(
     lignes: Vec<Ligne>, cle: impl Fn(&Ligne) -> K, libelle: impl Fn(&K) -> String, tri: Option<&dyn Fn(&Ligne) -> Vec<String>>,

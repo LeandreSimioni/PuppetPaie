@@ -1,4 +1,4 @@
-//! DPAE (ex-DUE) -- Declaration Prealable A l'Embauche (`moteur/dpae.py`).
+//! DPAE (ex-DUE) -- Declaration Prealable A l'Embauche.
 //!
 //! Format teletransmission (Format 120) : enregistrements a largeur fixe de
 //! 990 caracteres, saut de ligne compris (989 + LF), encodage latin-1. Le
@@ -8,11 +8,9 @@
 //! Comme pour l'AEM, on part d'un enregistrement reel
 //! (`gabarits/due_tel_gabarit.txt`) et on ne remplace que les zones variables.
 //!
-//! Le Python (`moteur/dpae.py`) ne garde que ses portes : il envoie ce que la
-//! DPAE lit de chaque embauche -- la fiche du salarie, le debut et la fin de
-//! l'engagement, sa nature -- et recoit les octets. Les refus gardent les
-//! phrases du Python ; une cle absente d'une fiche (un `KeyError` du Python)
-//! est rendue comme lui, `'cle'`.
+//! La DPAE lit de chaque embauche la fiche du salarie, le debut et la fin de
+//! l'engagement, sa nature, et rend les octets. Une cle absente d'une fiche est
+//! refusee sous la forme `'cle'`.
 //!
 //! Deux commandes (`service`) : `paie dpae` (enregistrements, contenu,
 //! ecriture du fichier et de son .zip, recapitulatif) et `paie dpae-lire` (les
@@ -121,7 +119,7 @@ fn chaine(v: Option<&Value>) -> String {
     }
 }
 
-/// `s[cle]` : le `KeyError` du Python s'ecrit `'cle'`.
+/// `s[cle]` : une cle absente s'ecrit `'cle'`.
 fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
     s.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
@@ -167,7 +165,7 @@ fn txt(v: &Value, largeur: usize) -> String {
     ljust(&debut(&t, largeur), largeur)
 }
 
-/// `c.isdigit()` de Python.
+/// `c.isdigit()`.
 fn est_chiffre(c: char) -> bool {
     let n = c as u32;
     socle::nfkd_ascii::CHIFFRES.binary_search_by(|(a, b)| {
@@ -194,7 +192,7 @@ fn chiffres(t: &str) -> String {
 // ------------------------------------------------------- le gabarit
 
 /// Ou chercher le gabarit : `defaut` quand l'appelant n'a pas de fiche
-/// entreprise (le gabarit trouve a l'import par le Python), `poste` (le
+/// entreprise (le gabarit trouve a l'import), `poste` (le
 /// dossier `gabarits/` du poste) sinon.
 #[derive(Debug, Clone)]
 pub struct Chemins {
@@ -342,7 +340,7 @@ impl Embauche {
 
 /// Les parametres communs d'une ecriture.
 pub struct Parametres<'a> {
-    /// JJMMAAAAHHMM : la minute de l'ecriture, donnee par le Python (heure de Paris).
+    /// JJMMAAAAHHMM : la minute de l'ecriture, donnee par l'appelant (heure de Paris).
     pub horodatage: &'a str,
     pub heure_embauche: String,
     /// Le code Urssaf voulu, tel que l'appelant l'a donne (`""` : celui du gabarit).
@@ -392,7 +390,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
         // suffisaient ; le point de depot, lui, repond << Code URSSAF invalide
         // -- n'appartenant pas a la liste des Codes Urssaf >>, des jours plus
         // tard, sur une embauche qui n'est alors pas declaree. La liste est
-        // celle de la Table des Urssaf (voir `moteur/urssaf.py`), relevee et
+        // celle de la Table des Urssaf (`urssaf-codes-types-personnel.csv`), relevee et
         // datee.
         if !urssaf_existe(v)? {
             return Err(format!(
@@ -557,7 +555,7 @@ pub fn zip(nom: &str, donnees: &[u8], horodatage: &str) -> Resultat<Vec<u8>> {
     // le repertoire central
     let debut_repertoire = z.len() as u32;
     u32_(&mut z, 0x0201_4b50);
-    u16_(&mut z, 20 | (3 << 8)); // cree sous Unix, comme Python
+    u16_(&mut z, 20 | (3 << 8)); // cree sous Unix
     u16_(&mut z, 20);
     u16_(&mut z, drapeau);
     u16_(&mut z, 8);
@@ -605,7 +603,7 @@ pub fn ecrire(embauches: &[Embauche], chemin: &Path, p: &Parametres, zipper: boo
     Ok(())
 }
 
-/// Le nom du type Python d'une valeur JSON, pour la phrase d'un `TypeError`.
+/// Le nom du type d'une valeur JSON, pour la phrase d'un `TypeError`.
 fn type_py(v: &Value) -> &'static str {
     match v {
         Value::Null => "NoneType",
@@ -619,14 +617,14 @@ fn type_py(v: &Value) -> &'static str {
 }
 
 /// La nature de contrat de cette embauche. Une nature inconnue est un
-/// `KeyError` en Python, dont `str()` rend le message entre guillemets.
+/// `KeyError`, dont le message se rend entre guillemets.
 fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<natures::Nature>> {
     natures::nature(e.nature.as_deref()).map_err(|m| repr(&m))
 }
 
 /// Texte a recopier si l'on prefere la saisie en ligne sur net-entreprises.
 /// `heure_embauche` se coupe comme un texte (`heure_embauche[:2]`) : toute
-/// autre valeur est le `TypeError` du Python.
+/// autre valeur est un `TypeError`.
 pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat<String> {
     let heure_embauche = match heure_embauche {
         Value::String(t) => t.as_str(),

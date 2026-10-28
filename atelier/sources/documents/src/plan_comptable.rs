@@ -1,10 +1,10 @@
 //! Le plan comptable et les tables des exports : le plan livre (`plan-comptable-base.json`) recouvert par
 //! `config/plan-comptable.json`, le sous-compte 421 d'un salarie (le modele `net.par_salarie`, une forme de
-//! `str.format` que ce module rend ou refuse sous la classe de Python), le controle du plan avant un export vers le
+//! `str.format` que ce module rend ou refuse), le controle du plan avant un export vers le
 //! logiciel du comptable, et les tables fixes des exports (`exports_tables.json`).
 //!
 //! Ecart VOULU (refuser plutot que formater autrement) : un modele de compte individuel qui emploie une forme de
-//! `str.format` que Python formate mais que ce module ne rend pas -- groupement des milliers avec zeros
+//! `str.format` que ce module ne rend pas -- groupement des milliers avec zeros
 //! (`{code:010,}`), types flottants (`{code:e}`, `f`, `g`, `%`), methodes ou attributs de `str`/`int` autres que
 //! `real`, `imag`, `numerator`, `denominator` -- est refuse en `ErreurOperation` qui le dit.
 
@@ -221,14 +221,14 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
     let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;
-        // le reste (TypeError, AttributeError...) traverse comme en Python.
+        // le reste (TypeError, AttributeError...) traverse.
         match classe {
             "ValueError" | "KeyError" | "IndexError" => {}
             "NonPorte" => {
                 return Refus::Autre(erreur(
                     "ErreurOperation",
                     format!(
-                        "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `paie route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement que Python.",
+                        "Le modèle du compte individuel « {} » (net.par_salarie) emploie une forme de str.format que `paie route` ne prend pas en charge ({}) : refusé plutôt que formaté autrement.",
                         valeur_en_texte(modele),
                         message
                     ),
@@ -263,13 +263,13 @@ fn entier_py(t: &str) -> Option<i64> {
 
 // ------------------------------------------------------------- str.format
 
-/// `NonPorte` : une forme que Python formate et que ce module refuse.
+/// `NonPorte` : une forme que ce module refuse.
 type Faute = (&'static str, String);
 
 /// `modele.format(code=code, cle=cle)` : `code` est l'entier de la fiche, ou "" s'il
-/// n'en a pas. Refuse ou Python leve, sous la classe de Python (`ValueError`, `KeyError`,
+/// n'en a pas. Refuse, sous la classe de l'erreur (`ValueError`, `KeyError`,
 /// `IndexError`...) et une phrase en francais, en suivant `MarkupIterator_next` et
-/// `parse_field` de CPython.
+/// `parse_field`.
 fn formater(modele: &str, code: Option<i64>, cle: &str, profondeur: u32) -> Result<String, Faute> {
     if profondeur >= 2 {
         return Err(("ValueError", "mise en forme imbriquée trop profondément".into()));
@@ -377,7 +377,7 @@ enum Objet {
     Texte(String),
 }
 
-/// Les attributs que l'entier et le texte portent en Python et que ce modele ne sait
+/// Les attributs que l'entier et le texte portent et que ce modele ne sait
 /// pas rendre (une methode se montre par son adresse en memoire).
 const METHODES_ENTIER: [&str; 9] = ["as_integer_ratio", "bit_count", "bit_length", "conjugate", "from_bytes", "to_bytes", "is_integer", "__class__", "__doc__"];
 const METHODES_TEXTE: [&str; 47] = [

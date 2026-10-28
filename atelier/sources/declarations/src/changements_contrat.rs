@@ -27,7 +27,7 @@
 //! calcule periode par periode (les emplois multiples, 40.036). Un changement sans date refuse ; un changement anterieur
 //! au mois (des mois deja declares avec l'ancienne valeur, que la paie n'a pas recalcules) refuse ; un changement en
 //! cours de mois refuse sauf pour ce qui ne change pas la paie (statut BOETH), pour les identifiants, et pour ce que la
-//! paie decoupee en periodes elementaires porte au jour du changement (lot R10, `periodes`).
+//! paie decoupee en periodes elementaires porte au jour du changement (`periodes`).
 
 
 
@@ -55,7 +55,7 @@ struct Modalite {
     periodique: bool,
     /// Elle peut changer en cours de mois : elle ne change pas la paie.
     en_cours_de_mois: bool,
-    /// Elle peut changer en cours de mois quand la paie se decoupe au jour du changement (lot R10, `periodes`) : le
+    /// Elle peut changer en cours de mois quand la paie se decoupe au jour du changement (`periodes`) : le
     /// statut, la categorie, la PCS et le code emploi que la fiche date, la duree du travail que l'avenant date avec ses
     /// termes d'avant (`avant`), et la proratisation du plafond qui la suit.
     decoupable: bool,
@@ -253,7 +253,7 @@ correction de mois deja declares, que le logiciel ne fait pas.",
                     qui(p), quoi, j.jj_mm_aaaa(), d, libelle_mois(mois), libelle_mois(&format!("{:04}-{:02}", j.an, j.mois))
                 ));
             }
-            // En cours de mois : la paie decoupee au jour du changement le porte (lot R10 ; norme, § 2.1.2.5 p. 22-23 :
+            // En cours de mois : la paie decoupee au jour du changement le porte (; norme, § 2.1.2.5 p. 22-23 :
             // 41.001 au jour, 41.028 au premier du mois), pour ce que le decoupage sait calculer.
             if *j > debut_m && !md.en_cours_de_mois && !(md.decoupable && p.decoupee_le(j)) {
                 let suivant = Jour { jour: 1, ..debut_m.plus_jours(31)? };
@@ -369,7 +369,7 @@ mutation (cahier technique DSN, p. 21) ; la fiche du salarie {} . Dater le chang
             continue;
         }
         // Une valeur que la nature fixe (`contrats-base.json`) ne change pas tant que la nature reste : un declare
-        // different vient d'une version anterieure du logiciel (40.005 = 999SPT des permanents depuis la vague V2b),
+        // different vient d'une version anterieure du logiciel (40.005 = 999SPT des permanents),
         // pas d'un changement du contrat. INFERENCE : la norme ne dit rien d'une valeur corrigee par le logiciel.
         // Pas 40.016 : la nature y met 99, que le regime local d'Alsace-Moselle remplace (`dsn::bloc_contrat`), et une
         // mutation qui en sort est un vrai changement.

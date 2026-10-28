@@ -1,11 +1,11 @@
-//! La regularisation de la CASC-SVP (`moteur/operations_casc.py`) : le dossier que prepare `exporter
+//! La regularisation de la CASC-SVP : le dossier que prepare `exporter
 //! regularisation-casc-svp`, et `casc-regularise`, qui note qu'une annee est regularisee.
 //!
 //! Tout se lit dans les paies declarees (`dsn::paies_declarees_du_mois`) : masses, salaries, contrats. Un mois dont la DSN
 //! porte deja la CASC-SVP, ou deja regularise (`config/casc-svp.json`), n'y entre pas.
 //!
-//! Le classeur modele du CASC-SVP (`donnees/modeles/casc-svp-liste-nominative.xlsx`, ouvert et rempli par openpyxl
-//! dans l'ancien Python) N'EST PAS PORTE : voir `liste_nominative_xlsx`.
+//! Le classeur modele du CASC-SVP (`donnees/modeles/casc-svp-liste-nominative.xlsx`, ouvert et rempli par une
+//! bibliotheque de tableur) N'EST PAS PORTE : voir `liste_nominative_xlsx`.
 
 use std::path::Path;
 use std::str::FromStr;
@@ -136,7 +136,7 @@ pub struct Demande {
 }
 
 /// « mars 2025 » : le nom d'un mois de la regularisation. « 00 » n'est aucun mois et se refuse
-/// (`date::numero_du_mois`, lot F1 ; l'indice `0 - 1` paniquait, un mois illisible se lisait janvier).
+/// (`date::numero_du_mois`).
 fn libelle_du_mois(m: &str, an: &str) -> R<String> {
     let mo = socle::date::numero_du_mois(m).map_err(refus)?;
     Ok(format!("{} {}", socle::date::nom_du_mois(mo as i64, socle::date::Graphie::Accentuee).map_err(refus)?, an))
@@ -603,8 +603,8 @@ fn quantite_xlsx(q: Option<&Decimal>) -> Option<f64> {
 /// Le modele officiel (`donnees/modeles/casc-svp-liste-nominative.xlsx`) n'est plus ouvert : le classeur est RECREE par
 /// `rust_xlsxwriter` avec les memes colonnes (37), les memes trois lignes de consignes (memes textes, memes cellules
 /// fusionnees) et les memes valeurs ; la mise en forme est plus simple (gras, retour a la ligne, volet fige sous la
-/// 3e ligne). Les consignes de la 4e ligne du modele (« NE PAS REMPLIR »...) n'y sont pas, comme dans le Python, qui les
-/// effacait avant d'ecrire.
+/// 3e ligne). Les consignes de la 4e ligne du modele (« NE PAS REMPLIR »...) n'y sont pas : elles sont
+/// effacees avant d'ecrire.
 fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path, fichiers: &mut Vec<std::path::PathBuf>) -> R<()> {
     use rust_xlsxwriter::{Format, FormatAlign, Workbook};
     let xl = |e: rust_xlsxwriter::XlsxError| erreur("OSError", format!("classeur CASC-SVP : {}", e));
@@ -712,7 +712,7 @@ pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montan
     let mut d = match lire_json(&p) {
         Ok(Value::Object(o)) => Value::Object(o),
         Ok(autre) => autre,
-        Err(_) => json!({"_quoi": "Les regularisations CASC-SVP faites hors DSN (moteur/operations_casc.py). Un mois ici ne revient plus dans un dossier de regularisation."}),
+        Err(_) => json!({"_quoi": "Les regularisations CASC-SVP faites hors DSN. Un mois ici ne revient plus dans un dossier de regularisation."}),
     };
     let calcule = r.mois.iter().fold(Decimal::ZERO, |t, m| t + m.cotisation);
     let entree = json!({

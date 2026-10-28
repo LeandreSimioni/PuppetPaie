@@ -1,4 +1,4 @@
-//! La description du bulletin de paie (`moteur/bulletin.py`, FORMAT.md de
+//! La description du bulletin de paie (FORMAT.md de
 //! `fabrique-pdf`) : des blocs JSON que la fabrique met en page. Ce module
 //! s'arrete a la `Value` de la description ; l'ecriture du PDF est
 //! `fabrique::ecrire`.
@@ -177,7 +177,7 @@ fn s(texte: impl Into<String>) -> Value {
     Value::String(texte.into())
 }
 
-/// `_ligne_tableau` : les options absentes (le faux Python) ne s'ecrivent pas.
+/// `_ligne_tableau` : les options absentes ne s'ecrivent pas.
 fn ligne(cellules: Vec<Value>, options: Vec<(&str, Value)>) -> Value {
     let mut o = Map::new();
     o.insert("cellules".into(), Value::Array(cellules));
@@ -411,16 +411,14 @@ fn tableau_conges(cpt: &CompteurConges) -> Value {
 /// LEGIARTI000049854119.xml) : « Base », « Taux », « Salarié », « Employeur ». Un seul taux : celui du salarie, le seul
 /// que le code du travail exige (R. 3243-1, 8°, a : « pour les cotisations et contributions [...] a la charge du
 /// salarie, leurs taux ») ; le modele met « - » au taux des lignes que l'employeur paie seul (accidents du travail,
-/// famille). Jusqu'a la vague V2g : six colonnes, taux et montant employeur avant taux et montant salarie. Les deux
-/// modeles impriment ce tableau-la (lot D2 : voir `Modele`).
+/// famille). Les deux modeles impriment ce tableau-la (voir `Modele`).
 const COLONNES: i64 = 5;
 const LARGEURS: [f64; 5] = [0.55, 0.12, 0.09, 0.12, 0.12];
 /// L'annexe du modele *complet* : le libelle, la base, le taux et le montant de chaque part.
 const COLONNES_ANNEXE: i64 = 6;
 const LARGEURS_ANNEXE: [f64; 6] = [0.46, 0.11, 0.09, 0.11, 0.11, 0.12];
 
-/// LES DEUX MODELES DE BULLETIN (PLAN-CONTRATS, C, points 9 et 11, decides le 30/09/2026 ; lot R11, 11/10/2026 ; lot
-/// D2, 13/10/2026).
+/// LES DEUX MODELES DE BULLETIN.
 ///
 /// - *Simplifie* : le modele de l'arrete du 25/02/2016, art. 1, I.
 /// - *Complet* : le MEME bulletin, ligne pour ligne, suivi d'une page annexe qui detaille chaque cotisation et
@@ -431,8 +429,8 @@ const LARGEURS_ANNEXE: [f64; 6] = [0.46, 0.11, 0.09, 0.11, 0.11, 0.12];
 ///   détails pour la rubrique « Cotisations et contributions sociales obligatoires » [...] son uniformisation permet
 ///   d'assurer la lisibilité entre les bulletins des différents employeurs » ; « il est autorisé de fournir le détail de
 ///   certaines rubriques (cotisations statutaires, autres charges dues, complémentaire garantie frais de santé
-///   obligatoire, etc.) au verso du bulletin de paie ou bien sur un document annexe ». Jusqu'au lot D2, le complet
-///   ajoutait une colonne « Taux employeur » et des lignes « dont ... » DANS la rubrique : c'est ce que Q 10 refuse.
+///   obligatoire, etc.) au verso du bulletin de paie ou bien sur un document annexe ». Le complet
+///   n'ajoute donc ni colonne « Taux employeur » ni lignes « dont ... » DANS la rubrique, que Q 10 refuse.
 ///   L'annexe est une page qui suit celle du bulletin.
 ///
 /// QUI CHOISIT : la compagnie, pour tous (`modele_bulletin` de la fiche entreprise, pose par le selecteur de
@@ -503,7 +501,7 @@ impl Modele {
 }
 
 /// Le modele du bulletin d'une paie : la case de la fiche du salarie l'emporte ; sinon celle de la compagnie ; sinon le
-/// simplifie (PLAN-CONTRATS, C, point 11).
+/// simplifie.
 pub fn modele_du_bulletin(ent: &Value, sal: &Value) -> Resultat<Modele> {
     let nom = sal.get("_cle").map(en_texte).unwrap_or_default();
     match Modele::de_la_fiche(sal, &format!("du salarié {}", nom).trim().to_string())? {
@@ -531,9 +529,9 @@ enum Rang {
     /// « Retraite » : ses lignes sous le titre du groupe.
     Retraite,
     /// « Autres charges dues par l'employeur » : UNE ligne, le seul montant employeur, toutes ses contributions
-    /// agregees (C. trav. R. 3243-2, al. 2 ; arrete, art. 3), la caisse des Conges Spectacles comprise (lot D2).
+    /// agregees (C. trav. R. 3243-2, al. 2 ; arrete, art. 3), la caisse des Conges Spectacles comprise.
     Autres,
-    /// Une famille que le moteur ne range pas : titree par sa famille, comme avant la vague V2g.
+    /// Une famille que le moteur ne range pas : titree par sa famille.
     Hors(String),
     /// « COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES ».
     Facultative(&'static str),
@@ -577,8 +575,8 @@ const FACULTATIVES: &str = "COTISATIONS ET CONTRIBUTIONS SOCIALES FACULTATIVES";
 /// Décès, Autres » (art. 1, I) ; la FAQ du BOSS, Q 18 (meme fichier que `Modele`, l. 192-196) : une cotisation rendue
 /// obligatoire par un accord de branche, et non par la loi, est facultative.
 ///
-/// La caisse des Conges Spectacles : dans « Autres charges dues par l'employeur » (lot D2 ; jusque-la, une ligne a
-/// elle, que le modele ne nomme pas). FAQ du BOSS, Q 11 (l. 173-174) : « Est-il possible d'afficher des lignes
+/// La caisse des Conges Spectacles : dans « Autres charges dues par l'employeur », et non sur une ligne
+/// a elle, que le modele ne nomme pas. FAQ du BOSS, Q 11 (l. 173-174) : « Est-il possible d'afficher des lignes
 /// supplémentaires pour certaines contributions propres à un secteur d'activité [...] (ex : BTP [...]) ? Non, il convient
 /// de regrouper certaines contributions particulières dans les rubriques « autres » prévues à cet effet » ; Q 12
 /// (l. 175-178) : « totaliser les contributions légales à la charge exclusive de l'employeur dans la rubrique « Autres
@@ -1057,7 +1055,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let mut corps = Vec::new();
     let rem: Vec<&engagement::calcul::LigneBrut> =
         p.remuneration.iter().enumerate().filter(|(i, _)| !j.remboursements.contains(i)).map(|(_, l)| l).collect();
-    // « MONTANT BRUT » (art. 1, I ; VI : mis en valeur). Jusqu'a la vague V2g : « SALAIRE BRUT ».
+    // « MONTANT BRUT » (art. 1, I ; VI : mis en valeur).
     if rem.len() <= 1 {
         let titre = match rem.first() {
             Some(l) => format!("{} à {}", l.designation(), fmt_eur(l.taux)),
@@ -1077,11 +1075,11 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         corps.push(ligne(vec![s("MONTANT BRUT"), s(fmt_eur(p.brut))], vec![gras(), ("fond", FOND_BRUT.into())]));
     }
     corps.extend(tableau_modele(p)?);
-    // Le bas du tableau (vague 1o) : « MONTANT NET SOCIAL », puis « REMBOURSEMENTS ET DEDUCTIONS DIVERSES », puis
+    // Le bas du tableau : « MONTANT NET SOCIAL », puis « REMBOURSEMENTS ET DEDUCTIONS DIVERSES », puis
     // « MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU », puis « IMPOT SUR LE REVENU » (« Montant net imposable »,
     // « IMPOT SUR LE REVENU PRELEVE A LA SOURCE ») et « MONTANT NET A PAYER (en Euros) », enfin « TOTAL VERSE PAR
-    // L'EMPLOYEUR » (vague V2g). Jusqu'a la vague 1o, deux nets egaux partageaient une ligne « NET SOCIAL / NET A PAYER
-    // AVANT IMPOT » (la derogation de l'arrete du 31/01/2023, finie au 01/01/2026).
+    // L'EMPLOYEUR » ; deux nets egaux ne partagent pas une ligne (la derogation de l'arrete du 31/01/2023 a pris fin
+    // au 01/01/2026).
     corps.push(ligne_net("MONTANT NET SOCIAL", p.net_social, n));
     if !j.remboursements.is_empty() {
         corps.push(ligne(vec![cel("REMBOURSEMENTS ET DÉDUCTIONS DIVERSES", n)], style_section()));
@@ -1098,13 +1096,13 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         None => corps.extend(lignes_pas_tableau(p, j.pas, n)?),
     }
     // « TOTAL VERSÉ PAR L'EMPLOYEUR » (art. 1, I ; C. trav. R. 3243-1, 14° : le brut et les cotisations patronales,
-    // exonerations deduites) : le cout employeur de la paie, imprime jusqu'a la vague V2g au pied du bulletin
+    // exonerations deduites) : le cout employeur de la paie, imprime au pied du bulletin
     // (« Coût total employeur »).
     corps.push(ligne(
         vec![cel("TOTAL VERSÉ PAR L'EMPLOYEUR", n - 1), s(fmt_eur(p.cout_employeur))],
         vec![gras(), filet_haut(ROUGE, 0.6)],
     ));
-    // Les montants ne se coupent pas : voir les largeurs de colonnes du Python.
+    // Les montants ne se coupent pas : les largeurs de colonnes le permettent.
     blocs.push(tableau(&LARGEURS, entete, corps, "#e4e4e4"));
 
     let cumul = if permanent {

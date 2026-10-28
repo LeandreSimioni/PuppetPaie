@@ -1,5 +1,5 @@
 //! Le format des rubriques de la norme : longueur et expressions de controle
-//! (CSL) du cahier technique (`moteur/formats.py`). Un releve par version de la
+//! (CSL) du cahier technique. Un releve par version de la
 //! norme (`norme-dsn-base.json` le nomme) : un fichier se controle dans la table
 //! de sa version (S10.G00.00.006) ; une saisie, dans celles de TOUTES les
 //! versions livrees (la valeur d'une fiche part dans les fichiers de chacune).

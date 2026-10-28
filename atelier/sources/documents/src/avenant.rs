@@ -25,8 +25,8 @@ use socle::num::{dec, Resultat};
 /// `contrat.MODELE.name`.
 const MODELE: &str = "contrat-cddu.modele";
 
-/// Ce qui remplace une valeur qui n'est pas un texte : le Python ne la refuse que si le modele s'en
-/// sert (`re.sub` ne sait pas poser autre chose qu'une chaine). Une phrase qui la porte est un refus.
+/// Ce qui remplace une valeur qui n'est pas un texte : elle ne se refuse que si le modele s'en
+/// sert. Une phrase qui la porte est un refus.
 const INVALIDE: &str = "\u{0}\u{0}VALEUR-SANS-TEXTE\u{0}\u{0}";
 
 
@@ -125,7 +125,7 @@ struct Eng {
     lieu: String,
     date_paiement: Option<String>,
     cachets: String,
-    /// `None` : un contrat sans cachet dont ni l'engagement ni le mois n'ecrivent de taux (lot F1).
+    /// `None` : un contrat sans cachet dont ni l'engagement ni le mois n'ecrivent de taux.
     taux_cachet: Option<String>,
 }
 
@@ -271,7 +271,7 @@ fn remuneration_hors_brut(remuneration: &[Value]) -> Resultat<String> {
     Ok(if morceaux.is_empty() { String::new() } else { format!(", auxquels s'ajoutent {} hors brut", et(&morceaux)) })
 }
 
-/// Le numero du mois, de 1 a 12 : « 00 » se refuse (`date::numero_du_mois`, lot F1 ; il se lisait janvier).
+/// Le numero du mois, de 1 a 12 : « 00 » se refuse (`date::numero_du_mois`).
 fn mois_de(mois: &str) -> Resultat<usize> {
     socle::date::numero_du_mois(mois).map(|n| n as usize)
 }
@@ -375,8 +375,7 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
     let emploi_texte = emploi.as_str().ok_or("l'emploi n'est pas un texte")?;
     poser("salarie.emploi", emploi_texte.to_lowercase());
     poser("salarie.qualite_de", de_devant(emploi_texte).to_string());
-    // Un numero que le moteur ne porte pas (contrat pas encore numerote) n'est pas devine : le
-    // Python le prendrait au compteur.
+    // Un numero que le moteur ne porte pas (contrat pas encore numerote) n'est pas devine ni pris au compteur.
     poser(
         "contrat.numero",
         match e.numero.as_deref() {

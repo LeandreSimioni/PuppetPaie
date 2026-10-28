@@ -1,5 +1,5 @@
 {
- "_quoi": "Les tables fixes de moteur/operations_exports.py (ETATS, FAMILLES, FORMES, FORMATS_CONNUS, REGROUPEMENTS_CONNUS, ETATS_SI_CONVENTION, ETATS_SI_PERMANENTS) et de moteur/operations_ecritures.py (LOGICIELS, ECRIVAINS, LIMITES, FORMAT_LISIBLE), ecrites par un script jetable. A regenerer si l'une change.",
+ "_quoi": "Les tables fixes des etats exportes (ETATS, FAMILLES, FORMES, FORMATS_CONNUS, REGROUPEMENTS_CONNUS, ETATS_SI_CONVENTION, ETATS_SI_PERMANENTS) et des ecritures de paie (LOGICIELS, ECRIVAINS, LIMITES, FORMAT_LISIBLE).",
  "etats": [
   {
    "etat": "livre-de-paie",

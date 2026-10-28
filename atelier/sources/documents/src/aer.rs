@@ -1,8 +1,7 @@
-//! AER Cinema Spectacle : la section 5, celle qui est a notre charge
-//! (`moteur/aer.py`).
+//! AER Cinema Spectacle : la section 5, celle qui est a notre charge.
 //!
 //! France Travail edite l'attestation a partir de notre DSN et nous la renvoie
-//! (retour de nature 46, voir moteur/retours.py). Elle arrive PRE-REMPLIE des
+//! (retour de nature 46, `retours/`). Elle arrive PRE-REMPLIE des
 //! faits -- salarie, contrats, cachets, brut -- et VIDE de son authentification :
 //! 158 champs sur 217 sont a blanc, dont le cadre 5.
 //!
@@ -34,11 +33,8 @@
 //! sur les 507 des annexes 8 et 10.
 //!
 //! Le cachet de l'entreprise (EMPLOYEUR_CACHET) est DESSINE depuis
-//! `entreprise.json` (voir `cachet.rs`). Il restait vide jusqu'au 22/09/2026,
-//! au motif que << la compagnie n'en a pas >> -- ce qui etait faux : elle en
-//! avait un, il etait simplement dans la case SIGNATURE, ou il n'avait rien a
-//! faire. Le formulaire n'exige ni l'un ni l'autre ; il les distingue, et nous
-//! aussi desormais.
+//! `entreprise.json` (voir `cachet.rs`). Le cachet de l'entreprise et la signature sont deux cases distinctes du
+//! formulaire : le formulaire n'exige ni l'un ni l'autre, et le moteur les distingue.
 //!
 //! La lecture des champs et l'ecriture du formulaire sont celles de la
 //! fabrique de PDF, appelee dans le meme processus (`fabrique_pdf::formulaire`).
@@ -426,7 +422,7 @@ pub struct Authentification<'a> {
 
 /// L'attestation, cadre 5 rempli et signee. Rend les octets du PDF.
 pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
-    // L'ordre des refus est celui du Python : l'ecart d'abord (il lit le
+    // L'ordre des refus : l'ecart d'abord (il lit le
     // formulaire), puis les cles de la fiche, puis la lecture du formulaire.
     if let Some(paies) = a.paies {
         let ecarts = ecarts(&lire_quantites(&champs(donnees)?)?, paies);

@@ -1,4 +1,4 @@
-//! La contribution supplementaire a l'apprentissage (CSA, lot D2) : la declaration annuelle que la DSN de mars N+1
+//! La contribution supplementaire a l'apprentissage (CSA) : la declaration annuelle que la DSN de mars N+1
 //! porte, sur l'etablissement principal, au titre de l'annee N.
 //!
 //! LES TEXTES (deposes ; les lignes citees sont celles des fichiers) :
@@ -32,7 +32,7 @@
 //! des paies declarees (`dsn::assiettes_de_l_annee` ; CTP 992, et 993 pour l'Alsace-Moselle), etablissement par
 //! etablissement, comme le solde de la taxe d'avril (`dsn::solde_taxe_apprentissage`). Ce qui manque refuse, en disant quoi.
 //!
-//! INFERENCES (passation du lot D2) : l'assiette des etablissements d'Alsace-Moselle est celle de leur CTP 993 ; la
+//! INFERENCES : l'assiette des etablissements d'Alsace-Moselle est celle de leur CTP 993 ; la
 //! « progression d'au moins 10 % » compare A05 de N a A05 de N-1 (le guide Urssaf, l. 2431-2433, la calcule ainsi :
 //! « [(17-15) x 100] / 15 ») ; l'effectif qui « excède deux mille » suit, comme celui des 250, la regle de
 //! franchissement de L. 130-1, II (L. 6242-1, V, le dit des deux seuils).
@@ -162,7 +162,7 @@ pub fn declaration(ctx: &Contexte, mois: &str) -> Resultat<Option<Csa>> {
         return Ok(None);
     }
     let n: i32 = mois[..4].parse::<i32>().map_err(|_| format!("mois illisible : {}", mois))? - 1;
-    // Redevable de la taxe d'apprentissage (L. 6242-1, I) : le motif de non-assujettissement de la fiche (lot R2).
+    // Redevable de la taxe d'apprentissage (L. 6242-1, I) : le motif de non-assujettissement de la fiche.
     if droit::apprentissage::taxe_apprentissage_non_due(&ctx.entreprise, n)? {
         return Ok(None);
     }

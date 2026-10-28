@@ -1,9 +1,9 @@
-//! L    let orphelins: Vec<&&Arret> = arrets_du_mois.iter().filter(|a| !paies.iter().any(|p| a.du_contrat(p))).collect(); DSN mensuelle (`moteur/dsn.py`), dans la version de la norme NEODeS que son mois principal declare appelle
+//! La DSN mensuelle, dans la version de la norme NEODeS que son mois principal declare appelle
 //! (`norme::de_la_mensuelle`, `logiciel/donnees/norme-dsn-base.json`).
 //!
 //! Le fichier est une suite de lignes `RUBRIQUE,'valeur'` separees par CRLF,
 //! ecrites en latin-1 par l'appelant. Le moteur refuse plutot que d'ecrire une
-//! valeur qu'il ne sait pas : les refus gardent les phrases du Python.
+//! valeur qu'il ne sait pas.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::Display;
@@ -237,7 +237,7 @@ fn zero() -> Decimal {
     Decimal::new(0, 2)
 }
 
-/// `"%.Nf" % x` : Python passe par le flottant.
+/// `"%.Nf" % x` : passe par le flottant.
 fn fmt_f(x: Decimal, n: usize) -> String {
     let f: f64 = x.to_string().parse().unwrap_or(0.0);
     format!("{:.*}", n, f)
@@ -365,7 +365,7 @@ pub fn etablissement_du_salarie(ent: &Value, salarie: &Value) -> Resultat<Value>
     fiche_de(ent, &bareme::etablissement_du_salarie(ent, salarie)?)
 }
 
-// ----------------------------------------------------- les entrees du Python
+// ----------------------------------------------------- les entrees
 
 /// Un arret de travail a reporter (`signalement.Arret`).
 #[derive(Clone, Debug)]
@@ -460,7 +460,7 @@ pub struct Regularisation {
     pub decidee_le: Option<Jour>,
 }
 
-/// Les parametres de `generer`, avec les defauts du Python.
+/// Les parametres de `generer`, avec leurs defauts.
 pub struct Options {
     pub date_constitution: Option<Jour>,
     pub fraction: String,
@@ -573,8 +573,7 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
             }
         }
     }
-    // Un calcul de permanent stocke avant le lot V2f n'a pas `t1_mensuelle_x115` : son FNAL s'asseyait sur la tranche 1,
-    // sans majoration (aucun permanent n'etait declare a la caisse). On relit ce calcul-la.
+    // Un calcul de permanent sans `t1_mensuelle_x115` declare son FNAL sur la tranche 1, sans majoration (aucune caisse).
     if !out.contains_key("t1_mensuelle_x115") {
         if let Some(x) = b.get("t1_mensuelle") {
             out.insert("t1_mensuelle_x115".into(), *x);
@@ -588,7 +587,7 @@ pub fn bases(p: &Paie, bar: &Value) -> Resultat<HashMap<String, Decimal>> {
         out.insert("brut_x115_plafonne".into(), out["brut_x115"]);
         out.insert("brut_chomage".into(), p.brut);
     }
-    // De meme pour le chomage d'un permanent avant le lot V2e : son bulletin l'assiait sur le brut entier.
+    // De meme pour le chomage d'un permanent sans `brut_chomage` : le brut entier.
     if p.engagement.nat()?.mensuelle() && !b.contains_key("brut_chomage") {
         out.insert("brut_chomage".into(), p.brut);
     }
@@ -600,7 +599,7 @@ fn base<'a>(bases: &'a HashMap<String, Decimal>, cle: &Value) -> Resultat<Decima
     bases.get(&k).copied().ok_or_else(|| socle::fichiers::absent(&k))
 }
 
-/// Les bases assujetties que la deduction forfaitaire specifique abat (lot R9, 11/10/2026 ;
+/// Les bases assujetties que la deduction forfaitaire specifique abat (11/10/2026 ;
 /// `atelier/reference/sources/dfs/LISEZ-MOI.md`, « La DSN ») : 02 et 03, l'assiette des cotisations de securite sociale
 /// (CSS R. 242-1, al. 3 ; arrete du 4 septembre 2025 relatif aux frais professionnels, art. 1er et 9), et 23 et 43,
 /// celles d'Agirc-Arrco (cahier d'aide a la codification Agirc-Arrco CT2026, l. 3490-3498 : « La solution ainsi retenue
@@ -1491,11 +1490,10 @@ fn qui_contrat(p: &Paie) -> String {
 
 /// `S21.G00.86.003` d'une DSN mensuelle : l'anciennete dans l'entreprise (type 07, en jours), « connue a la fin de la
 /// periode mensuelle declaree », jamais zero (cahier technique 2026.1, p. 322, `norme-dsn/texte/bloc-S21.G00.86.txt`,
-/// l. 104-115). Elle part de `date_anciennete` de la fiche, que Leandre a fixee le 23/09/2026 a « la date de la
-/// creation de la fiche ; apres, s'ils veulent, les gens peuvent changer » (`prive/journal/archives/2026-09-23.md`,
-/// l. 669-673) : l'ecran la pose sur toute fiche neuve, l'import au premier contrat lu. Une fiche qui ne la porte
-/// pas ne dit pas ce jour : elle refuse. Jusqu'au 10/10/2026, le moteur prenait le 01/12/2019, date de la compagnie
-/// d'essai. Une date apres la fin du mois donnerait zero ou moins, que la CCH-12 interdit : elle refuse aussi.
+/// l. 104-115). Elle part de `date_anciennete` de la fiche, posee a la creation de la fiche (l'ecran la pose sur toute
+/// fiche neuve, l'import au premier contrat lu) et que les gens peuvent changer. Une fiche qui ne la porte pas ne dit
+/// pas ce jour : elle refuse. Une date apres la fin du mois donnerait zero ou moins, que la CCH-12 interdit : elle
+/// refuse aussi.
 pub fn anciennete_du_mois(s: &Value, cle: &str, fin_m: &Jour) -> Resultat<i64> {
     let Some(v) = s.get("date_anciennete").filter(|v| vrai(v)) else {
         return Err(format!(
@@ -1856,7 +1854,7 @@ declare {} h ; ses quatre heures sont des heures supplementaires, payees comme t
 /// [...]. Pour un salarie en forfait jour reduit, [...] avec le choix du salarie » ; le journal de maintenance 2027.1.2
 /// (`dsn-journal-maintenance-2027.1.2-20260615.txt`) la rend CONDITIONNELLE en DSN mensuelle (evolution 21, l. 433-452 :
 /// O -> C) et retire sa CCH-12 (evolution 16, l. 347-366) : elle ne s'ecrit plus pour un temps plein ni pour un contrat
-/// d'usage (le lot V4b y ecrivait 02 sur le cahier 2027.1.1). Interdite en FCTU (I), conditionnelle en amorcage (C),
+/// d'usage. Interdite en FCTU (I), conditionnelle en amorcage (C),
 /// absente de la table P26V01 : la table de la version du fichier decide. Elle dit ce que le calcul fait
 /// (`calcul::plafond_temps_partiel`, la meme lecture) :
 /// - temps partiel, plafond proratise (la regle, fiche net-entreprises 3369) : 01 ;
@@ -2232,7 +2230,7 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     f.add("S21.G00.50.009", mt(pct(soumis, dec_avec_echelle(&taux)?)));
     f.add("S21.G00.50.013", mt(soumis));
 
-    // Un mois decoupe (lot R10) : les remunerations de chaque periode elementaire, datees de ses bornes (« La periode a
+    // Un mois decoupe : les remunerations de chaque periode elementaire, datees de ses bornes (« La periode a
     // declarer dans le bloc Remuneration est cette periode elementaire de paie, lorsque le logiciel de paie produit
     // effectivement un decoupage », norme 2026.1, § 2.1.3.2, p. 28 ; les mesures d'activite aussi, § 2.1.3.5, p. 29).
     for q in p.elementaires() {
@@ -2274,7 +2272,7 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     net_social(f, p, &debut, &fin, 1)?;
     // Les bases d'un mois decoupe, periode elementaire par periode elementaire, datees de ses bornes (78.002, 78.003) :
     // « Pour tout changement intervenant en cours de mois, il convient de ventiler les bases assujetties par periodes »
-    // (fiche net-entreprises 1265, l. 52) ; FAQ Agirc-Arrco « Changement de situation en cours de mois » (lot R10).
+    // (fiche net-entreprises 1265, l. 52) ; FAQ Agirc-Arrco « Changement de situation en cours de mois ».
     for q in p.elementaires() {
         bases_et_cotisations(f, q, bar, rang, &q.engagement.debut_periode()?, &q.engagement.fin_periode()?, 1, "01", &[])?;
     }
@@ -2384,7 +2382,7 @@ rattacher. Rien n'est ecrit.",
 /// - **la correction verse ou reprend** (net a payer different) : le montant net social de ce qui a ete paye est le
 ///   net deja verse moins ce que la paie d'origine payait hors du montant net social (remboursements de frais,
 ///   acompte : `avant.net_a_payer - avant.net_social`, qui ne dependent que des lignes saisies). S'il differe du
-///   declare (un depot d'avant la vague 1b portait le net a payer), le 58 depose s'annule et ce montant se declare,
+///   declare (un depot qui portait le net a payer), le 58 depose s'annule et ce montant se declare,
 ///   aux dates d'origine ; la difference avec le montant net social corrige se declare aux dates du mois du versement,
 ///   du premier au dernier jour du mois de la correction (inference : la « periode de versement » est le mois dont le
 ///   versement porte la date, `S21.G00.50.001` = `fin_mois`).
@@ -2543,8 +2541,8 @@ doit le citer, et on ne le devine pas. Rien n'est ecrit.",
 // ------------------------------------------- l'agrege de ce qui a ete declare
 //
 // Le bordereau Urssaf du mois d'origine (`lignes_regularisees`), les versements 20 (`cumuler_le_declare`) et le bloc 55
-// d'une regularisation portent la MEME difference que le nominatif : « corrige moins declare » (Leandre, 10/10/2026,
-// point (a) de la vague 0). Le declare se recompose depuis les lignes 78 et 81 deposees du contrat (`r.declare`), lues
+// d'une regularisation portent la MEME difference que le nominatif : « corrige moins declare »
+// Le declare se recompose depuis les lignes 78 et 81 deposees du contrat (`r.declare`), lues
 // par ce que la pile de bareme du contrat dit de chacune : quelle base porte un bloc 78 (78.004) ou une cotisation
 // (81.003), a quelle cle de totalisation va une cotisation. Ce qui ne s'y retrouve pas sans ambiguite REFUSE (regle 1),
 // en nommant le CTP ou la cotisation : on ne retombe pas sur la paie d'avant refaite.
@@ -2773,7 +2771,7 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Res
     }
     let p = &r.avant;
     let mensuelle = p.engagement.nat()?.mensuelle();
-    // Un permanent declare a la caisse des Conges Spectacles (lot V2f) a declare sa taxe d'apprentissage et son FNAL
+    // Un permanent declare a la caisse des Conges Spectacles a declare sa taxe d'apprentissage et son FNAL
     // sur des assiettes majorees ; les autres, sur le brut et la tranche 1.
     let caisse = mensuelle && engagement::calcul::declaree_a_la_caisse_des_conges(p)?;
     let tech = !mensuelle && statut(p) == "technicien";
@@ -2802,7 +2800,7 @@ fn assiette_declaree(cle: &str, r: &Regularisation, bar: &Value) -> Resultat<Res
         }),
         "t1_x115_permanent" => si(mensuelle, &|| base(if caisse { "t1_mensuelle_x115" } else { "t1_mensuelle" })),
         "reduction_generale_permanent" => si(mensuelle, &|| l.reduction_a_l_urssaf(&l81)),
-        // Les 81.003 de la cotisation 129 deposee (aucune, pour un mois depose avant le lot R2 : la correction declare
+        // Les 81.003 de la cotisation 129 deposee (aucune, pour un mois depose sans elles : la correction declare
         // alors toute la contribution, qui etait due).
         "cpf_cdd" => Ok(l81.iter().filter(|x| x.code == CODE81_CPF_CDD).fold(zero(), |s, x| add(s, x.base.unwrap_or_else(zero)))),
         // Les 81.003 de la cotisation 128 deposee d'un permanent, comme `assiettes_ctp`.
@@ -2846,7 +2844,7 @@ pub const AGIRC_ARRCO_DEPUIS_2025: [&str; 2] = ["131", "132"];
 /// Les cles de totalisation d'un versement 20 (`codes81` de `config/organismes.json`). Un fichier compose avant le
 /// 10/10/2026 nomme Agirc-Arrco par le seul 105 ; ce 105 couvrait la retraite ET l'Apec, que la norme 2026.1 declare en
 /// 131 et 132 : le versement qui porte le 105 porte aussi les 131 et 132, sans quoi il perdrait en silence ce que le
-/// bareme declare desormais sous ces codes. Le 105 y reste pour ce qui a ete DEPOSE en 105 (une regularisation).
+/// bareme declare sous ces codes. Le 105 y reste pour ce qui a ete DEPOSE en 105 (une regularisation).
 pub fn codes_du_versement(v: &Value) -> Vec<String> {
     let mut codes: Vec<String> = liste(g(v, "codes81")).iter().map(en_texte).collect();
     if codes.iter().any(|c| c == AGIRC_ARRCO_AVANT_2025) {
@@ -3017,7 +3015,7 @@ fn assiettes_ctp(paies: &[&Paie], bar: &Value) -> Resultat<HashMap<String, Decim
     // Le chomage et l'AGS des permanents (CTP 772 et 937, qualifiant 920) : la somme des bases 07 que leur nominatif
     // declare (`base_07`). Le tableau d'equivalence de l'Urssaf rattache ces deux CTP a la base 07 (040 et 048) sous le
     // qualifiant 920 (atelier/reference/sources/chomage-permanents/urssaf-equivalence-dida-20260611.csv, lignes 1640 et
-    // 280) ; depuis le lot V2e (bareme 2026) et le lot R8 (bareme 2025), c'est le brut dans la limite de quatre plafonds
+    // 280) ; c'est le brut dans la limite de quatre plafonds
     // de la periode.
     let mut chomage = zero();
     for i in (0..paies.len()).filter(|i| perm(*i)) {
@@ -3136,7 +3134,7 @@ const CTP_CHOMAGE_PERMANENT: [&str; 2] = ["772", "937"];
 
 fn valeur_ctp(somme: &HashMap<String, Decimal>, ctp: &Value) -> Resultat<(Decimal, bool)> {
     let (k, par_montant) = cle_ctp(ctp)?;
-    // Un config/organismes.json compose avant le lot V2e met 772 et 937 sur `brut_permanent`, le brut entier. Il reste
+    // Un config/organismes.json qui met 772 et 937 sur `brut_permanent`, le brut entier. Il reste
     // juste tant qu'aucun permanent ne depasse quatre plafonds ; au-dela, il paierait le chomage sur un brut que le
     // nominatif (base 07) ne declare plus. On ne le corrige pas en silence : on refuse, et on dit comment recomposer.
     let code = txt(g(ctp, "code"));
@@ -3194,7 +3192,7 @@ const ASSIETTE_CFP_PERMANENT: &str = "cfp_permanent";
 /// pour le 105. Un fichier recompose est lu tel quel.
 fn ctp_urssaf(orgs: &Value) -> Resultat<Vec<Value>> {
     let mut ctps = liste(req(orgs, "ctp_urssaf")?).to_vec();
-    // La contribution CPF-CDD (CTP 987, lot R2) : un fichier compose avant ne l'a pas ; elle se lit comme le fichier livre
+    // La contribution CPF-CDD (CTP 987) : un fichier compose avant ne l'a pas ; elle se lit comme le fichier livre
     // l'ecrit, apres le CTP de formation des permanents.
     if !ctps.iter().any(|c| txt(g(c, "code")) == CTP_CPF_CDD) {
         let base = json_en_cache(&dossier_du_code().join("organismes-base.json"))?;
@@ -3203,7 +3201,7 @@ fn ctp_urssaf(orgs: &Value) -> Resultat<Vec<Value>> {
             ctps.insert(i, l.clone());
         }
     }
-    // La formation des permanents (CTP 959, 971) : un fichier compose avant le lot U7 la met sur `brut_permanent`, le brut ;
+    // La formation des permanents (CTP 959, 971) : un fichier qui la met sur `brut_permanent`, le brut ;
     // elle se lit sur la somme des 81.003 de la 128 (`cfp_permanent`), comme le fichier livre l'ecrit -- le brut, sauf
     // pour un contrat declare a la caisse des Conges Spectacles, dont l'assiette est majoree.
     for c in ctps.iter_mut() {
@@ -3321,8 +3319,8 @@ CTP dans la table de l'Urssaf et les ajouter avant de declarer. Rien n'est ecrit
         ));
     }
     // Un permanent declare a la caisse des Conges Spectacles a un FNAL majore (CSS L. 243-1-3) : son CTP 332 lit
-    // `t1_x115_permanent` (donnees/organismes-base.json depuis le lot V2f). Un config/organismes.json compose avant ne
-    // le lit pas : il declarerait la tranche 1 nue.
+    // `t1_x115_permanent` (donnees/organismes-base.json). Un config/organismes.json qui ne
+    // le lit pas declarerait la tranche 1 nue.
     if somme["t1_x115_permanent"] != somme["t1_permanent"]
         && !ctps.iter().any(|c| txt(g(c, "assiette")) == "t1_x115_permanent")
     {
@@ -3433,7 +3431,7 @@ pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement:
 /// declare » (`assiette_declaree`), la meme que celle que porte le nominatif.
 ///
 /// `bar_o` : le bareme du mois d'origine POUR L'ETABLISSEMENT de la DSN (`bar_du`), le meme que celui du nominatif de la
-/// correction et du bordereau courant. Point 25 (vague 2c) : il etait pris sans `surcharger`, et un etablissement
+/// correction et du bordereau courant. Point 25 : il etait pris sans `surcharger`, et un etablissement
 /// secondaire valorisait son bordereau regularise au taux AT/MP du principal (23.003, `taux_at_du_ctp`) ; regle 8,
 /// chaque etablissement a le sien.
 fn lignes_regularisees(
@@ -4146,17 +4144,12 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 
 /// La DSN mensuelle de `mois` (AAAA-MM) : toutes les paies du mois de cet etablissement.
 ///
-/// Ce qui suit vient de la docstring de `generer` dans `moteur/dsn.py`, deplacee ici
-/// le 03/10/2026 pour survivre au retrait de la porte Python : ce que la norme et
-/// les depots de test nous ont appris. Les noms de parametres sont ceux de la porte
-/// Python (`etablissement`, `arrets`, `regularisations`, `pas_par_salarie`,
-/// `envoi_test`, `remplace`, `ordre`), qui sont ici `o.etablissement`, `arrets`,
+/// Ce que la norme et les depots de test nous ont appris. Les parametres sont `o.etablissement`, `arrets`,
 /// `regs`, `o.pas_par_salarie`, `o.envoi_test`, `o.remplace`, `o.ordre`.
 ///
 /// `mois` au format AAAA-MM ; `paies` : toutes les paies du mois.
 ///
-/// `etablissement` : le NIC de l'etablissement que CETTE declaration porte
-/// (25/09/2026, `moteur/etablissements.py`). Une compagnie qui en a
+/// `etablissement` : le NIC de l'etablissement que CETTE declaration porte. Une compagnie qui en a
 /// plusieurs depose une DSN par etablissement : le bloc 11, le lieu de
 /// travail (40.019), le taux AT/MP et le versement mobilite sont les siens,
 /// et `paies` ne contient que ses salaries -- un salarie d'un autre
@@ -4197,7 +4190,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// octet pour octet.
 /// A defaut, le magasin config/pas.json fait foi -- mais seulement tant que
 /// son taux est VALIDE (`pas.situation`). Le moteur ne fabrique jamais un
-/// taux DGFiP : il vient du compte-rendu metier (voir moteur/pas.py). Faute
+/// taux DGFiP : il vient du compte-rendu metier . Faute
 /// d'un taux valide, ce n'est pas un refus, c'est la loi qui prend la main :
 /// la grille de taux par defaut de l'article 204 H du CGI, calculee
 /// versement par versement (`pas_du_versement`, ci-dessous).
@@ -4289,8 +4282,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// voit pas les declarations reelles. On teste donc un annule-et-remplace
 /// comme on le deposera : la normale en test d'abord, puis l'annule-et-
 /// remplace en test (la repetition). Il passe alors les memes controles
-/// qu'en reel, rattachement compris : le test vaut le reel (Leandre,
-/// 03/10/2026, `PLAN-DEPOT-PUBLIC.md`). Ce que le test ne controle pas, c'est
+/// qu'en reel, rattachement compris : le test vaut le reel. Ce que le test ne controle pas, c'est
 /// le montant.
 pub fn fabriquer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options) -> Resultat<Fabriquee> {
     let ctx = &ctx.du_mois(mois)?;
@@ -4320,7 +4312,7 @@ etablissement, chacun avec ses salaries. Rien n'est ecrit.",
             if n > 1 { "nent" } else { "t" }
         ));
     }
-    // La correction d'un mois decoupe en periodes elementaires (lot R10) : le declare relu (`versement_declare`) et le
+    // La correction d'un mois decoupe en periodes elementaires : le declare relu (`versement_declare`) et le
     // corrige se comparent base par base, et un mois decoupe en a une par periode. Un chantier a part.
     if let Some(r) = regs.iter().find(|r| !r.apres.periodes.is_empty() || !r.avant.periodes.is_empty()) {
         return Err(format!(
@@ -4440,9 +4432,8 @@ traverse. Reprendre le contrat dans la saisie du mois, ou corriger les dates de 
     let sans_individu = paies.is_empty() && regs.is_empty();
     let constitution = match o.date_constitution {
         Some(d) => d,
-        // Retours Windows, F : la date de constitution (S20.G00.05.007) est le JOUR OU LE FICHIER SE FABRIQUE, comme celle des
-        // signalements et de la FCTU. Elle valait avant la fin de periode la plus tardive du mois (le Python aussi) : une DSN
-        // produite le 07/10 restait « constituee le 23/09 ».
+        // La date de constitution (S20.G00.05.007) est le JOUR OU LE FICHIER SE FABRIQUE, comme celle des
+        // signalements et de la FCTU : une DSN produite le 07/10 est « constituee le 07/10 ».
         None => aujourdhui()?,
     };
     let mut type_declaration = o.type_declaration.clone();
@@ -4516,7 +4507,7 @@ certificat de conformite du depot precedent.",
     f.add_v("S21.G00.06.001", e("siren")?)?;
     f.add_v("S21.G00.06.002", e("nic")?)?;
     // Le code APEN (06.003) et le code APET (11.002) : obligatoires en P26V01, retires de la norme P27V01 (cahier
-    // 2027.1.1, p. 142 et 145 ; usages p. 371 ; lot N9 § 2). Le tableau des usages de la version du fichier en decide.
+    // 2027.1.1, p. 142 et 145 ; usages p. 371 ). Le tableau des usages de la version du fichier en decide.
     if usage_admet(&f, "S21.G00.06.003", "01")? {
         f.add_v("S21.G00.06.003", e("naf")?)?;
     }
@@ -4773,7 +4764,7 @@ certificat de conformite du depot precedent.",
         ecrire_lignes_23(&mut f, lignes);
         bordereaux.push(BordereauEcrit { debut: d_o, fin: fin_mois(d_o.an, d_o.mois), total: *montant, lignes: lignes.clone() });
     }
-    // L'assujettissement fiscal (lot V3b) : une fois l'an, dans la DSN de decembre, apres les bordereaux et avant les
+    // L'assujettissement fiscal : une fois l'an, dans la DSN de decembre, apres les bordereaux et avant les
     // individus (arborescence de la norme, p. 118, `chapitre-8-arborescences.txt` : 20, 55, 22, 23, 44, 30) ;
     // `assujettissement.rs` dit d'ou vient chaque code.
     for b in crate::assujettissement::blocs(ctx, &ent0, &ent_e, &orgs, &bar, &nic, mois, paies)? {
@@ -4813,7 +4804,7 @@ certificat de conformite du depot precedent.",
             Some(p) => &p.salarie,
             None => &corrections[0].apres.salarie,
         };
-        // LES IDENTIFIANTS DU MOIS DECLARE (vague 3d) : NIR, nom, prenoms et date de naissance tels qu'au dernier jour du
+        // LES IDENTIFIANTS DU MOIS DECLARE : NIR, nom, prenoms et date de naissance tels qu'au dernier jour du
         // mois, pour qu'un changement date apres lui n'entre pas dans sa DSN (`changements_individu::identite_du_mois`).
         let brute = ctx.salarie_brut(&txt(g(s, "_cle"))).cloned().unwrap_or(Value::Null);
         let ident = crate::changements_individu::identite_du_mois(s, &brute, &fin_m)?;
@@ -4925,7 +4916,7 @@ certificat de conformite du depot precedent.",
         for (i, p) in lot.iter().enumerate() {
             bloc_versement(&mut f, p, &bar, i as i64 + 1, taux_pas.as_ref())?;
         }
-        // POINT 18 (vague 2c) : une regularisation d'un contrat aussi paye ce mois garde le rang de ce contrat (ses
+        // POINT 18 : une regularisation d'un contrat aussi paye ce mois garde le rang de ce contrat (ses
         // affiliations), mais pas son numero de versement -- deux blocs 50 au meme numero sous un individu, la CCH-11 du
         // bloc 50 l'interdit (p. 243). Les versements du mois portent 01 a n, ses regularisations n+1 et suivants.
         for (k, (rang, r)) in rangs_regs.iter().zip(&corrections).enumerate() {

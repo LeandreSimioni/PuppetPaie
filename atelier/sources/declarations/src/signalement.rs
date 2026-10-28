@@ -1,4 +1,4 @@
-//! Les signalements d'evenements (`moteur/signalement.py`), dans la version de la norme NEODeS que leur jour de
+//! Les signalements d'evenements, dans la version de la norme NEODeS que leur jour de
 //! constitution appelle (`norme::du_signalement`) :
 //! la nature 04 (arret de travail) et la nature 05 (reprise suite a arret).
 //!
@@ -7,7 +7,7 @@
 //! des usages admet pour la nature produite. Les refus de la norme
 //! (`SignalementImpossible`) gardent leurs phrases ; les autres refus (fiche
 //! introuvable, valeur absente, usage ou format hors norme) sont des
-//! `ValueError`/`KeyError` du Python, ici `Echec::Autre`.
+//! `ValueError`/`KeyError`, ici `Echec::Autre`.
 
 use serde_json::Value;
 

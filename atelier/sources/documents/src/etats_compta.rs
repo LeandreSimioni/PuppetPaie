@@ -1,5 +1,4 @@
-//! Les etats de comptabilite de `exporter` (`moteur/operations_ecritures.py` et, pour la provision de conges et la
-//! taxe sur les salaires, `moteur/operations_etats.py`) : les ecritures de paie dans les formats que les logiciels de
+//! Les etats de comptabilite de `exporter` : les ecritures de paie dans les formats que les logiciels de
 //! comptabilite importent (fec, ximport, oxygene, sage, quadra, ebp, pennylane), le grand livre, la balance, la
 //! provision pour conges payes des permanents, la taxe sur les salaires.
 //!
@@ -108,7 +107,7 @@ fn tout_chiffres(t: &str) -> bool {
     !t.is_empty() && t.chars().all(|c| c.is_ascii_digit())
 }
 
-/// `quantize(Decimal(...))` au mode par defaut de Python (arrondi au pair).
+/// `quantize(Decimal(...))` au mode par defaut : arrondi au pair.
 fn quant(x: Decimal, dp: u32) -> Decimal {
     let mut r = x.round_dp_with_strategy(dp, rust_decimal::RoundingStrategy::MidpointNearestEven);
     r.rescale(dp);

@@ -4,7 +4,7 @@
 //! (le mois principal declare d'une DSN mensuelle, le jour de constitution d'un signalement), ses tables d'usages et de
 //! formats, les valeurs de liste qu'elle n'admet plus et le code de la CET patronale. Le moteur applique la donnee ;
 //! ce qu'elle ne couvre pas refuse. LA REGLE DE BASCULE EST UNE INFERENCE (`_inference` de la donnee) : le cahier
-//! technique 2027.1.1 ne la donne pas (p. 129, une seule valeur par cahier ; lot N9, `fiches-N9.md` § 4).
+//! technique 2027.1.1 ne la donne pas (p. 129, une seule valeur par cahier ).
 //!
 //! Le fichier en cours de fabrication porte sa norme (`dsn::Fichier::en_norme`) : « ce fichier est-il en P27V01 ? »
 //! se demande a lui, par la table de sa version (`Norme::admet`), en un seul endroit.

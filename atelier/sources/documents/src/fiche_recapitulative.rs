@@ -43,7 +43,7 @@ fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
     Refus { classe: Some(classe), message: message.into() }
 }
 
-/// Un refus qu'un `except ErreurOperation` de Python attrape.
+/// Un refus de la classe `ErreurOperation`.
 fn est_erreur_operation(r: &Refus) -> bool {
     matches!(r.classe, None | Some("ErreurOperation") | Some("SaisieIncomplete"))
 }
@@ -80,7 +80,7 @@ impl Colonne {
     }
 }
 
-/// Une valeur de cellule : un `Decimal`, un nombre JSON tel que Python l'ecrit, un texte.
+/// Une valeur de cellule : un `Decimal`, un nombre JSON, un texte.
 #[derive(Clone, Debug)]
 enum Val {
     Dec(Decimal),
