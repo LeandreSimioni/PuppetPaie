@@ -279,8 +279,11 @@ fn cle_du_salarie(ctx: &Contexte, o: &Objet) -> Option<String> {
     crate::cle_de_l_engagement(ctx, &Value::Object(o.brut.clone()))
 }
 
+/// Qui est l'engagement `o`, pour une phrase de l'ecran : « Lou Martin (contrat du 20/11/2026) ».
 fn qui_de(o: &Objet) -> String {
-    format!("{} (contrat du {})", o.brut.get("salarie").map(en_texte).unwrap_or_default(), crate::debut_brut(&Value::Object(o.brut.clone())))
+    let debut = crate::debut_brut(&Value::Object(o.brut.clone()));
+    let debut = Jour::lire(&debut).map(|j| j.jj_mm_aaaa()).unwrap_or(debut);
+    format!("{} (contrat du {})", o.brut.get("salarie").map(en_texte).unwrap_or_default(), debut)
 }
 
 /// Ce qu'est l'engagement `o` pour le mois `mois`, tel qu'il est ecrit.
