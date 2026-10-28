@@ -9,8 +9,7 @@ function rubriqueDe(code) {
   return (ETAT.rubriques || []).find((r) => r.code === code);
 }
 
-/** Le déroulant des rubriques : les cochées d'abord, le moteur a déjà trié.
- *  Un trait sépare ce que la compagnie utilise du reste, qui reste offert. */
+/** Le déroulant des rubriques, dans l'ordre où le moteur les rend. */
 function optionsRubriques(choisie, nat) {
   // CE QUI S'APPLIQUE À LA NATURE DU CONTRAT (30/09/2026, « si compagnie
   // simple, interface simple »). Le moteur dit à quelle forme de paie chaque
@@ -20,13 +19,8 @@ function optionsRubriques(choisie, nat) {
   // reste toujours offerte : une saisie ne change pas sous les doigts.
   const forme = nat ? (nat.mensuelle ? "mensuelle" : "activite") : null;
   const propose = (r) => !forme || !r.reservee_a || r.reservee_a === forme || r.code === choisie;
-  const actives = (ETAT.rubriques || []).filter((r) => r.active && propose(r));
-  const autres = (ETAT.rubriques || []).filter((r) => !r.active && propose(r));
-  const opt = (r) => `<option value="${echapper(r.code)}" ${r.code === choisie ? "selected" : ""}>
-      ${echapper(r.libelle)}</option>`;
-  if (!actives.length) return autres.map(opt).join("");
-  return actives.map(opt).join("")
-    + `<optgroup label="── autres rubriques ──">` + autres.map(opt).join("") + `</optgroup>`;
+  return (ETAT.rubriques || []).filter(propose).map((r) => `<option value="${echapper(r.code)}" ${r.code === choisie ? "selected" : ""}>
+      ${echapper(r.libelle)}</option>`).join("");
 }
 
 /* LES LISTES COMMUNES SE FABRIQUENT UNE FOIS (16/10/2026). Les rubriques, les
