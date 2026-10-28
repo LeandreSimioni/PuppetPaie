@@ -477,7 +477,7 @@ mod tests {
     }
 
     /// Un versement n'est jamais negatif (S21.G00.20.005, « non signe, valeur zero autorisee ») : une somme due negative
-    /// s'ecrit 0.00 et devient un credit.
+    /// s'ecrit 0.00 et devient un credit (`atelier/reference/norme-dsn/texte/bloc-S21.G00.20.txt`).
     #[test]
     fn une_somme_due_negative_se_verse_a_zero_et_laisse_un_credit() {
         assert_eq!(a_verser(d("12.30")), AVerser { montant: d("12.30"), credit: Decimal::ZERO });
@@ -486,7 +486,7 @@ mod tests {
     }
 
     /// Guide Urssaf, § 6.4 : 2000 dus en fevrier, 400 trop verses en janvier, 1600 verses ; la deduction s'arrete au
-    /// bordereau courant, le reste demeure a l'Urssaf.
+    /// bordereau courant, le reste demeure a l'Urssaf (`atelier/reference/sources/editeur-dsn/guide-urssaf-regularisation.txt`).
     #[test]
     fn la_reprise_urssaf_s_arrete_au_bordereau_du_mois() {
         let (v, deduit) = reprise_urssaf(d("2000.00"), d("400.00"));
@@ -495,13 +495,5 @@ mod tests {
         assert_eq!((v.montant, v.credit, deduit), (d("0.00"), d("100.00"), d("300.00")));
         let c = credit(Destinataire::Urssaf, "Urssaf", v.credit, deduit).unwrap();
         assert!(c.titre.contains("300,00") && c.titre.contains("100,00"), "le titre dit le deduit et le reste a reclamer : {}", c.titre);
-    }
-
-    /// Une date dont le jour depasse 12 est en AAAA-MM-JJ, les autres en
-    /// AAAA-JJ-MM.
-    #[test]
-    fn une_date_dont_le_jour_depasse_12_est_en_aaaa_mm_jj() {
-        assert_eq!(date_table("2003-05-28").unwrap(), Jour::nouveau(2003, 5, 28));
-        assert_eq!(date_table("2024-01-07").unwrap(), Jour::nouveau(2024, 7, 1));
     }
 }

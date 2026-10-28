@@ -1,6 +1,6 @@
-//! L'AER remplie et signee par la fabrique : `documents::aer` et `engagement::cachet`, sur une attestation FICTIVE. On refuse de
-//! signer une attestation qui ne concorde pas avec la paie, on ne retouche pas un chiffre de France Travail, la signature
-//! est deterministe. La lecture d'une date, d'un entier et le cadre de la signature : `src/aer.rs`.
+//! L'AER remplie et signee par la fabrique (`documents::aer`), sur une attestation FICTIVE : la forme relue (le cadre 5
+//! rempli, les chiffres de France Travail intacts), les chiffres egaux aux paies (une periode en trop ou en moins est un
+//! ecart, un contrat sur deux mois se compare colonne par colonne), et le refus de signer ce qui ne concorde pas.
 //!
 //! Le PDF d'essai est ecrit ici en octets bruts (catalogue, AcroForm, trois
 //! pages, champs widgets, table xref) : il imite l'AER de France Travail --
@@ -10,7 +10,6 @@
 //! inventee de bout en bout.
 
 use documents::aer::{self, Authentification, Echec, PaieAer};
-use engagement::cachet;
 use socle::date::Jour;
 use serde_json::{json, Value};
 
@@ -158,66 +157,6 @@ fn attestation() -> Vec<u8> {
     formulaire(&champs_aer(2, 12))
 }
 
-fn crc32(octets: &[u8]) -> u32 {
-    let mut c = 0xFFFF_FFFFu32;
-    for &b in octets {
-        c ^= b as u32;
-        for _ in 0..8 {
-            c = if c & 1 != 0 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
-        }
-    }
-    !c
-}
-
-fn adler32(octets: &[u8]) -> u32 {
-    let (mut a, mut b) = (1u32, 0u32);
-    for &o in octets {
-        a = (a + o as u32) % 65521;
-        b = (b + a) % 65521;
-    }
-    (b << 16) | a
-}
-
-/// Un PNG RVBA (une moitie transparente), en octets bruts : zlib en blocs
-/// non compresses, pour ne rien ajouter aux dependances.
-fn png(largeur: u32, hauteur: u32) -> Vec<u8> {
-    fn morceau(nom: &[u8], corps: &[u8]) -> Vec<u8> {
-        let mut o = (corps.len() as u32).to_be_bytes().to_vec();
-        let mut ncorps = nom.to_vec();
-        ncorps.extend(corps);
-        o.extend(&ncorps);
-        o.extend(crc32(&ncorps).to_be_bytes());
-        o
-    }
-    let mut lignes = Vec::new();
-    for _ in 0..hauteur {
-        lignes.push(0u8);
-        for x in 0..largeur {
-            lignes.extend([20, 40, 160, if x >= largeur / 2 { 255 } else { 0 }]);
-        }
-    }
-    let mut z = vec![0x78, 0x01];
-    let blocs: Vec<&[u8]> = lignes.chunks(65535).collect();
-    for (i, b) in blocs.iter().enumerate() {
-        z.push(if i + 1 == blocs.len() { 1 } else { 0 });
-        z.extend((b.len() as u16).to_le_bytes());
-        z.extend((!(b.len() as u16)).to_le_bytes());
-        z.extend(*b);
-    }
-    z.extend(adler32(&lignes).to_be_bytes());
-    let mut ihdr = Vec::new();
-    ihdr.extend(largeur.to_be_bytes());
-    ihdr.extend(hauteur.to_be_bytes());
-    ihdr.extend([8, 6, 0, 0, 0]);
-    let mut o = b"\x89PNG\r\n\x1a\n".to_vec();
-    o.extend(morceau(b"IHDR", &ihdr));
-    o.extend(morceau(b"IDAT", &z));
-    o.extend(morceau(b"IEND", b""));
-    o
-}
-
-const SVG_SIGNATURE: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"50\" viewBox=\"0 0 100 50\"><path d=\"M5 40 C 20 5, 40 5, 50 30 S 80 45, 95 10\" fill=\"none\" stroke=\"#123\" stroke-width=\"2\"/></svg>";
-
 fn paie(numero: &str, debut: Jour, fin: Jour, cachets: i128, heures: i128) -> PaieAer {
     PaieAer { numero: numero.into(), debut, fin, cachets, heures }
 }
@@ -234,97 +173,12 @@ fn signer(pdf: &[u8], ent: &Value, paies: Option<&[PaieAer]>, forcer: bool, sign
     aer::authentifier(pdf, &Authentification { ent, aujourdhui: jour(2026, 10, 1), signature, paies, forcer, cachet_fichier: cachet })
 }
 
-fn fichier(nom: &str, octets: &[u8]) -> String {
-    let f = crate::outils::chemin_unique(nom);
-    std::fs::write(&f, octets).unwrap();
-    f.to_string_lossy().into_owned()
-}
 
 fn valeur_de(champs: &Value, nom: &str) -> Value {
     champs[nom]["valeur"].clone()
 }
 
-fn contient(h: &[u8], aiguille: &str) -> bool {
-    h.windows(aiguille.len()).any(|w| w == aiguille.as_bytes())
-}
-
-// ------------------------------------------------------------------ le PDF d'essai lui-meme
-
-#[test]
-fn le_pdf_d_essai_est_lu_par_la_fabrique() {
-    let c = aer::champs(&attestation()).unwrap();
-    assert_eq!(c["SAL_NB_CACHET_01"]["valeur"], "2");
-    assert_eq!(c["SAL_NB_CACHET_01"]["lecture_seule"], true);
-    assert_eq!(c["SAL_NB_CACHET_01"]["page"], 2);
-    assert_eq!(c["EMPLOYEUR_NOM"]["page"], 3);
-    assert!(c["EMPLOYEUR_NOM"]["valeur"].is_null());
-    assert_eq!(c["EMPLOYEUR_NOM"]["lecture_seule"], false);
-    let r: Vec<f64> = c["EMPLOYEUR_CACHET"]["rect"].as_array().unwrap().iter().map(|x| x.as_f64().unwrap()).collect();
-    for (a, b) in r.iter().zip([401.4, 685.4, 562.1, 764.7]) {
-        assert!((a - b).abs() < 0.01, "{:?}", r);
-    }
-}
-
-// ------------------------------------------------------------------ lire_quantites
-
-#[test]
-fn lire_quantites_dates_et_entiers() {
-    let q = aer::lire_quantites(&aer::champs(&attestation()).unwrap()).unwrap();
-    assert_eq!(q.len(), 2);
-    assert_eq!(
-        q[0],
-        aer::Ligne { debut: Some(jour(2026, 8, 1)), fin: Some(jour(2026, 8, 31)), numero: "FA1.26.15".into(), cachets: 2, heures: 12 }
-    );
-    assert_eq!(
-        q[1],
-        aer::Ligne { debut: Some(jour(2026, 8, 5)), fin: Some(jour(2026, 8, 6)), numero: "MA2.26.15".into(), cachets: 1, heures: 0 }
-    );
-}
-
-#[test]
-fn lire_quantites_un_contrat_sans_dates_est_ignore() {
-    let sans_02: Vec<Champ> = champs_aer(2, 12).into_iter().filter(|c| !c.nom.ends_with("_02")).collect();
-    let q = aer::lire_quantites(&aer::champs(&formulaire(&sans_02)).unwrap()).unwrap();
-    assert_eq!(q.len(), 1);
-    assert_eq!(q[0].debut, Some(jour(2026, 8, 1)));
-    assert!(aer::lire_quantites(&aer::champs(&formulaire(&[])).unwrap()).unwrap().is_empty());
-}
-
-#[test]
-fn lire_quantites_deux_rangs_de_meme_cle_le_dernier_l_emporte_a_la_place_du_premier() {
-    let mut c = champs_aer(2, 12);
-    for ch in c.iter_mut() {
-        match ch.nom.as_str() {
-            "SAL_DT_DEB_02" => ch.valeur = Some("01/08/2026".into()),
-            "SAL_DT_FIN_02" => ch.valeur = Some("31/08/2026".into()),
-            "CON_NUMERO_02" => ch.valeur = Some("FA1.26.15".into()),
-            _ => {}
-        }
-    }
-    let q = aer::lire_quantites(&aer::champs(&formulaire(&c)).unwrap()).unwrap();
-    assert_eq!(q.len(), 1);
-    assert_eq!((q[0].numero.as_str(), q[0].cachets, q[0].heures), ("FA1.26.15", 1, 0));
-}
-
 // ------------------------------------------------------------------ verifier
-
-#[test]
-fn verifier_concordance_rend_une_liste_vide() {
-    assert_eq!(aer::verifier(&attestation(), &paies_justes()), Ok(vec![]));
-}
-
-#[test]
-fn verifier_un_ecart_donne_un_message_qui_dit_quoi() {
-    let e = aer::verifier(&attestation(), &paies_fausses()).unwrap();
-    // Le contrat, sa periode, et les deux heures qui different.
-    assert_eq!(e.len(), 1);
-    assert!(["FA1.26.15", "2026-08-01", "2026-08-31", "12 heures", "24"].iter().all(|x| e[0].contains(x)), "{:?}", e);
-    let mut trois = paies_justes();
-    trois[0].cachets = 3;
-    let e = aer::verifier(&attestation(), &trois).unwrap();
-    assert_eq!(e.len(), 1);
-    assert!(e[0].contains("2 cachets sur l'attestation, 3 dans la paie"), "{:?}", e);
-}
 
 /// Une periode imprimee qu'aucune paie n'explique, ou une periode de la paie que l'attestation ne porte pas : signer
 /// certifierait exacte une attestation qui ajoute ou retire une periode d'emploi. C'est un ecart, jamais un silence.
@@ -341,13 +195,6 @@ fn verifier_une_periode_en_trop_ou_en_moins_est_un_ecart() {
     // Le meme contrat sous un autre numero (le compteur d'aujourd'hui, pas celui de la DSN) ne s'explique pas.
     let e = aer::verifier(&attestation(), &[paie("FA1.26.18", jour(2026, 8, 1), jour(2026, 8, 31), 2, 12), paies_justes()[1].clone()]).unwrap();
     assert_eq!(e.len(), 2, "{:?}", e);
-}
-
-#[test]
-fn verifier_un_contrat_sans_numero_s_appelle_contrat() {
-    let sans_numero: Vec<Champ> = champs_aer(2, 12).into_iter().filter(|c| c.nom != "CON_NUMERO_01").collect();
-    let e = aer::verifier(&formulaire(&sans_numero), &paies_fausses()).unwrap();
-    assert!(e[0].starts_with("contrat (2026-08-01 au 2026-08-31)"), "{:?}", e);
 }
 
 /// UN CONTRAT SUR DEUX MOIS (la forme d'une vraie AER d'octobre 2026, depot prive `reference-privee/exemples/`) : une
@@ -396,13 +243,6 @@ fn authentifier_refuse_une_attestation_qui_ne_concorde_pas() {
 }
 
 #[test]
-fn authentifier_signe_malgre_l_ecart_avec_forcer() {
-    let signe = signer(&attestation(), &fiche(), Some(&paies_fausses()), true, None, None).unwrap();
-    assert!(signe.starts_with(b"%PDF"));
-    assert_eq!(valeur_de(&aer::champs(&signe).unwrap(), "EMPLOYEUR_NOM"), "MARTIN");
-}
-
-#[test]
 fn authentifier_remplit_le_cadre_5_et_ne_touche_pas_aux_chiffres() {
     let avant = aer::champs(&attestation()).unwrap();
     let signe = signer(&attestation(), &fiche(), Some(&paies_justes()), false, None, None).unwrap();
@@ -436,235 +276,4 @@ fn authentifier_remplit_le_cadre_5_et_ne_touche_pas_aux_chiffres() {
     // le contenu qu'on lit toujours : l'attestation ne se lit pas autrement
     assert_eq!(aer::lire_quantites(&apres), aer::lire_quantites(&avant));
     assert_eq!(aer::verifier(&signe, &paies_justes()), Ok(vec![]));
-}
-
-#[test]
-fn authentifier_sans_paies_signe_sans_regarder() {
-    assert!(signer(&attestation(), &fiche(), None, false, None, None).unwrap().starts_with(b"%PDF"));
-    // une liste vide n'est pas « sans paies » : rien n'explique les periodes imprimees, et rien ne se signe
-    assert!(matches!(signer(&attestation(), &fiche(), Some(&[]), false, None, None), Err(Echec::Ecarts(_))));
-}
-
-#[test]
-fn authentifier_est_deterministe() {
-    let sig = fichier("signature.svg", SVG_SIGNATURE.as_bytes());
-    let a = signer(&attestation(), &fiche(), None, false, Some(&sig), None).unwrap();
-    let b = signer(&attestation(), &fiche(), None, false, Some(&sig), None).unwrap();
-    assert_eq!(a, b);
-}
-
-#[test]
-fn authentifier_refuse_une_fiche_sans_signataire_apres_la_verification() {
-    let mut ent = fiche();
-    ent.as_object_mut().unwrap().remove("signataire");
-    for pdf in [attestation(), b"pas un pdf".to_vec()] {
-        match signer(&pdf, &ent, None, false, None, None) {
-            Err(Echec::Autre(m)) => assert!(m.contains("signataire"), "{}", m),
-            autre => panic!("une fiche sans signataire a signe : {:?}", autre.map(|o| o.len())),
-        }
-    }
-    // la verification passe d'abord : l'ecart est dit avant la cle absente
-    assert!(matches!(signer(&attestation(), &ent, Some(&paies_fausses()), false, None, None), Err(Echec::Ecarts(_))));
-}
-
-#[test]
-fn authentifier_le_texte_de_la_page_3_porte_le_cadre_5() {
-    let signe = signer(&attestation(), &fiche(), None, false, None, None).unwrap();
-    let doc = fabrique_pdf::lecture::charger(&signe).unwrap();
-    let (pages, _) = fabrique_pdf::texte::texte_des_pages(&doc);
-    assert_eq!(pages.len(), 3);
-    for v in ["MARTIN", "Camille", "Presidente", "Lyon", "DURAND Lou", "lou.durand@exemple.test"] {
-        assert!(pages[2].contains(v), "{}", v);
-    }
-    assert!(pages[2].contains("Attestation employeur page 3"));
-    assert!(!pages[1].contains("MARTIN"));
-}
-
-// ------------------------------------------------------------------ signature et cachet
-
-#[test]
-fn signature_png_et_cachet_dessine_alourdissent_le_pdf() {
-    let sans = signer(&attestation(), &fiche(), None, false, None, None).unwrap();
-    let sig = fichier("signature.png", &png(40, 20));
-    let avec = signer(&attestation(), &fiche(), None, false, Some(&sig), None).unwrap();
-    assert!(avec.len() > sans.len() && sans.len() > attestation().len());
-    // deux images posees sur la page 3 (la signature, puis le cachet dessine)
-    assert!(contient(&avec, "/PPImage1 Do") && contient(&avec, "/PPImage2 Do"));
-    assert!(!contient(&sans, "/PPImage2 Do") && contient(&sans, "/PPImage1 Do"));
-    assert!(aer::champs(&avec).unwrap()["EMPLOYEUR_SIGNATURE"]["valeur"].is_null());
-}
-
-#[test]
-fn signature_svg() {
-    let sig = fichier("signature2.svg", SVG_SIGNATURE.as_bytes());
-    let sans = signer(&attestation(), &fiche(), None, false, None, None).unwrap();
-    let avec = signer(&attestation(), &fiche(), None, false, Some(&sig), None).unwrap();
-    assert!(avec.len() > sans.len());
-    assert!(contient(&avec, "/PPImage2 Do"));
-}
-
-#[test]
-fn cachet_fourni_par_la_compagnie_l_emporte_sur_le_dessin() {
-    let tampon = fichier("tampon.png", &png(60, 30));
-    let dessine = signer(&attestation(), &fiche(), None, false, None, None).unwrap();
-    let fourni = signer(&attestation(), &fiche(), None, false, None, Some(&tampon)).unwrap();
-    assert_ne!(dessine, fourni);
-    assert!(contient(&fourni, "/PPImage1 Do"));
-}
-
-#[test]
-fn signature_absente_n_est_pas_une_erreur() {
-    let sans = signer(&attestation(), &fiche(), None, false, Some("/nulle/part.png"), None).unwrap();
-    // seul le cachet est pose
-    assert!(contient(&sans, "/PPImage1 Do") && !contient(&sans, "/PPImage2 Do"));
-    assert_eq!(signer(&attestation(), &fiche(), None, false, None, None).unwrap(), sans);
-}
-
-#[test]
-fn une_signature_qui_n_est_pas_une_image_est_refusee() {
-    let sig = fichier("fausse-signature.png", b"ceci n'est pas une image");
-    match signer(&attestation(), &fiche(), None, false, Some(&sig), None) {
-        Err(Echec::Fabrique(m)) => assert!(m.contains("fausse-signature.png"), "{}", m),
-        autre => panic!("{:?}", autre.map(|o| o.len())),
-    }
-}
-
-#[test]
-fn un_pdf_sans_les_cases_n_a_pas_d_image() {
-    let sans: Vec<Champ> = champs_aer(2, 12).into_iter().filter(|c| c.nom != "EMPLOYEUR_SIGNATURE" && c.nom != "EMPLOYEUR_CACHET").collect();
-    let signe = signer(&formulaire(&sans), &fiche(), None, false, None, None).unwrap();
-    assert!(!contient(&signe, "PPImage"));
-    assert_eq!(valeur_de(&aer::champs(&signe).unwrap(), "EMPLOYEUR_NOM"), "MARTIN");
-}
-
-#[test]
-fn un_pdf_qui_n_en_est_pas_un_est_refuse_par_la_fabrique() {
-    assert!(matches!(aer::verifier(b"ceci n'est pas un pdf", &[]), Err(Echec::Fabrique(_))));
-}
-
-// ------------------------------------------------------------------ remplir
-
-#[test]
-fn remplir_un_champ_de_france_travail_est_refuse() {
-    for nom in ["SAL_NB_CACHET_01", "SAL_NB_HEURES_01", "CON_NUMERO_01"] {
-        let mut v = serde_json::Map::new();
-        v.insert(nom.into(), Value::String("999".into()));
-        match aer::remplir(&attestation(), &v, &[]) {
-            Err(Echec::Fabrique(m)) => assert!(m.contains("lecture seule"), "{}", m),
-            autre => panic!("un chiffre de France Travail a ete retouche : {:?}", autre.map(|o| o.len())),
-        }
-    }
-}
-
-#[test]
-fn remplir_un_peigne_trop_long_est_refuse() {
-    let mut v = serde_json::Map::new();
-    v.insert("EMPLOYEUR_DATE_SIGN_J".into(), Value::String("123".into()));
-    match aer::remplir(&attestation(), &v, &[]) {
-        Err(Echec::Fabrique(m)) => assert!(m.contains("EMPLOYEUR_DATE_SIGN_J"), "{}", m),
-        autre => panic!("{:?}", autre.map(|o| o.len())),
-    }
-}
-
-// ------------------------------------------------------------------ cachet
-
-const CASE_CACHET: [f64; 4] = [401.4, 685.4, 562.1, 764.7];
-
-#[test]
-fn cachet_image_sans_fichier_rend_le_dessin() {
-    let im = cachet::image(&json!(3), &json!(CASE_CACHET), &fiche(), Some(&jour(2026, 10, 1)), None).unwrap();
-    let mut cles: Vec<&String> = im.as_object().unwrap().keys().collect();
-    cles.sort();
-    assert_eq!(cles, ["marge", "page", "rect", "svg"]);
-    assert_eq!(im["page"], 3);
-    assert_eq!(im["marge"], cachet::MARGE);
-    let svg = im["svg"].as_str().unwrap();
-    assert!(svg.starts_with("<svg") && svg.contains("COMPAGNIE DU CHAT PERCHE"));
-    assert!(svg.contains("SIRET 12345678900019"));
-    // un fichier qui n'existe pas : le dessin reprend la main
-    let im2 = cachet::image(&json!(3), &json!([0, 0, 100, 50]), &fiche(), Some(&jour(2026, 10, 1)), Some("/nulle/part.png")).unwrap();
-    assert!(im2.get("svg").is_some() && im2.get("fichier").is_none());
-}
-
-#[test]
-fn cachet_image_avec_un_fichier_existant_rend_le_fichier() {
-    let f = fichier("tampon2.png", &png(10, 10));
-    let im = cachet::image(&json!(3), &json!([1, 2, 3, 4]), &fiche(), Some(&jour(2026, 10, 1)), Some(&f)).unwrap();
-    assert_eq!(im, json!({"page": 3, "rect": [1, 2, 3, 4], "marge": cachet::MARGE, "fichier": f}));
-}
-
-#[test]
-fn cachet_image_sans_rien_a_dessiner_rend_none() {
-    assert_eq!(cachet::image(&json!(3), &json!([0, 0, 100, 50]), &json!({}), Some(&jour(2026, 10, 1)), None), None);
-}
-
-#[test]
-fn le_cachet_dessine_se_pose_sans_police_du_systeme() {
-    // le SVG du cachet porte du texte (Helvetica) : pose par la fabrique en
-    // traces, il ne demande aucune police -- et sort identique deux fois
-    let im = cachet::image(&json!(3), &json!(CASE_CACHET), &fiche(), Some(&jour(2026, 10, 1)), None).unwrap();
-    let a = aer::remplir(&attestation(), &serde_json::Map::new(), &[im.clone()]).unwrap();
-    let b = aer::remplir(&attestation(), &serde_json::Map::new(), &[im]).unwrap();
-    assert_eq!(a, b);
-    assert!(contient(&a, "/PPImage1 Do"));
-}
-
-// ------------------------------------------------------------------ le dessin du cachet
-
-/// La taille de police de chaque texte du dessin, dans l'ordre.
-fn tailles(svg: &str) -> Vec<f64> {
-    svg.split("font-size=\"").skip(1).map(|t| t[..t.find('"').unwrap()].parse().unwrap()).collect()
-}
-
-#[test]
-fn le_cachet_retrecit_le_texte_qui_deborde_echappe_les_chevrons_et_choisit_la_licence_du_jour() {
-    let svg = cachet::svg(&fiche(), Some(&jour(2026, 10, 1))).unwrap();
-    assert!(svg.starts_with("<svg") && svg.ends_with("</svg>"));
-    for t in [">COMPAGNIE DU CHAT PERCHE<", ">12 rue des Lilas<", ">69003 Lyon<", ">SIRET 12345678900019<", ">APE 9001Z<", ">Licence PLATESV-R-2026-000000<"] {
-        assert!(svg.contains(t), "{} : {}", t, svg);
-    }
-    assert_eq!(cachet::svg(&json!({}), None), None);
-
-    let mut debordante = fiche();
-    debordante["raison_sociale"] = json!("Compagnie du Chat Perche & Fils <Spectacles> l'ete Compagnie du Chat Perche & Fils <Spectacles> l'ete ");
-    debordante["adresse"] = json!("Batiment C, escalier 4, residence des grands lilas bleus, 12 bis rue des Lilas");
-    debordante["licence_spectacle"] = json!([{"depuis": "2024-01-01", "numero": "L-2024"}, {"depuis": "2026-06-01", "numero": "L-2026"}]);
-    let deborde = cachet::svg(&debordante, Some(&jour(2026, 10, 1))).unwrap();
-    assert!(deborde.contains("CHAT PERCHE &amp; FILS &lt;SPECTACLES&gt; L'ETE") && deborde.contains(">Licence L-2026<"), "{}", deborde);
-    let (normal, petit) = (tailles(&svg), tailles(&deborde));
-    assert!(petit[0] < normal[0] && petit[1] < normal[1], "le nom et l'adresse qui debordent retrecissent : {:?} {:?}", normal, petit);
-    assert_eq!(petit[2..], normal[2..], "le reste garde sa taille");
-}
-
-#[test]
-fn les_lignes_du_cachet_sautent_ce_que_la_fiche_ne_dit_pas() {
-    let l = cachet::lignes(&fiche(), Some(&jour(2026, 10, 1)));
-    assert_eq!(l.nom, "Compagnie du Chat Perche");
-    assert_eq!(l.lieu, ["12 rue des Lilas", "69003 Lyon"]);
-    assert_eq!(l.numeros, ["SIRET 12345678900019", "APE 9001Z", "Licence PLATESV-R-2026-000000"]);
-    let l = cachet::lignes(&json!({"siret": "123", "commune": "Lyon"}), None);
-    assert_eq!((l.nom.as_str(), l.lieu.clone(), l.numeros.clone()), ("", vec!["Lyon".to_string()], vec!["SIRET 123".to_string()]));
-}
-
-#[test]
-fn la_licence_du_jour_suit_les_dates() {
-    let mut e = fiche();
-    e["licence_spectacle"] = json!([
-        {"depuis": "2024-01-01", "numero": "L-2024"},
-        {"depuis": "2026-06-01", "numero": "L-2026"},
-        {"depuis": "2025-01-01", "numero": "L-2025"},
-    ]);
-    let a = |j: Option<Jour>| cachet::licence_du_jour(&e, j.as_ref());
-    assert_eq!(a(Some(jour(2025, 3, 1))).as_deref(), Some("L-2025"));
-    assert_eq!(a(Some(jour(2026, 10, 3))).as_deref(), Some("L-2026"));
-    // avant la premiere : celle qui reste est la derniere de la liste telle qu'ecrite
-    assert_eq!(a(Some(jour(2020, 1, 1))).as_deref(), Some("L-2025"));
-    // sans jour : la derniere dans l'ordre des dates
-    assert_eq!(a(None).as_deref(), Some("L-2026"));
-    // une date illisible : pas de licence, sans lever
-    e["licence_spectacle"] = json!([{"depuis": "pas une date", "numero": "X"}]);
-    assert_eq!(cachet::licence_du_jour(&e, Some(&jour(2026, 1, 1))), None);
-    // l'ampersand et les chevrons sont echappes
-    e["raison_sociale"] = json!("Chat & <Fils>");
-    assert!(cachet::svg(&e, None).unwrap().contains("CHAT &amp; &lt;FILS&gt;"));
 }

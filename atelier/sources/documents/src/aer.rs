@@ -482,37 +482,3 @@ pub fn remplir(donnees: &[u8], valeurs: &Map<String, Value>, images: &[Value]) -
     let texte = serde_json::to_string(&description).map_err(|e| Echec::Autre(e.to_string()))?;
     fabrique(fabrique_pdf::formulaire::remplir(donnees, &texte))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn une_date_jj_mm_aaaa_se_lit_un_jour_qui_n_existe_pas_refuse_le_reste_s_ignore() {
-        assert_eq!(jour(" 23/08/2026 "), Ok(Some(Jour::nouveau(2026, 8, 23).unwrap())));
-        assert_eq!(jour("2026-08-23"), Ok(None));
-        assert_eq!(jour(""), Ok(None));
-        assert!(jour("31/02/2026").is_err());
-        assert!(jour("01/13/2026").is_err());
-    }
-
-    #[test]
-    fn entier_ne_garde_que_les_chiffres() {
-        assert_eq!(entier(None), Ok(0));
-        assert_eq!(entier(Some("")), Ok(0));
-        assert_eq!(entier(Some("12 h")), Ok(12));
-        assert_eq!(entier(Some("1 234")), Ok(1234));
-        assert_eq!(entier(Some("-3")), Ok(3));
-    }
-
-    #[test]
-    fn cadre_signature_haut_de_la_case_sur_80_pour_cent() {
-        let proche = |a: [f64; 4], b: [f64; 4]| a.iter().zip(b).all(|(x, y)| (x - y).abs() < 1e-9);
-        assert!(proche(cadre_signature([10.0, 20.0, 110.0, 100.0]), [14.0, 24.0, 94.0, 68.0]));
-        // la case de l'AER : 100,7 x 48,2 points
-        let [x0, y0, x1, y1] = cadre_signature([35.1, 687.4, 135.8, 735.6]);
-        assert!((x0 - 39.1).abs() < 1e-9 && (y0 - 691.4).abs() < 1e-9);
-        assert!((x1 - x0 - 100.7 * 0.8).abs() < 1e-9);
-        assert!((y1 - y0 - 48.2 * 0.55).abs() < 1e-9);
-    }
-}

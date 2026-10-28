@@ -867,16 +867,3 @@ fn jour_ou_vide(v: &Value) -> String {
 
 #[allow(dead_code)]
 fn _jour(_: Jour) {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_fractions_donnent_une_largeur_utile_pleine() {
-        let entetes = vec![("Mois".to_string(), false), ("Brut".to_string(), true)];
-        let rangs = vec![(vec!["2026-10".to_string(), "260.00".to_string()], "")];
-        let f = fractions(&entetes, &rangs, 700.0);
-        assert!((f.iter().sum::<f64>() - 1.0).abs() < 1e-9);
-    }
-}

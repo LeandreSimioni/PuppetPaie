@@ -342,7 +342,8 @@ mod tests {
         let (s1, s2) = (d("9147"), d("18259"));
         assert_eq!(fractions_majorees(d("5000"), s1, s2), (Decimal::ZERO, Decimal::ZERO));
         assert_eq!(fractions_majorees(d("10000"), s1, s2), (d("853"), Decimal::ZERO));
-        // L'exemple du BOFiP (BOI-TPS-TS-30, § 240), seuils 2020 : 180 000 -> 7 977 et 164 019.
+        // L'exemple du BOFiP (BOI-TPS-TS-30, § 240, `atelier/reference/sources/bofip/BOI-TPS-TS-30-20200624.html`), seuils
+        // 2020 : 180 000 -> 7 977 et 164 019.
         assert_eq!(fractions_majorees(d("180000"), d("8004"), d("15981")), (d("7977"), d("164019")));
     }
 }

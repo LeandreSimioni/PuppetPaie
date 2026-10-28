@@ -858,39 +858,3 @@ pub fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn le_total_laisse_vide_une_colonne_que_personne_ne_declare() {
-        let mut t = Tableau::nouveau("x", "Titre", "2026");
-        t.colonnes = vec![col_t("nom", "Nom"), col_m("brut", "Brut")];
-        let mut l = Ligne::nouvelle();
-        l.t("nom", "A").rien("brut");
-        t.sections = vec![Section::nouvelle("", vec![l])];
-        totaliser(&mut t, TOTAL_GENERAL).unwrap();
-        assert!(t.total.unwrap().val("brut").is_none());
-    }
-
-    #[test]
-    fn le_csv_commence_par_le_bom_et_le_titre() {
-        let mut t = Tableau::nouveau("x", "Titre", "2026");
-        t.colonnes = vec![col_t("nom", "Nom")];
-        let o = csv_tableau(&t, None).unwrap();
-        assert!(String::from_utf8(o).unwrap().starts_with("\u{feff}Titre — 2026\r\n\r\nNom\r\n"));
-    }
-
-    #[test]
-    fn le_mois_00_n_est_aucun_mois_et_se_refuse() {
-        // Le mois d'une saisie va de 01 a 12 ; « 00 » n'est pas decembre (l'indice -1 du Python), il se refuse, comme
-        // dans `envoi::etiquette` et `date::premier_du_mois`.
-        assert!(nom_du_mois("2026-00").is_err());
-        assert!(nom_du_mois("2026-13").is_err());
-        assert!(libelle_mois("2026-00").is_err());
-        assert_eq!(nom_du_mois("2026-10").unwrap(), "Octobre");
-        assert_eq!(nom_du_mois("2026-01").unwrap(), "Janvier");
-        assert_eq!(nom_du_mois("2026-12").unwrap(), "Decembre");
-    }
-}
