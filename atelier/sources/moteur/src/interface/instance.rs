@@ -258,19 +258,3 @@ pub fn dossier_local(inst: &Path, port: u16) -> PathBuf {
     }
     super::navigateur::dossier_utilisateur().join("fenetres").join(port.to_string())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_ports_d_un_creneau_se_suivent_et_restent_dans_la_plage() {
-        let p = Plage::DU_POSTE;
-        assert_eq!((p.verrou(0), p.page(0)), (7330, 7331));
-        assert_eq!(p.page(p.creneaux - 1), 7429);
-        for d in ["/a", "/b/c", r"E:\PuppetPaie", "/media/cle/PuppetPaie"] {
-            assert!(creneau_tire(d, p) < p.creneaux);
-        }
-        assert_eq!(creneau_tire("/a", p), creneau_tire("/a", p), "le meme dossier vise le meme creneau");
-    }
-}

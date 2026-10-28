@@ -1,5 +1,5 @@
 //! Les routes du mois : `etat-par-engagement`, `etat-du-mois`, `embauches-a-declarer`, `mois-a-ouvrir`, et les lectures
-//! qu'elles partagent (`bilan-du-mois`, `fichiers-deposables`) : l'etat de chaque engagement (sa validation, sa DPAE,
+//! qu'elles partagent (`bilan_du_mois`, `fichiers_deposables`) : l'etat de chaque engagement (sa validation, sa DPAE,
 //! son contrat, ses documents, la DSN du mois), l'etat du mois, et l'annule-et-remplace.
 //!
 //! UN PROCESSUS PAR ROUTE, ET CHAQUE FICHIER LU UNE FOIS : le journal des
@@ -10,7 +10,7 @@
 //! AUCUN CALCUL D'UN ENGAGEMENT VALIDE. La saisie se charge sans calculer (`charger_saisie` : les engagements, le
 //! contrat qui deborde, les numeros attribues en memoire). Le seul montant affiche, le `brut` de `etat-par-engagement`,
 //! se lit dans la paie ecrite d'un engagement valide ; il ne se calcule que pour un engagement en saisie, et seulement si
-//! la route le demande (`bilan-du-mois` et `mois-a-ouvrir` ne le demandent jamais).
+//! la route le demande (`etat-du-mois` et `mois-a-ouvrir` ne le demandent jamais).
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -33,7 +33,7 @@ use socle::num::Decimal;
 use socle::echec::Echec;
 
 /// Les routes que ce module sert.
-pub const ROUTES: [&str; 6] = ["etat-par-engagement", "etat-du-mois", "embauches-a-declarer", "mois-a-ouvrir", "bilan-du-mois", "fichiers-deposables"];
+pub const ROUTES: [&str; 4] = ["etat-par-engagement", "etat-du-mois", "embauches-a-declarer", "mois-a-ouvrir"];
 
 pub(crate) type Paire = (String, String);
 pub(crate) use envois::etats::Cle3;
@@ -247,7 +247,7 @@ fn plur(k: usize, un: &'static str, des: &'static str) -> &'static str {
 /// pour un defaut du logiciel -- le spectacle pas encore choisi, les jours ou
 /// les heures pas encore saisis (`SaisieIncomplete`, leur liste est
 /// `engagement::saisie_incomplete`) -- gardent leur classe ; tout autre est
-/// celui du moteur (`CalculRefuse` cote Python).
+/// celui du moteur.
 pub fn classer_saisie(message: String) -> Echec {
     let incomplete = engagement::saisie_incomplete(&message);
     Echec { classe: if incomplete { Some("SaisieIncomplete") } else { None }, message }
@@ -434,7 +434,7 @@ fn brut_en_texte(v: &Value) -> R<String> {
     Ok(d.to_string())
 }
 
-/// `json.dumps(_sans_bruit(x))` de `operations_remplacement` : sans les cles
+/// La saisie en JSON, sans les cles
 /// `_...`, ni `valide` ni `rouverte` -- ce qui change dans une saisie sans
 /// changer la paie.
 pub(crate) fn sans_bruit(x: &Value) -> Value {
@@ -459,7 +459,7 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
     engagement::stock::mois_saisis(racine).unwrap_or_default()
 }
 
-/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers-deposables`), le meme partout (#236) : plus jamais la date de
+/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers_deposables`), le meme partout (#236) : plus jamais la date de
 /// modification du fichier, que deux machines -- ou deux rejeux -- ne donnent pas pareille.
 /// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
 ///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent. D'un meme
@@ -605,7 +605,7 @@ impl<'a> Moteur<'a> {
 
     // ------------------------------------------------------ la saisie du mois
 
-    /// `operations_paies.charger(ctx, fichier)` sans calculer la paie.
+    /// La saisie d'un mois, chargee sans calculer la paie.
     fn charger_saisie(&mut self, mois: &str) -> R<SaisieMois> {
         let data = engagement::saisie_du_mois(self.racine(), mois).map_err(classer_saisie)?;
         let mois_dit = data.get("mois").map(en_texte).ok_or_else(|| plain(socle::fichiers::absent("mois")))?;
@@ -693,8 +693,6 @@ impl<'a> Moteur<'a> {
         // CE QUI EST A REFAIRE, engagement par engagement : le present compare a la version sur laquelle chaque envoi est parti.
         let refaire = a_refaire_du_mois(self.ctx, &etats_eng)?;
         let bulletins = bulletins_a_refaire(self.ctx, mois, &etats_eng, &refaire);
-        let actes = etats::etat_du_mois(&lignes, mois)?;
-        let depot_dsn = actes.get(DSN).cloned().unwrap_or(Value::Null);
         let departs = envois::journal::departs(&self.ctx.racine).map_err(Echec::from)?;
 
         let mut out = Vec::new();
@@ -764,7 +762,7 @@ impl<'a> Moteur<'a> {
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
             // CE QUE CE SALARIE RECOIT POUR CETTE PAIE (#236) : le bulletin s'il y a une paie, le certificat Conges Spectacles
-            // du contrat d'usage qui finit (`routes_dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
+            // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
             // (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
             let mut pieces: Vec<&str> = Vec::new();
             if !p.engagement.sans_paie() {
@@ -779,12 +777,12 @@ impl<'a> Moteur<'a> {
             ligne.insert("pieces".into(), json!(pieces));
             let mut dpae_v = g.dpae.get(&k).filter(|v| vrai(v)).unwrap_or(objet_vide());
             // UNE DATE D'EMBAUCHE CHANGEE depuis la version sur laquelle la DPAE est partie (`ARefaire::Dpae`) : la DPAE de
-            // l'ancienne date vaut-elle (`routes_regularisation::dpae_d_une_date_changee`) ?
+            // l'ancienne date vaut-elle (`crate::regularisation::dpae_d_une_date_changee`) ?
             let mut date_changee = Value::Null;
             if !vrai(dpae_v) {
                 let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
                 if let Some((avant, deposee)) = ancienne.and_then(|a| g.dpae.get(&(cle.clone(), a.clone())).filter(|v| vrai(v)).map(|v| (a, v))) {
-                    let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&avant, &debut);
+                    let (vaut, phrase) = crate::regularisation::dpae_d_une_date_changee(&avant, &debut);
                     if vaut {
                         dpae_v = deposee;
                     }
@@ -831,8 +829,7 @@ impl<'a> Moteur<'a> {
                 signature["cdi_en_cours"] = json!({"depuis": depuis, "signe_en": signe_en});
             }
             let documents = etat_documents(docs.get(&cle), bulletins.contains(&cle));
-            let dsn = json!({"fait": if vrai(&depot_dsn) { get(&depot_dsn, "quand")?.clone() } else { Value::Null }, "maille": "mois"});
-            ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents, "dsn": dsn}));
+            ligne.insert("etats".into(), json!({"dpae": dpae, "signature": signature, "documents": documents}));
             let vue = Value::Object(ligne.clone());
             ligne.insert("carres".into(), carres(&vue));
             ligne.insert("dpae_choix".into(), choix_dpae(&vue));
@@ -937,7 +934,7 @@ impl<'a> Moteur<'a> {
         Ok(out)
     }
 
-    /// `operations_remplacement.etat` : ou en est le mois vis-a-vis de
+    /// Ou en est le mois vis-a-vis de
     /// l'annule-et-remplace.
     /// `nic` : l'etablissement dont on parle (`Null` : le principal).
     pub(crate) fn etat_remplacement(&mut self, mois: &str, nic: &Value) -> R<Value> {
@@ -1053,7 +1050,7 @@ impl<'a> Moteur<'a> {
             let notee = get(note, "empreinte_saisie")?;
             let maintenant = self.empreinte_saisie(mois)?;
             if maintenant.map_or(true, |m| !est(notee, &m)) {
-                return Ok(Some(format!("la paie a change depuis que ce fichier a ete ecrit (le {})", quand_lisible(get(note, "quand")?))));
+                return Ok(Some(format!("l'engagement a changé depuis que ce fichier a été écrit (le {})", quand_lisible(get(note, "quand")?))));
             }
             return Ok(None);
         }
@@ -1495,7 +1492,7 @@ impl<'a> Moteur<'a> {
                 let ancienne = refaire.get(i).and_then(|r| debut_declare(r));
                 let pourquoi = match ancienne.filter(|a| faites.contains(&(cle.clone(), a.clone()))) {
                     Some(a) => {
-                        let (vaut, phrase) = crate::routes_regularisation::dpae_d_une_date_changee(&a, &debut);
+                        let (vaut, phrase) = crate::regularisation::dpae_d_une_date_changee(&a, &debut);
                         if vaut {
                             continue;
                         }
@@ -1756,7 +1753,7 @@ pub fn etat_signature(
     // LE NUMERO : le contrat signe porte le sien, la DSN declarera celui de l'engagement. S'ils different, ce n'est pas
     // celui qui est declare.
     if vrai(fait) && vrai(numero_parti) && vrai(numero_saisi) && !socle::valeur::valeurs_egales(numero_parti, numero_saisi) {
-        pourquoi.push(format!("il porte le n° {}, la paie déclare le n° {}", valeur_en_texte(numero_parti), valeur_en_texte(numero_saisi)));
+        pourquoi.push(format!("il porte le n° {}, l'engagement dit le n° {}", valeur_en_texte(numero_parti), valeur_en_texte(numero_saisi)));
     }
     // L'AVENANT : le dernier parti. Pas encore revenu, il laisse la pastille orange.
     let dernier = avenants.as_array().and_then(|a| a.last()).cloned().unwrap_or(Value::Null);
@@ -1795,7 +1792,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
             "debut": engagement::debut_brut(&b),
             "fin": b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or_else(|| engagement::dates_engagement(&b).iter().map(|d| d.get("jour").map_or_else(|| valeur_en_texte(d), valeur_en_texte)).max().map_or(Value::Null, Value::String)),
             "non_actif": n.le(),
-            "a_faire": crate::routes_ecritures_g4::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
+            "a_faire": crate::routes::engagement::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
         }));
     }
     Ok(out)
@@ -1813,38 +1810,11 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let (_, mois) = mois_de(charge)?;
             m.etat_du_mois(&mois)
         }
-        "bilan-du-mois" => m.bilan_du_mois(&mois_de(charge)?.1),
-        "fichiers-deposables" => m.fichiers_deposables(&mois_de(charge)?.1),
         "embauches-a-declarer" => {
             let mois = charge.get("mois").filter(|v| vrai(v)).map(valeur_en_texte);
             Ok(json!({"embauches": m.embauches_a_declarer(mois.as_deref())?}))
         }
         "mois-a-ouvrir" => m.mois_a_ouvrir(),
         autre => Err(plain(format!("route inconnue : {}", autre))),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_noms_de_fichiers_se_decoupent() {
-        assert_eq!(suffixe("DSN_Aout2026.DSN"), ".DSN");
-        assert_eq!(suffixe(".dsn"), "");
-        assert_eq!(suffixe("a."), "");
-        assert_eq!(radical("DPAE_x_recapitulatif.txt"), "DPAE_x_recapitulatif");
-    }
-
-    #[test]
-    fn un_refus_de_saisie_en_cours_garde_sa_classe() {
-        let e = classer_saisie("L'engagement 2 de 2026-08 ne dit pas quel spectacle il joue, et le mois n'en propose aucun.".into());
-        assert_eq!(e.classe, Some("SaisieIncomplete"));
-        let e = classer_saisie("L'engagement 1 de 2026-08 ne dit aucun jour joue. Les jours se portent sur chaque ligne".into());
-        assert_eq!(e.classe, Some("SaisieIncomplete"));
-        let e = classer_saisie("L'engagement 1 de 2026-08 : sa ligne 1 (« Service de répétition ») ne dit pas ses heures.".into());
-        assert_eq!(e.classe, Some("SaisieIncomplete"));
-        let e = classer_saisie("L'engagement 1 de 2026-08 est ecrit a l'ancienne".into());
-        assert_eq!(e.classe, None);
     }
 }

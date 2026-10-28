@@ -105,7 +105,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
 
     // 2. L'import de CoolPaie : seulement si un export existe.
     let copie = ctx.racine.join("historique").join("coolpaie");
-    let export = crate::routes_fiches::trouver_export(&ctx.racine);
+    let export = crate::routes::fiches::trouver_export(&ctx.racine);
     let historique = {
         let p = ctx.racine.join("historique").join("engagements.json");
         if p.exists() {
@@ -230,7 +230,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
     let manquants: Vec<&Value> = diag.iter().filter(|d| matches!(d.get("situation").and_then(Value::as_str), Some("inconnu" | "perime"))).collect();
     let mut cmds = Vec::new();
     if !manquants.is_empty() {
-        if crate::routes_fiches::declarations_coolpaie(ctx).join("DSN").is_dir() {
+        if crate::routes::fiches::declarations_coolpaie(ctx).join("DSN").is_dir() {
             cmds.push("moteur pas --amorcer".to_string());
         }
         cmds.push("moteur pas --demander --motif 07".to_string());

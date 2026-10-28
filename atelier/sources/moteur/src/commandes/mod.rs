@@ -108,7 +108,7 @@ impl Cadre {
                 Err(Echec { classe, message: r.get("erreur").map(rendu::texte).unwrap_or_default() })
             }
             Err(m) => {
-                let (classe, message) = crate::routes_ouverture::decoder(&m);
+                let (classe, message) = crate::routes::rappels::decoder(&m);
                 Err(Echec { classe: classe.map(classe_connue), message: message.to_string() })
             }
         }
@@ -121,7 +121,7 @@ impl Cadre {
         match crate::routes::commande(&self.o, &entree) {
             Ok(r) => Ok(r),
             Err(m) => {
-                let (classe, message) = crate::routes_ouverture::decoder(&m);
+                let (classe, message) = crate::routes::rappels::decoder(&m);
                 Err(Echec { classe: classe.map(classe_connue), message: message.to_string() })
             }
         }

@@ -3,7 +3,7 @@
 //! (990 caracteres par embauche), son archive et son recapitulatif, plus -- dans le meme geste -- les signalements d'amorcage
 //! (nature 08) des embauches dont le taux de PAS manque. Le depot est une commande a part (`moteur deposer-dpae`).
 //!
-//! Elle passe par la route `dpae` du moteur (`routes_actes_h1::dpae_detail`). La route lit les
+//! Elle passe par la route `dpae` du moteur (`crate::routes::depots::dpae_detail`). La route lit les
 //! engagements du mois (`AAAA-MM`, ou `engagements/AAAA-MM.json` des donnees) : un autre fichier est refuse en une phrase.
 //!
 //! Code de sortie 3 : au moins une embauche est deja passee, la DPAE est hors delai (elle s'ecrit quand meme, sans antidater).
@@ -61,7 +61,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     if let Some(c) = choix {
         charge["paies"] = Value::Array(c);
     }
-    let (r, amorcage, ecarte) = match crate::routes_actes_h1::dpae_detail(&cadre.ctx, &charge) {
+    let (r, amorcage, ecarte) = match crate::routes::depots::dpae_detail(&cadre.ctx, &charge) {
         Ok(x) => x,
         Err(e) if est_operation(e.classe) => return Ok(reponse_metier("dpae", json, &e, &[])),
         Err(e) => {

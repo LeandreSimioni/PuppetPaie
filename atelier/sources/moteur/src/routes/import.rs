@@ -1,40 +1,41 @@
-//! `importation-apercu` : ce que l'import d'un export CoolPaie ferait. Rien n'est ecrit.
+//! Les routes de l'import d'un export CoolPaie : ce qu'il ferait, rien d'ecrit (`importation-apercu`), ou en est la
+//! boite aux lettres (`importation-etat`), l'import lui-meme (`importer`, `importation_ecrite.rs`) et la nature d'un
+//! contrat importe (`importation-nature`).
 //!
-//! C'est le Python de `operations_importation.apercu_importation` (et `_fiche_salarie`,
-//! `_fiche_spectacle`, `_fiche_entreprise`, `_ecarts`, `_paies_declarees`, `lire_historique`,
-//! `lire_paies_declarees`) et de `sortie_json.importation`, porte a l'identique : meme JSON, memes
-//! refus. La lecture de l'export (DSN et AEM) est dans `importation.rs`.
-//!
-//! `{"dossier": ...}` : la boite aux lettres `import/` entiere (`importation_bulletins`) : le tri, les DSN et AEM
-//! qu'il trouve passees par `apercu_lu` (le meme code que pour l'export), puis les bulletins de paie.
+//! `importation-apercu` lit l'export (DSN et AEM) par `importation.rs`. `{"dossier": ...}` : la boite aux lettres
+//! `import/` entiere (`importation_bulletins`) : le tri, les DSN et AEM qu'il trouve passees par `apercu_lu` (le meme
+//! code que pour l'export), puis les bulletins de paie.
 //!
 //! `contrats_nouveaux` : un contrat atteste que l'historique (`historique/engagements.json`) porte deja
 //! -- meme salarie, memes dates, meme objet, memes heures, cachets, jours et meme brut (`str`) -- n'est
 //! pas nouveau (`_cle_engagement`).
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use droit::contexte::Contexte;
-use envois::etats;
-use socle::valeur::valeur_en_texte;
-use socle::valeur::nom_type;
-use socle::echec::R;
-use socle::echec::erreur;
-use socle::fichiers::vrai;
 use crate::importation::{self, SalarieDeclare};
-use socle::echec::Echec;
+use droit::contexte::Contexte;
+use super::{lire_json_ou_vide, ou_texte, valeur};
+use envois::etats::{self, get, items, ou};
+use socle::echec::{erreur, Echec, R};
+use socle::fichiers::vrai;
+use socle::valeur::{nom_type, valeur_en_texte};
 
-/// Les routes que ce module sert.
-pub const ROUTES: [&str; 2] = ["importation-apercu", "importation-tri"];
+
+
+/// Les routes de ce module.
+pub const ROUTES: &[&str] = &["importation-apercu", "importation-etat", "importer", crate::importation_nature::ROUTE];
+
+/// Celles qui ecrivent.
+pub const ECRITURES: &[&str] = &["importer", crate::importation_nature::ROUTE];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         // `{"dossier": ...}` (vide : `import/` de la compagnie) : la boite aux lettres entiere, bulletins compris
-        // (`importation_bulletins`) ; sans `dossier`, l'export de CoolPaie comme avant.
+        // (`importation_bulletins`) ; sans `dossier`, l'export de CoolPaie.
         "importation-apercu" if charge.get("dossier").is_some() => {
             if charge.get("export").is_some_and(vrai) {
                 return Err(erreur("ErreurOperation", "L'apercu lit un export (`export`) ou un dossier (`dossier`), pas les deux."));
@@ -45,25 +46,12 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             let export = export_de(ctx, charge)?;
             Ok(Value::Object(apercu_importation(ctx, &export, ctx.aujourdhui)?.reponse))
         }
-        "importation-tri" => tri(ctx, charge),
+        "importation-etat" => etat_importation(&ctx.racine),
+        "importer" => crate::importation_ecrite::importer(ctx, charge),
+        // La nature des contrats repris qu'aucun bulletin ne dit (#236, `importation_nature`).
+        crate::importation_nature::ROUTE => crate::importation_nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
-}
-
-/// `importation-tri` : le tri de la boite aux lettres (`importation_tri`), `{"dossier": "..."}` ; sans dossier,
-/// `import/` a la racine de la compagnie. Rien n'est ecrit dans les donnees de la compagnie.
-///
-/// LE DOSSIER DE TRAVAIL (ou s'ouvrent les zip) EST UN DOSSIER TEMPORAIRE DU SYSTEME, propre a cet appel, efface
-/// avant de rendre : sous `import/.travail`, il se retrouverait dans la sauvegarde et dans le depot de la
-/// compagnie, en double des archives qu'il copie, et garderait d'un tri a l'autre ce qu'une archive retiree
-/// avait rendu. Le tri rend du JSON, pas des chemins a relire : un lot qui lira ces fichiers trie dans son
-/// propre appel, et les lit avant d'effacer.
-fn tri(ctx: &Contexte, charge: &Value) -> R<Value> {
-    let dossier = dossier_import(ctx, charge)?;
-    let travail = dossier_de_travail();
-    let rendu = crate::importation_tri::trier(&dossier, &travail).map(|t| t.json());
-    let _ = std::fs::remove_dir_all(&travail);
-    rendu
 }
 
 /// Le dossier a trier : `charge.dossier`, ou `import/` a la racine de la compagnie s'il est vide ou absent.
@@ -80,7 +68,7 @@ pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
             }
             d
         }
-        Some(Value::String(s)) => PathBuf::from(crate::routes_apercus::normaliser(s)),
+        Some(Value::String(s)) => PathBuf::from(crate::routes::depots::normaliser(s)),
         Some(autre) => return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(autre)))),
     })
 }
@@ -202,7 +190,7 @@ pub(crate) fn export_de(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
     let export_v = charge.get("export").filter(|v| vrai(v));
     Ok(match export_v {
         None => trouver_export(&ctx.racine),
-        Some(Value::String(s)) => PathBuf::from(crate::routes_apercus::normaliser(s)),
+        Some(Value::String(s)) => PathBuf::from(crate::routes::depots::normaliser(s)),
         Some(autre) => {
             return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(autre))));
         }
@@ -235,7 +223,7 @@ pub(crate) struct Apercu {
 
 /// `apercu_importation(ctx, dossier, aujourdhui)`.
 ///
-/// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE (lot G1) : `importation::garder_export` les ecarte devant le
+/// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE : `importation::garder_export` les ecarte devant le
 /// Siren de la compagnie (`importation::siren_de_reference`, le meme que pour les bulletins) ; l'apercu lit alors une
 /// copie de l'export sans elles (un dossier de travail, efface avant de rendre), et chacune est un avertissement.
 pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socle::date::Jour) -> R<Apercu> {
@@ -291,7 +279,7 @@ pub(crate) type CleEngagement = (String, String, String, String, i128, i128, i12
 /// `deja = {_cle_engagement(e) ...}` : les contrats que `historique/engagements.json` porte deja. Une valeur qui
 /// n'est pas un texte ne peut egaler un texte : l'entree ne retrouvera aucun contrat.
 pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
-    let historique = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("engagements.json"))?;
+    let historique = crate::routes::lire_json_ou_vide(&ctx.racine.join("historique").join("engagements.json"))?;
     // `lire_historique` : `data.setdefault("engagements", [])` leve sur ce qui n'est pas un objet.
     if !historique.is_object() {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&historique))));
@@ -327,7 +315,7 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
 
 /// Les lignes de `historique/paies.json` telles qu'elles sont (`lire_paies_declarees` : meme `setdefault`).
 pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
-    let fichier_paies = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
+    let fichier_paies = crate::routes::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
     if !fichier_paies.is_object() {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&fichier_paies))));
     }
@@ -381,7 +369,7 @@ pub(crate) fn apercu_lu(
     if !lecture.entreprise.is_empty() {
         let e = fiche_entreprise(&lecture)?;
         if !ctx.entreprise.get("siren").is_some_and(|s| vrai(s) && !valeur_en_texte(s).trim().is_empty()) {
-            let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
+            let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("entreprise", &e)?;
             let libelle = e.get("raison_sociale").map_or("?".to_string(), valeur_en_texte);
             a_creer_liste.push(ACreer { nom: "entreprise", rang: None, donnees: e.clone() });
             entreprise = fiche_importee("entreprise", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(e));
@@ -423,7 +411,7 @@ pub(crate) fn apercu_lu(
             continue;
         }
         let donnees = fiche_salarie(decl)?;
-        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
+        let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("salarie", &donnees)?;
         a_creer_liste.push(ACreer { nom: "salarie", rang: Some(salaries.len()), donnees: donnees.clone() });
         salaries.push(fiche_importee("salarie", None, &libelle, "a_creer", json!({}), anomalies, Value::Object(donnees)));
         cles_a_venir.insert(decl.nir.clone());
@@ -491,7 +479,7 @@ pub(crate) fn apercu_lu(
         donnees.insert("alias".into(), json!([]));
         donnees.insert("actif".into(), json!(o.dernier >= seuil));
         donnees.insert("_vu_dans".into(), json!(format!("{} de {} a {} ({} contrat(s))", source, o.premier, o.dernier, o.contrats)));
-        let anomalies = crate::routes_fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
+        let anomalies = crate::routes::fiches::verifier_comme_a_l_ecriture("spectacle", &donnees)?;
         a_creer_liste.push(ACreer { nom: "spectacle", rang: Some(spectacles.len()), donnees: donnees.clone() });
         spectacles.push(fiche_importee(
             "spectacle",
@@ -611,5 +599,216 @@ fn entier_py(v: &Value) -> R<i128> {
             "TypeError",
             socle::fichiers::attendu("un nombre entier", nom_type(autre)),
         )),
+    }
+}
+
+/// Le nombre de valeurs distinctes (`len({...})`) : `1`, `1.0` et `True` ne font
+/// qu'une ; une liste ou un dictionnaire ne se hache pas.
+fn distincts(engagements: &[&Value], cle: &str) -> R<usize> {
+    let mut vus: HashSet<String> = HashSet::new();
+    for e in engagements {
+        let v = get(e, cle)?;
+        if !vrai(v) {
+            continue;
+        }
+        vus.insert(match v {
+            Value::String(t) => format!("s{}", t),
+            Value::Array(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("list"))),
+            Value::Object(_) => return Err(erreur("TypeError", socle::fichiers::pas_une_cle("dict"))),
+            autre => format!("n{:?}", socle::valeur::nombre(autre).unwrap_or(0.0)),
+        });
+    }
+    Ok(vus.len())
+}
+
+/// `etat_importation` : ce qui a deja ete repris, pour que la page le dise.
+///
+/// Les cles d'avant (`importe_le`, `source`, `contrats`, `salaries`, `objets`, `du`, `au` : les contrats attestes de
+/// `historique/engagements.json`) gardent leur sens et leurs refus. S'y ajoutent (lot F du plan d'import) :
+/// - `dossier` : la boite aux lettres `import/` de la compagnie, que la page preremplit ;
+/// - `reprises` : chaque source reprise -- `DSN` (les versements de `historique/paies.json` declares par une DSN ;
+///   `declarations` : une DSN par mois declare),
+///   `AEM` (les contrats attestes par une AEM), `bulletins` (les paies qu'un bulletin a ecrites ou completees, les
+///   contrats qu'il atteste, les PDF copies dans `historique/bulletins/`) --, avec combien, de quand a quand, et le
+///   jour de la reprise (`importe_le` de la ligne, sinon celui du fichier) ;
+/// - `editeur` : ce qui attend l'editeur -- les incidents et les signalements partis (ou a partir) de ce poste qui
+///   parlent de l'import, sans valeur personnelle (ils ont ete caviardes avant d'etre ecrits) ; `attend_editeur` en
+///   compte ceux qui n'ont pas de reponse.
+///
+/// Ces ajouts ne levent jamais : une ligne qui n'a pas la forme attendue n'est pas comptee.
+fn etat_importation(racine: &Path) -> R<Value> {
+    let p = racine.join("historique").join("engagements.json");
+    let mut h = lire_json_ou_vide(&p)?;
+    let Value::Object(m) = &mut h else {
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&h))));
+    };
+    m.entry("engagements").or_insert_with(|| json!([]));
+    let brut = ou(valeur(m, "engagements"), &etats::LISTE_VIDE);
+    let liste = items(brut)?;
+    let mut engagements: Vec<&Value> = Vec::new();
+    for e in &liste {
+        engagements.push(e.as_ref());
+    }
+    let dates = |cle: &str| -> R<Vec<String>> {
+        let mut v = Vec::new();
+        for e in &engagements {
+            let x = get(e, cle)?;
+            if vrai(x) {
+                v.push(valeur_en_texte(x));
+            }
+        }
+        v.sort();
+        Ok(v)
+    };
+    let debuts = dates("debut")?;
+    let fins = dates("fin")?;
+    let editeur = attend_l_editeur(racine);
+    let attend = editeur.iter().filter(|x| !x.get("repondu").is_some_and(vrai)).count();
+    Ok(json!({
+        "importe_le": ou_texte(valeur(m, "importe_le")),
+        "source": ou_texte(valeur(m, "source")),
+        "contrats": engagements.len(),
+        "salaries": distincts(&engagements, "salarie")?,
+        "objets": distincts(&engagements, "numero_objet")?,
+        "du": debuts.first().cloned().unwrap_or_default(),
+        "au": fins.last().cloned().unwrap_or_default(),
+        "dossier": racine.join("import").display().to_string(),
+        "reprises": reprises_faites(racine, m, &engagements),
+        "editeur": editeur,
+        "attend_editeur": attend,
+        // Les contrats repris dont la nature reste a dire, par salarie (#236, `importation_nature`).
+        "a_dire": crate::importation_nature::a_dire(racine),
+    }))
+}
+
+/// Une source reprise : combien, de quand a quand, quel jour.
+#[derive(Default)]
+struct Reprise {
+    nombre: usize,
+    du: Option<String>,
+    au: Option<String>,
+    le: Option<String>,
+}
+
+/// `reprises` de `importation-etat` : DSN, AEM, bulletins, dans cet ordre, celles qui ont repris quelque chose.
+fn reprises_faites(racine: &Path, engagements_json: &Map<String, Value>, engagements: &[&Value]) -> Vec<Value> {
+    let le_fichier = |m: &Map<String, Value>| m.get("importe_le").filter(|v| v.is_string()).cloned();
+    let (mut aem, mut contrats_bulletins) = (Reprise::default(), Reprise::default());
+    let le_engagements = le_fichier(engagements_json);
+    for e in engagements {
+        let Some(o) = e.as_object() else { continue };
+        let le = o.get("importe_le").filter(|v| v.as_str().is_some_and(|s| !s.is_empty())).or(le_engagements.as_ref());
+        let cible = if o.get("atteste_par").and_then(Value::as_str) == Some("bulletin") { &mut contrats_bulletins } else { &mut aem };
+        cible.voir(o.get("debut"), o.get("fin"), le);
+    }
+    let (mut dsn, mut bulletins) = (Reprise::default(), Reprise::default());
+    // Les DSN reprises : une par mois declare (la phrase de l'etat dit des declarations, pas des versements).
+    let mut mois_dsn: BTreeSet<String> = BTreeSet::new();
+    if let Ok(Value::Object(f)) = lire_json_ou_vide(&racine.join("historique").join("paies.json")) {
+        let le_paies = le_fichier(&f);
+        for x in f.get("paies").and_then(Value::as_array).into_iter().flatten() {
+            let Some(o) = x.as_object() else { continue };
+            let le = o.get("importe_le").filter(|v| v.as_str().is_some_and(|s| !s.is_empty())).or(le_paies.as_ref());
+            let par = o.get("declare_par").and_then(Value::as_str).unwrap_or("");
+            // Une paie declaree par une DSN et completee par un bulletin compte des deux cotes : elle a les deux sources.
+            if par != "bulletin" {
+                dsn.voir(o.get("mois"), o.get("mois"), le);
+                if let Some(m) = o.get("mois").and_then(Value::as_str).filter(|m| !m.is_empty()) {
+                    mois_dsn.insert(m.to_string());
+                }
+            }
+            if par == "bulletin" || o.get("bulletin").is_some_and(vrai) {
+                bulletins.voir(o.get("mois"), o.get("mois"), le);
+            }
+        }
+    }
+    let copies = std::fs::read_dir(racine.join("historique").join("bulletins"))
+        .map(|d| d.flatten().filter(|e| e.path().is_file()).count())
+        .unwrap_or(0);
+    let mut out = Vec::new();
+    let base = |source: &str, quoi: &str, r: &Reprise| {
+        json!({"source": source, "quoi": quoi, "nombre": r.nombre, "du": r.du.clone().unwrap_or_default(),
+               "au": r.au.clone().unwrap_or_default(), "le": r.le.clone().unwrap_or_default()})
+    };
+    if dsn.nombre > 0 {
+        let mut d = base("DSN", "versements déclarés", &dsn);
+        d["declarations"] = json!(mois_dsn.len());
+        out.push(d);
+    }
+    if aem.nombre > 0 {
+        out.push(base("AEM", "contrats attestés", &aem));
+    }
+    if bulletins.nombre > 0 || contrats_bulletins.nombre > 0 || copies > 0 {
+        let mut b = base("bulletins", "bulletins de paie", &bulletins);
+        if b["le"] == json!("") {
+            b["le"] = json!(contrats_bulletins.le.clone().unwrap_or_default());
+        }
+        b["contrats"] = json!(contrats_bulletins.nombre);
+        b["copies"] = json!(copies);
+        out.push(b);
+    }
+    out
+}
+
+/// `editeur` de `importation-etat` : les incidents (`journal/incidents.json`) et les signalements
+/// (`journal/signalements.json`) de ce poste qui parlent de l'import -- un incident de nature `refus` n'en est pas : la
+/// phrase a ete dite a l'ecran. Rien que ce qu'ils portent deja (caviarde).
+fn attend_l_editeur(racine: &Path) -> Vec<Value> {
+    let parle_d_import = |t: &str| {
+        let t = t.to_lowercase();
+        t.contains("import") || t.contains("repris")
+    };
+    let texte = |v: &Value, cle: &str| v.get(cle).and_then(Value::as_str).unwrap_or("").to_string();
+    let mut out = Vec::new();
+    for l in crate::incidents::lire(racine, None, false).unwrap_or_default() {
+        let (ou_, genre, resume) = (texte(&l, "ou"), texte(&l, "genre"), texte(&l, "resume"));
+        // Un refus (un dossier mal tape, un export absent) se dit a l'ecran ; il n'attend pas l'editeur.
+        if l.get("quoi").and_then(Value::as_str) == Some(crate::incidents::REFUS) || !parle_d_import(&format!("{} {}", ou_, genre)) {
+            continue;
+        }
+        let etat = l.get("envoi").map_or(String::new(), |e| texte(e, "etat"));
+        if etat == crate::incidents::SANS_OBJET {
+            continue;
+        }
+        out.push(json!({
+            "canal": "incident", "quand": texte(&l, "quand"),
+            "resume": if resume.is_empty() { genre } else { resume },
+            "parti": etat == crate::incidents::DEPOSE, "repondu": false,
+        }));
+    }
+    for s in crate::problemes::signalements(racine) {
+        let debut = texte(&s, "debut");
+        if !parle_d_import(&debut) {
+            continue;
+        }
+        out.push(json!({
+            "canal": "signalement", "quand": texte(&s, "quand"), "resume": debut,
+            "numero": s.get("numero").cloned().unwrap_or(Value::Null),
+            "parti": s.get("etat").and_then(Value::as_str) == Some("arrive"), "repondu": s.get("reponse").is_some_and(vrai),
+        }));
+    }
+    out
+}
+
+impl Reprise {
+    /// Une ligne de plus : ses dates (un texte non vide), et le jour ou elle a ete reprise.
+    fn voir(&mut self, debut: Option<&Value>, fin: Option<&Value>, le: Option<&Value>) {
+        let texte = |v: Option<&Value>| v.and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
+        self.nombre += 1;
+        if let Some(d) = texte(debut) {
+            if self.du.as_ref().is_none_or(|x| &d < x) {
+                self.du = Some(d);
+            }
+        }
+        if let Some(f) = texte(fin) {
+            if self.au.as_ref().is_none_or(|x| &f > x) {
+                self.au = Some(f);
+            }
+        }
+        if let Some(l) = texte(le) {
+            if self.le.as_ref().is_none_or(|x| &l > x) {
+                self.le = Some(l);
+            }
+        }
     }
 }

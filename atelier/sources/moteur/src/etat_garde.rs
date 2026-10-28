@@ -256,8 +256,8 @@ fn refaire(o: &HashMap<String, String>, ctx: &Contexte, mois: &str) -> R<Value> 
             })
         } else {
             let lus = lectures(o, mois);
-            let par_engagement = crate::routes_mois::route(o, ctx, "etat-par-engagement", &charge)?;
-            let du_mois = crate::routes_mois::route(o, ctx, "etat-du-mois", &charge)?;
+            let par_engagement = crate::routes::etapes::route(o, ctx, "etat-par-engagement", &charge)?;
+            let du_mois = crate::routes::etapes::route(o, ctx, "etat-du-mois", &charge)?;
             json!({
                 "format": FORMAT,
                 "moteur": env!("PAIE_SOURCES"),
@@ -332,9 +332,9 @@ fn pour_la_page(racine: &Path, etat: &Value, brut: &Value) -> Value {
 }
 
 /// `etat-par-engagement`, `etat-du-mois` et `mois`, servis par l'etat du mois : pour les deux premiers, le meme JSON que
-/// `routes_mois`.
+/// `routes::etapes`.
 pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
-    let (brut, mois) = crate::routes_mois::mois_de(charge)?;
+    let (brut, mois) = crate::routes::etapes::mois_de(charge)?;
     let etat = lire(o, ctx, &mois)?;
     match nom {
         "etat-par-engagement" => Ok(json!({ "mois": brut, "engagements": etat.get("engagements").cloned().unwrap_or(Value::Null), "non_actifs": etat.get("non_actifs").cloned().unwrap_or(Value::Null) })),

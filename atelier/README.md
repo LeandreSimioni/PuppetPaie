@@ -228,26 +228,6 @@ chaque document est écrit salarié par salarié : le fichier groupé porte la p
 de tout le monde et ne doit jamais partir. Un salarié qui a plusieurs contrats
 dans le mois a **un** fichier, avec un bulletin par page.
 
-### Un mois produit dont les pièces individuelles manquent
-
-À l'écran : le bouton « Écrire les documents des salariés ». La commande
-`documents` du Python n'a pas de commande en Rust ; sa route, oui :
-
-```
-echo '{"route": "ecrire-documents", "charge": {"mois": "2026-08"}}' | moteur route --racine prive
-```
-
-(`--racine` : le dossier de la compagnie, ici depuis la racine du dépôt.)
-
-Le cas est celui d'un mois produit par une version antérieure au découpage par
-salarié : le fichier groupé est archivé, `sorties/<mois>/envoi/` est vide, et
-`envoi` refuse — « les documents du mois ne sont pas encore écrits ». Cette
-commande les **redécoupe** : elle ne reproduit rien, ne redéclare rien, ne fait
-avancer aucun compteur de bulletin ni de contrat, et lit les numéros dans le
-fichier archivé. Ne pas reproduire le mois à la place : sur un mois déjà
-déposé, les numéros de contrat changeraient (voir `CLAUDE.md`, règle 4). À
-l'écran, c'est ce bouton.
-
 ## La boîte courriel : un mot de passe d'application
 
 Depuis le 17/09/2026, l'envoi (bulletins, contrats) et la relève des
@@ -871,8 +851,7 @@ du mois (`envoi/BulletinRectificatif_…pdf`).
 
 Dans la fenêtre, **Historique › Les corrections** montre, mois par mois,
 chaque contrat corrigé : la paie déclarée, la paie validée, et la DSN qui
-l'a portée ou la prochaine qui la portera. Les routes `regularisation-mois`
-et `regularisation-apercu` disent la même chose pour un mois ou un contrat.
+l'a portée ou la prochaine qui la portera.
 
 Un mois **fermé** (échéance passée, DSN jamais partie) se rouvre depuis
 l'onglet Paie : le bouton « Ce mois est fermé — le rouvrir » ouvre

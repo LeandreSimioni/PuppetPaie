@@ -2,7 +2,7 @@
 //!
 //! Les appels passent par `transport::envoyer`. Le client recoit ce que l'appelant a lu
 //! sur le poste (`Autorisation` : les identifiants de l'application, le jeton scelle,
-//! l'adresse du compte ; `moteur::routes_google::client_drive`) : il n'ouvre jamais le coffre.
+//! l'adresse du compte ; `moteur::routes::coffre::client_drive`) : il n'ouvre jamais le coffre.
 //!
 //! LE TRAIT `Drive` : la sauvegarde et l'archivage ne connaissent que lui (comme
 //! `Courriel` pour la messagerie). Le vrai `Client` l'implemente ; la preuve met a sa

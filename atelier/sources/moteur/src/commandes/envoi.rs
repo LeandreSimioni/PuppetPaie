@@ -3,7 +3,7 @@
 //!
 //! SANS LA PAGE DU NAVIGATEUR (decision de Leandre, TRI-J0) : le Python servait une page de relecture locale et n'envoyait qu'au
 //! clic. Ici la commande prepare, MONTRE ce qui partirait (les memes lignes que le Python), puis l'envoi est celui du moteur :
-//! `routes_envois::expedier_envoi`, donc `depot_acte::verifier_preuve` -- le moteur demande LUI-MEME le mot de passe du logiciel a
+//! `crate::routes::documents::expedier_envoi`, donc `depot_acte::verifier_preuve` -- le moteur demande LUI-MEME le mot de passe du logiciel a
 //! un humain (fenetre, terminal sans echo ; sinon REFUS), c'est la confirmation. Aucun mot de passe en option, en variable lue en
 //! clair ni dans une sortie. Dans `moteur-atelier`, tout envoi reel est refuse (`ActeReelRefuse`). `--sans-navigateur` est accepte
 //! (il n'y a plus de navigateur) et sans effet. Dans une compagnie fictive rien ne quitte le poste : la boite simulee ecrit les messages.
@@ -68,7 +68,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let mois = mois_du_fichier(cadre, fichier, "L'envoi se prepare")?;
     ouvrir_la_boite(cadre);
     let ctx = &cadre.ctx;
-    let prep = match crate::routes_envois::preparer_envoi(ctx, &mois, None, &mut || crate::routes_envois::client_courriel(ctx)) {
+    let prep = match crate::routes::documents::preparer_envoi(ctx, &mois, None, &mut || crate::routes::documents::client_courriel(ctx)) {
         Ok(p) => p,
         Err(e) => match preparation_refusee(json, fichier, &e) {
             Some(code) => return Ok(code),
@@ -108,7 +108,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     dire!("{}\n  Expediteur : {}\n", "-".repeat(62), prep.expediteur);
 
     // L'envoi : la preuve est demandee par le moteur, a un humain. Rien ne part sans elle.
-    match crate::routes_envois::expedier_envoi(ctx, prep, &mois, &Preuve::default(), "ligne de commande") {
+    match crate::routes::documents::expedier_envoi(ctx, prep, &mois, &Preuve::default(), "ligne de commande") {
         Ok(r) => {
             let partis: Vec<String> = super::actes::textes_de(&r, "partis");
             dire!("{} message(s) ENVOYES :", partis.len());

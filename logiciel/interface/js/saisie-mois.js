@@ -10,7 +10,7 @@
  * formulaire et ne se modifie pas : elle écrit les engagements du fichier
  * qu'elle montre, tels quels (`engagementsLus`). Ce que le moteur tient seul —
  * la validation et sa carte figée, la réouverture, `_origine` — il le reprend
- * du fichier (`fusionner`, routes_ecritures.rs), quoi que la page envoie. */
+ * du fichier (`moteur/src/routes/mois.rs`), quoi que la page envoie. */
 
 /** Les engagements de la saisie lue qu'une carte montre (`data-rangs`). */
 function engagementsLus(div) {
@@ -213,7 +213,7 @@ async function calculerApercu(lu) {
       : await api("apercu", { saisie, blocs: tailles });
     cible.innerHTML = vueApercu(a);
     // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
-    const parBloc = paiesParBloc(a, blocs);
+    const parBloc = engagementsParBloc(a, blocs);
     blocs.forEach((div, i) => {
       const part = parBloc[i];
       const p = part[0];
@@ -255,9 +255,9 @@ async function calculerApercu(lu) {
       // n'est bloquant.
       div.querySelector(".avis").innerHTML =
         avisDuBloc(part).map(
-          (a) => `<div class="encart attention avis-paie">${echapper(a)}</div>`).join("")
+          (a) => `<div class="encart attention avis-engagement">${echapper(a)}</div>`).join("")
         + avisDuBloc(part, "informations").map(
-          (a) => `<div class="encart info avis-paie">${echapperLiens(a)}</div>`).join("")
+          (a) => `<div class="encart info avis-engagement">${echapperLiens(a)}</div>`).join("")
         // Le conseil que la saisie appelle (ticket 224), au plus un par carte, quand la compagnie a coché l'option.
         + conseilDuBloc(part);
     });
@@ -310,7 +310,7 @@ function avisDuBloc(part, liste = "avertissements") {
  * démultiplie, parce que le moteur ne connaît qu'un salarié par engagement.
  * Compter un par bloc décalait donc tout ce qui suit dès le deuxième, et
  * l'écran posait la ligne « bulletin … » du voisin sous le mauvais nom. */
-function paiesParBloc(a, blocs) {
+function engagementsParBloc(a, blocs) {
   let rang = 0;
   return blocs.map((div) => {
     const combien = salariesDuBloc(div).length;
@@ -501,8 +501,8 @@ function peindreChiffres(div, total) {
     // carte (`blocs` de l'aperçu). Le brut reste dans l'aperçu.
     net.innerHTML = total
       ? `Net <b>${echapper(euros(total.net_a_payer))}</b>
-         <span class="e-cout">Coût employeur <b>${echapper(euros(total.cout_employeur))}</b></span>${total.paies > 1
-          ? ` <span class="discret">pour ${total.paies} salariés</span>` : ""}`
+         <span class="e-cout">Coût employeur <b>${echapper(euros(total.cout_employeur))}</b></span>${total.engagements > 1
+          ? ` <span class="discret">pour ${total.engagements} salariés</span>` : ""}`
       : `<span class="discret">Le net s'affiche dès que l'engagement est complet.</span>`;
   }
   div.querySelectorAll(".e-vise").forEach((c) => {
@@ -607,7 +607,7 @@ function designation(p) {
  * son net, le coût et le brut au survol. Le moteur les somme (`total_net`, `total_cout`, `par_salarie` de l'aperçu). */
 function vueApercu(a) {
   const groupes = a.par_salarie || [];
-  if (!groupes.length) return `<p class="discret">Aucune paie ce mois-ci.</p>`;
+  if (!groupes.length) return `<p class="discret">Aucun engagement ce mois-ci.</p>`;
   return `
     <div class="mois-chiffres">
       <div><span>Net à virer</span><b>${euros(a.total_net)}</b></div>
@@ -616,7 +616,7 @@ function vueApercu(a) {
     <ul class="mois-salaries">${groupes.map((g) => `
       <li title="coût employeur ${echapper(euros(g.cout_employeur))} · brut ${echapper(euros(g.brut))}">
         <span>${echapper(g.salarie.nom)} ${echapper(g.salarie.prenom)}
-          <span class="discret">· ${g.paies} paie${g.paies > 1 ? "s" : ""}</span></span>
+          <span class="discret">· ${g.engagements} engagement${g.engagements > 1 ? "s" : ""}</span></span>
         <b>${euros(g.net_a_payer)}</b>
       </li>`).join("")}
     </ul>`;
@@ -726,7 +726,7 @@ async function chargerMois(mois, repeint = false) {
   if (!repeint) {
     cible.classList.add("en-lecture");
     // Les états du mois quitté ne se posent pas sur les cartes de celui-ci.
-    ETATS_PAIES = null;
+    ETATS_ENGAGEMENTS = null;
   }
   cible.innerHTML = "";
   const groupes = regrouper(SAISIE.engagements || []);
@@ -748,7 +748,7 @@ async function chargerMois(mois, repeint = false) {
   DERNIERE_ECRITE = JSON.stringify(saisieCourante());
   // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
   // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
-  if (repeint && ETATS_PAIES) peindreEtats();
+  if (repeint && ETATS_ENGAGEMENTS) peindreEtats();
     AVANT_EMBAUCHE = r.avant_premiere_embauche || null;
   DSN_DEPOSEE = r.dsn_deposee || null;
   // Une confirmation ne vaut que pour LE mois confirmé : on la redonne en revenant.
@@ -792,7 +792,7 @@ async function chargerMois(mois, repeint = false) {
     dessinerImprevus(mois),
     // Ou en est CHAQUE paie. Se lit apres le chargement des blocs : les etats
     // se posent sur eux, et un bloc absent n'aurait rien ou se poser.
-    dessinerEtatsDesPaies(mois).finally(montrer),
+    dessinerEtatsDesEngagements(mois).finally(montrer),
   ];
   const peint = Promise.allSettled(lectures);
   // UN ÉTAT PÉRIMÉ SE VÉRIFIE DERRIÈRE (ticket #212) : le moteur le refait déjà ; on attend l'état frais, et l'écran se
@@ -834,7 +834,7 @@ async function repeindreLeMois(mois, ancien, frais) {
     dessinerActions(mois),
     dessinerEmbauches(mois),
     dessinerImprevus(mois),
-    dessinerEtatsDesPaies(mois),
+    dessinerEtatsDesEngagements(mois),
   ]);
 }
 
@@ -901,12 +901,12 @@ function confirmerModification(mois, texte, renvoyer) {
     CONFIRMATION_OUVERTE = null;
     if (remettre) remettre();
     if (confirme) return;
-    noteSaisie("Modification annulée : la paie reste telle qu'elle est enregistrée.");
+    noteSaisie("Modification annulée : la saisie reste telle qu'elle est enregistrée.");
     if (MOIS_AFFICHE === mois) await chargerMois(mois, true);
   };
   ouvrirBoite(`
-    <h3>Modifier la paie ${echapper(deMois(mois))} ?</h3>
-    <div class="encart grave"><b>Cette paie est déjà déclarée</b>${echapper(texte)}</div>
+    <h3>Modifier les engagements de ${echapper(deMois(mois))} ?</h3>
+    <div class="encart grave"><b>Ce mois est déjà déclaré</b>${echapper(texte)}</div>
     <div class="actions">
       <button class="secondaire" id="mc-annuler">Annuler</button>
       <button class="primaire" id="mc-modifier">Modifier quand même</button>
@@ -950,7 +950,7 @@ function dessinerMoisImporte() {
   const t = IMPORTE.totaux || {};
   const n = IMPORTE.paies.length;
   const total = (k, mot) => t[k] && t[k].montant != null
-    ? `${mot} ${euros(t[k].montant)}${t[k].connus < n ? ` (${t[k].connus} paie${t[k].connus > 1 ? "s" : ""} sur ${n})` : ""}` : "";
+    ? `${mot} ${euros(t[k].montant)}${t[k].connus < n ? ` (${t[k].connus} engagement${t[k].connus > 1 ? "s" : ""} sur ${n})` : ""}` : "";
   cible.innerHTML = `
     <p class="mi-tete"><b>Tenu avant PuppetPaie</b> <span class="discret">— d'après l'historique importé ·
       ${n} paie${n > 1 ? "s" : ""} ${[total("brut", "· brut"), total("net_a_payer", "· net")].filter(Boolean).join(" ")}
@@ -962,7 +962,7 @@ function dessinerMoisImporte() {
     rendreOuvrable(div.querySelector(".e-resume"), () => {
       cases.hidden = !cases.hidden;
       div.classList.toggle("ouverte", !cases.hidden);
-    }, "Voir ou replier les cases de la paie");
+    }, "Voir ou replier les cases de l'engagement");
   });
   cible.hidden = false;
 }

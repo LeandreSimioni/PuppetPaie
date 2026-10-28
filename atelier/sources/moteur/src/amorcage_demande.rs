@@ -2,7 +2,7 @@
 //! `produire`, `recapitulatif`). Lot J2b, theme 1c.
 //!
 //! Deux usages : le motif 07 (changement de logiciel declaratif, une fois, pour tout le monde) et le motif 01 (embauche
-//! effective, qui part avec la DPAE : `routes_actes_h1::dpae` y passe aussi). UN SIGNALEMENT, UN INDIVIDU, UN FICHIER.
+//! effective, qui part avec la DPAE : `crate::routes::depots::dpae` y passe aussi). UN SIGNALEMENT, UN INDIVIDU, UN FICHIER.
 //! RIEN N'EST DEPOSE ici : le depot est un acte a part (`depot-dsn`), et c'est lui qui note la demande.
 //!
 //! Ce qui ne se demande pas : un salarie sans NIR, et un salarie dont la demande est deja partie et dont la reponse n'est pas

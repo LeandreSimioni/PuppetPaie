@@ -362,7 +362,7 @@ function peindreImprevusDeLaCarte(div, liste) {
         ${jours.length ? `<div class="imprevu-jours">Payé pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"} :
           ${jours.map((c) => c.dates.map((iso) => `${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}
             ${validee ? "" : `<button class="lien" data-retirer="${echapper(iso)}" data-rubrique="${echapper(c.rubrique)}">retirer ce jour</button>`}`).join(" · ")).join(" · ")}
-          ${validee ? `<span class="discret">— la paie est validée : cliquer sur la carte, puis « Modifier… », pour retirer ces jours.</span>` : ""}
+          ${validee ? `<span class="discret">— l'engagement est validé : cliquer sur la carte, puis « Modifier l'engagement… », pour retirer ces jours.</span>` : ""}
         </div>` : ""}
       </div>`;
   }).join("");
@@ -685,12 +685,12 @@ async function etapeSuite(i, p, phrase) {
       <span class="discret">— le complément versé après les indemnités journalières ; à dire quand on le connaît</span>
       <input type="number" step="0.01" min="0" id="su-maintien"></label>` : ""}
     ${jours.length ? `<div class="champ-boite">Des jours sont payés pendant ${i.genre === "arret" ? "l'arrêt" : "l'absence"}.
-      Cocher ceux à retirer de la paie :
+      Cocher ceux à retirer de l'engagement :
       <div class="liste-jours">${jours.map((c, k) => c.dates.map((iso) => ici(c)
         ? `<label class="coche"><input type="checkbox" data-jour="${k}" value="${echapper(iso)}">
              ${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))}</label>`
         : `<div class="discret">${echapper(c.libelle)} le ${echapper(jjmmaaaa(iso))} — à retirer dans la saisie ${
-             echapper(deMois(c.mois))}${c.mois === MOIS_AFFICHE ? " (la paie est validée : la modifier d'abord)" : ""}</div>`).join("")).join("")}
+             echapper(deMois(c.mois))}${c.mois === MOIS_AFFICHE ? " (l'engagement est validé : le modifier d'abord)" : ""}</div>`).join("")).join("")}
       </div></div>` : ""}
     <div class="actions">
       <button class="secondaire" id="su-plus-tard">Plus tard</button>
@@ -713,7 +713,7 @@ async function etapeSuite(i, p, phrase) {
       const c = jours[+x.dataset.jour];
       if (retirerJour(div, c.rubrique, x.value)) retires++;
     });
-    if (retires) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de la paie. La saisie s'enregistre.`);
+    if (retires) dire(`${retires} jour${retires > 1 ? "s" : ""} retiré${retires > 1 ? "s" : ""} de l'engagement. La saisie s'enregistre.`);
     await finir();
   };
 }

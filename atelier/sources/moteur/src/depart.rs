@@ -20,7 +20,7 @@ use serde_json::{json, Map, Value};
 
 use documents::conges_spectacles::{self, PaieCs};
 use declarations::produire_regularisations::{self as regularisations, Reg};
-use crate::routes_mois::Moteur;
+use crate::routes::etapes::Moteur;
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
 use engagement::Avis;
@@ -104,14 +104,14 @@ pub(crate) fn journal_des_ecritures(racine: &Path) -> Map<String, Value> {
 
 /// LA DSN DU MOIS EST-ELLE ECRITE ? Une DSN mensuelle du mois notee au journal des ecritures, et toujours la ou le moteur
 /// l'a ecrite (`sorties/<mois>/`). Un fichier DSN que le moteur n'a pas note (pose a la main) ne compte pas. C'est le
-/// critere de l'accueil (`routes_accueil::bilan_des_mois`), des rappels (`routes_ouverture::dsn_deposable`) et de
-/// l'etape de depot (`routes_mois`).
+/// critere de l'accueil (`crate::routes::ouverture::bilan_des_mois`), des rappels (`crate::routes::rappels::dsn_deposable`) et de
+/// l'etape de depot (`routes::etapes`).
 pub(crate) fn mois_ecrit(racine: &Path, mois: &str) -> bool {
     let prefixe = format!("{}/", mois);
     let sorties = racine.join("sorties");
     journal_des_ecritures(racine)
         .keys()
-        .any(|k| k.strip_prefix(&prefixe).is_some_and(crate::routes_mois::est_une_dsn_mensuelle) && sorties.join(k).is_file())
+        .any(|k| k.strip_prefix(&prefixe).is_some_and(crate::routes::etapes::est_une_dsn_mensuelle) && sorties.join(k).is_file())
 }
 
 /// QUAND LE MOTEUR A ECRIT CETTE PIECE (`AAAA-MM-JJTHH:MM`), lu au journal des ecritures (`noter_piece_ecrite`) ; `null`
@@ -473,7 +473,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     let _verrou = documents::ecrire_documents::prendre_le_verrou(ctx, qui)?;
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
-    crate::routes_ecritures::refuser_si_clos(ctx, mois)?;
+    crate::routes::mois::refuser_si_clos(ctx, mois)?;
     let mut avertissements: Vec<Avis> = Vec::new();
 
     // RIEN NE PART D'UN ENGAGEMENT EN SAISIE : la DSN declare les engagements valides du mois.
@@ -496,9 +496,9 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         )));
     }
     let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, mois, None)?;
-    let (_urssaf, avert) = crate::routes_ouverture::urssaf_de_l_apercu(ctx, &paies, mois)?;
+    let (_urssaf, avert) = crate::routes::mois::urssaf_de_l_apercu(ctx, &paies, mois)?;
     avertissements.extend(avert.into_iter().map(avertissement));
-    avertissements.extend(crate::routes_ouverture::archives_employees(&paies)?.into_iter().map(avertissement));
+    avertissements.extend(crate::routes::mois::archives_employees(&paies)?.into_iter().map(avertissement));
     for p in &paies {
         avertissements.extend(p.avertissements.iter().cloned());
     }
@@ -555,11 +555,11 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     }
     // LES ARRETS DE TRAVAIL : la DSN mensuelle doit REPORTER ceux dont la periode croise le mois, signales ou non.
     let arrets = crate::marques_depot::arrets_pour(ctx, mois)?;
-    let nomenclature = crate::routes_listes::nomenclatures(ctx)?;
+    let nomenclature = crate::routes::imprevus::nomenclatures(ctx)?;
     let jour = |v: &Value| -> R<String> { documents::bulletin::jj_mm_aaaa(v).map_err(valeur) };
     let mut non_signales = 0;
     for a in &arrets {
-        let resume = crate::routes_listes::resume_arret(&nomenclature, a)?;
+        let resume = crate::routes::imprevus::resume_arret(&nomenclature, a)?;
         let reprise = a.get("reprise").filter(|r| vrai(r));
         let fin = match reprise {
             Some(r) => r.clone(),
@@ -578,7 +578,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         }
     }
     // LES SUSPENSIONS (bloc 65) : chacune se declare entiere dans la DSN de chaque mois qu'elle traverse.
-    for s in engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::SUSPENSION)).map_err(crate::routes_listes::refus_magasin)? {
+    for s in engagement::imprevus::du_mois(&ctx.racine, mois, Some(engagement::imprevus::SUSPENSION)).map_err(crate::routes::imprevus::refus_magasin)? {
         avertissements.push(info(format!(
             "Suspension declaree dans la DSN : {}, motif {}, du {} au {}.",
             valeur_en_texte(&s["salarie"]),
@@ -809,7 +809,7 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
 
     // LES CERTIFICATS CONGES SPECTACLES : un par contrat qui finit ce mois-ci, numerotes dans la sequence continue, dans
     // l'ordre ou les documents partent, salarie par salarie, comme les bulletins.
-    let (mut pour_cs, avert_cs) = crate::routes_dossier_salarie::certificats_dus(ctx, &paies)?;
+    let (mut pour_cs, avert_cs) = crate::routes::dossier_salarie::certificats_dus(ctx, &paies)?;
     faits.avertissements.extend(avert_cs);
     pour_cs.sort_by_key(|(cle, _, _)| cles.iter().position(|c| c == cle).unwrap_or(usize::MAX));
     let mut prochain_ce: Option<i64> = None;

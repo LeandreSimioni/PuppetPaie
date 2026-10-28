@@ -58,7 +58,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(1);
     }
     // Un mois d.avant la premiere embauche ne se cree pas : aucune DSN n.y est due.
-    if let Err(e) = crate::routes_ecritures::refuser_si_avant_la_premiere_embauche(&cadre.ctx, mois) {
+    if let Err(e) = crate::routes::mois::refuser_si_avant_la_premiere_embauche(&cadre.ctx, mois) {
         if super::actes::est_operation(e.classe) {
             return Ok(reponse_metier("nouveau", json, &e, &[]));
         }
@@ -66,7 +66,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
     // Le mois dit son taux et sa date de paiement ; ses engagements restent ceux qu'il montre (ceux des mois d'avant qui
     // courent encore y sont deja).
-    let mut data = crate::routes_saisie::squelette(&cadre.ctx, mois)?;
+    let mut data = crate::routes::mois::squelette(&cadre.ctx, mois)?;
     if let Some(vue) = engagement::stock::vue_du_mois(&cadre.racine, mois).map_err(Echec::from)? {
         data["engagements"] = vue.get("engagements").cloned().unwrap_or_else(|| json!([]));
     }

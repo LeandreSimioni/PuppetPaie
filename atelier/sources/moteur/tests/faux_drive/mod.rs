@@ -1,5 +1,5 @@
 //! Un faux Drive en memoire (le trait `drive::Drive`), pour `fichiers/sauvegarde.rs`, `fichiers/archivage.rs`, `ouverture.rs` et
-//! `routes/routes_sauvegarde.rs`.
+//! `routes/ouverture.rs`.
 //!
 //! AUCUN RESEAU : il ne tient que des dossiers et des fichiers en memoire, et un journal des appels. Il ne PEUT pas
 //! supprimer (le trait n'en a pas). Comme le vrai client : `lister` rend les FICHIERS d'un dossier par nom (le dernier

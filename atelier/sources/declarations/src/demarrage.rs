@@ -22,7 +22,7 @@ pub const ROUTE: &str = "pour-demarrer";
 const ENTREPRISE: &str = "Configuration › Entreprise";
 
 /// (chemin dans la fiche entreprise, ce que son absence bloque). Le SIRET avant le SIREN et le NIC : ils s'en deduisent
-/// (`routes_fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est plus : le moteur
+/// (`moteur::routes::fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est plus : le moteur
 /// l'ecrit seul (`dsn::type_du_contact`, #236).
 const FICHE: [(&str, &str); 22] = [
     ("raison_sociale", "la DSN"),
@@ -55,7 +55,7 @@ const FICHE: [(&str, &str); 22] = [
 
 /// LE CHAMP QUE L'ECRAN MONTRE pour une valeur de la fiche (#236 : « chaque chose demandee se remplit la ou elle
 /// envoie, sans champ cache »). Une valeur que l'on deduit d'une autre se demande par celle-la : le SIREN et le NIC par
-/// le SIRET (`routes_fiches::deriver`), la forme declaree (`raison_sociale`, `adresse`, `commune`) par sa forme lisible
+/// le SIRET (`moteur::routes::fiches::deriver`), la forme declaree (`raison_sociale`, `adresse`, `commune`) par sa forme lisible
 /// (`derive_de` de `champs-base.json`).
 pub fn a_l_ecran(racine: &str) -> String {
     match racine {

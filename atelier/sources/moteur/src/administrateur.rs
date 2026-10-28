@@ -22,7 +22,7 @@
 //!
 //! LE TABLEAU DE BORD (Leandre, 22/10/2026) : pour chaque compagnie rattachee, les declarations obligatoires, triees par
 //! urgence avec leur date limite -- la DSN mensuelle, les signalements (arret, reprise anticipee, fin de contrat) et ce que
-//! `obligations.rs` fait naitre, les DPAE. Tout vient des RAPPELS de la compagnie (`routes_ouverture`, route `rappels` :
+//! `obligations.rs` fait naitre, les DPAE. Tout vient des RAPPELS de la compagnie (`routes::rappels`, route `rappels` :
 //! les mois a declarer et leur echeance, `obligations::de_l_arret` et `de_la_fin` pour les delais et leur etat) : ce module
 //! n'en recalcule aucun. Il y ajoute, pour ce qui part par la DSN, ou en est le fichier ecrit (a tester, en test, teste,
 //! refuse) : la meme lecture du journal que l'etape de depot du mois (`etats::repetition`, `etats::deja_depose`). Le
@@ -58,7 +58,7 @@ pub const FICHIER: &str = "administrateur.json";
 /// Le dernier tableau connu d'une compagnie (hors de l'empreinte des etats des mois : `etat_garde::HORS_DE_L_ECRAN`).
 pub const TABLEAU: &str = "config/.tableau.json";
 
-/// Les routes de l'administrateur (servies par `routes_ecritures_g3`).
+/// Les routes de l'administrateur (servies par `routes::commande`).
 pub const ROUTES: [&str; 2] = ["administrateur-tableau", "administrateur-deposer"];
 
 // ------------------------------------------------------------------ le poste
@@ -408,7 +408,7 @@ fn jj_mm_aaaa(iso: &str) -> String {
 /// Ou en est un fichier DSN ecrit (mensuelle ou signalement), lu du journal : `deposee` (un depot reel accepte de ce
 /// contenu), `paie_changee` (une mensuelle qui ne declare plus la paie), `testee` (test conforme, bilan lu), `en_test`
 /// (test parti, bilan attendu), `test_refuse`, `a_tester`. Les memes lectures que l'etape de depot du mois
-/// (`routes_mois::etape_de_depot`).
+/// (`crate::routes::etapes`, la route `etat-du-mois`).
 fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let empreinte = envois::journal::empreinte(&octets);
@@ -416,7 +416,7 @@ fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: 
         return Ok("deposee");
     }
     if let Some(m) = mensuelle {
-        if crate::routes_mois::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(m, chemin)?.is_some() {
+        if crate::routes::etapes::Moteur::nouveau(ctx).paie_changee_depuis_l_ecriture(m, chemin)?.is_some() {
             return Ok("paie_changee");
         }
     }
@@ -453,7 +453,7 @@ fn fichier_ecrit(racine: &Path, mois: &str, nom: &str) -> Option<PathBuf> {
     std::fs::read_dir(&dossier).ok()?.flatten().map(|e| e.path()).find(|p| p.is_file() && p.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(nom)))
 }
 
-/// Le fichier que l'ecriture d'un signalement pose pour cette obligation (`routes_actes_h1` : `arret-signaler`,
+/// Le fichier que l'ecriture d'un signalement pose pour cette obligation (`routes::imprevus` : `arret-signaler`,
 /// `fin-contrat-signaler`), d'apres la cle du rappel (`<obligation>:<salarie>:<jour>`, `fin-contrat:<salarie>:<fin>`).
 fn fichier_du_signalement(ctx: &Contexte, rappel: &Value) -> Option<PathBuf> {
     let cle = rappel.get("cle").and_then(Value::as_str)?;
@@ -581,10 +581,10 @@ pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value
     // L'EMPREINTE DE TOUTE LA COMPAGNIE, prise avant (celle de l'etat d'ouverture, `etat_garde::empreinte_de`) : le fil de
     // la fenetre ne le refait pas tant qu'elle n'a pas bouge (ticket #244, `FileDesEtats::faire_le_tableau`).
     let empreinte = crate::etat_garde::empreinte_de(&ctx.racine, crate::etat_garde::OUVERTURE, &ctx.aujourdhui.iso());
-    let rappels = match crate::routes_ouverture::traiter(o, "rappels", &json!({})) {
+    let rappels = match crate::routes::rappels::traiter(o, "rappels", &json!({})) {
         Some(Ok(v)) => v,
         Some(Err(m)) => {
-            let (_, message) = crate::routes_ouverture::decoder(&m);
+            let (_, message) = crate::routes::rappels::decoder(&m);
             return Err(erreur("ErreurOperation", message.to_string()));
         }
         None => Value::Null,
@@ -790,7 +790,7 @@ pub fn deposer(o: &HashMap<String, String>, inst: &Path, reel: bool, motdepasse:
                 sortie["classe"] = v.get("classe").cloned().unwrap_or(Value::Null);
             }
             Err(m) => {
-                let (classe, message) = crate::routes_ouverture::decoder(&m);
+                let (classe, message) = crate::routes::rappels::decoder(&m);
                 sortie["parti"] = json!(false);
                 sortie["refus"] = json!(message);
                 sortie["classe"] = json!(classe);

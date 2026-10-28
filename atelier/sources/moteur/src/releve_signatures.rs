@@ -2,7 +2,7 @@
 //! au journal, un CODE (`SIG-XXXXXX`) par courriel parti. Cette releve cherche chaque code attendu dans la boite
 //! (`envois::releve_signatures::chercher_reponse`, le tri strict) et fait tout ce qui suit : la preuve archivee
 //! (`Signature_<salarie>_<code>.eml`), le contrat contresigne (`documents::contrat::contresigner`), le journal (une ligne
-//! `contrat-recu` par contrat, datee de la SIGNATURE, `routes_ecritures_g4::contrat_recu_avec`), et le renvoi du
+//! `contrat-recu` par contrat, datee de la SIGNATURE, `crate::routes::contrats::contrat_recu_avec`), et le renvoi du
 //! contresigne au salarie (`envois::releve_signatures::renvoyer_contresigne`).
 //!
 //! NE LEVE PAS pour une boite absente : c'est un travail de fond, il dit ce qui l'empeche dans `incidents` et rend la
@@ -35,7 +35,7 @@ use envois::simulation_courriels::BoiteQuiRepond;
 pub const ROUTES: [&str; 1] = ["signatures-relever"];
 
 /// Secondes entre une demande de signature et le « Je signe » du salarie fictif de la compagnie fictive.
-pub const DELAI_FICTIVE: i64 = crate::routes_fiches_courriel::DELAI_FICTIVE;
+pub const DELAI_FICTIVE: i64 = crate::routes::fiches::DELAI_FICTIVE;
 
 // ------------------------------------------------------------------ la route
 
@@ -67,7 +67,7 @@ pub fn route_avec(ctx: &Contexte, nom: &str, charge: &Value, client: Option<&mut
 pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     let mut boite = BoiteQuiRepond::nouvelle(ctx);
     let lignes = etats::charger(&ctx.racine)?;
-    let attendues = etats::signatures_attendues(&lignes, None, &crate::routes_documents::salaries_d_identite(ctx))?;
+    let attendues = etats::signatures_attendues(&lignes, None, &crate::routes::contrats::salaries_d_identite(ctx))?;
     let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
     let envoyes = envois::simulation_courriels::courriels_par_identifiant(&ctx.racine);
@@ -159,7 +159,7 @@ fn boite_de_la_releve(ctx: &Contexte) -> R<Result<Box<dyn Courriel>, String>> {
 pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, mois: Option<&str>, qui: &str) -> R<ReleveSignatures> {
     let mut r = ReleveSignatures::nouvelle();
     let lignes = etats::charger(&ctx.racine)?;
-    let attendues = etats::signatures_attendues(&lignes, mois, &crate::routes_documents::salaries_d_identite(ctx))?;
+    let attendues = etats::signatures_attendues(&lignes, mois, &crate::routes::contrats::salaries_d_identite(ctx))?;
     let attendues: Vec<Value> = attendues.as_array().cloned().unwrap_or_default();
     r.attendues = attendues.len();
     if attendues.is_empty() {
@@ -258,7 +258,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
             let debut = texte_de(c, "debut");
             // Le contrat que cette reponse signe, par son numero : le jumeau du meme jour garde sa propre attente.
             let numero = etats::numero_de_cle(c.get("numero").unwrap_or(&Value::Null));
-            match crate::routes_ecritures_g4::contrat_recu_avec(ctx, &a_mois, &texte_de(c, "salarie"), &debut, numero.as_str(), true, &Value::Null, qui, Some(&courriel)) {
+            match crate::routes::contrats::contrat_recu_avec(ctx, &a_mois, &texte_de(c, "salarie"), &debut, numero.as_str(), true, &Value::Null, qui, Some(&courriel)) {
                 Ok(_) => notes += 1,
                 Err(e) => r.incidents.push(format!(
                     "{} : la signature de {} est arrivee mais le contrat du {} n'a pas pu etre enregistre ({}) ; il n'est pas note signe.",

@@ -2,11 +2,11 @@
 //! [--apercu] [--envoyer] [--fenetre]` : le dossier d'un salarie -- ou de chacun --, tous ses documents sur une periode
 //! (`moteur/commandes_exports.py`, `cmd_dossier` ; `operations_dossier`). Pas de `--json` (le Python n'en a pas ici).
 //!
-//! Le dossier se construit par `routes_dossier_salarie::construire` (celui de la route `dossier-salarie`) et s'ecrit dans
+//! Le dossier se construit par `crate::routes::dossier_salarie::construire` (celui de la route `dossier-salarie`) et s'ecrit dans
 //! `exports/dossiers/` sauf `--apercu` (le compte des pages, rien sur le disque).
 //!
 //! `--envoyer` envoie a chaque salarie SON dossier : un envoi qui ne se rattrape pas. Il passe par
-//! `routes_envois::envoyer_dossier` (celui de la route `dossier-envoyer`), donc par les garde-fous du moteur : la boite est ouverte
+//! `crate::routes::archives::envoyer_dossier` (celui de la route `dossier-envoyer`), donc par les garde-fous du moteur : la boite est ouverte
 //! (le coffre par la cle du poste ou une seance), puis le moteur demande LUI-MEME le mot de passe du logiciel
 //! (`depot_acte::verifier_preuve` : fenetre, terminal sans echo, sinon refus) ; dans `moteur-atelier` tout envoi reel est refuse
 //! (`ActeReelRefuse`). Aucun mot de passe en option ni dans une sortie ; `--fenetre` est accepte et sans effet. `qui` = `ligne de
@@ -31,7 +31,7 @@ pub static SPEC: Spec = Spec {
         Opt::valeur("mois"),
         Opt::valeur("annee"),
         Opt::drapeau("toutes-les-annees"),
-        Opt::ajout_parmi("seulement", &crate::routes_dossier_salarie::CATEGORIES),
+        Opt::ajout_parmi("seulement", &crate::routes::dossier_salarie::CATEGORIES),
         Opt::drapeau("ensemble"),
         Opt::drapeau("apercu"),
         Opt::drapeau("envoyer"),
@@ -68,8 +68,8 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     if !seulement.is_empty() {
         demande.insert("categories".into(), json!(seulement));
     }
-    let d = crate::routes_dossier_salarie::construire(&cadre.ctx, &Value::Object(demande)).map_err(Echec::from)?;
-    let r = crate::routes_dossier_salarie::dossier_json(&d);
+    let d = crate::routes::dossier_salarie::construire(&cadre.ctx, &Value::Object(demande)).map_err(Echec::from)?;
+    let r = crate::routes::dossier_salarie::dossier_json(&d);
 
     let salaries_du_dossier = textes_de(&r, "salaries");
     dire!("Dossier{} -- {}", if salaries_du_dossier.len() > 1 { "s" } else { "" }, champ(&r, "periode"));
@@ -97,7 +97,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
 
     ouvrir_la_boite(cadre);
     let ctx = &cadre.ctx;
-    let envoi = crate::routes_envois::envoyer_dossier(ctx, &d, &Preuve::default(), "ligne de commande", &mut || crate::routes_envois::client_courriel(ctx))?;
+    let envoi = crate::routes::archives::envoyer_dossier(ctx, &d, &Preuve::default(), "ligne de commande", &mut || crate::routes::documents::client_courriel(ctx))?;
     dire!("{} dossier(s) envoye(s) depuis {}, a {}.", champ(&envoi, "messages"), champ(&envoi, "expediteur"), textes_de(&envoi, "partis").join(", "));
     Ok(0)
 }

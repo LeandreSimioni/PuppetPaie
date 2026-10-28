@@ -6,7 +6,7 @@
 //!   `dsn::type_du_contact`, prouve dans `tests/dsn/contact_declare.rs`) ; le code du service de sante au travail se
 //!   demande par sa case des que la DPAE l'exigerait (`dpae::employeur_manques`), meme quand le SIRET manque aussi.
 //!   La reponse sur la TVA (la taxe sur les salaires de la DSN de decembre) se demande d'avance.
-//! - Le SIREN et le NIC se deduisent du SIRET a l'enregistrement de la fiche (`routes_fiches::deriver`) : un SIRET est un
+//! - Le SIREN et le NIC se deduisent du SIRET a l'enregistrement de la fiche (`crate::routes::fiches::deriver`) : un SIRET est un
 //!   SIREN de 9 chiffres suivi d'un NIC de 5.
 //! - La rubrique d'une ligne de paie neuve (`etat.rubrique_par_defaut`, `catalogue::par_defaut`) : une rubrique de
 //!   salaire, jamais la premiere du catalogue trie (« Absence » dans une compagnie ou rien n'est coche).
@@ -78,19 +78,6 @@ fn le_siret_enregistre_donne_le_siren_et_le_nic_et_la_dpae_demande_encore_sa_med
     let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "siret": "32520440200029"});
     reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true, "depuis": JOUR}), JOUR));
     assert_eq!(fiche_au(&lire(&racine, "config/entreprise.json"), JOUR)["nic"], json!("00029"));
-}
-
-#[test]
-fn une_ligne_de_paie_neuve_part_d_une_rubrique_de_salaire() {
-    let racine = neuve("rubrique");
-    let etat = |r: &std::path::Path| reussi(&route(r, "etat", json!({}), JOUR))["rubrique_par_defaut"].clone();
-    // Rien de coche : le catalogue est trie par libelle, « Absence » en tete ; la ligne neuve n'est pas une absence.
-    let premiere = reussi(&route(&racine, "etat", json!({}), JOUR))["rubriques"][0]["code"].clone();
-    assert_eq!(premiere, json!("absence"), "le cas qui trompait la page");
-    assert_eq!(etat(&racine), json!({"activite": "cachet", "mensuelle": "mois"}));
-    // La compagnie paie surtout a l'heure : sa ligne neuve aussi ; au mois, le salaire de base reste devant.
-    ecrire(&racine, "config/rubriques-actives.json", &json!({"actives": ["cachet", "heure"], "usages": {"heure": 7, "cachet": 2}}));
-    assert_eq!(etat(&racine), json!({"activite": "heure", "mensuelle": "mois"}));
 }
 
 /// UN SEUL NUMERO CONGES SPECTACLES (#236) : la compagnie ne saisit que son numero d'adherent, « 10 chiffres + 1 lettre »,

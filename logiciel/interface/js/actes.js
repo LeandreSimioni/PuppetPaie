@@ -157,7 +157,7 @@ async function rafraichirActions() {
   const mois = document.getElementById("mois").value;
   await dessinerActions(mois);
   await dessinerEmbauches(mois);
-  await dessinerEtatsDesPaies(mois);
+  await dessinerEtatsDesEngagements(mois);
 }
 
 /* ---------------------------------------- le récapitulatif d'un dépôt */
@@ -712,7 +712,7 @@ async function boiteEnvoi(mois) {
           <ul>${m.changements.map((c) => `<li>${echapper(c)}</li>`).join("")}</ul></td></tr>` : ""}`).join("")}
     </table>`}
     ${a.deja ? `<div class="encart attention"><b>Déjà partis</b>
-      Le ${echapper(quand(a.deja.quand))} — ${echapper(a.deja.reponse || "")}.</div>` : ""}
+      Le ${echapper(quand(a.deja.quand))}.</div>` : ""}
     ${peut && a.boite_liee && enFictive() ? noteFictive("les salariés", false) : ""}
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">Fermer</button>
@@ -815,11 +815,11 @@ async function boiteSignature(mois, seulement) {
             ${a.boite_liee ? `<br><span class="discret">${echapper(c.destinataire)
               || "aucun courriel dans la fiche — l'envoi sera refusé"}</span>` : ""}
             ${c.en_avenant ? `<br><span class="pastille alerte">${echapper(c.pourquoi
-              || "la paie a changé depuis la signature")} — signé : partira en avenant</span>
+              || "l'engagement a changé depuis la signature")} — signé : partira en avenant</span>
               <button class="lien s-avenant" data-salarie="${echapper(c.salarie)}"
                 data-debut="${echapper(c.debut)}" data-numero="${echapper(c.numero || "")}">voir l'avenant</button>`
               : c.caduc ? `<br><span class="pastille alerte">${echapper(c.pourquoi
-              || "la paie a changé depuis l'envoi")}${c.demande_le ? ` (parti le ${echapper(quand(c.demande_le))})` : ""} —
+              || "l'engagement a changé depuis l'envoi")}${c.demande_le ? ` (parti le ${echapper(quand(c.demande_le))})` : ""} —
               ce contrat est à refaire partir</span>` : ""}</span>
         </label>`).join("")}
     </div>`}
@@ -964,7 +964,7 @@ async function boiteContratsEnAttente(mois, fait) {
   document.querySelectorAll(".a-relancer").forEach((b) => {
     b.onclick = async () => {
       const c = contrats[Number(b.dataset.i)];
-      const mdp = await demanderMotDePasse("relancer la signature : " + c.nom + ", " + c.attente, { envoi: true });
+      const mdp = await demanderMotDePasse(c.relancer.pourquoi, { envoi: true });
       if (!mdp) return;
       const rendre = occupe(b, "Relance…");
       try {
@@ -1000,7 +1000,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
       envoyé le ${echapper(quand(x.quand))} — ${x.signe ? "signé le " + echapper(quand(x.signe))
       : "pas encore revenu signé"}</p>`).join("")}
     ${mods.length ? `
-      <div class="encart">Le contrat parti se compare à la paie d'aujourd'hui :
+      <div class="encart">Le contrat parti se compare à l'engagement d'aujourd'hui :
         ${mods.length > 1 ? mods.length + " articles ont changé" : "un article a changé"}.
         L'avenant n° ${a.numero} cite l'ancien texte et le nouveau ; le reste du
         contrat ne change pas.</div>
@@ -1011,7 +1011,7 @@ async function boiteAvenant(mois, salarie, debut, numero) {
       </div>`).join("")}
       <label>Date d'effet de l'avenant
         <input type="date" id="av-effet" value="${echapper(a.effet)}"></label>`
-    : `<div class="encart">Le contrat parti dit déjà tout ce que dit la paie :
+    : `<div class="encart">Le contrat parti dit déjà tout ce que dit l'engagement :
         il n'y a rien à modifier.</div>`}
     ${mods.length && a.remplacable && a.boite_liee ? `<p class="discret">Le contrat n'a pas commencé : il peut aussi être
       refait en entier. Le nouveau porte en tête « annule et remplace le contrat

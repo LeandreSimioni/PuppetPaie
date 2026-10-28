@@ -1,7 +1,7 @@
 //! UNE COMPAGNIE NEUVE QUI REPREND LES BULLETINS DE SON LOGICIEL PRECEDENT (#236). Ce que le moteur en decide :
 //!
 //! - l'apercu de l'import annonce, pour une fiche a creer, les anomalies que l'ecriture trouvera, et elles seules
-//!   (`routes_fiches::verifier_comme_a_l_ecriture`) : un nom ou une adresse que le bulletin imprime en minuscules
+//!   (`crate::routes::fiches::verifier_comme_a_l_ecriture`) : un nom ou une adresse que le bulletin imprime en minuscules
 //!   (« Compagnie des Essais ») va dans la case qu'on lit, la forme declaree s'en derive ; il n'est pas « a mettre en
 //!   majuscules » ;
 //! - l'emploi imprime qui nomme un metier du catalogue, et un seul, donne a la fiche ce que le choix de ce metier

@@ -34,12 +34,12 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     if let Err(e) = refuser_si_pas_redirige(cadre, Organisme::Google, "la restauration depuis le Drive") {
         return refus("ErreurOperation", &e.message);
     }
-    if !crate::routes_google::autorise(&cadre.racine) {
+    if !crate::routes::coffre::autorise(&cadre.racine) {
         return refus("ErreurGoogle", "Compte Google non autorise : relier d'abord le Drive de la compagnie.\n  moteur google autoriser");
     }
     let racine_drive = args.texte("racine-drive").unwrap_or(sauvegarde::RACINE_DRIVE);
     let cible = args.texte("dossier").filter(|d| !d.is_empty()).map(PathBuf::from).unwrap_or_else(|| cadre.racine.clone());
-    let mut client = match crate::routes_google::client_drive(&cadre.racine) {
+    let mut client = match crate::routes::coffre::client_drive(&cadre.racine) {
         Ok(c) => c,
         Err(e) => return refus(e.classe, &e.message),
     };

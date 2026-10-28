@@ -88,7 +88,7 @@ pub struct Engagement {
     pub dernier_jour_paye: Option<String>,
     /// Le jour ou prend effet ce que la saisie de CE mois change au contrat (avenant : nature, motif, duree du
     /// travail, emploi, date de debut ; AAAA-MM-JJ) : la « Date de la modification » du bloc 41 (`dsn::changements_contrat`).
-    /// Il ne se recopie pas d'un mois a l'autre (`routes_contrats::DEFINIT_LE_MENSUEL`) : le mois suivant declare deja
+    /// Il ne se recopie pas d'un mois a l'autre (`moteur::routes::mois::DEFINIT_LE_MENSUEL`) : le mois suivant declare deja
     /// la nouvelle valeur.
     pub date_modification: Option<String>,
     pub transaction: Option<String>,
@@ -1050,7 +1050,7 @@ pub(crate) fn engagements(
 
 /// Les phrases des refus qui disent une saisie pas encore finie, et non un defaut du logiciel : un spectacle pas encore
 /// choisi, des jours pas encore coches, des heures pas encore dites. L'ecran enregistre a chaque frappe, et ces refus
-/// montent sous `SaisieIncomplete` (`routes_mois::classer_saisie`, `routes_ouverture::refus_du_calcul`) ; leur message
+/// montent sous `SaisieIncomplete` (`moteur::routes::etapes::classer_saisie`, `moteur::routes::mois::refus_du_calcul`) ; leur message
 /// commence par « L'engagement N de AAAA-MM ».
 const SAISIE_INCOMPLETE: [&str; 3] = [" ne dit pas quel spectacle il joue", " ne dit aucun jour joue", " ne dit pas ses heures"];
 

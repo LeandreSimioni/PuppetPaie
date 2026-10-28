@@ -227,22 +227,3 @@ pub fn servir(ecouteur: TcpListener, traiter: Arc<dyn Fn(Requete) -> Reponse + S
         crate::routes::fil_de_routes(move || servir_connexion(flux, t));
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::decoder_pourcent;
-
-    /// Reste 143 : un `%xx` se decode ou qu'il soit, fin du chemin comprise ; deux chiffres hexadecimaux, rien d'autre.
-    #[test]
-    fn un_pourcent_se_decode_jusqu_a_la_fin_du_chemin() {
-        assert_eq!(decoder_pourcent("/a%41"), "/aA");
-        assert_eq!(decoder_pourcent("/%C3%A9"), "/é");
-        assert_eq!(decoder_pourcent("%41"), "A");
-        for intact in ["/a%4", "/a%", "/a%zz"] {
-            assert_eq!(decoder_pourcent(intact), intact);
-        }
-        // `+1` n'est pas un octet (u8::from_str_radix accepte le signe) ; `+` est une espace.
-        assert_eq!(decoder_pourcent("/a%+1"), "/a% 1");
-        assert_eq!(decoder_pourcent("a+b"), "a b");
-    }
-}

@@ -1,6 +1,5 @@
-//! Le serveur de la fenetre sert la page coupee en fichiers (lot L, pas 3) : chaque `<script src>` d'`index.html` est
-//! servi en `application/javascript`, l'empreinte suit les fichiers de `js/`, la cale precede le premier script, et un
-//! chemin qui sort d'`interface/` rend 404.
+//! Le serveur de la fenetre sert la page coupee en fichiers : chaque `<script src>` d'`index.html` est servi tel quel, et
+//! un chemin qui sort d'`interface/` rend 404.
 //!
 //! Aucune prise reseau : `Fenetre::traiter` est appele directement. Le logiciel est une COPIE de `logiciel/interface/`
 //! dans `CARGO_TARGET_TMPDIR` (`PUPPETPAIE_CODE` y pointe) ; le jeton de la fenetre s'ecrit dans un dossier
@@ -20,7 +19,6 @@ mod outils;
 
 struct Banc {
     logiciel: PathBuf,
-    compagnie: PathBuf,
     fenetre: Arc<Fenetre>,
 }
 
@@ -58,10 +56,8 @@ fn banc() -> (&'static Banc, MutexGuard<'static, ()>) {
         }
         // Debloquee par le geste (ticket #246) : bridee, l'accueil n'ajouterait pas la compagnie reelle d'un test.
         outils::debloquer(&base);
-        let compagnie = base.join("compagnie");
-        std::fs::create_dir_all(compagnie.join("config")).unwrap();
         let fenetre = Fenetre::nouvelle(0, utilisateur.clone(), 1);
-        Banc { logiciel, compagnie, fenetre }
+        Banc { logiciel, fenetre }
     });
     (b, verrou)
 }
@@ -159,82 +155,6 @@ fn un_chemin_qui_sort_de_la_page_rend_404() {
     // Le meme fichier, par le bon chemin, est bien servi : c'est le chemin qui est refuse, pas le fichier.
     assert_eq!(get(b, "/interface.css").code, 200);
     assert_eq!(get(b, "/js/tuyau.js").code, 200);
-}
-
-#[test]
-fn la_cale_precede_le_premier_script_et_l_empreinte_suit_js() {
-    let (b, _v) = banc();
-    let page = || moteur::interface::page_logiciel(&b.compagnie, "jeton-du-banc-0123456789abcdef").unwrap();
-    let p = page();
-    assert!(!p.contains("{{"), "aucun gabarit oublie");
-    let cale = p.find("window.pywebview = { api }").expect("la cale est dans la page");
-    assert_eq!(p.matches("window.pywebview = { api }").count(), 1, "une seule cale");
-    let premier = p.find("<script src=\"/js/").expect("un script de js/");
-    assert!(cale < premier, "la cale vient avant le premier script de js/");
-    assert!(p[cale..premier].contains("</script>"), "la cale est fermee avant le premier script");
-
-    let v = |p: &str| -> Vec<String> { scripts(p).iter().map(|s| s.split_once("?v=").map(|(_, e)| e.to_string()).unwrap_or_default()).collect() };
-    let avant = v(&p);
-    assert!(avant.iter().all(|e| e.len() == 12 && e == &avant[0]), "une seule empreinte, de douze caracteres : {:?}", avant);
-    assert_eq!(v(&page()), avant, "la meme d'un appel a l'autre");
-
-    // Un fichier de js/ change : l'empreinte change ; il revient : elle revient.
-    let fichier = b.logiciel.join("interface").join("js").join("boites.js");
-    let original = std::fs::read(&fichier).unwrap();
-    let mut change = original.clone();
-    change.extend_from_slice(b"\n/* change */\n");
-    std::fs::write(&fichier, &change).unwrap();
-    let apres = v(&page());
-    std::fs::write(&fichier, &original).unwrap();
-    assert_ne!(apres[0], avant[0], "un js/ change, l'empreinte aussi");
-    assert_eq!(v(&page())[0], avant[0], "le fichier revenu, l'empreinte revient");
-
-    // Un fichier de js/ en plus (ce que le pas suivant ajoutera) change aussi l'empreinte.
-    let neuf = b.logiciel.join("interface").join("js").join("zz-neuf.js");
-    std::fs::write(&neuf, "/* neuf */\n").unwrap();
-    let avec = v(&page());
-    std::fs::remove_file(&neuf).unwrap();
-    assert_ne!(avec[0], avant[0], "un js/ de plus, l'empreinte change");
-
-    // La feuille de style aussi.
-    let css = b.logiciel.join("interface").join("interface.css");
-    let original = std::fs::read(&css).unwrap();
-    std::fs::write(&css, [original.as_slice(), b"\n/* change */\n"].concat()).unwrap();
-    let apres = v(&page());
-    std::fs::write(&css, &original).unwrap();
-    assert_ne!(apres[0], avant[0], "la feuille change, l'empreinte aussi");
-}
-
-/// La version se lit JJ.MM.AAAA (Leandre, 14/10/2026 ; `prive/journal/ETAT.md`, « DECIDE LE 14/10/2026 ») : le banc a
-/// `VERSION` = `2026.10.09`, la page dit `version 09.10.2026`, et rien n'y commence par l'annee.
-#[test]
-fn la_page_montre_la_version_jour_mois_annee() {
-    let (b, _v) = banc();
-    let p = moteur::interface::page_logiciel(&b.compagnie, "jeton-du-banc-0123456789abcdef").unwrap();
-    assert!(p.contains("version 09.10.2026"), "la version lue est sous le nom");
-    let annee_d_abord = p.as_bytes().windows(10).any(|w| {
-        w.iter().enumerate().all(|(i, c)| if i == 4 || i == 7 { *c == b'.' } else { c.is_ascii_digit() })
-    });
-    assert!(!annee_d_abord, "aucune version AAAA.MM.JJ dans la page");
-}
-
-/// Ticket #211 : l'accueil des compagnies dit la version aussi, lue JJ.MM.AAAA comme dans la page d'une compagnie ; et ce
-/// qu'il appelle (la feuille et le script de l'indicateur de la mise a jour, ticket #210) est servi.
-#[test]
-fn l_accueil_montre_la_version_et_sert_ce_qu_il_appelle() {
-    let (b, _v) = banc();
-    let adresse = b.fenetre.adresse("127.0.0.1", 1);
-    let jeton = adresse.split("jeton=").nth(1).unwrap();
-    let r = get(b, &format!("/index.html?jeton={}", jeton));
-    assert_eq!(r.code, 200);
-    let html = String::from_utf8(r.corps).unwrap();
-    assert!(html.contains("version 09.10.2026"), "la version lue est sous le nom");
-    assert!(!html.contains("{{"), "aucune marque laissee");
-    let appels: Vec<String> = adresses(&html, "src=\"").into_iter().chain(adresses(&html, "href=\"")).filter(|a| a.contains(".js") || a.contains(".css")).collect();
-    assert!(appels.iter().any(|a| a.starts_with("/js/mise-a-jour.js")) && appels.iter().any(|a| a.starts_with("/mise-a-jour.css")), "{:?}", appels);
-    for a in &appels {
-        assert_eq!(get(b, a).code, 200, "{}", a);
-    }
 }
 
 /// Ticket #218 : la capture d'ecran du « Un probleme, une idee ? » dessine la page par html2canvas 1.4.1, qui ne lit

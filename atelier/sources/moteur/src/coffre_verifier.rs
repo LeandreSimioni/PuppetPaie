@@ -66,7 +66,7 @@ pub fn verifier_secret_avec(ctx: &Contexte, service: Option<&Value>, authentifie
         }
     };
     let coffre = Coffre::du_poste(&ctx.racine, "");
-    if !coffre.disponible(nom).map_err(crate::routes_etats::vers_route)? {
+    if !coffre.disponible(nom).map_err(crate::routes::vers_route)? {
         return Err(erreur("ErreurOperation", format!("Aucun mot de passe {} : rien a verifier.", nom)));
     }
     if nom == COURRIEL {

@@ -3,7 +3,7 @@
 //! financeurs (`moteur/commandes_exports.py`, `cmd_exporter` ; `operations_exports.exporter`).
 //!
 //! Sans etat : la liste de ce qui existe (texte ou `--json`). Avec un etat : l'etat est calcule par le moteur
-//! (`routes_ecritures_g4::exporter_objet`, la route `exporter`) et, sauf `--apercu`, ECRIT dans `exports/` -- les memes fichiers que le
+//! (`crate::routes::archives::exporter_objet`, la route `exporter`) et, sauf `--apercu`, ECRIT dans `exports/` -- les memes fichiers que le
 //! Python. Le texte est rendu a partir de l'objet (le livre de paie, le tableau, la regularisation CASC-SVP), pas du JSON : le
 //! chemin ecrit y est entier, comme au Python. Rien n'est lu au coffre, rien ne part : pas de mot de passe.
 //!
@@ -23,7 +23,7 @@ use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{debut, enveloppe, rendre};
 use super::Cadre;
 use socle::echec::Echec;
-use crate::routes_ecritures_g4::{exporter_objet, Exporte};
+use crate::routes::archives::{exporter_objet, Exporte};
 use documents::tableaux_export::{texte, Tableau};
 
 const REGROUPEMENTS: &[&str] = &["salarie", "mois", "spectacle", "organisme"];

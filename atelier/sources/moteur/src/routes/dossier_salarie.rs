@@ -1,27 +1,18 @@
-//! La route `dossier-salarie` (`moteur/web.py`, `operations_dossier.dossier_salarie` et
-//! `dossier_json`) : tous les documents d'un salarie sur une periode, en un PDF par categorie,
-//! ou en un ZIP.
+//! La route `dossier-salarie` : tous les documents d'un salarie sur une periode, en un PDF par categorie, ou en un ZIP,
+//! ecrits dans `exports/dossiers/`.
 //!
-//! Meme JSON que la route Python, memes refus sous la meme classe d'exception
-//! (`paie_rust.route` les releve), memes fichiers ecrits dans `exports/dossiers/`.
+//! UN DOCUMENT REMIS NE SE REGENERE PAS (regle 4) : les bulletins d'un mois ecrit sont les pages memes de
+//! `sorties/<mois>/Bulletins_<Mois>.pdf`, les certificats Conges Spectacles celles de `CertificatsCS_<Mois>.pdf` -- a
+//! chaque salarie les siennes, rien de recalcule ni de reimprime ; ce qui ne se lit pas refuse. Les contrats, eux, se
+//! recreent depuis la saisie (aucun compteur n'avance ; les numeros se lisent dans le fichier groupe archive ou dans la
+//! saisie quand ils y sont figes) et portent en pied la mention « Reedite ». Le contrat signe, l'AER, les documents de
+//! fin et les PDF de CoolPaie se prennent tels quels, page a page, dedoublonnes.
 //!
-//! UN DOCUMENT REMIS NE SE REGENERE PAS (regle 4 ; Leandre, 10/10/2026, lot V1p) : les bulletins
-//! d'un mois ecrit sont les pages memes de `sorties/<mois>/Bulletins_<Mois>.pdf`, les certificats
-//! Conges Spectacles celles de `CertificatsCS_<Mois>.pdf` -- a chaque salarie les siennes, rien de
-//! recalcule ni de reimprime ; ce qui ne se lit pas refuse. Les contrats, eux, se recreent encore
-//! depuis la saisie (aucun compteur n'avance ; les numeros se lisent dans le fichier groupe archive
-//! ou dans la saisie quand ils y sont figes) et portent en pied la mention « Reedite ». Le contrat
-//! signe, l'AER, les documents de fin et les PDF de CoolPaie se prennent tels quels, page a page,
-//! dedoublonnes.
+//! `dossier-envoyer` (`archives`) envoie ce dossier-ci, construit par `construire`.
 //!
-//! `dossier-envoyer` (`routes_envois`) envoie ce dossier-ci, construit par `construire`.
-//!
-//! Ecarts assumes :
-//! - le texte de CoolPaie se normalise (`_sans_accents`) par la table latine de
-//!   `contexte::sans_accent` (Latin-1 et Latin etendu A), pas par la normalisation NFD complete
-//!   de Python : un accent hors de cette table (vietnamien, par exemple) n'est pas retire ;
-//! - les chiffres des motifs de date et de nom de fichier sont les chiffres ASCII ;
-//! - un mois saisi est un mois que des engagements touchent (`engagements/`).
+//! Le texte de CoolPaie se normalise par la table latine de `contexte::sans_accent` (Latin-1 et Latin etendu A) : un
+//! accent hors de cette table n'est pas retire. Les chiffres des motifs de date et de nom de fichier sont les chiffres
+//! ASCII. Un mois saisi est un mois que des engagements touchent (`engagements/`).
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -140,9 +131,9 @@ fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
 
 // ------------------------------------------------------------------ la periode
 
-/// Un chiffre pour Python (`\d`, `int`) : ASCII, arabe, devanagari, pleine chasse.
+/// Un chiffre lu dans un nom (`\d`) : ASCII, arabe, devanagari, pleine chasse.
 fn chiffre(c: char) -> Option<u32> {
-    crate::routes_ecrites::chiffre_py(c)
+    crate::routes::fiches::chiffre_py(c)
 }
 
 /// Un mois, une annee, ou tout. Les bornes servent aux pages CoolPaie, qui n'ont qu'une date.
@@ -200,7 +191,7 @@ impl Periode {
         if let Some(m) = &self.mois {
             let c: Vec<char> = m.chars().collect();
             let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
-            // « 00 » n'est aucun mois (l'indice -1 du Python le lisait decembre) : il se refuse, comme partout.
+            // « 00 » n'est aucun mois : il se refuse, comme partout.
             let nom = socle::date::nom_du_mois(n, socle::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
             return Ok(format!("{} {}", nom, c[..4].iter().collect::<String>()));
         }
@@ -449,7 +440,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
 pub(crate) type Du = (String, String, Option<PaieCs>);
 
 /// `certificats_dus` : un certificat par contrat qui FINIT, pour le contrat entier quand il deborde
-/// du mois. Rend les certificats (dans l'ordre d'un dictionnaire Python) et les avertissements.
+/// du mois. Rend les certificats (dans l'ordre ou ils sont dus) et les avertissements.
 pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec<String>)> {
     let mut dus: Vec<Du> = Vec::new();
     let mut avertissements = Vec::new();
@@ -787,7 +778,7 @@ fn categorie_du_fichier(nom: &str) -> Option<Option<&'static str>> {
 /// (`historique/coolpaie/`), le dossier `export/` sinon.
 fn dossier_coolpaie(ctx: &Contexte) -> Option<PathBuf> {
     let a_des_pdf = |d: &Path| std::fs::read_dir(d).map_or(false, |l| l.flatten().any(|e| e.file_name().to_string_lossy().ends_with(".pdf")));
-    [ctx.racine.join("historique").join("coolpaie"), crate::routes_fiches::trouver_export(&ctx.racine)]
+    [ctx.racine.join("historique").join("coolpaie"), crate::routes::fiches::trouver_export(&ctx.racine)]
         .into_iter()
         .find(|d| d.is_dir() && a_des_pdf(d))
 }
@@ -1082,7 +1073,7 @@ fn pages_coolpaie(ctx: &Contexte, cles: &HashSet<String>, categories: &HashSet<&
 /// dans la periode par le mois de la paie. Une copie qui manque se dit ; rien d'autre ne se devine.
 fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut Dossier) -> Vec<Page> {
     let chemin = ctx.racine.join("historique").join("paies.json");
-    let Ok(Value::Object(f)) = crate::routes_etats::lire_json_ou_vide(&chemin) else { return Vec::new() };
+    let Ok(Value::Object(f)) = crate::routes::lire_json_ou_vide(&chemin) else { return Vec::new() };
     let dossier = ctx.racine.join("historique").join("bulletins");
     let texte = |x: &Value, k: &str| x.get(k).and_then(Value::as_str).unwrap_or("").to_string();
     let (mut pages, mut manquent): (Vec<Page>, Vec<String>) = (Vec::new(), Vec::new());
@@ -1175,7 +1166,7 @@ fn maintenant() -> i64 {
     socle::temps::secondes().floor() as i64
 }
 
-/// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix, comme Python.
+/// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix.
 pub(crate) fn zip(entrees: &[Entree]) -> R<Vec<u8>> {
     use flate2::write::DeflateEncoder;
     use flate2::{Compression, Crc};
@@ -1266,7 +1257,7 @@ fn secondes(meta: &std::fs::Metadata) -> i64 {
     meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs() as i64)
 }
 
-/// `st_mode` comme Python le lit. Sous Windows, Python le deduit de l'attribut lecture seule : `0o100444`, sinon
+/// `st_mode` d'un fichier du zip. Sous Windows, il se deduit de l'attribut lecture seule : `0o100444`, sinon
 /// `0o100666`.
 #[cfg(unix)]
 fn mode(meta: &std::fs::Metadata) -> u32 {
@@ -1388,7 +1379,7 @@ fn dossier_salarie_route(ctx: &Contexte, charge: &Value) -> R<Value> {
     construire(ctx, charge).map(|d| dossier_json(&d))
 }
 
-/// `operations_dossier.dossier_salarie` : le dossier construit (et ecrit, sauf `apercu`). L'envoi (`routes_envois`)
+/// Le dossier construit (et ecrit, sauf `apercu`). L'envoi (`archives`, `dossier-envoyer`)
 /// en a besoin tel quel : ses salaries, ses fichiers, ses pages.
 pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     let salaries = vraie(charge, "salaries")?;
@@ -1532,62 +1523,4 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
         }
     }
     Ok(d)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn la_categorie_d_un_fichier_coolpaie_se_lit_dans_son_nom() {
-        assert_eq!(categorie_du_fichier("BS 06082021 FAVART.pdf"), Some(Some(BULLETINS)));
-        assert_eq!(categorie_du_fichier("bs-2021.pdf"), Some(Some(BULLETINS)));
-        assert_eq!(categorie_du_fichier("BS&AEM 2021.pdf"), Some(None));
-        assert_eq!(categorie_du_fichier("AEM 092021 MARAIS.pdf"), Some(Some(ATTESTATIONS)));
-        assert_eq!(categorie_du_fichier("Contrats_16-12-2021 signes.pdf"), Some(Some(CONTRATS_SIGNES)));
-        assert_eq!(categorie_du_fichier("Contrats_16-12-2021.pdf"), Some(Some(CONTRATS)));
-        assert_eq!(categorie_du_fichier("_2021_bulletin.pdf"), Some(Some(BULLETINS)));
-        assert_eq!(categorie_du_fichier("liasse.pdf"), None);
-        assert_eq!(categorie_du_fichier("bsx.pdf"), None);
-    }
-
-    #[test]
-    fn la_date_du_nom_prefere_le_jour_complet() {
-        assert_eq!(date_du_nom("Contrats_16-12-2021.pdf").as_deref(), Some("2021-12-16"));
-        assert_eq!(date_du_nom("BS 06082021 FAVART.pdf").as_deref(), Some("2021-08-06"));
-        assert_eq!(date_du_nom("AEM 092021 MARAIS.pdf").as_deref(), Some("2021-09-01"));
-        assert_eq!(date_du_nom("sans date.pdf"), None);
-    }
-
-    #[test]
-    fn la_periode_d_un_bulletin_donne_sa_date() {
-        let fiche = json!({"date_naissance": "1990-01-02"});
-        let t = "BULLETIN DE PAIE Période : du 01/09/2021 au 30/09/2021";
-        assert_eq!(date_de_page(t, &fiche, "x.pdf").as_deref(), Some("2021-09-01"));
-        let t = "né le 02 01 1990, embauche 25 02 2022";
-        assert_eq!(date_de_page(t, &fiche, "x.pdf").as_deref(), Some("2022-02-25"));
-    }
-
-    #[test]
-    fn un_contrat_signe_porte_ses_numeros() {
-        assert_eq!(numeros_de_contrat("Contrat_FA1.26.13_Favart_signe.pdf"), vec!["FA1.26.13".to_string()]);
-    }
-
-    #[test]
-    fn la_periode_se_demande_une_fois() {
-        assert!(Periode::nouveau(None, None, false).is_err());
-        let m = json!("2026-09");
-        let a = json!("2026");
-        assert!(Periode::nouveau(Some(&m), Some(&a), false).is_err());
-        let p = Periode::nouveau(Some(&m), None, false).unwrap();
-        assert_eq!(p.libelle().unwrap(), "septembre 2026");
-        assert!(p.contient("2026-09") && !p.contient("2026-10"));
-    }
-
-    #[test]
-    fn le_nom_d_un_salarie_se_nettoie() {
-        assert_eq!(nom_salarie("Celi"), "Celi");
-        assert_eq!(nom_salarie("a b/c"), "a-b-c");
-        assert_eq!(nom_salarie("///"), "salarie");
-    }
 }

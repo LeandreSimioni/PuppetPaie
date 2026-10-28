@@ -50,7 +50,7 @@ fn en_os(m: String) -> socle::echec::Echec {
 
 /// `lire_etat` : l'etat, avec `compte`, `tests` et `reveils` toujours la.
 pub(crate) fn lire_etat(racine: &Path) -> R<Value> {
-    let mut e = crate::routes_fiches::lire_tolerant(&chemin(racine))?.unwrap_or_else(|| json!({}));
+    let mut e = crate::routes::fiches::lire_tolerant(&chemin(racine))?.unwrap_or_else(|| json!({}));
     let Value::Object(m) = &mut e else {
         // Le Python plantait (`AttributeError: 'list' object has no attribute 'setdefault'`) : un refus, avec sa phrase (decision de
         // Leandre : un defaut du Python ne se reproduit pas).
@@ -111,7 +111,7 @@ fn client_du_compte(compte: &Value) -> R<Client> {
 /// acte qui ENGAGE sans rien envoyer. Decide ICI, jamais par la page.
 pub(crate) fn exiger_mot_de_passe(racine: &Path, motdepasse: &Value, quoi: &str) -> R<()> {
     let coffre = crate::coffre::Coffre::du_poste(racine, "");
-    let vers = crate::routes_etats::vers_route;
+    let vers = crate::routes::vers_route;
     if !coffre.ouverture_exigee().map_err(vers)? {
         return Ok(());
     }
@@ -138,7 +138,7 @@ pub(crate) fn exiger_mot_de_passe(racine: &Path, motdepasse: &Value, quoi: &str)
 
 /// `etat_filet` : ce que la page montre, relu du disque.
 pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
-    crate::routes_etats::etat_filet(racine)
+    crate::routes::filet::etat_filet(racine)
 }
 
 /// Le serveur du filet de cette compagnie : celui de son compte, sinon celui qu'elle a pose (`serveur` de
@@ -194,7 +194,7 @@ pub fn activer(racine: &Path, adresse: &Value, motdepasse: &Value) -> R<Value> {
             Err(e) => return Err(e.en_echec()),
         }
     }
-    let cle_du_compte = crate::routes_fiches::exiger(&r, "cle")?.clone();
+    let cle_du_compte = crate::routes::fiches::exiger(&r, "cle")?.clone();
     let confirme = vrai(get(&r, "confirme")?);
     etat["compte"] = json!({
         "serveur": serveur, "adresse": adresse, "cle": cle_du_compte,
@@ -278,7 +278,7 @@ fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
 }
 
 pub fn suivies(ctx: &Contexte) -> R<Vec<Value>> {
-    use crate::routes_ouverture::{embauches_suivies, nic_principal, Etat};
+    use crate::routes::rappels::{embauches_suivies, nic_principal, Etat};
     let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
     let liste = embauches_suivies(&st).map_err(socle::echec::Echec::from)?;
     Ok(liste
@@ -319,7 +319,7 @@ pub struct Reveils {
 /// `_dsn_a_rappeler` : (mois, jour d'echeance ISO) des DSN dont la boite des
 /// rappels parle -- aucun depot REEL accepte, ou un depot refuse.
 fn dsn_a_rappeler(ctx: &Contexte) -> R<Vec<(String, String)>> {
-    use crate::routes_ouverture::{mois_a_declarer, nic_principal, Etat};
+    use crate::routes::rappels::{mois_a_declarer, nic_principal, Etat};
     let st = Etat { ctx, aujourdhui: ctx.aujourdhui, journal: journal_lisible(&ctx.racine)?, principal: nic_principal(ctx) };
     let echeance = ctx.echeance_dsn().map_err(socle::echec::Echec::from)?;
     let mut out = Vec::new();

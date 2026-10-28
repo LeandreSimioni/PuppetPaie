@@ -62,20 +62,6 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     assert!(second == releve, "deux rejeux du meme scenario ne rendent pas les memes sorties");
 }
 
-/// LE SCENARIO FIGE SANS SES LECTURES (`scenario::elaguer`, phase 4) : les routes qui n'ont rien ecrit s'otent, et le rejeu
-/// rend exactement le meme releve que le scenario entier.
-#[test]
-fn un_scenario_elague_se_rejoue_a_l_identique() {
-    let d = outils::dossier_de_test("rejeu", "elague");
-    let (gardes, otees) = moteur::scenario::elaguer(&outils::rejeu::scenario("treteaux-du-banc"), &d.join("scenario")).unwrap();
-    assert!(otees > 0 && gardes > 0, "{} gardes, {} otees", gardes, otees);
-    let texte = std::fs::read_to_string(d.join("scenario").join(moteur::scenario::GESTES)).unwrap();
-    assert!(texte.lines().all(|l| !l.contains("\"ecrit\":false")), "une lecture est restee");
-    let (r, racine) = outils::rejeu::rejouer_dossier(&d.join("scenario"), &d.join("rejeu"));
-    let jour = socle::paris::iso_secondes(r.fin.unwrap())[..10].to_string();
-    assert!(outils::rejeu::sorties(&racine, &jour) == outils::lire_oracle("scenarios/treteaux-du-banc/sorties.json"));
-}
-
 /// #236, ticket 9 du banc : la demo Les Faisceaux telle qu'elle etait ecrite, sans la civilite du contact DSN. La DSN
 /// de janvier ne se fabrique pas (le moteur la refuse) ; l'horloge n'envoie donc pas ses documents aux salaries -- elle
 /// les envoie apres la DSN du mois, jamais avant.

@@ -329,11 +329,11 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .engagement .e-cadre-bloc[hidden] { display: none; }
 /* L'avis du moteur sur CETTE paie (minimum conventionnel...) : un encart
    orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
-.engagement .avis .avis-paie { margin-top: 6px; font-size: 12px; }
+.engagement .avis .avis-engagement { margin-top: 6px; font-size: 12px; }
 .engagement.validee .avis { display: none; }
 /* Le salarié : une liste à cocher qui a l'air d'un menu -- on coche qui on
    veut, un seul bloc pour tous, et il se démultiplie à la validation
-   (etats-paies.js, validerPlusieurs). */
+   (etats-engagements.js, validerPlusieurs). */
 .engagement .champ { display: block; font-size: 12px; color: var(--discret); }
 .e-qui { position: relative; margin-top: 3px; }
 .e-qui summary {
@@ -685,6 +685,11 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   box-shadow: 0 12px 40px rgba(0,0,0,.25);
 }
 .boite h3 { margin: 0 0 10px; font-size: 16px; }
+/* Sur un écran étroit, les boutons d'une boîte passent l'un sous l'autre, le premier geste en haut : chacun garde son
+   libellé sur une ligne. */
+@media (max-width: 480px) {
+  .boite .actions { flex-direction: column-reverse; align-items: stretch; }
+}
 /* Les documents du mois : une case, le salarié, son adresse (quand une boîte est posée), ses pièces ; la boîte s'élargit pour
    lui, et aucune colonne ne déborde : les longs noms passent à la ligne, une pièce par ligne. */
 .boite:has(.table-envoi) { width: 860px; }
@@ -1152,7 +1157,7 @@ pre.reponse {
   border-top: 1px solid var(--bord); font-size: 12px;
 }
 .validation .boutons { margin-left: auto; display: flex; gap: 12px; align-items: center; }
-.validation .retirer-paie { color: var(--erreur); }
+.validation .retirer-engagement { color: var(--erreur); }
 .validation.faite { border-top-color: var(--succes-trait); color: var(--succes); }
 .validation.faite b { color: var(--succes); }
 

@@ -1,16 +1,6 @@
-//! L'accueil : la route `etat` (`moteur route`), tout le JSON que la page lit en
-//! s'ouvrant -- la configuration verifiee, l'historique des mois, les listes
-//! ou l'on choisit, les referentiels livres avec le logiciel.
-//!
-//! C'est le Python de `moteur/web.py` (`_traiter`, route `etat`, avec
-//! `_configuration`, `_historique`, `_natures`, `_niveaux_sante`,
-//! `_conventions`) et ce qu'il appelait : `operations_fiches.configuration`,
-//! `salaries_au_mois`, `identite`, `operations_documents.boite_liee`,
-//! `operations_questionnaire.fiches_attendues_json`,
-//! `operations_exercice.bilan_des_mois`, `operations_catalogues` (`metiers`,
-//! `metiers_autres_conventions`, `rubriques`), `operations_permanents.
-//! faits_de_rupture`, `urssaf`, `simulation.active` -- portes a l'identique :
-//! meme JSON, memes refus.
+//! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
+//! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
+//! `maj-etat`, `maj-malgre-calcul`, `sauvegarde-derniere`, `echeance-faite`, `journal-reprise` et `courriels-fictifs`.
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
@@ -21,18 +11,24 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use droit::catalogue::{self, Rubrique};
+use crate::routes::etapes::{mois_saisis, Moteur};
+use crate::routes::fiches::{exiger, refus};
+use crate::routes::mois::lire_saisie;
+use super::{lire_json_tolerant, lire_texte, ou_texte, qui_de};
 use declarations::champs;
+use droit::catalogue::{self, Rubrique};
 use droit::contexte::Contexte;
+use droit::emplois::{self};
 use droit::natures::{self, Nature};
-use droit::emplois;
-use socle::valeur::valeur_en_texte;
-use socle::valeur::nom_type;
-use socle::echec::erreur;
-use socle::fichiers::{dossier_du_code, json_en_cache, vrai};
 use droit::permanents;
-use socle::echec::Echec;
-use crate::routes_mois::{mois_saisis, Moteur};
+use engagement::{self};
+use envois::etats::get;
+use socle::echec::{erreur, Echec};
+use socle::ecriture::ecrire_json;
+use socle::fichiers::{dossier_du_code, json_en_cache, repr, vrai};
+use socle::valeur::{nom_type, valeur_en_texte};
+
+
 
 type R<T> = Result<T, Echec>;
 
@@ -41,19 +37,39 @@ fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
 }
 
-/// Une route de ce module. `charge` : ce que la page envoie (rien ici).
-pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, _charge: &Value) -> R<Value> {
+/// Les routes de ce module.
+pub const ROUTES: &[&str] = &[
+    "etat", "configuration", "maj-etat", "sauvegarde-derniere",
+    "echeance-faite", "maj-malgre-calcul", "journal-reprise", "courriels-fictifs",
+];
+
+/// Celles qui ecrivent.
+pub const ECRITURES: &[&str] = &["echeance-faite", "maj-malgre-calcul", "journal-reprise", "courriels-fictifs"];
+
+/// Une route de ce module.
+pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         "etat" => etat(ctx),
-        // La part « configuration » de l'etat, pour les routes qui la rendent
-        // apres un enregistrement (`web._configuration`).
+        // La part « configuration » de l'etat, pour les routes qui la rendent apres un enregistrement.
         "configuration" => configuration(ctx),
+        "maj-etat" => version(ctx),
+        // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
+        "sauvegarde-derniere" => Ok(crate::sauvegarde::derniere(&ctx.racine).en_json()),
+        "echeance-faite" => echeance_faite(ctx, charge),
+        "maj-malgre-calcul" => maj_malgre_calcul(ctx),
+        "journal-reprise" => crate::incidents::noter_ceux_des_retours(
+            &ctx.racine,
+            envois::reprise_journal::reprise(
+                ctx,
+                charge.get("ecrire").is_some_and(vrai),
+                &crate::routes::qui_de(charge),
+                &socle::paris::iso_secondes(socle::temps::secondes()),
+            ),
+        ),
+        "courriels-fictifs" => crate::simulation_courriels::courriels_fictifs(ctx, charge),
         autre => Err(plain(format!("route inconnue : {}", autre))),
     }
 }
-
-/// Les routes que ce module sert.
-pub const ROUTES: [&str; 2] = ["etat", "configuration"];
 
 // ------------------------------------------------------------------ les outils
 
@@ -82,7 +98,7 @@ fn objet<'a>(v: &'a Value, _qui: &str) -> R<&'a Map<String, Value>> {
 }
 
 /// `json.loads(p.read_text(encoding="utf-8"))` : un refus garde la classe que
-/// Python levait (`FileNotFoundError`, `UnicodeDecodeError`, `JSONDecodeError`).
+/// la lecture rencontre (`FileNotFoundError`, `UnicodeDecodeError`, `JSONDecodeError`).
 fn lire_objet(p: &Path) -> R<Value> {
     let octets = std::fs::read(p).map_err(|e| {
         let classe = match e.kind() {
@@ -484,7 +500,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
         // LES AER DE FRANCE TRAVAIL (#236) : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
         // racine du mois ; elles se nomment avec les autres sortes.
-        if crate::routes_documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
+        if crate::routes::documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
             sortes.insert(rang, "attestations AER");
         }
@@ -927,4 +943,173 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // Le pays de naissance (lot R2) : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
         "pays_naissance": socle::pays::servir_naissance().map_err(plain)?,
     }))
+}
+
+/// `echeance-faite` : coche (`fait`) ou decoche l'echeance `charge["cle"]`, au nom de `qui`.
+fn echeance_faite(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let cle = exiger(charge, "cle")?;
+    let fait = charge.get("fait") != Some(&Value::Bool(false));
+    let Some(texte) = cle.as_str() else {
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", socle::valeur::nom_type(cle))));
+    };
+    marquer_echeance(ctx, texte, fait, &qui_de(charge))?;
+    Ok(json!({"cle": texte, "fait": fait}))
+}
+
+/// Coche (ou decoche) une echeance que seul
+/// l'utilisateur peut dire faite.
+pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str) -> R<()> {
+    let (quoi, annee) = match cle.split_once(':') {
+        Some((q, a)) => (q, a),
+        None => (cle, ""),
+    };
+    let base = lire_saisie(&socle::fichiers::dossier_du_code().join("echeancier-base.json"))?;
+    let annuelles = base.get("annuelles").and_then(Value::as_array).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("annuelles")))?;
+    let e = annuelles.iter().find(|x| x.get("cle").and_then(Value::as_str) == Some(quoi));
+    let chiffres = !annee.is_empty() && annee.chars().all(|c| c.is_ascii_digit());
+    let Some(e) = e.filter(|_| chiffres) else {
+        return Err(erreur("ErreurOperation", format!("Echeance inconnue : {}.", repr(cle))));
+    };
+    if e.get("fait_par").and_then(Value::as_str) != Some("coche") {
+        let titre = e.get("titre").and_then(Value::as_str).unwrap_or("");
+        let n: i64 = annee.parse().unwrap_or(0);
+        let titre = titre.replace("{annee}", annee).replace("{annee_precedente}", &(n - 1).to_string()).replace("{jour_dsn}", "");
+        return Err(erreur(
+            "ErreurOperation",
+            format!("« {} » ne se coche pas : le logiciel le voit fait quand c'est fait.", titre),
+        ));
+    }
+    let p = ctx.racine.join("config").join("echeancier.json");
+    let mut d = if p.exists() { lire_saisie(&p)? } else { json!({}) };
+    let Value::Object(m) = &mut d else {
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&d))));
+    };
+    m.entry("_origine").or_insert_with(|| json!("Les echeances que l'utilisateur a dites faites."));
+    let faits = m.entry("fait").or_insert_with(|| json!({}));
+    let Value::Object(faits) = faits else {
+        return Err(match (faits, fait) {
+            (Value::Array(_), true) => erreur("TypeError", format!("'fait' : {}", socle::fichiers::attendu("un objet", "list"))),
+            (autre, true) => erreur("TypeError", socle::fichiers::non_modifiable(nom_type(autre))),
+            (autre, false) => erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(autre))),
+        });
+    };
+    if fait {
+        faits.insert(cle.to_string(), json!({"le": ctx.aujourdhui.iso(), "qui": qui}));
+    } else {
+        faits.shift_remove(cle);
+    }
+    if let Some(parent) = p.parent() {
+        creer_dossier(parent)?;
+    }
+    ecrire_json(&p, &d, 2).map_err(en_os)
+}
+
+/// Decider, depuis l'interface, qu'une version qui change
+/// un calcul s'appliquera au prochain demarrage meme si un mois saisi n'a pas sa DSN. La decision s'ecrit dans
+/// `maj/prete.json` de l'installation ; la reponse est celle de `maj-etat`.
+fn maj_malgre_calcul(ctx: &Contexte) -> R<Value> {
+    let inst = socle::fichiers::dossier_du_code().join("..").join("..");
+    let Some(mut p) = crate::routes::ouverture::prete(&inst)? else {
+        return Err(refus("Aucune version prete."));
+    };
+    let Value::Object(m) = &mut p else {
+        return Err(erreur("TypeError", "prete.json : un objet est attendu"));
+    };
+    m.insert("malgre_calcul".into(), Value::Bool(true));
+    let chemin = crate::maj::dossier_maj(&inst).join("prete.json");
+    // `write_text(json.dumps(p, ensure_ascii=False, indent=1))` : sans saut de ligne final.
+    std::fs::write(&chemin, socle::ecriture::json_indente(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
+    version(ctx)
+}
+
+/// `maj.courante(code)` : le contenu du fichier `VERSION`, ou `0.0.0`.
+pub(crate) fn courante(code: &Path) -> R<String> {
+    let p = code.join("VERSION");
+    if p.exists() {
+        Ok(lire_texte(&p)?.trim().to_string())
+    } else {
+        Ok("0.0.0".to_string())
+    }
+}
+
+/// `maj.prete` : la version telechargee et controlee de l'installation (`maj::dossier_maj`), ou `None`.
+pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
+    let dossier = crate::maj::dossier_maj(inst);
+    let Some(d) = lire_json_tolerant(&dossier.join("prete.json"))? else {
+        return Ok(None);
+    };
+    let o = super::objet(&d)?;
+    let version = o.get("version").cloned().unwrap_or_else(|| json!(""));
+    let Value::String(v) = &version else {
+        return Err(erreur("TypeError", format!("prete.json : 'version' : {}", socle::fichiers::attendu("un texte", nom_type(&version)))));
+    };
+    if !dossier.join(v).join("logiciel").join("donnees").is_dir() {
+        return Ok(None);
+    }
+    Ok(Some(d))
+}
+
+/// `maj.mois_saisis_non_deposes` : les mois qui montrent au
+/// moins un engagement et dont aucune DSN reelle n'est acceptee (ou dont la
+/// derniere est refusee).
+pub(crate) fn mois_saisis_non_deposes(ctx: &Contexte) -> R<Vec<Value>> {
+    let mut m = Moteur::nouveau(ctx);
+    let mut out = Vec::new();
+    for mois in crate::routes::etapes::mois_saisis(&ctx.racine) {
+        let Some(d) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? else {
+            continue;
+        };
+        if !d.is_object() || !vrai(get(&d, "engagements")?) {
+            continue;
+        }
+        let e = m.dsn_du_mois(&mois)?;
+        if !vrai(&e) || vrai(get(&e, "refusee")?) {
+            out.push(json!(mois));
+        }
+    }
+    Ok(out)
+}
+
+/// La version du logiciel, ce qui est pret, ce
+/// qui est configure. Ne va voir aucun depot.
+pub(crate) fn version(ctx: &Contexte) -> R<Value> {
+    let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
+    // La mise a jour est celle de l'INSTALLATION (lot U1) : son reglage (`maj::reglage`), sa version prete.
+    let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
+    let (depot, editeur) = crate::maj::reglage(&inst).map_err(|e| erreur("ValueError", e))?;
+    // Le depot d'ou l'on recoit : celui qui est pose, sinon celui du moteur (`maj::DEPOT_PAR_DEFAUT`, lot S1).
+    let depot = json!(crate::maj::depot(depot));
+    let prete = prete(&inst)?;
+    let courante_v = courante(&code)?;
+    // Ce que CETTE compagnie retient (ses mois saisis sans DSN acceptee) ; une fictive ou une copie ne retient rien
+    // (`maj::mois_qui_retiennent`, qui regarde toutes les compagnies reelles de l'installation).
+    let attend: Vec<Value> = match &prete {
+        _ if crate::interface::compagnies::est_copie(&ctx.racine) => Vec::new(),
+        Some(pr) if vrai(get(pr, "malgre_calcul")?) => Vec::new(),
+        Some(pr) if vrai(get(pr, "calcul")?) => crate::maj::mois_qui_retiennent_la_compagnie(ctx)?,
+        _ => Vec::new(),
+    };
+    let avant = if code.join(".avant").join("donnees").is_dir() { json!(courante(&code.join(".avant"))?) } else { Value::Null };
+    let (version_prete, calcul, exigee) = match &prete {
+        Some(pr) => (pr["version"].clone(), ou_texte(get(pr, "calcul")?), ou_texte(get(pr, "exigee")?)),
+        None => (Value::Null, json!(""), json!("")),
+    };
+    Ok(json!({
+        "courante": courante_v, "editeur": editeur, "depot": depot,
+        "prete": version_prete, "calcul": calcul, "exigee": exigee,
+        "attend": attend,
+        // La cle publique de l'editeur est ecrite dans `maj.py` : toujours posee.
+        "signee": true,
+        "avant": avant,
+    }))
+}
+
+#[track_caller]
+fn en_os(m: String) -> Echec {
+    erreur("OSError", m)
+}
+
+/// `Path.mkdir(parents=True, exist_ok=True)`.
+fn creer_dossier(d: &std::path::Path) -> R<()> {
+    std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))
 }

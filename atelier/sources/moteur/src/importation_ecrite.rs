@@ -2,7 +2,7 @@
 //!
 //! Dans l'ordre : la COPIE de l'`export/` de CoolPaie dans `historique/coolpaie/` (rien ne s'ecrase) ; l'apercu
 //! relu DANS la copie ; l'alerte CASC-SVP (`operations_casc.alerte_apres_import`) ; les fiches a creer
-//! (entreprise, salaries, spectacles), ecrites comme celles de l'ecran (`routes_ecritures::ecrire_fiche`,
+//! (entreprise, salaries, spectacles), ecrites comme celles de l'ecran (`crate::routes::fiches::ecrire_fiche`,
 //! `forcer`) ; l'historique des contrats (`historique/engagements.json`) ; les paies declarees par les DSN
 //! (`historique/paies.json`). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de ce
 //! qui a ete ecrit (`ecrit`, `fichiers`, `copie`).
@@ -33,7 +33,7 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use socle::num::Decimal;
 use socle::echec::Echec;
-use crate::routes_importation::{apercu_importation, export_de};
+use crate::routes::import::{apercu_importation, export_de};
 
 type R<T> = Result<T, Echec>;
 
@@ -285,7 +285,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let faits: HashSet<String> = declarations::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
     // `mois_disponibles` : les mois des paies declarees, et les mois saisis.
     let mut dispo: BTreeSet<String> = BTreeSet::new();
-    let declarees = crate::routes_etats::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
+    let declarees = crate::routes::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
     let liste = match declarees.get("paies") {
         None => Vec::new(),
         Some(v) => etats::items(v)?.into_iter().map(|c| c.into_owned()).collect(),
@@ -295,7 +295,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
             dispo.insert(valeur_en_texte(m));
         }
     }
-    dispo.extend(crate::routes_mois::mois_saisis(&ctx.racine));
+    dispo.extend(crate::routes::etapes::mois_saisis(&ctx.racine));
     let depuis = valeur_en_texte(&base["depuis"]);
     let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
     let mut par_mois: Vec<(String, Decimal)> = Vec::new();
@@ -374,7 +374,7 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
 
 /// `data.setdefault(cle, [])` sur le fichier tel qu'il est (`{}` s'il manque).
 fn lire_liste(chemin: &Path, cle: &str) -> R<Map<String, Value>> {
-    let lu = crate::routes_etats::lire_json_ou_vide(chemin)?;
+    let lu = crate::routes::lire_json_ou_vide(chemin)?;
     let Value::Object(mut data) = lu else {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&lu))));
     };
@@ -489,13 +489,13 @@ impl Ecrit {
 
 /// Ecrit ce que l'apercu `imp` annonce : les fiches (et leur place dans `reponse`), `historique/engagements.json`
 /// (les contrats des AEM, puis ceux des bulletins), `historique/paies.json`. `source` : d'ou l'historique est lu.
-fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut Value, note: &Value, source: &str) -> R<Ecrit> {
+fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Value, note: &Value, source: &str) -> R<Ecrit> {
     let aujourdhui = ctx.date;
     // Les fiches, comme celles de l'ecran (`forcer` : une fiche importee avec des anomalies est ecrite quand meme).
     let mut ecrits: BTreeSet<String> = BTreeSet::new();
     let mut restent_a_creer = 0usize;
     for a in &imp.a_creer {
-        let e = crate::routes_ecritures::ecrire_fiche(ctx, a.nom, None, &Value::Object(a.donnees.clone()), crate::routes_ecritures::Forcer::Tout, &Value::Null, note)?;
+        let e = crate::routes::fiches::ecrire_fiche(ctx, a.nom, None, &Value::Object(a.donnees.clone()), crate::routes::fiches::Forcer::Tout, &Value::Null, note)?;
         let emplacement: &mut Value = match (a.nom, a.rang) {
             ("entreprise", _) => &mut reponse["entreprise"],
             ("salarie", Some(i)) => &mut reponse["salaries"][i],
@@ -508,7 +508,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         emplacement["cle"] = e.cle.map_or(Value::Null, Value::String);
         emplacement["etat"] = json!("creee");
         let mut anomalies = e.anomalies;
-        crate::routes_fiches::avec_libelles(a.nom, &mut anomalies)?;
+        crate::routes::fiches::avec_libelles(a.nom, &mut anomalies)?;
         emplacement["anomalies"] = sans_prives(&Value::Array(anomalies));
         let fichier = match a.nom {
             "entreprise" => "entreprise.json",
@@ -520,7 +520,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
     // Les fiches qui existent : ce qui y est vide ou « A COMPLETER » (`importation_completer`), rien d'autre.
     let mut completees = 0usize;
     for a in &imp.a_completer {
-        let faits = crate::routes_ecritures::completer_fiche(ctx, a.nom, a.cle.as_deref(), &a.champs)?;
+        let faits = crate::routes::fiches::completer_fiche(ctx, a.nom, a.cle.as_deref(), &a.champs)?;
         if faits.is_empty() {
             continue;
         }
@@ -612,7 +612,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         data.insert("_note".into(), json!(NOTE_HISTORIQUE));
         data.insert("importe_le".into(), json!(aujourdhui.iso()));
         data.insert("source".into(), json!(source));
-        crate::routes_contrats::sauver_avant(&chemin_hist)?;
+        crate::routes::mois::sauver_avant(&chemin_hist)?;
         socle::ecriture::ecrire_json(&chemin_hist, &Value::Object(data), 1).map_err(|m| erreur("OSError", m))?;
         fichiers.push(json!(chemin_hist.display().to_string()));
     }
@@ -656,7 +656,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes_importation::Apercu, reponse: &mut
         paies.insert("_note".into(), json!(NOTE_PAIES));
         paies.insert("importe_le".into(), json!(aujourdhui.iso()));
         paies.insert("source".into(), json!(source));
-        crate::routes_contrats::sauver_avant(&chemin_paies)?;
+        crate::routes::mois::sauver_avant(&chemin_paies)?;
         socle::ecriture::ecrire_json(&chemin_paies, &Value::Object(paies), 1).map_err(|m| erreur("OSError", m))?;
         fichiers.push(json!(chemin_paies.display().to_string()));
     }
@@ -724,8 +724,8 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// entrent au journal avec l'historique, pour qu'un mois tenu avant ne se dise pas « en retard »
 /// (`reprise_journal::reprendre_les_depots`). Rend le nombre de depots repris.
 fn depots_attestes_au_journal(ctx: &Contexte, charge: &Value) -> R<usize> {
-    let qui = crate::routes_ecritures_g2::qui_de(charge);
-    crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::reprise_journal::reprendre_les_depots(ctx, &qui, &crate::routes_ecritures_g2::maintenant()))
+    let qui = crate::routes::qui_de(charge);
+    crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::reprise_journal::reprendre_les_depots(ctx, &qui, &crate::routes::maintenant()))
 }
 
 fn avertissement_differents(differents: &[String], ou: &str) -> String {
@@ -784,7 +784,7 @@ fn dit_les_non_repris(a: &Value) -> bool {
 /// `importer` avec `{"dossier": ...}` : la copie de ce qui est repris, l'apercu relu dans la copie, l'ecriture.
 fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     let aujourdhui = ctx.date;
-    let dossier = crate::routes_importation::dossier_import(ctx, charge)?;
+    let dossier = crate::routes::import::dossier_import(ctx, charge)?;
     // 1. Le dossier tel qu'il est : son compte rendu (pour l'ecran), et la copie de ce qu'il reprend.
     let (tri, non_repris, copie, noms) = crate::importation_bulletins::lire_dossier(ctx, &dossier, |lu| {
         let (copie, noms) = copier_repris(ctx, &lu)?;
@@ -797,8 +797,8 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     // 2. D'ABORD LA COPIE, ENSUITE LA LECTURE : l'apercu relu dans les copies de ce dossier (et d'elles seules), prises
     // dans `historique/bulletins/` ; c'est lui qui s'ecrit.
     let copies = dossier_bulletins(ctx);
-    let relu = PathBuf::from(format!("{}-copie", crate::routes_importation::dossier_de_travail().display()));
-    let relire = || -> R<crate::routes_importation::Apercu> {
+    let relu = PathBuf::from(format!("{}-copie", crate::routes::import::dossier_de_travail().display()));
+    let relire = || -> R<crate::routes::import::Apercu> {
         std::fs::create_dir_all(&relu).map_err(|e| en_os(&e, &relu))?;
         for nom in &noms {
             std::fs::copy(copies.join(nom), relu.join(nom)).map_err(|e| en_os(&e, &copies.join(nom)))?;

@@ -3,9 +3,9 @@
 //!
 //! Une fiche que l'import CREE recoit tout ce que la DSN et les bulletins disent. Une fiche qui EXISTE recoit ce qui y
 //! est vide ou « A COMPLETER » (sans casse : le titre que l'import des DSN donne a un spectacle dont la DSN ne porte que
-//! le numero d'objet, `routes_importation::apercu_lu`), et garde tout champ rempli : la fiche fait foi, l'ecart reste
+//! le numero d'objet, `crate::routes::import::apercu_lu`), et garde tout champ rempli : la fiche fait foi, l'ecart reste
 //! seulement signale (`ecarts`). L'apercu dit, fiche par fiche, ce qui serait complete et d'ou ca vient (`completer`) ;
-//! l'import l'ecrit (`routes_ecritures::completer_fiche`), sans rien dater : une case vide n'avait rien declare.
+//! l'import l'ecrit (`crate::routes::fiches::completer_fiche`), sans rien dater : une case vide n'avait rien declare.
 //!
 //! Un champ que la piece ne porte pas ne s'invente pas (regle 1) : on ne complete que de ce que la DSN ou le bulletin
 //! imprime, par le meme chemin que la fiche qu'il creerait.
@@ -114,7 +114,7 @@ pub(crate) fn noter(entree: &mut Value, champs: &Map<String, Value>, origine: Va
     for (k, v) in champs {
         c.entry(k.clone()).or_insert_with(|| {
             let mut m = Map::new();
-            m.insert("valeur".into(), crate::routes_importation::brut(v));
+            m.insert("valeur".into(), crate::routes::import::brut(v));
             if let Value::Object(o) = &origine {
                 m.extend(o.clone());
             }

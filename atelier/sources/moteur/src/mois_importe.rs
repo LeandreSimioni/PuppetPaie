@@ -31,7 +31,7 @@ use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::fichiers::vrai;
 use crate::importation_completer::A_COMPLETER;
-use crate::routes_saisie::lire_saisie;
+use crate::routes::mois::lire_saisie;
 
 /// `historique/<nom>.json`, sa liste `cle` ; vide si le fichier n'existe pas. Un fichier illisible refuse.
 fn liste(racine: &Path, nom: &str, cle: &str) -> R<Vec<Value>> {
@@ -360,7 +360,7 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
     })
 }
 
-/// LES ETAPES D'UN MOIS TENU AVANT (`bilan-du-mois`, la colonne de droite de la page Paie) : tout s'est fait ailleurs,
+/// LES ETAPES D'UN MOIS TENU AVANT (`bilan_du_mois`, le panneau du mois) : tout s'est fait ailleurs,
 /// aucune etape n'a de bouton (`vide`) -- ni « Fermer le mois », ni « Deposer la DSN » (regle 4). La DSN dit ce qu'on en
 /// sait (`dsn_avant`) ; sans trace, elle reste en alerte, sans geste.
 pub(crate) fn etapes(vue: &Value) -> Value {

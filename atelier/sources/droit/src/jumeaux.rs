@@ -84,8 +84,8 @@ pub fn apparier(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> 
 /// ne se recalcule pas (regle 4) : deux engagements du meme salarie au meme numero sont un seul contrat, dont la date de
 /// debut a change -- ce que la DSN declare par l'ancienne date dans un bloc « Changements contrat » (S21.G00.41.021,
 /// fiche net-entreprises 1952, `atelier/reference/sources/net-entreprises-base-connaissances/`). Seulement pour comparer
-/// une saisie declaree a sa modification (`routes_regularisation`), et pour ce qu'une saisie reprend du fichier d'avant
-/// (`routes_ecritures::fusionner`) : ailleurs, l'identite reste (salarie, debut, numero).
+/// une saisie declaree a sa modification (`moteur::regularisation`), et pour ce qu'une saisie reprend du fichier d'avant
+/// (`moteur::routes::mois`, `enregistrer-saisie`) : ailleurs, l'identite reste (salarie, debut, numero).
 pub fn apparier_meme_numero(a: &[Option<Ident>], b: &[Option<Ident>]) -> Vec<Option<usize>> {
     let mut sortie = apparier(a, b);
     let mut pris = vec![false; b.len()];

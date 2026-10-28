@@ -142,7 +142,7 @@ document.getElementById("voile").onclick = (e) => {
    Chrome, et il n'y aura pas Chrome ». Le mot de passe se tape, à chaque
    fois, et c'est le but. */
 function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
-  // LA COMPAGNIE FICTIVE (routes_accueil::simulation_active) : rien ne part, rien à prouver.
+  // LA COMPAGNIE FICTIVE (le moteur : `simulation`, route `etat`) : rien ne part, rien à prouver.
   // L'acte suit son cours comme en vrai, sans le popup.
   if (enFictive()) return Promise.resolve("fictive");
   // UNE FICTIVE AJOUTÉE (ticket #236, `envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant
