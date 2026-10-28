@@ -874,9 +874,20 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
         }
     };
     let repetition = etats::repetition(&lignes, "dsn", &empreinte, &nom)?;
-    // LES ORDRES DE PAIEMENT EN CLAIR (ticket #223) : a qui, pour quoi, combien, pour quand.
+    // LES ORDRES DE PAIEMENT EN CLAIR (ticket #223) : a qui, pour quoi, combien, pour quand -- ceux de la DSN fabriquee
+    // depuis les paies qu'elle couvre (`depart::refabriquer`) ; un fichier qui ne dit plus ce que disent les paies n'en
+    // montre aucun.
     let organismes = ctx.du_mois(&mois)?.organismes()?.unwrap_or(Value::Null);
-    let ordres = crate::ordres_paiement::decrire(&texte_latin1(&contenu), &mois, &organismes, ctx.echeance_dsn()?)?;
+    let (ordres, ordres_erreur) = if signalement {
+        (Vec::new(), Value::Null)
+    } else {
+        let nic = a.champ("etablissement");
+        let nic = Some(nic).filter(|n| !n.is_empty());
+        match crate::depart::refabriquer(o, ctx, std::path::Path::new(&chemin), &mois, nic)? {
+            Some(f) => (crate::ordres_paiement::decrire(&f.ordres, &mois, &organismes, ctx.echeance_dsn()?)?, Value::Null),
+            None => (Vec::new(), json!("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
+        }
+    };
     let genre = a.champ("type_declaration");
     let nature = a.champ("nature");
     Ok(json!({
@@ -893,7 +904,7 @@ pub(crate) fn apercu_depot_dsn(o: &HashMap<String, String>, ctx: &Contexte, fich
         "remplace": a.champ("remplace"), "constitution": a.champ("constitution"),
         "siren": a.champ("siren"), "salaries": a.salaries, "lignes": a.lignes,
         "pas_versements": a.pas_versements, "pas_bareme": a.pas_bareme,
-        "ordres": ordres,
+        "ordres": ordres, "ordres_erreur": ordres_erreur,
         "deja_depose": deja,
         "remplacement": remplacement,
         "recapitulatif": recapitulatif,

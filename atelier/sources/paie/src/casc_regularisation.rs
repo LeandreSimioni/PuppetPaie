@@ -1,7 +1,7 @@
 //! La regularisation de la CASC-SVP (`moteur/operations_casc.py`) : le dossier que prepare `exporter
 //! regularisation-casc-svp`, et `casc-regularise`, qui note qu'une annee est regularisee.
 //!
-//! Tout se lit dans les DSN DEPOSEES (`casc::dsn_deposee`) : masses, salaries, contrats. Un mois dont la DSN
+//! Tout se lit dans les paies declarees (`dsn::paies_declarees_du_mois`) : masses, salaries, contrats. Un mois dont la DSN
 //! porte deja la CASC-SVP, ou deja regularise (`config/casc-svp.json`), n'y entre pas.
 //!
 //! Le classeur modele du CASC-SVP (`donnees/modeles/casc-svp-liste-nominative.xlsx`, ouvert et rempli par openpyxl
@@ -56,79 +56,6 @@ fn jjmmaaaa(iso: &str) -> String {
     let c: Vec<char> = iso.chars().collect();
     let t = |a: usize, b: usize| -> String { c.iter().skip(a).take(b - a).collect() };
     format!("{}/{}/{}", t(8, 10), t(5, 7), t(0, 4))
-}
-
-/// Une DSN deposee, lue par le lecteur de l'import, et en plus : porte-t-elle la CASC-SVP, et l'activite (bloc 53).
-pub(crate) struct DsnCasc {
-    pub lue: Map<String, Value>,
-    pub porte_casc: bool,
-    /// contrat -> [(jours|cachets|heures, quantite)], dans l'ordre ou ils sont apparus.
-    pub activite: Vec<(String, Vec<(&'static str, Decimal)>)>,
-}
-
-/// `operations_casc.lire_dsn_casc`.
-pub(crate) fn lire_dsn_casc(chemin: &Path, contrat_casc: &str) -> R<DsnCasc> {
-    let Some(Value::Object(lue)) = crate::importation::lire_une_dsn(chemin) else {
-        return Err(refus(format!("DSN illisible : {}.", chemin.display())));
-    };
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
-    let texte = crate::apercu_dsn::texte_latin1(&octets);
-    let (mut refs, mut rattachees): (Vec<String>, Vec<String>) = (vec![], vec![]);
-    let mut libelle: Option<String> = None;
-    let mut activite: Vec<(String, Vec<(&'static str, Decimal)>)> = vec![];
-    let mut numero: Option<String> = None;
-    let (mut type53, mut mesure): (Option<String>, Option<String>) = (None, None);
-    for ligne in crate::apercu_dsn::lignes_py(&texte) {
-        let (k, v) = ligne.split_once(',').unwrap_or((&ligne, ""));
-        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'');
-        match k {
-            "S21.G00.51.010" => numero = Some(v.to_string()),
-            "S21.G00.53.001" => {
-                type53 = Some(v.to_string());
-                mesure = None;
-            }
-            "S21.G00.53.002" => mesure = Some(v.to_string()),
-            "S21.G00.53.003" => {
-                if let (Some(n), Some("01"), Some(m)) = (&numero, type53.as_deref(), mesure.as_deref().filter(|m| !m.is_empty())) {
-                    let quoi = match v {
-                        "12" => Some("jours"),
-                        "37" => Some("cachets"),
-                        "35" | "10" => Some("heures"),
-                        _ => None,
-                    };
-                    if let Some(quoi) = quoi {
-                        let q = dec(m)?;
-                        let pos = match activite.iter().position(|(c, _)| c == n) {
-                            Some(p) => p,
-                            None => {
-                                activite.push((n.clone(), vec![]));
-                                activite.len() - 1
-                            }
-                        };
-                        let a = &mut activite[pos].1;
-                        match a.iter_mut().find(|(x, _)| *x == quoi) {
-                            Some((_, t)) => *t += q,
-                            None => a.push((quoi, q)),
-                        }
-                    }
-                }
-            }
-            "S21.G00.15.001" => libelle = Some(v.to_string()),
-            "S21.G00.15.005" => {
-                if libelle.as_deref() == Some(contrat_casc) {
-                    refs.push(v.to_string());
-                }
-            }
-            "S21.G00.70.013" => rattachees.push(v.to_string()),
-            _ => {}
-        }
-    }
-    let porte_casc = refs.iter().any(|r| rattachees.contains(r));
-    Ok(DsnCasc { lue, porte_casc, activite })
-}
-
-fn texte_de(m: &Map<String, Value>, cle: &str) -> Option<String> {
-    m.get(cle).filter(|v| vrai(v)).map(valeur_en_texte)
 }
 
 /// Un mois du dossier.
@@ -270,19 +197,19 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     if !d.annees.is_empty() {
         candidats.retain(|x| d.annees.iter().any(|a| x.chars().take(4).collect::<String>() == *a));
     }
-    let contrat_casc = valeur_en_texte(&base["dsn"]["contrat"]);
     let mut avert: Vec<String> = vec![];
     let mut portees: Vec<String> = vec![];
-    let mut lues: Vec<(String, DsnCasc)> = vec![];
+    let mut lues: Vec<(String, Vec<engagement::calcul::Paie>)> = vec![];
     for m in &candidats {
-        let chemin = crate::casc::dsn_deposee(ctx, m, None).map_err(refus)?;
-        let Some(chemin) = chemin else { continue };
-        let lu = lire_dsn_casc(&chemin, &contrat_casc)?;
-        if lu.porte_casc {
+        let paies = crate::dsn::paies_declarees_du_mois(ctx, m, None).map_err(refus)?;
+        if paies.is_empty() {
+            continue;
+        }
+        if crate::dsn::porte_la_casc(ctx, m).map_err(refus)? {
             portees.push(m.clone());
             continue;
         }
-        lues.push((m.clone(), lu));
+        lues.push((m.clone(), paies));
     }
     if lues.is_empty() {
         if !faits.is_empty() {
@@ -292,7 +219,7 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
             )));
         }
         return Err(refus(format!(
-            "Aucune DSN deposee sans la CASC-SVP depuis {} dans la periode demandee : rien a regulariser.",
+            "Aucune paie validee sans la CASC-SVP en DSN depuis {} dans la periode demandee : rien a regulariser.",
             depuis
         )));
     }
@@ -308,32 +235,24 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     let mut par_mois: Vec<MoisReg> = vec![];
     let mut par_salarie: Vec<((String, String), SalarieReg)> = vec![];
     let mut emplois: Vec<EmploiReg> = vec![];
-    for (m, lu) in &lues {
-        let individus: Vec<&Map<String, Value>> = lu.lue["individus"].as_array().into_iter().flatten().filter_map(Value::as_object).collect();
-        let contrats: Vec<&Map<String, Value>> = lu.lue["contrats"].as_array().into_iter().flatten().filter_map(Value::as_object).collect();
-        let fichier = valeur_en_texte(&lu.lue["fichier"]);
+    for (m, paies) in &lues {
+        let source = format!("paies declarees de {}", m);
         let mut masse = Decimal::ZERO;
-        let mut mois_sal: Vec<(String, Decimal)> = vec![];
+        let mut mois_sal: Vec<(String, String, Decimal)> = vec![];
         let an: String = m.chars().take(4).collect();
-        for v in lu.lue["versements"].as_array().into_iter().flatten().filter_map(Value::as_object) {
-            let contrat_num = texte_de(v, "contrat").unwrap_or_default();
-            let Some(brut_t) = texte_de(v, "brut") else {
-                avert.push(format!("{} ({}), contrat {} : brut absent de la DSN, ligne ignoree.", m, fichier, contrat_num));
-                continue;
-            };
-            let brut = dec(&brut_t)?;
-            let nir = valeur_en_texte(&v["nir"]);
-            let i = individus.iter().rev().find(|i| texte_de(i, "nir").unwrap_or_default() == nir).copied();
-            let c = contrats.iter().rev().find(|c| texte_de(c, "numero").is_some_and(|n| n == contrat_num)).copied();
+        for p in paies {
+            let s = &p.salarie;
+            let champ = |cle: &str| s.get(cle).filter(|v| vrai(v)).map(valeur_en_texte);
+            let brut = p.brut;
+            let nir = champ("nir").unwrap_or_default();
             masse += brut;
-            match mois_sal.iter_mut().find(|(n, _)| *n == nir) {
-                Some((_, t)) => *t += brut,
-                None => mois_sal.push((nir.clone(), brut)),
+            match mois_sal.iter_mut().find(|(n, _, _)| *n == nir) {
+                Some((_, _, t)) => *t += brut,
+                None => mois_sal.push((nir.clone(), champ("nom").unwrap_or_else(|| nir.clone()), brut)),
             }
-            let champ = |cle: &str| i.and_then(|i| texte_de(i, cle));
             let cle = (an.clone(), nir.clone());
             let pos = match par_salarie.iter().position(|(k, _)| *k == cle) {
-                Some(p) => p,
+                Some(i) => i,
                 None => {
                     let adresse: Vec<String> = ["adresse", "code_postal", "commune"].iter().filter_map(|k| champ(k)).collect();
                     par_salarie.push((
@@ -341,7 +260,7 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
                         SalarieReg {
                             annee: an.clone(),
                             salarie: format!("{} {}", champ("nom").unwrap_or_default(), champ("prenom").unwrap_or_default()),
-                            nir: Some(champ("nir").unwrap_or_else(|| nir.clone())),
+                            nir: Some(nir.clone()),
                             date_naissance: champ("date_naissance"),
                             adresse: adresse.join(" "),
                             masse: Decimal::ZERO,
@@ -351,24 +270,53 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
                 }
             };
             par_salarie[pos].1.masse += brut;
-            let individu = i.map_or_else(|| json!({"nir": nir}), |i| Value::Object(i.clone()));
-            let contrat = c.map_or_else(|| json!({}), |c| Value::Object(c.clone()));
+            let mut individu = Map::new();
+            for k in ["nir", "nom", "prenom", "date_naissance", "adresse", "code_postal", "commune", "email"] {
+                if let Some(v) = champ(k) {
+                    individu.insert(k.to_string(), json!(v));
+                }
+            }
+            let e = &p.engagement;
+            let mut contrat = Map::new();
+            for (k, v) in [("numero", e.numero.clone()), ("debut", Some(e.debut.iso())), ("fin", e.fin.map(|f| f.iso())), ("pcs_ese", champ("pcs_ese")), ("emploi", champ("emploi"))] {
+                if let Some(v) = v {
+                    contrat.insert(k.to_string(), json!(v));
+                }
+            }
+            // Les mesures d'activite (bloc 53 de type 01) que la DSN declare : jours, cachets, heures.
+            let mut activite: Vec<(&'static str, Decimal)> = vec![];
+            for q in p.elementaires() {
+                for (t, valeur, code) in crate::dsn::mesures_d_activite(q).map_err(refus)? {
+                    let quoi = match (t.as_str(), code.as_str()) {
+                        ("01", "12") => "jours",
+                        ("01", "37") => "cachets",
+                        ("01", "35") | ("01", "10") => "heures",
+                        _ => continue,
+                    };
+                    if valeur.is_zero() {
+                        continue;
+                    }
+                    match activite.iter_mut().find(|(x, _)| *x == quoi) {
+                        Some((_, total)) => *total += valeur,
+                        None => activite.push((quoi, valeur)),
+                    }
+                }
+            }
             emplois.push(EmploiReg {
                 annee: an.clone(),
                 mois: m.clone(),
-                individu,
-                activite: lu.activite.iter().find(|(n, _)| *n == contrat_num).map(|(_, a)| a.clone()).unwrap_or_default(),
-                debut: c.and_then(|c| texte_de(c, "debut")),
-                fin: c.and_then(|c| texte_de(c, "fin")),
-                contrat,
+                individu: Value::Object(individu),
+                activite,
+                debut: Some(e.debut.iso()),
+                fin: e.fin.map(|f| f.iso()),
+                contrat: Value::Object(contrat),
                 brut,
-                fichier: fichier.clone(),
+                fichier: source.clone(),
             });
         }
         if let Some(plafond) = plafond_mensuel(&an)? {
-            for (nir, b) in &mois_sal {
+            for (_, nom, b) in &mois_sal {
                 if *b > plafond {
-                    let nom = individus.iter().rev().find(|i| texte_de(i, "nir").unwrap_or_default() == *nir).and_then(|i| texte_de(i, "nom")).unwrap_or_else(|| nir.clone());
                     avert.push(format!("{}, {} : brut {} au-dessus du plafond mensuel -- la T1 n'est plus egale au brut, base a recalculer.", m, nom, eur(*b)));
                 }
             }
@@ -385,7 +333,7 @@ pub(crate) fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
         })?;
         let mut cot = (masse * taux / Decimal::from(100)).round_dp_with_strategy(2, RoundingStrategy::MidpointAwayFromZero);
         cot.rescale(2);
-        par_mois.push(MoisReg { mois: m.clone(), libelle: libelle_du_mois(m, &an)?, masse, taux, cotisation: cot, source: fichier });
+        par_mois.push(MoisReg { mois: m.clone(), libelle: libelle_du_mois(m, &an)?, masse, taux, cotisation: cot, source });
     }
 
     let siret = ent.get("siret").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();

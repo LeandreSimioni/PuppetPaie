@@ -1,16 +1,12 @@
-//! Ce qu'une DSN a declare pour un contrat : son versement (bloc 50) et les blocs qui le suivent, tels qu'elle les a
-//! ecrits depuis la paie qu'elle a declaree.
+//! Ce qu'une DSN a declare pour un contrat : son versement (bloc 50) et les blocs qui le suivent, tels que les fonctions
+//! de la mensuelle les ecrivent depuis la paie qu'elle a declaree.
 //!
 //! C'est ce que les blocs negatifs d'une regularisation annulent. La norme (§ 2.1.3.6, p. 30 et 49) annule « le
 //! montant declare » : un premier rappel de -1000 (ce qui est parti), un second de 1200 (ce qui aurait du partir). Ce
 //! qui a ete declare se lit dans la version de l'engagement sur laquelle la DSN est partie (regle 4 :
-//! `engagement::etats::paies_declarees`) ; le versement s'ecrit depuis sa paie comme la mensuelle l'ecrit
-//! (`dsn::versement_ecrit`), et se relit ici.
-//!
-//! Le versement se reconnait au numero de contrat qu'il porte (51.010, 52.006, 54.005, 78.006) et a sa periode
-//! (51.001, 54.003, 58.001, 78.002, toutes dans le mois declare). Tout ce qui ne se rapproche pas proprement REFUSE
-//! (regle 1) : pas de versement, plusieurs, un versement qui porte aussi un autre contrat, une rubrique qu'on ne sait pas
-//! annuler.
+//! `engagement::etats::paies_declarees`) ; ses rubriques s'ecrivent depuis cette paie par les fonctions de la mensuelle
+//! (`dsn::versement_ecrit`), ses montants sont ceux de la paie. Une rubrique que l'annulation ne sait pas reprendre
+//! REFUSE (regle 1).
 
 use std::str::FromStr;
 
@@ -55,12 +51,6 @@ const REPRISES: [(&str, bool); 31] = [
     ("S21.G00.81.005", false),
     ("S21.G00.81.007", false),
 ];
-
-
-/// Les rubriques qui citent le contrat du versement.
-const CITENT_LE_CONTRAT: [&str; 4] = ["S21.G00.51.010", "S21.G00.52.006", "S21.G00.54.005", "S21.G00.78.006"];
-/// Les rubriques qui datent le versement (debut de la periode de rattachement).
-const DATENT: [&str; 4] = ["S21.G00.51.001", "S21.G00.54.003", "S21.G00.58.001", "S21.G00.78.002"];
 
 /// Le versement d'un contrat, tel qu'une DSN l'a declare.
 #[derive(Clone, Debug)]
@@ -113,115 +103,6 @@ pub const FRAIS_54: [&str; 3] = ["07", "08", "09"];
 /// La rubrique porte-t-elle un montant a changer de signe ; `None` : on ne sait pas l'annuler.
 pub fn est_un_montant(rubrique: &str) -> Option<bool> {
     REPRISES.iter().find(|(r, _)| *r == rubrique).map(|(_, m)| *m)
-}
-
-/// Un versement en cours de lecture.
-#[derive(Default)]
-struct Brouillon {
-    entete: Vec<(String, String)>,
-    lignes: Vec<(String, String)>,
-    contrats: Vec<String>,
-    dates: Vec<String>,
-}
-
-fn dans_le_mois(jjmmaaaa: &str, mois: &str) -> bool {
-    // `mois` : AAAA-MM ; la date : JJMMAAAA.
-    jjmmaaaa.len() == 8 && jjmmaaaa.get(4..8) == mois.get(..4) && jjmmaaaa.get(2..4) == mois.get(5..7) && mois.len() == 7
-}
-
-/// Le versement du contrat `numero` du salarie `nir` dans le texte `texte`, pour le mois `mois` : ses lignes (bloc 50 a
-/// part), les affiliations du contrat, et la date de debut que son bloc 40 declare (S21.G00.40.001). Refus : aucun
-/// versement, plusieurs, un versement qui cite aussi un autre contrat.
-fn versement_du_contrat(texte: &str, quoi: &str, mois: &str, nir: &str, numero: &str) -> Result<(Brouillon, Vec<(String, String)>, Option<String>), String> {
-    let mut individu = false;
-    let mut contrat_courant: Option<String> = None;
-    let mut affiliation: Option<String> = None;
-    let mut affiliations: Vec<(String, String)> = Vec::new();
-    let mut versements: Vec<Brouillon> = Vec::new();
-    let mut ouvert = false;
-    let (mut debut_courant, mut debut_du_contrat): (Option<String>, Option<String>) = (None, None);
-    for ligne in crate::apercu_dsn::lignes_py(texte) {
-        let Some((k, v)) = ligne.split_once(',') else { continue };
-        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'').to_string();
-        if k == "S21.G00.30.001" {
-            individu = v == nir;
-            contrat_courant = None;
-            ouvert = false;
-            continue;
-        }
-        if !individu {
-            continue;
-        }
-        let bloc = k.get(..10).unwrap_or("");
-        let dans_un_versement = matches!(
-            bloc,
-            "S21.G00.50" | "S21.G00.51" | "S21.G00.52" | "S21.G00.53" | "S21.G00.54" | "S21.G00.55" | "S21.G00.56" | "S21.G00.57" | "S21.G00.58"
-                | "S21.G00.78" | "S21.G00.79" | "S21.G00.81"
-        );
-        if k == "S21.G00.50.001" {
-            versements.push(Brouillon::default());
-            ouvert = true;
-        } else if !dans_un_versement {
-            ouvert = false;
-        }
-        match k {
-            "S21.G00.40.001" => {
-                contrat_courant = None;
-                debut_courant = Some(v.clone());
-            }
-            "S21.G00.40.009" => {
-                if v == numero {
-                    debut_du_contrat = debut_courant.clone();
-                }
-                contrat_courant = Some(v.clone());
-            }
-            "S21.G00.70.012" => affiliation = Some(v.clone()),
-            "S21.G00.70.013" => {
-                if contrat_courant.as_deref() == Some(numero) {
-                    if let Some(id) = affiliation.take() {
-                        affiliations.push((id, v.clone()));
-                    }
-                }
-            }
-            _ => {}
-        }
-        if !ouvert {
-            continue;
-        }
-        let b = versements.last_mut().expect("un versement ouvert");
-        if bloc == "S21.G00.50" {
-            b.entete.push((k.to_string(), v));
-            continue;
-        }
-        if CITENT_LE_CONTRAT.contains(&k) && !b.contrats.contains(&v) {
-            b.contrats.push(v.clone());
-        }
-        if DATENT.contains(&k) {
-            b.dates.push(v.clone());
-        }
-        b.lignes.push((k.to_string(), v));
-    }
-    let mut siens = versements
-        .into_iter()
-        .filter(|b| b.contrats.iter().any(|c| c == numero) && !b.dates.is_empty() && b.dates.iter().all(|d| dans_le_mois(d, mois)));
-    let b = match (siens.next(), siens.next()) {
-        (Some(b), None) => b,
-        (None, _) => return Err(format!("{} ne porte aucun versement du contrat {} (salarie {}) pour ce mois", quoi, numero, nir)),
-        (Some(_), Some(_)) => return Err(format!("{} porte plusieurs versements du contrat {} pour ce mois : lequel annuler ne se devine pas", quoi, numero)),
-    };
-    if let Some(autre) = b.contrats.iter().find(|c| *c != numero) {
-        return Err(format!(
-            "dans {}, le versement du contrat {} porte aussi le contrat {} : son net et ses cotisations ne se partagent pas entre les deux",
-            quoi, numero, autre
-        ));
-    }
-    Ok((b, affiliations, debut_du_contrat))
-}
-
-/// Un montant de l'en-tete (bloc 50) du versement.
-fn entete(b: &Brouillon, r: &str, numero: &str, quoi: &str) -> Result<Decimal, String> {
-    let t = b.entete.iter().find(|(k, _)| k == r).map(|(_, v)| v.as_str()).ok_or_else(|| format!("le versement du contrat {} n'a pas de {} dans {}", numero, r, quoi))?;
-    Decimal::from_str(t).map_err(|_| format!("{} illisible dans {} : {:?}", r, quoi, t))
 }
 
 /// Le brut (S21.G00.51.013 du type 001) de lignes de versement ; chaque rubrique y doit etre de celles que
@@ -281,36 +162,86 @@ fn frais_de(lignes: &[(String, String)], quoi: &str) -> Result<Decimal, String> 
     Ok(total)
 }
 
-/// Relit, dans le texte DSN `texte` (`quoi` le nomme), le versement du contrat `numero` du salarie `nir` pour le mois
-/// `mois`. `Err` : une phrase qui dit ce qui manque ; l'appelant la complete de ce qu'il faut faire.
-pub fn lire(texte: &str, quoi: &str, mois: &str, nir: &str, numero: &str) -> Result<VersementDeclare, String> {
-    let (b, affiliations, debut_contrat) = versement_du_contrat(texte, quoi, mois, nir, numero)?;
-    let (net_imposable, net_verse) = (entete(&b, "S21.G00.50.002", numero, quoi)?, entete(&b, "S21.G00.50.004", numero, quoi)?);
-    let lignes: Vec<(String, String)> = b.lignes.into_iter().filter(|(k, _)| !k.starts_with("S21.G00.52.")).collect();
-    let brut = verifier_et_brut(&lignes, numero, quoi)?;
-    let net_social = net_social_de(&lignes, numero, quoi)?;
-    let frais = frais_de(&lignes, quoi)?;
-    let taux_pas = b.entete.iter().find(|(k, _)| k == "S21.G00.50.006").map(|(_, v)| v.clone()).filter(|v| !v.is_empty());
+/// Le versement que la paie declaree `p` de `mois` a fait partir, tel que les fonctions de la mensuelle l'ecrivent
+/// (`dsn::versement_ecrit`) : ses rubriques (bloc 50 a part, sans le bloc 52), les affiliations du contrat, et ses
+/// montants, ceux de la paie. Refus : une rubrique que l'annulation ne sait pas reprendre, un montant net social absent.
+pub fn de_la_paie(ctx: &Contexte, p: &Paie, mois: &str) -> Result<VersementDeclare, String> {
+    let numero = p.engagement.numero.clone().unwrap_or_default();
+    let quoi = format!("la paie declaree de {}", mois);
+    let ecrit = crate::dsn::versement_ecrit(ctx, p, mois)?;
+    let (entete, lignes): (Vec<(String, String)>, Vec<(String, String)>) =
+        ecrit.rubriques.into_iter().filter(|(k, _)| !k.starts_with("S21.G00.52.")).partition(|(k, _)| k.starts_with("S21.G00.50."));
+    let brut = verifier_et_brut(&lignes, &numero, &quoi)?;
+    let net_social = net_social_de(&lignes, &numero, &quoi)?;
+    let frais = frais_de(&lignes, &quoi)?;
+    let taux_pas = entete.iter().find(|(k, _)| k == "S21.G00.50.006").map(|(_, v)| v.clone()).filter(|v| !v.is_empty());
     Ok(VersementDeclare {
-        fichier: quoi.to_string(),
-        net_imposable,
-        net_verse,
+        fichier: quoi,
+        net_imposable: p.net_imposable,
+        net_verse: p.net_verse(),
         net_social,
         rappels_net_social: Decimal::ZERO,
         frais,
         brut,
         lignes,
-        affiliations,
+        affiliations: ecrit.affiliations,
         taux_pas,
-        debut_contrat,
+        debut_contrat: Some(p.engagement.debut.jjmmaaaa()),
     })
 }
 
-/// Le versement que la paie declaree `p` de `mois` a fait partir, ecrit comme la mensuelle l'ecrit
-/// (`dsn::versement_ecrit`) puis relu (`lire`).
-pub fn de_la_paie(ctx: &Contexte, p: &Paie, mois: &str) -> Result<VersementDeclare, String> {
-    let nir = p.salarie.get("nir").and_then(serde_json::Value::as_str).unwrap_or("");
-    let numero = p.engagement.numero.clone().unwrap_or_default();
-    let texte = crate::dsn::versement_ecrit(ctx, p, mois)?;
-    lire(&texte, &format!("la paie declaree de {}", mois), mois, nir, &numero)
+/// Le dernier etat declare d'un contrat avant la DSN d'un mois : ce qu'une correction de ce contrat annule.
+pub struct DernierDeclare {
+    /// Le versement de la derniere paie declaree, ses montants nets sociaux ramenes a la periode d'origine.
+    pub versement: VersementDeclare,
+    /// Le net a payer avant impot de la derniere paie declaree : ce qui a ete paye au salarie.
+    pub net_deja_verse: Decimal,
+    /// La derniere paie declaree, au numero du dernier bulletin qu'une paie declaree de ce contrat porte.
+    pub avant: Paie,
+}
+
+/// LE DERNIER ETAT DECLARE de l'engagement `o` pour `mois`, par les DSN des mois anterieurs a `mois_courant` (`departs` :
+/// ce qui etait parti) : la paie de la version sur laquelle la DSN de `mois` est partie, puis celle de chaque correction
+/// deja portee (`engagement::etats::paies_declarees`) ; le versement de la derniere s'ecrit comme la mensuelle l'ecrit
+/// (`de_la_paie`).
+///
+/// Le montant net social (`dsn::blocs_58_de_la_correction`) : une correction qui a change le net paye en a declare la
+/// difference aux dates du mois de son versement (le rappel), et laisse le montant d'origine ; une correction qui ne l'a
+/// pas change a redeclare le montant d'origine. Les rappels deja declares se tirent de la suite des paies declarees, et
+/// le montant d'origine est le dernier montant net social declare moins eux. Le taux de prelevement est celui de la paie
+/// du mois d'origine ; la date de debut, la derniere declaree (`engagement::etats::debut_declare`). `None` : aucune DSN
+/// n'a declare ce contrat pour `mois`.
+pub fn dernier_declare(
+    ctx: &Contexte, o: &engagement::stock::Objet, departs: &engagement::departs::Departs, mois: &str, mois_courant: &str,
+) -> Result<Option<DernierDeclare>, String> {
+    let declarees = engagement::etats::paies_declarees(ctx, o, departs, mois, mois_courant)?;
+    let (Some(origine), Some(derniere)) = (declarees.first(), declarees.last()) else { return Ok(None) };
+    let mut etat = de_la_paie(ctx, &derniere.paie, mois)?;
+    let mut rappels = Decimal::ZERO;
+    for paire in declarees.windows(2) {
+        let (avant, puis) = (&paire[0].paie, &paire[1].paie);
+        if avant.net_a_payer != puis.net_a_payer {
+            rappels += puis.net_social - avant.net_social;
+        }
+    }
+    if !rappels.is_zero() {
+        let origine_58 = etat.net_social - rappels;
+        let mut type_03 = false;
+        for (k, v) in etat.lignes.iter_mut() {
+            match k.as_str() {
+                "S21.G00.58.003" => type_03 = v == "03",
+                "S21.G00.58.004" if type_03 => *v = crate::dsn::mt(origine_58),
+                _ => {}
+            }
+        }
+        etat.net_social = origine_58;
+        etat.rappels_net_social = rappels;
+    }
+    etat.taux_pas = origine.paie.pas.as_ref().map(|p| socle::valeur::valeur_en_texte(&p.taux)).filter(|t| !t.is_empty());
+    if let Some(d) = engagement::etats::debut_declare(ctx, o, departs, mois_courant)? {
+        etat.debut_contrat = Some(socle::date::Jour::lire(&d)?.jjmmaaaa());
+    }
+    let mut avant = derniere.paie.clone();
+    avant.numero_bulletin = declarees.iter().rev().find_map(|d| d.paie.numero_bulletin.clone());
+    Ok(Some(DernierDeclare { versement: etat, net_deja_verse: derniere.paie.net_a_payer, avant }))
 }

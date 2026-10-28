@@ -814,8 +814,6 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             ("retard", "EN RETARD (embauche passee)".to_string())
         } else if reste == 0 {
             ("aujourdhui", "AUJOURD'HUI - a deposer avant le debut du travail".to_string())
-        } else if reste > 8 {
-            ("trop_tot", "trop tot : la DPAE s'envoie dans les 8 jours qui precedent".to_string())
         } else {
             ("ok", format!("dans {} jour(s) - delai tenu", reste))
         };

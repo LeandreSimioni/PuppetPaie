@@ -1,13 +1,15 @@
 //! Les etats des cotisations et des organismes de `moteur/operations_etats.py` : les cotisations par organisme,
-//! les versements aux organismes (bloc 20 des DSN deposees), le bordereau Urssaf (blocs 22 et 23), le FCAP-SVP de
-//! la 3090, les contributions Afdas, le paritarisme de branche.
+//! les versements aux organismes (bloc 20), le bordereau Urssaf (blocs 22 et 23), le FCAP-SVP de la 3090, les
+//! contributions Afdas, le paritarisme de branche.
 //!
-//! CE QUI SE LIT DANS UNE DSN DEPOSEE SE LIT DANS LA DSN DEPOSEE : les versements et le bordereau sont lus dans le
-//! fichier parti (`casc::dsn_deposee`), jamais recomposes. Les montants annuels hors DSN (FCAP-SVP, Afdas,
-//! paritarisme) se calculent sur le brut du livre de paie ou sur la tranche A declaree, avec les taux du bareme.
+//! L'ARGENT QUI A BOUGE se tire de chaque DSN telle qu'elle est partie (`depart::dsn_du_mois` : ses paies et les
+//! corrections d'autres mois qu'elle portait, des versions qu'elle a emportees, par la fonction qui l'a fabriquee), ou
+//! telle qu'elle partirait : les versements (bloc 20) et le bordereau Urssaf (blocs 22 et 23). CE QUE LE MOIS COUTE se
+//! tire des paies declarees de chaque mois de paie (`dsn::paies_declarees_du_mois`) : la tranche A (`dsn::cotisations`).
+//! Les montants annuels hors DSN (FCAP-SVP, Afdas, paritarisme) se calculent sur le brut du livre de paie ou sur la
+//! tranche A declaree, avec les taux du bareme.
 
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value};
 
@@ -240,84 +242,57 @@ pub(crate) fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tablea
 
 // ===================================== 7. les versements aux organismes (bloc 20)
 
-/// Un bloc d'une DSN : `{rubrique: valeur}`, et le bloc dont il vient.
-struct Bloc {
-    bloc: String,
-    v: Vec<(String, String)>,
-}
-
-impl Bloc {
-    fn get(&self, k: &str) -> Option<&str> {
-        self.v.iter().rev().find(|(c, _)| c == k).map(|(_, x)| x.as_str())
-    }
-
-    fn texte(&self, k: &str) -> String {
-        self.get(k).unwrap_or("").to_string()
-    }
-}
-
-/// `_lire_blocs` : les blocs d'une DSN dont la rubrique commence par l'un des prefixes. Un bloc commence a sa
-/// rubrique .001.
-fn lire_blocs(chemin: &Path, prefixes: &[&str]) -> R<Vec<Bloc>> {
-    let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
-    let texte = crate::apercu_dsn::texte_latin1(&octets);
-    let mut blocs: Vec<Bloc> = Vec::new();
-    let mut en_cours = false;
-    for l in crate::apercu_dsn::lignes_py(&texte) {
-        let Some((k, v)) = l.split_once(',') else { continue };
-        let v = v.trim_matches(socle::texte::blanc).trim_matches('\'').to_string();
-        let bloc: String = k.chars().take(10).collect();
-        if !prefixes.contains(&bloc.as_str()) {
-            en_cours = false;
-            continue;
-        }
-        if k.ends_with(".001") || !en_cours || blocs.last().map_or(true, |b| b.bloc != bloc) {
-            blocs.push(Bloc { bloc: bloc.clone(), v: Vec::new() });
-            en_cours = true;
-        }
-        let rubrique: String = k.chars().skip(11).collect();
-        let cur = blocs.last_mut().expect("un bloc");
-        match cur.v.iter_mut().find(|(c, _)| *c == rubrique) {
-            Some(x) => x.1 = v,
-            None => cur.v.push((rubrique, v)),
-        }
-    }
-    Ok(blocs)
-}
-
-/// `_date_dsn` : JJMMAAAA -> JJ/MM/AAAA.
-fn date_dsn(v: &str) -> String {
-    let c: Vec<char> = v.chars().collect();
-    if c.len() == 8 {
-        format!("{}/{}/{}", c[..2].iter().collect::<String>(), c[2..4].iter().collect::<String>(), c[4..8].iter().collect::<String>())
-    } else {
-        v.to_string()
-    }
-}
-
-/// `_montant` d'un texte de la DSN.
-fn montant_dsn(b: &Bloc, k: &str) -> R<Option<Decimal>> {
-    montant(b.get(k).map(|t| Value::String(t.to_string())).as_ref())
-}
-
-/// `_dsn_des_mois` : [(mois, chemin)] des DSN deposees de la periode -- lues, jamais recomposees. Un mois saisi
-/// sans DSN reelle acceptee est dit.
-fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, PathBuf)>> {
+/// Les paies declarees de chaque mois de la periode (`dsn::paies_declarees_du_mois` : la version sur laquelle la DSN est
+/// partie, ou la paie ecrite si rien n'est parti), tous etablissements. Un mois sans paie validee est dit.
+fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, Vec<engagement::calcul::Paie>)>> {
     let (mut out, mut sans) = (Vec::new(), Vec::new());
     for m in &p.mois {
-        match crate::casc::dsn_deposee(ctx, m, None) {
-            Err(e) => avert.push(e),
-            Ok(None) => sans.push(m.clone()),
-            Ok(Some(c)) => out.push((m.clone(), c)),
+        let paies = crate::dsn::paies_declarees_du_mois(ctx, m, None).map_err(refus)?;
+        if paies.is_empty() {
+            sans.push(m.clone());
+        } else {
+            out.push((m.clone(), paies));
         }
     }
     if !sans.is_empty() {
-        avert.push(format!("Pas de DSN réelle acceptée au journal pour {} : ces mois ne sont pas dans l'état, qui ne lit que ce qui est parti.", sans.join(", ")));
+        avert.push(format!("Aucune paie validée pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
     }
     if out.is_empty() {
-        return Err(refus(format!("Aucune DSN déposée sur la période ({}) : cet état se lit dans les DSN parties, il n'y a rien à lire.", p.libelle)));
+        return Err(refus(format!("Aucune paie validée sur la période ({}) : il n'y a rien à lire.", p.libelle)));
     }
     Ok(out)
+}
+
+/// LA DSN DE CHAQUE MOIS DE LA PERIODE, par etablissement (le principal d'abord) : celle qui est partie telle qu'elle est
+/// partie, ou celle qui partirait (`depart::dsn_du_mois`) : `(mois, nic, la DSN, partie)`. Un mois sans DSN est dit.
+fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, String, crate::dsn::Fabriquee, bool)>> {
+    let (mut out, mut sans) = (Vec::new(), Vec::new());
+    let principal = droit::bareme::nic_principal(&ctx.entreprise);
+    for m in &p.mois {
+        let mut une = false;
+        for nic in crate::dsn::nics(&ctx.entreprise) {
+            let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
+            if let Some((f, partie)) = crate::depart::dsn_du_mois(ctx, m, etablissement).map_err(|e| refus(e.message))? {
+                out.push((m.clone(), nic, f, partie));
+                une = true;
+            }
+        }
+        if !une {
+            sans.push(m.clone());
+        }
+    }
+    if !sans.is_empty() {
+        avert.push(format!("Aucune DSN partie ni paie validée pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
+    }
+    if out.is_empty() {
+        return Err(refus(format!("Aucune DSN partie ni paie validée sur la période ({}) : il n'y a rien à lire.", p.libelle)));
+    }
+    Ok(out)
+}
+
+/// Le nom de la DSN d'un mois dans un etat : partie, ou a deposer.
+fn nom_de_la_dsn(m: &str, partie: bool) -> String {
+    format!("DSN de {}{}", libelle_mois(m).unwrap_or_else(|_| m.to_string()), if partie { "" } else { " (à déposer)" })
 }
 
 /// `_libelles_organismes` : SIRET -> libelle, lu dans `config/organismes.json`.
@@ -336,29 +311,24 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     Ok(out)
 }
 
-fn nom_du_fichier(p: &Path) -> String {
-    p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
-}
-
-/// `operations_etats.versements_organismes` : chaque versement que les DSN deposees ont ordonne (bloc S21.G00.20).
+/// `operations_etats.versements_organismes` : chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20), partie
+/// ou a deposer (`dsn_des_mois`).
 pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let noms = libelles_organismes(ctx)?;
     let mut lignes = Vec::new();
-    for (m, chemin) in dsn_des_mois(ctx, &p, &mut avert)? {
-        for b in lire_blocs(&chemin, &["S21.G00.20"])? {
-            let ident = b.texte("001");
-            let organisme = match noms.iter().find(|(k, _)| *k == ident).map(|(_, v)| v.clone()).filter(|v| !v.is_empty()) {
+    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert)? {
+        for o in &f.ordres {
+            let organisme = match noms.iter().find(|(k, _)| *k == o.organisme).map(|(_, v)| v.clone()).filter(|v| !v.is_empty()) {
                 Some(n) => n,
-                None => ident.clone(),
+                None => o.organisme.clone(),
             };
-            let mode = b.texte("010");
             let mut l = Ligne::nouvelle();
-            l.t("mois", m.clone()).t("organisme", organisme).t("identifiant", ident).t("reference", b.texte("002"));
-            l.t("du", date_dsn(&b.texte("006"))).t("au", date_dsn(&b.texte("007"))).od("montant", montant_dsn(&b, "005")?);
-            l.t("mode", if mode == "05" { "prélèvement SEPA".to_string() } else { format!("code {}", mode) });
-            l.t("date", date_dsn(&b.texte("011"))).t("fichier", nom_du_fichier(&chemin));
+            l.t("mois", m.clone()).t("organisme", organisme).t("identifiant", o.organisme.clone()).t("reference", o.reference.clone().unwrap_or_default());
+            l.t("du", o.debut.jj_mm_aaaa()).t("au", o.fin.jj_mm_aaaa()).od("montant", Some(o.montant));
+            l.t("mode", "prélèvement SEPA");
+            l.t("date", o.date_paiement.map(|j| j.jj_mm_aaaa()).unwrap_or_default()).t("fichier", nom_de_la_dsn(&m, partie));
             lignes.push(l);
         }
     }
@@ -382,7 +352,7 @@ pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("fichier", "DSN"),
     ];
     t.sources = vec![
-        "DSN déposée, bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1) ; libellés : config/organismes.json".to_string(),
+        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN ; libellés : config/organismes.json".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "versements-organismes", &d.format, d.ecrire)?;
     Ok(t)
@@ -477,7 +447,7 @@ fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
     Ok(out)
 }
 
-/// `operations_etats.bordereau_urssaf` : le bordereau Urssaf de chaque DSN deposee, CTP par CTP. Les taux ne sont
+/// `operations_etats.bordereau_urssaf` : le bordereau Urssaf de chaque mois, CTP par CTP, tel que la DSN le porte, partie ou a deposer (`dsn_des_mois`), avec ceux des mois que ses corrections regularisent. Les taux ne sont
 /// pas appliques ici : c'est l'Urssaf qui calcule depuis les assiettes, et un export ne calcule pas.
 pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
@@ -487,24 +457,25 @@ pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         avert.push("La table des codes de l'Urssaf manque au logiciel : les codes sont donnés sans libellé.".to_string());
     }
     let mut lignes = Vec::new();
-    for (m, chemin) in dsn_des_mois(ctx, &p, &mut avert)? {
-        for b in lire_blocs(&chemin, &["S21.G00.22", "S21.G00.23"])? {
+    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert)? {
+        for bordereau in f.bordereaux {
             let mut l = Ligne::nouvelle();
-            if b.bloc == "S21.G00.22" {
-                l.t("mois", m.clone()).t("ctp", "").t("libelle", "Total dû à l'Urssaf (bloc 22)");
-                l.t("periode", format!("{} au {}", date_dsn(&b.texte("003")), date_dsn(&b.texte("004")))).od("total", montant_dsn(&b, "005")?);
-            } else {
-                let q = b.texte("002");
-                let code = b.texte("001");
+            l.t("mois", m.clone()).t("ctp", "").t("libelle", format!("Total dû à l'Urssaf (bloc 22), {}", nom_de_la_dsn(&m, partie)));
+            l.t("periode", format!("{} au {}", bordereau.debut.jj_mm_aaaa(), bordereau.fin.jj_mm_aaaa())).od("total", Some(bordereau.total));
+            lignes.push(l);
+            for b in bordereau.lignes {
+                let mut l = Ligne::nouvelle();
+                let code = b.code.clone();
                 l.t("mois", m.clone()).t("ctp", code.clone()).t("libelle", ctp.iter().find(|(c, _)| *c == code).map(|(_, v)| v.clone()).unwrap_or_default());
-                l.t("qualifiant", match q.as_str() {
+                l.t("qualifiant", match b.qualifiant.as_str() {
                     "920" => "920 — assiette plafonnée".to_string(),
                     "921" => "921 — assiette déplafonnée".to_string(),
-                    _ => q.clone(),
+                    q => q.to_string(),
                 });
-                l.od("taux_at", montant_dsn(&b, "003")?).od("assiette", montant_dsn(&b, "004")?).od("montant", montant_dsn(&b, "005")?);
+                let taux_at = if b.taux_at.is_empty() { None } else { montant(Some(&Value::String(b.taux_at.clone())))? };
+                l.od("taux_at", taux_at).od("assiette", if b.montant.is_some() { None } else { b.assiette }).od("montant", b.montant);
+                lignes.push(l);
             }
-            lignes.push(l);
         }
     }
     let mut t = Tableau::nouveau("bordereau-urssaf", "Bordereau Urssaf (DSN)", p.libelle.clone());
@@ -523,7 +494,7 @@ pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("total", "Total dû"),
     ];
     t.sources = vec![
-        "DSN déposée, blocs S21.G00.22 « Bordereau de cotisation due » et S21.G00.23 « Cotisation agrégée » (cahier technique DSN 2026.1)".to_string(),
+        "blocs S21.G00.22 « Bordereau de cotisation due » et S21.G00.23 « Cotisation agrégée » (cahier technique DSN 2026.1), tirés de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN".to_string(),
         "libellés : table des codes types de personnel, open.urssaf.fr (histocodestypescsv), relevée le 18/09/2026".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "bordereau-urssaf", &d.format, d.ecrire)?;
@@ -540,7 +511,7 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 }
 
 /// `operations_etats.fcap_svp` : 0,1 % de la tranche A de l'annee, plancher 80 EUR, plafond 300 EUR, paye HORS
-/// DSN en debut d'annee. La tranche A se LIT dans les DSN deposees (S21.G00.78, code 02).
+/// DSN en debut d'annee. La tranche A est la base 02 que la DSN declare (S21.G00.78), tiree des paies declarees.
 pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
     let idcc = idcc_de(ctx);
@@ -557,13 +528,17 @@ pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let (taux, plancher, plafond) = (dec_de(&fp["taux"])?, dec_de(&fp["plancher"])?, dec_de(&fp["plafond"])?);
     let mut par_an: Vec<(String, i64, Decimal)> = Vec::new();
     let zero = zero2();
-    for (m, chemin) in dsn_des_mois(ctx, &p, &mut avert)? {
+    let orgs = ctx.organismes_exiges().map_err(refus)?;
+    for (m, paies) in paies_des_mois(ctx, &p, &mut avert)? {
+        // La tranche A : la base 02 (« assiette brute plafonnee ») que la DSN declare pour chaque contrat (`dsn::cotisations`).
         let mut ta = zero;
-        for b in lire_blocs(&chemin, &["S21.G00.78"])? {
-            if b.get("001") == Some("02") {
-                let t = b.get("004").filter(|t| !t.is_empty()).unwrap_or("0");
-                let x = crate::apercu_dsn::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))?;
-                ta = add(ta, x);
+        for q in &paies {
+            let nic = droit::bareme::etablissement_du_salarie(&ctx.entreprise, &q.salarie).map_err(refus)?;
+            let bar = crate::dsn::bar_du(&ctx.du_mois(&m).map_err(refus)?, &ctx.entreprise, &orgs, &nic, &m).map_err(refus)?;
+            for e in q.elementaires() {
+                if let Some(c) = crate::dsn::cotisations(e, &bar).map_err(refus)?.into_iter().find(|c| c.bloc78 == "02") {
+                    ta = add(ta, c.base78);
+                }
             }
         }
         let an: String = m.chars().take(4).collect();
@@ -610,7 +585,7 @@ pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     ];
     t.sources = vec![
         "CCN 3090, titre V, articles 5.1 (0,1 % de la tranche A, plancher 80 €, plafond 300 € par an et par entreprise), 5.2 et 5.3 — base KALI de la DILA, relevée le 23/09/2026".to_string(),
-        "tranche A : assiette brute plafonnée des DSN déposées (S21.G00.78.001 = 02)".to_string(),
+        "tranche A : assiette brute plafonnée que la DSN déclare (S21.G00.78.001 = 02), tirée des paies déclarées".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "fcap-svp", &d.format, d.ecrire)?;
     Ok(t)

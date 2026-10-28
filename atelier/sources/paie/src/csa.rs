@@ -28,9 +28,9 @@
 //!
 //! CE QUI SE LIT, ET D'OU : l'effectif d'assujettissement (250) et celui des 2 000 salaries, A01 avec la regle des cinq
 //! ans (`Effectif`), comme le bloc 44 de decembre (`assujettissement::blocs`) ; le quotient, A05 / A07 de l'annee N ; la
-//! progression, A05 de N contre A05 de N-1 ; l'assiette, celle de la taxe d'apprentissage que les DSN DEPOSEES de N ont
-//! declaree (CTP 992, et 993 pour l'Alsace-Moselle), etablissement par etablissement, comme le solde de la taxe
-//! d'avril (`dsn::solde_taxe_apprentissage`). Ce qui manque refuse, en disant quoi.
+//! progression, A05 de N contre A05 de N-1 ; l'assiette, celle de la taxe d'apprentissage que les DSN de N declarent, tiree
+//! des paies declarees (`dsn::assiettes_de_l_annee` ; CTP 992, et 993 pour l'Alsace-Moselle), etablissement par
+//! etablissement, comme le solde de la taxe d'avril (`dsn::solde_taxe_apprentissage`). Ce qui manque refuse, en disant quoi.
 //!
 //! INFERENCES (passation du lot D2) : l'assiette des etablissements d'Alsace-Moselle est celle de leur CTP 993 ; la
 //! « progression d'au moins 10 % » compare A05 de N a A05 de N-1 (le guide Urssaf, l. 2431-2433, la calcule ainsi :
@@ -237,23 +237,18 @@ de {}. Rien n'est ecrit.",
             return Ok(Some(exoneree(quotient_lu)));
         }
     }
-    // L'assiette : celle de la taxe d'apprentissage que les DSN deposees de N ont declaree, etablissement par
-    // etablissement (le montant « pour l'ensemble de ses établissements »).
+    // L'assiette : celle de la taxe d'apprentissage que les DSN de N declarent, etablissement par etablissement (le
+    // montant « pour l'ensemble de ses établissements »).
     let (mut assiette, mut alsace) = (Decimal::ZERO, Decimal::ZERO);
     for nic in crate::dsn::nics(&ctx.entreprise) {
-        for m in 1..=12 {
-            if let Some(f) = crate::casc::dsn_deposee(ctx, &format!("{}-{:02}", n, m), Some(&nic))? {
-                let octets = std::fs::read(&f).map_err(|e| format!("{} illisible ({})", f.display(), e))?;
-                let texte: String = octets.iter().map(|&b| b as char).collect();
-                assiette = add(assiette, crate::dsn::assiettes_du_ctp(&texte, "992"));
-                alsace = add(alsace, crate::dsn::assiettes_du_ctp(&texte, "993"));
-            }
-        }
+        let a = crate::dsn::assiettes_de_l_annee(ctx, n, &nic, &["992", "993"])?;
+        assiette = add(assiette, a[0]);
+        alsace = add(alsace, a[1]);
     }
     if add(assiette, alsace).is_zero() {
         return Err(format!(
             "DSN de mars {} : la contribution supplementaire a l'apprentissage {} est due (alternants {} % de l'effectif), \
-et aucune DSN deposee de {} ne porte d'assiette de la taxe d'apprentissage (CTP 992 ou 993) : elle se calcule sur cette \
+et aucune paie validee de {} ne porte d'assiette de la taxe d'apprentissage (CTP 992 ou 993) : elle se calcule sur cette \
 assiette (L. 6242-1, III). Rien n'est ecrit.",
             n + 1,
             n,
