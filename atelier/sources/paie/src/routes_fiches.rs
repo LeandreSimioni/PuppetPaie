@@ -654,11 +654,6 @@ pub(crate) fn garder_notes_internes(ancienne: &Value, neuve: &Value) -> Value {
     }
 }
 
-/// `_sans_affichage`.
-fn sans_affichage(d: &Map<String, Value>) -> Value {
-    Value::Object(d.iter().filter(|(k, _)| !k.ends_with("_affichage")).map(|(k, v)| (k.clone(), v.clone())).collect())
-}
-
 /// `changements-declares` : les valeurs existantes que cet enregistrement ferait
 /// changer (chacune demande sa date d'effet), avec ce que la valeur sortante a deja servi a declarer. Regarde, n'ecrit rien.
 fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {

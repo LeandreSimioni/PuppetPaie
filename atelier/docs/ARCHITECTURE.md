@@ -322,7 +322,13 @@ chaque salarié de `salaries.json`, chaque spectacle de `spectacles.json` —
 s'écrit `[{"valeur": …}, {"depuis": "AAAA-MM-JJ", "valeur": …}]` : la première
 valeur, sans `depuis`, vaut **de tout temps** (un contrat commencé avant la
 saisie de la fiche, un mois repris d'un autre logiciel la trouvent), chacune des
-suivantes à partir de sa date ; les clés `_…` sont des notes. Une seule
+suivantes à partir de sa date ; les clés `_…` sont des notes. Les organismes
+et contrats de la DSN (`config/organismes.json`, chaque clé, lus par
+`Contexte::organismes` ; enregistrer pour un mois écrit à partir de son premier
+jour) et les rubriques propres à la compagnie (`config/rubriques-compagnie.json`,
+lues par `catalogue::catalogue(racine, jour)`) sont datés de même ;
+`rubriques-actives.json`, préférence d'affichage qu'aucun calcul ne lit, ne
+l'est pas. Une seule
 lecture, `contexte::fiche_au`, sur la même `valeur_au` que les barèmes ; une
 valeur non datée se refuse avec la phrase qui dit quoi faire
 (`contexte::non_datee`). Le
