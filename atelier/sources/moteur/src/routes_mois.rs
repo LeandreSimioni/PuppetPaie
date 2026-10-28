@@ -1124,9 +1124,9 @@ impl<'a> Moteur<'a> {
     }
 
     /// `bilan_du_mois` : LES ETAPES DU MOIS (#257), dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
-    /// avec les groupes que le panneau dessine : `{etat, compte, phrase, echeance, action}`, `etat` parmi `fait`,
+    /// avec les groupes que le panneau dessine : `{etat, compte, compte_texte, quoi, phrase, echeance, action}` (`groupe`), `etat` parmi `fait`,
     /// `a_faire`, `en_attente`, `refuse`. Un groupe `fait` n'a ni compte ni phrase ; un groupe qui reste compte en nombre
-    /// simple, avec son echeance et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
+    /// simple, avec son echeance (`texte`, et `court` sans l'annee, que la case ecrit) et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
     /// chaque groupe nomme celles qu'il couvre, les memes d'une etape a l'autre. L'etape `suivante` est la premiere qui a
     /// quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
     pub fn bilan_du_mois(&mut self, mois: &str) -> R<Value> {
