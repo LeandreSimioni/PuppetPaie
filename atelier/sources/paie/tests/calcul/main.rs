@@ -15,4 +15,7 @@ mod bulletin;
 mod calcul_pieces;
 mod conges;
 mod dfs;
+mod cumul;
 mod echeance_dsn;
+mod engagement;
+mod net_social;

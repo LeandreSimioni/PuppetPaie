@@ -33,6 +33,7 @@ mod drive;
 mod ecriture;
 mod envoi;
 mod envoi_mime;
+mod essai;
 mod extraction;
 mod garde_reseau;
 mod installations;

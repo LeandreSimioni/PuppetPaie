@@ -1,9 +1,10 @@
-//! Les pieces de `calculer` contre `calcul-pieces.json` : les designations, la reduction generale et le seuil de SMIC sur
+//! Les pieces de `calculer` contre `calcul-pieces.json` : les designations, le code du bloc 54, la reduction generale et le seuil de SMIC sur
 //! une grille (par empreinte, en entier pour quelques groupes). Les refus sont des attendus.
 //! `PUPPETPAIE_REECRIRE_ORACLES=1` reecrit l'oracle.
 
-use crate::outils::{dec, lire_oracle, oracle, sceller};
-use engagement::calcul::{au_dela_du_seuil, reduction_generale, LigneBrut};
+use crate::outils::{dec, dossier_de_test, lire_oracle, oracle, sceller};
+use droit::catalogue::rubrique;
+use engagement::calcul::{au_dela_du_seuil, code_54, reduction_generale, LigneBrut};
 use engagement::canon_valeur;
 use socle::num::Decimal;
 use serde_json::{json, Value};
@@ -37,6 +38,21 @@ fn les_designations() {
     oracle(ORACLE, "/designations", &cas);
 }
 
+
+#[test]
+fn le_code_du_bloc_54() {
+    let mut cas = lire_oracle(ORACLE)["code_54"].clone();
+    let racine = dossier_de_test("calcul_pieces", "code_54");
+    let mut refus = 0;
+    for c in cas.as_array_mut().unwrap() {
+        let r = rubrique(&racine, c[0].as_str().unwrap()).unwrap();
+        let vu = code_54(&r, &c[1]);
+        refus += vu.is_err() as usize;
+        c[2] = essai(vu.map(|o| o.map_or(Value::Null, Value::String)));
+    }
+    assert!(refus > 10, "{}", refus);
+    oracle(ORACLE, "/code_54", &cas);
+}
 
 // ----------------------------------------------------------------- la grille
 /// Un groupe de la grille : l'empreinte de ses resultats, et ses resultats entiers quand l'oracle les garde.
