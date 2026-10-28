@@ -1120,7 +1120,7 @@ pre.reponse {
 .engagement-non-actif { margin: 6px 0 6px 22px; padding: 8px 10px; border: 1px dashed var(--bord);
   border-radius: 6px; opacity: .8; font-size: 13px; }
 .engagement-non-actif .na-ligne { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.engagement-non-actif .na-mot { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--discret); }
+.mot-etat { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--discret); }
 
 /* --------------------------------------------- une paie validée est verte
    « On valide, c'est vert, normalement on n'y revient pas, édition bloquée

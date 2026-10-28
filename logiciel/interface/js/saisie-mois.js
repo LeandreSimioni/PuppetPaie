@@ -1008,7 +1008,7 @@ function carteImportee(p, i, moisCourt, mois) {
         <div class="carte-quand" title="${echapper(p.dates.length ? p.dates.map(jjmmaaaa).join(", ") : "début et fin du contrat : les jours exacts ne sont pas lus")}">
           <b class="${jours.includes(" · ") ? "epars" : ""}">${echapper(jours)}</b><span>${echapper(moisCourt)}</span></div>
         <div class="carte-qui" title="${echapper(origine ? "lu dans : " + origine : "")}">
-          <span class="carte-nom"><b>${echapper(p.nom)}</b></span>
+          <span class="carte-nom"><b>${echapper(p.nom)}</b> <span class="mot-etat">importé</span></span>
           <span class="discret">${echapper(quoi || "spectacle non lu")}</span></div>
         <div class="carte-actes"><div class="etats-actes">${pastille("dpae", "DPAE")}${pastille("signature", "Contrat")}${pastille("documents", "Documents")}</div></div>
         <div class="carte-net" title="${p.montants.net_a_payer ? "net à payer" : "brut : le net à payer n'est pas lu"}">${net}</div>

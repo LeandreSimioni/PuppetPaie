@@ -1704,14 +1704,14 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
         let nom = ctx
             .salarie(&cle)
             .ok()
-            .map(|f| format!("{} {}", f.get("nom").map(valeur_en_texte).unwrap_or_default(), f.get("prenom").map(valeur_en_texte).unwrap_or_default()))
+            .map(|f| format!("{} {}", f.get("nom").map(valeur_en_texte).unwrap_or_default(), f.get("prenom_affichage").filter(|v| vrai(v)).or_else(|| f.get("prenom")).map(valeur_en_texte).unwrap_or_default()))
             .unwrap_or_else(|| cle.clone());
         out.push(json!({
             "salarie": cle,
             "nom": nom.trim(),
             "numero": b.get("numero").cloned().unwrap_or(Value::Null),
             "debut": engagement::debut_brut(&b),
-            "fin": b.get("fin").cloned().unwrap_or(Value::Null),
+            "fin": b.get("fin").filter(|v| vrai(v)).cloned().unwrap_or_else(|| engagement::dates_engagement(&b).iter().map(|d| d.get("jour").map_or_else(|| valeur_en_texte(d), valeur_en_texte)).max().map_or(Value::Null, Value::String)),
             "non_actif": n.le(),
             "a_faire": crate::routes_ecritures_g4::a_faire_en_phrases(&n.a_refaire(ctx, &departs)),
         }));

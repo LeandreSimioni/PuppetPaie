@@ -431,7 +431,7 @@ function peindreNonActifs(liste) {
         <span><b>${echapper(n.nom)}</b>
           <span class="discret">· contrat ${echapper(n.numero || "sans numéro")},
             ${echapper(periodeEnClair(n.debut, n.fin))}</span></span>
-        <span class="na-mot" title="non actif depuis le ${echapper(quand(n.non_actif))}">non actif</span>
+        <span class="mot-etat" title="non actif depuis le ${echapper(quand(n.non_actif))}">non actif</span>
       </div>
       ${n.a_faire?.length ? `<div class="etats-actes">${n.a_faire.map((x) =>
         `<span class="etat-acte orange"><i class="carre"></i>${echapper(x)}</span>`).join("")}</div>` : ""}`;
