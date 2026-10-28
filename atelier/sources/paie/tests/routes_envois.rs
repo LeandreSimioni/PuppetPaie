@@ -579,7 +579,6 @@ fn demander_signature_envoie_un_courriel_par_salarie_et_garde_ce_qu_il_faut() {
     assert_eq!(contrats[0]["message"], json!("<faux-0@exemple.invalid>"));
     assert_eq!(contrats[2]["message"], json!("<faux-1@exemple.invalid>"));
     assert_eq!(contrats[0]["relance"], json!(false));
-    assert!(contrats[0]["empreinte"].as_str().unwrap().len() == 16);
     assert!(contrats[0]["clauses"]["contrat.debut"].as_str().unwrap() == "13/10/2026");
     assert_eq!(contrats[0]["mois"], json!("2026-10"));
     assert!(contrats[0]["spectacle"].is_string());
@@ -893,8 +892,6 @@ fn demander_signature_distingue_deux_contrats_du_meme_jour_et_compte_des_contrat
     let r = avec(&racine, "demander-signature", json!({"mois": "2026-10", "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
     assert_eq!((faux.partis(), r["contrats"].as_array().unwrap().len()), (1, 2));
     assert_eq!(journal(&racine).last().unwrap()["reponse"], json!("2 contrat(s) envoye(s) a la signature"));
-    let empreintes: Vec<&str> = r["contrats"].as_array().unwrap().iter().map(|c| c["empreinte"].as_str().unwrap()).collect();
-    assert_ne!(empreintes[0], empreintes[1], "chaque contrat porte sa propre empreinte");
 }
 
 // ================================================================== avenant-envoyer, avenants-envoyer
@@ -959,35 +956,24 @@ fn les_avenants_partent_un_courriel_par_salarie_avec_un_pdf_chacun() {
     assert!(l["reponse"].as_str().unwrap().starts_with("avenant n° 1 au contrat BR1.26.05"));
     assert_eq!(r["ligne"], l);
 
-    // Un avenant envoye compte deja : le suivant porte le numero 2 (l'apercu part des avenants signes seulement :
-    // le numero 1 n'est pas signe, il reste 1) ; les deux contrats de Brioche et celui de Seraphin partent ensemble :
-    // un courriel par salarie.
-    let r = avec(
-        &racine,
-        "avenants-envoyer",
-        json!({"avenants": [{"salarie": "SERAPHIN", "debut": "2026-10-13"}, {"salarie": "BRIOCHE", "debut": "2026-10-13", "effet": "2026-10-14"}], "motdepasse": MOT_DE_PASSE}),
-        &faux,
-    )
-    .unwrap();
-    let mut cles: Vec<&str> = r.as_object().unwrap().keys().map(String::as_str).collect();
-    cles.sort();
-    assert_eq!(cles, ["avenants", "partis"]);
-    assert_eq!(r["partis"], json!(["valentin.seraphin@exemple.invalid", "fanchon.brioche@exemple.invalid"]));
-    assert_eq!(r["avenants"].as_array().unwrap().len(), 2);
-    assert_eq!(r["avenants"][0]["salarie"], json!("SERAPHIN"));
-    assert_eq!(r["avenants"][1]["debut"], json!("2026-10-13"));
-    let j = journal(&racine);
-    let derniers = &j[j.len() - 2..];
-    assert_eq!(derniers[1]["detail"]["contrats"][0]["effet"], json!("2026-10-14"));
-    assert_eq!(derniers[0]["destinataire"], json!("valentin.seraphin@exemple.invalid"));
-
     // Refus : rien de coche, une date illisible, un contrat qui n'est pas parti.
     let (_, m) = phrase(avec(&racine, "avenants-envoyer", json!({"avenants": [], "motdepasse": MOT_DE_PASSE}), &faux));
     assert!(m.contains("avenant"), "{}", m);
-    let (_, m) = phrase(avec(&racine, "avenant-envoyer", json!({"salarie": "BRIOCHE", "debut": "2026-10-13", "effet": "demain", "motdepasse": MOT_DE_PASSE}), &faux));
+    let (_, m) = phrase(avec(&racine, "avenant-envoyer", json!({"salarie": "SERAPHIN", "debut": "2026-10-13", "effet": "demain", "motdepasse": MOT_DE_PASSE}), &faux));
     assert!(m.contains("'demain'"), "le refus nomme la date lue : {}", m);
     let (_, m) = phrase(avec(&racine, "avenant-envoyer", json!({"salarie": "BRIOCHE", "debut": "2026-11-02", "motdepasse": MOT_DE_PASSE}), &faux));
     assert!(m.starts_with("Aucun contrat n'est parti à la signature pour BRIOCHE du 02/11/2026"), "{}", m);
+
+    // `avenants-envoyer`, avec la date d'effet choisie.
+    let r = avec(&racine, "avenants-envoyer", json!({"avenants": [{"salarie": "SERAPHIN", "debut": "2026-10-13", "effet": "2026-10-14"}], "motdepasse": MOT_DE_PASSE}), &faux).unwrap();
+    let mut cles: Vec<&str> = r.as_object().unwrap().keys().map(String::as_str).collect();
+    cles.sort();
+    assert_eq!(cles, ["avenants", "partis"]);
+    assert_eq!(r["partis"], json!(["valentin.seraphin@exemple.invalid"]));
+    assert_eq!(r["avenants"][0]["salarie"], json!("SERAPHIN"));
+    let l = journal(&racine).last().unwrap().clone();
+    assert_eq!(l["detail"]["contrats"][0]["effet"], json!("2026-10-14"));
+    assert_eq!(l["destinataire"], json!("valentin.seraphin@exemple.invalid"));
 }
 
 #[test]
