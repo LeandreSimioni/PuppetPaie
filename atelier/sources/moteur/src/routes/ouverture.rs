@@ -98,7 +98,7 @@ fn objet<'a>(v: &'a Value, _qui: &str) -> R<&'a Map<String, Value>> {
 }
 
 /// `json.loads(p.read_text(encoding="utf-8"))` : un refus garde la classe que
-/// Python levait (`FileNotFoundError`, `UnicodeDecodeError`, `JSONDecodeError`).
+/// la lecture rencontre (`FileNotFoundError`, `UnicodeDecodeError`, `JSONDecodeError`).
 fn lire_objet(p: &Path) -> R<Value> {
     let octets = std::fs::read(p).map_err(|e| {
         let classe = match e.kind() {

@@ -841,7 +841,7 @@ fn cle<'a>(charge: &'a Value, k: &str) -> R<&'a Value> {
     charge.get(k).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)))
 }
 
-/// L'erreur du disque, sous le nom que Python lui donne.
+/// L'erreur du disque, sous sa classe (`FileNotFoundError`, `PermissionError`, `OSError`).
 fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     let classe = match (e.kind(), e.raw_os_error()) {
         (std::io::ErrorKind::NotFound, _) => "FileNotFoundError",
@@ -858,7 +858,7 @@ fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
 
 
 
-// ------------------------------------------------------------------ les chemins de Python
+// ------------------------------------------------------------------ les chemins
 
 /// `str(PurePosixPath(t))` : les `//` et les `.` intermediaires s'en vont, un `/`
 /// de tete reste (deux, s'il y en a exactement deux).
@@ -930,7 +930,7 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
     Ok(p)
 }
 
-/// `journal.empreinte(Path)` : `read_bytes`, sous le nom d'erreur de Python.
+/// `journal.empreinte(Path)` : `read_bytes`, l'erreur du disque sous sa classe.
 fn empreinte_du_fichier(chemin: &str) -> R<String> {
     if chemin.contains('\0') {
         return Err(erreur("ValueError", "embedded null byte"));

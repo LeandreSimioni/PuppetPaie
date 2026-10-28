@@ -171,7 +171,7 @@ pub(crate) fn nom_de_fiche(v: &Value) -> R<&str> {
 
 // ------------------------------------------------------------------ taux-atmp
 
-/// `int(v)` de Python, pour ce qu'un JSON porte.
+/// Un entier, de ce qu'un JSON porte.
 pub(crate) fn entier(v: &Value) -> R<i64> {
     let trop_grand = || Echec::from("annee hors de la plage d'un entier de 64 bits".to_string());
     match v {
@@ -258,8 +258,8 @@ fn taux_atmp(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------ verifier-fiche
 
-/// `dict(v)` de Python, pour ce qu'un JSON porte : un objet se copie ; une liste
-/// de paires aussi ; le reste se refuse sous la classe et la phrase de Python.
+/// Un objet, de ce qu'un JSON porte : un objet se copie ; une liste
+/// de paires aussi ; le reste se refuse sous `TypeError`.
 pub(crate) fn copie_en_objet(v: &Value) -> R<Map<String, Value>> {
     let paires: Vec<Value> = match v {
         Value::Object(o) => return Ok(o.clone()),
@@ -299,8 +299,8 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
 }
 
 /// `faute_de_norme(champ, actuel)` pour une valeur deja la, vraie : un texte
-/// passe par le controle de la norme ; ce qui n'en est pas un fait lever a
-/// Python les memes `TypeError` que la table des formats lui donne a lire.
+/// passe par le controle de la norme ; ce qui n'en est pas un se refuse sous les
+/// memes `TypeError` que la table des formats.
 fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
     if let Value::String(s) = actuel {
         return Ok(champs::faute_de_norme(c, s)?.is_some());
@@ -581,7 +581,7 @@ fn verifier_fiche(charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------ changements-declares
 
-/// `Path.parent` de Python : `.` pour un nom seul.
+/// Le dossier parent : `.` pour un nom seul.
 fn parent_py(p: &Path) -> std::path::PathBuf {
     match p.parent() {
         Some(x) if x.as_os_str().is_empty() => std::path::PathBuf::from("."),
@@ -763,7 +763,7 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
 
 
 
-/// Un `Decimal` de Python : de quoi le lire, le comparer a 0 et 20, l'ecrire comme `str()`, le
+/// Un nombre decimal saisi : de quoi le lire, le comparer a 0 et 20, l'ecrire comme `str()`, le
 /// convertir en flottant.
 struct Dec {
     negatif: bool,
@@ -773,7 +773,7 @@ struct Dec {
     special: Option<&'static str>,
 }
 
-/// Le chiffre (0 a 9) que `c` represente pour Python (`int`, `Decimal`) : les chiffres ASCII, et
+/// Le chiffre (0 a 9) que `c` represente : les chiffres ASCII, et
 /// ceux des ecritures les plus courantes (arabe, devanagari, pleine chasse).
 pub(crate) fn chiffre_py(c: char) -> Option<u32> {
     const DEBUTS: [u32; 4] = [0x0660, 0x06F0, 0x0966, 0xFF10];
@@ -798,7 +798,7 @@ fn chiffres_py(t: &str) -> Option<String> {
     }
 }
 
-/// `Decimal(texte)` ; `None` quand Python leve `InvalidOperation`.
+/// `Decimal(texte)` ; `None` quand le texte n'est pas un nombre.
 fn decimal_py(texte: &str) -> Option<Dec> {
     let sans: String = texte.chars().filter(|c| *c != '_').collect();
     let t = sans.trim_matches(socle::texte::blanc);

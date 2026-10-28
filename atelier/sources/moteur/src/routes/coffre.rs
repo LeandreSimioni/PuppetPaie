@@ -413,7 +413,7 @@ fn liste(v: &Value) -> R<Vec<Value>> {
 }
 
 /// `compagnies.refuser_si_copie` : une copie de developpement n'ecrit jamais
-/// dans le Drive de la vraie compagnie. Le refus, sous la classe du Python.
+/// dans le Drive de la vraie compagnie. Le refus a sa classe, `CopieDeDeveloppement`.
 pub(crate) fn refus_de_copie(racine: &Path) -> Option<Echec> {
     Path::new(racine).join(MARQUEUR_COPIE).is_file().then(|| {
         erreur(
@@ -425,8 +425,8 @@ pub(crate) fn refus_de_copie(racine: &Path) -> Option<Echec> {
 }
 
 /// `Client(ctx).jeton_acces()` : `Ok(None)` si Google rend un jeton d'acces,
-/// `Ok(Some(probleme))` pour une `ErreurGoogle`, `Err` pour ce que Python
-/// laissait passer.
+/// `Ok(Some(probleme))` pour une `ErreurGoogle`, `Err` pour tout autre
+/// defaut.
 fn rafraichir(ctx: &Contexte, client_id: &Value, client_secret: &Value) -> R<Option<String>> {
     // `compagnies.refuser_si_copie`, a la construction du client.
     if let Some(refus) = refus_de_copie(&ctx.racine) {

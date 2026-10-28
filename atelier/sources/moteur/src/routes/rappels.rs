@@ -512,7 +512,7 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
 }
 
 /// Les entrees d'un dossier dans l'ordre du systeme (`iterdir`), pour que deux
-/// fichiers de meme date se departagent comme en Python.
+/// fichiers de meme date se departagent toujours de la meme facon.
 fn entrees_dans_l_ordre(dossier: &Path) -> Vec<(String, PathBuf)> {
     match std::fs::read_dir(dossier) {
         Ok(l) => l.filter_map(|e| e.ok()).map(|e| (e.file_name().to_string_lossy().into_owned(), e.path())).collect(),

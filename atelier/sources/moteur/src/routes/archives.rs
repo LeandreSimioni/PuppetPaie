@@ -467,8 +467,8 @@ fn exporter(ctx: &Contexte, charge: &Value) -> R<Value> {
     })
 }
 
-/// Ce qu'un export rend, avant d'etre mis en JSON : la ligne de commande (`moteur exporter`) le rend en texte a partir de l'objet, comme le
-/// Python le faisait (le chemin ecrit en entier, les montants en `Decimal`).
+/// Ce qu'un export rend, avant d'etre mis en JSON : la ligne de commande (`moteur exporter`) le rend en texte a partir de l'objet
+/// (le chemin ecrit en entier, les montants en `Decimal`).
 pub(crate) enum Exporte {
     Casc(Value),
     Livre(documents::etats_paie::LivreDePaie),
@@ -856,7 +856,7 @@ fn etat_exercices(ctx: &Contexte) -> R<Value> {
     Ok(Value::Array(out))
 }
 
-/// L'erreur du disque, sous le nom que Python lui donne.
+/// L'erreur du disque, sous sa classe (`FileNotFoundError`, `PermissionError`, `OSError`).
 fn erreur_io(e: &std::io::Error, p: &Path) -> Echec {
     let classe = match (e.kind(), e.raw_os_error()) {
         (std::io::ErrorKind::NotFound, _) => "FileNotFoundError",

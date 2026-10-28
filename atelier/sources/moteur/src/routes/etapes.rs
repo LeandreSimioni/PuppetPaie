@@ -247,7 +247,7 @@ fn plur(k: usize, un: &'static str, des: &'static str) -> &'static str {
 /// pour un defaut du logiciel -- le spectacle pas encore choisi, les jours ou
 /// les heures pas encore saisis (`SaisieIncomplete`, leur liste est
 /// `engagement::saisie_incomplete`) -- gardent leur classe ; tout autre est
-/// celui du moteur (`CalculRefuse` cote Python).
+/// celui du moteur.
 pub fn classer_saisie(message: String) -> Echec {
     let incomplete = engagement::saisie_incomplete(&message);
     Echec { classe: if incomplete { Some("SaisieIncomplete") } else { None }, message }

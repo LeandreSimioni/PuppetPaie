@@ -131,7 +131,7 @@ fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
 
 // ------------------------------------------------------------------ la periode
 
-/// Un chiffre pour Python (`\d`, `int`) : ASCII, arabe, devanagari, pleine chasse.
+/// Un chiffre lu dans un nom (`\d`) : ASCII, arabe, devanagari, pleine chasse.
 fn chiffre(c: char) -> Option<u32> {
     crate::routes::fiches::chiffre_py(c)
 }
@@ -191,7 +191,7 @@ impl Periode {
         if let Some(m) = &self.mois {
             let c: Vec<char> = m.chars().collect();
             let n = (chiffre(c[5]).unwrap_or(0) * 10 + chiffre(c[6]).unwrap_or(0)) as i64;
-            // « 00 » n'est aucun mois (l'indice -1 du Python le lisait decembre) : il se refuse, comme partout.
+            // « 00 » n'est aucun mois : il se refuse, comme partout.
             let nom = socle::date::nom_du_mois(n, socle::date::Graphie::Minuscule).map_err(|e| avec("IndexError", e))?;
             return Ok(format!("{} {}", nom, c[..4].iter().collect::<String>()));
         }
@@ -440,7 +440,7 @@ fn paie_du_contrat_entier(ctx: &Contexte, p: &Paie) -> R<(PaieCs, Vec<String>)> 
 pub(crate) type Du = (String, String, Option<PaieCs>);
 
 /// `certificats_dus` : un certificat par contrat qui FINIT, pour le contrat entier quand il deborde
-/// du mois. Rend les certificats (dans l'ordre d'un dictionnaire Python) et les avertissements.
+/// du mois. Rend les certificats (dans l'ordre ou ils sont dus) et les avertissements.
 pub(crate) fn certificats_dus(ctx: &Contexte, paies: &[Paie]) -> R<(Vec<Du>, Vec<String>)> {
     let mut dus: Vec<Du> = Vec::new();
     let mut avertissements = Vec::new();
@@ -1166,7 +1166,7 @@ fn maintenant() -> i64 {
     socle::temps::secondes().floor() as i64
 }
 
-/// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix, comme Python.
+/// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix.
 pub(crate) fn zip(entrees: &[Entree]) -> R<Vec<u8>> {
     use flate2::write::DeflateEncoder;
     use flate2::{Compression, Crc};
@@ -1257,7 +1257,7 @@ fn secondes(meta: &std::fs::Metadata) -> i64 {
     meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_secs() as i64)
 }
 
-/// `st_mode` comme Python le lit. Sous Windows, Python le deduit de l'attribut lecture seule : `0o100444`, sinon
+/// `st_mode` d'un fichier du zip. Sous Windows, il se deduit de l'attribut lecture seule : `0o100444`, sinon
 /// `0o100666`.
 #[cfg(unix)]
 fn mode(meta: &std::fs::Metadata) -> u32 {

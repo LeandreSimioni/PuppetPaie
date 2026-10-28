@@ -110,7 +110,7 @@ fn an_et_mois(mois: &str) -> R<(i64, i64)> {
     Ok((entier(&tranche(0, 4))?, entier(&tranche(5, 7))?))
 }
 
-/// Le nom du mois `mo` (`date::nom_du_mois`) ; hors 1-12, `IndexError` (l'indice negatif du Python lisait « 00 »
+/// Le nom du mois `mo` (`date::nom_du_mois`) ; hors 1-12, `IndexError` (« 00 » n'est pas
 /// decembre : il se refuse).
 fn nom_du_mois(mo: i64, g: socle::date::Graphie) -> R<&'static str> {
     socle::date::nom_du_mois(mo, g).map_err(|e| erreur("IndexError", e))
@@ -321,7 +321,7 @@ pub(crate) fn ranger_aer(ctx: &Contexte, mois: Option<&str>, fichiers: Option<&[
     Ok(phrases)
 }
 
-/// `ranger_aer` du Python, structure : le rangement et ce qu'il a laisse. `forcer` : signer malgre un ecart (`aer --forcer`).
+/// Le rangement des AER revenues et ce qu'il a laisse. `forcer` : signer malgre un ecart (`aer --forcer`).
 pub(crate) fn ranger_aer_detail(ctx: &Contexte, mois: Option<&str>, fichiers: Option<&[std::path::PathBuf]>, forcer: bool) -> R<RangementAer> {
     use documents::aer::{authentifier, Authentification, Echec as AerEchec};
     let vues = attestations_archivees(ctx, mois, fichiers)?;

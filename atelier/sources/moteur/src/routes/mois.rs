@@ -832,7 +832,7 @@ fn exiger<'a>(charge: &'a Value, cle: &str) -> R<&'a Value> {
     charge.get(cle).ok_or_else(|| cle_manquante(cle))
 }
 
-/// `a < b` de Python, pour ce que des fichiers de saisie portent : des textes,
+/// L'ordre de ce que des fichiers de saisie portent : des textes,
 /// ou des nombres entre eux ; le reste ne se compare pas.
 fn comparer(a: &Value, b: &Value) -> R<Ordering> {
     match (a, b) {
@@ -890,7 +890,7 @@ fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
     v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
 }
 
-/// `int(v)` de Python.
+/// Un entier, de ce qu'un JSON porte.
 fn entier_py(v: &Value) -> R<i64> {
     match v {
         Value::Bool(b) => Ok(*b as i64),
@@ -1443,7 +1443,7 @@ fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
     Ok(format!("{} {}", nom, prenom))
 }
 
-/// `float(v)` de Python, d'une quantite saisie.
+/// Une quantite saisie, en flottant.
 fn quantite_py(v: &Value) -> Result<f64, Echec> {
     match v {
         Value::Bool(b) => Ok(*b as i64 as f64),
@@ -2065,7 +2065,7 @@ fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
 
 /// `sortie_json.paie` : une paie pour l'ecran. `brut` : l'engagement tel qu'il
 /// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
-/// `taux_cachet`, que Python garde tels qu'ecrits).
+/// `taux_cachet`, gardes tels qu'ecrits).
 pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, avec_lignes: bool) -> R<Value> {
     let e = &p.engagement;
     let nat = e.nat()?;
