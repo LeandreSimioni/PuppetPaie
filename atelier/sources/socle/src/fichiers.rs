@@ -482,3 +482,50 @@ pub fn introuvable(chemin: &Path) -> String {
 pub fn ecriture_impossible(e: &std::io::Error, chemin: &Path) -> String {
     format!("écriture impossible : {} : {}", repr(&chemin.to_string_lossy()), e)
 }
+
+/// Le marqueur d'une compagnie qui n'est pas la vraie (une compagnie fictive, une copie de developpement).
+pub const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
+
+/// Le modele `nom` (gabarit de contrat, de DPAE, de certificat) : celui de la compagnie (`_gabarits` de sa fiche `ent`),
+/// a defaut celui du poste (`poste`), a defaut celui livre avec le logiciel (`donnees/modeles/`). Une compagnie qui
+/// ecrit ses propres clauses passe devant ; une copie de la configuration du poste sans son dossier de gabarits reste la
+/// meme compagnie et garde ceux du poste (son gabarit DPAE porte son centre de medecine du travail). Une compagnie qui
+/// porte `MARQUEUR_COPIE` n'emprunte rien au poste : ses documents ne prennent jamais les clauses de la compagnie reelle.
+pub fn modele_de(nom: &str, ent: &Value, poste: &Path) -> PathBuf {
+    let propre = match ent.get("_gabarits") {
+        Some(g) if vrai(g) => PathBuf::from(crate::date::en_texte(g)),
+        _ => poste.to_path_buf(),
+    };
+    let copie = propre.parent().is_some_and(|p| p.join(MARQUEUR_COPIE).is_file());
+    let dossiers: Vec<&Path> = if copie { vec![&propre] } else { vec![&propre, poste] };
+    for dossier in dossiers {
+        if dossier.join(nom).exists() {
+            return dossier.join(nom);
+        }
+    }
+    dossier_du_code().join("modeles").join(nom)
+}
+
+/// Un fichier texte UTF-8 ; le refus porte la classe de l'erreur de lecture (`FileNotFoundError`, `PermissionError`,
+/// `IsADirectoryError`, `OSError`, `UnicodeDecodeError`).
+pub fn lire_texte_echec(p: &Path) -> Result<String, crate::echec::Echec> {
+    use crate::echec::erreur;
+    let octets = std::fs::read(p).map_err(|e| {
+        let classe = if p.is_dir() {
+            "IsADirectoryError"
+        } else {
+            match e.kind() {
+                std::io::ErrorKind::NotFound => "FileNotFoundError",
+                std::io::ErrorKind::PermissionDenied => "PermissionError",
+                _ => "OSError",
+            }
+        };
+        erreur(classe, panne_fichier(&e, p))
+    })?;
+    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
+}
+
+/// Un fichier JSON (`lire_texte_echec`, puis `JSONDecodeError` s'il ne se lit pas).
+pub fn lire_json_echec(p: &Path) -> Result<Value, crate::echec::Echec> {
+    serde_json::from_str(&lire_texte_echec(p)?).map_err(|e| crate::echec::erreur("JSONDecodeError", e.to_string()))
+}

@@ -12,7 +12,6 @@
 //! nombre illisible.
 
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
 
 use serde_json::{json, Value};
 
@@ -23,101 +22,19 @@ use crate::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::num::Decimal;
-use socle::texte::blanc;
+use socle::num::{decimal_py, int_py};
+use socle::texte::{blanc, lignes_py, texte_latin1};
 use socle::echec::Echec;
 use crate::routes_apercus::{lire_octets, nom_du_chemin, resoudre};
 use crate::routes_mois::Moteur;
-use crate::routes_ouverture::{numeroter, Refus};
+use crate::routes_ouverture::numeroter;
+use socle::echec::Refus;
 
 type R<T> = Result<T, Echec>;
 
 const TYPES: [(&str, &str); 5] = depot::TYPES;
 
 // ------------------------------------------------------------------ les petits outils de Python
-
-/// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.
-/// Python n'a pas de plafond : un entier trop long pour `i128` se rend au plus grand.
-pub(crate) fn int_py(t: &str) -> Option<i128> {
-    let t = t.trim_matches(blanc);
-    let (neg, reste) = match t.strip_prefix('-') {
-        Some(r) => (true, r),
-        None => (false, t.strip_prefix('+').unwrap_or(t)),
-    };
-    if reste.is_empty() || reste.starts_with('_') || reste.ends_with('_') || reste.contains("__") {
-        return None;
-    }
-    let chiffres: String = reste.chars().filter(|c| *c != '_').collect();
-    if !chiffres.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    let n = chiffres.parse::<i128>().unwrap_or(i128::MAX);
-    Some(if neg { -n } else { n })
-}
-
-/// `Decimal(texte)` : le signe, les chiffres avec un point et des tirets bas entre deux
-/// chiffres, un exposant. `None` quand Python leve `InvalidOperation`.
-pub(crate) fn decimal_py(t: &str) -> Option<Decimal> {
-    let t = t.trim_matches(blanc);
-    let c: Vec<char> = t.chars().collect();
-    let mut i = 0;
-    let mut propre = String::new();
-    if i < c.len() && (c[i] == '+' || c[i] == '-') {
-        if c[i] == '-' {
-            propre.push('-');
-        }
-        i += 1;
-    }
-    // une suite de chiffres, avec des tirets bas seulement entre deux chiffres
-    let suite = |i: &mut usize, sortie: &mut String| -> usize {
-        let mut n = 0;
-        while *i < c.len() {
-            if c[*i].is_ascii_digit() {
-                sortie.push(c[*i]);
-                n += 1;
-            } else if c[*i] == '_' && n > 0 && *i + 1 < c.len() && c[*i + 1].is_ascii_digit() {
-            } else {
-                break;
-            }
-            *i += 1;
-        }
-        n
-    };
-    let mut entier = String::new();
-    let ne = suite(&mut i, &mut entier);
-    let mut frac = String::new();
-    let mut nf = 0;
-    if i < c.len() && c[i] == '.' {
-        i += 1;
-        nf = suite(&mut i, &mut frac);
-    }
-    if ne + nf == 0 {
-        return None;
-    }
-    let mut exposant = String::new();
-    if i < c.len() && (c[i] == 'e' || c[i] == 'E') {
-        i += 1;
-        if i < c.len() && (c[i] == '+' || c[i] == '-') {
-            exposant.push(c[i]);
-            i += 1;
-        }
-        if suite(&mut i, &mut exposant) == 0 {
-            return None;
-        }
-    }
-    if i != c.len() {
-        return None;
-    }
-    propre.push_str(if entier.is_empty() { "0" } else { &entier });
-    if !frac.is_empty() {
-        propre.push('.');
-        propre.push_str(&frac);
-    }
-    if exposant.is_empty() {
-        Decimal::from_str(&propre).ok()
-    } else {
-        Decimal::from_scientific(&format!("{}e{}", propre, exposant)).ok()
-    }
-}
 
 /// `format(d.normalize(), "f")`, avec `0` pour zero.
 fn norm(d: Decimal) -> String {
@@ -138,33 +55,6 @@ fn q2(d: Decimal) -> String {
 /// `float(d)`.
 fn flottant(d: Decimal) -> f64 {
     d.to_string().parse::<f64>().unwrap_or(0.0)
-}
-
-/// Les lignes d'un texte comme les compte `str.splitlines()` de Python (le numéro qu'on affiche est le sien) : `\n`,
-/// `\r`, `\r\n`, et les séparateurs `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\u{85}`, `\u{2028}`, `\u{2029}` ; une fin de ligne
-/// finale ne fait pas de ligne vide. La seule copie du moteur (DSN, retours, DILA, garde avant commit).
-pub fn lignes_py(t: &str) -> Vec<&str> {
-    let mut v = Vec::new();
-    let mut debut = 0;
-    let mut it = t.char_indices().peekable();
-    while let Some((i, c)) = it.next() {
-        if matches!(c, '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\u{85}' | '\u{2028}' | '\u{2029}') {
-            v.push(&t[debut..i]);
-            debut = i + c.len_utf8();
-            if c == '\r' && it.peek().is_some_and(|&(_, d)| d == '\n') {
-                it.next();
-                debut += 1;
-            }
-        }
-    }
-    if debut < t.len() {
-        v.push(&t[debut..]);
-    }
-    v
-}
-
-pub(crate) fn texte_latin1(o: &[u8]) -> String {
-    o.iter().map(|&b| b as char).collect()
 }
 
 // ------------------------------------------------------------------ dsn_recap.lire
@@ -646,18 +536,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn decimal_comme_python() {
-        assert_eq!(decimal_py(" 12.50 ").unwrap().to_string(), "12.50");
-        assert_eq!(decimal_py("1_000").unwrap().to_string(), "1000");
-        assert_eq!(decimal_py(".5").unwrap().to_string(), "0.5");
-        assert_eq!(decimal_py("5.").unwrap().to_string(), "5");
-        assert_eq!(decimal_py("-1E+2").unwrap().to_string(), "-100");
-        for mauvais in ["", "-", "abc", "1 2", "1__0", "_1", "1.2.3", "1e", "12,5"] {
-            assert!(decimal_py(mauvais).is_none(), "{}", mauvais);
-        }
-    }
+    use std::str::FromStr;
 
     #[test]
     fn normaliser_et_arrondir() {
@@ -666,13 +545,6 @@ mod tests {
         assert_eq!(q2(Decimal::from_str("2.345").unwrap()), "2.34");
         assert_eq!(q2(Decimal::from_str("2.355").unwrap()), "2.36");
         assert_eq!(q2(Decimal::from_str("1500").unwrap()), "1500.00");
-    }
-
-    #[test]
-    fn les_lignes_se_comptent_comme_splitlines() {
-        assert_eq!(lignes_py("a\r\nb\rc\n\nd\u{85}e\u{2028}f\n"), ["a", "b", "c", "", "d", "e", "f"]);
-        assert_eq!(lignes_py("a\n"), ["a"]);
-        assert!(lignes_py("").is_empty());
     }
 
     #[test]

@@ -24,7 +24,9 @@ use serde_json::{json, Map, Value};
 
 use droit::natures;
 use socle::date::{d, en_texte};
-use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
+use socle::fichiers::{dossier_du_code, json_en_cache, modele_de, repr, repr_valeur, vrai};
+#[cfg(test)]
+use socle::fichiers::MARQUEUR_COPIE;
 use crate::ntt;
 use socle::num::Resultat;
 use crate::usages::strip;
@@ -234,40 +236,6 @@ fn chiffres(t: &str) -> String {
 pub struct Chemins {
     pub defaut: PathBuf,
     pub poste: PathBuf,
-}
-
-/// Le marqueur d'une compagnie qui n'est pas la vraie (`compagnies.MARQUEUR`).
-const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
-
-/// `contexte.modele_de(nom, ent)` : le modele `nom` de la compagnie, a defaut
-/// celui du poste, a defaut celui livre avec le logiciel.
-///
-/// POURQUOI (25/09/2026). Ces modeles ne vivaient que dans `prive/gabarits/` :
-/// sur un poste sans `prive/`, aucune compagnie ne produisait plus un seul
-/// contrat. Le modele livre ne sert donc qu'en DERNIER recours, et l'ordre
-/// d'avant ne bouge pas : une compagnie qui ecrit ses propres clauses passe
-/// devant, puis le poste -- un bac copie de la configuration du poste, sans
-/// son dossier `gabarits/`, reste la meme compagnie et garde son gabarit DPAE,
-/// qui porte son centre de medecine du travail.
-///
-/// UNE COPIE N'EMPRUNTE RIEN AU POSTE (25/09/2026). Une compagnie qui porte le
-/// marqueur `COPIE-DE-DEVELOPPEMENT.json` -- une compagnie fictive --
-/// sautait au modele du poste des qu'elle n'avait pas le sien : ses contrats
-/// sortaient avec les clauses de la compagnie reelle, jusqu'a son centre de
-/// medecine du travail. Elle prend desormais le modele livre.
-pub fn modele_de(nom: &str, ent: &Value, poste: &Path) -> PathBuf {
-    let propre = match ent.get("_gabarits") {
-        Some(g) if vrai(g) => PathBuf::from(en_texte(g)),
-        _ => poste.to_path_buf(),
-    };
-    let copie = propre.parent().map_or(false, |p| p.join(MARQUEUR_COPIE).is_file());
-    let dossiers: Vec<&Path> = if copie { vec![&propre] } else { vec![&propre, poste] };
-    for dossier in dossiers {
-        if dossier.join(nom).exists() {
-            return dossier.join(nom);
-        }
-    }
-    dossier_du_code().join("modeles").join(nom)
 }
 
 /// Le nom du gabarit livre.

@@ -14,7 +14,7 @@ use engagement::Engagement;
 use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, Decimal};
-use crate::routes_ouverture::Refus;
+use socle::echec::Refus;
 
 type R<T> = Result<T, Refus>;
 

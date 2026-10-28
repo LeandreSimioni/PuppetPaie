@@ -69,7 +69,7 @@ fn entier(v: &Value) -> R<i64> {
     match v {
         Value::Number(n) => Ok(n.as_i64().unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i64)),
         Value::Bool(b) => Ok(i64::from(*b)),
-        Value::String(s) => crate::apercu_dsn::int_py(s)
+        Value::String(s) => socle::num::int_py(s)
             .and_then(|n| i64::try_from(n).ok())
             .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur(

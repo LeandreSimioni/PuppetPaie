@@ -630,7 +630,7 @@ pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, nume
 
 /// `contrat.lire_modele(modele_de(contrat.MODELE.name, ent))` pour le contrat d'engagement.
 pub(crate) fn modele_du_contrat(ent: &Value, gabarits: &Path) -> Resultat<Modele> {
-    modele::lire_fichier(&crate::dpae::modele_de(MODELE, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
+    modele::lire_fichier(&socle::fichiers::modele_de(MODELE, ent, gabarits).to_string_lossy()).map_err(|r| r.0)
 }
 
 #[cfg(test)]

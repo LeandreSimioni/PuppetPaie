@@ -20,7 +20,7 @@ use socle::date::{en_texte, Jour};
 use socle::valeur::valeur_en_texte;
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
-use crate::routes_ouverture::Refus;
+use socle::echec::Refus;
 
 type R<T> = Result<T, Refus>;
 
@@ -110,7 +110,7 @@ fn decimal_de(v: &Val) -> R<Decimal> {
         Val::Dec(d) => return Ok(*d),
         Val::Num(s) | Val::Txt(s) => s,
     };
-    crate::apercu_dsn::decimal_py(t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(t)))
+    socle::num::decimal_py(t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(t)))
 }
 
 /// `_somme` : la somme de ce qui est DECLARE, ou `None` quand aucune ligne ne l'est.

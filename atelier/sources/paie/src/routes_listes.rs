@@ -21,7 +21,6 @@
 //! texte (fichier abime a la main) n'est range que pour les cas simples.
 
 use std::collections::HashMap;
-use std::path::Path;
 
 use serde_json::{json, Value};
 
@@ -56,28 +55,6 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 #[track_caller]
 fn plain(m: impl Into<String>) -> Echec {
     socle::echec::noter_et(None, m)
-}
-
-/// `p.read_text(encoding="utf-8")`.
-pub(crate) fn lire_texte(p: &Path) -> R<String> {
-    let octets = std::fs::read(p).map_err(|e| {
-        let classe = if p.is_dir() {
-            "IsADirectoryError"
-        } else {
-            match e.kind() {
-                std::io::ErrorKind::NotFound => "FileNotFoundError",
-                std::io::ErrorKind::PermissionDenied => "PermissionError",
-                _ => "OSError",
-            }
-        };
-        erreur(classe, socle::fichiers::panne_fichier(&e, p))
-    })?;
-    String::from_utf8(octets).map_err(|e| erreur("UnicodeDecodeError", format!("{} : {}", p.display(), e)))
-}
-
-/// `json.loads(p.read_text(encoding="utf-8"))`.
-pub(crate) fn lire_json(p: &Path) -> R<Value> {
-    serde_json::from_str(&lire_texte(p)?).map_err(|e| erreur("JSONDecodeError", e.to_string()))
 }
 
 /// `int(texte)` pour un morceau de nom de mois.

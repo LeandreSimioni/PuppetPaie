@@ -49,7 +49,7 @@ use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::echec::Echec;
-use crate::routes_listes::lire_json;
+use socle::fichiers::lire_json_echec as lire_json;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 3] = ["arret-contrats", "dossier-formes", "exports-periodes"];

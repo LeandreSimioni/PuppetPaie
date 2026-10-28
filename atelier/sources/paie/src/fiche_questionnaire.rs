@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 use serde_json::{json, Map, Value};
 
-use crate::champs::{espace, strip};
+use socle::texte::{blanc as espace, strip};
 use socle::date::Jour;
 
 pub const ALPHABET_CODE: &str = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -188,7 +188,7 @@ pub fn lire_reponses(texte: &str) -> HashMap<&'static str, String> {
     // « femme ou homme ? (facultatif) : homme » pour la reponse (« femme », sans NIR) -- voir la passation.
     let avec_deux_points: Vec<(usize, String, &'static str)> =
         QUESTIONS.iter().filter(|(_, lib, _)| lib.contains(':')).map(|(cle, lib, _)| (lib.matches(':').count(), cle_libelle(lib), *cle)).collect();
-    for ligne in crate::usages::lignes(texte) {
+    for ligne in socle::texte::lignes_py(texte) {
         let coupes: Vec<usize> = ligne.match_indices(':').map(|(i, _)| i).collect();
         if let Some((n, _, cle)) = avec_deux_points.iter().find(|(n, lib, _)| {
             coupes.get(*n).is_some_and(|i| cle_libelle(ligne[..*i].trim_start_matches(['*', '>', ' '])) == *lib)

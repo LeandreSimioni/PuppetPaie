@@ -74,7 +74,7 @@ impl Val {
             Val::Num(v) => return socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
             Val::Txt(s) => s,
         };
-        crate::apercu_dsn::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
+        socle::num::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
     }
 
     /// `dict_tableau._v` / `sortie_json.brut` : un `Decimal` devient son texte.
@@ -806,7 +806,7 @@ pub(crate) fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte)
 /// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
 pub(crate) fn nom_du_mois(m: &str) -> R<&'static str> {
     let tranche: String = m.chars().skip(5).take(2).collect();
-    let n = crate::apercu_dsn::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
+    let n = socle::num::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
     socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
@@ -853,7 +853,7 @@ pub(crate) fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
             if t.trim_matches(socle::texte::blanc).is_empty() {
                 return Ok(None);
             }
-            let d = crate::apercu_dsn::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))?;
+            let d = socle::num::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))?;
             Ok(Some(socle::num::eur2(d)))
         }
     }

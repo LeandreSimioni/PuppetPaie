@@ -23,43 +23,12 @@ use engagement::{self, Avis, Engagement};
 use crate::etats;
 use socle::fichiers::{lire_json, vrai};
 use socle::num::{dec, flottant, Decimal, Resultat};
-use socle::echec::Echec;
 
 // ------------------------------------------------------------------ les refus
 
-/// Un refus et, quand Python l'aurait leve sous un nom, la classe de
-/// l'exception (`SaisieIncomplete`, `KeyError`...).
-#[derive(Debug)]
-pub(crate) struct Refus {
-    pub(crate) classe: Option<&'static str>,
-    pub(crate) message: String,
-}
-
+pub(crate) use socle::echec::Refus;
 pub(crate) type R<T> = Result<T, Refus>;
 
-impl From<String> for Refus {
-    fn from(message: String) -> Self {
-        Refus { classe: None, message }
-    }
-}
-
-impl From<&str> for Refus {
-    fn from(m: &str) -> Self {
-        Refus { classe: None, message: m.to_string() }
-    }
-}
-
-impl From<Echec> for Refus {
-    fn from(e: Echec) -> Self {
-        Refus { classe: e.classe, message: e.message }
-    }
-}
-
-impl From<Refus> for Echec {
-    fn from(r: Refus) -> Self {
-        Echec { classe: r.classe, message: r.message }
-    }
-}
 
 fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
     Refus { classe: Some(classe), message: message.into() }
@@ -67,14 +36,12 @@ fn avec_classe(classe: &'static str, message: impl Into<String>) -> Refus {
 
 const SEPARATEUR: char = '\u{1}';
 
-impl Refus {
-    /// Le refus en texte : `\u{1}classe\u{1}message` quand il a une classe, le
-    /// message seul sinon (le `Resultat<Value>` des routes ne porte qu'un texte).
-    fn encoder(self) -> String {
-        match self.classe {
-            Some(c) => format!("{}{}{}{}", SEPARATEUR, c, SEPARATEUR, self.message),
-            None => self.message,
-        }
+/// Le refus en texte : `\u{1}classe\u{1}message` quand il a une classe, le
+/// message seul sinon (le `Resultat<Value>` des routes ne porte qu'un texte).
+fn encoder(r: Refus) -> String {
+    match r.classe {
+        Some(c) => format!("{}{}{}{}", SEPARATEUR, c, SEPARATEUR, r.message),
+        None => r.message,
     }
 }
 
@@ -95,7 +62,7 @@ pub fn traiter(o: &HashMap<String, String>, route: &str, charge: &Value) -> Opti
         "apercu" => apercu(o, charge),
         _ => return None,
     };
-    Some(r.map_err(Refus::encoder))
+    Some(r.map_err(encoder))
 }
 
 // ------------------------------------------------------------------ outils

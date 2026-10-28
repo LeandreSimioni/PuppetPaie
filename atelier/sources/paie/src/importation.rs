@@ -8,7 +8,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::apercu_dsn::{lignes_py, texte_latin1};
+use socle::texte::{lignes_py, texte_latin1};
 use socle::texte::blanc;
 
 /// Bloc S21.G00.30 (individu) -> champ de `salaries.json`.
@@ -538,7 +538,7 @@ pub(crate) struct ContratAtteste {
 /// fichiers ou enregistrements illisibles. Un `InvalidOperation` (un brut qui n'est pas un nombre)
 /// n'est pas rattrape, comme en Python.
 pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<String>), socle::echec::Echec> {
-    use crate::apercu_dsn::{decimal_py, int_py};
+    use socle::num::{decimal_py, int_py};
     let mut vus: Vec<(Vec<String>, ContratAtteste)> = Vec::new();
     let mut connus: std::collections::HashSet<Vec<String>> = std::collections::HashSet::new();
     let mut illisibles = Vec::new();

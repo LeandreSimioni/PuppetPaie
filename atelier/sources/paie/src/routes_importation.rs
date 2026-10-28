@@ -605,7 +605,7 @@ fn entier_py(v: &Value) -> R<i128> {
     match v {
         Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
         Value::Bool(b) => Ok(i128::from(*b)),
-        Value::String(s) => crate::apercu_dsn::int_py(s)
+        Value::String(s) => socle::num::int_py(s)
             .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur(
             "TypeError",

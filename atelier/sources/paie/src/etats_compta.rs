@@ -849,7 +849,7 @@ fn ecrivain(format: &str) -> Option<Ecrivain> {
 fn choix_compta(ctx: &Contexte) -> R<Value> {
     let chemin = ctx.racine.join("config").join("compta.json");
     if chemin.exists() {
-        crate::routes_listes::lire_json(&chemin)
+        socle::fichiers::lire_json_echec(&chemin)
     } else {
         Ok(Value::Object(Map::new()))
     }

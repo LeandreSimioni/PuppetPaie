@@ -28,7 +28,7 @@ use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, vrai};
 use socle::num::eur2;
 use socle::echec::Echec;
-use crate::routes_ouverture::Refus;
+use socle::echec::Refus;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 4] = ["dpae", "arret-signaler", "fin-contrat-signaler", "fin-contrat-documents"];
@@ -256,14 +256,14 @@ fn fin_contrat_documents(ctx: &Contexte, charge: &Value) -> R<Value> {
         ));
     }
     let nom_cert = format!("CertificatTravail_{}_{}.pdf", cle, fin_jj);
-    let modele = crate::dpae::modele_de("certificat-travail.modele", &ent, &poste);
+    let modele = socle::fichiers::modele_de("certificat-travail.modele", &ent, &poste);
     ecrire_papier(&modele, marqueurs_communs(&date, &p, &ent)?, &sortie.join(&nom_cert), &ent, true)?;
 
     let nom_recu = format!("RecuSoldeToutCompte_{}_{}.pdf", cle, fin_jj);
     let mut valeurs = marqueurs_communs(&date, &p, &ent)?;
     valeurs.insert("solde.inventaire".into(), json!(inventaire(&p)));
     valeurs.insert("solde.net".into(), json!(crate::bulletin::fmt_eur(eur2(p.net_a_payer))));
-    let modele = crate::dpae::modele_de("recu-solde-de-tout-compte.modele", &ent, &poste);
+    let modele = socle::fichiers::modele_de("recu-solde-de-tout-compte.modele", &ent, &poste);
     ecrire_papier(&modele, valeurs, &sortie.join(&nom_recu), &ent, false)?;
 
     Ok(json!({

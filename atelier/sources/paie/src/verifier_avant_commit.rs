@@ -428,9 +428,9 @@ fn chercher(fichier: &str, o: &[u8], motifs: &[Motif], trouvailles: &mut Vec<Tro
     // frais, le nuage), les minuscules ne servent à rien.
     let valeurs = siens.iter().any(|m| matches!(m, Motif::Valeur { .. }));
     let minuscules = if valeurs { texte.to_lowercase() } else { String::new() };
-    let lignes_min = if valeurs { crate::apercu_dsn::lignes_py(&minuscules) } else { Vec::new() };
+    let lignes_min = if valeurs { socle::texte::lignes_py(&minuscules) } else { Vec::new() };
     let lignes_min = lignes_min.into_iter().chain(std::iter::repeat(""));
-    for (n, (ligne, min)) in crate::apercu_dsn::lignes_py(&texte).into_iter().zip(lignes_min).enumerate() {
+    for (n, (ligne, min)) in socle::texte::lignes_py(&texte).into_iter().zip(lignes_min).enumerate() {
         if let Some(m) = siens.iter().find(|m| m.trouve(ligne, min)) {
             trouvailles.push(Trouvaille { fichier: fichier.to_string(), ligne: n + 1, quoi: m.quoi().to_string() });
         }

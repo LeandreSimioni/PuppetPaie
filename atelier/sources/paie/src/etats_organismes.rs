@@ -515,7 +515,7 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
 pub(crate) fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
     let idcc = idcc_de(ctx);
-    let table = crate::routes_listes::lire_json(&socle::fichiers::dossier_du_code().join("prevoyance-conventionnelle-base.json"))?;
+    let table = socle::fichiers::lire_json_echec(&socle::fichiers::dossier_du_code().join("prevoyance-conventionnelle-base.json"))?;
     let fp = table.get("conventions").and_then(|c| c.get(idcc.as_str())).and_then(|r| r.get("financement_paritarisme")).filter(|v| vrai(v)).cloned();
     let Some(fp) = fp else {
         return Err(refus(format!(

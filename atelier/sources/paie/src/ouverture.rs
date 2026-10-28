@@ -53,7 +53,7 @@ use crate::sauvegarde::{self, Sauvegarde};
 pub const ROUTES: [&str; 2] = ["ouverture", "ouverture-derniere"];
 
 /// `compagnies.MARQUEUR`.
-const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
+use socle::fichiers::MARQUEUR_COPIE;
 
 /// La trace de la derniere ouverture : `config/.ouverture.json`.
 const TRACE: &str = ".ouverture.json";

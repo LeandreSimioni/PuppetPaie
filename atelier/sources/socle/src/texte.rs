@@ -6,6 +6,11 @@ pub fn blanc(c: char) -> bool {
     matches!(c, '\u{9}'..='\u{d}' | '\u{1c}'..='\u{20}' | '\u{85}' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
 }
 
+/// Le texte sans le blanc autour (`blanc`).
+pub fn strip(s: &str) -> &str {
+    s.trim_matches(blanc)
+}
+
 /// Les lettres accentuees du latin (Latin-1 et Latin etendu A) que
 /// `unicodedata.normalize("NFD")` decompose en lettre de base + diacritique.
 /// Pas de crate de normalisation : la table suffit aux noms de personnes.
@@ -72,4 +77,46 @@ pub fn cle_recherche(s: &str) -> String {
 pub fn sigle(s: &str) -> String {
     let ascii: String = sans_accent(s).chars().filter(char::is_ascii).collect();
     ascii.to_uppercase().split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Les lignes d'un texte comme les compte `str.splitlines()` de Python (le numéro qu'on affiche est le sien) : `\n`,
+/// `\r`, `\r\n`, et les séparateurs `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\u{85}`, `\u{2028}`, `\u{2029}` ; une fin de ligne
+/// finale ne fait pas de ligne vide. La seule copie du moteur (DSN, retours, DILA, garde avant commit).
+pub fn lignes_py(t: &str) -> Vec<&str> {
+    let mut v = Vec::new();
+    let mut debut = 0;
+    let mut it = t.char_indices().peekable();
+    while let Some((i, c)) = it.next() {
+        if matches!(c, '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\u{85}' | '\u{2028}' | '\u{2029}') {
+            v.push(&t[debut..i]);
+            debut = i + c.len_utf8();
+            if c == '\r' && it.peek().is_some_and(|&(_, d)| d == '\n') {
+                it.next();
+                debut += 1;
+            }
+        }
+    }
+    if debut < t.len() {
+        v.push(&t[debut..]);
+    }
+    v
+}
+
+/// Des octets lus en Latin-1 (ISO 8859-1) : chaque octet est le caractere de meme code (la DSN, les retours).
+pub fn texte_latin1(o: &[u8]) -> String {
+    o.iter().map(|&b| b as char).collect()
+}
+
+
+#[cfg(test)]
+mod tests_lignes {
+    use super::*;
+
+    #[test]
+    fn les_lignes_se_comptent_comme_splitlines() {
+        assert_eq!(lignes_py("a\r\nb\rc\n\nd\u{85}e\u{2028}f\n"), ["a", "b", "c", "", "d", "e", "f"]);
+        assert_eq!(lignes_py("a\n"), ["a"]);
+        assert!(lignes_py("").is_empty());
+    }
+
 }

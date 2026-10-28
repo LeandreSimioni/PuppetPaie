@@ -108,3 +108,36 @@ pub fn noter_echec_a(ou: &str, classe: Option<&str>, message: &str) {
 pub fn echecs_notes() -> MutexGuard<'static, VecDeque<Echoue>> {
     les_echecs().lock().unwrap_or_else(|p| p.into_inner())
 }
+
+/// Un refus et, quand Python l'aurait leve sous un nom, la classe de
+/// l'exception (`SaisieIncomplete`, `KeyError`...).
+#[derive(Debug)]
+pub struct Refus {
+    pub classe: Option<&'static str>,
+    pub message: String,
+}
+
+
+impl From<String> for Refus {
+    fn from(message: String) -> Self {
+        Refus { classe: None, message }
+    }
+}
+
+impl From<&str> for Refus {
+    fn from(m: &str) -> Self {
+        Refus { classe: None, message: m.to_string() }
+    }
+}
+
+impl From<Echec> for Refus {
+    fn from(e: Echec) -> Self {
+        Refus { classe: e.classe, message: e.message }
+    }
+}
+
+impl From<Refus> for Echec {
+    fn from(r: Refus) -> Self {
+        Echec { classe: r.classe, message: r.message }
+    }
+}

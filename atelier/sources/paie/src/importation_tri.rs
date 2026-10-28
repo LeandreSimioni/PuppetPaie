@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::apercu_dsn::{lignes_py, texte_latin1};
+use socle::texte::{lignes_py, texte_latin1};
 use socle::echec::R;
 use socle::echec::erreur;
 

@@ -11,40 +11,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-pub(crate) use socle::texte::blanc as espace;
-
-/// `str.strip()` de Python.
-pub(crate) fn strip(s: &str) -> &str {
-    s.trim_matches(espace)
-}
-
-/// `str.splitlines()` de Python (sans les fins de ligne).
-pub(crate) fn lignes(texte: &str) -> Vec<&str> {
-    let mut out = Vec::new();
-    let mut debut = 0;
-    let mut it = texte.char_indices().peekable();
-    while let Some((i, c)) = it.next() {
-        let coupe = matches!(
-            c,
-            '\n' | '\r' | '\u{b}' | '\u{c}' | '\u{1c}' | '\u{1d}' | '\u{1e}' | '\u{85}' | '\u{2028}' | '\u{2029}'
-        );
-        if coupe {
-            out.push(&texte[debut..i]);
-            let mut fin = i + c.len_utf8();
-            if c == '\r' {
-                if let Some(&(_, '\n')) = it.peek() {
-                    it.next();
-                    fin += 1;
-                }
-            }
-            debut = fin;
-        }
-    }
-    if debut < texte.len() {
-        out.push(&texte[debut..]);
-    }
-    out
-}
+pub(crate) use socle::texte::{blanc as espace, lignes_py as lignes, strip};
 
 /// `ligne.partition(",")` puis la valeur sans espaces ni apostrophes.
 pub(crate) fn rubrique_valeur(ligne: &str) -> (&str, &str) {

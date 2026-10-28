@@ -163,11 +163,7 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
 
 // ------------------------------------------------------- les outils de texte
 
-pub(crate) use socle::texte::blanc as espace;
-
-pub(crate) fn strip(s: &str) -> &str {
-    s.trim_matches(espace)
-}
+pub(crate) use socle::texte::{blanc as espace, strip};
 
 /// `str.isdigit()` : les chiffres, et ceux que Unicode range avec eux.
 pub(crate) fn est_chiffre(c: char) -> bool {

@@ -259,7 +259,7 @@ impl Suivi {
         if !p.exists() {
             return Ok(Suivi { fiches: Vec::new() });
         }
-        let v = crate::routes_listes::lire_json(&p)?;
+        let v = socle::fichiers::lire_json_echec(&p)?;
         let fiches = match v.get("arrets") {
             None | Some(Value::Null) => Vec::new(),
             Some(Value::Array(a)) => a.clone(),

@@ -47,7 +47,7 @@ pub(crate) const FICHIER_JETON: &str = "google-jeton.bin";
 pub(crate) const DESCRIPTION: &str = "moteur de paie - jeton Google";
 
 /// `compagnies.MARQUEUR`.
-const MARQUEUR_COPIE: &str = "COPIE-DE-DEVELOPPEMENT.json";
+use socle::fichiers::MARQUEUR_COPIE;
 
 /// `urlopen(..., timeout=60)`.
 pub(crate) const DELAI: u64 = 60;

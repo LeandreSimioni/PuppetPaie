@@ -19,7 +19,7 @@ use socle::echec::erreur;
 use socle::fichiers::vrai;
 use crate::journal::{self, Note};
 use socle::echec::Echec;
-use crate::routes_ouverture::Refus;
+use socle::echec::Refus;
 
 /// Les routes que ce module sert.
 pub const ROUTES: [&str; 7] = ["valider-engagement", "contrat-recu", "retenir-logiciel", "casc-regularise", "courriels-fictifs", "journal-reprise", "exporter"];

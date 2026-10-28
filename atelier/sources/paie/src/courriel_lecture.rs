@@ -22,10 +22,10 @@ pub fn adresse_de(m: &ParsedMail) -> String {
     let Ok(liste) = mailparse::addrparse_header(h) else { return String::new() };
     for a in liste.iter() {
         match a {
-            mailparse::MailAddr::Single(i) => return crate::champs::strip(&i.addr).to_lowercase(),
+            mailparse::MailAddr::Single(i) => return socle::texte::strip(&i.addr).to_lowercase(),
             mailparse::MailAddr::Group(g) => {
                 if let Some(i) = g.addrs.first() {
-                    return crate::champs::strip(&i.addr).to_lowercase();
+                    return socle::texte::strip(&i.addr).to_lowercase();
                 }
             }
         }
@@ -75,7 +75,7 @@ pub fn lisible_comme_python(brut: &[u8]) -> std::borrow::Cow<'_, [u8]> {
 
 /// `(message.get("Message-ID") or "").strip()`.
 pub fn identifiant_de(m: &ParsedMail) -> String {
-    crate::champs::strip(&m.headers.get_first_value("Message-ID").unwrap_or_default()).to_string()
+    socle::texte::strip(&m.headers.get_first_value("Message-ID").unwrap_or_default()).to_string()
 }
 
 /// `_date_de` : la date du message, en heure locale (Paris), ISO a la seconde -- le format du journal. Sans en-tete
@@ -113,7 +113,7 @@ fn entier(t: &str) -> Option<i64> {
 
 /// `email._parseaddr._parsedate_tz` : (an, mois, jour, heure, minute, seconde, decalage en secondes ou `None`).
 fn parsedate_tz(donnees: &str) -> Option<(i64, i64, i64, i64, i64, i64, Option<i64>)> {
-    let mut d: Vec<String> = donnees.split(crate::champs::espace).filter(|x| !x.is_empty()).map(String::from).collect();
+    let mut d: Vec<String> = donnees.split(socle::texte::blanc).filter(|x| !x.is_empty()).map(String::from).collect();
     if d.is_empty() {
         return None;
     }
@@ -255,7 +255,7 @@ pub fn texte_propre(m: &ParsedMail) -> String {
     for f in fs {
         let (principal, sous) = f.ctype.mimetype.split_once('/').unwrap_or(("text", "plain"));
         // `part.get_content_maintype() != "text" or part.get_filename()`.
-        if principal != "text" || nom_de_fichier(f).is_some_and(|n| !crate::champs::strip(&n).is_empty()) {
+        if principal != "text" || nom_de_fichier(f).is_some_and(|n| !socle::texte::strip(&n).is_empty()) {
             continue;
         }
         let contenu = texte_de(f);

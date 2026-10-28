@@ -298,7 +298,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
 /// `champs._capitales` : sans accents, en capitales, espaces resserrees.
 fn capitales(v: &Value) -> String {
     let t: String = champs::sans_accents(&valeur_en_texte(v)).chars().flat_map(char::to_uppercase).collect();
-    t.split(champs::espace).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
+    t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
 /// `champs.deriver_personnes` : les formes declarees du signataire et du contact DSN ;
@@ -395,7 +395,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
-    if nom == "salarie" && champs::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
+    if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
         let lettres: String = texte_ou_vide(donnees.get("nom")).chars().filter(|c| c.is_ascii_uppercase()).collect();
         if !lettres.is_empty() {
             let deux: String = lettres.chars().take(2).collect();
@@ -424,7 +424,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
 /// `urssaf.pour_departement` : l'organisme du territoire, ou "".
 fn urssaf_du_departement(dep: &str) -> R<String> {
     let table = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).map_err(|m| Echec::from(m))?;
-    let d = champs::strip(dep).to_uppercase();
+    let d = socle::texte::strip(dep).to_uppercase();
     let par = table.get("par_departement");
     let lire = |k: &str| par.and_then(|p| p.get(k)).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
     Ok(lire(&d).or_else(|| if d == "2A" || d == "2B" { lire("20") } else { None }).unwrap_or_default())
@@ -445,7 +445,7 @@ pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
     if nom == "salarie" {
-        let nir = champs::strip(&texte_ou_vide(donnees.get("nir"))).to_string();
+        let nir = socle::texte::strip(&texte_ou_vide(donnees.get("nir"))).to_string();
         let c: Vec<char> = nir.chars().collect();
         if c.len() == 13 && champs::tous_chiffres(&nir) && (c[0] == '1' || c[0] == '2') {
             let dep: String = c[5..7].iter().collect();
@@ -455,13 +455,13 @@ fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
                     trouvees.push(("pays_naissance", "FR".to_string()));
                 }
                 for (cle, valeur) in trouvees {
-                    if champs::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
+                    if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
                         propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
                     }
                 }
             }
         }
-    } else if nom == "entreprise" && champs::strip(&texte_ou_vide(donnees.get("code_urssaf"))).is_empty() {
+    } else if nom == "entreprise" && socle::texte::strip(&texte_ou_vide(donnees.get("code_urssaf"))).is_empty() {
         let code = urssaf_du_code_postal(donnees.get("code_postal"))?;
         if !code.is_empty() {
             propose.insert(

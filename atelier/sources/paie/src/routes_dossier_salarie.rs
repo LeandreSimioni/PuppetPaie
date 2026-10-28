@@ -40,7 +40,7 @@ use crate::fiche_recapitulative::Recapitulatifs;
 use socle::fichiers::vrai;
 use socle::num::{eur2, Decimal};
 use socle::echec::Echec;
-use crate::routes_ouverture::Refus;
+use socle::echec::Refus;
 
 type R<T> = Result<T, Refus>;
 
@@ -422,7 +422,7 @@ pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
 fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
     let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
-    let annee = crate::apercu_dsn::int_py(&mois.chars().take(4).collect::<String>())
+    let annee = socle::num::int_py(&mois.chars().take(4).collect::<String>())
         .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
     crate::routes_ouverture::numeroter_en_attente(ctx, paies, annee as i32, attente)
 }

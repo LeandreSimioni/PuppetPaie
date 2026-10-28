@@ -14,7 +14,7 @@ use crate::dpae::ascii_nfkd;
 use socle::fichiers::vrai;
 use crate::retours::{est_chiffre};
 use socle::echec::Echec;
-use crate::usages::{lignes, strip};
+use socle::texte::{lignes_py as lignes, strip};
 
 type Resultat<T> = Result<T, Echec>;
 
