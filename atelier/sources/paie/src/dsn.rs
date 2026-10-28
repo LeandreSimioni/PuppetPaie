@@ -4034,17 +4034,22 @@ pub struct Ordre {
     pub deduit: Decimal,
 }
 
-/// Une DSN fabriquee : son texte, et ses ordres de paiement dans l'ordre du fichier.
+/// UN BORDEREAU URSSAF (blocs S21.G00.22 et 23) tel que la DSN l'ecrit : la periode qu'il couvre (22.003, 22.004), son
+/// total (22.005) et ses lignes 23. Le premier est celui du mois declare ; les suivants, ceux des mois que ses
+/// corrections regularisent.
+#[derive(Clone, Debug)]
+pub struct BordereauEcrit {
+    pub debut: Jour,
+    pub fin: Jour,
+    pub total: Decimal,
+    pub lignes: Vec<LigneBordereau>,
+}
+
+/// Une DSN fabriquee : son texte, ses ordres de paiement dans l'ordre du fichier, et ses bordereaux Urssaf.
 pub struct Fabriquee {
     pub texte: String,
     pub ordres: Vec<Ordre>,
-}
-
-/// Les ordres de paiement que la DSN de `mois` porte pour l'etablissement `nic` (le principal sans lui) sur les paies
-/// `paies` (`fabriquer`, sans correction d'un autre mois : chacune est dans les paies declarees de son mois).
-pub(crate) fn ordres_du_mois(ctx: &Contexte, paies: &[Paie], mois: &str, nic: Option<&str>) -> Resultat<Vec<Ordre>> {
-    let o = Options { etablissement: nic.map(str::to_string), ..Default::default() };
-    Ok(fabriquer(ctx, paies, mois, &[], &[], &o)?.ordres)
+    pub bordereaux: Vec<BordereauEcrit>,
 }
 
 /// Le texte de la DSN (`fabriquer`).
@@ -4758,6 +4763,7 @@ certificat de conformite du depot precedent.",
     f.add("S21.G00.22.004", fin_m.jjmmaaaa());
     f.add("S21.G00.22.005", mt(mt_urssaf));
     ecrire_lignes_23(&mut f, &lignes_23);
+    let mut bordereaux = vec![BordereauEcrit { debut: debut_mois, fin: fin_m, total: mt_urssaf, lignes: lignes_23.clone() }];
     for ((mois_o, lignes), (_, montant)) in lignes_o.iter().zip(&montants_o) {
         let d_o = premier(mois_o)?;
         f.add("S21.G00.22.001", &siret_urssaf);
@@ -4765,6 +4771,7 @@ certificat de conformite du depot precedent.",
         f.add("S21.G00.22.004", fin_mois(d_o.an, d_o.mois).jjmmaaaa());
         f.add("S21.G00.22.005", mt(*montant));
         ecrire_lignes_23(&mut f, lignes);
+        bordereaux.push(BordereauEcrit { debut: d_o, fin: fin_mois(d_o.an, d_o.mois), total: *montant, lignes: lignes.clone() });
     }
     // L'assujettissement fiscal (lot V3b) : une fois l'an, dans la DSN de decembre, apres les bordereaux et avant les
     // individus (arborescence de la norme, p. 118, `chapitre-8-arborescences.txt` : 20, 55, 22, 23, 44, 30) ;
@@ -5002,7 +5009,7 @@ paie ne se devine pas. Rien n'est ecrit.",
     crate::ntt::verifier_fichier(&texte)?;
     crate::usages::verifier_fichier(&texte)?;
     crate::formats::verifier_fichier(&texte)?;
-    Ok(Fabriquee { texte, ordres: ordres.into_iter().flatten().collect() })
+    Ok(Fabriquee { texte, ordres: ordres.into_iter().flatten().collect(), bordereaux })
 }
 
 /// Le texte en latin-1, comme `dsn.ecrire` l'ecrit.

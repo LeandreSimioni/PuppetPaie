@@ -2,8 +2,10 @@
 //! les versements aux organismes (bloc 20), le bordereau Urssaf (blocs 22 et 23), le FCAP-SVP de la 3090, les
 //! contributions Afdas, le paritarisme de branche.
 //!
-//! CE QUE LA DSN PORTE SE TIRE DES PAIES DECLAREES (`dsn::paies_declarees_du_mois`) par les fonctions qui ecrivent la
-//! DSN : les versements (`dsn::ordres_du_mois`), le bordereau (`dsn::bordereau_du_mois`), la tranche A (`dsn::cotisations`).
+//! L'ARGENT QUI A BOUGE se tire de chaque DSN telle qu'elle est partie (`depart::dsn_du_mois` : ses paies et les
+//! corrections d'autres mois qu'elle portait, des versions qu'elle a emportees, par la fonction qui l'a fabriquee), ou
+//! telle qu'elle partirait : les versements (bloc 20) et le bordereau Urssaf (blocs 22 et 23). CE QUE LE MOIS COUTE se
+//! tire des paies declarees de chaque mois de paie (`dsn::paies_declarees_du_mois`) : la tranche A (`dsn::cotisations`).
 //! Les montants annuels hors DSN (FCAP-SVP, Afdas, paritarisme) se calculent sur le brut du livre de paie ou sur la
 //! tranche A declaree, avec les taux du bareme.
 
@@ -261,6 +263,38 @@ fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec
     Ok(out)
 }
 
+/// LA DSN DE CHAQUE MOIS DE LA PERIODE, par etablissement (le principal d'abord) : celle qui est partie telle qu'elle est
+/// partie, ou celle qui partirait (`depart::dsn_du_mois`) : `(mois, nic, la DSN, partie)`. Un mois sans DSN est dit.
+fn dsn_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec<(String, String, crate::dsn::Fabriquee, bool)>> {
+    let (mut out, mut sans) = (Vec::new(), Vec::new());
+    let principal = droit::bareme::nic_principal(&ctx.entreprise);
+    for m in &p.mois {
+        let mut une = false;
+        for nic in crate::dsn::nics(&ctx.entreprise) {
+            let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
+            if let Some((f, partie)) = crate::depart::dsn_du_mois(ctx, m, etablissement).map_err(|e| refus(e.message))? {
+                out.push((m.clone(), nic, f, partie));
+                une = true;
+            }
+        }
+        if !une {
+            sans.push(m.clone());
+        }
+    }
+    if !sans.is_empty() {
+        avert.push(format!("Aucune DSN partie ni paie validée pour {} : ces mois ne sont pas dans l'état.", sans.join(", ")));
+    }
+    if out.is_empty() {
+        return Err(refus(format!("Aucune DSN partie ni paie validée sur la période ({}) : il n'y a rien à lire.", p.libelle)));
+    }
+    Ok(out)
+}
+
+/// Le nom de la DSN d'un mois dans un etat : partie, ou a deposer.
+fn nom_de_la_dsn(m: &str, partie: bool) -> String {
+    format!("DSN de {}{}", libelle_mois(m).unwrap_or_else(|_| m.to_string()), if partie { "" } else { " (à déposer)" })
+}
+
 /// `_libelles_organismes` : SIRET -> libelle, lu dans `config/organismes.json`.
 fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     let Some(d) = ctx.organismes()? else { return Ok(Vec::new()) };
@@ -277,37 +311,25 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     Ok(out)
 }
 
-/// `operations_etats.versements_organismes` : chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20).
+/// `operations_etats.versements_organismes` : chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20), partie
+/// ou a deposer (`dsn_des_mois`).
 pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let noms = libelles_organismes(ctx)?;
     let mut lignes = Vec::new();
-    for (m, paies) in paies_des_mois(ctx, &p, &mut avert)? {
-        let principal = droit::bareme::nic_principal(&ctx.entreprise);
-        for nic in crate::dsn::nics(&ctx.entreprise) {
-            let mut siennes = Vec::new();
-            for q in &paies {
-                if droit::bareme::etablissement_du_salarie(&ctx.entreprise, &q.salarie).map_err(refus)? == nic {
-                    siennes.push(q.clone());
-                }
-            }
-            if siennes.is_empty() && nic != principal {
-                continue;
-            }
-            let etablissement = if nic == principal { None } else { Some(nic.as_str()) };
-            for o in crate::dsn::ordres_du_mois(ctx, &siennes, &m, etablissement).map_err(refus)? {
-                let organisme = match noms.iter().find(|(k, _)| *k == o.organisme).map(|(_, v)| v.clone()).filter(|v| !v.is_empty()) {
-                    Some(n) => n,
-                    None => o.organisme.clone(),
-                };
-                let mut l = Ligne::nouvelle();
-                l.t("mois", m.clone()).t("organisme", organisme).t("identifiant", o.organisme.clone()).t("reference", o.reference.clone().unwrap_or_default());
-                l.t("du", o.debut.jj_mm_aaaa()).t("au", o.fin.jj_mm_aaaa()).od("montant", Some(o.montant));
-                l.t("mode", "prélèvement SEPA");
-                l.t("date", o.date_paiement.map(|j| j.jj_mm_aaaa()).unwrap_or_default()).t("fichier", format!("DSN de {}", libelle_mois(&m).unwrap_or_else(|_| m.clone())));
-                lignes.push(l);
-            }
+    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert)? {
+        for o in &f.ordres {
+            let organisme = match noms.iter().find(|(k, _)| *k == o.organisme).map(|(_, v)| v.clone()).filter(|v| !v.is_empty()) {
+                Some(n) => n,
+                None => o.organisme.clone(),
+            };
+            let mut l = Ligne::nouvelle();
+            l.t("mois", m.clone()).t("organisme", organisme).t("identifiant", o.organisme.clone()).t("reference", o.reference.clone().unwrap_or_default());
+            l.t("du", o.debut.jj_mm_aaaa()).t("au", o.fin.jj_mm_aaaa()).od("montant", Some(o.montant));
+            l.t("mode", "prélèvement SEPA");
+            l.t("date", o.date_paiement.map(|j| j.jj_mm_aaaa()).unwrap_or_default()).t("fichier", nom_de_la_dsn(&m, partie));
+            lignes.push(l);
         }
     }
     if lignes.iter().any(|l| l.texte("date").is_empty()) {
@@ -330,7 +352,7 @@ pub(crate) fn versements_organismes(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("fichier", "DSN"),
     ];
     t.sources = vec![
-        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré des paies déclarées par la fonction qui écrit la DSN ; libellés : config/organismes.json".to_string(),
+        "bloc S21.G00.20 « Versement organisme de protection sociale » (cahier technique DSN 2026.1), tiré de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN ; libellés : config/organismes.json".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "versements-organismes", &d.format, d.ecrire)?;
     Ok(t)
@@ -425,7 +447,7 @@ fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
     Ok(out)
 }
 
-/// `operations_etats.bordereau_urssaf` : le bordereau Urssaf de chaque mois, CTP par CTP, tel que la DSN le porte (`dsn::bordereau_du_mois`). Les taux ne sont
+/// `operations_etats.bordereau_urssaf` : le bordereau Urssaf de chaque mois, CTP par CTP, tel que la DSN le porte, partie ou a deposer (`dsn_des_mois`), avec ceux des mois que ses corrections regularisent. Les taux ne sont
 /// pas appliques ici : c'est l'Urssaf qui calcule depuis les assiettes, et un export ne calcule pas.
 pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
@@ -435,25 +457,13 @@ pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         avert.push("La table des codes de l'Urssaf manque au logiciel : les codes sont donnés sans libellé.".to_string());
     }
     let mut lignes = Vec::new();
-    for (m, paies) in paies_des_mois(ctx, &p, &mut avert)? {
-        let debut = socle::date::Jour::lire(&format!("{}-01", m)).map_err(refus)?;
-        let fin = socle::date::dernier_du_mois(&m).map_err(refus)?;
-        for nic in crate::dsn::nics(&ctx.entreprise) {
-            let mut siennes = Vec::new();
-            for q in &paies {
-                if droit::bareme::etablissement_du_salarie(&ctx.entreprise, &q.salarie).map_err(refus)? == nic {
-                    siennes.push(q.clone());
-                }
-            }
-            if siennes.is_empty() {
-                continue;
-            }
-            let (lignes_23, total) = crate::dsn::bordereau_du_mois(ctx, &siennes, &m, Some(&nic)).map_err(refus)?;
+    for (m, _nic, f, partie) in dsn_des_mois(ctx, &p, &mut avert)? {
+        for bordereau in f.bordereaux {
             let mut l = Ligne::nouvelle();
-            l.t("mois", m.clone()).t("ctp", "").t("libelle", "Total dû à l'Urssaf (bloc 22)");
-            l.t("periode", format!("{} au {}", debut.jj_mm_aaaa(), fin.jj_mm_aaaa())).od("total", Some(total));
+            l.t("mois", m.clone()).t("ctp", "").t("libelle", format!("Total dû à l'Urssaf (bloc 22), {}", nom_de_la_dsn(&m, partie)));
+            l.t("periode", format!("{} au {}", bordereau.debut.jj_mm_aaaa(), bordereau.fin.jj_mm_aaaa())).od("total", Some(bordereau.total));
             lignes.push(l);
-            for b in lignes_23 {
+            for b in bordereau.lignes {
                 let mut l = Ligne::nouvelle();
                 let code = b.code.clone();
                 l.t("mois", m.clone()).t("ctp", code.clone()).t("libelle", ctp.iter().find(|(c, _)| *c == code).map(|(_, v)| v.clone()).unwrap_or_default());
@@ -484,7 +494,7 @@ pub(crate) fn bordereau_urssaf(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_m("total", "Total dû"),
     ];
     t.sources = vec![
-        "blocs S21.G00.22 « Bordereau de cotisation due » et S21.G00.23 « Cotisation agrégée » (cahier technique DSN 2026.1), tirés des paies déclarées par les fonctions qui écrivent la DSN".to_string(),
+        "blocs S21.G00.22 « Bordereau de cotisation due » et S21.G00.23 « Cotisation agrégée » (cahier technique DSN 2026.1), tirés de chaque DSN partie (des versions qu'elle a emportées) ou à déposer, par la fonction qui écrit la DSN".to_string(),
         "libellés : table des codes types de personnel, open.urssaf.fr (histocodestypescsv), relevée le 18/09/2026".to_string(),
     ];
     finir(ctx, &mut t, Some(&p), "bordereau-urssaf", &d.format, d.ecrire)?;

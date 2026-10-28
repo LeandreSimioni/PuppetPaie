@@ -180,9 +180,9 @@ const A_PRODUIRE: &str = "a_produire";
 const A_DEPOSER: &str = "a_deposer";
 const A_CORRIGER: &str = "a_corriger";
 
-/// La DPAE d'un engagement valide se rappelle a toute distance de l'embauche ; celle d'un engagement encore en saisie,
-/// huit jours avant (elle part au plus tard avant le debut du travail). Une embauche passee sans DPAE se rappelle une
-/// semaine.
+/// La DPAE d'un engagement valide se rappelle a toute distance de l'embauche. Un engagement encore en saisie se rappelle
+/// huit jours avant l'embauche, comme un engagement a valider : la DPAE part de l'engagement valide, au plus tard avant
+/// le debut du travail. Une embauche passee sans DPAE se rappelle une semaine.
 const RAPPEL_JOURS: i64 = 8;
 const RETARD_JOURS: i64 = 7;
 
@@ -950,7 +950,7 @@ fn jj_mm_aaaa(iso: &str) -> String {
     Jour::lire(iso).map(|j| j.jj_mm_aaaa()).unwrap_or_else(|_| iso.to_string())
 }
 
-/// Les DPAE a envoyer : celles des engagements valides, celles des embauches proches
+/// Les DPAE a envoyer : celles des engagements valides, et les engagements a valider des embauches proches
 /// (`RAPPEL_JOURS`), celles en retard. Une par jour d'embauche, avec le fichier
 /// teste s'il y en a un -- le bouton ouvre alors directement son depot. Se tait
 /// des que la DPAE reelle est au journal.
@@ -963,7 +963,7 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
     };
     let limite = aujourdhui.plus_jours(RAPPEL_JOURS)?.iso();
     let mut valides: HashMap<String, BTreeSet<(String, String)>> = HashMap::new();
-    let mut jours: BTreeMap<(String, String), Vec<Embauche>> = BTreeMap::new();
+    let mut jours: BTreeMap<(String, String), Vec<(Embauche, bool)>> = BTreeMap::new();
     for (e, _) in embauches_suivies(st)? {
         if !valides.contains_key(&e.mois) {
             let mut v = BTreeSet::new();
@@ -977,13 +977,16 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         }
         let valide = valides[&e.mois].contains(&(e.salarie.clone(), e.debut.clone()));
         if valide || e.debut <= limite {
-            jours.entry((e.mois.clone(), e.debut.clone())).or_default().push(e);
+            jours.entry((e.mois.clone(), e.debut.clone())).or_default().push((e, valide));
         }
     }
 
     let mut out = Vec::new();
-    for ((mois, debut), groupe) in jours {
+    for ((mois, debut), avec_etat) in jours {
         let jour = Jour::lire(&debut)?;
+        // Un engagement encore en saisie : ce qui se rappelle, c'est de le valider ; la DPAE part de l'engagement valide.
+        let a_valider: Vec<String> = avec_etat.iter().filter(|(_, v)| !*v).map(|(e, _)| format!("{} ({})", e.nom, e.spectacle)).collect();
+        let groupe: Vec<Embauche> = avec_etat.into_iter().map(|(e, _)| e).collect();
         let essais: Vec<Value> = groupe
             .iter()
             .map(|e| {
@@ -1010,6 +1013,9 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
                 }
             }
         }
+        if !a_valider.is_empty() {
+            pret = format!("Engagement encore en saisie, à valider (« Valider l'engagement ») : {}. La DPAE part de l'engagement validé.", a_valider.join(", "));
+        }
         if pret.is_empty() {
             let erreurs: Vec<String> = essais.iter().filter(|t| vrai_opt(t.get("erreur"))).map(|t| en_texte(&t["erreur"])).collect();
             pret = match erreurs.first() {
@@ -1034,7 +1040,11 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         let mut r = Rappel::nouveau(
             DPAE,
             format!("dpae:{}", debut),
-            format!("DPAE à envoyer — embauche du {}", jj_mm_aaaa(&debut)),
+            if a_valider.is_empty() {
+                format!("DPAE à envoyer — embauche du {}", jj_mm_aaaa(&debut))
+            } else {
+                format!("Engagement à valider — embauche du {}", jj_mm_aaaa(&debut))
+            },
             format!("Pas de trace d'envoi pour : {}.", noms),
         );
         r.mois = Some(mois);

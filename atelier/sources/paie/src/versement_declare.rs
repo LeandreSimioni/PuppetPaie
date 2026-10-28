@@ -189,3 +189,59 @@ pub fn de_la_paie(ctx: &Contexte, p: &Paie, mois: &str) -> Result<VersementDecla
         debut_contrat: Some(p.engagement.debut.jjmmaaaa()),
     })
 }
+
+/// Le dernier etat declare d'un contrat avant la DSN d'un mois : ce qu'une correction de ce contrat annule.
+pub struct DernierDeclare {
+    /// Le versement de la derniere paie declaree, ses montants nets sociaux ramenes a la periode d'origine.
+    pub versement: VersementDeclare,
+    /// Le net a payer avant impot de la derniere paie declaree : ce qui a ete paye au salarie.
+    pub net_deja_verse: Decimal,
+    /// La derniere paie declaree, au numero du dernier bulletin qu'une paie declaree de ce contrat porte.
+    pub avant: Paie,
+}
+
+/// LE DERNIER ETAT DECLARE de l'engagement `o` pour `mois`, par les DSN des mois anterieurs a `mois_courant` (`departs` :
+/// ce qui etait parti) : la paie de la version sur laquelle la DSN de `mois` est partie, puis celle de chaque correction
+/// deja portee (`engagement::etats::paies_declarees`) ; le versement de la derniere s'ecrit comme la mensuelle l'ecrit
+/// (`de_la_paie`).
+///
+/// Le montant net social (`dsn::blocs_58_de_la_correction`) : une correction qui a change le net paye en a declare la
+/// difference aux dates du mois de son versement (le rappel), et laisse le montant d'origine ; une correction qui ne l'a
+/// pas change a redeclare le montant d'origine. Les rappels deja declares se tirent de la suite des paies declarees, et
+/// le montant d'origine est le dernier montant net social declare moins eux. Le taux de prelevement est celui de la paie
+/// du mois d'origine ; la date de debut, la derniere declaree (`engagement::etats::debut_declare`). `None` : aucune DSN
+/// n'a declare ce contrat pour `mois`.
+pub fn dernier_declare(
+    ctx: &Contexte, o: &engagement::stock::Objet, departs: &engagement::departs::Departs, mois: &str, mois_courant: &str,
+) -> Result<Option<DernierDeclare>, String> {
+    let declarees = engagement::etats::paies_declarees(ctx, o, departs, mois, mois_courant)?;
+    let (Some(origine), Some(derniere)) = (declarees.first(), declarees.last()) else { return Ok(None) };
+    let mut etat = de_la_paie(ctx, &derniere.paie, mois)?;
+    let mut rappels = Decimal::ZERO;
+    for paire in declarees.windows(2) {
+        let (avant, puis) = (&paire[0].paie, &paire[1].paie);
+        if avant.net_a_payer != puis.net_a_payer {
+            rappels += puis.net_social - avant.net_social;
+        }
+    }
+    if !rappels.is_zero() {
+        let origine_58 = etat.net_social - rappels;
+        let mut type_03 = false;
+        for (k, v) in etat.lignes.iter_mut() {
+            match k.as_str() {
+                "S21.G00.58.003" => type_03 = v == "03",
+                "S21.G00.58.004" if type_03 => *v = crate::dsn::mt(origine_58),
+                _ => {}
+            }
+        }
+        etat.net_social = origine_58;
+        etat.rappels_net_social = rappels;
+    }
+    etat.taux_pas = origine.paie.pas.as_ref().map(|p| socle::valeur::valeur_en_texte(&p.taux)).filter(|t| !t.is_empty());
+    if let Some(d) = engagement::etats::debut_declare(ctx, o, departs, mois_courant)? {
+        etat.debut_contrat = Some(socle::date::Jour::lire(&d)?.jjmmaaaa());
+    }
+    let mut avant = derniere.paie.clone();
+    avant.numero_bulletin = declarees.iter().rev().find_map(|d| d.paie.numero_bulletin.clone());
+    Ok(Some(DernierDeclare { versement: etat, net_deja_verse: derniere.paie.net_a_payer, avant }))
+}
