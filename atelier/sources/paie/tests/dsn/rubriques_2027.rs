@@ -419,11 +419,9 @@ fn la_correction_d_un_montant_net_social_de_2027_se_date_au_versement_d_origine(
     let ctx = contexte(&racine);
     let jan = mois(&ctx, "2027-01", vec![nicolet("2027-01", 151.67, 2310.0, vec![])]).unwrap();
     let texte = dsn(&ctx, &jan, "2027-01").unwrap();
-    let depose = racine.join("DSN_Janvier2027.dsn");
-    std::fs::write(&depose, &texte).unwrap();
     let sal: Value = serde_json::from_slice(&std::fs::read(racine.join("config/salaries.json")).unwrap()).unwrap();
     let nir = sal["NICOLET"]["nir"].as_str().unwrap().to_string();
-    let declare = paie::versement_declare::lire(&depose, "2027-01", &nir, "NT.2027-01").unwrap();
+    let declare = paie::versement_declare::lire(&texte, "la DSN de janvier 2027", "2027-01", &nir, "NT.2027-01").unwrap();
     let net = jan[0].net_social;
     let r = paie::dsn::Regularisation {
         mois: "2027-01".into(),

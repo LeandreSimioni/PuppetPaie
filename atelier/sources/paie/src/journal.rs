@@ -153,7 +153,7 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
 
 /// CE QUI EST PARTI, pour l'engagement (`engagement::departs`) : chaque ligne d'envoi acceptee porte, pour chaque
 /// engagement qu'elle couvre, la version sur laquelle elle est partie (`versions` : `[{"salarie", "numero",
-/// "version"}]`). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
+/// "version", "mois"?}]` ; `mois`, pour la correction d'un mois passe qu'une DSN porte : le mois corrige). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
 pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
     use engagement::departs::{Depart, Departs, Envoi};
     let mut d = Departs::default();
@@ -179,7 +179,13 @@ pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
             else {
                 continue;
             };
-            d.noter(cle, numero, Depart { envoi, mois: mois.clone(), version, le: le.clone() });
+            // La correction d'un mois passe que la DSN porte : sa version est celle de l'engagement du mois corrige.
+            let corrige = (envoi == Envoi::Dsn).then(|| v.get("mois").and_then(Value::as_str).map(String::from)).flatten().filter(|m| Some(m) != mois.as_ref());
+            let (m, par) = match corrige {
+                Some(c) => (Some(c), mois.clone()),
+                None => (mois.clone(), None),
+            };
+            d.noter(cle, numero, Depart { envoi, mois: m, par, version, le: le.clone() });
         }
     }
     Ok(d)
@@ -198,6 +204,31 @@ pub fn versions_du_mois(ctx: &droit::contexte::Contexte, mois: &str, garder: imp
         }
     }
     Ok(Value::Array(out))
+}
+
+/// LES VERSIONS QUE PORTENT LES CORRECTIONS d'une DSN mensuelle : pour chaque correction d'un mois passe que le fichier
+/// `fichier` de `mois` porte (`preparee_par`), la version de l'engagement du mois corrige qu'elle declare,
+/// `{"salarie", "numero", "version", "mois": <le mois corrige>}`.
+pub fn versions_des_corrections(ctx: &droit::contexte::Contexte, mois: &str, fichier: &str) -> socle::echec::R<Vec<Value>> {
+    let mut out = Vec::new();
+    for c in crate::routes_ecrites::toutes_les_corrections(ctx)? {
+        let prep = c.get("preparee_par").filter(|p| vrai(p));
+        let ici = prep.is_some_and(|p| p.get("mois").and_then(Value::as_str) == Some(mois) && p.get("fichier").and_then(Value::as_str) == Some(fichier));
+        if !ici || c.get("annulee_le").is_some_and(vrai) {
+            continue;
+        }
+        let corrige = socle::valeur::valeur_en_texte(c.get("mois").unwrap_or(&Value::Null));
+        let cle = c.get("salarie").and_then(Value::as_str).unwrap_or_default().to_string();
+        let numero = c.get("engagement").and_then(|e| e.get("numero")).map(socle::valeur::valeur_en_texte).unwrap_or_default();
+        let siens = versions_du_mois(ctx, &corrige, |k, n, _| k == cle && n == numero)?;
+        for mut v in siens.as_array().cloned().unwrap_or_default() {
+            v["mois"] = json!(corrige);
+            if !out.contains(&v) {
+                out.push(v);
+            }
+        }
+    }
+    Ok(out)
 }
 
 /// `versions_du_mois` des contrats qui partent (`[{"salarie", "numero", "mois"}]`, chacun lu dans le mois qu'il nomme).

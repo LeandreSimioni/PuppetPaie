@@ -187,20 +187,32 @@ pub(crate) fn paies_de(ctx: &Contexte, data: &Value) -> R<Vec<Paie>> {
     Ok(engagement::charger_donnees(ctx, data).map_err(|m| Echec::from(crate::routes_ouverture::refus_du_calcul(ctx, data, m)))?.paies)
 }
 
-/// LA SAISIE DE `mois` TELLE QUE DECLAREE : la saisie du mois, ses engagements tels que la version sur laquelle la DSN
-/// du mois est partie pour chacun les a ecrits (`engagement::etats::engagement_declare`), dans l'ordre de l'ecran ; un
-/// engagement dont aucune DSN de ce mois n'est partie n'y est pas. `None` : aucune DSN du mois n'est partie.
+/// LA SAISIE DE `mois` TELLE QUE DECLAREE : ce que le mois posait pour tous ses engagements quand leurs paies declarees
+/// ont ete calculees (`engagement::etats::mois_declare` : le taux du cachet, la date de paiement), et ses engagements
+/// tels que la version sur laquelle la derniere DSN qui a declare ce mois est partie pour chacun les a ecrits
+/// (`engagement::etats::engagement_declare`), dans l'ordre de l'ecran ; un engagement qu'aucune DSN n'a declare pour ce
+/// mois n'y est pas. `None` : aucune DSN n'a declare ce mois.
 pub(crate) fn saisie_declaree(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     let Some(mut saisie) = engagement::stock::vue_du_mois(&ctx.racine, mois)? else { return Ok(None) };
     let departs = crate::journal::departs(&ctx.racine)?;
     let mut declares = Vec::new();
+    let mut lu: Option<Value> = None;
     for o in engagement::stock::objets_du_mois(&ctx.racine, mois)? {
         if let Some(e) = engagement::etats::engagement_declare(ctx, &o, &departs, mois)? {
             declares.push(Value::Object(e));
+            lu = lu.or_else(|| engagement::etats::mois_declare(ctx, &o, &departs, mois));
         }
     }
     if declares.is_empty() {
         return Ok(None);
+    }
+    if let Some(Value::Object(lu)) = lu {
+        let origine = saisie.get("_origine").cloned();
+        saisie = Value::Object(lu);
+        saisie["mois"] = json!(mois);
+        if let Some(o) = origine {
+            saisie["_origine"] = o;
+        }
     }
     saisie["engagements"] = Value::Array(declares);
     Ok(Some(saisie))
@@ -216,45 +228,19 @@ pub(crate) fn saisie_d_origine(ctx: &Contexte, mois: &str) -> R<Value> {
         .ok_or_else(|| non_regularisable(format!("Aucun engagement ne touche {} : rien a corriger.", mois)))
 }
 
-/// `lire_corrections`, reduit a ce que l'apercu lit : l'engagement que la derniere correction PORTEE a
-/// laisse, par (salarie, debut).
-fn engagements_portes(ctx: &Contexte, mois: &str) -> R<HashMap<(String, String), Value>> {
-    let p = ctx.racine.join("regularisations").join(format!("{}.json", mois));
-    let mut portees = HashMap::new();
-    if !p.exists() {
-        return Ok(portees);
-    }
-    let texte = std::fs::read_to_string(&p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
-    let d: Value = serde_json::from_str(&texte).map_err(|e| erreur("JSONDecodeError", e.to_string()))?;
-    let corrections = d.get("corrections").cloned().unwrap_or_else(|| json!([]));
-    for c in etats::items(&corrections)? {
-        for k in ["mois", "numero", "salarie", "debut", "motif", "engagement", "decidee_le", "qui"] {
-            if c.get(k).is_none() {
-                return Err(erreur("TypeError", format!("Correction : champ manquant '{}'", k)));
-            }
-        }
-        if c.get("portee_par").is_some_and(vrai) {
-            let k = (valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["debut"]));
-            portees.insert(k, c["engagement"].clone());
-        }
-    }
-    Ok(portees)
-}
-
 /// `engagements_d_origine`, puis `_engagement_declare` : l'engagement du contrat tel que DECLARE, la
 /// saisie du mois, et ce que la page montre du contrat (nom, spectacle, numero).
 pub(crate) fn engagement_declare(m: &mut Moteur, ctx: &Contexte, mois: &str, salarie: &Value, debut: &Value) -> R<(Value, Value, Value)> {
     let donnees = saisie_d_origine(ctx, mois)?;
     let mut paies = paies_de(ctx, &donnees)?;
     poser_numeros(m, ctx, mois, &mut paies)?;
-    let portees = engagements_portes(ctx, mois)?;
     let engs = donnees.get("engagements").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("engagements")))?;
     let engs = etats::items(engs)?;
     let mut trouve: Option<(Value, Value)> = None;
     for (p, e) in paies.iter().zip(engs.iter()) {
         let cle_s = valeur_en_texte(requis(&p.salarie, "_cle")?);
         let debut_s = p.engagement.debut.iso();
-        let declare = portees.get(&(cle_s.clone(), debut_s.clone())).cloned().unwrap_or_else(|| e.as_ref().clone());
+        let declare = e.as_ref().clone();
         let sal = &p.salarie;
         let prenom = match sal.get("prenom_affichage").filter(|v| vrai(v)) {
             Some(v) => valeur_en_texte(v),

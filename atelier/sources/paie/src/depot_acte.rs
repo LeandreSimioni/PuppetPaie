@@ -798,8 +798,14 @@ pub fn deposer_dsn_dans(
         versions_du_signalement(ctx, &mois, &octets)?
     } else {
         let nic = Some(apercu.champ("etablissement")).filter(|n| !n.is_empty()).map(String::from).unwrap_or_else(|| droit::bareme::nic_principal(&ctx.entreprise));
-        crate::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
-            .map_err(Echec::from)?
+        let mut v = crate::journal::versions_du_mois(ctx, &mois, |_, _, e| crate::routes_mois::nic_de_l_engagement_ecrit(ctx, &mois, e).as_deref() == Some(nic.as_str()))
+            .map_err(Echec::from)?;
+        // Et la version de l'engagement de chaque mois passe dont le fichier porte la correction.
+        let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if let Value::Array(a) = &mut v {
+            a.extend(crate::journal::versions_des_corrections(ctx, &mois, &nom)?);
+        }
+        v
     };
     let ligne = noter(ctx, "dsn", &mois, &chemin, reel, qui, true, "net-entreprises", &flux, &reponse, Some(&trace), &detail, Some(&versions))?;
     let quand = ligne.get("quand").and_then(Value::as_str).unwrap_or("").to_string();

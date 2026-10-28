@@ -193,6 +193,9 @@ impl Valide {
 pub const BULLETIN: &str = "bulletin";
 pub const CE: &str = "ce";
 pub const RECTIFIE: &str = "rectifie";
+/// Dans une paie ecrite : ce que la saisie du mois posait pour tous ses engagements quand elle a ete calculee (le taux du
+/// cachet, la date de paiement), tel que son calcul l'a lu.
+pub const MOIS_LU: &str = "saisie_du_mois";
 
 /// LES NUMEROS DES DOCUMENTS QUI PARTENT, ecrits dans la paie de `mois` de l'engagement du salarie `cle` qui commence le
 /// `debut` (le `jumeau`-ieme de ceux-la, dans l'ordre de l'ecran) : le numero de son bulletin, le premier N CE de son
@@ -472,8 +475,18 @@ pub fn calculer(ctx: &Contexte, o: &Objet, mois: &str) -> Resultat<Value> {
 }
 
 /// Les paies des engagements de rangs `rangs` dans l'ecran de `mois`, d'un seul calcul du mois : chacune
-/// `{"paie", "fiches", "pas", "empreinte"}`, dans l'ordre de `rangs`. Le calcul d'un mois lit tous ses engagements (plafonds,
+/// `{"paie", "fiches", "saisie_du_mois", "pas", "empreinte"}`, dans l'ordre de `rangs`. Le calcul d'un mois lit tous ses engagements (plafonds,
 /// cumuls, conges) : il se fait une fois, et chaque paie en garde l'empreinte et les fiches du salarie telles qu'il les a lues.
+/// Ce que la saisie `data` d'un mois pose pour tous ses engagements : elle-meme, sans ses engagements ni ce que le moteur
+/// tient (comme `stock::empreinte_de_saisie` la separe).
+fn mois_lu(data: &Value) -> Value {
+    let mut m = data.as_object().cloned().unwrap_or_default();
+    for k in ["engagements", "_origine", "numeros_figes", "mois"] {
+        m.remove(k);
+    }
+    Value::Object(m)
+}
+
 fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<Vec<Value>> {
     let data = stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| format!("{} : aucune saisie", mois))?;
     let (calculees, entrees) = empreinte::suivre(ctx, &data, || {
@@ -486,11 +499,12 @@ fn calculer_les_rangs(ctx: &Contexte, mois: &str, rangs: &[usize]) -> Resultat<V
             })
             .collect::<Resultat<Vec<_>>>()
     })?;
+    let mois_lu = mois_lu(&data);
     calculees
         .into_iter()
         .map(|(paie, fiches, pas, fin)| {
             let regles = empreinte::regles(ctx, &fin)?;
-            let mut v = json!({ "paie": paie, "fiches": fiches, "empreinte": empreinte::en_json(&entrees, &regles) });
+            let mut v = json!({ "paie": paie, "fiches": fiches, MOIS_LU: mois_lu.clone(), "empreinte": empreinte::en_json(&entrees, &regles) });
             if let Some(pas) = pas {
                 v["pas"] = pas;
             }
@@ -565,11 +579,18 @@ fn saisie_de(o: &Objet) -> Value {
     )
 }
 
-/// Les paies `a` et `b` (`{<mois>: <paie ecrite>}`) disent-elles les memes chiffres, mois par mois ?
+/// Ce qu'une paie ecrite a lu hors de la saisie de son engagement : la fiche du salarie (`fiches`) et la saisie du mois
+/// (`MOIS_LU`). Ce qui a ete declare se relit dessus (`paie_declaree`) : qu'il change, et la version change.
+fn lu(p: &Value) -> (Option<&Value>, Option<&Value>) {
+    (p.get("fiches"), p.get(MOIS_LU))
+}
+
+/// Les paies `a` et `b` (`{<mois>: <paie ecrite>}`) disent-elles les memes chiffres, lus sur les memes fiches et la meme
+/// saisie du mois, mois par mois ?
 fn memes_chiffres(a: Option<&Value>, b: Option<&Value>) -> bool {
     let vide = Map::new();
     let (a, b) = (a.and_then(Value::as_object).unwrap_or(&vide), b.and_then(Value::as_object).unwrap_or(&vide));
-    a.len() == b.len() && a.iter().all(|(m, p)| b.get(m).is_some_and(|q| chiffres(p) == chiffres(q)))
+    a.len() == b.len() && a.iter().all(|(m, p)| b.get(m).is_some_and(|q| chiffres(p) == chiffres(q) && lu(p) == lu(q)))
 }
 
 /// LA VERSION QUE PREND LE PRESENT quand la validation `actuelle` de `o` est remplacee le `le` : si un envoi est parti
@@ -769,10 +790,9 @@ fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
                 }
             }
         }
-        // Un chiffre, ou la fiche lue, qui change sur une paie qu'un envoi a emportee (la DSN du mois, ses documents) :
-        // la version sur laquelle il est parti se garde, datee, avec ce qu'il a emporte.
-        let fiches_changent = matches!((ancienne.get("fiches"), nouvelle.get("fiches")), (Some(a), Some(b)) if a != b);
-        if raison.is_some() || fiches_changent {
+        // Un chiffre, ou ce que la paie a lu (la fiche, la saisie du mois), qui change sur une paie qu'un envoi a emportee
+        // (la DSN du mois, ses documents) : la version sur laquelle il est parti se garde, datee, avec ce qu'il a emporte.
+        if raison.is_some() || lu(&ancienne) != lu(&nouvelle) {
             let emportee: Vec<Depart> = ses_departs(ctx, &o, &departs)
                 .iter()
                 .filter(|d| matches!(d.envoi, Envoi::Documents | Envoi::Dsn) && d.mois.as_deref() == Some(mois))
@@ -896,33 +916,57 @@ pub fn version_au_depart<'a>(ctx: &Contexte, v: &'a Valide, departs: &Departs, e
     v.version_numero(d.version)
 }
 
-/// La version de l'engagement `o` sur laquelle la DSN de `mois` est partie, telle qu'elle est ecrite (`saisie`,
-/// `paies`) : le present, la validation que « Modifier… » a mise de cote, ou une version passee ; `None` si aucune DSN
-/// de ce mois n'est partie pour lui.
-fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: &str) -> Option<&'a Value> {
-    let d = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois))?;
+/// La version `n` de l'engagement `o`, telle qu'elle est ecrite (`saisie`, `paies`) : le present, la validation que
+/// « Modifier… » a mise de cote, ou une version passee.
+fn version_ecrite(o: &Objet, n: u64) -> Option<&Value> {
     let passees = o.brut.get(VERSIONS).and_then(Value::as_array).into_iter().flatten();
-    [o.brut.get("valide"), o.brut.get(PRECEDENTE)].into_iter().flatten().chain(passees).find(|v| version_de(Some(v)) == d.version)
+    [o.brut.get("valide"), o.brut.get(PRECEDENTE)].into_iter().flatten().chain(passees).find(|v| version_de(Some(v)) == n)
 }
 
-/// L'ENGAGEMENT DECLARE pour `mois` : ce que la saisie de la version sur laquelle la DSN de ce mois est partie dit de
-/// ce mois (`Objet::vue`) ; `None` si aucune DSN de ce mois n'est partie pour l'engagement `o`.
-pub fn engagement_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Map<String, Value>>> {
-    let Some(Value::Object(saisie)) = version_de_la_dsn(ctx, o, departs, mois).and_then(|x| x.get("saisie")) else { return Ok(None) };
+/// La version de l'engagement `o` sur laquelle la derniere DSN qui a declare `mois` est partie (celle du mois, ou celle
+/// d'un mois suivant qui a porte sa correction), telle qu'elle est ecrite ; `None` si aucune DSN n'a declare ce mois
+/// pour lui.
+fn version_de_la_dsn<'a>(ctx: &Contexte, o: &'a Objet, departs: &Departs, mois: &str) -> Option<&'a Value> {
+    let d = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois))?;
+    version_ecrite(o, d.version)
+}
+
+/// Ce que la version `version` dit de `mois` (`Objet::vue` de sa saisie).
+fn vue_de_la_version(o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+    let Some(Value::Object(saisie)) = version.get("saisie") else { return Ok(None) };
     let mut declare = o.clone();
     declare.brut = saisie.clone();
     declare.vue(mois)
 }
 
-/// LA PAIE DECLAREE de `mois` : celle que la version sur laquelle la DSN de ce mois est partie a ecrite, relue (`relire`)
-/// sur la saisie de cette version (`engagement_declare`) et la fiche du salarie telle que son calcul l'a lue (`fiches`)
-/// (regle 4 : ce qui est declare se lit, il ne se recalcule pas) ; `None` si aucune DSN de ce mois n'est partie pour
-/// l'engagement `o`.
-pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Paie>> {
-    let Some(ecrite) = version_de_la_dsn(ctx, o, departs, mois).and_then(|x| x.get("paies")).and_then(|p| p.get(mois)) else { return Ok(None) };
+/// L'ENGAGEMENT DECLARE pour `mois` : ce que la saisie de la version sur laquelle la derniere DSN qui a declare ce mois
+/// est partie dit de ce mois (`Objet::vue`) ; `None` si aucune DSN n'a declare ce mois pour l'engagement `o`.
+pub fn engagement_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Map<String, Value>>> {
+    match version_de_la_dsn(ctx, o, departs, mois) {
+        Some(v) => vue_de_la_version(o, v, mois),
+        None => Ok(None),
+    }
+}
+
+/// LA SAISIE DU MOIS DECLAREE : ce que la saisie de `mois` posait pour tous ses engagements (le taux du cachet, la date
+/// de paiement) quand la paie que la derniere DSN de ce mois a declaree pour `o` a ete calculee (`MOIS_LU`) ; `None` si
+/// aucune DSN n'a declare ce mois pour lui.
+pub fn mois_declare(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Option<Value> {
+    version_de_la_dsn(ctx, o, departs, mois)?.get("paies")?.get(mois)?.get(MOIS_LU).filter(|m| m.is_object()).cloned()
+}
+
+/// La paie de `mois` que la version `version` de `o` a ecrite, relue (`relire`) sur la saisie de cette version, la fiche
+/// du salarie et la saisie du mois telles que son calcul les a lues (`fiches`, `MOIS_LU`) ; `None` si cette version n'a
+/// pas de paie pour ce mois.
+fn paie_de_la_version(ctx: &Contexte, o: &Objet, version: &Value, mois: &str) -> Resultat<Option<Paie>> {
+    let Some(ecrite) = version.get("paies").and_then(|p| p.get(mois)) else { return Ok(None) };
     let paie = ecrite.get("paie").ok_or("paie ecrite illisible : `paie`")?;
-    let Some(vue) = engagement_declare(ctx, o, departs, mois)? else { return Ok(None) };
-    let mut data = stock::vue_du_mois(&ctx.racine, mois)?.unwrap_or_else(|| json!({ "mois": mois }));
+    let Some(vue) = vue_de_la_version(o, version, mois)? else { return Ok(None) };
+    let mut data = match ecrite.get(MOIS_LU).filter(|m| m.is_object()) {
+        Some(lu) => lu.clone(),
+        None => stock::vue_du_mois(&ctx.racine, mois)?.unwrap_or_else(|| json!({})),
+    };
+    data["mois"] = json!(mois);
     data["engagements"] = json!([vue]);
     let eng = relire::engagements_ecrits(ctx, &data, &[paie])?.pop().ok_or("paie ecrite illisible")?;
     let mut p = match ecrite.get("fiches").filter(|f| f.is_object()) {
@@ -931,6 +975,72 @@ pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -
     };
     p.pas = ecrite.get("pas").filter(|x| x.is_object()).map(droit::pas::Versement::lire).transpose()?;
     Ok(Some(p))
+}
+
+/// LA PAIE DECLAREE de `mois` : celle que la version sur laquelle la derniere DSN qui a declare ce mois est partie a
+/// ecrite (`paie_de_la_version`) (regle 4 : ce qui est declare se lit, il ne se recalcule pas) ; `None` si aucune DSN
+/// n'a declare ce mois pour l'engagement `o`.
+pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Paie>> {
+    match version_de_la_dsn(ctx, o, departs, mois) {
+        Some(v) => paie_de_la_version(ctx, o, v, mois),
+        None => Ok(None),
+    }
+}
+
+/// Une paie declaree pour un mois, et le mois de la DSN qui l'a portee quand ce n'est pas la sienne (une correction).
+pub struct Declaree {
+    pub par: Option<String>,
+    pub paie: Paie,
+}
+
+/// CE QUI A ETE DECLARE POUR `mois`, DANS L'ORDRE, par les DSN des mois anterieurs a `avant` : la paie de la version sur
+/// laquelle la DSN de ce mois est partie (la derniere : un annule-et-remplace remplace la precedente), puis celle de
+/// chaque correction qu'une DSN d'un mois suivant a portee (la derniere DSN de ce mois-la fait foi). Vide si aucune DSN
+/// n'a declare ce mois pour l'engagement `o`. Refus : une correction portee par la DSN d'un mois posterieur a `avant`
+/// (une correction se porte apres la derniere qui a declare le contrat), ou une version qui n'a pas de paie de ce mois.
+pub fn paies_declarees(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str, avant: &str) -> Resultat<Vec<Declaree>> {
+    let mut chaine: Vec<(Option<String>, u64)> = Vec::new();
+    for d in ses_departs(ctx, o, departs).iter().filter(|d| d.envoi == Envoi::Dsn && d.mois.as_deref() == Some(mois)) {
+        match d.par.as_deref() {
+            None => chaine = vec![(None, d.version)],
+            Some(p) if p > avant => {
+                return Err(format!(
+                    "{} : une correction de {} est deja partie dans la DSN de {}, posterieure a {}. Une correction se porte dans un mois posterieur au dernier qui a declare le contrat.",
+                    qui_de(o),
+                    mois,
+                    p,
+                    avant
+                ))
+            }
+            Some(p) if p == avant => {}
+            Some(p) => match chaine.last_mut() {
+                Some((Some(q), v)) if q == p => *v = d.version,
+                _ => chaine.push((Some(p.to_string()), d.version)),
+            },
+        }
+    }
+    let mut out = Vec::new();
+    for (par, n) in chaine {
+        let paie = version_ecrite(o, n)
+            .map(|v| paie_de_la_version(ctx, o, v, mois))
+            .transpose()?
+            .flatten()
+            .ok_or_else(|| format!("{} : la version {} sur laquelle une DSN a declare {} n'a pas de paie de ce mois", qui_de(o), n, mois))?;
+        out.push(Declaree { par, paie });
+    }
+    Ok(out)
+}
+
+/// LA DERNIERE DATE DE DEBUT DECLAREE de l'engagement `o` (AAAA-MM-JJ) par une DSN d'un mois anterieur a `avant` : celle
+/// de la saisie de la version sur laquelle la derniere est partie, quel que soit le mois qu'elle declarait (la correction
+/// d'un autre mois d'un contrat sur plusieurs mois a pu la changer). `None` : aucune.
+pub fn debut_declare(ctx: &Contexte, o: &Objet, departs: &Departs, avant: &str) -> Option<String> {
+    let d = ses_departs(ctx, o, departs)
+        .iter()
+        .rev()
+        .find(|d| d.envoi == Envoi::Dsn && d.par.as_deref().or(d.mois.as_deref()).is_some_and(|m| m < avant))?;
+    let saisie = version_ecrite(o, d.version)?.get("saisie")?;
+    Some(crate::debut_brut(saisie)).filter(|d| !d.is_empty())
 }
 
 /// La phrase d'un recalcul, pour l'ecran : « Recalculé le JJ/MM/AAAA : taux de PAS reçu. »

@@ -395,4 +395,25 @@ fn une_modification_apres_un_envoi_garde_la_version_datee_et_dit_ce_qui_est_a_re
     assert_eq!(json!(declaree.brut.to_string()), paie_partie["paie"]["brut"]);
     assert!(email.is_string());
     assert_eq!(declaree.salarie["email"], email);
+    // Ce que le mois posait pour tous (`saisie_du_mois`) se relit tel que le calcul declare l'a lu, pas aujourd'hui.
+    let lu = etats::mois_declare(&ctx(&r), v.objet(), &departs_du_test(&r).unwrap(), "2026-11").unwrap();
+    assert_eq!(lu, paie_partie["saisie_du_mois"]);
+    let mut f = fichier(&r, "2026-11");
+    f["date_paiement"] = json!("2026-11-27");
+    ecrire(&r, "engagements/2026-11.json", &f);
+    assert_eq!(etats::mois_declare(&ctx(&r), v.objet(), &departs_du_test(&r).unwrap(), "2026-11").unwrap(), lu);
+    // La DSN de decembre porte la correction de novembre sur la version 2 : novembre n'est plus a redeclarer, et ce qui a
+    // ete declare pour novembre se lit dans l'ordre (la DSN de novembre, puis la correction), jusqu'au mois qui la porte.
+    let mut d = lire(&r, "departs.json");
+    d.as_array_mut().unwrap().push(json!({"salarie": "BRIOCHE", "numero": v.objet().brut["numero"], "envoi": "dsn", "mois": "2026-11",
+        "par": "2026-12", "version": 2, "le": "2027-01-05T10:00:00"}));
+    ecrire(&r, "departs.json", &d);
+    let departs = departs_du_test(&r).unwrap();
+    assert!(!etats::a_refaire(&ctx(&r), &v, &departs).iter().any(|a| matches!(a, Dsn { .. })));
+    let suite = etats::paies_declarees(&ctx(&r), v.objet(), &departs, "2026-11", "2027-01").unwrap();
+    let bruts: Vec<(Option<String>, String)> = suite.iter().map(|x| (x.par.clone(), x.paie.brut.to_string())).collect();
+    let present = paie_ecrite(&r, "2026-11")["paie"]["brut"].as_str().unwrap().to_string();
+    assert_eq!(bruts, vec![(None, paie_partie["paie"]["brut"].as_str().unwrap().to_string()), (Some("2026-12".into()), present)]);
+    assert_eq!(etats::paies_declarees(&ctx(&r), v.objet(), &departs, "2026-11", "2026-12").unwrap().len(), 1, "la DSN qui se refait ne compte pas sa correction");
+    assert!(etats::paies_declarees(&ctx(&r), v.objet(), &departs, "2026-11", "2026-11").is_err(), "une correction deja portee plus tard refuse");
 }

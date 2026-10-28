@@ -343,10 +343,8 @@ fn octobre_d_avant_1b(ctx: &Contexte, taux: f64) -> (Paie, paie::versement_decla
         .map(|l| if l.starts_with("S21.G00.58.004,") { format!("S21.G00.58.004,'{}'", p.net_a_payer) } else { l.to_string() })
         .collect::<Vec<_>>()
         .join("\n");
-    let chemin = crate::outils::chemin_unique("net-social-octobre.dsn");
-    std::fs::write(&chemin, ancien).unwrap();
     let nir = p.salarie["nir"].as_str().unwrap().to_string();
-    let declare = paie::versement_declare::lire(&chemin, "2026-10", &nir, "CH1.26.10").unwrap();
+    let declare = paie::versement_declare::lire(&ancien, "la DSN d'octobre", "2026-10", &nir, "CH1.26.10").unwrap();
     assert_eq!(declare.net_social, p.net_a_payer);
     (p, declare)
 }

@@ -230,7 +230,8 @@ pub(crate) fn dsn_a_refaire(ctx: &Contexte, mois: &str, derniere: &Value, etats:
         return true;
     }
     let paire = |v: &Value| (valeur_en_texte(&v["salarie"]), valeur_en_texte(&v["numero"]));
-    let mut emportes: Vec<(String, String)> = emportes.iter().map(paire).collect();
+    // Les corrections de mois passes que la ligne porte ne sont pas des engagements de ce mois.
+    let mut emportes: Vec<(String, String)> = emportes.iter().filter(|v| v.get("mois").is_none()).map(paire).collect();
     let mut presents: Vec<(String, String)> = etats
         .iter()
         .zip(&siens)

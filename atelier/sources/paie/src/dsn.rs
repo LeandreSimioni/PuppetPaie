@@ -428,7 +428,7 @@ obligatoires -- CCH-11. Ils se lisent dans la fiche entreprise, ils ne se saisis
 
 /// Une correction d'un mois depose : ce qui a ete declare, et la paie corrigee.
 ///
-/// `declare` est le dernier etat DECLARE du contrat, relu dans la DSN deposee (`versement_declare`) : les blocs negatifs
+/// `declare` est le dernier etat DECLARE du contrat, ecrit depuis la paie que la DSN a declaree (`versement_declare::de_la_paie`) : les blocs negatifs
 /// (50.002, 50.004, 51, 53, 54, 58, 78, 79, 81) l'annulent tel qu'il est parti, et l'agrege (bordereau Urssaf du mois
 /// d'origine, versements 20) en retranche ce que ses lignes 78 et 81 recomposent (`assiette_declaree`,
 /// `cumuler_le_declare`) ; le bloc 55 se lit dans les blocs negatifs ecrits (`composants_de_versement`). `avant` est
@@ -2255,6 +2255,30 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
     Ok(())
 }
 
+/// CE QU'UNE DSN A DECLARE POUR UN CONTRAT, ecrit depuis la paie qu'elle a declaree (`engagement::etats::paies_declarees`)
+/// comme la mensuelle de `mois` l'ecrit : l'individu (S21.G00.30.001), le contrat (S21.G00.40.001, 40.009) et ses
+/// affiliations (S21.G00.70.012, 70.013), puis son versement (blocs 50 a 81, `bloc_versement`), qu'une regularisation
+/// annule (`versement_declare::de_la_paie`).
+pub(crate) fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<String> {
+    let ent = &ctx.entreprise;
+    let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
+    let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
+    let bar = bar_du(ctx, ent, &orgs, &nic, mois)?;
+    let ent_e = fiche_de(ent, &nic)?;
+    let e = &p.engagement;
+    let mut f = Fichier::en_norme(crate::norme::de_la_mensuelle(mois)?);
+    f.add("S21.G00.30.001", p.salarie.get("nir").and_then(Value::as_str).unwrap_or(""));
+    f.add("S21.G00.40.001", e.debut.jjmmaaaa());
+    f.add_opt("S21.G00.40.009", e.numero.clone())?;
+    let refs = affiliations(&orgs, &*e.nat()?, g(&bar, "_contributions_du_mois"), (e.debut_periode()?, e.fin_periode()?))?;
+    for a in rattachements(p, &orgs, bareme::entreprise_du(&bar, &ent_e), refs)? {
+        f.add("S21.G00.70.012", 202 + a.place as i64);
+        f.add("S21.G00.70.013", a.reference);
+    }
+    bloc_versement(&mut f, p, &bar, 1, None)?;
+    Ok(f.texte())
+}
+
 /// Les affiliations que CE fichier a deja ecrites pour le contrat `numero` de l'individu en cours :
 /// (S21.G00.70.013, S21.G00.70.012).
 fn affiliations_ecrites(f: &Fichier, numero: &str) -> Vec<(String, String)> {
@@ -2279,8 +2303,8 @@ fn affiliations_ecrites(f: &Fichier, numero: &str) -> Vec<(String, String)> {
     out
 }
 
-/// L'annulation de ce qui a ete DECLARE : les lignes des `blocs` du versement relu dans la DSN deposee, montants
-/// changes de signe, le reste tel quel. 78.005 cite une affiliation (70.012) de la DSN deposee : elle se retrouve dans
+/// L'annulation de ce qui a ete DECLARE : les lignes des `blocs` du versement declare, montants
+/// changes de signe, le reste tel quel. 78.005 cite une affiliation (70.012) du versement declare : elle se retrouve dans
 /// ce fichier par sa reference (70.013), son numero n'y est pas forcement le meme (le rang du contrat change).
 fn annuler_le_declare(f: &mut Fichier, r: &Regularisation, blocs: &[&str]) -> Resultat<()> {
     let d = &r.declare;
@@ -2291,14 +2315,14 @@ fn annuler_le_declare(f: &mut Fichier, r: &Regularisation, blocs: &[&str]) -> Re
         if k == "S21.G00.78.005" {
             let reference = d.affiliations.iter().find(|(id, _)| *id == v).map(|(_, rf)| rf.clone()).ok_or_else(|| {
                 format!(
-                    "Correction de {} (contrat {}) : la DSN deposee {} cite l'affiliation {} en S21.G00.78.005 sans la \
+                    "Correction de {} (contrat {}) : {} cite l'affiliation {} en S21.G00.78.005 sans la \
 declarer dans les blocs 70 du contrat. L'annulation ne sait pas a quoi la rattacher. Rien n'est ecrit.",
                     r.mois, numero, d.fichier, v
                 )
             })?;
             let id = ecrites.iter().find(|(rf, _)| *rf == reference).map(|(_, i)| i.clone()).ok_or_else(|| {
                 format!(
-                    "Correction de {} (contrat {}) : la DSN deposee {} rattachait une base a l'adhesion {} \
+                    "Correction de {} (contrat {}) : {} rattachait une base a l'adhesion {} \
 (S21.G00.70.013), que le contrat ne declare plus dans cette DSN. L'annulation ne sait pas a quelle affiliation la \
 rattacher. Rien n'est ecrit.",
                     r.mois, numero, d.fichier, reference
@@ -2423,7 +2447,7 @@ fn bloc_regularisation(
     bar: &Value,
 ) -> Resultat<()> {
     // `avant` ne donne ici que l'engagement declare (ses bornes, s'il est sans paie) : les montants annules sont ceux
-    // du versement relu dans la DSN deposee (`r.declare`), pas ceux d'un recalcul.
+    // du versement declare (`r.declare`), pas ceux d'un recalcul.
     let (avant, apres) = (&r.avant, &r.apres);
     let debut = avant.engagement.debut_periode()?;
     let fin = avant.engagement.fin_periode()?;
@@ -2824,7 +2848,7 @@ fn cumuler_le_declare(
     let (_, l81) = lignes_declarees(d)?;
     let s = Decimal::from(signe);
     for x in &l81 {
-        let montant = x.montant.ok_or_else(|| refus(format!("la cotisation {} de la DSN deposee {} n'a pas de S21.G00.81.004", x.code, d.fichier)))?;
+        let montant = x.montant.ok_or_else(|| refus(format!("la cotisation {} de {} n'a pas de S21.G00.81.004", x.code, d.fichier)))?;
         let mut cles: Vec<&str> = l.roles_de(&x.code, &x.org).iter().map(|r| r.cle()).collect();
         cles.sort();
         cles.dedup();
@@ -2833,7 +2857,7 @@ fn cumuler_le_declare(
             _ if !sert_a_un_versement(orgs, &x.code) => continue,
             _ => {
                 return Err(refus(format!(
-                    "la DSN deposee {} declare la cotisation {}{}, que le bareme de {} {} ; a quel versement elle revient ne se lit pas",
+                    "{} declare la cotisation {}{}, que le bareme de {} {} ; a quel versement elle revient ne se lit pas",
                     d.fichier,
                     x.code,
                     if x.org.is_empty() { String::new() } else { format!(" chez {}", x.org) },
@@ -2845,7 +2869,7 @@ fn cumuler_le_declare(
         ajouter(totaux, &cle, mul(s, montant));
         if x.code == "059" && x.affiliation.is_none() {
             return Err(refus(format!(
-                "une cotisation 059 de la DSN deposee {} n'est rattachee a aucune affiliation (S21.G00.78.005) : son composant de versement (S21.G00.55) ne se lit pas",
+                "une cotisation 059 de {} n'est rattachee a aucune affiliation (S21.G00.78.005) : son composant de versement (S21.G00.55) ne se lit pas",
                 d.fichier
             )));
         }
@@ -3397,7 +3421,7 @@ fn lignes_regularisees(
                 Ok(v) => declare = add(declare, v),
                 Err(e) => {
                     return Err(format!(
-                        "Correction de {} (contrat {}) : la ligne {} ({}) du bordereau Urssaf de ce mois, assiette « {} », ne se recompose pas depuis ce que la DSN deposee {} a declare pour le contrat : {}. Le bordereau d'une regularisation porte la difference « corrige moins declare », comme le nominatif ; elle ne se devine pas. Rien n'est ecrit.",
+                        "Correction de {} (contrat {}) : la ligne {} ({}) du bordereau Urssaf de ce mois, assiette « {} », ne se recompose pas depuis ce que {} a declare pour le contrat : {}. Le bordereau d'une regularisation porte la difference « corrige moins declare », comme le nominatif ; elle ne se devine pas. Rien n'est ecrit.",
                         r.mois,
                         r.apres.engagement.numero.as_deref().unwrap_or("sans numero"),
                         en_texte(req(ctp, "code")?),
@@ -4768,7 +4792,7 @@ certificat de conformite du depot precedent.",
                     let fin = groupe.iter().any(|x| ajoute(x) || x.apres.engagement.fin != x.avant.engagement.fin);
                     let debut_bloc = f.lignes.len();
                     bloc_contrat(&mut f, &dernier.apres, &ent_e, &orgs, rg, &b, fin, &[], "01", emplois_multiples(&dernier.apres, &autres))?;
-                    // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans la DSN deposee, sous le bloc 40 (fiche 1952) --
+                    // UNE DATE DE DEBUT CORRIGEE : l'ancienne, lue dans ce qui a ete declare, sous le bloc 40 (fiche 1952) --
                     // une fois, depuis la correction du dernier mois qui a declare le contrat.
                     let declarant = groupe.iter().copied().filter(|x| !ajoute(x)).fold(None, |a: Option<&Regularisation>, x| match a {
                         Some(a) if a.mois >= x.mois => Some(a),

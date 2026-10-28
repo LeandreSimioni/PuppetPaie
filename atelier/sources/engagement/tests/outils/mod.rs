@@ -68,7 +68,7 @@ pub fn departs_du_test(racine: &Path) -> Result<engagement::departs::Departs, St
             Some("documents") => Envoi::Documents,
             _ => Envoi::Dsn,
         };
-        d.noter(&t("salarie"), &t("numero"), Depart { envoi, mois: l["mois"].as_str().map(String::from), version: l["version"].as_u64().unwrap_or(1), le: t("le") });
+        d.noter(&t("salarie"), &t("numero"), Depart { envoi, mois: l["mois"].as_str().map(String::from), par: l["par"].as_str().map(String::from), version: l["version"].as_u64().unwrap_or(1), le: t("le") });
     }
     Ok(d)
 }

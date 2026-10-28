@@ -419,7 +419,7 @@ pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, m
 /// renseignee au niveau du bloc " Contrat - S21.G00.40 " ». Le bloc 40 vient d'etre ecrit a partir de la ligne `debut`
 /// de `lignes`, a la date corrigee ; le bloc 41 se pose juste apres lui.
 ///
-/// - 41.021 : la date declaree, LUE dans la DSN deposee (`versement_declare`, `debut_contrat` : regle 4), pas celle
+/// - 41.021 : la date declaree, LUE dans la version declaree (`versement_declare`, `debut_contrat` : regle 4), pas celle
 ///   d'une saisie ;
 /// - 41.001 : le jour ou la correction a ete ecrite (« Cette erreur a ete corrigee en paie le 7 fevrier 2018 » ->
 ///   41.001 = 07022018, l'exemple de la fiche), au plus tard le dernier jour du mois principal declare (CCH-15 de

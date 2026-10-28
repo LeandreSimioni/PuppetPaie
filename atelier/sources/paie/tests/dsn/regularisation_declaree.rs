@@ -81,19 +81,6 @@ fn retoucher_le_bareme(racine: &Path, quoi: &dyn Fn(&mut serde_json::Map<String,
     vus
 }
 
-/// Le bareme livre change depuis le depot de juillet : la cotisation FNAL (S21.G00.81.001 = 049) passe a 0,5 %.
-/// Refaite aujourd'hui, la paie de juillet ne declarerait plus le montant FNAL qui est parti.
-fn changer_le_bareme(racine: &Path) {
-    let vus = retoucher_le_bareme(racine, &|o| {
-        if o.get("code81") == Some(&json!("049")) && o.contains_key("taux") {
-            o.insert("taux".into(), json!(0.5));
-            return true;
-        }
-        false
-    });
-    assert!(vus > 0, "le bareme 2026 porte la cotisation FNAL");
-}
-
 fn dsn_le(racine: &Path, mois: &str, jour: &str) -> Value {
     route_le(racine, jour, "dsn-a-deposer", json!({"mois": mois}))
 }
@@ -174,21 +161,6 @@ fn centimes(t: &str) -> i64 {
     }
 }
 
-/// Les defraiements (54.002 des blocs 54 de type 07 ou 09) de lignes de versement, en centimes. Depuis la vague 1b, ils
-/// ne sont ni dans le montant net social (58.004) ni dans le net verse (50.004) : pour ce contrat, qui n'a ni acompte
-/// ni indemnite, 58.004 = 50.004 d'une paie du moteur.
-fn frais(v: &[(String, String)]) -> i64 {
-    let (mut type_54, mut total) = ("", 0);
-    for (k, x) in v {
-        match k.as_str() {
-            "S21.G00.54.001" => type_54 = x.as_str(),
-            "S21.G00.54.002" if type_54 == "07" || type_54 == "09" => total += centimes(x),
-            _ => {}
-        }
-    }
-    total
-}
-
 fn texte_centimes(n: i64) -> String {
     format!("{}{}.{:02}", if n < 0 { "-" } else { "" }, n.abs() / 100, n.abs() % 100)
 }
@@ -236,20 +208,6 @@ fn sans_rappels_58(v: &[(String, String)], mmaaaa: &str) -> Vec<(String, String)
     out
 }
 
-/// Les 58.004 d'un versement, avec leur 58.001.
-fn nets_sociaux(v: &[(String, String)]) -> Vec<(String, i64)> {
-    let mut debut = String::new();
-    let mut out = Vec::new();
-    for (k, x) in v {
-        if k == "S21.G00.58.001" {
-            debut = x.clone();
-        } else if k == "S21.G00.58.004" {
-            out.push((debut.clone(), centimes(x)));
-        }
-    }
-    out
-}
-
 /// Chaque groupe du versement de regularisation `regul` commence par l'annulation de `declare` (les lignes d'un
 /// versement tel qu'il a ete declare), ligne pour ligne, montants de signe change ; 78.005 excepte (l'affiliation se
 /// renumerote dans le fichier qui porte la regularisation).
@@ -289,221 +247,6 @@ fn rappel(declare: &[(String, String)], regul: &[(String, String)]) -> Vec<(Stri
         out.extend(du_groupe(regul, blocs).into_iter().skip(n));
     }
     out
-}
-
-#[test]
-fn les_blocs_d_annulation_portent_les_montants_du_fichier_depose_pas_ceux_du_recalcul() {
-    let r = copie("annulation");
-    let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
-    corriger_juillet(&r);
-    changer_le_bareme(&r);
-    octobre_pret(&r);
-    let rep = dsn_d_octobre(&r);
-    assert_eq!(rep["ok"], json!(true), "{}", rep);
-    let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
-    let regul = versement(&octobre, JUILLET);
-
-    // Chaque groupe commence par l'annulation du declare, ligne pour ligne, puis declare l'apres.
-    verifier_l_annulation(&depose, &regul);
-
-    // 78.005 cite une affiliation que la DSN d'octobre declare pour ce contrat, celle de la meme reference (70.013)
-    // qu'en juillet.
-    let affiliations = |toutes: &[(String, String)]| -> Vec<(String, String)> {
-        let (mut du_contrat, mut id, mut out) = (false, None, Vec::new());
-        for (k, v) in toutes {
-            match k.as_str() {
-                "S21.G00.40.001" | "S21.G00.50.001" => du_contrat = false,
-                "S21.G00.40.009" => du_contrat = v == CONTRAT,
-                "S21.G00.70.012" if du_contrat => id = Some(v.clone()),
-                "S21.G00.70.013" if du_contrat => out.push((id.take().unwrap(), v.clone())),
-                _ => {}
-            }
-        }
-        out
-    };
-    let (aff_juillet, aff_octobre) = (affiliations(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn"))), affiliations(&octobre));
-    let reference = |aff: &[(String, String)], id: &str| aff.iter().find(|(i, _)| i == id).map(|(_, rf)| rf.clone());
-    let deposees: Vec<&String> = depose.iter().filter(|(k, _)| k == "S21.G00.78.005").map(|(_, v)| v).collect();
-    assert!(!deposees.is_empty(), "le depot de juillet rattache des bases 31");
-    let ecrites: Vec<&String> = regul.iter().filter(|(k, _)| k == "S21.G00.78.005").map(|(_, v)| v).take(deposees.len()).collect();
-    for (d, e) in deposees.iter().zip(&ecrites) {
-        assert_eq!(reference(&aff_juillet, d), reference(&aff_octobre, e), "78.005 {} (juillet) -> {} (octobre)", d, e);
-        assert!(reference(&aff_octobre, e).is_some());
-    }
-
-    // Le versement de la correction : la difference entre le net verse d'apres et ce qui a ete DECLARE (50.004 depose).
-    // Le net verse d'apres est le montant net social corrige, sans defraiements (vagues 1a et 1b). Vague 1o : juillet
-    // est parti avec un 58.004 d'avant la vague 1b (le net a payer) ; il s'annule, et le montant net social de ce qui a
-    // ete paye en juillet se declare aux dates de juillet (BOSS Q 41) ; le rappel, aux dates d'octobre (norme p. 265).
-    let nets = nets_sociaux(&regul);
-    assert_eq!(nets.len(), 3, "{:?}", nets);
-    assert_eq!(nets[0], (JUILLET.to_string(), -centimes(valeur(&depose, "S21.G00.58.004"))));
-    assert_eq!(nets[1].0, JUILLET);
-    assert_eq!(nets[2].0, "01102026");
-    let frais_apres = frais(&rappel(&depose, &regul));
-    assert!(frais_apres > 0, "le contrat corrige a des defraiements");
-    assert_eq!(nets[1].1, centimes(valeur(&depose, "S21.G00.58.004")) - frais(&depose), "ce qui a ete paye, sans les defraiements");
-    assert_eq!(centimes(valeur(&regul, "S21.G00.50.004")), nets[1].1 + nets[2].1 - centimes(valeur(&depose, "S21.G00.50.004")));
-}
-
-#[test]
-fn le_105_depose_s_annule_tel_quel_et_le_rappel_se_declare_en_131() {
-    // Vague 1g : juillet 2026 est parti en 105 (« Agirc-Arrco, y compris Apec ») ; la norme 2026.1 attend 131 et 132
-    // (cahier technique 2026.1 p. 302). La correction annule ce qui a ete DECLARE -- le 105, a son montant -- et declare
-    // le corrige en 131 ; le versement Agirc-Arrco d'octobre porte l'un et l'autre.
-    let r = copie("agirc-arrco");
-    let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
-    let codes_81 = |v: &[(String, String)]| -> Vec<(String, i64)> {
-        lignes_en_contexte(v)
-            .into_iter()
-            .filter(|(k, _, c)| k == "S21.G00.81.004" && ["105", "131", "132"].contains(&c.code81.as_str()))
-            .map(|(_, x, c)| (c.code81, centimes(&x)))
-            .collect()
-    };
-    let declare = codes_81(&depose);
-    assert_eq!(declare.iter().map(|(c, _)| c.as_str()).collect::<Vec<_>>(), ["105"], "le depot de juillet porte un 105");
-    corriger_juillet(&r);
-    octobre_pret(&r);
-    let rep = dsn_d_octobre(&r);
-    assert_eq!(rep["ok"], json!(true), "{}", rep);
-    let octobre = lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn"));
-    let regul = versement(&octobre, JUILLET);
-    verifier_l_annulation(&depose, &regul);
-    let ecrit = codes_81(&regul);
-    assert_eq!(ecrit.len(), 2, "{:?}", ecrit);
-    assert_eq!(ecrit[0], ("105".to_string(), -declare[0].1), "l'annulation reprend le 105 depose, a son montant");
-    assert_eq!(ecrit[1].0, "131", "le rappel se declare en 131");
-    assert!(ecrit[1].1 > declare[0].1, "l'heure passe de 18 a 19 EUR");
-    // Hors du versement corrige, octobre n'ecrit aucun 105.
-    let tous: Vec<&str> = octobre.iter().filter(|(k, _)| k == "S21.G00.81.001").map(|(_, v)| v.as_str()).collect();
-    assert_eq!(tous.iter().filter(|c| **c == "105").count(), 1, "un seul 105 dans octobre : l'annulation");
-    // Le versement Agirc-Arrco d'octobre : 105, 131, 132 et 106 de tout le fichier.
-    let attendu: i64 = lignes_en_contexte(&octobre)
-        .iter()
-        .filter(|(k, _, c)| k == "S21.G00.81.004" && ["105", "106", "131", "132"].contains(&c.code81.as_str()))
-        .map(|(_, x, _)| centimes(x))
-        .sum();
-    assert_eq!(versements_20(&octobre, "01102026").get("44832375800038").copied(), Some(attendu));
-}
-
-#[test]
-fn sans_la_dsn_deposee_la_correction_refuse_et_ne_recalcule_pas() {
-    let r = copie("sans-depot");
-    corriger_juillet(&r);
-    octobre_pret(&r);
-    std::fs::remove_file(r.join("sorties/2026-07/DSN_Juillet2026.dsn")).unwrap();
-    let rep = dsn_d_octobre(&r);
-    assert_eq!(rep["ok"], json!(false), "{}", rep);
-    let message = rep["erreur"].as_str().unwrap_or_default();
-    assert!(message.contains("Correction de 2026-07") && message.contains(CONTRAT), "{}", message);
-    assert!(message.contains("Remettre dans sorties/2026-07/"), "{}", message);
-    assert!(!r.join("sorties/2026-10/DSN_Octobre2026.dsn").exists());
-}
-
-// ------------------------------------------------------------------ (b) un annule-et-remplace : la derniere fait foi
-
-#[test]
-fn deux_dsn_reelles_acceptees_pour_le_mois_d_origine_la_derniere_fait_foi() {
-    // Un annule-et-remplace accepte de juillet (DSN_Juillet2026_AR.dsn), ou le versement de Servandoni differe du
-    // premier depot : ses cotisations et son net ont chacun un euro de plus. Il s'est substitue au premier depot : c'est
-    // lui que la correction annule (Leandre, 10/10/2026).
-    let r = copie("deux-depots");
-    let premier = lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn"));
-    let mut dans_servandoni = false;
-    let mut ar = String::new();
-    let brut = std::fs::read(r.join("sorties/2026-07/DSN_Juillet2026.dsn")).unwrap();
-    for l in String::from_utf8_lossy(&brut).split_inclusive('\n') {
-        let (k, v) = l.trim_end().split_once(',').unwrap_or(("", ""));
-        if k == "S21.G00.30.001" {
-            dans_servandoni = v.trim_matches('\'') == NIR;
-        }
-        if dans_servandoni && ["S21.G00.81.004", "S21.G00.50.004", "S21.G00.58.004"].contains(&k) {
-            let n = centimes(v.trim_matches('\'')) + 100;
-            ar.push_str(&format!("{},'{}'{}", k, texte_centimes(n), if l.ends_with("\r\n") { "\r\n" } else { "\n" }));
-        } else {
-            ar.push_str(l);
-        }
-    }
-    std::fs::write(r.join("sorties/2026-07/DSN_Juillet2026_AR.dsn"), ar.as_bytes()).unwrap();
-    let remplace = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026_AR.dsn")), JUILLET);
-    let depose = versement(&premier, JUILLET);
-    assert_ne!(annulation_attendue(&depose, &["78", "79", "81"]), annulation_attendue(&remplace, &["78", "79", "81"]));
-
-    corriger_juillet(&r);
-    octobre_pret(&r);
-    let mut j = lire(&r, "journal/depots.json");
-    let l = j.as_array_mut().unwrap();
-    let mut reel = l.iter().find(|x| x["quoi"] == json!("dsn") && x["mois"] == json!("2026-07") && x["mode"] == json!("reel")).unwrap().clone();
-    reel["fichier"] = json!("DSN_Juillet2026_AR.dsn");
-    reel["quand"] = json!("2026-08-20T10:00:00");
-    reel["detail"]["type"] = json!("03");
-    l.push(reel);
-    ecrire_json(&r, "journal/depots.json", &j);
-
-    let rep = dsn_d_octobre(&r);
-    assert_eq!(rep["ok"], json!(true), "{}", rep);
-    let regul = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
-    verifier_l_annulation(&remplace, &regul);
-    // Vague 1o : l'annulation du 58 de l'annule-et-remplace et le montant net social de ce qui a ete paye, aux dates de
-    // juillet ; le rappel, aux dates d'octobre.
-    let nets = nets_sociaux(&regul);
-    assert_eq!(nets.len(), 3, "{:?}", nets);
-    assert_eq!(nets[0].1, -centimes(valeur(&remplace, "S21.G00.58.004")));
-    assert_eq!(nets[2].0, "01102026");
-    let frais_apres = frais(&rappel(&remplace, &regul));
-    assert!(frais_apres > 0, "le rappel declare ses defraiements en 54, hors du 58.004");
-    assert_eq!(centimes(valeur(&regul, "S21.G00.50.004")), nets[1].1 + nets[2].1 - centimes(valeur(&remplace, "S21.G00.50.004")));
-}
-
-// ------------------------------------------------- (c) une seconde correction relit le rappel de la premiere
-
-#[test]
-fn une_seconde_correction_annule_le_rappel_porte_par_la_premiere_pas_le_depot_d_origine() {
-    // Premiere correction (18 -> 19 EUR) portee par la DSN d'octobre, deposee et acceptee ; seconde (19 -> 20 EUR)
-    // portee par celle de novembre. Ce qui a ete declare pour le contrat, quand la seconde se porte, c'est le rappel
-    // d'octobre : c'est lui que novembre annule.
-    let r = copie("seconde-correction");
-    let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
-    corriger_juillet(&r);
-    octobre_pret(&r);
-    let rep = dsn_d_octobre(&r);
-    assert_eq!(rep["ok"], json!(true), "{}", rep);
-    let regul_octobre = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
-    let rappel_octobre = rappel(&depose, &regul_octobre);
-
-    // Octobre est depose en reel et accepte ; la correction est portee.
-    outils::dsn_deposee(&r, "2026-10", "DSN_Octobre2026.dsn", "2026-11-12T10:00:00");
-    let mut c = lire(&r, "regularisations/2026-07.json");
-    let corrections = c["corrections"].as_array_mut().unwrap();
-    assert_eq!(corrections.len(), 1);
-    corrections[0]["portee_par"] = json!({"mois": "2026-10", "fichier": "DSN_Octobre2026.dsn", "quand": "2026-11-12T10:00:00"});
-    ecrire_json(&r, "regularisations/2026-07.json", &c);
-
-    let jour = "2026-12-10";
-    corriger_juillet_a(&r, jour, 20.0);
-    mois_pret(&r, "2026-11");
-    let rep = dsn_le(&r, "2026-11", jour);
-    assert_eq!(rep["ok"], json!(true), "{}", rep);
-    let regul = versement(&lignes(&r.join("sorties/2026-11/DSN_Novembre2026.dsn")), JUILLET);
-
-    // Novembre annule le rappel d'octobre, ligne pour ligne -- et non le depot de juillet.
-    verifier_l_annulation(&rappel_octobre, &regul);
-    assert_ne!(annulation_attendue(&depose, &["51", "53"]), annulation_attendue(&rappel_octobre, &["51", "53"]));
-    // Le net : ce qui a ete declare jusqu'ici (juillet, plus le rappel d'octobre) s'annule, la difference se verse.
-    // 50.004 cumule = le net verse corrige en octobre, c'est-a-dire son montant net social (vague 1b). Vague 1o : en
-    // octobre, le montant net social de ce qui avait ete paye en juillet (aux dates de juillet) plus le rappel (aux dates
-    // d'octobre) ; en novembre, juillet n'est plus faux, il ne se redeclare pas : un seul 58, le second rappel, aux dates
-    // de novembre.
-    let verse = centimes(valeur(&depose, "S21.G00.50.004")) + centimes(valeur(&regul_octobre, "S21.G00.50.004"));
-    let octobre = nets_sociaux(&regul_octobre);
-    assert_eq!(octobre.len(), 3, "{:?}", octobre);
-    assert_eq!(octobre[1].1 + octobre[2].1, verse);
-    let nets = nets_sociaux(&regul);
-    assert_eq!(nets.len(), 1, "{:?}", nets);
-    assert_eq!(nets[0].0, "01112026");
-    let frais_apres = frais(&rappel(&rappel_octobre, &regul));
-    assert!(frais_apres > 0, "le rappel declare ses defraiements en 54, hors du 58.004");
-    assert_eq!(centimes(valeur(&regul, "S21.G00.50.004")), nets[0].1 + octobre[1].1 + octobre[2].1 - verse);
 }
 
 // ------------------------------------------- (a) l'agrege porte la meme difference que le nominatif
@@ -1144,33 +887,6 @@ fn un_permanent_corrige_au_dessus_de_quatre_plafonds_garde_une_base_07_a_quatre_
     let i = octobre.iter().position(|(k, v)| k == "S21.G00.23.001" && v == "669").expect("une ligne 669");
     let rubriques: Vec<&str> = octobre[i + 1..].iter().take_while(|(k, _)| k != "S21.G00.23.001" && k.starts_with("S21.G00.23.")).map(|(k, _)| k.as_str()).collect();
     assert_eq!(rubriques, vec!["S21.G00.23.002", "S21.G00.23.004"], "le 669 porte une assiette, pas un montant");
-}
-
-// ------------------------------------------------- reste R1 #3 : le taux du bloc 56 se lit sur le versement declare
-
-#[test]
-fn le_taux_du_bloc_56_est_le_50006_du_versement_declare_pas_celui_d_un_autre_fichier_du_mois() {
-    // « Taux declare le mois de l'erreur » (S21.G00.56.006) : « le taux applique le mois de l'erreur ou de l'indu »
-    // (cahier technique 2026.1, bloc 56, atelier/reference/norme-dsn/texte/bloc-S21.G00.56.txt, l. 134-136). Il se lit sur
-    // le versement que la correction annule (le dernier etat declare, vague 0b), pas sur n'importe quel .dsn du dossier :
-    // avant le reste R1 #3, un fichier d'essai range a cote (ici avec 50.006 = 9.90) l'emportait sur le depot reel.
-    let r = copie("taux-bloc-56");
-    let depose = versement(&lignes(&r.join("sorties/2026-07/DSN_Juillet2026.dsn")), JUILLET);
-    let taux_depose = valeur(&depose, "S21.G00.50.006").to_string();
-    assert_eq!(taux_depose, "2.10");
-    let reel = std::fs::read(r.join("sorties/2026-07/DSN_Juillet2026.dsn")).unwrap();
-    let essai = String::from_utf8(reel).unwrap().replace("S21.G00.50.006,'2.10'", "S21.G00.50.006,'9.90'");
-    std::fs::write(r.join("sorties/2026-07/DSN_Juillet2026_essai.dsn"), essai).unwrap();
-    // Un indu : l'heure de Servandoni passe de 18 a 10 EUR, le net fiscal du rappel est negatif.
-    corriger_juillet_a(&r, JOUR, 10.0);
-    octobre_pret(&r);
-    let rep = dsn_d_octobre(&r);
-    assert_eq!(rep["ok"], json!(true), "{}", rep);
-    let regul = versement(&lignes(&r.join("sorties/2026-10/DSN_Octobre2026.dsn")), JUILLET);
-    assert!(centimes(valeur(&regul, "S21.G00.50.002")) < 0, "un indu");
-    assert_eq!(valeur(&regul, "S21.G00.56.001"), "072026");
-    assert_eq!(valeur(&regul, "S21.G00.56.002"), "03");
-    assert_eq!(valeur(&regul, "S21.G00.56.006"), taux_depose, "le taux du versement declare");
 }
 
 /// UN CONTRAT OUBLIE, AJOUTE APRES LA LIMITE (21/10/2026). Servandoni a aussi travaille du 27 au 29 juillet 2026, et ce

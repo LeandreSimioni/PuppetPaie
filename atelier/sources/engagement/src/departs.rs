@@ -30,6 +30,9 @@ pub enum Envoi {
 pub struct Depart {
     pub envoi: Envoi,
     pub mois: Option<String>,
+    /// Le mois de la DSN qui a declare `mois` quand ce n'est pas la sienne : la correction d'un mois passe, portee par la
+    /// DSN d'un mois suivant. `None` : la DSN du mois lui-meme.
+    pub par: Option<String>,
     pub version: u64,
     pub le: String,
 }
