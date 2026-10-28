@@ -24,7 +24,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use socle::ecriture::ecrire_json;
 use crate::editeur::Client;
-use crate::etats::{self, get};
+use envois::etats::{self, get};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -80,7 +80,7 @@ fn verrouiller(racine: &Path) -> R<Verrou> {
     if let Some(d) = p.parent() {
         std::fs::create_dir_all(d).map_err(|e| en_os(format!("{} : {}", d.display(), e)))?;
     }
-    let marque = socle::verrou::marque("filet", std::process::id(), &crate::incidents::maintenant());
+    let marque = socle::verrou::marque("filet", std::process::id(), &socle::paris::maintenant());
     match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(en_os)? {
         Ok(v) => Ok(v),
         Err(_) => Err(erreur("ErreurOperation", "Un autre passage du filet est en cours : reessayer dans un instant. Rien n'a ete modifie.")),
@@ -97,7 +97,7 @@ fn cle_dsn(mois: &str) -> String {
 
 /// `_maintenant` puis `_iso` : `AAAA-MM-JJTHH:MM`, l'heure de Paris.
 fn maintenant() -> String {
-    crate::incidents::maintenant()[..16].to_string()
+    socle::paris::maintenant()[..16].to_string()
 }
 
 /// `_client(compte)` : celui de ce compte (sa cle), sans l'identite du poste.
@@ -157,9 +157,7 @@ pub fn serveur(etat: &Value) -> String {
 /// envoye. Remplace un compte precedent (qui est efface chez le serveur).
 pub fn activer(racine: &Path, adresse: &Value, motdepasse: &Value) -> R<Value> {
     // UNE FICTIVE AJOUTEE (ticket #236) : le serveur du filet ecrirait a l'adresse (confirmation, rappels) -- un envoi.
-    if let Some(m) = crate::bridage::refus_d_envoi(racine) {
-        return Err(erreur(crate::bridage::CLASSE_REFUS_D_ENVOI, m));
-    }
+    crate::bridage::branchement(racine).ouvrir()?;
     exiger_mot_de_passe(racine, motdepasse, "activer le filet de sécurité DPAE")?;
     let adresse = match adresse {
         Value::String(s) => s.trim_matches(|c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)).to_lowercase(),

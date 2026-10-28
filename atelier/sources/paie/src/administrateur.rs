@@ -45,7 +45,7 @@ use serde_json::{json, Map, Value};
 
 use crate::coffre::Coffre;
 use droit::contexte::Contexte;
-use crate::etats::{self, est};
+use envois::etats::{self, est};
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -411,7 +411,7 @@ fn jj_mm_aaaa(iso: &str) -> String {
 /// (`routes_mois::etape_de_depot`).
 fn etape_du_fichier(ctx: &Contexte, lignes: &[Value], chemin: &Path, mensuelle: Option<&str>) -> R<&'static str> {
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
-    let empreinte = crate::journal::empreinte(&octets);
+    let empreinte = envois::journal::empreinte(&octets);
     if vrai(&etats::deja_depose(lignes, "dsn", &empreinte)?) {
         return Ok("deposee");
     }
@@ -559,7 +559,7 @@ fn declaration(ctx: &Contexte, lignes: &[Value], r: &Value) -> R<Option<Value>> 
             // Le depot reel de ce contenu est deja note : le rappel se taira au prochain releve.
             return Ok(None);
         }
-        let reel_code = std::fs::read(&f).map(|o| crate::depot::lire(&o).reel()).unwrap_or(false);
+        let reel_code = std::fs::read(&f).map(|o| envois::depot::lire(&o).reel()).unwrap_or(false);
         pret_test = etape == "a_tester";
         pret_reel = etape == "testee" && reel_code;
         d.insert("fichier".into(), json!(f.to_string_lossy()));

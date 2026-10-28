@@ -93,7 +93,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
-| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
+| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `paie` choisit : le monde, le simulateur ou le message), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
 | `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `paie`), les docs, les versions publiées, l'installeur, le site |
 
@@ -160,6 +160,9 @@ montre que celui qui a lieu.
   aussitôt. **La cible, c'est l'orchestrateur qui la choisit** (Léandre, 23/10/2026) : des lots qui se suivent un par un
   partagent une même cible, gardée d'un lot à l'autre (on ne recompile que ce qui a changé) ; des lots en parallèle ont
   chacun la sienne, effacée à la fusion du lot. Sa consigne nomme la cible ; l'exécutant n'en crée pas d'autre.
+  **Une cible qui passe d'un checkout à un autre** (un worktree, puis le checkout où l'on fusionne) se nettoie d'abord :
+  `cargo clean --profile essais -p <crate>` pour chaque crate de l'espace. Cargo y range les crates par chemin relatif à
+  l'espace et les croit à jour d'après les dates : une crate compilée depuis l'autre checkout masque le code présent.
 - Ne se délègue pas : une décision de conception, un acte qui engage (dépôt réel, envoi, signature), tout ce qui toucherait au
   coffre. Un Opus **ne réécrit jamais l'historique** (`--amend`, `rebase`, `reset`) et **ne laisse aucune tâche de fond**.
 - **Aucun repli Python** : ce qui s'écrit s'écrit en Rust, dans `paie/` ; ce qui ne se porte pas proprement remonte à Léandre.
@@ -237,8 +240,8 @@ fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas d
 binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
-cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, documents, declarations, paie ; les dossiers de travail des tests (~3 Go)
-cargo nextest run --cargo-profile essais --no-fail-fast                  # les six crates ; la fenêtre n'a pas de tests
+cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, documents, declarations, envois, paie ; les dossiers de travail des tests (~3 Go)
+cargo nextest run --cargo-profile essais --no-fail-fast                  # les sept crates ; la fenêtre n'a pas de tests
 ```
 
 - La suite de l'atelier (`--features atelier`, sa propre cible `<cible>-atelier`), seulement quand on touche à ce qui est sous
@@ -247,7 +250,7 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # les s
 - **Quatre binaires par domaine dans `paie/tests/`** (`tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`) ; un fichier qui pose une
   variable d'environnement reste seul dans `tests/`. Les aides sont dans `tests/outils/` (un fichier n'en recopie aucune) ;
   un test se monte dans `outils::dossier_de_test`. Un test qui monte une compagnie passe par le moteur entier et reste dans
-  `paie/tests/` ; un test qui n'appelle que les fonctions de `documents` ou de `declarations` sur des valeurs vit dans sa crate
+  `paie/tests/` ; un test qui n'appelle que les fonctions de `documents`, de `declarations` ou d'`envois` sur des valeurs vit dans sa crate
   (`<crate>/tests/`, ou son `#[cfg(test)]`). Un fichier seul : `-E 'binary(calcul) & test(/^clauses::/)'` ; les tests d'une
   crate : `-p declarations`.
 - **Ce qu'un test prouve** : une règle qui cite son texte déposé, ou un contrat (une route refuse et rien n'est écrit ; un

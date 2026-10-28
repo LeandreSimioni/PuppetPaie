@@ -83,7 +83,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             .iter()
             .map(|m| {
                 json!({"cle": m.cle, "nom": m.nom, "destinataire": m.destinataire, "sujet": m.sujet,
-                       "pieces": m.pieces.iter().map(|p| crate::routes_envois::nom_du(p)).collect::<Vec<_>>(), "octets": m.taille()})
+                       "pieces": m.pieces.iter().map(|p| socle::fichiers::nom_du(p)).collect::<Vec<_>>(), "octets": m.taille()})
             })
             .collect();
         rendre(&enveloppe(
@@ -100,7 +100,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     for a in &prep.avertissements {
         dire!("Note : {}\n", a);
     }
-    let libelle = crate::routes_envois::capitaliser(&engagement::libelle_mois(&prep.mois_saisie));
+    let libelle = socle::texte::capitaliser(&engagement::libelle_mois(&prep.mois_saisie));
     dire!("\n{} - {} message(s)\n{}", libelle, prep.messages.len(), "-".repeat(62));
     for m in &prep.messages {
         dire!("  {:<22} {:<30} {} piece(s), {} ko", m.nom, m.destinataire, m.pieces.len(), m.taille() / 1024);

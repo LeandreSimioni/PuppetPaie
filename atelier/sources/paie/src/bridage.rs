@@ -1,7 +1,7 @@
 //! LE BRIDAGE (lot U1, 14/10/2026). Il n'y a qu'un logiciel, BRIDE ou DEBLOQUE ; Leandre : « Il n'y a pas de version
 //! demonstration. C'est toujours le meme logiciel qui est bride ou pas bride. » Bride, l'accueil ne propose que les
 //! compagnies fictives, et son « + » ajoute une FICTIVE AJOUTEE (ticket #236, `compagnies::ajouter`) dont les envois sont
-//! refuses (`refus_d_envoi`) ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
+//! refuses (`branchement` : le message) ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
 //! le meme moteur, la meme mise a jour (le bridage n'y joue aucun role, `maj.rs`).
 //!
 //! BRIDE TANT QUE RIEN NE DIT QU'IL EST DEBLOQUE (ticket #246, Leandre 22/10/2026 : « Le logiciel ne doit jamais etre
@@ -83,16 +83,24 @@ pub fn est_bride_de(inst: &Path) -> bool {
 pub const REFUS_D_ENVOI: &str = "L'envoi n'est pas possible depuis la version démo. Pour 2027, et afin d'offrir un service de qualité, le nombre d'utilisateurs est restreint. N'hésitez pas à contacter Léandre (puppetpaie@gmail.com) avec une courte présentation et votre motivation pour débloquer le logiciel et faire partie des premiers utilisateurs.";
 pub const CLASSE_REFUS_D_ENVOI: &str = "EnvoiBride";
 
-/// UNE FICTIVE AJOUTEE N'ENVOIE RIEN (ticket #236) : `Some(REFUS_D_ENVOI)` pour la compagnie `racine` si elle en est une
-/// (`compagnies::est_ajoutee`), `None` sinon. Tout le refus tient ici ; deux portes l'appellent, avant que rien ne
-/// s'ecrive au journal des depots : `depot_acte::refuser_l_envoi` (les depots DSN et DPAE, test et reel, signalements
-/// compris, quel qu'en soit l'appelant : page, ligne de commande, filet, administrateur) et `routes_envois::client_courriel`
-/// (la boite de tout courriel envoye a quelqu'un) ; s'y ajoutent les deux envois qui ouvrent leur propre chemin : le
-/// contrat contresigne (`releve_signatures`) et l'inscription au filet (`filet::activer`, dont le serveur ecrit a
-/// l'adresse). Ce qui va a l'editeur (incidents, « Un probleme, une idee ? ») et la verification d'un mot de passe ne
-/// sont pas des envois : ils restent permis.
-pub fn refus_d_envoi(racine: &Path) -> Option<&'static str> {
-    crate::interface::compagnies::est_ajoutee(racine).then_some(REFUS_D_ENVOI)
+/// LE BRANCHEMENT DE LA COMPAGNIE `racine` (`envois::branchement`), choisi ici et nulle part ailleurs :
+/// - une FICTIVE AJOUTEE (`compagnies::est_ajoutee`) n'envoie rien : le message, `REFUS_D_ENVOI` ;
+/// - une compagnie FICTIVE (son marqueur, `compagnies::est_fictive`), ou toute compagnie du PAQUET SOUDE
+///   (`paquet_soude`) : le simulateur ;
+/// - toute autre : le monde. Le logiciel simplement bride ne joue rien.
+///
+/// Chaque envoi vers un organisme ou une personne l'ouvre avant que rien ne s'ecrive (`Branchement::ouvrir`). Ce qui va
+/// a l'editeur (incidents, « Un probleme, une idee ? ») et la verification d'un mot de passe ne sont pas des envois.
+pub fn branchement(racine: &Path) -> envois::branchement::Branchement {
+    use crate::interface::compagnies::{est_ajoutee, est_fictive};
+    use envois::branchement::{Branchement, Refus};
+    if est_ajoutee(racine) {
+        Branchement::Message(Refus { classe: CLASSE_REFUS_D_ENVOI, phrase: REFUS_D_ENVOI })
+    } else if paquet_soude() || est_fictive(racine) {
+        Branchement::Simulateur
+    } else {
+        Branchement::Monde
+    }
 }
 
 /// Le mot qui le dit (le journal des incidents, la description du poste) : `bride` ou `debloque`.

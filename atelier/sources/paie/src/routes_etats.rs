@@ -25,7 +25,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::etats::{self, est, get, getd, items, joindre, objet_vide, ou, DPAE, SIGNATURE};
+use envois::etats::{self, est, get, getd, items, joindre, objet_vide, ou, DPAE, SIGNATURE};
 use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -196,7 +196,7 @@ pub(crate) fn vers_route(x: crate::coffre::Echec) -> Echec {
 fn identifiant_du_compte(ent: &Value, service: &str) -> R<Value> {
     match service {
         "net-entreprises" => {
-            let d = crate::transport::declarant(ent).map_err(|v| Echec {
+            let d = envois::transport::declarant(ent).map_err(|v| Echec {
                 classe: match v.get("classe").and_then(Value::as_str) {
                     Some("AttributeError") => Some("AttributeError"),
                     _ => None,

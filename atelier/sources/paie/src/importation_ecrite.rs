@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
@@ -725,7 +725,7 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// (`reprise_journal::reprendre_les_depots`). Rend le nombre de depots repris.
 fn depots_attestes_au_journal(ctx: &Contexte, charge: &Value) -> R<usize> {
     let qui = crate::routes_ecritures_g2::qui_de(charge);
-    crate::reprise_journal::reprendre_les_depots(ctx, &qui, &crate::routes_ecritures_g2::maintenant())
+    crate::incidents::noter_ceux_des_retours(&ctx.racine, envois::reprise_journal::reprendre_les_depots(ctx, &qui, &crate::routes_ecritures_g2::maintenant()))
 }
 
 fn avertissement_differents(differents: &[String], ou: &str) -> String {

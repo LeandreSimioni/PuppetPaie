@@ -682,7 +682,7 @@ fn fctu_depose(journal: &[Value], cle: &str, fin: &Jour) -> Option<Fait> {
     let nom = format!("SignalementFinContrat_{}_{}.dsn", cle.to_uppercase(), fin.aaaammjj());
     journal
         .iter()
-        .filter(|l| texte(l, "quoi") == "dsn" && texte(l, "mode") == crate::journal::REEL && l.get("accepte").is_some_and(vrai))
+        .filter(|l| texte(l, "quoi") == "dsn" && texte(l, "mode") == envois::journal::REEL && l.get("accepte").is_some_and(vrai))
         .filter(|l| texte(l, "mois") == fin.iso() && texte(l, "fichier").to_uppercase() == nom.to_uppercase())
         .filter_map(|l| {
             let quand = texte(l, "quand");

@@ -1,0 +1,47 @@
+[package]
+name = "envois"
+version = "0.1.0"
+edition = "2021"
+description = "Ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours et bilans, et le journal de ce qui est parti. Recoit des pieces deja fabriquees et un mot de passe ; ne fabrique aucun document, n'ouvre jamais le coffre."
+license = "EUPL-1.2"
+publish = false
+
+[dependencies]
+socle = { path = "../socle" }
+droit = { path = "../droit" }
+engagement = { path = "../engagement" }
+documents = { path = "../documents" }
+declarations = { path = "../declarations" }
+rust_decimal = { workspace = true }
+serde_json = { workspace = true }
+# L'empreinte d'un fichier du journal ; le defi PKCE de l'autorisation Google.
+sha2 = { workspace = true }
+# Les aleas : la frontiere d'un message MIME, l'etat et le verificateur de l'autorisation Google.
+getrandom = { workspace = true }
+# Les retours DSN et DPAE sont du XML : lecture seule, Rust pur.
+roxmltree = { workspace = true }
+# L'archive zip d'une AER de la compagnie fictive.
+zip = { workspace = true }
+# Le PDF de l'AER fictive et des courriels joues de la demonstration.
+fabrique-pdf = { path = "../fabrique-pdf" }
+# Le transport vers net-entreprises, l'Urssaf et Google : HTTP/1.1 synchrone, TLS par rustls, racines du systeme
+# (`SSL_CERT_FILE` honore), proxy lu dans l'environnement ; ni gzip (flate2 s'en charge), ni cookies, ni json.
+ureq = { workspace = true }
+# Deflate et CRC-32 : le gzip du transport, les archives de retours.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# Les motifs des courriels lus (signature, courriels joues, ordre des signalements) ; sans les optimisations par
+# defaut, qui pesent sur le binaire.
+regex = { version = "1", default-features = false, features = ["std", "unicode"] }
+# La lecture MIME des courriels recus.
+mailparse = "0.16"
+# La messagerie : SMTP par `lettre` (sans son batisseur de messages : on lui passe nos octets, `send_raw`), TLS par
+# rustls et verificateur de la plate-forme (la racine d'un antivirus installee dans le magasin du systeme passe, comme
+# pour l'Urssaf) ; IMAP ecrit sur un flux rustls, reponses lues par `imap-proto`.
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "rustls", "ring", "rustls-platform-verifier"] }
+imap-proto = "0.17"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7"
+
+[features]
+# La redirection de l'atelier vers un faux serveur local (`redirection`), pour `paie-atelier` seulement.
+atelier = []

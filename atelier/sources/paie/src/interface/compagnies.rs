@@ -91,7 +91,7 @@ pub fn est_fictive(racine: &Path) -> bool {
 /// LA FICTIVE AJOUTEE (ticket #236, Leandre 22/10/2026) : la compagnie que le « + » d'un logiciel bride ajoute. C'est une
 /// fictive (`est_fictive` : elle vit sous `fictives/`, s'ouvre sans mot de passe, ne retient aucune version, rien ne part
 /// d'elle a l'editeur qu'un incident ou un message), mais elle porte des donnees qu'on y a mises, pas celles d'une
-/// fictive livree : ses envois NE SONT PAS JOUES, ILS SONT REFUSES (`bridage::refus_d_envoi`), elle n'a pas de photo
+/// fictive livree : ses envois NE SONT PAS JOUES, ILS SONT REFUSES (`bridage::branchement`), elle n'a pas de photo
 /// d'origine ni de remise a zero, et la livraison des fictives (`maj.rs`) ne la touche jamais. SA MARQUE : la cle
 /// `ajoutee` de son marqueur (`COPIE-DE-DEVELOPPEMENT.json`, que `ajouter` ecrit) -- lue ICI et nulle part ailleurs.
 pub const CLE_AJOUTEE: &str = "ajoutee";
@@ -408,7 +408,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
         &json!({
             "copie_de": format!("{} ajoutee sur ce poste", MARQUE_FICTIVE),
             CLE_AJOUTEE: true,
-            "quand": crate::incidents::maintenant(),
+            "quand": socle::paris::maintenant(),
             "_quoi": "Une compagnie fictive ajoutee sur ce poste, le logiciel etant bride : tout s'y fait, rien n'en part vers un organisme ni vers une personne.",
         }),
     )?;

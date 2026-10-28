@@ -24,18 +24,22 @@ use serde_json::{json, Map, Value};
 
 use socle::texte::strip;
 use droit::contexte::Contexte;
-use crate::courriel::{self, Client, Courriel};
-use crate::simulation_courriels::BoiteQuiRepond;
-use crate::courriel_lecture as lecture;
+use envois::courriel::Courriel;
+use envois::simulation_courriels::BoiteQuiRepond;
+use envois::courriel_lecture as lecture;
 use crate::depot_acte::{verifier_preuve, Preuve};
-use crate::envoi::{self, Message};
+use envois::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
 use documents::fiche_questionnaire as fq;
-use crate::journal::{self, Note};
+use envois::journal::{self, Note};
 use socle::echec::Echec;
-use crate::routes_envois::{capitaliser, client_courriel, echec_d_envoi, html_echapper, mailto, maintenant, noter, preuve_de, refus, vrai_ou, R};
+use crate::routes_envois::{client_courriel, preuve_de, refus, vrai_ou, R};
+use envois::ligne_d_envoi::{echec_d_envoi, noter};
+use socle::html::{html_echapper, mailto};
+use socle::texte::capitaliser;
+use socle::paris::maintenant;
 
 /// Les routes de ce module.
 pub const ROUTES: [&str; 2] = ["fiche-demander", "fiches-relever"];
@@ -169,11 +173,11 @@ pub struct Attendue {
 /// `fiches_attendues` : les demandes parties et pas encore revenues, les plus anciennes d'abord. Une demande a
 /// laquelle on renonce se retire (`fiche-oublier-demande`, `routes_ecritures`).
 pub fn fiches_attendues(ctx: &Contexte) -> R<Vec<Attendue>> {
-    let lignes = crate::etats::charger(&ctx.racine)?;
+    let lignes = envois::etats::charger(&ctx.racine)?;
     let detail = |l: &Value| -> Value { l.get("detail").filter(|d| vrai(d)).cloned().unwrap_or_else(|| json!({})) };
-    let closes: Vec<Value> = crate::etats::filtrer(&lignes, Some("fiche-recue"), None, false)?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
+    let closes: Vec<Value> = envois::etats::filtrer(&lignes, Some("fiche-recue"), None, false)?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
     let mut sortie = Vec::new();
-    for l in crate::etats::filtrer(&lignes, Some("fiche-demande"), None, false)? {
+    for l in envois::etats::filtrer(&lignes, Some("fiche-demande"), None, false)? {
         let d = detail(l);
         let code = d.get("code").cloned().unwrap_or(Value::Null);
         if !l.get("accepte").is_some_and(vrai) || !vrai(&code) || closes.contains(&code) {
@@ -229,18 +233,24 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         return Ok(r);
     }
     let mut ouverte: Option<Box<dyn Courriel>> = None;
+    let branchement = crate::bridage::branchement(&ctx.racine);
     let client: &mut dyn Courriel = match client {
         Some(c) => c,
-        None if crate::routes_accueil::simulation_active(&ctx.racine) => {
+        None if branchement.joue() => {
             // LA COMPAGNIE FICTIVE : la personne fictive repond, et c'est la vraie lecture qui suit.
             ouverte.insert(Box::new(boite_des_fiches(ctx, &attendues, DELAI_FICTIVE)?)).as_mut()
         }
         None => {
-            if !courriel::disponible(&ctx.racine) {
+            // Le message : rien n'est parti, rien ne revient.
+            if let Some(refus) = branchement.refus() {
+                r.incidents.push(refus.phrase.to_string());
+                return Ok(r);
+            }
+            if !crate::boite::disponible(&ctx.racine) {
                 r.incidents.push("Aucune boite courriel : les fiches demandees ne peuvent pas etre relevees.".to_string());
                 return Ok(r);
             }
-            let vrai_client = Client::du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+            let vrai_client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
             ouverte.insert(Box::new(vrai_client)).as_mut()
         }
     };
@@ -396,7 +406,7 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
     lignes.push(String::new());
     lignes.push(format!("Code (ne pas modifier) : {}", code));
     let sujet = bouton.map(|b| b.0.clone()).unwrap_or_else(|| "Re: fiche".to_string());
-    crate::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
+    envois::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
 }
 
 /// `simulation.BoiteDesFiches` : la boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
@@ -404,15 +414,15 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
 /// s'ecrit comme tout courriel joue (`BoiteQuiRepond`, partagee avec `BoiteDesSignatures`).
 pub fn boite_des_fiches(ctx: &Contexte, attendues: &[Attendue], delai: i64) -> R<BoiteQuiRepond> {
     let mut boite = BoiteQuiRepond::nouvelle(ctx);
-    let maintenant_naif = crate::releve_retours::maintenant_naif();
+    let maintenant_naif = socle::paris::maintenant_naif();
     // Les courriels joues, par leur `Message-ID` : la demande retrouve ainsi son bouton.
-    let envoyes = crate::simulation_courriels::courriels_par_identifiant(&ctx.racine);
+    let envoyes = envois::simulation_courriels::courriels_par_identifiant(&ctx.racine);
     for a in attendues {
-        let age = crate::releve_retours::naif_de_iso(&a.quand).map_or(0, |t| maintenant_naif - t);
+        let age = socle::paris::naif_de_iso(&a.quand).map_or(0, |t| maintenant_naif - t);
         if age < delai {
             continue;
         }
-        let bouton = crate::simulation_courriels::bouton_de_la_demande(&envoyes, &a.envoyes);
+        let bouton = envois::simulation_courriels::bouton_de_la_demande(&envoyes, &a.envoyes);
         let brut = reponse_de_fiche(a, Courriel::compte(&boite), bouton.as_ref()).map_err(|m| erreur("ValueError", m))?;
         boite.repondre(&a.code, brut);
     }

@@ -78,7 +78,7 @@ fn retenir(racine: &Path, annee: i32, paies: usize, poste: &str) -> Result<(), S
         _ => Map::new(),
     };
     let mut annees = d.get(CLE).and_then(Value::as_object).cloned().unwrap_or_default();
-    annees.insert(annee.to_string(), json!({"paies": paies, "poste": poste, "parti_le": incidents::maintenant()}));
+    annees.insert(annee.to_string(), json!({"paies": paies, "poste": poste, "parti_le": socle::paris::maintenant()}));
     d.insert(CLE.into(), Value::Object(annees));
     socle::ecriture::ecrire_json(&p, &Value::Object(d), 2)
 }

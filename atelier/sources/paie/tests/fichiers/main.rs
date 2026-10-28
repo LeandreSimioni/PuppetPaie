@@ -1,5 +1,5 @@
-//! Les fichiers de la compagnie et ce qui en part : ecriture, journal, coffre, depots, retours, sauvegarde, courriels, Drive,
-//! transport, et la ligne de commande.
+//! Les fichiers de la compagnie et ce qui en part : ecriture, journal, coffre, sauvegarde, lecture des courriels, Drive, et la
+//! ligne de commande.
 //!
 //! Un binaire pour tout le groupe (11/10/2026, séance « tests plus rapides ») : moins d'éditions de liens, moins de
 //! disque, et les tests des différents fichiers se répartissent sur les cœurs. Un fichier seul :
@@ -24,14 +24,9 @@ mod cle_de_signature;
 mod coffre;
 mod commandes;
 mod conseils_banque;
-mod courriel;
-mod courriel_lecture;
-mod depot;
 mod donnees_reelles;
 mod drive;
 mod ecriture;
-mod envoi;
-mod envoi_mime;
 mod essai;
 mod extraction;
 mod garde_reseau;
@@ -39,9 +34,7 @@ mod installations;
 mod mise_a_jour;
 mod releve_dila;
 mod restauration;
-mod retours;
 mod sauvegarde;
 mod tables_generees;
-mod transport;
 mod verrous_cargo;
 mod verifier_avant_commit;

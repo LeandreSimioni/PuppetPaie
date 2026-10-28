@@ -17,7 +17,8 @@ use serde_json::{json, Value};
 use crate::coffre::{Coffre, CONSULTATION};
 use droit::contexte::Contexte;
 use socle::echec::erreur;
-use crate::releve_retours::{mot_de_passe_de_consultation, Client, Panne};
+use crate::releve::mot_de_passe_de_consultation;
+use envois::releve_retours::{Client, Panne};
 use socle::echec::Echec;
 
 type R<T> = Result<T, Echec>;
@@ -33,7 +34,7 @@ pub const COURRIEL: &str = "courriel";
 pub type Authentifier<'a> = &'a mut dyn FnMut(&Contexte, &str, Option<String>) -> Result<(), Panne>;
 
 /// De quoi ouvrir la boite : `courriel.verifier` (une seule connexion IMAP).
-pub type OuvrirBoite<'a> = &'a mut dyn FnMut(&Contexte) -> Result<Value, crate::courriel::ErreurCourriel>;
+pub type OuvrirBoite<'a> = &'a mut dyn FnMut(&Contexte) -> Result<Value, envois::courriel::ErreurCourriel>;
 
 /// La route `coffre-verifier`.
 pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
@@ -42,7 +43,7 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `operations_ouverture.verifier_secret`, avec les vraies connexions.
 pub fn verifier_secret(ctx: &Contexte, service: Option<&Value>) -> R<Value> {
-    verifier_secret_avec(ctx, service, &mut authentifier_pour_de_vrai, &mut |c| crate::courriel::verifier(&c.racine))
+    verifier_secret_avec(ctx, service, &mut authentifier_pour_de_vrai, &mut |c| crate::boite::verifier(&c.racine))
 }
 
 /// L'authentification d'un service : le client de la DSN, ou celui de la DPAE (un autre compte).

@@ -861,7 +861,7 @@ logiciel/donnees/baremes/2026.json      le socle : droit commun + tout le specta
   └─ section `par_convention`           la couche de SA convention, choisie par l'IDCC
 config/baremes/2026.json                ce qui est propre à la compagnie, 2 Ko
 config/effectifs.json                   son effectif, écrit par le moteur depuis
-                                        les retours de nature 118 (paie/src/releve_retours.rs)
+                                        les retours de nature 118 (envois/src/releve_retours.rs)
 ```
 
 **Trois étages, et le deuxième est une bifurcation.** Le corps du socle porte
@@ -956,7 +956,7 @@ qui dépend de l'effectif et ce que le socle y porte (formation des permanents �
 onze salariés ; FNAL, `tdelta` et échéance de la DSN à cinquante).
 `droit/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
 le 23/09/2026 il ne se saisit plus : il arrive en CRM de nature 118,
-`paie/src/releve_retours.rs` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
+`envois/src/releve_retours.rs` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
 un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — et
 **refuse de payer** si la surcouche ne suit pas le palier atteint.
 
@@ -1415,7 +1415,7 @@ enregistrement renvoyé** avec ses zones de retour remplies — `C_RET_AR_LOT`
 (76-77, le traitement du message), `R_DOSSIER` (425-429, la référence sous
 laquelle la DPAE est enregistrée), `C_RETOUR_AR` (430-431, le code par DPAE)
 et les formalités déclenchées (`I_CERTIF`, `I_IMMA`, `I_MT`, `I_PMF5`,
-971-976). `paie/src/etats.rs` lit le certificat (`dpae::lire_certificat`) et pose sur
+971-976). `envois/src/etats.rs` lit le certificat (`dpae::lire_certificat`) et pose sur
 chaque embauche sa référence de dossier.
 
 Deux lectures à connaître, observées sur les 16 enregistrements reçus de juin
@@ -1454,7 +1454,7 @@ n'était utile que pour se rassurer, pas pour produire.
 ## Le dépôt, et le journal
 
 Ces déclarations engagent l'employeur. Le moteur les dépose **par l'API**
-(`paie/src/depot.rs` le prépare, `paie/src/transport.rs` l'envoie : net-entreprises
+(`envois/src/depot.rs` le prépare, `envois/src/transport.rs` l'envoie : net-entreprises
 pour la DSN, l'Urssaf pour la DPAE), jamais
 par un portail : un contrat écrit, des retours lus par programme, et une
 erreur qui se voit — la première DPAE du 12/09/2026 a été refusée cinq fois
@@ -1472,10 +1472,10 @@ Trois garde-fous, tous dans le moteur (`paie/src/depot_acte.rs`, porté d'`opera
   refusée (`DpaeDejaDeclaree`), `deposer_dsn` une DSN réelle déjà partie pour
   le mois (`DsnDejaDeposee`). Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
-- **Un dépôt n'est pas fini quand il est parti.** `paie/src/journal.rs` écrit une ligne
+- **Un dépôt n'est pas fini quand il est parti.** `envois/src/journal.rs` écrit une ligne
   par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de
   signature), avec le `flux` rendu par le point de dépôt ; les retours relevés
-  à l'ouverture s'y rattachent. `verdict_du_retour` (`paie/src/etats.rs`) lit les bilans (natures
+  à l'ouverture s'y rattachent. `verdict_du_retour` (`envois/src/etats.rs`) lit les bilans (natures
   10/11) : une DPAE est **passée quand son bilan est OK**, le certificat 41
   confirme, il ne décide plus. `resume` dit « REFUSÉ : motif », « bilan OK »,
   « en TEST ».

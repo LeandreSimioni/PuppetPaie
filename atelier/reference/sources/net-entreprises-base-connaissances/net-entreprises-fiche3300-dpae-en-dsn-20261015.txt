@@ -1,0 +1,607 @@
+Date de modification : 15/10/2026 03:35 PM
+
+Comment faire une déclaration préalable à l'embauche en DSN ? 
+
+-   Le contexte
+
+La Déclaration Préalable à l’Embauche (DPAE), transmise à l’Urssaf pour le régime général et à la MSA pour le régime agricole de la sécurité sociale (qui transmettront aux administrations concernées), est obligatoire pour tous les employeurs, quelles que soient les conditions d’exercice de la profession et la durée d’engagement, avant toute embauche (dans les 8 jours qui la précèdent y compris la période d’essai) d’un salarié. 
+
+Elle permet d’ouvrir les droits de l’employeur et du salarié embauché et rassemble 5 formalités relatives à l’embauche :  
+
+- La déclaration d’une première embauche dans un établissement 
+
+- La demande d’immatriculation d’un salarié au régime général de la Sécurité sociale 
+
+- La demande d’affiliation au régime d’assurance chômage 
+
+- La demande d’adhésion à un service de santé au travail 
+
+- La déclaration d’embauche du salarié auprès du service de santé au travail en vue de la visite médicale obligatoire 
+
+ 
+
+La DPAE, outil de lutte contre la fraude véhicule les données permettant de répondre aux demandes des différentes administrations de contrôle afin d’éviter toute sanction notamment liée au travail dissimulé. Ces informations sont consultables par les corps de contrôle habilités sur une période de trois ans.
+
+ 
+
+Périmètre actuel de la DPAE en DSN 
+
+A compter de 2027, il sera possible de remplir son obligation de déclarer le recrutement de ses salariés au moyen d’un signalement en DSN : le signalement Déclaration Préalable A l’Embauche (DPAE). 
+
+Ce signalement est disponible dès la version de norme P26V01.
+
+ 
+
++--------------------------------------------------------------------------------------+
+|                                                                                      |
+|                                                                                      |
+| La date de l’ouverture de ce service est prévue pour la fin du premier semestre 2027 |
+|                                                                                      |
+|                                                                                      |
++--------------------------------------------------------------------------------------+
+
+ 
+
+Dans un premier temps, son usage est réservé pour la déclaration d’embauche d’individus relevant du régime général. Son extension au régime agricole se fera dans un deuxième temps. 
+
+Le recours à ce signalement est possible uniquement pour les contrats à durée indéterminée (CDI) et les contrats à durée déterminée (CDD). A noter que les contrats de travail temporaire sont exclus du périmètre. 
+
+ 
+
+Informations complémentaires 
+
+Les canaux et les modalités de transmission classiques sont maintenus : EDI, API et EFI. Ainsi, un employeur qui le souhaite peut remplir son obligation déclarative préalable à l'embauche en DSN avec ce nouveau signalement qui devra être réalisée dans un délai de 8 jours avant l'embauche. 
+
+ 
+
+Ce signalement n’est pas à confondre avec le signalement d’amorçage des données variables. Pour rappel, ce dernier n’est à transmettre qu’une fois que l’embauche du salarié est effective. Il sert notamment à récupérer le taux de prélèvement à la source du nouvel embauché. 
+
+Le signalement DPAE quant à lui ne permet pas de récupérer cette information. 
+
+ 
+
+Cette fiche consigne a pour objet de préciser les modalités déclaratives de ce nouveau signalement.
+
+ 
+
+-     Traitement dans la norme DSN
+
+ 
+
+Modèle du signalement DPAE 
+
+Le modèle du signalement DPAE correspond à la nature de déclaration « 10 - Signalement Déclaration préalable à l'embauche ». 
+
+ 
+
+Comme pour la DPAE « classique », ce signalement doit être effectué dans les 8 jours précédant l’embauche. Il est attendu pour chaque contrat de travail conclu avec le futur salarié. Si un individu fait l’objet de deux contrats avec interruption, deux signalements doivent être émis. 
+
+Voici la structure du signalement DPAE en DSN : 
+
+[Image 4, Image]
+
+ 
+
+Point d’attention : Etant limité, dans un premier temps, aux déclarations préalables à l’embauche pour le Régime général, le signalement ne peut être déposer que sur le point de dépôt « 01 – Net-entreprises ».
+
+ 
+
+-        Informations relatives au contact chez le déclaré 
+
+Afin de faciliter les relations avec l’Urssaf, il est attendu que le signalement DPAE contienne au moins un bloc « Contact chez le déclaré - S20.G00.07 » de l’un des types suivants :
+
+- 06 - Contact sur l’identification des salariés (NIR)
+
+- 07 - Contact sur l’identification de l’établissement (SIRET)
+
+- 08 - Contextualisable à l’ensemble des organismes, hors typologies 1 à 7, et 9
+
+ 
+
+-    Informations relatives à l’identification de l’individu et du service de prévention et de santé au travail auquel il est rattaché 
+
+Des informations nécessaires à la bonne identification du futur embauché sont obligatoires. Il s’agit des données suivantes : 
+
+- Numéro d'inscription au répertoire - S21.G00.30.001 
+
+- Nom de famille - S21.G00.30.002 
+
+- Prénoms - S21.G00.30.004 
+
+- Sexe - S21.G00.30.005 
+
+- Date de naissance - S21.G00.30.006 
+
+- Lieu de naissance - S21.G00.30.007 
+
+- Numéro technique temporaire - S21.G00.30.020 si le NIR n’est pas connu 
+
++
+
+- Identifiant du Service de Prévention et de Santé au Travail (SPST) - S21.G00.30.030 il peut s’agir d’un SPST interne à l’établissement ou l’entreprise, ou d’un SPST inter entreprise 
+
+ 
+
+Points d’attention :
+
+- La rubrique « Identifiant du Service de Prévention et de Santé au Travail (SPST) - S21.G00.30.030 » doit être renseignée de la même manière que dans la DPAE classique, en s'appuyant sur le référentiel « sst_dpae » de l’Urssaf. Cette donnée doit être déclarée avec l’une des valeurs du champ « mt_lib_court » (par exemple : MT189).
+
+- Dans le cas d’un SPST interne à l’entreprise, il convient de renseigner cette rubrique avec le code « MT01 ».
+
+ 
+
+-    Informations relatives au contrat de travail 
+
+La déclaration préalable à l’embauche, quel que soit son mode de transmission, doit obligatoirement véhiculer :
+
+- La date prévisible d’embauche
+
+- L’heure prévisible d’embauche
+
+- La nature du contrat et si celui-ci est conclu dans le cadre d’un dispositif de politique publique (plus bas, sont détaillés les natures de contrat et les dispositifs de politique publique et conventionnels autorisés)
+
+- La durée de la période d’essai (à renseigner obligatoirement pour les CDI et les CDD de plus de 6 mois)
+
+- La date prévisionnelle de fin de contrat (à renseigner obligatoirement pour les CDD mais uniquement pour cette nature de contrat)
+
+ 
+
+* Date prévisible d’embauche
+
+Cette date doit être renseignée au niveau de la rubrique « Date de début du contrat - S21.G00.40.001 ». Lorsqu’il s’agit d’un signalement DPAE, l’information renseignée dans cette rubrique est à lire comme la date prévisible d’embauche.
+
+ 
+
+Point d’attention : En cas de différence entre la date prévisible d’embauche et la date réelle de début du contrat, cette information pourra être corrigée par le gestionnaire depuis son logiciel de paie afin de transmettre en DSN mensuelle la date réelle de début du contrat.
+
+ 
+
+* Heure prévisible d’embauche
+
+Il s’agit de l’heure précise (heure et minutes) à laquelle il est prévu que le contrat de l’individu démarre. Elle est à renseigner dans la rubrique « Heure prévisible d'embauche - S21.G00.40.083 ».
+
+ 
+
+* Nature du contrat
+
+Cette information est à renseigner au niveau de la rubrique « Nature du contrat - S21.G00.40.007 ».
+
+L’usage du signalement DPAE est réservé aux contrats à durée déterminée (CDD) et aux contrats à durée indéterminée (CDI). En conséquence, seules les valeurs suivantes sont autorisées :
+
+- 01 - Contrat de travail à durée indéterminée de droit privé
+
+- 02 - Contrat de travail à durée déterminée de droit privé
+
+- 09 - Contrat de travail à durée indéterminée de droit public
+
+- 10 - Contrat de travail à durée déterminée de droit public
+
+ 
+
+* Dispositif de politique publique
+
+Si le contrat est conclu dans le cadre d’un dispositif de politique publique, ce dernier doit être renseigné au niveau de la rubrique « Dispositif de politique publique et conventionnel - S21.G00.40.008 ». Seuls sont autorisés les dispositifs de politique publique ou conventionnel suivants :
+
+- 21 - CUI - Contrat Initiative Emploi
+
+- 41 - Parcours Emploi Compétences / CUI - CAE
+
+- 42 - CUI - Contrat d'accès à l'emploi - DOM
+
+- 61 - Contrat de Professionnalisation
+
+- 64 - Contrat d'apprentissage entreprises artisanales ou de moins de 11 salariés (loi du 3 janvier 1979)
+
+- 65 - Contrat d’apprentissage entreprises non inscrites au répertoire des métiers d’au moins 11 salariés (loi de 1987)
+
+- 70 - Contrat à durée déterminée pour les séniors
+
+- 71 - Contrat à durée déterminée d’insertion
+
+- 80 - Contrat de génération
+
+- 81 - Contrat d'apprentissage secteur public (Loi de 1992)
+
+- 83 - Contrat de valorisation de l’expérience
+
+- 94 - Contrat adulte relais
+
+ 
+
+* Durée de la période d’essai
+
+Il s’agit du nombre de jours de période d’essai prévu initialement au contrat. Il ne doit pas inclure le nombre de jours d’un éventuel renouvellement de période d’essai. S’il est prévu une période d’essai de 30 jours renouvelable 30 jours, il convient de renseigner le nombre 30 et non 60.
+
+Cette information doit obligatoirement être renseignée au niveau de la rubrique « Nombre de jours de période d’essai - S21.G00.40.082 » lorsque le contrat déclaré est un CDI ou un CDD de plus de 6 mois.
+
+ 
+
+* Date prévisionnelle de fin de contrat
+
+Un contrat de travail à durée déterminée (CDD) a par définition une date de fin prévue ou prévisible. Cette information doit obligatoirement être renseignée au niveau de la rubrique « Date de fin prévisionnelle du contrat - S21.G00.40.010 » pour un contrat de type CDD (valeur « 02 - Contrat de travail à durée déterminée de droit privé » ou « 10 - Contrat de travail à durée déterminée de droit public » en rubrique Nature du contrat - S21.G00.40.007 »).
+
+ 
+
+Point d’attention : D’autres données, bien qu’elles ne soient pas obligatoires, doivent être renseignées dès lors que le gestionnaire en a connaissance. Leur alimentation permettra de poursuivre des réflexions menées dans un objectif de simplification des démarches déclaratives des employeurs, notamment en optimisant l’articulation entre le signalement d’amorçage des données variables (SADV) pour déclarer l’embauche effective d’un individu et le signalement DPAE.
+
+ 
+
+ 
+
+-   Les comptes rendus métiers DPAE
+
+ 
+
+  Après transmission du signalement DPAE, un compte rendu métier au format XML (CRM Bilan DPAE 126) est mis à disposition du déclarant :
+
+- Sur le tableau de bord DSN du déclarant.
+
+- Dans le progiciel de paie pour tout dépôt en mode « machine to machine ».
+
+ 
+
+2 statuts sont possibles pour ce CRM Bilan DPAE 126 :
+
+- Statut « OK » dès lors que le signalement DPAE est conforme et qu’aucune anomalie n’est détectée.
+
+- Statut « ANO » dans le cas où une anomalie a été détectée par l’Urssaf.
+
+ 
+
+Lorsque la DPAE est conforme (Statut « OK »), un CRM est transmis en complément par l’Urssaf : le CRM informatif DPAE (code 140) qui restitue au déclarant les mêmes informations que celles présentes dans l’accusé de réception d’une DPAE déposée hors DSN :
+
+- Les informations portées dans la DPAE transmise
+
+- La référence du dossier DPAE
+
+- La date de prise en compte de la DPAE
+
+ 
+
+-   Le CRM identité
+
+Dès transmission du signalement DPAE, un CRM identité est mis à disposition en lieu et place du BIS (transmis uniquement pour les canaux classiques).
+
+ 
+
+Déclaration de l’embauche d’un individu en CDI
+
+Un individu est embauché en contrat à durée indéterminée le 1er septembre 202 à 10h00 (début du contrat) avec une période d’essai de 30 jours renouvelable une fois.
+
+ 
+
+Point d’attention : Les exemples ne détaillent pas l’exhaustivité des blocs et rubriques attendus mais uniquement ceux présentant une particularité vis-à-vis du signalement DPAE. 
+
+ 
+
+-   
+
+      -------------------------- -------------------------- ------------------------------------------------------
+      S20.G00.05 - Déclaration                              
+      Code                       Rubrique                   Valorisation
+      S20.G00.05.001             Nature de la déclaration   10 - Signalement Déclaration préalable à l'embauche 
+      S20.G00.05.002             Type de la déclaration     01 - déclaration normale 
+      [...]                                                 
+      -------------------------- -------------------------- ------------------------------------------------------
+
+    [...]
+
+      ----------------------- -------------------------------------------------------------------- --------------------------------------------------------------------------------
+      S21.G00.30 - Individu                                                                        
+
+      Code                    Rubrique                                                             Valorisation
+
+      S21.G00.30.001          Numéro d'inscription au répertoire                                   [NIR de l’exemple retiré] 
+                                                                                                   [NIR de l’individu connu du déclarant] 
+
+      S21.G00.30.002          Nom de famille                                                       MARTIN 
+                                                                                                   [Nom de famille de l’individu] 
+
+      S21.G00.30.003          Nom d'usage                                                          MARTIN 
+                                                                                                   [Nom d’usage de l’individu] 
+
+      S21.G00.30.004          Prénoms                                                              Sonia 
+                                                                                                   [Prénoms de l’individu] 
+
+      S21.G00.30.005          Sexe                                                                 02 - féminin
+
+      S21.G00.30.006          Date de naissance                                                    10031989 
+
+      S21.G00.30.007          Lieu de naissance                                                    CRETEIL 
+
+      [...]                                                                                        
+
+      S21.G00.30.014          Département de naissance                                             94 
+
+      [...]                                                                                        
+
+      S21.G00.30.030          Identifiant du Service de Prévention et de Santé au Travail (SPST)   MT189 
+                                                                                                   [Identifiant habituellement utilisé par le déclarant pour renseigner le SPST] 
+      ----------------------- -------------------------------------------------------------------- --------------------------------------------------------------------------------
+
+     
+
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | S21.G00.40 - Contrat (contrat de travail, convention, mandat) |                                    |                                                                                                                                          |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | Code                                                          | Rubrique                           | Valorisation                                                                                                                             |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | S21.G00.40.001                                                | Date de début du contrat           | 1092026                                                                                                                                  |
+    |                                                               |                                    | [Renseignée de la date à laquelle il est prévu que le contrat démarre : 1er eptembre 2026]                                               |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | [...]                                                         |                                    |                                                                                                                                          |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | S21.G00.40.007                                                | Nature du contrat                  | 01 - Contrat de travail à durée indéterminée de droit privé                                                                              |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | [...]                                                         |                                    |                                                                                                                                          |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | S21.G00.40.082                                                | Nombre de jours de période d'essai | 30                                                                                                                                       |
+    |                                                               |                                    |                                                                                                                                          |
+    |                                                               |                                    | [Si le contrat de travail de l’individu est un CDD de moins de 6 mois, la durée de la période d’essai pourrait ne pas être renseignée]   |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+    | S21.G00.40.083                                                | Heure prévisible d'embauche        | 1000                                                                                                                                     |
+    |                                                               |                                    |                                                                                                                                          |
+    |                                                               |                                    | [10h00]                                                                                                                                  |
+    +---------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+
+     
+
+     
+
+    Correction de la date de début de contrat d’un signalement DPAE
+
+    Un individu est embauché en contrat à durée indéterminée avec une période d’essai de 61 jours. L’employeur déclare à tort une date d’embauche au 18 septembre 202 à 10h00 au lieu du 21 septembre 2027 à 10h. 
+
+     
+
+    Quelques jours plus tard, l’employeur se rend compte qu’il s’est trompé sur la date de l’embauche qui est le 21 septembre 2027 et non le 18 septembre 2027. Il transmet ainsi un nouveau signalement DPAE pour le même individu portant la correction de l’informations erronée. 
+
+     
+
+    Signalement DPAE initial portant l’erreur
+
+     
+
+      -------------------------- -------------------------- ------------------------------------------------------
+      S20.G00.05 - Déclaration                              
+      Code                       Rubrique                   Valorisation
+      S20.G00.05.001             Nature de la déclaration   10 - Signalement Déclaration préalable à l'embauche 
+      S20.G00.05.002             Type de la déclaration     01 - déclaration normale 
+      [...]                                                 
+      -------------------------- -------------------------- ------------------------------------------------------
+
+    [...]
+
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30 - Individu |                                                                    |                                                                                |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | Code                  | Rubrique                                                           | Valorisation                                                                   |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.001        | Numéro d'inscription au répertoire                                 | [NIR de l’exemple retiré]                                                                  |
+    |                       |                                                                    | [NIR de l’individu connu du déclarant]                                         |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.002        | Nom de famille                                                     | DUPONT                                                                         |
+    |                       |                                                                    |                                                                                |
+    |                       |                                                                    | [Nom de famille de l’individu]                                                 |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.003        | Nom d'usage                                                        | DUPONT                                                                         |
+    |                       |                                                                    |                                                                                |
+    |                       |                                                                    | [Nom d’usage de l’individu]                                                    |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.004        | Prénoms                                                            | Marie                                                                          |
+    |                       |                                                                    |                                                                                |
+    |                       |                                                                    | [Prénoms de l’individu]                                                        |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.005        | Sexe                                                               | 02 - féminin                                                                   |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.006        | Date de naissance                                                  | 10061988                                                                       |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.007        | Lieu de naissance                                                  | PARIS                                                                          |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | [...]                 |                                                                    |                                                                                |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.014        | Département de naissance                                           | 75                                                                             |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | [...]                 |                                                                    |                                                                                |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.030        | Identifiant du Service de Prévention et de Santé au Travail (SPST) | MT189                                                                          |
+    |                       |                                                                    | [Identifiant habituellement utilisé par le déclarant pour renseigner le SPST]  |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+
+     
+
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | S21.G00.40 - Contrat (contrat de travail, convention, mandat) |                                    |                                                                                             |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | Code                                                          | Rubrique                           | Valorisation                                                                                |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | S21.G00.40.001                                                | Date de début du contrat           | 18092027                                                                                    |
+    |                                                               |                                    |                                                                                             |
+    |                                                               |                                    | [Renseignée de la date à laquelle il est prévu que le contrat démarre : 18 septembre 2027]  |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | [...]                                                         |                                    |                                                                                             |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | S21.G00.40.007                                                | Nature du contrat                  | 01 - Contrat de travail à durée indéterminée de droit privé                                 |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | [...]                                                         |                                    |                                                                                             |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | S21.G00.40.082                                                | Nombre de jours de période d'essai | 61                                                                                          |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+    | S21.G00.40.083                                                | Heure prévisible d'embauche        | 1000                                                                                        |
+    |                                                               |                                    |                                                                                             |
+    |                                                               |                                    | [10h00]                                                                                     |
+    +---------------------------------------------------------------+------------------------------------+---------------------------------------------------------------------------------------------+
+
+     
+
+    Signalement DPAE portant la correction
+
+     
+
+      -------------------------- -------------------------- ------------------------------------------------------
+      S20.G00.05 - Déclaration                              
+      Code                       Rubrique                   Valorisation
+      S20.G00.05.001             Nature de la déclaration   10 - Signalement Déclaration préalable à l'embauche 
+      S20.G00.05.002             Type de la déclaration     03 - déclaration annule et remplace intégral 
+      [...]                                                 
+      -------------------------- -------------------------- ------------------------------------------------------
+
+     
+
+    Point d’attention : Tout signalement DPAE de type « 03 - déclaration annule et remplace intégral » sera interprété au niveau du SI Urssaf comme une nouvelle déclaration. C’est toutefois cette dernière qui sera retenue au regard de l’obligation déclarative préalable à l’embauche. 
+
+     
+
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30 - Individu |                                                                    |                                                                                |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | Code                  | Rubrique                                                           | Valorisation                                                                   |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.001        | Numéro d'inscription au répertoire                                 | [NIR de l’exemple retiré]                                                                  |
+    |                       |                                                                    | [NIR de l’individu connu du déclarant]                                         |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.002        | Nom de famille                                                     | DUPONT                                                                         |
+    |                       |                                                                    |                                                                                |
+    |                       |                                                                    | [Nom de famille de l’individu]                                                 |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.003        | Nom d'usage                                                        | DUPONT                                                                         |
+    |                       |                                                                    |                                                                                |
+    |                       |                                                                    | [Nom d’usage de l’individu]                                                    |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.004        | Prénoms                                                            | Marie                                                                          |
+    |                       |                                                                    |                                                                                |
+    |                       |                                                                    | [Prénoms de l’individu]                                                        |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.005        | Sexe                                                               | 02 - féminin                                                                   |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.006        | Date de naissance                                                  | 10061988                                                                       |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.007        | Lieu de naissance                                                  | PARIS                                                                          |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | [...]                 |                                                                    |                                                                                |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.014        | Département de naissance                                           | 75                                                                             |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | [...]                 |                                                                    |                                                                                |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+    | S21.G00.30.030        | Identifiant du Service de Prévention et de Santé au Travail (SPST) | MT189                                                                          |
+    |                       |                                                                    | [Identifiant habituellement utilisé par le déclarant pour renseigner le SPST]  |
+    +-----------------------+--------------------------------------------------------------------+--------------------------------------------------------------------------------+
+
+     
+
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | S21.G00.40 - Contrat (contrat de travail, convention, mandat) |                                    |                                                              |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | Code                                                          | Rubrique                           | Valorisation                                                 |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | S21.G00.40.001                                                | Date de début du contrat           | 21092027                                                     |
+    |                                                               |                                    | [Correction de la date prévisible d’embauche de l’individu]  |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | [...]                                                         |                                    |                                                              |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | S21.G00.40.007                                                | Nature du contrat                  | 01 - Contrat de travail à durée indéterminée de droit privé  |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | [...]                                                         |                                    |                                                              |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | S21.G00.40.082                                                | Nombre de jours de période d'essai | 61                                                           |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+    | S21.G00.40.083                                                | Heure prévisible d'embauche        | 1000                                                         |
+    |                                                               |                                    |                                                              |
+    |                                                               |                                    | [10h00]                                                      |
+    +---------------------------------------------------------------+------------------------------------+--------------------------------------------------------------+
+
+     
+
+    Embauche d’un individu en CDD 
+
+    Un individu est embauché en contrat à durée déterminée le 13 octobre 2027 à 9h30 avec une date de fin de contrat au 19 décembre 2027 avec une période d’essai de 10 jours.
+
+     
+
+      -------------------------- -------------------------- ------------------------------------------------------
+      S21.G00.05 - Déclaration                              
+      Code                       Rubrique                   Valorisation
+      S20.G00.05.001             Nature de la déclaration   10 - Signalement Déclaration préalable à l'embauche 
+      S20.G00.05.002             Type de la déclaration     01 - déclaration normale 
+      [...]                                                 
+      -------------------------- -------------------------- ------------------------------------------------------
+
+    [...]
+
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30 - Individu |                                                                    |                                                                                    |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | Code                  | Rubrique                                                           | Valorisation                                                                       |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.002        | Nom de famille                                                     | DA SILVA                                                                           |
+    |                       |                                                                    | [Nom de famille de l’individu]                                                     |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.003        | Nom d'usage                                                        | DA SILVA                                                                           |
+    |                       |                                                                    |                                                                                    |
+    |                       |                                                                    | [Nom d’usage de l’individu]                                                        |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.004        | Prénoms                                                            | Jony                                                                               |
+    |                       |                                                                    | [Prénoms de l’individu]                                                            |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.005        | Sexe                                                               | 01 - masculin                                                                      |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.006        | Date de naissance                                                  | 10031989                                                                           |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.007        | Lieu de naissance                                                  | VINCENNES                                                                          |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | [...]                 |                                                                    |                                                                                    |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.014        | Département de naissance                                           | 94                                                                                 |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | [...]                 |                                                                    |                                                                                    |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.020        | Numéro technique temporaire                                        | 1843678051666418                                                                   |
+    |                       |                                                                    | [Numéro technique temporaire utilisé par le déclarant pour identifier l’individu]  |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | [...]                 |                                                                    |                                                                                    |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+    | S21.G00.30.030        | Identifiant du Service de Prévention et de Santé au Travail (SPST) | MT189                                                                              |
+    |                       |                                                                    | [Identifiant habituellement utilisé par le déclarant pour renseigner le SPST]      |
+    +-----------------------+--------------------------------------------------------------------+------------------------------------------------------------------------------------+
+
+     
+
+      --------------------------------------------------------------- --------------------------------------- -----------------------------------------------------------------------------------------------
+      S21.G00.40 - Contrat (contrat de travail, convention, mandat)                                           
+
+      Code                                                            Rubrique                                Valorisation
+
+      S21.G00.40.001                                                  Date du début du contrat                13102027 
+                                                                                                              [Renseignée de la date à laquelle il est prévu que le contrat démarre : 13 octobre 2027] 
+
+      [...]                                                                                                   
+
+      S21.G00.40.007                                                  Nature du contrat                       02 - Contrat de travail à durée déterminée de droit privé 
+
+      [...]                                                                                                   
+
+      S21.G00.40.010                                                  Date de fin prévisionnelle du contrat   1912027 
+                                                                                                              [Renseignée de la date à laquelle il est prévu que le contrat se termine : 19 décembre 2027] 
+
+      [...]                                                                                                   
+
+      S21.G00.40.083                                                  Heure prévisible d'embauche             0930 
+      --------------------------------------------------------------- --------------------------------------- -----------------------------------------------------------------------------------------------
+
+     
+
+    Point d’attention : lorsque la durée du contrat est inférieure à 6 mois, il n’est pas obligatoire de déclarer la rubrique « Nombre de jours de période d’essai - S21.G00.40.082 ». 
+
+     
+
+    -   La réglementation
+
+     - Articles L1221-10 à L1221-12-1 du code du travail
+
+    - Articles R1221-1 à D1221-19 du code du travail 
+
+Date de création : 23/06/2025 04:13 PM
+N° de la fiche : 3300
+
+Etes-vous satisfait des informations données sur cette page ?

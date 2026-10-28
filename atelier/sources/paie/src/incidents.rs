@@ -33,7 +33,7 @@ use serde_json::{json, Map, Value};
 
 use crate::editeur::{Client, ErreurFilet};
 use socle::ecriture::ecrire_json;
-use crate::etats::{get};
+use envois::etats::{get};
 use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -163,12 +163,6 @@ fn tete(s: &str, n: usize) -> String {
     s.chars().take(n).collect()
 }
 
-/// L'heure de Paris, `datetime.now().isoformat(timespec="seconds")`.
-pub fn maintenant() -> String {
-    let t = socle::temps::secondes();
-    socle::paris::iso_secondes(t)
-}
-
 // -------------------------------------------------------------------- caviardage
 
 /// `incidents.caviarder` : le texte nettoye, et ce qui a ete trouve. Le
@@ -258,7 +252,7 @@ fn lignes(p: &Path) -> Vec<Value> {
 /// rien n'a pu etre ecrit.
 pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
     let nature = if nature_connue(n.nature) { n.nature } else { LOGICIEL };
-    if (nature == DPAE || nature == DSN) && crate::routes_accueil::simulation_active(racine) {
+    if (nature == DPAE || nature == DSN) && crate::bridage::branchement(racine).joue() {
         // LES FAUX ENVOIS NE SONT PAS DES INCIDENTS : une fictive joue ses depots.
         return None;
     }
@@ -285,7 +279,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
     };
     trouve.sort_unstable();
     trouve.dedup();
-    let quand = n.quand.map_or_else(maintenant, str::to_string);
+    let quand = n.quand.map_or_else(socle::paris::maintenant, str::to_string);
     let empreinte = empreinte(nature, n.ou, n.quoi);
     let p = chemin(racine);
     let mut toutes = lignes(&p);
@@ -333,6 +327,26 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
     toutes.push(ligne.clone());
     ecrire_json(&p, &Value::Array(toutes), 2).ok()?;
     Some(ligne)
+}
+
+/// Note les incidents qu'un rattachement des retours a releves (`envois::etats::AvecIncidents`), meme quand il s'est
+/// arrete sur une erreur, puis rend son resultat.
+pub fn noter_ceux_des_retours<T>(racine: &Path, r: envois::etats::AvecIncidents<T>) -> R<T> {
+    for i in &r.incidents {
+        let canal = if i.get("canal").and_then(Value::as_str) == Some("dpae") { DPAE } else { DSN };
+        let _ = noter(
+            racine,
+            &Note {
+                nature: canal,
+                ou: i.get("ou").and_then(Value::as_str).unwrap_or(""),
+                quoi: i.get("quoi").and_then(Value::as_str).unwrap_or(""),
+                resume: i.get("resume").and_then(Value::as_str).unwrap_or(""),
+                detail: i.get("detail").cloned().unwrap_or(Value::Null),
+                ..Default::default()
+            },
+        );
+    }
+    r.resultat
 }
 
 /// Le meme incident revu dans ce delai se compte dans sa ligne (`noter`).
@@ -412,7 +426,7 @@ fn recalcul_refuse(racine: &Path, mois: &str, refus: &str) {
 /// Branche l'engagement sur ce qui l'entoure, a l'entree de toute commande du moteur : le temoin des recalculs refuses
 /// (`recalcul_refuse`), et le lecteur de ce qui est parti (`journal::departs`).
 pub fn brancher_l_engagement() {
-    engagement::departs::poser_lecteur(crate::journal::departs);
+    engagement::departs::poser_lecteur(envois::journal::departs);
     engagement::etats::poser_temoin(recalcul_refuse);
 }
 
@@ -580,7 +594,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
                 p.insert("derniere".into(), quand);
                 p.insert("versions".into(), json!([get(&l, "version")?.clone()]));
                 let cav = get(&l, "caviarde")?;
-                p.insert("caviarde".into(), Value::Array(if vrai(cav) { crate::etats::items(cav)?.into_iter().map(|c| c.into_owned()).collect() } else { Vec::new() }));
+                p.insert("caviarde".into(), Value::Array(if vrai(cav) { envois::etats::items(cav)?.into_iter().map(|c| c.into_owned()).collect() } else { Vec::new() }));
                 paquets.push((cle, p));
             }
             Some(i) => {
@@ -596,7 +610,7 @@ pub fn regrouper(racine: &Path, nature: Option<&str>) -> R<Vec<Value>> {
                 }
                 let cav = get(&l, "caviarde")?;
                 if vrai(cav) {
-                    for c in crate::etats::items(cav)? {
+                    for c in envois::etats::items(cav)? {
                         if let Some(Value::Array(cs)) = p.get_mut("caviarde") {
                             if !cs.iter().any(|x| valeurs_egales(x, &c)) {
                                 cs.push(c.into_owned());
@@ -624,7 +638,7 @@ pub fn fois_de(l: &Value) -> i64 {
 pub fn marquer_envoye(racine: &Path, empreintes: &[Value]) -> usize {
     let p = chemin(racine);
     let mut toutes = lignes(&p);
-    let quand = maintenant();
+    let quand = socle::paris::maintenant();
     let mut n = 0;
     for l in toutes.iter_mut() {
         let porte = match l.get("empreinte") {
@@ -969,7 +983,7 @@ fn marquer(racine: &Path, cles: &[(Value, Value)]) -> R<usize> {
     }
     let p = chemin(racine);
     let mut toutes = lignes(&p);
-    let quand = maintenant();
+    let quand = socle::paris::maintenant();
     let mut n = 0;
     for l in toutes.iter_mut() {
         let empreinte = get(l, "empreinte")?.clone();
@@ -997,7 +1011,7 @@ fn concatener(a: &Value, b: &Value) -> R<Vec<Value>> {
 
 /// `tuple(c)` d'un element de `recus` : (empreinte, quand).
 fn paire(c: &Value) -> R<(Value, Value)> {
-    let v: Vec<Value> = crate::etats::items(c)?.into_iter().map(|x| x.into_owned()).collect();
+    let v: Vec<Value> = envois::etats::items(c)?.into_iter().map(|x| x.into_owned()).collect();
     Ok((v.first().cloned().unwrap_or(Value::Null), v.get(1).cloned().unwrap_or(Value::Null)))
 }
 
@@ -1078,7 +1092,7 @@ pub fn envoyer(racine: &Path) -> Value {
         return bilan.json();
     }
     // Un autre passage est en cours : celui-ci n'a rien a faire.
-    let marque = socle::verrou::marque("incidents", std::process::id(), &maintenant());
+    let marque = socle::verrou::marque("incidents", std::process::id(), &socle::paris::maintenant());
     let _verrou = match Verrou::prendre(&p.with_file_name(".envoi.verrou"), &marque, socle::verrou::DELAI_VERROU) {
         Ok(Ok(v)) => v,
         Ok(Err(_)) => return bilan.json(),

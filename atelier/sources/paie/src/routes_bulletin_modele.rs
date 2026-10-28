@@ -36,7 +36,7 @@ pub fn route(ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
         "bulletin-modele-apercu" => {
             let modele = modele_demande(charge)?;
             let pdf = apercu_pdf(modele).map_err(refus)?;
-            Ok(json!({"modele": modele.cle(), "pdf": crate::retours::base64_ecrire(&pdf)}))
+            Ok(json!({"modele": modele.cle(), "pdf": socle::base64::ecrire(&pdf)}))
         }
         "bulletin-modele-choisir" => choisir(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),

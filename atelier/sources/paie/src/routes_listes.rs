@@ -26,7 +26,7 @@ use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
 use socle::date::{d, Jour};
-use crate::etats::{get, getd, items, objet_vide, ou};
+use envois::etats::{get, getd, items, objet_vide, ou};
 use socle::valeur::valeur_ecrite;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -316,7 +316,7 @@ pub(crate) fn fins_a_signaler(ctx: &Contexte, mois: &str, aujourdhui: Jour) -> R
     let engagements = getd(&saisie, "engagements", &Value::Null)?;
     let liste = if vrai(engagements) { items(engagements)? } else { Vec::new() };
     let mut out = Vec::new();
-    let journal = crate::etats::charger(&ctx.racine)?;
+    let journal = envois::etats::charger(&ctx.racine)?;
     for e in liste {
         let e: &Value = &e;
         let nat = nature_de(get(e, "nature")?)?;

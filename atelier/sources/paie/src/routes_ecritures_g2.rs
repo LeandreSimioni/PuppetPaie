@@ -77,10 +77,9 @@ fn ou_rien(v: &Value) -> Value {
     }
 }
 
-/// `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
+/// `socle::paris::maintenant` a la minute, `AAAA-MM-JJ HH:MM` : l'heure d'une saisie.
 pub(crate) fn maintenant() -> String {
-    let t = socle::temps::secondes();
-    socle::paris::iso_minutes(t).replacen('T', " ", 1)
+    socle::paris::maintenant()[..16].replacen('T', " ", 1)
 }
 
 /// `d(v)` : une date lisible, sinon `ValueError`.

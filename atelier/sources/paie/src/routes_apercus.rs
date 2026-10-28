@@ -18,7 +18,7 @@ use std::path::Path;
 use serde_json::{json, Value};
 
 use droit::contexte::Contexte;
-use crate::etats;
+use envois::etats;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -197,9 +197,9 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
     // Un mois nu (`\d{4}-\d{2}`) designe sa saisie.
     let c: Vec<char> = t.chars().collect();
     if c.len() == 7
-        && c[..4].iter().all(|x| crate::retours::est_chiffre(*x))
+        && c[..4].iter().all(|x| envois::retours::est_chiffre(*x))
         && c[4] == '-'
-        && c[5..].iter().all(|x| crate::retours::est_chiffre(*x))
+        && c[5..].iter().all(|x| envois::retours::est_chiffre(*x))
     {
         let saisie = normaliser(&format!("{}/{}/{}.json", base, engagement::stock::DOSSIER, t));
         if existe(&saisie) {
@@ -216,7 +216,7 @@ fn empreinte_du_fichier(chemin: &str) -> R<String> {
     }
     let p = Path::new(chemin);
     let octets = std::fs::read(p).map_err(|e| erreur_io(&e, p))?;
-    Ok(crate::journal::empreinte(&octets))
+    Ok(envois::journal::empreinte(&octets))
 }
 
 // ------------------------------------------------------------------ bilan-repetition
@@ -325,15 +325,15 @@ pub(crate) fn apercu_depot_dpae(ctx: &Contexte, fichier: &Value) -> R<Value> {
     let mois: std::collections::BTreeSet<String> =
         debuts.iter().filter(|d| !d.is_empty()).map(|d| d.chars().take(7).collect()).collect();
     let mois: Vec<String> = mois.into_iter().collect();
-    let empreinte = crate::journal::empreinte(&contenu);
+    let empreinte = envois::journal::empreinte(&contenu);
     let nom_fichier = nom_du_chemin(&chemin);
     let deja_depose = etats::deja_depose(&lignes_journal, "dpae", &empreinte)?;
     let repetition = etats::repetition(&lignes_journal, "dpae", &empreinte, &nom_fichier)?;
     Ok(json!({
         "fichier": chemin, "nom": nom_fichier,
         "enregistrements": enrs.len(), "octets": contenu.len(),
-        "reel": crate::depot::est_reel(&contenu),
-        "indicateur": crate::depot::indicateur(&contenu),
+        "reel": envois::depot::est_reel(&contenu),
+        "indicateur": envois::depot::indicateur(&contenu),
         "mois": mois.first().cloned().unwrap_or_default(),
         "tous_les_mois": mois,
         "embauches": lignes,

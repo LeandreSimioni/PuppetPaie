@@ -33,7 +33,7 @@
 //! se refont seuls : leur empreinte porte le chemin de la compagnie (`etat_garde::empreinte_de`).
 //!
 //! LES PAIES FAITES EN DEMO n'ont ete ni declarees ni envoyees : en demo, tout envoi est refuse avant d'ecrire au journal
-//! des depots (`bridage::refus_d_envoi`). La page d'un mois les montre donc a faire (une DPAE « rien n'est parti », meme
+//! des depots (`bridage::branchement`). La page d'un mois les montre donc a faire (une DPAE « rien n'est parti », meme
 //! pour une embauche passee : `routes_mois`, `etats.dpae.fait` nul) ; la mention de demo le dit en plus, sur chaque mois
 //! saisi en demo (`mention`, lue par la route `etat`). ELLES COMPTENT au nombre de paies annuel (`nombre_de_paies`) si
 //! elles sont validees : ce sont des paies que le logiciel a faites, la regle du compte (une paie validee) ne regarde pas
@@ -205,7 +205,7 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
     }
     let mention = json!({
         "creee_le": creee_le,
-        "gardee_le": crate::incidents::maintenant(),
+        "gardee_le": socle::paris::maintenant(),
         "mois": crate::routes_mois::mois_saisis(racine),
         "_quoi": "Cette compagnie a ete creee dans la version demo de PuppetPaie, puis gardee au deblocage : rien de ce qui y a ete fait avant n'est parti (ni DPAE, ni contrat a la signature, ni DSN, ni document).",
     });
@@ -265,7 +265,7 @@ pub fn mention(racine: &Path) -> Option<Value> {
     let v: Value = serde_json::from_str(&std::fs::read_to_string(racine.join(FICHIER_DEMO)).ok()?).ok()?;
     let jour = |cle: &str| {
         let t = v.get(cle).and_then(Value::as_str).unwrap_or("");
-        crate::etats::quand_lisible(&json!(t.chars().take(10).collect::<String>()))
+        envois::etats::quand_lisible(&json!(t.chars().take(10).collect::<String>()))
     };
     let (creee, gardee) = (jour("creee_le"), jour("gardee_le"));
     let depuis = if creee.is_empty() { String::new() } else { format!(" le {}", creee) };

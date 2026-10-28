@@ -131,7 +131,7 @@ pub fn produire(ctx: &Contexte, paies: &[Paie], d: &Demande, ecrits: &mut Vec<Pa
     let jour = d.constitution.aaaammjj();
     // UN NUMERO D'ORDRE PAR FICHIER, a la suite de tous les signalements deja partis : la sequence ne se remet
     // jamais a zero (cahier technique DSN, p. 136), et deux signalements au meme ordre ne passent pas (p. 14).
-    let premier = crate::journal::dernier_ordre_des_signalements(&ctx.racine)? + 1;
+    let premier = envois::journal::dernier_ordre_des_signalements(&ctx.racine)? + 1;
     let mut fichiers = Vec::new();
     for (rang, l) in retenus.iter().enumerate() {
         let nom = format!("Amorcage{}_{}_{}.dsn", d.motif, l.salarie, jour);

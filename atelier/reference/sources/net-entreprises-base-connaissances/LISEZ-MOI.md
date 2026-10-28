@@ -444,3 +444,28 @@ avec la norme et le guide Urssaf, disent ce qu'il en advient.
 - Où le moteur s'en sert : `etats.rs` (`etat_dsn_du_mois` : l'AER attendue est celle de la dernière DSN acceptée du
   mois, donc de l'annule et remplace) ; `routes_documents.rs` (`documents_prets` : les documents ne partent pas tant
   qu'elle n'est pas revenue).
+
+## Fiche 3300 — Déclaration préalable à l'embauche (DPAE) en DSN
+
+- URL : https://net-entreprises.custhelp.com/app/answers/detail_dsn/a_id/3300/
+- Relevée le 28/10/2026 ; « Date de modification : 15/10/2026 » ; « Date de création : 23/06/2025 ». Texte :
+  `net-entreprises-fiche3300-dpae-en-dsn-20261015.txt` (la transcription `pandoc` du corps de la réponse). Ses exemples
+  portent des NIR complets : le brut (`.html`) est dans `reference-privee/net-entreprises/` du dépôt privé, et la
+  transcription les remplace par « [NIR de l'exemple retiré] » (l. 294, 380, 460).
+
+**Ce qu'on en lit** (`.txt`, lignes citées) :
+- l. 7 : la DPAE est faite « avant toute embauche (dans les 8 jours qui la précèdent […]) » ; l. 77 : le signalement
+  DPAE en DSN « doit être effectué dans les 8 jours précédant l'embauche », un par contrat de travail.
+- l. 38 : le signalement DPAE en DSN (nature 10) n'ouvre qu'à « la fin du premier semestre 2027 ».
+- l. 451 : un signalement DPAE de type « 03 - déclaration annule et remplace intégral » est « interprété au niveau du
+  SI Urssaf comme une nouvelle déclaration » ; c'est elle qui est retenue au regard de l'obligation préalable à
+  l'embauche. La fiche ne décrit **aucune annulation** d'une DPAE déjà transmise.
+- l. 600 : la réglementation citée, L1221-10 à L1221-12-1 et R1221-1 à D1221-19 du code du travail.
+
+**Inférence** : aucun texte déposé ne prévoit d'annuler une DPAE (ni cette fiche, ni le guide de l'API DPAE,
+`norme-dpae/5491-API-DPAE-Fonctionnement.pdf`, qui dit qu'elle n'a pas d'annule-et-remplace) ; ce qui la corrige est
+une nouvelle déclaration.
+
+**Où le moteur s'en sert** : `atelier/sources/engagement/src/etats.rs` (`a_refaire`) : un engagement rendu non actif
+ne fait ressortir aucune DPAE à annuler, seulement la DSN à corriger ; `atelier/sources/paie/src/routes_regularisation.rs`
+(la phrase d'un engagement non actif).

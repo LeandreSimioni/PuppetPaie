@@ -57,7 +57,13 @@ fn masquer(v: Value, racine: &str) -> Value {
     match v {
         Value::String(s) => Value::String(s.replace(racine, "<racine>")),
         Value::Array(a) => Value::Array(a.into_iter().map(|x| masquer(x, racine)).collect()),
-        Value::Object(o) => Value::Object(o.into_iter().map(|(k, x)| (k, masquer(x, racine))).collect()),
+        // L'empreinte du code du moteur change a chaque compilation qui touche le moteur : elle dit quel calcul a ecrit
+        // la paie, pas ce que la paie vaut.
+        Value::Object(o) => Value::Object(
+            o.into_iter()
+                .map(|(k, x)| if k == "moteur" && x.is_string() { (k, json!("<moteur>")) } else { (k, masquer(x, racine)) })
+                .collect(),
+        ),
         x => x,
     }
 }

@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use md5::{Digest, Md5};
 use serde_json::{json, Map, Value};
 
-use crate::drive::{Client, Drive, ErreurGoogle};
+use envois::drive::{Client, Drive, ErreurGoogle};
 
 pub const RACINE_DRIVE: &str = "PuppetPaie";
 pub const DOSSIER_DRIVE: &str = "sauvegarde";
@@ -138,7 +138,7 @@ const FICHIER_ILLISIBLE: &str = "fichier illisible sur ce poste";
 /// La cause d'une erreur, en clair : passagere chez Google (`drive::passagere`, deja retentee par le client), un delai
 /// depasse, un refus de Google, ou un fichier du poste qui ne se lit pas.
 pub fn cause_de(e: &ErreurGoogle) -> &'static str {
-    if crate::drive::passagere(e) {
+    if envois::drive::passagere(e) {
         GOOGLE_INDISPONIBLE
     } else if e.classe == "TimeoutError" || e.message.to_lowercase().contains("timed out") {
         GOOGLE_MUET
@@ -223,7 +223,7 @@ fn ce_qui_manque(nd: usize, nf: usize) -> String {
 
 /// « depuis 09:51 » le jour meme, « depuis hier », « depuis le 18/10 ».
 fn depuis_quand(depuis: i64, maintenant: i64) -> String {
-    let iso = crate::releve_retours::iso_de_naif(depuis);
+    let iso = socle::paris::iso_de_naif(depuis);
     match maintenant.div_euclid(UNE_JOURNEE) - depuis.div_euclid(UNE_JOURNEE) {
         0 => format!("depuis {}", &iso[11..16]),
         1 => "depuis hier".to_string(),
@@ -233,7 +233,7 @@ fn depuis_quand(depuis: i64, maintenant: i64) -> String {
 
 /// `AAAA-MM-JJ HH:MM` (l'heure de Paris, comme `quand`) en heure naive.
 fn naif(quand: &str) -> Option<i64> {
-    crate::releve_retours::naif_de_iso(&quand.replacen(' ', "T", 1))
+    socle::paris::naif_de_iso(&quand.replacen(' ', "T", 1))
 }
 
 /// La phrase de ce qui persiste dans l'index (`echecs`, `derniere_complete`), a l'heure naive `maintenant`, ou `None`.
@@ -276,7 +276,7 @@ fn phrase_persistante(index: &Map<String, Value>, maintenant: i64) -> Option<Str
 /// (Google indisponible) ; le logiciel réessaie. »), ou `None` si tout est passe, ou si ce n'est que passager. SANS RESEAU :
 /// lu dans l'index. La trace de l'ouverture le porte (`sauvegarde_souci`), la fenetre le montre a la place de la sauvegarde.
 pub fn souci(racine: &Path) -> Option<String> {
-    phrase_persistante(&lire_index(racine), crate::releve_retours::maintenant_naif())
+    phrase_persistante(&lire_index(racine), socle::paris::maintenant_naif())
 }
 
 fn lisible(octets: u64) -> String {
@@ -459,7 +459,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
     let client: &mut dyn Drive = match client {
         Some(c) => c,
         None => {
-            propre = Client::nouveau(racine)?;
+            propre = crate::routes_google::client_drive(racine)?;
             &mut propre
         }
     };
@@ -511,7 +511,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
             en_echec.extend(fichiers.iter().cloned());
             continue;
         }
-        let essai: Result<(String, BTreeMap<String, crate::drive::Distant>), ErreurGoogle> = (|| {
+        let essai: Result<(String, BTreeMap<String, envois::drive::Distant>), ErreurGoogle> = (|| {
             let connu = dossiers.get(&cle).and_then(Value::as_str).filter(|p| !p.is_empty()).map(str::to_string);
             let parent = match connu {
                 Some(p) => p,
@@ -641,7 +641,7 @@ pub fn sauvegarder(racine: &Path, racine_drive: &str, tout: bool, client: Option
         }
         nouvel_index.insert("echecs".into(), Value::Object(echecs));
     }
-    resultat.persistant = phrase_persistante(&nouvel_index, crate::releve_retours::maintenant_naif());
+    resultat.persistant = phrase_persistante(&nouvel_index, socle::paris::maintenant_naif());
     ecrire_index(racine, &Value::Object(nouvel_index))?;
     resultat.secondes = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
     Ok(resultat)

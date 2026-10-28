@@ -59,7 +59,7 @@ fn ko(m: String) -> Echec {
 
 fn maintenant_court() -> String {
     // `datetime.now().strftime("%Y-%m-%d %H:%M")`, a l'heure de Paris.
-    crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..16].replace('T', " ")
+    socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].replace('T', " ")
 }
 
 fn fr(iso: Option<&str>) -> String {

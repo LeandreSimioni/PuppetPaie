@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use socle::ecriture::ecrire_json;
-use crate::etats::{get, items};
+use envois::etats::{get, items};
 use socle::valeur::valeurs_egales;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
@@ -303,7 +303,7 @@ fn verrouiller(racine: &Path) -> R<Result<Verrou, ()>> {
     if let Some(d) = p.parent() {
         std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
     }
-    let marque = socle::verrou::marque("signalements", std::process::id(), &incidents::maintenant());
+    let marque = socle::verrou::marque("signalements", std::process::id(), &socle::paris::maintenant());
     let fin = std::time::Instant::now() + std::time::Duration::from_secs(10);
     loop {
         match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
@@ -330,7 +330,7 @@ fn modifier<T>(racine: &Path, f: impl FnOnce(&mut Vec<Value>) -> R<(T, bool)>) -
 fn nouvel_id() -> R<String> {
     let mut alea = [0u8; 6];
     socle::temps::aleas(&mut alea).map_err(|e| erreur("OSError", e))?;
-    let heure: String = incidents::maintenant().chars().filter(char::is_ascii_alphanumeric).collect();
+    let heure: String = socle::paris::maintenant().chars().filter(char::is_ascii_alphanumeric).collect();
     Ok(format!("{}-{}", heure, alea.iter().map(|o| format!("{:02x}", o)).collect::<String>()))
 }
 
@@ -361,12 +361,12 @@ fn texte_ou_vide(v: &Value, cle: &str) -> R<String> {
 pub fn envoyer(racine: &Path, texte: &Value, ecran: &Value, captures: &[Value]) -> R<Value> {
     let (corps, _trouve, caps) = corps_signalement(racine, texte, ecran, captures)?;
     let empreinte = empreinte_du_message(&corps);
-    let maintenant = crate::releve_retours::maintenant_naif();
+    let maintenant = socle::paris::maintenant_naif();
     let id = nouvel_id()?;
     let fichier = chemin_corps(racine, &id);
     let ligne = json!({
         "id": id,
-        "quand": incidents::maintenant()[..16].to_string(),
+        "quand": socle::paris::maintenant()[..16].to_string(),
         "debut": tete(corps["texte"].as_str().unwrap_or(""), 80),
         "captures": caps.len(),
         "incidents": corps["incidents"].as_array().map_or(0, Vec::len),
@@ -443,14 +443,14 @@ fn passage(racine: &Path) -> R<Value> {
     if let Some(d) = p.parent() {
         std::fs::create_dir_all(d).map_err(|e| erreur("OSError", format!("{} : {}", d.display(), e)))?;
     }
-    let marque = socle::verrou::marque("signalements-envoi", std::process::id(), &incidents::maintenant());
+    let marque = socle::verrou::marque("signalements-envoi", std::process::id(), &socle::paris::maintenant());
     let _envoi = match Verrou::prendre(&p, &marque, socle::verrou::DELAI_VERROU).map_err(|m| erreur("OSError", m))? {
         Ok(v) => v,
         Err(_) => return Ok(bilan(0, en_ordre(racine).iter().filter(|l| en_attente(l)).count(), "", true)),
     };
     effacer_les_partis(racine)?;
     // Ce qui attend part maintenant : la boite le dit « en cours d'envoi ».
-    let essai = incidents::maintenant();
+    let essai = socle::paris::maintenant();
     let attendent = modifier(racine, |lignes| {
         let mut n = 0;
         for l in lignes.iter_mut().filter(|l| en_attente(l)) {
@@ -526,7 +526,7 @@ fn passage(racine: &Path) -> R<Value> {
 /// La ligne `id` est arrivee chez l'editeur : `depose`, avec ce que le serveur a rendu.
 fn marquer_arrive(racine: &Path, id: &str, r: &Value) -> R<()> {
     let (numero, ticket, ticket_numero) = (brut_ou_vide(r, "numero")?, brut_ou_vide(r, "ticket")?, get(r, "ticket_numero")?.clone());
-    let quand = incidents::maintenant();
+    let quand = socle::paris::maintenant();
     let fait = modifier(racine, |lignes| {
         let mut change = false;
         for l in lignes.iter_mut().filter(|l| id_de(l) == Some(id)) {

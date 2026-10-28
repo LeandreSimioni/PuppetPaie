@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use faux_drive::{ecrire, racine as racine_de, FauxDrive, Panne};
 use paie::archivage::{archiver, mois_valide, Archivage, FichierArchive};
-use paie::drive::{Drive, ErreurGoogle};
+use envois::drive::{Drive, ErreurGoogle};
 
 const RD: &str = "PuppetPaie";
 

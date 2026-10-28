@@ -440,6 +440,15 @@
     "1285": {
       "libelle": "Convention collective nationale des entreprises artistiques et culturelles du 1er janvier 1984 (CCNEAC)",
       "_source": "Base KALI de la DILA : la base complète du 13/07/2025 (conteneur KALICONT000005635964, texte KALITEXT000005662413) et les 246 livraisons jusqu'au 23/09/2026. Les livraisons republient V.8, V.11 et V.12 sous les mêmes identifiants, au texte identique (vérifié le 24/09/2026). Journal §119.",
+      "remise_du_contrat": {
+        "article": "XV.1.2 a",
+        "kali": "KALIARTI000020810347",
+        "fichier": "atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-20261020.md",
+        "_texte": "Titre XV, artistes musiciens : « Lorsque le contrat de travail est un contrat à durée déterminée, les 2 exemplaires doivent être transmis au salarié au plus tard 15 jours ouvrables précédant l'engagement. » (l. 763)",
+        "_inference": "Les métiers du catalogue de la famille « Musique » qui jouent d'un instrument ou le dirigent sont ceux du titre XV ; chanteurs et choristes relèvent des artistes lyriques (titre XVI), qui n'ont pas ce délai.",
+        "jours_ouvrables_avant": 15,
+        "metiers": ["ART170", "MUS010", "CHE190"]
+      },
       "categories": {
         "_quoi": "Cadres, agents de maîtrise, employés et ouvriers (V.8). Les artistes ont leur préavis dans les titres qui leur sont propres (XIV à XVII), non relevés. Pas de lecture par le métier : la grille de la 1285 n'est pas celle de la 3090. La catégorie vient de la case cadre, du statut artiste, ou de la fiche.",
         "valeurs": {

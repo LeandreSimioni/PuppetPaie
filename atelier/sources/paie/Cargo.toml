@@ -2,7 +2,7 @@
 name = "paie"
 version = "0.1.0"
 edition = "2021"
-description = "Le moteur de PuppetPaie au-dessus des documents et des déclarations : la ligne de commande paie, les routes, les envois, les retours."
+description = "Le moteur de PuppetPaie au-dessus des envois, des documents et des déclarations : la ligne de commande paie, les routes, la compagnie."
 license = "EUPL-1.2"
 publish = false
 
@@ -22,7 +22,7 @@ path = "src/main.rs"
 required-features = ["atelier"]
 
 [features]
-atelier = []
+atelier = ["envois/atelier"]
 
 [dependencies]
 # Les deux parties du dessous : le socle (dates, nombres, fichiers, echecs, temps, garde-fou reseau) et le droit
@@ -45,6 +45,8 @@ md-5 = { version = "0.10", default-features = false }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 # Le bulletin : la description part a la fabrique dans le meme processus.
 fabrique-pdf = { path = "../fabrique-pdf" }
+# Ce qui part et revient, et le journal de ce qui est parti.
+envois = { path = "../envois" }
 # Les documents que fabrique un engagement valide.
 documents = { path = "../documents" }
 # Les déclarations que fabrique un engagement valide.

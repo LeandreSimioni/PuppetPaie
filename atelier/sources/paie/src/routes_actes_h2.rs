@@ -21,12 +21,12 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use crate::depot_acte::{self, phrase_de, Preuve};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use crate::releve_retours;
+use envois::releve_retours;
 use socle::echec::Echec;
 
 /// Les routes que ce module sert.
@@ -98,9 +98,9 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let dpae = etats::est(quoi, "dpae");
     let (debut, fin) = releve_retours::derniere_journee();
     let releve = if dpae {
-        releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
+        crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
     } else {
-        releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
+        crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
@@ -152,9 +152,9 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
             let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-            releve_retours::relever_retours_dpae(ctx, debut, fin, false, &flux)
+            crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
         } else {
-            releve_retours::relever_retours(ctx, debut, fin, false, "production", None, "")
+            crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
@@ -185,12 +185,12 @@ pub(crate) fn filet_preparer(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `filet_preparer` avec, au besoin, le client Urssaf que l'appelant donne pour le test automatique des DPAE (la preuve de
 /// l'ouverture, lot I2b : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
-pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut crate::releve_retours::Client>) -> R<Value> {
+pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut envois::releve_retours::Client>) -> R<Value> {
     let tester = charge.get("tester").map_or(true, vrai);
     let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
     let maintenant_iso = match charge.get("maintenant").filter(|m| vrai(m)).map(valeur_en_texte) {
         Some(m) => m,
-        None => releve_retours::iso_de_naif(releve_retours::maintenant_naif())[..16].to_string(),
+        None => socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string(),
     };
     let mut bilan_testees: Vec<Value> = Vec::new();
     let mut bilan_incidents: Vec<Value> = Vec::new();
@@ -241,12 +241,12 @@ fn tester_les_dpae(
     qui: &str,
     testees: &mut Vec<Value>,
     incidents: &mut Vec<Value>,
-    mut client: Option<&mut crate::releve_retours::Client>,
+    mut client: Option<&mut envois::releve_retours::Client>,
 ) -> R<Option<Value>> {
     // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
     // COMPAGNIE FICTIVE, elle, teste (27/09/2026) : son depot est joue.
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
-    if !crate::routes_accueil::simulation_active(&ctx.racine) {
+    if !crate::bridage::branchement(&ctx.racine).joue() {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
         let dispo = client.is_some() || crate::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes_etats::vers_route)?;
         if copie || !dispo {
@@ -254,7 +254,7 @@ fn tester_les_dpae(
         }
     }
     let aujourdhui = ctx.aujourdhui.iso();
-    let maintenant = releve_retours::naif_de_iso(maintenant_iso).unwrap_or(0);
+    let maintenant = socle::paris::naif_de_iso(maintenant_iso).unwrap_or(0);
     // (mois, debut) -> les embauches de ce jour, dans l'ordre ; `sorted` apres.
     let mut a_tester: Vec<((String, String), Vec<&Value>)> = Vec::new();
     let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
@@ -268,7 +268,7 @@ fn tester_les_dpae(
                 if !t.get("erreur").is_some_and(vrai) {
                     continue; // teste, et rien n'a change
                 }
-                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| releve_retours::naif_de_iso(&x)).unwrap_or_else(|| releve_retours::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
+                let essai = t.get("essai_le").filter(|x| vrai(x)).map(valeur_en_texte).and_then(|x| socle::paris::naif_de_iso(&x)).unwrap_or_else(|| socle::paris::naif_de_iso("2000-01-01T00:00").unwrap_or(0));
                 if maintenant - essai < REESSAI_SECONDES {
                     continue;
                 }
@@ -296,7 +296,7 @@ fn tester_les_dpae(
             let octets = std::fs::read(p).map_err(|x| erreur("OSError", format!("{} : {}", p.display(), x)))?;
             let nom = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
             let lignes = etats::charger(&ctx.racine)?;
-            let deja = etats::repetition(&lignes, "dpae", &crate::journal::empreinte(&octets), &nom)?;
+            let deja = etats::repetition(&lignes, "dpae", &envois::journal::empreinte(&octets), &nom)?;
             if !vrai(&deja["conforme"]) {
                 depot_acte::deposer_dpae_avec(ctx, &json!(f), false, None, qui, false, "", client.as_deref_mut())?;
             }

@@ -10,7 +10,7 @@
 //! reste au visiteur. Ce qu'il a deja fait lui-meme n'est pas refait : chaque pas regarde d'abord le journal.
 //!
 //! ELLE NE JOUE QUE DANS UNE COMPAGNIE FICTIVE, ET LE CODE LE DIT A CHAQUE ENDROIT QUI AGIT.
-//! - `rattraper` commence par `HorlogeFictive::verifier` : sans compagnie fictive active (`simulation_active` : le paquet
+//! - `rattraper` commence par `HorlogeFictive::verifier` : sans compagnie fictive active (`bridage::branchement` : le paquet
 //!   soude, ou une compagnie dont le marqueur dit « compagnie fictive »), elle rend une liste vide et ne
 //!   touche a rien -- pas meme `config/horloge.json`.
 //! - Tout geste qui agit recoit la `HorlogeFictive` et la RE-VERIFIE avant d'agir (`pas`, `deposer_*_joue`) : un marqueur
@@ -31,10 +31,10 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::courriel::{Courriel, ErreurCourriel};
+use envois::courriel::{Courriel, ErreurCourriel};
 use socle::date::{jours_du_mois, Jour};
 use crate::depot_acte::{self, Preuve};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -55,7 +55,7 @@ const QUOI: &str = "L'horloge de la compagnie fictive (moteur/simulation.py) : l
 // ------------------------------------------------------------------ la garde
 
 /// LA GARDE : la preuve que la racine est une COMPAGNIE FICTIVE, exigee de tout ce qui agit. Elle ne se fabrique
-/// que par `verifier`, qui lit `simulation_active` ; `reverifier` la relit avant chaque geste.
+/// que par `verifier`, qui lit `bridage::branchement` ; `reverifier` la relit avant chaque geste.
 pub struct HorlogeFictive<'a> {
     racine: &'a Path,
     /// LE JOUR JOUE : celui que l'horloge rattrape. Chaque contexte qu'elle ouvre porte ce jour (`aujourdhui` ET `date`),
@@ -68,7 +68,7 @@ pub struct HorlogeFictive<'a> {
 impl<'a> HorlogeFictive<'a> {
     /// `simulation.active(ctx)` : `None` si les envois de cette racine ne sont pas joues.
     pub fn verifier(racine: &'a Path) -> Option<HorlogeFictive<'a>> {
-        crate::routes_accueil::simulation_active(racine).then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
+        crate::bridage::branchement(racine).joue().then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
     }
 
     /// Le jour que cette compagnie fictive joue.
@@ -90,7 +90,7 @@ impl<'a> HorlogeFictive<'a> {
 
     /// Relit le marqueur : refuse tout geste si la racine a cesse d'etre une compagnie fictive.
     fn reverifier(&self) -> R<()> {
-        if crate::routes_accueil::simulation_active(self.racine) {
+        if crate::bridage::branchement(self.racine).joue() {
             Ok(())
         } else {
             Err(erreur("ErreurOperation", "Ce dossier n'est pas une compagnie fictive : l'horloge ne joue rien ici."))
@@ -116,7 +116,7 @@ impl Courriel for BoiteMuette {
     }
 
     fn envoyer(&mut self, _message_mime: &[u8]) -> Result<String, ErreurCourriel> {
-        Ok(format!("<{}@fictive.puppetpaie>", crate::courriel::hexa_au_hasard(8)))
+        Ok(format!("<{}@fictive.puppetpaie>", envois::courriel::hexa_au_hasard(8)))
     }
 
     fn rechercher(&mut self, _requete: &str, _maximum: usize) -> Result<Vec<String>, ErreurCourriel> {
@@ -148,14 +148,14 @@ fn le(iso: &str) -> String {
 
 /// `_n_lignes` : combien de lignes le journal des depots porte (0 sans journal).
 fn n_lignes(racine: &Path) -> usize {
-    let p = crate::journal::chemin(racine);
+    let p = envois::journal::chemin(racine);
     std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).and_then(|v| v.as_array().map(Vec::len)).unwrap_or(0)
 }
 
 /// `_dater` : date les lignes du journal ecrites depuis la `depuis`-ieme : un pas joue se lit a la date ou il aurait eu
 /// lieu, et la ligne le dit (`origine`).
 fn dater(racine: &Path, depuis: usize, quand: &str) {
-    let p = crate::journal::chemin(racine);
+    let p = envois::journal::chemin(racine);
     let Some(Value::Array(mut lignes)) = std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else {
         return;
     };
@@ -263,7 +263,7 @@ fn deposer_les_dsn(
     d: &HorlogeFictive,
     ctx: &Contexte,
     mois: &str,
-    garder: impl Fn(&crate::depot::Apercu) -> bool,
+    garder: impl Fn(&envois::depot::Apercu) -> bool,
     a_faire: &mut Vec<String>,
 ) -> R<bool> {
     let f = Moteur::nouveau(ctx).fichiers_deposables(mois)?;
@@ -277,7 +277,7 @@ fn deposer_les_dsn(
     let mut fait = false;
     for chemin in chemins {
         let nom = Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if parties.contains(&nom) || !std::fs::read(&chemin).is_ok_and(|o| garder(&crate::depot::lire(&o))) {
+        if parties.contains(&nom) || !std::fs::read(&chemin).is_ok_and(|o| garder(&envois::depot::lire(&o))) {
             continue;
         }
         for reel in [false, true] {
@@ -290,10 +290,10 @@ fn deposer_les_dsn(
 }
 
 /// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
-/// des AER jouees laisse a faire (`releve_retours::rattacher_simulation_detail`), comme les autres chemins de la releve.
+/// des AER jouees laisse a faire (`crate::releve::rattacher_simulation`), comme les autres chemins de la releve.
 fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
     d.reverifier()?;
-    Ok(crate::releve_retours::rattacher_simulation_detail(ctx, 0)?.1)
+    Ok(crate::releve::rattacher_simulation(ctx, 0)?.1)
 }
 
 // ------------------------------------------------------------------ dernier_rattrapage
@@ -467,7 +467,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
                 c.iter()
                     .filter(|x| !x.get("recu_le").is_some_and(vrai))
                     .map(|x| {
-                        (valeur_en_texte(&x["salarie"]), valeur_en_texte(&x["debut"]), valeur_en_texte(&crate::etats::numero_de_cle(&x["numero"])), x.get("demande_le").is_some_and(vrai))
+                        (valeur_en_texte(&x["salarie"]), valeur_en_texte(&x["debut"]), valeur_en_texte(&envois::etats::numero_de_cle(&x["numero"])), x.get("demande_le").is_some_and(vrai))
                     })
                     .collect()
             })
@@ -489,7 +489,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
             }
             // LA BOITE MUETTE, et jamais une autre : le passe joue n'ecrit rien dans `courriels-simules/`.
             let mut ouvrir = || -> R<Box<dyn Courriel>> { Ok(Box::new(BoiteMuette::nouvelle())) };
-            crate::envois_signature::demander_signature(ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
+            crate::routes_envois::demander_signature(ctx, &json!({"mois": mois, "contrats": a_demander}), &mut ouvrir)?;
             Ok(true)
         });
         fait.extend(faits);
@@ -539,7 +539,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
                 .map(|(salarie, db, numero, _)| json!({"salarie": salarie, "debut": db, "numero": if numero.is_empty() { Value::Null } else { json!(numero) }}))
                 .collect();
             if !a_imprimer.is_empty() {
-                crate::envois_signature::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
+                crate::routes_envois::contrats_imprimer_par(ctx, &json!({"mois": mois, "contrats": a_imprimer}), QUI_HORLOGE)?;
             }
             let manquent: Vec<(String, String, String, bool)> = signables(ctx)?.into_iter().filter(|(_, db, _, _)| db == debut).collect();
             if manquent.is_empty() {
@@ -580,8 +580,8 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
 
     fait.extend(pas(d, &format!("documents de {} envoyés aux salariés", mois_fr(mois)), &format!("{}T11:00:00", jour), |ctx| {
         let lignes = Moteur::nouveau(ctx).lignes()?;
-        let envoyes = etats::documents_envoyes(&lignes, mois)?;
-        if envoyes.as_array().is_some_and(|a| !a.is_empty()) {
+        let engagements = engagement::etats::du_mois(ctx, mois).map_err(Echec::from)?;
+        if !crate::routes_mois::documents_partis(ctx, mois, &engagements, &lignes)?.is_empty() {
             return Ok(false);
         }
         // LES DOCUMENTS D'UN MOIS QUI N'EST PAS PARTI ne partent pas (#236, trouve sur la demo Les Faisceaux : un mois que
@@ -899,7 +899,7 @@ mod tests {
     #[test]
     fn dater_ne_date_que_les_lignes_ecrites_depuis() {
         let r = racine_d_essai(true);
-        let p = crate::journal::chemin(&r);
+        let p = envois::journal::chemin(&r);
         // Sans journal : rien, et rien n'est cree.
         dater(&r, 0, "2026-10-13T07:00:00");
         assert!(!p.exists());
@@ -935,7 +935,7 @@ mod tests {
         let p = pas(&d, "DSN de octobre 2026 déposée", "2026-11-15T10:00:00", |_| Err(Echec { classe: Some("KeyError"), message: "'nom'\nsuite".into() }));
         assert_eq!(p, vec!["Le 15/11/2026 : DSN de octobre 2026 déposée — non joué ('nom')"]);
         // Les lignes de journal que le geste ecrit sont datees a la date du pas.
-        let jp = crate::journal::chemin(&r);
+        let jp = envois::journal::chemin(&r);
         std::fs::create_dir_all(jp.parent().unwrap()).unwrap();
         std::fs::write(&jp, "[]").unwrap();
         pas(&d, "ecrit", "2026-10-13T07:00:00", |_| {

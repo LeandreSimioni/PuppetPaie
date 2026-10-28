@@ -33,7 +33,7 @@ use documents::conges_spectacles::{self, ContratCs, PaieCs};
 use droit::contexte::Contexte;
 use socle::date::Jour;
 use engagement::{self, Engagement};
-use crate::etats::{items};
+use envois::etats::{items};
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use documents::fiche_recapitulative::Recapitulatifs;
@@ -553,7 +553,7 @@ fn mois_puppetpaie(
             if !siennes.iter().any(|i| cle_de(&paies[*i]) == *cle && numerote(&paies[*i])) {
                 continue;
             }
-            let piece = envoi_dir.join(crate::envoi::nom_fichier("Bulletin", cle, &etiq));
+            let piece = envoi_dir.join(envois::envoi::nom_fichier("Bulletin", cle, &etiq));
             if !piece.is_file() {
                 return Err(erreur_operation(format!(
                     "{}, {} : son bulletin n'est pas dans sorties/{}/envoi/. Un bulletin remis ne se réimprime pas : rien n'est envoyé à sa place.",

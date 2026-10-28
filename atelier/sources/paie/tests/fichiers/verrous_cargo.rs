@@ -54,7 +54,7 @@ fn dependances(verrou: &Path, nom: &str) -> Option<BTreeSet<String>> {
 #[test]
 fn le_verrou_de_la_fenetre_connait_les_dependances_du_moteur_et_de_la_fabrique() {
     let fenetre = sources().join("fenetre/Cargo.lock");
-    for (paquet, verrou) in [("socle", "Cargo.lock"), ("droit", "Cargo.lock"), ("engagement", "Cargo.lock"), ("documents", "Cargo.lock"), ("declarations", "Cargo.lock"), ("paie", "Cargo.lock"), ("fabrique-pdf", "fabrique-pdf/Cargo.lock")] {
+    for (paquet, verrou) in [("socle", "Cargo.lock"), ("droit", "Cargo.lock"), ("engagement", "Cargo.lock"), ("documents", "Cargo.lock"), ("declarations", "Cargo.lock"), ("envois", "Cargo.lock"), ("paie", "Cargo.lock"), ("fabrique-pdf", "fabrique-pdf/Cargo.lock")] {
         let sien = sources().join(verrou);
         let attendu = dependances(&sien, paquet).unwrap_or_else(|| panic!("{} absent de son propre verrou", paquet));
         let vu = dependances(&fenetre, paquet).unwrap_or_else(|| panic!("{} absent du verrou de la fenetre", paquet));

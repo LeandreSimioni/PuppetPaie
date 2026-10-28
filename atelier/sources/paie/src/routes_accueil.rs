@@ -291,22 +291,11 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
     Ok(Value::Object(out))
 }
 
-/// `simulation.active` : les envois de ce contexte sont-ils joues ? Le paquet
-/// soude (`bridage::paquet_soude`), ou une COMPAGNIE FICTIVE (son marqueur le
-/// dit, `compagnies::est_fictive`). Le logiciel simplement bride, lui, ne joue rien.
-///
-/// JAMAIS UNE FICTIVE AJOUTEE (ticket #236, `compagnies::est_ajoutee`), meme dans le paquet soude : ses envois ne sont pas
-/// joues, ils sont refuses (`bridage::refus_d_envoi`).
-pub fn simulation_active(racine: &Path) -> bool {
-    use crate::interface::compagnies::{est_ajoutee, est_fictive};
-    !est_ajoutee(racine) && (crate::bridage::paquet_soude() || est_fictive(racine))
-}
-
 /// `boite_liee` : peut-on envoyer, et les signatures reviennent-elles seules ?
 /// Une seule reponse aux deux : le mot de passe de la boite est pose. Ne lit
 /// jamais ce mot de passe : l'adresse (`compte`), et si un secret existe.
 pub fn boite_liee(ctx: &Contexte) -> R<bool> {
-    if simulation_active(&ctx.racine) {
+    if crate::bridage::branchement(&ctx.racine).joue() {
         return Ok(true);
     }
     let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
@@ -330,7 +319,7 @@ fn fiches_attendues(m: &mut Moteur) -> R<Value> {
 
 /// Les demandes de fiche parties et pas encore revenues, d'apres les lignes du journal.
 pub(crate) fn attendues(lignes: &[Value]) -> R<Vec<Value>> {
-    let filtrees = |quoi: &str| -> R<Vec<&Value>> { crate::etats::filtrer(&lignes, Some(quoi), None, false) };
+    let filtrees = |quoi: &str| -> R<Vec<&Value>> { envois::etats::filtrer(&lignes, Some(quoi), None, false) };
     let detail = |l: &Value| -> Value { ou_vide(l.get("detail")).clone() };
     let closes: Vec<Value> = filtrees("fiche-recue")?.iter().map(|l| detail(l).get("code").cloned().unwrap_or(Value::Null)).collect();
     let mut out = Vec::new();
@@ -900,10 +889,10 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "configuration": configuration,
         // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
         // mot de passe.
-        "simulation": simulation_active(&ctx.racine),
-        // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::refus_d_envoi`) ; la page
+        "simulation": crate::bridage::branchement(&ctx.racine).joue(),
+        // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::branchement`) ; la page
         // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
-        "envois_refuses": crate::bridage::refus_d_envoi(&ctx.racine).is_some(),
+        "envois_refuses": crate::bridage::branchement(&ctx.racine).refus().is_some(),
         // SUPPRIMER LA COMPAGNIE (ticket #236) : la Configuration ne le propose que si elle se supprime -- jamais une
         // fictive livree, qui se remet a zero (`interface::suppression::genre`).
         "supprimable": crate::interface::suppression::genre(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),

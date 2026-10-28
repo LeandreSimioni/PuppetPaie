@@ -110,6 +110,7 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
         if !se_corrige_ailleurs(ctx, &departs, &mois)? {
             continue;
         }
+        out.extend(annulations(ctx, &departs, &mois, mois_courant)?);
         let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, &mois)? else { continue };
         for d in corrections_dues(ctx, &mois, mois_courant, &departs)? {
             let apres = d.valide.paie(ctx, &data, d.rang)?;
@@ -154,6 +155,40 @@ pub fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
                 taux_pas_origine,
             });
         }
+    }
+    Ok(out)
+}
+
+/// LES ANNULATIONS DE `mois` que la DSN de `mois_courant` porte : chaque engagement non actif que la derniere DSN qui a
+/// declare ce mois a declare actif (`NonActif::correction_due`). Ce qui a ete declare pour lui, lu dans la version sur
+/// laquelle elle est partie (`versement_declare::dernier_declare`, regle 4), s'annule en entier, et rien ne le remplace :
+/// la paie d'apres est la meme, annulee (`Paie::annulee`), et le redacteur n'ecrit d'elle que l'annulation. Cahier
+/// technique DSN 2027.1, `atelier/reference/norme-dsn/texte-2027/chapitre-2-principes-de-constitution.txt` : §2.1.2.1
+/// (p. 19, « une correction est un evenement connu apres la date de cloture de la paie. Il donne lieu a la declaration
+/// d'une correction dans la DSN suivante ») et §2.1.3.6 (p. 30, l'approche « par annulation et remplacement » : une
+/// « annulation de la declaration initiale accompagnee si opportun d'une declaration corrective » ; ici, aucune).
+fn annulations(ctx: &Contexte, departs: &engagement::departs::Departs, mois: &str, mois_courant: &str) -> R<Vec<Reg>> {
+    let mut out = Vec::new();
+    for n in engagement::etats::non_actifs_du_mois(ctx, mois).map_err(refus_valeur)? {
+        if n.correction_due(ctx, departs, mois, mois_courant).map_err(refus_valeur)?.is_none() {
+            continue;
+        }
+        let lu = versement_declare::dernier_declare(ctx, n.objet(), departs, mois, mois_courant)
+            .map_err(refus_valeur)?
+            .ok_or_else(|| refus_valeur(format!("{} : aucune DSN partie n'a declare le contrat {} de ce mois", mois, valeur_en_texte(n.objet().brut.get("numero").unwrap_or(&Value::Null)))))?;
+        let apres = lu.avant.annulee();
+        out.push(Reg {
+            mois: mois.to_string(),
+            version: n.version(),
+            decidee_le: n.le().get(..10).and_then(|t| Jour::lire(t).ok()),
+            ajout: false,
+            taux_pas_origine: lu.versement.taux_pas.clone(),
+            avant: lu.avant,
+            bulletin_rectifie: lu.bulletin,
+            declare: lu.versement,
+            net_deja_verse: lu.net_deja_verse,
+            apres,
+        });
     }
     Ok(out)
 }

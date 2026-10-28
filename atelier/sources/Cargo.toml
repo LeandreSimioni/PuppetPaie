@@ -1,7 +1,10 @@
 # L'espace Cargo du moteur : une crate par partie, chaque flèche descend.
 #
-#     paie          la ligne de commande `paie` et les parties du dessus (envois et journal, retours, interface,
-#                   compagnie, import, atelier)
+#     paie          la ligne de commande `paie` et les parties du dessus (interface, compagnie, import, atelier) ;
+#                   choisit le branchement des envois, ouvre le coffre, note les incidents
+#     envois        ce qui part et revient (net-entreprises, DPAE, signature, courriel, Drive, retours et bilans) et le
+#                   journal de ce qui est parti ; recoit des pieces fabriquees et un mot de passe, ne fabrique rien,
+#                   n'ouvre jamais le coffre
 #     declarations  ce qu'un engagement validé fait déclarer (DSN mensuelle et signalements, DPAE, régularisations,
 #                   bloc 44, CSA, OETH, CASC-SVP, et la norme qui les contrôle : usages, formats, natures, champs) ;
 #                   les états de ce qu'une DSN a porté ; ne recalcule rien
@@ -13,15 +16,18 @@
 #                   aucun document
 #     droit         barèmes datés, conventions, natures de contrat, règles ; lit tout à une date ; ne connaît pas
 #                   l'engagement
-#     socle         dates, heure de Paris, temps simulé, nombres, texte, fichiers, échecs, garde-fou réseau
+#     socle         dates, heure de Paris, temps simulé, nombres, texte, HTML et base64, fichiers, échecs, garde-fou
+#                   réseau
 #
 # `declarations` prend à `documents` (le bordereau, le bulletin, le certificat que la DSN reprend), jamais l'inverse.
+# `envois` prend à `declarations` et à `documents` ce qui part ; l'engagement ne lit pas le journal, `paie` lui passe
+# ce qui est parti.
 #
 # La fenêtre (`fenetre/`) et la fabrique de PDF (`fabrique-pdf/`) gardent chacune leur verrou et leurs profils : elles ne
 # sont pas de l'espace (la fenêtre prend `paie` par son chemin).
 
 [workspace]
-members = ["socle", "droit", "engagement", "documents", "declarations", "paie"]
+members = ["socle", "droit", "engagement", "documents", "declarations", "envois", "paie"]
 exclude = ["fenetre", "fabrique-pdf"]
 resolver = "2"
 

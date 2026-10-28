@@ -328,25 +328,3 @@ pub fn ecrire_avenant(
     crate::fabrique::garder_description(&d, chemin).map_err(|m| Refus { classe: Some("OSError"), message: m })?;
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Un modele qui cite le taux du cachet d'un contrat qui n'en a aucun se refuse, en disant quoi ecrire ;
-    /// le meme marqueur en commentaire, ou un contrat qui a son taux, passent.
-    #[test]
-    fn un_modele_qui_cite_le_taux_d_un_contrat_sans_cachet_se_refuse() {
-        let modele = Path::new("contrat-cddu.modele");
-        let cite = "ARTICLE: Remuneration\nL'artiste percoit {{remuneration.cachets}} cachets a {{remuneration.taux_cachet}} EUR.\n";
-        let sans = json!({"salarie.nom_complet": "Lise Fictive", "remuneration.detail": "151,67 heures a 12,00 EUR"});
-        let refus = refuser_ce_que_le_modele_tairait(modele, cite, &sans).unwrap_err();
-        assert!(refus.message.contains("{{remuneration.taux_cachet}}") && refus.message.contains("Lise Fictive"), "{}", refus.message);
-        assert!(refus.message.contains("{{remuneration.detail}}"), "{}", refus.message);
-        let mut avec = sans.clone();
-        avec["remuneration.taux_cachet"] = json!("130,00");
-        assert!(refuser_ce_que_le_modele_tairait(modele, cite, &avec).is_ok());
-        let commente = "#   remuneration.cachets  {{remuneration.taux_cachet}}\nL'artiste percoit {{remuneration.detail}}.\n";
-        assert!(refuser_ce_que_le_modele_tairait(modele, commente, &sans).is_ok());
-    }
-}

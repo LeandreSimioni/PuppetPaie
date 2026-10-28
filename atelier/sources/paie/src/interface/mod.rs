@@ -238,7 +238,7 @@ fn logo_en_ligne(racine: &Path) -> String {
     match compagnies::logo(racine) {
         Some(p) => {
             let mime = if p.extension().is_some_and(|e| e == "svg") { "image/svg+xml" } else { "image/png" };
-            std::fs::read(&p).map(|o| format!("data:{};base64,{}", mime, crate::retours::base64_ecrire(&o))).unwrap_or_default()
+            std::fs::read(&p).map(|o| format!("data:{};base64,{}", mime, socle::base64::ecrire(&o))).unwrap_or_default()
         }
         None => String::new(),
     }
@@ -656,7 +656,7 @@ impl Fenetre {
                 "secondes": socle::temps::secondes(),
                 "scenario": enr.map(|e| e.dossier().display().to_string()),
                 "compagnie": ouverte.as_ref().map(|r| r.display().to_string()),
-                "simulee": ouverte.as_ref().is_some_and(|r| crate::routes_accueil::simulation_active(r)),
+                "simulee": ouverte.as_ref().is_some_and(|r| crate::bridage::branchement(r).joue()),
                 "ajoutee": ouverte.as_ref().is_some_and(|r| compagnies::est_ajoutee(r))}),
             "jour" => {
                 if !socle::temps::simule() {
@@ -794,7 +794,7 @@ impl Fenetre {
                 }
                 // L'heure est due : le coffre note quand le mot de passe a ete pose (`pose_le`). Sans elle, une compagnie
                 // neuve ne pouvait pas poser son premier mot de passe (« il faut `maintenant` », trouve le 09/10/2026).
-                let maintenant = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif())[..16].to_string();
+                let maintenant = socle::paris::iso_de_naif(socle::paris::maintenant_naif())[..16].to_string();
                 match crate::coffre::Coffre::du_poste(&racine, &maintenant).poser_ouverture(&a(0), None) {
                     Ok(_) => {
                         self.ouvrir(racine);
@@ -927,24 +927,24 @@ impl Fenetre {
     fn piece_fictive(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
         let Phase::Ouverte { racine, .. } = self.phase() else { return interdit };
-        if !self.autorise(r) || !crate::routes_accueil::simulation_active(&racine) {
+        if !self.autorise(r) || !crate::bridage::branchement(&racine).joue() {
             return interdit;
         }
         let nom = r.params.get("c").cloned().unwrap_or_default();
         let rang: usize = r.params.get("p").and_then(|p| p.parse().ok()).unwrap_or(0);
-        let Some(brut) = crate::simulation_courriels::courriels(&racine).into_iter().find(|(n, _)| *n == nom).map(|(_, o)| o) else {
+        let Some(brut) = envois::simulation_courriels::courriels(&racine).into_iter().find(|(n, _)| *n == nom).map(|(_, o)| o) else {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         };
         let Ok(m) = mailparse::parse_mail(&brut) else { return Reponse::nouvelle(404, "text/plain", Vec::new()) };
         let mut feuilles = Vec::new();
-        crate::simulation_courriels::feuilles(&m, &mut feuilles);
-        let pieces: Vec<_> = feuilles.into_iter().filter(|f| crate::simulation_courriels::nom_de_fichier(f).is_some()).collect();
+        envois::simulation_courriels::feuilles(&m, &mut feuilles);
+        let pieces: Vec<_> = feuilles.into_iter().filter(|f| envois::simulation_courriels::nom_de_fichier(f).is_some()).collect();
         let Some(piece) = pieces.get(rang) else { return Reponse::nouvelle(404, "text/plain", Vec::new()) };
         let octets = piece.get_body_raw().unwrap_or_default();
         if piece.ctype.mimetype != "application/pdf" || !octets.starts_with(b"%PDF") {
             return Reponse::nouvelle(404, "text/plain", Vec::new());
         }
-        let nom_pdf = crate::simulation_courriels::nom_de_fichier(piece).unwrap_or_else(|| "piece.pdf".into());
+        let nom_pdf = envois::simulation_courriels::nom_de_fichier(piece).unwrap_or_else(|| "piece.pdf".into());
         let sur: String = nom_pdf.chars().map(|c| if c.is_alphanumeric() || "._-".contains(c) { c } else { '_' }).collect();
         Reponse::nouvelle(200, "application/pdf", octets)
             .avec("Content-Disposition", format!("inline; filename=\"{}\"", sur))
@@ -965,7 +965,7 @@ impl Fenetre {
         };
         let pdf = api::route(&racine, "bulletin-modele-apercu", &json!({"modele": modele.cle()}))
             .ok()
-            .and_then(|v| v.get("pdf").and_then(Value::as_str).and_then(|b| crate::retours::base64_lire(b).ok()));
+            .and_then(|v| v.get("pdf").and_then(Value::as_str).and_then(|b| socle::base64::lire(b).ok()));
         match pdf {
             Some(octets) if octets.starts_with(b"%PDF") => Reponse::nouvelle(200, "application/pdf", octets)
                 .avec("Content-Disposition", format!("inline; filename=\"apercu-bulletin-{}.pdf\"", if modele == documents::bulletin::Modele::Complet { "complet" } else { "simplifie" }))
@@ -1009,7 +1009,7 @@ impl Fenetre {
 /// La ligne du journal de l'interface pour une route servie : `HH:MM:SS route NOM N ms`, et ` refus CLASSE` quand elle a
 /// refuse. Ni la charge ni la reponse : seulement de quoi mesurer (ticket #244).
 pub fn ligne_de_route(nom: &str, duree: Duration, rendu: &Value) -> String {
-    let heure = crate::releve_retours::iso_de_naif(crate::releve_retours::maintenant_naif());
+    let heure = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     let nom: String = nom.chars().filter(|c| c.is_ascii_alphanumeric() || "-_.".contains(*c)).take(80).collect();
     let refus = match rendu.get("ok").and_then(Value::as_bool) {
         Some(true) => String::new(),

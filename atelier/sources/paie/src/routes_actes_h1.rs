@@ -21,7 +21,7 @@ use engagement::calcul::Paie;
 use droit::contexte::Contexte;
 use socle::date::{en_texte, repr_texte, Jour};
 use declarations::dpae::{Chemins, Embauche, Parametres};
-use crate::etats;
+use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
@@ -402,10 +402,10 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
 /// la compagnie a deja envoyes, arrets, reprises, fins de contrat et amorcages confondus. Cahier technique
 /// DSN, p. 136 : « Pour un signalement, ce numero ne doit pas etre remis a zero afin qu'il soit unique quel que
 /// soit le mois d'emission » (et non plus le rang parmi les envois de CET arret, qui repartait a 1). LA PLATE-FORME
-/// FAIT FOI (lot O1) : `ordre_signalements::dernier_ordre_connu` la consulte ; ce qu'il faut en dire (elle n'a pas
+/// FAIT FOI (lot O1) : `crate::releve::dernier_ordre_connu` la consulte ; ce qu'il faut en dire (elle n'a pas
 /// repondu, elle connaissait plus que le journal) part avec les avertissements.
 pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
-    let connu = crate::ordre_signalements::dernier_ordre_connu(ctx, None)?;
+    let connu = crate::releve::dernier_ordre_connu(ctx, None)?;
     Ok((connu.dernier + 1, connu.avertissements))
 }
 
@@ -773,7 +773,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         }
         let mut repetes = Vec::new();
         for x in &pareils {
-            let empreinte = crate::journal::empreinte_fichier(x).map_err(plain)?;
+            let empreinte = envois::journal::empreinte_fichier(x).map_err(plain)?;
             let nom = x.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
             let r = etats::repetition(&lignes_journal, etats::DPAE, &empreinte, &nom)?;
             if vrai(&r["conforme"]) {

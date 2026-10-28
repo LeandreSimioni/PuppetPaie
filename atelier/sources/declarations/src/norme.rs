@@ -19,6 +19,11 @@ use std::sync::Arc;
 const BASE: &str = "norme-dsn-base.json";
 pub const RUBRIQUE: &str = "S10.G00.00.006";
 
+/// Les natures de declaration (S20.G00.05.001) d'un signalement que le logiciel envoie : arret de travail (04), reprise
+/// (05), fin du contrat de travail unique (07), amorcage des donnees variables (08) ; la mensuelle est 01
+/// (`atelier/reference/norme-dsn/texte/bloc-S20.G00.05.txt`).
+pub const SIGNALEMENTS: [&str; 4] = ["04", "05", "07", "08"];
+
 /// Une version de la norme que le moteur sait ecrire (`P26V01`, `P27V01`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Norme {

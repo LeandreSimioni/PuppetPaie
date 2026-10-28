@@ -175,7 +175,7 @@ fn classe_connue(c: &str) -> &'static str {
         "ExerciceClos", "ClotureRefusee", "MoisHorsDelai", "ActeReelRefuse", "ArretIntrouvable",
         // Les envois (theme 2) : une sortie absente, une boite absente ou en panne.
         "SortieAbsente", "BoiteAbsente", "ErreurCourriel",
-        // Le refus d'un envoi depuis une fictive ajoutee (ticket #236, `bridage::refus_d_envoi`).
+        // Le refus d'un envoi depuis une fictive ajoutee (ticket #236, `bridage::branchement`).
         "EnvoiBride",
     ];
     CONNUES.iter().find(|x| **x == c).copied().unwrap_or("RuntimeError")

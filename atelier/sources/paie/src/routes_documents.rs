@@ -11,7 +11,7 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use crate::etats::{self, est, get, getd, items, objet_vide, LISTE_VIDE, SIGNATURE};
+use envois::etats::{self, est, get, getd, items, objet_vide, LISTE_VIDE, SIGNATURE};
 use socle::valeur::valeur_en_texte;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
@@ -196,31 +196,6 @@ pub(crate) fn numeros_du_jour(paies: &[engagement::calcul::Paie], salarie: &str,
     Ok(v)
 }
 
-/// L'indice, dans `paies`, de la paie du contrat que le journal connait sous `numero_j` : celle qui lui est appariee
-/// (`etats::apparier`), sinon celle qui porte ce numero ; sinon, si `a_defaut_la_premiere`, la premiere paie du jour.
-pub(crate) fn paie_du_contrat(
-    paies: &[engagement::calcul::Paie],
-    lignes: &[Value],
-    salarie: &str,
-    debut: &str,
-    numero_j: &str,
-    a_defaut_la_premiere: bool,
-) -> R<Option<usize>> {
-    let mut des_jours: Vec<(usize, String)> = Vec::new();
-    for (i, x) in paies.iter().enumerate() {
-        if est(get_requis(&x.salarie, "_cle")?, salarie) && x.engagement.debut.iso() == debut && vrai(&x.spectacle) {
-            des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
-        }
-    }
-    let propres: Vec<String> = des_jours.iter().map(|(_, n)| n.clone()).collect();
-    let appariees = etats::apparier(&propres, &etats::numeros_demandes(lignes, salarie, debut)?);
-    Ok((0..des_jours.len())
-        .find(|&k| appariees[k].as_deref() == Some(numero_j))
-        .or_else(|| (0..des_jours.len()).find(|&k| propres[k] == numero_j))
-        .or(if a_defaut_la_premiere && !des_jours.is_empty() { Some(0) } else { None })
-        .map(|k| des_jours[k].0))
-}
-
 /// Le numero SOUS LEQUEL LE JOURNAL parle du contrat que la page vise (Retours Windows, B, suite : deux contrats du meme salarie
 /// qui commencent le meme jour sont deux contrats). `numero` : celui que l'ecran affiche (`signature-apercu`), `mois` : le mois de
 /// l'ecran, qui donne les paies jumelles. `None` : ce contrat n'est jamais parti. Sans `numero`, le contrat est celui qui est
@@ -279,7 +254,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             if numero_voulu.is_some() && j.is_none() {
                 None
             } else {
-                crate::etats::contrat_parti(&lignes, s, d, j.as_deref())?
+                envois::etats::contrat_parti(&lignes, s, d, j.as_deref())?
             }
         }
         _ => None,
@@ -296,7 +271,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let (_data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois_parti, None)?;
     // La paie de CE contrat : celle dont le journal connait le numero (`apparier`), sinon celle qui le porte.
     let numero_parti = valeur_en_texte(&etats::numero_de_cle(&parti.numero));
-    let trouvee = paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
+    let trouvee = etats::paie_du_contrat(&paies, &lignes, &salarie, &debut, &numero_parti, numero_voulu.is_none())?;
     let Some(i) = trouvee else {
         return Err(erreur(
             "ErreurOperation",
@@ -305,7 +280,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let p = &paies[i];
     let g = m.globales()?;
-    let deja = crate::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
+    let deja = envois::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
     let ent = documents::avenant::ent_du_mois(ctx, &mois_parti)?;
     let modele = documents::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;
@@ -313,7 +288,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let vals = documents::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
     // L'ANCIEN TEXTE : celui que le contrat disait sur la version de l'engagement sur laquelle il (ou son dernier avenant)
     // est parti, ecrit du modele avec les valeurs de cette version.
-    let departs = crate::journal::departs(&ctx.racine)?;
+    let departs = envois::journal::departs(&ctx.racine)?;
     let siens = engagement::etats::du_mois(ctx, &mois_parti)?.into_iter().find_map(|e| {
         let v = e.valide()?.clone();
         let b = Value::Object(v.objet().brut.clone());
@@ -437,13 +412,13 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
     for nom in fichiers {
         let chemin = dossier.join(&nom);
         let octets = crate::routes_apercus::lire_octets(&chemin.to_string_lossy())?;
-        let atts = crate::retours::aer_spectacle(&octets)?;
+        let atts = envois::retours::aer_spectacle(&octets)?;
         let liste = atts.as_array().cloned().unwrap_or_default();
         let cles = if liste.is_empty() {
             Value::Array(Vec::new())
         } else {
             let quis: Vec<Value> = liste.iter().map(|a| a["qui"].clone()).collect();
-            crate::retours::rattacher(&quis, &index)
+            envois::retours::rattacher(&quis, &index)
         };
         let mut de_ce_retour: HashMap<(String, String), Vec<Attestation>> = HashMap::new();
         for (a, c) in liste.iter().zip(cles.as_array().map(Vec::as_slice).unwrap_or(&[])) {
@@ -452,7 +427,7 @@ fn attestations_archivees(ctx: &Contexte, mois: Option<&str>, seulement: Option<
                 continue;
             }
             let qui = valeur_en_texte(&a["qui"]);
-            let donnees = crate::retours::base64_lire(a["donnees"].as_str().unwrap_or("")).map_err(Echec::from)?;
+            let donnees = socle::base64::lire(a["donnees"].as_str().unwrap_or("")).map_err(Echec::from)?;
             de_ce_retour.entry((periode, qui.clone())).or_default().push(Attestation {
                 nom_archive: valeur_en_texte(&a["nom_archive"]),
                 qui,
@@ -732,7 +707,7 @@ impl Message {
 /// `envoi.preparer` : un message par salarie, a partir des pieces individuelles deja ecrites. Le texte
 /// du corps, que l'apercu ne montre pas, n'est pas compose : seuls ses refus (`KeyError` d'une fiche
 /// sans nom d'affichage ou sans signataire) sont gardes.
-fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, crate::envoi::Renvoi>) -> R<Vec<Message>> {
+fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, envois::envoi::Renvoi>) -> R<Vec<Message>> {
     const PIECES: [(&str, &str, &str); 4] = [
         ("bulletin", "Bulletin", "bulletin"),
         ("rectificatif", "BulletinRectificatif", "bulletin rectificatif"),
@@ -911,7 +886,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
                            "renvoi": renvoi.is_some(),
                            "envoye_le": renvoi.map(|r| r.envoye_le.clone()),
                            "changements": renvoi.map(|r| if r.changements.is_empty() {
-                               vec![crate::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
+                               vec![envois::envoi::RIEN_DANS_LE_RESUME.trim_start_matches([' ', '-']).to_string()]
                            } else {
                                r.changements.iter().map(|l| l.trim_start().trim_start_matches("- ").to_string()).collect()
                            }).unwrap_or_default()})
@@ -944,7 +919,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `client.compte` : l'adresse de la boite qui enverrait. Celle de la compagnie fictive est le courriel du
 /// signataire ; sinon l'adresse posee avec le mot de passe (jamais le mot de passe).
 fn compte_de_la_boite(ctx: &Contexte) -> R<String> {
-    if crate::routes_accueil::simulation_active(&ctx.racine) {
+    if crate::bridage::branchement(&ctx.racine).joue() {
         let sg = ctx.entreprise.get("signataire").filter(|v| vrai(v));
         let mail = sg.and_then(|s| s.get("email")).filter(|v| vrai(v)).map(valeur_en_texte);
         return Ok(mail.unwrap_or_else(|| "fictive@puppetpaie.invalid".to_string()));

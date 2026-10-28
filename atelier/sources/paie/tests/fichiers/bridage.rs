@@ -6,6 +6,7 @@
 //! - seul `.edition.json` « debloque » debloque : un `EDITION.json` qui ne dit rien de soude ne debloque pas ;
 //! - le paquet soude (`logiciel/EDITION.json`, `"edition": "bride"`) l'emporte toujours, et le geste n'y fait rien ;
 //! - l'accueil bride ne propose pas les compagnies reelles de l'installation, debloque si.
+//! - le branchement : une fictive livree joue ses envois, une fictive ajoutee recoit le message, toute autre envoie.
 
 use std::path::{Path, PathBuf};
 
@@ -89,4 +90,22 @@ fn l_accueil_bride_ne_propose_que_les_fictives() {
     assert_eq!(liste_de(&inst).len(), 1, "la fictive");
     geste(&inst, "debloque");
     assert_eq!(reelles(&inst), 1, "debloque par le geste : la compagnie reelle");
+}
+
+/// LE BRANCHEMENT, choisi par `bridage::branchement` seul : une fictive livree joue ses envois contre le simulateur, une
+/// fictive ajoutee recoit le message (rien ne part, rien ne se joue), toute autre compagnie envoie au monde.
+#[test]
+fn le_branchement_d_une_fictive_d_une_ajoutee_et_d_une_autre() {
+    use envois::branchement::Branchement;
+    use paie::bridage::{branchement, REFUS_D_ENVOI};
+    use paie::interface::compagnies::{ajouter_dans, MARQUEUR, MARQUE_FICTIVE};
+    let inst = installation("branchement");
+    let fictive = inst.join("fictives/fictive-essai");
+    crate::outils::ecrire(&fictive, MARQUEUR, &serde_json::json!({"copie_de": MARQUE_FICTIVE}));
+    assert_eq!(branchement(&fictive), Branchement::Simulateur);
+    let ajoutee = ajouter_dans(&inst, "Les Pupazzi").unwrap().racine;
+    assert_eq!(branchement(&ajoutee).refus().map(|r| r.phrase), Some(REFUS_D_ENVOI));
+    let autre = inst.join("compagnies/essai");
+    crate::outils::ecrire(&autre, "config/entreprise.json", &serde_json::json!({"nom_affichage": "Essai"}));
+    assert_eq!(branchement(&autre), Branchement::Monde);
 }
