@@ -101,6 +101,13 @@ fn cle_de(p: &Paie) -> String {
     p.salarie.get("_cle").map(valeur_en_texte).unwrap_or_default()
 }
 
+/// CE QUI A ATTEINT LE SALARIE EST PARTI : d'un envoi coupe en route, les versions des seuls salaries servis (les
+/// `servis` premiers messages, qui partent dans l'ordre), pour la ligne d'echec du journal.
+fn versions_des_servis(versions: &Value, messages: &[Message], servis: usize) -> Value {
+    let cles: Vec<&str> = messages[..servis.min(messages.len())].iter().map(|m| m.cle.as_str()).collect();
+    json!(versions.as_array().into_iter().flatten().filter(|v| v["salarie"].as_str().is_some_and(|c| cles.contains(&c))).collect::<Vec<_>>())
+}
+
 /// `a, b et c`.
 fn et_fr(morceaux: &[String]) -> String {
     if morceaux.len() < 2 {
@@ -484,7 +491,8 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
     let partis = match envoi::envoyer_suivi(&messages, &expediteur, client, Some(&mut identifiants), None) {
         Ok(p) => p,
         Err(e) => {
-            noter_echec_d_envoi(ctx, "contrat-signature", Some(&mois), "interface", &e.partis, &e.echoue, &e.message, Some(json!({"contrats": contrats})), None)?;
+            let servis = versions_des_servis(&versions, &messages, e.partis.len());
+            noter_echec_d_envoi(ctx, "contrat-signature", Some(&mois), "interface", &e.partis, &e.echoue, &e.message, Some(json!({"contrats": contrats})), Some(&servis))?;
             return Err(echec_d_envoi(e.message));
         }
     };
@@ -743,7 +751,8 @@ pub fn envoyer_avenants(ctx: &Contexte, par_salarie: &[(String, Vec<UnAvenant>)]
         let partis_ici = match envoi::envoyer_suivi(std::slice::from_ref(&message), &expediteur, client, Some(&mut identifiants), None) {
             Ok(p) => p,
             Err(e) => {
-                noter_echec_d_envoi(ctx, "contrat-signature", Some(&mois), "interface", &e.partis, &e.echoue, &e.message, Some(json!({"contrats": lignes_contrats})), None)?;
+                let servis = versions_des_servis(&versions, std::slice::from_ref(&message), e.partis.len());
+                noter_echec_d_envoi(ctx, "contrat-signature", Some(&mois), "interface", &e.partis, &e.echoue, &e.message, Some(json!({"contrats": lignes_contrats})), Some(&servis))?;
                 return Err(echec_d_envoi(e.message));
             }
         };

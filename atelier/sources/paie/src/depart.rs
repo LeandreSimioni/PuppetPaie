@@ -770,6 +770,8 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
 
     // LES BULLETINS : un numero par paie qui a des cachets, ecrit dans la paie a son depart.
     // Le numero de chaque bulletin, a cote de sa paie : celui que la paie ecrite porte, sinon celui que ce depart reserve.
+    // Les numeros neufs se donnent dans l'ordre ou les documents partent (`cles`), salarie par salarie : ceux d'un salarie
+    // se suivent, et un envoi coupe en route laisse aux servis les premiers, sans trou.
     let mut numeros: Vec<Option<String>> = vec![None; paies.len()];
     let mut numerotees: Vec<bool> = vec![false; paies.len()];
     for i in 0..paies.len() {
@@ -779,7 +781,13 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         if let Some(b) = ecrits.get(i).and_then(|e| e.bulletin.clone()) {
             numeros[i] = Some(b);
             numerotees[i] = true;
-        } else if part(&paies[i]) {
+        }
+    }
+    for cle in cles {
+        for i in (0..paies.len()).filter(|i| cle_de(&paies[*i]) == *cle) {
+            if paies[i].engagement.sans_paie() || numerotees[i] {
+                continue;
+            }
             let n = faits.reserves.prochain(ctx, "bulletin", an)?;
             faits.reserves.enregistrer(an, "bulletin", n);
             let numero = format!("{}/{}", n, an);
@@ -795,9 +803,11 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
         })
         .collect();
 
-    // LES CERTIFICATS CONGES SPECTACLES : un par contrat qui finit ce mois-ci, numerotes dans la sequence continue.
-    let (pour_cs, avert_cs) = crate::routes_dossier_salarie::certificats_dus(ctx, &paies)?;
+    // LES CERTIFICATS CONGES SPECTACLES : un par contrat qui finit ce mois-ci, numerotes dans la sequence continue, dans
+    // l'ordre ou les documents partent, salarie par salarie, comme les bulletins.
+    let (mut pour_cs, avert_cs) = crate::routes_dossier_salarie::certificats_dus(ctx, &paies)?;
     faits.avertissements.extend(avert_cs);
+    pour_cs.sort_by_key(|(cle, _, _)| cles.iter().position(|c| c == cle).unwrap_or(usize::MAX));
     let mut prochain_ce: Option<i64> = None;
     let mut certificats: Vec<(usize, &PaieCs, i64)> = Vec::new();
     for (cle, debut, pc) in &pour_cs {
