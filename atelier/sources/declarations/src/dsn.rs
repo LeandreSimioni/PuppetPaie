@@ -16,6 +16,7 @@ use droit::bareme::{self, bareme_applique_au_contrat};
 use documents::bordereau::{self, Destinataire, LigneBordereau};
 use droit::reduction::au_dela_du_seuil;
 use engagement::calcul::Paie;
+use engagement::etats::PrelevementDeLaCorrection;
 use droit::contexte::{aujourdhui, Contexte};
 use droit::natures::{contrat_court, Nature};
 use socle::date::{en_texte, Jour};
@@ -2445,8 +2446,8 @@ fn annuler_les_58(f: &mut Fichier, r: &Regularisation, origine: (Jour, Jour)) ->
 /// n'est jamais celui d'un autre versement de l'individu (`numero_de_versement`).
 #[allow(clippy::too_many_arguments)]
 fn bloc_regularisation(
-    f: &mut Fichier, r: &Regularisation, bar_o: &Value, rang: i64, numero: i64, taux_pas: Option<&Triplet>, fin_mois: Jour,
-    bar: &Value,
+    f: &mut Fichier, r: &Regularisation, bar_o: &Value, rang: i64, numero: i64, pas_c: &PrelevementDeLaCorrection,
+    fin_mois: Jour,
 ) -> Resultat<()> {
     // `avant` ne donne ici que l'engagement declare (ses bornes, s'il est sans paie) : les montants annules sont ceux
     // du versement declare (`r.declare`), pas ceux d'un recalcul.
@@ -2456,13 +2457,16 @@ fn bloc_regularisation(
     // La paie corrigee se rattache a la periode du contrat corrige : ses dates ont pu changer (21/10/2026, fiche
     // net-entreprises 1952 ; cahier technique DSN 2026.1, §2.1.3.6). L'annulation recopie le declare, a ses dates.
     let (debut_c, fin_c) = (apres.engagement.debut_periode()?, apres.engagement.fin_periode()?);
-    let d_ni = sub(apres.net_imposable, r.declare.net_imposable);
+    // Le prelevement du versement de la correction est celui que l'engagement rend (`prelevement_de_la_correction`) :
+    // la DSN ne le calcule pas.
+    let d_ni = pas_c.difference;
     let d_net = sub(apres.net_verse(), r.declare.net_verse);
     f.add("S21.G00.50.001", fin_mois.jjmmaaaa());
     f.add("S21.G00.50.002", mt(d_ni));
     f.add("S21.G00.50.003", numero_de_versement(numero)?);
     f.add("S21.G00.50.004", mt(d_net));
-    let (taux, type_taux, identifiant, soumis) = pas_du_versement(taux_pas, bar, d_ni, fin_mois, court(apres, fin_mois)?)?;
+    let v = &pas_c.versement;
+    let (taux, type_taux, identifiant, soumis) = (&v.taux, &v.type_taux, &v.identifiant, v.montant_soumis);
     f.add_v("S21.G00.50.006", &taux)?;
     f.add_v("S21.G00.50.007", &type_taux)?;
     if en_texte(&type_taux) == "01" {
@@ -4012,18 +4016,12 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// relire, la ou une difference ne se verifie qu'en refaisant le calcul.
 /// Voir `bloc_regularisation` et `lignes_regularisees` ci-dessous.
 ///
-/// `pas_par_salarie` : {cle_salarie: (taux, type, identifiant)} -- LE TAUX
-/// REELLEMENT DECLARE, impose de l'exterieur. C'est par la qu'un rejeu
-/// des mois deposes repasse chaque mois
-/// avec le taux qui etait en vigueur CE MOIS-LA : un triplet fourni s'ecrit
-/// tel quel, sans abattement ni grille, et le fichier reproduit se compare
-/// octet pour octet.
-/// A defaut, le magasin config/pas.json fait foi -- mais seulement tant que
-/// son taux est VALIDE (`pas.situation`). Le moteur ne fabrique jamais un
-/// taux DGFiP : il vient du compte-rendu metier . Faute
-/// d'un taux valide, ce n'est pas un refus, c'est la loi qui prend la main :
-/// la grille de taux par defaut de l'article 204 H du CGI, calculee
-/// versement par versement (`pas_du_versement`, ci-dessous).
+/// Le prelevement d'une paie est celui qu'elle a ecrit a la validation (`Paie::pas`), celui du versement d'une
+/// correction celui que l'engagement rend (`engagement::etats::prelevement_de_la_correction`) : la DSN n'en calcule
+/// aucun. Seul le versement nul d'un mois sans paie porte le taux qui vaut pour le salarie, lu ici :
+/// `pas_par_salarie` : {cle_salarie: (taux, type, identifiant)}, un taux impose de l'exterieur, ecrit tel quel ;
+/// a defaut, le magasin config/pas.json, tant que son taux est VALIDE (`pas.situation`) ; faute d'un taux valide, la
+/// grille de taux par defaut de l'article 204 H du CGI (`pas_du_versement`, ci-dessous).
 ///
 /// `envoi_test` met S10.G00.00.005 a '01' : controles executes et bilan rendu,
 /// donnees transmises aux organismes pour analyse mais NON CONSERVEES. Un
@@ -4290,7 +4288,7 @@ certificat de conformite du depot precedent.",
     }
 
     let mut pas_par_salarie = o.pas_par_salarie.clone();
-    for cle in paies.iter().map(cle_salarie).chain(regs.iter().map(|r| cle_salarie(&r.apres))) {
+    for cle in paies.iter().filter(|p| p.engagement.sans_paie()).map(cle_salarie) {
         if !pas_par_salarie.contains_key(&cle) {
             let t = pas::taux_dgfip(ctx, &cle, None)?;
             pas_par_salarie.insert(cle, t);
@@ -4752,7 +4750,8 @@ certificat de conformite du depot precedent.",
         for (k, (rang, r)) in rangs_regs.iter().zip(&corrections).enumerate() {
             let b = bar_de(&r.mois)?;
             let numero = (lot.len() + k + 1) as i64;
-            bloc_regularisation(&mut f, r, &b, *rang, numero, taux_pas.as_ref(), fin_m, &bar)?;
+            let pas_c = engagement::etats::prelevement_de_la_correction(ctx, &r.apres, r.declare.net_imposable, r.taux_pas_origine.as_deref(), mois)?;
+            bloc_regularisation(&mut f, r, &b, *rang, numero, &pas_c, fin_m)?;
         }
         f.contrat_unique = false;
         let anciennete = anciennete_du_mois(s, cle, &fin_m)?;

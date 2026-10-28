@@ -16,13 +16,12 @@ use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
 use droit::contexte::Contexte;
-use socle::date::{jours_du_mois, Jour};
+use socle::date::Jour;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::vrai;
-use socle::num::{dec_avec_echelle, pct, q2, Decimal};
-use droit::pas::{self, ErreurPas, ZONE_DEFAUT};
+use socle::num::{q2, Decimal};
 use socle::echec::Echec;
 use crate::versement_declare::{self, VersementDeclare};
 
@@ -263,44 +262,29 @@ fn refus_valeur(m: String) -> Echec {
 
 
 /// `versement_de_la_correction` : ce que la correction verse -- ou retient -- CE mois-ci : la difference de net,
-/// et le prelevement a la source sur cette difference, calcule par la meme porte que le bloc 50 de la DSN.
-///
-/// Due au salarie : le taux du mois ou l'on paie, sur le bareme de ce mois. Trop-verse (net imposable qui
-/// baisse) : le taux du mois de l'erreur, lu dans la DSN deposee (bloc 56). Un bareme sans grille ne rend pas de
-/// prelevement : on ne l'invente pas.
+/// et le prelevement a la source sur cette difference, tel que l'engagement le rend
+/// (`engagement::etats::prelevement_de_la_correction`, le meme que le bloc 50 de la DSN).
 pub fn versement_de_la_correction(ctx: &Contexte, r: &Reg, mois_courant: &str) -> R<Value> {
     // Ce qui a ete verse et declare se lit dans la paie declaree, pas dans un recalcul : le net imposable en 50.002, le
     // net deja verse.
-    let (avant, apres) = (&r.declare, &r.apres);
-    let d_ni = apres.net_imposable - avant.net_imposable;
+    let apres = &r.apres;
     let net_avant = r.net_deja_verse;
     let d_net = apres.net_a_payer - net_avant;
-    let an: i32 = mois_courant.get(..4).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
-    let mo: u32 = mois_courant.get(5..7).and_then(|t| t.parse().ok()).ok_or_else(|| refus_valeur(format!("nombre entier illisible : {}", socle::fichiers::repr(mois_courant))))?;
-    let fin_mois = Jour::nouveau(an, mo, jours_du_mois(an, mo)).ok_or_else(|| refus_valeur(socle::date::date_impossible(an, mo, 1)))?;
-    let debut_mois = Jour::nouveau(an, mo, 1).ok_or_else(|| refus_valeur(socle::date::date_impossible(an, mo, 1)))?;
-    let indu = d_ni < Decimal::ZERO;
-    let mut taux: Value = Value::Null;
-    let mut prelevement: Option<Decimal> = None;
-    if indu {
-        if let Some(t) = r.taux_pas_origine.as_deref().filter(|t| !t.is_empty()) {
-            taux = json!(t);
-            prelevement = Some(pct(d_ni, dec_avec_echelle(&json!(t)).map_err(refus_valeur)?));
-        }
-    } else {
-        let cle = valeur_en_texte(apres.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?);
-        let triplet = pas::taux_dgfip(ctx, &cle, None).map_err(refus_valeur)?;
-        let bareme = ctx.bareme(&debut_mois).map_err(refus_valeur)?;
-        let court = crate::dsn::court(apres, fin_mois).map_err(refus_valeur)?;
-        match pas::du_versement(triplet.as_ref(), &bareme, d_ni, Some(fin_mois), court, ZONE_DEFAUT) {
-            Ok(v) => {
-                prelevement = Some(pct(v.montant_soumis, dec_avec_echelle(&v.taux).map_err(refus_valeur)?));
-                taux = v.taux;
-            }
-            Err(ErreurPas::SansGrille(_)) => {}
-            Err(e) => return Err(refus_valeur(e.message().to_string())),
-        }
-    }
+    let pas_c = engagement::etats::prelevement_de_la_correction(
+        ctx,
+        apres,
+        r.declare.net_imposable,
+        r.taux_pas_origine.as_deref(),
+        mois_courant,
+    )
+    .map_err(refus_valeur)?;
+    let (d_ni, indu, prelevement) = (pas_c.difference, pas_c.indu(), pas_c.prelevement);
+    // Le taux que le bulletin montre : celui du versement, ou, pour un trop-verse, le taux d'origine.
+    let taux = match (indu, r.taux_pas_origine.as_deref().filter(|t| !t.is_empty())) {
+        (false, _) => pas_c.versement.taux.clone(),
+        (true, Some(t)) => json!(t),
+        (true, None) => Value::Null,
+    };
     let a_verser = match prelevement {
         Some(p) => d_net - p,
         None => d_net,
@@ -391,7 +375,7 @@ pub fn ecrire_rectificatifs(
         }
         if rectif["prelevement"].is_null() {
             out.avertissements.push(format!(
-                "Bulletin rectificatif {} : le prelevement a la source sur la difference n'a pas pu etre calcule -- le bulletin le dit.",
+                "Bulletin rectificatif {} : le taux de prelevement a la source applique au trop-verse est introuvable dans la paie declaree -- le bulletin ne montre pas de prelevement sur la difference.",
                 numero_bulletin
             ));
         }
