@@ -1,7 +1,7 @@
 # PuppetPaie — ce qu'un agent doit savoir avant de toucher à quoi que ce soit
 
-Réécrit le 15/10/2026 : le moteur est quasiment fini, on fait de l'interface, par tickets, jusqu'à la sortie en démonstration
-(début novembre 2026). Les règles sont toutes là, en court ; leur récit est dans le journal du dépôt privé
+Réécrit le 15/10/2026. Depuis le 24/10, on reconstruit l'architecture du moteur, séance par séance
+(`journal/PLAN-ARCHITECTURE.md` du privé) ; la démonstration sort après (#259). Les règles sont toutes là, en court ; leur récit est dans le journal du dépôt privé
 (`journal/archives/2026-10-15-claude-md-avant.md`, et `2026-10-04-claude-md-avant.md` avant lui). **Les numéros des règles
 de fond (0 à 11) ne bougent pas : le code les cite.**
 
@@ -20,11 +20,12 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 
 ## Par quoi on commence
 
-1. **`journal/ETAT.md` du dépôt privé** : une page, le point de reprise. Rien d'autre ne se lit d'office.
+1. **`journal/ETAT.md` du dépôt privé** : une page, le point de reprise. Il nomme ce qui se lit ensuite pour le chantier en
+   cours (pendant la reconstruction : `journal/SEANCE-1-ECRANS-ET-MODELE.md`, en entier) ; rien d'autre ne se lit d'office.
 2. **Les tickets** : les issues GitHub du dépôt privé (celles de Léandre, et celles du filet, étiquetées `retour` et
-   `incident`). Une séance prend ceux que Léandre nomme.
+   `incident`). Une séance prend ceux que Léandre nomme ; les captures d'un ticket se regardent toutes, avant le reste.
 3. Le reste s'ouvre quand on en a besoin : `atelier/README.md` (comment une commande s'utilise), `atelier/docs/ARCHITECTURE.md`
-   (un format, un calcul), `docs/RUBRIQUES.md` (une rubrique de paie), `docs/COMPAGNIES-FICTIVES.md`, `docs/COMPAGNIE-D-ESSAI.md`
+   (un format, un calcul), `atelier/docs/RUBRIQUES.md` (une rubrique de paie), `atelier/docs/COMPAGNIES-FICTIVES.md`, `atelier/docs/COMPAGNIE-D-ESSAI.md`
    (déposer en test depuis le nuage). Les archives du journal se cherchent par `grep` dans `journal/archives/INDEX.md`, et on
    n'ouvre que la section du chantier du jour.
 
@@ -71,7 +72,7 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
 - **La branche** : chaque séance part de `main` du public sur sa branche ; PR en brouillon tant que ce n'est pas fini ;
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).
 - **La fin de séance, c'est Léandre qui la dit** : la passe de tests ne se lance pas avant. Puis : le récit dans
-  `journal/archives/<mois>.md`, une ligne dans `INDEX.md`, et `ETAT.md` **remplacé** (jamais empilé ; une page).
+  `journal/archives/<jour>.md`, une ligne dans `INDEX.md`, et `ETAT.md` **remplacé** (jamais empilé ; une page).
 - Le contexte se surveille (`paie guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `paie/src/guet.rs`) ;
   c'est Léandre qui décide quand il sonne.
 
@@ -92,7 +93,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
-| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
+| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `paie/` (le reste du moteur, programme `paie` ; exécutables livrés dans `paie/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
 | `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `paie`), les docs, les versions publiées, l'installeur, le site |
 
@@ -120,14 +121,16 @@ montre que celui qui a lieu.
 
 ## Les sous-agents : Opus pour coder, Sonnet ou Haiku pour lire
 
-- **Ce qui écrit du code ou tranche une conception va à un Opus** (`model: "opus"`) ; **ce qui lit seulement va à un Sonnet
-  ou un Haiku** (une recherche, un inventaire, une relecture ; Haiku pour une recherche simple). Un rapport n'est pas une
-  preuve : il se vérifie avant de s'affirmer.
+- **Le code qui reste et ce qui tranche une conception vont à un Opus** (`model: "opus"`) ; **ce qui lit, et ce qui est
+  mécanique ou jetable (une suppression, un rafistolage provisoire), va à un Sonnet** ; une recherche simple à un Haiku
+  (Léandre, 28/10/2026 : « le code final en Opus, les rafistolages Sonnet »). Un rapport n'est pas une preuve : il se
+  vérifie avant de s'affirmer.
 - **L'orchestrateur organise, puis vérifie après coup** : il donne à l'Opus le but, les règles, la passation attendue, et le
   laisse faire ; il ne dit pas *comment* faire ce qu'il n'a pas lu dans le code. Puis il vérifie (commits, diff, tests).
 - **L'orchestrateur surveille pendant, pas seulement après** (Léandre, 25/10/2026 : « tu devrais regarder que tes agents
   font pas du bordel ») : toutes les 30 minutes, il regarde le worktree de chaque Opus (commits, fichiers touchés, tests
-  et données modifiés) sans lire sa conversation ; une heure sans commit, il demande où il en est ; un Opus trop chargé
+  et données modifiés) sans lire sa conversation ; une heure sans commit, il demande où il en est (et l'Opus dont un point
+  dépasse une heure sans aboutir commite, rend sa passation et s'arrête de lui-même) ; un Opus trop chargé
   commite, rend sa passation, et un Opus neuf reprend. En tête de chaque consigne, avant le but : **un test de l'ancien
   parcours qui casse se supprime, il ne se répare pas** ; **aucune donnée destinée à être remplacée ne se convertit**. Un
   Opus qui le fait est arrêté aussitôt ; à la fusion, la liste des tests modifiés se relit avant d'accepter le lot.
@@ -234,8 +237,8 @@ fusionné** (Léandre, 23/10/2026 : « ces tests 20 fois de suite, ça n'a pas d
 binaires qu'il nomme un par un (`-E 'binary(routes)'`…).
 
 ```bash
-cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, paie ; les dossiers de travail des tests (~3 Go)
-cargo nextest run --cargo-profile essais --no-fail-fast                  # les trois crates ; la fenêtre n'a pas de tests
+cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espace : socle, droit, engagement, paie ; les dossiers de travail des tests (~3 Go)
+cargo nextest run --cargo-profile essais --no-fail-fast                  # les quatre crates ; la fenêtre n'a pas de tests
 ```
 
 - La suite de l'atelier (`--features atelier`, sa propre cible `<cible>-atelier`), seulement quand on touche à ce qui est sous
@@ -248,9 +251,10 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # les t
   fichier a la forme que le moteur relit). Jamais une forme (classe d'exception, message, ordre des clés). Un oracle de
   `tests/donnees/` se réécrit par le test qui le lit (`PUPPETPAIE_REECRIRE_ORACLES=1`, jamais posée par un test) ; une grille
   exhaustive se joue sur un échantillon à graine fixe (`outils::tire`).
-- Les tests tournent sur des compagnies fictives et sur **la copie figée** `paie/tests/donnees/fictives/` ; `fictives/` vit
-  (les séances la refont et la commitent ; « Publier » la livre à part, `maj.rs`), un test ne la lit jamais. Une compagnie de
-  test se nomme toujours.
+- Les tests tournent sur des compagnies de test qu'ils montent eux-mêmes (`outils::dossier_de_test`) ; il n'y a plus de
+  copie figée des fictives (supprimée le 28/10/2026 : ses règles se reprennent dans les fictives neuves de la séance 8,
+  ticket #270 du privé). `fictives/` (à la racine du dépôt) est livrée à part par « Publier » (`maj.rs`) ; un test ne la
+  lit jamais. Une compagnie de test se nomme toujours.
 - **Aucun test ne sort de la machine** (21/10/2026 : un test s'était inscrit au vrai filet, d'où des courriels à
   `a@exemple.fr`). `atelier/sources/.cargo/config.toml` pose `PUPPETPAIE_ESSAIS_HORS_RESEAU` pour tout ce que Cargo lance, et
   `socle/src/garde_reseau.rs` refuse alors toute sortie hors de 127.0.0.1 ; un test qui veut voir une sortie nomme son faux
@@ -318,7 +322,7 @@ hors règle garde la fin de ligne qu'il a.
 ## Publier une version
 
 On publie depuis GitHub (`journal/finitions/PUBLIER.md` du privé) : à la fin d'une séance, suite verte, la PR du public sur
-`main` (Léandre fusionne ; le flux pose la date du jour dans `logiciel/VERSION`, une version par jour). Léandre lance
+`main` (Léandre fusionne ; le flux pose la date du jour dans `logiciel/VERSION` : le numéro est la date ; le rythme des publications reste celui dit plus haut). Léandre lance
 « Publier » (`.github/workflows/publier.yml`) avec `notes`, et `calcul` **seulement** si la version change un calcul de paie
 (la seule phrase qu'une compagnie verra ; un taux qui change n'en est pas une), `exigee` plus rarement encore. **Léandre
 approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub. Une Release porte trois sortes d'archives
