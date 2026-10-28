@@ -1050,7 +1050,9 @@ impl<'a> Moteur<'a> {
         }
         if !a_refaire.is_empty() {
             let n = a_refaire.len();
-            contrats.push(groupe("a_faire", json!(n), Some(format!("{} à refaire signer", n)), echeance_de(&a_refaire, "contrat"), action("faire_signer", "Demander la signature…".into())));
+            // L'AVENANT n'a pas d'echeance : L. 1242-13 date la remise du contrat a l'embauche, aucun texte depose ne date celle
+            // d'un avenant (regle 1 : rien ne se devine).
+            contrats.push(groupe("a_faire", json!(n), Some(format!("{} à refaire signer", n)), Value::Null, action("faire_signer", "Demander la signature…".into())));
         }
         if !jamais.is_empty() {
             let n = jamais.len();
@@ -1185,7 +1187,7 @@ impl<'a> Moteur<'a> {
             // Apres la veille : la correction part dans la DSN du mois suivant, qui la porte d'elle-meme.
             let suivant = socle::date::Jour::lire(&format!("{}-01", mois)).map_err(plain)?.mois_suivant();
             let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &suivant).map_err(|m| erreur("ValueError", m))?;
-            let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", engagement::libelle_mois(&suivant)));
+            let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee)));
             a["mois"] = json!(suivant);
             return Ok((
                 vec![
@@ -1193,7 +1195,7 @@ impl<'a> Moteur<'a> {
                     groupe(
                         "a_faire",
                         json!(1),
-                        Some(format!("à corriger dans la DSN de {}", engagement::libelle_mois(&suivant))),
+                        Some(format!("à corriger dans la DSN de {}", socle::date::libelle_du_mois_ou_tel_quel(&suivant, socle::date::Graphie::Accentuee))),
                         json!({"jour": e2.jour.iso(), "texte": format!("avant le {} à midi", e2.jour.jj_mm_aaaa()), "source": "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"}),
                         a,
                     ),
