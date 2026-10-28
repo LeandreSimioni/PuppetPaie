@@ -1314,6 +1314,14 @@ d'affiliation par contrat). Rien n'est ecrit.",
     Ok(Some(Value::Object(out)))
 }
 
+/// La DSN de `mois` porte-t-elle la CASC-SVP ? La regle qui l'y met (`casc_svp`) le dit ; sans adhesion CASCSVP au
+/// fichier des organismes, elle ne la porte pas.
+pub(crate) fn porte_la_casc(ctx: &Contexte, mois: &str) -> Resultat<bool> {
+    let ctx = ctx.du_mois(mois)?;
+    let Some(orgs) = ctx.organismes()? else { return Ok(false) };
+    Ok(matches!(casc_svp(&ctx, &ctx.entreprise, &orgs, mois), Ok(Some(_))))
+}
+
 /// `contributions_dsn` : les contributions declarees sous une adhesion Audiens.
 fn contributions_dsn(ctx: &Contexte, ent: &Value, orgs: &Value, mois: &str, bar: &Value) -> Resultat<Vec<Value>> {
     let mut out = Vec::new();
@@ -1924,9 +1932,11 @@ pub fn remunerations(f: &mut Fichier, p: &Paie, debut: &Jour, fin: &Jour, signe:
     Ok(())
 }
 
-fn activites(f: &mut Fichier, p: &Paie, signe: i64) -> Resultat<()> {
+/// Les mesures d'activite (bloc 53) d'une paie, dans l'ordre ou elles s'ecrivent : (53.001, quantite, 53.003).
+pub(crate) fn mesures_d_activite(p: &Paie) -> Resultat<Vec<(String, Decimal, String)>> {
     let e = &p.engagement;
     let nat = e.nat()?;
+    let mut out = Vec::new();
     for u in nat.unites_activite() {
         let mesure = en_texte(req(&u, "mesure")?);
         let valeur = match mesure.as_str() {
@@ -1943,16 +1953,21 @@ fn activites(f: &mut Fichier, p: &Paie, signe: i64) -> Resultat<()> {
             continue;
         }
         let t = if u.get("type").is_some() { en_texte(&u["type"]) } else { "01".into() };
-        f.add("S21.G00.53.001", t);
-        f.add("S21.G00.53.002", ms(valeur, signe));
-        f.add_v("S21.G00.53.003", req(&u, "code")?)?;
+        out.push((t, valeur, en_texte(req(&u, "code")?)));
     }
     if let Some(a) = nat.unite_absence().filter(vrai) {
         if !p.heures_absence.is_zero() {
-            f.add_v("S21.G00.53.001", req(&a, "type")?)?;
-            f.add("S21.G00.53.002", ms(p.heures_absence, signe));
-            f.add_v("S21.G00.53.003", req(&a, "code")?)?;
+            out.push((en_texte(req(&a, "type")?), p.heures_absence, en_texte(req(&a, "code")?)));
         }
+    }
+    Ok(out)
+}
+
+fn activites(f: &mut Fichier, p: &Paie, signe: i64) -> Resultat<()> {
+    for (t, valeur, code) in mesures_d_activite(p)? {
+        f.add("S21.G00.53.001", t);
+        f.add("S21.G00.53.002", ms(valeur, signe));
+        f.add("S21.G00.53.003", code);
     }
     Ok(())
 }
