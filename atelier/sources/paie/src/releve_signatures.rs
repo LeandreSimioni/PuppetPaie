@@ -175,7 +175,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
             None => (
                 "Re: contrat".to_string(),
                 envoi::formater(
-                    crate::envois_signature::CORPS_REPONSE,
+                    envois::envois_signature::CORPS_REPONSE,
                     &[("nom", nom), ("quoi", "le contrat d'engagement".to_string()), ("code", code.clone())],
                 ),
             ),
@@ -270,7 +270,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         }
     };
 
-    let (signataire, raison) = crate::envois_signature::signataire_et_raison(ctx)?;
+    let (signataire, raison) = envois::envois_signature::signataire_et_raison(ctx)?;
     let expediteur = client.compte().to_lowercase();
 
     for a in &attendues {
@@ -428,7 +428,7 @@ pub fn relever_signatures(ctx: &Contexte, client: Option<&mut dyn Courriel>, moi
         }
 
         // Le contrat contresigne, renvoye au salarie.
-        let (an, nom_mois) = crate::envois_signature::an_et_nom_du_mois(&a_mois)?;
+        let (an, nom_mois) = envois::envois_signature::an_et_nom_du_mois(&a_mois)?;
         let nb = contrats.len();
         let mut spectacles: Vec<String> = Vec::new();
         for c in &contrats {

@@ -23,7 +23,6 @@ pub mod diagnostic;
 pub mod editeur;
 pub mod entrepot_dila;
 pub mod essai;
-pub mod envois_signature;
 pub mod etat_garde;
 pub mod extraire;
 pub mod filet;

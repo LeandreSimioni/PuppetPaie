@@ -1,5 +1,5 @@
-//! Les six routes d'ENVOI de l'interface (`moteur/web.py`) : `envoyer-documents`, `dossier-envoyer`, `casc-envoyer`
-//! ici ; `demander-signature`, `avenant-envoyer`, `avenants-envoyer` dans `envois_signature.rs`. Lot H3b.
+//! Les routes d'ENVOI de l'interface : `envoyer-documents`, `dossier-envoyer`, `casc-envoyer`, et celles des contrats
+//! (`demander-signature`, `contrats-imprimer`, `avenant-envoyer`, `avenants-envoyer`), qui appellent `envois::envois_signature`.
 //!
 //! ECRIT, NON PROUVE, NON BRANCHE. Chaque route fait ce que fait le Python : preparer ce qui partira (les memes
 //! messages que l'apercu a montres), ouvrir la boite (`_client_courriel` : la boite simulee de la compagnie fictive,
@@ -23,6 +23,7 @@ use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
 use envois::courriel::{BoiteSimulee, Courriel};
+use envois::envois_signature::{Choisis, UnAvenant};
 use crate::depot_acte::{verifier_preuve, Preuve};
 use envois::envoi::{self, Message};
 use socle::valeur::valeur_en_texte;
@@ -54,12 +55,146 @@ pub fn route_avec(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charg
         "envoyer-documents" => envoyer_documents(ctx, charge, ouvrir),
         "dossier-envoyer" => dossier_envoyer(ctx, charge, ouvrir),
         "casc-envoyer" => casc_envoyer(ctx, charge, ouvrir),
-        "demander-signature" => crate::envois_signature::demander_signature(ctx, charge, ouvrir),
-        "contrats-imprimer" => crate::envois_signature::contrats_imprimer(ctx, charge),
-        "avenant-envoyer" => crate::envois_signature::avenant_envoyer(ctx, charge, ouvrir),
-        "avenants-envoyer" => crate::envois_signature::avenants_envoyer(ctx, charge, ouvrir),
+        "demander-signature" => demander_signature(ctx, charge, ouvrir),
+        "contrats-imprimer" => contrats_imprimer_par(ctx, charge, "interface"),
+        "avenant-envoyer" => avenant_envoyer(ctx, charge, ouvrir),
+        "avenants-envoyer" => avenants_envoyer(ctx, charge, ouvrir),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
+}
+
+// ------------------------------------------------------------------ les contrats (`envois::envois_signature`)
+
+/// Les elements d'une liste de la charge, ou rien : `charge.get(cle)` quand il est vrai.
+fn liste_de<'a>(charge: &'a Value, cle: &str) -> R<Option<&'a Vec<Value>>> {
+    match charge.get(cle).filter(|v| vrai(v)) {
+        None => Ok(None),
+        Some(Value::Array(a)) => Ok(Some(a)),
+        Some(autre) => Err(erreur("TypeError", format!("`{}` : une liste est attendue, pas {}", cle, socle::valeur::nom_type(autre)))),
+    }
+}
+
+/// Les contrats que la charge choisit : `salaries` (tous leurs contrats) et `contrats` ([{"salarie", "debut", "numero"}]).
+fn choisis_de(charge: &Value) -> R<Choisis> {
+    let salaries = liste_de(charge, "salaries")?.map(|l| l.iter().map(valeur_en_texte).collect());
+    let contrats = match liste_de(charge, "contrats")? {
+        None => None,
+        Some(l) => {
+            let mut v = Vec::new();
+            for c in l {
+                let numero = c.get("numero").filter(|n| vrai(n)).map(valeur_en_texte);
+                v.push((valeur_en_texte(requis(c, "salarie")?), valeur_en_texte(requis(c, "debut")?), numero));
+            }
+            Some(v)
+        }
+    };
+    Ok(Choisis { salaries, contrats })
+}
+
+/// La route `contrats-imprimer` (`envois_signature::contrats_imprimer`), `qui` donne (l'horloge d'une compagnie fictive
+/// passe le sien).
+pub(crate) fn contrats_imprimer_par(ctx: &Contexte, charge: &Value, qui: &str) -> R<Value> {
+    envois::envois_signature::contrats_imprimer(ctx, &charge_texte(charge, "mois")?, &choisis_de(charge)?, qui)
+}
+
+/// La route `demander-signature` : la boite, la preuve, puis `envois_signature::demander_signature`. `relance` : l'etat
+/// des contrats du mois (`signature-apercu`) dit lesquels peuvent se relancer.
+pub(crate) fn demander_signature(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+    let mois = charge_texte(charge, "mois")?;
+    let relance = charge.get("relance").is_some_and(vrai);
+    let remplace = charge.get("remplace").is_some_and(vrai);
+    let choisis = choisis_de(charge)?;
+    let mut client = ouvrir()?;
+    let a_qui = match &choisis.salaries {
+        Some(l) if !l.is_empty() => format!("{} salarie(s) : {}", l.len(), l.join(", ")),
+        _ => "les salaries du mois qui ont un contrat a signer".to_string(),
+    };
+    let quoi = if relance { "relance de demande de signature de contrat" } else if remplace { "contrat refait, a signer (il annule et remplace le precedent)" } else { "demande de signature de contrat" };
+    verifier_preuve(ctx, Some(&preuve_de(charge)), &mois, quoi, &a_qui)?;
+    let etats_des_contrats = if relance {
+        let apercu = crate::routes_documents::signature_apercu(ctx, &json!({"mois": mois}))?;
+        apercu.get("contrats").and_then(Value::as_array).cloned().unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    let demande = envois::envois_signature::DemandeDeSignature { mois: &mois, relance, remplace, choisis, etats_des_contrats };
+    envois::envois_signature::demander_signature(ctx, &demande, client.as_mut())
+}
+
+/// La route `avenant-envoyer` : un seul avenant. La reponse : `partis`, `fichier`, `numero`, `ligne`.
+fn avenant_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+    let voulu = json!({
+        "salarie": requis(charge, "salarie")?, "debut": requis(charge, "debut")?, "effet": charge.get("effet").cloned().unwrap_or(Value::Null),
+        "numero": charge.get("numero").cloned().unwrap_or(Value::Null), "mois": charge.get("mois").cloned().unwrap_or(Value::Null),
+    });
+    let r = envoyer_avenants(ctx, &[voulu], &preuve_de(charge), ouvrir)?;
+    let a = r.avenants.first().ok_or_else(|| erreur("ValueError", "aucun avenant n'est parti"))?;
+    Ok(json!({"partis": r.partis, "fichier": a["fichier"], "numero": a["numero"], "ligne": r.lignes.first().cloned().unwrap_or(Value::Null)}))
+}
+
+/// La route `avenants-envoyer` : les avenants coches, UN COURRIEL PAR SALARIE. La reponse : `partis`, `avenants`.
+fn avenants_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
+    let voulus: Vec<Value> = match requis(charge, "avenants")? {
+        Value::Array(a) => a.clone(),
+        Value::Null => Vec::new(),
+        autre => return Err(erreur("TypeError", format!("`avenants` : une liste est attendue, pas {}", socle::valeur::nom_type(autre)))),
+    };
+    let r = envoyer_avenants(ctx, &voulus, &preuve_de(charge), ouvrir)?;
+    Ok(json!({"partis": r.partis, "avenants": r.avenants}))
+}
+
+/// `jj_mm_aaaa(x)` : `ValueError` si `x` ne se lit pas comme une date.
+fn jj(iso: &str) -> R<String> {
+    socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).map_err(|m| erreur("ValueError", m))
+}
+
+/// LES AVENANTS VOULUS : chacun a son apercu (`avenant-apercu`), qui dit ce qui change ; tout se verifie avant que rien ne
+/// parte (un avenant sans objet, une date d'effet illisible ou un salarie sans courriel refuse l'envoi entier), puis la
+/// boite, la preuve, et `envois_signature::envoyer_avenants`.
+fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve, ouvrir: Ouvrir) -> R<envois::envois_signature::Avenants> {
+    if voulus.is_empty() {
+        return Err(refus("Aucun avenant coché. Rien n'est parti."));
+    }
+    // La porte des organismes d'une fictive ajoutee, avant de rien lire.
+    crate::depot_acte::refuser_l_envoi(ctx)?;
+    let mut par_salarie: Vec<(String, Vec<UnAvenant>)> = Vec::new();
+    for v in voulus {
+        let salarie_v = requis(v, "salarie")?;
+        let debut_v = requis(v, "debut")?;
+        // `numero` (celui que `signature-apercu` rend) et `mois` (celui de l'ecran) disent QUEL contrat du jour : facultatifs.
+        let apercu = crate::routes_documents::avenant_apercu(
+            ctx,
+            &json!({"salarie": salarie_v, "debut": debut_v, "numero": v.get("numero").cloned().unwrap_or(Value::Null), "mois": v.get("mois").cloned().unwrap_or(Value::Null)}),
+        )?;
+        let modifications = apercu["modifications"].as_array().map_or(0, Vec::len);
+        let nom = apercu.get("nom").map(valeur_en_texte).unwrap_or_default();
+        if modifications == 0 {
+            return Err(refus(format!(
+                "{}, contrat du {} : le contrat parti dit déjà ce que dit la paie, pas d'avenant à faire. Rien n'est parti.",
+                nom,
+                jj(&valeur_en_texte(debut_v))?
+            )));
+        }
+        let effet = vrai_ou(v, "effet").unwrap_or_else(|| apercu.get("effet").map(valeur_en_texte).unwrap_or_default());
+        if jour_iso(&effet).is_none() {
+            return Err(refus(format!("Date d'effet illisible : {}.", repr(&effet))));
+        }
+        if apercu.get("destinataire").map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
+            return Err(refus(format!("{} n'a pas de courriel dans sa fiche : l'avenant ne peut pas partir.", valeur_en_texte(salarie_v))));
+        }
+        let cle = valeur_en_texte(salarie_v);
+        let un = UnAvenant { apercu, effet };
+        match par_salarie.iter_mut().find(|(k, _)| *k == cle) {
+            Some((_, l)) => l.push(un),
+            None => par_salarie.push((cle, vec![un])),
+        }
+    }
+    let mut client = ouvrir()?;
+    let mut mois_vus: Vec<String> = par_salarie.iter().flat_map(|(_, aa)| aa.iter().map(|a| a.texte("mois"))).collect();
+    mois_vus.sort();
+    let a_qui = format!("{} salarie(s) : {}", par_salarie.len(), par_salarie.iter().map(|(k, _)| k.as_str()).collect::<Vec<_>>().join(", "));
+    verifier_preuve(ctx, Some(preuve), mois_vus.first().map_or("", String::as_str), "envoi d'avenant(s) a signer", &a_qui)?;
+    envois::envois_signature::envoyer_avenants(ctx, &par_salarie, client.as_mut())
 }
 
 // ------------------------------------------------------------------ ce que toutes les routes partagent
