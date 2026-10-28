@@ -75,7 +75,7 @@ pub fn archiver(racine: &Path, mois: &str, racine_drive: &str, client: Option<&m
     let client: &mut dyn Drive = match client {
         Some(c) => c,
         None => {
-            propre = Client::nouveau(racine)?;
+            propre = crate::routes_google::client_drive(racine)?;
             &mut propre
         }
     };

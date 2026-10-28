@@ -13,7 +13,6 @@ use super::actes::refuser_si_pas_redirige;
 use super::actes::Organisme;
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
-use crate::drive::Client;
 use crate::{restauration, sauvegarde};
 
 pub static SPEC: Spec = Spec {
@@ -40,7 +39,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
     let racine_drive = args.texte("racine-drive").unwrap_or(sauvegarde::RACINE_DRIVE);
     let cible = args.texte("dossier").filter(|d| !d.is_empty()).map(PathBuf::from).unwrap_or_else(|| cadre.racine.clone());
-    let mut client = match Client::nouveau(&cadre.racine) {
+    let mut client = match crate::routes_google::client_drive(&cadre.racine) {
         Ok(c) => c,
         Err(e) => return refus(e.classe, &e.message),
     };
