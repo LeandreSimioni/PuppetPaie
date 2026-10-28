@@ -3,8 +3,9 @@
 //! `ecrire_rectificatifs`.
 //!
 //! Ce qui a ete declare et verse se lit dans les versions de l'engagement (`versement_declare_de`) : la paie d'avant
-//! (`Reg::avant`) est la derniere paie declaree du contrat, elle ne se recalcule pas (regle 4). La paie d'apres est le
-//! calcul de l'engagement corrige ; la DSN et le bulletin rectificatif impriment ces deux paies telles quelles.
+//! (`Reg::avant`) est la derniere paie declaree du contrat, elle ne se recalcule pas (regle 4). La paie d'apres est la
+//! paie ecrite de la version presente de l'engagement valide (`paie_presente`) ; la DSN et le bulletin rectificatif
+//! impriment ces deux paies telles quelles.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -44,8 +45,8 @@ pub(crate) struct Reg {
     /// Le net a payer avant impot deja verse au salarie pour le contrat, lu dans la derniere paie declaree : celle du
     /// mois d'origine, ou celle de la derniere correction deja portee (`versement_declare_de`).
     pub(crate) net_deja_verse: Decimal,
-    /// La paie corrigee, calculee depuis la saisie declaree du mois d'origine ou l'engagement corrige remplace le declare,
-    /// au numero du contrat declare.
+    /// La paie corrigee : celle que la version presente de l'engagement valide a ecrite pour le mois d'origine
+    /// (`paie_presente`).
     pub(crate) apres: Paie,
     pub(crate) taux_pas_origine: Option<String>,
 }
@@ -72,20 +73,19 @@ pub(crate) fn corrections_a_porter(ctx: &Contexte, mois_courant: &str) -> R<Vec<
 }
 
 /// `regularisations_pour` : les corrections de la DSN de `mois_courant`, chacune avec le versement DECLARE (lu dans les
-/// versions de l'engagement du mois d'origine, `versement_declare_de`), sa paie d'avant refaite (telle que
-/// declaree, ou telle que la correction portee precedente l'a laissee) et sa paie d'apres.
+/// versions de l'engagement du mois d'origine, `versement_declare_de`), sa paie d'avant (telle que declaree, ou telle que
+/// la correction portee precedente l'a laissee) et sa paie d'apres (`paie_presente`).
 pub(crate) fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<Reg>> {
     let mut out = Vec::new();
     for c in corrections_a_porter(ctx, mois_courant)? {
         let get = |k: &str| c.get(k).cloned().ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-        let (mois, salarie, debut, corrige) = (valeur_en_texte(&get("mois")?), get("salarie")?, get("debut")?, get("engagement")?);
+        let (mois, salarie, debut) = (valeur_en_texte(&get("mois")?), valeur_en_texte(&get("salarie")?), valeur_en_texte(&get("debut")?));
         let numero = c.get("numero").and_then(Value::as_i64).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("numero")))?;
+        let apres = paie_presente(ctx, &mois, &salarie, &debut, numero)?;
         if c.get("ajout").is_some_and(vrai) {
-            out.push(ajout(ctx, c.clone(), mois, numero, corrige)?);
+            out.push(ajout(c.clone(), mois, numero, apres)?);
             continue;
         }
-        let (donnees, _declare, _fiche) = regul::engagement_declare(ctx, &mois, &salarie, &debut)?;
-        let apres = regul::paie_d_un_engagement(ctx, &donnees, &corrige)?;
         let (lu, net_deja_verse, avant) = versement_declare_de(ctx, &c, &mois, mois_courant, &apres)?;
         // Le taux du bloc 56 : celui de la paie declaree du mois d'origine.
         let taux_pas_origine = lu.taux_pas.clone();
@@ -94,16 +94,32 @@ pub(crate) fn regularisations_pour(ctx: &Contexte, mois_courant: &str) -> R<Vec<
     Ok(out)
 }
 
+/// LA PAIE D'APRES d'une correction : la paie de `mois` de l'engagement du salarie `cle` qui commence le `debut`, telle
+/// que la validation de sa version presente l'a ecrite (`Valide::paie`). Corriger, c'est modifier l'engagement et le
+/// revalider : rien ne se calcule ici. Refus : l'engagement n'est pas dans le mois, ou il est en saisie.
+fn paie_presente(ctx: &Contexte, mois: &str, cle: &str, debut: &str, numero: i64) -> R<Paie> {
+    let refus = |quoi: &str| erreur("MoisNonRegularisable", format!("Correction n° {} de {} : {}", numero, mois, quoi));
+    let data = engagement::stock::vue_du_mois(&ctx.racine, mois)?.ok_or_else(|| refus("le mois n'a plus d'engagement."))?;
+    for (i, e) in engagement::etats::du_mois(ctx, mois)?.iter().enumerate() {
+        let b = Value::Object(e.objet().brut.clone());
+        if engagement::cle_de_l_engagement(ctx, &b).as_deref() != Some(cle) || engagement::debut_brut(&b) != debut {
+            continue;
+        }
+        let Some(v) = e.valide() else {
+            return Err(refus("l'engagement corrige est en saisie. Le valider : la regularisation porte sa paie validee."));
+        };
+        return Ok(v.paie(ctx, &data, i)?);
+    }
+    Err(refus(&format!("aucun engagement de {} du {} dans ce mois.", cle, debut)))
+}
+
 /// LA CORRECTION D'UN CONTRAT AJOUTE APRES LA LIMITE (un contrat oublie, 21/10/2026) : rien n'a ete declare pour lui --
 /// la DSN deposee du mois ne le porte pas --, et rien n'a ete verse par ce logiciel -- le bulletin archive du mois ne le
 /// porte pas non plus (le contrat n'existait pas quand il a ete ecrit). Le declare est donc vide et le net deja verse
 /// nul : la DSN suivante declare le contrat en entier, ses montants rattaches au mois d'origine (cahier technique DSN
 /// 2026.1, §2.1.2.1 et §2.2.2.5 ; fiche net-entreprises 1741 : `routes_regularisation::apercu_d_un_ajout`), et le
-/// versement de la correction paie son net. Sa paie se calcule depuis la saisie du mois telle que declaree, son
-/// engagement a la place des autres, comme toute correction.
-fn ajout(ctx: &Contexte, c: Map<String, Value>, mois: String, numero: i64, corrige: Value) -> R<Reg> {
-    let donnees = regul::saisie_d_origine(ctx, &mois)?;
-    let apres = regul::paie_d_un_engagement(ctx, &donnees, &corrige)?;
+/// versement de la correction paie son net. Sa paie est celle de son engagement valide, comme toute correction.
+fn ajout(c: Map<String, Value>, mois: String, numero: i64, apres: Paie) -> R<Reg> {
     if !apres.engagement.numero.as_deref().is_some_and(|n| !n.is_empty()) {
         return Err(erreur(
             "MoisNonRegularisable",
