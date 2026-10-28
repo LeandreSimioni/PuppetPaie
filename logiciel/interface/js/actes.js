@@ -165,7 +165,7 @@ async function rafraichirActions() {
 /** CE QUE LA DSN DÉCLARE, contrat par contrat, LU DANS LE FICHIER
  *  (30/09/2026, l'éditeur : « ce que l'utilisateur veut voir et vérifier,
  *  c'est que tous les contrats sont dans la DSN »). Comparé aux contrats
- *  saisis du mois : un contrat absent du fichier, ou que la paie dit
+ *  saisis du mois : un contrat absent du fichier, ou que l'engagement dit
  *  autrement, se dit en tête. */
 function recapitulatifDsn(r) {
   if (!r) return "";
@@ -977,7 +977,7 @@ async function boiteContratsEnAttente(mois, fait) {
   });
 }
 
-/** L'AVENANT (30/09/2026). Le contrat parti se lit (son PDF), la paie
+/** L'AVENANT. Le contrat parti se lit (son PDF), l'engagement
  *  d'aujourd'hui s'y compare, article par article : ce qui a changé se
  *  montre, l'ancien texte à côté du nouveau. L'avenant part à la signature
  *  par le même circuit « Je signe » que le contrat. Un contrat qui n'a pas

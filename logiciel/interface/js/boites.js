@@ -81,7 +81,7 @@ function ajouterToutCocher(racine) {
 
 /* CE QUI S'OUVRE S'OUVRE D'UN CLIC SUR LUI-MÊME (Léandre, ticket #218 :
  * « plus simple que modifier ou en voir plus : si on clique ça s'ouvre,
- * simple et efficace »). Une carte de paie, la ligne d'une fiche, la ligne
+ * simple et efficace »). Une carte d'engagement, la ligne d'une fiche, la ligne
  * d'un mot de passe : plus de bouton « Voir le détail » ni « Modifier » pour
  * les ouvrir, la ligne entière est le geste. UN SEUL MÉCANISME pour toute la
  * page : `rendreOuvrable(el, ouvrir)` pose la fonction, l'écoute ci-dessous

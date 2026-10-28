@@ -4,7 +4,7 @@
 /* LES TABLES DES MOIS. Trois, et pas une : elles ne disent pas la meme chose.
    MOIS_FR, le nom entier (« juillet 2021 », le titre de la case du mois).
    MOIS_ABR, l'abreviation (« +1 nov. » du planning, la grille des mois, le
-   calendrier des exports). MOIS_COURTS, la carte d'une paie validee, sous les
+   calendrier des exports). MOIS_COURTS, la carte d'un engagement valide, sous les
    jours : elle ne differe de MOIS_ABR que par « avril », ecrit en entier. */
 const MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
                  "août", "septembre", "octobre", "novembre", "décembre"];
