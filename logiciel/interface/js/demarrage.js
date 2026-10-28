@@ -67,8 +67,6 @@ async function demarrer() {
   AUJOURDHUI = o.aujourdhui || "";
   ETAT = lectureDe(o, "etat");
   peindreEtatGlobal();
-  // L'échéancier sert à la colonne des actes (la date limite de la DSN) : il est déjà là.
-  try { ECHEANCIER = lectureDe(o, "echeancier"); } catch (e) { ECHEANCIER = null; }
   dessinerVeille(o.veille);
   try { dessinerPastilleReponses(lireReponse(o.signalements)); } catch (e) { /* la pastille est un plus */ }
   if (window.miseAJourMontrer) window.miseAJourMontrer(o.maj);
@@ -107,7 +105,6 @@ async function rafraichirOuverture() {
   try { o = await appelerMoteur("ouverture", { frais: true }); } catch (e) { return; }
   if (o.aujourdhui) AUJOURDHUI = o.aujourdhui;
   try { ETAT = lectureDe(o, "etat"); peindreEtatGlobal(); } catch (e) { /* l'état d'avant reste */ }
-  try { ECHEANCIER = lectureDe(o, "echeancier"); } catch (e) { /* idem */ }
   dessinerConseils(conseilsDe(o));
   rafraichirRappels((r) => lectureDe(o, r));
   const intact = MOIS_AFFICHE === OUVERTURE.mois && DEMANDE_MOIS === OUVERTURE.mois

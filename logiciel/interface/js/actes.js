@@ -37,91 +37,28 @@ let MOIS_ACTES = null;          // le dernier /api/etat-du-mois lu
 /* LE FIL DES ENVOIS N'EST PLUS ICI (20/10/2026, tickets #219, #220) : tous les envois du mois et tous leurs retours, lus,
  * sont dans l'Historique (js/historique.js, route `historique-mois`). L'étape garde son état et son bouton ; un lien
  * mène au mois dans l'Historique. */
+/* LES ÉTAPES DU MOIS (#257) : le moteur rend, étape par étape, les groupes à dessiner (`etat-du-mois`, `etapes`) —
+ * chacun son état (fait, a_faire, en_attente, refuse), son compte, sa phrase courte, son échéance et le geste qu'ouvre
+ * un clic — et laquelle est la suivante. La page ne décide rien : elle dessine ce que disent les groupes. */
 
-/** La phrase d'un coup d'œil, dans la tête de la boîte : courte quand c'est
- *  fini, la phrase du bilan sinon (elle dit ce qui reste). */
-function phraseCourte(cle, couleur, phrase, courte) {
-  // Le bilan peut dire lui-même sa phrase courte : « rien ce mois-ci » pour
-  // un contrat en cours, dont la DPAE et la signature relèvent d'un autre
-  // mois — « toutes envoyées » serait une promesse que ce mois ne tient pas.
-  if (courte) return courte;
-  if (couleur === "bien") return {
-    "dpae": "toutes envoyées", "contrat-signature": "envoyés et signés",
-    "documents": "envoyés à tous", "dsn": "déposée et passée",
-  }[cle] || phrase;
-  if (couleur === "refus") return "REFUSÉ — à revoir";
-  if (couleur === "alerte") return {
-    "dpae": "en attente / à faire", "contrat-signature": "en attente / à faire",
-    "documents": "en partie", "dsn": "retour attendu",
-  }[cle] || phrase;
-  return {
-    "dpae": "à déposer", "contrat-signature": "à envoyer",
-    "documents": "à envoyer", "dsn": "à déposer",
-  }[cle] || phrase;
-}
-
-function couleurActe(ligne) {
-  if (!ligne) return "";
-  const retours = ligne.retours || [];
-  // Un bilan KO sans certificat : c'est un refus, et ça se voit en rouge.
-  if (retours.some((r) => r.verdict === "KO") && !retours.some((r) => String(r.nature) === "41")) return "refus";
-  return retours.length ? "bien" : "alerte";
-}
-
-/* IL N'Y A PLUS DE SÉANCE (16/09/2026). Il y avait ici un encart « Séance
- * fermée — un dépôt sera refusé » : la séance s'ouvrait avec la fenêtre et
- * valait tant qu'elle vivait, et le dépôt l'exigeait EN PLUS du mot de passe
- * retapé. Deux preuves pour un geste, dont une invisible. Depuis la fenêtre
- * unique, la seule preuve est le mot de passe du logiciel demandé dans
- * popup de l'acte (`demanderMotDePasse`) ; rien à annoncer entre les actes. */
-
-/** La date limite de la DSN d'un mois, telle que l'échéancier la calcule
- *  (le jour se déduit de l'effectif) : « 15/10/2026 ». Lue une fois par
- *  séance ; sans elle, l'étape se tait sur sa date. */
-let ECHEANCIER = null;
-async function limiteDsn(mois) {
-  try {
-    if (!ECHEANCIER) ECHEANCIER = await api("echeancier");
-  } catch (e) { return ""; }
-  const x = [...(ECHEANCIER.ce_mois || []), ...(ECHEANCIER.a_venir || [])]
-    .find((y) => y.cle === "dsn:" + mois);
-  return x && x.date ? jjmmaaaa(x.date) : "";
-}
-
-/** LE CHEMIN D'UN DÉPÔT, DANS L'ORDRE OÙ IL SE FAIT (26/09/2026 : « pour
- *  la DPAE il faut cliquer sur fabriquer, ensuite la mettre en test, attendre
- *  les résultats du test, et envoyer »). Le moteur dit où en est le fichier
- *  (`bilan.etape`) ; le bouton de l'étape dit le geste suivant, et ouvre
- *  directement la boîte de dépôt de CE fichier quand il est déjà fabriqué. */
-function cheminDuDepot(a, bilan) {
-  if (a.cle !== "dpae" && a.cle !== "dsn") return;
-  const nom = a.cle === "dsn" ? "la DSN" : "la DPAE";
-  if (bilan && bilan.attente) {
-    a.bouton = a.cle === "dsn" ? "Voir la DSN déposée…" : "Voir les DPAE…";
-    return;
+/** Le geste d'un groupe, tel que le moteur le nomme. */
+function ouvrirGeste(action, mois) {
+  if (!action) return;
+  const m = action.mois || mois;
+  switch (action.geste) {
+    case "declarer_embauches": return boiteDpae(m);
+    case "faire_signer": return boiteSignature(m);
+    case "deposer_dsn": return deposerLaDsn(m);
+    case "deposer_fichier": return boiteDepot(action.quoi, action.fichier);
+    case "envoyer_documents": return boiteEnvoi(m);
+    case "historique": return ouvrirMoisHistorique(m);
   }
-  const etape = bilan && bilan.etape;
-  if (!etape || !bilan.fichier) return;
-  a.bouton = {
-    ecrite: `Tester ${nom}…`,
-    en_test: "Voir le test en cours…",
-    testee: `Envoyer ${nom} testée…`,
-    test_refuse: "Voir le refus du test…",
-    paie_changee: `Réécrire ${nom} et la tester…`,
-  }[etape] || a.bouton;
-  const fichier = bilan.fichier;
-  // UNE PAIE MODIFIÉE REPASSE PAR LE TEST (30/09/2026, l'éditeur : « si on
-  // modifie une paie on doit passer en mode test à nouveau, simple et
-  // efficace »). Le fichier testé ne déclare plus la paie : la DSN se refait
-  // depuis les engagements validés, et la boîte de dépôt s'ouvre sur le test.
-  if (etape === "paie_changee") {
-    a.ouvrir = () => deposerLaDsn(document.getElementById("mois").value);
-    return;
-  }
-  a.ouvrir = () => boiteDepot(a.cle, fichier);
 }
 
-/* -------------------------------------------- la colonne des quatre actes */
+/** La classe d'un état, pour la couleur que la feuille de style donne déjà. */
+const COULEUR_ETAT = { fait: "bien", a_faire: "alerte", en_attente: "alerte", refuse: "refus" };
+
+/* -------------------------------------------- la colonne des quatre étapes */
 async function dessinerActions(mois) {
   const cible = document.getElementById("actions-mois");
   if (!mois) { cible.innerHTML = ""; return; }
@@ -134,125 +71,37 @@ async function dessinerActions(mois) {
     return;
   }
   MOIS_ACTES = e;
-
-  // Quel fichier se dépose est tranché par le moteur (`fichiers_deposables`) :
-  // un mois porte souvent deux DSN, et la bonne est la dernière écrite.
-  const dsn = (e.fichiers.dsn || [])[0];
-  const dpae = (e.fichiers.dpae || [])[0];
-
-  /* DANS L'ORDRE OÙ ÇA SE FAIT, et non dans l'ordre où c'est important.
-     « L'ordre à droite est absurde : c'est d'abord DPAE, puis contrat, puis
-     DSN, puis documents ». Il décrit le calendrier réel
-     d'un mois, et c'est le seul ordre qui vaille pour une colonne qu'on
-     descend :
-
-       la DPAE part AVANT le premier jour travaillé (c'est la loi) ;
-       le contrat se signe autour de l'embauche ;
-       la DSN part le 5 ou le 15 du mois suivant ;
-       les documents partent une fois la paie faite.
-
-     La DSN était en tête parce qu'elle est l'acte le plus lourd. Une colonne
-     n'est pas un classement par gravité : c'est une liste qu'on descend. */
-  const actes = [
-    { cle: "dpae", titre: "DPAE", court: "DPAE", detail: "les déclarations préalables à l'embauche",
-      bouton: "Envoyer les DPAE…", fichier: dpae, toujours: true,
-      // La boîte des embauches, comme celle des signatures : chaque contrat
-      // du mois, une case, cochée d'avance s'il reste à déclarer
-      // (15/09/2026). Le fichier complet du mois ne se redépose jamais tel
-      // quel — il redéclarerait ce qui est parti.
-      ouvrir: () => boiteDpae(mois) },
-    { cle: "contrat-signature", titre: "Contrats à signer", court: "CONTRATS",
-      detail: "envoyés avec le bouton « Je signe » — la réponse est relevée toute seule",
-      bouton: "Demander la signature…", toujours: true,
-      ouvrir: () => boiteSignature(mois) },
-    // « La DSN ne doit pas être liée à la sélection : elle fait
-    // obligatoirement tout le mois, pas comme les DPAE » (12/09/2026). Elle
-    // n'a jamais figuré dans la barre des actions groupées, et elle a quitté
-    // les pastilles des blocs de paie le même jour. Le détail le dit ici, à
-    // l'endroit où on clique.
-    { cle: "dsn", titre: "DSN", court: "DSN",
-      detail: "tout le mois d'un coup — une DSN ne se découpe pas",
-      bouton: "Déposer la DSN…",
-      fichier: dsn, toujours: true,
-      // La DSN se fabrique à son dépôt, depuis les engagements validés du mois,
-      // puis part en test d'abord. Un seul geste.
-      ouvrir: () => deposerLaDsn(mois) },
-    { cle: "documents", titre: "Documents aux salariés", court: "DOCUMENTS",
-      detail: "",
-      bouton: "Envoyer les documents…", toujours: true,
-      ouvrir: () => boiteEnvoi(mois) },
-  ];
-
-  // UNE LIGNE PAR ACTE, ET LA COULEUR EN UN COUP D'OEIL. La demande, le
-  // 13/09/2026 : « un truc court que je vois en un coup d'œil, et si je
-  // clique j'ai le reste avec les détails et le bouton » — puis, devant le
-  // résultat : « c'est ça ». Quand l'acte est fini (vert), la boîte est
-  // repliée sur sa phrase courte ; sinon elle est ouverte, avec le fil des
-  // envois et le bouton. Le chevron rouvre toujours.
-  /* LES ÉTAPES DU MOIS (23/09/2026). Un parcours, pas quatre boîtes : DPAE,
-     contrats, DSN, documents, numérotées et reliées. Une étape faite tient en
-     une ligne cochée ; seule L'ÉTAPE SUIVANTE — la première qui n'est pas
-     faite — est dépliée, avec son bouton en principal. Les autres se
-     déplient d'un clic. Le fil des envois et leurs retours se lisent dans
-     l'Historique : c'est un historique, pas un état. */
-  const limite = await limiteDsn(mois);
-  const lignes = actes.map((a) => {
-    const bilan = (e.bilans && e.bilans[a.cle]) || null;
-    const couleur = bilan ? bilan.couleur : couleurActe(e.actes[a.cle]);
-    const phrase = bilan ? bilan.phrase : e.resumes[a.cle];
-    cheminDuDepot(a, bilan);
-    // DES DOCUMENTS À RENVOYER (ticket #240) : la paie de certains salariés a
-    // changé depuis l'envoi. Le moteur le compte et nomme le geste.
-    if (a.cle === "documents" && bilan && bilan.bouton) a.bouton = bilan.bouton;
-    // CE QUI PART CE MOIS-CI : le moteur le nomme (`pieces` des paies), la page le dit.
-    if (a.cle === "documents") a.detail = (bilan && bilan.detail) || "";
-    // L'ANNULE-ET-REMPLACE (30/09/2026). Une DSN réelle est partie : tant que
-    // la norme l'admet (veille de l'échéance, minuit), la refaire reste à
-    // portée de main — et c'est LE geste quand la paie a changé depuis. Après,
-    // la correction part d'elle-même dans la DSN d'un mois suivant.
-    const r = a.cle === "dsn" && bilan && bilan.remplacement;
-    if (r && r.deposee) {
-      const refaire = () => deposerLaDsn(mois);
-      const libelle = `Refaire la DSN (annule-et-remplace, ordre ${r.prochain_ordre})…`;
-      if (bilan.etape) {
-        // Un annule-et-remplace est déjà écrit : son chemin passe devant.
-      } else if (r.a_envoyer) {
-        a.bouton = libelle; a.ouvrir = refaire;
-      } else if (r.admis) {
-        a.second = { bouton: libelle, ouvrir: refaire };
-      }
+  const gestes = [];
+  cible.innerHTML = `<ol class="etapes">` + (e.etapes || []).map((et, i) => {
+    const groupes = et.groupes || [];
+    const ouverts = groupes.filter((g) => g.etat !== "fait");
+    const fini = ouverts.length === 0;
+    const pire = ouverts.find((g) => g.etat === "refuse") || ouverts[0];
+    const couleur = pire ? COULEUR_ETAT[pire.etat] : "bien";
+    const courte = ouverts.map((g) => g.phrase).filter(Boolean).join(" · ");
+    const echeance = ouverts.map((g) => g.echeance && g.echeance.texte).find(Boolean);
+    const nEnvois = (e.lignes || []).filter((x) => x.quoi === et.cle).length;
+    const boutons = ouverts.filter((g) => g.action).map((g) => {
+      gestes.push(g.action);
+      return `<button class="${et.suivante ? "primaire" : "secondaire"}" data-geste="${gestes.length - 1}">${echapper(g.action.libelle)}</button>`;
+    });
+    if (et.second) {
+      gestes.push(et.second);
+      boutons.push(`<button class="secondaire" data-geste="${gestes.length - 1}">${echapper(et.second.libelle)}</button>`);
     }
-    return { a, couleur, phrase, fini: couleur === "bien", vide: !!(bilan && bilan.vide),
-             // EN ATTENTE : il reste un retour ou une signature, rien que
-             // nous puissions faire — l'étape ne passe pas devant la suivante.
-             attente: !!(bilan && bilan.attente),
-             courte: phraseCourte(a.cle, couleur, phrase, bilan && bilan.courte) };
-  });
-  const suivante = lignes.findIndex((l) => !l.fini && !l.attente);
-  const NOMS = { "dpae": "DPAE", "contrat-signature": "Contrats",
-                 "dsn": "DSN", "documents": "Documents" };
-  cible.innerHTML = `<ol class="etapes">` + lignes.map((l, i) => {
-    const a = l.a, dispo = a.toujours || !!a.fichier;
-    const nEnvois = (e.lignes || []).filter((x) => x.quoi === a.cle).length;
-    const echeance = a.cle === "dsn" && limite && !l.fini
-      ? ` <span class="etape-limite">avant le ${echapper(limite)}</span>` : "";
     return `
-      <li class="etape ${echapper(l.couleur)} ${l.fini ? "faite" : ""} ${i === suivante ? "suivante" : ""}">
-        <details ${i === suivante ? "open" : ""}>
+      <li class="etape ${echapper(couleur)} ${fini ? "faite" : ""} ${et.suivante ? "suivante" : ""}">
+        <details ${et.suivante ? "open" : ""}>
           <summary>
-            <span class="etape-rond">${l.fini ? "✓" : i + 1}</span>
-            <span class="etape-nom">${echapper(NOMS[a.cle] || a.titre)}</span>
-            <span class="etape-court">${echapper(l.courte)}</span>${echeance}
+            <span class="etape-rond">${fini ? "✓" : i + 1}</span>
+            <span class="etape-nom">${echapper(et.nom)}</span>
+            <span class="etape-court">${echapper(courte)}</span>${echeance
+              ? ` <span class="etape-limite"><b>${echapper(echeance)}</b></span>` : ""}
           </summary>
           <div class="etape-corps">
-            <div class="etape-phrase">${echapper(l.phrase)}</div>
-            ${a.detail ? `<div class="discret etape-detail">${echapper(a.detail)}</div>` : ""}
-            ${a.fichier ? `<div class="acte-fichier">${echapper(a.fichier.nom)}
-               ${a.fichier.ecrit ? `<span class="discret">écrit le ${echapper(quand(a.fichier.ecrit))}</span>` : ""}</div>` : ""}
-            ${l.vide ? "" : `<button class="${i === suivante ? "primaire" : "secondaire"}" data-acte="${echapper(a.cle)}"
-                    ${dispo ? "" : "disabled"}>${echapper(a.bouton)}</button>`}
-            ${a.second ? `<button class="secondaire" data-second="${echapper(a.cle)}">${echapper(a.second.bouton)}</button>` : ""}
-            ${dispo ? "" : `<p class="note">${echapper(a.absent)}</p>`}
+            ${et.phrase ? `<div class="etape-phrase">${echapper(et.phrase)}</div>` : ""}
+            ${et.detail ? `<div class="discret etape-detail">${echapper(et.detail)}</div>` : ""}
+            ${boutons.join("")}
             ${nEnvois ? `<button class="lien etape-envois" data-historique="${echapper(mois)}">voir ${nEnvois > 1
               ? `les ${nEnvois} envois` : "l'envoi"} et leurs retours dans l'Historique</button>` : ""}
           </div>
@@ -260,11 +109,8 @@ async function dessinerActions(mois) {
       </li>`;
   }).join("") + `</ol>`;
 
-  cible.querySelectorAll("[data-acte]").forEach((b) => {
-    b.onclick = () => actes.find((a) => a.cle === b.dataset.acte).ouvrir();
-  });
-  cible.querySelectorAll("[data-second]").forEach((b) => {
-    b.onclick = () => actes.find((a) => a.cle === b.dataset.second).second.ouvrir();
+  cible.querySelectorAll("[data-geste]").forEach((b) => {
+    b.onclick = () => ouvrirGeste(gestes[Number(b.dataset.geste)], mois);
   });
   cible.querySelectorAll("[data-historique]").forEach((b) => {
     b.onclick = () => ouvrirMoisHistorique(b.dataset.historique);
