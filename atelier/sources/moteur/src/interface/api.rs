@@ -235,7 +235,7 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     if let Some(mois) = charge.get("impression").and_then(Value::as_str) {
         let fichier = texte(charge, "fichier")?;
         let nom_sur = |t: &str| !t.is_empty() && !t.contains(['/', '\\']) && !t.contains("..");
-        if !nom_sur(mois) || !nom_sur(&fichier) || !fichier.starts_with("Impression_") || !fichier.ends_with(".pdf") {
+        if !nom_sur(mois) || !nom_sur(&fichier) || !fichier.starts_with(envois::envois_signature::PREFIXE_IMPRESSION) || !fichier.ends_with(".pdf") {
             return Err(Refus::simple("ErreurOperation", format!("{} n'est pas une impression de {}.", fichier, mois)));
         }
         let f = racine.join("sorties").join(mois).join("envoi").join(&fichier);
