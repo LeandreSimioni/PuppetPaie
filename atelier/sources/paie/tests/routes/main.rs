@@ -15,7 +15,6 @@ mod bulletins_fictifs;
 #[path = "../faux_drive/mod.rs"]
 mod faux_drive;
 
-mod avenant;
 mod demarrage;
 mod import_neuve;
 mod fictive_ajoutee;
