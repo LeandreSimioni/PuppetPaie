@@ -14,6 +14,7 @@ pub mod conges;
 pub mod cumul;
 pub mod cpf_cdd;
 pub mod contexte;
+pub mod echeances;
 pub mod emplois;
 pub mod jumeaux;
 pub mod minima;

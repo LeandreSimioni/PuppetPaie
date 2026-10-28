@@ -182,7 +182,6 @@ pub(crate) fn a_faire_en_phrases(a: &[engagement::etats::ARefaire]) -> Vec<Strin
     use engagement::etats::ARefaire;
     a.iter()
         .filter_map(|x| match x {
-            ARefaire::DpaeAAnnuler { .. } => Some("DPAE à annuler".to_string()),
             ARefaire::Dsn { mois, .. } => Some(format!("DSN de {} à corriger", engagement::libelle_mois(mois))),
             _ => None,
         })

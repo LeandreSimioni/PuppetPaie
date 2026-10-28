@@ -361,3 +361,25 @@ fn prime_d_anciennete() {
         section(&rel, nom, |a| prime(&a[0], &a[1], &a[2], option(&a[3]), &jour(&a[4]), a[5].as_str()));
     }
 }
+
+/// LA REMISE DU CONTRAT A DUREE DETERMINEE : « au plus tard, dans les deux jours ouvrables suivant l'embauche »
+/// (code du travail, L. 1242-13, `atelier/reference/sources/code-du-travail/xml/L1242-13.xml`) ; pour l'artiste
+/// musicien de la 1285, « au plus tard 15 jours ouvrables précédant l'engagement » (titre XV, `remise_du_contrat` de sa
+/// couche, `atelier/reference/sources/chomage-intermittents/kali-1285-organisation-travail-repetitions-representations-
+/// 20261020.md`, l. 763). Un jour ouvrable va du lundi au samedi.
+#[test]
+fn la_remise_du_contrat_suit_l1242_13_et_la_1285_pour_ses_musiciens() {
+    let j = |s: &str| Jour::lire(s).unwrap();
+    // Un vendredi : le samedi, puis le lundi (le dimanche n'est pas ouvrable).
+    let loi = droit::echeances::remise_du_contrat(&j("2026-11-20"), &json!("3090"), "ART170", None).unwrap();
+    assert_eq!(loi.jour, j("2026-11-23"));
+    assert!(loi.source.contains("L. 1242-13"), "{}", loi.source);
+    // Le meme musicien sous la 1285 : quinze jours ouvrables avant le jeudi 10/12, sans compter les dimanches.
+    let musicien = droit::echeances::remise_du_contrat(&j("2026-12-10"), &json!("1285"), "ART170", None).unwrap();
+    assert_eq!(musicien.jour, j("2026-11-23"));
+    assert!(musicien.source.contains("1285") && musicien.source.contains("XV"), "{}", musicien.source);
+    // Un metier hors du titre XV, sous la 1285 : la loi seule.
+    let autre = droit::echeances::remise_du_contrat(&j("2026-12-10"), &json!("1285"), "ZZZ999", None).unwrap();
+    assert_eq!(autre.jour, j("2026-12-12"));
+    assert!(autre.source.contains("L. 1242-13"), "{}", autre.source);
+}

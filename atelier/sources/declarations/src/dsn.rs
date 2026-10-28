@@ -2474,6 +2474,10 @@ fn bloc_regularisation(
     f.add("S21.G00.50.013", if indu { "0.00".into() } else { mt(soumis) });
 
     annuler_le_declare(f, r, &["51", "53"])?;
+    // Une paie d'apres `sans_paie` ecrit ses blocs 51 et 53 a 0.00 : la norme prevoit un montant 51.013 egal a « 0.00 »
+    // (CCH-11 et CCH-13 de S21.G00.51.001-002 ne s'appliquent qu'a un montant « différent de 0.00 ») et le format de
+    // 53.002 l'admet (`-?[0]*(0|[1-9][0-9]*)\.[0-9]{2}`) ; seul 51.012 refuse le zero (CCH-12), et il ne s'ecrit pas
+    // (cahier technique 2027.1, `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.51.txt` et `bloc-S21.G00.53.txt`).
     remunerations(f, apres, &debut_c, &fin_c, 1)?;
     if !avant.engagement.sans_paie() {
         annuler_le_declare(f, r, &["54"])?;
