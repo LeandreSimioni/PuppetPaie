@@ -55,7 +55,7 @@ fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
 fn le_plus_ecrit_la_raison_sociale_dans_sa_forme_declaree() {
     let inst = dossier_de_test("fictive_ajoutee", "raison-sociale");
     let c = ajouter_dans(&inst, "Les Tréteaux de l'Été").unwrap();
-    let ent = lire(&c.racine, "config/entreprise.json");
+    let ent = crate::outils::fiche_au(&lire(&c.racine, "config/entreprise.json"), "2026-11-02");
     assert_eq!(ent["nom_affichage"], json!("Les Tréteaux de l'Été"));
     assert_eq!(ent["raison_sociale"], json!("LES TRETEAUX DE L'ETE"));
     let fautes: Vec<Value> = paie::champs::verifier_fiche("entreprise", ent.as_object().unwrap())

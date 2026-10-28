@@ -18,7 +18,7 @@ use std::path::PathBuf;
 use paie::interface::compagnies::ajouter_dans;
 use serde_json::{json, Value};
 
-use crate::outils::{dossier_de_test, ecrire, lire, reussi, route};
+use crate::outils::{datee, dossier_de_test, ecrire, fiche_au, lire, reussi, route};
 
 const JOUR: &str = "2026-11-02";
 
@@ -68,7 +68,7 @@ fn le_siret_enregistre_donne_le_siren_et_le_nic_et_la_dpae_demande_encore_sa_med
     let racine = neuve("siret");
     let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "siret": "32520440200011", "taxe_sur_les_salaires": {"tva": "exoneree", "sous_franchise": true}});
     reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true}), JOUR));
-    let ent = lire(&racine, "config/entreprise.json");
+    let ent = fiche_au(&lire(&racine, "config/entreprise.json"), JOUR);
     assert_eq!((ent["siren"].as_str(), ent["nic"].as_str()), (Some("325204402"), Some("00011")));
     let m = manques(&racine);
     assert!(par_champ(&m, "siret").is_empty(), "{:?}", m);
@@ -76,8 +76,8 @@ fn le_siret_enregistre_donne_le_siren_et_le_nic_et_la_dpae_demande_encore_sa_med
     assert!(par_champ(&m, "taxe_sur_les_salaires").is_empty(), "exoneree de TVA et sous les plafonds : la reponse est donnee");
     // Le SIRET change : le SIREN et le NIC le suivent.
     let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "siret": "32520440200029"});
-    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true}), JOUR));
-    assert_eq!(lire(&racine, "config/entreprise.json")["nic"], json!("00029"));
+    reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true, "depuis": JOUR}), JOUR));
+    assert_eq!(fiche_au(&lire(&racine, "config/entreprise.json"), JOUR)["nic"], json!("00029"));
 }
 
 #[test]
@@ -101,7 +101,7 @@ fn une_ligne_de_paie_neuve_part_d_une_rubrique_de_salaire() {
 #[test]
 fn le_seul_numero_conges_spectacles_saisi_est_le_numero_d_adherent() {
     let racine = neuve("conges-spectacles");
-    ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": {"titre": "Le Banc", "actif": true}}));
+    ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": datee(&json!({"titre": "Le Banc", "actif": true}))}));
     let m = manques(&racine);
     assert_eq!(par_champ(&m, "congesspectacles_adherent").len(), 1, "{:?}", m);
     assert!(m.iter().all(|x| !x.to_string().contains("congesspectacles_affiliation")), "un seul numero demande : {:?}", m);
@@ -115,7 +115,7 @@ fn le_seul_numero_conges_spectacles_saisi_est_le_numero_d_adherent() {
         let r = poser(mal_forme);
         assert_eq!(r["ok"], json!(false));
         assert!(fautif(&r), "{} : pas dix chiffres et une lettre : {}", mal_forme, r);
-        assert!(lire(&racine, "config/entreprise.json").get("congesspectacles_adherent").is_none(), "rien n'est ecrit");
+        assert!(fiche_au(&lire(&racine, "config/entreprise.json"), JOUR).get("congesspectacles_adherent").is_none(), "rien n'est ecrit");
     }
     assert!(!fautif(&poser("0123450001F")), "dix chiffres et une lettre : rien a redire");
     // La meme valeur ecrite avec des blancs, un tiret ou la lettre en minuscule : le moteur l'ecrit dans sa forme
@@ -123,7 +123,7 @@ fn le_seul_numero_conges_spectacles_saisi_est_le_numero_d_adherent() {
     assert!(!fautif(&poser("0123 450001-f")), "la meme valeur : rien a redire");
     let fiche = json!({"nom_affichage": "Les Tréteaux Neufs", "congesspectacles_adherent": "0123 450001-f"});
     reussi(&route(&racine, "enregistrer-fiche", json!({"nom": "entreprise", "cle": null, "donnees": fiche, "forcer": true}), JOUR));
-    let ent = lire(&racine, "config/entreprise.json");
+    let ent = fiche_au(&lire(&racine, "config/entreprise.json"), JOUR);
     assert_eq!(ent["congesspectacles_adherent"], json!("0123450001F"));
     assert!(ent.get("congesspectacles_affiliation").is_none(), "rien d'autre ne s'ecrit : {}", ent);
     assert!(par_champ(&manques(&racine), "congesspectacles_adherent").is_empty());
@@ -153,12 +153,12 @@ fn aucun_manque_ne_pointe_vers_un_champ_masque_pour_aucune_convention() {
         for (permanents, spectacle) in [(false, false), (false, true), (true, false), (true, true)] {
             let nom = format!("grille-{}-{}-{}", if idcc.is_empty() { "sans" } else { idcc }, permanents, spectacle);
             let racine = neuve(&nom);
-            let mut ent = lire(&racine, "config/entreprise.json");
+            let mut ent = fiche_au(&lire(&racine, "config/entreprise.json"), JOUR);
             ent["idcc"] = json!(idcc);
             ent["emploie_des_permanents"] = json!(permanents);
-            ecrire(&racine, "config/entreprise.json", &ent);
+            ecrire(&racine, "config/entreprise.json", &datee(&ent));
             if spectacle {
-                ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": {"titre": "Le Banc", "actif": true}}));
+                ecrire(&racine, "config/spectacles.json", &json!({"266Z00910022": datee(&json!({"titre": "Le Banc", "actif": true}))}));
             }
             let m = manques(&racine);
             for x in &m {
@@ -197,15 +197,15 @@ fn la_medecine_interne_et_seulement_elle_demande_son_contact() {
     let racine = neuve("medecine-interne");
     let fiche = paie::champs::fiche("entreprise").unwrap();
     let contact = fiche.iter().find(|c| c.cle == "contact_sante_travail").unwrap();
-    let mut ent = lire(&racine, "config/entreprise.json");
+    let mut ent = fiche_au(&lire(&racine, "config/entreprise.json"), JOUR);
     for (code, demande) in [("MT42", false), ("MT01", true)] {
         ent["medecine_travail"] = json!(code);
-        ecrire(&racine, "config/entreprise.json", &ent);
+        ecrire(&racine, "config/entreprise.json", &datee(&ent));
         let m = manques(&racine);
         assert_eq!(par_champ(&m, "contact_sante_travail").len() == 1, demande, "{} : {:?}", code, m);
         assert_eq!(contact.montre(&ent, false, false), demande, "{} : la case se montre si et seulement si elle est demandee", code);
     }
     ent["contact_sante_travail"] = json!({"nom_prenom": "VIGNE ROSE", "tel": "0102030405", "email": "medecin@exemple.invalid"});
-    ecrire(&racine, "config/entreprise.json", &ent);
+    ecrire(&racine, "config/entreprise.json", &datee(&ent));
     assert!(par_champ(&manques(&racine), "contact_sante_travail").is_empty());
 }

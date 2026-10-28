@@ -332,18 +332,16 @@ impl Engagement {
         let mut cachets_somme = 0.0;
         let mut autres = 0.0;
         let mut premier_cachet: Option<&Value> = None;
-        // Les rubriques se lisent a la fin du mois paye (le mois dit, sinon celui de la premiere date jouee).
-        let mois_lu = match jours_joues.first() {
-            _ if !mois_saisi.is_empty() => Some(mois_saisi.clone()),
-            Some(j) => Some(j.mois_iso()),
-            None => None,
-        };
-        let jour_lu = mois_lu.map(|m| dernier_du_mois(&m)).transpose()?;
+        // Les rubriques se lisent a la fin du mois paye (le mois dit, sinon celui de la premiere date jouee). Un mois
+        // illisible se refuse plus loin, avec ce qui ne va pas : d'ici la, les rubriques se lisent au jour du moteur.
+        let jour_lu = dernier_du_mois(&mois_saisi)
+            .ok()
+            .or_else(|| jours_joues.first().and_then(|j| dernier_du_mois(&j.mois_iso()).ok()))
+            .unwrap_or_else(droit::contexte::jour_reel);
         for l in &lignes {
             let code = l.get("rubrique").ok_or_else(|| socle::fichiers::absent("rubrique"))?;
             let code = code.as_str().map_or_else(|| en_texte(code), String::from);
-            let jour = jour_lu.ok_or_else(|| socle::fichiers::trop_courte("les jours joués"))?;
-            let r = rubrique(racine, &code, &jour)?;
+            let r = rubrique(racine, &code, &jour_lu)?;
             let q = flottant(l.get("quantite").ok_or_else(|| socle::fichiers::absent("quantite"))?)?;
             if r.unite == "cachet" {
                 cachets_somme += q;

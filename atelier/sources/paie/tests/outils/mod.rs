@@ -98,6 +98,16 @@ pub fn ecrire(racine: &Path, rel: &str, v: &Value) {
     std::fs::write(p, serde_json::to_vec_pretty(v).unwrap()).unwrap();
 }
 
+/// Une fiche de la configuration datee (`contexte::fiche_au`), lue a `jour` (AAAA-MM-JJ).
+pub fn fiche_au(datee: &Value, jour: &str) -> Value {
+    droit::contexte::fiche_au(datee, &socle::date::Jour::lire(jour).unwrap(), "test").unwrap()
+}
+
+/// La fiche datee d'une compagnie de test : chaque valeur de `plate` de tout temps (`contexte::fiche_datee`).
+pub fn datee(plate: &Value) -> Value {
+    Value::Object(droit::contexte::fiche_datee(plate.as_object().unwrap()))
+}
+
 /// Les noms des fichiers d'un dossier, triés (vide s'il n'existe pas).
 pub fn noms(dossier: &Path) -> Vec<String> {
     let mut v: Vec<String> = std::fs::read_dir(dossier).map(|d| d.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect()).unwrap_or_default();
