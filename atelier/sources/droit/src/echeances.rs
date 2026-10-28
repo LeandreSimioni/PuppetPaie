@@ -30,19 +30,21 @@ pub struct Echeance {
 impl Echeance {
     /// « avant le 14/11/2026 », « avant le 15/12/2026 à midi ».
     pub fn texte(&self) -> String {
-        self.dire(&self.jour.jj_mm_aaaa())
+        Self::dire(self.mots, &self.jour.jj_mm_aaaa(), self.heure)
     }
 
-    /// Sans l'annee : « avant le 14/11 », « avant le 15/12 à midi ». C'est ce qu'ecrit une case du panneau.
+    /// Sans l'annee, et « au plus tard le » dit « jusqu'au » (meme jour limite, inclus) : « avant le 14/11 »,
+    /// « avant le 15/12 à midi », « jusqu'au 24/11 ». C'est ce qu'ecrit une case du panneau.
     pub fn court(&self) -> String {
-        self.dire(&self.jour.jj_mm())
+        let mots = if self.mots == "au plus tard le" { "jusqu'au" } else { self.mots };
+        Self::dire(mots, &self.jour.jj_mm(), self.heure)
     }
 
-    fn dire(&self, jour: &str) -> String {
-        if self.heure.is_empty() {
-            format!("{} {}", self.mots, jour)
+    fn dire(mots: &str, jour: &str, heure: &str) -> String {
+        if heure.is_empty() {
+            format!("{mots} {jour}")
         } else {
-            format!("{} {} {}", self.mots, jour, self.heure)
+            format!("{mots} {jour} {heure}")
         }
     }
 
