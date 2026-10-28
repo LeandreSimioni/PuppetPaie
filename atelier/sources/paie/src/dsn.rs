@@ -2260,6 +2260,7 @@ fn bloc_versement(f: &mut Fichier, p: &Paie, bar: &Value, rang: i64, taux_pas: O
 /// affiliations (S21.G00.70.012, 70.013), puis son versement (blocs 50 a 81, `bloc_versement`), qu'une regularisation
 /// annule (`versement_declare::de_la_paie`).
 pub(crate) fn versement_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<String> {
+    let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let nic = bareme::etablissement_du_salarie(ent, &p.salarie)?;
     let orgs = lire_json(&ctx.racine.join("config").join("organismes.json"))?;
@@ -3377,6 +3378,7 @@ determinee de moins de douze mois d'un artiste) : son FNAL se paie sur la tranch
 /// produire ; les corrections des mois deposes n'y sont pas, elles ont leurs
 /// propres bordereaux. `etablissement` : le NIC, le principal sans lui.
 pub fn montant_urssaf(ctx: &Contexte, paies: &[Paie], mois: &str, etablissement: Option<&str>) -> Resultat<Decimal> {
+    let ctx = &ctx.du_mois(mois)?;
     let ent = &ctx.entreprise;
     let principal = bareme::nic_principal(ent);
     let nic = etablissement.filter(|n| !n.is_empty()).map_or_else(|| principal.clone(), str::to_string);
@@ -4213,6 +4215,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// 03/10/2026, `PLAN-DEPOT-PUBLIC.md`). Ce que le test ne controle pas, c'est
 /// le montant.
 pub fn generer(ctx: &Contexte, paies: &[Paie], mois: &str, regs: &[Regularisation], arrets: &[Arret], o: &Options) -> Resultat<String> {
+    let ctx = &ctx.du_mois(mois)?;
     let ent0 = ctx.entreprise.clone();
     let principal_nic = bareme::nic_principal(&ent0);
     let nic = match o.etablissement.as_deref().filter(|n| !n.is_empty()) {

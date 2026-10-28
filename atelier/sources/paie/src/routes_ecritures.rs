@@ -480,17 +480,31 @@ fn vide(v: Option<&Value>) -> bool {
     v.map_or(true, |v| v.is_null() || v.as_str() == Some(""))
 }
 
-/// La meme valeur, a la forme pres (un nombre saisi en texte, 100 et « 100 »).
+/// La meme valeur, a la forme pres : un nombre saisi en texte (100 et « 100 »), une personne et sa forme lisible (les
+/// cles `_affichage` que l'ecran comble, `champs::combler_affichage`, ne se declarent pas).
 fn meme(a: &Value, b: &Value) -> bool {
-    valeurs_egales(a, b) || (!a.is_object() && !a.is_array() && valeur_en_texte(a) == valeur_en_texte(b))
+    let sans_affichage = |v: &Value| match v {
+        Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.ends_with("_affichage")).map(|(k, v)| (k.clone(), v.clone())).collect()),
+        autre => autre.clone(),
+    };
+    valeurs_egales(a, b)
+        || (a.is_object() && valeurs_egales(&sans_affichage(a), &sans_affichage(b)))
+        || (!a.is_object() && !a.is_array() && valeur_en_texte(a) == valeur_en_texte(b))
 }
 
 /// Les champs de `donnees` qui CHANGENT une valeur existante de `ancienne` (la fiche telle que l'ecran l'a montree) :
-/// ceux-la demandent leur date d'effet. Remplir un champ vide n'en est pas un : c'est sa premiere valeur.
+/// ceux-la demandent leur date d'effet. Remplir un champ vide n'en est pas un : c'est sa premiere valeur. Sauf le NIR qui
+/// arrive sur une fiche qui existait : la premiere DSN qui le porte porte aussi le NTT sous lequel le salarie etait
+/// declare (`ntt::depuis_quand_le_nir`), et le jour ou il arrive ne se devine pas.
 pub(crate) fn changements_a_dater(ancienne: &Value, donnees: &Map<String, Value>) -> Vec<String> {
+    let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
+    let nir_qui_arrive = |k: &str, v: &Value| existait && k == "nir" && vide(ancienne.get(k)) && !vide(Some(v));
     donnees
         .iter()
-        .filter(|(k, v)| !k.starts_with('_') && !vide(ancienne.get(k.as_str())) && !ancienne.get(k.as_str()).is_some_and(|a| meme(a, v)))
+        .filter(|(k, v)| {
+            !k.starts_with('_')
+                && (nir_qui_arrive(k, v) || (!vide(ancienne.get(k.as_str())) && !ancienne.get(k.as_str()).is_some_and(|a| meme(a, v))))
+        })
         .map(|(k, _)| k.clone())
         .collect()
 }
@@ -563,6 +577,10 @@ pub(crate) fn ecrire_datee(
                 en_vigueur.unwrap_or(creation)
             }
         };
+        // Le NIR qui arrive : la fiche disait « sans NIR » jusque-la (`changements_a_dater`).
+        if k == "nir" && !brute.contains_key("nir") && jour > creation {
+            droit::contexte::dater(brute, k, Value::String(String::new()), &creation, None);
+        }
         droit::contexte::dater(brute, k, v.clone(), &jour, note);
     }
     Ok(())

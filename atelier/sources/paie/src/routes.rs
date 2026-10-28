@@ -99,7 +99,12 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
             },
         };
     }
-    let ctx = contexte(o)?;
+    // UNE ROUTE QUI PORTE UN MOIS LIT LA CONFIGURATION DE CE MOIS (`Contexte::du_mois`) : sa paie, sa DSN et ses documents
+    // se font sous les valeurs qui valaient alors, jamais sous celles d'aujourd'hui.
+    let ctx = match charge.get("mois").and_then(Value::as_str).filter(|m| socle::date::premier_du_mois(m).is_ok()) {
+        Some(m) => contexte(o)?.du_mois(m)?,
+        None => contexte(o)?,
+    };
     let rendu: Result<Value, Echec> = match route {
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
         crate::demarrage::ROUTE => crate::demarrage::route(&ctx),

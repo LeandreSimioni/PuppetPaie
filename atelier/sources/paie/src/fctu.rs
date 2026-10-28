@@ -503,9 +503,10 @@ ou un annule."
     let paie = &paie;
     let e = &paie.engagement;
 
+    let fin_jour = d(&fin.fin)?;
+    let ctx = &ctx.au(&fin_jour)?;
     let ent0 = &ctx.entreprise;
     let s = &paie.salarie;
-    let fin_jour = d(&fin.fin)?;
     let bar = ctx.bareme(&fin_jour)?;
     let constitution = match o.date_constitution {
         Some(j) => j,

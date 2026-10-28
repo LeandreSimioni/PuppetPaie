@@ -316,6 +316,24 @@ chômage 11,45 → 11,40 au 01/06/2025) :
 `dsn` lisent des nombres et n'en savent rien. Une date antérieure à toute
 entrée est un refus, pas un zéro.
 
+**La configuration de la compagnie est datée de même.** Chaque valeur d'une
+fiche — `config/entreprise.json` (convention, annexe, adresse, établissements…),
+chaque salarié de `salaries.json`, chaque spectacle de `spectacles.json` —
+s'écrit `[{"depuis": "AAAA-MM-JJ", "valeur": …}]` ; les clés `_…` sont des
+notes. Une seule lecture, `contexte::fiche_au`, sur la même `valeur_au` que les
+barèmes : avant la première valeur, le champ est absent ; une valeur non datée
+se refuse avec la phrase qui dit quoi faire (`contexte::non_datee`). Le
+`Contexte` garde les fiches datées et les lit à `lue_au` ; `Contexte::au(jour)`
+et `du_mois(mois)` donnent le contexte d'une période. Le calcul d'une période
+lit tout à sa fin (`calculer_periode`), la DSN d'un mois et ses documents à son
+dernier jour (`dsn::generer`, `entreprise_du_mois`, et toute route qui porte un
+`mois`, `routes::dans_la_fenetre`), et le barème d'un jour applique la
+convention de ce jour. On écrit par `contexte::dater` : la première valeur d'une
+compagnie neuve vaut depuis sa création (`config/creation.json`, écrite par
+« Ajouter une compagnie ») ; changer une valeur existante exige sa date d'effet
+(`routes_ecritures::ecrire_datee`, l'écran la demande alors) ; ce qui précède
+garde l'ancienne valeur.
+
 Trois subtilités, chacune trouvée en cherchant pourquoi un centime manquait.
 
 **L'assiette CSG n'est pas 98,25 % du brut.** Elle vaut
@@ -655,7 +673,7 @@ temporaire** `S21.G00.30.020` (CCH-12), et le moteur le fabrique :
 | ce qui l'écrit | `ntt::poser_nir` / `ntt::poser_ntt`, appelés par les émetteurs de bloc 30 — `dsn.rs`, `fctu.rs`, `signalement.rs`, `amorcage.rs` |
 | les règles | CSL-11 (commence par 1 ou 2), CSL-12 (aucun espace), CCH-13 (caractères 2 à 10 = le SIREN), longueur [11,40] — trois d'entre elles ne sont **pas** dans le relevé des formats, comme pour le NIR |
 | quand les deux partent ensemble | la déclaration du mois où le NIR a pris effet : « le NTT doit être renseigné sur la première DSN où le NIR est attribué », pour raccorder les deux identités |
-| ce qui le date | l'arrivée du NIR descend dans `historique` (valeur vide jusqu'au jour J) — seule exception à la règle « une case qui se remplit n'a rien à dater » |
+| ce qui le date | l'arrivée du NIR sur une fiche qui existait est un changement daté (`routes_ecritures::changements_a_dater`) : la fiche dit « sans NIR » jusqu'à la veille — seule case qui, en se remplissant, demande sa date |
 | ce qu'il n'est pas | une donnée de gestion : il n'ouvre **aucun droit**, et ne s'imprime ni sur un bulletin, ni sur un contrat, ni sur un certificat |
 
 Deux conséquences hors DSN : la **DPAE** part alors avec sa zone NIR à blanc,

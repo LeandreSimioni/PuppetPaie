@@ -156,6 +156,7 @@ un manque du logiciel.",
 /// Le fichier d'un signalement d'amorcage, pret a deposer.
 pub fn generer(ctx: &Contexte, paie: &Paie, o: &Options) -> Result<String, Echec> {
     verifier(paie, &o.motif, &o.type_declaration, o.remplace.as_deref())?;
+    let ctx = &ctx.au(&paie.engagement.debut)?;
     let e = &paie.engagement;
     let s = &paie.salarie;
     let ent = &ctx.entreprise;
