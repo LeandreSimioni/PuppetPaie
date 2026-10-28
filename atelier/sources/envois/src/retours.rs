@@ -142,53 +142,6 @@ fn type_py(v: &Value) -> &'static str {
     }
 }
 
-// ------------------------------------------------------------------- l'entree
-
-/// Ce que la demande donne a lire : des octets (`fichier`, `base64`) ou un texte.
-enum Entree {
-    Octets(Vec<u8>),
-    Texte(String),
-}
-
-impl Entree {
-    /// `bytes.decode("utf-8", "replace")`, ou le `str` tel quel.
-    fn utf8(&self) -> String {
-        match self {
-            Entree::Octets(o) => String::from_utf8_lossy(o).into_owned(),
-            Entree::Texte(t) => t.clone(),
-        }
-    }
-
-    /// `bytes.decode("latin-1")`, ou le `str` tel quel.
-    fn latin1(&self) -> String {
-        match self {
-            Entree::Octets(o) => o.iter().map(|&b| b as char).collect(),
-            Entree::Texte(t) => t.clone(),
-        }
-    }
-
-    /// Les octets, un `str` passant par `encode("utf-8")`.
-    fn octets(&self) -> Vec<u8> {
-        match self {
-            Entree::Octets(o) => o.clone(),
-            Entree::Texte(t) => t.clone().into_bytes(),
-        }
-    }
-}
-
-fn entree_de(d: &Value) -> Resultat<Entree> {
-    if let Some(f) = d.get("fichier").and_then(Value::as_str) {
-        return std::fs::read(f).map(Entree::Octets).map_err(|e| format!("{} : {}", f, e).into());
-    }
-    if let Some(b) = d.get("base64").and_then(Value::as_str) {
-        return Ok(Entree::Octets(socle::base64::lire(b)?));
-    }
-    if let Some(t) = d.get("texte").and_then(Value::as_str) {
-        return Ok(Entree::Texte(t.to_string()));
-    }
-    Err("demande illisible : il faut `fichier`, `base64` ou `texte`".into())
-}
-
 // ------------------------------------------------------------------ le XML
 
 /// Un element, comme ElementTree le range.
@@ -858,14 +811,14 @@ fn bilan_depuis(champs: &[(String, String)], type_rapport: &str) -> Option<Value
 }
 
 /// `parse_bilan_depot` : un rapport AEE, CCO ou BAN, ou `None` si ce n'en est pas un.
-fn parse_bilan_depot(e: &Entree) -> Value {
-    parse_bilan_depot_lu(e).unwrap_or(Value::Null)
+fn parse_bilan_depot(o: &[u8]) -> Value {
+    parse_bilan_depot_lu(o).unwrap_or(Value::Null)
 }
 
 /// `parse_bilan_depot`, mais un XML qui ne se lit pas est un refus (sa classe), pas « pas un bilan » : la reprise du
 /// journal le nomme (`illisibles`). Un XML bien forme qui n'est pas un rapport de depot rend `Null`.
-fn parse_bilan_depot_lu(e: &Entree) -> Resultat<Value> {
-    let texte = e.utf8();
+fn parse_bilan_depot_lu(o: &[u8]) -> Resultat<Value> {
+    let texte = String::from_utf8_lossy(o);
     let arbre = lire_texte(nettoye(&texte))?;
     let racine = arbre.racine();
     if local(&racine.tag) != "rapport" {
@@ -921,8 +874,8 @@ pub fn declarations_du_bilan(o: &[u8]) -> Vec<Value> {
 
 /// L'arbre d'octets ; un XML mal forme n'en est pas un (`None`), tout autre refus (un
 /// encodage inconnu) remonte.
-fn octets_arbre(e: &Entree) -> Resultat<Option<Arbre>> {
-    match lire_octets(&e.octets()) {
+fn octets_arbre(o: &[u8]) -> Resultat<Option<Arbre>> {
+    match lire_octets(o) {
         Ok(a) => Ok(Some(a)),
         Err(Echec { classe: Some("ParseError"), .. }) => Ok(None),
         Err(autre) => Err(autre),
@@ -930,8 +883,8 @@ fn octets_arbre(e: &Entree) -> Resultat<Option<Arbre>> {
 }
 
 /// `anomalies_du_bilan` : les motifs d'un BAN, en phrases lisibles.
-fn anomalies_du_bilan(e: &Entree) -> Resultat<Vec<Value>> {
-    let Some(arbre) = octets_arbre(e)? else {
+fn anomalies_du_bilan(o: &[u8]) -> Resultat<Vec<Value>> {
+    let Some(arbre) = octets_arbre(o)? else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();
@@ -958,8 +911,8 @@ fn anomalies_du_bilan(e: &Entree) -> Resultat<Vec<Value>> {
 }
 
 /// `anomalies_codees` : les anomalies d'un bilan, en codes.
-fn anomalies_codees(e: &Entree) -> Resultat<Vec<Value>> {
-    let Some(arbre) = octets_arbre(e)? else {
+fn anomalies_codees(o: &[u8]) -> Resultat<Vec<Value>> {
+    let Some(arbre) = octets_arbre(o)? else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();
@@ -1112,8 +1065,8 @@ fn enfants_en_dict(a: &Arbre, e: &Noeud) -> Map<String, Value> {
 }
 
 /// `parse_liste_retours` : XML (1.0) ou JSON (2.0).
-fn parse_liste_retours(e: &Entree) -> Resultat<Vec<Value>> {
-    let texte = e.utf8();
+fn parse_liste_retours(o: &[u8]) -> Resultat<Vec<Value>> {
+    let texte = String::from_utf8_lossy(o);
     let texte = nettoye(&texte);
     if texte.starts_with('{') {
         return liste_retours_json(&json_lire(texte)?);
@@ -1146,17 +1099,17 @@ fn parse_liste_retours(e: &Entree) -> Resultat<Vec<Value>> {
 
 /// `parse_liste_retours(octets)` : les retours que la plate-forme liste.
 pub fn liste_retours_d_octets(o: &[u8]) -> Resultat<Vec<Value>> {
-    parse_liste_retours(&Entree::Octets(o.to_vec()))
+    parse_liste_retours(o)
 }
 
 /// `parse_liste_depots(octets)` : les depots que la plate-forme liste.
 pub fn liste_depots_d_octets(o: &[u8]) -> Resultat<Vec<Value>> {
-    parse_liste_depots(&Entree::Octets(o.to_vec()))
+    parse_liste_depots(o)
 }
 
 /// `parse_liste_depots` : depots > declarant > depot{idflux, date, statut}.
-fn parse_liste_depots(e: &Entree) -> Resultat<Vec<Value>> {
-    let texte = e.utf8();
+fn parse_liste_depots(o: &[u8]) -> Resultat<Vec<Value>> {
+    let texte = String::from_utf8_lossy(o);
     let texte = nettoye(&texte);
     if texte.starts_with('{') {
         let d = json_lire(texte)?;
@@ -1366,8 +1319,8 @@ fn pas_par_balayage(a: &Arbre) -> Vec<Value> {
 }
 
 /// `extraire_taux_pas` : les quatre strategies, de la plus sure a la plus large.
-fn extraire_taux_pas(e: &Entree) -> Resultat<Value> {
-    let texte = e.utf8();
+fn extraire_taux_pas(o: &[u8]) -> Resultat<Value> {
+    let texte = String::from_utf8_lossy(o);
     let arbre = lire_texte(&texte)?;
     let strategies: [(&str, fn(&Arbre) -> Vec<Value>); 4] = [
         ("rapport CRM nominatif", pas_rapport_crm),
@@ -1449,8 +1402,8 @@ const CONDITIONS_TARIFAIRES: [(&str, &str, &[&str]); 15] = [
     ("95", "tarif pour chaque ayant droit Autre", COMPTEURS_PAR_TYPE),
 ];
 
-fn fiche_parametrage(e: &Entree) -> Resultat<Value> {
-    let texte = e.latin1();
+fn fiche_parametrage(o: &[u8]) -> Resultat<Value> {
+    let texte: String = o.iter().map(|&b| b as char).collect();
     let a = lire_texte(&texte)?;
     let racine = a.racine();
     let fils = |n: &Noeud, tag: &str| -> Option<usize> { n.enfants.iter().copied().find(|&i| a.n[i].tag == tag) };
@@ -1998,134 +1951,36 @@ pub fn rattacher(quis: &[Value], index: &[Value]) -> Value {
     Value::Array(cles)
 }
 
-// ---------------------------------------------------------------- la commande
-
-fn liste<'a>(d: &'a Value, cle: &str) -> Resultat<&'a Vec<Value>> {
-    d.get(cle).and_then(Value::as_array).ok_or_else(|| format!("demande illisible : il faut `{}`", cle).into())
-}
-
-fn operation(d: &Value) -> Resultat<Value> {
-    let op = d.get("operation").and_then(Value::as_str).ok_or("demande illisible : il faut `operation`")?;
-    let mut m = Map::new();
-    match op {
-        "natures" => {
-            m.insert("natures".into(), Value::Object(NATURES.iter().map(|(c, l)| ((*c).to_string(), json!(l))).collect()));
-        }
-        "constantes" => {
-            // Les constantes de la lecture des retours.
-            for (k, v) in [
-                ("NATURE_TAUX_PAS", NATURE_TAUX_PAS),
-                ("NATURE_TAUX_ATMP", NATURE_TAUX_ATMP),
-                ("NATURE_CRM_SPECTACLE", NATURE_CRM_SPECTACLE),
-                ("NATURE_AER_SPECTACLE", NATURE_AER_SPECTACLE),
-                ("ESSAI_TEST", ESSAI_TEST),
-                ("ESSAI_REEL", ESSAI_REEL),
-            ] {
-                m.insert(k.into(), json!(v));
-            }
-            m.insert("NATURES_BILAN_DEPOT".into(), json!(NATURES_BILAN_DEPOT));
-            m.insert("A_ARCHIVER_ABSOLUMENT".into(), json!(A_ARCHIVER_ABSOLUMENT));
-            m.insert("RAPPORTS_DEPOT".into(), json!(RAPPORTS_DEPOT));
-            m.insert("CHAMPS_BILAN".into(), json!(CHAMPS_BILAN));
-        }
-        "libelle" => {
-            let code = d.get("code").and_then(Value::as_str).ok_or("demande illisible : il faut `code`")?;
-            m.insert("libelle".into(), Value::String(libelle_nature(code)));
-        }
-        "bilan" => {
-            m.insert("bilan".into(), parse_bilan_depot(&entree_de(d)?));
-        }
-        "anomalies" => {
-            m.insert("anomalies".into(), Value::Array(anomalies_du_bilan(&entree_de(d)?)?));
-        }
-        "anomalies_codees" => {
-            m.insert("anomalies".into(), Value::Array(anomalies_codees(&entree_de(d)?)?));
-        }
-        "fusionner" => {
-            m.insert("bilan".into(), fusionner_bilans(liste(d, "bilans")?));
-        }
-        "liste_retours" => {
-            m.insert("retours".into(), Value::Array(parse_liste_retours(&entree_de(d)?)?));
-        }
-        "liste_depots" => {
-            m.insert("depots".into(), Value::Array(parse_liste_depots(&entree_de(d)?)?));
-        }
-        "taux_pas" => {
-            m.extend(match extraire_taux_pas(&entree_de(d)?)? {
-                Value::Object(o) => o,
-                _ => Map::new(),
-            });
-        }
-        "releves" => {
-            if let Value::Object(o) = releves_vers_salaries(liste(d, "releves")?, liste(d, "nirs")?) {
-                m.extend(o);
-            }
-        }
-        "fiche" => {
-            m.insert("fiche".into(), fiche_parametrage(&entree_de(d)?)?);
-        }
-        "aer" => {
-            m.insert("attestations".into(), aer_spectacle(&entree_de(d)?.octets())?);
-        }
-        "rattacher" => {
-            m.insert("cles".into(), rattacher(liste(d, "quis")?, liste(d, "index")?));
-        }
-        autre => return Err(format!("demande illisible : operation `{}` inconnue", autre).into()),
-    }
-    Ok(Value::Object(m))
-}
-
-/// `paie retours` : la demande JSON (`operation` et ses donnees) sur l'entree
-/// standard ; un XML ou une archive illisibles portent leur `classe`.
-pub fn commande(entree: &str) -> Result<Value, String> {
-    let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
-    let mut o = Map::new();
-    match operation(&d) {
-        Ok(Value::Object(m)) => {
-            o.insert("ok".into(), Value::Bool(true));
-            o.extend(m);
-        }
-        Ok(_) => {}
-        Err(Echec { classe: None, message }) => return Err(message),
-        Err(Echec { classe: Some(c), message }) => {
-            o.insert("ok".into(), Value::Bool(false));
-            o.insert("erreur".into(), Value::String(message));
-            o.insert("classe".into(), Value::String(c.into()));
-        }
-    }
-    Ok(Value::Object(o))
-}
-
 // ------------------------------------------------- ce que le journal en lit
 
 /// `parse_bilan_depot(octets)` : le bilan (`null` si ce n'est pas un rapport).
 pub fn bilan_d_octets(o: &[u8]) -> Value {
-    parse_bilan_depot(&Entree::Octets(o.to_vec()))
+    parse_bilan_depot(o)
 }
 
 /// Le bilan d'octets ; `Err(classe)` si le XML ne se lit pas (`journal-reprise` nomme la piece au lieu de la sauter).
 pub fn bilan_ou_illisible(o: &[u8]) -> Result<Value, &'static str> {
-    parse_bilan_depot_lu(&Entree::Octets(o.to_vec())).map_err(|e| e.classe.unwrap_or("Exception"))
+    parse_bilan_depot_lu(o).map_err(|e| e.classe.unwrap_or("Exception"))
 }
 
 /// `anomalies_du_bilan(octets)`.
 pub fn anomalies_lisibles_d_octets(o: &[u8]) -> Result<Vec<Value>, Echec> {
-    anomalies_du_bilan(&Entree::Octets(o.to_vec()))
+    anomalies_du_bilan(o)
 }
 
 /// `anomalies_codees(octets)`.
 pub fn anomalies_codees_d_octets(o: &[u8]) -> Result<Vec<Value>, Echec> {
-    anomalies_codees(&Entree::Octets(o.to_vec()))
+    anomalies_codees(o)
 }
 
 /// Les taux de PAS d'un compte rendu de nature 94 : `{"strategie", "releves"}`.
 pub fn taux_pas_d_octets(o: &[u8]) -> Result<Value, Echec> {
-    extraire_taux_pas(&Entree::Octets(o.to_vec()))
+    extraire_taux_pas(o)
 }
 
 /// Une fiche de parametrage d'un organisme complementaire.
 pub fn fiche_d_octets(o: &[u8]) -> Result<Value, Echec> {
-    fiche_parametrage(&Entree::Octets(o.to_vec()))
+    fiche_parametrage(o)
 }
 
 // --------------------------------------------- un rapport au format harmonise, lu pour l'Historique
@@ -2232,7 +2087,7 @@ pub fn membres_du_zip(o: &[u8]) -> Vec<String> {
 
 /// Le nombre de taux de PAS qu'un compte rendu de nature 94 communique (`extraire_taux_pas`, les quatre strategies).
 pub fn nombre_de_taux_pas(o: &[u8]) -> usize {
-    extraire_taux_pas(&Entree::Octets(o.to_vec())).ok().and_then(|v| v["releves"].as_array().map(Vec::len)).unwrap_or(0)
+    extraire_taux_pas(o).ok().and_then(|v| v["releves"].as_array().map(Vec::len)).unwrap_or(0)
 }
 
 // ------------------------------------------------ un compte rendu NEOReS, lu

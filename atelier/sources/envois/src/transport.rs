@@ -16,8 +16,6 @@ use std::time::Duration;
 use serde_json::{json, Map, Value};
 use ureq::http;
 
-use socle::base64::{ecrire as base64_ecrire, lire as base64_lire};
-
 pub const USER_AGENT: &str = "Client-DSN (PuppetPaie/1.0; PuppetPaie)";
 
 /// Les messages de l'API par statut HTTP (guide, section 8).
@@ -38,7 +36,7 @@ pub const MESSAGES: [(u16, &str); 7] = [
 ];
 
 const DELAI_APPEL: u64 = 60;
-const DELAI_DEPOT: u64 = 120;
+pub const DELAI_DEPOT: u64 = 120;
 const MAX_REDIRECTIONS: usize = 10;
 
 pub fn message_du_statut(code: u16) -> &'static str {
@@ -121,13 +119,8 @@ pub fn echapper(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }
 
-/// `_horodatage` : une chaine passe telle quelle ; sinon `AAAAMMJJhhmmss`
-/// depuis un instant ISO (`AAAA-MM-JJ[Thh:mm:ss...]`).
-pub fn horodatage(x: &Value) -> Result<String, String> {
-    if let Some(s) = x.as_str() {
-        return Ok(s.to_string());
-    }
-    let iso = x.get("iso").and_then(Value::as_str).ok_or("horodatage : une chaine ou {\"iso\": ...}")?;
+/// `AAAAMMJJhhmmss` depuis un instant ISO (`AAAA-MM-JJ[Thh:mm:ss...]`), la forme des plages de consultation.
+fn horodatage(iso: &str) -> Result<String, String> {
     let c: Vec<char> = iso.chars().collect();
     let chiffres = |a: usize, b: usize| -> Option<String> {
         let t: String = c.get(a..b)?.iter().collect();
@@ -266,7 +259,7 @@ pub fn gunzip(donnees: &[u8]) -> Result<Vec<u8>, Panne> {
 
 // ------------------------------------------------------------------- HTTP
 
-type Entetes = Vec<(String, String)>;
+pub type Entetes = Vec<(String, String)>;
 
 /// `Content-Type` -> `Content-Type`, comme un serveur les ecrit.
 fn nom_canonique(n: &str) -> String {
@@ -481,7 +474,7 @@ fn en_tetes_de(parts: &http::response::Parts) -> Entetes {
     v
 }
 
-fn entete<'a>(e: &'a Entetes, nom: &str) -> Option<&'a str> {
+pub fn entete<'a>(e: &'a Entetes, nom: &str) -> Option<&'a str> {
     e.iter().find(|(k, _)| k.eq_ignore_ascii_case(nom)).map(|(_, v)| v.as_str())
 }
 
@@ -586,33 +579,11 @@ fn meme_hote(a: &str, b: &str) -> bool {
     hote(a) == hote(b)
 }
 
-// ------------------------------------------------- les operations, une a une
+// ------------------------------------------------- l'API des organismes
 
 type Resultat = Result<Value, Value>;
 
-fn texte<'a>(d: &'a Value, cle: &str) -> Result<&'a str, Value> {
-    d.get(cle)
-        .and_then(Value::as_str)
-        .ok_or_else(|| echec("ValueError", format!("demande illisible : il faut `{}`", cle), None))
-}
-
-fn octets(d: &Value, cle: &str) -> Result<Option<Vec<u8>>, Value> {
-    match d.get(cle) {
-        None | Some(Value::Null) => Ok(None),
-        Some(Value::String(s)) => base64_lire(s).map(Some).map_err(|e| echec("ValueError", e, None)),
-        Some(_) => Err(echec("ValueError", format!("demande illisible : `{}` n'est pas du base64", cle), None)),
-    }
-}
-
-fn entetes_json(e: &Entetes) -> Value {
-    Value::Object(e.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect())
-}
-
-fn reponse(corps: &[u8], e: &Entetes) -> Value {
-    json!({"ok": true, "corps": base64_ecrire(corps), "entetes": entetes_json(e)})
-}
-
-/// `Client._appel` : la panne en `ErreurApi`.
+/// Une panne d'appel en `ErreurApi`.
 fn en_erreur_api(url: &str, p: Panne) -> Value {
     match p {
         Panne::Statut { code, corps } => {
@@ -629,35 +600,21 @@ fn en_erreur_api(url: &str, p: Panne) -> Value {
     }
 }
 
-/// `Client._appel` : GET, ou POST si des donnees sont fournies.
-fn appel(d: &Value) -> Resultat {
-    let url = texte(d, "url")?;
-    let donnees = octets(d, "donnees")?;
-    let r = Requete {
-        url,
-        jeton: d.get("jeton").and_then(Value::as_str),
-        donnees: donnees.as_deref(),
-        content_type: d.get("content_type").and_then(Value::as_str),
-        corps_gzip: false,
-        post: false,
-        delai: d.get("delai").and_then(Value::as_u64).unwrap_or(DELAI_APPEL),
-        ..Default::default()
-    };
-    envoyer(&r).map(|(c, e)| reponse(&c, &e)).map_err(|p| en_erreur_api(url, p))
+/// Un GET sous le jeton de la session : le corps et les en-tetes ; une panne en `ErreurApi`.
+pub fn appeler(url: &str, jeton: Option<&str>) -> Result<(Vec<u8>, Entetes), Value> {
+    let r = Requete { url, jeton, delai: DELAI_APPEL, ..Default::default() };
+    envoyer(&r).map_err(|p| en_erreur_api(url, p))
 }
 
-/// `Client._consulter` : l'adresse de base et la plage, puis `_appel`.
-fn consulter(d: &Value) -> Resultat {
-    let mut url = texte(d, "base")?.to_string();
-    url.push_str(&horodatage(d.get("debut").ok_or_else(|| echec("ValueError", "il faut `debut`".into(), None))?).map_err(|e| echec("ValueError", e, None))?);
-    if let Some(fin) = d.get("fin").filter(|f| !f.is_null()) {
+/// La consultation d'une plage : l'adresse de base, puis `debut[/fin]` en `AAAAMMJJhhmmss` (des instants ISO).
+pub fn consulter(base: &str, jeton: Option<&str>, debut: &str, fin: Option<&str>) -> Result<Vec<u8>, Value> {
+    let mut url = base.to_string();
+    url.push_str(&horodatage(debut).map_err(|e| echec("ValueError", e, None))?);
+    if let Some(fin) = fin {
         url.push('/');
         url.push_str(&horodatage(fin).map_err(|e| echec("ValueError", e, None))?);
     }
-    let mut d2 = d.clone();
-    d2["url"] = Value::String(url);
-    d2["donnees"] = Value::Null;
-    appel(&d2)
+    appeler(&url, jeton).map(|(corps, _)| corps)
 }
 
 /// L'identite du declarant inscrit au service DSN. Une fiche
@@ -697,17 +654,6 @@ pub struct Authentification<'a> {
     pub variable: &'a str,
     pub service: Option<&'a str>,
     pub jeton: Option<&'a str>,
-}
-
-fn authentifier_op(d: &Value) -> Resultat {
-    authentifier(&Authentification {
-        url: texte(d, "url")?,
-        declarant: d.get("declarant").unwrap_or(&Value::Null),
-        motdepasse: d.get("motdepasse").and_then(Value::as_str),
-        variable: d.get("variable").and_then(Value::as_str).unwrap_or("NET_ENTREPRISES_MOTDEPASSE"),
-        service: d.get("service").and_then(Value::as_str),
-        jeton: d.get("jeton").and_then(Value::as_str),
-    })
 }
 
 /// L'authentification du guide de l'API DSN : `{"ok", "jeton", "expire_le"}`. Sans mot de passe ou sans declarant
@@ -815,23 +761,7 @@ pub fn depot(url: &str, jeton: &str, corps_gzip: &[u8], forme: &str, delai: u64)
     })
 }
 
-fn depot_op(d: &Value) -> Resultat {
-    let url = texte(d, "url")?;
-    let jeton = d.get("jeton").map(en_texte).unwrap_or_else(|| "None".into());
-    let corps = octets(d, "corps")?.unwrap_or_default();
-    let forme = d.get("forme").and_then(Value::as_str).unwrap_or("dpae");
-    depot(url, &jeton, &corps, forme, d.get("delai").and_then(Value::as_u64).unwrap_or(DELAI_DEPOT)).map(|(c, e)| reponse(&c, &e))
-}
-
 // -------------------------------------------------------------- l'archivage
-
-fn racine(d: &Value) -> Result<PathBuf, Value> {
-    Ok(PathBuf::from(texte(d, "racine")?))
-}
-
-fn canal(d: &Value) -> &str {
-    d.get("canal").and_then(Value::as_str).unwrap_or("")
-}
 
 fn erreur_io(e: std::io::Error, chemin: &Path) -> Value {
     let classe = match e.kind() {
@@ -842,7 +772,7 @@ fn erreur_io(e: std::io::Error, chemin: &Path) -> Value {
     echec(classe, format!("{} : {}", errno_texte(&e), chemin.display()), None)
 }
 
-/// `dossier_archive` : `retours/` (la DSN) ou `retours/<canal>/`, cree.
+/// `retours/` (la DSN) ou `retours/<canal>/`, cree.
 pub fn dossier_archive(racine: &Path, canal: &str) -> Result<PathBuf, Value> {
     let mut p = racine.join("retours");
     if !canal.is_empty() {
@@ -852,15 +782,10 @@ pub fn dossier_archive(racine: &Path, canal: &str) -> Result<PathBuf, Value> {
     Ok(p)
 }
 
-fn chemin_texte(p: &Path) -> Value {
-    Value::String(p.to_string_lossy().into_owned())
-}
-
-/// `archiver` : la piece telle quelle, nommee `AAAAMMJJ-hhmmss_natureN_flux.ext`.
-fn archiver(d: &Value) -> Resultat {
-    let retour = d.get("retour").cloned().unwrap_or(Value::Null);
-    let contenu = octets(d, "contenu")?.unwrap_or_default();
-    let ctype = d.get("content_type").and_then(Value::as_str).unwrap_or("");
+/// La piece telle quelle, nommee `AAAAMMJJ-hhmmss_natureN_flux.ext` ; l'heure est celle de la publication, ou
+/// `maintenant` (`AAAAMMJJ-hhmmss`) quand le retour n'en porte pas. Une piece deja archivee sous ce nom n'est pas
+/// reecrite.
+pub fn archiver(racine: &Path, canal: &str, retour: &Value, contenu: &[u8], ctype: &str, maintenant: &str) -> Result<PathBuf, Value> {
     let ext = if ctype.contains("pdf") {
         ".pdf"
     } else {
@@ -884,7 +809,7 @@ fn archiver(d: &Value) -> Resultat {
         let c: Vec<char> = publication.chars().collect();
         format!("{}-{}", c[..8].iter().collect::<String>(), c[8..].iter().collect::<String>())
     } else {
-        texte(d, "maintenant")?.to_string()
+        maintenant.to_string()
     };
     let nature = match retour.get("nature") {
         None => "??".to_string(),
@@ -893,114 +818,59 @@ fn archiver(d: &Value) -> Resultat {
     let flux = chaine("flux")?;
     let flux = if flux.is_empty() { "sansflux".to_string() } else { debut(&flux, 24) };
     let nom = format!("{}_nature{}_{}{}", horo, nature, flux, ext);
-    let dossier = dossier_archive(&racine(d)?, canal(d))?;
-    let dest = dossier.join(nom);
+    let dest = dossier_archive(racine, canal)?.join(nom);
     if !dest.exists() {
-        std::fs::write(&dest, &contenu).map_err(|e| erreur_io(e, &dest))?;
+        std::fs::write(&dest, contenu).map_err(|e| erreur_io(e, &dest))?;
     }
-    Ok(json!({"ok": true, "chemin": chemin_texte(&dest)}))
+    Ok(dest)
 }
 
 fn journal(racine: &Path, canal: &str) -> Result<PathBuf, Value> {
     Ok(dossier_archive(racine, canal)?.join("journal.json"))
 }
 
-/// Le journal tel qu'il est sur le disque (absent : une liste vide).
-fn lire_journal(p: &Path) -> Result<Value, Value> {
+/// Les retours deja vus, tels que le journal du canal les garde (absent : aucun).
+fn lire_journal(p: &Path) -> Result<Vec<Value>, Value> {
     if !p.exists() {
-        return Ok(Value::Array(Vec::new()));
+        return Ok(Vec::new());
     }
     let t = std::fs::read(p).map_err(|e| erreur_io(e, p))?;
     let t = String::from_utf8(t).map_err(|e| echec("UnicodeDecodeError", e.to_string(), None))?;
-    serde_json::from_str::<Value>(&t).map_err(|e| echec("JSONDecodeError", e.to_string(), None))
+    match serde_json::from_str::<Value>(&t).map_err(|e| echec("JSONDecodeError", e.to_string(), None))? {
+        Value::Array(a) => Ok(a),
+        _ => Err(echec("TypeError", format!("{} n'est pas une liste de retours", p.display()), None)),
+    }
 }
 
+/// Ce qui distingue un retour : son flux, sa nature, sa publication.
 fn cle_de_retour(e: &Value) -> Result<[Value; 3], Value> {
     if !e.is_object() {
-        return Err(echec("AttributeError", "une ligne du journal n'est pas un objet".into(), None));
+        return Err(echec("TypeError", "une ligne du journal n'est pas un objet".into(), None));
     }
     Ok(["flux", "nature", "publication"].map(|c| e.get(c).cloned().unwrap_or(Value::Null)))
 }
 
-/// L'egalite entre deux valeurs d'une cle : `1 == 1.0 == true`.
-fn egal_py(a: &Value, b: &Value) -> bool {
-    let nombre = |v: &Value| match v {
-        Value::Number(n) => n.as_f64(),
-        Value::Bool(x) => Some(if *x { 1.0 } else { 0.0 }),
-        _ => None,
-    };
-    match (nombre(a), nombre(b)) {
-        (Some(x), Some(y)) => x == y,
-        _ => a == b,
-    }
-}
-
 fn meme_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
-    a.iter().zip(b).all(|(x, y)| egal_py(x, y))
+    a.iter().zip(b).all(|(x, y)| socle::valeur::valeurs_egales(x, y))
 }
 
-/// `{(flux, nature, publication) for e in journal}` : ce que l'on tolere
-/// d'un journal qui n'est pas une liste (`{}` ou `""` : rien a parcourir).
-fn cles_vues(journal: &Value) -> Result<Vec<[Value; 3]>, Value> {
-    match journal {
-        Value::Array(a) => a.iter().map(cle_de_retour).collect(),
-        Value::Object(o) if o.is_empty() => Ok(Vec::new()),
-        Value::String(t) if t.is_empty() => Ok(Vec::new()),
-        Value::Object(_) | Value::String(_) => Err(echec("AttributeError", "le journal n'est pas une liste de lignes".into(), None)),
-        _ => Err(echec("TypeError", "le journal n'est pas iterable".into(), None)),
-    }
-}
-
-/// `noter` : ajoute ce qui n'a pas ete vu ; LF, deux espaces, l'accent tel quel.
-fn noter(d: &Value) -> Resultat {
-    let p = journal(&racine(d)?, canal(d))?;
+/// Ajoute au journal du canal les retours qu'il n'a pas encore vus ; LF, deux espaces, l'accent tel quel.
+pub fn noter_vus(racine: &Path, canal: &str, entrees: &[Value]) -> Result<(), Value> {
+    let p = journal(racine, canal)?;
     let mut deja = lire_journal(&p)?;
-    let connus = cles_vues(&deja)?;
-    for e in d.get("entrees").and_then(Value::as_array).map(Vec::as_slice).unwrap_or(&[]) {
+    let connus: Vec<[Value; 3]> = deja.iter().map(cle_de_retour).collect::<Result<_, _>>()?;
+    for e in entrees {
         let cle = cle_de_retour(e)?;
         if !connus.iter().any(|c| meme_cle(c, &cle)) {
-            match &mut deja {
-                Value::Array(a) => a.push(e.clone()),
-                _ => return Err(echec("AttributeError", "le journal n'est pas une liste".into(), None)),
-            }
+            deja.push(e.clone());
         }
     }
     let mut t = serde_json::to_string_pretty(&deja).map_err(|e| echec("TypeError", e.to_string(), None))?;
     t.push('\n');
-    std::fs::write(&p, t).map_err(|e| erreur_io(e, &p))?;
-    Ok(json!({"ok": true}))
+    std::fs::write(&p, t).map_err(|e| erreur_io(e, &p))
 }
 
-fn deja_vus(d: &Value) -> Resultat {
-    let p = journal(&racine(d)?, canal(d))?;
-    let vus: Vec<Value> = cles_vues(&lire_journal(&p)?)?.into_iter().map(|k| Value::Array(k.to_vec())).collect();
-    Ok(json!({"ok": true, "vus": vus}))
+/// Les cles (flux, nature, publication) des retours deja vus sur le canal.
+pub fn deja_vus(racine: &Path, canal: &str) -> Result<Vec<[Value; 3]>, Value> {
+    lire_journal(&journal(racine, canal)?)?.iter().map(cle_de_retour).collect()
 }
-
-fn constantes() -> Value {
-    let messages: Map<String, Value> = MESSAGES.iter().map(|(c, m)| (c.to_string(), Value::String((*m).into()))).collect();
-    json!({"ok": true, "user_agent": USER_AGENT, "messages": messages, "delai": DELAI_APPEL, "delai_depot": DELAI_DEPOT})
-}
-
-/// Une operation du transport (`operation` dans la demande).
-pub fn operation(d: &Value) -> Resultat {
-    let op = d.get("operation").and_then(Value::as_str).ok_or_else(|| echec("ValueError", "demande illisible : il faut `operation`".into(), None))?;
-    match op {
-        "constantes" => Ok(constantes()),
-        "appel" => appel(d),
-        "consulter" => consulter(d),
-        "authentifier" => authentifier_op(d),
-        "depot" => depot_op(d),
-        "declarant" => Ok(json!({"ok": true, "declarant": declarant(d.get("entreprise").unwrap_or(&Value::Null))?})),
-        "dossier_archive" => Ok(json!({"ok": true, "chemin": chemin_texte(&dossier_archive(&racine(d)?, canal(d))?)})),
-        "journal" => Ok(json!({"ok": true, "chemin": chemin_texte(&journal(&racine(d)?, canal(d))?)})),
-        "archiver" => archiver(d),
-        "noter" => noter(d),
-        "deja_vus" => deja_vus(d),
-        "horodatage" => Ok(json!({"ok": true, "texte": horodatage(d.get("valeur").unwrap_or(&Value::Null)).map_err(|e| echec("ValueError", e, None))?})),
-        "echapper" => Ok(json!({"ok": true, "texte": echapper(texte(d, "texte")?)})),
-        "sans_secret" => Ok(json!({"ok": true, "texte": sans_secret(texte(d, "texte")?)})),
-        autre => Err(echec("ValueError", format!("operation inconnue : {}", autre), None)),
-    }
-}
-
