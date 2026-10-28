@@ -1,5 +1,4 @@
-//! Les aides des tests du droit : les oracles (communs aux trois crates), la copie figee des compagnies fictives, les
-//! donnees livrees.
+//! Les aides des tests du droit : les oracles (communs aux trois crates) et les donnees livrees.
 
 #![allow(dead_code)]
 
@@ -12,12 +11,6 @@ use serde_json::Value;
 #[path = "../../../socle/tests/outils/oracles.rs"]
 mod oracles;
 pub use oracles::*;
-
-/// La copie figee d'une compagnie fictive, celle de toutes les crates (`paie/tests/donnees/fictives/<nom>`), qu'aucun
-/// test n'ecrit.
-pub fn fictive(nom: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../paie/tests/donnees/fictives").join(nom)
-}
 
 /// Les donnees livrees (`logiciel/donnees`).
 pub fn code_livre() -> PathBuf {
