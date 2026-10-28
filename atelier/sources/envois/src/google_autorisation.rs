@@ -1,21 +1,19 @@
-//! L'autorisation du compte Google, SANS navigateur (`google.autoriser`, `moteur/google.py`) : le flux « application de bureau » avec
-//! PKCE. Ecrit au lot J2b (theme 3b), non prouve.
+//! L'autorisation du compte Google, SANS navigateur : le flux « application de bureau » avec PKCE.
 //!
 //! Le moteur ecoute sur `127.0.0.1`, port tire au hasard, affiche l'URL de la fenetre de consentement et attend que Google y renvoie
-//! le code. **Il n'ouvre aucun navigateur** : la fenetre de consentement est au lot J3b ; la personne ouvre l'URL elle-meme.
+//! le code. **Il n'ouvre aucun navigateur** : la personne ouvre l'URL elle-meme.
 //!
 //! - Le verificateur PKCE (64 octets aleatoires du systeme, base64 URL), le `state` (24 octets) ne sont ecrits nulle part et ne
-//!   sortent pas : seuls le defi (SHA-256 du verificateur) et le `state` figurent dans l'URL, comme en Python.
+//!   sortent pas : seuls le defi (SHA-256 du verificateur) et le `state` figurent dans l'URL.
 //! - Le jeton de rafraichissement va du corps de la reponse de Google a l'appelant (`JetonGoogle`), qui le scelle (`routes_google::sceller_le_jeton`,
 //!   cle du poste) sans passer par une sortie, un journal ni un message d'erreur ; le secret de l'application ne sert que dans
 //!   le corps du POST. Une phrase d'erreur ne cite jamais un jeton ni un code.
 //! - L'attente est un fil + `mpsc::recv_timeout` : jamais de `sleep`.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : le texte de l'erreur renvoyee par Google etait recopie sans echappement dans la page
-//! de retour (HTML injecte, au prix d'un `state` valide) ; une reponse sans `access_token`, un corps illisible, une adresse de compte
-//! vide, un code absent finissaient en trace d'appels ou en jeton sans compte : ici une phrase et rien d'ecrit. Les pannes de reseau
-//! que le Python laissait sortir brutes (delai depasse) sont une phrase.
-//! NON PORTE : l'abandon par Ctrl-C (« Abandon : aucune autorisation enregistree. ») -- le processus s'arrete, rien n'est ecrit.
+//! Le texte de l'erreur renvoyee par Google est echappe dans la page de retour (sinon : HTML injecte, au prix d'un `state` valide) ;
+//! une reponse sans `access_token`, un corps illisible, une adresse de compte vide, un code absent donnent une phrase et rien n'est
+//! ecrit. Les pannes de reseau (delai depasse) sont une phrase.
+//! L'abandon par Ctrl-C arrete le processus : rien n'est ecrit.
 
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -126,7 +124,7 @@ struct Retour {
 }
 
 /// Sert une connexion : `Some(retour)` quand c'est la reponse de Google (le `state` est le bon), `None` sinon (on continue d'attendre).
-/// Un `state` faux : 403, comme le Python. Une autre methode que GET : 501, comme `BaseHTTPRequestHandler`.
+/// Un `state` faux : 403. Une autre methode que GET : 501, comme `BaseHTTPRequestHandler`.
 fn servir(flux: &mut TcpStream, etat: &str) -> Option<Retour> {
     let _ = flux.set_read_timeout(Some(Duration::from_secs(5)));
     let mut tampon = [0u8; 8192];

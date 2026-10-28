@@ -1,4 +1,4 @@
-//! La preparation des depots, sans reseau (`moteur/dsn_api.py`, `moteur/dpae_api.py`).
+//! La preparation des depots, sans reseau.
 //!
 //! Ce que le fichier declare (`lire`), le passage en test en memoire
 //! (`basculer_dsn`, `renumeroter`, `basculer_dpae`), les garde-fous du depot
@@ -6,7 +6,7 @@
 //! test ne part jamais avec la nature `02` ni l'indicateur `120` : la bascule
 //! les remplace avant tout envoi, et `verifier` refuse un test demande sur un
 //! fichier reel comme un reel demande sur un fichier de test. Le transport
-//! reste au Python (`deposer`, `_appel_depot`).
+//! est ailleurs (`transport`).
 
 use serde_json::Value;
 
@@ -325,7 +325,7 @@ pub fn renumeroter(octets: &[u8], ordre: &str) -> Resultat<Vec<u8>> {
 
 // ----------------------------------------------------------------- verifier
 
-/// `str.strip()` de Python sur la confirmation recopiee.
+/// La confirmation recopiee, sans les blancs de part et d'autre.
 fn nettoye(s: &str) -> &str {
     strip(s)
 }
@@ -405,13 +405,13 @@ pub fn basculer_dpae(octets: &[u8], longueur: i64) -> Resultat<Vec<u8>> {
     Ok(sortie)
 }
 
-/// Un caractere que `repr` de Python ecrit en echappement : les controles, les
+/// Un caractere ecrit en echappement dans la forme citee d'un texte : les controles, les
 /// espaces insecables et les caracteres de format les plus courants.
 fn non_imprimable(c: char) -> bool {
     matches!(c as u32, 0..=0x1f | 0x7f..=0xa0 | 0xad | 0x61c | 0x1680 | 0x180e | 0x2000..=0x200f | 0x2028..=0x202f | 0x205f..=0x206f | 0x3000 | 0xe000..=0xf8ff | 0xfeff | 0xfff9..=0xfffb)
 }
 
-/// `repr(str)` de Python.
+/// Un texte cite entre guillemets, ses caracteres non imprimables echappes.
 fn repr_py(s: &str) -> String {
     let guillemet = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
     let mut out = String::from(guillemet);
@@ -448,9 +448,9 @@ fn type_python(v: &Value) -> &'static str {
     }
 }
 
-/// Ce que `ClientDpae.verifier_identifiants` controle sans rien lire d'ailleurs :
+/// Ce que le controle des identifiants DPAE verifie sans rien lire d'ailleurs :
 /// l'identite du declarant et ses accents. `arobase` : le mot de passe porte un
-/// `@` (il ne quitte pas le Python).
+/// `@`.
 pub fn identifiants(declarant: &Value, arobase: bool) -> Resultat<Vec<String>> {
     let mut soucis = Vec::new();
     let champ = |c: &str| declarant.get(c).filter(|v| vrai(v));

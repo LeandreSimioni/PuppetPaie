@@ -61,7 +61,7 @@ pub fn passagere(e: &ErreurGoogle) -> bool {
     }
 }
 
-/// Une erreur de l'API ou de la configuration, avec la classe d'exception que le Python levait
+/// Une erreur de l'API ou de la configuration, avec le nom de sa classe
 /// (`ErreurGoogle` pour ce qui est deja traduit en francais ; `CopieDeDeveloppement`,
 /// `FileNotFoundError`, `SortieAbsente`... pour le reste). La phrase est ecrite pour etre lue.
 #[derive(Debug, Clone, PartialEq)]
@@ -137,9 +137,9 @@ pub trait Drive {
     fn lister(&mut self, parent: &str) -> Result<BTreeMap<String, Distant>, ErreurGoogle>;
     /// `Client.televerser` : depose un fichier. `connu` : le fichier de meme nom que `lister` a trouve dans ce dossier ;
     /// s'il y en a un, son contenu est REMPLACE (`Depose::remplace`, meme identifiant, meme lien), sinon le fichier est
-    /// CREE. Le client ne cherche plus lui-meme (defauts 3 et 4 du Python : `_existant` cherchait par nom seul, un seul
-    /// resultat, dossiers compris, et le faisait meme quand `lister` venait de dire que le fichier n'existe pas) : la
-    /// decision est celle de `lister`, la meme que celle de la comparaison des empreintes.
+    /// CREE. Le client ne cherche pas lui-meme (une recherche par nom seul confondrait un dossier et un fichier, et
+    /// ne tiendrait pas compte de ce que `lister` vient de dire) : la decision est celle de `lister`, la meme que
+    /// celle de la comparaison des empreintes.
     /// Un fichier disparu entre-temps est une `FileNotFoundError`.
     fn televerser(&mut self, fichier: &Path, parent: &str, nom: Option<&str>, connu: Option<&Distant>) -> Result<Depose, ErreurGoogle>;
     /// Les SOUS-DOSSIERS d'un dossier, `(nom, identifiant)`, dans l'ordre ou Drive les rend, homonymes compris (la
@@ -362,14 +362,13 @@ impl Client {
 
 /// `nom.replace("'", "\\'")` : l'apostrophe se protege dans la requete `q`.
 ///
-/// Ecart assume avec le Python : la barre oblique inverse se protege AUSSI (`\\`), comme la
-/// syntaxe de `q` l'exige ; le Python ne protegeait que l'apostrophe, et un nom portant une barre
-/// oblique inverse donnait une requete que Drive refuse. Pour tout autre nom, la requete est la meme.
+/// La barre oblique inverse se protege AUSSI (`\\`), comme la syntaxe de `q` l'exige : sans cela, un nom
+/// qui en porte une donnerait une requete que Drive refuse.
 fn echapper(nom: &str) -> String {
     nom.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
-/// Le nom que Python donne au type d'une valeur JSON (`type(x).__name__`), pour les messages d'erreur.
+/// Le nom du type d'une valeur JSON (`NoneType`, `bool`, `int`, `float`, `str`, `list`, `dict`), pour les messages d'erreur.
 fn type_py(v: &Value) -> &'static str {
     match v {
         Value::Null => "NoneType",
@@ -382,7 +381,7 @@ fn type_py(v: &Value) -> &'static str {
     }
 }
 
-/// `x.get(...)` : `x` doit etre un objet JSON (`AttributeError` sinon, comme Python).
+/// `x.get(...)` : `x` doit etre un objet JSON (`AttributeError` sinon).
 fn en_dict(v: &Value) -> Result<&serde_json::Map<String, Value>, ErreurGoogle> {
     match v {
         Value::Object(o) => Ok(o),
@@ -401,7 +400,7 @@ fn texte_requis(v: &Value, cle: &str) -> Result<String, ErreurGoogle> {
     }
 }
 
-/// `r.get("files", [])` parcouru : les elements du listage. Les formes que Drive ne rend jamais levent ce que Python levait.
+/// `r.get("files", [])` parcouru : les elements du listage. Les formes que Drive ne rend jamais sont refusees.
 fn elements_de(r: &Value) -> Result<Vec<&Value>, ErreurGoogle> {
     let o = en_dict(r)?;
     match o.get("files") {
@@ -432,7 +431,7 @@ fn octets_de(t: &Value) -> Result<u64, ErreurGoogle> {
 }
 
 /// `trouves["files"][0]["id"]` si `strict`, sinon `(trouves.get("files") or [{}])[0].get("id")` : l'identifiant du
-/// premier fichier trouve, `None` s'il n'y en a pas. Les formes que Drive ne rend jamais levent ce que Python levait.
+/// premier fichier trouve, `None` s'il n'y en a pas. Les formes que Drive ne rend jamais sont refusees.
 fn premier_de(trouves: &Value, strict: bool) -> Result<Option<String>, ErreurGoogle> {
     let o = en_dict(trouves)?;
     let files = match o.get("files") {

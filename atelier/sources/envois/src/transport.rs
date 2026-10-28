@@ -47,7 +47,7 @@ pub fn message_du_statut(code: u16) -> &'static str {
 
 // ----------------------------------------------------------------- les pannes
 
-/// Ce qui peut mal tourner, dans les trois formes que le Python distinguait.
+/// Ce qui peut mal tourner, en trois formes.
 #[derive(Debug)]
 pub enum Panne {
     /// Un statut HTTP hors 2xx ; le corps, lu en entier (ou la panne de sa lecture).
@@ -89,7 +89,7 @@ fn echec_brut(p: Panne) -> Value {
     }
 }
 
-// ------------------------------------------------------- les petits outils Python
+// ------------------------------------------------------- les petits outils
 
 use socle::texte::blanc as blanc;
 
@@ -155,7 +155,7 @@ fn en_texte(v: &Value) -> String {
     }
 }
 
-/// Vrai pour ce que Python tient pour vrai (`if x`).
+/// Vrai pour une valeur presente et non vide (ni `null`, `false`, `0`, `""`, `[]`, `{}`).
 fn vrai(v: Option<&Value>) -> bool {
     match v {
         None | Some(Value::Null) | Some(Value::Bool(false)) => false,
@@ -169,7 +169,7 @@ fn vrai(v: Option<&Value>) -> bool {
 
 // ------------------------------------------------------------------- gzip
 
-/// `gzip.decompress` de Python 3.11 : les memes refus, sous les memes classes, dits en francais.
+/// Decompresse un corps gzip ; les refus (tronque, en-tete invalide, somme de controle) sont dits en francais.
 pub fn gunzip(donnees: &[u8]) -> Result<Vec<u8>, Panne> {
     let eof = || Panne::brute("EOFError", "réponse gzip tronquée");
     let mut sortie = Vec::new();
@@ -660,9 +660,9 @@ fn consulter(d: &Value) -> Resultat {
     appel(&d2)
 }
 
-/// `_declarant` : l'identite du declarant inscrit au service DSN. Une fiche
+/// L'identite du declarant inscrit au service DSN. Une fiche
 /// dont `declarant_dsn` n'est pas un objet, ou dont `nom_prenom` n'est pas un
-/// texte, leve `AttributeError` comme avant.
+/// texte, leve `AttributeError`.
 pub fn declarant(ent: &Value) -> Result<Value, Value> {
     if vrai(ent.get("declarant")) {
         return Ok(ent["declarant"].clone());
@@ -777,7 +777,7 @@ sur net-entreprises.fr (sans accent).",
 
 /// L'envoi du corps d'un depot (deja prepare : octets gzip) : POST `text/plain`,
 /// `Content-Encoding: gzip`, jeton DSNLogin. `forme` dit comment une panne se
-/// raconte, `dsn` (`DepotRefuse`) ou `dpae` (`ErreurApi`), comme avant.
+/// raconte, `dsn` (`DepotRefuse`) ou `dpae` (`ErreurApi`).
 pub fn depot(url: &str, jeton: &str, corps_gzip: &[u8], forme: &str, delai: u64) -> Result<(Vec<u8>, Entetes), Value> {
     let r = Requete {
         url,
@@ -922,7 +922,7 @@ fn cle_de_retour(e: &Value) -> Result<[Value; 3], Value> {
     Ok(["flux", "nature", "publication"].map(|c| e.get(c).cloned().unwrap_or(Value::Null)))
 }
 
-/// L'egalite de Python entre deux valeurs d'une cle : `1 == 1.0 == True`.
+/// L'egalite entre deux valeurs d'une cle : `1 == 1.0 == true`.
 fn egal_py(a: &Value, b: &Value) -> bool {
     let nombre = |v: &Value| match v {
         Value::Number(n) => n.as_f64(),
@@ -939,7 +939,7 @@ fn meme_cle(a: &[Value; 3], b: &[Value; 3]) -> bool {
     a.iter().zip(b).all(|(x, y)| egal_py(x, y))
 }
 
-/// `{(flux, nature, publication) for e in journal}` : ce que Python tolerait
+/// `{(flux, nature, publication) for e in journal}` : ce que l'on tolere
 /// d'un journal qui n'est pas une liste (`{}` ou `""` : rien a parcourir).
 fn cles_vues(journal: &Value) -> Result<Vec<[Value; 3]>, Value> {
     match journal {
