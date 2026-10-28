@@ -155,7 +155,7 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     let Value::Object(entreprise) = &mut contenu else {
         return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&contenu))));
     };
-    let mut cfg = match entreprise.get("api_dpae").filter(|v| vrai(v)) {
+    let mut cfg = match ctx.entreprise.get("api_dpae").filter(|v| vrai(v)) {
         Some(Value::Object(o)) => o.clone(),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(autre)))),
         None => serde_json::Map::new(),
@@ -163,11 +163,12 @@ fn coffre_compte_dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     for (cle, v) in propres {
         cfg.insert(cle.to_string(), Value::String(v));
     }
-    entreprise.insert("api_dpae".into(), Value::Object(cfg));
+    // Les identifiants du compte valent a partir du jour ou on les pose : ils servent aux DPAE a venir.
+    droit::contexte::dater(entreprise, "api_dpae", Value::Object(cfg), &ctx.aujourdhui, None);
     crate::routes_contrats::sauver_avant(&chemin)?;
     socle::ecriture::ecrire_json(&chemin, &contenu, 2).map_err(|m| erreur("OSError", m))?;
     // L'etat se lit sur la fiche qu'on vient d'ecrire : `ctx` l'a lue avant.
-    let relue = droit::contexte::telle_qu_au(&contenu, &ctx.date).map_err(Echec::from)?;
+    let relue = droit::contexte::fiche_au(&contenu, &ctx.aujourdhui, "config/entreprise.json").map_err(Echec::from)?;
     coffre_etat_de(&ctx.racine, &relue)
 }
 

@@ -241,14 +241,11 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
     // coche donc ici, sans la redemander : sans elle, la paie du mois suivant refuserait ce contrat
     // (`engagement::nature_de`), et ce qu'elle ouvre (les contrats de prevoyance et de sante des permanents) se
     // demande alors dans « Pour demarrer », comme pour toute compagnie qui la coche.
-    let pe = ctx.racine.join("config").join("entreprise.json");
-    let mut ent = crate::routes_etats::lire_json_ou_vide(&pe)?;
-    let permanents_declares = !droit::contexte::emploie_des_permanents(&ent);
+    let permanents_declares = !droit::contexte::emploie_des_permanents(&ctx.entreprise);
     if permanents_declares {
-        let o = ent.as_object_mut().ok_or_else(|| refus("config/entreprise.json n'est pas un objet : la case des permanents n'a pas été cochée."))?;
-        o.insert("emploie_des_permanents".into(), json!(true));
-        crate::routes_contrats::sauver_avant(&pe)?;
-        socle::ecriture::ecrire_json(&pe, &ent, 2).map_err(|m| erreur("OSError", m))?;
+        // A partir du premier jour que les bulletins repris paient.
+        let depuis = Jour::lire(&du).map_err(|m| refus(format!("{} : la case des permanents n'a pas ete cochee.", m)))?;
+        crate::routes_ecritures::poser_entreprise(ctx, "emploie_des_permanents", json!(true), Some(depuis))?;
     }
     Ok(json!({"ecrits": ecrits, "a_dire": a_dire(&ctx.racine), "permanents_declares": permanents_declares}))
 }

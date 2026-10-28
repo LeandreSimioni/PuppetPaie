@@ -234,6 +234,17 @@ fn lire_json(p: &Path) -> Option<Value> {
 }
 
 /// Le numero d'un salarie : son `code_salarie` (celui des bulletins), sinon son rang dans les fiches.
+/// La fiche datee, chaque champ a sa derniere valeur.
+fn derniere_valeur(datee: &Value) -> Value {
+    let mut out = serde_json::Map::new();
+    for (k, v) in datee.as_object().into_iter().flatten() {
+        if let Some(x) = droit::contexte::toutes_les_valeurs(Some(v)).last() {
+            out.insert(k.clone(), (*x).clone());
+        }
+    }
+    Value::Object(out)
+}
+
 fn numero_de(fiche: &Value, rang: usize) -> String {
     match fiche.get("code_salarie") {
         Some(Value::String(s)) if !s.trim().is_empty() => s.trim().to_string(),
@@ -269,13 +280,16 @@ fn construire(racine: &Path) -> Personnes {
         }
     };
     if let Some(Value::Object(fiches)) = lire_json(&racine.join("config").join("salaries.json")) {
-        for (rang, (cle, fiche)) in fiches.iter().filter(|(k, _)| !k.starts_with('_')).enumerate() {
+        for (rang, (cle, datee)) in fiches.iter().filter(|(k, _)| !k.starts_with('_')).enumerate() {
             let mut noms = vec![cle.clone()];
             for c in CHAMPS_QUI_NOMMENT {
-                if let Some(Value::String(s)) = fiche.get(c) {
-                    noms.push(s.clone());
+                for v in droit::contexte::toutes_les_valeurs(datee.get(c)) {
+                    if let Value::String(s) = v {
+                        noms.push(s.clone());
+                    }
                 }
             }
+            let fiche = &derniere_valeur(datee);
             // Le prenom et le nom ensemble, dans les deux ordres : « Fanchon Brioche » devient un seul « [salarie n°1] ».
             let texte = |c: &str| fiche.get(c).and_then(Value::as_str).unwrap_or("").trim().to_string();
             for (p, n) in [("prenom", "nom"), ("prenom_affichage", "nom_affichage"), ("prenom_affichage", "nom_usage")] {
@@ -291,8 +305,8 @@ fn construire(racine: &Path) -> Personnes {
     if let Some(e @ Value::Object(_)) = lire_json(&racine.join("config").join("entreprise.json")) {
         let mut noms = Vec::new();
         for c in CHAMPS_DE_LA_COMPAGNIE {
-            if let Some(Value::String(s)) = e.get(c) {
-                noms.push(s.clone());
+            for s in droit::contexte::toutes_les_valeurs(e.get(c)).into_iter().filter_map(Value::as_str) {
+                noms.push(s.to_string());
                 // « Le Fil tendu (démonstration) » : le nom sans sa parenthese aussi.
                 if let Some((avant, _)) = s.split_once(" (") {
                     noms.push(avant.to_string());

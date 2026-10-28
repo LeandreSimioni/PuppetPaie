@@ -450,7 +450,7 @@ annule-et-remplace (type 03)."
     f.add_v("S21.G00.30.004", req(&salarie, "prenom")?)?;
     f.add("S21.G00.30.006", d(req(&salarie, "date_naissance")?)?.jjmmaaaa());
     f.add_v("S21.G00.30.019", req(&salarie, "code_salarie")?)?;
-    crate::ntt::poser_ntt(&mut f, ent, &salarie, &jours(a, "dernier_jour_travaille")?)?;
+    crate::ntt::poser_ntt(&mut f, ent, &salarie, &crate::ntt::brute(ctx, &salarie), &jours(a, "dernier_jour_travaille")?)?;
 
     // -------------------------------------------------------- S21 contrat
     f.add("S21.G00.40.001", jours(a, "contrat_debut")?.jjmmaaaa());

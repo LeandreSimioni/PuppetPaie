@@ -140,17 +140,16 @@ pub fn ranger_les_fictives(inst: &Path) -> Option<String> {
     })
 }
 
+/// La fiche entreprise telle qu'elle vaut aujourd'hui ; vide si elle ne se lit pas (la tuile dit alors le dossier, et
+/// la compagnie, ouverte, dit pourquoi).
 fn fiche(racine: &Path) -> Value {
-    lire(&racine.join("config").join("entreprise.json")).filter(Value::is_object).unwrap_or_else(|| json!({}))
+    lire(&racine.join("config").join("entreprise.json"))
+        .and_then(|b| droit::contexte::fiche_au(&b, &droit::contexte::jour_reel(), "config/entreprise.json").ok())
+        .unwrap_or_else(|| json!({}))
 }
 
-/// Une valeur de fiche, datee ou non : la plus recente si c'est une liste de periodes.
 fn texte(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        Value::Array(a) => a.last().filter(|d| d.is_object()).map(|d| texte(&d["valeur"])).unwrap_or_default(),
-        _ => String::new(),
-    }
+    v.as_str().unwrap_or_default().to_string()
 }
 
 fn nom(racine: &Path) -> String {
@@ -389,12 +388,16 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     let mut ent = serde_json::Map::new();
     ent.insert("nom_affichage".into(), Value::String(nom.clone()));
     crate::routes_fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
-    ecrire(&cfg.join("entreprise.json"), &Value::Object(ent))?;
+    // LA PREMIERE VALEUR D'UNE COMPAGNIE NEUVE VAUT DEPUIS SA CREATION : toute sa configuration est datee
+    // (`contexte::fiche_au`), et ce jour est celui de `creation.json`.
+    // Le plus tot des deux jours (Paris, et celui du moteur, en UTC) : le contexte d'aujourd'hui la lit des sa creation.
+    let creation = socle::temps::jour_de_paris().min(droit::contexte::jour_reel());
+    ecrire(&cfg.join("entreprise.json"), &Value::Object(droit::contexte::fiche_datee(&ent, &creation)))?;
     ecrire(&cfg.join("salaries.json"), &json!({}))?;
     ecrire(&cfg.join("spectacles.json"), &json!({}))?;
     ecrire(
         &cfg.join(FICHIER_CREATION),
-        &json!({"le": socle::temps::jour_de_paris().iso(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant)."}),
+        &json!({"le": creation.iso(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant)."}),
     )?;
     if !bride {
         return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));

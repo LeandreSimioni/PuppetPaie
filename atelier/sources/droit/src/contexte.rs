@@ -147,40 +147,102 @@ pub fn archivee(fiche: &Value) -> bool {
     fiche.get("actif") == Some(&Value::Bool(false))
 }
 
-/// La fiche telle qu'elle etait a cette date. Chaque
-/// entree de `historique` dit : jusqu'au `jusqu_au` INCLUS, ce champ valait cela ;
-/// plusieurs fenetres sur un champ se lisent par `jusqu_au` croissant, la
-/// premiere qui couvre encore la date gagne.
-pub fn telle_qu_au(fiche: &Value, date_ref: &Jour) -> Resultat<Value> {
-    let hist = match fiche.get("historique") {
-        Some(h) if vrai(h) => h,
-        _ => return Ok(fiche.clone()),
+// ------------------------------------------------- la configuration datee
+
+/// LA CONFIGURATION DE LA COMPAGNIE EST DATEE, comme les baremes : chaque valeur d'une fiche (l'entreprise et sa
+/// convention, ses etablissements, un salarie, un spectacle) s'ecrit en liste datee `[{"depuis": "AAAA-MM-JJ",
+/// "valeur": ...}, ...]` et se lit a la date de la periode payee, jamais « telle qu'aujourd'hui » : une valeur changee
+/// a une date ne touche pas ce qui precede. Les cles `_...` sont des notes, sans date. Avant la premiere valeur d'un
+/// champ, la fiche ne disait rien : le champ est absent. Une valeur non datee se refuse (`non_datee`) : la date
+/// d'une valeur ne se devine pas.
+pub fn fiche_au(fiche: &Value, jour: &Jour, ou: &str) -> Resultat<Value> {
+    let o = fiche.as_object().ok_or_else(|| format!("{} : un objet JSON est attendu.", ou))?;
+    let mut out = Map::new();
+    for (k, v) in o {
+        if k.starts_with('_') {
+            out.insert(k.clone(), v.clone());
+            continue;
+        }
+        if !est_liste_datee(v) {
+            return Err(non_datee(ou, k));
+        }
+        if let Some(x) = valeur_au(v, jour)? {
+            out.insert(k.clone(), x.clone());
+        }
+    }
+    Ok(Value::Object(out))
+}
+
+/// Une fiche dont aucune valeur ne vaut encore a la date : elle n'existait pas.
+pub fn fiche_vide(fiche: &Value) -> bool {
+    fiche.as_object().map_or(true, |o| o.keys().all(|k| k.starts_with('_')))
+}
+
+/// Le refus d'une valeur de configuration non datee, et ce qu'il faut faire.
+pub fn non_datee(ou: &str, cle: &str) -> String {
+    format!(
+        "{}, `{}` : cette valeur n'est pas datee. La configuration de la compagnie se lit a la date de la periode payee : \
+chaque valeur s'ecrit [{{\"depuis\": \"AAAA-MM-JJ\", \"valeur\": ...}}], comme les baremes. Une compagnie ecrite a \
+l'ancienne forme ne se lit plus : l'ajouter a nouveau (Ajouter une compagnie) et ressaisir ses fiches, ou dater chaque \
+valeur de ce fichier a la main.",
+        ou, cle
+    )
+}
+
+/// Les valeurs d'un champ d'une fiche datee, du plus ancien `depuis` au plus recent. Un champ absent : aucune.
+pub fn valeurs_datees<'a>(fiche: &'a Value, champ: &str) -> Resultat<Vec<(Jour, &'a Value)>> {
+    let Some(v) = fiche.get(champ) else { return Ok(Vec::new()) };
+    if !est_liste_datee(v) {
+        return Err(non_datee("fiche", champ));
+    }
+    let mut out = Vec::new();
+    for e in v.as_array().into_iter().flatten() {
+        out.push((d(&e["depuis"])?, &e["valeur"]));
+    }
+    out.sort_by_key(|(j, _)| *j); // stable : a meme date, la derniere ecrite gagne
+    Ok(out)
+}
+
+/// Toutes les valeurs qu'un champ a portees (une liste datee), ou la valeur telle quelle : pour les gardes qui cherchent
+/// dans une fiche tout ce qui nomme une personne, a quelque date que ce soit.
+pub fn toutes_les_valeurs(v: Option<&Value>) -> Vec<&Value> {
+    match v {
+        Some(l) if est_liste_datee(l) => l.as_array().into_iter().flatten().map(|e| &e["valeur"]).collect(),
+        Some(x) => vec![x],
+        None => Vec::new(),
+    }
+}
+
+/// ECRIRE UNE VALEUR DATEE : `valeur` vaut pour `champ` a partir de `depuis` ; ce qui precede reste ce qu'il etait. Une
+/// valeur deja ecrite au meme jour est remplacee (une correction du meme jour d'effet). `note` dit pourquoi.
+pub fn dater(fiche: &mut Map<String, Value>, champ: &str, valeur: Value, depuis: &Jour, note: Option<&str>) {
+    let mut liste: Vec<Value> = match fiche.get(champ) {
+        Some(v) if est_liste_datee(v) => v.as_array().cloned().unwrap_or_default(),
+        _ => Vec::new(),
     };
-    let entrees = hist.as_array().ok_or_else(|| "historique : une liste est attendue".to_string())?;
-    let mut sortie = fiche.clone();
-    let mut champs: Vec<&str> = Vec::new();
-    for e in entrees {
-        let c = exiger(e, "champ")?;
-        let c = c.as_str().ok_or_else(|| format!("historique, 'champ' : {}", socle::fichiers::attendu("un texte", socle::valeur::nom_type(c))))?;
-        if !champs.contains(&c) {
-            champs.push(c);
+    liste.retain(|e| d(&e["depuis"]).map_or(true, |j| j != *depuis));
+    let mut e = Map::new();
+    e.insert("depuis".into(), Value::String(depuis.iso()));
+    e.insert("valeur".into(), valeur);
+    if let Some(n) = note.filter(|n| !n.trim().is_empty()) {
+        e.insert("note".into(), Value::String(n.trim().to_string()));
+    }
+    liste.push(Value::Object(e));
+    liste.sort_by_key(|e| en_texte(&e["depuis"]));
+    fiche.insert(champ.to_string(), Value::Array(liste));
+}
+
+/// Une fiche neuve, chaque valeur de `plate` ecrite a partir de `depuis` (les notes `_...` telles quelles).
+pub fn fiche_datee(plate: &Map<String, Value>, depuis: &Jour) -> Map<String, Value> {
+    let mut out = Map::new();
+    for (k, v) in plate {
+        if k.starts_with('_') {
+            out.insert(k.clone(), v.clone());
+        } else {
+            dater(&mut out, k, v.clone(), depuis, None);
         }
     }
-    for champ in champs {
-        let mut fenetres: Vec<(Jour, &Value)> = Vec::new();
-        for e in entrees.iter().filter(|e| e.get("champ").and_then(Value::as_str) == Some(champ)) {
-            fenetres.push((d(exiger(e, "jusqu_au")?)?, e));
-        }
-        fenetres.sort_by_key(|(j, _)| *j); // stable, comme `sorted`
-        for (jusqu_au, e) in fenetres {
-            if *date_ref <= jusqu_au {
-                let valeur = exiger(e, "valeur")?.clone();
-                sortie.as_object_mut().ok_or_else(|| "fiche : un objet est attendu".to_string())?.insert(champ.to_string(), valeur);
-                break;
-            }
-        }
-    }
-    Ok(sortie)
+    out
 }
 
 // ------------------------------------------------ l'effectif
@@ -1003,10 +1065,9 @@ fn controler(bareme: &Value, fiche: &Value, eff: &Effectif, ou: &str) -> Resulta
     controler_organisation_patronale(bareme, fiche)?;
     controler_effectif(bareme, eff, ou)
 }
-
 // ----------------------------------------------------- les listes datees
 
-/// Une liste datee : `[{depuis, valeur}, ...]`.
+/// Une liste datee : `[{depuis, valeur}, ...]`. La forme des baremes et de toute la configuration de la compagnie.
 fn est_liste_datee(v: &Value) -> bool {
     match v {
         Value::Array(a) => {
@@ -1014,6 +1075,20 @@ fn est_liste_datee(v: &Value) -> bool {
         }
         _ => false,
     }
+}
+
+/// LA LECTURE D'UNE LISTE DATEE, pour les baremes comme pour la configuration : la valeur dont le `depuis` est le plus
+/// recent sans depasser `jour` (a meme date, la derniere ecrite) ; `None` avant la premiere.
+fn valeur_au<'a>(liste: &'a Value, jour: &Jour) -> Resultat<Option<&'a Value>> {
+    let mut entrees: Vec<&Value> = liste.as_array().into_iter().flatten().collect();
+    entrees.sort_by_key(|e| en_texte(&e["depuis"]));
+    let mut retenu = None;
+    for e in entrees {
+        if d(&e["depuis"])? <= *jour {
+            retenu = Some(&e["valeur"]);
+        }
+    }
+    Ok(retenu)
 }
 
 /// Remplace chaque liste datee `[{depuis, valeur}]` par
@@ -1028,21 +1103,16 @@ fn a_la_date(obj: &Value, jour: &Jour, garder: &[&str]) -> Resultat<Value> {
         return Ok(Value::Object(out));
     }
     if est_liste_datee(obj) {
-        let mut entrees: Vec<&Value> = obj.as_array().unwrap().iter().collect();
-        entrees.sort_by_key(|e| en_texte(&e["depuis"]));
-        let mut retenu = None;
-        for e in entrees {
-            if d(&e["depuis"])? <= *jour {
-                retenu = Some(e["valeur"].clone());
-            }
-        }
-        return retenu.ok_or_else(|| format!("Bareme : aucune valeur applicable au {} dans {}.", jour.iso(), forme_ecrite(obj)));
+        return valeur_au(obj, jour)?
+            .cloned()
+            .ok_or_else(|| format!("Bareme : aucune valeur applicable au {} dans {}.", jour.iso(), forme_ecrite(obj)));
     }
     if let Value::Array(a) = obj {
         return Ok(Value::Array(a.iter().map(|v| a_la_date(v, jour, garder)).collect::<Resultat<Vec<_>>>()?));
     }
     Ok(obj.clone())
 }
+
 
 // --------------------------------------------------------------- le Contexte
 
@@ -1084,24 +1154,41 @@ pub fn emploie_des_permanents(entreprise: &Value) -> bool {
     entreprise.get("emploie_des_permanents") == Some(&Value::Bool(true))
 }
 
-/// Les donnees de la compagnie, lues une fois.
+/// Les donnees de la compagnie, lues une fois, et resolues a une date (`lue_au`).
 #[derive(Debug, Clone)]
 pub struct Contexte {
     pub racine: PathBuf,
     /// `logiciel/donnees` : le socle des baremes est dans `code/baremes/`.
     pub code: PathBuf,
-    /// A quelle date on LIT les fiches (`telle_qu_au`) : la date de la declaration.
+    /// Le jour de la declaration (celui ou l'on demande si un taux de PAS vaut encore).
     pub date: Jour,
+    /// La date a laquelle la configuration est lue : `date`, ou la periode payee (`au`).
+    pub lue_au: Jour,
     /// Quel jour on est, pour les gardes du calendrier (distinct de `date`).
     pub aujourdhui: Jour,
-    /// La fiche entreprise a `date`.
+    /// La fiche entreprise a `lue_au`.
     pub entreprise: Value,
     entreprise_brute: Value,
+    /// Les fiches salaries a `lue_au` (celles qui existaient ce jour-la).
     pub salaries: Map<String, Value>,
-    /// Les fiches salaries telles qu'ecrites, avant `telle_qu_au` : un contrat paye au mois relit sa fiche a la date
-    /// du mois paye (`emplois::emploi_du_mois`), qui peut tomber apres `date` (un mois produit avant sa fin).
+    /// Les fiches telles qu'ecrites, datees : une periode se lit a sa date (`salarie_au`, `au`).
     salaries_bruts: Map<String, Value>,
     pub spectacles: Map<String, Value>,
+    spectacles_bruts: Map<String, Value>,
+}
+
+const ENTREPRISE: &str = "config/entreprise.json";
+
+/// Les fiches d'un fichier (`salaries.json`, `spectacles.json`) a `jour` : celles qui existaient ce jour-la.
+fn fiches_au(bruts: &Map<String, Value>, jour: &Jour, fichier: &str) -> Resultat<Map<String, Value>> {
+    let mut out = Map::new();
+    for (k, v) in bruts {
+        let f = fiche_au(v, jour, &format!("config/{}, {}", fichier, k))?;
+        if !fiche_vide(&f) {
+            out.insert(k.clone(), f);
+        }
+    }
+    Ok(out)
 }
 
 impl Contexte {
@@ -1110,30 +1197,68 @@ impl Contexte {
         let date = date.unwrap_or_else(jour_reel);
         let aujourdhui = aujourdhui_brut()?;
         let cfg = racine.join("config");
-        let brute = lire_json(&cfg.join("entreprise.json"))?;
-        let entreprise = telle_qu_au(&brute, &date)?;
-        let fiches = |nom: &str| -> Resultat<(Map<String, Value>, Map<String, Value>)> {
-            let (mut out, mut bruts) = (Map::new(), Map::new());
-            for (k, v) in objet(lire_json(&cfg.join(nom))?, nom)? {
-                if !k.starts_with('_') {
-                    out.insert(k.clone(), telle_qu_au(&v, &date)?);
-                    bruts.insert(k, v);
-                }
-            }
-            Ok((out, bruts))
+        let entreprise_brute = lire_json(&cfg.join("entreprise.json"))?;
+        let bruts = |nom: &str| -> Resultat<Map<String, Value>> {
+            Ok(objet(lire_json(&cfg.join(nom))?, nom)?.into_iter().filter(|(k, _)| !k.starts_with('_')).collect())
         };
-        let (salaries, salaries_bruts) = fiches("salaries.json")?;
+        let (salaries_bruts, spectacles_bruts) = (bruts("salaries.json")?, bruts("spectacles.json")?);
         Ok(Contexte {
             racine: racine.to_path_buf(),
             code: dossier_du_code(),
             date,
+            lue_au: date,
             aujourdhui,
-            entreprise,
-            entreprise_brute: brute,
-            salaries,
+            entreprise: fiche_au(&entreprise_brute, &date, ENTREPRISE)?,
+            entreprise_brute,
+            salaries: fiches_au(&salaries_bruts, &date, "salaries.json")?,
             salaries_bruts,
-            spectacles: fiches("spectacles.json")?.0,
+            spectacles: fiches_au(&spectacles_bruts, &date, "spectacles.json")?,
+            spectacles_bruts,
         })
+    }
+
+    /// LE CONTEXTE D'UNE PERIODE : la meme compagnie, sa configuration lue a `jour` (la fin de la periode payee). Le
+    /// calcul d'une paie, la DSN d'un mois et leurs documents lisent tout par lui, jamais « tel qu'aujourd'hui ».
+    pub fn au(&self, jour: &Jour) -> Resultat<Contexte> {
+        if *jour == self.lue_au {
+            return Ok(self.clone());
+        }
+        Ok(Contexte {
+            lue_au: *jour,
+            entreprise: fiche_au(&self.entreprise_brute, jour, ENTREPRISE)?,
+            salaries: fiches_au(&self.salaries_bruts, jour, "salaries.json")?,
+            spectacles: fiches_au(&self.spectacles_bruts, jour, "spectacles.json")?,
+            ..self.clone()
+        })
+    }
+
+    /// Le contexte du mois `AAAA-MM` : sa configuration lue au dernier jour du mois.
+    pub fn du_mois(&self, mois: &str) -> Resultat<Contexte> {
+        self.au(&socle::date::dernier_du_mois(mois)?)
+    }
+
+    /// La fiche entreprise a `jour`.
+    pub fn entreprise_au(&self, jour: &Jour) -> Resultat<Value> {
+        if *jour == self.lue_au {
+            return Ok(self.entreprise.clone());
+        }
+        fiche_au(&self.entreprise_brute, jour, ENTREPRISE)
+    }
+
+    /// La fiche salarie `cle` a `jour`, avec `_cle`. Refus : la fiche ne dit rien ce jour-la.
+    pub fn salarie_au(&self, cle: &str, jour: &Jour) -> Resultat<Value> {
+        let brute = self.salaries_bruts.get(cle).ok_or_else(|| format!("Salarie inconnu : {}.", repr_texte(cle)))?;
+        let mut f = fiche_au(brute, jour, &format!("config/salaries.json, {}", cle))?;
+        if fiche_vide(&f) {
+            return Err(format!(
+                "La fiche de {} ne dit rien au {} : sa premiere valeur est posterieure. Dater sa fiche a partir de ce jour \
+(Configuration, « a partir du »).",
+                cle,
+                jour.jj_mm_aaaa()
+            ));
+        }
+        f.as_object_mut().map(|o| o.insert("_cle".into(), Value::String(cle.to_string())));
+        Ok(f)
     }
 
     /// Les cles des salaries qu'on peut encore embaucher (les archives restent dans `salaries`).
@@ -1190,43 +1315,46 @@ impl Contexte {
         ent
     }
 
-    /// Le socle livre + la surcouche de la compagnie,
-    /// confrontes aux faits d'entreprise de la fiche. Les listes datees restent des listes.
-    /// Ce dont depend le bareme d'une annee : la compagnie, sa fiche, et la
-    /// signature (date, taille) des fichiers qui le composent.
-    pub fn empreinte_bareme(&self, an: i32) -> String {
+    /// Ce dont depend le bareme lu a `jour` : la compagnie, sa fiche entreprise a ce jour, et la signature (date, taille)
+    /// des fichiers qui le composent.
+    pub fn empreinte_bareme(&self, jour: &Jour) -> Resultat<String> {
+        Ok(self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)?))
+    }
+
+    fn empreinte_bareme_de(&self, an: i32, ent: &Value) -> String {
         let cfg = self.racine.join("config");
         let sig = [
             socle::fichiers::signature(&cfg.join("baremes").join(format!("{}.json", an))),
             socle::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", an))),
             socle::fichiers::signature(&cfg.join("effectifs.json")),
         ];
-        format!("{}|{}|{}|{:?}|{}|g{}", self.racine.display(), self.code.display(), an, sig, self.entreprise, socle::fichiers::generation())
+        format!("{}|{}|{}|{:?}|{}|g{}", self.racine.display(), self.code.display(), an, sig, ent, socle::fichiers::generation())
     }
 
-    fn bareme_brut(&self, an: i32) -> Result<Arc<Value>, Refus> {
-        // Garde tant que les fichiers (et la fiche,
-        // qu'un clone du contexte peut changer) sont les memes. Un refus ne se
-        // garde pas.
+    /// Le socle livre + la couche de la convention que la fiche `ent` nomme + la surcouche de la compagnie, confrontes
+    /// aux faits d'entreprise de cette fiche. Les listes datees restent des listes. `ent` est la fiche entreprise au
+    /// jour lu : une compagnie qui change de convention en cours d'annee lit chaque jour sous la sienne.
+    fn bareme_brut(&self, an: i32, ent: &Value) -> Result<Arc<Value>, Refus> {
+        // Garde tant que les fichiers et la fiche sont les memes. Un refus ne se garde pas.
         type Cache = Mutex<HashMap<String, Arc<Value>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-        let cle = self.empreinte_bareme(an);
+        let cle = self.empreinte_bareme_de(an, ent);
         if let Some(v) = cache.lock().unwrap().get(&cle) {
             return Ok(v.clone());
         }
-        let fondu = Arc::new(self.bareme_brut_sans_cache(an)?);
+        let fondu = Arc::new(self.bareme_brut_sans_cache(an, ent)?);
         socle::fichiers::ranger(cache, cle, fondu.clone());
         Ok(fondu)
     }
 
-    fn bareme_brut_sans_cache(&self, an: i32) -> Result<Value, Refus> {
+    fn bareme_brut_sans_cache(&self, an: i32, ent: &Value) -> Result<Value, Refus> {
         let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
         let fichier = if socle::fichiers::existe(&p) { Some(lire_json(&p)?) } else { None };
-        let idcc = self.entreprise.get("idcc").filter(|v| !v.is_null());
+        let idcc = ent.get("idcc").filter(|v| !v.is_null());
         let fondu = bareme_de_l_annee(&self.code.join("baremes"), an, fichier, idcc)?;
         // Le controle est ici, le seul endroit qui compose un bareme.
-        controler(&fondu, &self.entreprise, &self.effectif()?, &format!("config/baremes/{}.json", an))?;
+        controler(&fondu, ent, &effectif_de(&self.racine, ent)?, &format!("config/baremes/{}.json", an))?;
         Ok(fondu)
     }
 
@@ -1257,7 +1385,7 @@ impl Contexte {
                 _ => Ok(()),
             }
         }
-        let brut = self.bareme_brut(jour.an).map_err(|r| r.message)?;
+        let brut = self.bareme_brut(jour.an, &self.entreprise_au(jour)?).map_err(|r| r.message)?;
         let mut out = Vec::new();
         parcourir(&brut, jour, &mut out)?;
         out.sort();
@@ -1275,7 +1403,7 @@ impl Contexte {
         type Cache = Mutex<HashMap<String, Arc<Value>>>;
         static CACHE: OnceLock<Cache> = OnceLock::new();
         let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-        let cle = format!("{}|{}", self.empreinte_bareme(jour.an), jour.iso());
+        let cle = format!("{}|{}", self.empreinte_bareme_de(jour.an, &self.entreprise_au(jour)?), jour.iso());
         if let Some(v) = cache.lock().unwrap().get(&cle) {
             return Ok(v.clone());
         }
@@ -1285,15 +1413,15 @@ impl Contexte {
     }
 
     fn bareme_sans_cache(&self, jour: &Jour) -> Resultat<Value> {
-        let brut = self.bareme_brut(jour.an).map_err(|r| r.message)?;
+        let ent = &self.entreprise_au(jour)?;
+        let brut = self.bareme_brut(jour.an, ent).map_err(|r| r.message)?;
         let mut bar = objet(a_la_date(&brut, jour, &["smic_horaire"])?, "bareme")?;
-        let ent = &self.entreprise;
         let ou_vide = |cle: &str, vide: Value| match ent.get(cle) {
             Some(v) if vrai(v) => v.clone(),
             _ => vide,
         };
         let copie = |cle: &str| ent.get(cle).cloned().unwrap_or(Value::Null);
-        let effectif = match self.effectif()?.valeur(jour.an) {
+        let effectif = match effectif_de(&self.racine, ent)?.valeur(jour.an) {
             Some(x) => serde_json::Number::from_f64(x).map_or(Value::Null, Value::Number),
             None => Value::Null,
         };
@@ -1336,7 +1464,7 @@ impl Contexte {
 
     /// (PSS mensuel, PSS horaire) de l'annee.
     pub fn plafond_securite_sociale(&self, annee: i32) -> Resultat<(i64, i64)> {
-        let brut = match self.bareme_brut(annee) {
+        let brut = match self.bareme_brut(annee, &self.entreprise) {
             Ok(b) => b,
             Err(r) if r.introuvable => {
                 return Err(format!(
@@ -1366,7 +1494,7 @@ PSS_H_METROP).",
     /// Le SMIC horaire applicable a la date (le bareme liste
     /// les revalorisations ; la derniere dont `depuis <= date` gagne).
     pub fn smic(&self, jour: &Jour) -> Resultat<f64> {
-        let brut = self.bareme_brut(jour.an).map_err(|r| r.message)?;
+        let brut = self.bareme_brut(jour.an, &self.entreprise_au(jour)?).map_err(|r| r.message)?;
         let liste = exiger(&brut, "smic_horaire")?.as_array().ok_or_else(|| "smic_horaire : une liste est attendue".to_string())?;
         let mut entrees: Vec<&Value> = liste.iter().collect();
         for e in &entrees {
@@ -1385,45 +1513,34 @@ PSS_H_METROP).",
         }
     }
 
-    /// La fiche entreprise d'un mois `AAAA-MM` telle que les documents la lisent : la licence resolue au premier du
-    /// mois (`licence`), et les gabarits de cette compagnie (`_gabarits`).
+    /// La fiche entreprise d'un mois `AAAA-MM` telle que les documents la lisent : lue au dernier jour du mois, avec les
+    /// gabarits de cette compagnie (`_gabarits`).
     pub fn entreprise_du_mois(&self, mois: &str) -> Resultat<Value> {
-        let licence = self.licence(&socle::date::premier_du_mois(mois)?)?;
-        let mut ent = self.entreprise.clone();
+        let mut ent = self.entreprise_au(&socle::date::dernier_du_mois(mois)?)?;
         if let Value::Object(m) = &mut ent {
-            m.insert("licence_spectacle".into(), Value::String(licence));
             m.insert("_gabarits".into(), Value::String(self.gabarits().to_string_lossy().into_owned()));
         }
         Ok(ent)
     }
 
-    /// Le numero de licence applicable a la date, relu dans
-    /// la fiche entreprise `telle_qu_au` ce jour-la. Une ancienne liste datee
-    /// `{depuis, numero}` reste acceptee.
+    /// Le numero de licence de la fiche entreprise a la date (vide : pas de licence).
     pub fn licence(&self, jour: &Jour) -> Resultat<String> {
-        let fiche = telle_qu_au(&self.entreprise_brute, jour)?;
-        match fiche.get("licence_spectacle") {
-            Some(Value::Array(liste)) => {
-                let mut entrees: Vec<&Value> = liste.iter().collect();
-                entrees.sort_by_key(|e| e.get("depuis").map_or_else(String::new, en_texte));
-                let mut retenu = None;
-                for e in entrees {
-                    if d(exiger(e, "depuis")?)? <= *jour {
-                        retenu = Some(en_texte(exiger(e, "numero")?));
-                    }
-                }
-                retenu.ok_or_else(|| {
-                    format!("Aucun numero de licence applicable au {}. Completer config/entreprise.json.", jour.iso())
-                })
-            }
-            Some(v) if vrai(v) => Ok(en_texte(v)),
-            _ => Ok(String::new()),
-        }
+        Ok(self.entreprise_au(jour)?.get("licence_spectacle").filter(|v| vrai(v)).map(en_texte).unwrap_or_default())
     }
 
-    /// La fiche salarie `cle` telle qu'ecrite (sans `telle_qu_au`), `None` si la cle est inconnue.
+    /// La fiche entreprise telle qu'ecrite, datee.
+    pub fn entreprise_brute(&self) -> &Value {
+        &self.entreprise_brute
+    }
+
+    /// La fiche salarie `cle` telle qu'ecrite, datee, `None` si la cle est inconnue.
     pub fn salarie_brut(&self, cle: &str) -> Option<&Value> {
         self.salaries_bruts.get(cle)
+    }
+
+    /// La fiche spectacle `cle` telle qu'ecrite, datee, `None` si la cle est inconnue.
+    pub fn spectacle_brut(&self, cle: &str) -> Option<&Value> {
+        self.spectacles_bruts.get(cle)
     }
 
     // -------------------------------------------------------------- recherche

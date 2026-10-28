@@ -145,13 +145,11 @@ fn ddmmaaaa(v: &str) -> Option<Jour> {
     Jour::lire(&format!("{}-{}-{}", s(4, 8), s(2, 4), s(0, 2))).ok()
 }
 
-/// Les lendemains des fenetres de l'historique d'une fiche pour ces champs : les jours ou ils ont change.
-fn changements_dates(fiche: &Value, champs: &[&str]) -> Resultat<Vec<(Jour, String)>> {
+/// Les jours ou ces champs de la fiche datee `brute` ont change : le `depuis` de chaque valeur qui en suit une autre.
+fn changements_dates(brute: &Value, champs: &[&str]) -> Resultat<Vec<(Jour, String)>> {
     let mut out = Vec::new();
-    for e in fiche.get("historique").and_then(Value::as_array).into_iter().flatten() {
-        let Some(c) = e.get("champ").and_then(Value::as_str).filter(|c| champs.contains(c)) else { continue };
-        let Some(j) = e.get("jusqu_au").and_then(Value::as_str) else { continue };
-        out.push((Jour::lire(j)?.plus_jours(1)?, c.to_string()));
+    for c in champs {
+        out.extend(droit::contexte::valeurs_datees(brute, c)?.into_iter().skip(1).map(|(j, _)| (j, c.to_string())));
     }
     Ok(out)
 }
@@ -184,10 +182,10 @@ fn date_du_changement(ctx: &Contexte, p: &Paie, md: &Modalite, decl: &Declare, m
             candidats.push((j, "la date de modification de la saisie du mois (`date_modification`)".into()));
         }
     }
-    for (j, c) in changements_dates(&p.salarie, md.fiche)? {
+    for (j, c) in changements_dates(&crate::ntt::brute(ctx, &p.salarie), md.fiche)? {
         candidats.push((j, format!("la fiche du salarie (`{}`)", c)));
     }
-    for (j, c) in changements_dates(&ctx.entreprise, md.entreprise)? {
+    for (j, c) in changements_dates(ctx.entreprise_brute(), md.entreprise)? {
         candidats.push((j, format!("la fiche entreprise (`{}`)", c)));
     }
     if md.annuelle && decl.mois[..4] < mois[..4] {
@@ -334,7 +332,7 @@ p. 217).",
     // la mutation (« la datation precise du changement de SIRET est impactante », p. 21).
     if decl.nic != nics[0] {
         let fin_b = dernier_du_mois(&decl.mois)?;
-        let mut dates: Vec<Jour> = changements_dates(&p.salarie, &["etablissement"])?
+        let mut dates: Vec<Jour> = changements_dates(&crate::ntt::brute(ctx, &p.salarie), &["etablissement"])?
             .into_iter()
             .map(|(j, _)| j)
             .filter(|j| *j > fin_b && *j <= fin_m)

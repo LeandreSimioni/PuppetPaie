@@ -6,7 +6,7 @@
 
 use crate::outils::{fictive, lire_oracle, oracle, sceller};
 use droit::bareme::{bareme_applique, canon};
-use droit::contexte::{telle_qu_au, Contexte};
+use droit::contexte::Contexte;
 use droit::natures::nature;
 use socle::date::Jour;
 use droit::emplois::{emploi_de, EmploiEngagement};
@@ -87,8 +87,7 @@ fn la_pile_de_bareme() {
         if let Some(cadre) = c["cadre"].as_str() {
             sal["statut_categoriel_rc"] = Value::String(if cadre == "oui" { "01" } else { "04" }.into());
         }
-        let tqa = |f: &Value, j: &str| telle_qu_au(f, &Jour::lire(j)?);
-        let mut sal = emploi_de(&sal, Some(&date), &EmploiEngagement::default(), &tqa).unwrap();
+        let mut sal = emploi_de(&sal, &EmploiEngagement::default()).unwrap();
         let nat = nature(c["nature"].as_str()).unwrap();
         let mut bar = bar.clone();
         for r in c["retouches"].as_array().unwrap() {

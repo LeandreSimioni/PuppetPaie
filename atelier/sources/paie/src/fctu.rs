@@ -616,7 +616,7 @@ ou un annule."
         let v = if k == "pays_naissance" { socle::pays::de_naissance(s)? } else { req(s, k)?.clone() };
         f.add_v(rub, &v)?;
     }
-    crate::ntt::poser_ntt(&mut f, &ent_l, s, &fin_jour)?;
+    crate::ntt::poser_ntt(&mut f, &ent_l, s, &crate::ntt::brute(ctx, s), &fin_jour)?;
 
     // ------------------------------------------------------------ S21 contrat
     let siens: Vec<&Arret> = arrets.iter().collect();

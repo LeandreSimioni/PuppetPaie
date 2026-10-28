@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 use droit::bareme::{bareme_applique_au_contrat, SANTE_SUSPENDUE, SANTE_SUSPENSION, SANTE_SUSPENSION_MAINTENUE, SANTE_SUSPENSION_SUSPENDUE};
 use droit::natures::Nature;
 use droit::catalogue::{rubrique, HorsAssiette, Rubrique, AVANTAGES_EN_NATURE};
-use droit::contexte::{telle_qu_au, Contexte};
+use droit::contexte::Contexte;
 use socle::date::{en_texte, repr_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::{Avis, Engagement};
@@ -943,7 +943,7 @@ fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, cais
     type Cache = Mutex<HashMap<String, Arc<Value>>>;
     static CACHE: OnceLock<Cache> = OnceLock::new();
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
-    let cle = format!("{}|{}|{}|{}|{}|{}|{}", ctx.empreinte_bareme(fin.an), fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd);
+    let cle = format!("{}|{}|{}|{}|{}|{}|{}", ctx.empreinte_bareme(fin)?, fin.iso(), nat.cle, sal, nat.mensuelle(), caisse, cpf_cdd);
     if let Some(v) = cache.lock().unwrap().get(&cle) {
         return Ok(v.clone());
     }
@@ -954,13 +954,12 @@ fn bareme_du_salarie(ctx: &Contexte, sal: &Value, nat: &Nature, fin: &Jour, cais
 
 /// La fiche salarie telle qu'elle vaut pour l'engagement `eng`, emploi compris (`emplois::emploi_de`). Un contrat
 /// d'usage la lit telle qu'au premier jour du contrat (un nouveau contrat est un nouveau contrat) ; un contrat paye au
-/// mois, telle qu'au mois paye (`emplois::emploi_du_mois`, vague V3c). La paie (`calculer`) et ce qui lit un contrat
+/// mois, telle qu'a la fin de la periode payee (`emplois::emploi_du_mois`). La paie (`calculer`) et ce qui lit un contrat
 /// sans le payer (`amorcage::embauche` : la DPAE, le signalement d'amorcage, les emplois multiples de la DSN) la
 /// lisent ici, et pas autrement : deux lectures d'un meme contrat feraient deux emplois.
 pub fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resultat<Value> {
     let nat = eng.nat()?;
-    let fiche = ctx.salarie(&eng.salarie)?;
-    let tqa = |f: &Value, j: &str| telle_qu_au(f, &Jour::lire(j)?);
+    let cle = cle_du_salarie(ctx, eng)?;
     let emploi = EmploiEngagement {
         emploi: eng.emploi.clone(),
         emploi_affichage: eng.emploi_affichage.clone(),
@@ -971,17 +970,22 @@ pub fn fiche_de_l_engagement(ctx: &Contexte, eng: &Engagement) -> Resultat<Value
         statut_categoriel_rc: eng.statut_categoriel_rc.clone(),
     };
     if nat.mensuelle() {
-        let brute = fiche.get("_cle").and_then(Value::as_str).and_then(|c| ctx.salarie_brut(c));
         // La fiche de la derniere periode elementaire : un mois decoupe (lot R10) declare la derniere valeur connue
         // (norme DSN 2026.1, § 2.1.2.4, p. 22) ; un mois d'un seul tenant, la periode de paie entiere. La dispense de
         // sante se lit sur ces memes bornes (`dispense_de_la_periode`, lot R7).
         let (debut, fin) = *crate::periodes::bornes(ctx, eng)?.last().ok_or("aucune periode de paie")?;
-        let du_mois = droit::emplois::emploi_du_mois(&fiche, brute, &debut.iso(), &fin.iso(), &tqa)?;
-        let fiche = dispense_de_la_periode(emploi_de(&du_mois, None, &emploi, &tqa)?, &debut, &fin)?;
+        let du_mois = droit::emplois::emploi_du_mois(ctx, &cle, &debut, &fin)?;
+        let fiche = dispense_de_la_periode(emploi_de(&du_mois, &emploi)?, &debut, &fin)?;
         sante_de_la_suspension(ctx, eng, fiche)
     } else {
-        emploi_de(&fiche, Some(&eng.debut.iso()), &emploi, &tqa)
+        emploi_de(&ctx.salarie_au(&cle, &eng.debut)?, &emploi)
     }
+}
+
+/// La cle de la fiche du salarie de `eng`.
+pub fn cle_du_salarie(ctx: &Contexte, eng: &Engagement) -> Resultat<String> {
+    let fiche = ctx.salarie(&eng.salarie)?;
+    Ok(fiche.get("_cle").and_then(Value::as_str).unwrap_or_default().to_string())
 }
 
 /// `calcul.calculer` : la paie d'un engagement (`calculer_apres`, sans contrat precedent dans le mois).
@@ -1157,11 +1161,13 @@ pub fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
     droit::caisse_conges::affilie(&*e.nat()?, &p.salarie, &e.debut, e.fin.as_ref())
 }
 
-/// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7.
+/// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7. La
+/// configuration de la compagnie se lit a la fin de cette periode (`Contexte::au`).
 pub fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
     let nat = eng.nat()?;
     let mut avis_dfs: Vec<String> = Vec::new();
     let fin_periode = eng.fin_periode()?;
+    let ctx = &ctx.au(&fin_periode)?;
     let sal = fiche_de_l_engagement(ctx, eng)?;
     let spec = if nat.mensuelle() {
         Value::Null

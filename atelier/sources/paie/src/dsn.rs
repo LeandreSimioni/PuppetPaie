@@ -4703,7 +4703,8 @@ certificat de conformite du depot precedent.",
         };
         // LES IDENTIFIANTS DU MOIS DECLARE (vague 3d) : NIR, nom, prenoms et date de naissance tels qu'au dernier jour du
         // mois, pour qu'un changement date apres lui n'entre pas dans sa DSN (`changements_individu::identite_du_mois`).
-        let ident = crate::changements_individu::identite_du_mois(s, &fin_m)?;
+        let brute = ctx.salarie_brut(&txt(g(s, "_cle"))).cloned().unwrap_or(Value::Null);
+        let ident = crate::changements_individu::identite_du_mois(s, &brute, &fin_m)?;
         crate::ntt::poser_nir(&mut f, &ident)?;
         for (rub, k) in [
             ("S21.G00.30.002", "nom"),
@@ -4743,12 +4744,12 @@ certificat de conformite du depot precedent.",
         }
         // L'identite DECLAREE (vague 3d), relue dans la derniere DSN deposee qui le porte. Declare sans NIR, sous un NTT :
         // la premiere DSN qui porte son NIR porte aussi ce NTT, quel que soit le mois ou le NIR est arrive (fiche N4).
-        let declaree = declarations.derniere(&ident)?;
+        let declaree = declarations.derniere(&ident, &brute)?;
         let ntt_declare = declaree.as_ref().filter(|d| d.nir.is_empty()).map(|d| d.ntt.as_str());
-        crate::ntt::poser_ntt_declare(&mut f, &ent_e, &ident, &date_ref, ntt_declare)?;
+        crate::ntt::poser_ntt_declare(&mut f, &ent_e, &ident, &brute, &date_ref, ntt_declare)?;
         // LE BLOC 31 : ce qui differe de l'identite declaree, a l'ancienne valeur, date par l'historique de la fiche ; un
         // changement que la fiche ne date pas refuse.
-        crate::changements_individu::ecrire(&mut f, &ident, declaree.as_ref(), mois, &fin_m)?;
+        crate::changements_individu::ecrire(&mut f, &ident, &brute, declaree.as_ref(), mois, &fin_m)?;
         let taux_pas = pas_par_salarie.get(cle).cloned().flatten();
 
         for (i, p) in lot.iter().enumerate() {

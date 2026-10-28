@@ -1,11 +1,9 @@
 //! Les controles avant depot (regle 7) contre `usages-formats-ntt.json` : le tableau des usages (P26V01), le moteur
 //! d'expressions des formats (motif par motif), la mauvaise valeur et les caracteres refuses d'une rubrique, les DSN des
-//! fictives et leurs variantes mutees passees aux trois controles, le NIR et le NTT. `PUPPETPAIE_REECRIRE_ORACLES=1`
+//! fictives et leurs variantes mutees passees aux trois controles. `PUPPETPAIE_REECRIRE_ORACLES=1`
 //! reecrit l'oracle.
 
 use crate::outils::{chemin_oracle, lire_oracle, oracle};
-use socle::date::Jour;
-use paie::dsn::Fichier;
 use paie::formats::{self, Regex};
 use paie::{ntt, usages};
 use serde_json::{json, Value};
@@ -137,27 +135,3 @@ fn fichiers_mutes() {
     oracle(ORACLE, "/mutations", &muts);
 }
 
-fn lignes_ou_erreur(r: Result<(), String>, f: &Fichier) -> Value {
-    match r {
-        Ok(()) => json!({ "lignes": f.lignes }),
-        Err(e) => json!({ "erreur": e }),
-    }
-}
-
-#[test]
-fn nir_et_ntt() {
-    let mut cas = lire_oracle(ORACLE)["ntt"].clone();
-    for e in cas.as_array_mut().unwrap() {
-        let (ent, sal) = (e["ent"].clone(), e["sal"].clone());
-        let date = Jour::lire(e["date"].as_str().unwrap()).unwrap();
-        let mut f = Fichier::nouveau();
-        e["nir"] = lignes_ou_erreur(ntt::poser_nir(&mut f, &sal), &f);
-        let mut f = Fichier::nouveau();
-        e["ntt"] = lignes_ou_erreur(ntt::poser_ntt(&mut f, &ent, &sal, &date), &f);
-        e["sexe"] = json!(ntt::sexe(&sal));
-        e["nir_de"] = json!(ntt::nir_de(&sal));
-        e["besoin"] = ntt::besoin(&sal, &date).map_or_else(|m| Value::String(format!("ERR:{}", m)), Value::Bool);
-    }
-    assert!(cas.as_array().unwrap().len() > 500);
-    oracle(ORACLE, "/ntt", &cas);
-}

@@ -1,4 +1,4 @@
-//! Les metiers du spectacle et la fiche telle qu'elle vaut pour un engagement (`emploi_de`, `emploi_a_la_date`).
+//! Les metiers du spectacle et la fiche telle qu'elle vaut pour un engagement (`emploi_de`, `emploi_du_mois`).
 //!
 //! Deux fichiers livres avec le code : `emplois-base.json` (le catalogue) et
 //! `nomenclature-emplois-ft.json` (les codes France Travail).
@@ -9,17 +9,9 @@
 use socle::fichiers::{dossier_du_code, json_en_cache, repr, repr_valeur, vrai};
 use socle::num::Resultat;
 use serde_json::{Map, Value};
+use socle::date::Jour;
 
-/// Les champs de la fiche qu'un historique peut dater.
-pub const CHAMPS_EMPLOI: [&str; 7] = [
-    "emploi",
-    "emploi_affichage",
-    "code_emploi_ft",
-    "pcs_ese",
-    "statut",
-    "statut_conventionnel",
-    "statut_categoriel_rc",
-];
+use crate::contexte::{fiche_au, valeurs_datees, Contexte};
 
 /// Premiere lettre en majuscule, le reste en minuscules.
 fn capitaliser(s: &str) -> String {
@@ -146,120 +138,37 @@ pub fn statut_non_cadre(m: &Value) -> Option<String> {
     None
 }
 
-/// Une fonction `telle_qu_au(fiche, date_ref)` : `contexte::telle_qu_au`.
-pub type TelleQuAu<'a> = &'a dyn Fn(&Value, &str) -> Resultat<Value>;
-
-/// L'emploi de la fiche au `jour` (AAAA-MM-JJ),
-/// d'apres son historique. `jour` vide ou absent : la fiche telle quelle.
-pub fn emploi_a_la_date(sal: &Value, jour: Option<&str>, telle_qu_au: TelleQuAu) -> Resultat<Value> {
-    let fiche = sal.as_object().ok_or("fiche salarie : un objet est attendu")?;
-    let hist: Vec<Value> = fiche
-        .get("historique")
-        .and_then(|h| h.as_array())
-        .map(|a| {
-            a.iter()
-                .filter(|e| {
-                    e.get("champ")
-                        .and_then(|c| c.as_str())
-                        .map_or(false, |c| CHAMPS_EMPLOI.contains(&c))
-                })
-                .cloned()
-                .collect()
-        })
-        .unwrap_or_default();
-    let jour = match jour {
-        Some(j) if !j.is_empty() && !hist.is_empty() => j,
-        _ => return Ok(sal.clone()),
-    };
-    let lire = |m: &Map<String, Value>, c: &str| m.get(c).cloned().unwrap_or(Value::Null);
-    let mut reduite = Map::new();
-    reduite.insert("historique".into(), Value::Array(hist));
-    for c in CHAMPS_EMPLOI {
-        reduite.insert(c.into(), lire(fiche, c));
-    }
-    let date = telle_qu_au(&Value::Object(reduite), jour)?;
-    let date = date.as_object().ok_or("telle_qu_au : un objet est attendu")?;
-    let mut change: Vec<(&str, Value)> = Vec::new();
-    for c in CHAMPS_EMPLOI {
-        if lire(date, c) != lire(fiche, c) {
-            change.push((c, lire(date, c)));
-        }
-    }
-    if change.is_empty() {
-        return Ok(sal.clone());
-    }
-    let a_change = |c: &str| change.iter().find(|(k, _)| *k == c).map(|(_, v)| v);
-    let mut out = fiche.clone();
-    if a_change("code_emploi_ft").map_or(false, vrai) {
-        let code = a_change("code_emploi_ft").and_then(|v| v.as_str()).unwrap_or("");
-        let cat = resoudre(code, None, false).unwrap_or(Value::Object(Map::new()));
-        // Ce que l'historique ne date pas vient du catalogue du metier d'alors.
-        for c in CHAMPS_EMPLOI {
-            if a_change(c).is_none() {
-                if let Some(v) = cat.get(c).filter(|v| vrai(v)) {
-                    out.insert(c.into(), v.clone());
-                }
-            }
-        }
-    } else if a_change("emploi").is_some() && a_change("emploi_affichage").is_none() {
-        // Le libelle lisible d'aujourd'hui dirait l'autre metier.
-        out.shift_remove("emploi_affichage");
-    }
-    for (c, v) in &change {
-        out.insert((*c).into(), v.clone());
-    }
-    Ok(Value::Object(out))
-}
-
 /// Ce qu'un contrat paye au mois ne laisse pas changer en cours de mois : ce qui choisit la pile du bareme (le statut
 /// artiste / technicien, la categorie cadre, le metier qui la dit a defaut de la fiche) et ce que le bloc 40 porte avec
 /// une rubrique en bloc 41 (40.002, 40.003, 40.004). Le libelle de l'emploi n'en est pas : la DSN declare « la derniere
 /// valeur connue » du mois (cahier technique 2026.1, § 2.1.2.4.2, p. 22).
 const UNE_VALEUR_PAR_MOIS: [&str; 5] = ["statut_categoriel_rc", "statut_conventionnel", "statut", "code_emploi_ft", "pcs_ese"];
 
-/// La fiche salarie d'un contrat PAYE AU MOIS (CDI, CDD de droit commun), telle qu'elle vaut pour la periode payee
-/// (`debut`, `fin`, AAAA-MM-JJ) : l'emploi (`CHAMPS_EMPLOI`) et le statut BOETH lus a la fin de la periode, plus au
-/// premier jour du contrat. Un permanent passe cadre, change de poste, obtient ou perd sa RQTH en cours de contrat :
-/// la paie et la DSN du mois ou cela prend effet le disent : la fiche du premier jour du contrat ferait manquer au
-/// bareme et a la DSN le passage cadre d'un CDI.
-///
-/// `sal` est la fiche du contexte (lue a sa date) ; `brute`, la meme telle qu'ecrite : ce qu'elle porte aujourd'hui
-/// fait foi pour ces champs, la date du contexte pouvant preceder la fin du mois paye.
+/// La fiche salarie `cle` d'un contrat PAYE AU MOIS (CDI, CDD de droit commun), telle qu'elle vaut pour la periode payee
+/// (`debut`, `fin`) : lue a la fin de la periode. Un permanent passe cadre, change de poste, obtient ou perd sa RQTH en
+/// cours de contrat : la paie et la DSN du mois ou cela prend effet le disent.
 ///
 /// UN CHANGEMENT DANS LA PERIODE REFUSE (`UNE_VALEUR_PAR_MOIS`) : une paie se calcule sur une seule pile de bareme
-/// (regle 6). La paie d'un mois ou ces valeurs changent se decoupe en periodes elementaires aux jours
-/// du changement (`jours_de_changement`, `periodes::bornes`, norme § 2.1.3.2, p. 28), et chaque periode lit sa fiche
-/// ici, sur ses bornes : le refus ne garde que l'appel sur une periode qui n'aurait pas ete coupee. Le statut BOETH, qui
-/// ne change pas la paie, peut changer en cours de mois.
-pub fn emploi_du_mois(sal: &Value, brute: Option<&Value>, debut: &str, fin: &str, telle_qu_au: TelleQuAu) -> Resultat<Value> {
-    use socle::date::Jour;
-    let base = fiche_ecrite(sal, brute)?;
-    let au_debut = emploi_a_la_date(&base, Some(debut), telle_qu_au)?;
-    let mut a_la_fin = emploi_a_la_date(&base, Some(fin), telle_qu_au)?;
+/// (regle 6). La paie d'un mois ou ces valeurs changent se decoupe en periodes elementaires aux jours du changement
+/// (`jours_de_changement`, `periodes::bornes`, norme § 2.1.3.2, p. 28), et chaque periode lit sa fiche ici, sur ses
+/// bornes : le refus ne garde que l'appel sur une periode qui n'aurait pas ete coupee. Le statut BOETH, qui ne change
+/// pas la paie, peut changer en cours de mois (40.072 se renseigne « pour le contrat concerne dans la periode
+/// declaree », p. 211 : celui de la fin).
+pub fn emploi_du_mois(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Resultat<Value> {
+    let au_debut = ctx.salarie_au(cle, debut)?;
+    let a_la_fin = ctx.salarie_au(cle, fin)?;
     let lire = |v: &Value, c: &str| v.get(c).cloned().unwrap_or(Value::Null);
-    let historique: Vec<&Value> = base.get("historique").and_then(Value::as_array).into_iter().flatten().collect();
     for c in UNE_VALEUR_PAR_MOIS {
         let (avant, apres) = (lire(&au_debut, c), lire(&a_la_fin, c));
         if avant == apres {
             continue;
         }
-        // Le jour du changement : le lendemain de la fenetre de l'historique qui finit dans la periode (celle du champ,
-        // a defaut celle du metier qui l'a change).
-        let fenetre = |de: &dyn Fn(&str) -> bool| {
-            historique
-                .iter()
-                .filter(|e| e.get("champ").and_then(Value::as_str).map_or(false, |x| de(x)))
-                .filter_map(|e| e.get("jusqu_au").and_then(Value::as_str))
-                .filter(|j| *j >= debut && *j < fin)
-                .max()
-                .and_then(|j| Jour::lire(j).ok())
-                .and_then(|j| j.plus_jours(1).ok())
-        };
-        let le = fenetre(&|x| x == c).or_else(|| fenetre(&|x| CHAMPS_EMPLOI.contains(&x)));
-        let premier = Jour { jour: 1, ..Jour::lire(debut)? };
+        let brute = ctx.salarie_brut(cle).unwrap_or(&Value::Null);
+        let le = valeurs_datees(brute, c)?.into_iter().map(|(j, _)| j).filter(|j| j > debut && j <= fin).last();
+        let premier = Jour { jour: 1, ..*debut };
         let suivant = Jour { jour: 1, ..premier.plus_jours(31)? };
         let texte = |v: &Value| if v.is_null() { "(vide)".to_string() } else { repr_valeur(v) };
-        let qui = [lire(&base, "prenom"), lire(&base, "nom")]
+        let qui = [lire(&a_la_fin, "prenom"), lire(&a_la_fin, "nom")]
             .iter()
             .filter_map(|v| v.as_str().filter(|s| !s.trim().is_empty()).map(str::to_string))
             .collect::<Vec<_>>()
@@ -277,70 +186,25 @@ vaut pour tout ce mois-ci) ou le {} (il vaut a partir du mois suivant).",
             suivant.jj_mm_aaaa()
         ));
     }
-    // Le statut BOETH du mois : celui de la fin de la periode (40.072 se renseigne « pour le contrat concerne dans la
-    // periode declaree », p. 211).
-    let boeth: Vec<Value> =
-        historique.iter().filter(|e| e.get("champ").and_then(Value::as_str) == Some("statut_boeth")).map(|e| (*e).clone()).collect();
-    if !boeth.is_empty() {
-        let mut reduite = Map::new();
-        reduite.insert("historique".into(), Value::Array(boeth));
-        reduite.insert("statut_boeth".into(), lire(&base, "statut_boeth"));
-        let lu = telle_qu_au(&Value::Object(reduite), fin)?;
-        let out = a_la_fin.as_object_mut().ok_or("fiche salarie : un objet est attendu")?;
-        match lu.get("statut_boeth").filter(|v| !v.is_null()) {
-            Some(v) => {
-                out.insert("statut_boeth".into(), v.clone());
-            }
-            None => {
-                out.shift_remove("statut_boeth");
-            }
-        }
-    }
     Ok(a_la_fin)
 }
 
-/// La fiche `sal` (lue a la date du contexte) dont l'emploi (`CHAMPS_EMPLOI`) et le statut BOETH sont ceux de la fiche
-/// telle qu'ecrite (`brute`) : la date du contexte peut preceder la fin du mois paye.
-fn fiche_ecrite(sal: &Value, brute: Option<&Value>) -> Resultat<Value> {
-    let mut base = sal.as_object().ok_or("fiche salarie : un objet est attendu")?.clone();
-    if let Some(b) = brute.and_then(Value::as_object) {
-        for c in CHAMPS_EMPLOI.iter().copied().chain(["statut_boeth"]) {
-            match b.get(c) {
-                Some(v) => {
-                    base.insert(c.into(), v.clone());
-                }
-                None => {
-                    base.shift_remove(c);
-                }
-            }
-        }
-    }
-    Ok(Value::Object(base))
-}
-
-/// Les jours, apres `debut` et au plus tard `fin` (AAAA-MM-JJ, la periode payee d'un contrat paye au mois), ou la fiche
-/// change une valeur qui choisit la pile du bareme ou que le bloc 40 porte avec une rubrique en bloc 41
-/// (`UNE_VALEUR_PAR_MOIS`) : le lendemain d'une fenetre `jusqu_au` de l'historique des champs de l'emploi, quand la
-/// fiche d'avant et celle d'apres different sur l'une de ces valeurs. C'est la que la paie du mois se decoupe en periodes
-/// elementaires (`periodes::bornes` ; norme DSN 2026.1, § 2.1.3.2, p. 28 : « passage de non cadre a cadre en
-/// cours de periode de paie »). Vide : le mois se paie d'un seul tenant.
-pub fn jours_de_changement(sal: &Value, brute: Option<&Value>, debut: &str, fin: &str, telle_qu_au: TelleQuAu) -> Resultat<Vec<socle::date::Jour>> {
-    use socle::date::Jour;
-    let base = fiche_ecrite(sal, brute)?;
+/// Les jours, apres `debut` et au plus tard `fin` (la periode payee d'un contrat paye au mois), ou la fiche `cle` change
+/// une valeur qui choisit la pile du bareme ou que le bloc 40 porte avec une rubrique en bloc 41 (`UNE_VALEUR_PAR_MOIS`) :
+/// le `depuis` d'une de ces valeurs, quand la fiche de la veille et celle du jour different. C'est la que la paie du mois
+/// se decoupe en periodes elementaires (`periodes::bornes` ; norme DSN 2026.1, § 2.1.3.2, p. 28 : « passage de non
+/// cadre a cadre en cours de periode de paie »). Vide : le mois se paie d'un seul tenant.
+pub fn jours_de_changement(ctx: &Contexte, cle: &str, debut: &Jour, fin: &Jour) -> Resultat<Vec<Jour>> {
+    let brute = ctx.salarie_brut(cle).unwrap_or(&Value::Null);
     let mut jours: Vec<Jour> = Vec::new();
-    for e in base.get("historique").and_then(Value::as_array).into_iter().flatten() {
-        if !e.get("champ").and_then(Value::as_str).map_or(false, |c| CHAMPS_EMPLOI.contains(&c)) {
-            continue;
-        }
-        let Some(j) = e.get("jusqu_au").and_then(Value::as_str).filter(|j| *j >= debut && *j < fin) else { continue };
-        jours.push(Jour::lire(j)?.plus_jours(1)?);
+    for c in UNE_VALEUR_PAR_MOIS {
+        jours.extend(valeurs_datees(brute, c)?.into_iter().map(|(j, _)| j).filter(|j| j > debut && j <= fin));
     }
     jours.sort();
     jours.dedup();
     let mut out = Vec::new();
     for j in jours {
-        let veille = j.plus_jours(-1)?.iso();
-        let (avant, apres) = (emploi_a_la_date(&base, Some(&veille), telle_qu_au)?, emploi_a_la_date(&base, Some(&j.iso()), telle_qu_au)?);
+        let (avant, apres) = (fiche_au(brute, &j.plus_jours(-1)?, cle)?, fiche_au(brute, &j, cle)?);
         if UNE_VALEUR_PAR_MOIS.iter().any(|c| avant.get(*c) != apres.get(*c)) {
             out.push(j);
         }
@@ -361,16 +225,10 @@ pub struct EmploiEngagement {
     pub statut_categoriel_rc: Option<String>,
 }
 
-/// La fiche salarie telle qu'elle vaut POUR CET
-/// ENGAGEMENT. `debut` est le premier jour du contrat (AAAA-MM-JJ). Ce que
-/// l'engagement dit l'emporte ; le reste vient de la fiche.
-pub fn emploi_de(
-    sal: &Value,
-    debut: Option<&str>,
-    eng: &EmploiEngagement,
-    telle_qu_au: TelleQuAu,
-) -> Resultat<Value> {
-    let sal = emploi_a_la_date(sal, debut, telle_qu_au)?;
+/// La fiche salarie `sal` (lue a la date de la periode) telle qu'elle vaut POUR CET ENGAGEMENT : ce que l'engagement
+/// dit l'emporte ; le reste vient de la fiche.
+pub fn emploi_de(sal: &Value, eng: &EmploiEngagement) -> Resultat<Value> {
+    let sal = sal.clone();
     let champs: [(&str, &Option<String>); 6] = [
         ("emploi", &eng.emploi),
         ("pcs_ese", &eng.pcs_ese),

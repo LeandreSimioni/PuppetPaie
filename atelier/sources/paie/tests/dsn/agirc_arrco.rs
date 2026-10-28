@@ -181,7 +181,6 @@ fn le_taux_d_une_organisation_patronale_se_pose_sur_le_131() {
     // de la compagnie l'impose (SYNDEAC : 10,16 % pour un artiste) : sur la ligne du bulletin ET sur la cotisation DSN de
     // meme assiette, qui s'ecrit desormais en 131.
     use droit::bareme::bareme_applique;
-    use droit::contexte::telle_qu_au;
     use droit::natures::nature;
     use droit::emplois::{emploi_de, EmploiEngagement};
     let jour = Jour::lire("2026-07-15").unwrap();
@@ -189,8 +188,7 @@ fn le_taux_d_une_organisation_patronale_se_pose_sur_le_131() {
     let mut bar = ctx.bareme(&jour).unwrap();
     bar["_entreprise"]["organisation_patronale"] = json!("SYNDEAC");
     bar["_entreprise"]["organisation_patronale_depuis"] = json!("2020-01-01");
-    let tqa = |f: &Value, j: &str| telle_qu_au(f, &Jour::lire(j)?);
-    let sal = emploi_de(&ctx.salarie("BIANCOLELLI").unwrap(), Some("2026-07-15"), &EmploiEngagement::default(), &tqa).unwrap();
+    let sal = emploi_de(&ctx.salarie("BIANCOLELLI").unwrap(), &EmploiEngagement::default()).unwrap();
     let b = bareme_applique(bar, &sal, &nature(None).unwrap(), Some(&jour)).unwrap();
     let t1 = b["rubriques_bulletin"].as_array().unwrap().iter().find(|r| r["id"] == json!("retraite_t1")).unwrap();
     let total = dec(&t1["taux_pat"].to_string()) + dec(&t1["taux_sal"].to_string());

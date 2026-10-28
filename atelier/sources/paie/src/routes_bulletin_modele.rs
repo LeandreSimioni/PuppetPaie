@@ -22,7 +22,6 @@ use serde_json::{json, Map, Value};
 use crate::bulletin::{jeux_et_description, Modele, CASE_MODELE};
 use droit::contexte::Contexte;
 use socle::date::Jour;
-use socle::ecriture::ecrire_json;
 use socle::echec::R;
 use socle::echec::erreur;
 use socle::fichiers::{dossier_du_code, lire_json};
@@ -133,12 +132,8 @@ pub fn apercu_pdf(modele: Modele) -> Result<Vec<u8>, String> {
 
 fn choisir(ctx: &Contexte, charge: &Value) -> R<Value> {
     let modele = modele_demande(charge)?;
-    let chemin = ctx.racine.join("config").join("entreprise.json");
-    let mut fiche = lire_json(&chemin).map_err(refus)?;
-    let o = fiche.as_object_mut().ok_or_else(|| refus("La fiche entreprise n'est pas un objet."))?;
-    o.insert(CASE_MODELE.into(), json!(modele.cle()));
-    crate::routes_contrats::sauver_avant(&chemin)?;
-    ecrire_json(&chemin, &fiche, 2).map_err(|e| erreur("OSError", e))?;
+    // Le modele vaut pour les documents faits a partir d'aujourd'hui ; ceux d'avant gardent le leur.
+    crate::routes_ecritures::poser_entreprise(ctx, CASE_MODELE, json!(modele.cle()), Some(ctx.aujourdhui))?;
     let neuf = Contexte::nouveau(&ctx.racine, None).map_err(refus)?;
     modeles(&neuf)
 }

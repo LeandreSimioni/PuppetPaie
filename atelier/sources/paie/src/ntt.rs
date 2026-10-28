@@ -120,30 +120,32 @@ pub fn nir_de(salarie: &Value) -> String {
     strip(&chaine(salarie, "nir")).to_string()
 }
 
-/// Le jour ou le NIR a pris effet, s'il a succede a une absence de NIR.
-pub fn depuis_quand_le_nir(salarie: &Value) -> Resultat<Option<Jour>> {
-    if let Some(h) = salarie.get("historique").and_then(|h| h.as_array()) {
-        for e in h {
-            if e.get("champ").and_then(|c| c.as_str()) == Some("nir") && strip(&chaine(e, "valeur")).is_empty() {
-                let j = e.get("jusqu_au").ok_or_else(|| socle::fichiers::absent("jusqu_au"))?;
-                return Ok(Some(socle::date::d(j)?.plus_jours(1)?));
-            }
-        }
-    }
-    Ok(None)
+/// La fiche datee du salarie `salarie` (par sa `_cle`), ou rien.
+pub fn brute(ctx: &droit::contexte::Contexte, salarie: &Value) -> Value {
+    salarie.get("_cle").and_then(Value::as_str).and_then(|c| ctx.salarie_brut(c)).cloned().unwrap_or(Value::Null)
+}
+
+/// Le jour ou le NIR a pris effet, s'il a succede a une absence de NIR : le `depuis` du premier NIR de la fiche datee
+/// `brute` qui suit une valeur vide.
+pub fn depuis_quand_le_nir(brute: &Value) -> Resultat<Option<Jour>> {
+    let valeurs = droit::contexte::valeurs_datees(brute, "nir")?;
+    Ok(valeurs
+        .windows(2)
+        .find(|p| strip(&socle::date::en_texte(p[0].1)).is_empty() && !strip(&socle::date::en_texte(p[1].1)).is_empty())
+        .map(|p| p[1].0))
 }
 
 /// Cette declaration-ci doit-elle porter le NTT a cote du NIR ?
-pub fn accompagne_le_nir(salarie: &Value, date_ref: &Jour) -> Resultat<bool> {
-    Ok(match depuis_quand_le_nir(salarie)? {
+pub fn accompagne_le_nir(brute: &Value, date_ref: &Jour) -> Resultat<bool> {
+    Ok(match depuis_quand_le_nir(brute)? {
         None => false,
         Some(depuis) => depuis >= Jour { an: date_ref.an, mois: date_ref.mois, jour: 1 },
     })
 }
 
 /// Faut-il ecrire S21.G00.30.020 dans cette declaration ?
-pub fn besoin(salarie: &Value, date_ref: &Jour) -> Resultat<bool> {
-    Ok(nir_de(salarie).is_empty() || accompagne_le_nir(salarie, date_ref)?)
+pub fn besoin(salarie: &Value, brute: &Value, date_ref: &Jour) -> Resultat<bool> {
+    Ok(nir_de(salarie).is_empty() || accompagne_le_nir(brute, date_ref)?)
 }
 
 /// S21.G00.30.001, quand il y en a un -- et rien du tout sinon.
@@ -155,9 +157,9 @@ pub fn poser_nir(f: &mut Fichier, salarie: &Value) -> Resultat<()> {
     Ok(())
 }
 
-/// S21.G00.30.020, apres le matricule.
-pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &Value, date_ref: &Jour) -> Resultat<()> {
-    if besoin(salarie, date_ref)? {
+/// S21.G00.30.020, apres le matricule. `brute` : la fiche datee du salarie (`Contexte::salarie_brut`).
+pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &Value, brute: &Value, date_ref: &Jour) -> Resultat<()> {
+    if besoin(salarie, brute, date_ref)? {
         f.add(RUBRIQUE, numero(ent, salarie)?);
     }
     Ok(())
@@ -168,13 +170,13 @@ pub fn poser_ntt(f: &mut Fichier, ent: &Value, salarie: &Value, date_ref: &Jour)
 /// premiere DSN qui le porte : le NTT declare l'accompagne, quel que soit le mois ou le NIR a pris effet (« Le NTT doit
 /// etre renseigne sur la premiere DSN ou le NIR est attribue. Ceci permettra de faire le lien entre les deux
 /// identites », p. 175 ; « le NTT le plus ancien en cours de validite », meme page). Sinon, `poser_ntt`.
-pub fn poser_ntt_declare(f: &mut Fichier, ent: &Value, salarie: &Value, date_ref: &Jour, ntt_declare: Option<&str>) -> Resultat<()> {
+pub fn poser_ntt_declare(f: &mut Fichier, ent: &Value, salarie: &Value, brute: &Value, date_ref: &Jour, ntt_declare: Option<&str>) -> Resultat<()> {
     match ntt_declare.map(strip).filter(|n| !n.is_empty()) {
         Some(n) if !nir_de(salarie).is_empty() => {
             f.add(RUBRIQUE, n);
             Ok(())
         }
-        _ => poser_ntt(f, ent, salarie, date_ref),
+        _ => poser_ntt(f, ent, salarie, brute, date_ref),
     }
 }
 

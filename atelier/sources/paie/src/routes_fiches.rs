@@ -659,8 +659,8 @@ fn sans_affichage(d: &Map<String, Value>) -> Value {
     Value::Object(d.iter().filter(|(k, _)| !k.ends_with("_affichage")).map(|(k, v)| (k.clone(), v.clone())).collect())
 }
 
-/// `changements-declares` : les champs DECLARES que cet enregistrement ferait
-/// changer, avec ce que la valeur sortante a deja servi a declarer. Regarde, n'ecrit rien.
+/// `changements-declares` : les valeurs existantes que cet enregistrement ferait
+/// changer (chacune demande sa date d'effet), avec ce que la valeur sortante a deja servi a declarer. Regarde, n'ecrit rien.
 fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nom_brut = exiger(charge, "nom")?;
     let cle = charge.get("cle").unwrap_or(&Value::Null);
@@ -687,50 +687,37 @@ fn changements_declares(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(json!({"changements": changements(ctx, nom, ancienne, copie)?}))
 }
 
-/// Le coeur de `changements_declares` : la fiche `ancienne` et les `donnees` qui la
-/// remplaceraient ; ce qui changerait de ce qui se declare.
+/// Le coeur de `changements_declares` : la fiche `ancienne` (telle que l'ecran l'a montree) et les `donnees` qui la
+/// remplaceraient ; chaque valeur existante qui changerait (`routes_ecritures::changements_a_dater`), celles-la memes
+/// dont l'enregistrement exigera la date d'effet. Un champ declare dit aussi ce que sa valeur sortante a deja servi a
+/// declarer.
 pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Map<String, Value>) -> R<Vec<Value>> {
     let Value::Object(mut donnees) = garder_notes_internes(ancienne, &Value::Object(copie)) else { unreachable!() };
     deriver(nom, &mut donnees, true)?;
-    let sans_get = || erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(ancienne)));
-    let mut sortie = Vec::new();
+    let Value::Object(anc) = ancienne else {
+        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(ancienne))));
+    };
     let champs_fiche = champs::fiche(nom)?;
-    for c in &champs_fiche {
-        if !c.declare || !donnees.contains_key(&c.cle) {
-            continue;
-        }
-        let Value::Object(anc) = ancienne else { return Err(sans_get()) };
-        let avant = anc.get(&c.cle).cloned().unwrap_or(Value::Null);
-        let apres = donnees[&c.cle].clone();
-        // Le NIR qui arrive : seule case vide a dater.
-        let nir_qui_arrive = vrai(ancienne) && c.cle == "nir" && !vrai(&avant) && vrai(&apres);
-        let avant_vide = avant.is_null() || avant.as_str() == Some("");
-        if (avant_vide && !nir_qui_arrive) || valeur_en_texte(&avant) == valeur_en_texte(&apres) {
-            continue;
-        }
-        // La forme lisible d'une personne ne se declare pas.
-        if let (Value::Object(a), Value::Object(b)) = (&avant, &apres) {
-            if valeurs_egales(&sans_affichage(a), &sans_affichage(b)) {
-                continue;
-            }
-        }
+    let mut sortie = Vec::new();
+    for cle in crate::routes_ecritures::changements_a_dater(ancienne, &donnees) {
+        let avant = anc.get(&cle).cloned().unwrap_or(Value::Null);
+        let apres = donnees[&cle].clone();
+        // La forme lisible d'une personne ne se declare pas, mais elle change : elle se date comme le reste.
+        let c = champs_fiche.iter().find(|c| c.cle == cle);
         let mut entree = json!({
-            "champ": c.cle, "libelle": c.libelle, "avant": avant, "apres": apres,
-            "deja_declare": usages_declares(ctx, &avant),
+            "champ": cle, "libelle": c.map_or(cle.as_str(), |c| c.libelle.as_str()), "avant": avant, "apres": apres,
         });
-        if c.calcule() {
+        let o = entree.as_object_mut().unwrap();
+        if c.is_some_and(|c| c.declare) {
+            o.insert("deja_declare".into(), usages_declares(ctx, &avant));
+        }
+        if let Some(c) = c.filter(|c| c.calcule()) {
             let source = c.derive_de.as_deref().unwrap_or("");
             let lisible = champs_fiche.iter().find(|x| x.cle == source);
             let vue = champs::combler_affichage(nom, anc)?;
-            let l_avant = vue.get(source).cloned().unwrap_or(Value::Null);
-            let l_apres = donnees.get(source).cloned().unwrap_or(Value::Null);
-            let texte = |v: &Value| if vrai(v) { valeur_en_texte(v) } else { String::new() };
-            let silencieux = texte(&l_avant) == texte(&l_apres);
-            let o = entree.as_object_mut().unwrap();
             o.insert("libelle".into(), json!(lisible.map_or(&c.libelle, |l| &l.libelle)));
-            o.insert("avant_lisible".into(), l_avant);
-            o.insert("apres_lisible".into(), l_apres);
-            o.insert("silencieux".into(), json!(silencieux));
+            o.insert("avant_lisible".into(), vue.get(source).cloned().unwrap_or(Value::Null));
+            o.insert("apres_lisible".into(), donnees.get(source).cloned().unwrap_or(Value::Null));
         }
         sortie.push(entree);
     }

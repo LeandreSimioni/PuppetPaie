@@ -15,7 +15,7 @@ use fabrique_pdf::modele::{self, Modele, Valeurs};
 use serde_json::Value;
 
 use crate::bulletin::{convention_du_contrat, fmt_eur};
-use droit::contexte::{telle_qu_au, Contexte};
+use droit::contexte::Contexte;
 use socle::date::{d, en_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use crate::etats::{accepte, est, get, getd, items, objet_vide, ou, CONTRAT_RECU, LISTE_VIDE, SIGNATURE};
@@ -621,7 +621,8 @@ pub(crate) fn valeurs_de_la_paie(ctx: &Contexte, ent: &Value, paie: &Value, nume
         statut_conventionnel: texte("statut_conventionnel"),
         statut_categoriel_rc: texte("statut_categoriel_rc"),
     };
-    let sal = emploi_de(&fiche, Some(&e.debut), &emploi, &|f, j| telle_qu_au(f, &Jour::lire(j)?))?;
+    let cle = fiche.get("_cle").and_then(Value::as_str).unwrap_or_default();
+    let sal = emploi_de(&ctx.salarie_au(cle, &Jour::lire(&e.debut)?)?, &emploi)?;
     let sp = ctx.spectacle(nom_spectacle)?;
     let remuneration = requis(paie, "remuneration")?.as_array().ok_or("remuneration : une liste est attendue")?;
     marqueurs(ent, &sal, &sp, &e, remuneration, paie.get("brut").unwrap_or(&nul), paie.get("net_a_payer").unwrap_or(&nul))

@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use engagement::calcul::Paie;
-use droit::contexte::{archivee, telle_qu_au, Contexte};
+use droit::contexte::{archivee, Contexte};
 use socle::date::{en_texte, Jour};
 use droit::emplois::{emploi_de, EmploiEngagement};
 use engagement::{self, Avis, Engagement};
@@ -805,7 +805,7 @@ fn empreinte_de_l_embauche(e: &Engagement, sal: &Value) -> String {
 /// La fiche salarie telle qu'elle vaut POUR CET ENGAGEMENT (`engagement.emploi_de`).
 fn fiche_pour(ctx: &Contexte, e: &Engagement) -> Resultat<Value> {
     let fiche = ctx.salarie(&e.salarie)?;
-    let tqa = |f: &Value, j: &str| telle_qu_au(f, &Jour::lire(j)?);
+    let cle = fiche.get("_cle").and_then(Value::as_str).unwrap_or_default();
     let emploi = EmploiEngagement {
         emploi: e.emploi.clone(),
         emploi_affichage: e.emploi_affichage.clone(),
@@ -815,7 +815,7 @@ fn fiche_pour(ctx: &Contexte, e: &Engagement) -> Resultat<Value> {
         statut_conventionnel: e.statut_conventionnel.clone(),
         statut_categoriel_rc: e.statut_categoriel_rc.clone(),
     };
-    emploi_de(&fiche, Some(&e.debut.iso()), &emploi, &tqa)
+    emploi_de(&ctx.salarie_au(cle, &e.debut)?, &emploi)
 }
 
 /// `operations_filet.embauches_suivies` : les embauches sans trace de DPAE,
