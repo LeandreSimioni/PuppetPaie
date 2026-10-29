@@ -208,14 +208,31 @@ async function calculerApercu(lu) {
     // la lecture du mois les rend pour une carte par engagement.
     const blocs = [...document.querySelectorAll(".engagement")];
     const tailles = blocs.map((div) => salariesDuBloc(div).length);
-    const a = lu && tailles.every((n) => n === 1) ? structuredClone(lireReponse(lu))
-      : await api("apercu", { saisie, blocs: tailles });
+    // La lecture du mois ne calcule que les engagements qui se calculent : elle ne sert que si elle les a tous.
+    let deLu = null;
+    if (lu && tailles.every((n) => n === 1)) {
+      try { deLu = lireReponse(lu); } catch (e) { deLu = null; }
+      if (deLu && (deLu.paies || []).length !== saisie.engagements.length) deLu = null;
+    }
+    const a = deLu ? structuredClone(deLu) : await api("apercu", { saisie, blocs: tailles });
     cible.innerHTML = vueApercu(a);
     // Les dates resolues, sous chaque engagement : ce que le moteur a compris.
     const parBloc = engagementsParBloc(a, blocs);
     blocs.forEach((div, i) => {
       const part = parBloc[i];
       const p = part[0];
+      // Un engagement auquel il manque un fait est enregistré tel quel : la carte dit ce qui manque, sans montant.
+      const manques = part.filter((x) => x && x.a_completer);
+      if (manques.length) {
+        div._total = null;
+        peindreChiffres(div, null);
+        div._paies = [];
+        peindreCarte(div);
+        div.querySelector(".resolu").innerHTML = "";
+        div.querySelector(".avis").innerHTML = `<div class="encart attention avis-engagement"><b>À compléter avant de valider</b>${
+          manques.map((x) => `<div>${erreurEnClair(x.a_completer)}</div>`).join("")}</div>`;
+        return;
+      }
       div._total = part.length ? (a.blocs || [])[i] : null;
       peindreChiffres(div, div._total);
       div._paies = part;
@@ -684,8 +701,7 @@ async function chargerMois(mois, repeint = false) {
   // Un mois plus récent a été demandé pendant que celui-ci arrivait : on le
   // laisse tomber, sinon il repeindrait l'écran par-dessus le bon.
   if (DEMANDE_MOIS !== mois) return;
-  const brouillon = brouillonDe(mois, r.saisie);
-  SAISIE = brouillon ? brouillon.saisie : r.saisie;
+  SAISIE = r.saisie;
   IMPORTE = r.importe || null;
   IMPORTES = r.importes || [];
   MOIS_AFFICHE = mois;
@@ -748,13 +764,6 @@ async function chargerMois(mois, repeint = false) {
   // fichier identique a chaque fois qu'on effleure un champ.
   clearTimeout(MINUTEUR_SAISIE);
   DERNIERE_ECRITE = JSON.stringify(saisieCourante());
-  // Un brouillon repris n'est pas sur le disque : il repart au moteur, qui
-  // l'enregistre ou redit ce qui manque.
-  if (brouillon) {
-    DERNIERE_ECRITE = brouillon.base;
-    noteSaisie("Reprise de la saisie qui n'avait pas pu s'enregistrer.");
-    enregistrerPlusTard();
-  }
   // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
   // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
   if (repeint && ETATS_ENGAGEMENTS) peindreEtats();
@@ -1265,36 +1274,6 @@ function enregistrerSaisie(silencieux) {
   return tour;
 }
 
-/* LA SAISIE QUE LE MOTEUR N'A PAS PRISE NE SE PERD PAS. Un engagement qui
- * attend encore un fait (un salaire, une durée, une ancienneté) est refusé, et
- * rien ne s'écrit : à la fenêtre rechargée, ce qu'on avait tapé disparaissait.
- * Ce poste le garde (le stockage du navigateur, pour ce poste seulement), avec
- * la saisie que le moteur tenait alors ; il revient tant que le moteur tient
- * toujours la même, et se renvoie au moteur, qui redit ce qui manque. Une
- * saisie enregistrée l'efface. */
-function cleBrouillon(mois) {
-  const ent = ((ETAT && ETAT.configuration && ETAT.configuration.entreprise) || {}).donnees || {};
-  return `puppetpaie:brouillon:${ent.siret || ent.raison_sociale || ""}:${mois}`;
-}
-async function garderBrouillon(s) {
-  try {
-    const r = await api("saisie", { mois: s.mois });
-    localStorage.setItem(cleBrouillon(s.mois), JSON.stringify({ base: JSON.stringify(r.saisie), saisie: s }));
-  } catch (e) { /* ce poste ne garde rien : la saisie reste à l'écran */ }
-}
-function oublierBrouillon(mois) {
-  try { localStorage.removeItem(cleBrouillon(mois)); } catch (e) { /* rien à oublier */ }
-}
-/** Le brouillon du mois, s'il part de la saisie que le moteur tient encore. */
-function brouillonDe(mois, saisieDuMoteur) {
-  try {
-    const b = JSON.parse(localStorage.getItem(cleBrouillon(mois)) || "null");
-    if (b && b.base === JSON.stringify(saisieDuMoteur)) return b;
-    if (b) oublierBrouillon(mois);
-  } catch (e) { /* illisible : rien à reprendre */ }
-  return null;
-}
-
 async function enregistrerSaisieSeule(silencieux) {
   const s = saisieCourante();
   if (!s.mois) return false;
@@ -1306,11 +1285,14 @@ async function enregistrerSaisieSeule(silencieux) {
     const r = await api("enregistrer-saisie", { mois: s.mois, saisie: s,
                                       modifier_apres_echeance: MOIS_CONFIRME === s.mois });
     DERNIERE_ECRITE = empreinte;
-    oublierBrouillon(s.mois);
     if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
     oublierCouts();
     // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
-    noteSaisie("Enregistré à " + r.enregistre_a.slice(11, 16) + ".");
+    // Un engagement auquel il manque un fait s'enregistre aussi : sa carte dit ce qui manque.
+    const aCompleter = (r.a_completer || []).filter(Boolean).length;
+    noteSaisie("Enregistré à " + r.enregistre_a.slice(11, 16) + (aCompleter
+      ? ` — ${aCompleter > 1 ? `${aCompleter} engagements à compléter avant de les valider` : "un engagement à compléter avant de le valider"}.`
+      : "."));
     ETAT.historique = await api("etat").then((e) => e.historique);
     // Ce qui vient d'etre enregistre devient declarable : les blocs qui
     // disaient << pas dans la saisie enregistree >> doivent cesser de le dire,
@@ -1342,7 +1324,6 @@ async function enregistrerSaisieSeule(silencieux) {
       return false;
     }
     if (e.detail?.type === "SaisieIncomplete") {
-      garderBrouillon(s);
       noteSaisie(/spectacle/.test(e.message)
         ? "Pas encore enregistré : choisir le spectacle."
         : "Pas encore enregistré : choisir les jours travaillés.");
@@ -1350,7 +1331,6 @@ async function enregistrerSaisieSeule(silencieux) {
     }
     // Un échec d'enregistrement ne peut pas rester discret : c'est du travail
     // qu'on croit posé et qui ne l'est pas.
-    garderBrouillon(s);
     noteSaisie("Non enregistré — " + e.message);
     if (!silencieux) dire(e.message, "erreur");
     return false;

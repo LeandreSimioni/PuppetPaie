@@ -1606,11 +1606,7 @@ async function poserContratsEnCours(mois) {
     CONTRATS_EN_COURS = r.contrats || [];
   } catch (e) { CONTRATS_EN_COURS = []; return; }
   if (MOIS_AFFICHE !== mois) return;
-  // Un contrat déjà à l'écran (une saisie reprise qui n'avait pas pu
-  // s'enregistrer le porte) ne se pose pas une deuxième fois.
-  const aLEcran = (SAISIE && SAISIE.engagements) || [];
-  const restants = CONTRATS_EN_COURS.filter((c) => !c.deja_repris
-    && !aLEcran.some((e) => e.salarie === c.salarie && e.debut === c.debut && (e.numero || "") === (c.numero || "")));
+  const restants = CONTRATS_EN_COURS.filter((c) => !c.deja_repris);
   if (!restants.length) return;
   const cible = document.getElementById("engagements");
   restants.forEach((c) => {

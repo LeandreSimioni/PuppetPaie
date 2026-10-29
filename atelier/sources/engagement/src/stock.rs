@@ -35,8 +35,17 @@ pub const SUITE: &str = "mois_suivants";
 
 /// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, la validation
 /// qu'une modification va remplacer, ses versions passees (`etats`), pour qui son numero de contrat a ete donne
-/// (`numeros`), qu'il n'est plus actif (`NON_ACTIF`), et ce que l'import a lu de lui (`importe::IMPORTE`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 7] = [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, crate::importe::IMPORTE];
+/// (`numeros`), qu'il n'est plus actif (`NON_ACTIF`), ce qui lui manque (`A_COMPLETER`), et ce que l'import a lu de lui
+/// (`importe::IMPORTE`).
+pub const TENUS_PAR_LE_MOTEUR: [&str; 8] = [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, A_COMPLETER, crate::importe::IMPORTE];
+
+/// UN ENGAGEMENT EN SAISIE AUQUEL IL MANQUE UN FAIT (un salaire, une duree du travail, une anciennete, un spectacle,
+/// des jours) : `{"mois", "manque"}`, le mois dont l'ecriture l'a trouve incomplet et ce que le calcul en dit. Il est
+/// ecrit tel que l'ecran l'a saisi, et l'ecran le montre avec ce qui lui manque (`vue_a_l_ecran`) ; il ne touche aucun
+/// mois (`Objet::couvre`) : rien ne le calcule, rien ne part de lui, et sa validation dit ce qui manque. Seul un
+/// engagement qui n'a jamais ete valide s'ecrit ainsi (`ecrire_vue_du_mois`) : d'un engagement deja valide, d'autres
+/// lectures relisent ce qui est parti.
+pub const A_COMPLETER: &str = "a_completer";
 
 /// Dans un engagement qui n'est plus actif (`etats::desactiver`) : `{"le", "version"}`, quand, et sa version (celle qui
 /// suit la derniere validee : rien de paye). Il ne touche plus aucun mois (`Objet::couvre`) : il ne se calcule plus,
@@ -192,7 +201,27 @@ impl Objet {
     /// Un engagement non actif ne touche plus aucun mois ; un engagement importe n'en touche aucun de la saisie : il se
     /// lit (`importe`), rien ne le calcule.
     pub fn couvre(&self, mois: &str) -> Resultat<bool> {
+        Ok(!self.est_a_completer() && self.a_l_ecran(mois)?)
+    }
+
+    /// L'ecran de `mois` le montre-t-il ? Ceux qu'il touche (`couvre`), et ceux auxquels il manque un fait
+    /// (`A_COMPLETER`), qui se completent la.
+    pub fn a_l_ecran(&self, mois: &str) -> Resultat<bool> {
         Ok(!self.est_non_actif() && !self.est_importe() && self.dans_ses_bornes(mois)?)
+    }
+
+    /// Lui manque-t-il un fait (`A_COMPLETER`) ? Ce qui manque, alors.
+    pub fn a_completer(&self) -> Option<String> {
+        self.brut.get(A_COMPLETER)?.get("manque").map(en_texte)
+    }
+
+    fn est_a_completer(&self) -> bool {
+        self.brut.get(A_COMPLETER).is_some_and(Value::is_object)
+    }
+
+    /// N'a-t-il jamais ete valide (ni validation, ni validation remplacee, ni version) ?
+    pub fn jamais_valide(&self) -> bool {
+        ["valide", "precedente", "versions"].iter().all(|k| self.brut.get(*k).is_none_or(Value::is_null))
     }
 
     /// Est-il importe (`importe::IMPORTE`) ?
@@ -409,11 +438,12 @@ impl Tires {
         Ok(!o.est_non_actif() && !o.est_importe() && self.dans_ses_bornes(i, mois)?)
     }
 
-    /// Les objets qui touchent `mois`, dans l'ordre des fichiers.
-    fn du_mois(&self, mois: &str) -> Resultat<Vec<&Objet>> {
+    /// Les objets qui touchent `mois`, dans l'ordre des fichiers ; `ecran` : avec ceux auxquels il manque un fait
+    /// (`Objet::a_l_ecran`).
+    fn du_mois(&self, mois: &str, ecran: bool) -> Resultat<Vec<&Objet>> {
         let mut out = Vec::new();
         for (i, o) in self.objets.iter().enumerate() {
-            if o.fichier.as_str() <= mois && self.couvre(i, mois)? {
+            if o.fichier.as_str() <= mois && (ecran || !o.est_a_completer()) && self.couvre(i, mois)? {
                 out.push(o);
             }
         }
@@ -451,7 +481,13 @@ fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
 /// Les engagements qui touchent `mois`, dans l'ordre de l'ecran : ceux des fichiers d'avant qui courent encore, puis
 /// ceux du mois.
 pub fn objets_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
-    Ok(tous(racine)?.1.du_mois(mois)?.into_iter().cloned().collect())
+    Ok(tous(racine)?.1.du_mois(mois, false)?.into_iter().cloned().collect())
+}
+
+/// Les engagements que l'ecran de `mois` montre, dans son ordre (`vue_a_l_ecran`) : ceux qui le touchent et ceux
+/// auxquels il manque un fait.
+pub fn objets_a_l_ecran(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
+    Ok(tous(racine)?.1.du_mois(mois, true)?.into_iter().cloned().collect())
 }
 
 /// Les engagements non actifs (`NON_ACTIF`) qui toucheraient `mois` s'ils l'etaient encore : ce qui se lit d'eux.
@@ -485,23 +521,30 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
 /// LE MOIS DE L'ECRAN : `{"mois", <defauts du mois>, "engagements": [la vue de chacun]}`, ou `None` quand aucun
 /// engagement ne le touche et qu'il n'a pas de fichier. Un engagement valide y dit quand (`valide` : `{"le"}`).
 pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
-    Ok(saisie_du_mois(racine, mois)?.map(|s| {
+    Ok(saisie_du_mois(racine, mois, false)?.map(|s| {
         socle::fichiers::noter_valeur(&cle_de_saisie(mois), s.1.clone());
         s.0.clone()
     }))
 }
 
+/// LE MOIS TEL QUE L'ECRAN LE MONTRE ET LE SAISIT : `vue_du_mois`, et, a leur place, les engagements auxquels il manque
+/// un fait (`A_COMPLETER`), chacun avec `a_completer` : ce qui lui manque. Rien ne se calcule sur elle : un calcul lit
+/// `vue_du_mois`.
+pub fn vue_a_l_ecran(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
+    Ok(saisie_du_mois(racine, mois, true)?.map(|s| s.0.clone()))
+}
+
 /// L'empreinte de la saisie de `mois` (`empreinte_de_saisie`), celle que `vue_du_mois` note ; `None` sans saisie.
 pub fn empreinte_de_la_saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<String>> {
-    Ok(saisie_du_mois(racine, mois)?.map(|s| s.1.clone()))
+    Ok(saisie_du_mois(racine, mois, false)?.map(|s| s.1.clone()))
 }
 
 /// La vue de `mois` et son empreinte, faites une fois pour les memes fichiers aux memes octets (`memes`) :
 /// chaque paie qui se verifie relit la saisie des mois qu'elle a lus. La vue d'une ligne lit aussi l'unite de sa rubrique
 /// (`droit::catalogue::rubrique`) : les deux catalogues en font partie.
-fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
+fn saisie_du_mois(racine: &Path, mois: &str, ecran: bool) -> Resultat<Option<std::sync::Arc<(Value, String)>>> {
     type Saisie = Option<std::sync::Arc<(Value, String)>>;
-    type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String), (Lus, Saisie)>>;
+    type Vues = std::sync::Mutex<std::collections::HashMap<(PathBuf, String, bool), (Lus, Saisie)>>;
     static VUES: std::sync::OnceLock<Vues> = std::sync::OnceLock::new();
     static ABSENT: std::sync::OnceLock<std::sync::Arc<Value>> = std::sync::OnceLock::new();
     let vues = VUES.get_or_init(Default::default);
@@ -515,7 +558,7 @@ fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(
         };
         lus.push((p.to_string_lossy().into_owned(), v));
     }
-    let cle = (racine.to_path_buf(), mois.to_string());
+    let cle = (racine.to_path_buf(), mois.to_string(), ecran);
     if let Some((vus, s)) = vues.lock().unwrap_or_else(|p| p.into_inner()).get(&cle) {
         if memes(vus, &lus) {
             return Ok(s.clone());
@@ -524,7 +567,7 @@ fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(
     // Ce que le fichier du mois pose pour tous ; ses engagements, la vue les refait (ceux des mois d'avant qui courent).
     let fichier: Option<Map<String, Value>> = lire_partage(racine, mois)?
         .map(|v| v.as_object().into_iter().flatten().map(|(k, x)| (k.clone(), if k == "engagements" { Value::Null } else { x.clone() })).collect());
-    let objets = tous.du_mois(mois)?;
+    let objets = tous.du_mois(mois, ecran)?;
     let saisie = if (fichier.is_none() || importes_seuls(racine, mois)) && objets.is_empty() {
         None
     } else {
@@ -535,6 +578,9 @@ fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(
             let Some(mut v) = o.vue(mois)? else { continue };
             if let Some(le) = o.brut.get("valide").and_then(|x| x.get("le")) {
                 v.insert("valide".into(), serde_json::json!({ "le": le }));
+            }
+            if let Some(manque) = o.a_completer() {
+                v.insert(A_COMPLETER.into(), Value::String(manque));
             }
             engagements.push(Value::Object(v));
         }
@@ -636,10 +682,14 @@ fn identite(ctx: &Contexte, e: &Value) -> Option<droit::jumeaux::Ident> {
 /// remet en saisie ; ce que l'ecran envoie pour lui ne compte pas, et il ne s'efface pas. Ce que l'ecran envoie de
 /// `valide` ne compte jamais.
 ///
+/// `manques` : pour chaque engagement de la vue, dans son ordre, ce qui lui manque pour se calculer (`None` : rien) ;
+/// l'engagement s'ecrit avec (`A_COMPLETER`). Un engagement complet en `mois` perd ce que `mois` lui faisait manquer.
+///
 /// Refus, et rien n'est ecrit : un engagement dont les nouvelles bornes laisseraient hors du contrat un mois ou il a des
 /// jours payes ; un engagement du salarie et du premier jour d'un engagement importe qui touche `mois` (il se lit, il ne
-/// se reecrit pas ni ne se double).
-pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<Vec<PathBuf>> {
+/// se reecrit pas ni ne se double) ; un engagement deja valide une fois auquel il manquerait un fait (le refus est ce
+/// qui lui manque).
+pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value, manques: &[Option<String>]) -> Resultat<Vec<PathBuf>> {
     let racine = &ctx.racine;
     let entrants: Vec<Value> = vue.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
     for e in &entrants {
@@ -653,7 +703,7 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<V
     // Les engagements que le mois montre, par leur place dans `tous`.
     let mut du_mois: Vec<usize> = Vec::new();
     for (i, o) in tous.iter().enumerate() {
-        if o.fichier.as_str() <= mois && o.couvre(mois)? {
+        if o.fichier.as_str() <= mois && o.a_l_ecran(mois)? {
             du_mois.push(i);
         }
     }
@@ -712,9 +762,25 @@ pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<V
                     }
                 }
                 poser_le_mois(o, mois, &saisie)?;
+                match manques.get(i).cloned().flatten() {
+                    Some(m) if !o.jamais_valide() => return Err(m),
+                    Some(m) => {
+                        o.brut.insert(A_COMPLETER.into(), serde_json::json!({ "mois": mois, "manque": m }));
+                    }
+                    None => {
+                        if o.brut.get(A_COMPLETER).and_then(|a| a.get("mois")).and_then(Value::as_str).is_none_or(|m| m == mois) {
+                            o.brut.remove(A_COMPLETER);
+                        }
+                    }
+                }
                 touches.push(o.fichier.clone());
             }
-            None => nouveaux.push(saisie),
+            None => {
+                if let Some(m) = manques.get(i).cloned().flatten() {
+                    saisie.insert(A_COMPLETER.into(), serde_json::json!({ "mois": mois, "manque": m }));
+                }
+                nouveaux.push(saisie)
+            }
         }
     }
     // Ce que l'ecran ne montre plus : un engagement de ce mois-ci, pas encore valide, s'efface ; un engagement d'un
@@ -815,7 +881,7 @@ fn poser_le_mois(o: &mut Objet, mois: &str, saisie: &Map<String, Value>) -> Resu
     // Les bornes ne laissent pas hors du contrat un mois ou il a des jours payes.
     let mut a_retirer = Vec::new();
     for (m, v) in &gardees {
-        if !o.couvre(m)? {
+        if !o.dans_ses_bornes(m)? {
             if v.get("lignes").and_then(Value::as_array).is_some_and(|l| !l.is_empty()) {
                 return Err(format!(
                     "Le contrat irait du {} au {}, et {} y porte des jours payes : un mois de paie ne tient pas un contrat \
