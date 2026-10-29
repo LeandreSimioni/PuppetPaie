@@ -234,6 +234,9 @@ pub struct Note<'a> {
     /// `en-attente` par defaut.
     pub envoi: Option<&'a str>,
     pub quand: Option<&'a str>,
+    /// Sans le fil des trois minutes d'avant ni les ecritures : un rapport qui ne vient d'aucun geste a deboguer, et dont
+    /// les charges de routes (des saisies, leurs montants) n'ont rien a faire chez l'editeur.
+    pub sans_contexte: bool,
 }
 
 /// `_lignes` : la liste du fichier ; un fichier absent, illisible ou qui n'est
@@ -304,7 +307,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
         ecrire_json(&p, &Value::Array(toutes), 2).ok()?;
         return Some(ligne);
     }
-    let fil = crate::diagnostic::fil(socle::temps::maintenant_ms());
+    let fil = if n.sans_contexte { Vec::new() } else { crate::diagnostic::fil(socle::temps::maintenant_ms()) };
     let fil = fil[fil.len().saturating_sub(FIL_PAR_INCIDENT)..].to_vec();
     let ligne = json!({
         "quoi": nature,
@@ -320,7 +323,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
         "fois": 1,
         "derniere": quand,
         "fil": fil,
-        "ecritures": crate::diagnostic::ecritures(socle::temps::maintenant_ms(), ECRITURES_PAR_INCIDENT),
+        "ecritures": if n.sans_contexte { Vec::new() } else { crate::diagnostic::ecritures(socle::temps::maintenant_ms(), ECRITURES_PAR_INCIDENT) },
         "machine_detail": crate::diagnostic::machine(racine),
         "envoi": {"etat": n.envoi.unwrap_or(EN_ATTENTE), "quand": Value::Null},
     });

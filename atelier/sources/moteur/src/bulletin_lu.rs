@@ -547,6 +547,8 @@ pub struct Table {
     annexe: Vec<Vec<String>>,
     /// (cle, titres canoniques).
     familles: Vec<(String, Vec<String>)>,
+    /// (cotisation, libelles canoniques) : la cotisation qu'une ligne imprimee est.
+    cotisations: Vec<(String, Vec<String>)>,
     /// (cle, libelles canoniques).
     cumuls: Vec<(String, Vec<String>)>,
     /// (nom, signature : les libelles qui doivent tous se trouver).
@@ -651,6 +653,7 @@ impl Table {
             titres: libelles(v.get("titres"), "titres")?,
             annexe: phrases(v.get("annexe"), "annexe")?,
             familles: groupes(v.get("familles"), "familles")?,
+            cotisations: groupes(v.get("cotisations"), "cotisations")?,
             cumuls: groupes(v.get("cumuls"), "cumuls")?,
             logiciels,
             lignes: lignes_de(v.get("lignes"))?,
@@ -660,6 +663,13 @@ impl Table {
     /// Les libelles de lignes de paie que la table connait, et leur rubrique.
     pub fn lignes(&self) -> &[LigneTable] {
         &self.lignes
+    }
+
+    /// La cotisation que la ligne de cotisation imprimee `libelle` est (`cotisations` de la table) ; `None` : un libelle
+    /// que la table ne connait pas.
+    pub fn cotisation(&self, libelle: &str) -> Option<&str> {
+        let c = canon(libelle);
+        self.cotisations.iter().find(|(_, l)| l.iter().any(|x| *x == c)).map(|(k, _)| k.as_str())
     }
 
     fn famille(&self, libelle: &str) -> Option<&str> {
