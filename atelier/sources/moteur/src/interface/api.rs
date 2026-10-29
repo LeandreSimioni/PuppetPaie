@@ -173,7 +173,7 @@ pub fn entre_apostrophes_powershell(t: &str) -> String {
 /// le serveur du poste : Windows par PowerShell (`FolderBrowserDialog`, au premier plan), macOS par `osascript`, Linux
 /// par `zenity` ou `kdialog`. Rend `{"dossier": chemin}`, ou `{"dossier": null}` si on a annule.
 fn choisir_dossier(charge: &Value) -> Result<Value, Refus> {
-    // Le titre garde son apostrophe (#141) : chaque boite l'echappe a sa facon -- PowerShell double l'apostrophe
+    // Le titre garde son apostrophe : chaque boite l'echappe a sa facon -- PowerShell double l'apostrophe
     // dans sa chaine entre apostrophes (ou `$` et l'accent grave sont litteraux), AppleScript echappe `\` et `"`
     // dans sa chaine entre guillemets ; zenity le recoit en argument, tel quel.
     let titre: String = charge
@@ -348,7 +348,7 @@ fn filet_en_fond(racine: &Path) {
     });
 }
 
-/// « Un probleme, une idee ? » part en fond (Leandre, 14/10/2026) : `signalement-envoyer` a enregistre le message et
+/// « Un probleme, une idee ? » part en fond : `signalement-envoyer` a enregistre le message et
 /// rendu la main ; `signalements-partir` le fait partir, le temps du serveur de l'editeur, sans que la page attende.
 fn signalements_en_fond(racine: &Path) {
     let r = racine.to_path_buf();
@@ -376,7 +376,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             Some(v) => Ok(v.tour(false, false)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
         },
-        // LA SAUVEGARDE AVANT DE SUPPRIMER (ticket #236) : un passage complet de la veille, sauvegarde comprise.
+        // LA SAUVEGARDE AVANT DE SUPPRIMER : un passage complet de la veille, sauvegarde comprise.
         "sauvegarde-maintenant" => match veille {
             Some(v) => Ok(v.tour(false, true)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
@@ -418,7 +418,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
                 None => route(racine, nom, charge),
             }
         }
-        // L'OUVERTURE D'UNE COMPAGNIE, D'UN COUP ET SANS PROCESSUS (ticket #244) : le dernier etat connu de ce que la page lit
+        // L'OUVERTURE D'UNE COMPAGNIE, D'UN COUP ET SANS PROCESSUS : le dernier etat connu de ce que la page lit
         // en s'ouvrant (`etat_garde::FileDesEtats::ouverture`), et, lus a chaque fois a cote, ce qui vit dans la memoire de
         // la fenetre (la veille, la mise a jour) et les signalements (que l'etat garde ne suit pas).
         "ouverture" => {

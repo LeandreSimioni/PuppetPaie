@@ -94,7 +94,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 /// `permanents` : `{"entreprise": {...}}`, la fiche Entreprise en cours de saisie -- sans elle, celle de la compagnie.
 /// Rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que pour les
-/// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case (ticket #214).
+/// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case.
 fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let oui = match charge.get("entreprise") {
         Some(e @ Value::Object(_)) => droit::contexte::emploie_des_permanents(e),
@@ -109,7 +109,7 @@ fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
 /// lui, celle de la compagnie. Rend la conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art.
 /// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien
-/// (ticket #216).
+///.
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.get(cle) {
@@ -117,7 +117,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         None => ctx.entreprise.clone(),
     };
-    // LES PLAFONDS DE LA FRANCHISE, CHIFFRES (ticket #239) : ceux du bareme de l'annee des salaires -- `annee` dans la
+    // LES PLAFONDS DE LA FRANCHISE, CHIFFRES : ceux du bareme de l'annee des salaires -- `annee` dans la
     // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.
     let annee = match charge.get("annee") {
         None | Some(Value::Null) => ctx.aujourdhui.an,
@@ -128,7 +128,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
     let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_ref(), annee);
-    // La conclusion nomme les deux plafonds (ticket #245).
+    // La conclusion nomme les deux plafonds.
     let r = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ent, q.plafonds);
     Ok(json!({
         "franchise": {
@@ -519,7 +519,7 @@ pub(crate) fn verifier(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>>
     champs::verifier_fiche(nom, &copie)
 }
 
-/// LES ANOMALIES QUE L'ECRITURE TROUVERA (#236) : celles d'une fiche que l'import cree, derivee comme `ecrire_fiche` la
+/// LES ANOMALIES QUE L'ECRITURE TROUVERA : celles d'une fiche que l'import cree, derivee comme `ecrire_fiche` la
 /// derive avant d'ecrire (`deriver` force : la forme declaree se refait de la forme lisible), puis verifiee. L'apercu
 /// de l'import les montre telles : avant, il verifiait la fiche avant derivation, et chaque champ que le bulletin ou
 /// la DSN imprime en minuscules (« 3 quai de la Fosse ») criait « doit etre en MAJUSCULES » sous sa forme lisible,

@@ -150,7 +150,7 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
         .as_ref()
         .map_err(|m| plain(m.clone()))?;
     // Lu une fois par processus (le code livre ne change pas sous la fenetre), mais note a chaque usage : un calcul
-    // suivi dans un processus deja chaud a les memes entrees qu'un processus neuf (ticket #244).
+    // suivi dans un processus deja chaud a les memes entrees qu'un processus neuf.
     socle::fichiers::noter_si_besoin(&dossier_du_code().join("champs-base.json"));
     match nom {
         "entreprise" => Ok(t.entreprise.clone()),
@@ -873,7 +873,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
             _ => socle::pays::inconnu(&quoi, v),
         }));
     }
-    // LE NUMERO D'ADHERENT CONGES SPECTACLES (#236) : dix chiffres et une lettre, dont la DSN tire S21.G00.40.022 (97 + ce
+    // LE NUMERO D'ADHERENT CONGES SPECTACLES : dix chiffres et une lettre, dont la DSN tire S21.G00.40.022 (97 + ce
     // numero) ; la forme et sa source sont a un seul endroit, `conges_spectacles::faute_adherent`.
     if c.cle == documents::conges_spectacles::CLE_ADHERENT {
         if let Some(faute) = documents::conges_spectacles::faute_adherent(&documents::conges_spectacles::forme_adherent(v)) {
@@ -1144,7 +1144,7 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         }
     }
     anomalies.extend(controles_croises(nom, &donnees)?);
-    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS (#236). Une regle de forme peut se tromper et la valeur
+    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS. Une regle de forme peut se tromper et la valeur
     // etre juste : son erreur se passe outre a l'ecran (`forcable`). Une valeur obligatoire absente, non : le metier d'un
     // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
     // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se

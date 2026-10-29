@@ -290,7 +290,7 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
         }
     }
     // Une image posée sur plusieurs pages (le logo, en haut de chacune) : un seul masque par plan
-    // alpha, puis (plus bas) un seul objet image (ticket #228).
+    // alpha, puis (plus bas) un seul objet image.
     let mut mask_of_marker: std::collections::HashMap<u32, printpdf::lopdf::ObjectId> =
         std::collections::HashMap::new();
     for (id, marker, w, h) in masks {

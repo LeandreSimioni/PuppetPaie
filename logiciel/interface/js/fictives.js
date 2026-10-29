@@ -238,7 +238,7 @@ async function fenetreCourrielsFictifs(genre, repere) {
   document.querySelectorAll(".fictive-bulle").forEach((x) => {
     x.onclick = () => { etape = +x.dataset.etape; dessiner(); };
   });
-  // UN COURRIEL PAR SALARIÉ, ET ILS DIFFÈRENT (#227) : le permanent reçoit son
+  // UN COURRIEL PAR SALARIÉ, ET ILS DIFFÈRENT : le permanent reçoit son
   // bulletin, l'intermittent aussi son certificat Congés Spectacles et son
   // AER. On choisit celui qu'on regarde.
   document.querySelectorAll(".fictive-destinataire").forEach((x) => {

@@ -19,7 +19,7 @@
 //! `Coffre::garder_ouverture`). La seance OUVRE le coffre, elle n'AUTORISE JAMAIS un acte reel : `verifier_preuve` ne
 //! lit ni la seance, ni `PUPPETPAIE_MOTDEPASSE`, ni le mot de passe retenu -- seulement la reponse d'une demande.
 //!
-//! COMMENT UNE COMMANDE S'EN SERT (lot J2) : au demarrage du processus, `let _canaux = demande::installer(Rc::new(
+//! COMMENT UNE COMMANDE S'EN SERT : au demarrage du processus, `let _canaux = demande::installer(Rc::new(
 //! demande::Reel::du_poste()));` ; ensuite `verifier_preuve` et `exiger_mot_de_passe` demandent, et la commande
 //! `coffre seance` appelle `ouvrir_seance`. Sans rien d'installe (la bibliotheque seule, les tests), la demande REFUSE.
 //!

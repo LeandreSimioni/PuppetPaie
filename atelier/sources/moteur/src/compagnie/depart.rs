@@ -116,7 +116,7 @@ pub(crate) fn mois_ecrit(racine: &Path, mois: &str) -> bool {
 }
 
 /// QUAND LE MOTEUR A ECRIT CETTE PIECE (`AAAA-MM-JJTHH:MM`), lu au journal des ecritures (`noter_piece_ecrite`) ; `null`
-/// s'il ne le dit pas. Jamais la date du fichier (#236).
+/// s'il ne le dit pas. Jamais la date du fichier.
 pub(crate) fn ecrit_le(racine: &Path, fichier: &Path) -> Value {
     journal_des_ecritures(racine)
         .get(&cle_de_piece(fichier))

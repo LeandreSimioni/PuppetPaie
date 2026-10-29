@@ -192,7 +192,7 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
     Ok(out)
 }
 
-/// LE VERSEMENT NORMATIF D'UN ORGANISME (ticket #223) : l'entree de `donnees/organismes-base.json` dont `siret` est
+/// LE VERSEMENT NORMATIF D'UN ORGANISME : l'entree de `donnees/organismes-base.json` dont `siret` est
 /// `identifiant` (S21.G00.20.001), ou `None`. On y lit son `nom` propre, ce que couvre son versement (`objet`) et son
 /// `jour_de_paiement` dans le mois qui suit, chacun avec sa source (`_source_*`). Lu dans la base livree, pas dans
 /// `config/organismes.json` : c'est la norme, la meme pour toute compagnie.

@@ -1481,7 +1481,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     // lui-meme ecrit (double run d'aout 2026) -- le sien fait foi.
     let nos_mois: HashSet<&String> = mois_saisis.iter().filter(|m| ctx.racine.join("sorties").join(m).is_dir()).collect();
     pages.extend(pages_coolpaie(ctx, &ensemble_cles, &ensemble_cats, &p, &mut d)?.into_iter().filter(|pg| !nos_mois.iter().any(|m| m.as_str() == pg.tri.chars().take(7).collect::<String>())));
-    // Les bulletins repris a l'import (lot E) : la page meme, copiee dans `historique/bulletins/` (l'assemblage
+    // Les bulletins repris a l'import : la page meme, copiee dans `historique/bulletins/` (l'assemblage
     // dedoublonne une page que CoolPaie aurait aussi rendue).
     if ensemble_cats.contains(BULLETINS) {
         pages.extend(pages_importees(ctx, &ensemble_cles, &p, &mut d).into_iter().filter(|pg| !nos_mois.iter().any(|m| m.as_str() == pg.tri.chars().take(7).collect::<String>())));
@@ -1517,7 +1517,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     let preuves: Vec<(String, Vec<PathBuf>)> = if cats.contains(&CONTRATS_SIGNES) { par.iter().map(|(c, _)| (c.clone(), signatures(ctx, c, &p))).collect() } else { Vec::new() };
     d.salaries = cles.iter().filter(|c| par.iter().any(|(x, _)| x == *c)).cloned().collect();
     if d.salaries.is_empty() {
-        // `AucunDocument` : une reponse, pas un incident (ticket #126).
+        // `AucunDocument` : une reponse, pas un incident.
         return Err(avec("AucunDocument", format!(
             "Aucun document sur la période ({}) pour {}.",
             p.libelle()?,

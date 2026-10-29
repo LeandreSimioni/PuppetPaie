@@ -37,7 +37,7 @@ pub fn copier(src: &Path, dst: &Path) {
     }
 }
 
-/// Une INSTALLATION (lot U1) : `<dossier>/logiciel/` avec les données livrées et `VERSION`. La mise à jour est la sienne
+/// Une INSTALLATION : `<dossier>/logiciel/` avec les données livrées et `VERSION`. La mise à jour est la sienne
 /// (`<dossier>/maj/`) ; un `moteur` la trouve par `PUPPETPAIE_CODE` = `code_de(<dossier>)`. Rend `<dossier>`.
 pub fn installation(dossier: &Path, version: &str) -> PathBuf {
     copier(&code_livre(), &dossier.join("logiciel").join("donnees"));
@@ -46,7 +46,7 @@ pub fn installation(dossier: &Path, version: &str) -> PathBuf {
 }
 
 /// Le geste de l'accueil sur une installation de test : `.edition.json` « debloque » a cote de `logiciel/`. Sans lui,
-/// une installation est BRIDEE (ticket #246, `moteur/src/compagnie/bridage.rs`) : elle ne propose ni ne rattache de compagnie reelle.
+/// une installation est BRIDEE (`moteur/src/compagnie/bridage.rs`) : elle ne propose ni ne rattache de compagnie reelle.
 /// Un test qui fait vivre des compagnies reelles dans son installation la debloque ainsi, et le dit.
 pub fn debloquer(installation: &Path) {
     std::fs::create_dir_all(installation).unwrap();

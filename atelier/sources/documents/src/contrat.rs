@@ -273,7 +273,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     let modele = socle::fichiers::modele_de(MODELE_AVENANT, ent, &ctx.gabarits());
     let mut d = enveloppe("avenant", ent);
     let v = valeurs_de_paie(ctx, ent, p)?;
-    // Les memes refus que le contrat (#136) : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
+    // Les memes refus que le contrat : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
     // et un modele qui n'a pas le marqueur d'une valeur a citer ferait un avenant qui la tait.
     if v.values().any(|t| t.contains("VALEUR-SANS-TEXTE")) {
         return Err(Refus::from("description illisible : une valeur du modele de contrat n'est pas un texte"));

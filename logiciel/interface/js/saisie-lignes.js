@@ -1401,7 +1401,7 @@ function majContrat(div) {
     return;
   }
   if (!debut && natureDe(div.querySelector(".e-nature")?.value).mensuelle) {
-    // Un contrat au mois n'a pas de jour joué d'où tirer son début (#236).
+    // Un contrat au mois n'a pas de jour joué d'où tirer son début.
     s.innerHTML = `Contrat <span class="discret">— sa date de début, celle du contrat signé</span>`;
     return;
   }
@@ -1625,7 +1625,7 @@ function pourQuoi(ligne) {
   return ligne.spectacle || ligne.nature || "";
 }
 
-/* UN CONTRAT SUR PLUSIEURS MOIS SE VOIT (ticket #127, 15/10/2026) : « c'est
+/* UN CONTRAT SUR PLUSIEURS MOIS SE VOIT : « c'est
  * un contrat sur plusieurs mois, on pourrait faire un signe de ça, par
  * exemple 3 petits points ou une flèche ». Une pastille : les mois du
  * contrat, et une flèche du côté où il déborde du mois affiché — à gauche

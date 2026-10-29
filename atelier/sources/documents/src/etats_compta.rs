@@ -1246,7 +1246,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // Qui doit la taxe, et sur quelle part : le meme regime que la DSN de decembre (`assujettissement`, CGI art. 231, 1).
     // NE PAS SAVOIR N'EST PAS UNE ERREUR : l'etat le dit, et dit quoi repondre.
     let jour = socle::date::Jour::lire(&format!("{}-01-01", annee)).map_err(|x| erreur("ValueError", x))?;
-    // Les plafonds de la franchise, que la conclusion nomme (ticket #245) : ceux du bareme de l'annee.
+    // Les plafonds de la franchise, que la conclusion nomme : ceux du bareme de l'annee.
     let plafonds = crate::taxe_sur_les_salaires::plafonds_franchise(ctx.bareme(&jour).ok().as_ref());
     let regime = crate::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ctx.entreprise, plafonds);
     let p = Periode::nouvelle(ctx, None, Some(annee), false, true)?;

@@ -1,6 +1,6 @@
 //! LE BRIDAGE (lot U1, 14/10/2026). Il n'y a qu'un logiciel, BRIDE ou DEBLOQUE ; Leandre : « Il n'y a pas de version
 //! demonstration. C'est toujours le meme logiciel qui est bride ou pas bride. » Bride, l'accueil ne propose que les
-//! compagnies fictives, et son « + » ajoute une FICTIVE AJOUTEE (ticket #236, `compagnies::ajouter`) dont les envois sont
+//! compagnies fictives, et son « + » ajoute une FICTIVE AJOUTEE (`compagnies::ajouter`) dont les envois sont
 //! refuses (`branchement` : le message) ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
 //! le meme moteur, la meme mise a jour (le bridage n'y joue aucun role, `compagnie::maj`).
 //!
@@ -69,7 +69,7 @@ pub fn est_bride() -> bool {
 }
 
 /// Bride ou debloque, pour l'installation `inst` : le paquet soude reste bride ; sinon ce que le geste a retenu sur le
-/// poste (`.edition.json`) ; SINON BRIDE (ticket #246) -- rien d'autre ne debloque.
+/// poste (`.edition.json`) ; SINON BRIDE -- rien d'autre ne debloque.
 pub fn est_bride_de(inst: &Path) -> bool {
     if paquet_soude_de(inst) {
         return true;

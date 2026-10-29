@@ -37,7 +37,7 @@ async function montrerRappels(lu = api) {
   boiteRappels(liste, ech, manques);
 }
 
-/** L'ÉTAT FRAIS DE L'OUVERTURE (ticket #244) : la boîte des rappels, si elle
+/** L'ÉTAT FRAIS DE L'OUVERTURE : la boîte des rappels, si elle
  *  est encore ouverte et que le moteur dit autre chose, se repeint en place ;
  *  s'il n'y en avait pas et qu'il y a maintenant quelque chose à faire, elle
  *  s'ouvre (par-dessus la page : rien ne bouge dessous). Fermée par la
@@ -68,7 +68,7 @@ async function rafraichirRappels(lu) {
  * trouve la valeur. La page ne fait que l'afficher. */
 function htmlDemarrage(manques) {
   if (!manques || !manques.length) return "";
-  // CHAQUE CHOSE MÈNE À SA CASE (#236) : le libellé conduit au champ que le
+  // CHAQUE CHOSE MÈNE À SA CASE : le libellé conduit au champ que le
   // moteur nomme (`champ`, celui que l'écran montre : `demarrage::a_l_ecran`),
   // ou à l'onglet qu'il nomme (`ou`) quand ce n'est pas une case.
   const ligne = (m) => `
@@ -96,7 +96,7 @@ function allerAuManque(champ, ou) {
   // Déjà dans la configuration : on n'y retourne pas. Recliquer l'onglet
   // redessinait la fiche et, sur une fiche en cours de saisie, ouvrait « Vous
   // avez modifié cette fiche » — suivre un manque après l'autre sans
-  // enregistrer entre deux ne doit rien demander (#236).
+  // enregistrer entre deux ne doit rien demander.
   if (document.getElementById("vue-configuration").classList.contains("cachee")) {
     document.querySelector('.onglets button[data-vue="configuration"]').click();
   }
@@ -171,7 +171,7 @@ function htmlEcheancier(ech) {
   // ça alors que je l'ai déjà fait, pas besoin ») : la DSN de septembre,
   // déposée, s'affichait encore « fait ». Une échéance cochable reste, pour
   // pouvoir la décocher ; les autres faites se taisent.
-  // UNE CHOSE SE DIT UNE FOIS (ticket #244) : la DSN qu'un rappel réclame
+  // UNE CHOSE SE DIT UNE FOIS : la DSN qu'un rappel réclame
   // (`rappel`, le moteur le dit) se dit dans ce rappel, sous l'en-tête, avec
   // sa date et son geste ; ici elle se dirait en double.
   const ceMois = (ech.ce_mois || []).filter((x) => (x.etat !== "fait" || x.cochable) && !x.rappel);
@@ -204,7 +204,7 @@ function boiteRappels(liste, ech, manques = []) {
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">${liste.length ? "Plus tard" : "Fermer"}</button>
     </div>`, () => {
-    // FERMÉE, ELLE SORT DE LA PAGE (#236) : cachée sous le voile, elle gardait
+    // FERMÉE, ELLE SORT DE LA PAGE : cachée sous le voile, elle gardait
     // ses boutons `[data-manque-champ]`, périmés dès que la fiche change, et
     // qu'on retrouvait en cherchant ceux de « Pour démarrer ».
     const boite = document.getElementById("boite");

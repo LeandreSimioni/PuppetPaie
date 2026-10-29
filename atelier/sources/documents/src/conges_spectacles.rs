@@ -21,7 +21,7 @@ type R<T> = Result<T, Refus>;
 // ------------------------------------------------- le numero d'adherent, et le code que la DSN en tire
 
 /// La cle de la fiche entreprise : le numero d'adherent a la Caisse des Conges Spectacles, le SEUL numero Conges
-/// Spectacles que la compagnie saisit (#236). Il va dans la case COMPTE des certificats, dans les contrats, et la DSN
+/// Spectacles que la compagnie saisit. Il va dans la case COMPTE des certificats, dans les contrats, et la DSN
 /// le declare precede de 97 (`code_dsn`).
 pub const CLE_ADHERENT: &str = "congesspectacles_adherent";
 

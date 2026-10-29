@@ -25,7 +25,7 @@
 //!
 //! JAMAIS : depuis une compagnie fictive ni depuis la copie de developpement (le marqueur `COPIE-DE-DEVELOPPEMENT.json`,
 //! `compagnies::est_copie`, que portent l'une et l'autre) ; depuis un logiciel bride (`bridage::est_bride`), ce qui couvre une
-//! compagnie ajoutee sur un logiciel bride (#236) tant qu'il l'est. GARDEE AU DEBLOCAGE, elle est une compagnie reelle (son
+//! compagnie ajoutee sur un logiciel bride tant qu'il l'est. GARDEE AU DEBLOCAGE, elle est une compagnie reelle (son
 //! marqueur est parti, `interface::suppression::garder`) : son nombre part, et ses paies validees en demo comptent -- le
 //! logiciel les a faites ; qu'elles ne soient pas parties ne change pas la regle du compte.
 

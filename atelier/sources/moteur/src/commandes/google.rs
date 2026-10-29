@@ -94,7 +94,7 @@ fn oublier(cadre: &Cadre, json: bool) -> i32 {
 }
 
 /// `moteur google autoriser [--sans-navigateur]` : lier le compte Google. Le moteur affiche l'URL de la fenetre de consentement et
-/// attend, sur `127.0.0.1`, la reponse de Google (`google_autorisation`) ; il N'OUVRE PAS de navigateur (lot J3b) : la personne ouvre
+/// attend, sur `127.0.0.1`, la reponse de Google (`google_autorisation`) ; il N'OUVRE PAS de navigateur : la personne ouvre
 /// l'URL, `--sans-navigateur` est donc sans effet. Aucun secret ne passe par la commande : le jeton va de la reponse de Google au
 /// fichier scelle par la cle du poste.
 ///

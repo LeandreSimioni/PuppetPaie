@@ -59,7 +59,7 @@ function dessinerConfig() {
     dessinerOrganismes(liste);
     return;
   }
-  // Le modèle du bulletin (lot R11) : `modeles-bulletin.js`.
+  // Le modèle du bulletin : `modeles-bulletin.js`.
   if (FICHE_ACTIVE === "bulletin") {
     document.getElementById("config-formulaire").innerHTML = "";
     dessinerModelesBulletin(liste);
@@ -296,7 +296,7 @@ function dessinerConfig() {
         dessinerFormulaire(rangees.find((f) => f.cle === c));
         document.getElementById("config-formulaire").scrollIntoView({ behavior: "smooth" });
       };
-      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de bouton « Modifier ».
+      // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de bouton « Modifier ».
       rendreOuvrable(r, () => ouvrir(cle), "Ouvrir la fiche");
       r.querySelectorAll("[data-ouvrir]").forEach((b) => { b.onclick = () => ouvrir(b.dataset.ouvrir); });
     });
@@ -408,7 +408,7 @@ async function dessinerImportation(cible) {
     ouvrir.onclick = async () => {
       try {
         const r = await api("ouvrir-import", { dossier: document.getElementById("import-dossier").value.trim() });
-        // Le dossier ouvert se dit (#141) : l'explorateur peut s'ouvrir derrière la fenêtre.
+        // Le dossier ouvert se dit : l'explorateur peut s'ouvrir derrière la fenêtre.
         if (r && r.phrase) dire(r.phrase);
       } catch (err) { dire(err.message, "erreur"); }
     };
@@ -591,7 +591,7 @@ function fichesImportees(fiches, titre) {
       return `<div class="acte-dernier">${ou} <b>${echapper(champ)}</b> = « ${echapper(lu)} »,
          la fiche dit « ${echapper(e.fiche)} » — la fiche fait foi</div>`;
     }).join("");
-    // CE QUE LES PIÈCES NE DONNENT PAS (#236) : les cases que la fiche
+    // CE QUE LES PIÈCES NE DONNENT PAS : les cases que la fiche
     // demande et qu'aucun bulletin ni aucune DSN n'imprime (le moteur les
     // nomme par leur libellé). Une case vide se dit « à remplir », pas
     // « erreur » : rien n'est faux, il reste à la remplir dans la fiche, que
@@ -823,7 +823,7 @@ async function ecrireImportation() {
     // dans les déroulants de la saisie, sans recharger la page.
     ETAT = await api("etat");
     rafraichirReferentiels();
-    // CE QUI RESTE À DIRE (#236) : la nature des contrats repris se demande en tête de la page ; on y va.
+    // CE QUI RESTE À DIRE : la nature des contrats repris se demande en tête de la page ; on y va.
     await rafraichirEtatImportation();
     const aDire = document.querySelector("[data-nature-rang]");
     if (aDire) aDire.scrollIntoView({ block: "center" });
@@ -883,7 +883,7 @@ const SECTIONS_FICHE = {
                                "annexe_convention",
                                "jauge_annexe_1", "type_radio_1922",
                                "cinquante_salaries_3241"]],
-    // LE CURSEUR DES PERMANENTS SORT DE L'« AVANCÉ » (ticket #214, 20/10/2026).
+    // LE CURSEUR DES PERMANENTS SORT DE L'« AVANCÉ ».
     // C'est la question qui commande tout ce qui ne vaut que pour les
     // salariés au mois (natures CDI/CDD, santé et prévoyance, organismes) :
     // elle se pose en clair. Le moteur le lit (`contexte::emploie_des_permanents`).
@@ -901,7 +901,7 @@ const SECTIONS_FICHE = {
       "france_travail_dossier_recouvrement", "medecine_travail"], { atmp: true }],
     // Le contact de la médecine du travail interne ne se montre que si le code du
     // service de santé au travail vaut MT01 (`si` de champs-base.json) ; la DSN
-    // l'écrit alors en S20.G00.07 de type 17 (#236).
+    // l'écrit alors en S20.G00.07 de type 17.
     ["Qui signe, qui répond", ["signataire", "declarant_dsn", "contact_sante_travail"]],
     ["Paiement des cotisations", ["banque"]],
     // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
@@ -1096,7 +1096,7 @@ const SOUS_CHAMPS = {
     ["taux_contrat", "Taux du contrat (% du plafond mensuel)", "Seulement pour une convention sans régime de santé (production audiovisuelle 2642) : le taux de votre contrat, pour le salarié seul. Il est sur votre contrat ou votre appel de cotisation.", { nombre: true }],
     ["part_patronale", "Part employeur (%)", "Au moins 50 %. Vide : 50 %.", { nombre: true }],
   ] },
-  // LA TAXE SUR LES SALAIRES (ticket #216, 20/10/2026). On demande ce que la
+  // LA TAXE SUR LES SALAIRES. On demande ce que la
   // compagnie sait de sa TVA, pas la conclusion du droit : le moteur conclut
   // (route `taxe-sur-les-salaires-regime`, CGI art. 231), dit quelles cases
   // suivent et écrit la conséquence sous elles (`brancherTaxeSalaires`). Les
@@ -1124,7 +1124,7 @@ const SOUS_CHAMPS = {
 /* Les valeurs d'une liste de choix, dites en clair. Le moteur garde ses
  * codes (`cse_adherent_fnas`), l'ecran montre une phrase. */
 const LIBELLES_CHOIX = {
-  // La table MNATA de la DSN (lot R2), telle que `donnees/mnata-base.json`
+  // La table MNATA de la DSN, telle que `donnees/mnata-base.json`
   // la livre : l'ecran la dit en clair, le moteur la lit et la controle.
   taxe_apprentissage_motif_non_assujettissement: {
     "": "— la compagnie doit la taxe (cas ordinaire) —",
@@ -1275,7 +1275,7 @@ function structureHtml(c, v, sous, a, avecPermanents) {
       const bouton = aide ? `<button type="button" class="aide-bouton"
              data-aide="${echapper(c.cle + "." + k)}" title="aide">?</button>` : "";
       // Des boutons à cocher (`boutons`) : chaque réponse est une phrase
-      // entière, qu'une liste déroulante couperait (ticket #245). Le libellé
+      // entière, qu'une liste déroulante couperait. Le libellé
       // n'est pas un <label> : il en contiendrait plusieurs.
       const haut = genre.boutons
         ? `<div class="libelle-boutons">${echapper(lib)} ${bouton}</div>
@@ -1335,7 +1335,7 @@ function caseSousChamp(parent, k, val, genre) {
     return `<input type="number" step="0.01" min="0" ${attrs} data-sous-type="nombre"
       value="${echapper(val ?? "")}">`;
   }
-  // Une date se choisit dans un calendrier, comme partout (#236) ; la valeur
+  // Une date se choisit dans un calendrier, comme partout ; la valeur
   // reste AAAA-MM-JJ. Une valeur ancienne d'une autre forme reste un texte.
   if (genre.date && /^(\d{4}-\d{2}-\d{2})?$/.test(String(val ?? ""))) {
     return `<input type="date" ${attrs} value="${echapper(val ?? "")}">`;

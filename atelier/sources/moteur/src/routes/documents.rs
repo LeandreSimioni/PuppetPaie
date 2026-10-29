@@ -544,7 +544,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let mut m = Moteur::nouveau(ctx);
     let prets = documents_prets(&mut m, ctx, &mois, &paies)?;
     let dossier = ctx.racine.join("sorties").join(&mois).join("envoi");
-    // A QUI ILS PARTENT (ticket #240) : le meme choix que l'envoi (`crate::routes::documents::choisir`).
+    // A QUI ILS PARTENT : le meme choix que l'envoi (`crate::routes::documents::choisir`).
     let choix = crate::routes::documents::choisir(ctx, &mois, &paies)?;
     // CE QUI PARTIRA, FABRIQUE TEL QUEL pour etre montre : leurs numeros ne s.ecrivent qu.a l.envoi (`envoyer_documents`).
     let messages = if prets.get("pret").is_some_and(vrai) {

@@ -16,7 +16,7 @@
 //!
 //! Jamais le vrai serveur dans les essais : l'adresse vient de la
 //! configuration, et les essais en donnent une locale. Quand la configuration
-//! ne dit rien, c'est `SERVEUR_PAR_DEFAUT` (lot S1) : en essai, le garde-fou
+//! ne dit rien, c'est `SERVEUR_PAR_DEFAUT` : en essai, le garde-fou
 //! reseau (`garde_reseau`) le refuse avant toute connexion ; un essai qui veut
 //! le voir nomme un faux mandataire local comme seule porte (`tests/outils`,
 //! `mandataire`), qui refuse.

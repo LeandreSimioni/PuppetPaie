@@ -11,7 +11,7 @@
 //! Quatre natures (`logiciel`, `refus`, `dpae`, `dsn`) ; les deux premieres se
 //! regroupent par empreinte, et le meme incident revu dans les dix minutes se
 //! compte dans sa ligne (`fois`, `derniere`). UNE LIGNE PORTE DE QUOI DEBOGUER
-//! (Leandre, 23/10/2026) : le detail (la charge de la route, l'etat du mois),
+//! : le detail (la charge de la route, l'etat du mois),
 //! la trace, le fil des trois minutes d'avant et la machine (`diagnostic`).
 //! RIEN QUI DESIGNE UNE PERSONNE : `noter` passe tout par la frontiere de
 //! `diagnostic` (une personne devient sa forme, « salarie n°2 ») puis CAVIARDE

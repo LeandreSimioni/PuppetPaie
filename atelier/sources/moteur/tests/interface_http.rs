@@ -1,4 +1,4 @@
-//! `moteur interface` : le lanceur refuse en phrase et un corps trop gros se dit en JSON (#141). Le journal de la fenetre
+//! `moteur interface` : le lanceur refuse en phrase et un corps trop gros se dit en JSON. Le journal de la fenetre
 //! va dans un dossier utilisateur sous `CARGO_TARGET_TMPDIR`, jamais celui du poste ; le serveur n'ecoute que sur 127.0.0.1.
 
 use moteur::interface::demarrer_sur;

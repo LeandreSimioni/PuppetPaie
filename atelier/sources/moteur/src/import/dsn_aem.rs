@@ -46,7 +46,7 @@ pub(crate) const EMPLOI: [(&str, &str); 5] = [
 /// L'entreprise : les blocs 06 (l'entreprise), 11 (l'etablissement) et 40, PAS l'en-tete S10.G00.01, qui est
 /// l'EMETTEUR de l'envoi -- « dans le cas d'un tiers declarant ou d'un concentrateur, c'est l'identifiant SIREN de ce
 /// tiers qui doit figurer ici » (cahier technique 2026.1, p. 130, `atelier/reference/norme-dsn/texte/bloc-S10.G00.01.txt`) :
-/// un cabinet qui depose y met son nom et son adresse (lot I2, 3b). Le Siren et l'APEN se lisent en S21.G00.06 (p. 141-142,
+/// un cabinet qui depose y met son nom et son adresse. Le Siren et l'APEN se lisent en S21.G00.06 (p. 141-142,
 /// `bloc-S21.G00.06.txt`) ; le NIC, l'adresse et l'APET de l'etablissement, en S21.G00.11 (p. 144-145, `bloc-S21.G00.11.txt`)
 /// -- la fiche ne porte qu'un etablissement, celui de son NIC, que le moteur declare en 06.002 et en 11.001 (`dsn.rs`) ;
 /// l'adresse du siege (06.004-006) et son NIC (06.002) ne servent qu'a defaut. La DSN ne declare pas la raison sociale de
@@ -87,7 +87,7 @@ const VERSEMENT: [(&str, &str); 3] =
 
 /// Une valeur que la NATURE du contrat fixe (`contrats-base.json`, `codes` : « 999SPT » en 40.005 pour tout permanent,
 /// CCH-18 du bloc 40) ne dit rien du salarie : elle ne passe pas dans sa fiche. `999SPT` n'est pas un metier, et une
-/// DSN de PuppetPaie reimportee le donnerait comme `code_emploi_ft` d'un permanent (#152).
+/// DSN de PuppetPaie reimportee le donnerait comme `code_emploi_ft` d'un permanent.
 fn fixe_par_une_nature(rubrique: &str, valeur: &str) -> bool {
     droit::natures::natures().map_or(false, |n| n.iter().any(|nat| nat.code(rubrique).as_deref() == Some(valeur)))
 }
@@ -258,7 +258,7 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
             }
         }
     }
-    // LE COMPTE QUI PAIE (lot I2, 3e) : le BIC et l'IBAN « du compte sur lequel doit etre preleve le montant de l'ordre
+    // LE COMPTE QUI PAIE : le BIC et l'IBAN « du compte sur lequel doit etre preleve le montant de l'ordre
     // de reglement » (20.003, 20.004 ; cahier technique 2026.1, p. 156, `bloc-S21.G00.20.txt`), la `banque` de la fiche
     // Entreprise que le moteur y ecrit (`dsn.rs`) -- quand tous les versements de la DSN disent le meme compte ; deux
     // comptes, rien (on ne choisit pas). Le dossier de recouvrement France Travail : l'entite d'affectation (20.002) du
@@ -632,7 +632,7 @@ pub(crate) fn dossiers(export: &Path) -> (Option<std::path::PathBuf>, Option<std
     (if dsn.is_dir() { Some(dsn) } else { None }, if aem.is_dir() { Some(aem) } else { None })
 }
 
-// ------------------------------------------------------------------ l'entreprise de chaque piece (lot G1)
+// ------------------------------------------------------------------ l'entreprise de chaque piece
 
 /// Ou l'AEM porte le Siret de l'employeur : `ligne[50:64]`, 14 chiffres. Ni `CHAMPS` ni l'ancien `moteur/aem.py` ne
 /// nommaient cette zone (elle etait figee dans le gabarit, comme tout ce que l'AEM ne change pas d'un contrat a

@@ -6,7 +6,7 @@ async function dessinerDiagnostic(rang) {
   const etat = rang.querySelector(".k-diag-etat"), compte = rang.querySelector(".k-diag-compte");
   let d;
   try { d = await api("diagnostic-etat"); } catch (e) { etat.textContent = e.message; return; }
-  // L'ENVOI SE COUPE (Leandre, 08/10/2026) : avec un avertissement, et il se
+  // L'ENVOI SE COUPE : avec un avertissement, et il se
   // rallume d'un clic. Coupé, rien ne part ; le journal reste sur le poste.
   const couper = rang.querySelector("#k-diag-couper");
   couper.hidden = false;
@@ -54,7 +54,7 @@ async function dessinerDiagnostic(rang) {
     : !d.serveur ? "aucun serveur de l'éditeur connu : rien ne part"
     : d.dernier_envoi ? `${d.partis} incident(s) parti(s), le dernier le ${quand(d.dernier_envoi)}`
     : d.total ? "rien n'est encore parti" : "";
-  // Le nombre de paies de l'année (ticket #246) : le dernier parti, à la suite.
+  // Le nombre de paies de l'année : le dernier parti, à la suite.
   const annee = d.envoi !== false && (d.paies_annuelles || [])[0];
   if (annee) {
     compte.textContent += `${compte.textContent ? " · " : ""}nombre de paies de ${annee.annee} parti le ${quand(annee.parti_le)}`;
@@ -327,7 +327,7 @@ function boiteSignalement() {
       $("sg-pre").hidden = false;
     } catch (e) { montrerErreur(e.message); }
   };
-  // ENVOYER REND LA MAIN TOUT DE SUITE (Léandre, 14/10/2026) : le moteur
+  // ENVOYER REND LA MAIN TOUT DE SUITE : le moteur
   // enregistre le message sur l'ordinateur et le fait partir en fond ; ce qui
   // ne part pas tout de suite, la veille le renvoie. La page ne fait que
   // montrer où il en est, dans « Vos messages ».
@@ -374,9 +374,9 @@ function chargerHtml2canvas() {
 
 /** La page telle qu'on la voit (la partie affichée), SANS la boîte du message, en JPEG sous 1,5 Mo. `dessous` : les
  *  nœuds de la boîte qu'elle recouvre (`mettreDeCote`), qui figurent sur la photo à sa place ; sans eux, le voile part.
- *  L'écran, lui, ne change pas (#253) : tout se fait dans la copie de la page que html2canvas dessine (`onclone`).
+ *  L'écran, lui, ne change pas : tout se fait dans la copie de la page que html2canvas dessine (`onclone`).
  *
- *  UN SEUL DESSIN (#253) : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
+ *  UN SEUL DESSIN : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
  *  (mêmes échelles et qualités qu'avant), au lieu de redessiner la page. */
 async function photographierLaPage(dessous) {
   const h2c = await chargerHtml2canvas();
@@ -527,7 +527,7 @@ async function dessinerFilet(rang, exige) {
   if (f.actif && !f.confirme) guetterConfirmation(rang, exige, Date.now());
   if (f.erreur) verdict.textContent = f.erreur;
   arreter.hidden = !f.actif;
-  // Actif, la ligne s'ouvre d'un clic sur elle (ticket #218) ; « Activer… » reste tant qu'il y a à faire.
+  // Actif, la ligne s'ouvre d'un clic sur elle ; « Activer… » reste tant qu'il y a à faire.
   ouvrir.hidden = !!f.actif;
   const champ = rang.querySelector("#k-filet-adresse");
   if (!champ.value) champ.value = f.adresse || "";

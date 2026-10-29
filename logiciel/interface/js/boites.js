@@ -39,7 +39,7 @@ function mettreDeCote() {
     FERMETURE_BOITE = fermeture;
     CLIC_DEHORS = clic;
   };
-  // Ce qui attend, pour la capture d'écran du message, qui le photographie à sa place sans le remettre (#253).
+  // Ce qui attend, pour la capture d'écran du message, qui le photographie à sa place sans le remettre.
   rendre.noeuds = noeuds;
   return rendre;
 }
@@ -145,7 +145,7 @@ function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
   // LA COMPAGNIE FICTIVE (le moteur : `simulation`, route `etat`) : rien ne part, rien à prouver.
   // L'acte suit son cours comme en vrai, sans le popup.
   if (enFictive()) return Promise.resolve("fictive");
-  // UNE FICTIVE AJOUTÉE (ticket #236, `envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant
+  // UNE FICTIVE AJOUTÉE (`envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant
   // toute preuve ; on ne demande pas un mot de passe pour rien. Le geste part, et la page montre le refus.
   if (envoi && ETAT && ETAT.envois_refuses) return Promise.resolve("envoi-refuse");
   return new Promise((resoudre) => {

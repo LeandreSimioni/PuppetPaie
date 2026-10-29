@@ -17,7 +17,7 @@
 //! - un depot REEL n'est possible que sur `production` : la plate-forme `editeur` est un service d'essai, et le journal y
 //!   noterait comme declaree une DSN qui ne l'est pas (voir `depot_acte::deposer_dsn_dans`).
 //!
-//! - `--ordre N` (lot E1) : seulement avec `--test`, sur une mensuelle -- l'essai part en annule-et-remplace a l'ordre N au
+//! - `--ordre N` : seulement avec `--test`, sur une mensuelle -- l'essai part en annule-et-remplace a l'ordre N au
 //!   moins, quand la base d'essai a deja retenu des essais de ce SIRET pour ce mois que le journal de ce dossier ignore (un
 //!   autre poste, une compagnie d'essai). C'est le moteur qui refuse ailleurs (`depot_acte::deposer_dsn_dans`).
 //! - dans une COMPAGNIE D'ESSAI (`essai.rs`), l'aperçu ne montre pas le SIREN : c'est celui d'une vraie compagnie, venu de

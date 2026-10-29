@@ -818,7 +818,7 @@ function brancherFichesAttendues() {
 }
 
 /** LE CURSEUR DES PERMANENTS, TEL QUE L'ÉCRAN LE MONTRE EN CE MOMENT
- *  (ticket #214, 20/10/2026). C'est la réponse du moteur : celle de la
+ * . C'est la réponse du moteur : celle de la
  *  configuration enregistrée (`ETAT.configuration.permanents`), puis, la case
  *  à peine cochée ou décochée, celle de la route `permanents` sur la fiche en
  *  cours. La page ne le déduit jamais elle-même. */
@@ -903,7 +903,7 @@ function brancherConditions() {
   appliquer();
 }
 
-/** LA TAXE SUR LES SALAIRES (ticket #216, 20/10/2026). La compagnie dit sa
+/** LA TAXE SUR LES SALAIRES. La compagnie dit sa
  *  TVA ; le moteur (route `taxe-sur-les-salaires-regime`, CGI art. 231) dit
  *  quelles cases suivent et ce qui en découle, écrit sous les cases. La page
  *  ne montre que ce qu'il nomme, et ne conclut rien. */
@@ -940,7 +940,7 @@ function brancherTaxeSalaires() {
     });
     dit.textContent = r.consequence;
     dit.classList.toggle("attention", !r.complet);
-    // Les plafonds de la franchise, chiffrés par le moteur (ticket #239) :
+    // Les plafonds de la franchise, chiffrés par le moteur :
     // l'aide de la question et ses deux réponses. La question ne se
     // comprend pas sans les montants : son aide est ouverte d'emblée (le
     // « ? » la referme).
@@ -950,14 +950,14 @@ function brancherTaxeSalaires() {
         '[data-aide-corps="taxe_sur_les_salaires.sous_franchise"]');
       if (corps) {
         if (n === 1) corps.hidden = false;
-        // Un paragraphe par ligne de l'aide du moteur (ticket #245).
+        // Un paragraphe par ligne de l'aide du moteur.
         corps.replaceChildren(...f.aide.split("\n").map((ligne) => {
           const p = document.createElement("p");
           p.textContent = ligne;
           return p;
         }));
       }
-      // Les réponses sont des boutons à cocher (ticket #245) : chacune porte
+      // Les réponses sont des boutons à cocher : chacune porte
       // la phrase du moteur.
       const choix = cases.find((c) => c.dataset.sousCle === "sous_franchise");
       const groupe = choix && choix.closest(".boutons-choix");
@@ -1229,7 +1229,7 @@ function marquerModifie() {
   if (annuler) annuler.hidden = false;
 }
 
-/* ANNULER (ticket #124, 15/10/2026), le pendant d'« Enregistrer » : ce
+/* ANNULER, le pendant d'« Enregistrer » : ce
  * qu'on a tapé ne s'écrit pas. Enregistrer referme la fiche et revient à la
  * liste (ecrireFiche) ; Annuler aussi, sans rien écrire : une fiche neuve
  * n'est pas créée, une fiche existante reste telle qu'elle est enregistrée.
@@ -1304,7 +1304,7 @@ async function verifierFormulaire() {
     note.className = `anomalie ${a.gravite}`;
     note.textContent = a.message;
   });
-  // UNE VALEUR FAUSSE SE VOIT (#236) : le tiroir « Avancé » qui en tient une
+  // UNE VALEUR FAUSSE SE VOIT : le tiroir « Avancé » qui en tient une
   // s'ouvre de lui-même — rien à corriger ne reste replié hors de la vue. Une
   // case seulement vide n'ouvre rien : celles du tiroir se remplissent seules
   // (le matricule et l'ancienneté à l'enregistrement, les codes par le métier,
@@ -1507,7 +1507,7 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
       // Les codes d'un métier qu'on n'a pas choisi manquent tous ensemble :
       // une ligne, « Métier : à choisir », plutôt que quatre codes.
       // Sans métier choisi, un seul code qui manque se dit aussi « Métier » :
-      // ces codes ne se tapent pas, ils viennent du métier (#236).
+      // ces codes ne se tapent pas, ils viennent du métier.
       const sansMetier = !(document.getElementById("config-metier-choix") || {}).value;
       const duMetier = erreurs.filter((a) => CHAMPS_DU_METIER.includes(a.champ) && aRemplir(a));
       if (duMetier.length > 1 || (duMetier.length && sansMetier)) {

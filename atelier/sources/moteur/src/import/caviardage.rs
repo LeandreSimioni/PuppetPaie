@@ -546,7 +546,7 @@ fn motifs() -> &'static Motifs {
         cs: motif(r"\b[A-Z][ \u{a0}]?\d{3}[ \u{a0}]?\d{4}\b"),
         telephone: motif(r"(?:\+33[ .\-\u{a0}]?(?:\(0\)[ .\-\u{a0}]?)?[1-9]|\b0033[ .\-]?[1-9]|\b0[1-9])(?:[ .\-\u{a0}]?\d{2}){4}\b"),
         code: motif(r"(?i:code\s+salari[ée]|matricule)[ \t:.°]*([A-Z0-9][A-Z0-9\-]{1,15})\b"),
-        // Le meme code, seul en tete de la ligne suivante quand l'etiquette finit la sienne (#149) : des chiffres
+        // Le meme code, seul en tete de la ligne suivante quand l'etiquette finit la sienne : des chiffres
         // seulement (un mot en capitales y serait une autre etiquette), suivis d'un blanc ou de la fin de ligne (une
         // date, un montant ne s'y prennent pas).
         code_ligne_suivante: motif(r"(?i:code\s+salari[ée]|matricule)[ \t:.°]*\r?\n[ \t]*(\d{2,16})(?:[ \t]|\r?\n|$)"),

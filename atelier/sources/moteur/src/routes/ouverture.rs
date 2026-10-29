@@ -210,7 +210,7 @@ fn salaries_au_mois(ctx: &Contexte) -> R<Vec<String>> {
 /// La racine des donnees du poste (`contexte.RACINE`) : `PUPPETPAIE_DONNEES`,
 /// sinon le dossier `prive/` voisin du code, sinon le code lui-meme. LA LIGNE DE COMMANDE SEULEMENT (`moteur COMMANDE`,
 /// `moteur maj --publier`) : une route recoit sa compagnie (`o["racine"]`, `Contexte::racine`) et ne lit jamais cette
-/// variable -- la fenetre sert ses compagnies dans un seul processus (ticket #244).
+/// variable -- la fenetre sert ses compagnies dans un seul processus.
 pub(crate) fn racine_du_poste() -> PathBuf {
     if let Some(e) = std::env::var_os("PUPPETPAIE_DONNEES").filter(|e| !e.is_empty()) {
         return PathBuf::from(e);
@@ -476,7 +476,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         let limite = echeance.jour;
         let en_retard = ctx.aujourdhui.ordinal() > limite.ordinal();
         let drapeau = |k: &str| e.get(k).is_some_and(vrai);
-        // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) n'est jamais « en retard » ni « a ecrire » : sa DSN est au
+        // UN MOIS TENU AVANT CE LOGICIEL n'est jamais « en retard » ni « a ecrire » : sa DSN est au
         // journal (un depot que les retours attestent y entre seul), ou c'est celle que l'import a lue (« importee »), ou
         // il n'en a aucune trace (« sans_trace ») -- et rien ne se refait ici.
         let importe = crate::import::mois::importe(&ctx.racine, nom)?;
@@ -497,7 +497,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             None
         };
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
-        // LES AER DE FRANCE TRAVAIL (#236) : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
+        // LES AER DE FRANCE TRAVAIL : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
         // racine du mois ; elles se nomment avec les autres sortes.
         if crate::routes::documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {
             let rang = sortes.iter().position(|s| *s == "AEM").unwrap_or(sortes.len());
@@ -537,7 +537,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
 /// `_historique` : ce que l'Historique montre de chaque mois.
 fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
     let mut mois = mois_connus(&ctx.racine);
-    // Les mois tenus avant ce logiciel (ticket #215) sont des mois comme les autres : l'Historique les montre aussi.
+    // Les mois tenus avant ce logiciel sont des mois comme les autres : l'Historique les montre aussi.
     for im in crate::import::mois::mois_importes(&ctx.racine).unwrap_or_default() {
         if !mois.iter().any(|(x, _)| *x == im) {
             mois.push((im, Vec::new()));
@@ -907,10 +907,10 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
         // mot de passe.
         "simulation": crate::compagnie::bridage::branchement(&ctx.racine).joue(),
-        // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::branchement`) ; la page
+        // UNE FICTIVE AJOUTEE : ses envois sont refuses par le moteur (`bridage::branchement`) ; la page
         // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
         "envois_refuses": crate::compagnie::bridage::branchement(&ctx.racine).refus().is_some(),
-        // SUPPRIMER LA COMPAGNIE (ticket #236) : la Configuration ne le propose que si elle se supprime -- jamais une
+        // SUPPRIMER LA COMPAGNIE : la Configuration ne le propose que si elle se supprime -- jamais une
         // fictive livree, qui se remet a zero (`interface::suppression::genre`).
         "supprimable": crate::interface::suppression::genre(&crate::compagnie::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
         // UNE COMPAGNIE CREEE EN DEMO PUIS GARDEE : sa mention, et les mois saisis en demo, ou la page la montre.
@@ -941,7 +941,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         // LES PAYS (vague 1k) : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
         // deduit. Le pays de naissance et le pays de nationalite s'y choisissent.
         "pays": socle::pays::servir().map_err(plain)?,
-        // Le pays de naissance (lot R2) : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
+        // Le pays de naissance : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
         "pays_naissance": socle::pays::servir_naissance().map_err(plain)?,
     }))
 }
@@ -1036,7 +1036,7 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
 /// qui est configure. Ne va voir aucun depot.
 pub(crate) fn version() -> R<Value> {
     let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
-    // La mise a jour est celle de l'INSTALLATION (lot U1) : son reglage (`maj::reglage`), sa version prete.
+    // La mise a jour est celle de l'INSTALLATION : son reglage (`maj::reglage`), sa version prete.
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
     let (depot, editeur) = crate::compagnie::maj::reglage(&inst).map_err(|e| erreur("ValueError", e))?;
     // Le depot d'ou l'on recoit : celui qui est pose, sinon celui du moteur (`maj::DEPOT_PAR_DEFAUT`, lot S1).

@@ -55,7 +55,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 /// Le dossier a trier : `charge.dossier`, ou `import/` a la racine de la compagnie s'il est vide ou absent.
 ///
-/// LA BOITE AUX LETTRES DE LA COMPAGNIE SE CREE VIDE (Leandre, 10/10/2026) : `import/` qui n'existe pas encore est
+/// LA BOITE AUX LETTRES DE LA COMPAGNIE SE CREE VIDE : `import/` qui n'existe pas encore est
 /// cree, et l'apercu (ou l'import) n'a rien a reprendre, au lieu de refuser « dossier absent ». Un dossier DONNE
 /// (`charge.dossier`) qui n'existe pas reste refuse (`import::tri::trier`).
 pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
@@ -346,7 +346,7 @@ pub(crate) fn apercu_lu(
     };
     let mut avertissements: Vec<String> = lecture.illisibles.iter().map(|f| format!("DSN illisible, ignoree : {}", f)).collect();
     // LA FICHE NE PORTE QU'UN ETABLISSEMENT (celui de son NIC, `champs-base.json`, `etablissements`) : des DSN qui en
-    // declarent plusieurs, ou dont le siege n'est pas l'etablissement declare, le disent (lot I2, 3b).
+    // declarent plusieurs, ou dont le siege n'est pas l'etablissement declare, le disent.
     if lecture.etablissements.len() > 1 {
         avertissements.push(format!(
             "les DSN déclarent plusieurs établissements (S21.G00.11.001 : {}) : la fiche Entreprise n'en porte qu'un, celui de son NIC ; le moteur ne déclare que celui-là",

@@ -239,7 +239,7 @@ impl Etat<'_> {
     }
 
     /// `journal.etat_dsn_du_mois(ctx, mois)` : `Null` ou l'etat.
-    /// UN MOIS TENU AVANT CE LOGICIEL (ticket #215) NE SE RECLAME JAMAIS : sans ligne au journal, la DSN que l'import
+    /// UN MOIS TENU AVANT CE LOGICIEL NE SE RECLAME JAMAIS : sans ligne au journal, la DSN que l'import
     /// a lue pour lui (`import::mois::dsn_importee`) le dit declare, meme quand la saisie y ajoute des engagements : ils
     /// se declarent dans la DSN suivante, et son rappel le dit (`ajouter_les_mois_de_l_ancien_logiciel`) ; sans aucune
     /// trace, il n'est pas reclame non plus (`sans_trace`) -- sa DSN, faite ou a faire, releve du logiciel qui a calcule
@@ -361,7 +361,7 @@ pub(crate) fn exercice_clos(ctx: &Contexte, annee: &str) -> R<Option<Value>> {
     if !socle::fichiers::existe(&p) {
         return Ok(None);
     }
-    // Lu une fois tant qu'il ne change pas (ticket #244), le refus d'un fichier illisible inchange (`lire_json`).
+    // Lu une fois tant qu'il ne change pas, le refus d'un fichier illisible inchange (`lire_json`).
     match &*socle::fichiers::json_en_cache_ou(&p, lire_json)? {
         Value::Object(o) => Ok(o.iter().find(|(k, _)| !k.starts_with('_') && k.as_str() == &annee[..4.min(annee.len())]).map(|(_, v)| v.clone())),
         autre => Err(avec_classe("AttributeError", format!("config/exercices.json : {}", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&autre))))),
@@ -504,7 +504,7 @@ fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
     let mut fichiers: Vec<(String, PathBuf)> = entrees_dans_l_ordre(&dossier)
         .into_iter()
         .filter(|(nom, c)| c.is_file() && Path::new(nom).extension().map_or(false, |e| e.to_string_lossy().to_lowercase() == "dsn"))
-        // LA MENSUELLE, PAS UN SIGNALEMENT (ticket #244) : un signalement d'arret ou de fin ecrit apres la DSN du mois, dans
+        // LA MENSUELLE, PAS UN SIGNALEMENT : un signalement d'arret ou de fin ecrit apres la DSN du mois, dans
         // le meme dossier, devenait « la DSN a deposer » du rappel.
         .filter(|(_, c)| std::fs::read(c).map(|o| !envois::depot::lire(&o).est_signalement()).unwrap_or(false))
         .collect();

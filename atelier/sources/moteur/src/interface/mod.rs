@@ -1,4 +1,4 @@
-//! La fenetre de PuppetPaie, en Rust (lot J3) : ce que faisaient `web.py`, `lanceur_interface.pyw`, `fenetre.py`,
+//! La fenetre de PuppetPaie, en Rust : ce que faisaient `web.py`, `lanceur_interface.pyw`, `fenetre.py`,
 //! `compagnies.py` et `instance.py`.
 //!
 //! UN SERVEUR LOCAL, TROIS ETATS. Le serveur (127.0.0.1, un jeton exige a chaque appel) sert `/` selon l'etat :
@@ -48,7 +48,7 @@ const GARDER: &str = include_str!("pages/garder.html");
 const CALE: &str = r#"<script>
 (function () {
   const JETON = "{{JETON}}";
-  // Une reponse se lit toujours en `{ok, erreur}`, `erreur` en phrase (#141) : un corps qui n'est pas du JSON, un
+  // Une reponse se lit toujours en `{ok, erreur}`, `erreur` en phrase : un corps qui n'est pas du JSON, un
   // refus en objet ou un serveur parti ne levent pas dans la page.
   const lire = (r) => r.text().then((t) => {
     try { return JSON.parse(t); }
@@ -74,12 +74,12 @@ const CALE: &str = r#"<script>
 
 /// Les pages du mot de passe sont servies avec ces noms : leur « Retour » (et Echap) appelle `accueil`. Absent de la
 /// liste, la cale ne le definissait pas et le bouton levait sans rien faire (capture de Leandre, version 20.10.2026).
-/// L'administrateur (ticket #244) : `rattacher_nouvelle` (la question « meme administrateur ? » d'une compagnie neuve),
+/// L'administrateur : `rattacher_nouvelle` (la question « meme administrateur ? » d'une compagnie neuve),
 /// `tableau`, `tableau_rafraichir` et `deposer_groupe` (le tableau de bord de l'accueil).
 const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "garder", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
-/// Dans la page du logiciel : revenir aux compagnies (ticket #113) ; et, comme a l'accueil, lire ou en est la mise a
-/// jour et redemarrer pour l'installer (ticket #210, `js/mise-a-jour.js`). L'administrateur, dans la Configuration
-/// (ticket #244, `js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
+/// Dans la page du logiciel : revenir aux compagnies ; et, comme a l'accueil, lire ou en est la mise a
+/// jour et redemarrer pour l'installer (`js/mise-a-jour.js`). L'administrateur, dans la Configuration
+/// (`js/coffre-compte.js`) : ce qu'il est pour cette compagnie, la rattacher, la detacher, changer son mot
 /// de passe.
 const NOMS_LOGICIEL: &str = r#"["accueil", "maj", "redemarrer", "supprimer", "administrateur", "rattacher", "detacher", "changer_administrateur"]"#;
 
@@ -98,13 +98,13 @@ pub struct Fenetre {
     /// Le dossier de cette fenetre sur le poste (`instance::dossier_local`) : le jeton, le profil du navigateur, le
     /// journal d'avant toute compagnie.
     local: PathBuf,
-    /// LE FIL DES CALCULS EN FOND (ticket #244, `etat_garde::Fil`) et la file de chaque compagnie qu'il tient, par
+    /// LE FIL DES CALCULS EN FOND (`etat_garde::Fil`) et la file de chaque compagnie qu'il tient, par
     /// dossier : nees au lancement pour les compagnies de l'installation (`prechauffer`), ou a l'ouverture d'une autre ;
     /// reprises, jamais refaites, quand la compagnie s'ouvre, se ferme et se rouvre.
     fil: Arc<Fil>,
     files: Mutex<HashMap<PathBuf, Arc<FileDesEtats>>>,
     phase: Mutex<Phase>,
-    /// LE MOT DE PASSE DE L'ADMINISTRATEUR, tape une fois dans cette fenetre (ticket #244) : il ouvre ses autres
+    /// LE MOT DE PASSE DE L'ADMINISTRATEUR, tape une fois dans cette fenetre : il ouvre ses autres
     /// compagnies sans le redemander tant que la fenetre vit. Il OUVRE, il n'autorise rien : un acte reel redemande
     /// toujours le mot de passe au moment de l'acte. Il ne va dans aucune route, aucun fichier, aucun journal.
     administrateur: Mutex<Option<String>>,
@@ -129,7 +129,7 @@ fn ressources() -> PathBuf {
 }
 
 /// Douze caracteres qui changent des qu'une feuille ou un script change : la fenetre ne garde rien de perime.
-/// Tous les `.css` et `.js` de `interface/` et de `interface/js/` (lot L), tries par nom : la meme empreinte d'un
+/// Tous les `.css` et `.js` de `interface/` et de `interface/js/`, tries par nom : la meme empreinte d'un
 /// lancement a l'autre. Le nom entre dans le condensat avec le contenu.
 fn empreinte() -> String {
     use sha2::{Digest, Sha256};
@@ -147,7 +147,7 @@ fn empreinte() -> String {
         }
     }
     noms.sort();
-    // LE CONTENU NE SE RELIT QUE S'IL A CHANGE (ticket #244) : la date et la taille de chaque fichier suffisent a savoir
+    // LE CONTENU NE SE RELIT QUE S'IL A CHANGE : la date et la taille de chaque fichier suffisent a savoir
     // que rien n'a bouge depuis la derniere page -- la relecture et le condensat de 800 Ko a chaque `GET /` coutaient.
     static DERNIERE: OnceLock<Mutex<Option<(Vec<(String, Option<(u128, u64)>)>, String)>>> = OnceLock::new();
     let memo = DERNIERE.get_or_init(|| Mutex::new(None));
@@ -262,7 +262,7 @@ fn page_accueil() -> String {
                 echapper(&c.id),
                 if c.reelle { format!(" style=\"--cie:{}\"", c.couleur) } else { String::new() },
                 medaillon,
-                // Une fictive AJOUTEE n'a pas de photo d'origine : pas de remise a zero (ticket #236).
+                // Une fictive AJOUTEE n'a pas de photo d'origine : pas de remise a zero.
                 if c.reelle {
                     CRAYON.replace("%s", &c.couleur)
                 } else if compagnies::est_fictive_livree(&c.racine) {
@@ -277,7 +277,7 @@ fn page_accueil() -> String {
     }
     let bride = crate::compagnie::bridage::est_bride();
     let grille = if bride {
-        // BRIDE, LE « + » AUSSI (ticket #236) : il ajoute une fictive (`compagnies::ajouter`), apres le message.
+        // BRIDE, LE « + » AUSSI : il ajoute une fictive (`compagnies::ajouter`), apres le message.
         format!("<div class=\"grille\">{}{}</div>{}", tuiles.iter().map(|(_, t)| t.as_str()).collect::<String>(), TUILE_AJOUTER, AVIS_AJOUTER)
     } else {
         let reelles: String = tuiles.iter().filter(|(r, _)| *r).map(|(_, t)| t.as_str()).collect::<String>() + TUILE_AJOUTER;
@@ -292,7 +292,7 @@ fn page_accueil() -> String {
         }
         g
     };
-    // AU DEBLOCAGE (ticket #236) : tant qu'il reste des compagnies creees en demo, la question se pose a chaque accueil.
+    // AU DEBLOCAGE : tant qu'il reste des compagnies creees en demo, la question se pose a chaque accueil.
     let a_garder = suppression::a_garder(&compagnies::base());
     let grille = if a_garder.is_empty() {
         grille
@@ -303,7 +303,7 @@ fn page_accueil() -> String {
             .collect();
         format!("{}{}", grille, GARDER.replace("{{LISTE}}", &liste))
     };
-    // La version, sous le nom, comme dans la page d'une compagnie (ticket #211) ; les tuiles en dernier : un nom de
+    // La version, sous le nom, comme dans la page d'une compagnie ; les tuiles en dernier : un nom de
     // compagnie n'est jamais lu comme une marque a remplacer.
     ACCUEIL
         .replace("{{VERSION}}", &version())
@@ -434,7 +434,7 @@ impl Fenetre {
         if let Err(e) = compagnies::figer_origine(&racine) {
             self.ecrire(&format!("Photo d'origine non prise : {}\n", e));
         }
-        // Aucune variable du processus ne dit la compagnie (ticket #244) : chaque route la recoit (`--racine`, `o["racine"]`,
+        // Aucune variable du processus ne dit la compagnie : chaque route la recoit (`--racine`, `o["racine"]`,
         // le `Contexte`), et la fenetre pourra en servir plusieurs a la fois.
         let journal = racine.join("journal").join("interface.log");
         if let Some(d) = journal.parent() {
@@ -506,7 +506,7 @@ impl Fenetre {
         }
     }
 
-    /// Les gestes de l'administrateur (ticket #244) : tout se decide dans `administrateur.rs`, la fenetre ne fait que
+    /// Les gestes de l'administrateur : tout se decide dans `administrateur.rs`, la fenetre ne fait que
     /// passer la saisie et retenir, pour sa seance, le mot de passe qui vient d'etre verifie.
     fn geste_administrateur(&self, nom: &str, args: &[Value]) -> Option<Value> {
         let a = |i: usize| args.get(i).and_then(Value::as_str).unwrap_or("").to_string();
@@ -592,7 +592,7 @@ impl Fenetre {
         // au lancement suivant, avant toute fenetre (`maj::au_lancement`), sans qu'aucune compagnie soit ouverte.
         // Les etats des mois se refont en fond, dans ce processus, s'ils ne sont plus justes (`etat_garde::FileDesEtats`) :
         // a l'ouverture, apres chaque ecriture et chaque tour de veille. Un mois s'affiche ensuite sans calcul. La file est
-        // celle que le fil de la fenetre tient deja pour cette compagnie (ticket #244, `prechauffer`) : elle passe devant.
+        // celle que le fil de la fenetre tient deja pour cette compagnie (`prechauffer`) : elle passe devant.
         let etats = self.file_de(&racine);
         self.fil.devant(Some(&etats));
         etats.tout_verifier();
@@ -734,7 +734,7 @@ impl Fenetre {
                 Ok(()) => ok(true),
                 Err(m) => refus(m),
             },
-            // AU DEBLOCAGE (ticket #236) : les fictives ajoutees gardees deviennent reelles, les autres sont supprimees
+            // AU DEBLOCAGE : les fictives ajoutees gardees deviennent reelles, les autres sont supprimees
             // (`suppression::repondre`). `garder` et `ne_pas_garder` : des identifiants de tuile.
             ("garder", Phase::Accueil) => {
                 let ids = |i: usize| -> Vec<String> {
@@ -749,7 +749,7 @@ impl Fenetre {
                     Err(m) => refus(m),
                 }
             }
-            // SUPPRIMER LA COMPAGNIE OUVERTE (ticket #236) : tout se decide dans `suppression::supprimer` (la preuve d'une
+            // SUPPRIMER LA COMPAGNIE OUVERTE : tout se decide dans `suppression::supprimer` (la preuve d'une
             // compagnie reelle : le mot de passe du logiciel, tape dans le popup de la page). Un passage de la veille en
             // cours ecrit dans son dossier : on attend qu'il finisse.
             ("supprimer", Phase::Ouverte { racine, veille, .. }) => {
@@ -775,7 +775,7 @@ impl Fenetre {
                 Ok(false) => refus("Mot de passe refusé.".into()),
                 Err(e) => refus(e.message),
             },
-            // « Meme administrateur ? » -- oui (ticket #244) : le mot de passe de l'administrateur, tape une fois pour le
+            // « Meme administrateur ? » -- oui : le mot de passe de l'administrateur, tape une fois pour le
             // verifier, scelle aussi cette compagnie neuve.
             ("rattacher_nouvelle", Phase::MotDePasse { racine, premiere: true }) => {
                 match crate::compagnie::administrateur::rattacher(&compagnies::base(), &racine, &a(0), None, &crate::compagnie::administrateur::Poste::de_ce_poste()) {
@@ -812,7 +812,7 @@ impl Fenetre {
                 self.fermer_le_logiciel();
                 ok(false)
             }
-            // Ou en est la recherche de la mise a jour (ticket #210) : l'accueil et la page d'une compagnie l'affichent.
+            // Ou en est la recherche de la mise a jour : l'accueil et la page d'une compagnie l'affichent.
             ("maj", _) => json!({"ok": true, "etat": crate::compagnie::maj::RECHERCHE.etat()}),
             // « Redemarrer pour mettre a jour » : la version prete part au relais, puis le logiciel se ferme comme par sa
             // croix (la veille s'arrete) ; le relais attend sa fin, installe et rouvre la fenetre neuve. Rien de pret :
@@ -895,7 +895,7 @@ impl Fenetre {
                 let html = match self.phase() {
                     Phase::Accueil => page(&page_accueil(), &self.jeton, NOMS_ACCUEIL),
                     Phase::MotDePasse { racine, premiere } => {
-                        // Ce que l'administrateur est pour cette compagnie (ticket #244) : la page le lit, sans rien decider.
+                        // Ce que l'administrateur est pour cette compagnie : la page le lit, sans rien decider.
                         let etat = crate::compagnie::administrateur::etat(&compagnies::base(), Some(&racine), &crate::compagnie::administrateur::Poste::de_ce_poste());
                         let gabarit = if premiere { CHOIX_MOT_DE_PASSE } else { MOT_DE_PASSE };
                         page(&gabarit.replace("{{ADMINISTRATEUR}}", &json_dans_la_page(&etat)), &self.jeton, NOMS_ACCUEIL)
@@ -911,7 +911,7 @@ impl Fenetre {
             "/apercu/bulletin" => self.apercu_bulletin(&r),
             c if c.starts_with("/identite/") => self.identite(&r, &c["/identite/".len()..]),
             c => match fichier_de_la_page(c) {
-                // UNE FEUILLE OU UN SCRIPT NOMME PAR SON EMPREINTE (`?v=`, `empreinte`) se garde (ticket #244) : la page
+                // UNE FEUILLE OU UN SCRIPT NOMME PAR SON EMPREINTE (`?v=`, `empreinte`) se garde : la page
                 // d'une compagnie charge vingt-cinq fichiers, qu'elle ne redemande plus a chaque ouverture. Ce qui change
                 // change d'empreinte, donc d'adresse : rien de perime ne se garde.
                 Some((o, mime)) if r.params.contains_key("v") && (c.ends_with(".js") || c.ends_with(".css")) => {
@@ -951,7 +951,7 @@ impl Fenetre {
             .avec("Content-Security-Policy", "default-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'")
     }
 
-    /// L'apercu d'un modele de bulletin (lot R11) : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait
+    /// L'apercu d'un modele de bulletin : le PDF d'une paie fictive, que la route `bulletin-modele-apercu` fait
     /// dans le processus de la fenetre, comme toute route ; le lecteur de la fenetre l'affiche (Configuration).
     fn apercu_bulletin(&self, r: &Requete) -> Reponse {
         let interdit = Reponse::nouvelle(403, "text/plain", Vec::new());
@@ -1007,7 +1007,7 @@ impl Fenetre {
 }
 
 /// La ligne du journal de l'interface pour une route servie : `HH:MM:SS route NOM N ms`, et ` refus CLASSE` quand elle a
-/// refuse. Ni la charge ni la reponse : seulement de quoi mesurer (ticket #244).
+/// refuse. Ni la charge ni la reponse : seulement de quoi mesurer.
 pub fn ligne_de_route(nom: &str, duree: Duration, rendu: &Value) -> String {
     let heure = socle::paris::iso_de_naif(socle::paris::maintenant_naif());
     let nom: String = nom.chars().filter(|c| c.is_ascii_alphanumeric() || "-_.".contains(*c)).take(80).collect();

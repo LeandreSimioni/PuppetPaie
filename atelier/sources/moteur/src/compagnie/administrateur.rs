@@ -20,7 +20,7 @@
 //! compagnies : tout se prepare, puis tout se remplace ; un echec au milieu remet en etat, aucune ne change). Rien de cela
 //! n'est un acte qui engage : un acte reel (depot, envoi, signature) redemande toujours le mot de passe au moment de l'acte.
 //!
-//! LE TABLEAU DE BORD (Leandre, 22/10/2026) : pour chaque compagnie rattachee, les declarations obligatoires, triees par
+//! LE TABLEAU DE BORD : pour chaque compagnie rattachee, les declarations obligatoires, triees par
 //! urgence avec leur date limite -- la DSN mensuelle, les signalements (arret, reprise anticipee, fin de contrat) et ce que
 //! `obligations.rs` fait naitre, les DPAE. Tout vient des RAPPELS de la compagnie (`routes::rappels`, route `rappels` :
 //! les mois a declarer et leur echeance, `obligations::de_l_arret` et `de_la_fin` pour les delais et leur etat) : ce module
@@ -579,7 +579,7 @@ fn cle_d_urgence(d: &Value) -> (bool, String) {
 /// limite et, pour ce qui part par la DSN, ou en est son fichier. Ecrit dans `config/.tableau.json` (ce que l'accueil lit).
 pub fn tableau_compagnie(o: &HashMap<String, String>, ctx: &Contexte) -> R<Value> {
     // L'EMPREINTE DE TOUTE LA COMPAGNIE, prise avant (celle de l'etat d'ouverture, `etat_garde::empreinte_de`) : le fil de
-    // la fenetre ne le refait pas tant qu'elle n'a pas bouge (ticket #244, `FileDesEtats::faire_le_tableau`).
+    // la fenetre ne le refait pas tant qu'elle n'a pas bouge (`FileDesEtats::faire_le_tableau`).
     let empreinte = crate::etat_garde::empreinte_de(&ctx.racine, crate::etat_garde::OUVERTURE, &ctx.aujourdhui.iso());
     let rappels = match crate::routes::rappels::traiter(o, "rappels", &json!({})) {
         Some(Ok(v)) => v,

@@ -1,4 +1,4 @@
-//! PuppetPaie : la fenetre (lot J3). Le serveur de la fenetre (`moteur::interface`) tourne dans ce processus, et sa page
+//! PuppetPaie : la fenetre. Le serveur de la fenetre (`moteur::interface`) tourne dans ce processus, et sa page
 //! s'affiche dans une fenetre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux). Les routes du moteur tournent
 //! dans ce processus (`moteur::interface::api::route`, ticket #244) ; `puppetpaie route ...` reste, comme `moteur route ...`,
 //! pour la mise a jour, qui eprouve le nouveau programme avant de l'installer (`moteur::compagnie::maj`).
@@ -13,7 +13,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 static APPLICATION: OnceLock<tauri::AppHandle> = OnceLock::new();
 
-/// La barre de titre que la page n'a pas (ticket #195) : pose dans chaque page de la fenetre, avant ses scripts.
+/// La barre de titre que la page n'a pas : pose dans chaque page de la fenetre, avant ses scripts.
 /// Ce qu'il peut demander a la fenetre est borne par `capabilities/fenetre.json`.
 const CADRE: &str = include_str!("cadre.js");
 
@@ -66,7 +66,7 @@ fn main() -> std::process::ExitCode {
     }
 
     moteur::commandes::compagnie::fixer_le_code();
-    // UNE FENETRE PAR INSTALLATION (ticket #244, `moteur::interface::instance`). Celle de cette installation est deja
+    // UNE FENETRE PAR INSTALLATION (`moteur::interface::instance`). Celle de cette installation est deja
     // ouverte : elle revient devant. Une AUTRE installation ouverte sur le poste ne change rien : chacune a son creneau
     // (son verrou et le port de sa page), et elles s'ouvrent cote a cote.
     let prise = match moteur::interface::prendre_instance(devant) {
@@ -110,7 +110,7 @@ fn main() -> std::process::ExitCode {
             let _ = APPLICATION.set(app.handle().clone());
             *pour_fermer.lock().unwrap_or_else(|e| e.into_inner()) = Some(app.handle().clone());
             let url = adresse.parse().map_err(|e| format!("adresse illisible : {}", e))?;
-            // UNE FENETRE SANS BARRE NOIRE, OUVERTE UNE FOIS (ticket #195). Pas de bordure systeme : le haut de la
+            // UNE FENETRE SANS BARRE NOIRE, OUVERTE UNE FOIS. Pas de bordure systeme : le haut de la
             // fenetre est le bandeau de la page, et `cadre.js` en fait la barre de titre (tirer, double-clic, les trois
             // boutons). Elle s'ouvre a sa taille, centree, et n'en change plus : l'ancienne s'ouvrait en 1200 x 800
             // puis s'agrandissait aussitot, « ca a l'air de le faire et apres ca le fait plus ».

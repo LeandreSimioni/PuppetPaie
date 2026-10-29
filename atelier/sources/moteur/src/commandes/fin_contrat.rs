@@ -9,7 +9,7 @@
 //!   papiers, rien ne part.
 //!
 //! `--le` est la date de constitution du fichier (`signaler`) ou la date portee par les papiers (`documents`) ; defaut :
-//! aujourd'hui. Les routes l'ignoraient (lot J2b) : elles la lisent maintenant, dans la charge.
+//! aujourd'hui. Les routes l'ignoraient : elles la lisent maintenant, dans la charge.
 //!
 //! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : un mois mal ecrit, une date `--le` illisible ou un contrat sans date de fin donnaient une
 //! trace d'appels. Ici : `! phrase`, code 2.

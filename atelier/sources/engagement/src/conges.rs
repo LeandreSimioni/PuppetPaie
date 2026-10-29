@@ -722,7 +722,7 @@ pub(crate) fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> R
 /// LE COMPTEUR QUE LA VALIDATION ECRIT dans la paie `p` de `mois` (`etats::CONGES`) : celui que son bulletin montre
 /// (`compteur_au_bulletin`), pour un contrat paye au mois dont l'employeur tient les conges. Un contrat declare a la
 /// caisse des Conges Spectacles (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'en a pas : la caisse lui paie
-/// ses conges (#132).
+/// ses conges.
 pub(crate) fn compteur_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Option<CompteurConges>> {
     if !p.engagement.nat()?.mensuelle() || crate::calcul::declaree_a_la_caisse_des_conges(p)? {
         return Ok(None);

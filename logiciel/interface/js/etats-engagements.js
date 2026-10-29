@@ -292,7 +292,7 @@ async function dessinerEtatsDesEngagements(mois) {
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
     // rien à peindre, et rien d'alarmant à dire. La saisie, elle, marche.
-    // On ne sait rien des engagements : les cartes restent comme elles sont (#253).
+    // On ne sait rien des engagements : les cartes restent comme elles sont.
     // Un état vide les ouvrait TOUTES en formulaire, validées comprises, et le
     // refus du moteur (dit dans « Les étapes ») se lisait « tout s'est ouvert ».
     ETATS_ENGAGEMENTS = null;
@@ -602,7 +602,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
  * horodaté, à côté du fichier complet du mois, jamais par-dessus. */
 async function boiteDpae(mois) {
   if (!mois) { dire("Choisir un mois."); return; }
-  // LA SAISIE À L'ÉCRAN D'ABORD (ticket #105, 02/10/2026). Cette boîte lit la
+  // LA SAISIE À L'ÉCRAN D'ABORD. Cette boîte lit la
   // saisie ENREGISTRÉE : un engagement tapé il y a moins d'une seconde, ou qu'un
   // spectacle manquant empêche d'enregistrer, n'y figurerait pas -- et sa
   // DPAE ne partirait pas, sans que rien ne le dise.
@@ -620,7 +620,7 @@ async function boiteDpae(mois) {
   try {
     r = await api("etat-par-engagement", { mois });
   } catch (e) {
-    // Un mois sans engagement rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel (#253).
+    // Un mois sans engagement rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel.
     dire(e.message, "erreur");
     return;
   }

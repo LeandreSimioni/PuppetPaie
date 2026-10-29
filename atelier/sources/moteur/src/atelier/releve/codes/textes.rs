@@ -203,7 +203,7 @@ pub static TEXTES: &[Texte] = &[
             // sixieme pose l'assiette minimum que la deduction forfaitaire
             // specifique ne peut pas entamer (art. 9 de l'arrete).
             Domaine { cle: "assiette", titre: "L'assiette des cotisations, et ce qui en sort", numeros: &["L242-1", "R242-1"] },
-            // L241-13 (lot R9) : la reduction generale << ne tient compte des
+            // L241-13 : la reduction generale << ne tient compte des
             // deductions au titre de frais professionnels calculees
             // forfaitairement en pourcentage de cette remuneration que dans
             // des limites et conditions fixees par arrete >> (III).
@@ -454,7 +454,7 @@ pub static TEXTES: &[Texte] = &[
             // LA TAXE SUR LES SALAIRES (journal §117) : l'employeur qui
             // n'est pas assujetti a la TVA -- beaucoup d'associations
             // du spectacle. Le bareme (231) et l'abattement des
-            // associations (1679 A) ; 1679 dit quand elle se verse. 293 B (ticket #239, 21/10/2026) : les plafonds de
+            // associations (1679 A) ; 1679 dit quand elle se verse. 293 B : les plafonds de
             // la franchise en base de TVA, auxquels renvoie le 2e alinea du 1 de 231 -- sous eux, pas de taxe ; leurs
             // montants entrent au bareme de l'annee (`taxe_sur_les_salaires.plafonds_franchise`).
             Domaine { cle: "taxe_salaires", titre: "La taxe sur les salaires", numeros: &["231", "293 B", "1679", "1679 A"] },

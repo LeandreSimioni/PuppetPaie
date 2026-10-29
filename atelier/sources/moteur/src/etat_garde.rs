@@ -61,7 +61,7 @@ const LECTURES: [(&str, bool); 5] = [
     ("imprevus", true),
 ];
 
-/// La cle de l'etat garde de l'OUVERTURE dans la file (ticket #244) : a cote des mois, jamais confondue avec eux.
+/// La cle de l'etat garde de l'OUVERTURE dans la file : a cote des mois, jamais confondue avec eux.
 pub const OUVERTURE: &str = "ouverture";
 
 /// Ce que la page lit en s'ouvrant, hors de l'ecran d'un mois (`js/demarrage.js`) : la route et sa charge. Chacune est
@@ -126,7 +126,7 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
     }
 }
 
-/// CE QUE L'ECRAN D'UN MOIS NE LIT PAS, et qui bouge sans lui (ticket #212, 16/10/2026). Etabli par mesure (`strace` de la
+/// CE QUE L'ECRAN D'UN MOIS NE LIT PAS, et qui bouge sans lui. Etabli par mesure (`strace` de la
 /// route `mois` sur cinq mois de la grande fictive 3090 : aucun de ces fichiers n'est ouvert ni teste) et par le code
 /// (chacun n'a de lecteur que hors des lectures du mois : `LECTURES`, `etat-par-engagement`, `etat-du-mois`, l'apercu) :
 /// - `config/.ouverture.json` : la trace de la veille (`ouverture.rs`, `chemin_trace`), reecrite a chaque tour ; lue par
@@ -160,7 +160,7 @@ const HORS_DE_L_ECRAN: [&str; 9] = [
 /// Pour un MOIS : ni le coffre (un `.bin` : ce qu'il dit se relit a chaque lecture), ni ce que l'ecran ne lit pas
 /// (`HORS_DE_L_ECRAN`), ni les sorties des autres mois.
 ///
-/// Pour l'OUVERTURE (ticket #244) : toute la compagnie -- les engagements et les sorties de tous les mois (le mois a
+/// Pour l'OUVERTURE : toute la compagnie -- les engagements et les sorties de tous les mois (le mois a
 /// ouvrir et l'historique les lisent), les images de l'identite (`gabarits/`), la date et la taille des fichiers du coffre
 /// (la configuration dit si la boite courriel est liee, `boite_liee` : rien n'en est lu ici, ni ailleurs dans
 /// l'empreinte), et l'adresse de la boite posee dans l'environnement (`COURRIEL_COMPTE`). Ce qui ne s'y lit pas reste
@@ -392,7 +392,7 @@ fn voisin(m: &str, pas: i32) -> Option<String> {
 
 type Rendu = Result<Value, (Option<&'static str>, String)>;
 
-/// La cle du TABLEAU de l'administrateur dans la file (ticket #244) : `config/.tableau.json`, refait pour une compagnie
+/// La cle du TABLEAU de l'administrateur dans la file : `config/.tableau.json`, refait pour une compagnie
 /// rattachee (`administrateur::tableau_compagnie`), sous l'empreinte de l'ouverture (toute la compagnie).
 pub const TABLEAU: &str = "tableau";
 
@@ -629,7 +629,7 @@ impl FileDesEtats {
     fn rendre(&self, mois: String, numero: u64, rendu: Rendu) {
         let mut e = self.verrou();
         e.en_cours = None;
-        // L'OUVERTURE FAITE, le mois qu'elle ouvre passe devant (ticket #244) : la page le demande juste apres.
+        // L'OUVERTURE FAITE, le mois qu'elle ouvre passe devant : la page le demande juste apres.
         if mois == OUVERTURE && e.affiche.is_none() {
             if let Ok(v) = &rendu {
                 let m = mois_a_ouvrir(v, &self.jour());
@@ -739,7 +739,7 @@ impl FileDesEtats {
             if tableau {
                 Self::inscrire(&mut e, TABLEAU, true);
             }
-            // L'OUVERTURE (ticket #244) : juste apres le mois affiche et ses voisins ; la premiere quand aucun mois n'est
+            // L'OUVERTURE : juste apres le mois affiche et ses voisins ; la premiere quand aucun mois n'est
             // encore affiche (au lancement, a l'ouverture d'une compagnie).
             Self::inscrire(&mut e, OUVERTURE, true);
             for m in premiers.iter().rev() {
@@ -839,7 +839,7 @@ impl FileDesEtats {
     /// redemande. `frais` : les lectures de l'ouverture une fois refaites (la page qui a peint un etat perime), sans
     /// l'ecran du mois (la page attend celui-ci par la route `mois`).
     ///
-    /// `aujourdhui` : LE JOUR DU MOTEUR (#236), celui que la page prend pour tout ce qu'elle date ou presente au jour (une
+    /// `aujourdhui` : LE JOUR DU MOTEUR, celui que la page prend pour tout ce qu'elle date ou presente au jour (une
     /// date d'effet proposee, l'annee du taux AT/MP, le mois en cours de la grille) -- jamais l'horloge du navigateur :
     /// au banc d'essai le moteur a son temps simule (`temps`), et c'est le seul qui vaille (regle 2).
     pub fn ouverture(&self, patienter: Duration, frais: bool) -> R<Value> {
@@ -933,7 +933,7 @@ mod tests {
             .collect()
     }
 
-    /// UN FIL POUR TOUTES LES COMPAGNIES (ticket #244) : la compagnie devant d'abord, tout son travail ; puis les autres,
+    /// UN FIL POUR TOUTES LES COMPAGNIES : la compagnie devant d'abord, tout son travail ; puis les autres,
     /// une cle chacune a son tour, dans l'ordre ou la fenetre les a donnees. Rien ne se fait deux fois.
     #[test]
     fn la_compagnie_ouverte_passe_devant_et_les_autres_se_servent_chacune_son_tour() {

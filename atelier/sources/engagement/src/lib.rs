@@ -1048,7 +1048,7 @@ pub(crate) fn engagements(
         poser("date_modification", e.get("date_modification"));
         poser("avant", e.get("avant"));
         let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs))?;
-        // Les lignes que la saisie ecrit disent leurs heures (#125). Celles qu'un mois de permanent deduit, quand sa
+        // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
             heures_dites(ctx, &eng, rang, &mois_dit)?;

@@ -1,4 +1,4 @@
-//! UNE FENETRE PAR INSTALLATION (ticket #244, `interface::instance`) : deux installations s'ouvrent cote a cote sur un
+//! UNE FENETRE PAR INSTALLATION (`interface::instance`) : deux installations s'ouvrent cote a cote sur un
 //! poste, chacune a son creneau (son verrou et le port de sa page) ; la meme, relancee, ramene sa fenetre devant ; le
 //! port d'une installation reste le meme d'un lancement a l'autre (retenu dans `.fenetre.json`), et un creneau pris par
 //! un autre programme ou par une copie de l'installation se saute. Sur une plage de ports a ces essais (jamais celle du

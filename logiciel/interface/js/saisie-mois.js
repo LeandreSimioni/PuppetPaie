@@ -97,7 +97,7 @@ function engagementsDuBloc(div, mois) {
   const quotite = div.querySelector(".e-quotite").value;
   const dateModification = div.querySelector(".e-date-modification").value;
   return salariesDuBloc(div).map((salarie) => {
-    // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ (#139) : celui du
+    // LE NUMÉRO EST CELUI D'UN CONTRAT, DONC D'UN SALARIÉ : celui du
     // bloc s'il est le sien. Un salarié coché en plus n'hérite pas du
     // contrat d'un autre — il recevra le sien à la production (le moteur
     // refuse un numéro sur deux salariés).
@@ -189,7 +189,7 @@ async function calculerApercu(lu) {
   const aDeQuoiPayer = (e) => aDesJours(e) || e.salaire_mensuel != null;
   document.getElementById("apercu-sous-titre").textContent = IMPORTE ? "tenu avant PuppetPaie" : "";
   if (IMPORTE) {
-    // Un mois tenu avant PuppetPaie ne se calcule pas ici : ses paies sont celles de l'ancien logiciel (#215).
+    // Un mois tenu avant PuppetPaie ne se calcule pas ici : ses paies sont celles de l'ancien logiciel.
     const n = IMPORTE.paies.length;
     cible.innerHTML = `<p class="discret">Mois tenu avant PuppetPaie : ${n} paie${n > 1 ? "s" : ""}
       lue${n > 1 ? "s" : ""} dans l'historique importé, rien ne se calcule ici.${IMPORTE.incompletes
@@ -232,7 +232,7 @@ async function calculerApercu(lu) {
       }
       // Un mois du contrat sans cachet n'a pas de bulletin : on le dit à la
       // place du numéro, et le brut à zéro suit.
-      // UN CONTRAT SUR PLUSIEURS MOIS (ticket #127) : le chevron au bord de
+      // UN CONTRAT SUR PLUSIEURS MOIS : le chevron au bord de
       // la case, d'après ce que le moteur rend (`poserChevrons`).
       if (p) poserChevrons(div, p.contrat, p.debut, p.fin);
       div.querySelector(".resolu").innerHTML = p
@@ -258,7 +258,7 @@ async function calculerApercu(lu) {
           (a) => `<div class="encart attention avis-engagement">${echapper(a)}</div>`).join("")
         + avisDuBloc(part, "informations").map(
           (a) => `<div class="encart info avis-engagement">${echapperLiens(a)}</div>`).join("")
-        // Le conseil que la saisie appelle (ticket 224), au plus un par carte, quand la compagnie a coché l'option.
+        // Le conseil que la saisie appelle, au plus un par carte, quand la compagnie a coché l'option.
         + conseilDuBloc(part);
     });
   } catch (e) {
@@ -354,7 +354,7 @@ function peindreCarte(div) {
   const moisCourt = MOIS_COURTS[parseInt(mois.slice(5, 7), 10) - 1] || "";
   // POUR QUOI. Le spectacle, puis ce qui est payé en mots.
   const paye = p ? designation(p).toLowerCase() : "";
-  // Un contrat sur plusieurs mois porte sa pastille à côté du nom (#127).
+  // Un contrat sur plusieurs mois porte sa pastille à côté du nom.
   poserChevrons(div, ligne.contrat, ligne.debut, ligne.fin);
   const net = div._total ? euros(div._total.net_a_payer) : "";
   const detail = [p && p.numero_bulletin ? `bulletin ${p.numero_bulletin}` : "",
@@ -376,7 +376,7 @@ function peindreCarte(div) {
         aria-label="Un imprévu">&hellip;</button></span>`;
   // VOIR SANS MODIFIER (l'utilisateur, 29/09/2026) : relire les heures d'un
   // service de répétition ne doit pas demander de rouvrir l'engagement. LA CARTE
-  // S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de « Voir le détail ».
+  // S'OUVRE D'UN CLIC SUR ELLE : plus de « Voir le détail ».
   // « Modifier » est dans la boîte du détail.
   rendreOuvrable(cible, () => boiteDetail(div._ligne, div._paies || []), "Ouvrir le détail de la paie");
   // LA PORTE DES IMPRÉVUS sur un engagement validé : un arrêt ou
@@ -675,7 +675,7 @@ let DEMANDE_MOIS = null;
 async function chargerMois(mois, repeint = false) {
   DEMANDE_MOIS = mois;
   // TOUT LE MOIS D'UN COUP, lu (pas calculé) : les lectures ci-dessous le prennent dans `LU`. Le dernier état connu,
-  // même périmé (ticket #212) : il se vérifie derrière (`verifierLeMois`, plus bas).
+  // même périmé : il se vérifie derrière (`verifierLeMois`, plus bas).
   let lu;
   try { lu = await lireLeMois(mois, true); } catch (e) { if (DEMANDE_MOIS === mois) document.getElementById("engagements").classList.remove("en-lecture"); throw e; }
   if (DEMANDE_MOIS !== mois) return;
@@ -707,7 +707,7 @@ async function chargerMois(mois, repeint = false) {
   SAISIE_DATE_PAIEMENT = SAISIE.date_paiement || defauts.date_paiement || "";
   afficherRappelsMois();
   const cible = document.getElementById("engagements");
-  // ON PRÉCHARGE, PUIS ON AFFICHE (ticket #113, 02/10/2026) : « quand on
+  // ON PRÉCHARGE, PUIS ON AFFICHE : « quand on
   // change de mois on arrive sur cette version toute ouverte alors que les
   // paies sont fermées en vert ». Un bloc naît ouvert ; il ne se replie
   // qu'à l'arrivée de l'état de son engagement (`etat-par-engagement`). Le démarrage
@@ -796,13 +796,13 @@ async function chargerMois(mois, repeint = false) {
     dessinerEtatsDesEngagements(mois).finally(montrer),
   ];
   const peint = Promise.allSettled(lectures);
-  // UN ÉTAT PÉRIMÉ SE VÉRIFIE DERRIÈRE (ticket #212) : le moteur le refait déjà ; on attend l'état frais, et l'écran se
+  // UN ÉTAT PÉRIMÉ SE VÉRIFIE DERRIÈRE : le moteur le refait déjà ; on attend l'état frais, et l'écran se
   // repeint de lui-même s'il a changé.
   if (lu.perime && !repeint) verifierLeMois(mois, peint);
   return peint;
 }
 
-/** L'ÉTAT FRAIS D'UN MOIS DÉJÀ AFFICHÉ (ticket #212). Rien n'a changé : rien ne bouge. Sinon on repeint ce qui vient
+/** L'ÉTAT FRAIS D'UN MOIS DÉJÀ AFFICHÉ. Rien n'a changé : rien ne bouge. Sinon on repeint ce qui vient
  *  du moteur — les états des engagements, les actes, les embauches, les imprévus, l'aperçu — sans refaire les
  *  blocs ; ceux-ci ne se refont que si la saisie lue elle-même a changé (un fichier modifié hors de cette page), et
  *  jamais par-dessus une saisie en cours, qui reste ce qu'elle est et s'enregistre comme d'habitude. */
@@ -845,7 +845,7 @@ async function repeindreLeMois(mois, ancien, frais) {
 function majFermeture(mois, existe) {
   majAvisDsn(mois);
   majAvisDemo(mois);
-  // UN MOIS TENU AVANT PUPPETPAIE (ticket #215) : il se lit, rien ne s'y ajoute et rien ne le rouvre — sa DSN est
+  // UN MOIS TENU AVANT PUPPETPAIE : il se lit, rien ne s'y ajoute et rien ne le rouvre — sa DSN est
   // faite ailleurs, ou le moteur dit qu'il n'en a pas trace ; ce n'est pas « en retard » (règle 4 : rien ne la refait).
   if (IMPORTE) {
     document.getElementById("ajouter-engagement").hidden = true;
@@ -853,7 +853,7 @@ function majFermeture(mois, existe) {
     noteSaisie("");
     return;
   }
-  // UN MOIS D'AVANT LA PREMIÈRE EMBAUCHE (#236) : le moteur dit qu'aucune DSN n'y est due ; rien ne s'y ajoute et rien
+  // UN MOIS D'AVANT LA PREMIÈRE EMBAUCHE : le moteur dit qu'aucune DSN n'y est due ; rien ne s'y ajoute et rien
   // ne le rouvre « en retard ».
   if (AVANT_EMBAUCHE) {
     document.getElementById("ajouter-engagement").hidden = true;
@@ -880,7 +880,7 @@ function majAvisDsn(mois) {
   avis.textContent = d.phrase;
 }
 
-/** UN MOIS SAISI EN DÉMO, dans une compagnie gardée au déblocage (ticket #236) : la mention du moteur (route `etat`,
+/** UN MOIS SAISI EN DÉMO, dans une compagnie gardée au déblocage : la mention du moteur (route `etat`,
  *  `demo`) — ses engagements n'ont été ni déclarées ni envoyées. Les pastilles disent ce qui reste à faire. */
 function majAvisDemo(mois) {
   const avis = document.getElementById("avis-demo");
@@ -1066,7 +1066,7 @@ document.getElementById("mois").onchange = (e) => {
     // Partie : un autre clic avant que le nouveau mois soit peint ne la renvoie pas.
     if (ecrite) DERNIERE_ECRITE = JSON.stringify(ecrite.s);
   }
-  // LE NOUVEAU MOIS N'ATTEND PAS L'ÉCRITURE DE L'ANCIEN (ticket #212) : la saisie quittée est prise telle qu'elle est
+  // LE NOUVEAU MOIS N'ATTEND PAS L'ÉCRITURE DE L'ANCIEN : la saisie quittée est prise telle qu'elle est
   // (`saisieAEcrire`, sous son vrai mois), part au moteur, et le nouveau mois s'affiche en même temps. Une fois
   // l'écriture faite, le mois affiché se vérifie : elle a pu le changer (un contrat en cours, une numérotation).
   const chargement = chargerMois(neuf);

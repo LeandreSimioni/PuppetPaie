@@ -228,7 +228,7 @@ fn ouverture(cadre: &Cadre) -> Result<i32, Echec> {
     dire!("Il n'est pas ecrit : il scelle une enveloppe de la cle du coffre,");
     dire!("et une enveloppe ne rend rien a qui n'a pas le mot de passe.");
     let coffre = Coffre::du_poste(&cadre.racine, &maintenant_minutes());
-    // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe est aussi celui des autres ; il se change pour
+    // UNE COMPAGNIE DE L'ADMINISTRATEUR : son mot de passe est aussi celui des autres ; il se change pour
     // toutes a la fois, dans la fenetre (Configuration > Mots de passe), jamais pour une seule ici.
     if crate::compagnie::administrateur::est_rattachee(&crate::compagnie::administrateur::installation_de(&cadre.racine), &cadre.racine) {
         dire!();

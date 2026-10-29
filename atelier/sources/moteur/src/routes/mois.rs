@@ -244,7 +244,7 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
 }
 
 /// Ce qu'une ligne du fichier dit et que le moteur ne recalcule pas : la page
-/// les relit pour les remettre dans ses champs, et les reecrit ensuite (#138).
+/// les relit pour les remettre dans ses champs, et les reecrit ensuite.
 /// `base` et `taux_majoration` d'une ligne en pourcentage, surtout : sans eux,
 /// la page lirait le `taux` (0.1) comme un pourcentage (0,1 %).
 const CHAMPS_DE_LIGNE_GARDES: [&str; 4] = ["heures", "genre", "base", "taux_majoration"];
@@ -468,7 +468,7 @@ struct Echeance {
     annee: Option<String>,
     /// La DSN seule : `echeance_dsn::Echeance::en_json` (le jour, midi, la date nominale, le report et ses textes).
     echeance_depot: Option<Value>,
-    /// DITE PAR UN RAPPEL DE L'OUVERTURE (ticket #244) : la DSN d'un mois que la route `rappels` reclame
+    /// DITE PAR UN RAPPEL DE L'OUVERTURE : la DSN d'un mois que la route `rappels` reclame
     /// (`crate::routes::rappels::mois_a_declarer`, la meme lecture), avec son geste (« Verifier et envoyer »). La boite de
     /// l'ouverture ne la dit qu'une fois, par ce rappel ; l'echeance reste ici pour sa date (l'etape DSN du mois la lit).
     rappel: bool,
@@ -767,7 +767,7 @@ fn echeancier(ctx: &Contexte, charge: &Value) -> R<Value> {
         }
     }
 
-    // UNE DSN SE DIT UNE FOIS (ticket #244) : celle qu'un rappel reclame, avec son geste, ne se repete pas dans « Ce mois-ci ».
+    // UNE DSN SE DIT UNE FOIS : celle qu'un rappel reclame, avec son geste, ne se repete pas dans « Ce mois-ci ».
     for x in toutes.iter_mut() {
         x.rappel = x.quoi == "dsn" && x.etat != FAIT && reclames.iter().any(|m| x.cle == format!("dsn:{}", m));
     }
@@ -1101,7 +1101,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         let bornes = du_mois.iter().map(|(_, e)| bornes_brutes(e)).collect::<R<Vec<_>>>()?;
         let ids: Vec<jumeaux::Ident> = du_mois.iter().zip(&bornes).map(|((c, e), b)| (c.clone(), b.0.clone(), jumeaux::numero_du_champ(e.get("numero")))).collect();
         for (((cle, e), (debut, fin)), (_, _, marque)) in du_mois.into_iter().zip(bornes).zip(jumeaux::cles(&ids)) {
-            // UN CDI SANS TERME COURT TOUJOURS (#236) : sa fin vide se comparait comme « avant le mois », et le contrat
+            // UN CDI SANS TERME COURT TOUJOURS : sa fin vide se comparait comme « avant le mois », et le contrat
             // d'un permanent ne se reprenait jamais au mois suivant. Une fin vide ne vaut « en cours » que pour une
             // nature a duree indeterminee : un contrat d'usage sans jour ni fin ne court pas.
             let sans_terme = fin.is_empty()
@@ -1178,7 +1178,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
             });
         }
     }
-    // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL (#236) : aucun fichier de saisie ne le porte, l'historique
+    // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL : aucun fichier de saisie ne le porte, l'historique
     // si (`import::nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
     // comme les autres, avec sa nature, son debut, son numero, son salaire mensuel et sa duree du travail.
     // Ensuite, il se recopie d'un mois a l'autre comme tout contrat paye au mois.
@@ -1376,7 +1376,7 @@ fn engagement_de_reprise(ctx: &Contexte, c: &EnCours, mois: &str) -> R<Value> {
         lignes.push(Value::Object(l));
     }
     if lignes.is_empty() {
-        // Le taux du cachet du contrat, sinon le dernier saisi (#140) : la page ne choisit pas de taux. Un dossier
+        // Le taux du cachet du contrat, sinon le dernier saisi : la page ne choisit pas de taux. Un dossier
         // qu'on ne sait pas relire, ou qui n'a encore aucun cachet (R12), n'en propose aucun (la ligne reste a
         // completer).
         let taux = if vrai(&c.taux_cachet) {
@@ -2295,7 +2295,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     for (i, p) in paies.iter().enumerate() {
         vues.push(vue_paie(ctx, p, tous.get(i).unwrap_or(&Value::Null), &data, avec_lignes)?);
     }
-    // LES CONSEILS DE SAISIE (ticket 224) : au plus un par carte, quand l'option de la compagnie est cochee, pour un
+    // LES CONSEILS DE SAISIE : au plus un par carte, quand l'option de la compagnie est cochee, pour un
     // engagement en saisie seulement. Ils ne vivent qu'ici, dans la vue de l'ecran : ni dans les avertissements de la
     // paie, ni au bulletin, ni a `produire`.
     for (i, (v, c)) in vues.iter_mut().zip(crate::compagnie::conseils::de_saisie(ctx, &paies)?).enumerate() {

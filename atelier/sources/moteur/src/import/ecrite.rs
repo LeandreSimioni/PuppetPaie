@@ -120,7 +120,7 @@ fn copier_export(ctx: &Contexte, export: &Path, ecartes: &[PathBuf]) -> R<Value>
         return Ok(json!({"copies": 0, "identiques": 0, "differents": [], "dossier": copie.display().to_string()}));
     }
     let (dsn, aem) = crate::import::dsn_aem::dossiers(export);
-    // `ecartes` : les DSN et les AEM d'une autre entreprise (lot G1), qui ne se copient pas.
+    // `ecartes` : les DSN et les AEM d'une autre entreprise, qui ne se copient pas.
     let mut paires: Vec<(PathBuf, PathBuf)> = Vec::new();
     for (d, nom) in [(&dsn, "DSN"), (&aem, "AEM_EDI")] {
         if let Some(d) = d {
@@ -185,7 +185,7 @@ fn copier_export(ctx: &Contexte, export: &Path, ecartes: &[PathBuf]) -> R<Value>
 
 // ------------------------------------------------------------------ l'alerte CASC-SVP
 
-/// `operations_casc._eur` : `1 234,50 €`.
+/// Un montant de l'alerte CASC-SVP : `1 234,50 €`.
 fn eur_fr(v: Decimal) -> String {
     let t = format!("{:.2}", v);
     let (entier, dec) = t.split_once('.').unwrap_or((&t, "00"));
@@ -206,7 +206,7 @@ fn eur_fr(v: Decimal) -> String {
 }
 
 /// « janvier 2025 » : le nom d'un mois de l'alerte CASC-SVP. « 00 » n'est aucun mois et se refuse
-/// (`date::numero_du_mois`, lot F1 ; il se lisait janvier, et un mois illisible aussi).
+/// (`date::numero_du_mois`), comme un mois illisible.
 fn libelle_casc(m: &str) -> R<String> {
     let n = socle::date::numero_du_mois(m).map_err(|e| erreur("ValueError", e))?;
     let nom = socle::date::nom_du_mois(n as i64, socle::date::Graphie::Accentuee).map_err(|e| erreur("ValueError", e))?;
@@ -264,7 +264,7 @@ pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool
     Some((d, porte))
 }
 
-/// `operations_casc.alerte_apres_import` : une compagnie de la 3090 qui arrive de CoolPaie avec des DSN de 2025
+/// L'alerte apres l'import : une compagnie de la 3090 qui arrive de CoolPaie avec des DSN de 2025
 /// ou apres : la CASC-SVP y manque peut-etre. Rien si ce n'est pas la 3090, ou si tout est regularise ; toute
 /// `ErreurOperation` de la regularisation (`regularisation_casc_svp(ecrire=False)`) vaut « rien ». Seuls comptent
 /// le nombre de mois, la periode et le total, que cette fonction calcule comme la regularisation.
@@ -769,7 +769,7 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
         // L'apercu leve, et dit pourquoi.
         apercu_importation(ctx, &source, aujourdhui)?;
     }
-    // UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE (lot G1) ne se copie pas, donc ne se lit pas : la relecture ne la voit
+    // UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE ne se copie pas, donc ne se lit pas : la relecture ne la voit
     // plus, l'avertissement vient d'ici.
     let garde = crate::import::dsn_aem::garder_export(&ctx.entreprise, dsn.as_deref(), aem.as_deref());
     let ecartes: Vec<PathBuf> = garde.ecartes.iter().map(|(f, _)| f.clone()).collect();
@@ -810,7 +810,7 @@ pub(crate) fn importer(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(reponse)
 }
 
-/// LES MOIS IMPORTES SONT DECLARES S'ILS L'ONT ETE (ticket #215) : les depots DSN que les retours deja releves attestent
+/// LES MOIS IMPORTES SONT DECLARES S'ILS L'ONT ETE : les depots DSN que les retours deja releves attestent
 /// entrent au journal avec l'historique, pour qu'un mois tenu avant ne se dise pas « en retard »
 /// (`reprise_journal::reprendre_les_depots`). Rend le nombre de depots repris.
 fn depots_attestes_au_journal(ctx: &Contexte, charge: &Value) -> R<usize> {

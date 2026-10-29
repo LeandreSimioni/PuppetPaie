@@ -255,7 +255,7 @@ fn deposer_dpae_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bo
 }
 
 /// LES DSN DU MOIS QUI NE SONT PAS PARTIES et que `garder` retient (sur ce que le fichier declare), deposees chacune en
-/// test puis en reel -- le bilan du test lu avant le reel (tickets #221, #222 : `depot_acte::exiger_repetition`) --, dans
+/// test puis en reel -- le bilan du test lu avant le reel (`depot_acte::exiger_repetition`) --, dans
 /// l'ordre de `crate::routes::etapes::ordre_de_depot`. Rend vrai si l'une est partie ; `a_faire` recoit ce que le rangement des AER
 /// jouees laisse a faire (`rattacher`).
 fn deposer_les_dsn(
@@ -515,7 +515,7 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             for reel in [false, true] {
                 deposer_dpae_joue(d, ctx, &fichier, reel)?;
-                // LE BILAN DU TEST AVANT LE REEL (tickets #221, #222, `depot_acte::exiger_repetition`) ; puis celui du reel.
+                // LE BILAN DU TEST AVANT LE REEL (`depot_acte::exiger_repetition`) ; puis celui du reel.
                 rattacher(d, ctx)?;
             }
             // LE SIGNALEMENT D'AMORCAGE (nature 08, motif 01 « embauche effective ») part AVEC LA DPAE, dans le meme

@@ -60,7 +60,7 @@ pub const FICTIVE_PAR_DEFAUT: &str = "fictive-3090-grande";
 /// Le nom du dossier quand la commande n'en donne pas : dans le dossier temporaire du systeme.
 pub const DOSSIER_PAR_DEFAUT: &str = "puppetpaie-essai";
 
-/// Les cles de la variable, et celles de ses trois objets (Leandre, 14/10/2026). Une cle qui manque ou qui est en trop est
+/// Les cles de la variable, et celles de ses trois objets. Une cle qui manque ou qui est en trop est
 /// refusee : une faute de frappe ne passe pas en silence.
 pub const CLES: [&str; 11] =
     ["siren", "nic", "raison_sociale", "adresse", "code_postal", "commune", "naf", "medecine_travail", "declarant", "declarant_dsn", "api_dpae"];

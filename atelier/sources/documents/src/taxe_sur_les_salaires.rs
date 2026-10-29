@@ -36,7 +36,7 @@ pub fn fractions_majorees(base: Decimal, seuil_1: Decimal, seuil_2: Decimal) -> 
     (premiere, positif(sub(base, seuil_2)))
 }
 
-/// LA TAXE SUR LES SALAIRES SE DEDUIT DE LA TVA (ticket #216, 20/10/2026). La fiche disait « la compagnie la doit-elle ? »
+/// LA TAXE SUR LES SALAIRES SE DEDUIT DE LA TVA. La fiche disait « la compagnie la doit-elle ? »
 /// et « part des salaires taxee » : on demandait a l'administratrice la conclusion du droit, pas le fait qu'elle connait.
 /// Elle dit maintenant ce qu'elle sait de sa TVA, et le moteur conclut, une seule fois, ici -- pour l'ecran (la route
 /// `taxe-sur-les-salaires`), pour la DSN de decembre (`blocs`) et pour l'etat « taxe sur les salaires » (`etats_compta`).
@@ -85,9 +85,9 @@ fn pourcent(p: Decimal) -> String {
 
 /// `taxe_sur_les_salaires` de la fiche entreprise `ent`, et ce que le moteur en conclut (CGI art. 231, 1). `plafonds` :
 /// ceux de la franchise en base de TVA, lus au bareme de l'annee (`plafonds_franchise`) ; la conclusion les nomme quand
-/// on les a (ticket #245), elle dit « les plafonds » sinon. Ils ne changent rien a la decision.
+/// on les a, elle dit « les plafonds » sinon. Ils ne changent rien a la decision.
 pub fn regime_taxe_sur_les_salaires(ent: &Value, plafonds: Option<(Decimal, Decimal)>) -> RegimeTaxeSalaires {
-    // Les deux plafonds, en mots de compagnie, pour la conclusion (ticket #245).
+    // Les deux plafonds, en mots de compagnie, pour la conclusion.
     let les_plafonds = match plafonds {
         Some((services, total)) => format!(
             "les deux plafonds de la franchise en base de TVA, {} de spectacles vendus et {} de recettes en tout",
@@ -219,7 +219,7 @@ décote{}.",
     }
 }
 
-/// LES PLAFONDS DE LA FRANCHISE EN BASE DE TVA, EN CLAIR (ticket #239, 21/10/2026). L'ecran demandait « sous les plafonds
+/// LES PLAFONDS DE LA FRANCHISE EN BASE DE TVA, EN CLAIR. L'ecran demandait « sous les plafonds
 /// de l'article 293 B ? » sans dire lesquels : « on pourrait pas avoir les plafonds directement dans le logiciel ? ». Le
 /// moteur les lit au bareme de l'annee (`taxe_sur_les_salaires.plafonds_franchise`) et ecrit la question et ses deux
 /// reponses avec les montants ; la page n'en porte aucun.

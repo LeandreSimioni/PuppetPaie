@@ -1,4 +1,4 @@
-//! Les petits outils des commandes qui AGISSENT (lot J2b) : ecrire un fichier de saisie, produire un mois, declarer,
+//! Les petits outils des commandes qui AGISSENT : ecrire un fichier de saisie, produire un mois, declarer,
 //! deposer. Ce qu'elles ont en commun avec la consultation (J2a) vit dans `mod.rs`, `analyse.rs` et `rendu.rs` ; ici, ce
 //! que seuls les actes demandent.
 //!

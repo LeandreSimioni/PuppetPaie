@@ -148,7 +148,7 @@ fn bulletin_lu_coolpaie_cachets_et_services_de_repetition_chaque_champ() {
     assert_eq!(attendu.len(), 14);
     assert!(v["cotisations"].as_array().unwrap().iter().all(|c| c["hors_total"] == json!(false)));
 
-    // La masterclass : l'enseignement du catalogue (lot C).
+    // La masterclass : l'enseignement du catalogue.
     let m = lu(&l[1]).to_json();
     assert_eq!(m["lignes"][1], json!({"quantite": "3", "libelle": "Masterclass / Action Culturelle", "taux": "85.00", "montant": "255.00", "soumis": true, "rubrique": "enseignement", "heures": null}));
     assert_eq!(m["brut"], json!("660.00"));

@@ -487,7 +487,7 @@ fn aad_fiches(fiches: &Value) -> Vec<u8> {
 /// La cle scrypt de 32 octets. Les parametres sont ceux du fichier : ils sont
 /// verifies comme `hashlib.scrypt` le fait (OpenSSL), memoire comprise.
 pub fn deriver(motdepasse: &str, kdf: Option<&Value>) -> R<Vec<u8>> {
-    // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : aucun mot de passe ne s'y derive.
+    // Le fil de fond de la fenetre ne dechiffre rien : aucun mot de passe ne s'y derive.
     if socle::fil_de_fond::ici() {
         return Err(refus(socle::fil_de_fond::refus("le coffre")));
     }
@@ -569,7 +569,7 @@ pub fn oublier_mot_de_passe_tape() {
 }
 
 /// Un mot de passe tape est-il retenu sur ce fil ? (Rien de plus : jamais sa valeur.) Les essais de la fenetre s'en
-/// servent : un mot de passe ne survit pas a sa route (ticket #244).
+/// servent : un mot de passe ne survit pas a sa route.
 pub fn mot_de_passe_retenu() -> bool {
     TAPE.with(|t| t.borrow().is_some())
 }
@@ -695,7 +695,7 @@ impl Coffre {
 
     /// Les 32 octets de ce poste, ou None. `creer` en tire de neufs.
     fn cle_poste(&self, creer: bool) -> R<Option<Vec<u8>>> {
-        // Le fil de fond de la fenetre (ticket #244) ne dechiffre rien : la cle du poste ne s'y sert pas.
+        // Le fil de fond de la fenetre ne dechiffre rien : la cle du poste ne s'y sert pas.
         if socle::fil_de_fond::ici() {
             return Err(refus(socle::fil_de_fond::refus("le coffre")));
         }
@@ -767,7 +767,7 @@ impl Coffre {
         desceller(&cle, donnees, description.as_bytes())
     }
 
-    /// Scelle `donnees` par la cle maitresse de ce coffre (lot K1) : ce qui est scelle ainsi s'ouvre partout ou le coffre
+    /// Scelle `donnees` par la cle maitresse de ce coffre : ce qui est scelle ainsi s'ouvre partout ou le coffre
     /// s'ouvre, la cle de ce poste ou le mot de passe du logiciel ailleurs. N'ecrit rien. Refuse sans coffre, ou sans mot
     /// de passe du logiciel : seule la cle de ce poste l'ouvrirait, et ce qui est scelle partirait avec le poste.
     pub fn proteger_par_le_coffre(&self, donnees: &[u8], description: &str) -> R<Vec<u8>> {
@@ -869,7 +869,7 @@ impl Coffre {
     /// d'abord, le mot de passe du logiciel ensuite -- celui qu'on donne, sinon
     /// celui qu'un humain a tape pour cette commande (`mot_de_passe_tape`).
     ///
-    /// LA SEANCE EN TROISIEME (lot J1) : si ni la cle du poste ni un mot de passe donne ou tape n'ouvrent, le mot de passe
+    /// LA SEANCE EN TROISIEME : si ni la cle du poste ni un mot de passe donne ou tape n'ouvrent, le mot de passe
     /// GARDE par `garder_ouverture` (12 h) est essaye. Il ouvre le coffre ; il n'AUTORISE aucun acte reel (cela, seule
     /// `demande::autoriser_acte` le fait).
     fn ouvrir(&self, contenu: &Map<String, Value>, motdepasse: Option<&str>) -> R<Option<Vec<u8>>> {

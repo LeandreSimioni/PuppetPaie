@@ -1,7 +1,7 @@
 //! La sauvegarde du dossier prive dans le Drive, par differences (`sauvegarde.py`).
 //!
 //! Ecrit au lot H4b, non prouve. Ce sont des FONCTIONS, pas des routes : leurs appelants sont
-//! l'ouverture et la veille (lot I), la ligne de commande (lot J), et `web.py` qui lit
+//! l'ouverture et la veille, la ligne de commande, et `web.py` qui lit
 //! `derniere` et `rien_n_a_bouge`. Le client Drive se passe en parametre (`drive::Drive`).
 //!
 //! CE QU'ELLE SAUVE : tout le dossier des donnees (`config/`, `engagements/`, `sorties/`, `retours/`,
@@ -97,7 +97,7 @@ pub struct Sauvegarde {
     pub disparus: usize,
     pub secondes: f64,
     /// Le detail brut de ce qui n'est pas passe (`dossier : erreur`), pour la ligne de commande. La fenetre ne le montre
-    /// pas : un dossier reporte au passage suivant n'est pas un incident (tickets #231 et #232).
+    /// pas : un dossier reporte au passage suivant n'est pas un incident.
     pub incidents: Vec<String>,
     /// Ce qui n'a pas pu monter a ce passage, reporte au suivant.
     pub reportes: Vec<Reporte>,
@@ -196,7 +196,7 @@ fn combien(reportes: &[Reporte], un: &str, plusieurs: &str) -> String {
 
 // ---------------------------------------------------------------- ce qui persiste
 
-/// CE QUI PERSISTE, ET SEULEMENT CELA (tickets #231 et #232, 20/10/2026). Un dossier reporte au prochain passage n'est pas un
+/// CE QUI PERSISTE, ET SEULEMENT CELA. Un dossier reporte au prochain passage n'est pas un
 /// incident a montrer : Google rend parfois un 500 que le passage suivant ne voit plus. Ce qui se dit, c'est ce qui dure :
 /// le meme dossier (ou fichier) en echec sur `PASSAGES_QUI_DURENT` passages de suite (une heure, a vingt minutes d'une veille a
 /// l'autre), ou depuis `UNE_JOURNEE`, ou une journee entiere sans sauvegarde complete.

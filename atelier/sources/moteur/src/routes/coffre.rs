@@ -176,7 +176,7 @@ fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
     }
     // Une saisie qui n'est pas un texte n'est pas un mot de passe : le coffre la lit comme vide.
     let nouveau = if matches!(optionnel(charge, "nouveau"), Value::String(_) | Value::Null) { nouveau } else { String::new() };
-    // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe est celui de toutes ses compagnies, et il se change
+    // UNE COMPAGNIE DE L'ADMINISTRATEUR : son mot de passe est celui de toutes ses compagnies, et il se change
     // pour toutes a la fois (`administrateur::changer`) ; l'actuel les ouvre chacune, tout se prepare puis tout se remplace.
     let inst = crate::compagnie::administrateur::installation_de(&ctx.racine);
     if crate::compagnie::administrateur::est_rattachee(&inst, &ctx.racine) {

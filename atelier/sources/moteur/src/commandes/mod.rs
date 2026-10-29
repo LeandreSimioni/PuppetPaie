@@ -170,12 +170,12 @@ fn classe_connue(c: &str) -> &'static str {
         "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "KeyError", "ValueError",
         "FileNotFoundError", "PermissionError", "OSError", "UnicodeDecodeError", "JSONDecodeError", "TypeError", "AttributeError",
         "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionBridee", "CompteursVerrouilles", "CalculRefuse",
-        // Les classes des actes (lot J2b) : un depot, une correction, un arret.
+        // Les classes des actes : un depot, une correction, un arret.
         "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
         "ExerciceClos", "ClotureRefusee", "MoisHorsDelai", "ActeReelRefuse", "ArretIntrouvable",
         // Les envois (theme 2) : une sortie absente, une boite absente ou en panne.
         "SortieAbsente", "BoiteAbsente", "ErreurCourriel",
-        // Le refus d'un envoi depuis une fictive ajoutee (ticket #236, `bridage::branchement`).
+        // Le refus d'un envoi depuis une fictive ajoutee (`bridage::branchement`).
         "EnvoiBride",
     ];
     CONNUES.iter().find(|x| **x == c).copied().unwrap_or("RuntimeError")
@@ -298,7 +298,7 @@ pub fn executer(args: &[String]) -> i32 {
         }
     };
     let cadre = Cadre { racine, o, ctx, aujourdhui, commande: c.nom };
-    // La demande du mot de passe du logiciel est celle du moteur (lot J1) : fenetre s'il y en a une, sinon le terminal.
+    // La demande du mot de passe du logiciel est celle du moteur : fenetre s'il y en a une, sinon le terminal.
     let _canaux = crate::compagnie::demande::installer(Rc::new(crate::compagnie::demande::Reel::du_poste()));
     (c.executer)(&cadre, &a)
 }

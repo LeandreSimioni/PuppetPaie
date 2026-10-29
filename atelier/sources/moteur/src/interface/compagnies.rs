@@ -37,7 +37,7 @@ pub fn base() -> PathBuf {
     logiciel().parent().map(Path::to_path_buf).unwrap_or_default()
 }
 
-/// L'INSTALLATION DU REJEU (#236) : un rejeu de scenario monte sa propre installation, bridee en toutes lettres
+/// L'INSTALLATION DU REJEU : un rejeu de scenario monte sa propre installation, bridee en toutes lettres
 /// (`.edition.json`), et le moteur n'en lit pas d'autre -- ni le `.edition.json` du depot, ni le paquet soude d'a cote du
 /// code. Pose et retiree par `scenario::rejouer` seulement ; un poste n'en a jamais.
 static BASE_DU_REJEU: std::sync::RwLock<Option<PathBuf>> = std::sync::RwLock::new(None);
@@ -278,7 +278,7 @@ pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     out
 }
 
-/// LES COMPAGNIES QUE LA FENETRE TIENT A JOUR EN FOND des son lancement (ticket #244, `Fenetre::prechauffer`) : les
+/// LES COMPAGNIES QUE LA FENETRE TIENT A JOUR EN FOND des son lancement (`Fenetre::prechauffer`) : les
 /// vraies compagnies de l'installation `b` (pas les fictives), la derniere ouverte d'abord -- la date de son journal de
 /// la fenetre (`journal/interface.log`), que chaque ouverture recommence ; jamais ouverte, a la fin.
 pub fn a_tenir_a_jour(b: &Path) -> Vec<PathBuf> {
@@ -345,7 +345,7 @@ pub(crate) fn nom_de_dossier(nom: &str) -> String {
     }
 }
 
-/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE (#236) : `config/creation.json`, ecrit par `ajouter_dans` et nulle part
+/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE : `config/creation.json`, ecrit par `ajouter_dans` et nulle part
 /// ailleurs ; il suit la compagnie quand elle change de dossier. Une compagnie d'avant (une fictive livree, la vraie
 /// compagnie d'une installation) n'en a pas : `None`.
 pub const FICHIER_CREATION: &str = "creation.json";
@@ -356,7 +356,7 @@ pub fn cree_le(racine: &Path) -> Option<socle::date::Jour> {
 
 /// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
 ///
-/// LOGICIEL BRIDE (ticket #236) : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
+/// LOGICIEL BRIDE : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
 /// un dossier `ajoutee-…`, avec le marqueur d'une fictive et sa marque. Debloque : une compagnie reelle, sous `compagnies/`.
 pub fn ajouter(nom: &str) -> Result<Compagnie, String> {
     ajouter_dans(&base(), nom)
@@ -384,7 +384,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     std::fs::create_dir_all(&cfg).map_err(|e| e.to_string())?;
     // La raison sociale se deduit du nom comme a chaque enregistrement de la fiche (`crate::routes::fiches::deriver` : majuscules
     // SANS ACCENTS, la forme declaree). `to_uppercase` gardait les accents : la fiche neuve naissait avec une erreur de
-    // configuration, et le premier enregistrement datait la correction comme un changement declare (#236).
+    // configuration, et le premier enregistrement datait la correction comme un changement declare.
     let mut ent = serde_json::Map::new();
     ent.insert("nom_affichage".into(), Value::String(nom.clone()));
     crate::routes::fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;

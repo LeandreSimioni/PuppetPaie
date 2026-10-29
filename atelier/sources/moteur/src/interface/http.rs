@@ -134,7 +134,7 @@ fn lire_requete(flux: &mut BufReader<TcpStream>) -> Option<Result<Requete, u16>>
     Some(Ok(Requete { methode, chemin: decoder_pourcent(chemin), params, entetes, corps }))
 }
 
-/// Une requete refusee avant d'etre lue (#141) : un corps JSON que la page sait lire (`d.erreur.message`), et non un
+/// Une requete refusee avant d'etre lue : un corps JSON que la page sait lire (`d.erreur.message`), et non un
 /// corps vide sur lequel `r.json()` levait une SyntaxError.
 fn refus_de_lecture(code: u16) -> Reponse {
     let message = match code {
@@ -160,7 +160,7 @@ fn ecrire_reponse(flux: &mut TcpStream, r: &Reponse) -> std::io::Result<()> {
         tete.push_str(&format!("{}: {}\r\n", k, v));
     }
     tete.push_str("\r\n");
-    // UNE SEULE ECRITURE, SANS NAGLE (ticket #244) : la tete puis le corps en deux `write`, puis la lecture de la requete
+    // UNE SEULE ECRITURE, SANS NAGLE : la tete puis le corps en deux `write`, puis la lecture de la requete
     // suivante, c'est le motif ou le reste du corps attend l'accuse de reception de la tete, que l'autre bout differe
     // (jusqu'a 200 ms sous Windows ; sous Linux, en boucle locale, l'accuse part aussitot et rien ne se mesure). Tout part
     // d'un coup, sans attente (`servir_connexion` : `set_nodelay`).

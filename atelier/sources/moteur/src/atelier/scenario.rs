@@ -338,7 +338,7 @@ fn contenu(p: &Path, racine: &Path) -> Vec<u8> {
     }
 }
 
-/// VERIFIER UN BANC (#236) : rejoue son scenario dans `travail` (vide d'abord) et compare, fichier par fichier, chaque
+/// VERIFIER UN BANC : rejoue son scenario dans `travail` (vide d'abord) et compare, fichier par fichier, chaque
 /// compagnie que le scenario a ajoutee a celle du banc (`inst`). Le banc tire les memes aleas que le rejeu
 /// (`temps::aleas`) : toute difference est un geste qui a ecrit sans etre enregistre (un fichier touche hors de la page, une
 /// ecriture de fond), ou un ecart du rejeu. Rend les differences, en phrases (vide : le scenario suffit).

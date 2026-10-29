@@ -1,4 +1,4 @@
-//! `moteur-atelier fabriquer-bulletins <description.json> <dossier> [--gabarit coolpaie|spaiectacle]` (#236) : les
+//! `moteur-atelier fabriquer-bulletins <description.json> <dossier> [--gabarit coolpaie|spaiectacle]` : les
 //! bulletins FICTIFS d'un logiciel precedent, un PDF par bulletin, pour qu'une compagnie fictive entre dans PuppetPaie
 //! « D'un logiciel précédent » en important ses bulletins par la page.
 //!

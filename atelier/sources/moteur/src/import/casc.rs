@@ -7,8 +7,8 @@
 //! DSN importee porte deja la CASC-SVP (`import::ecrite::lire_dsn_casc`), ou deja regularise
 //! (`config/casc-svp.json`), n'y entre pas.
 //!
-//! Le classeur modele du CASC-SVP (`donnees/modeles/casc-svp-liste-nominative.xlsx`, ouvert et rempli par une
-//! bibliotheque de tableur) N'EST PAS PORTE : voir `liste_nominative_xlsx`.
+//! Le classeur du CASC-SVP se recree avec les colonnes du modele (`donnees/modeles/casc-svp-liste-nominative.xlsx`) :
+//! voir `liste_nominative_xlsx`.
 
 use std::path::Path;
 use std::str::FromStr;
@@ -145,7 +145,7 @@ pub struct Courriel {
     pub piece_jointe: Option<&'static str>,
 }
 
-/// `operations_casc.Regularisation`.
+/// La regularisation CASC-SVP d'une annee : ce qui manque, par salarie et par mois, et ce qui en part.
 pub struct Regularisation {
     pub periode: String,
     pub mois: Vec<MoisReg>,
@@ -162,7 +162,7 @@ pub struct Regularisation {
     pub emplois: Vec<EmploiReg>,
 }
 
-/// Les demandes de `regularisation_casc_svp`.
+/// Ce que demande une regularisation (`regularisation`).
 #[derive(Default)]
 pub struct Demande {
     pub mois: Option<String>,
@@ -202,7 +202,7 @@ fn plafond_mensuel(annee: &str) -> R<Option<Decimal>> {
     }
 }
 
-/// `operations_casc.regularisation_casc_svp` (sans l'ecriture des fichiers : `ecrire`).
+/// La regularisation CASC-SVP que demande `d`, calculee sans rien ecrire (l'ecriture des fichiers : `ecrire`).
 pub fn regularisation(ctx: &Contexte, d: &Demande) -> R<Regularisation> {
     let base = declarations::casc::base().map_err(|m| erreur("OSError", m))?;
     let ent = &ctx.entreprise;
@@ -518,7 +518,7 @@ pub fn vers_json(r: &Regularisation) -> Value {
     })
 }
 
-/// `operations_casc._ecrire` : `exports/casc-svp/` -- les CSV, les deux courriels, la liste des gestes.
+/// L'ecriture de la regularisation : `exports/casc-svp/` -- les CSV, les deux courriels, la liste des gestes.
 pub fn ecrire(ctx: &Contexte, r: &mut Regularisation) -> R<()> {
     let dossier = ctx.racine.join("exports").join("casc-svp");
     let io = |p: &Path, e: std::io::Error| erreur("OSError", format!("{} : {}", p.display(), e));
@@ -621,9 +621,9 @@ fn quantite_xlsx(q: Option<&Decimal>) -> Option<f64> {
     q.to_f64()
 }
 
-/// `operations_casc._liste_nominative_xlsx` : la liste nominative du CASC-SVP, une ligne par emploi, a partir de la 4e ligne.
+/// La liste nominative du CASC-SVP, une ligne par emploi, a partir de la 4e ligne.
 ///
-/// Le modele officiel (`donnees/modeles/casc-svp-liste-nominative.xlsx`) n'est plus ouvert : le classeur est RECREE par
+/// Le modele officiel (`donnees/modeles/casc-svp-liste-nominative.xlsx`) ne s'ouvre pas : le classeur est RECREE par
 /// `rust_xlsxwriter` avec les memes colonnes (37), les memes trois lignes de consignes (memes textes, memes cellules
 /// fusionnees) et les memes valeurs ; la mise en forme est plus simple (gras, retour a la ligne, volet fige sous la
 /// 3e ligne). Les consignes de la 4e ligne du modele (« NE PAS REMPLIR »...) n'y sont pas : elles sont
@@ -726,7 +726,7 @@ fn liste_nominative_xlsx(ctx: &Contexte, r: &mut Regularisation, dossier: &Path,
     Ok(())
 }
 
-/// `operations_casc.marquer_regularise` (route `casc-regularise`) : note qu'une annee est regularisee. S'ecrit
+/// La route `casc-regularise` note qu'une annee est regularisee. S'ecrit
 /// APRES le virement, jamais avant.
 pub fn marquer_regularise(ctx: &Contexte, annee: &Value, vire_le: &Value, montant: &Value, qui: &str, aujourd_hui: &str) -> R<Value> {
     let annee_t = valeur_en_texte(annee);

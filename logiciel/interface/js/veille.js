@@ -50,7 +50,7 @@ function heureDuPassage(q) {
     || String(q || "").match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2})/);
   if (!m) return q ? `le ${q}` : "";
   const [an, mo, jo] = m[1].length === 4 ? [m[1], m[2], m[3]] : [m[3], m[2], m[1]];
-  // Le jour du moteur (#236), pas celui du navigateur.
+  // Le jour du moteur, pas celui du navigateur.
   const [ja, jm, jj] = aujourdhuiIso().split("-").map(Number);
   const memeJour = +an === ja && +mo === jm && +jo === jj;
   return memeJour ? `à ${m[4]}` : `le ${jo}/${mo} à ${m[4]}`;
@@ -74,7 +74,7 @@ function dessinerVeille(v) {
   zone.classList.remove("souci", "neuf");
 
   if (v.en_cours) {
-    // L'ÉTAPE, DITE PAR LE MOTEUR (ticket #220) : qui il appelle, puis qui d'autre, puis la sauvegarde.
+    // L'ÉTAPE, DITE PAR LE MOTEUR : qui il appelle, puis qui d'autre, puis la sauvegarde.
     texte.innerHTML = `<span class="veille-etape">${echapper(v.etape || "Relevé des retours en cours…")}</span>`;
     suivreLesEtapes();
     return;
@@ -85,7 +85,7 @@ function dessinerVeille(v) {
   //    le cherche rarement, et il reste à portée.
   const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources].filter(Boolean).join("\n");
   if (v.sauvegarde_en_cours) suivreLesEtapes();
-  // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » (Léandre, 21/10/2026) : l'attente
+  // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » : l'attente
   // dit l'heure du prochain relevé ; un service qui n'a pas répondu se nomme (au survol), et le relevé qui est
   // passé reste dit. « Pas de réponse » seulement quand le relevé lui-même n'est pas passé.
   const prochain = v.prochain_dans ? ` · prochain relevé dans ${v.prochain_dans} min` : "";
@@ -100,7 +100,7 @@ function dessinerVeille(v) {
         : "un service n'a pas répondu"} (détail au survol) : nouvel essai au prochain relevé</span>` : ""}${enFictive()
     ? ` · <button class="lien" data-fictive-explique="coulisses">compagnie fictive : pas de
         sauvegarde — pourquoi ?</button>` : ""}`];
-  // LA SAUVEGARDE QUI N'ARRIVE PAS AU BOUT, à sa place (tickets #231 et #232) : un dossier que
+  // LA SAUVEGARDE QUI N'ARRIVE PAS AU BOUT, à sa place : un dossier que
   // Google refuse une fois repart au passage suivant, sans bruit ; ce qui dure, le moteur le dit
   // en une phrase (`sauvegarde::souci`), et elle se lit ici, à côté de l'état, pas parmi les retours.
   if (d.sauvegarde_souci && !d.hors_ligne) {

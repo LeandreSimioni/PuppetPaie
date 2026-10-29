@@ -330,7 +330,7 @@ function montrerLogiciel() {
     `<div class="encart alerte">${echapper(m)}</div>`).join("");
 }
 
-/** LE CALENDRIER DES EXPORTS (Leandre, 08/10/2026). Une ligne par année,
+/** LE CALENDRIER DES EXPORTS. Une ligne par année,
  *  ses douze mois ; on clique une année, un mois, ou « Tout ». Seuls les
  *  mois que des engagements touchent se cliquent, et ce que l'état admet (`periodes`,
  *  dit par le moteur) : un état annuel n'offre pas les mois. Le moteur prend

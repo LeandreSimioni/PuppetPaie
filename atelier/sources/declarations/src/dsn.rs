@@ -1369,7 +1369,7 @@ pub fn usage_admet(f: &Fichier, rubrique: &str, nature_dsn: &str) -> Resultat<bo
 /// 2026.1, `texte/bloc-S21.G00.40.txt` l. 1367-1375). Ecrite quand la compagnie en a une ; sans elle, la DSN refuse
 /// QUAND ELLE EST EXIGEE (`demarrage::licence_exigee`, que « Pour demarrer » lit aussi : la convention, ou un contrat de
 /// spectacle, `spectacle`, dans une convention ou la case se montre) et ne l'ecrit pas sinon : une production
-/// audiovisuelle n'en a pas, ni un lieu en 1790 qui n'engage pour aucun spectacle (#236). Une valeur vide ne s'ecrit
+/// audiovisuelle n'en a pas, ni un lieu en 1790 qui n'engage pour aucun spectacle. Une valeur vide ne s'ecrit
 /// jamais : `X [1,100]`.
 fn licence_du_contrat(f: &mut Fichier, nature_dsn: &str, ent: &Value, spectacle: bool) -> Resultat<()> {
     let licence = txt(req(ent, "licence_spectacle")?);
@@ -4452,7 +4452,7 @@ certificat de conformite du depot precedent.",
     let echeance_dsn = ctx.echeance_dsn()?;
     let echeances: HashMap<&str, Jour> = [
         ("13000548100010", echeance_mois_suivant(an, mo, echeance_dsn)),
-        // AUDIENS SANTE PREVOYANCE (ticket #223) : le 25 du mois qui suit le mois declare, date qui « doit etre
+        // AUDIENS SANTE PREVOYANCE : le 25 du mois qui suit le mois declare, date qui « doit etre
         // renseignee dans le bloc paiement a destination d'Audiens Sante Prevoyance (P0983) » (Audiens, dossier DSN,
         // `atelier/reference/sources/audiens-dsn/` ; `jour_de_paiement` de `donnees/organismes-base.json`). Elle etait
         // la fin du mois suivant le trimestre, pour un versement pourtant mensuel.

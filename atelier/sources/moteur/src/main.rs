@@ -32,15 +32,15 @@ fn main() -> std::process::ExitCode {
             Some(code) => std::process::exit(code),
             None => usage(),
         },
-        // La fenetre, dans le navigateur du poste (lot J3) : `moteur interface`.
-        // La mise a jour (lot J4) : verifier, appliquer, revenir ; publier et la cle, chez l'editeur.
+        // La fenetre, dans le navigateur du poste : `moteur interface`.
+        // La mise a jour : verifier, appliquer, revenir ; publier et la cle, chez l'editeur.
         Some("maj") => return std::process::ExitCode::from(moteur::compagnie::maj::commande(&args[1..]).clamp(0, 255) as u8),
-        // La compagnie d'essai (lot E1) : un vrai depot de TEST sans `prive/`, l'identite lue dans `PUPPETPAIE_COMPAGNIE`.
+        // La compagnie d'essai : un vrai depot de TEST sans `prive/`, l'identite lue dans `PUPPETPAIE_COMPAGNIE`.
         Some("essai") => return std::process::ExitCode::from(moteur::compagnie::essai::commande(&args[1..]).clamp(0, 255) as u8),
-        // Les scenarios du banc d'essai (#236) : rejouer, verifier un banc, elaguer. L'atelier seulement.
+        // Les scenarios du banc d'essai : rejouer, verifier un banc, elaguer. L'atelier seulement.
         #[cfg(feature = "atelier")]
         Some("scenario") => return std::process::ExitCode::from(moteur::atelier::scenario::commande(&args[1..]).clamp(0, 255) as u8),
-        // Les bulletins fictifs d'un logiciel precedent, pour une compagnie qui s'importe (#236). L'atelier seulement.
+        // Les bulletins fictifs d'un logiciel precedent, pour une compagnie qui s'importe. L'atelier seulement.
         #[cfg(feature = "atelier")]
         Some("fabriquer-bulletins") => {
             return std::process::ExitCode::from(moteur::atelier::fabriquer_bulletins::commande(&args[1..]).clamp(0, 255) as u8)

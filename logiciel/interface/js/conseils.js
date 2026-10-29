@@ -1,4 +1,4 @@
-/* LES CONSEILS « LE SAVIEZ-VOUS ? » (ticket 224, 21/10/2026). Une option de
+/* LES CONSEILS « LE SAVIEZ-VOUS ? ». Une option de
  * la fiche Entreprise, décochée par défaut : sans elle, le moteur ne rend
  * rien, et rien ne s'affiche. Tout se décide dans le moteur
  * (moteur/src/compagnie/conseils.rs, la banque dans donnees/conseils.json) ; la page
@@ -12,7 +12,7 @@
  *     (`conseils-salarie`).
  * Chaque conseil finit par la référence de son texte. Sous une carte, un
  * conseil tient en une phrase : son détail (les deux faces, les chiffres)
- * et sa référence se déplient derrière « pourquoi ? » (Léandre, 21/10/2026) ;
+ * et sa référence se déplient derrière « pourquoi ? » ;
  * la phrase et le détail viennent tous deux du moteur (`texte`, `detail`). */
 "use strict";
 

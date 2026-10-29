@@ -184,7 +184,7 @@ fn export_compta(ctx: &Contexte, annee: &str, du: i64, au: i64, ecrire: bool) ->
     Ok(ExportCompta { annee: annee.to_string(), du, au, mois, ecritures, total_debit, total_credit, fichier, plan: origine.to_string(), avertissements: avert })
 }
 
-/// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE (#236) : `{"AAAA-MM": empreinte}` pour chaque mois saisi de l'annee
+/// LES SAISIES DE L'ANNEE, PAR LEUR EMPREINTE : `{"AAAA-MM": empreinte}` pour chaque mois saisi de l'annee
 /// (`crate::routes::etapes::empreinte_de` de la saisie du mois, la meme que celle d'une DSN ecrite) ; une saisie illisible vaut
 /// `null`. L'export compta de l'annee la note en s'ecrivant (`noter_piece_ecrite`) : c'est ce qu'il a lu.
 pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
@@ -196,7 +196,7 @@ pub(crate) fn empreintes_des_saisies(racine: &Path, annee: &str) -> Value {
     Value::Object(m)
 }
 
-/// L'EXPORT COMPTA DE L'ANNEE EST-IL A JOUR ? (#236) Un seul critere, celui des rappels (`routes::rappels`) et de
+/// L'EXPORT COMPTA DE L'ANNEE EST-IL A JOUR ? Un seul critere, celui des rappels (`routes::rappels`) et de
 /// l'horloge d'une fictive (`horloge::l_annee`) : `Compta_<annee>.csv` existe, et les saisies de l'annee sont celles
 /// qu'il a lues -- les empreintes notees au journal des ecritures en l'ecrivant (`empreintes_des_saisies`). Jamais la
 /// date des fichiers : une fictive decompressee chez un visiteur a des dates qui ne disent rien. Un export dont le

@@ -64,13 +64,13 @@ const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organi
   "contrats-passes",
   // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
   "historique-mois", "ouvrir-piece",
-  // Ce que la boîte « Supprimer cette compagnie » demande (ticket #236) : une lecture.
+  // Ce que la boîte « Supprimer cette compagnie » demande : une lecture.
   "compagnie-suppression",
-  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne (ticket #220).
+  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne.
   "veille-etape",
-  // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
+  // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
   "conseil-du-jour", "conseils-salarie", "conseils-resume",
-  // Les lectures de l'ouverture (ticket #244) : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
+  // Les lectures de l'ouverture : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
   // Elles vidaient ce qui avait été lu du mois : l'écran, servi tout de suite, attendait alors l'état frais (~1 s).
   "etat", "mois-a-ouvrir", "echeancier", "ouverture"]);
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
@@ -297,7 +297,7 @@ async function appelerMoteur(route, charge = {}) {
     perdu.reseau = true;
     throw perdu;
   }
-  // UN CORPS QUI N'EST PAS DU JSON (#141) : un refus du serveur avant la
+  // UN CORPS QUI N'EST PAS DU JSON : un refus du serveur avant la
   // route (corps trop gros) le dit désormais en JSON, mais une réponse vide
   // ou coupée ne doit pas lever une SyntaxError sans phrase.
   const texte = await r.text();
@@ -315,7 +315,7 @@ async function appelerMoteur(route, charge = {}) {
   return d.resultat;
 }
 
-/* L'ENVOI REFUSÉ D'UNE FICTIVE AJOUTÉE (ticket #236) : le moteur refuse tout
+/* L'ENVOI REFUSÉ D'UNE FICTIVE AJOUTÉE : le moteur refuse tout
  * geste qui ferait partir quelque chose (bridage::refus_d_envoi) et rend sa
  * phrase, toujours la même ; la page la montre dans une seule boîte, au-dessus
  * de tout, quel que soit le geste. L'adresse de la phrase devient un lien
@@ -444,7 +444,7 @@ window.addEventListener("error", (ev) => {
  * reste derrière (le moteur la coupe aussi, `fichier_court`). Sans pile
  * lisible, rien : le moteur écrit alors « interface:? ». Il écrivait
  * « interface.js », un fichier qui n'existe plus depuis que la page est
- * coupée en vingt (lot L), et tous les rejets s'y regroupaient. */
+ * coupée en vingt, et tous les rejets s'y regroupaient. */
 function sourceDeLaPile(pile) {
   const m = String(pile || "").match(/(https?:\/\/[^\s()]+?\.js)(?:\?[^\s():]*)?:(\d+):(\d+)/);
   return m ? { fichier: m[1], ligne: +m[2], colonne: +m[3] } : { fichier: "", ligne: 0 };
@@ -464,7 +464,7 @@ window.addEventListener("unhandledrejection", (ev) => {
   });
 });
 
-/** Ouvre un dossier du poste dans l'explorateur, et dit lequel (#141) :
+/** Ouvre un dossier du poste dans l'explorateur, et dit lequel :
  *  l'explorateur peut s'ouvrir derrière la fenêtre, et le chemin, c'est le
  *  moteur qui le rend (`dossier`). */
 async function ouvrirEtDire(route, charge = {}) {
@@ -531,7 +531,7 @@ document.querySelectorAll(".onglets button").forEach((b) => {
     if (b.dataset.vue === "exports") dessinerExports();
     if (b.dataset.vue === "paie") {
       dessinerConseils();
-      // REVENIR SUR PAIE REPREND CE QUI N'A PAS PU S'ÉCRIRE (#236) : une saisie
+      // REVENIR SUR PAIE REPREND CE QUI N'A PAS PU S'ÉCRIRE : une saisie
       // que le moteur a refusée faute d'une fiche (le taux AT/MP, l'effectif…)
       // restait à l'écran, « PAS enregistré », jusqu'à une frappe. La fiche
       // vient peut-être d'être corrigée : on la redonne au moteur tout de

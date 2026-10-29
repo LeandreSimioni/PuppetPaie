@@ -38,7 +38,7 @@ pub const ROUTES: [&str; 4] = ["etat-par-engagement", "etat-du-mois", "embauches
 pub(crate) type Paire = (String, String);
 pub(crate) use envois::etats::Cle3;
 
-// ------------------------------------------------------------ les groupes (#257)
+// ------------------------------------------------------------ les groupes
 
 /// Les quatre etapes du mois, dans l'ordre de l'habitude (aucun texte n'impose d'ordre).
 const ORDRE: [(&str, &str); 4] = [(DPAE, "DPAE"), (SIGNATURE, "Contrats"), (DSN, "DSN"), (DOCUMENTS, "Documents")];
@@ -81,7 +81,7 @@ fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
     etapes
 }
 
-// ------------------------------------------------------------ les colonnes (#257)
+// ------------------------------------------------------------ les colonnes
 //
 // Les cases des quatre lignes s'alignent sur les memes colonnes. G, la grande, porte ce qui est le plus avance ; une
 // colonne de cote s'ouvre par vague de ce qui est en cours (des embauches nouvelles, un contrat qui change, un
@@ -465,7 +465,7 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
     engagement::stock::mois_saisis(racine).unwrap_or_default()
 }
 
-/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers_deposables`), le meme partout (#236) : plus jamais la date de
+/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers_deposables`), le meme partout : plus jamais la date de
 /// modification du fichier, que deux machines -- ou deux rejeux -- ne donnent pas pareille.
 /// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
 ///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent. D'un meme
@@ -680,7 +680,7 @@ impl<'a> Moteur<'a> {
     /// montant brut de chaque paie y figure ; le bilan, qui ne l'affiche pas,
     /// ne le demande jamais.
     pub fn etat_par_engagement(&mut self, mois: &str, avec_brut: bool) -> R<Vec<Value>> {
-        // UN MOIS SANS ENGAGEMENT N'EST PAS UNE ERREUR (ticket #98).
+        // UN MOIS SANS ENGAGEMENT N'EST PAS UNE ERREUR.
         if !engagement::stock::a_une_saisie(self.racine(), mois).map_err(plain)? {
             return Ok(Vec::new());
         }
@@ -767,7 +767,7 @@ impl<'a> Moteur<'a> {
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
-            // CE QUE CE SALARIE RECOIT POUR CETTE PAIE (#236) : le bulletin s'il y a une paie, le certificat Conges Spectacles
+            // CE QUE CE SALARIE RECOIT POUR CETTE PAIE : le bulletin s'il y a une paie, le certificat Conges Spectacles
             // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
             // (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
             let mut pieces: Vec<&str> = Vec::new();
@@ -876,7 +876,7 @@ impl<'a> Moteur<'a> {
                 Value::Array(
                     v.into_iter()
                         .map(|(nom, chemin, octets)| {
-                            // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier (#236).
+                            // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier.
                             json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::compagnie::depart::ecrit_le(&racine, chemin)})
                         })
                         .collect(),
@@ -1070,7 +1070,7 @@ impl<'a> Moteur<'a> {
             }
             return Ok(None);
         }
-        // SANS EMPREINTE NOTEE, LE MOTEUR NE SAIT PAS (#236) : il ne compare plus les dates des fichiers. Une fictive
+        // SANS EMPREINTE NOTEE, LE MOTEUR NE SAIT PAS : il ne compare plus les dates des fichiers. Une fictive
         // livree, decompressee chez un visiteur, a des dates de fichier qui ne disent rien de l'ordre ou elle a ete ecrite,
         // et chacun de ses mois se disait « paie changee ».
         Ok(None)
@@ -1145,7 +1145,7 @@ impl<'a> Moteur<'a> {
         Ok((action, refus.map(|r| format!("test refusé : {}", r))))
     }
 
-    /// `bilan_du_mois` : LES ETAPES DU MOIS (#257), dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
+    /// `bilan_du_mois` : LES ETAPES DU MOIS, dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
     /// avec les groupes que le panneau dessine : `{etat, compte, compte_texte, quoi, phrase, echeance, action}` (`groupe`), `etat` parmi `fait`,
     /// `a_faire`, `en_attente`, `refuse`. Un groupe `fait` n'a ni compte ni phrase ; un groupe qui reste compte en nombre
     /// simple, avec son echeance (`texte`, et `court` sans l'annee, que la case ecrit) et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
@@ -1436,7 +1436,7 @@ impl<'a> Moteur<'a> {
         if !socle::fichiers::existe(&p) {
             return Ok(false);
         }
-        // LU UNE FOIS TANT QU'IL NE CHANGE PAS (ticket #244) : `etat` le demandait pour chaque mois. Le refus d'un fichier
+        // LU UNE FOIS TANT QU'IL NE CHANGE PAS : `etat` le demandait pour chaque mois. Le refus d'un fichier
         // illisible ne change pas (`OSError`, `JSONDecodeError`), et ne se garde pas.
         let v = socle::fichiers::json_en_cache_ou(&p, |p| {
             let t = socle::fichiers::lire_texte(p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
@@ -1481,7 +1481,7 @@ impl<'a> Moteur<'a> {
 
     /// `embauches_a_declarer` : les contrats dont la DPAE n'est pas encore partie.
     pub fn embauches_a_declarer(&mut self, mois: Option<&str>) -> R<Value> {
-        // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
+        // UNE DERIVATION POUR TOUS LES MOIS : le bilan de chaque mois charge sa saisie, et les conges d'un
         // permanent y lisent les paies validees des mois d'avant (`conges::paies_du_mois`) une fois pour toute la route.
         // Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
         let _derivation = engagement::conges::Derivation::ouvrir();

@@ -1,4 +1,4 @@
-//! LES CONSEILS « Le saviez-vous ? » (ticket 224). Une option de la compagnie (fiche Entreprise, `conseils`, decochee
+//! LES CONSEILS « Le saviez-vous ? ». Une option de la compagnie (fiche Entreprise, `conseils`, decochee
 //! par defaut : sans elle, rien ne s'affiche nulle part) ouvre trois familles, qui parlent a l'employeur :
 //!
 //! - le conseil du demarrage (`conseil-du-jour`) : un conseil general de la banque (`quand` = « toujours »), a
@@ -10,7 +10,7 @@
 //!   de la saisie l'appelle (`saisie:<condition>`, dans l'ordre de `ordre_saisie`). Ils ne vivent QUE dans la route
 //!   `apercu` (champ `conseil` de la vue d'une paie) : ni dans les avertissements de la paie, ni sur le bulletin, ni
 //!   dans `produire`. Une phrase courte (`texte`), et le detail (`detail` : les deux faces, les chiffres) que l'ecran
-//!   deplie derriere « pourquoi ? » avec la reference (Leandre, 21/10/2026) ;
+//!   deplie derriere « pourquoi ? » avec la reference ;
 //! - les conseils sur l'historique (`conseils-salarie`, `conseils-resume`) : ce que la compagnie a reellement fait pour
 //!   un salarie, sur la fenetre de ses droits (depuis la date anniversaire que porte sa fiche, sinon 12 mois glissants).
 //!
@@ -21,7 +21,7 @@
 //! certitude : nos contrats font a eux seuls au moins 507 heures sur la fenetre ; alors ses droits sont ouverts, et le
 //! conseil « plus d'heures » cede la place a « intense plutot que dilue ».
 //!
-//! Le salarie se nomme par son seul prenom (`{prenom}`), jamais par un pronom qui le genre (Leandre, 21/10/2026).
+//! Le salarie se nomme par son seul prenom (`{prenom}`), jamais par un pronom qui le genre.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;

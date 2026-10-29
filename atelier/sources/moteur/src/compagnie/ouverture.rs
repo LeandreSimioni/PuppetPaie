@@ -12,8 +12,8 @@
 //! La paie se calcule tres bien hors ligne.
 //!
 //! RIEN N'EST REECRIT : chaque acte est celui qui existe deja, appele tel quel --
-//! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}` (lot H2),
-//! `releve_signatures::{relever_signatures, relever_signatures_fictive}` (lot I2a),
+//! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}`,
+//! `releve_signatures::{relever_signatures, relever_signatures_fictive}`,
 //! `crate::routes::fiches::relever_fiches` (H4a), `horloge::{rattraper, dernier_rattrapage}` (I1),
 //! `pas::avertissements`, `crate::routes::depots::filet_preparer` (le passage du filet DPAE, ouvert en `pub(crate)`),
 //! `incidents::envoyer` et `problemes::relever_reponses` (le canal de l'editeur), `sauvegarde::{sauvegarder,
@@ -186,7 +186,7 @@ pub struct Ouverture {
     /// pas forcement pour tout -- la releve a pu passer quand le Drive ne repondait pas (21/10/2026).
     pub injoignables: Vec<String>,
     /// `pas_avant` a retenu ce passage (la derniere ouverture est trop recente) : rien n'a ete fait, la trace n'est pas
-    /// reecrite. L'appelant qui lance encore la verification de version en Python (lot J) ne la lance pas non plus.
+    /// reecrite. L'appelant qui lance encore la verification de version en Python ne la lance pas non plus.
     pub retenue: bool,
 }
 
@@ -564,7 +564,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         sauvegarder = false;
         signatures = false;
     }
-    // UNE FICTIVE AJOUTEE (#236) : rien n'en part (`bridage::branchement`), donc rien n'y revient -- ni retour de DSN ou de
+    // UNE FICTIVE AJOUTEE : rien n'en part (`bridage::branchement`), donc rien n'y revient -- ni retour de DSN ou de
     // DPAE, ni contrat signe. La veille ne les releve pas, et ne demande pas les mots de passe qui serviraient a les relever :
     // le bandeau ne presente pas comme une panne ce qui est voulu. Le coffre, lui, s'y pose comme ailleurs (Configuration).
     if crate::compagnie::bridage::branchement(&ctx.racine).refus().is_some() {
@@ -587,7 +587,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
             let mut releve = Releve::default();
             match crate::compagnie::releve::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
                 Ok((n, a_faire)) => (releve.rattaches, releve.a_faire) = (n, a_faire),
-                // Le Python ne rattrapait rien ici : l'ouverture ne doit pas tomber (lot I2b).
+                // Le Python ne rattrapait rien ici : l'ouverture ne doit pas tomber.
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),
             }
             r.releve = Some(releve);
@@ -665,7 +665,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     if opt.filet && opt.incidents_editeur && !bac_a_sable && (!copie || crate::interface::compagnies::est_fictive(&ctx.racine)) {
         dire_l_etape(ctx, "Serveur de l'éditeur : incidents, messages et réponses…");
         let _ = crate::compagnie::incidents::envoyer(&ctx.racine);
-        // LE NOMBRE DE PAIES DE L'ANNEE PASSEE (ticket #246), a partir du 16 janvier, une fois : `nombre_de_paies` decide
+        // LE NOMBRE DE PAIES DE L'ANNEE PASSEE, a partir du 16 janvier, une fois : `nombre_de_paies` decide
         // seul (ni fictive, ni copie de developpement, ni logiciel bride, ni envoi coupe) et retient ce qui est parti.
         let _ = crate::compagnie::nombre_de_paies::envoyer_si_du(ctx);
         // Les messages « Un probleme, une idee ? » que l'envoi en fond n'a pas fait partir (serveur injoignable...).
@@ -803,7 +803,7 @@ fn sauvegarder_le_dossier(ctx: &Contexte, opt: &Options, clients: &mut Clients<'
             None => None,
         };
         match sauvegarde::sauvegarder(&ctx.racine, &opt.racine_drive, false, drive) {
-            // CE QUI EST REPORTE N'EST PAS UN INCIDENT (tickets #231 et #232) : un dossier que Google a refuse une fois (un 500,
+            // CE QUI EST REPORTE N'EST PAS UN INCIDENT : un dossier que Google a refuse une fois (un 500,
             // deja retente par le client) repart au passage suivant, en silence. Ce qui persiste se dit dans la ligne de la
             // sauvegarde (`sauvegarde::souci`, la trace `sauvegarde_souci`), pas dans les incidents du releve.
             Ok(s) => r.sauvegarde = Some(s),

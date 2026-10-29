@@ -45,7 +45,7 @@ async function dessinerCoffre(cible) {
   const fictive = enFictive();
   const c = await api("coffre-etat");
   const exige = c.mot_de_passe_pose;
-  // L'ADMINISTRATEUR (ticket #244) : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher), par
+  // L'ADMINISTRATEUR : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher), par
   // le geste de la fenêtre. Une compagnie fictive n'en a pas.
   const geste = window.pywebview && window.pywebview.api;
   let adm = {};
@@ -253,7 +253,7 @@ async function dessinerCoffre(cible) {
     b.onclick = () => document.querySelector(
       `.sous-onglets button[data-fiche="${b.dataset.allerFiche}"]`).click();
   });
-  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de « Modifier… ».
+  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de « Modifier… ».
   // Elle ouvre ses cases et met le curseur dans la première ; un second clic
   // la referme. « Poser… » (rien n'est posé : il y a à faire) fait de même.
   const basculer = (rang) => {

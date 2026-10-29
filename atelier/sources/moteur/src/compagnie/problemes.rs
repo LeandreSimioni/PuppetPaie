@@ -10,7 +10,7 @@
 //! a signale, du plus ancien au plus recent ; la page le lit du plus recent au
 //! plus ancien.
 //!
-//! L'ENVOI SE FAIT EN FOND (Leandre, 14/10/2026) : « Envoyer » enregistre le
+//! L'ENVOI SE FAIT EN FOND : « Envoyer » enregistre le
 //! message (`envoyer` : sa ligne `en-attente` dans la boite, son corps exact dans
 //! `journal/signalements/<id>.json`) et rend la main ; `partir` le fait partir,
 //! lance aussitot par l'interface et relance par la veille tant qu'il attend --
@@ -183,7 +183,7 @@ fn corps_signalement(racine: &Path, texte: &Value, ecran: &Value, captures: &[Va
             // LA MACHINE EN ENTIER, et ce que la page a vu (`diagnostic::machine`) : de quoi deboguer sans redemander.
             "machine": crate::compagnie::diagnostic::machine(racine),
         },
-        // LES TROIS MINUTES D'AVANT (Leandre, 23/10/2026) : chaque geste et chaque route, une ligne par action.
+        // LES TROIS MINUTES D'AVANT : chaque geste et chaque route, une ligne par action.
         "fil": crate::compagnie::diagnostic::fil(socle::temps::maintenant_ms()),
         // Et, entieres (mises en forme), les ecritures et les refus de la page dans ces trois minutes : de quoi les rejouer.
         "ecritures": crate::compagnie::diagnostic::ecritures(socle::temps::maintenant_ms(), 12),
@@ -559,7 +559,7 @@ fn noter_raison(racine: &Path, ids: &[String], raison: &str) -> R<()> {
 /// Les fichiers d'attente dont le message n'attend plus (parti, ou que la boite ne connait pas : son enregistrement n'a
 /// pas abouti, et la page l'a dit) s'effacent.
 ///
-/// SOUS LE VERROU DE LA BOITE (ticket #229) : `envoyer` y ecrit le corps et sa ligne ensemble ; un corps sans ligne, vu
+/// SOUS LE VERROU DE LA BOITE : `envoyer` y ecrit le corps et sa ligne ensemble ; un corps sans ligne, vu
 /// d'ici, n'est jamais celui d'un message en train de s'enregistrer. Boite occupee : rien ne s'efface ce passage-ci.
 fn effacer_les_partis(racine: &Path) -> R<()> {
     modifier(racine, |lignes| {

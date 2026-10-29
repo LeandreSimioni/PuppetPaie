@@ -80,7 +80,7 @@ pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
 /// LA REGLE : LE MOT DE PASSE DU LOGICIEL, toujours -- le mois recopie seul n'a jamais prouve qu'un humain
 /// etait la. Un booleen « confirme=True » venu du front ne prouve rien du tout.
 ///
-/// DEUX FACONS DE LE PROUVER, et aucune autre (lot J1) : le mot de passe que la fenetre ou la page a fait taper et qui
+/// DEUX FACONS DE LE PROUVER, et aucune autre : le mot de passe que la fenetre ou la page a fait taper et qui
 /// arrive dans la charge (`Preuve`) ; sinon LE MOTEUR LE DEMANDE LUI-MEME (`demande::autoriser_acte` : fenetre, terminal,
 /// ou refus). Ni la seance (`garder_ouverture`), ni `PUPPETPAIE_MOTDEPASSE`, ni le mot de passe retenu pour ouvrir le
 /// coffre ne prouvent quoi que ce soit : ils ouvrent, ils n'autorisent pas. `quoi` et `a_qui` disent a l'humain ce qui
@@ -97,7 +97,7 @@ pub(crate) fn verifier_preuve(ctx: &Contexte, preuve: Option<&Preuve>, mois_atte
 #[cfg(feature = "atelier")]
 fn refus_atelier(ctx: &Contexte, _preuve: Option<&Preuve>, _mois_attendu: &str, _quoi: &str, _a_qui: &str) -> R<String> {
     // UNE COMPAGNIE FICTIVE AUX ENVOIS SIMULES : son « acte reel » est joue (`FICTIF-…`), rien ne part -- comme dans le
-    // binaire livre (`verifier_preuve_du_logiciel`). Le banc d'essai (#236) en vit : l'horloge y depose la DSN et la DPAE
+    // binaire livre (`verifier_preuve_du_logiciel`). Le banc d'essai en vit : l'horloge y depose la DSN et la DPAE
     // « en reel ». Toute autre compagnie : refuse, mot de passe ou non (la commande `signatures` fait de meme).
     if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
         return Ok("fictive".into());
@@ -239,7 +239,7 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
     let nom = chemin.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     let etat = etats::repetition(lignes, quoi, &envois::journal::empreinte(&octets), &nom)?;
-    // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST (tickets #221, #222, 19/10/2026) : l'accuse d'enregistrement dit
+    // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST : l'accuse d'enregistrement dit
     // « envoi recu », pas « conforme » (regle 5). Pour une DSN, c'est le bilan de nature 11 du test, qui arrive « en
     // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
     // celui d'un test revient bel et bien (journal du depot prive, archives 2026-10-02, « a la lumiere du certificat 41

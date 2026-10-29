@@ -4,7 +4,7 @@
 //! 1. Le tri (`import::tri`) : chaque fichier recoit sa sorte, par le contenu.
 //! 2. Les DSN et AEM trouvees, ou qu'elles soient (sous-dossier, zip), sont copiees dans un `export/` du dossier de
 //!    travail (temporaire, efface avant de rendre) et passent par `crate::routes::import::apercu_lu` : le meme code que
-//!    l'import d'un export de CoolPaie, inchange -- celles d'une autre entreprise exceptees (lot G1) : devant le Siren de
+//!    l'import d'un export de CoolPaie, inchange -- celles d'une autre entreprise exceptees : devant le Siren de
 //!    la compagnie (`importation::siren_de_reference`, etape 3), elles prennent le sort `incoherent` et rien n'en est lu.
 //! 3. Les bulletins (`bulletin_lu`), page par page, completent cet apercu : les fiches qu'ils creent (salaries par NIR,
 //!    spectacles par numero d'objet avec leur titre, l'entreprise) et leurs ecarts avec les fiches existantes (signales,
@@ -25,7 +25,7 @@
 //! RIEN NE SE DEVINE (regle 1). Une page n'est pas reprise quand : elle n'a pas de texte, le rang d'en-tetes de son
 //! tableau ne se trouve pas, elle se lit de deux facons, ce qui l'identifie ne se lit pas (le lecteur), son NIR ne se lit pas ou contredit sa cle, son
 //! Siret n'est pas celui de la compagnie (« bulletin d'une autre entreprise »), plusieurs paies declarees pourraient
-//! etre la sienne, ou un autre bulletin donne d'autres montants pour la meme paie. LE BULLETIN FAIT FOI (lot E) : une
+//! etre la sienne, ou un autre bulletin donne d'autres montants pour la meme paie. LE BULLETIN FAIT FOI : une
 //! page qui se contredit elle-meme (`incohérent : ...` du lecteur : le brut n'est pas la somme des lignes, le net ne
 //! se retrouve pas -- un centime sur le net avant impot chez CoolPaie) est REPRISE avec les montants qu'elle imprime,
 //! et l'incoherence est un avertissement du compte rendu. Un libelle de ligne inconnu de la table n'empeche pas la
@@ -230,7 +230,7 @@ fn adresse_lue(rangs: &[String]) -> Option<(String, String, String)> {
     Some((rue, cp.to_string(), commune.trim().to_string()))
 }
 
-/// LE COMPTE URSSAF imprime apres « Urssaf : » (lot I2, 3e) : ses chiffres, sans espaces. C'est la case que le moteur
+/// LE COMPTE URSSAF imprime apres « Urssaf : » : ses chiffres, sans espaces. C'est la case que le moteur
 /// imprime de `urssaf_compte` sous la meme etiquette (`bulletin.rs`) ; sur les bulletins CoolPaie du poste, la valeur
 /// imprimee a cette place est celle du `urssaf_compte` de la fiche (releve du 14/10/2026 sur trois bulletins de 2022 a
 /// 2026, valeurs non recopiees) -- une inference pour un autre logiciel. Ce qui n'est pas que des chiffres ne se reprend pas.
@@ -251,7 +251,7 @@ fn idcc_lu(texte: &str) -> Option<String> {
 fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu> {
     let tri = crate::import::tri::trier(dossier, travail)?;
 
-    // 1. Les DSN et AEM : ce que chacune dit de son employeur (lot G1). Elles ne sont copiees la ou l'import existant
+    // 1. Les DSN et AEM : ce que chacune dit de son employeur. Elles ne sont copiees la ou l'import existant
     // les lit qu'apres l'etape 3, et seulement celles de la compagnie.
     let pieces: Vec<(usize, bool, crate::import::dsn_aem::Employeur)> = tri
         .fichiers
@@ -552,7 +552,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             continue;
         }
         if nirs_dsn.contains(nir) {
-            // LA DSN LA CREE, LE BULLETIN LA COMPLETE (lot I2, 3d) : ce que la DSN ne porte pas (le n° Congés Spectacles,
+            // LA DSN LA CREE, LE BULLETIN LA COMPLETE : ce que la DSN ne porte pas (le n° Congés Spectacles,
             // une adresse qu'elle n'a pas) vient du bulletin ; ce que la DSN donne reste.
             let proposees = fiche_salarie(nir, &siens)?;
             completer_a_creer(&mut ap.a_creer, &mut reponse, "salarie", Some(nir), &proposees)?;
@@ -617,7 +617,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
             let fiche = &ctx.spectacles[cle];
             let mut ec = Map::new();
             // UN TITRE VIDE OU « A COMPLETER » (celui que l'import des DSN donne, la DSN ne portant pas le titre) prend
-            // celui du bulletin, comme une fiche que l'import cree (Leandre, 14/10/2026) ; un vrai titre saisi reste, et
+            // celui du bulletin, comme une fiche que l'import cree ; un vrai titre saisi reste, et
             // l'ecart est seulement signale.
             if let (Some(t), Some(p)) = (&titre, porteur) {
                 let a = fiche.get("titre").map_or(String::new(), valeur_en_texte);
@@ -1178,7 +1178,7 @@ fn ecarts_salarie(fiche: &Value, ls: &[&Lu], chemin: &dyn Fn(&Lu) -> String) -> 
 }
 
 /// Ce que le bulletin dit de l'entreprise autrement que la fiche (compare sans casse ni accents) : le Siret, le NAF, et
-/// (lot I2, 3g) la raison sociale, l'adresse, l'IDCC et le compte Urssaf -- ce que `fiche_entreprise` en lit.
+/// la raison sociale, l'adresse, l'IDCC et le compte Urssaf -- ce que `fiche_entreprise` en lit.
 fn ecarts_entreprise(fiche: &Value, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
     let mut out = Map::new();
     let t = |k: &str| fiche.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
@@ -1204,7 +1204,7 @@ fn ecarts_entreprise(fiche: &Value, lus: &[Lu], l: &Lu, chemin: &str) -> Value {
     Value::Object(out)
 }
 
-/// CE QUE LE BULLETIN IMPRIME EN MINUSCULES EST DEJA LA FORME LISIBLE (#236) : « La Fanfare des Toits », « 3 quai de
+/// CE QUE LE BULLETIN IMPRIME EN MINUSCULES EST DEJA LA FORME LISIBLE : « La Fanfare des Toits », « 3 quai de
 /// la Fosse » vont tels quels dans la case qu'on lit (`<cle>_affichage`), la forme declaree s'en derive a l'ecriture.
 /// Un texte tout en capitales (CoolPaie imprime ainsi noms et adresses) n'en dit pas la casse : sa forme lisible se
 /// fait comme ailleurs (`champs::combler_affichage`). Sans cela, « La Fanfare des Toits » devenait « La Fanfare Des
@@ -1254,12 +1254,12 @@ fn fiche_salarie(nir: &str, ls: &[&Lu]) -> R<Map<String, Value>> {
 
 /// Ce que le statut et l'emploi qu'un bulletin imprime disent du salarie, en champs de sa fiche.
 ///
-/// LE STATUT, EN TOUTES LETTRES (#236), et rien de plus : « Artiste » ou « Technicien » font la case « Artiste ou
+/// LE STATUT, EN TOUTES LETTRES, et rien de plus : « Artiste » ou « Technicien » font la case « Artiste ou
 /// technicien » ; « Cadre » ou « Non cadre », la case « Cadre ou non cadre » (S21.G00.40.003 : 01 cadre, 04 non cadre,
 /// cahier technique 2026.1 p. 183) ; « artiste cadre » dit les deux. « Non cadre » ne dit pas artiste ou technicien :
 /// cette case-la reste a remplir, et l'apercu le dit.
 ///
-/// L'EMPLOI, QUAND IL NOMME UN METIER DU CATALOGUE ET UN SEUL (#236) : « MUSICIEN » est le metier MUS010 ; la fiche
+/// L'EMPLOI, QUAND IL NOMME UN METIER DU CATALOGUE ET UN SEUL : « MUSICIEN » est le metier MUS010 ; la fiche
 /// prend alors ce que le choix de ce metier donne (`emplois::resoudre` : le code PCS-ESE, le code France Travail, le
 /// statut conventionnel), comme si on l'avait choisi dans la liste. Le statut et la qualite de cadre imprimes priment
 /// sur ceux du catalogue. Un intitule qui ne nomme aucun metier, ou plusieurs, reste tel quel : le metier se choisit

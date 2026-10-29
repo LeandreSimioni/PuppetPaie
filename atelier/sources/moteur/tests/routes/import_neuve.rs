@@ -1,4 +1,4 @@
-//! UNE COMPAGNIE NEUVE QUI REPREND LES BULLETINS DE SON LOGICIEL PRECEDENT (#236). Ce que le moteur en decide :
+//! UNE COMPAGNIE NEUVE QUI REPREND LES BULLETINS DE SON LOGICIEL PRECEDENT. Ce que le moteur en decide :
 //!
 //! - l'apercu de l'import annonce, pour une fiche a creer, les anomalies que l'ecriture trouvera, et elles seules
 //!   (`crate::routes::fiches::verifier_comme_a_l_ecriture`) : un nom ou une adresse que le bulletin imprime en minuscules

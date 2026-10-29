@@ -1,4 +1,4 @@
-//! `moteur restaurer [DOSSIER] [--racine-drive NOM] [--json]` : redescendre le dossier prive du Drive (lot R1). La decision est
+//! `moteur restaurer [DOSSIER] [--racine-drive NOM] [--json]` : redescendre le dossier prive du Drive. La decision est
 //! dans `restauration.rs` ; ici, l'affichage.
 //!
 //! Le Drive est celui que la compagnie de ce poste a relie (`moteur google autoriser`) : le client lit son jeton dans le dossier
