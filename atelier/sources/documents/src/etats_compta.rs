@@ -1279,7 +1279,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // cle -> (salarie, brut, base, mois) dans l'ordre d'insertion
     let mut ordre: Vec<String> = Vec::new();
     let mut par: BTreeMap<String, (String, Decimal, Decimal, BTreeSet<String>)> = BTreeMap::new();
-    for m in p.saisis() {
+    for m in p.saisis_sans_les_importes(&mut avert, "l'assiette de la CSG d'où se calcule la taxe")? {
         let paies = match charger_mois(ctx, &m) {
             Ok((_, paies)) => paies,
             Err(e) if matches!(e.classe, Some("ErreurOperation") | Some("ValueError") | Some("KeyError") | Some("FileNotFoundError")) => {
