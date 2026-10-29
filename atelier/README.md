@@ -1624,7 +1624,7 @@ les compagnies fictives livrées (`fictives/`) se jouent dans l'interface, et un
 calculée, clé de Luhn du SIRET, IBAN de forme juste. Un test ne doit pas
 pouvoir passer sur un numéro impossible.
 
-Les refus sont voulus tant que les taux manquent. Le seul validateur reste le
+Le seul validateur reste le
 **dépôt de test** net-entreprises, qui ne conserve rien : les DSN produites ici
 sont conformes au tableau des usages et aux formats de la norme, **et à rien
 d'autre**, tant qu'elles n'y sont pas passées.
@@ -1672,21 +1672,12 @@ texte des bulletins et des certificats CS et les journaux à un oracle
 
 ## Ce que le moteur ne fait pas
 
-- **Régularisations annuelles** (bloc DSN `S21.G00.82`, vu en avril 2026).
-- **Payer un salarié permanent.** Le chantier est ouvert (voir « La nature du
-  contrat ») : le calcul, la déclaration, le signalement de fin de contrat et
-  l'écran sont là. La **prévoyance** n'est plus ce qui manque — elle vient de
-  la convention collective, dans un catalogue livré avec le logiciel (1,20 %
-  de la tranche A pour l'IDCC 3090, 1,50 % pour un cadre, à la charge de
-  l'employeur) —, ni la mutuelle santé, ni la CASC-SVP, relevées le
-  19/09/2026 sur la fiche de paramétrage Audiens. Ce qui retient le barème,
-  ce sont les **identifiants d'affiliation** de la DSN, qui n'existent
-  qu'une fois l'entreprise adhérée au régime de sa branche.
 - **Déposer sans qu'on le lui demande.** La DSN et la DPAE partent par l'API,
   mais contre le mot de passe du logiciel tapé au moment de l'acte, et jamais
   deux fois pour le même mois ou la même embauche. Une déclaration part sous la
-  responsabilité de l'employeur. (Plus d'AEM à déposer depuis le 01/06/2026 :
-  la compagnie est en 100 % DSN, France Travail édite l'attestation lui-même.)
+  responsabilité de l'employeur.
+- **Déposer une AEM.** Depuis le 01/06/2026 la DSN en tient lieu (100 % DSN), et France Travail édite l'attestation
+  lui-même.
 
 ## Organisation
 
@@ -1724,7 +1715,10 @@ atelier/                  ← ce dossier : tout le reste
                           dossier (d'un organisme privé, seule la
                           transcription) ; `moteur sources` y vérifie les copies
   docs/                   ARCHITECTURE.md, RUBRIQUES.md, COMPAGNIES-FICTIVES.md,
-                          COMPAGNIE-D-ESSAI.md
+                          COMPAGNIE-D-ESSAI.md, COOLPAIE-SORTIR-SES-DOCUMENTS.md
+  bac-a-sable/            une installation en retard d'une version, pour essayer
+                          la mise à jour
+  AVANT-LE-PREMIER-COMMIT.md   ce qui n'entre jamais dans le dépôt
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
                           Node : LISEZ-MOI.md), `demos/` (un scénario de
                           démonstration). Le garde avant commit, le guet, les
@@ -1764,8 +1758,8 @@ Deux faces, une seule vérité : la ligne de commande et l'interface passent
 toutes deux par les routes du moteur, qui portent l'orchestration et les
 garde-fous. Aucun front ne décide quoi que ce soit.
 
-Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour le détail des formats et la façon
-dont chaque taux a été retrouvé.
+Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour le détail des formats et
+d'où vient chaque taux.
 
 ### Avant un commit : le garde des données réelles
 
