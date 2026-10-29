@@ -372,7 +372,7 @@ fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<Stri
     faits
 }
 
-/// LE SIREN ET LE NIC SE DEDUISENT DU SIRET (#236 ; la page les posait elle-meme, `brancherDeduits`, regle 2) : le SIRET
+/// LE SIREN ET LE NIC SE DEDUISENT DU SIRET (regle 2 : la page ne les pose pas) : le SIRET
 /// est le SIREN (9 chiffres) suivi du NIC (5 chiffres) -- c'est sa definition (INSEE), aucune valeur ne se devine. Un
 /// SIRET qui n'a pas 14 chiffres ne deduit rien : sa case le dit (`champs::verifier_fiche`). Rend `{cle: [avant, apres]}`.
 fn deriver_siren_nic(donnees: &mut Map<String, Value>) -> Map<String, Value> {
@@ -438,7 +438,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
             donnees.insert("initiales_contrat".into(), Value::String(deux));
         }
     }
-    // LA NATIONALITE DSN SE DEDUIT DU PAYS (vague 1k) : avec un pays de nationalite de la liste, la case 30.013 ne se
+    // LA NATIONALITE DSN SE DEDUIT DU PAYS : avec un pays de nationalite de la liste, la case 30.013 ne se
     // choisit plus, le moteur l'ecrit (`pays::codification`). Sans pays, ou avec un pays inconnu (qui refuse sur sa
     // case), la case reste ce qu'elle est.
     if nom == "salarie" {
@@ -1398,7 +1398,7 @@ pub(crate) enum Forcer {
     /// Rien : une erreur refuse la fiche.
     Rien,
     /// Ce que l'ecran peut forcer (« Enregistrer quand meme ») : une erreur de forme (`forcable`), jamais une valeur
-    /// obligatoire absente d'un salarie ou d'un spectacle, sans laquelle la DPAE et la DSN ne se font pas (#236,
+    /// obligatoire absente d'un salarie ou d'un spectacle, sans laquelle la DPAE et la DSN ne se font pas (
     /// `champs::verifier_fiche`).
     Forme,
     /// Tout : l'import et le questionnaire du salarie posent une fiche a completer, qui le dit (« A COMPLETER »).
@@ -1459,7 +1459,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     let note = charge.get("note").unwrap_or(&Value::Null);
     let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), depuis, note)?;
     let fiche = crate::routes::ouverture::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
-    // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
+    // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
 }
 
@@ -1562,7 +1562,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     finir_fiche(cle, &chemin, contenu, donnees, anomalies, derives)
 }
 
-/// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (lot I2, `import::completer`) : chaque champ de `champs` va dans la fiche
+/// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (`import::completer`) : chaque champ de `champs` va dans la fiche
 /// telle qu'elle est sur le disque, s'il y est vide ou « A COMPLETER » -- et seulement alors : un champ rempli depuis
 /// l'apercu reste ce qu'il est. Une case vide n'avait rien declare : la valeur qui la remplit vaut depuis elle (un champ
 /// absent : de tout temps) ; rien d'autre ne bouge ; l'ancien fichier est sauvegarde comme pour une fiche

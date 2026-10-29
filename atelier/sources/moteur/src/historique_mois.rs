@@ -1,5 +1,5 @@
-//! `historique-mois` : tout ce qu'un mois a produit, envoye et recu, pour l'Historique (tickets #219, #220, #222 du
-//! depot prive ; Leandre, 20/10/2026 : « tous les envois et tous les retours se lisent dans l'onglet Historique »).
+//! `historique-mois` : tout ce qu'un mois a produit, envoye et recu, pour l'Historique : tous les envois et tous
+//! les retours se lisent dans l'onglet Historique.
 //!
 //! La page Paie est l'endroit ou l'on FAIT le mois ; l'Historique, celui ou l'on VOIT ce qu'il a donne. Cette route
 //! rend, pour un mois :
@@ -8,9 +8,9 @@
 //!   l'Historique : `crate::routes::ouverture::mois_connus`, `crate::routes::archives::documents_du_mois`), range
 //!   par sorte, chacun avec le chemin que `ouvrir-piece` ouvre ;
 //! - `envois` : chaque ligne du journal des depots du mois (DPAE, DSN, signalements, documents, contrats), TESTS
-//!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`,
-//!   PR #17), et ce qu'il a envoye se montre partout (Leandre, 20/10/2026 : « les gens ont besoin de tout savoir, le
-//!   logiciel doit etre d'une transparence totale, ce sont leurs infos, leurs tests ») ;
+//!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`),
+//!   et ce qu'il a envoye se montre partout : le logiciel est d'une transparence totale, ce sont les informations et les
+//!   tests de la compagnie ;
 //! - sous chaque envoi, ses `retours` dans l'ordre d'arrivee, chacun LU : l'organisme, ce que dit son statut, et ce
 //!   que dit sa piece archivee (`lire_piece` : bilans harmonises, NEOReS, organismes complementaires, certificats DPAE,
 //!   AER). Le format de l'AGIRC-ARRCO, que personne ne publie, garde son statut et sa piece telle quelle.

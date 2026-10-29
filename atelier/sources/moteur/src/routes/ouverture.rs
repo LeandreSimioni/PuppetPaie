@@ -815,7 +815,7 @@ fn conventions(ctx: &Contexte) -> R<Value> {
     candidats.extend(fichiers);
     let mut par = Map::new();
     for f in candidats {
-        // Lu une fois tant qu'il ne change pas (`json_en_cache`, ticket #244) : `etat` le relisait a chaque appel.
+        // Lu une fois tant qu'il ne change pas (`json_en_cache`), et non a chaque appel.
         let Ok(v) = socle::fichiers::json_en_cache(&f) else { continue };
         let Some(d) = v.as_object() else { continue };
         if let Some(Value::Object(p)) = d.get("par_convention").filter(|x| vrai(x)) {
@@ -938,7 +938,7 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "conventions": conventions(ctx)?,
         "organismes_urssaf": organismes,
         "urssaf_deduit": if deduit.is_empty() { "117".to_string() } else { deduit },
-        // LES PAYS (vague 1k) : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
+        // LES PAYS : la liste livree, triee par nom, chacun avec la codification UE que le moteur en
         // deduit. Le pays de naissance et le pays de nationalite s'y choisissent.
         "pays": socle::pays::servir().map_err(plain)?,
         // Le pays de naissance : la table « Pays » de la DSN, ou se lit S21.G00.30.015.
@@ -1039,7 +1039,7 @@ pub(crate) fn version() -> R<Value> {
     // La mise a jour est celle de l'INSTALLATION : son reglage (`maj::reglage`), sa version prete.
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
     let (depot, editeur) = crate::compagnie::maj::reglage(&inst).map_err(|e| erreur("ValueError", e))?;
-    // Le depot d'ou l'on recoit : celui qui est pose, sinon celui du moteur (`maj::DEPOT_PAR_DEFAUT`, lot S1).
+    // Le depot d'ou l'on recoit : celui qui est pose, sinon celui du moteur (`maj::DEPOT_PAR_DEFAUT`).
     let depot = json!(crate::compagnie::maj::depot(depot));
     let prete = prete(&inst)?;
     let courante_v = courante(&code)?;
@@ -1051,7 +1051,7 @@ pub(crate) fn version() -> R<Value> {
     Ok(json!({
         "courante": courante_v, "editeur": editeur, "depot": depot,
         "prete": version_prete, "calcul": calcul, "exigee": exigee,
-        // La cle publique de l'editeur est ecrite dans `maj.py` : toujours posee.
+        // La cle publique de l'editeur est ecrite dans le moteur (`maj::CLE_PUBLIQUE`) : toujours posee.
         "signee": true,
         "avant": avant,
     }))

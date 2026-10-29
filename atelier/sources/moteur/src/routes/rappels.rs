@@ -614,7 +614,7 @@ fn ajouter_les_mois_de_l_ancien_logiciel(st: &Etat, mois: &str, r: &mut Rappel) 
 
 // ------------------------------------------------------ les obligations dues
 
-/// CE QUI EST DU, A L'OUVERTURE (20/10/2026, #205) : toute obligation que `obligations.rs` dit a faire ou en retard -- la
+/// CE QUI EST DU, A L'OUVERTURE : toute obligation que `obligations.rs` dit a faire ou en retard -- la
 /// fin d'un contrat qui se signale, et ce qu'un arret fait naitre (le signalement d'arret ou de reprise anticipee, la
 /// declaration d'accident du travail ou de trajet sous quarante-huit heures, l'attestation de salaire du deuil d'enfant).
 /// UN SEUL MECANISME : chaque obligation devient un rappel par `rappel_d_obligation`, qui porte l'obligation telle que le

@@ -868,7 +868,7 @@ impl<'a> Moteur<'a> {
                     tous.push((e.file_name().to_string_lossy().into_owned(), chemin, m.len()));
                 }
             }
-            // L'ORDRE NE DEPEND PAS DE L'HEURE D'UN FICHIER (#236 : deux rejeux, deux machines, le meme ordre) : il se lit
+            // L'ORDRE NE DEPEND PAS DE L'HEURE D'UN FICHIER (deux rejeux, deux machines, le meme ordre) : il se lit
             // dans ce que le moteur sait de chacun (`ordre_de_depot`).
             let racine = self.racine().to_path_buf();
             let ranger = |mut v: Vec<&(String, PathBuf, u64)>| -> Value {
@@ -1389,7 +1389,7 @@ impl<'a> Moteur<'a> {
     }
 
     /// LA DSN DE `mois` A-T-ELLE QUELQUE CHOSE A DECLARER pour l'etablissement `nic` (`Null` : le seul) ? Elle est a
-    /// deposer des qu'un engagement valide touche le mois (ticket #257 ; « le dépôt initial de la DSN "normale" peut
+    /// deposer des qu'un engagement valide touche le mois (« le dépôt initial de la DSN "normale" peut
     /// être émis jusqu'à 1 mois à l'avance et 3 mois en retard », cahier technique DSN 2026.1, § 1.4.2,
     /// `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt`), ou qu'elle porte la correction d'un mois passe
     /// dont l'annule-et-remplace n'est plus admis (§ 2.1.2.1, `chapitre-2-principes-de-constitution.txt` : « Une

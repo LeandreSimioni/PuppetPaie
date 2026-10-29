@@ -1,5 +1,5 @@
-//! CE QUE L'IMPORT MET DANS UNE FICHE QUI EXISTE DEJA (lot I2, Leandre, 14/10/2026 : « est-ce qu'il prend bien TOUT ce
-//! qu'il peut tirer des imports ? » ; « pourquoi la fiche fait loi alors que le bulletin a les bonnes infos ? »).
+//! CE QUE L'IMPORT MET DANS UNE FICHE QUI EXISTE DEJA : tout ce qu'il peut tirer des imports, sans que la fiche fasse loi
+//! contre un bulletin qui a les bonnes informations.
 //!
 //! Une fiche que l'import CREE recoit tout ce que la DSN et les bulletins disent. Une fiche qui EXISTE recoit ce qui y
 //! est vide ou « A COMPLETER » (sans casse : le titre que l'import des DSN donne a un spectacle dont la DSN ne porte que

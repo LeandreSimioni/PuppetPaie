@@ -1,5 +1,5 @@
 //! `caviardage` : enlever d'un texte tout ce qui identifie une personne, avant qu'il parte chez
-//! l'editeur (`prive/journal/PLAN-IMPORT-BULLETINS.md` §2.c et §4, lot E1). Le texte est celui des
+//! l'editeur. Le texte est celui des
 //! pages d'un bulletin qu'on n'a pas su lire, tel que la fabrique le rend : des lignes. L'editeur en
 //! a besoin pour ecrire le gabarit manquant ; il n'a besoin d'AUCUNE valeur personnelle.
 //!

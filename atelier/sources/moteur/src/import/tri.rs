@@ -1,7 +1,7 @@
 //! Le tri de la boite aux lettres `import/`. Une compagnie y met tout ce qu'elle a -- des
 //! PDF (un bulletin par fichier, une annee par fichier), des DSN, des AEM, des zip, des doublons, des
 //! fichiers qui n'ont rien a y faire -- et le moteur TRIE, PAR LE CONTENU, JAMAIS PAR LE NOM : le
-//! « 2023.pdf » qui contient 2026 le prouve (`prive/journal/PLAN-IMPORT-BULLETINS.md`, lot A).
+//! « 2023.pdf » qui contient 2026 le prouve.
 //!
 //! Chaque fichier recoit une sorte, et une seule :
 //!
