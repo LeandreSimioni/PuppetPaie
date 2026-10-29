@@ -66,6 +66,15 @@ impl LigneBrut {
         let q = self.quantite.normalize();
         let entier = q == q.trunc();
         let nb = if entier { q.trunc().to_string() } else { q.to_string().replace('.', ",") };
+        // UN SALAIRE MENSUEL se paie au mois : sa quantite est la fraction du mois payee (`rubriques-base.json`, `mois`).
+        // Un mois entier se dit seul ; une fraction se dit en part du mois, pas en decimales.
+        if self.unite == "mois" {
+            if q == Decimal::ONE {
+                return self.libelle.clone();
+            }
+            let part = (q * Decimal::from(100)).round_dp(2).normalize().to_string().replace('.', ",");
+            return format!("{} ({} % du mois)", self.libelle, part);
+        }
         if self.unite == "heure" && !self.libelle.to_lowercase().starts_with("heure") {
             return format!("{} h de {}", nb, self.libelle);
         }
