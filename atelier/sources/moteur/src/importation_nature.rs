@@ -1,5 +1,5 @@
 //! LA NATURE DES CONTRATS QUE LES BULLETINS N'ONT PAS DITE (#236). L'import d'un bulletin de paie atteste un contrat
-//! (`historique/engagements.json`, `importation_bulletins::engagement`) ; aucun gabarit n'imprime sa nature. Un bulletin
+//! (un engagement importe, `importation_bulletins::engagement`) ; aucun gabarit n'imprime sa nature. Un bulletin
 //! qui porte une marque du spectacle (numero d'objet, cotisation Congés Spectacles) laisse le contrat muet, et un
 //! engagement muet est un CDDU (regle 6). Un bulletin qui n'en porte aucune est celui d'un permanent : CDI ou CDD de
 //! droit commun, que rien ne dit. Ses contrats sont marques `nature_a_dire` ; ce module :
@@ -43,10 +43,6 @@ pub const A_DIRE: &str = "nature_a_dire";
 /// La route de ce module.
 pub const ROUTE: &str = "importation-nature";
 
-fn chemin(racine: &Path) -> std::path::PathBuf {
-    racine.join("historique").join("engagements.json")
-}
-
 /// Les natures qu'un permanent peut recevoir.
 fn natures_permanentes() -> R<Vec<std::sync::Arc<droit::natures::Nature>>> {
     let toutes = droit::natures::natures().map_err(|m| erreur("ErreurOperation", m))?;
@@ -67,11 +63,9 @@ fn texte(e: &Value, k: &str) -> String {
     e.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()
 }
 
+/// Les contrats que les engagements importes attestent, une ligne chacun (vide s'ils ne se lisent pas).
 fn engagements(racine: &Path) -> Vec<Value> {
-    crate::routes::lire_json_ou_vide(&chemin(racine))
-        .ok()
-        .and_then(|h| h.get("engagements").and_then(Value::as_array).cloned())
-        .unwrap_or_default()
+    engagement::importe::contrats_lus(racine).unwrap_or_default()
 }
 
 /// Le dernier mois repris : le plus recent que l'historique atteste (`AAAA-MM`).
@@ -163,9 +157,7 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
         let noms: Vec<&str> = permises.iter().map(|n| n.libelle.as_str()).collect();
         return Err(refus(format!("« {} » n'est pas la nature d'un contrat de permanent ({}) : rien n'a été écrit.", nature, noms.join(", "))));
     };
-    let p = chemin(&ctx.racine);
-    let mut h = crate::routes::lire_json_ou_vide(&p)?;
-    let engs = h.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    let engs = engagements(&ctx.racine);
     let qui = nom_du_salarie(&ctx.racine, &salarie);
     let Some((_, du, au)) = a_dire_par_salarie(&engs).remove(&salarie) else {
         return Err(refus(format!("Aucun contrat repris de {} n'attend sa nature : rien n'a été écrit.", qui)));
@@ -221,21 +213,24 @@ pub(crate) fn dire(ctx: &Contexte, charge: &Value) -> R<Value> {
             }
         }
     }
-    let mut ecrits = 0usize;
-    if let Some(Value::Array(liste)) = h.get_mut("engagements") {
-        for e in liste.iter_mut() {
-            let Some(o) = e.as_object_mut() else { continue };
-            if !o.get(A_DIRE).is_some_and(vrai) || o.get("salarie").and_then(Value::as_str) != Some(salarie.as_str()) {
-                continue;
-            }
-            o.remove(A_DIRE);
-            o.insert("nature".into(), json!(nature));
-            o.extend(contrat.clone());
-            ecrits += 1;
+    let ecrits = engagement::importe::completer(&ctx.racine, |e| {
+        if e.get("salarie").and_then(Value::as_str) != Some(salarie.as_str()) {
+            return false;
         }
-    }
-    crate::routes::mois::sauver_avant(&p)?;
-    socle::ecriture::ecrire_json(&p, &h, 1).map_err(|m| erreur("OSError", m))?;
+        let numero = contrat.get("numero").cloned();
+        let Some(o) = e.get_mut(engagement::importe::IMPORTE).and_then(|i| i.get_mut("contrat")).and_then(Value::as_object_mut) else { return false };
+        if !o.get(A_DIRE).is_some_and(vrai) {
+            return false;
+        }
+        o.remove(A_DIRE);
+        o.insert("nature".into(), json!(nature));
+        o.extend(contrat.clone());
+        if let Some(n) = numero.filter(|_| !e.get("numero").is_some_and(vrai)) {
+            e.insert("numero".into(), n);
+        }
+        true
+    })
+    .map_err(socle::echec::Echec::from)?;
     // LA COMPAGNIE EMPLOIE UN PERMANENT : c'est ce qu'on vient de dire (une nature payee au mois). La case « La
     // compagnie emploie aussi des salaries au mois » de la fiche Entreprise (`contexte::emploie_des_permanents`) se
     // coche donc ici, sans la redemander : sans elle, la paie du mois suivant refuserait ce contrat

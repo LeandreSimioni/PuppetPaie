@@ -41,6 +41,23 @@ fn salaries_lus(racine: &Path) -> Value {
     Value::Object(brutes.as_object().unwrap().iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), fiche_au(v, JOUR))).collect())
 }
 
+/// Les contrats attestes des engagements importes, chacun avec son salarie.
+fn contrats_importes(racine: &Path) -> Vec<Value> {
+    engagement::importe::contrats_lus(racine).unwrap()
+}
+
+/// Les fichiers des engagements, tels qu'ils sont sur le disque.
+fn engagements_ecrits(racine: &Path) -> Vec<(String, Vec<u8>)> {
+    let mut v: Vec<(String, Vec<u8>)> = std::fs::read_dir(racine.join("engagements"))
+        .unwrap()
+        .flatten()
+        .filter(|e| e.path().is_file())
+        .map(|e| (e.file_name().to_string_lossy().into_owned(), std::fs::read(e.path()).unwrap()))
+        .collect();
+    v.sort();
+    v
+}
+
 fn neuve(test: &str) -> PathBuf {
     ajouter_dans(&dossier_de_test("import_neuve", test), "Compagnie des Essais").unwrap().racine
 }
@@ -130,7 +147,7 @@ fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
     let salaries = salaries_lus(&racine);
     let cle = |nir: &str| salaries.as_object().unwrap().iter().find(|(_, s)| s["nir"] == json!(nir)).map(|(k, _)| k.clone()).unwrap();
     let (artiste, permanent) = (cle("2881175999001"), cle("1850799999123"));
-    let engagements = || lire(&racine, "historique/engagements.json")["engagements"].as_array().unwrap().clone();
+    let engagements = || contrats_importes(&racine);
     for e in engagements() {
         if e["salarie"] == json!(artiste) {
             assert!(e.get("nature").is_none() && e.get("nature_a_dire").is_none(), "{}", e);
@@ -144,10 +161,10 @@ fn la_nature_d_un_contrat_de_permanent_se_demande_apres_l_import() {
     assert!(natures.contains("cdi") && natures.contains("cdd") && !natures.contains("cddu_spectacle"), "{:?}", natures);
 
     // Une nature qui n'est pas d'un permanent, un salarie sans contrat a dire : refus, rien n'est ecrit.
-    let avant = std::fs::read(racine.join("historique/engagements.json")).unwrap();
+    let avant = engagements_ecrits(&racine);
     assert_eq!(route(&racine, "importation-nature", json!({"salarie": permanent, "nature": "cddu_spectacle"}))["ok"], json!(false));
     assert_eq!(route(&racine, "importation-nature", json!({"salarie": artiste, "nature": "cdi"}))["ok"], json!(false));
-    assert_eq!(std::fs::read(racine.join("historique/engagements.json")).unwrap(), avant);
+    assert_eq!(engagements_ecrits(&racine), avant);
 
     // Dire la nature d'un permanent, c'est dire que la compagnie emploie des salaries au mois : la case s'en coche.
     assert_ne!(entreprise_lue(&racine)["emploie_des_permanents"], json!(true));
@@ -182,7 +199,7 @@ fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
     assert_eq!(demande("cdi"), json!(["debut", "numero", "salaire", "quotite"]));
     assert_eq!(demande("cdd"), json!(["debut", "fin", "numero", "salaire", "quotite"]));
 
-    let avant = std::fs::read(racine.join("historique/engagements.json")).unwrap();
+    let avant = engagements_ecrits(&racine);
     for charge in [
         json!({"salarie": cle, "nature": "cdi"}),
         json!({"salarie": cle, "nature": "cdi", "debut": "2024-01-15"}),
@@ -195,7 +212,7 @@ fn le_contrat_d_un_permanent_qui_continue_se_reprend_au_mois_suivant() {
     ] {
         assert_eq!(route(&racine, "importation-nature", charge.clone())["ok"], json!(false), "{}", charge);
     }
-    assert_eq!(std::fs::read(racine.join("historique/engagements.json")).unwrap(), avant);
+    assert_eq!(engagements_ecrits(&racine), avant);
     assert!(!racine.join("config/entreprise.json").exists() || entreprise_lue(&racine)["emploie_des_permanents"] != json!(true));
 
     reussi(&route(&racine, "importation-nature", json!({"salarie": cle, "nature": "cdi", "debut": "15/01/2024", "numero": "00042", "salaire": "2 400,50", "quotite": "151,67"})));

@@ -18,6 +18,7 @@ pub mod cumul;
 pub mod departs;
 pub mod empreinte;
 pub mod etats;
+pub mod importe;
 pub mod imprevus;
 pub mod minima;
 pub mod periodes;

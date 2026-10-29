@@ -1,24 +1,25 @@
-//! `importer` : ecrit ce que `importation-apercu` annonce (`operations_importation.importer`).
+//! `importer` : ecrit ce que `importation-apercu` annonce.
 //!
 //! Dans l'ordre : la COPIE de l'`export/` de CoolPaie dans `historique/coolpaie/` (rien ne s'ecrase) ; l'apercu
-//! relu DANS la copie ; l'alerte CASC-SVP (`operations_casc.alerte_apres_import`) ; les fiches a creer
-//! (entreprise, salaries, spectacles), ecrites comme celles de l'ecran (`crate::routes::fiches::ecrire_fiche`,
-//! `forcer`) ; l'historique des contrats (`historique/engagements.json`) ; les paies declarees par les DSN
-//! (`historique/paies.json`). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de ce
-//! qui a ete ecrit (`ecrit`, `fichiers`, `copie`).
+//! relu DANS la copie ; l'alerte CASC-SVP (`alerte_apres_import`) ; les fiches a creer (entreprise, salaries,
+//! spectacles), ecrites comme celles de l'ecran (`crate::routes::fiches::ecrire_fiche`, `forcer`) ; les ENGAGEMENTS
+//! IMPORTES (`engagement::importe`), chacun dans `engagements/AAAA-MM.json`, le fichier du mois ou il commence : le
+//! contrat qu'une AEM ou un bulletin atteste, et ce qui a ete verse, mois par mois (la DSN deposee, completee par le
+//! bulletin). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de ce qui a ete ecrit
+//! (`ecrit`, `fichiers`, `copie`).
 //!
-//! `{"dossier": ...}` (lot E du plan d'import, `prive/journal/PLAN-IMPORT-BULLETINS.md`) : la boite aux lettres
-//! `import/` entiere, comme l'apercu (`importation_bulletins`). Ce qui est repris (DSN, AEM, PDF dont une page au
-//! moins est reprise) est COPIE dans `historique/bulletins/`, sous le nom de sa copie (`<empreinte>.<pdf|dsn|txt>` :
-//! rien de personnel ; `importation_bulletins::nom_copie`) -- rien ne s'ecrase ; l'apercu est relu DANS ces copies, et
-//! c'est lui qui s'ecrit : les fiches, les contrats que les AEM et les bulletins attestent, les paies (celles des DSN,
-//! completees par les bulletins ; celles qu'un bulletin seul declare). La reponse garde le compte rendu (`tri`) du
-//! dossier lu, pour l'ecran ; rien n'en part (l'incident est `importation_incident`, sur le clic de la personne).
+//! `{"dossier": ...}` : la boite aux lettres `import/` entiere, comme l'apercu (`importation_bulletins`). Ce qui est
+//! repris (DSN, AEM, PDF dont une page au moins est reprise) est COPIE dans `historique/bulletins/`, sous le nom de sa
+//! copie (`<empreinte>.<pdf|dsn|txt>` : rien de personnel ; `importation_bulletins::nom_copie`) -- rien ne s'ecrase ;
+//! l'apercu est relu DANS ces copies, et c'est lui qui s'ecrit. La reponse garde le compte rendu (`tri`) du dossier lu,
+//! pour l'ecran ; rien n'en part (l'incident est `importation_incident`, sur le clic de la personne). Les pieces
+//! copiees restent sous `historique/` : le dossier du salarie montre les pages des bulletins, l'alerte CASC-SVP relit
+//! les DSN.
 //!
 //! UNE PAIE, DEUX SOURCES, UNE LIGNE (les deux chemins) : une ligne de DSN qui arrive sur une ligne que des bulletins
 //! ont deja completee garde ce que le bulletin a ecrit (le bulletin fait foi) ; une ligne qu'un bulletin seul declare
 //! s'efface devant la ligne de DSN des memes salarie, debut et fin, qu'elle complete (`rapprocher`) -- l'ordre DSN
-//! puis bulletins, ou bulletins puis DSN, donne le meme historique.
+//! puis bulletins, ou bulletins puis DSN, donne les memes engagements.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -26,7 +27,6 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
-use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::valeur::nom_type;
 use socle::echec::erreur;
@@ -37,8 +37,6 @@ use crate::routes::import::{apercu_importation, export_de};
 
 type R<T> = Result<T, Echec>;
 
-const NOTE_HISTORIQUE: &str = "Les contrats attestes AVANT ce logiciel : par une AEM (atteste_par AEM, importee de CoolPaie ou du dossier import/), ou par un bulletin de paie (atteste_par bulletin : fichier et page de sa copie dans historique/bulletins/). cumul.py les lit pour les droits (annexes 8 et 10) quand aucun fichier de paie ne couvre leur mois. Un mois qui a son fichier dans paies/ est lu la, jamais ici.";
-const NOTE_PAIES: &str = "Ce qui a ete verse AVANT ce logiciel, contrat par contrat, de deux sources. 1. Les DSN deposees (declare_par DSN) : brut, net imposable (50.002), net verse (50.004, qui n'est pas le net a payer : la DSN ne le declare pas, net_a_payer reste vide sans bulletin), prelevement a la source -- la DSN ne declare pas la repartition salariale / patronale des cotisations (bloc 81 : un montant par code, les deux parts confondues), ni donc le cout employeur. 2. Les bulletins de paie (colonne bulletin : fichier et page de leur copie dans historique/bulletins/) : ils completent la ligne de la DSN (cotisations_salariales, cotisations_patronales, cout_employeur, lignes, dates, spectacle, cotisations par famille) et l'emportent sur ses montants -- le bulletin fait foi ; une paie qu'aucune DSN ne declare est ecrite du bulletin seul (declare_par bulletin). Sans bulletin, ces colonnes restent vides, et l'export le dit. Le livre de paie les lit pour les mois qui n'ont pas de fichier dans paies/ -- un mois saisi est recalcule depuis sa saisie, jamais lu ici.";
 
 /// Les colonnes qu'un bulletin ajoute a une paie (`importation_bulletins::completer`).
 const COLONNES_BULLETIN: [&str; 11] = [
@@ -214,36 +212,33 @@ fn libelle_casc(m: &str) -> R<String> {
     Ok(format!("{} {}", nom, m.chars().take(4).collect::<String>()))
 }
 
-/// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois
-/// (`historique/paies.json`), sous `historique/coolpaie/DSN/` ou dans le dossier d'ou il a ete repris. `None` : un mois
-/// que l'import n'a pas retenu ; un fichier retenu introuvable refuse.
-fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
-    let chemin = ctx.racine.join("historique").join("paies.json");
-    let decl = if chemin.exists() { socle::fichiers::lire_json(&chemin)? } else { Value::Object(Default::default()) };
-    let noms: Vec<String> = decl
-        .get("paies")
-        .and_then(Value::as_array)
+/// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois (la paie
+/// versee d'un engagement importe), sous `historique/coolpaie/DSN/` ou dans le dossier d'ou il a ete repris. `None` : un
+/// mois que l'import n'a pas retenu ; un fichier retenu introuvable refuse.
+pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
+    let lignes: Vec<Value> = engagement::importe::paies_lues(&ctx.racine)?
         .into_iter()
-        .flatten()
-        .filter(|x| x.get("mois").and_then(Value::as_str) == Some(mois))
-        .filter_map(|x| x.get("fichier").filter(|f| vrai(f)).map(valeur_en_texte))
+        .filter(|x| x.get("mois").and_then(Value::as_str) == Some(mois) && x.get("fichier").is_some_and(vrai))
         .collect();
-    let Some(nom) = noms.last() else { return Ok(None) };
-    let source = match decl.get("source") {
+    let Some(ligne) = lignes.last() else { return Ok(None) };
+    let nom = valeur_en_texte(&ligne["fichier"]);
+    let source = match ligne.get("source") {
         Some(v) if vrai(v) => PathBuf::from(valeur_en_texte(v)),
         _ => ctx.racine.clone(),
     };
     for d in [
         ctx.racine.join("historique").join("coolpaie").join("DSN"),
+        ctx.racine.join("historique").join("bulletins"),
         ctx.racine.join("export-coolpaie").join("DSN"),
         ctx.racine.join("export-coolpaie"),
         source.join("DSN"),
+        source.clone(),
     ] {
-        if d.join(nom).exists() {
-            return Ok(Some(d.join(nom)));
+        if d.join(&nom).exists() {
+            return Ok(Some(d.join(&nom)));
         }
     }
-    Err(format!("La DSN de {} ({}) a ete reprise de l'historique, mais le fichier n'est plus sous historique/coolpaie/DSN/.", mois, nom))
+    Err(format!("La DSN de {} ({}) a ete importee, mais le fichier n'est plus sous historique/.", mois, nom))
 }
 
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a
@@ -285,13 +280,8 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
     let faits: HashSet<String> = declarations::casc::mois_regularises(ctx).map_err(Echec::from)?.into_iter().collect();
     // `mois_disponibles` : les mois des paies declarees, et les mois saisis.
     let mut dispo: BTreeSet<String> = BTreeSet::new();
-    let declarees = crate::routes::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
-    let liste = match declarees.get("paies") {
-        None => Vec::new(),
-        Some(v) => etats::items(v)?.into_iter().map(|c| c.into_owned()).collect(),
-    };
-    for x in &liste {
-        if let Some(m) = etats::get(x, "mois").ok().filter(|m| vrai(m)) {
+    for x in engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)? {
+        if let Some(m) = x.get("mois").filter(|m| vrai(m)) {
             dispo.insert(valeur_en_texte(m));
         }
     }
@@ -370,16 +360,6 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
         (Some(a), Some(b), Some(c2), Some(d)) => Some((a, b, c2, d, h, c, j, brut)),
         _ => None,
     })
-}
-
-/// `data.setdefault(cle, [])` sur le fichier tel qu'il est (`{}` s'il manque).
-fn lire_liste(chemin: &Path, cle: &str) -> R<Map<String, Value>> {
-    let lu = crate::routes::lire_json_ou_vide(chemin)?;
-    let Value::Object(mut data) = lu else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&lu))));
-    };
-    data.entry(cle).or_insert_with(|| json!([]));
-    Ok(data)
 }
 
 fn cle_paie(x: &Value) -> R<(String, String, String)> {
@@ -467,6 +447,105 @@ fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize 
     ambigues
 }
 
+/// Une ligne sans ce qui dit quand et d'ou elle a ete importee : ce qui compare deux lectures des memes pieces.
+fn sans_dates_d_import(x: &Value) -> Value {
+    let mut x = x.clone();
+    if let Some(o) = x.as_object_mut() {
+        o.remove("importe_le");
+        o.remove("source");
+    }
+    x
+}
+
+/// Une ligne sans les cles que l'engagement importe porte lui-meme.
+fn sans(x: &Value, cles: &[&str]) -> Map<String, Value> {
+    let mut o = x.as_object().cloned().unwrap_or_default();
+    for k in cles {
+        o.remove(*k);
+    }
+    o
+}
+
+/// LES ENGAGEMENTS IMPORTES, tires des contrats attestes (`contrats`, une AEM ou un bulletin chacun) et des paies
+/// versees (`paies`, une par mois et par contrat). Un engagement, c'est un salarie, un debut et une fin : le contrat
+/// atteste qui les porte (plusieurs : celui du meme numero d'objet que la paie), et ses paies, une par mois. Une paie
+/// qu'aucun contrat atteste ne porte fait son engagement avec celles des memes salarie, debut, fin et numero de contrat.
+/// Son numero est celui que la DSN deposee a declare (S21.G00.40.009), jamais un numero tire.
+fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<String, Value>> {
+    let t = |x: &Value, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    struct Groupe {
+        salarie: String,
+        debut: String,
+        fin: String,
+        contrat: Option<Value>,
+        paies: Vec<Value>,
+    }
+    let mut groupes: Vec<Groupe> = Vec::new();
+    for c in contrats {
+        groupes.push(Groupe { salarie: t(&c, "salarie"), debut: t(&c, "debut"), fin: t(&c, "fin"), contrat: Some(c), paies: Vec::new() });
+    }
+    for p in paies {
+        let (s, d, f, o) = (t(&p, "salarie"), t(&p, "debut"), t(&p, "fin"), t(&p, "numero_objet"));
+        let candidats: Vec<usize> = (0..groupes.len()).filter(|&i| groupes[i].contrat.is_some() && groupes[i].salarie == s && groupes[i].debut == d && groupes[i].fin == f).collect();
+        let atteste = match candidats.as_slice() {
+            [i] => Some(*i),
+            [] => None,
+            plusieurs => {
+                let memes: Vec<usize> = plusieurs.iter().copied().filter(|&i| groupes[i].contrat.as_ref().is_some_and(|c| t(c, "numero_objet").eq_ignore_ascii_case(&o))).collect();
+                (memes.len() == 1).then(|| memes[0])
+            }
+        };
+        let mois = t(&p, "mois");
+        let libre = |g: &Groupe| !g.paies.iter().any(|x| t(x, "mois") == mois);
+        let i = match atteste.filter(|&i| libre(&groupes[i])) {
+            Some(i) => i,
+            None => match (0..groupes.len()).find(|&i| {
+                let g = &groupes[i];
+                g.contrat.is_none() && g.salarie == s && g.debut == d && g.fin == f && g.paies.first().map(|x| t(x, "contrat")) == Some(t(&p, "contrat")) && libre(g)
+            }) {
+                Some(i) => i,
+                None => {
+                    groupes.push(Groupe { salarie: s, debut: d, fin: f, contrat: None, paies: Vec::new() });
+                    groupes.len() - 1
+                }
+            },
+        };
+        groupes[i].paies.push(p);
+    }
+    let mut out = Vec::new();
+    for g in groupes {
+        let mut lu = Map::new();
+        let lignes: Vec<&Value> = g.contrat.iter().chain(g.paies.iter()).collect();
+        let le = lignes.iter().map(|x| t(x, "importe_le")).filter(|x| !x.is_empty()).min().unwrap_or_default();
+        lu.insert("le".into(), json!(le));
+        if let Some(s) = lignes.iter().map(|x| t(x, "source")).filter(|x| !x.is_empty()).last() {
+            lu.insert("source".into(), json!(s));
+        }
+        if let Some(c) = &g.contrat {
+            lu.insert("contrat".into(), Value::Object(sans(c, &["salarie", "debut", "fin", "contrat"])));
+        }
+        let mut par_mois = Map::new();
+        for p in &g.paies {
+            par_mois.insert(t(p, "mois"), Value::Object(sans(p, &["salarie", "mois"])));
+        }
+        lu.insert("paies".into(), Value::Object(par_mois));
+        let mut e = Map::new();
+        e.insert("salarie".into(), json!(g.salarie));
+        e.insert("debut".into(), json!(g.debut));
+        e.insert("fin".into(), json!(g.fin));
+        if let Some(n) = g.paies.iter().filter(|p| !declaree_par_bulletin(p)).map(|p| t(p, "contrat")).find(|n| !n.is_empty()) {
+            e.insert("numero".into(), json!(n));
+        }
+        e.insert(engagement::importe::IMPORTE.into(), Value::Object(lu));
+        out.push(e);
+    }
+    out.sort_by(|a, b| {
+        let k = |e: &Map<String, Value>| (e["debut"].as_str().unwrap_or("").to_string(), e["fin"].as_str().unwrap_or("").to_string(), e["salarie"].as_str().unwrap_or("").to_string());
+        k(a).cmp(&k(b))
+    });
+    out
+}
+
 // ------------------------------------------------------------------ l'ecriture
 
 /// Ce qu'une ecriture a fait.
@@ -487,8 +566,8 @@ impl Ecrit {
     }
 }
 
-/// Ecrit ce que l'apercu `imp` annonce : les fiches (et leur place dans `reponse`), `historique/engagements.json`
-/// (les contrats des AEM, puis ceux des bulletins), `historique/paies.json`. `source` : d'ou l'historique est lu.
+/// Ecrit ce que l'apercu `imp` annonce : les fiches (et leur place dans `reponse`), puis les engagements importes
+/// (`engagements_importes` : les contrats des AEM et des bulletins, les paies versees). `source` : d'ou les pieces sont lues.
 fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Value, note: &Value, source: &str) -> R<Ecrit> {
     let aujourdhui = ctx.date;
     // Les fiches, comme celles de l'ecran (`forcer` : une fiche importee avec des anomalies est ecrite quand meme).
@@ -550,7 +629,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     let mut fichiers: Vec<Value> = ecrits.into_iter().map(Value::String).collect();
     let mut avertissements: Vec<String> = Vec::new();
 
-    // L'historique, avec les fiches telles qu'elles sont MAINTENANT.
+    // Les engagements importes, avec les fiches telles qu'elles sont MAINTENANT.
     let frais = Contexte::nouveau(&ctx.racine, None).map_err(Echec::from)?;
     let mut par_nir: HashMap<String, String> = HashMap::new();
     for (cle, s) in &frais.salaries {
@@ -558,20 +637,16 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
             par_nir.insert(valeur_en_texte(n), cle.clone());
         }
     }
-    let chemin_hist = ctx.racine.join("historique").join("engagements.json");
-    let hist_existait = chemin_hist.exists();
-    let mut data = lire_liste(&chemin_hist, "engagements")?;
+    // CE QUE L'IMPORT A DEJA ECRIT, relu de ses engagements importes : les contrats attestes, les paies versees.
+    let importes_avant = engagement::importe::tous(&ctx.racine).map_err(Echec::from)?;
+    let mut engagements: Vec<Value> = engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?;
     let mut deja: HashSet<CleEngagement> = HashSet::new();
-    let mut engagements: Vec<Value> = match data.get("engagements") {
-        Some(Value::Array(a)) => a.clone(),
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
-        None => Vec::new(),
-    };
     for e in &engagements {
         if let Some(k) = cle_engagement(e)? {
             deja.insert(k);
         }
     }
+    let le = json!(aujourdhui.iso());
     let mut contrats_aem = 0usize;
     for c in &imp.contrats {
         let Some(cle) = par_nir.get(&c.nir) else { continue };
@@ -584,7 +659,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
             "salarie": cle, "debut": c.debut.iso(), "fin": c.fin.iso(), "numero_objet": c.numero_objet,
             "heures": c.heures as i64, "cachets": c.cachets as i64, "jours": c.jours as i64, "brut": c.brut,
             "atteste_par": "AEM", "numero_attestation": c.numero_attestation,
-            "atteste_le": c.date_attestation, "fichier": c.fichier,
+            "atteste_le": c.date_attestation, "fichier": c.fichier, "importe_le": le, "source": source,
         }));
         contrats_aem += 1;
     }
@@ -598,38 +673,17 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         if !deja.insert(k) {
             continue;
         }
+        e["importe_le"] = le.clone();
+        e["source"] = json!(source);
         engagements.push(e);
         contrats_bulletins += 1;
     }
-    if contrats_aem + contrats_bulletins > 0 || !hist_existait {
-        let texte = |e: &Value, k: &str| e.get(k).map(valeur_en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(k)));
-        let mut cles: Vec<((String, String, String), Value)> = Vec::new();
-        for e in engagements {
-            cles.push(((texte(&e, "debut")?, texte(&e, "fin")?, texte(&e, "salarie")?), e));
-        }
-        cles.sort_by(|a, b| a.0.cmp(&b.0));
-        data.insert("engagements".into(), Value::Array(cles.into_iter().map(|(_, e)| e).collect()));
-        data.insert("_note".into(), json!(NOTE_HISTORIQUE));
-        data.insert("importe_le".into(), json!(aujourdhui.iso()));
-        data.insert("source".into(), json!(source));
-        crate::routes::mois::sauver_avant(&chemin_hist)?;
-        socle::ecriture::ecrire_json(&chemin_hist, &Value::Object(data), 1).map_err(|m| erreur("OSError", m))?;
-        fichiers.push(json!(chemin_hist.display().to_string()));
-    }
 
-    // LES PAIES : on remplace ligne a ligne par la cle (mois, salarie, contrat), copie de l'avant gardee. Une ligne de
-    // DSN qui arrive sur une ligne completee par un bulletin garde ce que le bulletin a ecrit ; une paie de bulletin
-    // seul s'efface devant la paie declaree qu'elle complete (`rapprocher`).
-    let chemin_paies = ctx.racine.join("historique").join("paies.json");
-    let paies_existait = chemin_paies.exists();
-    let mut paies = lire_liste(&chemin_paies, "paies")?;
+    // LES PAIES : on remplace ligne a ligne par la cle (mois, salarie, contrat). Une ligne de DSN qui arrive sur une ligne
+    // completee par un bulletin garde ce que le bulletin a ecrit ; une paie de bulletin seul s'efface devant la paie
+    // declaree qu'elle complete (`rapprocher`).
     let mut par_cle: BTreeMap<(String, String, String), Value> = BTreeMap::new();
-    let anciennes = match paies.get("paies") {
-        Some(Value::Array(a)) => a.clone(),
-        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", nom_type(autre)))),
-        None => Vec::new(),
-    };
-    for x in anciennes {
+    for x in engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)? {
         par_cle.insert(cle_paie(&x)?, x);
     }
     let avant = par_cle.clone();
@@ -637,6 +691,8 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         let Some(cle) = x.get("nir").and_then(Value::as_str).and_then(|n| par_nir.get(n)) else { continue };
         let mut x = x.clone();
         x["salarie"] = json!(cle);
+        x["importe_le"] = le.clone();
+        x["source"] = json!(source);
         let k = cle_paie(&x)?;
         if let Some(a) = par_cle.get(&k).filter(|a| porte_un_bulletin(a) && !porte_un_bulletin(&x)) {
             completer_par(&mut x, &a.clone());
@@ -646,19 +702,17 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
     let ambigues = rapprocher(&mut par_cle);
     if ambigues > 0 {
         avertissements.push(format!(
-            "{} paie(s) écrite(s) d'un bulletin seul ont les dates de plusieurs paies déclarées en DSN : aucune n'est rapprochée, les lignes restent côte à côte dans l'historique, à regarder.",
+            "{} paie(s) écrite(s) d'un bulletin seul ont les dates de plusieurs paies déclarées en DSN : aucune n'est rapprochée, les engagements importés restent côte à côte, à regarder.",
             ambigues
         ));
     }
-    let neuves = par_cle.iter().filter(|(k, v)| avant.get(*k) != Some(*v)).count() + avant.keys().filter(|k| !par_cle.contains_key(*k)).count();
-    if neuves > 0 || !paies_existait {
-        paies.insert("paies".into(), Value::Array(par_cle.into_values().collect()));
-        paies.insert("_note".into(), json!(NOTE_PAIES));
-        paies.insert("importe_le".into(), json!(aujourdhui.iso()));
-        paies.insert("source".into(), json!(source));
-        crate::routes::mois::sauver_avant(&chemin_paies)?;
-        socle::ecriture::ecrire_json(&chemin_paies, &Value::Object(paies), 1).map_err(|m| erreur("OSError", m))?;
-        fichiers.push(json!(chemin_paies.display().to_string()));
+    let neuves = par_cle.iter().filter(|(k, v)| avant.get(*k).map(sans_dates_d_import) != Some(sans_dates_d_import(v))).count()
+        + avant.keys().filter(|k| !par_cle.contains_key(*k)).count();
+    if contrats_aem + contrats_bulletins + neuves > 0 || importes_avant.is_empty() {
+        let importes = engagements_importes(engagements, par_cle.into_values().collect());
+        for p in engagement::importe::ecrire_tous(&ctx.racine, importes).map_err(Echec::from)? {
+            fichiers.push(json!(p.display().to_string()));
+        }
     }
     Ok(Ecrit { fichiers, contrats_aem, contrats_bulletins, paies: neuves, restent_a_creer, completees, avertissements })
 }

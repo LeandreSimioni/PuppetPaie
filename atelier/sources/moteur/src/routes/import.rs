@@ -6,7 +6,7 @@
 //! `import/` entiere (`importation_bulletins`) : le tri, les DSN et AEM qu'il trouve passees par `apercu_lu` (le meme
 //! code que pour l'export), puis les bulletins de paie.
 //!
-//! `contrats_nouveaux` : un contrat atteste que l'historique (`historique/engagements.json`) porte deja
+//! `contrats_nouveaux` : un contrat atteste que l'historique (les engagements importes) porte deja
 //! -- meme salarie, memes dates, meme objet, memes heures, cachets, jours et meme brut (`str`) -- n'est
 //! pas nouveau (`_cle_engagement`).
 
@@ -17,8 +17,7 @@ use serde_json::{json, Map, Value};
 
 use crate::importation::{self, SalarieDeclare};
 use droit::contexte::Contexte;
-use super::{lire_json_ou_vide, ou_texte, valeur};
-use envois::etats::{self, get, items, ou};
+use envois::etats::{self, get};
 use socle::echec::{erreur, Echec, R};
 use socle::fichiers::vrai;
 use socle::valeur::{nom_type, valeur_en_texte};
@@ -215,7 +214,7 @@ pub(crate) struct Apercu {
     pub(crate) contrats: Vec<importation::ContratAtteste>,
     /// `imp._paies` : les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
     pub(crate) paies: Vec<Value>,
-    /// Les contrats que les bulletins attestent (`importation_bulletins`), lignes de `historique/engagements.json`
+    /// Les contrats que les bulletins attestent (`importation_bulletins`), contrats d'engagements importes
     /// pretes a ecrire, chacune avec le NIR qui la rattache (`salarie` vaut `<a creer>` tant que la fiche n'existe pas).
     pub(crate) engagements_bulletins: Vec<(String, Value)>,
     pub(crate) source: String,
@@ -276,15 +275,10 @@ pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socl
 /// La cle `_cle_engagement` : (salarie, debut, fin, numero_objet, heures, cachets, jours, str(brut)).
 pub(crate) type CleEngagement = (String, String, String, String, i128, i128, i128, String);
 
-/// `deja = {_cle_engagement(e) ...}` : les contrats que `historique/engagements.json` porte deja. Une valeur qui
-/// n'est pas un texte ne peut egaler un texte : l'entree ne retrouvera aucun contrat.
+/// `deja` : les contrats que les engagements importes attestent deja (`engagement::importe::contrats_lus`). Une valeur
+/// qui n'est pas un texte ne peut egaler un texte : l'entree ne retrouvera aucun contrat.
 pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
-    let historique = crate::routes::lire_json_ou_vide(&ctx.racine.join("historique").join("engagements.json"))?;
-    // `lire_historique` : `data.setdefault("engagements", [])` leve sur ce qui n'est pas un objet.
-    if !historique.is_object() {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&historique))));
-    }
-    let engagements = historique.get("engagements").cloned().unwrap_or_else(|| json!([]));
+    let engagements = Value::Array(engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?);
     let mut deja: HashSet<CleEngagement> = HashSet::new();
     for e in etats::items(&engagements)? {
         // `_cle_engagement(e)` : les cles qu'elle lit doivent y etre, et les nombres se lire.
@@ -313,14 +307,9 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
     Ok(deja)
 }
 
-/// Les lignes de `historique/paies.json` telles qu'elles sont (`lire_paies_declarees` : meme `setdefault`).
+/// Les paies versees des engagements importes, une ligne par mois (`engagement::importe::paies_lues`).
 pub(crate) fn paies_historique(ctx: &Contexte) -> R<Vec<Value>> {
-    let fichier_paies = crate::routes::lire_json_ou_vide(&ctx.racine.join("historique").join("paies.json"))?;
-    if !fichier_paies.is_object() {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(&fichier_paies))));
-    }
-    let liste_paies = fichier_paies.get("paies").cloned().unwrap_or_else(|| json!([]));
-    Ok(etats::items(&liste_paies)?.into_iter().map(|c| c.into_owned()).collect())
+    engagement::importe::paies_lues(&ctx.racine).map_err(Echec::from)
 }
 
 /// La cle d'une paie de l'historique : (mois, salarie, contrat).
@@ -621,34 +610,23 @@ fn distincts(engagements: &[&Value], cle: &str) -> R<usize> {
     Ok(vus.len())
 }
 
-/// `etat_importation` : ce qui a deja ete repris, pour que la page le dise.
-///
-/// Les cles d'avant (`importe_le`, `source`, `contrats`, `salaries`, `objets`, `du`, `au` : les contrats attestes de
-/// `historique/engagements.json`) gardent leur sens et leurs refus. S'y ajoutent (lot F du plan d'import) :
+/// `etat_importation` : ce qui a deja ete repris, d'apres les engagements importes, pour que la page le dise :
+/// - `importe_le`, `source`, `contrats`, `salaries`, `objets`, `du`, `au` : les contrats attestes ;
 /// - `dossier` : la boite aux lettres `import/` de la compagnie, que la page preremplit ;
-/// - `reprises` : chaque source reprise -- `DSN` (les versements de `historique/paies.json` declares par une DSN ;
-///   `declarations` : une DSN par mois declare),
-///   `AEM` (les contrats attestes par une AEM), `bulletins` (les paies qu'un bulletin a ecrites ou completees, les
-///   contrats qu'il atteste, les PDF copies dans `historique/bulletins/`) --, avec combien, de quand a quand, et le
-///   jour de la reprise (`importe_le` de la ligne, sinon celui du fichier) ;
+/// - `reprises` : chaque source reprise -- `DSN` (les versements declares par une DSN ; `declarations` : une DSN par
+///   mois declare), `AEM` (les contrats attestes par une AEM), `bulletins` (les paies qu'un bulletin a ecrites ou
+///   completees, les contrats qu'il atteste, les PDF copies dans `historique/bulletins/`) --, avec combien, de quand a
+///   quand, et le jour de la reprise ;
 /// - `editeur` : ce qui attend l'editeur -- les incidents et les signalements partis (ou a partir) de ce poste qui
 ///   parlent de l'import, sans valeur personnelle (ils ont ete caviardes avant d'etre ecrits) ; `attend_editeur` en
 ///   compte ceux qui n'ont pas de reponse.
 ///
 /// Ces ajouts ne levent jamais : une ligne qui n'a pas la forme attendue n'est pas comptee.
 fn etat_importation(racine: &Path) -> R<Value> {
-    let p = racine.join("historique").join("engagements.json");
-    let mut h = lire_json_ou_vide(&p)?;
-    let Value::Object(m) = &mut h else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&h))));
-    };
-    m.entry("engagements").or_insert_with(|| json!([]));
-    let brut = ou(valeur(m, "engagements"), &etats::LISTE_VIDE);
-    let liste = items(brut)?;
-    let mut engagements: Vec<&Value> = Vec::new();
-    for e in &liste {
-        engagements.push(e.as_ref());
-    }
+    let contrats = engagement::importe::contrats_lus(racine).map_err(Echec::from)?;
+    let paies = engagement::importe::paies_lues(racine).map_err(Echec::from)?;
+    let engagements: Vec<&Value> = contrats.iter().collect();
+    let dernier = |k: &str| contrats.iter().chain(paies.iter()).filter_map(|x| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte)).max().unwrap_or_default();
     let dates = |cle: &str| -> R<Vec<String>> {
         let mut v = Vec::new();
         for e in &engagements {
@@ -665,15 +643,15 @@ fn etat_importation(racine: &Path) -> R<Value> {
     let editeur = attend_l_editeur(racine);
     let attend = editeur.iter().filter(|x| !x.get("repondu").is_some_and(vrai)).count();
     Ok(json!({
-        "importe_le": ou_texte(valeur(m, "importe_le")),
-        "source": ou_texte(valeur(m, "source")),
+        "importe_le": dernier("importe_le"),
+        "source": dernier("source"),
         "contrats": engagements.len(),
         "salaries": distincts(&engagements, "salarie")?,
         "objets": distincts(&engagements, "numero_objet")?,
         "du": debuts.first().cloned().unwrap_or_default(),
         "au": fins.last().cloned().unwrap_or_default(),
         "dossier": racine.join("import").display().to_string(),
-        "reprises": reprises_faites(racine, m, &engagements),
+        "reprises": reprises_faites(racine, &engagements, &paies),
         "editeur": editeur,
         "attend_editeur": attend,
         // Les contrats repris dont la nature reste a dire, par salarie (#236, `importation_nature`).
@@ -691,24 +669,23 @@ struct Reprise {
 }
 
 /// `reprises` de `importation-etat` : DSN, AEM, bulletins, dans cet ordre, celles qui ont repris quelque chose.
-fn reprises_faites(racine: &Path, engagements_json: &Map<String, Value>, engagements: &[&Value]) -> Vec<Value> {
-    let le_fichier = |m: &Map<String, Value>| m.get("importe_le").filter(|v| v.is_string()).cloned();
+fn reprises_faites(racine: &Path, engagements: &[&Value], paies: &[Value]) -> Vec<Value> {
+    let le_de = |o: &Map<String, Value>| o.get("importe_le").filter(|v| v.as_str().is_some_and(|s| !s.is_empty())).cloned();
     let (mut aem, mut contrats_bulletins) = (Reprise::default(), Reprise::default());
-    let le_engagements = le_fichier(engagements_json);
     for e in engagements {
         let Some(o) = e.as_object() else { continue };
-        let le = o.get("importe_le").filter(|v| v.as_str().is_some_and(|s| !s.is_empty())).or(le_engagements.as_ref());
+        let le = le_de(o);
         let cible = if o.get("atteste_par").and_then(Value::as_str) == Some("bulletin") { &mut contrats_bulletins } else { &mut aem };
-        cible.voir(o.get("debut"), o.get("fin"), le);
+        cible.voir(o.get("debut"), o.get("fin"), le.as_ref());
     }
     let (mut dsn, mut bulletins) = (Reprise::default(), Reprise::default());
     // Les DSN reprises : une par mois declare (la phrase de l'etat dit des declarations, pas des versements).
     let mut mois_dsn: BTreeSet<String> = BTreeSet::new();
-    if let Ok(Value::Object(f)) = lire_json_ou_vide(&racine.join("historique").join("paies.json")) {
-        let le_paies = le_fichier(&f);
-        for x in f.get("paies").and_then(Value::as_array).into_iter().flatten() {
+    {
+        for x in paies {
             let Some(o) = x.as_object() else { continue };
-            let le = o.get("importe_le").filter(|v| v.as_str().is_some_and(|s| !s.is_empty())).or(le_paies.as_ref());
+            let le = le_de(o);
+            let le = le.as_ref();
             let par = o.get("declare_par").and_then(Value::as_str).unwrap_or("");
             // Une paie declaree par une DSN et completee par un bulletin compte des deux cotes : elle a les deux sources.
             if par != "bulletin" {

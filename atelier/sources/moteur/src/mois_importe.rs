@@ -1,15 +1,9 @@
-//! UN MOIS IMPORTE EST UN MOIS COMME LES AUTRES (ticket #215 du depot prive ; Leandre, 20/10/2026 : « j'ai importe les
-//! bulletins, mais je pensais que les paies allaient avoir toutes les infos pour avoir les cases, qu'est-ce qui manque ? » ;
-//! « un mois importe doit etre un mois comme les autres, avec ses cases » ; « il se dit en retard alors qu'il est deja
-//! declare »).
-//!
-//! Un mois tenu AVANT ce logiciel n'a aucun engagement : il vit dans l'historique que l'import a ecrit
-//! (`historique/paies.json`, une ligne par paie, de la DSN et/ou du bulletin ; `historique/engagements.json`, un contrat
-//! par AEM ou par bulletin : `importation_ecrite`). Ce module le rend tel que la page Paie montre un mois saisi : une
-//! CARTE PAR PAIE, avec ses cases (salarie, spectacle, debut et fin, jours travailles, cachets et heures, montants, etats),
-//! remplies de ce que les pieces importees portent, et rapprochees de ce que le moteur sait par ailleurs -- la fiche du
-//! salarie (son nom), celle du spectacle (son titre), le contrat qu'une AEM atteste (cachets, heures, numero d'objet), le
-//! journal des depots et les certificats DPAE (`retours/dpae/`).
+//! UN MOIS IMPORTE SE LIT PAR SES ENGAGEMENTS IMPORTES (`engagement::importe`) : un mois tenu avant ce logiciel n'a
+//! que des engagements que l'import a ecrits, valides et partis, qui se lisent et ne se modifient pas. Ce module le rend
+//! tel que la page Paie le montre : une CARTE PAR ENGAGEMENT, la ligne fermee « importé », avec ses cases (salarie,
+//! spectacle, debut et fin, jours travailles, cachets et heures, montants, etats), remplies de ce que les pieces
+//! importees portent, et rapprochees de ce que le moteur sait par ailleurs -- la fiche du salarie (son nom), celle du
+//! spectacle (son titre), le journal des depots et les certificats DPAE (`retours/dpae/`). Aucune carte n'a de geste.
 //!
 //! RIEN NE SE DEVINE (regle 1) : une case qu'aucune piece ne porte reste vide, et la carte DIT pourquoi (`manque` : quel
 //! champ, et ce qui l'aurait donne). Rien ne s'ecrit ici : c'est une lecture.
@@ -26,96 +20,46 @@ use std::path::Path;
 use serde_json::{json, Map, Value};
 
 use droit::contexte::Contexte;
+use engagement::importe::Importe;
 use envois::etats;
 use socle::valeur::valeur_en_texte;
-use socle::echec::R;
+use socle::echec::{Echec, R};
 use socle::fichiers::vrai;
 use crate::importation_completer::A_COMPLETER;
-use crate::routes::mois::lire_saisie;
-
-/// `historique/<nom>.json`, sa liste `cle` ; vide si le fichier n'existe pas. Un fichier illisible refuse.
-fn liste(racine: &Path, nom: &str, cle: &str) -> R<Vec<Value>> {
-    let p = racine.join("historique").join(nom);
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let v = lire_saisie(&p)?;
-    Ok(v.get(cle).and_then(Value::as_array).cloned().unwrap_or_default())
-}
 
 fn texte(v: &Value, k: &str) -> String {
     v.get(k).filter(|x| vrai(x)).map(valeur_en_texte).map(|t| t.trim().to_string()).unwrap_or_default()
 }
 
-/// Le contrat touche-t-il `mois` (`AAAA-MM`) ? Ses bornes en ISO ; une fin absente vaut le debut.
-fn touche(debut: &str, fin: &str, mois: &str) -> bool {
-    if debut.len() < 7 {
-        return false;
-    }
-    let fin = if fin.len() < 7 { debut } else { fin };
-    &debut[..7] <= mois && mois <= &fin[..7]
+/// Les engagements importes qui touchent `mois`.
+fn importes_du_mois(racine: &Path, mois: &str) -> R<Vec<Importe>> {
+    engagement::importe::du_mois(racine, mois).map_err(Echec::from)
 }
 
-/// Les paies de l'historique importe pour `mois`.
+/// Les paies versees de `mois`, d'apres les engagements importes.
 fn paies_du_mois(racine: &Path, mois: &str) -> R<Vec<Value>> {
-    Ok(liste(racine, "paies.json", "paies")?.into_iter().filter(|p| texte(p, "mois") == mois).collect())
+    Ok(importes_du_mois(racine, mois)?.iter().flat_map(Importe::lignes_des_paies).filter(|p| texte(p, "mois") == mois).collect())
 }
 
-/// Les contrats attestes (AEM, bulletins) qui touchent `mois`.
-fn contrats_du_mois(racine: &Path, mois: &str) -> R<Vec<Value>> {
-    Ok(liste(racine, "engagements.json", "engagements")?
-        .into_iter()
-        .filter(|e| touche(&texte(e, "debut"), &texte(e, "fin"), mois))
-        .collect())
-}
-
-/// Le mois est-il tenu avant ce logiciel : aucun engagement ne le touche, et l'historique importe en parle.
+/// Le mois est-il tenu avant ce logiciel : aucun engagement de la saisie ne le touche, et un engagement importe le touche.
 pub(crate) fn importe(racine: &Path, mois: &str) -> R<bool> {
-    if engagement::stock::a_une_saisie(racine, mois).map_err(socle::echec::Echec::from)? {
+    if engagement::stock::a_une_saisie(racine, mois).map_err(Echec::from)? {
         return Ok(false);
     }
-    Ok(!paies_du_mois(racine, mois)?.is_empty() || !contrats_du_mois(racine, mois)?.is_empty())
+    Ok(!importes_du_mois(racine, mois)?.is_empty())
 }
 
-/// Les mois que l'historique importe porte (une paie, ou un contrat qui les touche), qu'aucun engagement ne touche.
+/// Les mois que les engagements importes touchent, qu'aucun engagement de la saisie ne touche.
 pub(crate) fn mois_importes(racine: &Path) -> R<Vec<String>> {
-    let mut mois: BTreeSet<String> = BTreeSet::new();
-    for p in liste(racine, "paies.json", "paies")? {
-        let m = texte(&p, "mois");
-        if m.len() == 7 {
-            mois.insert(m);
-        }
-    }
-    for e in liste(racine, "engagements.json", "engagements")? {
-        let (debut, fin) = (texte(&e, "debut"), texte(&e, "fin"));
-        if debut.len() < 7 {
-            continue;
-        }
-        let fin = if fin.len() < 7 { debut.clone() } else { fin };
-        let mut m = debut[..7].to_string();
-        while m.as_str() <= &fin[..7] {
-            mois.insert(m.clone());
-            m = mois_suivant(&m);
-        }
-    }
+    let mois: BTreeSet<String> = engagement::importe::tous(racine).map_err(Echec::from)?.iter().flat_map(Importe::mois).collect();
     Ok(mois.into_iter().filter(|m| !engagement::stock::a_une_saisie(racine, m).unwrap_or(false)).collect())
-}
-
-fn mois_suivant(m: &str) -> String {
-    let an: i32 = m[..4].parse().unwrap_or(0);
-    let mo: i32 = m[5..7].parse().unwrap_or(12);
-    if mo >= 12 {
-        format!("{:04}-01", an + 1)
-    } else {
-        format!("{:04}-{:02}", an, mo + 1)
-    }
 }
 
 /// LA DSN QUE L'IMPORT A LUE POUR `mois` : le fichier de l'ancien logiciel (`declare_par: "DSN"`), ou `None`. Rend
 /// `{"importee": true, "etablie_le", "fichier"}` -- la date est celle que le fichier porte (S20.G00.05.007, sa
 /// constitution), pas celle d'un depot : aucun bilan de la plate-forme n'est lu pour lui.
 pub(crate) fn dsn_importee(racine: &Path, mois: &str) -> R<Option<Value>> {
-    if engagement::stock::a_une_saisie(racine, mois).map_err(socle::echec::Echec::from)? {
+    if engagement::stock::a_une_saisie(racine, mois).map_err(Echec::from)? {
         return Ok(None);
     }
     let p = paies_du_mois(racine, mois)?;
@@ -398,45 +342,24 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     })
 }
 
-/// LE MOIS TENU AVANT, comme la page Paie le montre : `None` si un engagement touche le mois ou si l'historique
-/// importe n'en dit rien. Sinon `{"dsn", "paies", "totaux", "manques"}` : une carte par paie de l'historique (rapprochee
-/// du contrat atteste des memes salarie, debut et fin), puis une par contrat atteste qu'aucune paie ne porte.
+/// LE MOIS TENU AVANT, comme la page Paie le montre : `None` si un engagement de la saisie touche le mois ou si aucun
+/// engagement importe ne le touche. Sinon `{"dsn", "paies", "totaux", "incompletes"}` : une carte par engagement
+/// importe, son contrat atteste et ce qui lui a ete verse ce mois-la.
 pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
     if !importe(&ctx.racine, mois)? {
         return Ok(None);
     }
-    let paies = paies_du_mois(&ctx.racine, mois)?;
-    let contrats = contrats_du_mois(&ctx.racine, mois)?;
     let lignes = etats::charger(&ctx.racine)?;
     let embauches = etats::embauches_par_depot(&lignes)?;
     let (certifiees, _) = envois::reprise_journal::embauches_attestees(ctx);
-    let mut pris = vec![false; contrats.len()];
     let mut cartes = Vec::new();
-    for p in &paies {
-        let (s, d, f, o) = (texte(p, "salarie"), texte(p, "debut"), texte(p, "fin"), texte(p, "numero_objet"));
-        let candidats: Vec<usize> =
-            (0..contrats.len()).filter(|&i| !pris[i] && texte(&contrats[i], "salarie") == s && texte(&contrats[i], "debut") == d && texte(&contrats[i], "fin") == f).collect();
-        // Plusieurs contrats aux memes bornes : celui du meme numero d'objet ; sinon aucun (on ne choisit pas au hasard).
-        let i = match candidats.len() {
-            1 => Some(candidats[0]),
-            0 => None,
-            _ => {
-                let memes: Vec<usize> = candidats.iter().copied().filter(|&i| texte(&contrats[i], "numero_objet").eq_ignore_ascii_case(&o)).collect();
-                (memes.len() == 1).then(|| memes[0])
-            }
-        };
-        if let Some(i) = i {
-            pris[i] = true;
-        }
+    for i in importes_du_mois(&ctx.racine, mois)? {
+        let contrat = i.ligne_du_contrat();
+        let paie = i.lignes_des_paies().into_iter().find(|p| texte(p, "mois") == mois);
+        let brut = Value::Object(i.objet().brut.clone());
+        let (s, d) = (texte(&brut, "salarie"), texte(&brut, "debut"));
         let dpae = dpae_de(&embauches, &certifiees, &s, &d);
-        cartes.push(carte(ctx, mois, Some(p), i.map(|i| &contrats[i]), dpae));
-    }
-    for (i, c) in contrats.iter().enumerate() {
-        if pris[i] {
-            continue;
-        }
-        let dpae = dpae_de(&embauches, &certifiees, &texte(c, "salarie"), &texte(c, "debut"));
-        cartes.push(carte(ctx, mois, None, Some(c), dpae));
+        cartes.push(carte(ctx, mois, paie.as_ref(), contrat.as_ref(), dpae));
     }
     cartes.sort_by(|a, b| (texte(a, "debut"), texte(a, "nom")).cmp(&(texte(b, "debut"), texte(b, "nom"))));
 

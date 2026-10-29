@@ -106,16 +106,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
     // 2. L'import de CoolPaie : seulement si un export existe.
     let copie = ctx.racine.join("historique").join("coolpaie");
     let export = crate::routes::fiches::trouver_export(&ctx.racine);
-    let historique = {
-        let p = ctx.racine.join("historique").join("engagements.json");
-        if p.exists() {
-            let t = std::fs::read_to_string(&p).map_err(|e| ko(format!("{} : {}", p.display(), e)))?;
-            let v: Value = serde_json::from_str(&t).map_err(|e| Echec { classe: Some("JSONDecodeError"), message: e.to_string() })?;
-            v.get("engagements").and_then(Value::as_array).map_or(0, Vec::len)
-        } else {
-            0
-        }
-    };
+    let historique = engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?.len();
     let quoi_import = "Reprendre l'historique (ce qui a été déclaré avant)";
     if copie.is_dir() {
         out.push(Etape {

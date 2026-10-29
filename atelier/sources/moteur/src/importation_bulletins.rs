@@ -9,7 +9,7 @@
 //! 3. Les bulletins (`bulletin_lu`), page par page, completent cet apercu : les fiches qu'ils creent (salaries par NIR,
 //!    spectacles par numero d'objet avec leur titre, l'entreprise) et leurs ecarts avec les fiches existantes (signales,
 //!    jamais appliques) ; un contrat atteste par bulletin (`atteste_par: "bulletin"`, meme cle `_cle_engagement` que
-//!    les AEM) ; la paie, rapprochee de `historique/paies.json` et des DSN par (NIR, debut, fin).
+//!    les AEM) ; la paie, rapprochee des paies versees des engagements importes et des DSN par (NIR, debut, fin).
 //!
 //! LE BULLETIN FAIT FOI (decide, plan §4) : une paie deja declaree est COMPLETEE par le bulletin (cotisations par
 //! part, cout employeur, lignes, dates, titre...) et, sur le brut, le net imposable, le net a payer et le PAS, c'est
@@ -1354,7 +1354,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
     ecarts
 }
 
-/// Le contrat qu'un bulletin atteste, tel que `historique/engagements.json` l'ecrit, et sa cle `_cle_engagement`.
+/// Le contrat qu'un bulletin atteste, tel qu'un engagement importe le porte (`importe.contrat`), et sa cle `_cle_engagement`.
 /// Les heures se comptent en heures entieres comme celles d'une saisie (`cumul::engagement_de_paie` : arrondi au
 /// pair) ; des cachets ou des jours qui ne sont pas entiers, ou un compteur inconnu, ne font pas de contrat.
 fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(CleEngagement, Value), String> {

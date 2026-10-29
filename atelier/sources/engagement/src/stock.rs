@@ -35,8 +35,8 @@ pub const SUITE: &str = "mois_suivants";
 
 /// Ce que le moteur tient seul sur un engagement, jamais ce que l'ecran ecrit : sa suite, sa validation, la validation
 /// qu'une modification va remplacer, ses versions passees (`etats`), pour qui son numero de contrat a ete donne
-/// (`numeros`), et qu'il n'est plus actif (`NON_ACTIF`).
-pub const TENUS_PAR_LE_MOTEUR: [&str; 6] = [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF];
+/// (`numeros`), qu'il n'est plus actif (`NON_ACTIF`), et ce que l'import a lu de lui (`importe::IMPORTE`).
+pub const TENUS_PAR_LE_MOTEUR: [&str; 7] = [SUITE, "valide", "precedente", "versions", "numero_pour", NON_ACTIF, crate::importe::IMPORTE];
 
 /// Dans un engagement qui n'est plus actif (`etats::desactiver`) : `{"le", "version"}`, quand, et sa version (celle qui
 /// suit la derniere validee : rien de paye). Il ne touche plus aucun mois (`Objet::couvre`) : il ne se calcule plus,
@@ -114,6 +114,14 @@ pub fn lire_fichier(racine: &Path, mois: &str) -> Resultat<Option<Map<String, Va
     }
 }
 
+/// Le fichier de `mois` ne porte-t-il que des engagements importes (`importe`) ? Un tel mois n'a pas de saisie : il se
+/// lit. Un fichier illisible ou sans engagement n'est pas de l'import.
+fn importes_seuls(racine: &Path, mois: &str) -> bool {
+    let Ok(Some(f)) = lire_fichier(racine, mois) else { return false };
+    let es = f.get("engagements").and_then(Value::as_array).map_or(&[][..], Vec::as_slice);
+    !es.is_empty() && es.iter().all(|e| e.get(crate::importe::IMPORTE).is_some_and(Value::is_object))
+}
+
 /// Le mois suivant `AAAA-MM`.
 pub fn mois_apres(mois: &str) -> Resultat<String> {
     Ok(premier_du_mois(mois)?.mois_suivant())
@@ -181,9 +189,15 @@ impl Objet {
     }
 
     /// L'engagement touche-t-il `mois` ? Du premier mois a celui de sa fin ; sans terme, de son premier mois a toujours.
-    /// Un engagement non actif ne touche plus aucun mois.
+    /// Un engagement non actif ne touche plus aucun mois ; un engagement importe n'en touche aucun de la saisie : il se
+    /// lit (`importe`), rien ne le calcule.
     pub fn couvre(&self, mois: &str) -> Resultat<bool> {
-        Ok(!self.est_non_actif() && self.dans_ses_bornes(mois)?)
+        Ok(!self.est_non_actif() && !self.est_importe() && self.dans_ses_bornes(mois)?)
+    }
+
+    /// Est-il importe (`importe::IMPORTE`) ?
+    pub fn est_importe(&self) -> bool {
+        self.brut.get(crate::importe::IMPORTE).is_some_and(Value::is_object)
     }
 
     /// N'est-il plus actif (`NON_ACTIF`) ?
@@ -396,7 +410,7 @@ pub fn effacer(racine: &Path, o: &Objet) -> Resultat<PathBuf> {
 pub fn vue_du_mois(racine: &Path, mois: &str) -> Resultat<Option<Value>> {
     let fichier = lire_fichier(racine, mois)?;
     let objets = objets_du_mois(racine, mois)?;
-    if fichier.is_none() && objets.is_empty() {
+    if (fichier.is_none() || importes_seuls(racine, mois)) && objets.is_empty() {
         return Ok(None);
     }
     let mut data = fichier.unwrap_or_default();
@@ -468,9 +482,9 @@ pub fn canonique(v: &Value) -> String {
 /// Les mois que la saisie a touches : les fichiers, et les mois que chaque engagement a saisis ou couvre jusqu'a sa fin ;
 /// un contrat sans terme, jusqu'au dernier mois ecrit.
 pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
-    let mut v = fichiers(racine);
+    let mut v: Vec<String> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).collect();
     let horizon = v.iter().max().cloned();
-    for o in objets(racine)? {
+    for o in objets(racine)?.into_iter().filter(|o| !o.est_importe()) {
         v.extend(o.mois_saisis());
         let fin = match o.dernier_mois()? {
             Some(d) => Some(d),
@@ -503,10 +517,18 @@ fn identite(ctx: &Contexte, e: &Value) -> Option<droit::jumeaux::Ident> {
 /// `valide` ne compte jamais.
 ///
 /// Refus, et rien n'est ecrit : un engagement dont les nouvelles bornes laisseraient hors du contrat un mois ou il a des
-/// jours payes.
+/// jours payes ; un engagement du salarie et du premier jour d'un engagement importe qui touche `mois` (il se lit, il ne
+/// se reecrit pas ni ne se double).
 pub fn ecrire_vue_du_mois(ctx: &Contexte, mois: &str, vue: &Value) -> Resultat<Vec<PathBuf>> {
     let racine = &ctx.racine;
     let entrants: Vec<Value> = vue.get("engagements").and_then(Value::as_array).cloned().unwrap_or_default();
+    for e in &entrants {
+        let Some(cle) = crate::cle_de_l_engagement(ctx, e) else { continue };
+        let debut = crate::debut_brut(e);
+        if crate::importe::celui_de(racine, mois, &cle, &debut)?.is_some() {
+            return Err(crate::importe::refus(&e.get("salarie").map(en_texte).unwrap_or(cle), &debut));
+        }
+    }
     let mut tous = objets(racine)?;
     // Les engagements que le mois montre, par leur place dans `tous`.
     let mut du_mois: Vec<usize> = Vec::new();
@@ -764,7 +786,7 @@ const GARDER_COPIES: usize = 20;
 
 /// Une copie du fichier dans `engagements/avant/`, horodatee, avant de le remplacer : on revient a la saisie d'avant
 /// si une ecriture l'a abimee. Les plus anciennes au-dela de `GARDER_COPIES` s'effacent.
-fn sauver_avant(chemin: &Path) -> Resultat<()> {
+pub(crate) fn sauver_avant(chemin: &Path) -> Resultat<()> {
     if !chemin.exists() {
         return Ok(());
     }
@@ -800,7 +822,7 @@ pub fn premier_jour(mois: &str) -> Resultat<Jour> {
 
 /// Le mois a-t-il une saisie : un fichier, ou un engagement qui le touche ?
 pub fn a_une_saisie(racine: &Path, mois: &str) -> Resultat<bool> {
-    if chemin(racine, mois).is_file() {
+    if chemin(racine, mois).is_file() && !importes_seuls(racine, mois) {
         return Ok(true);
     }
     for o in objets(racine)? {

@@ -1628,22 +1628,9 @@ fn texte_ou(mois: &Value, texte: &str) -> String {
     }
 }
 
-/// Les contrats de l'historique
-/// importe, ou rien.
+/// Les contrats que les engagements importes attestent (`engagement::importe::contrats_lus`).
 fn historique(ctx: &Contexte) -> R<Vec<Value>> {
-    let p = ctx.racine.join("historique").join("engagements.json");
-    if !p.exists() {
-        return Ok(Vec::new());
-    }
-    let data = lire_saisie(&p)?;
-    let Value::Object(o) = &data else {
-        return Err(erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(&data))));
-    };
-    match o.get("engagements") {
-        None => Ok(Vec::new()),
-        Some(Value::Array(a)) => Ok(a.clone()),
-        Some(autre) => Ok(items(autre)?.into_iter().map(|c| c.into_owned()).collect()),
-    }
+    engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)
 }
 
 fn contrats_passes_route(ctx: &Contexte, charge: &Value) -> R<Value> {

@@ -1068,16 +1068,15 @@ fn pages_coolpaie(ctx: &Contexte, cles: &HashSet<String>, categories: &HashSet<&
     Ok(pages)
 }
 
-/// Les pages des bulletins de paie que l'import a repris (`historique/paies.json`, colonne `bulletin` : le fichier de
+/// Les pages des bulletins de paie que l'import a repris (les paies versees des engagements importes, colonne `bulletin` : le fichier de
 /// sa copie dans `historique/bulletins/` et la page) : rattachees par la cle du salarie, datees du debut de la paie,
 /// dans la periode par le mois de la paie. Une copie qui manque se dit ; rien d'autre ne se devine.
 fn pages_importees(ctx: &Contexte, cles: &HashSet<String>, p: &Periode, d: &mut Dossier) -> Vec<Page> {
-    let chemin = ctx.racine.join("historique").join("paies.json");
-    let Ok(Value::Object(f)) = crate::routes::lire_json_ou_vide(&chemin) else { return Vec::new() };
+    let Ok(lignes) = engagement::importe::paies_lues(&ctx.racine) else { return Vec::new() };
     let dossier = ctx.racine.join("historique").join("bulletins");
     let texte = |x: &Value, k: &str| x.get(k).and_then(Value::as_str).unwrap_or("").to_string();
     let (mut pages, mut manquent): (Vec<Page>, Vec<String>) = (Vec::new(), Vec::new());
-    for x in f.get("paies").and_then(Value::as_array).into_iter().flatten() {
+    for x in &lignes {
         let Some(b) = x.get("bulletin").filter(|b| b.is_object()) else { continue };
         let (cle, mois, fichier) = (texte(x, "salarie"), texte(x, "mois"), texte(b, "fichier"));
         let Some(page) = b.get("page").and_then(Value::as_u64).filter(|n| *n >= 1) else { continue };
