@@ -1,7 +1,6 @@
-//! Le journal des incidents : ce que le logiciel n'a pas su faire
-//!.
+//! Le journal des incidents : ce que le logiciel n'a pas su faire.
 //!
-//! `journal.py` note ce qu'un fichier produit est DEVENU ; celui-ci note les
+//! Le journal des envois (`envois::journal`) note ce qu'un fichier produit est DEVENU ; celui-ci note les
 //! moments ou le logiciel s'est arrete, a refuse, ou s'est fait rejeter. Il
 //! porte le diagnostic a distance : tout s'ecrit ICI, toujours, et une ligne
 //! porte son etat d'envoi (`en-attente`, `depose`, `sans-objet`), c'est tout
@@ -22,9 +21,7 @@
 //! l'appelant. Ce journal est appele depuis le gestionnaire de plantage : s'il
 //! levait, il remplacerait l'erreur qu'on cherche a comprendre par la sienne.
 //!
-//! Format sur le disque identique au Python (`util.ecrire_json`, indent 2) :
-//! les deux cohabitent tant que du Python note encore des incidents
-//!.
+//! Le format sur le disque : `socle::ecriture::ecrire_json`, indent 2.
 
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -79,7 +76,7 @@ const JS_PILE_MAX: usize = 2000;
 const LOT: usize = 20;
 const MAX_PAR_PASSAGE: usize = 200;
 /// Un lot, en octets de JSON : le serveur doit en admettre davantage (`MAX_CORPS_RAPPORT` de infra/filet/filet_serveur.py
-/// du site, 1 Mio depuis le diagnostic du 23/10/2026 ; il en admettait 64 Kio).
+/// du site, 1 Mio).
 const LOT_OCTETS: usize = 400_000;
 
 const POSTE_FICHIER: &str = "diagnostic.json";
@@ -106,7 +103,7 @@ fn motif(source: &str) -> Regex {
     Regex::new(source).expect("motif du journal des incidents")
 }
 
-/// Le chemin jusqu'au dossier du logiciel (`_CHEMIN` du Python). `regex` ne
+/// Le chemin jusqu'au dossier du logiciel . `regex` ne
 /// connait pas `(?=...)` : le dossier qui suit est capture (groupe 2), et la
 /// recherche suivante repart de lui, comme apres une anticipation.
 fn motif_chemin() -> &'static Regex {
@@ -153,8 +150,8 @@ pub fn chemin(racine: &Path) -> PathBuf {
     }
 }
 
-/// `str.strip()` de Python.
-fn py_strip(s: &str) -> &str {
+/// Le texte sans ses blancs de bord.
+fn sans_blancs_de_bord(s: &str) -> &str {
     s.trim_matches(|c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c))
 }
 
@@ -215,7 +212,7 @@ pub fn version() -> String {
         return "0.0.0".to_string();
     }
     match std::fs::read(&p).ok().and_then(|o| String::from_utf8(o).ok()) {
-        Some(t) => py_strip(&t).to_string(),
+        Some(t) => sans_blancs_de_bord(&t).to_string(),
         None => "?".to_string(),
     }
 }
@@ -225,7 +222,7 @@ pub fn version() -> String {
 pub struct Note<'a> {
     pub nature: &'a str,
     pub resume: &'a str,
-    /// L'endroit : « calcul.py:614 », « depot-dsn », « fiche/nir ».
+    /// L'endroit : « calcul.rs:614 », « depot-dsn », « fiche/nir ».
     pub ou: &'a str,
     /// Le genre : le type d'exception, le code de controle, le motif du refus.
     pub quoi: &'a str,
@@ -286,7 +283,7 @@ pub fn noter(racine: &Path, n: &Note) -> Option<Value> {
     let empreinte = empreinte(nature, n.ou, n.quoi);
     let p = chemin(racine);
     let mut toutes = lignes(&p);
-    // LES DOUBLONS (ticket #253 : dix incidents identiques en une seconde) : le meme incident (meme empreinte, meme resume),
+    // LES DOUBLONS  : le meme incident (meme empreinte, meme resume),
     // encore en attente et vu il y a moins de dix minutes, ne fait pas une ligne de plus -- il se compte (`fois`, `derniere`).
     // La ligne garde le fil et la machine de la premiere fois : ce qui a mene au refus.
     let recent = |l: &Value| {
@@ -377,11 +374,11 @@ fn ecart_secondes(a: &str, b: &str) -> Option<i64> {
     Some(secondes(b)? - secondes(a)?)
 }
 
-/// Les classes que le Python tenait pour un refus (`nature_de`) : une
+/// Les classes qui disent un refus, pas un defaut (`nature_de`) : une
 /// `ErreurOperation` et ses filles, `KeyError`, `ValueError`,
 /// `FileNotFoundError` et leurs filles.
-// `ErreurCoffre` et `ErreurGoogle` y sont, et c'est voulu (decision de Leandre, 08/10/2026) : le Python les classait en defaut du logiciel
-// (`Exception` simples), mais un coffre ferme ou un refus de Google est une situation d'usage. Un defaut du Python ne se reproduit pas.
+// `ErreurCoffre` et `ErreurGoogle` y sont : un coffre ferme ou un refus de Google est une situation d'usage, pas un
+// defaut du logiciel.
 const REFUS_PAR_CLASSE: [&str; 22] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "CalculRefuse", "FabriqueRefus", "FicheRefusee",
     "DsnDejaDeposee", "MoisPasPret", "RepetitionManquante", "DpaeDejaDeclaree", "VersionExigee", "CompteursVerrouilles",
@@ -449,9 +446,9 @@ fn fichier_court(source: &Value) -> String {
     tete(s, 80)
 }
 
-/// `int(x)` de Python, ecrit en chiffres : l'entier, le flottant tronque (sans
+/// Un entier ecrit en chiffres : l'entier, le flottant tronque (sans
 /// limite de taille), le booleen, le texte (espaces et signe permis, `_` entre
-/// deux chiffres) ; `None` quand Python leve `TypeError` ou `ValueError`.
+/// deux chiffres) ; `None` pour tout autre chose.
 fn entier_de(v: &Value) -> Option<String> {
     fn sans_zeros(neg: bool, chiffres: &str) -> String {
         let t = chiffres.trim_start_matches('0');
@@ -481,7 +478,7 @@ fn entier_de(v: &Value) -> Option<String> {
             }
         },
         Value::String(t) => {
-            let u = py_strip(t);
+            let u = sans_blancs_de_bord(t);
             let (neg, reste) = match u.strip_prefix('-') {
                 Some(r) => (true, r),
                 None => (false, u.strip_prefix('+').unwrap_or(u)),
@@ -811,7 +808,7 @@ fn systeme() -> String {
 
 /// Ce que `cmd /C ver` dit du systeme, en « Windows 11 (10.0.22631.4317) ». Le numero est entre crochets, et le mot qui
 /// le precede depend de la langue : « [Version 10.0.22631.4317] » en anglais, « [version 10.0.19045.5011] » en
-/// francais (#200 : le moteur coupait sur « Version », et un Windows en francais remontait « Windows 10 () »). On prend
+/// francais. On prend
 /// donc le nombre pointe entre les crochets, sans lire le mot. Windows 11 garde le « 10.0 » de Windows 10 : c'est le build
 /// (le troisieme nombre) qui les distingue, 22000 et plus pour Windows 11. Sans numero lisible, « Windows » seul : le
 /// moteur ne devine pas lequel (regle 1).
@@ -831,7 +828,7 @@ pub fn edition() -> String {
     crate::compagnie::bridage::etat().to_string()
 }
 
-/// L'ENVOI A L'EDITEUR SE COUPE (Leandre, 08/10/2026 ; c'est aussi une condition de SignPath). `config/diagnostic.json`,
+/// L'ENVOI A L'EDITEUR SE COUPE (une condition de SignPath). `config/diagnostic.json`,
 /// cle `envoi` : absente ou vraie, les incidents partent ; `false`, ils restent notes sur le poste et rien ne part.
 pub fn envoi_actif(racine: &Path) -> bool {
     let p = racine.join("config").join(POSTE_FICHIER);
@@ -932,8 +929,8 @@ fn serveur_propre(racine: &Path) -> R<String> {
 /// de la vraie compagnie du poste (depuis une FICTIVE seulement : un poste, une
 /// identite) ; sinon celui que le paquet livre (`EDITEUR.json`), l'identite
 /// restant dans la compagnie ouverte ; sinon celui du moteur
-/// (`editeur::SERVEUR_PAR_DEFAUT`, lot S1). Toujours un serveur, depuis : `None`
-/// ne se rend plus (le type reste, pour les appelants).
+/// (`editeur::SERVEUR_PAR_DEFAUT`). Toujours un serveur : `None`
+/// ne se rend jamais.
 pub fn configuration(racine: &Path) -> R<Option<(String, PathBuf)>> {
     let serveur = serveur_propre(racine)?;
     if !serveur.is_empty() {
@@ -1018,8 +1015,7 @@ fn paire(c: &Value) -> R<(Value, Value)> {
     Ok((v.first().cloned().unwrap_or(Value::Null), v.get(1).cloned().unwrap_or(Value::Null)))
 }
 
-/// Le bilan d'un passage, rempli au fur et a mesure : ce que le Python
-/// mettait dans son dictionnaire.
+/// Le bilan d'un passage, rempli au fur et a mesure.
 #[derive(Default)]
 struct Bilan {
     envoyes: usize,

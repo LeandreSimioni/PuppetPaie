@@ -25,7 +25,7 @@ use documents::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, monta
 // ------------------------------------------------------------------ outils
 
 /// `min(a, b)` : le premier des deux quand ils sont egaux.
-fn py_min(a: Decimal, b: Decimal) -> Decimal {
+fn plus_petit(a: Decimal, b: Decimal) -> Decimal {
     if b < a {
         b
     } else {
@@ -34,7 +34,7 @@ fn py_min(a: Decimal, b: Decimal) -> Decimal {
 }
 
 /// `max(a, b)` : le premier des deux quand ils sont egaux.
-fn py_max(a: Decimal, b: Decimal) -> Decimal {
+fn plus_grand(a: Decimal, b: Decimal) -> Decimal {
     if b > a {
         b
     } else {
@@ -552,7 +552,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut lignes = Vec::new();
     for (an, mois, tranche_a) in par_an {
         let calcule = eur2(div(mul(tranche_a, taux), Decimal::ONE_HUNDRED));
-        let du = py_max(plancher, py_min(plafond, calcule));
+        let du = plus_grand(plancher, plus_petit(plafond, calcule));
         let regle = if du == plancher && calcule < plancher {
             "plancher"
         } else if du == plafond && calcule > plafond {
@@ -641,7 +641,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let mut cpnef = zero;
         if let Some(c) = hb.get("cpnef_dialogue_social").filter(|v| vrai(v)) {
             let brut_cpnef = eur2(div(mul(masse, dec_de(&c["taux"])?), Decimal::ONE_HUNDRED));
-            cpnef = py_max(dec_de(&c["plancher"])?, py_min(dec_de(&c["plafond"])?, brut_cpnef));
+            cpnef = plus_grand(dec_de(&c["plancher"])?, plus_petit(dec_de(&c["plafond"])?, brut_cpnef));
         }
         let effectif = ctx.effectif().ok().and_then(|e| e.valeur(annee_entiere(&an).unwrap_or(0)));
         if effectif.is_none() {
@@ -732,10 +732,10 @@ pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let taux = dec_de(&f["taux"])?;
         let mut m = eur2(div(mul(masse, taux), Decimal::ONE_HUNDRED));
         if let Some(pl) = f.get("plancher").filter(|v| !v.is_null()) {
-            m = py_max(m, dec_de(pl)?);
+            m = plus_grand(m, dec_de(pl)?);
         }
         if let Some(pl) = f.get("plafond").filter(|v| !v.is_null()) {
-            m = py_min(m, dec_de(pl)?);
+            m = plus_petit(m, dec_de(pl)?);
         }
         let collecteur = f.get("collecteur").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "l'organisme collecteur de la branche".to_string());
         if let Some(a) = f.get("avertissement").filter(|v| vrai(v)).map(valeur_en_texte) {

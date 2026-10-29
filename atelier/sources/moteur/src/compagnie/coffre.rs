@@ -1,6 +1,5 @@
 //! Le coffre (`moteur coffre`) : les mots de passe des organismes, scelles par
-//! AES-256-GCM. Le fichier `coffre.bin` (`VERSION = 2`) et la cle du poste sont
-//! ceux que `moteur/coffre.py` ecrivait ; son en-tete dit le pourquoi.
+//! AES-256-GCM. Le fichier `coffre.bin` porte sa forme (`VERSION = 2`) ; la cle du poste est a part (`dossier_cle`).
 //!
 //! Une cle maitresse de 32 octets scelle les secrets. Elle est scellee deux
 //! fois : par la cle du poste (hors des donnees) et par le mot de passe du
@@ -9,8 +8,8 @@
 //!
 //! Les secrets ne passent que par l'entree et la sortie standard.
 //!
-//! LA CLE MAITRESSE SCELLE AUSSI LA CLE DE SIGNATURE DES MISES A JOUR (lot K1, 14/10/2026 ; Leandre : « si mon ordi
-//! tombe, on pourra plus faire de mise a jour, ça me va pas »). `proteger_par_le_coffre` scelle par elle ce qui doit
+//! LA CLE MAITRESSE SCELLE AUSSI LA CLE DE SIGNATURE DES MISES A JOUR : un poste perdu ne
+//! doit pas empecher de publier. `proteger_par_le_coffre` scelle par elle ce qui doit
 //! s'ouvrir partout ou le coffre s'ouvre : la cle du poste, ou le mot de passe du logiciel sur un autre poste. Ce qui est
 //! scelle ainsi depend du coffre : un coffre qui le porte ne s'efface pas en se vidant (`scelle_ailleurs`).
 
@@ -82,7 +81,7 @@ pub const SERVICES: [Service; 3] = [
 
 // ------------------------------------------------------------------ les refus
 
-/// Un refus : la classe d'exception que le Python levait, et sa phrase.
+/// Un refus : sa classe et sa phrase.
 #[derive(Debug, Clone)]
 pub struct Echec {
     pub classe: &'static str,
@@ -117,7 +116,7 @@ fn oserr(e: &std::io::Error, p: &Path) -> Echec {
     }
 }
 
-// ------------------------------------------------- ce que Python fait en passant
+// ------------------------------------------------- les lectures de valeurs
 
 fn affiche(p: &Path) -> String {
     p.display().to_string()
@@ -204,7 +203,7 @@ fn type_python(v: &Value) -> &'static str {
 
 use socle::fichiers::imprimable;
 
-/// `repr()` d'une chaine, comme Python l'ecrit.
+/// Une chaine entre apostrophes, echappee, telle qu'une phrase de refus la cite.
 fn repr_chaine(s: &str) -> String {
     let guillemet = if s.contains('\'') && !s.contains('"') { '"' } else { '\'' };
     let mut t = String::new();
@@ -250,7 +249,7 @@ fn repr_valeur(v: &Value) -> String {
     }
 }
 
-/// `base64.b64decode(texte)` de Python : ce qui n'est pas de l'alphabet est
+/// Le base64 lu avec indulgence : ce qui n'est pas de l'alphabet est
 /// ignore, le remplissage s'arrete la ou il est complet.
 pub fn d64(v: &Value) -> R<Vec<u8>> {
     let t = match v {
@@ -320,7 +319,7 @@ fn b64(o: &[u8]) -> Value {
     Value::String(base64_ecrire(o))
 }
 
-/// `int(v)` de Python.
+/// Un entier, de ce que porte une valeur JSON.
 fn entier(v: &Value) -> R<i128> {
     match v {
         Value::Bool(b) => Ok(*b as i128),
@@ -380,7 +379,7 @@ fn fiches_brutes(c: &Map<String, Value>) -> Value {
     }
 }
 
-/// `nom in fiches`, pour ce que Python en fait.
+/// La fiche `nom` est-elle dans `fiches` (un objet, une liste ou un texte).
 fn dans(fiches: &Value, nom: &str) -> bool {
     match fiches {
         Value::Object(o) => o.contains_key(nom),
@@ -544,14 +543,14 @@ fn scrypt_32(motdepasse: &[u8], sel: &[u8], n: i128, r: i128, p: i128) -> R<Vec<
 
 // ------------------------------------------------------------- le poste et ses chemins
 
-// LE MOT DE PASSE TAPE OUVRE TOUT (Leandre, 07/10/2026 : « le logiciel devra fonctionner entierement avec ce
-// systeme »). La ou la cle du poste n'ouvre pas le coffre -- un autre compte, un AppData virtuel --, le mot de passe
+// LE MOT DE PASSE TAPE OUVRE TOUT.
+// La ou la cle du poste n'ouvre pas le coffre -- un autre compte, un AppData virtuel --, le mot de passe
 // du logiciel tape par un humain pour CETTE commande l'ouvre, pour tout ce qu'elle lit : consultation, envois,
 // verification des comptes, releves, depots. Il arrive par la demande (`motdepasse` d'une route) ou par
 // `PUPPETPAIE_MOTDEPASSE`, la variable que les fenetres posent apres l'avoir fait taper. Il ne change rien au poste
 // et ne s'ecrit nulle part. Par fil, et le temps d'une route : la fenetre sert ses routes dans son
-// processus, une par fil a la fois, et `routes::commande` remet en sortant ce qu'il a trouve, quoi qu'il arrive (ticket
-// #244) ; les tests, chacun sur son fil, ne se le transmettent pas.
+// processus, une par fil a la fois, et `routes::commande` remet en sortant ce qu'il a trouve, quoi qu'il arrive ;
+// les tests, chacun sur son fil, ne se le transmettent pas.
 thread_local! {
     static TAPE: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
 }
@@ -579,8 +578,8 @@ fn mot_de_passe_tape() -> Option<String> {
     TAPE.with(|t| t.borrow().clone()).or_else(|| env_non_vide("PUPPETPAIE_MOTDEPASSE"))
 }
 
-/// Le marqueur d'un dossier PORTABLE, a cote de `logiciel/` (Leandre, 14/10/2026 : « un admin ne depend pas d'un
-/// ordi ») : le logiciel, ses donnees et la cle qui les scelle voyagent ensemble -- une cle USB -- et s'ouvrent sur
+/// Le marqueur d'un dossier PORTABLE, a cote de `logiciel/` :
+/// le logiciel, ses donnees et la cle qui les scelle voyagent ensemble -- une cle USB -- et s'ouvrent sur
 /// n'importe quel ordinateur, quel que soit le systeme. La cle du poste vit alors dans ce dossier, pas sur la machine.
 pub const MARQUEUR_PORTABLE: &str = "PORTABLE.json";
 
@@ -632,8 +631,7 @@ fn env_non_vide(nom: &str) -> Option<String> {
 pub struct Coffre {
     pub racine: PathBuf,
     pub dossier_cle: PathBuf,
-    /// L'heure locale, `AAAA-MM-JJTHH:MM` : le moteur n'a pas de fuseau, le
-    /// Python la donne.
+    /// L'heure locale, `AAAA-MM-JJTHH:MM` : donnee par l'appelant.
     pub maintenant: String,
     /// Les variables d'environnement des services (elles passent devant le coffre).
     pub variables: BTreeMap<String, String>,
@@ -678,8 +676,8 @@ impl Coffre {
         self.dossier_cle.join(FICHIER_CLE)
     }
 
-    /// LA SEANCE GARDEE DE CE COFFRE (`ouverture-gardee-<empreinte>.bin`, a cote de la cle du poste). Une par coffre (ticket
-    /// #244) : la cle du poste sert a toutes les compagnies et a toutes les installations d'une machine ; avec une seule
+    /// LA SEANCE GARDEE DE CE COFFRE (`ouverture-gardee-<empreinte>.bin`, a cote de la cle du poste). Une par coffre :
+    /// la cle du poste sert a toutes les compagnies et a toutes les installations d'une machine ; avec une seule
     /// seance pour toutes, celle qu'on ouvrait pour l'une effacait celle de l'autre. Le nom porte l'empreinte du chemin du
     /// coffre : deux coffres ne se marchent jamais dessus ; la seance garde en plus ce chemin, et ne sert qu'a lui.
     pub fn chemin_gardee(&self) -> PathBuf {
