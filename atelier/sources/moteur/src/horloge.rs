@@ -49,8 +49,8 @@ pub const FICHIER_HORLOGE: &str = "horloge.json";
 /// Les routes de ce module.
 pub const ROUTES: [&str; 2] = ["horloge-rattraper", "horloge-derniere"];
 
-const ORIGINE: &str = "compagnie fictive : joue par l'horloge (moteur/simulation.py)";
-const QUOI: &str = "L'horloge de la compagnie fictive (moteur/simulation.py) : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).";
+const ORIGINE: &str = "compagnie fictive : joue par l'horloge";
+const QUOI: &str = "L'horloge de la compagnie fictive : le dernier jour joue, ce qui n'est plus a regarder, et ce qu'elle a fait en dernier (le bandeau le dit).";
 
 // ------------------------------------------------------------------ la garde
 

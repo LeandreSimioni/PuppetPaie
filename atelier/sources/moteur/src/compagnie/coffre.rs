@@ -184,23 +184,6 @@ fn vrai(v: &Value) -> bool {
     }
 }
 
-fn type_python(v: &Value) -> &'static str {
-    match v {
-        Value::Null => "NoneType",
-        Value::Bool(_) => "bool",
-        Value::Number(n) => {
-            if n.is_f64() {
-                "float"
-            } else {
-                "int"
-            }
-        }
-        Value::String(_) => "str",
-        Value::Array(_) => "list",
-        Value::Object(_) => "dict",
-    }
-}
-
 use socle::fichiers::imprimable;
 
 /// Une chaine entre apostrophes, echappee, telle qu'une phrase de refus la cite.
@@ -237,9 +220,9 @@ fn repr_chaine(s: &str) -> String {
 
 fn repr_valeur(v: &Value) -> String {
     match v {
-        Value::Null => "None".into(),
-        Value::Bool(true) => "True".into(),
-        Value::Bool(false) => "False".into(),
+        Value::Null => "null".into(),
+        Value::Bool(true) => "true".into(),
+        Value::Bool(false) => "false".into(),
         Value::String(s) => repr_chaine(s),
         Value::Number(n) => match n.as_f64().filter(|_| n.is_f64()) {
             Some(f) => repr_flottant(f),
@@ -257,12 +240,12 @@ pub fn d64(v: &Value) -> R<Vec<u8>> {
         autre => {
             return Err(echec(
                 "TypeError",
-                format!("argument should be a bytes-like object or ASCII string, not '{}'", type_python(autre)),
+                socle::fichiers::attendu("un texte en base64", socle::valeur::nom_type(autre)),
             ))
         }
     };
     if !t.is_ascii() {
-        return Err(echec("ValueError", "string argument should contain only ASCII characters"));
+        return Err(echec("ValueError", "du base64 ne porte que des caracteres ASCII"));
     }
     let (mut sortie, mut quad, mut reste, mut bourrage) = (Vec::new(), 0u8, 0u8, 0u8);
     for c in t.bytes() {
@@ -303,13 +286,13 @@ pub fn d64(v: &Value) -> R<Vec<u8>> {
     match quad {
         0 => Ok(sortie),
         1 => Err(echec(
-            "Error",
+            "ValueError",
             format!(
-                "Invalid base64-encoded string: number of data characters ({}) cannot be 1 more than a multiple of 4",
+                "base64 illisible : {} caracteres utiles, un de plus qu'un multiple de 4",
                 sortie.len() / 3 * 4 + 1
             ),
         )),
-        _ => Err(echec("Error", "Incorrect padding")),
+        _ => Err(echec("ValueError", "base64 illisible : le remplissage est incomplet")),
     }
 }
 
@@ -333,7 +316,7 @@ fn entier(v: &Value) -> R<i128> {
                 if f.is_finite() {
                     Ok(f.trunc() as i128)
                 } else {
-                    Err(echec("ValueError", "cannot convert float to integer"))
+                    Err(echec("ValueError", "un nombre infini n'est pas un entier"))
                 }
             }
         }
@@ -356,22 +339,22 @@ fn entier(v: &Value) -> R<i128> {
         }
         autre => Err(echec(
             "TypeError",
-            socle::fichiers::attendu("un nombre entier", type_python(autre)),
+            socle::fichiers::attendu("un nombre entier", socle::valeur::nom_type(autre)),
         )),
     }
 }
 
-/// `x or {}` puis `.get(...)` : un objet, ou rien.
+/// Un objet, ou rien : une valeur absente, nulle ou vide vaut un objet vide.
 fn objet(v: Option<&Value>) -> R<Map<String, Value>> {
     match v {
         None | Some(Value::Null) => Ok(Map::new()),
         Some(Value::Object(o)) => Ok(o.clone()),
         Some(x) if !vrai(x) => Ok(Map::new()),
-        Some(x) => Err(echec("AttributeError", socle::fichiers::attendu("un objet", type_python(x)))),
+        Some(x) => Err(echec("AttributeError", socle::fichiers::attendu("un objet", socle::valeur::nom_type(x)))),
     }
 }
 
-/// `contenu.get("fiches") or {}`, tel quel.
+/// Les fiches du coffre, telles que le fichier les porte (un objet vide si elles manquent ou sont vides).
 fn fiches_brutes(c: &Map<String, Value>) -> Value {
     match c.get("fiches") {
         Some(v) if vrai(v) => v.clone(),
@@ -451,7 +434,7 @@ fn aleas(n: usize) -> R<Vec<u8>> {
 // ---------------------------------------------------------------- le scellage
 
 fn boite(cle: &[u8]) -> R<Aes256Gcm> {
-    Aes256Gcm::new_from_slice(cle).map_err(|_| echec("ValueError", "AESGCM key must be 128, 192, or 256 bits."))
+    Aes256Gcm::new_from_slice(cle).map_err(|_| echec("ValueError", "une cle AES-GCM fait 32 octets"))
 }
 
 /// nonce (12 octets) suivi du scelle.
@@ -484,7 +467,7 @@ fn aad_fiches(fiches: &Value) -> Vec<u8> {
 }
 
 /// La cle scrypt de 32 octets. Les parametres sont ceux du fichier : ils sont
-/// verifies comme `hashlib.scrypt` le fait (OpenSSL), memoire comprise.
+/// verifies avant la derivation, memoire comprise (`SCRYPT_MAXMEM`).
 pub fn deriver(motdepasse: &str, kdf: Option<&Value>) -> R<Vec<u8>> {
     // Le fil de fond de la fenetre ne dechiffre rien : aucun mot de passe ne s'y derive.
     if socle::fil_de_fond::ici() {
@@ -508,21 +491,21 @@ pub fn deriver(motdepasse: &str, kdf: Option<&Value>) -> R<Vec<u8>> {
 }
 
 fn scrypt_32(motdepasse: &[u8], sel: &[u8], n: i128, r: i128, p: i128) -> R<Vec<u8>> {
-    let invalide = || echec("ValueError", "Invalid parameter combination for n, r, p, maxmem.");
-    let memoire_max = || echec("ValueError", "[digital envelope routines] memory limit exceeded");
+    let invalide = || echec("ValueError", "parametres scrypt incompatibles (n, r, p)");
+    let memoire_max = || echec("ValueError", "parametres scrypt : la memoire demandee depasse la borne");
     for (nom, v) in [("n", n), ("r", r), ("p", p)] {
         if v < 0 {
-            return Err(echec("TypeError", format!("{} is required and must be an unsigned int", nom)));
+            return Err(echec("TypeError", format!("le parametre scrypt {} est un entier positif", nom)));
         }
     }
     if n < 2 || n & (n - 1) != 0 {
-        return Err(echec("ValueError", "n must be a power of 2."));
+        return Err(echec("ValueError", "le parametre scrypt n est une puissance de 2"));
     }
     if r == 0 || p == 0 {
         return Err(invalide());
     }
     if r > u32::MAX as i128 || p > u32::MAX as i128 {
-        return Err(echec("ValueError", "[digital envelope routines] parameter too large"));
+        return Err(echec("ValueError", "parametres scrypt : r ou p trop grand"));
     }
     if p > ((1i128 << 30) - 1) / r {
         return Err(memoire_max());
@@ -1144,8 +1127,7 @@ impl Coffre {
             return Err(refus(
                 "Un depot ne puise dans le coffre qu'apres confirmation d'un \
                  humain. `confirme` doit porter ce qui a ete confirme -- le mois \
-                 recopie, ou la reponse de la fenetre. Voir le docstring de \
-                 moteur/coffre.py.",
+                 recopie, ou la reponse de la fenetre.",
             ));
         }
         if let Some(v) = self.variables.get(fiche.variable) {

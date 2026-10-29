@@ -41,13 +41,13 @@ fn seul_le_geste_debloque() {
     geste(&inst, "debloque");
     assert!(!est_bride_de(&inst), "un .edition.json « debloque »");
     geste(&inst, "complete");
-    assert!(!est_bride_de(&inst), "le mot d'avant le lot U1");
+    assert!(!est_bride_de(&inst), "« complete » se lit debloque");
     geste(&inst, "bride");
     assert!(est_bride_de(&inst));
     std::fs::write(inst.join(".edition.json"), "pas du json").unwrap();
     assert!(est_bride_de(&inst), "un .edition.json illisible ne debloque pas");
     std::fs::remove_file(inst.join(".edition.json")).unwrap();
-    // L'ancienne cle `defaut` de l'installeur ne se lit plus : elle ne debloque rien.
+    // Une cle `defaut` dans `logiciel/EDITION.json` ne se lit pas : elle ne debloque rien.
     std::fs::write(inst.join("logiciel").join("EDITION.json"), r#"{"defaut": "debloque"}"#).unwrap();
     assert!(est_bride_de(&inst), "seul .edition.json debloque");
 }

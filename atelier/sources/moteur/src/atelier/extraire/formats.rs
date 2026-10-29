@@ -381,8 +381,9 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     donnees.insert(
         "_comment_le_verifier".into(),
         json!(
-            "tests/test_formats.py confronte ce releve a ce qui a ete REELLEMENT ACCEPTE : les DSN de l'historique \
-               CoolPaie et la mensuelle d'aout 2026 deposee en reel. Une expression qui refuserait une de ces valeurs \
+            "Toute declaration que le moteur ecrit (DSN, signalement, FCTU) passe ce releve avant d'etre ecrite \
+               (`declarations::formats::verifier_fichier`), et `declarations/tests/declarations/usages_formats_ntt.rs` \
+               en eprouve les expressions motif par motif. Une expression qui refuserait une valeur reellement acceptee \
                serait fausse, et c'est elle qu'on retire -- un controle faux refuse une declaration licite, ce qui est \
                pire que pas de controle."
         ),

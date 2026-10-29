@@ -310,7 +310,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
         return Ok(false);
     }
     let motifs = format.get("csl").and_then(Value::as_array).map_or(false, |l| !l.is_empty());
-    let pas_un_texte = || erreur("TypeError", format!("expected string or bytes-like object, got '{}'", nom_type(actuel)));
+    let pas_un_texte = || erreur("TypeError", socle::fichiers::attendu("un texte", nom_type(actuel)));
     let mut faute = false;
     if let Some(lon) = format.get("longueur").and_then(Value::as_array).filter(|l| !l.is_empty()) {
         let n = match actuel {

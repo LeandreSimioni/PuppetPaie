@@ -374,9 +374,9 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     donnees.insert(
         "_comment_le_verifier".into(),
         json!(
-            "Le releve est confronte a ce que le moteur produit : `tests/test_usages.py` verifie que toute rubrique \
-               ecrite par `dsn.generer`, `signalement.generer` et `dpae` est admise par sa nature. Une DSN mensuelle \
-               reellement acceptee (aout 2026, 161 rubriques) et un signalement d'arret (49) y passent."
+            "Le releve est confronte a ce que le moteur produit : toute declaration qu'il ecrit (DSN, signalement, FCTU) \
+               passe `declarations::usages::verifier_fichier`, qui refuse une rubrique que sa nature n'admet pas, et \
+               `declarations/tests/declarations/usages_formats_ntt.rs` fige le tableau des usages par nature."
         ),
     );
     donnees.insert("natures".into(), Value::Object(libelles));

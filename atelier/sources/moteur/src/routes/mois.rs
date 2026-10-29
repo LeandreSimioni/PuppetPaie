@@ -902,7 +902,7 @@ fn entier_de(v: &Value) -> R<i64> {
             None => {
                 let x = n.as_f64().unwrap_or(0.0);
                 if x.is_nan() {
-                    Err(erreur("ValueError", "cannot convert float NaN to integer"))
+                    Err(erreur("ValueError", "un nombre indefini (NaN) n'est pas un entier"))
                 } else if x.is_infinite() {
                     Err(erreur("OverflowError", socle::fichiers::entier_hors_limites("infini")))
                 } else {

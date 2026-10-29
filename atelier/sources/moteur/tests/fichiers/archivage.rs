@@ -34,8 +34,8 @@ fn archiver_avec(r: &Path, mois: &str, d: &mut FauxDrive) -> Result<Archivage, E
 }
 
 #[test]
-fn defaut_7_le_mois_est_controle_avant_tout() {
-    let r = monde("defaut-7");
+fn le_mois_est_controle_avant_tout() {
+    let r = monde("mois-controle");
     for mois in [
         "..", "../config", "../../etc", "2026-06/envoi", "2026-06/", "/2026-06", ".", "", "2026-6", "2026-13", "2026-00", "26-06", "2026-06 ", " 2026-06",
         "2026/06", "2026_06", "202606", "2026-066", "abcd-ef", "+026-06", "2026-0\u{FF16}", "\u{FF12}026-06", "2026-06\n", "2026-1é", "2026-06\0",

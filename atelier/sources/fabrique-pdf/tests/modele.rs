@@ -59,7 +59,7 @@ fn vals() -> Valeurs {
 // ----------------------------------------------------------------- la grammaire
 
 #[test]
-fn la_grammaire_decoupe_comme_le_python() {
+fn la_grammaire_decoupe_titre_corps_et_marqueurs() {
     let m = modele::lire_modele(PETIT, "petit.modele").unwrap();
     assert_eq!(m.titre, "Contrat n° {{contrat.numero}}");
     assert_eq!(m.soustitre, "Pour **{{salarie.nom}}**");
@@ -124,7 +124,7 @@ fn un_marqueur_inconnu_les_nomme_tous_et_liste_les_disponibles() {
 }
 
 #[test]
-fn le_gras_comme_le_regex_du_python() {
+fn le_gras_se_lit_entre_doubles_etoiles() {
     let v = valeurs(&[("a.b", "X")]);
     let m = |t: &str, gras: bool| modele::morceaux(t, &v, gras).unwrap();
     assert_eq!(
