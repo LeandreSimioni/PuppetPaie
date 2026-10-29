@@ -1,9 +1,7 @@
-//! L'ouverture du logiciel et la veille (`moteur/operations_ouverture.py` : `ouverture`, `Ouverture`,
-//! `derniere_ouverture`, `_noter_ouverture`, `_trier_hors_ligne`, `_google_pret`). Lot I2b.
+//! L'ouverture du logiciel et la veille : `ouverture`, `Ouverture`, `derniere_ouverture`.
 //!
-//! PROUVE contre l'ancien Python (harnais `prive/journal/i/i2b-harnais/`), TESTE (`tests/ouverture.rs`), BRANCHE (`web.py`,
-//! `commandes_ouverture.py`). Ce que le logiciel fait tout seul quand on l'ouvre -- interface ou ligne de commande,
-//! c'est la meme fonction -- et toutes les vingt minutes ensuite : l'horloge de la compagnie fictive, les retours DSN et DPAE,
+//! Ce que le logiciel fait tout seul quand on l'ouvre -- interface ou ligne de commande, c'est la meme fonction -- et
+//! toutes les vingt minutes ensuite : l'horloge de la compagnie fictive, les retours DSN et DPAE,
 //! les taux de PAS, les signatures et les fiches, le filet DPAE, les incidents et les reponses de l'editeur, la
 //! sauvegarde en dernier, puis la trace `config/.ouverture.json`.
 //!
@@ -11,13 +9,13 @@
 //! secret pose, un coffre qui refuse de s'ouvrir -- elle le NOTE (un incident, un manque, `a_poser`) et rend la main.
 //! La paie se calcule tres bien hors ligne.
 //!
-//! RIEN N'EST REECRIT : chaque acte est celui qui existe deja, appele tel quel --
+//! Chaque acte est celui de son module, appele tel quel --
 //! `releve_retours::{relever_retours, relever_retours_dpae, rattacher_simulation}`,
 //! `releve_signatures::{relever_signatures, relever_signatures_fictive}`,
-//! `crate::routes::fiches::relever_fiches` (H4a), `horloge::{rattraper, dernier_rattrapage}` (I1),
-//! `pas::avertissements`, `crate::routes::depots::filet_preparer` (le passage du filet DPAE, ouvert en `pub(crate)`),
+//! `crate::routes::fiches::relever_fiches`, `horloge::{rattraper, dernier_rattrapage}`,
+//! `pas::avertissements`, `crate::routes::depots::filet_preparer` (le passage du filet DPAE),
 //! `incidents::envoyer` et `problemes::relever_reponses` (le canal de l'editeur), `sauvegarde::{sauvegarder,
-//! rien_n_a_bouge, hors_ligne}` (H4b), `crate::routes::coffre::autorise` (ouvert ici), `coffre::Coffre`.
+//! rien_n_a_bouge, hors_ligne}`, `crate::routes::coffre::autorise`, `coffre::Coffre`.
 //!
 //! CHAQUE CLIENT RESEAU PEUT ETRE REMPLACE (`Clients`) : le compte net-entreprises, le compte Urssaf (DPAE), la boite
 //! courriel (signatures et fiches), le Drive. Un client donne est utilise a la place du vrai, SANS regarder le coffre.
@@ -25,10 +23,7 @@
 //! Le test automatique de la DPAE du filet a son client Urssaf remplacable (`Clients::depot_dpae`).
 //!
 //! LA MISE A JOUR N'EST PAS ICI : le logiciel la cherche pour l'installation (`maj::chercher_en_fond`) et l'indicateur la
-//! dit (`maj::Recherche::etat`). LA VERIFICATION DES SOURCES non plus : l'option `sources` de la route est acceptee et
-//! ignoree, `sources` vaut `null` dans le resultat, et la trace garde `sources` et `sources_etat` de la trace precedente.
-//!
-//! Les phrases des incidents sont celles du Python ; les phrases des pannes (venues des modules appeles) peuvent differer.
+//! dit (`maj::Recherche::etat`).
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -57,14 +52,7 @@ use socle::fichiers::MARQUEUR_COPIE;
 /// La trace de la derniere ouverture : `config/.ouverture.json`.
 const TRACE: &str = ".ouverture.json";
 
-/// Les champs de la trace que l'ouverture garde de la trace precedente (les sources ne se verifient pas ici).
-/// Leur ordre dans la trace : `sources`, `sources_etat`.
-const GARDES: &[(&str, fn() -> Value)] = &[
-    ("sources", || json!("")),
-    ("sources_etat", || json!({})),
-];
-
-/// Secondes entre un depot joue et son compte rendu, dans une compagnie fictive (`simulation.DELAI`).
+/// Secondes entre un depot joue et son compte rendu, dans une compagnie fictive .
 const DELAI_RETOURS_FICTIVE: i64 = 6;
 
 // ------------------------------------------------------------------ les options et les clients
@@ -88,11 +76,11 @@ pub struct Options {
     pub pas_avant: i64,
     /// Le passage periodique : saute la sauvegarde quand rien n'a bouge sur le disque.
     pub veille: bool,
-    /// Envoyer chez l'editeur ce que le journal des incidents a note, et relever ses reponses. Le Python le lance dans un
-    /// fil ; un processus `moteur route` ne peut pas attendre un fil. Mettre `false` quand l'appelant le lance lui-meme
+    /// Envoyer chez l'editeur ce que le journal des incidents a note, et relever ses reponses, avant de rendre la main ;
+    /// un processus `moteur route` ne peut pas attendre un fil. Mettre `false` quand l'appelant le lance lui-meme
     /// (routes `incidents-envoyer` et `signalements-reponses`, dans son propre fil).
     pub incidents_editeur: bool,
-    /// La SECONDE moitie de la veille (decision du 07/10/2026) : ne fait que la sauvegarde, et met la trace du premier appel a
+    /// La SECONDE moitie de la veille : ne fait que la sauvegarde, et met la trace du premier appel a
     /// jour (sauvegarde, hors ligne, incidents, manque `google`) sans rien effacer de ce qu'il a ecrit. Le premier appel
     /// (`sauvegarder: false`) a releve et ecrit la trace ; l'appelant a dit « releve fait » ; celui-ci sauvegarde, en dernier.
     pub sauvegarde_seule: bool,
@@ -183,10 +171,10 @@ pub struct Ouverture {
     /// Le reseau manquait : dit une fois, pas par erreur.
     pub hors_ligne: bool,
     /// Ce qui n'a pas repondu, une phrase par service (l'erreur telle qu'elle est venue) : le reseau manquait pour CELA,
-    /// pas forcement pour tout -- la releve a pu passer quand le Drive ne repondait pas (21/10/2026).
+    /// pas forcement pour tout -- la releve a pu passer quand le Drive ne repondait pas.
     pub injoignables: Vec<String>,
     /// `pas_avant` a retenu ce passage (la derniere ouverture est trop recente) : rien n'a ete fait, la trace n'est pas
-    /// reecrite. L'appelant qui lance encore la verification de version en Python ne la lance pas non plus.
+    /// reecrite.
     pub retenue: bool,
 }
 
@@ -210,9 +198,8 @@ impl Ouverture {
         format!("{} retour(s), dont {} nouveau(x), {} archive(s).", releve.trouves.len(), releve.nouveaux.len(), releve.archives.len())
     }
 
-    /// Ce que la page et la ligne de commande lisent du passage (`commandes_ouverture._en_json`, et ce que `_dire_ouverture`
-    /// lit en plus : le detail des fichiers deposes et des retours archives). Les cles de `_en_json` sont celles du Python,
-    /// dans le meme ordre ; les autres sont ajoutees. `sources` vaut `null`.
+    /// Ce que la page et la ligne de commande lisent du passage (`commandes::ouverture`), avec
+    /// le detail des fichiers deposes et des retours archives.
     pub fn en_json(&self) -> Value {
         let sauvegarde = self.sauvegarde.as_ref().map(|s| {
             json!({
@@ -257,7 +244,6 @@ impl Ouverture {
             "sauvegarde": sauvegarde,
             "retours": retours,
             "signatures": self.signatures.as_ref().map(ReleveSignatures::en_json),
-            "sources": Value::Null,
             "incidents": self.incidents,
             "manquants": self.manquants,
             "taux_pas": self.taux_pas,
@@ -279,7 +265,7 @@ impl Ouverture {
 /// Une route de ce module.
 ///
 /// - `ouverture` : `{"sauvegarder"?, "retours"?, "signatures"?, "filet"?, "jours"?, "racine_drive"?, "pas_avant"?, "veille"?,
-///   "incidents_editeur"?, "sources"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
+///   "incidents_editeur"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
 /// - `ouverture-derniere` : la trace de la derniere ouverture (`config/.ouverture.json`), `{}` si elle manque ou ne se lit
 ///   pas. Sans reseau.
@@ -293,8 +279,8 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 
 // ------------------------------------------------------------------ l'etape en cours
 
-/// L'ETAPE EN COURS D'UN PASSAGE (ticket #220, Leandre, 20/10/2026 : « qui on appelle, puis qui d'autre, la sauvegarde, juste
-/// un message dans la ligne qui explique ce que fait la machine »). L'ouverture tourne dans un processus a part (la veille
+/// L'ETAPE EN COURS D'UN PASSAGE : qui on appelle, puis qui d'autre, la sauvegarde -- un message dans la ligne qui
+/// explique ce que fait la machine. L'ouverture tourne dans un processus a part (la veille
 /// appelle la route `ouverture`) : elle ecrit son etape dans `config/.ouverture-etape.json` en y entrant, l'efface en
 /// finissant ; la veille de la fenetre la lit (`Veille::etape`) tant qu'un passage tourne. Le fichier ne monte pas au Drive
 /// (`sauvegarde::NOMS_EXCLUS`). Une ecriture qui echoue est passee sous silence : ce n'est qu'un message.
@@ -339,14 +325,14 @@ pub fn derniere_ouverture(ctx: &Contexte) -> Value {
         .unwrap_or_else(|| json!({}))
 }
 
-/// `_noter_ouverture` : la trace de la derniere ouverture. Aucun secret n'y figure, par construction. Une ecriture qui
-/// echoue est passee sous silence (`except OSError: pass`).
-fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
+/// La trace de la derniere ouverture. Aucun secret n'y figure, par construction. Une ecriture qui
+/// echoue est passee sous silence.
+fn noter_ouverture(ctx: &Contexte, r: &Ouverture) {
     let p = chemin_trace(ctx);
     if let Some(dossier) = p.parent() {
         let _ = std::fs::create_dir_all(dossier);
     }
-    // LES RETOURS DE LA COMPAGNIE, PAS CEUX DU BAC A SABLE (25/09/2026) : les retours des depots de test ne se comptent que
+    // LES RETOURS DE LA COMPAGNIE, PAS CEUX DU BAC A SABLE : les retours des depots de test ne se comptent que
     // dans la copie de developpement.
     let tests: Vec<Value> = if est_copie(&ctx.racine) {
         Vec::new()
@@ -366,7 +352,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
         None => (0, 0),
     };
     // La ligne des retours dit ce que la releve a fait, si ELLE a joint net-entreprises -- le Drive qui ne repond pas ne
-    // la tait plus (21/10/2026) ; une releve sans reseau, elle, n'a rien vu, et « aucun retour » serait faux.
+    // la tait pas ; une releve sans reseau, elle, n'a rien vu, et « aucun retour » serait faux.
     let releve_passee = r.releve.as_ref().is_some_and(|rel| !rel.incidents.iter().any(|i| sauvegarde::hors_ligne(i)));
     let retours = if releve_passee {
         if trouves > 0 {
@@ -392,12 +378,6 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
         "signatures_recues".into(),
         json!(r.signatures.as_ref().map(|s| s.recues.iter().map(|x| json!({"nom": x.nom, "quand": x.quand, "renvoye": x.renvoye})).collect::<Vec<_>>()).unwrap_or_default()),
     );
-    // La verification des sources ne tourne pas ici : la trace garde ce que la precedente en disait (`sources_etat` limite
-    // la verification a une fois par semaine). Rien d'ecrit avant : les valeurs vides d'une trace neuve.
-    for (cle, vide) in GARDES {
-        let valeur = precedente.get(*cle).cloned().unwrap_or_else(|| vide());
-        trace.insert((*cle).into(), valeur);
-    }
     trace.insert("incidents".into(), json!(r.incidents));
     // Les phrases du coffre ne repartent pas : `a_poser` les dit.
     let manquants: Vec<&String> = r.manquants.iter().filter(|m| !r.phrases_coffre.contains(m)).collect();
@@ -410,7 +390,7 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
 
 // ------------------------------------------------------------------ outils
 
-/// `compagnies.est_copie`.
+/// La compagnie est une copie de developpement (`MARQUEUR_COPIE`).
 fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR_COPIE).is_file()
 }
@@ -421,8 +401,8 @@ fn quand_maintenant() -> String {
     format!("{}/{}/{} {}:{}", &iso[8..10], &iso[5..7], &iso[0..4], &iso[11..13], &iso[14..16])
 }
 
-/// L'heure locale naive d'une trace `quand` : `JJ/MM/AAAA HH:MM` (ce que l'ouverture ecrit) ou `AAAA-MM-JJ HH:MM` (ce que
-/// le Python attendait en le relisant, voir `age_de_la_derniere`).
+/// L'heure locale naive d'une trace `quand` : `JJ/MM/AAAA HH:MM` (ce que l'ouverture ecrit) ou `AAAA-MM-JJ HH:MM`
+/// (l'autre forme que `age_de_la_derniere` lit).
 fn naif_de_quand(quand: &str) -> Option<i64> {
     let c: Vec<char> = quand.chars().collect();
     let tranche = |a: usize, b: usize| -> String { c.get(a..b).map(|s| s.iter().collect()).unwrap_or_default() };
@@ -438,10 +418,7 @@ fn naif_de_quand(quand: &str) -> Option<i64> {
 
 /// `pas_avant` : l'age, en secondes, de la derniere ouverture, ou `None` si la trace n'en dit rien de lisible.
 ///
-/// DEFAUT DU PYTHON, NON REPRODUIT : le Python relisait `precedente["quand"]` avec `strptime("%Y-%m-%d %H:%M")`, alors que
-/// `Ouverture.quand` s'ecrit `"%d/%m/%Y %H:%M"` : la relecture levait toujours `ValueError`, rattrapee par un `pass`, et
-/// `pas_avant` ne retenait donc jamais rien. Ici les deux formes se lisent, et l'option fait ce que son nom et son aide
-/// disent. A VALIDER (voir la passation).
+/// Les deux formes de `quand` se lisent, et l'option fait ce que son nom et son aide disent.
 fn age_de_la_derniere(precedente: &Value) -> Option<i64> {
     let quand = precedente.get("quand").filter(|v| vrai(v)).map(valeur_en_texte)?;
     let avant = naif_de_quand(&quand)?;
@@ -472,11 +449,11 @@ fn trier_hors_ligne(r: &mut Ouverture) {
 }
 
 /// Termine le compte rendu : le tri, la duree, la trace.
-fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
+fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant) {
     finir_les_etapes(ctx);
     trier_hors_ligne(r);
     r.secondes = (socle::temps::duree(debut).as_secs_f64() * 10.0).round() / 10.0;
-    noter_ouverture(ctx, r, precedente);
+    noter_ouverture(ctx, r);
 }
 
 /// La seconde moitie de la veille : la trace du premier appel, mise a jour par la sauvegarde (qui est faite en dernier) sans
@@ -486,7 +463,7 @@ fn clore(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedent
 fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Instant, precedente: &Value) {
     finir_les_etapes(ctx);
     let Some(avant) = precedente.as_object().filter(|m| !m.is_empty()) else {
-        return clore(ctx, r, debut, precedente);
+        return clore(ctx, r, debut);
     };
     let etait_hors_ligne = avant.get("hors_ligne").is_some_and(vrai);
     trier_hors_ligne(r);
@@ -499,7 +476,7 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
     let deja = avant.get("secondes").and_then(Value::as_f64).unwrap_or(0.0);
     trace.insert("secondes".into(), json!(((deja + ma_duree) * 10.0).round() / 10.0));
     trace.insert("hors_ligne".into(), json!(etait_hors_ligne || r.hors_ligne));
-    // La sauvegarde qui ne passe pas ne tait plus la ligne des retours : la releve, elle, est passee (21/10/2026).
+    // La sauvegarde qui ne passe pas ne tait plus la ligne des retours : la releve, elle, est passee.
     let mut injoignables = liste("injoignables");
     injoignables.extend(r.injoignables.iter().map(|i| json!(i)));
     trace.insert("injoignables".into(), Value::Array(injoignables));
@@ -524,9 +501,9 @@ fn completer_la_trace(ctx: &Contexte, r: &mut Ouverture, debut: std::time::Insta
 ///   relevent pas trois fois.
 /// - `veille` : le passage periodique. Il saute la sauvegarde quand rien n'a bouge sur le disque -- une comparaison locale,
 ///   sans un octet de reseau.
-/// - `apres_releve` : appele une fois les retours releves, AVANT la sauvegarde (qui passe en dernier depuis le 25/09/2026 :
-///   elle prenait six minutes a 37 Mo, et les retours attendaient derriere elle). La trace de l'ouverture est ecrite a ce
-///   moment-la, puis refaite a la fin. La route n'en a pas : un processus ne rappelle pas son appelant (voir la passation).
+/// - `apres_releve` : appele une fois les retours releves, AVANT la sauvegarde (qui passe en dernier :
+///   elle peut prendre des minutes, et les retours n'attendent pas derriere elle). La trace de l'ouverture est ecrite a ce
+///   moment-la, puis refaite a la fin. La route n'en a pas : un processus ne rappelle pas son appelant.
 /// - `clients` : les clients reseau a utiliser a la place des vrais (la preuve).
 ///
 /// LA COPIE DE DEVELOPPEMENT ne sauvegarde pas (elle ecrirait dans le Drive de la vraie compagnie), ne releve pas les
@@ -541,7 +518,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     let mut sauvegarder = opt.sauvegarder;
     let mut retours = opt.retours;
     let mut signatures = opt.signatures;
-    // La trace d'avant ce passage : `pas_avant` la lit, la trace garde d'elle ce qui est au lot J, la seconde moitie de la
+    // La trace d'avant ce passage : `pas_avant` la lit, la seconde moitie de la
     // veille la complete.
     let precedente = derniere_ouverture(ctx);
 
@@ -587,18 +564,18 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
             let mut releve = Releve::default();
             match crate::compagnie::releve::rattacher_simulation(ctx, DELAI_RETOURS_FICTIVE) {
                 Ok((n, a_faire)) => (releve.rattaches, releve.a_faire) = (n, a_faire),
-                // Le Python ne rattrapait rien ici : l'ouverture ne doit pas tomber.
+                // L'ouverture ne doit pas tomber.
                 Err(e) => r.incidents.push(format!("Retours : {}", e.message)),
             }
             r.releve = Some(releve);
         }
         dire_l_etape(ctx, "Compagnie fictive : signatures et fiches des salariés…");
-        // Le resultat de la relève jouee n'est pas gardé : le Python le jetait aussi (`simulation.relever_signatures(ctx)`).
+        // Le resultat de la relève jouee n'est pas gardé.
         if let Err(e) = releve_signatures::relever_signatures_fictive(ctx, releve_signatures::DELAI_FICTIVE) {
             r.incidents.push(format!("Signatures : {}", e.message));
         }
         match crate::routes::fiches::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), crate::horloge::QUI_HORLOGE) {
-            // Les incidents de la relève des fiches jouée ne sont pas repris : le Python non plus.
+            // Les incidents de la relève des fiches jouée ne sont pas repris.
             Ok(f) => r.fiches = Some(f),
             Err(e) => r.incidents.push(format!("Fiches salariés : {}", e.message)),
         }
@@ -629,7 +606,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
             }
             Err(e) => r.incidents.push(format!("Signatures : {}", e.message)),
         }
-        // Les fiches demandees aux salaries (23/09/2026) : la meme boite, le meme passage, la meme regle.
+        // Les fiches demandees aux salaries : la meme boite, le meme passage, la meme regle.
         dire_l_etape(ctx, "Boîte courriel : fiches des salariés…");
         match crate::routes::fiches::relever_fiches(ctx, reborrow_courriel(&mut clients.courriel), "veille") {
             Ok(f) => {
@@ -640,7 +617,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         }
     }
 
-    // LA DPAE PREPAREE D'AVANCE (27/09/2026). Apres les retours DPAE : un test automatique dont le bilan vient d'arriver se
+    // LA DPAE PREPAREE D'AVANCE. Apres les retours DPAE : un test automatique dont le bilan vient d'arriver se
     // lit a jour. Le test ne declare rien -- la veille ne DEPOSE toujours rien de reel.
     if opt.filet {
         dire_l_etape(ctx, "DPAE préparée d'avance : dépôt de test…");
@@ -657,10 +634,10 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
     // compagnie completee depuis l'import compare celles que le calcul refusait. Ils partent avec les autres incidents.
     crate::import::ecarts::noter(ctx);
 
-    // LE DIAGNOSTIC A DISTANCE (29/09/2026) : ce que le journal des incidents a note part chez l'editeur -- pas depuis la
+    // LE DIAGNOSTIC A DISTANCE : ce que le journal des incidents a note part chez l'editeur -- pas depuis la
     // copie de developpement (ses refus sont ceux qu'on provoque pour essayer), mais depuis une compagnie fictive. Et les
     // reponses de l'editeur aux signalements de ce poste. Pas pendant les tests (`PUPPETPAIE_INCIDENTS` pose : le journal est
-    // celui d'un bac a sable). Le Python lancait cela dans un fil ; ici c'est fait avant de rendre la main.
+    // celui d'un bac a sable). C'est fait avant de rendre la main.
     let bac_a_sable = std::env::var("PUPPETPAIE_INCIDENTS").is_ok_and(|v| !v.is_empty());
     if opt.filet && opt.incidents_editeur && !bac_a_sable && (!copie || crate::interface::compagnies::est_fictive(&ctx.racine)) {
         dire_l_etape(ctx, "Serveur de l'éditeur : incidents, messages et réponses…");
@@ -676,7 +653,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
 
 
     if let Some(rappel) = apres_releve.as_mut() {
-        clore(ctx, &mut r, debut, &precedente);
+        clore(ctx, &mut r, debut);
         rappel();
     }
 
@@ -684,7 +661,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         sauvegarder_le_dossier(ctx, opt, &mut clients, &mut r);
     }
 
-    clore(ctx, &mut r, debut, &precedente);
+    clore(ctx, &mut r, debut);
     r
 }
 
@@ -717,7 +694,7 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
         None => match coffre_dispo(ctx, "net-entreprises") {
             Ok(b) => Some(b),
             Err(m) => {
-                // Le Python laissait lever l'erreur du coffre : l'ouverture ne tombe pas.
+                // Une erreur du coffre : l'ouverture ne tombe pas.
                 r.incidents.push(format!("Retours : {}", m));
                 None
             }
@@ -745,8 +722,8 @@ fn relever_les_retours(ctx: &Contexte, opt: &Options, clients: &mut Clients<'_>,
         None => {}
     }
 
-    // LE CANAL DPAE AUSSI. Jusqu'au 12/09/2026 la veille ne relevait que net-entreprises : une DPAE refusee en douze secondes
-    // restait << pas encore de retour >> tant qu'on ne tapait pas la commande a la main.
+    // LE CANAL DPAE AUSSI : une DPAE refusee en douze secondes ne reste pas « pas encore de retour »
+    // jusqu'a ce qu'on tape la commande a la main.
     let client_dpae = clients.dpae.take();
     let dispo = match &client_dpae {
         Some(_) => Some(true),

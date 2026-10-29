@@ -83,7 +83,7 @@ function dessinerVeille(v) {
 
   // 1. L'ÉTAT, en une phrase. Le détail des relevés passe au survol : on
   //    le cherche rarement, et il reste à portée.
-  const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources].filter(Boolean).join("\n");
+  const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches].filter(Boolean).join("\n");
   if (v.sauvegarde_en_cours) suivreLesEtapes();
   // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » : l'attente
   // dit l'heure du prochain relevé ; un service qui n'a pas répondu se nomme (au survol), et le relevé qui est

@@ -1,9 +1,8 @@
 /* Le mois : la saisie courante, l'apercu, charger un mois, la grille des mois, enregistrer. */
 "use strict";
 
-/* CE QU'ON VOIT EST CE QUI EST ENREGISTRÉ (Léandre, 16/10/2026 : « il y a un
- * formulaire ; on clique sur Valider, ça enregistre le formulaire, et on
- * n'affiche que ce qui est affiché »). Une carte ouverte écrit son engagement
+/* CE QU'ON VOIT EST CE QUI EST ENREGISTRÉ : on clique sur Valider, ça
+ * enregistre le formulaire, et on n'affiche que ce qui est affiché. Une carte ouverte écrit son engagement
  * depuis son formulaire, et depuis lui seul : toute donnée qu'un engagement
  * peut porter y a son champ quand elle a une valeur (`CHAMPS_RARES`, le lieu
  * propre à un jour, le libellé d'une prime…). Une carte fermée n'a pas de
@@ -922,12 +921,10 @@ function confirmerModification(mois, texte, renvoyer) {
   };
 }
 
-/* UN MOIS IMPORTÉ EST UN MOIS COMME LES AUTRES (ticket #215, Léandre,
- * 20/10/2026 : « j'ai importé les bulletins, mais je pensais que les paies
- * allaient avoir toutes les infos pour avoir les cases, qu'est-ce qui
- * manque ? »). Un mois tenu avant PuppetPaie n'a pas de fichier de paie : le
+/* UN MOIS IMPORTÉ EST UN MOIS COMME LES AUTRES : ses paies ont leurs cases.
+ * Un mois tenu avant PuppetPaie n'a pas de fichier de paie : le
  * moteur le rend depuis l'historique importé (`importe` de la route `saisie`,
- * `mois_importe.rs`) — une carte par paie, comme celle d'un engagement validé :
+ * `import::mois`) — une carte par paie, comme celle d'un engagement validé :
  * quand, qui et pour quoi, ses états, son net ; un clic sur la carte montre
  * chaque case remplie de ce que l'import a lu, avec d'où elle vient. Ce que
  * l'import n'a pas pu lire se dit sur la carte, case par case, et pourquoi —

@@ -123,7 +123,6 @@ fn en_json(r: &Value) -> Value {
         "sauvegarde": sauvegarde,
         "retours": retours,
         "signatures": signatures,
-        "sources": Value::Null,
         "incidents": get(r, "incidents"),
         "manquants": get(r, "manquants"),
         "taux_pas": get(r, "taux_pas"),

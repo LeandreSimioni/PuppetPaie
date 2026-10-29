@@ -90,7 +90,7 @@
     refus.textContent = (r && r.erreur) || "PuppetPaie reste ouvert sur cette version.";
   }
 
-  /* Dans la page d'une compagnie, l'état arrive avec l'ouverture (ticket #244,
+  /* Dans la page d'une compagnie, l'état arrive avec l'ouverture (
      js/demarrage.js : un seul appel peint la page) ; la relecture suit le
      moteur comme ailleurs. */
   window.miseAJourMontrer = (etat) => {
