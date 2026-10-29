@@ -1753,7 +1753,7 @@ atelier/                  ← ce dossier : tout le reste
                           dossier (d'un organisme privé, seule la
                           transcription) ; `moteur sources` y vérifie les copies
   docs/                   ARCHITECTURE.md, RUBRIQUES.md, COMPAGNIES-FICTIVES.md,
-                          COMPAGNIE-D-ESSAI.md, COMPAGNIES-FICTIVES-DEPOT.md
+                          COMPAGNIE-D-ESSAI.md
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
                           Node : LISEZ-MOI.md), `demos/` (un scénario de
                           démonstration). Le garde avant commit, le guet, les
