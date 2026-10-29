@@ -5167,7 +5167,7 @@
     "etendu": true,
     "_regles_1734": {
       "journees": "Des prix de journee par genre d'emission, sans duree : compares au cachet. Aucun bareme plus recent dans la base, alors que l'art. 5.15 prevoit une revision annuelle.",
-      "idcc_par_contrat": "La 1734 ne s'applique qu'aux contrats d'artistes-interpretes d'une emission (case du Spectacle, 2642 et 3241) : c'est la convention du CONTRAT (`entreprise.convention_du_contrat`) qui choisit cette grille."
+      "idcc_par_contrat": "La 1734 ne s'applique qu'aux contrats d'artistes-interpretes d'une emission (case du Spectacle, 2642 et 3241) : c'est la convention du CONTRAT (`droit::minima::idcc_du_contrat`) qui choisit cette grille."
     },
     "grilles": [
       {

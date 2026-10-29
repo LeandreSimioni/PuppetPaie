@@ -9,7 +9,6 @@ use droit::contexte::Contexte;
 use droit::cumul::{tableau_cumul, Colonne};
 use engagement::cumul::lire_engagements;
 use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
-use droit::emplois;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
 use droit::pas::Versement;
@@ -241,42 +240,11 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
     Ok(format!("{} € ({} h à {})", fmt_eur(p.plafond), fmt_heures(p.heures), fmt_eur(dec_f64(p.smic)?)))
 }
 
-/// L'IDCC d'un contrat : celui de la compagnie, sauf l'artiste-interprète d'une émission de télévision d'une compagnie
-/// de la 2642 ou de la 3241, qui relève de la 1734 (`minima-conventionnels.json`, `_regles_1734`).
-pub fn idcc_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<String> {
-    let idcc = ou(ent, "idcc", "");
-    let tv = sp.get("emission_tv_1734").map_or(false, vrai);
-    if (idcc != "2642" && idcc != "3241") || !tv {
-        return Ok(idcc);
-    }
-    if ou(sal, "statut", "artiste") != "artiste" {
-        return Ok(idcc);
-    }
-    let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).map(en_texte);
-    let metier = match &code {
-        Some(c) => emplois::metier(c)?,
-        None => None,
-    };
-    let famille = metier.as_ref().and_then(|m| m.get("famille")).filter(|f| !f.is_null());
-    match famille {
-        None => Err(format!(
-            "Spectacle {}, émission de télévision (convention 1734) : le métier {} de {} n'est pas au catalogue, et \
-             le logiciel ne sait pas s'il est artiste-interprète (1734) ou musicien, metteur en scène, artiste de \
-             complément (convention de l'entreprise). Choisir un métier du catalogue.",
-            ou(sp, "titre", ""),
-            code.unwrap_or_else(|| "(aucun)".into()),
-            ou(sal, "nom", "ce salarié")
-        )),
-        Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => Ok("1734".into()),
-        Some(_) => Ok(idcc),
-    }
-}
-
 /// (IDCC, libellé) de la convention d'un contrat, pour ce qui s'imprime : le libellé se lit au catalogue des conventions
 /// du barème de l'année de `jour` (`droit::bareme::libelle_convention`), la 1734, qui n'a pas de couche de barème, à
 /// son titre KALI (`sources.json`, KALICONT000005635286).
 pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value, jour: &Jour) -> Resultat<(String, String)> {
-    let idcc = idcc_du_contrat(ent, sp, sal)?;
+    let idcc = droit::minima::idcc_du_contrat(ent, sp, sal)?;
     if idcc.is_empty() {
         return Err("La fiche entreprise ne dit pas sa convention collective (`idcc`).".into());
     }

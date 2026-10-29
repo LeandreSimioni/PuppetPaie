@@ -131,28 +131,6 @@ fn permanent(paie: &Paie) -> bool {
     paie.engagement.nat().map_or(false, |n| n.mensuelle())
 }
 
-/// La convention dont ce contrat lit les minima : celle de l'entreprise, sauf l'artiste d'une emission de television
-/// (`emission_tv_1734`) d'une entreprise 2642 ou 3241, qui lit la 1734.
-fn idcc_du_contrat(ent: &Value, paie: &Paie) -> Resultat<String> {
-    let idcc = texte_de(ent, "idcc");
-    if (idcc != "2642" && idcc != "3241") || !vrai(g(&paie.spectacle, "emission_tv_1734")) {
-        return Ok(idcc);
-    }
-    let statut = match g(&paie.salarie, "statut") {
-        s if vrai(s) => en_texte(s),
-        _ => "artiste".into(),
-    };
-    if statut != "artiste" {
-        return Ok(idcc);
-    }
-    let code = texte_de(&paie.salarie, "code_emploi_ft");
-    let m = if code.is_empty() { None } else { emplois::metier(&code)? };
-    match m.as_ref().and_then(|m| m.get("famille")) {
-        Some(f) if matches!(en_texte(f).as_str(), "Artistes" | "Cirque et rue") => Ok("1734".into()),
-        _ => Ok(idcc),
-    }
-}
-
 // ------------------------------------------------------------------ les planchers
 
 /// `ne["texte"].split(",")[0]`.
@@ -934,7 +912,7 @@ fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = idcc_du_contrat(ent, paie)?;
+    let idcc = droit::minima::idcc_du_contrat(ent, &paie.spectacle, &paie.salarie)?;
     let tab = table()?;
     let t: &Value = &tab;
     if t.get(&idcc).is_none() {
