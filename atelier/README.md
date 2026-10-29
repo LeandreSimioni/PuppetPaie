@@ -1628,27 +1628,18 @@ quelque chose casse en route, tout revient.
 
 Pas d'avertissement : un dépôt injoignable, une version qui ne passe pas
 le contrôle, c'est un détail dans le rapport d'ouverture, jamais un
-incident — une compagnie hors ligne fait sa paie. Une seule chose s'affiche
-après coup, une fois : la phrase que la version porte quand elle **change
-un calcul** (`--calcul` au moment de publier). Un taux qui change n'en est
-pas une : la déclaration est mensuelle, le mois suivant rattrape.
+incident — une compagnie hors ligne fait sa paie. Une version prête
+s'installe au lancement suivant (ou au clic *« Redémarrer pour mettre à
+jour »*) ; rien ne la retient. Quand elle **change un calcul** de paie, sa
+phrase (`--calcul` au moment de publier) se lit dans la bulle de
+l'indicateur, à côté de la version prête, et dans `moteur version`. Un taux
+qui change n'en est pas une : la déclaration est mensuelle, le mois suivant
+rattrape.
 
-Deux garde-fous de plus depuis le 17/09/2026 :
-
-- **Une version qui change un calcul attend la DSN.** Entre la saisie d'un
-  mois et son dépôt, les bulletins sont produits, parfois envoyés ; changer
-  le calcul ferait une DSN qui ne dit plus ce que dit le bulletin. Tant qu'un
-  mois saisi d'une compagnie réelle de l'installation attend sa DSN (une fictive
-  ne retient rien : elle ne dépose jamais), la version reste prête, le bandeau dit *« attend la DSN de 2026-11 »*, et elle
-  s'applique après le dépôt. Pour passer outre sciemment (la correction est
-  justement celle qu'il faut avant de déposer) : le bouton du bandeau, ou
-  `moteur maj --appliquer --malgre-calcul`.
-- **Deux sortes de versions.** La plupart sont silencieuses. Quelques-unes
-  sont **exigées** (`--exigee "pourquoi"` à la publication : une norme DSN
-  qui change, une déclaration que l'ancienne version ferait fausse) : une
-  fois téléchargée, le bandeau le dit fort — *« fermez et rouvrez PuppetPaie
-  avant de déclarer »* —, **aucun dépôt réel ne part** tant qu'elle n'est
-  pas appliquée, et elle passe outre l'attente du calcul.
+Deux sortes de versions. La plupart sont silencieuses. Quelques-unes sont
+**exigées** (`--exigee "pourquoi"` à la publication : une norme DSN qui
+change, une déclaration que l'ancienne version ferait fausse) : une fois
+téléchargée, **aucun dépôt réel ne part** tant qu'elle n'est pas appliquée.
 
 Chez l'éditeur (`"editeur": true` dans le réglage de l'installation, ou en repli
 `prive/config/maj.json`), on **publie** en plus, après relecture des sources (voir

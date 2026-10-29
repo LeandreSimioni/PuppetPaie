@@ -40,3 +40,9 @@
 .maj-redemarrer[disabled] { opacity: .6; cursor: default; }
 .maj-refus { color: var(--texte, #2C3E50); }
 .maj-refus:empty { display: none; }
+/* Les deux phrases qui se lisent sans survol : ce que la version en place
+   change d'un calcul de paie (au lancement qui suit son installation), et
+   l'exigence d'une version prete (les depots reels l'attendent). */
+.maj-installee { color: var(--texte, #2C3E50); }
+.maj-exigee { color: var(--alerte, #C77B27); }
+.maj-installee[hidden], .maj-exigee[hidden] { display: none; }

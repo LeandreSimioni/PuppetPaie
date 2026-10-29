@@ -100,9 +100,9 @@ const EXPLICATIONS_FICTIVES = {
       ["Les mises à jour", `Au lancement, le logiciel regarde si l'éditeur a publié une
         nouvelle version. Il la télécharge en arrière-plan, vérifie qu'elle est bien
         signée par l'éditeur, et l'installe au démarrage suivant, sans rien demander.
-        Une version qui change un calcul attend que la DSN du mois en cours soit
-        déposée ; une version marquée « exigée » (une norme DSN qui change) bloque les
-        dépôts réels tant qu'elle n'est pas installée.`],
+        Une version qui change un calcul de paie le dit en une phrase ; une version
+        marquée « exigée » (une norme DSN qui change) bloque les dépôts réels tant
+        qu'elle n'est pas installée.`],
       ["Dans la compagnie fictive", `La sauvegarde ne tourne pas : aucun compte Google n'est
         lié, rien ne quitte le poste. La mise à jour, elle, est celle du logiciel : elle se
         fait de la même façon, qu'on ouvre une compagnie fictive ou réelle. Le bandeau dit

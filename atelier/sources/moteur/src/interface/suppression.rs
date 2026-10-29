@@ -280,21 +280,10 @@ pub fn mention(racine: &Path) -> Option<Value> {
     }))
 }
 
-/// LES MOIS SAISIS EN DEMO d'une compagnie gardee (`config/demo.json`, `mois`) ; aucun pour une autre. Le logiciel ne les a
-/// jamais declares, et ils ne retiennent pas une version qui change un calcul (`maj::mois_qui_retiennent_la_compagnie`).
-pub fn mois_de_demo(racine: &Path) -> Vec<String> {
-    std::fs::read_to_string(racine.join(FICHIER_DEMO))
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|v| v.get("mois").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect()))
-        .unwrap_or_default()
-}
-
 /// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree, une paie validee ou modifiee :
 /// `crate::routes::mois::ecrire_saisie_confirmee`, le seul endroit ou la saisie d'un mois s'ecrit) est un mois qu'on entend
-/// declarer : il sort de la mention (`config/demo.json`, `mois`), retient une version qui change un calcul comme tout mois
-/// reel, et la page ne le dit plus « fait en demo ». Rien a faire pour une compagnie sans mention, ni pour un mois qui n'y
-/// est pas.
+/// declarer : il sort de la mention (`config/demo.json`, `mois`), et la page ne le dit plus « fait en demo ». Rien a faire
+/// pour une compagnie sans mention, ni pour un mois qui n'y est pas.
 pub fn sortir_de_la_demo(racine: &Path, mois: &str) -> Result<(), String> {
     let p = racine.join(FICHIER_DEMO);
     let Some(mut v) = std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else { return Ok(()) };

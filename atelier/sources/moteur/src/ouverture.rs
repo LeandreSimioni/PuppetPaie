@@ -24,10 +24,9 @@
 //! Le serveur des incidents est celui de la configuration (`incidents::configuration`), qu'un serveur local peut tenir.
 //! Le test automatique de la DPAE du filet a son client Urssaf remplacable (`Clients::depot_dpae`).
 //!
-//! NE FONT PAS PARTIE DE CE LOT (lot J, avec Tauri) : la recherche de mise a jour (`maj`, `MiseAJour`) et la verification
-//! des sources (`_veiller_sources`, `VeilleSources`). Les options `sources` et `maj` de la route sont acceptees et
-//! ignorees ; `maj` et `sources` valent `null` dans le resultat, et la trace GARDE les champs `maj*` et `sources*` de la
-//! trace precedente (l'appelant y ecrit encore le resultat de la verification de version, en Python).
+//! LA MISE A JOUR N'EST PAS ICI : le logiciel la cherche pour l'installation (`maj::chercher_en_fond`) et l'indicateur la
+//! dit (`maj::Recherche::etat`). LA VERIFICATION DES SOURCES non plus : l'option `sources` de la route est acceptee et
+//! ignoree, `sources` vaut `null` dans le resultat, et la trace garde `sources` et `sources_etat` de la trace precedente.
 //!
 //! Les phrases des incidents sont celles du Python ; les phrases des pannes (venues des modules appeles) peuvent differer.
 
@@ -58,15 +57,10 @@ use socle::fichiers::MARQUEUR_COPIE;
 /// La trace de la derniere ouverture : `config/.ouverture.json`.
 const TRACE: &str = ".ouverture.json";
 
-/// Les champs de la trace qui sont au lot J (la mise a jour, les sources) : l'ouverture Rust les garde de la trace precedente.
-/// Ordre de la trace du Python : `sources`, `maj`, `maj_note`, `maj_attend`, `maj_exigee`, `maj_etat`, `sources_etat`.
-const LOT_J: &[(&str, fn() -> Value)] = &[
+/// Les champs de la trace que l'ouverture garde de la trace precedente (les sources ne se verifient pas ici).
+/// Leur ordre dans la trace : `sources`, `sources_etat`.
+const GARDES: &[(&str, fn() -> Value)] = &[
     ("sources", || json!("")),
-    ("maj", || json!("")),
-    ("maj_note", || json!("")),
-    ("maj_attend", || json!([])),
-    ("maj_exigee", || json!("")),
-    ("maj_etat", || json!({})),
     ("sources_etat", || json!({})),
 ];
 
@@ -75,7 +69,7 @@ const DELAI_RETOURS_FICTIVE: i64 = 6;
 
 // ------------------------------------------------------------------ les options et les clients
 
-/// Les options de `ouverture(...)`. `sources` et `maj` du Python n'y sont pas : lot J.
+/// Les options de `ouverture(...)`.
 #[derive(Debug, Clone)]
 pub struct Options {
     /// Sauvegarder le dossier prive dans le Drive (en dernier).
@@ -123,7 +117,7 @@ impl Default for Options {
 
 impl Options {
     /// Les options d'une charge de route : `{"sauvegarder", "retours", "signatures", "filet", "jours", "racine_drive",
-    /// "pas_avant", "veille", "incidents_editeur", "sauvegarde_seule"}`, chacune facultative. `sources` et `maj` sont acceptees, ignorees.
+    /// "pas_avant", "veille", "incidents_editeur", "sauvegarde_seule"}`, chacune facultative ; une autre cle est ignoree.
     pub fn de_la_charge(charge: &Value) -> Options {
         let mut o = Options::default();
         let booleen = |cle: &str, defaut: bool| charge.get(cle).filter(|v| !v.is_null()).map_or(defaut, vrai);
@@ -162,7 +156,7 @@ pub struct Clients<'a> {
 
 // ------------------------------------------------------------------ ce que l'ouverture rend
 
-/// `Ouverture` : le compte rendu d'un passage. `maj` et `sources` (lot J) n'y sont pas.
+/// `Ouverture` : le compte rendu d'un passage.
 #[derive(Default)]
 pub struct Ouverture {
     /// `JJ/MM/AAAA HH:MM`, l'heure de Paris.
@@ -218,7 +212,7 @@ impl Ouverture {
 
     /// Ce que la page et la ligne de commande lisent du passage (`commandes_ouverture._en_json`, et ce que `_dire_ouverture`
     /// lit en plus : le detail des fichiers deposes et des retours archives). Les cles de `_en_json` sont celles du Python,
-    /// dans le meme ordre ; les autres sont ajoutees. `maj` et `sources` valent `null` (lot J).
+    /// dans le meme ordre ; les autres sont ajoutees. `sources` vaut `null`.
     pub fn en_json(&self) -> Value {
         let sauvegarde = self.sauvegarde.as_ref().map(|s| {
             json!({
@@ -263,7 +257,6 @@ impl Ouverture {
             "sauvegarde": sauvegarde,
             "retours": retours,
             "signatures": self.signatures.as_ref().map(ReleveSignatures::en_json),
-            "maj": Value::Null,
             "sources": Value::Null,
             "incidents": self.incidents,
             "manquants": self.manquants,
@@ -286,7 +279,7 @@ impl Ouverture {
 /// Une route de ce module.
 ///
 /// - `ouverture` : `{"sauvegarder"?, "retours"?, "signatures"?, "filet"?, "jours"?, "racine_drive"?, "pas_avant"?, "veille"?,
-///   "incidents_editeur"?, "sources"?, "maj"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
+///   "incidents_editeur"?, "sources"?}` -> `Ouverture::en_json`. **Hors d'une compagnie fictive, elle va au
 ///   reseau.** Elle ne rend jamais d'erreur : une panne est une phrase de `incidents`.
 /// - `ouverture-derniere` : la trace de la derniere ouverture (`config/.ouverture.json`), `{}` si elle manque ou ne se lit
 ///   pas. Sans reseau.
@@ -399,11 +392,9 @@ fn noter_ouverture(ctx: &Contexte, r: &Ouverture, precedente: &Value) {
         "signatures_recues".into(),
         json!(r.signatures.as_ref().map(|s| s.recues.iter().map(|x| json!({"nom": x.nom, "quand": x.quand, "renvoye": x.renvoye})).collect::<Vec<_>>()).unwrap_or_default()),
     );
-    // LOT J (decision du 07/10/2026) : ni la verification des sources ni la recherche de mise a jour ne tournent ici. La trace
-    // GARDE ce que la trace precedente en disait (le bandeau « mise a jour prete » de la page, `sources_etat` qui limite la
-    // verification des sources a une fois par semaine) : l'appelant, qui lance encore la verification de version en Python,
-    // y ecrit son resultat. Rien d'ecrit avant : les valeurs vides d'une trace neuve.
-    for (cle, vide) in LOT_J {
+    // La verification des sources ne tourne pas ici : la trace garde ce que la precedente en disait (`sources_etat` limite
+    // la verification a une fois par semaine). Rien d'ecrit avant : les valeurs vides d'une trace neuve.
+    for (cle, vide) in GARDES {
         let valeur = precedente.get(*cle).cloned().unwrap_or_else(|| vide());
         trace.insert((*cle).into(), valeur);
     }
@@ -678,7 +669,7 @@ pub fn ouverture(ctx: &Contexte, opt: &Options, mut clients: Clients<'_>, mut ap
         let _ = crate::problemes::relever_reponses(&ctx.racine);
     }
 
-    // (Lot J : ici le Python verifiait les sources, et cherchait une mise a jour.)
+
 
     if let Some(rappel) = apres_releve.as_mut() {
         clore(ctx, &mut r, debut, &precedente);

@@ -62,15 +62,16 @@
 //! La mise a jour du logiciel, elle, ne touche jamais `fictives/`.
 //!
 //! LE RELAIS, AU LANCEMENT (09/10/2026 : « que personne ne voit »). Sous Windows, un programme ne se remplace pas pendant
-//! qu'il tourne. Le programme qu'on lance regarde donc, AVANT TOUTE FENETRE, si l'installation a une version prete et
-//! applicable (`au_lancement`) : il copie le programme NEUF hors de `logiciel/` (`maj/relais-<version>`), le lance avec
+//! qu'il tourne. Le programme qu'on lance regarde donc, AVANT TOUTE FENETRE, si l'installation a une version prete
+//! (`au_lancement`) : il copie le programme NEUF hors de `logiciel/` (`maj/relais-<version>`), le lance avec
 //! `maj-relais`, et s'arrete sans rien avoir montre. Le relais attend la fin de ce processus (par son numero, pas par un
 //! port), bascule, lance la fenetre neuve, et s'arrete : on voit s'ouvrir directement la neuve.
 //!
-//! Deux garde-fous, comme le Python : une version qui change un CALCUL attend que chaque mois saisi d'une compagnie reelle
-//! de l'installation ait sa DSN (sauf
-//! `malgre_calcul` ou une version EXIGEE) ; une version exigee bloque tout depot reel tant qu'elle n'est pas appliquee
-//! (`depot_acte::exigee_en_attente`).
+//! UNE VERSION S'INSTALLE DES QU'ELLE EST PRETE : au lancement suivant, ou au clic « Redemarrer pour mettre a jour ».
+//! Rien ne la retient. Sa phrase `calcul` (la case de « Publier ») dit a la compagnie ce qu'elle change d'un calcul de
+//! paie : l'indicateur la montre avec la version prete, puis, une fois, au lancement qui suit son installation
+//! (`dire_l_installation`) ; `moteur version` aussi. Une version EXIGEE bloque tout depot reel tant qu'elle n'est pas
+//! installee (`depot_acte::exigee_en_attente`) ; l'indicateur le dit, sans survol (`Recherche::etat`, `exigee`).
 //!
 //! LA CLE DE SIGNATURE (`config/maj-cle-privee.bin`, lot K1, 14/10/2026 ; Leandre : « si mon ordi tombe, on pourra plus
 //! faire de mise a jour, ça me va pas »). Sa graine est scellee par la CLE MAITRESSE DU COFFRE
@@ -442,43 +443,6 @@ pub fn compagnies_de(inst: &Path) -> Vec<PathBuf> {
     }
     v.retain(|r| !crate::interface::compagnies::est_cache(r) && r.join("config").join("entreprise.json").is_file() && (!crate::interface::compagnies::est_copie(r) || crate::interface::compagnies::est_fictive(r)));
     v
-}
-
-/// LE GARDE-FOU « UNE VERSION QUI CHANGE UN CALCUL ATTEND LA DSN DU MOIS », pour l'installation : les mois saisis sans DSN
-/// acceptee de ses compagnies REELLES (`prive/`, `compagnies/*`), chacun suivi du nom de sa compagnie. Les fictives ne
-/// retiennent rien : elles ne deposent jamais, leurs mois retiendraient la version pour toujours. Le garde-fou reste ce
-/// qu'il etait (la DSN doit dire ce que disent les bulletins deja faits) ; il regarde seulement toutes les compagnies
-/// qui declarent, puisque la version s'applique a toutes a la fois.
-///
-/// LES MOIS SAISIS EN DEMO d'une compagnie gardee au deblocage (ticket #236, `interface::suppression::mois_de_demo`) ne
-/// retiennent rien non plus : le logiciel ne les a jamais declares, la personne ne les deposera souvent jamais (ses vraies
-/// paies sont passees par son ancien outil), et ils bloqueraient la mise a jour de toute l'installation pour toujours ; la
-/// mention datee de la compagnie dit qu'ils n'ont ete ni declares ni envoyes. Un mois saisi APRES qu'elle a ete gardee
-/// retient comme celui de toute compagnie reelle, et un mois de demo RETRAVAILLE apres (sa saisie enregistree) sort de la
-/// mention et retient aussi (`suppression::sortir_de_la_demo`). La regle tient dans `mois_qui_retiennent_la_compagnie`, que la route
-/// `version` lit aussi.
-fn mois_qui_retiennent(inst: &Path) -> Vec<String> {
-    let mut out = Vec::new();
-    for racine in compagnies_de(inst).into_iter().filter(|r| !crate::interface::compagnies::est_copie(r)) {
-        let o = std::collections::HashMap::from([("racine".to_string(), racine.display().to_string())]);
-        let nom = racine.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        // Une compagnie qu'on ne lit pas retient la version : on ne sait pas si ses mois ont leur DSN.
-        let lus = crate::service::contexte(&o).and_then(|ctx| mois_qui_retiennent_la_compagnie(&ctx).map_err(|e| e.message));
-        match lus {
-            Ok(mois) => out.extend(mois.iter().map(|m| format!("{} ({})", m.as_str().unwrap_or_default(), nom))),
-            Err(e) => out.push(format!("? ({} illisible : {})", nom, e)),
-        }
-    }
-    out
-}
-
-/// Les mois d'UNE compagnie qui retiennent une version qui change un calcul (`mois_qui_retiennent`) : ses mois saisis sans
-/// DSN acceptee, hors ceux qu'elle a saisis en demo avant d'etre gardee.
-pub(crate) fn mois_qui_retiennent_la_compagnie(ctx: &droit::contexte::Contexte) -> socle::echec::R<Vec<Value>> {
-    let demo = crate::interface::suppression::mois_de_demo(&ctx.racine);
-    let mut mois = crate::routes::ouverture::mois_saisis_non_deposes(ctx)?;
-    mois.retain(|m| !m.as_str().is_some_and(|m| demo.iter().any(|d| d == m)));
-    Ok(mois)
 }
 
 /// L'ARCHIVE DE MISE A JOUR (`archiver` : le contenu de `logiciel/` a sa racine, le contrat de la tete de ce fichier),
@@ -862,7 +826,7 @@ pub fn verifier_suivi(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi
 
 /// `verifier_suivi` ; `calme` : un tour de fond (`chercher_tant_qu_il_tourne`), qui ne change ce que l'indicateur montre
 /// que si quelque chose change. Il ne passe pas par « Recherche de mise a jour… », et un depot qui ne repond pas, le temps
-/// d'un tour, laisse l'etat tel qu'il etait (« Logiciel a jour », ou la version retenue) : le tour suivant redemandera.
+/// d'un tour, laisse l'etat tel qu'il etait (« Logiciel a jour ») : le tour suivant redemandera.
 /// Une version plus recente trouvee se dit comme au lancement (« Mise a jour en cours », puis prete ou l'echec).
 fn verifier_en(inst: &Path, telecharger_aussi: bool, cles: &[&str], suivi: &Recherche, calme: bool) -> String {
     if !calme {
@@ -943,10 +907,8 @@ pub enum Etape {
     Telechargement,
     /// Recue : condensat, signature, deballage, controle sur chaque compagnie.
     Preparation,
-    /// Prete, et rien ne la retient : elle s'applique au redemarrage.
+    /// Prete : elle s'applique au redemarrage.
     Prete,
-    /// Prete, mais elle change un calcul et des mois saisis attendent leur DSN (`applicable`).
-    Retenue,
     /// Quelque chose n'a pas marche ; `mot` le dit.
     Echec,
 }
@@ -958,7 +920,13 @@ struct Point {
     recus: u64,
     attendus: Option<u64>,
     mot: String,
-    retenue_par: Vec<String>,
+    /// La phrase `calcul` de la version prete : ce qu'elle change d'un calcul de paie (vide : rien).
+    calcul: String,
+    /// La raison `exigee` de la version prete : elle est indispensable avant de declarer (vide : elle ne l'est pas).
+    exigee: String,
+    /// Ce que la version en place, installee juste avant ce lancement, change d'un calcul de paie
+    /// (`dire_l_installation`) : vide, rien a dire. Il tient tout le lancement, quelle que soit l'etape.
+    installee: String,
     sans_ce_systeme: Option<String>,
     /// Un echec `HORS_LIGNE` que la recherche reprendra d'elle-meme : quand (`chercher_tant_qu_il_tourne`).
     nouvel_essai: Option<std::time::Instant>,
@@ -972,7 +940,9 @@ impl Point {
             recus: 0,
             attendus: None,
             mot: String::new(),
-            retenue_par: Vec::new(),
+            calcul: String::new(),
+            exigee: String::new(),
+            installee: String::new(),
             sans_ce_systeme: None,
             nouvel_essai: None,
         }
@@ -980,7 +950,7 @@ impl Point {
 }
 
 /// Ce que la page attend entre deux lectures de l'indicateur : pendant une recherche, pendant qu'un nouvel essai est
-/// prevu (le reseau peut revenir), et pendant que la recherche de fond tourne (« a jour », « retenue » : une version
+/// prevu (le reseau peut revenir), et pendant que la recherche de fond tourne (« a jour » : une version
 /// trouvee entre deux tours doit se voir sans recharger la page, `RYTHME_A_JOUR`). Une lecture ne fait que lire `RECHERCHE` :
 /// aucune recherche, aucun fil. Une version prete, ou un echec definitif : plus rien ne change, elle ne relit pas.
 const RELIRE_EN_COURS_MS: u64 = 700;
@@ -1026,7 +996,6 @@ impl Etape {
             Etape::Telechargement => "telechargement",
             Etape::Preparation => "preparation",
             Etape::Prete => "prete",
-            Etape::Retenue => "retenue",
             Etape::Echec => "echec",
         }
     }
@@ -1042,21 +1011,29 @@ impl Recherche {
         let mut p = self.0.lock().unwrap_or_else(|e| e.into_inner());
         if p.etape != etape {
             let garde = version.map(String::from).or_else(|| if etape == Etape::AJour { None } else { p.version.take() });
-            *p = Point { etape, version: garde, ..Point::vide() };
+            let installee = std::mem::take(&mut p.installee);
+            *p = Point { etape, version: garde, installee, ..Point::vide() };
         } else if let Some(v) = version {
             p.version = Some(v.to_string());
         }
         plus(&mut p);
     }
 
-    /// La version `v` est prete : elle s'applique au redemarrage, ou elle est retenue (`applicable`, `mois_qui_retiennent`).
+    /// La version `v` est prete (`maj/prete.json`) : elle s'applique au redemarrage ; sa phrase `calcul` et sa raison
+    /// `exigee` se gardent pour l'indicateur.
     fn prete(&self, inst: &Path, v: &str) {
-        if applicable(inst).as_deref() == Some(v) {
-            self.poser(Etape::Prete, Some(v), |_| {});
-        } else {
-            let retenue_par = mois_qui_retiennent(inst);
-            self.poser(Etape::Retenue, Some(v), |p| p.retenue_par = retenue_par);
-        }
+        let d = prete(inst);
+        let texte = |cle: &str| d.as_ref().and_then(|p| p.get(cle).and_then(Value::as_str).map(str::trim).map(String::from)).unwrap_or_default();
+        let (calcul, exigee) = (texte("calcul"), texte("exigee"));
+        self.poser(Etape::Prete, Some(v), |p| {
+            p.calcul = calcul;
+            p.exigee = exigee;
+        });
+    }
+
+    /// Ce que la version en place, installee juste avant ce lancement, change d'un calcul de paie (`dire_l_installation`).
+    fn installee(&self, phrase: String) {
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).installee = phrase;
     }
 
     pub fn etape(&self) -> Etape {
@@ -1072,9 +1049,10 @@ impl Recherche {
     /// Ce que l'indicateur montre, tout decide ici : `etape`, `texte` (vide : rien a montrer), `detail` (la bulle),
     /// `progression` (0 a 1, ou rien : pas de barre ; une barre sans fin connue est `null` avec `barre`), `en_cours`
     /// (une recherche se fait), `relire_ms` (dans combien la page relit : pendant une recherche, pendant qu'un nouvel essai
-    /// est prevu, et tant que la recherche de fond tourne ; `null`, elle se tait), `redemarrer` (le clic est offert).
-    /// Tout se dit positivement, par ce qui est vrai (ticket #217, Leandre, 20/10/2026 : « Logiciel a jour » plutot
-    /// qu'« Aucune mise a jour »).
+    /// est prevu, et tant que la recherche de fond tourne ; `null`, elle se tait), `redemarrer` (le clic est offert),
+    /// `exigee` (la version prete est indispensable avant de declarer : la phrase, ou `null`), `installee` (ce que la
+    /// version en place, installee juste avant ce lancement, change d'un calcul de paie : la phrase, ou `null`).
+    /// Tout se dit positivement, par ce qui est vrai (« Logiciel a jour » plutot qu'« Aucune mise a jour »).
     pub fn etat(&self) -> Value {
         let p = self.0.lock().unwrap_or_else(|e| e.into_inner());
         let lue = p.version.as_deref().map(version_lue);
@@ -1114,13 +1092,13 @@ impl Recherche {
                 p.attendus.filter(|a| *a > 0).map(|a| (p.recus as f64 / a as f64).min(1.0)),
             ),
             Etape::Preparation => ("Mise à jour en cours", nommee(": vérification"), true, Some(1.0)),
-            Etape::Prete => ("Redémarrer pour mettre à jour", nommee("est prête : elle s'installe au redémarrage."), false, None),
-            Etape::Retenue => (
-                "Mise à jour en attente",
-                nommee(&format!(
-                    "change un calcul de paie : elle s'installera quand ces mois auront leur DSN : {}.",
-                    p.retenue_par.join(", ")
-                )),
+            Etape::Prete => (
+                "Redémarrer pour mettre à jour",
+                if p.calcul.is_empty() {
+                    nommee("est prête : elle s'installe au redémarrage.")
+                } else {
+                    nommee(&format!("est prête : elle s'installe au redémarrage. {}", phrase_du_calcul(&p.calcul)))
+                },
                 false,
                 None,
             ),
@@ -1142,7 +1120,7 @@ impl Recherche {
             Some(RELIRE_EN_COURS_MS)
         } else if p.etape == Etape::Echec && p.nouvel_essai.is_some() {
             Some(RELIRE_EN_ATTENTE_MS)
-        } else if matches!(p.etape, Etape::AJour | Etape::Retenue) {
+        } else if p.etape == Etape::AJour {
             Some(RELIRE_EN_FOND_MS)
         } else {
             None
@@ -1157,19 +1135,52 @@ impl Recherche {
             "relire_ms": relire_ms,
             "redemarrer": p.etape == Etape::Prete,
             "version": lue,
+            // Une version prete EXIGEE : les depots reels la refusent tant qu'elle n'est pas installee
+            // (`depot_acte::exigee_en_attente`, qui lit le meme `prete.json`). La phrase se lit sans survol.
+            "exigee": (p.etape == Etape::Prete && !p.exigee.is_empty())
+                .then(|| format!("Elle est indispensable avant de déclarer ({}) : aucun dépôt réel ne part tant qu'elle n'est pas installée.", p.exigee)),
+            "installee": (!p.installee.is_empty()).then(|| p.installee.clone()),
         })
     }
 }
 
+/// « Elle change un calcul de paie : … », la phrase `calcul` de « Publier » terminee par un point.
+fn phrase_du_calcul(calcul: &str) -> String {
+    let c = calcul.trim();
+    let point = if c.ends_with(['.', '!', '?', '…']) { "" } else { "." };
+    format!("Elle change un calcul de paie : {}{}", c, point)
+}
+
+/// LA VERSION QUI VIENT DE S'INSTALLER se dit au lancement qui suit, une fois. La bascule (`appliquer_depuis`) ecrit
+/// `maj/appliquee.json` avec la phrase `calcul` et `vue: false` ; lu ici, il passe a `vue: true` et ne se redit plus.
+/// Une version qui change un calcul de paie se dit pour tout ce lancement (`Point::installee`) : « PuppetPaie X est en
+/// place. Elle change un calcul de paie : … » ; une version sans phrase `calcul` n'a rien de plus a dire que « Logiciel
+/// a jour ». Si `vue` ne s'ecrit pas, la phrase se dit quand meme : mieux vaut la relire que ne jamais la lire.
+fn dire_l_installation(inst: &Path, suivi: &Recherche) {
+    let chemin = dossier_maj(inst).join("appliquee.json");
+    let Some(mut a) = lire_json(&chemin) else { return };
+    if a.get("vue").and_then(Value::as_bool) != Some(false) {
+        return;
+    }
+    a["vue"] = json!(true);
+    if let Err(e) = ecrire_json(&chemin, &a) {
+        noter(inst, &format!("{} : {}", chemin.display(), e));
+    }
+    let calcul = a.get("calcul").and_then(Value::as_str).map(str::trim).unwrap_or_default();
+    if calcul.is_empty() {
+        return;
+    }
+    let version = version_lue(a.get("version").and_then(Value::as_str).unwrap_or_default());
+    suivi.installee(format!("PuppetPaie {} est en place. {}", version, phrase_du_calcul(calcul)));
+}
+
 /// Le geste « Redemarrer pour mettre a jour » : la version prete part au relais (comme au lancement, `au_lancement`) ; a
 /// l'appelant de s'arreter aussitot, sans rien ouvrir (le relais attend sa fin, bascule et ouvre la neuve). Refuse si la
-/// recherche de ce processus n'a rien de pret, ou si la version est retenue : rien n'est lance.
+/// recherche de ce processus n'a rien de pret : rien n'est lance.
 pub fn redemarrer_pour_mettre_a_jour(inst: &Path, suivi: &Recherche) -> R<String> {
-    if suivi.etape() != Etape::Prete {
-        return Err("Cette version reste en service jusqu'à ce qu'une nouvelle soit prête.".into());
-    }
-    let Some(v) = applicable(inst) else {
-        return Err("Cette version reste en service : la mise à jour attend encore.".into());
+    let v = match a_installer(inst) {
+        Some(v) if suivi.etape() == Etape::Prete => v,
+        _ => return Err("Cette version reste en service jusqu'à ce qu'une nouvelle soit prête.".into()),
     };
     lancer_relais(inst, &v).map_err(|e| {
         noter(inst, &format!("Mise a jour {} non appliquee : {}", version_lue(&v), e));
@@ -1179,19 +1190,11 @@ pub fn redemarrer_pour_mettre_a_jour(inst: &Path, suivi: &Recherche) -> R<String
     Ok(v)
 }
 
-/// La version prete et applicable maintenant (rien ne la retient), ou `None`.
-pub fn applicable(inst: &Path) -> Option<String> {
+/// La version prete et plus recente que celle en place : celle qui s'installe au lancement suivant ; ou `None`.
+pub fn a_installer(inst: &Path) -> Option<String> {
     let p = prete(inst)?;
     let v = p["version"].as_str()?.to_string();
-    if !plus_recente(&v, &courante(&logiciel_de(inst))) {
-        return None;
-    }
-    let force = p.get("malgre_calcul").and_then(Value::as_bool) == Some(true) || p.get("exigee").and_then(Value::as_str).is_some_and(|e| !e.is_empty());
-    let calcul = p.get("calcul").and_then(Value::as_str).is_some_and(|c| !c.is_empty());
-    if calcul && !force && !mois_qui_retiennent(inst).is_empty() {
-        return None;
-    }
-    Some(v)
+    plus_recente(&v, &courante(&logiciel_de(inst))).then_some(v)
 }
 
 fn deplacer(de: &Path, vers: &Path) -> std::io::Result<()> {
@@ -1211,13 +1214,13 @@ fn copier(de: &Path, vers: &Path) -> std::io::Result<u64> {
 }
 
 /// La bascule : `logiciel/` -> `logiciel/.avant/`, la version prete a sa place ; tout revient si ca casse.
-pub fn appliquer(inst: &Path, malgre_calcul: bool) -> R<Value> {
-    appliquer_depuis(&dossier_maj(inst), &logiciel_de(inst), malgre_calcul)
+pub fn appliquer(inst: &Path) -> R<Value> {
+    appliquer_depuis(&dossier_maj(inst), &logiciel_de(inst))
 }
 
 /// `appliquer`, le dossier de la version prete et le logiciel donnes : `<installation>/maj/`, ou, pour le relais lance par
 /// une version d'avant le lot U1, le `maj/` de la compagnie ou elle l'avait rangee.
-fn appliquer_depuis(maj: &Path, code: &Path, malgre_calcul: bool) -> R<Value> {
+fn appliquer_depuis(maj: &Path, code: &Path) -> R<Value> {
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
     let d = (|| {
         let d = lire_json(&maj.join("prete.json"))?;
@@ -1225,18 +1228,6 @@ fn appliquer_depuis(maj: &Path, code: &Path, malgre_calcul: bool) -> R<Value> {
     })()
     .ok_or("aucune version prete a appliquer")?;
     let version = d["version"].as_str().unwrap_or_default().to_string();
-    let force = malgre_calcul || d.get("malgre_calcul").and_then(Value::as_bool) == Some(true) || d.get("exigee").and_then(Value::as_str).is_some_and(|e| !e.is_empty());
-    if d.get("calcul").and_then(Value::as_str).is_some_and(|c| !c.is_empty()) && !force {
-        let attend = mois_qui_retiennent(&inst);
-        if !attend.is_empty() {
-            return Err(format!(
-                "la {} change un calcul ({}) et le mois {} est saisi sans DSN acceptee : elle attend le depot, pour que la DSN dise ce que disent les bulletins. Pour l'appliquer quand meme : moteur maj --appliquer --malgre-calcul",
-                version_lue(&version),
-                d["calcul"].as_str().unwrap_or_default(),
-                attend.join(", ")
-            ));
-        }
-    }
     let neuf = maj.join(&version).join("logiciel");
     let avant = code.join(".avant");
     let _ = std::fs::remove_dir_all(&avant);
@@ -1840,12 +1831,12 @@ pub fn publier_depuis_l_environnement(logiciel: &Path, sortie: &Path, notes: &st
     publier_par_graine(logiciel, sortie, &g, CLE_PUBLIQUE_GITHUB, notes, calcul, exigee)
 }
 
-/// AU LANCEMENT, avant toute fenetre : une version prete et que rien ne retient part au relais. Rend `true` si le relais
+/// AU LANCEMENT, avant toute fenetre : une version prete part au relais. Rend `true` si le relais
 /// est parti (le programme doit alors s'arreter sans rien ouvrir). Ce qui echoue s'ecrit dans le journal de la mise a
 /// jour, et l'ancienne version s'ouvre : une mise a jour ne doit jamais empecher une paie.
 pub fn au_lancement() -> bool {
     let inst = installation();
-    let Some(v) = applicable(&inst) else { return false };
+    let Some(v) = a_installer(&inst) else { return false };
     match lancer_relais(&inst, &v) {
         Ok(_) => true,
         Err(e) => {
@@ -1855,17 +1846,18 @@ pub fn au_lancement() -> bool {
     }
 }
 
-/// AU LANCEMENT, apres `au_lancement` : le logiciel cherche pour lui-meme, en fond, sans attendre qu'une compagnie
-/// s'ouvre ; ce qu'il trouve s'appliquera au lancement suivant (ou au clic « Redemarrer pour mettre a jour »). Ce qui
-/// s'est passe va dans le journal de la mise a jour ; ou elle en est, dans `RECHERCHE` (l'indicateur, ticket #210).
-/// Elle continue tant que le logiciel tourne (`chercher_tant_qu_il_tourne` : ticket #217 sans reseau, 21/10/2026 a jour).
-/// Un seul fil par processus : un second appel ne lance rien.
+/// AU LANCEMENT, apres `au_lancement` : la version qui vient de s'installer se dit (`dire_l_installation`), puis le
+/// logiciel cherche pour lui-meme, en fond, sans attendre qu'une compagnie s'ouvre ; ce qu'il trouve s'installe au
+/// lancement suivant (ou au clic « Redemarrer pour mettre a jour »). Ce qui s'est passe va dans le journal de la mise a
+/// jour ; ou elle en est, dans `RECHERCHE` (l'indicateur). Elle continue tant que le logiciel tourne
+/// (`chercher_tant_qu_il_tourne`). Un seul fil par processus : un second appel ne lance rien.
 pub fn chercher_en_fond() {
     static LANCEE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     if LANCEE.swap(true, std::sync::atomic::Ordering::SeqCst) {
         return;
     }
     let inst = installation();
+    dire_l_installation(&inst, &RECHERCHE);
     RECHERCHE.poser(Etape::Recherche, None, |_| {});
     std::thread::spawn(move || chercher_tant_qu_il_tourne(&inst, &cles_de_l_editeur(), &RECHERCHE, &ATTENTES_HORS_LIGNE, RYTHME_A_JOUR));
 }
@@ -1875,11 +1867,9 @@ pub fn chercher_en_fond() {
 ///   logiciel lance sans reseau restait « hors ligne » alors que le poste etait connecte) : un nouvel essai apres
 ///   `attentes[n]` (la derniere se repete : `ATTENTES_HORS_LIGNE`). Le moment du prochain essai est dans `suivi` : la
 ///   bulle le dit, et la page relit tant qu'il est prevu (`relire_ms`) ;
-/// - « a jour », ou « retenue » : un tour calme (`verifier_en`) toutes les `rythme` (`RYTHME_A_JOUR`). Une version publiee
+/// - « a jour » : un tour calme (`verifier_en`) toutes les `rythme` (`RYTHME_A_JOUR`). Une version publiee
 ///   entre-temps est trouvee, telechargee et preparee ; l'indicateur passe a « Redemarrer pour mettre a jour ». Rien ne
-///   s'installe : elle attend le redemarrage. Une version retenue (elle change un calcul et des mois attendent leur DSN)
-///   se relit au meme rythme : la DSN deposee, elle devient prete ; une plus recente parue, elle la remplace (personne ne
-///   peut cliquer sur une version retenue) ;
+///   s'installe : elle attend le redemarrage ;
 /// - « prete », ou un echec qu'un nouvel essai ne leverait pas (signature refusee, archive alteree, depot introuvable) :
 ///   la boucle s'arrete. Une version prete ne se remplace pas sous le bouton « Redemarrer » : le clic installe celle que
 ///   l'indicateur nomme, et le lancement d'apres recherche de nouveau (une plus recente s'y trouve en un tour).
@@ -1897,7 +1887,7 @@ pub fn chercher_tant_qu_il_tourne(inst: &Path, cles: &[&str], suivi: &Recherche,
             notee = dit;
         }
         let attente = match suivi.etape() {
-            Etape::AJour | Etape::Retenue => {
+            Etape::AJour => {
                 n = 0;
                 calme = true;
                 rythme
@@ -2013,7 +2003,7 @@ pub fn relais(args: &[String]) -> i32 {
         noter(&inst, "Mise a jour non appliquee : le programme qui l'a lancee ne s'est pas arrete.");
     } else {
         let journal = |t: &str| noter(&inst, t);
-        match appliquer_depuis(&maj, &code, false) {
+        match appliquer_depuis(&maj, &code) {
             Ok(r) => journal(&format!("Mise a jour appliquee : PuppetPaie {} (la precedente est gardee dans .avant/).", version_lue(r["version"].as_str().unwrap_or("?")))),
             Err(e) => journal(&format!("Mise a jour non appliquee : {}", e)),
         }
@@ -2022,7 +2012,7 @@ pub fn relais(args: &[String]) -> i32 {
     0
 }
 
-/// `moteur maj [--sans-telecharger] [--appliquer [--malgre-calcul]] [--revenir] [--publier [DEPOT] --notes T --calcul T
+/// `moteur maj [--sans-telecharger] [--appliquer] [--revenir] [--publier [DEPOT] --notes T --calcul T
 /// --exigee T] [--cle [--remplacer]] [--cle-github [DOSSIER]] [--publier-github --logiciel L --sortie S --notes T
 /// --calcul T --exigee T] [--marquer-fictives --logiciel L]`.
 pub fn commande(args: &[String]) -> i32 {
@@ -2106,7 +2096,7 @@ pub fn commande(args: &[String]) -> i32 {
         if crate::interface::instance::ouverte(&installation(), crate::interface::instance::Plage::DU_POSTE) {
             Err("PuppetPaie tourne : fermer la fenetre, puis appliquer".into())
         } else {
-            appliquer(&installation(), drapeau("--malgre-calcul"))
+            appliquer(&installation())
                 .map(|r| format!("Version {} en place ; la precedente est dans {}", version_lue(r["version"].as_str().unwrap_or("")), r["avant"].as_str().unwrap_or("")))
         }
     } else if drapeau("--revenir") {
@@ -2190,7 +2180,7 @@ mod tests {
             arbre(&neuf, "2026.11.01");
             std::fs::write(neuf.join("EDITION.json"), "{\"edition\": \"bride\"}").unwrap();
             ecrire_json(&racine.join("maj").join("prete.json"), &json!({"version": "2026.11.01", "calcul": ""})).unwrap();
-            appliquer(&racine, false).unwrap();
+            appliquer(&racine).unwrap();
             assert_eq!(courante(&code), "2026.11.01");
             assert_eq!(std::fs::read_to_string(code.join("EDITION.json")).ok().as_deref(), avant);
             let _ = std::fs::remove_dir_all(&base);
@@ -2230,7 +2220,7 @@ mod tests {
         arbre(&neuf, "2026.11.01");
         ecrire_json(&racine.join("maj").join("prete.json"), &json!({"version": "2026.11.01", "calcul": ""})).unwrap();
         ECHOUER_SUR.with(|e| *e.borrow_mut() = Some(code.join(".avant").join("EDITION.json")));
-        let r = appliquer(&racine, false);
+        let r = appliquer(&racine);
         ECHOUER_SUR.with(|e| *e.borrow_mut() = None);
         assert!(r.unwrap_err().starts_with("la bascule a echoue"));
         assert_eq!(courante(&code), "2026.10.09");

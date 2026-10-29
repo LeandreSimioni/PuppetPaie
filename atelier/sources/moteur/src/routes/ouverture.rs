@@ -1,6 +1,6 @@
 //! Les routes de l'ouverture : `etat` (tout le JSON que la page lit en s'ouvrant -- la configuration verifiee,
 //! l'historique des mois, les listes ou l'on choisit, les referentiels livres avec le logiciel), `configuration`,
-//! `maj-etat`, `maj-malgre-calcul`, `sauvegarde-derniere`, `echeance-faite`, `journal-reprise` et `courriels-fictifs`.
+//! `maj-etat`, `sauvegarde-derniere`, `echeance-faite`, `journal-reprise` et `courriels-fictifs`.
 //!
 //! AUCUN CALCUL DE PAIE, et aucun secret lu : la boite courriel se dit par un
 //! booleen (l'adresse posee et le secret present dans l'environnement ou le
@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 
 use crate::routes::etapes::{mois_saisis, Moteur};
-use crate::routes::fiches::{exiger, refus};
+use crate::routes::fiches::exiger;
 use crate::routes::mois::lire_saisie;
 use super::{lire_json_tolerant, lire_texte, ou_texte, qui_de};
 use declarations::champs;
@@ -40,11 +40,11 @@ fn plain(m: impl Into<String>) -> Echec {
 /// Les routes de ce module.
 pub const ROUTES: &[&str] = &[
     "etat", "configuration", "maj-etat", "sauvegarde-derniere",
-    "echeance-faite", "maj-malgre-calcul", "journal-reprise", "courriels-fictifs",
+    "echeance-faite", "journal-reprise", "courriels-fictifs",
 ];
 
 /// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["echeance-faite", "maj-malgre-calcul", "journal-reprise", "courriels-fictifs"];
+pub const ECRITURES: &[&str] = &["echeance-faite", "journal-reprise", "courriels-fictifs"];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -52,11 +52,10 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "etat" => etat(ctx),
         // La part « configuration » de l'etat, pour les routes qui la rendent apres un enregistrement.
         "configuration" => configuration(ctx),
-        "maj-etat" => version(ctx),
+        "maj-etat" => version(),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
         "sauvegarde-derniere" => Ok(crate::sauvegarde::derniere(&ctx.racine).en_json()),
         "echeance-faite" => echeance_faite(ctx, charge),
-        "maj-malgre-calcul" => maj_malgre_calcul(ctx),
         "journal-reprise" => crate::incidents::noter_ceux_des_retours(
             &ctx.racine,
             envois::reprise_journal::reprise(
@@ -1003,24 +1002,6 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
     ecrire_json(&p, &d, 2).map_err(en_os)
 }
 
-/// Decider, depuis l'interface, qu'une version qui change
-/// un calcul s'appliquera au prochain demarrage meme si un mois saisi n'a pas sa DSN. La decision s'ecrit dans
-/// `maj/prete.json` de l'installation ; la reponse est celle de `maj-etat`.
-fn maj_malgre_calcul(ctx: &Contexte) -> R<Value> {
-    let inst = socle::fichiers::dossier_du_code().join("..").join("..");
-    let Some(mut p) = crate::routes::ouverture::prete(&inst)? else {
-        return Err(refus("Aucune version prete."));
-    };
-    let Value::Object(m) = &mut p else {
-        return Err(erreur("TypeError", "prete.json : un objet est attendu"));
-    };
-    m.insert("malgre_calcul".into(), Value::Bool(true));
-    let chemin = crate::maj::dossier_maj(&inst).join("prete.json");
-    // `write_text(json.dumps(p, ensure_ascii=False, indent=1))` : sans saut de ligne final.
-    std::fs::write(&chemin, socle::ecriture::json_indente(&p, 1)).map_err(|e| erreur("OSError", format!("{} : {}", Path::new(&chemin).display(), e)))?;
-    version(ctx)
-}
-
 /// `maj.courante(code)` : le contenu du fichier `VERSION`, ou `0.0.0`.
 pub(crate) fn courante(code: &Path) -> R<String> {
     let p = code.join("VERSION");
@@ -1048,30 +1029,9 @@ pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
     Ok(Some(d))
 }
 
-/// `maj.mois_saisis_non_deposes` : les mois qui montrent au
-/// moins un engagement et dont aucune DSN reelle n'est acceptee (ou dont la
-/// derniere est refusee).
-pub(crate) fn mois_saisis_non_deposes(ctx: &Contexte) -> R<Vec<Value>> {
-    let mut m = Moteur::nouveau(ctx);
-    let mut out = Vec::new();
-    for mois in crate::routes::etapes::mois_saisis(&ctx.racine) {
-        let Some(d) = engagement::stock::vue_du_mois(&ctx.racine, &mois).map_err(Echec::from)? else {
-            continue;
-        };
-        if !d.is_object() || !vrai(get(&d, "engagements")?) {
-            continue;
-        }
-        let e = m.dsn_du_mois(&mois)?;
-        if !vrai(&e) || vrai(get(&e, "refusee")?) {
-            out.push(json!(mois));
-        }
-    }
-    Ok(out)
-}
-
 /// La version du logiciel, ce qui est pret, ce
 /// qui est configure. Ne va voir aucun depot.
-pub(crate) fn version(ctx: &Contexte) -> R<Value> {
+pub(crate) fn version() -> R<Value> {
     let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     // La mise a jour est celle de l'INSTALLATION (lot U1) : son reglage (`maj::reglage`), sa version prete.
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
@@ -1080,14 +1040,6 @@ pub(crate) fn version(ctx: &Contexte) -> R<Value> {
     let depot = json!(crate::maj::depot(depot));
     let prete = prete(&inst)?;
     let courante_v = courante(&code)?;
-    // Ce que CETTE compagnie retient (ses mois saisis sans DSN acceptee) ; une fictive ou une copie ne retient rien
-    // (`maj::mois_qui_retiennent`, qui regarde toutes les compagnies reelles de l'installation).
-    let attend: Vec<Value> = match &prete {
-        _ if crate::interface::compagnies::est_copie(&ctx.racine) => Vec::new(),
-        Some(pr) if vrai(get(pr, "malgre_calcul")?) => Vec::new(),
-        Some(pr) if vrai(get(pr, "calcul")?) => crate::maj::mois_qui_retiennent_la_compagnie(ctx)?,
-        _ => Vec::new(),
-    };
     let avant = if code.join(".avant").join("donnees").is_dir() { json!(courante(&code.join(".avant"))?) } else { Value::Null };
     let (version_prete, calcul, exigee) = match &prete {
         Some(pr) => (pr["version"].clone(), ou_texte(get(pr, "calcul")?), ou_texte(get(pr, "exigee")?)),
@@ -1096,7 +1048,6 @@ pub(crate) fn version(ctx: &Contexte) -> R<Value> {
     Ok(json!({
         "courante": courante_v, "editeur": editeur, "depot": depot,
         "prete": version_prete, "calcul": calcul, "exigee": exigee,
-        "attend": attend,
         // La cle publique de l'editeur est ecrite dans `maj.py` : toujours posee.
         "signee": true,
         "avant": avant,
