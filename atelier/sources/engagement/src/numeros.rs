@@ -108,13 +108,18 @@ fn porte_par_un_envoi(ctx: &Contexte, o: &Objet, cle: &str, n: &str) -> Resultat
 
 /// Un engagement ecrit avant `o` (plus ancien fichier, ou plus haut dans le meme) porte-t-il deja le numero `n` ? Une
 /// copie d'engagement emporte le numero de l'original : il reste a l'original.
-/// Le contrat importe que `o` continue (`importe::continue_par`) porte le sien : c'est le meme contrat, pas une copie.
+/// Le contrat importe que `o` continue porte le sien : c'est le meme contrat, pas une copie -- le contrat d'usage qui
+/// continue ici (`importe::continue_par`), comme chacun des bulletins repris d'un permanent dont le contrat court
+/// encore (`importe::Importe::atteste`).
 fn porte_par_un_autre(ctx: &Contexte, o: &Objet, n: &str) -> Resultat<bool> {
     let continue_ = crate::importe::continue_par(&ctx.racine, &o.brut)?.map(|i| (i.objet().fichier.clone(), i.objet().rang));
-    Ok(stock::objets(&ctx.racine)?.iter().any(|x| {
+    let salarie = o.brut.get("salarie").map(en_texte).unwrap_or_default();
+    let debut = crate::debut_brut(&Value::Object(o.brut.clone()));
+    Ok(stock::objets(&ctx.racine)?.into_iter().any(|x| {
         (x.fichier.as_str(), x.rang) < (o.fichier.as_str(), o.rang)
             && continue_.as_ref() != Some(&(x.fichier.clone(), x.rang))
             && x.brut.get("numero").map(en_texte).as_deref() == Some(n)
+            && !crate::importe::Importe::de(x).is_some_and(|i| i.atteste(&salarie, &debut, n))
     }))
 }
 
@@ -195,4 +200,41 @@ pub fn numeroter(ctx: &Contexte, paies: &mut [crate::calcul::Paie], annee: i32, 
         n_bull += 1;
     }
     Ok(n_bull)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// LE CONTRAT D'UN PERMANENT REPRIS GARDE SON NUMERO A LA VALIDATION : les bulletins importes qui l'attestent portent
+    /// le numero que la DSN de l'ancien logiciel lui a donne (S21.G00.40.009, regle 4) ; ils sont ce contrat, pas un
+    /// engagement plus ancien dont il serait la copie. Renumerote, il ne se reconnaitrait plus comme repris et le mois
+    /// le reposerait en double.
+    #[test]
+    fn le_contrat_repris_d_un_permanent_garde_son_numero() {
+        let racine = std::env::temp_dir().join(format!("puppetpaie-numeros-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&racine);
+        let ecrire = |chemin: &str, v: Value| {
+            let p = racine.join(chemin);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, serde_json::to_vec_pretty(&v).unwrap()).unwrap();
+        };
+        ecrire("config/entreprise.json", json!({}));
+        ecrire("config/spectacles.json", json!({}));
+        ecrire("config/salaries.json", json!({"ZOE": {"nom": [{"valeur": "TARTEMPION"}], "prenom": [{"valeur": "ZOE"}], "initiales_contrat": [{"valeur": "TA"}], "code_salarie": [{"valeur": "1"}]}}));
+        let importe = |mois: &str| {
+            json!({"mois": mois, "engagements": [{"salarie": "ZOE", "debut": format!("{}-01", mois), "fin": format!("{}-28", mois),
+                "numero": "00042", "importe": {"le": "2026-01-05", "contrat": {"nature": "cdi", "contrat_debut": "2024-01-15", "numero": "00042"},
+                "paies": {mois: {"brut": "2400"}}}}]})
+        };
+        ecrire("engagements/2025-04.json", importe("2025-04"));
+        ecrire("engagements/2025-05.json", importe("2025-05"));
+        ecrire("engagements/2025-06.json", json!({"mois": "2025-06", "engagements": [
+            {"salarie": "ZOE", "nature": "cdi", "debut": "2024-01-15", "numero": "00042", "salaire_mensuel": 2400, "quotite_contrat": 151.67}]}));
+        let ctx = Contexte::nouveau(&racine, socle::date::Jour::lire("2025-06-05").ok()).unwrap();
+        let mut o = stock::objet_du_mois(&racine, "2025-06", 0).unwrap().unwrap();
+        a_la_validation(&ctx, &mut o, "2025-06-05T09:00:00").unwrap();
+        assert_eq!(o.brut.get("numero"), Some(&json!("00042")), "{:?}", o.brut);
+        let _ = std::fs::remove_dir_all(&racine);
+    }
 }

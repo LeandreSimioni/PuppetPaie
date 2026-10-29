@@ -202,6 +202,18 @@ pub fn continue_par(racine: &Path, e: &Map<String, Value>) -> Resultat<Option<Im
 }
 
 impl Importe {
+    /// ATTESTE-T-IL LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` ? Le contrat d'un permanent qui court encore
+    /// porte le debut et le numero que la DSN de l'ancien logiciel lui a donnes (`contrat_debut`, `numero` :
+    /// `import::nature`) ; chacun de ses bulletins repris l'atteste, et l'engagement qui le continue ici est le meme
+    /// contrat (S21.G00.40.001 et .009, `norme-dsn/texte/bloc-S21.G00.40.txt`), pas une copie.
+    pub fn atteste(&self, salarie: &str, debut: &str, numero: &str) -> bool {
+        let du_contrat = self.contrat().and_then(|c| c.get("contrat_debut")).filter(|x| vrai(x)).map(en_texte);
+        !numero.is_empty()
+            && self.texte("salarie") == salarie
+            && self.texte("numero") == numero
+            && du_contrat.unwrap_or_else(|| self.texte("debut")) == debut
+    }
+
     /// LES JOURS DU CONTRAT ENTIER (S21.G00.40.013 d'un contrat d'usage : `Engagement::quotite`) d'un contrat qui continue
     /// ici, `propres` etant ceux que la saisie lui donne : les jours que les bulletins importes impriment, plus les siens ;
     /// a defaut d'un bulletin pour chaque mois verse, la quotite que la DSN deposee a declaree pour ce contrat (elle le
