@@ -1256,6 +1256,8 @@ impl<'a> Moteur<'a> {
     /// LE GESTE d'une case orange qui depose (DPAE, DSN) : le chemin du fichier deja ecrit s'il y en a un, sinon `defaut`.
     fn action_de_depot(&mut self, mois: &str, quoi: &str, nic: &Value, defaut: Value) -> R<(Value, Option<String>)> {
         let Some((etape, fichier, refus)) = self.chemin_de_depot(mois, quoi, nic)? else { return Ok((defaut, None)) };
+        // Le geste ouvre le recapitulatif du depot (`depot-apercu`), qui prend le chemin du fichier.
+        let fichier = fichier["chemin"].clone();
         let nom = if quoi == DSN { "la DSN" } else { "la DPAE" };
         let action = match etape {
             // Le fichier ecrit ne declare plus la paie : la DSN se refait depuis les engagements valides, et repasse par

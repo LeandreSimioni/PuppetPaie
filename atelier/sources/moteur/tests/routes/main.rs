@@ -23,3 +23,4 @@ mod revalider;
 mod contrat_a_cheval;
 mod homonymes;
 mod jumeau_a_completer;
+mod case_de_depot;
