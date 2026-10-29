@@ -149,7 +149,12 @@ pub static TEXTES: &[Texte] = &[
             // LE CONTRAT ECRIT D'UN PERMANENT : l'information ecrite que tout salarie recoit (L1221-5-1, R1221-34 pour ses
             // mentions, R1221-35 pour ses delais et le renvoi aux textes, R1221-39 pour sa forme, R1221-40 pour ce qui change :
             // l'avenant) ; `documents::contrat` en tire les mentions obligatoires d'un CDI et de son avenant.
-            Domaine { cle: "information_ecrite", titre: "L'information ecrite du salarie sur sa relation de travail", numeros: &["L1221-5-1", "R1221-34", "R1221-35", "R1221-38", "R1221-39", "R1221-40"] },
+            // L6321-1 : la formation que l'employeur assure, a laquelle le contrat renvoie (R1221-34, 8°).
+            Domaine { cle: "information_ecrite", titre: "L'information ecrite du salarie sur sa relation de travail", numeros: &["L1221-5-1", "R1221-34", "R1221-35", "R1221-38", "R1221-39", "R1221-40", "L6321-1"] },
+            // LA PERIODE D'ESSAI ET SA DUREE MAXIMALE : celle d'un CDD (L1242-10 : un jour par semaine, deux semaines ou un
+            // mois au plus), celle d'un CDI (L1221-19 par categorie, L1221-21 son renouvellement, L1221-22 ce que la
+            // convention peut y changer, L1221-23 son ecrit) ; `droit::essai` refuse au-dela.
+            Domaine { cle: "periode_essai", titre: "La periode d'essai et sa duree maximale", numeros: &["L1242-10", "L1221-19", "L1221-20", "L1221-21", "L1221-22", "L1221-23", "L1221-24"] },
             // LA FIN D'UN CDD : L1243-5 la fait cesser de
             // plein droit a l'echeance du terme (aucun preavis : L1234-1 est
             // celui du licenciement) ; L1243-1 et L1243-2 disent les ruptures

@@ -331,7 +331,9 @@ notes des articles citent).
 
 **Inférence** : le contrat d'usage du spectacle est un CDD (L1242-2, 3°) ; L1242-12 s'y applique comme à tout CDD, et
 R1221-34 à tout salarié. Les phrases de renvoi (formation, congés, rupture) citent L6321-1, L3141-3, L1243-1, L1243-2,
-L1243-5, L1234-1, L1237-1 et L1237-11 ; L6321-1 n'est pas relevé (R1221-34, 8°, le nomme).
+L1243-5, L1234-1, L1237-1 et L1237-11. **L6321-1** (`LEGIARTI000052437104`, l. 859 ; `xml/L6321-1.xml`, relevé le 29/10/2026
+au domaine `information_ecrite`) : « L'employeur assure l'adaptation des salariés à leur poste de travail » et veille
+au maintien de leur capacité à occuper un emploi ; c'est ce que la phrase de renvoi sur la formation cite (R1221-34, 8°).
 
 **Où le moteur s'en sert** : `logiciel/donnees/contrats-base.json`, `contrat_ecrit` de chaque nature (le modèle livré,
 celui de l'avenant, les **mentions obligatoires**, chacune par son marqueur et le texte qui l'exige, les phrases de
@@ -342,3 +344,34 @@ leur modèle tait une mention) ; les modèles `logiciel/donnees/modeles/contrat-
 vérifié avant d'être posé) ; `moteur/src/routes/mois.rs` (`champs_du_contrat_ecrit` : la personne remplacée,
 L1242-12 1°, et la répartition d'un temps partiel, L3123-6, que l'engagement appelle). Tests :
 `documents/tests/documents/contrat_ecrit.rs`.
+
+## La période d'essai et sa durée maximale : L1242-10 (CDD), L1221-19 à L1221-24 (CDI) (relevé du 29/10/2026)
+
+Le domaine `periode_essai` ajouté à `moteur/src/atelier/releve/codes/textes.rs`, relevé le 29/10/2026 (`moteur
+releve-codes moissonner`, aucune livraison nouvelle : les articles étaient dans l'entrepôt ; puis `rapport`) :
+`articles-20261029.md`, l. 869-912 ; XML : `xml/L1242-10.xml`, `xml/L1221-19.xml` à `xml/L1221-24.xml`.
+
+- **L1242-10** (`LEGIARTI000006901204`) : le CDD « peut comporter une période d'essai » ; sauf usages ou stipulations
+  conventionnelles prévoyant des durées moindres, elle « ne peut excéder une durée calculée à raison d'un jour par
+  semaine, dans la limite de deux semaines lorsque la durée initialement prévue au contrat est au plus égale à six mois
+  et d'un mois dans les autres cas » ; sans terme précis, elle se calcule sur la durée minimale du contrat.
+- **L1221-19** (`LEGIARTI000019071113`) : la période d'essai d'un CDI a pour durée maximale deux mois (ouvriers et
+  employés), trois mois (agents de maîtrise et techniciens), quatre mois (cadres). **L1221-21** : un renouvellement, si un
+  accord de branche étendu le prévoit, jusqu'à quatre, six et huit mois. **L1221-22** : ces durées sont impératives, sauf
+  des durées plus courtes fixées par un accord collectif postérieur à la loi du 25 juin 2008, ou par le contrat.
+  **L1221-23** : la période d'essai et son renouvellement ne se présument pas, ils sont stipulés au contrat. L1221-20 (son
+  objet) et L1221-24 (le stage déduit) sont relevés avec eux.
+- La convention 3090 (`../kali-3090-titres-vii-x-xi-annexes-20260924.md`, art. 7.4 et 7.5, du 01/03/2020) : en CDI,
+  « artistes interprètes : 2 mois de travail effectif », les autres catégories aux durées de la loi ; en CDD, les durées
+  de L1242-10 ; « Toute période d'essai exprimée en jours se décompte en jours calendaires ».
+
+**Inférences**, écrites comme telles dans le code : une semaine de contrat commencée compte pour un jour (le plafond le
+plus large que la phrase permet) ; « six mois », « un mois », « n mois » se comptent du premier jour du contrat au même
+quantième ; la catégorie de L1221-19 se lit dans le classement conventionnel (S21.G00.40.002 : 03 et 04 cadres, 05
+profession intermédiaire, 06 employés, 07 ouvriers ; 01 et 02 ne sont dans aucune des trois, rien ne se juge). Le
+renouvellement (L1221-21) n'est pas jugé : l'engagement ne porte que la période stipulée au contrat.
+
+**Où le moteur s'en sert** : `atelier/sources/droit/src/essai.rs` (`plafond`, `refuser_au_dela`), appelé par
+`engagement/src/calcul.rs` (`essai_dans_son_plafond`) : un engagement dont la période d'essai dépasse son plafond ne se
+calcule pas ; il s'enregistre à compléter, et sa validation refuse en citant le texte. Test :
+`droit/tests/droit/essai.rs`.

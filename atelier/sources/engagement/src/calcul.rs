@@ -1027,6 +1027,21 @@ pub(crate) fn declaree_a_la_caisse_des_conges(p: &Paie) -> Resultat<bool> {
     droit::caisse_conges::affilie(&*e.nat()?, &p.salarie, &e.debut, e.fin.as_ref())
 }
 
+/// LA PERIODE D'ESSAI QUE L'ENGAGEMENT STIPULE ne depasse pas la duree maximale de son contrat (`droit::essai` : C. trav.
+/// L. 1242-10 pour un CDD, L. 1221-19 pour un CDI, la convention 3090 art. 7.4 pour un artiste en CDI). Sa categorie se lit
+/// sur la fiche du salarie telle que l'engagement la voit (`fiche_de_l_engagement`).
+fn essai_dans_son_plafond(ctx: &Contexte, eng: &Engagement, nat: &Nature, sal: &Value) -> Resultat<()> {
+    let Some(v) = eng.ecrit.get("periode_essai_jours") else { return Ok(()) };
+    let Some(jours) = v.as_f64().or_else(|| en_texte(v).trim().replace(',', ".").parse().ok()).map(|x| x.ceil() as i64) else {
+        return Ok(());
+    };
+    let lu = |c: &str| sal.get(c).filter(|x| vrai(x)).map(en_texte);
+    let idcc = ctx.entreprise.get("idcc").map(en_texte).unwrap_or_default();
+    let artiste = lu("statut").as_deref() == Some("artiste");
+    let plafond = droit::essai::plafond(nat, &eng.debut, eng.fin.as_ref(), lu("statut_conventionnel").as_deref(), artiste, &idcc)?;
+    droit::essai::refuser_au_dela(jours, plafond.as_ref(), &format!("{} ({})", qui_salarie(sal), nat.libelle))
+}
+
 /// La paie d'un engagement sur sa periode (la periode de paie, ou une periode elementaire), dans l'ordre du §7. La
 /// configuration de la compagnie se lit a la fin de cette periode (`Contexte::au`).
 pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[Paie]) -> Resultat<Paie> {
@@ -1035,6 +1050,7 @@ pub(crate) fn calculer_periode(ctx: &Contexte, eng: &Engagement, precedentes: &[
     let fin_periode = eng.fin_periode()?;
     let ctx = &ctx.au(&fin_periode)?;
     let sal = fiche_de_l_engagement(ctx, eng)?;
+    essai_dans_son_plafond(ctx, eng, &nat, &sal)?;
     let spec = if nat.mensuelle() {
         Value::Null
     } else {

@@ -794,6 +794,9 @@ function ouvrirCarte(div) {
   const intacte = DERNIERE_ECRITE !== null && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
   construireCarte(div, { ...(lus[0] || {}), salaries: lus.map((x) => x.salarie) });
   if (div._paies) peindreChiffres(div, div._total);
+  // Les cases du contrat écrit que le moteur a demandées pour cet engagement, au dernier aperçu.
+  const p = (div._paies || [])[0];
+  montrerEcrit(div, p && p.contrat && p.contrat.ecrits);
   if (intacte) DERNIERE_ECRITE = JSON.stringify(saisieCourante());
 }
 

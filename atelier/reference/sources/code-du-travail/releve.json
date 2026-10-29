@@ -25,6 +25,14 @@
    "texte": "travail"
   },
   {
+   "apres": "LEGIARTI000052437104",
+   "article": "L6321-1",
+   "avant": "LEGIARTI000049049416",
+   "depuis": "2025-10-26",
+   "livraison": "20251027-211613",
+   "texte": "travail"
+  },
+  {
    "apres": "LEGIARTI000053153300",
    "article": "L3141-5",
    "avant": "LEGIARTI000049461613",
@@ -170,6 +178,36 @@
    "debut": "2017-01-29",
    "en_vigueur": true,
    "id": "LEGIARTI000033971569"
+  },
+  "L1221-19": {
+   "debut": "2008-06-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000019071113"
+  },
+  "L1221-20": {
+   "debut": "2008-06-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000019071111"
+  },
+  "L1221-21": {
+   "debut": "2008-06-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000019071109"
+  },
+  "L1221-22": {
+   "debut": "2023-09-09",
+   "en_vigueur": true,
+   "id": "LEGIARTI000047293356"
+  },
+  "L1221-23": {
+   "debut": "2008-06-27",
+   "en_vigueur": true,
+   "id": "LEGIARTI000019071102"
+  },
+  "L1221-24": {
+   "debut": "2014-07-12",
+   "en_vigueur": true,
+   "id": "LEGIARTI000029236224"
   },
   "L1221-25": {
    "debut": "2014-06-28",
@@ -396,6 +434,11 @@
    "en_vigueur": true,
    "id": "LEGIARTI000052437168"
   },
+  "L1242-10": {
+   "debut": "2008-05-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006901204"
+  },
   "L1242-12": {
    "debut": "2008-05-01",
    "en_vigueur": true,
@@ -582,9 +625,9 @@
    "id": "LEGIARTI000033020794"
   },
   "L3142-1": {
-   "id": "LEGIARTI000045205234",
    "debut": "2022-02-23",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000045205234"
   },
   "L3142-1-1": {
    "debut": "2020-07-01",
@@ -740,6 +783,11 @@
    "debut": "2023-12-31",
    "en_vigueur": true,
    "id": "LEGIARTI000048839886"
+  },
+  "L6321-1": {
+   "debut": "2025-10-26",
+   "en_vigueur": true,
+   "id": "LEGIARTI000052437104"
   },
   "L6321-9": {
    "debut": "2019-01-01",

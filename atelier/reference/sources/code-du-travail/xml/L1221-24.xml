@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000029236224</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/29/23/62/LEGIARTI000029236224.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>L1221-24</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2014-07-12</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006112874">Partie législative  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006132321">Première partie : Les relations individuelles de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006145393">Livre II : Le contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006160709">Titre II : Formation et exécution du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000006177850">Chapitre Ier : Formation du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-06-27" fin="2999-01-01" id="LEGISCTA000019071115">Section 4 : Période d'essai.</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2008-06-27" etat="MODIFIE" fin="2011-07-30" id="LEGIARTI000019071100" num="L1221-24" origine="LEGI"/>
+</VERSION>
+<VERSION etat="MODIFIE">
+<LIEN_ART debut="2011-07-30" etat="MODIFIE" fin="2014-07-12" id="LEGIARTI000024422210" num="L1221-24" origine="LEGI"/>
+</VERSION>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2014-07-12" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000029236224" num="L1221-24" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU/>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>En cas d'embauche dans l'entreprise dans les trois mois suivant l'issue du stage intégré à un cursus pédagogique réalisé lors de la dernière année d'études, la durée de ce stage est déduite de la période d'essai, sans que cela ait pour effet de réduire cette dernière de plus de la moitié, sauf accord collectif prévoyant des stipulations plus favorables. Lorsque cette embauche est effectuée dans un emploi en correspondance avec les activités qui avaient été confiées au stagiaire, la durée du stage est déduite intégralement de la période d'essai. </p>
+<p>Lorsque le stagiaire est embauché par l'entreprise à l'issue d'un stage d'une durée supérieure à deux mois, au sens de l'article L. 124-6 du code de l'éducation, la durée de ce stage est prise en compte pour l'ouverture et le calcul des droits liés à l'ancienneté.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="JORFTEXT000029223331" datesignatexte="2014-07-10" id="LEGIARTI000029229109" naturetexte="LOI" nortexte="MENX1402669L" num="4" numtexte="2014-788" sens="cible" typelien="MODIFIE">LOI n°2014-788 du 10 juillet 2014 - art. 4</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LIEN cidtexte="LEGITEXT000006071191" datesignatexte="2999-01-01" id="LEGIARTI000029233846" naturetexte="CODE" nortexte="" num="L124-6" numtexte="" sens="source" typelien="CITATION">Code de l'éducation - art. L124-6</LIEN>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</LIENS>
+</ARTICLE>
