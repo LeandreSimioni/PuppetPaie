@@ -1,12 +1,9 @@
 //! Le cachet de l'entreprise, DESSINE depuis ses propres donnees -- en SVG.
 //!
-//! ECRIT LE 22/09/2026, sur une remarque de l'editeur qui regardait son AER : ce
-//! que le logiciel posait dans la case << Signature de l'employeur >> n'etait pas
-//! une signature, c'etait un CACHET -- le fichier `gabarits/identite/
-//! signature.png`, que `conges_spectacles.py` appelle lui-meme << un tampon a
-//! l'italienne >>. L'attestation portait donc un tampon dans la case signature,
-//! et RIEN dans la case cachet. Les deux cases etaient a l'envers l'une de
-//! l'autre.
+//! Une attestation a deux cases : << Signature de l'employeur >> et le cachet. Le
+//! fichier `gabarits/identite/signature.png` est un CACHET (<< un tampon a
+//! l'italienne >>), pas une signature : il va dans la case cachet, jamais dans la
+//! case signature.
 //!
 //! POURQUOI LE DESSINER PLUTOT QUE DEMANDER UNE IMAGE. C'est la regle 0 : ce
 //! logiciel n'est ecrit pour aucune compagnie en particulier. Un PNG ne vaut que

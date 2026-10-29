@@ -316,7 +316,7 @@ pub enum IndemniteDePreavis {
     Aucune(String),
     /// Une indemnite d'un montant egal, par un autre article (`motifs_par_un_autre_article`).
     AutreArticle(String),
-    /// Aucun texte depose ne tranche (`motifs_a_trancher`) : le moteur paie comme avant, et le dit.
+    /// Aucun texte depose ne tranche (`motifs_a_trancher`) : le moteur paie l'indemnite (L1234-5), et le dit.
     ATrancher(String),
 }
 

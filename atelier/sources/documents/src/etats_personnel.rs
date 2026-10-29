@@ -84,7 +84,7 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
     Ok(out)
 }
 
-/// `operations_etats.liste_des_contrats`.
+/// La liste des contrats.
 pub fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
@@ -168,7 +168,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         } else {
             socle::codification_ue::codification_ue(f)
         };
-        // LE PAYS, quand la fiche le porte (vagues 1j et 2h, reste R1 #147) : le registre dit la nationalite (C. trav.,
+        // LE PAYS, quand la fiche le porte : le registre dit la nationalite (C. trav.,
         // art. D1221-23, 1°), la categorie DSN la suit entre parentheses ; sans pays, la categorie seule.
         let pays = match texte(&["pays_nationalite"], "") {
             c if c.is_empty() => texte(&["pays_nationalite_hors_liste"], ""),

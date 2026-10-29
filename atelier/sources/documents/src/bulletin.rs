@@ -1133,7 +1133,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
 
 /// Le dossier `gabarits/` de LA COMPAGNIE dont `ent` est la fiche (`_gabarits`,
 /// `Contexte::entreprise_et_gabarits`). Sans `_gabarits`, aucun : la compagnie ne se devine pas d'une variable du
-/// processus (la fenetre en sert plusieurs, ticket #244) ; un document sans dossier n'a ni logo ni signature posee.
+/// processus (la fenetre en sert plusieurs) ; un document sans dossier n'a ni logo ni signature posee.
 pub fn gabarits_de(ent: &Value) -> Option<PathBuf> {
     match ent.get("_gabarits") {
         Some(g) if vrai(g) => Some(PathBuf::from(en_texte(g))),

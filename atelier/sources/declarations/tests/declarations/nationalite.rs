@@ -7,7 +7,7 @@
 //! p. 174, l. 297-303, CRE-11) ; les Etats : `atelier/reference/sources/union-europeenne/LISEZ-MOI.md` ; la liste :
 //! `logiciel/donnees/pays-base.json` (COG de l'INSEE 2026, `atelier/reference/sources/insee-cog-pays/`) ; la table « Pays » :
 //! `logiciel/donnees/pays-dsn-base.json` (`atelier/reference/sources/dsn-nomenclatures/tables-PAYS-et-PAY-20260924.txt`) ;
-//! le pays hors liste : décision de Léandre du 10/10/2026 ; le registre : C. trav., D1221-23
+//! le pays hors liste : une décision d'éditeur ; le registre : C. trav., D1221-23
 //! (`atelier/reference/sources/code-du-travail/xml/D1221-23.xml`).
 
 use serde_json::{json, Value};

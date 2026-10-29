@@ -19,13 +19,13 @@ use socle::fichiers::lire_json_echec as lire_json;
 use socle::fichiers::{repr, vrai};
 use socle::valeur::{getd, nom_type, objet_vide, ou, texte_vide, valeur_en_texte};
 
-/// Les tables fixes de `operations_exports` et `operations_ecritures`.
+/// Les tables fixes des exports et des ecritures comptables.
 pub fn tables() -> &'static Value {
     static T: OnceLock<Value> = OnceLock::new();
     T.get_or_init(|| serde_json::from_str(include_str!("exports_tables.json")).expect("exports_tables.json"))
 }
 
-/// Les logiciels du comptable que `operations_ecritures.LOGICIELS` connait.
+/// Les logiciels du comptable que les ecritures comptables connaissent.
 pub fn logiciels_connus() -> Vec<&'static str> {
     tables()["logiciels"].as_array().expect("logiciels").iter().filter_map(|l| l["logiciel"].as_str()).collect()
 }

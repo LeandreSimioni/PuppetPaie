@@ -884,7 +884,7 @@ fn nature_de(e: &Value, rang: usize, mois: &str) -> Resultat<Arc<Nature>> {
         .map_err(|m| format!("Engagement {} de {} : {}", rang, mois, m))
 }
 
-/// Ce que `operations_permanents.lignes_du_mois` rend pour un engagement paye
+/// Ce que `conges::lignes_du_mois` rend pour un engagement paye
 /// au mois : les lignes de paie du mois, et ce qu'il y a a en dire.
 pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(Vec<Value>, Vec<Avis>)>;
 
@@ -1069,7 +1069,7 @@ pub fn saisie_incomplete(message: &str) -> bool {
     message.starts_with("L'engagement ") && SAISIE_INCOMPLETE.iter().any(|p| message.contains(p))
 }
 
-/// REGLE 1, ticket #125 : une ligne dont la rubrique demande ses heures (`heures` dans sa `saisie`, aucun forfait --
+/// REGLE 1 : une ligne dont la rubrique demande ses heures (`heures` dans sa `saisie`, aucun forfait --
 /// `Rubrique::heures_a_saisir` : le service de repetition, la journee, la semaine, le mois, l'absence a la journee)
 /// les dit, sinon l'engagement se refuse. Sans elles, la ligne paierait et declarerait zero heure en DSN, en AEM, aux
 /// Conges Spectacles et a l'assurance chomage, sans un mot : `Rubrique::heures` n'a rien d'autre a compter. Une ligne
@@ -1295,7 +1295,7 @@ pub fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Value> {
     stock::vue_du_mois(racine, mois)?.ok_or_else(|| format!("{} : aucun engagement ne touche ce mois ({}/).", mois, stock::DOSSIER))
 }
 
-/// UN NUMERO DE CONTRAT EST CELUI D'UN SEUL SALARIE (regle 4 ; #139) : il se lit, il ne se partage pas. Un salarie
+/// UN NUMERO DE CONTRAT EST CELUI D'UN SEUL SALARIE (regle 4) : il se lit, il ne se partage pas. Un salarie
 /// coche en plus dans un bloc deja numerote, ou un numero recopie a la main, le porterait sur deux contrats : la DSN
 /// declarerait deux salaries sous le meme 40.009. Le refus nomme le numero et les deux salaries, quelle que soit la
 /// face qui a ecrit la saisie.

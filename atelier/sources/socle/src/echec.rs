@@ -109,8 +109,8 @@ pub fn echecs_notes() -> MutexGuard<'static, VecDeque<Echoue>> {
     les_echecs().lock().unwrap_or_else(|p| p.into_inner())
 }
 
-/// Un refus et, quand Python l'aurait leve sous un nom, la classe de
-/// l'exception (`SaisieIncomplete`, `KeyError`...).
+/// Un refus et, quand il porte un nom, sa classe
+/// (`SaisieIncomplete`, `KeyError`...).
 #[derive(Debug)]
 pub struct Refus {
     pub classe: Option<&'static str>,
