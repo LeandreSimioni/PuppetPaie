@@ -774,7 +774,7 @@ fn sans_accents(t: &str) -> String {
 /// signes. Ils vont dans le ZIP, pas dans un PDF.
 fn signatures(ctx: &Contexte, cle: &str, p: &Periode) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    for mois in documents::fiche_recapitulative::mois_saisis(ctx) {
+    for mois in engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default() {
         if !p.contient(&mois) {
             continue;
         }
@@ -1150,7 +1150,7 @@ pub(crate) fn construire(ctx: &Contexte, charge: &Value) -> R<Dossier> {
     let mut pages: Vec<Page> = Vec::new();
     let mut contrats_vus: HashSet<String> = HashSet::new();
     let mut attente: HashMap<(String, String), i64> = HashMap::new();
-    let mois_saisis = documents::fiche_recapitulative::mois_saisis(ctx);
+    let mois_saisis = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default();
     for m in &mois_saisis {
         if p.contient(m) {
             pages.extend(mois_puppetpaie(ctx, m, &ensemble_cles, &ensemble_cats, tmp, &mut d, &aujourdhui, &mut contrats_vus, &mut attente)?);

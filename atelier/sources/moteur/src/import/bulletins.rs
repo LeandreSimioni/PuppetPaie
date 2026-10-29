@@ -266,7 +266,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
 
     // 2. Les bulletins, page par page.
     let table = Table::livree().map_err(|m| erreur("ErreurOperation", format!("La table de lecture des bulletins ne se lit pas : {}", m)))?;
-    let saisis: HashSet<String> = crate::routes::etapes::mois_saisis(&ctx.racine).into_iter().collect();
+    let saisis: HashSet<String> = engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default().into_iter().collect();
     let mut pages: BTreeMap<usize, Vec<PageCr>> = BTreeMap::new();
     let mut illisibles: BTreeMap<usize, String> = BTreeMap::new();
     let mut lus: Vec<Lu> = Vec::new();

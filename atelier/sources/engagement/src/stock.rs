@@ -598,10 +598,12 @@ pub fn canonique(v: &Value) -> String {
 }
 
 /// Les mois que la saisie a touches : les fichiers, et les mois que chaque engagement a saisis ou couvre jusqu'a sa fin ;
-/// un contrat sans terme, jusqu'au dernier mois ecrit.
+/// un contrat sans terme, jusqu'au dernier mois ecrit ou jusqu'au mois d'aujourd'hui s'il est plus loin : un CDI de
+/// janvier que rien n'a saisi depuis a une paie, une DSN et des documents chaque mois qu'il court.
 pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
     let mut v: Vec<String> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).collect();
-    let horizon = v.iter().max().cloned();
+    let courant = droit::contexte::aujourdhui_sans_note()?.mois_iso();
+    let horizon = v.iter().max().cloned().map(|h| h.max(courant));
     for o in objets(racine)?.into_iter().filter(|o| !o.est_importe()) {
         v.extend(o.mois_saisis());
         let fin = match o.dernier_mois()? {

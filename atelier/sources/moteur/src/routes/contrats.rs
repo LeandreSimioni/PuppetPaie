@@ -338,7 +338,7 @@ fn avenant_a_relancer(ctx: &Contexte, v: &Value) -> R<UnAvenant> {
 }
 
 /// Les avenants voulus, verifies, puis la boite, la preuve, et `envois_signature::envoyer_avenants`.
-fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve, ouvrir: Ouvrir) -> R<envois::envois_signature::Avenants> {
+pub(crate) fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve, ouvrir: Ouvrir) -> R<envois::envois_signature::Avenants> {
     if voulus.is_empty() {
         return Err(refus("Aucun avenant coché. Rien n'est parti."));
     }

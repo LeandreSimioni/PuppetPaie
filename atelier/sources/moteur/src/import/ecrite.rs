@@ -159,7 +159,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
             dispo.insert(valeur_en_texte(m));
         }
     }
-    dispo.extend(crate::routes::etapes::mois_saisis(&ctx.racine));
+    dispo.extend(engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default());
     let depuis = valeur_en_texte(&base["depuis"]);
     let contrat = valeur_en_texte(&base["dsn"]["contrat"]);
     let mut par_mois: Vec<(String, Decimal)> = Vec::new();
