@@ -2030,7 +2030,11 @@ donnees/prevoyance-conventionnelle-base.json.",
         )
     }
 
-    /// (la cotisation est-elle due, pourquoi) pour ce salarie, ce mois-la.
+    /// (la cotisation est-elle due, pourquoi) pour ce salarie, ce mois-la. Le seuil de la convention
+    /// (`beneficiaires.ouverture_*_mois`) : sous la 3090, « due pour les non cadres, des lors que le salarie acquiert un
+    /// an d'anciennete dans la branche du secteur prive du spectacle vivant ; pour les cadres, des l'embauche » (fiche
+    /// produit Audiens, `atelier/reference/sources/audiens-3090-prevoyance-sante-fiche-produit-2021.txt`, l. 102-106).
+    /// Ce temps dans la branche est un fait que seule la fiche dit (`prevoyance_branche_depuis`) : il se demande.
     fn ouverture(reg: &Value, sal: &Value, cadre: bool, fin: Option<&Jour>) -> Resultat<(bool, String)> {
         let b = g(reg, "beneficiaires");
         let seuil = entier(g(b, if cadre { "ouverture_cadre_mois" } else { "ouverture_non_cadre_mois" }));
