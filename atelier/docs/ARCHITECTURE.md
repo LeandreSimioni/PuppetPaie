@@ -140,6 +140,26 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
   correction part dans la DSN d'un mois suivant (`declarations::produire_regularisations::regularisations_pour`). La DSN d'un mois déposée par l'ancien logiciel ne
   se refait pas ici (règle 4) : ce que la saisie ajoute à ce mois se déclare dans la DSN suivante. L'AER ne se fabrique
   pas : France Travail la renvoie, et elle se vérifie contre les paies écrites.
+- **Une pièce partie dont le fichier manque se refait pour se lire** (`depart::piece_partie`, route `piece-partie`, que
+  `ouvrir-piece` demande ; l'Historique liste ce que le journal dit parti, fichier présent ou non, et un mois y lit aussi
+  les signalements de ses jours). Elle se refait par la fonction qui l'a fabriquée, depuis ce que sa ligne du journal
+  porte : les engagements dans la version qu'elle a emportée (`versions`), au jour et à l'heure où elle a été écrite (le
+  journal des écritures, `dsn-ecrites.json`, sinon l'instant de la ligne ; `socle::temps::pendant`), sous le numéro
+  d'ordre de sa ligne. Se refont ainsi la DSN mensuelle (avec les arrêts qu'elle reporte et les corrections qu'elle
+  portait), la DPAE (son `.zip`, son récapitulatif), les signalements d'amorçage, d'arrêt, de reprise et de fin de
+  contrat, le contrat et l'avenant (et leur description gardée), le bulletin, le rectificatif et le bulletin d'origine
+  gardé à côté de lui, le certificat Congés Spectacles, et l'archive du mois. Ce qui a une empreinte au journal (DSN,
+  DPAE, signalements) se vérifie par elle, un contrat par les clauses que sa ligne a notées : une pièce refaite qui ne
+  dit pas ce qui est parti s'efface et la page dit que le fichier manque. La fabrique des PDF est déterministe (date de
+  création fixe), rien n'y dépend de l'heure de la machine. **Ne se refait jamais ce qui vient de dehors** : le contrat
+  contresigné (rendu par le salarié), les bilans et comptes rendus ; l'AER se relit dans `retours/` (l'archive du retour
+  46) et se range comme à sa relève. Règle 4 : une pièce refaite se lit, elle ne repart jamais ; ce qui repart se
+  fabrique à son départ. Un annule-et-remplace de signalement ne se refait pas : sa ligne ne dit pas ce qu'il remplaçait.
+- **Un contrat rompu n'a pas d'avenant** (code du travail L. 1243-1, `reference/sources/code-du-travail/`) : la rupture
+  d'un CDD avant son terme met fin au contrat signé, elle ne le modifie pas. Une saisie qui ne diffère du contrat parti
+  que par sa rupture (le motif, la fin et le préavis qu'il appelle, les jours d'après la fin retirés) ne le rend pas à
+  refaire signer (`routes::contrats::seule_la_rupture`, lu par `routes::etapes::a_refaire_du_mois`) ; ce qui change en
+  même temps (un taux) en fait un avenant.
 - **Le recalcul de lui-même** (`etats::rafraichir`, à chaque lecture d'un mois, `etats::du_mois`) : une paie validée
   dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
   chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
