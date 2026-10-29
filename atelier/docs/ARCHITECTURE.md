@@ -888,13 +888,10 @@ Ce qui sépare un permanent d'un intermittent, en une page :
 
 ### Le barème a trois étages : le socle livré, la couche de convention, la surcouche de la compagnie
 
-Coupé en deux le 19/09/2026. Un barème mélangeait les taux de **droit
-commun** — Urssaf, Agirc-Arrco, chômage, CSG, plafond, SMIC, et les taux de
-la **branche** du spectacle — qui sont les mêmes pour tout le monde, et ce
-qui est **propre à une entreprise**, qui tient en un nombre : son taux AT/MP
-notifié. Mélangés, ils obligeaient chaque compagnie qui installe PuppetPaie à
-écrire mille lignes de taux nationaux, c'est-à-dire à relever elle-même ce
-que nous avions déjà relevé.
+Les taux de **droit commun** — Urssaf, Agirc-Arrco, chômage, CSG, plafond, SMIC, et les taux de la **branche** du
+spectacle — sont les mêmes pour tout le monde ; ce qui est **propre à une entreprise** tient en un nombre : son taux
+AT/MP notifié. Les premiers sont livrés, le second seul s'écrit dans la compagnie : une compagnie qui installe
+PuppetPaie ne relève pas elle-même les taux nationaux.
 
 ```
 logiciel/donnees/baremes/2026.json      le socle : droit commun + tout le spectacle
@@ -919,35 +916,30 @@ tranche B). C'est `idcc` de la fiche entreprise qui choisit — pas le code.
 payer un salarié d'une autre branche avec la CASC-SVP de la 3090 — une
 cotisation qu'il ne doit pas, un FNAS qu'il doit et qui manque — ne se
 verrait sur aucun bulletin. Une couche `applicable: false` refuse aussi :
-ses nombres sont relevés, pas confirmés (ce fut l'état de la 1285 jusqu'au
-23/09/2026), et le refus dit ce qu'il reste à relever.
+ses nombres sont relevés, pas confirmés, et le refus dit ce qu'il reste à relever.
 
-**Ce qu'une couche peut porter en plus de rubriques à fondre** — et que la
-1285 a fait écrire :
+**Ce qu'une couche peut porter en plus de rubriques à fondre** :
 
 - `contributions_conventionnelles` : des rubriques posées par
-  `calcul.bareme_convention` **après** le statut et la nature du contrat,
+  `droit::bareme::bareme_convention` **après** le statut et la nature du contrat,
   donc pour tout le monde — la section `technicien` du socle recopie la
   CASC-SVP de la 3090 dans son `ccn`, et le FNAS doit la remplacer là aussi.
   Un taux peut y dépendre de la **représentation du personnel** de la fiche
   entreprise (`representation_personnel`, lue par
-  `calcul.representation_du_personnel`, confrontée à l'effectif) et de la
+  `droit::bareme::representation_du_personnel`, confrontée à l'effectif) et de la
   nature du contrat : c'est le FNAS, 1,45 % sous onze salariés ou sans
   représentation, 0,825 % (permanents) / 1,325 % (intermittents) avec un CSE
   conventionnel ou un CSE adhérent, rien avec un CSE qui n'adhère pas.
 - `contributions_dsn` : les contributions que la DSN déclare sous une
   **adhésion Audiens** de la compagnie, comme la CASC-SVP de la 3090 — le
-  FNAS et le FCAP de la CCNEAC. `dsn.contributions_dsn` les résout mois par
+  FNAS et le FCAP de la CCNEAC. `dsn::contributions_dsn` les résout mois par
   mois (l'adhésion se lit dans `organismes.json`, `"contribution": "FNAS"`,
-  et le moteur refuse sans elle), et `dsn.places_par_contrat` réserve autant
-  d'identifiants d'affiliation de plus : trois pour la 3090, comme toujours
-  — la numérotation des DSN déposées ne bouge pas —, quatre pour la 1285.
+  et le moteur refuse sans elle), et `dsn::places_par_contrat` réserve autant
+  d'identifiants d'affiliation de plus : trois pour la 3090, quatre pour la 1285.
 
-`moteur/baremes.fusionner` empile les trois, et `Contexte._bareme_brut` est
+`droit::contexte::fusionner` empile les trois, et `Contexte::bareme_brut` (`droit/src/contexte.rs`) est
 le seul endroit qui le fait : le reste du moteur lit un barème déjà fondu et
-n'a pas à savoir d'où vient quel nombre. Un appel direct sans IDCC
-(`idcc=None`) ne résout pas la convention et laisse le socle tel quel —
-c'est le cas d'un outil ou d'un bac à sable.
+n'a pas à savoir d'où vient quel nombre.
 
 **La règle de fusion a une subtilité.** Un dictionnaire se fond clé par clé.
 Une **liste d'objets nommés** — les rubriques du bulletin (`id`), les
@@ -965,20 +957,14 @@ Une liste de **valeurs** (les paliers du SMIC, les composants d'une
 cotisation), elle, se remplace en entier.
 
 **Le marqueur `socle` est explicite, et c'est voulu.** Un fichier qui ne le
-porte pas est un barème **complet**, pris tel quel : ceux d'avant la coupure,
-et les bacs à sable des tests. Deviner aurait été dangereux dans les deux
-sens — une surcouche prise pour un barème complet paierait avec trois taux,
-un barème complet pris pour une surcouche hériterait de taux qu'il avait de
-bonnes raisons de ne pas avoir. `baremes.fige()` rend un barème autonome à
-partir d'une surcouche, socle fondu et marqueur retiré.
+porte pas est un barème **complet**, pris tel quel (`droit/src/contexte.rs`, la lecture du marqueur). Deviner serait
+dangereux dans les deux sens — une surcouche prise pour un barème complet paierait avec trois taux,
+un barème complet pris pour une surcouche hériterait de taux qu'il a de
+bonnes raisons de ne pas avoir.
 
-**Le taux AT/MP ne s'écrit plus qu'une fois.** Il en existait cinq copies, et
-un test de non-régression pour dire, chaque janvier, laquelle avait été
-oubliée. Les rubriques du socle portent maintenant leur **facteur** — 0,70
-pour un artiste, dont les taux Urssaf sont abattus de 30 % (arrêté du
-24/01/1975), 1 pour tout le monde d'autre — et `calcul.bareme_atmp` fait la
-multiplication. Il reste deux copies, dans les CTP de `organismes.json`, et
-le test les garde alignées.
+**Le taux AT/MP ne s'écrit qu'une fois**, dans la surcouche de la compagnie (`taux_atmp`). Les rubriques du socle
+portent leur **facteur** (`_facteur_atmp`) — 0,70 pour un artiste, dont les taux Urssaf sont abattus de 30 % (arrêté
+du 24/01/1975), 1 pour tout le monde d'autre — et `droit::bareme::bareme_atmp` fait la multiplication.
 
 **Trois valeurs du socle supposent une entreprise de moins de onze
 salariés** : le FNAL à 0,10 % (0,50 % à partir de 50), la formation
@@ -988,14 +974,12 @@ nommées dans `_ce_qui_depend_de_l_entreprise`, en tête du socle.
 
 ### L'effectif, ses seuils, et ce que le moteur refuse
 
-Venu de `CLAUDE.md` (règle 8) le 04/10/2026, tel quel pour l'essentiel.
-
-**Ce que l'effectif change est écrit pour être LU**, depuis le 21/09/2026 : la
+**Ce que l'effectif change est écrit pour être LU** : la
 section `seuils_effectif` du socle dit, chemin par chemin, où vit chaque valeur
 qui dépend de l'effectif et ce que le socle y porte (formation des permanents à
 onze salariés ; FNAL, `tdelta` et échéance de la DSN à cinquante).
-`droit/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — depuis
-le 23/09/2026 il ne se saisit plus : il arrive en CRM de nature 118,
+`droit/src/contexte.rs` la confronte à l'effectif **calculé par l'Urssaf** — il ne se saisit
+pas : il arrive en CRM de nature 118,
 `envois/src/releve_retours.rs` l'écrit seul dans `config/effectifs.json` à chaque relevé, et
 un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — et
 **refuse de payer** si la surcouche ne suit pas le palier atteint.
@@ -1009,14 +993,14 @@ un seuil n'est franchi qu'après cinq années consécutives (L. 130-1, II) — e
 - Ces seuils-là (formation, FNAL, échéance de la DSN) sont ceux du code de la
   sécurité sociale ; ceux du CSE (CCNEAC, 11 et 50) relèvent du code du travail,
   et le moteur ne les tranche pas avec l'effectif de l'Urssaf : la représentation
-  déclarée fait foi (`calcul.representation_du_personnel`).
+  déclarée fait foi (`droit::bareme::representation_du_personnel`).
 - Une valeur surchargée dans la surcouche est tenue pour décidée, comme le taux
   AT/MP.
 - Le même module refuse une **adhésion à une organisation patronale** dont la
   couche n'est pas relevée (`par_organisation_patronale`) et un **second
   établissement** incomplet (adresse, taux AT/MP) ; complet, il a sa propre DSN
-  depuis le 25/09/2026 (`droit/src/contexte.rs`, `declarations/src/dsn.rs`). Le contrôle est appelé dans
-  `Contexte._bareme_brut`, seul endroit que les deux fronts traversent.
+  (`droit/src/contexte.rs`, `declarations/src/dsn.rs`). Le contrôle (`contexte::controler`) est appelé dans
+  `Contexte::bareme_brut`, seul endroit que les deux fronts traversent.
 
 ### Le barème a deux axes, pas un
 
@@ -1025,14 +1009,16 @@ artiste ou technicien — c'est-à-dire si ses taux Urssaf sont abattus de 30 %
 (arrêté du 24/01/1975). `par_nature` dit si son contrat est un CDDU ou un
 contrat permanent. **Les deux sont indépendants** : un comédien en CDI garde
 ses taux abattus *et* perd les Congés Spectacles. La pile est toujours la
-même, et dans cet ordre :
+même, dans cet ordre, et elle ne s'écrit qu'à un endroit, `droit::bareme::bareme_applique` :
 
 ```
-bareme_du_statut  →  bareme_de_la_nature  →  bareme_cadre
+établissement du salarié → statut (bareme_du_statut) → taux AT/MP → nature (bareme_de_la_nature) → caisse des
+Congés Spectacles → convention → CASC → santé → retraite en tranche 1 → catégorie (bareme_cadre) → article 45 →
+prévoyance → régime local → versement mobilité
 ```
 
-`calcul.calculer`, `dsn.cotisations` et le bloc 54 l'appliquent tous les
-trois. En sauter un, c'est déclarer les cotisations de quelqu'un d'autre.
+Le calcul du bulletin et la DSN (`dsn::cotisations`, le bloc 54) lisent le barème de cette pile ; en sauter un étage,
+ce serait déclarer les cotisations de quelqu'un d'autre.
 
 La section `par_nature` empile par identifiant (`rubriques` remplace,
 `rubriques_retirees` enlève, `rubriques_ajoutees` insère) ; seule la
@@ -1041,19 +1027,12 @@ du statut, et la nature ne change que la destination de la part chômage
 (`018:urssaf` et CTP 668 pour un permanent, `018:chomage` et CTP 671 pour un
 intermittent).
 
-**La section `par_nature.permanent` du barème 2026 n'est toujours pas
-vérifiée**, donc elle refuse — mais ce qui manque a rétréci le 19/09/2026,
-quand la fiche de paramétrage Audiens (version 139) a été relue en entier :
-elle porte les permanents, et c'est même le seul endroit où ils apparaissent.
-La **santé** y est relevée (1,44 / 1,84 / 2,04 % du PMSS selon le niveau) et
-la **CASC-SVP** aussi (0,50 % de la tranche A). La **prévoyance des
-permanents** n'est plus un trou : son taux vient de la convention, pas du
-barème (voir plus haut), et la rubrique porte `_rempli_par` comme la mutuelle.
-Ce qui retient encore la section, ce sont trois choses d'une autre nature : la
-**répartition de la CASC-SVP**, le **bloc 54 type 93**, et les deux
-**affiliations DSN 059** — leurs identifiants techniques viennent de la fiche
-de paramétrage, qui n'existe qu'une fois l'entreprise adhérée au régime de sa
-branche. La santé, elle, ne
+**La section `par_nature.permanent`** des barèmes 2025 et 2026 est vérifiée (`_verifie`). La fiche de paramétrage
+Audiens (version 139) porte les permanents : la **santé** (1,44 / 1,84 / 2,04 % du PMSS selon le niveau) et la
+**CASC-SVP** (0,50 % de la tranche A). La **prévoyance des permanents** vient de la convention, pas du barème (voir
+plus haut), et la rubrique porte `_rempli_par` comme la mutuelle. Les identifiants techniques des deux
+**affiliations DSN 059** viennent de la fiche de paramétrage de l'entreprise, qui n'existe qu'une fois l'entreprise
+adhérée au régime de sa branche : ce sont ses références d'adhésion (`organismes.json`). La santé ne
 se relève pas dans un barème : c'est un **forfait** dont le niveau se lit sur
 le bulletin d'adhésion du salarié (`sante_svp` sur sa fiche), et sans ce
 choix le moteur refuse, salarié par salarié.
@@ -1066,22 +1045,22 @@ général, avec le taux AT), 635 et 430 (compléments maladie et allocations
 familiales — le CTP 100 porte encore les anciens taux réduits 7,00 et 3,45),
 332 (FNAL plafonné), 772 (chômage), 937 (AGS), 959 (CFP), 987 (CPF-CDD, 1 % du
 brut d'un CDD de droit commun, C. trav. L. 6331-6 : la somme des cotisations 129 du
-nominatif ; le barème l'ajoute par `bareme::bareme_cpf_cdd` depuis le 11/10/2026), 668 (réduction
+nominatif ; le barème l'ajoute par `bareme::bareme_cpf_cdd`), 668 (réduction
 générale **étendue**, celle qui inclut le chômage : la somme des 018 de l'Urssaf
 du nominatif, parts sécurité sociale et chômage, guide déclaratif Urssaf § 8.2 ;
 `dsn::reduction_a_l_urssaf`, la même lecture pour le bordereau courant et pour
-celui d'une correction, depuis le 10/10/2026). Une correction qui fait
+celui d'une correction). Une correction qui fait
 **baisser** la réduction l'écrit sous son CTP de régularisation, 669 (801 pour
 le 671 d'un technicien intermittent), en assiette (23.004) et sans signe, et
 non en montant négatif (guide § 8.2, schéma ; `reduction_generale.dsn.ctp_regularisation`
-du barème, depuis le 11/10/2026). Un mois qui porte un
+du barème). Un mois qui porte un
 permanent sans aucun CTP marqué `"nature": "permanent"` **refuse** : le
 bordereau est un ordre de prélèvement.
 
-Le CTP 983 de l'intermittent devient conditionnel (`"nature": "intermittent"`) ;
+Le CTP 983 de l'intermittent est conditionnel (`"nature": "intermittent"`) ;
 les compléments abattus 432 et 636 ne portent que le brut des **artistes**
 (`"statut": "artiste"`), et un technicien intermittent relève des compléments au
-taux plein 430 et 635 (`"statut": "technicien"`, depuis le 11/10/2026 : « Les
+taux plein 430 et 635 (`"statut": "technicien"` : « Les
 techniciens ne sont pas concernés » par les taux réduits, page Urssaf déposée dans
 `atelier/reference/sources/urssaf-taux-reduits-artistes/`). Une ligne de
 `ctp_urssaf` peut dépendre de l'effectif (`effectif_au_moins`, `effectif_sous`, lus
