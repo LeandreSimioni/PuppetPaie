@@ -42,10 +42,10 @@ function serveurPerdu() {
   document.getElementById("veille-maintenant").hidden = true;
 }
 
-/* L'ÉCRAN D'UN MOIS SE LIT D'UN COUP (Leandre, 09/10/2026 : « juste de la
- * lecture » ; PLAN-MOIS-INSTANTANE.md). Les lectures d'un mois (la saisie, les
+/* L'ÉCRAN D'UN MOIS SE LIT D'UN COUP : juste de la
+ * lecture. Les lectures d'un mois (la saisie, les
  * contrats en cours, les états, les embauches, les fins, les imprévus,
- * l'aperçu) ne partent plus une à une au moteur : une
+ * l'aperçu) ne partent pas une à une au moteur : une
  * seule demande `mois` les rend toutes, gardées en mémoire
  * par la fenêtre elle-même, sans calcul. Le calcul s'est fait avant, quand
  * quelque chose a changé. Chaque lecture garde sa forme (résultat ou refus) :
@@ -85,7 +85,7 @@ function lireReponse(d) {
 }
 
 /** Tout ce que l'écran de `mois` lit, en une demande (partagée si elle est déjà en route).
- *  `perimeAdmis` (le changement de mois, ticket #212) : le dernier état connu, même périmé — il arrive tout de suite,
+ *  `perimeAdmis` (le changement de mois) : le dernier état connu, même périmé — il arrive tout de suite,
  *  marqué `perime`, et `verifierLeMois` le remplace par l'état frais. Sans lui (une relecture après une écriture) :
  *  l'état frais seulement. */
 function lireLeMois(mois, perimeAdmis = false) {
@@ -107,15 +107,15 @@ function lireLeMois(mois, perimeAdmis = false) {
 
 function oublierLeMois() { LU = null; LU_EN_COURS = null; LU_GENERATION++; }
 
-/** L'écran de `mois` arrivé avec l'ouverture (ticket #244, js/demarrage.js) : c'est la lecture `mois` que la page
+/** L'écran de `mois` arrivé avec l'ouverture (js/demarrage.js) : c'est la lecture `mois` que la page
  *  aurait faite, servie de même (dernier état connu, `perime` s'il l'est). */
 function poserLeMois(mois, ecran) {
   LU = { mois, lectures: (ecran && ecran.lectures) || {}, perime: !!(ecran && ecran.perime) };
   LU_EN_COURS = null;
 }
 
-/* L'ÉTAT AFFICHÉ SE VÉRIFIE DERRIÈRE (ticket #212, Leandre, 16/10/2026 :
- * « quand je change de mois c'est pas instantané »). Un mois s'affiche avec
+/* L'ÉTAT AFFICHÉ SE VÉRIFIE DERRIÈRE : changer de mois est
+ * instantané. Un mois s'affiche avec
  * son dernier état connu, même périmé ; le moteur le refait en fond, et
  * `verifierLeMois` attend l'état frais (`attendre`) pour repeindre l'écran,
  * s'il a changé, sans toucher à une saisie en cours (`repeindreLeMois`). Tant
@@ -184,8 +184,8 @@ async function api(route, charge = {}) {
   try { return await appelerMoteur(route, charge); } finally { oublierLeMois(); }
 }
 
-/* LES GESTES DE LA PAGE (Léandre, 23/10/2026 : « un petit historique de toutes
- * les actions sur la machine, joint au ticket… les 3 minutes d'avant »). La
+/* LES GESTES DE LA PAGE : un petit historique des actions sur la machine,
+ * joint au signalement, les 3 minutes d'avant. La
  * page note ce qu'on y fait — un clic (sur quel bouton, lien, carte), un champ
  * modifié (son nom et ce qu'on y a mis), une boîte qui s'ouvre, ce que la
  * console dit d'une erreur — et le joint à sa prochaine demande au moteur
@@ -298,7 +298,7 @@ async function appelerMoteur(route, charge = {}) {
     throw perdu;
   }
   // UN CORPS QUI N'EST PAS DU JSON : un refus du serveur avant la
-  // route (corps trop gros) le dit désormais en JSON, mais une réponse vide
+  // route (corps trop gros) le dit en JSON, mais une réponse vide
   // ou coupée ne doit pas lever une SyntaxError sans phrase.
   const texte = await r.text();
   let d;
@@ -474,8 +474,8 @@ async function ouvrirEtDire(route, charge = {}) {
   } catch (e) { dire(e.message, "erreur"); }
 }
 
-/** `type` : "erreur" (en rouge), "envoye" (ce qui est parti : en vert, coché — ticket #220, Léandre, 20/10/2026 :
- *  « un petit "envoi en cours" et "message envoyé" joli »), rien pour une simple nouvelle. */
+/** `type` : "erreur" (en rouge), "envoye" (ce qui est parti : en vert, coché),
+ *  rien pour une simple nouvelle. */
 function dire(texte, type) {
   // Le refus d'un envoi d'une fictive ajoutée est déjà dans sa boîte (`montrerEnvoiRefuse`).
   if (type === "erreur" && ENVOI_REFUSE_MONTRE !== null && texte === ENVOI_REFUSE_MONTRE) return;

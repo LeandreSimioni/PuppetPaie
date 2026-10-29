@@ -125,8 +125,8 @@ function boiteDiagnostic(d, rang, signales = []) {
  * émettre une envie, une idée ») : le bouton s'appelle « Un problème, une
  * idée ? ».
  *
- * L'UTILISATEUR ÉCRIT, JOINT SES CAPTURES ET ENVOIE (ticket #98, 01/10/2026 :
- * « les gens veulent que l'on règle leur problème »). Cinq captures au plus,
+ * L'UTILISATEUR ÉCRIT, JOINT SES CAPTURES ET ENVOIE :
+ * les gens veulent que l'on règle leur problème. Cinq captures au plus,
  * collées ou choisies. « Réduire » range la boîte dans une pastille, le temps
  * de prendre une capture de l'écran qu'elle cachait, sans rien perdre.
  * « Voir ce qui part » reste là pour qui veut regarder, mais n'est plus une
@@ -270,20 +270,18 @@ function boiteSignalement() {
   };
   $("sg-fermer").onclick = () => fermerBoite();
 
-  // CAPTURER L'ÉCRAN, PAR LE LOGICIEL (ticket #102, 02/10/2026 : « un bouton,
-  // capturer l'écran actuel, une espèce d'imprime-écran »). La photo est la
+  // CAPTURER L'ÉCRAN, PAR LE LOGICIEL : un bouton,
+  // capturer l'écran actuel, une espèce d'imprime-écran. La photo est la
   // page SANS cette boîte -- et avec la fenêtre qu'elle recouvrait (une DPAE,
   // un dépôt) --, celle de la PAGE, dessinée par html2canvas : ce qui est hors
   // de PuppetPaie (une autre fenêtre, le bureau) n'y est pas.
   //
-  // LA BOÎTE NE BOUGE PLUS (#253, 23/10/2026 : « quand j'ai cliqué sur
-  // capturer l'écran ça a pris 1,5 seconde alors que ça devrait être
-  // instantané, en arrière-plan discret »). Elle s'effaçait de l'écran le temps
-  // de la photo, puis revenait. Elle reste : c'est dans la COPIE de la page que
-  // html2canvas dessine qu'on la retire et qu'on remet la fenêtre d'en dessous
+  // LA BOÎTE RESTE À L'ÉCRAN : capturer l'écran est
+  // instantané, en arrière-plan discret. C'est dans la COPIE de la page
+  // que html2canvas dessine qu'on retire la boîte et qu'on remet la fenêtre d'en dessous
   // (`photographierLaPage`). Une place « capture… » tient celle de l'image
-  // pendant le dessin ; Envoyer attend qu'elle soit posée. L'image est la même
-  // qu'avant : la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
+  // pendant le dessin ; Envoyer attend qu'elle soit posée. L'image est
+  // la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
   $("sg-capturer").onclick = () => {
     montrerErreur("");
     if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
@@ -339,7 +337,7 @@ function boiteSignalement() {
       const r = await api("signalement-envoyer", charge());
       $("sg-pre").hidden = true;
       $("sg-resultat").hidden = false;
-      // D'ABORD MERCI, puis où en est l'envoi, dit par le moteur (ticket #220 : « envoi en cours » puis
+      // D'ABORD MERCI, puis où en est l'envoi, dit par le moteur (« envoi en cours » puis
       // « message envoyé »). La réponse revient dans « Vos messages ».
       SG_ENVOI = { id: r.id, deja: !!r.deja };
       $("sg-resultat").innerHTML = departDuMessage((r.signalements || []).find((s) => s.id === r.id));
@@ -377,7 +375,7 @@ function chargerHtml2canvas() {
  *  L'écran, lui, ne change pas : tout se fait dans la copie de la page que html2canvas dessine (`onclone`).
  *
  *  UN SEUL DESSIN : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
- *  (mêmes échelles et qualités qu'avant), au lieu de redessiner la page. */
+ * , au lieu de redessiner la page. */
 async function photographierLaPage(dessous) {
   const h2c = await chargerHtml2canvas();
   await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
@@ -430,8 +428,8 @@ function copieAvecSaisie(noeud, doc) {
   return copie;
 }
 
-/* LES RÉPONSES DE L'ÉDITEUR (01/10/2026 : « chaque ticket a le droit à une
- * réponse »). Le moteur les relève à chaque veille (`relever_reponses`) ; une
+/* LES RÉPONSES DE L'ÉDITEUR : chaque message a le droit à une
+ * réponse. Le moteur les relève à chaque veille (`relever_reponses`) ; une
  * réponse non lue se voit sur le bouton du bandeau, et se lit dans la boîte. */
 function vosMessages(liste) {
   if (!liste.length) return "";
@@ -442,7 +440,7 @@ function vosMessages(liste) {
 }
 
 /** CE QUE DIT LA BOÎTE DU MESSAGE QU'ON VIENT D'ENVOYER, d'après son état dans le moteur : en cours, envoyé, ou pas
- *  encore parti (et pourquoi). Un message déjà enregistré (un second clic, ticket #229) le dit : il ne part qu'une fois. */
+ *  encore parti (et pourquoi). Un message déjà enregistré (un second clic) le dit : il ne part qu'une fois. */
 let SG_ENVOI = null;
 function departDuMessage(s) {
   const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">Ce message était déjà enregistré : il ne part qu'une fois.</span>` : "";
