@@ -298,7 +298,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
                     b
                 }
                 Err(r) => {
-                    cr.push(PageCr { page: l.page, sort: r.code(), raison: r.message(), infos: Map::new() });
+                    cr.push(PageCr { page: l.page, sort: r.code(), raison: r.raison(), infos: Map::new() });
                     continue;
                 }
             };

@@ -310,7 +310,7 @@ impl Trieur {
     /// Un zip : ouvert dans son propre sous-dossier de `travail/`, puis son contenu trie a la suite.
     fn ouvrir_archive(&mut self, mut f: Fichier, octets: &[u8], profondeur: usize) {
         if profondeur >= PROFONDEUR_MAX {
-            f.raison = Some(format!("archive dans une archive au-dela de {} niveaux : elle n'est pas ouverte", PROFONDEUR_MAX));
+            f.raison = Some(format!("zip rangé à plus de {} niveaux de zips l'un dans l'autre : pas ouvert", PROFONDEUR_MAX));
             self.fichiers.push(f);
             return;
         }
@@ -390,7 +390,7 @@ impl Trieur {
             }
         }
         f.sorte = Sorte::Archive;
-        f.raison = Some(format!("archive zip ouverte : {} fichier(s) extrait(s)", extraites));
+        f.raison = Some(format!("zip ouvert : {} fichier(s) extrait(s)", extraites));
         let chemin_archive = f.chemin.clone();
         self.fichiers.push(f);
         self.fichiers.extend(refusees);

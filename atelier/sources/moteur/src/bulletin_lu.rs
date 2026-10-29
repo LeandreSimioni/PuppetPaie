@@ -872,6 +872,18 @@ impl Refus {
             Refus::Incoherent(d) => format!("incohérent : {}", d),
         }
     }
+
+    /// La raison seule, sans le sort : le compte rendu de l'import montre le sort en pastille, à côté.
+    pub fn raison(&self) -> String {
+        match self {
+            Refus::SansTexte(d) if d.is_empty() => "aucun mot sur la page".into(),
+            Refus::SansTexte(d) | Refus::SansEntetes(d) | Refus::Ambigu(d) | Refus::Incomplet(d) | Refus::Incoherent(d) => {
+                d.clone()
+            }
+            Refus::Annexe => "le détail des cotisations d'un bulletin : rien à reprendre".into(),
+            Refus::LibelleInconnu(l) => format!("« {} » n'est pas dans la table de lecture", l),
+        }
+    }
 }
 
 /// Une page lue : un bulletin, ou le refus qui dit pourquoi pas.
@@ -889,7 +901,7 @@ impl Lecture {
     pub fn to_json(&self) -> Value {
         match &self.resultat {
             Ok(b) => json!({"page": self.page, "bulletin": b.to_json()}),
-            Err(r) => json!({"page": self.page, "refus": r.code(), "raison": r.message()}),
+            Err(r) => json!({"page": self.page, "refus": r.code(), "raison": r.raison()}),
         }
     }
 }
