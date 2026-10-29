@@ -16,7 +16,9 @@
 //!
 //! Une cle `defaut` dans `logiciel/EDITION.json` ne se lit pas, et l'installeur ne pose aucun fichier.
 //!
-//! `"demo"` se lit aussi « bride », et `"complete"` « debloque ». Le geste ecrit `"bride"` ou `"debloque"`.
+//! Le geste ecrit `"bride"` ou `"debloque"`. `"demo"` se lit aussi « bride », et `"complete"` « debloque » : des
+//! installations posees et debloquees portent ces mots ; les lire autrement les briderait et bloquerait leurs envois.
+//! C'est le contrat avec les installations posees, comme la forme de la mise a jour.
 //!
 //! L'INSTALLATION dont on parle : celle du logiciel qui tourne (`compagnies::base()`), ou celle qu'on nomme (`_de`) --
 //! l'administrateur et la liste des compagnies lisent l'installation qu'on leur donne.
@@ -30,7 +32,8 @@ const FICHIER_INSTALLATION: &str = "EDITION.json";
 pub const BRIDE: &str = "bride";
 pub const DEBLOQUE: &str = "debloque";
 
-/// Un mot du bridage : `Some(true)` bride, `Some(false)` debloque ; `"demo"` et `"complete"` se lisent aussi.
+/// Un mot du bridage : `Some(true)` bride, `Some(false)` debloque ; `"demo"` et `"complete"`, que portent des
+/// installations posees, se lisent aussi (en tete du module).
 fn bride_selon(mot: &str) -> Option<bool> {
     match mot {
         BRIDE | "demo" => Some(true),
