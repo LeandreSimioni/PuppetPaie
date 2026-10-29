@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::coffre::{Coffre, Echec as EchecCoffre};
-use crate::filet::exiger_mot_de_passe;
+use crate::compagnie::coffre::{Coffre, Echec as EchecCoffre};
+use crate::compagnie::filet::exiger_mot_de_passe;
 use droit::contexte::Contexte;
 use super::{ou_texte, vers_route};
 use envois::etats::{get, joindre, objet_vide, ou};
@@ -97,7 +97,7 @@ fn chaine<'a>(charge: &'a Value, cle: &str) -> Option<&'a str> {
 /// son adresse (`compte`). Rend l'etat du coffre, sans valeur.
 fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "poser un mot de passe")?;
-    let service = crate::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
+    let service = crate::compagnie::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
     let valeur = chaine(charge, "valeur").unwrap_or("");
     coffre(ctx).poser(service.nom, valeur, chaine(charge, "compte")).map_err(en_operation)?;
     etat_du_coffre(ctx)
@@ -106,7 +106,7 @@ fn coffre_poser(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `coffre-oublier` : retire un secret du coffre.
 fn coffre_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "retirer un mot de passe")?;
-    let service = crate::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
+    let service = crate::compagnie::coffre::service_connu(optionnel(charge, "service")).map_err(en_operation)?;
     coffre(ctx).oublier(service.nom).map_err(en_operation)?;
     etat_du_coffre(ctx)
 }
@@ -178,12 +178,12 @@ fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let nouveau = if matches!(optionnel(charge, "nouveau"), Value::String(_) | Value::Null) { nouveau } else { String::new() };
     // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe est celui de toutes ses compagnies, et il se change
     // pour toutes a la fois (`administrateur::changer`) ; l'actuel les ouvre chacune, tout se prepare puis tout se remplace.
-    let inst = crate::administrateur::installation_de(&ctx.racine);
-    if crate::administrateur::est_rattachee(&inst, &ctx.racine) {
+    let inst = crate::compagnie::administrateur::installation_de(&ctx.racine);
+    if crate::compagnie::administrateur::est_rattachee(&inst, &ctx.racine) {
         let Some(actuel) = chaine(charge, "motdepasse").filter(|m| !m.is_empty()) else {
             return Err(refus("Tapez le mot de passe actuel de l'administrateur : le nouveau le remplace dans toutes ses compagnies. Rien n'a ete modifie."));
         };
-        crate::administrateur::changer(&inst, actuel, &nouveau, &confirmation, &crate::administrateur::Poste::de_ce_poste()).map_err(refus)?;
+        crate::compagnie::administrateur::changer(&inst, actuel, &nouveau, &confirmation, &crate::compagnie::administrateur::Poste::de_ce_poste()).map_err(refus)?;
         return etat_du_coffre(ctx);
     }
     coffre(ctx).poser_ouverture(&nouveau, chaine(charge, "motdepasse")).map_err(en_operation)?;
@@ -192,7 +192,7 @@ fn mot_de_passe_changer(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// Plus de mot de passe du logiciel. L'actuel est exige.
 fn mot_de_passe_retirer(ctx: &Contexte, charge: &Value) -> R<Value> {
-    if crate::administrateur::est_rattachee(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine) {
+    if crate::compagnie::administrateur::est_rattachee(&crate::compagnie::administrateur::installation_de(&ctx.racine), &ctx.racine) {
         return Err(refus("Cette compagnie est geree par l'administrateur : son mot de passe ouvre aussi les autres. La detacher d'abord (elle recoit alors son propre mot de passe), puis le retirer. Rien n'a ete modifie."));
     }
     exiger_mot_de_passe(&ctx.racine, optionnel(charge, "motdepasse"), "retirer le mot de passe du logiciel")?;
@@ -317,7 +317,7 @@ pub(crate) fn lire_jeton_dit(racine: &Path) -> Result<Value, String> {
     // Une lecture impossible (droits) levait une OSError que rien ne
     // rattrapait ; elle se range ici avec les refus du coffre : l'etat se lit.
     let brut = std::fs::read(&p).map_err(|e| format!("{} : {}", p.display(), e))?;
-    let clair = crate::coffre::Coffre::du_poste(racine, "").deproteger(&brut, DESCRIPTION).map_err(|e| {
+    let clair = crate::compagnie::coffre::Coffre::du_poste(racine, "").deproteger(&brut, DESCRIPTION).map_err(|e| {
         format!("{} Pour le jeton Google, le remede est : relancer `moteur google autoriser`.", e.message)
     })?;
     let texte = String::from_utf8(clair).map_err(|e| e.to_string())?;
@@ -337,7 +337,7 @@ pub fn compte_autorise(racine: &Path) -> Option<String> {
 /// Les adresses de Google ; dans l'atelier, un faux Google local (`atelier.rs`).
 pub fn adresses_du_poste() -> envois::drive::Adresses {
     #[cfg(feature = "atelier")]
-    if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
+    if let Some(b) = crate::atelier::redirection::base(crate::atelier::redirection::VARIABLE_GOOGLE) {
         return envois::drive::Adresses::de_la_base(&b);
     }
     envois::drive::Adresses::default()
@@ -361,7 +361,7 @@ pub(crate) fn autoriser(racine: &Path, delai: u64, dire_url: &dyn Fn(&str), dire
     let (id, secret, _) = identifiants(racine).map_err(|e| Echec { classe: Some("ErreurOperation"), message: e.message })?;
     let adresses = {
         #[cfg(feature = "atelier")]
-        if let Some(b) = crate::atelier::base(crate::atelier::VARIABLE_GOOGLE) {
+        if let Some(b) = crate::atelier::redirection::base(crate::atelier::redirection::VARIABLE_GOOGLE) {
             envois::google_autorisation::Adresses::de_la_base(&b)
         } else {
             envois::google_autorisation::Adresses::default()
@@ -382,7 +382,7 @@ fn sceller_le_jeton(racine: &Path, jeton: &envois::google_autorisation::JetonGoo
         false,
         false,
     );
-    let scelle = crate::coffre::Coffre::du_poste(racine, "")
+    let scelle = crate::compagnie::coffre::Coffre::du_poste(racine, "")
         .proteger(brut.as_bytes(), DESCRIPTION)
         .map_err(|e| erreur_google(format!("Le jeton n'a pas pu etre scelle, rien n'est enregistre : {}", e.message)))?;
     let dossier = config(racine);
@@ -547,7 +547,7 @@ fn coffre_etat(ctx: &Contexte) -> R<Value> {
 
 /// `coffre_etat` sur une fiche entreprise donnee : `poser_compte_dpae` le relit sur la fiche qu'il vient d'ecrire.
 pub(crate) fn coffre_etat_de(racine: &Path, entreprise: &Value) -> R<Value> {
-    let coffre = crate::coffre::Coffre::du_poste(racine, "");
+    let coffre = crate::compagnie::coffre::Coffre::du_poste(racine, "");
     let secrets = coffre.etat().map_err(vers_route)?;
     let mut services = Vec::new();
     for s in &secrets {

@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use moteur::boite as courriel;
+use moteur::compagnie::boite as courriel;
 use serde_json::json;
 
 fn racine(nom: &str) -> PathBuf {

@@ -877,7 +877,7 @@ impl<'a> Moteur<'a> {
                     v.into_iter()
                         .map(|(nom, chemin, octets)| {
                             // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier (#236).
-                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::depart::ecrit_le(&racine, chemin)})
+                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::compagnie::depart::ecrit_le(&racine, chemin)})
                         })
                         .collect(),
                 )
@@ -1086,7 +1086,7 @@ impl<'a> Moteur<'a> {
         // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`depart::mois_ecrit`,
         // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`. Un mois passe lu a
         // l'ouverture (`ecrit`) ne demande que ce qui reste, pas le geste qui l'ouvre.
-        if self.ecrit || (quoi == DSN && !crate::depart::mois_ecrit(self.racine(), mois)) {
+        if self.ecrit || (quoi == DSN && !crate::compagnie::depart::mois_ecrit(self.racine(), mois)) {
             return Ok(None);
         }
         let fichiers = self.fichiers_deposables(mois)?;
@@ -1123,7 +1123,7 @@ impl<'a> Moteur<'a> {
         };
         // UN TEST REFUSE SE DIT AVEC SES ANOMALIES, la ou l'on propose d'envoyer : le code et le message du bilan.
         let refus = match r["ratees"].as_array().and_then(|l| l.last()) {
-            Some(l) if etape == "test_refuse" => Some(crate::depot_acte::pourquoi_rate(l).trim_end_matches('.').to_string()),
+            Some(l) if etape == "test_refuse" => Some(crate::compagnie::depot_acte::pourquoi_rate(l).trim_end_matches('.').to_string()),
             _ => None,
         };
         Ok(Some((etape, premier, refus)))
@@ -1153,8 +1153,8 @@ impl<'a> Moteur<'a> {
     /// quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
     pub fn bilan_du_mois(&mut self, mois: &str) -> R<Value> {
         // UN MOIS TENU AVANT CE LOGICIEL : ses etapes se sont faites ailleurs ; elles le disent, sans geste.
-        if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
-            let b = crate::mois_importe::etapes(&vue);
+        if let Some(vue) = crate::import::mois::vue(self.ctx, mois)? {
+            let b = crate::import::mois::etapes(&vue);
             let etapes = ORDRE
                 .iter()
                 .map(|(cle, nom)| {
@@ -1329,7 +1329,7 @@ impl<'a> Moteur<'a> {
         let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
         // LA DSN DEPOSEE PAR L'ANCIEN LOGICIEL ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se
         // declare dans la DSN suivante qui n'est pas partie, et la case le dit (`mois_importe::dsn_de_l_ancien_logiciel`).
-        if let Some(d) = crate::mois_importe::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !vrai(&e)) {
+        if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !vrai(&e)) {
             let mut g = fait();
             if d["engagements"].as_u64().is_some_and(|n| n > 0) {
                 let porteur = valeur_en_texte(&d["porteur"]);
@@ -1561,7 +1561,7 @@ impl<'a> Moteur<'a> {
         let mut bilan = self.bilan_du_mois(mois)?;
         let (etapes, colonnes) = (bilan["etapes"].take(), bilan["colonnes"].take());
         let lignes_du_mois: Vec<Value> = etats::filtrer(&lignes, None, Some(mois), false)?.into_iter().cloned().collect();
-        let pose = crate::coffre::Coffre::du_poste(self.racine(), "")
+        let pose = crate::compagnie::coffre::Coffre::du_poste(self.racine(), "")
             .ouverture_exigee()
             .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
         Ok(json!({

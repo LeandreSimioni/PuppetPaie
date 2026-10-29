@@ -17,7 +17,7 @@
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
-use moteur::bulletin_lu::{compteurs, lire, lire_avec, BulletinLu, Lecture, Refus, Table};
+use moteur::import::bulletin_lu::{compteurs, lire, lire_avec, BulletinLu, Lecture, Refus, Table};
 
 use crate::bulletins_fictifs;
 use bulletins_fictifs::*;

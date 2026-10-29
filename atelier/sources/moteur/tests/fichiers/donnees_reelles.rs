@@ -16,7 +16,7 @@ use std::process::Command;
 use regex::Regex;
 
 // La marque d'un NIR inventé (`INVENTE`) est celle du garde avant commit (`moteur verifier-avant-commit`), qui la tient.
-use moteur::verifier_avant_commit::INVENTE;
+use moteur::atelier::verifier_avant_commit::INVENTE;
 
 /// En deux morceaux, pour que ce fichier ne porte pas lui-même ce qu'il refuse.
 const SIREN_REEL: &str = concat!("8783", "66194");

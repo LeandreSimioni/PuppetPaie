@@ -107,7 +107,7 @@ pub(crate) fn avant_la_premiere_embauche(ctx: &Contexte, mois: &str) -> R<Option
     if embauche.len() < 7 || mois >= &embauche[..7] || engagement::stock::a_une_saisie(&ctx.racine, mois).map_err(Echec::from)? {
         return Ok(None);
     }
-    if crate::mois_importe::importe(&ctx.racine, mois)? || mois_hors_delai(ctx, mois)?.is_none() {
+    if crate::import::mois::importe(&ctx.racine, mois)? || mois_hors_delai(ctx, mois)?.is_none() {
         return Ok(None);
     }
     Ok(Some(embauche))
@@ -427,10 +427,10 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
     // UN MOIS TENU AVANT CE LOGICIEL : aucun engagement de la saisie, ses engagements importes -- en cartes, et l'etat vrai
     // de sa DSN (`mois_importe`). Il se lit ; rien ne s'y ajoute.
-    let importe = if existe { None } else { crate::mois_importe::vue(ctx, &mois)? };
+    let importe = if existe { None } else { crate::import::mois::vue(ctx, &mois)? };
     // UN MOIS A LA FOIS IMPORTE ET SAISI : ses engagements importes se montrent a cote de ceux de la saisie, en cartes
     // fermees ; ils se lisent, rien ne les calcule.
-    let importes = if existe { crate::mois_importe::cartes(ctx, &mois)? } else { Vec::new() };
+    let importes = if existe { crate::import::mois::cartes(ctx, &mois)? } else { Vec::new() };
     Ok(json!({
         "mois": brut,
         "existe": existe,
@@ -1182,7 +1182,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
     // si (`importation_nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
     // comme les autres, avec sa nature, son debut, son numero, son salaire mensuel et sa duree du travail.
     // Ensuite, il se recopie d'un mois a l'autre comme tout contrat paye au mois.
-    for r in crate::importation_nature::repris_en_cours(&ctx.racine, texte_mois) {
+    for r in crate::import::nature::repris_en_cours(&ctx.racine, texte_mois) {
         let ident = vec![json!(r.salarie), json!(r.debut), json!(r.numero)];
         if vus.contient(&ident)? {
             continue;
@@ -1782,7 +1782,7 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
 /// sont importes, `mois_importe`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la DSN -- une
 /// declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre.
 pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
-    if crate::mois_importe::importe(&ctx.racine, mois)? {
+    if crate::import::mois::importe(&ctx.racine, mois)? {
         return Err(refus(format!(
             "{} a ete tenu avant PuppetPaie : ses paies ont ete faites par l'ancien logiciel, ses engagements sont \
              importes. Il se lit dans la page Paie ; il ne se saisit pas ici.",
@@ -2298,7 +2298,7 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     // LES CONSEILS DE SAISIE (ticket 224) : au plus un par carte, quand l'option de la compagnie est cochee, pour un
     // engagement en saisie seulement. Ils ne vivent qu'ici, dans la vue de l'ecran : ni dans les avertissements de la
     // paie, ni au bulletin, ni a `produire`.
-    for (i, (v, c)) in vues.iter_mut().zip(crate::conseils::de_saisie(ctx, &paies)?).enumerate() {
+    for (i, (v, c)) in vues.iter_mut().zip(crate::compagnie::conseils::de_saisie(ctx, &paies)?).enumerate() {
         if let Some(c) = c.filter(|_| !tous.get(i).is_some_and(engagement::etats::est_validee)) {
             v["conseil"] = c;
         }

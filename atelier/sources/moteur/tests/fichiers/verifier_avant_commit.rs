@@ -1,4 +1,4 @@
-//! Le garde avant commit (`moteur verifier-avant-commit`, `src/verifier_avant_commit.rs`), sur un faux dépôt Git monté dans
+//! Le garde avant commit (`moteur verifier-avant-commit`, `src/atelier/verifier_avant_commit.rs`), sur un faux dépôt Git monté dans
 //! le dossier de test, avec un faux `prive/config/` : des valeurs inventées (le NIR porte la marque d'invention, l'IBAN et
 //! le SIRET se composent à la volée pour que ce fichier n'en porte aucun). Jamais le vrai `prive/`.
 //!
@@ -12,7 +12,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use moteur::verifier_avant_commit::{EXEMPLES_DES_TEXTES, FICTIVES};
+use moteur::atelier::verifier_avant_commit::{EXEMPLES_DES_TEXTES, FICTIVES};
 use serde_json::json;
 
 use crate::outils::dossier_de_test;

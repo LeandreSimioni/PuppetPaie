@@ -1,5 +1,5 @@
 //! LE REJEU DES SCENARIOS DU BANC D'ESSAI (#236, phase 2). Un scenario enregistre dans l'interface (`atelier/outils/banc/`,
-//! `moteur/src/scenario.rs`) se rejoue sans navigateur et reproduit la compagnie, octet pour octet d'un rejeu a l'autre ;
+//! `moteur/src/atelier/scenario.rs`) se rejoue sans navigateur et reproduit la compagnie, octet pour octet d'un rejeu a l'autre ;
 //! ses sorties (paies, DSN, DPAE, bulletins, certificats Conges Spectacles, journaux) se comparent a un oracle.
 //!
 //! SEUL DANS `tests/` : le rejeu simule le temps du moteur, qui est celui du processus (`socle/src/temps.rs`), comme un

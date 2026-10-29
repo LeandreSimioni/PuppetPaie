@@ -12,7 +12,7 @@
 # suivis par Git de `logiciel/` et de `fictives/` (ni `logiciel/linux/` ni `logiciel/mac/`, qui ne sont pas suivis), et les
 # marques de la livraison de fictives si le flux les a posees --,
 # et la fenetre fraichement compilee a la place de `logiciel/puppetpaie.exe`. Rien sur le bridage : sans rien qui dise
-# « debloque », le logiciel est bride (ticket #246, moteur/src/bridage.rs).
+# « debloque », le logiciel est bride (ticket #246, moteur/src/compagnie/bridage.rs).
 #
 # Usage :
 #   atelier/installeur/construire.sh                     tout
@@ -87,7 +87,7 @@ cd "$DEPOT"
 # Les fichiers suivis par Git, et eux seuls : ni les coffres d'une fictive ouverte (.gitignore), ni `fictives/.origine/`.
 git ls-files -z logiciel fictives > "$PREPA/liste.z"
 # L'installeur est celui de WINDOWS : les programmes de Linux et de Mac (`logiciel/linux/`, `logiciel/mac/`, que le flux
-# « Publier » pose pour les archives de ces systemes et celle de tous ; moteur/src/maj.rs) ne sont jamais suivis
+# « Publier » pose pour les archives de ces systemes et celle de tous ; moteur/src/compagnie/maj.rs) ne sont jamais suivis
 # (.gitignore), donc jamais poses. Si l'un l'etait, l'installeur s'arrete plutot que de les livrer a Windows.
 if grep -zqE '^logiciel/(linux|mac)/' "$PREPA/liste.z"; then
     echo "Des programmes Linux ou Mac sont suivis par Git dans logiciel/ : l'installeur Windows ne les pose pas." >&2
@@ -99,7 +99,7 @@ while IFS= read -r -d '' f; do
     cp -p "$f" "$PREPA/pose/$f"
 done < "$PREPA/liste.z"
 # Les marques de la livraison de fictives (`fictives/.livraison.json`, `fictives/<nom>/.livree.json`), que le flux
-# « Publier » pose avant de fabriquer l'installeur (`moteur maj --marquer-fictives`, moteur/src/maj.rs) : une installation de
+# « Publier » pose avant de fabriquer l'installeur (`moteur maj --marquer-fictives`, moteur/src/compagnie/maj.rs) : une installation de
 # l'installeur retient sa livraison et ne retelecharge pas des fictives qui n'ont pas change. Pas suivies par Git ; hors
 # du flux (un poste), il n'y en a pas, et la premiere livraison se pose alors par le marqueur des fictives livrees.
 for f in fictives/.livraison.json fictives/*/.livree.json; do

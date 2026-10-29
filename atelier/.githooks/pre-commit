@@ -1,6 +1,6 @@
 #!/bin/sh
 # Refuse un commit qui emporterait une donnee personnelle : `moteur verifier-avant-commit --indexes`
-# (atelier/sources/moteur/src/verifier_avant_commit.rs) juge ce que l'index porte -- les NIR, IBAN et BIC
+# (atelier/sources/moteur/src/atelier/verifier_avant_commit.rs) juge ce que l'index porte -- les NIR, IBAN et BIC
 # sans la marque d'invention, et les vraies valeurs de prive/config/ quand il est la.
 #
 # A poser une fois, depuis la racine du depot :

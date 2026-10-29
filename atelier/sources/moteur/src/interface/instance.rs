@@ -253,7 +253,7 @@ pub fn ouverte(inst: &Path, plage: Plage) -> bool {
 /// navigateur connait : ce qu'il a retenu pour elle reste avec elle, et deux fenetres ouvertes ensemble (deux ports)
 /// n'ont jamais le meme profil.
 pub fn dossier_local(inst: &Path, port: u16) -> PathBuf {
-    if inst.join(crate::coffre::MARQUEUR_PORTABLE).is_file() {
+    if inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE).is_file() {
         return inst.join(DOSSIER_PORTABLE);
     }
     super::navigateur::dossier_utilisateur().join("fenetres").join(port.to_string())

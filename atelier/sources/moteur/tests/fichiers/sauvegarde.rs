@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use faux_drive::{ecrire, fixer_date, racine as racine_de, FauxDrive, Panne};
 use md5::{Digest, Md5};
 use envois::drive::{Drive, ErreurGoogle};
-use moteur::sauvegarde::{self, derniere, empreinte, inventaire, rien_n_a_bouge, sauvegarder, EtatFichier, Fichier, Sauvegarde};
+use moteur::compagnie::sauvegarde::{self, derniere, empreinte, inventaire, rien_n_a_bouge, sauvegarder, EtatFichier, Fichier, Sauvegarde};
 use serde_json::{json, Value};
 
 const RD: &str = "PuppetPaie";
@@ -638,7 +638,7 @@ fn google_absent_le_reste_du_passage_est_reporte_sans_appel() {
 
 #[test]
 fn les_causes_en_clair() {
-    use moteur::sauvegarde::cause_de;
+    use moteur::compagnie::sauvegarde::cause_de;
     assert_eq!(cause_de(&erreur_500()), "Google indisponible");
     let mut e = ErreurGoogle::google("HTTP 429 : Rate Limit Exceeded");
     e.statut = Some(429);

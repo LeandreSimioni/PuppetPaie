@@ -35,8 +35,8 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let json = args.drapeau("json");
     #[cfg(feature = "atelier")]
-    if !crate::bridage::branchement(&cadre.racine).joue() {
-        return Err(Echec { classe: Some("ActeReelRefuse"), message: crate::atelier::REFUS_ACTE_REEL.to_string() });
+    if !crate::compagnie::bridage::branchement(&cadre.racine).joue() {
+        return Err(Echec { classe: Some("ActeReelRefuse"), message: crate::atelier::redirection::REFUS_ACTE_REEL.to_string() });
     }
     ouvrir_la_boite(cadre);
     let mut charge = json!({"qui": "ligne de commande"});

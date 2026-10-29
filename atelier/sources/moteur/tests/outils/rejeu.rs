@@ -1,6 +1,6 @@
 //! LE REJEU D'UN SCENARIO ET SES SORTIES (#236, phase 2 ; le socle des tests de fictives de la phase 4).
 //!
-//! Un scenario enregistre au banc d'essai (`moteur/src/scenario.rs`, `atelier/outils/banc/`) est fige dans
+//! Un scenario enregistre au banc d'essai (`moteur/src/atelier/scenario.rs`, `atelier/outils/banc/`) est fige dans
 //! `tests/donnees/scenarios/<nom>/` (`gestes.jsonl`, `pieces/`) ; `rejouer` le rejoue dans un `dossier_de_test`, dans le
 //! processus du test, et `sorties` releve ce que la compagnie en a tire. `rejouer_et_comparer` compare ce releve a
 //! l'oracle `tests/donnees/scenarios/<nom>/sorties.json` (reecrit par `PUPPETPAIE_REECRIRE_ORACLES=1`).
@@ -38,15 +38,15 @@ pub fn scenario(nom: &str) -> PathBuf {
 
 /// Rejoue le scenario `nom` dans `dossier` (une installation neuve) ; rend le compte rendu et la racine de la compagnie
 /// qu'il a ajoutee (la premiere). Un ecart avec l'enregistrement fait echouer le test.
-pub fn rejouer(nom: &str, dossier: &Path) -> (moteur::scenario::Rejeu, PathBuf) {
+pub fn rejouer(nom: &str, dossier: &Path) -> (moteur::atelier::scenario::Rejeu, PathBuf) {
     rejouer_dossier(&scenario(nom), dossier)
 }
 
 /// `rejouer`, pour un scenario pris ailleurs que dans `tests/donnees/scenarios/` (un scenario elague par le test).
-pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (moteur::scenario::Rejeu, PathBuf) {
+pub fn rejouer_dossier(sc: &Path, dossier: &Path) -> (moteur::atelier::scenario::Rejeu, PathBuf) {
     let _un = UN_A_LA_FOIS.lock().unwrap_or_else(|p| p.into_inner());
     let nom = sc.display();
-    let r = moteur::scenario::rejouer(sc, &dossier.join("installation"), &moteur::scenario::OptionsRejeu::default())
+    let r = moteur::atelier::scenario::rejouer(sc, &dossier.join("installation"), &moteur::atelier::scenario::OptionsRejeu::default())
         .unwrap_or_else(|m| panic!("le scenario {} ne se rejoue pas : {}", nom, m));
     assert!(r.ecarts.is_empty(), "le rejeu de {} s'ecarte de l'enregistrement :\n{}", nom, r.ecarts.join("\n"));
     let racine = r.compagnies.first().map(|(_, p)| p.clone()).unwrap_or_else(|| panic!("le scenario {} n'ajoute aucune compagnie", nom));

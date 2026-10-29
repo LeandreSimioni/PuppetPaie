@@ -73,7 +73,7 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).
 - **La fin de séance, c'est Léandre qui la dit** : la passe de tests ne se lance pas avant. Puis : le récit dans
   `journal/archives/<jour>.md`, une ligne dans `INDEX.md`, et `ETAT.md` **remplacé** (jamais empilé ; une page).
-- Le contexte se surveille (`moteur guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `moteur/src/guet.rs`) ;
+- Le contexte se surveille (`moteur guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `moteur/src/atelier/guet.rs`) ;
   c'est Léandre qui décide quand il sonne.
 
 ## Où sont les choses
@@ -181,7 +181,7 @@ Une règle sans texte déposé est un souvenir.
   pas ; **un `LISEZ-MOI.md` par dossier** (l'URL, la date du relevé, ce qu'on en lit, **où le moteur s'en sert**) ; une
   **inférence** s'écrit comme telle ; la note `_source` d'un barème et le commentaire d'une fonction **citent le fichier
   déposé**, pas une URL seule.
-- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`moteur releve-codes`, les textes suivis dans `moteur/src/releve_codes/textes.rs`,
+- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`moteur releve-codes`, les textes suivis dans `moteur/src/atelier/releve/codes/textes.rs`,
   `moissonner` puis `rapport`), jamais à la main ; la norme DSN est dans `norme-dsn/texte/` ; le BOFiP brut dans `bofip/` ;
   le BOSS depuis sa page quand elle répond.
 - **Ce qui ne se republie pas** : un document d'organisme privé (Audiens, Afdas, CASC-SVP, Agirc-Arrco…) entre par sa
@@ -332,7 +332,7 @@ On publie depuis GitHub (`journal/finitions/PUBLIER.md` du privé) : à la fin d
 « Publier » (`.github/workflows/publier.yml`) avec `notes`, et `calcul` **seulement** si la version change un calcul de paie
 (la seule phrase qu'une compagnie verra ; un taux qui change n'en est pas une), `exigee` plus rarement encore. **Léandre
 approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub. Une Release porte trois sortes d'archives
-(`moteur/src/maj.rs`, en tête) : **la mise à jour** (`puppetpaie-<v>-<système>.zip`, le contenu de `logiciel/` à la racine :
+(`moteur/src/compagnie/maj.rs`, en tête) : **la mise à jour** (`puppetpaie-<v>-<système>.zip`, le contenu de `logiciel/` à la racine :
 **sa forme est un contrat avec toutes les installations posées et ne change plus**), **les fictives** (livrées à part, signées,
 téléchargées seulement quand leur empreinte change ; elles ne remplacent que ce qu'une livraison a posé), **l'installation**
 (`…-installation.zip`, `logiciel/` et `fictives/`, pour Linux, Mac et le dossier portable) ; plus `derniere.json` et

@@ -1174,7 +1174,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         .collect();
     let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets).map_err(echec_fctu)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
-    crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
+    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
         "nom": nom,
@@ -1210,10 +1210,10 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
 /// la compagnie a deja envoyes, arrets, reprises, fins de contrat et amorcages confondus. Cahier technique
 /// DSN, p. 136 : « Pour un signalement, ce numero ne doit pas etre remis a zero afin qu'il soit unique quel que
 /// soit le mois d'emission » (et non plus le rang parmi les envois de CET arret, qui repartait a 1). LA PLATE-FORME
-/// FAIT FOI (lot O1) : `crate::releve::dernier_ordre_connu` la consulte ; ce qu'il faut en dire (elle n'a pas
+/// FAIT FOI (lot O1) : `crate::compagnie::releve::dernier_ordre_connu` la consulte ; ce qu'il faut en dire (elle n'a pas
 /// repondu, elle connaissait plus que le journal) part avec les avertissements.
 pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
-    let connu = crate::releve::dernier_ordre_connu(ctx, None)?;
+    let connu = crate::compagnie::releve::dernier_ordre_connu(ctx, None)?;
     Ok((connu.dernier + 1, connu.avertissements))
 }
 
@@ -1266,7 +1266,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let texte = signalement::generer(ctx, &dsn_arret, &options).map_err(echec)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
-    crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
+    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     let nomenclatures = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),

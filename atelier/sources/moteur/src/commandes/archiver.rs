@@ -17,17 +17,17 @@ use socle::echec::Echec;
 pub static SPEC: Spec = Spec {
     commande: "archiver",
     positionnels: &[Pos::requis("mois")],
-    options: &[Opt::avec_defaut("racine-drive", crate::sauvegarde::RACINE_DRIVE), Opt::drapeau("json")],
+    options: &[Opt::avec_defaut("racine-drive", crate::compagnie::sauvegarde::RACINE_DRIVE), Opt::drapeau("json")],
 };
 
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let json = args.drapeau("json");
     let mois = args.texte("mois").unwrap_or("");
-    let racine_drive = args.texte("racine-drive").unwrap_or(crate::sauvegarde::RACINE_DRIVE);
+    let racine_drive = args.texte("racine-drive").unwrap_or(crate::compagnie::sauvegarde::RACINE_DRIVE);
     if let Err(e) = refuser_si_pas_redirige(cadre, Organisme::Google, "l'archivage dans le Drive") {
         return reponse_metier("archiver", json, &e, &[]);
     }
-    let r = match crate::archivage::archiver(&cadre.racine, mois, racine_drive, None) {
+    let r = match crate::compagnie::archivage::archiver(&cadre.racine, mois, racine_drive, None) {
         Ok(r) => r,
         Err(e) if e.classe == "SortieAbsente" => {
             if json {

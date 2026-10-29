@@ -5,7 +5,7 @@
 //! données livrées. Chaque `quand` est « toujours » ou une condition que le moteur sait évaluer (`conseils::CONDITIONS`).
 
 use crate::outils::code_livre;
-use moteur::conseils::{rendre, Donnees, Valeurs, CONDITIONS, D_UNE_ANNEXE};
+use moteur::compagnie::conseils::{rendre, Donnees, Valeurs, CONDITIONS, D_UNE_ANNEXE};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};

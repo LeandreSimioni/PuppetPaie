@@ -13,11 +13,11 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use faux_drive::{ecrire, FauxDrive, Panne};
-use moteur::coffre::{oublier_mot_de_passe_tape, retenir_mot_de_passe_tape, Coffre, CONSULTATION};
+use moteur::compagnie::coffre::{oublier_mot_de_passe_tape, retenir_mot_de_passe_tape, Coffre, CONSULTATION};
 use envois::drive::{Drive, ErreurGoogle};
-use moteur::maj::{generer_cle_au_poste, signature_valide, signer_par_la_cle};
-use moteur::restauration::{a_faire, restaurer};
-use moteur::sauvegarde::{inventaire, rien_n_a_bouge, sauvegarder};
+use moteur::compagnie::maj::{generer_cle_au_poste, signature_valide, signer_par_la_cle};
+use moteur::compagnie::restauration::{a_faire, restaurer};
+use moteur::compagnie::sauvegarde::{inventaire, rien_n_a_bouge, sauvegarder};
 use serde_json::json;
 
 const RD: &str = "PuppetPaie";

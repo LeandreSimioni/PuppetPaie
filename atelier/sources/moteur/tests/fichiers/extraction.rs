@@ -1,4 +1,4 @@
-//! Les releves de l'atelier (`moteur extraire`, `src/extraire/`) : chaque referentiel livre de `logiciel/donnees/` est ce que
+//! Les releves de l'atelier (`moteur extraire`, `src/atelier/extraire/`) : chaque referentiel livre de `logiciel/donnees/` est ce que
 //! son texte depose dans `atelier/reference/` donne, a l'octet, hors le `_source` (la date du releve et la commande). Les
 //! sources sont lues dans le depot meme, la ou elles sont deposees : un texte qui change sans que le referentiel soit
 //! releve de nouveau, ou un releve qui ne redonne plus le referentiel, fait echouer le test.
@@ -11,7 +11,7 @@
 use std::path::{Path, PathBuf};
 
 use socle::date::Jour;
-use moteur::extraire::{self, Releve};
+use moteur::atelier::extraire::{self, Releve};
 use serde_json::Value;
 
 use crate::outils::{code_livre, dossier_de_test};

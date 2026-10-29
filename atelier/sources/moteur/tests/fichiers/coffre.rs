@@ -1,8 +1,8 @@
-//! Le coffre (`moteur::coffre`) : poser, relire, oublier un secret, le mot de passe du logiciel, la cle du poste, le scelle,
+//! Le coffre (`moteur::compagnie::coffre`) : poser, relire, oublier un secret, le mot de passe du logiciel, la cle du poste, le scelle,
 //! sur des coffres et des mots de passe inventes, chacun dans son dossier (jamais la vraie cle du poste).
 
 use crate::outils::chemin_unique;
-use moteur::coffre::{d64, desceller, deriver, sceller, Coffre, DEPOT, CONSULTATION};
+use moteur::compagnie::coffre::{d64, desceller, deriver, sceller, Coffre, DEPOT, CONSULTATION};
 use socle::json_ascii::dumps;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -181,7 +181,7 @@ trait Phrase {
     fn starts_with_ce_coffre(&self) -> bool;
 }
 
-impl Phrase for moteur::coffre::Echec {
+impl Phrase for moteur::compagnie::coffre::Echec {
     fn starts_with_ce_coffre(&self) -> bool {
         self.message.starts_with("Ce coffre ne s'ouvre pas ici")
     }
@@ -317,13 +317,13 @@ fn le_mot_de_passe_tape_pour_la_commande_ouvre_le_coffre_d_un_autre_poste() {
     // sans rien de tape, la cle d'ailleurs n'ouvre pas
     assert!(lire(&ailleurs, None).is_err());
     // tape pour cette commande (le fil de ce test seulement), il ouvre, sans rien changer au poste
-    moteur::coffre::retenir_mot_de_passe_tape("sesame-123");
+    moteur::compagnie::coffre::retenir_mot_de_passe_tape("sesame-123");
     assert_eq!(lire(&ailleurs, None).unwrap().as_deref(), Some("unvraimotdepasse"));
     assert!(!ailleurs.chemin_cle().exists());
     // et la cle du poste, elle, n'est pas reputee ouvrir
     assert!(!ailleurs.ouvre_a_ce_poste().unwrap());
     // un mauvais mot de passe tape n'ouvre pas
-    moteur::coffre::retenir_mot_de_passe_tape("pas-le-bon");
+    moteur::compagnie::coffre::retenir_mot_de_passe_tape("pas-le-bon");
     assert!(lire(&ailleurs, None).is_err());
 }
 

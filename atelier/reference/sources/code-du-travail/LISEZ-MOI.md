@@ -297,7 +297,7 @@ l'adresse de l'employeur ; 2° son code APE et son Siret ; 3° la convention ; 4
 période ; 7° le brut ; 8° les cotisations, avec le taux de la part salariale ; 9° l'impôt prélevé ; 10° la somme reçue ;
 11° la date du paiement ; 14° le total versé par l'employeur) ; R3243-2 renvoie leurs libellés et leur ordre au modèle de
 l'arrêté du 25 février 2016 (`../montant-net-social/legi-arrete-20160225-bulletin/`). **Où le moteur s'en sert** :
-`atelier/sources/moteur/src/bulletin_lu.rs`, le lecteur des bulletins importés : il trouve ces mentions par leurs
+`atelier/sources/moteur/src/import/bulletin_lu.rs`, le lecteur des bulletins importés : il trouve ces mentions par leurs
 libellés (`logiciel/donnees/bulletins-lecture-base.json`, `mentions`), refuse une page où le salarié, la période, le brut
 ou la somme reçue ne se trouvent pas, et lit un taux de colonne qui ne dit pas sa part comme celui du salarié, le seul que
 le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`.

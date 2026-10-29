@@ -131,9 +131,9 @@ impl Cadre {
     /// (sortie d'erreur), code 1.
     pub fn plantage(&self, e: Echec) -> i32 {
         let classe = e.classe.unwrap_or("RuntimeError");
-        let nature = crate::incidents::nature_de(classe);
-        let ou = if nature == crate::incidents::REFUS { self.commande } else { "" };
-        let _ = crate::incidents::depuis_exception(&self.racine, classe, &e.message, Some(nature), ou, json!({"commande": self.commande}), None);
+        let nature = crate::compagnie::incidents::nature_de(classe);
+        let ou = if nature == crate::compagnie::incidents::REFUS { self.commande } else { "" };
+        let _ = crate::compagnie::incidents::depuis_exception(&self.racine, classe, &e.message, Some(nature), ou, json!({"commande": self.commande}), None);
         eprintln!("{}", e.message);
         1
     }
@@ -143,7 +143,7 @@ impl Cadre {
     /// `demande::ouvrir_seance`. Un refus ne coupe pas la commande (comme le Python) : le secret vient peut-etre de
     /// l'environnement, et sinon la lecture du coffre dira elle-meme ce qui manque. La phrase est dite.
     pub fn ouvrir_le_coffre(&self) {
-        let c = crate::coffre::Coffre::du_poste(&self.racine, "");
+        let c = crate::compagnie::coffre::Coffre::du_poste(&self.racine, "");
         match c.ouvre_a_ce_poste() {
             Ok(true) => return,
             Ok(false) => {}
@@ -157,8 +157,8 @@ impl Cadre {
         // Sur la sortie d'ERREUR : les phrases d'une seance ne doivent pas polluer la sortie standard d'un `--json`.
         eprintln!();
         eprintln!("Le coffre de ce poste ne s'ouvre pas avec sa cle. Ouverture de la seance : le mot de passe du logiciel, une");
-        eprintln!("fois, pour {} h.", crate::demande::HEURES_SEANCE);
-        if let crate::demande::Verdict::Refuse(phrase) = crate::demande::ouvrir_seance(&self.racine) {
+        eprintln!("fois, pour {} h.", crate::compagnie::demande::HEURES_SEANCE);
+        if let crate::compagnie::demande::Verdict::Refuse(phrase) = crate::compagnie::demande::ouvrir_seance(&self.racine) {
             eprintln!("! {}", phrase);
         }
     }
@@ -299,6 +299,6 @@ pub fn executer(args: &[String]) -> i32 {
     };
     let cadre = Cadre { racine, o, ctx, aujourdhui, commande: c.nom };
     // La demande du mot de passe du logiciel est celle du moteur (lot J1) : fenetre s'il y en a une, sinon le terminal.
-    let _canaux = crate::demande::installer(Rc::new(crate::demande::Reel::du_poste()));
+    let _canaux = crate::compagnie::demande::installer(Rc::new(crate::compagnie::demande::Reel::du_poste()));
     (c.executer)(&cadre, &a)
 }

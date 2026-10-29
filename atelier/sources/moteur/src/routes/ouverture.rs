@@ -54,9 +54,9 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "configuration" => configuration(ctx),
         "maj-etat" => version(),
         // Ce que l'index local de la sauvegarde dit du dernier passage, sans reseau (`sauvegarde::derniere`).
-        "sauvegarde-derniere" => Ok(crate::sauvegarde::derniere(&ctx.racine).en_json()),
+        "sauvegarde-derniere" => Ok(crate::compagnie::sauvegarde::derniere(&ctx.racine).en_json()),
         "echeance-faite" => echeance_faite(ctx, charge),
-        "journal-reprise" => crate::incidents::noter_ceux_des_retours(
+        "journal-reprise" => crate::compagnie::incidents::noter_ceux_des_retours(
             &ctx.racine,
             envois::reprise_journal::reprise(
                 ctx,
@@ -310,11 +310,11 @@ pub fn identite(ctx: &Contexte, gabarits: &Path) -> R<Value> {
 /// Une seule reponse aux deux : le mot de passe de la boite est pose. Ne lit
 /// jamais ce mot de passe : l'adresse (`compte`), et si un secret existe.
 pub fn boite_liee(ctx: &Contexte) -> R<bool> {
-    if crate::bridage::branchement(&ctx.racine).joue() {
+    if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
         return Ok(true);
     }
-    let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
-    let vers = |x: crate::coffre::Echec| Echec { classe: Some(x.classe), message: x.message };
+    let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
+    let vers = |x: crate::compagnie::coffre::Echec| Echec { classe: Some(x.classe), message: x.message };
     let adresse = match std::env::var("COURRIEL_COMPTE").ok().filter(|v| !v.is_empty()) {
         Some(a) => a,
         None => coffre.compte("courriel").map_err(vers)?,
@@ -479,8 +479,8 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
         // UN MOIS TENU AVANT CE LOGICIEL (ticket #215) n'est jamais « en retard » ni « a ecrire » : sa DSN est au
         // journal (un depot que les retours attestent y entre seul), ou c'est celle que l'import a lue (« importee »), ou
         // il n'en a aucune trace (« sans_trace ») -- et rien ne se refait ici.
-        let importe = crate::mois_importe::importe(&ctx.racine, nom)?;
-        let importee = !vrai(&e) && crate::mois_importe::dsn_importee(&ctx.racine, nom)?.is_some();
+        let importe = crate::import::mois::importe(&ctx.racine, nom)?;
+        let importee = !vrai(&e) && crate::import::mois::dsn_importee(&ctx.racine, nom)?.is_some();
         let etat: Option<&str> = if vrai(&e) && drapeau("refusee") {
             Some("refusee")
         } else if vrai(&e) && drapeau("passee") {
@@ -512,7 +512,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             _ if importe => false,
             // La DSN de l'ancien logiciel, et la saisie qui ajoute au mois : ce qui reste a declarer va dans une DSN
             // suivante (`mois_importe::dsn_de_l_ancien_logiciel`).
-            "importee" => crate::mois_importe::dsn_de_l_ancien_logiciel(ctx, nom)?.is_some_and(|d| d["engagements"].as_u64().is_some_and(|n| n > 0)),
+            "importee" => crate::import::mois::dsn_de_l_ancien_logiciel(ctx, nom)?.is_some_and(|d| d["engagements"].as_u64().is_some_and(|n| n > 0)),
             "passee" => vrai(&m.etat_remplacement(nom, &Value::Null)?["a_envoyer"]),
             "attente" => false,
             _ => true,
@@ -538,7 +538,7 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
 fn historique(m: &mut Moteur, ctx: &Contexte) -> Value {
     let mut mois = mois_connus(&ctx.racine);
     // Les mois tenus avant ce logiciel (ticket #215) sont des mois comme les autres : l'Historique les montre aussi.
-    for im in crate::mois_importe::mois_importes(&ctx.racine).unwrap_or_default() {
+    for im in crate::import::mois::mois_importes(&ctx.racine).unwrap_or_default() {
         if !mois.iter().any(|(x, _)| *x == im) {
             mois.push((im, Vec::new()));
         }
@@ -906,13 +906,13 @@ pub fn etat(ctx: &Contexte) -> R<Value> {
         "configuration": configuration,
         // UNE COMPAGNIE FICTIVE : les envois sont joues, et la page ne demande aucun
         // mot de passe.
-        "simulation": crate::bridage::branchement(&ctx.racine).joue(),
+        "simulation": crate::compagnie::bridage::branchement(&ctx.racine).joue(),
         // UNE FICTIVE AJOUTEE (ticket #236) : ses envois sont refuses par le moteur (`bridage::branchement`) ; la page
         // ne demande pas le mot de passe du logiciel pour un envoi qui ne partira pas.
-        "envois_refuses": crate::bridage::branchement(&ctx.racine).refus().is_some(),
+        "envois_refuses": crate::compagnie::bridage::branchement(&ctx.racine).refus().is_some(),
         // SUPPRIMER LA COMPAGNIE (ticket #236) : la Configuration ne le propose que si elle se supprime -- jamais une
         // fictive livree, qui se remet a zero (`interface::suppression::genre`).
-        "supprimable": crate::interface::suppression::genre(&crate::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
+        "supprimable": crate::interface::suppression::genre(&crate::compagnie::administrateur::installation_de(&ctx.racine), &ctx.racine).is_ok(),
         // UNE COMPAGNIE CREEE EN DEMO PUIS GARDEE : sa mention, et les mois saisis en demo, ou la page la montre.
         "demo": crate::interface::suppression::mention(&ctx.racine),
         "historique": historique,
@@ -1017,7 +1017,7 @@ pub(crate) fn courante(code: &Path) -> R<String> {
 
 /// `maj.prete` : la version telechargee et controlee de l'installation (`maj::dossier_maj`), ou `None`.
 pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
-    let dossier = crate::maj::dossier_maj(inst);
+    let dossier = crate::compagnie::maj::dossier_maj(inst);
     let Some(d) = lire_json_tolerant(&dossier.join("prete.json"))? else {
         return Ok(None);
     };
@@ -1038,9 +1038,9 @@ pub(crate) fn version() -> R<Value> {
     let code = dossier_du_code().parent().map(Path::to_path_buf).unwrap_or_default();
     // La mise a jour est celle de l'INSTALLATION (lot U1) : son reglage (`maj::reglage`), sa version prete.
     let inst = code.parent().map(Path::to_path_buf).unwrap_or_default();
-    let (depot, editeur) = crate::maj::reglage(&inst).map_err(|e| erreur("ValueError", e))?;
+    let (depot, editeur) = crate::compagnie::maj::reglage(&inst).map_err(|e| erreur("ValueError", e))?;
     // Le depot d'ou l'on recoit : celui qui est pose, sinon celui du moteur (`maj::DEPOT_PAR_DEFAUT`, lot S1).
-    let depot = json!(crate::maj::depot(depot));
+    let depot = json!(crate::compagnie::maj::depot(depot));
     let prete = prete(&inst)?;
     let courante_v = courante(&code)?;
     let avant = if code.join(".avant").join("donnees").is_dir() { json!(courante(&code.join(".avant"))?) } else { Value::Null };

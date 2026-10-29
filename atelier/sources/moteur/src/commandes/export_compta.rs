@@ -38,7 +38,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         "au": args.entier("au").unwrap_or(12),
         "apercu": args.drapeau("apercu"),
     });
-    let r = crate::exercice_ecrit::export_compta_charge(&cadre.ctx, &charge)?;
+    let r = crate::compagnie::exercice_ecrit::export_compta_charge(&cadre.ctx, &charge)?;
     if args.drapeau("json") {
         return Ok(rendre(&enveloppe("export-compta", r.json())));
     }

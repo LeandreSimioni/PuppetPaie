@@ -104,7 +104,7 @@ fn oublier(cadre: &Cadre, json: bool) -> i32 {
 /// le JSON d'une erreur.
 fn autoriser(cadre: &Cadre, json: bool) -> i32 {
     let r = super::actes::refuser_si_pas_redirige(cadre, super::actes::Organisme::Google, "lier le compte Google")
-        .and_then(|()| crate::filet::exiger_mot_de_passe(&cadre.racine, &Value::Null, "lier le compte Google"))
+        .and_then(|()| crate::compagnie::filet::exiger_mot_de_passe(&cadre.racine, &Value::Null, "lier le compte Google"))
         .and_then(|()| {
             let url = |u: &str| {
                 if json {

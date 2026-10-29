@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::depot_acte::{self, phrase_de, Preuve};
+use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -39,7 +39,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(ctx, charge),
         "filet-preparer" => filet_preparer(ctx, charge),
-        "dsn-a-deposer" => crate::depart::dsn_a_deposer(ctx, charge),
+        "dsn-a-deposer" => crate::compagnie::depart::dsn_a_deposer(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -206,7 +206,7 @@ struct Amorcage {
 /// Un fichier de signalement par individu dont le taux manque (le travail est
 /// celui de `amorcage_demande`, que `moteur pas --demander` generalise). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
 fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution: Jour, ecrits: &mut Vec<PathBuf>) -> Result<Amorcage, String> {
-    let demande = crate::amorcage_demande::Demande {
+    let demande = crate::compagnie::amorcage_demande::Demande {
         motif: declarations::amorcage::EMBAUCHE,
         mois,
         salaries: None,
@@ -214,7 +214,7 @@ fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution
         forcer: false,
         constitution,
     };
-    let lot = crate::amorcage_demande::produire(ctx, retenues, &demande, ecrits)?;
+    let lot = crate::compagnie::amorcage_demande::produire(ctx, retenues, &demande, ecrits)?;
     Ok(Amorcage { fichiers: lot.fichiers, lignes: lot.lignes.iter().map(|l| (l.salarie.clone(), l.libelle.clone())).collect() })
 }
 
@@ -424,7 +424,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             let cible = sortie.join(format!("DPAE_{}{}.txt", etiq, marque));
             let h = horodatage(&maintenant_iso());
             declarations::dpae::ecrire(&embauches, &cible, &parametres_de(&h, &heure_texte, &code, &ent, &chemins), true).map_err(plain)?;
-            crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
+            crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
             let pour_recap: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, true)).collect();
             ecrire_texte(&recap, &declarations::dpae::recapitulatif(&pour_recap, &heure).map_err(plain)?)?;
             cible
@@ -559,7 +559,7 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let fabriquee;
     let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
         (None, Some(mois)) if etats::est(quoi, "dsn") => {
-            let dsn = crate::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
+            let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
             let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
             let chemin = match nic {
                 Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
@@ -595,9 +595,9 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let dpae = etats::est(quoi, "dpae");
     let (debut, fin) = releve_retours::derniere_journee();
     let releve = if dpae {
-        crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
+        crate::compagnie::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
     } else {
-        crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
+        crate::compagnie::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
@@ -649,9 +649,9 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
             let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-            crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
+            crate::compagnie::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
         } else {
-            crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
+            crate::compagnie::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
@@ -691,11 +691,11 @@ pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Op
     };
     let mut bilan_testees: Vec<Value> = Vec::new();
     let mut bilan_incidents: Vec<Value> = Vec::new();
-    let suivies = crate::filet::suivies(ctx)?;
+    let suivies = crate::compagnie::filet::suivies(ctx)?;
     let mut demande = Map::new();
     demande.insert("maintenant".into(), json!(maintenant_iso));
     if tester {
-        let etat = crate::filet::lire_etat(&ctx.racine)?;
+        let etat = crate::compagnie::filet::lire_etat(&ctx.racine)?;
         if let Some(tests) = tester_les_dpae(ctx, &etat, &suivies, &maintenant_iso, &qui, &mut bilan_testees, &mut bilan_incidents, client.as_deref_mut())? {
             demande.insert("tests".into(), tests);
             demande.insert(
@@ -705,7 +705,7 @@ pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Op
         }
     }
     let champ = |k: &str| demande.get(k).cloned().unwrap_or(Value::Null);
-    match crate::filet::passage(ctx, &champ("tests"), &champ("vivantes"), &champ("maintenant")) {
+    match crate::compagnie::filet::passage(ctx, &champ("tests"), &champ("vivantes"), &champ("maintenant")) {
         Ok(passage) => {
             if let Some(i) = passage.get("incidents").and_then(Value::as_array) {
                 bilan_incidents.extend(i.iter().cloned());
@@ -743,9 +743,9 @@ fn tester_les_dpae(
     // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
     // COMPAGNIE FICTIVE, elle, teste (27/09/2026) : son depot est joue.
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
-    if !crate::bridage::branchement(&ctx.racine).joue() {
+    if !crate::compagnie::bridage::branchement(&ctx.racine).joue() {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
-        let dispo = client.is_some() || crate::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes::vers_route)?;
+        let dispo = client.is_some() || crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes::vers_route)?;
         if copie || !dispo {
             return Ok(None);
         }

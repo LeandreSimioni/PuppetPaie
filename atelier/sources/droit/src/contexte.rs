@@ -1602,7 +1602,7 @@ PSS_H_METROP).",
     }
 
     /// LES ORGANISMES ET CONTRATS DE LA DSN (`config/organismes.json`), lus a `lue_au` : un fichier date comme les
-    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::organismes` l'ecrit, par `dater`). `None` : la compagnie
+    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::compagnie::organismes` l'ecrit, par `dater`). `None` : la compagnie
     /// ne les a pas encore enregistres.
     pub fn organismes(&self) -> Resultat<Option<Value>> {
         let p = self.racine.join("config").join(ORGANISMES);

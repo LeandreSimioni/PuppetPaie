@@ -27,7 +27,7 @@ use super::actes::{est_refus, maintenant_minutes, refuser_dans_l_atelier, servic
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{champ, texte};
 use super::Cadre;
-use crate::coffre::{Coffre, SERVICES};
+use crate::compagnie::coffre::{Coffre, SERVICES};
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
@@ -60,12 +60,12 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-fn vers(e: crate::coffre::Echec) -> Echec {
+fn vers(e: crate::compagnie::coffre::Echec) -> Echec {
     Echec { classe: None, message: e.message }
 }
 
 /// Le refus du coffre sous sa classe (`ErreurCoffre`, `OSError`...), pour que la commande sache s'il se rend en phrase.
-fn vers_classe(e: crate::coffre::Echec) -> Echec {
+fn vers_classe(e: crate::compagnie::coffre::Echec) -> Echec {
     Echec { classe: Some(e.classe), message: e.message }
 }
 
@@ -116,11 +116,11 @@ fn faire(cadre: &Cadre) -> Result<i32, Echec> {
 /// Le moteur demande LUI-MEME le mot de passe du logiciel a un humain, s'il en est un de pose (`filet::exiger_mot_de_passe`) ;
 /// sinon, il refuse. Le mot de passe tape est retenu pour la commande : il ouvre le coffre, il ne sort pas.
 fn exiger(cadre: &Cadre, quoi: &str) -> Result<(), Echec> {
-    crate::filet::exiger_mot_de_passe(&cadre.racine, &Value::Null, quoi)
+    crate::compagnie::filet::exiger_mot_de_passe(&cadre.racine, &Value::Null, quoi)
 }
 
 /// Le service nomme a la ligne de commande : sa fiche, ou la phrase qui dit lesquels existent (code 2, comme le Python).
-fn service_demande(args: &Args, inconnu: &str) -> Result<&'static crate::coffre::Service, i32> {
+fn service_demande(args: &Args, inconnu: &str) -> Result<&'static crate::compagnie::coffre::Service, i32> {
     let Some(nom) = args.texte("service").filter(|s| !s.is_empty()) else {
         dire!("Quel service ? {}", services_connus().join(", "));
         return Err(2);
@@ -136,14 +136,14 @@ fn service_demande(args: &Args, inconnu: &str) -> Result<&'static crate::coffre:
 
 /// Deux saisies du meme secret, masquees. `Err(code)` : la phrase est dite, la commande s'arrete (rien n'est pose).
 fn saisir_deux_fois(titre: &str, lignes: &[String], invite: &str, invite_bis: &str) -> Result<String, i32> {
-    let mdp = match crate::demande::saisir_secret(titre, lignes, invite) {
+    let mdp = match crate::compagnie::demande::saisir_secret(titre, lignes, invite) {
         Ok(m) => m,
         Err(phrase) => {
             dire!("{}", phrase);
             return Err(2);
         }
     };
-    let bis = match crate::demande::saisir_secret("PuppetPaie : le retaper", &[], invite_bis) {
+    let bis = match crate::compagnie::demande::saisir_secret("PuppetPaie : le retaper", &[], invite_bis) {
         Ok(m) => m,
         Err(phrase) => {
             dire!("{}", phrase);
@@ -230,7 +230,7 @@ fn ouverture(cadre: &Cadre) -> Result<i32, Echec> {
     let coffre = Coffre::du_poste(&cadre.racine, &maintenant_minutes());
     // UNE COMPAGNIE DE L'ADMINISTRATEUR (ticket #244) : son mot de passe est aussi celui des autres ; il se change pour
     // toutes a la fois, dans la fenetre (Configuration > Mots de passe), jamais pour une seule ici.
-    if crate::administrateur::est_rattachee(&crate::administrateur::installation_de(&cadre.racine), &cadre.racine) {
+    if crate::compagnie::administrateur::est_rattachee(&crate::compagnie::administrateur::installation_de(&cadre.racine), &cadre.racine) {
         dire!();
         dire!("Cette compagnie est geree par l'administrateur : son mot de passe ouvre aussi ses autres");
         dire!("compagnies, et il se change pour toutes a la fois, dans la fenetre PuppetPaie");
@@ -336,8 +336,8 @@ fn seance(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             return Ok(0);
         }
     }
-    match crate::demande::ouvrir_seance(&cadre.racine) {
-        crate::demande::Verdict::Accepte => {
+    match crate::compagnie::demande::ouvrir_seance(&cadre.racine) {
+        crate::compagnie::demande::Verdict::Accepte => {
             let fin = coffre.fin_ouverture_gardee().map_err(vers_classe)?.unwrap_or_default();
             dire!(
                 "Seance ouverte jusqu'au {} : le coffre s'ouvre sans redemander le mot de passe du logiciel. Un depot REEL le redemande toujours.",
@@ -345,7 +345,7 @@ fn seance(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             );
             Ok(0)
         }
-        crate::demande::Verdict::Refuse(phrase) => {
+        crate::compagnie::demande::Verdict::Refuse(phrase) => {
             dire!("! {}", phrase);
             Ok(2)
         }

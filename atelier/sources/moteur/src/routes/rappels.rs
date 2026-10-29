@@ -250,10 +250,10 @@ impl Etat<'_> {
         if !e.is_null() {
             return Ok(e);
         }
-        if let Some(d) = crate::mois_importe::dsn_importee(self.racine(), mois)? {
+        if let Some(d) = crate::import::mois::dsn_importee(self.racine(), mois)? {
             return Ok(d);
         }
-        if crate::mois_importe::importe(self.racine(), mois)? {
+        if crate::import::mois::importe(self.racine(), mois)? {
             return Ok(json!({"importee": true, "sans_trace": true, "passee": false, "refusee": false}));
         }
         Ok(Value::Null)
@@ -321,7 +321,7 @@ fn lister(st: &Etat) -> R<Vec<Rappel>> {
             );
             out.push(r);
         }
-        if !crate::exercice_ecrit::export_compta_a_jour(&st.ctx.racine, &precedent.to_string()) {
+        if !crate::compagnie::exercice_ecrit::export_compta_a_jour(&st.ctx.racine, &precedent.to_string()) {
             let mut r = Rappel::nouveau(
                 EXPORT_COMPTA,
                 format!("export-compta:{}", precedent),
@@ -497,7 +497,7 @@ pub(crate) fn mois_a_declarer(st: &Etat) -> R<Vec<String>> {
 fn dsn_deposable(st: &Etat, mois: &str) -> Option<(String, String)> {
     // Le mois n'est ecrit que si le moteur a note sa DSN mensuelle (`depart::mois_ecrit`, le critere de l'horloge
     // et de l'accueil) : un fichier DSN qu'il n'a pas note ne fait pas « le mois est ecrit ».
-    if !crate::depart::mois_ecrit(st.racine(), mois) {
+    if !crate::compagnie::depart::mois_ecrit(st.racine(), mois) {
         return None;
     }
     let dossier = st.racine().join("sorties").join(mois);
@@ -603,7 +603,7 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
 /// le dit (`mois_importe::dsn_de_l_ancien_logiciel`).
 fn ajouter_les_mois_de_l_ancien_logiciel(st: &Etat, mois: &str, r: &mut Rappel) -> R<()> {
     for m in crate::routes::etapes::mois_saisis(st.racine()).into_iter().filter(|m| m.as_str() < mois) {
-        let Some(d) = crate::mois_importe::dsn_de_l_ancien_logiciel(st.ctx, &m)? else { continue };
+        let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(st.ctx, &m)? else { continue };
         if d["porteur"] == json!(mois) && d["engagements"].as_u64().is_some_and(|n| n > 0) {
             let lib = socle::date::libelle_du_mois(&m, socle::date::Graphie::Accentuee).map_err(Refus::from)?;
             r.detail.push_str(&format!(" {} : {}", socle::texte::capitaliser(&lib), en_texte(&d["phrase"])));

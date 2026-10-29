@@ -61,7 +61,7 @@ pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
     let debut = std::time::Instant::now();
     let r = route_seule(racine, nom, charge);
     let issue = r.as_ref().map(|_| ()).map_err(|e| (e.classe.as_str(), e.message.as_str()));
-    crate::diagnostic::noter_route(racine, "fond", nom, charge, debut.elapsed(), issue);
+    crate::compagnie::diagnostic::noter_route(racine, "fond", nom, charge, debut.elapsed(), issue);
     r
 }
 
@@ -76,7 +76,7 @@ fn route_seule(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus>
     // LE BANC D'ESSAI (l'atelier seulement, #236) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
     // entre dans le scenario, avec sa charge et son instant (`scenario::Enregistreur`).
     #[cfg(feature = "atelier")]
-    if let Some(e) = crate::scenario::enregistreur_actif() {
+    if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
         return depuis_reponse(e.route(racine, nom, charge, || crate::routes::dans_la_fenetre(&o, nom, charge)));
     }
     depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge))
@@ -332,7 +332,7 @@ fn ouvrir_sous(dossier: PathBuf, absent: &str) -> Result<Value, Refus> {
 fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     let vers = |f: socle::echec::Echec| Refus::simple(f.classe.unwrap_or("ErreurOperation"), f.message);
     let mot = charge.get("motdepasse").cloned().unwrap_or(Value::Null);
-    crate::filet::exiger_mot_de_passe(racine, &mot, "lier le compte Google").map_err(vers)?;
+    crate::compagnie::filet::exiger_mot_de_passe(racine, &mot, "lier le compte Google").map_err(vers)?;
     let url = |u: &str| {
         let _ = ouvrir_adresse(u);
     };
@@ -436,7 +436,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             let mut v = rendu.map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))?;
             if v.get("pret").and_then(Value::as_bool) == Some(true) && !frais {
                 v["veille"] = etat_veille.unwrap_or_else(|| json!({"minutes": 0, "dernier": {}, "en_cours": false}));
-                v["maj"] = crate::maj::RECHERCHE.etat();
+                v["maj"] = crate::compagnie::maj::RECHERCHE.etat();
                 v["signalements"] = en_page(
                     crate::routes::filet::signalements_route(racine).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
                 );
@@ -459,16 +459,16 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
     // s'y dit comme telle.
     if nom == "incident-navigateur" {
         let c = |k: &str| charge.get(k).map(socle::valeur::valeur_en_texte).unwrap_or_default();
-        crate::diagnostic::noter_moteur(&format!(
+        crate::compagnie::diagnostic::noter_moteur(&format!(
             "erreur JS {} : {} ({}:{})",
             c("genre"),
-            crate::diagnostic::texte_en_forme(Some(racine), &c("message"), 200),
-            crate::diagnostic::texte_en_forme(Some(racine), &c("fichier"), 80),
+            crate::compagnie::diagnostic::texte_en_forme(Some(racine), &c("message"), 200),
+            crate::compagnie::diagnostic::texte_en_forme(Some(racine), &c("fichier"), 80),
             c("ligne")
         ));
     } else {
         let issue = rendu.as_ref().map(|_| ()).map_err(|e| (e.classe.as_str(), e.message.as_str()));
-        crate::diagnostic::noter_route(racine, "page", nom, charge, duree, issue);
+        crate::compagnie::diagnostic::noter_route(racine, "page", nom, charge, duree, issue);
     }
     // APRES UNE ECRITURE (ou un tour de veille demande), les etats de tous les mois se verifient en fond, le mois affiche
     // d'abord : une ecriture d'un mois peut changer les suivants (un contrat en cours, une numerotation, un cumul). Meme
@@ -487,16 +487,16 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
                 // code et la chaine des echecs. Le fil et la machine s'y ajoutent dans `incidents::noter`.
                 let mut detail = Map::new();
                 detail.insert("route".into(), json!(nom));
-                detail.insert("charge".into(), crate::diagnostic::en_forme(Some(racine), charge));
+                detail.insert("charge".into(), crate::compagnie::diagnostic::en_forme(Some(racine), charge));
                 detail.insert("duree_ms".into(), json!(duree.as_millis() as u64));
                 if let Some(m) = charge.get("mois").and_then(Value::as_str) {
-                    detail.insert("mois".into(), crate::diagnostic::etat_du_mois(racine, m));
+                    detail.insert("mois".into(), crate::compagnie::diagnostic::etat_du_mois(racine, m));
                 }
                 if !r.plus.is_empty() {
-                    detail.insert("refus".into(), crate::diagnostic::en_forme(Some(racine), &Value::Object(r.plus.clone())));
+                    detail.insert("refus".into(), crate::compagnie::diagnostic::en_forme(Some(racine), &Value::Object(r.plus.clone())));
                 }
-                let trace = crate::diagnostic::trace_du_refus(racine, &r.message, debut_ms);
-                let _ = crate::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom, Value::Object(detail), trace.as_deref());
+                let trace = crate::compagnie::diagnostic::trace_du_refus(racine, &r.message, debut_ms);
+                let _ = crate::compagnie::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom, Value::Object(detail), trace.as_deref());
             }
             en_page(Err(r))
         }

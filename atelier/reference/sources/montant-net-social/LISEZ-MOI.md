@@ -308,7 +308,7 @@ Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'u
 
 ## Le modèle de l'arrêté, pour lire un bulletin importé (29/10/2026)
 
-Le lecteur des bulletins importés (`atelier/sources/moteur/src/bulletin_lu.rs`) range les rangs du tableau d'un bulletin,
+Le lecteur des bulletins importés (`atelier/sources/moteur/src/import/bulletin_lu.rs`) range les rangs du tableau d'un bulletin,
 quel que soit le logiciel qui l'a fait, par les libellés du modèle de l'article 1, I (`LEGIARTI000049854119.xml`) : les
 familles (« Santé », « Retraite », « Famille », « Assurance chômage », « Autres contributions dues par l'employeur »…),
 le total des cotisations, le « Montant net social », le net avant impôt, l'impôt prélevé, le net imposable. Ces libellés,

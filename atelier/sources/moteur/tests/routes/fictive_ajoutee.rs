@@ -10,7 +10,7 @@ use crate::outils::{dossier_de_test, lire};
 #[test]
 fn le_plus_d_un_logiciel_bride_ajoute_une_fictive_ajoutee() {
     let inst = dossier_de_test("fictive_ajoutee", "ajouter");
-    assert!(moteur::bridage::est_bride_de(&inst));
+    assert!(moteur::compagnie::bridage::est_bride_de(&inst));
     let c = ajouter_dans(&inst, "  Les   Pupazzi ").unwrap();
     assert_eq!(c.racine, inst.join("fictives/ajoutee-les-pupazzi"));
     assert_eq!((c.id.as_str(), c.reelle, c.nom.as_str()), ("fictive:ajoutee-les-pupazzi", false, "Les Pupazzi"));

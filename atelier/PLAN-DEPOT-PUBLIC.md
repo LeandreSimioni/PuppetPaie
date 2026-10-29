@@ -101,7 +101,7 @@ redevient fictive avant.
 **Toutes les anomalies remontent, et toutes sont pertinentes.** Aucun tri à
 la source : une anomalie non bloquante, un avertissement, un code « autre
 erreur » sur une déclaration enregistrée en disent autant qu'un rejet. Ce qui
-existe (`moteur/src/incidents.rs`, et l'incident d'un retour, `incident` dans
+existe (`moteur/src/compagnie/incidents.rs`, et l'incident d'un retour, `incident` dans
 `envois/src/etats.rs`) ne fait pas encore cela ; deux trous relevés le
 03/10/2026, toujours vrais le 15/10/2026 :
 

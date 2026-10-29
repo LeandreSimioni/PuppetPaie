@@ -23,7 +23,7 @@ use serde_json::json;
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
 use super::depot_dsn::dire_repetition;
-use crate::depot_acte::{self, Preuve};
+use crate::compagnie::depot_acte::{self, Preuve};
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {

@@ -9,7 +9,7 @@
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
-use moteur::administrateur::{self, Poste};
+use moteur::compagnie::administrateur::{self, Poste};
 use moteur::interface::compagnies::{ajouter_dans, liste_de};
 use moteur::interface::suppression::{self, effacer_les_restes, supprimer};
 use serde_json::json;

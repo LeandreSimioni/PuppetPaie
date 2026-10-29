@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use envois::drive::{Depose, Distant, Drive, ErreurGoogle};
-use moteur::sauvegarde::empreinte;
+use moteur::compagnie::sauvegarde::empreinte;
 
 pub struct FichierDrive {
     pub id: String,

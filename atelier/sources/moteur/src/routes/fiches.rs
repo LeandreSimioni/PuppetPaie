@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::depot_acte::{verifier_preuve, Preuve};
+use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
 use crate::routes::mois::{lire_saisie, sauver_avant};
 use crate::routes::ouverture::{metier_visible, preferences_metiers};
@@ -1192,7 +1192,7 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(identite_inconnue(quoi));
     }
     let utile = contenu.rsplit(',').next().unwrap_or("");
-    let octets = crate::problemes::base64_strict(utile).ok_or_else(|| refus("Le fichier n'est pas lisible : base64 invalide."))?;
+    let octets = crate::compagnie::problemes::base64_strict(utile).ok_or_else(|| refus("Le fichier n'est pas lisible : base64 invalide."))?;
     if octets.is_empty() {
         return Err(refus("Le fichier est vide."));
     }
@@ -1724,7 +1724,7 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
             .filter(|(j, _)| j.map_or(true, |j| j <= ctx.lue_au))
             .last()
             .map(|(j, v)| (j, v.clone()));
-        if crate::importation_completer::vide(en_vigueur.as_ref().map(|(_, v)| v)) {
+        if crate::import::completer::vide(en_vigueur.as_ref().map(|(_, v)| v)) {
             droit::contexte::dater(cible, k, v.clone(), en_vigueur.and_then(|(j, _)| j).as_ref(), None);
             ecrits.insert(k.clone(), v.clone());
         }
@@ -1944,7 +1944,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         return Ok(r);
     }
     let mut ouverte: Option<Box<dyn Courriel>> = None;
-    let branchement = crate::bridage::branchement(&ctx.racine);
+    let branchement = crate::compagnie::bridage::branchement(&ctx.racine);
     let client: &mut dyn Courriel = match client {
         Some(c) => c,
         None if branchement.joue() => {
@@ -1957,11 +1957,11 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
                 r.incidents.push(refus.phrase.to_string());
                 return Ok(r);
             }
-            if !crate::boite::disponible(&ctx.racine) {
+            if !crate::compagnie::boite::disponible(&ctx.racine) {
                 r.incidents.push("Aucune boite courriel : les fiches demandees ne peuvent pas etre relevees.".to_string());
                 return Ok(r);
             }
-            let vrai_client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+            let vrai_client = crate::compagnie::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
             ouverte.insert(Box::new(vrai_client)).as_mut()
         }
     };

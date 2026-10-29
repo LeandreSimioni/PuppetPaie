@@ -5,8 +5,8 @@
 # QUATRE ARCHIVES DE MISE A JOUR PAR VERSION (Leandre, 15/10/2026 : « Il y a les quatre : une par systeme et une
 # tout-systeme, ensemble ») : Windows, Linux, Mac, et une qui porte les trois (un dossier portable pour plusieurs
 # machines, et le repli). Chacune porte LE CONTENU DE `logiciel/` A SA RACINE, sans fictives : c'est un CONTRAT avec toutes
-# les installations posees, dont le code la deballe telle quelle (tete de moteur/src/maj.rs) ; elle ne change plus de forme.
-# Chaque installation prend celle de son systeme (moteur/src/maj.rs). Dans `logiciel/`, les programmes de Windows sont a la
+# les installations posees, dont le code la deballe telle quelle (tete de moteur/src/compagnie/maj.rs) ; elle ne change plus de forme.
+# Chaque installation prend celle de son systeme (moteur/src/compagnie/maj.rs). Dans `logiciel/`, les programmes de Windows sont a la
 # racine (`puppetpaie.exe`, `WebView2Loader.dll`, les seuls suivis par Git) ; ceux de Linux et de Mac dans `logiciel/linux/`
 # et `logiciel/mac/` (`puppetpaie`, la fenetre ; `moteur`, le moteur), poses ici seulement.
 #
@@ -32,7 +32,7 @@
 #   3. publier        ATTEND L'APPROBATION DE LEANDRE (environnement `publication` : approbateur Leandre, `main` seule),
 #                     puis seulement voit le secret PUPPETPAIE_CLE_SIGNATURE (la graine de la cle de GitHub). Il rassemble
 #                     `logiciel/` (les systemes choisis) et `fictives/`, et le moteur lui-meme signe (`moteur maj
-#                     --publier-github`, moteur/src/maj.rs) : une archive de mise a jour par systeme fabrique et celle de
+#                     --publier-github`, moteur/src/compagnie/maj.rs) : une archive de mise a jour par systeme fabrique et celle de
 #                     tous, et celle des fictives, chacune verifiee contre CLE_PUBLIQUE_GITHUB, `derniere.json` qui les
 #                     nomme, et a cote les archives d'installation ; il refuse une version qui n'est pas plus recente que
 #                     la derniere Release. La forme de chacune est verifiee, puis une Release GitHub `v<version>` porte ces

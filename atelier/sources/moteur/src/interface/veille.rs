@@ -55,7 +55,7 @@ impl Veille {
     pub fn etape(&self) -> Value {
         let en_cours = self.en_cours.load(Ordering::SeqCst);
         let sauvegarde = self.sauvegarde_en_cours.load(Ordering::SeqCst);
-        let etape = if en_cours || sauvegarde { crate::ouverture::etape_en_cours(&self.racine) } else { None };
+        let etape = if en_cours || sauvegarde { crate::compagnie::ouverture::etape_en_cours(&self.racine) } else { None };
         json!({"en_cours": en_cours, "sauvegarde_en_cours": sauvegarde, "etape": etape})
     }
 

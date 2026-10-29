@@ -28,7 +28,7 @@ use rust_decimal::RoundingStrategy;
 use serde_json::Value;
 
 use super::bulletins_fictifs::{page_a, page_b, pdf_octets, Identite, RangA, RangB, A, B};
-use crate::bulletin_lu::{jetons, Table};
+use crate::import::bulletin_lu::{jetons, Table};
 use socle::date::Jour;
 use socle::num::{eur2, Decimal, Resultat};
 
@@ -857,13 +857,13 @@ mod tests {
         })
     }
 
-    fn lire_tout(dossier: &Path) -> Vec<crate::bulletin_lu::BulletinLu> {
+    fn lire_tout(dossier: &Path) -> Vec<crate::import::bulletin_lu::BulletinLu> {
         let mut fichiers: Vec<_> = std::fs::read_dir(dossier).unwrap().map(|e| e.unwrap().path()).collect();
         fichiers.sort();
         fichiers
             .iter()
             .map(|f| {
-                let mut l = crate::bulletin_lu::lire(f).unwrap();
+                let mut l = crate::import::bulletin_lu::lire(f).unwrap();
                 assert_eq!(l.len(), 1);
                 match l.remove(0).resultat {
                     Ok(b) => b,
@@ -899,7 +899,7 @@ mod tests {
                 assert_eq!(b.logiciel.as_deref(), Some(gabarit));
                 assert!(b.avertissements.is_empty(), "{} : {:?}", gabarit, b.avertissements);
                 assert_eq!(b.entreprise.siret.as_deref().map(|s| s.replace(' ', "")).as_deref(), Some("12345678200010"));
-                let c = crate::bulletin_lu::compteurs(b, &d).unwrap();
+                let c = crate::import::bulletin_lu::compteurs(b, &d).unwrap();
                 assert!(c.avertissements.is_empty(), "{} : {:?}", gabarit, c.avertissements);
                 assert!(c.cachets.is_some() && c.heures.is_some() && c.jours.is_some(), "{} : {:?}", gabarit, c);
             }
@@ -908,10 +908,10 @@ mod tests {
             assert_eq!(mars.salarie.nir.as_deref().map(|s| s.replace(' ', "")).as_deref(), Some("185079999912388"));
             assert_eq!(mars.brut, Decimal::new(43800, 2));
             assert_eq!(mars.numero_objet.as_deref(), Some("256Z00920031"));
-            let c = crate::bulletin_lu::compteurs(mars, &d).unwrap();
+            let c = crate::import::bulletin_lu::compteurs(mars, &d).unwrap();
             assert_eq!((c.cachets, c.jours), (Some(Decimal::from(3)), Some(Decimal::from(3))));
             let avril = &lus[2];
-            let c = crate::bulletin_lu::compteurs(avril, &d).unwrap();
+            let c = crate::import::bulletin_lu::compteurs(avril, &d).unwrap();
             assert_eq!((c.cachets, c.heures), (Some(Decimal::ONE), Some(Decimal::from(8))));
             // Le cumul de l'annee suit le salarie : brut de mars + brut d'avril.
             let brut = avril.cumuls.iter().find(|(n, _)| n == "brut").map(|(_, c)| c.cumul).unwrap();

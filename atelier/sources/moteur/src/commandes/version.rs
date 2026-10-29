@@ -31,7 +31,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         return Ok(0);
     }
     let vrai = |k: &str| v.get(k).is_some_and(socle::fichiers::vrai);
-    let lue = |k: &str| crate::maj::version_lue(&champ(&v, k));
+    let lue = |k: &str| crate::compagnie::maj::version_lue(&champ(&v, k));
     dire!("PuppetPaie {}{}", lue("courante"), if vrai("editeur") { " (poste de l'editeur)" } else { "" });
     #[cfg(feature = "atelier")]
     dire!("  BINAIRE DE L'ATELIER (moteur-atelier) : pour les essais seulement, jamais livre ; il refuse tout acte reel (depot reel, envoi, signature)");

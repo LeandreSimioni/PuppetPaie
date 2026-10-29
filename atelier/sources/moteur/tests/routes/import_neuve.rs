@@ -143,11 +143,11 @@ fn l_apercu_annonce_ce_que_l_ecriture_trouvera() {
 
     // LES ECARTS DE CALCUL DE L'IMPORT PARTENT SANS RIEN QUI DESIGNE UNE PERSONNE : ni nom, prenom, NIR, naissance ou
     // adresse des fiches, ni brut, net ou cout d'une paie importee, dans ce qui partirait chez l'editeur.
-    let partiraient: Vec<String> = moteur::incidents::lire(&racine, None, false)
+    let partiraient: Vec<String> = moteur::compagnie::incidents::lire(&racine, None, false)
         .unwrap()
         .iter()
-        .filter(|l| l["ou"] == json!(moteur::importation_ecarts::OU))
-        .map(|l| moteur::incidents::pour_l_editeur(&racine, l).unwrap().to_string())
+        .filter(|l| l["ou"] == json!(moteur::import::ecarts::OU))
+        .map(|l| moteur::compagnie::incidents::pour_l_editeur(&racine, l).unwrap().to_string())
         .collect();
     assert!(!partiraient.is_empty(), "l'import n'a rien rapporte de ses ecarts");
     let mut interdits: Vec<String> = Vec::new();

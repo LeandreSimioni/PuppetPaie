@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use socle::date::Jour;
-use moteur::entrepot_dila::Source;
+use moteur::atelier::releve::entrepot_dila::Source;
 use serde_json::Value;
 
 use crate::outils;
@@ -108,7 +108,7 @@ fn rapport_ecrit_le_document_de_chaque_texte() {
     let d = outils::dossier_de_test("releve_dila", "rapport");
     outils::copier(&donnees().join("legi"), &d);
     for (cle, dossier) in TEXTES {
-        moteur::releve_codes::rapport(&d, cle, &jour("2026-10-15")).unwrap();
+        moteur::atelier::releve::codes::rapport(&d, cle, &jour("2026-10-15")).unwrap();
         let ecrit = lire(&d.join(dossier).join("articles-20261015.md"));
         let attendu = lire(&donnees().join(format!("legi/attendus/articles-{}-20261015.md", cle)));
         assert!(ecrit == attendu, "{} : le rapport differe de celui du Python", cle);
@@ -121,7 +121,7 @@ fn moissonner_sans_livraison_neuve_reecrit_tout_a_l_identique() {
     let d = outils::dossier_de_test("releve_dila", "moissonner_rien");
     outils::copier(&donnees().join("legi"), &d);
     let source = Faux::nouveau().index(LEGI, &lues(&d.join("legi-entrepot/etat.json"), "LEGI"));
-    moteur::releve_codes::moissonner(&d, false, &source, &jour("2026-10-13")).unwrap();
+    moteur::atelier::releve::codes::moissonner(&d, false, &source, &jour("2026-10-13")).unwrap();
     assert_eq!(*source.appels.lock().unwrap(), [LEGI]);
     for (_, dossier) in TEXTES {
         assert!(lire(&d.join(dossier).join("releve.json")) == lire(&donnees().join("legi").join(dossier).join("releve.json")), "{}", dossier);
@@ -147,7 +147,7 @@ fn moissonner_applique_les_livraisons_neuves_comme_le_python() {
         noms.push(n.to_string());
     }
     let source = source.index(LEGI, &noms);
-    moteur::releve_codes::moissonner(&d, false, &source, &jour("2026-10-15")).unwrap();
+    moteur::atelier::releve::codes::moissonner(&d, false, &source, &jour("2026-10-15")).unwrap();
     for (_, dossier) in TEXTES {
         assert!(lire(&d.join(dossier).join("releve.json")) == lire(&inc.join("attendus").join(dossier).join("releve.json")), "{}", dossier);
         memes_dossiers(&d.join(dossier).join("xml"), &inc.join("attendus").join(dossier).join("xml"));
@@ -167,7 +167,7 @@ fn une_livraison_manquee_arrete_la_suite() {
     noms.extend(["LEGI_20261014-210000.tar.gz".to_string(), "LEGI_20261015-210000.tar.gz".to_string()]);
     let mut source = Faux::nouveau().index(LEGI, &noms).page(&format!("{}LEGI_20261015-210000.tar.gz", LEGI), lire(&inc.join("LEGI_20261015-210000.tar.gz")));
     source.pannes.insert(format!("{}LEGI_20261014-210000.tar.gz", LEGI));
-    moteur::releve_codes::moissonner(&d, false, &source, &jour("2026-10-15")).unwrap();
+    moteur::atelier::releve::codes::moissonner(&d, false, &source, &jour("2026-10-15")).unwrap();
     let origine = donnees().join("legi/legi-entrepot");
     assert_eq!(json(&d.join("legi-entrepot/etat.json"))["lues"], json(&origine.join("etat.json"))["lues"]);
     assert!(decompresse(&d.join("legi-entrepot/articles.jsonl.gz")) == decompresse(&origine.join("articles.jsonl.gz")));
@@ -182,7 +182,7 @@ fn une_livraison_manquee_arrete_la_suite() {
 fn l_entrepot_s_ecrit_a_l_octet_pres() {
     let d = outils::dossier_de_test("releve_dila", "entrepot");
     outils::copier(&donnees().join("legi/legi-entrepot"), &d.join("a"));
-    let mut e = moteur::entrepot_dila::Entrepot::nouveau(&d.join("a")).charger().unwrap();
+    let mut e = moteur::atelier::releve::entrepot_dila::Entrepot::nouveau(&d.join("a")).charger().unwrap();
     e.sauver("2026-10-13").unwrap();
     let premier = lire(&d.join("a/articles.jsonl.gz"));
     e.dossier = d.join("b");
@@ -201,8 +201,8 @@ fn comparer_rend_les_differences_comme_le_python() {
     let d = outils::dossier_de_test("releve_dila", "comparer");
     let c = donnees().join("comparer");
     outils::copier(&c.join("entree"), &d);
-    let source = Faux::nouveau().page(&format!("{}{}", LEGI, moteur::releve_codes::GLOBAL), lire(&c.join("global.tar.gz")));
-    moteur::releve_codes::comparer(&d, &source, &jour("2026-10-15")).unwrap();
+    let source = Faux::nouveau().page(&format!("{}{}", LEGI, moteur::atelier::releve::codes::GLOBAL), lire(&c.join("global.tar.gz")));
+    moteur::atelier::releve::codes::comparer(&d, &source, &jour("2026-10-15")).unwrap();
     assert!(lire(&d.join("changements-de-version-20261015.md")) == lire(&c.join("attendus/changements-de-version-20261015.md")));
     memes_dossiers(&d.join("code-general-des-impots/xml-anterieur"), &c.join("attendus/xml-anterieur"));
 }
@@ -214,7 +214,7 @@ fn le_diff_est_celui_de_difflib() {
     let cas = json(&donnees().join("difflib-unifie.json"));
     let lignes = |v: &Value| -> Vec<String> { v.as_array().unwrap().iter().map(|x| x.as_str().unwrap().to_string()).collect() };
     for (i, c) in cas.as_array().unwrap().iter().enumerate() {
-        assert_eq!(moteur::releve_codes::diff_unifie(&lignes(&c["a"]), &lignes(&c["b"]), 1), lignes(&c["diff"]), "cas {}", i);
+        assert_eq!(moteur::atelier::releve::codes::diff_unifie(&lignes(&c["a"]), &lignes(&c["b"]), 1), lignes(&c["diff"]), "cas {}", i);
     }
 }
 
@@ -223,14 +223,14 @@ fn le_diff_est_celui_de_difflib() {
 /// `chercher` et `article` rendent ce que rendait le Python.
 #[test]
 fn chercher_et_article_rendent_ce_que_rendait_le_python() {
-    let ent = moteur::releve_conventions::charger(&donnees().join("kali")).unwrap();
+    let ent = moteur::atelier::releve::conventions::charger(&donnees().join("kali")).unwrap();
     let att = donnees().join("kali/attendus");
     let texte = |n: &str| String::from_utf8(lire(&att.join(n))).unwrap();
-    assert_eq!(moteur::releve_conventions::rendre_recherche(&ent, "3090", "licenciement"), texte("chercher-3090-licenciement.txt"));
-    assert_eq!(moteur::releve_conventions::rendre_recherche(&ent, "2642", "Préavis"), texte("chercher-2642-preavis.txt"));
+    assert_eq!(moteur::atelier::releve::conventions::rendre_recherche(&ent, "3090", "licenciement"), texte("chercher-3090-licenciement.txt"));
+    assert_eq!(moteur::atelier::releve::conventions::rendre_recherche(&ent, "2642", "Préavis"), texte("chercher-2642-preavis.txt"));
     let nums = |l: &[&str]| -> Vec<String> { l.iter().map(|s| s.to_string()).collect() };
-    assert_eq!(moteur::releve_conventions::rendre_articles(&ent, "2642", &nums(&["3.1", "IX", "9"])), texte("article-2642-3.1-IX-9.txt"));
-    assert_eq!(moteur::releve_conventions::rendre_articles(&ent, "3090", &nums(&["7.6"])), texte("article-3090-7.6.txt"));
+    assert_eq!(moteur::atelier::releve::conventions::rendre_articles(&ent, "2642", &nums(&["3.1", "IX", "9"])), texte("article-2642-3.1-IX-9.txt"));
+    assert_eq!(moteur::atelier::releve::conventions::rendre_articles(&ent, "3090", &nums(&["7.6"])), texte("article-3090-7.6.txt"));
 }
 
 /// `mettre-a-jour` n'applique que les livraisons nouvelles : un article change d'etat ou de texte (note dans `changes`),
@@ -248,7 +248,7 @@ fn mettre_a_jour_applique_les_livraisons_neuves_comme_le_python() {
     }
     let source = source.index(KALI, &noms);
     let manifeste = json(&inc.join("sources.json"));
-    moteur::releve_conventions::mettre_a_jour(&d, false, &manifeste, &source, &jour("2026-10-15")).unwrap();
+    moteur::atelier::releve::conventions::mettre_a_jour(&d, false, &manifeste, &source, &jour("2026-10-15")).unwrap();
     assert!(lire(&d.join("kali-entrepot/etat.json")) == lire(&inc.join("attendus/etat.json")));
     assert!(decompresse(&d.join("kali-entrepot/articles.jsonl.gz")) == decompresse(&inc.join("attendus/articles.jsonl.gz")));
 }
@@ -275,11 +275,11 @@ fn une_convention_nouvelle_fait_relire_la_base_entiere() {
     // 9999 : une convention que l'entrepot ne tient pas ; 1285, tenue, dont la base entiere porte un article.
     manifeste["conventions_a_relever"]["9999"] = serde_json::json!({"conteneur": "KALICONT000099999999"});
     manifeste["conventions_a_relever"]["1285"] = serde_json::json!({"conteneur": "KALICONT000005635964"});
-    let ent = moteur::releve_conventions::mettre_a_jour(&d, false, &manifeste, &source, &jour("2026-10-15")).unwrap();
+    let ent = moteur::atelier::releve::conventions::mettre_a_jour(&d, false, &manifeste, &source, &jour("2026-10-15")).unwrap();
     assert_eq!(ent.etat["global"], global);
     assert_eq!(ent.etat["lues"], serde_json::json!(["20260926-210000"]));
     assert_eq!(ent.etat["conteneurs"]["KALICONT000099999999"], "9999");
     // La base entiere ne garde que ce qu'elle porte : la convention 1285 y est, l'ancien entrepot est oublie.
-    let idcc: HashSet<String> = ent.articles.keys().map(|k| moteur::entrepot_dila::parties(k)[0].to_string()).collect();
+    let idcc: HashSet<String> = ent.articles.keys().map(|k| moteur::atelier::releve::entrepot_dila::parties(k)[0].to_string()).collect();
     assert!(idcc.contains("1285") && ent.articles.len() < 10, "{:?}", idcc);
 }

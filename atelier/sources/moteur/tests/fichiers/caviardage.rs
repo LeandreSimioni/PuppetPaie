@@ -7,7 +7,7 @@
 //! fabriquee (departement 99, commune 999), les Siret commencent par 900 000, les IBAN sont faits de
 //! zeros. Aucun PDF de `import/` n'est lu.
 
-use moteur::caviardage::{caviarder, Caviarde, Connus};
+use moteur::import::caviardage::{caviarder, Caviarde, Connus};
 use regex::Regex;
 
 // ------------------------------------------------------------------ les bulletins

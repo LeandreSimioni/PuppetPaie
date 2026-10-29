@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::importation::{self, SalarieDeclare};
+use crate::import::dsn_aem::{self, SalarieDeclare};
 use droit::contexte::Contexte;
 use envois::etats::{self, get};
 use socle::echec::{erreur, Echec, R};
@@ -25,10 +25,10 @@ use socle::valeur::{nom_type, valeur_en_texte};
 
 
 /// Les routes de ce module.
-pub const ROUTES: &[&str] = &["importation-apercu", "importation-etat", "importer", crate::importation_nature::ROUTE];
+pub const ROUTES: &[&str] = &["importation-apercu", "importation-etat", "importer", crate::import::nature::ROUTE];
 
 /// Celles qui ecrivent.
-pub const ECRITURES: &[&str] = &["importer", crate::importation_nature::ROUTE];
+pub const ECRITURES: &[&str] = &["importer", crate::import::nature::ROUTE];
 
 /// Une route de ce module.
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
@@ -39,16 +39,16 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
             if charge.get("export").is_some_and(vrai) {
                 return Err(erreur("ErreurOperation", "L'apercu lit un export (`export`) ou un dossier (`dossier`), pas les deux."));
             }
-            Ok(Value::Object(crate::importation_bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse))
+            Ok(Value::Object(crate::import::bulletins::apercu_dossier(ctx, &dossier_import(ctx, charge)?)?.reponse))
         }
         "importation-apercu" => {
             let export = export_de(ctx, charge)?;
             Ok(Value::Object(apercu_importation(ctx, &export, ctx.aujourdhui)?.reponse))
         }
         "importation-etat" => etat_importation(&ctx.racine),
-        "importer" => crate::importation_ecrite::importer(ctx, charge),
+        "importer" => crate::import::ecrite::importer(ctx, charge),
         // La nature des contrats repris qu'aucun bulletin ne dit (#236, `importation_nature`).
-        crate::importation_nature::ROUTE => crate::importation_nature::dire(ctx, charge),
+        crate::import::nature::ROUTE => crate::import::nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
@@ -122,7 +122,7 @@ fn ecarts(nom: &str, fiche: &Value, declare: &Map<String, Value>, mois: &str) ->
         let a = fiche.get(&c.cle).unwrap_or(&Value::Null);
         let b = &declare[&c.cle];
         // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete (`importation_completer`).
-        if crate::importation_completer::vide(Some(a)) || valeur_en_texte(a) == valeur_en_texte(b) {
+        if crate::import::completer::vide(Some(a)) || valeur_en_texte(a) == valeur_en_texte(b) {
             continue;
         }
         // Une structure (la banque) ne differe que par ce que la DSN en declare : ses notes et autres cles restent.
@@ -166,7 +166,7 @@ fn fiche_salarie(decl: &SalarieDeclare) -> R<Map<String, Value>> {
 }
 
 /// La fiche Entreprise que les DSN donnent : ce qu'elles declarent de l'entreprise, son Siret, la suite de ses licences.
-fn fiche_entreprise(lecture: &importation::LectureDsn) -> R<Map<String, Value>> {
+fn fiche_entreprise(lecture: &dsn_aem::LectureDsn) -> R<Map<String, Value>> {
     let mut e = lecture.entreprise.clone();
     let (siren, nic) = (e.get("siren").filter(|v| vrai(v)).cloned(), e.get("nic").filter(|v| vrai(v)).cloned());
     if let (Some(s), Some(n)) = (siren, nic) {
@@ -210,8 +210,8 @@ pub(crate) struct Apercu {
     pub(crate) reponse: Map<String, Value>,
     pub(crate) a_creer: Vec<ACreer>,
     /// Les fiches existantes que l'import completerait (`importation_completer`).
-    pub(crate) a_completer: Vec<crate::importation_completer::ACompleter>,
-    pub(crate) contrats: Vec<importation::ContratAtteste>,
+    pub(crate) a_completer: Vec<crate::import::completer::ACompleter>,
+    pub(crate) contrats: Vec<dsn_aem::ContratAtteste>,
     /// `imp._paies` : les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
     pub(crate) paies: Vec<Value>,
     /// Les contrats que les bulletins attestent (`importation_bulletins`), contrats d'engagements importes
@@ -222,12 +222,12 @@ pub(crate) struct Apercu {
 
 /// `apercu_importation(ctx, dossier, aujourdhui)`.
 ///
-/// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE : `importation::garder_export` les ecarte devant le
-/// Siren de la compagnie (`importation::siren_de_reference`, le meme que pour les bulletins) ; l'apercu lit alors une
+/// UNE DSN OU UNE AEM D'UNE AUTRE ENTREPRISE N'EST PAS LUE : `dsn_aem::garder_export` les ecarte devant le
+/// Siren de la compagnie (`dsn_aem::siren_de_reference`, le meme que pour les bulletins) ; l'apercu lit alors une
 /// copie de l'export sans elles (un dossier de travail, efface avant de rendre), et chacune est un avertissement.
 pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socle::date::Jour) -> R<Apercu> {
     let export: PathBuf = export.to_path_buf();
-    let (dsn, aem) = importation::dossiers(&export);
+    let (dsn, aem) = dsn_aem::dossiers(&export);
     if dsn.is_none() && aem.is_none() {
         return Err(erreur(
             "ErreurOperation",
@@ -237,7 +237,7 @@ pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socl
             ),
         ));
     }
-    let garde = importation::garder_export(&ctx.entreprise, dsn.as_deref(), aem.as_deref());
+    let garde = dsn_aem::garder_export(&ctx.entreprise, dsn.as_deref(), aem.as_deref());
     let source = export.display().to_string();
     let mut ap = if garde.ecartes.is_empty() {
         apercu_lu(ctx, &source, dsn.as_deref(), aem.as_deref(), aujourdhui, &HashSet::new())?
@@ -247,8 +247,8 @@ pub(crate) fn apercu_importation(ctx: &Contexte, export: &Path, aujourdhui: socl
             let ecartes: HashSet<&PathBuf> = garde.ecartes.iter().map(|(f, _)| f).collect();
             let mut dossiers: [Option<PathBuf>; 2] = [None, None];
             for (k, (sous, fichiers)) in [
-                ("DSN", dsn.as_deref().map(importation::fichiers_dsn).unwrap_or_default()),
-                ("AEM_EDI", aem.as_deref().map(importation::fichiers_aem).unwrap_or_default()),
+                ("DSN", dsn.as_deref().map(dsn_aem::fichiers_dsn).unwrap_or_default()),
+                ("AEM_EDI", aem.as_deref().map(dsn_aem::fichiers_aem).unwrap_or_default()),
             ]
             .into_iter()
             .enumerate()
@@ -341,7 +341,7 @@ pub(crate) fn apercu_lu(
     a_venir: &HashSet<String>,
 ) -> R<Apercu> {
     let lecture = match &dsn {
-        Some(d) => importation::lire_dsn(d),
+        Some(d) => dsn_aem::lire_dsn(d),
         None => Default::default(),
     };
     let mut avertissements: Vec<String> = lecture.illisibles.iter().map(|f| format!("DSN illisible, ignoree : {}", f)).collect();
@@ -364,7 +364,7 @@ pub(crate) fn apercu_lu(
     let mut entreprise = Value::Null;
     let mut a_creer = 0usize;
     let mut a_creer_liste: Vec<ACreer> = Vec::new();
-    let mut a_completer: Vec<crate::importation_completer::ACompleter> = Vec::new();
+    let mut a_completer: Vec<crate::import::completer::ACompleter> = Vec::new();
     let origine_dsn = |mois: &str| json!({"source": "dsn", "mois": mois});
     if !lecture.entreprise.is_empty() {
         let mut e = fiche_entreprise(&lecture)?;
@@ -379,9 +379,9 @@ pub(crate) fn apercu_lu(
             let libelle = ctx.entreprise.get("raison_sociale").map_or(String::new(), valeur_en_texte);
             let ec = ecarts("entreprise", &ctx.entreprise, &lecture.entreprise, &lecture.dernier_mois)?;
             entreprise = fiche_importee("entreprise", None, &libelle, "existante", ec, Vec::new(), json!({}));
-            let champs = crate::importation_completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
-            crate::importation_completer::noter(&mut entreprise, &champs, origine_dsn(&lecture.dernier_mois));
-            crate::importation_completer::ajouter(&mut a_completer, "entreprise", None, &champs);
+            let champs = crate::import::completer::champs_a_completer("entreprise", &ctx.entreprise, &e)?;
+            crate::import::completer::noter(&mut entreprise, &champs, origine_dsn(&lecture.dernier_mois));
+            crate::import::completer::ajouter(&mut a_completer, "entreprise", None, &champs);
         }
     }
 
@@ -405,9 +405,9 @@ pub(crate) fn apercu_lu(
         if let Some(cle) = par_nir.get(&decl.nir) {
             let ec = ecarts("salarie", &ctx.salaries[cle], &decl.fiche, &decl.mois)?;
             let mut entree = fiche_importee("salarie", Some(cle), &libelle, "existante", ec, Vec::new(), json!({}));
-            let champs = crate::importation_completer::champs_a_completer("salarie", &ctx.salaries[cle], &fiche_salarie(decl)?)?;
-            crate::importation_completer::noter(&mut entree, &champs, origine_dsn(&decl.mois));
-            crate::importation_completer::ajouter(&mut a_completer, "salarie", Some(cle), &champs);
+            let champs = crate::import::completer::champs_a_completer("salarie", &ctx.salaries[cle], &fiche_salarie(decl)?)?;
+            crate::import::completer::noter(&mut entree, &champs, origine_dsn(&decl.mois));
+            crate::import::completer::ajouter(&mut a_completer, "salarie", Some(cle), &champs);
             salaries.push(entree);
             continue;
         }
@@ -423,7 +423,7 @@ pub(crate) fn apercu_lu(
 
     // 3. Les spectacles, par numero d'objet -- ceux des DSN et ceux des AEM.
     let (contrats, illisibles) = match &aem {
-        Some(d) => importation::lire_aem(d)?,
+        Some(d) => dsn_aem::lire_aem(d)?,
         None => (Vec::new(), Vec::new()),
     };
     avertissements.extend(illisibles.iter().map(|f| format!("AEM illisible, ignoree : {}", f)));
@@ -667,7 +667,7 @@ fn etat_importation(racine: &Path) -> R<Value> {
         "editeur": editeur,
         "attend_editeur": attend,
         // Les contrats repris dont la nature reste a dire, par salarie (#236, `importation_nature`).
-        "a_dire": crate::importation_nature::a_dire(racine),
+        "a_dire": crate::import::nature::a_dire(racine),
     }))
 }
 
@@ -749,23 +749,23 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
     };
     let texte = |v: &Value, cle: &str| v.get(cle).and_then(Value::as_str).unwrap_or("").to_string();
     let mut out = Vec::new();
-    for l in crate::incidents::lire(racine, None, false).unwrap_or_default() {
+    for l in crate::compagnie::incidents::lire(racine, None, false).unwrap_or_default() {
         let (ou_, genre, resume) = (texte(&l, "ou"), texte(&l, "genre"), texte(&l, "resume"));
         // Un refus (un dossier mal tape, un export absent) se dit a l'ecran ; il n'attend pas l'editeur.
-        if l.get("quoi").and_then(Value::as_str) == Some(crate::incidents::REFUS) || !parle_d_import(&format!("{} {}", ou_, genre)) {
+        if l.get("quoi").and_then(Value::as_str) == Some(crate::compagnie::incidents::REFUS) || !parle_d_import(&format!("{} {}", ou_, genre)) {
             continue;
         }
         let etat = l.get("envoi").map_or(String::new(), |e| texte(e, "etat"));
-        if etat == crate::incidents::SANS_OBJET {
+        if etat == crate::compagnie::incidents::SANS_OBJET {
             continue;
         }
         out.push(json!({
             "canal": "incident", "quand": texte(&l, "quand"),
             "resume": if resume.is_empty() { genre } else { resume },
-            "parti": etat == crate::incidents::DEPOSE, "repondu": false,
+            "parti": etat == crate::compagnie::incidents::DEPOSE, "repondu": false,
         }));
     }
-    for s in crate::problemes::signalements(racine) {
+    for s in crate::compagnie::problemes::signalements(racine) {
         let debut = texte(&s, "debut");
         if !parle_d_import(&debut) {
             continue;

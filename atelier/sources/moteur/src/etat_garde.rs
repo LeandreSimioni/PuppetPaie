@@ -310,7 +310,7 @@ pub fn lire(o: &HashMap<String, String>, ctx: &Contexte, cle: &str) -> R<Value> 
 fn du_mois(racine: &Path, etat: &Value) -> R<Value> {
     let mut du_mois = etat.get("du_mois").cloned().unwrap_or(Value::Null);
     if let Some(m) = du_mois.as_object_mut() {
-        let pose = crate::coffre::Coffre::du_poste(racine, "")
+        let pose = crate::compagnie::coffre::Coffre::du_poste(racine, "")
             .ouverture_exigee()
             .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
         m.insert("mot_de_passe_pose".into(), json!(pose));
@@ -668,7 +668,7 @@ impl FileDesEtats {
     /// d'aujourd'hui de toute la compagnie (celle de l'ouverture), sinon refait.
     fn faire_le_tableau(&self) -> Rendu {
         let empreinte = empreinte_de(&self.racine, OUVERTURE, &self.jour());
-        let garde: Option<Value> = std::fs::read(self.racine.join(crate::administrateur::TABLEAU)).ok().and_then(|o| serde_json::from_slice(&o).ok());
+        let garde: Option<Value> = std::fs::read(self.racine.join(crate::compagnie::administrateur::TABLEAU)).ok().and_then(|o| serde_json::from_slice(&o).ok());
         if let Some(v) = garde.filter(|v| v.get("empreinte").and_then(Value::as_str) == Some(empreinte.as_str())) {
             return Ok(v);
         }
@@ -676,7 +676,7 @@ impl FileDesEtats {
         let _code = socle::fichiers::code_fige();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
-            crate::administrateur::tableau_compagnie(o, &ctx)
+            crate::compagnie::administrateur::tableau_compagnie(o, &ctx)
         }));
         // Comme apres un mois (`faire`) : le travail suivant, d'une autre compagnie peut-etre, repart d'un fil propre.
         crate::routes::remettre_le_fil();
@@ -721,7 +721,7 @@ impl FileDesEtats {
     /// deja dans la file y restent a leur place, sauf les premiers, qui passent devant.
     pub fn tout_verifier(&self) {
         let suivis = mois_suivis(&self.racine, &self.jour());
-        let tableau = crate::administrateur::est_rattachee(&crate::administrateur::installation_de(&self.racine), &self.racine);
+        let tableau = crate::compagnie::administrateur::est_rattachee(&crate::compagnie::administrateur::installation_de(&self.racine), &self.racine);
         {
             let mut e = self.verrou();
             let mut premiers: Vec<String> = Vec::new();

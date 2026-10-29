@@ -10,7 +10,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::depot_acte::{verifier_preuve, Preuve};
+use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::etapes::Moteur;
 use crate::routes::qui_de;
 use droit::contexte::Contexte;
@@ -556,7 +556,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
             }
         }
         let cles = choix.garder(cles, |c| c.as_str());
-        crate::depart::fabriquer_documents(ctx, &mois, &cles, "interface")?;
+        crate::compagnie::depart::fabriquer_documents(ctx, &mois, &cles, "interface")?;
         preparer(ctx, &paies, &mois, &dossier, &choix.renvois)?
     } else {
         Vec::new()
@@ -637,13 +637,13 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// `client.compte` : l'adresse de la boite qui enverrait. Celle de la compagnie fictive est le courriel du
 /// signataire ; sinon l'adresse posee avec le mot de passe (jamais le mot de passe).
 fn compte_de_la_boite(ctx: &Contexte) -> R<String> {
-    if crate::bridage::branchement(&ctx.racine).joue() {
+    if crate::compagnie::bridage::branchement(&ctx.racine).joue() {
         let sg = ctx.entreprise.get("signataire").filter(|v| vrai(v));
         let mail = sg.and_then(|s| s.get("email")).filter(|v| vrai(v)).map(valeur_en_texte);
         return Ok(mail.unwrap_or_else(|| "fictive@puppetpaie.invalid".to_string()));
     }
-    let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
-    let vers = |x: crate::coffre::Echec| Echec { classe: Some(x.classe), message: x.message };
+    let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
+    let vers = |x: crate::compagnie::coffre::Echec| Echec { classe: Some(x.classe), message: x.message };
     let a = match std::env::var("COURRIEL_COMPTE").ok().filter(|v| !v.is_empty()) {
         Some(a) => a,
         None => coffre.compte("courriel").map_err(vers)?,
@@ -705,18 +705,18 @@ pub(crate) fn preuve_de(charge: &Value) -> Preuve {
 /// sans les envoyer ; le message refuse, avant la preuve et avant toute ligne au journal des depots ; le monde prend la
 /// vraie boite, et sans mot de passe d'application au coffre, il n'y en a pas (`BoiteAbsente`).
 pub(crate) fn client_courriel(ctx: &Contexte) -> R<Box<dyn Courriel>> {
-    let branchement = crate::bridage::branchement(&ctx.racine);
+    let branchement = crate::compagnie::bridage::branchement(&ctx.racine);
     branchement.ouvrir()?;
     if branchement.joue() {
         return Ok(Box::new(BoiteSimulee::du_contexte(ctx)));
     }
-    if !crate::boite::disponible(&ctx.racine) {
+    if !crate::compagnie::boite::disponible(&ctx.racine) {
         return Err(erreur(
             "BoiteAbsente",
             "Aucune boite courriel : poser le mot de passe d'application de la boite (Configuration > Mots de passe, ou `moteur coffre poser courriel --compte adresse@...`).",
         ));
     }
-    let client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+    let client = crate::compagnie::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
     Ok(Box::new(client))
 }
 
@@ -781,7 +781,7 @@ pub(crate) fn documents_imprimer(ctx: &Contexte, charge: &Value, qui: &str) -> R
         return Err(refus("Aucun salarié coché. Rien n'est imprimé."));
     }
     let choix = choisir(ctx, &mois, &paies)?;
-    let documents = crate::depart::fabriquer_documents(ctx, &mois_saisie, &cles, qui)?;
+    let documents = crate::compagnie::depart::fabriquer_documents(ctx, &mois_saisie, &cles, qui)?;
     let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
     let etiq = socle::date::etiquette_du_mois(&mois_saisie).map_err(|m| erreur("ValueError", m))?;
     let mut pieces: Vec<std::path::PathBuf> = Vec::new();
@@ -817,7 +817,7 @@ pub(crate) struct EnvoiPrepare {
     /// A qui les documents partent, et pourquoi (`choisir`) : le journal en garde l'empreinte et le resume.
     pub(crate) choix: Choix,
     /// Les documents fabriques pour ceux a qui ils partent ; leurs numeros s.ecrivent quand ils sont partis.
-    documents: crate::depart::DocumentsFabriques,
+    documents: crate::compagnie::depart::DocumentsFabriques,
     client: Box<dyn Courriel>,
     /// La duree de la preparation (lecture du mois, messages, boite), en millisecondes : le journal la garde.
     preparation_ms: u128,
@@ -973,7 +973,7 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     if cles.is_empty() {
         return Err(refus("Aucun salarié coché. Rien n'est parti."));
     }
-    let documents = crate::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
+    let documents = crate::compagnie::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
     let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
     let messages: Vec<envoi::Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let client = ouvrir()?;

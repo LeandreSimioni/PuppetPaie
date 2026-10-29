@@ -33,7 +33,7 @@ use serde_json::{json, Map, Value};
 use droit::contexte::Contexte;
 use envois::courriel::{Courriel, ErreurCourriel};
 use socle::date::{jours_du_mois, Jour};
-use crate::depot_acte::{self, Preuve};
+use crate::compagnie::depot_acte::{self, Preuve};
 use envois::etats;
 use socle::valeur::valeur_en_texte;
 use socle::echec::R;
@@ -68,7 +68,7 @@ pub struct HorlogeFictive<'a> {
 impl<'a> HorlogeFictive<'a> {
     /// `simulation.active(ctx)` : `None` si les envois de cette racine ne sont pas joues.
     pub fn verifier(racine: &'a Path) -> Option<HorlogeFictive<'a>> {
-        crate::bridage::branchement(racine).joue().then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
+        crate::compagnie::bridage::branchement(racine).joue().then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
     }
 
     /// Le jour que cette compagnie fictive joue.
@@ -90,7 +90,7 @@ impl<'a> HorlogeFictive<'a> {
 
     /// Relit le marqueur : refuse tout geste si la racine a cesse d'etre une compagnie fictive.
     fn reverifier(&self) -> R<()> {
-        if crate::bridage::branchement(self.racine).joue() {
+        if crate::compagnie::bridage::branchement(self.racine).joue() {
             Ok(())
         } else {
             Err(erreur("ErreurOperation", "Ce dossier n'est pas une compagnie fictive : l'horloge ne joue rien ici."))
@@ -290,10 +290,10 @@ fn deposer_les_dsn(
 }
 
 /// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
-/// des AER jouees laisse a faire (`crate::releve::rattacher_simulation`), comme les autres chemins de la releve.
+/// des AER jouees laisse a faire (`crate::compagnie::releve::rattacher_simulation`), comme les autres chemins de la releve.
 fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
     d.reverifier()?;
-    Ok(crate::releve::rattacher_simulation(ctx, 0)?.1)
+    Ok(crate::compagnie::releve::rattacher_simulation(ctx, 0)?.1)
 }
 
 // ------------------------------------------------------------------ dernier_rattrapage
@@ -569,7 +569,7 @@ fn a_l_echeance(d: &HorlogeFictive, mois: &str, echeance: Jour) -> Vec<String> {
         }
         // LA DSN SE FABRIQUE A SON DEPOT, depuis les engagements valides du mois.
         d.reverifier()?;
-        crate::depart::fabriquer_dsn(ctx, mois, QUI_HORLOGE)?;
+        crate::compagnie::depart::fabriquer_dsn(ctx, mois, QUI_HORLOGE)?;
         // TOUTES LES DSN DU MOIS QUI NE SONT PAS PARTIES (#236, trouve au banc d'essai), dans l'ordre de
         // `crate::routes::etapes::ordre_de_depot` : la mensuelle, puis les signalements. L'horloge ne prenait que la plus recente --
         // un signalement d'amorcage, ecrit apres la mensuelle -- et la mensuelle ne partait jamais.
@@ -617,14 +617,14 @@ fn l_annee(d: &HorlogeFictive, annee: i32, jour: Jour) -> R<Vec<String>> {
             if Moteur::nouveau(ctx).exercice_clos(&precedente.to_string())? || !a_des_paies {
                 return Ok(false);
             }
-            crate::exercice_ecrit::cloturer(ctx, &precedente.to_string(), false, QUI_HORLOGE)?;
+            crate::compagnie::exercice_ecrit::cloturer(ctx, &precedente.to_string(), false, QUI_HORLOGE)?;
             Ok(true)
         }));
         fait.extend(pas(d, &format!("exercice {} exporté pour la comptabilité", precedente), &format!("{}T11:00:00", fin_janvier.iso()), |ctx| {
-            if !Moteur::nouveau(ctx).exercice_clos(&precedente.to_string())? || crate::exercice_ecrit::export_compta_a_jour(&ctx.racine, &precedente.to_string()) {
+            if !Moteur::nouveau(ctx).exercice_clos(&precedente.to_string())? || crate::compagnie::exercice_ecrit::export_compta_a_jour(&ctx.racine, &precedente.to_string()) {
                 return Ok(false);
             }
-            crate::exercice_ecrit::export_compta_route(ctx, &json!({"annee": precedente.to_string()}))?;
+            crate::compagnie::exercice_ecrit::export_compta_route(ctx, &json!({"annee": precedente.to_string()}))?;
             Ok(true)
         }));
     }
@@ -823,21 +823,21 @@ mod tests {
         let mut ctx = Contexte::nouveau(&r, None).unwrap();
         // Rejouee au 31/01/2027 (le conteneur est en 2026) : 2026 est finie, la cloture n'est plus refusee pour cela.
         ctx.aujourdhui = jour("2027-01-31");
-        let e = crate::exercice_ecrit::cloturer(&ctx, "2026", false, QUI_HORLOGE);
+        let e = crate::compagnie::exercice_ecrit::cloturer(&ctx, "2026", false, QUI_HORLOGE);
         assert!(e.as_ref().err().map_or(true, |e| !e.message.contains("n'est pas fini")), "{:?}", e.err().map(|e| e.message));
         assert!(r.join("sorties").join("exercices").join("Exercice_2026.zip").exists(), "2026 est close, au jour joue");
         // L'annee du contexte n'est pas finie : refus, qu'elle soit passee ou non pour la machine.
         let r = racine_d_essai(true);
         let mut ctx = Contexte::nouveau(&r, None).unwrap();
         ctx.aujourdhui = jour("2026-12-31");
-        let e = crate::exercice_ecrit::cloturer(&ctx, "2026", false, QUI_HORLOGE).unwrap_err();
+        let e = crate::compagnie::exercice_ecrit::cloturer(&ctx, "2026", false, QUI_HORLOGE).unwrap_err();
         assert!(e.message.contains("n'est pas fini"), "{}", e.message);
         // Hors de l'horloge le contexte porte la date reelle : le comportement de l'interface ne change pas.
         let r = racine_d_essai(true);
         let mut ctx = Contexte::nouveau(&r, None).unwrap();
         ctx.aujourdhui = droit::contexte::jour_reel();
         let an = droit::contexte::jour_reel().an.to_string();
-        let e = crate::exercice_ecrit::cloturer(&ctx, &an, false, "interface").unwrap_err();
+        let e = crate::compagnie::exercice_ecrit::cloturer(&ctx, &an, false, "interface").unwrap_err();
         assert!(e.message.contains("n'est pas fini"), "{}", e.message);
     }
 

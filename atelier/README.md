@@ -73,7 +73,7 @@ l'historique de la compagnie ; le dossier `import/` peut ensuite être vidé.
 **L'import COPIE ce qu'il reprend** — les DSN, les AEM et les PDF dont une
 page au moins est reprise — dans `historique/bulletins/`, sous le nom de sa
 copie (une empreinte : rien de personnel dans le nom), et relit l'aperçu
-**dans ces copies** (`moteur/src/importation_ecrite.rs`). Un fichier déjà copié
+**dans ces copies** (`moteur/src/import/ecrite.rs`). Un fichier déjà copié
 n'est jamais écrasé ; s'il revient avec un autre contenu sous le même nom,
 l'import le signale. Pour que le dossier d'un salarié ait ses années
 CoolPaie, les PDF sont à sortir de CoolPaie avant :
@@ -144,7 +144,7 @@ se supprime pas, elle se remet à zéro. Le dossier est renommé en dossier cach
 `derniere.json` nomme et que le logiciel télécharge tout seul) ne sert pas à
 installer : elle porte le contenu de `logiciel/` à sa racine, et rien d'autre.
 Cette forme est un contrat avec toutes les installations déjà posées, dont le
-code la déballe telle quelle : elle ne change plus (tête de `moteur/src/maj.rs`).
+code la déballe telle quelle : elle ne change plus (tête de `moteur/src/compagnie/maj.rs`).
 
 **Les compagnies fictives voyagent à part** (`puppetpaie-<version>-fictives.zip`,
 signée, nommée dans `derniere.json` sous `fictives` avec l'empreinte de son
@@ -160,7 +160,7 @@ Le flux « Publier » compile les programmes des trois systèmes (Linux et Mac n
 sont posés dans `logiciel/linux/` et `logiciel/mac/` que par lui : jamais
 suivis par Git) et publie les quatre archives de mise à jour ensemble (Léandre, 15/10/2026 :
 « Il y a les quatre : une par système et une tout-système, ensemble ») ;
-chaque installation prend celle de son système (`moteur/src/maj.rs`). Au
+chaque installation prend celle de son système (`moteur/src/compagnie/maj.rs`). Au
 lancement de « Publier », on choisit ce qu'on publie (`systemes` : `tous`,
 `windows-linux`, `windows`) : seules les archives fabriquées sont publiées,
 celle de tous porte ce qui a été fabriqué (et le dit, `systemes` dans
@@ -300,7 +300,7 @@ service certifié : le procédé identifie le signataire (son adresse) et le lie
 à l'acte (le code, le message gardé).
 
 Le jeton est écrit dans `config/google-jeton.bin`, scellé par la clé de ce
-poste (AES-256-GCM, voir `moteur/src/coffre.rs`) — illisible sur une autre
+poste (AES-256-GCM, voir `moteur/src/compagnie/coffre.rs`) — illisible sur une autre
 machine, et illisible dans une sauvegarde du dossier privé, puisque la clé vit
 ailleurs.
 
@@ -401,7 +401,7 @@ moteur maj --cle --remplacer     # si ce poste publie les mises à jour
 ```
 
 La dernière ligne rend une nouvelle clé publique, à reporter dans
-`moteur/src/maj.rs` (`CLE_PUBLIQUE`). Tant qu'aucune autre compagnie ne reçoit de
+`moteur/src/compagnie/maj.rs` (`CLE_PUBLIQUE`). Tant qu'aucune autre compagnie ne reçoit de
 mise à jour, ça ne coûte rien ; le jour où ce sera le cas, il faudra la leur
 transmettre autrement.
 
@@ -448,7 +448,7 @@ vérifié contre le fichier : un script qui se trompe de mois est arrêté.
 
 **Ce que ça a coûté, honnêtement.** Avant, aucun mot de passe n'était stocké :
 c'était la garantie. Elle a été échangée contre l'autonomie, à la demande de
-l'éditeur. Ce qui la remplace est écrit en tête de `moteur/src/coffre.rs`, et deux
+l'éditeur. Ce qui la remplace est écrit en tête de `moteur/src/compagnie/coffre.rs`, et deux
 choses sont tenues par des tests : le secret ne sort jamais (ni par `etat()`,
 ni en clair sur le disque), et les modules qui parlent au réseau ne peuvent pas
 ouvrir le coffre eux-mêmes.
@@ -946,7 +946,7 @@ le premier sans lui), à l'heure comme au mois ; la NAO 2026, non étendue, dort
 **Les sources** de ces données — notices France Travail, nomenclature des
 emplois, PCS-ESE de l'Insee, avenants salaires sur Légifrance, NAO — sont
 décrites et datées dans `logiciel/donnees/sources.json`, leurs copies rangées
-dans `atelier/reference/sources/`. **`moteur sources`** les relit (`moteur/src/sources.rs`,
+dans `atelier/reference/sources/`. **`moteur sources`** les relit (`moteur/src/atelier/sources.rs`,
 porté en Rust au lot S1, 13/10/2026) : pour chacune, ce qu'elle contient, sa
 version, la date du relevé et son âge, et si la copie colle au condensat du
 manifeste (conforme, différente, absente). **`--verifier`** retourne voir en
@@ -971,7 +971,7 @@ chiffres et lettres de `str.isdigit`/`str.isalnum`/`\d`, cp437 et cp1252, les
 encodages qu'un XML de retour peut déclarer, les caractères d'un nom XML)
 s'écrivent depuis les textes déposés (`atelier/reference/sources/unicode/`,
 `python/`, `w3c/`, chacun avec son `LISEZ-MOI.md`) par **`moteur generer-tables
-atelier/reference/sources atelier/sources`** (`moteur/src/generer_tables.rs`,
+atelier/reference/sources atelier/sources`** (`moteur/src/atelier/generer_tables.rs`,
 15/10/2026 ; avant, quatre scripts Python les tiraient de l'Unicode de
 l'interpréteur). Le test `tables_generees` vérifie que les tables commitées sont
 celles que les textes donnent. Monter de version d'Unicode : déposer les
@@ -982,7 +982,7 @@ Légifrance refuse les robots, mais la DILA publie chaque soir en open data
 ce qui a bougé dans les conventions collectives (base KALI, une archive de
 quelques centaines de Ko, sans compte). Pour les sources qui portent un bloc
 `kali` (CCN 1285 et 3090), `--verifier` lit ces livraisons depuis le relevé
-(`moteur/src/kali.rs`) et dit si la convention a bougé : un texte dont le titre
+(`moteur/src/atelier/releve/kali.rs`) et dit si la convention a bougé : un texte dont le titre
 parle de salaires, ou le texte cité lui-même, met la source « à relire » avec
 son titre, sa date et son état (étendu ou non) ; les autres mouvements sont
 montrés en second. `--relever` garde le XML du texte touché
@@ -993,10 +993,10 @@ première fois, elle remonte l'index (environ un an) jusqu'à la dernière fiche
 de chaque convention, pour savoir ensuite rattacher un texte à la sienne : une
 minute, une fois. L'ouverture hebdomadaire du Python la refaisait toute
 seule ; en Rust, l'ouverture accepte l'option et ne vérifie rien
-(`moteur/src/ouverture.rs`) : c'est l'éditeur qui la lance.
+(`moteur/src/compagnie/ouverture.rs`) : c'est l'éditeur qui la lance.
 
 Quand une source a changé, le référentiel qu'elle nourrit se **relève** par
-**`moteur extraire`** (`moteur/src/extraire/`, porté en Rust le 15/10/2026 depuis
+**`moteur extraire`** (`moteur/src/atelier/extraire/`, porté en Rust le 15/10/2026 depuis
 les `atelier/outils/extraire_*.py`) : `naf` (les deux classeurs INSEE →
 `naf-base.json`), `usages` et `formats` (le classeur de net-entreprises ou le
 cahier technique en PDF → `usages-dsn-*.json`, `formats-dsn-*.json`), `urssaf`
@@ -1016,7 +1016,7 @@ ses textes déposés donnent.
 bases LEGI et KALI de la DILA et se gardent dans deux entrepôts du dépôt
 (`atelier/reference/sources/legi-entrepot/` et `kali-entrepot/` : tous les
 articles des textes suivis, et la liste des livraisons déjà appliquées ;
-`moteur/src/entrepot_dila.rs`). Deux commandes de l'atelier, qui prennent le
+`moteur/src/atelier/releve/entrepot_dila.rs`). Deux commandes de l'atelier, qui prennent le
 dossier des sources :
 
 ```
@@ -1028,7 +1028,7 @@ moteur releve-conventions article atelier/reference/sources 3090 7.6
 moteur releve-conventions chercher atelier/reference/sources 3090 licenciement
 ```
 
-Les textes suivis sont dans `moteur/src/releve_codes/textes.rs` (un article
+Les textes suivis sont dans `moteur/src/atelier/releve/codes/textes.rs` (un article
 ajouté y est déjà dans l'entrepôt : `moissonner` l'écrit sans rien télécharger)
 et, pour les conventions, ceux que cite `sources.json`. `--reconstruire` refait
 défiler l'archive globale (1,1 Go pour LEGI, 180 Mo pour KALI) : on ne le
@@ -1610,7 +1610,7 @@ côté de `logiciel/`, clé `depot` : un dossier ou une adresse web ; en repli,
 l'archive de son système (`derniere.json` en nomme quatre : `windows`, `linux`,
 `mac`, et `tout-systeme`, prise si la sienne manque) est téléchargée dans le
 fil de fond, vérifiée (condensat, puis **signature de l'éditeur**, une par
-archive — Ed25519, la clé publique est dans `moteur/src/maj.rs`,
+archive — Ed25519, la clé publique est dans `moteur/src/compagnie/maj.rs`,
 `CLE_PUBLIQUE` : un dépôt compromis ne peut pas glisser une version qui n'est
 pas la nôtre), déballée dans `maj/`, à côté de `logiciel/`, et **contrôlée** :
 son programme doit lire la configuration de chaque compagnie de l'installation.
@@ -1714,7 +1714,7 @@ et l'horloge de la fictive joue ce qui était dû. La notice entière, celle
 qu'un agent suit : `outils/banc/LISEZ-MOI.md` ; le modèle d'une partie :
 `outils/banc/exemple.js`.
 
-Pendant ce temps, **l'enregistreur** (`moteur/src/scenario.rs`, dans le seul
+Pendant ce temps, **l'enregistreur** (`moteur/src/atelier/scenario.rs`, dans le seul
 binaire de l'atelier) consigne chaque route que la fenêtre sert, avec sa
 charge, son instant et ce qu'on avait déposé (`gestes.jsonl`, `pieces/`).
 Le scénario se **rejoue** sans navigateur, depuis un dossier vide, dans une
@@ -1855,5 +1855,5 @@ sinon `atelier/sources/target`), sinon celui que le dépôt livre
 (`atelier/sources/moteur/bin/<système>/`) ; si aucun ne connaît la commande, le
 commit est refusé. Une trouvaille se regarde : une valeur réelle sort du
 dépôt, une valeur inventée s'inscrit dans `FICTIVES`
-(`atelier/sources/moteur/src/verifier_avant_commit.rs`). Passer outre en
+(`atelier/sources/moteur/src/atelier/verifier_avant_commit.rs`). Passer outre en
 connaissance de cause : `git commit --no-verify`.

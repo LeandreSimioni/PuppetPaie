@@ -263,7 +263,7 @@ pub fn liste() -> Vec<Compagnie> {
 /// l'ordre des tuiles. L'administrateur (`administrateur.rs`) lit celles de l'installation qu'on lui donne.
 pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     let mut out = Vec::new();
-    if !crate::bridage::est_bride_de(b) {
+    if !crate::compagnie::bridage::est_bride_de(b) {
         let reel = if b == base() { dossier_reel() } else { b.join("prive") };
         if reel.join("config").is_dir() {
             out.push(entree("reelle".into(), &reel, true));
@@ -368,7 +368,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     if nom.chars().count() < 2 {
         return Err("Le nom de la compagnie, s'il vous plait.".into());
     }
-    let bride = crate::bridage::est_bride_de(inst);
+    let bride = crate::compagnie::bridage::est_bride_de(inst);
     let (parent, racine_nom) = if bride {
         (inst.join(DOSSIER_FICTIVES), format!("{}{}", PREFIXE_AJOUTEE, nom_de_dossier(&nom)))
     } else {

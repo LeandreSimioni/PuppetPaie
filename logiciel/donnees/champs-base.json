@@ -1113,7 +1113,7 @@
    "ecran": false
   },
   {
-   "_note": "LES CONSEILS « LE SAVIEZ-VOUS ? » (ticket 224, Leandre, 21/10/2026) : une option, decochee par defaut ; sans elle, rien ne s'affiche nulle part. Cochee : un conseil general a l'accueil, un conseil sous la carte d'engagement quand un fait de la saisie l'appelle, ce que la compagnie a fait pour le salarie dans sa fiche. La banque : donnees/conseils.json ; les conditions : moteur/src/conseils.rs.",
+   "_note": "LES CONSEILS « LE SAVIEZ-VOUS ? » (ticket 224, Leandre, 21/10/2026) : une option, decochee par defaut ; sans elle, rien ne s'affiche nulle part. Cochee : un conseil general a l'accueil, un conseil sous la carte d'engagement quand un fait de la saisie l'appelle, ce que la compagnie a fait pour le salarie dans sa fiche. La banque : donnees/conseils.json ; les conditions : moteur/src/compagnie/conseils.rs.",
    "cle": "conseils",
    "libelle": "Afficher des conseils « Le saviez-vous ? » (paie, contrats, droits des intermittents)",
    "forme": "booleen",

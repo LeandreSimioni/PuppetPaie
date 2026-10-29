@@ -21,7 +21,7 @@ use super::actes::{est_refus_d_envoi, ouvrir_la_boite, reponse_metier, textes_de
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::champ;
 use super::Cadre;
-use crate::depot_acte::Preuve;
+use crate::compagnie::depot_acte::Preuve;
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {

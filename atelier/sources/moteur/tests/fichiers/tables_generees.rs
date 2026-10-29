@@ -1,5 +1,5 @@
 //! Les tables Unicode du moteur (`socle/src/tables_nfkc.rs`, `socle/src/nfkd_ascii.rs`, `envois/src/tables_retours.rs`,
-//! `envois/src/tables_journal.rs`) sont celles que `moteur generer-tables` (`src/generer_tables.rs`) ecrit depuis les textes
+//! `envois/src/tables_journal.rs`) sont celles que `moteur generer-tables` (`src/atelier/generer_tables.rs`) ecrit depuis les textes
 //! deposes : `atelier/reference/sources/unicode/` (base de caracteres Unicode, pages de code cp437 et cp1252),
 //! `python/` (les proprietes que `str.isdigit`, `str.isalnum` et `\d` traduisent ; le releve des encodages de `pyexpat`),
 //! `w3c/` (XML 1.0 quatrieme edition, annexe B). Chaque `LISEZ-MOI.md` dit ce qu'on en lit.
@@ -10,7 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
-use moteur::generer_tables::{generer, FICHIERS};
+use moteur::atelier::generer_tables::{generer, FICHIERS};
 
 use crate::outils::{dossier_de_test, reecrire_oracles};
 
@@ -52,6 +52,6 @@ fn un_texte_manquant_refuse_et_rien_ne_s_ecrit() {
         }
     }
     let args = [copie.to_string_lossy().into_owned(), sortie.to_string_lossy().into_owned()];
-    assert_ne!(moteur::generer_tables::commande(&args), 0);
+    assert_ne!(moteur::atelier::generer_tables::commande(&args), 0);
     assert_eq!(std::fs::read_dir(&sortie).unwrap().count(), 0, "rien ne s'ecrit");
 }

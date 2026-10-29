@@ -33,7 +33,7 @@ use serde_json::{json, Value};
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
 use envois::depot::{self, Apercu};
-use crate::depot_acte::{self, DepotFait, Preuve};
+use crate::compagnie::depot_acte::{self, DepotFait, Preuve};
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
@@ -136,7 +136,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
     let fabriquee;
     let fichier = if est_un_mois(fichier) {
-        let dsn = crate::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
+        let dsn = crate::compagnie::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
         fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
         fabriquee.as_str()
     } else {
@@ -151,7 +151,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
     };
     let apercu = depot::lire(&octets);
-    let essai = crate::essai::est_essai(&cadre.racine);
+    let essai = crate::compagnie::essai::est_essai(&cadre.racine);
     let ordre = match args.texte("ordre").filter(|t| !t.is_empty()) {
         None => None,
         Some(t) => match t.trim().parse::<i64>() {

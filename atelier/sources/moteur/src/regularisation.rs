@@ -242,7 +242,7 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
 /// se declare dans la DSN qui porte (`dsn_qui_porte`). Se confirme seulement la modification d'un engagement de la
 /// saisie qu'une DSN partie ici a deja declare pour ce mois (`saisie_declaree`).
 pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {
-    if let Some(d) = crate::mois_importe::dsn_de_l_ancien_logiciel(ctx, mois)? {
+    if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(ctx, mois)? {
         let mut r = json!({"confirmer": false, "mois_courant": d["porteur"], "phrase": d["phrase"]});
         if saisie_declaree(ctx, mois)?.is_some() {
             r["confirmer"] = json!(true);

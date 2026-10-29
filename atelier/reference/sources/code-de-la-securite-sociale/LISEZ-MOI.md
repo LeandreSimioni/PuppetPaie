@@ -76,7 +76,7 @@ professionnelle (par la victime) ».
 
 `articles-20261029.md`, section « La reduction generale et les deductions forfaitaires pour frais professionnels »
 (`xml/D241-10.xml`, version en vigueur depuis le 15/06/2026, issue du décret n° 2026-509 du 12/06/2026) ; domaine
-`reduction_generale` de `moteur/src/releve_codes/textes.rs`.
+`reduction_generale` de `moteur/src/atelier/releve/codes/textes.rs`.
 
 - **D. 241-10, I** : pour les salariés du IV de L. 241-13, « Coefficient = (T min + (T delta × [(1/2) × (3 × a × salaire minimum
   calculé pour un an / rémunération annuelle brute - 1)] P )) × b », les autres valeurs étant celles de D. 241-7.

@@ -133,7 +133,7 @@ fn un_creneau_pris_par_un_autre_programme_ou_par_une_copie_se_saute() {
 fn le_fil_de_fond_ne_sort_pas_et_ne_touche_a_aucune_cle() {
     let racine = dossier_de_test("installations", "fil-de-fond");
     std::fs::create_dir_all(racine.join("config")).unwrap();
-    let coffre = move |r: &Path| moteur::coffre::Coffre::sur(r, r.join("cle"), "2026-10-22T10:00");
+    let coffre = move |r: &Path| moteur::compagnie::coffre::Coffre::sur(r, r.join("cle"), "2026-10-22T10:00");
     let r = racine.clone();
     let (reseau, cle) = std::thread::spawn(move || {
         socle::fil_de_fond::marquer();
@@ -145,7 +145,7 @@ fn le_fil_de_fond_ne_sort_pas_et_ne_touche_a_aucune_cle() {
     .join()
     .unwrap();
     assert!(reseau, "aucune sortie depuis le fil de fond");
-    assert!(cle && !racine.join("cle").join(moteur::coffre::FICHIER_CLE).exists(), "la cle du poste ne s'y sert ni ne s'y pose");
+    assert!(cle && !racine.join("cle").join(moteur::compagnie::coffre::FICHIER_CLE).exists(), "la cle du poste ne s'y sert ni ne s'y pose");
     // Hors du fil de fond, rien ne change.
     assert!(socle::garde_reseau::sortie_vers("127.0.0.1").is_ok());
     assert!(coffre(&racine).poser_cle_poste().is_ok());

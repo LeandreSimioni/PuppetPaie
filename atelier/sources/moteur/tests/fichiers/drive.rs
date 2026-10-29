@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use envois::drive::{Adresses, Client, Drive};
-use moteur::sauvegarde::hors_ligne;
+use moteur::compagnie::sauvegarde::hors_ligne;
 
 use crate::outils::{http, Recu, Requete};
 use serde_json::json;

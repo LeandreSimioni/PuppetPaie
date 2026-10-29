@@ -27,7 +27,7 @@ pub fn est_operation(classe: Option<&str>) -> bool {
 
 /// La phrase d'un refus : celle du message, sans la donnee qu'un refus de depot ou de mois porte a cote (`avec_donnee`).
 pub fn phrase(e: &Echec) -> String {
-    crate::depot_acte::phrase_de(e)
+    crate::compagnie::depot_acte::phrase_de(e)
 }
 
 /// Une erreur metier rendue comme le Python la rend : `! phrase` (code 2), ou `sortie_json.erreur` avec `--json`.
@@ -137,7 +137,7 @@ pub fn est_refus_d_envoi(classe: Option<&str>) -> bool {
 /// une seance (`Cadre::ouvrir_le_coffre`). La compagnie fictive n'a ni boite ni coffre a ouvrir. Ceci n'AUTORISE rien : l'envoi reel
 /// reste soumis a la preuve du moteur (`depot_acte::verifier_preuve`), qui demande elle-meme le mot de passe a un humain.
 pub fn ouvrir_la_boite(cadre: &super::Cadre) {
-    if !crate::bridage::branchement(&cadre.racine).joue() {
+    if !crate::compagnie::bridage::branchement(&cadre.racine).joue() {
         cadre.ouvrir_le_coffre();
     }
 }
@@ -192,11 +192,11 @@ pub enum Organisme {
 #[cfg(feature = "atelier")]
 pub fn pas_redirige(cadre: &super::Cadre, organisme: Organisme) -> bool {
     let variable = match organisme {
-        Organisme::Dsn => crate::atelier::VARIABLE_DSN,
-        Organisme::Dpae => crate::atelier::VARIABLE_DPAE,
-        Organisme::Google => crate::atelier::VARIABLE_GOOGLE,
+        Organisme::Dsn => crate::atelier::redirection::VARIABLE_DSN,
+        Organisme::Dpae => crate::atelier::redirection::VARIABLE_DPAE,
+        Organisme::Google => crate::atelier::redirection::VARIABLE_GOOGLE,
     };
-    crate::atelier::base(variable).is_none() && !crate::bridage::branchement(&cadre.racine).joue()
+    crate::atelier::redirection::base(variable).is_none() && !crate::compagnie::bridage::branchement(&cadre.racine).joue()
 }
 
 #[cfg(not(feature = "atelier"))]
@@ -207,7 +207,7 @@ pub fn pas_redirige(_cadre: &super::Cadre, _organisme: Organisme) -> bool {
 /// Dans `moteur-atelier`, hors compagnie fictive : la boite courriel n'est pas redirigee, donc rien ne la lit ni ne l'ouvre.
 #[cfg(feature = "atelier")]
 pub fn boite_interdite(cadre: &super::Cadre) -> bool {
-    !crate::bridage::branchement(&cadre.racine).joue()
+    !crate::compagnie::bridage::branchement(&cadre.racine).joue()
 }
 
 #[cfg(not(feature = "atelier"))]
@@ -220,7 +220,7 @@ pub fn boite_interdite(_cadre: &super::Cadre) -> bool {
 /// poste, que l'atelier ne touche pas. `quoi` dit ce qui est refuse (« de poser un mot de passe »). Dans `moteur` : rien n'est refuse ici.
 #[cfg(feature = "atelier")]
 pub fn refuser_dans_l_atelier(cadre: &super::Cadre, quoi: &str) -> Result<(), Echec> {
-    if crate::bridage::branchement(&cadre.racine).joue() {
+    if crate::compagnie::bridage::branchement(&cadre.racine).joue() {
         return Ok(());
     }
     Err(Echec {
@@ -262,7 +262,7 @@ pub fn refuser_si_pas_redirige(_cadre: &super::Cadre, _organisme: Organisme, _qu
 
 /// Les services du coffre, dans l'ordre alphabetique (`sorted(coffre.SERVICES)`).
 pub fn services_connus() -> Vec<&'static str> {
-    let mut noms: Vec<&str> = crate::coffre::SERVICES.iter().map(|s| s.nom).collect();
+    let mut noms: Vec<&str> = crate::compagnie::coffre::SERVICES.iter().map(|s| s.nom).collect();
     noms.sort_unstable();
     noms
 }

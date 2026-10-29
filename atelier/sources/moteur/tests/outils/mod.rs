@@ -25,7 +25,7 @@ pub fn code_livre() -> PathBuf {
 }
 
 pub fn copier(src: &Path, dst: &Path) {
-    moteur::incidents::brancher_l_engagement();
+    moteur::compagnie::incidents::brancher_l_engagement();
     std::fs::create_dir_all(dst).unwrap();
     for e in std::fs::read_dir(src).unwrap().flatten() {
         let (s, d) = (e.path(), dst.join(e.file_name()));
@@ -46,7 +46,7 @@ pub fn installation(dossier: &Path, version: &str) -> PathBuf {
 }
 
 /// Le geste de l'accueil sur une installation de test : `.edition.json` « debloque » a cote de `logiciel/`. Sans lui,
-/// une installation est BRIDEE (ticket #246, `moteur/src/bridage.rs`) : elle ne propose ni ne rattache de compagnie reelle.
+/// une installation est BRIDEE (ticket #246, `moteur/src/compagnie/bridage.rs`) : elle ne propose ni ne rattache de compagnie reelle.
 /// Un test qui fait vivre des compagnies reelles dans son installation la debloque ainsi, et le dit.
 pub fn debloquer(installation: &Path) {
     std::fs::create_dir_all(installation).unwrap();
@@ -60,7 +60,7 @@ pub fn code_de(installation: &Path) -> String {
 
 fn neuf(d: PathBuf) -> PathBuf {
     // Ce que pose toute commande du moteur avant de toucher a un engagement : le lecteur de ce qui est parti.
-    moteur::incidents::brancher_l_engagement();
+    moteur::compagnie::incidents::brancher_l_engagement();
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d

@@ -241,7 +241,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
     });
 
     // 7. Les mots de passe des organismes (poses, jamais lus).
-    let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
+    let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
     let poses: Vec<(String, bool)> = coffre
         .etat()
         .map_err(|e| ko(e.message))?

@@ -1,5 +1,5 @@
 //! LE BRIDAGE PAR DEFAUT (ticket #246, Leandre 22/10/2026 : « Le logiciel ne doit jamais etre debloque par defaut. Bride
-//! tant que rien ne dit qu'il est debloque. ») : `moteur/src/bridage.rs`, sur des installations de test.
+//! tant que rien ne dit qu'il est debloque. ») : `moteur/src/compagnie/bridage.rs`, sur des installations de test.
 //!
 //! - une installation neuve (une archive de la Release decompressee : `logiciel/` sans `EDITION.json`, rien a cote) est
 //!   bridee, et le geste de l'accueil la debloque (`.edition.json`), puis la rebride ;
@@ -10,7 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
-use moteur::bridage::{basculer_de, est_bride_de, paquet_soude_de};
+use moteur::compagnie::bridage::{basculer_de, est_bride_de, paquet_soude_de};
 use moteur::interface::compagnies::liste_de;
 
 use crate::outils::dossier_de_test;
@@ -97,7 +97,7 @@ fn l_accueil_bride_ne_propose_que_les_fictives() {
 #[test]
 fn le_branchement_d_une_fictive_d_une_ajoutee_et_d_une_autre() {
     use envois::branchement::Branchement;
-    use moteur::bridage::{branchement, REFUS_D_ENVOI};
+    use moteur::compagnie::bridage::{branchement, REFUS_D_ENVOI};
     use moteur::interface::compagnies::{ajouter_dans, MARQUEUR, MARQUE_FICTIVE};
     let inst = installation("branchement");
     let fictive = inst.join("fictives/fictive-essai");

@@ -24,7 +24,7 @@ use super::actes::{est_refus_d_envoi, mois_du_fichier, ouvrir_la_boite, reponse_
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{enveloppe, erreur, rendre};
 use super::Cadre;
-use crate::depot_acte::Preuve;
+use crate::compagnie::depot_acte::Preuve;
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "envoi", positionnels: &[Pos::requis("fichier")], options: &[Opt::drapeau("sans-navigateur"), Opt::drapeau("json")] };

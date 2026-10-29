@@ -94,7 +94,7 @@ le piège à éviter.
 
 Les valeurs fabriquées ont **des clés qui se vérifient** : un test ne doit pas
 pouvoir passer sur un numéro impossible. Elles sont listées, avec leur raison
-d'être, dans `FICTIVES` de `moteur/src/verifier_avant_commit.rs` (en tête de
+d'être, dans `FICTIVES` de `moteur/src/atelier/verifier_avant_commit.rs` (en tête de
 `outils/verifier_avant_commit.py` avant le 15/10/2026).
 
 Vérifié après nettoyage : **117 tests verts**, et `python -m moteur calibrer`
@@ -102,7 +102,7 @@ rend exactement le même rapport qu'avant.
 
 ## 2. Le garde-fou, en place
 
-`moteur verifier-avant-commit` (`moteur/src/verifier_avant_commit.rs`, porté le 15/10/2026 depuis
+`moteur verifier-avant-commit` (`moteur/src/atelier/verifier_avant_commit.rs`, porté le 15/10/2026 depuis
 `outils/verifier_avant_commit.py`) cherche NIR, IBAN, BIC, SIRET, identités et
 adresses dans tout ce qui partirait. Il **ne contient aucune donnée
 sensible** : il lit ce qu'il faut protéger dans `prive/config/`, hors du

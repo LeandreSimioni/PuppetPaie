@@ -13,7 +13,7 @@ use super::actes::Organisme;
 use super::analyse::{Args, Opt, Spec};
 use super::rendu::texte;
 use super::Cadre;
-use crate::sauvegarde;
+use crate::compagnie::sauvegarde;
 
 pub static SPEC: Spec = Spec {
     commande: "sauvegarder",

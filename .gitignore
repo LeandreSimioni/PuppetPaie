@@ -38,10 +38,10 @@ prive/config/.jeton-interface
 # Le verrou des compteurs : un fichier de travail, jamais une donnee.
 .compteurs.verrou
 
-# La version d'avant, gardee par la mise a jour (moteur/src/maj.rs), et ce que `revenir` met de cote un instant.
+# La version d'avant, gardee par la mise a jour (moteur/src/compagnie/maj.rs), et ce que `revenir` met de cote un instant.
 .avant/
 .apres/
-# La mise a jour de l'INSTALLATION (lot U1, moteur/src/maj.rs, `dossier_maj`) : a cote de `logiciel/`, son reglage, la
+# La mise a jour de l'INSTALLATION (lot U1, moteur/src/compagnie/maj.rs, `dossier_maj`) : a cote de `logiciel/`, son reglage, la
 # version prete, le relais, le journal. Le poste de l'editeur recoit comme les autres : ce dossier n'entre jamais
 # dans le depot.
 /maj/
@@ -57,14 +57,14 @@ atelier/prive-dev/config/avant/*.bin
 atelier/prive-dev/config/avant/*.bin.*
 atelier/prive-dev/config/.jeton-interface
 
-# UN DOSSIER PORTABLE (14/10/2026, moteur/src/coffre.rs, MARQUEUR_PORTABLE) : le marqueur dit que la cle du poste vit
+# UN DOSSIER PORTABLE (14/10/2026, moteur/src/compagnie/coffre.rs, MARQUEUR_PORTABLE) : le marqueur dit que la cle du poste vit
 # a cote de logiciel/, et non sur la machine. Ni le marqueur ni la cle ne voyagent par Git : un clone n'est pas une
 # cle USB, et la cle ouvre le coffre.
 /PORTABLE.json
 /cle-poste.bin
 # Le cache du navigateur de la fenetre, pose a cote d'elle en portable (WebView2, 14/10/2026) : refait seul.
 /logiciel/puppetpaie.exe.WebView2/
-# LES PROGRAMMES LINUX ET MAC DE `logiciel/` (15/10/2026, moteur/src/maj.rs, `dossier_programmes_de`) : le flux « Publier »
+# LES PROGRAMMES LINUX ET MAC DE `logiciel/` (15/10/2026, moteur/src/compagnie/maj.rs, `dossier_programmes_de`) : le flux « Publier »
 # les compile et les pose dans `logiciel/linux/` et `logiciel/mac/`, pour les archives de ces systemes et celle de tous ;
 # une compilation locale copiee la ne se commite pas. Le depot ne suit que les programmes de Windows (`puppetpaie.exe`,
 # `WebView2Loader.dll`, a la racine de `logiciel/`), et l'installeur Windows ne pose que ce qui est suivi.
@@ -78,7 +78,7 @@ atelier/prive-dev/config/.jeton-interface
 
 # Le mode developpeur de CE poste (moteur/compagnies.py).
 .mode-developpeur.json
-# Le bridage de CE poste, bride ou debloque (le geste secret de l'accueil, moteur/src/bridage.rs).
+# Le bridage de CE poste, bride ou debloque (le geste secret de l'accueil, moteur/src/compagnie/bridage.rs).
 .edition.json
 
 # LES PAQUETS DU LOGICIEL (outils/exporter.py) : ils se refont d'une
@@ -107,13 +107,13 @@ demo/*/config/.jeton-interface
 fictives/*/journal/interface.log
 demo/*/journal/interface.log
 # ET LES MARQUES D'UNE LIVRAISON DE FICTIVES (22/10/2026) : posees par le flux « Publier » avant l'installeur
-# (`moteur maj --marquer-fictives`), ou par une livraison sur un poste (moteur/src/maj.rs). Elles se refont ; la livraison
+# (`moteur maj --marquer-fictives`), ou par une livraison sur un poste (moteur/src/compagnie/maj.rs). Elles se refont ; la livraison
 # ne les prend jamais des fichiers suivis.
 fictives/.livraison.json
 fictives/*/.livree.json
 # LES FICTIVES AJOUTEES SUR UN POSTE (ticket #236) : le « + » d'un logiciel bride les pose sous `fictives/ajoutee-…`,
 # avec les donnees qu'on y met -- de vraies donnees, souvent. Elles n'entrent jamais dans le depot (ni dans une
-# livraison : moteur/src/maj.rs, `fictives_livrees`).
+# livraison : moteur/src/compagnie/maj.rs, `fictives_livrees`).
 fictives/ajoutee-*/
 
 # LA FABRIQUE DE PDF (Rust) : le dossier de compilation se refait d'une
