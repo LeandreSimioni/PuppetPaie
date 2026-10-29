@@ -1,48 +1,36 @@
 # Sortir ses documents de CoolPaie avant d'importer
 
-Pour les années passées sous CoolPaie, PuppetPaie n'a que les **DSN** : elles
-disent ce qui a été versé, pas le bulletin tel qu'il a été remis. Le dossier
-d'un salarié (`moteur dossier`, onglet Exports) reprend donc **tels
-quels** les PDF que CoolPaie a écrits — bulletins, contrats, attestations. Ce
-qui n'a jamais été sorti de CoolPaie n'y sera pas.
+Pour les années passées sous CoolPaie, les **DSN** disent ce qui a été
+déclaré, pas le bulletin tel qu'il a été remis. L'import lit aussi les
+**bulletins en PDF** : un bulletin fait foi sur la paie qu'il porte, et le
+dossier d'un salarié (`moteur dossier`, onglet Exports) en reprend la page
+**telle quelle**. Ce qui n'a jamais été sorti de CoolPaie n'y sera pas.
 
 ## Ce qu'il faut rassembler
 
-Tout va dans le dossier `export/` de CoolPaie, celui qui porte déjà `DSN/` et
-`AEM_EDI/`, à sa racine :
+Tout va dans la boîte `import/` de la compagnie, telle que CoolPaie l'a
+laissé, sous-dossiers et zip compris :
 
-| document | comment PuppetPaie le reconnaît |
-|---|---|
-| bulletins de paie | nom commençant par `BS` (ou `_…_Bulletin.pdf`, `paie…`) |
-| attestations employeur (AEM) | nom commençant par `AEM` |
-| contrats | nom commençant par `Contrat` |
-| contrats signés | nom commençant par `Contrat` et contenant `sign` |
-| bulletins et AEM mêlés | nom commençant par `BS&AEM` : chaque page est classée par son titre |
+- les **DSN** (le dossier `DSN/` de l'export de CoolPaie, ou les `.dsn` seuls) ;
+- les **AEM** (le dossier `AEM_EDI/`) ;
+- les **bulletins de paie** en PDF, un salarié et un mois par page ou
+  plusieurs dans un même fichier.
 
-Un fichier peut réunir plusieurs salariés et plusieurs mois : **chaque page**
-est rattachée à son salarié par son NIR, ou par son nom **et** son prénom, et
-datée par la période qu'elle porte (« du … au … »), par la date d'embauche
-d'un formulaire d'AEM, ou par la date écrite dans le nom du fichier
-(`Contrats_16-12-2021.pdf`, `BS 06082021 FAVART.pdf`, `AEM 092021 X.pdf`).
-Une page qui ne nomme personne suit la précédente du même fichier (la suite
-d'un contrat) ; une page qu'on ne sait rattacher à personne n'entre dans
-aucun dossier, et le dossier le dit.
+Le nom d'un fichier ne compte pas : chaque fichier est reconnu par son
+contenu, et chaque page d'un PDF de bulletins est rattachée à son salarié par
+son NIR et à sa paie par sa période (`atelier/README.md`, « Reprendre
+l'historique »). Une page qui ne se lit pas, ou qui se lit de deux façons,
+n'est pas reprise, et le compte rendu de l'import le dit, page par page.
 
-Deux conseils qui évitent des pages perdues :
-
-- **mettre une date dans le nom du fichier** quand le document n'a pas de
-  période lisible — c'est le cas de contrats dont CoolPaie n'a pas rempli la
-  période (« du & periode de travail & ») ;
-- **vérifier qu'un PDF n'est pas vide** : plusieurs fichiers de notre propre
-  export pesaient 0 octet. Le dossier les signale comme illisibles.
+Un PDF vide ou sans texte (un scan) ne se lit pas : le compte rendu le
+signale. Les contrats et les attestations en PDF n'entrent pas dans l'import :
+les contrats se lisent dans les DSN, les attestations dans les AEM.
 
 ## Où les trouver dans CoolPaie
 
-**Non relevé.** Les menus d'impression de CoolPaie (bulletins, contrats,
-attestations par période ou par salarié) n'ont pas été relevés à ce jour ; ce
-paragraphe se complétera le jour où quelqu'un les parcourt, écran par écran.
-Ce qui est sûr : CoolPaie écrit ses PDF là où on lui dit, et ce sont ces PDF
-qu'il faut déposer à la racine d'`export/`.
+**Non relevé.** Les menus d'impression de CoolPaie (bulletins par période ou
+par salarié) n'ont pas été relevés. Ce qui est sûr : CoolPaie écrit ses PDF là
+où on lui dit, et ce sont ces PDF qu'il faut déposer dans `import/`.
 
 ## Puis importer
 
@@ -51,12 +39,8 @@ moteur importer            # l'aperçu : rien n'est écrit
 moteur importer --ecrire   # le reprend
 ```
 
-Depuis le 10/10/2026, l'import lit **un seul dossier**, `import/` de la
-compagnie, où va tout ce que CoolPaie a laissé (DSN, AEM, ces PDF) ; il copie
-ce qu'il reprend dans `historique/bulletins/` et reconnaît un bulletin par son
-contenu (`atelier/README.md`, « Reprendre l'historique »). Le dossier d'un
-salarié lit aussi, par les noms du tableau ci-dessus, la copie
-`historique/coolpaie/` qu'un import d'avant le 10/10 a faite de l'`export/`
-de CoolPaie, ou cet `export/` lui-même. Un import se rejoue : ce qui est déjà
-copié reste tel quel, ce qui manque s'ajoute, et un fichier du même nom au
-contenu différent est **signalé**, jamais écrasé.
+L'import copie ce qu'il reprend dans `historique/bulletins/`, sous un nom tiré
+de l'empreinte du fichier ; c'est là que le dossier d'un salarié, le PAS amorcé
+(`moteur pas --amorcer`) et l'arrivée lisent les pièces importées. Un import se
+rejoue : ce qui est déjà copié reste tel quel, ce qui manque s'ajoute, et un
+fichier du même nom au contenu différent est **signalé**, jamais écrasé.
