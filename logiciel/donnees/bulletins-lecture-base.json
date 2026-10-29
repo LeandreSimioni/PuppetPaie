@@ -11,7 +11,7 @@
     "familles": "Les familles de cotisations du modèle : un rang dont le libellé est l'un de ces titres ouvre la famille (il peut porter lui-même des montants, ou s'écrire sur deux rangs).",
     "cumuls": "Les rangs de la grille des cumuls, par leur libellé. `heures` est le total d'heures tel que le bulletin le compte : les cachets y sont convertis quand il en a, et un logiciel peut y convertir un cachet groupé à 8 h, la règle d'avant le décret du 13 juillet 2016.",
     "logiciels": "La signature d'un logiciel connu : les libellés qui doivent tous se trouver sur la page. Le compte rendu le nomme ; la lecture n'en fait rien.",
-    "lignes": "La correspondance libellé de ligne de paie → rubrique du catalogue (`rubriques-base.json`). La valeur : le code de la rubrique ; `null` : libellé connu, sans rubrique sûre (la ligne est gardée telle quelle, elle n'entre dans aucun compteur) ; ou `{\"rubrique\": code, \"heures\": n}` quand le LIBELLÉ dit les heures d'une unité (« 4h ») d'une rubrique dont les heures se saisissent (`saisie` contient `heures`, pas de `heures_forfait`). Un libellé absent est SIGNALÉ (avertissement) et la ligne gardée avec son libellé, sans refus."
+    "lignes": "La correspondance libellé de ligne de paie → rubrique du catalogue (`rubriques-base.json`). La valeur : le code de la rubrique ; `null` : libellé connu, sans rubrique sûre (la ligne est gardée telle quelle, elle n'entre dans aucun compteur) ; ou `{\"rubrique\": code, \"heures\": n}` quand le LIBELLÉ dit les heures d'une unité (« 4h ») d'une rubrique dont les heures se saisissent (`saisie` contient `heures`, pas de `heures_forfait`). Un libellé absent est SIGNALÉ (avertissement) et la ligne gardée avec son libellé, sans refus. Une ligne dont la rubrique est hors de l'assiette (`soumis: false` au catalogue : un défraiement) ne compte pas dans le brut, où que le bulletin l'imprime."
   },
 
   "mentions": {
@@ -95,7 +95,7 @@
     "puppetpaie": {"signature": ["SMIC retenu pour la réduction générale"]}
   },
 
-  "_lignes": "Chaque code vérifié dans rubriques-base.json. Cachets isolés et groupés : `cachet` (unité cachet, 12 h ; la distinction isolé 12 h / groupé 8 h est supprimée depuis le décret du 13 juillet 2016). « Service(s) répét. 4h (contrat<5j) » et « Service de répétition 4 heures » : `repetition`, 4 h par service (le libellé). Masterclass / Action Culturelle : `enseignement` (même libellé au catalogue, unité heure, compte_pour ouverture_des_droits). Heures : `heure`. Défraiement non soumis et prime de panier non soumise : `defraiement_forfait` (frais professionnels au forfait, hors assiette dans les limites du barème). Acompte : `acompte` (avance déjà versée, retenue du net). Sans rubrique sûre, `null` : les cachets de répétition (comptés comme des cachets par le bulletin qui les imprime, rangés sous `repetition` par le catalogue d'un autre logiciel), la prime de panier soumise (aucune rubrique du catalogue ne dit ce régime), l'activité partielle (le catalogue n'en a pas). Le bulletin de PuppetPaie imprime une ligne « <quantité> <libellé de la rubrique, au pluriel sur son premier mot> à <taux> » (engagement::calcul::LigneBrut::designation), et « <n> h de <libellé> » pour une rubrique à l'heure qui ne dit pas « heure ».",
+  "_lignes": "Chaque code vérifié dans rubriques-base.json. Cachets isolés et groupés : `cachet` (unité cachet, 12 h ; la distinction isolé 12 h / groupé 8 h est supprimée depuis le décret du 13 juillet 2016). « Service(s) répét. 4h (contrat<5j) » et « Service de répétition 4 heures » : `repetition`, 4 h par service (le libellé). Masterclass / Action Culturelle : `enseignement` (même libellé au catalogue, unité heure, compte_pour ouverture_des_droits). Heures : `heure`. Défraiement non soumis et prime de panier non soumise : `defraiement_forfait` (frais professionnels au forfait, hors assiette dans les limites du barème). Acompte : `acompte` (avance déjà versée, retenue du net). Congés payés (absence, indemnité, indemnité compensatrice) et indemnité de précarité : leur rubrique, même libellé au catalogue ; « Journée(s) de 7 Heures » : `journee`, 7 h par journée (le libellé). Sans rubrique sûre, `null` : les cachets de répétition (comptés comme des cachets par le bulletin qui les imprime, rangés sous `repetition` par le catalogue d'un autre logiciel), la prime de panier soumise (aucune rubrique du catalogue ne dit ce régime), l'activité partielle (le catalogue n'en a pas). Le bulletin de PuppetPaie imprime une ligne « <quantité> <libellé de la rubrique, au pluriel sur son premier mot> à <taux> » (engagement::calcul::LigneBrut::designation), et « <n> h de <libellé> » pour une rubrique à l'heure qui ne dit pas « heure ».",
   "lignes": {
     "Cachets isolés": "cachet",
     "Cachets groupés": "cachet",
@@ -129,6 +129,15 @@
     "Défraiement au forfait": "defraiement_forfait",
     "Défraiements au forfait": "defraiement_forfait",
     "Défraiement au réel": "defraiement_reel",
-    "Défraiements au réel": "defraiement_reel"
+    "Défraiements au réel": "defraiement_reel",
+    "Absence congés payés": "absence_conges_payes",
+    "Absences congés payés": "absence_conges_payes",
+    "Indemnité de congés payés": "indemnite_conges_payes",
+    "Indemnités de congés payés": "indemnite_conges_payes",
+    "Indemnité compensatrice de congés payés": "indemnite_compensatrice_conges",
+    "Indemnités compensatrice de congés payés": "indemnite_compensatrice_conges",
+    "Indemnité de fin de contrat (précarité)": "indemnite_precarite",
+    "Indemnités de fin de contrat (précarité)": "indemnite_precarite",
+    "Journée(s) de 7 Heures": {"rubrique": "journee", "heures": 7}
   }
 }

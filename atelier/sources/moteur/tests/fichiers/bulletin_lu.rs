@@ -273,6 +273,17 @@ fn bulletin_lu_spaiectacle_cachets_facultative_et_defraiement_non_soumis() {
     let hors: Vec<bool> = v["cotisations"].as_array().unwrap().iter().map(|c| c["hors_total"].as_bool().unwrap()).collect();
     assert_eq!(hors.iter().filter(|h| **h).count(), 1);
     assert!(*hors.last().unwrap());
+
+    // Le meme defraiement imprime au-dessus du brut : hors de l'assiette (`soumis: false` du catalogue), il n'est pas
+    // dans le brut, et les deux controles se retrouvent sans avertissement.
+    let mut p = b_cachets();
+    p.lignes.push(p.non_soumis.remove(0));
+    let dessus = d.join("dessus.pdf");
+    pdf(vec![page_b(&p)], &dessus);
+    let l = lire(&dessus).unwrap();
+    let b = lu(&l[0]);
+    assert_eq!(b.avertissements, Vec::<String>::new());
+    assert_eq!((b.lignes[1].libelle.as_str(), b.lignes[1].soumis), ("Défraiement non soumis", false));
 }
 
 #[test]
@@ -405,10 +416,19 @@ fn bulletin_lu_les_refus_sont_nommes() {
     std::fs::write(&casse, b"%PDF-1.7\nceci n'est pas un PDF\n").unwrap();
     assert!(lire(&casse).unwrap_err().starts_with("PDF que la fabrique n'ouvre pas"));
 
-    // Incomplet : un bulletin CoolPaie dont le net a payer ne se lit pas.
+    // La somme versee non imprimee (un impot nul) : le net avant impot moins l'impot preleve, imprimes l'un et l'autre
+    // (R. 3243-1, 9° et 10° ; le modele de l'arrete du 25/02/2016), et le compte rendu dit qu'elle a ete lue ainsi.
     let sans_net = d.join("sans-net.pdf");
     let mut page = page_a(&a_repetitions());
     page.retain(|x| !x["texte"].as_str().unwrap_or("").ends_with('€'));
+    pdf(vec![page.clone()], &sans_net);
+    let l = lire(&sans_net).unwrap();
+    let b = lu(&l[0]);
+    assert_eq!(b.net_a_payer.to_string(), "477.82");
+    assert!(b.avertissements.iter().any(|a| a.starts_with("le net à payer n'est pas imprimé")), "{:?}", b.avertissements);
+
+    // Incomplet : ni le net a payer, ni l'impot preleve qui le donnerait.
+    page.retain(|x| x["texte"] != json!("0.00"));
     pdf(vec![page], &sans_net);
     let l = lire(&sans_net).unwrap();
     match l[0].resultat.clone().unwrap_err() {

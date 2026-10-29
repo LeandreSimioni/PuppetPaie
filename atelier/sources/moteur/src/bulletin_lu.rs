@@ -30,11 +30,12 @@
 //! - dont le rang d'en-tetes du tableau ne se trouve pas -> refus `sans en-têtes` ;
 //! - qui se lit de deux facons (deux rangs d'en-tetes, une colonne « Montant » qui ne dit pas quelle part, deux
 //!   colonnes de la meme part, deux adresses de salarie) -> refus `ambigu` ;
-//! - ou ne se lisent pas ce qui identifie le bulletin (le salarie, la periode, le brut, le net a payer) -> refus
-//!   `incomplet`, qui nomme la mention ;
+//! - ou ne se lisent pas ce qui identifie le bulletin (le salarie, la periode, le brut, le net a payer, ou a defaut
+//!   le net avant impot et l'impot preleve qui le donnent) -> refus `incomplet`, qui nomme la mention ;
 //! - l'annexe d'un bulletin (le detail de ses cotisations) n'est pas un bulletin -> refus `annexe`.
 //!
-//! Le reste est facultatif. Deux controles, SANS CORRECTION : le brut vaut la somme des lignes soumises, le net a
+//! Le reste est facultatif. Deux controles, SANS CORRECTION : le brut vaut la somme des lignes soumises (une ligne
+//! dont la rubrique est hors de l'assiette, `soumis: false` du catalogue, n'en est pas, ou qu'elle soit imprimee), le net a
 //! payer se retrouve (net avant impot = brut - cotisations salariales + lignes non soumises ; net a payer = net
 //! avant impot - impot preleve). Un ecart va dans `avertissements`, le bulletin est rendu quand meme. Un libelle de
 //! ligne absent de la table est signale de meme, et la ligne gardee telle quelle.
@@ -529,6 +530,9 @@ pub struct LigneTable {
     pub rubrique: Option<String>,
     /// Les heures d'une unite, quand le libelle les dit (« 4h ») et que la rubrique les fait saisir.
     pub heures: Option<Decimal>,
+    /// La rubrique est hors de l'assiette (`soumis: false` du catalogue livre : un defraiement, un acompte) ; `false`
+    /// aussi pour un code que le catalogue livre ne connait pas (les compteurs le refusent).
+    pub non_soumise: bool,
 }
 
 /// La table de lecture, verifiee a la lecture.
@@ -674,6 +678,8 @@ impl Table {
 }
 
 fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
+    let catalogue = socle::fichiers::json_en_cache(&socle::fichiers::dossier_du_code().join("rubriques-base.json"))?;
+    let hors_assiette = |code: &str| catalogue["rubriques"][code]["soumis"] == Value::Bool(false);
     let mut lignes: Vec<LigneTable> = Vec::new();
     let Some(l) = v.and_then(Value::as_object) else { return Err("table de lecture : `lignes` manque".into()) };
     for (libelle, valeur) in l.iter().filter(|(k, _)| !k.starts_with('_')) {
@@ -702,7 +708,8 @@ fn lignes_de(v: Option<&Value>) -> Resultat<Vec<LigneTable>> {
         if lignes.iter().any(|x| x.canon == c) {
             return Err(format!("{} : libellé en double", o));
         }
-        lignes.push(LigneTable { libelle: libelle.clone(), canon: c, rubrique, heures });
+        let non_soumise = rubrique.as_deref().is_some_and(hors_assiette);
+        lignes.push(LigneTable { libelle: libelle.clone(), canon: c, rubrique, heures, non_soumise });
     }
     Ok(lignes)
 }
@@ -736,7 +743,8 @@ pub struct Salarie {
     pub conges_spectacles: Option<String>,
 }
 
-/// Une ligne de paie : soumise (avant le brut) ou non (apres les cotisations : un defraiement).
+/// Une ligne de paie : soumise (imprimee avant le brut, d'une rubrique dans l'assiette) ou non (un defraiement, apres
+/// les cotisations ou au-dessus du brut).
 #[derive(Clone, Debug, PartialEq)]
 pub struct LignePaie {
     pub quantite: Option<Decimal>,
@@ -1285,7 +1293,25 @@ impl<'a> Lecteur<'a> {
         }
         let (debut, fin) = periode.ok_or_else(|| Refus::Incomplet(format!("la période (« {} du ... au ... ») ne se trouve pas", self.libelle_de("periode"))))?;
         let brut = corps.lu.brut.ok_or_else(|| Refus::Incomplet(format!("le brut (« {} ») ne se trouve pas", self.t.resumes.brut.first().map_or("", String::as_str))))?;
-        let net_a_payer = nombre(&valeurs, "net_a_payer").ok_or_else(|| Refus::Incomplet(format!("le net à payer (« {} ») ne se trouve pas", self.libelle_de("net_a_payer"))))?;
+        // La somme recue (10°) est le net avant impot moins l'impot preleve (R. 3243-1, 9° et 10° ; le modele de
+        // l'arrete du 25/02/2016 les imprime l'un sous l'autre) : un bulletin qui imprime les deux termes sans la
+        // somme (un impot nul) la dit par cette identite, et le compte rendu dit qu'elle a ete lue ainsi.
+        let net_a_payer = match (nombre(&valeurs, "net_a_payer"), corps.lu.net_avant_impot, pas.as_ref().and_then(|p| p.montant)) {
+            (Some(n), _, _) => n,
+            (None, Some(avant), Some(impot)) => {
+                self.avertissements.push(format!(
+                    "le net à payer n'est pas imprimé : lu comme le net avant impôt ({}) moins l'impôt prélevé ({}), imprimés",
+                    avant, impot
+                ));
+                avant - impot
+            }
+            _ => {
+                return Err(Refus::Incomplet(format!(
+                    "le net à payer (« {} ») ne se trouve pas, ni le net avant impôt et l'impôt prélevé",
+                    self.libelle_de("net_a_payer")
+                )))
+            }
+        };
         // Le mode de reglement : sa mention, sinon ce qui suit « par » dans celle de la date (« le 30/11/2026 par virement »).
         let mode_reglement = texte(&valeurs, "mode_reglement").or_else(|| self.mode_de_la_date(limite, pied));
 
@@ -1806,11 +1832,12 @@ impl<'a> Lecteur<'a> {
         let ligne = |libelle: &str, quantite: Option<Decimal>, r: &RangCorps, soumis: bool, avertissements: &mut Vec<String>| {
             let (libelle, taux_ecrit) = taux_du_libelle(libelle);
             let cl = canon(&libelle);
-            let (rubrique, heures) = match table.lignes.iter().find(|x| x.canon == cl) {
-                Some(x) => (x.rubrique.clone(), x.heures),
+            // Une ligne hors de l'assiette (un defraiement) n'est pas dans le brut, ou que le bulletin l'imprime.
+            let (rubrique, heures, soumis) = match table.lignes.iter().find(|x| x.canon == cl) {
+                Some(x) => (x.rubrique.clone(), x.heures, soumis && !x.non_soumise),
                 None => {
                     avertissements.push(Refus::LibelleInconnu(libelle.clone()).message());
-                    (None, None)
+                    (None, None, soumis)
                 }
             };
             let n = r.nombres.len();
