@@ -797,7 +797,9 @@ pub fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     if !(b.len() == 7 && b[4] == b'-' && b.iter().enumerate().all(|(i, c)| i == 4 || c.is_ascii_digit())) {
         return Err(erreur("ErreurOperation", format!("Mois illisible : {}.", mois)));
     }
-    let lignes = envois::journal::lire(&ctx.racine, None, Some(mois), false).map_err(|m| erreur("OSError", m))?;
+    // Les lignes du mois, et celles d'un signalement, qui portent le jour de leur evenement (`AAAA-MM-JJ`) dans ce mois.
+    let mut lignes = envois::journal::lire(&ctx.racine, None, None, false).map_err(|m| erreur("OSError", m))?;
+    lignes.retain(|l| l.get("mois").and_then(Value::as_str).is_some_and(|m| m == mois || (m.len() == 10 && m.starts_with(mois))));
     let recus = etats::contrats_recus(&lignes, etats::Maille::Contrat)?;
     let avenants = etats::avenants_par_contrat(&lignes, etats::Maille::Contrat)?;
     let mut cles: etats::Dico<()> = etats::Dico::nouveau();

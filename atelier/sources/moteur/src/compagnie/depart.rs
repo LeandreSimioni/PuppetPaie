@@ -1048,6 +1048,32 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
         return envois::etats::chemin_piece(&ctx.racine, &json!(mois), &json!(nom))
             .ok_or_else(|| refus(format!("{} : aucun envoi de documents de {} ne l'a fait partir.", nom, engagement::libelle_mois(mois))));
     }
+    // LA DPAE : son enregistrement, son `.zip` et son recapitulatif, d'apres la derniere ligne qui l'a deposee.
+    if nom.starts_with("DPAE_") {
+        let base = nom.strip_suffix("_recapitulatif.txt").map(|b| format!("{}.txt", b)).or_else(|| nom.strip_suffix(".zip").map(String::from)).unwrap_or_else(|| nom.to_string());
+        let deposee = |reel: bool| lignes.iter().rposition(|l| texte(l, "quoi") == "dpae" && texte(l, "fichier") == base && du_mois(l) && (texte(l, "mode") == "reel") == reel);
+        let Some(rang) = deposee(true).or_else(|| deposee(false)) else {
+            return Err(refus(format!("{} : le journal ne dit pas qu'elle est partie.", nom)));
+        };
+        refaire_la_dpae(ctx, mois, &lignes[rang], &sortie.join(&base))?;
+        return Ok(sortie.join(nom));
+    }
+    // LES SIGNALEMENTS (amorcage, arret, reprise, fin de contrat) : leur ligne porte le jour de l'evenement, rangee dans
+    // le mois de ce jour.
+    let du_jour = |l: &Value| texte(l, "mois").get(..7) == Some(mois) && vrai(l.get("accepte").unwrap_or(&Value::Null));
+    let signale = |reel: bool| lignes.iter().rposition(|l| texte(l, "quoi") == "dsn" && texte(l, "fichier") == nom && du_jour(l) && (texte(l, "mode") == "reel") == reel);
+    if nom.ends_with(".dsn") {
+        if let Some(rang) = signale(true).or_else(|| signale(false)) {
+            refaire_le_signalement(ctx, mois, &lignes[rang], &sortie.join(nom))?;
+            return Ok(sortie.join(nom));
+        }
+    }
+    if nom.starts_with("Amorcage") && nom.ends_with("_recapitulatif.txt") {
+        return Err(refus(format!(
+            "{} est la note qui accompagnait les signalements d'amorçage au moment de les déposer : elle n'est pas partie et ne se refait pas ; les signalements partis s'ouvrent, eux.",
+            nom
+        )));
+    }
     if nom.starts_with("AER_") {
         return Err(refus(format!(
             "{} vient de France Travail : il ne se refait pas, il se lit dans retours/ ; le fichier a été déplacé ou effacé.",
@@ -1111,6 +1137,112 @@ fn refaire_la_dsn(ctx: &Contexte, m: &mut Moteur, lignes: &[Value], rang: usize,
         std::fs::create_dir_all(parent).map_err(|e| os(parent, e))?;
     }
     std::fs::write(cible, &octets).map_err(|e| os(cible, e))
+}
+
+/// QUAND LA PIECE `nom` DE `mois` A ETE ECRITE : le journal des ecritures, sinon l'instant de la ligne `l` qui l'a
+/// fait partir ; `(jour, instant, AAAA-MM-JJTHH:MM:SS)`.
+fn ecrite_a(ctx: &Contexte, mois: &str, nom: &str, l: &Value) -> R<(socle::date::Jour, f64, String)> {
+    let quand = journal_des_ecritures(&ctx.racine)
+        .get(&format!("{}/{}", mois, nom))
+        .and_then(|n| n.get("quand"))
+        .map(valeur_en_texte)
+        .unwrap_or_else(|| valeur_en_texte(l.get("quand").unwrap_or(&Value::Null)));
+    let (jour, instant) = instant_de(&quand).ok_or_else(|| valeur(format!("journal : {} sans date d'ecriture ({})", nom, quand)))?;
+    let iso = socle::paris::iso_secondes(instant);
+    Ok((jour, instant, iso))
+}
+
+/// Les paies que la ligne `l` a emportees (`versions`), chacune dans la version sur laquelle elle est partie, vues en
+/// `mois`.
+fn paies_emportees(ctx: &Contexte, mois: &str, l: &Value) -> R<Vec<Paie>> {
+    let ctx_m = ctx.du_mois(mois).map_err(valeur)?;
+    let mut out = Vec::new();
+    for v in l.get("versions").and_then(Value::as_array).into_iter().flatten() {
+        let texte = |k: &str| v.get(k).map(valeur_en_texte).unwrap_or_default();
+        let (cle, numero) = (texte("salarie"), texte("numero"));
+        let version = v.get("version").and_then(Value::as_u64).ok_or_else(|| valeur(format!("journal : une version illisible ({})", cle)))?;
+        let o = engagement_de(ctx, mois, &cle, &numero)?;
+        out.push(paie_de_la_version(&ctx_m, &o, &cle, &numero, mois, version)?);
+    }
+    Ok(out)
+}
+
+/// Les fichiers `ecrits` se gardent s'ils ont l'empreinte que la ligne `l` a notee au depot du premier ; sinon ils
+/// s'effacent et le refus le dit : une piece refaite qui ne dit pas ce qui est parti ne se montre pas.
+fn garder_si_identique(l: &Value, ecrits: &[PathBuf]) -> R<()> {
+    let attendue = valeur_en_texte(l.get("empreinte").unwrap_or(&Value::Null));
+    let premier = &ecrits[0];
+    let ok = std::fs::read(premier).ok().is_some_and(|o| envois::journal::empreinte(&o) == attendue);
+    if ok {
+        return Ok(());
+    }
+    for f in ecrits {
+        let _ = std::fs::remove_file(f);
+    }
+    Err(erreur(
+        "ErreurOperation",
+        format!("{} ne se refait pas à l'identique de ce qui est parti : le fichier a été déplacé ou effacé.", socle::fichiers::nom_du(premier)),
+    ))
+}
+
+/// LA DPAE QUE DIT LA LIGNE `l` (`cible` : son enregistrement), refaite par la fonction qui l'a ecrite
+/// (`routes::depots::ecrire_la_dpae`) : les embauches qu'elle a emportees, dans leur version, horodatee de l'instant ou
+/// elle a ete ecrite, au jour de cet instant ; l'heure d'embauche que la route prend quand on ne lui en donne pas.
+/// Avec son `.zip` et son recapitulatif ; verifiee par l'empreinte que le journal a notee a son depot.
+fn refaire_la_dpae(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -> R<()> {
+    let nom = socle::fichiers::nom_du(cible);
+    let (jour, instant, quand) = ecrite_a(ctx, mois, &nom, l)?;
+    let ctx_j = contexte_du_jour(ctx, jour)?;
+    let paies = paies_emportees(&ctx_j, mois, l)?;
+    let retenues: Vec<&Paie> = paies.iter().collect();
+    let base = nom.strip_suffix(".txt").unwrap_or(&nom).to_string();
+    let recap = cible.with_file_name(format!("{}_recapitulatif.txt", base));
+    let zip = cible.with_file_name(format!("{}.zip", nom));
+    socle::temps::pendant(instant, || crate::routes::depots::ecrire_la_dpae(&ctx_j, &retenues, cible, &recap, &json!("0800"), &quand))?;
+    garder_si_identique(l, &[cible.to_path_buf(), zip, recap])
+}
+
+/// LE SIGNALEMENT QUE DIT LA LIGNE `l` (amorcage 08, arret 04, reprise 05, fin de contrat 07), refait a `cible` par ce qui
+/// l'a ecrit, sous le numero d'ordre que sa ligne porte, constitue le jour ou il a ete ecrit, a l'instant de son ecriture ;
+/// verifie par l'empreinte que le journal a notee a son depot. Un annule-et-remplace ne se refait pas : sa ligne ne dit pas
+/// ce qu'il remplacait.
+fn refaire_le_signalement(ctx: &Contexte, mois: &str, l: &Value, cible: &Path) -> R<()> {
+    let nom = socle::fichiers::nom_du(cible);
+    let detail = l.get("detail").cloned().unwrap_or(Value::Null);
+    let champ = |k: &str| detail.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+    let (nature, type_dsn) = (champ("nature"), champ("type"));
+    let ordre: i64 = champ("ordre").trim().parse().map_err(|_| valeur(format!("journal : {} sans numero d'ordre", nom)))?;
+    if !type_dsn.is_empty() && type_dsn != "01" {
+        return Err(erreur("ErreurOperation", format!("{} annulait et remplaçait un signalement : il ne se refait pas ; le fichier a été déplacé ou effacé.", nom)));
+    }
+    let (jour, instant, _) = ecrite_a(ctx, mois, &nom, l)?;
+    let ctx_j = contexte_du_jour(ctx, jour)?;
+    let premier = l.pointer("/versions/0/salarie").map(valeur_en_texte).unwrap_or_default();
+    let evenement = valeur_en_texte(l.get("mois").unwrap_or(&Value::Null));
+    let refaire = || -> R<()> {
+        let route = |n: &str, charge: Value| crate::routes::imprevus::route(&HashMap::new(), &ctx_j, n, &charge).map(|_| ());
+        match nature.as_str() {
+            declarations::amorcage::NATURE => {
+                let motif = nom.strip_prefix("Amorcage").and_then(|r| r.get(..2)).unwrap_or_default().to_string();
+                let paies = paies_emportees(&ctx_j, mois, l)?;
+                let paie = paies.first().ok_or_else(|| valeur(format!("journal : {} n'emporte aucun engagement", nom)))?;
+                let options = declarations::amorcage::Options {
+                    motif,
+                    type_declaration: declarations::amorcage::NORMALE.to_string(),
+                    ordre,
+                    remplace: None,
+                    envoi_test: false,
+                    date_constitution: Some(jour),
+                };
+                let texte = declarations::amorcage::generer(&ctx_j, paie, &options).map_err(|e| valeur(e.message().to_string()))?;
+                declarations::dsn::ecrire(&texte, cible).map_err(valeur)
+            }
+            declarations::fctu::NATURE => route("fin-contrat-signaler", json!({"mois": mois, "salarie": premier, "ordre": ordre, "le": jour.iso()})),
+            n => route("arret-signaler", json!({"salarie": premier, "dernier_jour": evenement, "nature": n, "ordre": ordre, "le": jour.iso()})),
+        }
+    };
+    socle::temps::pendant(instant, refaire)?;
+    garder_si_identique(l, &[cible.to_path_buf()])
 }
 
 /// La paie ecrite de `mois` que porte la version de l'engagement `o` dont le bulletin a le numero `numero`.
