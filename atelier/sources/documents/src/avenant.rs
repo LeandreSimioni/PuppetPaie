@@ -378,7 +378,10 @@ pub(crate) fn parties(ent: &Value, sal: &Value, sp: &Value, e: &Eng) -> Resultat
         "employeur.signataire",
         format!("{} {}", en_texte(aff(sig, "prenom")?), en_texte(aff(sig, "nom")?)),
     );
-    poser("employeur.signataire_fonction", texte_ou_invalide(requis(sig, "fonction")?));
+    let fonction = texte_ou_invalide(requis(sig, "fonction")?);
+    // « en qualité d'administratrice », « de président » : l'élision devant la fonction de qui signe.
+    poser("employeur.qualite_de", de_devant(&fonction).to_string());
+    poser("employeur.signataire_fonction", fonction);
     poser("salarie.nom", texte_ou_invalide(requis(sal, "nom")?));
     poser("salarie.prenom", texte_ou_invalide(aff(sal, "prenom")?));
     poser(

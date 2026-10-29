@@ -27,7 +27,7 @@ Le présent contrat annule et remplace le contrat n° {{remplace.numero}} du {{r
 PREAMBULE:
 **Entre les soussignés,**
 
-L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, licence d'entrepreneur de spectacles n° {{employeur.licence}}, représentée par {{employeur.signataire}}, en qualité de {{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
+L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, licence d'entrepreneur de spectacles n° {{employeur.licence}}, représentée par {{employeur.signataire}}, en qualité {{employeur.qualite_de}}{{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
 
 **Et**
 
@@ -99,6 +99,7 @@ Fait en double exemplaire à {{employeur.commune}}, le {{contrat.debut}}.
 #   employeur.adresse             employeur.naf            employeur.convention
 #   employeur.code_postal         employeur.licence        employeur.congesspectacles
 #   employeur.commune             employeur.signataire     employeur.signataire_fonction
+#   employeur.qualite_de  (« d' » ou « de », selon la fonction qui suit)
 #
 #   salarie.nom_complet           salarie.date_naissance   salarie.adresse
 #   salarie.nom                   salarie.lieu_naissance   salarie.code_postal

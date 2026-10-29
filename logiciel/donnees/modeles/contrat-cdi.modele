@@ -22,7 +22,7 @@ Le présent contrat annule et remplace le contrat n° {{remplace.numero}} du {{r
 PREAMBULE:
 **Entre les soussignés,**
 
-L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, représentée par {{employeur.signataire}}, en qualité de {{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
+L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, représentée par {{employeur.signataire}}, en qualité {{employeur.qualite_de}}{{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
 
 **Et**
 

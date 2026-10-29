@@ -371,6 +371,7 @@ pub const CHAMPS: &[(&str, &str, &str)] = &[
     ("employeur.congesspectacles", "son numéro d'adhérent aux Congés Spectacles", "cddu_spectacle"),
     ("employeur.signataire", "le prénom et le nom de qui signe pour elle", "tous"),
     ("employeur.signataire_fonction", "sa fonction", "tous"),
+    ("employeur.qualite_de", "« d' » ou « de », selon la fonction qui suit", "tous"),
     ("salarie.nom_complet", "le prénom et le nom du salarié", "tous"),
     ("salarie.nom", "son nom", "tous"),
     ("salarie.prenom", "son prénom", "tous"),

@@ -51,7 +51,7 @@ pub fn lire_modele_texte(chemin: &Path) -> R<String> {
 
 /// L'ordre des cles de `contrat.marqueurs` : celui du modele. `Valeurs` est trie ; la description
 /// gardee a cote du PDF (`fabrique.garder_description`) se relit, et s'ecrit dans le meme ordre.
-const ORDRE_MARQUEURS: [&str; 37] = [
+const ORDRE_MARQUEURS: [&str; 38] = [
     "employeur.raison_sociale",
     "employeur.adresse",
     "employeur.code_postal",
@@ -64,6 +64,7 @@ const ORDRE_MARQUEURS: [&str; 37] = [
     "employeur.congesspectacles",
     "employeur.signataire",
     "employeur.signataire_fonction",
+    "employeur.qualite_de",
     "salarie.nom",
     "salarie.prenom",
     "salarie.nom_complet",
