@@ -337,7 +337,7 @@ fn lignes_pas_tableau(p: &Paie, pas: Option<&Versement>, colonnes: i64) -> Resul
             vec![s("IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE"), s(assiette), s(fmt_taux(taux)), s(fmt_eur(montant))],
             vec![],
         ),
-        ligne_net("MONTANT NET A PAYER (en Euros)", sub(p.net_a_payer, montant), colonnes),
+        ligne_net("MONTANT NET À PAYER (en Euros)", sub(p.net_a_payer, montant), colonnes),
     ])
 }
 
@@ -510,7 +510,7 @@ pub fn modele_du_bulletin(ent: &Value, sal: &Value) -> Resultat<Modele> {
     }
 }
 
-/// Le style d'un titre de rubrique du modele (« COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES », « IMPOT SUR LE
+/// Le style d'un titre de rubrique du modele (« COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES », « IMPÔT SUR LE
 /// REVENU »...) : en gras, rouge, sur fond rose.
 fn style_section() -> Vec<(&'static str, Value)> {
     vec![gras(), ("couleur", ROUGE.into()), ("taille", num(6.8)), ("fond", FOND_FAMILLE.into())]
@@ -1059,7 +1059,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         vec![("couleur", Value::from(BLANC)), gras(), ("taille", num(6.6)), ("fond", Value::from(ROUGE))]
     };
     let entete =
-        vec![ligne(vec![cell("LIBELLE", 1, true, None), s("Base"), s("Taux"), s("Salarié"), s("Employeur")], th())];
+        vec![ligne(vec![cell("LIBELLÉ", 1, true, None), s("Base"), s("Taux"), s("Salarié"), s("Employeur")], th())];
     let mut corps = Vec::new();
     let rem: Vec<&engagement::calcul::LigneBrut> =
         p.remuneration.iter().enumerate().filter(|(i, _)| !j.remboursements.contains(i)).map(|(_, l)| l).collect();
@@ -1083,11 +1083,12 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         corps.push(ligne(vec![s("MONTANT BRUT"), s(fmt_eur(p.brut))], vec![gras(), ("fond", FOND_BRUT.into())]));
     }
     corps.extend(tableau_modele(p)?);
-    // Le bas du tableau : « MONTANT NET SOCIAL », puis « REMBOURSEMENTS ET DEDUCTIONS DIVERSES », puis
-    // « MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU », puis « IMPOT SUR LE REVENU » (« Montant net imposable »,
-    // « IMPOT SUR LE REVENU PRELEVE A LA SOURCE ») et « MONTANT NET A PAYER (en Euros) », enfin « TOTAL VERSE PAR
+    // Le bas du tableau : « MONTANT NET SOCIAL », puis « REMBOURSEMENTS ET DÉDUCTIONS DIVERSES », puis
+    // « MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU », puis « IMPÔT SUR LE REVENU » (« Montant net imposable »,
+    // « IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE ») et « MONTANT NET À PAYER (en Euros) », enfin « TOTAL VERSÉ PAR
     // L'EMPLOYEUR » ; deux nets egaux ne partagent pas une ligne (la derogation de l'arrete du 31/01/2023 a pris fin
-    // au 01/01/2026).
+    // au 01/01/2026). Les libelles sont ceux du modele de l'arrete du 25/02/2016, art. 1, I
+    // (`legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml`), ecrits avec les accents du francais, capitales comprises.
     corps.push(ligne_net("MONTANT NET SOCIAL", p.net_social, n));
     if !j.remboursements.is_empty() {
         corps.push(ligne(vec![cel("REMBOURSEMENTS ET DÉDUCTIONS DIVERSES", n)], style_section()));
@@ -1096,8 +1097,8 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
             corps.push(ligne(vec![s(format!("{} à {}", l.designation(), fmt_eur(l.taux))), s(fmt_eur(l.montant))], vec![]));
         }
     }
-    corps.push(ligne_net("MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU", p.net_a_payer, n));
-    corps.push(ligne(vec![s("IMPOT SUR LE REVENU"), s("Base"), s("Taux"), s("Salarié")], style_section()));
+    corps.push(ligne_net("MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU", p.net_a_payer, n));
+    corps.push(ligne(vec![s("IMPÔT SUR LE REVENU"), s("Base"), s("Taux"), s("Salarié")], style_section()));
     corps.push(ligne(vec![cel("Montant net imposable", 3), s(fmt_eur(p.net_imposable))], vec![]));
     match j.rectificatif.filter(|r| !remplace_en_entier(r)) {
         Some(r) => corps.extend(rectificatif_lignes(r, n)?),

@@ -458,8 +458,8 @@ pub fn tableau_cumul(
         })
     };
     let mut colonnes = vec![
-        col("Periode", format!("{:02}/{}", mo, annee), &p_mois, None, None)?,
-        col("Cumul", format!("annee {}", annee), &p_annee, None, None)?,
+        col("Période", format!("{:02}/{}", mo, annee), &p_mois, None, None)?,
+        col("Cumul", format!("année {}", annee), &p_annee, None, None)?,
     ];
     if let Some(anniv) = anniversaire_configure(ctx, salarie)? {
         let p_droits = position(ctx, &c, engagements, salarie, &fenetre_anniversaire(&c, anniv)?, ne);
