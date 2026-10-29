@@ -661,6 +661,10 @@ fn attend_l_editeur(racine: &Path) -> Vec<Value> {
     let mut out = Vec::new();
     for l in crate::compagnie::incidents::lire(racine, None, false).unwrap_or_default() {
         let (ou_, genre, resume) = (texte(&l, "ou"), texte(&l, "genre"), texte(&l, "resume"));
+        // Les ecarts de calcul de l'import sont l'etude de l'editeur (`import::ecarts`) : rien n'y attend la compagnie.
+        if ou_ == crate::import::ecarts::OU {
+            continue;
+        }
         // Un refus (un dossier mal tape, un export absent) se dit a l'ecran ; il n'attend pas l'editeur.
         if l.get("quoi").and_then(Value::as_str) == Some(crate::compagnie::incidents::REFUS) || !parle_d_import(&format!("{} {}", ou_, genre)) {
             continue;
