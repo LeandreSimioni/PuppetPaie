@@ -72,11 +72,22 @@ fn noter_recu(libelle: &str, avenant: Value) -> Value {
     json!({"geste": "contrat_recu", "libelle": libelle, "recu": true, "avenant": avenant})
 }
 
-/// Marque `suivante` la premiere etape qui a quelque chose a faire de notre cote (a faire, ou refuse).
+/// Un mois sans aucun engagement : l'etape n'a rien a faire, elle n'est pas faite pour autant. Elle se dit en gris.
+fn rien_ce_mois() -> Value {
+    json!({"etat": "rien", "compte": null, "compte_texte": "", "quoi": "rien ce mois-ci", "phrase": "rien ce mois-ci", "echeance": null, "action": null})
+}
+
+/// Marque `suivante` la premiere etape qui a quelque chose a faire de notre cote (a faire, ou refuse), et donne a chaque
+/// groupe sa couleur (`couleur_de_l_etat`).
 fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
     let i = etapes.iter().position(|e| e["groupes"].as_array().is_some_and(|g| g.iter().any(|x| est(&x["etat"], "a_faire") || est(&x["etat"], "refuse"))));
     for (j, e) in etapes.iter_mut().enumerate() {
         e["suivante"] = json!(Some(j) == i);
+        if let Some(gs) = e["groupes"].as_array_mut() {
+            for g in gs {
+                g["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&g["etat"])));
+            }
+        }
     }
     etapes
 }
@@ -1276,11 +1287,19 @@ impl<'a> Moteur<'a> {
             .map(|(_, n)| *n)
             .collect();
 
+        // UN MOIS SANS ENGAGEMENT n'a rien de fait : ce qui n'a rien a faire s'y dit « rien ce mois-ci », en gris. Ce que le
+        // moteur demande quand meme (une DSN due sans salarie) garde son etat.
+        let vide = paies.is_empty();
+        let rien = |gs: Vec<Value>| -> Vec<Value> {
+            gs.into_iter()
+                .map(|g| if vide && est(&g["etat"], "fait") { let mut r = rien_ce_mois(); r["colonnes"] = g["colonnes"].clone(); r } else { g })
+                .collect()
+        };
         let etapes = vec![
-            json!({"cle": DPAE, "nom": "DPAE", "groupes": dpae}),
-            json!({"cle": SIGNATURE, "nom": "Contrats", "groupes": contrats}),
-            json!({"cle": DSN, "nom": "DSN", "groupes": dsn, "second": second}),
-            json!({"cle": DOCUMENTS, "nom": "Documents", "groupes": documents, "detail": presentes.join(", ")}),
+            json!({"cle": DPAE, "nom": "DPAE", "groupes": rien(dpae)}),
+            json!({"cle": SIGNATURE, "nom": "Contrats", "groupes": rien(contrats)}),
+            json!({"cle": DSN, "nom": "DSN", "groupes": rien(dsn), "second": second}),
+            json!({"cle": DOCUMENTS, "nom": "Documents", "groupes": rien(documents), "detail": presentes.join(", ")}),
         ];
         let noms: Vec<String> = cols.iter().map(|c| c.nom.clone()).collect();
         Ok(json!({"mois": mois, "colonnes": noms, "etapes": suivante(etapes)}))
@@ -1642,7 +1661,18 @@ fn carres(p: &Value) -> Value {
         _ => ("fait", format!("Documents partis {}", le_jour(&o["fait"])), Value::Null),
     };
     let documents = json!({"cle": DOCUMENTS, "nom": "Documents", "etat": etat, "phrase": phrase, "action": geste});
-    json!([dpae, contrat, documents])
+    // CE QUI RESTE, EN UN MOT, sur le carre meme (la phrase entiere est l'infobulle), et la couleur de son etat.
+    let restes = [
+        match pt.dpae { "refuse" => "refusée", "a_faire" => "à déposer", _ => "" },
+        match pt.contrat { "a_envoyer" => "à envoyer", "a_refaire" => "à refaire signer", "en_attente" => "signature attendue", _ => "" },
+        match pt.documents { "a_renvoyer" => "à renvoyer", "a_envoyer" => "à envoyer", _ => "" },
+    ];
+    let mut tous = [dpae, contrat, documents];
+    for (c, reste) in tous.iter_mut().zip(restes) {
+        c["couleur"] = json!(super::couleur_de_l_etat(&valeur_en_texte(&c["etat"])));
+        c["reste"] = json!(reste);
+    }
+    json!(tous)
 }
 
 /// CE QUE MONTRE LE DETAIL DU CONTRAT d'un engagement (les pieces parties, ouvertes depuis la ligne) : la phrase quand
@@ -1688,7 +1718,7 @@ fn pieces_du_contrat(s: &Value) -> Value {
 /// (`fait`, `a_faire`, `en_attente`, `refuse`) avec sa phrase.
 fn choix_dpae(p: &Value) -> Value {
     let d = &p["etats"]["dpae"];
-    let choix = |cochable: bool, cochee: bool, etat: &str, phrase: String| json!({"cochable": cochable, "cochee": cochee, "etat": etat, "phrase": phrase});
+    let choix = |cochable: bool, cochee: bool, etat: &str, phrase: String| json!({"cochable": cochable, "cochee": cochee, "etat": etat, "couleur": super::couleur_de_l_etat(etat), "phrase": phrase});
     if !vrai(&p["contrat"]["premier_mois"]) {
         let depuis = engagement::libelle_mois(&valeur_en_texte(&p["contrat"]["depuis"]));
         return choix(false, false, "fait", format!("contrat en cours depuis {} — sa DPAE a été faite ce mois-là", depuis));

@@ -34,8 +34,8 @@ function ouvrirGeste(action, mois) {
   }
 }
 
-/** La classe d'une case, d'après l'état du groupe (la feuille de style en fait la couleur). */
-const CASE_DE_L_ETAT = { fait: "vert", a_faire: "orange", en_attente: "en-attente", refuse: "rouge" };
+/** La classe d'une case : la couleur que le moteur donne au groupe (`couleur`) ; une attente se dessine en deux moitiés. */
+const classeDeCase = (g) => g.etat === "en_attente" ? "en-attente" : (g.couleur || "gris");
 
 /** Les colonnes déjà dessinées pour un mois : une colonne qui apparaît entre en glissant. */
 const COLONNES_VUES = new Map();
@@ -44,7 +44,7 @@ const COLONNES_VUES = new Map();
 function dessinerCase(et, k, g, colonnes, neuves, gestes) {
   const de = colonnes.indexOf(g.colonnes[0]) + 1;
   const a = colonnes.indexOf(g.colonnes[g.colonnes.length - 1]) + 2;
-  const classe = CASE_DE_L_ETAT[g.etat] || "orange";
+  const classe = classeDeCase(g);
   const fini = g.etat === "fait";
   const cote = g.colonnes[0] !== colonnes[0];
   const neuf = g.colonnes.some((c) => neuves.has(c));
@@ -130,7 +130,7 @@ function dessinerArbre(liste) {
     const a = attend ? attend.getBoundingClientRect() : r;
     return { el, r, x: a.left + a.width / 2 };
   });
-  const ouvert = (el) => !el.classList.contains("vert");
+  const ouvert = (el) => !el.classList.contains("vert") && !el.classList.contains("gris");
   const couleur = (h, b) => ouvert(h) && ouvert(b) ? "orange" : "vert";
   const traits = [];
   for (let i = 0; i < rangs.length - 1; i++) {

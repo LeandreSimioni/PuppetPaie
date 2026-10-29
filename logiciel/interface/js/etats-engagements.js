@@ -59,19 +59,19 @@ const contratDe = (l) => ({ salarie: l.salarie, debut: l.debut,
                             numero: l.numero || "", rang: l.rang || 0 });
 
 /* LES TROIS CARRÉS DE LA LIGNE VALIDÉE : DPAE, Contrat, Documents. Le moteur
-   rend chacun (`etat-par-engagement`, `carres`) : son nom, son état, sa phrase
-   et le geste qu'ouvre un clic. La page les dessine aux couleurs des cases du
-   mois ; un carré qui a un geste est un bouton. */
-const CARRE_DE_L_ETAT = { fait: "vert", a_faire: "orange", en_attente: "en-attente", refuse: "rouge" };
+   rend chacun (`etat-par-engagement`, `carres`) : son nom, sa couleur, ce qui
+   reste en un mot, sa phrase et le geste qu'ouvre un clic. La page les
+   dessine ; un carré qui a un geste est un bouton. */
 
 /** Le bandeau d'une ligne : un carré par acte. */
 function bandeauEtats(ligne) {
   return `<div class="etats-actes">` + (ligne.carres || []).map((c, i) => {
     const clic = !!c.action;
-    return `<span class="etat-acte ${CARRE_DE_L_ETAT[c.etat] || "orange"}${clic ? " cliquable" : ""}"
+    const classe = c.etat === "en_attente" ? "en-attente" : (c.couleur || "gris");
+    return `<span class="etat-acte ${classe}${clic ? " cliquable" : ""}"
         ${clic ? `data-carre="${i}" tabindex="0" role="button"` : ""}
         title="${echapper(c.phrase + (clic ? " — " + c.action.libelle : ""))}">
-      <i class="carre"></i>${echapper(c.nom)}</span>`;
+      <i class="carre"></i>${echapper(c.nom)}${c.reste ? ` <span class="reste">${echapper(c.reste)}</span>` : ""}</span>`;
   }).join("") + `</div>`;
 }
 
@@ -237,7 +237,7 @@ function peindreEtats() {
     // on démultiplie maintenant et on repeint.
     if (lignes.some((l) => l.valide)) { dedoubler(div); refaire = true; return; }
     cible.innerHTML = lignes.map((l) =>
-      `<span class="etats-qui">${echapper(l.nom)}
+      `<span class="etats-qui plusieurs">${echapper(l.nom)}
          <span class="discret">— ${echapper(pourQuoi(l))}</span></span>` + bandeauEtats(l))
       .join("")
       + `<div class="validation">
@@ -627,8 +627,7 @@ async function boiteDpae(mois) {
   const lignes = r.engagements || [];
   if (!lignes.length) { dire("Aucun engagement enregistré en " + moisEnClair(mois) + "."); return; }
   // Le moteur dit, par engagement (`dpae_choix`), s'il se coche, s'il est coché
-  // d'avance, et son état en mots ; la pastille prend la couleur de l'état.
-  const PASTILLE = { fait: "bien", a_faire: "alerte", en_attente: "alerte", refuse: "erreur" };
+  // d'avance, son état en mots et sa couleur.
 
   ouvrirBoite(`
     <h3>Envoyer les DPAE</h3>
@@ -644,7 +643,7 @@ async function boiteDpae(mois) {
       ${lignes.map((l, i) => {
         const e = l.etats.dpae;
         const c = l.dpae_choix || {};
-        const etat = `<br><span class="pastille ${PASTILLE[c.etat] || ""}">${echapper(c.phrase || "")}</span>`;
+        const etat = `<br>${pastilleDeLEtat({ couleur: c.couleur, mots: c.phrase })}`;
         return `<label class="choix ${c.cochable ? "" : "grise"}">
           <input type="checkbox" class="d-qui" data-i="${i}" ${c.cochee ? "checked" : ""}
                  ${c.cochable ? "" : "disabled"}>

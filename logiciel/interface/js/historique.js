@@ -28,18 +28,14 @@ function dessinerHistorique() {
     cible.innerHTML = `<p class="discret">Aucun mois pour l'instant.</p>`;
     return;
   }
-  // L'état de la DSN, en mots : c'est ce qu'on cherche en premier dans un
-  // mois passé. La décision est au moteur (`bilan_des_mois`).
-  const DSN_ETATS = {
-    passee: ["bien", "DSN passée"], attente: ["alerte", "DSN partie, bilan attendu"],
-    refusee: ["erreur", "DSN refusée"], a_deposer: ["alerte", "DSN à déposer"],
-    a_ecrire: ["", "saisi, pas encore écrit"], en_retard: ["erreur", "DSN en retard"],
-    // Un mois tenu avant PuppetPaie : sa DSN est celle de l'ancien logiciel, ou il n'en a pas trace ici.
-    importee: ["bien", "DSN déclarée avant PuppetPaie"], sans_trace: ["alerte", "tenu avant PuppetPaie — aucune trace de DSN"],
-  };
+  // L'état de la DSN, en mots et en couleur : c'est ce qu'on cherche en
+  // premier dans un mois passé. Mots et couleur sont au moteur
+  // (`bilan_des_mois`, `pastille`).
   const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   cible.innerHTML = ETAT.historique.map((m) => {
-    const [couleur, mots] = DSN_ETATS[m.dsn] || ["", m.produit ? "écrit" : "saisi"];
+    const p = m.pastille || { couleur: "gris", mots: m.produit ? "écrit" : "saisi" };
+    const couleur = CLASSE_DE_COULEUR[p.couleur] ?? "";
+    const mots = p.mots;
     const depose = m.depose_le && m.dsn !== "a_deposer" ? ` le ${quand(m.depose_le).slice(0, 10)}` : "";
     return `
     <details class="mois-hist" data-mois="${echapper(m.mois)}" data-retard="${m.dsn === "en_retard" ? 1 : 0}"
