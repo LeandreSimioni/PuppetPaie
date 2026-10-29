@@ -329,7 +329,18 @@ pub(crate) fn contrats_des_paies(paies: &[Paie]) -> Vec<Cle3> {
 /// a la version sur laquelle chaque envoi est parti (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
 pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat]) -> R<Vec<Vec<ARefaire>>> {
     let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
-    Ok(etats.iter().map(|e| e.valide().map(|v| engagement::etats::a_refaire(ctx, v, &departs)).unwrap_or_default()).collect())
+    // Un contrat rompu n'a pas d'avenant (`contrats::seule_la_rupture`).
+    let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
+    Ok(etats
+        .iter()
+        .map(|e| {
+            let Some(v) = e.valide() else { return Vec::new() };
+            let presente = saisie(v.objet().brut.get("valide"));
+            let mut r = engagement::etats::a_refaire(ctx, v, &departs);
+            r.retain(|a| !matches!(a, ARefaire::Avenant { depuis } if crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(*depuis)), &presente)));
+            r
+        })
+        .collect())
 }
 
 
