@@ -56,7 +56,19 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     assert_eq!(paie["brut"], json!("300"), "{}", paie);
 
     // UN SECOND REJEU, ailleurs, rend exactement le meme releve : rien n'y depend du hasard ni de l'heure de la machine.
-    let (r2, racine2) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "treteaux-bis"));
+    // Il se lit en chemin, le soir de l'embauche et celui de l'echeance : la DSN de novembre est a deposer tant que
+    // l'echeance n'est pas venue, puis faite ; elle declare alors le contrat de la comedienne, et son bulletin porte ses
+    // deux cachets.
+    let mut soirs = Vec::new();
+    let (r2, racine2) = outils::rejeu::rejouer_et_lire("treteaux-du-banc", &outils::dossier_de_test("rejeu", "treteaux-bis"), &["2026-11-20", "2026-12-16"], |s| {
+        let contrat = s.bloc_dsn("2026-11", "FULLER").into_iter().find(|(k, _)| k == "S21.G00.40.009").map(|(_, v)| v);
+        soirs.push((s.jour.clone(), s.case("2026-11", "dsn"), contrat, s.ligne_de_bulletin("2026-11", "FULLER", "Cachet")));
+    });
+    assert_eq!(soirs[0].1, ["a_faire"], "le 20/11 : {:?}", soirs[0]);
+    assert_eq!((&soirs[0].2, &soirs[0].3), (&None, &None), "le 20/11, ni DSN ni bulletin : {:?}", soirs[0]);
+    assert_eq!(soirs[1].1, ["fait"], "le 16/12 : {:?}", soirs[1]);
+    assert_eq!(soirs[1].2.as_deref(), Some("FU1.26.01"), "le 16/12 : {:?}", soirs[1]);
+    assert!(soirs[1].3.as_deref().is_some_and(|l| l.contains("2")), "le 16/12 : {:?}", soirs[1]);
     let jour = socle::paris::iso_secondes(r2.fin.unwrap())[..10].to_string();
     let second: Value = outils::rejeu::sorties(&racine2, &jour);
     assert!(second == releve, "deux rejeux du meme scenario ne rendent pas les memes sorties");

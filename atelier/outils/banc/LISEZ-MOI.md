@@ -98,7 +98,7 @@ rejeu s'écarte — à mettre dans la passation, tel quel.
 Les mêmes commandes, sans le banc (`moteur-atelier scenario …`, ou l'exemple `vie_fictive` du moteur ordinaire) :
 
 ```bash
-moteur-atelier scenario rejouer  <scénario> <installation neuve> [--lectures]   # dit ce que l'horloge a joué, ECART sinon
+moteur-atelier scenario rejouer  <scénario> <installation neuve> [--lectures] [--jusqu-au AAAA-MM-JJ]   # dit ce que l'horloge a joué, ECART sinon
 moteur-atelier scenario verifier <scénario> <installation du banc> <dossier de travail>
 moteur-atelier scenario elaguer  <scénario> <scénario sans lectures>            # pour le figer (phase 4)
 cd atelier/sources/moteur && CARGO_TARGET_DIR=<cible> cargo run --profile essais --example vie_fictive -- rejouer <scénario> <dossier neuf>

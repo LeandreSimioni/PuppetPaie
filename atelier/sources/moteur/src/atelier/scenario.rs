@@ -2,21 +2,31 @@
 //! navigateur.
 //!
 //! UN SCENARIO EST UN DOSSIER :
-//! - `gestes.jsonl` : un geste par ligne, dans l'ordre ou ils ont eu lieu. Chacun porte son rang `n` et son instant
-//!   `quand` (secondes UTC, le temps du moteur, `temps`), plus `heure` (le meme, lisible, a Paris). Les gestes :
+//! - `gestes.jsonl` : un geste par ligne, dans l'ordre ou ils ont lieu. Les gestes :
 //!   - `{"geste": "debut", "jour", "logiciel"}` : le banc commence (rien a rejouer) ;
-//!   - `{"geste": "ajouter", "nom", "compagnie"}` : le « + » de l'accueil d'un logiciel bride (`compagnies::ajouter_dans`),
-//!     le decor de depart ; `compagnie` est le dossier qu'il a cree, relatif a l'installation (`fictives/ajoutee-…`) ;
-//!   - `{"geste": "simuler", "compagnie"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois
-//!     simules (`rendre_simulee`) -- sans lui, ses envois sont refuses et elle ne peut pas vivre sa vie ;
-//!   - `{"geste": "jour", "jour"}` : le calendrier avance (le banc) ; l'horloge de la fictive joue alors ce qui etait du,
-//!     par la route `ouverture` qui suit (enregistree comme toute route) ;
-//!   - `{"route", "charge", "compagnie", "ecrit", "ok"}` : une route du moteur, telle que la fenetre l'a servie (la page,
-//!     la veille, le fil de fond : `interface::api::route`), avec la charge que le moteur a recue. `ecrit` : la route a
-//!     change un fichier de la compagnie (son empreinte, avant et apres, hors caches) ; `ok` : elle a reussi. `pieces` :
-//!     ce qu'on avait depose dans un dossier que la route lit (l'import), recopie dans le scenario.
-//! - `pieces/<sha256>` : le contenu de chaque fichier depose, une fois (un PDF de bulletins, une DSN, un contrat...).
-//!   Le scenario se rejoue ainsi sans rien d'exterieur : ni `/tmp`, ni le poste ou on l'a enregistre.
+//!   - `{"geste": "ajouter", "nom"}` : le « + » de l'accueil d'un logiciel bride (`compagnies::ajouter_dans`), le decor
+//!     de depart ; le banc y note `compagnie`, le dossier qu'il a cree, relatif a l'installation (`fictives/ajoutee-…`),
+//!     et le rejeu verifie qu'il cree le meme ;
+//!   - `{"geste": "simuler"}` : le geste d'atelier qui fait d'une fictive ajoutee une fictive aux envois simules
+//!     (`rendre_simulee`) -- sans lui, ses envois sont refuses et elle ne peut pas vivre sa vie ;
+//!   - `{"geste": "jour", "jour"}` : le calendrier avance, et chaque compagnie du scenario s'ouvre ce jour-la : son
+//!     horloge joue ce qui etait du (`horloge::rattraper`, comme a l'ouverture). Au banc, la route `ouverture` qui suit
+//!     ne trouve alors plus rien a jouer ;
+//!   - `{"route", "charge"}` : une route du moteur, telle que la fenetre l'a servie (la page, la veille, le fil de fond :
+//!     `interface::api::route`), avec la charge que le moteur a recue. `ecrit` (vrai par defaut) : la route a change un
+//!     fichier de la compagnie -- le banc le note, et le rejeu ecarte les routes qui n'ont rien ecrit ; `ok` (vrai par
+//!     defaut) : elle a reussi, et le rejeu le verifie. `pieces` : ce qu'on avait depose dans un dossier que la route lit
+//!     (l'import), par cle de la charge : `{"chemin"}` (un fichier ou un dossier du scenario, nomme relativement a lui),
+//!     ou `{"fichiers": {rel: empreinte}}` (ce que le banc a recopie dans `pieces/`) ; `dans_la_compagnie` pose la piece
+//!     a cet endroit de la compagnie au lieu d'un dossier de travail.
+//!   Chaque geste a son instant : `quand` (secondes UTC, ce que le banc ecrit), ou `heure`, a Paris (`AAAA-MM-JJ`, a 9 h,
+//!   ou `AAAA-MM-JJTHH:MM[:SS]`) ; un geste `jour` sans l'un ni l'autre a lieu ce jour-la a 9 h, et tout autre geste sans
+//!   date, une seconde apres celui qui le precede. Les instants ne reculent jamais. `compagnie` (le dossier relatif a
+//!   l'installation) se tait quand le scenario n'en ajoute qu'une : c'est la derniere ajoutee. `n`, le rang que le banc
+//!   ecrit, ne sert qu'a le relire.
+//! - `pieces/` : le contenu de chaque fichier depose -- par empreinte (`pieces/<sha256>`, le banc : un PDF de bulletins,
+//!   une DSN, un contrat...), ou sous le nom qu'un scenario ecrit a la main lui donne. Le scenario se rejoue ainsi sans
+//!   rien d'exterieur : ni `/tmp`, ni le poste ou on l'a enregistre.
 //!
 //! L'ENREGISTREUR (`Enregistreur`) n'existe que dans le binaire de l'atelier (`moteur-atelier`, `--features atelier`) :
 //! `moteur-atelier interface --enregistrer <dossier> --jour J` (le banc, `atelier/outils/banc/`). Le binaire livre n'en a
@@ -26,12 +36,14 @@
 //! l'appellent dans leur processus. Chaque geste se rejoue a son instant, fige (`temps::figer`), les aleas en suite fixe
 //! (`temps::aleas_fixes`) : deux rejeux ecrivent les memes octets. Les routes qui n'ont rien ecrit s'ecartent par defaut
 //! (une lecture ne change pas la compagnie ; les garder coute le temps de les recalculer) ; `OptionsRejeu::lectures` les
-//! rejoue aussi.
+//! rejoue aussi. `rejouer_et_lire` s'arrete a des jours choisis pour qu'on lise la compagnie telle qu'elle est ce
+//! soir-la, puis reprend : un seul rejeu pour plusieurs dates.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
+use socle::date::Jour;
 
 /// Le fichier des gestes, dans le dossier du scenario.
 pub const GESTES: &str = "gestes.jsonl";
@@ -84,7 +96,6 @@ fn heure(t: f64) -> String {
 }
 
 /// Les fichiers d'un dossier, relatifs a lui (barres droites), dans l'ordre des noms.
-#[cfg(feature = "atelier")]
 fn fichiers_de(dossier: &Path) -> Vec<(String, PathBuf)> {
     fn parcourir(base: &Path, d: &Path, out: &mut Vec<(String, PathBuf)>) {
         let Ok(it) = std::fs::read_dir(d) else { return };
@@ -110,8 +121,8 @@ fn fichiers_de(dossier: &Path) -> Vec<(String, PathBuf)> {
 pub struct OptionsRejeu {
     /// Rejouer aussi les routes qui n'avaient rien ecrit.
     pub lectures: bool,
-    /// S'arreter au geste de ce rang (compris).
-    pub jusqu_a: Option<u64>,
+    /// S'arreter a la fin de ce jour (a Paris) : les gestes d'apres ne se jouent pas.
+    pub jusqu_au: Option<Jour>,
 }
 
 /// Ce que le rejeu a fait.
@@ -131,7 +142,7 @@ pub struct Rejeu {
     pub ecarts: Vec<String>,
 }
 
-/// Les gestes d'un scenario, lus.
+/// Les gestes d'un scenario, lus tels qu'ils sont ecrits.
 pub fn lire(scenario: &Path) -> Result<Vec<Value>, String> {
     let f = scenario.join(GESTES);
     let texte = std::fs::read_to_string(&f).map_err(|e| format!("{} : {}", f.display(), e))?;
@@ -143,42 +154,121 @@ pub fn lire(scenario: &Path) -> Result<Vec<Value>, String> {
         .collect()
 }
 
+/// L'instant qu'un geste ecrit : `quand`, sinon `heure` a Paris (`AAAA-MM-JJ` a 9 h, `AAAA-MM-JJTHH:MM[:SS]`), sinon le
+/// jour d'un geste `jour`, a 9 h. `None` : le geste n'en ecrit pas.
+fn instant_ecrit(g: &Value) -> Result<Option<f64>, String> {
+    if let Some(t) = g.get("quand").and_then(Value::as_f64) {
+        return Ok(Some(t));
+    }
+    let texte = match (g.get("heure").and_then(Value::as_str), g.get("geste").and_then(Value::as_str)) {
+        (Some(h), _) => h,
+        (None, Some("jour")) => g.get("jour").and_then(Value::as_str).ok_or("un geste `jour` sans jour")?,
+        _ => return Ok(None),
+    };
+    let illisible = || format!("{} : une date (AAAA-MM-JJ) ou une heure de Paris (AAAA-MM-JJTHH:MM) est attendue", socle::fichiers::repr(texte));
+    let (jour, hms) = texte.split_once('T').unwrap_or((texte, "09:00"));
+    let jour = Jour::lire(jour).map_err(|_| illisible())?;
+    let mut parts = hms.split(':').map(|x| x.parse::<i64>().ok());
+    let (h, m, s) = match (parts.next().flatten(), parts.next().flatten(), parts.next()) {
+        (Some(h), Some(m), None) => (h, m, 0),
+        (Some(h), Some(m), Some(Some(s))) => (h, m, s),
+        _ => return Err(illisible()),
+    };
+    if !(0..24).contains(&h) || !(0..60).contains(&m) || !(0..60).contains(&s) {
+        return Err(illisible());
+    }
+    Ok(Some(socle::temps::instant_de(jour, h) + (m * 60 + s) as f64))
+}
+
+/// Les instants de chaque geste, dans l'ordre du fichier : celui qu'il ecrit, ou une seconde apres le precedent. Un
+/// instant ecrit qui recule refuse le scenario ; un instant egal au precedent passe une seconde apres lui (deux gestes ne
+/// partagent jamais un instant : chacun tire ses aleas depuis le sien).
+fn instants(gestes: &[Value]) -> Result<Vec<f64>, String> {
+    let mut out: Vec<f64> = Vec::with_capacity(gestes.len());
+    let mut ecrit_avant: Option<f64> = None;
+    for (i, g) in gestes.iter().enumerate() {
+        let geste = |m: String| format!("geste {} : {}", i + 1, m);
+        let precedent = out.last().copied();
+        let t = match instant_ecrit(g).map_err(geste)? {
+            Some(t) => {
+                if ecrit_avant.is_some_and(|a| t < a) {
+                    return Err(geste(format!("{} vient avant le geste qui le precede : les gestes vont dans l'ordre du temps", heure(t))));
+                }
+                ecrit_avant = Some(t);
+                match precedent {
+                    Some(p) if t <= p => p + 1.0,
+                    _ => t,
+                }
+            }
+            None => precedent.map(|p| p + 1.0).ok_or_else(|| geste("le premier geste n'a ni `quand` ni `heure`".to_string()))?,
+        };
+        out.push(t);
+    }
+    Ok(out)
+}
+
+/// Le contenu d'une piece : `chemin` (relatif au scenario) ou l'empreinte `sha` (dans `pieces/`).
+fn source_de_piece(scenario: &Path, sha: &str) -> PathBuf {
+    scenario.join(PIECES).join(sha)
+}
+
 /// Pose, avant la route, ce qu'on avait depose : un dossier de la compagnie se remet tel qu'il etait ; un dossier
 /// hors d'elle se recree dans `travail/<rang>/<cle>` et la charge le nomme. Rend la charge a donner au moteur.
-fn poser_les_pieces(scenario: &Path, racine: &Path, travail: &Path, geste: &Value) -> Result<Value, String> {
+fn poser_les_pieces(scenario: &Path, racine: &Path, travail: &Path, rang: usize, geste: &Value) -> Result<Value, String> {
     let mut charge = geste.get("charge").cloned().unwrap_or_else(|| json!({}));
     let Some(pieces) = geste.get("pieces").and_then(Value::as_object) else { return Ok(charge) };
-    let n = geste.get("n").and_then(Value::as_u64).unwrap_or(0);
     for (cle, p) in pieces {
-        let fichiers = p.get("fichiers").and_then(Value::as_object).cloned().unwrap_or_default();
-        let (cible, est_fichier) = match (p.get("dans_la_compagnie").and_then(Value::as_str), p.get("fichier").and_then(Value::as_bool) == Some(true)) {
-            (Some(rel), f) => (racine.join(rel), f),
-            (None, f) => (travail.join(n.to_string()).join(cle), f),
+        // Les fichiers de la piece : (relatif a la piece, source). Un fichier seul a la cle `.`.
+        let fichiers: Vec<(String, PathBuf)> = match p.get("chemin").and_then(Value::as_str) {
+            Some(c) => {
+                let source = scenario.join(c);
+                if source.is_dir() {
+                    fichiers_de(&source)
+                } else if source.is_file() {
+                    vec![(".".to_string(), source)]
+                } else {
+                    return Err(format!("piece {} : {} n'existe pas dans le scenario", cle, c));
+                }
+            }
+            None => p
+                .get("fichiers")
+                .and_then(Value::as_object)
+                .into_iter()
+                .flatten()
+                .map(|(rel, sha)| Ok((rel.clone(), source_de_piece(scenario, sha.as_str().ok_or("piece sans empreinte")?))))
+                .collect::<Result<_, String>>()?,
+        };
+        let nom = p.get("nom").and_then(Value::as_str).map(String::from).or_else(|| {
+            p.get("chemin").and_then(Value::as_str).and_then(|c| Path::new(c).file_name()).map(|n| n.to_string_lossy().into_owned())
+        });
+        let est_fichier = p.get("fichier").and_then(Value::as_bool) == Some(true) || (fichiers.len() == 1 && fichiers[0].0 == ".");
+        let dans = p.get("dans_la_compagnie").and_then(Value::as_str);
+        let cible = match dans {
+            Some(rel) => racine.join(rel),
+            None => travail.join(rang.to_string()).join(cle),
         };
         if est_fichier {
-            // Un fichier seul : la cle `.` de `fichiers`.
-            let sha = fichiers.get(".").and_then(Value::as_str).ok_or("piece sans contenu")?;
-            let dest = if p.get("dans_la_compagnie").is_some() { cible.clone() } else { cible.join(p.get("nom").and_then(Value::as_str).unwrap_or("piece")) };
+            let (_, source) = fichiers.first().ok_or("piece sans contenu")?;
+            let dest = if dans.is_some() { cible.clone() } else { cible.join(nom.as_deref().unwrap_or("piece")) };
             if let Some(d) = dest.parent() {
                 std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
             }
-            std::fs::copy(scenario.join(PIECES).join(sha), &dest).map_err(|e| format!("piece {} : {}", sha, e))?;
-            if p.get("dans_la_compagnie").is_none() {
+            std::fs::copy(source, &dest).map_err(|e| format!("piece {} : {}", source.display(), e))?;
+            if dans.is_none() {
                 charge[cle.as_str()] = json!(dest.display().to_string());
             }
             continue;
         }
         let _ = std::fs::remove_dir_all(&cible);
         std::fs::create_dir_all(&cible).map_err(|e| format!("{} : {}", cible.display(), e))?;
-        for (rel, sha) in &fichiers {
+        for (rel, source) in &fichiers {
             let dest = cible.join(rel);
             if let Some(d) = dest.parent() {
                 std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
             }
-            let sha = sha.as_str().ok_or("piece sans empreinte")?;
-            std::fs::copy(scenario.join(PIECES).join(sha), &dest).map_err(|e| format!("piece {} : {}", sha, e))?;
+            std::fs::copy(source, &dest).map_err(|e| format!("piece {} : {}", source.display(), e))?;
         }
-        if p.get("dans_la_compagnie").is_none() {
+        if dans.is_none() {
             charge[cle.as_str()] = json!(cible.display().to_string());
         }
     }
@@ -189,7 +279,16 @@ fn poser_les_pieces(scenario: &Path, racine: &Path, travail: &Path, geste: &Valu
 /// du scenario) : le decor du « + », chaque geste a son instant, et rien d'autre. Le temps du moteur est simule le temps
 /// du rejeu, puis rendu a la montre. `travail` recoit les dossiers deposes hors de la compagnie.
 pub fn rejouer(scenario: &Path, inst: &Path, options: &OptionsRejeu) -> Result<Rejeu, String> {
+    rejouer_et_lire(scenario, inst, options, &[], &mut |_, _| {})
+}
+
+/// `rejouer`, qui s'arrete le soir de chacun des jours `arrets` (dans l'ordre) -- apres le dernier geste de ce jour-la,
+/// avant le premier du lendemain -- pour que `lire` regarde la compagnie telle qu'elle est (le jour, et ce que le rejeu a
+/// fait jusque-la), puis reprend. Un jour d'arret apres le dernier geste se lit a la fin. Le temps du moteur reste
+/// celui du dernier geste joue : `lire` lit comme un poste, par une route ou les fichiers, a la date qu'il dit.
+pub fn rejouer_et_lire(scenario: &Path, inst: &Path, options: &OptionsRejeu, arrets: &[Jour], lire_au: &mut dyn FnMut(Jour, &Rejeu)) -> Result<Rejeu, String> {
     let gestes = lire(scenario)?;
+    let instants = instants(&gestes)?;
     std::fs::create_dir_all(inst).map_err(|e| format!("{} : {}", inst.display(), e))?;
     // L'INSTALLATION DU REJEU, BRIDEE EN TOUTES LETTRES (le geste de l'accueil, `bridage.rs`) : comme celle du banc, et le
     // moteur ne lit qu'elle (`compagnies::base`) -- rien du depot ni du poste ou l'on rejoue.
@@ -199,40 +298,73 @@ pub fn rejouer(scenario: &Path, inst: &Path, options: &OptionsRejeu) -> Result<R
     socle::temps::liberer();
     socle::temps::aleas_fixes();
     crate::interface::compagnies::poser_l_installation_du_rejeu(Some(inst.clone()));
-    let rendu = rejouer_les_gestes(scenario, &inst, &travail, &gestes, options);
+    let rendu = rejouer_les_gestes(scenario, &inst, &travail, &gestes, &instants, options, arrets, lire_au);
     crate::interface::compagnies::poser_l_installation_du_rejeu(None);
     socle::temps::liberer();
     rendu
 }
 
-fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Value], options: &OptionsRejeu) -> Result<Rejeu, String> {
+/// Le jour a Paris d'un instant.
+fn jour_de(t: f64) -> Jour {
+    Jour::lire(&heure(t)[..10]).expect("un instant se lit en jour")
+}
+
+#[allow(clippy::too_many_arguments)]
+fn rejouer_les_gestes(
+    scenario: &Path,
+    inst: &Path,
+    travail: &Path,
+    gestes: &[Value],
+    instants: &[f64],
+    options: &OptionsRejeu,
+    arrets: &[Jour],
+    lire_au: &mut dyn FnMut(Jour, &Rejeu),
+) -> Result<Rejeu, String> {
     let mut r = Rejeu::default();
-    // Le dossier enregistre -> la racine du rejeu.
+    let mut arrets = arrets.iter().copied().peekable();
+    // LA LECTURE D'UN SOIR, avant le premier geste du lendemain. Ce qu'elle tire d'aleas ne change rien : chaque geste
+    // repart des siens a son instant (`temps::figer`).
+    let mut lire_les_soirs = |avant: Jour, r: &Rejeu| {
+        while let Some(j) = arrets.next_if(|j| *j < avant) {
+            lire_au(j, r);
+        }
+    };
+    // Le dossier enregistre -> la racine du rejeu ; « » nomme la derniere ajoutee.
     let mut racines: BTreeMap<String, PathBuf> = BTreeMap::new();
-    for g in gestes {
-        let n = g.get("n").and_then(Value::as_u64).unwrap_or(0);
-        if options.jusqu_a.is_some_and(|j| n > j) {
+    for (i, (g, &t)) in gestes.iter().zip(instants).enumerate() {
+        let n = g.get("n").and_then(Value::as_u64).map_or(i + 1, |n| n as usize);
+        let jour = jour_de(t);
+        if options.jusqu_au.is_some_and(|j| jour > j) {
             break;
         }
-        if let Some(t) = g.get("quand").and_then(Value::as_f64) {
-            socle::temps::figer(t);
-            r.fin = Some(t);
-        }
+        lire_les_soirs(jour, &r);
+        socle::temps::figer(t);
+        r.fin = Some(t);
         let compagnie = g.get("compagnie").and_then(Value::as_str).unwrap_or("");
         match g.get("geste").and_then(Value::as_str) {
             Some("ajouter") => {
                 let nom = g.get("nom").and_then(Value::as_str).ok_or(format!("geste {} : `ajouter` sans nom", n))?;
                 let c = crate::interface::compagnies::ajouter_dans(inst, nom).map_err(|m| format!("geste {} : « + » refuse : {}", n, m))?;
                 let rel = relatif(inst, &c.racine);
-                if rel != compagnie {
+                if !compagnie.is_empty() && rel != compagnie {
                     r.ecarts.push(format!("geste {} : le « + » a cree {} (enregistre : {})", n, rel, compagnie));
                 }
-                racines.insert(compagnie.to_string(), c.racine.clone());
-                r.compagnies.push((compagnie.to_string(), c.racine));
+                let nomme = if compagnie.is_empty() { rel } else { compagnie.to_string() };
+                racines.insert(nomme.clone(), c.racine.clone());
+                racines.insert(String::new(), c.racine.clone());
+                r.compagnies.push((nomme, c.racine));
             }
             Some("simuler") => {
                 let racine = racines.get(compagnie).ok_or(format!("geste {} : `simuler` sur {}, que le scenario n'a pas ajoutee", n, compagnie))?;
                 rendre_simulee(racine).map_err(|m| format!("geste {} : {}", n, m))?;
+            }
+            Some("jour") => {
+                for (_, racine) in &r.compagnies {
+                    match crate::horloge::rattraper(racine, Some(jour), true) {
+                        Ok(fait) => r.horloge.extend(fait.iter().map(|p| format!("{} {}", heure(t), p))),
+                        Err(e) => r.ecarts.push(format!("geste {} ({}) : l'horloge refuse : {}", n, heure(t), e.message)),
+                    }
+                }
             }
             Some(_) => {}
             None => {
@@ -241,11 +373,11 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
                     r.autres_compagnies += 1;
                     continue;
                 };
-                if g.get("ecrit") != Some(&Value::Bool(true)) && !options.lectures {
+                if g.get("ecrit") == Some(&Value::Bool(false)) && !options.lectures {
                     r.lectures_ecartees += 1;
                     continue;
                 }
-                let charge = poser_les_pieces(scenario, racine, travail, g)?;
+                let charge = poser_les_pieces(scenario, racine, travail, n, g)?;
                 let mut o = std::collections::HashMap::new();
                 o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
                 let rep = crate::routes::dans_la_fenetre(&o, route, &charge);
@@ -258,14 +390,14 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
                     _ => None,
                 };
                 for p in jouees.and_then(Value::as_array).into_iter().flatten() {
-                    r.horloge.push(format!("{} {}", heure(g.get("quand").and_then(Value::as_f64).unwrap_or(0.0)), socle::valeur::valeur_en_texte(p)));
+                    r.horloge.push(format!("{} {}", heure(t), socle::valeur::valeur_en_texte(p)));
                 }
-                let attendu = g.get("ok") == Some(&Value::Bool(true));
+                let attendu = g.get("ok") != Some(&Value::Bool(false));
                 if ok != attendu {
                     r.ecarts.push(format!(
                         "geste {} ({} {}) : {} au rejeu, {} a l'enregistrement{}",
                         n,
-                        heure(g.get("quand").and_then(Value::as_f64).unwrap_or(0.0)),
+                        heure(t),
                         route,
                         if ok { "reussit" } else { "refuse" },
                         if attendu { "reussi" } else { "refuse" },
@@ -275,6 +407,7 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
             }
         }
     }
+    lire_les_soirs(Jour::nouveau(9999, 12, 31).expect("un jour"), &r);
     Ok(r)
 }
 
@@ -285,15 +418,32 @@ fn rejouer_les_gestes(scenario: &Path, inst: &Path, travail: &Path, gestes: &[Va
 pub fn elaguer(scenario: &Path, vers: &Path) -> Result<(usize, usize), String> {
     let gestes = lire(scenario)?;
     std::fs::create_dir_all(vers.join(PIECES)).map_err(|e| format!("{} : {}", vers.display(), e))?;
+    let copier = |rel: &Path| -> Result<(), String> {
+        let dest = vers.join(rel);
+        if let Some(d) = dest.parent() {
+            std::fs::create_dir_all(d).map_err(|e| format!("{} : {}", d.display(), e))?;
+        }
+        std::fs::copy(scenario.join(rel), &dest).map(|_| ()).map_err(|e| format!("piece {} : {}", rel.display(), e))
+    };
     let (mut gardes, mut otees) = (Vec::new(), 0);
     for g in gestes {
-        if g.get("route").is_some() && g.get("ecrit") != Some(&Value::Bool(true)) {
+        if g.get("route").is_some() && g.get("ecrit") == Some(&Value::Bool(false)) {
             otees += 1;
             continue;
         }
         for p in g.get("pieces").and_then(Value::as_object).into_iter().flat_map(|m| m.values()) {
             for sha in p.get("fichiers").and_then(Value::as_object).into_iter().flat_map(|f| f.values()).filter_map(Value::as_str) {
-                std::fs::copy(scenario.join(PIECES).join(sha), vers.join(PIECES).join(sha)).map_err(|e| format!("piece {} : {}", sha, e))?;
+                copier(&Path::new(PIECES).join(sha))?;
+            }
+            if let Some(c) = p.get("chemin").and_then(Value::as_str) {
+                let source = scenario.join(c);
+                if source.is_dir() {
+                    for (rel, _) in fichiers_de(&source) {
+                        copier(&Path::new(c).join(rel))?;
+                    }
+                } else {
+                    copier(Path::new(c))?;
+                }
             }
         }
         gardes.push(g.to_string());
@@ -372,15 +522,29 @@ pub fn verifier(scenario: &Path, inst: &Path, travail: &Path) -> Result<Vec<Stri
     Ok(ecarts)
 }
 
-const USAGE: &str = "scenario rejouer <scenario> <installation neuve> [--lectures]\n\
+const USAGE: &str = "scenario rejouer <scenario> <installation neuve> [--lectures] [--jusqu-au AAAA-MM-JJ]\n\
                      scenario verifier <scenario> <installation du banc> <dossier de travail>\n\
                      scenario elaguer <scenario> <scenario sans lectures>";
 
 /// LA LIGNE DE COMMANDE DES SCENARIOS : `moteur-atelier scenario ...` (le banc) et l'exemple `vie_fictive` (sans le binaire
 /// de l'atelier). `rejouer`, `verifier`, `elaguer`. Rend le code de sortie : 1 a la moindre difference.
 pub fn commande(args: &[String]) -> i32 {
-    let lectures = args.iter().any(|a| a == "--lectures");
-    let a: Vec<&str> = args.iter().map(String::as_str).filter(|a| *a != "--lectures").collect();
+    let mut options = OptionsRejeu::default();
+    let mut a: Vec<&str> = Vec::new();
+    let mut it = args.iter().map(String::as_str);
+    while let Some(x) = it.next() {
+        match x {
+            "--lectures" => options.lectures = true,
+            "--jusqu-au" => match it.next().map(Jour::lire) {
+                Some(Ok(j)) => options.jusqu_au = Some(j),
+                _ => {
+                    eprintln!("--jusqu-au attend un jour, AAAA-MM-JJ.\n{}", USAGE);
+                    return 2;
+                }
+            },
+            _ => a.push(x),
+        }
+    }
     // Rien ne sort de la machine (`garde_reseau`) : lancee a la main, la commande pose la variable, avant tout fil.
     if std::env::var_os(socle::garde_reseau::VARIABLE).is_none() {
         std::env::set_var(socle::garde_reseau::VARIABLE, "1");
@@ -393,7 +557,7 @@ pub fn commande(args: &[String]) -> i32 {
                 eprintln!("{} n'est pas vide : le rejeu part d'une installation neuve.", inst.display());
                 return 2;
             }
-            match rejouer(Path::new(sc), inst, &OptionsRejeu { lectures, ..Default::default() }) {
+            match rejouer(Path::new(sc), inst, &options) {
                 Ok(r) => {
                     for p in &r.horloge {
                         println!("      {}", p);
