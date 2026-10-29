@@ -317,7 +317,8 @@
     },
     "config/creation.json": {
       "le": "2026-11-02",
-      "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant)."
+      "venue": "neuve",
+      "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant). `venue` : le chemin du « + », une compagnie neuve ou d'un logiciel precedent (elle commence alors par l'import)."
     },
     "config/entreprise.json": {
       "nom_affichage": [
