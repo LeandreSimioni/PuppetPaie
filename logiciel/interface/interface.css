@@ -725,6 +725,8 @@ details.mois-hist[open] > summary { border-bottom-left-radius: 0; border-bottom-
   border-radius: 4px; z-index: 60; font-size: 13px; max-width: 70vw; overflow-wrap: anywhere;
 }
 .message.erreur { background: var(--erreur); }
+/* Ce que le moteur dit en orange : à vérifier, à confirmer. */
+.message.alerte { background: var(--alerte); }
 /* Ce qui est parti : en vert, coché. */
 .message.envoye { background: var(--succes); }
 .message.envoye::before { content: "✓ "; font-weight: 600; }

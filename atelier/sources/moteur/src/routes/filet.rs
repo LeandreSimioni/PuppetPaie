@@ -144,7 +144,10 @@ fn route_seule(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: 
         "diagnostic-envoyer" => {
             let bilan = incidents::envoyer(racine);
             let mut etat = diagnostic_etat(racine)?;
+            // La couleur du message qui le dit : un envoi impossible est refuse, sinon parti.
+            let couleur = crate::routes::couleur_de_l_etat(if vrai(&bilan["erreur"]) { "refuse" } else { "fait" });
             etat.as_object_mut().expect("un objet").insert("bilan".into(), bilan);
+            etat["couleur"] = json!(couleur);
             Ok(etat)
         }
         "incidents-envoyer" => Ok(incidents::envoyer(racine)),

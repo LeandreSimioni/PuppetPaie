@@ -375,7 +375,7 @@ async function dessinerCoffre(cible) {
         await dessinerCoffre(cible);
         dire(v.ok ? quoi + service + " enregistré, et vérifié : la connexion passe."
           : quoi + service + " enregistré, mais la connexion est REFUSÉE : " + v.message
-            + (v.conseil ? " — " + v.conseil : ""), v.ok ? undefined : "erreur");
+            + (v.conseil ? " — " + v.conseil : ""), v.pastille && v.pastille.couleur);
       } catch (e) {
         await dessinerCoffre(cible);
         dire(quoi + service + " enregistré ; la vérification n'a pas pu se faire : " + e.message, "erreur");

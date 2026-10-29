@@ -108,7 +108,7 @@ function boiteDiagnostic(d, rang, signales = []) {
       fermerBoite();
       dire(r.bilan.erreur ? "Envoi impossible : " + r.bilan.erreur
                           : r.bilan.envoyes + " incident(s) envoyé(s).",
-           r.bilan.erreur ? "erreur" : "envoye");
+           r.couleur);
       dessinerDiagnostic(rang);
     } catch (e) { rendre(); dire(e.message, "erreur"); }
   };

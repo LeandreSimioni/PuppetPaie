@@ -474,14 +474,16 @@ async function ouvrirEtDire(route, charge = {}) {
   } catch (e) { dire(e.message, "erreur"); }
 }
 
-/** `type` : "erreur" (en rouge), "envoye" (ce qui est parti : en vert, coché),
- *  rien pour une simple nouvelle. */
+/** `type` : "erreur" (en rouge, un refus du moteur), "envoye" (ce qui est parti : en vert, coché), rien pour une simple
+ *  nouvelle ; ou la couleur que le moteur donne au message (`couleur` : vert, orange, rouge, gris). */
+const TON_DE_COULEUR = { vert: "envoye", orange: "alerte", rouge: "erreur", gris: "" };
 function dire(texte, type) {
+  const ton = type in TON_DE_COULEUR ? TON_DE_COULEUR[type] : type;
   // Le refus d'un envoi d'une fictive ajoutée est déjà dans sa boîte (`montrerEnvoiRefuse`).
-  if (type === "erreur" && ENVOI_REFUSE_MONTRE !== null && texte === ENVOI_REFUSE_MONTRE) return;
+  if (ton === "erreur" && ENVOI_REFUSE_MONTRE !== null && texte === ENVOI_REFUSE_MONTRE) return;
   const el = document.getElementById("message");
   el.textContent = texte;
-  el.className = "message" + (type === "erreur" ? " erreur" : type === "envoye" ? " envoye" : "");
+  el.className = "message" + (ton ? " " + ton : "");
   clearTimeout(dire._t);
   dire._t = setTimeout(() => el.classList.add("cachee"), 6000);
 }

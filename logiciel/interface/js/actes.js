@@ -452,7 +452,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
           ${echapper(motif)}
           Le même refus attendrait le dépôt réel : c'est cela qu'il faut corriger.</div>`);
         libre();
-        if (!ici()) dire(`Le test de ${nom.toLowerCase()} est refusé : ${motif}`, "erreur");
+        if (!ici()) dire(`Le test de ${nom.toLowerCase()} est refusé : ${motif}`, r.couleur);
         rafraichirActions();
         return;
       }
@@ -516,14 +516,12 @@ function avisDocumentsApresDsn(mois) {
  *  se repeint dès que le dépôt est tranché. */
 async function suivreDepot(quoi, flux, mois) {
   if (!flux) return;
-  const nom = quoi === "dsn" ? "La DSN" : "La DPAE";
   for (let tour = 0; tour < 40; tour++) {
     await new Promise((ok) => setTimeout(ok, enFictive() ? 4000 : 15000));
     let r = null;
     try { r = await api("suivre-depot", { quoi, flux, mois }); } catch (e) { continue; }
     if (r && r.fini) {
-      dire(r.passe ? `${nom} est passée — retour de l'organisme reçu.`
-                   : `${nom} est refusée — voir le motif dans l'étape.`, r.passe ? "" : "erreur");
+      dire(r.phrase, r.couleur);
       await rafraichirActions();
       return;
     }

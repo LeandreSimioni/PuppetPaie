@@ -632,8 +632,8 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
 // ------------------------------------------------------------------ suivre-depot
 
 /// `suivre_le_depot` : juste apres un depot REEL, relever ses retours et dire s'il est tranche. Une LECTURE.
-/// `{"fini", "passe", "refuse", "incident"}`. Fini quand chaque embauche du depot est passee ou refusee (DPAE),
-/// quand le bilan du mois est la (DSN).
+/// `{"fini", "passe", "refuse", "incident", "phrase", "couleur"}`. Fini quand chaque embauche du depot est passee ou
+/// refusee (DPAE), quand le bilan du mois est la (DSN).
 fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let quoi = requis(charge, "quoi")?;
     let flux = charge.get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
@@ -680,7 +680,17 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
         passe = e.get("passee").is_some_and(vrai);
         refuse = e.get("refusee").is_some_and(vrai);
     }
-    Ok(json!({"fini": passe || refuse, "passe": passe, "refuse": refuse, "incident": incident}))
+    // Ce que l'ecran en dit, et en quelle couleur, une fois le depot tranche.
+    let nom = if dpae { "La DPAE" } else { "La DSN" };
+    let (phrase, etat) = if passe {
+        (format!("{} est passée — retour de l'organisme reçu.", nom), "fait")
+    } else if refuse {
+        (format!("{} est refusée — voir le motif dans l'étape.", nom), "refuse")
+    } else {
+        (String::new(), "en_attente")
+    };
+    Ok(json!({"fini": passe || refuse, "passe": passe, "refuse": refuse, "incident": incident,
+              "phrase": phrase, "couleur": crate::routes::couleur_de_l_etat(etat)}))
 }
 
 // ------------------------------------------------------------------ bilan-repetition
