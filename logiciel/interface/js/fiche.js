@@ -1464,9 +1464,11 @@ async function ecrireFiche(fiche, donnees, daté, forcer = false) {
     ETAT = await api("etat");
     // Une fiche neuve : le moteur a fabriqué sa clé, c'est elle qu'on ouvre.
     if (!fiche.cle && r.fiche && r.fiche.cle) { CLE_ACTIVE = r.fiche.cle; FICHE_NEUVE = false; }
-    // « Fiche créée : null. » pour l'entreprise, la clé technique pour un
-    // spectacle : le mot suffit.
-    dire(forcer ? "Enregistré malgré les erreurs." : fiche.cle ? "Enregistré." : "Fiche créée.");
+    // Le mot suffit, sans la clé technique. La fiche Entreprise n'a pas de
+    // clé et existe dès que la compagnie existe : elle s'enregistre, elle ne
+    // se crée pas.
+    const neuve = !fiche.cle && FICHE_ACTIVE !== "entreprise";
+    dire(forcer ? "Enregistré malgré les erreurs." : neuve ? "Fiche créée." : "Enregistré.");
     FICHE_MODIFIEE = false;
     // ENREGISTRER REFERME LA FICHE. Elle se redessinait ouverte,
     // identique : rien ne distinguait une fiche enregistree d'une fiche qui

@@ -256,6 +256,16 @@ pub(crate) fn salarie(ctx: &Contexte, nom: &Value) -> R<Value> {
     })
 }
 
+/// LE NOM D'UN SALARIE TEL QU'UN ECRAN LE MONTRE : le nom de famille en capitales, sous sa forme lisible (`nom_affichage`,
+/// accents compris : « SÉRAPHIN »), puis le prenom lisible. La forme declaree (`nom`, sans accents) reste celle de la DSN
+/// et de la DPAE ; une fiche qui n'a que celle-la la montre.
+pub(crate) fn nom_a_l_ecran(sal: &Value) -> String {
+    let lu = |cles: [&str; 2]| {
+        cles.iter().filter_map(|c| sal.get(*c).filter(|v| vrai(v))).map(valeur_en_texte).find(|t| !t.trim().is_empty()).unwrap_or_default()
+    };
+    format!("{} {}", lu(["nom_affichage", "nom"]).to_uppercase(), lu(["prenom_affichage", "prenom"])).trim().to_string()
+}
+
 /// `sortie_json.brut` d'une valeur lue d'un fichier : un dictionnaire perd ses
 /// cles qui commencent par `_`.
 pub(crate) fn brut(v: &Value) -> Value {

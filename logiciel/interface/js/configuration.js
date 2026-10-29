@@ -131,7 +131,7 @@ function dessinerConfig() {
     const av = f.anomalies.length - err;
     const archive = d.actif === false;
     const titre = salarie
-      ? `${d.nom || ""} ${d.prenom_affichage || d.prenom || ""}`.trim()
+      ? `${String(d.nom_affichage || d.nom || "").toUpperCase()} ${d.prenom_affichage || d.prenom || ""}`.trim()
       : String(d.titre || "").trim();
     // Un numero d'objet importe de CoolPaie n'a pas de titre : le moteur
     // pose « A COMPLETER », que la ligne dit en minuscules.

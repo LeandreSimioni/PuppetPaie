@@ -242,7 +242,7 @@ function corpsDsn(a) {
       ${a.pas_versements} partent sur la grille par défaut</b>
       Faute de taux transmis par la DGFiP, c'est la grille de l'article 204 H
       du CGI qui s'applique — c'est ce que la loi prévoit, et le dépôt n'est
-      pas bloqué. Mais elle prélève le plus souvent <b>plus</b> que le taux
+      pas bloqué. Mais elle prélève le plus souvent <em>plus</em> que le taux
       réel du salarié, qui ne récupère la différence qu'à sa déclaration de
       revenus l'année suivante. Relever les retours avant de déposer peut
       encore changer cela.</div>` : ""}

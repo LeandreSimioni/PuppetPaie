@@ -730,7 +730,7 @@ impl<'a> Moteur<'a> {
             let fin = p.engagement.fin.map_or(Value::Null, |f| Value::String(f.iso()));
             let mut ligne = Map::new();
             ligne.insert("salarie".into(), Value::String(cle.clone()));
-            ligne.insert("nom".into(), Value::String(format!("{} {}", nom_famille, prenom)));
+            ligne.insert("nom".into(), Value::String(super::nom_a_l_ecran(sal)));
             ligne.insert("spectacle".into(), spectacle);
             ligne.insert("nature".into(), Value::String(nat.libelle.clone()));
             ligne.insert("numero".into(), p.engagement.numero.clone().map_or(Value::Null, Value::String));
@@ -1539,14 +1539,10 @@ impl<'a> Moteur<'a> {
                     }
                     None => Value::Null,
                 };
-                let prenom = match p.salarie.get("prenom_affichage").filter(|v| vrai(v)) {
-                    Some(v) => texte_de(v),
-                    None => texte_de(requis(&p.salarie, "prenom")?),
-                };
                 let titre = if vrai(&p.spectacle) { p.spectacle.get("titre").filter(|t| vrai(t)).cloned() } else { None };
                 let mut due = json!({
                     "mois": m, "salarie": cle,
-                    "nom": format!("{} {}", texte_de(requis(&p.salarie, "nom")?), prenom),
+                    "nom": super::nom_a_l_ecran(&p.salarie),
                     "spectacle": titre.unwrap_or_else(|| json!("salarié au mois")),
                     "debut": debut, "fin": p.engagement.fin.map(|f| f.iso()),
                 });
@@ -1849,7 +1845,7 @@ fn non_actifs(ctx: &Contexte, mois: &str) -> R<Vec<Value>> {
         let nom = ctx
             .salarie(&cle)
             .ok()
-            .map(|f| format!("{} {}", f.get("nom").map(valeur_en_texte).unwrap_or_default(), f.get("prenom_affichage").filter(|v| vrai(v)).or_else(|| f.get("prenom")).map(valeur_en_texte).unwrap_or_default()))
+            .map(|f| super::nom_a_l_ecran(&f))
             .unwrap_or_else(|| cle.clone());
         out.push(json!({
             "salarie": cle,

@@ -2334,19 +2334,20 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         blocs.push(trois(&vues[rang..fin].iter().collect::<Vec<_>>())?);
         rang = fin;
     }
-    let mut salaries: Vec<(String, Value, Vec<&Value>)> = Vec::new();
-    for v in &vues {
+    let mut salaries: Vec<(String, Value, String, Vec<&Value>)> = Vec::new();
+    for (v, p) in vues.iter().zip(&paies) {
         let s = v.get("salarie").cloned().unwrap_or(Value::Null);
         let cle = format!("{}|{}", en_texte(s.get("nom").unwrap_or(&Value::Null)), en_texte(s.get("prenom").unwrap_or(&Value::Null)));
-        match salaries.iter_mut().find(|(c, _, _)| *c == cle) {
-            Some((_, _, vs)) => vs.push(v),
-            None => salaries.push((cle, s, vec![v])),
+        match salaries.iter_mut().find(|(c, _, _, _)| *c == cle) {
+            Some((_, _, _, vs)) => vs.push(v),
+            None => salaries.push((cle, s, super::nom_a_l_ecran(&p.salarie), vec![v])),
         }
     }
     let mut par_salarie = Vec::new();
-    for (_, s, vs) in &salaries {
+    for (_, s, nom, vs) in &salaries {
         let mut t = trois(vs)?;
         t["salarie"] = s.clone();
+        t["nom"] = json!(nom);
         par_salarie.push(t);
     }
     let mut a_regarder = avert;
