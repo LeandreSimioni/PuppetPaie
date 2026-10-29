@@ -3,8 +3,8 @@
 //! C'est le chiffrement standard de PDF 2.0 (ISO 32000-2) : `/V 5`, `/R 6`, AES-256 en mode CBC
 //! (`/CFM /AESV3`), clé de fichier de 32 octets tirée au hasard. Le mot de passe utilisateur est
 //! vide (le fichier s'ouvre partout sans mot de passe) ; le mot de passe propriétaire est tiré au
-//! hasard et jeté : personne ne peut plus lever les restrictions. Les permissions sont celles de
-//! `verrouiller` dans `moteur/contrat.py` : impression, copie et accessibilité, rien d'autre.
+//! hasard et jeté : personne ne peut plus lever les restrictions. Les permissions sont :
+//! impression, copie et accessibilité, rien d'autre.
 //!
 //! Chaînes et flux sont chiffrés un à un (IV de 16 octets tiré au hasard, en tête ; bourrage
 //! PKCS#7), à l'exception du dictionnaire `/Encrypt` et des flux de table de références.

@@ -581,8 +581,7 @@ pub enum Bloc {
         /// Gauche, Droite ou Centre, par rapport à `x`.
         alignement: Alignement,
         /// Largeur à ne pas dépasser, en points : au-delà, le corps est réduit pour que le texte
-        /// tienne, sans descendre sous `CORPS_PLANCHER` (comme `corps_qui_tient` de
-        /// `moteur/conges_spectacles.py`).
+        /// tienne, sans descendre sous `CORPS_PLANCHER`.
         largeur_max: Option<f32>,
     },
     Trait {

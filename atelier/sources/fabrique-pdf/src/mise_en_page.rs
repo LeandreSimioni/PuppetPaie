@@ -783,8 +783,7 @@ fn construire(
             };
             verifier_texte(ctx, if *gras { base.bold() } else { base }, &texte, ou)?;
             // `largeur_max` : le corps demandé tant que le texte y tient, sinon réduit au prorata
-            // (corps × place ÷ largeur), sans descendre sous le plancher — l'algorithme de
-            // `corps_qui_tient` de moteur/conges_spectacles.py, mesuré sur les métriques de la
+            // (corps × place ÷ largeur), sans descendre sous le plancher, mesuré sur les métriques de la
             // police embarquée.
             let base = match largeur_max {
                 Some(place) => {
