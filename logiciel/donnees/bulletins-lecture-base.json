@@ -55,7 +55,7 @@
     "brut": ["SALAIRE BRUT", "MONTANT BRUT", "Rémunération brute", "Salaire brut"],
     "total": ["Total des Cotisations et Contributions", "TOTAL COTISATIONS ET CONTRIB. OBLIGATOIRES", "TOTAL DES COTISATIONS ET CONTRIBUTIONS OBLIGATOIRES"],
     "net_social": ["NET SOCIAL", "MONTANT NET SOCIAL"],
-    "net_avant_impot": ["NET A PAYER AVANT IMPOT SUR LE REVENU", "MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU", "Net à payer avant impôt sur le revenu"],
+    "net_avant_impot": ["NET A PAYER AVANT IMPOT SUR LE REVENU", "MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU", "Net à payer avant impôt"],
     "pas": ["Impôt sur le revenu prélevé à la source"],
     "net_imposable": ["Net imposable", "Montant net imposable"]
   },
@@ -74,7 +74,7 @@
     "conges_spectacles": ["Congés Spectacles"],
     "cotisations_facultatives": ["Cotisations et contributions sociales facultatives"],
     "cotisations_conventionnelles": ["Cotisations statutaires ou prévues par la convention collective", "Cotisations prévues par la convention collective"],
-    "csg": ["CSG déductible à l'impôt sur le revenu", "CSG déductible de l'impôt sur le revenu", "CSG/CRDS non déductible à l'impôt sur le revenu", "CSG/CRDS non déductible de l'impôt sur le revenu"],
+    "csg": ["CSG / CRDS", "CSG déductible à l'impôt sur le revenu", "CSG déductible de l'impôt sur le revenu", "CSG/CRDS non déductible à l'impôt sur le revenu", "CSG/CRDS non déductible de l'impôt sur le revenu"],
     "exonerations": ["Exonérations et allègements de cotisations"]
   },
 

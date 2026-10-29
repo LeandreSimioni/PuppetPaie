@@ -101,10 +101,14 @@ const MEME_COLONNE: f64 = 2.5;
 const ENTETE_HAUTEUR: f64 = 12.0;
 
 /// Les mots d'un meme en-tete de colonne, sur un rang (« Part Employeur ») : au plus cet ecart.
-const ENTETE_MOTS: f64 = 6.0;
+const ENTETE_MOTS: f64 = 4.0;
 
 /// Un en-tete precise celui du dessus (« Taux » sous « Part employeur ») si son milieu tombe a moins de cela de lui.
 const SOUS_ENTETE: f64 = 25.0;
+
+/// Un en-tete aligne a droite sous un en-tete de part (« Montant » sous « Part employeur ») en depasse le bord droit
+/// d'au plus cela.
+const GROUPE_MARGE: f64 = 10.0;
 
 /// Un nombre aligne a droite depasse le bord droit de l'en-tete de sa colonne d'au plus cela.
 const COLONNE_MARGE: f64 = 20.0;
@@ -357,14 +361,22 @@ fn en_rangs<'a>(mut mots: Vec<&'a Mot>) -> Vec<Vec<&'a Mot>> {
 /// Sans « à <nombre> » en fin de libelle, le libelle tel quel.
 fn taux_du_libelle(libelle: &str) -> (String, Option<Decimal>) {
     let mots: Vec<&str> = libelle.split_whitespace().collect();
-    if let [debut @ .., a, n] = mots.as_slice() {
-        if canon(a) == "a" && !debut.is_empty() {
-            if let Some(t) = lire_nombre(n) {
-                return (debut.join(" "), Some(t));
+    // Le dernier « à » suivi d'un nombre seul, milliers compris (« à 2 950,00 »).
+    for k in (1..mots.len().saturating_sub(1)).rev() {
+        if canon(mots[k]) == "a" {
+            if let Some(t) = lire_nombre(&mots[k + 1..].join(" ")) {
+                return (mots[..k].join(" "), Some(t));
             }
+            break;
         }
     }
     (libelle.to_string(), None)
+}
+
+/// Un libelle canonique est-il l'un de ces resumes, seul ou joint a un autre par « / » (« NET SOCIAL / NET A PAYER
+/// AVANT IMPÔT ») ?
+fn resume(canon: &str, liste: &[String]) -> bool {
+    liste.iter().any(|x| x == canon) || canon.split(" / ").any(|p| liste.iter().any(|x| x == p))
 }
 
 fn texte_de(mots: &[&Mot]) -> String {
@@ -1042,7 +1054,8 @@ fn trier_colonnes(cols: &mut [Colonne]) {
 
 /// Les en-tetes de colonnes d'un ensemble de mots : les mots voisins d'un rang s'unissent (« Part Employeur »), puis
 /// ceux de rangs differents qui se chevauchent (« Taux » sur « salarial »).
-fn etiquettes(mots: &[&Mot]) -> Vec<(Boite, Vec<String>, String)> {
+fn etiquettes(mots: &[&Mot], e: &Entetes) -> Vec<(Boite, Vec<String>, String)> {
+    let part_dans = |j: &[String]| j.iter().any(|x| e.salarie.contains(x) || e.employeur.contains(x));
     let mut sortie: Vec<(Boite, Vec<String>, String)> = Vec::new();
     for rang in en_rangs(mots.to_vec()) {
         let mut du_rang: Vec<(Boite, Vec<String>, String)> = Vec::new();
@@ -1057,8 +1070,29 @@ fn etiquettes(mots: &[&Mot]) -> Vec<(Boite, Vec<String>, String)> {
                 _ => du_rang.push((Boite::de(m), m.jetons.clone(), m.texte.clone())),
             }
         }
-        for e in du_rang {
-            match sortie.iter_mut().find(|(b, _, _)| b.x0 < e.0.x1 && e.0.x0 < b.x1) {
+        // Un en-tete de part du dessus qui en titre plusieurs de ce rang les groupe (« Part Employeur » sur « Taux
+        // Montant ») : chacun prend ses mots, et il s'efface. Les colonnes etant alignees a droite, un en-tete du
+        // dessous va au premier en-tete de part dont le bord droit (plus `GROUPE_MARGE`) le couvre. Sinon, un en-tete
+        // qui en chevauche un du dessus est le meme, ecrit sur deux rangs (« Taux » sur « salarial »).
+        let chevauche = |a: &Boite, b: &Boite| a.x0 < b.x1 && b.x0 < a.x1;
+        let mut parts: Vec<usize> = (0..sortie.len()).filter(|&k| part_dans(&sortie[k].1)).collect();
+        parts.sort_by(|&a, &b| sortie[a].0.x1.total_cmp(&sortie[b].0.x1));
+        let titre: Vec<Option<usize>> = du_rang.iter().map(|e| parts.iter().copied().find(|&k| e.0.x1 <= sortie[k].0.x1 + GROUPE_MARGE)).collect();
+        let groupes: Vec<usize> = parts.iter().copied().filter(|&k| titre.iter().filter(|t| **t == Some(k)).count() >= 2).collect();
+        let mut enfants: Vec<bool> = vec![false; du_rang.len()];
+        for (i, e) in du_rang.iter_mut().enumerate() {
+            if let Some(k) = titre[i].filter(|k| groupes.contains(k)) {
+                e.1.extend(sortie[k].1.iter().cloned());
+                enfants[i] = true;
+            }
+        }
+        let mut k = 0;
+        sortie.retain(|_| {
+            k += 1;
+            !groupes.contains(&(k - 1))
+        });
+        for (e, enfant) in du_rang.into_iter().zip(enfants) {
+            match sortie.iter_mut().find(|(b, _, _)| !enfant && chevauche(b, &e.0)) {
                 Some((b, j, t)) => {
                     *b = b.unir(e.0);
                     j.extend(e.1);
@@ -1223,6 +1257,7 @@ impl<'a> Lecteur<'a> {
         let mut cumuls: Vec<(String, Cumul)> = Vec::new();
         if let Some(p) = pied {
             self.grilles(p, &mut pas, &mut net_imposable, &mut cumuls);
+            self.sans_grille(p, &mut pas, &mut net_imposable);
         }
 
         let periode = valeurs.iter().find_map(|(k, v)| if let (true, Valeur::Periode(a, b)) = (*k == "periode", v) { Some((*a, *b)) } else { None });
@@ -1625,7 +1660,7 @@ impl<'a> Lecteur<'a> {
     /// « Taux »). Un montant sans part, deux colonnes de la meme part : refus (ambigu).
     fn colonnes_du_corps(&self, mots: &[&Mot], dessus: Option<&[Colonne]>) -> Result<Vec<Colonne>, Refus> {
         let mut cols: Vec<Colonne> = Vec::new();
-        for (boite, jetons, texte) in etiquettes(mots) {
+        for (boite, jetons, texte) in etiquettes(mots, &self.t.entetes) {
             let (genre, part) = self.t.entetes.lire(&jetons);
             if let Some(g @ (Genre::Base | Genre::Taux | Genre::Montant)) = genre {
                 cols.push(Colonne { genre: g, part, boite, texte });
@@ -1706,7 +1741,7 @@ impl<'a> Lecteur<'a> {
             })
             .collect();
         // Le corps finit au net avant impot (compris) : le pied commence sous lui.
-        if let Some(k) = sortie.iter().position(|r| self.t.resumes.net_avant_impot.contains(&canon(&r.libelle))) {
+        if let Some(k) = sortie.iter().position(|r| resume(&canon(&r.libelle), &self.t.resumes.net_avant_impot)) {
             sortie.truncate(k + 1);
         }
         let bas = sortie.last().map_or(f64::INFINITY, |r| r.cy + TOLERANCE);
@@ -1788,8 +1823,12 @@ impl<'a> Lecteur<'a> {
         };
         for r in rangs {
             let cl = canon(&r.libelle);
-            if est(&cl, &r_.net_avant_impot) {
+            if resume(&cl, &r_.net_avant_impot) {
                 lu.net_avant_impot = r.dernier();
+                // « NET SOCIAL / NET A PAYER AVANT IMPÔT » : un rang pour deux nets egaux.
+                if lu.net_social.is_none() && cl.split(" / ").any(|p| r_.net_social.iter().any(|x| x == p)) {
+                    lu.net_social = r.dernier();
+                }
                 fin = Some(r.cy);
                 break;
             }
@@ -1903,7 +1942,7 @@ impl<'a> Lecteur<'a> {
         let mut entetes: Vec<(f64, Vec<Colonne>, bool)> = Vec::new();
         for r in en_rangs(mots) {
             let mut cols: Vec<Colonne> = Vec::new();
-            for (boite, jetons, texte) in etiquettes(&r) {
+            for (boite, jetons, texte) in etiquettes(&r, &t.entetes) {
                 if let (Some(genre), part) = t.entetes.lire(&jetons) {
                     cols.push(Colonne { genre, part, boite, texte });
                 }
@@ -1959,6 +1998,34 @@ impl<'a> Lecteur<'a> {
                 } else if net_imposable.is_none() && t.resumes.net_imposable.contains(libelle) {
                     *net_imposable = col(Genre::Montant);
                 }
+            }
+        }
+    }
+}
+
+impl Lecteur<'_> {
+    /// L'impot preleve et le net imposable ecrits sans grille, sur un rang du pied : « Net imposable 435,55 »,
+    /// « Impôt sur le revenu prélevé à la source (taux 4,300 %) 18,73 ». Le montant est le dernier nombre du rang ; le
+    /// taux, celui qui suit le mot « taux ».
+    fn sans_grille(&self, pied: f64, pas: &mut Option<Pas>, net_imposable: &mut Option<Decimal>) {
+        let p = &self.page;
+        let r_ = &self.t.resumes;
+        let mots: Vec<&Mot> = p.mots.iter().filter(|m| m.cy() > pied + TOLERANCE).collect();
+        for rang in en_rangs(mots) {
+            let nombres: Vec<&Nombre> = p.nombres.iter().filter(|n| (n.boite.cy() - milieu(&rang)).abs() <= TOLERANCE).collect();
+            let Some(dernier) = nombres.iter().max_by(|a, b| a.boite.x1.total_cmp(&b.boite.x1)) else { continue };
+            let libelle: Vec<&Mot> = rang.iter().copied().filter(|m| m.x1 < dernier.boite.x0 && !ressemble_nombre(&m.texte)).collect();
+            let cl = canon(&texte_de(&libelle));
+            if net_imposable.is_none() && r_.net_imposable.iter().any(|x| *x == cl) {
+                *net_imposable = Some(dernier.valeur);
+            }
+            if pas.is_none() && r_.pas.iter().any(|x| cl.starts_with(x.as_str())) {
+                let taux = rang
+                    .iter()
+                    .position(|m| canon(&m.texte).trim_start_matches('(') == "taux")
+                    .and_then(|k| rang.get(k + 1))
+                    .and_then(|m| lire_nombre(m.texte.trim_end_matches([')', '%'])));
+                *pas = Some(Pas { base: None, taux, montant: Some(dernier.valeur), cumul: None });
             }
         }
     }

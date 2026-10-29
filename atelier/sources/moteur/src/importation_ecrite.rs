@@ -470,7 +470,8 @@ fn sans(x: &Value, cles: &[&str]) -> Map<String, Value> {
 /// versees (`paies`, une par mois et par contrat). Un engagement, c'est un salarie, un debut et une fin : le contrat
 /// atteste qui les porte (plusieurs : celui du meme numero d'objet que la paie), et ses paies, une par mois. Une paie
 /// qu'aucun contrat atteste ne porte fait son engagement avec celles des memes salarie, debut, fin et numero de contrat.
-/// Son numero est celui que la DSN deposee a declare (S21.G00.40.009), jamais un numero tire.
+/// Son numero est celui que la DSN deposee a declare (S21.G00.40.009), sinon celui que le bulletin imprime ; jamais un
+/// numero tire.
 fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<String, Value>> {
     let t = |x: &Value, k: &str| x.get(k).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
     struct Groupe {
@@ -533,7 +534,9 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
         e.insert("salarie".into(), json!(g.salarie));
         e.insert("debut".into(), json!(g.debut));
         e.insert("fin".into(), json!(g.fin));
-        if let Some(n) = g.paies.iter().filter(|p| !declaree_par_bulletin(p)).map(|p| t(p, "contrat")).find(|n| !n.is_empty()) {
+        let declare = g.paies.iter().filter(|p| !declaree_par_bulletin(p)).map(|p| t(p, "contrat")).find(|n| !n.is_empty());
+        let imprime = g.contrat.iter().map(|c| t(c, "numero_contrat")).find(|n| !n.is_empty());
+        if let Some(n) = declare.or(imprime) {
             e.insert("numero".into(), json!(n));
         }
         e.insert(engagement::importe::IMPORTE.into(), Value::Object(lu));

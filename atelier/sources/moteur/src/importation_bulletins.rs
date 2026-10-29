@@ -1404,6 +1404,10 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
     if let Some(n) = &l.b.numero {
         m.insert("numero_bulletin".into(), json!(n));
     }
+    // Le numero du contrat, quand le bulletin l'imprime : il se lit, il ne se tire pas (regle 4).
+    if let Some(n) = &l.b.contrat {
+        m.insert("numero_contrat".into(), json!(n));
+    }
     m.insert("fichier".into(), json!(chemin));
     m.insert("page".into(), json!(l.page));
     Ok((cle, Value::Object(m)))
