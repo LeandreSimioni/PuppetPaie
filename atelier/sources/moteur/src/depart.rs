@@ -474,6 +474,14 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
     let numero_mois: usize = mois.get(5..7).and_then(|a| a.parse().ok()).ok_or_else(|| valeur(format!("mois illisible : {}", socle::fichiers::repr(mois))))?;
     socle::date::nom_du_mois(numero_mois as i64, socle::date::Graphie::Titre).map_err(valeur)?;
     crate::routes::mois::refuser_si_clos(ctx, mois)?;
+    // LA DSN QUE L'ANCIEN LOGICIEL A DEPOSEE ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se declare
+    // dans la DSN suivante.
+    if let Some(d) = crate::mois_importe::dsn_de_l_ancien_logiciel(ctx, mois)? {
+        return Err(erreur(
+            "DsnDeLAncienLogiciel",
+            format!("{} : {} Elle ne se refait pas ici. Rien n'est écrit.", engagement::libelle_mois(mois), valeur_en_texte(&d["phrase"])),
+        ));
+    }
     let mut avertissements: Vec<Avis> = Vec::new();
 
     // RIEN NE PART D'UN ENGAGEMENT EN SAISIE : la DSN declare les engagements valides du mois.

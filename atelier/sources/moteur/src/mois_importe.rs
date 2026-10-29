@@ -36,11 +36,6 @@ fn importes_du_mois(racine: &Path, mois: &str) -> R<Vec<Importe>> {
     engagement::importe::du_mois(racine, mois).map_err(Echec::from)
 }
 
-/// Les paies versees de `mois`, d'apres les engagements importes.
-fn paies_du_mois(racine: &Path, mois: &str) -> R<Vec<Value>> {
-    Ok(importes_du_mois(racine, mois)?.iter().flat_map(Importe::lignes_des_paies).filter(|p| texte(p, "mois") == mois).collect())
-}
-
 /// Le mois est-il tenu avant ce logiciel : aucun engagement de la saisie ne le touche, et un engagement importe le touche.
 pub(crate) fn importe(racine: &Path, mois: &str) -> R<bool> {
     if engagement::stock::a_une_saisie(racine, mois).map_err(Echec::from)? {
@@ -55,17 +50,52 @@ pub(crate) fn mois_importes(racine: &Path) -> R<Vec<String>> {
     Ok(mois.into_iter().filter(|m| !engagement::stock::a_une_saisie(racine, m).unwrap_or(false)).collect())
 }
 
-/// LA DSN QUE L'IMPORT A LUE POUR `mois` : le fichier de l'ancien logiciel (`declare_par: "DSN"`), ou `None`. Rend
-/// `{"importee": true, "etablie_le", "fichier"}` -- la date est celle que le fichier porte (S20.G00.05.007, sa
-/// constitution), pas celle d'un depot : aucun bilan de la plate-forme n'est lu pour lui.
+/// LA DSN QUE L'IMPORT A LUE POUR `mois` : le fichier de l'ancien logiciel (`engagement::importe::dsn_deposee`), ou
+/// `None`, que la saisie touche aussi le mois ou non. Rend `{"importee": true, "etablie_le", "fichier"}` -- la date est
+/// celle que le fichier porte (S20.G00.05.007, sa constitution), pas celle d'un depot : aucun bilan de la plate-forme
+/// n'est lu pour lui.
 pub(crate) fn dsn_importee(racine: &Path, mois: &str) -> R<Option<Value>> {
-    if engagement::stock::a_une_saisie(racine, mois).map_err(Echec::from)? {
+    Ok(engagement::importe::dsn_deposee(racine, mois).map_err(Echec::from)?.map(|x| {
+        json!({"importee": true, "passee": false, "refusee": false, "etablie_le": texte(&x, "depose_le"), "fichier": texte(&x, "fichier")})
+    }))
+}
+
+/// LA DSN D'UN MOIS DONT L'ANCIEN LOGICIEL A DEPOSE LA DSN, que la page Paie et la boite d'ouverture disent avec les
+/// memes mots : `None` si l'ancien logiciel n'a pas depose la DSN de `mois`. Sinon `{"porteur", "engagements",
+/// "quoi", "phrase"}` : ce que la saisie ajoute a ce mois et qui n'est pas encore declare (`engagements`, en saisie ou
+/// valides) se declare dans la DSN de `porteur`, la premiere DSN d'apres qui n'est pas partie, comme un contrat
+/// ajoute apres la DSN de son mois (`produire_regularisations::regularisations_pour` : cahier technique DSN 2026.1,
+/// § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`). La DSN de l'ancien
+/// logiciel ne se refait pas ici (regle 4).
+pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
+    if engagement::importe::dsn_deposee(&ctx.racine, mois).map_err(Echec::from)?.is_none() {
         return Ok(None);
     }
-    let p = paies_du_mois(racine, mois)?;
-    Ok(p.iter().find(|x| texte(x, "declare_par") == "DSN").map(|x| {
-        json!({"importee": true, "passee": false, "refusee": false, "etablie_le": texte(x, "depose_le"), "fichier": texte(x, "fichier")})
-    }))
+    let lignes = etats::charger(&ctx.racine)?;
+    let partie = |m: &str| -> R<bool> {
+        let e = etats::dsn_du_mois(&lignes, &ctx.entreprise, m)?;
+        Ok((vrai(&e) && !e.get("refusee").is_some_and(vrai)) || engagement::importe::dsn_deposee(&ctx.racine, m).map_err(Echec::from)?.is_some())
+    };
+    let mut porteur = socle::date::Jour::lire(&format!("{}-01", mois)).map_err(Echec::from)?.mois_suivant();
+    while partie(&porteur)? {
+        porteur = socle::date::Jour::lire(&format!("{}-01", porteur)).map_err(Echec::from)?.mois_suivant();
+    }
+    let departs = envois::journal::departs(&ctx.racine)?;
+    let mut n = 0;
+    for e in engagement::etats::du_mois(ctx, mois)? {
+        let a_declarer = match e.valide() {
+            Some(v) => engagement::etats::correction_due(ctx, v, &departs, mois, &porteur).map_err(Echec::from)?.is_some(),
+            None => true,
+        };
+        n += usize::from(a_declarer);
+    }
+    let lib = socle::date::libelle_du_mois_ou_tel_quel(&porteur, socle::date::Graphie::Accentuee);
+    let (quoi, phrase) = match n {
+        0 => (String::new(), "DSN déposée par l'ancien logiciel.".to_string()),
+        1 => (format!("déposée par l'ancien logiciel ; cet engagement se déclare dans celle de {}", lib), format!("DSN déposée par l'ancien logiciel ; cet engagement se déclare dans la DSN de {}.", lib)),
+        _ => (format!("déposée par l'ancien logiciel ; ces {} engagements se déclarent dans celle de {}", n, lib), format!("DSN déposée par l'ancien logiciel ; ces {} engagements se déclarent dans la DSN de {}.", n, lib)),
+    };
+    Ok(Some(json!({"porteur": porteur, "engagements": n, "quoi": quoi, "phrase": phrase})))
 }
 
 /// L'etat de la DSN d'un mois tenu avant ce logiciel, en mots : `etat` (« passee », « attente », « refusee » : le

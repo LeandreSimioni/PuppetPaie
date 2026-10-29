@@ -240,10 +240,11 @@ impl Etat<'_> {
 
     /// `journal.etat_dsn_du_mois(ctx, mois)` : `Null` ou l'etat.
     /// UN MOIS TENU AVANT CE LOGICIEL (ticket #215) NE SE RECLAME JAMAIS : sans ligne au journal, la DSN que l'import
-    /// a lue pour lui (`mois_importe::dsn_importee`) le dit declare ; sans aucune trace, il n'est pas reclame non plus
-    /// (`sans_trace`) -- sa DSN, faite ou a faire, releve du logiciel qui a calcule ses paies, et PuppetPaie ne la
-    /// refait pas (regle 4). C'est ICI, et seulement ici, que rappels et echeancier l'apprennent : ni rappel, ni
-    /// « en retard ». La page Paie et l'Historique, eux, disent « aucune trace » (`mois_importe::dsn_avant`).
+    /// a lue pour lui (`mois_importe::dsn_importee`) le dit declare, meme quand la saisie y ajoute des engagements : ils
+    /// se declarent dans la DSN suivante, et son rappel le dit (`ajouter_les_mois_de_l_ancien_logiciel`) ; sans aucune
+    /// trace, il n'est pas reclame non plus (`sans_trace`) -- sa DSN, faite ou a faire, releve du logiciel qui a calcule
+    /// ses paies, et PuppetPaie ne la refait pas (regle 4). C'est ICI, et seulement ici, que rappels et echeancier
+    /// l'apprennent : ni rappel, ni « en retard ». La page Paie et l'Historique, eux, disent « aucune trace » (`mois_importe::dsn_avant`).
     pub(crate) fn etat_dsn(&self, mois: &str) -> R<Value> {
         let e = etats::etat_dsn_du_mois(&self.journal, mois, &Value::Null, &self.principal)?;
         if !e.is_null() {
@@ -594,7 +595,21 @@ fn rappel_dsn(st: &Etat, mois: &str) -> R<Rappel> {
         let reste = r.engagements - r.validees;
         r.detail.push_str(&format!(" Il reste {} engagement{} non validé{}.", reste, s(reste), s(reste)));
     }
+    ajouter_les_mois_de_l_ancien_logiciel(st, mois, &mut r)?;
     Ok(r)
+}
+
+/// Ce que la DSN de `mois` declare en plus pour les mois dont l'ancien logiciel a depose la DSN, dit comme la page Paie
+/// le dit (`mois_importe::dsn_de_l_ancien_logiciel`).
+fn ajouter_les_mois_de_l_ancien_logiciel(st: &Etat, mois: &str, r: &mut Rappel) -> R<()> {
+    for m in crate::routes::etapes::mois_saisis(st.racine()).into_iter().filter(|m| m.as_str() < mois) {
+        let Some(d) = crate::mois_importe::dsn_de_l_ancien_logiciel(st.ctx, &m)? else { continue };
+        if d["porteur"] == json!(mois) && d["engagements"].as_u64().is_some_and(|n| n > 0) {
+            let lib = socle::date::libelle_du_mois(&m, socle::date::Graphie::Accentuee).map_err(Refus::from)?;
+            r.detail.push_str(&format!(" {} : {}", socle::texte::capitaliser(&lib), en_texte(&d["phrase"])));
+        }
+    }
+    Ok(())
 }
 
 // ------------------------------------------------------ les obligations dues
