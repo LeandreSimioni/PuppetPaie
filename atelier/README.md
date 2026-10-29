@@ -25,8 +25,8 @@ moteur arrivee
 ```
 
 dit, dans l'ordre, ce qui est prêt et ce qui manque — la fiche de
-l'entreprise, l'import de CoolPaie (sans objet si la compagnie n'en vient
-pas), les fiches des salariés, l'effectif (les CRM de nature 118 de l'Urssaf,
+l'entreprise, la reprise de l'historique (sans objet si la compagnie ne vient
+d'aucun autre logiciel), les fiches des salariés, l'effectif (les CRM de nature 118 de l'Urssaf,
 ou la date de la première embauche), le taux AT/MP notifié, les taux de PAS,
 les accès net-entreprises et Urssaf — avec, pour chaque manque, la commande
 qui le fait avancer. Elle n'écrit rien et sort en erreur tant qu'une étape
@@ -155,8 +155,7 @@ renommée, une fictive faite sur le poste) n'est jamais touché, ni rien hors de
 
 Le flux « Publier » compile les programmes des trois systèmes (Linux et Mac ne
 sont posés dans `logiciel/linux/` et `logiciel/mac/` que par lui : jamais
-suivis par Git) et publie les quatre archives de mise à jour ensemble (Léandre, 15/10/2026 :
-« Il y a les quatre : une par système et une tout-système, ensemble ») ;
+suivis par Git) et publie les quatre archives de mise à jour ensemble (une par système, et une tout-système) ;
 chaque installation prend celle de son système (`moteur/src/compagnie/maj.rs`). Au
 lancement de « Publier », on choisit ce qu'on publie (`systemes` : `tous`,
 `windows-linux`, `windows`) : seules les archives fabriquées sont publiées,
@@ -177,9 +176,9 @@ moteur interface       # sans fenêtre : la page dans le navigateur (--port N, -
 ```
 
 La page : le mois, les engagements, l'aperçu
-chiffré qui se recalcule à mesure, et la production. Un second écran édite
+chiffré qui se recalcule à mesure, et ce qui part. Un second écran édite
 l'entreprise, les salariés et les spectacles, en vérifiant chaque champ au
-format qu'exigent la DSN et l'AEM. Le serveur n'écoute que la machine
+format qu'exige la DSN. Le serveur n'écoute que la machine
 (127.0.0.1), sur un port propre à l'installation et stable d'un lancement à
 l'autre (7331 à 7429, retenu dans `.fenetre.json`) — pour que le navigateur
 reconnaisse le site `puppetpaie.localhost` et retrouve le mot de passe du
@@ -199,7 +198,7 @@ Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : 
 | Document | Quand il se fabrique |
 |---|---|
 | la DPAE (`moteur dpae`) | avant le début du contrat |
-| le contrat | à son envoi à la signature : son numéro s'y fige |
+| le contrat | à son envoi à la signature, ou à son impression pour la main propre ; son numéro est celui que la validation a posé |
 | `DSN_Octobre2026.dsn` | à son dépôt : `moteur depot-dsn 2026-10 --test`, lecture du bilan, puis `--reel` |
 | bulletin et certificat Congés Spectacles | à l'envoi des documents aux salariés : le numéro du bulletin s'écrit dans la paie |
 
@@ -227,7 +226,7 @@ dans le mois a **un** fichier, avec un bulletin par page.
 
 ## La boîte courriel : un mot de passe d'application
 
-Depuis le 17/09/2026, l'envoi (bulletins, contrats) et la relève des
+L'envoi (bulletins, contrats) et la relève des
 signatures passent par **IMAP et SMTP**, avec un mot de passe d'application
 que chaque compagnie fabrique dans son compte Google : validation en deux
 étapes activée, puis myaccount.google.com › Sécurité › **Mots de passe des
@@ -260,7 +259,7 @@ moteur google autoriser
 Une fenêtre Google s'ouvre dans le navigateur, on choisit son compte, on
 accepte, on revient au logiciel. C'est tout : pas de console Google, pas de
 projet à créer, rien à recopier. Le logiciel embarque **PuppetPaie**,
-l'application déclarée une fois par la compagnie, la même pour tout le monde
+l'application déclarée une fois par l'éditeur, la même pour tout le monde
 — comme le font rclone ou gcloud. Lier ou oublier le compte demande le mot de
 passe du logiciel, comme tout acte.
 
@@ -272,8 +271,8 @@ moteur google oublier       # efface le jeton local
 Deux permissions demandées, toutes deux *non sensibles* au sens de Google :
 **`drive.file`** (écrire dans le Drive, uniquement les fichiers créés par
 l'application — elle ne voit rien d'autre) et **`userinfo.email`** (connaître
-l'adresse du compte). Depuis le 18/09/2026 l'application n'en déclare pas
-d'autre : plus aucune permission Gmail, donc ni audit de sécurité ni plafond
+l'adresse du compte). L'application n'en déclare pas
+d'autre : aucune permission Gmail, donc ni audit de sécurité ni plafond
 de comptes. L'accès se retire quand on veut sur myaccount.google.com ›
 Sécurité › Vos connexions à des applications tierces.
 
@@ -309,7 +308,7 @@ déclaration de l'application est `logiciel/donnees/google-application.json`.
 
 ## À l'ouverture : le coffre, la sauvegarde, les retours
 
-Depuis le 11/09/2026, le logiciel travaille seul dès qu'on l'ouvre — interface
+Le logiciel travaille seul dès qu'on l'ouvre — interface
 ou Claude Code, c'est la même fonction :
 
 ```bash
@@ -320,9 +319,7 @@ moteur ouverture
    seuls les fichiers neufs ou modifiés repartent (comparaison sur l'empreinte
    MD5 que Google publie lui-même) ;
 2. il **relève les retours** des organismes et les archive dans `retours/` ;
-3. il **relève les signatures** (les réponses « Je signe » dans la boîte) ;
-4. une fois par semaine, il **vérifiait les sources** des données livrées
-   (minima, métiers — voir plus bas) : pas encore porté en Rust.
+3. il **relève les signatures** (les réponses « Je signe » dans la boîte).
 
 L'interface le fait au démarrage puis toutes les 20 minutes
 (`--veille MINUTES`, `0` pour une seule fois à l'ouverture), et affiche un
@@ -347,10 +344,8 @@ moteur coffre                         # ce qui est posé, jamais les valeurs
 moteur coffre verifier                # ils ouvrent bien une session ?
 ```
 
-**`--fenetre` si la saisie du terminal ne capture pas tout.** C'est arrivé le
-11/09/2026 : la saisie masquée n'a lu qu'un caractère des deux mots de passe,
-et la panne n'est ressortie qu'une heure plus tard sous la forme d'un « HTTP
-422 » qui ne désignait rien. Le coffre refuse désormais un secret de moins de
+**`--fenetre` si la saisie du terminal ne capture pas tout** : une saisie masquée qui ne lit qu'un caractère ne se
+voit qu'au refus de l'organisme, qui ne dit rien de la cause. Le coffre refuse un secret de moins de
 six caractères, et `--fenetre` ouvre un champ masqué qui ne dépend pas du
 terminal :
 
@@ -364,8 +359,7 @@ compte.
 
 Chacun se tape dans un champ masqué, deux fois : jamais sur la ligne de
 commande, où il resterait dans l'historique du shell. Le fichier est
-`prive/config/coffre.bin`, **scellé par AES-256-GCM** — sur Windows, sur Mac
-et sur Linux, depuis le 20/09/2026 (avant : DPAPI, et du clair ailleurs).
+`prive/config/coffre.bin`, **scellé par AES-256-GCM**, le même sur tous les systèmes.
 
 Ce qui l'ouvre, ce sont deux enveloppes d'une même clé maîtresse :
 
@@ -378,14 +372,13 @@ La clé du poste vit **hors du dossier des données**, et c'est tout l'intérêt
 `prive/` est sauvegardé sur le Drive et copié ; une sauvegarde ne transporte
 donc qu'un fichier illisible. En contrepartie, la perdre c'est perdre
 `google-jeton.bin`, qui n'a pas de seconde enveloppe. `maj-cle-privee.bin` (la
-clé qui signe les mises à jour) est scellée depuis le 14/10/2026 par la clé
+clé qui signe les mises à jour) est scellée par la clé
 maîtresse du coffre : elle s'ouvre où il s'ouvre, et seulement avec lui.
 
-**Un coffre écrit avant le 20/09/2026 ne se convertit pas.** Il n'y a pas de
-commande de migration, et c'est voulu : elle n'aurait servi qu'une fois, à une
-seule personne, pour trois mots de passe qui se retapent en une minute. On
+**Un coffre d'un autre format ne se convertit pas** : il refuse (`VERSION`, en tête de
+`moteur/src/compagnie/coffre.rs`), et trois mots de passe se retapent en une minute. On
 supprime les trois fichiers — `coffre.bin`, `google-jeton.bin` et
-`maj-cle-privee.bin`, fermés de la même façon — et on repose :
+`maj-cle-privee.bin` — et on repose :
 
 ```bash
 moteur coffre ouverture
@@ -397,9 +390,8 @@ moteur maj --cle --remplacer     # si ce poste publie les mises à jour
 ```
 
 La dernière ligne rend une nouvelle clé publique, à reporter dans
-`moteur/src/compagnie/maj.rs` (`CLE_PUBLIQUE`). Tant qu'aucune autre compagnie ne reçoit de
-mise à jour, ça ne coûte rien ; le jour où ce sera le cas, il faudra la leur
-transmettre autrement.
+`moteur/src/compagnie/maj.rs` (`CLE_PUBLIQUE`). Les versions publiées depuis GitHub sont signées par l'autre clé
+(`CLE_PUBLIQUE_GITHUB`), que ce geste ne touche pas.
 
 ### Le mot de passe du logiciel, et ce qu'il autorise
 
@@ -415,39 +407,35 @@ la fenêtre PuppetPaie, et à **chaque acte qui engage** — dépôt réel d'une
 ou d'une DPAE, envoi des documents, demande de signature. Rien ne dispense de
 le retaper pour un acte réel.
 
-**La séance du coffre** (23/09/2026) est autre chose : quand la clé du poste
+**La séance du coffre** est autre chose : quand la clé du poste
 n'ouvre pas le coffre (sauvegarde restaurée, poste neuf), le mot de passe du
 logiciel l'ouvre **une fois, pour 12 heures**, dans une petite fenêtre —
 `moteur coffre seance --fenetre`, ou d'elle-même à la première
 commande qui en a besoin (relevé des retours, dépôt de test).
 `coffre seance fermer` la referme. Elle ne vaut **jamais** preuve pour un acte
-réel. (Une autre « séance », du 11 au 16/09/2026, était exigée au dépôt en
-plus du mot de passe retapé ; elle a été retirée.)
+réel.
 
 **Le mot de passe est obligatoire.** La fenêtre le fait choisir à sa
-première ouverture (deux fois, quatre caractères au moins) ; en ligne de
+première ouverture (deux fois, six caractères au moins) ; en ligne de
 commande, `moteur coffre ouverture`. Sans mot de passe posé, le
-logiciel lit, calcule, produit, sauvegarde, relève les retours et dépose en
+logiciel lit, calcule, sauvegarde, relève les retours et dépose en
 test — mais **rien ne part en réel** : ni DSN, ni DPAE, ni envoi, ni
-signature. **Le mois ne se recopie plus** (21/09/2026) : il s'écrit en
+signature. **Le mois ne se recopie pas** : il s'écrit en
 grand, juste avant l'invite du mot de passe, et la fenêtre de confirmation
-le redit sur son bouton. Il disait quel mois on croyait déposer, il ne
-prouvait pas qu'un humain était là — n'importe quel programme sait recopier
-un mois. Donné quand même (`--confirmer-mois`, `--confirmer`), il reste
+le redit sur son bouton ; recopier un mois ne prouve pas qu'un humain est là, n'importe quel programme le sait.
+Donné quand même (`--confirmer-mois`, `--confirmer`), il reste
 vérifié contre le fichier : un script qui se trompe de mois est arrêté.
 
 | | sans mot de passe posé | mot de passe posé |
 |---|---|---|
-| lire, produire, sauvegarder | oui | oui |
+| lire, calculer, sauvegarder | oui | oui |
 | relever les retours, dépôt de test | oui | oui |
 | déposer en réel, envoyer, faire signer | **non** | oui, mot de passe retapé |
 
-**Ce que ça a coûté, honnêtement.** Avant, aucun mot de passe n'était stocké :
-c'était la garantie. Elle a été échangée contre l'autonomie, à la demande de
-l'éditeur. Ce qui la remplace est écrit en tête de `moteur/src/compagnie/coffre.rs`, et deux
-choses sont tenues par des tests : le secret ne sort jamais (ni par `etat()`,
-ni en clair sur le disque), et les modules qui parlent au réseau ne peuvent pas
-ouvrir le coffre eux-mêmes.
+**Ce que garder les mots de passe demande.** Le logiciel travaille seul parce qu'il garde les mots de passe des
+organismes ; ce qui les protège est écrit en tête de `moteur/src/compagnie/coffre.rs`. Le secret ne sort jamais, ni
+par l'état du coffre, ni en clair sur le disque (`tests/fichiers/coffre.rs`) ; les modules qui parlent au réseau
+(la crate `envois`) ne peuvent pas ouvrir le coffre : ils n'en dépendent pas, ils reçoivent un mot de passe (règle 3).
 
 ### La sauvegarde
 
@@ -467,7 +455,7 @@ changé.
 Drive : une sauvegarde qui répercute les suppressions n'est pas une sauvegarde,
 c'est un miroir, et un miroir recopie fidèlement les accidents.
 
-Le coffre (`coffre.bin`) monte (décidé par Léandre, 13 et 14/10/2026) : il est
+Le coffre (`coffre.bin`) monte : il est
 scellé par le mot de passe du logiciel, qui l'ouvre sur un poste neuf après
 `moteur restaurer` ; sans ce mot de passe, il ne s'ouvre nulle part ailleurs.
 Ne montent jamais : `google-jeton.bin` (le compte se relie de nouveau),
