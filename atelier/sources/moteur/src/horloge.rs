@@ -510,8 +510,8 @@ fn les_embauches_du_mois(d: &HorlogeFictive, mois: &str, jour: Jour) -> R<Vec<St
             if attente.is_empty() {
                 return Ok(false);
             }
-            let paies: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "debut": e["debut"]})).collect();
-            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "paies": paies}))?;
+            let engagements: Vec<Value> = attente.iter().map(|e| json!({"salarie": e["salarie"], "debut": e["debut"]})).collect();
+            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": engagements}))?;
             let fichier = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             for reel in [false, true] {
                 deposer_dpae_joue(d, ctx, &fichier, reel)?;

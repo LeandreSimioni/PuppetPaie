@@ -224,9 +224,9 @@ fn fichier_json(f: &Path) -> Value {
     json!({"nom": f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(), "chemin": f.to_string_lossy(), "octets": octets})
 }
 
-/// La DPAE seule, due AVANT le premier jour travaille.
-/// Tout le mois, ou une sélection d embauches (`paies`) dans un fichier horodate a cote du complet. `forcer` : reecrire meme
-/// une embauche deja declaree (un depot rejete, a refaire).
+/// La DPAE, due AVANT le premier jour travaille : tout le mois, ou les engagements choisis (`engagements` : une liste de
+/// `{salarie, debut}`) dans un fichier horodate a cote du complet. `forcer` : reecrire meme une embauche deja declaree (un
+/// depot rejete, a refaire).
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     dpae_detail(ctx, charge).map(|(v, _, _)| v)
 }
@@ -237,7 +237,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let forcer = charge.get("forcer").is_some_and(vrai);
     let mois_demande = texte_requis(charge, "mois")?;
     let heure: Value = charge.get("heure").cloned().unwrap_or_else(|| json!("0800"));
-    let selection: Option<&Vec<Value>> = match charge.get("paies") {
+    let selection: Option<&Vec<Value>> = match charge.get("engagements") {
         None | Some(Value::Null) => None,
         Some(Value::Array(a)) => Some(a),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
@@ -785,7 +785,7 @@ fn tester_les_dpae(
         let mut fichier: Option<String> = None;
         let mut erreur_texte = String::new();
         let mut essai = |fichier: &mut Option<String>| -> R<()> {
-            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "paies": selection}))?;
+            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": selection}))?;
             let f = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             // Le fichier est note des qu'il est ecrit : un depot qui echoue garde sa trace (`fichier = r.fichiers[0]`).
             *fichier = Some(f.clone());

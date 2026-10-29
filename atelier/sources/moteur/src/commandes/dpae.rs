@@ -59,7 +59,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     };
     let mut charge = json!({"mois": mois, "heure": args.texte("heure").unwrap_or("0800"), "forcer": args.drapeau("force")});
     if let Some(c) = choix {
-        charge["paies"] = Value::Array(c);
+        charge["engagements"] = Value::Array(c);
     }
     let (r, amorcage, ecarte) = match crate::routes::depots::dpae_detail(&cadre.ctx, &charge) {
         Ok(x) => x,
