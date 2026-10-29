@@ -72,6 +72,30 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     let jour = socle::paris::iso_secondes(r2.fin.unwrap())[..10].to_string();
     let second: Value = outils::rejeu::sorties(&racine2, &jour);
     assert!(second == releve, "deux rejeux du meme scenario ne rendent pas les memes sorties");
+
+    // UNE PIECE PARTIE DONT LE FICHIER MANQUE SE REFAIT A L'IDENTIQUE (`depart::piece_partie`, route `piece-partie`) :
+    // `sorties/` effacee, chaque piece partie du mois a les octets d'avant ; l'AER se relit dans `retours/`.
+    let pieces = [
+        "2026-11/DPAE_Novembre2026_20261120-0700.txt",
+        "2026-11/DPAE_Novembre2026_20261120-0700.txt.zip",
+        "2026-11/Amorcage01_FULLER_20261120.dsn",
+        "2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.pdf",
+        "2026-11/envoi/Contrat_FULLER_FU1.26.01_Novembre2026.description.json",
+        "2026-11/envoi/AER_FULLER_Novembre2026.pdf",
+        "2026-11/DSN_Novembre2026.dsn",
+        "2026-11/envoi/Bulletin_FULLER_Novembre2026.pdf",
+        "2026-11/envoi/CertificatCS_FULLER_Novembre2026.pdf",
+        "2026-11/Bulletins_Novembre2026.pdf",
+        "2026-11/CertificatsCS_Novembre2026.pdf",
+    ];
+    let avant: Vec<Vec<u8>> = pieces.iter().map(|p| std::fs::read(racine2.join("sorties").join(p)).unwrap()).collect();
+    std::fs::remove_dir_all(racine2.join("sorties")).unwrap();
+    for (p, octets) in pieces.iter().zip(&avant) {
+        let nom = p.rsplit('/').next().unwrap();
+        let r = outils::route(&racine2, "piece-partie", json!({"mois": "2026-11", "fichier": nom}), &jour);
+        assert_eq!(outils::reussi(&r)["chemin"], json!(format!("sorties/{}", p)), "{}", r);
+        assert!(std::fs::read(racine2.join("sorties").join(p)).unwrap() == *octets, "{} ne se refait pas a l'identique", p);
+    }
 }
 
 /// La demo Les Faisceaux sans la civilite du contact DSN. La DSN
@@ -283,4 +307,25 @@ fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
     assert!(!ligne["retours"].as_array().unwrap().iter().any(|x| x["nature"] == json!("94")), "une DSN refusee n'a pas de taux : {}", ligne);
     let etat = envois::etats::dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), &ctx.entreprise, "2026-11").unwrap();
     assert_eq!(etat["refusee"], json!(true), "{}", etat);
+
+    // UN FICHIER REFUSE NE REPART PAS TOUT SEUL : a l'ouverture suivante, l'horloge refait la DSN a son echeance, octet
+    // pour octet, et ne la redepose pas ; une fois corrigee (le telephone du declarant, S20.G00.07.002), elle part, et le
+    // mois est accepte.
+    let de_novembre = || outils::lire(&racine, "journal/depots.json").as_array().unwrap().iter().filter(|l| l["fichier"] == json!("DSN_Novembre2026.dsn")).count();
+    let ouvrir = |jour: &str| {
+        let le = socle::paris::naif_de_iso(&format!("{}T09:00:00", jour)).unwrap() as f64;
+        socle::temps::pendant(le, || moteur::horloge::rattraper(&racine, Some(socle::date::Jour::lire(jour).unwrap()), true)).unwrap()
+    };
+    let avant = de_novembre();
+    ouvrir("2026-12-20");
+    assert_eq!(de_novembre(), avant, "le fichier refuse ne repart pas");
+    let mut entreprise = outils::lire(&racine, "config/entreprise.json");
+    entreprise["declarant_dsn"][0]["valeur"]["tel"] = json!("0100000053");
+    std::fs::write(racine.join("config/entreprise.json"), serde_json::to_string_pretty(&entreprise).unwrap()).unwrap();
+    ouvrir("2026-12-21");
+    assert_eq!(de_novembre(), avant + 2, "le fichier corrige part, en test puis en reel");
+    let etat = envois::etats::dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), &ctx.entreprise, "2026-11").unwrap();
+    assert_eq!(etat["refusee"], json!(false), "{}", etat);
+    ouvrir("2026-12-22");
+    assert_eq!(de_novembre(), avant + 2, "une DSN acceptee ne repart pas");
 }

@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::routes::etapes::{mois_saisis, Moteur};
+use crate::routes::etapes::Moteur;
 use crate::routes::fiches::exiger;
 use crate::routes::mois::lire_saisie;
 use super::{lire_json_tolerant, lire_texte, ou_texte, qui_de};
@@ -430,7 +430,7 @@ const SORTES: [(&str, &str); 6] =
 /// `mois_connus` : les mois saisis et les mois produits, du plus recent au plus
 /// ancien -- `(mois, fichiers du dossier de sortie)`.
 pub(crate) fn mois_connus(racine: &Path) -> Vec<(String, Vec<String>)> {
-    let mut vus: BTreeSet<String> = mois_saisis(racine).into_iter().collect();
+    let mut vus: BTreeSet<String> = engagement::stock::mois_saisis(racine).unwrap_or_default().into_iter().collect();
     let sorties = racine.join("sorties");
     let mut dossiers: BTreeMap<String, PathBuf> = BTreeMap::new();
     if let Ok(rd) = std::fs::read_dir(&sorties) {

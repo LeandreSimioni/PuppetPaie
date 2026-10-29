@@ -329,7 +329,18 @@ pub(crate) fn contrats_des_paies(paies: &[Paie]) -> Vec<Cle3> {
 /// a la version sur laquelle chaque envoi est parti (`engagement::etats::a_refaire`) ; rien pour un engagement en saisie.
 pub(crate) fn a_refaire_du_mois(ctx: &Contexte, etats: &[engagement::etats::Etat]) -> R<Vec<Vec<ARefaire>>> {
     let departs = envois::journal::departs(&ctx.racine).map_err(plain)?;
-    Ok(etats.iter().map(|e| e.valide().map(|v| engagement::etats::a_refaire(ctx, v, &departs)).unwrap_or_default()).collect())
+    // Un contrat rompu n'a pas d'avenant (`contrats::seule_la_rupture`).
+    let saisie = |x: Option<&Value>| x.and_then(|x| x.get("saisie")).cloned().unwrap_or(Value::Null);
+    Ok(etats
+        .iter()
+        .map(|e| {
+            let Some(v) = e.valide() else { return Vec::new() };
+            let presente = saisie(v.objet().brut.get("valide"));
+            let mut r = engagement::etats::a_refaire(ctx, v, &departs);
+            r.retain(|a| !matches!(a, ARefaire::Avenant { depuis } if crate::routes::contrats::seule_la_rupture(&saisie(v.version_numero(*depuis)), &presente)));
+            r
+        })
+        .collect())
 }
 
 
@@ -458,11 +469,6 @@ pub(crate) fn sans_bruit(x: &Value) -> Value {
 
 pub(crate) fn empreinte_de(v: &Value) -> String {
     sha256_hex(socle::ecriture::json_trie(&sans_bruit(v)).as_bytes())[..16].to_string()
-}
-
-/// Les mois que la saisie a touches (`engagement::stock::mois_saisis`), du plus ancien au plus recent.
-pub fn mois_saisis(racine: &Path) -> Vec<String> {
-    engagement::stock::mois_saisis(racine).unwrap_or_default()
 }
 
 /// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers_deposables`), le meme partout : plus jamais la date de
@@ -1406,7 +1412,7 @@ impl<'a> Moteur<'a> {
             }
         }
         let departs = envois::journal::departs(&self.ctx.racine).map_err(plain)?;
-        for m in mois_saisis(self.racine()) {
+        for m in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
             if m.as_str() >= mois {
                 break;
             }
@@ -1455,7 +1461,7 @@ impl<'a> Moteur<'a> {
         let courant = self.ctx.aujourdhui.mois_iso();
         // A L'OUVERTURE, RIEN NE SE CALCULE : les groupes d'un mois passe se tirent de ce qui est ecrit.
         self.ecrit = true;
-        for m in mois_saisis(self.racine()) {
+        for m in engagement::stock::mois_saisis(self.racine()).unwrap_or_default() {
             if m >= courant || self.exercice_clos(&m)? {
                 continue;
             }
@@ -1468,7 +1474,7 @@ impl<'a> Moteur<'a> {
     }
 
     /// LES ETAPES QUI RESTENT A UN MOIS PASSE : celles dont un groupe n'est pas fait (`bilan_du_mois`).
-    fn etapes_restantes(&mut self, mois: &str) -> R<Vec<String>> {
+    pub(crate) fn etapes_restantes(&mut self, mois: &str) -> R<Vec<String>> {
         let b = self.bilan_du_mois(mois)?;
         Ok(b["etapes"]
             .as_array()
@@ -1490,7 +1496,7 @@ impl<'a> Moteur<'a> {
         let mois: Vec<String> = match mois.filter(|m| !m.is_empty()) {
             Some(m) => vec![m.to_string()],
             None => {
-                let mut v = mois_saisis(self.racine());
+                let mut v = engagement::stock::mois_saisis(self.racine()).unwrap_or_default();
                 v.reverse();
                 v
             }

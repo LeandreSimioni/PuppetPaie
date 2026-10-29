@@ -422,11 +422,8 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
         Some(f) => f,
         None => {
             let cible = sortie.join(format!("DPAE_{}{}.txt", etiq, marque));
-            let h = horodatage(&maintenant_iso());
-            declarations::dpae::ecrire(&embauches, &cible, &parametres_de(&h, &heure_texte, &code, &ent, &chemins), true).map_err(plain)?;
+            ecrire_la_dpae(ctx, &retenues, &cible, &recap, &heure, &maintenant_iso())?;
             crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
-            let pour_recap: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, true)).collect();
-            ecrire_texte(&recap, &declarations::dpae::recapitulatif(&pour_recap, &heure).map_err(plain)?)?;
             cible
         }
     };
@@ -499,6 +496,23 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     });
     let amorce_lignes = amorce.as_ref().map(|a| a.lignes.clone());
     Ok((json, amorce_lignes, ecarte))
+}
+
+/// LES FICHIERS D'UNE DPAE : l'enregistrement de chaque embauche de `retenues` dans `cible` (et son `.zip`), horodate
+/// `quand` (`AAAA-MM-JJTHH:MM:SS`, a Paris), l'heure d'embauche `heure` ; et son recapitulatif en clair dans `recap`.
+/// Ce que `dpae` ecrit, et ce que `compagnie::depart::piece_partie` refait d'une DPAE partie dont le fichier manque.
+pub(crate) fn ecrire_la_dpae(ctx: &Contexte, retenues: &[&Paie], cible: &Path, recap: &Path, heure: &Value, quand: &str) -> R<()> {
+    let mut ent = ctx.entreprise.clone();
+    if let Some(o) = ent.as_object_mut() {
+        o.insert("_gabarits".into(), Value::String(ctx.gabarits().to_string_lossy().into_owned()));
+    }
+    let code = code_urssaf(&ctx.entreprise)?;
+    let chemins = Chemins { defaut: dossier_du_code().join("modeles").join("due_tel_gabarit.txt"), poste: ctx.gabarits() };
+    let embauches: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, false)).collect();
+    let h = horodatage(quand);
+    declarations::dpae::ecrire(&embauches, cible, &parametres_de(&h, &en_texte(heure), &code, &ent, &chemins), true).map_err(plain)?;
+    let pour_recap: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, true)).collect();
+    ecrire_texte(recap, &declarations::dpae::recapitulatif(&pour_recap, heure).map_err(plain)?)
 }
 
 /// Les parametres d'une ecriture de DPAE.

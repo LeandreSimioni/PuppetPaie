@@ -157,7 +157,7 @@ fn nom_complet_de(sal: &Value) -> R<String> {
 
 /// Ce que le contrat dit, clause par clause (l'avenant qui le modifiera doit citer l'ancien
 /// texte a cote du nouveau). `{}` si le contrat ne s'ecrit pas.
-fn clauses_du_contrat(ctx: &Contexte, p: &Paie, ent: &Value) -> Value {
+pub fn clauses_du_contrat(ctx: &Contexte, p: &Paie, ent: &Value) -> Value {
     match documents::contrat::valeurs_de_paie(ctx, ent, p) {
         Ok(v) => {
             let mut m = Map::new();

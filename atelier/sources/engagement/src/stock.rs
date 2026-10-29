@@ -360,7 +360,7 @@ fn difference(base: &Map<String, Value>, vue: &Map<String, Value>) -> Map<String
 
 /// Tous les engagements, fichier par fichier, du plus ancien au plus recent, dans l'ordre de chaque fichier.
 pub fn objets(racine: &Path) -> Resultat<Vec<Objet>> {
-    Ok(tous(racine)?.1.as_ref().clone())
+    Ok(tous(racine)?.1.objets.clone())
 }
 
 /// Les fichiers des engagements d'une compagnie tels qu'ils viennent d'etre lus : chaque mois, et ce que son fichier
@@ -382,50 +382,84 @@ fn lus(racine: &Path) -> Resultat<Lus> {
     Ok(out)
 }
 
+/// Les engagements d'une compagnie tires de ses fichiers, et les bornes de chacun (son dernier mois), tirees avec lui :
+/// lire un mois ne relit que les objets qui le touchent.
+struct Tires {
+    objets: Vec<Objet>,
+    derniers: Vec<Result<Option<String>, String>>,
+}
+
+impl Tires {
+    /// `mois` est-il entre le premier et le dernier mois de l'objet de rang `i` ?
+    fn dans_ses_bornes(&self, i: usize, mois: &str) -> Resultat<bool> {
+        let o = &self.objets[i];
+        if mois < o.fichier.as_str() {
+            return Ok(false);
+        }
+        Ok(match &self.derniers[i] {
+            Ok(Some(d)) => mois <= d.as_str(),
+            Ok(None) => true,
+            Err(e) => return Err(e.clone()),
+        })
+    }
+
+    /// L'objet de rang `i` touche-t-il `mois` (`Objet::couvre`) ?
+    fn couvre(&self, i: usize, mois: &str) -> Resultat<bool> {
+        let o = &self.objets[i];
+        Ok(!o.est_non_actif() && !o.est_importe() && self.dans_ses_bornes(i, mois)?)
+    }
+
+    /// Les objets qui touchent `mois`, dans l'ordre des fichiers.
+    fn du_mois(&self, mois: &str) -> Resultat<Vec<&Objet>> {
+        let mut out = Vec::new();
+        for (i, o) in self.objets.iter().enumerate() {
+            if o.fichier.as_str() <= mois && self.couvre(i, mois)? {
+                out.push(o);
+            }
+        }
+        Ok(out)
+    }
+}
+
 /// TOUS LES ENGAGEMENTS D'UNE COMPAGNIE, tires une fois des memes fichiers : chaque lecture relit les fichiers, et ce
-/// qu'on en avait tire ne sert que si leurs octets sont exactement les memes (`memes`). L'ecran d'un mois, chaque paie
-/// qui se verifie, chaque DSN les relit : refaits et recopies a chaque fois, ils coutaient d'autant plus que la
-/// compagnie a d'engagements et de mois. Partage : on n'y touche pas, on recopie ce qu'on garde.
-fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Vec<Objet>>)> {
-    type Tires = std::sync::Mutex<std::collections::HashMap<PathBuf, (Lus, std::sync::Arc<Vec<Objet>>)>>;
-    static TIRES: std::sync::OnceLock<Tires> = std::sync::OnceLock::new();
-    let tires = TIRES.get_or_init(Default::default);
+/// qu'on en avait tire ne sert que si leurs octets sont exactement les memes (`memes`). Partage : on n'y touche pas, on
+/// recopie ce qu'on garde.
+fn tous(racine: &Path) -> Resultat<(Lus, std::sync::Arc<Tires>)> {
+    type Gardes = std::sync::Mutex<std::collections::HashMap<PathBuf, (Lus, std::sync::Arc<Tires>)>>;
+    static GARDES: std::sync::OnceLock<Gardes> = std::sync::OnceLock::new();
+    let gardes = GARDES.get_or_init(Default::default);
     let fichiers = lus(racine)?;
-    if let Some((vus, v)) = tires.lock().unwrap_or_else(|p| p.into_inner()).get(racine) {
+    if let Some((vus, v)) = gardes.lock().unwrap_or_else(|p| p.into_inner()).get(racine) {
         if memes(vus, &fichiers) {
             return Ok((fichiers, v.clone()));
         }
     }
-    let mut out = Vec::new();
+    let mut objets = Vec::new();
     for (f, m) in &fichiers {
         for (rang, e) in m.get("engagements").and_then(Value::as_array).into_iter().flatten().enumerate() {
             if let Value::Object(brut) = e {
-                out.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: brut.clone() });
+                objets.push(Objet { racine: racine.to_path_buf(), fichier: f.clone(), rang, brut: brut.clone() });
             }
         }
     }
-    let out = std::sync::Arc::new(out);
-    socle::fichiers::ranger(tires, racine.to_path_buf(), (fichiers.clone(), out.clone()));
+    let derniers = objets.iter().map(Objet::dernier_mois).collect();
+    let out = std::sync::Arc::new(Tires { objets, derniers });
+    socle::fichiers::ranger(gardes, racine.to_path_buf(), (fichiers.clone(), out.clone()));
     Ok((fichiers, out))
 }
 
 /// Les engagements qui touchent `mois`, dans l'ordre de l'ecran : ceux des fichiers d'avant qui courent encore, puis
 /// ceux du mois.
 pub fn objets_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
-    let mut out = Vec::new();
-    for o in tous(racine)?.1.iter() {
-        if o.fichier.as_str() <= mois && o.couvre(mois)? {
-            out.push(o.clone());
-        }
-    }
-    Ok(out)
+    Ok(tous(racine)?.1.du_mois(mois)?.into_iter().cloned().collect())
 }
 
 /// Les engagements non actifs (`NON_ACTIF`) qui toucheraient `mois` s'ils l'etaient encore : ce qui se lit d'eux.
 pub fn non_actifs_du_mois(racine: &Path, mois: &str) -> Resultat<Vec<Objet>> {
+    let t = tous(racine)?.1;
     let mut out = Vec::new();
-    for o in tous(racine)?.1.iter() {
-        if o.est_non_actif() && o.fichier.as_str() <= mois && o.dans_ses_bornes(mois)? {
+    for (i, o) in t.objets.iter().enumerate() {
+        if o.est_non_actif() && o.fichier.as_str() <= mois && t.dans_ses_bornes(i, mois)? {
             out.push(o.clone());
         }
     }
@@ -490,12 +524,7 @@ fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Option<std::sync::Arc<(
     // Ce que le fichier du mois pose pour tous ; ses engagements, la vue les refait (ceux des mois d'avant qui courent).
     let fichier: Option<Map<String, Value>> = lire_partage(racine, mois)?
         .map(|v| v.as_object().into_iter().flatten().map(|(k, x)| (k.clone(), if k == "engagements" { Value::Null } else { x.clone() })).collect());
-    let mut objets = Vec::new();
-    for o in tous.iter() {
-        if o.fichier.as_str() <= mois && o.couvre(mois)? {
-            objets.push(o);
-        }
-    }
+    let objets = tous.du_mois(mois)?;
     let saisie = if (fichier.is_none() || importes_seuls(racine, mois)) && objets.is_empty() {
         None
     } else {
@@ -569,10 +598,12 @@ pub fn canonique(v: &Value) -> String {
 }
 
 /// Les mois que la saisie a touches : les fichiers, et les mois que chaque engagement a saisis ou couvre jusqu'a sa fin ;
-/// un contrat sans terme, jusqu'au dernier mois ecrit.
+/// un contrat sans terme, jusqu'au dernier mois ecrit ou jusqu'au mois d'aujourd'hui s'il est plus loin : un CDI de
+/// janvier que rien n'a saisi depuis a une paie, une DSN et des documents chaque mois qu'il court.
 pub fn mois_saisis(racine: &Path) -> Resultat<Vec<String>> {
     let mut v: Vec<String> = fichiers(racine).into_iter().filter(|m| !importes_seuls(racine, m)).collect();
-    let horizon = v.iter().max().cloned();
+    let courant = droit::contexte::aujourdhui_sans_note()?.mois_iso();
+    let horizon = v.iter().max().cloned().map(|h| h.max(courant));
     for o in objets(racine)?.into_iter().filter(|o| !o.est_importe()) {
         v.extend(o.mois_saisis());
         let fin = match o.dernier_mois()? {

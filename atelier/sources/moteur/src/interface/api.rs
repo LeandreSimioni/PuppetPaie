@@ -235,6 +235,12 @@ fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
     charge.get(cle).and_then(Value::as_str).map(String::from).ok_or_else(|| Refus::simple("KeyError", socle::fichiers::absent(cle)))
 }
 
+/// Le fichier d'une piece partie de `mois`, refait par le moteur s'il manque (route `piece-partie`).
+fn refaite(racine: &Path, mois: &str, fichier: String) -> Result<PathBuf, Refus> {
+    let r = route(racine, "piece-partie", &json!({"mois": mois, "fichier": fichier}))?;
+    Ok(racine.join(r["chemin"].as_str().unwrap_or_default()))
+}
+
 fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     // UNE PIECE DE L'HISTORIQUE : un document du mois ou la piece d'un retour, que `historique-mois` a
     // listee pour ce mois -- et rien d'autre : le chemin vient de la page, il ne s'ouvre que s'il est dans la liste.
@@ -245,9 +251,7 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
             return Err(Refus::simple("ErreurOperation", format!("{} n'est pas une pièce de {} dans l'Historique.", chemin, mois)));
         }
         let f = racine.join(&chemin);
-        if !f.is_file() {
-            return Err(Refus::simple("ErreurOperation", format!("{} a été déplacé ou effacé.", chemin)));
-        }
+        let f = if f.is_file() { f } else { refaite(racine, mois, Path::new(&chemin).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default())? };
         let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
         return Ok(json!({"fichier": chemin, "phrase": phrase}));
     }
@@ -276,20 +280,9 @@ fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     for p in pieces {
         if p.get("fichier").and_then(Value::as_str) == Some(fichier.as_str()) {
             let mois = p.get("mois").cloned().unwrap_or(Value::Null);
-            return match envois::etats::chemin_piece(racine, &mois, &Value::String(fichier.clone())) {
-                Some(f) => {
-                    let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
-                    Ok(json!({"fichier": fichier, "phrase": phrase}))
-                }
-                None => Err(Refus::simple(
-                    "ErreurOperation",
-                    format!(
-                        "{} n'est plus dans sorties/{} : le journal dit qu'il est parti, le fichier a ete deplace ou efface.",
-                        fichier,
-                        mois.as_str().unwrap_or("")
-                    ),
-                )),
-            };
+            let f = refaite(racine, mois.as_str().unwrap_or(""), fichier.clone())?;
+            let phrase = ouvrir(&f).map_err(|m| Refus::simple("ErreurOperation", m))?;
+            return Ok(json!({"fichier": fichier, "phrase": phrase}));
         }
     }
     Err(Refus::simple("ErreurOperation", format!("{} n'est pas une piece partie pour cette paie.", fichier)))

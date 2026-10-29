@@ -27,11 +27,6 @@ fn copie(e: &Echec) -> Echec {
     Echec { classe: e.classe, message: e.message.clone() }
 }
 
-/// Les mois que la saisie a touches (`engagement::stock::mois_saisis`).
-pub fn mois_saisis(ctx: &Contexte) -> Vec<String> {
-    engagement::stock::mois_saisis(&ctx.racine).unwrap_or_default()
-}
-
 /// Les deux etats de la periode, lus une fois chacun pour tous les salaries du dossier.
 pub struct Recapitulatifs<'a> {
     ctx: &'a Contexte,

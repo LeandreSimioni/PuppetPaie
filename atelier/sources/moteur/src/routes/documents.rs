@@ -32,7 +32,7 @@ pub(crate) type R<T> = Result<T, Echec>;
 pub type Ouvrir<'a> = &'a mut dyn FnMut() -> R<Box<dyn Courriel>>;
 
 /// Les routes de ce module.
-pub const ROUTES: &[&str] = &["envoi-apercu", "envoyer-documents", "documents-imprimer"];
+pub const ROUTES: &[&str] = &["envoi-apercu", "envoyer-documents", "documents-imprimer", "piece-partie"];
 
 /// Celles qui ecrivent.
 pub const ECRITURES: &[&str] = &["envoyer-documents", "documents-imprimer"];
@@ -43,6 +43,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "envoi-apercu" => envoi_apercu(ctx, charge),
         "envoyer-documents" => envoyer_documents(ctx, charge, &mut || client_courriel(ctx)),
         "documents-imprimer" => documents_imprimer(ctx, charge, &qui_de(charge)),
+        "piece-partie" => crate::compagnie::depart::piece_partie_route(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
 }
