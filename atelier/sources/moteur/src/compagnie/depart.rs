@@ -1041,9 +1041,43 @@ pub(crate) fn piece_partie(ctx: &Contexte, mois: &str, nom: &str) -> R<PathBuf> 
         || [format!("Bulletins_{}.pdf", etiq), format!("CertificatsCS_{}.pdf", etiq), format!("CertificatsCS_{}_recapitulatif.txt", etiq)].contains(&nom.to_string());
     if des_documents {
         let envois: Vec<usize> = (0..lignes.len()).filter(|r| texte(&lignes[*r], "quoi") == "documents" && du_mois(&lignes[*r])).collect();
+        // LE BULLETIN D'ORIGINE GARDE A COTE DE SON RECTIFICATIF (`Bulletin_<cle>_<Mois>_<N-AAAA>.pdf`, ou `N/AAAA` est le
+        // numero rectifie) : la piece du salarie telle que l'a ecrite le dernier envoi ou son bulletin portait ce numero.
+        let garde = nom.strip_prefix("Bulletin_").and_then(|r| r.strip_suffix(".pdf")).and_then(|r| r.rsplit_once('_')).and_then(|(tete, n)| {
+            let cle = tete.strip_suffix(&format!("_{}", etiq))?;
+            n.split_once('-').filter(|(a, b)| a.chars().all(|c| c.is_ascii_digit()) && b.len() == 4).map(|(a, b)| (cle.to_string(), format!("{}/{}", a, b)))
+        });
+        if let Some((cle, numero)) = garde {
+            let piece = sortie.join("envoi").join(envois::envoi::nom_fichier("Bulletin", &cle, &etiq));
+            for rang in envois.iter().rev() {
+                if !refaire_les_documents(ctx, mois, &lignes, *rang, false)?.iter().any(|(c, n)| *c == cle && n.as_deref() == Some(numero.as_str())) {
+                    continue;
+                }
+                // Cet envoi ne refait que cette piece : ce qu'il ecrirait d'autre n'est pas le dernier etat parti.
+                let fichiers = || -> Vec<PathBuf> {
+                    [sortie.clone(), sortie.join("envoi")].iter().flat_map(|d| std::fs::read_dir(d).into_iter().flatten().flatten().map(|e| e.path())).filter(|p| p.is_file()).collect()
+                };
+                let avant = fichiers();
+                let de_cote = piece.with_extension("pdf.presente");
+                let presente = piece.exists();
+                if presente {
+                    std::fs::rename(&piece, &de_cote).map_err(|e| os(&piece, e))?;
+                }
+                let fait = refaire_les_documents(ctx, mois, &lignes, *rang, true).and_then(|_| std::fs::rename(&piece, sortie.join(nom)).map_err(|e| os(&piece, e)));
+                for f in fichiers().into_iter().filter(|f| !avant.contains(f) && *f != sortie.join(nom)) {
+                    let _ = std::fs::remove_file(f);
+                }
+                if presente {
+                    std::fs::rename(&de_cote, &piece).map_err(|e| os(&de_cote, e))?;
+                }
+                fait?;
+                return Ok(sortie.join(nom));
+            }
+            return Err(refus(format!("{} : aucun envoi de documents de {} n'a fait partir le bulletin n° {}.", nom, engagement::libelle_mois(mois), numero)));
+        }
         // Du dernier envoi au premier : le fichier est celui que le dernier envoi qui le porte a ecrit.
         for rang in envois.into_iter().rev() {
-            refaire_les_documents(ctx, mois, &lignes, rang)?;
+            refaire_les_documents(ctx, mois, &lignes, rang, true)?;
         }
         return envois::etats::chemin_piece(&ctx.racine, &json!(mois), &json!(nom))
             .ok_or_else(|| refus(format!("{} : aucun envoi de documents de {} ne l'a fait partir.", nom, engagement::libelle_mois(mois))));
@@ -1361,13 +1395,14 @@ fn paie_ecrite_au_bulletin<'a>(o: &'a engagement::stock::Objet, mois: &str, nume
 /// partis : chaque engagement du mois dans la version sur laquelle ses derniers documents etaient partis a ce moment-la
 /// (`engagement::etats::paie_partie`), sous les numeros que cette version porte ; le rectificatif d'une paie refaite,
 /// avec l'ecart au bulletin parti avant lui quand la DSN du mois ne se refaisait plus ; au jour et a l'heure de l'envoi.
-/// Seuls les fichiers qui manquent s'ecrivent.
-fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usize) -> R<()> {
+/// Seuls les fichiers qui manquent s'ecrivent, et aucun si `ecrire` est faux. Rend, pour chaque paie de l'envoi, le
+/// salarie et le numero de son bulletin.
+fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usize, ecrire: bool) -> R<Vec<(String, Option<String>)>> {
     let l = &lignes[rang];
     let quand = valeur_en_texte(l.get("quand").unwrap_or(&Value::Null));
     let Some((jour, instant)) = instant_de(&quand) else { return Err(valeur(format!("journal : un envoi de documents sans date ({})", quand))) };
     let cles: Vec<String> = l.pointer("/detail/salaries").and_then(Value::as_array).into_iter().flatten().filter_map(|s| s.get("cle")).map(valeur_en_texte).collect();
-    let refaire = || -> R<()> {
+    let refaire = || -> R<Vec<(String, Option<String>)>> {
         let ctx = contexte_du_jour(ctx, jour)?.du_mois(mois).map_err(valeur)?;
         let jusqu_a = envois::journal::departs_des_lignes(&lignes[..=rang]);
         let avant = envois::journal::departs_des_lignes(&lignes[..rang]);
@@ -1410,7 +1445,10 @@ fn refaire_les_documents(ctx: &Contexte, mois: &str, lignes: &[Value], rang: usi
         }
         let ent = ctx.entreprise_du_mois(mois).map_err(valeur)?;
         let impression = Impression { paies: &paies, numeros: &numeros, rectificatifs: &rectificatifs, certificats: &certificats };
-        imprimer(&ctx, mois, &ent, &impression, &cles, true)
+        if ecrire {
+            imprimer(&ctx, mois, &ent, &impression, &cles, true)?;
+        }
+        Ok(paies.iter().zip(&numeros).map(|(p, n)| (cle_de(p), n.clone())).collect())
     };
     socle::temps::pendant(instant, refaire)
 }
