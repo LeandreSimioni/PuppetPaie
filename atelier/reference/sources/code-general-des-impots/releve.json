@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code general des impots",
  "_legitext": "LEGITEXT000006069577",
- "_livraisons_lues": 477,
- "_livraisons_totales": 477,
+ "_livraisons_lues": 478,
+ "_livraisons_totales": 478,
  "_complet": true,
- "_derniere_livraison": "20261027-211214",
+ "_derniere_livraison": "20261028-212713",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000048806579",
@@ -425,7 +425,7 @@
    "texte": "impots"
   }
  ],
- "_releve_le": "2026-10-28",
+ "_releve_le": "2026-10-29",
  "articles": {
   "1671": {
    "debut": "2019-12-30",

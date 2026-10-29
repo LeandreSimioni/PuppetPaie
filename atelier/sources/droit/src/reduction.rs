@@ -94,7 +94,7 @@ pub fn reduction_generale(
         coefficient = quantifier4(t.min(x));
     } else {
         // Le crochet est borne a 1 ; seul le terme a la puissance passe par le flottant. Le resultat ne s'arrondit qu'une
-        // fois, apres la majoration : D. 241-10, I (`legi-entrepot/articles.jsonl.gz` des sources, LEGIARTI000054252223,
+        // fois, apres la majoration : D. 241-10, I (`code-de-la-securite-sociale/xml/D241-10.xml` des sources, LEGIARTI000054252223,
         // en vigueur au 15/06/2026) ecrit la formule majoree d'un seul tenant, « (Tmin + (Tdelta x [...]P)) x b », et
         // D. 241-7, II (`code-de-la-securite-sociale/xml/D241-7.xml`) arrondit « le résultat obtenu par application de
         // cette formule » a quatre decimales.

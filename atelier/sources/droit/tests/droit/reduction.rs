@@ -1,7 +1,7 @@
 //! La reduction generale d'un technicien declare a la caisse des Conges Spectacles (`droit::reduction`). Textes :
 //! CSS D. 241-7, II (`atelier/reference/sources/code-de-la-securite-sociale/xml/D241-7.xml` : Tmin 0,0200, Tdelta
 //! 0,3781, P 1,75, le SMIC « applicable au 1er janvier 2026 », le resultat « arrondi à quatre décimales ») ; D. 241-10,
-//! I et IV (`atelier/reference/sources/legi-entrepot/articles.jsonl.gz`, LEGIARTI000054252223) : « Coefficient = (Tmin +
+//! I et IV (`atelier/reference/sources/code-de-la-securite-sociale/xml/D241-10.xml`, LEGIARTI000054252223) : « Coefficient = (Tmin +
 //! (Tdelta x [...]P)) x b », b = 100/90 pour les professions dont les conges sont payes par une caisse.
 
 use crate::outils::{code_livre, dec, lire};

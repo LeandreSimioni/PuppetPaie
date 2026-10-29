@@ -689,7 +689,7 @@
         "puissance": 1.75,
         "plafond_smic": 3,
         "smic_horaire_reference": 12.02,
-        "_smic": "SMIC au 1er janvier 2026, 12,02 EUR de l'heure (21 876,36 EUR pour un an), GELE pour toute l'annee par le decret 2026-509 du 12/06/2026 : la revalorisation du 1er juin (12,31) ne compte pas. Pour un contrat qui ne couvre pas le mois, D. 241-7 corrige le SMIC << selon le rapport entre les revenus d'activite dus et ceux qui auraient ete dus >> : pour un intermittent paye a l'heure, SMIC de reference = 12,02 x heures remunerees. CoolPaie 4.0.0.8.312 prend le SMIC du jour : son bulletin 32/2026 (1 journee de 7 h a 100 EUR, 13/09/2026) porte -27,18, soit 12,31 x 7 = 86,17 de SMIC de reference ; avec 12,02 x 7 = 84,14 le decret donne 25,50. La formule est la meme (avec 12,31 le moteur redonne 27,17) : seul le SMIC differe, et c'est le decret qui fait foi.",
+        "_smic": "Le SMIC de la reduction est celui du 1er janvier 2026, pour toute l'annee : D. 241-7, II, du code de la securite sociale (atelier/reference/sources/code-de-la-securite-sociale/xml/D241-7.xml, version en vigueur au 15/06/2026, issue du decret 2026-509 du 12/06/2026) : << le \"salaire minimum calcule pour un an\" correspond au montant annuel brut applicable au 1er janvier 2026 du salaire minimum de croissance >>. 12,02 EUR de l'heure (BOSS, assiette generale, atelier/reference/sources/boss/boss-assiette-generale-20260801.txt, l. 505) ; la revalorisation du 1er juin (`smic_horaire`) n'y compte pas. Pour un contrat qui ne couvre pas le mois, D. 241-7 corrige le SMIC << selon le rapport entre les revenus d'activite [...] dus et ceux qui auraient ete dus si le salarie avait ete present tout le mois >> : pour un intermittent paye a l'heure, SMIC de reference = 12,02 x heures remunerees.",
         "_formule": "coefficient = Tmin + Tdelta x [ 1/2 x (3 x SMIC de reference / remuneration brute - 1) ]^P, arrondi a quatre decimales au dix-millieme le plus proche ; nul des que la remuneration atteint 3 SMIC ; le crochet est borne a 1 (coefficient maximal Tmin + Tdelta = 0,3981 au SMIC). Montant = coefficient x remuneration brute. D. 241-7 : << pour les salaries en CDD aupres d'un meme employeur, le coefficient est determine pour chaque contrat >> -- c'est ce que fait le moteur, contrat par contrat, sans regularisation annuelle.",
         "imputation": {
           "chomage": 4.0,
@@ -708,7 +708,7 @@
         "_verifie": true,
         "_verifie_note": "Structure DSN relue sur le fichier reel de mai 2025 ; formule et parametres 2026 relus sur Legifrance (D. 241-7) ; repartition Urssaf / chomage / retraite au prorata des points de T (regle BOSS, non confrontee a un compte-rendu 2026). A regarder sur le compte-rendu Urssaf (nature 61/120) de la premiere DSN qui portera un technicien.",
         "majoration_caisse_conges": "100/90",
-        "_majoration_caisse_conges": "Art. L. 241-13, IV, 3° (atelier/reference/sources/code-de-la-securite-sociale/xml/L241-13.xml) et D. 241-10, I et IV du code de la securite sociale (version en vigueur au 15/06/2026, LEGIARTI000054252223, dans atelier/reference/sources/legi-entrepot/articles.jsonl.gz) : pour les salaries des professions ou le paiement des conges est mutualise par une caisse -- l'intermittent du spectacle et Conges Spectacles --, << Coefficient = (Tmin + (Tdelta x [(1/2) x (3 x a x salaire minimum calcule pour un an / remuneration annuelle brute - 1)]P)) x b >>, a = 1 et b = 100/90. Le resultat de cette formule s'arrondit une fois, a quatre decimales (D. 241-7, II), apres la multiplication par b. Aux seuls contrats dont le brut passe par Conges Spectacles (`droit::reduction::reduction_generale`, argument `caisse_conges`) ; un permanent, dont l'employeur paie les conges, n'y a pas droit."
+        "_majoration_caisse_conges": "Art. L. 241-13, IV, 3° (atelier/reference/sources/code-de-la-securite-sociale/xml/L241-13.xml) et D. 241-10, I et IV du code de la securite sociale (atelier/reference/sources/code-de-la-securite-sociale/xml/D241-10.xml, version en vigueur au 15/06/2026, LEGIARTI000054252223) : pour les salaries des professions ou le paiement des conges est mutualise par une caisse -- l'intermittent du spectacle et Conges Spectacles --, << Coefficient = (Tmin + (Tdelta x [(1/2) x (3 x a x salaire minimum calcule pour un an / remuneration annuelle brute - 1)]P)) x b >>, a = 1 et b = 100/90. Le resultat de cette formule s'arrondit une fois, a quatre decimales (D. 241-7, II), apres la multiplication par b. Aux seuls contrats dont le brut passe par Conges Spectacles (`droit::reduction::reduction_generale`, argument `caisse_conges`) ; un permanent, dont l'employeur paie les conges, n'y a pas droit."
       },
       "cotisations_dsn": [
         {
@@ -888,7 +888,7 @@
         ]
       },
       "regisseur_theatre": {
-        "libelle": "Regisseur de theatre",
+        "libelle": "Régisseur de théâtre",
         "categorie": "20",
         "frais_hors_assiette": [
           "defraiement_forfait"
@@ -909,14 +909,14 @@
         ]
       },
       "artiste_choregraphique": {
-        "libelle": "Artiste choregraphique",
+        "libelle": "Artiste chorégraphique",
         "categorie": "25",
         "frais_hors_assiette": [
           "defraiement_forfait"
         ]
       },
       "artiste_cinematographique": {
-        "libelle": "Artiste cinematographique",
+        "libelle": "Artiste cinématographique",
         "categorie": "25",
         "frais_hors_assiette": [],
         "taux": 21,
@@ -1603,7 +1603,7 @@
       "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % en T1 pour les ARTISTES intermittents des adherents, accord du 24/12/1991. Rien pour les permanents (cadres ou non) ni pour les techniciens intermittents : leur taux reste celui de leur population."
     },
     "SNDTP": {
-      "libelle": "Syndicat national des theatres prives (adherents avant le 01/01/2024)",
+      "libelle": "Syndicat national des théâtres privés (adhérents avant le 01/01/2024)",
       "applicable": true,
       "retraite_t1": {
         "artiste": 10.16
@@ -1612,7 +1612,7 @@
       "adhesion_avant": "2024-01-01"
     },
     "LA SCENE INDEPENDANTE": {
-      "libelle": "La Scene independante (ex-SNES, Syndicat national des entrepreneurs de spectacle)",
+      "libelle": "La Scène indépendante (ex-SNES, Syndicat national des entrepreneurs de spectacle)",
       "applicable": true,
       "retraite_t1": {
         "artiste": 10.16
@@ -1631,7 +1631,7 @@
       "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
     },
     "SNEP": {
-      "libelle": "Syndicat national de l'edition phonographique",
+      "libelle": "Syndicat national de l'édition phonographique",
       "applicable": true,
       "retraite_t1": {
         "artiste": 10.16
@@ -1639,7 +1639,7 @@
       "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les artistes intermittents, accord du 24/12/1991."
     },
     "UPC": {
-      "libelle": "Union des producteurs de cinema",
+      "libelle": "Union des producteurs de cinéma",
       "applicable": true,
       "retraite_t1": {
         "technicien": 10.16
@@ -1647,7 +1647,7 @@
       "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens intermittents, accord du 30/12/1991."
     },
     "AFPF": {
-      "libelle": "Association francaise des producteurs de films",
+      "libelle": "Association française des producteurs de films",
       "applicable": true,
       "retraite_t1": {
         "technicien": 10.16
@@ -1667,7 +1667,7 @@
       ]
     },
     "FICAM": {
-      "libelle": "Federation des industries du cinema, de l'audiovisuel et du multimedia",
+      "libelle": "Fédération des industries du cinéma, de l'audiovisuel et du multimédia",
       "applicable": true,
       "retraite_t1": {
         "artiste": 10.16,
@@ -1676,17 +1676,17 @@
       "_source": "Audiens, fiche pratique << Retraite complementaire : taux et repartitions des cotisations >> (FP - Taux et repartition en retraite complementaire - 2026, document du 22/04/2026, audiens.org/.../Fiches-techniques/FP-Taux-et-repartition-en-retraite-complementaire.pdf, copie dans atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt), releve le 25/09/2026. Tableau n 2 : 10,16 % pour les techniciens (accord du 30/12/1991) et les artistes (accord du 24/12/1991) intermittents."
     },
     "FNDF": {
-      "libelle": "Federation nationale des editeurs de films",
+      "libelle": "Fédération nationale des éditeurs de films",
       "applicable": false,
       "_a_confirmer": "Tableau n 2 de la meme fiche : 8,89 % en T1 pour les PERMANENTS, cadres et non cadres (accord du 18/11/1976). Non porte : ses adherents relevent de la distribution cinematographique (IDCC 716 / 892), qu'aucune couche de convention de ce socle ne sert encore."
     },
     "SNDLL": {
-      "libelle": "Syndicat national des discotheques et lieux de loisirs",
+      "libelle": "Syndicat national des discothèques et lieux de loisirs",
       "applicable": false,
       "_a_confirmer": "Tableau n 2 de la meme fiche : 8,89 % en T1 pour les PERMANENTS, cadres et non cadres (avenant du 27/12/1988 a l'accord du 15/10/1985). Non porte : la convention de ses adherents n'a pas de couche dans ce socle."
     },
     "SCENE ENSEMBLE": {
-      "libelle": "Scene Ensemble, organisation professionnelle des arts de la representation",
+      "libelle": "Scène Ensemble, organisation professionnelle des arts de la représentation",
       "applicable": true,
       "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
     },
@@ -1696,17 +1696,17 @@
       "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
     },
     "FNAR": {
-      "libelle": "Federation nationale des arts de la rue",
+      "libelle": "Fédération nationale des arts de la rue",
       "applicable": true,
       "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
     },
     "FSICPA": {
-      "libelle": "Federation des structures independantes de creation et de production artistique",
+      "libelle": "Fédération des structures indépendantes de création et de production artistique",
       "applicable": true,
       "_source": "Absente du tableau n 2 de la fiche Audiens << Taux et repartitions >> 2026 (la liste des organisations dont l'adhesion change le taux de retraite) : la retraite de ses adherents est celle de leur population. Signataire de l'accord de salaires CCNEAC du 01/07/2026 (NAO 2026, non etendu) : ses adherents de la 1285 sont compares a cette grille des le 01/08/2026 (`minima.grille_non_etendue`). Releve le 25/09/2026."
     },
     "LES FORCES MUSICALES": {
-      "libelle": "Les Forces musicales, operas et orchestres reunis",
+      "libelle": "Les Forces musicales, opéras et orchestres réunis",
       "applicable": true,
       "alias": [
         "FORCES MUSICALES"
