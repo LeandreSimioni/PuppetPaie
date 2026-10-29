@@ -234,7 +234,7 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
     let bulletin = p.get("bulletin").filter(|b| b.is_object()).cloned();
     let declare_par = texte(p, "declare_par");
 
-    // Les montants, et d'ou chacun vient : le bulletin fait foi sur ceux qu'il imprime (`importation_bulletins::completer`).
+    // Les montants, et d'ou chacun vient : le bulletin fait foi sur ceux qu'il imprime (`import::bulletins::completer`).
     let mut montants = Map::new();
     let mut sources = Map::new();
     for k in ["brut", "net_imposable", "net_a_payer", "pas", "net_verse", "cotisations_salariales", "cotisations_patronales", "cout_employeur", "net_avant_impot"] {

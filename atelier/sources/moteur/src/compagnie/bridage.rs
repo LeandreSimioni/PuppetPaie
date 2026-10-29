@@ -2,7 +2,7 @@
 //! demonstration. C'est toujours le meme logiciel qui est bride ou pas bride. » Bride, l'accueil ne propose que les
 //! compagnies fictives, et son « + » ajoute une FICTIVE AJOUTEE (ticket #236, `compagnies::ajouter`) dont les envois sont
 //! refuses (`branchement` : le message) ; debloque, il propose aussi les compagnies reelles. Rien d'autre ne change :
-//! le meme moteur, la meme mise a jour (le bridage n'y joue aucun role, `maj.rs`).
+//! le meme moteur, la meme mise a jour (le bridage n'y joue aucun role, `compagnie::maj`).
 //!
 //! BRIDE TANT QUE RIEN NE DIT QU'IL EST DEBLOQUE (ticket #246, Leandre 22/10/2026 : « Le logiciel ne doit jamais etre
 //! debloque par defaut »). Une installation neuve -- l'installeur, une archive de la Release decompressee dans un dossier
@@ -13,7 +13,7 @@
 //!   `"debloque"`. C'est le seul chemin du deblocage (demain aussi celui du ticket #236).
 //! - `logiciel/EDITION.json`, `"edition": "bride"` : le PAQUET SOUDE, bride pour toujours, dont les envois sont joues et
 //!   qui ne poste a l'editeur que ses incidents ; le geste n'y fait rien. Propre a l'installation : la mise a jour ne le
-//!   touche pas (`maj.rs`, `PROPRES_A_L_INSTALLATION`), aucune archive n'en porte.
+//!   touche pas (`compagnie::maj`, `PROPRES_A_L_INSTALLATION`), aucune archive n'en porte.
 //!
 //! Avant le ticket #246, `logiciel/EDITION.json` pouvait aussi dire `"defaut": "bride"` (l'installeur Windows le posait) et,
 //! sans rien, le logiciel partait debloque. Le defaut est desormais bride : la cle `defaut` ne se lit plus, et l'installeur

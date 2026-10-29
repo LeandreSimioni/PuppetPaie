@@ -1,7 +1,7 @@
 //! `importation-apercu` sur la boite aux lettres `import/` (lot D du plan d'import, `prive/journal/PLAN-IMPORT-BULLETINS.md`).
 //! RIEN N'EST ECRIT.
 //!
-//! 1. Le tri (`importation_tri`) : chaque fichier recoit sa sorte, par le contenu.
+//! 1. Le tri (`import::tri`) : chaque fichier recoit sa sorte, par le contenu.
 //! 2. Les DSN et AEM trouvees, ou qu'elles soient (sous-dossier, zip), sont copiees dans un `export/` du dossier de
 //!    travail (temporaire, efface avant de rendre) et passent par `crate::routes::import::apercu_lu` : le meme code que
 //!    l'import d'un export de CoolPaie, inchange -- celles d'une autre entreprise exceptees (lot G1) : devant le Siren de
@@ -704,7 +704,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     }
     // Une paie que l'historique tient d'un bulletin seul s'efface devant la DSN qui la declare (la DSN est lue apres le
     // bulletin : l'ordre inverse) : le bulletin complete la ligne DSN, et l'ecriture retire la ligne « bulletin »
-    // (`importation_ecrite::rapprocher`).
+    // (`import::ecrite::rapprocher`).
     let mut de_bulletin: HashSet<(String, String, String)> = HashSet::new();
     for x in &historique_paies {
         let t = |c: &str| x.get(c).map(valeur_en_texte).unwrap_or_default();
@@ -1451,7 +1451,7 @@ fn engagement(l: &Lu, c: &Compteurs, salarie: &str, chemin: &str) -> Result<(Cle
     // natures 02 et 10, CCH-11 : regle 6). Avec l'une d'elles, le contrat reste muet : un engagement muet est un
     // CDDU (regle 6), comme partout ailleurs. Sans aucune, c'est le contrat d'un permanent -- CDI ou CDD de droit
     // commun, que le bulletin ne dit pas et qu'on ne devine pas : il est marque « a dire », se demande apres l'import
-    // (`importation_nature`), et ne se lit pas en CDDU en attendant.
+    // (`import::nature`), et ne se lit pas en CDDU en attendant.
     if !marque_d_intermittent(&l.b) {
         m.insert(crate::import::nature::A_DIRE.into(), json!(true));
     }

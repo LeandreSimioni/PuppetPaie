@@ -266,7 +266,7 @@ pub fn versement(dsn: &str, numero: &str) -> Vec<(String, String)> {
 
 
 
-/// Un enregistrement AEM de 1000 caractères aux offsets que lit `importation.rs` ; `zones` : ce que le cas ajoute
+/// Un enregistrement AEM de 1000 caractères aux offsets que lit `import/dsn_aem.rs` ; `zones` : ce que le cas ajoute
 /// (`(0, "AEMEDIC2")`, `(36, "000123")`, le Siret en 50…).
 pub fn aem(zones: &[(usize, &str)], nir: &str, debut: &str, fin: &str, objet: &str) -> String {
     let mut l = vec![' '; 1000];

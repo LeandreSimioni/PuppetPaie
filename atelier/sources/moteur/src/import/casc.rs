@@ -4,7 +4,7 @@
 //!
 //! Tout se lit dans les engagements importes (`engagement::importe`) : les paies versees (le brut que la DSN deposee ou
 //! le bulletin dit), la fiche du salarie, le contrat atteste (numero, bornes, cachets, heures et jours). Un mois dont la
-//! DSN importee porte deja la CASC-SVP (`importation_ecrite::lire_dsn_casc`), ou deja regularise
+//! DSN importee porte deja la CASC-SVP (`import::ecrite::lire_dsn_casc`), ou deja regularise
 //! (`config/casc-svp.json`), n'y entre pas.
 //!
 //! Le classeur modele du CASC-SVP (`donnees/modeles/casc-svp-liste-nominative.xlsx`, ouvert et rempli par une

@@ -21,7 +21,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     #[cfg_attr(not(feature = "atelier"), allow(unused_mut))]
     let mut v = cadre.route("maj-etat", json!({}))?;
-    // Le binaire de l'atelier le dit, en toutes lettres et en JSON (`atelier.rs`) ; `moteur` ne porte rien de tel.
+    // Le binaire de l'atelier le dit, en toutes lettres et en JSON (`atelier::redirection`) ; `moteur` ne porte rien de tel.
     #[cfg(feature = "atelier")]
     if let serde_json::Value::Object(o) = &mut v {
         o.insert("atelier".into(), json!(true));

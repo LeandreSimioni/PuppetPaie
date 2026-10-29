@@ -1328,7 +1328,7 @@ impl<'a> Moteur<'a> {
         let au_depot = echeance_dsn(echeance.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)");
         let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
         // LA DSN DEPOSEE PAR L'ANCIEN LOGICIEL ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se
-        // declare dans la DSN suivante qui n'est pas partie, et la case le dit (`mois_importe::dsn_de_l_ancien_logiciel`).
+        // declare dans la DSN suivante qui n'est pas partie, et la case le dit (`import::mois::dsn_de_l_ancien_logiciel`).
         if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !vrai(&e)) {
             let mut g = fait();
             if d["engagements"].as_u64().is_some_and(|n| n > 0) {

@@ -73,7 +73,7 @@ impl Importe {
     /// deposee declare finit apres lui (S21.G00.40.010, sa fin previsionnelle : `norme-dsn/texte/bloc-S21.G00.40.txt`).
     /// Les mois qui suivent se paient ici, sous le numero et les dates que cette DSN lui a donnes (regle 4). Un contrat
     /// qu'une AEM atteste est fini (l'AEM se remet a la fin du contrat) ; un contrat paye au mois a sa propre reprise,
-    /// sa nature dite (`importation_nature`) ; sans numero, rien ne se reprend.
+    /// sa nature dite (`import::nature`) ; sans numero, rien ne se reprend.
     pub fn continue_apres(&self) -> Option<String> {
         let dernier = self.paies().into_keys().max()?;
         let fin = self.texte("fin");

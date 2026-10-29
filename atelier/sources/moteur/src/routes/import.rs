@@ -1,9 +1,9 @@
 //! Les routes de l'import d'un export CoolPaie : ce qu'il ferait, rien d'ecrit (`importation-apercu`), ou en est la
-//! boite aux lettres (`importation-etat`), l'import lui-meme (`importer`, `importation_ecrite.rs`) et la nature d'un
+//! boite aux lettres (`importation-etat`), l'import lui-meme (`importer`, `import/ecrite.rs`) et la nature d'un
 //! contrat importe (`importation-nature`).
 //!
-//! `importation-apercu` lit l'export (DSN et AEM) par `importation.rs`. `{"dossier": ...}` : la boite aux lettres
-//! `import/` entiere (`importation_bulletins`) : le tri, les DSN et AEM qu'il trouve passees par `apercu_lu` (le meme
+//! `importation-apercu` lit l'export (DSN et AEM) par `import/dsn_aem.rs`. `{"dossier": ...}` : la boite aux lettres
+//! `import/` entiere (`import::bulletins`) : le tri, les DSN et AEM qu'il trouve passees par `apercu_lu` (le meme
 //! code que pour l'export), puis les bulletins de paie.
 //!
 //! `contrats_nouveaux` : un contrat atteste que l'historique (les engagements importes) porte deja
@@ -34,7 +34,7 @@ pub const ECRITURES: &[&str] = &["importer", crate::import::nature::ROUTE];
 pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Value) -> R<Value> {
     match nom {
         // `{"dossier": ...}` (vide : `import/` de la compagnie) : la boite aux lettres entiere, bulletins compris
-        // (`importation_bulletins`) ; sans `dossier`, l'export de CoolPaie.
+        // (`import::bulletins`) ; sans `dossier`, l'export de CoolPaie.
         "importation-apercu" if charge.get("dossier").is_some() => {
             if charge.get("export").is_some_and(vrai) {
                 return Err(erreur("ErreurOperation", "L'apercu lit un export (`export`) ou un dossier (`dossier`), pas les deux."));
@@ -47,7 +47,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         }
         "importation-etat" => etat_importation(&ctx.racine),
         "importer" => crate::import::ecrite::importer(ctx, charge),
-        // La nature des contrats repris qu'aucun bulletin ne dit (#236, `importation_nature`).
+        // La nature des contrats repris qu'aucun bulletin ne dit (#236, `import::nature`).
         crate::import::nature::ROUTE => crate::import::nature::dire(ctx, charge),
         autre => Err(Echec { classe: None, message: format!("route inconnue : {}", autre) }),
     }
@@ -57,7 +57,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
 ///
 /// LA BOITE AUX LETTRES DE LA COMPAGNIE SE CREE VIDE (Leandre, 10/10/2026) : `import/` qui n'existe pas encore est
 /// cree, et l'apercu (ou l'import) n'a rien a reprendre, au lieu de refuser « dossier absent ». Un dossier DONNE
-/// (`charge.dossier`) qui n'existe pas reste refuse (`importation_tri::trier`).
+/// (`charge.dossier`) qui n'existe pas reste refuse (`import::tri::trier`).
 pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
     Ok(match charge.get("dossier").filter(|v| vrai(v)) {
         None => {
@@ -121,7 +121,7 @@ fn ecarts(nom: &str, fiche: &Value, declare: &Map<String, Value>, mois: &str) ->
         }
         let a = fiche.get(&c.cle).unwrap_or(&Value::Null);
         let b = &declare[&c.cle];
-        // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete (`importation_completer`).
+        // Une case vide ou « A COMPLETER » n'est pas un ecart : l'import la complete (`import::completer`).
         if crate::import::completer::vide(Some(a)) || valeur_en_texte(a) == valeur_en_texte(b) {
             continue;
         }
@@ -209,12 +209,12 @@ pub(crate) struct ACreer {
 pub(crate) struct Apercu {
     pub(crate) reponse: Map<String, Value>,
     pub(crate) a_creer: Vec<ACreer>,
-    /// Les fiches existantes que l'import completerait (`importation_completer`).
+    /// Les fiches existantes que l'import completerait (`import::completer`).
     pub(crate) a_completer: Vec<crate::import::completer::ACompleter>,
     pub(crate) contrats: Vec<dsn_aem::ContratAtteste>,
     /// `imp._paies` : les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
     pub(crate) paies: Vec<Value>,
-    /// Les contrats que les bulletins attestent (`importation_bulletins`), contrats d'engagements importes
+    /// Les contrats que les bulletins attestent (`import::bulletins`), contrats d'engagements importes
     /// pretes a ecrire, chacune avec le NIR qui la rattache (`salarie` vaut `<a creer>` tant que la fiche n'existe pas).
     pub(crate) engagements_bulletins: Vec<(String, Value)>,
     pub(crate) source: String,
@@ -666,7 +666,7 @@ fn etat_importation(racine: &Path) -> R<Value> {
         "reprises": reprises_faites(racine, &engagements, &paies),
         "editeur": editeur,
         "attend_editeur": attend,
-        // Les contrats repris dont la nature reste a dire, par salarie (#236, `importation_nature`).
+        // Les contrats repris dont la nature reste a dire, par salarie (#236, `import::nature`).
         "a_dire": crate::import::nature::a_dire(racine),
     }))
 }

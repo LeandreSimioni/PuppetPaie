@@ -1697,7 +1697,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     finir_fiche(cle, &chemin, contenu, donnees, anomalies, derives)
 }
 
-/// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (lot I2, `importation_completer`) : chaque champ de `champs` va dans la fiche
+/// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (lot I2, `import::completer`) : chaque champ de `champs` va dans la fiche
 /// telle qu'elle est sur le disque, s'il y est vide ou « A COMPLETER » -- et seulement alors : un champ rempli depuis
 /// l'apercu reste ce qu'il est. Une case vide n'avait rien declare : la valeur qui la remplit vaut depuis elle (un champ
 /// absent : de tout temps) ; rien d'autre ne bouge ; l'ancien fichier est sauvegarde comme pour une fiche

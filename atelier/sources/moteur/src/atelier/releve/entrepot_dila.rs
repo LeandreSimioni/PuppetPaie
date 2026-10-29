@@ -1,6 +1,6 @@
 //! L'entrepot local des textes de la DILA (LEGI, KALI) : lu une fois, tenu a jour ensuite. Porte de
-//! `atelier/outils/entrepot_dila.py` (retire le 15/10/2026) ; ses deux utilisateurs sont `releve_codes` (`moteur releve-codes`)
-//! et `releve_conventions` (`moteur releve-conventions`).
+//! `atelier/outils/entrepot_dila.py` (retire le 15/10/2026) ; ses deux utilisateurs sont `releve::codes` (`moteur releve-codes`)
+//! et `releve::conventions` (`moteur releve-conventions`).
 //!
 //! POURQUOI (24/09/2026, journal §122). La moisson des codes relisait, a CHAQUE passage, l'archive globale de la base LEGI
 //! (1,1 Go) puis toutes les livraisons quotidiennes parues depuis (438 le 24/09/2026), et ne gardait que les articles

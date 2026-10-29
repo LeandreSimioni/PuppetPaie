@@ -177,7 +177,7 @@ pub fn mois_du_fichier(cadre: &super::Cadre, texte: &str, sujet: &str) -> Result
 
 // ------------------------------------------------------------------ le binaire de l'atelier
 
-/// Ce que la redirection de l'atelier tient : net-entreprises, l'Urssaf et Google (`atelier.rs`). Le reste -- la boite courriel --
+/// Ce que la redirection de l'atelier tient : net-entreprises, l'Urssaf et Google (`atelier::redirection`). Le reste -- la boite courriel --
 /// n'est jamais redirige.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Organisme {

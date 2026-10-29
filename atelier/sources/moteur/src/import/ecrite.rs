@@ -8,11 +8,11 @@
 //! bulletin). Un import se rejoue sans dommage. La reponse est celle de l'apercu, completee de ce qui a ete ecrit
 //! (`ecrit`, `fichiers`, `copie`).
 //!
-//! `{"dossier": ...}` : la boite aux lettres `import/` entiere, comme l'apercu (`importation_bulletins`). Ce qui est
+//! `{"dossier": ...}` : la boite aux lettres `import/` entiere, comme l'apercu (`import::bulletins`). Ce qui est
 //! repris (DSN, AEM, PDF dont une page au moins est reprise) est COPIE dans `historique/bulletins/`, sous le nom de sa
-//! copie (`<empreinte>.<pdf|dsn|txt>` : rien de personnel ; `importation_bulletins::nom_copie`) -- rien ne s'ecrase ;
+//! copie (`<empreinte>.<pdf|dsn|txt>` : rien de personnel ; `import::bulletins::nom_copie`) -- rien ne s'ecrase ;
 //! l'apercu est relu DANS ces copies, et c'est lui qui s'ecrit. La reponse garde le compte rendu (`tri`) du dossier lu,
-//! pour l'ecran ; rien n'en part (l'incident est `importation_incident`, sur le clic de la personne). Les pieces
+//! pour l'ecran ; rien n'en part (l'incident est `import::incident`, sur le clic de la personne). Les pieces
 //! copiees restent sous `historique/` : le dossier du salarie montre les pages des bulletins, l'alerte CASC-SVP relit
 //! les DSN.
 //!
@@ -38,7 +38,7 @@ use crate::routes::import::{apercu_importation, export_de};
 type R<T> = Result<T, Echec>;
 
 
-/// Les colonnes qu'un bulletin ajoute a une paie (`importation_bulletins::completer`).
+/// Les colonnes qu'un bulletin ajoute a une paie (`import::bulletins::completer`).
 const COLONNES_BULLETIN: [&str; 12] = [
     "spectacle",
     "analytique",
@@ -388,7 +388,7 @@ fn declaree_par_bulletin(x: &Value) -> bool {
     x.get("declare_par").and_then(Value::as_str) == Some("bulletin")
 }
 
-/// Complete une paie par ce qu'un bulletin a ecrit d'elle (`b`), comme `importation_bulletins::completer` : sur le
+/// Complete une paie par ce qu'un bulletin a ecrit d'elle (`b`), comme `import::bulletins::completer` : sur le
 /// brut, le net imposable, le net a payer et le PAS, le bulletin l'emporte ; le numero d'objet et le jour du versement
 /// remplissent ce qui est vide ; les colonnes du bulletin s'ajoutent.
 fn completer_par(ligne: &mut Value, b: &Value) {
@@ -631,7 +631,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         };
         ecrits.insert(ctx.racine.join("config").join(fichier).display().to_string());
     }
-    // Les fiches qui existent : ce qui y est vide ou « A COMPLETER » (`importation_completer`), rien d'autre.
+    // Les fiches qui existent : ce qui y est vide ou « A COMPLETER » (`import::completer`), rien d'autre.
     let mut completees = 0usize;
     for a in &imp.a_completer {
         let faits = crate::routes::fiches::completer_fiche(ctx, a.nom, a.cle.as_deref(), &a.champs)?;
@@ -819,7 +819,7 @@ fn depots_attestes_au_journal(ctx: &Contexte, charge: &Value) -> R<usize> {
 }
 
 
-/// LES ECARTS DE CALCUL PARTENT A CHAQUE IMPORT (`importation_ecarts`), lus avec les fiches telles que l'import les a
+/// LES ECARTS DE CALCUL PARTENT A CHAQUE IMPORT (`import::ecarts`), lus avec les fiches telles que l'import les a
 /// ecrites ; rien ne s'en dit a l'ecran.
 fn rapporter_les_ecarts(ctx: &Contexte) {
     if let Ok(frais) = Contexte::nouveau(&ctx.racine, Some(ctx.date)) {

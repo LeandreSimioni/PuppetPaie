@@ -86,7 +86,7 @@ pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
 /// coffre ne prouvent quoi que ce soit : ils ouvrent, ils n'autorisent pas. `quoi` et `a_qui` disent a l'humain ce qui
 /// va partir ; `mois_attendu` est le mois que la preuve recopiee devrait porter.
 pub(crate) fn verifier_preuve(ctx: &Contexte, preuve: Option<&Preuve>, mois_attendu: &str, quoi: &str, a_qui: &str) -> R<String> {
-    // Le binaire de l'ATELIER refuse tout acte reel, avant toute autre question (`atelier.rs`). Un depot reel, un envoi,
+    // Le binaire de l'ATELIER refuse tout acte reel, avant toute autre question (`atelier::redirection`). Un depot reel, un envoi,
     // une signature passent tous par ici.
     #[cfg(feature = "atelier")]
     return refus_atelier(ctx, preuve, mois_attendu, quoi, a_qui);

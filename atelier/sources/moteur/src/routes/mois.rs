@@ -426,7 +426,7 @@ fn saisie(ctx: &Contexte, charge: &Value) -> R<Value> {
     let saisie = descendre_le_mois(saisie);
     let defauts = defauts_de_la_saisie(ctx, &mois, &saisie);
     // UN MOIS TENU AVANT CE LOGICIEL : aucun engagement de la saisie, ses engagements importes -- en cartes, et l'etat vrai
-    // de sa DSN (`mois_importe`). Il se lit ; rien ne s'y ajoute.
+    // de sa DSN (`import::mois`). Il se lit ; rien ne s'y ajoute.
     let importe = if existe { None } else { crate::import::mois::vue(ctx, &mois)? };
     // UN MOIS A LA FOIS IMPORTE ET SAISI : ses engagements importes se montrent a cote de ceux de la saisie, en cartes
     // fermees ; ils se lisent, rien ne les calcule.
@@ -1179,7 +1179,7 @@ fn contrats_en_cours(ctx: &Contexte, mois: &Value) -> R<Vec<EnCours>> {
         }
     }
     // LE CONTRAT D'UN PERMANENT REPRIS D'UN AUTRE LOGICIEL (#236) : aucun fichier de saisie ne le porte, l'historique
-    // si (`importation_nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
+    // si (`import::nature::repris_en_cours`, quand sa nature, son debut et son numero ont ete dits). Il se reprend
     // comme les autres, avec sa nature, son debut, son numero, son salaire mensuel et sa duree du travail.
     // Ensuite, il se recopie d'un mois a l'autre comme tout contrat paye au mois.
     for r in crate::import::nature::repris_en_cours(&ctx.racine, texte_mois) {
@@ -1779,7 +1779,7 @@ pub(crate) fn refuser_si_clos(ctx: &Contexte, mois: &str) -> R<()> {
 }
 
 /// UN MOIS TENU AVANT CE LOGICIEL NE SE SAISIT PAS : ses paies ont ete calculees et declarees ailleurs (ses engagements
-/// sont importes, `mois_importe`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la DSN -- une
+/// sont importes, `import::mois`). Une saisie le ferait recalculer ici et proposerait d'en ecrire la DSN -- une
 /// declaration deja faite ne se regenere pas (regle 4). Rien ne passe outre.
 pub(crate) fn refuser_si_importe(ctx: &Contexte, mois: &str) -> R<()> {
     if crate::import::mois::importe(&ctx.racine, mois)? {

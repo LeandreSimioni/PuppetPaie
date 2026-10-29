@@ -238,7 +238,7 @@ pub(crate) fn de_mois_en_clair(mois: &str) -> String {
 ///   revalide (`produire_regularisations::regularisations_pour`).
 ///
 /// Un mois dont l'ancien logiciel a depose la DSN se dit avec la phrase du panneau et du rappel
-/// (`mois_importe::dsn_de_l_ancien_logiciel`) : cette DSN ne se remplace jamais ici (regle 4), ce que la saisie y ajoute
+/// (`import::mois::dsn_de_l_ancien_logiciel`) : cette DSN ne se remplace jamais ici (regle 4), ce que la saisie y ajoute
 /// se declare dans la DSN qui porte (`dsn_qui_porte`). Se confirme seulement la modification d'un engagement de la
 /// saisie qu'une DSN partie ici a deja declare pour ce mois (`saisie_declaree`).
 pub(crate) fn modification_de_la_paie(m: &mut Moteur, ctx: &Contexte, mois: &str) -> R<Value> {

@@ -81,7 +81,7 @@ const A_DEFAUT: [(&str, &str); 7] = [
 /// Les montants qu'une DSN declare, versement par versement (bloc 50). 50.004 est le montant net verse de la norme (la
 /// remuneration nette fiscale moins CSG/CRDS non deductible et sante patronale, p. 244), pas le net a payer : CoolPaie y
 /// ecrivait son net a payer, PuppetPaie y ecrit le net verse depuis la vague 1a. La DSN ne declare pas le net a payer ;
-/// une paie importee d'une DSN seule n'en a pas, un bulletin le donne (`importation_bulletins::completer`).
+/// une paie importee d'une DSN seule n'en a pas, un bulletin le donne (`import::bulletins::completer`).
 const VERSEMENT: [(&str, &str); 3] =
     [("S21.G00.50.002", "net_imposable"), ("S21.G00.50.004", "net_verse"), ("S21.G00.50.009", "pas")];
 

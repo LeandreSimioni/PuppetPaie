@@ -334,7 +334,7 @@ pub fn compte_autorise(racine: &Path) -> Option<String> {
     }
 }
 
-/// Les adresses de Google ; dans l'atelier, un faux Google local (`atelier.rs`).
+/// Les adresses de Google ; dans l'atelier, un faux Google local (`atelier::redirection`).
 pub fn adresses_du_poste() -> envois::drive::Adresses {
     #[cfg(feature = "atelier")]
     if let Some(b) = crate::atelier::redirection::base(crate::atelier::redirection::VARIABLE_GOOGLE) {

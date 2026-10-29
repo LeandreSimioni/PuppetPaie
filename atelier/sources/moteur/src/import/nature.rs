@@ -1,5 +1,5 @@
 //! LA NATURE DES CONTRATS QUE LES BULLETINS N'ONT PAS DITE (#236). L'import d'un bulletin de paie atteste un contrat
-//! (un engagement importe, `importation_bulletins::engagement`) ; aucun gabarit n'imprime sa nature. Un bulletin
+//! (un engagement importe, `import::bulletins::engagement`) ; aucun gabarit n'imprime sa nature. Un bulletin
 //! qui porte une marque du spectacle (numero d'objet, cotisation Congés Spectacles) laisse le contrat muet, et un
 //! engagement muet est un CDDU (regle 6). Un bulletin qui n'en porte aucune est celui d'un permanent : CDI ou CDD de
 //! droit commun, que rien ne dit. Ses contrats sont marques `nature_a_dire` ; ce module :
