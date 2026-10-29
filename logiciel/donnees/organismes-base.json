@@ -32,6 +32,8 @@
       "siret": "44832375800038",
       "libelle": "Retraite complementaire",
       "nom": "Audiens Retraite",
+      "adresse": "74 rue Jean Bleuzen, 92177 Vanves Cedex",
+      "_source_adresse": "Groupe Audiens, pied de page de sa fiche des taux de la retraite complémentaire 2026 : « Groupe Audiens • 74 rue Jean Bleuzen • 92177 Vanves Cedex » (atelier/reference/sources/audiens-fp-taux-repartition-retraite-2026.txt, l. 48). INFÉRENCE : l'adresse du groupe est celle de sa caisse de retraite et de son institution de prévoyance, que le contrat écrit nomme (code du travail L. 1242-12, 8°).",
       "objet": "la retraite complémentaire Agirc-Arrco",
       "jour_de_paiement": 25,
       "_source_nom": "Audiens, « Pour la retraite Audiens > 44832375800038 » (atelier/reference/sources/audiens-dsn/audiens-dossier-dsn-20261020.md) ; table IVO, « AUDIENS », famille AAR (tables-organismes-20260924.txt, l. 480). Objet : codes 131 « Cotisation régime unifié Agirc-Arrco » et 105 (bloc-S21.G00.81.txt, l. 269, 287).",
@@ -49,6 +51,8 @@
       "siret": "P0983",
       "libelle": "AUDIENS PREVOYANCE",
       "nom": "Audiens Santé Prévoyance",
+      "adresse": "74 rue Jean Bleuzen, 92177 Vanves Cedex",
+      "_source_adresse": "Voir `_source_adresse` d'Audiens Retraite : la même adresse du groupe (audiens-fp-taux-repartition-retraite-2026.txt, l. 48), inférence écrite comme telle.",
       "objet": "la prévoyance et la santé",
       "jour_de_paiement": 25,
       "codes81": [

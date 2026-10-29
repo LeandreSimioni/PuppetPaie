@@ -34,6 +34,9 @@ pub struct Nature {
     pub absents: Map<String, Value>,
     pub interdits: Map<String, Value>,
     pub fin_de_contrat: Map<String, Value>,
+    /// Le contrat ecrit : son modele, celui de son avenant, ses mentions obligatoires (`contrat_ecrit` de
+    /// `contrats-base.json`).
+    pub contrat_ecrit: Map<String, Value>,
     pub dpae: Map<String, Value>,
     pub remunerations: Map<String, Value>,
     pub activites: Map<String, Value>,
@@ -60,6 +63,43 @@ impl Nature {
 
     pub fn permanent(&self) -> bool {
         self.mensuelle()
+    }
+
+    /// Le modele livre du contrat ecrit de cette nature (`contrat_ecrit.modele`), ou `None` : elle n'en a pas.
+    pub fn modele_contrat(&self) -> Option<String> {
+        self.contrat_ecrit.get("modele").and_then(texte)
+    }
+
+    /// Le nom de son contrat ecrit, tel qu'une phrase le dit (« contrat de travail à durée déterminée »).
+    pub fn nom_du_contrat(&self) -> String {
+        self.contrat_ecrit.get("nom").and_then(texte).unwrap_or_else(|| "contrat de travail".into())
+    }
+
+    /// Le modele livre de l'avenant de son contrat ecrit (`contrat_ecrit.avenant`).
+    pub fn modele_avenant(&self) -> Option<String> {
+        self.contrat_ecrit.get("avenant").and_then(texte)
+    }
+
+    /// Les mentions obligatoires de son contrat ecrit : (marqueur, le texte qui l'exige, due seulement si la saisie la
+    /// dit), dans l'ordre de `contrats-base.json`.
+    pub fn mentions_obligatoires(&self) -> Vec<(String, String, bool)> {
+        liste(self.contrat_ecrit.get("mentions"))
+            .iter()
+            .filter_map(|m| {
+                Some((m.get("marqueur").and_then(texte)?, m.get("texte").and_then(texte).unwrap_or_default(), m.get("si_dite").map_or(false, vrai)))
+            })
+            .collect()
+    }
+
+    /// Le motif de recours `code` appelle-t-il le nom et la qualification de la personne remplacee ? (L1242-12, 1° :
+    /// le CDD conclu au titre du 1° de L1242-2 ; `personne_remplacee` des motifs de `contrats-base.json`.)
+    pub fn motif_de_remplacement(&self, code: &str) -> bool {
+        self.motifs_recours().iter().any(|m| m.get("code").and_then(texte).as_deref() == Some(code) && m.get("personne_remplacee").map_or(false, vrai))
+    }
+
+    /// Le libelle du motif de recours `code`, tel que `contrats-base.json` le dit.
+    pub fn libelle_motif_recours(&self, code: &str) -> Option<String> {
+        self.motifs_recours().iter().find(|m| m.get("code").and_then(texte).as_deref() == Some(code)).and_then(|m| m.get("libelle").and_then(texte))
     }
 
     /// La valeur fixe d'une rubrique pour cette nature, ou `None` (absente
@@ -314,6 +354,7 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
         absents: objet("absents"),
         interdits: objet("interdits"),
         fin_de_contrat: objet("fin_de_contrat"),
+        contrat_ecrit: objet("contrat_ecrit"),
         remunerations: objet("remunerations"),
         activites: objet("activites"),
         dpae: dp,
@@ -322,6 +363,12 @@ fn construire(cle: &str, d: &Map<String, Value>) -> Resultat<Nature> {
 
 fn fichier() -> Resultat<Arc<Value>> {
     json_en_cache(&dossier_du_code().join("contrats-base.json"))
+}
+
+/// La categorie d'emploi d'un classement conventionnel (S21.G00.40.002), telle que le contrat ecrit l'imprime
+/// (`categories_d_emploi` de `contrats-base.json`, libelles de la norme ; R1221-34, 3°).
+pub fn categorie_d_emploi(classement: &str) -> Resultat<Option<String>> {
+    Ok(fichier()?.get("categories_d_emploi").and_then(|c| c.get(classement)).and_then(texte))
 }
 
 /// La nature d'un engagement qui ne dit pas la sienne : le CDDU.

@@ -93,9 +93,12 @@ fn jj(iso: &str) -> R<String> {
     socle::date::Jour::lire(iso).map(|j| j.jj_mm_aaaa()).map_err(|m| erreur("ValueError", m))
 }
 
-/// `jj_mm_aaaa(p.engagement.fin)`.
-fn fin_de(p: &Paie) -> R<String> {
-    p.engagement.fin.map(|f| f.jj_mm_aaaa()).ok_or_else(|| erreur("ValueError", "contrat sans fin"))
+/// « du 12/01/2026 au 30/06/2026 », ou « à partir du 12/01/2026 » pour un contrat sans terme.
+fn periode_de(p: &Paie) -> String {
+    match p.engagement.fin {
+        Some(f) => format!("du {} au {}", p.engagement.debut.jj_mm_aaaa(), f.jj_mm_aaaa()),
+        None => format!("à partir du {}", p.engagement.debut.jj_mm_aaaa()),
+    }
 }
 
 fn cle_de(p: &Paie) -> String {
@@ -224,16 +227,16 @@ fn message_de_signature(d: &Demande, pieces: Vec<PathBuf>) -> R<Message> {
 
 // ------------------------------------------------------------------ les contrats choisis
 
-/// Les contrats choisis parmi `paies`, par salarie, dans l'ordre du mois : `(cle, ses paies, leur rang)`. Un permanent
-/// n'a pas de contrat qui parte ici.
-fn contrats_choisis(choisis: &Choisis, mois: &str, paies: &[Paie]) -> R<Vec<(String, Vec<Paie>, Vec<usize>)>> {
+/// Les contrats choisis parmi `paies`, par salarie, dans l'ordre du mois : `(cle, ses paies, leur rang)`. Seuls partent
+/// ceux qui se font signer ici (`engagement::contrat_a_signer`).
+fn contrats_choisis(ctx: &Contexte, choisis: &Choisis, mois: &str, paies: &[Paie]) -> R<Vec<(String, Vec<Paie>, Vec<usize>)>> {
     let voulus = &choisis.salaries;
     let cibles = &choisis.contrats;
     let vise = |c: &Cible, cle: &str, p: &Paie| c.0 == cle && c.1 == p.engagement.debut.iso() && c.2.as_ref().map_or(true, |n| p.engagement.numero.as_deref() == Some(n.as_str()));
     let mut par_salarie: Vec<(String, Vec<Paie>, Vec<usize>)> = Vec::new();
     for (rang, p) in paies.iter().enumerate() {
         let cle = cle_de(p);
-        if !vrai(&p.spectacle) {
+        if !engagement::contrat_a_signer(&ctx.racine, &p.engagement).map_err(Echec::from)? {
             continue;
         }
         if voulus.as_ref().is_some_and(|v| !v.is_empty() && !v.contains(&cle)) {
@@ -314,7 +317,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
     let (data, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, &mois, None)?;
     let s_mois = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let par_salarie = match choisis {
-        Some(c) => contrats_choisis(c, &mois, &paies)?,
+        Some(c) => contrats_choisis(ctx, c, &mois, &paies)?,
         None => Vec::new(),
     };
     if par_salarie.is_empty() && avenants.is_empty() {
@@ -386,7 +389,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
 
     let (an, nom_mois) = an_et_nom_du_mois(&s_mois)?;
     let ent = documents::avenant::ent_du_mois(ctx, &s_mois)?;
-    let par_salarie = contrats_choisis(&d.choisis, &mois, &paies)?;
+    let par_salarie = contrats_choisis(ctx, &d.choisis, &mois, &paies)?;
 
     // Le journal, lu une fois : chaque paie y retrouve SON contrat (salarie, debut, numero), pas celui de son jumeau du meme jour.
     let lignes_j = crate::etats::charger(&ctx.racine)?;
@@ -443,15 +446,18 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             titres.push(t);
         }
         let sujet_de = |spectacle: &str| envoi::formater(SUJET_SIGNATURE, &[("spectacle", spectacle.to_string()), ("mois", nom_mois.to_string()), ("annee", an.to_string())]);
-        let du_au = |p: &Paie, titre: &str| -> R<String> { Ok(format!("{}, du {} au {}", titre, p.engagement.debut.jj_mm_aaaa(), fin_de(p)?)) };
+        let du_au = |p: &Paie, titre: &str| -> R<String> { Ok(format!("{}, {}", titre, periode_de(p))) };
         let numero_de = |p: &Paie| p.engagement.numero.clone().filter(|n| !n.is_empty()).unwrap_or_else(|| "(sans numéro)".to_string());
         let (mut sujet, mut liste, le_signer, quoi, exemplaire);
         if ps.len() == 1 {
             let p = &ps[0];
-            sujet = sujet_de(&titres[0]);
-            liste = format!("Tu trouveras ci-joint ton contrat d'engagement pour {}, du {} au {}.", titres[0], p.engagement.debut.jj_mm_aaaa(), fin_de(p)?);
+            // Le contrat d'un spectacle se nomme par lui ; celui d'un permanent par sa nature (`contrat_ecrit.nom`).
+            let nom_c = p.engagement.nat().map_err(Echec::from)?.nom_du_contrat();
+            let pour = if vrai(&p.spectacle) { format!(" pour {}", titres[0]) } else { String::new() };
+            sujet = if vrai(&p.spectacle) { sujet_de(&titres[0]) } else { format!("{} - {} {}", capitaliser(&nom_c), nom_mois, an) };
+            liste = format!("Tu trouveras ci-joint ton {}{}, {}.", nom_c, pour, periode_de(p));
             le_signer = "le signer";
-            quoi = format!("le contrat d'engagement n° {} pour {}, du {} au {}", numero_de(p), titres[0], p.engagement.debut.jj_mm_aaaa(), fin_de(p)?);
+            quoi = format!("le {} n° {}{}, {}", nom_c, numero_de(p), pour, periode_de(p));
             exemplaire = "ton contrat";
         } else {
             sujet = if spectacles.len() == 1 {
@@ -467,7 +473,7 @@ pub fn demander_signature(ctx: &Contexte, d: &DemandeDeSignature, client: &mut d
             le_signer = "les signer";
             let mut morceaux = Vec::new();
             for (p, t) in ps.iter().zip(&titres) {
-                morceaux.push(format!("n° {} pour {}, du {} au {}", numero_de(p), t, p.engagement.debut.jj_mm_aaaa(), fin_de(p)?));
+                morceaux.push(format!("n° {} pour {}, {}", numero_de(p), t, periode_de(p)));
             }
             quoi = format!("les contrats d'engagement suivants : {}", morceaux.join(" ; "));
             exemplaire = "tes contrats";
@@ -589,7 +595,7 @@ pub fn verifier_demande(ctx: &Contexte, d: &DemandeDeSignature) -> R<()> {
         return Err(refus("Une relance renvoie le même contrat : elle n'en remplace aucun."));
     }
     let (_, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, d.mois, None)?;
-    let par_salarie = contrats_choisis(&d.choisis, d.mois, &paies)?;
+    let par_salarie = contrats_choisis(ctx, &d.choisis, d.mois, &paies)?;
     let tous: Vec<(String, String, String)> = paies.iter().map(|p| (cle_de(p), p.engagement.debut.iso(), p.engagement.numero.clone().unwrap_or_default())).collect();
     let cles: Vec<(String, String, String)> = par_salarie.iter().flat_map(|(_, _, rs)| rs.iter().map(|r| tous[*r].clone())).collect();
     verifier_relance(&d.etats_des_contrats, &cles)

@@ -10,10 +10,53 @@
     "_et_aussi": "Pour le CDDU du spectacle, la preuve n'est pas seulement le texte : cinquante DSN de CoolPaie (2021-2026) portent ces valeurs et ont toutes été acceptées. Pour les natures permanentes, il n'y a aucun réel en face — voir `_preuve` de chacune."
   },
 
+  "categories_d_emploi": {
+    "_quoi": "La catégorie d'emploi que le contrat écrit imprime (R. 1221-34, 3°, du code du travail : « la catégorie socioprofessionnelle ou la catégorie d'emploi »), lue sur le classement conventionnel du salarié (S21.G00.40.002), qui « correspond aux grandes catégories socio-professionnelles auxquelles chaque salarié appartient ».",
+    "_source": "atelier/reference/norme-dsn/texte/bloc-S21.G00.40.txt, l. 133-147 (les libellés de la norme) ; atelier/reference/sources/code-du-travail/xml/R1221-34.xml.",
+    "01": "agriculteur salarié de son exploitation",
+    "02": "artisan ou commerçant salarié de son entreprise",
+    "03": "cadre dirigeant",
+    "04": "cadre",
+    "05": "profession intermédiaire (technicien, contremaître, agent de maîtrise)",
+    "06": "employé administratif d'entreprise, de commerce, agent de service",
+    "07": "ouvrier"
+  },
+
   "natures": {
 
     "cddu_spectacle": {
       "libelle": "CDD d'usage du spectacle (intermittent)",
+      "contrat_ecrit": {
+        "_quoi": "Le contrat d'engagement : un CDD (L. 1242-2, 3°), donc les mentions de L. 1242-12, et l'information écrite de tout salarié (R. 1221-34). Mêmes règles que celui du CDD (voir `cdd.contrat_ecrit._quoi`) ; ses dates jouées disent sa durée du travail, sa date de paiement la périodicité.",
+        "_source": "Code du travail L. 1242-12 (atelier/reference/sources/code-du-travail/xml/L1242-12.xml), L. 1221-5-1, R. 1221-34 et R. 1221-35 (xml/L1221-5-1.xml, xml/R1221-34.xml, xml/R1221-35.xml).",
+        "nom": "contrat d'engagement",
+        "modele": "contrat-cddu.modele",
+        "_phrases": "Voir `cdd.contrat_ecrit._phrases`. Les congés de l'intermittent sont payés par la Caisse des Congés Spectacles ({congesspectacles} : le numéro d'adhérent de l'employeur).",
+        "phrases": {"motif": "un contrat à durée déterminée d'usage, conclu en application de l'article L. 1242-2, 3° du code du travail, et de l'accord interbranche du 12 octobre 1998 sur le recours au contrat à durée déterminée d'usage dans le spectacle", "formation": "Le salarié bénéficie des actions de formation que l'employeur assure en application de l'article L. 6321-1 du code du travail.", "conges": "Les congés payés sont réglés par la Caisse des Congés Spectacles, à laquelle l'employeur est affilié sous le numéro {congesspectacles}.", "rupture": "Le contrat cesse de plein droit à l'échéance de son terme (article L. 1243-5 du code du travail). Sauf accord des parties, il ne peut être rompu avant ce terme qu'en cas de faute grave, de force majeure ou d'inaptitude constatée par le médecin du travail (article L. 1243-1), ou à l'initiative du salarié qui justifie de la conclusion d'un contrat à durée indéterminée, avec le préavis de l'article L. 1243-2."},
+        "avenant": "avenant-cddu.modele",
+        "mentions": [
+          {"marqueur": "employeur.raison_sociale", "texte": "R. 1221-34, 1° : l'identité des parties"},
+          {"marqueur": "salarie.nom_complet", "texte": "R. 1221-34, 1° : l'identité des parties"},
+          {"marqueur": "employeur.adresse", "texte": "R. 1221-34, 2° : l'adresse de l'employeur"},
+          {"marqueur": "contrat.lieu", "texte": "R. 1221-34, 2° : le lieu de travail"},
+          {"marqueur": "contrat.motif", "texte": "L. 1242-12, premier alinéa : la définition précise de son motif"},
+          {"marqueur": "contrat.debut", "texte": "R. 1221-34, 4° : la date d'embauche"},
+          {"marqueur": "contrat.fin", "texte": "L. 1242-12, 2° : la date du terme"},
+          {"marqueur": "contrat.dates_travail", "texte": "R. 1221-34, 12° : la durée du travail (les dates de travail)"},
+          {"marqueur": "salarie.emploi", "texte": "L. 1242-12, 4° : la désignation de l'emploi occupé"},
+          {"marqueur": "salarie.categorie", "texte": "R. 1221-34, 3° : la catégorie d'emploi"},
+          {"marqueur": "employeur.convention", "texte": "L. 1242-12, 5° : l'intitulé de la convention collective applicable"},
+          {"marqueur": "contrat.periode_essai", "texte": "L. 1242-12, 6° : la durée de la période d'essai éventuellement prévue"},
+          {"marqueur": "remuneration.detail", "texte": "L. 1242-12, 7° : le montant de la rémunération et de ses composantes"},
+          {"marqueur": "contrat.date_paiement", "texte": "R. 1221-34, 11° : la date et les modalités de paiement de la rémunération"},
+          {"marqueur": "organismes.retraite", "texte": "L. 1242-12, 8° : le nom et l'adresse de la caisse de retraite complémentaire"},
+          {"marqueur": "organismes.prevoyance", "texte": "L. 1242-12, 8° : le nom et l'adresse de l'organisme de prévoyance"},
+          {"marqueur": "mentions.formation", "texte": "R. 1221-34, 8° : le droit à la formation"},
+          {"marqueur": "mentions.conges", "texte": "R. 1221-34, 9° : la durée du congé payé"},
+          {"marqueur": "mentions.rupture", "texte": "R. 1221-34, 10° : la procédure de cessation de la relation de travail"},
+          {"marqueur": "mentions.protection_sociale", "texte": "R. 1221-34, 14° : les régimes obligatoires et la protection sociale complémentaire"}
+        ]
+      },
       "_quoi": "L'engagement d'un artiste ou d'un technicien du spectacle, conclu pour la durée d'un spectacle ou d'une production. Payé au cachet (annexe X) ou à l'heure (annexe VIII), affilié aux Congés Spectacles, rattaché à un numéro d'objet.",
       "_preuve": "Les 146 contrats de l'historique CoolPaie et les 50 DSN de `export/DSN` (2021-2026) portent exactement ces valeurs, et la DSN d'août 2026 a été comparée caractère par caractère à celle que CoolPaie a déposée.",
       "paie": "activite",
@@ -190,6 +233,35 @@
 
     "cdi": {
       "libelle": "CDI de droit privé (permanent)",
+      "contrat_ecrit": {
+        "_quoi": "Le contrat écrit d'un CDI : le document qui porte les informations principales de la relation de travail (L. 1221-5-1). Mêmes règles que celui du CDD (voir `cdd.contrat_ecrit._quoi`), sans motif ni terme.",
+        "_source": "Code du travail L. 1221-5-1 et R. 1221-34 (atelier/reference/sources/code-du-travail/xml/L1221-5-1.xml, xml/R1221-34.xml), R. 1221-35 pour le renvoi aux textes ; L. 3123-6 pour le temps partiel (xml/L3123-6.xml). L'avenant : R. 1221-40, un document qui dit ce qui change (xml/R1221-40.xml).",
+        "nom": "contrat de travail à durée indéterminée",
+        "modele": "contrat-cdi.modele",
+        "_phrases": "Voir `cdd.contrat_ecrit._phrases`.",
+        "phrases": {"formation": "Le salarié bénéficie des actions de formation que l'employeur assure en application de l'article L. 6321-1 du code du travail.", "conges": "Le salarié a droit à un congé de deux jours et demi ouvrables par mois de travail effectif, dans la limite de trente jours ouvrables (article L. 3141-3 du code du travail), selon les modalités de la convention collective.", "rupture": "Le contrat peut être rompu par la démission du salarié, par le licenciement ou par une rupture conventionnelle (articles L. 1237-1, L. 1234-1 et L. 1237-11 du code du travail), avec le préavis que la loi ou la convention collective prévoit."},
+        "avenant": "avenant-permanent.modele",
+        "mentions": [
+          {"marqueur": "employeur.raison_sociale", "texte": "R. 1221-34, 1° : l'identité des parties"},
+          {"marqueur": "salarie.nom_complet", "texte": "R. 1221-34, 1° : l'identité des parties"},
+          {"marqueur": "employeur.adresse", "texte": "R. 1221-34, 2° : l'adresse de l'employeur"},
+          {"marqueur": "contrat.lieu", "texte": "R. 1221-34, 2° : le lieu de travail"},
+          {"marqueur": "salarie.emploi", "texte": "R. 1221-34, 3° : l'intitulé du poste"},
+          {"marqueur": "salarie.categorie", "texte": "R. 1221-34, 3° : la catégorie d'emploi"},
+          {"marqueur": "contrat.debut", "texte": "R. 1221-34, 4° : la date d'embauche"},
+          {"marqueur": "contrat.periode_essai", "texte": "R. 1221-34, 7° : la durée et les conditions de la période d'essai"},
+          {"marqueur": "remuneration.detail", "texte": "R. 1221-34, 11° : les éléments de la rémunération"},
+          {"marqueur": "contrat.paiement", "texte": "R. 1221-34, 11° : la périodicité et les modalités de paiement de la rémunération"},
+          {"marqueur": "contrat.duree_travail", "texte": "R. 1221-34, 12° : la durée du travail (et, à temps partiel, sa répartition : L. 3123-6, 1°)"},
+          {"marqueur": "employeur.convention", "texte": "R. 1221-34, 13° : les conventions collectives applicables"},
+          {"marqueur": "organismes.retraite", "texte": "R. 1221-34, 14° : la caisse de retraite complémentaire"},
+          {"marqueur": "organismes.prevoyance", "texte": "R. 1221-34, 14° : les contrats de protection sociale complémentaire"},
+          {"marqueur": "mentions.formation", "texte": "R. 1221-34, 8° : le droit à la formation"},
+          {"marqueur": "mentions.conges", "texte": "R. 1221-34, 9° : la durée du congé payé"},
+          {"marqueur": "mentions.rupture", "texte": "R. 1221-34, 10° : la procédure de cessation de la relation de travail"},
+          {"marqueur": "mentions.protection_sociale", "texte": "R. 1221-34, 14° : les régimes obligatoires et la protection sociale complémentaire"}
+        ]
+      },
       "_quoi": "Un salarié permanent de la compagnie : administration, direction, production. Payé au mois, congés payés pris chez l'employeur, aucun numéro d'objet, aucune caisse de congés payés.",
       "_preuve": "AUCUN réel en face. L'option CDI de CoolPaie est payante : il n'existe pas de bulletin de référence à recaler au centime. Ces valeurs sont lues dans le cahier technique 2026.1 et relues dans la 2027.1.1 ; un DÉPÔT DE TEST les confronte avant le premier contrat réel, et c'est le seul contrôle qu'on ait.",
       "paie": "mensuelle",
@@ -343,6 +415,38 @@
 
     "cdd": {
       "libelle": "CDD de droit privé (hors contrat d'usage)",
+      "contrat_ecrit": {
+        "_quoi": "Le contrat écrit de cette nature : son modèle livré, celui de son avenant, et les MENTIONS que la loi exige, chacune par son marqueur. Un modèle, livré ou propre à la compagnie (son dossier gabarits/), qui ne cite pas l'un de ces marqueurs ne fait pas de contrat (`documents::contrat_ecrit::refuser_les_mentions_absentes`). `si_dite` : la mention n'est due que si la saisie la dit (la personne remplacée, pour un remplacement).",
+        "_source": "Le CDD « est établi par écrit » avec ses mentions (code du travail L. 1242-12, atelier/reference/sources/code-du-travail/xml/L1242-12.xml) ; tout salarié reçoit par écrit les informations principales de sa relation de travail (L. 1221-5-1, R. 1221-34 pour leur liste, R. 1221-35 pour le renvoi aux textes permis aux 7° à 12° et 14° ; xml/L1221-5-1.xml, xml/R1221-34.xml, xml/R1221-35.xml) ; le temps partiel est écrit avec sa durée et sa répartition (L. 3123-6, xml/L3123-6.xml).",
+        "nom": "contrat de travail à durée déterminée",
+        "modele": "contrat-cdd.modele",
+        "_phrases": "Ce que les mentions de renvoi disent (R. 1221-35 permet le renvoi aux textes pour les 7° à 12° et 14° de R. 1221-34) : chacune cite l'article déposé qu'elle résume (atelier/reference/sources/code-du-travail/articles-20261029.md).",
+        "phrases": {"formation": "Le salarié bénéficie des actions de formation que l'employeur assure en application de l'article L. 6321-1 du code du travail.", "conges": "Le salarié a droit à un congé de deux jours et demi ouvrables par mois de travail effectif, dans la limite de trente jours ouvrables (article L. 3141-3 du code du travail), selon les modalités de la convention collective.", "rupture": "Le contrat cesse de plein droit à l'échéance de son terme (article L. 1243-5 du code du travail). Sauf accord des parties, il ne peut être rompu avant ce terme qu'en cas de faute grave, de force majeure ou d'inaptitude constatée par le médecin du travail (article L. 1243-1), ou à l'initiative du salarié qui justifie de la conclusion d'un contrat à durée indéterminée, avec le préavis de l'article L. 1243-2."},
+        "avenant": "avenant-permanent.modele",
+        "mentions": [
+          {"marqueur": "employeur.raison_sociale", "texte": "R. 1221-34, 1° : l'identité des parties"},
+          {"marqueur": "salarie.nom_complet", "texte": "R. 1221-34, 1° : l'identité des parties"},
+          {"marqueur": "employeur.adresse", "texte": "R. 1221-34, 2° : l'adresse de l'employeur"},
+          {"marqueur": "contrat.lieu", "texte": "R. 1221-34, 2° : le lieu de travail"},
+          {"marqueur": "contrat.motif", "texte": "L. 1242-12, premier alinéa : la définition précise de son motif"},
+          {"marqueur": "contrat.personne_remplacee", "texte": "L. 1242-12, 1° : le nom et la qualification de la personne remplacée", "si_dite": true},
+          {"marqueur": "contrat.fin", "texte": "L. 1242-12, 2° : la date du terme"},
+          {"marqueur": "salarie.emploi", "texte": "L. 1242-12, 4° : la désignation du poste ou de l'emploi occupé"},
+          {"marqueur": "salarie.categorie", "texte": "R. 1221-34, 3° : la catégorie d'emploi"},
+          {"marqueur": "contrat.debut", "texte": "R. 1221-34, 4° : la date d'embauche"},
+          {"marqueur": "employeur.convention", "texte": "L. 1242-12, 5° : l'intitulé de la convention collective applicable"},
+          {"marqueur": "contrat.periode_essai", "texte": "L. 1242-12, 6° : la durée de la période d'essai éventuellement prévue"},
+          {"marqueur": "remuneration.detail", "texte": "L. 1242-12, 7° : le montant de la rémunération et de ses composantes"},
+          {"marqueur": "contrat.paiement", "texte": "R. 1221-34, 11° : la périodicité et les modalités de paiement de la rémunération"},
+          {"marqueur": "contrat.duree_travail", "texte": "R. 1221-34, 12° : la durée du travail (et, à temps partiel, sa répartition : L. 3123-6, 1°)"},
+          {"marqueur": "organismes.retraite", "texte": "L. 1242-12, 8° : le nom et l'adresse de la caisse de retraite complémentaire"},
+          {"marqueur": "organismes.prevoyance", "texte": "L. 1242-12, 8° : le nom et l'adresse de l'organisme de prévoyance"},
+          {"marqueur": "mentions.formation", "texte": "R. 1221-34, 8° : le droit à la formation"},
+          {"marqueur": "mentions.conges", "texte": "R. 1221-34, 9° : la durée du congé payé"},
+          {"marqueur": "mentions.rupture", "texte": "R. 1221-34, 10° : la procédure de cessation de la relation de travail"},
+          {"marqueur": "mentions.protection_sociale", "texte": "R. 1221-34, 14° : les régimes obligatoires et la protection sociale complémentaire"}
+        ]
+      },
       "_quoi": "Un CDD ordinaire : remplacement, accroissement temporaire d'activité, emploi saisonnier. Payé au mois comme un CDI, avec une date de fin, un motif de recours, et une indemnité de fin de contrat (précarité) sauf exclusion légale.",
       "_preuve": "AUCUN réel en face — voir `cdi._preuve`. Même origine, mêmes garde-fous.",
       "paie": "mensuelle",
@@ -388,14 +492,14 @@
           "quoi": "Motif de recours. OBLIGATOIRE (SIG-11) pour une nature 02 sans dispositif de politique publique. Il se saisit : c'est lui qui rend le CDD licite au regard de l'article L.1242-2.",
           "obligatoire": true,
           "valeurs": [
-            {"code": "01", "libelle": "Remplacement d'un salarié"},
+            {"code": "01", "libelle": "Remplacement d'un salarié", "personne_remplacee": true},
             {"code": "02", "libelle": "Accroissement temporaire de l'activité de l'entreprise"},
             {"code": "03", "libelle": "Emplois à caractère saisonnier"},
             {"code": "06", "libelle": "Contrat à durée déterminée à objet défini"},
             {"code": "09", "libelle": "Recrutement de personnes sans emploi rencontrant des difficultés sociales et professionnelles particulières"},
             {"code": "10", "libelle": "Complément de formation professionnelle au salarié"},
-            {"code": "12", "libelle": "Remplacement d'un salarié passé provisoirement à temps partiel"},
-            {"code": "13", "libelle": "Attente de la suppression définitive du poste du salarié ayant quitté définitivement l'entreprise"}
+            {"code": "12", "libelle": "Remplacement d'un salarié passé provisoirement à temps partiel", "personne_remplacee": true},
+            {"code": "13", "libelle": "Attente de la suppression définitive du poste du salarié ayant quitté définitivement l'entreprise", "personne_remplacee": true}
           ],
           "_sans_05": "Le motif « 05 - Contrat d'usage » n'est pas dans cette liste : un contrat d'usage se saisit comme un `cddu_spectacle`, avec tout ce qui va avec (numéro d'objet, Congés Spectacles, circuit dérogatoire). Le proposer ici ferait deux façons de déclarer la même chose, dont une fausse."
         },
