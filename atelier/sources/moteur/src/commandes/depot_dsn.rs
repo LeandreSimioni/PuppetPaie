@@ -93,7 +93,7 @@ fn afficher_apercu(chemin: &str, a: &Apercu, essai: bool) {
         dire!("\nPRELEVEMENT A LA SOURCE : {} versement(s) sur {} partent sur la", a.pas_bareme, a.pas_versements);
         dire!("GRILLE PAR DEFAUT (art. 204 H du CGI), faute de taux de la DGFiP.");
         dire!("  Qui, et pourquoi :  paie pas");
-        dire!("  Ce qui les remplit :  moteur retours --appliquer");
+        dire!("  Ce qui les remplit :  moteur retours");
     }
 }
 
