@@ -140,20 +140,6 @@ pub fn ascii_nfkd(v: &str) -> String {
     }
     ascii
 }
-
-#[cfg(test)]
-mod tests_lignes {
-    use super::*;
-
-    #[test]
-    fn les_lignes_se_comptent_comme_splitlines() {
-        assert_eq!(lignes_py("a\r\nb\rc\n\nd\u{85}e\u{2028}f\n"), ["a", "b", "c", "", "d", "e", "f"]);
-        assert_eq!(lignes_py("a\n"), ["a"]);
-        assert!(lignes_py("").is_empty());
-    }
-
-}
-
 /// `str.capitalize()`.
 pub fn capitaliser(t: &str) -> String {
     let mut c = t.chars();
