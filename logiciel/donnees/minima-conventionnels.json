@@ -12,7 +12,7 @@
   "annexe": "la fiche entreprise dit son annexe de la CCN 3090 (`annexe_convention`). Sans elle, le moteur prend le plus bas des minima des annexes ou le metier a une ligne, et le dit."
  },
  "3090": {
-  "libelle": "CCN des entreprises du secteur prive du spectacle vivant",
+  "libelle": "CCN des entreprises du secteur privé du spectacle vivant",
   "source": "legifrance-3090-avenant-salaires-20250721",
   "texte": "avenant du 21/07/2025, etendu par arrete du 17/02/2026 (JO 24/02/2026)",
   "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000028157262",
@@ -2996,7 +2996,7 @@
   }
  },
   "3252": {
-    "libelle": "CCN des entreprises au service de la creation et de l'evenement (IDCC 3252)",
+    "libelle": "CCN des entreprises au service de la création et de l'événement (IDCC 3252)",
     "source": "kali-entrepot",
     "texte": "CCN du 27/06/2024, art. 7.2, 7.3 et annexes I a V, version de l'avenant n° 3 du 22/04/2025 ; doublage : avenant n° 1 du 07/11/2022 ; mannequins : avenant n° 2 du 22/01/2025",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000051346072",
@@ -5014,7 +5014,7 @@
     }
   },
   "3241": {
-    "libelle": "CCN de la telediffusion (IDCC 3241)",
+    "libelle": "CCN de la télédiffusion (IDCC 3241)",
     "source": "kali-entrepot",
     "texte": "accords du 11/05/2026 (permanents ; CDDU), au 01/06/2026",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000044261829",
@@ -5159,7 +5159,7 @@
     }
   },
   "1734": {
-    "libelle": "CCN des artistes-interpretes engages pour des emissions de television (IDCC 1734)",
+    "libelle": "CCN des artistes-interprètes engagés pour des émissions de télévision (IDCC 1734)",
     "source": "kali-entrepot",
     "texte": "avenant du 18/01/2024, au 01/02/2024",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635286",
@@ -5203,7 +5203,7 @@
     }
   },
   "2121": {
-    "libelle": "CCN de l'edition, annexe IX (edition phonographique) (IDCC 2121)",
+    "libelle": "CCN de l'édition, annexe IX (édition phonographique) (IDCC 2121)",
     "source": "kali-entrepot",
     "texte": "accord NAO du 03/02/2026 de l'edition phonographique, au 01/03/2026",
     "lien": "https://www.legifrance.gouv.fr/conv_coll/id/KALICONT000005635096",

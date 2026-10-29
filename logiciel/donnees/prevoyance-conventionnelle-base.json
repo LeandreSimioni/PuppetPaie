@@ -24,7 +24,7 @@
   },
   "conventions": {
     "3090": {
-      "libelle": "Entreprises du secteur prive du spectacle vivant",
+      "libelle": "Entreprises du secteur privé du spectacle vivant",
       "organisme": "AUDIENS (Audiens Sante Prevoyance) -- designe par la branche",
       "texte": "CCN du 03/02/2012, clauses communes, titre XII << Prevoyance >>, article 12.6",
       "en_vigueur": "2013-07-01",
@@ -93,7 +93,7 @@
       }
     },
     "1285": {
-      "libelle": "Entreprises artistiques et culturelles (CCNEAC) -- le secteur subventionne",
+      "libelle": "Entreprises artistiques et culturelles (CCNEAC) -- le secteur subventionné",
       "organisme": "AUDIENS (Audiens Prevoyance) -- designe par la branche (XII.2.3.2)",
       "texte": "CCN du 01/01/1984, titre XII << Retraite et prevoyance >>, article XII.2 (XII.2.1.2 pour les cadres permanents, XII.2.1.5 pour les non cadres)",
       "en_vigueur": "2016-01-01",
@@ -201,7 +201,7 @@
       "_sante": "La 2642 n'a PAS de regime de frais de sante (rien au titre IX ni ailleurs dans la base KALI au 25/09/2026) : c'est le contrat de chaque entreprise, au minimum legal (art. L911-7 CSS, la moitie a la charge de l'employeur). Le moteur ne sait pas encore le lire et refuse (`calcul.bareme_sante`)."
     },
     "3097": {
-      "libelle": "Production cinematographique et de films publicitaires",
+      "libelle": "Production cinématographique et de films publicitaires",
       "organisme": "aucun designe : la convention n'a pas de regime de prevoyance pour ses permanents",
       "texte": "CCN du 19/01/2012, titre IV << Salaries permanents >>, chapitre VII << Sante, prevoyance >>",
       "en_vigueur": "2022-09-01",
@@ -224,7 +224,7 @@
       "_sante": "Pas de regime de branche : le contrat de chaque entreprise, au minimum legal (art. L911-7 CSS). Son taux se pose sur la fiche Entreprise (`sante_permanents.taux_contrat`), comme pour la 2642."
     },
     "3252": {
-      "libelle": "Entreprises au service de la creation et de l'evenement",
+      "libelle": "Entreprises au service de la création et de l'événement",
       "organisme": "aucun designe : l'entreprise adhere au dispositif de branche ou a un contrat d'entreprise aux garanties au moins equivalentes (8.4.2 B, 8.4.3 A) ; Audiens ne gere que le fonds de solidarite (8.4.4 B)",
       "texte": "CCN du 27/06/2024, titre VIII, section 8.4 << Protection sociale complementaire >>, articles 8.4.2 (sante) et 8.4.3 (prevoyance)",
       "en_vigueur": "2026-01-01",
@@ -258,7 +258,7 @@
       }
     },
     "3241": {
-      "libelle": "Telediffusion",
+      "libelle": "Télédiffusion",
       "organisme": "aucun designe : << avec un organisme de prevoyance >> (article 54.1), au choix de l'entreprise",
       "texte": "CCN du 02/07/2021, article 54 et annexe 6 << Regime de prevoyance >> (avenant du 30/09/2022)",
       "en_vigueur": "2024-01-01",
@@ -357,7 +357,7 @@
       "_sante": "Pas de regime de branche (rien dans la base KALI au 27/09/2026) : le contrat de chaque entreprise, au minimum legal (L911-7 CSS), taux sur la fiche Entreprise (`sante_permanents.taux_contrat`)."
     },
     "2121": {
-      "libelle": "Edition phonographique (IDCC 2121, annexe IX)",
+      "libelle": "Édition phonographique (IDCC 2121, annexe IX)",
       "organisme": "AUDIENS Sante Prevoyance (avec l'OCIRP pour la rente education) et un second assureur co-recommande, nomme a l'article 8 (son nom n'est pas recopie ici : il contient celui d'une commune, que le garde-fou des donnees privees refuse) -- RECOMMANDES (article 8), pas designes : une entreprise peut s'assurer ailleurs, aux memes garanties au moins",
       "texte": "Accord du 13/12/2024 relatif a la prevoyance de l'edition, article 6",
       "en_vigueur": "2025-01-01",

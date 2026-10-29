@@ -1783,7 +1783,7 @@
     "_regle": "Une convention SANS couche ici fait REFUSER le moteur. C'est le point : payer un salarie d'une autre branche avec les cotisations de la 3090 -- une CASC-SVP qu'il ne doit pas, un FNAS qu'il doit et qui manque -- ne se verrait sur aucun bulletin. Une couche `applicable: false` refuse aussi : ses nombres sont releves, pas confirmes.",
     "_ce_qui_reste_dans_le_socle": "Tout ce qui ne depend pas de la convention : les taux Urssaf, l'Agirc-Arrco, la CSG, le plafond, le SMIC -- et les regimes du SPECTACLE qui sont interbranches : Conges Spectacles (15,50 %, la meme caisse pour la 3090 et la 1285), chomage 9,75 / 2,40 des annexes 8 et 10, prevoyance des intermittents NON CADRES (0,12 / 1,11 en TA, identique dans les deux conventions -- verifie sur les taux Audiens 2026), formation professionnelle des intermittents 2,00 %, medecine du travail Thalie Sante 0,42 %.",
     "3090": {
-      "libelle": "Entreprises du secteur prive du spectacle vivant",
+      "libelle": "Entreprises du secteur privé du spectacle vivant",
       "applicable": true,
       "_source": "C'est la convention de la compagnie qui a servi a ecrire ce socle : ces valeurs sont celles que cinq ans de declarations acceptees ont prouvees (`moteur calibrer`). Elles sont ecrites ici, et non plus seulement dans le corps, pour qu'on VOIE ce qui changerait sous une autre convention.",
       "bareme": {
@@ -1816,7 +1816,7 @@
       }
     },
     "1285": {
-      "libelle": "Entreprises artistiques et culturelles (CCNEAC) -- le secteur subventionne",
+      "libelle": "Entreprises artistiques et culturelles (CCNEAC) -- le secteur subventionné",
       "applicable": true,
       "_confirme": "CONFIRMEE le 23/09/2026 sur la base KALI de la DILA (atelier/reference/sources/kali-1285-titres-ii-iii-x-xi-xii-20260923.md), point par point de ce qui la retenait : (1) la contribution conventionnelle Afdas des intermittents est la MEME que celle de la 3090 -- les trois bulletins d'exemple CCNEAC de la web-conference Audiens 2026 (p. 5) portent la formation professionnelle a 2,1, comme celui de la 3090 (p. 12) : l'agregat `autres_1` ne change pas ; ce que la CCNEAC ajoute a cote est le FCAP (0,25 %, II.2.1) ; (2) la tranche B des cadres est << entre ce plafond et l'equivalent de 4 plafonds >> (en-tete de l'article XII.2) -- pour un intermittent, le plafond journalier, d'ou `t2_prevoyance_journaliere` ; et elle ne vise que les cadres qui effectuent des prestations TECHNIQUES (XII.2.2.1), les artistes cadres restant a l'interbranche (XII.2.2.4) ; (3) le CSEC est un fait de l'entreprise, lu sur sa fiche (`representation_personnel`) ; (4) la prevoyance des permanents est confirmee dans prevoyance-conventionnelle-base.json, avec leurs frais de sante (0,81 % du PMSS en 2026) ; (5) les lignes DSN du FNAS et du FCAP vont sous les adhesions Audiens de la compagnie, comme la CASC-SVP de la 3090 (`contributions_dsn`).",
       "bareme": {
@@ -1966,7 +1966,7 @@
       }
     },
     "3097": {
-      "libelle": "Production cinematographique et de films publicitaires",
+      "libelle": "Production cinématographique et de films publicitaires",
       "hors_bulletin": {
         "_quoi": "Ce que la 3097 fait payer une fois l'an a l'Afdas, les MEMES contributions que la 2642 aux memes taux : l'Afdas range << l'audiovisuel et la production cinematographique >> dans un seul tableau (page << Taux de contribution formation continue >>, relue le 25/09/2026 : 0,45 / 0,30 / 0,20 % ; paritarisme / dialogue social 0,004 %, 15 a 2 000 EUR HT) et sa page 2026 nomme la production cinematographique parmi les branches de la CPNEF de l'audiovisuel. Lu par `operations_etats.afdas_2642`. Montants hors taxes.",
         "cpnef_dialogue_social": {
@@ -2074,7 +2074,7 @@
       }
     },
     "3252": {
-      "libelle": "Entreprises au service de la creation et de l'evenement",
+      "libelle": "Entreprises au service de la création et de l'événement",
       "hors_bulletin": {
         "_quoi": "Ce que la 3252 fait payer une fois l'an, hors DSN et hors bulletin : la contribution au financement du paritarisme, collectee par l'association de gestion du paritarisme (AGP) sur la masse salariale de l'annee civile passee. `operations_etats.paritarisme_branche` la calcule sur le livre de paie (journal §151).",
         "financement_paritarisme": {
@@ -2101,7 +2101,7 @@
       }
     },
     "3241": {
-      "libelle": "Telediffusion",
+      "libelle": "Télédiffusion",
       "hors_bulletin": {
         "_quoi": "Ce que la 3241 fait payer une fois l'an, hors bulletin : la contribution au paritarisme (article 11), sur la masse salariale de l'annee precedant la collecte, 50 EUR au moins. `operations_etats.paritarisme_branche` la calcule (journal §151).",
         "financement_paritarisme": {
@@ -2180,7 +2180,7 @@
       }
     },
     "2121": {
-      "libelle": "Edition -- l'edition phonographique seule (annexe IX, ex-2770)",
+      "libelle": "Édition -- l'édition phonographique seule (annexe IX, ex-2770)",
       "hors_bulletin": {
         "_quoi": "Le financement du paritarisme de l'edition phonographique (APEP) : annuel, sur la masse de l'annee precedente, appele par l'AGEPRO, hors DSN. `operations_etats.paritarisme_branche` le calcule.",
         "financement_paritarisme": {
