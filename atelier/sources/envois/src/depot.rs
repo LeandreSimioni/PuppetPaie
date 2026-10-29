@@ -47,19 +47,19 @@ pub const LECTURE: [(&str, &str); 14] = [
 
 pub const NATURES: [(&str, &str); 7] = [
     ("01", "DSN mensuelle"),
-    ("04", "signalement arret de travail"),
-    ("05", "signalement reprise suite a arret de travail"),
+    ("04", "signalement arrêt de travail"),
+    ("05", "signalement reprise suite à arrêt de travail"),
     ("07", "signalement fin de contrat de travail unique"),
-    ("08", "signalement amorcage des donnees variables"),
+    ("08", "signalement amorçage des données variables"),
     ("09", "DSN de substitution"),
-    ("10", "signalement declaration prealable a l'embauche"),
+    ("10", "signalement déclaration préalable à l'embauche"),
 ];
 
 pub const TYPES: [(&str, &str); 5] = [
-    ("01", "declaration normale"),
-    ("02", "declaration normale sans individu"),
-    ("03", "annule et remplace integral"),
-    ("04", "declaration annule"),
+    ("01", "déclaration normale"),
+    ("02", "déclaration normale sans individu"),
+    ("03", "annule et remplace intégral"),
+    ("04", "déclaration annule"),
     ("05", "annule et remplace sans individu"),
 ];
 

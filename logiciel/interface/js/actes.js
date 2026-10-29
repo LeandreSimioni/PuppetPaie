@@ -34,8 +34,8 @@ function ouvrirGeste(action, mois) {
   }
 }
 
-/** La classe d'une case, d'après l'état du groupe (la feuille de style en fait la couleur). */
-const CASE_DE_L_ETAT = { fait: "vert", a_faire: "orange", en_attente: "en-attente", refuse: "rouge" };
+/** La classe d'une case : la couleur que le moteur donne au groupe (`couleur`) ; une attente se dessine en deux moitiés. */
+const classeDeCase = (g) => g.etat === "en_attente" ? "en-attente" : (g.couleur || "gris");
 
 /** Les colonnes déjà dessinées pour un mois : une colonne qui apparaît entre en glissant. */
 const COLONNES_VUES = new Map();
@@ -44,7 +44,7 @@ const COLONNES_VUES = new Map();
 function dessinerCase(et, k, g, colonnes, neuves, gestes) {
   const de = colonnes.indexOf(g.colonnes[0]) + 1;
   const a = colonnes.indexOf(g.colonnes[g.colonnes.length - 1]) + 2;
-  const classe = CASE_DE_L_ETAT[g.etat] || "orange";
+  const classe = classeDeCase(g);
   const fini = g.etat === "fait";
   const cote = g.colonnes[0] !== colonnes[0];
   const neuf = g.colonnes.some((c) => neuves.has(c));
@@ -60,7 +60,7 @@ function dessinerCase(et, k, g, colonnes, neuves, gestes) {
     ? `<span class="compte">${echapper(g.compte_texte)}</span> ` : ""}${echapper(g.quoi || "")}</span>`;
   const limite = ech ? `<span class="ech">${echapper(ech)}</span>` : "";
   const corps = g.etat === "en_attente" ? `
-      <span class="moitie faite"><span class="etape-rond">✓</span><b>${echapper(et.nom)}</b></span>
+      <span class="moitie faite"><span class="etape-rond">✓</span>${cote ? "" : `<b>${echapper(et.nom)}</b>`}</span>
       <span class="moitie attend"><span class="kase-texte">${quoi}${limite}</span></span>` : `
       <span class="etape-rond">${fini ? "✓" : k + 1}</span>
       <span class="kase-texte">
@@ -130,7 +130,7 @@ function dessinerArbre(liste) {
     const a = attend ? attend.getBoundingClientRect() : r;
     return { el, r, x: a.left + a.width / 2 };
   });
-  const ouvert = (el) => !el.classList.contains("vert");
+  const ouvert = (el) => !el.classList.contains("vert") && !el.classList.contains("gris");
   const couleur = (h, b) => ouvert(h) && ouvert(b) ? "orange" : "vert";
   const traits = [];
   for (let i = 0; i < rangs.length - 1; i++) {
@@ -242,7 +242,7 @@ function corpsDsn(a) {
       ${a.pas_versements} partent sur la grille par défaut</b>
       Faute de taux transmis par la DGFiP, c'est la grille de l'article 204 H
       du CGI qui s'applique — c'est ce que la loi prévoit, et le dépôt n'est
-      pas bloqué. Mais elle prélève le plus souvent <b>plus</b> que le taux
+      pas bloqué. Mais elle prélève le plus souvent <em>plus</em> que le taux
       réel du salarié, qui ne récupère la différence qu'à sa déclaration de
       revenus l'année suivante. Relever les retours avant de déposer peut
       encore changer cela.</div>` : ""}
@@ -727,8 +727,7 @@ async function boiteEnvoi(mois) {
     try {
       const r = await api("documents-imprimer", { mois, salaries });
       fermerBoite();
-      dire("Documents de " + r.salaries.length + " salarié(s) à imprimer.", "envoye");
-      await ouvrirImpression(mois, r.impression);
+      await ouvrirImpression(mois, r.impression, "Documents de " + r.salaries.length + " salarié(s) à imprimer.");
       await rafraichirActions();
     } catch (e) {
       rendre();
@@ -766,11 +765,12 @@ function signeLe(quandRecu, par) {
   return (par === "courriel" ? "signé d'un clic le " : "signé, reçu le ") + quand(quandRecu);
 }
 
-/** LE PDF À IMPRIMER s'ouvre : le moteur l'a écrit (`impression`), la fenêtre l'ouvre. */
-async function ouvrirImpression(mois, fichier) {
+/** LE PDF À IMPRIMER s'ouvre : le moteur l'a écrit (`impression`), la fenêtre l'ouvre,
+ *  et le message dit ce qui est à imprimer (`quoi`) et où est le PDF (la phrase du moteur). */
+async function ouvrirImpression(mois, fichier, quoi) {
   try {
     const r = await api("ouvrir-piece", { impression: mois, fichier });
-    if (r && r.phrase) dire(r.phrase);
+    dire([quoi, r && r.phrase].filter(Boolean).join(" "), "envoye");
   } catch (e) { dire(e.message, "erreur"); }
 }
 
@@ -810,8 +810,10 @@ async function boiteSignature(mois, seulement) {
           <span><b>${echapper(c.nom)}</b> — ${echapper(c.spectacle)},
             ${echapper(periodeEnClair(c.debut, c.fin))}
             ${c.numero ? `<span class="discret">(contrat n° ${echapper(c.numero)})</span>` : ""}
-            ${a.boite_liee ? `<br><span class="discret">${echapper(c.destinataire)
-              || "aucun courriel dans la fiche — l'envoi sera refusé"}</span>` : ""}
+            ${a.boite_liee ? (c.destinataire ? `<br><span class="discret">${echapper(c.destinataire)}</span>`
+              : `<br><span class="s-courriel">pas de courriel dans sa fiche :
+                  <input type="email" class="s-courriel-saisi" placeholder="son courriel" data-salarie="${echapper(c.salarie)}">
+                  <button type="button" class="lien s-courriel-poser" data-salarie="${echapper(c.salarie)}">Enregistrer</button></span>`) : ""}
             ${c.en_avenant ? `<br><span class="pastille alerte">${echapper(c.pourquoi
               || "l'engagement a changé depuis la signature")} — signé : partira en avenant</span>
               <button class="lien s-avenant" data-salarie="${echapper(c.salarie)}"
@@ -844,15 +846,33 @@ async function boiteSignature(mois, seulement) {
     try {
       const r = await api("contrats-imprimer", { mois, contrats: choisis, avenants });
       fermerBoite();
-      dire("À imprimer : " + [...r.contrats.map((c) => "contrat n° " + c.numero),
-        ...r.avenants.map((c) => "avenant n° " + c.avenant + " au contrat n° " + c.numero)].join(", ") + ".", "envoye");
-      await ouvrirImpression(mois, r.impression);
+      await ouvrirImpression(mois, r.impression, "À imprimer : " + [...r.contrats.map((c) => "contrat n° " + c.numero),
+        ...r.avenants.map((c) => "avenant n° " + c.avenant + " au contrat n° " + c.numero)].join(", ") + ".");
       await rafraichirActions();
     } catch (e) {
       rendre();
       dire(e.message, "erreur");
     }
   };
+  // LE COURRIEL QUI MANQUE se saisit ici : il s'enregistre dans la fiche du
+  // salarié (`poser-courriel`), et la boîte se rouvre avec lui.
+  document.querySelectorAll(".s-courriel-poser").forEach((b) => {
+    b.onclick = async (ev) => {
+      ev.preventDefault();                 // le bouton est dans un <label>
+      const champ = document.querySelector(`.s-courriel-saisi[data-salarie="${CSS.escape(b.dataset.salarie)}"]`);
+      try {
+        await api("poser-courriel", { salarie: b.dataset.salarie, email: champ ? champ.value : "" });
+      } catch (e) { dire(e.message, "erreur"); return; }
+      ETAT = await api("etat");
+      const gardes = [...document.querySelectorAll(".s-qui:checked")].map((c) => c.value);
+      fermerBoite();
+      dire("Courriel enregistré dans la fiche.", "envoye");
+      boiteSignature(mois, gardes);
+    };
+  });
+  document.querySelectorAll(".s-courriel-saisi").forEach((c) => {
+    c.onclick = (ev) => ev.preventDefault();   // dans un <label> : ne pas cocher la case
+  });
   document.querySelectorAll(".s-avenant").forEach((b) => {
     b.onclick = (ev) => {
       ev.preventDefault();                 // le bouton est dans un <label>

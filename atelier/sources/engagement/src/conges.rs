@@ -982,10 +982,8 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
         Some(s) => s,
         None => {
             return Err(format!(
-                "Contrat {} ({}) : le salaire mensuel n'est pas dit \
-                 (`salaire_mensuel`). Il figure au contrat signe ; le moteur ne \
-                 l'invente pas.",
-                numero(e),
+                "{} : quel salaire mensuel brut ? Il se lit sur le contrat signé, et se tape dans la case \
+                 « Salaire mensuel brut » de l'engagement.",
                 nat.libelle
             ))
         }

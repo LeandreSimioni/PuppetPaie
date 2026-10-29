@@ -131,7 +131,7 @@ function dessinerConfig() {
     const av = f.anomalies.length - err;
     const archive = d.actif === false;
     const titre = salarie
-      ? `${d.nom || ""} ${d.prenom_affichage || d.prenom || ""}`.trim()
+      ? `${String(d.nom_affichage || d.nom || "").toUpperCase()} ${d.prenom_affichage || d.prenom || ""}`.trim()
       : String(d.titre || "").trim();
     // Un numero d'objet importe de CoolPaie n'a pas de titre : le moteur
     // pose « A COMPLETER », que la ligne dit en minuscules.
@@ -821,19 +821,24 @@ function brancherImportation() {
 async function apercuImportation() {
   IMPORT_DOSSIER = document.getElementById("import-dossier").value.trim();
   const cible = document.getElementById("import-resultat");
-  cible.innerHTML = `<p class="discret">Lecture du dossier…</p>`;
+  // LE GESTE QUI ATTEND SE VOIT : le bouton dit qu'il lit, la page qu'elle travaille.
+  const rendre = occupe(document.getElementById("import-apercu"), "Lecture des fichiers…");
+  cible.innerHTML = `<p class="discret">Lecture du dossier, fichier par fichier…</p>`;
   try {
     const r = await api("importation-apercu", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
     brancherImportation();
   } catch (e) {
     cible.innerHTML = `<div class="encart erreur">${echapper(e.message)}</div>`;
+  } finally {
+    rendre();
   }
 }
 
 async function ecrireImportation() {
   const cible = document.getElementById("import-resultat");
   cible.classList.add("attente");
+  occupe(document.getElementById("import-ecrire"), "Reprise en cours : les fiches, les contrats, puis chaque bulletin…");
   try {
     const r = await api("importer", { dossier: IMPORT_DOSSIER });
     cible.innerHTML = vueImportation(r);
@@ -1189,7 +1194,15 @@ const LIBELLES_CHOIX = {
   },
   statut: {
     "artiste": "Artiste",
-    "technicien": "Technicien, ou autre emploi non artistique",
+    "technicien": "Autre emploi : technicien, administration, production, diffusion…",
+  },
+  categorie_conventionnelle: {
+    "artiste": "Artiste",
+    "employe": "Employé",
+    "technicien": "Technicien",
+    "agent_de_maitrise": "Agent de maîtrise",
+    "cadre": "Cadre",
+    "cadre_de_direction": "Cadre de direction",
   },
   statut_categoriel_rc: {
     "04": "Non cadre",

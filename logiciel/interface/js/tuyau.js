@@ -508,6 +508,13 @@ function occupe(bouton, texte) {
 const echapper = (s) => String(s ?? "").replace(/[&<>"]/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/* LA PASTILLE D'UN ÉTAT : le moteur dit la couleur (`vert` fait, `orange`
+ * à faire, `rouge` refusé, `gris` une information) et les mots ; la page
+ * les dessine, sans choisir. */
+const CLASSE_DE_COULEUR = { vert: "bien", orange: "alerte", rouge: "erreur", gris: "info" };
+const pastilleDeLEtat = (p) => p && p.mots
+  ? `<span class="pastille ${CLASSE_DE_COULEUR[p.couleur] ?? ""}">${echapper(p.mots)}</span>` : "";
+
 /* Une phrase du moteur qui porte un lien (le texte d'une convention) :
  * echappee d'abord, puis l'adresse https devient cliquable. Le point
  * qui clot la phrase reste dehors. */

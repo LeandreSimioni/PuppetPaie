@@ -287,7 +287,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "type_declaration": genre,
         "libelle_type": TYPES.iter().find(|(c, _)| *c == genre).map_or("?", |(_, l)| *l),
         "ordre": a.champ("ordre"), "fraction": a.champ("fraction"),
-        "remplace": a.champ("remplace"), "constitution": a.champ("constitution"),
+        "remplace": a.champ("remplace"), "constitution": en_clair_jjmmaaaa(&a.champ("constitution")),
         "siren": a.champ("siren"), "salaries": a.salaries, "lignes": a.lignes,
         "pas_versements": a.pas_versements, "pas_bareme": a.pas_bareme,
         "ordres": ordres, "ordres_erreur": ordres_erreur,
@@ -296,4 +296,13 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         "recapitulatif": recapitulatif,
         "repetition": repetition,
     }))
+}
+
+/// Une date de la norme (JJMMAAAA, S20.G00.05.007) telle qu'on la lit : JJ/MM/AAAA. Autre chose se montre tel quel.
+fn en_clair_jjmmaaaa(d: &str) -> String {
+    if d.len() == 8 && d.bytes().all(|b| b.is_ascii_digit()) {
+        format!("{}/{}/{}", &d[..2], &d[2..4], &d[4..])
+    } else {
+        d.to_string()
+    }
 }

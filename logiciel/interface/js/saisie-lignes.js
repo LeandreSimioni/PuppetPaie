@@ -846,8 +846,9 @@ function construireCarte(div, e) {
         <label>Salaire mensuel brut
           <input type="number" step="0.01" min="0" class="e-salaire"
                  placeholder="celui du contrat signé"></label>
-        <label title="la quotité de travail du contrat (S21.G00.40.013)">Quotité
-          <input type="number" step="0.01" min="0" class="e-quotite"></label>
+        <label title="la durée du travail du contrat, en heures par mois (S21.G00.40.013)">Heures par mois
+          <input type="number" step="0.01" min="0" class="e-quotite">
+          <button type="button" class="lien e-temps-plein" hidden></button></label>
         <!-- UN AVENANT SE DATE. Ce que cette saisie change au
              contrat (quotité, nature, motif, date de début) se déclare avec
              l'ancienne valeur dans le bloc Changements contrat de la DSN, daté
@@ -1242,8 +1243,22 @@ function majNature(div) {
       + " suivant (le mois venu, le contrat y est repris, ses jours cochés) ;"
       + " la DPAE et le contrat imprimé ne partent qu'avec ce mois-ci, le"
       + " certificat Congés Spectacles à la fin du contrat.";
+  // LA DURÉE DU CONTRAT se tape, elle ne se devine pas : la durée de
+  // référence d'un temps plein que le moteur donne (`quotite_defaut`) se
+  // propose d'un clic, jamais en grisé dans la case, où elle passerait pour
+  // une valeur saisie.
   const quotite = div.querySelector(".e-quotite");
-  quotite.placeholder = nat.quotite_defaut != null ? String(nat.quotite_defaut) : "";
+  const pleine = div.querySelector(".e-temps-plein");
+  pleine.hidden = nat.quotite_defaut == null;
+  if (nat.quotite_defaut != null) {
+    pleine.textContent = `temps plein : ${String(nat.quotite_defaut).replace(".", ",")} h`;
+    pleine.onclick = (ev) => {
+      ev.preventDefault();
+      quotite.value = nat.quotite_defaut;
+      quotite.dispatchEvent(new Event("change"));
+      quotite.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+  }
   // Le motif de recours : proposé seulement par les natures qui en ont un.
   const recours = nat.motifs_recours || [];
   div.querySelector(".e-recours-bloc").hidden = !recours.length;
@@ -1271,7 +1286,14 @@ function majRupture(div) {
   const bloc = div.querySelector(".e-rupture");
   const fin = div.querySelector(".e-fin").value;
   const motifs = nat.motifs_rupture || [];
-  bloc.hidden = !(fin && (nat.signalement_fctu || motifs.length));
+  // LA FIN NE SE DEMANDE QUE LE MOIS OÙ ELLE A LIEU : un CDD de janvier à
+  // juin n'a rien à dire de sa fin en janvier. Elle paraît quand la fin du
+  // contrat tombe dans le mois affiché (ou avant : une fin avancée), ou
+  // quand un motif est déjà dit.
+  const moisAffiche = (document.getElementById("mois") || {}).value || "";
+  const finCeMois = fin && (!moisAffiche || fin.slice(0, 7) <= moisAffiche);
+  const dejaDit = !!(div.querySelector(".e-motif-rupture").value || div.dataset.motifRupture);
+  bloc.hidden = !(fin && (finCeMois || dejaDit) && (nat.signalement_fctu || motifs.length));
   // Les motifs sont ceux de CETTE nature : un CDD peut finir à son terme
   // (031), un CDI ne le peut pas — il ne finit jamais tout seul. Le choix
   // vide d'une nature dont la fin par défaut ne se signale pas (le CDDU)
@@ -1584,7 +1606,11 @@ async function poserContratsEnCours(mois) {
     CONTRATS_EN_COURS = r.contrats || [];
   } catch (e) { CONTRATS_EN_COURS = []; return; }
   if (MOIS_AFFICHE !== mois) return;
-  const restants = CONTRATS_EN_COURS.filter((c) => !c.deja_repris);
+  // Un contrat déjà à l'écran (une saisie reprise qui n'avait pas pu
+  // s'enregistrer le porte) ne se pose pas une deuxième fois.
+  const aLEcran = (SAISIE && SAISIE.engagements) || [];
+  const restants = CONTRATS_EN_COURS.filter((c) => !c.deja_repris
+    && !aLEcran.some((e) => e.salarie === c.salarie && e.debut === c.debut && (e.numero || "") === (c.numero || "")));
   if (!restants.length) return;
   const cible = document.getElementById("engagements");
   restants.forEach((c) => {

@@ -1698,7 +1698,10 @@ fn emploi(charge: &Value) -> R<Value> {
         None | Some(Value::Null) => None,
         Some(c) => Some(vrai(c)),
     };
-    let feminin = charge.get("feminin").is_some_and(vrai);
+    // LE METIER AU FEMININ pour une salariee : le catalogue porte les deux formes (`feminin`), la fiche dit le sexe (le
+    // premier chiffre du NIR, sinon la case `sexe` : `ntt::sexe`). `feminin` donne seul suffit aussi.
+    let feminin = charge.get("feminin").is_some_and(vrai)
+        || charge.get("salarie").is_some_and(|s| declarations::ntt::sexe(s) == "2");
     let texte = match code {
         Value::String(s) => s.clone(),
         autre if !vrai(autre) => String::new(),
@@ -2334,19 +2337,20 @@ fn apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         blocs.push(trois(&vues[rang..fin].iter().collect::<Vec<_>>())?);
         rang = fin;
     }
-    let mut salaries: Vec<(String, Value, Vec<&Value>)> = Vec::new();
-    for v in &vues {
+    let mut salaries: Vec<(String, Value, String, Vec<&Value>)> = Vec::new();
+    for (v, p) in vues.iter().zip(&paies) {
         let s = v.get("salarie").cloned().unwrap_or(Value::Null);
         let cle = format!("{}|{}", en_texte(s.get("nom").unwrap_or(&Value::Null)), en_texte(s.get("prenom").unwrap_or(&Value::Null)));
-        match salaries.iter_mut().find(|(c, _, _)| *c == cle) {
-            Some((_, _, vs)) => vs.push(v),
-            None => salaries.push((cle, s, vec![v])),
+        match salaries.iter_mut().find(|(c, _, _, _)| *c == cle) {
+            Some((_, _, _, vs)) => vs.push(v),
+            None => salaries.push((cle, s, super::nom_a_l_ecran(&p.salarie), vec![v])),
         }
     }
     let mut par_salarie = Vec::new();
-    for (_, s, vs) in &salaries {
+    for (_, s, nom, vs) in &salaries {
         let mut t = trois(vs)?;
         t["salarie"] = s.clone();
+        t["nom"] = json!(nom);
         par_salarie.push(t);
     }
     let mut a_regarder = avert;

@@ -521,8 +521,20 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             "attente" => false,
             _ => true,
         };
+        // CE QUE LA PASTILLE DIT, et sa couleur (`routes::couleur_de_l_etat`) : une DSN qui attend son bilan, ou dont
+        // l'ancien logiciel garde la trace, n'est rien que la compagnie ait a faire -- une information, en gris.
+        let (couleur, mots) = match etat {
+            "passee" => ("vert", "DSN passée"),
+            "attente" => ("gris", "DSN partie, bilan attendu"),
+            "refusee" => ("rouge", "DSN refusée"),
+            "en_retard" => ("orange", "DSN en retard"),
+            "importee" => ("vert", "DSN déclarée avant PuppetPaie"),
+            "sans_trace" => ("gris", "tenu avant PuppetPaie — sa DSN est celle de l'ancien logiciel"),
+            _ => ("orange", "DSN à déposer"),
+        };
         out.push(json!({
             "mois": nom, "produit": !noms.is_empty(), "dsn": etat,
+            "pastille": {"couleur": couleur, "mots": mots},
             "depose_le": if vrai(&e) { e.get("quand").cloned().unwrap_or(Value::Null) } else { Value::Null },
             "echeance": limite.iso(),
             "echeance_depot": echeance.en_json(),

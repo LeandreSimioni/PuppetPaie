@@ -615,7 +615,7 @@ function vueApercu(a) {
     </div>
     <ul class="mois-salaries">${groupes.map((g) => `
       <li title="coût employeur ${echapper(euros(g.cout_employeur))} · brut ${echapper(euros(g.brut))}">
-        <span>${echapper(g.salarie.nom)} ${echapper(g.salarie.prenom)}
+        <span>${echapper(g.nom)}
           <span class="discret">· ${g.engagements} engagement${g.engagements > 1 ? "s" : ""}</span></span>
         <b>${euros(g.net_a_payer)}</b>
       </li>`).join("")}
@@ -684,7 +684,8 @@ async function chargerMois(mois, repeint = false) {
   // Un mois plus récent a été demandé pendant que celui-ci arrivait : on le
   // laisse tomber, sinon il repeindrait l'écran par-dessus le bon.
   if (DEMANDE_MOIS !== mois) return;
-  SAISIE = r.saisie;
+  const brouillon = brouillonDe(mois, r.saisie);
+  SAISIE = brouillon ? brouillon.saisie : r.saisie;
   IMPORTE = r.importe || null;
   IMPORTES = r.importes || [];
   MOIS_AFFICHE = mois;
@@ -747,6 +748,13 @@ async function chargerMois(mois, repeint = false) {
   // fichier identique a chaque fois qu'on effleure un champ.
   clearTimeout(MINUTEUR_SAISIE);
   DERNIERE_ECRITE = JSON.stringify(saisieCourante());
+  // Un brouillon repris n'est pas sur le disque : il repart au moteur, qui
+  // l'enregistre ou redit ce qui manque.
+  if (brouillon) {
+    DERNIERE_ECRITE = brouillon.base;
+    noteSaisie("Reprise de la saisie qui n'avait pas pu s'enregistrer.");
+    enregistrerPlusTard();
+  }
   // Un repeint montre ses cartes tout de suite : les états qu'on a déjà de
   // ce mois s'y posent, une coque ne reste pas vide le temps de les relire.
   if (repeint && ETATS_ENGAGEMENTS) peindreEtats();
@@ -907,7 +915,7 @@ function confirmerModification(mois, texte, renvoyer) {
     if (MOIS_AFFICHE === mois) await chargerMois(mois, true);
   };
   ouvrirBoite(`
-    <h3>Modifier les engagements de ${echapper(deMois(mois))} ?</h3>
+    <h3>Modifier les engagements ${echapper(deMois(mois))} ?</h3>
     <div class="encart grave"><b>Ce mois est déjà déclaré</b>${echapper(texte)}</div>
     <div class="actions">
       <button class="secondaire" id="mc-annuler">Annuler</button>
@@ -1095,11 +1103,11 @@ async function enregistrerEnPartant({ s, confirme }, chargement) {
     if (e.detail?.type === "ModificationApresEcheance") {
       confirmerModification(s.mois, e.message, async () => {
         try { await ecrire(true); dire(`${moisEnClair(s.mois)} : modification enregistrée.`); }
-        catch (e2) { dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e2.message}`, "erreur"); }
+        catch (e2) { dire(`${moisEnClair(s.mois)} : non enregistré — ${e2.message}`, "erreur"); }
       });
       return;
     }
-    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : PAS enregistré — ${e.message}`, "erreur");
+    if (e.detail?.type !== "SaisieIncomplete") dire(`${moisEnClair(s.mois)} : non enregistré — ${e.message}`, "erreur");
     return;
   }
   // Le mois affiché se vérifie quand il est peint (la vérification part tout de suite : le moteur refait l'état).
@@ -1257,6 +1265,36 @@ function enregistrerSaisie(silencieux) {
   return tour;
 }
 
+/* LA SAISIE QUE LE MOTEUR N'A PAS PRISE NE SE PERD PAS. Un engagement qui
+ * attend encore un fait (un salaire, une durée, une ancienneté) est refusé, et
+ * rien ne s'écrit : à la fenêtre rechargée, ce qu'on avait tapé disparaissait.
+ * Ce poste le garde (le stockage du navigateur, pour ce poste seulement), avec
+ * la saisie que le moteur tenait alors ; il revient tant que le moteur tient
+ * toujours la même, et se renvoie au moteur, qui redit ce qui manque. Une
+ * saisie enregistrée l'efface. */
+function cleBrouillon(mois) {
+  const ent = ((ETAT && ETAT.configuration && ETAT.configuration.entreprise) || {}).donnees || {};
+  return `puppetpaie:brouillon:${ent.siret || ent.raison_sociale || ""}:${mois}`;
+}
+async function garderBrouillon(s) {
+  try {
+    const r = await api("saisie", { mois: s.mois });
+    localStorage.setItem(cleBrouillon(s.mois), JSON.stringify({ base: JSON.stringify(r.saisie), saisie: s }));
+  } catch (e) { /* ce poste ne garde rien : la saisie reste à l'écran */ }
+}
+function oublierBrouillon(mois) {
+  try { localStorage.removeItem(cleBrouillon(mois)); } catch (e) { /* rien à oublier */ }
+}
+/** Le brouillon du mois, s'il part de la saisie que le moteur tient encore. */
+function brouillonDe(mois, saisieDuMoteur) {
+  try {
+    const b = JSON.parse(localStorage.getItem(cleBrouillon(mois)) || "null");
+    if (b && b.base === JSON.stringify(saisieDuMoteur)) return b;
+    if (b) oublierBrouillon(mois);
+  } catch (e) { /* illisible : rien à reprendre */ }
+  return null;
+}
+
 async function enregistrerSaisieSeule(silencieux) {
   const s = saisieCourante();
   if (!s.mois) return false;
@@ -1268,6 +1306,7 @@ async function enregistrerSaisieSeule(silencieux) {
     const r = await api("enregistrer-saisie", { mois: s.mois, saisie: s,
                                       modifier_apres_echeance: MOIS_CONFIRME === s.mois });
     DERNIERE_ECRITE = empreinte;
+    oublierBrouillon(s.mois);
     if (r && "dsn_deposee" in r && MOIS_AFFICHE === s.mois) { DSN_DEPOSEE = r.dsn_deposee; majAvisDsn(s.mois); }
     oublierCouts();
     // L'heure du moteur (`enregistre_a`), pas celle du navigateur : au banc, le temps est simulé.
@@ -1294,7 +1333,7 @@ async function enregistrerSaisieSeule(silencieux) {
     if (e.detail?.type === "ModificationNonDeclarable") {
       dire(e.message, "erreur");
       if (MOIS_AFFICHE === s.mois) await chargerMois(s.mois, true);
-      noteSaisie("PAS enregistré — " + e.message);
+      noteSaisie("Non enregistré — " + e.message);
       return false;
     }
     if (e.detail?.type === "ModificationApresEcheance") {
@@ -1303,6 +1342,7 @@ async function enregistrerSaisieSeule(silencieux) {
       return false;
     }
     if (e.detail?.type === "SaisieIncomplete") {
+      garderBrouillon(s);
       noteSaisie(/spectacle/.test(e.message)
         ? "Pas encore enregistré : choisir le spectacle."
         : "Pas encore enregistré : choisir les jours travaillés.");
@@ -1310,7 +1350,8 @@ async function enregistrerSaisieSeule(silencieux) {
     }
     // Un échec d'enregistrement ne peut pas rester discret : c'est du travail
     // qu'on croit posé et qui ne l'est pas.
-    noteSaisie("PAS enregistré — " + e.message);
+    garderBrouillon(s);
+    noteSaisie("Non enregistré — " + e.message);
     if (!silencieux) dire(e.message, "erreur");
     return false;
   }

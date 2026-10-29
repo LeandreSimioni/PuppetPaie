@@ -1683,7 +1683,7 @@
   },
   {
    "cle": "statut",
-   "libelle": "Artiste ou technicien",
+   "libelle": "Artiste, ou autre emploi",
    "forme": "choix",
    "aide": "Il change les cotisations : l'abattement de 30 % sur les taux (arrêté du 24/01/1975) ne vaut que pour les artistes. Tout emploi non artistique (administration, production…) se range avec les techniciens.",
    "obligatoire": true,
