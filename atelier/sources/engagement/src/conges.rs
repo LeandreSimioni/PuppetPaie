@@ -2,10 +2,13 @@
 //! (`lignes_du_mois`), et son compteur de conges payes. Les jours et l'indemnite retenue sont la regle du droit
 //! (`droit::conges`, `droit::permanents`).
 //!
-//! Le compteur se tire des paies validees des mois d'avant (`etats::paies_validees`) : leur presence, leurs jours pris,
-//! leur brut. Ce qui n'est pas valide n'est pas paye, et aucun mois ne se calcule pour un autre. La validation ecrit
-//! dans chaque paie le compteur que son bulletin montre (`compteur_ecrit`) ; le bulletin et la provision le lisent. Le
-//! memo d'une derivation lit chaque mois une fois ; il meurt avec la derivation qui l'a ouvert.
+//! Le compteur se tire des paies validees (`etats::paies_validees`) : leur presence, leurs jours pris, leur brut. Ce qui
+//! n'est pas valide n'est pas paye, et aucun mois ne se calcule pour un autre. La validation ecrit dans chaque paie le
+//! compteur que son bulletin montre et le compteur avant son mois (`compteur_ecrit`, `Avant`) ; le bulletin et la
+//! provision lisent le premier, le mois suivant reprend le second et n'y ajoute que les paies du mois d'avant
+//! (`suivant`) : un mois ne relit pas les mois d'avant. Sans etat ecrit au mois d'avant (le premier mois paye, un mois
+//! sans paie), le compteur se tire de chaque mois de la periode. Le memo d'une derivation lit chaque mois une fois ; il
+//! meurt avec la derivation qui l'a ouvert.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -225,6 +228,8 @@ struct PaieLue {
     dfs: Decimal,
     /// Un contrat paye au mois : sa presence dans le mois, et ce qu'il en decompte.
     mensuel: Option<MoisPaye>,
+    /// Le compteur avant le mois que la paie a ecrit (`etats::CONGES_AVANT`).
+    avant: Option<Avant>,
 }
 
 #[derive(Debug, Clone)]
@@ -261,7 +266,7 @@ fn lue(ctx: &Contexte, mois: &str, p: &Paie) -> Resultat<PaieLue> {
         None
     };
     let dfs = p.deduction_forfaitaire.as_ref().map_or(zero2(), |d| d.montant);
-    Ok(PaieLue { cle, brut: p.brut, dfs, mensuel })
+    Ok(PaieLue { cle, brut: p.brut, dfs, mensuel, avant: p.conges_avant.clone() })
 }
 
 // Le memo d'une derivation : la profondeur des derivations ouvertes, et ce que chaque (racine, mois) a deja apporte
@@ -306,17 +311,146 @@ fn cle_du_memo(ctx: &Contexte, mois: &str) -> (String, String) {
     )
 }
 
-/// Le compteur de conges d'un salarie, tire des paies validees des mois de ses contrats payes au mois
-/// (`etats::paies_validees`) : ce qui n'est pas valide n'est pas paye, et aucun mois ne se calcule.
-/// `jusqu_au_mois` : ne lire que les mois strictement anterieurs a celui-la.
-pub(crate) fn compteur_conges(
-    ctx: &Contexte,
-    cle_salarie: &str,
-    a_la_date: &Jour,
-    jusqu_au_mois: Option<&str>,
-) -> Resultat<CompteurConges> {
+/// LE COMPTEUR AVANT UN MOIS, tel que la paie de ce mois l'ecrit pour le mois suivant (`etats::CONGES_AVANT`) : le
+/// compteur tire des mois d'avant (`compteur_conges`), le nombre de ses avis qui viennent du report de la periode
+/// precedente (les premiers), le premier mois ou le salarie a la paie d'un contrat paye au mois, et la reprise de
+/// l'ancien logiciel telle que la fiche la portait. Le mois suivant le reprend et n'y ajoute que ce mois-ci (`suivant`) :
+/// il ne relit aucun mois d'avant.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Avant {
+    pub compteur: CompteurConges,
+    avis_du_report: usize,
+    premier: Option<String>,
+    reprise: Value,
+}
+
+impl Avant {
+    /// L'etat tel qu'il s'ecrit dans la paie validee.
+    pub fn en_json(&self) -> Value {
+        json!({
+            "compteur": self.compteur.en_json(),
+            "avis_du_report": self.avis_du_report,
+            "premier": self.premier,
+            "reprise": self.reprise,
+        })
+    }
+
+    /// L'etat ecrit dans une paie validee (`en_json`). Refus : un champ qui manque ou ne se lit pas.
+    pub fn lire(v: &Value) -> Resultat<Avant> {
+        let compteur = CompteurConges::lire(requis(v, "compteur")?)?;
+        let avis_du_report = requis(v, "avis_du_report")?.as_u64().filter(|n| *n as usize <= compteur.avertissements.len()).ok_or("compteur avant le mois illisible : `avis_du_report`")? as usize;
+        let premier = match requis(v, "premier")? {
+            Value::Null => None,
+            Value::String(m) => Some(m.clone()),
+            _ => return Err("compteur avant le mois illisible : `premier`".into()),
+        };
+        Ok(Avant { compteur, avis_du_report, premier, reprise: requis(v, "reprise")?.clone() })
+    }
+}
+
+/// La reprise des conges telle que la fiche du salarie la porte (`conges_reprise`), `null` sans elle : ce que l'etat
+/// avant un mois a pris pour acquis.
+fn reprise_ecrite(ctx: &Contexte, cle_salarie: &str) -> Value {
+    let fiche = match ctx.salaries.get(cle_salarie) {
+        Some(f) => Some(f.clone()),
+        None => ctx.salarie(cle_salarie).ok(),
+    };
+    fiche.as_ref().and_then(|f| f.get("conges_reprise")).cloned().unwrap_or(Value::Null)
+}
+
+/// Le compteur de conges d'un salarie avant `mois` (les mois strictement anterieurs), a la date `a_la_date` de ce mois,
+/// tire des paies validees : ce qui n'est pas valide n'est pas paye, et aucun mois ne se calcule.
+pub(crate) fn compteur_conges(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> Resultat<CompteurConges> {
+    Ok(avant_le_mois(ctx, cle_salarie, a_la_date, mois)?.compteur)
+}
+
+/// L'ETAT AVANT `mois` (`Avant`) : celui que la paie du salarie du mois d'avant a ecrit, plus ce mois d'avant
+/// (`suivant`, qui ne lit que lui) ; sans lui (le premier mois paye, un mois sans paie, une reprise changee depuis),
+/// tire de chaque mois de la periode (`compteur`).
+pub(crate) fn avant_le_mois(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> Resultat<Avant> {
     let _derivation = Derivation::ouvrir();
-    compteur(ctx, cle_salarie, a_la_date, jusqu_au_mois)
+    if let Some(a) = suivant(ctx, cle_salarie, a_la_date, mois)? {
+        return Ok(a);
+    }
+    compteur(ctx, cle_salarie, a_la_date, Some(mois))
+}
+
+/// Ce qu'une periode de reference a acquis (avant le plafond), vu prendre et paye, a mesure que ses mois s'y ajoutent,
+/// et ce qu'il y a a en dire.
+struct Tenue {
+    acquis: Decimal,
+    pris: Decimal,
+    brut: Decimal,
+    avis: Vec<Avis>,
+}
+
+impl Tenue {
+    /// Ce que la periode [debut, fin] tient de la reprise de l'ancien logiciel, avant tout mois produit ici.
+    fn ouvrir(ctx: &Contexte, rep: Option<&Reprise>, debut: &Jour, fin: &Jour) -> Tenue {
+        let mut t = Tenue { acquis: Decimal::ZERO, pris: Decimal::ZERO, brut: zero2(), avis: Vec::new() };
+        if let Some(r) = rep.filter(|r| *debut <= r.date && r.date <= *fin) {
+            t.acquis = add(t.acquis, r.acquis);
+            t.pris += r.pris;
+            t.brut = add(t.brut, r.remuneration_periode);
+        } else if let Some(r) = rep.filter(|r| {
+            periode_de_reference(&r.date, Some(&ctx.entreprise)).and_then(|p| p.0.plus_jours(-1)).map_or(false, |v| *fin == v)
+        }) {
+            t.brut = add(t.brut, r.remuneration_report);
+        }
+        t
+    }
+
+    /// Ce que les paies validees `paies` de `mois` apportent a la periode [debut, fin] : la presence du salarie (`cle`,
+    /// la cle de sa fiche), ses jours pris, et, avec `remuneration`, son brut d'un mois ou il est present.
+    #[allow(clippy::too_many_arguments)]
+    fn ajouter(
+        &mut self, ctx: &Contexte, cle_salarie: &str, cle: &str, rep: Option<&Reprise>, debut: &Jour, fin: &Jour, mois: &str,
+        paies: &[PaieLue], remuneration: bool,
+    ) -> Resultat<()> {
+        let siennes: Vec<&PaieLue> = paies.iter().filter(|p| p.cle == cle).collect();
+        let mut present = false;
+        for m in siennes.iter().filter_map(|p| p.mensuel.as_ref()) {
+            // La presence du mois, bornee a la periode et a la reprise.
+            let mut p_debut = m.debut.max(*debut);
+            if let Some(r) = rep {
+                p_debut = p_debut.max(r.date);
+            }
+            let p_fin = m.fin.min(*fin);
+            if p_fin < p_debut {
+                continue;
+            }
+            present = true;
+            // La presence, moins les suspensions qui n'acquierent pas (`imprevus::jours_de_conges_non_acquis`).
+            let non_acquis = crate::imprevus::jours_de_conges_non_acquis(
+                &ctx.racine,
+                cle,
+                m.numero.as_deref(),
+                &m.contrat_debut,
+                &p_debut,
+                &p_fin,
+            )?;
+            self.acquis = add(self.acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO));
+            self.pris += m.pris;
+            if m.arret {
+                self.avis.push(avertir(format!(
+                    "{} : un arret de travail en {}. Le compteur de conges compte \
+                     le TEMPS DE PRESENCE d'un arret ; les periodes assimilees a \
+                     du travail effectif pendant un arret (L3141-5) ne sont pas \
+                     appliquees. A verifier a la main.",
+                    cle_salarie, mois
+                )));
+            }
+        }
+        let avant_la_reprise = match rep {
+            Some(r) => fin_mois_de(mois)? < r.date,
+            None => false,
+        };
+        // L'assiette du dixieme : tout le brut du salarie dans un mois ou il est present.
+        if remuneration && present && !avant_la_reprise {
+            self.brut = siennes.iter().fold(self.brut, |a, p| add(a, p.brut));
+        }
+        Ok(())
+    }
 }
 
 /// Ce qu'une periode de reference a acquis et vu prendre :
@@ -330,65 +464,13 @@ fn periode(
     jusqu_au_mois: Option<&str>,
     remuneration: bool,
 ) -> Resultat<(Decimal, Decimal, Decimal, Vec<Avis>)> {
-    let ent = &ctx.entreprise;
-    let (mut acquis, mut pris, mut brut) = (Decimal::ZERO, Decimal::ZERO, zero2());
-    let mut avert = Vec::new();
     let rep = reprise_conges(ctx, cle_salarie)?;
-    if let Some(r) = rep.as_ref().filter(|r| *debut <= r.date && r.date <= *fin) {
-        acquis = add(acquis, r.acquis);
-        pris += r.pris;
-        brut = add(brut, r.remuneration_periode);
-    } else if let Some(r) = rep.as_ref().filter(|r| {
-        periode_de_reference(&r.date, Some(ent)).and_then(|p| p.0.plus_jours(-1)).map_or(false, |v| *fin == v)
-    }) {
-        brut = add(brut, r.remuneration_report);
-    }
+    let mut t = Tenue::ouvrir(ctx, rep.as_ref(), debut, fin);
     let cle = cle_de_fiche(ctx, cle_salarie);
     for (mois, paies) in mois_de_la_periode(ctx, debut, fin, jusqu_au_mois)? {
-        let siennes: Vec<&PaieLue> = paies.iter().filter(|p| p.cle == cle).collect();
-        let mut present = false;
-        for m in siennes.iter().filter_map(|p| p.mensuel.as_ref()) {
-            // La presence du mois, bornee a la periode et a la reprise.
-            let mut p_debut = m.debut.max(*debut);
-            if let Some(r) = &rep {
-                p_debut = p_debut.max(r.date);
-            }
-            let p_fin = m.fin.min(*fin);
-            if p_fin < p_debut {
-                continue;
-            }
-            present = true;
-            // La presence, moins les suspensions qui n'acquierent pas (`imprevus::jours_de_conges_non_acquis`).
-            let non_acquis = crate::imprevus::jours_de_conges_non_acquis(
-                &ctx.racine,
-                &cle,
-                m.numero.as_deref(),
-                &m.contrat_debut,
-                &p_debut,
-                &p_fin,
-            )?;
-            acquis = add(acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO));
-            pris += m.pris;
-            if m.arret {
-                avert.push(avertir(format!(
-                    "{} : un arret de travail en {}. Le compteur de conges compte \
-                     le TEMPS DE PRESENCE d'un arret ; les periodes assimilees a \
-                     du travail effectif pendant un arret (L3141-5) ne sont pas \
-                     appliquees. A verifier a la main.",
-                    cle_salarie, mois
-                )));
-            }
-        }
-        let avant_la_reprise = match &rep {
-            Some(r) => fin_mois_de(&mois)? < r.date,
-            None => false,
-        };
-        // L'assiette du dixieme : tout le brut du salarie dans un mois ou il est present.
-        if remuneration && present && !avant_la_reprise {
-            brut = siennes.iter().fold(brut, |a, p| add(a, p.brut));
-        }
+        t.ajouter(ctx, cle_salarie, &cle, rep.as_ref(), debut, fin, &mois, &paies, remuneration)?;
     }
-    Ok((plafonner(acquis)?, pris, brut, avert))
+    Ok((plafonner(t.acquis)?, t.pris, t.brut, t.avis))
 }
 
 fn compteur(
@@ -396,7 +478,7 @@ fn compteur(
     cle_salarie: &str,
     a_la_date: &Jour,
     jusqu_au_mois: Option<&str>,
-) -> Resultat<CompteurConges> {
+) -> Resultat<Avant> {
     let (debut, fin) = periode_de_reference(a_la_date, Some(&ctx.entreprise))?;
     let (acquis, pris, remuneration, avert) = periode(ctx, cle_salarie, &debut, &fin, jusqu_au_mois, true)?;
     let report = report(ctx, cle_salarie, &debut, jusqu_au_mois)?;
@@ -405,23 +487,154 @@ fn compteur(
         (Some(rd), Some(rf)) if report.reports > Decimal::ZERO => periode(ctx, cle_salarie, &rd, &rf, jusqu_au_mois, true)?.2,
         _ => zero2(),
     };
+    let avis_du_report = report.avertissements.len();
     let mut avertissements = report.avertissements;
     avertissements.extend(avert);
-    Ok(CompteurConges {
-        salarie: cle_salarie.to_string(),
-        periode_debut: debut,
-        periode_fin: fin,
-        acquis,
-        pris,
-        remuneration_periode: remuneration,
-        reports: report.reports,
-        avertissements,
-        report_debut: report.debut,
-        report_fin: report.fin,
-        acquis_report: report.acquis,
-        remuneration_report,
-        pris_sur_la_periode: pris_de_la_reprise(ctx, cle_salarie, &debut, &fin)?,
+    Ok(Avant {
+        compteur: CompteurConges {
+            salarie: cle_salarie.to_string(),
+            periode_debut: debut,
+            periode_fin: fin,
+            acquis,
+            pris,
+            remuneration_periode: remuneration,
+            reports: report.reports,
+            avertissements,
+            report_debut: report.debut,
+            report_fin: report.fin,
+            acquis_report: report.acquis,
+            remuneration_report,
+            pris_sur_la_periode: pris_de_la_reprise(ctx, cle_salarie, &debut, &fin)?,
+        },
+        avis_du_report,
+        premier: report.premier,
+        reprise: reprise_ecrite(ctx, cle_salarie),
     })
+}
+
+/// L'ETAT AVANT `mois` TIRE DE CELUI DU MOIS D'AVANT : l'etat que la paie du salarie de `mois - 1` a ecrit (avant
+/// `mois - 1`), plus ce que les paies validees de `mois - 1` apportent, comme `compteur` l'aurait tire de tous les mois :
+/// dans la meme periode de reference, le mois d'avant s'ajoute a la periode ; au passage d'une periode, la periode qui
+/// finit fait son report (le pas que `report` ferait pour elle) et la nouvelle s'ouvre. `None` : rien a reprendre (le
+/// mois d'avant n'a pas d'etat ecrit pour ce salarie, ou la reprise de sa fiche a change depuis), ou une periode de
+/// reference qui ne commence pas un premier du mois.
+fn suivant(ctx: &Contexte, cle_salarie: &str, a_la_date: &Jour, mois: &str) -> Resultat<Option<Avant>> {
+    let ent = Some(&ctx.entreprise);
+    let (debut, fin) = periode_de_reference(a_la_date, ent)?;
+    if debut.jour != 1 {
+        return Ok(None);
+    }
+    let precedent = premier_du_mois(mois)?.plus_jours(-1)?.mois_iso();
+    let cle = cle_de_fiche(ctx, cle_salarie);
+    let paies = paies_du_mois(ctx, &precedent)?;
+    let Some(a) = paies.iter().filter(|p| p.cle == cle).find_map(|p| p.avant.clone()) else { return Ok(None) };
+    if a.reprise != reprise_ecrite(ctx, cle_salarie) {
+        return Ok(None);
+    }
+    let rep = reprise_conges(ctx, cle_salarie)?;
+    let c = a.compteur;
+    let (q_debut, q_fin) = (c.periode_debut, c.periode_fin);
+    let mut tenue = Tenue { acquis: c.acquis, pris: c.pris, brut: c.remuneration_periode, avis: c.avertissements[a.avis_du_report..].to_vec() };
+    tenue.ajouter(ctx, cle_salarie, &cle, rep.as_ref(), &q_debut, &q_fin, &precedent, &paies, true)?;
+    let mut avis_du_report = c.avertissements[..a.avis_du_report].to_vec();
+    let mensuel_au_precedent = paies.iter().any(|p| p.cle == cle && p.mensuel.is_some());
+    let premier = a.premier.clone().or_else(|| mensuel_au_precedent.then(|| precedent.clone()));
+    if rep.is_none() && a.premier.is_none() {
+        if let Some(p) = &premier {
+            if let Some(avant) = commence_avant(ctx, cle_salarie, p)? {
+                avis_du_report.push(avis_commence_avant(cle_salarie, &avant, p));
+            }
+        }
+    }
+    let fini = |tenue: Tenue, reports, report_debut, report_fin, acquis_report, remuneration_report, pris_sur_la_periode, avis_du_report: Vec<Avis>| -> Resultat<Avant> {
+        let n = avis_du_report.len();
+        let mut avertissements = avis_du_report;
+        avertissements.extend(tenue.avis);
+        Ok(Avant {
+            compteur: CompteurConges {
+                salarie: cle_salarie.to_string(),
+                periode_debut: debut,
+                periode_fin: fin,
+                acquis: plafonner(tenue.acquis)?,
+                pris: tenue.pris,
+                remuneration_periode: tenue.brut,
+                reports,
+                avertissements,
+                report_debut,
+                report_fin,
+                acquis_report,
+                remuneration_report,
+                pris_sur_la_periode,
+            },
+            avis_du_report: n,
+            premier: premier.clone(),
+            reprise: a.reprise.clone(),
+        })
+    };
+    if (q_debut, q_fin) == (debut, fin) {
+        return fini(tenue, c.reports, c.report_debut, c.report_fin, c.acquis_report, c.remuneration_report, c.pris_sur_la_periode, avis_du_report).map(Some);
+    }
+    if q_fin.plus_jours(1)? != debut {
+        return Ok(None);
+    }
+    // La periode qui finit fait son report, si `report` la parcourt : depuis la periode de la reprise, ou depuis celle
+    // du premier mois paye.
+    let parcourue = match &rep {
+        Some(r) => periode_de_reference(&r.date, ent)?.0 < debut,
+        None => premier.is_some(),
+    };
+    let (mut reste, mut acquis_report, mut report_debut, mut report_fin) = (c.reports, c.acquis_report, c.report_debut, c.report_fin);
+    if parcourue {
+        let acquis_total = plafonner(tenue.acquis)?;
+        let deja = c.pris_sur_la_periode;
+        let (pris, acquis) = (sub(tenue.pris, deja), sub(acquis_total, deja));
+        let sur_reste = pris.min(reste.max(Decimal::ZERO));
+        let perdu = sub(reste.max(Decimal::ZERO), sur_reste);
+        if perdu > Decimal::ZERO {
+            avis_du_report.push(avis_perdu(cle_salarie, perdu, &q_debut, &q_fin));
+        }
+        reste = add(sub(acquis, sub(pris, sur_reste)), reste.min(Decimal::ZERO));
+        acquis_report = acquis_total;
+        report_debut = Some(q_debut);
+        report_fin = Some(q_fin);
+    }
+    // Un jour du report se paie au dixieme de la periode ou il a ete acquis (`indemnite_des_jours`).
+    let remuneration_report = match (report_debut, report_fin) {
+        (Some(_), Some(_)) if reste > Decimal::ZERO && parcourue => tenue.brut,
+        (Some(_), Some(_)) if reste > Decimal::ZERO => c.remuneration_report,
+        _ => zero2(),
+    };
+    let ouverte = Tenue::ouvrir(ctx, rep.as_ref(), &debut, &fin);
+    let pris_sur_la_periode = pris_de_la_reprise(ctx, cle_salarie, &debut, &fin)?;
+    fini(ouverte, reste, report_debut, report_fin, acquis_report, remuneration_report, pris_sur_la_periode, avis_du_report).map(Some)
+}
+
+/// L'avis d'un contrat commence avant le premier mois que ce logiciel a paye.
+fn avis_commence_avant(cle_salarie: &str, avant: &Jour, premier: &str) -> Avis {
+    avertir(format!(
+        "{} : le contrat a commence le {}, avant le premier mois \
+         produit par PuppetPaie ({}). Les conges acquis avant ne \
+         sont pas comptes : les recopier du dernier bulletin de \
+         l'ancien logiciel (fiche salarie, conges payes a la reprise).",
+        cle_salarie,
+        avant.jj_mm_aaaa(),
+        premier
+    ))
+}
+
+/// L'avis des jours d'une periode de prise qui finit sans avoir ete pris.
+fn avis_perdu(cle_salarie: &str, perdu: Decimal, p_debut: &Jour, p_fin: &Jour) -> Avis {
+    avertir(format!(
+        "{} : {} jour(s) de conges acquis avant le {} n'ont pas ete \
+         pris au {}. Ils ne sont PAS reportes une seconde fois : un \
+         conge non pris a la fin de la periode de prise est perdu, \
+         sauf accord de report ou empechement (maladie : L3141-19-1). \
+         Si c'est le cas, a reprendre a la main.",
+        cle_salarie,
+        arrondir_jours(perdu),
+        p_debut.jj_mm_aaaa(),
+        p_fin.jj_mm_aaaa()
+    ))
 }
 
 fn pris_de_la_reprise(ctx: &Contexte, cle_salarie: &str, debut: &Jour, fin: &Jour) -> Resultat<Decimal> {
@@ -440,11 +653,13 @@ struct Report {
     debut: Option<Jour>,
     fin: Option<Jour>,
     avertissements: Vec<Avis>,
+    /// Le premier mois ou le salarie a la paie d'un contrat paye au mois (`premier_mois`).
+    premier: Option<String>,
 }
 
 fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois: Option<&str>) -> Resultat<Report> {
     let ent = Some(&ctx.entreprise);
-    let vide = Report { reports: Decimal::ZERO, acquis: Decimal::ZERO, debut: None, fin: None, avertissements: vec![] };
+    let vide = Report { reports: Decimal::ZERO, acquis: Decimal::ZERO, debut: None, fin: None, avertissements: vec![], premier: None };
     let rep = reprise_conges(ctx, cle_salarie)?;
     let premier = premier_mois(ctx, cle_salarie, jusqu_au_mois)?;
     let mut out = Report { avertissements: vec![], ..vide };
@@ -474,18 +689,10 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
         (p_debut, p_fin) = periode_de_reference(&premier_du_mois(premier)?, ent)?;
         reste = Decimal::ZERO;
         if let Some(avant) = commence_avant(ctx, cle_salarie, premier)? {
-            avert.push(avertir(format!(
-                "{} : le contrat a commence le {}, avant le premier mois \
-                 produit par PuppetPaie ({}). Les conges acquis avant ne \
-                 sont pas comptes : les recopier du dernier bulletin de \
-                 l'ancien logiciel (fiche salarie, conges payes a la reprise).",
-                cle_salarie,
-                avant.jj_mm_aaaa(),
-                premier
-            )));
+            avert.push(avis_commence_avant(cle_salarie, &avant, premier));
         }
     } else {
-        return Ok(Report { avertissements: vec![], ..out });
+        return Ok(Report { avertissements: vec![], premier, ..out });
     }
     while p_debut < *debut_courant {
         let (acquis, pris, _, _) = periode(ctx, cle_salarie, &p_debut, &p_fin, jusqu_au_mois, false)?;
@@ -497,17 +704,7 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
         let sur_reste = pris.min(reste.max(Decimal::ZERO));
         let perdu = sub(reste.max(Decimal::ZERO), sur_reste);
         if perdu > Decimal::ZERO {
-            avert.push(avertir(format!(
-                "{} : {} jour(s) de conges acquis avant le {} n'ont pas ete \
-                 pris au {}. Ils ne sont PAS reportes une seconde fois : un \
-                 conge non pris a la fin de la periode de prise est perdu, \
-                 sauf accord de report ou empechement (maladie : L3141-19-1). \
-                 Si c'est le cas, a reprendre a la main.",
-                cle_salarie,
-                arrondir_jours(perdu),
-                p_debut.jj_mm_aaaa(),
-                p_fin.jj_mm_aaaa()
-            )));
+            avert.push(avis_perdu(cle_salarie, perdu, &p_debut, &p_fin));
         }
         // Un reste negatif (une avance deja prise) s'impute sur les jours
         // que la periode vient d'acquerir.
@@ -520,6 +717,7 @@ fn report(ctx: &Contexte, cle_salarie: &str, debut_courant: &Jour, jusqu_au_mois
     }
     out.reports = reste;
     out.avertissements = avert;
+    out.premier = premier;
     Ok(out)
 }
 
@@ -699,12 +897,14 @@ pub(crate) fn indemnite_des_jours(cpt: &CompteurConges, jours: Decimal, maintien
     cpt.indemnite_des_jours(jours, maintien)
 }
 
-/// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant, plus ce que ce mois acquiert et prend.
-pub(crate) fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<CompteurConges> {
+/// Le compteur tel que le BULLETIN du mois doit le montrer : celui d'avant (`Avant`, rendu avec lui), plus ce que ce
+/// mois acquiert et prend.
+pub(crate) fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> Resultat<(CompteurConges, Avant)> {
     let eng = &paie.engagement;
     let cle = eng.salarie.as_str();
     let fin_du_mois = fin_mois_de(mois)?;
-    let mut cpt = compteur_conges(ctx, cle, &fin_du_mois, Some(mois))?;
+    let avant = avant_le_mois(ctx, cle, &fin_du_mois, mois)?;
+    let mut cpt = avant.compteur.clone();
     let (debut, fin) = periode_de_reference(&fin_du_mois, Some(&ctx.entreprise))?;
     // La presence de CE mois, bornee a la periode de reference.
     let p_debut = eng.debut_periode()?.max(debut);
@@ -716,14 +916,14 @@ pub(crate) fn compteur_au_bulletin(ctx: &Contexte, paie: &Paie, mois: &str) -> R
         cpt.acquis = plafonner(add(cpt.acquis, sub(jours_acquis(&p_debut, &p_fin)?, non_acquis).max(Decimal::ZERO)))?;
     }
     cpt.pris += conges_pris_de_la_paie(&ctx.racine, paie)?;
-    Ok(cpt)
+    Ok((cpt, avant))
 }
 
 /// LE COMPTEUR QUE LA VALIDATION ECRIT dans la paie `p` de `mois` (`etats::CONGES`) : celui que son bulletin montre
-/// (`compteur_au_bulletin`), pour un contrat paye au mois dont l'employeur tient les conges. Un contrat declare a la
-/// caisse des Conges Spectacles (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'en a pas : la caisse lui paie
-/// ses conges.
-pub(crate) fn compteur_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Option<CompteurConges>> {
+/// (`compteur_au_bulletin`), pour un contrat paye au mois dont l'employeur tient les conges, et l'etat avant le mois
+/// que le mois suivant reprend (`etats::CONGES_AVANT`). Un contrat declare a la caisse des Conges Spectacles
+/// (`calcul::declaree_a_la_caisse_des_conges`, D. 7121-41) n'en a pas : la caisse lui paie ses conges.
+pub(crate) fn compteur_ecrit(ctx: &Contexte, p: &Paie, mois: &str) -> Resultat<Option<(CompteurConges, Avant)>> {
     if !p.engagement.nat()?.mensuelle() || crate::calcul::declaree_a_la_caisse_des_conges(p)? {
         return Ok(None);
     }
@@ -850,7 +1050,7 @@ pub(crate) fn lignes_du_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resultat<
     }
     if pris != Decimal::ZERO {
         let salarie = en_texte(requis(e, "salarie")?);
-        let cpt = compteur_conges(ctx, &salarie, &fin, Some(mois))?;
+        let cpt = compteur_conges(ctx, &salarie, &fin, mois)?;
         let maintien = eur2(mul(taux_jour_ouvrable, pris));
         let ind = indemnite_des_jours(&cpt, pris, maintien)?;
         lignes.push(json!({"rubrique": "absence_conges_payes", "quantite": flot(pris), "taux": flot(taux_jour_ouvrable)}));
