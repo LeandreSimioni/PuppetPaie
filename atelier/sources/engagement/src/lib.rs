@@ -1172,7 +1172,7 @@ fn numero_dit(eng: &Engagement) -> String {
 }
 
 /// UN NUMERO DE CONTRAT NE SE DONNE QU'AU PREMIER MOIS : le numero identifie le contrat en DSN (S21.G00.40.009), il se
-/// pose quand le contrat part a la signature ou quand son premier mois part, et il ne se regenere pas (regle 4). Ce qui
+/// pose a la validation de l'engagement (`numeros::a_la_validation`), et il ne se regenere pas (regle 4). Ce qui
 /// numerote un mois du contrat qui n'est pas le premier, sans numero, refuse ici.
 pub fn refus_sans_numero(ctx: &Contexte, eng: &Engagement) -> Resultat<()> {
     if eng.numero.as_deref().is_some_and(|n| !n.is_empty()) || eng.premier_mois()? {

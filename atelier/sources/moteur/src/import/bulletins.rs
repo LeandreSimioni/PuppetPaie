@@ -2,9 +2,9 @@
 //! RIEN N'EST ECRIT.
 //!
 //! 1. Le tri (`import::tri`) : chaque fichier recoit sa sorte, par le contenu.
-//! 2. Les DSN et AEM trouvees, ou qu'elles soient (sous-dossier, zip), sont copiees dans un `export/` du dossier de
-//!    travail (temporaire, efface avant de rendre) et passent par `crate::routes::import::apercu_lu` : le meme code que
-//!    l'import d'un export de CoolPaie, inchange -- celles d'une autre entreprise exceptees : devant le Siren de
+//! 2. Les DSN et AEM trouvees, ou qu'elles soient (sous-dossier, zip), sont copiees dans un dossier de travail
+//!    (temporaire, efface avant de rendre) et passent par `crate::routes::import::apercu_lu`, qui lit leurs
+//!    sous-dossiers `DSN/` et `AEM_EDI/` -- celles d'une autre entreprise exceptees : devant le Siren de
 //!    la compagnie (`importation::siren_de_reference`, etape 3), elles prennent le sort `incoherent` et rien n'en est lu.
 //! 3. Les bulletins (`bulletin_lu`), page par page, completent cet apercu : les fiches qu'ils creent (salaries par NIR,
 //!    spectacles par numero d'objet avec leur titre, l'entreprise) et leurs ecarts avec les fiches existantes (signales,
@@ -362,7 +362,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     let mut lus = gardes;
     lus.sort_by(|a, b| (a.b.fin, a.b.debut, a.fichier, a.page).cmp(&(b.b.fin, b.b.debut, b.fichier, b.page)));
 
-    // Les DSN et AEM de la compagnie, copiees la ou l'import existant les lit, sous le nom de leur copie (`nom_copie`).
+    // Les DSN et AEM de la compagnie, copiees la ou `apercu_lu` les lit, sous le nom de leur copie (`nom_copie`).
     // Un nom deja pris recoit un rang devant.
     let export = travail.join("export");
     let mut noms: BTreeMap<usize, String> = BTreeMap::new();

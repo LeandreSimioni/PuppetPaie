@@ -371,6 +371,18 @@ fn le_mois_saisi_puis_importe_declare_la_saisie_dans_la_dsn_suivante() {
     assert!(case.is_string() && avis["phrase"] == case && avis["confirmer"] == json!(false), "{} / {}", case, avis);
 
     reussi(&route("valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-27", "valide": true})));
+
+    // Le mois porte les deux engagements, dans les cumuls des annexes 8 et 10 comme au livre de paie : l'importe avec ce
+    // que ses pieces attestent, le saisi avec sa paie validee.
+    let ctx = droit::contexte::Contexte::nouveau(&racine, Some(socle::date::Jour::lire(jour).unwrap())).unwrap();
+    let cumules: BTreeSet<(String, i64)> =
+        engagement::cumul::lire_engagements(&ctx, None).unwrap().iter().map(|e| (e.debut.iso(), e.cachets)).collect();
+    assert_eq!(cumules, BTreeSet::from([("2026-11-20".to_string(), 2), ("2026-11-27".to_string(), 1)]));
+    let livre = reussi(&route("exporter", json!({"etat": "livre-de-paie", "mois": "2026-11", "apercu": true}))).clone();
+    let contrats: BTreeSet<String> =
+        livre["groupes"].as_array().unwrap().iter().flat_map(|g| g["lignes"].as_array().unwrap().iter().map(|l| l["contrat"].as_str().unwrap_or("").to_string())).collect();
+    assert_eq!(contrats, BTreeSet::from(["FU1.26.01".to_string(), "FU1.26.02".to_string()]), "{}", livre);
+
     assert_eq!(route("dsn-a-deposer", json!({"mois": "2026-11"}))["ok"], json!(false));
     assert!(!racine.join("sorties/2026-11/DSN_Novembre2026.dsn").exists(), "la DSN de l'ancien logiciel s'est refaite");
     let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();

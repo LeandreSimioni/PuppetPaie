@@ -102,33 +102,34 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
         commandes: if err.is_empty() { vec![] } else { vec!["Configuration › Entreprise (ou `moteur fiche`)".into()] },
     });
 
-    // 2. L'import de CoolPaie : seulement si un export existe.
-    let copie = ctx.racine.join("historique").join("coolpaie");
-    let export = crate::routes::fiches::trouver_export(&ctx.racine);
-    let historique = engagement::importe::contrats_lus(&ctx.racine).map_err(Echec::from)?.len();
+    // 2. L'import du passe : fait des qu'un engagement importe est ecrit ; a faire quand la boite `import/` porte des
+    // pieces que rien n'a reprises.
+    let importes = engagement::importe::tous(&ctx.racine).map_err(Echec::from)?.len();
+    let boite = ctx.racine.join("import");
+    let en_attente = std::fs::read_dir(&boite).map_or(0, |l| l.flatten().filter(|e| !e.file_name().to_string_lossy().starts_with('.')).count());
     let quoi_import = "Reprendre l'historique (ce qui a été déclaré avant)";
-    if copie.is_dir() {
+    if importes > 0 {
         out.push(Etape {
             cle: "import",
             quoi: quoi_import.into(),
             etat: FAIT,
-            detail: format!("export copié dans {} ; {} contrat(s) attesté(s) en historique", copie.display(), historique),
+            detail: format!("{} engagement(s) importé(s)", importes),
             commandes: vec![],
         });
-    } else if export.is_dir() {
+    } else if en_attente > 0 {
         out.push(Etape {
             cle: "import",
             quoi: quoi_import.into(),
             etat: A_FAIRE,
-            detail: format!("un export des déclarations d'avant est là ({}) et n'a pas été repris", export.display()),
-            commandes: vec!["Configuration › Reprendre l'historique (ou `moteur route importation-apercu`, puis `moteur route importer`)".into()],
+            detail: format!("{} fichier(s) dans {}, pas encore repris", en_attente, boite.display()),
+            commandes: vec!["Configuration › Reprendre l'historique (ou `moteur importer`, puis `moteur importer --ecrire`)".into()],
         });
     } else {
         out.push(Etape {
             cle: "import",
             quoi: quoi_import.into(),
             etat: SANS_OBJET,
-            detail: "aucun export des déclarations d'avant : les fiches se saisissent dans Configuration (ou donner le dossier à `moteur route importer`)".into(),
+            detail: "rien à reprendre : les fiches se saisissent dans Configuration (ou déposer les bulletins et les DSN d'avant dans import/)".into(),
             commandes: vec![],
         });
     }
@@ -220,7 +221,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
     let manquants: Vec<&Value> = diag.iter().filter(|d| matches!(d.get("situation").and_then(Value::as_str), Some("inconnu" | "perime"))).collect();
     let mut cmds = Vec::new();
     if !manquants.is_empty() {
-        if crate::routes::fiches::declarations_coolpaie(ctx).join("DSN").is_dir() {
+        if crate::routes::fiches::pieces_importees(ctx).is_dir() {
             cmds.push("moteur pas --amorcer".to_string());
         }
         cmds.push("moteur pas --demander --motif 07".to_string());

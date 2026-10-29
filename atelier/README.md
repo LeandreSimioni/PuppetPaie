@@ -25,8 +25,8 @@ moteur arrivee
 ```
 
 dit, dans l'ordre, ce qui est prêt et ce qui manque — la fiche de
-l'entreprise, l'import de CoolPaie (sans objet si la compagnie n'en vient
-pas), les fiches des salariés, l'effectif (les CRM de nature 118 de l'Urssaf,
+l'entreprise, la reprise de l'historique (sans objet si la compagnie ne vient
+d'aucun autre logiciel), les fiches des salariés, l'effectif (les CRM de nature 118 de l'Urssaf,
 ou la date de la première embauche), le taux AT/MP notifié, les taux de PAS,
 les accès net-entreprises et Urssaf — avec, pour chaque manque, la commande
 qui le fait avancer. Elle n'écrit rien et sort en erreur tant qu'une étape
@@ -155,8 +155,7 @@ renommée, une fictive faite sur le poste) n'est jamais touché, ni rien hors de
 
 Le flux « Publier » compile les programmes des trois systèmes (Linux et Mac ne
 sont posés dans `logiciel/linux/` et `logiciel/mac/` que par lui : jamais
-suivis par Git) et publie les quatre archives de mise à jour ensemble (Léandre, 15/10/2026 :
-« Il y a les quatre : une par système et une tout-système, ensemble ») ;
+suivis par Git) et publie les quatre archives de mise à jour ensemble (une par système, et une tout-système) ;
 chaque installation prend celle de son système (`moteur/src/compagnie/maj.rs`). Au
 lancement de « Publier », on choisit ce qu'on publie (`systemes` : `tous`,
 `windows-linux`, `windows`) : seules les archives fabriquées sont publiées,
@@ -177,9 +176,9 @@ moteur interface       # sans fenêtre : la page dans le navigateur (--port N, -
 ```
 
 La page : le mois, les engagements, l'aperçu
-chiffré qui se recalcule à mesure, et la production. Un second écran édite
+chiffré qui se recalcule à mesure, et ce qui part. Un second écran édite
 l'entreprise, les salariés et les spectacles, en vérifiant chaque champ au
-format qu'exigent la DSN et l'AEM. Le serveur n'écoute que la machine
+format qu'exige la DSN. Le serveur n'écoute que la machine
 (127.0.0.1), sur un port propre à l'installation et stable d'un lancement à
 l'autre (7331 à 7429, retenu dans `.fenetre.json`) — pour que le navigateur
 reconnaisse le site `puppetpaie.localhost` et retrouve le mot de passe du
@@ -199,7 +198,7 @@ Saisir les engagements d'octobre dans la fenêtre (`engagements/2026-10.json` : 
 | Document | Quand il se fabrique |
 |---|---|
 | la DPAE (`moteur dpae`) | avant le début du contrat |
-| le contrat | à son envoi à la signature : son numéro s'y fige |
+| le contrat | à son envoi à la signature, ou à son impression pour la main propre ; son numéro est celui que la validation a posé |
 | `DSN_Octobre2026.dsn` | à son dépôt : `moteur depot-dsn 2026-10 --test`, lecture du bilan, puis `--reel` |
 | bulletin et certificat Congés Spectacles | à l'envoi des documents aux salariés : le numéro du bulletin s'écrit dans la paie |
 
@@ -227,7 +226,7 @@ dans le mois a **un** fichier, avec un bulletin par page.
 
 ## La boîte courriel : un mot de passe d'application
 
-Depuis le 17/09/2026, l'envoi (bulletins, contrats) et la relève des
+L'envoi (bulletins, contrats) et la relève des
 signatures passent par **IMAP et SMTP**, avec un mot de passe d'application
 que chaque compagnie fabrique dans son compte Google : validation en deux
 étapes activée, puis myaccount.google.com › Sécurité › **Mots de passe des
@@ -260,7 +259,7 @@ moteur google autoriser
 Une fenêtre Google s'ouvre dans le navigateur, on choisit son compte, on
 accepte, on revient au logiciel. C'est tout : pas de console Google, pas de
 projet à créer, rien à recopier. Le logiciel embarque **PuppetPaie**,
-l'application déclarée une fois par la compagnie, la même pour tout le monde
+l'application déclarée une fois par l'éditeur, la même pour tout le monde
 — comme le font rclone ou gcloud. Lier ou oublier le compte demande le mot de
 passe du logiciel, comme tout acte.
 
@@ -272,8 +271,8 @@ moteur google oublier       # efface le jeton local
 Deux permissions demandées, toutes deux *non sensibles* au sens de Google :
 **`drive.file`** (écrire dans le Drive, uniquement les fichiers créés par
 l'application — elle ne voit rien d'autre) et **`userinfo.email`** (connaître
-l'adresse du compte). Depuis le 18/09/2026 l'application n'en déclare pas
-d'autre : plus aucune permission Gmail, donc ni audit de sécurité ni plafond
+l'adresse du compte). L'application n'en déclare pas
+d'autre : aucune permission Gmail, donc ni audit de sécurité ni plafond
 de comptes. L'accès se retire quand on veut sur myaccount.google.com ›
 Sécurité › Vos connexions à des applications tierces.
 
@@ -309,7 +308,7 @@ déclaration de l'application est `logiciel/donnees/google-application.json`.
 
 ## À l'ouverture : le coffre, la sauvegarde, les retours
 
-Depuis le 11/09/2026, le logiciel travaille seul dès qu'on l'ouvre — interface
+Le logiciel travaille seul dès qu'on l'ouvre — interface
 ou Claude Code, c'est la même fonction :
 
 ```bash
@@ -320,9 +319,7 @@ moteur ouverture
    seuls les fichiers neufs ou modifiés repartent (comparaison sur l'empreinte
    MD5 que Google publie lui-même) ;
 2. il **relève les retours** des organismes et les archive dans `retours/` ;
-3. il **relève les signatures** (les réponses « Je signe » dans la boîte) ;
-4. une fois par semaine, il **vérifiait les sources** des données livrées
-   (minima, métiers — voir plus bas) : pas encore porté en Rust.
+3. il **relève les signatures** (les réponses « Je signe » dans la boîte).
 
 L'interface le fait au démarrage puis toutes les 20 minutes
 (`--veille MINUTES`, `0` pour une seule fois à l'ouverture), et affiche un
@@ -347,10 +344,8 @@ moteur coffre                         # ce qui est posé, jamais les valeurs
 moteur coffre verifier                # ils ouvrent bien une session ?
 ```
 
-**`--fenetre` si la saisie du terminal ne capture pas tout.** C'est arrivé le
-11/09/2026 : la saisie masquée n'a lu qu'un caractère des deux mots de passe,
-et la panne n'est ressortie qu'une heure plus tard sous la forme d'un « HTTP
-422 » qui ne désignait rien. Le coffre refuse désormais un secret de moins de
+**`--fenetre` si la saisie du terminal ne capture pas tout** : une saisie masquée qui ne lit qu'un caractère ne se
+voit qu'au refus de l'organisme, qui ne dit rien de la cause. Le coffre refuse un secret de moins de
 six caractères, et `--fenetre` ouvre un champ masqué qui ne dépend pas du
 terminal :
 
@@ -364,8 +359,7 @@ compte.
 
 Chacun se tape dans un champ masqué, deux fois : jamais sur la ligne de
 commande, où il resterait dans l'historique du shell. Le fichier est
-`prive/config/coffre.bin`, **scellé par AES-256-GCM** — sur Windows, sur Mac
-et sur Linux, depuis le 20/09/2026 (avant : DPAPI, et du clair ailleurs).
+`prive/config/coffre.bin`, **scellé par AES-256-GCM**, le même sur tous les systèmes.
 
 Ce qui l'ouvre, ce sont deux enveloppes d'une même clé maîtresse :
 
@@ -378,14 +372,13 @@ La clé du poste vit **hors du dossier des données**, et c'est tout l'intérêt
 `prive/` est sauvegardé sur le Drive et copié ; une sauvegarde ne transporte
 donc qu'un fichier illisible. En contrepartie, la perdre c'est perdre
 `google-jeton.bin`, qui n'a pas de seconde enveloppe. `maj-cle-privee.bin` (la
-clé qui signe les mises à jour) est scellée depuis le 14/10/2026 par la clé
+clé qui signe les mises à jour) est scellée par la clé
 maîtresse du coffre : elle s'ouvre où il s'ouvre, et seulement avec lui.
 
-**Un coffre écrit avant le 20/09/2026 ne se convertit pas.** Il n'y a pas de
-commande de migration, et c'est voulu : elle n'aurait servi qu'une fois, à une
-seule personne, pour trois mots de passe qui se retapent en une minute. On
+**Un coffre d'un autre format ne se convertit pas** : il refuse (`VERSION`, en tête de
+`moteur/src/compagnie/coffre.rs`), et trois mots de passe se retapent en une minute. On
 supprime les trois fichiers — `coffre.bin`, `google-jeton.bin` et
-`maj-cle-privee.bin`, fermés de la même façon — et on repose :
+`maj-cle-privee.bin` — et on repose :
 
 ```bash
 moteur coffre ouverture
@@ -397,9 +390,8 @@ moteur maj --cle --remplacer     # si ce poste publie les mises à jour
 ```
 
 La dernière ligne rend une nouvelle clé publique, à reporter dans
-`moteur/src/compagnie/maj.rs` (`CLE_PUBLIQUE`). Tant qu'aucune autre compagnie ne reçoit de
-mise à jour, ça ne coûte rien ; le jour où ce sera le cas, il faudra la leur
-transmettre autrement.
+`moteur/src/compagnie/maj.rs` (`CLE_PUBLIQUE`). Les versions publiées depuis GitHub sont signées par l'autre clé
+(`CLE_PUBLIQUE_GITHUB`), que ce geste ne touche pas.
 
 ### Le mot de passe du logiciel, et ce qu'il autorise
 
@@ -415,39 +407,35 @@ la fenêtre PuppetPaie, et à **chaque acte qui engage** — dépôt réel d'une
 ou d'une DPAE, envoi des documents, demande de signature. Rien ne dispense de
 le retaper pour un acte réel.
 
-**La séance du coffre** (23/09/2026) est autre chose : quand la clé du poste
+**La séance du coffre** est autre chose : quand la clé du poste
 n'ouvre pas le coffre (sauvegarde restaurée, poste neuf), le mot de passe du
 logiciel l'ouvre **une fois, pour 12 heures**, dans une petite fenêtre —
 `moteur coffre seance --fenetre`, ou d'elle-même à la première
 commande qui en a besoin (relevé des retours, dépôt de test).
 `coffre seance fermer` la referme. Elle ne vaut **jamais** preuve pour un acte
-réel. (Une autre « séance », du 11 au 16/09/2026, était exigée au dépôt en
-plus du mot de passe retapé ; elle a été retirée.)
+réel.
 
 **Le mot de passe est obligatoire.** La fenêtre le fait choisir à sa
-première ouverture (deux fois, quatre caractères au moins) ; en ligne de
+première ouverture (deux fois, six caractères au moins) ; en ligne de
 commande, `moteur coffre ouverture`. Sans mot de passe posé, le
-logiciel lit, calcule, produit, sauvegarde, relève les retours et dépose en
+logiciel lit, calcule, sauvegarde, relève les retours et dépose en
 test — mais **rien ne part en réel** : ni DSN, ni DPAE, ni envoi, ni
-signature. **Le mois ne se recopie plus** (21/09/2026) : il s'écrit en
+signature. **Le mois ne se recopie pas** : il s'écrit en
 grand, juste avant l'invite du mot de passe, et la fenêtre de confirmation
-le redit sur son bouton. Il disait quel mois on croyait déposer, il ne
-prouvait pas qu'un humain était là — n'importe quel programme sait recopier
-un mois. Donné quand même (`--confirmer-mois`, `--confirmer`), il reste
+le redit sur son bouton ; recopier un mois ne prouve pas qu'un humain est là, n'importe quel programme le sait.
+Donné quand même (`--confirmer-mois`, `--confirmer`), il reste
 vérifié contre le fichier : un script qui se trompe de mois est arrêté.
 
 | | sans mot de passe posé | mot de passe posé |
 |---|---|---|
-| lire, produire, sauvegarder | oui | oui |
+| lire, calculer, sauvegarder | oui | oui |
 | relever les retours, dépôt de test | oui | oui |
 | déposer en réel, envoyer, faire signer | **non** | oui, mot de passe retapé |
 
-**Ce que ça a coûté, honnêtement.** Avant, aucun mot de passe n'était stocké :
-c'était la garantie. Elle a été échangée contre l'autonomie, à la demande de
-l'éditeur. Ce qui la remplace est écrit en tête de `moteur/src/compagnie/coffre.rs`, et deux
-choses sont tenues par des tests : le secret ne sort jamais (ni par `etat()`,
-ni en clair sur le disque), et les modules qui parlent au réseau ne peuvent pas
-ouvrir le coffre eux-mêmes.
+**Ce que garder les mots de passe demande.** Le logiciel travaille seul parce qu'il garde les mots de passe des
+organismes ; ce qui les protège est écrit en tête de `moteur/src/compagnie/coffre.rs`. Le secret ne sort jamais, ni
+par l'état du coffre, ni en clair sur le disque (`tests/fichiers/coffre.rs`) ; les modules qui parlent au réseau
+(la crate `envois`) ne peuvent pas ouvrir le coffre : ils n'en dépendent pas, ils reçoivent un mot de passe (règle 3).
 
 ### La sauvegarde
 
@@ -455,7 +443,7 @@ ouvrir le coffre eux-mêmes.
 moteur sauvegarder          # les différences
 moteur sauvegarder --point  # où en est la dernière, sans réseau
 moteur sauvegarder --tout   # tout renvoyer, sans comparer
-moteur restaurer [DOSSIER]  # le retour : redescendre prive/ du Drive (vérifié, rien d'effacé) — LISEZ-MOI-DABORD, « Si je perds l'ordinateur »
+moteur restaurer [DOSSIER]  # le retour : redescendre prive/ du Drive (vérifié, rien d'effacé)
 ```
 
 Vers `PuppetPaie / sauvegarde / …` dans le Drive, en conservant l'arborescence.
@@ -467,7 +455,7 @@ changé.
 Drive : une sauvegarde qui répercute les suppressions n'est pas une sauvegarde,
 c'est un miroir, et un miroir recopie fidèlement les accidents.
 
-Le coffre (`coffre.bin`) monte (décidé par Léandre, 13 et 14/10/2026) : il est
+Le coffre (`coffre.bin`) monte : il est
 scellé par le mot de passe du logiciel, qui l'ouvre sur un poste neuf après
 `moteur restaurer` ; sans ce mot de passe, il ne s'ouvre nulle part ailleurs.
 Ne montent jamais : `google-jeton.bin` (le compte se relie de nouveau),
@@ -504,15 +492,14 @@ Urssaf et sans consommer de numéro de bulletin :
 moteur dpae 2026-09 --heure 0800
 ```
 
-Elle dit, pour chaque contrat, si le délai est tenu — la DPAE ne s'envoie que
-dans les 8 jours qui précèdent l'embauche.
+Elle dit si une embauche est déjà passée : la DPAE est alors hors délai, et elle s'écrit quand même, sans antidater
+(code de sortie 3).
 
 **Le dépôt.** Deux voies. À la main sur net-entreprises.fr, rubrique DPAE
 (dépôt du `.txt`, ou saisie en ligne à partir du `_recapitulatif.txt`). Ou par
 l'API de l'Urssaf, depuis la fenêtre : elle montre qui est déclaré, et n'envoie
 rien tant que le mot de passe du logiciel n'est pas tapé. C'est le mot de passe
-qui vaut confirmation. (Les raccourcis `Depot DPAE.cmd` et `Retours DSN.cmd`
-d'avant le rangement du 09/10/2026 n'existent plus.)
+qui vaut confirmation.
 
 En ligne de commande, même chose :
 
@@ -533,7 +520,7 @@ moteur deposer-dpae sorties/2026-09/DPAE_Septembre2026.txt --test
 
 Le champ `C_VERSION` bascule de `120` à `TST` **en mémoire** au moment de
 l'envoi ; le fichier sur le disque reste un fichier réel. L'API DPAE ne demande
-aucune inscription, seulement un compte en ligne Urssaf. Détail : `../prive/journal/ETAT.md` §7 bis.
+aucune inscription, seulement un compte en ligne Urssaf.
 
 ## La répétition avant l'irréversible
 
@@ -555,7 +542,7 @@ Trois refus, trois gestes différents — le message dit lequel : un test qui a
 absence de test se comble. Dans la page, le bouton du dépôt de test est dans
 la boîte du refus.
 
-**La sortie de secours existe, et elle est tracée.** Le service de test sera
+**La sortie de secours existe, et elle est tracée.** Le service de test peut être
 indisponible un 5 du mois à 23 h, et bloquer une déclaration à l'échéance est
 pire qu'un dépôt imparfait :
 
@@ -585,7 +572,7 @@ moteur retours
 
 Ou, sans ligne de commande : la fenêtre les relève à l'ouverture.
 
-Le mot de passe n'est plus demandé si le coffre le porte (`paie
+Le mot de passe n'est pas demandé si le coffre le porte (`moteur
 coffre poser net-entreprises`) : relever les retours est une lecture, et c'est
 ce qui permet à l'ouverture de le faire seule. Le champ reste, pour le cas où
 aucun coffre n'est posé — et ce qui y est tapé passe devant le coffre.
@@ -666,7 +653,7 @@ Première embauche, taux périmé, salarié sans NIR : la DGFiP n'a pas donné d
 taux, et la loi ne laisse pas le choix. C'est la **grille de taux par défaut**
 de l'article 204 H du CGI — type 13, et **pas d'identifiant**
 (`S21.G00.50.008` n'est obligatoire qu'avec un taux transmis par la DGFiP,
-type 01 : CCH-11, p. 244). Le moteur ne s'arrête donc plus : il
+type 01 : CCH-11, p. 244). Le moteur
 calcule, versement par versement.
 
 Ce que le bloc 50 porte alors :
@@ -679,8 +666,7 @@ Ce que le bloc 50 porte alors :
 
 L'abattement n'a pas de rubrique : il se lit dans l'écart entre 50.002 et
 50.013 (cahier technique 2026.1, p. 245). `50.012` est réservée aux
-abattements des assistants maternels et familiaux ; le moteur ne l'écrit plus
-depuis la vague 1a (10/10/2026).
+abattements des assistants maternels et familiaux ; le moteur ne l'écrit pas.
 
 L'abattement (la moitié du SMIC net imposable mensuel) vaut pour un CDD dont
 le terme n'excède pas deux mois ou dont le terme est imprécis, et seulement
@@ -721,7 +707,7 @@ déclarations le disent, et ce ne sont pas la même :
   l'employeur. Il informe l'Assurance Maladie au plus près de l'événement,
   pour les indemnités journalières ;
 - le **report dans la DSN mensuelle** : obligatoire (cahier technique 2026.1
-  §2.5.2), et il se fait tout seul à la production du mois. Un arrêt qui dure
+  §2.5.2), et il se fait tout seul à la fabrication de la DSN du mois. Un arrêt qui dure
   est reporté par **chaque** DSN dont le mois croise l'arrêt.
 
 ```bash
@@ -736,8 +722,8 @@ moteur depot-dsn sorties/2026-10/SignalementArret_Celi_20261007.dsn --test
 
 `saisir` **n'envoie rien** : l'arrêt est écrit dans le magasin des **imprévus**
 (`imprevus/AAAA-MM.json`), au mois de son dernier jour travaillé. C'est un fait
-saisi **une fois** : la production de chaque mois qu'il traverse en tire le bloc
-60 de la DSN et, pour un permanent, la ligne qui retire le salaire des jours
+saisi **une fois** : chaque mois qu'il traverse en tire le bloc
+60 de sa DSN et, pour un permanent, la ligne qui retire le salaire des jours
 d'absence (et le maintien de salaire saisi sur l'arrêt, `moteur arret maintien
 Celi --dernier-jour 2026-10-07 --mois 2026-10 --montant 300`) ; les cachets
 d'un intermittent datés pendant l'arrêt sont nommés, jamais retirés d'office. `signaler` **écrit un fichier**, et c'est `depot-dsn` qui
@@ -755,7 +741,7 @@ moteur arret reprise Celi --dernier-jour 2026-10-07 --le 2026-10-15
 Une prolongation **ne fait partir aucun signalement** : elle change la fin
 prévisionnelle, que la DSN mensuelle de chaque mois traversé porte
 (`S21.G00.60.003` ; fiche net-entreprises 1983). Si l'arrêt est subrogé et finit
-désormais après sa subrogation, le moteur le dit et demande la fin de subrogation
+après sa subrogation, le moteur le dit et demande la fin de subrogation
 (il ne connaît pas le maximum de la convention) ; repoussée après le dépôt du
 signalement d'arrêt, elle fait naître un **signalement d'arrêt rectificatif**
 (annule et remplace, `moteur arret signaler ... --remplace <identifiant>`). Une
@@ -849,7 +835,7 @@ Dans la fenêtre, **Historique › Les corrections** montre, mois par mois,
 chaque contrat corrigé : la paie déclarée, la paie validée, et la DSN qui
 l'a portée ou la prochaine qui la portera.
 
-Un contrat déclaré ne se retire plus : s'il n'a pas eu lieu, ses quantités
+Un contrat déclaré ne se retire pas : s'il n'a pas eu lieu, ses quantités
 passent à zéro et la correction en déclare l'annulation des montants.
 
 ## Le fichier de saisie
@@ -877,9 +863,9 @@ Théâtre 71 le 14, 15, 17, 18 ». Deux villes, deux lignes — et c'est **une
 seule paie** : même spectacle, donc même numéro d'objet, donc un contrat, un
 bulletin. Les jours de l'engagement sont la réunion de ceux de ses
 lignes. Le contrat groupe les dates par lieu et les nomme toutes ; le lieu ne
-se déclare nulle part ailleurs (ni DSN, ni AEM, ni DPAE).
+se déclare nulle part ailleurs (ni DSN, ni DPAE).
 
-**Une seule écriture, depuis le 13/09/2026.** Un engagement n'a que des
+**Une seule écriture.** Un engagement n'a que des
 `lignes` ; `dates`, `cachets`, `heures` ou `taux_horaire` posés sur
 l'engagement lui-même sont **refusés**. Un contrat mixte se saisit
 avec une ligne `cachet` et une ligne `heure`, chacune à son taux.
@@ -1021,13 +1007,8 @@ lance pas sans raison.
 
 ### La nature du contrat, et les salariés permanents
 
-*Chantier en cours depuis le 18/09/2026. Ce qui suit marche ; ce qui manque
-est dit à la fin.*
-
 Un engagement peut dire sa **nature de contrat**. Sans elle, c'est un CDD
-d'usage du spectacle — l'intermittent, ce que sont les 146 contrats de
-l'historique, et c'est pour cela qu'aucune saisie existante n'a besoin d'être
-touchée.
+d'usage du spectacle — l'intermittent.
 
 ```json
 { "salarie": "Camille", "nature": "cdi",
@@ -1057,12 +1038,12 @@ Un contrat permanent (`cdi`, `cdd`) n'a **ni dates jouées, ni spectacle** :
 Comme un CDDU de tournée, un contrat permanent est **saisi dans chacun de ses
 mois**, avec les mêmes `debut` et `numero`.
 
-**Une saisie de permanent dit des FAITS, pas des lignes.** Depuis le
-18/09/2026, `charger` en déduit les lignes du bulletin — salaire de base et
+**Une saisie de permanent dit des FAITS, pas des lignes.** Le moteur en déduit les lignes du bulletin
+(`engagement/src/lib.rs`, à la lecture de la saisie) — salaire de base et
 son prorata, congés pris et l'indemnité qui les couvre, primes, solde de
 tout compte le dernier mois. Un arrêt de travail ou une suspension (congé
 parental, sabbatique, sans solde…) n'est **pas** un fait du mois : c'est un
-**imprévu**, saisi une fois sur le salarié (`moteur arret saisir`, `paie
+**imprévu**, saisi une fois sur le salarié (`moteur arret saisir`, `moteur
 suspension saisir`), dont le moteur tire la ligne de chaque mois qu'il traverse
 (une saisie qui porte encore des `absences` est refusée) :
 
@@ -1106,11 +1087,11 @@ dans les **cinq jours ouvrés** qui suivent la fin, et l'ouverture le rappelle.
   de l'usage. Tant que rien n'est dit, le moteur ne retire que le 1er mai du
   décompte des congés — et il le dit à chaque fois.
 
-**Tout cela se saisit aussi à l'écran** depuis le 19/09/2026. Un engagement
+**Tout cela se saisit aussi à l'écran.** Un engagement
 porte une case **Nature**, et c'est elle qui change la forme du bloc : un
 permanent perd le spectacle et les lignes de paie, et gagne son salaire
-mensuel, sa quotité, et trois listes de faits — congés pris, absences,
-primes. Sa fin, quand elle se signale, se saisit sous « Contrat » (motif de
+mensuel, sa quotité, et deux listes de faits — congés pris, primes ; ses arrêts et ses absences sont des
+imprévus, sur sa fiche. Sa fin, quand elle se signale, se saisit sous « Contrat » (motif de
 la rupture, notification, préavis, transaction), et une boîte **Fin de
 contrat**, à côté des arrêts de travail, liste ce qui se termine ce mois-ci,
 **dit ce qui manque** plutôt que de proposer un bouton qui refuserait, écrit
@@ -1118,8 +1099,7 @@ le signalement et enchaîne sur le dépôt. Les deux papiers dus au salarié
 s'écrivent du même endroit. La complémentaire santé, elle, se choisit sur la
 fiche du salarié : un niveau, un conjoint, des enfants.
 
-La **prévoyance des permanents**, qui manquait au début du chantier, est
-relevée depuis le 19/09/2026 et livrée avec le logiciel : la convention
+La **prévoyance des permanents** est livrée avec le logiciel : la convention
 collective la fixe (`logiciel/donnees/prevoyance-conventionnelle-base.json`,
 `docs/ARCHITECTURE.md`, « Le taux d'une branche n'est pas une donnée de
 compagnie »). Ce qui reste propre à chaque compagnie, et la fait refuser
@@ -1161,8 +1141,8 @@ Spectacles du dernier mois additionne les cachets et le brut de tous les
 mois du contrat, lus dans les paies validées de l'engagement — le seul
 regard en arrière du moteur.
 
-**Le numéro se pose sur l'engagement** quand le contrat part à la signature,
-ou avec les documents de son premier mois, et se relit dans tous ses mois.
+**Le numéro se pose sur l'engagement** à sa validation (`engagement/src/numeros.rs`), et se relit dans tous
+ses mois.
 Un mois qui n'est pas le premier ne se numérote pas : sans numéro connu, le
 moteur en tirerait un autre, il refuse.
 
@@ -1181,9 +1161,8 @@ Valider ? » :
 **L'historique dans le calendrier.** La flèche vers le mois *précédent*
 remonte aussi loin qu'on veut, en lecture seule : les mois passés montrent
 les contrats déclarés des salariés cochés — une plage grisée quand on ne
-connaît que début, fin et nombre de cachets (l'historique importé des AEM,
-avant août 2026), les jours joués en gris plein quand le mois a été produit
-ici — et la liste des contrats du mois sous la grille, avec le titre du
+connaît que début, fin et nombre de cachets (l'historique importé des AEM),
+les jours joués en gris plein quand l'engagement a été validé ici — et la liste des contrats du mois sous la grille, avec le titre du
 spectacle. C'est ce que la compagnie a déclaré, pas la position du salarié :
 ses autres employeurs n'y sont pas. Rien ne s'y coche.
 
@@ -1201,10 +1180,10 @@ signature.
 ## Ce qu'il faut vérifier à chaque mois
 
 1. **Le montant Urssaf** du bloc `S21.G00.20` de la DSN. C'est un ordre de
-   télépaiement, et il se **calcule** depuis le 29/09/2026 : c'est la somme des
+   télépaiement, et il se **calcule** : c'est la somme des
    lignes du bordereau (bloc 23), chacune valorisée à la table des CTP de
-   l'Urssaf et arrondie à l'euro (`documents/src/bordereau.rs`) — 74 des 75
-   DSN de CoolPaie retrouvées au centime. Rien à recopier :
+   l'Urssaf et arrondie à l'euro (`documents/src/bordereau.rs`) — 74 de 75
+   DSN acceptées d'une compagnie retrouvées au centime. Rien à recopier :
 
    ```
    moteur depot-dsn 2026-09 --apercu
@@ -1212,17 +1191,14 @@ signature.
 2. **La DSN en dépôt de test** (`depot-dsn --test`) avant tout dépôt réel.
    C'est le validateur qui fait foi : la même brique de contrôle que DSN-Val,
    à jour, côté plate-forme (voir `atelier/reference/norme-dsn/LISEZMOI.md`).
-   Depuis le 20/09/2026 ce n'est plus une discipline mais une **règle du
-   moteur** : un dépôt réel dont le contenu exact n'est pas passé en test est
+   C'est une **règle du moteur** : un dépôt réel dont le contenu exact n'est pas passé en test est
    refusé, pour la DSN comme pour la DPAE — voir « La répétition avant
    l'irréversible ».
 3. **Le numéro d'objet du spectacle** : France Travail en délivre un nouveau
    chaque année (`216Z…` = 2021 … `266Z…` = 2026) — voir « Chaque janvier ».
-4. **Les compteurs** de `config/compteurs.json` (numéros de bulletin, de contrat
-   et d'attestation AEM) au premier mois d'utilisation réelle : ils ont été
-   estimés à partir des dernières sorties CoolPaie, pas lus dans sa base.
-   Ils ne sont écrits qu'une fois tous les fichiers du mois produits : un essai,
-   un rejeu ou une commande interrompue ne consomme aucun numéro.
+4. **Les numéros de bulletin** suivent ceux de l'année : après le compteur de l'année (`config/compteurs.json`)
+   et après les bulletins importés (`documents/src/ecrire_documents.rs`, `numeroter_en_attente`). Ils ne
+   s'écrivent qu'au départ des documents : un essai, un rejeu ou une commande interrompue ne consomme aucun numéro.
 
 ## À l'ouverture : ce que le logiciel rappelle
 
@@ -1259,11 +1235,9 @@ echo '{"route":"conseils-salarie","charge":{"salarie":"<CLE>"}}' | moteur route 
 
 ### La DPAE préparée d'avance, et son filet de sécurité
 
-Dès qu'un contrat part — envoyé à la signature, ou imprimé pour la main
-propre —, sa DPAE s'écrit et part **en test**, sans rien demander :
+Dès qu'un engagement est validé, sa DPAE s'écrit et part **en test**, sans rien demander :
 c'est le même fichier que le dépôt réel reprendra, déjà répété. Le test ne
-déclare rien. Il se fait à l'ouverture, à chaque passage de la veille, et
-juste après l'envoi des contrats à la signature ; une panne devient une ligne
+déclare rien. Il se fait à l'ouverture et à chaque passage de la veille ; une panne devient une ligne
 d'incident, et le passage suivant réessaie. Le dépôt réel n'est permis
 qu'après une répétition réussie de ce fichier-là.
 
@@ -1276,15 +1250,14 @@ fois l'embauche commencée.
 
 **Le filet** (Configuration › Mots de passe, une option à cocher) : le
 logiciel confie au serveur de PuppetPaie un réveil pour la veille de chaque
-embauche dont le contrat est parti, et le désarme dès que la DPAE part.
+embauche dont l'engagement est validé, et le désarme dès que la DPAE part.
 Un réveil qui n'a pas été désarmé sonne : **un** courriel à l'adresse
 choisie. Si la DPAE est partie, personne ne reçoit rien. Le serveur ne
 reçoit ni nom, ni salarié, ni contrat : l'adresse (confirmée une fois par un
 lien), un code tiré au hasard et le jour de l'embauche. Son code et son
-installation sont dans le dépôt du site de l'éditeur, sous `infra/filet/` (depuis le
-13/10/2026 ; il tourne sur le VPS du site). Le poste s'identifie auprès de lui
-par une clé que le serveur lui donne (`config/diagnostic.json` : `poste`,
-`cle`, `serveur`), demandée au premier envoi ; plus de secret partagé.
+installation sont dans le dépôt du site de l'éditeur, sous `infra/filet/` (il tourne sur le VPS du site). Le
+poste s'identifie auprès de lui par une clé que le serveur lui donne (`config/diagnostic.json` : `poste`,
+`cle`, `serveur`), demandée au premier envoi ; aucun secret partagé.
 
 ```
 moteur filet                       l'option, les réveils armés
@@ -1313,7 +1286,7 @@ moteur filet suivies               les embauches sans trace de DPAE
    0,55 %, `tdelta` 0,3781) : au-delà, on les corrige dans son propre
    fichier, en nommant la rubrique par son `id`.
 
-   **L'effectif ne se saisit pas** (23/09/2026) : l'Urssaf le calcule et le
+   **L'effectif ne se saisit pas** : l'Urssaf le calcule et le
    renvoie dans les retours DSN (nature 118, l'été qui suit l'année) ; le
    relevé l'écrit seul dans `config/effectifs.json`, et un seuil n'est
    franchi qu'après cinq années consécutives au-dessus (art. L. 130-1 CSS).
@@ -1341,11 +1314,11 @@ moteur filet suivies               les embauches sans trace de DPAE
 3. **L'export compta** : le journal des écritures de paie de l'année, une
    écriture par mois, équilibrée au centime — salaires bruts et charges
    patronales au débit, organismes (part patronale + salariale), net à payer
-   et prélèvement à la source au crédit. Tout part des bulletins recalculés,
+   et prélèvement à la source au crédit. Tout part des paies écrites des engagements validés,
    pas de la DSN. Un CSV (`;`, virgule décimale, colonnes journal / date /
    compte / libellé / débit / crédit / analytique) que tout logiciel de
-   comptabilité importe ; un format propre à un logiciel s'ajoutera le jour
-   où une compagnie le demande. Le plan comptable est une donnée
+   comptabilité importe ; les formats propres à des logiciels sont ceux de l'état `ecritures-comptables`
+   (plus bas). Le plan comptable est une donnée
    (`logiciel/donnees/plan-comptable-base.json`, à faire valider par le comptable) ;
    une compagnie pose le sien dans `config/plan-comptable.json`, clé par clé.
 
@@ -1422,14 +1395,15 @@ Un export **lit** : il ne calcule aucune paie, ne dépose rien, ne consomme
 aucun numéro. Le numéro de contrat est celui que l'engagement porte depuis sa
 validation.
 
-### Tous les états (23/09/2026)
+### Tous les états
 
 `moteur exporter` sans argument les liste, rangés par famille comme
 dans le menu de l'onglet. Chacun se demande pour un mois, une année ou toutes
 les années (sauf mention), et s'écrit en **CSV, texte tabulé, XLSX, PDF, HTML
 ou JSON** — la machinerie commune `documents/src/tableaux_export.rs`, que chaque état suit
 sans rien avoir à dire. Chaque fichier porte en pied ses avertissements et
-ses **sources** (l'article, la norme ou le format qui le fonde).
+ses **sources** (l'article, la norme ou le format qui le fonde). Dans la colonne « lit », « saisie » désigne les
+paies écrites des engagements validés (`documents/src/etats_paie.rs`, en tête).
 
 | famille | état | ce qu'il sort | lit |
 |---|---|---|---|
@@ -1444,7 +1418,7 @@ ses **sources** (l'article, la norme ou le format qui le fonde).
 | | `bordereau-urssaf` | CTP, assiettes, total dû (blocs 22 et 23) | DSN déposée |
 | | `reduction-generale` | coefficient, montant, parts Urssaf / chômage / retraite | saisie |
 | | `assiettes` | les assiettes de chaque bulletin et le plafond | saisie |
-| | `regularisation-casc-svp` | la régularisation CASC-SVP (§74) | DSN déposée |
+| | `regularisation-casc-svp` | la régularisation CASC-SVP | DSN déposée |
 | | `fcap-svp` | le FCAP-SVP de la 3090 : 0,1 % de la tranche A de l'année, plancher 80 €, plafond 300 €, payé hors DSN (année ou toutes) | DSN déposée |
 | comptabilité | `ecritures-comptables` | le journal de paie, une pièce par mois ; en plus `--format fec`, `ximport`, `oxygene`, `sage`, `quadra`, `ebp`, `pennylane`, ou `--logiciel` | saisie |
 | | `grand-livre-paie` | les écritures par compte, un solde par compte | saisie |
@@ -1468,8 +1442,7 @@ moteur exporter versements-organismes --annee 2025 --format xlsx
 
 **Ce qui lit « saisie » écarte les mois d'avant PuppetPaie, et le dit** :
 la DSN ne déclare pas la répartition des cotisations, rien n'est
-reconstitué. **Ce qui lit « DSN déposée » lit le fichier parti** (règle du
-§74.2) : un mois sans DSN réelle acceptée n'y est pas, et un état sans aucune
+reconstitué. **Ce qui lit « DSN déposée » lit le fichier parti** (règle 4) : un mois sans DSN réelle acceptée n'y est pas, et un état sans aucune
 DSN refuse.
 
 **Les formats de comptabilité** (`documents/src/etats_compta.rs`) :
@@ -1538,35 +1511,33 @@ Les écritures sont **les mêmes** que l'export compta de la clôture
 (`ecritures_du_mois`, même plan comptable, même refus d'un compte deviné) ;
 seuls la période et le format changent.
 
-### Le dossier d'un salarié (23/09/2026)
+### Le dossier d'un salarié
 
 Tous les documents d'un salarié — ou de chacun —, sur un mois, une année ou
 toute la période, en une fois. Dans l'onglet **Exports**, « Le dossier d'un
 salarié » : on coche ce qu'on sort.
 
 ```
-moteur dossier FAVART --toutes-les-annees        # un ZIP
+moteur dossier Celi --toutes-les-annees        # un ZIP
 moteur dossier --annee 2025 --seulement bulletins  # un PDF par salarié
 moteur dossier --mois 2026-08 --ensemble         # tous dans un fichier
-moteur dossier FAVART --annee 2026 --envoyer     # et l'envoyer (mot de passe)
+moteur dossier Celi --annee 2026 --envoyer     # et l'envoyer (mot de passe)
 moteur dossier --toutes-les-annees --apercu      # compter les pages
 ```
 
 | catégorie | d'où |
 |---|---|
-| `bulletins` | **les pages mêmes** du fichier archivé du mois (`Bulletins_<Mois>.pdf`), celles du salarié seulement : rien n'est recalculé ni réimprimé (règle 4) ; une page introuvable refuse ; CoolPaie tels quels |
-| `contrats` | réédités aux numéros de l'archive (ou figés dans la saisie) ; CoolPaie tels quels |
+| `bulletins` | **les pages mêmes** du fichier archivé du mois (`Bulletins_<Mois>.pdf`), celles du salarié seulement : rien n'est recalculé ni réimprimé (règle 4) ; une page introuvable refuse |
+| `contrats` | réédités aux numéros de l'archive |
 | `contrats-signes` | tels quels, et dans le ZIP les courriels de signature (`Signature_*.eml`) |
 | `certificats-cs` | les pages mêmes de `CertificatsCS_<Mois>.pdf`, à ses N° CE (lus à partir du récapitulatif du mois) ; sans récapitulatif ou sans archive, aucun certificat, et le dossier le dit |
-| `attestations` | l'AER de France Travail et les AEM de CoolPaie, telles quelles |
+| `attestations` | l'AER de France Travail, telle quelle |
 | `documents-fin` | certificat de travail et reçu pour solde de tout compte, tels quels |
 | `recapitulatif` | ses heures et cachets, et son récapitulatif annuel |
 
 Une catégorie : un PDF. Plusieurs : un ZIP d'un PDF par catégorie. Les
 fichiers vont dans `exports/dossiers/`. **Aucun numéro n'est consommé** ; une
-page rééditée le dit en pied (« Réédité par PuppetPaie le … »). Les pages
-CoolPaie sont rattachées au salarié par le NIR, ou par le nom **et** le
-prénom, et datées par leur période. L'envoi passe par la boîte de la
+page rééditée le dit en pied (« Réédité par PuppetPaie le … »). L'envoi passe par la boîte de la
 compagnie, avec le mot de passe du logiciel ; un dossier `--ensemble` ne
 s'envoie à personne.
 
@@ -1653,7 +1624,7 @@ les compagnies fictives livrées (`fictives/`) se jouent dans l'interface, et un
 calculée, clé de Luhn du SIRET, IBAN de forme juste. Un test ne doit pas
 pouvoir passer sur un numéro impossible.
 
-Les refus sont voulus tant que les taux manquent. Le seul validateur reste le
+Le seul validateur reste le
 **dépôt de test** net-entreprises, qui ne conserve rien : les DSN produites ici
 sont conformes au tableau des usages et aux formats de la norme, **et à rien
 d'autre**, tant qu'elles n'y sont pas passées.
@@ -1701,21 +1672,12 @@ texte des bulletins et des certificats CS et les journaux à un oracle
 
 ## Ce que le moteur ne fait pas
 
-- **Régularisations annuelles** (bloc DSN `S21.G00.82`, vu en avril 2026).
-- **Payer un salarié permanent.** Le chantier est ouvert (voir « La nature du
-  contrat ») : le calcul, la déclaration, le signalement de fin de contrat et
-  l'écran sont là. La **prévoyance** n'est plus ce qui manque — elle vient de
-  la convention collective, dans un catalogue livré avec le logiciel (1,20 %
-  de la tranche A pour l'IDCC 3090, 1,50 % pour un cadre, à la charge de
-  l'employeur) —, ni la mutuelle santé, ni la CASC-SVP, relevées le
-  19/09/2026 sur la fiche de paramétrage Audiens. Ce qui retient le barème,
-  ce sont les **identifiants d'affiliation** de la DSN, qui n'existent
-  qu'une fois l'entreprise adhérée au régime de sa branche.
 - **Déposer sans qu'on le lui demande.** La DSN et la DPAE partent par l'API,
   mais contre le mot de passe du logiciel tapé au moment de l'acte, et jamais
   deux fois pour le même mois ou la même embauche. Une déclaration part sous la
-  responsabilité de l'employeur. (Plus d'AEM à déposer depuis le 01/06/2026 :
-  la compagnie est en 100 % DSN, France Travail édite l'attestation lui-même.)
+  responsabilité de l'employeur.
+- **Déposer une AEM.** Depuis le 01/06/2026 la DSN en tient lieu (100 % DSN), et France Travail édite l'attestation
+  lui-même.
 
 ## Organisation
 
@@ -1753,7 +1715,10 @@ atelier/                  ← ce dossier : tout le reste
                           dossier (d'un organisme privé, seule la
                           transcription) ; `moteur sources` y vérifie les copies
   docs/                   ARCHITECTURE.md, RUBRIQUES.md, COMPAGNIES-FICTIVES.md,
-                          COMPAGNIE-D-ESSAI.md
+                          COMPAGNIE-D-ESSAI.md, COOLPAIE-SORTIR-SES-DOCUMENTS.md
+  bac-a-sable/            une installation en retard d'une version, pour essayer
+                          la mise à jour
+  AVANT-LE-PREMIER-COMMIT.md   ce qui n'entre jamais dans le dépôt
   outils/                 les outils d'atelier : `banc/` (le banc d'essai daté, en
                           Node : LISEZ-MOI.md), `demos/` (un scénario de
                           démonstration). Le garde avant commit, le guet, les
@@ -1793,8 +1758,8 @@ Deux faces, une seule vérité : la ligne de commande et l'interface passent
 toutes deux par les routes du moteur, qui portent l'orchestration et les
 garde-fous. Aucun front ne décide quoi que ce soit.
 
-Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour le détail des formats et la façon
-dont chaque taux a été retrouvé.
+Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour le détail des formats et
+d'où vient chaque taux.
 
 ### Avant un commit : le garde des données réelles
 

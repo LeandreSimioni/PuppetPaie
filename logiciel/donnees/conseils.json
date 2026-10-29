@@ -1249,13 +1249,13 @@
       "domaine": "logiciel",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Dans PuppetPaie, votre DPAE est « répétée » avant d'être déposée pour de vrai : dès qu'un contrat part, le logiciel envoie le même fichier en dépôt de test, qui ne déclare rien mais dit si l'Urssaf l'accepterait. Le dépôt réel n'est permis qu'après une répétition réussie de ce fichier : il n'y a plus de surprise.",
+      "texte": "Dans PuppetPaie, votre DPAE est « répétée » avant d'être déposée pour de vrai : dès qu'un engagement est validé, le logiciel envoie le même fichier en dépôt de test, qui ne déclare rien mais dit si l'Urssaf l'accepterait. Le dépôt réel n'est permis qu'après une répétition réussie de ce fichier : il n'y a plus de surprise.",
       "source": {
         "fichier": "atelier/README.md",
         "article": "§ « La DPAE préparée d'avance, et son filet de sécurité »",
-        "citation": "Dès qu'un contrat part […] sa DPAE s'écrit et part en test, sans rien demander : c'est le même fichier que le dépôt réel reprendra, déjà répété. Le test ne déclare rien."
+        "citation": "Dès qu'un engagement est validé, sa DPAE s'écrit et part en test, sans rien demander : c'est le même fichier que le dépôt réel reprendra, déjà répété. Le test ne déclare rien."
       },
-      "ciblage": "quand un contrat vient d'être envoyé ou signé",
+      "ciblage": "quand un engagement vient d'être validé",
       "certitude": "sourcé (doc du dépôt)"
     },
     {

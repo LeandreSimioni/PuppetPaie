@@ -262,7 +262,7 @@ pub fn verifier(racine: &Path) -> R<Value> {
 // ------------------------------------------------------- les embauches suivies
 
 /// `embauches_suivies` en JSON : les embauches sans trace de DPAE, d'une
-/// semaine en arriere a l'infini, chacune avec son contrat parti ou non.
+/// semaine en arriere a l'infini, chacune avec son engagement valide ou non.
 /// Le journal des depots, ou un refus qui le dit (un fichier qui ne se lit pas en JSON).
 fn journal_lisible(racine: &Path) -> R<Vec<Value>> {
     etats::charger(racine).map_err(|e| match e.classe {
@@ -280,10 +280,10 @@ pub fn suivies(ctx: &Contexte) -> R<Vec<Value>> {
     let liste = embauches_suivies(&st).map_err(socle::echec::Echec::from)?;
     Ok(liste
         .into_iter()
-        .map(|(e, parti)| {
+        .map(|(e, valide)| {
             json!({
                 "mois": e.mois, "salarie": e.salarie, "debut": e.debut, "fin": e.fin,
-                "nom": e.nom, "spectacle": e.spectacle, "contrat_parti": parti, "empreinte": e.empreinte,
+                "nom": e.nom, "spectacle": e.spectacle, "valide": valide, "empreinte": e.empreinte,
             })
         })
         .collect())
@@ -364,7 +364,7 @@ fn reveils(ctx: &Contexte, etat: &mut Value, suivies: &[Value], maintenant: &str
             }
         };
         for e in suivies {
-            if !vrai(get(e, "contrat_parti")?) {
+            if !vrai(get(e, "valide")?) {
                 continue;
             }
             let debut = valeur_en_texte(get(e, "debut")?);

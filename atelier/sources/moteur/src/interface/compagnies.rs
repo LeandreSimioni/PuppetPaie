@@ -73,19 +73,14 @@ pub fn est_copie(racine: &Path) -> bool {
 /// Le dossier des COMPAGNIES FICTIVES, a cote du logiciel, livrees
 /// avec le logiciel, rien n'en part : leurs envois sont joues.
 pub const DOSSIER_FICTIVES: &str = "fictives";
-/// Le nom de ce dossier avant le lot U1. Une installation deja posee le garde (la mise a jour ne porte que `logiciel/`) :
-/// `ranger_les_fictives` le renomme une fois, au lancement.
-const ANCIEN_DOSSIER_FICTIVES: &str = "demo";
-/// Le marqueur d'une compagnie fictive : `COPIE-DE-DEVELOPPEMENT.json`, dont `copie_de` commence par ceci. Celles d'avant le
-/// lot U1 disent `compagnie de demonstration …` : elles se lisent encore.
+/// Le marqueur d'une compagnie fictive : `COPIE-DE-DEVELOPPEMENT.json`, dont `copie_de` commence par ceci.
 pub const MARQUE_FICTIVE: &str = "compagnie fictive";
-const ANCIENNE_MARQUE_FICTIVE: &str = "compagnie de demonstration";
 
 /// Une COMPAGNIE FICTIVE : son marqueur le dit (ses envois sont joues, rien n'en part).
 pub fn est_fictive(racine: &Path) -> bool {
     lire(&racine.join(MARQUEUR))
         .and_then(|i| i.get("copie_de").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte))
-        .is_some_and(|c| c.starts_with(MARQUE_FICTIVE) || c.starts_with(ANCIENNE_MARQUE_FICTIVE))
+        .is_some_and(|c| c.starts_with(MARQUE_FICTIVE))
 }
 
 /// LA FICTIVE AJOUTEE : la compagnie que le « + » d'un logiciel bride ajoute. C'est une
@@ -110,35 +105,10 @@ pub fn est_fictive_livree(racine: &Path) -> bool {
     est_fictive(racine) && !est_ajoutee(racine)
 }
 
-/// Le prefixe du dossier d'une fictive ajoutee. Les fictives livrees s'appellent `fictive-…` (`ranger_les_fictives`, le
+/// Le prefixe du dossier d'une fictive ajoutee. Les fictives livrees s'appellent `fictive-…` (le
 /// dossier `fictives/` du depot) : une fictive ajoutee ne prend jamais le nom d'une livree, et la livraison, qui ne pose
 /// pas une fictive dont le nom est pris (`maj::poser_les_fictives_pretes`), n'en est jamais empechee.
 pub const PREFIXE_AJOUTEE: &str = "ajoutee-";
-
-/// AU LANCEMENT, une fois : le dossier `demo/` d'une installation posee avant le lot U1 devient `fictives/`, et chaque
-/// `demo-<nom>` (et sa photo d'origine) `fictive-<nom>`. Rien ne bouge si `fictives/` existe deja (une reinstallation l'a
-/// pose : l'ancien reste ou il est). Ce qui ne se renomme pas (un fichier ouvert ailleurs) se retente au lancement
-/// suivant ; rien n'est perdu. Rend ce qui s'est passe, ou `None` s'il n'y avait rien a faire.
-pub fn ranger_les_fictives(inst: &Path) -> Option<String> {
-    let (ancien, neuf) = (inst.join(ANCIEN_DOSSIER_FICTIVES), inst.join(DOSSIER_FICTIVES));
-    if !ancien.is_dir() || neuf.exists() {
-        return None;
-    }
-    let renommer_dedans = |d: &Path| {
-        for e in std::fs::read_dir(d).into_iter().flatten().flatten() {
-            let nom = e.file_name().to_string_lossy().into_owned();
-            if let Some(reste) = nom.strip_prefix("demo-") {
-                let _ = std::fs::rename(e.path(), d.join(format!("fictive-{}", reste)));
-            }
-        }
-    };
-    renommer_dedans(&ancien);
-    renommer_dedans(&ancien.join(DOSSIER_ORIGINE));
-    Some(match std::fs::rename(&ancien, &neuf) {
-        Ok(()) => format!("Compagnies fictives rangees dans {}.", neuf.display()),
-        Err(e) => format!("Compagnies fictives non rangees ({} -> {}) : {}", ancien.display(), neuf.display(), e),
-    })
-}
 
 /// La fiche entreprise telle qu'elle vaut aujourd'hui ; vide si elle ne se lit pas (la tuile dit alors le dossier, et
 /// la compagnie, ouverte, dit pourquoi).
@@ -494,50 +464,4 @@ pub fn texte_copie(racine: &Path) -> String {
         return "compagnie fictive &mdash; les envois sont simul&eacute;s".into();
     }
     "copie de test &mdash; rien ne part en r&eacute;el".into()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn dossier(nom: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("puppetpaie-compagnies-{}-{}", nom, std::process::id()));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d
-    }
-
-    /// Une installation posee avant le lot U1 : `demo/demo-<nom>` (et sa photo d'origine) devient `fictives/fictive-<nom>`,
-    /// une fois ; ensuite il n'y a plus rien a faire.
-    #[test]
-    fn l_ancien_dossier_des_fictives_se_range_une_fois() {
-        let inst = dossier("ranger");
-        std::fs::create_dir_all(inst.join("demo/demo-3090-petite/config")).unwrap();
-        std::fs::create_dir_all(inst.join("demo/.origine/demo-3090-petite/config")).unwrap();
-        std::fs::write(inst.join("demo/demo-3090-petite/config/entreprise.json"), "{}").unwrap();
-        assert!(ranger_les_fictives(&inst).is_some_and(|t| t.starts_with("Compagnies fictives rangees")));
-        assert!(!inst.join("demo").exists());
-        assert!(inst.join("fictives/fictive-3090-petite/config/entreprise.json").is_file());
-        assert!(inst.join("fictives/.origine/fictive-3090-petite/config").is_dir(), "la photo d'origine suit");
-        assert_eq!(ranger_les_fictives(&inst), None, "une seule fois");
-        // `fictives/` deja la (une reinstallation) : l'ancien reste ou il est.
-        std::fs::create_dir_all(inst.join("demo/demo-x")).unwrap();
-        assert_eq!(ranger_les_fictives(&inst), None);
-        assert!(inst.join("demo/demo-x").is_dir());
-        let _ = std::fs::remove_dir_all(&inst);
-    }
-
-    /// Le marqueur d'une fictive : le neuf, et celui d'avant le lot U1 ; une copie de developpement n'en est pas une.
-    #[test]
-    fn une_fictive_se_lit_a_son_marqueur_neuf_ou_ancien() {
-        let r = dossier("marqueur");
-        let poser = |t: &str| std::fs::write(r.join(MARQUEUR), format!("{{\"copie_de\": \"{}\"}}", t)).unwrap();
-        poser("compagnie fictive fictive-3090-petite");
-        assert!(est_fictive(&r) && est_copie(&r));
-        poser("compagnie de demonstration demo-3090-petite");
-        assert!(est_fictive(&r), "le marqueur d'avant le lot U1");
-        poser("prive");
-        assert!(!est_fictive(&r) && est_copie(&r));
-        let _ = std::fs::remove_dir_all(&r);
-    }
 }

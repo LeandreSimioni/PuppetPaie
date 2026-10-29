@@ -616,21 +616,6 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
     Ok((contrats, illisibles))
 }
 
-// ------------------------------------------------------------------ le dossier
-
-/// Ou sont les DSN et les AEM sous un dossier `export/` de CoolPaie.
-pub(crate) fn dossiers(export: &Path) -> (Option<std::path::PathBuf>, Option<std::path::PathBuf>) {
-    let mut dsn = export.join("DSN");
-    let mut aem = export.join("AEM_EDI");
-    if !dsn.is_dir() && !fichiers_dsn(export).is_empty() {
-        dsn = export.to_path_buf();
-    }
-    if !aem.is_dir() && noms_tries(export).iter().any(|n| !n.starts_with('.') && n.contains("EDIV5") && n.ends_with(".txt")) {
-        aem = export.to_path_buf();
-    }
-    (if dsn.is_dir() { Some(dsn) } else { None }, if aem.is_dir() { Some(aem) } else { None })
-}
-
 // ------------------------------------------------------------------ l'entreprise de chaque piece
 
 /// Ou l'AEM porte le Siret de l'employeur : `ligne[50:64]`, 14 chiffres. `CHAMPS` ne
@@ -727,50 +712,3 @@ pub(crate) fn verdict_entreprise(aem: bool, e: &Employeur, reference: Option<&st
     Ok((e.illisibles > 0).then(|| AEM_SANS_SIRET.to_string()))
 }
 
-/// Les DSN et les AEM d'un export (`dossiers`) devant la reference : celles qui ne sont pas reprises (chemin, raison),
-/// et celles qui passent sans controle (chemin, avertissement). Pas de bulletins dans un export.
-pub(crate) struct Garde {
-    pub(crate) ecartes: Vec<(std::path::PathBuf, String)>,
-    pub(crate) avertis: Vec<(std::path::PathBuf, String)>,
-}
-
-impl Garde {
-    /// Ce que l'apercu en dit, piece par piece (le nom du fichier, rien d'autre).
-    pub(crate) fn avertissements(&self, ecartes: bool, avertis: bool) -> Vec<String> {
-        let nom = |f: &std::path::PathBuf| f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        let mut out: Vec<String> = Vec::new();
-        if ecartes {
-            out.extend(self.ecartes.iter().map(|(f, raison)| format!("{} : {}", raison, nom(f))));
-        }
-        if avertis {
-            out.extend(self.avertis.iter().map(|(f, a)| format!("AEM reprise, mais {} : {}", a, nom(f))));
-        }
-        out
-    }
-}
-
-pub(crate) fn garder_export(fiche: &Value, dsn: Option<&Path>, aem: Option<&Path>) -> Garde {
-    let dsns: Vec<(std::path::PathBuf, Employeur)> =
-        dsn.map(fichiers_dsn).unwrap_or_default().into_iter().map(|f| { let e = employeur_dsn(&f); (f, e) }).collect();
-    let aems: Vec<(std::path::PathBuf, Employeur)> =
-        aem.map(fichiers_aem).unwrap_or_default().into_iter().map(|f| { let e = employeur_aem(&f); (f, e) }).collect();
-    let sirens_dsn = dsns.iter().flat_map(|(_, e)| e.sirens.iter().cloned()).collect();
-    let sirens_aem = aems.iter().flat_map(|(_, e)| e.sirens.iter().cloned()).collect();
-    let reference = siren_de_reference(fiche, &sirens_dsn, &sirens_aem);
-    let mut g = Garde { ecartes: Vec::new(), avertis: Vec::new() };
-    for (aem, liste) in [(false, dsns), (true, aems)] {
-        for (f, e) in liste {
-            match verdict_entreprise(aem, &e, reference.as_deref()) {
-                Err(raison) => g.ecartes.push((f, raison)),
-                Ok(Some(a)) => g.avertis.push((f, a)),
-                Ok(None) => {}
-            }
-        }
-    }
-    g
-}
-
-/// Les fichiers qu'un dossier AEM_EDI donne a `lire_aem` : les `*.txt` (`glob`), sans fichier cache, dans l'ordre.
-pub(crate) fn fichiers_aem(dossier: &Path) -> Vec<std::path::PathBuf> {
-    noms_tries(dossier).into_iter().filter(|n| !n.starts_with('.') && n.ends_with(".txt")).map(|n| dossier.join(n)).collect()
-}

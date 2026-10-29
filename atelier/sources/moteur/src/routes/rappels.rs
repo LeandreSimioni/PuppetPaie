@@ -796,38 +796,29 @@ fn fiche_pour(ctx: &Contexte, e: &Engagement) -> Resultat<Value> {
 }
 
 /// Les embauches sans trace de DPAE,
-/// d'une semaine en arriere a l'infini. Chacune dit si son CONTRAT EST PARTI --
-/// envoye a la signature, revenu signe, ou ecrit avec le mois (le contrat qu'on
-/// imprime). << Sans trace >> et non << non declaree >> : le journal ne connait
-/// que ce que CE logiciel a depose.
+/// d'une semaine en arriere a l'infini. Chacune dit si son ENGAGEMENT EST VALIDE : la DPAE part de
+/// l'engagement valide, et des sa validation. << Sans trace >> et non << non declaree >> : le journal ne
+/// connait que ce que CE logiciel a depose.
 pub(crate) fn embauches_suivies(st: &Etat) -> R<Vec<(Embauche, bool)>> {
     let depuis = st.aujourdhui.plus_jours(-RETARD_JOURS)?;
     let mois_min = mois_de(&depuis);
     let faites = etats::embauches_par_depot(&st.journal)?;
-    let mut demandes = BTreeSet::new();
-    for l in lire_journal(&st.journal, "contrat-signature", false)? {
-        if vrai_opt(l.get("accepte")) {
-            let detail = l.get("detail").filter(|d| vrai(d)).cloned().unwrap_or_else(|| json!({}));
-            if let Some(Value::Array(contrats)) = detail.get("contrats") {
-                for c in contrats {
-                    demandes.insert(format!("{}\u{1f}{}", texte(c.get("salarie")), texte(c.get("debut"))));
-                }
-            }
-        }
-    }
-    let recus = etats::contrats_recus(&st.journal, etats::Maille::Paire)?;
 
     let mut out = Vec::new();
-    for (mois, saisie, dossier) in mois_connus(st.ctx) {
+    for (mois, saisie, _) in mois_connus(st.ctx) {
         if saisie.is_none() {
             continue;
         }
         if mois < mois_min {
             continue;
         }
-        let ecrits = dossier.as_ref().map_or(false, |d| {
-            entrees_dans_l_ordre(d).iter().any(|(n, _)| n.starts_with("Contrats_") && n.ends_with(".pdf"))
-        });
+        let mut valides = BTreeSet::new();
+        for o in engagement::stock::objets_du_mois(&st.ctx.racine, &mois).unwrap_or_default() {
+            let b = Value::Object(o.brut.clone());
+            if b.get("valide").is_some_and(|x| x.get("le").is_some()) {
+                valides.insert((engagement::cle_de_l_engagement(st.ctx, &b).unwrap_or_default(), engagement::debut_brut(&b)));
+            }
+        }
         // Une saisie en cours d'ecriture : le passage suivant.
         let Ok(Some(data)) = engagement::stock::vue_du_mois(&st.ctx.racine, &mois) else { continue };
         let Ok(engs) = engagement::engagements_de_la_saisie(st.ctx, &data) else { continue };
@@ -876,9 +867,7 @@ pub(crate) fn embauches_suivies(st: &Etat) -> R<Vec<(Embauche, bool)>> {
                 Some(t) if vrai(t) => en_texte(t),
                 _ => "salarié au mois".to_string(),
             };
-            let parti = ecrits
-                || demandes.contains(&format!("{}\u{1f}{}", texte(Some(&k[0])), texte(Some(&k[1]))))
-                || recus.contient(&k)?;
+            let valide = valides.contains(&(cle.clone(), debut.clone()));
             out.push((
                 Embauche {
                     mois: mois_dit.clone(),
@@ -889,7 +878,7 @@ pub(crate) fn embauches_suivies(st: &Etat) -> R<Vec<(Embauche, bool)>> {
                     spectacle: titre,
                     empreinte: empreinte_de_l_embauche(e, &sal),
                 },
-                parti,
+                valide,
             ));
         }
     }
@@ -937,20 +926,8 @@ fn rappels_dpae(st: &Etat) -> R<Vec<Rappel>> {
         Err(_) => json!({}),
     };
     let limite = aujourdhui.plus_jours(RAPPEL_JOURS)?.iso();
-    let mut valides: HashMap<String, BTreeSet<(String, String)>> = HashMap::new();
     let mut jours: BTreeMap<(String, String), Vec<(Embauche, bool)>> = BTreeMap::new();
-    for (e, _) in embauches_suivies(st)? {
-        if !valides.contains_key(&e.mois) {
-            let mut v = BTreeSet::new();
-            for o in engagement::stock::objets_du_mois(&st.ctx.racine, &e.mois).unwrap_or_default() {
-                let b = Value::Object(o.brut.clone());
-                if b.get("valide").is_some_and(|x| x.get("le").is_some()) {
-                    v.insert((engagement::cle_de_l_engagement(st.ctx, &b).unwrap_or_default(), engagement::debut_brut(&b)));
-                }
-            }
-            valides.insert(e.mois.clone(), v);
-        }
-        let valide = valides[&e.mois].contains(&(e.salarie.clone(), e.debut.clone()));
+    for (e, valide) in embauches_suivies(st)? {
         if valide || e.debut <= limite {
             jours.entry((e.mois.clone(), e.debut.clone())).or_default().push((e, valide));
         }
