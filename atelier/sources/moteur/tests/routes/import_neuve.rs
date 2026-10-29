@@ -291,3 +291,61 @@ fn le_contrat_d_usage_reimporte_de_puppetpaie_continue_au_mois_suivant() {
     let declares = engagement::cumul::lire_engagements(&ctx, None).unwrap();
     assert_eq!(declares.iter().map(|e| e.cachets).sum::<i64>(), 4, "{:?}", declares);
 }
+
+/// LE MOIS MIXTE : une saisie posee sur novembre avant l'import, puis l'import du bulletin et de la DSN de novembre que
+/// l'ancien logiciel a faits. Le bulletin complete la paie que la DSN deposee declare (la saisie ne l'en empeche pas) ;
+/// la DSN de novembre ne se refait pas ici (regle 4) ; l'engagement saisi se declare dans la DSN suivante, comme une
+/// correction (« Il donne lieu a la declaration d'une correction dans la DSN suivante »,
+/// `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`), qui ne fabrique aucun bulletin : il a
+/// un seul bulletin, celui des documents de novembre, numerote apres le bulletin importe.
+#[test]
+fn le_mois_saisi_puis_importe_declare_la_saisie_dans_la_dsn_suivante() {
+    let d = dossier_de_test("import_neuve", "mixte");
+    let (_, banc) = crate::outils::rejeu::rejouer("treteaux-du-banc", &d.join("banc"));
+    let racine = ajouter_dans(&d.join("mixte"), "Les Tréteaux du Banc").unwrap().racine;
+    for f in ["entreprise.json", "organismes.json", "pas.json", "baremes/2026.json", "salaries.json", "spectacles.json"] {
+        let cible = racine.join("config").join(f);
+        std::fs::create_dir_all(cible.parent().unwrap()).unwrap();
+        std::fs::copy(banc.join("config").join(f), cible).unwrap();
+    }
+    let jour = "2026-12-20";
+    let route = |nom: &str, charge: Value| crate::outils::route(&racine, nom, charge, jour);
+    let ligne = json!([{"rubrique": "cachet", "quantite": 1, "taux": 150, "dates": ["2026-11-27"]}]);
+    let saisie = json!({"mois": "2026-11", "taux_cachet": 150, "date_paiement": "2026-11-30", "engagements": [
+        {"salarie": "FULLER", "spectacle": "le-banc-des-menteurs", "lignes": ligne}]});
+    reussi(&route("enregistrer-saisie", json!({"mois": "2026-11", "saisie": saisie, "forcer": false, "modifier_apres_echeance": false})));
+
+    let import = racine.join("import");
+    std::fs::create_dir_all(&import).unwrap();
+    for f in ["envoi/Bulletin_FULLER_Novembre2026.pdf", "DSN_Novembre2026.dsn"] {
+        let source = banc.join("sorties/2026-11").join(f);
+        std::fs::copy(&source, import.join(source.file_name().unwrap())).unwrap();
+    }
+    reussi(&route("importer", json!({"dossier": ""})));
+    let importes = engagement::importe::tous(&racine).unwrap();
+    assert_eq!(importes.len(), 1, "{:?}", importes);
+    let paie = importes[0].paies()["2026-11"].clone();
+    assert_eq!(paie["declare_par"], json!("DSN"), "{:?}", paie);
+    assert_eq!(paie["bulletin"]["numero"], json!("1/2026"), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
+
+    reussi(&route("valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-27", "valide": true})));
+    assert_eq!(route("dsn-a-deposer", json!({"mois": "2026-11"}))["ok"], json!(false));
+    assert!(!racine.join("sorties/2026-11/DSN_Novembre2026.dsn").exists(), "la DSN de l'ancien logiciel s'est refaite");
+    let ecrite = reussi(&route("dsn-a-deposer", json!({"mois": "2026-12"}))).clone();
+    let decembre = std::fs::read(ecrite["chemin"].as_str().unwrap()).unwrap();
+    let decembre = String::from_utf8_lossy(&decembre);
+    for attendu in ["S21.G00.40.001,'27112026'", "S21.G00.40.009,'FU1.26.02'"] {
+        assert!(decembre.contains(attendu), "{} manque :\n{}", attendu, decembre);
+    }
+    let pdfs = |dossier: &str| -> Vec<String> {
+        std::fs::read_dir(racine.join(dossier)).into_iter().flatten().flatten().map(|f| f.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".pdf")).collect()
+    };
+    assert!(pdfs("sorties/2026-12").is_empty(), "la DSN a fabrique un bulletin : {:?}", pdfs("sorties/2026-12"));
+
+    reussi(&route("documents-imprimer", json!({"mois": "2026-11"})));
+    let e = lire(&racine, "engagements/2026-11.json");
+    let saisi = e["engagements"].as_array().unwrap().iter().find(|x| x["numero"] == json!("FU1.26.02")).expect("l'engagement saisi").clone();
+    let p = &saisi["valide"]["paies"]["2026-11"];
+    assert_eq!((&p["bulletin"], &p["rectifie"]), (&json!("2/2026"), &Value::Null), "{}", p);
+    assert!(pdfs("sorties/2026-12").is_empty(), "{:?}", pdfs("sorties/2026-12"));
+}
