@@ -242,9 +242,8 @@ fn exiger_repetition(ctx: &Contexte, lignes: &[Value], quoi: &str, chemin: &Path
     // UN REEL NE PART QUE SUR LE BILAN LU DE SON TEST : l'accuse d'enregistrement dit
     // « envoi recu », pas « conforme » (regle 5). Pour une DSN, c'est le bilan de nature 11 du test, qui arrive « en
     // general dans les dix minutes » (la reponse du point de depot). Pour une DPAE, le bilan 11 ou le certificat 41 :
-    // celui d'un test revient bel et bien (journal du depot prive, archives 2026-10-02, « a la lumiere du certificat 41
-    // du test (09:13) : les deux DPAE [...] sont revenues enregistrees (code 99, deux dossiers) » ; archives
-    // 2026-09-09_au_09-13, §20.2 : « Passee = bilan OK ; le certificat 41 confirme »).
+    // celui d'un test revient bel et bien (constate sur des DPAE de test : le certificat 41 les dit enregistrees,
+    // code 99).
     if vrai(&etat["conforme"]) && etats::est(&etat["compte_rendu"], "ok") {
         let l = &etat["conforme"];
         return Ok(json!({
@@ -314,7 +313,7 @@ fn libelle_dsn_deposee(mois: &str, e: &Value) -> String {
 }
 
 /// `ordre_d_essai_du_fichier` : l'ordre auquel un essai part : le calcule, jamais plus bas que celui que le fichier porte
-/// deja (journal §115). `None` reste `None`.
+/// deja. `None` reste `None`.
 fn ordre_d_essai_du_fichier(calcule: Option<i64>, chemin: &Path) -> R<Option<i64>> {
     let Some(c) = calcule else { return Ok(None) };
     let octets = std::fs::read(chemin).map_err(|e| erreur("OSError", format!("{} : {}", chemin.display(), e)))?;
@@ -582,7 +581,7 @@ pub fn deposer_dsn_dans(
     }
 
     // UN ESSAI DE PLUS SUR UN MOIS DEJA ESSAYE part en annule-et-remplace, a l'ordre suivant : la base de test
-    // garde les essais. JAMAIS PLUS BAS QUE L'ORDRE DU FICHIER (journal §115).
+    // garde les essais. JAMAIS PLUS BAS QUE L'ORDRE DU FICHIER.
     let ordre_test = if reel || apercu.est_signalement() { None } else { prochain_ordre_de_test(ctx, &mois, &nic, &mois_de_constitution(apercu.champ("constitution"), &ctx.aujourdhui))? };
     let ordre_test = ordre_test.max(ordre_d_essai);
     let ordre_test = ordre_d_essai_du_fichier(ordre_test, &chemin)?;

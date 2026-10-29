@@ -14,8 +14,8 @@
 //! les trois derniers mois, et ce qui est plus ancien n'est plus que dans nos archives (`retours/`) et le journal.
 //!
 //! LE PLUS GRAND DES DEUX, ESSAIS ET REELS ENSEMBLE. Un signalement s'ecrit une fois et part en test puis en reel
-//! (la repetition, `depot_acte::exiger_repetition`) au meme ordre ; la base d'essai et la base reelle sont distinctes
-//! (archives §17.6). L'ordre doit donc etre libre dans les deux : on prend le plus grand de tous. Qu'une sequence reelle
+//! (la repetition, `depot_acte::exiger_repetition`) au meme ordre ; la base d'essai et la base reelle sont distinctes.
+//! L'ordre doit donc etre libre dans les deux : on prend le plus grand de tous. Qu'une sequence reelle
 //! saute des numeros, aucun texte ne l'interdit : p. 15, « Il ne sera pas possible d'integrer une annule et remplace de
 //! rang inferieur au precedent envoi », et le rang se compare (B1-208-11, « inferieur (ou egal) au dernier ordre
 //! accepte ») ; trop grand ne coute rien, trop petit est refuse (INFERENCE de ces deux textes). Tous SIRET de l'entreprise

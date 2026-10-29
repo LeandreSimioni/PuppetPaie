@@ -11,8 +11,7 @@
 //! Une panne qui n'est pas une `ErreurOperation` (un plan comptable abime, une saisie illisible) : un plantage propre (une ligne `Classe: phrase` sur la sortie d'erreur et au
 //! journal des incidents, code 1), comme les autres commandes.
 //!
-//! POINT DOUTEUX : `--analytique` et `--sans-analytique` ensemble : argparse retient le dernier tape ; l'analyse des options ne
-//! garde pas l'ordre, `--sans-analytique` l'emporte ici.
+//! `--analytique` et `--sans-analytique` ensemble : `--sans-analytique` l'emporte, quel que soit l'ordre.
 
 use serde_json::{json, Value};
 

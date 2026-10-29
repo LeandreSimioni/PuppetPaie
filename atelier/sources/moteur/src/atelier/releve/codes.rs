@@ -1,7 +1,7 @@
 //! `moteur releve-codes moissonner|rapport|comparer <sources> [code] [--reconstruire]` : les articles de loi dont la paie a
 //! besoin, releves chez la DILA. Un outil de l'atelier : `<sources>` est `atelier/reference/sources` du depot.
 //!
-//! POURQUOI. Legifrance refuse les robots (403) : les articles du §38.3 avaient ete releves A LA MAIN, un par un, ce qui
+//! POURQUOI. Legifrance refuse les robots (403) : un releve A LA MAIN, article par article,
 //! marche une fois et se perime en silence. La base LEGI est publique en open data (`echanges.dila.gouv.fr/OPENDATA/LEGI/`),
 //! exactement comme KALI pour les conventions collectives : une archive globale et une livraison par soir. Le releve
 //! devient donc RE-VERIFIABLE automatiquement, comme la table des parametres du BOSS et celle des CTP de l'Urssaf.

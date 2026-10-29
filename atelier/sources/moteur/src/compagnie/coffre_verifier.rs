@@ -1,6 +1,6 @@
 //! `coffre-verifier`.
 //!
-//! ECRIT, NON PROUVE, NON BRANCHE. Le secret pose ouvre-t-il une session chez l'organisme ? UNE SEULE TENTATIVE,
+//! Le secret pose ouvre-t-il une session chez l'organisme ? UNE SEULE TENTATIVE,
 //! JAMAIS DE BOUCLE : au-dela de quelques echecs, net-entreprises bloque le compte (403). Trois services :
 //! net-entreprises (la DSN), l'Urssaf (la DPAE : un autre compte, un autre mot de passe) et la boite courriel (une
 //! connexion IMAP). Le verdict est rendu avec la premiere ligne de l'erreur, qui ne contient jamais le mot de passe.

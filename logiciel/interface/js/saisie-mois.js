@@ -250,7 +250,7 @@ async function calculerApercu(lu) {
       // engagement.rs, Avis) : en orange ce qui demande quelque chose -- un
       // taux sous le SMIC --, en gris ce qui renseigne seulement -- un
       // contrat qui se poursuit le mois suivant, ou le minimum que notre
-      // lecture de la convention donne, avec son lien (journal §161). Rien
+      // lecture de la convention donne, avec son lien. Rien
       // n'est bloquant.
       div.querySelector(".avis").innerHTML =
         avisDuBloc(part).map(

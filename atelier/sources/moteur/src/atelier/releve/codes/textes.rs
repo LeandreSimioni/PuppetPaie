@@ -45,12 +45,10 @@ pub static TEXTES: &[Texte] = &[
             Domaine { cle: "documents", titre: "Les documents remis a la fin du contrat", numeros: &["L1234-19", "L1234-20", "D1234-6", "D1234-7", "D1234-8"] },
             Domaine { cle: "retraite", titre: "Le depart et la mise a la retraite", numeros: &["L1237-5", "L1237-6", "L1237-7", "L1237-8", "L1237-9", "L1237-10", "D1237-1", "D1237-2", "D1237-2-1"] },
             Domaine { cle: "rupture_conventionnelle", titre: "La rupture conventionnelle", numeros: &["L1237-11", "L1237-12", "L1237-13", "L1237-14", "L1237-15", "L1237-16"] },
-            // LE BULLETIN DE PAIE. Le §11.1 tient une decision
-            // a une reference citee de memoire : << tout paiement de salaire
-            // s'accompagne d'un bulletin (L3243-2) >>, et c'est elle qui
-            // commande le bulletin RECTIFICATIF du mois d'origine. Une
-            // decision qui repose sur un article jamais relu est une
-            // decision qu'on ne peut pas defendre.
+            // LE BULLETIN DE PAIE. << Tout paiement de salaire s'accompagne
+            // d'un bulletin >> (L3243-2) : c'est ce qui commande le bulletin
+            // RECTIFICATIF du mois d'origine. Une decision qui repose sur un
+            // article jamais relu est une decision qu'on ne peut pas defendre.
             //
             // R3243-3 N'EST PAS DE LA LISTE, et ce n'est pas un oubli : le
             // releve le rend dans une version ABROGEE

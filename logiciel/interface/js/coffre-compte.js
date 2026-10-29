@@ -20,7 +20,7 @@
  * est demandé pour écrire dans le coffre comme pour lier ou oublier le
  * compte Google, comme pour un dépôt : c'est `operations` qui l'exige, pas
  * ce fichier. */
-/** Le compte qu'ouvre un mot de passe (§94) : sans lui, un mot de passe
+/** Le compte qu'ouvre un mot de passe : sans lui, un mot de passe
  *  juste sur un identifiant faux échoue pareil, et rien ne le montrait.
  *  net-entreprises : le déclarant de la fiche Entreprise, qui se change
  *  là-bas ; l'Urssaf (DPAE) : un autre compte, qui se saisit sur la ligne. */
@@ -366,8 +366,8 @@ async function dessinerCoffre(cible) {
           etat = await api("coffre-poser", { service, valeur, compte: compte ? compte.value : null, ...p });
         }
       } catch (e) { raté(e); return; }
-      // PUIS UNE TENTATIVE, UNE SEULE (§94) : le message d'après disait « le
-      // vérifier maintenant évite de le découvrir faux au dépôt ». Autant le
+      // PUIS UNE TENTATIVE, UNE SEULE : vérifier maintenant évite de
+      // découvrir le mot de passe faux au dépôt. Autant le
       // faire. Pas si l'identifiant est incomplet : l'échec serait certain,
       // et chaque échec rapproche du blocage du compte.
       const apres = (etat?.services || []).find((x) => x.service === service);
