@@ -44,13 +44,13 @@ pub const ROUTES: &[&str] = &[
     "identite", "permanents", "taxe-sur-les-salaires-regime", "verifier-fiche", "changements-declares", "taux-atmp",
     "metiers-catalogue", "bulletin-modeles", "bulletin-modele-apercu", "bulletin-modele-choisir",
     "activer-fiche", "enregistrer-fiche", "fiche-oublier-demande", "poser-identite", "retirer-identite", "metier-retenu",
-    "metiers-ajoutes", "fiche-demander", "fiches-relever",
+    "metiers-ajoutes", "fiche-demander", "fiches-relever", "poser-courriel",
 ];
 
 /// Celles qui ecrivent.
 pub const ECRITURES: &[&str] = &[
     "activer-fiche", "enregistrer-fiche", "fiche-oublier-demande", "poser-identite", "retirer-identite", "metier-retenu",
-    "metiers-ajoutes", "fiche-demander", "fiches-relever",
+    "metiers-ajoutes", "fiche-demander", "fiches-relever", "poser-courriel",
 ];
 
 /// Une route de ce module.
@@ -73,6 +73,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "bulletin-modele-choisir" => choisir(ctx, charge),
         "activer-fiche" => activer_fiche_route(o, ctx, charge),
         "enregistrer-fiche" => enregistrer_fiche(o, ctx, charge),
+        "poser-courriel" => poser_courriel(ctx, charge),
         "fiche-oublier-demande" => oublier_demande(o, ctx, charge),
         "poser-identite" => poser_identite(ctx, charge),
         "retirer-identite" => retirer_identite(ctx, charge),
@@ -1260,6 +1261,9 @@ fn meme(a: &Value, b: &Value) -> bool {
         || (!a.is_object() && !a.is_array() && valeur_en_texte(a) == valeur_en_texte(b))
 }
 
+/// Les cases d'un metier : quatre ecritures d'un seul fait, choisies ensemble dans le catalogue.
+const METIER: [&str; 4] = ["emploi_affichage", "emploi", "pcs_ese", "code_emploi_ft"];
+
 /// Les champs de `donnees` qui CHANGENT une valeur existante de `ancienne` (la fiche telle que l'ecran l'a montree) :
 /// ceux-la demandent leur date d'effet. Remplir un champ vide n'en est pas un : c'est sa premiere valeur. Sauf le NIR qui
 /// arrive sur une fiche qui existait : la premiere DSN qui le porte porte aussi le NTT sous lequel le salarie etait
@@ -1267,10 +1271,14 @@ fn meme(a: &Value, b: &Value) -> bool {
 pub(crate) fn changements_a_dater(ancienne: &Value, donnees: &Map<String, Value>) -> Vec<String> {
     let existait = ancienne.as_object().is_some_and(|o| o.keys().any(|k| !k.starts_with('_')));
     let nir_qui_arrive = |k: &str, v: &Value| existait && k == "nir" && vide(ancienne.get(k)) && !vide(Some(v));
+    // UN METIER QUI N'ETAIT PAS ENCORE CHOISI SE COMPLETE, IL NE CHANGE PAS : sans code PCS-ESE, l'intitule lu sur un
+    // ancien bulletin n'a rien pu declarer (la DSN l'exige, S21.G00.40.004), et choisir le metier n'a pas de date d'effet.
+    let metier_a_completer = vide(ancienne.get("pcs_ese"));
     donnees
         .iter()
         .filter(|(k, v)| {
             !k.starts_with('_')
+                && !(metier_a_completer && METIER.contains(&k.as_str()))
                 && (nir_qui_arrive(k, v) || (!vide(ancienne.get(k.as_str())) && !ancienne.get(k.as_str()).is_some_and(|a| meme(a, v))))
         })
         .map(|(k, _)| k.clone())
@@ -1429,6 +1437,21 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     let fiche = crate::routes::ouverture::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
     // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
+}
+
+/// `poser-courriel` : `{"salarie", "email"}`, le courriel d'un salarie, saisi la ou il manque (la boite des contrats a
+/// faire signer). La fiche entiere s'ecrit comme depuis l'ecran (`ecrire_fiche`), seul le courriel y change : il se
+/// verifie avec elle, et une fiche qui refuse le dit.
+fn poser_courriel(ctx: &Contexte, charge: &Value) -> R<Value> {
+    let cle = texte_requis(charge, "salarie")?;
+    let email = texte_requis(charge, "email")?;
+    let Some(Value::Object(fiche)) = ctx.salaries.get(cle) else {
+        return Err(refus(format!("Salarié {} inconnu.", socle::fichiers::repr(cle))));
+    };
+    let mut donnees: Map<String, Value> = fiche.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, v)| (k.clone(), v.clone())).collect();
+    donnees.insert("email".into(), Value::String(email.trim().to_string()));
+    ecrire_fiche(ctx, "salarie", Some(cle.to_string()), &Value::Object(donnees), Forcer::Rien, &Value::Null, &Value::Null)?;
+    Ok(json!({"salarie": cle, "email": email.trim()}))
 }
 
 /// Verifie, date ce qui change, sauvegarde l'ancien fichier et

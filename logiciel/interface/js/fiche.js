@@ -1005,7 +1005,10 @@ function brancherSante(fiche) {
 async function remplirDepuisMetier(code) {
   if (!code) return;
   let r;
-  try { r = await api("emploi", { metier: code }); }
+  // Le NIR et le sexe de la fiche : le moteur en tire la forme du métier
+  // (« Administratrice de production » pour une salariée).
+  const lu = (cle) => (document.querySelector(`#config-formulaire [data-cle="${cle}"]`) || {}).value || "";
+  try { r = await api("emploi", { metier: code, salarie: { nir: lu("nir"), sexe: lu("sexe") } }); }
   catch (e) { dire(e.message, "erreur"); return; }
   const poser = (cle, v) => {
     const c = document.querySelector(`#config-formulaire [data-cle="${cle}"]`);
@@ -1350,7 +1353,12 @@ async function enregistrerFiche(fiche) {
     { nom: FICHE_ACTIVE, cle: fiche.cle, donnees });
   if (changements.length) {
     const daté = await demanderDateDEffet(changements);
-    if (!daté) return;                       // annulé : rien n'est écrit
+    // Annulé, ou la boîte fermée d'un clic à côté : rien n'est écrit, la
+    // fiche garde ce qu'on y a tapé, et la page le dit.
+    if (!daté) {
+      dire("Rien n'est enregistré : vos saisies restent dans la fiche, à enregistrer quand vous voulez.");
+      return;
+    }
     return ecrireFiche(fiche, donnees, daté);
   }
   return ecrireFiche(fiche, donnees, {});

@@ -1271,7 +1271,14 @@ function majRupture(div) {
   const bloc = div.querySelector(".e-rupture");
   const fin = div.querySelector(".e-fin").value;
   const motifs = nat.motifs_rupture || [];
-  bloc.hidden = !(fin && (nat.signalement_fctu || motifs.length));
+  // LA FIN NE SE DEMANDE QUE LE MOIS OÙ ELLE A LIEU : un CDD de janvier à
+  // juin n'a rien à dire de sa fin en janvier. Elle paraît quand la fin du
+  // contrat tombe dans le mois affiché (ou avant : une fin avancée), ou
+  // quand un motif est déjà dit.
+  const moisAffiche = (document.getElementById("mois") || {}).value || "";
+  const finCeMois = fin && (!moisAffiche || fin.slice(0, 7) <= moisAffiche);
+  const dejaDit = !!(div.querySelector(".e-motif-rupture").value || div.dataset.motifRupture);
+  bloc.hidden = !(fin && (finCeMois || dejaDit) && (nat.signalement_fctu || motifs.length));
   // Les motifs sont ceux de CETTE nature : un CDD peut finir à son terme
   // (031), un CDI ne le peut pas — il ne finit jamais tout seul. Le choix
   // vide d'une nature dont la fin par défaut ne se signale pas (le CDDU)

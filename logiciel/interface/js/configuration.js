@@ -1170,7 +1170,15 @@ const LIBELLES_CHOIX = {
   },
   statut: {
     "artiste": "Artiste",
-    "technicien": "Technicien, ou autre emploi non artistique",
+    "technicien": "Autre emploi : technicien, administration, production, diffusion…",
+  },
+  categorie_conventionnelle: {
+    "artiste": "Artiste",
+    "employe": "Employé",
+    "technicien": "Technicien",
+    "agent_de_maitrise": "Agent de maîtrise",
+    "cadre": "Cadre",
+    "cadre_de_direction": "Cadre de direction",
   },
   statut_categoriel_rc: {
     "04": "Non cadre",

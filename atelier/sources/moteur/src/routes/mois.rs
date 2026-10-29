@@ -1698,7 +1698,10 @@ fn emploi(charge: &Value) -> R<Value> {
         None | Some(Value::Null) => None,
         Some(c) => Some(vrai(c)),
     };
-    let feminin = charge.get("feminin").is_some_and(vrai);
+    // LE METIER AU FEMININ pour une salariee : le catalogue porte les deux formes (`feminin`), la fiche dit le sexe (le
+    // premier chiffre du NIR, sinon la case `sexe` : `ntt::sexe`). `feminin` donne seul suffit aussi.
+    let feminin = charge.get("feminin").is_some_and(vrai)
+        || charge.get("salarie").is_some_and(|s| declarations::ntt::sexe(s) == "2");
     let texte = match code {
         Value::String(s) => s.clone(),
         autre if !vrai(autre) => String::new(),
