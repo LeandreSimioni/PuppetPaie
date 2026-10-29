@@ -1,5 +1,6 @@
 //! DEUX SALARIES DE MEME NOM ET DE MEME PRENOM SONT DEUX SALARIES : la fiche recapitulative du dossier de chacun ne
-//! porte que ses contrats et ses cumuls, reconnus par la cle de sa fiche, jamais ceux de l'autre.
+//! porte que ses contrats et ses cumuls, et le cout par spectacle a une ligne pour chacun, reconnus par la cle de sa
+//! fiche, jamais ceux de l'autre.
 
 use serde_json::{json, Value};
 
@@ -7,7 +8,7 @@ use crate::outils::rejeu::{rejouer_dossier, scenario};
 use crate::outils::{dossier_de_test, ecrire, lire, reussi, route, saisie};
 
 #[test]
-fn la_fiche_recapitulative_d_un_homonyme_ne_porte_rien_de_l_autre() {
+fn un_homonyme_ne_porte_rien_de_l_autre() {
     let d = dossier_de_test("homonymes", "fiche_recapitulative");
     let sc = d.join("scenario");
     std::fs::create_dir_all(&sc).unwrap();
@@ -57,5 +58,16 @@ fn la_fiche_recapitulative_d_un_homonyme_ne_porte_rien_de_l_autre() {
         let t = fiche(lui);
         assert!(t.contains(&numero(lui)), "la fiche de {} n'a pas son contrat {} :\n{}", lui, numero(lui), t);
         assert!(!t.contains(&numero(l_autre)), "la fiche de {} porte le contrat {} de {} :\n{}", lui, numero(l_autre), l_autre, t);
+    }
+
+    // Le cout par spectacle : une ligne par salarie, reconnu par la cle de sa fiche.
+    let r = reussi(&route(&c, "exporter", json!({"etat": "cout-par-spectacle", "annee": "2026", "apercu": true}), jour)).clone();
+    let lignes: Vec<Value> = r["sections"].as_array().unwrap().iter().flat_map(|s| s["lignes"].as_array().cloned().unwrap_or_default()).collect();
+    let nom = salaries["FULLER"]["nom"][0]["valeur"].as_str().unwrap().to_string();
+    let siennes = lignes.iter().filter(|l| l["salarie"].as_str().is_some_and(|s| s.starts_with(&nom))).count();
+    assert_eq!(siennes, 2, "le coût par spectacle mêle les deux homonymes : {:?}", lignes);
+    let cles: Vec<String> = lignes.iter().filter_map(|l| l["cle_salarie"].as_str().map(str::to_string)).collect();
+    for lui in ["FULLER", "FULLER-2"] {
+        assert_eq!(cles.iter().filter(|k| *k == lui).count(), 1, "le coût par spectacle n'a pas une ligne pour {} : {:?}", lui, cles);
     }
 }

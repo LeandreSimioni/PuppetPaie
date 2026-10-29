@@ -1436,7 +1436,7 @@ pub fn heures_et_cachets(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // =============================================== 12. le cout par spectacle
 
-/// Chaque spectacle, salarie par salarie.
+/// Chaque spectacle, salarie par salarie : deux homonymes, chacun par la cle de sa fiche, font deux lignes.
 pub fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
@@ -1445,11 +1445,11 @@ pub fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let zero = zero2();
     for l in lignes_livre(ctx, &p, &mut avert)? {
         let sp = if l.spectacle.is_empty() { "(sans spectacle)".to_string() } else { l.spectacle.clone() };
-        let cle = (sp.clone(), l.salarie.clone());
+        let cle = (sp.clone(), l.cle_salarie.clone());
         if !par.contains_key(&cle) {
             ordre.push(cle.clone());
             let mut n = Ligne::nouvelle();
-            n.t("spectacle", sp).t("salarie", l.salarie.clone()).n("bulletins", 0);
+            n.t("spectacle", sp).t("salarie", l.salarie.clone()).t("cle_salarie", l.cle_salarie.clone()).n("bulletins", 0);
             par.insert(cle.clone(), (n, 0));
         }
         let (ligne, n) = par.get_mut(&cle).expect("insere");
@@ -1470,7 +1470,7 @@ pub fn cout_par_spectacle(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut t = Tableau::nouveau("cout-par-spectacle", "Coût employeur par spectacle", p.libelle.clone());
     t.mois = p.mois.clone();
     t.avertissements = avert;
-    t.sections = sections_de(a_trier, |l| l.texte("spectacle"), |k| k.clone(), Some(&|l| cle_tri(l, &["salarie"])));
+    t.sections = sections_de(a_trier, |l| l.texte("spectacle"), |k| k.clone(), Some(&|l| cle_tri(l, &["salarie", "cle_salarie"])));
     t.colonnes = vec![
         col_t("spectacle", "Spectacle"),
         col_t("salarie", "Salarié"),
