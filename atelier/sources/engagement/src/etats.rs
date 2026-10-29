@@ -1345,6 +1345,19 @@ pub fn paie_declaree(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -
     }
 }
 
+/// LA PAIE PARTIE de `mois` : celle que la version sur laquelle les derniers documents de ce mois sont partis au salarie
+/// a ecrite (`paie_de_la_version`), avec le numero de son bulletin ; `None` si les documents de ce mois ne sont pas partis
+/// pour l'engagement `o`. C'est ce que son bulletin a paye.
+pub fn paie_partie(ctx: &Contexte, o: &Objet, departs: &Departs, mois: &str) -> Resultat<Option<Paie>> {
+    let Some(d) = ses_departs(ctx, o, departs).iter().rev().find(|d| d.envoi == Envoi::Documents && d.mois.as_deref() == Some(mois)) else {
+        return Ok(None);
+    };
+    match version_ecrite(o, d.version)? {
+        Some(v) => paie_de_la_version(ctx, o, v, mois),
+        None => Ok(None),
+    }
+}
+
 /// Une paie declaree pour un mois, et le mois de la DSN qui l'a portee quand ce n'est pas la sienne (une correction).
 pub struct Declaree {
     pub par: Option<String>,

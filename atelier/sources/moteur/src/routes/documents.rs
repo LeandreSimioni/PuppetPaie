@@ -457,38 +457,14 @@ impl Message {
 /// du corps, que l'apercu ne montre pas, n'est pas compose : seuls ses refus (`KeyError` d'une fiche
 /// sans nom d'affichage ou sans signataire) sont gardes.
 fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, envois::envoi::Renvoi>) -> R<Vec<Message>> {
-    const PIECES: [(&str, &str, &str); 4] = [
+    const PIECES: [(&str, &str, &str); 3] = [
         ("bulletin", "Bulletin", "bulletin"),
-        ("rectificatif", "BulletinRectificatif", "bulletin rectificatif"),
         ("certificat_cs", "CertificatCS", "certificat Congés Spectacles"),
         ("aer", "AER", "attestation France Travail"),
     ];
     let (an, mo) = an_et_mois(mois)?;
     let etiq = etiquette(mois)?;
-    let mut salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
-    // Celui qui n'a AUCUNE paie ce mois-ci mais un bulletin rectificatif d'un mois precedent.
-    let prefixe = "BulletinRectificatif_";
-    let suffixe = format!("_{}.pdf", etiq);
-    let mut rectifs: Vec<String> = match std::fs::read_dir(dossier) {
-        Ok(l) => l
-            .flatten()
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.len() >= prefixe.len() + suffixe.len() && n.starts_with(prefixe) && n.ends_with(&suffixe))
-            .collect(),
-        Err(_) => Vec::new(),
-    };
-    rectifs.sort();
-    for f in rectifs {
-        let cle: String = f.chars().skip(prefixe.chars().count()).take(f.chars().count() - prefixe.chars().count() - suffixe.chars().count()).collect();
-        let connues: Vec<String> = salaries.iter().map(|s| s.get("_cle").map_or("None".to_string(), valeur_en_texte)).collect();
-        if !connues.contains(&cle) {
-            let mut fiche = ctx.salarie(&cle).map_err(|m| erreur("KeyError", m))?;
-            if let Some(o) = fiche.as_object_mut() {
-                o.insert("_cle".into(), Value::String(cle.clone()));
-            }
-            salaries.push(fiche);
-        }
-    }
+    let salaries: Vec<Value> = paies.iter().map(|p| p.salarie.clone()).collect();
     let mut vus: Vec<String> = Vec::new();
     let mut messages = Vec::new();
     for s in &salaries {
@@ -770,9 +746,9 @@ fn salaries_choisis(charge: &Value) -> R<Option<Vec<String>>> {
     Ok(liste_de(charge, "salaries")?.map(|l| l.iter().map(valeur_en_texte).collect()))
 }
 
-/// Les pieces d'un salarie, dans l'ordre ou elles s'impriment : bulletin, bulletin rectificatif, certificat Conges
-/// Spectacles, attestation France Travail (celles qui sont ecrites).
-const PIECES_A_IMPRIMER: [&str; 4] = ["Bulletin", "BulletinRectificatif", "CertificatCS", "AER"];
+/// Les pieces d'un salarie, dans l'ordre ou elles s'impriment : bulletin, certificat Conges Spectacles, attestation
+/// France Travail (celles qui sont ecrites).
+const PIECES_A_IMPRIMER: [&str; 3] = ["Bulletin", "CertificatCS", "AER"];
 
 /// La route `documents-imprimer` : les documents du mois des salaries choisis (`salaries`, tous sinon), fabriques comme
 /// pour l'envoi par courriel (`depart::fabriquer_documents`), reunis en un seul PDF a imprimer, salarie par salarie, et
@@ -942,33 +918,32 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::P
 
 
 /// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE : le courriel de renvoi ajoute une phrase, la correction
-/// sera declaree avec la paie d'un mois suivant. La DSN deposee ne se refait plus ; la correction part dans la DSN qui la
-/// porte (`crate::regularisation::corrections_du_mois` : celle d'un mois suivant deja partie, ou la DSN du mois
-/// courant). `None` : le mois n'en est pas la (pas de DSN deposee, ou son annule-et-remplace encore admis).
+/// sera declaree avec la paie d'un mois suivant. La DSN du mois ne se refait pas (`se_corrige_ailleurs` : sa DSN est
+/// partie et l'annule-et-remplace n'est plus admis, ou c'est celle de l'ancien logiciel) ; une correction deja portee
+/// par une DSN partie se lit dans ce qui est parti (`corrections_du_mois`), une correction a porter part dans la DSN
+/// qui porte le mois (`crate::regularisation::dsn_qui_porte`). `None` : le mois se corrige dans sa propre DSN.
 #[allow(clippy::type_complexity)]
 fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn Fn(&str) -> String>>> {
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let etat = crate::regularisation::etat_mois(&mut m, ctx, &json!(mois))?;
-    if !vrai(&etat["regularisable"]) {
+    let departs = journal::departs(&ctx.racine)?;
+    if !declarations::produire_regularisations::se_corrige_ailleurs(ctx, &departs, mois)? {
         return Ok(None);
     }
-    let courant = valeur_en_texte(&etat["mois_courant"]);
+    let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
     let (a_porter, portees) = crate::regularisation::corrections_du_mois(ctx, mois)?;
     let mut porteurs: HashMap<String, String> = HashMap::new();
     for c in &portees {
         porteurs.insert(valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["portee_par"]));
     }
     for c in &a_porter {
-        porteurs.insert(valeur_en_texte(&c["salarie"]), courant.clone());
+        porteurs.remove(&valeur_en_texte(&c["salarie"]));
     }
     let de = crate::regularisation::de_mois_en_clair(mois);
-    Ok(Some(Box::new(move |cle: &str| match porteurs.get(cle) {
-        Some(p) => format!(
+    Ok(Some(Box::new(move |cle: &str| {
+        format!(
             "Ta paie {} était déjà déclarée : la correction sera déclarée avec la paie {}.\n\n",
             de,
-            crate::regularisation::de_mois_en_clair(p)
-        ),
-        None => format!("Ta paie {} était déjà déclarée : la correction sera déclarée avec une paie suivante.\n\n", de),
+            crate::regularisation::de_mois_en_clair(porteurs.get(cle).unwrap_or(&porteur))
+        )
     })))
 }
 
@@ -985,7 +960,6 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
     }
     let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| erreur("KeyError", socle::fichiers::absent("mois")))?;
     let dossier = ctx.racine.join("sorties").join(&mois_saisie).join("envoi");
-    let fiche = |cle: &str| ctx.salarie(cle).unwrap_or_else(|_| json!({}));
     let choix = choisir(ctx, mois, &paies)?;
     // LES DOCUMENTS SE FABRIQUENT ICI, pour ceux a qui ils partent : depuis les paies ecrites, a leurs numeros.
     let mut cles: Vec<String> = Vec::new();
@@ -1000,7 +974,7 @@ pub(crate) fn preparer_envoi(ctx: &Contexte, mois: &str, seulement: Option<&[Str
         return Err(refus("Aucun salarié coché. Rien n'est parti."));
     }
     let documents = crate::depart::fabriquer_documents(ctx, &mois_saisie, &cles, "interface")?;
-    let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, Some(&fiche), &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
+    let messages = envoi::preparer_avec(&paies, &ctx.entreprise, &mois_saisie, &dossier, &choix.renvois).map_err(|m| refus_de_preparation(&m))?;
     let messages: Vec<envoi::Message> = choix.garder(messages, |m| m.cle.as_str()).into_iter().filter(|m| cles.contains(&m.cle)).collect();
     let client = ouvrir()?;
     let expediteur = expediteur_de(client.as_ref());

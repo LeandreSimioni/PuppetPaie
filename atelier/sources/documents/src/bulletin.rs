@@ -933,9 +933,14 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
             Some(v) if vrai(v) => format!("n° {}", en_texte(v)),
             _ => format!("du contrat {}", numero),
         };
+        let comment = if remplace_en_entier(r) {
+            ", qu'il remplace".to_string()
+        } else {
+            format!(" : il en porte l'écart, versé avec la paie de {}", texte(r, "mois_versement")?)
+        };
         let suite = match r.get("motif").filter(|v| vrai(v)) {
-            Some(motif) => format!(", qu'il remplace. Motif : {}.", en_texte(motif)),
-            None => ", qu'il remplace.".to_string(),
+            Some(motif) => format!("{}. Motif : {}.", comment, en_texte(motif)),
+            None => format!("{}.", comment),
         };
         blocs.push(para(
             vec![m(format!("Rectifie le bulletin {} de {}", rectifie, texte(r, "mois_origine")?), true, None), mt(suite)],

@@ -8,7 +8,8 @@
 //!   route `envoyer-documents`). Le numero du bulletin (`N/AAAA`, suite de l'annee) et le premier N CE du certificat
 //!   s'ecrivent alors dans la paie de l'engagement (`DocumentsFabriques::engager`) et se relisent ensuite. Une paie partie
 //!   puis refaite part sous un numero nouveau, comme un bulletin rectificatif de celui qui est parti, et l'original reste
-//!   a cote.
+//!   a cote ; quand la DSN du mois ne se refait plus, le rectificatif porte l'ecart avec le bulletin parti. Chaque paie a un
+//!   seul bulletin et un seul paiement : la DSN ne fabrique aucun bulletin.
 //!
 //! L'AER ne se fabrique pas : France Travail la renvoie apres la DSN, et elle part avec les documents quand elle est la.
 //! Un numero de contrat s'ecrit dans l'engagement a sa validation (`engagement::numeros`) ; tout ce qui part le lit la.
@@ -422,8 +423,6 @@ struct Lot {
 pub(crate) struct DsnFabriquee {
     /// Une DSN par etablissement, le principal d'abord.
     pub(crate) fichiers: Vec<PathBuf>,
-    /// Les bulletins rectificatifs des corrections qu'elle porte.
-    pub(crate) rectificatifs: Vec<PathBuf>,
     pub(crate) type_dsn: String,
     pub(crate) ordre: i64,
     /// Rien n'a change depuis la DSN deja ecrite : c'est elle qui part.
@@ -444,7 +443,6 @@ impl DsnFabriquee {
             "mois": mois,
             "chemin": self.fichiers.first().map(|f| f.to_string_lossy().into_owned()),
             "fichiers": self.fichiers.iter().map(decrire).collect::<Vec<_>>(),
-            "rectificatifs": self.rectificatifs.iter().map(decrire).collect::<Vec<_>>(),
             "type": self.type_dsn,
             "ordre": self.ordre,
             "remplace": self.type_dsn == "03",
@@ -537,15 +535,16 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
 
     // LES CORRECTIONS DES MOIS DEJA DECLARES : la DSN de ce mois les porte, datees de leur mois d'origine.
     let regs = regularisations::regularisations_pour(ctx, mois)?;
-    // Une correction a zero (la paie d'apres est `sans_paie`) n'a pas de bulletin rectificatif : ce qui part est la
-    // retenue du net deja verse, que `ecrire_rectificatifs` signale.
+    // La DSN DECLARE, ELLE NE FABRIQUE AUCUN BULLETIN : le bulletin d'une paie corrigee part avec les documents de son
+    // mois (`fabriquer_documents` : le rectificatif d'un bulletin parti, ou le bulletin d'une paie qui n'est jamais
+    // partie). Une correction a zero (la paie d'apres est `sans_paie`) n'a pas de bulletin : le net deja verse se retient.
     for (r, ligne) in regs.iter().zip(regularisations::resume_regularisations(&regs)?) {
         let suite = if r.apres.engagement.sans_paie() {
-            "La paie est retiree : aucun bulletin rectificatif ne s'imprime, le net deja verse se retient ce mois-ci."
+            " La paie est retiree : le net deja verse se retient, et le salarie doit en etre prevenu par ecrit."
         } else {
-            "La difference de net se paie -- ou se retient -- ce mois-ci, par un bulletin rectificatif."
+            ""
         };
-        avertissements.push(info(format!("Regularisation embarquee dans la DSN : {}. {}", ligne, suite)));
+        avertissements.push(info(format!("Regularisation embarquee dans la DSN : {}.{}", ligne, suite)));
     }
     if paies.is_empty() && regs.is_empty() {
         avertissements.push(info(format!(
@@ -680,18 +679,10 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
         fichiers.push(f_dsn);
     }
     let reprise = a_ecrire.is_empty();
-    let mut rectificatifs = Vec::new();
     if !reprise {
         std::fs::create_dir_all(&sortie).map_err(|e| os(&sortie, e))?;
         for (f, texte) in &a_ecrire {
             declarations::dsn::ecrire(texte, f).map_err(|m| erreur("OSError", m))?;
-        }
-        if !regs.is_empty() {
-            let mut reserves = Reserves::default();
-            let rectifs = regularisations::ecrire_rectificatifs(ctx, &regs, mois, &sortie, &mut reserves)?;
-            rectificatifs = rectifs.fichiers;
-            avertissements.extend(rectifs.avertissements.into_iter().map(avertissement));
-            reserves.valider(ctx)?;
         }
         // La paie que chaque DSN declare : l'ecran dira si elle change avant l'envoi.
         let empreinte = m.empreinte_saisie(mois)?;
@@ -699,7 +690,7 @@ pub(crate) fn fabriquer_dsn(ctx: &Contexte, mois: &str, qui: &str) -> R<DsnFabri
             noter_piece_ecrite(&ctx.racine, &cle_de_piece(f), Some(json!(empreinte)))?;
         }
     }
-    Ok(DsnFabriquee { fichiers, rectificatifs, type_dsn: type_principal, ordre: ordre_principal, reprise, avertissements })
+    Ok(DsnFabriquee { fichiers, type_dsn: type_principal, ordre: ordre_principal, reprise, avertissements })
 }
 
 // ------------------------------------------------------------- les documents, a leur envoi
@@ -752,6 +743,37 @@ impl DocumentsFabriques {
 }
 
 /// Le numero d'un bulletin dans un nom de fichier : `12/2026` -> `12-2026`.
+/// L'ECART D'UNE PAIE REFAITE AVEC LE BULLETIN PARTI (`parti`, ce qu'il a paye), verse -- ou retenu -- avec la paie de
+/// `mois_versement` : la difference de net, et le prelevement a la source sur la difference de net imposable
+/// (`engagement::etats::prelevement_de_la_correction`, au taux du bulletin parti pour un trop-verse : BOFiP,
+/// BOI-IR-PAS-30-10-50, § 1 et § 90, `atelier/reference/sources/bofip/BOI-IR-PAS-30-10-50-extrait-regularisation.md`).
+fn ecart_avec_le_bulletin_parti(ctx: &Contexte, apres: &Paie, parti: &Paie, mois_versement: &str) -> R<Value> {
+    let taux_parti = parti.pas.as_ref().map(|p| valeur_en_texte(&p.taux)).filter(|t| !t.is_empty());
+    let d_net = apres.net_a_payer - parti.net_a_payer;
+    let pas_c = engagement::etats::prelevement_de_la_correction(ctx, apres, parti.net_imposable, taux_parti.as_deref(), mois_versement).map_err(valeur)?;
+    let (indu, prelevement) = (pas_c.indu(), pas_c.prelevement);
+    let taux = match (indu, taux_parti) {
+        (false, _) => pas_c.versement.taux.clone(),
+        (true, Some(t)) => json!(t),
+        (true, None) => Value::Null,
+    };
+    let a_verser = match prelevement {
+        Some(p) => d_net - p,
+        None => d_net,
+    };
+    Ok(json!({
+        "net_avant": parti.net_a_payer.to_string(),
+        "net_apres": apres.net_a_payer.to_string(),
+        "difference_net": d_net.to_string(),
+        "difference_net_imposable": pas_c.difference.to_string(),
+        "indu": indu,
+        "taux": taux,
+        "prelevement": prelevement.map_or(Value::Null, |p| json!(p.to_string())),
+        "a_verser": a_verser.to_string(),
+        "mois_versement": crate::regularisation::mois_en_clair(mois_versement),
+    }))
+}
+
 fn numero_en_nom(n: &str) -> String {
     n.replace('/', "-")
 }
@@ -808,12 +830,31 @@ pub(crate) fn fabriquer_documents(ctx: &Contexte, mois: &str, cles: &[String], q
             numerotees[i] = true;
         }
     }
-    let rectificatifs: HashMap<usize, Value> = (0..paies.len())
-        .filter_map(|i| {
-            let r = ecrits.get(i)?.rectifie.clone()?;
-            Some((i, json!({"remplace": true, "rectifie": r, "mois_origine": engagement::libelle_mois(mois)})))
-        })
-        .collect();
+    // LE RECTIFICATIF D'UNE PAIE PARTIE PUIS REFAITE. Tant que la DSN du mois se refait, il remplace le bulletin parti ;
+    // quand elle ne se refait plus (`se_corrige_ailleurs`), il porte l'ecart avec ce bulletin, verse avec la paie du mois
+    // dont la DSN declare la correction (`ecart_avec_le_bulletin_parti`).
+    let departs = envois::journal::departs(&ctx.racine)?;
+    let clos = regularisations::se_corrige_ailleurs(ctx, &departs, mois)?;
+    let valides: Vec<engagement::etats::Valide> = engagement::etats::du_mois(ctx, mois).map_err(Echec::from)?.iter().filter_map(|e| e.valide().cloned()).collect();
+    let mut rectificatifs: HashMap<usize, Value> = HashMap::new();
+    for i in 0..paies.len() {
+        let Some(r) = ecrits.get(i).and_then(|e| e.rectifie.clone()) else { continue };
+        let parti = match (clos, valides.get(i)) {
+            (true, Some(v)) => engagement::etats::paie_partie(ctx, v.objet(), &departs, mois).map_err(Echec::from)?,
+            _ => None,
+        };
+        let rectif = match parti {
+            Some(parti) => {
+                let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
+                let mut e = ecart_avec_le_bulletin_parti(ctx, &paies[i], &parti, &porteur)?;
+                e["rectifie"] = json!(r);
+                e["mois_origine"] = json!(crate::regularisation::mois_en_clair(mois));
+                e
+            }
+            None => json!({"remplace": true, "rectifie": r, "mois_origine": crate::regularisation::mois_en_clair(mois)}),
+        };
+        rectificatifs.insert(i, rectif);
+    }
 
     // LES CERTIFICATS CONGES SPECTACLES : un par contrat qui finit ce mois-ci, numerotes dans la sequence continue, dans
     // l'ordre ou les documents partent, salarie par salarie, comme les bulletins.

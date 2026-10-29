@@ -71,15 +71,7 @@ pub(crate) fn dsn_de_l_ancien_logiciel(ctx: &Contexte, mois: &str) -> R<Option<V
     if engagement::importe::dsn_deposee(&ctx.racine, mois).map_err(Echec::from)?.is_none() {
         return Ok(None);
     }
-    let lignes = etats::charger(&ctx.racine)?;
-    let partie = |m: &str| -> R<bool> {
-        let e = etats::dsn_du_mois(&lignes, &ctx.entreprise, m)?;
-        Ok((vrai(&e) && !e.get("refusee").is_some_and(vrai)) || engagement::importe::dsn_deposee(&ctx.racine, m).map_err(Echec::from)?.is_some())
-    };
-    let mut porteur = socle::date::Jour::lire(&format!("{}-01", mois)).map_err(Echec::from)?.mois_suivant();
-    while partie(&porteur)? {
-        porteur = socle::date::Jour::lire(&format!("{}-01", porteur)).map_err(Echec::from)?.mois_suivant();
-    }
+    let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
     let departs = envois::journal::departs(&ctx.racine)?;
     let mut n = 0;
     for e in engagement::etats::du_mois(ctx, mois)? {
@@ -157,6 +149,26 @@ fn spectacle_de(ctx: &Contexte, numero: &str) -> Option<(String, String)> {
         let t = texte(s, "titre");
         (k.clone(), if t.eq_ignore_ascii_case(A_COMPLETER) { String::new() } else { t })
     })
+}
+
+/// LA PERIODE D'UN CONTRAT IMPORTE DANS `mois`, en clair, quand le bulletin ne dit pas ses jours : « 20–27 » pour un
+/// contrat qui commence et finit dans le mois (le 1er quand il a commence avant), « 20/11 – 03/12 » pour un contrat a
+/// cheval sur un autre mois, « … » pour une borne que l'import n'a pas lue.
+fn periode_en_clair(debut: &str, fin: &str, mois: &str) -> String {
+    let (d, f) = (socle::date::Jour::lire(debut).ok(), socle::date::Jour::lire(fin).ok());
+    let dans = |j: &socle::date::Jour| j.iso().starts_with(mois);
+    let dehors = d.as_ref().is_some_and(|j| !dans(j)) || f.as_ref().is_some_and(|j| !dans(j));
+    let borne = |j: Option<&socle::date::Jour>, defaut: &str| match j {
+        Some(j) if dehors => j.jj_mm(),
+        Some(j) => j.jour.to_string(),
+        None => defaut.to_string(),
+    };
+    let (a, b) = (borne(d.as_ref(), if dehors { "…" } else { "1" }), borne(f.as_ref(), "…"));
+    match (a == b, dehors) {
+        (true, _) => a,
+        (false, true) => format!("{} – {}", a, b),
+        (false, false) => format!("{}–{}", a, b),
+    }
 }
 
 /// Les jours d'intervalles `[{"debut", "fin"}]` (les dates travaillees d'un bulletin), dans `mois`.
@@ -315,6 +327,7 @@ fn carte(ctx: &Contexte, mois: &str, paie: Option<&Value>, contrat: Option<&Valu
         "contrat": texte(p, "contrat"),
         "debut": debut,
         "fin": fin,
+        "periode": periode_en_clair(&debut, &fin, mois),
         "dates": dates,
         "cachets": nombre("cachets"),
         "heures": nombre("heures"),

@@ -220,7 +220,7 @@ pub const CLASSE_A_CONFIRMER: &str = "ModificationApresEcheance";
 pub const CLASSE_NON_DECLARABLE: &str = "ModificationNonDeclarable";
 
 /// `septembre 2026`, avec ses accents.
-fn mois_en_clair(mois: &str) -> String {
+pub(crate) fn mois_en_clair(mois: &str) -> String {
     socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
 }
 
@@ -454,3 +454,20 @@ pub(crate) fn corrections_du_mois(ctx: &Contexte, mois: &str) -> R<(Vec<Value>, 
     Ok((a_porter, portees))
 }
 
+
+/// LA DSN QUI PORTE LES CORRECTIONS DE `mois` : la premiere DSN d'un mois suivant qui n'est pas partie (ni ici, ni par
+/// l'ancien logiciel, `engagement::importe::dsn_deposee`). Une correction se declare dans la DSN suivante (cahier
+/// technique DSN 2026.1, § 2.1.2.1, `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`).
+pub(crate) fn dsn_qui_porte(ctx: &Contexte, mois: &str) -> R<String> {
+    let lignes = envois::etats::charger(&ctx.racine)?;
+    let partie = |m: &str| -> R<bool> {
+        let e = envois::etats::dsn_du_mois(&lignes, &ctx.entreprise, m)?;
+        Ok((vrai(&e) && !e.get("refusee").is_some_and(vrai)) || engagement::importe::dsn_deposee(&ctx.racine, m).map_err(Echec::from)?.is_some())
+    };
+    let suivant = |m: &str| -> R<String> { Ok(socle::date::Jour::lire(&format!("{}-01", m)).map_err(Echec::from)?.mois_suivant()) };
+    let mut porteur = suivant(mois)?;
+    while partie(&porteur)? {
+        porteur = suivant(&porteur)?;
+    }
+    Ok(porteur)
+}
