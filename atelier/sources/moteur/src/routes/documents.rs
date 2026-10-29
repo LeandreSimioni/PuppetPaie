@@ -918,33 +918,32 @@ pub(crate) fn choisir(ctx: &Contexte, mois: &str, paies: &[engagement::calcul::P
 
 
 /// LA CORRECTION D'UN MOIS DONT L'ANNULE-ET-REMPLACE EST PASSE : le courriel de renvoi ajoute une phrase, la correction
-/// sera declaree avec la paie d'un mois suivant. La DSN deposee ne se refait plus ; la correction part dans la DSN qui la
-/// porte (`crate::regularisation::corrections_du_mois` : celle d'un mois suivant deja partie, ou la DSN du mois
-/// courant). `None` : le mois n'en est pas la (pas de DSN deposee, ou son annule-et-remplace encore admis).
+/// sera declaree avec la paie d'un mois suivant. La DSN du mois ne se refait pas (`se_corrige_ailleurs` : sa DSN est
+/// partie et l'annule-et-remplace n'est plus admis, ou c'est celle de l'ancien logiciel) ; une correction deja portee
+/// par une DSN partie se lit dans ce qui est parti (`corrections_du_mois`), une correction a porter part dans la DSN
+/// qui porte le mois (`crate::regularisation::dsn_qui_porte`). `None` : le mois se corrige dans sa propre DSN.
 #[allow(clippy::type_complexity)]
 fn declaration_de_la_correction(ctx: &Contexte, mois: &str) -> R<Option<Box<dyn Fn(&str) -> String>>> {
-    let mut m = crate::routes::etapes::Moteur::nouveau(ctx);
-    let etat = crate::regularisation::etat_mois(&mut m, ctx, &json!(mois))?;
-    if !vrai(&etat["regularisable"]) {
+    let departs = journal::departs(&ctx.racine)?;
+    if !declarations::produire_regularisations::se_corrige_ailleurs(ctx, &departs, mois)? {
         return Ok(None);
     }
-    let courant = valeur_en_texte(&etat["mois_courant"]);
+    let porteur = crate::regularisation::dsn_qui_porte(ctx, mois)?;
     let (a_porter, portees) = crate::regularisation::corrections_du_mois(ctx, mois)?;
     let mut porteurs: HashMap<String, String> = HashMap::new();
     for c in &portees {
         porteurs.insert(valeur_en_texte(&c["salarie"]), valeur_en_texte(&c["portee_par"]));
     }
     for c in &a_porter {
-        porteurs.insert(valeur_en_texte(&c["salarie"]), courant.clone());
+        porteurs.remove(&valeur_en_texte(&c["salarie"]));
     }
     let de = crate::regularisation::de_mois_en_clair(mois);
-    Ok(Some(Box::new(move |cle: &str| match porteurs.get(cle) {
-        Some(p) => format!(
+    Ok(Some(Box::new(move |cle: &str| {
+        format!(
             "Ta paie {} était déjà déclarée : la correction sera déclarée avec la paie {}.\n\n",
             de,
-            crate::regularisation::de_mois_en_clair(p)
-        ),
-        None => format!("Ta paie {} était déjà déclarée : la correction sera déclarée avec une paie suivante.\n\n", de),
+            crate::regularisation::de_mois_en_clair(porteurs.get(cle).unwrap_or(&porteur))
+        )
     })))
 }
 
