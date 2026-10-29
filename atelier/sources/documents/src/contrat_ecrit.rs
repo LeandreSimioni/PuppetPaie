@@ -341,9 +341,9 @@ pub fn refuser_les_mentions_absentes(modele: &Path, texte: &str, nat: &Nature, v
         (format!("Le modèle de contrat livré « {} »", nom), "C'est un défaut du logiciel : le signaler.")
     };
     Err(format!(
-        "{} ne porte pas ce que la loi exige d'un contrat {} : {}. {} Rien n'est écrit.",
+        "{} ne porte pas ce que la loi exige d'un {} : {}. {} Rien n'est écrit.",
         quel,
-        nat.libelle,
+        nat.nom_du_contrat(),
         absentes.join(" ; "),
         quoi_faire
     ))

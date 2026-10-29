@@ -237,7 +237,7 @@ pub fn paie_du_contrat(
     let mut des_jours: Vec<(usize, String)> = Vec::new();
     for (i, x) in paies.iter().enumerate() {
         let cle = x.salarie.get("_cle").ok_or_else(|| erreur("KeyError", socle::fichiers::absent("_cle")))?;
-        if est(cle, salarie) && x.engagement.debut.iso() == debut && vrai(&x.spectacle) {
+        if est(cle, salarie) && x.engagement.debut.iso() == debut && x.engagement.nat().map_err(Echec::from)?.modele_contrat().is_some() {
             des_jours.push((i, x.engagement.numero.clone().unwrap_or_default()));
         }
     }
