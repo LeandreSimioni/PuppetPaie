@@ -82,7 +82,7 @@ pub fn sigle(s: &str) -> String {
 /// Les lignes d'un texte comme les compte `str.splitlines()` de Python (le numéro qu'on affiche est le sien) : `\n`,
 /// `\r`, `\r\n`, et les séparateurs `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\u{85}`, `\u{2028}`, `\u{2029}` ; une fin de ligne
 /// finale ne fait pas de ligne vide. La seule copie du moteur (DSN, retours, DILA, garde avant commit).
-pub fn lignes_py(t: &str) -> Vec<&str> {
+pub fn lignes_du_texte(t: &str) -> Vec<&str> {
     let mut v = Vec::new();
     let mut debut = 0;
     let mut it = t.char_indices().peekable();

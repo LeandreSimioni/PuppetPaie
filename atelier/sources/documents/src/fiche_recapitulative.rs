@@ -110,7 +110,7 @@ fn decimal_de(v: &Val) -> R<Decimal> {
         Val::Dec(d) => return Ok(*d),
         Val::Num(s) | Val::Txt(s) => s,
     };
-    socle::num::decimal_py(t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(t)))
+    socle::num::decimal_lu(t).ok_or_else(|| avec_classe("InvalidOperation", socle::num::illisible(t)))
 }
 
 /// `_somme` : la somme de ce qui est DECLARE, ou `None` quand aucune ligne ne l'est.

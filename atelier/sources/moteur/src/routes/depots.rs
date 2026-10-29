@@ -954,15 +954,15 @@ pub(crate) fn lire_octets(chemin: &str) -> R<Vec<u8>> {
     std::fs::read(p).map_err(|e| erreur_io(&e, p))
 }
 
-/// `str.isdigit()` sur un caractere du latin-1 : les chiffres, et `²`, `³`, `¹`.
-fn chiffre_py(c: char) -> bool {
+/// Un chiffre du latin-1 : les chiffres, et les exposants `²`, `³`, `¹`.
+fn chiffre_du_latin1(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}')
 }
 
 /// Un jour JJ/MM/AAAA en ISO.
 fn iso_depuis_jjmmaaaa(v: &str) -> String {
     let t: Vec<char> = v.trim_matches(socle::texte::blanc).chars().collect();
-    if t.len() != 8 || !t.iter().all(|c| chiffre_py(*c)) {
+    if t.len() != 8 || !t.iter().all(|c| chiffre_du_latin1(*c)) {
         return String::new();
     }
     let s = |a: usize, b: usize| t[a..b].iter().collect::<String>();

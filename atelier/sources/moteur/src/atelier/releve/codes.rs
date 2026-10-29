@@ -205,9 +205,9 @@ fn passer<L: Read>(
         if m.nom.ends_with(".dat") && m.nom.contains("suppression") {
             // CE QUE LA LIVRAISON RETIRE : un article dont la version gardee est dans la liste sort de l'entrepot.
             let liste = String::from_utf8_lossy(&tar.lire()?).into_owned();
-            let retires: HashSet<&str> = socle::texte::lignes_py(&liste)
+            let retires: HashSet<&str> = socle::texte::lignes_du_texte(&liste)
                 .into_iter()
-                .map(dila::strip_py)
+                .map(dila::sans_blancs)
                 .filter(|l| !l.is_empty())
                 .map(|l| l.rsplit('/').next().unwrap_or(l))
                 .collect();
@@ -234,7 +234,7 @@ fn passer<L: Read>(
         };
         vus += 1;
         let txt = String::from_utf8_lossy(&tar.lire()?).into_owned();
-        let Some(num) = groupe(re_num(), &txt).map(|n| dila::strip_py(n).to_string()) else {
+        let Some(num) = groupe(re_num(), &txt).map(|n| dila::sans_blancs(n).to_string()) else {
             continue;
         };
         if !(tous_les_articles || voulu(texte, &num)) {
@@ -534,7 +534,7 @@ fn contenu(xml: &str) -> String {
     let t = dila::unescape_html(&t);
     // `\s` du Python : le blanc d'Unicode, plus \x1c a \x1f.
     let t = motif(&VIDES, r"\n[\s\x1C-\x1F]*\n+").replace_all(&t, "\n");
-    dila::strip_py(&t).to_string()
+    dila::sans_blancs(&t).to_string()
 }
 
 /// 20250713 -> 13/07/2025. Une date se lit, elle ne se dechiffre pas.
@@ -567,7 +567,7 @@ fn ce_qui_a_change(meta: &Value) -> String {
                 dila::texte(&c["article"]),
                 dila::texte(&c["avant"]),
                 dila::texte(&c["apres"]),
-                jour_lisible(dila::debut_py(&dila::texte(&c["livraison"]), 8))
+                jour_lisible(dila::premiers_caracteres(&dila::texte(&c["livraison"]), 8))
             ))
             .collect::<Vec<_>>()
             .join(" ; ")
@@ -637,7 +637,7 @@ fn rapport_d_un_texte(dossier: &Path, cible: &Path, texte: &Texte) -> R<()> {
              pour les {} premieres ; `moteur releve-codes moissonner` le refait en entier, et c'est tout l'interet : un \
              releve a la main ne se refait pas.",
             reste,
-            jour_lisible(dila::debut_py(&dila::texte(&meta["_derniere_livraison"]), 8)),
+            jour_lisible(dila::premiers_caracteres(&dila::texte(&meta["_derniere_livraison"]), 8)),
             lues
         ));
         lignes.push(String::new());
@@ -758,8 +758,8 @@ fn alineas(xml: &str) -> Vec<String> {
     static ESPACES: OnceLock<Regex> = OnceLock::new();
     contenu(xml)
         .split('\n')
-        .filter(|l| !dila::strip_py(l).is_empty())
-        .map(|l| dila::strip_py(&motif(&ESPACES, r"[\s\x1C-\x1F]+").replace_all(l, " ")).to_string())
+        .filter(|l| !dila::sans_blancs(l).is_empty())
+        .map(|l| dila::sans_blancs(&motif(&ESPACES, r"[\s\x1C-\x1F]+").replace_all(l, " ")).to_string())
         .collect()
 }
 
@@ -841,8 +841,8 @@ fn ecrire_comparaison(
                 "`{}` -> `{}`, en vigueur depuis le {}, livraison du {}.",
                 champ(c, "avant"),
                 champ(c, "apres"),
-                if depuis.is_empty() { "?".to_string() } else { jour_lisible(dila::debut_py(&depuis.replace('-', ""), 8)) },
-                jour_lisible(dila::debut_py(&champ(c, "livraison"), 8))
+                if depuis.is_empty() { "?".to_string() } else { jour_lisible(dila::premiers_caracteres(&depuis.replace('-', ""), 8)) },
+                jour_lisible(dila::premiers_caracteres(&champ(c, "livraison"), 8))
             ),
             String::new(),
         ]);

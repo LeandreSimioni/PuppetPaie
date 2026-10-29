@@ -47,7 +47,7 @@ fn valeur_erreur(m: &str) -> socle::echec::Echec {
     erreur("ValueError", m)
 }
 
-/// `base64.b64decode(s, validate=True)` : seulement des caracteres de
+/// Le base64 d'une capture, lu strictement : seulement des caracteres de
 /// l'alphabet, le remplissage qu'il faut et rien apres.
 pub fn base64_strict(t: &str) -> Option<Vec<u8>> {
     let o = t.as_bytes();
@@ -64,8 +64,7 @@ pub fn base64_strict(t: &str) -> Option<Vec<u8>> {
         }
     };
     let n = donnees.len();
-    // `binascii.a2b_base64` (non strict) apres la regex de `validate=True` : au plus
-    // deux `=`, ignores quand les donnees finissent sur un bloc complet ; sinon ils
+    // Au plus deux `=`, ignores quand les donnees finissent sur un bloc complet ; sinon ils
     // doivent completer le bloc.
     if reste.len() > 2 || !reste.iter().all(|&c| c == b'=') {
         return None;
@@ -90,7 +89,7 @@ pub fn base64_strict(t: &str) -> Option<Vec<u8>> {
     Some(sortie)
 }
 
-/// `web._captures_de` : les captures de la page, `donnees` avec ou sans le
+/// Les captures de la page, `donnees` avec ou sans le
 /// prefixe `data:image/...;base64,`.
 pub fn captures_de(charge: &Value) -> R<Vec<Value>> {
     let vide = Value::Array(Vec::new());

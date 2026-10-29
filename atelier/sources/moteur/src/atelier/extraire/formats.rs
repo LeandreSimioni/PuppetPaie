@@ -213,7 +213,7 @@ fn champ_exige<'a>(
 }
 
 /// `int(valeur)` de Python : un entier, un flottant tronque, un booleen, un texte d'entier.
-fn entier_py(c: &Cellule) -> Resultat<i64> {
+fn entier_de(c: &Cellule) -> Resultat<i64> {
     match c {
         Cellule::Entier(i) => Ok(*i),
         Cellule::Flottant(f) if f.is_finite() => Ok(f.trunc() as i64),
@@ -270,7 +270,7 @@ fn relever_xlsx(
         let mut fmt = Map::new();
         let lg = |nom: &str| champ(&entete_types, genre, nom).flatten();
         if let (Some(min), Some(max)) = (lg("Lg Min"), lg("Lg Max")) {
-            fmt.insert("longueur".into(), json!([entier_py(min)?, entier_py(max)?]));
+            fmt.insert("longueur".into(), json!([entier_de(min)?, entier_de(max)?]));
         }
         let expression = match lg("Regexp") {
             Some(Cellule::Texte(s)) => strip(s).to_string(),

@@ -97,7 +97,7 @@ pub fn nettoyer(x: &str) -> String {
     let x = motif(&SAUTS, r"<br[\s\x1C-\x1F]*/?>|</p>").replace_all(x, "\n");
     let x = dila::unescape_html(&motif(&BALISES, r"<[^>]+>").replace_all(&x, ""));
     let x = motif(&VIDES, r"\n[\s\x1C-\x1F]*\n+").replace_all(&x, "\n\n");
-    dila::strip_py(&x).to_string()
+    dila::sans_blancs(&x).to_string()
 }
 
 /// (cle, article) d'un fichier d'article, ou `None` s'il n'est d'aucune convention suivie. La cle est (IDCC, identifiant
@@ -106,7 +106,7 @@ fn lire(xml: &str, conteneurs: &Map<String, Value>) -> Option<(String, Value)> {
     static TXT: OnceLock<Regex> = OnceLock::new();
     static TM: OnceLock<Regex> = OnceLock::new();
     let cont = conteneurs.keys().find(|c| xml.contains(c.as_str()))?;
-    let g = |k: &str| re_champ(k).captures(xml).and_then(|c| c.get(1)).map(|m| dila::strip_py(m.as_str()).to_string()).unwrap_or_default();
+    let g = |k: &str| re_champ(k).captures(xml).and_then(|c| c.get(1)).map(|m| dila::sans_blancs(m.as_str()).to_string()).unwrap_or_default();
     let txt = motif(&TXT, r#"(?s)<TITRE_TXT[^>]*id_txt="([^"]*)"[^>]*>(.*?)</TITRE_TXT>"#).captures(xml);
     let ident = g("ID");
     if ident.is_empty() {
@@ -138,9 +138,9 @@ fn passer<L: Read>(tar: &mut LecteurTar<L>, ent: &mut Entrepot, conteneurs: &Map
         }
         if m.nom.ends_with(".dat") && m.nom.contains("suppression") {
             let liste = String::from_utf8_lossy(&tar.lire()?).into_owned();
-            let retires: HashSet<&str> = socle::texte::lignes_py(&liste)
+            let retires: HashSet<&str> = socle::texte::lignes_du_texte(&liste)
                 .into_iter()
-                .map(dila::strip_py)
+                .map(dila::sans_blancs)
                 .filter(|l| !l.is_empty())
                 .map(|l| l.rsplit('/').next().unwrap_or(l))
                 .collect();
@@ -300,7 +300,7 @@ pub fn transcrire(a: &Value) -> String {
     format!(
         "{}\n{} -- article {}\n{} -- {} du {} au {}\ntexte : {} ({})\n{}\n{}\n",
         "=".repeat(78),
-        dila::debut_py(&s("chemin"), 120),
+        dila::premiers_caracteres(&s("chemin"), 120),
         if num.is_empty() { "(chapeau)".to_string() } else { num },
         s("id"),
         s("etat"),
@@ -336,7 +336,7 @@ pub fn rendre_recherche(ent: &Entrepot, idcc: &str, mot: &str) -> String {
     for a in articles(ent, idcc, None, true) {
         let s = |k: &str| a.get(k).map(dila::texte).unwrap_or_default();
         if s("contenu").to_lowercase().contains(&mot) {
-            out.push_str(&format!("{}  {:<8} {:<22} {}\n", s("id"), s("num"), s("etat"), dila::debut_py(&s("chemin"), 90)));
+            out.push_str(&format!("{}  {:<8} {:<22} {}\n", s("id"), s("num"), s("etat"), dila::premiers_caracteres(&s("chemin"), 90)));
         }
     }
     out

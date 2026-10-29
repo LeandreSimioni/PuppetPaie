@@ -728,7 +728,7 @@ impl Engagement {
 
     // -------------------------------------------------------- forme canonique
 
-    /// `oracle._engagement` : la forme canonique d'un engagement.
+    /// La forme canonique d'un engagement : une ecriture stable, pour les empreintes et les oracles.
     pub fn canon(&self) -> Resultat<Value> {
         let iso = |j: &Jour| Value::String(j.iso());
         let jours = |v: &[Jour]| Value::Array(v.iter().map(iso).collect());
@@ -784,7 +784,7 @@ impl Engagement {
         );
         m.insert("transaction".into(), texte(&self.transaction));
         m.insert("suspensions".into(), canon_valeur(&Value::Array(self.suspensions.clone()))?);
-        // Les proprietes de `oracle._PROPRIETES`.
+        // Ce qui se deduit de l'engagement : sa periode, sa quotite, ses mois.
         m.insert("debut_periode".into(), iso(&self.debut_periode()?));
         m.insert("fin_periode".into(), iso(&self.fin_periode()?));
         m.insert("quotite".into(), Value::String(nombre(self.quotite()?)));
@@ -799,7 +799,7 @@ impl Engagement {
     }
 }
 
-/// `oracle.canon` sur une valeur JSON : nombres en chaines normalisees, cles
+/// La forme canonique d'une valeur JSON : nombres en chaines normalisees, cles
 /// en `_` retirees (sauf `_cle`).
 pub fn canon_valeur(v: &Value) -> Resultat<Value> {
     Ok(match v {

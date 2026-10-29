@@ -306,7 +306,7 @@ pub(crate) fn date_du_releve(jour: &Jour) -> String {
 /// `sum()` de Python sur des flottants (3.12 et suivants) : le premier terme, puis la somme compensee de Neumaier, la
 /// compensation ajoutee a la fin si elle est non nulle et finie. Les frontieres des tableaux du cahier (`usages.rs`) sont des
 /// moyennes : le meme calcul que le releve d'origine, au dernier bit.
-pub(crate) fn somme_py(valeurs: &[f64]) -> f64 {
+pub(crate) fn somme_compensee(valeurs: &[f64]) -> f64 {
     let Some((premier, reste)) = valeurs.split_first() else { return 0.0 };
     let mut f = 0.0 + premier;
     let mut c = 0.0;

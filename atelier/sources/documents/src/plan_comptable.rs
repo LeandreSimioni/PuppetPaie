@@ -217,7 +217,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
         return Ok(String::new());
     }
     let code_brut = ou(salarie.get("code_salarie").unwrap_or(&Value::Null), texte_vide());
-    let code = entier_py(valeur_en_texte(code_brut).trim());
+    let code = entier_de(valeur_en_texte(code_brut).trim());
     let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;
@@ -246,7 +246,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
 }
 
 /// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres.
-fn entier_py(t: &str) -> Option<i64> {
+fn entier_de(t: &str) -> Option<i64> {
     let (neg, reste) = match t.strip_prefix('-') {
         Some(r) => (true, r),
         None => (false, t.strip_prefix('+').unwrap_or(t)),
@@ -533,9 +533,9 @@ struct Specification {
     genre: Option<char>,
 }
 
-fn lire_specification(spec: &str, type_py: &str) -> Result<Specification, Faute> {
+fn lire_specification(spec: &str, nom_du_type: &str) -> Result<Specification, Faute> {
     let c: Vec<char> = spec.chars().collect();
-    let invalide = || ("ValueError", format!("mise en forme « {} » invalide pour {}", spec, socle::fichiers::nature(type_py)));
+    let invalide = || ("ValueError", format!("mise en forme « {} » invalide pour {}", spec, socle::fichiers::nature(nom_du_type)));
     let est_align = |x: char| matches!(x, '<' | '>' | '=' | '^');
     let mut s = Specification { remplissage: ' ', alignement: None, signe: None, diese: false, zero: false, largeur: None, groupe: None, precision: None, genre: None };
     let mut i = 0;

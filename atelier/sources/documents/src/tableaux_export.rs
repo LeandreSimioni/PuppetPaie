@@ -59,7 +59,7 @@ impl Val {
     }
 
     /// `str(v)`.
-    pub fn str_py(&self) -> String {
+    pub fn en_texte_ecrit(&self) -> String {
         match self {
             Val::Dec(d) => d.to_string(),
             Val::Num(v) => forme_ecrite(v),
@@ -74,7 +74,7 @@ impl Val {
             Val::Num(v) => return socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
             Val::Txt(s) => s,
         };
-        socle::num::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
+        socle::num::decimal_lu(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
     }
 
     /// `dict_tableau._v` / `sortie_json.brut` : un `Decimal` devient son texte.
@@ -139,7 +139,7 @@ impl Ligne {
 
     /// Le texte d'une cle (vide si absente ou `None`).
     pub fn texte(&self, k: &str) -> String {
-        self.val(k).map(Val::str_py).unwrap_or_default()
+        self.val(k).map(Val::en_texte_ecrit).unwrap_or_default()
     }
 
     pub fn decimal(&self, k: &str) -> Option<Decimal> {
@@ -344,7 +344,7 @@ pub fn texte(v: Option<&Val>, c: &Colonne) -> String {
         None => String::new(),
         Some(Val::Dec(d)) if c.a_droite() => d.to_string().replace('.', ","),
         Some(Val::Num(n)) if c.a_droite() => forme_ecrite(n).replace('.', ","),
-        Some(autre) => autre.str_py(),
+        Some(autre) => autre.en_texte_ecrit(),
     }
 }
 
@@ -532,7 +532,7 @@ fn cellule_classeur(v: Option<&Val>, c: &Colonne) -> Cel {
     if c.a_droite() {
         return match v.decimal() {
             Ok(d) => Cel::Nombre(en_f64(&d)),
-            Err(_) => Cel::Texte(v.str_py()),
+            Err(_) => Cel::Texte(v.en_texte_ecrit()),
         };
     }
     match v {
@@ -806,7 +806,7 @@ pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<P
 /// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
 pub fn nom_du_mois(m: &str) -> R<&'static str> {
     let tranche: String = m.chars().skip(5).take(2).collect();
-    let n = socle::num::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
+    let n = socle::num::entier_lu(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
     socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
@@ -853,7 +853,7 @@ pub fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
             if t.trim_matches(socle::texte::blanc).is_empty() {
                 return Ok(None);
             }
-            let d = socle::num::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))?;
+            let d = socle::num::decimal_lu(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))?;
             Ok(Some(socle::num::eur2(d)))
         }
     }

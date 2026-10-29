@@ -604,7 +604,7 @@ pub fn ecrire(embauches: &[Embauche], chemin: &Path, p: &Parametres, zipper: boo
 }
 
 /// Le nom du type d'une valeur JSON, pour la phrase d'un `TypeError`.
-fn type_py(v: &Value) -> &'static str {
+fn nom_du_type(v: &Value) -> &'static str {
     match v {
         Value::Null => "NoneType",
         Value::Bool(_) => "bool",
@@ -628,7 +628,7 @@ fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<natures::Nature>> {
 pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat<String> {
     let heure_embauche = match heure_embauche {
         Value::String(t) => t.as_str(),
-        autre => return Err(format!("heure d'embauche : {}", socle::fichiers::attendu("un texte", type_py(autre)))),
+        autre => return Err(format!("heure d'embauche : {}", socle::fichiers::attendu("un texte", nom_du_type(autre)))),
     };
     let h: Vec<char> = heure_embauche.chars().collect();
     let heure = format!(

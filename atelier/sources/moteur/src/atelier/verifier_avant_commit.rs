@@ -200,7 +200,7 @@ fn generiques() -> Vec<Motif> {
 
 /// Une valeur JSON comme Python l'écrirait par `str()` (un nombre en chiffres, une chaîne telle quelle), si elle est
 /// « vraie » au sens de Python (ni nulle, ni vide, ni zéro, ni `false`).
-fn valeur_py(v: &Value) -> Option<String> {
+fn valeur_vraie_en_texte(v: &Value) -> Option<String> {
     match v {
         Value::Null | Value::Bool(false) => None,
         Value::Bool(true) => Some("True".into()),
@@ -251,14 +251,14 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
         let ent = objet(&ent, "prive/config/entreprise.json")?;
         // Toute valeur qu'une fiche datee a portee, a quelque date que ce soit (`contexte::toutes_les_valeurs`).
         for cle in CLES_ENTREPRISE {
-            for v in droit::contexte::toutes_les_valeurs(ent.get(cle)).into_iter().filter_map(valeur_py) {
+            for v in droit::contexte::toutes_les_valeurs(ent.get(cle)).into_iter().filter_map(valeur_vraie_en_texte) {
                 poser(v, cle.to_string());
             }
         }
-        for banque in droit::contexte::toutes_les_valeurs(ent.get("banque")).into_iter().filter(|b| valeur_py(b).is_some()) {
+        for banque in droit::contexte::toutes_les_valeurs(ent.get("banque")).into_iter().filter(|b| valeur_vraie_en_texte(b).is_some()) {
             let banque = objet(banque, "prive/config/entreprise.json : banque")?;
             for cle in ["iban", "bic"] {
-                if let Some(v) = banque.get(cle).and_then(valeur_py) {
+                if let Some(v) = banque.get(cle).and_then(valeur_vraie_en_texte) {
                     poser(v, format!("banque.{}", cle));
                 }
             }
@@ -271,13 +271,13 @@ fn valeurs_reelles(racine: &Path) -> R<Vec<(String, String)>> {
             }
             let s = objet(s, "une fiche de prive/config/salaries.json")?;
             for cle in CLES_SALARIE {
-                for v in droit::contexte::toutes_les_valeurs(s.get(cle)).into_iter().filter_map(valeur_py) {
+                for v in droit::contexte::toutes_les_valeurs(s.get(cle)).into_iter().filter_map(valeur_vraie_en_texte) {
                     poser(v, format!("salarie.{}", cle));
                 }
             }
             // Le nom seul est trop courant pour être un motif ; le nom ET le prénom collés le sont beaucoup moins.
-            for nom in droit::contexte::toutes_les_valeurs(s.get("nom")).into_iter().filter_map(valeur_py) {
-                for prenom in droit::contexte::toutes_les_valeurs(s.get("prenom")).into_iter().filter_map(valeur_py) {
+            for nom in droit::contexte::toutes_les_valeurs(s.get("nom")).into_iter().filter_map(valeur_vraie_en_texte) {
+                for prenom in droit::contexte::toutes_les_valeurs(s.get("prenom")).into_iter().filter_map(valeur_vraie_en_texte) {
                     poser(format!("{} {}", nom, prenom), "salarie (identite)".to_string());
                 }
             }
@@ -436,9 +436,9 @@ fn chercher(fichier: &str, o: &[u8], motifs: &[Motif], trouvailles: &mut Vec<Tro
     // frais, le nuage), les minuscules ne servent à rien.
     let valeurs = siens.iter().any(|m| matches!(m, Motif::Valeur { .. }));
     let minuscules = if valeurs { texte.to_lowercase() } else { String::new() };
-    let lignes_min = if valeurs { socle::texte::lignes_py(&minuscules) } else { Vec::new() };
+    let lignes_min = if valeurs { socle::texte::lignes_du_texte(&minuscules) } else { Vec::new() };
     let lignes_min = lignes_min.into_iter().chain(std::iter::repeat(""));
-    for (n, (ligne, min)) in socle::texte::lignes_py(&texte).into_iter().zip(lignes_min).enumerate() {
+    for (n, (ligne, min)) in socle::texte::lignes_du_texte(&texte).into_iter().zip(lignes_min).enumerate() {
         if let Some(m) = siens.iter().find(|m| m.trouve(ligne, min)) {
             trouvailles.push(Trouvaille { fichier: fichier.to_string(), ligne: n + 1, quoi: m.quoi().to_string() });
         }

@@ -111,7 +111,7 @@ fn jj_mm_aaaa(iso: &str) -> Resultat<String> {
 }
 
 /// Ce que `contrat.marqueurs` lit de l'engagement : la forme canonique du moteur
-/// (`oracle._engagement`, dans la paie calculee).
+/// (`Engagement::canon`, dans la paie calculee).
 struct Eng {
     debut: String,
     fin: Option<String>,

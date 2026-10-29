@@ -196,14 +196,14 @@ pub(crate) fn entier(v: &Value) -> R<i64> {
             };
             let c: Vec<char> = chiffres.chars().collect();
             let bien_forme = !c.is_empty()
-                && crate::routes::fiches::chiffre_py(c[0]).is_some()
-                && crate::routes::fiches::chiffre_py(c[c.len() - 1]).is_some()
-                && c.iter().all(|x| crate::routes::fiches::chiffre_py(*x).is_some() || *x == '_')
+                && crate::routes::fiches::chiffre_lu(c[0]).is_some()
+                && crate::routes::fiches::chiffre_lu(c[c.len() - 1]).is_some()
+                && c.iter().all(|x| crate::routes::fiches::chiffre_lu(*x).is_some() || *x == '_')
                 && !chiffres.contains("__");
             if !bien_forme {
                 return Err(illisible());
             }
-            let ascii: String = c.iter().filter(|x| **x != '_').filter_map(|x| crate::routes::fiches::chiffre_py(*x)).map(|d| char::from(b'0' + d as u8)).collect();
+            let ascii: String = c.iter().filter(|x| **x != '_').filter_map(|x| crate::routes::fiches::chiffre_lu(*x)).map(|d| char::from(b'0' + d as u8)).collect();
             let n: i64 = ascii.parse().map_err(|_| trop_grand())?;
             Ok(if neg { -n } else { n })
         }
@@ -582,7 +582,7 @@ fn verifier_fiche(charge: &Value) -> R<Value> {
 // ------------------------------------------------------ changements-declares
 
 /// Le dossier parent : `.` pour un nom seul.
-fn parent_py(p: &Path) -> std::path::PathBuf {
+fn parent_ou_point(p: &Path) -> std::path::PathBuf {
     match p.parent() {
         Some(x) if x.as_os_str().is_empty() => std::path::PathBuf::from("."),
         Some(x) => x.to_path_buf(),
@@ -593,8 +593,8 @@ fn parent_py(p: &Path) -> std::path::PathBuf {
 /// `contexte.trouver_export` : le dossier de CoolPaie, remonte de dossier en
 /// dossier, puis la copie `export-coolpaie`, puis `export` (absent).
 pub(crate) fn trouver_export(depart: &Path) -> std::path::PathBuf {
-    let p1 = parent_py(depart);
-    let p2 = parent_py(&p1);
+    let p1 = parent_ou_point(depart);
+    let p2 = parent_ou_point(&p1);
     for base in [depart, p1.as_path(), p2.as_path()] {
         let p = base.join("export");
         if p.is_dir() {
@@ -654,7 +654,7 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
                 continue;
             }
             fichiers += 1;
-            for l in socle::texte::lignes_py(&texte) {
+            for l in socle::texte::lignes_du_texte(&texte) {
                 if let Some(reste) = l.strip_prefix(prefixe) {
                     let mp: Vec<char> = reste.trim_matches('\'').chars().collect();
                     if mp.len() == 8 {
@@ -761,21 +761,9 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
     Ok(sortie)
 }
 
-
-
-/// Un nombre decimal saisi : de quoi le lire, le comparer a 0 et 20, l'ecrire comme `str()`, le
-/// convertir en flottant.
-struct Dec {
-    negatif: bool,
-    chiffres: String,
-    exposant: i64,
-    /// `Infinity` ou `NaN`.
-    special: Option<&'static str>,
-}
-
 /// Le chiffre (0 a 9) que `c` represente : les chiffres ASCII, et
 /// ceux des ecritures les plus courantes (arabe, devanagari, pleine chasse).
-pub(crate) fn chiffre_py(c: char) -> Option<u32> {
+pub(crate) fn chiffre_lu(c: char) -> Option<u32> {
     const DEBUTS: [u32; 4] = [0x0660, 0x06F0, 0x0966, 0xFF10];
     let u = c as u32;
     if c.is_ascii_digit() {
@@ -784,74 +772,7 @@ pub(crate) fn chiffre_py(c: char) -> Option<u32> {
     DEBUTS.iter().find(|d| u >= **d && u < **d + 10).map(|d| u - d)
 }
 
-/// Des chiffres (les `_` s'ignorent, comme dans `_decimal`), en ASCII ; `None` s'il n'y en a pas
-/// ou si autre chose s'y trouve.
-fn chiffres_py(t: &str) -> Option<String> {
-    let mut out = String::new();
-    for x in t.chars().filter(|x| *x != '_') {
-        out.push(char::from(b'0' + chiffre_py(x)? as u8));
-    }
-    if out.is_empty() {
-        None
-    } else {
-        Some(out)
-    }
-}
-
-/// `Decimal(texte)` ; `None` quand le texte n'est pas un nombre.
-fn decimal_py(texte: &str) -> Option<Dec> {
-    let sans: String = texte.chars().filter(|c| *c != '_').collect();
-    let t = sans.trim_matches(socle::texte::blanc);
-    let (negatif, reste) = match t.strip_prefix('-') {
-        Some(r) => (true, r),
-        None => (false, t.strip_prefix('+').unwrap_or(t)),
-    };
-    let bas = reste.to_lowercase();
-    if bas == "inf" || bas == "infinity" {
-        return Some(Dec { negatif, chiffres: "0".into(), exposant: 0, special: Some("Infinity") });
-    }
-    for pref in ["snan", "nan"] {
-        if let Some(suite) = bas.strip_prefix(pref) {
-            if suite.chars().all(|c| chiffre_py(c).is_some()) {
-                return Some(Dec { negatif, chiffres: "0".into(), exposant: 0, special: Some("NaN") });
-            }
-        }
-    }
-    let (mantisse, exp) = match reste.find(['e', 'E']) {
-        Some(i) => (&reste[..i], Some(&reste[i + 1..])),
-        None => (reste, None),
-    };
-    let (entier, frac) = match mantisse.split_once('.') {
-        Some((a, b)) => (a, b),
-        None => (mantisse, ""),
-    };
-    let entier = if entier.is_empty() { String::new() } else { chiffres_py(entier)? };
-    let frac = if frac.is_empty() { String::new() } else { chiffres_py(frac)? };
-    if entier.is_empty() && frac.is_empty() {
-        return None;
-    }
-    let exposant_lu: i64 = match exp {
-        None => 0,
-        Some(e) => {
-            let (neg, e) = match e.strip_prefix('-') {
-                Some(r) => (true, r),
-                None => (false, e.strip_prefix('+').unwrap_or(e)),
-            };
-            let n: i64 = chiffres_py(e)?.parse().ok()?;
-            if neg {
-                -n
-            } else {
-                n
-            }
-        }
-    };
-    let tout = format!("{}{}", entier, frac);
-    let sans_zeros = tout.trim_start_matches('0');
-    let chiffres = if sans_zeros.is_empty() { "0".to_string() } else { sans_zeros.to_string() };
-    Some(Dec { negatif, chiffres, exposant: exposant_lu - frac.len() as i64, special: None })
-}
-
-/// Le jour d'aujourd'hui a Paris, `JJ/MM/AAAA` (`date.today().strftime("%d/%m/%Y")`).
+/// Le jour d'aujourd'hui a Paris, `JJ/MM/AAAA`.
 fn aujourdhui_jj_mm_aaaa() -> String {
     let t = socle::temps::secondes();
     let iso = socle::paris::iso_secondes(t);
@@ -862,16 +783,13 @@ fn aujourdhui_jj_mm_aaaa() -> String {
 /// compagnie (`config/baremes/<annee>.json`), le reste de la surcouche est garde.
 pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risque: &Value) -> R<()> {
     let brut = valeur_en_texte(valeur).replace(',', ".").replace('%', "");
-    let Some(v) = decimal_py(&brut) else {
+    let Some(v) = socle::num::decimal_lu(&brut) else {
         return Err(erreur("ErreurOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
     };
-    if v.special == Some("NaN") {
-        return Err(erreur("InvalidOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
-    }
-    if !v.entre_0_et_20() {
+    if v <= socle::num::Decimal::ZERO || v >= socle::num::Decimal::from(20) {
         return Err(erreur(
             "ErreurOperation",
-            format!("Taux AT/MP de {} % : il se donne en pourcentage, par exemple 1,25 pour 1,25 %.", v.texte()),
+            format!("Taux AT/MP de {} % : il se donne en pourcentage, par exemple 1,25 pour 1,25 %.", v.normalize()),
         ));
     }
     let code = match code_risque {
@@ -905,7 +823,7 @@ pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risq
     } else {
         ancien_code.unwrap_or_else(|| json!(""))
     };
-    nouveau.insert("valeur".into(), serde_json::Number::from_f64(v.flottant()).map_or(Value::Null, Value::Number));
+    nouveau.insert("valeur".into(), serde_json::Number::from_f64(v.to_string().parse::<f64>().unwrap_or(0.0)).map_or(Value::Null, Value::Number));
     nouveau.insert("code_risque".into(), code_final.clone());
     nouveau.insert("_source".into(), json!(format!("Saisi dans PuppetPaie le {} (notification AT/MP).", aujourdhui_jj_mm_aaaa())));
     if !vrai(&code_final) {
@@ -925,58 +843,6 @@ pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risq
 fn code_risque_valide(code: &str) -> bool {
     let c: Vec<char> = code.chars().collect();
     c.len() == 5 && c[..3].iter().all(|x| x.is_ascii_digit()) && c[3..].iter().all(|x| x.is_ascii_digit() || x.is_ascii_uppercase())
-}
-
-impl Dec {
-    fn nul(&self) -> bool {
-        self.special.is_none() && self.chiffres == "0"
-    }
-
-    /// `Decimal.__str__`.
-    fn texte(&self) -> String {
-        let signe = if self.negatif { "-" } else { "" };
-        if let Some(s) = self.special {
-            return format!("{}{}", signe, s);
-        }
-        let (d, e) = (&self.chiffres, self.exposant);
-        let n = d.len() as i64;
-        let ajuste = e + n - 1;
-        let corps = if e <= 0 && ajuste >= -6 {
-            if e == 0 {
-                d.clone()
-            } else if n > -e {
-                format!("{}.{}", &d[..(n + e) as usize], &d[(n + e) as usize..])
-            } else {
-                format!("0.{}{}", "0".repeat((-e - n) as usize), d)
-            }
-        } else {
-            let mantisse = if n > 1 { format!("{}.{}", &d[..1], &d[1..]) } else { d.clone() };
-            format!("{}E{}{}", mantisse, if ajuste < 0 { "-" } else { "+" }, ajuste.abs())
-        };
-        format!("{}{}", signe, corps)
-    }
-
-    /// `0 < v < 20`.
-    fn entre_0_et_20(&self) -> bool {
-        if self.special.is_some() || self.negatif || self.nul() {
-            return false;
-        }
-        let ajuste = self.exposant + self.chiffres.len() as i64 - 1;
-        match ajuste {
-            a if a < 1 => true,
-            1 => {
-                let d = self.chiffres.trim_end_matches('0');
-                d.starts_with('1')
-            }
-            _ => false,
-        }
-    }
-
-    /// `float(v)`.
-    fn flottant(&self) -> f64 {
-        let t = format!("{}{}e{}", if self.negatif { "-" } else { "" }, self.chiffres, self.exposant);
-        t.parse::<f64>().unwrap_or(0.0)
-    }
 }
 
 /// L'onglet

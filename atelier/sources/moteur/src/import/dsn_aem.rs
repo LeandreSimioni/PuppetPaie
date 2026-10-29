@@ -8,7 +8,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use socle::texte::{lignes_py, texte_latin1};
+use socle::texte::{lignes_du_texte, texte_latin1};
 use socle::texte::blanc;
 
 /// Bloc S21.G00.30 (individu) -> champ de `salaries.json`.
@@ -141,7 +141,7 @@ fn texte(s: &str) -> Value {
 pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     let octets = std::fs::read(chemin).ok()?;
     let contenu = texte_latin1(&octets);
-    let lignes = lignes_py(&contenu);
+    let lignes = lignes_du_texte(&contenu);
     let (mut mois, mut depot) = (String::new(), String::new());
     let mut entreprise: Map<String, Value> = Map::new();
     let mut individus: Vec<Map<String, Value>> = Vec::new();
@@ -546,7 +546,7 @@ pub(crate) struct ContratAtteste {
 /// fichiers ou enregistrements illisibles. Un `InvalidOperation` (un brut qui n'est pas un nombre)
 /// n'est pas rattrape, comme en Python.
 pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<String>), socle::echec::Echec> {
-    use socle::num::{decimal_py, int_py};
+    use socle::num::{decimal_lu, entier_lu};
     let mut vus: Vec<(Vec<String>, ContratAtteste)> = Vec::new();
     let mut connus: std::collections::HashSet<Vec<String>> = std::collections::HashSet::new();
     let mut illisibles = Vec::new();
@@ -559,7 +559,7 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
             illisibles.push(nom);
             continue;
         };
-        for ligne in lignes_py(&texte_latin1(&octets)) {
+        for ligne in lignes_du_texte(&texte_latin1(&octets)) {
             let l: Vec<char> = ligne.chars().collect();
             if l.len() < 700 {
                 continue;
@@ -573,13 +573,13 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
                 continue;
             };
             let numero_objet = champ(&l, 638, 650).trim_matches(blanc).to_string();
-            let entiers = [(650, 653), (653, 655), (655, 657), (657, 659)].map(|(a, b)| int_py(&champ(&l, a, b)));
+            let entiers = [(650, 653), (653, 655), (655, 657), (657, 659)].map(|(a, b)| entier_lu(&champ(&l, a, b)));
             let [Some(heures), Some(c1), Some(c2), Some(jours)] = entiers else {
                 illisible(&mut illisibles);
                 continue;
             };
             let brut_texte = champ(&l, 659, 668);
-            let Some(brut_cts) = decimal_py(&brut_texte) else {
+            let Some(brut_cts) = decimal_lu(&brut_texte) else {
                 return Err(socle::echec::Echec { classe: Some("InvalidOperation"), message: socle::num::illisible(&brut_texte) });
             };
             let mut brut = brut_cts / socle::num::Decimal::from(100);
@@ -655,7 +655,7 @@ pub(crate) struct Employeur {
 pub(crate) fn employeur_dsn(chemin: &Path) -> Employeur {
     let mut e = Employeur::default();
     let Ok(octets) = std::fs::read(chemin) else { return e };
-    for l in lignes_py(&texte_latin1(&octets)) {
+    for l in lignes_du_texte(&texte_latin1(&octets)) {
         if let Some(v) = l.strip_prefix("S21.G00.06.001,") {
             let v = v.trim_matches(blanc).trim_matches('\'').trim();
             if !v.is_empty() {
@@ -671,7 +671,7 @@ pub(crate) fn employeur_dsn(chemin: &Path) -> Employeur {
 pub(crate) fn employeur_aem(chemin: &Path) -> Employeur {
     let mut e = Employeur::default();
     let Ok(octets) = std::fs::read(chemin) else { return e };
-    for ligne in lignes_py(&texte_latin1(&octets)) {
+    for ligne in lignes_du_texte(&texte_latin1(&octets)) {
         let l: Vec<char> = ligne.chars().collect();
         // Les enregistrements que `lire_aem` lit.
         if l.len() < 700 {

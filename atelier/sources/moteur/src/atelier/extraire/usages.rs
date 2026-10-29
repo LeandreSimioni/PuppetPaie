@@ -33,7 +33,7 @@ use std::path::Path;
 use regex::Regex;
 use serde_json::{json, Map, Value};
 
-use super::{date_du_releve, en_transcription, nom_de, propre, sha256, somme_py, Releve, Transcription};
+use super::{date_du_releve, en_transcription, nom_de, propre, sha256, somme_compensee, Releve, Transcription};
 use socle::date::Jour;
 use socle::lecture_xlsx;
 use socle::num::Resultat;
@@ -132,7 +132,7 @@ fn regrouper(mut filets: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
         .map(|g| {
             let centres: Vec<f64> = g.iter().map(|x| x.0).collect();
             let longueurs: Vec<f64> = g.iter().map(|x| x.1).collect();
-            (somme_py(&centres) / g.len() as f64, somme_py(&longueurs))
+            (somme_compensee(&centres) / g.len() as f64, somme_compensee(&longueurs))
         })
         .collect()
 }

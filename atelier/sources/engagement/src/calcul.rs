@@ -1634,7 +1634,7 @@ impl Paie {
         plafond_de_l_engagement(ctx, &self.engagement, &self.salarie)
     }
 
-    /// `oracle._paie` : la forme canonique d'une paie (`ctx` pour le plafond Urssaf).
+    /// La forme canonique d'une paie, ecriture stable pour les empreintes et les oracles (`ctx` pour le plafond Urssaf).
     pub fn canon(&self, ctx: &Contexte) -> Resultat<Value> {
         let cle = |f: &Value| {
             let mut m = Map::new();

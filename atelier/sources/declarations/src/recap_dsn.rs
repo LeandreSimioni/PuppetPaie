@@ -4,8 +4,8 @@
 
 use std::collections::HashMap;
 
-use socle::num::{decimal_py, q2, Decimal};
-use socle::texte::{blanc, lignes_py, texte_latin1};
+use socle::num::{decimal_lu, q2, Decimal};
+use socle::texte::{blanc, lignes_du_texte, texte_latin1};
 
 /// `format(d.normalize(), "f")`, avec `0` pour zero.
 pub fn norm(d: Decimal) -> String {
@@ -88,7 +88,7 @@ pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
     let mut remu: Option<(String, String)> = None;
     // (type, mesure) de l'activite en cours
     let mut activite: Option<(String, Decimal)> = None;
-    for ligne in lignes_py(&texte) {
+    for ligne in lignes_du_texte(&texte) {
         let Some((k, v)) = ligne.split_once(',') else { continue };
         let v = v.trim_matches(blanc).trim_matches('\'');
         let kc: Vec<char> = k.chars().collect();
@@ -164,7 +164,7 @@ pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
                         "010" => r.0 = v.to_string(),
                         "011" => r.1 = v.to_string(),
                         "013" => {
-                            let montant = decimal_py(v).ok_or_else(|| socle::num::illisible(v))?;
+                            let montant = decimal_lu(v).ok_or_else(|| socle::num::illisible(v))?;
                             let (numero, genre) = (r.0.clone(), r.1.clone());
                             if let Some(&(cs, cc)) = sals[si].par_numero.get(&numero) {
                                 let c = &mut sals[cs].contrats[cc];
@@ -182,7 +182,7 @@ pub fn lire_recap(octets: &[u8]) -> Result<Vec<Individu>, String> {
                 if champ == "001" {
                     activite = Some((v.to_string(), Decimal::ZERO));
                 } else if activite.is_some() && champ == "002" {
-                    activite.as_mut().unwrap().1 = decimal_py(v).ok_or_else(|| socle::num::illisible(v))?;
+                    activite.as_mut().unwrap().1 = decimal_lu(v).ok_or_else(|| socle::num::illisible(v))?;
                 } else if activite.is_some() && champ == "003" {
                     let (genre, mesure) = activite.clone().unwrap();
                     let c = remu.as_ref().and_then(|r| sals[si].par_numero.get(&r.0).copied());

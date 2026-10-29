@@ -46,7 +46,7 @@ fn decimal(v: &Value) -> Resultat<Decimal> {
 }
 
 /// Le plus grand de `a` et `b` : `a` a egalite.
-fn max_py(a: Decimal, b: Decimal) -> Decimal {
+fn plus_grand(a: Decimal, b: Decimal) -> Decimal {
     if b > a {
         b
     } else {
@@ -55,7 +55,7 @@ fn max_py(a: Decimal, b: Decimal) -> Decimal {
 }
 
 /// Le plus petit de `a` et `b` : `a` a egalite.
-fn min_py(a: Decimal, b: Decimal) -> Decimal {
+fn plus_petit(a: Decimal, b: Decimal) -> Decimal {
     if b < a {
         b
     } else {
@@ -185,7 +185,7 @@ pub(crate) fn duree_du_preavis(ctx: &Contexte, e: &Value, anciennete: Decimal, m
         ));
         return Ok(out);
     }
-    out.mois = Some(candidats.iter().copied().fold(candidats[0], max_py));
+    out.mois = Some(candidats.iter().copied().fold(candidats[0], plus_grand));
     if conv_mois.is_none() {
         out.qui = "la loi (L1234-1)".into();
         out.dit = format!("L1234-1 ; {} : seule la loi est calculee", t(conv_pourquoi));
@@ -244,7 +244,7 @@ pub(crate) fn solde_de_tout_compte(ctx: &Contexte, e: &Value, mois: &str, deja: 
         let maintien = eur2(mul(div(salaire, ouvrables), solde));
         // Les jours pris ce mois-ci ont deja consomme le report d'abord :
         // le reste du report est ce qui se paie au dixieme d'avant.
-        let entame = min_py(pris_ce_mois, cpt.report_restant());
+        let entame = plus_petit(pris_ce_mois, cpt.report_restant());
         let mut cpt2 = cpt.clone();
         cpt2.reports = sub(cpt.reports, entame);
         let ind = indemnite_des_jours(&cpt2, solde, maintien)?;
@@ -660,8 +660,8 @@ fn indemnite_de_rupture(
 
     let du_legal = vrai(get(&legale, "du"));
     let m_legal = if du_legal { decimal(get(&legale, "montant"))? } else { zero2() };
-    let bas = max_py(m_legal, conv_bas.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
-    let haut = max_py(m_legal, conv_haut.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
+    let bas = plus_grand(m_legal, conv_bas.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
+    let haut = plus_grand(m_legal, conv_haut.filter(|b| !b.is_zero()).unwrap_or_else(zero2));
     let du = du_legal || bas > Decimal::ZERO;
     let phrase = phrase_de_la_convention(conv_releve, &conv_article, conv_bas, conv_haut, m_legal, &conv_pourquoi, idcc);
 
@@ -774,7 +774,7 @@ fn indemnite_de_rupture(
         return Ok(());
     }
     verifier_les_plafonds(ctx, mois, montant, quoi, &numero)?;
-    let part_legale = min_py(montant, m_legal);
+    let part_legale = plus_petit(montant, m_legal);
     let supplement = sub(montant, part_legale);
     if part_legale > Decimal::ZERO {
         stc.lignes.push(json!({"rubrique": rubrique, "quantite": 1, "taux": flot(part_legale)}));
@@ -929,8 +929,8 @@ fn indemnite_de_licenciement(
     let conv = indemnite_conventionnelle(ctx, e, anciennete, decimal(get(&reference, "retenu"))?, motif)?;
     let m_legal = if vrai(get(&legale, "du")) { decimal(get(&legale, "montant"))? } else { zero2() };
     let conv_du = vrai(get(&conv, "du"));
-    let bas = max_py(m_legal, if conv_du { decimal(cle(&conv, "bas")?)? } else { zero2() });
-    let haut = max_py(m_legal, if conv_du { decimal(cle(&conv, "haut")?)? } else { zero2() });
+    let bas = plus_grand(m_legal, if conv_du { decimal(cle(&conv, "bas")?)? } else { zero2() });
+    let haut = plus_grand(m_legal, if conv_du { decimal(cle(&conv, "haut")?)? } else { zero2() });
 
     let montant;
     if let Some(saisi) = saisi {
@@ -985,7 +985,7 @@ fn indemnite_de_licenciement(
         return Ok(());
     }
     verifier_les_plafonds(ctx, mois, montant, "licenciement", &numero)?;
-    let part_legale = min_py(montant, m_legal);
+    let part_legale = plus_petit(montant, m_legal);
     if part_legale > Decimal::ZERO {
         let mut ligne = json!({"rubrique": "indemnite_licenciement", "quantite": 1, "taux": flot(part_legale)});
         if saisi.is_some() {

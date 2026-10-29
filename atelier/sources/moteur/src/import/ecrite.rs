@@ -249,7 +249,7 @@ pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool
     let octets = std::fs::read(chemin).ok()?;
     let (mut refs, mut rattachees): (HashSet<String>, HashSet<String>) = (HashSet::new(), HashSet::new());
     let mut libelle: Option<String> = None;
-    for ligne in socle::texte::lignes_py(&socle::texte::texte_latin1(&octets)) {
+    for ligne in socle::texte::lignes_du_texte(&socle::texte::texte_latin1(&octets)) {
         let (k, v) = ligne.split_once(',').unwrap_or((&ligne, ""));
         let v = v.trim_matches(socle::texte::blanc).trim_matches('\'');
         if k == "S21.G00.15.001" {
@@ -304,7 +304,7 @@ fn alerte_apres_import(ctx: &Contexte) -> R<Option<String>> {
         for v in d["versements"].as_array().into_iter().flatten() {
             let Some(brut) = v.get("brut").filter(|b| vrai(b)) else { continue };
             let tb = valeur_en_texte(brut);
-            let b = socle::num::decimal_py(&tb).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&tb)))?;
+            let b = socle::num::decimal_lu(&tb).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&tb)))?;
             masse += b;
         }
         let an: String = m.chars().take(4).collect();
@@ -343,7 +343,7 @@ fn cle_engagement(e: &Value) -> R<Option<CleEngagement>> {
         match &v {
             Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
             Value::Bool(b) => Ok(i128::from(*b)),
-            Value::String(s) => socle::num::int_py(s).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
+            Value::String(s) => socle::num::entier_lu(s).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
             autre => Err(erreur("TypeError", socle::fichiers::attendu("un nombre entier", nom_type(autre)))),
         }
     };

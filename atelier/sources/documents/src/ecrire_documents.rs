@@ -15,7 +15,7 @@ use socle::verrou::Verrou;
 use socle::echec::Refus;
 use socle::ecriture::json_indente;
 use socle::fichiers::repr;
-use socle::num::int_py;
+use socle::num::entier_lu;
 use engagement::calcul::Paie;
 
 fn os(chemin: &std::path::Path, e: std::io::Error) -> Echec {
@@ -171,7 +171,7 @@ pub fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&
         return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
     let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
+    let annee = entier_lu(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
     match reserves {
         Some(r) => r.numeroter(ctx, &mut paies, annee)?,
         None => numeroter(ctx, &mut paies, annee)?,

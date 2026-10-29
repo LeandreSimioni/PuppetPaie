@@ -133,7 +133,7 @@ fn marquer(chemin: &Path, aujourdhui: &Jour) -> R<()> {
 
 /// Un chiffre lu dans un nom (`\d`) : ASCII, arabe, devanagari, pleine chasse.
 fn chiffre(c: char) -> Option<u32> {
-    crate::routes::fiches::chiffre_py(c)
+    crate::routes::fiches::chiffre_lu(c)
 }
 
 /// Un mois, une annee, ou tout. Les bornes servent aux pages CoolPaie, qui n'ont qu'une date.
@@ -360,7 +360,7 @@ pub(crate) fn charger(ctx: &Contexte, mois: &str) -> R<(Value, Vec<Paie>)> {
 /// d'un mois a l'autre restent dans `attente`, comme `Contexte._compteurs_en_attente`.
 fn numeroter(ctx: &Contexte, data: &Value, paies: &mut [Paie], attente: &mut HashMap<(String, String), i64>) -> R<()> {
     let mois = data.get("mois").map(valeur_en_texte).ok_or_else(|| avec("KeyError", socle::fichiers::absent("mois")))?;
-    let annee = socle::num::int_py(&mois.chars().take(4).collect::<String>())
+    let annee = socle::num::entier_lu(&mois.chars().take(4).collect::<String>())
         .ok_or_else(|| avec("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&mois.chars().take(4).collect::<String>()))))?;
     documents::ecrire_documents::numeroter_en_attente(ctx, paies, annee as i32, attente)
 }

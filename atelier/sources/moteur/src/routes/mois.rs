@@ -132,7 +132,7 @@ fn fin_du_mois(mois: &str) -> R<String> {
 }
 
 /// `float(v)` d'une valeur de saisie, quand elle est vraie (hors `try`).
-fn flottant_py(v: &Value) -> R<f64> {
+fn flottant_de(v: &Value) -> R<f64> {
     match v {
         Value::Bool(b) => Ok(if *b { 1.0 } else { 0.0 }),
         Value::Number(n) => Ok(n.as_f64().unwrap_or(0.0)),
@@ -180,7 +180,7 @@ pub(crate) fn dernier_taux(ctx: &Contexte) -> R<Option<f64>> {
             }
         }
         if vrai_opt(objet.get("taux_cachet")) {
-            return flottant_py(&objet["taux_cachet"]).map(Some);
+            return flottant_de(&objet["taux_cachet"]).map(Some);
         }
     }
     Ok(None)
@@ -194,7 +194,7 @@ fn taux_d_une_ligne(ctx: &Contexte, l: &Value) -> Option<f64> {
         return None;
     }
     let taux = l.get("taux").filter(|t| vrai(t))?;
-    flottant_py(taux).ok()
+    flottant_de(taux).ok()
 }
 
 
@@ -278,7 +278,7 @@ fn lignes_affichees(ctx: &Contexte, p: &engagement::calcul::Paie, brutes: &[Valu
 }
 
 /// `list(x)` d'une valeur de saisie.
-fn liste_py(v: &Value) -> R<Vec<Value>> {
+fn liste_lue(v: &Value) -> R<Vec<Value>> {
     match v {
         Value::Array(a) => Ok(a.clone()),
         Value::String(s) => Ok(s.chars().map(|c| Value::String(c.to_string())).collect()),
@@ -303,11 +303,11 @@ fn jours_sur_les_lignes(
         let src = brutes.get(i).unwrap_or(&vide);
         let Some(src) = src.as_object() else { return Err(pas_de_get(src)) };
         if vrai_opt(src.get("dates")) {
-            l.insert("dates".into(), Value::Array(liste_py(&src["dates"])?));
+            l.insert("dates".into(), Value::Array(liste_lue(&src["dates"])?));
             porte = true;
         }
         if vrai_opt(src.get("planning")) {
-            l.insert("planning".into(), Value::Array(liste_py(&src["planning"])?));
+            l.insert("planning".into(), Value::Array(liste_lue(&src["planning"])?));
         }
         if vrai_opt(src.get("lieu")) {
             l.insert("lieu".into(), src["lieu"].clone());
@@ -372,7 +372,7 @@ fn defauts_de_la_saisie(ctx: &Contexte, mois: &str, saisie: &Value) -> Value {
                 }
             }
         }
-        objet.get("taux_cachet").filter(|t| vrai(t)).and_then(|t| flottant_py(t).ok())
+        objet.get("taux_cachet").filter(|t| vrai(t)).and_then(|t| flottant_de(t).ok())
     };
     // Un dossier qu'on ne sait pas relire ne propose rien (`null`) : la route rend la saisie telle quelle, et
     // c'est l'apercu qui dira pourquoi.
@@ -895,7 +895,7 @@ fn objet<'a>(v: &'a Value) -> R<&'a Map<String, Value>> {
 }
 
 /// Un entier, de ce qu'un JSON porte.
-fn entier_py(v: &Value) -> R<i64> {
+fn entier_de(v: &Value) -> R<i64> {
     match v {
         Value::Bool(b) => Ok(*b as i64),
         Value::Number(n) => match n.as_i64() {
@@ -1498,7 +1498,7 @@ fn nom_de(ctx: &Contexte, cle: &Value) -> R<String> {
 }
 
 /// Une quantite saisie, en flottant.
-fn quantite_py(v: &Value) -> Result<f64, Echec> {
+fn quantite_de(v: &Value) -> Result<f64, Echec> {
     match v {
         Value::Bool(b) => Ok(*b as i64 as f64),
         Value::Number(n) => Ok(n.as_f64().unwrap_or(0.0)),
@@ -1521,7 +1521,7 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
             continue;
         }
         let q = match l.get("quantite").filter(|x| vrai(x)) {
-            Some(q) => match quantite_py(q) {
+            Some(q) => match quantite_de(q) {
                 Ok(x) => x,
                 Err(e) if e.classe == Some("ValueError") => continue,
                 Err(e) => return Err(e),
@@ -1585,7 +1585,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
                 continue;
             }
             let jours = match e.get("jours").filter(|x| vrai(x)) {
-                Some(j) => entier_py(j)?,
+                Some(j) => entier_de(j)?,
                 None => dates.len() as i64,
             };
             let mut du_mois = Vec::new();
@@ -1639,7 +1639,7 @@ fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<
             }
         }
         let numero = texte_de("numero_objet");
-        let compte = |k: &str| e.get(k).filter(|x| vrai(x)).map_or(Ok(0), entier_py);
+        let compte = |k: &str| e.get(k).filter(|x| vrai(x)).map_or(Ok(0), entier_de);
         let (cachets, heures, jours) = (compte("cachets")?, compte("heures")?, compte("jours")?);
         let numero = json!(numero);
         let spec = spectacles.par_objet.get(&[numero.clone()])?.copied();

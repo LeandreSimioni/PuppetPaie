@@ -899,7 +899,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
 
 /// `a[debut:fin]` sur ce qu'un JSON porte : un texte et une liste se
 /// tranchent, un dictionnaire ne se tranche pas, le reste n'est pas indicable.
-fn tranche_py(v: &Value, a: usize, b: usize) -> R<Value> {
+fn tranche_de(v: &Value, a: usize, b: usize) -> R<Value> {
     match v {
         Value::String(t) => Ok(Value::String(tranche(t, a, b))),
         Value::Array(l) => Ok(Value::Array(l.iter().skip(a).take(b.saturating_sub(a)).cloned().collect())),
@@ -1041,7 +1041,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         if d.get("date_naissance").map_or(false, vrai) && nir.chars().count() == 13 && tous_chiffres(&tranche(&nir, 1, 5)) {
             let (an, mo) = (tranche(&nir, 1, 3), tranche(&nir, 3, 5));
             let nee = d.get("date_naissance").cloned().unwrap_or(Value::Null);
-            let (n24, n57) = (tranche_py(&nee, 2, 4)?, tranche_py(&nee, 5, 7)?);
+            let (n24, n57) = (tranche_de(&nee, 2, 4)?, tranche_de(&nee, 5, 7)?);
             if !eq_py_texte(&n24, &an) || (mo != "00" && !eq_py_texte(&n57, &mo)) {
                 out.push(anomalie(
                     "nir",

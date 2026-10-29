@@ -196,7 +196,7 @@ mod tests {
 
 /// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.
 /// Python n'a pas de plafond : un entier trop long pour `i128` se rend au plus grand.
-pub fn int_py(t: &str) -> Option<i128> {
+pub fn entier_lu(t: &str) -> Option<i128> {
     let t = t.trim_matches(crate::texte::blanc);
     let (neg, reste) = match t.strip_prefix('-') {
         Some(r) => (true, r),
@@ -222,7 +222,7 @@ pub fn q2(d: Decimal) -> String {
 
 /// `Decimal(texte)` : le signe, les chiffres avec un point et des tirets bas entre deux
 /// chiffres, un exposant. `None` quand Python leve `InvalidOperation`.
-pub fn decimal_py(t: &str) -> Option<Decimal> {
+pub fn decimal_lu(t: &str) -> Option<Decimal> {
     let t = t.trim_matches(crate::texte::blanc);
     let c: Vec<char> = t.chars().collect();
     let mut i = 0;

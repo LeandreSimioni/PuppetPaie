@@ -424,7 +424,7 @@ pub(crate) fn vue(ctx: &Contexte, mois: &str) -> R<Option<Value>> {
         let mut somme = socle::num::Decimal::ZERO;
         let mut connus = 0usize;
         for c in &cartes {
-            if let Some(v) = c["montants"].get(k).and_then(Value::as_str).and_then(socle::num::decimal_py) {
+            if let Some(v) = c["montants"].get(k).and_then(Value::as_str).and_then(socle::num::decimal_lu) {
                 somme += v;
                 connus += 1;
             }

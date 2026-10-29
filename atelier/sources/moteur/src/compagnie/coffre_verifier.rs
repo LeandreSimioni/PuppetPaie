@@ -82,7 +82,7 @@ pub fn verifier_secret_avec(ctx: &Contexte, service: Option<&Value>, authentifie
     match authentifier(ctx, nom, mdp) {
         Ok(()) => Ok(json!({"service": nom, "ok": true, "message": "session ouverte"})),
         Err(p) if p.classe == "ErreurApi" => {
-            let premiere = socle::texte::lignes_py(&p.message).first().copied().unwrap_or("").to_string();
+            let premiere = socle::texte::lignes_du_texte(&p.message).first().copied().unwrap_or("").to_string();
             let conseil = if premiere.contains("422") {
                 "422 = parametres invalides : le plus souvent un mot de passe tronque a la saisie, pas un compte fautif. Le reposer."
             } else if premiere.contains("403") {

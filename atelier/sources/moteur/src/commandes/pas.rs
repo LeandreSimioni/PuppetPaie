@@ -118,29 +118,6 @@ pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Ve
     Ok(changements)
 }
 
-/// `str.splitlines()` de Python.
-fn lignes_py(t: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut cur = String::new();
-    let mut c = t.chars().peekable();
-    while let Some(x) = c.next() {
-        match x {
-            '\r' => {
-                if c.peek() == Some(&'\n') {
-                    c.next();
-                }
-                out.push(std::mem::take(&mut cur));
-            }
-            '\n' | '\u{b}' | '\u{c}' | '\u{1c}' | '\u{1d}' | '\u{1e}' | '\u{85}' | '\u{2028}' | '\u{2029}' => out.push(std::mem::take(&mut cur)),
-            x => cur.push(x),
-        }
-    }
-    if !cur.is_empty() {
-        out.push(cur);
-    }
-    out
-}
-
 /// `pas.releves_historiques` : par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
 fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String, Vec<Value>)> {
     let par_nir: std::collections::HashMap<String, String> = ctx
@@ -158,7 +135,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
         let texte: String = octets.iter().map(|b| *b as char).collect();
         let (mut mois, mut nir): (Option<String>, Option<String>) = (None, None);
         let mut cur: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-        for ligne in lignes_py(&texte) {
+        for ligne in socle::texte::lignes_du_texte(&texte) {
             if !ligne.contains(',') {
                 continue;
             }

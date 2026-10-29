@@ -11,7 +11,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-pub(crate) use socle::texte::{blanc as espace, lignes_py as lignes, strip};
+pub(crate) use socle::texte::{blanc as espace, lignes_du_texte as lignes, strip};
 
 /// `ligne.partition(",")` puis la valeur sans espaces ni apostrophes.
 pub fn rubrique_valeur(ligne: &str) -> (&str, &str) {

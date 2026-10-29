@@ -452,7 +452,7 @@ fn fichier_court(source: &Value) -> String {
 /// `int(x)` de Python, ecrit en chiffres : l'entier, le flottant tronque (sans
 /// limite de taille), le booleen, le texte (espaces et signe permis, `_` entre
 /// deux chiffres) ; `None` quand Python leve `TypeError` ou `ValueError`.
-fn entier_py(v: &Value) -> Option<String> {
+fn entier_de(v: &Value) -> Option<String> {
     fn sans_zeros(neg: bool, chiffres: &str) -> String {
         let t = chiffres.trim_start_matches('0');
         if t.is_empty() {
@@ -487,7 +487,7 @@ fn entier_py(v: &Value) -> Option<String> {
                 None => (false, u.strip_prefix('+').unwrap_or(u)),
             };
             let c: Vec<char> = reste.chars().collect();
-            let chiffre = |x: char| crate::routes::fiches::chiffre_py(x);
+            let chiffre = |x: char| crate::routes::fiches::chiffre_lu(x);
             let bien_forme = !c.is_empty()
                 && chiffre(c[0]).is_some()
                 && chiffre(c[c.len() - 1]).is_some()
@@ -513,7 +513,7 @@ pub fn depuis_navigateur(racine: &Path, rapport: &Value) -> Option<Value> {
         tete(&if vrai(g) { texte_de(g) } else { "Erreur".to_string() }, 80)
     };
     let fichier = fichier_court(champ("fichier"));
-    let ligne = entier_py(champ("ligne")).filter(|l| l != "0").unwrap_or_else(|| "?".to_string());
+    let ligne = entier_de(champ("ligne")).filter(|l| l != "0").unwrap_or_else(|| "?".to_string());
     let ou = format!("{}:{}", if fichier.is_empty() { "interface".to_string() } else { fichier }, ligne);
     let mut detail = Map::new();
     detail.insert("face".into(), json!("interface"));

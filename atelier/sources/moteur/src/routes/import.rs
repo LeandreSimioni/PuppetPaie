@@ -300,7 +300,7 @@ pub(crate) fn cles_historique(ctx: &Contexte) -> R<HashSet<CleEngagement>> {
         }
         let mut nombres = [0i128; 3];
         for (i, k) in ["heures", "cachets", "jours"].iter().enumerate() {
-            nombres[i] = entier_py(e.get(*k).unwrap_or(&json!(0)))?;
+            nombres[i] = entier_de(e.get(*k).unwrap_or(&json!(0)))?;
         }
         let texte = |v: Option<&Value>| match v {
             Some(Value::String(t)) => Some(t.clone()),
@@ -590,11 +590,11 @@ pub(crate) fn apercu_lu(
 }
 
 /// `int(x)` d'une valeur JSON : un entier, un reel, un texte qui se lit comme un entier.
-fn entier_py(v: &Value) -> R<i128> {
+fn entier_de(v: &Value) -> R<i128> {
     match v {
         Value::Number(n) => Ok(n.as_i64().map(i128::from).unwrap_or_else(|| n.as_f64().unwrap_or(0.0) as i128)),
         Value::Bool(b) => Ok(i128::from(*b)),
-        Value::String(s) => socle::num::int_py(s)
+        Value::String(s) => socle::num::entier_lu(s)
             .ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(s)))),
         autre => Err(erreur(
             "TypeError",

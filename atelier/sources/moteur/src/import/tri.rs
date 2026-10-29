@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use socle::texte::{lignes_py, texte_latin1};
+use socle::texte::{lignes_du_texte, texte_latin1};
 use socle::echec::R;
 use socle::echec::erreur;
 
@@ -477,7 +477,7 @@ fn lire_pdf(f: &mut Fichier) {
 /// caracteres, la marque `AEMEDIC2`, des dates de debut et de fin AAAAMMJJ aux positions 618 et 627.
 fn lire_aem(f: &mut Fichier, octets: &[u8]) {
     let lignes: Vec<Vec<char>> =
-        lignes_py(&texte_latin1(apres_bom(octets))).into_iter().filter(|l| !l.is_empty()).map(|l| l.chars().collect()).collect();
+        lignes_du_texte(&texte_latin1(apres_bom(octets))).into_iter().filter(|l| !l.is_empty()).map(|l| l.chars().collect()).collect();
     let date = |l: &[char], a: usize| socle::date::lire_aaaammjj(&l[a..a + 8].iter().collect::<String>()).is_some();
     for (i, l) in lignes.iter().enumerate() {
         let marque: String = l.iter().take(AEM_MARQUE.len()).collect();

@@ -22,7 +22,7 @@ use envois::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::num::Decimal;
-use socle::num::{decimal_py, int_py, q2};
+use socle::num::{decimal_lu, entier_lu, q2};
 
 use socle::echec::Echec;
 use crate::routes::depots::{lire_octets, nom_du_chemin, resoudre};
@@ -137,13 +137,13 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                         let avant: f64 = attendu[cle].parse().unwrap_or(0.0);
                         let somme = avant + valeur;
                         let t = format!("{}", if somme == 0.0 { 0.0 } else { somme });
-                        let d = decimal_py(&t).ok_or_else(|| socle::num::illisible(&t))?;
+                        let d = decimal_lu(&t).ok_or_else(|| socle::num::illisible(&t))?;
                         attendu.insert(cle, norm(d));
                     }
                     for cle in ["brut", "jours", "cachets", "heures"] {
                         let fichier = if cle == "brut" { brut.clone() } else { c.mesure_texte(cle) };
-                        let a = decimal_py(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
-                        let f = decimal_py(&fichier).ok_or_else(|| socle::num::illisible(&fichier))?;
+                        let a = decimal_lu(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
+                        let f = decimal_lu(&fichier).ok_or_else(|| socle::num::illisible(&fichier))?;
                         if norm(f) != norm(a) {
                             ecarts.push(format!("{} : la paie dit {}, le fichier {}", cle, attendu[cle], fichier));
                         }
@@ -228,7 +228,7 @@ fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
         let n = if ordre.is_empty() {
             0
         } else {
-            int_py(ordre).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr(ordre))))?
+            entier_lu(ordre).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr(ordre))))?
         };
         n > i128::from(e["dernier_ordre"].as_i64().unwrap_or(0))
     } else {

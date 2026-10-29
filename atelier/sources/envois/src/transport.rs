@@ -134,17 +134,6 @@ fn horodatage(iso: &str) -> Result<String, String> {
     Ok(jour + &heure)
 }
 
-/// `str(x)` d'une valeur JSON, comme `"%s" % x`.
-fn en_texte(v: &Value) -> String {
-    match v {
-        Value::String(s) => s.clone(),
-        Value::Null => "None".into(),
-        Value::Bool(true) => "True".into(),
-        Value::Bool(false) => "False".into(),
-        autre => autre.to_string(),
-    }
-}
-
 /// Vrai pour une valeur presente et non vide (ni `null`, `false`, `0`, `""`, `[]`, `{}`).
 fn vrai(v: Option<&Value>) -> bool {
     match v {
@@ -696,9 +685,9 @@ sur net-entreprises.fr (sans accent).",
     let service = a.service.filter(|s| !s.is_empty());
     let corps = format!(
         "<identifiants><siret>{}</siret><nom>{}</nom><prenom>{}</prenom><motdepasse>{}</motdepasse>{}</identifiants>",
-        en_texte(&decl["siret"]),
-        en_texte(&decl["nom"]),
-        en_texte(&decl["prenom"]),
+        socle::valeur::valeur_en_texte(&decl["siret"]),
+        socle::valeur::valeur_en_texte(&decl["nom"]),
+        socle::valeur::valeur_en_texte(&decl["prenom"]),
         echapper(mdp),
         service.map(|s| format!("<service>{}</service>", s)).unwrap_or_default()
     );
@@ -810,7 +799,7 @@ pub fn archiver(racine: &Path, canal: &str, retour: &Value, contenu: &[u8], ctyp
     };
     let nature = match retour.get("nature") {
         None => "??".to_string(),
-        Some(v) => en_texte(v),
+        Some(v) => socle::valeur::valeur_en_texte(v),
     };
     let flux = chaine("flux")?;
     let flux = if flux.is_empty() { "sansflux".to_string() } else { debut(&flux, 24) };

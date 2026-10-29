@@ -499,7 +499,7 @@ impl<L: Read> LecteurTar<L> {
 use socle::texte::blanc;
 
 /// `str.strip()`.
-pub fn strip_py(t: &str) -> &str {
+pub fn sans_blancs(t: &str) -> &str {
     t.trim_matches(blanc)
 }
 
@@ -569,7 +569,7 @@ fn reference_numerique(n: u64) -> String {
 }
 
 /// `s[:n]` : les `n` premiers caracteres.
-pub fn debut_py(s: &str, n: usize) -> &str {
+pub fn premiers_caracteres(s: &str, n: usize) -> &str {
     match s.char_indices().nth(n) {
         Some((i, _)) => &s[..i],
         None => s,

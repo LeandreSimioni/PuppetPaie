@@ -154,7 +154,7 @@ pub fn usage(spec: &Spec) -> String {
 }
 
 /// `int(texte)` de Python pour un argument : espaces et signe permis.
-fn entier_py(t: &str) -> Option<i64> {
+fn entier_de(t: &str) -> Option<i64> {
     t.trim().parse::<i64>().ok()
 }
 
@@ -236,7 +236,7 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
                     },
                 };
                 match opt.genre {
-                    Genre::Entier if entier_py(&v).is_none() => {
+                    Genre::Entier if entier_de(&v).is_none() => {
                         return Err(Refus(format!("argument --{}: invalid int value: '{}'", opt.nom, v)));
                     }
                     Genre::Choix(c) | Genre::AjoutParmi(c) if !c.contains(&v.as_str()) => {

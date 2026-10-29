@@ -203,7 +203,7 @@ pub fn lire_reponses(texte: &str) -> HashMap<&'static str, String> {
     // est derriere le dernier (« femme ou homme ? (facultatif) : homme » a pour reponse « homme », pas « femme »).
     let avec_deux_points: Vec<(usize, String, &'static str)> =
         QUESTIONS.iter().filter(|(_, lib, _)| lib.contains(':')).map(|(cle, lib, _)| (lib.matches(':').count(), cle_libelle(lib), *cle)).collect();
-    for ligne in socle::texte::lignes_py(texte) {
+    for ligne in socle::texte::lignes_du_texte(texte) {
         let coupes: Vec<usize> = ligne.match_indices(':').map(|(i, _)| i).collect();
         if let Some((n, _, cle)) = avec_deux_points.iter().find(|(n, lib, _)| {
             coupes.get(*n).is_some_and(|i| cle_libelle(ligne[..*i].trim_start_matches(['*', '>', ' '])) == *lib)

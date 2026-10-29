@@ -1356,7 +1356,7 @@ fn completer(ligne: &mut Map<String, Value>, b: &BulletinLu, chemin: &str, page:
         let Some(v) = v else { continue };
         let avant = ligne.get(champ).map(valeur_en_texte).unwrap_or_default();
         let vide = avant.trim().is_empty();
-        let differe = !vide && socle::num::decimal_py(avant.trim()).is_none_or(|a| a != v);
+        let differe = !vide && socle::num::decimal_lu(avant.trim()).is_none_or(|a| a != v);
         if differe {
             ecarts.push((champ, avant, true, v.to_string()));
         }
