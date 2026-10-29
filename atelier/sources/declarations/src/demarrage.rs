@@ -219,6 +219,18 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let (libelle, _) = champ("premiere_embauche");
         out.push(manque("premiere_embauche", libelle, "toute paie", ENTREPRISE, Some("premiere_embauche"), m));
     }
+    // EN ALSACE-MOSELLE, le taux pose a la creation (celui de l'annexe 1) ne vaut pas : l'annexe 3 en fixe d'autres (art. 4
+    // de l'arrete, `atelier/reference/sources/tarification-atmp/`), et le taux se saisit (`droit::bareme::taux_de_l_arrete`).
+    if en_alsace_moselle(ctx) && pose_a_la_creation(ctx) {
+        out.push(manque(
+            "taux_atmp",
+            format!("Le taux AT/MP {}", an),
+            "toute paie",
+            ENTREPRISE,
+            Some("taux_atmp"),
+            "L'établissement est en Alsace-Moselle : ses taux AT/MP sont ceux de l'annexe 3 de l'arrêté de l'année, pas celui posé à la création. Saisissez le code et le taux de votre notification (compte AT/MP sur net-entreprises).".into(),
+        ));
+    }
     if let Err(m) = ctx.bareme(&ctx.aujourdhui) {
         if m.contains("AT/MP") {
             out.push(manque("taux_atmp", format!("Le taux AT/MP {}", an), "toute paie", ENTREPRISE, Some("taux_atmp"), m));
@@ -287,9 +299,32 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     out
 }
 
-/// `pour-demarrer` : `{"manques": [...]}`.
+/// CE QUE LE MOTEUR A POSE DE LUI-MEME A LA CREATION, et qui se dit avec ce qui manque : le code risque et le taux AT/MP de
+/// l'annee (`moteur::routes::atmp::poser_a_la_creation`), tant que personne ne les a changes. Le libelle est celui de l'arrete
+/// de l'annee (`droit::bareme::risques_atmp`, `atelier/reference/sources/tarification-atmp/`).
+pub fn poses(ctx: &Contexte) -> Vec<Value> {
+    let an = ctx.aujourdhui.an;
+    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", an));
+    let Some(t) = socle::fichiers::lire_json(&p).ok().and_then(|v| v.get("taux_atmp").cloned()) else { return Vec::new() };
+    if !t.get("_pose_a_la_creation").is_some_and(vrai) || en_alsace_moselle(ctx) {
+        return Vec::new();
+    }
+    let code = t.get("code_risque").map(socle::date::en_texte).unwrap_or_default();
+    let socle = ctx.socle_livre(an).ok().flatten().unwrap_or(Value::Null);
+    let Some(r) = droit::bareme::risques_atmp(&socle).into_iter().find(|r| r.code == code) else { return Vec::new() };
+    let taux = t.get("valeur").and_then(Value::as_f64).map(|v| format!("{:.2} %", v).replace('.', ",")).unwrap_or_default();
+    vec![json!({
+        "cle": "taux_atmp",
+        "libelle": format!("Accidents du travail : code risque {}, taux {} en {}", r.code_arrete.as_deref().unwrap_or(&r.code), taux, an),
+        "texte": format!("« {} » Le logiciel l'a posé pour vous : c'est le risque du spectacle vivant, et son taux est le même pour toutes les compagnies qui y sont classées. Votre notification AT/MP (compte AT/MP sur net-entreprises) dit le vôtre ; s'il est autre, changez-le dans Configuration › Entreprise, « Avancé ».", r.libelle),
+        "ou": ENTREPRISE,
+        "champ": "taux_atmp",
+    })]
+}
+
+/// `pour-demarrer` : `{"manques": [...], "poses": [...]}`.
 pub fn route(ctx: &Contexte) -> R<Value> {
-    Ok(json!({ "manques": manques(ctx) }))
+    Ok(json!({ "manques": manques(ctx), "poses": poses(ctx) }))
 }
 
 /// Ce qui suit le refus d'un acte quand la compagnie n'a pas fini de demarrer : toute la liste, d'un coup.
@@ -303,4 +338,15 @@ pub fn a_la_suite(ctx: &Contexte) -> Option<String> {
         .map(|x| format!("  - {} : bloque {} ({})", x["libelle"].as_str().unwrap_or(""), x["bloque"].as_str().unwrap_or(""), x["ou"].as_str().unwrap_or("")))
         .collect();
     Some(format!("\n\nPour démarrer, il manque encore :\n{}", lignes.join("\n")))
+}
+
+/// L'etablissement de la fiche est-il en Alsace-Moselle (`droit::bareme::en_alsace_moselle`) ?
+fn en_alsace_moselle(ctx: &Contexte) -> bool {
+    ctx.entreprise.get("code_postal").map(socle::date::en_texte).is_some_and(|c| droit::bareme::en_alsace_moselle(&c))
+}
+
+/// Le taux AT/MP de l'annee est-il encore celui que le moteur a pose a la creation ?
+fn pose_a_la_creation(ctx: &Contexte) -> bool {
+    let p = ctx.racine.join("config").join("baremes").join(format!("{}.json", ctx.aujourdhui.an));
+    socle::fichiers::lire_json(&p).ok().is_some_and(|v| v.pointer("/taux_atmp/_pose_a_la_creation").is_some_and(vrai))
 }

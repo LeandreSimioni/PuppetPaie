@@ -409,6 +409,9 @@ pub fn ajouter_venant(inst: &Path, nom: &str, venue: Venue) -> Result<Compagnie,
         &cfg.join(FICHIER_CREATION),
         &json!({"le": creation.iso(), "venue": venue.mot(), "_quoi": "Le jour ou la compagnie a ete ajoutee a PuppetPaie (« Ajouter une compagnie »). Ce qui tombait avant lui ne la regarde pas (l'horloge d'une fictive ne coche pas une echeance d'avant). `venue` : le chemin du « + », une compagnie neuve ou d'un logiciel precedent (elle commence alors par l'import)."}),
     )?;
+    // Le code risque et le taux AT/MP de l'annee : le risque par defaut du socle et le taux de l'arrete, dits a l'ecran et
+    // modifiables (`routes::atmp`).
+    crate::routes::atmp::poser_a_la_creation(&dossier, i64::from(creation.an)).map_err(|e| e.message)?;
     if !bride {
         return Ok(entree(format!("cie:{}", nom_dossier(&dossier)), &dossier, true));
     }
