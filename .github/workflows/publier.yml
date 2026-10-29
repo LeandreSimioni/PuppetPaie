@@ -53,7 +53,7 @@ on:
         required: false
         default: ""
       calcul:
-        description: "SEULEMENT si la version change un calcul de paie (sinon laisser vide)"
+        description: "La phrase que la compagnie lit si la version change un calcul de paie (sinon laisser vide)"
         required: false
         default: ""
       exigee:

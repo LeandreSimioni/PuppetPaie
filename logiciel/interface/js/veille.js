@@ -128,23 +128,6 @@ function dessinerVeille(v) {
   if (nouvelles.length) morceaux.push(`<b>${nouvelles.map(echapper).join(" · ")}</b>`);
   if (horloge) morceaux.push(horloge);
   if (d.maj_note) morceaux.push(`<b>${echapper(d.maj_note)}</b>`);
-  // La version prete qui attend une DSN : la page laisse passer outre,
-  // en le disant. La bascule reste au prochain demarrage, fenetre fermee.
-  if (d.maj_attend && d.maj_attend.length) {
-    morceaux.push(`<button class="lien" id="maj-malgre-calcul">Appliquer quand
-      même au prochain démarrage</button>`);
-    setTimeout(() => {
-      const b = document.getElementById("maj-malgre-calcul");
-      if (!b) return;
-      b.onclick = async () => {
-        if (!confirm("Cette version change un calcul. Les bulletins déjà produits "
-          + "pour " + d.maj_attend.join(", ") + " pourraient différer de la DSN "
-          + "qui sera déposée. L'appliquer quand même au prochain démarrage ?")) return;
-        try { await api("maj-malgre-calcul"); b.replaceWith("s'appliquera au prochain démarrage"); }
-        catch (e) { alert(e.message); }
-      };
-    }, 0);
-  }
 
   // 3. CE QUI EST À FAIRE : en mots, avec le chemin. Le premier se lit, les
   //    suivants se déplient.

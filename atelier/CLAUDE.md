@@ -336,7 +336,7 @@ approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHu
 **sa forme est un contrat avec toutes les installations posées et ne change plus**), **les fictives** (livrées à part, signées,
 téléchargées seulement quand leur empreinte change ; elles ne remplacent que ce qu'une livraison a posé), **l'installation**
 (`…-installation.zip`, `logiciel/` et `fictives/`, pour Linux, Mac et le dossier portable) ; plus `derniere.json` et
-l'installeur Windows. Une version qui change un calcul attend la DSN des mois saisis avant de s'appliquer (`--malgre-calcul`
-pour passer outre). Jamais pendant que l'interface tourne ; jamais republier un numéro. Le moteur accepte encore la clé de
+l'installeur Windows. Une version s'installe dès qu'elle est prête ; `calcul` ne retient rien, c'est une phrase.
+Jamais pendant que l'interface tourne ; jamais republier un numéro. Le moteur accepte encore la clé de
 signature d'un poste (`maj-cle-privee.bin`, `moteur maj --publier`), mais on ne publie que depuis GitHub. On est en
 développement : ne pas signaler qu'aucune version n'a été publiée depuis longtemps.

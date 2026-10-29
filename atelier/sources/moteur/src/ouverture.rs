@@ -59,12 +59,11 @@ use socle::fichiers::MARQUEUR_COPIE;
 const TRACE: &str = ".ouverture.json";
 
 /// Les champs de la trace qui sont au lot J (la mise a jour, les sources) : l'ouverture Rust les garde de la trace precedente.
-/// Ordre de la trace du Python : `sources`, `maj`, `maj_note`, `maj_attend`, `maj_exigee`, `maj_etat`, `sources_etat`.
+/// Leur ordre dans la trace : `sources`, `maj`, `maj_note`, `maj_exigee`, `maj_etat`, `sources_etat`.
 const LOT_J: &[(&str, fn() -> Value)] = &[
     ("sources", || json!("")),
     ("maj", || json!("")),
     ("maj_note", || json!("")),
-    ("maj_attend", || json!([])),
     ("maj_exigee", || json!("")),
     ("maj_etat", || json!({})),
     ("sources_etat", || json!({})),
