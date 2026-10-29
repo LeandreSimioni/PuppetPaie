@@ -1042,7 +1042,7 @@ fn trier_et_lire(ctx: &Contexte, dossier: &Path, travail: &Path) -> R<DossierLu>
     if non_repris_n > 0 {
         if let Some(Value::Array(a)) = reponse.get_mut("avertissements") {
             a.push(json!(format!(
-                "{} fichier(s) du dossier ne sont pas repris : le compte rendu (`tri`) dit pourquoi, fichier par fichier.",
+                "{} fichier(s) du dossier ne sont pas repris : le tableau du dossier dit pourquoi, fichier par fichier.",
                 non_repris_n
             )));
         }

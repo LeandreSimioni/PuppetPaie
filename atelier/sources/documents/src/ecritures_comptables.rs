@@ -158,7 +158,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
         if !hors_brut.is_zero() {
             ajouter(&mut frais_par_spectacle, titre.clone(), hors_brut);
         }
-        // Le net paye est le net a payer moins l'impot retenu (le « MONTANT NET A PAYER » du bulletin) ; l'impot va
+        // Le net paye est le net a payer moins l'impot retenu (le « MONTANT NET À PAYER » du bulletin) ; l'impot va
         // a l'Etat.
         let prelevement = eur2(pas.as_ref().map_or(zero, |v| v.prelevement));
         pas_du_mois += prelevement;

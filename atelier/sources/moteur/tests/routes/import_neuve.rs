@@ -363,6 +363,13 @@ fn le_mois_saisi_puis_importe_declare_la_saisie_dans_la_dsn_suivante() {
     assert_eq!(paie["declare_par"], json!("DSN"), "{:?}", paie);
     assert_eq!(paie["bulletin"]["numero"], json!("1/2026"), "le bulletin ne complete pas la paie de la DSN : {:?}", paie);
 
+    // La page Paie et la page du mois disent la DSN de l'ancien logiciel avec une seule phrase, celle du moteur.
+    let etat = reussi(&route("etat-du-mois", json!({"mois": "2026-11"}))).clone();
+    let dsn = etat["etapes"].as_array().unwrap().iter().find(|e| e["cle"] == json!("dsn")).expect("l'étape DSN");
+    let case = dsn["groupes"][0]["phrase"].clone();
+    let avis = reussi(&route("saisie", json!({"mois": "2026-11"})))["dsn_deposee"].clone();
+    assert!(case.is_string() && avis["phrase"] == case && avis["confirmer"] == json!(false), "{} / {}", case, avis);
+
     reussi(&route("valider-engagement", json!({"mois": "2026-11", "salarie": "FULLER", "debut": "2026-11-27", "valide": true})));
     assert_eq!(route("dsn-a-deposer", json!({"mois": "2026-11"}))["ok"], json!(false));
     assert!(!racine.join("sorties/2026-11/DSN_Novembre2026.dsn").exists(), "la DSN de l'ancien logiciel s'est refaite");
