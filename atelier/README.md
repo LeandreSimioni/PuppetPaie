@@ -1314,11 +1314,11 @@ moteur filet suivies               les embauches sans trace de DPAE
 3. **L'export compta** : le journal des écritures de paie de l'année, une
    écriture par mois, équilibrée au centime — salaires bruts et charges
    patronales au débit, organismes (part patronale + salariale), net à payer
-   et prélèvement à la source au crédit. Tout part des bulletins recalculés,
+   et prélèvement à la source au crédit. Tout part des paies écrites des engagements validés,
    pas de la DSN. Un CSV (`;`, virgule décimale, colonnes journal / date /
    compte / libellé / débit / crédit / analytique) que tout logiciel de
-   comptabilité importe ; un format propre à un logiciel s'ajoutera le jour
-   où une compagnie le demande. Le plan comptable est une donnée
+   comptabilité importe ; les formats propres à des logiciels sont ceux de l'état `ecritures-comptables`
+   (plus bas). Le plan comptable est une donnée
    (`logiciel/donnees/plan-comptable-base.json`, à faire valider par le comptable) ;
    une compagnie pose le sien dans `config/plan-comptable.json`, clé par clé.
 
@@ -1395,14 +1395,15 @@ Un export **lit** : il ne calcule aucune paie, ne dépose rien, ne consomme
 aucun numéro. Le numéro de contrat est celui que l'engagement porte depuis sa
 validation.
 
-### Tous les états (23/09/2026)
+### Tous les états
 
 `moteur exporter` sans argument les liste, rangés par famille comme
 dans le menu de l'onglet. Chacun se demande pour un mois, une année ou toutes
 les années (sauf mention), et s'écrit en **CSV, texte tabulé, XLSX, PDF, HTML
 ou JSON** — la machinerie commune `documents/src/tableaux_export.rs`, que chaque état suit
 sans rien avoir à dire. Chaque fichier porte en pied ses avertissements et
-ses **sources** (l'article, la norme ou le format qui le fonde).
+ses **sources** (l'article, la norme ou le format qui le fonde). Dans la colonne « lit », « saisie » désigne les
+paies écrites des engagements validés (`documents/src/etats_paie.rs`, en tête).
 
 | famille | état | ce qu'il sort | lit |
 |---|---|---|---|
@@ -1417,7 +1418,7 @@ ses **sources** (l'article, la norme ou le format qui le fonde).
 | | `bordereau-urssaf` | CTP, assiettes, total dû (blocs 22 et 23) | DSN déposée |
 | | `reduction-generale` | coefficient, montant, parts Urssaf / chômage / retraite | saisie |
 | | `assiettes` | les assiettes de chaque bulletin et le plafond | saisie |
-| | `regularisation-casc-svp` | la régularisation CASC-SVP (§74) | DSN déposée |
+| | `regularisation-casc-svp` | la régularisation CASC-SVP | DSN déposée |
 | | `fcap-svp` | le FCAP-SVP de la 3090 : 0,1 % de la tranche A de l'année, plancher 80 €, plafond 300 €, payé hors DSN (année ou toutes) | DSN déposée |
 | comptabilité | `ecritures-comptables` | le journal de paie, une pièce par mois ; en plus `--format fec`, `ximport`, `oxygene`, `sage`, `quadra`, `ebp`, `pennylane`, ou `--logiciel` | saisie |
 | | `grand-livre-paie` | les écritures par compte, un solde par compte | saisie |
@@ -1441,8 +1442,7 @@ moteur exporter versements-organismes --annee 2025 --format xlsx
 
 **Ce qui lit « saisie » écarte les mois d'avant PuppetPaie, et le dit** :
 la DSN ne déclare pas la répartition des cotisations, rien n'est
-reconstitué. **Ce qui lit « DSN déposée » lit le fichier parti** (règle du
-§74.2) : un mois sans DSN réelle acceptée n'y est pas, et un état sans aucune
+reconstitué. **Ce qui lit « DSN déposée » lit le fichier parti** (règle 4) : un mois sans DSN réelle acceptée n'y est pas, et un état sans aucune
 DSN refuse.
 
 **Les formats de comptabilité** (`documents/src/etats_compta.rs`) :
@@ -1511,35 +1511,33 @@ Les écritures sont **les mêmes** que l'export compta de la clôture
 (`ecritures_du_mois`, même plan comptable, même refus d'un compte deviné) ;
 seuls la période et le format changent.
 
-### Le dossier d'un salarié (23/09/2026)
+### Le dossier d'un salarié
 
 Tous les documents d'un salarié — ou de chacun —, sur un mois, une année ou
 toute la période, en une fois. Dans l'onglet **Exports**, « Le dossier d'un
 salarié » : on coche ce qu'on sort.
 
 ```
-moteur dossier FAVART --toutes-les-annees        # un ZIP
+moteur dossier Celi --toutes-les-annees        # un ZIP
 moteur dossier --annee 2025 --seulement bulletins  # un PDF par salarié
 moteur dossier --mois 2026-08 --ensemble         # tous dans un fichier
-moteur dossier FAVART --annee 2026 --envoyer     # et l'envoyer (mot de passe)
+moteur dossier Celi --annee 2026 --envoyer     # et l'envoyer (mot de passe)
 moteur dossier --toutes-les-annees --apercu      # compter les pages
 ```
 
 | catégorie | d'où |
 |---|---|
-| `bulletins` | **les pages mêmes** du fichier archivé du mois (`Bulletins_<Mois>.pdf`), celles du salarié seulement : rien n'est recalculé ni réimprimé (règle 4) ; une page introuvable refuse ; CoolPaie tels quels |
-| `contrats` | réédités aux numéros de l'archive (ou figés dans la saisie) ; CoolPaie tels quels |
+| `bulletins` | **les pages mêmes** du fichier archivé du mois (`Bulletins_<Mois>.pdf`), celles du salarié seulement : rien n'est recalculé ni réimprimé (règle 4) ; une page introuvable refuse |
+| `contrats` | réédités aux numéros de l'archive |
 | `contrats-signes` | tels quels, et dans le ZIP les courriels de signature (`Signature_*.eml`) |
 | `certificats-cs` | les pages mêmes de `CertificatsCS_<Mois>.pdf`, à ses N° CE (lus à partir du récapitulatif du mois) ; sans récapitulatif ou sans archive, aucun certificat, et le dossier le dit |
-| `attestations` | l'AER de France Travail et les AEM de CoolPaie, telles quelles |
+| `attestations` | l'AER de France Travail, telle quelle |
 | `documents-fin` | certificat de travail et reçu pour solde de tout compte, tels quels |
 | `recapitulatif` | ses heures et cachets, et son récapitulatif annuel |
 
 Une catégorie : un PDF. Plusieurs : un ZIP d'un PDF par catégorie. Les
 fichiers vont dans `exports/dossiers/`. **Aucun numéro n'est consommé** ; une
-page rééditée le dit en pied (« Réédité par PuppetPaie le … »). Les pages
-CoolPaie sont rattachées au salarié par le NIR, ou par le nom **et** le
-prénom, et datées par leur période. L'envoi passe par la boîte de la
+page rééditée le dit en pied (« Réédité par PuppetPaie le … »). L'envoi passe par la boîte de la
 compagnie, avec le mot de passe du logiciel ; un dossier `--ensemble` ne
 s'envoie à personne.
 
