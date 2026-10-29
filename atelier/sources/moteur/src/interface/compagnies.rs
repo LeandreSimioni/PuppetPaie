@@ -1,4 +1,4 @@
-//! Les compagnies du poste, telles que l'accueil les propose (`moteur/compagnies.py`, lot J3b).
+//! Les compagnies du poste, telles que l'accueil les propose.
 //!
 //! A cote du code : `prive/` (la vraie), `compagnies/*` (les autres vraies), `fictives/*` (les compagnies fictives, livrees
 //! avec le logiciel). La copie de developpement (`prive-dev/`) n'est jamais proposee. Bride (`bridage.rs`), l'accueil ne
@@ -17,7 +17,7 @@ const DOSSIER_ORIGINE: &str = ".origine";
 const PROPRES_AU_POSTE: [&str; 4] =
     ["config/diagnostic.json", "journal/signalements.json", "journal/incidents.json", "journal/interface.log"];
 
-/// Le dossier du logiciel (`logiciel/`) : le `CODE` du Python.
+/// Le dossier du logiciel (`logiciel/`).
 pub fn logiciel() -> PathBuf {
     // Le dossier du code peut porter un `..` (`moteur/../donnees`) : on le resout avant d'en prendre le parent.
     let code = dossier_du_code();
@@ -37,7 +37,7 @@ pub fn base() -> PathBuf {
     logiciel().parent().map(Path::to_path_buf).unwrap_or_default()
 }
 
-/// L'INSTALLATION DU REJEU (#236) : un rejeu de scenario monte sa propre installation, bridee en toutes lettres
+/// L'INSTALLATION DU REJEU : un rejeu de scenario monte sa propre installation, bridee en toutes lettres
 /// (`.edition.json`), et le moteur n'en lit pas d'autre -- ni le `.edition.json` du depot, ni le paquet soude d'a cote du
 /// code. Pose et retiree par `scenario::rejouer` seulement ; un poste n'en a jamais.
 static BASE_DU_REJEU: std::sync::RwLock<Option<PathBuf>> = std::sync::RwLock::new(None);
@@ -70,29 +70,24 @@ pub fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR).is_file()
 }
 
-/// Le dossier des COMPAGNIES FICTIVES, a cote du logiciel (lot U1 ; Leandre, 14/10/2026 : « On pourrait renommer les
-/// compagnies demo en fictives »). Livrees avec le logiciel, rien n'en part : leurs envois sont joues.
+/// Le dossier des COMPAGNIES FICTIVES, a cote du logiciel, livrees
+/// avec le logiciel, rien n'en part : leurs envois sont joues.
 pub const DOSSIER_FICTIVES: &str = "fictives";
-/// Le nom de ce dossier avant le lot U1. Une installation deja posee le garde (la mise a jour ne porte que `logiciel/`) :
-/// `ranger_les_fictives` le renomme une fois, au lancement.
-const ANCIEN_DOSSIER_FICTIVES: &str = "demo";
-/// Le marqueur d'une compagnie fictive : `COPIE-DE-DEVELOPPEMENT.json`, dont `copie_de` commence par ceci. Celles d'avant le
-/// lot U1 disent `compagnie de demonstration …` : elles se lisent encore.
+/// Le marqueur d'une compagnie fictive : `COPIE-DE-DEVELOPPEMENT.json`, dont `copie_de` commence par ceci.
 pub const MARQUE_FICTIVE: &str = "compagnie fictive";
-const ANCIENNE_MARQUE_FICTIVE: &str = "compagnie de demonstration";
 
 /// Une COMPAGNIE FICTIVE : son marqueur le dit (ses envois sont joues, rien n'en part).
 pub fn est_fictive(racine: &Path) -> bool {
     lire(&racine.join(MARQUEUR))
         .and_then(|i| i.get("copie_de").filter(|v| socle::fichiers::vrai(v)).map(socle::valeur::valeur_en_texte))
-        .is_some_and(|c| c.starts_with(MARQUE_FICTIVE) || c.starts_with(ANCIENNE_MARQUE_FICTIVE))
+        .is_some_and(|c| c.starts_with(MARQUE_FICTIVE))
 }
 
-/// LA FICTIVE AJOUTEE (ticket #236, Leandre 22/10/2026) : la compagnie que le « + » d'un logiciel bride ajoute. C'est une
+/// LA FICTIVE AJOUTEE : la compagnie que le « + » d'un logiciel bride ajoute. C'est une
 /// fictive (`est_fictive` : elle vit sous `fictives/`, s'ouvre sans mot de passe, ne retient aucune version, rien ne part
 /// d'elle a l'editeur qu'un incident ou un message), mais elle porte des donnees qu'on y a mises, pas celles d'une
 /// fictive livree : ses envois NE SONT PAS JOUES, ILS SONT REFUSES (`bridage::branchement`), elle n'a pas de photo
-/// d'origine ni de remise a zero, et la livraison des fictives (`maj.rs`) ne la touche jamais. SA MARQUE : la cle
+/// d'origine ni de remise a zero, et la livraison des fictives (`compagnie::maj`) ne la touche jamais. SA MARQUE : la cle
 /// `ajoutee` de son marqueur (`COPIE-DE-DEVELOPPEMENT.json`, que `ajouter` ecrit) -- lue ICI et nulle part ailleurs.
 pub const CLE_AJOUTEE: &str = "ajoutee";
 
@@ -110,35 +105,10 @@ pub fn est_fictive_livree(racine: &Path) -> bool {
     est_fictive(racine) && !est_ajoutee(racine)
 }
 
-/// Le prefixe du dossier d'une fictive ajoutee. Les fictives livrees s'appellent `fictive-…` (`ranger_les_fictives`, le
+/// Le prefixe du dossier d'une fictive ajoutee. Les fictives livrees s'appellent `fictive-…` (le
 /// dossier `fictives/` du depot) : une fictive ajoutee ne prend jamais le nom d'une livree, et la livraison, qui ne pose
 /// pas une fictive dont le nom est pris (`maj::poser_les_fictives_pretes`), n'en est jamais empechee.
 pub const PREFIXE_AJOUTEE: &str = "ajoutee-";
-
-/// AU LANCEMENT, une fois : le dossier `demo/` d'une installation posee avant le lot U1 devient `fictives/`, et chaque
-/// `demo-<nom>` (et sa photo d'origine) `fictive-<nom>`. Rien ne bouge si `fictives/` existe deja (une reinstallation l'a
-/// pose : l'ancien reste ou il est). Ce qui ne se renomme pas (un fichier ouvert ailleurs) se retente au lancement
-/// suivant ; rien n'est perdu. Rend ce qui s'est passe, ou `None` s'il n'y avait rien a faire.
-pub fn ranger_les_fictives(inst: &Path) -> Option<String> {
-    let (ancien, neuf) = (inst.join(ANCIEN_DOSSIER_FICTIVES), inst.join(DOSSIER_FICTIVES));
-    if !ancien.is_dir() || neuf.exists() {
-        return None;
-    }
-    let renommer_dedans = |d: &Path| {
-        for e in std::fs::read_dir(d).into_iter().flatten().flatten() {
-            let nom = e.file_name().to_string_lossy().into_owned();
-            if let Some(reste) = nom.strip_prefix("demo-") {
-                let _ = std::fs::rename(e.path(), d.join(format!("fictive-{}", reste)));
-            }
-        }
-    };
-    renommer_dedans(&ancien);
-    renommer_dedans(&ancien.join(DOSSIER_ORIGINE));
-    Some(match std::fs::rename(&ancien, &neuf) {
-        Ok(()) => format!("Compagnies fictives rangees dans {}.", neuf.display()),
-        Err(e) => format!("Compagnies fictives non rangees ({} -> {}) : {}", ancien.display(), neuf.display(), e),
-    })
-}
 
 /// La fiche entreprise telle qu'elle vaut aujourd'hui ; vide si elle ne se lit pas (la tuile dit alors le dossier, et
 /// la compagnie, ouverte, dit pourquoi).
@@ -263,7 +233,7 @@ pub fn liste() -> Vec<Compagnie> {
 /// l'ordre des tuiles. L'administrateur (`administrateur.rs`) lit celles de l'installation qu'on lui donne.
 pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     let mut out = Vec::new();
-    if !crate::bridage::est_bride_de(b) {
+    if !crate::compagnie::bridage::est_bride_de(b) {
         let reel = if b == base() { dossier_reel() } else { b.join("prive") };
         if reel.join("config").is_dir() {
             out.push(entree("reelle".into(), &reel, true));
@@ -278,7 +248,7 @@ pub fn liste_de(b: &Path) -> Vec<Compagnie> {
     out
 }
 
-/// LES COMPAGNIES QUE LA FENETRE TIENT A JOUR EN FOND des son lancement (ticket #244, `Fenetre::prechauffer`) : les
+/// LES COMPAGNIES QUE LA FENETRE TIENT A JOUR EN FOND des son lancement (`Fenetre::prechauffer`) : les
 /// vraies compagnies de l'installation `b` (pas les fictives), la derniere ouverte d'abord -- la date de son journal de
 /// la fenetre (`journal/interface.log`), que chaque ouverture recommence ; jamais ouverte, a la fin.
 pub fn a_tenir_a_jour(b: &Path) -> Vec<PathBuf> {
@@ -345,7 +315,7 @@ pub(crate) fn nom_de_dossier(nom: &str) -> String {
     }
 }
 
-/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE (#236) : `config/creation.json`, ecrit par `ajouter_dans` et nulle part
+/// LE JOUR OU UNE COMPAGNIE A ETE AJOUTEE : `config/creation.json`, ecrit par `ajouter_dans` et nulle part
 /// ailleurs ; il suit la compagnie quand elle change de dossier. Une compagnie d'avant (une fictive livree, la vraie
 /// compagnie d'une installation) n'en a pas : `None`.
 pub const FICHIER_CREATION: &str = "creation.json";
@@ -356,7 +326,7 @@ pub fn cree_le(racine: &Path) -> Option<socle::date::Jour> {
 
 /// « Ajouter une compagnie » : le dossier et les trois fiches sans lesquelles le contexte ne s'ouvre pas.
 ///
-/// LOGICIEL BRIDE (ticket #236) : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
+/// LOGICIEL BRIDE : la compagnie ajoutee est une FICTIVE AJOUTEE (`est_ajoutee`) -- sous `fictives/`, dans
 /// un dossier `ajoutee-…`, avec le marqueur d'une fictive et sa marque. Debloque : une compagnie reelle, sous `compagnies/`.
 pub fn ajouter(nom: &str) -> Result<Compagnie, String> {
     ajouter_dans(&base(), nom)
@@ -368,7 +338,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     if nom.chars().count() < 2 {
         return Err("Le nom de la compagnie, s'il vous plait.".into());
     }
-    let bride = crate::bridage::est_bride_de(inst);
+    let bride = crate::compagnie::bridage::est_bride_de(inst);
     let (parent, racine_nom) = if bride {
         (inst.join(DOSSIER_FICTIVES), format!("{}{}", PREFIXE_AJOUTEE, nom_de_dossier(&nom)))
     } else {
@@ -384,7 +354,7 @@ pub fn ajouter_dans(inst: &Path, nom: &str) -> Result<Compagnie, String> {
     std::fs::create_dir_all(&cfg).map_err(|e| e.to_string())?;
     // La raison sociale se deduit du nom comme a chaque enregistrement de la fiche (`crate::routes::fiches::deriver` : majuscules
     // SANS ACCENTS, la forme declaree). `to_uppercase` gardait les accents : la fiche neuve naissait avec une erreur de
-    // configuration, et le premier enregistrement datait la correction comme un changement declare (#236).
+    // configuration, et le premier enregistrement datait la correction comme un changement declare.
     let mut ent = serde_json::Map::new();
     ent.insert("nom_affichage".into(), Value::String(nom.clone()));
     crate::routes::fiches::deriver("entreprise", &mut ent, false).map_err(|e| e.message)?;
@@ -494,50 +464,4 @@ pub fn texte_copie(racine: &Path) -> String {
         return "compagnie fictive &mdash; les envois sont simul&eacute;s".into();
     }
     "copie de test &mdash; rien ne part en r&eacute;el".into()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn dossier(nom: &str) -> PathBuf {
-        let d = std::env::temp_dir().join(format!("puppetpaie-compagnies-{}-{}", nom, std::process::id()));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d
-    }
-
-    /// Une installation posee avant le lot U1 : `demo/demo-<nom>` (et sa photo d'origine) devient `fictives/fictive-<nom>`,
-    /// une fois ; ensuite il n'y a plus rien a faire.
-    #[test]
-    fn l_ancien_dossier_des_fictives_se_range_une_fois() {
-        let inst = dossier("ranger");
-        std::fs::create_dir_all(inst.join("demo/demo-3090-petite/config")).unwrap();
-        std::fs::create_dir_all(inst.join("demo/.origine/demo-3090-petite/config")).unwrap();
-        std::fs::write(inst.join("demo/demo-3090-petite/config/entreprise.json"), "{}").unwrap();
-        assert!(ranger_les_fictives(&inst).is_some_and(|t| t.starts_with("Compagnies fictives rangees")));
-        assert!(!inst.join("demo").exists());
-        assert!(inst.join("fictives/fictive-3090-petite/config/entreprise.json").is_file());
-        assert!(inst.join("fictives/.origine/fictive-3090-petite/config").is_dir(), "la photo d'origine suit");
-        assert_eq!(ranger_les_fictives(&inst), None, "une seule fois");
-        // `fictives/` deja la (une reinstallation) : l'ancien reste ou il est.
-        std::fs::create_dir_all(inst.join("demo/demo-x")).unwrap();
-        assert_eq!(ranger_les_fictives(&inst), None);
-        assert!(inst.join("demo/demo-x").is_dir());
-        let _ = std::fs::remove_dir_all(&inst);
-    }
-
-    /// Le marqueur d'une fictive : le neuf, et celui d'avant le lot U1 ; une copie de developpement n'en est pas une.
-    #[test]
-    fn une_fictive_se_lit_a_son_marqueur_neuf_ou_ancien() {
-        let r = dossier("marqueur");
-        let poser = |t: &str| std::fs::write(r.join(MARQUEUR), format!("{{\"copie_de\": \"{}\"}}", t)).unwrap();
-        poser("compagnie fictive fictive-3090-petite");
-        assert!(est_fictive(&r) && est_copie(&r));
-        poser("compagnie de demonstration demo-3090-petite");
-        assert!(est_fictive(&r), "le marqueur d'avant le lot U1");
-        poser("prive");
-        assert!(!est_fictive(&r) && est_copie(&r));
-        let _ = std::fs::remove_dir_all(&r);
-    }
 }

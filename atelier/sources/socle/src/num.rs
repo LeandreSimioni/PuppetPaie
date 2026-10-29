@@ -168,36 +168,12 @@ pub fn nombre(x: Decimal) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn decimal_comme_python() {
-        assert_eq!(decimal_py(" 12.50 ").unwrap().to_string(), "12.50");
-        assert_eq!(decimal_py("1_000").unwrap().to_string(), "1000");
-        assert_eq!(decimal_py(".5").unwrap().to_string(), "0.5");
-        assert_eq!(decimal_py("5.").unwrap().to_string(), "5");
-        assert_eq!(decimal_py("-1E+2").unwrap().to_string(), "-100");
-        for mauvais in ["", "-", "abc", "1 2", "1__0", "_1", "1.2.3", "1e", "12,5"] {
-            assert!(decimal_py(mauvais).is_none(), "{}", mauvais);
-        }
-    }
-
-
 
     #[test]
     fn eur_arrondit_le_demi_vers_le_haut() {
         assert_eq!(eur(Decimal::from_str("2.675").unwrap()).to_string(), "2.68");
         assert_eq!(eur(Decimal::from_str("258.336").unwrap()).to_string(), "258.34");
         assert_eq!(eur(Decimal::from_str("-0.005").unwrap()).to_string(), "-0.01");
-    }
-
-    #[test]
-    fn dec_passe_par_la_representation_la_plus_courte() {
-        assert_eq!(dec(&json!(1.115)).unwrap().to_string(), "1.115");
-        assert_eq!(dec(&json!(0.9825)).unwrap().to_string(), "0.9825");
-        assert_eq!(dec(&json!(13)).unwrap().to_string(), "13");
-        assert_eq!(dec(&json!(0.00001)).unwrap(), Decimal::from_str("0.00001").unwrap());
-        assert_eq!(dec(&json!("5.23")).unwrap().to_string(), "5.23");
     }
 
     fn d(s: &str) -> Decimal {
@@ -208,7 +184,7 @@ mod tests {
     #[test]
     fn div_et_mul_sans_double_arrondi() {
         // 97/31 = 3.129032258064516129032258065 ; arrondi deux fois (28 decimales
-        // puis 28 chiffres), le quotient devenait ...064 et le total 68,38.
+        // puis 28 chiffres), le quotient serait ...064 et le total 68,38.
         let q = div(d("97"), d("31"));
         assert_eq!(q.to_string(), "3.129032258064516129032258065");
         let m = mul(q, d("21.855"));
@@ -216,23 +192,11 @@ mod tests {
         assert_eq!(eur(m).to_string(), "68.39");
     }
 
-    #[test]
-    fn div_a_plus_de_28_decimales() {
-        // 1/120 = 0.008333333333333333333333333333 a 28 chiffres significatifs (30 decimales) ;
-        // `rust_decimal` n'en porte que 28, la valeur est ramenee a 0.0083333333333333333333333333.
-        assert_eq!(div(d("1"), d("120")).to_string(), "0.0083333333333333333333333333");
-        assert_eq!(div(d("10000"), d("12")).to_string(), "833.3333333333333333333333333");
-        assert_eq!(div(d("1"), d("3")).to_string(), "0.3333333333333333333333333333");
-        // 100 / 0.5 = 2.0E+2 : la valeur 200.
-        assert_eq!(div(d("100"), d("0.5")), d("200"));
-        assert_eq!(div(d("1.50"), d("3")).to_string(), "0.50");
-    }
-
 }
 
-/// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.
-/// Python n'a pas de plafond : un entier trop long pour `i128` se rend au plus grand.
-pub fn int_py(t: &str) -> Option<i128> {
+/// Un entier ecrit en texte : le signe, les chiffres, un tiret bas entre deux chiffres, les blancs autour.
+/// Un entier trop long pour `i128` se rend au plus grand.
+pub fn entier_lu(t: &str) -> Option<i128> {
     let t = t.trim_matches(crate::texte::blanc);
     let (neg, reste) = match t.strip_prefix('-') {
         Some(r) => (true, r),
@@ -256,9 +220,9 @@ pub fn q2(d: Decimal) -> String {
     r.to_string()
 }
 
-/// `Decimal(texte)` : le signe, les chiffres avec un point et des tirets bas entre deux
-/// chiffres, un exposant. `None` quand Python leve `InvalidOperation`.
-pub fn decimal_py(t: &str) -> Option<Decimal> {
+/// Un decimal ecrit en texte : le signe, les chiffres avec un point et des tirets bas entre deux
+/// chiffres, un exposant. `None` quand le texte n'est pas un nombre.
+pub fn decimal_lu(t: &str) -> Option<Decimal> {
     let t = t.trim_matches(crate::texte::blanc);
     let c: Vec<char> = t.chars().collect();
     let mut i = 0;

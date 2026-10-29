@@ -28,7 +28,7 @@ use crate::transport::{envoyer, Requete};
 pub const DRIVE_FICHIERS: &str = "https://www.googleapis.com/drive/v3/files";
 /// `google.DRIVE_TELEVERSEMENT`.
 pub const DRIVE_TELEVERSEMENT: &str = "https://www.googleapis.com/upload/drive/v3/files";
-/// `google.DOSSIER_DRIVE` : le type d'un dossier chez Drive.
+/// Le type d'un dossier chez Drive.
 pub const DOSSIER_DRIVE: &str = "application/vnd.google-apps.folder";
 
 /// `urlopen(..., timeout=120)` des appels Drive.
@@ -182,7 +182,7 @@ pub struct Autorisation {
     pub compte: Option<String>,
 }
 
-/// `google.Client` : le jeton d'acces ne vit qu'en memoire.
+/// Le jeton d'acces ne vit qu'en memoire.
 pub struct Client {
     identifiants: Option<(Value, Value)>,
     jeton: Result<Value, String>,
@@ -267,8 +267,8 @@ impl Client {
     /// `Client.appel` : GET, ou POST si des donnees sont fournies, ou `methode`. Rend le JSON de la
     /// reponse (`{}` si elle est vide).
     ///
-    /// DEFAUT 1 DU PYTHON, CORRIGE : le jeton d'acces se gardait pour la vie du client, donc une sauvegarde de plus
-    /// d'une heure (3600 s) recevait des 401 pour chaque fichier restant. Ici, un 401 fait oublier le jeton, en demande
+    /// UN JETON D'ACCES NE VIT QU'UNE HEURE (3600 s) : garde pour la vie du client, une sauvegarde de plus
+    /// d'une heure recevrait des 401 pour chaque fichier restant. Un 401 fait donc oublier le jeton, en demande
     /// un autre (rafraichissement) et recommence UNE fois ; un second 401 est rendu comme une erreur ordinaire. Un
     /// client sans identifiants (`pour_essai`) ne peut pas rafraichir : le 401 est rendu tel quel.
     pub fn appel(&mut self, url: &str, donnees: Option<&[u8]>, content_type: Option<&str>, methode: Option<&str>) -> Result<Value, ErreurGoogle> {
@@ -359,7 +359,7 @@ impl Client {
     }
 }
 
-/// `nom.replace("'", "\\'")` : l'apostrophe se protege dans la requete `q`.
+/// L'apostrophe se protege dans la requete `q`.
 ///
 /// La barre oblique inverse se protege AUSSI (`\\`), comme la syntaxe de `q` l'exige : sans cela, un nom
 /// qui en porte une donnerait une requete que Drive refuse.
@@ -367,7 +367,7 @@ fn echapper(nom: &str) -> String {
     nom.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
-/// `x.get(...)` : `x` doit etre un objet JSON (`AttributeError` sinon).
+/// `x` doit etre un objet JSON (`AttributeError` sinon).
 fn en_dict(v: &Value) -> Result<&serde_json::Map<String, Value>, ErreurGoogle> {
     match v {
         Value::Object(o) => Ok(o),

@@ -25,7 +25,7 @@ use documents::tableaux_export::{col_m, col_n, col_t, col_x, libelle_mois, monta
 // ------------------------------------------------------------------ outils
 
 /// `min(a, b)` : le premier des deux quand ils sont egaux.
-fn py_min(a: Decimal, b: Decimal) -> Decimal {
+fn plus_petit(a: Decimal, b: Decimal) -> Decimal {
     if b < a {
         b
     } else {
@@ -34,7 +34,7 @@ fn py_min(a: Decimal, b: Decimal) -> Decimal {
 }
 
 /// `max(a, b)` : le premier des deux quand ils sont egaux.
-fn py_max(a: Decimal, b: Decimal) -> Decimal {
+fn plus_grand(a: Decimal, b: Decimal) -> Decimal {
     if b > a {
         b
     } else {
@@ -116,7 +116,7 @@ struct Cumul {
     part_pat: Decimal,
 }
 
-/// `operations_etats.cotisations_par_organisme` : ce qui est du a chaque organisme, rubrique par rubrique.
+/// Ce qui est du a chaque organisme, rubrique par rubrique.
 pub fn cotisations_par_organisme(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let regroupement = d.regroupement.as_str();
     if !["organisme", "mois"].contains(&regroupement) {
@@ -259,7 +259,7 @@ fn paies_des_mois(ctx: &Contexte, p: &Periode, avert: &mut Vec<String>) -> R<Vec
 }
 
 /// La DSN d'un mois et d'un etablissement (`None` : le principal) : celle qui est partie, telle qu'elle est partie, ou
-/// celle qui partirait, et si elle est partie. La fournit qui lit le journal des envois (`moteur::depart::dsn_du_mois`).
+/// celle qui partirait, et si elle est partie. La fournit qui lit le journal des envois (`moteur::compagnie::depart::dsn_du_mois`).
 pub type DsnDuMois<'a> = &'a dyn Fn(&Contexte, &str, Option<&str>) -> socle::echec::R<Option<(crate::dsn::Fabriquee, bool)>>;
 
 /// LA DSN DE CHAQUE MOIS DE LA PERIODE, par etablissement (le principal d'abord) : celle qui est partie telle qu'elle est
@@ -310,7 +310,7 @@ fn libelles_organismes(ctx: &Contexte) -> R<Vec<(String, String)>> {
     Ok(out)
 }
 
-/// `operations_etats.versements_organismes` : chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20), partie
+/// Chaque versement que la DSN de chaque mois ordonne (bloc S21.G00.20), partie
 /// ou a deposer (`dsn_des_mois`).
 pub fn versements_organismes(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
@@ -445,7 +445,7 @@ fn libelles_ctp(ctx: &Contexte) -> R<Vec<(String, String)>> {
     Ok(out)
 }
 
-/// `operations_etats.bordereau_urssaf` : le bordereau Urssaf de chaque mois, CTP par CTP, tel que la DSN le porte, partie ou a deposer (`dsn_des_mois`), avec ceux des mois que ses corrections regularisent. Les taux ne sont
+/// Le bordereau Urssaf de chaque mois, CTP par CTP, tel que la DSN le porte, partie ou a deposer (`dsn_des_mois`), avec ceux des mois que ses corrections regularisent. Les taux ne sont
 /// pas appliques ici : c'est l'Urssaf qui calcule depuis les assiettes, et un export ne calcule pas.
 pub fn bordereau_urssaf(ctx: &Contexte, d: &Demande, dsn_du_mois: DsnDuMois) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
@@ -508,7 +508,7 @@ fn refuse_un_mois(quoi: &str, d: &Demande) -> R<()> {
     Ok(())
 }
 
-/// `operations_etats.fcap_svp` : 0,1 % de la tranche A de l'annee, plancher 80 EUR, plafond 300 EUR, paye HORS
+/// 0,1 % de la tranche A de l'annee, plancher 80 EUR, plafond 300 EUR, paye HORS
 /// DSN en debut d'annee. La tranche A est la base 02 que la DSN declare (S21.G00.78), tiree des paies declarees.
 pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     refuse_un_mois("Le FCAP-SVP est une contribution annuelle : il se demande pour une année, ou pour toutes les années.", d)?;
@@ -552,7 +552,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut lignes = Vec::new();
     for (an, mois, tranche_a) in par_an {
         let calcule = eur2(div(mul(tranche_a, taux), Decimal::ONE_HUNDRED));
-        let du = py_max(plancher, py_min(plafond, calcule));
+        let du = plus_grand(plancher, plus_petit(plafond, calcule));
         let regle = if du == plancher && calcule < plancher {
             "plancher"
         } else if du == plafond && calcule > plafond {
@@ -591,7 +591,7 @@ pub fn fcap_svp(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ================================================================ l'Afdas
 
-/// `operations_etats.afdas_2642` : ce que la production audiovisuelle (2642) paie une fois l'an a l'Afdas, hors DSN,
+/// Ce que la production audiovisuelle (2642) paie une fois l'an a l'Afdas, hors DSN,
 /// avant le 28 fevrier. La production cinematographique (3097) paie les memes, aux memes taux ; les espaces de
 /// loisirs (1790) la formation conventionnelle de leurs permanents. La masse se lit dans le livre de paie,
 /// bulletin par bulletin, avec la nature du contrat : un CDDU est un intermittent.
@@ -641,7 +641,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let mut cpnef = zero;
         if let Some(c) = hb.get("cpnef_dialogue_social").filter(|v| vrai(v)) {
             let brut_cpnef = eur2(div(mul(masse, dec_de(&c["taux"])?), Decimal::ONE_HUNDRED));
-            cpnef = py_max(dec_de(&c["plancher"])?, py_min(dec_de(&c["plafond"])?, brut_cpnef));
+            cpnef = plus_grand(dec_de(&c["plancher"])?, plus_petit(dec_de(&c["plafond"])?, brut_cpnef));
         }
         let effectif = ctx.effectif().ok().and_then(|e| e.valeur(annee_entiere(&an).unwrap_or(0)));
         if effectif.is_none() {
@@ -698,7 +698,7 @@ pub fn afdas_2642(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ===================================================== le paritarisme de branche
 
-/// `operations_etats.paritarisme_branche` : le financement du paritarisme d'une branche qui le collecte une fois
+/// Le financement du paritarisme d'une branche qui le collecte une fois
 /// l'an, hors DSN, sur la masse salariale de l'annee ecoulee (3252, 3241, et toute couche qui porte
 /// `hors_bulletin.financement_paritarisme`). La masse se lit dans le livre de paie.
 pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
@@ -732,10 +732,10 @@ pub fn paritarisme_branche(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         let taux = dec_de(&f["taux"])?;
         let mut m = eur2(div(mul(masse, taux), Decimal::ONE_HUNDRED));
         if let Some(pl) = f.get("plancher").filter(|v| !v.is_null()) {
-            m = py_max(m, dec_de(pl)?);
+            m = plus_grand(m, dec_de(pl)?);
         }
         if let Some(pl) = f.get("plafond").filter(|v| !v.is_null()) {
-            m = py_min(m, dec_de(pl)?);
+            m = plus_petit(m, dec_de(pl)?);
         }
         let collecteur = f.get("collecteur").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_else(|| "l'organisme collecteur de la branche".to_string());
         if let Some(a) = f.get("avertissement").filter(|v| vrai(v)).map(valeur_en_texte) {

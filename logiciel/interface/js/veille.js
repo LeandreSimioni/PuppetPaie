@@ -30,18 +30,14 @@ async function rafraichirApresVeille(v) {
   } catch (e) { /* le bandeau dit déjà l'essentiel */ }
 }
 
-/* LE BANDEAU, REPENSÉ (24/09/2026). On y cherche trois choses, dans cet
-   ordre : est-ce que tout va bien ? est-ce qu'il est arrivé quelque chose ?
-   est-ce qu'il y a quelque chose à FAIRE ? Il enfilait tout à la suite
-   (« dernier passage … — 285 retour(s), dont 2 nouveau(x), 1 archive(s). —
-   Mot de passe Urssaf (DPAE) absent du coffre […] `python -m moteur coffre
-   poser urssaf` »), en orange dès qu'une ligne manquait.
-
-   Maintenant : une phrase calme quand tout va (« À jour — relevé à 16:28 »,
-   le détail au survol) ; les nouvelles en clair (retours, signatures,
-   version) ; ce qui est à faire en orange, dit en mots, avec le lien vers
+/* LE BANDEAU. On y cherche trois choses, dans cet ordre : est-ce que tout
+   va bien ? est-ce qu'il est arrivé quelque chose ? est-ce qu'il y a quelque
+   chose à FAIRE ? Une phrase calme quand tout va (« À jour — relevé à
+   16:28 », le détail au survol) ; les nouvelles en clair (retours,
+   signatures) ; ce qui est à faire en orange, dit en mots, avec le lien vers
    l'endroit où le faire. Jamais une commande de terminal : une fenêtre
-   n'en a pas. */
+   n'en a pas. La mise à jour n'est pas ici : l'indicateur la dit
+   (js/mise-a-jour.js). */
 const A_POSER = {
   "net-entreprises": ["Les retours de DSN ne se relèvent pas seuls : le mot de passe net-entreprises n'est pas posé.", "Poser le mot de passe"],
   urssaf: ["Les retours de DPAE ne se relèvent pas seuls : le mot de passe Urssaf (DPAE) n'est pas posé.", "Poser le mot de passe"],
@@ -54,7 +50,7 @@ function heureDuPassage(q) {
     || String(q || "").match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}:\d{2})/);
   if (!m) return q ? `le ${q}` : "";
   const [an, mo, jo] = m[1].length === 4 ? [m[1], m[2], m[3]] : [m[3], m[2], m[1]];
-  // Le jour du moteur (#236), pas celui du navigateur.
+  // Le jour du moteur, pas celui du navigateur.
   const [ja, jm, jj] = aujourdhuiIso().split("-").map(Number);
   const memeJour = +an === ja && +mo === jm && +jo === jj;
   return memeJour ? `à ${m[4]}` : `le ${jo}/${mo} à ${m[4]}`;
@@ -78,7 +74,7 @@ function dessinerVeille(v) {
   zone.classList.remove("souci", "neuf");
 
   if (v.en_cours) {
-    // L'ÉTAPE, DITE PAR LE MOTEUR (ticket #220) : qui il appelle, puis qui d'autre, puis la sauvegarde.
+    // L'ÉTAPE, DITE PAR LE MOTEUR : qui il appelle, puis qui d'autre, puis la sauvegarde.
     texte.innerHTML = `<span class="veille-etape">${echapper(v.etape || "Relevé des retours en cours…")}</span>`;
     suivreLesEtapes();
     return;
@@ -87,10 +83,9 @@ function dessinerVeille(v) {
 
   // 1. L'ÉTAT, en une phrase. Le détail des relevés passe au survol : on
   //    le cherche rarement, et il reste à portée.
-  const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches, d.sources,
-                  d.maj_exigee ? "" : d.maj].filter(Boolean).join("\n");
+  const detail = [...(d.injoignables || []), d.sauvegarde, d.retours, d.signatures, d.fiches].filter(Boolean).join("\n");
   if (v.sauvegarde_en_cours) suivreLesEtapes();
-  // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » (Léandre, 21/10/2026) : l'attente
+  // « HORS CONNEXION, C'EST QUAND IL N'Y A PAS INTERNET, PAS QUAND ON ATTEND » : l'attente
   // dit l'heure du prochain relevé ; un service qui n'a pas répondu se nomme (au survol), et le relevé qui est
   // passé reste dit. « Pas de réponse » seulement quand le relevé lui-même n'est pas passé.
   const prochain = v.prochain_dans ? ` · prochain relevé dans ${v.prochain_dans} min` : "";
@@ -105,7 +100,7 @@ function dessinerVeille(v) {
         : "un service n'a pas répondu"} (détail au survol) : nouvel essai au prochain relevé</span>` : ""}${enFictive()
     ? ` · <button class="lien" data-fictive-explique="coulisses">compagnie fictive : pas de
         sauvegarde — pourquoi ?</button>` : ""}`];
-  // LA SAUVEGARDE QUI N'ARRIVE PAS AU BOUT, à sa place (tickets #231 et #232) : un dossier que
+  // LA SAUVEGARDE QUI N'ARRIVE PAS AU BOUT, à sa place : un dossier que
   // Google refuse une fois repart au passage suivant, sans bruit ; ce qui dure, le moteur le dit
   // en une phrase (`sauvegarde::souci`), et elle se lit ici, à côté de l'état, pas parmi les retours.
   if (d.sauvegarde_souci && !d.hors_ligne) {
@@ -114,11 +109,10 @@ function dessinerVeille(v) {
 
   // 2. LES NOUVELLES : ce qui est arrivé depuis le dernier regard.
   const nouvelles = [];
-  // Les retours se LISENT dans l'Historique (20/10/2026) : le bandeau les annonce et y mène.
+  // Les retours se LISENT dans l'Historique : le bandeau les annonce et y mène.
   const retours = d.nouveaux ? ` <button class="lien" data-vers-historique>${d.nouveaux} retour${d.nouveaux > 1 ? "s" : ""}
     nouveau${d.nouveaux > 1 ? "x" : ""} — les lire dans l'Historique</button>` : "";
   (d.signatures_recues || []).forEach((x) => nouvelles.push(`contrat signé par ${x.nom}`));
-  if (d.maj && !d.maj_exigee) nouvelles.push(d.maj);
   // L'HORLOGE DE LA COMPAGNIE FICTIVE : ce que l'administrateur fictif a fait
   // pendant l'absence du visiteur, chaque geste à sa date limite.
   const horloge = enFictive() && (d.horloge || []).length
@@ -127,29 +121,10 @@ function dessinerVeille(v) {
   if (retours) morceaux.push(retours);
   if (nouvelles.length) morceaux.push(`<b>${nouvelles.map(echapper).join(" · ")}</b>`);
   if (horloge) morceaux.push(horloge);
-  if (d.maj_note) morceaux.push(`<b>${echapper(d.maj_note)}</b>`);
-  // La version prete qui attend une DSN : la page laisse passer outre,
-  // en le disant. La bascule reste au prochain demarrage, fenetre fermee.
-  if (d.maj_attend && d.maj_attend.length) {
-    morceaux.push(`<button class="lien" id="maj-malgre-calcul">Appliquer quand
-      même au prochain démarrage</button>`);
-    setTimeout(() => {
-      const b = document.getElementById("maj-malgre-calcul");
-      if (!b) return;
-      b.onclick = async () => {
-        if (!confirm("Cette version change un calcul. Les bulletins déjà produits "
-          + "pour " + d.maj_attend.join(", ") + " pourraient différer de la DSN "
-          + "qui sera déposée. L'appliquer quand même au prochain démarrage ?")) return;
-        try { await api("maj-malgre-calcul"); b.replaceWith("s'appliquera au prochain démarrage"); }
-        catch (e) { alert(e.message); }
-      };
-    }, 0);
-  }
 
   // 3. CE QUI EST À FAIRE : en mots, avec le chemin. Le premier se lit, les
   //    suivants se déplient.
   const afaire = [];
-  if (d.maj_exigee) afaire.push(`<b>${echapper(d.maj)}</b>`);
   (d.a_poser || []).forEach((code) => {
     const [phrase, geste] = A_POSER[code] || [code, "Mots de passe"];
     afaire.push(`${echapper(phrase)} <button class="lien" data-aller="${echapper(code)}">${echapper(geste)}</button>`);
@@ -199,8 +174,8 @@ function dessinerVeille(v) {
   });
 }
 
-/** LE PASSAGE EN COURS, ÉTAPE PAR ÉTAPE (ticket #220, Léandre, 20/10/2026 : « juste un message dans la ligne qui
- *  explique ce que fait la machine »). Tant qu'un passage tourne, la page lit `veille-etape` toutes les secondes : deux
+/** LE PASSAGE EN COURS, ÉTAPE PAR ÉTAPE : un message dans la ligne dit ce que fait la
+ *  machine. Tant qu'un passage tourne, la page lit `veille-etape` toutes les secondes : deux
  *  drapeaux et l'étape que le moteur a écrite en y entrant, sans processus ni calcul — la page ne rame pas. Le passage
  *  fini, le bandeau se repeint d'un coup (`suivreVeille`). Un seul suivi à la fois. */
 let SUIVI_ETAPES = null;

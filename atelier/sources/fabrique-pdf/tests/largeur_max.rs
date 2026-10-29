@@ -1,6 +1,5 @@
 //! Tests du champ `largeur_max` de `texte_fixe` (FORMAT.md) : le corps est réduit pour que le texte
-//! tienne, exactement selon `corps_qui_tient` de `moteur/conges_spectacles.py` — le corps d'origine
-//! tant que le texte y tient, sinon `corps × place ÷ largeur`, jamais sous 6 pt.
+//! tienne : le corps d'origine tant que le texte y tient, sinon `corps × place ÷ largeur`, jamais sous 6 pt.
 
 use lopdf::content::Content;
 use lopdf::{Document, Object};
@@ -54,7 +53,7 @@ fn largeur(fichier: &str, texte: &str, corps: f32) -> f32 {
         .sum()
 }
 
-/// L'algorithme de `corps_qui_tient`, tel qu'il est écrit en Python.
+/// Le corps qui tient, recalculé à part du code de la fabrique.
 fn corps_qui_tient(fichier: &str, texte: &str, corps: f32, place: f32) -> f32 {
     let l = largeur(fichier, texte, corps);
     if l <= place {

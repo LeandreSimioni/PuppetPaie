@@ -35,8 +35,8 @@ pub struct Fichier {
     norme: Option<crate::norme::Norme>,
     /// L'individu en cours d'ecriture n'a qu'UN bloc « Contrat - S21.G00.40 » dans la declaration : S21.G00.78.006 ne
     /// s'ecrit pas. « Dans le cas de la declaration d'un contrat unique, cette rubrique n'est pas a renseigner. »
-    /// (cahier technique 2026.1, p. 298, `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` l. 9-14 ; reste R1 #26).
-    /// Pose par `generer` individu par individu ; faux ailleurs (la rubrique s'ecrit comme avant).
+    /// (cahier technique 2026.1, p. 298, `atelier/reference/norme-dsn/texte/bloc-S21.G00.79.txt` l. 9-14).
+    /// Pose par `generer` individu par individu ; faux ailleurs (la rubrique s'ecrit).
     pub contrat_unique: bool,
 }
 
@@ -160,8 +160,8 @@ pub fn contact_emetteur(f: &mut Fichier, ent: &Value) -> Resultat<()> {
 /// lignes 67-80) donne la liste ; « 04 - Contact chez le declare recouvrant, entre autres, des cotisations de Securite
 /// Sociale (Urssaf CN, MSA) et contributions assurance chomage et cotisations AGS (France Travail) » est celui-la. Les
 /// types 14 et 17 (referent handicap des 250 salaries et plus, medecine du travail interne) ne sont pas ce contact-la.
-/// Une compagnie neuve n'a donc rien a choisir (#236 : la fiche ne montre pas cette case, et « Pour demarrer » ne la
-/// demande plus) ; une valeur posee dans la fiche (`declarant_dsn.qualite`) reste lue telle quelle.
+/// Une compagnie neuve n'a donc rien a choisir (la fiche ne montre pas cette case, et « Pour demarrer » ne la
+/// demande pas) ; une valeur posee dans la fiche (`declarant_dsn.qualite`) reste lue telle quelle.
 pub const TYPE_CONTACT_ORDINAIRE: &str = "04";
 
 /// Le type du contact a ecrire en S20.G00.07.004 : celui de la fiche s'il y en a un, sinon [`TYPE_CONTACT_ORDINAIRE`].
@@ -331,7 +331,7 @@ pub fn nics(fiche: &Value) -> Vec<String> {
     out
 }
 
-/// `etablissements.fiche_de` : l'entreprise vue depuis l'etablissement `nic`.
+/// L'entreprise vue depuis l'etablissement `nic`.
 fn fiche_de(fiche: &Value, nic: &str) -> Resultat<Value> {
     if nic.is_empty() || nic == bareme::nic_principal(fiche) {
         return Ok(fiche.clone());
@@ -407,7 +407,7 @@ fn nomenclature_subrogation(libelle: &str) -> Resultat<String> {
 /// Ce que chaque nature admet du bloc se lit dans le tableau des usages (cahier technique 2026.1, p. 363-382,
 /// `atelier/reference/norme-dsn/texte/tableaux-des-usages.txt`, bloc S21.G00.60) : la subrogation (60.004 a 60.008) est
 /// C en 01, O ou C en 04, I en 05 et en 07 ; la date de l'accident (60.012), I en 01 et en 07. `nature` est celle du
-/// fichier, jamais une autre (reste R1 #42 : le FCTU passait « 01 »).
+/// fichier, jamais une autre.
 pub fn bloc_60(f: &mut Fichier, a: &Arret, nature: &str, banque: &Value) -> Resultat<()> {
     let v = &a.v;
     f.add_v("S21.G00.60.001", g(v, "motif"))?;
@@ -1369,7 +1369,7 @@ pub fn usage_admet(f: &Fichier, rubrique: &str, nature_dsn: &str) -> Resultat<bo
 /// 2026.1, `texte/bloc-S21.G00.40.txt` l. 1367-1375). Ecrite quand la compagnie en a une ; sans elle, la DSN refuse
 /// QUAND ELLE EST EXIGEE (`demarrage::licence_exigee`, que « Pour demarrer » lit aussi : la convention, ou un contrat de
 /// spectacle, `spectacle`, dans une convention ou la case se montre) et ne l'ecrit pas sinon : une production
-/// audiovisuelle n'en a pas, ni un lieu en 1790 qui n'engage pour aucun spectacle (#236). Une valeur vide ne s'ecrit
+/// audiovisuelle n'en a pas, ni un lieu en 1790 qui n'engage pour aucun spectacle. Une valeur vide ne s'ecrit
 /// jamais : `X [1,100]`.
 fn licence_du_contrat(f: &mut Fichier, nature_dsn: &str, ent: &Value, spectacle: bool) -> Resultat<()> {
     let licence = txt(req(ent, "licence_spectacle")?);
@@ -1665,7 +1665,7 @@ declare en S21.G00.40.043 ; il ne se devine pas.",
     } else {
         f.add_opt("S21.G00.40.016", nat.code("S21.G00.40.016"))?;
     }
-    f.add("S21.G00.40.017", documents::bulletin::convention_du_contrat(ent, &p.spectacle, s)?.0);
+    f.add("S21.G00.40.017", droit::minima::idcc_du_contrat(ent, &p.spectacle, s)?);
     f.add_opt("S21.G00.40.018", nat.code("S21.G00.40.018"))?;
     f.add_v("S21.G00.40.019", req(ent, "siret")?)?;
     f.add_opt("S21.G00.40.020", nat.code("S21.G00.40.020"))?;
@@ -2894,7 +2894,7 @@ fn taux_at_du_ctp(ctp: &Value, bar: &Value) -> Resultat<String> {
     if !vrai(g(ctp, "taux_at")) {
         return Ok(String::new());
     }
-    // LE TAUX DU BAREME DU MOIS DECLARE (09/10/2026), et non celui recopie dans config/organismes.json : celui-la
+    // LE TAUX DU BAREME DU MOIS DECLARE, et non celui recopie dans config/organismes.json : celui-la
     // restait fige quand le taux changeait a l'ecran (1,25 garde, 1,40 pose le 03/10), ou en cours d'annee (1,69 puis
     // 1,65 au 01/06/2025). `taux_at` du CTP ne dit plus que « cette ligne porte le taux AT » ("bareme").
     if !vrai(g(g(bar, "taux_atmp"), "valeur")) {
@@ -4005,8 +4005,7 @@ fn ordre_salaries(paies: &[Paie]) -> Vec<String> {
 /// l'historique de vie professionnelle du salarie.
 ///
 /// `regularisations` : les corrections de mois DEPOSES dont l'echeance est
-/// passee, a porter par CETTE declaration (operations_regularisation.
-/// Regularisation : mois d'origine, paie AVANT telle que deposee, paie
+/// passee, a porter par CETTE declaration (chacune : mois d'origine, paie AVANT telle que deposee, paie
 /// APRES corrigee). Cahier technique 2026.1 §2.2.2.5 : « une fois passee
 /// la date d'exigibilite, les corrections doivent etre portees par une DSN
 /// mensuelle ulterieure », par les memes blocs DATES DE LA PERIODE
@@ -4220,7 +4219,7 @@ saisir`), ou retirer la ligne. Rien n'est ecrit.",
             manquants.join(", ")
         ));
     }
-    // LA SUSPENSION D'UN CONTRAT QUE CE MOIS NE DECLARE PAS (15/10/2026) : le bloc 65 se declare SOUS le contrat suspendu,
+    // LA SUSPENSION D'UN CONTRAT QUE CE MOIS NE DECLARE PAS : le bloc 65 se declare SOUS le contrat suspendu,
     // dans chaque DSN dont le mois croise la suspension (bloc S21.G00.65, cahier technique DSN 2026.1, p. 281,
     // `atelier/reference/norme-dsn/texte/bloc-S21.G00.65.txt`) ; il se tire du magasin des imprevus pour le contrat de
     // chaque paie (`imprevus::suspensions_du_mois`). Une suspension de cet etablissement dont le contrat manque ne serait
@@ -4357,7 +4356,7 @@ certificat de conformite du depot precedent.",
             f.add("S21.G00.13.004", d.millesime);
         }
     }
-    for k in [("S21.G00.11.001", "nic"), ("S21.G00.11.002", "naf"), ("S21.G00.11.003", "adresse"), ("S21.G00.11.004", "code_postal"), ("S21.G00.11.005", "commune"), ("S21.G00.11.022", "code_convention_dsn")] {
+    for k in [("S21.G00.11.001", "nic"), ("S21.G00.11.002", "naf"), ("S21.G00.11.003", "adresse"), ("S21.G00.11.004", "code_postal"), ("S21.G00.11.005", "commune"), ("S21.G00.11.022", "idcc")] {
         if k.0 == "S21.G00.11.002" && !usage_admet(&f, k.0, "01")? {
             continue;
         }
@@ -4452,7 +4451,7 @@ certificat de conformite du depot precedent.",
     let echeance_dsn = ctx.echeance_dsn()?;
     let echeances: HashMap<&str, Jour> = [
         ("13000548100010", echeance_mois_suivant(an, mo, echeance_dsn)),
-        // AUDIENS SANTE PREVOYANCE (ticket #223) : le 25 du mois qui suit le mois declare, date qui « doit etre
+        // AUDIENS SANTE PREVOYANCE : le 25 du mois qui suit le mois declare, date qui « doit etre
         // renseignee dans le bloc paiement a destination d'Audiens Sante Prevoyance (P0983) » (Audiens, dossier DSN,
         // `atelier/reference/sources/audiens-dsn/` ; `jour_de_paiement` de `donnees/organismes-base.json`). Elle etait
         // la fin du mois suivant le trimestre, pour un versement pourtant mensuel.
@@ -4695,7 +4694,7 @@ certificat de conformite du depot precedent.",
         let mut ajoutes: Vec<&Regularisation> = Vec::new();
         for r in &corrections {
             let deja = lot.iter().position(|p| p.engagement.numero == r.apres.engagement.numero).map(|i| i as i64 + 1);
-            // UN CONTRAT SUR PLUSIEURS MOIS corrige pour plusieurs mois (21/10/2026) : un seul bloc 40 sous l'individu,
+            // UN CONTRAT SUR PLUSIEURS MOIS corrige pour plusieurs mois : un seul bloc 40 sous l'individu,
             // pose par la premiere de ses corrections ; chaque mois garde son versement, rattache a ce mois (cahier
             // technique DSN 2026.1, §2.2.2.5 : « valorisees mois civil par mois civil »).
             let meme_contrat = ajoutes.iter().position(|a| a.apres.engagement.numero == r.apres.engagement.numero);
@@ -4713,7 +4712,7 @@ certificat de conformite du depot precedent.",
                     let b = bar_de(&dernier.mois)?;
                     let autres: Vec<&Paie> =
                         regs.iter().filter(|x| x.mois == dernier.mois).map(|x| &x.apres).chain(des_mois_regularises[&dernier.mois].iter()).collect();
-                    // UNE FIN CORRIGEE (21/10/2026) : « une correction de fin de contrat s'opere par l'emission d'un bloc
+                    // UNE FIN CORRIGEE : « une correction de fin de contrat s'opere par l'emission d'un bloc
                     // " Fin du contrat - S21.G00.62 " dans la DSN mensuelle suivante portant les informations correctes
                     // qui ecraseront celles precedemment declarees » (fiche net-entreprises 1722,
                     // `atelier/reference/sources/net-entreprises-base-connaissances/`). UN CONTRAT AJOUTE apres la limite

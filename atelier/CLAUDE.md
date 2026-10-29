@@ -73,7 +73,7 @@ Ce fichier s'adresse aux deux ; ce qui touche à la séance entière n'est qu'à
   Léandre fusionne. Le privé reçoit, sur la même branche, ce qui s'adresse à Léandre (`journal/`).
 - **La fin de séance, c'est Léandre qui la dit** : la passe de tests ne se lance pas avant. Puis : le récit dans
   `journal/archives/<jour>.md`, une ligne dans `INDEX.md`, et `ETAT.md` **remplacé** (jamais empilé ; une page).
-- Le contexte se surveille (`moteur guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `moteur/src/guet.rs`) ;
+- Le contexte se surveille (`moteur guet` en arrière-plan, `--commits` pour sortir au prochain commit ; `moteur/src/atelier/guet.rs`) ;
   c'est Léandre qui décide quand il sonne.
 
 ## Où sont les choses
@@ -93,7 +93,7 @@ du journal, `prive/journal/` se lit `journal/` du privé.
 | `logiciel/` | **exactement ce qu'une compagnie reçoit** : `puppetpaie.exe` (la fenêtre), `WebView2Loader.dll`, `VERSION`, `donnees/` (barèmes, bases, modèles), `interface/` (la page : `index.html`, `interface.css`, `js/`). C'est ce que publie la mise à jour. |
 | `fictives/` | les quatre compagnies fictives, livrées (`docs/COMPAGNIES-FICTIVES.md`) |
 | `maj/`, `prive/` | dans une installation seulement, jamais dans le dépôt : la mise à jour de l'installation ; la compagnie de l'installation |
-| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `moteur` choisit : le monde, le simulateur ou le message), `moteur/` (le reste du moteur, programme `moteur` ; exécutables livrés dans `moteur/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
+| `atelier/sources/` | l'espace Cargo du moteur : `socle/` et `droit/` (les deux crates du dessous), `engagement/` (l'engagement, ses versions, ce qui est à refaire), `documents/` et `declarations/` (ce que l'engagement validé fait imprimer et déclarer ; `declarations` prend à `documents`, jamais l'inverse), `envois/` (ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours, et le journal de ce qui est parti ; il reçoit des pièces faites et un mot de passe, et le branchement que `moteur` choisit : le monde, le simulateur ou le message), `moteur/` (programme `moteur` : `src/routes/` une route par geste de l'écran, `src/interface/` le serveur local de la page et la veille, `src/compagnie/` coffre, demande d'un acte réel, sauvegarde, mise à jour, bridage, ouverture, filet, incidents, conseils, `src/import/` le passé d'un ancien logiciel, `src/atelier/` les outils de l'éditeur et la publication, `src/commandes/` la ligne de commande ; exécutables livrés dans `moteur/bin/<système>/`) ; à part, `fenetre/` (Tauri, programme `puppetpaie`), `fabrique-pdf/` |
 | `atelier/reference/` | les textes qui fondent les règles (voir « Les sources ») |
 | `atelier/outils/`, `docs/`, `depot/`, `installeur/`, `site/`, `maquettes/` | les outils d'atelier (plus de Python depuis le 15/10/2026 : des commandes de `moteur`), les docs, les versions publiées, l'installeur, le site |
 
@@ -181,7 +181,7 @@ Une règle sans texte déposé est un souvenir.
   pas ; **un `LISEZ-MOI.md` par dossier** (l'URL, la date du relevé, ce qu'on en lit, **où le moteur s'en sert**) ; une
   **inférence** s'écrit comme telle ; la note `_source` d'un barème et le commentaire d'une fonction **citent le fichier
   déposé**, pas une URL seule.
-- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`moteur releve-codes`, les textes suivis dans `moteur/src/releve_codes/textes.rs`,
+- **Les codes** (travail, sécurité sociale, impôts, CGCT) se relèvent depuis LEGI (`moteur releve-codes`, les textes suivis dans `moteur/src/atelier/releve/codes/textes.rs`,
   `moissonner` puis `rapport`), jamais à la main ; la norme DSN est dans `norme-dsn/texte/` ; le BOFiP brut dans `bofip/` ;
   le BOSS depuis sa page quand elle répond.
 - **Ce qui ne se republie pas** : un document d'organisme privé (Audiens, Afdas, CASC-SVP, Agirc-Arrco…) entre par sa
@@ -244,9 +244,11 @@ cd atelier/sources && rm -rf "${CARGO_TARGET_DIR:-target}/tmp"          # l'espa
 cargo nextest run --cargo-profile essais --no-fail-fast                  # les sept crates ; la fenêtre n'a pas de tests
 ```
 
-- La suite de l'atelier (`--features atelier`, sa propre cible `<cible>-atelier`), seulement quand on touche à ce qui est sous
-  `#[cfg(feature = "atelier")]` : `CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo nextest run --cargo-profile
-  essais -p moteur --features atelier --lib --test atelier --test fichiers -E 'test(/(^|::)atelier::/)'`.
+- Le binaire de l'atelier (`--features atelier` : la redirection vers de faux serveurs locaux, les bulletins fictifs,
+  l'enregistreur du banc) n'a aucun test à lui ; quand on touche à ce qui est sous `#[cfg(feature = "atelier")]`, il doit
+  compiler sans avertissement, dans sa propre cible : `CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}-atelier" cargo check
+  --profile essais -p moteur --features atelier --bins`. Que le binaire livré n'en porte rien, c'est `tests/atelier.rs`
+  qui le prouve, dans la suite ordinaire.
 - **Quatre binaires par domaine dans `moteur/tests/`** (`tests/calcul/`, `tests/dsn/`, `tests/routes/`, `tests/fichiers/`) ; un fichier qui pose une
   variable d'environnement reste seul dans `tests/`. Les aides sont dans `tests/outils/` (un fichier n'en recopie aucune) ;
   un test se monte dans `outils::dossier_de_test`. Un test qui monte une compagnie passe par le moteur entier et reste dans
@@ -259,7 +261,7 @@ cargo nextest run --cargo-profile essais --no-fail-fast                  # les s
   exhaustive se joue sur un échantillon à graine fixe (`outils::tire`).
 - Les tests tournent sur des compagnies de test qu'ils montent eux-mêmes (`outils::dossier_de_test`) ; il n'y a plus de
   copie figée des fictives (supprimée le 28/10/2026 : ses règles se reprennent dans les fictives neuves de la séance 8,
-  ticket #270 du privé). `fictives/` (à la racine du dépôt) est livrée à part par « Publier » (`maj.rs`) ; un test ne la
+  ticket #270 du privé). `fictives/` (à la racine du dépôt) est livrée à part par « Publier » (`moteur/src/atelier/publier.rs`) ; un test ne la
   lit jamais. Une compagnie de test se nomme toujours.
 - **Aucun test ne sort de la machine** (21/10/2026 : un test s'était inscrit au vrai filet, d'où des courriels à
   `a@exemple.fr`). `atelier/sources/.cargo/config.toml` pose `PUPPETPAIE_ESSAIS_HORS_RESEAU` pour tout ce que Cargo lance, et
@@ -295,7 +297,7 @@ un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de d
 6. **Une nature de contrat n'est pas un détail.** `donnees/contrats-base.json` dit ce que la DSN écrit par nature
    (`cddu_spectacle`, `cdi`, `cdd`) ; un engagement muet est un CDDU. Le numéro d'objet spectacle est **interdit** hors des
    natures 02 et 10 (CCH-11). Le barème a des axes qui s'empilent (statut, nature, santé, catégorie), à un seul endroit
-   (`calcul.bareme_applique`). La prévoyance des permanents vient de la convention ; un cadre permanent lit
+   (`droit::bareme::bareme_applique`). La prévoyance des permanents vient de la convention ; un cadre permanent lit
    `par_categorie.cadre_permanent`. Détail : `docs/ARCHITECTURE.md`, « La nature du contrat ».
 7. **Deux contrôles avant tout dépôt** : les usages (une rubrique a-t-elle le *droit* d'être là pour la nature de déclaration)
    et les formats (ce qu'on y a *mis* a-t-il la bonne forme). Un contrôle faux refuserait du licite : c'est lui qu'on retire,
@@ -303,8 +305,8 @@ un truc urgent ; c'est lui qui lance « Publier », jamais un agent. En cas de d
 8. **Un barème a trois étages** : le socle livré (`donnees/baremes/<année>.json`), la couche de la convention (`par_convention`
    du barème de l'année, qui fait foi : dix conventions en 2026, 3090 et 1285 seulement en 2025 ; une convention sans couche
    refuse), la surcouche de la compagnie (`config/baremes/<année>.json` : taux AT/MP, effectif, depuis `config/effectifs.json`
-   écrit par les retours 118). Un seul endroit empile (`Contexte._bareme_brut`,
-   `baremes.fusionner`) ; le taux AT/MP ne s'écrit qu'une fois (`calcul.bareme_atmp`). Détail : `docs/ARCHITECTURE.md`.
+   écrit par les retours 118). Un seul endroit empile (`droit::contexte::Contexte::bareme_brut`,
+   `droit::contexte::fusionner`) ; le taux AT/MP ne s'écrit qu'une fois (`droit::bareme::bareme_atmp`). Détail : `docs/ARCHITECTURE.md`.
 9. **Trois destinations, et les données de la compagnie dans aucun dépôt.** `logiciel/`, `fictives/`, `atelier/` (dont
    `atelier/reference/`) : le dépôt public. `journal/`, `reference-privee/`, les tickets : le dépôt privé. `prive/` : aucun
    dépôt (le poste, la clé USB, le Drive ; `/prive/` est dans le `.gitignore` du public).
@@ -332,11 +334,11 @@ On publie depuis GitHub (`journal/finitions/PUBLIER.md` du privé) : à la fin d
 « Publier » (`.github/workflows/publier.yml`) avec `notes`, et `calcul` **seulement** si la version change un calcul de paie
 (la seule phrase qu'une compagnie verra ; un taux qui change n'en est pas une), `exigee` plus rarement encore. **Léandre
 approuve** (environnement `publication`) ; le moteur signe avec la clé de GitHub. Une Release porte trois sortes d'archives
-(`moteur/src/maj.rs`, en tête) : **la mise à jour** (`puppetpaie-<v>-<système>.zip`, le contenu de `logiciel/` à la racine :
+(`moteur/src/compagnie/maj.rs`, en tête) : **la mise à jour** (`puppetpaie-<v>-<système>.zip`, le contenu de `logiciel/` à la racine :
 **sa forme est un contrat avec toutes les installations posées et ne change plus**), **les fictives** (livrées à part, signées,
 téléchargées seulement quand leur empreinte change ; elles ne remplacent que ce qu'une livraison a posé), **l'installation**
 (`…-installation.zip`, `logiciel/` et `fictives/`, pour Linux, Mac et le dossier portable) ; plus `derniere.json` et
-l'installeur Windows. Une version qui change un calcul attend la DSN des mois saisis avant de s'appliquer (`--malgre-calcul`
-pour passer outre). Jamais pendant que l'interface tourne ; jamais republier un numéro. Le moteur accepte encore la clé de
+l'installeur Windows. Une version s'installe dès qu'elle est prête ; `calcul` ne retient rien, c'est une phrase.
+Jamais pendant que l'interface tourne ; jamais republier un numéro. Le moteur accepte encore la clé de
 signature d'un poste (`maj-cle-privee.bin`, `moteur maj --publier`), mais on ne publie que depuis GitHub. On est en
 développement : ne pas signaler qu'aucune version n'a été publiée depuis longtemps.

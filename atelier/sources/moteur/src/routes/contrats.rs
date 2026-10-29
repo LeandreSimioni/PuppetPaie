@@ -6,7 +6,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::depot_acte::{verifier_preuve, Preuve};
+use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::documents::{charge_texte, client_courriel, cle, get_requis, jj_mm_aaaa, liste_de, nul, preuve_de, refus, requis, un_nom_commence_et_finit, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, en_echec, maintenant, texte_requis};
 use crate::routes::etapes::{dans_l_ensemble, premier, Moteur, SaisieMois};
@@ -343,7 +343,7 @@ fn envoyer_avenants(ctx: &Contexte, voulus: &[Value], preuve: &Preuve, ouvrir: O
         return Err(refus("Aucun avenant coché. Rien n'est parti."));
     }
     // La porte du branchement, avant de rien lire.
-    crate::bridage::branchement(&ctx.racine).ouvrir()?;
+    crate::compagnie::bridage::branchement(&ctx.racine).ouvrir()?;
     let par_salarie = avenants_voulus(ctx, voulus, true)?;
     let mut client = ouvrir()?;
     let mut mois_vus: Vec<String> = par_salarie.iter().flat_map(|(_, aa)| aa.iter().map(|a| a.texte("mois"))).collect();

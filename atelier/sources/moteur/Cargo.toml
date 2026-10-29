@@ -51,6 +51,8 @@ envois = { path = "../envois" }
 documents = { path = "../documents" }
 # Les déclarations que fabrique un engagement valide.
 declarations = { path = "../declarations" }
+# La liste nominative du CASC-SVP des mois importes : ecriture seule.
+rust_xlsxwriter = "0.90"
 # Le transport vers net-entreprises et l'Urssaf (`transport.rs`) : HTTP/1.1
 # synchrone, TLS par rustls, racines du systeme (`SSL_CERT_FILE` honore),
 # proxy lu dans l'environnement. Ni gzip (flate2 s'en charge), ni cookies, ni json.

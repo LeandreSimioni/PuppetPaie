@@ -1,7 +1,7 @@
-//! PuppetPaie : la fenetre (lot J3). Le serveur de la fenetre (`moteur::interface`) tourne dans ce processus, et sa page
+//! PuppetPaie : la fenetre. Le serveur de la fenetre (`moteur::interface`) tourne dans ce processus, et sa page
 //! s'affiche dans une fenetre Tauri (WebView2 sous Windows, WebKit sous Mac et Linux). Les routes du moteur tournent
-//! dans ce processus (`moteur::interface::api::route`, ticket #244) ; `puppetpaie route ...` reste, comme `moteur route ...`,
-//! pour la mise a jour, qui eprouve le nouveau programme avant de l'installer (`moteur::maj`).
+//! dans ce processus (`moteur::interface::api::route`) ; `puppetpaie route ...` reste, comme `moteur route ...`,
+//! pour la mise a jour, qui eprouve le nouveau programme avant de l'installer (`moteur::compagnie::maj`).
 //!
 //! Sans Tauri (un poste sans moteur de rendu), `moteur interface` ouvre la meme page dans le navigateur.
 
@@ -13,7 +13,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
 static APPLICATION: OnceLock<tauri::AppHandle> = OnceLock::new();
 
-/// La barre de titre que la page n'a pas (ticket #195) : pose dans chaque page de la fenetre, avant ses scripts.
+/// La barre de titre que la page n'a pas : pose dans chaque page de la fenetre, avant ses scripts.
 /// Ce qu'il peut demander a la fenetre est borne par `capabilities/fenetre.json`.
 const CADRE: &str = include_str!("cadre.js");
 
@@ -58,31 +58,31 @@ fn main() -> std::process::ExitCode {
             let ok = cfg!(any(windows, target_os = "macos")) || ecran("DISPLAY") || ecran("WAYLAND_DISPLAY");
             return if ok { std::process::ExitCode::SUCCESS } else { std::process::ExitCode::FAILURE };
         }
-        // Le relais de la mise a jour (`moteur::maj`) : lance depuis le `maj/` de l'installation, il bascule puis rouvre la fenetre.
-        Some("maj-relais") => std::process::exit(moteur::maj::relais(&args[1..])),
+        // Le relais de la mise a jour (`moteur::compagnie::maj`) : lance depuis le `maj/` de l'installation, il bascule puis rouvre la fenetre.
+        Some("maj-relais") => std::process::exit(moteur::compagnie::maj::relais(&args[1..])),
         // `puppetpaie maj` : chercher et preparer une version tout de suite (le bac a sable de l'atelier s'en sert).
-        Some("maj") => std::process::exit(moteur::maj::commande(&args[1..])),
+        Some("maj") => std::process::exit(moteur::compagnie::maj::commande(&args[1..])),
         _ => {}
     }
 
     moteur::commandes::compagnie::fixer_le_code();
-    // UNE FENETRE PAR INSTALLATION (ticket #244, `moteur::interface::instance`). Celle de cette installation est deja
+    // UNE FENETRE PAR INSTALLATION (`moteur::interface::instance`). Celle de cette installation est deja
     // ouverte : elle revient devant. Une AUTRE installation ouverte sur le poste ne change rien : chacune a son creneau
     // (son verrou et le port de sa page), et elles s'ouvrent cote a cote.
     let prise = match moteur::interface::prendre_instance(devant) {
         moteur::interface::Instance::Tenue(p) => p,
         moteur::interface::Instance::Devant => return std::process::ExitCode::SUCCESS,
     };
-    // Une installation posee avant le lot U1 range ses compagnies fictives (`demo/` devient `fictives/`), et une livraison
-    // de fictives prete se pose (`moteur::maj::poser_les_fictives_pretes`).
+    // Une livraison de fictives prete se pose (`moteur::compagnie::maj::poser_les_fictives_pretes`), et le reste d'une
+    // compagnie supprimee s'efface (`suppression::effacer_les_restes`).
     moteur::interface::preparer_l_installation();
     // Une version prete s'applique ICI, avant toute fenetre : le relais attend notre fin, bascule et ouvre la neuve.
-    if moteur::maj::au_lancement() {
+    if moteur::compagnie::maj::au_lancement() {
         return std::process::ExitCode::SUCCESS;
     }
     // Sinon le logiciel cherche, en fond, une version plus recente pour l'installation : elle s'appliquera au prochain
-    // lancement (lot U1 : c'est le logiciel qui se met a jour, une fois par installation, pas une compagnie).
-    moteur::maj::chercher_en_fond();
+    // lancement.
+    moteur::compagnie::maj::chercher_en_fond();
     let (fenetre, port) = match moteur::interface::demarrer(moteur::interface::MINUTES_VEILLE, &prise) {
         Ok(x) => x,
         Err(e) => {
@@ -110,7 +110,7 @@ fn main() -> std::process::ExitCode {
             let _ = APPLICATION.set(app.handle().clone());
             *pour_fermer.lock().unwrap_or_else(|e| e.into_inner()) = Some(app.handle().clone());
             let url = adresse.parse().map_err(|e| format!("adresse illisible : {}", e))?;
-            // UNE FENETRE SANS BARRE NOIRE, OUVERTE UNE FOIS (ticket #195). Pas de bordure systeme : le haut de la
+            // UNE FENETRE SANS BARRE NOIRE, OUVERTE UNE FOIS. Pas de bordure systeme : le haut de la
             // fenetre est le bandeau de la page, et `cadre.js` en fait la barre de titre (tirer, double-clic, les trois
             // boutons). Elle s'ouvre a sa taille, centree, et n'en change plus : l'ancienne s'ouvrait en 1200 x 800
             // puis s'agrandissait aussitot, « ca a l'air de le faire et apres ca le fait plus ».

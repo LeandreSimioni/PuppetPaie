@@ -51,9 +51,42 @@ struct ContratMois {
 }
 
 /// `_contrats` : chaque contrat de la periode, une ligne par mois de paie, lu dans la paie ecrite de son engagement
-/// valide.
-fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
+/// valide, ou dans ce que l'import a lu d'un engagement importe (ce que les pieces de l'ancien logiciel disaient).
+fn contrats_de(ctx: &Contexte, p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
     let mut out = Vec::new();
+    for m in &p.importes {
+        for i in engagement::importe::du_mois(&ctx.racine, m).map_err(|x| erreur("ValueError", x))? {
+            let paies = i.paies();
+            let Some(paie) = paies.get(m) else { continue };
+            let brut = &i.objet().brut;
+            let lu = |o: Option<&serde_json::Map<String, Value>>, k: &str| o.and_then(|o| o.get(k)).filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default();
+            let cle = lu(Some(brut), "salarie");
+            let fiche = ctx.salarie(&cle).map_err(|x| erreur("ErreurOperation", x))?;
+            let imprime = paie.get("emploi_imprime").and_then(Value::as_object);
+            let emploi = match lu(imprime, "emploi") {
+                x if x.is_empty() => fiche_texte(&fiche, "emploi"),
+                x => x,
+            };
+            let objet = match lu(Some(paie), "numero_objet") {
+                x if x.is_empty() => lu(i.contrat(), "numero_objet"),
+                x => x,
+            };
+            out.push(ContratMois {
+                mois: m.clone(),
+                cle: fiche.get("_cle").map(valeur_en_texte).unwrap_or(cle),
+                salarie: qui(&fiche)?,
+                fiche,
+                contrat: lu(Some(brut), "numero"),
+                nature: droit::natures::nature(Some(&lu(i.contrat(), "nature"))).map(|n| n.libelle.clone()).unwrap_or_default(),
+                emploi,
+                spectacle: lu(Some(paie), "spectacle"),
+                objet,
+                debut: lu(Some(brut), "debut"),
+                fin: lu(Some(brut), "fin"),
+                brut: socle::num::decimal_lu(lu(Some(paie), "brut").trim()).map(eur2),
+            });
+        }
+    }
     for m in p.saisis() {
         for paie in lecture.paies(&m)?.iter() {
             let e = &paie.engagement;
@@ -84,12 +117,12 @@ fn contrats_de(p: &Periode, lecture: &mut Lecture) -> R<Vec<ContratMois>> {
     Ok(out)
 }
 
-/// `operations_etats.liste_des_contrats`.
+/// La liste des contrats.
 pub fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
     let mut avert = Vec::new();
     let mut lecture = Lecture::nouvelle(ctx);
-    let contrats = contrats_de(&p, &mut lecture)?;
+    let contrats = contrats_de(ctx, &p, &mut lecture)?;
     let mut lignes = Vec::new();
     for c in &contrats {
         let mut l = Ligne::nouvelle();
@@ -117,7 +150,7 @@ pub fn liste_des_contrats(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         col_t("fin", "Fin"),
         col_m("brut", "Brut du mois"),
     ];
-    t.sources = vec!["paies écrites des engagements validés".to_string()];
+    t.sources = vec!["paies écrites des engagements validés ; paies des engagements importés, telles que l'import les a lues".to_string()];
     finir(ctx, &mut t, Some(&p), "contrats", &d.format, d.ecrire)?;
     Ok(t)
 }
@@ -145,7 +178,7 @@ fn sexe(nir: Option<&Value>) -> &'static str {
     }
 }
 
-/// `operations_etats.registre_du_personnel` : une ligne par embauche, dans l'ordre des embauches, avec les mentions
+/// Une ligne par embauche, dans l'ordre des embauches, avec les mentions
 /// obligatoires. Un intermittent est embauche a chaque contrat : chaque CDDU est une entree et une sortie.
 pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let p = Periode::de(ctx, d, true)?;
@@ -153,7 +186,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut vus: BTreeSet<(String, String, String, String)> = BTreeSet::new();
     let mut lignes: Vec<Ligne> = Vec::new();
     let mut lecture = Lecture::nouvelle(ctx);
-    for c in contrats_de(&p, &mut lecture)? {
+    for c in contrats_de(ctx, &p, &mut lecture)? {
         // Un contrat qui deborde du mois apparait une fois par mois de paie : c'est UNE embauche.
         if !vus.insert((c.cle.clone(), c.contrat.clone(), c.debut.clone(), c.fin.clone())) {
             continue;
@@ -168,7 +201,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
         } else {
             socle::codification_ue::codification_ue(f)
         };
-        // LE PAYS, quand la fiche le porte (vagues 1j et 2h, reste R1 #147) : le registre dit la nationalite (C. trav.,
+        // LE PAYS, quand la fiche le porte : le registre dit la nationalite (C. trav.,
         // art. D1221-23, 1°), la categorie DSN la suit entre parentheses ; sans pays, la categorie seule.
         let pays = match texte(&["pays_nationalite"], "") {
             c if c.is_empty() => texte(&["pays_nationalite_hors_liste"], ""),
@@ -223,7 +256,7 @@ pub fn registre_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ============================================= 15. le fichier du personnel
 
-/// `operations_etats.fichier_du_personnel` : chaque fiche de salarie, coordonnees comprises -- ce que le comptable
+/// Chaque fiche de salarie, coordonnees comprises -- ce que le comptable
 /// demande a l'ouverture du dossier. Pas de periode : ce sont les fiches d'aujourd'hui.
 pub fn fichier_du_personnel(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     let mut fiches: Vec<(&String, &Value)> = ctx.salaries.iter().collect();
@@ -311,7 +344,7 @@ fn reponse(r: Option<&Value>) -> String {
     t.chars().take(160).collect()
 }
 
-/// `operations_etats.journal_des_declarations` : chaque acte qui a engage la compagnie -- DSN, DPAE, envois,
+/// Chaque acte qui a engage la compagnie -- DSN, DPAE, envois,
 /// signatures --, avec sa date, son mode, son issue et son fichier : la piste d'audit.
 pub fn journal_des_declarations(ctx: &Contexte, d: &Demande, journal: &[Value]) -> R<Tableau> {
     let p = Periode::de(ctx, d, false)?;

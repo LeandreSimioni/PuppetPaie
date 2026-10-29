@@ -1,13 +1,11 @@
 //! `moteur casc-regularise ANNEE --vire-le AAAA-MM-JJ --montant EUROS` : noter qu'une annee de CASC-SVP est regularisee, apres le
-//! virement (`moteur/commandes_exports.py`, `cmd_casc_regularise` ; `operations_casc.marquer_regularise`). Route `casc-regularise`.
+//! virement. Route `casc-regularise`.
 //! Rien ne part : c'est une ligne dans `config/casc-svp.json` ; l'envoi des courriels est `moteur casc-envoyer`.
 //!
-//! `qui` : `ligne de commande`, comme le Python.
+//! `qui` : `ligne de commande`.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : la date du virement et le montant s'ecrivaient tels quels, lisibles ou non (une
-//! date `hier`, un montant `abc` etaient notes, puis un `InvalidOperation` plantait le dossier suivant) ; une annee sans rien a
-//! regulariser (deja notee, ou aucune DSN deposee) s'ecrivait quand meme, avec zero mois. Ici : une phrase (`! ...`), code 2,
-//! et rien n'est ecrit.
+//! Une date du virement ou un montant illisibles (une date `hier`, un montant `abc`), une annee sans rien a regulariser
+//! (deja notee, ou aucune DSN deposee) : une phrase (`! ...`), code 2, et rien n'est ecrit.
 
 use serde_json::json;
 
@@ -47,10 +45,10 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         Ok(d) if d > socle::num::Decimal::ZERO => {}
         _ => return Err(refus(format!("--montant attend le montant vire, en euros (un nombre positif), recu {}.", socle::fichiers::repr(montant)))),
     }
-    // Rien a regulariser : le Python notait quand meme une ligne sans mois.
-    let r = declarations::casc_regularisation::regularisation(
+    // Rien a regulariser : aucune ligne sans mois ne s'ecrit.
+    let r = crate::import::casc::regularisation(
         &cadre.ctx,
-        &declarations::casc_regularisation::Demande { annee: Some(annee.to_string()), ..Default::default() },
+        &crate::import::casc::Demande { annee: Some(annee.to_string()), ..Default::default() },
     )?;
     if r.mois.is_empty() {
         return Err(refus(format!("Rien a regulariser pour {} (deja fait, ou aucune DSN deposee). Rien n'est note.", annee)));

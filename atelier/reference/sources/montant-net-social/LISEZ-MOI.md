@@ -305,3 +305,12 @@ texte n'interdit pas d'en dire plus). La CSG et la CRDS non déductibles restent
 Ce dossier est dans le dépôt public de PuppetPaie. Les originaux suivants, d'un organisme privé, n'y sont pas : seule leur transcription y est (`pdftotext -layout` pour un PDF, une feuille de calcul en CSV, feuille par feuille, le texte d'une page HTML), et c'est elle que citent les renvois. Les condensats donnés plus haut sont ceux des originaux, gardés dans le dépôt privé (`reference-privee/sources/montant-net-social/`).
 
 - `sage-bulletin-clarifie-2023-net-social-faq-boss.pdf` : transcription `sage-bulletin-clarifie-2023-net-social-faq-boss.txt`
+
+## Le modèle de l'arrêté, pour lire un bulletin importé (29/10/2026)
+
+Le lecteur des bulletins importés (`atelier/sources/moteur/src/import/bulletin_lu.rs`) range les rangs du tableau d'un bulletin,
+quel que soit le logiciel qui l'a fait, par les libellés du modèle de l'article 1, I (`LEGIARTI000049854119.xml`) : les
+familles (« Santé », « Retraite », « Famille », « Assurance chômage », « Autres contributions dues par l'employeur »…),
+le total des cotisations, le « Montant net social », le net avant impôt, l'impôt prélevé, le net imposable. Ces libellés,
+et ceux que les bulletins lus impriment à leur place, sont dans `logiciel/donnees/bulletins-lecture-base.json`
+(`familles`, `resumes`). Tests : `moteur/tests/fichiers/bulletin_lu.rs`.

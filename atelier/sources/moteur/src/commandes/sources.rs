@@ -1,9 +1,9 @@
 //! `moteur sources [--verifier] [--relever] [--json]` : d'ou viennent les donnees livrees, de quand elles datent, et -- avec
-//! `--verifier` -- si la source en ligne a bouge depuis qu'on l'a lue (`moteur/cli.py`, `cmd_sources`, retire au lot K ;
-//! le travail est dans `sources.rs` et `kali.rs`).
+//! `--verifier` -- si la source en ligne a bouge depuis qu'on l'a lue (le travail est dans
+//! `sources.rs` et `kali.rs`).
 //!
-//! UN OUTIL DE L'EDITEUR (Leandre, 11/10/2026 : lance avant chaque publication ; rien pour une compagnie, qui ne fait que
-//! recevoir la mise a jour signee). Il est dans le `moteur` livre, comme `moteur maj --publier`, parce que c'est ce
+//! UN OUTIL DE L'EDITEUR, lance avant chaque publication ; rien pour une compagnie, qui ne fait que recevoir la mise a
+//! jour signee. Il est dans le `moteur` livre, comme `moteur maj --publier`, parce que c'est ce
 //! programme-la que le poste de l'editeur fait tourner (il ne compile pas le Rust ; `moteur-atelier` n'est jamais livre),
 //! et il est refuse ailleurs que sur ce poste, de la meme facon que la publication (`maj::exiger_editeur` :
 //! le reglage de l'installation, `"editeur": true`, et jamais depuis une copie). CACHEE : elle n'apparait pas dans l'aide.
@@ -26,12 +26,12 @@ pub static SPEC: Spec = Spec {
 };
 
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
-    if let Err(m) = crate::maj::exiger_editeur(&cadre.racine, "la verification des sources") {
+    if let Err(m) = crate::atelier::publier::exiger_editeur(&cadre.racine, "la verification des sources") {
         eprintln!("{} La verification des sources est un outil de l'editeur, lance avant chaque publication.", m);
         return 1;
     }
     let code = cadre.ctx.code.clone();
-    let manifeste = match crate::sources::manifeste(&code) {
+    let manifeste = match crate::atelier::sources::manifeste(&code) {
         Ok(m) => m,
         Err(m) => {
             eprintln!("{}", m);
@@ -42,13 +42,13 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let relever = args.drapeau("relever");
     let verifier = args.drapeau("verifier") || relever;
     // Les copies sont les textes du logiciel, pas ceux d'une compagnie : elles vivent dans l'installation.
-    let installation = crate::maj::installation();
+    let installation = crate::compagnie::maj::installation();
     let liste = if verifier {
-        let mut tele = |u: &str| crate::sources::telecharger(u, 30);
-        let mut kali = |u: &str| crate::sources::telecharger(u, 60).map(|(o, _)| o);
-        crate::sources::verifier(&installation, &manifeste, &cadre.ctx.aujourdhui, &[], relever, &mut tele, &mut kali)
+        let mut tele = |u: &str| crate::atelier::sources::telecharger(u, 30);
+        let mut kali = |u: &str| crate::atelier::sources::telecharger(u, 60).map(|(o, _)| o);
+        crate::atelier::sources::verifier(&installation, &manifeste, &cadre.ctx.aujourdhui, &[], relever, &mut tele, &mut kali)
     } else {
-        crate::sources::etats(&installation, &manifeste, &cadre.ctx.aujourdhui)
+        crate::atelier::sources::etats(&installation, &manifeste, &cadre.ctx.aujourdhui)
     };
     let liste = match liste {
         Ok(l) => l,
@@ -76,9 +76,9 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         } else if e["copie_presente"] == json!(true) {
             "COPIE DIFFERENTE du manifeste".to_string()
         } else if e["transcription_presente"] == json!(true) {
-            format!("original hors du depot public, transcription : {}/{}", crate::sources::COPIES, s(e, "transcription"))
+            format!("original hors du depot public, transcription : {}/{}", crate::atelier::sources::COPIES, s(e, "transcription"))
         } else {
-            format!("copie absente ({}/{})", crate::sources::COPIES, s(e, "fichier"))
+            format!("copie absente ({}/{})", crate::atelier::sources::COPIES, s(e, "fichier"))
         };
         let nourrit: Vec<String> = e["nourrit"].as_array().into_iter().flatten().map(socle::valeur::valeur_en_texte).collect();
         dire!("   {} ; nourrit : {}", copie, if nourrit.is_empty() { "rien (verification)".to_string() } else { nourrit.join(", ") });

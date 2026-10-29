@@ -2,7 +2,7 @@
 
 Pour un développeur (ou une séance Claude dans le nuage) qui n'a pas les données de sa compagnie sur la machine, mais
 qui veut faire passer une DSN, un signalement ou une DPAE **en test** sur la vraie plate-forme — le seul validateur du
-projet (`atelier/CLAUDE.md`, règle 10). Lot E1, 15/10/2026 ; le code : `atelier/sources/moteur/src/essai.rs`.
+projet (`atelier/CLAUDE.md`, règle 10). Lot E1, 15/10/2026 ; le code : `atelier/sources/moteur/src/compagnie/essai.rs`.
 
 Pour développer et faire passer la suite de tests, **rien de tout cela n'est utile** : les tests tournent sur les
 compagnies fictives et de faux serveurs, sans aucune variable.

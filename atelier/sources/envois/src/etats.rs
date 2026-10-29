@@ -35,7 +35,7 @@ const CASC: &str = "regularisation-casc";
 const TEST: &str = "test";
 const NATURE_CERTIFICAT_DPAE: &str = "41";
 
-/// `dpae_api.NATURES` : les retours du canal DPAE.
+/// Les retours du canal DPAE.
 pub const NATURES_DPAE: [(&str, &str); 4] = [
     ("10", "avis de rejet du depot"),
     ("11", "certificat de conformite / bilan d'anomalies"),
@@ -393,7 +393,7 @@ pub fn embauches_par_depot(lignes: &[Value]) -> R<Dico<Value>> {
     Ok(d)
 }
 
-/// `journal.de_l_etablissement` : `principal` est le NIC de la fiche entreprise.
+/// `principal` est le NIC de la fiche entreprise.
 pub fn de_l_etablissement(lignes: &[Value], nic: &Value, principal: &str) -> R<Vec<Value>> {
     let voulu = if vrai(nic) { valeur_en_texte(nic) } else { principal.to_string() };
     let mut out = Vec::new();
@@ -1657,7 +1657,7 @@ fn incident(racine: &Path, ligne: &Value, r: &Value, verdict: &Value, contenus: 
     calcul().ok().flatten()
 }
 
-/// `journal.rattacher_retours` : le nombre ajoute ; les incidents a noter (dans
+/// Le nombre ajoute ; les incidents a noter (dans
 /// l'ordre) s'ajoutent a `incidents`, que l'appelant ecrit dans le journal des
 /// incidents, meme quand le rattachement s'arrete sur une erreur.
 fn rattacher_retours(racine: &Path, retours: &Value, contenus: &Dico<Vec<u8>>, incidents: &mut Vec<Value>) -> R<i64> {
@@ -1771,7 +1771,7 @@ pub fn rattacher_retours_ecrits(racine: &Path, retours: &Value) -> AvecIncidents
 
 // ----------------------------------------------------- le mois est-il parti ?
 
-/// `journal._nic_principal` : le NIC de la fiche entreprise, ou `""`.
+/// Le NIC de la fiche entreprise, ou `""`.
 pub fn nic_principal(entreprise: &Value) -> String {
     match entreprise.get("nic") {
         Some(v) if vrai(v) => valeur_en_texte(v),
@@ -1788,7 +1788,7 @@ pub fn dsn_du_mois(lignes: &[Value], entreprise: &Value, mois: &str) -> R<Value>
 // Les etats et resumes sur un journal invente (noms et numeros fictifs).
 // ------------------------------------------------------ le journal
 
-/// Le dernier contrat parti a la signature pour cette paie (`operations_documents.contrat_parti`) :
+/// Le dernier contrat parti a la signature pour cette paie :
 /// le mois, le numero, le fichier, la date d'envoi et, s'il est revenu, celle de la signature.
 /// Un avenant n'en est pas un.
 pub struct Parti {
@@ -1853,7 +1853,7 @@ pub fn contrat_parti(lignes: &[Value], salarie: &str, debut: &str, numero: Optio
     Ok(parti)
 }
 
-/// `operations_documents._chemin_piece` : le fichier d'une piece partie, dans `sorties/<mois>/` ou
+/// Le fichier d'une piece partie, dans `sorties/<mois>/` ou
 /// son `envoi/`. Un NOM, jamais un chemin : ce qui porte un separateur ne se resout pas.
 pub fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Option<PathBuf> {
     if !vrai(mois) || !vrai(fichier) {
@@ -1867,7 +1867,7 @@ pub fn chemin_piece(racine: &Path, mois: &Value, fichier: &Value) -> Option<Path
     [base.join("envoi").join(&nom), base.join(&nom)].into_iter().find(|f| f.is_file())
 }
 
-/// `operations_documents._avenants_du_contrat` : les avenants du contrat parti -- pas ceux d'un
+/// Les avenants du contrat parti -- pas ceux d'un
 /// contrat qu'il a remplace. `tous` : ce que `journal.avenants` dit pour cette paie (la liste, ou rien).
 pub fn avenants_du_contrat(tous: Option<&Value>, parti: &Parti) -> Vec<Value> {
     let depuis = if vrai(&parti.quand) { socle::date::en_texte(&parti.quand) } else { String::new() };

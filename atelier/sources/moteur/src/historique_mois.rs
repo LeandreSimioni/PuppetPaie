@@ -1,5 +1,5 @@
-//! `historique-mois` : tout ce qu'un mois a produit, envoye et recu, pour l'Historique (tickets #219, #220, #222 du
-//! depot prive ; Leandre, 20/10/2026 : « tous les envois et tous les retours se lisent dans l'onglet Historique »).
+//! `historique-mois` : tout ce qu'un mois a produit, envoye et recu, pour l'Historique : tous les envois et tous
+//! les retours se lisent dans l'onglet Historique.
 //!
 //! La page Paie est l'endroit ou l'on FAIT le mois ; l'Historique, celui ou l'on VOIT ce qu'il a donne. Cette route
 //! rend, pour un mois :
@@ -8,9 +8,9 @@
 //!   l'Historique : `crate::routes::ouverture::mois_connus`, `crate::routes::archives::documents_du_mois`), range
 //!   par sorte, chacun avec le chemin que `ouvrir-piece` ouvre ;
 //! - `envois` : chaque ligne du journal des depots du mois (DPAE, DSN, signalements, documents, contrats), TESTS
-//!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`,
-//!   PR #17), et ce qu'il a envoye se montre partout (Leandre, 20/10/2026 : « les gens ont besoin de tout savoir, le
-//!   logiciel doit etre d'une transparence totale, ce sont leurs infos, leurs tests ») ;
+//!   COMPRIS : le journal ne porte que ce que CE logiciel a envoye (un test d'ailleurs n'y entre pas, `reprise_journal`),
+//!   et ce qu'il a envoye se montre partout : le logiciel est d'une transparence totale, ce sont les informations et les
+//!   tests de la compagnie ;
 //! - sous chaque envoi, ses `retours` dans l'ordre d'arrivee, chacun LU : l'organisme, ce que dit son statut, et ce
 //!   que dit sa piece archivee (`lire_piece` : bilans harmonises, NEOReS, organismes complementaires, certificats DPAE,
 //!   AER). Le format de l'AGIRC-ARRCO, que personne ne publie, garde son statut et sa piece telle quelle.
@@ -375,7 +375,7 @@ fn lire_piece(o: &[u8], canal: &str, nature: &str, format: &str) -> Lecture {
             l.phrases.push(format!("{} taux de prélèvement à la source communiqué{}.", n, if n > 1 { "s" } else { "" }));
         }
         l.anomalies = r["anomalies"].as_array().cloned().unwrap_or_default();
-        // LE VERDICT EST CELUI DE LA PIECE (21/10/2026) : France Travail publie son compte rendu « cinéma, spectacle »
+        // LE VERDICT EST CELUI DE LA PIECE : France Travail publie son compte rendu « cinéma, spectacle »
         // (nature 45) toujours au statut ANOBLOQUANTE, même quand il ne relève rien (guide « De la DSN à l'attestation
         // employeur », v3.2, p. 10, dépose dans `net-entreprises-base-connaissances/`). Ce que dit la piece passe devant.
         let etats: Vec<String> = std::iter::once(valeur_en_texte(&r["etat_envoi"]))
@@ -724,7 +724,7 @@ fn retour_lu(racine: &Path, ligne: &Value, r: &Value) -> Value {
             if format == "aucun" {
                 phrases.push("Un accusé de réception, sans document : son statut dit tout.".into());
             } else if statut == "fictive" || statut == "demonstration" {
-                // Le retour d'un depot joue par une compagnie fictive (`crate::releve::rattacher_simulation`) : le
+                // Le retour d'un depot joue par une compagnie fictive (`crate::compagnie::releve::rattacher_simulation`) : le
                 // bilan est joue sans piece ; seule l'AER (nature 46) a la sienne, fabriquee (`aer_fictive`).
                 phrases.push("Compagnie fictive : ce retour est joué par le logiciel, sans pièce d'organisme.".into());
             } else {

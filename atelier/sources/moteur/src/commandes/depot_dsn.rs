@@ -1,6 +1,5 @@
 //! `moteur depot-dsn (FICHIER | AAAA-MM) (--test | --reel | --apercu) [--confirmer-mois AAAA-MM] [--force] [--sans-repetition MOTIF]
-//! [--environnement production|editeur] [--ordre N] [--fenetre]` : deposer une DSN sur net-entreprises (`moteur/commandes_dsn.py`,
-//! `cmd_depot_dsn`). La seule commande qui declare quelque chose avec `deposer-dpae`.
+//! [--environnement production|editeur] [--ordre N] [--fenetre]` : deposer une DSN sur net-entreprises. La seule commande qui declare quelque chose avec `deposer-dpae`.
 //! Un mois `AAAA-MM` a la place du fichier : la DSN du mois, fabriquee a son depot depuis ses engagements valides
 //! (`depart::fabriquer_dsn`).
 //!
@@ -17,23 +16,22 @@
 //! - un depot REEL n'est possible que sur `production` : la plate-forme `editeur` est un service d'essai, et le journal y
 //!   noterait comme declaree une DSN qui ne l'est pas (voir `depot_acte::deposer_dsn_dans`).
 //!
-//! - `--ordre N` (lot E1) : seulement avec `--test`, sur une mensuelle -- l'essai part en annule-et-remplace a l'ordre N au
+//! - `--ordre N` : seulement avec `--test`, sur une mensuelle -- l'essai part en annule-et-remplace a l'ordre N au
 //!   moins, quand la base d'essai a deja retenu des essais de ce SIRET pour ce mois que le journal de ce dossier ignore (un
 //!   autre poste, une compagnie d'essai). C'est le moteur qui refuse ailleurs (`depot_acte::deposer_dsn_dans`).
 //! - dans une COMPAGNIE D'ESSAI (`essai.rs`), l'aperçu ne montre pas le SIREN : c'est celui d'une vraie compagnie, venu de
 //!   `PUPPETPAIE_COMPAGNIE`, qui ne s'affiche pas.
 //!
-//! `qui` = `ligne de commande`, comme le Python. Pas de `--json` (le Python n'en a pas ici).
+//! `qui` = `ligne de commande`. Pas de `--json`.
 //!
-//! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : `--reel --environnement editeur` y partait et etait note au journal comme un depot
-//! reel ; un fichier illisible autre qu'`OSError` ou une panne hors `ErreurApi` y donnaient une trace. Ici : une phrase.
+//! Un fichier illisible, une panne : une phrase.
 
 use serde_json::{json, Value};
 
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
 use envois::depot::{self, Apercu};
-use crate::depot_acte::{self, DepotFait, Preuve};
+use crate::compagnie::depot_acte::{self, DepotFait, Preuve};
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
@@ -136,7 +134,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // UN MOIS (`AAAA-MM`) A LA PLACE D.UN FICHIER : la DSN du mois, fabriquee depuis ses engagements valides.
     let fabriquee;
     let fichier = if est_un_mois(fichier) {
-        let dsn = crate::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
+        let dsn = crate::compagnie::depart::fabriquer_dsn(&cadre.ctx, fichier, "cli")?;
         fabriquee = dsn.fichiers.first().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
         fabriquee.as_str()
     } else {
@@ -151,7 +149,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         }
     };
     let apercu = depot::lire(&octets);
-    let essai = crate::essai::est_essai(&cadre.racine);
+    let essai = crate::compagnie::essai::est_essai(&cadre.racine);
     let ordre = match args.texte("ordre").filter(|t| !t.is_empty()) {
         None => None,
         Some(t) => match t.trim().parse::<i64>() {
@@ -219,7 +217,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     Ok(0)
 }
 
-/// Les erreurs d'un depot, comme le Python les rend : une preuve ou un refus du point de depot -> `Refus :` (2) ; une erreur metier ->
+/// Les erreurs d'un depot : une preuve ou un refus du point de depot -> `Refus :` (2) ; une erreur metier ->
 /// sa phrase (2) ; le reste -> `Echec du depot` (1).
 fn refus_du_depot(e: &Echec) -> i32 {
     let phrase = super::actes::phrase(e);

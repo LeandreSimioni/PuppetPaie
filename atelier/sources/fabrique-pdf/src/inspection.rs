@@ -1,5 +1,5 @@
-//! `fabrique-pdf --inspecter a.pdf` : ce que les tests Python demandaient à PyMuPDF (`page.rect`,
-//! `search_for`, `get_drawings`, `get_image_bbox`, `get_fonts`, `doc.metadata`, `doc.permissions`),
+//! `fabrique-pdf --inspecter a.pdf` : ce qu'un test veut savoir d'un PDF (la page, les mots
+//! cherchés, les dessins, les images, les polices, les métadonnées, les permissions),
 //! en une ligne de JSON. Le relevé est fait par l'interpréteur de `texte.rs` (le même que pour
 //! `--texte` : mêmes lignes, mêmes mots), ici on le met en forme dans le repère de PyMuPDF
 //! (origine en haut à gauche de la page visible, y vers le bas). Voir FORMAT.md, « Inspecter un PDF ».

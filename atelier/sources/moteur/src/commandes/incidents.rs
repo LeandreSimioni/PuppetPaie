@@ -1,9 +1,9 @@
-//! `moteur incidents [--detail] [--quoi NATURE] [--json]` : le journal des incidents, en lecture
-//! (`moteur/commandes_incidents.py`). Les routes `incidents-lire` et `incidents-regrouper` font le travail.
+//! `moteur incidents [--detail] [--quoi NATURE] [--json]` : le journal des incidents, en lecture.
+//! Les routes `incidents-lire` et `incidents-regrouper` font le travail.
 //!
-//! `--envoyer` (deposer chez l'editeur, route `incidents-envoyer`) et `--oublier` (vider, route `incidents-oublier`) : lot J2b, theme 2.
-//! Ni l'un ni l'autre ne demande de mot de passe (le Python non plus) : le journal est deja caviarde par le moteur, `moteur route
-//! diagnostic-etat` montre exactement ce qui part, et l'ouverture le depose d'elle-meme. Pas de `--json` sur ces deux gestes (le Python n'en a pas).
+//! `--envoyer` (deposer chez l'editeur, route `incidents-envoyer`) et `--oublier` (vider, route `incidents-oublier`).
+//! Ni l'un ni l'autre ne demande de mot de passe : le journal est deja caviarde par le moteur, `moteur route
+//! diagnostic-etat` montre exactement ce qui part, et l'ouverture le depose d'elle-meme. Pas de `--json` sur ces deux gestes.
 
 use serde_json::{json, Value};
 

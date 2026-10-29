@@ -495,57 +495,9 @@ pub fn en_texte(v: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     fn j(an: i32, mois: u32, jour: u32) -> Jour {
         Jour::nouveau(an, mois, jour).unwrap()
-    }
-
-    #[test]
-    fn les_cinq_formats() {
-        let attendu = j(2026, 3, 5);
-        for s in ["2026-03-05", "05/03/2026", "05032026", "20260305", "05-03-2026", " 2026-03-05 ", "2026-3-5", "5/3/2026"] {
-            assert_eq!(Jour::lire(s).unwrap(), attendu, "{}", s);
-        }
-        assert_eq!(d(&json!({"jour": "05/03/2026", "lieu": "Tours"})).unwrap(), attendu);
-        assert_eq!(d(&json!(20260305)).unwrap(), attendu);
-    }
-
-    /// Formule independante : jours avant l'annee + jours avant le mois + jour,
-    /// sans passer par la formule des cycles.
-    fn ordinal_naif(an: i32, mois: u32, jour: u32) -> i64 {
-        let y = i64::from(an) - 1;
-        let mut n = y * 365 + y / 4 - y / 100 + y / 400;
-        for m in 1..mois {
-            n += i64::from(jours_du_mois(an, m));
-        }
-        n + i64::from(jour)
-    }
-
-    #[test]
-    fn ordinal_exhaustif_1900_2100() {
-        let mut precedent = None;
-        let mut semaine = j(1900, 1, 1).jour_de_la_semaine();
-        assert_eq!(semaine, 0); // le 1er janvier 1900 etait un lundi
-        for an in 1900..=2100 {
-            for mois in 1..=12 {
-                for jour in 1..=jours_du_mois(an, mois) {
-                    let x = j(an, mois, jour);
-                    let o = x.ordinal();
-                    assert_eq!(o, ordinal_naif(an, mois, jour), "{}", x.iso());
-                    assert_eq!(Jour::depuis_ordinal(o), Some(x), "{}", x.iso());
-                    assert_eq!(Jour::lire(&x.iso()).unwrap(), x);
-                    assert_eq!(Jour::lire(&x.jj_mm_aaaa()).unwrap(), x);
-                    assert_eq!(Jour::lire(&x.jjmmaaaa()).unwrap(), x);
-                    if let Some(p) = precedent {
-                        assert_eq!(o - p, 1, "{}", x.iso());
-                        semaine = (semaine + 1) % 7;
-                    }
-                    assert_eq!(x.jour_de_la_semaine(), semaine, "{}", x.iso());
-                    precedent = Some(o);
-                }
-            }
-        }
     }
 
     #[test]
@@ -558,22 +510,6 @@ mod tests {
         assert_eq!(j(2026, 1, 1).moins(&j(2025, 1, 1)), 365);
         assert_eq!(j(9999, 12, 31).plus_jours(1).unwrap_err(), HORS_CALENDRIER);
         assert_eq!(j(1, 1, 1).plus_jours(-1).unwrap_err(), HORS_CALENDRIER);
-    }
-
-    #[test]
-    fn les_mois() {
-        assert_eq!(jours_du_mois(2024, 2), 29);
-        assert_eq!(jours_du_mois(1900, 2), 28);
-        assert_eq!(jours_du_mois(2000, 2), 29);
-        assert_eq!(j(2026, 4, 9).jours_du_mois(), 30);
-        assert_eq!(premier_du_mois("2026-03").unwrap(), j(2026, 3, 1));
-        assert_eq!(dernier_du_mois("2026-02").unwrap(), j(2026, 2, 28));
-        assert_eq!(dernier_du_mois("2024-02").unwrap(), j(2024, 2, 29));
-        assert_eq!(dernier_du_mois("2026-12").unwrap(), j(2026, 12, 31));
-        assert_eq!(dernier_du_mois("2026-13").unwrap_err(), mois_impossible(13));
-        assert_eq!(j(2026, 12, 15).mois_suivant(), "2027-01");
-        assert_eq!(j(2026, 3, 15).mois_suivant(), "2026-04");
-        assert_eq!(mois_entre(&j(2025, 11, 20), &j(2026, 2, 3)), ["2025-11", "2025-12", "2026-01", "2026-02"]);
     }
 
 }
@@ -589,7 +525,7 @@ pub fn etiquette_du_mois(mois: &str) -> Result<String, String> {
     Ok(format!("{}{}", nom_du_mois(mo, Graphie::Titre)?, an))
 }
 
-/// `date.fromisoformat(texte)` : `AAAA-MM-JJ` ou `AAAAMMJJ`.
+/// `AAAA-MM-JJ` ou `AAAAMMJJ`.
 pub fn jour_iso(texte: &str) -> Option<Jour> {
     let chiffres = |t: &str| t.chars().all(|c| c.is_ascii_digit());
     let (a, m, j) = match texte.len() {

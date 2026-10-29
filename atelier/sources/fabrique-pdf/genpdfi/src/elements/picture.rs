@@ -11,7 +11,7 @@
 //! - les PNG avec canal alpha sont acceptés (masque de transparence) ;
 //! - les JPEG en niveaux de gris ou en couleurs sont recopiés tels quels dans le PDF (filtre
 //!   `DCTDecode`), sans décompression ;
-//! - une image plus fine que `RESOLUTION` à sa largeur posée y est ramenée (ticket #228) ;
+//! - une image plus fine que `RESOLUTION` à sa largeur posée y est ramenée ;
 //! - le SVG est posé en vectoriel (`printpdf::svg`, donc svg2pdf) ;
 //! - l'image qui ne tient pas dans la place restante passe à la page suivante.
 
@@ -112,7 +112,7 @@ impl Picture {
             return Err(invalid(format!("{} vide", name)));
         }
         // Une image plus fine que ce qui s'imprime est ramenée à `RESOLUTION` à sa largeur posée
-        // (ticket #228 : un logo de 1 200 pixels posé sur 26 mm pesait l'essentiel du bulletin).
+        // (un logo de 1 200 pixels posé sur 26 mm pesait l'essentiel du bulletin).
         // Les proportions posées sont celles de l'original : la réduction arrondit les pixels.
         let proportions = decoded.height() as f32 / decoded.width() as f32;
         let (decoded, reduite) = reduire(decoded, width);
@@ -310,7 +310,7 @@ impl Element for Picture {
 
 /// La résolution, en pixels par pouce, à laquelle une image est ramenée à sa largeur posée : celle
 /// de l'impression courante. Au-delà, les pixels ne s'impriment ni ne se voient, ils ne font que
-/// peser (ticket #228).
+/// peser.
 pub const RESOLUTION: f32 = 300.0;
 
 /// La qualité d'un JPEG réencodé après réduction (sur 100).

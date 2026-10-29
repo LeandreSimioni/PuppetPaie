@@ -12,8 +12,6 @@
   "commune": [{"valeur": "CLERMONT FERRAND"}],
   "commune_affichage": [{"valeur": "Clermont-Ferrand"}],
   "idcc": [{"valeur": "3090"}],
-  "code_convention_dsn": [{"valeur": "3090"}],
-  "convention_collective": [{"valeur": "Spectacle vivant du secteur privé"}],
   "annexe_convention": [{"valeur": "4"}],
   "urssaf_compte": [{"valeur": "1100000000"}],
   "code_urssaf": [{"valeur": "117"}],

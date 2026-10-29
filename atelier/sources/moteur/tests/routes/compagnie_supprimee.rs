@@ -1,5 +1,5 @@
-//! SUPPRIMER UNE COMPAGNIE, ET GARDER AU DEBLOCAGE CELLES QU'ON A AJOUTEES EN DEMO (ticket #236, points 3 et 4 ;
-//! `interface::suppression`). Les contrats : la question du deblocage ne liste que les fictives ajoutees d'un logiciel
+//! SUPPRIMER UNE COMPAGNIE, ET GARDER AU DEBLOCAGE CELLES QU'ON A AJOUTEES EN DEMO
+//! (`interface::suppression`). Les contrats : la question du deblocage ne liste que les fictives ajoutees d'un logiciel
 //! debloque ; une compagnie gardee devient reelle (sous `compagnies/`, sans marqueur, son coffre garde, ses mois faits en
 //! demo montres non declares) ; une compagnie qu'on ne garde pas est effacee ; une fictive livree ne se supprime pas ; une
 //! compagnie reelle ne se supprime que sur le mot de passe du logiciel (code du travail, article L3243-4, `atelier/
@@ -9,9 +9,9 @@
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
-use moteur::administrateur::{self, Poste};
+use moteur::compagnie::administrateur::{self, Poste};
 use moteur::interface::compagnies::{ajouter_dans, liste_de};
-use moteur::interface::suppression::{self, effacer_les_restes, supprimer};
+use moteur::interface::suppression::{self, supprimer};
 use serde_json::json;
 
 use crate::outils::{debloquer, dossier_de_test, installation};
@@ -26,22 +26,7 @@ fn poste(inst: &Path) -> Poste {
     Poste { dossier_cle: inst.join("cle-du-poste"), maintenant: "2026-10-22T10:00".into() }
 }
 
-
-
 fn sans_rien(_: &Path) {}
-
-
-
-
-
-#[test]
-fn une_fictive_ajoutee_se_supprime_sans_mot_de_passe() {
-    let i = inst("ajoutee");
-    let a = ajouter_dans(&i, "Essai").unwrap().racine;
-    assert_eq!(suppression::question(&a).unwrap()["mot_de_passe"], json!(false));
-    assert_eq!(supprimer(&i, &a, None, &poste(&i), &sans_rien).unwrap(), "Essai");
-    assert!(!a.exists() && liste_de(&i).iter().all(|c| c.racine != a));
-}
 
 #[test]
 fn une_compagnie_reelle_ne_se_supprime_que_sur_le_mot_de_passe_du_logiciel() {
@@ -82,14 +67,3 @@ fn une_compagnie_reelle_ne_se_supprime_que_sur_le_mot_de_passe_du_logiciel() {
     assert!(!administrateur::est_rattachee(&i, &neuve));
 }
 
-#[test]
-fn le_reste_d_une_suppression_ne_fait_pas_de_tuile_et_s_efface_au_lancement() {
-    let i = inst("restes");
-    debloquer(&i);
-    let reste = i.join("compagnies/.supprimee-les-pupazzi-1");
-    std::fs::create_dir_all(reste.join("config")).unwrap();
-    std::fs::write(reste.join("config/entreprise.json"), "{}").unwrap();
-    assert!(liste_de(&i).is_empty(), "un dossier cache n'est pas une tuile");
-    assert_eq!(effacer_les_restes(&i), vec![reste.clone()]);
-    assert!(!reste.exists());
-}

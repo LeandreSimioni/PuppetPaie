@@ -1,7 +1,7 @@
-//! Un serveur HTTP/1.1 minuscule, sur 127.0.0.1 seulement : ce que la fenetre de PuppetPaie interroge (`web.py`).
+//! Un serveur HTTP/1.1 minuscule, sur 127.0.0.1 seulement : ce que la fenetre de PuppetPaie interroge.
 //!
 //! Un fil par connexion, la connexion gardee ouverte (HTTP/1.1, `Content-Length` toujours pose) : en HTTP/1.0, Windows
-//! coupait parfois un gros envoi avant que la page l'ait lu (15/09/2026). Le serveur ne ferme jamais le premier.
+//! coupait parfois un gros envoi avant que la page l'ait lu. Le serveur ne ferme jamais le premier.
 
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -68,7 +68,7 @@ fn phrase(code: u16) -> &'static str {
 }
 
 /// `%xx` -> l'octet, `+` -> espace (comme `unquote_plus`). Un `%` que deux chiffres hexadecimaux ne suivent pas reste
-/// tel quel : `u8::from_str_radix` accepterait un signe (`%+1`), on ne lui donne que des chiffres (reste 143).
+/// tel quel : `u8::from_str_radix` accepterait un signe (`%+1`), on ne lui donne que des chiffres.
 pub fn decoder_pourcent(s: &str) -> String {
     let o = s.as_bytes();
     let mut v = Vec::with_capacity(o.len());
@@ -134,7 +134,7 @@ fn lire_requete(flux: &mut BufReader<TcpStream>) -> Option<Result<Requete, u16>>
     Some(Ok(Requete { methode, chemin: decoder_pourcent(chemin), params, entetes, corps }))
 }
 
-/// Une requete refusee avant d'etre lue (#141) : un corps JSON que la page sait lire (`d.erreur.message`), et non un
+/// Une requete refusee avant d'etre lue : un corps JSON que la page sait lire (`d.erreur.message`), et non un
 /// corps vide sur lequel `r.json()` levait une SyntaxError.
 fn refus_de_lecture(code: u16) -> Reponse {
     let message = match code {
@@ -160,7 +160,7 @@ fn ecrire_reponse(flux: &mut TcpStream, r: &Reponse) -> std::io::Result<()> {
         tete.push_str(&format!("{}: {}\r\n", k, v));
     }
     tete.push_str("\r\n");
-    // UNE SEULE ECRITURE, SANS NAGLE (ticket #244) : la tete puis le corps en deux `write`, puis la lecture de la requete
+    // UNE SEULE ECRITURE, SANS NAGLE : la tete puis le corps en deux `write`, puis la lecture de la requete
     // suivante, c'est le motif ou le reste du corps attend l'accuse de reception de la tete, que l'autre bout differe
     // (jusqu'a 200 ms sous Windows ; sous Linux, en boucle locale, l'accuse part aussitot et rien ne se mesure). Tout part
     // d'un coup, sans attente (`servir_connexion` : `set_nodelay`).

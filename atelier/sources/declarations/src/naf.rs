@@ -1,4 +1,4 @@
-//! Le code APE (NAF) de la fiche entreprise, en NAF rev. 2 ou en NAF 2025 (11/10/2026).
+//! Le code APE (NAF) de la fiche entreprise, en NAF rev. 2 ou en NAF 2025.
 //!
 //! La NAF 2025 « entre en vigueur le 1er janvier 2027 » et remplace la NAF rev. 2 a la meme date (decret n° 2025-736 du
 //! 31/07/2025, art. 2 et 6 ; `atelier/reference/sources/insee-naf-2025/legifrance-decret-2025-736-naf-2025-20250731.txt`).

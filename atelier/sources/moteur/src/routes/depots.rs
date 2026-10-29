@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::depot_acte::{self, phrase_de, Preuve};
+use crate::compagnie::depot_acte::{self, phrase_de, Preuve};
 use declarations::dpae::{Chemins, Embauche, Parametres};
 use droit::contexte::Contexte;
 use engagement::calcul::Paie;
@@ -39,7 +39,7 @@ pub fn route(_o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &V
         "suivre-depot" => suivre_depot(ctx, charge),
         "bilan-repetition" => bilan_repetition(ctx, charge),
         "filet-preparer" => filet_preparer(ctx, charge),
-        "dsn-a-deposer" => crate::depart::dsn_a_deposer(ctx, charge),
+        "dsn-a-deposer" => crate::compagnie::depart::dsn_a_deposer(ctx, charge),
         autre => Err(Echec::from(format!("route inconnue : {}", autre))),
     }
 }
@@ -174,7 +174,7 @@ fn latin1(octets: &[u8]) -> String {
     octets.iter().map(|&o| o as char).collect()
 }
 
-/// `urssaf.pour_entreprise` : le code Urssaf que la DPAE de cette compagnie porte.
+/// Le code Urssaf que la DPAE de cette compagnie porte.
 fn code_urssaf(ent: &Value) -> R<String> {
     let ecrit = ent.get("code_urssaf").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let ecrit = ecrit.trim();
@@ -206,7 +206,7 @@ struct Amorcage {
 /// Un fichier de signalement par individu dont le taux manque (le travail est
 /// celui de `amorcage_demande`, que `moteur pas --demander` generalise). L'echec (quel qu'il soit) est celui que la DPAE ecarte.
 fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution: Jour, ecrits: &mut Vec<PathBuf>) -> Result<Amorcage, String> {
-    let demande = crate::amorcage_demande::Demande {
+    let demande = crate::compagnie::amorcage_demande::Demande {
         motif: declarations::amorcage::EMBAUCHE,
         mois,
         salaries: None,
@@ -214,7 +214,7 @@ fn produire_amorcage(ctx: &Contexte, mois: &str, retenues: &[Paie], constitution
         forcer: false,
         constitution,
     };
-    let lot = crate::amorcage_demande::produire(ctx, retenues, &demande, ecrits)?;
+    let lot = crate::compagnie::amorcage_demande::produire(ctx, retenues, &demande, ecrits)?;
     Ok(Amorcage { fichiers: lot.fichiers, lignes: lot.lignes.iter().map(|l| (l.salarie.clone(), l.libelle.clone())).collect() })
 }
 
@@ -224,9 +224,9 @@ fn fichier_json(f: &Path) -> Value {
     json!({"nom": f.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(), "chemin": f.to_string_lossy(), "octets": octets})
 }
 
-/// La DPAE seule, due AVANT le premier jour travaille.
-/// Tout le mois, ou une sélection d embauches (`paies`) dans un fichier horodate a cote du complet. `forcer` : reecrire meme
-/// une embauche deja declaree (un depot rejete, a refaire).
+/// La DPAE, due AVANT le premier jour travaille : tout le mois, ou les engagements choisis (`engagements` : une liste de
+/// `{salarie, debut}`) dans un fichier horodate a cote du complet. `forcer` : reecrire meme une embauche deja declaree (un
+/// depot rejete, a refaire).
 pub(crate) fn dpae(ctx: &Contexte, charge: &Value) -> R<Value> {
     dpae_detail(ctx, charge).map(|(v, _, _)| v)
 }
@@ -237,7 +237,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
     let forcer = charge.get("forcer").is_some_and(vrai);
     let mois_demande = texte_requis(charge, "mois")?;
     let heure: Value = charge.get("heure").cloned().unwrap_or_else(|| json!("0800"));
-    let selection: Option<&Vec<Value>> = match charge.get("paies") {
+    let selection: Option<&Vec<Value>> = match charge.get("engagements") {
         None | Some(Value::Null) => None,
         Some(Value::Array(a)) => Some(a),
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("une liste", socle::valeur::nom_type(autre)))),
@@ -424,7 +424,7 @@ pub(crate) fn dpae_detail(ctx: &Contexte, charge: &Value) -> R<(Value, Option<Ve
             let cible = sortie.join(format!("DPAE_{}{}.txt", etiq, marque));
             let h = horodatage(&maintenant_iso());
             declarations::dpae::ecrire(&embauches, &cible, &parametres_de(&h, &heure_texte, &code, &ent, &chemins), true).map_err(plain)?;
-            crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
+            crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
             let pour_recap: Vec<Embauche> = retenues.iter().map(|p| embauche_dpae(p, true)).collect();
             ecrire_texte(&recap, &declarations::dpae::recapitulatif(&pour_recap, &heure).map_err(plain)?)?;
             cible
@@ -559,7 +559,7 @@ fn deposer(ctx: &Contexte, charge: &Value) -> R<Value> {
     let fabriquee;
     let fichier = match (charge.get("fichier").filter(|f| vrai(f)), charge.get("mois").filter(|m| vrai(m))) {
         (None, Some(mois)) if etats::est(quoi, "dsn") => {
-            let dsn = crate::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
+            let dsn = crate::compagnie::depart::fabriquer_dsn(ctx, &valeur_en_texte(mois), "interface")?;
             let nic = charge.get("etablissement").filter(|n| vrai(n)).map(valeur_en_texte);
             let chemin = match nic {
                 Some(n) => dsn.fichiers.iter().find(|f| f.file_name().is_some_and(|x| x.to_string_lossy().contains(&format!("_{}", n)))),
@@ -595,9 +595,9 @@ fn suivre_depot(ctx: &Contexte, charge: &Value) -> R<Value> {
     let dpae = etats::est(quoi, "dpae");
     let (debut, fin) = releve_retours::derniere_journee();
     let releve = if dpae {
-        crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
+        crate::compagnie::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
     } else {
-        crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
+        crate::compagnie::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
     };
     let incident = match releve {
         Ok(r) => releve_retours::incidents_en_phrase(&r),
@@ -649,9 +649,9 @@ fn bilan_repetition(ctx: &Contexte, charge: &Value) -> R<Value> {
         let quoi = requis(charge, "quoi")?;
         let releve = if etats::est(quoi, "dpae") {
             let flux = r["conforme"].get("flux").filter(|f| vrai(f)).map(valeur_en_texte).unwrap_or_default();
-            crate::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
+            crate::compagnie::releve::relever_retours_dpae(ctx, debut, fin, false, &flux)
         } else {
-            crate::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
+            crate::compagnie::releve::relever_retours(ctx, debut, fin, false, "production", None, "")
         };
         let incident = match releve {
             Ok(rel) => releve_retours::incidents_en_phrase(&rel),
@@ -681,7 +681,7 @@ pub(crate) fn filet_preparer(ctx: &Contexte, charge: &Value) -> R<Value> {
 }
 
 /// `filet_preparer` avec, au besoin, le client Urssaf que l'appelant donne pour le test automatique des DPAE (la preuve de
-/// l'ouverture, lot I2b : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
+/// l'ouverture : un client pointe sur un serveur local). Un client donne n'est jamais confronte au coffre.
 pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Option<&mut envois::releve_retours::Client>) -> R<Value> {
     let tester = charge.get("tester").map_or(true, vrai);
     let qui = charge.get("qui").filter(|q| vrai(q)).map(valeur_en_texte).unwrap_or_else(|| "filet".into());
@@ -691,11 +691,11 @@ pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Op
     };
     let mut bilan_testees: Vec<Value> = Vec::new();
     let mut bilan_incidents: Vec<Value> = Vec::new();
-    let suivies = crate::filet::suivies(ctx)?;
+    let suivies = crate::compagnie::filet::suivies(ctx)?;
     let mut demande = Map::new();
     demande.insert("maintenant".into(), json!(maintenant_iso));
     if tester {
-        let etat = crate::filet::lire_etat(&ctx.racine)?;
+        let etat = crate::compagnie::filet::lire_etat(&ctx.racine)?;
         if let Some(tests) = tester_les_dpae(ctx, &etat, &suivies, &maintenant_iso, &qui, &mut bilan_testees, &mut bilan_incidents, client.as_deref_mut())? {
             demande.insert("tests".into(), tests);
             demande.insert(
@@ -705,7 +705,7 @@ pub(crate) fn filet_preparer_avec(ctx: &Contexte, charge: &Value, mut client: Op
         }
     }
     let champ = |k: &str| demande.get(k).cloned().unwrap_or(Value::Null);
-    match crate::filet::passage(ctx, &champ("tests"), &champ("vivantes"), &champ("maintenant")) {
+    match crate::compagnie::filet::passage(ctx, &champ("tests"), &champ("vivantes"), &champ("maintenant")) {
         Ok(passage) => {
             if let Some(i) = passage.get("incidents").and_then(Value::as_array) {
                 bilan_incidents.extend(i.iter().cloned());
@@ -741,11 +741,11 @@ fn tester_les_dpae(
     mut client: Option<&mut envois::releve_retours::Client>,
 ) -> R<Option<Value>> {
     // La copie de developpement ne teste pas d'elle-meme ; sans le mot de passe Urssaf, rien ne part. LA
-    // COMPAGNIE FICTIVE, elle, teste (27/09/2026) : son depot est joue.
+    // COMPAGNIE FICTIVE, elle, teste : son depot est joue.
     // Un client donne (la preuve) tient lieu du mot de passe : le coffre n'est pas confronte.
-    if !crate::bridage::branchement(&ctx.racine).joue() {
+    if !crate::compagnie::bridage::branchement(&ctx.racine).joue() {
         let copie = ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file();
-        let dispo = client.is_some() || crate::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes::vers_route)?;
+        let dispo = client.is_some() || crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "").disponible("urssaf").map_err(crate::routes::vers_route)?;
         if copie || !dispo {
             return Ok(None);
         }
@@ -757,7 +757,7 @@ fn tester_les_dpae(
     let deja = etat.get("tests").cloned().unwrap_or_else(|| json!({}));
     for e in suivies {
         let (salarie, debut) = (valeur_en_texte(&e["salarie"]), valeur_en_texte(&e["debut"]));
-        if !vrai(&e["contrat_parti"]) || debut < aujourdhui {
+        if !vrai(&e["valide"]) || debut < aujourdhui {
             continue;
         }
         if let Some(t) = deja.get(cle_du_test(&salarie, &debut)).filter(|t| vrai(t)) {
@@ -785,7 +785,7 @@ fn tester_les_dpae(
         let mut fichier: Option<String> = None;
         let mut erreur_texte = String::new();
         let mut essai = |fichier: &mut Option<String>| -> R<()> {
-            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "paies": selection}))?;
+            let r = crate::routes::depots::dpae(ctx, &json!({"mois": mois, "engagements": selection}))?;
             let f = r["fichiers"][0]["chemin"].as_str().unwrap_or("").to_string();
             // Le fichier est note des qu'il est ecrit : un depot qui echoue garde sa trace (`fichier = r.fichiers[0]`).
             *fichier = Some(f.clone());
@@ -891,7 +891,7 @@ fn existe(t: &str) -> bool {
     !t.contains('\0') && Path::new(t).exists()
 }
 
-/// `contexte.resoudre(chemin, racine)` : un chemin tape a la main, tel quel
+/// Un chemin tape a la main, tel quel
 /// s'il existe, sinon sous les donnees, un mois nu designant sa saisie. Rend
 /// le texte du chemin, ecrit comme `str(Path)`.
 pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
@@ -904,7 +904,7 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
         return Err(erreur("FileNotFoundError", "Aucun fichier indique."));
     }
     let Value::String(t) = chemin else {
-        return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(chemin))));
+        return Err(erreur("TypeError", socle::fichiers::attendu("un chemin en texte", nom_type(chemin))));
     };
     let p = normaliser(t);
     if existe(&p) || p.starts_with('/') {
@@ -930,7 +930,7 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
     Ok(p)
 }
 
-/// `journal.empreinte(Path)` : `read_bytes`, l'erreur du disque sous sa classe.
+/// `read_bytes`, l'erreur du disque sous sa classe.
 fn empreinte_du_fichier(chemin: &str) -> R<String> {
     if chemin.contains('\0') {
         return Err(erreur("ValueError", "embedded null byte"));
@@ -954,15 +954,15 @@ pub(crate) fn lire_octets(chemin: &str) -> R<Vec<u8>> {
     std::fs::read(p).map_err(|e| erreur_io(&e, p))
 }
 
-/// `str.isdigit()` sur un caractere du latin-1 : les chiffres, et `²`, `³`, `¹`.
-fn chiffre_py(c: char) -> bool {
+/// Un chiffre du latin-1 : les chiffres, et les exposants `²`, `³`, `¹`.
+fn chiffre_du_latin1(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}')
 }
 
 /// Un jour JJ/MM/AAAA en ISO.
 fn iso_depuis_jjmmaaaa(v: &str) -> String {
     let t: Vec<char> = v.trim_matches(socle::texte::blanc).chars().collect();
-    if t.len() != 8 || !t.iter().all(|c| chiffre_py(*c)) {
+    if t.len() != 8 || !t.iter().all(|c| chiffre_du_latin1(*c)) {
         return String::new();
     }
     let s = |a: usize, b: usize| t[a..b].iter().collect::<String>();

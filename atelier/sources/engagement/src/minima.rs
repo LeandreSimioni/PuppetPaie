@@ -131,28 +131,6 @@ fn permanent(paie: &Paie) -> bool {
     paie.engagement.nat().map_or(false, |n| n.mensuelle())
 }
 
-/// La convention dont ce contrat lit les minima : celle de l'entreprise, sauf l'artiste d'une emission de television
-/// (`emission_tv_1734`) d'une entreprise 2642 ou 3241, qui lit la 1734.
-fn idcc_du_contrat(ent: &Value, paie: &Paie) -> Resultat<String> {
-    let idcc = texte_de(ent, "idcc");
-    if (idcc != "2642" && idcc != "3241") || !vrai(g(&paie.spectacle, "emission_tv_1734")) {
-        return Ok(idcc);
-    }
-    let statut = match g(&paie.salarie, "statut") {
-        s if vrai(s) => en_texte(s),
-        _ => "artiste".into(),
-    };
-    if statut != "artiste" {
-        return Ok(idcc);
-    }
-    let code = texte_de(&paie.salarie, "code_emploi_ft");
-    let m = if code.is_empty() { None } else { emplois::metier(&code)? };
-    match m.as_ref().and_then(|m| m.get("famille")) {
-        Some(f) if matches!(en_texte(f).as_str(), "Artistes" | "Cirque et rue") => Ok("1734".into()),
-        _ => Ok(idcc),
-    }
-}
-
 // ------------------------------------------------------------------ les planchers
 
 /// `ne["texte"].split(",")[0]`.
@@ -252,7 +230,7 @@ impl<'a> Cx<'a> {
                     return Ok(plancher(
                         montant,
                         format!(
-                            "CCNEAC (1285), {} -- {}, que la compagnie doit comme adherente de {}",
+                            "CCNEAC (1285), {} -- {}, que la compagnie doit comme adhérente de {}",
                             en_texte(cle(grille, "libelle")?),
                             premiere_partie(ne)?,
                             self.organisation.clone().unwrap_or_default()
@@ -278,7 +256,7 @@ impl<'a> Cx<'a> {
                         return Ok(plancher(
                             dec(cle(p, "service")?)?,
                             format!(
-                                "CCNEAC (1285), service de repetition, {} -- {}, que la compagnie doit comme adherente de {}",
+                                "CCNEAC (1285), service de répétition, {} -- {}, que la compagnie doit comme adhérente de {}",
                                 en_texte(cle(p, "libelle")?),
                                 premiere_partie(ne)?,
                                 self.organisation.clone().unwrap_or_default()
@@ -303,7 +281,7 @@ impl<'a> Cx<'a> {
                 }
                 Ok(plus_bas(candidats, |x| x.0).map(|(montant, annexe)| Plancher {
                     montant,
-                    quoi: format!("CCN 3090, annexe {}, services de repetition (taux horaire)", annexe),
+                    quoi: format!("CCN 3090, annexe {}, services de répétition (taux horaire)", annexe),
                     unite: false,
                 }))
             }
@@ -318,11 +296,11 @@ impl<'a> Cx<'a> {
         if !v.is_empty() && v.bytes().all(|c| c.is_ascii_digit()) {
             if let Ok(n) = v.parse::<usize>() {
                 if (1..=12).contains(&n) {
-                    return (n, format!("echelon {} de la fiche", v));
+                    return (n, format!("échelon {} de la fiche", v));
                 }
             }
         }
-        (1, "echelon 1, la fiche ne disant pas le sien (`echelon_ccneac`)".into())
+        (1, "échelon 1, la fiche ne disant pas le sien (`echelon_ccneac`)".into())
     }
 
     /// Le taux horaire minimum d'un emploi autre qu'artistique de la CCNEAC.
@@ -343,7 +321,7 @@ impl<'a> Cx<'a> {
         Ok(plancher(
             dec_f64(horaire)?,
             format!(
-                "CCNEAC (1285), groupe {} ({}), {} : {} EUR pour 151 h 40, ramenes a l'heure",
+                "CCNEAC (1285), groupe {} ({}), {} : {} EUR pour 151 h 40, ramenés à l'heure",
                 groupe,
                 texte_de(g(self.m, "classification_1285"), "emploi_xi3"),
                 d_ou,
@@ -375,7 +353,7 @@ impl<'a> Cx<'a> {
             return Ok(plancher(
                 h,
                 format!(
-                    "CCN 2642, {} en CDI ou CDD de droit commun : {} EUR par mois pour 35 h, ramenes a l'heure sur 151,67 h",
+                    "CCN 2642, {} en CDI ou CDD de droit commun : {} EUR par mois pour 35 h, ramenés à l'heure sur 151,67 h",
                     fonction,
                     euros(m)
                 ),
@@ -399,14 +377,14 @@ impl<'a> Cx<'a> {
         };
         let jours = jours_du_contrat(&self.paie.engagement);
         let (h, regle) = match jours {
-            Some(j) if j <= 4 => (div(semaine, d("31.5")?), "contrat de 4 jours ou moins : la semaine / 4,5 par journee de 7 h"),
+            Some(j) if j <= 4 => (div(semaine, d("31.5")?), "contrat de 4 jours ou moins : la semaine / 4,5 par journée de 7 h"),
             Some(j) if j >= 89 => {
                 let mensuel = mul(semaine, d("3.8")?);
                 let smic = mul(mul(dec_f64(self.paie.smic)?, d("151.67")?), d("1.3")?);
                 let mensuel = if smic > mensuel { smic } else { mensuel };
                 (div(mensuel, d("151.67")?), "contrat de 3 mois ou plus : la semaine x 3,8 par mois de 151,67 h, pas moins de 130 % du SMIC")
             }
-            None => (div(mul(semaine, d("3.8")?), d("151.67")?), "duree du contrat inconnue : la base mensuelle, la plus basse"),
+            None => (div(mul(semaine, d("3.8")?), d("151.67")?), "durée du contrat inconnue : la base mensuelle, la plus basse"),
             Some(_) => (div(semaine, d("35")?), "la semaine de 35 h"),
         };
         Ok(plancher(
@@ -441,7 +419,7 @@ impl<'a> Cx<'a> {
                 return Ok(plancher(
                     bas(div(mensuel, d("151.67")?)),
                     format!(
-                        "CCN 3097, titre IV, {} ({}) : {} EUR par mois, salaire de base sans les complements, ramene a l'heure sur 151,67 h",
+                        "CCN 3097, titre IV, {} ({}) : {} EUR par mois, salaire de base sans les compléments, ramené à l'heure sur 151,67 h",
                         en_texte(emploi),
                         niveau.replace('_', " "),
                         euros(mensuel)
@@ -467,10 +445,10 @@ impl<'a> Cx<'a> {
                 if semaine > socle {
                     semaine = add(socle, div(mul(sub(semaine, socle), dec(cle(a, "part_au_dela")?)?), Decimal::ONE_HUNDRED));
                 }
-                dit = format!("film sous derogation de l'annexe III : {} EUR la semaine de 39 h", euros(bas(semaine)));
+                dit = format!("film sous dérogation de l'annexe III : {} EUR la semaine de 39 h", euros(bas(semaine)));
             }
             let h = bas(div(semaine, dec(cle(c, "_heures_payees_de_la_semaine")?)?));
-            return Ok(plancher(h, format!("CCN 3097, {} : {}, soit 40 h au taux de base (35 h + 4 h a 125 %)", fonction, dit)));
+            return Ok(plancher(h, format!("CCN 3097, {} : {}, soit 40 h au taux de base (35 h + 4 h à 125 %)", fonction, dit)));
         }
         if statut == "artiste" && cachet(&ligne.code) {
             let r = g(g(self.m, "minima"), "3097");
@@ -486,20 +464,20 @@ impl<'a> Cx<'a> {
                 } else {
                     " (le plus bas : la fiche du spectacle ne dit pas le format, `format_cinema`)".into()
                 };
-                (cle(cle(c, "artistes")?, cl)?, format!("artiste-interprete, {}-metrage{}", cl, sous))
+                (cle(cle(c, "artistes")?, cl)?, format!("artiste-interprète, {}-métrage{}", cl, sous))
             } else {
                 let complement = cle(c, "complement")?;
                 if fmt != "long" || complement.get(&reference).is_none() {
                     return Ok(None);
                 }
-                (cle(complement, &reference)?, format!("acteur de complement ({}), long-metrage", reference.replace('_', " ")))
+                (cle(complement, &reference)?, format!("acteur de complément ({}), long-métrage", reference.replace('_', " ")))
             };
             let (montant, regle) = if self.nb_cachets >= 5 {
                 let s5 = div(dec(cle(grille, "semaine_5j")?)?, Decimal::from(5));
                 let s6 = div(dec(cle(grille, "semaine_6j")?)?, Decimal::from(6));
-                (bas(if s6 < s5 { s6 } else { s5 }), "engagement a la semaine, rapporte au cachet")
+                (bas(if s6 < s5 { s6 } else { s5 }), "engagement à la semaine, rapporté au cachet")
             } else {
-                (dec(cle(grille, "journee")?)?, "engagement a la journee")
+                (dec(cle(grille, "journee")?)?, "engagement à la journée")
             };
             return Ok(plancher(montant, format!("CCN 3097, titre III, {}, {}", quoi, regle)));
         }
@@ -702,7 +680,7 @@ impl<'a> Cx<'a> {
                 let par = match unite.as_str() {
                     "mois" => "par mois",
                     "semaine" => "la semaine",
-                    "jour" => "la journee",
+                    "jour" => "la journée",
                     autre => return Err(format!("unité inconnue : {}", repr_texte(autre))),
                 };
                 trouves.push(Plancher {
@@ -727,13 +705,13 @@ impl<'a> Cx<'a> {
                 let par = match unite.as_str() {
                     "mois" => "par mois",
                     "semaine" => "la semaine",
-                    "jour" => "la journee",
+                    "jour" => "la journée",
                     "heure" => "de l'heure",
                     autre => return Err(format!("unité inconnue : {}", repr_texte(autre))),
                 };
                 trouves.push(Plancher {
                     montant: h,
-                    quoi: format!("CCN {}, {}, {} : {} EUR {}, pour {} h, ramene a l'heure", idcc, nom, dit, euros(montant), par, heures_texte(heures)),
+                    quoi: format!("CCN {}, {}, {} : {} EUR {}, pour {} h, ramené à l'heure", idcc, nom, dit, euros(montant), par, heures_texte(heures)),
                     unite: false,
                 });
             }
@@ -747,14 +725,14 @@ impl<'a> Cx<'a> {
         let depuis: String = texte_de(self.sal, "poste_depuis").chars().take(10).collect();
         let jour = jour_de_paie(self.paie);
         let Some(jour) = jour.filter(|_| !depuis.is_empty()) else {
-            return Ok((1, "echelon 1, la fiche ne disant pas depuis quand (`poste_depuis`)".into()));
+            return Ok((1, "échelon 1, la fiche ne disant pas depuis quand (`poste_depuis`)".into()));
         };
         let veille = iso(&jour).ok_or("date illisible")?.plus_jours(-1)?.iso();
         let Some(ans) = ans_revolus(&Value::String(depuis.clone()), Some(&veille)) else {
-            return Ok((1, "echelon 1, `poste_depuis` illisible".into()));
+            return Ok((1, "échelon 1, `poste_depuis` illisible".into()));
         };
         let e = (ans.div_euclid(5) + 1).clamp(1, 5) as usize;
-        Ok((e, format!("echelon {}, dans la fonction depuis le {}", e, Jour::lire(&depuis)?.jj_mm_aaaa())))
+        Ok((e, format!("échelon {}, dans la fonction depuis le {}", e, Jour::lire(&depuis)?.jj_mm_aaaa())))
     }
 
     /// Le taux horaire minimum d'un technicien, par son niveau 3090 ou son
@@ -785,13 +763,13 @@ impl<'a> Cx<'a> {
             }
             let montant = valeurs.get(echelon.min(valeurs.len()) - 1).ok_or_else(|| socle::fichiers::trop_courte(&format!("l'échelon {} du niveau {}", echelon, niveau)))?.as_f64().ok_or("nombre attendu")?;
             if valeurs.len() == 1 {
-                d_ou = "sans echelon".into();
+                d_ou = "sans échelon".into();
             }
             let horaire = arrondi2(montant / 151.67);
             return Ok(plancher(
                 dec_f64(horaire)?,
                 format!(
-                    "CCN 3090, grille administrative, {}, {} : {} EUR par mois ramenes a l'heure sur 151,67 h",
+                    "CCN 3090, grille administrative, {}, {} : {} EUR par mois ramenés à l'heure sur 151,67 h",
                     niveau.replace('_', " "),
                     d_ou,
                     euros_f(montant)
@@ -824,7 +802,7 @@ impl<'a> Cx<'a> {
                 "CCN 3090, {}, taux horaire {}{}",
                 ou,
                 niveau.replace('_', " "),
-                if mensuel { " (le mensuel pour 151,67 h, ramene a l'heure)" } else { "" }
+                if mensuel { " (le mensuel pour 151,67 h, ramené à l'heure)" } else { "" }
             ),
         ))
     }
@@ -888,11 +866,11 @@ impl<'a> Cx<'a> {
             let sorte = sorte.split('.').next().unwrap_or("");
             let musicien = sorte == "musicien" || sorte == "chef_orchestre";
             if musicien && r.get("service_musicien").is_some() {
-                trouves.push((dec(&r["service_musicien"])?, annexe, false, "service de repetition d'un musicien"));
+                trouves.push((dec(&r["service_musicien"])?, annexe, false, "service de répétition d'un musicien"));
             } else if !musicien && r.get("heure").is_some() {
-                trouves.push((dec(&r["heure"])?, annexe, true, "services de repetition (taux horaire)"));
+                trouves.push((dec(&r["heure"])?, annexe, true, "services de répétition (taux horaire)"));
             } else if r.get("service_isole").is_some() && par_jour.map_or(false, |p| p <= Decimal::ONE) {
-                trouves.push((dec(&r["service_isole"])?, annexe, false, "service isole de repetition"));
+                trouves.push((dec(&r["service_isole"])?, annexe, false, "service isolé de répétition"));
             } else {
                 return Ok(None); // une annexe candidate sans minimum : on se tait
             }
@@ -923,7 +901,7 @@ fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
     Avis {
         info: true,
         texte: format!(
-            "{} Nous avons pu passer a cote d'un cas qui change ce minimum : verifiez-le sur le texte de la convention{}.",
+            "{} Nous avons pu passer à côté d'un cas qui change ce minimum : vérifiez-le sur le texte de la convention{}.",
             phrase, lien
         ),
     }
@@ -934,7 +912,7 @@ fn a_verifier(t: &Value, idcc: &str, phrase: String) -> Avis {
 /// quand la table ne connait pas la convention ou que la fiche ne dit pas de metier connu.
 fn avec_cx<T>(ctx: &Contexte, paie: &Paie, f: impl FnOnce(&Cx) -> Resultat<Option<T>>) -> Resultat<Option<T>> {
     let ent = &ctx.entreprise;
-    let idcc = idcc_du_contrat(ent, paie)?;
+    let idcc = droit::minima::idcc_du_contrat(ent, &paie.spectacle, &paie.salarie)?;
     let tab = table()?;
     let t: &Value = &tab;
     if t.get(&idcc).is_none() {
@@ -1095,7 +1073,7 @@ pub(crate) fn avertissements(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>>
                 Par::Unite => (
                     l.taux,
                     match l.code.as_str() {
-                        "journee" => "la journee",
+                        "journee" => "la journée",
                         "semaine" => "la semaine",
                         "mois" => "le mois",
                         _ => "l'unite",
@@ -1157,7 +1135,7 @@ pub(crate) fn sous_le_smic(ctx: &Contexte, paie: &Paie) -> Resultat<Vec<Avis>> {
         avis.push(Avis {
             info: false,
             texte: format!(
-                "{}, {} : {} \u{20ac} pour {} h. Le SMIC est de {} \u{20ac} de l'heure au {} : il fallait {} \u{20ac}, il manque {} \u{20ac}. A corriger avant de declarer (le SMIC vaut pour tous, art. L. 3231-2).",
+                "{}, {} : {} \u{20ac} pour {} h. Le SMIC est de {} \u{20ac} de l'heure au {} : il fallait {} \u{20ac}, il manque {} \u{20ac}. À corriger avant de déclarer (le SMIC vaut pour tous, art. L. 3231-2).",
                 qui,
                 l.designation(),
                 euros(paye),

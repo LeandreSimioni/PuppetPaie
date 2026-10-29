@@ -396,7 +396,7 @@ pub fn poser(lignes: &mut Vec<String>, debut: usize, ctx: &Contexte, p: &Paie, m
     Ok(())
 }
 
-/// LA DATE DE DEBUT D'UN CONTRAT DECLARE, CORRIGEE APRES LA LIMITE DE L'ANNULE-ET-REMPLACE (21/10/2026), par une
+/// LA DATE DE DEBUT D'UN CONTRAT DECLARE, CORRIGEE APRES LA LIMITE DE L'ANNULE-ET-REMPLACE, par une
 /// regularisation (`dsn::Regularisation`) : fiche net-entreprises 1952 (`atelier/reference/sources/
 /// net-entreprises-base-connaissances/net-entreprises-fiche1952-correction-date-debut-contrat-20250326.txt`), « Cette
 /// donnee peut etre corrigee via un bloc " Changements Contrat - S21.G00.41 " en remplissant les rubriques " Date de la

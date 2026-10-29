@@ -14,3 +14,4 @@ mod natures;
 mod pas;
 mod permanents;
 mod plafond;
+mod reduction;

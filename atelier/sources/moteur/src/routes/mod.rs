@@ -62,12 +62,12 @@ pub const ROUTE_QUI_TOMBE: &str = "essai-defaut-du-logiciel";
 /// Le fil remis propre apres une route servie dans la fenetre (`dans_la_fenetre`, `etat_garde::FileDesEtats`) : plus
 /// de mot de passe tape, les nombres a leur ecriture normale, aucun registre de lectures ouvert.
 pub(crate) fn remettre_le_fil() {
-    crate::coffre::oublier_mot_de_passe_tape();
+    crate::compagnie::coffre::oublier_mot_de_passe_tape();
     socle::num::ECHELLE_GARDEE.with(|f| f.set(false));
     let _ = socle::fichiers::rendre();
 }
 
-/// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL (ticket #244). La fenetre sert ses routes dans son
+/// UNE ROUTE SERVIE DANS LA FENETRE, ET CE QU'ELLE LAISSE SUR SON FIL. La fenetre sert ses routes dans son
 /// processus (`interface::api::route`, la file des etats), et le fil d'une connexion en sert d'autres ensuite. Cette
 /// fonction fait la route (`commande`), gardee d'une panique (une route qui tombe rend un refus `DefautDuLogiciel` et le
 /// fil continue), puis remet le fil propre, quoi qu'il soit arrive : le mot de passe tape oublie (`coffre::TAPE` : il ne
@@ -98,14 +98,14 @@ pub fn dans_la_fenetre(o: &HashMap<String, String>, route: &str, charge: &Value)
 pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
     // Le code livre ne bouge pas le temps de la route : ses signatures se lisent une fois (`fichiers::code_fige`).
     let _code = socle::fichiers::code_fige();
-    crate::incidents::brancher_l_engagement();
+    crate::compagnie::incidents::brancher_l_engagement();
     let d: Value = serde_json::from_str(entree).map_err(|e| format!("demande illisible : {}", e))?;
     let route = d.get("route").and_then(Value::as_str).ok_or("demande illisible : il faut `route`")?;
     let charge = d.get("charge").cloned().unwrap_or_else(|| json!({}));
     // Le mot de passe du logiciel tape pour cette route ouvre aussi le coffre (`coffre::retenir_mot_de_passe_tape`) ;
     // dans la fenetre, le temps de cette route seulement (`dans_la_fenetre`).
     if let Some(m) = charge.get("motdepasse").and_then(Value::as_str) {
-        crate::coffre::retenir_mot_de_passe_tape(m);
+        crate::compagnie::coffre::retenir_mot_de_passe_tape(m);
     }
     // UNE ROUTE QUI TOMBE, pour les essais seulement (`garde_reseau::en_essai`, que Cargo pose) : la fenetre doit rendre
     // un refus et servir la suivante (`dans_la_fenetre`, `tests/routes/`). Le fil est laisse sale
@@ -151,15 +151,15 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if crate::obligations::ROUTES.contains(&r) || crate::obligations::ROUTES_LECTURE.contains(&r) => crate::obligations::route(&ctx, route, &charge),
         r if fiches::ROUTES.contains(&r) => fiches::route(o, &ctx, route, &charge),
         // Les organismes et les contrats de la DSN : lus, et composes quand la compagnie les enregistre (`organismes`).
-        crate::organismes::ROUTE_LIRE => crate::organismes::lire(&ctx, &charge),
-        crate::organismes::ROUTE_ECRIRE => crate::organismes::enregistrer(&ctx, &charge),
+        crate::compagnie::organismes::ROUTE_LIRE => crate::compagnie::organismes::lire(&ctx, &charge),
+        crate::compagnie::organismes::ROUTE_ECRIRE => crate::compagnie::organismes::enregistrer(&ctx, &charge),
         r if coffre::ROUTES.contains(&r) => coffre::route(o, &ctx, route, &charge),
-        crate::coffre_verifier::ROUTE => crate::coffre_verifier::route(&ctx, &charge),
+        crate::compagnie::coffre_verifier::ROUTE => crate::compagnie::coffre_verifier::route(&ctx, &charge),
         r if filet::ROUTES.contains(&r) || r == filet::ROUTE_OUBLIER => filet::route(o, &ctx, route, &charge),
         r if import::ROUTES.contains(&r) => import::route(o, &ctx, route, &charge),
         // Les fichiers que l'import n'a pas repris : le message caviarde qui partirait chez l'editeur (rien n'est ecrit),
-        // et son envoi, sur le seul clic de la personne (`importation_incident`).
-        r if crate::importation_incident::ROUTES.contains(&r) => crate::importation_incident::route(&ctx, route, &charge),
+        // et son envoi, sur le seul clic de la personne (`import::incident`).
+        r if crate::import::incident::ROUTES.contains(&r) => crate::import::incident::route(&ctx, route, &charge),
         r if archives::ROUTES.contains(&r) => archives::route(o, &ctx, route, &charge),
         // L'Historique d'un mois : ses documents, ses envois et leurs retours, lus (lecture seule).
         crate::historique_mois::ROUTE => crate::historique_mois::route(&ctx, &charge),
@@ -168,27 +168,27 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         // Ce qu'il manque a la compagnie pour ses premiers actes, d'un coup (`demarrage`).
         declarations::demarrage::ROUTE => declarations::demarrage::route(&ctx),
         // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux du dossier d'un salarie, le resume de l'accueil.
-        r if crate::conseils::ROUTES.contains(&r) => crate::conseils::route(&ctx, route, &charge),
+        r if crate::compagnie::conseils::ROUTES.contains(&r) => crate::compagnie::conseils::route(&ctx, route, &charge),
         // Supprimer la compagnie : ce que la boite demande (`interface::suppression::question`) ; la suppression elle-meme
         // est un geste de la fenetre, qui lache d'abord ce qu'elle tient de la compagnie.
         "compagnie-suppression" => crate::interface::suppression::question(&ctx.racine).map_err(|m| Echec { classe: Some("ErreurOperation"), message: m }),
         // La releve des reponses « Je signe » : cherche les codes attendus dans la boite (la vraie, ou celle d'une
         // compagnie fictive), note les signatures, archive la preuve, contresigne et renvoie le contrat.
-        r if crate::releve_signatures::ROUTES.contains(&r) => crate::releve_signatures::route(&ctx, route, &charge),
+        r if crate::compagnie::releve_signatures::ROUTES.contains(&r) => crate::compagnie::releve_signatures::route(&ctx, route, &charge),
         // L'ouverture du logiciel et la veille : sauvegarder, relever les retours, les signatures et les fiches, sans
         // jamais echouer. ATTENTION : hors d'une compagnie fictive, cette route va au reseau (net-entreprises, Urssaf,
         // boite courriel, Drive, serveur des incidents).
-        r if crate::ouverture::ROUTES.contains(&r) => crate::ouverture::route(o, &ctx, route, &charge),
+        r if crate::compagnie::ouverture::ROUTES.contains(&r) => crate::compagnie::ouverture::route(o, &ctx, route, &charge),
         // Le banc : l'horloge de la compagnie fictive (rattraper ce qui etait du, ce que le bandeau « pendant votre
         // absence » lit ; `horloge::HorlogeFictive`) et la fenetre de l'administrateur (le tableau de ses compagnies, le
         // depot groupe).
         r if crate::horloge::ROUTES.contains(&r) => crate::horloge::route(o, &ctx, route, &charge),
-        r if crate::administrateur::ROUTES.contains(&r) => crate::administrateur::route(o, &ctx, r, &charge),
+        r if crate::compagnie::administrateur::ROUTES.contains(&r) => crate::compagnie::administrateur::route(o, &ctx, r, &charge),
         autre => return Err(format!("route inconnue : {}", autre)),
     };
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
-        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::engagement::CLASSE_DOCUMENTS_PARTIS) && classe != Some(crate::routes::engagement::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
+        Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::engagement::CLASSE_DOCUMENTS_PARTIS) && classe != Some(crate::routes::engagement::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
             let suite = declarations::demarrage::a_la_suite(&ctx).unwrap_or_default();
             Err(Echec { classe, message: message + &suite })
         }
@@ -216,8 +216,8 @@ pub fn est_une_ecriture(route: &str) -> bool {
         .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES])
         .any(|l| l.contains(&route))
         || crate::obligations::ROUTES.contains(&route)
-        || crate::releve_signatures::ROUTES.contains(&route)
-        || crate::administrateur::ROUTES.contains(&route)
+        || crate::compagnie::releve_signatures::ROUTES.contains(&route)
+        || crate::compagnie::administrateur::ROUTES.contains(&route)
 }
 
 /// `socle::paris::maintenant` a la minute, `AAAA-MM-JJ HH:MM` : l'heure d'une saisie.
@@ -335,6 +335,6 @@ fn ou_texte(v: &Value) -> Value {
     }
 }
 
-pub(crate) fn vers_route(x: crate::coffre::Echec) -> Echec {
+pub(crate) fn vers_route(x: crate::compagnie::coffre::Echec) -> Echec {
     Echec { classe: Some(x.classe), message: x.message }
 }

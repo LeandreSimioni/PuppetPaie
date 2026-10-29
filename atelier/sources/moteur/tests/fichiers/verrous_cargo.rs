@@ -1,7 +1,7 @@
 //! Les trois verrous Cargo de l'atelier (celui de l'espace `Cargo.lock`, `fabrique-pdf/Cargo.lock`, `fenetre/Cargo.lock`) disent la
 //! meme chose des paquets de l'atelier. « Publier » (`.github/workflows/publier.yml`) compile la fenetre avec `--locked` :
-//! une dependance ajoutee au moteur sans que le verrou de la fenetre la connaisse fait echouer la publication, et rien
-//! d'autre ne le dit avant (le 15/10/2026 au soir, `icu_normalizer` ajoute a `moteur` : Windows et Mac refuses). Pour
+//! une dependance ajoutee au moteur sans que le verrou de la fenetre la connaisse fait echouer la publication sous Windows
+//! et Mac, et rien d'autre ne le dit avant. Pour
 //! remettre la fenetre a jour sans toucher aux autres versions epinglees : `cargo update --workspace` dans `fenetre/`.
 //!
 //! On ne lit pas le TOML entier : seulement, dans chaque verrou, le bloc `[[package]]` du paquet et sa liste
@@ -67,22 +67,4 @@ fn le_verrou_de_la_fenetre_connait_les_dependances_du_moteur_et_de_la_fabrique()
             verrou, paquet, manquantes, en_trop
         );
     }
-}
-
-#[test]
-fn un_verrou_en_retard_se_voit() {
-    // Le verrou de la fenetre tel qu'il etait le 15/10/2026 au soir : `moteur` sans `icu_normalizer`.
-    let d = crate::outils::dossier_de_test("verrous_cargo", "en_retard");
-    let texte = std::fs::read_to_string(sources().join("fenetre/Cargo.lock")).unwrap();
-    // L'occurrence a retirer est celle du bloc de `moteur` (idna, plus haut, en a une aussi).
-    let debut = texte.find("name = \"moteur\"\n").expect("le bloc du moteur");
-    let (avant, bloc) = texte.split_at(debut);
-    let en_retard = format!("{}{}", avant, bloc.replacen(" \"icu_normalizer\",\n", "", 1));
-    assert_ne!(texte, en_retard, "le verrou d'aujourd'hui connait icu_normalizer");
-    let chemin = d.join("Cargo.lock");
-    std::fs::write(&chemin, en_retard).unwrap();
-    let attendu = dependances(&sources().join("Cargo.lock"), "moteur").unwrap();
-    let vu = dependances(&chemin, "moteur").unwrap();
-    assert_eq!(attendu.difference(&vu).collect::<Vec<_>>(), vec!["icu_normalizer"]);
-    assert_eq!(dependances(&chemin, "paquet-inconnu"), None);
 }

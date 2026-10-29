@@ -4,7 +4,7 @@
 #  Ouvre la fenetre PuppetPaie : le programme Rust de ce systeme,
 #  dans logiciel/linux/ ou logiciel/mac/ (ce que le flux « Publier »
 #  livre depuis le 15/10/2026 : `puppetpaie` et `moteur`, chaque systeme
-#  dans son dossier ; moteur/src/maj.rs, `dossier_programmes_de`), sinon
+#  dans son dossier ; moteur/src/compagnie/maj.rs, `dossier_programmes_de`), sinon
 #  dans atelier/sources/moteur/bin/<systeme>/ (un depot de travail).
 #  Plus de Python (lot J5).
 #  Sans la fenetre native (un Linux sans WebKitGTK), la meme page

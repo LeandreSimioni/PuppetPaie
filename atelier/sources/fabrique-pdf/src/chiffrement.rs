@@ -3,8 +3,8 @@
 //! C'est le chiffrement standard de PDF 2.0 (ISO 32000-2) : `/V 5`, `/R 6`, AES-256 en mode CBC
 //! (`/CFM /AESV3`), clé de fichier de 32 octets tirée au hasard. Le mot de passe utilisateur est
 //! vide (le fichier s'ouvre partout sans mot de passe) ; le mot de passe propriétaire est tiré au
-//! hasard et jeté : personne ne peut plus lever les restrictions. Les permissions sont celles de
-//! `verrouiller` dans `moteur/contrat.py` : impression, copie et accessibilité, rien d'autre.
+//! hasard et jeté : personne ne peut plus lever les restrictions. Les permissions sont :
+//! impression, copie et accessibilité, rien d'autre.
 //!
 //! Chaînes et flux sont chiffrés un à un (IV de 16 octets tiré au hasard, en tête ; bourrage
 //! PKCS#7), à l'exception du dictionnaire `/Encrypt` et des flux de table de références.
@@ -23,9 +23,9 @@ type CbcChiffre256 = cbc::Encryptor<aes::Aes256>;
 type CbcDechiffre256 = cbc::Decryptor<aes::Aes256>;
 type CbcChiffre128 = cbc::Encryptor<aes::Aes128>;
 
-/// Les permissions, comme `PDF_PERM_PRINT | PDF_PERM_COPY | PDF_PERM_ACCESSIBILITY` de MuPDF :
+/// Les permissions du dictionnaire de chiffrement (`/P`) :
 /// bits 3 (imprimer), 5 (copier) et 10 (accessibilité), les bits réservés à 1 (7, 8 et 13 à 32).
-/// Vaut -3372 en entier signé, comme dans les fichiers que PyMuPDF verrouillait.
+/// Vaut -3372 en entier signé.
 pub const PERMISSIONS: u32 = 0xFFFF_F0C0 | 4 | 16 | 512;
 
 fn refus<T>(m: impl Into<String>) -> Result<T, Refus> {

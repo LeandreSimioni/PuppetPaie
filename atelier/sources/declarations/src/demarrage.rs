@@ -22,8 +22,8 @@ pub const ROUTE: &str = "pour-demarrer";
 const ENTREPRISE: &str = "Configuration › Entreprise";
 
 /// (chemin dans la fiche entreprise, ce que son absence bloque). Le SIRET avant le SIREN et le NIC : ils s'en deduisent
-/// (`moteur::routes::fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est plus : le moteur
-/// l'ecrit seul (`dsn::type_du_contact`, #236).
+/// (`moteur::routes::fiches::deriver`) et se disent sur sa ligne. La qualite du contact (S20.G00.07.004) n'y est pas : le moteur
+/// l'ecrit seul (`dsn::type_du_contact`).
 const FICHE: [(&str, &str); 22] = [
     ("raison_sociale", "la DSN"),
     ("siret", "la DSN et la DPAE"),
@@ -49,12 +49,12 @@ const FICHE: [(&str, &str); 22] = [
     ("banque.iban", "la DSN (le paiement des cotisations)"),
     ("banque.bic", "la DSN (le paiement des cotisations)"),
     // Le SEUL numero Conges Spectacles demande : la DSN le declare precede de 97 (`conges_spectacles::code_dsn`, fiche de
-    // specificites d'Audiens, l. 80-81), les certificats l'impriment dans leur case COMPTE (#236).
+    // specificites d'Audiens, l. 80-81), les certificats l'impriment dans leur case COMPTE.
     ("congesspectacles_adherent", "la DSN des intermittents et les certificats Congés Spectacles"),
 ];
 
-/// LE CHAMP QUE L'ECRAN MONTRE pour une valeur de la fiche (#236 : « chaque chose demandee se remplit la ou elle
-/// envoie, sans champ cache »). Une valeur que l'on deduit d'une autre se demande par celle-la : le SIREN et le NIC par
+/// LE CHAMP QUE L'ECRAN MONTRE pour une valeur de la fiche : chaque chose demandee se remplit la ou elle
+/// envoie, sans champ cache. Une valeur que l'on deduit d'une autre se demande par celle-la : le SIREN et le NIC par
 /// le SIRET (`moteur::routes::fiches::deriver`), la forme declaree (`raison_sociale`, `adresse`, `commune`) par sa forme lisible
 /// (`derive_de` de `champs-base.json`).
 pub fn a_l_ecran(racine: &str) -> String {
@@ -198,7 +198,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
     }
     // La licence d'entrepreneur de spectacles : la DSN l'ecrit dans chaque contrat (S21.G00.40.049) et refuse sans elle
     // QUAND ELLE EST EXIGEE de la compagnie (`exige_si` de `champs-base.json`, lu par `dsn::licence_du_contrat` aussi) :
-    // en 1790 et en 3252 la case se montre sans etre exigee, dans l'audiovisuel elle ne se montre pas (#236).
+    // en 1790 et en 3252 la case se montre sans etre exigee, dans l'audiovisuel elle ne se montre pas.
     // Elle peut etre datee (une par periode) : le contexte la resout au jour.
     match ctx.licence(&ctx.aujourdhui) {
         Ok(l) if !l.trim().is_empty() => {}
@@ -250,7 +250,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let (libelle, aide) = champ(cle);
         out.push(manque(cle, libelle, "le mois d'un permanent suspendu sans indemnisation tout le mois", ENTREPRISE, Some(cle), aide));
     }
-    // LA TVA ET LA TAXE SUR LES SALAIRES (#236) : la DSN de decembre declare chaque annee si la compagnie la doit (bloc
+    // LA TVA ET LA TAXE SUR LES SALAIRES : la DSN de decembre declare chaque annee si la compagnie la doit (bloc
     // S21.G00.44) et ne se fait pas sans reponse (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`). Une compagnie qui
     // demarre en novembre la rencontrait au premier mois de decembre, sans que rien ne l'ait dit d'avance.
     if let Err(m) = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(ent, None).decision {
@@ -258,7 +258,7 @@ pub fn manques(ctx: &Contexte) -> Vec<Value> {
         let (libelle, _) = champ(cle);
         out.push(manque(cle, libelle, "la DSN de décembre", ENTREPRISE, Some(cle), m));
     }
-    // LES CONTRATS DES PERMANENTS (#236) : une compagnie qui dit employer des salaries au mois APRES avoir enregistre ses
+    // LES CONTRATS DES PERMANENTS : une compagnie qui dit employer des salaries au mois APRES avoir enregistre ses
     // organismes n'a pas leurs adhesions de prevoyance et de sante, et le mois d'un permanent se refuse alors
     // (`dsn::affiliations`, « affiliations_par_nature.permanent.references est null »). Rien ne le disait d'avance.
     if let (true, Ok(Some(orgs))) = (ctx.emploie_des_permanents(), ctx.organismes()) {

@@ -9,9 +9,9 @@
  * passe DES ORGANISMES (net-entreprises, Urssaf) vont au coffre : on les
  * pose, on les vérifie (UNE tentative, jamais de boucle : l'organisme bloque
  * le compte au bout de quelques échecs), on les oublie. La boîte courriel
- * (17/09/2026) s'y pose aussi, avec son adresse : c'est un mot de passe
- * d'application, la seule boîte qui envoie et qui lit. Et le COMPTE GOOGLE
- * (18/09/2026), qui ne porte que le Drive : « Lier le Drive » ouvre la
+ * s'y pose aussi, avec son adresse : c'est un mot de passe
+ * d'application, la seule boîte qui envoie et qui lit. Et le COMPTE GOOGLE,
+ * qui ne porte que le Drive : « Lier le Drive » ouvre la
  * page de consentement dans le navigateur du système et attend qu'on y
  * accepte ; « Oublier » efface le jeton local.
  *
@@ -20,7 +20,7 @@
  * est demandé pour écrire dans le coffre comme pour lier ou oublier le
  * compte Google, comme pour un dépôt : c'est `operations` qui l'exige, pas
  * ce fichier. */
-/** Le compte qu'ouvre un mot de passe (§94) : sans lui, un mot de passe
+/** Le compte qu'ouvre un mot de passe : sans lui, un mot de passe
  *  juste sur un identifiant faux échoue pareil, et rien ne le montrait.
  *  net-entreprises : le déclarant de la fiche Entreprise, qui se change
  *  là-bas ; l'Urssaf (DPAE) : un autre compte, qui se saisit sur la ligne. */
@@ -35,8 +35,8 @@ function compteDuService(s) {
         <button class="lien" data-aller-fiche="entreprise">${echapper(id.ou || "fiche Entreprise")}</button></span>`;
 }
 
-/** CE QUI EST PARTI CHEZ L'ÉDITEUR (30/09/2026). Le journal des incidents,
- *  regroupé (`operations_filet.diagnostic_etat`) : ce qui est parti, ce qui
+/** CE QUI EST PARTI CHEZ L'ÉDITEUR. Le journal des incidents,
+ *  regroupé : ce qui est parti, ce qui
  *  attend, et pour chaque groupe le contenu EXACT qui quitte le poste. */
 async function dessinerCoffre(cible) {
   // LA COMPAGNIE FICTIVE (27/09/2026, l'éditeur) : le même écran, tout grisé —
@@ -45,7 +45,7 @@ async function dessinerCoffre(cible) {
   const fictive = enFictive();
   const c = await api("coffre-etat");
   const exige = c.mot_de_passe_pose;
-  // L'ADMINISTRATEUR (ticket #244) : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher), par
+  // L'ADMINISTRATEUR : ce que le moteur dit de cette compagnie pour lui (rattachée, ou à rattacher), par
   // le geste de la fenêtre. Une compagnie fictive n'en a pas.
   const geste = window.pywebview && window.pywebview.api;
   let adm = {};
@@ -54,7 +54,7 @@ async function dessinerCoffre(cible) {
     if (r && r.ok) adm = r.etat || {};
   }
   const enListe = (n) => n.length > 1 ? n.slice(0, -1).join(", ") + " et " + n[n.length - 1] : (n[0] || "");
-  // UNE LIGNE PAR SECRET (23/09/2026), comme les mois de l'Historique : ce
+  // UNE LIGNE PAR SECRET, comme les mois de l'Historique : ce
   // qu'il sert à faire, où il en est, et les gestes. Les cases de saisie ne
   // s'ouvrent que sur un clic sur la ligne (ou « Poser… ») -- cinq formulaires ouverts
   // d'office faisaient croire qu'il y avait cinq choses à remplir.
@@ -253,7 +253,7 @@ async function dessinerCoffre(cible) {
     b.onclick = () => document.querySelector(
       `.sous-onglets button[data-fiche="${b.dataset.allerFiche}"]`).click();
   });
-  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE (ticket #218) : plus de « Modifier… ».
+  // LA LIGNE S'OUVRE D'UN CLIC SUR ELLE : plus de « Modifier… ».
   // Elle ouvre ses cases et met le curseur dans la première ; un second clic
   // la referme. « Poser… » (rien n'est posé : il y a à faire) fait de même.
   const basculer = (rang) => {
@@ -366,8 +366,8 @@ async function dessinerCoffre(cible) {
           etat = await api("coffre-poser", { service, valeur, compte: compte ? compte.value : null, ...p });
         }
       } catch (e) { raté(e); return; }
-      // PUIS UNE TENTATIVE, UNE SEULE (§94) : le message d'après disait « le
-      // vérifier maintenant évite de le découvrir faux au dépôt ». Autant le
+      // PUIS UNE TENTATIVE, UNE SEULE : vérifier maintenant évite de
+      // découvrir le mot de passe faux au dépôt. Autant le
       // faire. Pas si l'identifiant est incomplet : l'échec serait certain,
       // et chaque échec rapproche du blocage du compte.
       const apres = (etat?.services || []).find((x) => x.service === service);

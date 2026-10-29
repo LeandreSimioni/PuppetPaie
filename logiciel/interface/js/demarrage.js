@@ -4,10 +4,9 @@
 /* =======================================================================
    DEMARRAGE
    =======================================================================
-   L'OUVERTURE D'UN COUP (ticket #244, Léandre, 22/10/2026 : « pas 1
-   seconde, une demi max » ; « je ne veux pas que la page s'affiche petit à
-   petit » ; « ne pas poireauter 5 secondes devant une roue qui tourne pour
-   on ne sait pas quoi »). UNE demande, `ouverture`, que la fenêtre sert
+   L'OUVERTURE D'UN COUP : en une demi-seconde au plus, la page entière
+   d'un seul geste, jamais petit à petit ni derrière une roue qui tourne
+   sans dire pourquoi. UNE demande, `ouverture`, que la fenêtre sert
    sans processus ni calcul (`etat_garde::FileDesEtats::ouverture`) : le
    dernier état connu de tout ce que la page lit en s'ouvrant — l'accueil,
    le mois à ouvrir et son écran, l'échéancier, les rappels, ce qui manque
@@ -70,7 +69,7 @@ async function demarrer() {
   dessinerVeille(o.veille);
   try { dessinerPastilleReponses(lireReponse(o.signalements)); } catch (e) { /* la pastille est un plus */ }
   if (window.miseAJourMontrer) window.miseAJourMontrer(o.maj);
-  // Le conseil du jour, quand la compagnie a coché l'option (ticket 224) : il ne retient rien.
+  // Le conseil du jour, quand la compagnie a coché l'option : il ne retient rien.
   dessinerConseils(conseilsDe(o));
 
   // LE MOIS À OUVRIR, le moteur le dit (`mois-a-ouvrir`, et le mois du jour
@@ -127,7 +126,7 @@ demarrer().catch((e) => {
   dire("Démarrage impossible : " + e.message, "erreur");
 });
 
-/* LA FENETRE PUPPETPAIE, SANS BARRE NOIRE (ticket #195, 15/10/2026). La
+/* LA FENETRE PUPPETPAIE, SANS BARRE NOIRE. La
    fenetre n'a pas de bordure systeme : le bandeau EST sa barre de titre. Son
    cadre (`fenetre/src/cadre.js`, pose par la fenetre dans chaque page) donne
    `window.fenetrePuppetPaie` : les trois boutons lui parlent, le bandeau se
@@ -135,7 +134,7 @@ demarrer().catch((e) => {
    n'existe pas : `body` n'a pas la classe `fenetre` et rien ne s'affiche. */
 function fenetreNative() {
   const api = window.pywebview && window.pywebview.api;
-  // L'ACCUEIL DES COMPAGNIES (ticket #113) : le serveur de la fenetre le
+  // L'ACCUEIL DES COMPAGNIES : le serveur de la fenetre le
   // propose (`pywebview.api.accueil`, la cale du moteur), dans la fenetre
   // comme dans le navigateur.
   if (api && typeof api.accueil === "function" && !document.body.classList.contains("accueil-possible")) {

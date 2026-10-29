@@ -1,7 +1,7 @@
 # Le banc d'essai daté (#236, phase 2)
 
 Faire vivre une compagnie dans l'interface, comme un testeur, en avançant le calendrier — et que tout ce qu'on y fait
-s'enregistre dans un **scénario** rejouable sans navigateur (`moteur/src/scenario.rs`). Le banc ne décide rien : il lance
+s'enregistre dans un **scénario** rejouable sans navigateur (`moteur/src/atelier/scenario.rs`). Le banc ne décide rien : il lance
 le binaire de l'atelier (`moteur-atelier`, qui refuse tout acte réel) sur une copie d'installation **bridée** neuve, et lui
 parle par `/atelier/<geste>` (`moteur/src/interface/mod.rs`, `Fenetre::atelier`).
 

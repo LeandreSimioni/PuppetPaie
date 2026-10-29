@@ -230,6 +230,7 @@
    "ecran": true
   },
   {
+   "_note": "La DSN la déclare deux fois : convention collective principale de l'établissement (S21.G00.11.022, « Table IDCC », atelier/reference/norme-dsn/texte/bloc-S21.G00.11.txt) et convention du contrat (S21.G00.40.017), qui en diffère pour la 1734 (`droit::minima::idcc_du_contrat`).",
    "cle": "idcc",
    "libelle": "Convention collective",
    "forme": "chiffres",
@@ -249,26 +250,7 @@
    "ecran": true
   },
   {
-   "cle": "convention_collective",
-   "libelle": "Convention collective",
-   "forme": "texte",
-   "aide": "",
-   "obligatoire": false,
-   "longueur": null,
-   "exemple": "",
-   "choix": [],
-   "declare": false,
-   "derive_de": null,
-   "rubrique": null,
-   "si_permanents": false,
-   "si": null,
-   "si_etablissements": false,
-   "si_entreprise": null,
-   "booleen_defaut": true,
-   "ecran": true
-  },
-  {
-   "_note": "L'annexe de la CCN 3090 ou l'entreprise se range. Elle ne se declare\nnulle part : elle sert aux minima conventionnels (moteur/minima.py), qui\ndifferent d'une annexe a l'autre -- un cachet d'artiste dramatique n'a\npas le meme plancher en salle (annexe 1) qu'en tournee (annexe 4). Vide :\nle moteur prend le plancher le plus bas des annexes candidates, et le dit.",
+   "_note": "L'annexe de la CCN 3090 ou l'entreprise se range. Elle ne se declare\nnulle part : elle sert aux minima conventionnels (`droit/src/minima.rs`), qui\ndifferent d'une annexe a l'autre -- un cachet d'artiste dramatique n'a\npas le meme plancher en salle (annexe 1) qu'en tournee (annexe 4). Vide :\nle moteur prend le plancher le plus bas des annexes candidates, et le dit.",
    "cle": "annexe_convention",
    "libelle": "Annexe de la convention",
    "forme": "choix",
@@ -299,7 +281,7 @@
    "ecran": true
   },
   {
-   "_note": "LE SECTEUR DE LA 2121 (27/09/2026, journal §154) : l'edition de\nlivres, le disque et l'edition musicale gardent leurs regles jusqu'en\n2028 ; le moteur porte le disque (annexe IX, ex-2770).",
+   "_note": "LE SECTEUR DE LA 2121 : l'edition de\nlivres, le disque et l'edition musicale gardent leurs regles jusqu'en\n2028 ; le moteur porte le disque (annexe IX, ex-2770).",
    "cle": "secteur_2121",
    "libelle": "Secteur de l'édition",
    "forme": "choix",
@@ -327,7 +309,7 @@
    "ecran": true
   },
   {
-   "_note": "LE TYPE DE RADIO (29/09/2026, journal §159) : la 1922 majore les indices\nde reference des radios de type 2 et 3 (accord du 05/12/2008, art. 2).",
+   "_note": "LE TYPE DE RADIO : la 1922 majore les indices\nde reference des radios de type 2 et 3 (accord du 05/12/2008, art. 2).",
    "cle": "type_radio_1922",
    "libelle": "Type de radio",
    "forme": "choix",
@@ -355,7 +337,7 @@
    "ecran": true
   },
   {
-   "_note": "LES CINQUANTE SALARIES DE LA 3241 (29/09/2026, journal §159) : l'article\n22 a deux grilles de permanents, et compte le GROUPE (art. L. 233-1 du\ncode de commerce), que le moteur ne peut pas connaitre.",
+   "_note": "LES CINQUANTE SALARIES DE LA 3241 : l'article\n22 a deux grilles de permanents, et compte le GROUPE (art. L. 233-1 du\ncode de commerce), que le moteur ne peut pas connaitre.",
    "cle": "cinquante_salaries_3241",
    "libelle": "50 salariés et plus (ou groupe de plus de 50)",
    "forme": "booleen",
@@ -379,7 +361,7 @@
    "ecran": true
   },
   {
-   "_note": "LA JAUGE DE LA SALLE (24/09/2026, journal §121) : l'annexe I de la\n3090 fixe le salaire conventionnel de ses techniciens par jauge, et la\nprime d'anciennete (art. 3.11) en est un pourcentage.",
+   "_note": "LA JAUGE DE LA SALLE : l'annexe I de la\n3090 fixe le salaire conventionnel de ses techniciens par jauge, et la\nprime d'anciennete (art. 3.11) en est un pourcentage.",
    "cle": "jauge_annexe_1",
    "libelle": "Jauge de la salle (annexe 1)",
    "forme": "choix",
@@ -448,7 +430,7 @@
    "ecran": true
   },
   {
-   "_note": "LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE (#236, 23/10/2026). Norme DSN 2027 (cahier technique 2027.1.1, `norme-dsn/texte-2027/bloc-S20.G00.07.txt` l. 46-65 et 81, CCH-11 de S20.G00.07.004) : si la declaration porte en S21.G00.11.025 l'identifiant de SPST « MT01 - MEDECINE INTERNE ETABLISSEMENT », un bloc « Contact chez le declare » de type « 17 - Contact au sein du service de medecine du travail interne a l'etablissement » (le medecin du travail ou une personne sous sa responsabilite, pour la transmission des arrets de travail, L315-4 CSS) doit obligatoirement etre present ; dans le cas contraire, il est interdit. La norme 2026 n'a ni l'identifiant de SPST ni le type 17. `si` et `exige_si` : le code du service de sante au travail vaut MT01. `dsn.rs` (`contact_sante_travail`) l'ecrit, `demarrage::manques` le demande.",
+   "_note": "LE CONTACT DE LA MEDECINE DU TRAVAIL INTERNE. Norme DSN 2027 (cahier technique 2027.1.1, `norme-dsn/texte-2027/bloc-S20.G00.07.txt` l. 46-65 et 81, CCH-11 de S20.G00.07.004) : si la declaration porte en S21.G00.11.025 l'identifiant de SPST « MT01 - MEDECINE INTERNE ETABLISSEMENT », un bloc « Contact chez le declare » de type « 17 - Contact au sein du service de medecine du travail interne a l'etablissement » (le medecin du travail ou une personne sous sa responsabilite, pour la transmission des arrets de travail, L315-4 CSS) doit obligatoirement etre present ; dans le cas contraire, il est interdit. La norme 2026 n'a ni l'identifiant de SPST ni le type 17. `si` et `exige_si` : le code du service de sante au travail vaut MT01. `dsn.rs` (`contact_sante_travail`) l'ecrit, `demarrage::manques` le demande.",
    "cle": "contact_sante_travail",
    "libelle": "Qui répond pour la médecine du travail interne",
    "forme": "structure",
@@ -477,7 +459,7 @@
    "ecran": true
   },
   {
-   "_note": "LA LICENCE EST UN CHAMP, PAS UN MECANISME (22/09/2026). Elle etait une\nliste datee -- `[{\"depuis\": ..., \"numero\": ...}]` -- avec sa resolution\na elle dans `Contexte.licence`. C'etait le meme travail que `historique`\nfait deja pour TOUS les champs declares, ecrit une deuxieme fois pour un\nseul d'entre eux. L'editeur : << pas besoin de l'historique, quand on\nchange la licence, celle d'avant reste sauvegardee, simple et\nefficace. >> Elle se tape donc comme le reste, et changer sa valeur\nouvre la boite de datage comme pour une adresse : l'ancienne reste, avec\nla date jusqu'a laquelle elle valait, et le rejeu la retrouve.\nLe spectacle vivant seulement : une production audiovisuelle ou\nde cinema n'en a pas. Vide (compagnie neuve) : la case se montre.\nLA LICENCE ET LA CONVENTION (#236, 23/10/2026). Est entrepreneur de spectacles vivants qui exploite un lieu, produit ou diffuse des spectacles (L7122-2) ; il declare son activite, et le recepisse vaut licence (L7122-3) ; celui dont ce n'est pas l'activite principale passe par le guichet unique (L7122-22, L7122-23) : `code-du-travail/articles-20261023.md`. La norme DSN l'ecrit dans chaque contrat (S21.G00.40.049, `norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 1418-1426). `si` : les conventions ou un employeur peut etre entrepreneur de spectacles vivants (3090, 1285, 1790 les lieux, 3252 la creation et l'evenement, et la compagnie sans convention) ; l'audiovisuel ne voit pas la case. `exige_si` : celles dont c'est le champ (3090, 1285, sans convention). En 1790 et en 3252, elle devient exigee quand la compagnie engage pour un spectacle (`demarrage::licence_exigee`, lu par « Pour demarrer » et par la DSN).",
+   "_note": "LA LICENCE EST UN CHAMP, PAS UN MECANISME (22/09/2026). Elle etait une\nliste datee -- `[{\"depuis\": ..., \"numero\": ...}]` -- avec sa resolution\na elle dans `Contexte.licence`. C'etait le meme travail que `historique`\nfait deja pour TOUS les champs declares, ecrit une deuxieme fois pour un\nseul d'entre eux. L'editeur : << pas besoin de l'historique, quand on\nchange la licence, celle d'avant reste sauvegardee, simple et\nefficace. >> Elle se tape donc comme le reste, et changer sa valeur\nouvre la boite de datage comme pour une adresse : l'ancienne reste, avec\nla date jusqu'a laquelle elle valait, et le rejeu la retrouve.\nLe spectacle vivant seulement : une production audiovisuelle ou\nde cinema n'en a pas. Vide (compagnie neuve) : la case se montre.\nLA LICENCE ET LA CONVENTION. Est entrepreneur de spectacles vivants qui exploite un lieu, produit ou diffuse des spectacles (L7122-2) ; il declare son activite, et le recepisse vaut licence (L7122-3) ; celui dont ce n'est pas l'activite principale passe par le guichet unique (L7122-22, L7122-23) : `code-du-travail/articles-20261023.md`. La norme DSN l'ecrit dans chaque contrat (S21.G00.40.049, `norme-dsn/texte-2027/bloc-S21.G00.40.txt` l. 1418-1426). `si` : les conventions ou un employeur peut etre entrepreneur de spectacles vivants (3090, 1285, 1790 les lieux, 3252 la creation et l'evenement, et la compagnie sans convention) ; l'audiovisuel ne voit pas la case. `exige_si` : celles dont c'est le champ (3090, 1285, sans convention). En 1790 et en 3252, elle devient exigee quand la compagnie engage pour un spectacle (`demarrage::licence_exigee`, lu par « Pour demarrer » et par la DSN).",
    "cle": "licence_spectacle",
    "libelle": "Licence d'entrepreneur de spectacles ou récépissé de déclaration",
    "forme": "texte",
@@ -532,7 +514,7 @@
    "ecran": true
   },
   {
-   "_note": "UN SEUL NUMERO CONGES SPECTACLES (#236, 23/10/2026). « 97 puis le numero d'adherent a la caisse Conges spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent etre accoles, sans espaces, ni tiret, etc... EX : 970000000001A » (Audiens, fiche de specificites, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 80-81). La compagnie ne saisit que ce numero ; le moteur ecrit S21.G00.40.022 = 97 + ce numero (`conges_spectacles::code_dsn`) l'ecrit sans blancs ni tirets, lettre en capitale (`conges_spectacles::forme_adherent`), et controle sa forme (`conges_spectacles::faute_adherent`). L'ancienne cle `congesspectacles_affiliation` n'est plus lue.",
+   "_note": "UN SEUL NUMERO CONGES SPECTACLES. « 97 puis le numero d'adherent a la caisse Conges spectacles (10 chiffres + 1 lettre). Ces 2 identifiants doivent etre accoles, sans espaces, ni tiret, etc... EX : 970000000001A » (Audiens, fiche de specificites, atelier/reference/sources/audiens-dsn/audiens-fiche-specificites-conges-spectacles-20261023.txt, l. 80-81). La compagnie ne saisit que ce numero ; le moteur ecrit S21.G00.40.022 = 97 + ce numero (`conges_spectacles::code_dsn`) l'ecrit sans blancs ni tirets, lettre en capitale (`conges_spectacles::forme_adherent`), et controle sa forme (`conges_spectacles::faute_adherent`).",
    "cle": "congesspectacles_adherent",
    "libelle": "Numéro d'adhérent Congés Spectacles",
    "forme": "texte",
@@ -675,7 +657,7 @@
    "ecran": true
   },
   {
-   "_note": "LES JOURS FERIES CHOMES (24/09/2026, journal §127). Ils changent le\ndecompte des jours ouvrables d'un permanent (conges, prorata). Le\nmoteur le demandait en citant `config/entreprise.json` : un\nadministrateur n'avait nulle part ou repondre. La liste nom par nom\nreste possible dans le fichier ; l'ecran propose les deux cas courants.",
+   "_note": "LES JOURS FERIES CHOMES. Ils changent le\ndecompte des jours ouvrables d'un permanent (conges, prorata). Le\nmoteur le demandait en citant `config/entreprise.json` : un\nadministrateur n'avait nulle part ou repondre. La liste nom par nom\nreste possible dans le fichier ; l'ecran propose les deux cas courants.",
    "cle": "jours_feries_chomes",
    "libelle": "Jours fériés chômés",
    "forme": "choix",
@@ -698,7 +680,7 @@
    "ecran": true
   },
   {
-   "_note": "LE PLAFOND D'UN SALARIE A TEMPS PARTIEL (lot V4b le 10/10/2026, retourne\npar le lot R5a le 11/10/2026). LA PRORATISATION EST LA REGLE : CSS\nL. 242-8 (<< il est opere un abattement d'assiette >>) ; fiche net-entreprises\n3369 : << par defaut, le salarie a temps partiel cotise uniquement a hauteur\nde la quotite de travail de son contrat. L'employeur peut choisir de ne pas\nproratiser le plafond [...] pour tous les salaries a temps partiel de son\netablissement >> (BOSS, assiette generale, § 760 : la possibilite de\nrenoncer). Vide (ou << proratisé >>) : la regle ; << entier >> :\nl'etablissement renonce. Les valeurs gardent le sens que V4b leur donnait ;\nseul le vide change (V4b : << pas choisi >>, plafond entier). Un artiste est\nexclu de la proratisation (L. 242-10, 1° ; BOSS § 1090). La norme DSN 2027\nle declare pour chaque temps partiel (S21.G00.40.084). Le choix vaut pour la\ncompagnie, sans date (`calcul::plafond_temps_partiel`). Textes :\natelier/reference/sources/plafond-temps-partiel/LISEZ-MOI.md.",
+   "_note": "LE PLAFOND D'UN SALARIE A TEMPS PARTIEL. LA PRORATISATION EST LA REGLE : CSS\nL. 242-8 (<< il est opere un abattement d'assiette >>) ; fiche net-entreprises\n3369 : << par defaut, le salarie a temps partiel cotise uniquement a hauteur\nde la quotite de travail de son contrat. L'employeur peut choisir de ne pas\nproratiser le plafond [...] pour tous les salaries a temps partiel de son\netablissement >> (BOSS, assiette generale, § 760 : la possibilite de\nrenoncer). Vide (ou << proratisé >>) : la regle ; << entier >> :\nl'etablissement renonce. Un artiste est\nexclu de la proratisation (L. 242-10, 1° ; BOSS § 1090). La norme DSN 2027\nle declare pour chaque temps partiel (S21.G00.40.084). Le choix vaut pour la\ncompagnie, sans date (`calcul::plafond_temps_partiel`). Textes :\natelier/reference/sources/plafond-temps-partiel/LISEZ-MOI.md.",
    "cle": "plafond_temps_partiel",
    "libelle": "Plafond de la Sécurité sociale d'un salarié à temps partiel",
    "forme": "choix",
@@ -721,7 +703,7 @@
    "ecran": true
   },
   {
-   "_note": "LA DEDUCTION FORFAITAIRE SPECIFIQUE, OPTION DE L'EMPLOYEUR (lot R9,\n11/10/2026). Arrete du 4 septembre 2025 relatif aux frais\nprofessionnels, art. 9, I, al. 2 et 3 : << L'employeur peut opter pour la\ndeduction forfaitaire specifique lorsqu'une convention ou un accord\ncollectif l'a explicitement prevu ou lorsque le comite d'entreprise, le\ncomite social et economique ou les delegues du personnel ont donne leur\naccord. A defaut, il appartient a chaque salarie d'accepter ou non cette\noption. >> Vide : la compagnie ne l'exerce pas (le cas ordinaire), et une\nfiche salarie qui dirait une profession refuse. La decision :\n`calcul::deduction_forfaitaire`. Textes : atelier/reference/sources/dfs/LISEZ-MOI.md.",
+   "_note": "LA DEDUCTION FORFAITAIRE SPECIFIQUE, OPTION DE L'EMPLOYEUR. Arrete du 4 septembre 2025 relatif aux frais\nprofessionnels, art. 9, I, al. 2 et 3 : << L'employeur peut opter pour la\ndeduction forfaitaire specifique lorsqu'une convention ou un accord\ncollectif l'a explicitement prevu ou lorsque le comite d'entreprise, le\ncomite social et economique ou les delegues du personnel ont donne leur\naccord. A defaut, il appartient a chaque salarie d'accepter ou non cette\noption. >> Vide : la compagnie ne l'exerce pas (le cas ordinaire), et une\nfiche salarie qui dirait une profession refuse. La decision :\n`calcul::deduction_forfaitaire`. Textes : atelier/reference/sources/dfs/LISEZ-MOI.md.",
    "cle": "deduction_forfaitaire_option",
    "libelle": "Déduction forfaitaire spécifique (abattement pour frais professionnels)",
    "forme": "choix",
@@ -746,7 +728,7 @@
    "ecran": true
   },
   {
-   "_note": "LA REPRESENTATION DU PERSONNEL, que la CCNEAC lit (23/09/2026) : son\nFNAS en depend (article III.3.1). Sans objet pour la 3090 et sous onze\nsalaries ; au-dela, `calcul.representation_du_personnel` la demande\nplutot que de supposer une carence.",
+   "_note": "LA REPRESENTATION DU PERSONNEL, que la CCNEAC lit (23/09/2026) : son\nFNAS en depend (article III.3.1). Sans objet pour la 3090 et sous onze\nsalaries ; au-dela, `droit::bareme::representation_du_personnel` la demande\nplutot que de supposer une carence.",
    "cle": "representation_personnel",
    "libelle": "Comité social et économique (CSE)",
    "forme": "choix",
@@ -775,7 +757,7 @@
    "ecran": true
   },
   {
-   "_note": "L'EXEMPTION DE LA CASC-SVP (3090, article 4.22 B) : un fait que\nl'entreprise declare, et que `calcul.casc_exemptee` confronte au CSE.",
+   "_note": "L'EXEMPTION DE LA CASC-SVP (3090, article 4.22 B) : un fait que\nl'entreprise declare, et que `droit::bareme::casc_exemptee` confronte au CSE.",
    "cle": "casc_svp_exemptee",
    "libelle": "Exemptée de la CASC-SVP (50 salariés et plus)",
    "forme": "booleen",
@@ -842,7 +824,7 @@
    "ecran": true
   },
   {
-   "_note": "L'ARTICLE 45 DE LA 3097 (journal §136, §137) : absorbe par les taux\nuniques de l'accord interbranches (avenants 5 et 7) ; la case reste pour\nune compagnie dont le contrat Audiens dirait autre chose.",
+   "_note": "L'ARTICLE 45 DE LA 3097 : absorbe par les taux\nuniques de l'accord interbranches (avenants 5 et 7) ; la case reste pour\nune compagnie dont le contrat Audiens dirait autre chose.",
    "cle": "prevoyance_techniciens_3097",
    "libelle": "Prévoyance des techniciens (cinéma)",
    "forme": "choix",
@@ -869,7 +851,7 @@
    "ecran": true
   },
   {
-   "_note": "L'EFFECTIF NE SE SAISIT PLUS (23/09/2026) : l'Urssaf le calcule et le\nrenvoie en CRM de nature 118, et `moteur/effectif.py` l'ecrit seul dans\nconfig/effectifs.json a chaque releve des retours. Ce qui se saisit,\nc'est la date de la PREMIERE EMBAUCHE : avant elle, aucun salarie, et\nune compagnie neuve n'a pas a attendre cinq ans de 118 pour etre payee\n(art. L. 130-1, II, CSS).",
+   "_note": "L'EFFECTIF NE SE SAISIT PAS : l'Urssaf le calcule et le\nrenvoie en CRM de nature 118, et le releve des retours l'ecrit seul dans\nconfig/effectifs.json (`envois/src/releve_retours.rs`). Ce qui se saisit,\nc'est la date de la PREMIERE EMBAUCHE : avant elle, aucun salarie, et\nune compagnie neuve n'a pas a attendre cinq ans de 118 pour etre payee\n(art. L. 130-1, II, CSS).",
    "cle": "premiere_embauche",
    "libelle": "Date de la première embauche",
    "forme": "date",
@@ -889,7 +871,7 @@
    "ecran": true
   },
   {
-   "_note": "LE BLOC S21.G00.44 (lot V3b, 10/10/2026). La DSN de decembre declare chaque annee si la compagnie\ndoit la taxe sur les salaires (009, avec ses assiettes au taux normal et aux taux majores 015 et\n016) ou non (010). Cela depend de sa TVA, que le moteur ne connait pas : la fiche le dit, et une\nfiche muette fait refuser la DSN de decembre (`assujettissement.rs`). DEPUIS LE TICKET #216 (20/10/2026),\nla fiche dit le FAIT (`tva` : assujettie ou exoneree ; `part_tva` ; `sous_franchise` ;\n`association_1679A`) et le moteur en conclut si la taxe est due, et sur quelle part\n(`assujettissement::regime_taxe_sur_les_salaires`, CGI art. 231, 1) : la DSN de decembre, l'etat\n« taxe sur les salaires » et l'ecran (route `taxe-sur-les-salaires-regime`) lisent la meme conclusion.",
+   "_note": "LE BLOC S21.G00.44. La DSN de decembre declare chaque annee si la compagnie\ndoit la taxe sur les salaires (009, avec ses assiettes au taux normal et aux taux majores 015 et\n016) ou non (010). Cela depend de sa TVA, que le moteur ne connait pas : la fiche le dit, et une\nfiche muette fait refuser la DSN de decembre (`assujettissement.rs`). La fiche dit\nle FAIT (`tva` : assujettie ou exoneree ; `part_tva` ; `sous_franchise` ;\n`association_1679A`) et le moteur en conclut si la taxe est due, et sur quelle part\n(`documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art. 231, 1) : la DSN de decembre, l'etat\n« taxe sur les salaires » et l'ecran (route `taxe-sur-les-salaires-regime`) lisent la meme conclusion.",
    "cle": "taxe_sur_les_salaires",
    "libelle": "Taxe sur les salaires",
    "forme": "structure",
@@ -909,7 +891,7 @@
    "ecran": true
   },
   {
-   "_note": "LA TAXE D'APPRENTISSAGE NON DUE (lot R2, 11/10/2026). Le bordereau paie la taxe (CTP 992 ou 993) et la DSN de\ndecembre declare 001 ; une compagnie qui ne la doit pas a un bordereau sans elle, et declare 002 avec le motif de\nla table MNATA (S21.G00.44.004, `donnees/mnata-base.json`). Ce champ le dit ; vide, le moteur refuse 002. Le motif\n007 (associations sans but lucratif) ne vaut que jusqu'au millesime 2025 (C. trav. L. 6241-1 depuis le 21/02/2026).\nLot R12 : le motif retire lui-meme la taxe du bordereau (992, 993) et du solde d'avril, pour chaque annee ou il vaut\n(`assujettissement::taxe_apprentissage_non_due`) ; le fichier des organismes n'a pas a etre retouche.",
+   "_note": "LA TAXE D'APPRENTISSAGE NON DUE. Le bordereau paie la taxe (CTP 992 ou 993) et la DSN de\ndecembre declare 001 ; une compagnie qui ne la doit pas a un bordereau sans elle, et declare 002 avec le motif de\nla table MNATA (S21.G00.44.004, `donnees/mnata-base.json`). Ce champ le dit ; vide, le moteur refuse 002. Le motif\n007 (associations sans but lucratif) ne vaut que jusqu'au millesime 2025 (C. trav. L. 6241-1 depuis le 21/02/2026).\nLe motif retire lui-meme la taxe du bordereau (992, 993) et du solde d'avril, pour chaque annee ou il vaut\n(`droit::apprentissage::taxe_apprentissage_non_due`) ; le fichier des organismes n'a pas a etre retouche.",
    "cle": "taxe_apprentissage_motif_non_assujettissement",
    "libelle": "Taxe d'apprentissage : motif de non-assujettissement",
    "forme": "choix",
@@ -950,7 +932,7 @@
    "ecran": true
   },
   {
-   "_note": "LA CONTRIBUTION SUPPLEMENTAIRE A L'APPRENTISSAGE (lot V3b, 10/10/2026). Code du travail\nL. 6242-1 : due a partir de 250 salaries si moins de 5 % de l'effectif est en apprentissage, en\nprofessionnalisation, en CIFRE ou en CDI a leur suite. Sous 250 salaries (CRM 118, regle des cinq\nans), le moteur declare seul le non-assujettissement (004) et ne lit pas ce champ ; au-dela, il ne\ncompte pas ces contrats et refuse la DSN de decembre tant que le champ est vide.",
+   "_note": "LA CONTRIBUTION SUPPLEMENTAIRE A L'APPRENTISSAGE. Code du travail\nL. 6242-1 : due a partir de 250 salaries si moins de 5 % de l'effectif est en apprentissage, en\nprofessionnalisation, en CIFRE ou en CDI a leur suite. Sous 250 salaries (CRM 118, regle des cinq\nans), le moteur declare seul le non-assujettissement (004) et ne lit pas ce champ ; au-dela, il ne\ncompte pas ces contrats et refuse la DSN de decembre tant que le champ est vide.",
    "cle": "contribution_supplementaire_apprentissage",
    "libelle": "Contribution supplémentaire à l'apprentissage",
    "forme": "choix",
@@ -985,25 +967,6 @@
    "declare": false,
    "derive_de": null,
    "rubrique": null,
-   "si_permanents": false,
-   "si": null,
-   "si_etablissements": false,
-   "si_entreprise": null,
-   "booleen_defaut": true,
-   "ecran": true
-  },
-  {
-   "cle": "code_convention_dsn",
-   "libelle": "Code convention DSN",
-   "forme": "chiffres",
-   "aide": "",
-   "obligatoire": false,
-   "longueur": 4,
-   "exemple": "",
-   "choix": [],
-   "declare": true,
-   "derive_de": null,
-   "rubrique": "S21.G00.11.022",
    "si_permanents": false,
    "si": null,
    "si_etablissements": false,
@@ -1107,7 +1070,7 @@
    "ecran": true
   },
   {
-   "_note": "LE MODELE DU BULLETIN (lot R11, 11/10/2026 ; PLAN-CONTRATS, C, points 9 et 11, decides le 30/09/2026). Deux modeles : << simplifié >>, le bulletin clarifie du modele de l'arrete du 25/02/2016 (art. 1, I), et << complet >>, le meme bulletin suivi d'une page annexe qui detaille chaque cotisation (base, taux et montant des deux parts) sous la ligne du bulletin qui la regroupe : la FAQ du BOSS sur le bulletin, Q 10, n'admet pas plus de detail dans la rubrique des obligatoires et l'admet << au verso du bulletin de paie ou bien sur un document annexe >> (atelier/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt ; lot D2, prive/journal/finitions/PASSATION-D2.md). `bulletin::modele_du_bulletin`. La compagnie choisit pour tous, dans Configuration, a cote de l'apercu des deux modeles (`bulletin-modeles`, `bulletin-modele-choisir`) : la case ne se montre pas dans la fiche. Vide : le simplifie.",
+   "_note": "LE MODELE DU BULLETIN. Deux modeles : << simplifié >>, le bulletin clarifie du modele de l'arrete du 25/02/2016 (art. 1, I), et << complet >>, le meme bulletin suivi d'une page annexe qui detaille chaque cotisation (base, taux et montant des deux parts) sous la ligne du bulletin qui la regroupe : la FAQ du BOSS sur le bulletin, Q 10, n'admet pas plus de detail dans la rubrique des obligatoires et l'admet << au verso du bulletin de paie ou bien sur un document annexe >> (atelier/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt). `bulletin::modele_du_bulletin`. La compagnie choisit pour tous, dans Configuration, a cote de l'apercu des deux modeles (`bulletin-modeles`, `bulletin-modele-choisir`) : la case ne se montre pas dans la fiche. Vide : le simplifie.",
    "cle": "modele_bulletin",
    "libelle": "Modèle du bulletin de paie",
    "forme": "choix",
@@ -1131,7 +1094,7 @@
    "ecran": false
   },
   {
-   "_note": "LES CONSEILS « LE SAVIEZ-VOUS ? » (ticket 224, Leandre, 21/10/2026) : une option, decochee par defaut ; sans elle, rien ne s'affiche nulle part. Cochee : un conseil general a l'accueil, un conseil sous la carte d'engagement quand un fait de la saisie l'appelle, ce que la compagnie a fait pour le salarie dans sa fiche. La banque : donnees/conseils.json ; les conditions : moteur/src/conseils.rs.",
+   "_note": "LES CONSEILS « LE SAVIEZ-VOUS ? » : une option, decochee par defaut ; sans elle, rien ne s'affiche nulle part. Cochee : un conseil general a l'accueil, un conseil sous la carte d'engagement quand un fait de la saisie l'appelle, ce que la compagnie a fait pour le salarie dans sa fiche. La banque : donnees/conseils.json ; les conditions : moteur/src/compagnie/conseils.rs.",
    "cle": "conseils",
    "libelle": "Afficher des conseils « Le saviez-vous ? » (paie, contrats, droits des intermittents)",
    "forme": "booleen",
@@ -1327,7 +1290,7 @@
    "ecran": true
   },
   {
-   "_note": "LE SEXE NE SE DECLARE NULLE PART TEL QUEL : aucune rubrique du bloc 30\nne le porte. Il voyage dans le premier caractere du NIR -- et, quand il\nn'y a pas de NIR, dans celui du numero technique temporaire, dont il\nest le premier morceau (voir `moteur/ntt.py`). D'ou une case qui ne\nsert qu'a ce cas-la, et que l'ecran ne montre que sans NIR : le\ndedoubler serait s'exposer a ce que les deux se contredisent.",
+   "_note": "LE SEXE NE SE DECLARE NULLE PART TEL QUEL : aucune rubrique du bloc 30\nne le porte. Il voyage dans le premier caractere du NIR -- et, quand il\nn'y a pas de NIR, dans celui du numero technique temporaire, dont il\nest le premier morceau (`declarations/src/ntt.rs`). D'ou une case qui ne\nsert qu'a ce cas-la, et que l'ecran ne montre que sans NIR : le\ndedoubler serait s'exposer a ce que les deux se contredisent.",
    "cle": "sexe",
    "libelle": "Sexe",
    "forme": "choix",
@@ -1407,7 +1370,7 @@
    "ecran": true
   },
   {
-   "_note": "DEPARTEMENT ET PAYS SE LISENT DANS LE NIR (23/09/2026) : ses 6e et 7e\nchiffres sont le departement de naissance, 99 a l'etranger. L'ecran\nles propose (`operations_fiches.suggestions_fiche`) et ne les ecrit\nque dans une case vide.",
+   "_note": "DEPARTEMENT ET PAYS SE LISENT DANS LE NIR : ses 6e et 7e\nchiffres sont le departement de naissance, 99 a l'etranger. L'ecran\nles propose (`routes/fiches.rs`, `suggestions`) et ne les ecrit\nque dans une case vide.",
    "cle": "departement_naissance",
    "libelle": "Département de naissance",
    "forme": "texte",
@@ -1489,7 +1452,7 @@
    "ecran": true
   },
   {
-   "_note": "UN PAYS HORS DE LA LISTE (vague 2h, 10/10/2026) : le Kosovo et quelques territoires n'ont pas de code ISO dans le COG de l'INSEE. Le pays s'ecrit ici, en texte, et la nationalite DSN (S21.G00.30.013) se choisit : elle ne se deduit pas. La DSN ne declare pas le pays de nationalite. Regle : `socle/src/codification_ue.rs`.",
+   "_note": "UN PAYS HORS DE LA LISTE : le Kosovo et quelques territoires n'ont pas de code ISO dans le COG de l'INSEE. Le pays s'ecrit ici, en texte, et la nationalite DSN (S21.G00.30.013) se choisit : elle ne se deduit pas. La DSN ne declare pas le pays de nationalite. Regle : `socle/src/codification_ue.rs`.",
    "cle": "pays_nationalite_hors_liste",
    "libelle": "Pays de nationalité absent de la liste",
    "forme": "texte",
@@ -1741,7 +1704,7 @@
    "ecran": true
   },
   {
-   "_note": "S21.G00.40.002 -- cahier technique DSN 2026.1, p. 182. Ce n'est PAS la\nnature du contrat (c'est .007) : c'est le classement au sens de la\nconvention collective. Il etait code en dur a \"05\" dans dsn.py, ce qui\nest juste pour un artiste et faux pour tout le reste -- les 151 DSN de\nl'export le montrent : 05 pour les 146 contrats d'artistes, 07 pour le\ncharge de production, 04 pour la metteuse en scene.\n06 : l'employe administratif non cadre, que le catalogue des\nmetiers pose (attachee de production) -- la fiche le refusait et\ns'affichait en erreur (26/09/2026).\n03 : le cadre dirigeant (votant au college employeur des elections\nprud'homales), que la norme liste et que la CCH-11 de 40.003 admet pour un\ncadre (p. 182) ; il manquait (reste R1 #59, 11/10/2026).",
+   "_note": "S21.G00.40.002 -- cahier technique DSN 2026.1, p. 182. Ce n'est PAS la\nnature du contrat (c'est .007) : c'est le classement au sens de la\nconvention collective, qui se lit sur la fiche du salarie : 05 pour un\nartiste, 07 pour un charge de production, 04 pour une metteuse en scene.\n06 : l'employe administratif non cadre, que le catalogue des\nmetiers pose (attachee de production).\n03 : le cadre dirigeant (votant au college employeur des elections\nprud'homales), que la norme liste et que la CCH-11 de 40.003 admet pour un\ncadre (p. 182).",
    "cle": "statut_conventionnel",
    "libelle": "Classement conventionnel (DSN)",
    "forme": "choix",
@@ -1767,7 +1730,7 @@
    "ecran": true
   },
   {
-   "_note": "S21.G00.40.003. Il voyage avec le precedent : la regle CCH-11 du cahier\ntechnique exige 002 dans (03, 04, 08) des que 003 vaut 01. La metteuse\nen scene de l'export porte bien 04 + 01.\nLa norme 2026.1 (p. 183) liste 01 cadre, 02 extension cadre, 04 non cadre,\n98 retraite complementaire sans statut cadre ou non cadre, 99 pas de\nretraite complementaire. Le 03 qu'on offrait n'existe pas (reste R1 #59,\n11/10/2026). 98 et 99 (regimes publics, fonctionnaires) ne sont pas\nofferts : le moteur ne lit que 01 (cadre, bareme.rs) et ne sait pas ce\nqu'une paie sans Agirc-Arrco deviendrait ; les ouvrir est un chantier.",
+   "_note": "S21.G00.40.003. Il voyage avec le precedent : la regle CCH-11 du cahier\ntechnique exige 002 dans (03, 04, 08) des que 003 vaut 01 : une metteuse\nen scene cadre porte 04 + 01.\nLa norme 2026.1 (p. 183) liste 01 cadre, 02 extension cadre, 04 non cadre,\n98 retraite complementaire sans statut cadre ou non cadre, 99 pas de\nretraite complementaire ; 03 n'en est pas. 98 et 99 (regimes publics, fonctionnaires) ne sont pas\nofferts : le moteur ne lit que 01 (cadre, bareme.rs) et ne sait pas ce\nqu'une paie sans Agirc-Arrco deviendrait ; les ouvrir est un chantier.",
    "cle": "statut_categoriel_rc",
    "libelle": "Cadre ou non cadre",
    "forme": "choix",
@@ -1791,7 +1754,7 @@
    "ecran": true
   },
   {
-   "_note": "LA PROFESSION QUI OUVRE LA DEDUCTION FORFAITAIRE SPECIFIQUE (lot R9,\n11/10/2026 ; avant : la categorie, 20 ou 25). L'arrete du 4 septembre 2025\n(frais professionnels), art. 9, I, la reserve aux << professions, prevues a l'article 5 de l'annexe IV\ndu code general des impots dans sa redaction en vigueur au 31 decembre\n2000 >> : la profession donne la categorie et le taux de l'annee (bareme,\n`deduction_forfaitaire.professions`), et les frais que l'annexe de l'arrete\nlaisse hors de l'assiette. Ne se montre que si la compagnie exerce l'option\n(fiche entreprise). Declare : S21.G00.40.023 porte le taux.",
+   "_note": "LA PROFESSION QUI OUVRE LA DEDUCTION FORFAITAIRE SPECIFIQUE. L'arrete du 4 septembre 2025\n(frais professionnels), art. 9, I, la reserve aux << professions, prevues a l'article 5 de l'annexe IV\ndu code general des impots dans sa redaction en vigueur au 31 decembre\n2000 >> : la profession donne la categorie et le taux de l'annee (bareme,\n`deduction_forfaitaire.professions`), et les frais que l'annexe de l'arrete\nlaisse hors de l'assiette. Ne se montre que si la compagnie exerce l'option\n(fiche entreprise). Declare : S21.G00.40.023 porte le taux.",
    "cle": "deduction_forfaitaire",
    "libelle": "Profession ouvrant la déduction forfaitaire spécifique",
    "forme": "choix",
@@ -1825,7 +1788,7 @@
    "ecran": true
   },
   {
-   "_note": "L'ACCORD DU SALARIE A LA DEDUCTION FORFAITAIRE SPECIFIQUE (lot R9). Ne\nsert que si la compagnie l'exerce salarie par salarie (fiche entreprise,\n<< accord_individuel >>). Arrete du 4 septembre 2025, art. 9, I, al. 3 :\nl'option << peut alors figurer soit dans le contrat de travail ou soit dans\nun avenant au contrat de travail. A defaut, l'employeur informe et recueille\nle consentement annuel du salarie par tout moyen. Lorsque le travailleur\nsalarie et assimile ne repond pas dans un delai raisonnable a cette\nconsultation, son silence vaut accord. Le salarie peut toutefois demander a\ntout moment [...] a beneficier ou ne plus beneficier de la deduction, avec\napplication au 1er janvier de l'annee suivante. >> Le consentement est\nannuel : l'historique de la fiche le date. Vide : la paie refuse (l'accord\nne se devine pas) ; << refus >> : pas de deduction.",
+   "_note": "L'ACCORD DU SALARIE A LA DEDUCTION FORFAITAIRE SPECIFIQUE. Ne\nsert que si la compagnie l'exerce salarie par salarie (fiche entreprise,\n<< accord_individuel >>). Arrete du 4 septembre 2025, art. 9, I, al. 3 :\nl'option << peut alors figurer soit dans le contrat de travail ou soit dans\nun avenant au contrat de travail. A defaut, l'employeur informe et recueille\nle consentement annuel du salarie par tout moyen. Lorsque le travailleur\nsalarie et assimile ne repond pas dans un delai raisonnable a cette\nconsultation, son silence vaut accord. Le salarie peut toutefois demander a\ntout moment [...] a beneficier ou ne plus beneficier de la deduction, avec\napplication au 1er janvier de l'annee suivante. >> Le consentement est\nannuel : l'historique de la fiche le date. Vide : la paie refuse (l'accord\nne se devine pas) ; << refus >> : pas de deduction.",
    "cle": "deduction_forfaitaire_accord",
    "libelle": "Accord du salarié à la déduction forfaitaire spécifique",
    "forme": "choix",
@@ -1854,7 +1817,7 @@
    "ecran": true
   },
   {
-   "_note": "BENEFICIAIRE DE L'OBLIGATION D'EMPLOI (S21.G00.40.072, journal §144).\nTout employeur le declare chaque mois, quel que soit son effectif\n(D5212-4) : c'est ce que l'Urssaf compte pour la declaration OETH\n(`moteur/oeth.py`). Vide : le salarie n'en est pas un, ou ne l'a pas dit\n-- rien ne l'y oblige, et rien ne se devine.",
+   "_note": "BENEFICIAIRE DE L'OBLIGATION D'EMPLOI (S21.G00.40.072).\nTout employeur le declare chaque mois, quel que soit son effectif\n(D5212-4) : c'est ce que l'Urssaf compte pour la declaration OETH\n(`declarations/src/oeth.rs`). Vide : le salarie n'en est pas un, ou ne l'a pas dit\n-- rien ne l'y oblige, et rien ne se devine.",
    "cle": "statut_boeth",
    "libelle": "Bénéficiaire de l'obligation d'emploi (handicap)",
    "forme": "choix",
@@ -1932,7 +1895,7 @@
    "ecran": true
   },
   {
-   "_note": "LE CLASSEMENT DANS LA GRILLE D'UNE CONVENTION A GRILLES (29/09/2026,\njournal §158) : radio, television, evenement, animation, disque,\nloisirs. La cle de la ligne, telle que `minima-conventionnels.json` la\nnomme ; vide, le moteur compare a la ligne la plus basse.",
+   "_note": "LE CLASSEMENT DANS LA GRILLE D'UNE CONVENTION A GRILLES : radio, television, evenement, animation, disque,\nloisirs. La cle de la ligne, telle que `minima-conventionnels.json` la\nnomme ; vide, le moteur compare a la ligne la plus basse.",
    "cle": "classement_conventionnel",
    "libelle": "Classement dans la grille de la convention",
    "forme": "texte",
@@ -1963,7 +1926,7 @@
    "ecran": true
   },
   {
-   "_note": "L'ANCIENNETE DANS LE POSTE (29/09/2026, journal §159) : la 1922 ajoute\ndes points apres 3 et 6 ans dans la fonction, la 3252 majore ses minima\nde 3 % et 8 % apres 3 et 8 ans dans l'entreprise ET le poste, la 3090\nclasse ses administratifs en echelons (5, 10, 15, 20 ans dans\nl'entreprise et la fonction), la CCNEAC ses artistes de choeur en CDI\n(tous les trois ans, journal §160). Vide : aucune anciennete, le plus bas.",
+   "_note": "L'ANCIENNETE DANS LE POSTE : la 1922 ajoute\ndes points apres 3 et 6 ans dans la fonction, la 3252 majore ses minima\nde 3 % et 8 % apres 3 et 8 ans dans l'entreprise ET le poste, la 3090\nclasse ses administratifs en echelons (5, 10, 15, 20 ans dans\nl'entreprise et la fonction), la CCNEAC ses artistes de choeur en CDI\n(tous les trois ans). Vide : aucune anciennete, le plus bas.",
    "cle": "poste_depuis",
    "libelle": "Dans ce poste depuis",
    "forme": "date",
@@ -1990,7 +1953,7 @@
    "ecran": true
   },
   {
-   "_note": "L'ARTISTE STAGIAIRE DE LA CCNEAC (accord du 02/05/2024, art. 1.1.1 ;\njournal §160) : le minimum mensuel d'un artiste dramatique ou\nchoregraphique est abattu de 30 % la 1re annee, de 15 % la 2e.",
+   "_note": "L'ARTISTE STAGIAIRE DE LA CCNEAC (accord du 02/05/2024, art. 1.1.1) : le minimum mensuel d'un artiste dramatique ou\nchoregraphique est abattu de 30 % la 1re annee, de 15 % la 2e.",
    "cle": "stagiaire_ccneac",
    "libelle": "Artiste stagiaire (CCNEAC)",
    "forme": "choix",
@@ -2018,7 +1981,7 @@
    "ecran": true
   },
   {
-   "_note": "LE CDDU EXPERIMENTE DE LA 3241 (29/09/2026, journal §159) : M2 = M1 + 5 %\napres 350 jours ou 2 800 heures dans la fonction, sur quatre branches\n(accord du 22/12/2006, art. 4.3) -- un cumul de carriere, que le moteur\nne voit pas.",
+   "_note": "LE CDDU EXPERIMENTE DE LA 3241 : M2 = M1 + 5 %\napres 350 jours ou 2 800 heures dans la fonction, sur quatre branches\n(accord du 22/12/2006, art. 4.3) -- un cumul de carriere, que le moteur\nne voit pas.",
    "cle": "experimente_3241",
    "libelle": "Expérimenté dans la fonction (M2)",
    "forme": "booleen",
@@ -2042,7 +2005,7 @@
    "ecran": true
   },
   {
-   "_note": "LE FORFAIT JOURS DE LA 1790 (29/09/2026, journal §159) : les cadres (V\net plus) et les agents de maitrise IV.3 au forfait ont un minimum\nmajore de 5 % (avenant n° 41, chap. IV ; avenant n° 76).",
+   "_note": "LE FORFAIT JOURS DE LA 1790 : les cadres (V\net plus) et les agents de maitrise IV.3 au forfait ont un minimum\nmajore de 5 % (avenant n° 41, chap. IV ; avenant n° 76).",
    "cle": "forfait_jours",
    "libelle": "Au forfait jours",
    "forme": "booleen",
@@ -2091,7 +2054,7 @@
    "ecran": true
   },
   {
-   "_note": "LES BORNES D'UNE DISPENSE DE SANTE (Q13, Leandre 11/10/2026) : les accords de branche en donnent --\nl'echeance du contrat individuel, la justification annuelle (CCN 3090 art. 9.2.2 b et d ; CCNEAC\nXII.2.1.8). Hors de ces bornes, le salarie est affilie (`calcul::dispense_de_la_periode`) ; la DSN date\nl'affiliation qui suit la fin d'une dispense (S21.G00.70.014, p. 287). Vide : sans borne de ce cote.",
+   "_note": "LES BORNES D'UNE DISPENSE DE SANTE : les accords de branche en donnent --\nl'echeance du contrat individuel, la justification annuelle (CCN 3090 art. 9.2.2 b et d ; CCNEAC\nXII.2.1.8). Hors de ces bornes, le salarie est affilie (`calcul::dispense_de_la_periode`) ; la DSN date\nl'affiliation qui suit la fin d'une dispense (S21.G00.70.014, p. 287). Vide : sans borne de ce cote.",
    "cle": "sante_dispense_depuis",
    "libelle": "Dispense depuis",
    "forme": "date",
@@ -2116,7 +2079,7 @@
    "ecran": true
   },
   {
-   "_note": "LES BORNES D'UNE DISPENSE DE SANTE (Q13, Leandre 11/10/2026) : les accords de branche en donnent --\nl'echeance du contrat individuel, la justification annuelle (CCN 3090 art. 9.2.2 b et d ; CCNEAC\nXII.2.1.8). Hors de ces bornes, le salarie est affilie (`calcul::dispense_de_la_periode`) ; la DSN date\nl'affiliation qui suit la fin d'une dispense (S21.G00.70.014, p. 287). Vide : sans borne de ce cote.",
+   "_note": "LES BORNES D'UNE DISPENSE DE SANTE : les accords de branche en donnent --\nl'echeance du contrat individuel, la justification annuelle (CCN 3090 art. 9.2.2 b et d ; CCNEAC\nXII.2.1.8). Hors de ces bornes, le salarie est affilie (`calcul::dispense_de_la_periode`) ; la DSN date\nl'affiliation qui suit la fin d'une dispense (S21.G00.70.014, p. 287). Vide : sans borne de ce cote.",
    "cle": "sante_dispense_jusqu_au",
    "libelle": "Dispense jusqu'au",
    "forme": "date",
@@ -2141,7 +2104,7 @@
    "ecran": true
   },
   {
-   "_note": "L'ANCIENNETE QUI OUVRE LA PREVOYANCE D'UN NON CADRE PERMANENT. Elle se\ncompte DANS LA BRANCHE et pas dans l'entreprise : un salarie qui arrive\nd'une autre compagnie du spectacle vivant prive apporte la sienne. Le\nmoteur ne la demande que quand elle change la reponse -- moins d'un an\ndans l'entreprise -- et refuse plutot que de supposer. La DSN la\ndemande aussi quand l'ouverture a pu tomber apres le debut du contrat :\nelle date alors l'affiliation (S21.G00.70.014, lot V3e).",
+   "_note": "L'ANCIENNETE QUI OUVRE LA PREVOYANCE D'UN NON CADRE PERMANENT. Elle se\ncompte DANS LA BRANCHE et pas dans l'entreprise : un salarie qui arrive\nd'une autre compagnie du spectacle vivant prive apporte la sienne. Le\nmoteur ne la demande que quand elle change la reponse -- moins d'un an\ndans l'entreprise -- et refuse plutot que de supposer. La DSN la\ndemande aussi quand l'ouverture a pu tomber apres le debut du contrat :\nelle date alors l'affiliation (S21.G00.70.014).",
    "cle": "prevoyance_branche_depuis",
    "libelle": "Dans la branche depuis",
    "forme": "date",
@@ -2161,7 +2124,7 @@
    "ecran": true
   },
   {
-   "_note": "LA CATEGORIE DE LA CONVENTION (24/09/2026, journal §114). Elle choisit\nle preavis de la 3090 (un mois, deux, trois) et les clauses d'annexe.\nLe moteur la lit d'abord dans le statut, la case cadre et le metier ;\nce champ ne sert que quand rien ne la dit -- ou pour un cadre de\ndirection, qui ne se deduit jamais.",
+   "_note": "LA CATEGORIE DE LA CONVENTION. Elle choisit\nle preavis de la 3090 (un mois, deux, trois) et les clauses d'annexe.\nLe moteur la lit d'abord dans le statut, la case cadre et le metier ;\nce champ ne sert que quand rien ne la dit -- ou pour un cadre de\ndirection, qui ne se deduit jamais.",
    "cle": "categorie_conventionnelle",
    "libelle": "Catégorie dans la convention",
    "forme": "choix",
@@ -2188,7 +2151,7 @@
    "ecran": true
   },
   {
-   "_note": "LES CONGES A LA REPRISE (24/09/2026, journal §111). Le compteur se\nderive des mois produits ; pour un permanent deja la avant PuppetPaie,\nil partait de zero. Ce qui vient d'avant se lit sur le DERNIER\nBULLETIN de l'ancien logiciel, et se saisit une fois.",
+   "_note": "LES CONGES A LA REPRISE. Le compteur se\nderive des mois produits ; pour un permanent deja la avant PuppetPaie,\nil partait de zero. Ce qui vient d'avant se lit sur le DERNIER\nBULLETIN de l'ancien logiciel, et se saisit une fois.",
    "cle": "conges_reprise",
    "libelle": "Congés payés à la reprise",
    "forme": "structure",
@@ -2208,7 +2171,7 @@
    "ecran": true
   },
   {
-   "_note": "PLUS A L'ECRAN DEPUIS LE 23/09/2026 : le taux de PAS vit dans\n`config/pas.json`, pose par les comptes rendus de la DGFiP, et c'est\nla que la DSN et le bulletin le lisent (`pas.taux_dgfip`). Ce champ-ci\nn'est plus lu par personne ; il reste dans les fiches qui le portent.",
+   "_note": "PAS A L'ECRAN : le taux de PAS vit dans\n`config/pas.json`, pose par les comptes rendus de la DGFiP, et c'est\nla que la DSN et le bulletin le lisent (`droit::pas::taux_dgfip`). Ce champ-ci\nn'est lu par personne.",
    "cle": "taux_pas",
    "libelle": "Taux de PAS",
    "forme": "montant",
@@ -2304,7 +2267,7 @@
    "ecran": true
   },
   {
-   "_note": "LE MODELE DU BULLETIN (lot R11, 11/10/2026 ; PLAN-CONTRATS, C, points 9 et 11, decides le 30/09/2026). Deux modeles : << simplifié >>, le bulletin clarifie du modele de l'arrete du 25/02/2016 (art. 1, I), et << complet >>, le meme bulletin suivi d'une page annexe qui detaille chaque cotisation (base, taux et montant des deux parts) sous la ligne du bulletin qui la regroupe : la FAQ du BOSS sur le bulletin, Q 10, n'admet pas plus de detail dans la rubrique des obligatoires et l'admet << au verso du bulletin de paie ou bien sur un document annexe >> (atelier/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt ; lot D2, prive/journal/finitions/PASSATION-D2.md). `bulletin::modele_du_bulletin`. Un salarie qui demande l'autre modele que celui de la compagnie l'obtient par cette case (Avance), qui l'emporte. Vide : celui de la compagnie.",
+   "_note": "LE MODELE DU BULLETIN. Deux modeles : << simplifié >>, le bulletin clarifie du modele de l'arrete du 25/02/2016 (art. 1, I), et << complet >>, le meme bulletin suivi d'une page annexe qui detaille chaque cotisation (base, taux et montant des deux parts) sous la ligne du bulletin qui la regroupe : la FAQ du BOSS sur le bulletin, Q 10, n'admet pas plus de detail dans la rubrique des obligatoires et l'admet << au verso du bulletin de paie ou bien sur un document annexe >> (atelier/reference/sources/montant-net-social/boss-regles-generales-bulletin-de-paie-20250207-archive-web.txt). `bulletin::modele_du_bulletin`. Un salarie qui demande l'autre modele que celui de la compagnie l'obtient par cette case (Avance), qui l'emporte. Vide : celui de la compagnie.",
    "cle": "modele_bulletin",
    "libelle": "Modèle de bulletin demandé par le salarié",
    "forme": "choix",
@@ -2387,7 +2350,7 @@
    "ecran": true
   },
   {
-   "_note": "L'ANALYTIQUE DU SPECTACLE (23/09/2026). L'editeur : « il faut pouvoir\nles lier a une analytique pour l'export comptable ». Le code vivait\ndans config/plan-comptable.json, sous « sections », qu'aucun ecran ne\nmontre. Il est ici, sur la fiche : c'est le spectacle qu'on range dans\nun centre de cout, pas une ligne de plan comptable. Il vaut pour le\nSPECTACLE, pas pour son numero de l'annee : les fiches de meme titre\nle partagent (`operations_ecritures.codes_sections`).",
+   "_note": "L'ANALYTIQUE DU SPECTACLE : le code qui lie un spectacle a une analytique\npour l'export comptable. Il est sur la fiche du spectacle : c'est le spectacle qu'on range dans\nun centre de cout, pas une ligne de plan comptable. Il vaut pour le\nSPECTACLE, pas pour son numero de l'annee : les fiches de meme titre\nle partagent (`documents/src/etats_compta.rs`, `codes_sections`).",
    "cle": "code_analytique",
    "libelle": "Code analytique",
    "forme": "texte",
@@ -2407,7 +2370,7 @@
    "ecran": true
   },
   {
-   "_note": "LE GENRE DU PROGRAMME (25/09/2026, journal §132) : depuis le 01/07/2024,\nles minima des techniciens en CDDU de la production audiovisuelle\n(2642) dependent du genre -- fiction, flux, autre (avenants 17 et 19).\nVide : le moteur prend le plus bas, et le dit.",
+   "_note": "LE GENRE DU PROGRAMME : depuis le 01/07/2024,\nles minima des techniciens en CDDU de la production audiovisuelle\n(2642) dependent du genre -- fiction, flux, autre (avenants 17 et 19).\nVide : le moteur prend le plus bas, et le dit.",
    "cle": "genre_audiovisuel",
    "libelle": "Genre du programme (audiovisuel)",
    "forme": "choix",
@@ -2435,7 +2398,7 @@
    "ecran": true
   },
   {
-   "_note": "LA 1734 A L'INTERIEUR DE LA 2642 ET DE LA 3241 (29/09/2026, journal\n§157) : les artistes-interpretes d'une emission de television relevent\nde la 1734, a cote de la convention du producteur. L'option ne se\npropose qu'a ces deux conventions (`entreprise.CONVENTIONS_AVEC_1734`).",
+   "_note": "LA 1734 A L'INTERIEUR DE LA 2642 ET DE LA 3241 : les artistes-interpretes d'une emission de television relevent\nde la 1734, a cote de la convention du producteur. L'option ne se\npropose qu'a ces deux conventions (`entreprise.CONVENTIONS_AVEC_1734`).",
    "cle": "emission_tv_1734",
    "libelle": "Émission de télévision (artistes : convention 1734)",
    "forme": "booleen",
@@ -2460,7 +2423,7 @@
    "ecran": true
   },
   {
-   "_note": "LE FORMAT DU FILM ET LA DEROGATION DE L'ANNEXE III (journal §136) : les\nminima des artistes de la production cinematographique (3097) dependent\ndu format (titre III : long-metrage, court-metrage), et ceux des\ntechniciens d'un film a petit budget de la derogation accordee par la\ncommission paritaire (annexe III du titre II).",
+   "_note": "LE FORMAT DU FILM ET LA DEROGATION DE L'ANNEXE III : les\nminima des artistes de la production cinematographique (3097) dependent\ndu format (titre III : long-metrage, court-metrage), et ceux des\ntechniciens d'un film a petit budget de la derogation accordee par la\ncommission paritaire (annexe III du titre II).",
    "cle": "format_cinema",
    "libelle": "Format du film (cinéma)",
    "forme": "choix",

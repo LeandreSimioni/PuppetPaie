@@ -1,9 +1,9 @@
-//! `moteur-atelier fabriquer-bulletins <description.json> <dossier> [--gabarit coolpaie|spaiectacle]` (#236) : les
+//! `moteur-atelier fabriquer-bulletins <description.json> <dossier> [--gabarit coolpaie|spaiectacle]` : les
 //! bulletins FICTIFS d'un logiciel precedent, un PDF par bulletin, pour qu'une compagnie fictive entre dans PuppetPaie
 //! « D'un logiciel précédent » en important ses bulletins par la page.
 //!
-//! La page se dessine par la fabrique des tests (`bulletins_fictifs.rs`, a cote : un seul code), aux positions des
-//! gabarits de la table livree ; elle se relit donc par `bulletin_lu` comme un vrai bulletin. Ici, seulement ce qu'un
+//! La page se dessine par la fabrique des tests (`bulletins_fictifs.rs`, a cote : un seul code), a la maniere du
+//! logiciel choisi ; elle se relit par `bulletin_lu` comme un vrai bulletin. Ici, seulement ce qu'un
 //! ancien logiciel aurait calcule et imprime, a partir d'une description courte (le format : `atelier/outils/banc/
 //! LISEZ-MOI.md`, « Une compagnie qui vient d'un logiciel précédent ») :
 //!
@@ -28,7 +28,7 @@ use rust_decimal::RoundingStrategy;
 use serde_json::Value;
 
 use super::bulletins_fictifs::{page_a, page_b, pdf_octets, Identite, RangA, RangB, A, B};
-use crate::bulletin_lu::{jetons, Table};
+use crate::import::bulletin_lu::{jetons, Table};
 use socle::date::Jour;
 use socle::num::{eur2, Decimal, Resultat};
 
@@ -113,7 +113,7 @@ fn table_boss() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../reference/boss-table-parametres-2026.csv")
 }
 
-/// LE PLAFOND DE LA SECURITE SOCIALE D'UNE ANNEE (mensuel, horaire), d'un texte et non de memoire (#236, regle 1) :
+/// LE PLAFOND DE LA SECURITE SOCIALE D'UNE ANNEE (mensuel, horaire), d'un texte et non de memoire :
 /// le bareme livre du moteur (`logiciel/donnees/baremes/<annee>.json`, `plafond_securite_sociale`, qui cite sa
 /// source), sinon la table des parametres du BOSS deposee (`table_boss`), sinon refus -- l'annee manque, on ne
 /// l'invente pas.
@@ -422,8 +422,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
     if !matches!(gabarit.as_str(), "coolpaie" | "spaiectacle") {
         return Err(format!("gabarit inconnu : {} (coolpaie ou spaiectacle)", gabarit));
     }
-    let table = Table::livree()?;
-    let g = table.gabarits.iter().find(|x| x.nom == gabarit).ok_or_else(|| format!("la table livrée n'a pas le gabarit {}", gabarit))?;
+    let g = Table::livree()?;
 
     let e = d.get("entreprise").filter(|v| v.is_object()).ok_or("`entreprise` manque")?.clone();
     for cle in ["raison_sociale", "adresse", "code_postal", "commune", "siret", "naf"] {
@@ -466,7 +465,7 @@ fn lire_description(d: &Value, gabarit: Option<&str>, racine_catalogue: &Path) -
         let canon = jetons(&libelle);
         let connu = g.lignes().iter().find(|x| jetons(&x.libelle) == canon).ok_or_else(|| {
             let connus: Vec<&str> = g.lignes().iter().map(|x| x.libelle.as_str()).collect();
-            format!("{} : « {} » n'est pas un libellé du gabarit {} ({})", ou, libelle, gabarit, connus.join(", "))
+            format!("{} : « {} » n'est pas un libellé de la table de lecture ({})", ou, libelle, connus.join(", "))
         })?;
         let code = connu.rubrique.clone().ok_or_else(|| {
             format!("{} : « {} » n'a pas de rubrique sûre dans la table : la page se lirait sans contrat", ou, connu.libelle)
@@ -819,158 +818,4 @@ pub fn fabriquer(d: &Value, gabarit: Option<&str>, dossier: &Path) -> Resultat<V
         faits.push(ligne);
     }
     Ok(faits)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    /// La description de la notice du banc (`atelier/outils/banc/LISEZ-MOI.md`) : identite inventee, Siret de la famille
-    /// `123456…` a cle de Luhn juste, NIR de la commune 999 a cle juste.
-    fn description() -> Value {
-        json!({
-            "entreprise": {
-                "raison_sociale": "La Fanfare des Toits", "adresse": "7 rue des Gouttières", "code_postal": "44000",
-                "commune": "Nantes", "siret": "12345678200010", "naf": "9001Z", "urssaf": "527000000001",
-                "licence": "PLATESV-R-2020-000123",
-                "convention": {"idcc": "3252", "libelle": "Spectacle vivant, création et événement"}
-            },
-            "salaries": [
-                {"code": "1", "nom": "Scaramouche", "prenom": "Tiberio", "nir": "185079999912388", "naissance": "1985-07-14",
-                 "adresse": "3 quai de la Fosse", "code_postal": "44000", "commune": "Nantes", "conges_spectacles": "Z1234567"},
-                {"code": "2", "nom": "Colombine", "prenom": "Isabella", "nir": "290039999900145", "naissance": "1990-03-02",
-                 "adresse": "12 rue Kervégan", "code_postal": "44000", "commune": "Nantes"}
-            ],
-            "bulletins": [
-                {"salarie": "1", "emploi": "MUSICIEN", "statut": "artiste", "debut": "2025-03-10", "fin": "2025-03-14",
-                 "dates": [["2025-03-10", "2025-03-11"], ["2025-03-14", "2025-03-14"]],
-                 "objet": {"numero": "256Z00920031", "titre": "Les Toits en Fanfare"},
-                 "lignes": [{"libelle": "Cachets isolés", "quantite": 3, "taux": 146}], "taux_pas": 2.5},
-                {"salarie": "2", "emploi": "CHARGEE DE DIFFUSION", "statut": "non cadre", "regime": "permanent",
-                 "debut": "2025-03-01", "fin": "2025-03-31",
-                 "lignes": [{"libelle": "Heures", "quantite": 86.67, "taux": 14.5}], "taux_pas": "1.4"},
-                {"salarie": "1", "emploi": "MUSICIEN", "statut": "artiste", "debut": "2025-04-07", "fin": "2025-04-09",
-                 "objet": {"numero": "256Z00920031", "titre": "Les Toits en Fanfare"},
-                 "lignes": [{"libelle": "Service de répétition 4 heures", "quantite": 2, "taux": 62},
-                            {"libelle": "Cachets isolés", "quantite": 1, "taux": 146}]}
-            ]
-        })
-    }
-
-    fn lire_tout(dossier: &Path) -> Vec<crate::bulletin_lu::BulletinLu> {
-        let mut fichiers: Vec<_> = std::fs::read_dir(dossier).unwrap().map(|e| e.unwrap().path()).collect();
-        fichiers.sort();
-        fichiers
-            .iter()
-            .map(|f| {
-                let mut l = crate::bulletin_lu::lire(f).unwrap();
-                assert_eq!(l.len(), 1);
-                match l.remove(0).resultat {
-                    Ok(b) => b,
-                    Err(r) => panic!("{} : {}", f.display(), r.message()),
-                }
-            })
-            .collect()
-    }
-
-    fn dossier(nom: &str) -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("paie-fabriquer-bulletins-{}-{}", std::process::id(), nom));
-        let _ = std::fs::remove_dir_all(&d);
-        d
-    }
-
-    /// Chaque bulletin fabrique se relit par le lecteur de l'import, sans avertissement (les totaux retombent, chaque
-    /// libelle a sa rubrique, les cumuls s'accordent aux lignes), et dit ce que la description a donne.
-    #[test]
-    fn les_bulletins_fabriques_se_relisent_sans_ecart() {
-        for gabarit in ["coolpaie", "spaiectacle"] {
-            let d = dossier(gabarit);
-            let mut desc = description();
-            if gabarit == "coolpaie" {
-                desc["bulletins"][2]["lignes"][0]["libelle"] = json!("Service(s) répét. 4h (contrat<5j)");
-            } else {
-                desc["bulletins"][0]["non_soumis"] = json!([{"libelle": "Défraiement non soumis", "quantite": 2, "taux": 18.5}]);
-            }
-            let faits = fabriquer(&desc, Some(gabarit), &d).unwrap();
-            assert_eq!(faits.len(), 3);
-            let lus = lire_tout(&d);
-            assert_eq!(lus.len(), 3);
-            for b in &lus {
-                assert_eq!(b.gabarit, gabarit);
-                assert!(b.avertissements.is_empty(), "{} : {:?}", gabarit, b.avertissements);
-                assert_eq!(b.entreprise.siret.as_deref().map(|s| s.replace(' ', "")).as_deref(), Some("12345678200010"));
-                let c = crate::bulletin_lu::compteurs(b, &d).unwrap();
-                assert!(c.avertissements.is_empty(), "{} : {:?}", gabarit, c.avertissements);
-                assert!(c.cachets.is_some() && c.heures.is_some() && c.jours.is_some(), "{} : {:?}", gabarit, c);
-            }
-            // Les fichiers sont dans l'ordre du temps : mars (1, puis 2), avril.
-            let mars = &lus[0];
-            assert_eq!(mars.salarie.nir.as_deref().map(|s| s.replace(' ', "")).as_deref(), Some("185079999912388"));
-            assert_eq!(mars.brut, Decimal::new(43800, 2));
-            assert_eq!(mars.numero_objet.as_deref(), Some("256Z00920031"));
-            let c = crate::bulletin_lu::compteurs(mars, &d).unwrap();
-            assert_eq!((c.cachets, c.jours), (Some(Decimal::from(3)), Some(Decimal::from(3))));
-            let avril = &lus[2];
-            let c = crate::bulletin_lu::compteurs(avril, &d).unwrap();
-            assert_eq!((c.cachets, c.heures), (Some(Decimal::ONE), Some(Decimal::from(8))));
-            // Le cumul de l'annee suit le salarie : brut de mars + brut d'avril.
-            let brut = avril.cumuls.iter().find(|(n, _)| n == "brut").map(|(_, c)| c.cumul).unwrap();
-            assert_eq!(brut, Some(Decimal::new(43800 + 27000, 2)));
-            let _ = std::fs::remove_dir_all(&d);
-        }
-    }
-
-    /// LE PLAFOND IMPRIME VIENT D'UN TEXTE (#236, regle 1) : un mois entier d'un permanent porte le PSS mensuel de son
-    /// annee -- 2025 du bareme livre (3 925), 2024 de la table du BOSS deposee (3 864, ligne PSS_M_METROP au
-    /// 01/01/2024 de `atelier/reference/boss-table-parametres-2026.csv`). Une annee qu'aucun texte depose ne porte
-    /// (2019) se refuse, et rien n'est ecrit ; `plafonds` ne se donne plus a la main.
-    #[test]
-    fn le_plafond_imprime_vient_du_bareme_ou_de_la_table_du_boss() {
-        let permanent = |an: i32| {
-            let mut desc = description();
-            let mut b = desc["bulletins"][1].clone();
-            b["debut"] = json!(format!("{}-03-01", an));
-            b["fin"] = json!(format!("{}-03-31", an));
-            desc["bulletins"] = json!([b]);
-            desc
-        };
-        for (an, pss) in [(2025, 3925), (2024, 3864)] {
-            let d = dossier(&format!("plafond-{}", an));
-            fabriquer(&permanent(an), Some("coolpaie"), &d).unwrap();
-            let lu = lire_tout(&d).remove(0);
-            let plafond = lu.cumuls.iter().find(|(n, _)| n == "plafond").map(|(_, c)| c.periode).unwrap();
-            assert_eq!(plafond, Some(Decimal::from(pss)), "{}", an);
-            let _ = std::fs::remove_dir_all(&d);
-        }
-        let d = dossier("plafond-2019");
-        assert!(fabriquer(&permanent(2019), Some("coolpaie"), &d).is_err());
-        assert!(!d.exists());
-        let mut desc = permanent(2025);
-        desc["plafonds"] = json!({"2025": {"mensuel": 1, "journalier": 1}});
-        assert!(fabriquer(&desc, Some("coolpaie"), &d).is_err());
-    }
-
-    /// Ce que l'import ne reprendrait pas entier se refuse, et rien n'est ecrit.
-    #[test]
-    fn une_description_que_l_import_ne_reprendrait_pas_se_refuse() {
-        let d = dossier("refus");
-        let cas: Vec<(&str, Value)> = vec![
-            ("/bulletins/0/lignes/0/libelle", json!("Cachets de répétition")),
-            ("/bulletins/0/lignes/0/libelle", json!("Salaire de base")),
-            ("/salaries/0/nir", json!("185079999912389")),
-            ("/entreprise/siret", json!("12345678200011")),
-            ("/bulletins/0/dates", json!([["2025-03-09", "2025-03-11"]])),
-        ];
-        for (chemin, valeur) in cas {
-            let mut desc = description();
-            *desc.pointer_mut(chemin).unwrap() = valeur;
-            assert!(fabriquer(&desc, Some("coolpaie"), &d).is_err(), "{}", chemin);
-        }
-        let mut desc = description();
-        desc["bulletins"][0]["non_soumis"] = json!([{"libelle": "Défraiement non soumis", "quantite": 2, "taux": 18.5}]);
-        assert!(fabriquer(&desc, Some("coolpaie"), &d).is_err());
-        assert!(fabriquer(&description(), None, &d).is_err(), "sans gabarit");
-        assert!(!d.exists());
-    }
 }

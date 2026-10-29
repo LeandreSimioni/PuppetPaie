@@ -1,6 +1,5 @@
 //! La machinerie commune des etats exportes : un tableau, six facons de l'ecrire --
-//! CSV, texte tabule, XLSX, PDF, HTML, JSON --, et les ecrivains du livre de paie, qui a les siens
-//! (`operations_exports.csv_livre`, `xlsx_livre`, `pdf_livre`).
+//! CSV, texte tabule, XLSX, PDF, HTML, JSON --, et les ecrivains du livre de paie, qui a les siens.
 //!
 //! UN ETAT DECLARE, LA MACHINERIE ECRIT. Un etat rend un `Tableau` : ses colonnes (et lesquelles portent un
 //! montant), ses sections (un groupe de lignes et son sous-total), un total general, ses avertissements et les
@@ -59,7 +58,7 @@ impl Val {
     }
 
     /// `str(v)`.
-    pub fn str_py(&self) -> String {
+    pub fn en_texte_ecrit(&self) -> String {
         match self {
             Val::Dec(d) => d.to_string(),
             Val::Num(v) => forme_ecrite(v),
@@ -74,7 +73,7 @@ impl Val {
             Val::Num(v) => return socle::num::dec(v).map_err(|m| erreur("InvalidOperation", m)),
             Val::Txt(s) => s,
         };
-        socle::num::decimal_py(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
+        socle::num::decimal_lu(t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(t)))
     }
 
     /// `dict_tableau._v` / `sortie_json.brut` : un `Decimal` devient son texte.
@@ -132,14 +131,14 @@ impl Ligne {
         self.champs.iter().find(|(c, _)| c == k).map(|(_, v)| v)
     }
 
-    /// `d.get(k)` : la valeur, ou rien.
+    /// La valeur, ou rien.
     pub fn val(&self, k: &str) -> Option<&Val> {
         self.get(k).and_then(|v| v.as_ref())
     }
 
     /// Le texte d'une cle (vide si absente ou `None`).
     pub fn texte(&self, k: &str) -> String {
-        self.val(k).map(Val::str_py).unwrap_or_default()
+        self.val(k).map(Val::en_texte_ecrit).unwrap_or_default()
     }
 
     pub fn decimal(&self, k: &str) -> Option<Decimal> {
@@ -297,7 +296,7 @@ fn somme(lignes: &[&Ligne], cle: &str) -> R<Option<Val>> {
     Ok(total.map(Val::Dec))
 }
 
-/// `tableaux.totaliser` : pose le sous-total de chaque section et le total general. La premiere colonne de
+/// Pose le sous-total de chaque section et le total general. La premiere colonne de
 /// texte porte le libelle (« Total ... »), les colonnes totalisees leur somme, les autres restent vides.
 pub fn totaliser(t: &mut Tableau, libelle_total: &str) -> R<()> {
     let porte = t.colonnes.iter().find(|c| c.genre == Genre::Texte).map(|c| c.cle.clone());
@@ -338,17 +337,17 @@ pub const TOTAL_GENERAL: &str = "TOTAL GÉNÉRAL";
 
 // ------------------------------------------------------------ mise en forme
 
-/// `tableaux.texte` : une cellule en texte francais, virgule decimale, rien pour `None`.
+/// Une cellule en texte francais, virgule decimale, rien pour `None`.
 pub fn texte(v: Option<&Val>, c: &Colonne) -> String {
     match v {
         None => String::new(),
         Some(Val::Dec(d)) if c.a_droite() => d.to_string().replace('.', ","),
         Some(Val::Num(n)) if c.a_droite() => forme_ecrite(n).replace('.', ","),
-        Some(autre) => autre.str_py(),
+        Some(autre) => autre.en_texte_ecrit(),
     }
 }
 
-/// `tableaux._rangees` : (cellules, genre) dans l'ordre d'ecriture : lignes, sous-totaux, total.
+/// (cellules, genre) dans l'ordre d'ecriture : lignes, sous-totaux, total.
 fn rangees(t: &Tableau) -> Vec<(&Ligne, &'static str)> {
     let plusieurs = t.sections.len() > 1 && t.sous_totaux;
     let mut out: Vec<(&Ligne, &'static str)> = Vec::new();
@@ -378,9 +377,19 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
     }
 }
 
-/// `tableaux._nom_compagnie` : le nom de la compagnie, ou rien.
+/// Le nom de la compagnie, ou rien.
 pub fn nom_compagnie(ctx: &Contexte) -> String {
-    crate::fiche_recapitulative::nom_compagnie(ctx)
+    // `fiche(ctx)` lit aussi les compteurs : un fichier abime fait rendre « ».
+    let compteurs = ctx.racine.join("config").join("compteurs.json");
+    if compteurs.exists() && socle::fichiers::lire_json(&compteurs).is_err() {
+        return String::new();
+    }
+    for c in ["nom_affichage", "raison_sociale", "nom"] {
+        if let Some(v) = ctx.entreprise.get(c).filter(|v| vrai(v)) {
+            return valeur_en_texte(v);
+        }
+    }
+    String::new()
 }
 
 fn entete_texte(t: &Tableau, nom: &str) -> Vec<String> {
@@ -460,7 +469,7 @@ fn ligne_json_brute(l: &Ligne) -> Value {
     Value::Object(l.champs.iter().map(|(k, v)| (k.clone(), v.as_ref().map_or(Value::Null, Val::json))).collect())
 }
 
-/// `tableaux.dict_tableau` : ce que le fichier JSON porte.
+/// Ce que le fichier JSON porte.
 pub fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
     let sections: Vec<Value> = t
         .sections
@@ -486,7 +495,7 @@ pub fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
     Ok(socle::ecriture::json_indente(&dict_tableau(t, false), 1).into_bytes())
 }
 
-/// `sortie_json.brut(Tableau)` : la reponse de la route.
+/// La reponse de la route.
 pub fn brut_tableau(t: &Tableau) -> Value {
     let mut m = Map::new();
     m.insert("etat".into(), json!(t.etat));
@@ -532,7 +541,7 @@ fn cellule_classeur(v: Option<&Val>, c: &Colonne) -> Cel {
     if c.a_droite() {
         return match v.decimal() {
             Ok(d) => Cel::Nombre(en_f64(&d)),
-            Err(_) => Cel::Texte(v.str_py()),
+            Err(_) => Cel::Texte(v.en_texte_ecrit()),
         };
     }
     match v {
@@ -687,11 +696,58 @@ const PAGE_HAUTEUR: f64 = 595.28;
 const ROUGE: &str = "#B22222";
 const ENCRE: &str = "#2C3E50";
 
+const CHASSE: f64 = 3.9;
+const CHASSE_ENTETE: f64 = 4.2;
+const MARGE_CELLULE: f64 = 3.0;
+const PLAFOND_TEXTE: f64 = 40.0;
+
+/// La largeur de chaque colonne, en fraction de la largeur utile.
+pub fn fractions(entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], utile: f64) -> Vec<f64> {
+    let n = entetes.len();
+    let mut plus_long = vec![0.0f64; n];
+    let mut plus_long_mot = vec![0.0f64; n];
+    let mut mot_entete = vec![0.0f64; n];
+    for (i, (libelle, _)) in entetes.iter().enumerate() {
+        mot_entete[i] = libelle.split(socle::texte::blanc).filter(|m| !m.is_empty()).map(|m| m.chars().count()).max().unwrap_or(0) as f64;
+    }
+    let gonfle = |genre: &str| match genre {
+        "total" => 1.1,
+        "general" => 1.3,
+        _ => 1.0,
+    };
+    for (cellules, genre) in rangees {
+        for (i, c) in cellules.iter().take(n).enumerate() {
+            plus_long[i] = plus_long[i].max(c.chars().count() as f64 * gonfle(genre));
+            for m in c.split(socle::texte::blanc).filter(|m| !m.is_empty()) {
+                plus_long_mot[i] = plus_long_mot[i].max(m.chars().count() as f64 * gonfle(genre));
+            }
+        }
+    }
+    let texte: Vec<bool> = entetes.iter().map(|(_, a_droite)| !a_droite).collect();
+    let besoins = |plafond: f64| -> Vec<f64> {
+        (0..n)
+            .map(|i| {
+                let lg = if texte[i] { plus_long[i].min(plafond).max(plus_long_mot[i]) } else { plus_long[i] };
+                (lg * CHASSE).max(mot_entete[i] * CHASSE_ENTETE) + 2.0 * MARGE_CELLULE
+            })
+            .collect()
+    };
+    let somme_de = |b: &[f64]| b.iter().fold(0.0, |a, x| a + x);
+    let mut plafond = PLAFOND_TEXTE;
+    let mut b = besoins(plafond);
+    while somme_de(&b) > utile && plafond > 8.0 {
+        plafond -= 2.0;
+        b = besoins(plafond);
+    }
+    let total = somme_de(&b);
+    b.iter().map(|x| x / total).collect()
+}
+
 fn filets(couleur: &str, epaisseur: f64) -> Value {
     json!({"couleur": couleur, "epaisseur": epaisseur})
 }
 
-/// `tableaux.description_pdf` : la description (FORMAT.md) d'un etat -- A4 paysage, son titre, son tableau, ses
+/// La description (FORMAT.md) d'un etat -- A4 paysage, son titre, son tableau, ses
 /// notes. `entetes` : (libelle, a droite) ; `rangees` : (cellules en texte, genre) avec `genre` dans « », « total »
 /// ou « general ».
 #[allow(clippy::too_many_arguments)]
@@ -699,7 +755,7 @@ pub fn description_pdf(
     titre: &str, periode: &str, nom: &str, sous_titre: &str, pied: &str, entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], notes: &[String],
     sources: &[String],
 ) -> Value {
-    let fr = crate::fiche_recapitulative::fractions(entetes, rangees, PAGE_LARGEUR - 68.0);
+    let fr = fractions(entetes, rangees, PAGE_LARGEUR - 68.0);
     let colonnes: Vec<Value> =
         fr.iter().zip(entetes).map(|(f, e)| if e.1 { json!({"largeur": f, "alignement": "droite"}) } else { json!({"largeur": f}) }).collect();
     let lignes: Vec<Value> = rangees
@@ -781,7 +837,7 @@ pub fn octets(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     }
 }
 
-/// `tableaux.format_possible` : le format demande, s'il est l'un de `formats`. (Le XLSX et le PDF sont toujours
+/// Le format demande, s'il est l'un de `formats`. (Le XLSX et le PDF sont toujours
 /// disponibles : ni openpyxl ni la fabrique externe ne sont plus en jeu.)
 pub fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
     if !formats.contains(&fmt) {
@@ -790,7 +846,7 @@ pub fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
     Ok(fmt.to_string())
 }
 
-/// `tableaux.ecrire` : ecrit le tableau dans `dossier/nom.<ext>` (`tsv` s'ecrit `.txt`) et rend le chemin.
+/// Ecrit le tableau dans `dossier/nom.<ext>` (`tsv` s'ecrit `.txt`) et rend le chemin.
 pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<PathBuf> {
     std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
     let ext = if t.format == "tsv" { "txt" } else { t.format.as_str() };
@@ -806,7 +862,7 @@ pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<P
 /// Le nom du mois `AAAA-MM` : « Septembre » (`date::nom_du_mois`, graphie `Titre`). Un mois hors 01-12 se refuse.
 pub fn nom_du_mois(m: &str) -> R<&'static str> {
     let tranche: String = m.chars().skip(5).take(2).collect();
-    let n = socle::num::int_py(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
+    let n = socle::num::entier_lu(&tranche).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", socle::fichiers::repr(&tranche))))?;
     socle::date::nom_du_mois(i64::try_from(n).unwrap_or(0), socle::date::Graphie::Titre).map_err(|e| erreur("IndexError", e))
 }
 
@@ -853,7 +909,7 @@ pub fn montant(v: Option<&Value>) -> R<Option<Decimal>> {
             if t.trim_matches(socle::texte::blanc).is_empty() {
                 return Ok(None);
             }
-            let d = socle::num::decimal_py(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))?;
+            let d = socle::num::decimal_lu(&t).ok_or_else(|| erreur("InvalidOperation", socle::num::illisible(&t)))?;
             Ok(Some(socle::num::eur2(d)))
         }
     }

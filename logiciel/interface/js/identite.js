@@ -1,7 +1,7 @@
 /* L'identite de la compagnie : signature et tampon. */
 "use strict";
 
-/* Configuration → Signature & tampon (22/09/2026).
+/* Configuration → Signature & tampon.
 
    L'éditeur : « je peux pas ajouter la signature dans l'interface, pourquoi ? ».
    Parce qu'il n'y avait AUCUNE route de fichier dans le logiciel. C'est la
@@ -25,7 +25,7 @@ async function dessinerIdentite(cible) {
   const apercu = (src, alt) => `<div class="identite-apercu">
     <img src="${src}" alt="${alt}"></div>`;
 
-  // UNE LIGNE CHACUN (23/09/2026), comme les mots de passe : l'image en
+  // UNE LIGNE CHACUN, comme les mots de passe : l'image en
   // place à gauche -- on voit toujours ce qui part --, ce qu'elle est et
   // d'où elle vient, puis les gestes. Le champ de fichier du navigateur
   // (« Choisir un fichier — aucun fichier choisi ») se cache derrière un
@@ -63,7 +63,7 @@ async function dessinerIdentite(cible) {
     </div>`;
   };
 
-  // OÙ VA CHAQUE IMAGE, en toutes lettres (§110) : le moteur en tient la
+  // OÙ VA CHAQUE IMAGE, en toutes lettres : le moteur en tient la
   // liste (`DOCUMENTS_IDENTITE`). La page disait de la signature
   // « l'attestation et le certificat » ; elle part aussi sur chaque contrat.
   const ou = (quoi) => {

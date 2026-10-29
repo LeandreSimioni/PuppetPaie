@@ -102,7 +102,7 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
     }
 }
 
-/// `str.isdigit()` : non vide, que des chiffres.
+/// Non vide, que des chiffres.
 fn tout_chiffres(t: &str) -> bool {
     !t.is_empty() && t.chars().all(|c| c.is_ascii_digit())
 }
@@ -1246,7 +1246,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // Qui doit la taxe, et sur quelle part : le meme regime que la DSN de decembre (`assujettissement`, CGI art. 231, 1).
     // NE PAS SAVOIR N'EST PAS UNE ERREUR : l'etat le dit, et dit quoi repondre.
     let jour = socle::date::Jour::lire(&format!("{}-01-01", annee)).map_err(|x| erreur("ValueError", x))?;
-    // Les plafonds de la franchise, que la conclusion nomme (ticket #245) : ceux du bareme de l'annee.
+    // Les plafonds de la franchise, que la conclusion nomme : ceux du bareme de l'annee.
     let plafonds = crate::taxe_sur_les_salaires::plafonds_franchise(ctx.bareme(&jour).ok().as_ref());
     let regime = crate::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ctx.entreprise, plafonds);
     let p = Periode::nouvelle(ctx, None, Some(annee), false, true)?;
@@ -1279,7 +1279,7 @@ pub fn taxe_sur_les_salaires(ctx: &Contexte, d: &Demande) -> R<Tableau> {
     // cle -> (salarie, brut, base, mois) dans l'ordre d'insertion
     let mut ordre: Vec<String> = Vec::new();
     let mut par: BTreeMap<String, (String, Decimal, Decimal, BTreeSet<String>)> = BTreeMap::new();
-    for m in p.saisis() {
+    for m in p.saisis_sans_les_importes(&mut avert, "l'assiette de la CSG d'où se calcule la taxe")? {
         let paies = match charger_mois(ctx, &m) {
             Ok((_, paies)) => paies,
             Err(e) if matches!(e.classe, Some("ErreurOperation") | Some("ValueError") | Some("KeyError") | Some("FileNotFoundError")) => {

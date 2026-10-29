@@ -2,16 +2,15 @@
 "use strict";
 
 /* =======================================================================
-   EXPORTS  (22/09/2026)
+   EXPORTS
    -----------------------------------------------------------------------
-   « Il faut vraiment un endroit où on peut faire des exports, pour les
-   trucs comptables. » Le voici, et il ne porte que quatre questions :
+   L'endroit des exports comptables. Il ne porte que quatre questions :
    QUOI (l'état), QUAND (un mois, une année, toutes les années), COMMENT
    (le regroupement et le format), et un APERÇU avant d'écrire.
 
    Tout ce qui s'affiche ici vient du moteur : les états, les formats, les
    regroupements et les périodes sont rendus par `exports-periodes`. Un état
-   ajouté demain dans `operations_exports.ETATS` apparaît dans ce menu sans
+   ajouté au moteur (`routes/archives.rs`) apparaît dans ce menu sans
    qu'on touche à ce fichier — c'est la règle 2 vue depuis la page : elle
    n'affiche pas ce qu'elle croit savoir, elle affiche ce que le moteur dit.
 
@@ -36,8 +35,7 @@ async function dessinerExports() {
     `<option value="${echapper(v)}"${sel ? " selected" : ""}>${echapper(t)}</option>`;
   // Un format dont la brique manque se choisit quand même — le moteur écrit
   // alors le CSV et le dit —, mais l'étiquette prévient avant le clic.
-  // D'ABORD LA CATEGORIE, PUIS L'ETAT, PUIS SES QUESTIONS (Leandre,
-  // 08/10/2026) : rien n'est choisi d'office, et chaque choix deroule le
+  // D'ABORD LA CATEGORIE, PUIS L'ETAT, PUIS SES QUESTIONS : rien n'est choisi d'office, et chaque choix deroule le
   // suivant. Une categorie d'un seul etat le choisit d'elle-meme.
   const fams = familles(p.etats);
   cible.innerHTML = `
@@ -205,7 +203,7 @@ async function lancerDossier(route, apercu) {
 }
 
 /** Les états rangés par famille, dans l'ordre que le moteur donne : une
- *  vingtaine d'états ne se lisent pas en vrac (23/09/2026). */
+ *  vingtaine d'états ne se lisent pas en vrac. */
 function familles(etats) {
   const out = [];
   for (const e of etats) {
@@ -216,7 +214,7 @@ function familles(etats) {
   return out;
 }
 
-/** LES QUESTIONS DE L'ÉTAT CHOISI, et rien d'autre (23/09/2026). L'éditeur :
+/** LES QUESTIONS DE L'ÉTAT CHOISI, et rien d'autre. L'éditeur :
  *  « quand on arrive sur les exports on n'a qu'une case, et selon ce qu'on
  *  choisit on arrive sur ce qui est pertinent ». Quelles questions, quel
  *  bouton, un aperçu ou non : c'est le moteur qui le dit (`FORMES`). */
@@ -308,7 +306,7 @@ function dessinerQuestions(opt) {
   };
 }
 
-/** LE LOGICIEL DU COMPTABLE (23/09/2026). Choisi une fois, retenu par le
+/** LE LOGICIEL DU COMPTABLE. Choisi une fois, retenu par le
  *  moteur (config/compta.json) : il fixe le format, et le menu des formats
  *  s'efface. La case d'analytique ne vaut que pour les formats qui la
  *  portent. Ce que le plan comptable ne tiendrait pas dans ce format est dit
@@ -330,7 +328,7 @@ function montrerLogiciel() {
     `<div class="encart alerte">${echapper(m)}</div>`).join("");
 }
 
-/** LE CALENDRIER DES EXPORTS (Leandre, 08/10/2026). Une ligne par année,
+/** LE CALENDRIER DES EXPORTS. Une ligne par année,
  *  ses douze mois ; on clique une année, un mois, ou « Tout ». Seuls les
  *  mois que des engagements touchent se cliquent, et ce que l'état admet (`periodes`,
  *  dit par le moteur) : un état annuel n'offre pas les mois. Le moteur prend
@@ -514,7 +512,7 @@ function dessinerCasc(r) {
   };
 }
 
-/** UN ÉTAT DE LA MACHINERIE COMMUNE (23/09/2026) : ses colonnes, ses
+/** UN ÉTAT DE LA MACHINERIE COMMUNE : ses colonnes, ses
  *  sections et ses totaux viennent du moteur (`tableaux.Tableau`). La page ne
  *  sait rien de chaque état : un état neuf s'affiche sans qu'on touche ici. */
 function dessinerTableau(r, apercu) {

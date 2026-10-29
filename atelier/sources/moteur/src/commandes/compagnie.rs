@@ -1,13 +1,12 @@
-//! Le choix de la compagnie, comme dans le Python (`moteur/contexte.py` : `racine_donnees`, `moteur/__main__.py` :
-//! `--dev`, `moteur/compagnies.py`) : rien de neuf.
+//! Le choix de la compagnie :
 //!
 //!   - `PUPPETPAIE_DONNEES` si elle est posee ;
 //!   - sinon le dossier `prive/` voisin du code, s'il porte un `config/` ;
 //!   - sinon le code lui-meme (installation d'un seul tenant) ;
 //!   - `moteur --dev COMMANDE` : la copie de developpement `prive-dev/`, si le mode developpeur est allume et la copie
-//!     faite (le Python pose `PUPPETPAIE_DONNEES` ; ici aussi, pour le reste du moteur).
+//!     faite (la commande pose alors `PUPPETPAIE_DONNEES`, pour le reste du moteur).
 //!
-//! Et le jour : celui de Paris (le Python pose `TZ=Europe/Paris`), pas celui d'UTC. `PUPPETPAIE_AUJOURDHUI`, quand elle
+//! Et le jour : celui de Paris, pas celui d'UTC. `PUPPETPAIE_AUJOURDHUI`, quand elle
 //! est posee, regle `aujourdhui` ; sinon on la pose a l'heure de Paris pour que tout le moteur lise le meme jour.
 
 use std::path::{Path, PathBuf};
@@ -19,7 +18,7 @@ const MARQUEUR: &str = "COPIE-DE-DEVELOPPEMENT.json";
 const FICHIER_MODE: &str = ".mode-developpeur.json";
 const NOM_DEV: &str = "prive-dev";
 
-/// `CODE.parent` du Python : le dossier qui porte `logiciel/` (celui du depot). `fixer_le_code` a rendu le chemin du
+/// Le dossier qui porte `logiciel/` (celui du depot). `fixer_le_code` a rendu le chemin du
 /// code absolu et sans `..`.
 fn parent_du_logiciel() -> PathBuf {
     // `<...>/logiciel/donnees` -> `<...>/logiciel` -> `<...>`
@@ -55,13 +54,13 @@ pub fn fixer_le_code() {
     }
 }
 
-/// `compagnies.dossier_dev` : dans l'atelier (`atelier/prive-dev`), pas a cote de ce que les gens recoivent (rangement
+/// Dans l'atelier (`atelier/prive-dev`), pas a cote de ce que les gens recoivent (rangement
 /// du 09/10/2026 : a la racine, `logiciel/`, `fictives/`, `prive/` et `atelier/`).
 pub fn dossier_dev() -> PathBuf {
     parent_du_logiciel().join("atelier").join(NOM_DEV)
 }
 
-/// `compagnies._chemin_mode` : `PUPPETPAIE_CLE` le deplace (c'est ainsi que les tests le tiennent hors du poste).
+/// `PUPPETPAIE_CLE` le deplace (c'est ainsi que les tests le tiennent hors du poste).
 fn chemin_mode() -> PathBuf {
     match std::env::var_os("PUPPETPAIE_CLE").filter(|v| !v.is_empty()) {
         Some(d) => PathBuf::from(d).join(FICHIER_MODE),
@@ -89,7 +88,7 @@ pub fn jour_de_paris() -> Jour {
     socle::temps::jour_de_paris()
 }
 
-/// Pose `PUPPETPAIE_AUJOURDHUI` a l'heure de Paris quand rien ne l'a posee (le Python lit `date.today()`, a Paris).
+/// Pose `PUPPETPAIE_AUJOURDHUI` a l'heure de Paris quand rien ne l'a posee.
 pub fn poser_le_jour() -> Jour {
     let paris = jour_de_paris();
     if std::env::var_os("PUPPETPAIE_AUJOURDHUI").filter(|v| !v.is_empty()).is_none() {
@@ -98,8 +97,7 @@ pub fn poser_le_jour() -> Jour {
     paris
 }
 
-/// La racine de la compagnie de cette commande. `dev` : la copie de developpement, ou la phrase du refus
-/// (`moteur/__main__.py` sort avec ces phrases).
+/// La racine de la compagnie de cette commande. `dev` : la copie de developpement, ou la phrase du refus.
 pub fn racine(dev: bool) -> Result<PathBuf, String> {
     if dev {
         if !mode_actif() {

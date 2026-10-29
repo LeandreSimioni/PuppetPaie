@@ -1,8 +1,7 @@
 //! La mise en page d'un contrat CDDU : le modèle lu (`modele.rs`) devient des blocs.
 //!
-//! C'est `contrat._blocs_un` et `contrat._signatures_description` du Python, qui sont ainsi
-//! sortis du Python : chaque nombre ci-dessous est une ligne de l'ancien CSS du contrat (le
-//! commentaire de chaque constante dit laquelle).
+//! Chaque nombre ci-dessous est une mesure de la mise en page du contrat (le commentaire de
+//! chaque constante dit laquelle).
 //!
 //! L'avenant et les deux papiers de fin de contrat (certificat de travail, reçu pour solde de
 //! tout compte) ont le même papier, la même police et les mêmes titres : ce sont trois VARIANTES
@@ -50,7 +49,7 @@ pub enum Variante {
     /// Titre, préambule, articles numérotés, mention finale, cases de signature.
     Contrat,
     /// Le contrat, plus un article « Modification de l'article n » par article modifié, qui cite
-    /// l'ancien texte puis le nouveau (`moteur/avenant.py`) ; les articles du modèle suivent,
+    /// l'ancien texte puis le nouveau ; les articles du modèle suivent,
     /// numérotés à la suite.
     Avenant,
     /// Certificat de travail, reçu pour solde de tout compte : des intitulés sans numéro, une
@@ -79,7 +78,7 @@ pub struct Modification {
     pub apres: Vec<String>,
 }
 
-/// Ce que le Python envoie d'un document, en plus du chemin du modèle.
+/// Ce que le moteur envoie d'un document, en plus du chemin du modèle.
 pub struct Contrat<'a> {
     pub variante: Variante,
     pub valeurs: &'a Valeurs,

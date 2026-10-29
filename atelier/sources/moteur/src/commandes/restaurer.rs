@@ -1,4 +1,4 @@
-//! `moteur restaurer [DOSSIER] [--racine-drive NOM] [--json]` : redescendre le dossier prive du Drive (lot R1). La decision est
+//! `moteur restaurer [DOSSIER] [--racine-drive NOM] [--json]` : redescendre le dossier prive du Drive. La decision est
 //! dans `restauration.rs` ; ici, l'affichage.
 //!
 //! Le Drive est celui que la compagnie de ce poste a relie (`moteur google autoriser`) : le client lit son jeton dans le dossier
@@ -13,7 +13,7 @@ use super::actes::refuser_si_pas_redirige;
 use super::actes::Organisme;
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
-use crate::{restauration, sauvegarde};
+use crate::compagnie::{restauration, sauvegarde};
 
 pub static SPEC: Spec = Spec {
     commande: "restaurer",
@@ -50,7 +50,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
         Ok(r) => r,
         Err(e) => return refus(e.classe, &e.message),
     };
-    let reste = restauration::a_faire(&crate::coffre::Coffre::du_poste(&cible, ""));
+    let reste = restauration::a_faire(&crate::compagnie::coffre::Coffre::du_poste(&cible, ""));
     let code = if r.incidents.is_empty() { 0 } else { 1 };
     if json {
         let mut v = r.en_json();

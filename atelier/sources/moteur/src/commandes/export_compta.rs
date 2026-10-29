@@ -1,13 +1,12 @@
-//! `moteur export-compta ANNEE [--du N] [--au N] [--apercu] [--json]` : le journal de paie de l'annee, pour la comptabilite
-//! (`moteur/commandes_exercice.py`, `cmd_export_compta` ; `operations_exercice.export_compta`). Route `export-compta`
+//! `moteur export-compta ANNEE [--du N] [--au N] [--apercu] [--json]` : le journal de paie de l'annee, pour la comptabilite.
+//! Route `export-compta`
 //! (`exercice_ecrit::export_compta_charge`). Ecrit `exports/` ... `Compta_AAAA.csv` sauf `--apercu` ; rien n'est lu au coffre.
 //!
-//! Le texte rend le chemin ECRIT en entier (le JSON n'en rend que le nom), comme le Python.
+//! Le texte rend le chemin ECRIT en entier (le JSON n'en rend que le nom).
 //!
-//! DEFAUT DU PYTHON, QUI NE SE REPRODUIT PAS : une annee mal ecrite, un plan comptable abime, une saisie illisible sortaient en trace
-//! d'appels (seule `ErreurOperation` etait attrapee) ; ici, un plantage propre au journal des incidents.
+//! Une annee mal ecrite, un plan comptable abime, une saisie illisible : un plantage propre au journal des incidents.
 //!
-//! POINT DOUTEUX : `--du 0` / `--au 0` : la route lit `0` comme « absent » (les bornes 1 et 12) ; le Python filtrait vraiment sur 0.
+//! `--du 0` / `--au 0` : la route lit `0` comme « absent » (les bornes 1 et 12).
 
 use serde_json::json;
 
@@ -38,7 +37,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         "au": args.entier("au").unwrap_or(12),
         "apercu": args.drapeau("apercu"),
     });
-    let r = crate::exercice_ecrit::export_compta_charge(&cadre.ctx, &charge)?;
+    let r = crate::compagnie::exercice_ecrit::export_compta_charge(&cadre.ctx, &charge)?;
     if args.drapeau("json") {
         return Ok(rendre(&enveloppe("export-compta", r.json())));
     }

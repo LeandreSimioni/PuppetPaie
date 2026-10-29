@@ -17,7 +17,7 @@ const MOIS_COURTS = ["janv.", "févr.", "mars", "avril", "mai", "juin", "juil.",
    du lundi au dimanche. */
 const JOURS_SEMAINE = ["L", "M", "M", "J", "V", "S", "D"];
 
-/* LE JOUR QU'ON EST, CELUI DU MOTEUR (#236, 23/10/2026). La page préremplissait
+/* LE JOUR QU'ON EST, CELUI DU MOTEUR. La page préremplissait
    des dates avec l'horloge du navigateur ; le jour vient du moteur (règle 2) —
    au banc d'essai, il a son temps simulé. L'ouverture le dit (`aujourdhui`,
    `etat_garde::FileDesEtats::ouverture`) et chaque ouverture fraîche le
@@ -88,7 +88,7 @@ function quand(iso) {
 
 /** « du 17/03/2026 au 20/03/2026 », ou « depuis le 04/09/2023 » pour un
  *  CDI : sans fin, le moteur rend `None` ou rien, et l'écran disait
- *  « au None » (30/09/2026). */
+ *  « au None ». */
 function periodeEnClair(debut, fin) {
   return fin && fin !== "None"
     ? `du ${jjmmaaaa(debut)} au ${jjmmaaaa(fin)}`

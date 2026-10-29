@@ -736,7 +736,6 @@ dependencies = [
  "engagement",
  "flate2",
  "rust_decimal",
- "rust_xlsxwriter",
  "serde_json",
  "socle",
 ]
@@ -2465,6 +2464,7 @@ dependencies = [
  "roxmltree 0.20.0",
  "rpassword",
  "rust_decimal",
+ "rust_xlsxwriter",
  "rustls",
  "rustls-platform-verifier",
  "scrypt",

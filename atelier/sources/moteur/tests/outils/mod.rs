@@ -25,7 +25,7 @@ pub fn code_livre() -> PathBuf {
 }
 
 pub fn copier(src: &Path, dst: &Path) {
-    moteur::incidents::brancher_l_engagement();
+    moteur::compagnie::incidents::brancher_l_engagement();
     std::fs::create_dir_all(dst).unwrap();
     for e in std::fs::read_dir(src).unwrap().flatten() {
         let (s, d) = (e.path(), dst.join(e.file_name()));
@@ -37,7 +37,7 @@ pub fn copier(src: &Path, dst: &Path) {
     }
 }
 
-/// Une INSTALLATION (lot U1) : `<dossier>/logiciel/` avec les données livrées et `VERSION`. La mise à jour est la sienne
+/// Une INSTALLATION : `<dossier>/logiciel/` avec les données livrées et `VERSION`. La mise à jour est la sienne
 /// (`<dossier>/maj/`) ; un `moteur` la trouve par `PUPPETPAIE_CODE` = `code_de(<dossier>)`. Rend `<dossier>`.
 pub fn installation(dossier: &Path, version: &str) -> PathBuf {
     copier(&code_livre(), &dossier.join("logiciel").join("donnees"));
@@ -46,7 +46,7 @@ pub fn installation(dossier: &Path, version: &str) -> PathBuf {
 }
 
 /// Le geste de l'accueil sur une installation de test : `.edition.json` « debloque » a cote de `logiciel/`. Sans lui,
-/// une installation est BRIDEE (ticket #246, `moteur/src/bridage.rs`) : elle ne propose ni ne rattache de compagnie reelle.
+/// une installation est BRIDEE (`moteur/src/compagnie/bridage.rs`) : elle ne propose ni ne rattache de compagnie reelle.
 /// Un test qui fait vivre des compagnies reelles dans son installation la debloque ainsi, et le dit.
 pub fn debloquer(installation: &Path) {
     std::fs::create_dir_all(installation).unwrap();
@@ -60,7 +60,7 @@ pub fn code_de(installation: &Path) -> String {
 
 fn neuf(d: PathBuf) -> PathBuf {
     // Ce que pose toute commande du moteur avant de toucher a un engagement : le lecteur de ce qui est parti.
-    moteur::incidents::brancher_l_engagement();
+    moteur::compagnie::incidents::brancher_l_engagement();
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d
@@ -147,7 +147,7 @@ pub fn saisie(racine: &Path, mois: &str) -> Value {
 
 
 
-/// Le rejeu d'un scenario du banc d'essai et le releve de ses sorties (#236, phase 2).
+/// Le rejeu d'un scenario du banc d'essai et le releve de ses sorties.
 pub mod rejeu;
 
 // ------------------------------------------------------------------ la route
@@ -266,7 +266,7 @@ pub fn versement(dsn: &str, numero: &str) -> Vec<(String, String)> {
 
 
 
-/// Un enregistrement AEM de 1000 caractères aux offsets que lit `importation.rs` ; `zones` : ce que le cas ajoute
+/// Un enregistrement AEM de 1000 caractères aux offsets que lit `import/dsn_aem.rs` ; `zones` : ce que le cas ajoute
 /// (`(0, "AEMEDIC2")`, `(36, "000123")`, le Siret en 50…).
 pub fn aem(zones: &[(usize, &str)], nir: &str, debut: &str, fin: &str, objet: &str) -> String {
     let mut l = vec![' '; 1000];

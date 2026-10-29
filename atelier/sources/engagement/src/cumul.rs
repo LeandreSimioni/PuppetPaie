@@ -1,7 +1,5 @@
-//! Ce que la compagnie a declare, pour les cumuls des annexes 8 et 10 (`droit::cumul`) : l'historique importe, puis les
+//! Ce que la compagnie a declare, pour les cumuls des annexes 8 et 10 (`droit::cumul`) : les engagements importes, puis les
 //! paies de ses engagements, une ligne declaree (`Declare`) par paie d'intermittent.
-
-use std::collections::BTreeSet;
 
 use serde_json::Value;
 
@@ -9,12 +7,11 @@ use crate::calcul::Paie;
 use droit::contexte::Contexte;
 use droit::cumul::{heures_enseignement, Declare};
 use socle::date::d;
-use socle::fichiers::lire_json;
 use socle::num::{dec_avec_echelle, Resultat};
 
 // ------------------------------------------------------------------- lecture
 
-/// Un entier d'une ligne de l'historique (`defaut` s'il est absent) ; `None` : une valeur qui n'en est pas un, et la
+/// Un entier d'un contrat importe (`defaut` s'il est absent) ; `None` : une valeur qui n'en est pas un, et la
 /// ligne abimee est laissee de cote.
 fn entier_lu(v: Option<&Value>, defaut: i64) -> Option<i64> {
     match v {
@@ -29,9 +26,9 @@ fn entier_lu(v: Option<&Value>, defaut: i64) -> Option<i64> {
     }
 }
 
-/// Une ligne de l'historique, ou `None` si elle est abimee (elle ne fait pas
+/// Un contrat importe, ou `None` s'il est abime (il ne fait pas
 /// tomber les autres).
-fn ligne_historique(e: &Value) -> Resultat<Option<Declare>> {
+fn ligne_importee(e: &Value) -> Resultat<Option<Declare>> {
     let Some(o) = e.as_object() else { return Ok(None) };
     let Some(Value::String(salarie)) = o.get("salarie") else { return Ok(None) };
     let (Some(debut), Some(fin)) = (o.get("debut"), o.get("fin")) else { return Ok(None) };
@@ -48,20 +45,18 @@ fn ligne_historique(e: &Value) -> Resultat<Option<Declare>> {
     Ok(Some(Declare { salarie: salarie.clone(), debut, fin, numero_objet, heures, cachets, jours, brut, heures_enseignement }))
 }
 
-/// Les contrats attestes avant ce logiciel (`historique/engagements.json`).
-/// Vide tant qu'on n'a rien importe.
-pub(crate) fn lire_historique(ctx: &Contexte) -> Resultat<Vec<Declare>> {
-    let p = ctx.racine.join("historique").join("engagements.json");
-    if !socle::fichiers::existe(&p) {
-        return Ok(Vec::new());
-    }
-    let data = lire_json(&p)?;
+/// Les contrats que l'import atteste (`importe::contrats_lus` : une AEM, un bulletin). Vide tant qu'on n'a rien importe.
+pub(crate) fn lire_importes(ctx: &Contexte) -> Resultat<Vec<Declare>> {
     let mut out = Vec::new();
-    if let Some(Value::Array(l)) = data.get("engagements") {
-        for e in l {
-            if let Some(x) = ligne_historique(e)? {
-                out.push(x);
-            }
+    for i in crate::importe::tous(&ctx.racine)? {
+        let Some(mut e) = i.ligne_du_contrat() else { continue };
+        // Un contrat qui continue ici : ce que les pieces attestent s'arrete a son dernier mois verse, la suite est
+        // dans les paies de ce logiciel.
+        if let Some(dernier) = i.continue_apres() {
+            e["fin"] = Value::String(socle::date::dernier_du_mois(&dernier)?.iso());
+        }
+        if let Some(x) = ligne_importee(&e)? {
+            out.push(x);
         }
     }
     Ok(out)
@@ -88,13 +83,10 @@ fn engagement_de_paie(ctx: &Contexte, p: &Paie) -> Resultat<Option<Declare>> {
     }))
 }
 
-/// Ce que les engagements valides declarent : (engagements, mois couverts). Chaque mois se lit dans les paies ecrites
-/// de ses engagements valides (`etats::validees_du_mois`) : ce qui est en saisie n'est pas paye, il n'entre dans aucun
-/// cumul. `paies_courantes` : les paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois.
-pub(crate) fn engagements_des_paies(
-    ctx: &Contexte,
-    paies_courantes: Option<&[Paie]>,
-) -> Resultat<(Vec<Declare>, BTreeSet<String>)> {
+/// Ce que les engagements valides declarent. Chaque mois se lit dans les paies ecrites de ses engagements valides
+/// (`etats::validees_du_mois`) : ce qui est en saisie n'est pas paye, il n'entre dans aucun cumul. `paies_courantes` : les
+/// paies d'un mois deja lues par l'appelant ; elles remplacent celles de leur mois.
+pub(crate) fn engagements_des_paies(ctx: &Contexte, paies_courantes: Option<&[Paie]>) -> Resultat<Vec<Declare>> {
     let mut groupes: Vec<(String, Vec<Declare>)> = Vec::new();
     for p in paies_courantes.unwrap_or(&[]) {
         let mois = p.engagement.mois.clone();
@@ -122,17 +114,15 @@ pub(crate) fn engagements_des_paies(
         }
         groupes.push((stem, es));
     }
-    let couverts = groupes.iter().map(|(m, _)| m.clone()).collect();
-    Ok((groupes.into_iter().flat_map(|(_, es)| es).collect(), couverts))
+    Ok(groupes.into_iter().flat_map(|(_, es)| es).collect())
 }
 
-/// TOUT ce que la compagnie a declare : l'historique importe, puis les paies ecrites de ses engagements valides
-/// (pour un mois qui a les deux, les paies seulement), trie par (debut, fin, salarie).
+/// TOUT ce que la compagnie a declare : les engagements importes, puis les paies ecrites de ses engagements valides,
+/// trie par (debut, fin, salarie). Un mois a la fois importe et saisi compte les deux : un engagement importe ne touche
+/// aucun mois de la saisie (`stock::Objet::couvre`), aucune paie d'ici ne le declare une seconde fois.
 pub fn lire_engagements(ctx: &Contexte, paies_courantes: Option<&[Paie]>) -> Resultat<Vec<Declare>> {
-    let (des_paies, couverts) = engagements_des_paies(ctx, paies_courantes)?;
-    let mut tous: Vec<Declare> = lire_historique(ctx)?.into_iter().filter(|e| !couverts.contains(&e.mois())).collect();
-    tous.extend(des_paies);
+    let mut tous = lire_importes(ctx)?;
+    tous.extend(engagements_des_paies(ctx, paies_courantes)?);
     tous.sort_by(|a, b| (a.debut, a.fin, &a.salarie).cmp(&(b.debut, b.fin, &b.salarie)));
     Ok(tous)
 }
-

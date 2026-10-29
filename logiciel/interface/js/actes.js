@@ -365,7 +365,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
                                        forcer, contournement });
       rendre();
       if (!reel) {
-        // LE TEST NE FERME PLUS LA BOÎTE (25/09/2026) : « ça a quitté la
+        // LE TEST NE FERME PLUS LA BOÎTE : « ça a quitté la
         // fenêtre au lieu de rester et d'attendre les retours pour proposer
         // d'envoyer direct ». On reste, on attend le compte rendu, et le
         // bouton du réel s'allume ici même.
@@ -434,8 +434,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     const nom = quoi === "dsn" ? "La DSN" : "La DPAE";
     // Seul le bilan du test (le certificat, ou le bilan d'anomalies) ouvre le
     // réel ou le ferme ; l'accusé d'enregistrement dit « envoi reçu », pas
-    // « conforme » (tickets #221, #222 ; le moteur refuse le réel sans lui, DSN
-    // comme DPAE).
+    // « conforme » (le moteur refuse le réel sans lui, DSN comme DPAE).
     for (let tour = 0; tour < 30; tour++) {
       let r = null;
       try { r = await api("bilan-repetition", { quoi, fichier }); } catch (e) { /* on réessaie */ }
@@ -474,8 +473,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
 
   document.getElementById("d-test").onclick = () => lancer(false);
   document.getElementById("d-reel").onclick = () => lancer(true);
-  // LE TEST D'ABORD, TOUJOURS (ticket #103, 02/10/2026 : « on propose d'abord
-  // un test, on regarde si tout est ok et après on propose le réel »). Le
+  // LE TEST D'ABORD, TOUJOURS : on propose d'abord un test, puis le réel. Le
   // réel reste éteint tant que le test n'est pas revenu conforme. Passer
   // outre reste possible, mais c'est un petit lien, et le moteur demande
   // alors un motif écrit (RepetitionManquante → boiteRepetition).
@@ -491,7 +489,7 @@ async function boiteDepot(quoi, fichier, { testerDabord = false } = {}) {
     // Pas de test pour ce contenu : c'est lui qui vient d'abord.
     document.getElementById("d-test").className = "primaire";
     document.getElementById("d-reel").className = "secondaire";
-    // LE MOIS QU'ON VIENT DE FERMER PART EN TEST TOUT SEUL (29/09/2026) :
+    // LE MOIS QU'ON VIENT DE FERMER PART EN TEST TOUT SEUL :
     // « on produit la DSN de test complète et on attend le retour du test,
     // ensuite on propose d'envoyer la DSN réelle ». Un test n'engage rien.
     if (testerDabord) lancer(false);
@@ -536,9 +534,8 @@ async function suivreDepot(quoi, flux, mois) {
 
 /** Où en est la répétition de CE contenu — avant de proposer le dépôt réel.
  *  Un bouton qui refusera au clic est un bouton qui ment. */
-/** Les embauches que porte une DPAE, nommées (ticket #105, 02/10/2026 :
- *  deux salariés partis dans un seul dépôt, et l'écran disait « Cette DPAE »
- *  au singulier, sans dire pour qui -- on a cru qu'une seule était partie). */
+/** Les embauches que porte une DPAE, nommées : un seul dépôt peut en porter
+ *  plusieurs, et l'écran dit pour qui chacune est partie. */
 function embauchesDe(a) {
   const l = (a && a.embauches) || [];
   if (!l.length) return "";
@@ -561,7 +558,7 @@ function encartRepetition(r, quoi, a) {
   if (!r) return "";
   const cette = (quoi === "dsn" ? "Cette DSN" : "Cette DPAE")
     + (quoi === "dsn" ? "" : echapper(embauchesDe(a)));
-  // Les deux phrases de l'éditeur (25/09/2026) : « cette DPAE est déjà
+  // Les deux phrases de l'éditeur : « cette DPAE est déjà
   // testée, voulez-vous l'envoyer » — ou « elle est déjà envoyée en test,
   // on attend les retours, qui arrivent bientôt ».
   if (r.conforme && r.compte_rendu === "ok") {

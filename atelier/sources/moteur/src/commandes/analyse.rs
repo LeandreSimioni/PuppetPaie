@@ -1,7 +1,6 @@
-//! L'analyse des arguments d'une commande, a la facon d'`argparse` (la ligne de commande Python, `moteur/cli.py`) :
-//! options longues, abreviations non ambigues (`--arch` pour `--archives`), `--option=valeur`, positionnels
-//! facultatifs, choix fermes, entiers. Un refus d'analyse a le code 2 et la forme d'`argparse` :
-//! `usage: ...` puis `moteur COMMANDE: error: ...` sur la sortie d'erreur.
+//! L'analyse des arguments d'une commande : options longues, abreviations non ambigues (`--arch` pour
+//! `--archives`), `--option=valeur`, positionnels facultatifs, choix fermes, entiers. Un refus d'analyse a le code 2 :
+//! `usage : ...` puis `moteur COMMANDE : <le refus>` sur la sortie d'erreur.
 //!
 //! Rien ici ne sait ce que fait une commande : une commande declare ses options (`Spec`), l'analyse rend ce qui a
 //! ete tape (`Args`).
@@ -23,7 +22,7 @@ pub enum Genre {
     Ajout,
     /// `--seulement CAT --seulement CAT` (`action="append"`, `choices=...`) : une valeur parmi des choix fermes, a repeter.
     AjoutParmi(&'static [&'static str]),
-    /// `--seulement A B C` (`nargs="+"`) : une ou plusieurs valeurs a la suite, jusqu'a la prochaine option.
+    /// `--seulement A B C` : une ou plusieurs valeurs a la suite, jusqu'a la prochaine option.
     Plusieurs,
 }
 
@@ -72,9 +71,9 @@ pub struct Pos {
     pub nom: &'static str,
     pub choix: Option<&'static [&'static str]>,
     pub defaut: Option<&'static str>,
-    /// Sans `nargs="?"` : `argparse` le reclame (`the following arguments are required: mois`).
+    /// Obligatoire : l'analyse le reclame s'il manque (`à donner : mois`).
     pub obligatoire: bool,
-    /// `nargs="*"` : tout ce qui reste (aucun, un ou plusieurs).
+    /// Tout ce qui reste (aucun, un ou plusieurs).
     pub multiple: bool,
 }
 
@@ -87,7 +86,7 @@ impl Pos {
         Pos { nom, choix: Some(choix), defaut, obligatoire: false, multiple: false }
     }
 
-    /// Des positionnels en nombre libre (`dossier CLE CLE ...`, `nargs="*"`), aucun permis.
+    /// Des positionnels en nombre libre (`dossier CLE CLE ...`), aucun permis.
     pub const fn plusieurs(nom: &'static str) -> Pos {
         Pos { nom, choix: None, defaut: None, obligatoire: false, multiple: true }
     }
@@ -129,11 +128,11 @@ impl Args {
     }
 }
 
-/// Un refus d'analyse : la phrase d'`argparse` (`error: ...`).
+/// Un refus d'analyse : sa phrase.
 pub struct Refus(pub String);
 
 pub fn usage(spec: &Spec) -> String {
-    let mut u = format!("usage: moteur {}", spec.commande);
+    let mut u = format!("usage : moteur {}", spec.commande);
     for o in spec.options {
         u.push_str(&match o.genre {
             Genre::Drapeau => format!(" [--{}]", o.nom),
@@ -153,8 +152,8 @@ pub fn usage(spec: &Spec) -> String {
     u
 }
 
-/// `int(texte)` de Python pour un argument : espaces et signe permis.
-fn entier_py(t: &str) -> Option<i64> {
+/// Un entier donne en argument : espaces au bord et signe permis.
+fn entier_de(t: &str) -> Option<i64> {
     t.trim().parse::<i64>().ok()
 }
 
@@ -191,10 +190,10 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
                 let candidates: Vec<&Opt> = spec.options.iter().filter(|o| o.nom.starts_with(brut)).collect();
                 match candidates.len() {
                     1 => candidates[0],
-                    0 => return Err(Refus(format!("unrecognized arguments: {}", a))),
+                    0 => return Err(Refus(format!("argument inconnu : {}", a))),
                     _ => {
                         let noms: Vec<String> = candidates.iter().map(|o| format!("--{}", o.nom)).collect();
-                        return Err(Refus(format!("ambiguous option: --{} could match {}", brut, noms.join(", "))));
+                        return Err(Refus(format!("option ambiguë : --{} peut être {}", brut, noms.join(", "))));
                     }
                 }
             }
@@ -202,12 +201,12 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
         match opt.genre {
             Genre::Drapeau => {
                 if valeur_collee.is_some() {
-                    return Err(Refus(format!("argument --{}: ignored explicit argument", opt.nom)));
+                    return Err(Refus(format!("l'option --{} ne prend pas de valeur", opt.nom)));
                 }
                 r.valeurs.insert(opt.nom.to_string(), vec![String::new()]);
             }
             Genre::Plusieurs => {
-                // `nargs="+"` : au moins une valeur, puis tout ce qui ne ressemble pas a une option.
+                // Au moins une valeur, puis tout ce qui ne ressemble pas a une option.
                 let mut vs: Vec<String> = Vec::new();
                 if let Some(v) = valeur_collee {
                     vs.push(v);
@@ -220,7 +219,7 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
                     i += 1;
                 }
                 if vs.is_empty() {
-                    return Err(Refus(format!("argument --{}: expected at least one argument", opt.nom)));
+                    return Err(Refus(format!("l'option --{} attend au moins une valeur", opt.nom)));
                 }
                 r.valeurs.insert(opt.nom.to_string(), vs);
             }
@@ -232,16 +231,16 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
                             i += 1;
                             v.clone()
                         }
-                        _ => return Err(Refus(format!("argument --{}: expected one argument", opt.nom))),
+                        _ => return Err(Refus(format!("l'option --{} attend une valeur", opt.nom))),
                     },
                 };
                 match opt.genre {
-                    Genre::Entier if entier_py(&v).is_none() => {
-                        return Err(Refus(format!("argument --{}: invalid int value: '{}'", opt.nom, v)));
+                    Genre::Entier if entier_de(&v).is_none() => {
+                        return Err(Refus(format!("l'option --{} attend un entier, lu : « {} »", opt.nom, v)));
                     }
                     Genre::Choix(c) | Genre::AjoutParmi(c) if !c.contains(&v.as_str()) => {
                         let liste: Vec<String> = c.iter().map(|x| format!("'{}'", x)).collect();
-                        return Err(Refus(format!("argument --{}: invalid choice: '{}' (choose from {})", opt.nom, v, liste.join(", "))));
+                        return Err(Refus(format!("l'option --{} ne prend pas « {} » (choix possibles : {})", opt.nom, v, liste.join(", "))));
                     }
                     _ => {}
                 }
@@ -256,9 +255,9 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
     }
     if pos.len() > spec.positionnels.len() && !spec.positionnels.iter().any(|p| p.multiple) {
         let en_trop: Vec<&str> = pos[spec.positionnels.len()..].iter().map(|s| s.as_str()).collect();
-        return Err(Refus(format!("unrecognized arguments: {}", en_trop.join(" "))));
+        return Err(Refus(format!("arguments inconnus : {}", en_trop.join(" "))));
     }
-    // La distribution d'`argparse` : chaque positionnel prend un argument, sauf un facultatif quand il n'en reste que
+    // La distribution : chaque positionnel prend un argument, sauf un facultatif quand il n'en reste que
     // pour les obligatoires qui le suivent (`fin-contrat 2026-10` : `quoi` garde son defaut, `mois` prend l'argument).
     let mut suivant = 0usize;
     let mut manquants: Vec<&str> = Vec::new();
@@ -278,7 +277,7 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
             if let Some(c) = p.choix {
                 if !c.contains(&v.as_str()) {
                     let liste: Vec<String> = c.iter().map(|x| format!("'{}'", x)).collect();
-                    return Err(Refus(format!("argument {}: invalid choice: '{}' (choose from {})", p.nom, v, liste.join(", "))));
+                    return Err(Refus(format!("{} ne prend pas « {} » (choix possibles : {})", p.nom, v, liste.join(", "))));
                 }
             }
             r.valeurs.insert(p.nom.to_string(), vec![v.clone()]);
@@ -289,7 +288,7 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
         }
     }
     if !manquants.is_empty() {
-        return Err(Refus(format!("the following arguments are required: {}", manquants.join(", "))));
+        return Err(Refus(format!("à donner : {}", manquants.join(", "))));
     }
     Ok(r)
 }
@@ -297,7 +296,7 @@ pub fn analyser(spec: &Spec, args: &[String]) -> Result<Args, Refus> {
 /// Analyse `args` ; sur un refus, ecrit `usage` puis la phrase sur la sortie d'erreur et rend le code 2.
 pub fn analyser_ou_sortir(spec: &Spec, args: &[String]) -> Result<Args, i32> {
     analyser(spec, args).map_err(|Refus(m)| {
-        eprintln!("{}\npaie {}: error: {}", usage(spec), spec.commande, m);
+        eprintln!("{}\nmoteur {} : {}", usage(spec), spec.commande, m);
         2
     })
 }

@@ -1,6 +1,6 @@
 {
  "_quoi": "Le catalogue des metiers du spectacle vivant livre avec le logiciel. Chaque metier porte ce que les declarations demandent -- code emploi France Travail (S21.G00.40.005), PCS-ESE (S21.G00.40.004), libelle officiel (S21.G00.40.006), statut artiste ou technicien (bareme), statut conventionnel (S21.G00.40.002), cadre par defaut (S21.G00.40.003) -- et, quand la CCN le donne, la ligne de minima qui s'applique. Un engagement qui dit `metier` recoit tout cela d'un coup ; ce qu'il precise lui-meme l'emporte.",
- "_perimetre": "Les fonctions des listes 6 et 7 de l'annexe 8 (spectacle vivant prive et subventionne, IDCC 3090 et 1285) et les emplois d'artistes courants de l'annexe 10. Un metier hors catalogue se choisit dans nomenclature-emplois-ft.json (1 236 codes, cinema et audiovisuel compris) : il a alors un code et une annexe, mais ni PCS ni niveau -- a completer sur l'engagement. Depuis le 25/09/2026 (journal §133), aussi les fonctions de la liste 1 de l'annexe 8 (production audiovisuelle, IDCC 2642) que la nomenclature de 2016 connait : famille << Production audiovisuelle >>. Leur PCS-ESE suit la filiere et le niveau de la grille 2642, pas une fiche Insee lue metier par metier : 353c pour un cadre (HN, I, II, IIIA, article IV.1), 637c pour les filieres B (costumes, decor) et D (plateau), 465b pour les autres ; le feminin reprend le masculin. Les fonctions creees apres 2016 (web, post-production, chef d'equipe de decor, macon de decor...) n'ont pas de code dans la nomenclature : elles se choisissent a la main. Depuis le 25/09/2026 (journal §136), aussi les fonctions cinema de la nomenclature (production cinematographique, IDCC 3097) : famille << Production cinematographique >>, chacune avec sa fonction de la grille du titre II (`classification_3097`) et son statut cadre ou non cadre de l'article 2 du titre II (version du 01/05/2026) ; PCS-ESE comme pour la 2642 (353c cadre, 637c decor, costume et plateau, 465b le reste). Les artistes du cinema (acteur, figurant, silhouette, doublure) y sont avec leur grille du titre III (`minima.3097`).",
+ "_perimetre": "Les fonctions des listes 6 et 7 de l'annexe 8 (spectacle vivant prive et subventionne, IDCC 3090 et 1285) et les emplois d'artistes courants de l'annexe 10. Un metier hors catalogue se choisit dans nomenclature-emplois-ft.json (1 236 codes, cinema et audiovisuel compris) : il a alors un code et une annexe, mais ni PCS ni niveau -- a completer sur l'engagement. Aussi les fonctions de la liste 1 de l'annexe 8 (production audiovisuelle, IDCC 2642) que la nomenclature de 2016 connait : famille << Production audiovisuelle >>. Leur PCS-ESE suit la filiere et le niveau de la grille 2642, pas une fiche Insee lue metier par metier : 353c pour un cadre (HN, I, II, IIIA, article IV.1), 637c pour les filieres B (costumes, decor) et D (plateau), 465b pour les autres ; le feminin reprend le masculin. Les fonctions creees apres 2016 (web, post-production, chef d'equipe de decor, macon de decor...) n'ont pas de code dans la nomenclature : elles se choisissent a la main. Aussi les fonctions cinema de la nomenclature (production cinematographique, IDCC 3097) : famille << Production cinematographique >>, chacune avec sa fonction de la grille du titre II (`classification_3097`) et son statut cadre ou non cadre de l'article 2 du titre II (version du 01/05/2026) ; PCS-ESE comme pour la 2642 (353c cadre, 637c decor, costume et plateau, 465b le reste). Les artistes du cinema (acteur, figurant, silhouette, doublure) y sont avec leur grille du titre III (`minima.3097`).",
  "_sources": [
   "francetravail-nomenclature-emplois-2016",
   "francetravail-annexe8-notice",
@@ -14,9 +14,9 @@
   "pcs_ese": "la fiche Insee de la rubrique (professions typiques et assimilees). La ou l'Insee distingue cadre / non cadre (353c / 465b, 353c / 637c), le catalogue suit le niveau 3090.",
   "minima": "cle vers minima-conventionnels.json : par IDCC, puis par annexe de la CCN 3090 (1 theatre, 2 musiques actuelles, 4 tournee, 5 cirque) ou directement pour la 1285. Absent : aucun avertissement de minimum n'est emis pour ce metier. Quand une grille distingue les jauges, le metier pointe LA LIGNE LA PLUS BASSE (petites salles) : sans savoir la jauge, le moteur ne doit jamais crier a tort. Les montants des autres jauges sont portes pour memoire dans minima-conventionnels.json.",
   "classification_1285": "le GROUPE de l'emploi dans la CCNEAC (article XI.3, filieres administration-production, communication-relations publiques-action culturelle et technique ; groupes 1 a 4 cadres, 5 a 7 agents de maitrise, 8 et 9 employes-ouvriers), et l'intitule de la nomenclature XI.3.2 auquel le metier a ete rattache. Quand l'intitule France Travail couvre deux emplois de la convention (un costumier realise ou habille, un regisseur est de scene, de lumiere ou de son), le metier pointe le GROUPE LE PLUS BAS : sans savoir le poste, le moteur ne doit jamais crier a tort -- la regle des jauges. Un metier que la nomenclature ne nomme pas (le chef operateur, le monteur, l'assistant decorateur, le cariste, le souffleur...) n'a pas de groupe : il n'est compare a rien, et `minima.non_compares` le dit. Les emplois ARTISTIQUES de la filiere XI.2 (directeur artistique, dramaturge, collaborateur artistique, repetiteur) n'ont pas de grille de salaires dans l'accord : pas de groupe.",
-  "classification_2642": "La fonction de la grille de la production audiovisuelle (IDCC 2642) qui correspond a ce metier, telle que la nomme l'article IV.1 et la grille consolidee (`minima-conventionnels.json`, `2642.cddu_semaine_35h`). Posee seulement quand la correspondance est evidente (journal §132) : un chef operateur peut etre directeur photo ou chef OPV, un monteur son n'a pas de ligne a lui -- ceux-la restent sans fonction, et le moteur le dit au lieu de comparer a la mauvaise ligne. Les fonctions ajoutees le 25/09/2026 (journal §133) la portent toutes.",
-  "conventions": "Les conventions collectives dont la liste d'emplois de l'annexe 8 (notice France Travail du 03/12/2025) nomme ce metier : le deroulant d'une compagnie ne montre que ceux de SA convention (l'utilisateur, 29/09/2026), plus ceux qu'elle ajoute d'une autre (config/metiers-ajoutes.json). La 1790 renvoie aux listes 6 et 7 du spectacle vivant. Un artiste (annexe 10) n'en porte pas : il vaut pour toutes. Les techniciens du spectacle vivant qu'aucune liste ne nomme gardent leur perimetre d'origine (1285, 1790, 3090).",
-  "conventions_nouvelles": "Les fonctions ajoutees le 29/09/2026 (journal §158), familles Telediffusion, Radiodiffusion, Creation et evenement, Films d'animation, Edition phonographique : le libelle de la notice quand il ne nomme qu'un emploi, sinon celui de la nomenclature ; NON cadres par defaut, faute de grille commune qui le dise -- a cocher sur l'engagement ; PCS-ESE comme pour la 2642, sans le 353c : 637c pour le decor, le costume et le plateau (statut conventionnel 07), 465b pour le reste (05). `classement` : la ligne de la grille de minima (2412, 3252) qui porte le meme libelle."
+  "classification_2642": "La fonction de la grille de la production audiovisuelle (IDCC 2642) qui correspond a ce metier, telle que la nomme l'article IV.1 et la grille consolidee (`minima-conventionnels.json`, `2642.cddu_semaine_35h`). Posee seulement quand la correspondance est evidente : un chef operateur peut etre directeur photo ou chef OPV, un monteur son n'a pas de ligne a lui -- ceux-la restent sans fonction, et le moteur le dit au lieu de comparer a la mauvaise ligne. Les fonctions de la famille << Production audiovisuelle >> la portent toutes.",
+  "conventions": "Les conventions collectives dont la liste d'emplois de l'annexe 8 (notice France Travail du 03/12/2025) nomme ce metier : le deroulant d'une compagnie ne montre que ceux de SA convention , plus ceux qu'elle ajoute d'une autre (config/metiers-ajoutes.json). La 1790 renvoie aux listes 6 et 7 du spectacle vivant. Un artiste (annexe 10) n'en porte pas : il vaut pour toutes. Les techniciens du spectacle vivant qu'aucune liste ne nomme gardent leur perimetre d'origine (1285, 1790, 3090).",
+  "conventions_nouvelles": "Les fonctions des familles Telediffusion, Radiodiffusion, Creation et evenement, Films d'animation, Edition phonographique : le libelle de la notice quand il ne nomme qu'un emploi, sinon celui de la nomenclature ; NON cadres par defaut, faute de grille commune qui le dise -- a cocher sur l'engagement ; PCS-ESE comme pour la 2642, sans le 353c : 637c pour le decor, le costume et le plateau (statut conventionnel 07), 465b pour le reste (05). `classement` : la ligne de la grille de minima (2412, 3252) qui porte le meme libelle."
  },
  "emplois": {
   "ART040": {
@@ -5439,7 +5439,7 @@
   "ASS906": {
    "libelle": "Assistant opérateur du son (cinéma), 1er ou 2e",
    "feminin": "Assistante opératrice du son (cinéma), 1re ou 2e",
-   "_un_code_deux_fonctions": "La liste 2 de l'annexe 8 (3097) nomme le premier et le second assistant operateur du son cinema ; la nomenclature n'a qu'ASS906 << ASSISTANT OPERATEUR DU SON CINEMA >> (journal §159). La grille du titre II les distingue (1 278,27 et 959,77 EUR la semaine) : le catalogue porte la plus basse, la fiche du salarie dit << 1er assistant opérateur du son cinéma >> (`classement_conventionnel`).",
+   "_un_code_deux_fonctions": "La liste 2 de l'annexe 8 (3097) nomme le premier et le second assistant operateur du son cinema ; la nomenclature n'a qu'ASS906 << ASSISTANT OPERATEUR DU SON CINEMA >>. La grille du titre II les distingue (1 278,27 et 959,77 EUR la semaine) : le catalogue porte la plus basse, la fiche du salarie dit << 1er assistant opérateur du son cinéma >> (`classement_conventionnel`).",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Production cinématographique",
@@ -6926,7 +6926,7 @@
    "minima": {
     "3097": "realisateur"
    },
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "REALISATEUR CINEMA",
    "annexe": 10,
    "annexe_nomenclature": 8,
@@ -6943,7 +6943,7 @@
    "cadre_par_defaut": false,
    "statut_conventionnel": "05",
    "minima": {},
-   "note": "Le titre II definit le maquilleur cinema (non cadre, KALIARTI000053776401) mais l'annexe I des salaires ne lui donne aucune ligne, ni avant ni apres le 01/05/2026 (relu le 29/09/2026, journal §159) : la convention ne fixe pas son minimum, il n'y a rien a comparer.",
+   "note": "Le titre II definit le maquilleur cinema (non cadre, KALIARTI000053776401) mais l'annexe I des salaires ne lui donne aucune ligne, ni avant ni apres le 01/05/2026 (relu le 29/09/2026) : la convention ne fixe pas son minimum, il n'y a rien a comparer.",
    "emploi": "MAQUILLEUR CINEMA",
    "annexe": 8,
    "conventions": [
@@ -7105,8 +7105,8 @@
    ]
   },
   "CON010": {
-   "libelle": "Concepteur des eclairages",
-   "feminin": "Concepteur des eclairages",
+   "libelle": "Concepteur des éclairages",
+   "feminin": "Concepteur des éclairages",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7201,8 +7201,8 @@
    }
   },
   "REA130": {
-   "libelle": "Realisateur perruques",
-   "feminin": "Realisateur perruques",
+   "libelle": "Réalisateur perruques",
+   "feminin": "Réalisateur perruques",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7218,8 +7218,8 @@
    ]
   },
   "REG090": {
-   "libelle": "Regisseur d'equipement scenique",
-   "feminin": "Regisseur d'equipement scenique",
+   "libelle": "Régisseur d'équipement scénique",
+   "feminin": "Régisseur d'équipement scénique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7320,8 +7320,8 @@
    }
   },
   "REG210": {
-   "libelle": "Regisseur de choeur",
-   "feminin": "Regisseur de choeur",
+   "libelle": "Régisseur de chœur",
+   "feminin": "Régisseur de chœur",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Techniques du spectacle",
@@ -7426,8 +7426,8 @@
    }
   },
   "CHA180": {
-   "libelle": "Charge de recherche",
-   "feminin": "Charge de recherche",
+   "libelle": "Chargé de recherche",
+   "feminin": "Chargé de recherche",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7461,8 +7461,8 @@
    }
   },
   "CHE370": {
-   "libelle": "Chef ops / chef operateur prise de son",
-   "feminin": "Chef ops / chef operateur prise de son",
+   "libelle": "Chef ops / chef opérateur prise de son",
+   "feminin": "Chef ops / chef opérateur prise de son",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7577,8 +7577,8 @@
    ]
   },
   "MET010": {
-   "libelle": "Metallier",
-   "feminin": "Metallier",
+   "libelle": "Métallier",
+   "feminin": "Métallier",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7661,8 +7661,8 @@
    ]
   },
   "RES040": {
-   "libelle": "Responsable reperages",
-   "feminin": "Responsable reperages",
+   "libelle": "Responsable repérages",
+   "feminin": "Responsable repérages",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Production audiovisuelle",
@@ -7763,7 +7763,7 @@
     "fonction": "Technicien réalisateur 2e équipe cinéma"
    },
    "minima": {},
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "TECHNICIEN REALISATEUR 2EME EQUIPE CINE",
    "annexe": 10,
    "annexe_nomenclature": 8,
@@ -7843,7 +7843,7 @@
    "conventions": [
     "3097"
    ],
-   "_3097": "La classification du 01/05/2026 (titre II, KALIARTI000053776401) dit << Sous-chef electricien de construction cinema >> ; la grille des salaires (annexe I, KALIARTI000053776404) garde l'ancien nom, << Sous-chef electricien de decor cinema >> : meme fonction, rattachee a cette ligne (journal §159)."
+   "_3097": "La classification du 01/05/2026 (titre II, KALIARTI000053776401) dit << Sous-chef electricien de construction cinema >> ; la grille des salaires (annexe I, KALIARTI000053776404) garde l'ancien nom, << Sous-chef electricien de decor cinema >> : meme fonction, rattachee a cette ligne."
   },
   "CAD040": {
    "libelle": "Cadreur AV",
@@ -7998,8 +7998,8 @@
    }
   },
   "ELE030": {
-   "libelle": "Electricien pupitreur",
-   "feminin": "Electricien pupitreur",
+   "libelle": "Électricien pupitreur",
+   "feminin": "Électricien pupitreur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8399,7 +8399,7 @@
    "classification_2642": {
     "fonction": "Électricien déco / Machiniste déco"
    },
-   "_2642": "La liste 1 de l'annexe 8 (2642) nomme en une ligne << Électricien déco / Machiniste déco >> : ELE040 << ELECTRICIEN DECO >> pour l'electricien, MAC070 << MACHINISTE DECORS >> pour le machiniste (la liste 4 de la 3252 le rattache deja ainsi) ; meme fonction dans la grille de la 2642 (journal §159).",
+   "_2642": "La liste 1 de l'annexe 8 (2642) nomme en une ligne << Électricien déco / Machiniste déco >> : ELE040 << ELECTRICIEN DECO >> pour l'electricien, MAC070 << MACHINISTE DECORS >> pour le machiniste (la liste 4 de la 3252 le rattache deja ainsi) ; meme fonction dans la grille de la 2642.",
    "conventions": [
     "2642",
     "3252"
@@ -8478,8 +8478,8 @@
    }
   },
   "OPE360": {
-   "libelle": "Operateur de pad",
-   "feminin": "Operateur de pad",
+   "libelle": "Opérateur de pad",
+   "feminin": "Opérateur de pad",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8493,8 +8493,8 @@
    ]
   },
   "OPE370": {
-   "libelle": "Operateur bandes antenne",
-   "feminin": "Operateur bandes antenne",
+   "libelle": "Opérateur bandes antenne",
+   "feminin": "Opérateur bandes antenne",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8653,8 +8653,8 @@
    }
   },
   "OPE380": {
-   "libelle": "Operateur de reperage",
-   "feminin": "Operateur de reperage",
+   "libelle": "Opérateur de repérage",
+   "feminin": "Opérateur de repérage",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8668,8 +8668,8 @@
    ]
   },
   "OPE390": {
-   "libelle": "Operateur simulation",
-   "feminin": "Operateur simulation",
+   "libelle": "Opérateur simulation",
+   "feminin": "Opérateur simulation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8964,8 +8964,8 @@
    }
   },
   "TEC350": {
-   "libelle": "Technicien de scene",
-   "feminin": "Technicien de scene",
+   "libelle": "Technicien de scène",
+   "feminin": "Technicien de scène",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -8979,8 +8979,8 @@
    ]
   },
   "ASS750": {
-   "libelle": "Assistant technicien de scene",
-   "feminin": "Assistant technicien de scene",
+   "libelle": "Assistant technicien de scène",
+   "feminin": "Assistant technicien de scène",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9045,8 +9045,8 @@
    }
   },
   "REG220": {
-   "libelle": "Regisseur de salle",
-   "feminin": "Regisseur de salle",
+   "libelle": "Régisseur de salle",
+   "feminin": "Régisseur de salle",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9090,8 +9090,8 @@
    ]
   },
   "AID030": {
-   "libelle": "Aide de scene",
-   "feminin": "Aide de scene",
+   "libelle": "Aide de scène",
+   "feminin": "Aide de scène",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9231,8 +9231,8 @@
    }
   },
   "PRO130": {
-   "libelle": "Programmeur lumiere",
-   "feminin": "Programmeur lumiere",
+   "libelle": "Programmeur lumière",
+   "feminin": "Programmeur lumière",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9246,8 +9246,8 @@
    ]
   },
   "ENC020": {
-   "libelle": "Encodeur lumiere",
-   "feminin": "Encodeur lumiere",
+   "libelle": "Encodeur lumière",
+   "feminin": "Encodeur lumière",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9396,8 +9396,8 @@
    ]
   },
   "TEC520": {
-   "libelle": "Technicien echafaudeur",
-   "feminin": "Technicien echafaudeur",
+   "libelle": "Technicien échafaudeur",
+   "feminin": "Technicien échafaudeur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9495,8 +9495,8 @@
    ]
   },
   "PRO100": {
-   "libelle": "Programmeur multimedia",
-   "feminin": "Programmeur multimedia",
+   "libelle": "Programmeur multimédia",
+   "feminin": "Programmeur multimédia",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9510,8 +9510,8 @@
    ]
   },
   "ENC010": {
-   "libelle": "Encodeur multimedia",
-   "feminin": "Encodeur multimedia",
+   "libelle": "Encodeur multimédia",
+   "feminin": "Encodeur multimédia",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9774,8 +9774,8 @@
    }
   },
   "SUP110": {
-   "libelle": "Superviseur constructeur de decors",
-   "feminin": "Superviseur constructeur de decors",
+   "libelle": "Superviseur constructeur de décors",
+   "feminin": "Superviseur constructeur de décors",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9804,8 +9804,8 @@
    ]
   },
   "CON180": {
-   "libelle": "Concepteur technique decor",
-   "feminin": "Concepteur technique decor",
+   "libelle": "Concepteur technique décor",
+   "feminin": "Concepteur technique décor",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -9988,8 +9988,8 @@
    }
   },
   "ASS550": {
-   "libelle": "Assistant constructeur de decors",
-   "feminin": "Assistant constructeur de decors",
+   "libelle": "Assistant constructeur de décors",
+   "feminin": "Assistant constructeur de décors",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Création et événement",
@@ -10542,8 +10542,8 @@
    ]
   },
   "CHE200": {
-   "libelle": "Chef eclairagiste",
-   "feminin": "Chef eclairagiste",
+   "libelle": "Chef éclairagiste",
+   "feminin": "Chef éclairagiste",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -10706,8 +10706,8 @@
    }
   },
   "DEC030": {
-   "libelle": "Decorateur ensemblier",
-   "feminin": "Decorateur ensemblier",
+   "libelle": "Décorateur ensemblier",
+   "feminin": "Décorateur ensemblier",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -10751,8 +10751,8 @@
    ]
   },
   "VID010": {
-   "libelle": "Videographiste",
-   "feminin": "Videographiste",
+   "libelle": "Vidéographiste",
+   "feminin": "Vidéographiste",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -10782,8 +10782,8 @@
    ]
   },
   "DES050": {
-   "libelle": "Dessinateur en generique",
-   "feminin": "Dessinateur en generique",
+   "libelle": "Dessinateur en générique",
+   "feminin": "Dessinateur en générique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Télédiffusion",
@@ -11227,8 +11227,8 @@
    ]
   },
   "ETA040": {
-   "libelle": "Etalonneur numerique",
-   "feminin": "Etalonneur numerique",
+   "libelle": "Étalonneur numérique",
+   "feminin": "Étalonneur numérique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11242,8 +11242,8 @@
    ]
   },
   "CHE650": {
-   "libelle": "Chef etalonneur numerique",
-   "feminin": "Chef etalonneur numerique",
+   "libelle": "Chef étalonneur numérique",
+   "feminin": "Chef étalonneur numérique",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11425,8 +11425,8 @@
    }
   },
   "VER010": {
-   "libelle": "Verificateur d'animation",
-   "feminin": "Verificateur d'animation",
+   "libelle": "Vérificateur d'animation",
+   "feminin": "Vérificateur d'animation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11440,8 +11440,8 @@
    ]
   },
   "CHE490": {
-   "libelle": "Chef verificateur d'animation",
-   "feminin": "Chef verificateur d'animation",
+   "libelle": "Chef vérificateur d'animation",
+   "feminin": "Chef vérificateur d'animation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11524,8 +11524,8 @@
    }
   },
   "DIR100": {
-   "libelle": "Directeur de modelisation",
-   "feminin": "Directeur de modelisation",
+   "libelle": "Directeur de modélisation",
+   "feminin": "Directeur de modélisation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11539,8 +11539,8 @@
    ]
   },
   "SUP020": {
-   "libelle": "Superviseur de modelisation",
-   "feminin": "Superviseur de modelisation",
+   "libelle": "Superviseur de modélisation",
+   "feminin": "Superviseur de modélisation",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11587,8 +11587,8 @@
    }
   },
   "DIR200": {
-   "libelle": "Directeur rendu et eclairage",
-   "feminin": "Directeur rendu et eclairage",
+   "libelle": "Directeur rendu et éclairage",
+   "feminin": "Directeur rendu et éclairage",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11602,8 +11602,8 @@
    ]
   },
   "SUP040": {
-   "libelle": "Superviseur rendu et eclairage",
-   "feminin": "Superviseur rendu et eclairage",
+   "libelle": "Superviseur rendu et éclairage",
+   "feminin": "Superviseur rendu et éclairage",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11728,8 +11728,8 @@
    ]
   },
   "DEC070": {
-   "libelle": "Decorateur volume",
-   "feminin": "Decorateur volume",
+   "libelle": "Décorateur volume",
+   "feminin": "Décorateur volume",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11743,8 +11743,8 @@
    ]
   },
   "CHE160": {
-   "libelle": "Chef decorateur volume",
-   "feminin": "Chef decorateur volume",
+   "libelle": "Chef décorateur volume",
+   "feminin": "Chef décorateur volume",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11758,8 +11758,8 @@
    ]
   },
   "OPE330": {
-   "libelle": "Operateur volume",
-   "feminin": "Operateur volume",
+   "libelle": "Opérateur volume",
+   "feminin": "Opérateur volume",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -11773,8 +11773,8 @@
    ]
   },
   "CHE400": {
-   "libelle": "Chef operateur volume",
-   "feminin": "Chef operateur volume",
+   "libelle": "Chef opérateur volume",
+   "feminin": "Chef opérateur volume",
    "pcs_ese": "465b",
    "statut": "technicien",
    "famille": "Films d'animation",
@@ -12502,8 +12502,8 @@
    }
   },
   "SCU030": {
-   "libelle": "Sculpteur decorateur",
-   "feminin": "Sculpteur decorateur",
+   "libelle": "Sculpteur décorateur",
+   "feminin": "Sculpteur décorateur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Édition phonographique",
@@ -12520,8 +12520,8 @@
    }
   },
   "CHE450": {
-   "libelle": "Chef sculpteur decorateur",
-   "feminin": "Chef sculpteur decorateur",
+   "libelle": "Chef sculpteur décorateur",
+   "feminin": "Chef sculpteur décorateur",
    "pcs_ese": "637c",
    "statut": "technicien",
    "famille": "Édition phonographique",
@@ -12545,7 +12545,7 @@
    "minima": {
     "2642": "realisateur"
    },
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "REALISATEUR",
    "annexe": 10,
    "annexe_nomenclature": 8,
@@ -12567,7 +12567,7 @@
    "minima": {
     "3097": "realisateur_publicite"
    },
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "REALISATEUR DE FILMS PUBLICITAIRES",
    "annexe": 10,
    "annexe_nomenclature": 8,
@@ -12584,7 +12584,7 @@
    "cadre_par_defaut": true,
    "statut_conventionnel": "04",
    "minima": {},
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "REALISATEUR ARTISTIQUE",
    "annexe": 10,
    "annexe_nomenclature": 8,
@@ -12601,7 +12601,7 @@
    "cadre_par_defaut": true,
    "statut_conventionnel": "04",
    "minima": {},
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "REALISATEUR RADIO",
    "annexe": 10,
    "annexe_nomenclature": 8,
@@ -12618,7 +12618,7 @@
    "cadre_par_defaut": true,
    "statut_conventionnel": "04",
    "minima": {},
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "REALISATEUR AV",
    "annexe": 10,
    "annexe_nomenclature": 8,
@@ -12635,7 +12635,7 @@
    "cadre_par_defaut": true,
    "statut_conventionnel": "04",
    "minima": {},
-   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre (journal §159). La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
+   "note": "Artiste du spectacle depuis la loi du 07/07/2016, art. 46 (code du travail L. 7121-2, 10° : << le metteur en scene, le realisateur et le choregraphe, pour l'execution materielle de leur conception artistique >>) ; fonction marquee d'un asterisque et integree a l'annexe X par la circulaire Unedic n° 2016-25 du 21/07/2016, fiche 1 ; artiste cadre. La nomenclature du 12/12/2016 dit encore << annexe 8 >> : c'est la circulaire qui fait foi.",
    "emploi": "REALISATEUR DE SV",
    "annexe": 10,
    "annexe_nomenclature": 8,

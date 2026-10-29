@@ -2,13 +2,13 @@
   "_quoi": "Les CLAUSES des conventions collectives qui changent un solde de tout compte ou un maintien de salaire : le préavis, l'indemnité de licenciement, la retraite, la maladie. C'est un catalogue de BRANCHE, livré avec le logiciel et le même pour toutes les compagnies de la convention, comme `minima-conventionnels.json` (les grilles de salaire) et `prevoyance-conventionnelle-base.json` (la prévoyance).",
   "_regle": "LA LOI ET LA CONVENTION SE CALCULENT TOUTES LES DEUX, ET LA PLUS FAVORABLE L'EMPORTE. La loi le dit à chaque fois : L1234-1 (le préavis légal ne vaut que si la convention ne prévoit pas mieux), L1234-9 (l'indemnité légale est un plancher), L1237-7 et L1237-9 (idem pour la retraite). Une clause conventionnelle MOINS favorable que la loi n'est pas une erreur du fichier : elle est écrite telle qu'elle est, et le moteur retient la loi en le disant.",
   "_ce_que_ce_fichier_n_est_pas": "Ni le code du travail — la loi est dans `permanents-base.json` —, ni un contrat de travail : ce qu'un contrat accorde de plus que la convention se saisit sur l'engagement.",
-  "_une_convention_absente": "Une convention qui n'est pas ici n'a PAS de clauses : c'est qu'elles ne sont pas relevées. Le moteur calcule alors la loi seule et le dit (`clauses.releve`), plutôt que de laisser croire qu'il a lu la convention. Au 25/09/2026, la 3090 (journal §114), la 1285 (§119) et la 2642 (§132) sont relevées.",
+  "_une_convention_absente": "Une convention qui n'est pas ici n'a PAS de clauses : c'est qu'elles ne sont pas relevées. Le moteur calcule alors la loi seule et le dit (`clauses.releve`), plutôt que de laisser croire qu'il a lu la convention. Au 25/09/2026, la 3090, la 1285 (§119) et la 2642 (§132) sont relevées.",
   "_declaration": "Une indemnité conventionnelle SUPÉRIEURE à la légale se déclare en DEUX lignes du bloc S21.G00.52 : le montant légal sous son code légal (007, 003, 005, 001), et le SUPPLÉMENT sous le code conventionnel (021 pour le licenciement et la rupture conventionnelle, 004 pour la mise à la retraite, 006 pour le départ). Source : grille d'aide au remplissage « Indemnités » de net-entreprises (« vient s'ajouter éventuellement à l'indemnité légale », « 021 — supplémentaire aux indemnités légales » ; « 001 — il s'agit du minimum légal »), copie dans `atelier/reference/norme-dsn/netentreprises-grille-aide-remplissage-indemnites.pdf` ; libellés du cahier technique 2026.1, p. 252-253.",
-  "_regime": "Le supplément conventionnel suit le régime du montant légal, et c'est la loi qui le dit : CGI 80 duodecies 3° b et 4° b (« le montant de l'indemnité [...] prévue par la convention collective de branche [...] ou, à défaut, par la loi »), CSS L136-1-1 III 5° a (CSG et CRDS : « le montant prévu par la convention collective de branche [...] ou la loi si ce dernier est le plus élevé »), CSS L242-1 II 7° (cotisations : ce qui n'est pas imposable, dans la limite de deux plafonds). C'est ce qui permet au moteur de l'écrire : jusqu'au 24/09/2026 il refusait toute indemnité au-dessus du montant légal, faute de savoir la partager.",
+  "_regime": "Le supplément conventionnel suit le régime du montant légal, et c'est la loi qui le dit : CGI 80 duodecies 3° b et 4° b (« le montant de l'indemnité [...] prévue par la convention collective de branche [...] ou, à défaut, par la loi »), CSS L136-1-1 III 5° a (CSG et CRDS : « le montant prévu par la convention collective de branche [...] ou la loi si ce dernier est le plus élevé »), CSS L242-1 II 7° (cotisations : ce qui n'est pas imposable, dans la limite de deux plafonds). C'est ce qui permet au moteur d'écrire une indemnité au-dessus du montant légal : il sait la partager.",
   "conventions": {
     "3090": {
       "libelle": "Convention collective nationale des entreprises du secteur privé du spectacle vivant du 3 février 2012",
-      "_source": "Base KALI de la DILA (open data) : la base complète du 13/07/2025 et les 246 livraisons quotidiennes jusqu'à KALI_20260923-215642, relues le 24/09/2026. Aucune livraison postérieure au 13/07/2025 ne touche les articles cités ici. Transcription : `atelier/reference/sources/kali-3090-titres-vii-x-xi-annexes-20260924.md`. Journal §114.",
+      "_source": "Base KALI de la DILA (open data) : la base complète du 13/07/2025 et les 246 livraisons quotidiennes jusqu'à KALI_20260923-215642, relues le 24/09/2026. Aucune livraison postérieure au 13/07/2025 ne touche les articles cités ici. Transcription : `atelier/reference/sources/kali-3090-titres-vii-x-xi-annexes-20260924.md`.",
       "categories": {
         "_quoi": "La convention classe par CATÉGORIE (artistes-interprètes ; employés, employés qualifiés ; agents de maîtrise ; cadres) — et l'annexe I a ses cadres de direction. Le moteur la lit dans cet ordre : `categorie_conventionnelle` sur la fiche du salarié (ou l'engagement), qui l'emporte toujours ; puis le statut artiste ; puis la case cadre ; puis le niveau 3090 du métier (`emplois-base.json`, `classification_3090.niveau`). Un métier de niveau cadre déclaré non cadre ne se tranche pas : le moteur demande.",
         "valeurs": {
@@ -378,7 +378,7 @@
         "article": "annexe I, 3.11",
         "kali": "KALIARTI000028157577",
         "_texte": "« Après 3 ans de présence, il est attribué à chaque technicien une prime d'ancienneté de 1 % du salaire conventionnel, versée mensuellement et calculée de la façon suivante : 4e année : 1 % ; 5e année : 2 % ; 6e année : 3 % et ainsi de suite jusqu'au plafond de 10 % après 13 années de présence. »",
-        "_etat": "CODÉ depuis le 24/09/2026 (journal §121) pour les techniciens AU MOIS de l'annexe I : ajoutée d'elle-même au bulletin. Ses grilles de salaire conventionnel sont celles de l'avenant du 21/07/2025, en vigueur au 01/09/2025 ; avant cette date, les grilles ne sont pas relevées et le moteur refuse plutôt que de prendre les suivantes.",
+        "_etat": "CODÉ pour les techniciens AU MOIS de l'annexe I : ajoutée d'elle-même au bulletin. Ses grilles de salaire conventionnel sont celles de l'avenant du 21/07/2025, en vigueur au 01/09/2025 ; avant cette date, les grilles ne sont pas relevées et le moteur refuse plutôt que de prendre les suivantes.",
         "annexe": "1",
         "apres_annees": 3,
         "pourcentage_par_annee": 1,
@@ -439,7 +439,7 @@
     },
     "1285": {
       "libelle": "Convention collective nationale des entreprises artistiques et culturelles du 1er janvier 1984 (CCNEAC)",
-      "_source": "Base KALI de la DILA : la base complète du 13/07/2025 (conteneur KALICONT000005635964, texte KALITEXT000005662413) et les 246 livraisons jusqu'au 23/09/2026. Les livraisons republient V.8, V.11 et V.12 sous les mêmes identifiants, au texte identique (vérifié le 24/09/2026). Journal §119.",
+      "_source": "Base KALI de la DILA : la base complète du 13/07/2025 (conteneur KALICONT000005635964, texte KALITEXT000005662413) et les 246 livraisons jusqu'au 23/09/2026. Les livraisons republient V.8, V.11 et V.12 sous les mêmes identifiants, au texte identique (vérifié le 24/09/2026).",
       "remise_du_contrat": {
         "article": "XV.1.2 a",
         "kali": "KALIARTI000020810347",
@@ -668,7 +668,7 @@
     },
     "2642": {
       "libelle": "Convention collective nationale de la production audiovisuelle du 13 décembre 2006",
-      "_source": "Base KALI de la DILA, entrepôt local au 25/09/2026 (conteneur KALICONT000018828041, texte KALITEXT000018828046) : V.1 (version du 28/09/2016, avenant n° 6), VIII.2 et VIII.3 (versions du 01/01/2015, avenant n° 5). Aucun article de la convention ne traite de la retraite. Journal §132.",
+      "_source": "Base KALI de la DILA, entrepôt local au 25/09/2026 (conteneur KALICONT000018828041, texte KALITEXT000018828046) : V.1 (version du 28/09/2016, avenant n° 6), VIII.2 et VIII.3 (versions du 01/01/2015, avenant n° 5). Aucun article de la convention ne traite de la retraite.",
       "categories": {
         "_quoi": "La 2642 ne distingue pas les catégories pour le préavis ni pour l'indemnité : l'ancienneté seule (V.1.2). La catégorie ne sert qu'à la période d'essai.",
         "valeurs": {
@@ -848,7 +848,7 @@
     },
     "3097": {
       "libelle": "Convention collective nationale de la production cinématographique du 19 janvier 2012",
-      "_source": "Base KALI de la DILA, entrepôt local au 25/09/2026 (IDCC 3097, texte KALITEXT000028053370) : titre IV, article II.4 (version du 01/09/2022, avenant du 19/07/2022 -- KALIARTI000046989032) ; titre Ier, article 24 (maladie : le code du travail). Les techniciens (titre II) et les artistes (titre III) sont engagés en CDDU : ces clauses sont celles des PERMANENTS. Journal §136.",
+      "_source": "Base KALI de la DILA, entrepôt local au 25/09/2026 (IDCC 3097, texte KALITEXT000028053370) : titre IV, article II.4 (version du 01/09/2022, avenant du 19/07/2022 -- KALIARTI000046989032) ; titre Ier, article 24 (maladie : le code du travail). Les techniciens (titre II) et les artistes (titre III) sont engagés en CDDU : ces clauses sont celles des PERMANENTS.",
       "categories": {
         "_quoi": "Le titre IV distingue le cadre et le non-cadre (II.4.2.2), rien d'autre : la case cadre de la fiche le dit.",
         "cadre_ou_non_cadre": true,
@@ -862,7 +862,7 @@
         "kali": "KALIARTI000046989032",
         "en_vigueur_depuis": "2022-09-01",
         "_texte": "« salarié non cadre ayant moins de 2 ans d'ancienneté : 1 mois ; salarié non cadre ayant 2 ans d'ancienneté et plus : 2 mois ; salarié cadre : 3 mois ; ces durées de préavis sont majorées de 1 mois en cas de licenciement lorsque le salarié est, à la date de notification de la rupture, âgé de plus de 50 ans. » Réciproque, sauf faute grave ou lourde. Deux heures par jour pour chercher un emploi, payées, au licenciement.",
-        "_age": "L'âge se compte en années révolues (`operations_permanents._age`) : « plus de 50 ans », c'est 50 ans révolus. Le supplément ne vaut qu'au licenciement : `clauses.preavis_mois` ne l'ajoute pas à une démission.",
+        "_age": "L'âge se compte en années révolues (`engagement/src/solde.rs`, `age`) : « plus de 50 ans », c'est 50 ans révolus. Le supplément ne vaut qu'au licenciement : `clauses.preavis_mois` ne l'ajoute pas à une démission.",
         "motifs_hors_preavis": {
           "087": "Faute grave.",
           "088": "Faute lourde.",
@@ -951,7 +951,7 @@
     },
     "3252": {
       "libelle": "Convention collective nationale des entreprises au service de la création et de l'événement du 27 juin 2024",
-      "_source": "Base KALI de la DILA, entrepôt local au 27/09/2026 (IDCC 3252, texte KALITEXT000050299244, étendu le 13/03/2025) : article 4.1.3 (version du 17/05/2025, avenant n° 3), articles 8.2.1 (17/05/2025) et 8.2.2 (01/04/2025). Les intermittents sont en CDD d'usage (4.3) : ces clauses sont celles des PERMANENTS. Journal §149.",
+      "_source": "Base KALI de la DILA, entrepôt local au 27/09/2026 (IDCC 3252, texte KALITEXT000050299244, étendu le 13/03/2025) : article 4.1.3 (version du 17/05/2025, avenant n° 3), articles 8.2.1 (17/05/2025) et 8.2.2 (01/04/2025). Les intermittents sont en CDD d'usage (4.3) : ces clauses sont celles des PERMANENTS.",
       "categories": {
         "_quoi": "L'article 4.1.3 distingue le cadre et le non-cadre, rien d'autre : la case cadre de la fiche le dit.",
         "cadre_ou_non_cadre": true,
@@ -1156,7 +1156,7 @@
     },
     "3241": {
       "libelle": "Convention collective nationale de la télédiffusion du 2 juillet 2021",
-      "_source": "Base KALI de la DILA, entrepôt local au 27/09/2026 (IDCC 3241, texte KALITEXT000044226308) : articles 52 (maladie, accident du travail), 58 (retraite, version du 14/04/2022), 59 (licenciement) et 61 (préavis). Les intermittents sont en CDDU (accord du 22/12/2006) : ces clauses sont celles des PERMANENTS. Journal §150.",
+      "_source": "Base KALI de la DILA, entrepôt local au 27/09/2026 (IDCC 3241, texte KALITEXT000044226308) : articles 52 (maladie, accident du travail), 58 (retraite, version du 14/04/2022), 59 (licenciement) et 61 (préavis). Les intermittents sont en CDDU (accord du 22/12/2006) : ces clauses sont celles des PERMANENTS.",
       "categories": {
         "_quoi": "L'article 61 distingue le cadre et le non-cadre, rien d'autre : la case cadre de la fiche le dit.",
         "cadre_ou_non_cadre": true,
@@ -1193,7 +1193,7 @@
             }
           ]
         },
-        "_retraite": "L'article 58.1.1 donne au départ volontaire 1 mois sous deux ans d'ancienneté, 2 mois au-delà ; l'article 61 dit « des durées de préavis identiques » pour le départ et la mise à la retraite. TRANCHÉ le 27/09/2026 (journal §151) : l'article 61, qui vise nommément le départ et la mise à la retraite et vient après le 58 ; entre deux clauses d'un même texte, la plus favorable au salarié s'applique aussi."
+        "_retraite": "L'article 58.1.1 donne au départ volontaire 1 mois sous deux ans d'ancienneté, 2 mois au-delà ; l'article 61 dit « des durées de préavis identiques » pour le départ et la mise à la retraite. RETENU : l'article 61, qui vise nommément le départ et la mise à la retraite et vient après le 58 ; entre deux clauses d'un même texte, la plus favorable au salarié s'applique aussi."
       },
       "indemnite_licenciement": {
         "article": "59",
@@ -1614,7 +1614,7 @@
     },
     "1922": {
       "libelle": "Convention collective nationale de la radiodiffusion du 11 avril 1996 (accord d'étape)",
-      "_source": "Base KALI, entrepôt local au 27/09/2026 (IDCC 1922, texte KALITEXT000005668049) : aucun article sur le préavis, le licenciement, la retraite ni la maladie. Journal §152.",
+      "_source": "Base KALI, entrepôt local au 27/09/2026 (IDCC 1922, texte KALITEXT000005668049) : aucun article sur le préavis, le licenciement, la retraite ni la maladie.",
       "preavis": {
         "loi_seule": "la convention de la radiodiffusion (IDCC 1922), << accord d'etape >> du 11/04/1996, ne traite pas de la rupture du contrat (base KALI, 27/09/2026 : titres I a V, dispositions generales, CPPNI, droit syndical, institutions elues) : la loi seule."
       },
@@ -1633,7 +1633,7 @@
     },
     "2412": {
       "libelle": "Convention collective nationale de la production de films d'animation du 6 juillet 2004",
-      "_source": "Base KALI, entrepôt local au 27/09/2026 (IDCC 2412, texte KALITEXT000005671601) : article 21 (version du 06/07/2004, KALIARTI000005830965). Les intermittents sont en CDDU : ces clauses sont celles des PERMANENTS. Rien sur la maladie : la loi. Journal §153.",
+      "_source": "Base KALI, entrepôt local au 27/09/2026 (IDCC 2412, texte KALITEXT000005671601) : article 21 (version du 06/07/2004, KALIARTI000005830965). Les intermittents sont en CDDU : ces clauses sont celles des PERMANENTS. Rien sur la maladie : la loi.",
       "categories": {
         "_quoi": "L'article 21.1 distingue le cadre et le non-cadre.",
         "cadre_ou_non_cadre": true,
@@ -1764,7 +1764,7 @@
     },
     "2121": {
       "libelle": "Convention collective nationale de l'édition — l'édition phonographique, accord de remplacement du 12 avril 2024",
-      "_source": "Base KALI, entrepôt local au 25/09/2026 (IDCC 2121, accord du 12/04/2024, KALITEXT000049869758) : articles 2.3.2 d (KALIARTI000049869769) et 2.3.3 (KALIARTI000049869776), étendus par arrêté du 07/07/2025 avec exclusions. Ils valent pour le disque, à la place des articles 25 et 26 des clauses générales, pendant quatre ans à compter du 20/04/2024 (art. 6). Les intermittents sont en CDDU : ces clauses sont celles des PERMANENTS. Journal §156.",
+      "_source": "Base KALI, entrepôt local au 25/09/2026 (IDCC 2121, accord du 12/04/2024, KALITEXT000049869758) : articles 2.3.2 d (KALIARTI000049869769) et 2.3.3 (KALIARTI000049869776), étendus par arrêté du 07/07/2025 avec exclusions. Ils valent pour le disque, à la place des articles 25 et 26 des clauses générales, pendant quatre ans à compter du 20/04/2024 (art. 6). Les intermittents sont en CDDU : ces clauses sont celles des PERMANENTS.",
       "categories": {
         "_quoi": "L'article 2.3.3 a distingue l'employé, l'agent de maîtrise et le cadre : la fiche le dit (catégorie dans la convention), ou la case cadre.",
         "valeurs": {
@@ -2006,7 +2006,7 @@
     },
     "1790": {
       "libelle": "Convention collective nationale des espaces de loisirs, d'attractions et culturels du 5 janvier 1994",
-      "_source": "Base KALI, entrepôt local au 25/09/2026 (IDCC 1790, texte KALITEXT000005660361) : titre IX, articles 1er à 3 (KALIARTI000005804019 à 021, versions du 01/09/1994, sans modification) ; titre X, chapitre III, article 1er (KALIARTI000005804029) et avenant n° 23, article 2 (KALIARTI000027944605). L'annexe spectacle (art. 2) exclut les CDD d'usage des « dispositions relatives à la rupture » : ces clauses sont celles des PERMANENTS. Journal §156.",
+      "_source": "Base KALI, entrepôt local au 25/09/2026 (IDCC 1790, texte KALITEXT000005660361) : titre IX, articles 1er à 3 (KALIARTI000005804019 à 021, versions du 01/09/1994, sans modification) ; titre X, chapitre III, article 1er (KALIARTI000005804029) et avenant n° 23, article 2 (KALIARTI000027944605). L'annexe spectacle (art. 2) exclut les CDD d'usage des « dispositions relatives à la rupture » : ces clauses sont celles des PERMANENTS.",
       "categories": {
         "_quoi": "L'article 1er du titre IX distingue les employés et ouvriers, les techniciens et les cadres. Il ne nomme pas les agents de maîtrise : pour eux, seul le plancher de deux mois après deux ans.",
         "valeurs": {

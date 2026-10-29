@@ -96,7 +96,7 @@ pub fn est_chiffre(c: char) -> bool {
     dans(DECIMAUX, c)
 }
 
-/// `re.compile(r"^[12][0-9]{12}([0-9]{2})?$").match(s)` : `$` accepte un saut de
+/// `$` accepte un saut de
 /// ligne final.
 fn est_nir(s: &str) -> bool {
     let t = s.strip_suffix('\n').unwrap_or(s);
@@ -358,7 +358,7 @@ fn controle_declaration(c: &[char]) -> Resultat<()> {
     if commence_par(c, 0, "<?xml") && blanc_xml(c.get(5)) {
         if let Some(fin) = chercher(c, 5, "?>") {
             if !declaration_valide(&c[5..fin]) {
-                return Err(mal_forme("XML declaration not well-formed"));
+                return Err(mal_forme("XML mal forme : la declaration <?xml ?>"));
             }
         }
     }
@@ -405,7 +405,7 @@ fn controle_expat(s: &str) -> Resultat<()> {
             k += 1;
         }
         if k > debut && c.get(k) == Some(&';') && ((0xD800..0xE000).contains(&v) || v > 0x10FFFF) {
-            return Err(mal_forme("reference to invalid character number"));
+            return Err(mal_forme("XML mal forme : un numero de caractere invalide"));
         }
         Ok(())
     };
@@ -429,7 +429,7 @@ fn controle_expat(s: &str) -> Resultat<()> {
             let est_declaration = i == 0 && cible == ['x', 'm', 'l'] && blanc_xml(c.get(fin));
             let xml = cible.len() == 3 && cible.iter().collect::<String>().eq_ignore_ascii_case("xml");
             if (!nom_valide(cible) || cible.contains(&':') || (xml && !est_declaration)) || !(blanc_xml(c.get(fin)) || commence_par(&c, fin, "?>")) {
-                return Err(mal_forme("not well-formed (invalid token)"));
+                return Err(mal_forme("XML mal forme : un caractere inattendu"));
             }
             i = chercher(&c, fin, "?>").map(|k| k + 2).unwrap_or(c.len());
         } else if commence_par(&c, i, "<!") {
@@ -443,7 +443,7 @@ fn controle_expat(s: &str) -> Resultat<()> {
                 }
                 let fin = nom_a(k, &c, &|x| blanc_xml(Some(&x)) || matches!(x, '[' | '>'));
                 if !nom_valide(&c[k..fin]) {
-                    return Err(mal_forme("not well-formed (invalid token)"));
+                    return Err(mal_forme("XML mal forme : un caractere inattendu"));
                 }
             }
             while i < c.len() {
@@ -471,13 +471,13 @@ fn controle_expat(s: &str) -> Resultat<()> {
             let fin = nom_a(i + 2, &c, &|x| blanc_xml(Some(&x)) || x == '>');
             let nom: String = c[i + 2..fin].iter().collect();
             if pile.pop().is_some_and(|ouvert| ouvert != nom) {
-                return Err(mal_forme("mismatched tag"));
+                return Err(mal_forme("XML mal forme : une balise fermee sans etre ouverte"));
             }
             i = chercher(&c, i + 2, ">").map(|k| k + 1).unwrap_or(c.len());
         } else {
             let fin = nom_a(i + 1, &c, &|x| blanc_xml(Some(&x)) || x == '/' || x == '>');
             if fin > i + 1 && !nom_valide(&c[i + 1..fin]) {
-                return Err(mal_forme("not well-formed (invalid token)"));
+                return Err(mal_forme("XML mal forme : un caractere inattendu"));
             }
             let nom_balise: String = c[i + 1..fin].iter().collect();
             i = fin;
@@ -499,15 +499,15 @@ fn controle_expat(s: &str) -> Resultat<()> {
                             break;
                         }
                         if !nom_valide(&c[i..fin]) {
-                            return Err(mal_forme("not well-formed (invalid token)"));
+                            return Err(mal_forme("XML mal forme : un caractere inattendu"));
                         }
                         let nom_attr: String = c[i..fin].iter().collect();
                         if let Some((prefixe, local)) = nom_attr.split_once(':') {
                             if (prefixe == "xmlns" && local == "xmlns") || (local == "xmlns" && prefixe != "xmlns" && !declares.contains(prefixe) && prefixe != "xml") {
-                                return Err(mal_forme("unbound prefix"));
+                                return Err(mal_forme("XML mal forme : un prefixe sans espace de noms"));
                             }
                             if prefixe == "xmlns" && vide_apres(&c, fin) {
-                                return Err(mal_forme("must not undeclare prefix"));
+                                return Err(mal_forme("XML mal forme : un prefixe retire"));
                             }
                         }
                         i = fin;
@@ -551,7 +551,7 @@ fn lire_texte(s: &str) -> Resultat<Arbre> {
 /// Le texte sans son BOM : un second est un caractere de tete que XML refuse.
 fn lire_texte_nu(s: &str) -> Resultat<Arbre> {
     if s.starts_with('\u{feff}') {
-        return Err(mal_forme("not well-formed (invalid token)"));
+        return Err(mal_forme("XML mal forme : un caractere inattendu"));
     }
     controle_expat(s)?;
     let options = roxmltree::ParsingOptions { allow_dtd: true, ..Default::default() };
@@ -643,16 +643,16 @@ fn codage(nom: &str) -> Codage {
 
 fn erreur_codage(c: &Codage, nom: &str) -> Echec {
     match c {
-        Codage::Introuvable => echec("LookupError", format!("unknown encoding: {}", nom)),
+        Codage::Introuvable => echec("LookupError", format!("encodage inconnu : {}", nom)),
         Codage::Refuse => echec("ValueError", "multi-byte encodings are not supported"),
-        _ => echec("ParseError", "unknown encoding"),
+        _ => echec("ParseError", "encodage inconnu"),
     }
 }
 
 /// `ET.fromstring(octets)` : l'encodage declare est celui qui decode.
 fn lire_octets(o: &[u8]) -> Resultat<Arbre> {
-    let invalide = || echec("ParseError", "not well-formed (invalid token)");
-    let incorrect = || echec("ParseError", "encoding specified in XML declaration is incorrect");
+    let invalide = || echec("ParseError", "XML mal forme : un caractere inattendu");
+    let incorrect = || echec("ParseError", "l'encodage declare par le XML n'est pas le sien");
     let (o, bom8) = match o.strip_prefix(&[0xEF, 0xBB, 0xBF]) {
         Some(r) => (r, true),
         None => (o, false),
@@ -1461,7 +1461,7 @@ fn nom_zip(o: &[u8], drapeaux: usize) -> Resultat<String> {
     if drapeaux & 0x800 != 0 {
         std::str::from_utf8(o)
             .map(str::to_string)
-            .map_err(|e| echec("UnicodeDecodeError", format!("'utf-8' codec can't decode byte in position {} : invalid start byte", e.valid_up_to())))
+            .map_err(|e| echec("UnicodeDecodeError", format!("texte illisible en UTF-8 a l'octet {}", e.valid_up_to())))
     } else {
         Ok(cp437(o))
     }
@@ -1505,13 +1505,13 @@ fn extra_zip64(extra: &[u8], m: &mut Membre) -> Resultat<()> {
     while e.len() >= 4 {
         let (tp, ln) = (u16_le(e, 0), u16_le(e, 2));
         if ln + 4 > e.len() {
-            return Err(mauvais(format!("Corrupt extra field {:04x} (size={})", tp, ln)));
+            return Err(mauvais(format!("archive zip abimee : champ supplementaire {:04x} (taille {})", tp, ln)));
         }
         if tp == 0x0001 {
             let mut d = &e[4..ln + 4];
             let mut lire = |champ: &str| -> Resultat<u64> {
                 if d.len() < 8 {
-                    return Err(mauvais(format!("Corrupt zip64 extra field. {} not found.", champ)));
+                    return Err(mauvais(format!("archive zip64 abimee : {} absent du champ supplementaire", champ)));
                 }
                 let v = u64_le(d, 0);
                 d = &d[8..];
@@ -1532,9 +1532,9 @@ fn extra_zip64(extra: &[u8], m: &mut Membre) -> Resultat<()> {
     Ok(())
 }
 
-/// `zipfile.ZipFile(...)` : le repertoire central, dans l'ordre de l'archive.
+/// Le repertoire central, dans l'ordre de l'archive.
 fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
-    let pas_un_zip = || mauvais("File is not a zip file");
+    let pas_un_zip = || mauvais("ce n'est pas une archive zip");
     let taille_fichier = b.len();
     // `_EndRecData`
     let pos = if taille_fichier >= 22 && b[taille_fichier - 22..].starts_with(b"PK\x05\x06") && b[taille_fichier - 2..] == [0, 0] {
@@ -1554,11 +1554,11 @@ fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
         let loc = pos - 20;
         let (disque, reloff, disques) = (u32_le(b, loc + 4), u64_le(b, loc + 8) as i128, u32_le(b, loc + 16));
         if disque != 0 || disques > 1 {
-            return Err(mauvais("zipfiles that span multiple disks are not supported"));
+            return Err(mauvais("archive zip sur plusieurs disques : non lue"));
         }
         let offset = loc as i128 - 56;
         if reloff > offset {
-            return Err(mauvais("Corrupt zip64 end of central directory locator"));
+            return Err(mauvais("archive zip64 abimee : le reperage de la fin du repertoire"));
         }
         let lire56 = |de: i128| -> Option<&[u8]> {
             let de = de as usize;
@@ -1571,11 +1571,11 @@ fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
             data = lire56(offset).ok_or_else(pas_un_zip)?;
         }
         if !data.starts_with(b"PK\x06\x06") {
-            return Err(mauvais("Zip64 end of central directory record not found"));
+            return Err(mauvais("archive zip64 sans fin de repertoire"));
         }
         let (sz, dirsize, diroffset) = (u64_le(data, 4) as i128, u64_le(data, 40) as i128, u64_le(data, 48) as i128);
         if diroffset + dirsize != reloff || sz + 12 != 56 + extrasz {
-            return Err(mauvais("Corrupt zip64 end of central directory record"));
+            return Err(mauvais("archive zip64 abimee : la fin du repertoire"));
         }
         taille_cd = dirsize;
         decalage_cd = diroffset;
@@ -1584,7 +1584,7 @@ fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
     let concat = location - taille_cd - decalage_cd;
     let debut_cd = decalage_cd + concat;
     if debut_cd < 0 {
-        return Err(mauvais("Bad offset for central directory"));
+        return Err(mauvais("archive zip abimee : la position du repertoire"));
     }
     let debut_cd = (debut_cd as usize).min(b.len());
     let cd = &b[debut_cd..(debut_cd as i128 + taille_cd).min(b.len() as i128) as usize];
@@ -1592,11 +1592,11 @@ fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
     let (mut total, mut p) = (0i128, 0usize);
     while total < taille_cd {
         if cd.len() < p + 46 {
-            return Err(mauvais("Truncated central directory"));
+            return Err(mauvais("archive zip tronquee : le repertoire"));
         }
         let c = &cd[p..p + 46];
         if &c[0..4] != b"PK\x01\x02" {
-            return Err(mauvais("Bad magic number for central directory"));
+            return Err(mauvais("archive zip abimee : la signature du repertoire"));
         }
         p += 46;
         let (ln_nom, ln_extra, ln_comm) = (u16_le(c, 28), u16_le(c, 30), u16_le(c, 32));
@@ -1624,7 +1624,7 @@ fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
             fin: 0,
         };
         if c[6] > 63 {
-            return Err(echec("NotImplementedError", format!("zip file version {:.1}", c[6] as f64 / 10.0)));
+            return Err(echec("NotImplementedError", format!("archive zip de version {:.1} : non lue", c[6] as f64 / 10.0)));
         }
         extra_zip64(extra, &mut m)?;
         m.decalage += concat;
@@ -1655,28 +1655,28 @@ fn lire_membre(b: &[u8], m: &Membre) -> Resultat<Vec<u8>> {
     }
     let dec = m.decalage as usize;
     if dec.saturating_add(30) > b.len() {
-        return Err(mauvais("Truncated file header"));
+        return Err(mauvais("archive zip tronquee : l'en-tete d'un fichier"));
     }
     let h = &b[dec..dec + 30];
     if &h[0..4] != b"PK\x03\x04" {
-        return Err(mauvais("Bad magic number for file header"));
+        return Err(mauvais("archive zip abimee : la signature de l'en-tete d'un fichier"));
     }
     let (ln_nom, ln_extra) = (u16_le(h, 26), u16_le(h, 28));
     let debut_nom = dec + 30;
     let nom_brut = &b[debut_nom.min(b.len())..(debut_nom + ln_nom).min(b.len())];
     let debut_donnees = debut_nom + ln_nom + ln_extra;
     if m.drapeaux & 0x20 != 0 {
-        return Err(echec("NotImplementedError", "compressed patched data (flag bit 5)"));
+        return Err(echec("NotImplementedError", "archive zip a donnees corrigees (bit 5) : non lue"));
     }
     if m.drapeaux & 0x40 != 0 {
-        return Err(echec("NotImplementedError", "strong encryption (flag bit 6)"));
+        return Err(echec("NotImplementedError", "archive zip chiffree (bit 6) : non lue"));
     }
     let nom_en_tete = nom_zip(nom_brut, u16_le(h, 6))?;
     if nom_en_tete != m.original {
-        return Err(mauvais(format!("File name in directory « {} » and header « {} » differ.", m.original, nom_en_tete)));
+        return Err(mauvais(format!("archive zip abimee : le repertoire nomme « {} », l'en-tete « {} »", m.original, nom_en_tete)));
     }
     if (debut_donnees as i128).saturating_add(m.taille_comp as i128) > m.fin {
-        return Err(mauvais(format!("Overlapped entries: « {} » (possible zip bomb)", m.original)));
+        return Err(mauvais(format!("archive zip abimee : « {} » chevauche un autre fichier", m.original)));
     }
     if m.drapeaux & 1 != 0 {
         return Err(echec("RuntimeError", format!("File « {} » is encrypted, password required for extraction", m.nom)));
@@ -1710,17 +1710,17 @@ fn lire_membre(b: &[u8], m: &Membre) -> Resultat<Vec<u8>> {
                         }
                         out.reserve(out.len().max(4096));
                     }
-                    Err(e) => return Err(echec("error", format!("Error -3 while decompressing data: {}", e))),
+                    Err(e) => return Err(echec("error", format!("decompression impossible : {}", e))),
                 }
             }
             out
         }
         t => {
-            return Err(echec("NotImplementedError", format!("compression type {} ({})", t, description_compression(t))));
+            return Err(echec("NotImplementedError", format!("compression {} ({}) : non lue", t, description_compression(t))));
         }
     };
     if crc32(&donnees) != m.crc {
-        return Err(mauvais(format!("Bad CRC-32 for file « {} »", m.nom)));
+        return Err(mauvais(format!("archive zip abimee : le CRC-32 de « {} » ne correspond pas", m.nom)));
     }
     Ok(donnees)
 }

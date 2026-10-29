@@ -1,6 +1,6 @@
 //! Tests de `--verrouiller` : chiffrement AES-256 de PDF 2.0 (`/V 5 /R 6`), mot de passe utilisateur
 //! vide, mot de passe propriétaire tiré au hasard et jeté, permissions « impression + copie +
-//! accessibilité » (celles de `verrouiller` dans moteur/contrat.py, `/P` = -3372).
+//! accessibilité » (`/P` = -3372).
 //!
 //! Le déchiffrement des tests est **réécrit ici, à part** du code de la fabrique (algorithme 2.B de
 //! l'ISO 32000-2, AES-CBC) : un fichier chiffré par la fabrique doit s'ouvrir avec lui. Les

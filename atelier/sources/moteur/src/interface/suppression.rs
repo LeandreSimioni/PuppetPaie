@@ -1,5 +1,4 @@
-//! SUPPRIMER UNE COMPAGNIE, ET GARDER AU DEBLOCAGE CELLES QU'ON A AJOUTEES EN DEMO (ticket #236, points 3 et 4 ; Leandre,
-//! 22/10/2026). Tout se decide ici ; la fenetre (`interface/mod.rs`) passe la saisie de la page et lache ce qu'elle tient
+//! SUPPRIMER UNE COMPAGNIE, ET GARDER AU DEBLOCAGE CELLES QU'ON A AJOUTEES EN DEMO. Tout se decide ici ; la fenetre (`interface/mod.rs`) passe la saisie de la page et lache ce qu'elle tient
 //! de la compagnie (sa veille, sa file sur le fil des calculs, son journal) au moment ou on le lui dit.
 //!
 //! SUPPRIMER (`supprimer`). Une FICTIVE LIVREE ne se supprime pas : elle se remet a zero (`compagnies::remettre_a_zero`),
@@ -44,7 +43,7 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use super::compagnies::{self, Compagnie};
-use crate::administrateur::Poste;
+use crate::compagnie::administrateur::Poste;
 
 /// La mention de demo d'une compagnie gardee.
 pub const FICHIER_DEMO: &str = "config/demo.json";
@@ -101,13 +100,13 @@ pub fn genre(inst: &Path, racine: &Path) -> Result<Genre, String> {
 /// une compagnie reelle le rappel de la conservation et la sauvegarde a proposer (un Drive lie : la date du dernier
 /// passage). Refuse ce qui ne se supprime pas.
 pub fn question(racine: &Path) -> Result<Value, String> {
-    let inst = crate::administrateur::installation_de(racine);
+    let inst = crate::compagnie::administrateur::installation_de(racine);
     let g = genre(&inst, racine)?;
     let mut v = json!({"nom": compagnies::nom_de(racine), "genre": if g == Genre::Ajoutee { "ajoutee" } else { "reelle" }, "mot_de_passe": g == Genre::Reelle});
     if g == Genre::Reelle {
         v["conservation"] = json!(CONSERVATION);
         let liee = racine.join("config").join(crate::routes::coffre::FICHIER_JETON).is_file();
-        v["sauvegarde"] = json!({"liee": liee, "derniere": crate::sauvegarde::derniere(racine).quand});
+        v["sauvegarde"] = json!({"liee": liee, "derniere": crate::compagnie::sauvegarde::derniere(racine).quand});
     }
     Ok(v)
 }
@@ -122,8 +121,8 @@ fn prouver(racine: &Path, nom: &str, motdepasse: Option<&str>, poste: &Poste) ->
     let tape = match motdepasse.filter(|m| !m.is_empty()) {
         Some(m) => m.to_string(),
         None => {
-            let acte = crate::demande::Acte::nouveau(format!("supprimer définitivement la compagnie {}", nom), "", "");
-            crate::demande::mot_de_passe_de_l_acte(racine, &acte).map_err(|m| format!("{} Rien n'a été supprimé.", m))?
+            let acte = crate::compagnie::demande::Acte::nouveau(format!("supprimer définitivement la compagnie {}", nom), "", "");
+            crate::compagnie::demande::mot_de_passe_de_l_acte(racine, &acte).map_err(|m| format!("{} Rien n'a été supprimé.", m))?
         }
     };
     if !coffre.verifier_ouverture(&tape).map_err(|e| e.message)? {
@@ -143,7 +142,7 @@ pub fn supprimer(inst: &Path, racine: &Path, motdepasse: Option<&str>, poste: &P
     }
     avant(racine);
     let _ = poste.coffre(racine).oublier_ouverture_gardee();
-    crate::administrateur::oublier(inst, racine)?;
+    crate::compagnie::administrateur::oublier(inst, racine)?;
     effacer(racine)?;
     Ok(nom)
 }
@@ -178,7 +177,7 @@ pub fn effacer_les_restes(inst: &Path) -> Vec<PathBuf> {
 /// LES FICTIVES AJOUTEES A GARDER OU NON : sur un logiciel debloque, celles qui sont encore la ; bride, aucune (la question
 /// ne se pose pas).
 pub fn a_garder(inst: &Path) -> Vec<Compagnie> {
-    if crate::bridage::est_bride_de(inst) {
+    if crate::compagnie::bridage::est_bride_de(inst) {
         return Vec::new();
     }
     compagnies::liste_de(inst).into_iter().filter(|c| !c.reelle && compagnies::est_ajoutee(&c.racine)).collect()
@@ -228,7 +227,7 @@ fn garder(inst: &Path, racine: &Path) -> Result<Compagnie, String> {
 /// reviendra pour elle. `lacher` : ce que la fenetre tient de chacune (sa file sur le fil des calculs), avant qu'elle
 /// bouge. Rend `{"gardees", "supprimees", "erreurs"}` : un echec sur l'une n'arrete pas les autres.
 pub fn repondre(inst: &Path, garder_ids: &[String], ne_pas_garder: &[String], poste: &Poste, lacher: &dyn Fn(&Path)) -> Result<Value, String> {
-    if crate::bridage::est_bride_de(inst) {
+    if crate::compagnie::bridage::est_bride_de(inst) {
         return Err("Le logiciel est bridé : ses compagnies ajoutées restent des compagnies fictives.".into());
     }
     if let Some(id) = garder_ids.iter().find(|id| ne_pas_garder.contains(id)) {
@@ -280,21 +279,10 @@ pub fn mention(racine: &Path) -> Option<Value> {
     }))
 }
 
-/// LES MOIS SAISIS EN DEMO d'une compagnie gardee (`config/demo.json`, `mois`) ; aucun pour une autre. Le logiciel ne les a
-/// jamais declares, et ils ne retiennent pas une version qui change un calcul (`maj::mois_qui_retiennent_la_compagnie`).
-pub fn mois_de_demo(racine: &Path) -> Vec<String> {
-    std::fs::read_to_string(racine.join(FICHIER_DEMO))
-        .ok()
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|v| v.get("mois").and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_str).map(String::from).collect()))
-        .unwrap_or_default()
-}
-
 /// UN MOIS DE DEMO RETRAVAILLE apres que la compagnie a ete gardee (sa saisie enregistree, une paie validee ou modifiee :
 /// `crate::routes::mois::ecrire_saisie_confirmee`, le seul endroit ou la saisie d'un mois s'ecrit) est un mois qu'on entend
-/// declarer : il sort de la mention (`config/demo.json`, `mois`), retient une version qui change un calcul comme tout mois
-/// reel, et la page ne le dit plus « fait en demo ». Rien a faire pour une compagnie sans mention, ni pour un mois qui n'y
-/// est pas.
+/// declarer : il sort de la mention (`config/demo.json`, `mois`), et la page ne le dit plus « fait en demo ». Rien a faire
+/// pour une compagnie sans mention, ni pour un mois qui n'y est pas.
 pub fn sortir_de_la_demo(racine: &Path, mois: &str) -> Result<(), String> {
     let p = racine.join(FICHIER_DEMO);
     let Some(mut v) = std::fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else { return Ok(()) };

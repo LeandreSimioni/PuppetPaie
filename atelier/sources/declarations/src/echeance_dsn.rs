@@ -1,4 +1,4 @@
-//! L'ECHEANCE DE DEPOT D'UNE DSN MENSUELLE (15/10/2026) : UN SEUL ENDROIT la calcule. Tout ce qui dit « la DSN de ce mois
+//! L'ECHEANCE DE DEPOT D'UNE DSN MENSUELLE : UN SEUL ENDROIT la calcule. Tout ce qui dit « la DSN de ce mois
 //! est due le... » (l'etat du mois, l'echeancier, les rappels, le filet, l'annule-et-remplace, le signalement d'arret
 //! subroge, l'horloge des compagnies fictives) passe par `du_mois` ; aucun front ne la recompte (regle 2).
 //!

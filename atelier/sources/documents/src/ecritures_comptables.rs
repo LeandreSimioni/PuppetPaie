@@ -31,9 +31,9 @@ pub struct Ecriture {
     pub mois: String,
     pub auxiliaire: String,
     pub auxiliaire_libelle: String,
-    /// `e.piece` : posee par les etats de `operations_ecritures` (« PAIE-AAAA-MM »).
+    /// Posee par les etats des ecritures comptables (« PAIE-AAAA-MM »).
     pub piece: String,
-    /// `e.numero` : le rang de l'ecriture (une par mois) dans l'etat, a partir de 1.
+    /// Le rang de l'ecriture (une par mois) dans l'etat, a partir de 1.
     pub numero: i64,
 }
 
@@ -47,7 +47,7 @@ impl Ecriture {
     }
 }
 
-/// `operations_exercice._dernier_jour` : le dernier jour du mois, AAAA-MM-JJ.
+/// Le dernier jour du mois, AAAA-MM-JJ.
 fn dernier_jour(annee: i64, mois: i64) -> R<String> {
     let (a, m) = if mois == 12 { (annee + 1, 1) } else { (annee, mois + 1) };
     let premier = socle::date::Jour::lire(&format!("{:04}-{:02}-01", a, m)).map_err(|x| erreur("ValueError", x))?;
@@ -85,7 +85,7 @@ fn ou_texte(v: Option<&Value>, defaut: &str) -> String {
     }
 }
 
-/// `operations_exercice.ecritures_du_mois` : une ecriture pour le mois, depuis les paies validees.
+/// Une ecriture pour le mois, depuis les paies validees.
 /// Le brut par spectacle, la charge patronale et le tiers par ligne de bulletin, le prelevement a la source retenu
 /// (une dette envers l'Etat, au compte `pas` du plan), le net par salarie -- le net PAYE, apres l'impot, celui du
 /// bulletin. Un identifiant de ligne absent du plan fait refuser : on ne devine pas un compte.
@@ -158,7 +158,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
         if !hors_brut.is_zero() {
             ajouter(&mut frais_par_spectacle, titre.clone(), hors_brut);
         }
-        // Le net paye est le net a payer moins l'impot retenu (le « MONTANT NET A PAYER » du bulletin) ; l'impot va
+        // Le net paye est le net a payer moins l'impot retenu (le « MONTANT NET À PAYER » du bulletin) ; l'impot va
         // a l'Etat.
         let prelevement = eur2(pas.as_ref().map_or(zero, |v| v.prelevement));
         pas_du_mois += prelevement;
@@ -286,7 +286,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
     Ok(out)
 }
 
-/// `csv.writer(delimiter=";", lineterminator="\r\n")` : un champ qui porte le delimiteur, un guillemet ou un
+/// Un champ qui porte le delimiteur, un guillemet ou un
 /// saut de ligne se met entre guillemets, les guillemets doublés.
 fn champ_csv(t: &str) -> String {
     if t.contains([';', '"', '\r', '\n']) {
@@ -296,7 +296,7 @@ fn champ_csv(t: &str) -> String {
     }
 }
 
-/// `operations_exercice.csv_compta` : point-virgule, virgule decimale, UTF-8 avec BOM.
+/// Point-virgule, virgule decimale, UTF-8 avec BOM.
 pub fn csv_compta(ecritures: &[Ecriture]) -> Vec<u8> {
     let mut t = String::from("\u{feff}");
     let mut rang = |champs: &[String]| {

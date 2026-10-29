@@ -1,8 +1,8 @@
-//! Les petits outils des commandes qui AGISSENT (lot J2b) : ecrire un fichier de saisie, produire un mois, declarer,
+//! Les petits outils des commandes qui AGISSENT : ecrire un fichier de saisie, produire un mois, declarer,
 //! deposer. Ce qu'elles ont en commun avec la consultation (J2a) vit dans `mod.rs`, `analyse.rs` et `rendu.rs` ; ici, ce
 //! que seuls les actes demandent.
 //!
-//! UNE ERREUR METIER EST UNE REPONSE (`moteur/cli.py`) : le Python attrape `ErreurOperation` (et ses filles) et l'ecrit
+//! UNE ERREUR METIER EST UNE REPONSE : une `ErreurOperation` (et ses filles) s'ecrit
 //! en une phrase, `! phrase` et le code 2 -- ou, avec `--json`, `sortie_json.erreur`. Une erreur d'un autre genre est un
 //! plantage (`Cadre::plantage`, code 1). Le Rust ne distingue les classes que par leur nom, rendu par les routes.
 
@@ -11,7 +11,7 @@ use serde_json::Value;
 use super::rendu::{erreur, rendre};
 use socle::echec::Echec;
 
-/// Les classes que le Python attrape comme `ErreurOperation` : elle-meme et ses filles (`operations_*.py`).
+/// Les classes d'un refus metier : `ErreurOperation` et ses filles.
 const OPERATION: [&str; 28] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "CompteursVerrouilles",
     "VersionExigee", "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai",
@@ -20,17 +20,17 @@ const OPERATION: [&str; 28] = [
     "ActeReelRefuse", "ModificationApresEcheance", "ModificationNonDeclarable",
 ];
 
-/// Cette classe est-elle une `ErreurOperation` du Python ?
+/// Cette classe est-elle une `ErreurOperation` (ou une de ses filles) ?
 pub fn est_operation(classe: Option<&str>) -> bool {
     classe.is_some_and(|c| OPERATION.contains(&c))
 }
 
 /// La phrase d'un refus : celle du message, sans la donnee qu'un refus de depot ou de mois porte a cote (`avec_donnee`).
 pub fn phrase(e: &Echec) -> String {
-    crate::depot_acte::phrase_de(e)
+    crate::compagnie::depot_acte::phrase_de(e)
 }
 
-/// Une erreur metier rendue comme le Python la rend : `! phrase` (code 2), ou `sortie_json.erreur` avec `--json`.
+/// Une erreur metier rendue : `! phrase` (code 2), ou `sortie_json.erreur` avec `--json`.
 /// `extra` s'ajoute au corps de l'erreur JSON (`manques`, `chemin`...).
 pub fn reponse_metier(commande: &str, json: bool, e: &Echec, extra: &[(&str, Value)]) -> i32 {
     let message = phrase(e);
@@ -41,7 +41,7 @@ pub fn reponse_metier(commande: &str, json: bool, e: &Echec, extra: &[(&str, Val
     2
 }
 
-/// `datetime.date.fromisoformat` : `AAAA-MM-JJ`, un jour qui existe. Les autres formes ne sont pas portees.
+/// `AAAA-MM-JJ`, un jour qui existe. Les autres formes ne sont pas portees.
 pub fn jour_iso(t: &str) -> Option<socle::date::Jour> {
     let t = t.trim();
     if t.len() != 10 {
@@ -99,15 +99,13 @@ pub fn afficher_fichiers(fichiers: &[Value], dossier: &str) {
     }
 }
 
-/// Un refus que la commande rend en une phrase : une `ErreurOperation` du Python, ou une `ValueError` (la route rend ainsi ce que
-/// la norme refuse -- `SignalementImpossible`, `FctuImpossible`, une date qui ne se lit pas --, que le Python attrapait avec
-/// `ErreurOperation` ou laissait en trace d'appels).
+/// Un refus que la commande rend en une phrase : une `ErreurOperation`, ou une `ValueError` (la route rend ainsi ce que
+/// la norme refuse -- `SignalementImpossible`, `FctuImpossible`, une date qui ne se lit pas --).
 pub fn est_refus(classe: Option<&str>) -> bool {
     est_operation(classe) || classe == Some("ValueError")
 }
 
-/// `--le AAAA-MM-JJ` : le jour tel que la route le lit (`datetime.date.fromisoformat`), ou le refus d'une phrase (le Python
-/// laissait une trace d'appels sur une date illisible).
+/// `--le AAAA-MM-JJ` : le jour tel que la route le lit (AAAA-MM-JJ), ou le refus d'une phrase.
 pub fn jour_option(nom: &str, texte: &str) -> Result<socle::date::Jour, Echec> {
     jour_iso(texte).ok_or_else(|| Echec {
         classe: Some("ErreurOperation"),
@@ -115,20 +113,20 @@ pub fn jour_option(nom: &str, texte: &str) -> Result<socle::date::Jour, Echec> {
     })
 }
 
-/// `required=True` d'`argparse` pour des OPTIONS : `moteur COMMANDE: error: the following arguments are required: --a, --b`
+/// Des OPTIONS obligatoires : `moteur COMMANDE : à donner : --a, --b`
 /// (usage sur la sortie d'erreur, code 2). `None` quand toutes sont la.
 pub fn options_requises(spec: &super::analyse::Spec, args: &super::analyse::Args, noms: &[&str]) -> Option<i32> {
     let manquantes: Vec<String> = noms.iter().filter(|n| !args.drapeau(n)).map(|n| format!("--{}", n)).collect();
     if manquantes.is_empty() {
         return None;
     }
-    eprintln!("{}\npaie {}: error: the following arguments are required: {}", super::analyse::usage(spec), spec.commande, manquantes.join(", "));
+    eprintln!("{}\nmoteur {} : à donner : {}", super::analyse::usage(spec), spec.commande, manquantes.join(", "));
     Some(2)
 }
 
 /// Un envoi qui ne part pas : un refus ordinaire (`ErreurOperation` et filles, `ValueError`), ou la boite qui casse
-/// (`ErreurCourriel`) et le `RuntimeError` d'un envoi interrompu apres des messages deja partis -- que le Python laissait en trace
-/// d'appels. Rendus en une phrase.
+/// (`ErreurCourriel`) et le `RuntimeError` d'un envoi interrompu apres des messages deja partis.
+/// Rendus en une phrase.
 pub fn est_refus_d_envoi(classe: Option<&str>) -> bool {
     est_refus(classe) || matches!(classe, Some("ErreurCourriel") | Some("RuntimeError"))
 }
@@ -137,7 +135,7 @@ pub fn est_refus_d_envoi(classe: Option<&str>) -> bool {
 /// une seance (`Cadre::ouvrir_le_coffre`). La compagnie fictive n'a ni boite ni coffre a ouvrir. Ceci n'AUTORISE rien : l'envoi reel
 /// reste soumis a la preuve du moteur (`depot_acte::verifier_preuve`), qui demande elle-meme le mot de passe a un humain.
 pub fn ouvrir_la_boite(cadre: &super::Cadre) {
-    if !crate::bridage::branchement(&cadre.racine).joue() {
+    if !crate::compagnie::bridage::branchement(&cadre.racine).joue() {
         cadre.ouvrir_le_coffre();
     }
 }
@@ -177,7 +175,7 @@ pub fn mois_du_fichier(cadre: &super::Cadre, texte: &str, sujet: &str) -> Result
 
 // ------------------------------------------------------------------ le binaire de l'atelier
 
-/// Ce que la redirection de l'atelier tient : net-entreprises, l'Urssaf et Google (`atelier.rs`). Le reste -- la boite courriel --
+/// Ce que la redirection de l'atelier tient : net-entreprises, l'Urssaf et Google (`atelier::redirection`). Le reste -- la boite courriel --
 /// n'est jamais redirige.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Organisme {
@@ -192,11 +190,11 @@ pub enum Organisme {
 #[cfg(feature = "atelier")]
 pub fn pas_redirige(cadre: &super::Cadre, organisme: Organisme) -> bool {
     let variable = match organisme {
-        Organisme::Dsn => crate::atelier::VARIABLE_DSN,
-        Organisme::Dpae => crate::atelier::VARIABLE_DPAE,
-        Organisme::Google => crate::atelier::VARIABLE_GOOGLE,
+        Organisme::Dsn => crate::atelier::redirection::VARIABLE_DSN,
+        Organisme::Dpae => crate::atelier::redirection::VARIABLE_DPAE,
+        Organisme::Google => crate::atelier::redirection::VARIABLE_GOOGLE,
     };
-    crate::atelier::base(variable).is_none() && !crate::bridage::branchement(&cadre.racine).joue()
+    crate::atelier::redirection::base(variable).is_none() && !crate::compagnie::bridage::branchement(&cadre.racine).joue()
 }
 
 #[cfg(not(feature = "atelier"))]
@@ -207,7 +205,7 @@ pub fn pas_redirige(_cadre: &super::Cadre, _organisme: Organisme) -> bool {
 /// Dans `moteur-atelier`, hors compagnie fictive : la boite courriel n'est pas redirigee, donc rien ne la lit ni ne l'ouvre.
 #[cfg(feature = "atelier")]
 pub fn boite_interdite(cadre: &super::Cadre) -> bool {
-    !crate::bridage::branchement(&cadre.racine).joue()
+    !crate::compagnie::bridage::branchement(&cadre.racine).joue()
 }
 
 #[cfg(not(feature = "atelier"))]
@@ -220,7 +218,7 @@ pub fn boite_interdite(_cadre: &super::Cadre) -> bool {
 /// poste, que l'atelier ne touche pas. `quoi` dit ce qui est refuse (« de poser un mot de passe »). Dans `moteur` : rien n'est refuse ici.
 #[cfg(feature = "atelier")]
 pub fn refuser_dans_l_atelier(cadre: &super::Cadre, quoi: &str) -> Result<(), Echec> {
-    if crate::bridage::branchement(&cadre.racine).joue() {
+    if crate::compagnie::bridage::branchement(&cadre.racine).joue() {
         return Ok(());
     }
     Err(Echec {
@@ -262,7 +260,7 @@ pub fn refuser_si_pas_redirige(_cadre: &super::Cadre, _organisme: Organisme, _qu
 
 /// Les services du coffre, dans l'ordre alphabetique (`sorted(coffre.SERVICES)`).
 pub fn services_connus() -> Vec<&'static str> {
-    let mut noms: Vec<&str> = crate::coffre::SERVICES.iter().map(|s| s.nom).collect();
+    let mut noms: Vec<&str> = crate::compagnie::coffre::SERVICES.iter().map(|s| s.nom).collect();
     noms.sort_unstable();
     noms
 }

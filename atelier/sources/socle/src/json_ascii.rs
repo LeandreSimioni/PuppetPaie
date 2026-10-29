@@ -41,7 +41,7 @@ pub fn repr_flottant(f: f64) -> String {
     format!("{}{}", signe, corps)
 }
 
-/// `json.dumps` de Python : `ensure_ascii`, cles triees si `trie`. Sans
+/// Le JSON en ASCII (tout autre caractere en `\uXXXX`), cles triees si `trie`. Sans
 /// `indent`, les separateurs sont `, ` et `: ` (ou `,` et `:` si `serre`).
 pub fn dumps(v: &Value, indent: Option<usize>, serre: bool, trie: bool) -> String {
     let mut s = String::new();

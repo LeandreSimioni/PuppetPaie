@@ -1,6 +1,5 @@
-//! `moteur pas [--amorcer]` : les taux de prelevement a la source connus (`moteur/commandes_retours.py`, `cmd_pas`), et
-//! l'ecriture du magasin `config/pas.json` que `moteur pas --amorcer` et `moteur retours --appliquer` font
-//! (`moteur/pas.py` : `enregistrer`, `releves_historiques`, `amorcer`, `ecrire`).
+//! `moteur pas [--amorcer]` : les taux de prelevement a la source connus, et
+//! l'ecriture du magasin `config/pas.json` que `moteur pas --amorcer` et `moteur retours --appliquer` font.
 //!
 //! `--demander` (ecrire les signalements d'amorcage, nature 08 ; rien n'est depose) : `demander`, sur `amorcage_demande`.
 
@@ -27,7 +26,7 @@ pub static SPEC: Spec = Spec {
     ],
 };
 
-/// `pas.TYPES` : cahier technique 2026.1, rubrique S21.G00.50.007.
+/// Cahier technique 2026.1, rubrique S21.G00.50.007.
 pub const TYPES: [(&str, &str); 8] = [
     ("01", "Taux transmis par la DGFIP"),
     ("13", "Bareme mensuel metropole"),
@@ -69,13 +68,13 @@ fn fr(iso: Option<&str>) -> String {
     }
 }
 
-/// `pas.ecrire` : `json.dumps(data, ensure_ascii=False, indent=2)`, sans saut de ligne final.
+/// `json.dumps(data, ensure_ascii=False, indent=2)`, sans saut de ligne final.
 fn ecrire(ctx: &Contexte, data: &Value) -> Result<(), Echec> {
     let p = ctx.racine.join("config").join("pas.json");
     std::fs::write(&p, socle::ecriture::json_indente(data, 2)).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })
 }
 
-/// `pas.enregistrer` : applique des releves de CRM ; rend les changements lisibles. Un releve :
+/// Applique des releves de CRM ; rend les changements lisibles. Un releve :
 /// `{"salarie", "taux", "type", "identifiant", "periode", "mis_a_disposition"}`.
 pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
     let mut data = droit::pas::charger(ctx).map_err(ko)?;
@@ -118,30 +117,7 @@ pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Ve
     Ok(changements)
 }
 
-/// `str.splitlines()` de Python.
-fn lignes_py(t: &str) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut cur = String::new();
-    let mut c = t.chars().peekable();
-    while let Some(x) = c.next() {
-        match x {
-            '\r' => {
-                if c.peek() == Some(&'\n') {
-                    c.next();
-                }
-                out.push(std::mem::take(&mut cur));
-            }
-            '\n' | '\u{b}' | '\u{c}' | '\u{1c}' | '\u{1d}' | '\u{1e}' | '\u{85}' | '\u{2028}' | '\u{2029}' => out.push(std::mem::take(&mut cur)),
-            x => cur.push(x),
-        }
-    }
-    if !cur.is_empty() {
-        out.push(cur);
-    }
-    out
-}
-
-/// `pas.releves_historiques` : par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
+/// Par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
 fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String, Vec<Value>)> {
     let par_nir: std::collections::HashMap<String, String> = ctx
         .salaries
@@ -158,7 +134,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
         let texte: String = octets.iter().map(|b| *b as char).collect();
         let (mut mois, mut nir): (Option<String>, Option<String>) = (None, None);
         let mut cur: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-        for ligne in lignes_py(&texte) {
+        for ligne in socle::texte::lignes_du_texte(&texte) {
             if !ligne.contains(',') {
                 continue;
             }
@@ -191,7 +167,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
     trouve.into_iter().map(|(cle, mm)| (cle, mm.into_values().collect())).collect()
 }
 
-/// `pas.amorcer` : pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
+/// Pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
 fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Echec> {
     let mut releves = Vec::new();
     for (cle, entrees) in releves_historiques(ctx, dossier) {
@@ -208,7 +184,7 @@ fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Ech
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     let ctx = &cadre.ctx;
     if args.drapeau("amorcer") {
-        let export = crate::routes::fiches::declarations_coolpaie(ctx).join("DSN");
+        let export = crate::routes::fiches::pieces_importees(ctx);
         if !export.exists() {
             dire!("Dossier introuvable : {}", export.display());
             return Ok(1);
@@ -281,7 +257,7 @@ pub fn appliquer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<
 /// qui note la demande. Un refus de la norme ou de la demande est une phrase (code 1), jamais une trace.
 fn demander(cadre: &Cadre, args: &Args) -> i32 {
     use engagement::embauches_du_mois as paies_du_mois;
-    use crate::amorcage_demande::{produire, Demande};
+    use crate::compagnie::amorcage_demande::{produire, Demande};
     let ctx = &cadre.ctx;
     let motif = args.texte("motif").unwrap_or("07");
     // Le mois : celui qu'on dit, sinon le dernier saisi (c'est le contrat que la derniere DSN a declare, et ce que le motif 07 reprend).

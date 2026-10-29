@@ -1,5 +1,5 @@
-//! `moteur filet [etat|activer ADRESSE|verifier|desactiver|preparer|suivies]` : la DPAE preparee d'avance et son filet de securite
-//! (`moteur/commandes_filet.py`). Les routes `filet-etat`, `filet-suivies`, `filet-activer`, `filet-verifier`, `filet-desactiver` et
+//! `moteur filet [etat|activer ADRESSE|verifier|desactiver|preparer|suivies]` : la DPAE preparee d'avance et son filet de securite.
+//! Les routes `filet-etat`, `filet-suivies`, `filet-activer`, `filet-verifier`, `filet-desactiver` et
 //! `filet-preparer` font le travail.
 //!
 //! GARDE-FOUS. `activer` et `desactiver` engagent (un compte chez le serveur du filet, des reveils) : la route exige le mot de passe
@@ -7,11 +7,10 @@
 //! (fenetre, terminal sans echo), sinon il refuse -- jamais un mot de passe en option ni en variable. Dans `moteur-atelier`, hors
 //! compagnie fictive, ils sont refuses. `verifier` ne lit que l'etat chez le serveur du filet (l'adresse vient de la configuration de la
 //! compagnie, comme celle du serveur des incidents), sans secret. `preparer` teste les DPAE a venir EN TEST chez l'Urssaf (jamais un
-//! depot reel, donc sans preuve, comme la veille) : dans `moteur-atelier`, il exige le faux Urssaf local. `qui` : `ligne de commande`,
-//! comme le Python.
+//! depot reel, donc sans preuve, comme la veille) : dans `moteur-atelier`, il exige le faux Urssaf local. `qui` : `ligne de commande`.
 //!
-//! Le Python rendait `! phrase` code 1 pour une `ErreurOperation` ; ici aussi (le refus du mot de passe, de l'atelier, du serveur).
-//! Une panne que le Python laissait sortir en trace d'appels (reseau, disque) passe par `Cadre::plantage` : une ligne sur la sortie
+//! Une `ErreurOperation` rend `! phrase`, code 1 (le refus du mot de passe, de l'atelier, du serveur).
+//! Une panne (reseau, disque) passe par `Cadre::plantage` : une ligne sur la sortie
 //! d'erreur, une ligne au journal des incidents, code 1.
 
 use serde_json::{json, Value};
@@ -35,7 +34,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let quoi = args.texte("quoi").unwrap_or("etat");
     match faire(cadre, quoi, args) {
         Ok(c) => c,
-        // `except ops.ErreurOperation as e: print("! %s" % e); return 1` (`commandes_filet.py`) : un refus, pas un plantage.
+        // `except ops.ErreurOperation as e: print("! %s" % e); return 1` : un refus, pas un plantage.
         Err(e) if est_operation(e.classe) => {
             dire!("! {}", e.message);
             1
@@ -67,8 +66,8 @@ fn faire(cadre: &Cadre, quoi: &str, args: &Args) -> Result<i32, Echec> {
                 dire!("Aucune embauche sans trace de DPAE.");
             }
             for e in &liste {
-                let parti = e.get("contrat_parti").is_some_and(socle::fichiers::vrai);
-                dire!("  {}  {:<28} {}{}", texte(e.get("debut").unwrap_or(&Value::Null)), champ(e, "nom"), champ(e, "spectacle"), if parti { "" } else { "  (contrat pas encore parti)" });
+                let valide = e.get("valide").is_some_and(socle::fichiers::vrai);
+                dire!("  {}  {:<28} {}{}", texte(e.get("debut").unwrap_or(&Value::Null)), champ(e, "nom"), champ(e, "spectacle"), if valide { "" } else { "  (engagement pas encore valide)" });
             }
             Ok(0)
         }

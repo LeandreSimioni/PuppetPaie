@@ -544,7 +544,7 @@ pub fn relever_retours(
         return Ok(releve);
     }
 
-    // UN RETOUR RATE N'EST PAS UN RETOUR VU (23/09/2026) : un echec reste NEUF, et se retente au releve suivant.
+    // UN RETOUR RATE N'EST PAS UN RETOUR VU : un echec reste NEUF, et se retente au releve suivant.
     let mut rates: Vec<Value> = Vec::new();
     let a_telecharger: Vec<Value> = if tout { releve.trouves.clone() } else { releve.nouveaux.clone() };
     for r in a_telecharger {
@@ -577,7 +577,7 @@ pub fn relever_retours(
     }
 
     if canal.is_empty() {
-        // L'EFFECTIF S'ECRIT SEUL (23/09/2026) : `config/effectifs.json` se refait depuis les archives.
+        // L'EFFECTIF S'ECRIT SEUL : `config/effectifs.json` se refait depuis les archives.
         reconstruire_effectifs(&ctx.racine)?;
     }
 
@@ -697,7 +697,7 @@ fn lire_crm118(contenu: &[u8]) -> R<Option<Vec<(String, f64, String, String, Str
     Ok(Some(out))
 }
 
-/// `effectif.reconstruire` : relit tous les 118 archives et reecrit `config/effectifs.json`. Pour chaque annee
+/// Relit tous les 118 archives et reecrit `config/effectifs.json`. Pour chaque annee
 /// et chaque code, le calcul le plus RECENT l'emporte. Ne touche pas au fichier s'il n'y a aucun 118.
 pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
     let dossier = racine.join("retours");

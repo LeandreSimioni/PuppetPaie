@@ -1,4 +1,4 @@
-// LE CADRE DE LA FENETRE (ticket #195, 15/10/2026). « Pas de barre noire, mais de la meme couleur que le logiciel en
+// LE CADRE DE LA FENETRE. « Pas de barre noire, mais de la meme couleur que le logiciel en
 // haut » : la fenetre n'a plus de bordure systeme (`decorations(false)`, main.rs), et ce script, que Tauri pose dans
 // chaque page de la fenetre avant les siennes (accueil, mot de passe, logiciel), fait ce que faisait la barre de titre.
 // Il n'existe que dans la fenetre : dans un navigateur (`moteur interface`), rien de ceci n'est la, et la page le sait

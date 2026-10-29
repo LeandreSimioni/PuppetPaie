@@ -1,10 +1,10 @@
-//! `moteur archiver MOIS [--racine-drive NOM]` : deposer les sorties d'un mois dans le Drive (`moteur/cli.py`, `cmd_archiver`).
+//! `moteur archiver MOIS [--racine-drive NOM]` : deposer les sorties d'un mois dans le Drive.
 //! `archivage::archiver` fait le travail ; le jeton est lu au coffre par le client Drive, jamais passe par la commande.
 //!
 //! Dans `moteur-atelier`, hors compagnie fictive, la commande exige le faux Google (`PUPPETPAIE_ATELIER_GOOGLE`).
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : un mois illisible (`..`) se lisait tel quel (corrige dans `archivage.rs` : refus
-//! `ErreurOperation`) ; une erreur de disque hors `ErreurGoogle` sortait en trace d'appels.
+//! Un mois illisible (`..`) est refuse (`archivage.rs` : `ErreurOperation`) ; une erreur de disque hors `ErreurGoogle` est
+//! une phrase.
 
 use serde_json::{json, Value};
 
@@ -17,17 +17,17 @@ use socle::echec::Echec;
 pub static SPEC: Spec = Spec {
     commande: "archiver",
     positionnels: &[Pos::requis("mois")],
-    options: &[Opt::avec_defaut("racine-drive", crate::sauvegarde::RACINE_DRIVE), Opt::drapeau("json")],
+    options: &[Opt::avec_defaut("racine-drive", crate::compagnie::sauvegarde::RACINE_DRIVE), Opt::drapeau("json")],
 };
 
 pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     let json = args.drapeau("json");
     let mois = args.texte("mois").unwrap_or("");
-    let racine_drive = args.texte("racine-drive").unwrap_or(crate::sauvegarde::RACINE_DRIVE);
+    let racine_drive = args.texte("racine-drive").unwrap_or(crate::compagnie::sauvegarde::RACINE_DRIVE);
     if let Err(e) = refuser_si_pas_redirige(cadre, Organisme::Google, "l'archivage dans le Drive") {
         return reponse_metier("archiver", json, &e, &[]);
     }
-    let r = match crate::archivage::archiver(&cadre.racine, mois, racine_drive, None) {
+    let r = match crate::compagnie::archivage::archiver(&cadre.racine, mois, racine_drive, None) {
         Ok(r) => r,
         Err(e) if e.classe == "SortieAbsente" => {
             if json {

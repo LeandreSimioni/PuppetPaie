@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Map, Value};
 
-use crate::depot_acte::{verifier_preuve, Preuve};
+use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::documents::{client_courriel, preuve_de, vrai_ou};
 use crate::routes::mois::{lire_saisie, sauver_avant};
 use crate::routes::ouverture::{metier_visible, preferences_metiers};
@@ -94,7 +94,7 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
 
 /// `permanents` : `{"entreprise": {...}}`, la fiche Entreprise en cours de saisie -- sans elle, celle de la compagnie.
 /// Rend le curseur (`contexte::emploie_des_permanents`) : la page montre ou replie ce qui ne vaut que pour les
-/// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case (ticket #214).
+/// permanents selon cette reponse, et ne le decide pas elle-meme quand on coche la case.
 fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
     let oui = match charge.get("entreprise") {
         Some(e @ Value::Object(_)) => droit::contexte::emploie_des_permanents(e),
@@ -108,8 +108,7 @@ fn permanents(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 /// `taxe-sur-les-salaires-regime` : `{"taxe_sur_les_salaires": {...}}`, ce que la fiche en cours de saisie dit -- sans
 /// lui, celle de la compagnie. Rend la conclusion du moteur (`taxe_sur_les_salaires::regime_taxe_sur_les_salaires`, CGI art.
-/// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien
-/// (ticket #216).
+/// 231, 1) : les cases a montrer, la consequence en clair, et si la reponse est complete. La page n'en decide rien.
 fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     let cle = documents::taxe_sur_les_salaires::CHAMP_TAXE_SUR_LES_SALAIRES;
     let ent = match charge.get(cle) {
@@ -117,7 +116,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
         Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un objet", nom_type(autre)))),
         None => ctx.entreprise.clone(),
     };
-    // LES PLAFONDS DE LA FRANCHISE, CHIFFRES (ticket #239) : ceux du bareme de l'annee des salaires -- `annee` dans la
+    // LES PLAFONDS DE LA FRANCHISE, CHIFFRES : ceux du bareme de l'annee des salaires -- `annee` dans la
     // charge, sinon l'annee en cours. Un bareme absent ne fait pas refuser : la question se pose sans montants.
     let annee = match charge.get("annee") {
         None | Some(Value::Null) => ctx.aujourdhui.an,
@@ -128,7 +127,7 @@ fn taxe_sur_les_salaires_regime(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let bar = socle::date::Jour::nouveau(annee, 1, 1).and_then(|j| ctx.bareme(&j).ok());
     let q = documents::taxe_sur_les_salaires::question_franchise(bar.as_ref(), annee);
-    // La conclusion nomme les deux plafonds (ticket #245).
+    // La conclusion nomme les deux plafonds.
     let r = documents::taxe_sur_les_salaires::regime_taxe_sur_les_salaires(&ent, q.plafonds);
     Ok(json!({
         "franchise": {
@@ -196,14 +195,14 @@ pub(crate) fn entier(v: &Value) -> R<i64> {
             };
             let c: Vec<char> = chiffres.chars().collect();
             let bien_forme = !c.is_empty()
-                && crate::routes::fiches::chiffre_py(c[0]).is_some()
-                && crate::routes::fiches::chiffre_py(c[c.len() - 1]).is_some()
-                && c.iter().all(|x| crate::routes::fiches::chiffre_py(*x).is_some() || *x == '_')
+                && crate::routes::fiches::chiffre_lu(c[0]).is_some()
+                && crate::routes::fiches::chiffre_lu(c[c.len() - 1]).is_some()
+                && c.iter().all(|x| crate::routes::fiches::chiffre_lu(*x).is_some() || *x == '_')
                 && !chiffres.contains("__");
             if !bien_forme {
                 return Err(illisible());
             }
-            let ascii: String = c.iter().filter(|x| **x != '_').filter_map(|x| crate::routes::fiches::chiffre_py(*x)).map(|d| char::from(b'0' + d as u8)).collect();
+            let ascii: String = c.iter().filter(|x| **x != '_').filter_map(|x| crate::routes::fiches::chiffre_lu(*x)).map(|d| char::from(b'0' + d as u8)).collect();
             let n: i64 = ascii.parse().map_err(|_| trop_grand())?;
             Ok(if neg { -n } else { n })
         }
@@ -311,7 +310,7 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
         return Ok(false);
     }
     let motifs = format.get("csl").and_then(Value::as_array).map_or(false, |l| !l.is_empty());
-    let pas_un_texte = || erreur("TypeError", format!("expected string or bytes-like object, got '{}'", nom_type(actuel)));
+    let pas_un_texte = || erreur("TypeError", socle::fichiers::attendu("un texte", nom_type(actuel)));
     let mut faute = false;
     if let Some(lon) = format.get("longueur").and_then(Value::as_array).filter(|l| !l.is_empty()) {
         let n = match actuel {
@@ -331,13 +330,13 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
     Ok(faute)
 }
 
-/// `champs._capitales` : sans accents, en capitales, espaces resserrees.
+/// Sans accents, en capitales, espaces resserrees.
 fn capitales(v: &Value) -> String {
     let t: String = champs::sans_accents(&valeur_en_texte(v)).chars().flat_map(char::to_uppercase).collect();
     t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
-/// `champs.deriver_personnes` : les formes declarees du signataire et du contact DSN ;
+/// Les formes declarees du signataire et du contact DSN ;
 /// rend `{cle: [avant, apres]}` pour les structures modifiees.
 fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<String, Value> {
     let mut faits = Map::new();
@@ -373,7 +372,7 @@ fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<Stri
     faits
 }
 
-/// LE SIREN ET LE NIC SE DEDUISENT DU SIRET (#236 ; la page les posait elle-meme, `brancherDeduits`, regle 2) : le SIRET
+/// LE SIREN ET LE NIC SE DEDUISENT DU SIRET (regle 2 : la page ne les pose pas) : le SIRET
 /// est le SIREN (9 chiffres) suivi du NIC (5 chiffres) -- c'est sa definition (INSEE), aucune valeur ne se devine. Un
 /// SIRET qui n'a pas 14 chiffres ne deduit rien : sa case le dit (`champs::verifier_fiche`). Rend `{cle: [avant, apres]}`.
 fn deriver_siren_nic(donnees: &mut Map<String, Value>) -> Map<String, Value> {
@@ -393,7 +392,7 @@ fn deriver_siren_nic(donnees: &mut Map<String, Value>) -> Map<String, Value> {
     faits
 }
 
-/// `champs.deriver` : fabrique les formes declarees depuis les formes lisibles.
+/// Fabrique les formes declarees depuis les formes lisibles.
 /// Sans `forcer`, on ne remplit que ce qui est vide ou indeclarable. Rend
 /// `{cle: [avant, apres]}` : ce que le programme a fabrique tout seul.
 pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool) -> R<Map<String, Value>> {
@@ -439,7 +438,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
             donnees.insert("initiales_contrat".into(), Value::String(deux));
         }
     }
-    // LA NATIONALITE DSN SE DEDUIT DU PAYS (vague 1k) : avec un pays de nationalite de la liste, la case 30.013 ne se
+    // LA NATIONALITE DSN SE DEDUIT DU PAYS : avec un pays de nationalite de la liste, la case 30.013 ne se
     // choisit plus, le moteur l'ecrit (`pays::codification`). Sans pays, ou avec un pays inconnu (qui refuse sur sa
     // case), la case reste ce qu'elle est.
     if nom == "salarie" {
@@ -457,7 +456,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
     Ok(faits)
 }
 
-/// `urssaf.pour_departement` : l'organisme du territoire, ou "".
+/// L'organisme du territoire, ou "".
 fn urssaf_du_departement(dep: &str) -> R<String> {
     let table = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).map_err(|m| Echec::from(m))?;
     let d = socle::texte::strip(dep).to_uppercase();
@@ -477,7 +476,7 @@ pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
     urssaf_du_departement(&v.iter().take(n).collect::<String>())
 }
 
-/// `ops.suggestions_fiche` : ce que le moteur PROPOSERAIT pour une case encore vide.
+/// Ce que le moteur PROPOSERAIT pour une case encore vide.
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
     if nom == "salarie" {
@@ -519,7 +518,7 @@ pub(crate) fn verifier(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>>
     champs::verifier_fiche(nom, &copie)
 }
 
-/// LES ANOMALIES QUE L'ECRITURE TROUVERA (#236) : celles d'une fiche que l'import cree, derivee comme `ecrire_fiche` la
+/// LES ANOMALIES QUE L'ECRITURE TROUVERA : celles d'une fiche que l'import cree, derivee comme `ecrire_fiche` la
 /// derive avant d'ecrire (`deriver` force : la forme declaree se refait de la forme lisible), puis verifiee. L'apercu
 /// de l'import les montre telles : avant, il verifiait la fiche avant derivation, et chaque champ que le bulletin ou
 /// la DSN imprime en minuscules (« 3 quai de la Fosse ») criait « doit etre en MAJUSCULES » sous sa forme lisible,
@@ -581,44 +580,12 @@ fn verifier_fiche(charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------ changements-declares
 
-/// Le dossier parent : `.` pour un nom seul.
-fn parent_py(p: &Path) -> std::path::PathBuf {
-    match p.parent() {
-        Some(x) if x.as_os_str().is_empty() => std::path::PathBuf::from("."),
-        Some(x) => x.to_path_buf(),
-        None => p.to_path_buf(),
-    }
+/// Ou l'import copie les pieces qu'il reprend de l'ancien logiciel, les DSN deposees comprises (`historique/bulletins/`).
+pub(crate) fn pieces_importees(ctx: &Contexte) -> std::path::PathBuf {
+    ctx.racine.join("historique").join("bulletins")
 }
 
-/// `contexte.trouver_export` : le dossier de CoolPaie, remonte de dossier en
-/// dossier, puis la copie `export-coolpaie`, puis `export` (absent).
-pub(crate) fn trouver_export(depart: &Path) -> std::path::PathBuf {
-    let p1 = parent_py(depart);
-    let p2 = parent_py(&p1);
-    for base in [depart, p1.as_path(), p2.as_path()] {
-        let p = base.join("export");
-        if p.is_dir() {
-            return p;
-        }
-    }
-    let copie = depart.join("export-coolpaie");
-    if copie.is_dir() {
-        return copie;
-    }
-    depart.join("export")
-}
-
-/// `declarations_coolpaie` : la copie de l'import quand elle porte des DSN ou des
-/// AEM, l'`export/` de CoolPaie sinon.
-pub(crate) fn declarations_coolpaie(ctx: &Contexte) -> std::path::PathBuf {
-    let copie = ctx.racine.join("historique").join("coolpaie");
-    if copie.join("DSN").is_dir() || copie.join("AEM_EDI").is_dir() {
-        return copie;
-    }
-    trouver_export(&ctx.racine)
-}
-
-/// `dossier.rglob("*.dsn")` : les fichiers (et dossiers) dont le nom finit par
+/// Les fichiers (et dossiers) dont le nom finit par
 /// `.dsn`, sans suivre les liens vers des dossiers.
 pub(crate) fn fichiers_dsn(dossier: &Path, sortie: &mut Vec<std::path::PathBuf>) {
     let Ok(entrees) = std::fs::read_dir(dossier) else { return };
@@ -639,7 +606,7 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
     let jeton = format!(",'{}'", valeur_en_texte(valeur));
     let prefixe = "S20.G00.05.005,";
     let (mut fichiers, mut mois) = (0, Vec::<String>::new());
-    for dossier in [declarations_coolpaie(ctx).join("DSN"), ctx.racine.join("sorties")] {
+    for dossier in [pieces_importees(ctx), ctx.racine.join("sorties")] {
         if !dossier.exists() {
             continue;
         }
@@ -654,7 +621,7 @@ fn usages_declares(ctx: &Contexte, valeur: &Value) -> Value {
                 continue;
             }
             fichiers += 1;
-            for l in socle::texte::lignes_py(&texte) {
+            for l in socle::texte::lignes_du_texte(&texte) {
                 if let Some(reste) = l.strip_prefix(prefixe) {
                     let mp: Vec<char> = reste.trim_matches('\'').chars().collect();
                     if mp.len() == 8 {
@@ -761,21 +728,9 @@ pub(crate) fn changements(ctx: &Contexte, nom: &str, ancienne: &Value, copie: Ma
     Ok(sortie)
 }
 
-
-
-/// Un nombre decimal saisi : de quoi le lire, le comparer a 0 et 20, l'ecrire comme `str()`, le
-/// convertir en flottant.
-struct Dec {
-    negatif: bool,
-    chiffres: String,
-    exposant: i64,
-    /// `Infinity` ou `NaN`.
-    special: Option<&'static str>,
-}
-
 /// Le chiffre (0 a 9) que `c` represente : les chiffres ASCII, et
 /// ceux des ecritures les plus courantes (arabe, devanagari, pleine chasse).
-pub(crate) fn chiffre_py(c: char) -> Option<u32> {
+pub(crate) fn chiffre_lu(c: char) -> Option<u32> {
     const DEBUTS: [u32; 4] = [0x0660, 0x06F0, 0x0966, 0xFF10];
     let u = c as u32;
     if c.is_ascii_digit() {
@@ -784,74 +739,7 @@ pub(crate) fn chiffre_py(c: char) -> Option<u32> {
     DEBUTS.iter().find(|d| u >= **d && u < **d + 10).map(|d| u - d)
 }
 
-/// Des chiffres (les `_` s'ignorent, comme dans `_decimal`), en ASCII ; `None` s'il n'y en a pas
-/// ou si autre chose s'y trouve.
-fn chiffres_py(t: &str) -> Option<String> {
-    let mut out = String::new();
-    for x in t.chars().filter(|x| *x != '_') {
-        out.push(char::from(b'0' + chiffre_py(x)? as u8));
-    }
-    if out.is_empty() {
-        None
-    } else {
-        Some(out)
-    }
-}
-
-/// `Decimal(texte)` ; `None` quand le texte n'est pas un nombre.
-fn decimal_py(texte: &str) -> Option<Dec> {
-    let sans: String = texte.chars().filter(|c| *c != '_').collect();
-    let t = sans.trim_matches(socle::texte::blanc);
-    let (negatif, reste) = match t.strip_prefix('-') {
-        Some(r) => (true, r),
-        None => (false, t.strip_prefix('+').unwrap_or(t)),
-    };
-    let bas = reste.to_lowercase();
-    if bas == "inf" || bas == "infinity" {
-        return Some(Dec { negatif, chiffres: "0".into(), exposant: 0, special: Some("Infinity") });
-    }
-    for pref in ["snan", "nan"] {
-        if let Some(suite) = bas.strip_prefix(pref) {
-            if suite.chars().all(|c| chiffre_py(c).is_some()) {
-                return Some(Dec { negatif, chiffres: "0".into(), exposant: 0, special: Some("NaN") });
-            }
-        }
-    }
-    let (mantisse, exp) = match reste.find(['e', 'E']) {
-        Some(i) => (&reste[..i], Some(&reste[i + 1..])),
-        None => (reste, None),
-    };
-    let (entier, frac) = match mantisse.split_once('.') {
-        Some((a, b)) => (a, b),
-        None => (mantisse, ""),
-    };
-    let entier = if entier.is_empty() { String::new() } else { chiffres_py(entier)? };
-    let frac = if frac.is_empty() { String::new() } else { chiffres_py(frac)? };
-    if entier.is_empty() && frac.is_empty() {
-        return None;
-    }
-    let exposant_lu: i64 = match exp {
-        None => 0,
-        Some(e) => {
-            let (neg, e) = match e.strip_prefix('-') {
-                Some(r) => (true, r),
-                None => (false, e.strip_prefix('+').unwrap_or(e)),
-            };
-            let n: i64 = chiffres_py(e)?.parse().ok()?;
-            if neg {
-                -n
-            } else {
-                n
-            }
-        }
-    };
-    let tout = format!("{}{}", entier, frac);
-    let sans_zeros = tout.trim_start_matches('0');
-    let chiffres = if sans_zeros.is_empty() { "0".to_string() } else { sans_zeros.to_string() };
-    Some(Dec { negatif, chiffres, exposant: exposant_lu - frac.len() as i64, special: None })
-}
-
-/// Le jour d'aujourd'hui a Paris, `JJ/MM/AAAA` (`date.today().strftime("%d/%m/%Y")`).
+/// Le jour d'aujourd'hui a Paris, `JJ/MM/AAAA`.
 fn aujourdhui_jj_mm_aaaa() -> String {
     let t = socle::temps::secondes();
     let iso = socle::paris::iso_secondes(t);
@@ -862,16 +750,13 @@ fn aujourdhui_jj_mm_aaaa() -> String {
 /// compagnie (`config/baremes/<annee>.json`), le reste de la surcouche est garde.
 pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risque: &Value) -> R<()> {
     let brut = valeur_en_texte(valeur).replace(',', ".").replace('%', "");
-    let Some(v) = decimal_py(&brut) else {
+    let Some(v) = socle::num::decimal_lu(&brut) else {
         return Err(erreur("ErreurOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
     };
-    if v.special == Some("NaN") {
-        return Err(erreur("InvalidOperation", format!("Taux AT/MP illisible : {}.", valeur_ecrite(valeur))));
-    }
-    if !v.entre_0_et_20() {
+    if v <= socle::num::Decimal::ZERO || v >= socle::num::Decimal::from(20) {
         return Err(erreur(
             "ErreurOperation",
-            format!("Taux AT/MP de {} % : il se donne en pourcentage, par exemple 1,25 pour 1,25 %.", v.texte()),
+            format!("Taux AT/MP de {} % : il se donne en pourcentage, par exemple 1,25 pour 1,25 %.", v.normalize()),
         ));
     }
     let code = match code_risque {
@@ -905,7 +790,7 @@ pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risq
     } else {
         ancien_code.unwrap_or_else(|| json!(""))
     };
-    nouveau.insert("valeur".into(), serde_json::Number::from_f64(v.flottant()).map_or(Value::Null, Value::Number));
+    nouveau.insert("valeur".into(), serde_json::Number::from_f64(v.to_string().parse::<f64>().unwrap_or(0.0)).map_or(Value::Null, Value::Number));
     nouveau.insert("code_risque".into(), code_final.clone());
     nouveau.insert("_source".into(), json!(format!("Saisi dans PuppetPaie le {} (notification AT/MP).", aujourdhui_jj_mm_aaaa())));
     if !vrai(&code_final) {
@@ -925,58 +810,6 @@ pub(crate) fn poser_taux_atmp(ctx: &Contexte, an: i64, valeur: &Value, code_risq
 fn code_risque_valide(code: &str) -> bool {
     let c: Vec<char> = code.chars().collect();
     c.len() == 5 && c[..3].iter().all(|x| x.is_ascii_digit()) && c[3..].iter().all(|x| x.is_ascii_digit() || x.is_ascii_uppercase())
-}
-
-impl Dec {
-    fn nul(&self) -> bool {
-        self.special.is_none() && self.chiffres == "0"
-    }
-
-    /// `Decimal.__str__`.
-    fn texte(&self) -> String {
-        let signe = if self.negatif { "-" } else { "" };
-        if let Some(s) = self.special {
-            return format!("{}{}", signe, s);
-        }
-        let (d, e) = (&self.chiffres, self.exposant);
-        let n = d.len() as i64;
-        let ajuste = e + n - 1;
-        let corps = if e <= 0 && ajuste >= -6 {
-            if e == 0 {
-                d.clone()
-            } else if n > -e {
-                format!("{}.{}", &d[..(n + e) as usize], &d[(n + e) as usize..])
-            } else {
-                format!("0.{}{}", "0".repeat((-e - n) as usize), d)
-            }
-        } else {
-            let mantisse = if n > 1 { format!("{}.{}", &d[..1], &d[1..]) } else { d.clone() };
-            format!("{}E{}{}", mantisse, if ajuste < 0 { "-" } else { "+" }, ajuste.abs())
-        };
-        format!("{}{}", signe, corps)
-    }
-
-    /// `0 < v < 20`.
-    fn entre_0_et_20(&self) -> bool {
-        if self.special.is_some() || self.negatif || self.nul() {
-            return false;
-        }
-        let ajuste = self.exposant + self.chiffres.len() as i64 - 1;
-        match ajuste {
-            a if a < 1 => true,
-            1 => {
-                let d = self.chiffres.trim_end_matches('0');
-                d.starts_with('1')
-            }
-            _ => false,
-        }
-    }
-
-    /// `float(v)`.
-    fn flottant(&self) -> f64 {
-        let t = format!("{}{}e{}", if self.negatif { "-" } else { "" }, self.chiffres, self.exposant);
-        t.parse::<f64>().unwrap_or(0.0)
-    }
 }
 
 /// L'onglet
@@ -1192,7 +1025,7 @@ fn poser_identite(ctx: &Contexte, charge: &Value) -> R<Value> {
         return Err(identite_inconnue(quoi));
     }
     let utile = contenu.rsplit(',').next().unwrap_or("");
-    let octets = crate::problemes::base64_strict(utile).ok_or_else(|| refus("Le fichier n'est pas lisible : base64 invalide."))?;
+    let octets = crate::compagnie::problemes::base64_strict(utile).ok_or_else(|| refus("Le fichier n'est pas lisible : base64 invalide."))?;
     if octets.is_empty() {
         return Err(refus("Le fichier est vide."));
     }
@@ -1386,7 +1219,7 @@ fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Va
     Ok(format!("{}-{}", dernier, n))
 }
 
-/// `champs.coercer_booleens` : les cases a cocher arrivees en texte redeviennent booleennes.
+/// Les cases a cocher arrivees en texte redeviennent booleennes.
 fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
     for c in champs::fiche(nom)? {
         if c.forme != "booleen" {
@@ -1482,8 +1315,17 @@ pub(crate) fn ecrire_datee(
 ) -> R<()> {
     let a_dater = changements_a_dater(ancienne, donnees);
     if depuis.is_none() && !a_dater.is_empty() {
-        let libelles: HashMap<String, String> = champs::fiche(nom)?.into_iter().map(|c| (c.cle, c.libelle)).collect();
-        let noms: Vec<String> = a_dater.iter().map(|k| format!("« {} »", libelles.get(k).unwrap_or(k))).collect();
+        // Un champ calcule qui change avec la case d'ou il derive est le meme fait : la case le dit seule.
+        let fiche = champs::fiche(nom)?;
+        let derive_d_un_change = |k: &str| {
+            fiche.iter().find(|c| c.cle == k).and_then(|c| c.derive_de.as_ref()).is_some_and(|s| a_dater.contains(s))
+        };
+        let libelles: HashMap<&str, &str> = fiche.iter().map(|c| (c.cle.as_str(), c.libelle.as_str())).collect();
+        let noms: Vec<String> = a_dater
+            .iter()
+            .filter(|k| !derive_d_un_change(k))
+            .map(|k| format!("« {} »", libelles.get(k.as_str()).copied().unwrap_or(k)))
+            .collect();
         return Err(refus(format!(
             "Changer {} demande sa date d'effet (« a partir du ») : ce qui precede garde l'ancienne valeur, et la date ne \
              se devine pas. Rien n'a ete enregistre.",
@@ -1524,7 +1366,7 @@ pub(crate) enum Forcer {
     /// Rien : une erreur refuse la fiche.
     Rien,
     /// Ce que l'ecran peut forcer (« Enregistrer quand meme ») : une erreur de forme (`forcable`), jamais une valeur
-    /// obligatoire absente d'un salarie ou d'un spectacle, sans laquelle la DPAE et la DSN ne se font pas (#236,
+    /// obligatoire absente d'un salarie ou d'un spectacle, sans laquelle la DPAE et la DSN ne se font pas (
     /// `champs::verifier_fiche`).
     Forme,
     /// Tout : l'import et le questionnaire du salarie posent une fiche a completer, qui le dit (« A COMPLETER »).
@@ -1585,7 +1427,7 @@ fn enregistrer_fiche(o: &HashMap<String, String>, ctx: &Contexte, charge: &Value
     let note = charge.get("note").unwrap_or(&Value::Null);
     let e = ecrire_fiche(ctx, nom, cle, donnees, Forcer::depuis_l_ecran(forcer), depuis, note)?;
     let fiche = crate::routes::ouverture::vue_fiche(nom, e.cle.as_deref(), &e.donnees, e.anomalies, &e.derives)?;
-    // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (#236 : au banc, le temps est simule).
+    // « enregistré à HH:MM » : l'heure du moteur (`temps.rs`), pas celle du navigateur (au banc, le temps est simule).
     Ok(json!({"fiche": fiche, "configuration": configuration(o, ctx)?, "enregistre_a": maintenant()}))
 }
 
@@ -1688,7 +1530,7 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
     finir_fiche(cle, &chemin, contenu, donnees, anomalies, derives)
 }
 
-/// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (lot I2, `importation_completer`) : chaque champ de `champs` va dans la fiche
+/// L'IMPORT COMPLETE UNE FICHE QUI EXISTE (`import::completer`) : chaque champ de `champs` va dans la fiche
 /// telle qu'elle est sur le disque, s'il y est vide ou « A COMPLETER » -- et seulement alors : un champ rempli depuis
 /// l'apercu reste ce qu'il est. Une case vide n'avait rien declare : la valeur qui la remplit vaut depuis elle (un champ
 /// absent : de tout temps) ; rien d'autre ne bouge ; l'ancien fichier est sauvegarde comme pour une fiche
@@ -1715,7 +1557,7 @@ pub(crate) fn completer_fiche(ctx: &Contexte, nom: &str, cle: Option<&str>, cham
             .filter(|(j, _)| j.map_or(true, |j| j <= ctx.lue_au))
             .last()
             .map(|(j, v)| (j, v.clone()));
-        if crate::importation_completer::vide(en_vigueur.as_ref().map(|(_, v)| v)) {
+        if crate::import::completer::vide(en_vigueur.as_ref().map(|(_, v)| v)) {
             droit::contexte::dater(cible, k, v.clone(), en_vigueur.and_then(|(j, _)| j).as_ref(), None);
             ecrits.insert(k.clone(), v.clone());
         }
@@ -1935,7 +1777,7 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
         return Ok(r);
     }
     let mut ouverte: Option<Box<dyn Courriel>> = None;
-    let branchement = crate::bridage::branchement(&ctx.racine);
+    let branchement = crate::compagnie::bridage::branchement(&ctx.racine);
     let client: &mut dyn Courriel = match client {
         Some(c) => c,
         None if branchement.joue() => {
@@ -1948,11 +1790,11 @@ pub fn relever_fiches(ctx: &Contexte, client: Option<&mut dyn Courriel>, qui: &s
                 r.incidents.push(refus.phrase.to_string());
                 return Ok(r);
             }
-            if !crate::boite::disponible(&ctx.racine) {
+            if !crate::compagnie::boite::disponible(&ctx.racine) {
                 r.incidents.push("Aucune boite courriel : les fiches demandees ne peuvent pas etre relevees.".to_string());
                 return Ok(r);
             }
-            let vrai_client = crate::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
+            let vrai_client = crate::compagnie::boite::client_du_contexte(ctx).map_err(|e| erreur("ErreurCourriel", e.0))?;
             ouverte.insert(Box::new(vrai_client)).as_mut()
         }
     };
@@ -2111,7 +1953,7 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
     envois::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
 }
 
-/// `simulation.BoiteDesFiches` : la boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
+/// La boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
 /// depuis `delai` secondes y trouve sa reponse remplie ; la vraie releve la lit et cree la fiche. Ce qu'on y envoie
 /// s'ecrit comme tout courriel joue (`BoiteQuiRepond`, partagee avec `BoiteDesSignatures`).
 pub fn boite_des_fiches(ctx: &Contexte, attendues: &[Attendue], delai: i64) -> R<BoiteQuiRepond> {

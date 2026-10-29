@@ -1,6 +1,5 @@
 //! `moteur casc-envoyer --vire-le ANNEE=AAAA-MM-JJ [--vire-le ...] [--fenetre]` : envoyer les deux courriels de regularisation
-//! CASC-SVP (Audiens, et le CASC-SVP avec sa liste nominative), APRES les virements (`moteur/commandes_exports.py`,
-//! `cmd_casc_envoyer` ; `operations_casc.envoyer_regularisation`). Route `casc-envoyer`, celle que la fenetre appelle.
+//! CASC-SVP (Audiens, et le CASC-SVP avec sa liste nominative), APRES les virements. Route `casc-envoyer`, celle que la fenetre appelle.
 //!
 //! UN ENVOI QUI NE SE RATTRAPE PAS. Les garde-fous sont ceux du moteur, jamais ceux de la commande :
 //! - la route refait le dossier (la liste nominative est celle du jour), ouvre la boite, puis exige la PREUVE
@@ -8,11 +7,11 @@
 //!   refus). La commande ne le lit, ne le recoit et ne l'affiche jamais ; `--fenetre` est accepte et sans effet ;
 //! - dans `moteur-atelier`, `verifier_preuve` refuse tout acte reel (`ActeReelRefuse`) ;
 //! - les dates des virements sont verifiees par la route (lisibles, pas dans le futur, une au moins), avant toute demande ;
-//! - la route journalise (`qui` = `ligne de commande`, comme le Python), garde les deux `.eml` et ne note les annees
+//! - la route journalise (`qui` = `ligne de commande`), garde les deux `.eml` et ne note les annees
 //!   regularisees qu'APRES l'envoi.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : une panne de la boite en cours d'envoi (`ErreurCourriel`, ou le `RuntimeError`
-//! qui dit quels messages etaient deja partis) sortait en trace d'appels. Ici : `! phrase`, code 2.
+//! Une panne de la boite en cours d'envoi (`ErreurCourriel`, ou le `RuntimeError` qui dit quels messages etaient deja partis) :
+//! `! phrase`, code 2.
 
 use serde_json::{json, Map};
 

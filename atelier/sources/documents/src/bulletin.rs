@@ -9,7 +9,6 @@ use droit::contexte::Contexte;
 use droit::cumul::{tableau_cumul, Colonne};
 use engagement::cumul::lire_engagements;
 use socle::date::{d, dernier_du_mois, en_texte, forme_ecrite, Jour};
-use droit::emplois;
 use socle::fichiers::vrai;
 use socle::num::{dec, dec_f64, div, sub, Decimal, Resultat};
 use droit::pas::Versement;
@@ -49,7 +48,7 @@ fn fixe(x: Decimal, dp: u32) -> (bool, String) {
     (neg, r.to_string())
 }
 
-/// `util.fmt_eur` : 1234.5 -> « 1 234,50 ».
+/// 1234.5 -> « 1 234,50 ».
 pub fn fmt_eur(x: Decimal) -> String {
     let (neg, s) = fixe(x, 2);
     let (entier, frac) = s.split_once('.').unwrap_or((&s, ""));
@@ -63,13 +62,13 @@ pub fn fmt_eur(x: Decimal) -> String {
     format!("{}{},{}", if neg { "-" } else { "" }, groupes, frac)
 }
 
-/// `util.fmt_taux` : 9.1 -> « 9,100 ».
+/// 9.1 -> « 9,100 ».
 pub fn fmt_taux(x: Decimal) -> String {
     let (neg, s) = fixe(x, 3);
     format!("{}{}", if neg { "-" } else { "" }, s.replace('.', ","))
 }
 
-/// `util.fmt_heures` : 24 -> « 24 », 13.5 -> « 13,5 ».
+/// 24 -> « 24 », 13.5 -> « 13,5 ».
 pub fn fmt_heures(x: Decimal) -> String {
     x.normalize().to_string().replace('.', ",")
 }
@@ -241,37 +240,20 @@ pub fn smic_de_la_reduction(p: &Paie) -> Resultat<String> {
     Ok(format!("{} € ({} h à {})", fmt_eur(p.plafond), fmt_heures(p.heures), fmt_eur(dec_f64(p.smic)?)))
 }
 
-/// `entreprise.convention_du_contrat` : (IDCC, libelle) d'un contrat.
-pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<(String, String)> {
-    let idcc = ou(ent, "idcc", "");
-    let libelle = ou(ent, "convention_collective", "");
-    let tv = sp.get("emission_tv_1734").map_or(false, vrai);
-    if (idcc != "2642" && idcc != "3241") || !tv {
-        return Ok((idcc, libelle));
+/// (IDCC, libellé) de la convention d'un contrat, pour ce qui s'imprime : le libellé se lit au catalogue des conventions
+/// du barème de l'année de `jour` (`droit::bareme::libelle_convention`), la 1734, qui n'a pas de couche de barème, à
+/// son titre KALI (`sources.json`, KALICONT000005635286).
+pub fn convention_du_contrat(ent: &Value, sp: &Value, sal: &Value, jour: &Jour) -> Resultat<(String, String)> {
+    let idcc = droit::minima::idcc_du_contrat(ent, sp, sal)?;
+    if idcc.is_empty() {
+        return Err("La fiche entreprise ne dit pas sa convention collective (`idcc`).".into());
     }
-    if ou(sal, "statut", "artiste") != "artiste" {
-        return Ok((idcc, libelle));
-    }
-    let code = sal.get("code_emploi_ft").filter(|c| vrai(c)).map(en_texte);
-    let metier = match &code {
-        Some(c) => emplois::metier(c)?,
-        None => None,
+    let libelle = if idcc == "1734" {
+        "Artistes-interprètes engagés pour des émissions de télévision".to_string()
+    } else {
+        droit::bareme::libelle_convention(&idcc, jour.an)?
     };
-    let famille = metier.as_ref().and_then(|m| m.get("famille")).filter(|f| !f.is_null());
-    match famille {
-        None => Err(format!(
-            "Spectacle {}, émission de télévision (convention 1734) : le métier {} de {} n'est pas au catalogue, et \
-             le logiciel ne sait pas s'il est artiste-interprète (1734) ou musicien, metteur en scène, artiste de \
-             complément (convention de l'entreprise). Choisir un métier du catalogue.",
-            ou(sp, "titre", ""),
-            code.unwrap_or_else(|| "(aucun)".into()),
-            ou(sal, "nom", "ce salarié")
-        )),
-        Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => {
-            Ok(("1734".into(), "Artistes-interprètes engagés pour des émissions de télévision".into()))
-        }
-        Some(_) => Ok((idcc, libelle)),
-    }
+    Ok((idcc, libelle))
 }
 
 /// Un bulletin qui remplace en entier celui qui est parti (`{"remplace": true, "rectifie", "mois_origine"}`) : la paie du
@@ -337,7 +319,7 @@ fn lignes_pas_tableau(p: &Paie, pas: Option<&Versement>, colonnes: i64) -> Resul
             vec![s("IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE"), s(assiette), s(fmt_taux(taux)), s(fmt_eur(montant))],
             vec![],
         ),
-        ligne_net("MONTANT NET A PAYER (en Euros)", sub(p.net_a_payer, montant), colonnes),
+        ligne_net("MONTANT NET À PAYER (en Euros)", sub(p.net_a_payer, montant), colonnes),
     ])
 }
 
@@ -510,7 +492,7 @@ pub fn modele_du_bulletin(ent: &Value, sal: &Value) -> Resultat<Modele> {
     }
 }
 
-/// Le style d'un titre de rubrique du modele (« COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES », « IMPOT SUR LE
+/// Le style d'un titre de rubrique du modele (« COTISATIONS ET CONTRIBUTIONS SOCIALES OBLIGATOIRES », « IMPÔT SUR LE
 /// REVENU »...) : en gras, rouge, sur fond rose.
 fn style_section() -> Vec<(&'static str, Value)> {
     vec![gras(), ("couleur", ROUGE.into()), ("taille", num(6.8)), ("fond", FOND_FAMILLE.into())]
@@ -888,7 +870,7 @@ pub struct Jeu<'a> {
 fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
     let p = j.paie;
     let (sal, e, sp) = (&p.salarie, &p.engagement, &p.spectacle);
-    let conv = convention_du_contrat(ent, sp, sal)?;
+    let conv = convention_du_contrat(ent, sp, sal, &e.fin_mois()?)?;
     let n = COLONNES;
     let nat = e.nat()?;
     let permanent = nat.mensuelle();
@@ -933,9 +915,14 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
             Some(v) if vrai(v) => format!("n° {}", en_texte(v)),
             _ => format!("du contrat {}", numero),
         };
+        let comment = if remplace_en_entier(r) {
+            ", qu'il remplace".to_string()
+        } else {
+            format!(" : il en porte l'écart, versé avec la paie de {}", texte(r, "mois_versement")?)
+        };
         let suite = match r.get("motif").filter(|v| vrai(v)) {
-            Some(motif) => format!(", qu'il remplace. Motif : {}.", en_texte(motif)),
-            None => ", qu'il remplace.".to_string(),
+            Some(motif) => format!("{}. Motif : {}.", comment, en_texte(motif)),
+            None => format!("{}.", comment),
         };
         blocs.push(para(
             vec![m(format!("Rectifie le bulletin {} de {}", rectifie, texte(r, "mois_origine")?), true, None), mt(suite)],
@@ -1054,7 +1041,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         vec![("couleur", Value::from(BLANC)), gras(), ("taille", num(6.6)), ("fond", Value::from(ROUGE))]
     };
     let entete =
-        vec![ligne(vec![cell("LIBELLE", 1, true, None), s("Base"), s("Taux"), s("Salarié"), s("Employeur")], th())];
+        vec![ligne(vec![cell("LIBELLÉ", 1, true, None), s("Base"), s("Taux"), s("Salarié"), s("Employeur")], th())];
     let mut corps = Vec::new();
     let rem: Vec<&engagement::calcul::LigneBrut> =
         p.remuneration.iter().enumerate().filter(|(i, _)| !j.remboursements.contains(i)).map(|(_, l)| l).collect();
@@ -1078,11 +1065,12 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
         corps.push(ligne(vec![s("MONTANT BRUT"), s(fmt_eur(p.brut))], vec![gras(), ("fond", FOND_BRUT.into())]));
     }
     corps.extend(tableau_modele(p)?);
-    // Le bas du tableau : « MONTANT NET SOCIAL », puis « REMBOURSEMENTS ET DEDUCTIONS DIVERSES », puis
-    // « MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU », puis « IMPOT SUR LE REVENU » (« Montant net imposable »,
-    // « IMPOT SUR LE REVENU PRELEVE A LA SOURCE ») et « MONTANT NET A PAYER (en Euros) », enfin « TOTAL VERSE PAR
+    // Le bas du tableau : « MONTANT NET SOCIAL », puis « REMBOURSEMENTS ET DÉDUCTIONS DIVERSES », puis
+    // « MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU », puis « IMPÔT SUR LE REVENU » (« Montant net imposable »,
+    // « IMPÔT SUR LE REVENU PRÉLEVÉ À LA SOURCE ») et « MONTANT NET À PAYER (en Euros) », enfin « TOTAL VERSÉ PAR
     // L'EMPLOYEUR » ; deux nets egaux ne partagent pas une ligne (la derogation de l'arrete du 31/01/2023 a pris fin
-    // au 01/01/2026).
+    // au 01/01/2026). Les libelles sont ceux du modele de l'arrete du 25/02/2016, art. 1, I
+    // (`legi-arrete-20160225-bulletin/LEGIARTI000049854119.xml`), ecrits avec les accents du francais, capitales comprises.
     corps.push(ligne_net("MONTANT NET SOCIAL", p.net_social, n));
     if !j.remboursements.is_empty() {
         corps.push(ligne(vec![cel("REMBOURSEMENTS ET DÉDUCTIONS DIVERSES", n)], style_section()));
@@ -1091,8 +1079,8 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
             corps.push(ligne(vec![s(format!("{} à {}", l.designation(), fmt_eur(l.taux))), s(fmt_eur(l.montant))], vec![]));
         }
     }
-    corps.push(ligne_net("MONTANT NET A PAYER AVANT IMPOT SUR LE REVENU", p.net_a_payer, n));
-    corps.push(ligne(vec![s("IMPOT SUR LE REVENU"), s("Base"), s("Taux"), s("Salarié")], style_section()));
+    corps.push(ligne_net("MONTANT NET À PAYER AVANT IMPÔT SUR LE REVENU", p.net_a_payer, n));
+    corps.push(ligne(vec![s("IMPÔT SUR LE REVENU"), s("Base"), s("Taux"), s("Salarié")], style_section()));
     corps.push(ligne(vec![cel("Montant net imposable", 3), s(fmt_eur(p.net_imposable))], vec![]));
     match j.rectificatif.filter(|r| !remplace_en_entier(r)) {
         Some(r) => corps.extend(rectificatif_lignes(r, n)?),
@@ -1143,9 +1131,9 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
 
 // ------------------------------------------------------------ la description
 
-/// `contexte.gabarits_de` : le dossier `gabarits/` de LA COMPAGNIE dont `ent` est la fiche (`_gabarits`,
+/// Le dossier `gabarits/` de LA COMPAGNIE dont `ent` est la fiche (`_gabarits`,
 /// `Contexte::entreprise_et_gabarits`). Sans `_gabarits`, aucun : la compagnie ne se devine pas d'une variable du
-/// processus (la fenetre en sert plusieurs, ticket #244) ; un document sans dossier n'a ni logo ni signature posee.
+/// processus (la fenetre en sert plusieurs) ; un document sans dossier n'a ni logo ni signature posee.
 pub fn gabarits_de(ent: &Value) -> Option<PathBuf> {
     match ent.get("_gabarits") {
         Some(g) if vrai(g) => Some(PathBuf::from(en_texte(g))),

@@ -1,15 +1,14 @@
 //! La ligne de commande du produit, `moteur COMMANDE ...` : ce qu'un humain (ou un agent) tape.
 //!
-//! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie. Chacune reprend la
-//! commande Python du meme nom (`moteur/cli.py`, `moteur/commandes_*.py`) : memes options, meme sortie -- texte et
-//! `--json` (l'enveloppe de `moteur/sortie_json.py`) --, meme code de sortie. Elle s'appuie sur ce que le moteur sait
+//! Une commande = un module, qui declare ses options (`analyse::Spec`) et rend un code de sortie ; sa sortie est un
+//! texte, ou l'enveloppe `--json` (`rendu::enveloppe`). Elle s'appuie sur ce que le moteur sait
 //! deja faire (les routes, `moteur route NOM`) : rien ne se recopie ici, on lit et on met en forme.
 //!
-//! Les phrases proposent `moteur ...`, jamais `python -m moteur ...`.
+//! Les phrases proposent `moteur ...`.
 //!
-//! LE MOT DE PASSE. Chaque commande installe au demarrage la demande reelle (`demande::installer`, lot J1). Une
+//! LE MOT DE PASSE. Chaque commande installe au demarrage la demande reelle (`demande::installer`). Une
 //! consultation qui trouve le coffre ferme -- ni la cle du poste, ni un mot de passe tape, ni une seance -- le demande
-//! par `demande::ouvrir_seance` (fenetre au lot J3 ; le terminal, sans echo ; sinon un refus avec sa phrase), jamais
+//! par `demande::ouvrir_seance` (la fenetre du moteur s'il y en a une ; le terminal, sans echo ; sinon un refus avec sa phrase), jamais
 //! par autre chose.
 
 /// Ecrit une ligne sur la sortie standard. Un tuyau ferme (`| head`) n'est pas une erreur du programme.
@@ -131,19 +130,19 @@ impl Cadre {
     /// (sortie d'erreur), code 1.
     pub fn plantage(&self, e: Echec) -> i32 {
         let classe = e.classe.unwrap_or("RuntimeError");
-        let nature = crate::incidents::nature_de(classe);
-        let ou = if nature == crate::incidents::REFUS { self.commande } else { "" };
-        let _ = crate::incidents::depuis_exception(&self.racine, classe, &e.message, Some(nature), ou, json!({"commande": self.commande}), None);
+        let nature = crate::compagnie::incidents::nature_de(classe);
+        let ou = if nature == crate::compagnie::incidents::REFUS { self.commande } else { "" };
+        let _ = crate::compagnie::incidents::depuis_exception(&self.racine, classe, &e.message, Some(nature), ou, json!({"commande": self.commande}), None);
         eprintln!("{}", e.message);
         1
     }
 
-    /// Ouvre le coffre si la cle du poste ne le fait pas (`operations`/`commandes_ouverture.ouverture_du_coffre`) :
+    /// Ouvre le coffre si la cle du poste ne le fait pas :
     /// rien a demander quand la cle du poste l'ouvre, ou qu'une seance est gardee ; sinon la seance se demande par
-    /// `demande::ouvrir_seance`. Un refus ne coupe pas la commande (comme le Python) : le secret vient peut-etre de
+    /// `demande::ouvrir_seance`. Un refus ne coupe pas la commande : le secret vient peut-etre de
     /// l'environnement, et sinon la lecture du coffre dira elle-meme ce qui manque. La phrase est dite.
     pub fn ouvrir_le_coffre(&self) {
-        let c = crate::coffre::Coffre::du_poste(&self.racine, "");
+        let c = crate::compagnie::coffre::Coffre::du_poste(&self.racine, "");
         match c.ouvre_a_ce_poste() {
             Ok(true) => return,
             Ok(false) => {}
@@ -157,8 +156,8 @@ impl Cadre {
         // Sur la sortie d'ERREUR : les phrases d'une seance ne doivent pas polluer la sortie standard d'un `--json`.
         eprintln!();
         eprintln!("Le coffre de ce poste ne s'ouvre pas avec sa cle. Ouverture de la seance : le mot de passe du logiciel, une");
-        eprintln!("fois, pour {} h.", crate::demande::HEURES_SEANCE);
-        if let crate::demande::Verdict::Refuse(phrase) = crate::demande::ouvrir_seance(&self.racine) {
+        eprintln!("fois, pour {} h.", crate::compagnie::demande::HEURES_SEANCE);
+        if let crate::compagnie::demande::Verdict::Refuse(phrase) = crate::compagnie::demande::ouvrir_seance(&self.racine) {
             eprintln!("! {}", phrase);
         }
     }
@@ -170,12 +169,12 @@ fn classe_connue(c: &str) -> &'static str {
         "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "KeyError", "ValueError",
         "FileNotFoundError", "PermissionError", "OSError", "UnicodeDecodeError", "JSONDecodeError", "TypeError", "AttributeError",
         "ErreurApi", "ErreurCoffre", "ErreurGoogle", "DepotRefuse", "VersionExigee", "EditionBridee", "CompteursVerrouilles", "CalculRefuse",
-        // Les classes des actes (lot J2b) : un depot, une correction, un arret.
+        // Les classes des actes : un depot, une correction, un arret.
         "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai", "MoisNonRegularisable",
         "ExerciceClos", "ClotureRefusee", "MoisHorsDelai", "ActeReelRefuse", "ArretIntrouvable",
         // Les envois (theme 2) : une sortie absente, une boite absente ou en panne.
         "SortieAbsente", "BoiteAbsente", "ErreurCourriel",
-        // Le refus d'un envoi depuis une fictive ajoutee (ticket #236, `bridage::branchement`).
+        // Le refus d'un envoi depuis une fictive ajoutee (`bridage::branchement`).
         "EnvoiBride",
     ];
     CONNUES.iter().find(|x| **x == c).copied().unwrap_or("RuntimeError")
@@ -298,7 +297,7 @@ pub fn executer(args: &[String]) -> i32 {
         }
     };
     let cadre = Cadre { racine, o, ctx, aujourdhui, commande: c.nom };
-    // La demande du mot de passe du logiciel est celle du moteur (lot J1) : fenetre s'il y en a une, sinon le terminal.
-    let _canaux = crate::demande::installer(Rc::new(crate::demande::Reel::du_poste()));
+    // La demande du mot de passe du logiciel est celle du moteur : fenetre s'il y en a une, sinon le terminal.
+    let _canaux = crate::compagnie::demande::installer(Rc::new(crate::compagnie::demande::Reel::du_poste()));
     (c.executer)(&cadre, &a)
 }

@@ -1,19 +1,18 @@
-/* L'INDICATEUR DE LA MISE A JOUR (ticket #210, Leandre, 16/10/2026 : « un
-   petit truc en bas a gauche, des l'ecran d'accueil, avec une barre de
-   progression : Recherche de mise a jour / Aucune mise a jour / Mise a jour
-   en cours (avec la barre) / Redemarrer pour mettre a jour » ; ticket #217 :
-   « Logiciel a jour », tout se dit positivement).
+/* L'INDICATEUR DE LA MISE A JOUR, en bas a gauche, des l'ecran d'accueil :
+   « Recherche de mise a jour » / « Logiciel a jour » / « Mise a jour en
+   cours » (avec la barre) / « Redemarrer pour mettre a jour ».
 
    Le moteur cherche la mise a jour au lancement, en fond, et tient ou il en
    est (`maj::Recherche`) ; lance sans reseau, il reprend de lui-meme, et a
-   jour, il recherche toutes les 5 minutes tant qu'il tourne (Leandre,
-   21/10/2026). Cette page le lui demande par le geste `maj` du lanceur
-   (`window.pywebview.api.maj`, la cale du serveur : la meme sur l'accueil et
-   dans la page d'une compagnie) et affiche ce qu'il rend : la phrase, la
-   bulle, la barre. Elle relit quand le moteur le dit (`relire_ms` : pendant
-   une recherche, pendant qu'un nouvel essai est prevu, et tant que la
-   recherche de fond tourne : une version trouvee se voit sans recharger la
-   page), puis se tait. Une lecture ne fait que lire ou en est le moteur.
+   jour, il recherche toutes les 5 minutes tant qu'il tourne. Cette page le
+   lui demande par le geste `maj` du lanceur (`window.pywebview.api.maj`, la
+   cale du serveur : la meme sur l'accueil et dans la page d'une compagnie)
+   et affiche ce qu'il rend : la phrase, la bulle, la barre, et deux phrases
+   qui se lisent sans survol : `exigee` (la version prete est indispensable
+   avant de declarer) et `installee` (ce que la version en place, installee
+   juste avant ce lancement, change d'un calcul de paie). Elle relit quand le
+   moteur le dit (`relire_ms`), puis se tait. Une lecture ne fait que lire ou
+   en est le moteur.
 
    « Redemarrer pour mettre a jour » est un clic quand le moteur l'offre
    (`redemarrer`) : le geste `redemarrer` passe la version prete au relais et
@@ -30,8 +29,10 @@
     boite.id = "mise-a-jour";
     boite.hidden = true;
     boite.setAttribute("aria-live", "polite");
-    boite.innerHTML = '<span class="maj-texte"></span>'
+    boite.innerHTML = '<span class="maj-installee" hidden></span>'
+      + '<span class="maj-texte"></span>'
       + '<button type="button" class="maj-redemarrer" hidden></button>'
+      + '<span class="maj-exigee" hidden></span>'
       + '<span class="maj-barre" hidden><span></span></span>'
       + '<span class="maj-refus"></span>';
     // La fenetre se tire par son corps (accueil) : l'indicateur n'est pas une poignee.
@@ -40,16 +41,24 @@
     document.body.appendChild(boite);
   }
 
+  function phrase(classe, t) {
+    const el = boite.querySelector(classe);
+    el.hidden = !t;
+    el.textContent = t || "";
+  }
+
   function montrer(e) {
-    if (!e || !e.texte) { boite.hidden = true; return; }
+    if (!e || (!e.texte && !e.installee)) { boite.hidden = true; return; }
     boite.hidden = false;
     boite.title = e.detail || "";
+    phrase(".maj-installee", e.installee);
+    phrase(".maj-exigee", e.exigee);
     const texte = boite.querySelector(".maj-texte");
     const bouton = boite.querySelector(".maj-redemarrer");
-    texte.hidden = !!e.redemarrer;
+    texte.hidden = !!e.redemarrer || !e.texte;
     bouton.hidden = !e.redemarrer;
-    texte.textContent = e.texte;
-    bouton.textContent = e.texte;
+    texte.textContent = e.texte || "";
+    bouton.textContent = e.texte || "";
     const barre = boite.querySelector(".maj-barre");
     barre.hidden = !e.barre;
     barre.classList.toggle("sans-fin", e.barre && e.progression == null);
@@ -81,7 +90,7 @@
     refus.textContent = (r && r.erreur) || "PuppetPaie reste ouvert sur cette version.";
   }
 
-  /* Dans la page d'une compagnie, l'état arrive avec l'ouverture (ticket #244,
+  /* Dans la page d'une compagnie, l'état arrive avec l'ouverture (
      js/demarrage.js : un seul appel peint la page) ; la relecture suit le
      moteur comme ailleurs. */
   window.miseAJourMontrer = (etat) => {

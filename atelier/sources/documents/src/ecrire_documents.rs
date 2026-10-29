@@ -15,7 +15,7 @@ use socle::verrou::Verrou;
 use socle::echec::Refus;
 use socle::ecriture::json_indente;
 use socle::fichiers::repr;
-use socle::num::int_py;
+use socle::num::entier_lu;
 use engagement::calcul::Paie;
 
 fn os(chemin: &std::path::Path, e: std::io::Error) -> Echec {
@@ -73,7 +73,8 @@ pub fn numeroter(ctx: &Contexte, paies: &mut [Paie], annee: i32) -> Result<(), R
 }
 
 /// La meme, avec les numeros de bulletin deja RESERVES par un appel precedent du meme processus : `(annee, "bulletin")
-/// -> dernier numero`, sinon a la suite du compteur de l'annee (`config/compteurs.json`).
+/// -> dernier numero`, sinon a la suite du compteur de l'annee (`config/compteurs.json`) et des bulletins importes de
+/// l'annee (`engagement::numeros::dernier_bulletin_importe`).
 pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, attente: &mut HashMap<(String, String), i64>) -> Result<(), Refus> {
     let p = ctx.racine.join("config").join("compteurs.json");
     let compteurs = if p.exists() { lire_json(&p)? } else { Value::Null };
@@ -84,7 +85,7 @@ pub fn numeroter_en_attente(ctx: &Contexte, paies: &mut [Paie], annee: i32, atte
             Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f as i64)),
             Value::String(s) => s.trim().parse().ok(),
             _ => None,
-        }).unwrap_or(0) + 1,
+        }).unwrap_or(0).max(engagement::numeros::dernier_bulletin_importe(&ctx.racine, annee.into())?) + 1,
     };
     let n_bull = engagement::numeros::numeroter(ctx, paies, annee, n_bull)?;
     attente.insert((an, "bulletin".to_string()), n_bull - 1);
@@ -101,7 +102,8 @@ pub struct Reserves {
 }
 
 impl Reserves {
-    /// Le suivant de ce qui est reserve, sinon de ce que `compteurs.json` porte.
+    /// Le suivant de ce qui est reserve, sinon de ce que `compteurs.json` porte ; un bulletin, apres les bulletins importes
+    /// de l'annee (`engagement::numeros::dernier_bulletin_importe`).
     pub fn prochain(&self, ctx: &Contexte, cle: &str, annee: i64) -> R<i64> {
         let an = annee.to_string();
         if let Some(v) = self.valeurs.get(&(an.clone(), cle.to_string())) {
@@ -116,7 +118,8 @@ impl Reserves {
             Some(Value::Bool(b)) => *b as i64,
             Some(_) => 0,
         };
-        Ok(lu + 1)
+        let importe = if cle == "bulletin" { engagement::numeros::dernier_bulletin_importe(&ctx.racine, annee).map_err(Echec::from)? } else { 0 };
+        Ok(lu.max(importe) + 1)
     }
 
     /// Reserve, sans ecrire.
@@ -168,7 +171,7 @@ pub fn paies_aux_numeros_declares(ctx: &Contexte, mois: &str, reserves: Option<&
         return Ok((json!({ "mois": mois, "engagements": [] }), Vec::new()));
     };
     let mois_saisie = data.get("mois").map(socle::date::en_texte).ok_or_else(|| socle::fichiers::absent("mois"))?;
-    let annee = int_py(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
+    let annee = entier_lu(&mois_saisie.chars().take(4).collect::<String>()).ok_or_else(|| format!("mois illisible : {}", repr(&mois_saisie)))? as i32;
     match reserves {
         Some(r) => r.numeroter(ctx, &mut paies, annee)?,
         None => numeroter(ctx, &mut paies, annee)?,

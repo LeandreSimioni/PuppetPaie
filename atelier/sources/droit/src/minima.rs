@@ -26,6 +26,39 @@ pub fn table() -> Resultat<Arc<Value>> {
     json_en_cache(&dossier_du_code().join("minima-conventionnels.json"))
 }
 
+/// L'IDCC d'un contrat : celui de la compagnie (`ent`), sauf l'artiste-interprète d'une émission de télévision
+/// (`emission_tv_1734` du spectacle `sp`) d'une compagnie de la 2642 ou de la 3241, qui relève de la 1734
+/// (`minima-conventionnels.json`, `_regles_1734`). Le contrat le déclare (S21.G00.40.017), le bulletin l'imprime, le
+/// minimum lit sa grille. Artiste-interprète se lit au métier du catalogue (familles « Artistes », « Cirque et rue ») :
+/// un métier hors catalogue ne dit pas s'il l'est, l'IDCC se refuse (règle 1).
+pub fn idcc_du_contrat(ent: &Value, sp: &Value, sal: &Value) -> Resultat<String> {
+    let texte = |v: &Value, k: &str, defaut: &str| match g(v, k) {
+        x if vrai(x) => en_texte(x),
+        _ => defaut.to_string(),
+    };
+    let idcc = texte(ent, "idcc", "");
+    if (idcc != "2642" && idcc != "3241") || !vrai(g(sp, "emission_tv_1734")) || texte(sal, "statut", "artiste") != "artiste" {
+        return Ok(idcc);
+    }
+    let code = Some(g(sal, "code_emploi_ft")).filter(|c| vrai(c)).map(en_texte);
+    let metier = match &code {
+        Some(c) => crate::emplois::metier(c)?,
+        None => None,
+    };
+    match metier.as_ref().map(|m| g(m, "famille")).filter(|f| !f.is_null()) {
+        None => Err(format!(
+            "Spectacle {}, émission de télévision (convention 1734) : le métier {} de {} n'est pas au catalogue, et \
+             le logiciel ne sait pas s'il est artiste-interprète (1734) ou musicien, metteur en scène, artiste de \
+             complément (convention de l'entreprise). Choisir un métier du catalogue.",
+            texte(sp, "titre", ""),
+            code.unwrap_or_else(|| "(aucun)".into()),
+            texte(sal, "nom", "ce salarié")
+        )),
+        Some(f) if matches!(f.as_str(), Some("Artistes") | Some("Cirque et rue")) => Ok("1734".into()),
+        Some(_) => Ok(idcc),
+    }
+}
+
 /// Le plus bas des candidats selon `valeur` (le premier a egalite) : un minimum prend, quand la paie ne dit pas tout,
 /// l'hypothese la plus basse.
 pub fn plus_bas<T>(v: Vec<T>, valeur: impl Fn(&T) -> Decimal) -> Option<T> {

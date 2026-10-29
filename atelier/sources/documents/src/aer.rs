@@ -72,7 +72,7 @@ pub const CHAMP_CACHET: &str = "EMPLOYEUR_CACHET";
 // Quantites imprimees par France Travail, par rang de contrat (01 a 05).
 const QUANTITES: [(&str, &str); 2] = [("cachets", "SAL_NB_CACHET_"), ("heures", "SAL_NB_HEURES_")];
 
-// LA CLE DE RAPPROCHEMENT : LE NUMERO DE CONTRAT ET LA PERIODE (23/10/2026). Le cadre 4 de l'attestation a une colonne
+// LA CLE DE RAPPROCHEMENT : LE NUMERO DE CONTRAT ET LA PERIODE. Le cadre 4 de l'attestation a une colonne
 // par PERIODE d'emploi -- un mois d'un contrat --, et le numero du contrat (`CON_NUMERO_nn`, avec ses dates
 // `CON_NUM_DT_DEB/FIN_nn`) n'est imprime que dans la colonne de sa premiere periode ; les colonnes suivantes du meme
 // contrat le laissent a blanc (releve le 23/10/2026 sur une vraie AER d'octobre 2026, un contrat du 29/09 au 16/10 :
@@ -448,7 +448,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
         if let Some(sig) = a.signature.filter(|s| Path::new(s).exists()) {
             // La signature est posee PAR-DESSUS la page, en travers de la case,
             // comme une signature manuscrite. Le champ lui-meme reste vide : on
-            // ne tape pas son nom a la place. PNG, JPEG ou SVG (22/09/2026).
+            // ne tape pas son nom a la place. PNG, JPEG ou SVG.
             let _ = rect;
             let page = champs[CHAMP_SIGNATURE].get("page").cloned().unwrap_or(Value::Null);
             images.push(cachet::image_fichier(&page, &json!(cadre_signature(r)), sig));
@@ -469,7 +469,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
     remplir(donnees, &valeurs, &images)
 }
 
-/// `fabrique.remplir` : les champs texte `valeurs` ecrits (apparence regeneree)
+/// Les champs texte `valeurs` ecrits (apparence regeneree)
 /// et les `images` posees, par la fabrique du meme processus. Elle refuse
 /// l'ensemble pour un champ inconnu, en lecture seule ou trop long, une image
 /// illisible, une page qui n'existe pas. Pas de repli.

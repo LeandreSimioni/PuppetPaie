@@ -18,11 +18,11 @@ fn usage() -> ! {
 fn main() -> std::process::ExitCode {
     // Le binaire de l'atelier (`--features atelier`) : une redirection vers autre chose qu'un serveur local arrete tout.
     #[cfg(feature = "atelier")]
-    if let Err(m) = moteur::atelier::verifier_environnement() {
+    if let Err(m) = moteur::atelier::redirection::verifier_environnement() {
         eprintln!("{}", m);
         return std::process::ExitCode::from(2);
     }
-    moteur::incidents::brancher_l_engagement();
+    moteur::compagnie::incidents::brancher_l_engagement();
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         // Les commandes de la fabrique, servies par sa bibliotheque.
@@ -32,31 +32,31 @@ fn main() -> std::process::ExitCode {
             Some(code) => std::process::exit(code),
             None => usage(),
         },
-        // La fenetre, dans le navigateur du poste (lot J3) : `moteur interface`.
-        // La mise a jour (lot J4) : verifier, appliquer, revenir ; publier et la cle, chez l'editeur.
-        Some("maj") => return std::process::ExitCode::from(moteur::maj::commande(&args[1..]).clamp(0, 255) as u8),
-        // La compagnie d'essai (lot E1) : un vrai depot de TEST sans `prive/`, l'identite lue dans `PUPPETPAIE_COMPAGNIE`.
-        Some("essai") => return std::process::ExitCode::from(moteur::essai::commande(&args[1..]).clamp(0, 255) as u8),
-        // Les scenarios du banc d'essai (#236) : rejouer, verifier un banc, elaguer. L'atelier seulement.
+        // La fenetre, dans le navigateur du poste : `moteur interface`.
+        // La mise a jour : verifier, appliquer, revenir ; publier et la cle, chez l'editeur.
+        Some("maj") => return std::process::ExitCode::from(moteur::compagnie::maj::commande(&args[1..]).clamp(0, 255) as u8),
+        // La compagnie d'essai : un vrai depot de TEST sans `prive/`, l'identite lue dans `PUPPETPAIE_COMPAGNIE`.
+        Some("essai") => return std::process::ExitCode::from(moteur::compagnie::essai::commande(&args[1..]).clamp(0, 255) as u8),
+        // Les scenarios du banc d'essai : rejouer, verifier un banc, elaguer. L'atelier seulement.
         #[cfg(feature = "atelier")]
-        Some("scenario") => return std::process::ExitCode::from(moteur::scenario::commande(&args[1..]).clamp(0, 255) as u8),
-        // Les bulletins fictifs d'un logiciel precedent, pour une compagnie qui s'importe (#236). L'atelier seulement.
+        Some("scenario") => return std::process::ExitCode::from(moteur::atelier::scenario::commande(&args[1..]).clamp(0, 255) as u8),
+        // Les bulletins fictifs d'un logiciel precedent, pour une compagnie qui s'importe. L'atelier seulement.
         #[cfg(feature = "atelier")]
         Some("fabriquer-bulletins") => {
             return std::process::ExitCode::from(moteur::atelier::fabriquer_bulletins::commande(&args[1..]).clamp(0, 255) as u8)
         }
         Some("interface") => return std::process::ExitCode::from(moteur::interface::commande(&args[1..]).clamp(0, 255) as u8),
-        Some("generer-tables") => return std::process::ExitCode::from(moteur::generer_tables::commande(&args[1..]).clamp(0, 255) as u8),
-        Some("extraire") => return std::process::ExitCode::from(moteur::extraire::commande(&args[1..]).clamp(0, 255) as u8),
+        Some("generer-tables") => return std::process::ExitCode::from(moteur::atelier::generer_tables::commande(&args[1..]).clamp(0, 255) as u8),
+        Some("extraire") => return std::process::ExitCode::from(moteur::atelier::extraire::commande(&args[1..]).clamp(0, 255) as u8),
         // Les codes (LEGI) et les conventions collectives (KALI) releves chez la DILA, dans `atelier/reference/sources`.
         Some(q @ ("releve-codes" | "releve-conventions")) => {
-            let commande = if q == "releve-codes" { moteur::releve_codes::commande } else { moteur::releve_conventions::commande };
+            let commande = if q == "releve-codes" { moteur::atelier::releve::codes::commande } else { moteur::atelier::releve::conventions::commande };
             return std::process::ExitCode::from(commande(&args[1..]).clamp(0, 255) as u8);
         }
         // Outil d'atelier : la veille du contexte d'un sous-agent (`guet.rs`).
-        Some("guet") => return std::process::ExitCode::from(moteur::guet::commande(&args[1..]).clamp(0, 255) as u8),
+        Some("guet") => return std::process::ExitCode::from(moteur::atelier::guet::commande(&args[1..]).clamp(0, 255) as u8),
         // Le garde avant commit (le crochet `atelier/.githooks/pre-commit`) : les donnees reelles dans ce que git emporterait.
-        Some("verifier-avant-commit") => return std::process::ExitCode::from(moteur::verifier_avant_commit::commande(&args[1..]).clamp(0, 255) as u8),
+        Some("verifier-avant-commit") => return std::process::ExitCode::from(moteur::atelier::verifier_avant_commit::commande(&args[1..]).clamp(0, 255) as u8),
         // Outil d'atelier : une description JSON -> un PDF, par la bibliotheque.
         Some("fabrique") if args.len() == 3 => {
             let r = std::fs::read_to_string(&args[1])

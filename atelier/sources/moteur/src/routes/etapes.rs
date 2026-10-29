@@ -38,7 +38,7 @@ pub const ROUTES: [&str; 4] = ["etat-par-engagement", "etat-du-mois", "embauches
 pub(crate) type Paire = (String, String);
 pub(crate) use envois::etats::Cle3;
 
-// ------------------------------------------------------------ les groupes (#257)
+// ------------------------------------------------------------ les groupes
 
 /// Les quatre etapes du mois, dans l'ordre de l'habitude (aucun texte n'impose d'ordre).
 const ORDRE: [(&str, &str); 4] = [(DPAE, "DPAE"), (SIGNATURE, "Contrats"), (DSN, "DSN"), (DOCUMENTS, "Documents")];
@@ -81,7 +81,7 @@ fn suivante(mut etapes: Vec<Value>) -> Vec<Value> {
     etapes
 }
 
-// ------------------------------------------------------------ les colonnes (#257)
+// ------------------------------------------------------------ les colonnes
 //
 // Les cases des quatre lignes s'alignent sur les memes colonnes. G, la grande, porte ce qui est le plus avance ; une
 // colonne de cote s'ouvre par vague de ce qui est en cours (des embauches nouvelles, un contrat qui change, un
@@ -465,11 +465,11 @@ pub fn mois_saisis(racine: &Path) -> Vec<String> {
     engagement::stock::mois_saisis(racine).unwrap_or_default()
 }
 
-/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers_deposables`), le meme partout (#236) : plus jamais la date de
+/// L'ORDRE DES FICHIERS DEPOSABLES D'UN MOIS (`fichiers_deposables`), le meme partout : plus jamais la date de
 /// modification du fichier, que deux machines -- ou deux rejeux -- ne donnent pas pareille.
 /// - Les DSN : D'ABORD LA MENSUELLE (nature 01 ; un etablissement par fichier, le principal `DSN_<Mois>.dsn` avant les
 ///   `DSN_<Mois>_<NIC>.dsn`, par le nom) : c'est « la DSN du mois » que l'ecran et l'echeance attendent. D'un meme
-///   etablissement, LA DERNIERE ECRITE D'ABORD (#253, 23/10/2026) : un annule-et-remplace s'ecrit a cote de la DSN deja
+///   etablissement, LA DERNIERE ECRITE D'ABORD : un annule-et-remplace s'ecrit a cote de la DSN deja
 ///   partie, sous `DSN_<Mois>_AR<ordre>.dsn` (`depart::fabriquer_dsn`), et c'est lui qui part ; il se reconnait a son numero
 ///   d'ordre (S20.G00.05.004, ou `_AR<n>` du nom), le plus grand d'abord. Rangees par le seul nom, la DSN deja deposee
 ///   (`DSN_Janvier2025.dsn`) passait avant son annule-et-remplace (`DSN_Janvier2025_AR2.dsn`) : la boite « Deposer » et
@@ -603,7 +603,7 @@ impl<'a> Moteur<'a> {
         etats::nic_principal(&self.ctx.entreprise)
     }
 
-    /// `journal.etat_dsn_du_mois` : le dernier depot reel accepte, ou `Null`.
+    /// Le dernier depot reel accepte, ou `Null`.
     pub(crate) fn dsn_du_mois(&mut self, mois: &str) -> R<Value> {
         let lignes = self.lignes()?;
         etats::dsn_du_mois(&lignes, &self.ctx.entreprise, mois)
@@ -680,7 +680,7 @@ impl<'a> Moteur<'a> {
     /// montant brut de chaque paie y figure ; le bilan, qui ne l'affiche pas,
     /// ne le demande jamais.
     pub fn etat_par_engagement(&mut self, mois: &str, avec_brut: bool) -> R<Vec<Value>> {
-        // UN MOIS SANS ENGAGEMENT N'EST PAS UNE ERREUR (ticket #98).
+        // UN MOIS SANS ENGAGEMENT N'EST PAS UNE ERREUR.
         if !engagement::stock::a_une_saisie(self.racine(), mois).map_err(plain)? {
             return Ok(Vec::new());
         }
@@ -767,7 +767,7 @@ impl<'a> Moteur<'a> {
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
             );
-            // CE QUE CE SALARIE RECOIT POUR CETTE PAIE (#236) : le bulletin s'il y a une paie, le certificat Conges Spectacles
+            // CE QUE CE SALARIE RECOIT POUR CETTE PAIE : le bulletin s'il y a une paie, le certificat Conges Spectacles
             // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
             // (`aer::due`). L'etape « Documents » du mois les nomme d'apres ceci, et rien d'autre.
             let mut pieces: Vec<&str> = Vec::new();
@@ -824,7 +824,7 @@ impl<'a> Moteur<'a> {
                 premier(&g.avenants, cles).unwrap_or(&nul),
                 avenant,
             );
-            // UN CDI EN COURS N'A PAS D'ETAT DE CONTRAT MENSUEL (30/09/2026).
+            // UN CDI EN COURS N'A PAS D'ETAT DE CONTRAT MENSUEL.
             if nat.mensuelle() && nat.duree_indeterminee && !premier_mois {
                 let recu = premier(&g.recus, cles).filter(|r| vrai(r));
                 let depuis = mois_du_contrat.first().cloned().unwrap_or_default();
@@ -868,7 +868,7 @@ impl<'a> Moteur<'a> {
                     tous.push((e.file_name().to_string_lossy().into_owned(), chemin, m.len()));
                 }
             }
-            // L'ORDRE NE DEPEND PAS DE L'HEURE D'UN FICHIER (#236 : deux rejeux, deux machines, le meme ordre) : il se lit
+            // L'ORDRE NE DEPEND PAS DE L'HEURE D'UN FICHIER (deux rejeux, deux machines, le meme ordre) : il se lit
             // dans ce que le moteur sait de chacun (`ordre_de_depot`).
             let racine = self.racine().to_path_buf();
             let ranger = |mut v: Vec<&(String, PathBuf, u64)>| -> Value {
@@ -876,8 +876,8 @@ impl<'a> Moteur<'a> {
                 Value::Array(
                     v.into_iter()
                         .map(|(nom, chemin, octets)| {
-                            // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier (#236).
-                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::depart::ecrit_le(&racine, chemin)})
+                            // « ecrit le ... » : ce que le moteur a consigne en l'ecrivant, pas la date du fichier.
+                            json!({"nom": nom, "chemin": chemin.to_string_lossy(), "octets": octets, "ecrit": crate::compagnie::depart::ecrit_le(&racine, chemin)})
                         })
                         .collect(),
                 )
@@ -895,10 +895,20 @@ impl<'a> Moteur<'a> {
 
     // ----------------------------------------------------- l'annule-et-remplace
 
-    /// `empreinte_saisie` : la paie du mois, resumee en 16 caracteres ; `None`
-    /// sans saisie ou si elle ne se lit pas.
+    /// `empreinte_saisie` : ce que la DSN du mois declare, resume en 16 caracteres -- la paie du mois, et la version de
+    /// chaque engagement d'un mois passe dont elle porte la correction (`produire_regularisations::regularisations_pour`) :
+    /// une correction validee apres l'ecriture du fichier le rend perime comme une paie du mois qui change. `None` sans
+    /// saisie ni correction.
     pub(crate) fn empreinte_saisie(&self, mois: &str) -> R<Option<String>> {
-        Ok(engagement::stock::vue_du_mois(self.racine(), mois).map_err(plain)?.map(|v| empreinte_de(&v)))
+        let vue = engagement::stock::vue_du_mois(self.racine(), mois).map_err(plain)?;
+        let portees: Vec<Value> = match declarations::produire_regularisations::regularisations_pour(self.ctx, mois) {
+            Ok(regs) => regs.iter().map(|r| json!([r.mois, valeur_en_texte(r.apres.salarie.get("_cle").unwrap_or(&Value::Null)), r.apres.engagement.numero, r.version])).collect(),
+            Err(e) => vec![json!(e.message)],
+        };
+        Ok(match (vue, portees.is_empty()) {
+            (vue, true) => vue.map(|v| empreinte_de(&v)),
+            (vue, false) => Some(empreinte_de(&json!({"saisie": vue, "corrections": portees}))),
+        })
     }
 
     /// `limite` : le dernier jour ou un annule-et-remplace est admis, jusqu'a minuit : la veille de l'echeance de depot
@@ -1060,7 +1070,7 @@ impl<'a> Moteur<'a> {
             }
             return Ok(None);
         }
-        // SANS EMPREINTE NOTEE, LE MOTEUR NE SAIT PAS (#236) : il ne compare plus les dates des fichiers. Une fictive
+        // SANS EMPREINTE NOTEE, LE MOTEUR NE SAIT PAS : il ne compare plus les dates des fichiers. Une fictive
         // livree, decompressee chez un visiteur, a des dates de fichier qui ne disent rien de l'ordre ou elle a ete ecrite,
         // et chacun de ses mois se disait « paie changee ».
         Ok(None)
@@ -1076,7 +1086,7 @@ impl<'a> Moteur<'a> {
         // « Ecrite » pour une DSN : le meme critere que l'horloge, l'accueil et les rappels (`depart::mois_ecrit`,
         // la DSN mensuelle notee au journal des ecritures), pas un fichier pose dans `sorties/<mois>/`. Un mois passe lu a
         // l'ouverture (`ecrit`) ne demande que ce qui reste, pas le geste qui l'ouvre.
-        if self.ecrit || (quoi == DSN && !crate::depart::mois_ecrit(self.racine(), mois)) {
+        if self.ecrit || (quoi == DSN && !crate::compagnie::depart::mois_ecrit(self.racine(), mois)) {
             return Ok(None);
         }
         let fichiers = self.fichiers_deposables(mois)?;
@@ -1113,7 +1123,7 @@ impl<'a> Moteur<'a> {
         };
         // UN TEST REFUSE SE DIT AVEC SES ANOMALIES, la ou l'on propose d'envoyer : le code et le message du bilan.
         let refus = match r["ratees"].as_array().and_then(|l| l.last()) {
-            Some(l) if etape == "test_refuse" => Some(crate::depot_acte::pourquoi_rate(l).trim_end_matches('.').to_string()),
+            Some(l) if etape == "test_refuse" => Some(crate::compagnie::depot_acte::pourquoi_rate(l).trim_end_matches('.').to_string()),
             _ => None,
         };
         Ok(Some((etape, premier, refus)))
@@ -1135,7 +1145,7 @@ impl<'a> Moteur<'a> {
         Ok((action, refus.map(|r| format!("test refusé : {}", r))))
     }
 
-    /// `bilan_du_mois` : LES ETAPES DU MOIS (#257), dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
+    /// `bilan_du_mois` : LES ETAPES DU MOIS, dans l'ordre de l'habitude (DPAE, Contrats, DSN, Documents), chacune
     /// avec les groupes que le panneau dessine : `{etat, compte, compte_texte, quoi, phrase, echeance, action}` (`groupe`), `etat` parmi `fait`,
     /// `a_faire`, `en_attente`, `refuse`. Un groupe `fait` n'a ni compte ni phrase ; un groupe qui reste compte en nombre
     /// simple, avec son echeance (`texte`, et `court` sans l'annee, que la case ecrit) et le geste qu'ouvre un clic. `colonnes` : celles du mois (`colonnes`, G d'abord) ;
@@ -1143,8 +1153,8 @@ impl<'a> Moteur<'a> {
     /// quelque chose a faire de notre cote. Aucun montant : le brut n'est jamais lu.
     pub fn bilan_du_mois(&mut self, mois: &str) -> R<Value> {
         // UN MOIS TENU AVANT CE LOGICIEL : ses etapes se sont faites ailleurs ; elles le disent, sans geste.
-        if let Some(vue) = crate::mois_importe::vue(self.ctx, mois)? {
-            let b = crate::mois_importe::etapes(&vue);
+        if let Some(vue) = crate::import::mois::vue(self.ctx, mois)? {
+            let b = crate::import::mois::etapes(&vue);
             let etapes = ORDRE
                 .iter()
                 .map(|(cle, nom)| {
@@ -1317,6 +1327,20 @@ impl<'a> Moteur<'a> {
         let echeance = declarations::echeance_dsn::de_la_compagnie(self.ctx, mois).map_err(|m| erreur("ValueError", m))?;
         let au_depot = echeance_dsn(echeance.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 ; CSS R. 243-6 et R. 133-14 (declarations::echeance_dsn)");
         let e = etats::etat_dsn_du_mois(&self.lignes()?, mois, nic, &self.nic())?;
+        // LA DSN DEPOSEE PAR L'ANCIEN LOGICIEL ne se refait pas ici (regle 4) : ce que la saisie ajoute au mois se
+        // declare dans la DSN suivante qui n'est pas partie, et la case le dit (`import::mois::dsn_de_l_ancien_logiciel`).
+        if let Some(d) = crate::import::mois::dsn_de_l_ancien_logiciel(self.ctx, mois)?.filter(|_| !vrai(&e)) {
+            let mut g = fait();
+            if d["engagements"].as_u64().is_some_and(|n| n > 0) {
+                let porteur = valeur_en_texte(&d["porteur"]);
+                let e2 = declarations::echeance_dsn::de_la_compagnie(self.ctx, &porteur).map_err(|m| erreur("ValueError", m))?;
+                let mut a = action("deposer_dsn", format!("Déposer la DSN de {}…", socle::date::libelle_du_mois_ou_tel_quel(&porteur, socle::date::Graphie::Accentuee)));
+                a["mois"] = json!(porteur);
+                g = groupe("a_faire", Value::Null, String::new(), valeur_en_texte(&d["quoi"]), echeance_dsn(e2.jour, "à midi", "Cahier technique DSN 2026.1, § 1.4.2 (declarations::echeance_dsn)"), a);
+            }
+            g["phrase"] = d["phrase"].clone();
+            return Ok((g, Value::Null));
+        }
         if !vrai(&e) {
             if !self.dsn_a_declarer(mois, nic)? {
                 return Ok((fait(), Value::Null));
@@ -1365,7 +1389,7 @@ impl<'a> Moteur<'a> {
     }
 
     /// LA DSN DE `mois` A-T-ELLE QUELQUE CHOSE A DECLARER pour l'etablissement `nic` (`Null` : le seul) ? Elle est a
-    /// deposer des qu'un engagement valide touche le mois (ticket #257 ; « le dépôt initial de la DSN "normale" peut
+    /// deposer des qu'un engagement valide touche le mois (« le dépôt initial de la DSN "normale" peut
     /// être émis jusqu'à 1 mois à l'avance et 3 mois en retard », cahier technique DSN 2026.1, § 1.4.2,
     /// `atelier/reference/norme-dsn/texte/chapitre-1-la-norme.txt`), ou qu'elle porte la correction d'un mois passe
     /// dont l'annule-et-remplace n'est plus admis (§ 2.1.2.1, `chapitre-2-principes-de-constitution.txt` : « Une
@@ -1412,7 +1436,7 @@ impl<'a> Moteur<'a> {
         if !socle::fichiers::existe(&p) {
             return Ok(false);
         }
-        // LU UNE FOIS TANT QU'IL NE CHANGE PAS (ticket #244) : `etat` le demandait pour chaque mois. Le refus d'un fichier
+        // LU UNE FOIS TANT QU'IL NE CHANGE PAS : `etat` le demandait pour chaque mois. Le refus d'un fichier
         // illisible ne change pas (`OSError`, `JSONDecodeError`), et ne se garde pas.
         let v = socle::fichiers::json_en_cache_ou(&p, |p| {
             let t = socle::fichiers::lire_texte(p).map_err(|e| erreur("OSError", format!("{} : {}", p.display(), e)))?;
@@ -1457,7 +1481,7 @@ impl<'a> Moteur<'a> {
 
     /// `embauches_a_declarer` : les contrats dont la DPAE n'est pas encore partie.
     pub fn embauches_a_declarer(&mut self, mois: Option<&str>) -> R<Value> {
-        // UNE DERIVATION POUR TOUS LES MOIS (ticket #244) : le bilan de chaque mois charge sa saisie, et les conges d'un
+        // UNE DERIVATION POUR TOUS LES MOIS : le bilan de chaque mois charge sa saisie, et les conges d'un
         // permanent y lisent les paies validees des mois d'avant (`conges::paies_du_mois`) une fois pour toute la route.
         // Rien ne s'ecrit entre deux mois de cette lecture : le memo vaut pour toute la route.
         let _derivation = engagement::conges::Derivation::ouvrir();
@@ -1537,7 +1561,7 @@ impl<'a> Moteur<'a> {
         let mut bilan = self.bilan_du_mois(mois)?;
         let (etapes, colonnes) = (bilan["etapes"].take(), bilan["colonnes"].take());
         let lignes_du_mois: Vec<Value> = etats::filtrer(&lignes, None, Some(mois), false)?.into_iter().cloned().collect();
-        let pose = crate::coffre::Coffre::du_poste(self.racine(), "")
+        let pose = crate::compagnie::coffre::Coffre::du_poste(self.racine(), "")
             .ouverture_exigee()
             .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
         Ok(json!({
@@ -1708,6 +1732,13 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
     let departs = envois::journal::departs(&ctx.racine).map_err(Echec::from)?;
     let resumes = etats::resumes_des_documents(lignes, mois)?;
     let mut out: HashMap<String, Value> = HashMap::new();
+    // Les documents d'un salarie partent ensemble, pour tous ses engagements valides du mois : un engagement valide dont
+    // ils ne sont pas partis (valide apres leur envoi) les rend a envoyer, avec son bulletin.
+    let a_envoyer: HashSet<String> = etats
+        .iter()
+        .filter(|e| matches!(e, engagement::etats::Etat::Valide(_)))
+        .filter_map(|e| engagement::cle_de_l_engagement(ctx, &Value::Object(e.objet().brut.clone())))
+        .collect();
     for e in etats {
         if !matches!(e, engagement::etats::Etat::Partis(_)) {
             continue;
@@ -1721,6 +1752,9 @@ pub(crate) fn documents_partis(ctx: &Contexte, mois: &str, etats: &[engagement::
             .map(|d| d.le.clone())
             .max();
         let Some(quand) = dernier else { continue };
+        if a_envoyer.contains(&cle) {
+            continue;
+        }
         let plus_recent = out.get(&cle).and_then(|v| v["quand"].as_str()).is_some_and(|q| q >= quand.as_str());
         if !plus_recent {
             out.insert(cle.clone(), json!({"quand": quand, "resume": resumes.get(&cle).cloned().unwrap_or(Value::Null)}));

@@ -9,7 +9,7 @@ const enFictive = () => !!(ETAT && ETAT.simulation);
 const noteFictive = (vers, reponse = true) => `<p class="note"><b>Compagnie fictive</b> —
   rien ne part vers ${echapper(vers)} : l'envoi est simulé${reponse
   ? ", et sa réponse arrive comme la vraie, quelques secondes plus tard" : ""}.</p>`;
-/* LA DPAE PRÉPARÉE D'AVANCE, DITE DANS UNE COMPAGNIE FICTIVE (27/09/2026) : le
+/* LA DPAE PRÉPARÉE D'AVANCE, DITE DANS UNE COMPAGNIE FICTIVE : le
    test part en silence (filet.rs) et le filet n'y existe pas — une
    ligne, là où naissent les contrats, pour que le visiteur sache l'un et
    l'autre. */
@@ -80,11 +80,11 @@ const CIRCUITS_FICTIFS = {
   },
 };
 
-/* CE QU'UNE COMPAGNIE FICTIVE NE FAIT PAS, DIT AU LIEU D'ÊTRE TU (27/09/2026).
+/* CE QU'UNE COMPAGNIE FICTIVE NE FAIT PAS, DIT AU LIEU D'ÊTRE TU.
    La sauvegarde est coupée dans une compagnie fictive, et quatre salariés
    fictifs n'ont volontairement pas de taux de PAS : le visiteur doit savoir ce
    que fait une compagnie réelle, et pourquoi il voit ce qu'il voit. La mise à
-   jour, elle, est celle du logiciel (une par installation, lot U1) : elle se
+   jour, elle, est celle du logiciel (une par installation) : elle se
    fait partout. Les phrases disent le logiciel tel qu'il est (sauvegarde.rs,
    maj.rs, pas.rs, amorcage_demande.rs, dans atelier/sources/moteur/src/), rien de plus. */
 const EXPLICATIONS_FICTIVES = {
@@ -100,9 +100,9 @@ const EXPLICATIONS_FICTIVES = {
       ["Les mises à jour", `Au lancement, le logiciel regarde si l'éditeur a publié une
         nouvelle version. Il la télécharge en arrière-plan, vérifie qu'elle est bien
         signée par l'éditeur, et l'installe au démarrage suivant, sans rien demander.
-        Une version qui change un calcul attend que la DSN du mois en cours soit
-        déposée ; une version marquée « exigée » (une norme DSN qui change) bloque les
-        dépôts réels tant qu'elle n'est pas installée.`],
+        Une version qui change un calcul de paie le dit en une phrase ; une version
+        marquée « exigée » (une norme DSN qui change) bloque les dépôts réels tant
+        qu'elle n'est pas installée.`],
       ["Dans la compagnie fictive", `La sauvegarde ne tourne pas : aucun compte Google n'est
         lié, rien ne quitte le poste. La mise à jour, elle, est celle du logiciel : elle se
         fait de la même façon, qu'on ouvre une compagnie fictive ou réelle. Le bandeau dit
@@ -238,7 +238,7 @@ async function fenetreCourrielsFictifs(genre, repere) {
   document.querySelectorAll(".fictive-bulle").forEach((x) => {
     x.onclick = () => { etape = +x.dataset.etape; dessiner(); };
   });
-  // UN COURRIEL PAR SALARIÉ, ET ILS DIFFÈRENT (#227) : le permanent reçoit son
+  // UN COURRIEL PAR SALARIÉ, ET ILS DIFFÈRENT : le permanent reçoit son
   // bulletin, l'intermittent aussi son certificat Congés Spectacles et son
   // AER. On choisit celui qu'on regarde.
   document.querySelectorAll(".fictive-destinataire").forEach((x) => {

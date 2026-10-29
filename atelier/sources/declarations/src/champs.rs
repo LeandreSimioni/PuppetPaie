@@ -150,7 +150,7 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
         .as_ref()
         .map_err(|m| plain(m.clone()))?;
     // Lu une fois par processus (le code livre ne change pas sous la fenetre), mais note a chaque usage : un calcul
-    // suivi dans un processus deja chaud a les memes entrees qu'un processus neuf (ticket #244).
+    // suivi dans un processus deja chaud a les memes entrees qu'un processus neuf.
     socle::fichiers::noter_si_besoin(&dossier_du_code().join("champs-base.json"));
     match nom {
         "entreprise" => Ok(t.entreprise.clone()),
@@ -164,7 +164,7 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
 
 pub(crate) use socle::texte::{blanc as espace, strip};
 
-/// `str.isdigit()` : les chiffres, et ceux que Unicode range avec eux.
+/// Les chiffres, et ceux que Unicode range avec eux.
 pub fn est_chiffre(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}') || (c.is_numeric() && !c.is_alphabetic() && !matches!(c, '\u{bc}'..='\u{be}' | '\u{2150}'..='\u{218f}'))
 }
@@ -436,7 +436,7 @@ pub fn normaliser(c: &Champ, valeur: &Value) -> R<Value> {
     }))
 }
 
-// Plus de defauts (10/10/2026) : `statut_conventionnel` et `statut_categoriel_rc` se montraient a 05 et
+// Plus de defauts : `statut_conventionnel` et `statut_categoriel_rc` se montraient a 05 et
 // 04 sur une fiche qui ne les portait pas, et l'import les ecrivait ainsi. Ils se lisent du metier ou se saisissent ;
 // la DSN refuse ce qui ne se lit pas (`dsn::statuts_du_contrat`).
 
@@ -522,7 +522,7 @@ fn comme_la_page(v: Option<&Value>) -> String {
 /// UNE CONDITION DE `champs-base.json` (`si`, `exige_si`) remplie par la fiche `donnees` : chaque cle de la condition
 /// vaut l'une des valeurs listees ; `"*"` admet toute valeur non vide (et pas `false`). LA MEME REGLE que la page applique
 /// pour replier un champ (`fiche.js`, `conditionRemplie`) : un manque de « Pour demarrer » et un refus de la DSN se
-/// jugent sur ce que l'ecran montre (#236, « aucun manque ne pointe vers un champ masque »). Une condition absente est
+/// jugent sur ce que l'ecran montre. Une condition absente est
 /// remplie.
 pub fn condition_remplie(si: &Value, donnees: &Value) -> bool {
     let Some(o) = si.as_object() else { return true };
@@ -873,7 +873,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
             _ => socle::pays::inconnu(&quoi, v),
         }));
     }
-    // LE NUMERO D'ADHERENT CONGES SPECTACLES (#236) : dix chiffres et une lettre, dont la DSN tire S21.G00.40.022 (97 + ce
+    // LE NUMERO D'ADHERENT CONGES SPECTACLES : dix chiffres et une lettre, dont la DSN tire S21.G00.40.022 (97 + ce
     // numero) ; la forme et sa source sont a un seul endroit, `conges_spectacles::faute_adherent`.
     if c.cle == documents::conges_spectacles::CLE_ADHERENT {
         if let Some(faute) = documents::conges_spectacles::faute_adherent(&documents::conges_spectacles::forme_adherent(v)) {
@@ -899,7 +899,7 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
 
 /// `a[debut:fin]` sur ce qu'un JSON porte : un texte et une liste se
 /// tranchent, un dictionnaire ne se tranche pas, le reste n'est pas indicable.
-fn tranche_py(v: &Value, a: usize, b: usize) -> R<Value> {
+fn tranche_de(v: &Value, a: usize, b: usize) -> R<Value> {
     match v {
         Value::String(t) => Ok(Value::String(tranche(t, a, b))),
         Value::Array(l) => Ok(Value::Array(l.iter().skip(a).take(b.saturating_sub(a)).cloned().collect())),
@@ -1041,7 +1041,7 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
         if d.get("date_naissance").map_or(false, vrai) && nir.chars().count() == 13 && tous_chiffres(&tranche(&nir, 1, 5)) {
             let (an, mo) = (tranche(&nir, 1, 3), tranche(&nir, 3, 5));
             let nee = d.get("date_naissance").cloned().unwrap_or(Value::Null);
-            let (n24, n57) = (tranche_py(&nee, 2, 4)?, tranche_py(&nee, 5, 7)?);
+            let (n24, n57) = (tranche_de(&nee, 2, 4)?, tranche_de(&nee, 5, 7)?);
             if !eq_py_texte(&n24, &an) || (mo != "00" && !eq_py_texte(&n57, &mo)) {
                 out.push(anomalie(
                     "nir",
@@ -1144,7 +1144,7 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
         }
     }
     anomalies.extend(controles_croises(nom, &donnees)?);
-    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS (#236). Une regle de forme peut se tromper et la valeur
+    // CE QUI MANQUE A UN SALARIE OU A UN SPECTACLE NE SE FORCE PAS. Une regle de forme peut se tromper et la valeur
     // etre juste : son erreur se passe outre a l'ecran (`forcable`). Une valeur obligatoire absente, non : le metier d'un
     // salarie (ses codes emploi, PCS-ESE, statut), son nom, sa naissance, son adresse, le numero d'objet d'un spectacle
     // partent dans la DPAE et la DSN, qui ne se font pas sans eux, et rien ne se devine (regle 1). La fiche entreprise se
@@ -1167,7 +1167,7 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
     Ok(anomalies)
 }
 
-/// `urssaf.pour_departement` : l'organisme du TERRITOIRE de ce departement. Une
+/// L'organisme du TERRITOIRE de ce departement. Une
 /// suggestion, pas une decision.
 fn urssaf_du_departement(base: &Value, dep: &str) -> String {
     let d = dep.trim().to_uppercase();
@@ -1176,7 +1176,7 @@ fn urssaf_du_departement(base: &Value, dep: &str) -> String {
     lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
 }
 
-/// `urssaf.pour_code_postal` : idem, depuis un code postal francais. L'outre-mer
+/// Idem, depuis un code postal francais. L'outre-mer
 /// se lit sur TROIS chiffres (97139 -> 971), la metropole sur deux.
 pub fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String {
     let v: Vec<char> = cp.filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default().chars().filter(|c| c.is_ascii_digit()).collect();

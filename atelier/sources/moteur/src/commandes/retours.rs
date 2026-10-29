@@ -1,6 +1,6 @@
 //! `moteur retours [--dpae] [--flux IDFLUX] [--depuis JJ/MM/AAAA] [--jusqu-a JJ/MM/AAAA] [--environnement production|editeur]
 //! [--tout] [--appliquer]` : recuperer les retours des organismes. Le releve lui-meme est celui du moteur
-//! (`crate::releve::relever_retours`) ; ici ne reste que ce
+//! (`crate::compagnie::releve::relever_retours`) ; ici ne reste que ce
 //! qui s'affiche -- et le traitement du taux de PAS, qui demande un oeil humain.
 //!
 //! ATTENTION : cette commande va au RESEAU (net-entreprises, ou le service DPAE de l'Urssaf avec `--dpae`). Sur une
@@ -134,8 +134,8 @@ pub fn retours_dpae(cadre: &Cadre, args: &Args, client: Option<Client>) -> Resul
     let (debut, fin) = fenetre(args)?;
     let flux = args.texte("flux").unwrap_or("");
     let r: Releve = match client {
-        Some(c) if flux.is_empty() => crate::releve::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
-        _ => crate::releve::relever_retours_dpae(&cadre.ctx, debut, fin, args.drapeau("tout"), flux)?,
+        Some(c) if flux.is_empty() => crate::compagnie::releve::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), "production", Some(c), "dpae")?,
+        _ => crate::compagnie::releve::relever_retours_dpae(&cadre.ctx, debut, fin, args.drapeau("tout"), flux)?,
     };
     for i in &r.incidents {
         dire!("{}", i);
@@ -171,7 +171,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     // La cle de ce poste peut ne plus ouvrir le coffre (poste d'un agent, sauvegarde restauree) : le mot de passe du
     // logiciel l'ouvre, le temps de la releve.
     cadre.ouvrir_le_coffre();
-    let mdp = crate::releve::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")?;
+    let mdp = crate::compagnie::releve::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")?;
     if mdp.is_none() {
         dire!(
             "\nLe mot de passe net-entreprises n'est nulle part : ni dans l'environnement,\nni dans le coffre.\n\nLe poser une fois pour toutes -- chiffre par le compte Windows, jamais\naffiche, et c'est lui qui permet au logiciel de relever les retours seul :\n\n      moteur coffre poser net-entreprises\n\nOu, pour cette fenetre seulement, sans rien ecrire :\n\n      $env:{} = (Read-Host \"mot de passe net-entreprises\")\n      moteur retours\n",
@@ -188,7 +188,7 @@ pub fn derouler(cadre: &Cadre, args: &Args, client: Option<Client>) -> Result<i3
     let environnement = args.texte("environnement").unwrap_or("production");
     let (debut, fin) = fenetre(args)?;
     dire!("Consultation des retours {}, du {} au {}.", environnement, jour_de(debut), jour_de(fin));
-    let releve = crate::releve::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), environnement, client, "")?;
+    let releve = crate::compagnie::releve::relever_retours(&cadre.ctx, debut, fin, args.drapeau("tout"), environnement, client, "")?;
     if !releve.session_jusqu_a.is_empty() {
         dire!("Session ouverte (valide jusqu'a {}).\n", releve.session_jusqu_a);
     }

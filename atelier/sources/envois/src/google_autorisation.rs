@@ -72,7 +72,7 @@ impl Adresses {
     }
 }
 
-/// `secrets.token_urlsafe(n)` : `n` octets du systeme, base64 URL sans `=`.
+/// `n` octets du systeme, base64 URL sans `=`.
 fn aleatoire_url(n: usize) -> Result<String, Echec> {
     let mut o = vec![0u8; n];
     getrandom::fill(&mut o).map_err(|e| refus(format!("Le systeme ne donne pas d'aleas : {}.", e)))?;
@@ -87,7 +87,7 @@ fn egaux(a: &str, b: &str) -> bool {
     a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
 
-/// `urllib.parse.parse_qs` : `%XX` et `+`, les valeurs vides ecartees.
+/// `%XX` et `+`, les valeurs vides ecartees.
 fn decoder(t: &str) -> String {
     let b = t.as_bytes();
     let mut sortie = Vec::with_capacity(b.len());

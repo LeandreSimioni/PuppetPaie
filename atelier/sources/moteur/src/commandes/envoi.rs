@@ -1,22 +1,19 @@
 //! `moteur envoi FICHIER [--sans-navigateur] [--json]` : envoyer a chaque salarie son bulletin, son certificat Conges Spectacles et
-//! son AER (`moteur/cli.py`, `cmd_envoi` ; `operations_documents.preparer_envoi` puis l'envoi de la route `envoyer-documents`).
+//! son AER.
 //!
-//! SANS LA PAGE DU NAVIGATEUR (decision de Leandre, TRI-J0) : le Python servait une page de relecture locale et n'envoyait qu'au
-//! clic. Ici la commande prepare, MONTRE ce qui partirait (les memes lignes que le Python), puis l'envoi est celui du moteur :
+//! SANS PAGE DE NAVIGATEUR : la commande prepare, MONTRE ce qui partirait, puis l'envoi est celui du moteur :
 //! `crate::routes::documents::expedier_envoi`, donc `depot_acte::verifier_preuve` -- le moteur demande LUI-MEME le mot de passe du logiciel a
 //! un humain (fenetre, terminal sans echo ; sinon REFUS), c'est la confirmation. Aucun mot de passe en option, en variable lue en
 //! clair ni dans une sortie. Dans `moteur-atelier`, tout envoi reel est refuse (`ActeReelRefuse`). `--sans-navigateur` est accepte
-//! (il n'y a plus de navigateur) et sans effet. Dans une compagnie fictive rien ne quitte le poste : la boite simulee ecrit les messages.
+//! et sans effet. Dans une compagnie fictive rien ne quitte le poste : la boite simulee ecrit les messages.
 //!
-//! `--json` s'arrete a la preparation, comme le Python (`envoye: false`) : un programme ne confirme pas un envoi.
+//! `--json` s'arrete a la preparation (`envoye: false`) : un programme ne confirme pas un envoi.
 //!
-//! `qui` : `ligne de commande` -- le Python n'ecrivait pas dans le journal ici (`envoi.envoyer` seul) ; la route le fait, avec ce
-//! `qui` (point douteux de la passation).
+//! `qui` : `ligne de commande` ; la route ecrit au journal, avec ce `qui`.
 //!
 //! La commande lit le mois (`AAAA-MM`, ou `engagements/AAAA-MM.json`) des donnees. Rien ne s'enchaine a `mois`.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : une saisie incomplete, une fiche sans adresse, un fichier introuvable donnaient
-//! une trace d'appels. Ici : `! phrase`, code 2.
+//! Une saisie incomplete, une fiche sans adresse, un fichier introuvable : `! phrase`, code 2.
 
 use serde_json::{json, Value};
 
@@ -24,7 +21,7 @@ use super::actes::{est_refus_d_envoi, mois_du_fichier, ouvrir_la_boite, reponse_
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::{enveloppe, erreur, rendre};
 use super::Cadre;
-use crate::depot_acte::Preuve;
+use crate::compagnie::depot_acte::Preuve;
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec { commande: "envoi", positionnels: &[Pos::requis("fichier")], options: &[Opt::drapeau("sans-navigateur"), Opt::drapeau("json")] };
@@ -37,7 +34,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
     }
 }
 
-/// Ce que le Python attrapait pour la preparation (`SortieAbsente`, `BoiteAbsente`, `ErreurGoogle`/`ErreurCourriel`) : sa phrase
+/// Ce qui se rattrape a la preparation (`SortieAbsente`, `BoiteAbsente`, `ErreurGoogle`/`ErreurCourriel`) : sa phrase
 /// ou son erreur JSON, code 1. `None` pour tout autre refus.
 fn preparation_refusee(json: bool, fichier: &str, e: &Echec) -> Option<i32> {
     let classe = e.classe?;
@@ -117,7 +114,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
             }
             Ok(0)
         }
-        // Une panne en cours d'envoi : « Echec : ... » (le Python), code 2.
+        // Une panne en cours d'envoi : « Echec : ... », code 2.
         Err(e) if matches!(e.classe, Some("ErreurCourriel") | Some("RuntimeError")) => {
             dire!("Echec : {}", super::actes::phrase(&e));
             Ok(2)

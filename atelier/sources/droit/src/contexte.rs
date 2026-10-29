@@ -1213,6 +1213,9 @@ pub struct Contexte {
     salaries_bruts: Map<String, Value>,
     pub spectacles: Map<String, Value>,
     spectacles_bruts: Map<String, Value>,
+    /// Le taux AT/MP d'une annee qu'une piece atteste, pour une compagnie qui n'en a pas encore pose
+    /// (`avec_le_taux_atmp_lu`) ; en memoire seulement.
+    atmp_lu: Option<(i32, Value)>,
 }
 
 const ENTREPRISE: &str = "config/entreprise.json";
@@ -1254,6 +1257,7 @@ impl Contexte {
             salaries_bruts,
             spectacles: fiches_au(&spectacles_bruts, &date, "spectacles.json")?,
             spectacles_bruts,
+            atmp_lu: None,
         })
     }
 
@@ -1270,6 +1274,15 @@ impl Contexte {
             spectacles: fiches_au(&self.spectacles_bruts, jour, "spectacles.json")?,
             ..self.clone()
         })
+    }
+
+    /// LE TAUX AT/MP QU'UNE PIECE ATTESTE : le meme contexte, qui lit pour l'annee `an` le taux AT/MP `valeur` (en
+    /// pourcent) quand la compagnie n'a pas encore pose le sien (`config/baremes/<an>.json`). Ce taux est propre a
+    /// l'etablissement, notifie par l'Assurance Maladie : il ne se devine pas, il se lit, ici du bulletin d'un autre
+    /// logiciel qui l'a applique. Rien ne s'ecrit ; une compagnie qui a pose le sien garde le sien.
+    pub fn avec_le_taux_atmp_lu(mut self, an: i32, valeur: Value) -> Contexte {
+        self.atmp_lu = Some((an, valeur));
+        self
     }
 
     /// Le contexte du mois `AAAA-MM` : sa configuration lue au dernier jour du mois.
@@ -1368,7 +1381,7 @@ impl Contexte {
             socle::fichiers::signature(&self.code.join("baremes").join(format!("{}.json", an))),
             socle::fichiers::signature(&cfg.join("effectifs.json")),
         ];
-        format!("{}|{}|{}|{:?}|{}|g{}", self.racine.display(), self.code.display(), an, sig, ent, socle::fichiers::generation())
+        format!("{}|{}|{}|{:?}|{}|g{}|{:?}", self.racine.display(), self.code.display(), an, sig, ent, socle::fichiers::generation(), self.atmp_lu)
     }
 
     /// Le socle livre + la couche de la convention que la fiche `ent` nomme + la surcouche de la compagnie, confrontes
@@ -1390,7 +1403,14 @@ impl Contexte {
 
     fn bareme_brut_sans_cache(&self, an: i32, ent: &Value) -> Result<Value, Refus> {
         let p = self.racine.join("config").join("baremes").join(format!("{}.json", an));
-        let fichier = if socle::fichiers::existe(&p) { Some(lire_json(&p)?) } else { None };
+        let fichier = if socle::fichiers::existe(&p) {
+            Some(lire_json(&p)?)
+        } else {
+            match &self.atmp_lu {
+                Some((a, v)) if *a == an => Some(serde_json::json!({"annee": an, "socle": an, "taux_atmp": {"valeur": v, "code_risque": null}})),
+                _ => None,
+            }
+        };
         let idcc = ent.get("idcc").filter(|v| !v.is_null());
         let fondu = bareme_de_l_annee(&self.code.join("baremes"), an, fichier, idcc)?;
         // Le controle est ici, le seul endroit qui compose un bareme.
@@ -1582,7 +1602,7 @@ PSS_H_METROP).",
     }
 
     /// LES ORGANISMES ET CONTRATS DE LA DSN (`config/organismes.json`), lus a `lue_au` : un fichier date comme les
-    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::organismes` l'ecrit, par `dater`). `None` : la compagnie
+    /// fiches, chaque cle une liste `{depuis, valeur}` (`moteur::compagnie::organismes` l'ecrit, par `dater`). `None` : la compagnie
     /// ne les a pas encore enregistres.
     pub fn organismes(&self) -> Resultat<Option<Value>> {
         let p = self.racine.join("config").join(ORGANISMES);

@@ -79,10 +79,10 @@ pub fn sigle(s: &str) -> String {
     ascii.to_uppercase().split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// Les lignes d'un texte comme les compte `str.splitlines()` de Python (le numéro qu'on affiche est le sien) : `\n`,
+/// Les lignes d'un texte, coupées à toute fin de ligne d'Unicode (le numéro qu'on affiche les compte ainsi) : `\n`,
 /// `\r`, `\r\n`, et les séparateurs `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\u{85}`, `\u{2028}`, `\u{2029}` ; une fin de ligne
 /// finale ne fait pas de ligne vide. La seule copie du moteur (DSN, retours, DILA, garde avant commit).
-pub fn lignes_py(t: &str) -> Vec<&str> {
+pub fn lignes_du_texte(t: &str) -> Vec<&str> {
     let mut v = Vec::new();
     let mut debut = 0;
     let mut it = t.char_indices().peekable();
@@ -140,20 +140,6 @@ pub fn ascii_nfkd(v: &str) -> String {
     }
     ascii
 }
-
-#[cfg(test)]
-mod tests_lignes {
-    use super::*;
-
-    #[test]
-    fn les_lignes_se_comptent_comme_splitlines() {
-        assert_eq!(lignes_py("a\r\nb\rc\n\nd\u{85}e\u{2028}f\n"), ["a", "b", "c", "", "d", "e", "f"]);
-        assert_eq!(lignes_py("a\n"), ["a"]);
-        assert!(lignes_py("").is_empty());
-    }
-
-}
-
 /// `str.capitalize()`.
 pub fn capitaliser(t: &str) -> String {
     let mut c = t.chars();

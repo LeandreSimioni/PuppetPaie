@@ -80,7 +80,7 @@ pub const CHAMPS: [(&str, usize, usize); 14] = [
     ("jours_essai", 884, 887),     // N_JJ_ESSAI, la periode d'essai en jours
 ];
 
-/// L'EMPLOYEUR (24/09/2026). Ces zones restaient celles du gabarit -- un
+/// L'EMPLOYEUR. Ces zones restaient celles du gabarit -- un
 /// enregistrement REEL de la compagnie du poste --, et toute autre compagnie
 /// aurait declare ses embauches sous le SIRET, la raison sociale, l'adresse et
 /// le telephone de celle-la. Releve par les compagnies fictives. Elles
@@ -124,7 +124,7 @@ fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
     s.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// `s.ljust(n)` : complete a droite avec des espaces, ne tronque pas.
+/// Complete a droite avec des espaces, ne tronque pas.
 fn ljust(s: &str, n: usize) -> String {
     let mut o = s.to_string();
     for _ in s.chars().count()..n {
@@ -179,7 +179,7 @@ fn est_chiffre(c: char) -> bool {
     }).is_ok()
 }
 
-/// `t.isdigit()` : non vide, et rien que des chiffres.
+/// Non vide, et rien que des chiffres.
 fn tout_chiffres(t: &str) -> bool {
     !t.is_empty() && t.chars().all(est_chiffre)
 }
@@ -299,7 +299,7 @@ pub fn employeur(ent: &Value, gabarit: &[char]) -> Resultat<Vec<(&'static str, S
 
 // ------------------------------------------------------- l'Urssaf
 
-/// `urssaf.existe` : ce code est-il celui d'un organisme de recouvrement
+/// Ce code est-il celui d'un organisme de recouvrement
 /// connu (`urssaf-dpae-base.json`) ?
 fn urssaf_existe(code: &str) -> Resultat<bool> {
     let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
@@ -312,7 +312,7 @@ fn urssaf_existe(code: &str) -> Resultat<bool> {
 
 // -------------------------------------------- ce que la DPAE lit d'une embauche
 
-/// Ce que la DPAE lit d'une embauche (`operations_paies.Embauche` ou `Paie`) :
+/// Ce que la DPAE lit d'une embauche :
 /// la fiche du salarie, le debut et la fin de l'engagement, sa nature, et --
 /// pour le recapitulatif seulement -- le spectacle.
 #[derive(Debug, Clone)]
@@ -386,7 +386,7 @@ pub fn enregistrement(e: &Embauche, p: &Parametres, gabarit: &[char]) -> Resulta
                 b - a
             ));
         }
-        // ET LE CODE DOIT EXISTER (22/09/2026). Trois chiffres bien formes
+        // ET LE CODE DOIT EXISTER. Trois chiffres bien formes
         // suffisaient ; le point de depot, lui, repond << Code URSSAF invalide
         // -- n'appartenant pas a la liste des Codes Urssaf >>, des jours plus
         // tard, sur une embauche qui n'est alors pas declaree. La liste est
@@ -604,7 +604,7 @@ pub fn ecrire(embauches: &[Embauche], chemin: &Path, p: &Parametres, zipper: boo
 }
 
 /// Le nom du type d'une valeur JSON, pour la phrase d'un `TypeError`.
-fn type_py(v: &Value) -> &'static str {
+fn nom_du_type(v: &Value) -> &'static str {
     match v {
         Value::Null => "NoneType",
         Value::Bool(_) => "bool",
@@ -628,7 +628,7 @@ fn nature_de(e: &Embauche) -> Resultat<std::sync::Arc<natures::Nature>> {
 pub fn recapitulatif(embauches: &[Embauche], heure_embauche: &Value) -> Resultat<String> {
     let heure_embauche = match heure_embauche {
         Value::String(t) => t.as_str(),
-        autre => return Err(format!("heure d'embauche : {}", socle::fichiers::attendu("un texte", type_py(autre)))),
+        autre => return Err(format!("heure d'embauche : {}", socle::fichiers::attendu("un texte", nom_du_type(autre)))),
     };
     let h: Vec<char> = heure_embauche.chars().collect();
     let heure = format!(
@@ -706,7 +706,7 @@ fn tranche(r: &[char], a: usize, b: usize) -> String {
     r[a..b].iter().collect()
 }
 
-/// `dpae.relire` : chaque enregistrement par ses zones (`CHAMPS`).
+/// Chaque enregistrement par ses zones (`CHAMPS`).
 pub fn relire(contenu: &str) -> Vec<Vec<(&'static str, String)>> {
     lire_enregistrements(contenu)
         .iter()

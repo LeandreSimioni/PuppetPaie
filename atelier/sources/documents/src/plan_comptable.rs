@@ -19,13 +19,13 @@ use socle::fichiers::lire_json_echec as lire_json;
 use socle::fichiers::{repr, vrai};
 use socle::valeur::{getd, nom_type, objet_vide, ou, texte_vide, valeur_en_texte};
 
-/// Les tables fixes de `operations_exports` et `operations_ecritures`.
+/// Les tables fixes des exports et des ecritures comptables.
 pub fn tables() -> &'static Value {
     static T: OnceLock<Value> = OnceLock::new();
     T.get_or_init(|| serde_json::from_str(include_str!("exports_tables.json")).expect("exports_tables.json"))
 }
 
-/// Les logiciels du comptable que `operations_ecritures.LOGICIELS` connait.
+/// Les logiciels du comptable que les ecritures comptables connaissent.
 pub fn logiciels_connus() -> Vec<&'static str> {
     tables()["logiciels"].as_array().expect("logiciels").iter().filter_map(|l| l["logiciel"].as_str()).collect()
 }
@@ -38,7 +38,7 @@ pub fn plan(ctx: &Contexte) -> R<(Map<String, Value>, &'static str)> {
     Ok((p, origine))
 }
 
-/// `operations_exercice.plan_comptable` : le plan livre, recouvert cle par cle par
+/// Le plan livre, recouvert cle par cle par
 /// `config/plan-comptable.json`.
 pub fn plan_comptable(ctx: &Contexte) -> R<Map<String, Value>> {
     let base = lire_json(&ctx.code.join("plan-comptable-base.json"))?;
@@ -130,7 +130,7 @@ fn compte_de(plan: &Map<String, Value>, k: &str) -> R<Value> {
     }
 }
 
-/// `operations_ecritures.controler_plan` : ce qui, dans le plan comptable, ne
+/// Ce qui, dans le plan comptable, ne
 /// passerait pas dans ce format -- avant l'export.
 pub fn controler_plan(ctx: &Contexte, format: &str) -> R<Vec<String>> {
     let plan = plan_comptable(ctx)?;
@@ -208,7 +208,7 @@ pub enum Refus {
     Autre(Echec),
 }
 
-/// `operations_exercice.compte_du_salarie` : le sous-compte 421 d'un salarie, ou
+/// Le sous-compte 421 d'un salarie, ou
 /// "" si le plan n'en veut pas.
 pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) -> Result<String, Refus> {
     let net = ou(plan.get("net").unwrap_or(&Value::Null), objet_vide());
@@ -217,7 +217,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
         return Ok(String::new());
     }
     let code_brut = ou(salarie.get("code_salarie").unwrap_or(&Value::Null), texte_vide());
-    let code = entier_py(valeur_en_texte(code_brut).trim());
+    let code = entier_de(valeur_en_texte(code_brut).trim());
     let modele_texte = valeur_en_texte(modele);
     formater(&modele_texte, code, cle, 0).map_err(|(classe, message)| {
         // `compte_du_salarie` ne rattrape que ValueError, KeyError et IndexError ;
@@ -246,7 +246,7 @@ pub fn compte_du_salarie(plan: &Map<String, Value>, salarie: &Value, cle: &str) 
 }
 
 /// `int(texte)` : le signe, les chiffres, un tiret bas entre deux chiffres.
-fn entier_py(t: &str) -> Option<i64> {
+fn entier_de(t: &str) -> Option<i64> {
     let (neg, reste) = match t.strip_prefix('-') {
         Some(r) => (true, r),
         None => (false, t.strip_prefix('+').unwrap_or(t)),
@@ -266,7 +266,7 @@ fn entier_py(t: &str) -> Option<i64> {
 /// `NonPorte` : une forme que ce module refuse.
 type Faute = (&'static str, String);
 
-/// `modele.format(code=code, cle=cle)` : `code` est l'entier de la fiche, ou "" s'il
+/// `code` est l'entier de la fiche, ou "" s'il
 /// n'en a pas. Refuse, sous la classe de l'erreur (`ValueError`, `KeyError`,
 /// `IndexError`...) et une phrase en francais, en suivant `MarkupIterator_next` et
 /// `parse_field`.
@@ -533,9 +533,9 @@ struct Specification {
     genre: Option<char>,
 }
 
-fn lire_specification(spec: &str, type_py: &str) -> Result<Specification, Faute> {
+fn lire_specification(spec: &str, nom_du_type: &str) -> Result<Specification, Faute> {
     let c: Vec<char> = spec.chars().collect();
-    let invalide = || ("ValueError", format!("mise en forme « {} » invalide pour {}", spec, socle::fichiers::nature(type_py)));
+    let invalide = || ("ValueError", format!("mise en forme « {} » invalide pour {}", spec, socle::fichiers::nature(nom_du_type)));
     let est_align = |x: char| matches!(x, '<' | '>' | '=' | '^');
     let mut s = Specification { remplissage: ' ', alignement: None, signe: None, diese: false, zero: false, largeur: None, groupe: None, precision: None, genre: None };
     let mut i = 0;

@@ -1,66 +1,19 @@
 //! Le moteur de PuppetPaie au-dessus des envois (`envois`), des documents et des declarations : la ligne de commande
-//! `moteur`, les routes de l'interface, la compagnie (coffre, demande d'un acte, incidents, filet), l'import et l'atelier.
+//! `moteur`, les routes de l'interface, la compagnie (`compagnie`), l'import (`import`) et l'atelier (`atelier`).
 //!
 //! Les fichiers de donnees se lisent en `serde_json::Value` : une cle inconnue survit, rien a migrer.
 
-pub mod administrateur;
-#[cfg(feature = "atelier")]
-pub mod atelier;
-pub mod amorcage_demande;
 pub mod apercu_dsn;
-pub mod archivage;
-pub mod bridage;
-pub mod coffre;
+pub mod atelier;
 pub mod commandes;
-pub mod boite;
-pub mod coffre_verifier;
-pub mod conseils;
-pub mod demande;
-pub mod diagnostic;
-pub mod editeur;
-pub mod entrepot_dila;
-pub mod essai;
+pub mod compagnie;
 pub mod etat_garde;
-pub mod extraire;
-pub mod filet;
-pub mod generer_tables;
-pub mod guet;
-pub mod horloge;
-pub mod interface;
-pub mod kali;
-pub mod maj;
-pub mod mois_importe;
-pub mod obligations;
-pub mod organismes;
-pub mod problemes;
-pub mod routes;
-pub mod suites;
-pub mod importation;
-pub mod importation_tri;
-pub mod bulletin_lu;
-pub mod importation_bulletins;
-pub mod importation_incident;
-pub mod importation_completer;
-pub mod incidents;
-pub mod nombre_de_paies;
-pub mod caviardage;
 pub mod historique_mois;
-pub mod depot_acte;
-pub mod marques_depot;
-pub mod ouverture;
+pub mod horloge;
+pub mod import;
+pub mod interface;
+pub mod obligations;
 pub mod regularisation;
-pub mod releve;
-pub mod releve_codes;
-pub mod releve_conventions;
-pub mod releve_signatures;
-pub mod depart;
-pub mod simulation_courriels;
-pub mod exercice_ecrit;
-pub mod importation_ecrite;
-pub mod importation_nature;
-pub mod sauvegarde;
-pub mod scenario;
-pub mod restauration;
+pub mod routes;
 pub mod service;
-pub mod sources;
-pub mod verifier_avant_commit;
+pub mod simulation_courriels;

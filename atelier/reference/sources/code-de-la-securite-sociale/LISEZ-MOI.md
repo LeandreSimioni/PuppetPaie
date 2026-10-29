@@ -71,3 +71,20 @@ professionnelle (par la victime) ».
 
 **Où le moteur s'en sert** : `logiciel/donnees/obligations-base.json`, obligation `attestation_salaire` (`textes`, `a_avoir`,
 `inferences`) ; `atelier/sources/paie/src/obligations.rs` (`de_l_arret`, route `attestation-declare`).
+
+## La majoration de la réduction générale chez un employeur affilié à une caisse de congés (relevé du 29/10/2026)
+
+`articles-20261029.md`, section « La reduction generale et les deductions forfaitaires pour frais professionnels »
+(`xml/D241-10.xml`, version en vigueur depuis le 15/06/2026, issue du décret n° 2026-509 du 12/06/2026) ; domaine
+`reduction_generale` de `moteur/src/atelier/releve/codes/textes.rs`.
+
+- **D. 241-10, I** : pour les salariés du IV de L. 241-13, « Coefficient = (T min + (T delta × [(1/2) × (3 × a × salaire minimum
+  calculé pour un an / rémunération annuelle brute - 1)] P )) × b », les autres valeurs étant celles de D. 241-7.
+- **D. 241-10, IV** : pour les salariés du 3° du IV de L. 241-13 (le paiement des congés mutualisé par une caisse de congés),
+  « les valeurs a et b sont respectivement fixées à 1 et à 100/90 ».
+- Avec **D. 241-7, II** (`xml/D241-7.xml`), qui arrondit « le résultat obtenu par application de cette formule » à quatre
+  décimales : le coefficient majoré s'arrondit une fois, après la multiplication par b.
+
+**Où le moteur s'en sert** : `atelier/sources/droit/src/reduction.rs` (`reduction_generale`, argument `caisse_conges`) et la
+note `_majoration_caisse_conges` de `logiciel/donnees/baremes/2026.json` ; le test de la règle est
+`droit/tests/droit/reduction.rs`.

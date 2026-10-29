@@ -1104,6 +1104,25 @@ fn out_annee(m: &Map<String, Value>) -> Value {
     Value::Object(a)
 }
 
+/// Le libellé d'une convention collective au catalogue : `par_convention.<idcc>.libelle` du socle livré de l'année
+/// (`donnees/baremes/<an>.json`), celui que la fiche entreprise propose au choix de l'IDCC. Le bulletin et le contrat
+/// l'impriment d'ici, à la date de leur période ; une convention que le socle de l'année ne porte pas n'a pas de
+/// libellé, et le refus le dit (règle 1).
+pub fn libelle_convention(idcc: &str, an: i32) -> Resultat<String> {
+    let chemin = dossier_du_code().join("baremes").join(format!("{}.json", an));
+    if !socle::fichiers::existe(&chemin) {
+        return Err(format!("Aucun barème livré pour {} : le libellé de la convention {} ne se lit pas.", an, idcc));
+    }
+    let socle_annee = json_en_cache(&chemin)?;
+    match g(g(g(&socle_annee, "par_convention"), idcc), "libelle").as_str().filter(|l| !l.trim().is_empty()) {
+        Some(l) => Ok(l.to_string()),
+        None => Err(format!(
+            "La convention collective « {} » n'est pas au catalogue du barème {} (`par_convention`) : son libellé ne se lit pas.",
+            idcc, an
+        )),
+    }
+}
+
 /// Les contributions de la convention collective, posees sur les rubriques
 /// que le statut et la nature ont laissees.
 pub fn bareme_convention(bar: Value, nat: Option<&Nature>) -> Resultat<Value> {
@@ -1937,8 +1956,8 @@ Relevees a ce jour : {}.\n  \
 Ce qui manque n'est pas du code -- le mecanisme est ecrit -- mais \
 un bloc de nombres : le titre << prevoyance >> de cette convention \
 sur Legifrance (taux, assiette, repartition, conditions \
-d'ouverture), a ajouter dans moteur/prevoyance-conventionnelle-\
-base.json avec sa source.\n  \
+d'ouverture), a ajouter dans logiciel/donnees/prevoyance-\
+conventionnelle-base.json avec sa source.\n  \
 Tant qu'il manque, le moteur refuse de payer un permanent : une \
 prevoyance oubliee ne se voit pas sur un bulletin, elle se \
 decouvre le jour ou le salarie en a besoin.",

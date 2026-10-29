@@ -8,9 +8,9 @@
 ;     menu Demarrer, une entree dans « Applications installees » et son desinstalleur ;
 ;   - PORTABLE : le dossier de son choix (une cle USB) ; le logiciel, ses donnees et la cle qui les scelle y vivent
 ;     ensemble et s'ouvrent sur n'importe quel ordinateur (`PORTABLE.json` a cote de `logiciel\`, lu par le moteur :
-;     moteur/src/coffre.rs, dossier_portable). Ni raccourci, ni entree dans Windows, ni desinstalleur : on efface le dossier.
+;     moteur/src/compagnie/coffre.rs, dossier_portable). Ni raccourci, ni entree dans Windows, ni desinstalleur : on efface le dossier.
 ; TOUJOURS BRIDE, sans rien poser pour le dire : sans rien qui dise « debloque », le logiciel est bride (ticket #246,
-;   moteur/src/bridage.rs). Le geste de l'accueil le debloque (`.edition.json`, a cote de `logiciel\`).
+;   moteur/src/compagnie/bridage.rs). Le geste de l'accueil le debloque (`.edition.json`, a cote de `logiciel\`).
 ; Le desinstalleur retire ce qu'il a pose, fichier par fichier, et laisse tout le reste.
 ;
 ; Les textes lus pour l'ecrire (a deposer, voir prive/journal/finitions/PASSATION-I1.md) : l'exemple NSIS
@@ -179,7 +179,7 @@ Section "PuppetPaie" SecProgramme
 
   SetOutPath "$INSTDIR"
   ${If} $Portable == 1
-    ; PORTABLE : le marqueur que le moteur lit (moteur/src/coffre.rs, MARQUEUR_PORTABLE) ; la cle du poste
+    ; PORTABLE : le marqueur que le moteur lit (moteur/src/compagnie/coffre.rs, MARQUEUR_PORTABLE) ; la cle du poste
     ; (cle-poste.bin) naitra a cote, dans ce dossier, et non sur la machine. Rien d'autre n'est ecrit hors du dossier.
     FileOpen $1 "$INSTDIR\PORTABLE.json" w
     FileWrite $1 '{"_quoi": "Ce dossier est une installation PORTABLE de PuppetPaie : le logiciel, ses donnees et la cle qui les scelle (cle-poste.bin) vivent ici, ensemble, et s$\'ouvrent sur n$\'importe quel ordinateur. Effacer ce fichier rattache le coffre a la machine."}$\r$\n'
@@ -229,7 +229,7 @@ Section "Uninstall"
 
   ; Le choix bride / debloque retenu sur ce poste (le geste de l'accueil) : une reinstallation repart bridee.
   Delete "$INSTDIR\.edition.json"
-  ; La mise a jour de l'installation (moteur/src/maj.rs, lot U1) : son reglage, la version prete, son journal.
+  ; La mise a jour de l'installation (moteur/src/compagnie/maj.rs, lot U1) : son reglage, la version prete, son journal.
   RMDir /r "$INSTDIR\maj"
 
   Delete "$SMPROGRAMS\${NOM}.lnk"

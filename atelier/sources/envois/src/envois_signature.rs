@@ -366,7 +366,7 @@ pub fn contrats_imprimer(ctx: &Contexte, mois: &str, choisis: Option<&Choisis>, 
 
 // ------------------------------------------------------------------ demander-signature
 
-/// `operations_documents.demander_signature` : envoie a chaque salarie son contrat, avec le bouton « Je signe ».
+/// Envoie a chaque salarie son contrat, avec le bouton « Je signe ».
 ///
 /// `remplace` : le contrat refait EN ENTIER, qui annule et remplace celui qui est deja parti -- une phrase en tete
 /// le dit. Refuse pour un contrat jamais parti, ou dont l'execution a commence : celui-la se modifie par un

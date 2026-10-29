@@ -1,5 +1,5 @@
 //! `moteur depots [--depuis JJ/MM/AAAA] [--jusqu-a JJ/MM/AAAA] [--environnement production|editeur]` : la liste des depots que
-//! net-entreprises a vus, telle quelle (`moteur/commandes_retours.py`, `cmd_depots`). CACHEE : elle marche, elle
+//! net-entreprises a vus, telle quelle. CACHEE : elle marche, elle
 //! n'apparait pas dans l'aide. C'est une commande d'enquete pour l'editeur, sur le poste d'une compagnie -- retrouver
 //! quelque chose sur un depot passe, par exemple la date de constitution d'un fichier qu'on n'a plus. Volontairement
 //! BRUTE : tous les champs que le service renvoie, sans en choisir.
@@ -32,10 +32,9 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 }
 
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
-    // Le Python ne passe pas par la seance ici (`coffre.lire` sans ouverture) ; le moteur, lui, ouvre le coffre comme pour
-    // `retours` s'il est ferme.
+    // Le moteur ouvre le coffre comme pour `retours` s'il est ferme.
     cadre.ouvrir_le_coffre();
-    let Some(mdp) = crate::releve::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")? else {
+    let Some(mdp) = crate::compagnie::releve::mot_de_passe_de_consultation(&cadre.ctx, "net-entreprises")? else {
         dire!("Mot de passe absent. Le poser une fois : `moteur coffre poser net-entreprises`.");
         return Ok(2);
     };

@@ -133,8 +133,7 @@ const NATIONALITES: [(&str, &str); 60] = [
 
 /// Les nationalites d'un pays que la liste livree n'a pas (`pays-base.json`, COG de l'INSEE : le Kosovo n'y a pas de
 /// code ISO) : (mot sans accent, nom du pays). Le nom va dans `pays_nationalite_hors_liste` ; la zone
-/// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit. Reste
-/// R1 #147.
+/// (`code_nationalite_dsn`) ne s'en deduit pas, l'administrateur la choisit.
 const NATIONALITES_HORS_LISTE: [(&str, &str); 3] = [("kosovare", "Kosovo"), ("kosovar", "Kosovo"), ("kosovo", "Kosovo")];
 /// `FORME_CODE` : un code de fiche bien forme.
 pub fn est_un_code(t: &str) -> bool {
@@ -203,7 +202,7 @@ pub fn lire_reponses(texte: &str) -> HashMap<&'static str, String> {
     // est derriere le dernier (« femme ou homme ? (facultatif) : homme » a pour reponse « homme », pas « femme »).
     let avec_deux_points: Vec<(usize, String, &'static str)> =
         QUESTIONS.iter().filter(|(_, lib, _)| lib.contains(':')).map(|(cle, lib, _)| (lib.matches(':').count(), cle_libelle(lib), *cle)).collect();
-    for ligne in socle::texte::lignes_py(texte) {
+    for ligne in socle::texte::lignes_du_texte(texte) {
         let coupes: Vec<usize> = ligne.match_indices(':').map(|(i, _)| i).collect();
         if let Some((n, _, cle)) = avec_deux_points.iter().find(|(n, lib, _)| {
             coupes.get(*n).is_some_and(|i| cle_libelle(ligne[..*i].trim_start_matches(['*', '>', ' '])) == *lib)
@@ -432,7 +431,7 @@ pub fn fiche_depuis_reponses(rep: &HashMap<&'static str, String>) -> (Map<String
     (d, illisible)
 }
 
-/// `operations_fiches.naissance_depuis_nir` : le departement et le pays de naissance que le NIR ECRIT (les 6e et 7e
+/// Le departement et le pays de naissance que le NIR ECRIT (les 6e et 7e
 /// signes ; 99 pour une naissance a l'etranger). Deux cas se taisent : la Corse d'avant 1976 (« 20 ») et un NIR
 /// incomplet.
 fn naissance_depuis_nir(nir: Option<&Value>) -> Vec<(&'static str, String)> {

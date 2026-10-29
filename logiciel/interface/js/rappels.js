@@ -28,7 +28,7 @@ async function montrerRappels(lu = api) {
   let manques = [];
   try { manques = (await lu("pour-demarrer")).manques || []; } catch (e) { manques = []; }
   const liste = r.rappels || [];
-  // L'ÉCHÉANCIER (23/09/2026) : « un pop-up au démarrage : on est le…,
+  // L'ÉCHÉANCIER : « un pop-up au démarrage : on est le…,
   // bienvenue sur PuppetPaie, n'oublie pas de faire la DSN ». Elle s'ouvrait
   // aussi une fois par jour quand rien n'attendait ; l'éditeur, 01/10/2026 :
   // « elle apparaît seulement s'il y a des trucs à faire ».
@@ -37,7 +37,7 @@ async function montrerRappels(lu = api) {
   boiteRappels(liste, ech, manques);
 }
 
-/** L'ÉTAT FRAIS DE L'OUVERTURE (ticket #244) : la boîte des rappels, si elle
+/** L'ÉTAT FRAIS DE L'OUVERTURE : la boîte des rappels, si elle
  *  est encore ouverte et que le moteur dit autre chose, se repeint en place ;
  *  s'il n'y en avait pas et qu'il y a maintenant quelque chose à faire, elle
  *  s'ouvre (par-dessus la page : rien ne bouge dessous). Fermée par la
@@ -62,13 +62,13 @@ async function rafraichirRappels(lu) {
   boiteRappels(liste, ech, manques);
 }
 
-/* POUR DÉMARRER (09/10/2026). Une compagnie neuve découvrait ce qui lui
+/* POUR DÉMARRER. Une compagnie neuve découvrait ce qui lui
  * manquait un refus après l'autre. Le moteur (`pour-demarrer`) rend tout
  * d'un coup : ce que chaque manque bloque, où il se saisit, où la compagnie
  * trouve la valeur. La page ne fait que l'afficher. */
 function htmlDemarrage(manques) {
   if (!manques || !manques.length) return "";
-  // CHAQUE CHOSE MÈNE À SA CASE (#236) : le libellé conduit au champ que le
+  // CHAQUE CHOSE MÈNE À SA CASE : le libellé conduit au champ que le
   // moteur nomme (`champ`, celui que l'écran montre : `demarrage::a_l_ecran`),
   // ou à l'onglet qu'il nomme (`ou`) quand ce n'est pas une case.
   const ligne = (m) => `
@@ -96,7 +96,7 @@ function allerAuManque(champ, ou) {
   // Déjà dans la configuration : on n'y retourne pas. Recliquer l'onglet
   // redessinait la fiche et, sur une fiche en cours de saisie, ouvrait « Vous
   // avez modifié cette fiche » — suivre un manque après l'autre sans
-  // enregistrer entre deux ne doit rien demander (#236).
+  // enregistrer entre deux ne doit rien demander.
   if (document.getElementById("vue-configuration").classList.contains("cachee")) {
     document.querySelector('.onglets button[data-vue="configuration"]').click();
   }
@@ -143,7 +143,7 @@ async function peindreDemarrageDans(conteneur) {
 
 /* L'en-tête de la boîte : la date, la bienvenue, ce qui est à faire ce
  * mois-ci, et l'année qui vient repliée. Tout vient du moteur
- * (`operations_echeancier`) : la page ne sait pas ce qu'est une échéance. */
+ * : la page ne sait pas ce qu'est une échéance. */
 function htmlEcheancier(ech) {
   if (!ech) return "";
   const pastille = (x) => ({
@@ -171,7 +171,7 @@ function htmlEcheancier(ech) {
   // ça alors que je l'ai déjà fait, pas besoin ») : la DSN de septembre,
   // déposée, s'affichait encore « fait ». Une échéance cochable reste, pour
   // pouvoir la décocher ; les autres faites se taisent.
-  // UNE CHOSE SE DIT UNE FOIS (ticket #244) : la DSN qu'un rappel réclame
+  // UNE CHOSE SE DIT UNE FOIS : la DSN qu'un rappel réclame
   // (`rappel`, le moteur le dit) se dit dans ce rappel, sous l'en-tête, avec
   // sa date et son geste ; ici elle se dirait en double.
   const ceMois = (ech.ce_mois || []).filter((x) => (x.etat !== "fait" || x.cochable) && !x.rappel);
@@ -204,7 +204,7 @@ function boiteRappels(liste, ech, manques = []) {
     <div class="actions">
       <button class="secondaire" onclick="fermerBoite()">${liste.length ? "Plus tard" : "Fermer"}</button>
     </div>`, () => {
-    // FERMÉE, ELLE SORT DE LA PAGE (#236) : cachée sous le voile, elle gardait
+    // FERMÉE, ELLE SORT DE LA PAGE : cachée sous le voile, elle gardait
     // ses boutons `[data-manque-champ]`, périmés dès que la fiche change, et
     // qu'on retrouvait en cherchant ceux de « Pour démarrer ».
     const boite = document.getElementById("boite");
@@ -232,7 +232,7 @@ function boiteRappels(liste, ech, manques = []) {
   });
 }
 
-/* CE QUI EST DÛ (20/10/2026, #205) : une obligation à faire ou en retard
+/* CE QUI EST DÛ : une obligation à faire ou en retard
    (`obligations.rs`) — la fin d'un contrat qui se signale, la déclaration
    d'accident du travail, le signalement d'un arrêt, l'attestation de salaire
    du deuil. Le moteur rend l'obligation et ce sur quoi elle porte (`objet`) ;
@@ -276,7 +276,7 @@ async function agirSurRappel(r) {
     return deposerLaDsn(r.mois);
   }
   if (r.quoi === "dpae") {
-    // LA DPAE PRÉPARÉE D'AVANCE (27/09/2026) : son test est passé, le bouton
+    // LA DPAE PRÉPARÉE D'AVANCE : son test est passé, le bouton
     // ouvre le dépôt de CE fichier — le réel, avec le mot de passe. Sans
     // fichier testé, on va au mois et à la boîte des embauches.
     if (r.fichier) return boiteDepot("dpae", r.fichier);
@@ -298,8 +298,8 @@ async function agirSurRappel(r) {
   if (r.quoi === "revue-spectacles") return boiteRevueSpectacles(r);
 }
 
-/* ---- La revue des spectacles, en début d'année (l'éditeur, 30/09/2026,
- * journal §167). Un numéro d'objet vaut tant que le spectacle se joue : on
+/* ---- La revue des spectacles, en début d'année. Un numéro d'objet vaut
+ * tant que le spectacle se joue : on
  * demande seulement lesquels continuent. Tout est coché ; décocher archive,
  * et une fiche archivée se réactive d'un clic dans Configuration. */
 function boiteRevueSpectacles(r) {

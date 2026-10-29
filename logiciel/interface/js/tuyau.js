@@ -42,10 +42,10 @@ function serveurPerdu() {
   document.getElementById("veille-maintenant").hidden = true;
 }
 
-/* L'ÉCRAN D'UN MOIS SE LIT D'UN COUP (Leandre, 09/10/2026 : « juste de la
- * lecture » ; PLAN-MOIS-INSTANTANE.md). Les lectures d'un mois (la saisie, les
+/* L'ÉCRAN D'UN MOIS SE LIT D'UN COUP : juste de la
+ * lecture. Les lectures d'un mois (la saisie, les
  * contrats en cours, les états, les embauches, les fins, les imprévus,
- * l'aperçu) ne partent plus une à une au moteur : une
+ * l'aperçu) ne partent pas une à une au moteur : une
  * seule demande `mois` les rend toutes, gardées en mémoire
  * par la fenêtre elle-même, sans calcul. Le calcul s'est fait avant, quand
  * quelque chose a changé. Chaque lecture garde sa forme (résultat ou refus) :
@@ -64,13 +64,13 @@ const ROUTES_SANS_EFFET = new Set(["veille", "rappels", "pour-demarrer", "organi
   "contrats-passes",
   // L'Historique d'un mois (ses documents, ses envois, leurs retours lus) et la pièce qu'on y ouvre : des lectures.
   "historique-mois", "ouvrir-piece",
-  // Ce que la boîte « Supprimer cette compagnie » demande (ticket #236) : une lecture.
+  // Ce que la boîte « Supprimer cette compagnie » demande : une lecture.
   "compagnie-suppression",
-  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne (ticket #220).
+  // L'étape du relevé en cours, lue toutes les secondes le temps qu'il tourne.
   "veille-etape",
-  // Les conseils « Le saviez-vous ? » (ticket 224) : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
+  // Les conseils « Le saviez-vous ? » : le conseil du jour, ceux d'un salarié, le résumé de l'accueil.
   "conseil-du-jour", "conseils-salarie", "conseils-resume",
-  // Les lectures de l'ouverture (ticket #244) : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
+  // Les lectures de l'ouverture : l'accueil, le mois à ouvrir, l'échéancier, et l'ouverture d'un coup.
   // Elles vidaient ce qui avait été lu du mois : l'écran, servi tout de suite, attendait alors l'état frais (~1 s).
   "etat", "mois-a-ouvrir", "echeancier", "ouverture"]);
 let LU = null;            // { mois, lectures, perime } : la dernière lecture `mois`
@@ -85,7 +85,7 @@ function lireReponse(d) {
 }
 
 /** Tout ce que l'écran de `mois` lit, en une demande (partagée si elle est déjà en route).
- *  `perimeAdmis` (le changement de mois, ticket #212) : le dernier état connu, même périmé — il arrive tout de suite,
+ *  `perimeAdmis` (le changement de mois) : le dernier état connu, même périmé — il arrive tout de suite,
  *  marqué `perime`, et `verifierLeMois` le remplace par l'état frais. Sans lui (une relecture après une écriture) :
  *  l'état frais seulement. */
 function lireLeMois(mois, perimeAdmis = false) {
@@ -107,15 +107,15 @@ function lireLeMois(mois, perimeAdmis = false) {
 
 function oublierLeMois() { LU = null; LU_EN_COURS = null; LU_GENERATION++; }
 
-/** L'écran de `mois` arrivé avec l'ouverture (ticket #244, js/demarrage.js) : c'est la lecture `mois` que la page
+/** L'écran de `mois` arrivé avec l'ouverture (js/demarrage.js) : c'est la lecture `mois` que la page
  *  aurait faite, servie de même (dernier état connu, `perime` s'il l'est). */
 function poserLeMois(mois, ecran) {
   LU = { mois, lectures: (ecran && ecran.lectures) || {}, perime: !!(ecran && ecran.perime) };
   LU_EN_COURS = null;
 }
 
-/* L'ÉTAT AFFICHÉ SE VÉRIFIE DERRIÈRE (ticket #212, Leandre, 16/10/2026 :
- * « quand je change de mois c'est pas instantané »). Un mois s'affiche avec
+/* L'ÉTAT AFFICHÉ SE VÉRIFIE DERRIÈRE : changer de mois est
+ * instantané. Un mois s'affiche avec
  * son dernier état connu, même périmé ; le moteur le refait en fond, et
  * `verifierLeMois` attend l'état frais (`attendre`) pour repeindre l'écran,
  * s'il a changé, sans toucher à une saisie en cours (`repeindreLeMois`). Tant
@@ -184,8 +184,8 @@ async function api(route, charge = {}) {
   try { return await appelerMoteur(route, charge); } finally { oublierLeMois(); }
 }
 
-/* LES GESTES DE LA PAGE (Léandre, 23/10/2026 : « un petit historique de toutes
- * les actions sur la machine, joint au ticket… les 3 minutes d'avant »). La
+/* LES GESTES DE LA PAGE : un petit historique des actions sur la machine,
+ * joint au signalement, les 3 minutes d'avant. La
  * page note ce qu'on y fait — un clic (sur quel bouton, lien, carte), un champ
  * modifié (son nom et ce qu'on y a mis), une boîte qui s'ouvre, ce que la
  * console dit d'une erreur — et le joint à sa prochaine demande au moteur
@@ -297,8 +297,8 @@ async function appelerMoteur(route, charge = {}) {
     perdu.reseau = true;
     throw perdu;
   }
-  // UN CORPS QUI N'EST PAS DU JSON (#141) : un refus du serveur avant la
-  // route (corps trop gros) le dit désormais en JSON, mais une réponse vide
+  // UN CORPS QUI N'EST PAS DU JSON : un refus du serveur avant la
+  // route (corps trop gros) le dit en JSON, mais une réponse vide
   // ou coupée ne doit pas lever une SyntaxError sans phrase.
   const texte = await r.text();
   let d;
@@ -315,7 +315,7 @@ async function appelerMoteur(route, charge = {}) {
   return d.resultat;
 }
 
-/* L'ENVOI REFUSÉ D'UNE FICTIVE AJOUTÉE (ticket #236) : le moteur refuse tout
+/* L'ENVOI REFUSÉ D'UNE FICTIVE AJOUTÉE : le moteur refuse tout
  * geste qui ferait partir quelque chose (bridage::refus_d_envoi) et rend sa
  * phrase, toujours la même ; la page la montre dans une seule boîte, au-dessus
  * de tout, quel que soit le geste. L'adresse de la phrase devient un lien
@@ -437,14 +437,14 @@ window.addEventListener("error", (ev) => {
 // événement qui NE REMONTE PAS : sans capture, `window` ne le voit jamais.
 }, true);
 
-/* D'OÙ VIENT UN REJET (09/10/2026). L'événement d'une promesse rejetée ne dit
+/* D'OÙ VIENT UN REJET. L'événement d'une promesse rejetée ne dit
  * ni fichier ni ligne ; une Error, si : le premier script que cite sa pile,
  * là où elle a été levée. Chromium (WebView2) écrit « at f (http://hôte/js/
  * x.js?v=…:12:5) », WebKit « f@http://hôte/js/x.js?v=…:12:5 ». La requête
  * reste derrière (le moteur la coupe aussi, `fichier_court`). Sans pile
  * lisible, rien : le moteur écrit alors « interface:? ». Il écrivait
  * « interface.js », un fichier qui n'existe plus depuis que la page est
- * coupée en vingt (lot L), et tous les rejets s'y regroupaient. */
+ * coupée en vingt, et tous les rejets s'y regroupaient. */
 function sourceDeLaPile(pile) {
   const m = String(pile || "").match(/(https?:\/\/[^\s()]+?\.js)(?:\?[^\s():]*)?:(\d+):(\d+)/);
   return m ? { fichier: m[1], ligne: +m[2], colonne: +m[3] } : { fichier: "", ligne: 0 };
@@ -464,7 +464,7 @@ window.addEventListener("unhandledrejection", (ev) => {
   });
 });
 
-/** Ouvre un dossier du poste dans l'explorateur, et dit lequel (#141) :
+/** Ouvre un dossier du poste dans l'explorateur, et dit lequel :
  *  l'explorateur peut s'ouvrir derrière la fenêtre, et le chemin, c'est le
  *  moteur qui le rend (`dossier`). */
 async function ouvrirEtDire(route, charge = {}) {
@@ -474,8 +474,8 @@ async function ouvrirEtDire(route, charge = {}) {
   } catch (e) { dire(e.message, "erreur"); }
 }
 
-/** `type` : "erreur" (en rouge), "envoye" (ce qui est parti : en vert, coché — ticket #220, Léandre, 20/10/2026 :
- *  « un petit "envoi en cours" et "message envoyé" joli »), rien pour une simple nouvelle. */
+/** `type` : "erreur" (en rouge), "envoye" (ce qui est parti : en vert, coché),
+ *  rien pour une simple nouvelle. */
 function dire(texte, type) {
   // Le refus d'un envoi d'une fictive ajoutée est déjà dans sa boîte (`montrerEnvoiRefuse`).
   if (type === "erreur" && ENVOI_REFUSE_MONTRE !== null && texte === ENVOI_REFUSE_MONTRE) return;
@@ -508,8 +508,8 @@ function occupe(bouton, texte) {
 const echapper = (s) => String(s ?? "").replace(/[&<>"]/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-/* Une phrase du moteur qui porte un lien (le texte d'une convention, journal
- * §161) : echappee d'abord, puis l'adresse https devient cliquable. Le point
+/* Une phrase du moteur qui porte un lien (le texte d'une convention) :
+ * echappee d'abord, puis l'adresse https devient cliquable. Le point
  * qui clot la phrase reste dehors. */
 const echapperLiens = (s) => echapper(s).replace(
   /(https:\/\/[^\s<]+?)([.,;]?)(?=\s|$)/g,
@@ -531,7 +531,7 @@ document.querySelectorAll(".onglets button").forEach((b) => {
     if (b.dataset.vue === "exports") dessinerExports();
     if (b.dataset.vue === "paie") {
       dessinerConseils();
-      // REVENIR SUR PAIE REPREND CE QUI N'A PAS PU S'ÉCRIRE (#236) : une saisie
+      // REVENIR SUR PAIE REPREND CE QUI N'A PAS PU S'ÉCRIRE : une saisie
       // que le moteur a refusée faute d'une fiche (le taux AT/MP, l'effectif…)
       // restait à l'écran, « PAS enregistré », jusqu'à une frappe. La fiche
       // vient peut-être d'être corrigée : on la redonne au moteur tout de

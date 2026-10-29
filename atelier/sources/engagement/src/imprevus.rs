@@ -1,4 +1,4 @@
-//! LES IMPREVUS D'UN SALARIE (15/10/2026) : ce qui arrive a un contrat en cours et le suspend -- un ARRET de travail
+//! LES IMPREVUS D'UN SALARIE : ce qui arrive a un contrat en cours et le suspend -- un ARRET de travail
 //! (bloc S21.G00.60, son signalement 04/05) ou une SUSPENSION d'une autre sorte (bloc S21.G00.65 : conge parental,
 //! sabbatique, sans solde...). Un imprevu se saisit UNE FOIS, sur le salarie et le contrat qu'il suspend, avec ses dates ;
 //! le moteur en tire tout le reste, mois par mois :
@@ -16,7 +16,7 @@
 //! UN SEUL MAGASIN : `imprevus/AAAA-MM.json` sous les donnees de la compagnie, au mois ou l'imprevu se range (le dernier
 //! jour travaille d'un arret, le premier jour d'une suspension) : `{"_origine", "mois", "imprevus": [...]}`. Chaque
 //! imprevu dit son `genre` (`arret` ou `suspension`) ; ses champs sont `CHAMPS_ARRET` ou `CHAMPS_SUSPENSION`, et tout
-//! autre champ refuse. Le dossier `arrets/` d'avant le 15/10/2026 n'est plus lu : sa presence refuse (`refuser_l_ancien`).
+//! autre champ refuse.
 
 use std::path::{Path, PathBuf};
 
@@ -161,21 +161,6 @@ fn est_un_mois(nom: &str) -> bool {
     b.len() == 12 && b[4] == b'-' && nom.ends_with(".json") && b[..4].iter().chain(&b[5..7]).all(u8::is_ascii_digit)
 }
 
-/// LE DOSSIER `arrets/` N'EST PLUS LU (15/10/2026, regle du 14/10 : pas de compatibilite). Un arret qu'il garderait ne
-/// serait ni reporte ni retire de la paie : rien ne se lit tant qu'il est la, et la phrase dit le geste.
-fn refuser_l_ancien(racine: &Path) -> Resultat<()> {
-    if socle::fichiers::est_dossier(&racine.join("arrets")) {
-        return Err(format!(
-            "Le dossier {} n'est plus lu : depuis le 15/10/2026, arrets de travail et suspensions sont des IMPREVUS, \
-dans {}. Pour chaque arrets/AAAA-MM.json : le deplacer en imprevus/AAAA-MM.json, y renommer la cle \"arrets\" en \
-\"imprevus\", ajouter \"genre\": \"arret\" a chaque arret ; puis supprimer le dossier arrets/. Rien n'est lu d'ici la.",
-            racine.join("arrets").display(),
-            dossier(racine).display()
-        ));
-    }
-    Ok(())
-}
-
 /// Les imprevus d'un fichier deja lu.
 fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
     let Value::Object(m) = contenu else {
@@ -192,7 +177,6 @@ fn du_contenu(contenu: &Value, chemin: &Path) -> Resultat<Vec<Value>> {
 /// Tous les imprevus de la compagnie, dans l'ordre des mois du magasin puis de leur saisie, verifies et complets. La
 /// lecture se note au registre du calcul (`fichiers::lister`, `fichiers::lire_json`) : un imprevu saisi refait la paie.
 pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
-    refuser_l_ancien(racine)?;
     let Some(fichiers) = socle::fichiers::lister(&dossier(racine)) else { return Ok(Vec::new()) };
     let mut out = Vec::new();
     for f in fichiers {
@@ -207,7 +191,6 @@ pub fn tous(racine: &Path) -> Resultat<Vec<Value>> {
 
 /// Les imprevus que le fichier d'un mois du magasin range, complets ; vide s'il n'existe pas.
 pub fn du_fichier(racine: &Path, mois: &str) -> Resultat<Vec<Value>> {
-    refuser_l_ancien(racine)?;
     let p = chemin(racine, mois);
     if !socle::fichiers::existe(&p) {
         return Ok(Vec::new());
@@ -456,7 +439,7 @@ pub fn jours_de_conges_non_acquis(
     Ok(total)
 }
 
-/// L'ANCIENNETE QUE LES SUSPENSIONS LAISSENT (15/10/2026) : le jour d'ou se compte l'anciennete du salarie `cle` au
+/// L'ANCIENNETE QUE LES SUSPENSIONS LAISSENT : le jour d'ou se compte l'anciennete du salarie `cle` au
 /// `a`, `depuis` recule des jours de suspension qui n'y comptent pas, et ce qu'il y a a en dire. Pour les droits que le
 /// salarie tient de son anciennete (le maintien de salaire, L1226-1 ; la prime d'anciennete de la 3090) :
 ///
@@ -586,7 +569,7 @@ pub fn du_contrat_dans_le_mois(ctx: &Contexte, e: &Value, mois: &str) -> Resulta
 /// pour ce mois (`maintien`) : la loi le dit (`maintien_possible`), elle ne le verse pas -- les indemnites journalieres a
 /// deduire (D1226-5) ne se devinent pas.
 ///
-/// LA RETENUE AU REEL DU MOIS (15/10/2026). « La retenue par heure d'absence d'un salarie paye au mois doit etre en
+/// LA RETENUE AU REEL DU MOIS. « La retenue par heure d'absence d'un salarie paye au mois doit etre en
 /// principe egale au quotient du salaire mensuel par le nombre d'heures de travail dans l'entreprise pour le mois
 /// considere », et non sur un horaire moyen (Cass. soc. 11/02/1982, n° 80-40.359 ; 14/05/1987, n° 84-43.854 :
 /// `atelier/reference/sources/suspension-non-remuneree/cass-soc-19820211-80-40359-JURITEXT000007009242.xml` et

@@ -17,8 +17,8 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::incidents::{self, DEPOSE, EN_ATTENTE};
-use crate::{filet, problemes};
+use crate::compagnie::incidents::{self, DEPOSE, EN_ATTENTE};
+use crate::compagnie::{filet, problemes};
 use droit::contexte::Contexte;
 use super::{lire_json_tolerant, longueur, objet, valeur};
 use envois::etats::{get, objet_vide};
@@ -186,9 +186,9 @@ fn diagnostic_etat(racine: &std::path::Path) -> R<Value> {
     let partis: Vec<String> = liste.iter().filter(|g| vrai(&g["parti_le"])).map(|g| valeur_en_texte(&g["parti_le"])).collect();
     let somme = |c: &str| liste.iter().map(|g| g[c].as_i64().unwrap_or(0)).sum::<i64>();
     let (partis_total, en_attente_total) = (somme("partis"), somme("en_attente"));
-    // LE NOMBRE DE PAIES DE L'ANNEE (ticket #246) se voit dans la meme liste : une entree par annee partie, avec exactement
+    // LE NOMBRE DE PAIES DE L'ANNEE se voit dans la meme liste : une entree par annee partie, avec exactement
     // ce qui a quitte le poste. Ce n'est pas un incident : il ne compte ni dans `total`, ni dans `partis`.
-    let annees = crate::nombre_de_paies::pour_l_ecran(racine);
+    let annees = crate::compagnie::nombre_de_paies::pour_l_ecran(racine);
     for a in &annees {
         let mut g = Map::new();
         g.insert("quoi".into(), json!("paies"));
@@ -235,8 +235,8 @@ pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
     let actif = !c.is_empty();
     let adresse = c.get("adresse").cloned().unwrap_or_else(|| json!(""));
     let confirme = vrai(valeur(c, "confirme"));
-    // Le serveur auquel `filet-activer` s'inscrirait : celui du compte, de la racine, sinon celui du moteur (lot S1).
-    let serveur = json!(crate::filet::serveur(&Value::Object(m.clone())));
+    // Le serveur auquel `filet-activer` s'inscrirait : celui du compte, de la racine, sinon celui du moteur.
+    let serveur = json!(crate::compagnie::filet::serveur(&Value::Object(m.clone())));
     let inscrit_le = c.get("inscrit_le").cloned().unwrap_or_else(|| json!(""));
     let erreur_c = c.get("erreur").cloned().unwrap_or_else(|| json!(""));
     let reveils = longueur(valeur(m, "reveils"))?;
@@ -248,7 +248,7 @@ pub(crate) fn etat_filet(racine: &Path) -> R<Value> {
 
 /// La route `signalements` : `{"signalements", "non_lues"}`.
 pub(crate) fn signalements_route(racine: &Path) -> R<Value> {
-    let liste = crate::problemes::signalements(racine);
+    let liste = crate::compagnie::problemes::signalements(racine);
     // `reponses_non_lues` : les reponses que la boite n'a pas encore montrees.
     let mut non_lues = 0;
     for l in &liste {

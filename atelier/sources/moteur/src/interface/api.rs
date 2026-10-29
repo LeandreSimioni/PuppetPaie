@@ -1,8 +1,8 @@
-//! `/api/<route>` : ce que la page demande, rendu comme `web.py` le rendait (`{"ok", "resultat"}` ou
+//! `/api/<route>` : ce que la page demande, rendu en `{"ok", "resultat"}` (ou
 //! `{"ok": false, "erreur": {"type", "message", ...}}`).
 //!
-//! LES ROUTES TOURNENT DANS LE PROCESSUS DE LA FENETRE (ticket #244 ; avant, une route, un processus, comme du temps du
-//! Python) : `route`, et pourquoi rien ne reste a part. S'ajoutent ici les gestes qui ne sont pas des routes du moteur :
+//! LES ROUTES TOURNENT DANS LE PROCESSUS DE LA FENETRE :
+//! `route`, et pourquoi rien ne reste a part. S'ajoutent ici les gestes qui ne sont pas des routes du moteur :
 //! ouvrir un dossier dans l'explorateur, la veille, l'autorisation Google (le navigateur s'ouvre sur la fenetre de
 //! consentement), et le filet qui repasse en fond.
 
@@ -41,7 +41,7 @@ impl Refus {
     }
 }
 
-/// Une route du moteur, servie ICI, dans le processus de la fenetre (ticket #244, « ouvrir une compagnie prend 4 s ») :
+/// Une route du moteur, servie ICI, dans le processus de la fenetre :
 /// sous Windows, un processus par route coutait 120 a 260 ms de plus a chaque appel (l'antivirus inspecte chaque
 /// lancement et chaque lecture d'un processus neuf), et les baremes, referentiels et catalogues se relisaient a chaque
 /// fois ; ici ils restent en memoire tant que leur fichier ne change pas (`fichiers::json_en_cache` et les caches qui
@@ -51,7 +51,7 @@ impl Refus {
 /// refus et la fenetre reste (`routes::dans_la_fenetre`, `panic = "unwind"` en `release`) ; le mot de passe tape est
 /// oublie a la fin de sa route, quoi qu'il arrive ; la compagnie vient de `racine`, jamais d'une variable du processus
 /// (deux compagnies peuvent etre servies en meme temps par deux fils) ; les sorties reseau passent par `garde_reseau`
-/// comme avant. Seul `maj::controler` lance encore un processus : il eprouve le NOUVEAU programme, qui n'est pas celui-ci.
+/// aussi. Seul `maj::controler` lance encore un processus : il eprouve le NOUVEAU programme, qui n'est pas celui-ci.
 pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
     // LE FIL (`diagnostic`) : une route que la page n'a pas demandee (la veille, le filet, le fond) s'y note ici ; celle de
     // la page se note dans `repondre`, avec ce que la page a fait avant.
@@ -61,7 +61,7 @@ pub fn route(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
     let debut = std::time::Instant::now();
     let r = route_seule(racine, nom, charge);
     let issue = r.as_ref().map(|_| ()).map_err(|e| (e.classe.as_str(), e.message.as_str()));
-    crate::diagnostic::noter_route(racine, "fond", nom, charge, debut.elapsed(), issue);
+    crate::compagnie::diagnostic::noter_route(racine, "fond", nom, charge, debut.elapsed(), issue);
     r
 }
 
@@ -73,10 +73,10 @@ thread_local! {
 fn route_seule(racine: &Path, nom: &str, charge: &Value) -> Result<Value, Refus> {
     let mut o = std::collections::HashMap::new();
     o.insert("racine".to_string(), racine.to_string_lossy().into_owned());
-    // LE BANC D'ESSAI (l'atelier seulement, #236) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
+    // LE BANC D'ESSAI (l'atelier seulement) : chaque route que la fenetre sert -- la page, la veille, le fil de fond --
     // entre dans le scenario, avec sa charge et son instant (`scenario::Enregistreur`).
     #[cfg(feature = "atelier")]
-    if let Some(e) = crate::scenario::enregistreur_actif() {
+    if let Some(e) = crate::atelier::scenario::enregistreur_actif() {
         return depuis_reponse(e.route(racine, nom, charge, || crate::routes::dans_la_fenetre(&o, nom, charge)));
     }
     depuis_reponse(crate::routes::dans_la_fenetre(&o, nom, charge))
@@ -169,11 +169,11 @@ pub fn entre_apostrophes_powershell(t: &str) -> String {
     s
 }
 
-/// CHOISIR UN DOSSIER (Leandre, 08/10/2026 : « un bouton qui ouvre l'explorateur »). La boite du systeme, lancee par
+/// CHOISIR UN DOSSIER. La boite du systeme, lancee par
 /// le serveur du poste : Windows par PowerShell (`FolderBrowserDialog`, au premier plan), macOS par `osascript`, Linux
 /// par `zenity` ou `kdialog`. Rend `{"dossier": chemin}`, ou `{"dossier": null}` si on a annule.
 fn choisir_dossier(charge: &Value) -> Result<Value, Refus> {
-    // Le titre garde son apostrophe (#141) : chaque boite l'echappe a sa facon -- PowerShell double l'apostrophe
+    // Le titre garde son apostrophe : chaque boite l'echappe a sa facon -- PowerShell double l'apostrophe
     // dans sa chaine entre apostrophes (ou `$` et l'accent grave sont litteraux), AppleScript echappe `\` et `"`
     // dans sa chaine entre guillemets ; zenity le recoit en argument, tel quel.
     let titre: String = charge
@@ -212,7 +212,7 @@ fn choisir_dossier(charge: &Value) -> Result<Value, Refus> {
     Ok(json!({ "dossier": if chemin.is_empty() { Value::Null } else { Value::String(chemin) } }))
 }
 
-/// OUVRIR LE DOSSIER D'IMPORT (lot G2, 10/10/2026 : « un dossier, tout dedans ») : la boite aux lettres dans
+/// OUVRIR LE DOSSIER D'IMPORT : un dossier, tout dedans ; la boite aux lettres dans
 /// l'explorateur du poste, pour y deposer ce que l'ancien logiciel a laisse. Vide ou absent : `import/` de la
 /// compagnie (la page le preremplit), cree s'il n'existe pas encore ; un autre dossier doit exister, il n'est jamais
 /// cree. Rend `{"dossier": chemin}`.
@@ -236,7 +236,7 @@ fn texte(charge: &Value, cle: &str) -> Result<String, Refus> {
 }
 
 fn ouvrir_piece(racine: &Path, charge: &Value) -> Result<Value, Refus> {
-    // UNE PIECE DE L'HISTORIQUE (20/10/2026) : un document du mois ou la piece d'un retour, que `historique-mois` a
+    // UNE PIECE DE L'HISTORIQUE : un document du mois ou la piece d'un retour, que `historique-mois` a
     // listee pour ce mois -- et rien d'autre : le chemin vient de la page, il ne s'ouvre que s'il est dans la liste.
     if let Some(mois) = charge.get("historique").and_then(Value::as_str) {
         let chemin = texte(charge, "chemin")?;
@@ -332,7 +332,7 @@ fn ouvrir_sous(dossier: PathBuf, absent: &str) -> Result<Value, Refus> {
 fn google_autoriser(racine: &Path, charge: &Value) -> Result<Value, Refus> {
     let vers = |f: socle::echec::Echec| Refus::simple(f.classe.unwrap_or("ErreurOperation"), f.message);
     let mot = charge.get("motdepasse").cloned().unwrap_or(Value::Null);
-    crate::filet::exiger_mot_de_passe(racine, &mot, "lier le compte Google").map_err(vers)?;
+    crate::compagnie::filet::exiger_mot_de_passe(racine, &mot, "lier le compte Google").map_err(vers)?;
     let url = |u: &str| {
         let _ = ouvrir_adresse(u);
     };
@@ -348,7 +348,7 @@ fn filet_en_fond(racine: &Path) {
     });
 }
 
-/// « Un probleme, une idee ? » part en fond (Leandre, 14/10/2026) : `signalement-envoyer` a enregistre le message et
+/// « Un probleme, une idee ? » part en fond : `signalement-envoyer` a enregistre le message et
 /// rendu la main ; `signalements-partir` le fait partir, le temps du serveur de l'editeur, sans que la page attende.
 fn signalements_en_fond(racine: &Path) {
     let r = racine.to_path_buf();
@@ -376,7 +376,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             Some(v) => Ok(v.tour(false, false)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
         },
-        // LA SAUVEGARDE AVANT DE SUPPRIMER (ticket #236) : un passage complet de la veille, sauvegarde comprise.
+        // LA SAUVEGARDE AVANT DE SUPPRIMER : un passage complet de la veille, sauvegarde comprise.
         "sauvegarde-maintenant" => match veille {
             Some(v) => Ok(v.tour(false, true)),
             None => Err(Refus::simple("ErreurOperation", "Pas de veille sur cette interface.")),
@@ -384,7 +384,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
         "google-autoriser" => google_autoriser(racine, charge),
         "choisir-dossier" => choisir_dossier(charge),
         "ouvrir-import" => ouvrir_import(racine, charge),
-        // `xlsx` et `pdf` : deux faits du poste que le Python disait a la route. Le Rust les fait toujours.
+        // `xlsx` et `pdf` : deux faits du poste, que le moteur constate lui-meme.
         "exports-periodes" => {
             let mut c = charge.as_object().cloned().unwrap_or_default();
             c.insert("xlsx".into(), Value::Bool(true));
@@ -407,7 +407,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
         }
         "apercu" => route(racine, nom, &json!({"saisie": charge.get("saisie").cloned().unwrap_or(Value::Null), "lignes": charge.get("lignes").cloned().unwrap_or(Value::Bool(false)), "urssaf": charge.get("urssaf").cloned().unwrap_or(Value::Bool(false)), "blocs": charge.get("blocs").cloned().unwrap_or(Value::Null)})),
         "rappels" => route(racine, nom, &json!({})),
-        // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS (PLAN-MOIS-INSTANTANE.md, ticket #212) : le dernier etat connu du
+        // L'ECRAN D'UN MOIS SE LIT ICI, SANS PROCESSUS : le dernier etat connu du
         // mois, tout de suite, meme perime (marque `perime`, et refait en fond) ; `attendre` : l'etat frais.
         "mois" => {
             let mois = texte(charge, "mois")?;
@@ -418,7 +418,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
                 None => route(racine, nom, charge),
             }
         }
-        // L'OUVERTURE D'UNE COMPAGNIE, D'UN COUP ET SANS PROCESSUS (ticket #244) : le dernier etat connu de ce que la page lit
+        // L'OUVERTURE D'UNE COMPAGNIE, D'UN COUP ET SANS PROCESSUS : le dernier etat connu de ce que la page lit
         // en s'ouvrant (`etat_garde::FileDesEtats::ouverture`), et, lus a chaque fois a cote, ce qui vit dans la memoire de
         // la fenetre (la veille, la mise a jour) et les signalements (que l'etat garde ne suit pas).
         "ouverture" => {
@@ -436,7 +436,7 @@ fn traiter(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille>, et
             let mut v = rendu.map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message))?;
             if v.get("pret").and_then(Value::as_bool) == Some(true) && !frais {
                 v["veille"] = etat_veille.unwrap_or_else(|| json!({"minutes": 0, "dernier": {}, "en_cours": false}));
-                v["maj"] = crate::maj::RECHERCHE.etat();
+                v["maj"] = crate::compagnie::maj::RECHERCHE.etat();
                 v["signalements"] = en_page(
                     crate::routes::filet::signalements_route(racine).map_err(|e| Refus::simple(e.classe.unwrap_or("ErreurOperation"), e.message)),
                 );
@@ -459,16 +459,16 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
     // s'y dit comme telle.
     if nom == "incident-navigateur" {
         let c = |k: &str| charge.get(k).map(socle::valeur::valeur_en_texte).unwrap_or_default();
-        crate::diagnostic::noter_moteur(&format!(
+        crate::compagnie::diagnostic::noter_moteur(&format!(
             "erreur JS {} : {} ({}:{})",
             c("genre"),
-            crate::diagnostic::texte_en_forme(Some(racine), &c("message"), 200),
-            crate::diagnostic::texte_en_forme(Some(racine), &c("fichier"), 80),
+            crate::compagnie::diagnostic::texte_en_forme(Some(racine), &c("message"), 200),
+            crate::compagnie::diagnostic::texte_en_forme(Some(racine), &c("fichier"), 80),
             c("ligne")
         ));
     } else {
         let issue = rendu.as_ref().map(|_| ()).map_err(|e| (e.classe.as_str(), e.message.as_str()));
-        crate::diagnostic::noter_route(racine, "page", nom, charge, duree, issue);
+        crate::compagnie::diagnostic::noter_route(racine, "page", nom, charge, duree, issue);
     }
     // APRES UNE ECRITURE (ou un tour de veille demande), les etats de tous les mois se verifient en fond, le mois affiche
     // d'abord : une ecriture d'un mois peut changer les suivants (un contrat en cours, une numerotation, un cumul). Meme
@@ -482,21 +482,21 @@ pub fn repondre(racine: &Path, nom: &str, charge: &Value, veille: Option<&Veille
         Ok(v) => json!({"ok": true, "resultat": v}),
         Err(r) => {
             if !PAS_DES_INCIDENTS.contains(&r.classe.as_str()) && nom != "incident-navigateur" {
-                // DE QUOI REJOUER LA ROUTE (ticket #253 : dix `{"route": "mois"}` sans rien d'autre) : sa charge mise en forme,
+                // DE QUOI REJOUER LA ROUTE : sa charge mise en forme,
                 // sa duree, l'etat du mois qu'elle touche, ce que le refus portait pour la page ; et la trace -- l'endroit du
                 // code et la chaine des echecs. Le fil et la machine s'y ajoutent dans `incidents::noter`.
                 let mut detail = Map::new();
                 detail.insert("route".into(), json!(nom));
-                detail.insert("charge".into(), crate::diagnostic::en_forme(Some(racine), charge));
+                detail.insert("charge".into(), crate::compagnie::diagnostic::en_forme(Some(racine), charge));
                 detail.insert("duree_ms".into(), json!(duree.as_millis() as u64));
                 if let Some(m) = charge.get("mois").and_then(Value::as_str) {
-                    detail.insert("mois".into(), crate::diagnostic::etat_du_mois(racine, m));
+                    detail.insert("mois".into(), crate::compagnie::diagnostic::etat_du_mois(racine, m));
                 }
                 if !r.plus.is_empty() {
-                    detail.insert("refus".into(), crate::diagnostic::en_forme(Some(racine), &Value::Object(r.plus.clone())));
+                    detail.insert("refus".into(), crate::compagnie::diagnostic::en_forme(Some(racine), &Value::Object(r.plus.clone())));
                 }
-                let trace = crate::diagnostic::trace_du_refus(racine, &r.message, debut_ms);
-                let _ = crate::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom, Value::Object(detail), trace.as_deref());
+                let trace = crate::compagnie::diagnostic::trace_du_refus(racine, &r.message, debut_ms);
+                let _ = crate::compagnie::incidents::depuis_exception(racine, &r.classe, &r.message, None, nom, Value::Object(detail), trace.as_deref());
             }
             en_page(Err(r))
         }

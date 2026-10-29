@@ -1,5 +1,5 @@
-//! UNE FENETRE PAR INSTALLATION (ticket #244, Leandre, 22/10/2026 : « arriver avec ma cle USB multiplateforme sur
-//! n'importe quel poste, meme si ce poste a deja un logiciel, et l'ouvrir sans probleme »). Un logiciel = un
+//! UNE FENETRE PAR INSTALLATION : une installation sur une cle USB s'ouvre sur n'importe quel poste, meme si ce poste a
+//! deja un logiciel. Un logiciel = un
 //! administrateur = une installation (le dossier qui porte `logiciel/`, et a cote `prive/`, `compagnies/*`, `fictives/*`,
 //! `administrateur.json`). Deux installations s'ouvrent cote a cote sur le meme poste ; la meme, lancee deux fois, ramene
 //! sa fenetre devant.
@@ -253,7 +253,7 @@ pub fn ouverte(inst: &Path, plage: Plage) -> bool {
 /// navigateur connait : ce qu'il a retenu pour elle reste avec elle, et deux fenetres ouvertes ensemble (deux ports)
 /// n'ont jamais le meme profil.
 pub fn dossier_local(inst: &Path, port: u16) -> PathBuf {
-    if inst.join(crate::coffre::MARQUEUR_PORTABLE).is_file() {
+    if inst.join(crate::compagnie::coffre::MARQUEUR_PORTABLE).is_file() {
         return inst.join(DOSSIER_PORTABLE);
     }
     super::navigateur::dossier_utilisateur().join("fenetres").join(port.to_string())

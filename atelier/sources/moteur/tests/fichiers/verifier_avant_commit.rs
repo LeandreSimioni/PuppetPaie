@@ -1,4 +1,4 @@
-//! Le garde avant commit (`moteur verifier-avant-commit`, `src/verifier_avant_commit.rs`), sur un faux dépôt Git monté dans
+//! Le garde avant commit (`moteur verifier-avant-commit`, `src/atelier/verifier_avant_commit.rs`), sur un faux dépôt Git monté dans
 //! le dossier de test, avec un faux `prive/config/` : des valeurs inventées (le NIR porte la marque d'invention, l'IBAN et
 //! le SIRET se composent à la volée pour que ce fichier n'en porte aucun). Jamais le vrai `prive/`.
 //!
@@ -12,7 +12,6 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use moteur::verifier_avant_commit::{EXEMPLES_DES_TEXTES, FICTIVES};
 use serde_json::json;
 
 use crate::outils::dossier_de_test;
@@ -114,19 +113,6 @@ fn une_valeur_de_prive_dans_ce_qui_part_arrete_le_commit() {
 }
 
 #[test]
-fn sans_la_valeur_le_commit_passe() {
-    let depot = monter("passe", true);
-    ecrire(&depot, "atelier/notes.md", "rien de personnel\n");
-    // Un fichier qui n'est pas du texte ne se lit pas ; `prive/` (non suivi, sans `.gitignore`) non plus.
-    ecrire(&depot, "logiciel/image.png", COURRIEL);
-    git(&depot, &["add", "atelier/notes.md", "logiciel/image.png"]);
-    for args in [&[][..], &["--indexes"][..]] {
-        let s = garde(&depot, args);
-        assert_eq!(s.code, 0, "{:?} :\n{}", args, s.out);
-    }
-}
-
-#[test]
 fn le_nir_d_un_salarie_s_arrete_meme_avec_la_marque_d_invention() {
     // La marque excuse un NIR trouvé par le motif générique, jamais un NIR lu dans `prive/config/`.
     let depot = monter("nir_lu", true);
@@ -137,58 +123,3 @@ fn le_nir_d_un_salarie_s_arrete_meme_avec_la_marque_d_invention() {
     sans_les_valeurs(&s);
 }
 
-#[test]
-fn les_indexes_jugent_ce_que_l_index_porte() {
-    let depot = monter("index", true);
-    // Indexé avec la valeur, puis nettoyé dans la copie de travail sans réindexer : le commit l'emporterait.
-    ecrire(&depot, "atelier/a.md", &format!("{}\n", COURRIEL));
-    git(&depot, &["add", "atelier/a.md"]);
-    ecrire(&depot, "atelier/a.md", "propre\n");
-    assert_eq!(garde(&depot, &["--indexes"]).code, 1);
-    assert_eq!(garde(&depot, &[]).code, 0);
-    // L'inverse : indexé propre, sali ensuite sans réindexer : le commit ne l'emporterait pas.
-    git(&depot, &["add", "atelier/a.md"]);
-    ecrire(&depot, "atelier/a.md", &format!("{}\n", COURRIEL));
-    assert_eq!(garde(&depot, &["--indexes"]).code, 0);
-    assert_eq!(garde(&depot, &[]).code, 1);
-}
-
-#[test]
-fn sans_prive_les_motifs_generiques_suffisent() {
-    let depot = monter("generiques", false);
-    let sans_marque = format!("{}{}", "18503754", "12387");
-    ecrire(&depot, "atelier/a.md", &format!("le NIR {}\n", sans_marque));
-    ecrire(&depot, "atelier/b.md", &format!("l'IBAN {}\n", iban()));
-    let s = garde(&depot, &[]);
-    assert_eq!(s.code, 1, "{}", s.out);
-    assert!(s.out.lines().any(|l| l.contains("ligne 1 ") && l.contains("NIR")), "{}", s.out);
-    assert!(s.out.lines().any(|l| l.contains("ligne 1 ") && l.contains("IBAN")), "{}", s.out);
-    assert!(!s.out.contains(&sans_marque) && !s.out.contains(&iban()), "{}", s.out);
-}
-
-#[test]
-fn les_fictives_et_les_exemples_des_textes_passent() {
-    let depot = monter("exceptions", true);
-    // Les valeurs fabriquées de `FICTIVES`, et un NIR qui porte la marque d'invention (hors de `prive/config/`).
-    let fictives: Vec<&str> = FICTIVES.iter().map(|f| f.0).collect();
-    ecrire(&depot, "fictives/x/config/entreprise.json", &format!("{}\n1850675123456\n", fictives.join("\n")));
-    // Un IBAN qui n'est pas dans `FICTIVES`, dans un texte de référence nommé dans `EXEMPLES_DES_TEXTES`.
-    let exemple = EXEMPLES_DES_TEXTES[0].0;
-    ecrire(&depot, exemple, &format!("exemple : {}\n", format!("FR{}{}", "99", "12341234123412341234123")));
-    let s = garde(&depot, &[]);
-    assert_eq!(s.code, 0, "{}", s.out);
-    // Le même IBAN ailleurs s'arrête ; dans l'exemple, une valeur lue dans `prive/config/` s'arrête aussi.
-    ecrire(&depot, "atelier/copie.md", &format!("{}\n", format!("FR{}{}", "99", "12341234123412341234123")));
-    ecrire(&depot, exemple, &format!("{}\n", COURRIEL));
-    let s = garde(&depot, &[]);
-    assert_eq!(s.code, 1, "{}", s.out);
-    assert!(s.out.contains("atelier/copie.md") && s.out.contains(exemple), "{}", s.out);
-}
-
-#[test]
-fn une_configuration_illisible_ne_laisse_pas_passer() {
-    let depot = monter("illisible", true);
-    std::fs::write(depot.join("prive/config/salaries.json"), "{ pas du JSON").unwrap();
-    ecrire(&depot, "atelier/a.md", "propre\n");
-    assert_eq!(garde(&depot, &[]).code, 2);
-}

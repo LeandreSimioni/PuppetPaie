@@ -1,6 +1,6 @@
 //! `moteur dossier [CLE ...] [--mois AAAA-MM] [--annee AAAA] [--toutes-les-annees] [--seulement CATEGORIE ...] [--ensemble]
-//! [--apercu] [--envoyer] [--fenetre]` : le dossier d'un salarie -- ou de chacun --, tous ses documents sur une periode
-//! (`moteur/commandes_exports.py`, `cmd_dossier` ; `operations_dossier`). Pas de `--json` (le Python n'en a pas ici).
+//! [--apercu] [--envoyer] [--fenetre]` : le dossier d'un salarie -- ou de chacun --, tous ses documents sur une periode.
+//! Pas de `--json`.
 //!
 //! Le dossier se construit par `crate::routes::dossier_salarie::construire` (celui de la route `dossier-salarie`) et s'ecrit dans
 //! `exports/dossiers/` sauf `--apercu` (le compte des pages, rien sur le disque).
@@ -10,10 +10,9 @@
 //! (le coffre par la cle du poste ou une seance), puis le moteur demande LUI-MEME le mot de passe du logiciel
 //! (`depot_acte::verifier_preuve` : fenetre, terminal sans echo, sinon refus) ; dans `moteur-atelier` tout envoi reel est refuse
 //! (`ActeReelRefuse`). Aucun mot de passe en option ni dans une sortie ; `--fenetre` est accepte et sans effet. `qui` = `ligne de
-//! commande`, comme le Python. Un dossier `--ensemble` ne part a personne.
+//! commande`. Un dossier `--ensemble` ne part a personne.
 //!
-//! DEFAUTS DU PYTHON, QUI NE SE REPRODUISENT PAS : une panne de la boite en cours d'envoi sortait en trace d'appels. Ici :
-//! `! phrase`, code 2.
+//! Une panne de la boite en cours d'envoi : `! phrase`, code 2.
 
 use serde_json::{json, Map, Value};
 
@@ -21,7 +20,7 @@ use super::actes::{est_refus_d_envoi, ouvrir_la_boite, reponse_metier, textes_de
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::rendu::champ;
 use super::Cadre;
-use crate::depot_acte::Preuve;
+use crate::compagnie::depot_acte::Preuve;
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
@@ -48,7 +47,7 @@ pub fn executer(cadre: &Cadre, args: &Args) -> i32 {
 }
 
 fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
-    // Les cles que le Python lit par `or None` / `bool` : une valeur vide ou fausse n'est pas passee.
+    // Les cles facultatives : une valeur vide ou fausse n'est pas passee.
     let mut demande = Map::new();
     let salaries = args.liste("salaries");
     if !salaries.is_empty() {

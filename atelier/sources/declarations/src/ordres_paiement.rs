@@ -1,6 +1,5 @@
-//! LES ORDRES DE PAIEMENT D'UNE DSN, EN CLAIR (ticket #223, 19/10/2026 : « une espece de liste de paiement, on ne sait
-//! pas a qui »). Chaque bloc S21.G00.20 du fichier est un ordre de prelevement ; la boite de depot le montrait en montant
-//! nu. Ici, un seul endroit dit, par ordre : A QUI (l'organisme), POUR QUOI (ce qu'il couvre, et sur quelle periode),
+//! LES ORDRES DE PAIEMENT D'UNE DSN, EN CLAIR : jamais une liste de montants sans dire a qui. Chaque bloc S21.G00.20 du
+//! fichier est un ordre de prelevement. Ici, un seul endroit dit, par ordre : A QUI (l'organisme), POUR QUOI (ce qu'il couvre, et sur quelle periode),
 //! COMBIEN, et POUR QUAND. La page affiche ce que rend `decrire`, rien d'autre (regle 2).
 //!
 //! CE QUI SE LIT (regle 1 : rien ne se devine) :
@@ -39,7 +38,7 @@
 //!    fete legale (`echeance_dsn::non_ouvre`).
 //! 6. Tout autre organisme sans S21.G00.20.011 : aucun texte depose ne dit son jour. Le logiciel le dit.
 //!
-//! LE TROP-VERSE (21/10/2026) : un ordre n'est jamais negatif ; quand une correction a la baisse laisse un credit, l'ordre
+//! LE TROP-VERSE : un ordre n'est jamais negatif ; quand une correction a la baisse laisse un credit, l'ordre
 //! le dit, avec ce que la compagnie en fait (`credit`). Le credit se LIT dans le fichier, a la maille ou la norme le
 //! porte : les bordereaux negatifs des mois corriges (22.005) pour l'Urssaf, les composants (55.001) pour un organisme
 //! complementaire, le prelevement retenu (50.009 et 56.007) pour la DGFiP, les cotisations individuelles (81.004) de
@@ -192,7 +191,7 @@ pub fn decrire(ordres: &[crate::dsn::Ordre], mois: &str, organismes: &Value, jou
     Ok(out)
 }
 
-/// LE VERSEMENT NORMATIF D'UN ORGANISME (ticket #223) : l'entree de `donnees/organismes-base.json` dont `siret` est
+/// LE VERSEMENT NORMATIF D'UN ORGANISME : l'entree de `donnees/organismes-base.json` dont `siret` est
 /// `identifiant` (S21.G00.20.001), ou `None`. On y lit son `nom` propre, ce que couvre son versement (`objet`) et son
 /// `jour_de_paiement` dans le mois qui suit, chacun avec sa source (`_source_*`). Lu dans la base livree, pas dans
 /// `config/organismes.json` : c'est la norme, la meme pour toute compagnie.

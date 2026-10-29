@@ -23,7 +23,7 @@ type R<T> = Result<T, Refus>;
 /// `contrat.MODELE.name`.
 const MODELE: &str = "contrat-cddu.modele";
 
-/// `contrat.enveloppe` : le haut d'une description : le format, le style, le logo de la compagnie.
+/// Le haut d'une description : le format, le style, le logo de la compagnie.
 pub fn enveloppe(style: &str, ent: &Value) -> Map<String, Value> {
     let mut d = Map::new();
     d.insert("format".into(), json!(FORMAT));
@@ -112,7 +112,7 @@ pub fn valeurs_en_ordre(v: &Valeurs, ajouts: &[(&str, String)]) -> Value {
     Value::Object(m)
 }
 
-/// `contrat.marqueurs(p, ent)` : les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
+/// Les valeurs que le modele lit dans cette paie. Les montants s'ecrivent comme
 /// le modele les imprime (`ECHELLE_GARDEE`).
 pub fn valeurs_de_paie(ctx: &Contexte, ent: &Value, p: &Paie) -> R<Valeurs> {
     socle::num::ECHELLE_GARDEE.with(|f| f.set(true));
@@ -217,12 +217,12 @@ fn refuser_ce_que_le_modele_tairait(modele: &Path, texte: &str, valeurs: &Value)
     Ok(())
 }
 
-/// `contrat.mention_signature` : ce que le logiciel depose dans la case de l'artiste, quatre lignes.
+/// Ce que le logiciel depose dans la case de l'artiste, quatre lignes.
 pub fn mention_signature(nom: &str, quand: &str, adresse: &str, code: &str) -> String {
     format!("Signé électroniquement le {}\npar {}\n{}\ncode de signature {}", quand, nom, adresse, code)
 }
 
-/// `contrat.contresigner` : le contrat renvoye au salarie une fois qu'il a signe d'un clic. LA REGENERATION, ET RIEN
+/// Le contrat renvoye au salarie une fois qu'il a signe d'un clic. LA REGENERATION, ET RIEN
 /// D'AUTRE : le contrat est refait depuis la description gardee a l'envoi (`fabrique::description_gardee`), la mention
 /// de l'artiste dans sa case, puis verrouille (AES-256, impression et copie seules). Sans description valide (absente,
 /// illisible, ne decrivant plus ce PDF) on REFUSE au lieu de deviner : il faut renvoyer le contrat. Il refuse aussi si
@@ -254,7 +254,7 @@ pub fn ecrire(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path) -> R<(
     Ok(())
 }
 
-/// `contrat.ecrire` : le contrat, puis sa description gardee a cote (`fabrique.garder_description`) : la
+/// Le contrat, puis sa description gardee a cote (`fabrique.garder_description`) : la
 /// contresignature refait le contrat depuis elle, octet pour octet.
 pub fn ecrire_et_garder(ctx: &Contexte, paies: &[Paie], ent: &Value, chemin: &Path, remplacements: &Remplacements) -> R<()> {
     let d = description(ctx, paies, ent, remplacements)?;
@@ -273,7 +273,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     let modele = socle::fichiers::modele_de(MODELE_AVENANT, ent, &ctx.gabarits());
     let mut d = enveloppe("avenant", ent);
     let v = valeurs_de_paie(ctx, ent, p)?;
-    // Les memes refus que le contrat (#136) : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
+    // Les memes refus que le contrat : ses articles modifies sont ceux du modele de CONTRAT de la compagnie,
     // et un modele qui n'a pas le marqueur d'une valeur a citer ferait un avenant qui la tait.
     if v.values().any(|t| t.contains("VALEUR-SANS-TEXTE")) {
         return Err(Refus::from("description illisible : une valeur du modele de contrat n'est pas un texte"));
@@ -295,7 +295,7 @@ fn description_avenant(ctx: &Contexte, p: &Paie, ent: &Value, modifs: &[Value], 
     Ok(Value::Object(d))
 }
 
-/// `avenant.ecrire` : l'avenant en PDF, a l'identite de la compagnie, la signature de l'employeur posee comme sur
+/// L'avenant en PDF, a l'identite de la compagnie, la signature de l'employeur posee comme sur
 /// le contrat, puis sa description gardee. Les dates en JJ/MM/AAAA. `modifs` : ce que `avenant-apercu` rend.
 #[allow(clippy::too_many_arguments)]
 pub fn ecrire_avenant(

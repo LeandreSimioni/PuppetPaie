@@ -29,3 +29,17 @@ pub fn base(variable: &str) -> Option<String> {
     }
     Some(if est_locale(&v) { v } else { ADRESSE_REFUSEE.trim_end_matches('/').to_string() })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn seules_les_adresses_locales_passent() {
+        assert!(est_locale("http://127.0.0.1:8080/dsn"));
+        assert!(est_locale("http://localhost:1/"));
+        assert!(!est_locale("https://services.net-entreprises.fr/"));
+        assert!(!est_locale("http://127.0.0.1.exemple.fr:80/"));
+        assert!(!est_locale("http://127.0.0.1/"));
+    }
+}

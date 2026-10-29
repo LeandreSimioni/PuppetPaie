@@ -1,5 +1,5 @@
 //! `moteur deposer-dpae FICHIER [--test | --reel] [--confirmer AAAA-MM] [--majuscules] [--sans-repetition MOTIF] [--fenetre]` :
-//! deposer une DPAE deja produite (`moteur/commandes_dpae.py`, `cmd_deposer_dpae`). ESSAI A BLANC par defaut : sans `--test` ni
+//! deposer une DPAE deja produite. ESSAI A BLANC par defaut : sans `--test` ni
 //! `--reel`, la commande relit le fichier, affiche chaque personne declaree, verifie les delais, et s'arrete.
 //!
 //! Les garde-fous sont ceux du moteur (`depot_acte::deposer_dpae`), jamais ceux de la commande :
@@ -12,18 +12,17 @@
 //! - un fichier dont l'indicateur n'est pas celui d'une declaration (C_VERSION != 120) ne part pas, et un depot reel exige une
 //!   repetition reussie de ce contenu (`--sans-repetition MOTIF` : le motif ecrit passe, tracé au journal).
 //!
-//! `qui` = `ligne de commande`, comme le Python.
+//! `qui` = `ligne de commande`.
 //!
-//! DEFAUTS DU PYTHON, NE SE REPRODUISENT PAS : le jour des delais etait `date.today()` (ici, le jour du contexte, comme les autres
-//! commandes) ; une date d'embauche illisible donnait une trace d'appels (ici une phrase) ; la phrase finale citait `dpae
-//! --restantes`, option qui n'existe pas (ici : `moteur journal --quoi dpae`).
+//! Le jour des delais est le jour du contexte, comme pour les autres commandes ; une date d'embauche illisible est une phrase ;
+//! la phrase finale renvoie a `moteur journal --quoi dpae`.
 
 use serde_json::json;
 
 use super::analyse::{Args, Opt, Pos, Spec};
 use super::Cadre;
 use super::depot_dsn::dire_repetition;
-use crate::depot_acte::{self, Preuve};
+use crate::compagnie::depot_acte::{self, Preuve};
 use socle::echec::Echec;
 
 pub static SPEC: Spec = Spec {
@@ -56,7 +55,7 @@ fn type_de_contrat(t: &str) -> &'static str {
     }
 }
 
-/// `JJMMAAAA` -> le jour, ou le refus d'une phrase (le Python levait une trace d'appels).
+/// `JJMMAAAA` -> le jour, ou le refus d'une phrase.
 fn jour_de(t: &str, quoi: &str) -> Result<socle::date::Jour, Echec> {
     let b = t.as_bytes();
     let bon = b.len() == 8 && b.iter().all(u8::is_ascii_digit);
@@ -261,7 +260,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     Ok(0)
 }
 
-/// Les erreurs d'un depot, comme le Python les rend : `Refus :` (2) pour la preuve, la phrase (2) pour une erreur metier, `Le depot a
+/// Les erreurs d'un depot : `Refus :` (2) pour la preuve, la phrase (2) pour une erreur metier, `Le depot a
 /// echoue` (1) pour le service ou le reseau, `Echec du depot` (1) pour le reste.
 fn refus_du_depot(e: &Echec, test: bool) -> i32 {
     let phrase = super::actes::phrase(e);

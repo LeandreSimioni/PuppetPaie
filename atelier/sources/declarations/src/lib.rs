@@ -5,7 +5,6 @@
 pub mod amorcage;
 pub mod assujettissement;
 pub mod casc;
-pub mod casc_regularisation;
 pub mod champs;
 pub mod changements_contrat;
 pub mod changements_individu;

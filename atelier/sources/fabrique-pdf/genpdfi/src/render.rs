@@ -290,7 +290,7 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
         }
     }
     // Une image posée sur plusieurs pages (le logo, en haut de chacune) : un seul masque par plan
-    // alpha, puis (plus bas) un seul objet image (ticket #228).
+    // alpha, puis (plus bas) un seul objet image.
     let mut mask_of_marker: std::collections::HashMap<u32, printpdf::lopdf::ObjectId> =
         std::collections::HashMap::new();
     for (id, marker, w, h) in masks {
@@ -368,7 +368,7 @@ fn finish(bytes: Vec<u8>, subsets: &[crate::pdf_subset::SubsetFace]) -> Result<V
 }
 
 /// Compresses the raw pixels of the images (8 bits per component, grey or RGB, soft masks
-/// included) with the PNG predictors before Flate (PuppetPaie modification, ticket #228): each row
+/// included) with the PNG predictors before Flate (PuppetPaie modification): each row
 /// is written with the PNG filter that gives the smallest sum of absolute differences, and the
 /// stream says it (`DecodeParms`, `Predictor 15`, PDF 1.7 § 7.4.4.4).  A plain Flate of the pixels,
 /// which is what `compress` does, keeps a gradient or an anti-aliased edge almost whole.
@@ -481,8 +481,8 @@ fn paeth(a: u8, b: u8, c: u8) -> u8 {
     }
 }
 
-/// Merges the image objects that are identical, dictionary and pixels (PuppetPaie modification,
-/// ticket #228): printpdf writes a new image object each time a picture is placed, so the logo
+/// Merges the image objects that are identical, dictionary and pixels (PuppetPaie modification):
+/// printpdf writes a new image object each time a picture is placed, so the logo
 /// drawn at the top of every page was stored once per page.  The duplicates are removed and every
 /// reference to them points to the first one.
 fn merge_identical_images(pdf: &mut printpdf::lopdf::Document) {

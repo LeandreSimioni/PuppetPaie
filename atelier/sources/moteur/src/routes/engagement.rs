@@ -101,6 +101,10 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
 /// sur un formulaire qu'un rechargement effacerait).
 fn engagement_designe(ctx: &Contexte, charge: &Value) -> R<(Value, usize)> {
     let (mois, salarie, debut) = (texte_requis(charge, "mois")?, texte_requis(charge, "salarie")?, texte_requis(charge, "debut")?);
+    // UN ENGAGEMENT IMPORTE se lit : aucun geste ne le valide, ne le modifie ni ne le retire.
+    if engagement::importe::celui_de(&ctx.racine, mois, salarie, debut).map_err(Echec::from)?.is_some() {
+        return Err(refus(engagement::importe::refus(salarie, debut)));
+    }
     let Some(data) = engagement::stock::vue_du_mois(&ctx.racine, mois).map_err(Echec::from)? else {
         return Err(refus(format!("Le mois {} n'est pas enregistre : il n'y a pas d'engagement a designer. Enregistrer la saisie d'abord.", mois)));
     };

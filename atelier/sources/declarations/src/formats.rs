@@ -26,7 +26,7 @@ const SAISIES: [(&str, &str, &str); 32] = [
     ("S21.G00.06.004", "entreprise", "adresse"),
     ("S21.G00.06.005", "entreprise", "code_postal"),
     ("S21.G00.06.006", "entreprise", "commune"),
-    ("S21.G00.11.022", "entreprise", "code_convention_dsn"),
+    ("S21.G00.11.022", "entreprise", "idcc"),
     ("S21.G00.20.002", "entreprise", "france_travail_dossier_recouvrement"),
     ("S21.G00.30.001", "salarie", "nir"),
     ("S21.G00.30.002", "salarie", "nom"),

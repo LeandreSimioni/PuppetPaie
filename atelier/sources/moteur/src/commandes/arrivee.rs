@@ -1,9 +1,8 @@
 //! `moteur arrivee [--json]` : l'arrivee d'une compagnie, etape par etape -- ce qui est pret, ce qui manque, quoi lancer.
-//! Rien n'est ecrit (`moteur/operations_arrivee.py`, `moteur/commandes_exports.py` : `cmd_arrivee`).
+//! Rien n'est ecrit.
 //!
 //! `arrivee` ne fait RIEN : elle LIT et dresse la liste des etapes, dans l'ordre ou une compagnie les franchit, chacune
-//! avec son etat (`fait`, `a_faire`, `sans_objet`) et la commande qui la fait avancer. Cette liste n'existait pas encore
-//! dans le moteur Rust : elle est portee ici, depuis le Python.
+//! avec son etat (`fait`, `a_faire`, `sans_objet`) et la commande qui la fait avancer.
 
 use serde_json::{json, Map, Value};
 
@@ -37,7 +36,7 @@ fn ko(m: String) -> Echec {
     Echec { classe: None, message: m }
 }
 
-/// `"%g" % v` de Python, la virgule pour separateur decimal (`effectif._nombre`).
+/// Un nombre a six chiffres significatifs au plus, sans zero de queue, la virgule pour separateur decimal.
 fn nombre(v: f64) -> String {
     let t = if v == v.trunc() && v.abs() < 1e6 {
         format!("{}", v as i64)
@@ -103,42 +102,34 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
         commandes: if err.is_empty() { vec![] } else { vec!["Configuration › Entreprise (ou `moteur fiche`)".into()] },
     });
 
-    // 2. L'import de CoolPaie : seulement si un export existe.
-    let copie = ctx.racine.join("historique").join("coolpaie");
-    let export = crate::routes::fiches::trouver_export(&ctx.racine);
-    let historique = {
-        let p = ctx.racine.join("historique").join("engagements.json");
-        if p.exists() {
-            let t = std::fs::read_to_string(&p).map_err(|e| ko(format!("{} : {}", p.display(), e)))?;
-            let v: Value = serde_json::from_str(&t).map_err(|e| Echec { classe: Some("JSONDecodeError"), message: e.to_string() })?;
-            v.get("engagements").and_then(Value::as_array).map_or(0, Vec::len)
-        } else {
-            0
-        }
-    };
+    // 2. L'import du passe : fait des qu'un engagement importe est ecrit ; a faire quand la boite `import/` porte des
+    // pieces que rien n'a reprises.
+    let importes = engagement::importe::tous(&ctx.racine).map_err(Echec::from)?.len();
+    let boite = ctx.racine.join("import");
+    let en_attente = std::fs::read_dir(&boite).map_or(0, |l| l.flatten().filter(|e| !e.file_name().to_string_lossy().starts_with('.')).count());
     let quoi_import = "Reprendre l'historique (ce qui a été déclaré avant)";
-    if copie.is_dir() {
+    if importes > 0 {
         out.push(Etape {
             cle: "import",
             quoi: quoi_import.into(),
             etat: FAIT,
-            detail: format!("export copié dans {} ; {} contrat(s) attesté(s) en historique", copie.display(), historique),
+            detail: format!("{} engagement(s) importé(s)", importes),
             commandes: vec![],
         });
-    } else if export.is_dir() {
+    } else if en_attente > 0 {
         out.push(Etape {
             cle: "import",
             quoi: quoi_import.into(),
             etat: A_FAIRE,
-            detail: format!("un export des déclarations d'avant est là ({}) et n'a pas été repris", export.display()),
-            commandes: vec!["Configuration › Reprendre l'historique (ou `moteur route importation-apercu`, puis `moteur route importer`)".into()],
+            detail: format!("{} fichier(s) dans {}, pas encore repris", en_attente, boite.display()),
+            commandes: vec!["Configuration › Reprendre l'historique (ou `moteur importer`, puis `moteur importer --ecrire`)".into()],
         });
     } else {
         out.push(Etape {
             cle: "import",
             quoi: quoi_import.into(),
             etat: SANS_OBJET,
-            detail: "aucun export des déclarations d'avant : les fiches se saisissent dans Configuration (ou donner le dossier à `moteur route importer`)".into(),
+            detail: "rien à reprendre : les fiches se saisissent dans Configuration (ou déposer les bulletins et les DSN d'avant dans import/)".into(),
             commandes: vec![],
         });
     }
@@ -230,7 +221,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
     let manquants: Vec<&Value> = diag.iter().filter(|d| matches!(d.get("situation").and_then(Value::as_str), Some("inconnu" | "perime"))).collect();
     let mut cmds = Vec::new();
     if !manquants.is_empty() {
-        if crate::routes::fiches::declarations_coolpaie(ctx).join("DSN").is_dir() {
+        if crate::routes::fiches::pieces_importees(ctx).is_dir() {
             cmds.push("moteur pas --amorcer".to_string());
         }
         cmds.push("moteur pas --demander --motif 07".to_string());
@@ -250,7 +241,7 @@ fn etapes(ctx: &Contexte, aujourdhui: socle::date::Jour) -> Result<Vec<Etape>, E
     });
 
     // 7. Les mots de passe des organismes (poses, jamais lus).
-    let coffre = crate::coffre::Coffre::du_poste(&ctx.racine, "");
+    let coffre = crate::compagnie::coffre::Coffre::du_poste(&ctx.racine, "");
     let poses: Vec<(String, bool)> = coffre
         .etat()
         .map_err(|e| ko(e.message))?

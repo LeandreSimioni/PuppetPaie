@@ -30,13 +30,13 @@ pub fn ecrire_pdf(description: &Value, chemin: &Path) -> socle::echec::R<()> {
     ecrire(description, chemin).map(|_| ()).map_err(|m| socle::echec::erreur("FabriqueRefus", m.replace('\n', " ").trim().to_string()))
 }
 
-/// `fabrique.chemin_description` : `X.pdf` -> `X.description.json`.
+/// `X.pdf` -> `X.description.json`.
 pub fn chemin_description(pdf: &Path) -> PathBuf {
     let souche = pdf.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
     pdf.with_file_name(format!("{}.description.json", souche))
 }
 
-/// `fabrique.garder_description` : ecrit la description a cote du PDF (qui existe deja), avec l'empreinte de ce
+/// Ecrit la description a cote du PDF (qui existe deja), avec l'empreinte de ce
 /// PDF : on ne refait un contrat que si le fichier parti est bien celui que cette description a produit.
 /// `json.dumps(..., ensure_ascii=False, indent=1)`, sans saut de ligne final.
 pub fn garder_description(description: &Value, pdf: &Path) -> Resultat<PathBuf> {
@@ -54,7 +54,7 @@ fn empreinte_sha256(octets: &[u8]) -> String {
     Sha256::digest(octets).iter().map(|o| format!("{:02x}", o)).collect()
 }
 
-/// `fabrique.description_gardee` : la description gardee de `pdf`, ou `None` -- absente, illisible, d'un autre format, ou
+/// La description gardee de `pdf`, ou `None` -- absente, illisible, d'un autre format, ou
 /// ne decrivant pas ce fichier (empreinte differente). On ne devine rien : `None` veut dire « renvoyez le contrat ».
 pub fn description_gardee(pdf: &Path) -> Option<Value> {
     let brut: Value = serde_json::from_slice(&std::fs::read(chemin_description(pdf)).ok()?).ok()?;
@@ -67,7 +67,7 @@ pub fn description_gardee(pdf: &Path) -> Option<Value> {
     Some(description.clone())
 }
 
-/// `fabrique.avec_mention_artiste` : la description, avec la mention de signature de l'artiste dans la case de chaque
+/// La description, avec la mention de signature de l'artiste dans la case de chaque
 /// document (`modele.mention_artiste`). `Err` si la description n'a pas de `documents` ou un document pas de `modele`
 /// (refus sous la forme `'cle'`).
 pub fn avec_mention_artiste(description: &Value, mention: &str) -> Result<Value, String> {
@@ -86,7 +86,7 @@ pub fn fabriquer_octets(description: &Value) -> Result<Vec<u8>, String> {
     fabrique_pdf::fabriquer(&texte).map_err(|r| r.0.replace('\n', " "))
 }
 
-/// `fabrique.verrouiller` : le PDF verrouille en AES-256 (mot de passe utilisateur vide, impression et copie seules).
+/// Le PDF verrouille en AES-256 (mot de passe utilisateur vide, impression et copie seules).
 pub fn verrouiller(octets: &[u8]) -> Result<Vec<u8>, String> {
     fabrique_pdf::chiffrement::verrouiller(octets).map_err(|r| r.0.replace('\n', " "))
 }

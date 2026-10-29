@@ -919,7 +919,7 @@ jusqu'au »), si l'organisme et la convention le permettent ; sinon c'est a tran
     Ok(fiche)
 }
 
-/// LA COMPLEMENTAIRE SANTE D'UN MOIS ENTIEREMENT SUSPENDU SANS INDEMNISATION (15/10/2026). Un permanent dont toute la
+/// LA COMPLEMENTAIRE SANTE D'UN MOIS ENTIEREMENT SUSPENDU SANS INDEMNISATION. Un permanent dont toute la
 /// periode payee est couverte par des suspensions non remunerees (conge parental 632, sabbatique 639, sans solde 501... :
 /// `imprevus::suspendu_sans_remuneration` ; un arret de travail n'en est pas une) :
 ///
@@ -1396,7 +1396,7 @@ Conges Spectacles (code du travail D. 7121-41 ; `caisse_conges::affilie`) : c'es
     // contributions sociales du salarie (`tot_sal`, parts salariales de sante et de prevoyance comprises). Le
     // financement patronal des garanties collectives (sante, prevoyance, Fonds sante des intermittents) n'y entre pas :
     // R. 844-1, II, 1° l'excepte. La page du BOSS l'y range (II.A.1, Q 13, 14, 29) sans texte qui l'appuie ; le decret
-    // prime (vague 1m, meme LISEZ-MOI, derniere section). Des lignes hors assiette, seules
+    // prime (meme LISEZ-MOI, derniere section). Des lignes hors assiette, seules
     // celles qui sont un revenu (indemnites, imposables ou non) ; ni remboursement de frais dans ses limites, ni
     // mouvement de tresorerie (acompte) : la nature de la rubrique le dit, et une nature qui ne le dit pas refuse
     // (`Rubrique::hors_assiette`). Pas de prelevement a la source : un net SOCIAL.
@@ -1620,7 +1620,7 @@ devine pas.",
 }
 
 impl Paie {
-    /// `plafond.pour_paie(paie, ctx)` : le « Plafond Urssaf » du bas de bulletin.
+    /// Le « Plafond Urssaf » du bas de bulletin.
     pub fn plafond_urssaf(&self, ctx: &Contexte) -> Resultat<Decimal> {
         // Un mois decoupe : la somme des plafonds de ses periodes (BOSS, assiette generale, § 730 : « les differentes
         // regles d'ajustement du plafond sont cumulables »).
@@ -1634,7 +1634,7 @@ impl Paie {
         plafond_de_l_engagement(ctx, &self.engagement, &self.salarie)
     }
 
-    /// `oracle._paie` : la forme canonique d'une paie (`ctx` pour le plafond Urssaf).
+    /// La forme canonique d'une paie, ecriture stable pour les empreintes et les oracles (`ctx` pour le plafond Urssaf).
     pub fn canon(&self, ctx: &Contexte) -> Resultat<Value> {
         let cle = |f: &Value| {
             let mut m = Map::new();

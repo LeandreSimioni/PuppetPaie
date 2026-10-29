@@ -22,7 +22,7 @@ use envois::etats;
 use socle::echec::erreur;
 use socle::fichiers::{repr, vrai};
 use socle::num::Decimal;
-use socle::num::{decimal_py, int_py, q2};
+use socle::num::{decimal_lu, entier_lu, q2};
 
 use socle::echec::Echec;
 use crate::routes::depots::{lire_octets, nom_du_chemin, resoudre};
@@ -88,7 +88,7 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
             let p = par_numero.get(&c.numero).map(|&i| &liste[i]);
             let mut ecarts: Vec<String> = Vec::new();
             let brut = c.brut_texte();
-            // UNE CORRECTION D'UN MOIS DEJA DECLARE (21/10/2026) : un contrat que la paie du mois ne porte pas, et dont la
+            // UNE CORRECTION D'UN MOIS DEJA DECLARE : un contrat que la paie du mois ne porte pas, et dont la
             // fin (40.010) precede le mois, n'est dans le fichier que pour sa regularisation (la correction d'un mois suivant,
             // `dsn::generer` et ses `regs`). Ce n'est pas un ecart avec la paie : il se dit pour ce qu'il est.
             let correction = p.is_none() && !c.fin.is_empty() && c.fin.as_str() < format!("{}-01", mois).as_str();
@@ -137,13 +137,13 @@ fn recapitulatif_dsn(ctx: &Contexte, octets: &[u8], mois: &str, nic: &str) -> Re
                         let avant: f64 = attendu[cle].parse().unwrap_or(0.0);
                         let somme = avant + valeur;
                         let t = format!("{}", if somme == 0.0 { 0.0 } else { somme });
-                        let d = decimal_py(&t).ok_or_else(|| socle::num::illisible(&t))?;
+                        let d = decimal_lu(&t).ok_or_else(|| socle::num::illisible(&t))?;
                         attendu.insert(cle, norm(d));
                     }
                     for cle in ["brut", "jours", "cachets", "heures"] {
                         let fichier = if cle == "brut" { brut.clone() } else { c.mesure_texte(cle) };
-                        let a = decimal_py(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
-                        let f = decimal_py(&fichier).ok_or_else(|| socle::num::illisible(&fichier))?;
+                        let a = decimal_lu(&attendu[cle]).ok_or_else(|| socle::num::illisible(&attendu[cle]))?;
+                        let f = decimal_lu(&fichier).ok_or_else(|| socle::num::illisible(&fichier))?;
                         if norm(f) != norm(a) {
                             ecarts.push(format!("{} : la paie dit {}, le fichier {}", cle, attendu[cle], fichier));
                         }
@@ -228,7 +228,7 @@ fn remplacement_du_fichier(m: &mut Moteur, a: &Apercu, mois: &str) -> R<Value> {
         let n = if ordre.is_empty() {
             0
         } else {
-            int_py(ordre).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr(ordre))))?
+            entier_lu(ordre).ok_or_else(|| erreur("ValueError", format!("nombre entier illisible : {}", repr(ordre))))?
         };
         n > i128::from(e["dernier_ordre"].as_i64().unwrap_or(0))
     } else {
@@ -260,7 +260,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
         }
     };
     let repetition = etats::repetition(&lignes, "dsn", &empreinte, &nom)?;
-    // LES ORDRES DE PAIEMENT EN CLAIR (ticket #223) : a qui, pour quoi, combien, pour quand -- ceux de la DSN fabriquee
+    // LES ORDRES DE PAIEMENT EN CLAIR : a qui, pour quoi, combien, pour quand -- ceux de la DSN fabriquee
     // depuis les paies qu'elle couvre (`depart::refabriquer`) ; un fichier qui ne dit plus ce que disent les paies n'en
     // montre aucun.
     let organismes = ctx.du_mois(&mois)?.organismes()?.unwrap_or(Value::Null);
@@ -269,7 +269,7 @@ pub(crate) fn apercu_depot_dsn(ctx: &Contexte, fichier: &Value) -> R<Value> {
     } else {
         let nic = a.champ("etablissement");
         let nic = Some(nic).filter(|n| !n.is_empty());
-        match crate::depart::refabriquer(ctx, std::path::Path::new(&chemin), &mois, nic)? {
+        match crate::compagnie::depart::refabriquer(ctx, std::path::Path::new(&chemin), &mois, nic)? {
             Some(f) => (declarations::ordres_paiement::decrire(&f.ordres, &mois, &organismes, ctx.echeance_dsn()?)?, Value::Null),
             None => (Vec::new(), json!("Ce fichier ne dit plus ce que disent les paies du mois : le refaire (Produire la DSN) avant de le déposer.")),
         }

@@ -8,8 +8,8 @@
  *  l'ecran, et l'enregistrement qui attendait sa reponse ne viendrait jamais. */
 let FERMETURE_BOITE = null;
 /* LE CLIC À CÔTÉ ferme la boîte, sauf celle qui pose ici un autre geste
- * (ticket #102 : dans la boîte de signalement, « cliqué à côté ça doit faire
- * comme réduire » -- le message tapé ne doit pas se perdre). */
+ * (dans la boîte de signalement, cliquer à côté réduit : le message tapé ne
+ * doit pas se perdre). */
 let CLIC_DEHORS = null;
 function ouvrirBoite(html, auFermer) {
   document.getElementById("boite").innerHTML = html;
@@ -20,8 +20,7 @@ function ouvrirBoite(html, auFermer) {
 }
 
 /* METTRE DE CÔTÉ LA BOÎTE OUVERTE, le temps d'en ouvrir une autre par-dessus
- * (ticket #103 : « j'étais dans la dpae, j'ai cliqué sur signaler un
- * problème et ça a quitté la dpae »). Ses nœuds sortent de la page tels
+ * (signaler un problème depuis la DPAE ne quitte pas la DPAE). Ses nœuds sortent de la page tels
  * quels -- cases cochées, champs tapés, gestes attachés --, et reviennent
  * quand la boîte du dessus se ferme. Rend la fonction qui les remet, ou
  * null s'il n'y avait rien d'ouvert. */
@@ -39,7 +38,7 @@ function mettreDeCote() {
     FERMETURE_BOITE = fermeture;
     CLIC_DEHORS = clic;
   };
-  // Ce qui attend, pour la capture d'écran du message, qui le photographie à sa place sans le remettre (#253).
+  // Ce qui attend, pour la capture d'écran du message, qui le photographie à sa place sans le remettre.
   rendre.noeuds = noeuds;
   return rendre;
 }
@@ -79,10 +78,8 @@ function ajouterToutCocher(racine) {
   });
 }
 
-/* CE QUI S'OUVRE S'OUVRE D'UN CLIC SUR LUI-MÊME (Léandre, ticket #218 :
- * « plus simple que modifier ou en voir plus : si on clique ça s'ouvre,
- * simple et efficace »). Une carte d'engagement, la ligne d'une fiche, la ligne
- * d'un mot de passe : plus de bouton « Voir le détail » ni « Modifier » pour
+/* CE QUI S'OUVRE S'OUVRE D'UN CLIC SUR LUI-MÊME. Une carte d'engagement, la ligne d'une fiche, la ligne
+ * d'un mot de passe : aucun bouton « Voir le détail » ni « Modifier » pour
  * les ouvrir, la ligne entière est le geste. UN SEUL MÉCANISME pour toute la
  * page : `rendreOuvrable(el, ouvrir)` pose la fonction, l'écoute ci-dessous
  * la joue. Ce qui, dans la ligne, fait autre chose (un bouton, un lien, une
@@ -127,7 +124,7 @@ document.getElementById("voile").onclick = (e) => {
   else fermerBoite();
 };
 
-/* LE MOT DE PASSE DU LOGICIEL : UN POPUP, TOUJOURS LE MÊME (17/09/2026).
+/* LE MOT DE PASSE DU LOGICIEL : UN POPUP, TOUJOURS LE MÊME.
    Chaque acte qui engage — dépôt réel, envoi, signature, écrire dans le
    coffre — passe par ici : on clique le bouton de l'acte, le popup demande
    le mot de passe, Entrée, et l'acte part. Plus de champ posé dans chaque
@@ -145,7 +142,7 @@ function demanderMotDePasse(pourquoi, { envoi = false } = {}) {
   // LA COMPAGNIE FICTIVE (le moteur : `simulation`, route `etat`) : rien ne part, rien à prouver.
   // L'acte suit son cours comme en vrai, sans le popup.
   if (enFictive()) return Promise.resolve("fictive");
-  // UNE FICTIVE AJOUTÉE (ticket #236, `envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant
+  // UNE FICTIVE AJOUTÉE (`envois_refuses` du moteur) : un envoi n'y part pas, le moteur le refuse avant
   // toute preuve ; on ne demande pas un mot de passe pour rien. Le geste part, et la page montre le refus.
   if (envoi && ETAT && ETAT.envois_refuses) return Promise.resolve("envoi-refuse");
   return new Promise((resoudre) => {

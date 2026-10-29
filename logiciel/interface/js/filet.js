@@ -6,7 +6,7 @@ async function dessinerDiagnostic(rang) {
   const etat = rang.querySelector(".k-diag-etat"), compte = rang.querySelector(".k-diag-compte");
   let d;
   try { d = await api("diagnostic-etat"); } catch (e) { etat.textContent = e.message; return; }
-  // L'ENVOI SE COUPE (Leandre, 08/10/2026) : avec un avertissement, et il se
+  // L'ENVOI SE COUPE : avec un avertissement, et il se
   // rallume d'un clic. Coupé, rien ne part ; le journal reste sur le poste.
   const couper = rang.querySelector("#k-diag-couper");
   couper.hidden = false;
@@ -54,7 +54,7 @@ async function dessinerDiagnostic(rang) {
     : !d.serveur ? "aucun serveur de l'éditeur connu : rien ne part"
     : d.dernier_envoi ? `${d.partis} incident(s) parti(s), le dernier le ${quand(d.dernier_envoi)}`
     : d.total ? "rien n'est encore parti" : "";
-  // Le nombre de paies de l'année (ticket #246) : le dernier parti, à la suite.
+  // Le nombre de paies de l'année : le dernier parti, à la suite.
   const annee = d.envoi !== false && (d.paies_annuelles || [])[0];
   if (annee) {
     compte.textContent += `${compte.textContent ? " · " : ""}nombre de paies de ${annee.annee} parti le ${quand(annee.parti_le)}`;
@@ -125,13 +125,13 @@ function boiteDiagnostic(d, rang, signales = []) {
  * émettre une envie, une idée ») : le bouton s'appelle « Un problème, une
  * idée ? ».
  *
- * L'UTILISATEUR ÉCRIT, JOINT SES CAPTURES ET ENVOIE (ticket #98, 01/10/2026 :
- * « les gens veulent que l'on règle leur problème »). Cinq captures au plus,
+ * L'UTILISATEUR ÉCRIT, JOINT SES CAPTURES ET ENVOIE :
+ * les gens veulent que l'on règle leur problème. Cinq captures au plus,
  * collées ou choisies. « Réduire » range la boîte dans une pastille, le temps
  * de prendre une capture de l'écran qu'elle cachait, sans rien perdre.
  * « Voir ce qui part » reste là pour qui veut regarder, mais n'est plus une
  * étape : l'aperçu est le corps exact de l'envoi
- * (`operations_filet.signalement_apercu`), la page ne décide de rien. */
+ *, la page ne décide de rien. */
 const CAPTURE_MAX = 1536 * 1024;           // 1,5 Mo, comme le moteur
 const CAPTURES_MAX = 5;
 let SIGNALEMENT_REDUIT = null;             // rouvre la boîte rangée dans sa pastille
@@ -153,7 +153,7 @@ function boiteSignalement() {
   const ecran = ecranCourant();
   const captures = [];                      // { type, donnees (data URL), octets }
   const enCours = new Set();                // les captures d'écran qui se dessinent encore (promesses)
-  chargerHtml2canvas().catch(() => {});     // l'outil de capture se charge dès l'ouverture, pas au clic (#253)
+  chargerHtml2canvas().catch(() => {});     // l'outil de capture se charge dès l'ouverture, pas au clic
   // La boîte déjà ouverte (une DPAE, un dépôt) attend dessous, et revient
   // quand celle-ci se ferme ou se réduit.
   let dessous = mettreDeCote();
@@ -270,20 +270,18 @@ function boiteSignalement() {
   };
   $("sg-fermer").onclick = () => fermerBoite();
 
-  // CAPTURER L'ÉCRAN, PAR LE LOGICIEL (ticket #102, 02/10/2026 : « un bouton,
-  // capturer l'écran actuel, une espèce d'imprime-écran »). La photo est la
+  // CAPTURER L'ÉCRAN, PAR LE LOGICIEL : un bouton,
+  // capturer l'écran actuel, une espèce d'imprime-écran. La photo est la
   // page SANS cette boîte -- et avec la fenêtre qu'elle recouvrait (une DPAE,
   // un dépôt) --, celle de la PAGE, dessinée par html2canvas : ce qui est hors
   // de PuppetPaie (une autre fenêtre, le bureau) n'y est pas.
   //
-  // LA BOÎTE NE BOUGE PLUS (#253, 23/10/2026 : « quand j'ai cliqué sur
-  // capturer l'écran ça a pris 1,5 seconde alors que ça devrait être
-  // instantané, en arrière-plan discret »). Elle s'effaçait de l'écran le temps
-  // de la photo, puis revenait. Elle reste : c'est dans la COPIE de la page que
-  // html2canvas dessine qu'on la retire et qu'on remet la fenêtre d'en dessous
+  // LA BOÎTE RESTE À L'ÉCRAN : capturer l'écran est
+  // instantané, en arrière-plan discret. C'est dans la COPIE de la page
+  // que html2canvas dessine qu'on retire la boîte et qu'on remet la fenêtre d'en dessous
   // (`photographierLaPage`). Une place « capture… » tient celle de l'image
-  // pendant le dessin ; Envoyer attend qu'elle soit posée. L'image est la même
-  // qu'avant : la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
+  // pendant le dessin ; Envoyer attend qu'elle soit posée. L'image est
+  // la page telle qu'on la voyait, en JPEG sous 1,5 Mo.
   $("sg-capturer").onclick = () => {
     montrerErreur("");
     if (captures.length + enCours.size >= CAPTURES_MAX) return montrerErreur(`${CAPTURES_MAX} captures au plus.`);
@@ -327,7 +325,7 @@ function boiteSignalement() {
       $("sg-pre").hidden = false;
     } catch (e) { montrerErreur(e.message); }
   };
-  // ENVOYER REND LA MAIN TOUT DE SUITE (Léandre, 14/10/2026) : le moteur
+  // ENVOYER REND LA MAIN TOUT DE SUITE : le moteur
   // enregistre le message sur l'ordinateur et le fait partir en fond ; ce qui
   // ne part pas tout de suite, la veille le renvoie. La page ne fait que
   // montrer où il en est, dans « Vos messages ».
@@ -339,7 +337,7 @@ function boiteSignalement() {
       const r = await api("signalement-envoyer", charge());
       $("sg-pre").hidden = true;
       $("sg-resultat").hidden = false;
-      // D'ABORD MERCI (01/10/2026), puis où en est l'envoi, dit par le moteur (ticket #220 : « envoi en cours » puis
+      // D'ABORD MERCI, puis où en est l'envoi, dit par le moteur (« envoi en cours » puis
       // « message envoyé »). La réponse revient dans « Vos messages ».
       SG_ENVOI = { id: r.id, deja: !!r.deja };
       $("sg-resultat").innerHTML = departDuMessage((r.signalements || []).find((s) => s.id === r.id));
@@ -374,10 +372,10 @@ function chargerHtml2canvas() {
 
 /** La page telle qu'on la voit (la partie affichée), SANS la boîte du message, en JPEG sous 1,5 Mo. `dessous` : les
  *  nœuds de la boîte qu'elle recouvre (`mettreDeCote`), qui figurent sur la photo à sa place ; sans eux, le voile part.
- *  L'écran, lui, ne change pas (#253) : tout se fait dans la copie de la page que html2canvas dessine (`onclone`).
+ *  L'écran, lui, ne change pas : tout se fait dans la copie de la page que html2canvas dessine (`onclone`).
  *
- *  UN SEUL DESSIN (#253) : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
- *  (mêmes échelles et qualités qu'avant), au lieu de redessiner la page. */
+ *  UN SEUL DESSIN : la page se dessine une fois, à l'échelle 1 ; une image trop lourde se réduit depuis ce dessin
+ * , au lieu de redessiner la page. */
 async function photographierLaPage(dessous) {
   const h2c = await chargerHtml2canvas();
   await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
@@ -430,8 +428,8 @@ function copieAvecSaisie(noeud, doc) {
   return copie;
 }
 
-/* LES RÉPONSES DE L'ÉDITEUR (01/10/2026 : « chaque ticket a le droit à une
- * réponse »). Le moteur les relève à chaque veille (`relever_reponses`) ; une
+/* LES RÉPONSES DE L'ÉDITEUR : chaque message a le droit à une
+ * réponse. Le moteur les relève à chaque veille (`relever_reponses`) ; une
  * réponse non lue se voit sur le bouton du bandeau, et se lit dans la boîte. */
 function vosMessages(liste) {
   if (!liste.length) return "";
@@ -442,7 +440,7 @@ function vosMessages(liste) {
 }
 
 /** CE QUE DIT LA BOÎTE DU MESSAGE QU'ON VIENT D'ENVOYER, d'après son état dans le moteur : en cours, envoyé, ou pas
- *  encore parti (et pourquoi). Un message déjà enregistré (un second clic, ticket #229) le dit : il ne part qu'une fois. */
+ *  encore parti (et pourquoi). Un message déjà enregistré (un second clic) le dit : il ne part qu'une fois. */
 let SG_ENVOI = null;
 function departDuMessage(s) {
   const deja = SG_ENVOI && SG_ENVOI.deja ? ` <span class="discret">Ce message était déjà enregistré : il ne part qu'une fois.</span>` : "";
@@ -500,8 +498,8 @@ function listeSignalements(liste) {
         ? ` <a href="${echapper(s.ticket)}" target="_blank" rel="noopener">ticket n° ${echapper(String(s.ticket_numero ?? ""))}</a>` : ""}${s.etat !== "arrive" ? etatDuMessage(s) : ""}</li>`).join("")}</ul>`;
 }
 
-/** La ligne du filet de sécurité DPAE (27/09/2026). L'état vient du moteur
- *  (`operations_filet.etat_filet`) ; la clé du compte ne vient jamais ici. */
+/** La ligne du filet de sécurité DPAE. L'état vient du moteur
+ *  ; la clé du compte ne vient jamais ici. */
 let ATTENTE_FILET = null;      // la minuterie qui guette la confirmation
 
 async function dessinerFilet(rang, exige) {
@@ -521,13 +519,13 @@ async function dessinerFilet(rang, exige) {
   compte.textContent = !f.actif ? "" : f.confirme ? f.adresse
     : `un courriel est parti à ${f.adresse} : cliquez sur le lien qu'il contient —
        cette ligne passera d'elle-même à « actif »`;
-  // LA CONFIRMATION SE VOIT SANS RIEN FAIRE (27/09/2026) : tant que l'adresse
+  // LA CONFIRMATION SE VOIT SANS RIEN FAIRE : tant que l'adresse
   // attend son clic, on redemande au serveur toutes les dix secondes, dix
   // minutes au plus, et on s'arrête dès qu'on quitte l'écran.
   if (f.actif && !f.confirme) guetterConfirmation(rang, exige, Date.now());
   if (f.erreur) verdict.textContent = f.erreur;
   arreter.hidden = !f.actif;
-  // Actif, la ligne s'ouvre d'un clic sur elle (ticket #218) ; « Activer… » reste tant qu'il y a à faire.
+  // Actif, la ligne s'ouvre d'un clic sur elle ; « Activer… » reste tant qu'il y a à faire.
   ouvrir.hidden = !!f.actif;
   const champ = rang.querySelector("#k-filet-adresse");
   if (!champ.value) champ.value = f.adresse || "";

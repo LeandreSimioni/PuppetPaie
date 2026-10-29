@@ -1,5 +1,4 @@
-//! `moteur aer [--mois AAAA-MM] [--forcer]` : ranger les attestations employeur de France Travail deja recues
-//! (`moteur/commandes_retours.py`, `cmd_aer` ; `operations_documents.ranger_aer`).
+//! `moteur aer [--mois AAAA-MM] [--forcer]` : ranger les attestations employeur de France Travail deja recues.
 //!
 //! Cette commande ne parle a aucun service : `retours` a deja telecharge et archive les fichiers (nature 46). Ici on les ouvre et
 //! l'on ecrit un PDF par salarie dans `sorties/<mois>/envoi/`, sous le meme nom de famille que le bulletin et le certificat CS --
@@ -9,10 +8,9 @@
 //! quand meme : l'ecart est alors connu et assume.
 //!
 //! Le travail est `crate::routes::documents::ranger_aer_detail` (la meme version que la releve des retours, qui ne force jamais).
-//! Le Python ignore `--json` ici ; le Rust aussi.
+//! `--json` est sans effet ici.
 //!
-//! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : une erreur d'un autre genre qu'un ecart (PDF illisible, fabrique) y donnait une trace
-//! d'appels ; ici `! phrase`, code 2.
+//! Une erreur d'un autre genre qu'un ecart (PDF illisible, fabrique) : `! phrase`, code 2.
 
 use super::analyse::{Args, Opt, Spec};
 use super::Cadre;

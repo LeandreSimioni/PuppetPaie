@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code de la securite sociale",
  "_legitext": "LEGITEXT000006073189",
- "_livraisons_lues": 477,
- "_livraisons_totales": 477,
+ "_livraisons_lues": 478,
+ "_livraisons_totales": 478,
  "_complet": true,
- "_derniere_livraison": "20261027-211214",
+ "_derniere_livraison": "20261028-212713",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000006741897",
@@ -6209,6 +6209,14 @@
    "texte": "securite-sociale"
   },
   {
+   "apres": "LEGIARTI000052196854",
+   "article": "D241-10",
+   "avant": "LEGIARTI000033606427",
+   "depuis": "2026-01-01",
+   "livraison": "20251231-230401",
+   "texte": "securite-sociale"
+  },
+  {
    "apres": "LEGIARTI000053282440",
    "article": "L136-1-1",
    "avant": "LEGIARTI000051284754",
@@ -6281,6 +6289,14 @@
    "texte": "securite-sociale"
   },
   {
+   "apres": "LEGIARTI000054252223",
+   "article": "D241-10",
+   "avant": "LEGIARTI000052196854",
+   "depuis": "2026-06-15",
+   "livraison": "20260615-221231",
+   "texte": "securite-sociale"
+  },
+  {
    "apres": "LEGIARTI000054314917",
    "article": "R844-1",
    "avant": "LEGIARTI000048841691",
@@ -6313,8 +6329,13 @@
    "texte": "securite-sociale"
   }
  ],
- "_releve_le": "2026-10-28",
+ "_releve_le": "2026-10-29",
  "articles": {
+  "D241-10": {
+   "debut": "2026-06-15",
+   "en_vigueur": true,
+   "id": "LEGIARTI000054252223"
+  },
   "D241-7": {
    "debut": "2026-06-15",
    "en_vigueur": true,
@@ -6396,9 +6417,9 @@
    "id": "LEGIARTI000031808538"
   },
   "L130-1": {
+   "id": "LEGIARTI000051287151",
    "debut": "2025-01-01",
-   "en_vigueur": true,
-   "id": "LEGIARTI000051287151"
+   "en_vigueur": true
   },
   "L133-10": {
    "debut": "2015-01-01",
@@ -6421,9 +6442,9 @@
    "id": "LEGIARTI000053282399"
   },
   "L161-17-2": {
-   "id": "LEGIARTI000053280889",
    "debut": "2025-12-31",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000053280889"
   },
   "L241-13": {
    "debut": "2026-01-01",

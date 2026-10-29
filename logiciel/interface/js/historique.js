@@ -4,9 +4,8 @@
 /* =======================================================================
    HISTORIQUE
    =======================================================================
-   TOUS LES ENVOIS ET TOUS LES RETOURS SE LISENT ICI (Leandre, 20/10/2026 ;
-   tickets #219, #220, #222 : « il n'y a pas d'endroit où voir tous les
-   retours », « un système simple qui n'envoie pas de bug »). La page Paie est
+   TOUS LES ENVOIS ET TOUS LES RETOURS SE LISENT ICI, en un seul endroit.
+   La page Paie est
    l'endroit où l'on FAIT le mois ; l'Historique, celui où l'on VOIT ce qu'il a
    produit, envoyé et reçu.
 
@@ -35,7 +34,7 @@ function dessinerHistorique() {
     passee: ["bien", "DSN passée"], attente: ["alerte", "DSN partie, bilan attendu"],
     refusee: ["erreur", "DSN refusée"], a_deposer: ["alerte", "DSN à déposer"],
     a_ecrire: ["", "saisi, pas encore écrit"], en_retard: ["erreur", "DSN en retard"],
-    // Un mois tenu avant PuppetPaie (ticket #215) : sa DSN est celle de l'ancien logiciel, ou il n'en a pas trace ici.
+    // Un mois tenu avant PuppetPaie : sa DSN est celle de l'ancien logiciel, ou il n'en a pas trace ici.
     importee: ["bien", "DSN déclarée avant PuppetPaie"], sans_trace: ["alerte", "tenu avant PuppetPaie — aucune trace de DSN"],
   };
   const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -171,7 +170,7 @@ function dessinerRetour(r) {
     </details>`;
 }
 
-/** LA LISTE DES MOIS SUIT L'ÉTAT GARDÉ (#236). Elle se peint d'abord avec ce
+/** LA LISTE DES MOIS SUIT L'ÉTAT GARDÉ. Elle se peint d'abord avec ce
  *  que la page sait ; puis le moteur rend l'état frais de l'ouverture
  *  (`etat_garde`, refait après chaque écriture : `ouverture` avec `frais`), et
  *  la liste se repeint s'il a changé — un dépôt fait depuis l'ouverture s'y

@@ -1,5 +1,5 @@
 //! `moteur dpae FICHIER [--heure HHMM] [--seulement SALARIE:AAAA-MM-JJ ...] [--force] [--json]` : produire la seule DPAE d'un mois,
-//! avant l'embauche (`moteur/cli.py`, `cmd_dpae` ; `operations_declarations.produire_dpae`). Rien ne part : un fichier a plat
+//! avant l'embauche. Rien ne part : un fichier a plat
 //! (990 caracteres par embauche), son archive et son recapitulatif, plus -- dans le meme geste -- les signalements d'amorcage
 //! (nature 08) des embauches dont le taux de PAS manque. Le depot est une commande a part (`moteur deposer-dpae`).
 //!
@@ -8,8 +8,8 @@
 //!
 //! Code de sortie 3 : au moins une embauche est deja passee, la DPAE est hors delai (elle s'ecrit quand meme, sans antidater).
 //!
-//! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : une embauche deja declaree, un contrat en cours depuis un mois precedent, une
-//! selection absente de la saisie, un fichier introuvable donnaient une trace d'appels. Ici : `! phrase`, code 2.
+//! Une embauche deja declaree, un contrat en cours depuis un mois precedent, une selection absente de la saisie, un
+//! fichier introuvable : `! phrase`, code 2.
 
 use serde_json::{json, Value};
 
@@ -59,7 +59,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     };
     let mut charge = json!({"mois": mois, "heure": args.texte("heure").unwrap_or("0800"), "forcer": args.drapeau("force")});
     if let Some(c) = choix {
-        charge["paies"] = Value::Array(c);
+        charge["engagements"] = Value::Array(c);
     }
     let (r, amorcage, ecarte) = match crate::routes::depots::dpae_detail(&cadre.ctx, &charge) {
         Ok(x) => x,

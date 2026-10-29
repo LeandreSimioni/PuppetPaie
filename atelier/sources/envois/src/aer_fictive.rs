@@ -72,7 +72,7 @@ fn complements(octets: &[u8]) -> HashMap<String, Complement> {
     let mut nir = String::new();
     let mut contrat = String::new();
     let mut en_attente: HashMap<String, String> = HashMap::new();
-    for ligne in socle::texte::lignes_py(&texte) {
+    for ligne in socle::texte::lignes_du_texte(&texte) {
         let Some((k, v)) = ligne.split_once(',') else { continue };
         let v = v.trim().trim_matches('\'').to_string();
         let (bloc, champ) = (k.get(..10).unwrap_or(""), k.get(11..).unwrap_or(""));
@@ -537,7 +537,7 @@ pub fn archive(ctx: &Contexte, dsn: &[u8], mois: &str, edite_le: Jour) -> Result
     // Le type et l'ordre de la declaration (S20.G00.05.002 et .004) : 03 et 05 annulent et remplacent.
     let texte = socle::texte::texte_latin1(dsn);
     let rubrique = |r: &str| {
-        socle::texte::lignes_py(&texte)
+        socle::texte::lignes_du_texte(&texte)
             .into_iter()
             .find_map(|l| l.strip_prefix(r).and_then(|v| v.strip_prefix(',')).map(|v| v.trim().trim_matches('\'').to_string()))
             .unwrap_or_default()

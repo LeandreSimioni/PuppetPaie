@@ -17,8 +17,8 @@
 //! Tant que l'empreinte est la meme, il se sert sans rien refaire ; si quoi que ce soit a bouge, par le logiciel ou a la
 //! main, il se refait une fois.
 //!
-//! L'OUVERTURE D'UNE COMPAGNIE (ticket #244 : « pas 1 seconde, une demi max » ; « je veux que l'affichage soit en
-//! premier ; une fois affichee, les petits ajustements du moteur se font sans faire bouger la page »). Le meme mecanisme,
+//! L'OUVERTURE D'UNE COMPAGNIE, en une demi-seconde au plus : l'affichage d'abord ; une fois la page affichee, les petits
+//! ajustements du moteur se font sans la faire bouger. Le meme mecanisme,
 //! sous une autre cle (`OUVERTURE`) : `ouverture.etat.json`, a la racine de la compagnie, porte ce que la page lit en
 //! s'ouvrant et qui n'est pas l'ecran d'un mois (`LECTURES_OUVERTURE` : la configuration et l'historique, le mois a
 //! ouvrir, l'echeancier, les rappels, ce qui manque pour demarrer, les conseils) ; lui s'ecrit, pour qu'une compagnie
@@ -51,8 +51,8 @@ pub const ROUTES: [&str; 3] = ["etat-par-engagement", "etat-du-mois", "mois"];
 /// Les lectures de l'ecran d'un mois qui ne sont pas les deux etats : la route, et si sa charge est `{"mois"}` (sinon
 /// `{}`). La page les demandait une a une, chacune dans un processus ; elles sont faites ici, une fois, avec les memes
 /// routes, et rendues telles quelles (resultat ou refus).
-/// Les arrets n'y sont plus (15/10/2026) : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
-/// du journal non plus (20/10/2026) : elle se montre dans l'Historique, avec les envois et leurs retours.
+/// Les arrets n'y sont plus : la page lit les imprevus du mois, chaque arret avec ses obligations. La reprise
+/// du journal non plus : elle se montre dans l'Historique, avec les envois et leurs retours.
 const LECTURES: [(&str, bool); 5] = [
     ("saisie", true),
     ("contrats-en-cours", true),
@@ -61,7 +61,7 @@ const LECTURES: [(&str, bool); 5] = [
     ("imprevus", true),
 ];
 
-/// La cle de l'etat garde de l'OUVERTURE dans la file (ticket #244) : a cote des mois, jamais confondue avec eux.
+/// La cle de l'etat garde de l'OUVERTURE dans la file : a cote des mois, jamais confondue avec eux.
 pub const OUVERTURE: &str = "ouverture";
 
 /// Ce que la page lit en s'ouvrant, hors de l'ecran d'un mois (`js/demarrage.js`) : la route et sa charge. Chacune est
@@ -126,7 +126,7 @@ fn signer_dossier(h: &mut Sha256, base: &Path, dossier: &Path, profond: bool, ga
     }
 }
 
-/// CE QUE L'ECRAN D'UN MOIS NE LIT PAS, et qui bouge sans lui (ticket #212, 16/10/2026). Etabli par mesure (`strace` de la
+/// CE QUE L'ECRAN D'UN MOIS NE LIT PAS, et qui bouge sans lui. Etabli par mesure (`strace` de la
 /// route `mois` sur cinq mois de la grande fictive 3090 : aucun de ces fichiers n'est ouvert ni teste) et par le code
 /// (chacun n'a de lecteur que hors des lectures du mois : `LECTURES`, `etat-par-engagement`, `etat-du-mois`, l'apercu) :
 /// - `config/.ouverture.json` : la trace de la veille (`ouverture.rs`, `chemin_trace`), reecrite a chaque tour ; lue par
@@ -151,7 +151,7 @@ const HORS_DE_L_ECRAN: [&str; 9] = [
     "config/.filet.verrou",
     "journal/signalements.json",
     "journal/incidents.json",
-    // Le tableau de l'administrateur (`administrateur.rs`, ticket #244) : le resume de la compagnie que l'accueil lit.
+    // Le tableau de l'administrateur (`administrateur.rs`) : le resume de la compagnie que l'accueil lit.
     "config/.tableau.json",
 ];
 
@@ -160,7 +160,7 @@ const HORS_DE_L_ECRAN: [&str; 9] = [
 /// Pour un MOIS : ni le coffre (un `.bin` : ce qu'il dit se relit a chaque lecture), ni ce que l'ecran ne lit pas
 /// (`HORS_DE_L_ECRAN`), ni les sorties des autres mois.
 ///
-/// Pour l'OUVERTURE (ticket #244) : toute la compagnie -- les engagements et les sorties de tous les mois (le mois a
+/// Pour l'OUVERTURE : toute la compagnie -- les engagements et les sorties de tous les mois (le mois a
 /// ouvrir et l'historique les lisent), les images de l'identite (`gabarits/`), la date et la taille des fichiers du coffre
 /// (la configuration dit si la boite courriel est liee, `boite_liee` : rien n'en est lu ici, ni ailleurs dans
 /// l'empreinte), et l'adresse de la boite posee dans l'environnement (`COURRIEL_COMPTE`). Ce qui ne s'y lit pas reste
@@ -310,7 +310,7 @@ pub fn lire(o: &HashMap<String, String>, ctx: &Contexte, cle: &str) -> R<Value> 
 fn du_mois(racine: &Path, etat: &Value) -> R<Value> {
     let mut du_mois = etat.get("du_mois").cloned().unwrap_or(Value::Null);
     if let Some(m) = du_mois.as_object_mut() {
-        let pose = crate::coffre::Coffre::du_poste(racine, "")
+        let pose = crate::compagnie::coffre::Coffre::du_poste(racine, "")
             .ouverture_exigee()
             .map_err(|x| Echec { classe: Some(x.classe), message: x.message })?;
         m.insert("mot_de_passe_pose".into(), json!(pose));
@@ -392,7 +392,7 @@ fn voisin(m: &str, pas: i32) -> Option<String> {
 
 type Rendu = Result<Value, (Option<&'static str>, String)>;
 
-/// La cle du TABLEAU de l'administrateur dans la file (ticket #244) : `config/.tableau.json`, refait pour une compagnie
+/// La cle du TABLEAU de l'administrateur dans la file : `config/.tableau.json`, refait pour une compagnie
 /// rattachee (`administrateur::tableau_compagnie`), sous l'empreinte de l'ouverture (toute la compagnie).
 pub const TABLEAU: &str = "tableau";
 
@@ -410,8 +410,8 @@ struct EtatDeLaFile {
     arretee: bool,
 }
 
-/// LE FIL DES CALCULS EN FOND (ticket #244 : « ouvrir n'importe quelle compagnie instantanement, meme a la premiere
-/// ouverture du jour »). UN fil pour TOUTES les compagnies que la fenetre tient (`FileDesEtats`, une par compagnie) : un
+/// LE FIL DES CALCULS EN FOND : n'importe quelle compagnie s'ouvre instantanement, meme a la premiere ouverture du jour.
+/// UN fil pour TOUTES les compagnies que la fenetre tient (`FileDesEtats`, une par compagnie) : un
 /// calcul a la fois sur le poste, jamais deux qui se disputent le processeur pendant qu'on ouvre une compagnie. Il sert
 /// d'abord la compagnie OUVERTE (`devant`), puis les autres, chacune son tour (une cle chacune : leurs ouvertures
 /// d'abord, puis les mois a ouvrir, puis le reste), dans l'ordre ou la fenetre les a donnees (la derniere ouverte
@@ -559,8 +559,7 @@ impl Fil {
     }
 }
 
-/// LA FILE DES ETATS D'UNE COMPAGNIE (ticket #212, Leandre, 16/10/2026 : « quand je change de mois c'est pas
-/// instantane »). Dans le processus de la fenetre, le fil des calculs (`Fil`) refait ses etats, un a la fois : jamais
+/// LA FILE DES ETATS D'UNE COMPAGNIE : changer de mois est instantane. Dans le processus de la fenetre, le fil des calculs (`Fil`) refait ses etats, un a la fois : jamais
 /// deux calculs du meme mois en meme temps, pas un processus par mois (sous Windows chaque processus coute, l'antivirus
 /// l'inspecte). Le calcul est celui de `moteur route` (`lire`, qui fait les memes routes par `routes::commande`), garde
 /// d'une panique (`catch_unwind`) : une route qui tombe rend un refus, la fenetre reste.
@@ -629,7 +628,7 @@ impl FileDesEtats {
     fn rendre(&self, mois: String, numero: u64, rendu: Rendu) {
         let mut e = self.verrou();
         e.en_cours = None;
-        // L'OUVERTURE FAITE, le mois qu'elle ouvre passe devant (ticket #244) : la page le demande juste apres.
+        // L'OUVERTURE FAITE, le mois qu'elle ouvre passe devant : la page le demande juste apres.
         if mois == OUVERTURE && e.affiche.is_none() {
             if let Ok(v) = &rendu {
                 let m = mois_a_ouvrir(v, &self.jour());
@@ -668,7 +667,7 @@ impl FileDesEtats {
     /// d'aujourd'hui de toute la compagnie (celle de l'ouverture), sinon refait.
     fn faire_le_tableau(&self) -> Rendu {
         let empreinte = empreinte_de(&self.racine, OUVERTURE, &self.jour());
-        let garde: Option<Value> = std::fs::read(self.racine.join(crate::administrateur::TABLEAU)).ok().and_then(|o| serde_json::from_slice(&o).ok());
+        let garde: Option<Value> = std::fs::read(self.racine.join(crate::compagnie::administrateur::TABLEAU)).ok().and_then(|o| serde_json::from_slice(&o).ok());
         if let Some(v) = garde.filter(|v| v.get("empreinte").and_then(Value::as_str) == Some(empreinte.as_str())) {
             return Ok(v);
         }
@@ -676,7 +675,7 @@ impl FileDesEtats {
         let _code = socle::fichiers::code_fige();
         let rendu = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let ctx = crate::service::contexte(o).map_err(|m| Echec { classe: None, message: m })?;
-            crate::administrateur::tableau_compagnie(o, &ctx)
+            crate::compagnie::administrateur::tableau_compagnie(o, &ctx)
         }));
         // Comme apres un mois (`faire`) : le travail suivant, d'une autre compagnie peut-etre, repart d'un fil propre.
         crate::routes::remettre_le_fil();
@@ -721,7 +720,7 @@ impl FileDesEtats {
     /// deja dans la file y restent a leur place, sauf les premiers, qui passent devant.
     pub fn tout_verifier(&self) {
         let suivis = mois_suivis(&self.racine, &self.jour());
-        let tableau = crate::administrateur::est_rattachee(&crate::administrateur::installation_de(&self.racine), &self.racine);
+        let tableau = crate::compagnie::administrateur::est_rattachee(&crate::compagnie::administrateur::installation_de(&self.racine), &self.racine);
         {
             let mut e = self.verrou();
             let mut premiers: Vec<String> = Vec::new();
@@ -739,7 +738,7 @@ impl FileDesEtats {
             if tableau {
                 Self::inscrire(&mut e, TABLEAU, true);
             }
-            // L'OUVERTURE (ticket #244) : juste apres le mois affiche et ses voisins ; la premiere quand aucun mois n'est
+            // L'OUVERTURE : juste apres le mois affiche et ses voisins ; la premiere quand aucun mois n'est
             // encore affiche (au lancement, a l'ouverture d'une compagnie).
             Self::inscrire(&mut e, OUVERTURE, true);
             for m in premiers.iter().rev() {
@@ -817,8 +816,8 @@ impl FileDesEtats {
         }
     }
 
-    /// CE QUE FAIT LE MOTEUR, en une phrase (ticket #244 : « ne pas poireauter devant une roue qui tourne pour on ne sait
-    /// pas quoi ») : ce que le fil refait en ce moment.
+    /// CE QUE FAIT LE MOTEUR, en une phrase (jamais une roue qui tourne sans dire pourquoi) : ce que le fil refait en ce
+    /// moment.
     pub fn phrase(&self) -> String {
         match self.verrou().en_cours.clone() {
             Some(c) if c == OUVERTURE => "Lecture de la compagnie : sa configuration, ses échéances, ses rappels…".into(),
@@ -828,7 +827,7 @@ impl FileDesEtats {
         }
     }
 
-    /// L'OUVERTURE D'UNE COMPAGNIE (la route `ouverture` de la fenetre, ticket #244) : d'un coup, ce que la page lit en
+    /// L'OUVERTURE D'UNE COMPAGNIE (la route `ouverture` de la fenetre) : d'un coup, ce que la page lit en
     /// s'ouvrant -- les lectures de l'ouverture (`lectures`, une entree par route, au format d'une reponse de la page), le
     /// mois a ouvrir (`mois`) et l'ecran de ce mois (`ecran`, celui de la route `mois`). Le DERNIER ETAT CONNU, tout de
     /// suite : chacun marque `perime` s'il l'est (`perime` pour les lectures, `ecran.perime` pour le mois), et refait
@@ -839,7 +838,7 @@ impl FileDesEtats {
     /// redemande. `frais` : les lectures de l'ouverture une fois refaites (la page qui a peint un etat perime), sans
     /// l'ecran du mois (la page attend celui-ci par la route `mois`).
     ///
-    /// `aujourdhui` : LE JOUR DU MOTEUR (#236), celui que la page prend pour tout ce qu'elle date ou presente au jour (une
+    /// `aujourdhui` : LE JOUR DU MOTEUR, celui que la page prend pour tout ce qu'elle date ou presente au jour (une
     /// date d'effet proposee, l'annee du taux AT/MP, le mois en cours de la grille) -- jamais l'horloge du navigateur :
     /// au banc d'essai le moteur a son temps simule (`temps`), et c'est le seul qui vaille (regle 2).
     pub fn ouverture(&self, patienter: Duration, frais: bool) -> R<Value> {
@@ -933,7 +932,7 @@ mod tests {
             .collect()
     }
 
-    /// UN FIL POUR TOUTES LES COMPAGNIES (ticket #244) : la compagnie devant d'abord, tout son travail ; puis les autres,
+    /// UN FIL POUR TOUTES LES COMPAGNIES : la compagnie devant d'abord, tout son travail ; puis les autres,
     /// une cle chacune a son tour, dans l'ordre ou la fenetre les a donnees. Rien ne se fait deux fois.
     #[test]
     fn la_compagnie_ouverte_passe_devant_et_les_autres_se_servent_chacune_son_tour() {

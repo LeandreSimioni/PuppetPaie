@@ -223,7 +223,7 @@ fn envoye(imp: &Value, nature: &str) -> bool {
     imp["envois"].as_array().is_some_and(|e| e.iter().any(|x| x.get("nature").and_then(Value::as_str) == Some(nature)))
 }
 
-/// UN ARRET EN COURS (21/10/2026) : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
+/// UN ARRET EN COURS : celui dont on peut encore apprendre qu'il se prolonge ou que le salarie a repris plus
 /// tot. Aucune reprise n'est saisie, et :
 ///
 /// - sa fin previsionnelle n'est pas passee : le salarie est arrete aujourd'hui ;
@@ -275,7 +275,7 @@ pub(crate) fn resume(ctx: &Contexte, n: &Value, imp: &Value) -> R<Value> {
         o.insert("mois_du_maintien".into(), json!(if ouvert { mois_traverses(imp)? } else { Vec::new() }));
         o.insert("jours_deja_indemnises_attendus".into(), json!(ouvert && maintien_legal));
         o.insert("cachets".into(), json!(cachets));
-        // CE QUE L'ARRET OUVRE A LA PAGE (21/10/2026, regle de Leandre : rien de remplissable s'il n'y a pas a le remplir) :
+        // CE QUE L'ARRET OUVRE A LA PAGE (rien de remplissable s'il n'y a pas a le remplir) :
         // un arret en cours se prolonge ou se reprend plus tot ; une reprise saisie se corrige tant que son signalement
         // n'est pas parti.
         let cours = en_cours(ctx, imp)?;
@@ -340,7 +340,7 @@ fn imprevus(ctx: &Contexte, charge: &Value) -> R<Value> {
             }
         }
         let mut r = resume(ctx, &n, &imp)?;
-        // CE QU'UN ARRET FAIT NAITRE, SUR L'ARRET LUI-MEME (15/10/2026) : la page des imprevus (la carte d'un salarie, la
+        // CE QU'UN ARRET FAIT NAITRE, SUR L'ARRET LUI-MEME : la page des imprevus (la carte d'un salarie, la
         // colonne du mois, son dossier) lit une seule liste, et chaque arret y porte ses obligations, calculees au meme
         // endroit que pour la route `arrets` (`obligations::de_l_arret`).
         if imprevus::est_un_arret(&imp) {
@@ -437,7 +437,7 @@ s'applique pas aux salaries intermittents, et un mois de CDDU n'a pas de salaire
 // ------------------------------------------------------------------ la prolongation
 
 /// `arret-prolonger` : `{salarie, dernier_jour, fin?, subrogation_fin?}` -> `{"arret": resume, "subrogation_a_revoir",
-/// "phrase", "avertissements"}`. L'AVIS DE PROLONGATION D'UN ARRET EN COURS (21/10/2026).
+/// "phrase", "avertissements"}`. L'AVIS DE PROLONGATION D'UN ARRET EN COURS.
 ///
 /// CE QUI PART, ET CE QUI NE PART PAS. « En cas de prolongation d'arret, il ne faut pas envoyer de nouveau signalement de
 /// nature " arret de travail ". Il suffit de declarer la nouvelle date de fin de l'arret en DSN mensuelle, au niveau de la
@@ -750,7 +750,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
     crate::routes::imprevus::ecrire(ctx, mois, imprevus)
 }
 
-/// `signalement.verifier(arret, ARRET)` : ce que la norme refuse (`SignalementImpossible`, une
+/// Ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
 pub(crate) fn verifier(arret: &Value) -> R<()> {
     match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, ARRET, None) {
@@ -1010,7 +1010,7 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>
     Ok(m)
 }
 
-/// `documents_fin._inventaire` : le detail des sommes, ligne a ligne -- pas un total.
+/// Le detail des sommes, ligne a ligne -- pas un total.
 fn inventaire(p: &Paie) -> String {
     let mut lignes = Vec::new();
     for l in &p.remuneration {
@@ -1025,7 +1025,7 @@ fn inventaire(p: &Paie) -> String {
     lignes.join("\n")
 }
 
-/// `documents_fin._ecrire` : le papier de fin de contrat de `modele`, par la fabrique (style
+/// Le papier de fin de contrat de `modele`, par la fabrique (style
 /// « attestation »). `signe` : le certificat s'etablit SIGNE de l'employeur.
 fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent: &Value, signe: bool) -> R<()> {
     let texte = documents::contrat::lire_modele_texte(modele).map_err(en_echec)?;
@@ -1174,7 +1174,7 @@ fn fin_contrat_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
         .collect();
     let texte = declarations::fctu::generer(ctx, &paie, &fin, &options, &arrets).map_err(echec_fctu)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
-    crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
+    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
         "nom": nom,
@@ -1210,10 +1210,10 @@ fn trouver_arret(ctx: &Contexte, salarie: &str, dernier_jour: &Value) -> R<Value
 /// la compagnie a deja envoyes, arrets, reprises, fins de contrat et amorcages confondus. Cahier technique
 /// DSN, p. 136 : « Pour un signalement, ce numero ne doit pas etre remis a zero afin qu'il soit unique quel que
 /// soit le mois d'emission » (et non plus le rang parmi les envois de CET arret, qui repartait a 1). LA PLATE-FORME
-/// FAIT FOI (lot O1) : `crate::releve::dernier_ordre_connu` la consulte ; ce qu'il faut en dire (elle n'a pas
+/// FAIT FOI : `crate::compagnie::releve::dernier_ordre_connu` la consulte ; ce qu'il faut en dire (elle n'a pas
 /// repondu, elle connaissait plus que le journal) part avec les avertissements.
 pub(crate) fn prochain_ordre(ctx: &Contexte) -> R<(i64, Vec<String>)> {
-    let connu = crate::releve::dernier_ordre_connu(ctx, None)?;
+    let connu = crate::compagnie::releve::dernier_ordre_connu(ctx, None)?;
     Ok((connu.dernier + 1, connu.avertissements))
 }
 
@@ -1266,7 +1266,7 @@ fn arret_signaler(ctx: &Contexte, charge: &Value) -> R<Value> {
     };
     let texte = signalement::generer(ctx, &dsn_arret, &options).map_err(echec)?;
     declarations::dsn::ecrire(&texte, &cible).map_err(plain)?;
-    crate::depart::noter_piece_ecrite(&ctx.racine, &crate::depart::cle_de_piece(&cible), None)?;
+    crate::compagnie::depart::noter_piece_ecrite(&ctx.racine, &crate::compagnie::depart::cle_de_piece(&cible), None)?;
     let nomenclatures = crate::routes::imprevus::nomenclatures(ctx)?;
     Ok(json!({
         "fichier": cible.to_string_lossy(),
@@ -1458,7 +1458,7 @@ fn fin_du_mois(mois: &str) -> R<Jour> {
     Jour::nouveau(an as i32, mo as u32, dernier).ok_or_else(|| erreur("ValueError", socle::date::jour_impossible(an as i64, mo as i64, dernier)))
 }
 
-/// `contrats.nature(cle)` : `KeyError` quand elle est inconnue.
+/// `KeyError` quand elle est inconnue.
 fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
     let texte = match cle {
         Value::String(s) => Some(s.clone()),

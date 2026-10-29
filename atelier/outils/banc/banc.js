@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* LE BANC D'ESSAI DATÉ (#236, phase 2) : une installation bridée neuve, sa fenêtre lancée à un jour donné, chaque geste
- * enregistré dans un scénario rejouable sans navigateur (`moteur/src/scenario.rs`), et le calendrier qui avance.
+ * enregistré dans un scénario rejouable sans navigateur (`moteur/src/atelier/scenario.rs`), et le calendrier qui avance.
  *
  * Ligne de commande (la notice : LISEZ-MOI.md, à côté) :
  *   node banc.js lancer   <banc> --jour AAAA-MM-JJ [--moteur <moteur-atelier>] [--depot <dépôt public>]

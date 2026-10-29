@@ -16,8 +16,10 @@ pub mod calcul;
 pub mod conges;
 pub mod cumul;
 pub mod departs;
+pub mod ecarts;
 pub mod empreinte;
 pub mod etats;
+pub mod importe;
 pub mod imprevus;
 pub mod minima;
 pub mod periodes;
@@ -726,7 +728,7 @@ impl Engagement {
 
     // -------------------------------------------------------- forme canonique
 
-    /// `oracle._engagement` : la forme canonique d'un engagement.
+    /// La forme canonique d'un engagement : une ecriture stable, pour les empreintes et les oracles.
     pub fn canon(&self) -> Resultat<Value> {
         let iso = |j: &Jour| Value::String(j.iso());
         let jours = |v: &[Jour]| Value::Array(v.iter().map(iso).collect());
@@ -782,7 +784,7 @@ impl Engagement {
         );
         m.insert("transaction".into(), texte(&self.transaction));
         m.insert("suspensions".into(), canon_valeur(&Value::Array(self.suspensions.clone()))?);
-        // Les proprietes de `oracle._PROPRIETES`.
+        // Ce qui se deduit de l'engagement : sa periode, sa quotite, ses mois.
         m.insert("debut_periode".into(), iso(&self.debut_periode()?));
         m.insert("fin_periode".into(), iso(&self.fin_periode()?));
         m.insert("quotite".into(), Value::String(nombre(self.quotite()?)));
@@ -797,7 +799,7 @@ impl Engagement {
     }
 }
 
-/// `oracle.canon` sur une valeur JSON : nombres en chaines normalisees, cles
+/// La forme canonique d'une valeur JSON : nombres en chaines normalisees, cles
 /// en `_` retirees (sauf `_cle`).
 pub fn canon_valeur(v: &Value) -> Resultat<Value> {
     Ok(match v {
@@ -882,11 +884,11 @@ fn nature_de(e: &Value, rang: usize, mois: &str) -> Resultat<Arc<Nature>> {
         .map_err(|m| format!("Engagement {} de {} : {}", rang, mois, m))
 }
 
-/// Ce que `operations_permanents.lignes_du_mois` rend pour un engagement paye
+/// Ce que `conges::lignes_du_mois` rend pour un engagement paye
 /// au mois : les lignes de paie du mois, et ce qu'il y a a en dire.
 pub type LignesPermanent<'a> = &'a dyn Fn(&Contexte, &Value, &str) -> Resultat<(Vec<Value>, Vec<Avis>)>;
 
-/// `operations_paies._saisie_lue` : les engagements d'un fichier de mois,
+/// Les engagements d'un fichier de mois,
 /// construits avant tout calcul. `lignes_permanent` fournit les lignes d'un
 /// engagement paye au mois ; les avertissements rendus vont avec, un jeu par
 /// engagement (vide hors des permanents).
@@ -1006,7 +1008,15 @@ pub(crate) fn engagements(
         poser("numero", e.get("numero"));
         poser("mois", Some(data.get("mois").ok_or_else(|| socle::fichiers::absent("mois"))?));
         poser("jours", e.get("jours"));
-        poser("jours_contrat", e.get("jours_contrat"));
+        // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
+        // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
+        let continue_ = match (e.get("jours_contrat"), e.as_object()) {
+            (None, Some(o)) if !nat.mensuelle() && crate::debut_brut(e).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
+                crate::importe::continue_par(&ctx.racine, o)?.and_then(|i| i.jours_du_contrat_continue(jours_du_contrat(e))).map(Value::from)
+            }
+            _ => None,
+        };
+        poser("jours_contrat", e.get("jours_contrat").or(continue_.as_ref()));
         poser("planning", Some(&Value::Array(planning_engagement(e))));
         poser("lignes", lignes.as_ref());
         poser("date_paiement", e.get("date_paiement").or(data.get("date_paiement")));
@@ -1038,7 +1048,7 @@ pub(crate) fn engagements(
         poser("date_modification", e.get("date_modification"));
         poser("avant", e.get("avant"));
         let eng = Engagement::nouveau(&ctx.racine, &Value::Object(champs))?;
-        // Les lignes que la saisie ecrit disent leurs heures (#125). Celles qu'un mois de permanent deduit, quand sa
+        // Les lignes que la saisie ecrit disent leurs heures. Celles qu'un mois de permanent deduit, quand sa
         // saisie n'en ecrit pas (`conges::lignes_du_mois`), portent la quotite du contrat en heures : rien a controler.
         if !nat.mensuelle() || e.get("lignes").map_or(false, |l| !l.is_null()) {
             heures_dites(ctx, &eng, rang, &mois_dit)?;
@@ -1059,7 +1069,7 @@ pub fn saisie_incomplete(message: &str) -> bool {
     message.starts_with("L'engagement ") && SAISIE_INCOMPLETE.iter().any(|p| message.contains(p))
 }
 
-/// REGLE 1, ticket #125 : une ligne dont la rubrique demande ses heures (`heures` dans sa `saisie`, aucun forfait --
+/// REGLE 1 : une ligne dont la rubrique demande ses heures (`heures` dans sa `saisie`, aucun forfait --
 /// `Rubrique::heures_a_saisir` : le service de repetition, la journee, la semaine, le mois, l'absence a la journee)
 /// les dit, sinon l'engagement se refuse. Sans elles, la ligne paierait et declarerait zero heure en DSN, en AEM, aux
 /// Conges Spectacles et a l'assurance chomage, sans un mot : `Rubrique::heures` n'a rien d'autre a compter. Une ligne
@@ -1089,7 +1099,7 @@ fn heures_dites(ctx: &Contexte, eng: &Engagement, rang: usize, mois: &str) -> Re
     Ok(())
 }
 
-/// `ntt.sexe` : "1", "2", ou "" si la fiche ne le dit pas (le NIR d'abord).
+/// "1", "2", ou "" si la fiche ne le dit pas (le NIR d'abord).
 fn sexe(fiche: &Value) -> String {
     let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
     let nir = texte("nir");
@@ -1108,11 +1118,11 @@ fn sexe(fiche: &Value) -> String {
 
 // ------------------------------------------- le contrat qui deborde du mois
 
-/// `libelle_mois` : '2026-10' -> 'octobre 2026' (sans accent, comme l'ecrivent les phrases et les documents qui
-/// l'appellent). Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
+/// `libelle_mois` : '2026-12' -> 'décembre 2026', le mois en toutes lettres, avec ses accents, des phrases et des documents
+/// qui l'appellent. Ses appelants ecrivent une phrase et ne refusent pas pour le mois : un mois illisible ou hors 01-12
 /// s'ecrit tel quel (« 2026-00 »), jamais sous le nom de janvier.
 pub fn libelle_mois(mois: &str) -> String {
-    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Minuscule)
+    socle::date::libelle_du_mois_ou_tel_quel(mois, socle::date::Graphie::Accentuee)
 }
 
 /// La cle de la fiche a laquelle un engagement brut de la saisie se rattache : son `salarie` lu par `Contexte::salarie`
@@ -1162,7 +1172,7 @@ fn numero_dit(eng: &Engagement) -> String {
 }
 
 /// UN NUMERO DE CONTRAT NE SE DONNE QU'AU PREMIER MOIS : le numero identifie le contrat en DSN (S21.G00.40.009), il se
-/// pose quand le contrat part a la signature ou quand son premier mois part, et il ne se regenere pas (regle 4). Ce qui
+/// pose a la validation de l'engagement (`numeros::a_la_validation`), et il ne se regenere pas (regle 4). Ce qui
 /// numerote un mois du contrat qui n'est pas le premier, sans numero, refuse ici.
 pub fn refus_sans_numero(ctx: &Contexte, eng: &Engagement) -> Resultat<()> {
     if eng.numero.as_deref().is_some_and(|n| !n.is_empty()) || eng.premier_mois()? {
@@ -1285,7 +1295,7 @@ pub fn saisie_du_mois(racine: &Path, mois: &str) -> Resultat<Value> {
     stock::vue_du_mois(racine, mois)?.ok_or_else(|| format!("{} : aucun engagement ne touche ce mois ({}/).", mois, stock::DOSSIER))
 }
 
-/// UN NUMERO DE CONTRAT EST CELUI D'UN SEUL SALARIE (regle 4 ; #139) : il se lit, il ne se partage pas. Un salarie
+/// UN NUMERO DE CONTRAT EST CELUI D'UN SEUL SALARIE (regle 4) : il se lit, il ne se partage pas. Un salarie
 /// coche en plus dans un bloc deja numerote, ou un numero recopie a la main, le porterait sur deux contrats : la DSN
 /// declarerait deux salaries sous le meme 40.009. Le refus nomme le numero et les deux salaries, quelle que soit la
 /// face qui a ecrit la saisie.

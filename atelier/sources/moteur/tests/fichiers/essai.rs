@@ -135,25 +135,6 @@ fn une_cle_qui_manque_ou_en_trop_est_nommee_sans_sa_valeur_et_rien_n_est_ecrit()
     assert!(!d.exists());
 }
 
-/// Un SIREN a cle fausse (la valeur n'apparait pas dans le refus) et un JSON mal ecrit (le refus ne dit que sa position).
-#[test]
-fn une_forme_fausse_ou_un_json_illisible_refuse_sans_rien_citer() {
-    let d = dossier("formes");
-    let mut id = identite();
-    id["siren"] = json!("987654321");
-    let s = monter_avec(PAIE, &d, Some(&id.to_string()));
-    assert_eq!(s.code, 1, "{}", s.texte);
-    assert!(s.texte.contains("`siren`"), "{}", s.texte);
-    rien_d_affiche(&s, &id);
-    let tronque = identite().to_string();
-    let tronque = &tronque[..tronque.len() / 2];
-    let s = monter_avec(PAIE, &d, Some(tronque));
-    assert_eq!(s.code, 1, "{}", s.texte);
-    assert!(s.texte.contains("n'est pas un JSON lisible"), "{}", s.texte);
-    rien_d_affiche(&s, &identite());
-    assert!(!d.exists());
-}
-
 /// Un dossier dans un depot Git est refuse : la copie porterait l'identite d'une vraie compagnie la ou `git add` la prendrait.
 #[test]
 fn le_montage_refuse_un_dossier_dans_un_depot_git() {

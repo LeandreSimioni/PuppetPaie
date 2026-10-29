@@ -1,6 +1,5 @@
 //! `moteur fin-contrat [liste|signaler|documents] AAAA-MM [SALARIE] [--remplace ID] [--ordre N] [--le AAAA-MM-JJ] [--test] [--json]` :
-//! le signalement de fin de contrat de travail unique (nature 07) et les deux papiers dus au salarie qui part
-//! (`moteur/commandes_fctu.py`).
+//! le signalement de fin de contrat de travail unique (nature 07) et les deux papiers dus au salarie qui part.
 //!
 //! - `liste` dit quels contrats du mois se terminent et se signalent, et ce qui manque a la saisie (route `fins-de-contrat`) ;
 //! - `signaler` ECRIT le fichier du signalement dans `sorties/AAAA-MM/` (route `fin-contrat-signaler`) -- rien ne part, le depot
@@ -9,10 +8,9 @@
 //!   papiers, rien ne part.
 //!
 //! `--le` est la date de constitution du fichier (`signaler`) ou la date portee par les papiers (`documents`) ; defaut :
-//! aujourd'hui. Les routes l'ignoraient (lot J2b) : elles la lisent maintenant, dans la charge.
+//! aujourd'hui. Les routes la lisent dans la charge.
 //!
-//! DEFAUT DU PYTHON, NE SE REPRODUIT PAS : un mois mal ecrit, une date `--le` illisible ou un contrat sans date de fin donnaient une
-//! trace d'appels. Ici : `! phrase`, code 2.
+//! Un mois mal ecrit, une date `--le` illisible ou un contrat sans date de fin : `! phrase`, code 2.
 
 use serde_json::{json, Value};
 
@@ -61,7 +59,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
         };
         let fins: Vec<Value> = r.get("fins").and_then(Value::as_array).cloned().unwrap_or_default();
         if json {
-            // Le Python imprime la liste telle quelle, sans enveloppe.
+            // La liste telle quelle, sans enveloppe.
             dire!("{}", socle::ecriture::json_indente(&Value::Array(fins), 2));
             return Ok(0);
         }
@@ -90,7 +88,7 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     }
 
     let Some(salarie) = salarie else {
-        // Le Python le dit en texte, meme avec --json.
+        // En texte, meme avec --json.
         dire!("! Quel salarie ? `moteur fin-contrat liste {}` les montre.", mois);
         return Ok(2);
     };

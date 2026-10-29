@@ -7,7 +7,7 @@
 
 let ETATS_ENGAGEMENTS = null;      // "clé|début|rang" → les quatre actes ; null = pas lu
 
-/* LES JUMEAUX (09/10/2026) : deux contrats du même salarié qui commencent le
+/* LES JUMEAUX : deux contrats du même salarié qui commencent le
    même jour ne se confondent pas. Le moteur les identifie par leur numéro
    quand il est posé, sinon par leur RANG parmi ceux du même salarié et du
    même jour, dans l'ordre du fichier (`jumeaux.rs`) — et le fichier suit
@@ -208,7 +208,7 @@ function peindreEtats() {
       // d'abord » : le bouton n'existe plus, l'enregistrement se fait tout
       // seul une seconde après la frappe, et il n'y a donc rien à faire —
       // seulement à attendre que l'écran se rattrape.
-      // Plus de message ici (30/09/2026) : « Pas encore dans la saisie
+      // Plus de message ici : « Pas encore dans la saisie
       // enregistrée… » s'affichait en orange sur chaque carte à l'ouverture,
       // le temps d'un aller-retour, et se lisait comme un souci.
       cible.innerHTML = `<div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`;
@@ -217,7 +217,7 @@ function peindreEtats() {
     }
     if (lignes.length === 1) {
       const ligne = lignes[0];
-      // Un contrat sur plusieurs mois : son chevron est au bord de la case (#127, `poserChevrons`).
+      // Un contrat sur plusieurs mois : son chevron est au bord de la case.
       div._ligne = ligne;
       const dp = ligne.etats.dpae || {};
       if (dp.fait && !dp.refusee) {
@@ -292,7 +292,7 @@ async function dessinerEtatsDesEngagements(mois) {
   } catch (e) {
     // Mois jamais enregistré, spectacle manquant, saisie en cours : il n'y a
     // rien à peindre, et rien d'alarmant à dire. La saisie, elle, marche.
-    // On ne sait rien des engagements : les cartes restent comme elles sont (#253).
+    // On ne sait rien des engagements : les cartes restent comme elles sont.
     // Un état vide les ouvrait TOUTES en formulaire, validées comprises, et le
     // refus du moteur (dit dans « Les étapes ») se lisait « tout s'est ouvert ».
     ETATS_ENGAGEMENTS = null;
@@ -475,7 +475,7 @@ async function basculerValidation(ligne, valide) {
  * sépare en un bloc par salarié. Les rouvrir demandait autant de boîtes que
  * de salariés, pour le même spectacle. Sœurs : même spectacle, mêmes bornes,
  * validés à la même seconde. Un même salarié n'est qu'une fois dans un
- * bloc : son jumeau (un autre contrat du même jour, #139) n'est jamais une
+ * bloc : son jumeau (un autre contrat du même jour) n'est jamais une
  * sœur, même validé à la même seconde. */
 function engagementsSoeurs(ligne) {
   const toutes = Object.values(ETATS_ENGAGEMENTS || {});
@@ -534,7 +534,7 @@ function boiteModifier(ligne) {
   };
 }
 
-/* LA DPAE NE SE DIT QUE SUR CE QU'ELLE DÉCLARE (30/09/2026). L'utilisateur :
+/* LA DPAE NE SE DIT QUE SUR CE QU'ELLE DÉCLARE. L'utilisateur :
  * l'avertissement doit correspondre aux vraies attentes de la DPAE, rien
  * d'inventé. Ce qu'elle déclare, c'est R1221-1 du code du travail : le
  * salarié, la date et l'heure d'embauche, la nature et la durée du contrat
@@ -581,7 +581,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
     <a href="${URSSAF_DPAE}" target="_blank" rel="noopener">La page de l'Urssaf</a>`;
 }
 
-/* PLUS DE CASE DE SÉLECTION NI DE BARRE D'ACTIONS GROUPÉES (15/09/2026) :
+/* PLUS DE CASE DE SÉLECTION NI DE BARRE D'ACTIONS GROUPÉES :
  * « on pourrait enlever la petite coche de sélection, tout se fait
  * directement quand on clique sur le bouton déposer DPAE ou demander les
  * signatures ». Les deux boîtes de la colonne de droite listent chaque
@@ -602,7 +602,7 @@ function avisDpaeDeplacee(div, ps, ligne) {
  * horodaté, à côté du fichier complet du mois, jamais par-dessus. */
 async function boiteDpae(mois) {
   if (!mois) { dire("Choisir un mois."); return; }
-  // LA SAISIE À L'ÉCRAN D'ABORD (ticket #105, 02/10/2026). Cette boîte lit la
+  // LA SAISIE À L'ÉCRAN D'ABORD. Cette boîte lit la
   // saisie ENREGISTRÉE : un engagement tapé il y a moins d'une seconde, ou qu'un
   // spectacle manquant empêche d'enregistrer, n'y figurerait pas -- et sa
   // DPAE ne partirait pas, sans que rien ne le dise.
@@ -620,7 +620,7 @@ async function boiteDpae(mois) {
   try {
     r = await api("etat-par-engagement", { mois });
   } catch (e) {
-    // Un mois sans engagement rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel (#253).
+    // Un mois sans engagement rend une liste vide (plus bas) ; un refus est un refus, et il se dit tel quel.
     dire(e.message, "erreur");
     return;
   }
@@ -678,7 +678,7 @@ async function boiteDpae(mois) {
     const rendre = occupe(bouton, "Fabrication du fichier en cours…");
     try {
       const w = await api("dpae", {
-        mois, paies: choisies.map((l) => ({ salarie: l.salarie, debut: l.debut })),
+        mois, engagements: choisies.map((l) => ({ salarie: l.salarie, debut: l.debut })),
       });
       fermerBoite();
       // Le dossier porte le fichier à déposer et son récapitulatif ; c'est le

@@ -7,7 +7,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::depot_acte::{verifier_preuve, Preuve};
+use crate::compagnie::depot_acte::{verifier_preuve, Preuve};
 use crate::routes::qui_de;
 use crate::routes::documents::{client_courriel, expediteur_de, preuve_de, refus, requis, vrai_ou, Ouvrir};
 use crate::routes::engagement::{booleen, maintenant};
@@ -53,8 +53,8 @@ pub fn route(o: &HashMap<String, String>, ctx: &Contexte, nom: &str, charge: &Va
         "regularisations" => regularisations(ctx),
         "couts" => couts(o, ctx, charge),
         "revue-spectacles" => revue_spectacles(o, ctx, charge),
-        "cloture" => crate::exercice_ecrit::cloture_route(ctx, charge),
-        "export-compta" => crate::exercice_ecrit::export_compta_route(ctx, charge),
+        "cloture" => crate::compagnie::exercice_ecrit::cloture_route(ctx, charge),
+        "export-compta" => crate::compagnie::exercice_ecrit::export_compta_route(ctx, charge),
         "retenir-logiciel" => retenir_logiciel(ctx, charge),
         "casc-regularise" => casc_regularise(ctx, charge),
         "exporter" => exporter(ctx, charge),
@@ -448,7 +448,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let montant = crate::routes::fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
     let qui = qui_de(charge);
-    declarations::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
+    crate::import::casc::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
 }
 
 /// `charge[cle] or None` : un texte, ou rien.
@@ -501,12 +501,12 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         analytique: charge.get("analytique").map(vrai),
     };
     if etat == "regularisation-casc-svp" {
-        let demande = declarations::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes::ouverture::boite_liee(ctx).unwrap_or(false), ..Default::default() };
-        let mut r = declarations::casc_regularisation::regularisation(ctx, &demande)?;
+        let demande = crate::import::casc::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes::ouverture::boite_liee(ctx).unwrap_or(false), ..Default::default() };
+        let mut r = crate::import::casc::regularisation(ctx, &demande)?;
         if d.ecrire {
-            declarations::casc_regularisation::ecrire(ctx, &mut r)?;
+            crate::import::casc::ecrire(ctx, &mut r)?;
         }
-        return Ok(Exporte::Casc(declarations::casc_regularisation::vers_json(&r)));
+        return Ok(Exporte::Casc(crate::import::casc::vers_json(&r)));
     }
     if etat == "livre-de-paie" {
         return Ok(Exporte::Livre(documents::etats_paie::livre_de_paie(ctx, &d)?));
@@ -532,8 +532,8 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         "etat-des-virements" => documents::etats_paie::etat_des_virements(ctx, &d),
         "prelevement-a-la-source" => documents::etats_paie::prelevement_a_la_source(ctx, &d),
         "cotisations-par-organisme" => declarations::etats_organismes::cotisations_par_organisme(ctx, &d),
-        "versements-organismes" => declarations::etats_organismes::versements_organismes(ctx, &d, &crate::depart::dsn_du_mois),
-        "bordereau-urssaf" => declarations::etats_organismes::bordereau_urssaf(ctx, &d, &crate::depart::dsn_du_mois),
+        "versements-organismes" => declarations::etats_organismes::versements_organismes(ctx, &d, &crate::compagnie::depart::dsn_du_mois),
+        "bordereau-urssaf" => declarations::etats_organismes::bordereau_urssaf(ctx, &d, &crate::compagnie::depart::dsn_du_mois),
         "fcap-svp" => declarations::etats_organismes::fcap_svp(ctx, &d),
         "afdas-2642" => declarations::etats_organismes::afdas_2642(ctx, &d),
         "paritarisme-branche" => declarations::etats_organismes::paritarisme_branche(ctx, &d),
@@ -558,7 +558,7 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
 const CORPS_DOSSIER: &str = "Bonjour {prenom},\n\nTu trouveras ci-joint ton dossier de salarié{periode} : {liste}.\n\n{reedition}Bien à toi,\n{signataire}\n{raison_sociale}\n";
 
 /// Ce que le courriel dit des contrats, quand le dossier en porte : eux seuls se reeditent (les bulletins et les
-/// certificats sont les pages memes de l'archive, lot V1p ; le reste se prend tel quel).
+/// certificats sont les pages memes de l'archive ; le reste se prend tel quel).
 const REEDITION_CONTRATS: &str = "Les contrats ont été réédités par notre logiciel de paie depuis les données\nd'origine : les numéros et les montants sont ceux des contrats qui t'ont été\nremis ; seule la mise en page peut avoir changé depuis.\n\n";
 
 /// La route `dossier-envoyer` : le dossier se refait ici (`dossier_salarie`, un fichier par salarie, ecrit dans
@@ -678,7 +678,7 @@ fn jjmmaaaa(iso: &str) -> String {
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
-    use declarations::casc_regularisation::{ecrire, marquer_regularise, regularisation, Demande};
+    use crate::import::casc::{ecrire, marquer_regularise, regularisation, Demande};
     // `charge.get("vire_le") or {}`.
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),
@@ -842,7 +842,7 @@ fn etat_exercices(ctx: &Contexte) -> R<Value> {
             Some(p) => {
                 json!({
                     "fichier": p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
-                    "ecrit": crate::depart::ecrit_le(&ctx.racine, p),
+                    "ecrit": crate::compagnie::depart::ecrit_le(&ctx.racine, p),
                 })
             }
             None => Value::Null,

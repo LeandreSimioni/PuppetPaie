@@ -1,7 +1,7 @@
 //! Le texte d'un courriel ou d'un lien : l'echappement HTML, l'encodage d'une URL, le lien `mailto:`, le corps d'un
 //! courriel mis en HTML.
 
-/// `html.escape(s)` : `&`, `<`, `>`, `"` et `'`.
+/// `&`, `<`, `>`, `"` et `'`.
 pub fn html_echapper(s: &str) -> String {
     let mut o = String::with_capacity(s.len());
     for c in s.chars() {
@@ -17,7 +17,7 @@ pub fn html_echapper(s: &str) -> String {
     o
 }
 
-/// `urllib.parse.quote(s, safe=surs)` : tout est encode en UTF-8 par `%XX`, sauf les lettres et chiffres ASCII,
+/// Tout est encode en UTF-8 par `%XX`, sauf les lettres et chiffres ASCII,
 /// `_.-~` et `surs`.
 pub fn pourcent(s: &str, surs: &str) -> String {
     let mut o = String::new();
@@ -36,7 +36,7 @@ pub fn mailto(adresse: &str, objet: &str, corps: &str) -> String {
     format!("mailto:{}?subject={}&body={}", pourcent(adresse, "@"), pourcent(objet, ""), pourcent(corps, ""))
 }
 
-/// `operations_casc._html` : le courriel en HTML, le meme texte, mais le tableau des masses en vrai tableau -- en
+/// Le courriel en HTML, le meme texte, mais le tableau des masses en vrai tableau -- en
 /// texte brut, ses barres ne s'alignent que dans une police a chasse fixe, ce qu'aucune messagerie n'emploie.
 pub fn courriel_en_html(corps: &str) -> String {
     let blanc = |c: char| c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c);
