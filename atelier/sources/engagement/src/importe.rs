@@ -201,7 +201,27 @@ pub fn continue_par(racine: &Path, e: &Map<String, Value>) -> Resultat<Option<Im
     }))
 }
 
+/// LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` VIENT-IL DE L'ANCIEN LOGICIEL ? Un engagement importe l'atteste
+/// (un permanent : `Importe::atteste`), ou il continue un contrat d'usage importe (`continue_par`). L'ecran le dit sur
+/// la carte. Faux quand rien ne se lit.
+pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, numero: &str) -> bool {
+    let tous = tous(racine).unwrap_or_default();
+    tous.iter().any(|i| i.atteste(salarie, debut, numero) || (i.continue_apres().is_some() && i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero))
+}
+
 impl Importe {
+    /// ATTESTE-T-IL LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` ? Le contrat d'un permanent qui court encore
+    /// porte le debut et le numero que la DSN de l'ancien logiciel lui a donnes (`contrat_debut`, `numero` :
+    /// `import::nature`) ; chacun de ses bulletins repris l'atteste, et l'engagement qui le continue ici est le meme
+    /// contrat (S21.G00.40.001 et .009, `norme-dsn/texte/bloc-S21.G00.40.txt`), pas une copie.
+    pub fn atteste(&self, salarie: &str, debut: &str, numero: &str) -> bool {
+        let du_contrat = self.contrat().and_then(|c| c.get("contrat_debut")).filter(|x| vrai(x)).map(en_texte);
+        !numero.is_empty()
+            && self.texte("salarie") == salarie
+            && self.texte("numero") == numero
+            && du_contrat.unwrap_or_else(|| self.texte("debut")) == debut
+    }
+
     /// LES JOURS DU CONTRAT ENTIER (S21.G00.40.013 d'un contrat d'usage : `Engagement::quotite`) d'un contrat qui continue
     /// ici, `propres` etant ceux que la saisie lui donne : les jours que les bulletins importes impriment, plus les siens ;
     /// a defaut d'un bulletin pour chaque mois verse, la quotite que la DSN deposee a declaree pour ce contrat (elle le

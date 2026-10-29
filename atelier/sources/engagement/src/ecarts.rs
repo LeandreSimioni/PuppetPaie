@@ -178,6 +178,11 @@ pub fn comparer(racine: &Path, imp: &Importe, rattacher: &dyn Fn(&str) -> Option
     let brut = &imp.objet().brut;
     let contrat = imp.contrat();
     let nature = contrat.and_then(|c| texte(c, "nature")).or_else(|| texte(brut, "nature"));
+    // UN CONTRAT DONT LA NATURE RESTE A DIRE (`nature_a_dire`, celui d'un permanent : `import::nature`) ne se compare
+    // pas encore : muet, il se calculerait en contrat d'usage (regle 6). Il se compare une fois sa nature dite.
+    if contrat.is_some_and(|c| c.get("nature_a_dire").is_some_and(vrai)) {
+        return Vec::new();
+    }
     imp.paies()
         .into_iter()
         .filter_map(|(mois, p)| {

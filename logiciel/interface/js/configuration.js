@@ -448,7 +448,24 @@ function vueEtatImportation(e) {
         : x.parti ? `<span class="pastille alerte">attend l'éditeur</span>`
         : `<span class="pastille">pas encore parti</span>`}</div>
     </div>`).join("");
-  return repris + vueNaturesADire(e.a_dire) + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+  return repris + vueNaturesADire(e.a_dire) + vueCongesADire(e.conges_a_dire)
+    + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
+}
+
+/* LES CONGÉS À LA REPRISE D'UN PERMANENT DONT LE CONTRAT CONTINUE
+   (`conges_a_dire`, du moteur) : aucun bulletin repris ne les dit, ils se
+   recopient du dernier bulletin de l'ancien logiciel, sur sa fiche. */
+function vueCongesADire(liste) {
+  if (!liste || !liste.length) return "";
+  const lignes = liste.map((x) => `<div class="rang">
+      <div class="rang-infos"><b class="rang-nom">${echapper(x.nom)}</b>
+        ses congés payés acquis et pris dans votre ancien logiciel ne sont sur aucun bulletin repris.
+        Recopiez-les de son dernier bulletin dans sa fiche (« Congés payés à la reprise »), à partir du
+        ${echapper(jjmmaaaa(x.depuis))} : sans eux, ses congés repartent de zéro.</div>
+      <div class="rang-etat"><button type="button" class="petit" data-ouvrir-fiche="salarie"
+        data-ouvrir-cle="${echapper(x.salarie)}">Ouvrir sa fiche</button></div>
+    </div>`).join("");
+  return `<h3>Les congés payés à reprendre</h3>${lignes}`;
 }
 
 /* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT
@@ -762,12 +779,14 @@ function vueImportation(r) {
     : "aucune DSN ni AEM dans le dossier";
   const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const b = r.bulletins || {};
-  const nb = [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && (f.etat === "a_creer"
-    || (f.etat === "existante" && Object.keys(f.completer || {}).length))).length;
+  const aEcrire = (f) => f && (f.etat === "a_creer" || (f.etat === "existante" && Object.keys(f.completer || {}).length));
+  const ns = (r.salaries || []).filter(aEcrire).length, nsp = (r.spectacles || []).filter(aEcrire).length;
   const nc = (r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0);
   const np = (b.paies_nouvelles || 0) + (b.paies_completees || 0);
   const quoi = [
-    nb ? `${nb} fiche${nb > 1 ? "s" : ""}` : "",
+    aEcrire(r.entreprise) ? "la fiche de la compagnie" : "",
+    ns ? `${ns} salarié${ns > 1 ? "s" : ""}` : "",
+    nsp ? `${nsp} spectacle${nsp > 1 ? "s" : ""}` : "",
     nc ? `${nc} contrat${nc > 1 ? "s" : ""}` : "",
     np ? `${np} bulletin${np > 1 ? "s" : ""}` : "",
   ].filter((x) => x);

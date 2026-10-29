@@ -431,6 +431,16 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
+    // LE DEPARTEMENT DE NAISSANCE SE LIT DANS LE NIR (regle 2 : la page le montre, le moteur l'ecrit) : ses 6e et 7e
+    // caracteres sont le departement de naissance, 99 pour une personne nee a l'etranger (S21.G00.30.001 et .014,
+    // `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.30.txt`). Il ne s'ecrit que dans une case vide : une
+    // valeur saisie qui le contredit se dit (`champs::controles_croises`), elle ne se remplace pas.
+    if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("departement_naissance"))).is_empty() {
+        if let Some(dep) = champs::departement_du_nir(&texte_ou_vide(donnees.get("nir"))) {
+            faits.insert("departement_naissance".into(), json!([donnees.get("departement_naissance").cloned().unwrap_or(Value::Null), dep]));
+            donnees.insert("departement_naissance".into(), Value::String(dep));
+        }
+    }
     if nom == "salarie" && socle::texte::strip(&texte_ou_vide(donnees.get("initiales_contrat"))).is_empty() {
         let lettres: String = texte_ou_vide(donnees.get("nom")).chars().filter(|c| c.is_ascii_uppercase()).collect();
         if !lettres.is_empty() {
@@ -481,19 +491,14 @@ pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
     if nom == "salarie" {
-        let nir = socle::texte::strip(&texte_ou_vide(donnees.get("nir"))).to_string();
-        let c: Vec<char> = nir.chars().collect();
-        if c.len() == 13 && champs::tous_chiffres(&nir) && (c[0] == '1' || c[0] == '2') {
-            let dep: String = c[5..7].iter().collect();
-            if dep != "20" {
-                let mut trouvees = vec![("departement_naissance", dep.clone())];
-                if dep != "99" {
-                    trouvees.push(("pays_naissance", "FR".to_string()));
-                }
-                for (cle, valeur) in trouvees {
-                    if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
-                        propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
-                    }
+        if let Some(dep) = champs::departement_du_nir(&texte_ou_vide(donnees.get("nir"))) {
+            let mut trouvees = vec![("departement_naissance", dep.clone())];
+            if dep != "99" {
+                trouvees.push(("pays_naissance", "FR".to_string()));
+            }
+            for (cle, valeur) in trouvees {
+                if socle::texte::strip(&texte_ou_vide(donnees.get(cle))).is_empty() {
+                    propose.insert(cle.into(), json!({"valeur": valeur, "pourquoi": "lu dans le numéro de sécurité sociale"}));
                 }
             }
         }
@@ -1152,15 +1157,18 @@ fn metiers_ajoutes(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------- enregistrer-fiche
 
-/// Le prochain matricule : le plus grand code salarie du fichier, plus un.
+/// Le prochain matricule (S21.G00.30.019, que l'employeur choisit : `norme-dsn/texte-2027/bloc-S21.G00.30.txt`) : le
+/// plus grand code salarie que le fichier ait jamais porte, plus un. Le fichier est date : chaque fiche porte la suite
+/// de ses valeurs (`[{"valeur"}, {"depuis", "valeur"}]`), et chacune compte.
 fn matricule_suivant(salaries: &Map<String, Value>) -> i64 {
+    let lire = |v: &Value| entier(&Value::String(valeur_en_texte(v).trim().to_string())).ok();
     let codes: Vec<i64> = salaries
         .iter()
         .filter(|(k, _)| !k.starts_with('_'))
-        .filter_map(|(_, s)| {
-            let s = s.as_object()?;
-            let texte = s.get("code_salarie").map_or_else(String::new, valeur_en_texte);
-            entier(&Value::String(texte.trim().to_string())).ok()
+        .filter_map(|(_, s)| s.as_object()?.get("code_salarie"))
+        .flat_map(|c| match c {
+            Value::Array(versions) => versions.iter().filter_map(|x| x.get("valeur").and_then(lire)).collect::<Vec<_>>(),
+            autre => lire(autre).into_iter().collect(),
         })
         .collect();
     codes.into_iter().max().map_or(1, |m| m + 1)
@@ -1245,8 +1253,10 @@ fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
 
 // ------------------------------------------------ ecrire une valeur datee
 
+/// Une case vide : absente, nulle, un texte vide, ou le titre « A COMPLETER » que l'import pose sur un spectacle dont il
+/// ne connait que le numero d'objet (`import::completer::A_COMPLETER`) -- le remplir n'est pas un changement a dater.
 fn vide(v: Option<&Value>) -> bool {
-    v.map_or(true, |v| v.is_null() || v.as_str() == Some(""))
+    v.map_or(true, |v| v.is_null() || v.as_str() == Some("") || v.as_str().is_some_and(|s| s.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)))
 }
 
 /// La meme valeur, a la forme pres : un nombre saisi en texte (100 et « 100 »), une personne et sa forme lisible (les
@@ -1304,6 +1314,26 @@ pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depui
     ecrire_datee(&mut contenu, "entreprise", &ctx.entreprise, &donnees, depuis, None, &ctx.lue_au)?;
     sauver_avant(&chemin)?;
     ecrire(&chemin, Value::Object(contenu))
+}
+
+/// L'ANCIENNETE D'UN SALARIE REPRIS QUE SON CONTRAT FAIT REMONTER : l'import la pose au premier bulletin lu
+/// (`import::bulletins`) ; un contrat repris qui a commence avant (`debut`, celui que la DSN de l'ancien logiciel
+/// declare, S21.G00.40.001) dit qu'il etait dans l'entreprise des ce jour-la (S21.G00.86.003, l'anciennete dans
+/// l'entreprise : `norme-dsn/texte/bloc-S21.G00.86.txt` ; inference : un contrat en cours dans l'entreprise y compte).
+/// Seule la valeur que l'import a posee, `pose_le`, se remplace, de tout temps : elle n'a jamais ete declaree. Une date
+/// saisie depuis reste la sienne. Rend vrai si elle a ete remplacee.
+pub(crate) fn reprendre_anciennete(ctx: &Contexte, salarie: &str, pose_le: &str, debut: &str) -> R<bool> {
+    let chemin = ctx.racine.join("config").join("salaries.json");
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let Some(Value::Array(versions)) = contenu.get_mut(salarie).and_then(|f| f.get_mut("date_anciennete")) else { return Ok(false) };
+    let [seule] = versions.as_mut_slice() else { return Ok(false) };
+    if seule.get("valeur").map(valeur_en_texte).as_deref() != Some(pose_le) || debut >= pose_le {
+        return Ok(false);
+    }
+    seule["valeur"] = json!(debut);
+    sauver_avant(&chemin)?;
+    ecrire(&chemin, Value::Object(contenu))?;
+    Ok(true)
 }
 
 /// ECRIRE UNE FICHE DATEE : chaque valeur de `donnees` qui differe de `ancienne` (la fiche lue a `lue_au`, celle que

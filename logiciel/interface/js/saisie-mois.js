@@ -365,7 +365,8 @@ function peindreCarte(div) {
     </div>
     <div class="carte-qui" title="${echapper(detail)}">
       <span class="carte-nom"><b>${echapper(ligne.nom)}</b></span>
-      <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}</span>
+      <span class="discret">${echapper(pourQuoi(ligne))}${paye ? " · " + echapper(paye) : ""}${
+        ligne.contrat && ligne.contrat.repris ? " · contrat repris de votre ancien logiciel" : ""}</span>
     </div>
     <div class="carte-actes">${bandeauEtats(ligne)}</div>
     <div class="carte-net" title="net à payer, avant impôt">${echapper(net)}</div>

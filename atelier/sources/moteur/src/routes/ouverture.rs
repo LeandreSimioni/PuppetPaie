@@ -497,6 +497,10 @@ fn bilan_des_mois(m: &mut Moteur, ctx: &Contexte, mois: &[(String, Vec<String>)]
             None
         };
         let mut sortes: Vec<&str> = SORTES.iter().filter(|(p, _)| noms.iter().any(|n| n.starts_with(p))).map(|(_, l)| *l).collect();
+        // Un mois tenu avant : ses bulletins sont ceux de l'ancien logiciel, que l'import garde.
+        if importe && !crate::import::mois::bulletins_repris(&ctx.racine, nom).is_empty() {
+            sortes.insert(0, "bulletins repris");
+        }
         // LES AER DE FRANCE TRAVAIL : rangees avec les documents des salaries (`sorties/<mois>/envoi/`), pas a la
         // racine du mois ; elles se nomment avec les autres sortes.
         if crate::routes::documents::un_nom_commence_et_finit(&ctx.racine.join("sorties").join(nom).join("envoi"), "AER_", ".pdf") {

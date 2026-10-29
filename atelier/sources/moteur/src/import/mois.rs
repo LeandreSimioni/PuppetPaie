@@ -36,6 +36,28 @@ fn importes_du_mois(racine: &Path, mois: &str) -> R<Vec<Importe>> {
     engagement::importe::du_mois(racine, mois).map_err(Echec::from)
 }
 
+/// LES BULLETINS REPRIS DE `mois` : la copie que l'import garde de chaque fichier lu (`historique/bulletins/`, le nom que
+/// porte la paie importee), un par fichier, avec le salarie qu'il paie (`[{chemin, salarie}]`, chemin relatif a la
+/// compagnie). Un fichier qui manque ne se liste pas. Ne leve jamais.
+pub(crate) fn bulletins_repris(racine: &Path, mois: &str) -> Vec<Value> {
+    let mut out: Vec<Value> = Vec::new();
+    for p in engagement::importe::paies_lues(racine).unwrap_or_default() {
+        if texte(&p, "mois") != mois {
+            continue;
+        }
+        let fichier = p.get("bulletin").map(|b| texte(b, "fichier")).filter(|f| !f.is_empty()).unwrap_or_default();
+        if fichier.is_empty() || fichier.contains(['/', '\\']) || fichier.contains("..") {
+            continue;
+        }
+        let chemin = format!("historique/bulletins/{}", fichier);
+        if !racine.join(&chemin).is_file() || out.iter().any(|x| x["chemin"] == json!(chemin)) {
+            continue;
+        }
+        out.push(json!({"chemin": chemin, "salarie": texte(&p, "salarie")}));
+    }
+    out
+}
+
 /// Le mois est-il tenu avant ce logiciel : aucun engagement de la saisie ne le touche, et un engagement importe le touche.
 pub(crate) fn importe(racine: &Path, mois: &str) -> R<bool> {
     if engagement::stock::a_une_saisie(racine, mois).map_err(Echec::from)? {
