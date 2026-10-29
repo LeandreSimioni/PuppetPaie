@@ -313,7 +313,7 @@ function dessinerConfig() {
    Deux temps, et jamais un seul : l'aperçu dit ce qui serait créé et ce que
    les DSN disaient autrement que les fiches ; le bouton n'écrit qu'après.
    Une fiche existante reçoit seulement ce qui y est vide ou « A COMPLETER »
-   (`importation_completer`, lot I2) ; tout champ rempli fait foi, l'écart
+   (`import::completer`) ; tout champ rempli fait foi, l'écart
    est signalé, un changement se date à la main (operations_fiches).
 
    LA BOÎTE AUX LETTRES (lot F du plan d'import, 10/10/2026). Une seule
@@ -325,7 +325,7 @@ function dessinerConfig() {
    qui ne l'est pas et pourquoi, c'est le moteur qui le dit. */
 let IMPORT_DOSSIER = "";
 
-/* Le sort d'un fichier ou d'une page (`importation_bulletins::SORTS`) : son
+/* Le sort d'un fichier ou d'une page (`import::bulletins::SORTS`) : son
    mot, et la couleur de sa pastille. Vert : repris ; orange : repris avec une
    réserve, ou laissé exprès ; rouge : pas repris, quelque chose manque. */
 const SORTS_IMPORT = {
@@ -356,9 +356,9 @@ function pastilleSort(sort) {
 // Dans la fenêtre PuppetPaie (Tauri, `cadre.js`), et non dans un navigateur : le poste peut ouvrir son dossier.
 const fenetreDuPoste = () => !!window.fenetrePuppetPaie;
 
-/* REPRENDRE L'HISTORIQUE (24/09/2026 ; lot G2, 10/10/2026, Léandre : « une
+/* REPRENDRE L'HISTORIQUE : une
    logique simple : ils mettent tout dans import/, ou ils choisissent un
-   dossier avec tout dedans »). La page ne sert qu'une fois : le jour où une
+   dossier avec tout dedans. La page ne sert qu'une fois : le jour où une
    compagnie arrive avec l'historique d'un autre logiciel. Un dossier, celui
    de la compagnie prérempli ; « Parcourir… » pour en prendre un autre ;
    « Ouvrir le dossier » pour y déposer les fichiers ; puis l'aperçu. Aucun
@@ -451,8 +451,8 @@ function vueEtatImportation(e) {
   return repris + vueNaturesADire(e.a_dire) + (editeur ? `<h3>Ce qui attend l'éditeur</h3>${editeur}` : "");
 }
 
-/* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT (#236,
-   `importation_nature`). Les bulletins d'un permanent ne disent pas s'il
+/* LA NATURE DES CONTRATS REPRIS QU'AUCUN BULLETIN NE DIT
+   (`import::nature`). Les bulletins d'un permanent ne disent pas s'il
    est en CDI ou en CDD : le moteur les nomme (`a_dire`), la page le
    demande, une fois par salarié, sans rien choisir d'avance. */
 function vueNaturesADire(liste) {
@@ -682,7 +682,7 @@ function ecartsBulletinDsn(tri) {
       <tbody>${lignes.join("")}</tbody></table>`;
 }
 
-/* Les fichiers qui n'ont pas pu être repris : la phrase de Léandre, et le
+/* Les fichiers qui n'ont pas pu être repris : la phrase qui les dit, et le
    message qui partirait chez l'éditeur, montré tel qu'il partirait (caviardé
    par le moteur, `importation-incident`). Rien ne part sans le clic sur
    « Envoyer » (`importation-incident-envoyer`). Quels fichiers n'ont pas
@@ -887,13 +887,12 @@ const SECTIONS_FICHE = {
     // C'est la question qui commande tout ce qui ne vaut que pour les
     // salariés au mois (natures CDI/CDD, santé et prévoyance, organismes) :
     // elle se pose en clair. Le moteur le lit (`contexte::emploie_des_permanents`).
-    // Les conseils « Le saviez-vous ? » (ticket 224, Léandre, 21/10/2026) :
+    // Les conseils « Le saviez-vous ? » :
     // une option qui parle de vos salariés, elle se pose avec eux.
     ["Vos salariés", ["emploie_des_permanents", "conseils"]],
     // Le taux AT/MP se pose en tête de ce bloc (`ATMP_HTML`).
-    // LE CODE DU SERVICE DE SANTÉ AU TRAVAIL SORT DE L'« AVANCÉ » (#236,
-    // 23/10/2026) : il n'était dans aucune section, donc dans la dernière (le
-    // tiroir replié), alors que chaque DPAE l'exige (`dpae::medecine_de`) et que
+    // LE CODE DU SERVICE DE SANTÉ AU TRAVAIL N'EST PAS DANS L'« AVANCÉ » (le tiroir
+    // replié) : chaque DPAE l'exige (`dpae::medecine_de`) et
     // « Pour démarrer » le demande. Un champ exigé est visible là où on l'exige.
     ["Vos numéros chez les organismes",
      ["urssaf_compte", "congesspectacles_adherent",
@@ -904,7 +903,7 @@ const SECTIONS_FICHE = {
     // l'écrit alors en S20.G00.07 de type 17.
     ["Qui signe, qui répond", ["signataire", "declarant_dsn", "contact_sante_travail"]],
     ["Paiement des cotisations", ["banque"]],
-    // LA TAXE SUR LES SALAIRES (lot V3b, 10/10/2026) : la DSN de décembre
+    // LA TAXE SUR LES SALAIRES : la DSN de décembre
     // déclare chaque année si la compagnie la doit (bloc S21.G00.44), et ne
     // se fait pas sans réponse. Le moteur ne connaît pas sa TVA.
     ["La TVA et la taxe sur les salaires", ["taxe_sur_les_salaires"]],
@@ -1007,7 +1006,7 @@ const FACULTATIFS = {
  * qu'on les lui dise : ils restent dans le formulaire — donc ils repartent
  * a l'enregistrement avec leur valeur — mais en case cachee.
  *
- *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`, #236) ;
+ *  - `siren`, `nic` : le SIRET (le moteur, `routes::fiches::deriver`) ;
  *  - `etablissements` (le moteur n'en declare qu'un) : garde tel quel,
  *    jamais demande.
  *
@@ -1052,7 +1051,7 @@ const SOUS_CHAMPS = {
   // LA QUALITE DU DECLARANT NE S'AFFICHE PAS. C'est
   // S20.G00.07.004, et elle vaut 04 : << la personne qui etablit la paie
   // dans l'entreprise >>. La valeur reste dans la fiche et repart telle
-  // quelle (STRUCTURES_ORIGINE) ; `dsn.rs` la lit comme avant.
+  // quelle (STRUCTURES_ORIGINE) ; `dsn.rs` la lit.
   // LA CIVILITE DU CONTACT (V1h, 10/10/2026) : S10.G00.02.001, 01 monsieur ou
   // 02 madame (cahier technique DSN, p. 132). Le moteur la lit ici et refuse
   // une DSN sans elle ; vide, la case est retiree a l'enregistrement.
@@ -1106,8 +1105,8 @@ const SOUS_CHAMPS = {
      { choix: { "": "— à dire —", "assujettie": "Assujettie à la TVA", "exoneree": "Exonérée de TVA (ou hors de son champ)" } }],
     ["part_tva", "Part de vos recettes de l'an dernier soumise à la TVA (%)", "Vos recettes soumises à la TVA, divisées par toutes vos recettes et produits de l'année, subventions et dons compris. Votre comptable la connaît. À 90 % ou plus, pas de taxe sur les salaires.", { nombre: true }],
     // Les montants des plafonds, l'aide et les deux réponses viennent du
-    // moteur (`franchise` de la route, barème de l'année ; tickets #239 et
-    // #245) : ce qui suit n'est que ce qu'on lit avant sa réponse. Des
+    // moteur (`franchise` de la route, barème de l'année) :
+    // ce qui suit n'est que ce qu'on lit avant sa réponse. Des
     // boutons à cocher : chaque réponse est une phrase entière.
     ["sous_franchise", "Vos recettes de l'an dernier", "Sous les deux plafonds de la franchise en base de TVA (les spectacles vendus, et les recettes en tout, subventions comprises), la compagnie ne doit pas la taxe sur les salaires.",
      { booleen: true, boutons: true, choix: { "": "— à dire —", "true": "Sous les deux plafonds", "false": "Au-dessus d'un des plafonds" } }],
@@ -1400,7 +1399,7 @@ function METIER_HTML(fiche) {
  * L'éditeur : « si un administrateur veut savoir combien un de ses
  * spectacles lui a coûté dans l'année, il faut qu'il le trouve
  * facilement ». La réponse était dans Exports, un état parmi vingt-deux ;
- * elle est désormais en tête de la fiche. Le calcul est celui du livre de
+ * elle est en tête de la fiche. Le calcul est celui du livre de
  * paie (route « couts ») : une fois par année et par séance, oublié dès
  * qu'une saisie s'enregistre. */
 const COUTS = {};
@@ -1684,7 +1683,7 @@ function enteteSalarie(fiche) {
 }
 
 
-/* SUPPRIMER LA COMPAGNIE (ticket #236, Léandre 22/10/2026), sous la fiche Entreprise. Le moteur dit si elle se supprime
+/* SUPPRIMER LA COMPAGNIE , sous la fiche Entreprise. Le moteur dit si elle se supprime
    (`supprimable` de la route `etat` : jamais une fictive livrée, qui se remet à zéro) et ce que la boîte demande
    (`compagnie-suppression`) : une compagnie créée en démo, une confirmation ; une compagnie réelle, le rappel de la
    conservation des bulletins, la sauvegarde si un Drive est lié, puis le mot de passe du logiciel (le popup de chaque acte

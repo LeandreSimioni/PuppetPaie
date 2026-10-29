@@ -1,5 +1,5 @@
-//! La fenetre de PuppetPaie, en Rust : ce que faisaient `web.py`, `lanceur_interface.pyw`, `fenetre.py`,
-//! `compagnies.py` et `instance.py`.
+//! La fenetre de PuppetPaie : le serveur local qui sert la page, l'accueil des compagnies et l'instance unique du
+//! poste.
 //!
 //! UN SERVEUR LOCAL, TROIS ETATS. Le serveur (127.0.0.1, un jeton exige a chaque appel) sert `/` selon l'etat :
 //!   - l'ACCUEIL : les tuiles des compagnies ;
@@ -73,7 +73,7 @@ const CALE: &str = r#"<script>
 "#;
 
 /// Les pages du mot de passe sont servies avec ces noms : leur « Retour » (et Echap) appelle `accueil`. Absent de la
-/// liste, la cale ne le definissait pas et le bouton levait sans rien faire (capture de Leandre, version 20.10.2026).
+/// liste, la cale ne le definirait pas et le bouton ne ferait rien.
 /// L'administrateur : `rattacher_nouvelle` (la question « meme administrateur ? » d'une compagnie neuve),
 /// `tableau`, `tableau_rafraichir` et `deposer_groupe` (le tableau de bord de l'accueil).
 const NOMS_ACCUEIL: &str = r#"["choisir", "couleur", "basculer", "remettre_a_zero", "ajouter", "garder", "verifier", "poser", "accueil", "fermer", "maj", "redemarrer", "rattacher_nouvelle", "tableau", "tableau_rafraichir", "deposer_groupe"]"#;
@@ -392,8 +392,8 @@ impl Fenetre {
         files.entry(cle).or_insert_with(|| self.fil.file(racine, None)).clone()
     }
 
-    /// LES COMPAGNIES DE L'INSTALLATION, TENUES A JOUR DES LE LANCEMENT (ticket #244 : « ouvrir n'importe quelle compagnie
-    /// instantanement, meme a la premiere ouverture du jour »). Chaque vraie compagnie de l'installation -- celles de
+    /// LES COMPAGNIES DE L'INSTALLATION, TENUES A JOUR DES LE LANCEMENT : n'importe quelle compagnie s'ouvre
+    /// instantanement, meme a la premiere ouverture du jour. Chaque vraie compagnie de l'installation -- celles de
     /// l'administrateur, et celles qui ont garde leur mot de passe : toutes sont sur ce disque, en clair -- recoit sa file
     /// sur le fil de la fenetre, qui verifie et refait en fond son etat d'ouverture, son tableau (une compagnie de
     /// l'administrateur), puis ses mois. La derniere ouverte d'abord (la date de son journal de la fenetre, que chaque
@@ -632,7 +632,7 @@ impl Fenetre {
         compagnies::ajouter(nom)
     }
 
-    /// LES GESTES DU BANC D'ESSAI (l'atelier seulement, #236 ; `atelier/outils/banc/`) : `/atelier/<geste>`, avec le jeton.
+    /// LES GESTES DU BANC D'ESSAI (l'atelier seulement ; `atelier/outils/banc/`) : `/atelier/<geste>`, avec le jeton.
     /// - `etat` : le jour simule, le scenario, la compagnie ouverte ;
     /// - `jour` `{"jour": "AAAA-MM-JJ"}` : le calendrier avance jusqu'a ce jour, 9 h (Paris) ; puis, si une compagnie est
     ///   ouverte, un passage de la veille, comme a l'ouverture : l'horloge d'une fictive aux envois simules joue ce qui
@@ -835,7 +835,7 @@ impl Fenetre {
         let texte = |code: u16| Reponse::nouvelle(code, "text/plain; charset=utf-8", Vec::new());
         if r.methode == "POST" {
             // Les gestes de l'accueil lisent `erreur` en phrase (`err.textContent = r.erreur`) ; les routes de la page,
-            // en objet (`d.erreur.message`). Un refus du serveur parle a chacun sa langue (#141 : « [object Object] »).
+            // en objet (`d.erreur.message`). Un refus du serveur parle a chacun sa langue.
             let geste = r.chemin.starts_with("/lanceur/");
             let refus = |code: u16, genre: &str, message: String| {
                 let erreur = if geste { json!(message) } else { json!({"type": genre, "message": message}) };
@@ -864,7 +864,7 @@ impl Fenetre {
                 let Phase::Ouverte { racine, veille, etats } = self.phase() else {
                     return Reponse::json(200, &json!({"ok": false, "erreur": {"type": "ErreurOperation", "message": "Aucune compagnie n'est ouverte."}}));
                 };
-                // LE JOURNAL DE L'INTERFACE note chaque route et sa duree (ticket #244 : mesurer l'ouverture sur le poste) :
+                // LE JOURNAL DE L'INTERFACE note chaque route et sa duree (de quoi mesurer l'ouverture sur le poste) :
                 // l'heure, le nom, les millisecondes, et la classe d'un refus. Jamais la charge : elle peut porter un mot
                 // de passe.
                 // CE QUE LA PAGE A FAIT depuis sa derniere demande (`X-Gestes`, js/tuyau.js : clics, champs, boites, console),
@@ -1147,7 +1147,7 @@ pub fn lire_options(args: &[String]) -> Result<Options, String> {
     Ok(o)
 }
 
-/// LE BANC D'ESSAI (l'atelier seulement, #236 ; `atelier/outils/banc/`) : `moteur-atelier interface ... [--enregistrer
+/// LE BANC D'ESSAI (l'atelier seulement ; `atelier/outils/banc/`) : `moteur-atelier interface ... [--enregistrer
 /// DOSSIER] [--jour AAAA-MM-JJ]`. `--jour` : le temps du moteur coule depuis ce jour, 9 h a Paris (`temps`) ;
 /// `--enregistrer` : chaque geste entre dans le scenario `DOSSIER` (`scenario::Enregistreur`). Un scenario deja
 /// commence se poursuit : sans `--jour`, le temps reprend une minute apres son dernier geste ; un `--jour` avant lui est
