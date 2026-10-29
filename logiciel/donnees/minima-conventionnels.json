@@ -436,7 +436,7 @@
       ]
      },
      "lyrique.choeurs": {
-      "libelle": "Artiste des choeurs",
+      "libelle": "Artiste des chœurs",
       "periode": "mois",
       "paliers": [
        {
@@ -771,7 +771,7 @@
     ]
    },
    "choeur": {
-    "libelle": "Artiste de choeur, représentation, cas général",
+    "libelle": "Artiste de chœur, représentation, cas général",
     "periode": "mois",
     "paliers": [
      {
@@ -792,7 +792,7 @@
     },
     "choeur": {
      "service": 70.47,
-     "libelle": "service de répétition d'un artiste de choeur, journée de 2 services (140,95)"
+     "libelle": "service de répétition d'un artiste de chœur, journée de 2 services (140,95)"
     },
     "lyrique_soliste": {
      "service": 82.14,
@@ -974,7 +974,7 @@
      },
      "choeur": {
       "service": 71.18,
-      "libelle": "choeur, journée de 2 services (142,36)"
+      "libelle": "chœur, journée de 2 services (142,36)"
      },
      "lyrique_soliste": {
       "service": 82.96,
@@ -1052,7 +1052,7 @@
     }
    },
    {
-    "nom": "artistes de choeur, au mois",
+    "nom": "artistes de chœur, au mois",
     "population": "tous",
     "statut": "artiste",
     "unite": "mois",
@@ -2539,7 +2539,7 @@
     }
    },
    {
-    "nom": "annexe 6, artistes lyriques des choeurs",
+    "nom": "annexe 6, artistes lyriques des chœurs",
     "population": "intermittent",
     "statut": "artiste",
     "unite": "cachet",
@@ -5234,7 +5234,7 @@
         }
       },
       {
-        "nom": "titre III, musiciens et choeurs",
+        "nom": "titre III, musiciens et chœurs",
         "population": "intermittent",
         "statut": "artiste",
         "unite": "cachet",
