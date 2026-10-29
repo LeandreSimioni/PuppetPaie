@@ -455,7 +455,7 @@ ouvrir le coffre eux-mêmes.
 moteur sauvegarder          # les différences
 moteur sauvegarder --point  # où en est la dernière, sans réseau
 moteur sauvegarder --tout   # tout renvoyer, sans comparer
-moteur restaurer [DOSSIER]  # le retour : redescendre prive/ du Drive (vérifié, rien d'effacé) — LISEZ-MOI-DABORD, « Si je perds l'ordinateur »
+moteur restaurer [DOSSIER]  # le retour : redescendre prive/ du Drive (vérifié, rien d'effacé)
 ```
 
 Vers `PuppetPaie / sauvegarde / …` dans le Drive, en conservant l'arborescence.
