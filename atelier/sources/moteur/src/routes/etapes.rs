@@ -770,8 +770,10 @@ impl<'a> Moteur<'a> {
             ligne.insert("recalcul".into(), recalcul.map_or(Value::Null, Value::String));
             ligne.insert(
                 "contrat".into(),
+                // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
-                       "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last()}),
+                       "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last(),
+                       "repris": engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""))}),
             );
             // CE QUE CE SALARIE RECOIT POUR CETTE PAIE : le bulletin s'il y a une paie, le certificat Conges Spectacles
             // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due

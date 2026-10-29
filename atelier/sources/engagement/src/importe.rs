@@ -201,6 +201,14 @@ pub fn continue_par(racine: &Path, e: &Map<String, Value>) -> Resultat<Option<Im
     }))
 }
 
+/// LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` VIENT-IL DE L'ANCIEN LOGICIEL ? Un engagement importe l'atteste
+/// (un permanent : `Importe::atteste`), ou il continue un contrat d'usage importe (`continue_par`). L'ecran le dit sur
+/// la carte. Faux quand rien ne se lit.
+pub fn vient_d_un_ancien_logiciel(racine: &Path, salarie: &str, debut: &str, numero: &str) -> bool {
+    let tous = tous(racine).unwrap_or_default();
+    tous.iter().any(|i| i.atteste(salarie, debut, numero) || (i.continue_apres().is_some() && i.texte("salarie") == salarie && i.texte("debut") == debut && i.texte("numero") == numero))
+}
+
 impl Importe {
     /// ATTESTE-T-IL LE CONTRAT `numero` DE `salarie` COMMENCE LE `debut` ? Le contrat d'un permanent qui court encore
     /// porte le debut et le numero que la DSN de l'ancien logiciel lui a donnes (`contrat_debut`, `numero` :
