@@ -67,8 +67,8 @@ fn faire(cadre: &Cadre, quoi: &str, args: &Args) -> Result<i32, Echec> {
                 dire!("Aucune embauche sans trace de DPAE.");
             }
             for e in &liste {
-                let parti = e.get("contrat_parti").is_some_and(socle::fichiers::vrai);
-                dire!("  {}  {:<28} {}{}", texte(e.get("debut").unwrap_or(&Value::Null)), champ(e, "nom"), champ(e, "spectacle"), if parti { "" } else { "  (contrat pas encore parti)" });
+                let valide = e.get("valide").is_some_and(socle::fichiers::vrai);
+                dire!("  {}  {:<28} {}{}", texte(e.get("debut").unwrap_or(&Value::Null)), champ(e, "nom"), champ(e, "spectacle"), if valide { "" } else { "  (engagement pas encore valide)" });
             }
             Ok(0)
         }
