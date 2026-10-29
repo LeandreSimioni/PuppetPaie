@@ -59,7 +59,7 @@ pub(crate) fn dossier_import(ctx: &Contexte, charge: &Value) -> R<PathBuf> {
             d
         }
         Some(Value::String(s)) => PathBuf::from(crate::routes::depots::normaliser(s)),
-        Some(autre) => return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(autre)))),
+        Some(autre) => return Err(erreur("TypeError", socle::fichiers::attendu("un chemin en texte", nom_type(autre)))),
     })
 }
 
@@ -532,7 +532,7 @@ fn distincts(engagements: &[&Value], cle: &str) -> R<usize> {
 }
 
 /// `etat_importation` : ce qui a deja ete repris, d'apres les engagements importes, pour que la page le dise :
-/// - `importe_le`, `source`, `contrats`, `salaries`, `objets`, `du`, `au` : les contrats attestes ;
+/// - `importe_le`, `contrats`, `salaries`, `objets`, `du`, `au` : les contrats attestes ;
 /// - `dossier` : la boite aux lettres `import/` de la compagnie, que la page preremplit ;
 /// - `reprises` : chaque source reprise -- `DSN` (les versements declares par une DSN ; `declarations` : une DSN par
 ///   mois declare), `AEM` (les contrats attestes par une AEM), `bulletins` (les paies qu'un bulletin a ecrites ou
@@ -565,7 +565,6 @@ fn etat_importation(racine: &Path) -> R<Value> {
     let attend = editeur.iter().filter(|x| !x.get("repondu").is_some_and(vrai)).count();
     Ok(json!({
         "importe_le": dernier("importe_le"),
-        "source": dernier("source"),
         "contrats": engagements.len(),
         "salaries": distincts(&engagements, "salarie")?,
         "objets": distincts(&engagements, "numero_objet")?,

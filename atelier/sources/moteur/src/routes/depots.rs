@@ -904,7 +904,7 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
         return Err(erreur("FileNotFoundError", "Aucun fichier indique."));
     }
     let Value::String(t) = chemin else {
-        return Err(erreur("TypeError", format!("expected str, bytes or os.PathLike object, not {}", nom_type(chemin))));
+        return Err(erreur("TypeError", socle::fichiers::attendu("un chemin en texte", nom_type(chemin))));
     };
     let p = normaliser(t);
     if existe(&p) || p.starts_with('/') {

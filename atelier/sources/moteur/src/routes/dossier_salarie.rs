@@ -154,7 +154,7 @@ impl Periode {
         let mut p = Periode { mois: None, annee: None, toutes };
         if let Some(m) = mois {
             let Value::String(m) = m else {
-                return Err(avec("TypeError", format!("expected string or bytes-like object, got '{}'", nom_type(m))));
+                return Err(avec("TypeError", socle::fichiers::attendu("un mois en texte (AAAA-MM)", nom_type(m))));
             };
             let c: Vec<char> = m.chars().collect();
             let bon = c.len() == 7 && c[4] == '-' && c.iter().enumerate().all(|(i, x)| i == 4 || chiffre(*x).is_some());

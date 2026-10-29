@@ -356,22 +356,30 @@ pub(crate) fn etapes(vue: &Value) -> Value {
     let pl = |n: usize| if n > 1 { "s" } else { "" };
     let dpae_faites = cartes.iter().filter(|c| c["etats"]["dpae"]["couleur"] == json!("bien")).count();
     let bulletins = cartes.iter().filter(|c| c["bulletin"].is_object()).count();
-    let dpae = if dpae_faites == n {
-        format!("Mois tenu avant PuppetPaie — {} DPAE retrouvée{} dans le journal ou les certificats de l'Urssaf", n, pl(n))
-    } else {
-        format!(
-            "Mois tenu avant PuppetPaie — {} DPAE sur {} retrouvée{} dans le journal ou les certificats de l'Urssaf ; les autres ont été faites ailleurs, sans trace relevée ici",
-            dpae_faites,
-            n,
-            pl(dpae_faites)
-        )
+    let ailleurs = n - dpae_faites;
+    let retrouvees = format!("{} DPAE retrouvée{} dans le journal ou les certificats de l'Urssaf", dpae_faites, pl(dpae_faites));
+    let sans_trace_ici = format!("{} DPAE faite{} ailleurs, sans trace relevée ici", ailleurs, pl(ailleurs));
+    let dpae = match (dpae_faites, ailleurs) {
+        (0, 0) => "Mois tenu avant PuppetPaie — aucune DPAE".to_string(),
+        (_, 0) => format!("Mois tenu avant PuppetPaie — {}", retrouvees),
+        (0, _) => format!("Mois tenu avant PuppetPaie — {}", sans_trace_ici),
+        _ => format!("Mois tenu avant PuppetPaie — {} ; {}", retrouvees, sans_trace_ici),
+    };
+    let signature = match n {
+        0 => "Mois tenu avant PuppetPaie — aucun contrat".to_string(),
+        1 => "Mois tenu avant PuppetPaie — 1 contrat fait ailleurs : sa signature n'est pas suivie ici".to_string(),
+        _ => format!("Mois tenu avant PuppetPaie — {} contrats faits ailleurs : leur signature n'est pas suivie ici", n),
+    };
+    let documents = match bulletins {
+        0 => format!("Mois tenu avant PuppetPaie — aucun bulletin de l'ancien logiciel importé sur {} paie{}", n, pl(n)),
+        b => format!("Mois tenu avant PuppetPaie — {} bulletin{} de l'ancien logiciel importé{} sur {} paie{}", b, pl(b), pl(b), n, pl(n)),
     };
     let dsn = &vue["dsn"];
     let sans_trace = dsn["etat"] == json!("sans_trace") || dsn["etat"] == json!("refusee");
     json!({
         "dpae": {"couleur": "bien", "vide": true, "courte": "avant PuppetPaie", "phrase": dpae},
         "contrat-signature": {"couleur": "bien", "vide": true, "courte": "avant PuppetPaie",
-            "phrase": format!("Mois tenu avant PuppetPaie — {} contrat{} fait{} ailleurs : leur signature n'est pas suivie ici", n, pl(n), pl(n))},
+            "phrase": signature},
         "dsn": {
             "couleur": if dsn["etat"] == json!("refusee") { "refus" } else if sans_trace { "alerte" } else { "bien" },
             "vide": true,
@@ -381,7 +389,7 @@ pub(crate) fn etapes(vue: &Value) -> Value {
             "phrase": dsn["phrase"].clone(),
         },
         "documents": {"couleur": "bien", "vide": true, "courte": "avant PuppetPaie",
-            "phrase": format!("Mois tenu avant PuppetPaie — {} bulletin{} de l'ancien logiciel importé{} sur {} paie{}", bulletins, pl(bulletins), pl(bulletins), n, pl(n))},
+            "phrase": documents},
     })
 }
 

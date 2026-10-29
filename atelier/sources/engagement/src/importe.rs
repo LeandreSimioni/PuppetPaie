@@ -3,7 +3,7 @@
 //! et porte `importe` :
 //!
 //! ```text
-//! "importe": {"le", "source", "contrat"?: {ce que l'AEM ou le bulletin atteste}, "paies": {"AAAA-MM": {ce qui a ete verse}}}
+//! "importe": {"le", "contrat"?: {ce que l'AEM ou le bulletin atteste}, "paies": {"AAAA-MM": {ce qui a ete verse}}}
 //! ```
 //!
 //! Il est valide et ses documents sont partis : ce qui en est parti, c'est l'import lui-meme (les pieces de l'autre
@@ -137,9 +137,6 @@ impl Importe {
         }
         if let Some(n) = self.objet.brut.get("numero").filter(|n| vrai(n)) {
             l.insert("contrat".into(), n.clone());
-        }
-        if let Some(s) = self.lu().get("source").filter(|s| vrai(s)) {
-            l.insert("source".into(), s.clone());
         }
         l.insert("importe_le".into(), Value::String(self.le()));
         l

@@ -504,7 +504,7 @@ fn formater(modele: &str, valeurs: &[(&str, String)]) -> R<String> {
                     match it.next() {
                         Some('}') => break,
                         Some(x) => nom.push(x),
-                        None => return Err(erreur("ValueError", "expected '}' before end of string")),
+                        None => return Err(erreur("ValueError", "une accolade ouverte n'est pas fermée avant la fin du texte")),
                     }
                 }
                 let v = valeurs.iter().find(|(k, _)| *k == nom).ok_or_else(|| erreur("KeyError", socle::fichiers::absent(&nom)))?;

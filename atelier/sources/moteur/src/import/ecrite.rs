@@ -99,25 +99,19 @@ fn libelle_casc(m: &str) -> R<String> {
 }
 
 /// La DSN qu'un mois importe a deposee hors de PuppetPaie : le fichier que l'import a retenu pour ce mois (la paie
-/// versee d'un engagement importe), sous `historique/bulletins/` ou dans le dossier d'ou il a ete repris. `None` : un
-/// mois que l'import n'a pas retenu ; un fichier retenu introuvable refuse.
+/// versee d'un engagement importe), sa copie sous `historique/bulletins/`, ou qu'est la compagnie. `None` : un mois que
+/// l'import n'a pas retenu ; un fichier retenu introuvable refuse.
 pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>, String> {
     let lignes: Vec<Value> = engagement::importe::paies_lues(&ctx.racine)?
         .into_iter()
         .filter(|x| x.get("mois").and_then(Value::as_str) == Some(mois) && x.get("fichier").is_some_and(vrai))
         .collect();
     let Some(ligne) = lignes.last() else { return Ok(None) };
-    let nom = valeur_en_texte(&ligne["fichier"]);
-    let source = match ligne.get("source") {
-        Some(v) if vrai(v) => PathBuf::from(valeur_en_texte(v)),
-        _ => ctx.racine.clone(),
-    };
-    // La copie que l'import a faite (le dossier de la compagnie, ou qu'il soit), puis le dossier d'ou la paie a ete lue.
-    for d in [dossier_bulletins(ctx), source] {
-        if d.join(&nom).exists() {
-            return Ok(Some(d.join(&nom)));
-        }
+    let chemin = dossier_bulletins(ctx).join(valeur_en_texte(&ligne["fichier"]));
+    if chemin.exists() {
+        return Ok(Some(chemin));
     }
+    let nom = valeur_en_texte(&ligne["fichier"]);
     Err(format!("La DSN de {} ({}) a ete importee, mais le fichier n'est plus sous historique/.", mois, nom))
 }
 
@@ -340,12 +334,11 @@ fn rapprocher(par_cle: &mut BTreeMap<(String, String, String), Value>) -> usize 
     ambigues
 }
 
-/// Une ligne sans ce qui dit quand et d'ou elle a ete importee : ce qui compare deux lectures des memes pieces.
+/// Une ligne sans ce qui dit quand elle a ete importee : ce qui compare deux lectures des memes pieces.
 fn sans_dates_d_import(x: &Value) -> Value {
     let mut x = x.clone();
     if let Some(o) = x.as_object_mut() {
         o.remove("importe_le");
-        o.remove("source");
     }
     x
 }
@@ -430,9 +423,6 @@ fn engagements_importes(contrats: Vec<Value>, paies: Vec<Value>) -> Vec<Map<Stri
         let lignes: Vec<&Value> = g.contrat.iter().chain(g.paies.iter()).collect();
         let le = lignes.iter().map(|x| t(x, "importe_le")).filter(|x| !x.is_empty()).min().unwrap_or_default();
         lu.insert("le".into(), json!(le));
-        if let Some(s) = lignes.iter().map(|x| t(x, "source")).filter(|x| !x.is_empty()).last() {
-            lu.insert("source".into(), json!(s));
-        }
         if let Some(c) = &g.contrat {
             lu.insert("contrat".into(), Value::Object(sans(c, &["salarie", "debut", "fin", "contrat"])));
         }
@@ -481,8 +471,8 @@ impl Ecrit {
 }
 
 /// Ecrit ce que l'apercu `imp` annonce : les fiches (et leur place dans `reponse`), puis les engagements importes
-/// (`engagements_importes` : les contrats des AEM et des bulletins, les paies versees). `source` : d'ou les pieces sont lues.
-fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Value, note: &Value, source: &str) -> R<Ecrit> {
+/// (`engagements_importes` : les contrats des AEM et des bulletins, les paies versees).
+fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Value, note: &Value) -> R<Ecrit> {
     let aujourdhui = ctx.date;
     // Les fiches, comme celles de l'ecran (`forcer` : une fiche importee avec des anomalies est ecrite quand meme).
     let mut ecrits: BTreeSet<String> = BTreeSet::new();
@@ -573,7 +563,7 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
             "salarie": cle, "debut": c.debut.iso(), "fin": c.fin.iso(), "numero_objet": c.numero_objet,
             "heures": c.heures as i64, "cachets": c.cachets as i64, "jours": c.jours as i64, "brut": c.brut,
             "atteste_par": "AEM", "numero_attestation": c.numero_attestation,
-            "atteste_le": c.date_attestation, "fichier": c.fichier, "importe_le": le, "source": source,
+            "atteste_le": c.date_attestation, "fichier": c.fichier, "importe_le": le,
         }));
         contrats_aem += 1;
     }
@@ -588,7 +578,6 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
             continue;
         }
         e["importe_le"] = le.clone();
-        e["source"] = json!(source);
         engagements.push(e);
         contrats_bulletins += 1;
     }
@@ -606,7 +595,6 @@ fn ecrire(ctx: &Contexte, imp: &crate::routes::import::Apercu, reponse: &mut Val
         let mut x = x.clone();
         x["salarie"] = json!(cle);
         x["importe_le"] = le.clone();
-        x["source"] = json!(source);
         let k = cle_paie(&x)?;
         if let Some(a) = par_cle.get(&k).filter(|a| porte_un_bulletin(a) && !porte_un_bulletin(&x)) {
             completer_par(&mut x, &a.clone());
@@ -751,7 +739,7 @@ fn importer_dossier(ctx: &Contexte, charge: &Value) -> R<Value> {
     reponse["tri"] = tri;
     reponse["source"] = json!(dossier.display().to_string());
     let note = json!(format!("Importe du dossier import/ le {}", jj_mm_aaaa(&aujourdhui)));
-    let e = ecrire(ctx, &imp, &mut reponse, &note, &copies.display().to_string())?;
+    let e = ecrire(ctx, &imp, &mut reponse, &note)?;
     avertissements.extend(e.avertissements.iter().map(|a| json!(a)));
     reponse["avertissements"] = Value::Array(avertissements);
     reponse["contrats_nouveaux"] = json!(e.contrats_aem);

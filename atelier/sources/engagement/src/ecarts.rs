@@ -468,12 +468,11 @@ fn a_refaire(c: &mut Comparaison, raison: String) -> String {
 }
 
 /// L'empreinte de la paie `mois` de l'engagement importe `imp` : ce qui la reconnait d'une comparaison a l'autre (son
-/// salarie, ses bornes, son numero et ce que les pieces en disent, sans la date ni le dossier de l'import).
+/// salarie, ses bornes, son numero et ce que les pieces en disent, sans la date de l'import).
 pub fn empreinte(imp: &Importe, mois: &str, p: &Map<String, Value>) -> String {
     let brut = &imp.objet().brut;
     let mut paie = p.clone();
     paie.remove("importe_le");
-    paie.remove("source");
     let graine = json!([brut.get("salarie"), brut.get("debut"), brut.get("fin"), brut.get("numero"), mois, paie]);
     socle::fichiers::sha256_hex(graine.to_string().as_bytes())[..16].to_string()
 }
