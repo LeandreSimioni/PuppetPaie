@@ -990,7 +990,12 @@ fn controles_croises(nom: &str, d: &Map<String, Value>) -> R<Vec<Value>> {
     }
 
     if nom == "spectacle" {
-        let code = strip(&d.get("code_analytique").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
+        // LE TITRE QUE L'IMPORT N'A PAS TROUVE : un numero d'objet seul (la DSN ne porte pas le titre) recoit « A COMPLETER ».
+        // Ce n'est pas un titre : le contrat et le bulletin l'imprimeraient tel quel.
+        if strip(&texte_de(d, "titre")?).eq_ignore_ascii_case("A COMPLETER") {
+            out.push(anomalie("titre", "avertissement", "à compléter : aucune pièce reprise ne porte le titre de ce spectacle, et le contrat l'imprime."));
+        }
+        let code =strip(&d.get("code_analytique").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default()).to_string();
         if !code.is_empty() && !code.chars().all(|c| c.is_ascii() && (c.is_alphanumeric() || c == '-' || c == '_')) {
             out.push(anomalie(
                 "code_analytique",

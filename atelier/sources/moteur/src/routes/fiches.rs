@@ -1252,8 +1252,10 @@ fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
 
 // ------------------------------------------------ ecrire une valeur datee
 
+/// Une case vide : absente, nulle, un texte vide, ou le titre « A COMPLETER » que l'import pose sur un spectacle dont il
+/// ne connait que le numero d'objet (`import::completer::A_COMPLETER`) -- le remplir n'est pas un changement a dater.
 fn vide(v: Option<&Value>) -> bool {
-    v.map_or(true, |v| v.is_null() || v.as_str() == Some(""))
+    v.map_or(true, |v| v.is_null() || v.as_str() == Some("") || v.as_str().is_some_and(|s| s.trim().eq_ignore_ascii_case(crate::import::completer::A_COMPLETER)))
 }
 
 /// La meme valeur, a la forme pres : un nombre saisi en texte (100 et « 100 »), une personne et sa forme lisible (les

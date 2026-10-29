@@ -779,12 +779,14 @@ function vueImportation(r) {
     : "aucune DSN ni AEM dans le dossier";
   const avert = (r.avertissements || []).map((a) => `<div class="encart attention">${echapper(a)}</div>`).join("");
   const b = r.bulletins || {};
-  const nb = [r.entreprise, ...(r.salaries || []), ...(r.spectacles || [])].filter((f) => f && (f.etat === "a_creer"
-    || (f.etat === "existante" && Object.keys(f.completer || {}).length))).length;
+  const aEcrire = (f) => f && (f.etat === "a_creer" || (f.etat === "existante" && Object.keys(f.completer || {}).length));
+  const ns = (r.salaries || []).filter(aEcrire).length, nsp = (r.spectacles || []).filter(aEcrire).length;
   const nc = (r.contrats_nouveaux || 0) + (b.contrats_nouveaux || 0);
   const np = (b.paies_nouvelles || 0) + (b.paies_completees || 0);
   const quoi = [
-    nb ? `${nb} fiche${nb > 1 ? "s" : ""}` : "",
+    aEcrire(r.entreprise) ? "la fiche de la compagnie" : "",
+    ns ? `${ns} salarié${ns > 1 ? "s" : ""}` : "",
+    nsp ? `${nsp} spectacle${nsp > 1 ? "s" : ""}` : "",
     nc ? `${nc} contrat${nc > 1 ? "s" : ""}` : "",
     np ? `${np} bulletin${np > 1 ? "s" : ""}` : "",
   ].filter((x) => x);
