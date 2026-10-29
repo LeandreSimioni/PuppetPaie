@@ -238,14 +238,14 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   `atelier/reference/sources/veille-kali.json` (livraisons lues, liste des
   textes de chaque convention, trous de l'index) ; à la première veille,
   l'index est remonté jusqu'à la dernière fiche de chaque convention.
-  L'ouverture du Python refaisait la vérification une fois par semaine ;
-  en Rust elle ne la fait plus (`moteur/src/compagnie/ouverture.rs`) : c'est l'éditeur
+  L'ouverture d'une compagnie ne fait pas cette vérification
+  (`moteur/src/compagnie/ouverture.rs`) : c'est l'éditeur
   qui la lance, avant chaque publication.
-- `moteur releve-codes` (`moteur/src/atelier/releve/codes.rs`, porté du Python le
-  15/10/2026) — **les articles de loi eux-mêmes**, lus dans la base **LEGI**
+- `moteur releve-codes` (`moteur/src/atelier/releve/codes.rs`)
+  — **les articles de loi eux-mêmes**, lus dans la base **LEGI**
   de la DILA (même voie que KALI) plutôt qu'à la main sur Légifrance, qui
   refuse les robots. Tous les textes en un seul passage
-  (`releve_codes/textes.rs`) : travail, sécurité sociale, collectivités
+  (`atelier/releve/codes/textes.rs`) : travail, sécurité sociale, collectivités
   territoriales (le versement mobilité), construction, impôts, et les arrêtés
   et la loi que la paie lit. Trois verbes, sur le dossier des sources :
   - `moissonner` tient à jour l'entrepôt `legi-entrepot/`
@@ -391,10 +391,9 @@ Trois subtilités, chacune trouvée en cherchant pourquoi un centime manquait.
 séparément : 0,590 % → 1,69 et 0,090 % → 0,26. Même mécanisme pour la
 cotisation prévoyance `059` de la DSN (0,420 + 0,810 ; « Cotisation individuelle Prévoyance-Assurance-Mutuelle », versée à Audiens Santé Prévoyance, P0983).
 
-**Tous les arrondis sont au demi supérieur.** `round()` de Python arrondissait au
-pair le plus proche et se trompait donc d'un centime régulièrement ; `eur`
+**Tous les arrondis au centime sont au demi supérieur** : `eur`
 (`socle/src/num.rs`) arrondit un `Decimal` au demi qui s'éloigne de zéro
-(`MidpointAwayFromZero`, le `ROUND_HALF_UP` d'avant).
+(`MidpointAwayFromZero`) ; un arrondi au pair se tromperait d'un centime régulièrement.
 
 ## Le SMIC déclaré en DSN (composant 01 de la base 03)
 
@@ -424,9 +423,8 @@ décrit plus haut, avec le barème.
 ## L'AEM V5
 
 Enregistrements de 1000 caractères, latin-1, séparés par CRLF. Zones
-identifiées dans `moteur/aem.py` (Python, retiré : plus aucune AEM n'est émise
-depuis le 01/06/2026 et son écriture n'est pas portée ; l'import relit l'archive,
-`moteur/src/import/dsn_aem.rs`). La queue numérique est celle-ci :
+que l'import relit (`moteur/src/import/dsn_aem.rs`, `lire_aem` ; la compagnie est en 100 % DSN et n'en émet
+aucune). La queue numérique est celle-ci :
 
 | Position | Contenu |
 |---|---|
@@ -588,7 +586,7 @@ bulletins en PDF, zip, doublons) ; l'import en tire ses fiches et ses **engageme
 ## La DSN
 
 Norme NEODeS P26V01, puis P27V01 : la version se choisit **par fichier**
-(lot V4a, 10/10/2026), depuis `logiciel/donnees/norme-dsn-base.json` — le mois
+depuis `logiciel/donnees/norme-dsn-base.json` — le mois
 principal déclaré pour une mensuelle, le jour de constitution pour un
 signalement (`declarations/src/norme.rs`). Cette règle de bascule est une **inférence**
 (`_inference` de la donnée) : le cahier technique ne la donne pas. Chaque
@@ -604,10 +602,8 @@ sous la base 78 du `131` (type 23), à l'Urssaf (fiche net-entreprises 2556 ;
 saisit en NAF rév. 2 ou en NAF 2025 (`logiciel/donnees/naf-base.json`, relevé
 de l'INSEE) ; un fichier P27V01 refuse un code NAF rév. 2 et dit vers quels codes
 NAF 2025 il passe, sans choisir (`declarations/src/naf.rs`).
-`declarations/src/dsn.rs` émet les blocs dans l'ordre observé chez CoolPaie : le
-générateur Python dont il est le portage reproduisait juillet 2026 à la ligne
-près (997 lignes identiques). Il s'en écarte depuis, là où la relecture de la
-norme l'a corrigé (`prive/journal/RELECTURE-NORME-DSN.md`).
+`declarations/src/dsn.rs` émet les blocs dans l'ordre observé dans des DSN acceptées, corrigé là où la relecture de la
+norme l'a demandé (`prive/journal/RELECTURE-NORME-DSN.md`).
 
 Ce que le moteur écrit, là où on l'avait d'abord déduit des DSN de CoolPaie
 (« correspondances retrouvées », redites le 11/10/2026 d'après la norme
@@ -684,13 +680,11 @@ mois suivant (`engagement_de_reprise`). Le contrat entier recomposé pour le
 certificat CS (`paie_du_contrat_entier`) retire le planning des lignes :
 chaque mois a payé le sien.
 
-Le barème et le SMIC (`calcul.calculer`) sont ceux de `fin_periode`, pas de
+Le barème et le SMIC (`engagement::calcul`) sont ceux de `fin_periode`, pas de
 `fin` : un contrat de décembre à février se paie en décembre au barème de
-décembre. Sur un contrat qui tient dans son mois — tout l'historique — ces
-propriétés valent `debut`/`fin` et rien ne bouge : `calibrer` l'a prouvé sur
-75 DSN, et `tests/test_contrats_plurimensuels.py` (du temps du Python) rejouait un contrat fictif
-octobre → décembre et lisait les trois DSN — déposées en test le 15/09/2026,
-conformes. La quotité 40.012/013 est celle du **contrat entier** (jours
+décembre. Sur un contrat qui tient dans son mois, ces propriétés valent
+`debut`/`fin`. Les trois DSN d'un contrat d'octobre à décembre ont été déposées en
+test le 15/09/2026, conformes. La quotité 40.012/013 est celle du **contrat entier** (jours
 signés : dates du premier mois + planning, `Engagement.jours_contrat`),
 identique chaque mois et jamais zéro : le cahier technique 2026.1 interdit
 le zéro en unité journée (bloc 40, CCH-11). Comme elle ne bouge pas d'un mois
@@ -885,7 +879,7 @@ quatre plafonds **du mois** et la CET sur des tranches mensuelles. Sa
 prévoyance, elle, vient de la convention.
 
 `logiciel/donnees/contrats-base.json` porte ce que la DSN écrit de la **structure** d'un
-contrat, par nature — ce qui était, jusque-là, écrit dans `dsn.py`. Trois
+contrat, par nature. Trois
 natures : `cddu_spectacle` (l'intermittent, et le défaut d'un engagement qui
 ne dit rien), `cdi`, `cdd`. Chaque code y porte sa valeur, sa phrase et sa
 source ; `droit/src/natures.rs` les lit et ne décide rien.
@@ -1342,13 +1336,10 @@ plutôt que d'en fabriquer un.
 
 Une rubrique interdite écrite par mégarde, c'est une anomalie bloquante
 **CST-04** côté plate-forme, et le fichier ne déclare rien. Le tableau des
-usages est donc relevé dans `logiciel/donnees/arrets-base.json` (section `usages`), et
-`tests/test_arrets.py` confrontait chaque fichier produit à ce tableau —
-rubrique par rubrique, dans les deux sens (aucune interdite, toutes les
-obligatoires). Le générateur, lui, ne lit pas cette section : sinon le test ne
-vérifierait plus rien. Ce test était du Python : il est parti avec lui sans être
-porté, et plus rien ne lit cette section ; le test Rust des signalements
-(`tests/dsn/signalement.rs`) fige le texte de chaque cas.
+usages est donc relevé dans `logiciel/donnees/arrets-base.json` (section `usages`).
+Le générateur ne lit pas cette section : elle est l'attendu contre lequel un
+fichier produit se confronte, rubrique par rubrique, dans les deux sens (aucune
+interdite, toutes les obligatoires).
 
 ### Le bloc 60, et ses trois visages
 
@@ -1496,24 +1487,6 @@ CoolPaie ; net-entreprises accepte les deux. `DPAE_<mois>_recapitulatif.txt`
 donne la même chose en clair pour la saisie en ligne, qui reste une option
 raisonnable pour deux personnes.
 
-## Ce que le rejeu couvrait (`calibrer`, retiré avec le Python)
-
-```
-DSN juillet 2026 ......... identique
-DSN juin 2026 ............ identique
-DSN mars/avril/mai 2026 .. contrats à l'heure, régularisation annuelle S21.G00.82
-DSN janvier/février 2026 . structure de blocs antérieure
-DSN 2021-2025 ............ non rejouées : barèmes de ces années absents
-AEM 2026 ................. 10 fichiers sur 10 identiques octet pour octet
-```
-
-Les DSN de 2021 à 2025 ne se rejoueront pas, et c'est décidé (16/09/2026) :
-un essai sur mars 2025 a montré que les écarts sont d'abord de **norme**
-(P25 : pas de bloc 15 ni 31, pas de 78.006, pas de codes 102/907/072/079),
-pas de barème — les rejouer octet pour octet demanderait à `dsn.py` d'émuler
-cinq versions de la norme pour des déclarations passées et acceptées. Ce
-n'était utile que pour se rassurer, pas pour produire.
-
 ## Le dépôt, et le journal
 
 Ces déclarations engagent l'employeur. Le moteur les dépose **par l'API**
@@ -1523,30 +1496,31 @@ par un portail : un contrat écrit, des retours lus par programme, et une
 erreur qui se voit — la première DPAE du 12/09/2026 a été refusée cinq fois
 pour un code Urssaf faux que le portail DUE de CoolPaie laissait passer.
 
-Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, porté d'`operations_declarations.py`, sur la preuve du socle) :
+Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, `moteur/src/compagnie/demande.rs`) :
 
 - **Une preuve par acte.** Rien ne part en réel sans le mot de passe du
-  logiciel tapé au moment de l'acte, et les trois gestes (`README.md`).
-  Sans mot de passe posé, rien ne part du tout (17/09/2026) : le mois
-  recopié ne l'a jamais remplacé, et depuis le 21/09/2026 il ne se recopie
-  plus — il s'affiche. Plus de « séance » depuis le 16/09/2026 : chaque acte
-  porte sa preuve, rien entre les actes.
-- **Pas deux fois.** `produire_dpae` refuse une embauche déjà déclarée et non
-  refusée (`DpaeDejaDeclaree`), `deposer_dsn` une DSN réelle déjà partie pour
-  le mois (`DsnDejaDeposee`). Une déclaration **refusée** repart sans forcer —
+  logiciel tapé au moment de l'acte (`README.md`) ; la séance qui ouvre le
+  coffre n'en est jamais une. Sans mot de passe posé, rien ne part du tout.
+  Une version exigée et pas encore installée bloque tout dépôt réel
+  (`depot_acte::exigee_en_attente`).
+- **Pas deux fois.** Une DSN réelle déjà partie pour le mois ne repart pas
+  (`DsnDejaDeposee`), une embauche déjà déclarée ne se redéclare pas
+  (`DpaeDejaDeclaree`). Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
 - **Un dépôt n'est pas fini quand il est parti.** `envois/src/journal.rs` écrit une ligne
   par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de
-  signature), avec le `flux` rendu par le point de dépôt ; les retours relevés
+  signature ou contrat imprimé pour la main propre, documents), avec le `flux` rendu par le point de dépôt et, pour chaque engagement qu'il
+  couvre, le numéro de la version sur laquelle il est parti (`journal::departs`, que le moteur passe à l'engagement) ;
+  les retours relevés
   à l'ouverture s'y rattachent. `verdict_du_retour` (`envois/src/etats.rs`) lit les bilans (natures
   10/11) : une DPAE est **passée quand son bilan est OK**, le certificat 41
-  confirme, il ne décide plus. `resume` dit « REFUSÉ : motif », « bilan OK »,
+  confirme, il ne décide pas. `resume` dit « REFUSÉ : motif », « bilan OK »,
   « en TEST ».
 
 Déposer la DSN en test avant le dépôt réel, et garder l'ancien logiciel installé le temps
 de faire tourner un ou deux mois en parallèle et de comparer.
 
-### Un logiciel, un administrateur (ticket #244, 22/10/2026)
+### Un logiciel, un administrateur
 
 Une installation (le dossier qui porte `logiciel/`, `prive/`, `compagnies/*`, `fictives/*`) appartient à une personne,
 l'**administrateur**, qui peut y gérer plusieurs compagnies d'un seul mot de passe ; qui veut deux administrateurs
@@ -1600,13 +1574,21 @@ installe un second logiciel. `moteur/src/compagnie/administrateur.rs` :
 
 ## La version, et la mise à jour dans l'ombre
 
-`VERSION` (une date, `AAAA.MM.JJ`, comparée en entiers) ; `moteur/src/compagnie/maj.rs`
-(porté de `moteur/maj.py`). **Une mise à jour par installation** (lot U1,
-14/10/2026) : tout se passe dans `<installation>/maj/`, à côté de `logiciel/`,
-et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une
-adresse qui sert `derniere.json` et les archives de `logiciel/`.
+`VERSION` (une date, `AAAA.MM.JJ`, comparée en entiers). Ce qu'une installation reçoit, vérifie et applique est dans
+`moteur/src/compagnie/maj.rs` ; ce que l'éditeur publie (les archives, la signature, sa clé) dans
+`moteur/src/atelier/publier.rs`. **Une mise à jour par installation** : tout se passe dans `<installation>/maj/`, à
+côté de `logiciel/`, et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une adresse qui sert
+`derniere.json` et les archives de `logiciel/`.
 
-**Quatre archives de mise à jour par version** (Léandre, 15/10/2026) : une par système
+**Une version s'installe dès qu'elle est prête** : au lancement suivant, ou au clic « Redémarrer pour mettre à jour ».
+Rien ne la retient, ni une DSN à déposer ni un mois en cours. Sa phrase `calcul` (la case de « Publier ») dit à la
+compagnie ce qu'elle change d'un calcul de paie : l'indicateur la montre avec la version prête, puis, une fois, au
+lancement qui suit son installation (« PuppetPaie X est en place. Elle change un calcul de paie : … » ;
+`maj/appliquee.json`, qui passe à `vue: true`) ; une version sans phrase `calcul` ne dit rien de plus que « Logiciel à
+jour ». Une version **exigée** bloque tout dépôt réel tant qu'elle n'est pas installée
+(`depot_acte::exigee_en_attente`), et l'indicateur le dit, sans survol.
+
+**Quatre archives de mise à jour par version** : une par système
 (`windows`, `linux`, `mac` : les fichiers communs et les programmes de ce
 système) et une pour tous (`tout-systeme`). Dans `logiciel/`, les programmes de
 Windows sont à la racine (`puppetpaie.exe`, `WebView2Loader.dll`), ceux de Linux
@@ -1619,24 +1601,23 @@ fabrique (Windows seul, Windows et Linux, ou les trois) ; une installation dont
 le système n'est pas publié ne télécharge rien et garde sa version.
 
 **La forme de l'archive de mise à jour est un contrat** avec toutes les
-installations posées (ticket #246, 22/10/2026) : le contenu de `logiciel/` à sa
-racine, rien d'autre. Le code déjà installé la déballe telle quelle dans
-`maj/<version>/logiciel/` et y lit `VERSION` ; une autre forme (le 22/10,
-`logiciel/` et `fictives/` dans chaque archive) coupe toutes les installations
-de leurs mises à jour. `derniere.json` peut gagner une clé à sa racine (le
-code d'avant ne lit que `version` et `archives`), jamais en perdre ni rien
-gagner sous `archives` qui ne soit un système.
+installations posées : le contenu de `logiciel/` à sa racine, rien d'autre. Le
+code déjà installé la déballe telle quelle dans `maj/<version>/logiciel/` et y
+lit `VERSION` ; une autre forme couperait toutes les installations de leurs
+mises à jour, sans retour possible. `derniere.json` peut gagner une clé à sa
+racine (les installations posées ne lisent que `version` et `archives`),
+jamais en perdre ni rien gagner sous `archives` qui ne soit un système.
 
 **Deux autres sortes d'archives, à côté.** L'**archive des fictives**
-(`puppetpaie-<version>-fictives.zip`, `maj::archiver_fictives`), signée, que
+(`puppetpaie-<version>-fictives.zip`, `publier::archiver_fictives`), signée, que
 `derniere.json` nomme sous `fictives` avec l'**empreinte** de leur contenu
 (SHA-256 des fichiers livrés et de leurs noms, ni compression ni dates). Les
 **archives d'installation** (`puppetpaie-<version>-<système>-installation.zip`,
-Linux, Mac et tous ; `maj::archiver_installation`) : `logiciel/` et
+Linux, Mac et tous ; `publier::archiver_installation`) : `logiciel/` et
 `fictives/`, ce qu'on décompresse pour installer ; ni signées ni nommées,
 comme l'installeur Windows.
 
-**Les fictives se mettent à jour à part** (Léandre, 22/10/2026). Une
+**Les fictives se mettent à jour à part.** Une
 installation retient la livraison qu'elle a dans `fictives/.livraison.json`
 (`empreinte`, et `posees` : le nom et l'empreinte de chaque fictive qu'elle a
 posée) ; chaque fictive posée porte sa marque, `.livree.json` (son empreinte).
@@ -1665,19 +1646,22 @@ et `maj/journal.log` le dit.
   `puppetpaie route`, lit la configuration de chaque compagnie de
   l'installation) et pose `maj/prete.json`.
 - `appliquer` — au démarrage suivant, par un relais lancé avant toute
-  fenêtre : `logiciel/` → `logiciel/.avant/`, la version prête prend sa
-  place ; si ça casse en route, tout revient.
+  fenêtre (`maj::au_lancement`, `maj::relais` : sous Windows, un programme ne
+  se remplace pas pendant qu'il tourne) : `logiciel/` → `logiciel/.avant/`, la
+  version prête prend sa place ; si ça casse en route, tout revient.
 - `revenir` — `.avant/` reprend la place (`moteur maj --revenir`).
-- `publier` — par le flux « Publier » du dépôt public, qui compile les
-  systèmes choisis (le Mac sur `macos-latest`), signe et pose leurs archives,
-  celle de tous et celle des fictives, les archives d'installation,
-  `derniere.json` et l'installeur dans une Release (la clé du
-  poste, `moteur maj --publier`, reste acceptée) ; jamais republier un numéro.
+- `publier` — par le flux « Publier » du dépôt public
+  (`.github/workflows/publier.yml`), qui compile les systèmes choisis (le Mac
+  sur `macos-latest`), attend l'approbation de Léandre, signe
+  (`publier::publier_depuis_l_environnement`) et pose leurs archives, celle de
+  tous et celle des fictives, les archives d'installation, `derniere.json` et
+  l'installeur dans une Release (la clé d'un poste, `moteur maj --publier`, est
+  acceptée aussi) ; jamais republier un numéro.
 
 
 ## L'exercice : rappels, clôture, export compta
 
-Porté d'`operations_exercice.py` (16/09/2026) : `moteur/src/compagnie/exercice_ecrit.rs` (la clôture,
+`moteur/src/compagnie/exercice_ecrit.rs` (la clôture,
 l'export compta) et `moteur/src/routes/rappels.rs` (les rappels). Trois choses qui regardent plus loin
 que le mois affiché.
 
@@ -1707,13 +1691,13 @@ les retours dont le nom commence par l'année ou par janvier suivant (le
 bilan de la DSN de décembre arrive en janvier), `journal/depots.json`, les
 fiches de `config/` et le barème de l'année, `compta/`, un `LISEZ-MOI.txt`.
 Elle note dans `config/exercices.json` la date, l'archive, son empreinte
-SHA-256 et le nombre de fichiers. **Figer** vit dans le socle
-(`refuser_si_clos`) et est appelé par `enregistrer_saisie` et
-`produire_mois` : un front qui l'esquiverait n'existe pas. `rouvrir_exercice`
+SHA-256 et le nombre de fichiers. **Figer** vit dans le moteur
+(`routes::mois::refuser_si_clos`), appelé par l'écriture d'une saisie et par
+la fabrication de la DSN (`depart::fabriquer_dsn`) : un front qui l'esquiverait n'existe pas. `rouvrir_exercice`
 retire la note et garde l'archive (avec une trace `_rouverts`).
 
-**L'export compta** (`export_compta`) recalcule chaque mois depuis sa saisie
-(`charger`) — les mêmes lignes, les mêmes arrondis que les bulletins — et
+**L'export compta** (`export_compta`) lit les paies écrites des engagements validés
+(`documents::ecritures_comptables`) — les mêmes lignes, les mêmes arrondis que les bulletins — et
 construit une écriture par mois, datée du dernier jour : au débit le brut
 par spectacle (l'analytique) et la part patronale de chaque ligne de
 bulletin ; au crédit un tiers par organisme (part patronale + part
@@ -1728,3 +1712,27 @@ Pourquoi les bulletins et pas la DSN : le montant Urssaf de la DSN est un
 bordereau recopié, pas un calcul, et les blocs 81 ne couvrent pas tout ce
 que l'Urssaf facture — la comptabilité de la paie, c'est le bulletin ; le
 prélèvement réel se rapproche ensuite du compte de tiers.
+
+## Les tests, par partie
+
+Chaque partie a ses tests et une cible qu'elle ne dépasse pas : pour en ajouter un, on en retire un. Un test s'écrit
+pour une règle tirée d'un texte déposé (il le cite), pour un bug réel qui a échappé, ou pour un parcours ; jamais pour
+une forme, ni pour comparer le moteur à ce qu'il faisait. Un test qui monte une compagnie passe par le moteur entier et
+vit dans `moteur/tests/` ; un test qui n'appelle qu'une crate sur des valeurs vit dans cette crate.
+
+| partie | où | cible | ce qu'ils prouvent |
+|---|---|--:|---|
+| socle | `socle/` | 10 | dates, heure de Paris, arrondis ; l'écriture des fichiers et le verrou |
+| droit | `droit/` | 80 | une règle = un texte déposé cité ; une grille à graine fixe par barème |
+| engagement | `engagement/`, `moteur/tests/calcul/` | 15 | rien ne part sans validation ; ce qui est parti fige ; daté ou corrigé |
+| documents | `documents/` | 20 | la forme relue, les chiffres égaux à l'engagement |
+| déclarations | `declarations/`, `moteur/tests/dsn/` | 90 | la norme : usages, formats, blocs, ordre, échéances |
+| envois | `envois/` | 40 | la lecture des retours réels transcrits, le garde-fou réseau, aucun envoi réel sans mot de passe |
+| interface | `moteur/tests/routes/`, `interface_fichiers.rs`, `interface_http.rs`, `src/interface/`, `src/routes/` | 20 | une route refuse et rien n'est écrit ; l'ouverture |
+| compagnie | `moteur/tests/fichiers/` (coffre, clé de signature, mise à jour, sauvegarde, restauration, archivage, bridage, essai, installations, Drive, banque des conseils), `tests/routes/compagnie_supprimee.rs`, `demarrage.rs`, `tests/drive_jeton.rs`, `src/compagnie/` | 40 | le coffre et ses deux mots de passe, la signature des mises à jour et la forme des archives, la sauvegarde et la restauration, le bridage |
+| import | `moteur/tests/fichiers/bulletin_lu.rs`, `caviardage.rs`, `tests/routes/import_neuve.rs`, `src/import/` | 15 | un passé importé se relit (bulletins, DSN) ; ce qui part chez l'éditeur ne désigne personne |
+| atelier | `moteur/tests/fichiers/donnees_reelles.rs`, `garde_reseau.rs`, `verifier_avant_commit.rs`, `referentiels.rs`, `tests/atelier.rs`, la garde de l'horloge | 15 | les garde-fous de `atelier/CLAUDE.md` ; la fidélité des référentiels livrés aux textes déposés ; le binaire livré ne porte rien de l'atelier |
+| parcours | `moteur/tests/rejeu.rs` | 4 | un scénario joué de bout en bout à l'horloge, ses sorties comparées à un oracle |
+
+Total visé : environ 350, plafond 400. La commande, et ce qu'un exécutant lance : `atelier/CLAUDE.md`, « Faire
+tourner le code dans le conteneur, et les tests ».
