@@ -348,9 +348,14 @@ fn a_revalider(o: &Objet, v: &Value) -> Option<String> {
 /// se refuse a la validation, avant tout calcul. L'engagement garde la paie validee, et le refus va au temoin que la
 /// couche du dessus a pose (`poser_temoin`), qui le note pour l'editeur.
 pub fn du_mois(ctx: &Contexte, mois: &str) -> Resultat<Vec<Etat>> {
-    if let Err(refus) = rafraichir(ctx, mois) {
-        if let Some(temoin) = TEMOIN.get() {
-            temoin(&ctx.racine, mois, &refus);
+    match rafraichir(ctx, mois) {
+        // Rien ne s'est reecrit : les etats lus pour la verification sont ceux du mois.
+        Ok(Some(etats)) => return Ok(etats),
+        Ok(None) => {}
+        Err(refus) => {
+            if let Some(temoin) = TEMOIN.get() {
+                temoin(&ctx.racine, mois, &refus);
+            }
         }
     }
     ecrits(ctx, mois)
@@ -1070,20 +1075,21 @@ fn decision_de_l_editeur(raison: &str) -> bool {
 /// Un mois dont les documents sont partis ne bouge que par une decision de l'editeur (le code qui calcule, une regle
 /// datee : `empreinte::code_ou_regle_change`, puis la raison du recalcul), et la paie refaite rectifie le bulletin parti.
 /// Un taux de PAS recu, une configuration, une autre saisie ne touchent pas un mois parti.
-fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
+fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<Option<Vec<Etat>>> {
     // Ce qui ne tient plus : le rang dans l'ecran, l'engagement, sa paie ecrite du mois, et si ses documents sont partis.
     let mut a_refaire: Vec<(usize, Objet, Option<Value>, bool)> = Vec::new();
     let mut relues = empreinte::Relues::default();
-    for (i, e) in ecrits(ctx, mois)?.into_iter().enumerate() {
+    let etats = ecrits(ctx, mois)?;
+    for (i, e) in etats.iter().enumerate() {
         let (v, parti) = match e {
             Etat::Valide(v) => (v, false),
             // Une paie qui manque (un contrat sans terme qui entre dans le mois) s'ecrit.
-            Etat::Partis(p) if p.valide().paie_ecrite(mois).is_none() => (p.valide().clone(), false),
-            Etat::Partis(p) => (p.valide().clone(), true),
+            Etat::Partis(p) if p.valide().paie_ecrite(mois).is_none() => (p.valide(), false),
+            Etat::Partis(p) => (p.valide(), true),
             Etat::EnSaisie(_) => continue,
         };
-        let ancienne = v.paie_ecrite(mois).cloned();
-        let empreinte_ecrite = ancienne.as_ref().and_then(|a| a.get("empreinte"));
+        let ancienne = v.paie_ecrite(mois);
+        let empreinte_ecrite = ancienne.and_then(|a| a.get("empreinte"));
         // Partie, elle ne bouge que par une decision de l'editeur : on la cherche d'abord (quelques entrees), et
         // l'empreinte entiere ne se verifie que si elle a lieu.
         if parti && !empreinte_ecrite.is_some_and(|e| empreinte::code_ou_regle_change(ctx, e, mois, &mut relues)) {
@@ -1093,10 +1099,10 @@ fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
         if tient {
             continue;
         }
-        a_refaire.push((i, v.objet, ancienne, parti));
+        a_refaire.push((i, v.objet.clone(), ancienne.cloned(), parti));
     }
     if a_refaire.is_empty() {
-        return Ok(());
+        return Ok(Some(etats));
     }
     let departs = departs::lire(&ctx.racine)?;
     let rangs: Vec<usize> = a_refaire.iter().map(|(i, _, _, _)| *i).collect();
@@ -1162,7 +1168,7 @@ fn rafraichir(ctx: &Contexte, mois: &str) -> Resultat<()> {
         }
         stock::reecrire(&ctx.racine, &o)?;
     }
-    Ok(())
+    Ok(None)
 }
 
 // ------------------------------------------------------------------ ce qui est a refaire

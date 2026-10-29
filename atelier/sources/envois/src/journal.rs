@@ -157,8 +157,24 @@ pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {
 /// CE QUI EST PARTI, pour l'engagement (`engagement::departs`) : chaque ligne d'envoi acceptee porte, pour chaque
 /// engagement qu'elle couvre, la version sur laquelle elle est partie (`versions` : `[{"salarie", "numero",
 /// "version", "mois"?}]` ; `mois`, pour la correction d'un mois passe qu'une DSN porte : le mois corrige). Une DSN ou une DPAE de test ne part pas : seules les lignes reelles comptent.
+/// Tires une fois par contenu du journal (la meme valeur partagee, `socle::fichiers::json_partage`) : chaque lecture d'un
+/// mois les demande.
 pub fn departs(racine: &Path) -> Resultat<engagement::departs::Departs> {
-    Ok(departs_des_lignes(&lire(racine, None, None, false)?))
+    type Tires = std::sync::Mutex<std::collections::HashMap<std::path::PathBuf, (std::sync::Arc<Value>, engagement::departs::Departs)>>;
+    static TIRES: std::sync::OnceLock<Tires> = std::sync::OnceLock::new();
+    let p = chemin(racine);
+    let Some(v) = socle::fichiers::json_partage(&p)? else { return Ok(Default::default()) };
+    socle::fichiers::noter_si_besoin(&p);
+    let tires = TIRES.get_or_init(Default::default);
+    if let Some((vu, d)) = tires.lock().unwrap_or_else(|e| e.into_inner()).get(&p) {
+        if std::sync::Arc::ptr_eq(vu, &v) {
+            return Ok(d.clone());
+        }
+    }
+    let Value::Array(lignes) = v.as_ref() else { return Err(format!("{} : une liste etait attendue", p.display())) };
+    let d = departs_des_lignes(lignes);
+    socle::fichiers::ranger(tires, p, (v.clone(), d.clone()));
+    Ok(d)
 }
 
 /// Ce que les lignes `lignes` du journal disent de ce qui est parti (`departs`) : les lignes qui precedent un envoi
