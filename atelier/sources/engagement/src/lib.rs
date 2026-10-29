@@ -1181,15 +1181,15 @@ fn numero_dit(eng: &Engagement) -> String {
 }
 
 /// LE CONTRAT DE CET ENGAGEMENT SE FAIT-IL SIGNER PAR LE LOGICIEL ? Oui quand sa nature a un contrat ecrit (`contrat_ecrit`
-/// de `contrats-base.json` : le CDD « est etabli par ecrit », L1242-12 ; tout salarie recoit l'ecrit de L1221-5-1). Le
-/// contrat d'un permanent repris d'un ancien logiciel a ete signe la-bas (`importe::vient_d_un_ancien_logiciel`) : il ne
-/// se refait pas signer ici.
+/// de `contrats-base.json` : le CDD « est etabli par ecrit », L1242-12 ; tout salarie recoit l'ecrit de L1221-5-1). Un
+/// contrat repris d'un ancien logiciel -- celui d'un permanent, ou le contrat d'usage qui continue ici un contrat importe --
+/// a ete signe la-bas (`importe::vient_d_un_ancien_logiciel`) : il ne se refait pas signer ici.
 pub fn contrat_a_signer(racine: &Path, eng: &Engagement) -> Resultat<bool> {
     let nat = eng.nat()?;
     if nat.modele_contrat().is_none() {
         return Ok(false);
     }
-    Ok(!(nat.permanent() && importe::vient_d_un_ancien_logiciel(racine, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref().unwrap_or(""))))
+    Ok(!importe::vient_d_un_ancien_logiciel(racine, &eng.salarie, &eng.debut.iso(), eng.numero.as_deref().unwrap_or("")))
 }
 
 /// UN NUMERO DE CONTRAT NE SE DONNE QU'AU PREMIER MOIS : le numero identifie le contrat en DSN (S21.G00.40.009), il se
