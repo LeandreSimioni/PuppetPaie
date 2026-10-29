@@ -2,7 +2,8 @@
 //! bulletins (`bulletin_lu`, `bulletins`), leur tri dans la boite d'import, ce qui s'ecrit (`ecrite` : les engagements
 //! importes), ce qui complete une fiche, la nature des contrats que les bulletins n'ont pas dite, le mois importe tel
 //! que la page le montre, la regularisation CASC-SVP des mois importes, les ecarts de calcul et l'incident d'un import
-//! qui n'a pas abouti (caviarde avant de partir) ; le guide de ce qu'on y met (`guide`).
+//! qui n'a pas abouti (caviarde avant de partir) ; le guide de ce qu'on y met (`guide`) ; ce que les DSN reprises
+//! disent de la configuration (`parametrage`).
 
 pub mod bulletin_lu;
 pub mod bulletins;
@@ -16,4 +17,5 @@ pub mod guide;
 pub mod incident;
 pub mod mois;
 pub mod nature;
+pub mod parametrage;
 pub mod tri;

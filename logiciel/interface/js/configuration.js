@@ -814,12 +814,18 @@ function vueImportation(r) {
     nc ? `${nc} contrat${nc > 1 ? "s" : ""}` : "",
     np ? `${np} bulletin${np > 1 ? "s" : ""}` : "",
   ].filter((x) => x);
+  // La couleur de l'encart, et ce que l'import a posé de la configuration,
+  // viennent du moteur (`encart`, `parametrage`).
+  const couleur = ENCART_DE_COULEUR[(r.encart || {}).couleur] || "";
+  const pose = (r.parametrage || []).length
+    ? `<p class="note">Posé dans la configuration :</p><ul>${r.parametrage.map((p) => `<li>${echapper(p)}</li>`).join("")}</ul>` : "";
   const bouton = r.ecrit
-    ? `<div class="encart bien"><b>Repris.</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
+    ? `<div class="encart ${couleur}"><b>Repris.</b> ${(r.fichiers || []).map((f) => echapper(f)).join("<br>")}
+        ${pose}
         <p class="note">Les fichiers lus sont copiés dans l'historique de la compagnie ; vous pouvez vider
           le dossier <code>import/</code>.</p></div>`
     : r.rien_a_faire
-      ? `<div class="encart bien"><b>Rien à reprendre</b> : tout est déjà là.</div>`
+      ? `<div class="encart ${couleur}"><b>Rien à reprendre</b> : tout est déjà là.</div>`
       : `<p><button class="primaire" id="import-ecrire">Reprendre${quoi.length ? " " + quoi.join(", ") : ""}</button>
          <span class="note">Rien n'est écrit avant ce clic.</span></p>`;
   return `<div id="import-incident"></div>
@@ -1108,14 +1114,12 @@ const SOUS_CHAMPS = {
   declarant_dsn: { champs: [
     ["civilite", "Civilité", "Celle de la personne que les organismes contactent : elle s'écrit dans chaque DSN.",
      { choix: { "": "—", "02": "Madame", "01": "Monsieur" } }],
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
+    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
     ["tel", "Téléphone", ""],
     ["email", "Courriel", ""],
   ] },
   contact_sante_travail: { champs: [
-    ["prenom_affichage", "Prénom", ""],
-    ["nom_affichage", "Nom", ""],
+    ["nom_prenom_affichage", "Nom et prénom", "En une seule case, comme la DSN l'écrit."],
     ["tel", "Téléphone", ""],
     ["email", "Courriel", ""],
   ] },

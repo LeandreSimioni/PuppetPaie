@@ -316,12 +316,13 @@ fn capitales(v: &Value) -> String {
 /// rend `{cle: [avant, apres]}` pour les structures modifiees.
 fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<String, Value> {
     let mut faits = Map::new();
-    // Le contact de la medecine du travail interne (S20.G00.07 de type 17, `dsn::contact_sante_travail`) s'ecrit comme
-    // celui de la DSN : « NOM PRENOM ».
-    let personnes: [(&str, &[&str], Option<(&str, [&str; 2])>); 3] = [
+    // LE CONTACT DSN ET CELUI DE LA MEDECINE DU TRAVAIL INTERNE : la norme les ecrit en « nom et prenom » en une seule
+    // rubrique (S20.G00.07.001, `norme-dsn/texte/bloc-S20.G00.07.txt` l. 63-71) ; la fiche les saisit en une case
+    // (`nom_prenom_affichage`), dont la forme declaree est la meme en capitales sans accents.
+    let personnes: [(&str, &[&str], Option<(&str, &[&str])>); 3] = [
         ("signataire", &["nom", "prenom"], None),
-        ("declarant_dsn", &[], Some(("nom_prenom", ["nom", "prenom"]))),
-        ("contact_sante_travail", &[], Some(("nom_prenom", ["nom", "prenom"]))),
+        ("declarant_dsn", &[], Some(("nom_prenom", &["nom_prenom"]))),
+        ("contact_sante_travail", &[], Some(("nom_prenom", &["nom_prenom"]))),
     ];
     for (cle, officiels, compose) in personnes {
         let Some(Value::Object(p)) = donnees.get(cle) else { continue };

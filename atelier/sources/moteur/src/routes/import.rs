@@ -38,6 +38,10 @@ pub(crate) fn avec_les_pastilles(mut v: Value) -> Value {
     poser_les_pastilles(&mut v);
     if let Some(o) = v.as_object_mut() {
         o.insert("pastilles".into(), crate::import::bulletins::pastilles_des_sorts());
+        // L'encart de ce qui est repris, ou qu'il n'y a rien a reprendre : fait.
+        if o.get("ecrit").is_some_and(vrai) || o.get("rien_a_faire").is_some_and(vrai) {
+            o.insert("encart".into(), super::pastille("fait", "repris"));
+        }
     }
     v
 }

@@ -61,7 +61,7 @@ function etape(t) { console.log(`\n== ${t}`); }
     urssaf_compte: "5200000000", congesspectacles_adherent: "0000052000F", affiliation_france_travail: "80000052008" })) await champ(page, k, v);
   for (const [k, v] of Object.entries({ prenom_affichage: "Adolphe", nom_affichage: "Appia", fonction: "Gérant", tel: "0100000052", email: "direction@les-treteaux.invalid" })) await sous(page, "signataire", k, v);
   await sous(page, "declarant_dsn", "civilite", "01");
-  for (const [k, v] of Object.entries({ prenom_affichage: "Adolphe", nom_affichage: "Appia", tel: "0100000052", email: "direction@les-treteaux.invalid" })) await sous(page, "declarant_dsn", k, v);
+  for (const [k, v] of Object.entries({ nom_prenom_affichage: "Appia Adolphe", tel: "0100000052", email: "direction@les-treteaux.invalid" })) await sous(page, "declarant_dsn", k, v);
   await sous(page, "banque", "iban", "FR7630001007943252044000039"); await sous(page, "banque", "bic", "BANQFRPPXXX");
   await page.fill("#atmp-valeur", "1,10"); await page.fill("#atmp-code", "923AD");
   await banc.capture(page, C + "p03-entreprise-remplie.png");
