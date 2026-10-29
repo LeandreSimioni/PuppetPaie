@@ -2,72 +2,95 @@
 
 ## Le principe
 
-CoolPaie a produit cinq ans de déclarations acceptées par l'URSSAF, France
-Travail et Audiens. Ces fichiers sont la spécification : chaque taux, chaque
-règle d'arrondi et chaque champ de ce moteur en a été déduit, puis vérifié en
-rejouant les mêmes mois et en comparant caractère par caractère.
+Trois règles de conception.
 
-D'où trois règles de conception.
+**Le calcul est du code, pas du langage.** Un modèle de langage ne calcule jamais
+une cotisation. La crate `engagement` applique les barèmes datés ; elle est la seule
+du moteur à calculer. Claude ne fait que traduire une phrase en saisie et appeler
+une route.
 
-**Le calcul est du code, pas du langage.** Un modèle de langage ne doit jamais
-calculer une cotisation. `engagement/src/calcul.rs` applique un barème JSON versionné ;
-Claude ne fait que traduire une phrase en fichier de saisie et lancer la
-commande.
+**Les formats à largeur fixe partent d'un enregistrement.** La DPAE se fabrique sur
+un gabarit de 990 caractères (`donnees/modeles/due_tel_gabarit.txt`, un enregistrement
+neutre, ou celui du `gabarits/` de la compagnie) dont seule l'en-tête constante reste :
+chaque zone variable est réécrite (`declarations/src/dpae.rs`).
 
-**Les formats à largeur fixe partent d'un vrai enregistrement.** L'AEM et la
-DPAE sont générées en recopiant un enregistrement réel (`gabarits/`) et en n'y
-remplaçant que les zones identifiées. Tout ce qui n'a pas été compris reste
-donc exactement tel que l'administration l'a déjà accepté.
+**Rien n'est réputé juste sans preuve.** Une règle se prouve par un test qui cite
+le texte déposé qui la fonde ; une déclaration, par le dépôt de test, seul
+validateur (règle de fond 10).
 
-**Rien n'est réputé juste sans rejeu.** Le moteur a été calé en reconstruisant
-chaque DSN et chaque AEM du dossier `export/` à partir de leurs propres données
-et en les comparant à l'original (`calibrer`, du temps du Python ; retiré avec
-lui et non porté). Ce qui en tient lieu : les attendus
-transcrits dans les tests (`atelier/sources/moteur/tests/`) et le dépôt de test,
-seul validateur (règle de fond 10).
+## Les parties
+
+L'espace Cargo `atelier/sources/` a une crate par partie ; chaque flèche descend, jamais l'inverse
+(`atelier/sources/Cargo.toml`, en tête).
+
+```
+                         moteur   la ligne de commande, les routes et la page ; la compagnie, l'import, l'atelier
+                           │
+         ┌─────────────────┼─────────────────┐
+       envois        declarations ──────► documents
+         │                 │                 │
+         └─────────────────┼─────────────────┘
+                       engagement   la saisie, le calcul (le seul), la validation, le recalcul
+                           │
+                         droit      barèmes datés, conventions, natures de contrat, règles ; lit tout à une date
+                           │
+                         socle      dates, heure de Paris, temps simulé, nombres, texte, fichiers, garde-fou réseau
+```
+
+| crate | ce qu'elle fait | ce qu'elle ne fait pas |
+|---|---|---|
+| `socle` | dates, heure de Paris, temps simulé, nombres (`d28` : 28 chiffres significatifs, au pair sur le demi après chaque opération), texte, HTML et base64, fichiers, échecs, garde-fou réseau | aucun droit, aucun métier |
+| `droit` | barèmes datés et leurs trois étages, conventions, natures de contrat, minima, congés, PAS, cumuls des annexes 8 et 10, effectif | ne connaît pas l'engagement |
+| `engagement` | la saisie, le calcul de ses paies, la validation, la modification et ses versions, le recalcul de lui-même, l'engagement importé, l'engagement non actif, les écarts d'une paie importée avec le calcul du moteur ; reçoit ce qui est parti (`departs`) | ne fabrique aucun document, ne lit jamais le journal |
+| `documents` | contrat, avenant, bulletin, certificat Congés Spectacles, AER, questionnaire, récapitulatif annuel, bordereau, prélèvement, états de paie, du personnel et de comptabilité, plan comptable | ne calcule rien |
+| `declarations` | DSN mensuelle et signalements, DPAE, régularisations, bloc 44, CSA, OETH, CASC-SVP, et la norme qui les contrôle (usages, formats, natures, champs) ; prend à `documents` | ne calcule rien, n'envoie rien |
+| `envois` | ce qui part et revient : net-entreprises, DPAE, signature, courriel, Drive, retours et bilans ; le journal de ce qui est parti ; le branchement (le monde, le simulateur, le message) | ne fabrique rien, n'ouvre jamais le coffre |
+| `moteur` | tout le reste, en dossiers (ci-dessous) | |
+
+À part : `fenetre/` (la fenêtre Tauri, programme `puppetpaie`, qui ne fait qu'afficher la page) et `fabrique-pdf/`.
+
+**Les dossiers de `moteur/src/`** :
+
+| dossier | ce qu'il porte |
+|---|---|
+| `routes/` | `moteur route` : une route par geste de l'écran, derrière un aiguillage (`mod.rs`) ; seules à décider, la ligne de commande et la page ne font que les appeler (règle 2) |
+| `interface/` | le serveur local de la page (127.0.0.1, un jeton par appel), l'accueil et ses compagnies, une fenêtre par installation, la veille |
+| `compagnie/` | ce qui garde la compagnie et la fait vivre à côté de ses engagements : le coffre et ses deux mots de passe, la demande d'un acte réel et ses portes (`depot_acte`), le départ des pièces (`depart`), la sauvegarde et la restauration, la mise à jour (`maj`), le bridage, l'ouverture, l'administrateur, le filet, les incidents, les conseils, la clôture et l'export compta (`exercice_ecrit`) |
+| `import/` | le passé d'une compagnie tenu dans un autre logiciel : le tri de la boîte aux lettres, les DSN et AEM (`dsn_aem`), le lecteur unique des bulletins (`bulletin_lu`), les engagements importés (`ecrite`), la nature à dire, la CASC-SVP des mois importés, les écarts de calcul, le caviardage et l'incident d'import |
+| `atelier/` | les outils de l'éditeur, jamais à l'écran : le relevé des textes (`releve/` : LEGI, KALI), les référentiels extraits (`extraire/`), les tables Unicode, la vérification avant commit, le guet, les scénarios du banc, la publication des versions et la clé de l'éditeur (`publier`) ; la redirection vers de faux serveurs et les bulletins fictifs n'existent que dans le binaire de l'atelier (`--features atelier`) |
+| `commandes/` | la ligne de commande `moteur`, mince, au-dessus des parties |
+
+À la racine : `lib.rs`, `main.rs`, `service.rs` (la demande et la réponse de `moteur route`), `etat_garde.rs` (l'état
+d'un mois et de l'ouverture tels que l'écran les lit, refaits en fond), `horloge.rs` (l'horloge des compagnies
+fictives), et ce que l'écran lit d'un mois : `apercu_dsn.rs`, `historique_mois.rs`, `obligations.rs`,
+`regularisation.rs`, `simulation_courriels.rs`.
 
 ## Le flux
 
 ```
-   une phrase, ou engagements/AAAA-MM.json (des engagements, leurs lignes de paie datées)
+   la page (logiciel/interface/) ou la ligne de commande
+              │  moteur route
+              ▼
+   routes/ ── un geste : saisir, valider, modifier, envoyer…
+              ▼
+   engagement ── engagements/AAAA-MM.json ; lit config/ (datée) et les barèmes
+              │   au jour de la période ; calcule et écrit les paies à la validation
+              ▼
+   documents, declarations ── contrat, DPAE, bulletin, certificat, DSN…
+              │                fabriqués au départ, depuis les paies écrites
+              ▼
+   envois ── dépôt par l'API, signature, courriel, contre le mot de passe du logiciel
               │
               ▼
-   routes/ ──── les routes du moteur (`moteur route`) : l'orchestration et les
-              │    garde-fous, seules à décider ; la ligne de commande
-              │    (commandes/) et l'interface (logiciel/interface/, par
-              │    `moteur route`) ne font que les appeler. Un aiguillage (mod.rs), un
-              │    fichier par geste de l'écran derrière (mois, etapes…)
-              ▼
-   contexte.rs ── config/entreprise.json, salaries.json, spectacles.json,
-              │   organismes.json, baremes/AAAA.json, compteurs.json
-              ▼
-   calcul.rs  ── brut, assiette CSG, plafond, rubriques du catalogue, net, coût
-              │
-   ┌──────────┼───────────┬────────────┬────────────────────┐
-   ▼          ▼           ▼            ▼                    ▼
-contrat.rs bulletin.rs  dpae.rs      dsn.rs        conges_spectacles.rs
-  PDF        PDF        990 c.   NEODeS P26V01            PDF
-   │          │           │            │                    │
-   └──────────┴───────────┴────────────┴────────────────────┘
-                          │
-                       sorties/AAAA-MM/
-                          │
-        depot.rs / transport.rs ── dépôt par l'API, contre le mot de passe du logiciel
-                          │
-                     journal.rs ── journal/depots.json : ce qu'un fichier
-                                   est devenu, et ce que l'organisme en a dit
+   journal/depots.json ── ce qui est parti, sur quelle version de chaque
+                          engagement, et ce que l'organisme en a dit
 ```
 
-(Les modules sont dans `atelier/sources/moteur/src/` ; chacun nomme en tête le
-module Python qu'il a porté.) Plus d'AEM produite depuis le 01/06/2026 (100 %
-DSN, France Travail édite l'attestation lui-même — `moteur aer`) ; rien de son
-écriture n'est porté, l'import relit l'archive 2021-2026
-(`moteur/src/import/dsn_aem.rs`, `lire_aem`). La source : le courriel de France Travail du
-28/05/2026 à la compagnie (`reference-privee/sources/francetravail-100-dsn/
-francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf` : relevé sur une
-compagnie réelle, pièce hors du dépôt public, dépôt privé) — fin des AEM,
-AE Cinéma Spectacle remise au salarié, `S21.G00.40.025` vide ; la date vaut
-pour cette compagnie, une autre reçoit la sienne.
+Plus d'AEM à produire : la compagnie est en 100 % DSN, France Travail édite l'attestation lui-même et la renvoie
+(`moteur aer`) ; l'import relit les AEM d'un ancien logiciel (`moteur/src/import/dsn_aem.rs`, `lire_aem`). La source :
+le courriel de France Travail du 28/05/2026 (`reference-privee/sources/francetravail-100-dsn/
+francetravail-courriel-fin-phase-pilote-100-dsn-20260528.pdf`, dépôt privé) — fin des AEM, AE Cinéma Spectacle remise
+au salarié, `S21.G00.40.025` vide ; la date vaut pour la compagnie qui l'a reçu, une autre reçoit la sienne.
 
 ## L'engagement : un objet, ses paies validées
 
@@ -84,35 +107,54 @@ novembre à janvier est un seul objet de `engagements/2026-11.json`.
 - **Le mois de l'écran** (`stock::vue_du_mois`) : le fichier du mois et chaque engagement d'un mois d'avant qui court
   encore, vu ce mois-là. L'écran lit et écrit cette vue (`stock::ecrire_vue_du_mois`) ; chaque engagement y retrouve
   son objet (numéro, puis salarié). Un engagement validé ne change pas par ce chemin.
-- **Trois états** (`engagement/src/etats.rs`), trois types : **en saisie** (calculé à mesure pour l'écran, rien ne
-  part de lui) ; **validé** (« Valider l'engagement » écrit sous `valide` la date et une paie par mois couvert, avec
-  son prélèvement à la source et l'empreinte de ce dont le calcul dépend : fichiers lus, fiches, saisie des mois lus,
-  code du moteur, règles datées) ; **documents partis** pour un mois (le journal des envois, `journal/depots.json`, a
-  une ligne `documents` du mois qui nomme le salarié). Tout document se fabrique depuis les paies écrites
-  (`etats::validees_du_mois`, `etats::paies_du_mois`, qui refuse un mois dont un engagement est en saisie) ; aucun ne
-  recalcule.
+- **Ses états** (`engagement/src/etats.rs`), chacun son type : **en saisie** (`EnSaisie` : calculé à mesure pour
+  l'écran, rien ne part de lui) ; **validé** (`Valide` : « Valider l'engagement » écrit sous `valide` la date, le numéro
+  de sa version, sa saisie telle qu'elle était et une paie par mois couvert, avec son prélèvement à la source et
+  l'empreinte de ce dont le calcul dépend : fichiers lus, fiches, saisie des mois lus, code du moteur, règles datées) ;
+  **documents partis** pour un mois (`Partis` : le bulletin, le certificat Congés Spectacles et l'AER du mois sont
+  partis au salarié). Seul un engagement validé donne une paie à qui fabrique un document : tout document se fabrique
+  depuis les paies écrites (`etats::validees_du_mois`, `etats::paies_du_mois`, qui refuse un mois dont un engagement est
+  en saisie) ; aucun ne recalcule. Deux états de plus, à part :
+  - **importé** (`engagement/src/importe.rs`, la clé `importe`) : tiré par l'import des pièces d'un autre logiciel,
+    validé et documents partis (ce qui en est parti, c'est l'import lui-même). Il se lit, ne se modifie pas et ne se
+    recalcule jamais : il ne touche aucun mois de la saisie (`stock::Objet::couvre`), donc aucun calcul, aucune
+    déclaration ni aucun document ne le prend, et l'écran ne peut ni le réécrire ni en poser un double. Son numéro de
+    contrat est celui que la DSN déposée lui a donné (S21.G00.40.009). Il compte dans les cumuls des annexes 8 et 10
+    (`engagement/src/cumul.rs`) et dans les numéros pris.
+  - **non actif** (`etats::NonActif`, la clé `non_actif`) : un engagement dont quelque chose est parti ne se supprime
+    plus ; « Retirer cet engagement » (route `retirer-engagement`) le rend non actif. Il garde ses versions, ne se calcule
+    plus, n'entre dans aucun document ni aucune déclaration ; le moteur dit ce que sa désactivation rend faux (un mois
+    déclaré à corriger). Un engagement dont rien n'est parti se supprime, même validé, et rend son numéro.
+- **Les versions datées** : tant que rien n'est parti d'un engagement, il se modifie librement, sans historique. Dès
+  qu'un envoi est parti sur sa version, une revalidation qui le change garde la version d'avant dans l'engagement
+  (`versions`), datée ; le présent prend le numéro suivant. Ce qui est à refaire (`etats::a_refaire` : avenant, DPAE,
+  bulletin rectificatif, DSN) se tire de la comparaison entre le présent et la version sur laquelle chaque envoi est
+  parti. L'engagement ne lit jamais le journal : le moteur lui passe ce qui est parti (`engagement/src/departs.rs`).
 - **Chaque document se fabrique à son départ** (`moteur/src/compagnie/depart.rs`) : la DSN à son dépôt (`fabriquer_dsn`, route
   `dsn-a-deposer`), dès qu'un engagement du mois est validé, sans attendre DPAE ni contrat ; le bulletin et le certificat
   Congés Spectacles à l'envoi des documents (`fabriquer_documents`), qui écrit dans la paie le numéro du bulletin
-  (`N/AAAA`) et le premier N° CE (`etats::poser_numeros_des_documents`) ; le contrat à son envoi à la signature, où son
-  numéro se fige (`envois_signature::reserver_numeros_envoyes`). Une paie partie puis refaite part sous un numéro
-  nouveau, en rectificatif (`rectifie`), l'original gardé. Après la veille de l'échéance, un mois déclaré ne se
-  redépose plus (`AnnuleRemplaceHorsDelai`) : sa correction s'écrit d'elle-même et part dans la DSN suivante
-  (`depart::corrections_dues`). L'AER ne se fabrique pas : France Travail la renvoie, et elle se vérifie contre les
-  paies écrites.
+  (`N/AAAA`, la suite de l'année, après le plus haut que porte une paie de l'année, importée comprise) et le premier
+  N° CE (`etats::poser_numeros_des_documents`). Un bulletin parti dont la paie change ensuite a son rectificatif, sous
+  le numéro suivant, l'original gardé ; un engagement dont aucun bulletin n'est parti a son bulletin ordinaire, du mois
+  d'origine. Après la veille de l'échéance, un mois déclaré ne se redépose plus (`AnnuleRemplaceHorsDelai`) : sa
+  correction part dans la DSN d'un mois suivant (`declarations::produire_regularisations::regularisations_pour`). La DSN d'un mois déposée par l'ancien logiciel ne
+  se refait pas ici (règle 4) : ce que la saisie ajoute à ce mois se déclare dans la DSN suivante. L'AER ne se fabrique
+  pas : France Travail la renvoie, et elle se vérifie contre les paies écrites.
 - **Le recalcul de lui-même** (`etats::rafraichir`, à chaque lecture d'un mois, `etats::du_mois`) : une paie validée
   dont l'empreinte ne tient plus et dont les documents ne sont pas partis se recalcule, d'un seul calcul du mois. Si un
   chiffre change, elle dit pourquoi : « taux de PAS reçu », « règle du JJ/MM/AAAA », « calcul corrigé » (le code ou ce
   qu'il livre), « un autre engagement du mois a changé », « configuration de la compagnie modifiée ». L'écran le montre
   (« Recalculé le JJ/MM/AAAA : … »). Sans chiffre changé, rien ne se dit. Un recalcul que le moteur refuse
-  garde la paie validée et se note en incident pour l'éditeur (`incidents::poser_le_temoin_des_recalculs`).
+  garde la paie validée et se note en incident pour l'éditeur (le témoin des recalculs refusés, `compagnie::incidents`).
 - **Modifier…** (route `valider-engagement`, `valide: false`) repasse l'engagement en saisie. Si les documents d'un de
   ses mois sont partis, le moteur pose d'abord sa question (`etats::QUESTION_DOCUMENTS_PARTIS`) et ne bouge qu'avec la
-  réponse (`confirme`) ; les paies parties se gardent (`figees`) et se reprennent telles quelles à la validation si la
-  saisie de leur mois n'a pas changé.
-- **Le numéro de contrat** se pose sur l'engagement quand le contrat part à la signature ou avec son premier mois
-  (`stock::poser_numero`), et se relit ensuite ; un mois qui n'est pas le premier ne se numérote pas
-  (`engagement::refus_sans_numero`, règle 4).
+  réponse (`confirme`) ; sa validation se garde (`precedente`) jusqu'à la suivante, qui reprend telles quelles les paies des mois partis si la
+  saisie de leur mois n'a pas changé, et en fait une version si quelque chose est parti sur elle.
+- **Le numéro de contrat** (`engagement/src/numeros.rs`, règle 4) s'écrit dans l'engagement à sa validation
+  (`numeros::a_la_validation`) : le suivant du plus haut que portent, pour le même salarié et la même année, les
+  engagements et ce qui est parti. Tout ce qui part (le contrat signé ou imprimé, la DPAE, la DSN, le bulletin) le lit
+  là. Tant que rien n'est parti sous lui, un engagement dont le salarié ou le début change en reçoit un nouveau ; dès
+  qu'un envoi l'a porté, il ne change plus. La norme n'exige aucune suite continue (S21.G00.40.009, CCH-12).
 
 ## La ligne de paie datée
 
@@ -127,14 +169,12 @@ Ce que ça impose au moteur :
 - `dates_engagement` (`engagement/src/lib.rs`) est le **seul endroit** qui sache où
   chercher les jours d'un engagement : dans ses lignes, et nulle part
   ailleurs. `charger` passe par lui, et le décompte des droits (`cumul.rs`) lit ce qu'il a chargé.
-- **Une seule écriture** depuis le 13/09/2026. `Engagement` exige
+- **Une seule écriture.** `Engagement` exige
   `lignes` ; `cachets` et `heures` en sont **dérivés** (l'AEM, le bloc 53 de
   la DSN, le plafond et `cumul` les lisent toujours), `taux_cachet` est le
   taux de la première ligne `cachet`, `taux_horaire` n'existe plus. Un
   engagement portant `dates`, `cachets`, `heures` ou `taux_horaire` est
   refusé par `charger`, qui dit ce qu'il a vu et ce qu'une saisie porte.
-  Plus aucune saisie n'est à l'ancienne écriture : l'outil de conversion
-  (Python) est retiré le 15/10/2026.
 - `date::d` (`socle/src/date.rs`) accepte `{"jour": …, "lieu": …}` en plus des quatre formats de
   date : une date détaillée est une date, tout ce qui parcourt des jours
   continue de marcher sans le savoir.
@@ -142,10 +182,8 @@ Ce que ça impose au moteur :
   laisse qu'une : `dates_travail` reste une liste de dates triées, le lieu part
   dans `lieux` (`lieu_de()`, `lieux_joues()`). Le contrat groupe les dates par
   lieu ; le lieu ne se déclare nulle part ailleurs (ni DSN, ni AEM, ni DPAE).
-- **L'ancienne écriture n'est plus lue** (`dates`, `cachets`, `heures` ou
-  `taux_horaire` sur l'engagement). On l'avait voulue lue sans
-  conversion le 13/09/2026 ; la règle d'une seule écriture l'a remplacée le
-  soir même. Le moteur refuse un tel engagement et dit ce qu'une
+- **Une autre écriture ne se lit pas** (`dates`, `cachets`, `heures` ou
+  `taux_horaire` sur l'engagement). Le moteur refuse un tel engagement et dit ce qu'une
   saisie porte (`engagement/src/lib.rs`, à la
   lecture d'un engagement sans `lignes` et à la lecture du mois). Ce qui reste
   lu tel quel, ce sont les dates d'une ligne écrites sans lieu (une chaîne) à
@@ -200,14 +238,14 @@ datée, vérifiable**. CoolPaie ne sert qu'à vérifier.
   `atelier/reference/sources/veille-kali.json` (livraisons lues, liste des
   textes de chaque convention, trous de l'index) ; à la première veille,
   l'index est remonté jusqu'à la dernière fiche de chaque convention.
-  L'ouverture du Python refaisait la vérification une fois par semaine ;
-  en Rust elle ne la fait plus (`moteur/src/compagnie/ouverture.rs`) : c'est l'éditeur
+  L'ouverture d'une compagnie ne fait pas cette vérification
+  (`moteur/src/compagnie/ouverture.rs`) : c'est l'éditeur
   qui la lance, avant chaque publication.
-- `moteur releve-codes` (`moteur/src/atelier/releve/codes.rs`, porté du Python le
-  15/10/2026) — **les articles de loi eux-mêmes**, lus dans la base **LEGI**
+- `moteur releve-codes` (`moteur/src/atelier/releve/codes.rs`)
+  — **les articles de loi eux-mêmes**, lus dans la base **LEGI**
   de la DILA (même voie que KALI) plutôt qu'à la main sur Légifrance, qui
   refuse les robots. Tous les textes en un seul passage
-  (`releve_codes/textes.rs`) : travail, sécurité sociale, collectivités
+  (`atelier/releve/codes/textes.rs`) : travail, sécurité sociale, collectivités
   territoriales (le versement mobilité), construction, impôts, et les arrêtés
   et la loi que la paie lit. Trois verbes, sur le dossier des sources :
   - `moissonner` tient à jour l'entrepôt `legi-entrepot/`
@@ -353,10 +391,9 @@ Trois subtilités, chacune trouvée en cherchant pourquoi un centime manquait.
 séparément : 0,590 % → 1,69 et 0,090 % → 0,26. Même mécanisme pour la
 cotisation prévoyance `059` de la DSN (0,420 + 0,810 ; « Cotisation individuelle Prévoyance-Assurance-Mutuelle », versée à Audiens Santé Prévoyance, P0983).
 
-**Tous les arrondis sont au demi supérieur.** `round()` de Python arrondissait au
-pair le plus proche et se trompait donc d'un centime régulièrement ; `eur`
+**Tous les arrondis au centime sont au demi supérieur** : `eur`
 (`socle/src/num.rs`) arrondit un `Decimal` au demi qui s'éloigne de zéro
-(`MidpointAwayFromZero`, le `ROUND_HALF_UP` d'avant).
+(`MidpointAwayFromZero`) ; un arrondi au pair se tromperait d'un centime régulièrement.
 
 ## Le SMIC déclaré en DSN (composant 01 de la base 03)
 
@@ -386,9 +423,8 @@ décrit plus haut, avec le barème.
 ## L'AEM V5
 
 Enregistrements de 1000 caractères, latin-1, séparés par CRLF. Zones
-identifiées dans `moteur/aem.py` (Python, retiré : plus aucune AEM n'est émise
-depuis le 01/06/2026 et son écriture n'est pas portée ; l'import relit l'archive,
-`moteur/src/import/dsn_aem.rs`). La queue numérique est celle-ci :
+que l'import relit (`moteur/src/import/dsn_aem.rs`, `lire_aem` ; la compagnie est en 100 % DSN et n'en émet
+aucune). La queue numérique est celle-ci :
 
 | Position | Contenu |
 |---|---|
@@ -448,36 +484,27 @@ salarié, et un mois payé en compte au moins un. Un mois du contrat sans paye
 ## Les droits (annexes 8 et 10), et d'où viennent les contrats
 
 `droit/src/cumul.rs` compte les 507 heures sur 12 mois (un cachet = 12 h, les
-heures d'enseignement plafonnées) et imprime le bloc de cumul du bulletin.
-Depuis le 15/09/2026 il ne lit qu'**une source, la nôtre**, en deux fichiers :
+heures d'enseignement plafonnées) sur les lignes qu'on lui passe (`Declare`) ; il
+ne sait pas ce qu'est un engagement. Ces lignes, c'est l'engagement qui les lit
+(`engagement/src/cumul.rs`, `lire_engagements`), dans **une seule source, la
+compagnie** :
 
-| | quoi | quand |
-|---|---|---|
-| `prive/historique/engagements.json` | les contrats attestés **avant** ce logiciel : les AEM de CoolPaie, importées une fois (`moteur importer`) — dates, numéro d'objet, cachets, heures, jours, brut, numéro et date d'attestation | pour tout mois qui n'a pas de fichier de paie |
-| `prive/engagements/AAAA-MM.json` | les engagements saisis ici, lus par `charger` (`engagement/src/lib.rs`) (un seul chemin de calcul : mêmes cachets, heures et brut que le bulletin et la DSN) | pour le mois du fichier — et l'historique se tait |
+| | quoi |
+|---|---|
+| les engagements importés | les contrats que l'import atteste (une AEM, un bulletin : dates, numéro d'objet, cachets, heures, jours, brut), lus par `importe::contrats_lus` |
+| les paies écrites des engagements validés | une ligne par paie d'intermittent, mois par mois (`etats::validees_du_mois`) : mêmes cachets, heures et brut que le bulletin et la DSN ; ce qui est en saisie n'est pas payé et n'entre dans aucun cumul |
 
-La règle de départage tient en une phrase : **un mois qui a son fichier de
-paie est lu là, jamais deux fois.** Pendant le double run d'août 2026, l'AEM
-de CoolPaie et notre fichier disent la même chose (vérifié : six engagements,
-mêmes cachets, heures, jours et brut), et c'est le fichier qui compte. Un
-fichier qui ne se charge pas (brouillon en cours, année sans barème) ne
-couvre pas son mois : l'historique parle pour lui s'il a quelque chose à
-dire. Les bornes d'un engagement issu d'une paie sont celles de sa **période
-de paie** (le contrat borné au mois) : un contrat d'octobre à décembre compte
-ses cachets d'octobre en octobre.
+Un mois qui a des paies écrites est lu là, et les engagements importés de ce mois
+se taisent : rien ne se compte deux fois. Les bornes d'une ligne tirée d'une paie
+sont celles de sa **période de paie** (le contrat borné au mois) : un contrat
+d'octobre à décembre compte ses cachets d'octobre en octobre.
 
-Le bulletin se compte lui-même : `bulletin.ecrire` passe les paies qu'il
-imprime à `cumul.lire_engagements(ctx, paies_courantes=...)`, qui les
-substitue au fichier de leur mois.
+Le bulletin se compte lui-même : `documents::bulletin` passe les paies qu'il
+imprime à `lire_engagements(ctx, Some(paies))`, qui les substitue à celles de
+leur mois. Les conseils (`compagnie/conseils.rs`) et la position des droits
+(`service::droits`) lisent la même chose.
 
-Avant cette date, `cumul.py` lisait `export/AEM_EDI` — le dossier de
-CoolPaie — directement. Cela liait les droits à un logiciel qu'on résilie en
-janvier 2027, et laissait de côté les mois produits ici (plus d'AEM depuis le
-01/06/2026 : la compagnie est en 100 % DSN). `lire_aem` reste (`moteur/src/import/dsn_aem.rs`) : il
-dépouille un dossier d'AEM (l'import s'en sert, et nos propres AEM de
-`sorties/`), mais plus personne ne l'appelle pour les droits.
-
-### Les conseils « Le saviez-vous ? » (ticket 224)
+### Les conseils « Le saviez-vous ? »
 
 Une **option de la compagnie** (fiche Entreprise, `conseils`, décochée par défaut) : sans elle, aucune route ne rend
 rien. Le texte, ses chiffres et ses sources sont des données (`logiciel/donnees/conseils.json`, chaque citation lue à
@@ -491,10 +518,10 @@ Trois familles, qui parlent à l'employeur :
 | ce que la compagnie a fait (`conseils-salarie`, `conseils-resume`) | la fiche du salarié ; l'accueil | `cumul::position_droits` sur la fenêtre (depuis `anniversaire_droits`, sinon 12 mois glissants) : heures comptées chez nous et part des 507, cachets perdus d'un mois, ce que les conseils de saisie auraient changé |
 
 Un conseil de saisie n'est **pas un avis** (`engagement::Avis`) : il ne passe ni dans les avertissements de la paie, ni au
-bulletin, ni à `produire` ; une paie validée (sa carte figée) n'en a pas. Il tient en **une phrase** (`texte`) ; son
+bulletin ; un engagement validé n'en a pas. Il tient en **une phrase** (`texte`) ; son
 `detail` (les deux faces, les chiffres) et sa référence se déplient derrière « pourquoi ? » : le moteur rend les deux, la
 page n'affiche que ce qu'elle reçoit. Le salarié s'y nomme **par son seul prénom** (`{prenom}`, `conseils::prenom`), jamais
-par un pronom qui le genre (le test `conseils_banque` y veille). Les deux conseils « plus d'heures » ne se montrent que si
+par un pronom qui le genre. Les deux conseils « plus d'heures » ne se montrent que si
 la somme couvre le minimum conventionnel (`minima::cachet_de_repetition`, `minima::minimum_de_la_ligne`) et disent leurs
 deux faces : précieux s'il manque des heures pour les 507, à éviter si elles sont assurées un mois indemnisé (le coût se
 dit en jours d'allocation, art. 30, au demi-jour le plus proche, jamais en euros ; un coût qui s'arrondit à zéro se dit
@@ -504,26 +531,62 @@ heure de plus coûte plus qu'elle ne rapporte. **Le seul cas de certitude** : no
 507 heures sur la fenêtre ; ses droits sont ouverts, et « intense plutôt que dilué » prend la place des conseils « plus
 d'heures ».
 
-### L'import CoolPaie
+## L'import : le passé d'une compagnie
 
-`moteur/src/import/dsn_aem.rs` lit le dossier `import/` de la compagnie (les DSN
-pour l'identité, l'emploi, les numéros d'objet et l'entreprise ; les AEM pour
-les contrats ; l'`export/` de CoolPaie avant le 10/10/2026, `atelier/README.md`,
-« Reprendre l'historique ») ;
-`moteur/src/import/ecrite.rs` décide quoi écrire, par les mêmes fiches que
-l'écran (`routes::fiches::ecrire_fiche` : même clé, même matricule, même vérification,
-même filet). Une fiche existante n'est jamais modifiée : ce que la DSN disait
-autrement est rendu dans `ecarts`, et c'est à l'humain de dater un
-changement. La dernière DSN où un salarié figure fait foi pour son identité ;
-l'annule-et-remplace d'un mois passe après l'original. Un numéro d'objet
-sans titre devient `objet-<numéro>`, titre « A COMPLETER », et l'année se lit
-dans le numéro (`266Z` = 2026). La base CoolPaie (`bases/*.CSOC`) est
-chiffrée : on ne la lit pas.
+Une compagnie qui arrive d'un autre logiciel met tout ce qu'elle a dans sa boîte aux lettres `import/` (DSN, AEM,
+bulletins en PDF, zip, doublons) ; l'import en tire ses fiches et ses **engagements importés**
+(`moteur/src/import/`, routes `importation-apercu`, `importer`, `importation-etat`).
+
+- **Le tri** (`import/tri.rs`) : chaque fichier reçoit une sorte, par son contenu, jamais par son nom (`dsn`, `aem`,
+  `pdf_texte`, `pdf_sans_texte`, `archive`…). Une DSN d'une autre entreprise que la compagnie n'est pas lue.
+- **Les DSN et les AEM d'abord** (`import/dsn_aem.rs`) : l'identité, l'emploi, les numéros d'objet, l'entreprise, ce
+  qui a été déclaré et versé ; les AEM, les contrats. La dernière DSN où un salarié figure fait foi pour son identité ;
+  l'annule-et-remplace d'un mois passe après l'original. Un numéro d'objet sans titre devient `objet-<numéro>`, titre
+  « A COMPLETER », et l'année se lit dans le numéro (`266Z` = 2026).
+- **Puis les bulletins, par un lecteur unique** (`import/bulletin_lu.rs`), le même pour tout logiciel : il ne connaît
+  aucune mise en page. Il trouve les mentions que tout bulletin imprime (art. R. 3243-1 du code du travail) par leurs
+  libellés, et les colonnes du tableau par leurs en-têtes, d'après la table livrée `bulletins-lecture-base.json`, qui dit
+  aussi la rubrique du catalogue de chaque libellé de ligne ; un logiciel connu se reconnaît à sa signature, pour le
+  compte rendu seulement. Rien ne se devine : une page sans texte, sans en-têtes, qui se lit de deux façons
+  (`ambigu`), ou dont ce qui identifie le bulletin ne se lit pas (`incomplet`) est refusée, et le compte rendu dit
+  pourquoi. Deux contrôles sans correction (le brut vaut la somme des lignes soumises ; le net se retrouve) : un écart
+  avertit, le bulletin est repris avec ce qu'il imprime. Chaque bulletin est rapproché de la paie que sa DSN déclare
+  (NIR, début, fin) et la complète (`import/bulletins.rs`) ; sans DSN, il fait foi seul. Un bulletin d'un salarié
+  qu'un engagement saisi paie le même mois n'est pas repris, sauf pour compléter une paie déclarée.
+- **L'aperçu n'écrit rien** ; `importer` écrit ce qu'il annonce (`import/ecrite.rs`) : les fiches à créer, par le même
+  chemin que l'écran (`routes::fiches::ecrire_fiche`) ; dans une fiche qui existe, seulement ce qui y est vide ou
+  « A COMPLETER » (`import/completer.rs`), le reste étant signalé (`ecarts`), jamais appliqué ; les engagements
+  importés, chacun dans `engagements/AAAA-MM.json`, le fichier du mois où il commence (le contrat qu'une AEM ou un
+  bulletin atteste, et ce qui a été versé, mois par mois) ; la copie de chaque pièce reprise dans
+  `historique/bulletins/`, nommée par son empreinte (rien de personnel dans un nom). Un import se rejoue sans dommage.
+- **La nature à dire** (`import/nature.rs`) : un bulletin sans marque du spectacle est celui d'un permanent ; la page
+  demande sa nature (CDI ou CDD), la route `importation-nature` l'écrit.
+- **Le mois importé** (`import/mois.rs`) : un mois qu'aucun engagement de la saisie ne touche et que des engagements
+  importés touchent. La page Paie le montre par ses engagements, une carte fermée « importé » chacun, sans geste ;
+  une case qu'aucune pièce ne porte reste vide et dit pourquoi. Sa DSN est celle de l'ancien logiciel (le journal des
+  dépôts, à défaut la DSN importée) : rien ne propose de la refaire.
+- **La CASC-SVP des mois importés** (`import/casc.rs`) : un mois tenu dans un autre logiciel a pu partir sans elle ;
+  `exporter regularisation-casc-svp` prépare la régularisation depuis les engagements importés, `casc-regularise`
+  note l'année faite.
+- **Les écarts de calcul** (`import/ecarts.rs`, `engagement/src/ecarts.rs`) : à la fin de chaque import, et à
+  l'ouverture de la compagnie pour les paies importées pas encore comparées (`journal/ecarts-import.json`), chaque paie
+  importée se compare à ce que le moteur aurait calculé de la même saisie, avec les barèmes et la configuration à la
+  date de la période. Rien ne change dans l'engagement importé. Les écarts partent chez l'éditeur comme un incident de
+  fonctionnement (nature `logiciel`, `ecarts_import`, un incident par sorte d'écart), sans rien afficher ni demander :
+  ils ne désignent personne (ni nom, NIR, naissance, adresse, ni salaire ou montant d'une paie ; seulement la
+  cotisation et ses libellés, le mois, l'IDCC et l'annexe, l'organisation patronale, la nature et le statut, d'où vient
+  le taux AT/MP, le logiciel reconnu, les deux taux et l'écart relatif), et le texte passe quand même par le
+  caviardage. Une paie se compare une fois. Ce qui ne se compare pas le dit (une période sans barème, une convention
+  sans couche, une ligne sans rubrique).
+- **L'incident d'import** (`import/incident.rs`, `import/caviardage.rs`) : quand des fichiers n'ont pas pu être repris,
+  `importation-incident` montre ce qui partirait chez l'éditeur (le compte rendu de chaque fichier non repris, et le
+  texte des pages caviardé de tout ce qui désigne une personne) ; rien ne part sans le clic « Envoyer »
+  (`importation-incident-envoyer`), et jamais le fichier d'origine.
 
 ## La DSN
 
 Norme NEODeS P26V01, puis P27V01 : la version se choisit **par fichier**
-(lot V4a, 10/10/2026), depuis `logiciel/donnees/norme-dsn-base.json` — le mois
+depuis `logiciel/donnees/norme-dsn-base.json` — le mois
 principal déclaré pour une mensuelle, le jour de constitution pour un
 signalement (`declarations/src/norme.rs`). Cette règle de bascule est une **inférence**
 (`_inference` de la donnée) : le cahier technique ne la donne pas. Chaque
@@ -539,10 +602,8 @@ sous la base 78 du `131` (type 23), à l'Urssaf (fiche net-entreprises 2556 ;
 saisit en NAF rév. 2 ou en NAF 2025 (`logiciel/donnees/naf-base.json`, relevé
 de l'INSEE) ; un fichier P27V01 refuse un code NAF rév. 2 et dit vers quels codes
 NAF 2025 il passe, sans choisir (`declarations/src/naf.rs`).
-`declarations/src/dsn.rs` émet les blocs dans l'ordre observé chez CoolPaie : le
-générateur Python dont il est le portage reproduisait juillet 2026 à la ligne
-près (997 lignes identiques). Il s'en écarte depuis, là où la relecture de la
-norme l'a corrigé (`prive/journal/RELECTURE-NORME-DSN.md`).
+`declarations/src/dsn.rs` émet les blocs dans l'ordre observé dans des DSN acceptées, corrigé là où la relecture de la
+norme l'a demandé (`prive/journal/RELECTURE-NORME-DSN.md`).
 
 Ce que le moteur écrit, là où on l'avait d'abord déduit des DSN de CoolPaie
 (« correspondances retrouvées », redites le 11/10/2026 d'après la norme
@@ -619,13 +680,11 @@ mois suivant (`engagement_de_reprise`). Le contrat entier recomposé pour le
 certificat CS (`paie_du_contrat_entier`) retire le planning des lignes :
 chaque mois a payé le sien.
 
-Le barème et le SMIC (`calcul.calculer`) sont ceux de `fin_periode`, pas de
+Le barème et le SMIC (`engagement::calcul`) sont ceux de `fin_periode`, pas de
 `fin` : un contrat de décembre à février se paie en décembre au barème de
-décembre. Sur un contrat qui tient dans son mois — tout l'historique — ces
-propriétés valent `debut`/`fin` et rien ne bouge : `calibrer` l'a prouvé sur
-75 DSN, et `tests/test_contrats_plurimensuels.py` (du temps du Python) rejouait un contrat fictif
-octobre → décembre et lisait les trois DSN — déposées en test le 15/09/2026,
-conformes. La quotité 40.012/013 est celle du **contrat entier** (jours
+décembre. Sur un contrat qui tient dans son mois, ces propriétés valent
+`debut`/`fin`. Les trois DSN d'un contrat d'octobre à décembre ont été déposées en
+test le 15/09/2026, conformes. La quotité 40.012/013 est celle du **contrat entier** (jours
 signés : dates du premier mois + planning, `Engagement.jours_contrat`),
 identique chaque mois et jamais zéro : le cahier technique 2026.1 interdit
 le zéro en unité journée (bloc 40, CCH-11). Comme elle ne bouge pas d'un mois
@@ -820,7 +879,7 @@ quatre plafonds **du mois** et la CET sur des tranches mensuelles. Sa
 prévoyance, elle, vient de la convention.
 
 `logiciel/donnees/contrats-base.json` porte ce que la DSN écrit de la **structure** d'un
-contrat, par nature — ce qui était, jusque-là, écrit dans `dsn.py`. Trois
+contrat, par nature. Trois
 natures : `cddu_spectacle` (l'intermittent, et le défaut d'un engagement qui
 ne dit rien), `cdi`, `cdd`. Chaque code y porte sa valeur, sa phrase et sa
 source ; `droit/src/natures.rs` les lit et ne décide rien.
@@ -1277,13 +1336,10 @@ plutôt que d'en fabriquer un.
 
 Une rubrique interdite écrite par mégarde, c'est une anomalie bloquante
 **CST-04** côté plate-forme, et le fichier ne déclare rien. Le tableau des
-usages est donc relevé dans `logiciel/donnees/arrets-base.json` (section `usages`), et
-`tests/test_arrets.py` confrontait chaque fichier produit à ce tableau —
-rubrique par rubrique, dans les deux sens (aucune interdite, toutes les
-obligatoires). Le générateur, lui, ne lit pas cette section : sinon le test ne
-vérifierait plus rien. Ce test était du Python : il est parti avec lui sans être
-porté, et plus rien ne lit cette section ; le test Rust des signalements
-(`tests/dsn/signalement.rs`) fige le texte de chaque cas.
+usages est donc relevé dans `logiciel/donnees/arrets-base.json` (section `usages`).
+Le générateur ne lit pas cette section : elle est l'attendu contre lequel un
+fichier produit se confronte, rubrique par rubrique, dans les deux sens (aucune
+interdite, toutes les obligatoires).
 
 ### Le bloc 60, et ses trois visages
 
@@ -1431,24 +1487,6 @@ CoolPaie ; net-entreprises accepte les deux. `DPAE_<mois>_recapitulatif.txt`
 donne la même chose en clair pour la saisie en ligne, qui reste une option
 raisonnable pour deux personnes.
 
-## Ce que le rejeu couvrait (`calibrer`, retiré avec le Python)
-
-```
-DSN juillet 2026 ......... identique
-DSN juin 2026 ............ identique
-DSN mars/avril/mai 2026 .. contrats à l'heure, régularisation annuelle S21.G00.82
-DSN janvier/février 2026 . structure de blocs antérieure
-DSN 2021-2025 ............ non rejouées : barèmes de ces années absents
-AEM 2026 ................. 10 fichiers sur 10 identiques octet pour octet
-```
-
-Les DSN de 2021 à 2025 ne se rejoueront pas, et c'est décidé (16/09/2026) :
-un essai sur mars 2025 a montré que les écarts sont d'abord de **norme**
-(P25 : pas de bloc 15 ni 31, pas de 78.006, pas de codes 102/907/072/079),
-pas de barème — les rejouer octet pour octet demanderait à `dsn.py` d'émuler
-cinq versions de la norme pour des déclarations passées et acceptées. Ce
-n'était utile que pour se rassurer, pas pour produire.
-
 ## Le dépôt, et le journal
 
 Ces déclarations engagent l'employeur. Le moteur les dépose **par l'API**
@@ -1458,30 +1496,31 @@ par un portail : un contrat écrit, des retours lus par programme, et une
 erreur qui se voit — la première DPAE du 12/09/2026 a été refusée cinq fois
 pour un code Urssaf faux que le portail DUE de CoolPaie laissait passer.
 
-Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, porté d'`operations_declarations.py`, sur la preuve du socle) :
+Trois garde-fous, tous dans le moteur (`moteur/src/compagnie/depot_acte.rs`, `moteur/src/compagnie/demande.rs`) :
 
 - **Une preuve par acte.** Rien ne part en réel sans le mot de passe du
-  logiciel tapé au moment de l'acte, et les trois gestes (`README.md`).
-  Sans mot de passe posé, rien ne part du tout (17/09/2026) : le mois
-  recopié ne l'a jamais remplacé, et depuis le 21/09/2026 il ne se recopie
-  plus — il s'affiche. Plus de « séance » depuis le 16/09/2026 : chaque acte
-  porte sa preuve, rien entre les actes.
-- **Pas deux fois.** `produire_dpae` refuse une embauche déjà déclarée et non
-  refusée (`DpaeDejaDeclaree`), `deposer_dsn` une DSN réelle déjà partie pour
-  le mois (`DsnDejaDeposee`). Une déclaration **refusée** repart sans forcer —
+  logiciel tapé au moment de l'acte (`README.md`) ; la séance qui ouvre le
+  coffre n'en est jamais une. Sans mot de passe posé, rien ne part du tout.
+  Une version exigée et pas encore installée bloque tout dépôt réel
+  (`depot_acte::exigee_en_attente`).
+- **Pas deux fois.** Une DSN réelle déjà partie pour le mois ne repart pas
+  (`DsnDejaDeposee`), une embauche déjà déclarée ne se redéclare pas
+  (`DpaeDejaDeclaree`). Une déclaration **refusée** repart sans forcer —
   c'est la seule raison de la refaire.
 - **Un dépôt n'est pas fini quand il est parti.** `envois/src/journal.rs` écrit une ligne
   par acte sortant dans `journal/depots.json` (dépôt, courriel, demande de
-  signature), avec le `flux` rendu par le point de dépôt ; les retours relevés
+  signature ou contrat imprimé pour la main propre, documents), avec le `flux` rendu par le point de dépôt et, pour chaque engagement qu'il
+  couvre, le numéro de la version sur laquelle il est parti (`journal::departs`, que le moteur passe à l'engagement) ;
+  les retours relevés
   à l'ouverture s'y rattachent. `verdict_du_retour` (`envois/src/etats.rs`) lit les bilans (natures
   10/11) : une DPAE est **passée quand son bilan est OK**, le certificat 41
-  confirme, il ne décide plus. `resume` dit « REFUSÉ : motif », « bilan OK »,
+  confirme, il ne décide pas. `resume` dit « REFUSÉ : motif », « bilan OK »,
   « en TEST ».
 
 Déposer la DSN en test avant le dépôt réel, et garder l'ancien logiciel installé le temps
 de faire tourner un ou deux mois en parallèle et de comparer.
 
-### Un logiciel, un administrateur (ticket #244, 22/10/2026)
+### Un logiciel, un administrateur
 
 Une installation (le dossier qui porte `logiciel/`, `prive/`, `compagnies/*`, `fictives/*`) appartient à une personne,
 l'**administrateur**, qui peut y gérer plusieurs compagnies d'un seul mot de passe ; qui veut deux administrateurs
@@ -1535,13 +1574,21 @@ installe un second logiciel. `moteur/src/compagnie/administrateur.rs` :
 
 ## La version, et la mise à jour dans l'ombre
 
-`VERSION` (une date, `AAAA.MM.JJ`, comparée en entiers) ; `moteur/src/compagnie/maj.rs`
-(porté de `moteur/maj.py`). **Une mise à jour par installation** (lot U1,
-14/10/2026) : tout se passe dans `<installation>/maj/`, à côté de `logiciel/`,
-et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une
-adresse qui sert `derniere.json` et les archives de `logiciel/`.
+`VERSION` (une date, `AAAA.MM.JJ`, comparée en entiers). Ce qu'une installation reçoit, vérifie et applique est dans
+`moteur/src/compagnie/maj.rs` ; ce que l'éditeur publie (les archives, la signature, sa clé) dans
+`moteur/src/atelier/publier.rs`. **Une mise à jour par installation** : tout se passe dans `<installation>/maj/`, à
+côté de `logiciel/`, et l'installation de l'éditeur reçoit comme les autres. Un dépôt est une adresse qui sert
+`derniere.json` et les archives de `logiciel/`.
 
-**Quatre archives de mise à jour par version** (Léandre, 15/10/2026) : une par système
+**Une version s'installe dès qu'elle est prête** : au lancement suivant, ou au clic « Redémarrer pour mettre à jour ».
+Rien ne la retient, ni une DSN à déposer ni un mois en cours. Sa phrase `calcul` (la case de « Publier ») dit à la
+compagnie ce qu'elle change d'un calcul de paie : l'indicateur la montre avec la version prête, puis, une fois, au
+lancement qui suit son installation (« PuppetPaie X est en place. Elle change un calcul de paie : … » ;
+`maj/appliquee.json`, qui passe à `vue: true`) ; une version sans phrase `calcul` ne dit rien de plus que « Logiciel à
+jour ». Une version **exigée** bloque tout dépôt réel tant qu'elle n'est pas installée
+(`depot_acte::exigee_en_attente`), et l'indicateur le dit, sans survol.
+
+**Quatre archives de mise à jour par version** : une par système
 (`windows`, `linux`, `mac` : les fichiers communs et les programmes de ce
 système) et une pour tous (`tout-systeme`). Dans `logiciel/`, les programmes de
 Windows sont à la racine (`puppetpaie.exe`, `WebView2Loader.dll`), ceux de Linux
@@ -1554,24 +1601,23 @@ fabrique (Windows seul, Windows et Linux, ou les trois) ; une installation dont
 le système n'est pas publié ne télécharge rien et garde sa version.
 
 **La forme de l'archive de mise à jour est un contrat** avec toutes les
-installations posées (ticket #246, 22/10/2026) : le contenu de `logiciel/` à sa
-racine, rien d'autre. Le code déjà installé la déballe telle quelle dans
-`maj/<version>/logiciel/` et y lit `VERSION` ; une autre forme (le 22/10,
-`logiciel/` et `fictives/` dans chaque archive) coupe toutes les installations
-de leurs mises à jour. `derniere.json` peut gagner une clé à sa racine (le
-code d'avant ne lit que `version` et `archives`), jamais en perdre ni rien
-gagner sous `archives` qui ne soit un système.
+installations posées : le contenu de `logiciel/` à sa racine, rien d'autre. Le
+code déjà installé la déballe telle quelle dans `maj/<version>/logiciel/` et y
+lit `VERSION` ; une autre forme couperait toutes les installations de leurs
+mises à jour, sans retour possible. `derniere.json` peut gagner une clé à sa
+racine (les installations posées ne lisent que `version` et `archives`),
+jamais en perdre ni rien gagner sous `archives` qui ne soit un système.
 
 **Deux autres sortes d'archives, à côté.** L'**archive des fictives**
-(`puppetpaie-<version>-fictives.zip`, `maj::archiver_fictives`), signée, que
+(`puppetpaie-<version>-fictives.zip`, `publier::archiver_fictives`), signée, que
 `derniere.json` nomme sous `fictives` avec l'**empreinte** de leur contenu
 (SHA-256 des fichiers livrés et de leurs noms, ni compression ni dates). Les
 **archives d'installation** (`puppetpaie-<version>-<système>-installation.zip`,
-Linux, Mac et tous ; `maj::archiver_installation`) : `logiciel/` et
+Linux, Mac et tous ; `publier::archiver_installation`) : `logiciel/` et
 `fictives/`, ce qu'on décompresse pour installer ; ni signées ni nommées,
 comme l'installeur Windows.
 
-**Les fictives se mettent à jour à part** (Léandre, 22/10/2026). Une
+**Les fictives se mettent à jour à part.** Une
 installation retient la livraison qu'elle a dans `fictives/.livraison.json`
 (`empreinte`, et `posees` : le nom et l'empreinte de chaque fictive qu'elle a
 posée) ; chaque fictive posée porte sa marque, `.livree.json` (son empreinte).
@@ -1600,19 +1646,22 @@ et `maj/journal.log` le dit.
   `puppetpaie route`, lit la configuration de chaque compagnie de
   l'installation) et pose `maj/prete.json`.
 - `appliquer` — au démarrage suivant, par un relais lancé avant toute
-  fenêtre : `logiciel/` → `logiciel/.avant/`, la version prête prend sa
-  place ; si ça casse en route, tout revient.
+  fenêtre (`maj::au_lancement`, `maj::relais` : sous Windows, un programme ne
+  se remplace pas pendant qu'il tourne) : `logiciel/` → `logiciel/.avant/`, la
+  version prête prend sa place ; si ça casse en route, tout revient.
 - `revenir` — `.avant/` reprend la place (`moteur maj --revenir`).
-- `publier` — par le flux « Publier » du dépôt public, qui compile les
-  systèmes choisis (le Mac sur `macos-latest`), signe et pose leurs archives,
-  celle de tous et celle des fictives, les archives d'installation,
-  `derniere.json` et l'installeur dans une Release (la clé du
-  poste, `moteur maj --publier`, reste acceptée) ; jamais republier un numéro.
+- `publier` — par le flux « Publier » du dépôt public
+  (`.github/workflows/publier.yml`), qui compile les systèmes choisis (le Mac
+  sur `macos-latest`), attend l'approbation de Léandre, signe
+  (`publier::publier_depuis_l_environnement`) et pose leurs archives, celle de
+  tous et celle des fictives, les archives d'installation, `derniere.json` et
+  l'installeur dans une Release (la clé d'un poste, `moteur maj --publier`, est
+  acceptée aussi) ; jamais republier un numéro.
 
 
 ## L'exercice : rappels, clôture, export compta
 
-Porté d'`operations_exercice.py` (16/09/2026) : `moteur/src/compagnie/exercice_ecrit.rs` (la clôture,
+`moteur/src/compagnie/exercice_ecrit.rs` (la clôture,
 l'export compta) et `moteur/src/routes/rappels.rs` (les rappels). Trois choses qui regardent plus loin
 que le mois affiché.
 
@@ -1642,13 +1691,13 @@ les retours dont le nom commence par l'année ou par janvier suivant (le
 bilan de la DSN de décembre arrive en janvier), `journal/depots.json`, les
 fiches de `config/` et le barème de l'année, `compta/`, un `LISEZ-MOI.txt`.
 Elle note dans `config/exercices.json` la date, l'archive, son empreinte
-SHA-256 et le nombre de fichiers. **Figer** vit dans le socle
-(`refuser_si_clos`) et est appelé par `enregistrer_saisie` et
-`produire_mois` : un front qui l'esquiverait n'existe pas. `rouvrir_exercice`
+SHA-256 et le nombre de fichiers. **Figer** vit dans le moteur
+(`routes::mois::refuser_si_clos`), appelé par l'écriture d'une saisie et par
+la fabrication de la DSN (`depart::fabriquer_dsn`) : un front qui l'esquiverait n'existe pas. `rouvrir_exercice`
 retire la note et garde l'archive (avec une trace `_rouverts`).
 
-**L'export compta** (`export_compta`) recalcule chaque mois depuis sa saisie
-(`charger`) — les mêmes lignes, les mêmes arrondis que les bulletins — et
+**L'export compta** (`export_compta`) lit les paies écrites des engagements validés
+(`documents::ecritures_comptables`) — les mêmes lignes, les mêmes arrondis que les bulletins — et
 construit une écriture par mois, datée du dernier jour : au débit le brut
 par spectacle (l'analytique) et la part patronale de chaque ligne de
 bulletin ; au crédit un tiers par organisme (part patronale + part
@@ -1663,3 +1712,27 @@ Pourquoi les bulletins et pas la DSN : le montant Urssaf de la DSN est un
 bordereau recopié, pas un calcul, et les blocs 81 ne couvrent pas tout ce
 que l'Urssaf facture — la comptabilité de la paie, c'est le bulletin ; le
 prélèvement réel se rapproche ensuite du compte de tiers.
+
+## Les tests, par partie
+
+Chaque partie a ses tests et une cible qu'elle ne dépasse pas : pour en ajouter un, on en retire un. Un test s'écrit
+pour une règle tirée d'un texte déposé (il le cite), pour un bug réel qui a échappé, ou pour un parcours ; jamais pour
+une forme, ni pour comparer le moteur à ce qu'il faisait. Un test qui monte une compagnie passe par le moteur entier et
+vit dans `moteur/tests/` ; un test qui n'appelle qu'une crate sur des valeurs vit dans cette crate.
+
+| partie | où | cible | ce qu'ils prouvent |
+|---|---|--:|---|
+| socle | `socle/` | 10 | dates, heure de Paris, arrondis ; l'écriture des fichiers et le verrou |
+| droit | `droit/` | 80 | une règle = un texte déposé cité ; une grille à graine fixe par barème |
+| engagement | `engagement/`, `moteur/tests/calcul/` | 15 | rien ne part sans validation ; ce qui est parti fige ; daté ou corrigé |
+| documents | `documents/` | 20 | la forme relue, les chiffres égaux à l'engagement |
+| déclarations | `declarations/`, `moteur/tests/dsn/` | 90 | la norme : usages, formats, blocs, ordre, échéances |
+| envois | `envois/` | 40 | la lecture des retours réels transcrits, le garde-fou réseau, aucun envoi réel sans mot de passe |
+| interface | `moteur/tests/routes/`, `interface_fichiers.rs`, `interface_http.rs`, `src/interface/`, `src/routes/` | 20 | une route refuse et rien n'est écrit ; l'ouverture |
+| compagnie | `moteur/tests/fichiers/` (coffre, clé de signature, mise à jour, sauvegarde, restauration, archivage, bridage, essai, installations, Drive, banque des conseils), `tests/routes/compagnie_supprimee.rs`, `demarrage.rs`, `tests/drive_jeton.rs`, `src/compagnie/` | 40 | le coffre et ses deux mots de passe, la signature des mises à jour et la forme des archives, la sauvegarde et la restauration, le bridage |
+| import | `moteur/tests/fichiers/bulletin_lu.rs`, `caviardage.rs`, `tests/routes/import_neuve.rs`, `src/import/` | 15 | un passé importé se relit (bulletins, DSN) ; ce qui part chez l'éditeur ne désigne personne |
+| atelier | `moteur/tests/fichiers/donnees_reelles.rs`, `garde_reseau.rs`, `verifier_avant_commit.rs`, `referentiels.rs`, `tests/atelier.rs`, la garde de l'horloge | 15 | les garde-fous de `atelier/CLAUDE.md` ; la fidélité des référentiels livrés aux textes déposés ; le binaire livré ne porte rien de l'atelier |
+| parcours | `moteur/tests/rejeu.rs` | 4 | un scénario joué de bout en bout à l'horloge, ses sorties comparées à un oracle |
+
+Total visé : environ 350, plafond 400. La commande, et ce qu'un exécutant lance : `atelier/CLAUDE.md`, « Faire
+tourner le code dans le conteneur, et les tests ».

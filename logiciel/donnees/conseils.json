@@ -1249,7 +1249,7 @@
       "domaine": "logiciel",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Dans PuppetPaie, votre DPAE est « répétée » avant d'être déposée pour de vrai : dès qu'un contrat part, le logiciel envoie le même fichier en dépôt de test, qui ne déclare rien mais dit si l'Urssaf l'accepterait. Le jour du dépôt réel, il n'y a plus de surprise.",
+      "texte": "Dans PuppetPaie, votre DPAE est « répétée » avant d'être déposée pour de vrai : dès qu'un contrat part, le logiciel envoie le même fichier en dépôt de test, qui ne déclare rien mais dit si l'Urssaf l'accepterait. Le dépôt réel n'est permis qu'après une répétition réussie de ce fichier : il n'y a plus de surprise.",
       "source": {
         "fichier": "atelier/README.md",
         "article": "§ « La DPAE préparée d'avance, et son filet de sécurité »",
@@ -1263,11 +1263,11 @@
       "domaine": "logiciel",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "PuppetPaie vous prévient huit jours avant chaque embauche avec le rappel « DPAE à envoyer », et il se tait dès que la DPAE réelle est partie. En option, un courriel « filet » vous alerte la veille si elle n'est pas partie, sans que le serveur ne connaisse ni vos salariés ni vos contrats.",
+      "texte": "PuppetPaie vous rappelle chaque embauche : « DPAE à envoyer » dès que l'engagement est validé, « Engagement à valider » huit jours avant s'il ne l'est pas encore, et le rappel se tait dès que la DPAE réelle est partie. En option, un courriel « filet » vous alerte la veille si elle n'est pas partie, sans que le serveur ne connaisse ni vos salariés ni vos contrats.",
       "source": {
         "fichier": "atelier/README.md",
         "article": "§ « La DPAE préparée d'avance, et son filet de sécurité »",
-        "citation": "Huit jours avant l'embauche, la boîte des rappels dit « DPAE à envoyer — embauche du … »"
+        "citation": "Dès que l'engagement est validé, la boîte des rappels dit « DPAE à envoyer — embauche du … »"
       },
       "ciblage": "quand un engagement commence dans moins de 8 jours et que la DPAE n'est pas au journal",
       "certitude": "sourcé (doc du dépôt)"
@@ -2148,7 +2148,7 @@
       "domaine": "déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Tant que l'échéance n'est pas passée, vous pouvez refaire le mois et redéposer une DSN qui remplace l'ancienne. Après l'échéance, on ne remplace plus : la correction part dans la DSN du mois suivant, datée de la période d'origine. PuppetPaie fait cette correction pour vous et produit un bulletin rectificatif.",
+      "texte": "Tant que l'échéance n'est pas passée, vous pouvez modifier l'engagement et redéposer une DSN qui remplace l'ancienne. Après l'échéance, on ne remplace plus : la correction part dans la DSN du mois suivant, datée de la période d'origine. PuppetPaie fait cette correction pour vous, et un bulletin rectificatif si le bulletin du mois était déjà parti.",
       "source": {
         "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche1902-circuit-derogatoire-cddu-d-20250512.txt",
         "article": "",
@@ -2356,7 +2356,7 @@
       "domaine": "déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Un signalement n'enlève rien à la DSN : un arrêt ou une fin de contrat signalé se reporte toujours dans la DSN mensuelle qui suit. PuppetPaie le fait automatiquement à la production du mois, et chaque DSN d'un arrêt long le reprend.",
+      "texte": "Un signalement n'enlève rien à la DSN : un arrêt ou une fin de contrat signalé se reporte toujours dans la DSN mensuelle qui suit. PuppetPaie le fait de lui-même dans la DSN du mois, et chaque DSN d'un arrêt long le reprend.",
       "source": {
         "fichier": "atelier/reference/sources/net-entreprises-base-connaissances/net-entreprises-fiche673-rappel-signalements-arret-reprise-fin-de-contrat-20250513.txt",
         "article": "",
@@ -2400,7 +2400,7 @@
       "domaine": "logiciel",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "Si vous découvrez un cachet oublié sur un mois déjà déclaré, modifiez l'engagement et revalidez-le : PuppetPaie compare sa paie à celle que la DSN a déclarée, fait partir la correction dans la DSN suivante et produit un bulletin rectificatif qui reprend le numéro du bulletin corrigé. L'historique montre la paie déclarée et la paie validée.",
+      "texte": "Si vous découvrez un cachet oublié sur un mois déjà déclaré, modifiez l'engagement et revalidez-le : PuppetPaie compare sa paie à celle que la DSN a déclarée, fait partir la correction dans la DSN suivante et, si le bulletin était déjà parti, un bulletin rectificatif sous un numéro neuf, qui nomme le bulletin corrigé. Historique › Les corrections montre la paie déclarée et la paie validée.",
       "source": {
         "fichier": "atelier/README.md",
         "article": "§ « Corriger un mois déjà déposé »",
@@ -2442,7 +2442,7 @@
       "domaine": "logiciel / déclarations",
       "public": "employeur",
       "quand": "toujours",
-      "texte": "À l'ouverture de PuppetPaie, le logiciel vous dit quel mois attend sa DSN et dans quel état il est (saisi, validé, écrit), avec un bouton « Vérifier et envoyer ». Passé l'échéance, le rappel dit « en retard ». Rien ne part sans le dernier geste de votre part : le mot de passe du logiciel.",
+      "texte": "À l'ouverture de PuppetPaie, le logiciel vous dit quel mois attend sa DSN et où il en est (combien d'engagements, combien de validés), avec un bouton « Vérifier et envoyer ». Passé l'échéance, le rappel dit « en retard ». Rien ne part sans le dernier geste de votre part : le mot de passe du logiciel.",
       "source": {
         "fichier": "atelier/README.md",
         "article": "§ « À l'ouverture : ce que le logiciel rappelle »",
