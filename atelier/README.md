@@ -1196,11 +1196,9 @@ signature.
    l'irréversible ».
 3. **Le numéro d'objet du spectacle** : France Travail en délivre un nouveau
    chaque année (`216Z…` = 2021 … `266Z…` = 2026) — voir « Chaque janvier ».
-4. **Les compteurs** de `config/compteurs.json` (numéros de bulletin, de contrat
-   et d'attestation AEM) au premier mois d'utilisation réelle : ils ont été
-   estimés à partir des dernières sorties CoolPaie, pas lus dans sa base.
-   Ils ne sont écrits qu'une fois tous les fichiers du mois produits : un essai,
-   un rejeu ou une commande interrompue ne consomme aucun numéro.
+4. **Les numéros de bulletin** suivent ceux de l'année : après le compteur de l'année (`config/compteurs.json`)
+   et après les bulletins importés (`documents/src/ecrire_documents.rs`, `numeroter_en_attente`). Ils ne
+   s'écrivent qu'au départ des documents : un essai, un rejeu ou une commande interrompue ne consomme aucun numéro.
 
 ## À l'ouverture : ce que le logiciel rappelle
 
@@ -1237,11 +1235,9 @@ echo '{"route":"conseils-salarie","charge":{"salarie":"<CLE>"}}' | moteur route 
 
 ### La DPAE préparée d'avance, et son filet de sécurité
 
-Dès qu'un contrat part — envoyé à la signature, ou imprimé pour la main
-propre —, sa DPAE s'écrit et part **en test**, sans rien demander :
+Dès qu'un engagement est validé, sa DPAE s'écrit et part **en test**, sans rien demander :
 c'est le même fichier que le dépôt réel reprendra, déjà répété. Le test ne
-déclare rien. Il se fait à l'ouverture, à chaque passage de la veille, et
-juste après l'envoi des contrats à la signature ; une panne devient une ligne
+déclare rien. Il se fait à l'ouverture et à chaque passage de la veille ; une panne devient une ligne
 d'incident, et le passage suivant réessaie. Le dépôt réel n'est permis
 qu'après une répétition réussie de ce fichier-là.
 
@@ -1254,15 +1250,14 @@ fois l'embauche commencée.
 
 **Le filet** (Configuration › Mots de passe, une option à cocher) : le
 logiciel confie au serveur de PuppetPaie un réveil pour la veille de chaque
-embauche dont le contrat est parti, et le désarme dès que la DPAE part.
+embauche dont l'engagement est validé, et le désarme dès que la DPAE part.
 Un réveil qui n'a pas été désarmé sonne : **un** courriel à l'adresse
 choisie. Si la DPAE est partie, personne ne reçoit rien. Le serveur ne
 reçoit ni nom, ni salarié, ni contrat : l'adresse (confirmée une fois par un
 lien), un code tiré au hasard et le jour de l'embauche. Son code et son
-installation sont dans le dépôt du site de l'éditeur, sous `infra/filet/` (depuis le
-13/10/2026 ; il tourne sur le VPS du site). Le poste s'identifie auprès de lui
-par une clé que le serveur lui donne (`config/diagnostic.json` : `poste`,
-`cle`, `serveur`), demandée au premier envoi ; plus de secret partagé.
+installation sont dans le dépôt du site de l'éditeur, sous `infra/filet/` (il tourne sur le VPS du site). Le
+poste s'identifie auprès de lui par une clé que le serveur lui donne (`config/diagnostic.json` : `poste`,
+`cle`, `serveur`), demandée au premier envoi ; aucun secret partagé.
 
 ```
 moteur filet                       l'option, les réveils armés
