@@ -3,8 +3,7 @@
 Une installation : `logiciel/` (le programme, en retard d'une version) et `prive/`, la
 fictive 1285 copiée (une version se contrôle sur les données des compagnies de
 l'installation avant d'être acceptée). Le réglage de la mise à jour est celui de
-l'installation (lot U1) ; le bac le porte encore à l'ancienne, dans
-`prive/config/maj.json` (lu en repli : pas l'éditeur ; les versions viennent de
+l'installation, `maj/reglage.json` (pas l'éditeur ; les versions viennent de
 `atelier/depot/`). Le marqueur `COPIE-DE-DEVELOPPEMENT.json` de la fictive est retiré :
 `prive/` est la compagnie du poste.
 
@@ -23,4 +22,4 @@ Essayer une mise à jour :
 
 Pour recommencer : `logiciel\puppetpaie.exe maj --revenir`.
 
-`logiciel/`, `maj/` et `prive/journal/` ne vont pas dans le dépôt (`.gitignore`).
+`logiciel/`, `maj/` (sauf son `reglage.json`) et `prive/journal/` ne vont pas dans le dépôt (`.gitignore`).

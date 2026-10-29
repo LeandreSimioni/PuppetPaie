@@ -33,7 +33,7 @@ pub const VARIABLE_GRAINE: &str = "PUPPETPAIE_CLE_SIGNATURE";
 const FICHIER_CLE_PRIVEE: &str = "maj-cle-privee.bin";
 const DESCRIPTION_CLE: &str = "PuppetPaie : cle de signature des mises a jour";
 /// Ce que porte `maj-cle-privee.bin` : `{"format": FORMAT_CLE, "scelle": <base64>}`, la graine scellee par
-/// la cle maitresse du coffre. Tout autre contenu est une cle scellee par la cle du poste seule.
+/// la cle maitresse du coffre. Tout autre contenu est refuse.
 const FORMAT_CLE: &str = "puppetpaie/maj-cle/scellee-par-le-coffre";
 const SANS_CLE: &str = "pas de cle privee : les compagnies refuseraient une archive non signee (moteur maj --cle pour la fabriquer)";
 /// Ce qui ne part jamais dans une archive, ni ne bouge a la bascule.
@@ -248,7 +248,7 @@ pub fn marquer_les_fictives(code: &Path) -> R<String> {
     Ok(empreinte)
 }
 
-/// Le scelle d'une cle au format `FORMAT_CLE`, ou None (une cle scellee par la cle du poste seule, ou autre chose).
+/// Le scelle d'une cle au format `FORMAT_CLE`, ou None.
 fn scelle_par_le_coffre(octets: &[u8]) -> Option<Vec<u8>> {
     let v: Value = serde_json::from_slice(octets).ok()?;
     if v.get("format").and_then(Value::as_str) != Some(FORMAT_CLE) {
@@ -257,12 +257,10 @@ fn scelle_par_le_coffre(octets: &[u8]) -> Option<Vec<u8>> {
     b64(v.get("scelle")?.as_str()?).ok()
 }
 
-/// La cle de signature de la compagnie de `racine` : None s'il n'y en a pas, `Some(true)` si elle est scellee par le
-/// coffre (elle s'ouvre par le mot de passe du logiciel), `Some(false)` si elle l'est par la cle du poste
-/// qui l'a faite, seule. Ne lit que la forme du fichier, n'ouvre rien.
-pub fn cle_scellee_par_le_coffre(racine: &Path) -> Option<bool> {
-    let o = std::fs::read(racine.join("config").join(FICHIER_CLE_PRIVEE)).ok()?;
-    Some(scelle_par_le_coffre(&o).is_some())
+/// La compagnie de `racine` porte-t-elle une cle de signature (scellee par son coffre) ? Ne lit que la presence du
+/// fichier, n'ouvre rien.
+pub fn cle_de_signature_posee(racine: &Path) -> bool {
+    racine.join("config").join(FICHIER_CLE_PRIVEE).is_file()
 }
 
 /// Ecrit la cle scellee par le coffre : un `.part` renomme, jamais un fichier coupe en route sous le vrai nom.
@@ -273,39 +271,18 @@ fn ecrire_cle(chemin: &Path, scelle: &[u8]) -> R<()> {
     std::fs::rename(&part, chemin).map_err(|e| e.to_string())
 }
 
-/// La graine de la cle privee, ouverte par ce qui ouvre le coffre. Une cle scellee par la cle du poste seule s'ouvre par la cle de son
-/// poste et, si le coffre a un mot de passe du logiciel, s'y rescelle par le coffre (verifiee avant d'etre ecrite) ; sinon
-/// elle reste comme elle est.
+/// La graine de la cle privee, ouverte par ce qui ouvre le coffre. Un fichier qui n'est pas au format `FORMAT_CLE` est
+/// refuse : il ne s'ouvre pas.
 fn cle_privee(coffre: &Coffre) -> R<Option<Vec<u8>>> {
     let p = coffre.racine.join("config").join(FICHIER_CLE_PRIVEE);
     if !p.exists() {
         return Ok(None);
     }
     let o = std::fs::read(&p).map_err(|e| e.to_string())?;
-    if let Some(scelle) = scelle_par_le_coffre(&o) {
-        return coffre.deproteger_par_le_coffre(&scelle, DESCRIPTION_CLE).map(Some).map_err(|e| e.message);
-    }
-    let graine = coffre.deproteger(&o, DESCRIPTION_CLE).map_err(|e| {
-        format!(
-            "{}\nCette cle de signature est scellee a l'ancienne, par la cle du poste qui l'a faite seule : elle ne s'ouvre que la-bas.",
-            e.message
-        )
-    })?;
-    if let Ok(neuf) = coffre.proteger_par_le_coffre(&graine, DESCRIPTION_CLE) {
-        if coffre.deproteger_par_le_coffre(&neuf, DESCRIPTION_CLE).ok().as_deref() == Some(graine.as_slice()) {
-            ecrire_cle(&p, &neuf)?;
-        }
-    }
-    Ok(Some(graine))
-}
-
-/// Ce que `moteur maj` dit d'une cle encore scellee par la cle du poste seule apres l'avoir ouverte, ou None.
-fn reste_a_l_ancienne(racine: &Path) -> Option<String> {
-    (cle_scellee_par_le_coffre(racine) == Some(false)).then(|| {
-        "La cle de signature n'est scellee que par la cle de ce poste : perdue avec lui. Poser le mot de passe du logiciel \
-         (`moteur coffre ouverture`) ; elle se rescellera par le coffre a sa prochaine ouverture (`moteur maj --cle`)."
-            .to_string()
-    })
+    let scelle = scelle_par_le_coffre(&o).ok_or(
+        "config/maj-cle-privee.bin n'est pas une cle scellee par le coffre : elle ne s'ouvre pas (`moteur maj --cle --remplacer` en fait une autre)",
+    )?;
+    coffre.deproteger_par_le_coffre(&scelle, DESCRIPTION_CLE).map(Some).map_err(|e| e.message)
 }
 
 /// La signature de `octets` par la cle privee de la compagnie de `coffre` (le poste, sa cle, ce qui l'ouvre).
@@ -319,15 +296,14 @@ pub(crate) fn exiger_editeur(racine: &Path, quoi: &str) -> R<()> {
         return Err(format!("Copie de developpement : {} ne part jamais d'ici.", quoi));
     }
     if !reglage(&installation())?.1 {
-        return Err("Ce poste n'est pas celui de l'editeur (le reglage de l'installation, maj/reglage.json -- ou, avant lui, prive/config/maj.json -- dit \"editeur\": true).".into());
+        return Err("Ce poste n'est pas celui de l'editeur (le reglage de l'installation, maj/reglage.json, dit \"editeur\": true).".into());
     }
     Ok(())
 }
 
 /// Chez l'editeur : la paire de cles qui signe les archives. La privee, scellee par la cle maitresse du coffre (refuse
 /// sans mot de passe du logiciel : elle serait perdue avec le poste) ; la publique, rendue, a reporter dans `CLE_PUBLIQUE`.
-/// Une cle qui existe deja n'est jamais remplacee sans `remplacer` ; scellee par la cle du poste seule, elle est ouverte (et donc
-/// rescellee par le coffre, `cle_privee`), et sa cle publique rendue.
+/// Une cle qui existe deja n'est jamais remplacee sans `remplacer`.
 pub fn generer_cle(racine: &Path, remplacer: bool) -> R<Value> {
     exiger_editeur(racine, "la cle de signature")?;
     generer_cle_au_poste(&Coffre::du_poste(racine, ""), remplacer)
@@ -341,16 +317,6 @@ pub fn generer_cle_au_poste(coffre: &Coffre, remplacer: bool) -> R<Value> {
         return Err("Copie de developpement : la cle de signature ne part jamais d'ici.".into());
     }
     let chemin = racine.join("config").join(FICHIER_CLE_PRIVEE);
-    if chemin.exists() && !remplacer && cle_scellee_par_le_coffre(racine) == Some(false) {
-        let graine = cle_privee(coffre)?.ok_or(SANS_CLE)?;
-        let k = ed25519_dalek::SigningKey::from_bytes(&<[u8; 32]>::try_from(graine.as_slice()).map_err(|_| "cle privee illisible (32 octets attendus)")?);
-        let publique = socle::base64::ecrire(k.verifying_key().as_bytes());
-        let mut r = json!({"chemin": chemin.display().to_string(), "cle_publique": publique, "correspond": publique == CLE_PUBLIQUE, "existante": true});
-        if let Some(t) = reste_a_l_ancienne(racine) {
-            r["a_l_ancienne"] = json!(t);
-        }
-        return Ok(r);
-    }
     if chemin.exists() && !remplacer {
         return Err(format!(
             "Une cle privee existe deja ({}). --remplacer pour en faire une autre : les compagnies devront alors recevoir la nouvelle cle publique par une autre voie.",
@@ -377,11 +343,7 @@ pub fn publier(racine: &Path, depot: Option<&str>, notes: &str, calcul: &str, ex
         return Err("publier ecrit dans un dossier ; pour un depot en ligne, y deposer ensuite les archives et derniere.json".into());
     }
     let privee = cle_privee(&Coffre::du_poste(racine, ""))?.ok_or(SANS_CLE)?;
-    let mut r = publier_signe(&code(), Path::new(&depot), &privee, CLE_PUBLIQUE, notes, calcul, exigee)?;
-    if let Some(t) = reste_a_l_ancienne(racine) {
-        r["a_l_ancienne"] = json!(t);
-    }
-    Ok(r)
+    publier_signe(&code(), Path::new(&depot), &privee, CLE_PUBLIQUE, notes, calcul, exigee)
 }
 
 /// Le coeur de `publier`, le logiciel, la graine et la cle publique donnes : les archives de `c` (une par systeme dont la

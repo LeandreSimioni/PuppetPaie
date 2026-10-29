@@ -806,7 +806,7 @@ impl Coffre {
     /// Ce que la cle maitresse scelle hors du coffre, s'il y en a (la cle de signature des mises a jour) : tant qu'il est
     /// la, le coffre ne s'efface pas quand il ne porte plus rien. Sa cle maitresse est la seule qui l'ouvre.
     fn scelle_ailleurs(&self) -> bool {
-        crate::atelier::publier::cle_scellee_par_le_coffre(&self.racine) == Some(true)
+        crate::atelier::publier::cle_de_signature_posee(&self.racine)
     }
 
     // ------------------------------------------------------------ le fichier

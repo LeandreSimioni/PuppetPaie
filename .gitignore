@@ -145,7 +145,8 @@ atelier/sources/fenetre/gen/schemas/windows-schema.json
 
 # LE BAC A SABLE DE LA MISE A JOUR (atelier/bac-a-sable/LISEZ-MOI.md) : le programme y est copie, ce qu'il fabrique ne se garde pas.
 atelier/bac-a-sable/logiciel/
-atelier/bac-a-sable/maj/
+atelier/bac-a-sable/maj/*
+!atelier/bac-a-sable/maj/reglage.json
 atelier/bac-a-sable/prive/maj/
 atelier/bac-a-sable/prive/journal/
 

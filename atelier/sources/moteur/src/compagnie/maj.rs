@@ -231,20 +231,15 @@ fn logiciel_de(inst: &Path) -> PathBuf {
 }
 
 const REGLAGE: &str = "reglage.json";
-/// Le reglage porte par la compagnie du poste (`prive/config/maj.json`, `editeur` et `depot`), lu EN REPLI quand
-/// l'installation n'a pas le sien : c'est ainsi qu'est regle le poste de l'editeur. Un seul fichier fait foi a la fois
-/// (celui de l'installation, s'il est pose).
-const REGLAGE_DE_LA_COMPAGNIE: &str = "prive/config/maj.json";
 
-/// Le reglage de l'installation : (depot pose, editeur). `maj/reglage.json`, sinon `prive/config/maj.json`, sinon rien de
-/// pose. `editeur` ne sert qu'a autoriser la publication : le poste de l'editeur recoit comme les autres.
+/// Le reglage de l'installation, `maj/reglage.json` : (depot pose, editeur), ou rien de pose s'il n'existe pas.
+/// `editeur` ne sert qu'a autoriser la publication : le poste de l'editeur recoit comme les autres.
 pub fn reglage(inst: &Path) -> R<(Option<String>, bool)> {
-    let neuf = dossier_maj(inst).join(REGLAGE);
-    let (p, nom) = if neuf.exists() { (neuf, "maj/reglage.json") } else { (inst.join(REGLAGE_DE_LA_COMPAGNIE), REGLAGE_DE_LA_COMPAGNIE) };
+    let p = dossier_maj(inst).join(REGLAGE);
     if !p.exists() {
         return Ok((None, false));
     }
-    let d = lire_json(&p).filter(Value::is_object).ok_or_else(|| format!("{} illisible", nom))?;
+    let d = lire_json(&p).filter(Value::is_object).ok_or("maj/reglage.json illisible")?;
     let depot = d.get("depot").and_then(Value::as_str).filter(|s| !s.is_empty()).map(String::from);
     Ok((depot, d.get("editeur").and_then(Value::as_bool).unwrap_or(false)))
 }
@@ -1431,8 +1426,9 @@ fn attendre_fin(_pid: u32, inst: &Path) -> bool {
 
 /// Le relais (`puppetpaie maj-relais --installation I --code C --attendre PID`) : attend la fin du programme qui l'a
 /// lance, bascule, et lance la fenetre (la neuve, ou l'ancienne si la bascule a echoue). Ecrit ce qui s'est passe dans le
-/// journal de la mise a jour. Avec `--racine R` (la compagnie dont `maj/` porte la version
-/// prete) au lieu de `--installation`, il l'applique de la.
+/// journal de la mise a jour. `--racine R` (la compagnie dont `maj/` porte la version prete) au lieu de `--installation` :
+/// c'est ainsi que le programme d'une installation posee qui ne connait pas `--installation` lance le relais de la
+/// version neuve ; ses arguments sont un contrat avec les installations posees, comme la forme des archives.
 pub fn relais(args: &[String]) -> i32 {
     let valeur = |n: &str| args.iter().position(|a| a == n).and_then(|i| args.get(i + 1)).map(PathBuf::from);
     let Some(code) = valeur("--code") else { return 2 };
@@ -1509,33 +1505,16 @@ pub fn commande(args: &[String]) -> i32 {
     let racine = crate::routes::ouverture::racine_du_poste();
     let r = if drapeau("--cle") {
         generer_cle(&racine, drapeau("--remplacer")).map(|r| {
-            let ecrite = if r["existante"] == json!(true) {
-                match r["a_l_ancienne"].as_str() {
-                    Some(t) => format!("Cle privee existante, ouverte : {}\n{}", r["chemin"].as_str().unwrap_or(""), t),
-                    None => format!(
-                        "Cle privee existante, rescellee par le coffre (le mot de passe du logiciel l'ouvre sur un autre poste) : {}",
-                        r["chemin"].as_str().unwrap_or("")
-                    ),
-                }
-            } else {
-                format!("Cle privee ecrite (scellee par le coffre : le mot de passe du logiciel l'ouvre sur un autre poste) : {}", r["chemin"].as_str().unwrap_or(""))
-            };
             format!(
-                "{}\nCle publique, a reporter dans moteur/src/compagnie/maj.rs, CLE_PUBLIQUE :\n  {}{}",
-                ecrite,
+                "Cle privee ecrite (scellee par le coffre : le mot de passe du logiciel l'ouvre sur un autre poste) : {}\nCle publique, a reporter dans moteur/src/compagnie/maj.rs, CLE_PUBLIQUE :\n  {}{}",
+                r["chemin"].as_str().unwrap_or(""),
                 r["cle_publique"].as_str().unwrap_or(""),
                 if r["correspond"] == json!(true) { "" } else { "\n  (le code porte une autre cle publique : tant qu'elle n'est pas reportee, `publier` refuse)" }
             )
         })
     } else if drapeau("--publier") {
         publier(&racine, valeur("--publier").as_deref(), &valeur("--notes").unwrap_or_default(), &valeur("--calcul").unwrap_or_default(), &valeur("--exigee").unwrap_or_default())
-            .map(|r| {
-                let t = format!("Publiee : {} ({}) dans {}", version_lue(r["version"].as_str().unwrap_or("")), dire_les_archives(&r), r["dossier"].as_str().unwrap_or(""));
-                match r["a_l_ancienne"].as_str() {
-                    Some(a) => format!("{}\n{}", t, a),
-                    None => t,
-                }
-            })
+            .map(|r| format!("Publiee : {} ({}) dans {}", version_lue(r["version"].as_str().unwrap_or("")), dire_les_archives(&r), r["dossier"].as_str().unwrap_or("")))
     } else if drapeau("--appliquer") {
         if crate::interface::instance::ouverte(&installation(), crate::interface::instance::Plage::DU_POSTE) {
             Err("PuppetPaie tourne : fermer la fenetre, puis appliquer".into())

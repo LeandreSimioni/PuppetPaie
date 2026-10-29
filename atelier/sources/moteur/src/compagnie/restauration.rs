@@ -335,8 +335,8 @@ fn ecrire_sans_remplacer(chemin: &Path, contenu: &[u8]) -> Result<bool, String> 
 // ------------------------------------------------------------ ce qu'il reste a faire a la main
 
 /// Ce qu'il reste a faire a la main apres une restauration, d'apres ce qui est revenu dans `coffre.racine` : le coffre (ce
-/// qu'il porte, s'il s'ouvre a ce poste, par quoi), la cle de signature des mises a jour (par quoi elle s'ouvre : le coffre
-/// depuis le lot K1, ou la cle de l'ancien poste seule ; `maj::cle_scellee_par_le_coffre` ne lit que la forme du fichier). Ne lit aucun secret : les fiches
+/// qu'il porte, s'il s'ouvre a ce poste, par quoi), la cle de signature des mises a jour (scellee par le coffre ;
+/// `publier::cle_de_signature_posee` ne lit que la presence du fichier). Ne lit aucun secret : les fiches
 /// du coffre sont en clair (ce qui est pose, depuis quand), et `ouvre_a_ce_poste` ne rend qu'un oui ou un non. Le coffre
 /// est celui du poste (`Coffre::du_poste`) ; la preuve en donne un dont la cle est ailleurs.
 pub fn a_faire(coffre: &Coffre) -> Vec<String> {
@@ -398,27 +398,19 @@ pub fn a_faire(coffre: &Coffre) -> Vec<String> {
             }
         }
     }
-    // La cle de signature : scellee par la cle maitresse du coffre, elle s'ouvre quand il s'ouvre, et seulement
-    // avec lui ; scellee a l'ancienne, par la cle du poste qui l'a faite seule, elle ne s'ouvre nulle part ailleurs.
-    match crate::atelier::publier::cle_scellee_par_le_coffre(cible) {
-        None => {}
-        Some(true) if coffre.chemin().exists() => lignes.push(
+    // La cle de signature est scellee par la cle maitresse du coffre : elle s'ouvre quand il s'ouvre, et seulement avec lui.
+    if crate::atelier::publier::cle_de_signature_posee(cible) {
+        lignes.push(if coffre.chemin().exists() {
             "config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, scelle par le coffre : il s'ouvre quand le coffre \
              s'ouvre, ici par le mot de passe du logiciel, puis par la cle de ce poste une fois `moteur coffre ouverture` passe."
-                .into(),
-        ),
-        Some(true) => lignes.push(
+                .into()
+        } else {
             "config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, mais le coffre qui le scelle n'est pas revenu : \
              rien d'autre ne l'ouvre, et un coffre neuf (celui que `moteur coffre ouverture` poserait) ne l'ouvrira pas. Remettre \
              d'abord config/coffre.bin de l'ancien poste s'il en reste une copie ; sinon, `moteur maj --cle --remplacer` sur le poste \
              de l'editeur, et la nouvelle cle publique a faire parvenir aux compagnies."
-                .into(),
-        ),
-        Some(false) => lignes.push(
-            "config/maj-cle-privee.bin (la cle qui signe les mises a jour) est revenu, mais il n'est scelle que par la cle du poste qui \
-             l'a fait, pas par le mot de passe du logiciel : sur un autre poste il ne s'ouvre pas, et `moteur maj --publier` le dira."
-                .into(),
-        ),
+                .into()
+        });
     }
     lignes
 }
