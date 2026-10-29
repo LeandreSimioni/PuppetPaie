@@ -1246,6 +1246,24 @@ pub(crate) fn poser_entreprise(ctx: &Contexte, champ: &str, valeur: Value, depui
     ecrire(&chemin, Value::Object(contenu))
 }
 
+/// L'ANCIENNETE D'UN SALARIE PART DE SON EMBAUCHE (S21.G00.86.003, l'anciennete dans l'entreprise :
+/// `norme-dsn/texte/bloc-S21.G00.86.txt`) : la validation de son premier engagement la pose sur sa fiche, au premier jour
+/// de ce contrat (`debut`), quand la fiche ne la dit pas ; elle se change ensuite dans « Avancé » de la fiche. Une fiche
+/// qui la dit la garde. Rend vrai si elle a ete posee. INFERENCE : l'anciennete commence a l'entree dans l'entreprise.
+pub(crate) fn poser_anciennete_a_l_embauche(ctx: &Contexte, salarie: &str, debut: &str) -> R<bool> {
+    let chemin = ctx.racine.join("config").join("salaries.json");
+    let mut contenu = objet_du_fichier(&chemin)?;
+    let Some(Value::Object(fiche)) = contenu.get_mut(salarie) else { return Ok(false) };
+    let dite = fiche.get("date_anciennete").and_then(Value::as_array).is_some_and(|v| v.iter().any(|x| x.get("valeur").is_some_and(vrai)));
+    if dite {
+        return Ok(false);
+    }
+    fiche.insert("date_anciennete".into(), json!([{"valeur": debut}]));
+    sauver_avant(&chemin)?;
+    ecrire(&chemin, Value::Object(contenu))?;
+    Ok(true)
+}
+
 /// L'ANCIENNETE D'UN SALARIE REPRIS QUE SON CONTRAT FAIT REMONTER : l'import la pose au premier bulletin lu
 /// (`import::bulletins`) ; un contrat repris qui a commence avant (`debut`, celui que la DSN de l'ancien logiciel
 /// declare, S21.G00.40.001) dit qu'il etait dans l'entreprise des ce jour-la (S21.G00.86.003, l'anciennete dans
@@ -1483,10 +1501,8 @@ pub(crate) fn ecrire_fiche(ctx: &Contexte, nom: &str, cle: Option<String>, donne
             let existants = objet_du_fichier(&chemin)?;
             donnees.insert("code_salarie".into(), Value::String(matricule_suivant(&existants).to_string()));
         }
-        // L'ANCIENNETE PART DU JOUR DE LA FICHE ; une date saisie est gardee telle quelle.
-        if donnees.get("date_anciennete").filter(|v| vrai(v)).map(valeur_en_texte).unwrap_or_default().trim().is_empty() {
-            donnees.insert("date_anciennete".into(), Value::String(ctx.aujourdhui.iso()));
-        }
+        // L'ANCIENNETE PART DE L'EMBAUCHE, pas du jour de la fiche : la validation du premier engagement la pose
+        // (`poser_anciennete_a_l_embauche`) ; une date saisie est gardee telle quelle.
     }
     let derives = crate::routes::fiches::deriver(nom, &mut donnees, true)?;
 

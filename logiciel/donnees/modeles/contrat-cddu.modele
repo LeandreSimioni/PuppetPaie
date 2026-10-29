@@ -36,12 +36,14 @@ L'artiste : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à
 Il a été convenu et arrêté ce qui suit.
 
 ARTICLE: Objet et nature du contrat
-L'artiste est engagé(e) en qualité {{salarie.qualite_de}}**{{salarie.emploi}}** pour le spectacle **{{spectacle.titre}}** (numéro d'objet France Travail {{spectacle.numero_objet}}).
+L'artiste est engagé(e) en qualité {{salarie.qualite_de}}**{{salarie.emploi}}** (catégorie d'emploi : {{salarie.categorie}}) pour le spectacle **{{spectacle.titre}}** (numéro d'objet France Travail {{spectacle.numero_objet}}).
 
-Le présent contrat est un contrat à durée déterminée d'usage conclu en application de l'article L.1242-2 3° du code du travail, de l'accord interbranche du 12 octobre 1998 sur le recours au contrat à durée déterminée d'usage dans le spectacle, et de la convention collective nationale applicable à l'employeur — {{employeur.convention}}, IDCC {{employeur.idcc}}. L'usage constant exclut le recours au contrat à durée indéterminée pour cet emploi.
+Le présent contrat est {{contrat.motif}}. La convention collective applicable est la convention collective nationale « {{employeur.convention}} » (IDCC {{employeur.idcc}}). L'usage constant exclut le recours au contrat à durée indéterminée pour cet emploi.
 
 ARTICLE: Durée
-Le contrat prend effet le **{{contrat.debut}}** et prend fin de plein droit le **{{contrat.fin}}**, sans qu'il soit besoin d'un préavis.
+Le contrat prend effet le **{{contrat.debut}}** et prend fin le **{{contrat.fin}}**. {{mentions.rupture}}
+
+Période d'essai : {{contrat.periode_essai}}.
 
 Dates de travail : {{contrat.dates_travail}}.
 
@@ -51,12 +53,17 @@ Les prestations sont exécutées {{contrat.lieu}}, ainsi qu'en tout lieu nécess
 ARTICLE: Rémunération
 L'artiste perçoit **{{remuneration.detail}} brut**, soit une rémunération brute totale de **{{remuneration.brut}} €**{{remuneration.periode}}{{remuneration.hors_brut}}, dont le net à payer estimé est de {{remuneration.net_estime}} €.
 
-Le paiement intervient par virement le {{contrat.date_paiement}}. Les congés payés sont réglés par la Caisse des Congés Spectacles, à laquelle l'employeur est affilié sous le numéro {{employeur.congesspectacles}}.
+Le paiement intervient par virement le {{contrat.date_paiement}}. {{mentions.conges}}
 
 ARTICLE: Protection sociale
 L'employeur procède à la déclaration préalable à l'embauche auprès de l'URSSAF et à l'attestation employeur mensuelle auprès de France Travail.
 
-L'artiste relève des annexes VIII et X du règlement d'assurance chômage. Retraite complémentaire et prévoyance : groupe AUDIENS.
+L'artiste relève des annexes VIII et X du règlement d'assurance chômage. {{mentions.protection_sociale}}
+
+Caisse de retraite complémentaire : {{organismes.retraite}}. Organisme de prévoyance : {{organismes.prevoyance}}.
+
+ARTICLE: Formation
+{{mentions.formation}}
 
 ARTICLE: Absence et maladie
 En cas de maladie ou d'empêchement d'assurer une répétition ou une représentation, l'artiste est tenu(e) d'en aviser l'employeur dans un délai de 24 heures en précisant la durée probable de son absence, et de transmettre dans les plus brefs délais un certificat médical.
@@ -75,6 +82,9 @@ L'artiste est tenu(e) d'assurer contre tous les risques les objets lui appartena
 
 ARTICLE: Droits voisins
 La rémunération ci-dessus couvre la seule prestation de travail. Toute fixation, reproduction ou communication au public de l'interprétation fera l'objet d'une autorisation écrite distincte et, le cas échéant, d'une rémunération séparée.
+
+ARTICLE: Clauses particulières
+{{contrat.clauses_particulieres}}
 
 ARTICLE: Litiges
 En cas de litige portant sur l'interprétation ou l'application du présent contrat, les parties conviennent de s'en remettre à l'appréciation des tribunaux compétents, après épuisement des voies amiables.
@@ -97,6 +107,16 @@ Fait en double exemplaire à {{employeur.commune}}, le {{contrat.debut}}.
 #
 #   contrat.numero                contrat.debut            contrat.dates_travail
 #   contrat.lieu                  contrat.fin              contrat.date_paiement
+#   contrat.motif                 contrat.periode_essai    contrat.clauses_particulieres
+#   salarie.categorie
+#
+#   organismes.retraite           organismes.prevoyance
+#   mentions.formation            mentions.conges          mentions.rupture
+#   mentions.protection_sociale
+#     ^ les mentions que la loi exige (code du travail L. 1242-12, R. 1221-34) :
+#       un modele qui en perd une est refuse, et le refus dit laquelle. La liste
+#       entiere, avec ce que chaque champ imprime : Configuration › Modeles de
+#       contrat.
 #
 #   remplace.numero               remplace.date   (bloc ANNULE: seulement)
 #

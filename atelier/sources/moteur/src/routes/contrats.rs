@@ -391,8 +391,8 @@ pub(crate) fn signature_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let boite_liee = crate::routes::ouverture::boite_liee(ctx)?;
     let mut contrats = Vec::new();
     for (i, p) in paies.iter().enumerate() {
-        // UN PERMANENT N'A PAS DE CONTRAT D'USAGE A SIGNER ICI.
-        if !vrai(&p.spectacle) {
+        // SEUL UN CONTRAT ECRIT SE FAIT SIGNER ICI (`engagement::contrat_a_signer`).
+        if !engagement::contrat_a_signer(&ctx.racine, &p.engagement).map_err(Echec::from)? {
             continue;
         }
         let (cle_s, debut) = rangs[i].clone();
@@ -528,11 +528,12 @@ pub(crate) fn salaries_d_identite(ctx: &Contexte) -> Value {
     Value::Object(salaries)
 }
 
-/// Les numeros propres des paies de ce salarie qui commencent ce jour-la (celles d'un spectacle), dans l'ordre de la saisie.
-pub(crate) fn numeros_du_jour(paies: &[engagement::calcul::Paie], salarie: &str, debut: &str) -> R<Vec<String>> {
+/// Les numeros propres des paies de ce salarie qui commencent ce jour-la (celles dont le contrat se fait signer ici), dans
+/// l'ordre de la saisie.
+pub(crate) fn numeros_du_jour(ctx: &Contexte, paies: &[engagement::calcul::Paie], salarie: &str, debut: &str) -> R<Vec<String>> {
     let mut v = Vec::new();
     for x in paies {
-        if est(get_requis(&x.salarie, "_cle")?, salarie) && x.engagement.debut.iso() == debut && vrai(&x.spectacle) {
+        if est(get_requis(&x.salarie, "_cle")?, salarie) && x.engagement.debut.iso() == debut && engagement::contrat_a_signer(&ctx.racine, &x.engagement).map_err(Echec::from)? {
             v.push(x.engagement.numero.clone().unwrap_or_default());
         }
     }
@@ -571,7 +572,7 @@ pub(crate) fn numero_du_contrat(
     }
     if let Some(m) = mois.filter(|m| !m.is_empty()) {
         let (_d, paies) = documents::ecrire_documents::paies_aux_numeros_declares(ctx, m, None)?;
-        let propres = numeros_du_jour(&paies, salarie, debut)?;
+        let propres = numeros_du_jour(ctx, &paies, salarie, debut)?;
         if let Some(i) = propres.iter().position(|x| x == n) {
             return Ok(etats::apparier(&propres, &parti)[i].clone());
         }
@@ -625,7 +626,7 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     let g = m.globales()?;
     let deja = envois::etats::avenants_du_contrat(g.avenants.get(&(salarie.clone(), debut.clone(), numero_parti.clone())), &parti);
     let ent = documents::avenant::ent_du_mois(ctx, &mois_parti)?;
-    let modele = documents::avenant::modele_du_contrat(&ent, &ctx.gabarits())?;
+    let modele = documents::avenant::modele_du_contrat(&ent, &ctx.gabarits(), &*p.engagement.nat().map_err(Echec::from)?)?;
     let paie_json = engagement::relire::ecrire(ctx, p)?;
     let numero_porte = Some(p.engagement.numero.clone().unwrap_or_else(|| "None".to_string()));
     let vals = documents::avenant::valeurs_de_la_paie(ctx, &ent, &paie_json, Some(&numero_porte))?;
@@ -668,6 +669,11 @@ pub(crate) fn avenant_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
         "fin": p.engagement.fin.map_or("None".to_string(), |f| f.iso()),
         "nom": format!("{} {}", prenom, valeur_en_texte(get_requis(sal, "nom")?)),
         "spectacle": p.titre()?,
+        // CE QUE LE COURRIEL DIT DU CONTRAT : son nom (`contrat_ecrit.nom` de sa nature), son spectacle s'il en a un, sa
+        // periode (« a partir du » pour un contrat sans terme).
+        "nom_du_contrat": p.engagement.nat().map_err(Echec::from)?.nom_du_contrat(),
+        "pour": if vrai(&p.spectacle) { format!(" pour {}", p.titre()?) } else { String::new() },
+        "periode": match p.engagement.fin { Some(f) => format!("du {} au {}", p.engagement.debut.jj_mm_aaaa(), f.jj_mm_aaaa()), None => format!("à partir du {}", p.engagement.debut.jj_mm_aaaa()) },
         "mois": parti.mois,
         "contrat": parti.numero,
         "date_contrat": parti.date(),

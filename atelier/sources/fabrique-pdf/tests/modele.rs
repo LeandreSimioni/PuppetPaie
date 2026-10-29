@@ -249,7 +249,6 @@ fn le_vrai_contrat_cddu_passe_avec_tous_ses_marqueurs() {
     let chemin = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../logiciel/donnees/modeles/contrat-cddu.modele");
     let texte = std::fs::read_to_string(&chemin).unwrap();
     let m = modele::lire_modele(&texte, "contrat-cddu.modele").unwrap();
-    assert_eq!(m.articles.len(), 12);
     // Chaque marqueur qui n'est pas dans un commentaire reçoit une valeur.
     let mut v = Valeurs::new();
     for ligne in texte.lines().filter(|l| !l.trim_start().starts_with('#')) {

@@ -146,7 +146,7 @@ impl Point {
             "a_faire"
         };
         let s = &p["etats"]["signature"];
-        let contrat = if !(embauche && vrai(&p["spectacle"])) {
+        let contrat = if !(embauche && vrai(&p["contrat"]["ecrit"])) {
             "fait"
         } else if !vrai(&s["fait"]) {
             "a_envoyer"
@@ -801,12 +801,14 @@ impl<'a> Moteur<'a> {
             // RECALCULEE D'ELLE-MEME (`engagement::etats::du_mois`) : pourquoi, et quand.
             let recalcul = etats_eng.get(i).and_then(|e| e.valide()).and_then(|v| v.recalcul(mois)).and_then(engagement::etats::phrase_du_recalcul);
             ligne.insert("recalcul".into(), recalcul.map_or(Value::Null, Value::String));
+            // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
+            let repris = engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""));
             ligne.insert(
                 "contrat".into(),
-                // REPRIS D'UN ANCIEN LOGICIEL : la carte le dit (`engagement::importe::vient_d_un_ancien_logiciel`).
+                // ECRIT : le contrat de cet engagement se fait signer ici (`engagement::contrat_a_signer`).
                 json!({"premier_mois": premier_mois, "dernier_mois": dernier_mois,
                        "depuis": mois_du_contrat.first(), "jusqu_a": mois_du_contrat.last(),
-                       "repris": engagement::importe::vient_d_un_ancien_logiciel(&self.ctx.racine, &p.engagement.salarie, &p.engagement.debut.iso(), p.engagement.numero.as_deref().unwrap_or(""))}),
+                       "repris": repris, "ecrit": engagement::contrat_a_signer(&self.ctx.racine, &p.engagement).map_err(plain)?}),
             );
             // CE QUE CE SALARIE RECOIT POUR CETTE PAIE : le bulletin s'il y a une paie, le certificat Conges Spectacles
             // du contrat d'usage qui finit (`crate::routes::dossier_salarie::certificats_dus`), l'AER Cinema Spectacle qui lui est due
@@ -1313,7 +1315,7 @@ impl<'a> Moteur<'a> {
             dpae.push(avec(g, &noms));
         }
 
-        // --- Contrats : un par embauche sur un spectacle ; un salarie au mois n'a pas de contrat a faire signer ici.
+        // --- Contrats : un par embauche dont la nature a un contrat ecrit (`engagement::contrat_a_signer`).
         let sig = |p: &Value| p["etats"]["signature"].clone();
         let mut contrats = Vec::new();
         for (point, m, noms, _) in cases_de_la_ligne(&cols, |c| point_de(c, &points, |p| p.contrat, &["a_envoyer", "a_refaire", "en_attente", A_COMPLETER])) {
@@ -1759,7 +1761,7 @@ fn carres(p: &Value) -> Value {
         ),
         _ if vrai(cdi) => ("fait", format!("CDI en cours depuis {}, sans terme : rien à envoyer", depuis), Value::Null),
         _ if !embauche => ("fait", format!("Contrat signé en {}", depuis), Value::Null),
-        _ if !vrai(&p["spectacle"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),
+        _ if !vrai(&p["contrat"]["ecrit"]) => ("fait", "Pas de contrat à faire signer ici".to_string(), Value::Null),
         _ => ("fait", format!("Contrat signé {}", le_jour(&s["recu"])), Value::Null),
     };
     let contrat = json!({"cle": SIGNATURE, "nom": nom_contrat, "etat": etat, "phrase": phrase, "action": geste, "pieces": pieces_du_contrat(s)});

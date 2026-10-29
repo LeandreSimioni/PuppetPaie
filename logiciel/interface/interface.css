@@ -327,6 +327,8 @@ button.occupe::before { content: ""; display: inline-block; width: .8em; height:
 .engagement .e-cadre-bloc { display: flex; align-items: center; height: 30px; white-space: nowrap; font-size: 12px; gap: 4px; }
 .engagement .e-cadre-bloc input { width: auto; margin: 0; }
 .engagement .e-cadre-bloc[hidden] { display: none; }
+.engagement .e-ecrit [hidden] { display: none; }
+.engagement .e-ecrit textarea { width: 100%; }
 /* L'avis du moteur sur CET engagement (minimum conventionnel...) : un encart
    orange sous le bloc, non bloquant, qui dit quelle grille il a lue. */
 .engagement .avis .avis-engagement { margin-top: 6px; font-size: 12px; }
@@ -1813,3 +1815,9 @@ body > .maj { position: static; flex: none; align-self: flex-start; margin: 0 0 
 .guide-piece { border: 1px solid var(--bord); border-radius: 4px; padding: 10px 12px; background: var(--carte, #fff); }
 .guide-piece ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
 .guide-piece li { margin: 2px 0; }
+/* Configuration › Modèles de contrat (`modeles-contrat.js`) : un bloc par modèle ; le choix du fichier se fait par
+   son lien, la case du navigateur ne se montre pas. */
+.modele-contrat { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid var(--bord); border-radius: 6px; }
+.modele-contrat input[type=file] { display: none; }
+.modele-contrat .modele-editeur[hidden] { display: none; }
+.modele-champs table code { white-space: nowrap; }

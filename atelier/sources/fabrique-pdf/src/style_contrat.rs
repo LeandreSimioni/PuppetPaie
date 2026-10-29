@@ -153,7 +153,10 @@ fn signatures(v: &Valeurs, signature: Option<&str>, mention: Option<&str>) -> Re
         valeur(v, "employeur.signataire")?,
         valeur(v, "employeur.signataire_fonction")?,
     );
-    let mut artiste = case("L'artiste", valeur(v, "salarie.nom_complet")?, "signature");
+    // La case du salarie dit qui il est au contrat : « L'artiste » d'un engagement, sauf si le contrat dit autre chose
+    // (`salarie.case_signature`, « Le salarié » d'un contrat de permanent).
+    let qualite = v.get("salarie.case_signature").map(String::as_str).unwrap_or("L'artiste");
+    let mut artiste = case(qualite, valeur(v, "salarie.nom_complet")?, "signature");
     match signature {
         Some(chemin) => {
             employeur.push(Bloc::Espace(3.0));

@@ -65,6 +65,12 @@ function dessinerConfig() {
     dessinerModelesBulletin(liste);
     return;
   }
+  // Les modèles de contrat et les clauses particulières : `modeles-contrat.js`.
+  if (FICHE_ACTIVE === "contrats") {
+    document.getElementById("config-formulaire").innerHTML = "";
+    dessinerModelesContrat(liste);
+    return;
+  }
   const fiches = fichesDe(FICHE_ACTIVE);
   if (FICHE_ACTIVE === "entreprise") {
     liste.innerHTML = "";

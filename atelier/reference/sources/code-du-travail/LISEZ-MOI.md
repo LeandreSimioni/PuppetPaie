@@ -301,3 +301,44 @@ l'arrêté du 25 février 2016 (`../montant-net-social/legi-arrete-20160225-bull
 libellés (`logiciel/donnees/bulletins-lecture-base.json`, `mentions`), refuse une page où le salarié, la période, le brut
 ou la somme reçue ne se trouvent pas, et lit un taux de colonne qui ne dit pas sa part comme celui du salarié, le seul que
 le 8°, a, exige (**inférence**). Tests : `moteur/tests/fichiers/bulletin_lu.rs`.
+
+## Le contrat écrit : L1242-12 (CDD), L1221-5-1 et R1221-34 à R1221-40 (tout salarié), L3123-6 (temps partiel) (relevé du 29/10/2026, #285)
+
+Le domaine `information_ecrite` (L1221-5-1, R1221-34, R1221-35, R1221-38, R1221-39, R1221-40) et L3123-6 (domaine
+`temps_partiel`) ajoutés à `moteur/src/atelier/releve/codes/textes.rs`, relevés le 29/10/2026 (`moteur releve-codes
+moissonner`, une livraison nouvelle, puis `rapport`) : `articles-20261029.md`, l. 203-218 (L1242-12, L1242-13), l. 697
+(L3123-6), l. 813-858 (L1221-5-1 à R1221-40) ; XML : `xml/L1242-12.xml`, `xml/L1221-5-1.xml`, `xml/R1221-34.xml`,
+`xml/R1221-35.xml`, `xml/R1221-38.xml`, `xml/R1221-39.xml`, `xml/R1221-40.xml`, `xml/L3123-6.xml`. Ce sont les articles qui
+transposent la directive (UE) 2019/1152 (loi n° 2023-171 du 9 mars 2023, décret n° 2023-1004 du 30 octobre 2023, que les
+notes des articles citent).
+
+- **L1242-12** (`LEGIARTI000006901206`) : le CDD « est établi par écrit et comporte la définition précise de son motif » ;
+  1° la personne remplacée (nom et qualification) pour un remplacement (1°, 4° et 5° de L1242-2) ; 2° le terme ; 4° le
+  poste ou l'emploi ; 5° la convention collective ; 6° la période d'essai éventuelle ; 7° la rémunération et ses
+  composantes ; 8° le nom et l'adresse de la caisse de retraite complémentaire et, le cas échéant, de l'organisme de
+  prévoyance.
+- **L1221-5-1** (`LEGIARTI000047285930`) : l'employeur remet au salarié des documents écrits contenant les informations
+  principales relatives à la relation de travail ; **R1221-34** (`LEGIARTI000048288642`) en donne la liste (1° les parties,
+  2° le lieu de travail et l'adresse de l'employeur, 3° l'intitulé du poste et la catégorie, 4° la date d'embauche, 5° le
+  terme d'un CDD, 7° la période d'essai, 8° le droit à la formation, 9° les congés payés, 10° la procédure de cessation, 11°
+  la rémunération, sa périodicité et ses modalités de paiement, 12° la durée du travail, 13° les conventions, 14° les
+  régimes obligatoires et la protection sociale complémentaire) ; **R1221-35** permet de dire les 7° à 12° et 14° par un
+  renvoi aux textes ; **R1221-39** la forme (papier ou électronique, date certaine) ; **R1221-40** : ce qui change se dit
+  dans un document au plus tard à sa prise d'effet (l'avenant) ; **R1221-38** : un arrêté fixe des modèles (non relevé :
+  aucun texte de LEGI suivi ne le porte).
+- **L3123-6** (`LEGIARTI000033020080`) : le contrat à temps partiel est écrit et mentionne la qualification, la
+  rémunération, la durée hebdomadaire ou mensuelle et sa répartition entre les jours de la semaine ou les semaines du mois.
+
+**Inférence** : le contrat d'usage du spectacle est un CDD (L1242-2, 3°) ; L1242-12 s'y applique comme à tout CDD, et
+R1221-34 à tout salarié. Les phrases de renvoi (formation, congés, rupture) citent L6321-1, L3141-3, L1243-1, L1243-2,
+L1243-5, L1234-1, L1237-1 et L1237-11 ; L6321-1 n'est pas relevé (R1221-34, 8°, le nomme).
+
+**Où le moteur s'en sert** : `logiciel/donnees/contrats-base.json`, `contrat_ecrit` de chaque nature (le modèle livré,
+celui de l'avenant, les **mentions obligatoires**, chacune par son marqueur et le texte qui l'exige, les phrases de
+renvoi) ; `atelier/sources/documents/src/contrat_ecrit.rs` (`marqueurs_au_mois`, `poser_les_mentions`,
+`refuser_les_mentions_absentes`, `champs_des_modeles`) ; `documents/src/contrat.rs` (le contrat et l'avenant refusés si
+leur modèle tait une mention) ; les modèles `logiciel/donnees/modeles/contrat-cdd.modele`, `contrat-cdi.modele`,
+`avenant-permanent.modele`, `contrat-cddu.modele` ; `moteur/src/routes/modeles_contrat.rs` (le modèle de la compagnie
+vérifié avant d'être posé) ; `moteur/src/routes/mois.rs` (`champs_du_contrat_ecrit` : la personne remplacée,
+L1242-12 1°, et la répartition d'un temps partiel, L3123-6, que l'engagement appelle). Tests :
+`documents/tests/documents/contrat_ecrit.rs`.

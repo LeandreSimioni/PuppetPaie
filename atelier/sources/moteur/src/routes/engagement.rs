@@ -105,7 +105,12 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let rendu = if valide {
         match deja {
             Some(le) => le,
-            None => Value::String(engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string()),
+            None => {
+                let le = engagement::etats::valider(ctx, mois, i).map_err(|m| crate::routes::mois::refus_du_calcul(ctx, &data, m))?.le().to_string();
+                let cle = engagement::cle_de_l_engagement(ctx, &data["engagements"][i]).unwrap_or_else(|| salarie.to_string());
+                crate::routes::fiches::poser_anciennete_a_l_embauche(ctx, &cle, debut)?;
+                Value::String(le)
+            }
         }
     } else {
         if !confirme {

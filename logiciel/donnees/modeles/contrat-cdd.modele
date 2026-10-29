@@ -1,0 +1,73 @@
+# Modèle de contrat de travail à durée déterminée (hors contrat d'usage).
+#
+# CE FICHIER EST UNE DONNÉE, PAS DU CODE, comme contrat-cddu.modele : même
+# format, mêmes règles. Une compagnie qui veut le sien en pose une copie
+# modifiée, sous ce même nom, dans son dossier gabarits/ (Configuration ›
+# Modèles de contrat dit où, et la liste de ses champs).
+#
+# Les champs {{...}} se remplissent d'eux-mêmes depuis l'engagement et la
+# configuration. Ceux que la loi exige (code du travail L. 1242-12 pour le
+# CDD, R. 1221-34 pour tout salarié) doivent rester dans le texte : un
+# modèle qui en perd un est refusé, et le refus dit lequel.
+#
+# **texte** met en gras. Une ligne vide sépare deux paragraphes.
+
+TITRE: Contrat de travail à durée déterminée
+
+SOUSTITRE: Contrat n° {{contrat.numero}}
+
+ANNULE:
+Le présent contrat annule et remplace le contrat n° {{remplace.numero}} du {{remplace.date}}, qui est réputé n'avoir jamais produit d'effet.
+
+PREAMBULE:
+**Entre les soussignés,**
+
+L'employeur : **{{employeur.raison_sociale}}**, {{employeur.adresse}}, {{employeur.code_postal}} {{employeur.commune}} — SIRET {{employeur.siret}}, code APE {{employeur.naf}}, représentée par {{employeur.signataire}}, en qualité de {{employeur.signataire_fonction}}, ci-après dénommé **l'employeur**,
+
+**Et**
+
+Le salarié : **{{salarie.nom_complet}}**, né(e) le {{salarie.date_naissance}} à {{salarie.lieu_naissance}}, demeurant {{salarie.adresse}}, {{salarie.code_postal}} {{salarie.commune}}, n° de sécurité sociale {{salarie.nir}}, ci-après dénommé(e) **le salarié**,
+
+Il a été convenu et arrêté ce qui suit.
+
+ARTICLE: Objet et motif du contrat
+Le salarié est engagé par contrat de travail à durée déterminée pour le motif suivant : {{contrat.motif}}{{contrat.personne_remplacee}}.
+
+La convention collective applicable est la convention collective nationale « {{employeur.convention}} » (IDCC {{employeur.idcc}}).
+
+ARTICLE: Emploi
+Le salarié est engagé en qualité {{salarie.qualite_de}}**{{salarie.emploi}}**. Catégorie d'emploi : {{salarie.categorie}}.
+
+ARTICLE: Durée du contrat
+Le contrat prend effet le **{{contrat.debut}}**, date de l'embauche, et prend fin le **{{contrat.fin}}**.
+
+Période d'essai : {{contrat.periode_essai}}.
+
+ARTICLE: Lieu de travail
+Le salarié exerce ses fonctions {{contrat.lieu}}.
+
+ARTICLE: Durée du travail
+La durée du travail est de {{contrat.duree_travail}}.
+
+ARTICLE: Rémunération
+Le salarié perçoit {{remuneration.detail}}{{remuneration.hors_brut}}, versé {{contrat.paiement}}.
+
+ARTICLE: Congés payés
+{{mentions.conges}}
+
+ARTICLE: Formation
+{{mentions.formation}}
+
+ARTICLE: Protection sociale
+{{mentions.protection_sociale}}
+
+Caisse de retraite complémentaire : {{organismes.retraite}}. Organisme de prévoyance : {{organismes.prevoyance}}.
+
+ARTICLE: Fin du contrat
+{{mentions.rupture}}
+
+ARTICLE: Clauses particulières
+{{contrat.clauses_particulieres}}
+
+SIGNATURES:
+Fait en double exemplaire à {{employeur.commune}}, le {{contrat.debut}}.

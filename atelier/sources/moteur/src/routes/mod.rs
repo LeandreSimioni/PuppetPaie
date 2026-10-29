@@ -35,6 +35,7 @@ pub mod dossier_salarie;
 pub mod coffre;
 pub mod engagement;
 pub mod contrats;
+pub mod modeles_contrat;
 pub mod fiches;
 pub mod atmp;
 pub mod import;
@@ -138,6 +139,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if etapes::ROUTES.contains(&r) => etapes::route(o, &ctx, route, &charge),
         r if engagement::ROUTES.contains(&r) => engagement::route(o, &ctx, route, &charge),
         r if contrats::ROUTES.contains(&r) => contrats::route(o, &ctx, route, &charge),
+        r if modeles_contrat::ROUTES.contains(&r) => modeles_contrat::route(o, &ctx, route, &charge),
         r if documents::ROUTES.contains(&r) => documents::route(o, &ctx, route, &charge),
         // Un refus du depot qui porte une donnee pour la page (`etat`) la rend a cote de `erreur` et `classe`.
         r if depots::ROUTES.contains(&r) => match depots::route(o, &ctx, route, &charge) {
@@ -227,7 +229,7 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
 pub fn est_une_ecriture(route: &str) -> bool {
     [mois::ECRITURES, engagement::ECRITURES, contrats::ECRITURES, documents::ECRITURES, depots::ECRITURES, imprevus::ECRITURES]
         .iter()
-        .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES])
+        .chain(&[fiches::ECRITURES, coffre::ECRITURES, import::ECRITURES, archives::ECRITURES, ouverture::ECRITURES, modeles_contrat::ECRITURES])
         .any(|l| l.contains(&route))
         || crate::obligations::ROUTES.contains(&route)
         || crate::compagnie::releve_signatures::ROUTES.contains(&route)

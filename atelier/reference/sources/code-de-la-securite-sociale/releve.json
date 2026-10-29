@@ -3,10 +3,10 @@
  "_global": "Freemium_legi_global_20250713-140000.tar.gz",
  "_texte": "Code de la securite sociale",
  "_legitext": "LEGITEXT000006073189",
- "_livraisons_lues": 478,
- "_livraisons_totales": 478,
+ "_livraisons_lues": 479,
+ "_livraisons_totales": 479,
  "_complet": true,
- "_derniere_livraison": "20261028-212713",
+ "_derniere_livraison": "20261029-215000",
  "_changes_depuis_le_global": [
   {
    "apres": "LEGIARTI000006741897",
@@ -6360,6 +6360,16 @@
    "debut": "2026-01-01",
    "en_vigueur": true,
    "id": "LEGIARTI000053302465"
+  },
+  "D242-6-14": {
+   "debut": "2010-07-08",
+   "en_vigueur": true,
+   "id": "LEGIARTI000006735892"
+  },
+  "D242-6-2": {
+   "debut": "2018-01-01",
+   "en_vigueur": true,
+   "id": "LEGIARTI000034668407"
   },
   "D243-0-2": {
    "debut": "2022-01-01",
