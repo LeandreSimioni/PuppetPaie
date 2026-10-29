@@ -6417,9 +6417,9 @@
    "id": "LEGIARTI000031808538"
   },
   "L130-1": {
-   "id": "LEGIARTI000051287151",
    "debut": "2025-01-01",
-   "en_vigueur": true
+   "en_vigueur": true,
+   "id": "LEGIARTI000051287151"
   },
   "L133-10": {
    "debut": "2015-01-01",
@@ -6545,6 +6545,11 @@
    "debut": "2013-06-17",
    "en_vigueur": true,
    "id": "LEGIARTI000027549338"
+  },
+  "R130-1": {
+   "debut": "2020-01-02",
+   "en_vigueur": true,
+   "id": "LEGIARTI000041455619"
   },
   "R133-13": {
    "debut": "2026-07-01",

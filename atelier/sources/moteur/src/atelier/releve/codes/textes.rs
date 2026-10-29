@@ -230,8 +230,10 @@ pub static TEXTES: &[Texte] = &[
             // L'EFFECTIF DE L'URSSAF : moyenne annuelle,
             // regle des cinq ans -- celui que porte le CRM 118 et qui regle
             // les seuils de cotisation (formation, FNAL, echeance de la DSN,
-            // versement mobilite via L2333-64). Il ne dit rien du CSE.
-            Domaine { cle: "effectif", titre: "L'effectif au sens de la securite sociale", numeros: &["L130-1"] },
+            // versement mobilite via L2333-64). Il ne dit rien du CSE. R130-1
+            // en donne le decompte (jours du mois, temps partiel, mois sans
+            // salarie, centieme) : `envois::organismes_simules`.
+            Domaine { cle: "effectif", titre: "L'effectif au sens de la securite sociale", numeros: &["L130-1", "R130-1"] },
             // LE PLAFOND : la vieillesse plafonnee
             // (L241-3, et son taux D242-4), le FNAL et le chomage d'un
             // intermittent s'assoient sur LE plafond de sa periode. R242-2 dit

@@ -1,5 +1,5 @@
 //! `moteur pas [--amorcer]` : les taux de prelevement a la source connus, et
-//! l'ecriture du magasin `config/pas.json` que `moteur pas --amorcer` et `moteur retours --appliquer` font.
+//! l'ecriture du magasin `config/pas.json` que `moteur pas --amorcer` et la releve des retours (`compagnie::suites`, un compte rendu de nature 94) font.
 //!
 //! `--demander` (ecrire les signalements d'amorcage, nature 08 ; rien n'est depose) : `demander`, sur `amorcage_demande`.
 
@@ -247,11 +247,6 @@ fn faire(cadre: &Cadre, args: &Args) -> Result<i32, Echec> {
     Ok(0)
 }
 
-/// Pour `moteur retours --appliquer` : `pas.enregistrer`.
-pub fn appliquer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
-    enregistrer(ctx, releves, source)
-}
-
 /// `pas --demander` (`_demander_les_taux`) : ecrire les signalements d'amorcage (nature 08). RIEN N'EST DEPOSE ici : le depot est un
 /// acte a part (`moteur depot-dsn`), avec sa preuve et son mot de passe -- et c'est lui qui fait courir les cinq jours ouvres, donc lui
 /// qui note la demande. Un refus de la norme ou de la demande est une phrase (code 1), jamais une trace.
@@ -317,7 +312,7 @@ fn demander(cadre: &Cadre, args: &Args) -> i32 {
     dire!("\n  recapitulatif : {}", nom(&lot.recapitulatif));
     let premier = lot.fichiers.first().map(|f| f.display().to_string()).unwrap_or_default();
     dire!(
-        "\nUN SIGNALEMENT, UN INDIVIDU : chaque fichier se depose separement.\n    moteur depot-dsn {} --test\npuis, une fois le bilan lu, avec --reel. La DGFiP repond sous cinq jours\nouvres, par un CRM de nature 94 :\n    moteur retours --appliquer\n",
+        "\nUN SIGNALEMENT, UN INDIVIDU : chaque fichier se depose separement.\n    moteur depot-dsn {} --test\npuis, une fois le bilan lu, avec --reel. La DGFiP repond sous cinq jours\nouvres, par un CRM de nature 94 :\n    moteur retours\n",
         premier
     );
     if args.drapeau("test") {

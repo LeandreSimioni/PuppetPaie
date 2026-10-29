@@ -225,3 +225,62 @@ fn un_engagement_ajoute_a_un_mois_declare_a_un_seul_bulletin() {
     let p = paie_du_second();
     assert_eq!((&p["bulletin"], &p["rectifie"]), (&json!("3/2026"), &json!("2/2026")), "{}", p);
 }
+
+/// CE QUE LES ORGANISMES REPONDENT A LA FICTIVE (`envois::organismes_simules`), sur la DSN de novembre des Treteaux, deposee
+/// en reel par l'horloge : la DGFiP communique le taux que le scenario lui a annonce (compte rendu 94, lu par le lecteur des
+/// vrais) et la releve le pose au magasin du PAS -- un taux se lit, il ne se devine pas (regle 1) ; puis net-entreprises
+/// rend un bilan non conforme annonce (rapport BAN, nature 11) : la DSN du mois est refusee, avec l'anomalie dite, et la
+/// DGFiP ne repond plus.
+#[test]
+fn les_organismes_de_la_fictive_rendent_le_taux_du_pas_et_le_refus_annonces() {
+    let (r, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "organismes"));
+    let fin = r.fin.unwrap();
+    let journal = racine.join("journal/depots.json");
+    let dsn_de_novembre = |d: &Value| -> Value {
+        d.as_array().unwrap().iter().find(|l| l["quoi"] == json!("dsn") && l["mode"] == json!("reel") && l["fichier"] == json!("DSN_Novembre2026.dsn")).unwrap().clone()
+    };
+    // Le depot attend sa reponse : les retours deja rendus s'effacent de sa ligne.
+    let en_attente = || {
+        let mut d = outils::lire(&racine, "journal/depots.json");
+        for l in d.as_array_mut().unwrap() {
+            if l["fichier"] == json!("DSN_Novembre2026.dsn") && l["mode"] == json!("reel") {
+                l.as_object_mut().unwrap().remove("retours");
+            }
+        }
+        std::fs::write(&journal, serde_json::to_string_pretty(&d).unwrap()).unwrap();
+    };
+    let annoncer = |a: Value| {
+        // Annoncee avant le depot : le 1er novembre.
+        let le = socle::paris::naif_de_iso("2026-11-01T12:00:00").unwrap() as f64;
+        socle::temps::pendant(le, || envois::organismes_simules::annoncer(&racine, moteur::compagnie::bridage::branchement(&racine), &a)).unwrap();
+    };
+    let relever = || {
+        socle::temps::pendant(fin, || {
+            let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();
+            moteur::compagnie::releve::rattacher_simulation(&ctx, 0).unwrap();
+        })
+    };
+    let ctx = droit::contexte::Contexte::nouveau(&racine, None).unwrap();
+    let (salarie, fiche) = ctx.salaries.iter().next().map(|(c, f)| (c.clone(), f.clone())).unwrap();
+    assert!(fiche["nir"].is_string(), "la fiche de la comedienne porte son NIR");
+
+    en_attente();
+    annoncer(json!({"taux_pas": {"salarie": salarie, "taux": "4.30"}}));
+    relever();
+    let natures: Vec<Value> = dsn_de_novembre(&outils::lire(&racine, "journal/depots.json"))["retours"].as_array().unwrap().iter().map(|x| x["nature"].clone()).collect();
+    assert!(natures.contains(&json!("94")) && natures.contains(&json!("11")), "{:?}", natures);
+    let pas = outils::lire(&racine, "config/pas.json");
+    assert_eq!(pas["salaries"][salarie.as_str()]["taux"], json!("4.30"), "{}", pas);
+    assert_eq!(pas["salaries"][salarie.as_str()]["type"], json!("01"), "{}", pas);
+
+    en_attente();
+    annoncer(json!({"refus": {"code": "CST-04", "message": "Code URSSAF invalide", "rubrique": "S21.G00.20.001", "mois": "2026-11"}}));
+    relever();
+    let ligne = dsn_de_novembre(&outils::lire(&racine, "journal/depots.json"));
+    let bilan = ligne["retours"].as_array().unwrap().iter().find(|x| x["nature"] == json!("11")).cloned().unwrap();
+    assert_eq!(bilan["verdict"], json!("KO"), "{}", ligne);
+    assert!(bilan["anomalies"].to_string().contains("Code URSSAF invalide"), "{}", bilan);
+    assert!(!ligne["retours"].as_array().unwrap().iter().any(|x| x["nature"] == json!("94")), "une DSN refusee n'a pas de taux : {}", ligne);
+    let etat = envois::etats::dsn_du_mois(outils::lire(&racine, "journal/depots.json").as_array().unwrap(), &ctx.entreprise, "2026-11").unwrap();
+    assert_eq!(etat["refusee"], json!(true), "{}", etat);
+}

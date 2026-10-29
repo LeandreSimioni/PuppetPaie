@@ -395,11 +395,17 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
         return Ok(0);
     }
     let mut a_archiver: Vec<(Value, Vec<u8>)> = Vec::new();
+    // Ce que les organismes rendent de plus (refus, taux du PAS, effectif) : archive puis range par le meme chemin
+    // qu'un retour reel (`rattacher_retours_avec_contenus`), qui en lit le verdict.
+    let mut pieces: Vec<crate::organismes_simules::Piece> = Vec::new();
     let mut lignes = crate::etats::charger(&ctx.racine)?;
+    let avant = crate::organismes_simules::memoire(&ctx.racine)?;
+    let mut memoire = avant.clone();
     let maintenant = maintenant_naif();
     let pub_ = horodatage_archive(maintenant).replace('-', "");
     let mut faits = 0;
-    for l in lignes.iter_mut() {
+    for i in 0..lignes.len() {
+        let l = &lignes[i];
         let quoi = l.get("quoi").and_then(Value::as_str).unwrap_or("");
         let flux = l.get("flux").map(|f| if vrai(f) { valeur_en_texte(f) } else { String::new() }).unwrap_or_default();
         let age = l.get("quand").and_then(Value::as_str).and_then(naif_de_iso).map_or(0, |t| maintenant - t);
@@ -428,6 +434,15 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
                 m.insert("dpae".into(), json!([]));
                 retours.push(Value::Object(m));
             } else {
+                match crate::organismes_simules::reponses_dsn(ctx, &mut memoire, &lignes, l, &flux, &pub_)? {
+                    // Refusee : ses deux bilans, rien d'autre ; le verdict se lit dans la piece.
+                    Err(bilans) => {
+                        pieces.extend(bilans);
+                        faits += 1;
+                        continue;
+                    }
+                    Ok(autres) => pieces.extend(autres),
+                }
                 retours.push(Value::Object(base("10", Some("OK"), "Accuse de reception (compagnie fictive)")));
                 retours.push(Value::Object(base("11", Some("OK"), "Bilan de conformite (compagnie fictive)")));
                 // L'AER : seulement quand elle est due, et avec sa piece, comme France Travail la publie.
@@ -439,17 +454,32 @@ pub fn rattacher_simulation(ctx: &Contexte, delai: i64, suites: &mut Suites) -> 
                     retours.push(Value::Object(r46));
                 }
             }
-            l["retours"] = Value::Array(retours);
+            lignes[i]["retours"] = Value::Array(retours);
             faits += 1;
         }
     }
     if faits > 0 {
         socle::ecriture::ecrire_json(&p, &Value::Array(lignes), 2).map_err(|m| erreur("OSError", m))?;
     }
+    crate::organismes_simules::garder(&ctx.racine, &avant, &memoire)?;
     // LE MEME CHEMIN QU'UNE VRAIE : l'archive dans `retours/`, puis le rangement (par `moteur`), qui signe le cadre 5 et la
     // pose dans `sorties/<mois>/envoi/`, ou l'envoi va la chercher.
     for (retour, archive) in &a_archiver {
         suites.aer.push(archiver(ctx, retour, archive, "application/zip", "").map_err(en_echec)?);
+    }
+    if !pieces.is_empty() {
+        let mut contenus: Vec<([Value; 3], Vec<u8>)> = Vec::new();
+        for x in &pieces {
+            let chemin = archiver(ctx, &x.retour, &x.contenu, "application/xml", "").map_err(en_echec)?;
+            if x.retour.get("nature").and_then(Value::as_str) == Some(crate::retours::NATURE_TAUX_PAS) {
+                suites.taux_pas.push((x.retour.clone(), chemin));
+            }
+            contenus.push((cle_de_retour(&x.retour), x.contenu.clone()));
+        }
+        let decrits: Vec<Value> = pieces.into_iter().map(|x| x.retour).collect();
+        suites.garder(crate::etats::rattacher_retours_avec_contenus(&ctx.racine, &Value::Array(decrits), &contenus))?;
+        // L'EFFECTIF S'ECRIT SEUL, comme a la releve reelle.
+        reconstruire_effectifs(&ctx.racine)?;
     }
     Ok(faits)
 }
@@ -565,6 +595,10 @@ pub fn relever_retours(
                     for d in crate::retours::declarations_du_bilan(&contenu) {
                         releve.a_faire.extend(crate::ordre_signalements::conduite_b1_208_10(&d, &flux));
                     }
+                }
+                // LE TAUX DU PAS SE LIT DU COMPTE RENDU (regle 1) : il va au magasin du PAS, par les suites.
+                if canal.is_empty() && r.get("nature").map(valeur_en_texte).as_deref() == Some(crate::retours::NATURE_TAUX_PAS) {
+                    suites.taux_pas.push((r.clone(), chemin.clone()));
                 }
                 releve.archives.push(RetourArchive { retour: r, chemin, contenu });
             }

@@ -37,7 +37,7 @@ Ce qui reste à faire : `moteur rappels`, `moteur echeancier`. Ce qui est parti 
 - `moteur depot-dsn <fichier> --apercu` : ce qui partirait, sans réseau ni écriture. Puis `--test`, lire le bilan.
 - Le montant URSSAF (`S21.G00.20`) est **calculé** par le moteur : rien à saisir.
 - Retours : `moteur retours` (accusé, bilan, comptes rendus). Un accusé `OK` n'est pas une acceptation : c'est le bilan
-  qui tranche. Le taux de PAS (nature 94) ne s'écrit qu'avec `moteur retours --appliquer` ; `moteur pas` montre l'état.
+  qui tranche. Le taux de PAS (nature 94) va de lui-même dans `config/pas.json` au relevé ; `moteur pas` montre l'état.
 
 ## Arrêt de travail (signalement, nature 04)
 
