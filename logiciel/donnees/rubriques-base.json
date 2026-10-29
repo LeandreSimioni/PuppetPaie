@@ -631,7 +631,7 @@
   "annexes": {
     "seuil_heures": 507,
     "fenetre_jours": 365,
-    "_source": "Reglement d'assurance chomage, annexes VIII et X (decret du 13 juillet 2016 et suivants) : 507 heures sur les 12 mois (365 jours) precedant la fin du contrat retenu. C'etait `cumul.SEUIL_HEURES = 507` dans le code jusqu'au 16/09/2026."
+    "_source": "Reglement d'assurance chomage, annexes VIII et X (decret du 13 juillet 2016 et suivants) : 507 heures sur les 12 mois (365 jours) precedant la fin du contrat retenu."
   },
   "_annexes": "Depuis le decret du 13 juillet 2016, les DEUX annexes demandent 507 heures sur 12 mois -- auparavant 10 mois pour les techniciens (annexe VIII) et 10,5 mois pour les artistes (annexe X). La duree ne les distingue donc plus. Ce qui les distingue : l'artiste peut etre paye au cachet (12 h, 28 par mois au plus), le technicien est paye a l'heure et ses heures sont les heures faites. Les heures d'enseignement valent pour les deux, dans les memes limites d'age.",
   "_deux_compteurs": "Les heures ne comptent pas toutes pour la meme chose. `compte_pour` le dit : les heures d'enseignement ouvrent les droits mais n'entrent pas dans le calcul du montant de l'ARE. Un cumul qui les melangerait annoncerait une allocation fausse. C'est a cumul.py de tenir les deux decomptes, pas a la rubrique."

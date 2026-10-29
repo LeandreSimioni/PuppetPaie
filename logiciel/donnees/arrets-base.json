@@ -1,6 +1,6 @@
 {
   "_quoi": "Les nomenclatures du bloc « Arrêt de travail - S21.G00.60 » de la norme NEODeS : motif de l'arrêt, motif de la reprise, subrogation. Livré avec le LOGICIEL, jamais avec les données : ce sont des codes de la norme, pas des choix d'une compagnie.",
-  "_pourquoi_ici": "Décidé le 17/09/2026 : aucune valeur réglementaire n'est écrite dans le code. Les codes de structure du CDDU déjà écrits dans `dsn.py` (nature du contrat, motif de recours, motif de rupture) restent à sortir de la même façon ; le bloc 60 commence droit.",
+  "_pourquoi_ici": "Aucune valeur réglementaire n'est écrite dans le code : les codes du bloc 60 se lisent ici (`declarations/src/signalement.rs`, `declarations/src/dsn.rs`, `moteur/src/obligations.rs`), comme ceux de la structure du contrat dans `contrats-base.json`.",
   "_source": {
     "titre": "Cahier technique NEODeS 2026.1 (CT2026.1.2 du 24/12/2025), rubriques S21.G00.60.001, .004, .011, .012, p. 265-270",
     "copie": "atelier/reference/norme-dsn/dsn-cahier-technique-2026.1.pdf (voir son LISEZMOI pour l'adresse et le condensat)",
