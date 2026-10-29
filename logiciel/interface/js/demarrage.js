@@ -81,9 +81,18 @@ async function demarrer() {
   await chargerMois(o.mois);
   finirChargement();
 
-  // Ce qui attend : la DSN du mois d'avant, la clôture en janvier. Une
-  // boîte, avec la page, tant que ce n'est pas fait.
-  montrerRappels((r) => lectureDe(o, r));
+  // UNE COMPAGNIE QUI COMMENCE PAR L'IMPORT (`commencer_par_l_import`, du
+  // moteur) : la page s'ouvre sur lui et son guide ; ce qui manque pour
+  // démarrer se dit après lui, sous ce qu'il a repris.
+  if (ETAT.commencer_par_l_import) {
+    document.querySelector('.onglets button[data-vue="configuration"]').click();
+    const sous = document.querySelector('.sous-onglets button[data-fiche="importer"]');
+    if (sous) sous.click();
+  } else {
+    // Ce qui attend : la DSN du mois d'avant, la clôture en janvier. Une
+    // boîte, avec la page, tant que ce n'est pas fait.
+    montrerRappels((r) => lectureDe(o, r));
+  }
 
   if (o.perime) rafraichirOuverture();
 
@@ -105,7 +114,7 @@ async function rafraichirOuverture() {
   if (o.aujourdhui) AUJOURDHUI = o.aujourdhui;
   try { ETAT = lectureDe(o, "etat"); peindreEtatGlobal(); } catch (e) { /* l'état d'avant reste */ }
   dessinerConseils(conseilsDe(o));
-  rafraichirRappels((r) => lectureDe(o, r));
+  if (!ETAT.commencer_par_l_import) rafraichirRappels((r) => lectureDe(o, r));
   const intact = MOIS_AFFICHE === OUVERTURE.mois && DEMANDE_MOIS === OUVERTURE.mois
     && JSON.stringify(saisieCourante()) === DERNIERE_ECRITE;
   if (o.mois !== OUVERTURE.mois && intact) allerAuMois(o.mois);

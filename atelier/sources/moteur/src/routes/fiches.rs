@@ -431,6 +431,19 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
         faits.extend(deriver_personnes(donnees, forcer));
         faits.extend(deriver_siren_nic(donnees));
     }
+    // LE COMPTE BANCAIRE S'ECRIT COMPACT : l'IBAN et le BIC sans blancs, en majuscules -- « FR76 3000 6000 … » est le
+    // meme compte que « FR763000 6000… » (`socle::iban::iban_compact`, communique IBAN de la Banque centrale de Turquie,
+    // annexe 3 : `reference/sources/iban/`).
+    if let Some(Value::Object(b)) = donnees.get_mut("banque") {
+        for k in ["iban", "bic"] {
+            if let Some(Value::String(brut)) = b.get(k).cloned() {
+                let forme = socle::iban::iban_compact(&brut);
+                if forme != brut {
+                    b.insert(k.into(), Value::String(forme));
+                }
+            }
+        }
+    }
     // LE DEPARTEMENT DE NAISSANCE SE LIT DANS LE NIR (regle 2 : la page le montre, le moteur l'ecrit) : ses 6e et 7e
     // caracteres sont le departement de naissance, 99 pour une personne nee a l'etranger (S21.G00.30.001 et .014,
     // `atelier/reference/norme-dsn/texte-2027/bloc-S21.G00.30.txt`). Il ne s'ecrit que dans une case vide : une

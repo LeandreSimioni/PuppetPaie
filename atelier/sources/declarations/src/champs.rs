@@ -732,6 +732,15 @@ pub fn luhn(numero: &str) -> bool {
     total % 10 == 0
 }
 
+/// LE COMPTE BANCAIRE D'UNE FICHE (`banque`, de l'entreprise ou d'un salarie) : la faute de son IBAN, puis de son BIC.
+fn faute_banque(o: &Map<String, Value>) -> Option<String> {
+    let texte = |k: &str| o.get(k).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
+    if let Some(f) = texte("iban").and_then(socle::iban::faute_iban) {
+        return Some(format!("IBAN : {}", f));
+    }
+    texte("bic").and_then(socle::iban::faute_bic).map(|f| format!("BIC : {}", f))
+}
+
 /// `forme_declarative` : la valeur telle qu'elle PARTIRA. Une date se saisit
 /// en AAAA-MM-JJ et se declare en JJMMAAAA ; une date impossible rend vide.
 fn forme_declarative(c: &Champ, valeur: &str) -> String {
@@ -827,6 +836,12 @@ fn verifier_champ(c: &Champ, valeur: Option<&Value>) -> R<Option<String>> {
     };
     if vide {
         return Ok(if c.obligatoire { Some("obligatoire".into()) } else { None });
+    }
+    if c.cle == "banque" {
+        return Ok(match valeur {
+            Some(Value::Object(o)) => faute_banque(o),
+            _ => None,
+        });
     }
     let Some(Value::String(brut)) = valeur else { return Ok(None) };
     // La signature des courriels est du HTML colle : sa seule regle est son poids (150 Ko, images comprises).
