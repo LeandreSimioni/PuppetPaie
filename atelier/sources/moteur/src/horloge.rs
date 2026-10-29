@@ -65,7 +65,7 @@ pub struct HorlogeFictive<'a> {
 }
 
 impl<'a> HorlogeFictive<'a> {
-    /// `simulation.active(ctx)` : `None` si les envois de cette racine ne sont pas joues.
+    /// `None` si les envois de cette racine ne sont pas joues.
     pub fn verifier(racine: &'a Path) -> Option<HorlogeFictive<'a>> {
         crate::compagnie::bridage::branchement(racine).joue().then(|| HorlogeFictive { racine, jour: droit::contexte::jour_reel() })
     }
@@ -238,14 +238,14 @@ fn dsn_partie(ctx: &Contexte, mois: &str) -> R<bool> {
     Ok(vrai(&Moteur::nouveau(ctx).dsn_du_mois(mois)?))
 }
 
-/// `ops.deposer_dsn(ctx, fichier, reel=..., qui=QUI_HORLOGE)` : JOUE. La re-verification precede l'appel.
+/// JOUE. La re-verification precede l'appel.
 fn deposer_dsn_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
     d.reverifier()?;
     depot_acte::deposer_dsn(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?;
     Ok(())
 }
 
-/// `ops.deposer_dpae(ctx, fichier, reel=..., qui=QUI_HORLOGE)` : JOUE. La re-verification precede l'appel.
+/// JOUE. La re-verification precede l'appel.
 fn deposer_dpae_joue(d: &HorlogeFictive, ctx: &Contexte, fichier: &str, reel: bool) -> R<()> {
     d.reverifier()?;
     depot_acte::deposer_dpae(ctx, &json!(fichier), reel, None, QUI_HORLOGE, false, "")?;
@@ -286,7 +286,7 @@ fn deposer_les_dsn(
     Ok(fait)
 }
 
-/// `simulation.rattacher(ctx, delai=0)` : les retours des depots joues arrivent tout de suite. Rend ce que le rangement
+/// Les retours des depots joues arrivent tout de suite. Rend ce que le rangement
 /// des AER jouees laisse a faire (`crate::compagnie::releve::rattacher_simulation`), comme les autres chemins de la releve.
 fn rattacher(d: &HorlogeFictive, ctx: &Contexte) -> R<Vec<String>> {
     d.reverifier()?;

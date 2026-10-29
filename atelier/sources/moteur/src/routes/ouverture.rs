@@ -91,12 +91,12 @@ fn nombre(x: f64) -> Value {
     }
 }
 
-/// `v.get(...)` : un dictionnaire, sinon `AttributeError`.
+/// Un dictionnaire, sinon `AttributeError`.
 fn objet<'a>(v: &'a Value, _qui: &str) -> R<&'a Map<String, Value>> {
     v.as_object().ok_or_else(|| erreur("AttributeError", socle::fichiers::attendu("un objet", nom_type(v))))
 }
 
-/// `json.loads(p.read_text(encoding="utf-8"))` : un refus garde la classe que
+/// Un refus garde la classe que
 /// la lecture rencontre (`FileNotFoundError`, `UnicodeDecodeError`, `JSONDecodeError`).
 fn lire_objet(p: &Path) -> R<Value> {
     let octets = std::fs::read(p).map_err(|e| {
@@ -150,7 +150,7 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
     }
 }
 
-/// `etablissements.plusieurs` : la fiche porte-t-elle un etablissement autre
+/// La fiche porte-t-elle un etablissement autre
 /// que le principal ?
 fn plusieurs_etablissements(fiche: &Value) -> bool {
     let principal = texte_ou_vide(fiche.get("nic"));
@@ -1005,7 +1005,7 @@ pub(crate) fn marquer_echeance(ctx: &Contexte, cle: &str, fait: bool, qui: &str)
     ecrire_json(&p, &d, 2).map_err(en_os)
 }
 
-/// `maj.courante(code)` : le contenu du fichier `VERSION`, ou `0.0.0`.
+/// Le contenu du fichier `VERSION`, ou `0.0.0`.
 pub(crate) fn courante(code: &Path) -> R<String> {
     let p = code.join("VERSION");
     if p.exists() {
@@ -1015,7 +1015,7 @@ pub(crate) fn courante(code: &Path) -> R<String> {
     }
 }
 
-/// `maj.prete` : la version telechargee et controlee de l'installation (`maj::dossier_maj`), ou `None`.
+/// La version telechargee et controlee de l'installation (`maj::dossier_maj`), ou `None`.
 pub(crate) fn prete(inst: &Path) -> R<Option<Value>> {
     let dossier = crate::compagnie::maj::dossier_maj(inst);
     let Some(d) = lire_json_tolerant(&dossier.join("prete.json"))? else {

@@ -750,7 +750,7 @@ pub(crate) fn ecrire_arrets(ctx: &Contexte, mois: &str, imprevus: Vec<Value>) ->
     crate::routes::imprevus::ecrire(ctx, mois, imprevus)
 }
 
-/// `signalement.verifier(arret, ARRET)` : ce que la norme refuse (`SignalementImpossible`, une
+/// Ce que la norme refuse (`SignalementImpossible`, une
 /// `ValueError`) ; les avertissements ne servent pas ici.
 pub(crate) fn verifier(arret: &Value) -> R<()> {
     match signalement::verifier(&declarations::dsn::Arret { v: arret.clone() }, ARRET, None) {
@@ -1010,7 +1010,7 @@ fn marqueurs_communs(date: &Jour, p: &Paie, ent: &Value) -> R<Map<String, Value>
     Ok(m)
 }
 
-/// `documents_fin._inventaire` : le detail des sommes, ligne a ligne -- pas un total.
+/// Le detail des sommes, ligne a ligne -- pas un total.
 fn inventaire(p: &Paie) -> String {
     let mut lignes = Vec::new();
     for l in &p.remuneration {
@@ -1025,7 +1025,7 @@ fn inventaire(p: &Paie) -> String {
     lignes.join("\n")
 }
 
-/// `documents_fin._ecrire` : le papier de fin de contrat de `modele`, par la fabrique (style
+/// Le papier de fin de contrat de `modele`, par la fabrique (style
 /// « attestation »). `signe` : le certificat s'etablit SIGNE de l'employeur.
 fn ecrire_papier(modele: &Path, valeurs: Map<String, Value>, chemin: &Path, ent: &Value, signe: bool) -> R<()> {
     let texte = documents::contrat::lire_modele_texte(modele).map_err(en_echec)?;
@@ -1458,7 +1458,7 @@ fn fin_du_mois(mois: &str) -> R<Jour> {
     Jour::nouveau(an as i32, mo as u32, dernier).ok_or_else(|| erreur("ValueError", socle::date::jour_impossible(an as i64, mo as i64, dernier)))
 }
 
-/// `contrats.nature(cle)` : `KeyError` quand elle est inconnue.
+/// `KeyError` quand elle est inconnue.
 fn nature_de(cle: &Value) -> R<std::sync::Arc<droit::natures::Nature>> {
     let texte = match cle {
         Value::String(s) => Some(s.clone()),

@@ -1,7 +1,7 @@
 //! Le texte d'un courriel ou d'un lien : l'echappement HTML, l'encodage d'une URL, le lien `mailto:`, le corps d'un
 //! courriel mis en HTML.
 
-/// `html.escape(s)` : `&`, `<`, `>`, `"` et `'`.
+/// `&`, `<`, `>`, `"` et `'`.
 pub fn html_echapper(s: &str) -> String {
     let mut o = String::with_capacity(s.len());
     for c in s.chars() {
@@ -17,7 +17,7 @@ pub fn html_echapper(s: &str) -> String {
     o
 }
 
-/// `urllib.parse.quote(s, safe=surs)` : tout est encode en UTF-8 par `%XX`, sauf les lettres et chiffres ASCII,
+/// Tout est encode en UTF-8 par `%XX`, sauf les lettres et chiffres ASCII,
 /// `_.-~` et `surs`.
 pub fn pourcent(s: &str, surs: &str) -> String {
     let mut o = String::new();

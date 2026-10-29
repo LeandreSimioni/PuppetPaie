@@ -226,7 +226,7 @@ impl<'a> Lecture<'a> {
         Ok(Rc::clone(&self.paies[mois]))
     }
 
-    /// `pas.des_paies` : le PAS de chaque paie du mois, par position dans `paies(mois)`.
+    /// Le PAS de chaque paie du mois, par position dans `paies(mois)`.
     pub fn pas(&mut self, mois: &str) -> R<Rc<Vec<Option<Versement>>>> {
         if !self.pas.contains_key(mois) {
             let paies = self.paies(mois)?;
@@ -1090,7 +1090,7 @@ pub fn etat_des_virements(ctx: &Contexte, d: &Demande) -> R<Tableau> {
 
 // ================================================ 5. le prelevement a la source
 
-/// `pas.TYPES` : les types de taux.
+/// Les types de taux.
 fn type_de_taux(code: &str) -> &'static str {
     match code {
         "01" => "Taux transmis par la DGFIP",

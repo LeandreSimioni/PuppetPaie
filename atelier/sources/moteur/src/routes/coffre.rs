@@ -219,7 +219,7 @@ fn google_oublier(ctx: &Contexte, charge: &Value) -> R<Value> {
 
 // ------------------------------------------------------------------ le compte Google
 
-/// `google.APPLICATION` : l'application Google du logiciel, livree avec lui
+/// L'application Google du logiciel, livree avec lui
 /// dans `google-application.json` (a cote du code), `client_id` et
 /// `client_secret`. Le secret ne s'ecrit pas dans le source Rust.
 const FICHIER_APPLICATION: &str = "google-application.json";
@@ -243,7 +243,7 @@ fn erreur_google(message: impl Into<String>) -> Echec {
     erreur("ErreurGoogle", message)
 }
 
-/// `google.identifiants` : (client_id, client_secret, origine).
+/// (client_id, client_secret, origine).
 pub(crate) fn identifiants(racine: &Path) -> R<(Value, Value, String)> {
     let p = config(racine).join(FICHIER_IDENTIFIANTS);
     if p.exists() {
@@ -290,7 +290,7 @@ pub(crate) fn identifiants(racine: &Path) -> R<(Value, Value, String)> {
     Ok((a["client_id"].clone(), a.get("client_secret").cloned().unwrap_or(Value::Null), "le logiciel".into()))
 }
 
-/// `google.autorise` : y a-t-il un jeton utilisable, sans rien demander au reseau. Un jeton illisible, un coffre qui
+/// Y a-t-il un jeton utilisable, sans rien demander au reseau. Un jeton illisible, un coffre qui
 /// refuse, un jeton sans `rafraichissement` : non. Ne leve jamais (l'ouverture, lot I2b, l'appelle).
 pub(crate) fn autorise(racine: &Path) -> bool {
     match lire_jeton(racine) {
@@ -299,7 +299,7 @@ pub(crate) fn autorise(racine: &Path) -> bool {
     }
 }
 
-/// `google._lire_jeton` : le contenu du jeton, `Null` s'il n'y en a pas.
+/// Le contenu du jeton, `Null` s'il n'y en a pas.
 /// `Err` : ce que `autorise` et ses voisins rattrapent (`ErreurGoogle`,
 /// `ValueError`) -- le coffre qui refuse, un JSON illisible.
 fn lire_jeton(racine: &Path) -> Result<Value, ()> {
@@ -324,7 +324,7 @@ pub(crate) fn lire_jeton_dit(racine: &Path) -> Result<Value, String> {
     serde_json::from_str(&texte).map_err(|e| e.to_string())
 }
 
-/// `google.compte_autorise` : l'adresse du compte, sans reseau ; `None` si pas autorise.
+/// L'adresse du compte, sans reseau ; `None` si pas autorise.
 pub fn compte_autorise(racine: &Path) -> Option<String> {
     let j = lire_jeton_dit(racine).ok()?;
     match champ(&j, "compte").ok()? {
@@ -412,7 +412,7 @@ fn liste(v: &Value) -> R<Vec<Value>> {
     }
 }
 
-/// `compagnies.refuser_si_copie` : une copie de developpement n'ecrit jamais
+/// Une copie de developpement n'ecrit jamais
 /// dans le Drive de la vraie compagnie. Le refus a sa classe, `CopieDeDeveloppement`.
 pub(crate) fn refus_de_copie(racine: &Path) -> Option<Echec> {
     Path::new(racine).join(MARQUEUR_COPIE).is_file().then(|| {

@@ -697,7 +697,7 @@ fn lire_crm118(contenu: &[u8]) -> R<Option<Vec<(String, f64, String, String, Str
     Ok(Some(out))
 }
 
-/// `effectif.reconstruire` : relit tous les 118 archives et reecrit `config/effectifs.json`. Pour chaque annee
+/// Relit tous les 118 archives et reecrit `config/effectifs.json`. Pour chaque annee
 /// et chaque code, le calcul le plus RECENT l'emporte. Ne touche pas au fichier s'il n'y a aucun 118.
 pub fn reconstruire_effectifs(racine: &Path) -> R<()> {
     let dossier = racine.join("retours");

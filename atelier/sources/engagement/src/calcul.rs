@@ -1620,7 +1620,7 @@ devine pas.",
 }
 
 impl Paie {
-    /// `plafond.pour_paie(paie, ctx)` : le « Plafond Urssaf » du bas de bulletin.
+    /// Le « Plafond Urssaf » du bas de bulletin.
     pub fn plafond_urssaf(&self, ctx: &Contexte) -> Resultat<Decimal> {
         // Un mois decoupe : la somme des plafonds de ses periodes (BOSS, assiette generale, § 730 : « les differentes
         // regles d'ajustement du plafond sont cumulables »).

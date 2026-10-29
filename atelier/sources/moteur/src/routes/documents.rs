@@ -116,13 +116,13 @@ fn nom_du_mois(mo: i64, g: socle::date::Graphie) -> R<&'static str> {
     socle::date::nom_du_mois(mo, g).map_err(|e| erreur("IndexError", e))
 }
 
-/// `envoi.etiquette` : `2026-08` -> `Aout2026`.
+/// `2026-08` -> `Aout2026`.
 fn etiquette(mois: &str) -> R<String> {
     let (an, mo) = an_et_mois(mois)?;
     Ok(format!("{}{}", nom_du_mois(mo, socle::date::Graphie::Titre)?, an))
 }
 
-/// `envoi.nom_fichier` : `AER_<cle>_<etiquette>.pdf`.
+/// `AER_<cle>_<etiquette>.pdf`.
 fn nom_fichier(prefixe: &str, cle: &str, etiq: &str) -> String {
     format!("{}_{}_{}.pdf", prefixe, cle, etiq)
 }
@@ -277,7 +277,7 @@ impl Drop for Temporaire {
     }
 }
 
-/// `fabrique.assembler` : les PDF mis a la suite.
+/// Les PDF mis a la suite.
 fn assembler(pieces: &[Vec<u8>]) -> R<Vec<u8>> {
     let tmp = Temporaire::nouveau()?;
     let mut liste = Vec::new();
@@ -453,7 +453,7 @@ impl Message {
     }
 }
 
-/// `envoi.preparer` : un message par salarie, a partir des pieces individuelles deja ecrites. Le texte
+/// Un message par salarie, a partir des pieces individuelles deja ecrites. Le texte
 /// du corps, que l'apercu ne montre pas, n'est pas compose : seuls ses refus (`KeyError` d'une fiche
 /// sans nom d'affichage ou sans signataire) sont gardes.
 fn preparer(ctx: &Contexte, paies: &[engagement::calcul::Paie], mois: &str, dossier: &Path, renvois: &HashMap<String, envois::envoi::Renvoi>) -> R<Vec<Message>> {
@@ -634,7 +634,7 @@ fn envoi_apercu(ctx: &Contexte, charge: &Value) -> R<Value> {
     Ok(Value::Object(r))
 }
 
-/// `client.compte` : l'adresse de la boite qui enverrait. Celle de la compagnie fictive est le courriel du
+/// L'adresse de la boite qui enverrait. Celle de la compagnie fictive est le courriel du
 /// signataire ; sinon l'adresse posee avec le mot de passe (jamais le mot de passe).
 fn compte_de_la_boite(ctx: &Contexte) -> R<String> {
     if crate::compagnie::bridage::branchement(&ctx.racine).joue() {

@@ -28,7 +28,7 @@ use crate::transport::{envoyer, Requete};
 pub const DRIVE_FICHIERS: &str = "https://www.googleapis.com/drive/v3/files";
 /// `google.DRIVE_TELEVERSEMENT`.
 pub const DRIVE_TELEVERSEMENT: &str = "https://www.googleapis.com/upload/drive/v3/files";
-/// `google.DOSSIER_DRIVE` : le type d'un dossier chez Drive.
+/// Le type d'un dossier chez Drive.
 pub const DOSSIER_DRIVE: &str = "application/vnd.google-apps.folder";
 
 /// `urlopen(..., timeout=120)` des appels Drive.
@@ -182,7 +182,7 @@ pub struct Autorisation {
     pub compte: Option<String>,
 }
 
-/// `google.Client` : le jeton d'acces ne vit qu'en memoire.
+/// Le jeton d'acces ne vit qu'en memoire.
 pub struct Client {
     identifiants: Option<(Value, Value)>,
     jeton: Result<Value, String>,
@@ -359,7 +359,7 @@ impl Client {
     }
 }
 
-/// `nom.replace("'", "\\'")` : l'apostrophe se protege dans la requete `q`.
+/// L'apostrophe se protege dans la requete `q`.
 ///
 /// La barre oblique inverse se protege AUSSI (`\\`), comme la syntaxe de `q` l'exige : sans cela, un nom
 /// qui en porte une donnerait une requete que Drive refuse.
@@ -367,7 +367,7 @@ fn echapper(nom: &str) -> String {
     nom.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
-/// `x.get(...)` : `x` doit etre un objet JSON (`AttributeError` sinon).
+/// `x` doit etre un objet JSON (`AttributeError` sinon).
 fn en_dict(v: &Value) -> Result<&serde_json::Map<String, Value>, ErreurGoogle> {
     match v {
         Value::Object(o) => Ok(o),

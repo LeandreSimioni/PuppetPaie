@@ -37,7 +37,7 @@ fn motifs_de_la_norme() -> Resultat<Vec<Value>> {
     Ok(liste(&n["motifs"]["codes"]).to_vec())
 }
 
-/// `amorcage.libelle_motif` : le libelle du motif, « ? » s'il est inconnu.
+/// Le libelle du motif, « ? » s'il est inconnu.
 pub fn libelle_motif(motif: &str) -> Resultat<String> {
     Ok(motifs_de_la_norme()?
         .iter()

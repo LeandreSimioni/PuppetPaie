@@ -603,7 +603,7 @@ impl<'a> Moteur<'a> {
         etats::nic_principal(&self.ctx.entreprise)
     }
 
-    /// `journal.etat_dsn_du_mois` : le dernier depot reel accepte, ou `Null`.
+    /// Le dernier depot reel accepte, ou `Null`.
     pub(crate) fn dsn_du_mois(&mut self, mois: &str) -> R<Value> {
         let lignes = self.lignes()?;
         etats::dsn_du_mois(&lignes, &self.ctx.entreprise, mois)

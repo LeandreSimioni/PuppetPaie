@@ -2,7 +2,7 @@
 //! deposer. Ce qu'elles ont en commun avec la consultation (J2a) vit dans `mod.rs`, `analyse.rs` et `rendu.rs` ; ici, ce
 //! que seuls les actes demandent.
 //!
-//! UNE ERREUR METIER EST UNE REPONSE : le Python attrape `ErreurOperation` (et ses filles) et l'ecrit
+//! UNE ERREUR METIER EST UNE REPONSE : une `ErreurOperation` (et ses filles) s'ecrit
 //! en une phrase, `! phrase` et le code 2 -- ou, avec `--json`, `sortie_json.erreur`. Une erreur d'un autre genre est un
 //! plantage (`Cadre::plantage`, code 1). Le Rust ne distingue les classes que par leur nom, rendu par les routes.
 
@@ -11,7 +11,7 @@ use serde_json::Value;
 use super::rendu::{erreur, rendre};
 use socle::echec::Echec;
 
-/// Les classes que le Python attrape comme `ErreurOperation` : elle-meme et ses filles.
+/// Les classes d'un refus metier : `ErreurOperation` et ses filles.
 const OPERATION: [&str; 28] = [
     "ErreurOperation", "SaisieIncomplete", "PreuveInsuffisante", "FicheRefusee", "MoisPasPret", "CompteursVerrouilles",
     "VersionExigee", "DsnDejaDeposee", "DpaeDejaDeclaree", "RepetitionManquante", "OrdreTropPetit", "AnnuleRemplaceHorsDelai",
@@ -20,7 +20,7 @@ const OPERATION: [&str; 28] = [
     "ActeReelRefuse", "ModificationApresEcheance", "ModificationNonDeclarable",
 ];
 
-/// Cette classe est-elle une `ErreurOperation` du Python ?
+/// Cette classe est-elle une `ErreurOperation` (ou une de ses filles) ?
 pub fn est_operation(classe: Option<&str>) -> bool {
     classe.is_some_and(|c| OPERATION.contains(&c))
 }
@@ -30,7 +30,7 @@ pub fn phrase(e: &Echec) -> String {
     crate::compagnie::depot_acte::phrase_de(e)
 }
 
-/// Une erreur metier rendue comme le Python la rend : `! phrase` (code 2), ou `sortie_json.erreur` avec `--json`.
+/// Une erreur metier rendue : `! phrase` (code 2), ou `sortie_json.erreur` avec `--json`.
 /// `extra` s'ajoute au corps de l'erreur JSON (`manques`, `chemin`...).
 pub fn reponse_metier(commande: &str, json: bool, e: &Echec, extra: &[(&str, Value)]) -> i32 {
     let message = phrase(e);
@@ -41,7 +41,7 @@ pub fn reponse_metier(commande: &str, json: bool, e: &Echec, extra: &[(&str, Val
     2
 }
 
-/// `datetime.date.fromisoformat` : `AAAA-MM-JJ`, un jour qui existe. Les autres formes ne sont pas portees.
+/// `AAAA-MM-JJ`, un jour qui existe. Les autres formes ne sont pas portees.
 pub fn jour_iso(t: &str) -> Option<socle::date::Jour> {
     let t = t.trim();
     if t.len() != 10 {
@@ -99,15 +99,13 @@ pub fn afficher_fichiers(fichiers: &[Value], dossier: &str) {
     }
 }
 
-/// Un refus que la commande rend en une phrase : une `ErreurOperation` du Python, ou une `ValueError` (la route rend ainsi ce que
-/// la norme refuse -- `SignalementImpossible`, `FctuImpossible`, une date qui ne se lit pas --, que le Python attrapait avec
-/// `ErreurOperation` ou laissait en trace d'appels).
+/// Un refus que la commande rend en une phrase : une `ErreurOperation`, ou une `ValueError` (la route rend ainsi ce que
+/// la norme refuse -- `SignalementImpossible`, `FctuImpossible`, une date qui ne se lit pas --).
 pub fn est_refus(classe: Option<&str>) -> bool {
     est_operation(classe) || classe == Some("ValueError")
 }
 
-/// `--le AAAA-MM-JJ` : le jour tel que la route le lit (`datetime.date.fromisoformat`), ou le refus d'une phrase (le Python
-/// laissait une trace d'appels sur une date illisible).
+/// `--le AAAA-MM-JJ` : le jour tel que la route le lit (AAAA-MM-JJ), ou le refus d'une phrase.
 pub fn jour_option(nom: &str, texte: &str) -> Result<socle::date::Jour, Echec> {
     jour_iso(texte).ok_or_else(|| Echec {
         classe: Some("ErreurOperation"),
@@ -127,8 +125,8 @@ pub fn options_requises(spec: &super::analyse::Spec, args: &super::analyse::Args
 }
 
 /// Un envoi qui ne part pas : un refus ordinaire (`ErreurOperation` et filles, `ValueError`), ou la boite qui casse
-/// (`ErreurCourriel`) et le `RuntimeError` d'un envoi interrompu apres des messages deja partis -- que le Python laissait en trace
-/// d'appels. Rendus en une phrase.
+/// (`ErreurCourriel`) et le `RuntimeError` d'un envoi interrompu apres des messages deja partis.
+/// Rendus en une phrase.
 pub fn est_refus_d_envoi(classe: Option<&str>) -> bool {
     est_refus(classe) || matches!(classe, Some("ErreurCourriel") | Some("RuntimeError"))
 }

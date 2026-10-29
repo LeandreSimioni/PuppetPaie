@@ -34,7 +34,7 @@ const INVALIDE: &str = "\u{0}\u{0}VALEUR-SANS-TEXTE\u{0}\u{0}";
 
 use socle::texte::blanc as est_blanc;
 
-/// `avenant._normaliser` : ce qui se compare. Ligatures defaites (NFKC : « ﬀ » -> « ff », espaces
+/// Ce qui se compare. Ligatures defaites (NFKC : « ﬀ » -> « ff », espaces
 /// insecables -> espaces), une coupure apres un trait d'union recollee, les blancs ramenes a un seul.
 pub fn normaliser(texte: &str) -> String {
     let t: Vec<char> = nfkc(texte).chars().collect();
@@ -79,7 +79,7 @@ fn texte_ou_invalide(v: &Value) -> String {
     }
 }
 
-/// `contrat._aff` : forme lisible si elle existe, forme administrative sinon.
+/// Forme lisible si elle existe, forme administrative sinon.
 fn aff<'a>(fiche: &'a Value, cle: &str) -> Resultat<&'a Value> {
     match fiche.get(format!("{}_affichage", cle)) {
         Some(v) if vrai(v) => Ok(v),
@@ -87,7 +87,7 @@ fn aff<'a>(fiche: &'a Value, cle: &str) -> Resultat<&'a Value> {
     }
 }
 
-/// `contrat._de` : « d' » devant une voyelle ou un h, « de » sinon.
+/// « d' » devant une voyelle ou un h, « de » sinon.
 fn de_devant(mot: &str) -> &'static str {
     let t: String = mot.chars().take(1).flat_map(char::to_lowercase).collect();
     if t.is_empty() || "aeiouyhâàéèêîôûœ".contains(&t) {
@@ -97,7 +97,7 @@ fn de_devant(mot: &str) -> &'static str {
     }
 }
 
-/// `contrat._et` : « a, b et c ».
+/// « a, b et c ».
 fn et(morceaux: &[String]) -> String {
     match morceaux.len() {
         0 => String::new(),
@@ -229,7 +229,7 @@ fn fait_le_brut(l: &Value) -> bool {
     l.get("soumis").and_then(Value::as_bool).unwrap_or(true)
 }
 
-/// `contrat._remuneration_detaillee` : « 2 cachets à 130,00 € », ou « 1 journée de travail à
+/// « 2 cachets à 130,00 € », ou « 1 journée de travail à
 /// 200,00 € et 6 h de masterclass à 40,00 € ». Le modele la dit « brut » : elle ne cite que les
 /// lignes qui font le brut ; les autres (les defraiements...) sont dans `remuneration_hors_brut`.
 fn remuneration_detaillee(remuneration: &[Value], e: &Eng) -> Resultat<String> {
@@ -280,7 +280,7 @@ fn an_de(mois: &str) -> Resultat<i32> {
     mois.get(..4).and_then(|m| m.parse().ok()).ok_or_else(|| format!("mois illisible : {}", mois))
 }
 
-/// `contrat._periode_remuneration` : « pour le mois d'octobre 2026 » quand le contrat se poursuit.
+/// « pour le mois d'octobre 2026 » quand le contrat se poursuit.
 fn periode_remuneration(e: &Eng) -> Resultat<String> {
     if e.dernier_mois {
         return Ok(String::new());
@@ -290,7 +290,7 @@ fn periode_remuneration(e: &Eng) -> Resultat<String> {
     Ok(format!(" pour le mois {}{} {}", de, nom, an_de(&e.mois)?))
 }
 
-/// `contrat._dates_travail` : les jours joues, et OU chacun se joue quand ils different.
+/// Les jours joues, et OU chacun se joue quand ils different.
 fn dates_travail(e: &Eng) -> Resultat<String> {
     let mut texte = if e.lieux_joues().len() < 2 {
         let v: Resultat<Vec<String>> = e.dates_du_contrat().into_iter().map(|j| jj_mm_aaaa(j)).collect();
@@ -311,7 +311,7 @@ fn dates_travail(e: &Eng) -> Resultat<String> {
     Ok(texte)
 }
 
-/// `contrat._lieu_du_contrat` : l'article « Lieu de travail », qui suit ce que les dates ont dit.
+/// L'article « Lieu de travail », qui suit ce que les dates ont dit.
 fn lieu_du_contrat(e: &Eng) -> String {
     let lieux = e.lieux_joues();
     match lieux.len() {
@@ -321,7 +321,7 @@ fn lieu_du_contrat(e: &Eng) -> String {
     }
 }
 
-/// `contrat.marqueurs` : les valeurs offertes au modele. `remuneration`, `brut` et `net` sont ceux
+/// Les valeurs offertes au modele. `remuneration`, `brut` et `net` sont ceux
 /// de la paie calculee ; `sal` la fiche du salarie telle qu'elle vaut pour cet engagement.
 fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Value], brut: &Value, net: &Value) -> Resultat<Valeurs> {
     let (idcc, convention) = convention_du_contrat(ent, sp, sal, &Jour::lire(&e.debut)?)?;
@@ -407,7 +407,7 @@ fn marqueurs(ent: &Value, sal: &Value, sp: &Value, e: &Eng, remuneration: &[Valu
     Ok(m)
 }
 
-/// `contrat.texte_brut` : le paragraphe tel qu'il se LIT sur le contrat imprime.
+/// Le paragraphe tel qu'il se LIT sur le contrat imprime.
 fn texte_brut(texte: &str, vals: &Valeurs) -> Resultat<String> {
     let t = modele::texte_brut(texte, vals).map_err(|r| r.0)?;
     if t.contains(INVALIDE) {

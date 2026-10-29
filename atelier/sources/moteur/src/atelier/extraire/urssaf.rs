@@ -148,7 +148,7 @@ fn rangs_csv(texte: &str, delim: char) -> Vec<Vec<String>> {
     rangs
 }
 
-/// `csv.DictReader` : l'entete, puis chaque rang en (nom de colonne -> valeur) ; une colonne absente du rang vaut `None`.
+/// L'entete, puis chaque rang en (nom de colonne -> valeur) ; une colonne absente du rang vaut `None`.
 struct Table {
     entete: Vec<String>,
     rangs: Vec<Vec<String>>,
@@ -161,7 +161,7 @@ impl Table {
         Table { entete, rangs }
     }
 
-    /// `l.get(nom)` : la valeur de la derniere colonne de ce nom, `None` si le rang est trop court ou la colonne absente.
+    /// La valeur de la derniere colonne de ce nom, `None` si le rang est trop court ou la colonne absente.
     fn get<'a>(&self, rang: &'a [String], nom: &str) -> Option<&'a str> {
         let j = self.entete.iter().rposition(|t| t == nom)?;
         rang.get(j).map(String::as_str)

@@ -89,7 +89,7 @@ impl<'a> Depots<'a> {
         Depots { ctx, lignes: None }
     }
 
-    /// `journal.etat_dsn_du_mois(ctx, mois)` : une DSN reelle acceptee est-elle partie pour ce mois ?
+    /// Une DSN reelle acceptee est-elle partie pour ce mois ?
     fn dsn_acceptee(&mut self, mois: &str) -> R<bool> {
         if self.lignes.is_none() {
             self.lignes = Some(etats::charger(&self.ctx.racine)?);
@@ -116,7 +116,7 @@ pub(crate) struct ExportCompta {
 }
 
 impl ExportCompta {
-    /// `sortie_json.brut(export)` : un chemin ne rend que son nom.
+    /// Un chemin ne rend que son nom.
     pub(crate) fn json(&self) -> Value {
         json!({
             "annee": self.annee, "du": self.du, "au": self.au, "mois": self.mois,

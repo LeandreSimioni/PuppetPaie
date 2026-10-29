@@ -102,7 +102,7 @@ fn texte_ou_vide(v: Option<&Value>) -> String {
     }
 }
 
-/// `str.isdigit()` : non vide, que des chiffres.
+/// Non vide, que des chiffres.
 fn tout_chiffres(t: &str) -> bool {
     !t.is_empty() && t.chars().all(|c| c.is_ascii_digit())
 }

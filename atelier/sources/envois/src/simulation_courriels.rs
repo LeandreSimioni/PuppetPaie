@@ -360,7 +360,7 @@ pub fn bouton_de_la_demande(envoyes: &HashMap<String, Vec<u8>>, identifiants: &[
     bouton(&f)
 }
 
-/// `simulation._reponse` : le courriel que la personne fictive renvoie a la boite (de `de` a `a`), date de maintenant,
+/// Le courriel que la personne fictive renvoie a la boite (de `de` a `a`), date de maintenant,
 /// identifiant `<ident@fictive.puppetpaie>`.
 pub fn reponse_jouee(de: &str, a: &str, sujet: &str, corps: &str, ident: &str) -> Result<Vec<u8>, String> {
     // Dans une compagnie fictive, une adresse de salarie AVEC NOM D'AFFICHAGE (`Nom <adresse>`) est
@@ -408,7 +408,7 @@ fn adresse_d_affichage(de: &str) -> (String, Option<String>) {
     (nu.clone(), Some(format!("{} <{}>", nom_ecrit, nu)))
 }
 
-/// `simulation._BoiteQuiRepond` : la boite de la compagnie fictive, vue par une releve. Chaque code attendu y trouve sa
+/// La boite de la compagnie fictive, vue par une releve. Chaque code attendu y trouve sa
 /// reponse, fabriquee d'avance. Ce qu'on y envoie (le contrat contresigne) s'ecrit comme tout courriel joue.
 pub struct BoiteQuiRepond {
     boite: BoiteSimulee,

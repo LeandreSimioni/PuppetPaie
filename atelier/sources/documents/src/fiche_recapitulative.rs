@@ -133,7 +133,7 @@ fn somme(lignes: &[&Ligne], cle: &str) -> R<Option<Val>> {
     Ok(Some(Val::Dec(total)))
 }
 
-/// `tableaux.totaliser` : le sous-total de chaque section et le total general.
+/// Le sous-total de chaque section et le total general.
 fn totaliser(t: &mut Tableau) -> R<()> {
     let porte = t.colonnes.iter().find(|c| c.genre == Genre::Texte).map(|c| c.cle.clone());
     let ligne = |colonnes: &[Colonne], lignes: &[&Ligne], libelle: &str| -> R<Ligne> {
@@ -159,7 +159,7 @@ fn totaliser(t: &mut Tableau) -> R<()> {
     Ok(())
 }
 
-/// `tableaux.texte` : une cellule en texte francais.
+/// Une cellule en texte francais.
 fn texte_cellule(v: &Option<Val>, c: &Colonne) -> String {
     match v {
         None => String::new(),
@@ -192,7 +192,7 @@ fn rangees(t: &Tableau) -> Vec<(&Ligne, &'static str)> {
 
 // ------------------------------------------------------------------ le PDF
 
-/// `tableaux._fractions` : la largeur de chaque colonne, en fraction de la largeur utile.
+/// La largeur de chaque colonne, en fraction de la largeur utile.
 pub fn fractions(entetes: &[(String, bool)], rangees: &[(Vec<String>, &str)], utile: f64) -> Vec<f64> {
     let n = entetes.len();
     let mut plus_long = vec![0.0f64; n];

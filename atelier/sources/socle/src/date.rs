@@ -525,7 +525,7 @@ pub fn etiquette_du_mois(mois: &str) -> Result<String, String> {
     Ok(format!("{}{}", nom_du_mois(mo, Graphie::Titre)?, an))
 }
 
-/// `date.fromisoformat(texte)` : `AAAA-MM-JJ` ou `AAAAMMJJ`.
+/// `AAAA-MM-JJ` ou `AAAAMMJJ`.
 pub fn jour_iso(texte: &str) -> Option<Jour> {
     let chiffres = |t: &str| t.chars().all(|c| c.is_ascii_digit());
     let (a, m, j) = match texte.len() {

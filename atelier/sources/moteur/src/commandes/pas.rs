@@ -27,7 +27,7 @@ pub static SPEC: Spec = Spec {
     ],
 };
 
-/// `pas.TYPES` : cahier technique 2026.1, rubrique S21.G00.50.007.
+/// Cahier technique 2026.1, rubrique S21.G00.50.007.
 pub const TYPES: [(&str, &str); 8] = [
     ("01", "Taux transmis par la DGFIP"),
     ("13", "Bareme mensuel metropole"),
@@ -69,13 +69,13 @@ fn fr(iso: Option<&str>) -> String {
     }
 }
 
-/// `pas.ecrire` : `json.dumps(data, ensure_ascii=False, indent=2)`, sans saut de ligne final.
+/// `json.dumps(data, ensure_ascii=False, indent=2)`, sans saut de ligne final.
 fn ecrire(ctx: &Contexte, data: &Value) -> Result<(), Echec> {
     let p = ctx.racine.join("config").join("pas.json");
     std::fs::write(&p, socle::ecriture::json_indente(data, 2)).map_err(|e| Echec { classe: Some("OSError"), message: format!("{} : {}", p.display(), e) })
 }
 
-/// `pas.enregistrer` : applique des releves de CRM ; rend les changements lisibles. Un releve :
+/// Applique des releves de CRM ; rend les changements lisibles. Un releve :
 /// `{"salarie", "taux", "type", "identifiant", "periode", "mis_a_disposition"}`.
 pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Vec<String>, Echec> {
     let mut data = droit::pas::charger(ctx).map_err(ko)?;
@@ -118,7 +118,7 @@ pub fn enregistrer(ctx: &Contexte, releves: &[Value], source: &str) -> Result<Ve
     Ok(changements)
 }
 
-/// `pas.releves_historiques` : par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
+/// Par salarie, l'historique des taux declares dans les DSN deja deposees (une lecture, pas un calcul).
 fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String, Vec<Value>)> {
     let par_nir: std::collections::HashMap<String, String> = ctx
         .salaries
@@ -168,7 +168,7 @@ fn releves_historiques(ctx: &Contexte, dossier: &std::path::Path) -> Vec<(String
     trouve.into_iter().map(|(cle, mm)| (cle, mm.into_values().collect())).collect()
 }
 
-/// `pas.amorcer` : pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
+/// Pose l'etat courant a partir de la derniere DSN deposee de chaque salarie.
 fn amorcer(ctx: &Contexte, dossier: &std::path::Path) -> Result<Vec<String>, Echec> {
     let mut releves = Vec::new();
     for (cle, entrees) in releves_historiques(ctx, dossier) {

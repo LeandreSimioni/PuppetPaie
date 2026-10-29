@@ -330,13 +330,13 @@ fn fautif(c: &champs::Champ, actuel: &Value) -> R<bool> {
     Ok(faute)
 }
 
-/// `champs._capitales` : sans accents, en capitales, espaces resserrees.
+/// Sans accents, en capitales, espaces resserrees.
 fn capitales(v: &Value) -> String {
     let t: String = champs::sans_accents(&valeur_en_texte(v)).chars().flat_map(char::to_uppercase).collect();
     t.split(socle::texte::blanc).filter(|m| !m.is_empty()).collect::<Vec<_>>().join(" ")
 }
 
-/// `champs.deriver_personnes` : les formes declarees du signataire et du contact DSN ;
+/// Les formes declarees du signataire et du contact DSN ;
 /// rend `{cle: [avant, apres]}` pour les structures modifiees.
 fn deriver_personnes(donnees: &mut Map<String, Value>, forcer: bool) -> Map<String, Value> {
     let mut faits = Map::new();
@@ -392,7 +392,7 @@ fn deriver_siren_nic(donnees: &mut Map<String, Value>) -> Map<String, Value> {
     faits
 }
 
-/// `champs.deriver` : fabrique les formes declarees depuis les formes lisibles.
+/// Fabrique les formes declarees depuis les formes lisibles.
 /// Sans `forcer`, on ne remplit que ce qui est vide ou indeclarable. Rend
 /// `{cle: [avant, apres]}` : ce que le programme a fabrique tout seul.
 pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool) -> R<Map<String, Value>> {
@@ -456,7 +456,7 @@ pub(crate) fn deriver(nom: &str, donnees: &mut Map<String, Value>, forcer: bool)
     Ok(faits)
 }
 
-/// `urssaf.pour_departement` : l'organisme du territoire, ou "".
+/// L'organisme du territoire, ou "".
 fn urssaf_du_departement(dep: &str) -> R<String> {
     let table = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json")).map_err(|m| Echec::from(m))?;
     let d = socle::texte::strip(dep).to_uppercase();
@@ -476,7 +476,7 @@ pub(crate) fn urssaf_du_code_postal(cp: Option<&Value>) -> R<String> {
     urssaf_du_departement(&v.iter().take(n).collect::<String>())
 }
 
-/// `ops.suggestions_fiche` : ce que le moteur PROPOSERAIT pour une case encore vide.
+/// Ce que le moteur PROPOSERAIT pour une case encore vide.
 fn suggestions(nom: &str, donnees: &Map<String, Value>) -> R<Value> {
     let mut propose = Map::new();
     if nom == "salarie" {
@@ -589,7 +589,7 @@ fn parent_ou_point(p: &Path) -> std::path::PathBuf {
     }
 }
 
-/// `contexte.trouver_export` : le dossier de CoolPaie, remonte de dossier en
+/// Le dossier de CoolPaie, remonte de dossier en
 /// dossier, puis la copie `export-coolpaie`, puis `export` (absent).
 pub(crate) fn trouver_export(depart: &Path) -> std::path::PathBuf {
     let p1 = parent_ou_point(depart);
@@ -617,7 +617,7 @@ pub(crate) fn declarations_coolpaie(ctx: &Contexte) -> std::path::PathBuf {
     trouver_export(&ctx.racine)
 }
 
-/// `dossier.rglob("*.dsn")` : les fichiers (et dossiers) dont le nom finit par
+/// Les fichiers (et dossiers) dont le nom finit par
 /// `.dsn`, sans suivre les liens vers des dossiers.
 pub(crate) fn fichiers_dsn(dossier: &Path, sortie: &mut Vec<std::path::PathBuf>) {
     let Ok(entrees) = std::fs::read_dir(dossier) else { return };
@@ -1251,7 +1251,7 @@ fn cle_neuve(nom: &str, donnees: &Map<String, Value>, existants: &Map<String, Va
     Ok(format!("{}-{}", dernier, n))
 }
 
-/// `champs.coercer_booleens` : les cases a cocher arrivees en texte redeviennent booleennes.
+/// Les cases a cocher arrivees en texte redeviennent booleennes.
 fn coercer_booleens(nom: &str, donnees: &mut Map<String, Value>) -> R<()> {
     for c in champs::fiche(nom)? {
         if c.forme != "booleen" {
@@ -1985,7 +1985,7 @@ fn reponse_de_fiche(demande: &Attendue, compte: &str, bouton: Option<&(String, S
     envois::simulation_courriels::reponse_jouee(&demande.adresse, compte, &sujet, &lignes.join("\n"), &format!("fiche-{}", code))
 }
 
-/// `simulation.BoiteDesFiches` : la boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
+/// La boite de la compagnie fictive, vue par la releve. Chaque demande de fiche partie
 /// depuis `delai` secondes y trouve sa reponse remplie ; la vraie releve la lit et cree la fiche. Ce qu'on y envoie
 /// s'ecrit comme tout courriel joue (`BoiteQuiRepond`, partagee avec `BoiteDesSignatures`).
 pub fn boite_des_fiches(ctx: &Contexte, attendues: &[Attendue], delai: i64) -> R<BoiteQuiRepond> {

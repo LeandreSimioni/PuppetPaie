@@ -53,13 +53,13 @@ impl Preuve {
 
 // -------------------------------------------------------------------- la preuve
 
-/// `maj.plus_recente` : `_cle` lit une version en entiers separes par des points (illisible : `(0,)`).
+/// `_cle` lit une version en entiers separes par des points (illisible : `(0,)`).
 fn cle_de_version(v: &str) -> Vec<i64> {
     let lu: Option<Vec<i64>> = v.trim().split('.').map(|x| x.trim().parse::<i64>().ok()).collect();
     lu.unwrap_or_else(|| vec![0])
 }
 
-/// `maj.exigee_en_attente` : la raison pour laquelle une version telechargee et pas encore appliquee est
+/// La raison pour laquelle une version telechargee et pas encore appliquee est
 /// indispensable avant de declarer -- ou `""`.
 /// La version prete est celle de l'INSTALLATION du contexte (`<installation>/logiciel/donnees` = `ctx.code`, lot U1).
 pub(crate) fn exigee_en_attente(ctx: &Contexte) -> R<String> {
@@ -277,7 +277,7 @@ fn versions_du_signalement(ctx: &Contexte, evenement: &str, octets: &[u8]) -> R<
     envois::journal::versions_du_mois(ctx, mois, |_, numero, _| numeros.iter().any(|n| n == numero)).map_err(Echec::from)
 }
 
-/// `compagnies.refuser_si_copie` : la derniere porte -- une copie de developpement ne declare rien en reel.
+/// La derniere porte -- une copie de developpement ne declare rien en reel.
 fn refuser_si_copie(ctx: &Contexte, quoi: &str) -> R<()> {
     if ctx.racine.join("COPIE-DE-DEVELOPPEMENT.json").is_file() {
         return Err(erreur(

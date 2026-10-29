@@ -55,13 +55,13 @@ pub fn fixer_le_code() {
     }
 }
 
-/// `compagnies.dossier_dev` : dans l'atelier (`atelier/prive-dev`), pas a cote de ce que les gens recoivent (rangement
+/// Dans l'atelier (`atelier/prive-dev`), pas a cote de ce que les gens recoivent (rangement
 /// du 09/10/2026 : a la racine, `logiciel/`, `fictives/`, `prive/` et `atelier/`).
 pub fn dossier_dev() -> PathBuf {
     parent_du_logiciel().join("atelier").join(NOM_DEV)
 }
 
-/// `compagnies._chemin_mode` : `PUPPETPAIE_CLE` le deplace (c'est ainsi que les tests le tiennent hors du poste).
+/// `PUPPETPAIE_CLE` le deplace (c'est ainsi que les tests le tiennent hors du poste).
 fn chemin_mode() -> PathBuf {
     match std::env::var_os("PUPPETPAIE_CLE").filter(|v| !v.is_empty()) {
         Some(d) => PathBuf::from(d).join(FICHIER_MODE),

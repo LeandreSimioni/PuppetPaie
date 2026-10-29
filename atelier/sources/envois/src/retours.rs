@@ -96,7 +96,7 @@ pub fn est_chiffre(c: char) -> bool {
     dans(DECIMAUX, c)
 }
 
-/// `re.compile(r"^[12][0-9]{12}([0-9]{2})?$").match(s)` : `$` accepte un saut de
+/// `$` accepte un saut de
 /// ligne final.
 fn est_nir(s: &str) -> bool {
     let t = s.strip_suffix('\n').unwrap_or(s);
@@ -1532,7 +1532,7 @@ fn extra_zip64(extra: &[u8], m: &mut Membre) -> Resultat<()> {
     Ok(())
 }
 
-/// `zipfile.ZipFile(...)` : le repertoire central, dans l'ordre de l'archive.
+/// Le repertoire central, dans l'ordre de l'archive.
 fn repertoire_zip(b: &[u8]) -> Resultat<Vec<Membre>> {
     let pas_un_zip = || mauvais("ce n'est pas une archive zip");
     let taille_fichier = b.len();

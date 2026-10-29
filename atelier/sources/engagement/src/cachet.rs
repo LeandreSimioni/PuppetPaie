@@ -156,7 +156,7 @@ fn corps_qui_tient(texte: &str, large: f64, depart: f64, etroit: f64) -> f64 {
     if 5.0 > m { 5.0 } else { m }
 }
 
-/// `xml.sax.saxutils.escape` : `&`, `<` et `>`, et rien d'autre.
+/// `&`, `<` et `>`, et rien d'autre.
 fn echapper(t: &str) -> String {
     t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
 }

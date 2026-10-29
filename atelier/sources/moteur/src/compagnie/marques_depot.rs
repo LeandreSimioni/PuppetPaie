@@ -41,7 +41,7 @@ fn lire_latin1(chemin: &Path) -> R<String> {
     Ok(s)
 }
 
-/// `re.search(r"^<rubrique>,'(.*)'$", texte, re.M)` : la valeur de la premiere ligne qui la porte.
+/// La valeur de la premiere ligne qui la porte.
 fn valeur_de_rubrique(texte: &str, rubrique: &str) -> Option<String> {
     let debut = format!("{},'", rubrique);
     texte.split('\n').find_map(|l| l.strip_prefix(debut.as_str())?.strip_suffix('\'').map(str::to_string))
@@ -135,7 +135,7 @@ pub(crate) fn marquer_reportes(ctx: &Contexte, mois: &str, fichier: &Path, quand
 
 // --------------------------------------------------------------------- l'amorcage
 
-/// `pas._jours_ouvres_apres` : le jour ouvre qui tombe `combien` jours ouvres apres `depart` -- ni samedi,
+/// Le jour ouvre qui tombe `combien` jours ouvres apres `depart` -- ni samedi,
 /// ni dimanche, ni fete legale.
 fn jours_ouvres_apres(depart: Jour, combien: i64) -> R<Jour> {
     let mut jour = depart;

@@ -191,7 +191,7 @@ fn texte_latin1(o: &[u8]) -> String {
     s
 }
 
-/// `re.match(r"(S\d\d\.G\d\d\.\d\d\.\d\d\d),'(.*)'$", ligne)` : la rubrique et sa valeur.
+/// La rubrique et sa valeur.
 fn rubrique_de(ligne: &str) -> Option<(&str, &str)> {
     let c: Vec<char> = ligne.chars().take(16).collect();
     let chiffres = [1, 2, 5, 6, 8, 9, 11, 12, 13];
@@ -225,7 +225,7 @@ fn rubriques(texte: &str) -> Vec<(&str, &str)> {
     out
 }
 
-/// `re.findall(r"^<rubrique>,'(.*)'$", texte, re.M)` : une ligne (coupee sur
+/// Une ligne (coupee sur
 /// `\n` seul) qui commence par `<rubrique>,'` et finit par `'`.
 fn valeurs_de(texte: &str, rubrique: &str) -> Vec<String> {
     let debut = format!("{},'", rubrique);
@@ -330,7 +330,7 @@ fn nettoye(s: &str) -> &str {
     strip(s)
 }
 
-/// `dsn_api.verifier` : le mode demande doit correspondre au fichier, et un reel
+/// Le mode demande doit correspondre au fichier, et un reel
 /// exige une preuve.
 pub fn verifier(a: &Apercu, reel: bool, mois_confirme: Option<&str>, presence_prouvee: bool) -> Resultat<()> {
     let nature_envoi = a.champ("nature_envoi");
@@ -369,7 +369,7 @@ pub fn verifier(a: &Apercu, reel: bool, mois_confirme: Option<&str>, presence_pr
 
 // --------------------------------------------------------------------- DPAE
 
-/// `dpae_api.indicateur` : C_VERSION du premier enregistrement.
+/// C_VERSION du premier enregistrement.
 pub fn indicateur(octets: &[u8]) -> String {
     let (a, b) = INDICATEUR;
     let fin = b.min(octets.len());
@@ -383,7 +383,7 @@ pub fn est_reel(octets: &[u8]) -> bool {
     indicateur(octets) == INDICATEUR_REEL
 }
 
-/// `dpae_api.basculer_en_test` : chaque enregistrement repasse en C_VERSION = TST,
+/// Chaque enregistrement repasse en C_VERSION = TST,
 /// avec la meme affectation de tranche qu'un `bytearray` (une tranche hors du
 /// flux s'ajoute a la fin).
 pub fn basculer_dpae(octets: &[u8], longueur: i64) -> Resultat<Vec<u8>> {

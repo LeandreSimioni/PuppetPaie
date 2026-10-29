@@ -132,7 +132,7 @@ impl Ligne {
         self.champs.iter().find(|(c, _)| c == k).map(|(_, v)| v)
     }
 
-    /// `d.get(k)` : la valeur, ou rien.
+    /// La valeur, ou rien.
     pub fn val(&self, k: &str) -> Option<&Val> {
         self.get(k).and_then(|v| v.as_ref())
     }
@@ -297,7 +297,7 @@ fn somme(lignes: &[&Ligne], cle: &str) -> R<Option<Val>> {
     Ok(total.map(Val::Dec))
 }
 
-/// `tableaux.totaliser` : pose le sous-total de chaque section et le total general. La premiere colonne de
+/// Pose le sous-total de chaque section et le total general. La premiere colonne de
 /// texte porte le libelle (« Total ... »), les colonnes totalisees leur somme, les autres restent vides.
 pub fn totaliser(t: &mut Tableau, libelle_total: &str) -> R<()> {
     let porte = t.colonnes.iter().find(|c| c.genre == Genre::Texte).map(|c| c.cle.clone());
@@ -338,7 +338,7 @@ pub const TOTAL_GENERAL: &str = "TOTAL GÉNÉRAL";
 
 // ------------------------------------------------------------ mise en forme
 
-/// `tableaux.texte` : une cellule en texte francais, virgule decimale, rien pour `None`.
+/// Une cellule en texte francais, virgule decimale, rien pour `None`.
 pub fn texte(v: Option<&Val>, c: &Colonne) -> String {
     match v {
         None => String::new(),
@@ -348,7 +348,7 @@ pub fn texte(v: Option<&Val>, c: &Colonne) -> String {
     }
 }
 
-/// `tableaux._rangees` : (cellules, genre) dans l'ordre d'ecriture : lignes, sous-totaux, total.
+/// (cellules, genre) dans l'ordre d'ecriture : lignes, sous-totaux, total.
 fn rangees(t: &Tableau) -> Vec<(&Ligne, &'static str)> {
     let plusieurs = t.sections.len() > 1 && t.sous_totaux;
     let mut out: Vec<(&Ligne, &'static str)> = Vec::new();
@@ -378,7 +378,7 @@ fn cellule_lisible(l: &Ligne, c: &Colonne, genre: &str) -> String {
     }
 }
 
-/// `tableaux._nom_compagnie` : le nom de la compagnie, ou rien.
+/// Le nom de la compagnie, ou rien.
 pub fn nom_compagnie(ctx: &Contexte) -> String {
     crate::fiche_recapitulative::nom_compagnie(ctx)
 }
@@ -460,7 +460,7 @@ fn ligne_json_brute(l: &Ligne) -> Value {
     Value::Object(l.champs.iter().map(|(k, v)| (k.clone(), v.as_ref().map_or(Value::Null, Val::json))).collect())
 }
 
-/// `tableaux.dict_tableau` : ce que le fichier JSON porte.
+/// Ce que le fichier JSON porte.
 pub fn dict_tableau(t: &Tableau, fichier_ecrit: bool) -> Value {
     let sections: Vec<Value> = t
         .sections
@@ -486,7 +486,7 @@ pub fn json_tableau(t: &Tableau, _ctx: Option<&Contexte>) -> R<Vec<u8>> {
     Ok(socle::ecriture::json_indente(&dict_tableau(t, false), 1).into_bytes())
 }
 
-/// `sortie_json.brut(Tableau)` : la reponse de la route.
+/// La reponse de la route.
 pub fn brut_tableau(t: &Tableau) -> Value {
     let mut m = Map::new();
     m.insert("etat".into(), json!(t.etat));
@@ -691,7 +691,7 @@ fn filets(couleur: &str, epaisseur: f64) -> Value {
     json!({"couleur": couleur, "epaisseur": epaisseur})
 }
 
-/// `tableaux.description_pdf` : la description (FORMAT.md) d'un etat -- A4 paysage, son titre, son tableau, ses
+/// La description (FORMAT.md) d'un etat -- A4 paysage, son titre, son tableau, ses
 /// notes. `entetes` : (libelle, a droite) ; `rangees` : (cellules en texte, genre) avec `genre` dans « », « total »
 /// ou « general ».
 #[allow(clippy::too_many_arguments)]
@@ -781,7 +781,7 @@ pub fn octets(t: &Tableau, ctx: Option<&Contexte>) -> R<Vec<u8>> {
     }
 }
 
-/// `tableaux.format_possible` : le format demande, s'il est l'un de `formats`. (Le XLSX et le PDF sont toujours
+/// Le format demande, s'il est l'un de `formats`. (Le XLSX et le PDF sont toujours
 /// disponibles : ni openpyxl ni la fabrique externe ne sont plus en jeu.)
 pub fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
     if !formats.contains(&fmt) {
@@ -790,7 +790,7 @@ pub fn format_possible(fmt: &str, formats: &[&str]) -> R<String> {
     Ok(fmt.to_string())
 }
 
-/// `tableaux.ecrire` : ecrit le tableau dans `dossier/nom.<ext>` (`tsv` s'ecrit `.txt`) et rend le chemin.
+/// Ecrit le tableau dans `dossier/nom.<ext>` (`tsv` s'ecrit `.txt`) et rend le chemin.
 pub fn ecrire(t: &mut Tableau, dossier: &Path, nom: &str, ctx: &Contexte) -> R<PathBuf> {
     std::fs::create_dir_all(dossier).map_err(|e| erreur("OSError", format!("{} : {}", dossier.display(), e)))?;
     let ext = if t.format == "tsv" { "txt" } else { t.format.as_str() };

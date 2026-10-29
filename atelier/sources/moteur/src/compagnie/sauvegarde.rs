@@ -420,7 +420,7 @@ fn egal(v: Option<&Value>, x: f64) -> bool {
 /// Ce que dit l'index du dernier passage (`derniere`) : quand, combien. Pour l'affichage.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Derniere {
-    /// `index.get("quand", "")` : tel que l'index le porte (un texte, en pratique).
+    /// Tel que l'index le porte (un texte, en pratique).
     pub quand: Value,
     pub fichiers: usize,
     /// `index.get("racine_drive", "")`.

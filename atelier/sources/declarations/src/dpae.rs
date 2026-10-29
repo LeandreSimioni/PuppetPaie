@@ -124,7 +124,7 @@ fn cle<'a>(s: &'a Value, k: &str) -> Resultat<&'a Value> {
     s.get(k).ok_or_else(|| socle::fichiers::absent(k))
 }
 
-/// `s.ljust(n)` : complete a droite avec des espaces, ne tronque pas.
+/// Complete a droite avec des espaces, ne tronque pas.
 fn ljust(s: &str, n: usize) -> String {
     let mut o = s.to_string();
     for _ in s.chars().count()..n {
@@ -179,7 +179,7 @@ fn est_chiffre(c: char) -> bool {
     }).is_ok()
 }
 
-/// `t.isdigit()` : non vide, et rien que des chiffres.
+/// Non vide, et rien que des chiffres.
 fn tout_chiffres(t: &str) -> bool {
     !t.is_empty() && t.chars().all(est_chiffre)
 }
@@ -299,7 +299,7 @@ pub fn employeur(ent: &Value, gabarit: &[char]) -> Resultat<Vec<(&'static str, S
 
 // ------------------------------------------------------- l'Urssaf
 
-/// `urssaf.existe` : ce code est-il celui d'un organisme de recouvrement
+/// Ce code est-il celui d'un organisme de recouvrement
 /// connu (`urssaf-dpae-base.json`) ?
 fn urssaf_existe(code: &str) -> Resultat<bool> {
     let base = json_en_cache(&dossier_du_code().join("urssaf-dpae-base.json"))?;
@@ -706,7 +706,7 @@ fn tranche(r: &[char], a: usize, b: usize) -> String {
     r[a..b].iter().collect()
 }
 
-/// `dpae.relire` : chaque enregistrement par ses zones (`CHAMPS`).
+/// Chaque enregistrement par ses zones (`CHAMPS`).
 pub fn relire(contenu: &str) -> Vec<Vec<(&'static str, String)>> {
     lire_enregistrements(contenu)
         .iter()

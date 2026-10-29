@@ -78,7 +78,7 @@ pub(crate) fn dossier_de_travail() -> PathBuf {
     std::env::temp_dir().join(format!("puppetpaie-tri-{}-{}", std::process::id(), marque))
 }
 
-/// `contexte.trouver_export` : le dossier de CoolPaie, remonte de dossier en dossier.
+/// Le dossier de CoolPaie, remonte de dossier en dossier.
 pub(crate) fn trouver_export(racine: &Path) -> PathBuf {
     let parent = racine.parent();
     let grand = parent.and_then(Path::parent);
@@ -212,7 +212,7 @@ pub(crate) struct Apercu {
     /// Les fiches existantes que l'import completerait (`import::completer`).
     pub(crate) a_completer: Vec<crate::import::completer::ACompleter>,
     pub(crate) contrats: Vec<dsn_aem::ContratAtteste>,
-    /// `imp._paies` : les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
+    /// Les versements declares par les DSN, rattaches a une fiche (ou `<a creer>`).
     pub(crate) paies: Vec<Value>,
     /// Les contrats que les bulletins attestent (`import::bulletins`), contrats d'engagements importes
     /// pretes a ecrire, chacune avec le NIR qui la rattache (`salarie` vaut `<a creer>` tant que la fiche n'existe pas).

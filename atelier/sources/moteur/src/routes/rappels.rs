@@ -238,7 +238,7 @@ impl Etat<'_> {
         &self.ctx.racine
     }
 
-    /// `journal.etat_dsn_du_mois(ctx, mois)` : `Null` ou l'etat.
+    /// `Null` ou l'etat.
     /// UN MOIS TENU AVANT CE LOGICIEL NE SE RECLAME JAMAIS : sans ligne au journal, la DSN que l'import
     /// a lue pour lui (`import::mois::dsn_importee`) le dit declare, meme quand la saisie y ajoute des engagements : ils
     /// se declarent dans la DSN suivante, et son rappel le dit (`ajouter_les_mois_de_l_ancien_logiciel`) ; sans aucune
@@ -897,7 +897,7 @@ pub(crate) fn embauches_suivies(st: &Etat) -> R<Vec<(Embauche, bool)>> {
     Ok(out)
 }
 
-/// `journal._pourquoi_rate` : ce qui a fait echouer un depot de test, en une phrase.
+/// Ce qui a fait echouer un depot de test, en une phrase.
 fn pourquoi_rate(ligne: &Value) -> String {
     let mut anomalies: Vec<String> = Vec::new();
     if let Some(Value::Array(retours)) = ligne.get("retours") {

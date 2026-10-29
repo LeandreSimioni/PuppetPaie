@@ -1204,7 +1204,7 @@ fn maintenant() -> i64 {
     socle::temps::secondes().floor() as i64
 }
 
-/// `zipfile.ZipFile(chemin, "w", ZIP_DEFLATED)` : deflate, CRC-32, cree sous Unix.
+/// Deflate, CRC-32, cree sous Unix.
 pub(crate) fn zip(entrees: &[Entree]) -> R<Vec<u8>> {
     use flate2::write::DeflateEncoder;
     use flate2::{Compression, Crc};
@@ -1275,7 +1275,7 @@ pub(crate) fn entree_ecrite(nom: String, octets: Vec<u8>) -> Entree {
     Entree { nom, octets, date, heure, attributs: 0o600 << 16 }
 }
 
-/// `z.write(fichier, nom)` : la date et les droits du fichier.
+/// La date et les droits du fichier.
 pub(crate) fn entree_fichier(f: &Path, nom: String) -> R<Entree> {
     let octets = std::fs::read(f).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;
     let meta = std::fs::metadata(f).map_err(|e| avec("OSError", format!("{} : {}", f.display(), e)))?;

@@ -174,7 +174,7 @@ fn latin1(octets: &[u8]) -> String {
     octets.iter().map(|&o| o as char).collect()
 }
 
-/// `urssaf.pour_entreprise` : le code Urssaf que la DPAE de cette compagnie porte.
+/// Le code Urssaf que la DPAE de cette compagnie porte.
 fn code_urssaf(ent: &Value) -> R<String> {
     let ecrit = ent.get("code_urssaf").filter(|c| vrai(c)).map(valeur_en_texte).unwrap_or_default();
     let ecrit = ecrit.trim();
@@ -891,7 +891,7 @@ fn existe(t: &str) -> bool {
     !t.contains('\0') && Path::new(t).exists()
 }
 
-/// `contexte.resoudre(chemin, racine)` : un chemin tape a la main, tel quel
+/// Un chemin tape a la main, tel quel
 /// s'il existe, sinon sous les donnees, un mois nu designant sa saisie. Rend
 /// le texte du chemin, ecrit comme `str(Path)`.
 pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
@@ -930,7 +930,7 @@ pub(crate) fn resoudre(racine: &Path, chemin: &Value) -> R<String> {
     Ok(p)
 }
 
-/// `journal.empreinte(Path)` : `read_bytes`, l'erreur du disque sous sa classe.
+/// `read_bytes`, l'erreur du disque sous sa classe.
 fn empreinte_du_fichier(chemin: &str) -> R<String> {
     if chemin.contains('\0') {
         return Err(erreur("ValueError", "embedded null byte"));

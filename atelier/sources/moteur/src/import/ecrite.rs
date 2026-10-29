@@ -64,7 +64,7 @@ fn jj_mm_aaaa(j: &socle::date::Jour) -> String {
     format!("{:02}/{:02}/{:04}", j.jour, j.mois, j.an)
 }
 
-/// `sortie_json.brut` : les cles qui commencent par `_` s'en vont.
+/// Les cles qui commencent par `_` s'en vont.
 fn sans_prives(v: &Value) -> Value {
     match v {
         Value::Object(o) => Value::Object(o.iter().filter(|(k, _)| !k.starts_with('_')).map(|(k, x)| (k.clone(), sans_prives(x))).collect()),

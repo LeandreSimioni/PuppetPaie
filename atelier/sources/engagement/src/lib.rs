@@ -1099,7 +1099,7 @@ fn heures_dites(ctx: &Contexte, eng: &Engagement, rang: usize, mois: &str) -> Re
     Ok(())
 }
 
-/// `ntt.sexe` : "1", "2", ou "" si la fiche ne le dit pas (le NIR d'abord).
+/// "1", "2", ou "" si la fiche ne le dit pas (le NIR d'abord).
 fn sexe(fiche: &Value) -> String {
     let texte = |c: &str| fiche.get(c).filter(|x| vrai(x)).map(en_texte).unwrap_or_default();
     let nir = texte("nir");

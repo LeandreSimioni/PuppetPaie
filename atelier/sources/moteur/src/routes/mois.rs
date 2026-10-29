@@ -203,7 +203,7 @@ fn decimal_en_f64(d: socle::num::Decimal) -> f64 {
     d.to_string().parse().unwrap_or(0.0)
 }
 
-/// `web._resoudre_noms` : « Celi » et « aaah zerbinette » deviennent les cles
+/// « Celi » et « aaah zerbinette » deviennent les cles
 /// du fichier. Une saisie qui ne se charge pas se rend telle quelle.
 fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
     let Some(objet) = saisie.as_object() else { return Ok(saisie.clone()) };
@@ -249,7 +249,7 @@ fn resoudre_noms(ctx: &Contexte, saisie: &Value) -> R<Value> {
 /// la page lirait le `taux` (0.1) comme un pourcentage (0,1 %).
 const CHAMPS_DE_LIGNE_GARDES: [&str; 4] = ["heures", "genre", "base", "taux_majoration"];
 
-/// `web._lignes_affichees` : les lignes de paie telles que le MOTEUR les a comprises.
+/// Les lignes de paie telles que le MOTEUR les a comprises.
 /// `remuneration` suit les lignes du fichier une a une (`calcul::lignes_brut`).
 fn lignes_affichees(ctx: &Contexte, p: &engagement::calcul::Paie, brutes: &[Value]) -> R<Vec<Value>> {
     let lignes: Vec<Map<String, Value>> = p
@@ -287,7 +287,7 @@ fn liste_lue(v: &Value) -> R<Vec<Value>> {
     }
 }
 
-/// `web._jours_sur_les_lignes` : pose sur chaque ligne les jours qu'elle couvre,
+/// Pose sur chaque ligne les jours qu'elle couvre,
 /// et ou (les saisies ecrites avant le 12/09/2026 portaient les jours sur
 /// l'engagement).
 fn jours_sur_les_lignes(
@@ -485,7 +485,7 @@ impl Echeance {
     }
 }
 
-/// `modele.format(**valeurs)` : `{nom}` remplace, `{{` et `}}` s'ecrivent `{` et `}`.
+/// `{nom}` remplace, `{{` et `}}` s'ecrivent `{` et `}`.
 fn formater(modele: &str, valeurs: &[(&str, String)]) -> R<String> {
     let mut out = String::new();
     let mut it = modele.chars().peekable();
@@ -1453,7 +1453,7 @@ impl<'a> Spectacles<'a> {
         Ok(Spectacles { par_cle: &ctx.spectacles, par_objet })
     }
 
-    /// `par_cle.get(x) or par_objet.get(x)` : `x` se hache.
+    /// `x` se hache.
     fn trouver(&self, x: &Value) -> R<Option<&'a Value>> {
         if let Value::String(s) = x {
             if let Some(v) = self.par_cle.get(s).filter(|v| vrai(v)) {
@@ -1541,7 +1541,7 @@ fn cachets_de(ctx: &Contexte, e: &Map<String, Value>) -> R<i64> {
 
 /// Les contrats qui touchent `mois`, pour
 /// le calendrier des mois passes. Deux sources, la meme regle que
-/// `cumul.lire_engagements` : un mois qui a son fichier de paie est lu la (avec
+/// Un mois qui a son fichier de paie est lu la (avec
 /// ses jours exacts), l'historique importe des AEM parle pour les autres.
 /// Trie par salarie puis debut.
 fn contrats_passes(ctx: &Contexte, mois: &Value, salaries: Option<&Value>) -> R<Vec<Passe>> {
@@ -2066,7 +2066,7 @@ pub(crate) fn q2(x: Decimal) -> Decimal {
     r
 }
 
-/// `sortie_json._ligne_saisie` : une ligne de la saisie, avec ce que la rubrique en dit.
+/// Une ligne de la saisie, avec ce que la rubrique en dit.
 fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
     let rubrique = l.get("rubrique");
     let infos = || -> Option<(String, String, f64)> {
@@ -2104,7 +2104,7 @@ fn ligne_saisie(ctx: &Contexte, l: &Value) -> Value {
     })
 }
 
-/// `sortie_json.paie` : une paie pour l'ecran. `brut` : l'engagement tel qu'il
+/// Une paie pour l'ecran. `brut` : l'engagement tel qu'il
 /// est ecrit dans la saisie ; `mois` : le mois du fichier (pour `lieu` et
 /// `taux_cachet`, gardes tels qu'ecrits).
 pub(crate) fn vue_paie(ctx: &Contexte, p: &Paie, brut: &Value, data: &Value, avec_lignes: bool) -> R<Value> {

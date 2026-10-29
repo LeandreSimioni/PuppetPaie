@@ -14,7 +14,7 @@ use mailparse::{MailHeaderMap, ParsedMail};
 
 use crate::simulation_courriels::{feuilles, nom_de_fichier, texte_de};
 
-/// `email.utils.parseaddr(message.get("From", ""))[1].strip().lower()` : l'adresse seule, en minuscules, ou rien.
+/// L'adresse seule, en minuscules, ou rien.
 pub fn adresse_de(m: &ParsedMail) -> String {
     let Some(h) = m.headers.get_first_header("From") else { return String::new() };
     let Ok(liste) = mailparse::addrparse_header(h) else { return String::new() };
@@ -109,7 +109,7 @@ fn entier(t: &str) -> Option<i64> {
     t.parse().ok()
 }
 
-/// `email._parseaddr._parsedate_tz` : (an, mois, jour, heure, minute, seconde, decalage en secondes ou `None`).
+/// (an, mois, jour, heure, minute, seconde, decalage en secondes ou `None`).
 fn parsedate_tz(donnees: &str) -> Option<(i64, i64, i64, i64, i64, i64, Option<i64>)> {
     let mut d: Vec<String> = donnees.split(socle::texte::blanc).filter(|x| !x.is_empty()).map(String::from).collect();
     if d.is_empty() {

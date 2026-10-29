@@ -31,9 +31,9 @@ pub struct Ecriture {
     pub mois: String,
     pub auxiliaire: String,
     pub auxiliaire_libelle: String,
-    /// `e.piece` : posee par les etats de `operations_ecritures` (« PAIE-AAAA-MM »).
+    /// Posee par les etats de `operations_ecritures` (« PAIE-AAAA-MM »).
     pub piece: String,
-    /// `e.numero` : le rang de l'ecriture (une par mois) dans l'etat, a partir de 1.
+    /// Le rang de l'ecriture (une par mois) dans l'etat, a partir de 1.
     pub numero: i64,
 }
 
@@ -286,7 +286,7 @@ pub fn ecritures_du_mois(ctx: &Contexte, mois: &str, plan: &Map<String, Value>) 
     Ok(out)
 }
 
-/// `csv.writer(delimiter=";", lineterminator="\r\n")` : un champ qui porte le delimiteur, un guillemet ou un
+/// Un champ qui porte le delimiteur, un guillemet ou un
 /// saut de ligne se met entre guillemets, les guillemets doublés.
 fn champ_csv(t: &str) -> String {
     if t.contains([';', '"', '\r', '\n']) {

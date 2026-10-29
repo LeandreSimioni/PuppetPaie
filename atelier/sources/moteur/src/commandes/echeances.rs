@@ -28,7 +28,7 @@ fn marque(etat: &str) -> &'static str {
     }
 }
 
-/// `date.fromisoformat(--le)` : `AAAA-MM-JJ` ou `AAAAMMJJ` (Python 3.11 et apres), avec les refus de `date(...)` quand la
+/// `AAAA-MM-JJ` ou `AAAAMMJJ` (Python 3.11 et apres), avec les refus de `date(...)` quand la
 /// forme est bonne et la valeur impossible. (Les semaines ISO, `2027-W01-1`, ne sont pas portees : une forme illisible.)
 fn jour_le(args: &Args) -> Result<Option<String>, Echec> {
     let Some(t) = args.texte("le") else { return Ok(None) };

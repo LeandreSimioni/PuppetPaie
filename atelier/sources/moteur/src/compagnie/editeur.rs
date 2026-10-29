@@ -44,7 +44,7 @@ pub const REDEMANDER_IDENTITE: &str = "Le serveur ne reconnait plus ce poste : r
 /// nomme un faux mandataire local comme seule porte.
 pub const SERVEUR_PAR_DEFAUT: &str = "https://filet.puppetpaie.fr";
 
-/// `filet.DELAI` : le filet ne doit jamais faire attendre une paie.
+/// Le filet ne doit jamais faire attendre une paie.
 pub const DELAI: u64 = 15;
 
 /// `editeur.ErreurFilet`, ou une autre exception que le Python laissait passer
@@ -161,7 +161,7 @@ fn phrase(code: u16) -> &'static str {
     }
 }
 
-/// `json.dumps(v)` : ASCII seulement (`\uXXXX`, paires de substitution au-dela
+/// ASCII seulement (`\uXXXX`, paires de substitution au-dela
 /// du plan de base), separateurs `, ` et `: `.
 pub fn json_ascii(v: &Value) -> String {
     let mut s = String::new();
@@ -227,7 +227,7 @@ fn chaine(t: &str, s: &mut String) {
     s.push('"');
 }
 
-/// `editeur.poster(serveur, action, corps, entetes, delai)` : la reponse JSON du
+/// La reponse JSON du
 /// serveur, ou l'`ErreurFilet` qu'elle a causee.
 pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str)], delai: u64) -> Result<Value, ErreurFilet> {
     if crate::compagnie::bridage::paquet_soude() && !ACTIONS_BRIDEES.contains(&action) {
@@ -291,7 +291,7 @@ pub fn poster(serveur: &str, action: &str, corps: &Value, entetes: &[(&str, &str
     }
 }
 
-/// `filet.Client` : le serveur, la cle du compte (les actions du filet), et
+/// Le serveur, la cle du compte (les actions du filet), et
 /// l'identite du poste -- `(numero, cle)` donnee par le serveur -- pour les
 /// actions de l'editeur.
 pub struct Client {

@@ -71,7 +71,7 @@ const TRACE_MAX: usize = 4000;
 const TEXTE_MAX: usize = 600;
 const JS_PILE_MAX: usize = 2000;
 
-/// `incidents.LOT` : la borne du serveur ; `MAX_PAR_PASSAGE` : au-dela, le
+/// La borne du serveur ; `MAX_PAR_PASSAGE` : au-dela, le
 /// passage suivant reprend.
 const LOT: usize = 20;
 const MAX_PAR_PASSAGE: usize = 200;
@@ -141,7 +141,7 @@ fn sans_chemin(s: &str) -> String {
 
 // ---------------------------------------------------------------------- le chemin
 
-/// `incidents.chemin` : ou vit le journal. `PUPPETPAIE_INCIDENTS` le deplace
+/// Ou vit le journal. `PUPPETPAIE_INCIDENTS` le deplace
 /// (les essais).
 pub fn chemin(racine: &Path) -> PathBuf {
     match std::env::var("PUPPETPAIE_INCIDENTS").ok().filter(|v| !v.is_empty()) {
@@ -162,7 +162,7 @@ fn tete(s: &str, n: usize) -> String {
 
 // -------------------------------------------------------------------- caviardage
 
-/// `incidents.caviarder` : le texte nettoye, et ce qui a ete trouve. Le
+/// Le texte nettoye, et ce qui a ete trouve. Le
 /// marqueur dit CE QUI a ete retire (`[NIR]`), pas ce que c'etait.
 pub fn caviarder(texte: &str) -> (String, Vec<&'static str>) {
     let mut s = texte.to_string();
@@ -179,7 +179,7 @@ pub fn caviarder(texte: &str) -> (String, Vec<&'static str>) {
     (s, trouve)
 }
 
-/// `incidents._nettoyer` : caviarde en profondeur (chaines, listes,
+/// Caviarde en profondeur (chaines, listes,
 /// dictionnaires) ; une chaine est tronquee a `limite` points de code.
 pub fn nettoyer(v: &Value, trouve: &mut Vec<&'static str>, limite: usize) -> Value {
     match v {
@@ -194,7 +194,7 @@ pub fn nettoyer(v: &Value, trouve: &mut Vec<&'static str>, limite: usize) -> Val
     }
 }
 
-/// `incidents.empreinte` : ce qui fait que deux incidents sont LE MEME -- la
+/// Ce qui fait que deux incidents sont LE MEME -- la
 /// nature, l'endroit et le genre, pas le message.
 pub fn empreinte(nature: &str, ou: &str, quoi: &str) -> String {
     use sha2::{Digest, Sha256};
@@ -746,7 +746,7 @@ fn alleger(c: &mut Value) -> usize {
     n
 }
 
-/// `incidents.machine` : la machine, en une ligne -- « Linux Ubuntu 24.04 ·
+/// La machine, en une ligne -- « Linux Ubuntu 24.04 ·
 /// x86_64 · moteur Rust · complete » : le systeme, l'architecture, le moteur et
 /// l'edition. Rien qui designe la personne. Pas de virgule : le serveur les
 /// regroupe par elle.
@@ -823,7 +823,7 @@ fn windows_de_ver(sortie: &str) -> String {
     }
 }
 
-/// `compagnies.edition()` : le bridage du poste, `bride` ou `debloque` (`bridage::etat`).
+/// Le bridage du poste, `bride` ou `debloque` (`bridage::etat`).
 pub fn edition() -> String {
     crate::compagnie::bridage::etat().to_string()
 }
@@ -861,7 +861,7 @@ fn cle_de_poste(v: &Value) -> Option<String> {
     (s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))).then(|| s.to_string())
 }
 
-/// `incidents.poste` : le numero de ce poste chez l'editeur, tel que le serveur
+/// Le numero de ce poste chez l'editeur, tel que le serveur
 /// l'a donne (`config/diagnostic.json`, dans la compagnie dont vient la
 /// configuration) ; vide tant qu'aucune identite n'a ete demandee. Ne demande
 /// rien : c'est `client_du_poste` qui le fait, a l'envoi.
@@ -923,7 +923,7 @@ fn serveur_propre(racine: &Path) -> R<String> {
     Ok(if vrai(s) { texte(s) } else { texte(get(&compte, "serveur")?) })
 }
 
-/// `incidents._configuration` : le serveur de l'editeur, pour les incidents, les
+/// Le serveur de l'editeur, pour les incidents, les
 /// retours et leurs reponses, et la compagnie qui porte l'identite du poste
 /// (son `config/diagnostic.json`) -- celui de la compagnie ouverte ; sinon celui
 /// de la vraie compagnie du poste (depuis une FICTIVE seulement : un poste, une

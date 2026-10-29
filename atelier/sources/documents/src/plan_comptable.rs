@@ -266,7 +266,7 @@ fn entier_de(t: &str) -> Option<i64> {
 /// `NonPorte` : une forme que ce module refuse.
 type Faute = (&'static str, String);
 
-/// `modele.format(code=code, cle=cle)` : `code` est l'entier de la fiche, ou "" s'il
+/// `code` est l'entier de la fiche, ou "" s'il
 /// n'en a pas. Refuse, sous la classe de l'erreur (`ValueError`, `KeyError`,
 /// `IndexError`...) et une phrase en francais, en suivant `MarkupIterator_next` et
 /// `parse_field`.

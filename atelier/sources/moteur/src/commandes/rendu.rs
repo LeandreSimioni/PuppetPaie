@@ -29,7 +29,7 @@ pub fn enveloppe(commande: &str, resultat: Value) -> Value {
     json!({"commande": commande, "ok": true, "resultat": resultat})
 }
 
-/// `sortie_json.erreur` : une erreur metier est une reponse. `extra` s'ajoute au corps (`type`, `message`).
+/// Une erreur metier est une reponse. `extra` s'ajoute au corps (`type`, `message`).
 pub fn erreur(commande: &str, classe: &str, message: &str, extra: &[(&str, Value)]) -> Value {
     let mut corps = serde_json::Map::new();
     corps.insert("type".into(), json!(classe));
@@ -74,7 +74,7 @@ pub fn quand_court(v: Option<&Value>) -> String {
     debut(&t, 16).replace('T', " ")
 }
 
-/// `json.dumps(v, ensure_ascii=False)` : une seule ligne, separateurs `, ` et `: `.
+/// Une seule ligne, separateurs `, ` et `: `.
 pub fn json_ligne(v: &Value) -> String {
     fn chaine(t: &str, s: &mut String) {
         s.push('"');

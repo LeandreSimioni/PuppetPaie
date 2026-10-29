@@ -137,7 +137,7 @@ fn chercher(table: &[(&'static str, &'static str)], cle: &str) -> &'static str {
     table.iter().find(|(c, _)| *c == cle).map(|(_, v)| *v).unwrap_or("")
 }
 
-/// `str.capitalize` : la premiere lettre en capitale, le reste en minuscules.
+/// La premiere lettre en capitale, le reste en minuscules.
 fn capitaliser(s: &str) -> String {
     let mut c = s.chars();
     match c.next() {
@@ -699,7 +699,7 @@ const MIMETYPES: [(&str, &str); 154] = [
     (".zip", "application/zip"),
 ];
 
-/// `mimetypes.suffix_map` : un suffixe qui en cache deux.
+/// Un suffixe qui en cache deux.
 const SUFFIXES: [(&str, &str); 6] = [
     (".svgz", ".svg.gz"),
     (".tgz", ".tar.gz"),
@@ -712,7 +712,7 @@ const SUFFIXES: [(&str, &str); 6] = [
 /// `mimetypes.encodings_map` (sensible a la casse) : un suffixe de compression, que la devinette saute.
 const ENCODAGES: [&str; 5] = [".gz", ".Z", ".bz2", ".xz", ".br"];
 
-/// `os.path.splitext` : le dernier point du nom, sauf s'il ne suit que des points.
+/// Le dernier point du nom, sauf s'il ne suit que des points.
 fn couper_extension(nom: &str) -> (&str, &str) {
     let Some(point) = nom.rfind('.') else { return (nom, "") };
     if nom[..point].chars().all(|c| c == '.') {
@@ -1041,7 +1041,7 @@ fn adresse_simple(a: &str) -> bool {
 
 // ------------------------------------------------------------------------------------------- le texte des parties
 
-/// `contentmanager._encode_text` : (`Content-Transfer-Encoding`, charge).
+/// (`Content-Transfer-Encoding`, charge).
 fn encoder_texte(texte: &str) -> (&'static str, Vec<u8>) {
     let lignes = lignes_octets(texte.as_bytes());
     let normal = {
@@ -1071,7 +1071,7 @@ fn encoder_texte(texte: &str) -> (&'static str, Vec<u8>) {
     }
 }
 
-/// `bytes.splitlines()` : coupe sur \n, \r\n et \r seulement.
+/// Coupe sur \n, \r\n et \r seulement.
 fn lignes_octets(o: &[u8]) -> Vec<&[u8]> {
     let mut lignes = Vec::new();
     let mut debut = 0;
@@ -1097,7 +1097,7 @@ fn lignes_octets(o: &[u8]) -> Vec<&[u8]> {
     lignes
 }
 
-/// `quoprimime.body_encode(body.decode('latin-1'), maxlinelen)` : chaque octet est un caractere, `=` et tout ce
+/// Chaque octet est un caractere, `=` et tout ce
 /// qui n'est pas ASCII imprimable (hors tabulation) s'ecrit `=XX`, lignes coupees par `=\n`.
 pub fn quoted_printable(corps: &[u8], max: usize) -> Vec<u8> {
     if corps.is_empty() {
@@ -1404,7 +1404,7 @@ fn voler_blanc(lignes: &mut Vec<String>) -> String {
     blanc
 }
 
-/// `_encoded_words.encode(s, 'utf-8')` : `q` sauf si `b` est plus court de 5 caracteres ou plus.
+/// `q` sauf si `b` est plus court de 5 caracteres ou plus.
 fn mot_code(s: &[char]) -> String {
     let texte: String = s.iter().collect();
     let octets = texte.as_bytes();

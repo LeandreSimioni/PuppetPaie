@@ -469,7 +469,7 @@ pub fn authentifier(donnees: &[u8], a: &Authentification) -> R<Vec<u8>> {
     remplir(donnees, &valeurs, &images)
 }
 
-/// `fabrique.remplir` : les champs texte `valeurs` ecrits (apparence regeneree)
+/// Les champs texte `valeurs` ecrits (apparence regeneree)
 /// et les `images` posees, par la fabrique du meme processus. Elle refuse
 /// l'ensemble pour un champ inconnu, en lecture seule ou trop long, une image
 /// illisible, une page qui n'existe pas. Pas de repli.

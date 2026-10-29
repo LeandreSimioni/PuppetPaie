@@ -92,7 +92,7 @@ pub fn get<'a>(v: &'a Value, k: &str) -> R<&'a Value> {
     getd(v, k, &NUL)
 }
 
-/// `v.get(k, defaut)` : sur autre chose qu'un dictionnaire, `AttributeError`.
+/// Sur autre chose qu'un dictionnaire, `AttributeError`.
 pub fn getd<'a>(v: &'a Value, k: &str, defaut: &'a Value) -> R<&'a Value> {
     match v {
         Value::Object(o) => Ok(o.get(k).unwrap_or(defaut)),

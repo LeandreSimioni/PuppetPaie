@@ -1,8 +1,8 @@
 //! Lire ce que CoolPaie a depose (DSN et AEM), pour ne pas le ressaisir.
 //!
-//! Ce module LIT et rend des donnees, comme le Python : il n'ecrit rien. Les DSN se lisent ligne a
+//! Ce module LIT et rend des donnees: il n'ecrit rien. Les DSN se lisent ligne a
 //! ligne en gardant l'individu courant ; les AEM par positions fixes (1000 caracteres, latin-1).
-//! Les dictionnaires gardent l'ordre de leurs cles (`preserve_order`), comme ceux de Python.
+//! Les dictionnaires gardent l'ordre de leurs cles (`preserve_order`).
 
 use std::path::Path;
 
@@ -16,7 +16,7 @@ use socle::texte::blanc;
 /// Le sexe (30.005, « 01 - masculin », « 02 - féminin ») devient le « 1 » ou « 2 » de la fiche : la norme ne le fait
 /// porter que s'il differe de celui du NIR ou si le NIR manque (cahier technique 2026.1, p. 171,
 /// `atelier/reference/norme-dsn/texte/bloc-S21.G00.30.txt`, l. 154-163). Le nom d'usage (30.003, meme bloc, l. 138-144)
-/// n'a pas de case dans la fiche salarie (`champs-base.json`) : il n'est pas lu (lot I2, a decider).
+/// n'a pas de case dans la fiche salarie (`champs-base.json`) : il n'est pas lu.
 const IDENTITE: [(&str, &str); 14] = [
     ("S21.G00.30.001", "nir"),
     ("S21.G00.30.002", "nom"),
@@ -80,7 +80,7 @@ const A_DEFAUT: [(&str, &str); 7] = [
 
 /// Les montants qu'une DSN declare, versement par versement (bloc 50). 50.004 est le montant net verse de la norme (la
 /// remuneration nette fiscale moins CSG/CRDS non deductible et sante patronale, p. 244), pas le net a payer : CoolPaie y
-/// ecrivait son net a payer, PuppetPaie y ecrit le net verse depuis la vague 1a. La DSN ne declare pas le net a payer ;
+/// ecrivait son net a payer, PuppetPaie y ecrit le net verse. La DSN ne declare pas le net a payer ;
 /// une paie importee d'une DSN seule n'en a pas, un bulletin le donne (`import::bulletins::completer`).
 const VERSEMENT: [(&str, &str); 3] =
     [("S21.G00.50.002", "net_imposable"), ("S21.G00.50.004", "net_verse"), ("S21.G00.50.009", "pas")];
@@ -136,7 +136,7 @@ fn texte(s: &str) -> Value {
     Value::String(s.to_string())
 }
 
-/// `importation.lire_une_dsn` : une DSN deposee, son mois, ses individus, ses contrats. `None` si le
+/// Une DSN deposee, son mois, ses individus, ses contrats. `None` si le
 /// fichier ne se lit pas, ou si elle ne dit pas son mois.
 pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
     let octets = std::fs::read(chemin).ok()?;
@@ -293,7 +293,7 @@ pub(crate) fn lire_une_dsn(chemin: &Path) -> Option<Value> {
 
 // ------------------------------------------------------------------ toutes les DSN d'un dossier
 
-/// `importation.SalarieDeclare` : ce qu'une DSN dit d'un salarie.
+/// Ce qu'une DSN dit d'un salarie.
 pub(crate) struct SalarieDeclare {
     pub(crate) nir: String,
     pub(crate) fiche: Map<String, Value>,
@@ -302,7 +302,7 @@ pub(crate) struct SalarieDeclare {
     pub(crate) premier_contrat: String,
 }
 
-/// `importation.ObjetDeclare` : un numero d'objet spectacle, vu dans une DSN ou dans une AEM.
+/// Un numero d'objet spectacle, vu dans une DSN ou dans une AEM.
 pub(crate) struct ObjetDeclare {
     pub(crate) numero: String,
     pub(crate) premier_mois: String,
@@ -311,8 +311,7 @@ pub(crate) struct ObjetDeclare {
     pub(crate) source: &'static str,
 }
 
-/// `importation.LectureDsn`. Les listes gardent l'ordre ou les cles sont apparues, comme les
-/// dictionnaires de Python.
+/// Les listes gardent l'ordre ou les cles sont apparues.
 #[derive(Default)]
 pub(crate) struct LectureDsn {
     pub(crate) fichiers: usize,
@@ -346,7 +345,7 @@ fn noms_tries(dossier: &Path) -> Vec<String> {
     v
 }
 
-/// `importation.fichiers_dsn` : une DSN se reconnait a son contenu, pas a son nom.
+/// Une DSN se reconnait a son contenu, pas a son nom.
 pub(crate) fn fichiers_dsn(dossier: &Path) -> Vec<std::path::PathBuf> {
     let mut out = Vec::new();
     for nom in noms_tries(dossier) {
@@ -386,7 +385,7 @@ fn texte_de<'a>(v: &'a Value, k: &str) -> &'a str {
     v.get(k).and_then(Value::as_str).unwrap_or("")
 }
 
-/// `importation.lire_dsn` : toutes les DSN d'un dossier, la plus recente faisant foi par salarie.
+/// Toutes les DSN d'un dossier, la plus recente faisant foi par salarie.
 pub(crate) fn lire_dsn(dossier: &Path) -> LectureDsn {
     let mut out = LectureDsn::default();
     let mut lues: Vec<Value> = Vec::new();
@@ -504,13 +503,13 @@ pub(crate) fn lire_dsn(dossier: &Path) -> LectureDsn {
 
 // ------------------------------------------------------------------ les AEM
 
-/// `importation.CHAMPS` : nom -> (debut, fin), en caracteres.
+/// Nom -> (debut, fin), en caracteres.
 /// `ligne[a:b]` : une ligne plus courte rend ce qu'elle a.
 fn tranche(ligne: &[char], a: usize, b: usize) -> String {
     ligne.iter().skip(a).take(b.saturating_sub(a)).collect()
 }
 
-/// `importation._aaaammjj` : `19900723` -> `1990-07-23` (les dates de l'AEM), le reste tel quel.
+/// `19900723` -> `1990-07-23` (les dates de l'AEM), le reste tel quel.
 fn aaaammjj(v: &str) -> String {
     let c: Vec<char> = v.chars().collect();
     // `str.isdigit()` : les chiffres ASCII et les exposants de Latin-1 (qu'une AEM lue en latin-1 peut porter).
@@ -524,7 +523,7 @@ fn champ(ligne: &[char], a: usize, b: usize) -> String {
     ligne[a..b].iter().collect()
 }
 
-/// `importation.ContratAtteste` : un enregistrement AEM, un contrat tel qu'il a ete atteste.
+/// Un enregistrement AEM, un contrat tel qu'il a ete atteste.
 pub(crate) struct ContratAtteste {
     pub(crate) nir: String,
     pub(crate) debut: socle::date::Jour,
@@ -542,9 +541,9 @@ pub(crate) struct ContratAtteste {
     pub(crate) fichier: String,
 }
 
-/// `importation.lire_aem` : tous les contrats attestes d'un dossier AEM_EDI, dedoublonnes, et les
+/// Tous les contrats attestes d'un dossier AEM_EDI, dedoublonnes, et les
 /// fichiers ou enregistrements illisibles. Un `InvalidOperation` (un brut qui n'est pas un nombre)
-/// n'est pas rattrape, comme en Python.
+/// n'est pas rattrape.
 pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<String>), socle::echec::Echec> {
     use socle::num::{decimal_lu, entier_lu};
     let mut vus: Vec<(Vec<String>, ContratAtteste)> = Vec::new();
@@ -619,7 +618,7 @@ pub(crate) fn lire_aem(dossier: &Path) -> Result<(Vec<ContratAtteste>, Vec<Strin
 
 // ------------------------------------------------------------------ le dossier
 
-/// `importation.dossiers` : ou sont les DSN et les AEM sous un dossier `export/` de CoolPaie.
+/// Ou sont les DSN et les AEM sous un dossier `export/` de CoolPaie.
 pub(crate) fn dossiers(export: &Path) -> (Option<std::path::PathBuf>, Option<std::path::PathBuf>) {
     let mut dsn = export.join("DSN");
     let mut aem = export.join("AEM_EDI");
@@ -634,8 +633,8 @@ pub(crate) fn dossiers(export: &Path) -> (Option<std::path::PathBuf>, Option<std
 
 // ------------------------------------------------------------------ l'entreprise de chaque piece
 
-/// Ou l'AEM porte le Siret de l'employeur : `ligne[50:64]`, 14 chiffres. Ni `CHAMPS` ni l'ancien `moteur/aem.py` ne
-/// nommaient cette zone (elle etait figee dans le gabarit, comme tout ce que l'AEM ne change pas d'un contrat a
+/// Ou l'AEM porte le Siret de l'employeur : `ligne[50:64]`, 14 chiffres. `CHAMPS` ne
+/// nomme pas cette zone (elle est figee dans le gabarit, comme tout ce que l'AEM ne change pas d'un contrat a
 /// l'autre) : elle a ete relevee sur 190 enregistrements AEM produits par CoolPaie de 2021 a 2026, ou le Siret de la
 /// fiche de la compagnie se lit a cette place dans tous. Un Siret ne se tient pour lu que s'il a ses 14 chiffres et sa
 /// cle de Luhn ; sinon l'AEM passe, avec un avertissement nomme (`AEM_SANS_SIRET`) -- on ne refuse pas au hasard.
@@ -651,7 +650,7 @@ pub(crate) struct Employeur {
 }
 
 /// Une DSN : le Siren de l'ENTREPRISE (`S21.G00.06.001`), pas celui de l'emetteur (`S10.G00.01.001`), qui est celui
-/// du cabinet quand un tiers depose (lot I2, 3b ; voir `ENTREPRISE`).
+/// du cabinet quand un tiers depose (voir `ENTREPRISE`).
 pub(crate) fn employeur_dsn(chemin: &Path) -> Employeur {
     let mut e = Employeur::default();
     let Ok(octets) = std::fs::read(chemin) else { return e };

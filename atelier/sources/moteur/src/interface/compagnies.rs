@@ -17,7 +17,7 @@ const DOSSIER_ORIGINE: &str = ".origine";
 const PROPRES_AU_POSTE: [&str; 4] =
     ["config/diagnostic.json", "journal/signalements.json", "journal/incidents.json", "journal/interface.log"];
 
-/// Le dossier du logiciel (`logiciel/`) : le `CODE` du Python.
+/// Le dossier du logiciel (`logiciel/`).
 pub fn logiciel() -> PathBuf {
     // Le dossier du code peut porter un `..` (`moteur/../donnees`) : on le resout avant d'en prendre le parent.
     let code = dossier_du_code();
@@ -70,8 +70,8 @@ pub fn est_copie(racine: &Path) -> bool {
     racine.join(MARQUEUR).is_file()
 }
 
-/// Le dossier des COMPAGNIES FICTIVES, a cote du logiciel (lot U1 ; Leandre, 14/10/2026 : « On pourrait renommer les
-/// compagnies demo en fictives »). Livrees avec le logiciel, rien n'en part : leurs envois sont joues.
+/// Le dossier des COMPAGNIES FICTIVES, a cote du logiciel, livrees
+/// avec le logiciel, rien n'en part : leurs envois sont joues.
 pub const DOSSIER_FICTIVES: &str = "fictives";
 /// Le nom de ce dossier avant le lot U1. Une installation deja posee le garde (la mise a jour ne porte que `logiciel/`) :
 /// `ranger_les_fictives` le renomme une fois, au lancement.
@@ -88,7 +88,7 @@ pub fn est_fictive(racine: &Path) -> bool {
         .is_some_and(|c| c.starts_with(MARQUE_FICTIVE) || c.starts_with(ANCIENNE_MARQUE_FICTIVE))
 }
 
-/// LA FICTIVE AJOUTEE (ticket #236, Leandre 22/10/2026) : la compagnie que le « + » d'un logiciel bride ajoute. C'est une
+/// LA FICTIVE AJOUTEE : la compagnie que le « + » d'un logiciel bride ajoute. C'est une
 /// fictive (`est_fictive` : elle vit sous `fictives/`, s'ouvre sans mot de passe, ne retient aucune version, rien ne part
 /// d'elle a l'editeur qu'un incident ou un message), mais elle porte des donnees qu'on y a mises, pas celles d'une
 /// fictive livree : ses envois NE SONT PAS JOUES, ILS SONT REFUSES (`bridage::branchement`), elle n'a pas de photo

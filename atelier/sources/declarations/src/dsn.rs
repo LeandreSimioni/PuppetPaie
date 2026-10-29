@@ -331,7 +331,7 @@ pub fn nics(fiche: &Value) -> Vec<String> {
     out
 }
 
-/// `etablissements.fiche_de` : l'entreprise vue depuis l'etablissement `nic`.
+/// L'entreprise vue depuis l'etablissement `nic`.
 fn fiche_de(fiche: &Value, nic: &str) -> Resultat<Value> {
     if nic.is_empty() || nic == bareme::nic_principal(fiche) {
         return Ok(fiche.clone());

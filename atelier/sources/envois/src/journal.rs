@@ -28,7 +28,7 @@ pub const ACTES: [&str; 10] = [
 
 pub const REEL: &str = "reel";
 
-/// `journal.chemin` : `<racine>/journal/depots.json`.
+/// `<racine>/journal/depots.json`.
 pub fn chemin(racine: &Path) -> PathBuf {
     racine.join("journal").join("depots.json")
 }
@@ -41,7 +41,7 @@ pub fn trace_de(racine: &Path, ligne: &serde_json::Value) -> Option<PathBuf> {
     Some(if p.is_absolute() { p.to_path_buf() } else { racine.join(p) })
 }
 
-/// `journal.empreinte` : les 16 premiers caracteres du SHA-256.
+/// Les 16 premiers caracteres du SHA-256.
 pub fn empreinte(contenu: &[u8]) -> String {
     let h = Sha256::digest(contenu);
     h.iter().take(8).map(|o| format!("{:02x}", o)).collect()
@@ -59,7 +59,7 @@ fn lignes_du_fichier(p: &Path) -> Resultat<Vec<Value>> {
     }
 }
 
-/// `journal.lire` : les lignes, les plus recentes en dernier. Un filtre vide
+/// Les lignes, les plus recentes en dernier. Un filtre vide
 /// ne filtre pas.
 pub fn lire(racine: &Path, quoi: Option<&str>, mois: Option<&str>, reel_seulement: bool) -> Resultat<Vec<Value>> {
     let p = chemin(racine);
@@ -100,7 +100,7 @@ pub struct Note<'a> {
     pub origine: &'a str,
 }
 
-/// `journal.noter` : ajoute une ligne a la fin du fichier et la rend. `quand`
+/// Ajoute une ligne a la fin du fichier et la rend. `quand`
 /// est l'heure locale que l'appelant donne (le moteur ne connait pas le
 /// fuseau) ; vide, elle est lue dans `maintenant`.
 pub fn noter(racine: &Path, n: &Note, maintenant: &str) -> Resultat<Value> {

@@ -48,7 +48,7 @@ fn fixe(x: Decimal, dp: u32) -> (bool, String) {
     (neg, r.to_string())
 }
 
-/// `util.fmt_eur` : 1234.5 -> « 1 234,50 ».
+/// 1234.5 -> « 1 234,50 ».
 pub fn fmt_eur(x: Decimal) -> String {
     let (neg, s) = fixe(x, 2);
     let (entier, frac) = s.split_once('.').unwrap_or((&s, ""));
@@ -62,13 +62,13 @@ pub fn fmt_eur(x: Decimal) -> String {
     format!("{}{},{}", if neg { "-" } else { "" }, groupes, frac)
 }
 
-/// `util.fmt_taux` : 9.1 -> « 9,100 ».
+/// 9.1 -> « 9,100 ».
 pub fn fmt_taux(x: Decimal) -> String {
     let (neg, s) = fixe(x, 3);
     format!("{}{}", if neg { "-" } else { "" }, s.replace('.', ","))
 }
 
-/// `util.fmt_heures` : 24 -> « 24 », 13.5 -> « 13,5 ».
+/// 24 -> « 24 », 13.5 -> « 13,5 ».
 pub fn fmt_heures(x: Decimal) -> String {
     x.normalize().to_string().replace('.', ",")
 }
@@ -1131,7 +1131,7 @@ fn blocs_un(j: &Jeu, ent: &Value) -> Resultat<Vec<Value>> {
 
 // ------------------------------------------------------------ la description
 
-/// `contexte.gabarits_de` : le dossier `gabarits/` de LA COMPAGNIE dont `ent` est la fiche (`_gabarits`,
+/// Le dossier `gabarits/` de LA COMPAGNIE dont `ent` est la fiche (`_gabarits`,
 /// `Contexte::entreprise_et_gabarits`). Sans `_gabarits`, aucun : la compagnie ne se devine pas d'une variable du
 /// processus (la fenetre en sert plusieurs, ticket #244) ; un document sans dossier n'a ni logo ni signature posee.
 pub fn gabarits_de(ent: &Value) -> Option<PathBuf> {

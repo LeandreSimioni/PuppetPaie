@@ -164,7 +164,7 @@ pub fn fiche(nom: &str) -> R<Vec<Champ>> {
 
 pub(crate) use socle::texte::{blanc as espace, strip};
 
-/// `str.isdigit()` : les chiffres, et ceux que Unicode range avec eux.
+/// Les chiffres, et ceux que Unicode range avec eux.
 pub fn est_chiffre(c: char) -> bool {
     c.is_ascii_digit() || matches!(c, '\u{b2}' | '\u{b3}' | '\u{b9}') || (c.is_numeric() && !c.is_alphabetic() && !matches!(c, '\u{bc}'..='\u{be}' | '\u{2150}'..='\u{218f}'))
 }
@@ -1167,7 +1167,7 @@ pub fn verifier_fiche(nom: &str, donnees: &Map<String, Value>) -> R<Vec<Value>> 
     Ok(anomalies)
 }
 
-/// `urssaf.pour_departement` : l'organisme du TERRITOIRE de ce departement. Une
+/// L'organisme du TERRITOIRE de ce departement. Une
 /// suggestion, pas une decision.
 fn urssaf_du_departement(base: &Value, dep: &str) -> String {
     let d = dep.trim().to_uppercase();
@@ -1176,7 +1176,7 @@ fn urssaf_du_departement(base: &Value, dep: &str) -> String {
     lu(&d).or_else(|| if d == "2A" || d == "2B" { lu("20") } else { None }).unwrap_or_default()
 }
 
-/// `urssaf.pour_code_postal` : idem, depuis un code postal francais. L'outre-mer
+/// Idem, depuis un code postal francais. L'outre-mer
 /// se lit sur TROIS chiffres (97139 -> 971), la metropole sur deux.
 pub fn urssaf_du_code_postal(base: &Value, cp: Option<&Value>) -> String {
     let v: Vec<char> = cp.filter(|x| vrai(x)).map(valeur_en_texte).unwrap_or_default().chars().filter(|c| c.is_ascii_digit()).collect();

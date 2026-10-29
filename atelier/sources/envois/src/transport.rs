@@ -403,7 +403,7 @@ fn lire_corps(corps: ureq::Body, delai: u64, attendu: Option<u64>, https: bool) 
     }
 }
 
-/// `http.client.IncompleteRead` : N octets lus, M attendus de plus.
+/// N octets lus, M attendus de plus.
 fn coupee(lus: usize, attendu: Option<u64>) -> Panne {
     let mut plus = Map::new();
     plus.insert("lus".into(), json!(lus));

@@ -60,7 +60,7 @@ pub fn route_avec(ctx: &Contexte, nom: &str, charge: &Value, client: Option<&mut
 
 // ------------------------------------------------------------------ la compagnie fictive
 
-/// `simulation.BoiteDesSignatures` : la boite de la compagnie fictive, vue par la releve. Chaque demande de signature partie
+/// La boite de la compagnie fictive, vue par la releve. Chaque demande de signature partie
 /// depuis `delai` secondes y trouve la reponse « Je signe » que le bouton de son courriel prepare (a defaut, une reponse
 /// au code dans les termes de `CORPS_REPONSE`) ; la vraie releve la lit, note la signature, contresigne le contrat et le
 /// renvoie au salarie.
@@ -96,7 +96,7 @@ pub fn boite_des_signatures(ctx: &Contexte, delai: i64) -> R<BoiteQuiRepond> {
     Ok(boite)
 }
 
-/// `simulation.relever_signatures` : les salaries de la compagnie fictive signent, et la VRAIE releve lit leur reponse. Rien
+/// Les salaries de la compagnie fictive signent, et la VRAIE releve lit leur reponse. Rien
 /// ne se joue dans une compagnie qui n'est pas une compagnie fictive (la garde de l'horloge) : la releve rendue est alors
 /// vide.
 pub fn relever_signatures_fictive(ctx: &Contexte, delai: i64) -> R<ReleveSignatures> {
