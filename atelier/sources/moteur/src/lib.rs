@@ -58,6 +58,7 @@ pub mod simulation_courriels;
 pub mod exercice_ecrit;
 pub mod importation_ecrite;
 pub mod importation_nature;
+pub mod importation_casc;
 pub mod sauvegarde;
 pub mod scenario;
 pub mod restauration;

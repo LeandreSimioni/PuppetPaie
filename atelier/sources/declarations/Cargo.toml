@@ -16,5 +16,3 @@ rust_decimal = { workspace = true }
 serde_json = { workspace = true }
 # Le .zip de la DPAE : deflate et CRC-32.
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
-# La liste nominative du CASC-SVP : ecriture seule.
-rust_xlsxwriter = "0.90"

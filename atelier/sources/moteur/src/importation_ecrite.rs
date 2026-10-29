@@ -243,7 +243,7 @@ pub(crate) fn dsn_importee(ctx: &Contexte, mois: &str) -> Result<Option<PathBuf>
 
 /// `lire_dsn_casc` : la DSN deposee, et si elle porte la CASC-SVP (un contrat rattache, S21.G00.70.013, a
 /// l'adhesion que la DSN nomme `contrat` en bloc 15). `None` : illisible.
-fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
+pub(crate) fn lire_dsn_casc(chemin: &Path, contrat: &str) -> Option<(Value, bool)> {
     let d = crate::importation::lire_une_dsn(chemin)?;
     let octets = std::fs::read(chemin).ok()?;
     let (mut refs, mut rattachees): (HashSet<String>, HashSet<String>) = (HashSet::new(), HashSet::new());

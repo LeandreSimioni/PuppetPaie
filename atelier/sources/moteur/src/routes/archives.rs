@@ -448,7 +448,7 @@ fn casc_regularise(ctx: &Contexte, charge: &Value) -> R<Value> {
     let montant = crate::routes::fiches::exiger(charge, "montant")?;
     let aujourd_hui = maintenant();
     let qui = qui_de(charge);
-    declarations::casc_regularisation::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
+    crate::importation_casc::marquer_regularise(ctx, annee, vire_le, montant, &qui, &aujourd_hui[..10])
 }
 
 /// `charge[cle] or None` : un texte, ou rien.
@@ -501,12 +501,12 @@ pub(crate) fn exporter_objet(ctx: &Contexte, charge: &Value) -> R<Exporte> {
         analytique: charge.get("analytique").map(vrai),
     };
     if etat == "regularisation-casc-svp" {
-        let demande = declarations::casc_regularisation::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes::ouverture::boite_liee(ctx).unwrap_or(false), ..Default::default() };
-        let mut r = declarations::casc_regularisation::regularisation(ctx, &demande)?;
+        let demande = crate::importation_casc::Demande { mois: d.mois.clone(), annee: d.annee.clone(), toutes_les_annees: d.toutes, boite_liee: crate::routes::ouverture::boite_liee(ctx).unwrap_or(false), ..Default::default() };
+        let mut r = crate::importation_casc::regularisation(ctx, &demande)?;
         if d.ecrire {
-            declarations::casc_regularisation::ecrire(ctx, &mut r)?;
+            crate::importation_casc::ecrire(ctx, &mut r)?;
         }
-        return Ok(Exporte::Casc(declarations::casc_regularisation::vers_json(&r)));
+        return Ok(Exporte::Casc(crate::importation_casc::vers_json(&r)));
     }
     if etat == "livre-de-paie" {
         return Ok(Exporte::Livre(documents::etats_paie::livre_de_paie(ctx, &d)?));
@@ -678,7 +678,7 @@ fn jjmmaaaa(iso: &str) -> String {
 /// journal, et les annees notees regularisees. Rien de tout cela ne s'ecrit si l'envoi casse.
 fn casc_envoyer(ctx: &Contexte, charge: &Value, ouvrir: Ouvrir) -> R<Value> {
     let qui = qui_de(charge);
-    use declarations::casc_regularisation::{ecrire, marquer_regularise, regularisation, Demande};
+    use crate::importation_casc::{ecrire, marquer_regularise, regularisation, Demande};
     // `charge.get("vire_le") or {}`.
     let vire_le: Vec<(String, Value)> = match charge.get("vire_le").filter(|v| vrai(v)) {
         None => Vec::new(),
