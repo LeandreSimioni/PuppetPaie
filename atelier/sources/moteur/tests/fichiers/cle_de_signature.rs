@@ -1,6 +1,6 @@
 //! La cle qui signe les mises a jour (`config/maj-cle-privee.bin`, `moteur::compagnie::maj`) : scellee par la cle maitresse du coffre,
 //! elle s'ouvre partout ou le coffre s'ouvre — la cle du poste qui l'a faite, ou le mot de passe du logiciel sur un autre
-//! (lot K1, 14/10/2026 ; Leandre : « si mon ordi tombe, on pourra plus faire de mise a jour, ça me va pas »). Sur des
+//! (un poste perdu n'empeche pas de signer la mise a jour suivante). Sur des
 //! compagnies, des postes et des mots de passe inventes, chacun dans son dossier (jamais la vraie cle du poste).
 
 use crate::outils::chemin_unique;

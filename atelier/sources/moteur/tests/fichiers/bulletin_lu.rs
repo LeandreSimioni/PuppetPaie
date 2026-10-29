@@ -338,7 +338,7 @@ fn bulletin_lu_les_refus_sont_nommes() {
     }
 }
 
-// ------------------------------------------------------------------------------------------- lot C : les compteurs
+// ------------------------------------------------------------------------------------------------- les compteurs
 
 /// Un dossier de compagnie vide : le catalogue livre, sans rubrique propre.
 fn racine() -> PathBuf {

@@ -1,4 +1,4 @@
-//! Ce que la DSN et les signalements ecrivent, bloc par bloc : les corrections DSN par vague, les rubriques 2027, le rejeu
+//! Ce que la DSN et les signalements ecrivent, bloc par bloc : les corrections DSN, les rubriques 2027, le rejeu
 //! des mois deposes des compagnies fictives.
 //!
 //! Un binaire pour tout le groupe : moins d'éditions de liens, moins de

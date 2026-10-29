@@ -385,7 +385,7 @@ fn version_est_le_numero_du_format() {
 
 #[test]
 fn l_aide_nomme_chaque_mode() {
-    // C'est ce que le Python peut lire pour savoir ce que le programme sait faire.
+    // L'aide dit ce que le programme sait faire.
     let r = Command::new(env!("CARGO_BIN_EXE_fabrique-pdf")).arg("--aide").output().unwrap();
     assert!(r.status.success());
     let aide = String::from_utf8_lossy(&r.stdout).to_string();
@@ -610,7 +610,7 @@ fn bloc_image_jpeg_recopie_tel_quel() {
     assert!(String::from_utf8_lossy(&pdf).contains("DCTDecode"));
 }
 
-// --- Ticket #228 : un bulletin aussi léger que possible ---------------------------------------
+// --- Un bulletin aussi léger que possible --------------------------------------------------------
 
 /// Les objets image du fichier (masques compris), par identifiant.
 fn objets_image(pdf: &[u8]) -> Vec<(lopdf::ObjectId, lopdf::Dictionary)> {

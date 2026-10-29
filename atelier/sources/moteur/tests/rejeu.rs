@@ -23,7 +23,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     let f = &releve["fichiers"];
 
     // Le contrat de la vie d'une fictive : la DPAE et la DSN du mois partent en reel (jouees), chacune sur le bilan de son
-    // test (`depot_acte::exiger_repetition`, tickets #221 et #222) ; le mois a ses bulletins et ses certificats CS.
+    // test (`depot_acte::exiger_repetition`) ; le mois a ses bulletins et ses certificats CS.
     let depots = f["journal/depots.json"].as_array().expect("le journal des depots");
     let reel = |quoi: &str, fichier: &str| {
         depots.iter().any(|l| l["quoi"] == json!(quoi) && l["mode"] == json!("reel") && l["accepte"] == json!(true) && l["fichier"] == json!(fichier))
@@ -62,7 +62,7 @@ fn les_treteaux_du_banc_se_rejouent_et_rendent_les_memes_sorties() {
     assert!(second == releve, "deux rejeux du meme scenario ne rendent pas les memes sorties");
 }
 
-/// #236, ticket 9 du banc : la demo Les Faisceaux telle qu'elle etait ecrite, sans la civilite du contact DSN. La DSN
+/// La demo Les Faisceaux sans la civilite du contact DSN. La DSN
 /// de janvier ne se fabrique pas (le moteur la refuse) ; l'horloge n'envoie donc pas ses documents aux salaries -- elle
 /// les envoie apres la DSN du mois, jamais avant.
 #[test]
@@ -76,8 +76,8 @@ fn les_documents_d_un_mois_qui_n_est_pas_parti_ne_partent_pas() {
     assert!(!r.horloge.iter().any(|p| p.contains("documents")), "{:?}", r.horloge);
 }
 
-/// #271 : un engagement dont un envoi reel accepte est parti (la DPAE, la DSN de novembre des Treteaux) ne se supprime
-/// plus. La route refuse et rien n'est ecrit : l'engagement reste tel qu'il etait.
+/// Un engagement dont un envoi reel accepte est parti (la DPAE, la DSN de novembre des Treteaux) ne se supprime
+/// pas. La route refuse et rien n'est ecrit : l'engagement reste tel qu'il etait.
 #[test]
 fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
     let (_, racine) = outils::rejeu::rejouer("treteaux-du-banc", &outils::dossier_de_test("rejeu", "parti"));
@@ -87,13 +87,13 @@ fn un_engagement_dont_un_envoi_est_parti_ne_se_supprime_pas() {
     assert!(std::fs::read(racine.join("engagements/2026-11.json")).unwrap() == avant, "le refus a ecrit l'engagement");
 }
 
-/// #271 : l'engagement des Treteaux, sa DPAE et sa DSN de novembre parties, devient non actif apres la veille de
+/// L'engagement des Treteaux, sa DPAE et sa DSN de novembre parties, devient non actif apres la veille de
 /// l'echeance de novembre. Ressort la DSN de novembre a corriger ; la DSN de decembre porte la
 /// correction qui annule tout ce qui avait ete declare pour lui, et rien a la place (cahier technique DSN 2027.1,
 /// `atelier/reference/norme-dsn/texte-2027/chapitre-2-principes-de-constitution.txt`, §2.1.2.1 et §2.1.3.6). Partie,
 /// elle ne se porte plus.
 ///
-/// La ligne DSN de decembre : sans engagement valide dans le mois ni correction a porter, rien n'est a declarer (#257 :
+/// La ligne DSN de decembre : sans engagement valide dans le mois ni correction a porter, rien n'est a declarer (l'ecran des etapes :
 /// « à déposer dès qu'il y a des engagements validés dans le mois ») ; la correction de novembre a porter la rend a
 /// deposer (§2.1.2.1 : une correction « donne lieu à la déclaration d'une correction dans la DSN suivante »).
 #[test]

@@ -1,7 +1,7 @@
-//! La sauvegarde du dossier prive dans le Drive (`sauvegarde.rs`, lot H4b) contre un FAUX `Drive` en memoire
+//! La sauvegarde du dossier prive dans le Drive (`sauvegarde.rs`) contre un FAUX `Drive` en memoire
 //! (`tests/faux_drive`) : toutes les branches de `sauvegarder`, l'inventaire et les exclusions, `rien_n_a_bouge`, `derniere`,
-//! l'index octet pour octet, et UN TEST PAR DEFAUT CORRIGE du Python (les sept ; le 1 et le 2 aussi dans `tests/drive.rs`,
-//! le 7 dans `tests/archivage.rs`).
+//! l'index octet pour octet. Le client Drive a ses tests dans `tests/fichiers/drive.rs`, l'archivage d'un mois dans
+//! `tests/fichiers/archivage.rs`.
 //!
 //! AUCUN RESEAU, AUCUN GOOGLE : le faux ne tient que des dossiers et des fichiers en memoire. Chaque test monte sa
 //! compagnie dans un dossier temporaire a lui (jamais `prive/`, jamais un vrai coffre ni jeton : `coffre.bin` et
@@ -115,8 +115,7 @@ fn premiere_passe_tout_part_dans_l_ordre_et_l_index_est_ecrit() {
     assert!(d.fichiers.iter().all(|f| !String::from_utf8_lossy(&f.contenu).contains("INVENTE")));
 }
 
-/// Le coffre monte, le jeton Google non (Leandre, 13/10/2026, redit le 14/10 : « j'avais choisi de l'envoyer sur le
-/// drive » ; `prive/journal/ETAT.md`). Le coffre est scelle par le mot de passe du logiciel : c'est ce qui l'ouvre sur un
+/// Le coffre monte, le jeton Google non (une decision d'editeur). Le coffre est scelle par le mot de passe du logiciel : c'est ce qui l'ouvre sur un
 /// poste neuf apres `moteur restaurer`. Le jeton Google, lui, se refait en reliant le compte.
 #[test]
 fn le_coffre_monte_le_jeton_google_non() {
@@ -148,13 +147,9 @@ fn rien_de_change_rien_ne_part_et_les_dossiers_connus_ne_sont_pas_recherches() {
     assert_eq!(d.arbre().len(), 8);
 }
 
-// ------------------------------------------------------------ les defauts du Python, un test chacun
-
-// (defaut 1 : `tests/drive.rs` ; defaut 2 : plus bas pour la sauvegarde, `tests/drive.rs` pour le client ; defaut 7 : `tests/archivage.rs`)
-
 // ------------------------------------------------------------ hors ligne, incidents, disparus
 
-// ------------------------------------------------------------ tickets #231 et #232 : ce qui est passager, ce qui persiste
+// ------------------------------------------------------------ ce qui est passager, ce qui persiste
 
 #[test]
 fn copie_de_developpement_refus_avant_tout() {

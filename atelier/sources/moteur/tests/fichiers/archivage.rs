@@ -1,5 +1,5 @@
-//! L'archivage d'un mois dans le Drive (`archivage.rs`, lot H4b) contre le FAUX `Drive` en memoire (`tests/faux_drive`).
-//! Le mois est controle avant tout appel (defaut 7 : `../config` archivait `config`, coffre et jeton compris).
+//! L'archivage d'un mois dans le Drive (`archivage.rs`) contre le FAUX `Drive` en memoire (`tests/faux_drive`).
+//! Le mois est controle avant tout appel (`../config` ne doit pas archiver `config`, coffre et jeton compris).
 //!
 //! AUCUN RESEAU, AUCUN GOOGLE. Chaque test monte sa compagnie dans un dossier temporaire a lui.
 

@@ -1,4 +1,4 @@
-//! LA BANQUE DES CONSEILS (`logiciel/donnees/conseils.json`, ticket 224) : un contrat, pas une forme. Toute règle vient
+//! LA BANQUE DES CONSEILS (`logiciel/donnees/conseils.json`) : un contrat, pas une forme. Toute règle vient
 //! d'un texte déposé (atelier/CLAUDE.md, « Les sources ») : chaque source nomme un fichier qui existe dans le dépôt, et la
 //! citation s'y lit à l'identique (à la casse, aux blancs, aux apostrophes et aux guillemets près ; « […] » sépare des
 //! fragments). Un chiffre daté ne s'écrit pas en dur : les gabarits {bareme:…}, {minima:…} et {annee} se résolvent sur les

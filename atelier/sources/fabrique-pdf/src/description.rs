@@ -34,7 +34,7 @@ pub fn refus<T>(message: impl Into<String>) -> Result<T, Refus> {
 /// format 2 reste lue telle quelle.
 pub const FORMAT: i64 = 3;
 
-/// Le corps en dessous duquel `largeur_max` ne réduit pas un texte (`corps_qui_tient`, 6 pt : sous
+/// Le corps en dessous duquel `largeur_max` ne réduit pas un texte (6 pt : sous
 /// cette taille la case est illisible, et c'est le signe que la donnée ne va pas).
 pub const CORPS_PLANCHER: f32 = 6.0;
 
