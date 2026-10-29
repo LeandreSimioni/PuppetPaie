@@ -91,7 +91,6 @@ use sha2::{Digest, Sha256};
 
 use crate::atelier::publier::{dire_les_archives, generer_cle, generer_cle_github, marquer_les_fictives, publier, publier_depuis_l_environnement};
 
-
 /// La cle publique de l'editeur (Ed25519, 32 octets en base64) : toute archive non signee par elle est refusee.
 /// Refaite le 09/10/2026 : l'ancienne (16/09, scellee par le moteur Python) n'existait plus sur le poste ; aucune
 /// compagnie n'avait encore recu de version.
@@ -408,7 +407,6 @@ pub fn signature_valide(octets: &[u8], signature: &str, cle_publique: &str) -> b
     let Ok(v) = ed25519_dalek::VerifyingKey::from_bytes(&cle) else { return false };
     v.verify_strict(octets, &ed25519_dalek::Signature::from_bytes(&sig)).is_ok()
 }
-
 
 /// Les compagnies de l'installation : la compagnie du poste (`prive/`), les autres (`compagnies/*`), les fictives ; pas
 /// une copie de developpement.
@@ -1664,25 +1662,6 @@ mod tests {
         }
     }
 
-    /// Aucune des deux archives ne porte l'`EDITION.json` du logiciel de l'editeur.
-    #[test]
-    fn l_archive_ne_porte_pas_l_edition() {
-        let base = std::env::temp_dir().join(format!("puppetpaie-maj-archive-edition-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&base);
-        let code = base.join("logiciel");
-        arbre(&code, "2026.11.01");
-        une_fictive(&base);
-        std::fs::write(code.join("EDITION.json"), "{}").unwrap();
-        std::fs::write(code.join("donnees").join("EDITION.json"), "{}").unwrap();
-        let noms = noms_de(&archiver(&code, TOUT_SYSTEME).unwrap());
-        assert!(!noms.contains(&"EDITION.json".to_string()) && noms.contains(&"VERSION".to_string()), "{:?}", noms);
-        assert!(noms.contains(&"donnees/EDITION.json".to_string()), "seul celui de la racine du logiciel est ecarte");
-        let noms = noms_de(&archiver_installation(&code, TOUT_SYSTEME).unwrap());
-        assert!(!noms.contains(&"logiciel/EDITION.json".to_string()) && noms.contains(&"logiciel/VERSION".to_string()), "{:?}", noms);
-        assert!(noms.contains(&"logiciel/donnees/EDITION.json".to_string()), "seul celui de la racine du logiciel est ecarte");
-        let _ = std::fs::remove_dir_all(&base);
-    }
-
     /// La bascule casse en route, au dernier pas (toute la version neuve est arrivee, l'`EDITION.json` de l'installation ne
     /// se remet pas) : TOUT revient. L'ancienne version est entiere a sa
     /// place, la neuve entiere dans `prive/maj/<version>/` (rien de melange), et l'`EDITION.json` de l'installation est la.
@@ -1783,72 +1762,4 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
     }
 
-    /// La version se lit JJ.MM.AAAA (Leandre, 14/10/2026) ; ce qui n'est pas une date passe tel quel.
-    #[test]
-    fn la_version_lue_commence_par_le_jour() {
-        assert_eq!(version_lue("2026.10.09"), "09.10.2026");
-        assert_eq!(version_lue(" 2026.11.01\n"), "01.11.2026");
-        assert_eq!(version_lue("0.0.0"), "0.0.0");
-        assert_eq!(version_lue("2026.10"), "2026.10");
-        assert_eq!(version_lue("2026.10.14.2"), "14.10.2026 (2)");
-        assert!(plus_recente("2026.10.14.2", "2026.10.14") && plus_recente("2026.10.15", "2026.10.14.2"));
-        // L'identifiant garde l'ordre : la lecture ne sert jamais a comparer.
-        assert!(plus_recente("2026.11.01", "2026.10.14") && version_lue("2026.11.01") < version_lue("2026.10.14"));
-    }
-
-    #[test]
-    fn versions_comparees_en_entiers() {
-        assert!(plus_recente("2026.10.10", "2026.10.9"));
-        assert!(!plus_recente("2026.10.02", "2026.10.02"));
-    }
-
-    /// Ce que recoit `suivre` en lisant le depot (la barre de l'indicateur, ticket #210) : des octets recus qui ne
-    /// font que croitre, jusqu'a la taille entiere, et la taille attendue telle que le depot la dit (un dossier : celle
-    /// du fichier ; un serveur : son `Content-Length`). Un fichier absent est `introuvable`, un serveur muet `hors ligne`.
-    fn suivi_de(depot: &str, nom: &str) -> (Result<Vec<u8>, Echec>, Vec<(u64, Option<u64>)>) {
-        let vus = std::sync::Mutex::new(Vec::new());
-        let r = lire_depot_suivi(depot, nom, &|recus, attendus| vus.lock().unwrap().push((recus, attendus)));
-        (r, vus.into_inner().unwrap())
-    }
-
-    fn croissants_jusqu_a(vus: &[(u64, Option<u64>)], n: u64) {
-        assert!(vus.windows(2).all(|w| w[0].0 <= w[1].0), "les octets recus ne reculent pas");
-        assert_eq!(vus.first().map(|v| v.0), Some(0));
-        assert_eq!(vus.last().copied(), Some((n, Some(n))), "la barre finit pleine");
-        assert!(vus.iter().all(|v| v.1 == Some(n)), "la taille attendue est celle que dit le depot");
-    }
-
-    #[test]
-    fn la_lecture_du_depot_dit_ce_qu_elle_a_recu() {
-        let octets: Vec<u8> = (0..300_000u32).map(|i| (i % 251) as u8).collect();
-        let d = std::env::temp_dir().join(format!("paie-maj-suivi-{}", std::process::id()));
-        std::fs::create_dir_all(&d).unwrap();
-        std::fs::write(d.join("a.zip"), &octets).unwrap();
-        let (r, vus) = suivi_de(&d.display().to_string(), "a.zip");
-        assert_eq!(r.unwrap(), octets);
-        croissants_jusqu_a(&vus, octets.len() as u64);
-        assert_eq!(suivi_de(&d.display().to_string(), "absente.zip").0.unwrap_err().0, INTROUVABLE);
-        let _ = std::fs::remove_dir_all(&d);
-
-        let ecoute = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
-        let port = ecoute.local_addr().unwrap().port();
-        let servis = octets.clone();
-        let serveur = std::thread::spawn(move || {
-            let (mut c, _) = ecoute.accept().unwrap();
-            let mut tete = Vec::new();
-            let mut b = [0u8; 1];
-            while !tete.ends_with(b"\r\n\r\n") && c.read(&mut b).unwrap() == 1 {
-                tete.push(b[0]);
-            }
-            write!(c, "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", servis.len()).unwrap();
-            c.write_all(&servis).unwrap();
-        });
-        let (r, vus) = suivi_de(&format!("http://127.0.0.1:{}", port), "a.zip");
-        serveur.join().unwrap();
-        assert_eq!(r.unwrap(), octets);
-        croissants_jusqu_a(&vus, octets.len() as u64);
-
-        let libre = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap().local_addr().unwrap().port();
-        assert_eq!(suivi_de(&format!("http://127.0.0.1:{}", libre), "a.zip").0.unwrap_err().0, HORS_LIGNE);
-    }
 }

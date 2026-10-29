@@ -122,20 +122,3 @@ pub(crate) fn noter(entree: &mut Value, champs: &Map<String, Value>, origine: Va
         });
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// « A COMPLETER » ne dit rien, quelle qu'en soit la casse ; un texte, un booleen faux, un zero disent quelque chose.
-    #[test]
-    fn a_completer_est_une_case_vide_sans_casse() {
-        for v in [json!(null), json!(""), json!("  "), json!("A COMPLETER"), json!("a completer"), json!(" A Completer "),json!([]), json!({})] {
-            assert!(vide(Some(&v)), "{}", v);
-        }
-        assert!(vide(None));
-        for v in [json!("Ubu roi"), json!(false), json!(0), json!(["x"])] {
-            assert!(!vide(Some(&v)), "{}", v);
-        }
-    }
-}

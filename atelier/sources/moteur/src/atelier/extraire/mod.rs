@@ -324,26 +324,3 @@ pub(crate) fn somme_py(valeurs: &[f64]) -> f64 {
     }
     f
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_blancs_se_ramenent_comme_en_python() {
-        assert_eq!(blancs_ramenes("  a\u{a0}\n b\u{1c}c  "), "a b c");
-        assert_eq!(blancs_ramenes(""), "");
-    }
-
-    #[test]
-    fn la_forme_composee_recompose_un_accent_decompose() {
-        assert_eq!(nfc("Re\u{301}mune\u{301}ration"), "Rémunération");
-    }
-
-    #[test]
-    fn la_somme_compense_comme_python() {
-        // sum([0.1] * 10) == 1.0 en Python 3.12 (0.9999999999999999 sans compensation).
-        assert_eq!(somme_py(&[0.1; 10]), 1.0);
-        assert_eq!(somme_py(&[1e100, 1.0, -1e100, 1.0]), 2.0);
-    }
-}

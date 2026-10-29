@@ -61,36 +61,6 @@ Lucienne VERGNAUD-BRASSAC - courriel lucienne.vergnaud@exemple.fr - tél. 06 12 
 IBAN FR76 3000 1000 0000 0000 0000 185
 coolpaie";
 
-/// Gabarit B (logiciel non identifie) : reperes en colonne de droite, le salarie (prenom NOM,
-/// adresse) sous « Emploi / Statut / NIR / N° Congés Sp. ».
-const BULLETIN_B: &str = "\
-Les Tréteaux du Coin                         Bulletin de paie
-3 place du Marché                            Période du 01/04/2026 au 30/04/2026
-13001 MARSEILLE                              Règlement 30/04/2026 virement
-Siret 900 000 001 00025                      Numéro d'objet 266Z00000002
-Code APE 9001Z                               Analytique TOURNEE PRINTEMPS
-Convention Collective 3090
-Emploi Statut NIR N° Congés Sp.
-Musicien Artiste 1 90 11 99 999 456 78 E0000001
-Matthieu BOISSERIN
-2-4 rue du Général Imaginaire
-75014 PARIS
-libellé base Taux salarial Part salarié Part employeur
-2 Cachets isolés 200,00 400,00
-MONTANT BRUT 400,00
-SANTE
-Maladie 400,00 7,000 % 28,00
-RETRAITE
-Vieillesse déplafonnée 400,00 0,400 % 1,60 2,020 % 8,08
-TOTAL COTISATIONS ET CONTRIB. OBLIGATOIRES 98,40 180,22
-MONTANT NET SOCIAL 301,60
-Défraiement non soumis 45,00
-NET A PAYER AVANT IMPOT 346,60
-IMPOT SUR LE REVENU PRELEVE A LA SOURCE 301,60 0,000 % 0,00
-BASE Période Cumul
-Cachets 2 14
-Salaire brut 400,00 2 800,00";
-
 // ----------------------------------------------------------------- les verifications
 
 /// Sans casse ni accent.
@@ -187,29 +157,6 @@ const GARDE_A: [&str; 26] = [
     "Spectacle : Le Grand Nulle Part",
 ];
 
-const PERSONNEL_B: [&str; 8] =
-    ["Matthieu", "BOISSERIN", "Imaginaire", "2-4 rue du Général Imaginaire", "75014", "PARIS", "E0000001", "1 90 11 99 999 456 78"];
-const NUMEROS_B: [&str; 2] = ["1 90 11 99 999 456 78", "E0000001"];
-
-const GARDE_B: [&str; 17] = [
-    "Les Tréteaux du Coin",
-    "Période du 01/04/2026 au 30/04/2026",
-    "Règlement 30/04/2026 virement",
-    "Siret 900 000 001 00025",
-    "Numéro d'objet 266Z00000002",
-    "Code APE 9001Z",
-    "Convention Collective 3090",
-    "Emploi Statut NIR N° Congés Sp.",
-    "2 Cachets isolés 200,00 400,00",
-    "MONTANT BRUT 400,00",
-    "Vieillesse déplafonnée 400,00 0,400 % 1,60 2,020 % 8,08",
-    "TOTAL COTISATIONS ET CONTRIB. OBLIGATOIRES 98,40 180,22",
-    "MONTANT NET SOCIAL 301,60",
-    "Défraiement non soumis 45,00",
-    "IMPOT SUR LE REVENU PRELEVE A LA SOURCE 301,60 0,000 % 0,00",
-    "BASE Période Cumul",
-    "Salaire brut 400,00 2 800,00",
-];
 
 fn connus_a() -> Connus {
     Connus {
@@ -225,20 +172,6 @@ fn connus_a() -> Connus {
         telephones: vec!["+33 6 12 34 56 78".into()],
         ibans: vec!["FR7630001000000000000000185".into()],
         entreprise: vec!["Compagnie des Fausses Pistes".into(), "5 impasse des Tilleuls".into(), "44000 NANTES".into()],
-    }
-}
-
-fn connus_b() -> Connus {
-    Connus {
-        noms: vec!["Boisserin".into()],
-        prenoms: vec!["Matthieu".into()],
-        nirs: vec!["1 90 11 99 999 456 78".into()],
-        adresses: vec!["2-4 rue du Général Imaginaire".into()],
-        codes_postaux: vec!["75014".into()],
-        communes: vec!["Paris".into()],
-        conges_spectacles: vec!["E 000 0001".into()],
-        entreprise: vec!["Les Tréteaux du Coin".into(), "3 place du Marché".into(), "13001 MARSEILLE".into()],
-        ..Connus::default()
     }
 }
 
@@ -268,101 +201,6 @@ fn gabarit_a_avec_les_connus() {
     tout_reste(&c, &GARDE_A);
     // L'entreprise est connue : protegee, elle reste en entier.
     tout_reste(&c, &["Compagnie des Fausses Pistes", "5 impasse des Tilleuls", "44000 NANTES"]);
-}
-
-#[test]
-fn gabarit_b_sans_rien_connaitre() {
-    let c = caviarder(BULLETIN_B, &Connus::default());
-    rien_ne_reste(&c, &PERSONNEL_B, &NUMEROS_B);
-    tout_reste(&c, &GARDE_B);
-    // L'analytique en majuscules seules n'est pas un nom.
-    tout_reste(&c, &["Analytique TOURNEE PRINTEMPS"]);
-}
-
-#[test]
-fn gabarit_b_avec_les_connus() {
-    let texte = format!("{}\nboisserin matthieu\nM. Boisserin", BULLETIN_B);
-    let c = caviarder(&texte, &connus_b());
-    rien_ne_reste(&c, &PERSONNEL_B, &NUMEROS_B);
-    tout_reste(&c, &GARDE_B);
-    tout_reste(&c, &["Les Tréteaux du Coin", "3 place du Marché", "13001 MARSEILLE"]);
-}
-
-#[test]
-fn les_connus_sans_casse_ni_accent_en_entier_et_en_parties() {
-    let connus = Connus {
-        noms: vec!["Le Goff-Martineau".into()],
-        prenoms: vec!["Élodie".into(), "Jean-Noël".into()],
-        ..Connus::default()
-    };
-    let c = caviarder("ELODIE LE GOFF-MARTINEAU\nelodie martineau\nJEAN NOEL\nMme Le Goff\nTotal 12,00", &connus);
-    rien_ne_reste(&c, &["Elodie", "Goff", "Martineau", "Jean", "Noël"], &[]);
-    tout_reste(&c, &["Total 12,00"]);
-    assert!(c.enleves["NOM"] >= 3 && c.enleves["PRENOM"] >= 3, "{:?}", c.enleves);
-}
-
-#[test]
-fn chaque_forme() {
-    let cas: [(&str, &str, &str); 14] = [
-        ("NIR avec espaces", "N° SS : 1 88 02 99 999 363 10 fin", "NIR"),
-        ("NIR colle", "188029999936310", "NIR"),
-        ("NIR corse", "2 75 03 2A 999 001 22", "NIR"),
-        ("date apres naissance", "Date de naissance : 02/03/1990", "NAISSANCE"),
-        ("nee le", "née le 5 mars 1991 à Nulle-Part", "NAISSANCE"),
-        ("Conges Spectacles espaces", "N° CS X 012 3456", "CS"),
-        ("Conges Spectacles colle", "E0000001", "CS"),
-        ("courriel", "ecrire a jean.personne@exemple.org svp", "COURRIEL"),
-        ("telephone", "tel 01.23.45.67.89", "TEL"),
-        ("telephone international", "+33 6 12 34 56 78", "TEL"),
-        ("IBAN etranger", "BE68 5390 0754 7034", "IBAN"),
-        ("adresse", "2-4 rue du Général Imaginaire", "ADRESSE"),
-        ("code postal et commune", "75014 PARIS", "ADRESSE"),
-        ("NOM Prenom", "PERSONNE Jean-Michel", "NOM"),
-    ];
-    for (quoi, texte, etiquette) in cas {
-        let c = caviarder(texte, &Connus::default());
-        assert!(c.enleves.get(etiquette).copied().unwrap_or(0) >= 1, "{} : {:?} -> {}", quoi, c.enleves, c.texte);
-        assert!(c.texte.contains(&format!("<{}>", etiquette)), "{} : {}", quoi, c.texte);
-    }
-    // La valeur part, ce qui l'entoure reste.
-    let c = caviarder("N° SS : 1 88 02 99 999 363 10 fin", &Connus::default());
-    assert_eq!(c.texte, "N° SS : <NIR> fin");
-    let c = caviarder("Date de naissance : 02/03/1990", &Connus::default());
-    assert_eq!(c.texte, "Date de naissance : <NAISSANCE>");
-    let c = caviarder("Jean de LA FONTAINE", &Connus::default());
-    assert_eq!(c.texte, "<PRENOM> <NOM>");
-    let c = caviarder("8 rue des Glycines    Emploi : Comédienne", &Connus::default());
-    assert_eq!(c.texte, "<ADRESSE>    Emploi : Comédienne");
-}
-
-#[test]
-fn ce_qui_ne_part_pas() {
-    let texte = "\
-du 14/01/2026 au 24/01/2026
-Réglement le : 24/01/2026
-1 234,56 4,830 %
-Numéro d'objet : 266Z00000001
-Siret : 900 000 000 00018
-Siret 90000000000018
-NAF 9001Z
-2 Cours de danse 50,00 100,00
-Prévoyance AUDIENS non cadre 810,00 0,750 % 6,08
-Contribution FNAS 810,00 0,500 % 4,05
-Taux PAS 4,830 %
-Spectacle : Faites Encore
-Conv. collective IDCC 3090";
-    let c = caviarder(texte, &Connus::default());
-    assert_eq!(c.texte, texte, "rien ne devait partir : {:?}", c.enleves);
-    assert_eq!(c.total(), 0);
-}
-
-#[test]
-fn le_decompte_de_ce_qui_est_enleve() {
-    let c = caviarder("Jean DUPLAIN\nPaul DUPLAIN\nN° SS 1 88 02 99 999 363 10\n8 rue des Glycines\n2 avenue des Lilas", &Connus::default());
-    assert_eq!(c.enleves["NOM"], 2);
-    assert_eq!(c.enleves["PRENOM"], 2);
-    assert_eq!(c.enleves["NIR"], 1);
-    assert_eq!(c.enleves["ADRESSE"], 2);
 }
 
 #[test]

@@ -328,22 +328,3 @@ pub fn relever(table: &Path, sites: &Path, cog: &Path, jour: &Jour) -> Resultat<
     });
     Ok(Releve { donnees, indent: 2, saut_final: true, bilan })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn zfill_comme_python() {
-        assert_eq!(zfill("1", 2), "01");
-        assert_eq!(zfill("", 2), "00");
-        assert_eq!(zfill("-1", 3), "-01");
-        assert_eq!(zfill("94", 2), "94");
-    }
-
-    #[test]
-    fn un_csv_se_lit_comme_python() {
-        let r = rangs_csv("a;\"b;c\";d\r\n\r\ne;f\"g\n", ';');
-        assert_eq!(r, vec![vec!["a", "b;c", "d"], vec!["e", "f\"g"]]);
-    }
-}

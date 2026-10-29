@@ -1,6 +1,6 @@
-//! L'ecriture des fichiers (`ecriture`) et le verrou des compteurs (`verrou`). La
-//! forme des JSON de la compagnie (indentation 2, accents tels quels, flottants ecrits au plus court) est figee : `prive/`
-//! est commite, et la changer ferait un diff sur tous ses fichiers deja ecrits.
+//! L'ecriture des fichiers (`ecriture`) et le verrou des compteurs (`verrou`). La forme des JSON de la compagnie
+//! (indentation 2, accents tels quels, flottants ecrits au plus court) est celle des fichiers deja ecrits : la changer
+//! ferait un diff sur chacun.
 
 use socle::ecriture::{ecrire_json, json_indente, repr_flottant};
 use socle::verrou;
@@ -8,7 +8,10 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 
 fn dossier(nom: &str) -> PathBuf {
-    crate::outils::dossier_de_test("ecriture", nom)
+    let d = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("ecriture").join(nom);
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    d
 }
 
 // ------------------------------------------------------------------ JSON

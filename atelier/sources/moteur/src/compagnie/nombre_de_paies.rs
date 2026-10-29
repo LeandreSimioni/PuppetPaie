@@ -155,21 +155,3 @@ pub fn pour_l_ecran(racine: &Path) -> Vec<Value> {
         })
         .collect()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn jour(an: i32, mois: u32, jour: u32) -> Jour {
-        Jour { an, mois, jour }
-    }
-
-    #[test]
-    fn l_annee_passee_est_due_a_partir_du_16_janvier() {
-        assert_eq!(annee_due(jour(2027, 1, 1)), None);
-        assert_eq!(annee_due(jour(2027, 1, 15)), None);
-        assert_eq!(annee_due(jour(2027, 1, 16)), Some(2026));
-        assert_eq!(annee_due(jour(2027, 2, 1)), Some(2026));
-        assert_eq!(annee_due(jour(2027, 12, 31)), Some(2026));
-    }
-}

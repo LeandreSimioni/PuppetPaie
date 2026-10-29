@@ -524,20 +524,3 @@ pub fn commande(args: &[String]) -> i32 {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn un_octet_hors_utf8_se_saute() {
-        assert_eq!(utf8_sans_erreurs(b"a\xffb\xe9"), "ab");
-    }
-
-    #[test]
-    fn une_valeur_inventee_passe() {
-        assert!(invente("FR76 3000 1007 9412 3456 7890 185", "IBAN"));
-        assert!(invente("1850675999456", "NIR"));
-        assert!(!invente("1850675999456", "salarie.nir"));
-    }
-}

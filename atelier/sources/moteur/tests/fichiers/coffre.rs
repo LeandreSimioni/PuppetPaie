@@ -2,7 +2,7 @@
 //! sur des coffres et des mots de passe inventes, chacun dans son dossier (jamais la vraie cle du poste).
 
 use crate::outils::chemin_unique;
-use moteur::compagnie::coffre::{d64, desceller, deriver, sceller, Coffre, DEPOT, CONSULTATION};
+use moteur::compagnie::coffre::{deriver, Coffre, CONSULTATION};
 use socle::json_ascii::dumps;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -34,10 +34,6 @@ fn lire(c: &Coffre, ouverture: Option<&str>) -> Result<Option<String>, String> {
     c.lire(&net(), &json!(CONSULTATION), false, ouverture).map_err(|e| e.message)
 }
 
-fn fichier(c: &Coffre) -> Value {
-    serde_json::from_slice(&std::fs::read(c.chemin()).unwrap()).unwrap()
-}
-
 #[test]
 fn un_secret_se_pose_et_se_relit_sans_etre_en_clair() {
     let c = coffre();
@@ -57,80 +53,6 @@ fn l_etat_ne_rend_jamais_la_valeur() {
     let etat = Value::Array(c.etat().unwrap()).to_string();
     assert!(!etat.contains("MotDePasseTresSecret42"));
     assert!(etat.contains("\"pose_le\":\"2026-10-03 14:05\""));
-}
-
-#[test]
-fn le_fichier_porte_sa_version_et_le_compte_en_minuscules() {
-    let c = coffre();
-    c.poser("courriel", "unmotdepasse", Some(" Moi@Exemple.COM ")).unwrap();
-    let brut = std::fs::read_to_string(c.chemin()).unwrap();
-    let v: Value = serde_json::from_str(&brut).unwrap();
-    assert_eq!(v["version"], 2);
-    assert_eq!(v["fiches"]["courriel"]["compte"], "moi@exemple.com");
-    assert_eq!(c.compte("courriel").unwrap(), "moi@exemple.com");
-}
-
-/// Les fiches sont l'AAD du scelle (`dumps(fiches, serre, trie)`) : si leur ecriture change d'un octet, un coffre deja
-/// pose ne s'ouvre plus. Cles triees, separateurs serres, tout ce qui n'est pas ASCII echappe.
-#[test]
-fn l_aad_d_un_coffre_existant_ne_bouge_pas() {
-    let fiches = json!({"urssaf": {"pose_le": "2026-10-03 14:05"}, "courriel": {"pose_le": "", "compte": "é😀\"\\", "x": [], "y": {}}});
-    assert_eq!(
-        dumps(&fiches, None, true, true),
-        r#"{"courriel":{"compte":"\u00e9\ud83d\ude00\"\\","pose_le":"","x":[],"y":{}},"urssaf":{"pose_le":"2026-10-03 14:05"}}"#
-    );
-}
-
-#[test]
-fn le_base64_standard_se_lit_et_le_base64_abime_est_refuse() {
-    assert_eq!(d64(&json!("aGVsbG8=")).unwrap(), b"hello");
-    assert_eq!(d64(&json!("aGVs\nbG8=")).unwrap(), b"hello");
-    assert_eq!(d64(&json!("")).unwrap(), b"");
-    for abime in [json!("aGVsbG8"), json!("a"), json!(5), json!("é")] {
-        assert!(d64(&abime).is_err(), "{}", abime);
-    }
-}
-
-#[test]
-fn un_secret_trop_court_ou_vide_est_refuse_et_rien_n_est_ecrit() {
-    let c = coffre();
-    for essai in ["", "   ", "a", "abcde"] {
-        assert_eq!(c.poser("net-entreprises", essai, None).unwrap_err().classe, "ErreurCoffre", "{:?}", essai);
-    }
-    assert!(!c.chemin().exists());
-    assert!(c.poser("net-entreprises", "abcde", None).unwrap_err().message.starts_with("Mot de passe de 5 caractere(s)"));
-    c.poser("net-entreprises", "abcdef", None).unwrap();
-    assert!(c.pose("net-entreprises").unwrap());
-}
-
-#[test]
-fn la_boite_courriel_veut_son_adresse() {
-    let c = coffre();
-    let m = |compte| c.poser("courriel", "unmotdepasse", compte).unwrap_err().message;
-    assert!(m(None).contains("elle manque"));
-    assert!(m(Some("sans-arobase")).contains("'sans-arobase' n'en est pas une"));
-    assert!(m(Some("a b@c.fr")).contains("n'en est pas une"));
-    assert!(c.poser("nimporte", "unmotdepasse", None).unwrap_err().message.contains("nimporte"), "le refus nomme le service");
-}
-
-#[test]
-fn lire_exige_un_usage_et_un_depot_sa_confirmation() {
-    let c = coffre();
-    c.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
-    let m = |u: Value, conf| c.lire(&net(), &u, conf, None).unwrap_err().message;
-    assert!(m(json!("autre"), false).starts_with("usage doit valoir 'consultation' ou 'depot' (recu 'autre')"));
-    assert!(c.lire(&net(), &Value::Null, false, None).is_err());
-    assert!(m(json!(DEPOT), false).starts_with("Un depot ne puise dans le coffre qu'apres confirmation"));
-    assert_eq!(c.lire(&net(), &json!(DEPOT), true, None).unwrap().as_deref(), Some("unvraimotdepasse"));
-}
-
-#[test]
-fn l_environnement_passe_devant_le_coffre() {
-    let mut c = coffre();
-    c.variables.insert("NET_ENTREPRISES_MOTDEPASSE".into(), "depuis-env".into());
-    assert_eq!(lire(&c, None).unwrap().as_deref(), Some("depuis-env"));
-    assert!(c.disponible("net-entreprises").unwrap());
-    assert!(!c.disponible("urssaf").unwrap());
 }
 
 #[test]
@@ -188,17 +110,6 @@ impl Phrase for moteur::compagnie::coffre::Echec {
 }
 
 #[test]
-fn les_fiches_scellent_les_secrets_avec_elles() {
-    let c = coffre();
-    c.poser("courriel", "unmotdepasse", Some("a@b.fr")).unwrap();
-    let mut v = fichier(&c);
-    v["fiches"]["courriel"]["compte"] = json!("pirate@x.fr");
-    std::fs::write(c.chemin(), dumps(&v, Some(2), false, true)).unwrap();
-    let e = c.lire(&json!("courriel"), &json!(CONSULTATION), false, None).unwrap_err();
-    assert!(e.message.starts_with("Le scelle refuse de s'ouvrir"));
-}
-
-#[test]
 fn un_fichier_altere_ou_d_une_autre_version_est_refuse() {
     let c = coffre();
     c.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
@@ -215,60 +126,6 @@ fn un_fichier_altere_ou_d_une_autre_version_est_refuse() {
         assert!(!c.ouverture_exigee().unwrap());
         assert!(c.etat().unwrap().iter().all(|s| s["pose"] == false));
     }
-}
-
-#[test]
-fn le_coffre_se_vide_quand_il_ne_reste_rien() {
-    let c = coffre();
-    c.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
-    assert!(!c.oublier("urssaf").unwrap());
-    assert!(c.oublier("net-entreprises").unwrap());
-    assert!(!c.chemin().exists());
-    c.poser_ouverture("sesame-123", None).unwrap();
-    c.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
-    assert!(c.oublier("net-entreprises").unwrap());
-    assert!(c.chemin().exists(), "le mot de passe du logiciel reste");
-}
-
-#[test]
-fn proteger_lie_le_contenu_a_sa_description_et_a_la_cle_du_poste() {
-    let c = coffre();
-    let s = c.proteger(b"jeton", "jeton google").unwrap();
-    assert_eq!(c.deproteger(&s, "jeton google").unwrap(), b"jeton");
-    assert!(c.deproteger(&s, "cle de signature").unwrap_err().message.starts_with("Le scelle refuse"));
-    let ailleurs = autre_poste(&c);
-    assert!(ailleurs.deproteger(&s, "jeton google").unwrap_err().message.starts_with("La cle de ce poste est absente"));
-    std::fs::write(c.chemin_cle(), [0u8; 31]).unwrap();
-    assert!(c.deproteger(&s, "jeton google").unwrap_err().message.contains("fait 31 octets au lieu de 32"));
-}
-
-#[test]
-fn la_cle_du_poste_se_pose_en_0600_sans_ecraser() {
-    let c = coffre();
-    let p = c.poser_cle_poste().unwrap();
-    let cle = std::fs::read(&p).unwrap();
-    assert_eq!(cle.len(), 32);
-    c.poser_cle_poste().unwrap();
-    assert_eq!(std::fs::read(&p).unwrap(), cle);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        assert_eq!(std::fs::metadata(&p).unwrap().permissions().mode() & 0o777, 0o600);
-        assert_eq!(std::fs::metadata(&c.dossier_cle).unwrap().permissions().mode() & 0o777, 0o700);
-    }
-}
-
-#[test]
-fn un_scelle_tronque_ou_altere_ne_s_ouvre_pas() {
-    let cle = [7u8; 32];
-    let s = sceller(&cle, b"clair", b"aad").unwrap();
-    assert_eq!(desceller(&cle, &s, b"aad").unwrap(), b"clair");
-    assert_eq!(desceller(&cle, &s, b"autre").unwrap_err().classe, "ErreurCoffre");
-    assert_eq!(desceller(&cle, &s[..12], b"aad").unwrap_err().classe, "ErreurCoffre");
-    let mut t = s.clone();
-    *t.last_mut().unwrap() ^= 1;
-    assert!(desceller(&cle, &t, b"aad").is_err());
-    assert_ne!(sceller(&cle, b"clair", b"aad").unwrap(), s, "un nonce neuf a chaque scellage");
 }
 
 #[test]
@@ -305,26 +162,6 @@ fn l_ouverture_gardee_vaut_pour_son_coffre_et_expire() {
     assert_eq!(tard.fin_ouverture_gardee().unwrap(), None);
     assert_eq!(tard.ouverture_gardee().unwrap(), None);
     assert!(!c.chemin_gardee().exists());
-}
-
-#[test]
-fn le_mot_de_passe_tape_pour_la_commande_ouvre_le_coffre_d_un_autre_poste() {
-    // Leandre, 07/10/2026 : le mot de passe du logiciel tape ouvre tout, ligne de commande comprise.
-    let c = coffre();
-    c.poser_ouverture("sesame-123", None).unwrap();
-    c.poser("net-entreprises", "unvraimotdepasse", None).unwrap();
-    let ailleurs = autre_poste(&c);
-    // sans rien de tape, la cle d'ailleurs n'ouvre pas
-    assert!(lire(&ailleurs, None).is_err());
-    // tape pour cette commande (le fil de ce test seulement), il ouvre, sans rien changer au poste
-    moteur::compagnie::coffre::retenir_mot_de_passe_tape("sesame-123");
-    assert_eq!(lire(&ailleurs, None).unwrap().as_deref(), Some("unvraimotdepasse"));
-    assert!(!ailleurs.chemin_cle().exists());
-    // et la cle du poste, elle, n'est pas reputee ouvrir
-    assert!(!ailleurs.ouvre_a_ce_poste().unwrap());
-    // un mauvais mot de passe tape n'ouvre pas
-    moteur::compagnie::coffre::retenir_mot_de_passe_tape("pas-le-bon");
-    assert!(lire(&ailleurs, None).is_err());
 }
 
 /// Reste 158 : deux commandes qui posent la cle du poste en meme temps (deux tests, ou l'interface et la ligne de

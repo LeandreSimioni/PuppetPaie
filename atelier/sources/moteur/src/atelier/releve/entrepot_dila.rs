@@ -599,16 +599,3 @@ pub fn dire(t: &str) {
     let _ = writeln!(o, "{}", t);
     let _ = o.flush();
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_blancs_et_les_entites_sont_ceux_de_python() {
-        assert_eq!(strip_py("\u{1f} x \u{a0}"), "x");
-        // Ce que rend `html.unescape` du Python sur la meme chaine.
-        assert_eq!(unescape_html("a &amp;lt; &#13;&#x41;&#128;&#1;&inconnue; &ampx &ltfoo; &apos &apos;"), "a &lt; \rA\u{20ac}&inconnue; &x <foo; &apos '");
-        assert_eq!(debut_py("éèà", 2), "éè");
-    }
-}

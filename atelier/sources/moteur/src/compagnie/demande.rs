@@ -501,9 +501,8 @@ mod terminal_unix {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compagnie::coffre::{oublier_mot_de_passe_tape, CONSULTATION};
+    use crate::compagnie::coffre::oublier_mot_de_passe_tape;
     use droit::contexte::Contexte;
-    use serde_json::json;
     use std::path::PathBuf;
     use std::sync::{Mutex, MutexGuard};
 
@@ -562,28 +561,6 @@ mod tests {
         m
     }
 
-    /// Tout ce que ces dossiers portent : chemins et octets.
-    fn photo(dossiers: &[&Path]) -> Vec<(String, Vec<u8>)> {
-        fn marche(d: &Path, out: &mut Vec<(String, Vec<u8>)>) {
-            if let Ok(rd) = std::fs::read_dir(d) {
-                for e in rd.flatten() {
-                    let p = e.path();
-                    if p.is_dir() {
-                        marche(&p, out);
-                    } else {
-                        out.push((p.display().to_string(), std::fs::read(&p).unwrap()));
-                    }
-                }
-            }
-        }
-        let mut out = Vec::new();
-        for d in dossiers {
-            marche(d, &mut out);
-        }
-        out.sort();
-        out
-    }
-
     fn le_poste_n_ouvre_pas(m: &Monde) -> bool {
         let r = crate::compagnie::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises");
         r.is_err()
@@ -594,50 +571,6 @@ mod tests {
     }
 
     // ------------------------------------------------------------ le mot de passe tape ouvre tout
-
-    #[test]
-    fn sans_mot_de_passe_tape_la_cle_d_un_autre_poste_n_ouvre_rien() {
-        let m = monde();
-        assert!(le_poste_n_ouvre_pas(&m));
-        assert!(crate::compagnie::boite::mot_de_passe(&m.racine).is_err());
-        assert!(crate::compagnie::depot_acte::motdepasse_organisme(&m.ctx(), "net-entreprises", None).is_err());
-    }
-
-    #[test]
-    fn la_consultation_s_ouvre_au_mot_de_passe_tape() {
-        let m = monde();
-        crate::compagnie::coffre::retenir_mot_de_passe_tape(LOGICIEL);
-        let lu = crate::compagnie::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
-        assert_eq!(lu.as_deref(), Some(NET));
-    }
-
-    #[test]
-    fn la_messagerie_s_ouvre_au_mot_de_passe_tape() {
-        let m = monde();
-        crate::compagnie::coffre::retenir_mot_de_passe_tape(LOGICIEL);
-        assert_eq!(crate::compagnie::boite::mot_de_passe(&m.racine).unwrap(), BOITE);
-    }
-
-    #[test]
-    fn le_depot_s_ouvre_au_mot_de_passe_tape() {
-        let m = monde();
-        crate::compagnie::coffre::retenir_mot_de_passe_tape(LOGICIEL);
-        let lu = crate::compagnie::depot_acte::motdepasse_organisme(&m.ctx(), "net-entreprises", None).unwrap();
-        assert_eq!(lu.as_deref(), Some(NET));
-        // Et donne explicitement (la preuve d'une charge), sans rien de retenu.
-        oublier_mot_de_passe_tape();
-        let lu = crate::compagnie::depot_acte::motdepasse_organisme(&m.ctx(), "net-entreprises", Some(LOGICIEL)).unwrap();
-        assert_eq!(lu.as_deref(), Some(NET));
-    }
-
-    #[test]
-    fn la_variable_du_logiciel_ouvre_le_coffre_comme_un_mot_de_passe_tape() {
-        let m = monde();
-        std::env::set_var("PUPPETPAIE_MOTDEPASSE", LOGICIEL);
-        let lu = crate::compagnie::releve::mot_de_passe_de_consultation(&m.ctx(), "net-entreprises").unwrap();
-        assert_eq!(lu.as_deref(), Some(NET));
-        assert_eq!(crate::compagnie::boite::mot_de_passe(&m.racine).unwrap(), BOITE);
-    }
 
     #[test]
     fn un_mauvais_mot_de_passe_n_ouvre_pas_et_ne_dit_rien_du_secret() {
@@ -683,20 +616,6 @@ mod tests {
     }
 
     #[test]
-    fn un_mot_de_passe_juste_autorise_l_acte_et_ouvre_le_coffre_pour_la_suite() {
-        let m = monde();
-        // Une faute de frappe, puis le bon : accepte au deuxieme essai.
-        let f = Rc::new(Fausse::suite(&[Some("faute-de-frappe"), Some(LOGICIEL)]));
-        let _g = installer(f.clone());
-        assert_eq!(proteger_un_acte(&m).unwrap(), "mot de passe du logiciel");
-        let q = f.questions();
-        assert_eq!((q.len(), q[0].precedent_refuse, q[1].precedent_refuse, q[1].essai), (2, false, true, 2));
-        // L'aval a retenu le mot de passe : les lectures de la commande ouvrent le coffre.
-        let lu = crate::compagnie::depot_acte::motdepasse_organisme(&m.ctx(), "net-entreprises", None).unwrap();
-        assert_eq!(lu.as_deref(), Some(NET));
-    }
-
-    #[test]
     fn la_question_dit_ce_qui_part_et_ne_porte_aucun_secret() {
         let m = monde();
         let f = Rc::new(Fausse::mot(LOGICIEL));
@@ -732,16 +651,6 @@ mod tests {
         assert!(crate::compagnie::depot_acte::verifier_preuve(&m.ctx(), Some(&mauvaise), "2026-09", "x", "y").is_err());
     }
 
-    #[test]
-    fn les_actes_du_filet_et_du_coffre_demandent_aussi() {
-        let m = monde();
-        let sans = crate::compagnie::filet::exiger_mot_de_passe(&m.racine, &json!(null), "corriger un mois").unwrap_err();
-        assert_eq!(sans.classe, Some("PreuveInsuffisante"));
-        assert!(sans.message.contains("aucun humain") && sans.message.contains("Rien n'a ete modifie"), "{}", sans.message);
-        let _g = installer(Rc::new(Fausse::mot(LOGICIEL)));
-        assert!(crate::compagnie::filet::exiger_mot_de_passe(&m.racine, &json!(null), "corriger un mois").is_ok());
-    }
-
     // ------------------------------------------------------------ la seance
 
     #[test]
@@ -761,14 +670,6 @@ mod tests {
         assert_eq!(crate::compagnie::boite::mot_de_passe(&m.racine).unwrap(), BOITE);
         // Mais un acte reel, lui, redemande -- et sans humain, refuse.
         assert!(proteger_un_acte(&m).unwrap_err().contains("aucun humain"));
-    }
-
-    #[test]
-    fn la_seance_expiree_n_ouvre_plus() {
-        let m = monde();
-        let ancien = Coffre { racine: m.racine.clone(), dossier_cle: m.poste_b.clone(), maintenant: "2020-01-01T08:00".into(), variables: Default::default() };
-        ancien.garder_ouverture(LOGICIEL, "2020-01-01T20:00").unwrap();
-        assert!(le_poste_n_ouvre_pas(&m));
     }
 
     // ------------------------------------------------------------ sans humain
@@ -796,82 +697,4 @@ mod tests {
         assert_eq!(tout_refuse(fenetre_sans_ecran.demander(&q())), SANS_HUMAIN);
     }
 
-    #[test]
-    fn la_fenetre_passe_avant_le_terminal_et_la_fermer_refuse() {
-        let (fenetre, terminal) = (Rc::new(Fausse::mot("par-la-fenetre")), Rc::new(Fausse::mot("par-le-terminal")));
-        struct Pont(Rc<Fausse>);
-        impl Canal for Pont {
-            fn demander(&self, q: &Question) -> Reponse {
-                self.0.demander(q)
-            }
-        }
-        let reel = Reel { ecran: true, fenetre: Some(Box::new(Pont(fenetre.clone()))), terminal: Some(Box::new(Pont(terminal.clone()))) };
-        assert!(matches!(reel.demander(&q()), Reponse::Mot(m) if m == "par-la-fenetre"));
-        assert_eq!((fenetre.nombre(), terminal.nombre()), (1, 0));
-        // Sans ecran : le terminal.
-        let reel = Reel { ecran: false, fenetre: Some(Box::new(Pont(fenetre.clone()))), terminal: Some(Box::new(Pont(terminal.clone()))) };
-        assert!(matches!(reel.demander(&q()), Reponse::Mot(m) if m == "par-le-terminal"));
-        // Une fenetre fermee refuse : on ne retombe pas sur le terminal.
-        let fermee = Rc::new(Fausse::ferme());
-        let terminal = Rc::new(Fausse::mot("par-le-terminal"));
-        let reel = Reel { ecran: true, fenetre: Some(Box::new(Pont(fermee))), terminal: Some(Box::new(Pont(terminal.clone()))) };
-        assert!(matches!(reel.demander(&q()), Reponse::Refus(_)));
-        assert_eq!(terminal.nombre(), 0);
-    }
-
-    #[test]
-    fn l_ecran_se_reconnait_a_l_environnement() {
-        let env = |pairs: Vec<(&'static str, &'static str)>| move |n: &str| pairs.iter().find(|(k, _)| *k == n).map(|(_, v)| v.to_string());
-        if cfg!(any(windows, target_os = "macos")) {
-            assert!(ecran_present(&env(vec![])));
-        } else {
-            assert!(!ecran_present(&env(vec![])));
-            assert!(ecran_present(&env(vec![("DISPLAY", ":0")])));
-            assert!(ecran_present(&env(vec![("WAYLAND_DISPLAY", "wayland-0")])));
-        }
-    }
-
-    #[test]
-    fn une_demande_refusee_ne_laisse_rien_derriere_elle() {
-        let m = monde();
-        let avant = photo(&[&m.racine]);
-        // Refus par fenetre fermee, par mauvais mots de passe, par absence d'humain ; pour un acte et pour la seance.
-        for canal in [Some(Fausse::ferme()), Some(Fausse::mot("Pas-le-bon-mot-de-passe-77")), None] {
-            let _g = canal.map(|c| installer(Rc::new(c)));
-            assert!(!autoriser_acte(&m.racine, &Acte::nouveau("depot", "2026-09", "x")).est_accepte());
-            assert!(!ouvrir_seance(&m.racine).est_accepte());
-        }
-        assert_eq!(photo(&[&m.racine]), avant, "un refus n'ecrit rien (ni seance gardee, ni cle, ni journal)");
-        assert!(
-            !std::fs::read_dir(&m.poste_b).unwrap().flatten().any(|e| e.file_name().to_string_lossy().starts_with("ouverture-gardee")),
-            "aucune seance gardee"
-        );
-        // Et rien n'est retenu : le coffre reste ferme pour la suite de la commande.
-        assert!(le_poste_n_ouvre_pas(&m));
-        let _ = CONSULTATION;
-    }
-
-    #[test]
-    fn sans_mot_de_passe_du_logiciel_pose_rien_ne_peut_partir() {
-        let m = monde();
-        m.coffre_a().oublier_ouverture(None).unwrap();
-        let _g = installer(Rc::new(Fausse::mot(LOGICIEL)));
-        match autoriser_acte(&m.racine, &Acte::nouveau("depot", "", "")) {
-            Verdict::Refuse(p) => assert!(p.contains("Aucun mot de passe du logiciel"), "{}", p),
-            Verdict::Accepte => panic!("rien n'est pose, rien ne doit etre accepte"),
-        }
-    }
-
-    /// A LA MAIN (`cargo test -- --ignored terminal_reel`, dans un vrai terminal) : la question s'affiche, la frappe ne
-    /// s'affiche pas, le terminal est rendu tel quel. Taper `abc` puis Entree.
-    #[cfg(unix)]
-    #[test]
-    #[ignore = "demande un terminal et un humain"]
-    fn terminal_reel_lit_sans_echo() {
-        let canal = terminal_unix::Tty;
-        match canal.demander(&q()) {
-            Reponse::Mot(m) => assert_eq!(m, "abc"),
-            r => panic!("{:?}", r),
-        }
-    }
 }

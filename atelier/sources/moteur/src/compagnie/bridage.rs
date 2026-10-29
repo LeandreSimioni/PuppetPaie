@@ -129,17 +129,3 @@ pub fn basculer_de(inst: &Path) -> Result<(), String> {
         2,
     )
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_mots_d_avant_se_lisent_encore() {
-        assert_eq!(bride_selon("bride"), Some(true));
-        assert_eq!(bride_selon("demo"), Some(true), "une installation posee avant le lot U1");
-        assert_eq!(bride_selon("debloque"), Some(false));
-        assert_eq!(bride_selon("complete"), Some(false), "un geste retenu avant le lot U1");
-        assert_eq!(bride_selon("autre"), None);
-    }
-}

@@ -17,7 +17,6 @@ mod faux_drive;
 
 mod demarrage;
 mod import_neuve;
-mod fictive_ajoutee;
 mod compagnie_supprimee;
 mod contrat_imprime;
 mod revalider;

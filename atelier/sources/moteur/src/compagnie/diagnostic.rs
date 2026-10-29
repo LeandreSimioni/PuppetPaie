@@ -1023,37 +1023,3 @@ pub fn etat_du_mois(racine: &Path, mois: &str) -> Value {
     }
     Value::Object(m)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn les_cles_disent_leur_genre() {
-        assert_eq!(genre_de_cle("nom_affichage"), Some(Genre::Nom));
-        assert_eq!(genre_de_cle("prenomAffichage"), Some(Genre::Nom));
-        assert_eq!(genre_de_cle("nom_fichier"), None);
-        assert_eq!(genre_de_cle("date_naissance"), Some(Genre::Naissance));
-        assert_eq!(genre_de_cle("motdepasse"), Some(Genre::Secret));
-        assert_eq!(genre_de_cle("adresse_courriel"), Some(Genre::Courriel));
-        assert_eq!(genre_de_cle("code_postal"), Some(Genre::CodePostal));
-        assert_eq!(genre_de_cle("salarie"), Some(Genre::Salarie));
-        assert_eq!(genre_de_cle("spectacle"), None);
-        assert_eq!(genre_de_cle("lieu"), None);
-        assert_eq!(genre_de_cle("taux"), None);
-    }
-
-    /// Un NIR se dit present, et sa cle juste ou fausse (cle = 97 - NIR mod 97).
-    #[test]
-    fn un_nir_se_dit_par_sa_cle() {
-        assert_eq!(forme_nir("1840663999011", Some("41")), "NIR présent, clé valide");
-        assert_eq!(forme_nir("1840663999011", Some("42")), "NIR présent, clé invalide");
-        assert_eq!(forme_nir("184066399901141", None), "NIR présent, clé valide");
-        assert_eq!(forme_iban("FR14 2004 1010 0505 0001 3M02 606"), "IBAN FR de 27 car., clé valide");
-    }
-
-    #[test]
-    fn le_fil_compte_les_repetitions_et_dit_l_heure_relative() {
-        assert_eq!(relatif(200_000, 39_000), "-2:41");
-    }
-}

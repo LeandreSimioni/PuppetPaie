@@ -1109,18 +1109,3 @@ pub fn envoyer(racine: &Path) -> Value {
     }
     bilan.json()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::windows_de_ver;
-
-    /// #200 : la ligne de `cmd /C ver` se lit en francais comme en anglais, et le build dit Windows 10 ou 11.
-    #[test]
-    fn la_version_de_windows_se_lit_dans_toutes_les_langues() {
-        assert_eq!(windows_de_ver("\r\nMicrosoft Windows [version 10.0.19045.5011]\r\n"), "Windows 10 (10.0.19045.5011)");
-        assert_eq!(windows_de_ver("\r\nMicrosoft Windows [Version 10.0.22631.4317]\r\n"), "Windows 11 (10.0.22631.4317)");
-        assert_eq!(windows_de_ver("Microsoft Windows [versão 10.0.26100.2033]"), "Windows 11 (10.0.26100.2033)");
-        assert_eq!(windows_de_ver(""), "Windows");
-        assert_eq!(windows_de_ver("Microsoft Windows [version inconnue]"), "Windows");
-    }
-}

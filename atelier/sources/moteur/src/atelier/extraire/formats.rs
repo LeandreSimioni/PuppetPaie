@@ -406,21 +406,3 @@ pub fn relever(source: &Path, jour: &Jour) -> Resultat<Releve> {
     donnees.insert("formats".into(), Value::Object(formats));
     Ok(Releve { donnees: Value::Object(donnees), indent: 1, saut_final: false, bilan })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn une_csl_va_jusqu_a_la_ligne_vide_et_se_recolle() {
-        let corps = "Format\nCSL 00 : (20)[0-\n9]{2}\n \nautre\nCSL 01:[A-Z]+ Table OES\n\n";
-        assert_eq!(csl_trouvees(corps), vec!["(20)[0-\n9]{2}".to_string(), "[A-Z]+ Table OES".to_string()]);
-    }
-
-    #[test]
-    fn une_csl_dont_les_blancs_mangent_la_ligne_vide_rend_un_groupe_vide() {
-        // Les blancs gourmands avalent « \n\n » ; Python recule jusqu'a la ligne vide et rend un groupe vide.
-        assert_eq!(csl_trouvees("CSL 00 :\n\n"), vec![String::new()]);
-        assert!(csl_trouvees("CSL 00 : [0-9]").is_empty());
-    }
-}

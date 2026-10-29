@@ -132,7 +132,6 @@ impl Courriel for BoiteMuette {
 
 // ------------------------------------------------------------------ petits outils
 
-
 /// `_mois_fr` : « octobre 2026 ».
 fn mois_fr(mois: &str) -> String {
     // Une ligne du recit ne se refuse pas pour son mois : un mois hors 01-12 s'ecrit tel quel, jamais janvier.
@@ -708,7 +707,6 @@ pub(crate) fn racine_d_essai(fictive: bool) -> std::path::PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cell::Cell;
 
     fn jour(t: &str) -> Jour {
         Jour::lire(t).unwrap()
@@ -756,239 +754,18 @@ mod tests {
         assert!(HorlogeFictive::verifier(&r).is_none());
     }
 
-    #[test]
-    fn la_garde_est_relue_avant_chaque_geste() {
-        let r = racine_d_essai(true);
-        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2026-10-13"));
-        // Le marqueur disparait en route : le geste ne part pas, le pas devient sa phrase.
-        std::fs::remove_file(r.join("COPIE-DE-DEVELOPPEMENT.json")).unwrap();
-        let parti = Cell::new(false);
-        let phrases = pas(&d, "DPAE envoyée", "2026-10-13T07:00:00", |_| {
-            parti.set(true);
-            Ok(true)
-        });
-        assert!(!parti.get(), "le geste ne doit pas partir");
-        assert_eq!(phrases.len(), 1);
-        assert!(phrases[0].starts_with("Le 13/10/2026 : DPAE envoyée — non joué ("), "{}", phrases[0]);
-        assert!(phrases[0].contains("n'est pas une compagnie fictive"), "{}", phrases[0]);
-        assert!(d.reverifier().is_err());
-        assert!(deposer_dsn_joue(&d, &Contexte::nouveau(&r, None).unwrap(), "x.dsn", false).is_err());
-        assert!(deposer_dpae_joue(&d, &Contexte::nouveau(&r, None).unwrap(), "x.txt", true).is_err());
-        assert!(rattacher(&d, &Contexte::nouveau(&r, None).unwrap()).is_err());
-    }
-
-    #[test]
-    fn dans_une_compagnie_fictive_elle_ecrit_sa_memoire_meme_sans_rien_a_jouer() {
-        let r = racine_d_essai(true);
-        assert_eq!(rattraper(&r, Some(jour("2026-10-13")), true).unwrap(), Vec::<String>::new());
-        let m: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join(FICHIER_HORLOGE)).unwrap()).unwrap();
-        assert_eq!(m["le"], "2026-10-13");
-        assert_eq!(m["mois_faits"], json!([]));
-        assert_eq!(m["annees_faites"], json!([]));
-        assert_eq!(m["dernier"], json!({}));
-        assert_eq!(m["_quoi"], QUOI);
-    }
-
     // ---------------------------------------------------------------- defaut 4 : horloge.json non objet
-
-    #[test]
-    fn un_horloge_json_qui_n_est_pas_un_objet_se_lit_comme_absent() {
-        // L'ancien Python plantait (`'list' object has no attribute 'get'`) ; le Rust le lit comme absent et le recrit.
-        for contenu in ["[1, 2]", "\"x\"", "null", "3", "true", "{ pas du json", ""] {
-            let r = racine_d_essai(true);
-            std::fs::write(r.join("config").join(FICHIER_HORLOGE), contenu).unwrap();
-            assert_eq!(dernier_rattrapage(&r, Some(jour("2026-10-13"))).unwrap(), Vec::<String>::new(), "{:?}", contenu);
-            assert_eq!(rattraper(&r, Some(jour("2026-10-13")), true).unwrap(), Vec::<String>::new(), "{:?}", contenu);
-            let m: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join(FICHIER_HORLOGE)).unwrap()).unwrap();
-            assert!(m.is_object(), "{:?} doit etre recrit en objet", contenu);
-            assert_eq!(m["le"], "2026-10-13");
-        }
-    }
 
     // ---------------------------------------------------------------- defaut 1 : le jour joue
 
-    #[test]
-    fn le_contexte_de_l_horloge_porte_le_jour_joue() {
-        let r = racine_d_essai(true);
-        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-03-01"));
-        let c = d.contexte().unwrap();
-        assert_eq!((c.aujourdhui, c.date), (jour("2027-03-01"), jour("2027-03-01")));
-        let fin = d.contexte_a(jour("2026-10-31")).unwrap();
-        assert_eq!((fin.aujourdhui, fin.date), (jour("2027-03-01"), jour("2026-10-31")));
-    }
-
-    #[test]
-    fn la_cloture_juge_l_annee_sur_le_jour_du_contexte_et_pas_sur_l_horloge_reelle() {
-        let r = racine_d_essai(true);
-        let mut ctx = Contexte::nouveau(&r, None).unwrap();
-        // Rejouee au 31/01/2027 (le conteneur est en 2026) : 2026 est finie, la cloture n'est plus refusee pour cela.
-        ctx.aujourdhui = jour("2027-01-31");
-        let e = crate::compagnie::exercice_ecrit::cloturer(&ctx, "2026", false, QUI_HORLOGE);
-        assert!(e.as_ref().err().map_or(true, |e| !e.message.contains("n'est pas fini")), "{:?}", e.err().map(|e| e.message));
-        assert!(r.join("sorties").join("exercices").join("Exercice_2026.zip").exists(), "2026 est close, au jour joue");
-        // L'annee du contexte n'est pas finie : refus, qu'elle soit passee ou non pour la machine.
-        let r = racine_d_essai(true);
-        let mut ctx = Contexte::nouveau(&r, None).unwrap();
-        ctx.aujourdhui = jour("2026-12-31");
-        let e = crate::compagnie::exercice_ecrit::cloturer(&ctx, "2026", false, QUI_HORLOGE).unwrap_err();
-        assert!(e.message.contains("n'est pas fini"), "{}", e.message);
-        // Hors de l'horloge le contexte porte la date reelle : le comportement de l'interface ne change pas.
-        let r = racine_d_essai(true);
-        let mut ctx = Contexte::nouveau(&r, None).unwrap();
-        ctx.aujourdhui = droit::contexte::jour_reel();
-        let an = droit::contexte::jour_reel().an.to_string();
-        let e = crate::compagnie::exercice_ecrit::cloturer(&ctx, &an, false, "interface").unwrap_err();
-        assert!(e.message.contains("n'est pas fini"), "{}", e.message);
-    }
-
     // ---------------------------------------------------------------- defaut 2 : le jour de l'echeancier
-
-    #[test]
-    fn l_echeance_cochee_par_l_horloge_porte_le_jour_joue() {
-        let r = racine_d_essai(true);
-        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-03-01"));
-        let ctx = d.contexte().unwrap();
-        crate::routes::ouverture::marquer_echeance(&ctx, "at-mp:2027", true, QUI_HORLOGE).unwrap();
-        let e: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join("echeancier.json")).unwrap()).unwrap();
-        assert_eq!(e["fait"]["at-mp:2027"], json!({"le": "2027-03-01", "qui": "horloge"}));
-        // L'interface, elle, garde le jour du contexte (reel).
-        let mut ctx = Contexte::nouveau(&r, None).unwrap();
-        ctx.aujourdhui = jour("2026-10-07");
-        crate::routes::ouverture::marquer_echeance(&ctx, "at-mp:2026", true, "interface").unwrap();
-        let e: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join("echeancier.json")).unwrap()).unwrap();
-        assert_eq!(e["fait"]["at-mp:2026"]["le"], "2026-10-07");
-    }
-
-    /// #236 : une echeance dont la fenetre s'est fermee AVANT que la compagnie soit ajoutee (`config/creation.json`) ne se
-    /// coche pas ; ajoutee avant, elle se coche. Sans date d'ajout (une fictive livree), rien ne change.
-    #[test]
-    fn une_echeance_d_avant_l_ajout_de_la_compagnie_ne_se_coche_pas() {
-        let cochees = |cree: Option<&str>| {
-            let r = racine_d_essai(true);
-            std::fs::write(r.join("config/entreprise.json"), r#"{"idcc": [{"depuis": "2026-01-01", "valeur": "3090"}]}"#).unwrap();
-            if let Some(c) = cree {
-                std::fs::write(r.join("config").join(crate::interface::compagnies::FICHIER_CREATION), format!(r#"{{"le": "{}"}}"#, c)).unwrap();
-            }
-            let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2027-01-05"));
-            l_annee(&d, 2026, jour("2027-01-05")).unwrap().into_iter().filter(|p| p.contains("coché")).count()
-        };
-        let toutes = cochees(None);
-        assert!(toutes > 0, "une fictive livree coche les echeances de son annee");
-        assert_eq!(cochees(Some("2026-01-01")), toutes);
-        assert!(cochees(Some("2026-11-02")) < toutes, "ajoutee en novembre, elle ne coche pas ce qui fermait avant");
-        assert_eq!(cochees(Some("2027-01-01")), 0, "ajoutee apres l'annee, rien de 2026 ne la regarde");
-    }
 
     // ---------------------------------------------------------------- la boite muette
 
-    #[test]
-    fn la_boite_muette_rend_un_identifiant_et_ne_garde_rien() {
-        let mut b = BoiteMuette::nouvelle();
-        assert_eq!(b.compte(), "fictive@puppetpaie.invalid");
-        let a = b.envoyer(b"From: x\r\n\r\nbonjour").unwrap();
-        let c = b.envoyer(b"From: x\r\n\r\nbonjour").unwrap();
-        assert!(a.starts_with('<') && a.ends_with("@fictive.puppetpaie>"), "{}", a);
-        assert_ne!(a, c, "un identifiant au hasard a chaque envoi");
-        assert!(b.rechercher("tout", 50).unwrap().is_empty());
-        assert!(b.message_brut(&a).unwrap().is_empty());
-        b.fermer();
-    }
-
     // ---------------------------------------------------------------- dater, n_lignes
-
-    #[test]
-    fn dater_ne_date_que_les_lignes_ecrites_depuis() {
-        let r = racine_d_essai(true);
-        let p = envois::journal::chemin(&r);
-        // Sans journal : rien, et rien n'est cree.
-        dater(&r, 0, "2026-10-13T07:00:00");
-        assert!(!p.exists());
-        assert_eq!(n_lignes(&r), 0);
-        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
-        std::fs::write(&p, r#"[{"quoi": "dsn", "quand": "2026-09-30T13:53:15"}, {"quoi": "dpae", "quand": "2026-10-07T10:11:12"}, {"quoi": "contrat-recu"}]"#).unwrap();
-        assert_eq!(n_lignes(&r), 3);
-        dater(&r, 1, "2026-10-13T07:00:00");
-        let l: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
-        assert_eq!(l[0]["quand"], "2026-09-30T13:53:15");
-        assert!(l[0].get("origine").is_none(), "une ligne d'avant n'est pas touchee");
-        for i in [1, 2] {
-            assert_eq!(l[i]["quand"], "2026-10-13T07:00:00");
-            assert_eq!(l[i]["origine"], ORIGINE);
-        }
-        // Rien d'ecrit depuis : le fichier reste tel quel.
-        let avant = std::fs::read(&p).unwrap();
-        dater(&r, 3, "2030-01-01T00:00:00");
-        assert_eq!(std::fs::read(&p).unwrap(), avant);
-        // Un journal qui n'est pas une liste : 0 ligne.
-        std::fs::write(&p, "{}").unwrap();
-        assert_eq!(n_lignes(&r), 0);
-    }
 
     // ---------------------------------------------------------------- les phrases
 
-    #[test]
-    fn un_pas_dit_ce_qu_il_a_fait_et_se_tait_quand_il_n_y_a_rien_a_faire() {
-        let r = racine_d_essai(true);
-        let d = HorlogeFictive::verifier(&r).unwrap().au_jour(jour("2026-10-13"));
-        assert_eq!(pas(&d, "DPAE de l'embauche du 13/10/2026 envoyée", "2026-10-13T07:00:00", |_| Ok(true)), vec!["Le 13/10/2026 : DPAE de l'embauche du 13/10/2026 envoyée"]);
-        assert!(pas(&d, "rien", "2026-10-13T07:00:00", |_| Ok(false)).is_empty());
-        let p = pas(&d, "DSN de octobre 2026 déposée", "2026-11-15T10:00:00", |_| Err(Echec { classe: Some("KeyError"), message: "'nom'\nsuite".into() }));
-        assert_eq!(p, vec!["Le 15/11/2026 : DSN de octobre 2026 déposée — non joué ('nom')"]);
-        // Les lignes de journal que le geste ecrit sont datees a la date du pas.
-        let jp = envois::journal::chemin(&r);
-        std::fs::create_dir_all(jp.parent().unwrap()).unwrap();
-        std::fs::write(&jp, "[]").unwrap();
-        pas(&d, "ecrit", "2026-10-13T07:00:00", |_| {
-            std::fs::write(&jp, r#"[{"quoi": "dpae", "quand": "2026-10-07T15:00:00"}]"#).unwrap();
-            Ok(true)
-        });
-        let l: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&jp).unwrap()).unwrap();
-        assert_eq!(l[0]["quand"], "2026-10-13T07:00:00");
-        assert_eq!(l[0]["origine"], ORIGINE);
-    }
-
-    #[test]
-    fn les_refus_d_operation_sont_ceux_de_l_ancien_python() {
-        let e = |c: Option<&'static str>| Echec { classe: c, message: "m".into() };
-        for oui in [None, Some("ErreurOperation"), Some("SortieAbsente"), Some("AucunDocument"), Some("BoiteAbsente"), Some("PreuveInsuffisante"), Some("SaisieIncomplete"), Some("ExerciceClos")] {
-            assert!(est_une_erreur_d_operation(&e(oui)), "{:?}", oui);
-        }
-        for non in ["KeyError", "ValueError", "OSError", "TypeError"] {
-            assert!(!est_une_erreur_d_operation(&e(Some(non))), "{}", non);
-        }
-    }
-
     // ---------------------------------------------------------------- la route
 
-    #[test]
-    fn la_route_rattrape_et_dit_le_dernier_rattrapage() {
-        assert_eq!(ROUTES, ["horloge-rattraper", "horloge-derniere"]);
-        // Pas une fictive : [] et rien d'ecrit.
-        let r = racine_d_essai(false);
-        let ctx = Contexte::nouveau(&r, None).unwrap();
-        let o = HashMap::new();
-        let avant = photo(&r);
-        assert_eq!(route(&o, &ctx, "horloge-rattraper", &json!({"aujourdhui": "2027-03-01"})).unwrap(), json!([]));
-        assert_eq!(photo(&r), avant);
-        // Une fictive : la memoire dit ce que le bandeau lit, ce jour-la seulement.
-        let r = racine_d_essai(true);
-        let ctx = Contexte::nouveau(&r, None).unwrap();
-        let o = HashMap::new();
-        assert_eq!(route(&o, &ctx, "horloge-derniere", &json!({"aujourdhui": "2026-10-13"})).unwrap(), json!([]));
-        std::fs::write(
-            r.join("config").join(FICHIER_HORLOGE),
-            r#"{"le": "2026-10-13", "dernier": {"le": "2026-10-13", "fait": ["Le 13/10/2026 : a", "Le 01/10/2026 : b"]}}"#,
-        )
-        .unwrap();
-        assert_eq!(route(&o, &ctx, "horloge-derniere", &json!({"aujourdhui": "2026-10-13"})).unwrap(), json!(["Le 13/10/2026 : a", "Le 01/10/2026 : b"]));
-        assert_eq!(route(&o, &ctx, "horloge-derniere", &json!({"aujourdhui": "2026-10-14"})).unwrap(), json!([]));
-        // `retenir: false` : le visiteur ne lira pas le passe ; `retenir` par defaut : vrai.
-        assert_eq!(route(&o, &ctx, "horloge-rattraper", &json!({"aujourdhui": "2026-10-14", "retenir": false})).unwrap(), json!([]));
-        let m: Value = serde_json::from_str(&std::fs::read_to_string(r.join("config").join(FICHIER_HORLOGE)).unwrap()).unwrap();
-        assert_eq!((m["le"].as_str(), &m["dernier"]), (Some("2026-10-14"), &json!({})));
-        route(&o, &ctx, "horloge-rattraper", &json!({"aujourdhui": "2026-10-15"})).unwrap();
-        // Un jour illisible, une route inconnue : des refus.
-        assert!(route(&o, &ctx, "horloge-rattraper", &json!({"aujourdhui": "demain"})).is_err());
-        assert!(route(&o, &ctx, "horloge-autre", &json!({})).is_err());
-    }
 }

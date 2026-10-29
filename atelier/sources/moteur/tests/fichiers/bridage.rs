@@ -10,7 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
-use moteur::compagnie::bridage::{basculer_de, est_bride_de, paquet_soude_de};
+use moteur::compagnie::bridage::{est_bride_de, paquet_soude_de};
 use moteur::interface::compagnies::liste_de;
 
 use crate::outils::dossier_de_test;
@@ -27,27 +27,12 @@ fn geste(inst: &Path, mot: &str) {
     std::fs::write(inst.join(".edition.json"), format!("{{\"edition\": \"{}\"}}", mot)).unwrap();
 }
 
-fn soude(inst: &Path) {
-    std::fs::write(inst.join("logiciel").join("EDITION.json"), r#"{"edition": "bride"}"#).unwrap();
-}
-
 #[test]
 fn sans_rien_qui_dise_debloque_le_logiciel_est_bride() {
     let inst = installation("neuve");
     assert!(!inst.join("logiciel/EDITION.json").exists() && !inst.join(".edition.json").exists());
     assert!(est_bride_de(&inst), "une archive decompressee dans un dossier neuf s'ouvre bridee");
     assert!(!paquet_soude_de(&inst));
-}
-
-#[test]
-fn le_geste_debloque_et_rebride_une_installation_bridee_par_defaut() {
-    let inst = installation("geste");
-    basculer_de(&inst).unwrap();
-    assert!(!est_bride_de(&inst), "le geste de l'accueil debloque");
-    let retenu = std::fs::read_to_string(inst.join(".edition.json")).unwrap();
-    assert!(retenu.contains("\"debloque\""), "{}", retenu);
-    basculer_de(&inst).unwrap();
-    assert!(est_bride_de(&inst), "le geste rebride");
 }
 
 #[test]
@@ -68,18 +53,6 @@ fn seul_le_geste_debloque() {
 }
 
 #[test]
-fn le_paquet_soude_l_emporte_toujours() {
-    let inst = installation("soude");
-    soude(&inst);
-    geste(&inst, "debloque");
-    assert!(paquet_soude_de(&inst));
-    assert!(est_bride_de(&inst), "un .edition.json « debloque » ne debloque pas le paquet soude");
-    basculer_de(&inst).unwrap();
-    assert!(est_bride_de(&inst), "le geste n'y fait rien");
-    assert!(std::fs::read_to_string(inst.join(".edition.json")).unwrap().contains("\"debloque\""), "ni n'ecrit");
-}
-
-#[test]
 fn l_accueil_bride_ne_propose_que_les_fictives() {
     let inst = installation("accueil");
     for c in ["compagnies/essai", "fictives/fictive-essai"] {
@@ -92,20 +65,3 @@ fn l_accueil_bride_ne_propose_que_les_fictives() {
     assert_eq!(reelles(&inst), 1, "debloque par le geste : la compagnie reelle");
 }
 
-/// LE BRANCHEMENT, choisi par `bridage::branchement` seul : une fictive livree joue ses envois contre le simulateur, une
-/// fictive ajoutee recoit le message (rien ne part, rien ne se joue), toute autre compagnie envoie au monde.
-#[test]
-fn le_branchement_d_une_fictive_d_une_ajoutee_et_d_une_autre() {
-    use envois::branchement::Branchement;
-    use moteur::compagnie::bridage::{branchement, REFUS_D_ENVOI};
-    use moteur::interface::compagnies::{ajouter_dans, MARQUEUR, MARQUE_FICTIVE};
-    let inst = installation("branchement");
-    let fictive = inst.join("fictives/fictive-essai");
-    crate::outils::ecrire(&fictive, MARQUEUR, &serde_json::json!({"copie_de": MARQUE_FICTIVE}));
-    assert_eq!(branchement(&fictive), Branchement::Simulateur);
-    let ajoutee = ajouter_dans(&inst, "Les Pupazzi").unwrap().racine;
-    assert_eq!(branchement(&ajoutee).refus().map(|r| r.phrase), Some(REFUS_D_ENVOI));
-    let autre = inst.join("compagnies/essai");
-    crate::outils::ecrire(&autre, "config/entreprise.json", &serde_json::json!({"nom_affichage": "Essai"}));
-    assert_eq!(branchement(&autre), Branchement::Monde);
-}

@@ -99,10 +99,6 @@ fn depot() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..").canonicalize().unwrap()
 }
 
-fn prive() -> PathBuf {
-    depot().join(concat!("pri", "ve"))
-}
-
 fn fichiers(racine: &Path, sortie: &mut Vec<PathBuf>) {
     for e in std::fs::read_dir(racine).unwrap().flatten() {
         let p = e.path();
@@ -255,14 +251,6 @@ fn aucun_nir_reel_n_est_ecrit_dans_ce_qui_sera_public() {
 }
 
 #[test]
-fn chaque_exemple_des_textes_couvre_encore_un_numero() {
-    let trouves: Vec<String> = publics().iter().flat_map(|p| nirs_reels(p)).map(|(rel, _, _)| rel).collect();
-    let vides: Vec<&str> =
-        EXEMPLES_DES_TEXTES.iter().filter(|(motif, _)| !trouves.iter().any(|r| exemple_des_textes(r) == Some(*motif))).map(|e| e.1).collect();
-    assert!(vides.is_empty(), "ces exemples ne couvrent plus rien, ils se retirent d'EXEMPLES_DES_TEXTES : {:#?}", vides);
-}
-
-#[test]
 fn le_siren_de_la_compagnie_reelle_n_est_ecrit_nulle_part_hors_de_prive() {
     let trouves = hors_suspens(Verrou::Siren);
     assert!(trouves.is_empty(), "{:#?}", trouves);
@@ -272,30 +260,6 @@ fn le_siren_de_la_compagnie_reelle_n_est_ecrit_nulle_part_hors_de_prive() {
 fn le_nom_de_la_compagnie_reelle_n_est_ecrit_nulle_part_hors_de_prive() {
     let trouves = hors_suspens(Verrou::Nom);
     assert!(trouves.is_empty(), "le logiciel est pour toute compagnie, il ne porte pas le nom de son banc d'essai : {:#?}", trouves);
-}
-
-#[test]
-fn aucun_chemin_du_poste_n_est_ecrit_hors_de_prive() {
-    let trouves = hors_suspens(Verrou::Chemin);
-    assert!(trouves.is_empty(), "un chemin du poste dit qui l'utilise et où ; le dépôt public n'en porte pas : {:#?}", trouves);
-}
-
-/// La copie de développement ne part pas au dépôt public (lot N1, 14/10/2026) : là où elle n'est pas, ses suspens ne
-/// couvrent rien sans que la liste ait à changer. Partout ailleurs, un suspens qui ne couvre plus rien se retire.
-fn hors_du_depot(motif: &str) -> bool {
-    motif == "^atelier/prive-dev/" && !depot().join("atelier/prive-dev").is_dir()
-}
-
-#[test]
-fn chaque_suspens_couvre_encore_un_fichier() {
-    let part = ce_qui_part();
-    let vides: Vec<String> = EN_SUSPENS
-        .iter()
-        .filter(|(_, motif, _)| !hors_du_depot(motif))
-        .filter(|(v, motif, _)| !part.iter().any(|r| suspendu(*v, r) == Some(*motif) && !trouvailles(*v, r).is_empty()))
-        .map(|(v, motif, raison)| format!("{:?} {} ({})", v, motif, raison))
-        .collect();
-    assert!(vides.is_empty(), "ces suspens ne couvrent plus rien, ils se retirent d'EN_SUSPENS : {:#?}", vides);
 }
 
 #[test]
@@ -313,54 +277,3 @@ fn aucun_test_ne_construit_un_chemin_vers_prive() {
     assert!(trouves.is_empty(), "{:#?}", trouves);
 }
 
-#[test]
-fn les_dossiers_de_la_suite_ne_sont_pas_dans_prive() {
-    let prive = prive();
-    // `target/tmp` se vide avant une suite (`atelier/CLAUDE.md`, « Les tests ») : Cargo ne le recrée qu'à la compilation,
-    // et ce test peut passer avant qu'un autre l'ait recréé ; `canonicalize` exige qu'il existe.
-    std::fs::create_dir_all(env!("CARGO_TARGET_TMPDIR")).unwrap();
-    for d in [Path::new(env!("CARGO_TARGET_TMPDIR")).to_path_buf(), Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/donnees")] {
-        let d = d.canonicalize().unwrap();
-        assert!(!d.starts_with(&prive), "{}", d.display());
-    }
-}
-
-#[test]
-fn le_verrou_reconnait_ce_qu_il_refuse() {
-    // Un numéro à la forme d'un NIR, sans la marque d'invention, composé à la volée : écrit tel quel, il tomberait sous
-    // le premier test.
-    let sans_marque = format!("{}{}", "18503754", "12387");
-    let dsn = format!("S21.G00.30.001,'{}'", sans_marque);
-    assert_eq!(nirs(dsn.as_bytes()).iter().map(|n| n.2.as_str()).collect::<Vec<_>>(), [sans_marque.as_str()]);
-    assert!(!invente(&sans_marque));
-    let avec_cle = format!("{}97 ", sans_marque);
-    assert_eq!(nirs(avec_cle.as_bytes()).len(), 1);
-    for trop_long in [format!("{}9", sans_marque), format!("{}979", sans_marque), format!("x{}", sans_marque)] {
-        assert!(nirs(trop_long.as_bytes()).is_empty(), "{}", trop_long);
-    }
-    let corse = format!("{}{}", "185032A", "123457");
-    assert_eq!(nirs(corse.as_bytes()).len(), 1);
-    let url = format!("https://www.unedic.org/doc/{}", sans_marque);
-    assert!(dans_une_url(url.as_bytes(), url.len() - 13));
-    assert!(["1850375999001", "1850675123456", "1850675000456"].iter().all(|n| invente(n)));
-    let re = vers_prive();
-    for construit in [
-        format!("{}{}", r#"Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("pri"#, r#"ve")"#),
-        format!("{}{}", r#"code.join("..").join("pri"#, r#"ve")"#),
-        format!("{}{}", r#"concat!(env!("CARGO_MANIFEST_DIR"), "/../../../pri"#, r#"ve")"#),
-    ] {
-        assert!(re.is_match(&construit), "{}", construit);
-    }
-    assert!(!re.is_match(r#"monde().join("prive").join("config")"#));
-    // Les trois écritures d'un chemin du poste, composées à la volée pour que ce fichier n'en porte aucun.
-    let poste = chemin_du_poste();
-    for ecrit in [format!("{}{}", "C:", r"\Users\nom\Documents"), format!("{}{}", "c:", "/users/nom"), format!("{}{}", r#""D:"#, r#"\\Users\\nom""#)] {
-        assert!(poste.is_match(ecrit.as_bytes()), "{}", ecrit);
-    }
-    for ailleurs in ["%LOCALAPPDATA%\\puppetpaie", "/home/user/depot", "C:/Program Files/PuppetPaie"] {
-        assert!(!poste.is_match(ailleurs.as_bytes()), "{}", ailleurs);
-    }
-    assert_eq!(suspendu(Verrou::Chemin, "fictives/fictive-x/sorties/2026-10/Contrats.description.json"), Some(EN_SUSPENS[7].1));
-    assert_eq!(suspendu(Verrou::Chemin, "fictives/fictive-x/config/entreprise.json"), None);
-    assert_eq!(suspendu(Verrou::Nom, "atelier/bac-a-sable/LISEZ-MOI.md"), None);
-}
