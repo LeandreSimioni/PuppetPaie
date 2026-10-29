@@ -1,23 +1,17 @@
 # Construire une rubrique de paie
 
-Question de l'éditeur, le 09/09/2026 : *« il faut saisir toutes les rubriques et
-essayer de comprendre comment CoolPaie les a construites. Dans le futur on
-n'aura plus CoolPaie ; si on veut en construire, il faut soit comprendre la
-règle, soit trouver des docs officielles. »*
-
-Et sa reformulation du 10/09, qui est la vraie : **comment construit-on une
-rubrique ?** Pas « comment CoolPaie a rempli son catalogue » — ça, c'est lire
-le travail d'un autre. La question qui rend autonome, c'est : sur quelle
-règle, quel texte, quel raisonnement. Parce qu'après janvier 2027 il n'y aura
-plus de catalogue à copier, et qu'il faudra savoir dire, pour une forme
-d'engagement qui n'existe dans aucune liste, ce que valent ses heures et ce
+**Comment construit-on une rubrique ?** Pas en recopiant le catalogue d'un autre
+logiciel : sur une règle, un texte, un raisonnement. Il faut savoir dire, pour une
+forme d'engagement qui n'existe dans aucune liste, ce que valent ses heures et ce
 qu'elle supporte.
 
-Ce document est la réponse : **sept questions, dans l'ordre, chacune avec sa
-source et ce que coûte une erreur.** Il dit aussi, et c'est neuf depuis le
-20/09/2026, **les quatre champs qu'il ne faut pas remplir** parce que rien ne
-les applique encore — ils étaient huit le matin, sept le soir, et quatre au
-lendemain.
+Ce document y répond en **sept questions, dans l'ordre, chacune avec sa source et
+ce que coûte une erreur**, et dit **les champs qu'il ne faut pas remplir** parce
+que rien ne les applique (§ 5).
+
+Le catalogue a deux fichiers (`droit/src/catalogue.rs`) : `donnees/rubriques-base.json`, livré, et
+`config/rubriques-compagnie.json`, les rubriques de la compagnie, datées comme toute sa configuration et lues à la
+date de la période.
 
 ---
 
@@ -47,7 +41,7 @@ Une journée de 7 h et une journée de 10 h : une seule.
 | les **heures d'un cachet** | une convention : 12 h que personne n'a faites | le catalogue, avec sa source |
 
 Une seule des trois est une constante réglementaire. **Aucune rubrique ne
-porte de coefficient `jours`** — `Rubrique.jours()` lève une exception exprès,
+porte de coefficient `jours`** : le champ n'existe pas, et un champ inconnu est refusé,
 pour que personne ne recrée la colonne de CoolPaie en croyant combler un
 manque. Leur colonne `jours` n'était pas une règle : c'était une supposition
 sur une donnée qu'ils ne demandaient pas, avec quatre valeurs incohérentes
@@ -59,10 +53,8 @@ pour la même notion. Le détail est dans
 ## 2. La méthode : sept questions, dans cet ordre
 
 Chaque question a un champ, une source, et un coût si on se trompe. Les
-champs sont ceux de `Rubrique` (`droit/src/catalogue.rs`, les vingt-huit de
-`CHAMPS_CONNUS` : un champ inconnu est refusé). La liste de qui les applique,
-`catalogue.CHAMPS` du Python, et son test sont partis avec le Python sans être
-portés (`catalogue.rs`, en tête).
+champs sont ceux de `Rubrique` (`droit/src/catalogue.rs`, les vingt-six de
+`CHAMPS_CONNUS` : un champ inconnu est refusé).
 
 ### Q1 — Qu'est-ce qu'on compte ? → `unite`
 
@@ -101,20 +93,16 @@ indemnité et son supplément), et il existe.
 
 **`imposable` commande la rémunération nette fiscale** (DSN `S21.G00.50.002`,
 le « Net imposable » du bulletin, et ce qui en découle : 50.004, 50.013,
-50.009 du PAS) depuis la vague 1a (10/10/2026,
-`prive/journal/norme/corrections/PASSATION-V1a.md`). Elle part du brut soumis,
+50.009 du PAS). Elle part du brut soumis,
 retire les cotisations salariales, réintègre la CSG/CRDS non déductible et la
 santé patronale, et n'**ajoute**, des lignes hors assiette (`soumis` faux), que
-celles dont le catalogue dit `imposable` vrai (`calcul.rs`, `calculer`, 7.10) :
+celles dont le catalogue dit `imposable` vrai (`engagement/src/calcul.rs`) :
 la norme fait « DEDUIRE : […] les sommes versées à titre de remboursement de
 frais professionnels » et « AJOUTER : […] les indemnités imposables à l'impôt
 sur le revenu » (cahier technique 2026.1, § 2.3.2, p. 60-61 ;
 `atelier/reference/norme-dsn/texte/chapitre-2-principes-de-constitution.txt`). Un défraiement, un acompte, une indemnité exonérée
-(CGI 80 duodecies) n'y entrent donc pas, quand avant ils y passaient par le
-net à payer. Une ligne **soumise** reste dans la RNF par le brut, même dite
-non imposable : aucune rubrique livrée n'est dans ce cas, et le moteur ne sait
-pas encore en retirer une (une heure supplémentaire exonérée qu'une compagnie
-ajouterait, par exemple).
+(CGI 80 duodecies) n'y entrent donc pas. Une ligne **soumise** reste dans la RNF par le brut, même dite
+non imposable : aucune rubrique livrée n'est dans ce cas.
 
 *Sources :* CSS L.242-1 pour l'assiette des cotisations, CGI 80 duodecies
 pour les indemnités de rupture, arrêté du 20/12/2002 pour les frais
@@ -126,15 +114,13 @@ suite et ne se récupère pas toujours.
 
 > **La `nature` ne répond pas à cette question.** `salaire`, `frais`,
 > `indemnite`… sont une **étiquette**, utile à la lecture et au tri de
-> l'écran, et rien de plus. Jusqu'au 20/09/2026 un commentaire de
-> `catalogue.py` affirmait le contraire — « c'est la nature qui commande
-> l'assujettissement » — et c'était faux : `soumis` et `imposable` sont
+> l'écran, et rien de plus : `soumis` et `imposable` sont
 > écrits rubrique par rubrique, et rien ne les confronte à la nature. En
 > faire une règle demanderait de lui donner ses bornes, que la loi met
 > partout : un défraiement est hors assiette **dans les limites** de
 > l'arrêté, et y rentre au-delà.
 >
-> **Une exception, d'une ligne hors assiette seulement** (vague 1b, 10/10/2026) :
+> **Une exception, d'une ligne hors assiette seulement** :
 > `soumis` faux une fois posé, la nature dit ce qu'est la ligne pour le
 > **montant net social** (DSN `S21.G00.58.004`, bulletin). `frais` : un
 > remboursement de frais, hors du montant net social ; `indemnite` : un revenu
@@ -198,7 +184,7 @@ heures sont les heures faites.
 brut qui n'est pas du salaire : un défraiement au forfait (07) ou au réel
 (09), un avantage en nature (02 repas, 03 logement, 04 véhicule, 05 NTIC, 06
 autres — `genre`, à la saisie, choisit lequel). Les codes admis sont relevés
-dans le cahier technique et tenus dans `catalogue.AUTRES_BRUTS` : un code
+dans le cahier technique et tenus dans `droit::catalogue::AUTRES_BRUTS` : un code
 inventé est refusé à la construction de la rubrique, et non au retour du
 point de dépôt.
 
@@ -253,73 +239,41 @@ la convention. Le moteur refuse de produire plutôt que d'inventer.
 correctement : faite avec soin depuis leur propre export, elle était fausse à
 4 % — deux rubriques manquantes et un code erroné (`qrs` pour `grs`),
 c'est-à-dire ce qu'on tape. Et elle porte au moins une valeur périmée depuis
-dix ans (le cachet de 8 h). `prive/config/rubriques.json` garde cette copie
-**pour comprendre et vérifier, jamais pour payer** ; un test interdit à un
-module de production de la consulter.
+dix ans (le cachet de 8 h).
 
-**3. Remplir un champ que rien n'applique.** Le piège le plus récent, et le
-plus silencieux des trois. Il a sa section.
+**3. Remplir un champ que rien n'applique.** Le plus silencieux des trois. Il
+a sa section.
 
 ---
 
-## 5. Ce que le catalogue ne tient pas — relevé du 20/09/2026
+## 5. Les champs que rien n'applique
 
-L'audit (`outils/auditer_le_catalogue.py`, Python, retiré au lot K sans être
-porté) relisait le moteur Python et cherchait,
-pour chacun des vingt-huit champs d'une rubrique, qui l'appliquait. **Huit
-n'étaient lus que par la commande qui les affiche.** `plafond_mensuel` a été
-branché le jour même — les 28 cachets, comptés sur le total du mois (§49.8) —
-puis trois autres le lendemain (§51). Il en reste **quatre**.
+Quatre champs d'une rubrique ne sont lus que par ce qui les affiche (la lecture
+du catalogue pour l'écran, `routes/ouverture.rs`) : les remplir ne change ni le
+calcul, ni le bulletin, ni la DSN.
 
 | champ | ce qu'il a l'air de faire | ce qu'il fait |
 |---|---|---|
-| `plafond` | l'unité de proratisation du plafond Urssaf, cinq modes | rien — `plafond.py` ne connaît que le mode « cachet », en dur |
-| `aem` | la nature déclarée à France Travail | rien — l'AEM reçoit des nombres, pas des natures |
-| `dsn_type` | vers quel bloc DSN la ligne part | rien — l'aiguillage se fait par trois autres champs, qui marchent |
-| `annexe` | VIII ou X | rien |
+| `plafond` | l'unité de proratisation du plafond Urssaf, cinq modes | rien : le plafond ne connaît que le mode « cachet » |
+| `aem` | la nature déclarée à France Travail | rien : la compagnie n'émet plus d'AEM |
+| `dsn_type` | vers quel bloc DSN la ligne part | rien : l'aiguillage se fait par `salaire_de_base`, `retabli` et `dsn_bloc52`, qui sont lus |
+| `annexe` | VIII ou X | rien : le cumul compte les heures sans demander de quelle annexe elles viennent, ce qui est juste tant que le seuil est le même pour les deux (décret du 13 juillet 2016) |
 
-Et les trois branchés le 20/09/2026, qui ne sont plus dans cette liste :
+Ceux qui, à côté, sont appliqués et qu'on pourrait croire décoratifs :
 
-| champ | ce qu'il fait maintenant |
+| champ | ce qu'il fait |
 |---|---|
+| `plafond_mensuel` | les 28 cachets, comptés sur le total du mois |
 | `dsn_autres_bruts` | un bloc 54 par ligne qui le porte, code vérifié contre la norme (`engagement/src/calcul.rs`, `declarations/src/dsn.rs`) |
 | `conges_spectacles` | l'assiette `brut_cs`, un sous-ensemble du brut ligne par ligne, que le barème nomme |
-| `arret_de_travail` | `dsn.generer` refuse de produire le mois quand la ligne est là et l'arrêt absent ; depuis le 15/10/2026, la ligne d'un permanent se tire de l'arrêt saisi (`engagement/src/imprevus.rs`), et le refus ne vise plus qu'une ligne écrite à la main |
+| `arret_de_travail` | la ligne d'un permanent se tire de l'arrêt saisi (`engagement/src/imprevus.rs`) ; une telle ligne écrite à la main sans arrêt est refusée |
 
 **Pourquoi c'est grave et pas seulement inélégant.** Celui qui construit une
-rubrique les remplit de bonne foi. Il écrit `dsn_autres_bruts: "09"` pour un
-défraiement au réel, relevé dans la norme, et croit avoir déclaré quelque
-chose. Rien ne part, et rien ne le dit. C'est exactement l'erreur que le §14.1
-annonçait : invisible à la production, invisible au contrôle, découverte des
-mois plus tard par un organisme — ou jamais.
-
-**Ce qui les tenait, du temps du Python.** Chaque champ portait, dans
-`catalogue.CHAMPS`, sa question et son lecteur — ou, s'il n'en avait pas,
-**ce qu'il faudrait pour le brancher**. Un champ mort et muet était refusé.
-L'audit confrontait le tableau au code **dans les deux sens** et échouait si
-l'un des deux bougeait sans l'autre, sous un test ; et `rubriques --detail`
-disait, rubrique par rubrique, ce qu'elle promettait en vain. Rien de cela
-n'est porté (`droit/src/catalogue.rs`, en tête) : le moteur Rust refuse un
-champ inconnu, mais plus rien ne confronte un champ à son lecteur.
-
-Aucun des quatre n'est bloquant aujourd'hui : nos intermittents sont payés
-par des rubriques dont tout ce qui compte est appliqué, et le rejeu de cinq
-ans le prouve. Et **trois des quatre ne se branchent pas par du code** — c'est
-ce que le passage du 20/09 a établi :
-
-- **`plafond`** demande de relever les quatre autres modes de proratisation
-  Urssaf, mode par mode, à leur source, sans jamais toucher au mode
-  « cachet » : c'est le seul qui soit prouvé, calé au centime sur cinq ans ;
-- **`aem`** n'aura de sens que si une AEM redevient ligne à ligne — elle
-  n'est plus émise depuis le 01/06/2026. Le brancher n'est pas la question :
-  **le retirer** en est une ;
-- **`dsn_type`** fait doublon avec `salaire_de_base`, `retabli` et
-  `dsn_bloc52`, qui sont lus. Le brancher voudrait dire les remplacer par
-  lui, pas s'ajouter à eux — un arbitrage, pas une tâche ;
-- **`annexe`** attend un usage : le cumul compte les heures sans demander de
-  quelle annexe elles viennent, et c'est juste tant que le seuil est le même
-  pour les deux (décret du 13 juillet 2016). Il servirait le jour où elles
-  divergeraient, ou pour refuser un cachet à un technicien.
+rubrique les remplit de bonne foi. Il écrit `dsn_type` pour un défraiement,
+relevé dans la norme, et croit avoir déclaré quelque chose. Rien ne part, et
+rien ne le dit : invisible à la production, invisible au contrôle, découvert
+des mois plus tard par un organisme — ou jamais. Le moteur refuse un champ
+inconnu (`droit/src/catalogue.rs`), pas un champ connu que rien ne lit.
 
 ---
 
@@ -336,7 +290,7 @@ qui compte pour une journée de travail.
 | Q4 soumis / imposable | `true` / `true` | c'est du salaire, CSS L.242-1 |
 | Q5 heures | **pas de `heures_forfait`** | 5 h faites sont 5 h ; aucun texte n'en accorde d'autres |
 | Q5 compte_pour | `droits_et_montant` | ce n'est pas de l'enseignement |
-| Q6 déclaration | **rien** | les champs existent, rien ne les applique |
+| Q6 déclaration | **rien** | c'est du salaire : il part dans le brut, sans code à lui |
 | Q7 source | le texte qui fixe la durée de service, IDCC 3090 | jamais vide |
 
 ```json
@@ -360,12 +314,12 @@ configuration de la compagnie : chaque champ s'y écrit
 `[{"valeur": …}, {"depuis": "AAAA-MM-JJ", "valeur": …}]` (la première valeur
 de tout temps, chaque suivante à partir de sa date), et le calcul lit la
 rubrique à la date de la période payée (`catalogue::catalogue(racine, jour)`). Si le filage relevait d'un texte de
-branche, sa place serait dans `moteur/rubriques-base.json` — même partage que
+branche, sa place serait dans `logiciel/donnees/rubriques-base.json` — même partage que
 le barème.
 
 ---
 
-## 7. Ce qui n'est toujours pas élucidé
+## 7. Ce qui reste une hypothèse
 
 **Le `#` final de CoolPaie.** Vingt-et-une rubriques sur 81 le portent :
 activité partielle, primes exceptionnelles, heures supplémentaires. L'hypothèse
@@ -377,5 +331,4 @@ catalogue n'en dépend pas.
 seulement portaient un code, et ces cinq-là sont adossées à `S21.G00.54.001`
 de la norme, valeur par valeur (voir `reference-privee/anatomie-rubrique-coolpaie.md` : relevé sur une compagnie réelle, pièce hors du dépôt public, dépôt privé). Les
 autres alimentent le brut, déclaré globalement. La correspondance pour une
-rubrique **neuve** reste à établir depuis NEODeS, et c'est le §5 qui dit
-pourquoi ça ne presse pas encore.
+rubrique **neuve** s'établit depuis NEODeS.
