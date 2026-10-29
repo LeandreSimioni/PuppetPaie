@@ -226,18 +226,26 @@ pub(crate) fn lire(ctx: &Contexte, an: i64) -> R<Value> {
     }))
 }
 
-/// `taux-atmp` : `{"annee"}` lit ; `{"annee", "code_risque", "valeur"?}` pose d'abord (`poser`), puis lit.
+/// `taux-atmp` : `{"annee"}` lit ; `{"annee", "code_risque"?, "valeur"?}` pose d'abord (`poser`), puis lit. Un taux donne
+/// seul garde le code deja pose pour l'annee ; sans code pose, il se refuse.
 pub(crate) fn route(ctx: &Contexte, charge: &Value) -> R<Value> {
     let an = crate::routes::fiches::entier(crate::routes::fiches::exiger(charge, "annee")?)?;
-    if let Some(code) = charge.get("code_risque").filter(|c| vrai(c)) {
-        let Value::String(code) = code else {
-            return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(code))));
-        };
+    let code = match charge.get("code_risque").filter(|c| vrai(c)) {
+        Some(Value::String(c)) => Some(c.clone()),
+        Some(autre) => return Err(erreur("AttributeError", socle::fichiers::attendu("un texte", nom_type(autre)))),
+        None if charge.get("valeur").is_some_and(vrai) => {
+            let pose = crate::routes::fiches::lire_tolerant(&surcouche(&ctx.racine, an))?
+                .and_then(|v| v.pointer("/taux_atmp/code_risque").filter(|c| vrai(c)).map(valeur_en_texte));
+            Some(pose.ok_or_else(|| {
+                Echec::from("Le code risque manque : il se dit avec le taux, tel que la notification de la CARSAT les écrit.".to_string())
+            })?)
+        }
+        None => None,
+    };
+    if let Some(code) = code {
         let valeur = taux_saisi(charge.get("valeur"))?;
         let source = format!("Saisi dans PuppetPaie le {} (notification AT/MP).", aujourdhui_jj_mm_aaaa());
-        poser(ctx, an, code, valeur, &source)?;
-    } else if charge.get("valeur").is_some_and(vrai) {
-        return Err(Echec::from("Le code risque manque : il se dit avec le taux, tel que la notification de la CARSAT les écrit.".to_string()));
+        poser(ctx, an, &code, valeur, &source)?;
     }
     lire(ctx, an)
 }

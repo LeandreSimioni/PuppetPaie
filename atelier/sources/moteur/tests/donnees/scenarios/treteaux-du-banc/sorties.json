@@ -443,8 +443,7 @@
         {
           "valeur": {
             "civilite": "01",
-            "prenom_affichage": "Adolphe",
-            "nom_affichage": "Appia",
+            "nom_prenom_affichage": "Appia Adolphe",
             "tel": "0100000052",
             "email": "direction@les-treteaux.invalid",
             "nom_prenom": "APPIA ADOLPHE"
@@ -1459,13 +1458,13 @@
                     "existe racine:config/effectifs.json": "non",
                     "existe racine:config/pas.json": "oui",
                     "existe racine:config/rubriques-compagnie.json": "non",
-                    "fiches": "72ea01484cb360864a5a837c8d52011c72b0378ae62875afe78cfa676a554cfb",
-                    "fichier code:baremes/2026.json": "48a2a3b8ebf753e6c097b1254411f147b91c3173c5b2fcca3d90ac93568eae66",
+                    "fiches": "9b984b7b3c575bbe1c616b6634916956b4f8919fa2395025849b8b66075dd973",
+                    "fichier code:baremes/2026.json": "b6a9085a16551f5976fb738ba7bd60977e8490b2ce2d1e49938c2e5c1d75387b",
                     "fichier code:contrats-base.json": "344ea9e2ea1f74437c1c1bb6db48caa141718038aa5278f2d9a9ba6123a3e409",
                     "fichier code:emplois-base.json": "18fb270dd02143bdf05ac86c197bdcc0ad9e806151a23ec684c36891fd326740",
                     "fichier code:minima-conventionnels.json": "2ef600adf478c5c235821d4847555f8b469acfbd29fae8cb863d38369535e882",
                     "fichier code:rubriques-base.json": "9d560f40f8c1cf8f2c73a18cb13cfb066fd758fe8d1b4b9cbcf9e6fede56245b",
-                    "fichier racine:config/baremes/2026.json": "aa67ef6e2d998751b6bc3bf9e8ab7f6a334747edcbad4688a7d7ebb09d697d61",
+                    "fichier racine:config/baremes/2026.json": "18a1fd29e339afc1246fcefd6720bad48221693ac22780a790259021e260d045",
                     "fichier racine:config/pas.json": "369e7ddb77a5d443cd25a0ae2ccff0df37a0dd3981c84b47943aa9ec87214484",
                     "moteur": "<moteur>",
                     "saisie 2026-11": "f28d3244c6199dbe6399317ea93818581c2939f2a97fc35f21ed8e39db950417:81c41e34ce1ece7ea650a40407819c56f040cca78e87077666a76f58e4fd5949"
@@ -2679,6 +2678,7 @@
     "config/avant/entreprise.json.20261102-090015",
     "config/avant/salaries.json.20261102-090030",
     "config/avant/spectacles.json.20261102-090035",
+    "config/baremes/avant/2026.json.20261102-090007",
     "config/baremes/avant/2026.json.20261102-090008"
   ]
 }
