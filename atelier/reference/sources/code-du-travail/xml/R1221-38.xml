@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ARTICLE>
+<META>
+<META_COMMUN>
+<ID>LEGIARTI000048286385</ID>
+<ANCIEN_ID/>
+<ORIGINE>LEGI</ORIGINE>
+<URL>article/LEGI/ARTI/00/00/48/28/63/LEGIARTI000048286385.xml</URL>
+<NATURE>Article</NATURE>
+</META_COMMUN>
+<META_SPEC>
+<META_ARTICLE>
+
+<NUM>R1221-38</NUM>
+
+<ETAT>VIGUEUR</ETAT>
+
+<DATE_DEBUT>2023-11-01</DATE_DEBUT>
+<DATE_FIN>2999-01-01</DATE_FIN>
+
+
+
+<TYPE>AUTONOME</TYPE>
+</META_ARTICLE>
+</META_SPEC>
+</META>
+<CONTEXTE>
+<TEXTE autorite="" cid="LEGITEXT000006072050" date_publi="2999-01-01" date_signature="2999-01-01" ministere="" nature="CODE" nor="" num="" num_parution_jo="">
+<TITRE_TXT c_titre_court="Code du travail" debut="1973-01-03" fin="2999-01-01" id_txt="LEGITEXT000006072050">Code du travail</TITRE_TXT>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018464861">Partie réglementaire  </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018538094">Première partie : Les relations individuelles de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537950">Livre II : Le contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537944">Titre II : Formation et exécution du contrat de travail </TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2999-01-01" id="LEGISCTA000018537942">Chapitre Ier : Formation du contrat de travail</TITRE_TM>
+<TM>
+<TITRE_TM debut="2008-05-01" fin="2011-08-01" id="LEGISCTA000018537868">Section 4 : Autres formalités</TITRE_TM>
+<TITRE_TM debut="2011-08-01" fin="2999-01-01" id="LEGISCTA000024214280">Section 3 : Autres formalités</TITRE_TM>
+<TM>
+<TITRE_TM debut="2011-08-01" fin="2023-11-01" id="LEGISCTA000024199974">Sous-section 3 : Informations en cas d'expatriation</TITRE_TM>
+<TITRE_TM debut="2023-11-01" fin="2999-01-01" id="LEGISCTA000048288644">Sous-section 3 : Informations délivrées au salarié</TITRE_TM>
+<TM>
+<TITRE_TM debut="2023-11-01" fin="2999-01-01" id="LEGISCTA000048286370">Paragraphe 3 : Dispositions communes&#13;
+</TITRE_TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TM>
+</TEXTE>
+</CONTEXTE>
+
+<VERSIONS>
+<VERSION etat="VIGUEUR">
+<LIEN_ART debut="2023-11-01" etat="VIGUEUR" fin="2999-01-01" id="LEGIARTI000048286385" num="R1221-38" origine="LEGI"/>
+</VERSION>
+</VERSIONS>
+<NOTA>
+<CONTENU>
+<p>Conformément au II de l'article 7 du décret n° 2023-1004 du 30 octobre 2023, ces dispositions entrent en vigueur le 1er novembre 2023.</p>
+</CONTENU>
+</NOTA>
+<BLOC_TEXTUEL>
+<CONTENU>
+<p>Un arrêté du ministre chargé du travail fixe des modèles de documents visant à faciliter la mise en œuvre des dispositions de la présente sous-section.</p>
+</CONTENU>
+</BLOC_TEXTUEL>
+<LIENS>
+<LIEN cidtexte="JORFTEXT000048284124" datesignatexte="2023-10-30" id="LEGIARTI000048285597" naturetexte="DECRET" nortexte="MTRT2317355D" num="1" numtexte="2023-1004" sens="cible" typelien="CREE">Décret n°2023-1004 du 30 octobre 2023 - art. 1</LIEN>
+<LIEN cidtexte="JORFTEXT000049723984" datesignatexte="2024-06-03" id="LEGITEXT000049729437" naturetexte="ARRETE" nortexte="TSST2413775A" num="" numtexte="" sens="cible" typelien="CITATION">Arrêté du 3 juin 2024 (V)</LIEN>
+<LIEN cidtexte="JORFTEXT000049723984" datesignatexte="2024-06-03" id="LEGIARTI000049729451" naturetexte="ARRETE" nortexte="TSST2413775A" num="1" numtexte="" sens="cible" typelien="CITATION">Arrêté du 3 juin 2024 - art. 1 (V)</LIEN>
+<LIEN cidtexte="LEGITEXT000006072050" datesignatexte="2999-01-01" id="LEGISCTA000024199963" naturetexte="CODE" nortexte="" num="" numtexte="" sens="source" typelien="CITATION">Code du travail -  Sous-section 3 : Informations délivrées au salarié (V)</LIEN>
+</LIENS>
+</ARTICLE>

@@ -107,3 +107,26 @@ en vigueur depuis le 02/01/2020).
 **Où le moteur s'en sert** : `atelier/sources/envois/src/organismes_simules.rs` (`effectif_annuel`), le compte rendu de
 nature 118 que le simulateur rend à une compagnie fictive ; `droit/src/contexte.rs` (`Effectif::atteint`) pour la règle
 des cinq ans.
+
+## Le mode de tarification des AT/MP : D. 242-6-2 et D. 242-6-14 (relevé du 29/10/2026)
+
+Domaine `atmp_tarification` de `moteur/src/atelier/releve/codes/textes.rs`, relevé le 29/10/2026 (`moteur releve-codes
+moissonner`, puis `rapport`) : `articles-20261029.md`, section « Le mode de tarification des accidents du travail et
+maladies professionnelles » ; `xml/D242-6-2.xml`, `xml/D242-6-14.xml`.
+
+- **D. 242-6-2** (`LEGIARTI000034668407`, en vigueur depuis le 01/01/2018) : « Le mode de tarification est déterminé en
+  fonction de l'effectif global de l'entreprise, tel que défini à l'article R. 130-1, que celle-ci comporte un ou plusieurs
+  établissements : 1° La tarification collective est applicable aux entreprises dont l'effectif est inférieur à 20
+  salariés ; 2° La tarification individuelle est applicable aux entreprises dont l'effectif est au moins égal à 150
+  salariés ; 3° La tarification mixte est applicable aux entreprises dont l'effectif est au moins égal à 20 et inférieur à
+  150. »
+- **D. 242-6-14** (`LEGIARTI000006735892`, en vigueur depuis le 08/07/2010) : « I. - Les établissements exerçant une
+  activité dont la liste est fixée par arrêté du ministre chargé de la sécurité sociale conservent un taux de cotisation
+  collectif quel que soit leur effectif de salariés ou celui de l'entreprise dont ils relèvent. II. - Les travailleurs à
+  domicile des entreprises constituent des établissements distincts auxquels sont applicables les taux collectifs. »
+
+Ce qu'on en lit : l'arrêté annuel de tarification marque « TC » les activités du I (son article 5) ; pour elles, le taux
+est le taux collectif de l'arrêté, quel que soit l'effectif. Hors « TC », sous 20 salariés (effectif de R. 130-1), le taux
+est aussi collectif.
+
+**Où le moteur s'en sert** : nulle part encore (déposés pour que la règle du taux AT/MP s'écrive dessus).
