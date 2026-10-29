@@ -900,11 +900,8 @@ impl<'a> Moteur<'a> {
         }
         let mut calculees = lignes.into_iter();
         let mut out: Vec<Value> = Vec::new();
-        // Les lignes a elles des engagements jamais valides : leur rang se lit dans l'ordre de l'ecran.
-        let mut a_elles: Vec<usize> = Vec::new();
         for o in &a_l_ecran {
             let mut ligne = if o.est_a_completer() {
-                a_elles.push(out.len());
                 self.ligne_a_completer(mois, o)?
             } else {
                 match calculees.next() {
@@ -918,9 +915,10 @@ impl<'a> Moteur<'a> {
             out.push(ligne);
         }
         out.extend(calculees);
-        // Son rang parmi les engagements du meme salarie et du meme jour, dans l'ordre de l'ecran : celui que la page lui
-        // donne.
-        for i in a_elles {
+        // Le rang de chacun parmi les engagements du meme salarie et du meme jour, dans l'ordre de l'ecran, ceux a
+        // completer compris : celui que la page lui donne, et que `valider-engagement` lit dans le meme ordre
+        // (`routes/engagement.rs`, `designe_a_l_ecran`).
+        for i in 0..out.len() {
             let rang = out[..i].iter().filter(|l| l["salarie"] == out[i]["salarie"] && l["debut"] == out[i]["debut"]).count();
             out[i]["rang"] = json!(rang);
         }

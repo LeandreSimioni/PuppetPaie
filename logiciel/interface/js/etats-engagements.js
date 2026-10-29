@@ -177,6 +177,15 @@ async function boitePieces(ligne, acte) {
   });
 }
 
+/** Pose les états d'une carte, seulement s'ils ont changé. Le champ qu'on quitte en cliquant « Valider » se
+ *  relit (`change`) et repeint la carte entre l'appui et le relâché du bouton : refait, le bouton n'aurait pas
+ *  reçu le clic. */
+function poserEtats(cible, html) {
+  if (cible._etatsPeints === html) return;
+  cible.innerHTML = html;
+  cible._etatsPeints = html;
+}
+
 /** Peint les états sur les blocs. Rappelée après chaque frappe : changer le
  *  salarié ou les jours change l'engagement que le bloc désigne. */
 function peindreEtats() {
@@ -191,15 +200,15 @@ function peindreEtats() {
     avisDpaeDeplacee(div, ps, lignes.length === 1 ? lignes[0] : null);
     const connue = ps.length > 0 && lignes.length === ps.length;
     div.classList.toggle("enregistree", connue);
-    if (!ETATS_ENGAGEMENTS) { cible.innerHTML = ""; return; }
+    if (!ETATS_ENGAGEMENTS) { poserEtats(cible, ""); return; }
     if (!connue) {
       fermerEdition(div, false);
       if (!salariesDuBloc(div).length) {
         // Sans salarié, ce bloc n'est pas un engagement : il n'est même pas
         // enregistré. Le dire, plutôt que de laisser un bloc muet qu'on
         // ne peut ni valider ni faire partir.
-        cible.innerHTML = `<p class="etats-absent">Choisir qui est engagé.</p>
-           <div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`;
+        poserEtats(cible, `<p class="etats-absent">Choisir qui est engagé.</p>
+           <div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`);
         brancherRetirer(div);
         return;
       }
@@ -212,7 +221,11 @@ function peindreEtats() {
       // Plus de message ici : « Pas encore dans la saisie
       // enregistrée… » s'affichait en orange sur chaque carte à l'ouverture,
       // le temps d'un aller-retour, et se lisait comme un souci.
-      cible.innerHTML = `<div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`;
+      // Une carte à valider dont on vient de retaper un fait (son début, son salarié) garde son bouton jusqu'à la
+      // relecture qui suit l'enregistrement : le clic qui quitte le champ doit le trouver (`validerLaCarte`).
+      if (div._ligne && !div._ligne.valide && cible.querySelector(".v-basculer[data-valide='1']")
+          && JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) return;
+      poserEtats(cible, `<div class="validation"><span class="boutons">${BOUTON_RETIRER}</span></div>`);
       brancherRetirer(div);
       return;
     }
@@ -225,9 +238,9 @@ function peindreEtats() {
         div._dpaeFaite = { salarie: ligne.salarie, debut: ligne.debut,
                            nom: ligne.nom, quand: dp.fait };
       }
-      cible.innerHTML = `<span class="etats-qui">${echapper(ligne.nom)}
+      poserEtats(cible, `<span class="etats-qui">${echapper(ligne.nom)}
           <span class="discret">— ${echapper(pourQuoi(ligne))}</span></span>`
-        + bandeauEtats(ligne) + bandeauValidation(ligne);
+        + bandeauEtats(ligne) + bandeauValidation(ligne));
       brancherValidation(div, ligne);
       brancherRecu(div);
       fermerEdition(div, !!ligne.valide);
@@ -237,7 +250,7 @@ function peindreEtats() {
     // aurait été démultiplié. Si l'une l'a été ailleurs (un autre onglet),
     // on démultiplie maintenant et on repeint.
     if (lignes.some((l) => l.valide)) { dedoubler(div); refaire = true; return; }
-    cible.innerHTML = lignes.map((l) =>
+    poserEtats(cible, lignes.map((l) =>
       `<span class="etats-qui plusieurs">${echapper(l.nom)}
          <span class="discret">— ${echapper(pourQuoi(l))}</span></span>` + bandeauEtats(l))
       .join("")
@@ -247,7 +260,7 @@ function peindreEtats() {
              ${BOUTON_RETIRER}
              <button class="secondaire v-valider-tout">Valider pour les ${lignes.length}</button>
            </span>
-         </div>`;
+         </div>`);
     cible.querySelector(".v-valider-tout").onclick = (ev) => {
       ev.preventDefault();
       validerPlusieurs(div, lignes);
@@ -281,10 +294,10 @@ async function validerPlusieurs(div, lignes) {
   await dessinerEtatsDesEngagements(mois);
 }
 
-/** Lit `etat-par-engagement` et repeint. */
+/** Lit `etat-par-engagement` et repeint. Pendant la lecture, les cartes gardent les états qu'elles montrent : une
+ *  frappe qui repeint entre-temps ne leur retire pas leurs boutons. */
 async function dessinerEtatsDesEngagements(mois) {
-  ETATS_ENGAGEMENTS = null;
-  if (!mois) { peindreEtats(); return; }
+  if (!mois) { ETATS_ENGAGEMENTS = null; peindreEtats(); return; }
   try {
     const r = await api("etat-par-engagement", { mois });
     ETATS_ENGAGEMENTS = {};
@@ -371,10 +384,25 @@ function brancherValidation(div, ligne) {
   const b = div.querySelector(".v-basculer");
   if (b) b.onclick = (ev) => {
     ev.preventDefault();
-    if (b.dataset.valide === "1") return basculerValidation(ligne, true);
+    if (b.dataset.valide === "1") return validerLaCarte(div, ligne);
     boiteModifier(ligne);
   };
   brancherRetirer(div);
+}
+
+/** « Valider l'engagement » valide ce que la carte montre : ce qu'on vient d'y taper s'enregistre d'abord (l'écriture
+ *  part une seconde après la frappe), les états se relisent avec, puis la carte dit quel engagement elle désigne
+ *  (un début retapé en change). Une saisie que le moteur n'enregistre pas ne se valide pas : la note de la saisie dit
+ *  pourquoi. */
+async function validerLaCarte(div, ligne) {
+  clearTimeout(MINUTEUR_SAISIE);
+  await enregistrerSaisie(false);
+  if (JSON.stringify(saisieCourante()) !== DERNIERE_ECRITE) {
+    dire(document.getElementById("note-saisie").textContent, "erreur");
+    return;
+  }
+  const ps = engagementsSaisisDuBloc(div);
+  return basculerValidation((ps.length === 1 && etatDEngagement(ps[0])) || ligne, true);
 }
 
 /** Le bouton « Retirer cet engagement » d'un bloc, quel que soit son état. Le moteur
