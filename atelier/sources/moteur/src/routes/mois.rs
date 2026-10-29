@@ -1919,6 +1919,36 @@ pub(crate) fn manques_de_la_saisie(ctx: &Contexte, data: &Value) -> Vec<Option<S
     manques
 }
 
+/// CE QUI MANQUAIT, RELU APRES UNE ECRITURE : un fait se complete aussi hors de la saisie (la sante sur la fiche, le
+/// contrat de prevoyance de l'entreprise). Chaque mois ou un engagement attend un fait (`engagement::stock::A_COMPLETER`)
+/// se recalcule sous la configuration de ce mois ; ce qui manque se reecrit s'il a change. Rien d'autre ne change : la
+/// saisie reecrite est celle que l'ecran montre. Sans engagement qui attend, rien ne se calcule.
+pub(crate) fn relire_les_manques(base: &Contexte) -> R<()> {
+    let mut mois: Vec<String> = engagement::stock::objets(&base.racine)
+        .map_err(Echec::from)?
+        .iter()
+        .filter(|o| o.a_completer().is_some())
+        .filter_map(|o| o.brut.get(engagement::stock::A_COMPLETER)?.get("mois")?.as_str().map(String::from))
+        .collect();
+    mois.sort();
+    mois.dedup();
+    for m in mois {
+        let ctx = base.du_mois(&m)?;
+        let Some(vue) = engagement::stock::vue_a_l_ecran(&ctx.racine, &m).map_err(Echec::from)? else { continue };
+        let dits: Vec<Option<String>> = vue["engagements"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|e| e.get(engagement::stock::A_COMPLETER).and_then(Value::as_str).map(String::from))
+            .collect();
+        let manques = manques_de_la_saisie(&ctx, &vue);
+        if manques != dits {
+            engagement::stock::ecrire_vue_du_mois(&ctx, &m, &vue, &manques).map_err(plain)?;
+        }
+    }
+    Ok(())
+}
+
 fn centimes(x: Decimal) -> Decimal {
     let mut r = x.round_dp(2);
     r.rescale(2);

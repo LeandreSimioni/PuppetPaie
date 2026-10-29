@@ -90,6 +90,8 @@ fn valider_engagement(ctx: &Contexte, charge: &Value) -> R<Value> {
     let valide = booleen(charge, "valide", true);
     let confirme = booleen(charge, "confirme", false);
     // Il lui manque un fait : la validation dit lequel, et rien n'est ecrit. Il n'a jamais ete valide : rien a modifier.
+    // Ce qui manquait se relit d'abord : le fait a pu se dire depuis, sur sa fiche.
+    crate::routes::mois::relire_les_manques(ctx)?;
     if let Some(o) = incomplet_designe(ctx, charge)? {
         if !valide {
             return Ok(json!({"salarie": salarie, "debut": debut, "valide": Value::Null}));

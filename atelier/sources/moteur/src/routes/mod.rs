@@ -186,6 +186,13 @@ pub fn commande(o: &HashMap<String, String>, entree: &str) -> Resultat<Value> {
         r if crate::compagnie::administrateur::ROUTES.contains(&r) => crate::compagnie::administrateur::route(o, &ctx, r, &charge),
         autre => return Err(format!("route inconnue : {}", autre)),
     };
+    // UN FAIT QUI MANQUAIT A UN ENGAGEMENT a pu se dire ailleurs que dans sa saisie (une fiche, l'entreprise) : apres une
+    // ecriture, ce qui manque se relit (`mois::relire_les_manques`), sous une configuration relue. La saisie l'a deja dit.
+    if rendu.is_ok() && route != "enregistrer-saisie" && (est_une_ecriture(route) || route == crate::compagnie::organismes::ROUTE_ECRIRE) {
+        if let Ok(base) = contexte(o) {
+            let _ = mois::relire_les_manques(&base);
+        }
+    }
     // UN ACTE REFUSE A UNE COMPAGNIE QUI N'A PAS FINI DE DEMARRER dit tout ce qui lui manque, pas un manque a la fois.
     let rendu = match rendu {
         Err(Echec { classe, message }) if est_une_ecriture(route) && classe != Some(crate::compagnie::bridage::CLASSE_REFUS_D_ENVOI) && classe != Some(crate::routes::engagement::CLASSE_DOCUMENTS_PARTIS) && classe != Some(crate::routes::engagement::CLASSE_ENGAGEMENT_PARTI) && !message.trim_start().starts_with('{') => {
