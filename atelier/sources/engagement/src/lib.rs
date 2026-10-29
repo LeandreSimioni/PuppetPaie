@@ -1010,10 +1010,9 @@ pub(crate) fn engagements(
         // Un contrat d'usage commence dans l'ancien logiciel et continue ici : les jours du contrat entier comptent ceux
         // que les pieces importees attestent (`importe::Importe::jours_du_contrat_continue`).
         let continue_ = match (e.get("jours_contrat"), e.as_object()) {
-            (None, Some(o)) if !nat.mensuelle() => crate::importe::continue_par(&ctx.racine, o)?
-                .filter(|_| crate::debut_brut(e).get(..7).is_some_and(|m| m < mois_dit.as_str()))
-                .and_then(|i| i.jours_du_contrat_continue(jours_du_contrat(e)))
-                .map(Value::from),
+            (None, Some(o)) if !nat.mensuelle() && crate::debut_brut(e).get(..7).is_some_and(|m| m < mois_dit.as_str()) => {
+                crate::importe::continue_par(&ctx.racine, o)?.and_then(|i| i.jours_du_contrat_continue(jours_du_contrat(e))).map(Value::from)
+            }
             _ => None,
         };
         poser("jours_contrat", e.get("jours_contrat").or(continue_.as_ref()));
